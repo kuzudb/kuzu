@@ -1,0 +1,10 @@
+workspace(name = "graphflowDB")
+
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+
+git_repository(
+    name = "gtest",
+    commit = "a4ab0abb93620ce26efad9de9296b73b16e88588",
+    remote = "https://github.com/google/googletest.git",
+    shallow_since = "1599779370 -0400",
+)
