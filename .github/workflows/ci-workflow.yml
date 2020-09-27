@@ -1,0 +1,30 @@
+name: CI
+
+on: [push, pull_request]
+
+env:
+        USE_BAZEL_VERSION: 3.5.0
+
+jobs:
+  checks:
+    name: run
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+
+    - name: bazel-info
+      run: bazel --output_base=/home/runner/op info
+
+    - name: build
+      run: bazel --output_base=/home/runner/op build //...:all
+
+    - name: test
+      run: bazel --output_base=/home/runner/op test --combined_report=lcov //...:all
+
+      #    - name: coveralls 
+      #uses: coverallsapp/github-action@master
+      #with:
+      #  github-token: ${{ secrets.GITHUB_TOKEN }}
+      #  path-to-lcov: /home/runner/op/execroot/graphflowDB/bazel-out/_coverage/_coverage_report.dat
+
+
