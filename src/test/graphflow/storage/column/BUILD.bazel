@@ -1,0 +1,12 @@
+cc_test(
+    name = "Column_test",
+    srcs = ["Column_test.cpp"],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/main/graphflow/storage:Column",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
