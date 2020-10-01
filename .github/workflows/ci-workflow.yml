@@ -10,7 +10,7 @@ jobs:
     name: run
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v2
 
     - name: bazel-info
       run: bazel --output_base=/home/runner/op info
@@ -21,10 +21,8 @@ jobs:
     - name: test
       run: bazel --output_base=/home/runner/op test --combined_report=lcov //...:all
 
-      #    - name: coveralls 
+      #    - name: coveralls
       #uses: coverallsapp/github-action@master
       #with:
       #  github-token: ${{ secrets.GITHUB_TOKEN }}
       #  path-to-lcov: /home/runner/op/execroot/graphflowDB/bazel-out/_coverage/_coverage_report.dat
-
-
