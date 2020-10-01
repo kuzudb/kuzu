@@ -1,6 +1,0 @@
-cc_library(
-    name = "Column",
-    srcs = ["include/Column.h"],
-    visibility = ["//visibility:public"],
-    deps = ["//src/main/graphflow/utils:types"],
-)

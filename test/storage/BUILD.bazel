@@ -1,11 +1,13 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
 cc_test(
-    name = "Column_test",
-    srcs = ["Column_test.cpp"],
+    name = "column_test",
+    srcs = ["column_test.cpp"],
     copts = [
         "-Iexternal/gtest/include",
     ],
     deps = [
-        "//src/main/graphflow/storage:Column",
+        "//src/storage:column",
         "@gtest",
         "@gtest//:gtest_main",
     ],

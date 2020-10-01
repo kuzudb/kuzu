@@ -1,22 +1,20 @@
-#ifndef GRAPHFLOW_STORAGE_NODEPROPERTY_COLUMN_COLUMN_H_
-#define GRAPHFLOW_STORAGE_NODEPROPERTY_COLUMN_COLUMN_H_
-
-#include <cstdint>
+#ifndef GRAPHFLOW_STORAGE_COLUMN_H_
+#define GRAPHFLOW_STORAGE_COLUMN_H_
 
 #include <bits/unique_ptr.h>
 
-#include "src/main/graphflow/utils/types.h"
+#include "src/common/include/types.h"
 
-using namespace graphflow::utils;
+using namespace graphflow::common;
 
 namespace graphflow {
 namespace storage {
 
-template<class T>
+template<typename T>
 class Column {
 
     const static uint32_t MAX_NUM_ELEMENTS_IN_SLOT = INT16_MAX /*2 << 16 -1*/;
-    utils::gfLabel_t nodeLabel;
+    gfLabel_t nodeLabel;
     T **slots;
 
 public:
@@ -34,12 +32,13 @@ public:
     }
 
     ~Column() {
-
         for (auto i = 0u; i < sizeof(slots) / sizeof(nullptr); i++) {
             delete[](slots[i]);
         }
         delete[](slots);
     }
+
+    inline gfLabel_t getNodeLabel() { return nodeLabel; }
 
     inline T getVal(gfNodeOffset_t offset) {
         return slots[getSlotIdx(offset)][getOffsetInSlot(offset)];
@@ -58,12 +57,12 @@ public:
     }
 };
 
-typedef Column<utils::gfInt_t> ColumnInteger;
-typedef Column<utils::gfDouble_t> ColumnDouble;
-typedef Column<utils::gfBool_t> ColumnBoolean;
-typedef Column<utils::gfString_t> ColumnString;
+typedef Column<gfInt_t> ColumnInteger;
+typedef Column<gfDouble_t> ColumnDouble;
+typedef Column<gfBool_t> ColumnBoolean;
+typedef Column<gfString_t> ColumnString;
 
 } // namespace storage
 } // namespace graphflow
 
-#endif // GRAPHFLOW_STORAGE_NODEPROPERTY_COLUMN_COLUMN_H_
+#endif // GRAPHFLOW_STORAGE_COLUMN_H_
