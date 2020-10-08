@@ -82,7 +82,7 @@ IncludeCategories:
   - Regex:    '^<'
     Priority: 40
   # Your projects h files.
-  - Regex:    '^"src/main/graphflow'
+  - Regex:    '^"src/'
     Priority: 50
   # Other libraries h files (with quotes).
   - Regex:    '^"'

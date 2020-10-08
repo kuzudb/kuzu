@@ -1,0 +1,11 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_binary(
+    name = "data_loader",
+    srcs = ["data_loader.cpp"],
+    deps = [
+        "//src/storage:graph_loader",
+        "@boost//:program_options",
+        "@gabime_spdlog",
+    ],
+)

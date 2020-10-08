@@ -13,13 +13,13 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: bazel-info
-      run: bazel --output_base=/home/runner/op info
+      run: bazel info
 
     - name: build
-      run: bazel --output_base=/home/runner/op build //...:all
+      run: CC=gcc-9 bazel build --cxxopt='-std=c++2a' //...:all
 
     - name: test
-      run: bazel --output_base=/home/runner/op test --combined_report=lcov //...:all
+      run: CC=gcc-9 bazel test --cxxopt='-std=c++2a' //...:all
 
       #    - name: coveralls
       #uses: coverallsapp/github-action@master

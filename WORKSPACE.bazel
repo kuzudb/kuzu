@@ -1,6 +1,7 @@
 workspace(name = "graphflowDB")
 
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 git_repository(
     name = "gtest",
@@ -8,3 +9,30 @@ git_repository(
     remote = "https://github.com/google/googletest.git",
     shallow_since = "1599779370 -0400",
 )
+
+http_archive(
+    name = "gabime_spdlog",
+    build_file = "gabime_spdlog.BUILD",
+    sha256 = "eed0095a1d52d08a0834feda146d4f9148fa4125620cd04d8ea57e0238fa39cd",
+    strip_prefix = "spdlog-1.8.1/include",
+    url = "https://github.com/gabime/spdlog/archive/v1.8.1.zip",
+)
+
+http_archive(
+    name = "nlohmann_json",
+    build_file = "nlohmann_json.BUILD",
+    sha256 = "6bea5877b1541d353bd77bdfbdb2696333ae5ed8f9e8cc22df657192218cad91",
+    strip_prefix = "single_include",
+    url = "https://github.com/nlohmann/json/releases/download/v3.9.1/include.zip",
+)
+
+git_repository(
+    name = "com_github_nelhage_rules_boost",
+    commit = "1e3a69bf2d5cd10c34b74f066054cd335d033d71",
+    remote = "https://github.com/nelhage/rules_boost",
+    shallow_since = "1591047380 -0700",
+)
+
+load("@com_github_nelhage_rules_boost//:boost/boost.bzl", "boost_deps")
+
+boost_deps()
