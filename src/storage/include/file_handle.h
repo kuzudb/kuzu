@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "src/common/include/storage_constants.h"
+#include "src/common/include/configs.h"
 
 using namespace std;
 

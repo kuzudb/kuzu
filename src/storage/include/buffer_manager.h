@@ -5,7 +5,7 @@
 #include <mutex>
 #include <vector>
 
-#include "src/common/include/storage_constants.h"
+#include "src/common/include/configs.h"
 #include "src/storage/include/file_handle.h"
 
 using namespace std;

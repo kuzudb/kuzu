@@ -6,18 +6,26 @@
 #include "src/storage/include/catalog.h"
 
 namespace graphflow {
+namespace common {
+
+class GraphLoader;
+
+} // namespace common
+} // namespace graphflow
+
+namespace graphflow {
 namespace storage {
 
 class Graph {
 
-    std::unique_ptr<Catalog> catalog;
-    std::unique_ptr<std::vector<uint64_t>> numNodesPerLabel, numRelsPerLabel;
+    friend class graphflow::common::GraphLoader;
 
-public:
-    Graph(std::unique_ptr<Catalog> catalog, std::unique_ptr<std::vector<uint64_t>> numNodesPerLabel,
-        std::unique_ptr<std::vector<uint64_t>> numRelsPerLabel)
-        : catalog(std::move(catalog)), numNodesPerLabel(std::move(numNodesPerLabel)),
-          numRelsPerLabel(std::move(numRelsPerLabel)){};
+private:
+    Graph(){};
+
+private:
+    std::unique_ptr<Catalog> catalog;
+    std::vector<uint64_t> numNodesPerLabel, numRelsPerLabel;
 };
 
 } // namespace storage

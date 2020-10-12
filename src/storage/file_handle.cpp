@@ -5,6 +5,8 @@
 
 #include <limits>
 
+using namespace graphflow::common;
+
 namespace graphflow {
 namespace storage {
 

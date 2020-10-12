@@ -8,17 +8,7 @@ cc_library(
 )
 
 cc_library(
-    name = "storage_constants",
-    hdrs = ["include/storage_constants.h"],
+    name = "configs",
+    hdrs = ["include/configs.h"],
     visibility = ["//visibility:public"],
-)
-
-cc_library(
-    name = "csv_reader",
-    srcs = ["csv_reader.cpp"],
-    hdrs = ["include/csv_reader.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//src/common:types",
-    ],
 )

@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <string>
 
+using namespace std;
+
 namespace graphflow {
 namespace common {
 
@@ -14,13 +16,16 @@ typedef uint64_t gfNodeOffset_t;
 typedef int32_t gfInt_t;
 typedef double_t gfDouble_t;
 typedef uint8_t gfBool_t;
-typedef std::string *gfString_t;
+typedef string *gfString_t;
 
 enum DataType { NODE, REL, INT, DOUBLE, BOOLEAN, STRING };
 
 struct Property {
+    string propertyName{};
     DataType dataType{};
-    std::string propertyName{};
+
+    Property(string propertyName, DataType dataType)
+        : propertyName(propertyName), dataType(dataType){};
 
     bool operator==(const Property &o) const {
         return dataType == o.dataType && propertyName.compare(o.propertyName) == 0;
@@ -28,8 +33,8 @@ struct Property {
 };
 
 struct hash_Property {
-    std::size_t operator()(Property const &property) const {
-        return (std::hash<std::string>{}(property.propertyName) * 31) + property.dataType;
+    size_t operator()(Property const &property) const {
+        return (hash<string>{}(property.propertyName) * 31) + property.dataType;
     }
 };
 
@@ -38,7 +43,12 @@ const gfDouble_t NULL_GFDOUBLE = DBL_MIN;
 const gfString_t NULL_GFSTRING = nullptr;
 const gfBool_t NULL_GFBOOL = 0;
 
-DataType getDataType(const std::string &dataTypeString);
+DataType getDataType(const string &dataTypeString);
+
+enum Cardinality : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
+
+Cardinality getCardinality(const string &cardinalityString);
+
 
 } // namespace common
 } // namespace graphflow
