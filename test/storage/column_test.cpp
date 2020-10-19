@@ -1,3 +1,7 @@
+#include <stdio.h>
+
+#include <fstream>
+#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -8,76 +12,81 @@
 
 using namespace graphflow::storage;
 using namespace graphflow::common;
+using namespace std;
 
-TEST(ColumnTests, ColumnIntegerTest) {
-    gfNodeOffset_t offsets[] = {0, 1, 32767, 32768, (1u << 20u) - 1};
-    int numElements = sizeof(offsets) / sizeof(gfNodeOffset_t);
-    auto *col = new ColumnInteger(0 /*nodeLabel*/, 1u << 20u /*numElements*/, NULL_GFINT);
-    for (int i = 0; i < numElements; i++) {
-        col->setVal(offsets[i], offsets[i]);
-    }
-    auto offsetsSet = new std::unordered_set<gfNodeOffset_t>(offsets, offsets + numElements);
-    for (gfNodeOffset_t i = 0; i < 1u << 20u; i++) {
-        if (offsetsSet->find(i) != offsetsSet->end()) {
-            EXPECT_EQ(col->getVal(i), i);
-        } else {
-            EXPECT_EQ(col->getVal(i), NULL_GFINT);
+class ColumnIntegerTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        auto f = ofstream("colIntTestFile", ios_base::out | ios_base::binary);
+        uint32_t val = 0;
+        for (auto pageId = 0; pageId < 30; pageId++) {
+            for (auto i = 0; i < PAGE_SIZE / sizeof(gfInt_t); i++) {
+                f.write((char *)&val, sizeof(gfInt_t));
+                val++;
+            }
         }
+        f.close();
+    }
+
+    void TearDown() override {
+        auto fname = "colIntTestFile";
+        remove(fname);
+    }
+};
+
+// Tests the partially specialized Column template with only one parameter.
+TEST_F(ColumnIntegerTest, GetVal) {
+    auto numElements = 30 * (PAGE_SIZE / sizeof(gfInt_t));
+    BufferManager bufferManager(PAGE_SIZE * 30);
+    auto col = new ColumnInteger("colIntTestFile", numElements, bufferManager);
+    gfInt_t fetched = 0;
+    for (auto offset = 0; offset < numElements; offset++) {
+        col->getVal(offset, fetched);
+        ASSERT_EQ(fetched, offset);
     }
 }
 
-TEST(ColumnTests, ColumnDoubleTest) {
-    gfNodeOffset_t offsets[] = {0, 1, 32767, 32768, (1u << 20u) - 1};
-    int numElements = sizeof(offsets) / sizeof(gfNodeOffset_t);
-    auto *col = new ColumnDouble(0 /*nodeLabel*/, 1u << 20u /*numElements*/, NULL_GFDOUBLE);
-    for (int i = 0; i < numElements; i++) {
-        col->setVal(offsets[i], sqrt(offsets[i]));
-    }
-    auto offsetsSet = new std::unordered_set<gfNodeOffset_t>(offsets, offsets + numElements);
-    for (gfNodeOffset_t i = 0; i < 1u << 20u; i++) {
-        if (offsetsSet->find(i) != offsetsSet->end()) {
-            EXPECT_EQ(col->getVal(i), sqrt(i));
-        } else {
-            EXPECT_EQ(col->getVal(i), NULL_GFDOUBLE);
+class Column1BLabel4BOffsetTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        auto f = ofstream("col1B2BTestFile", ios_base::out | ios_base::binary);
+        uint8_t type = 0;
+        uint32_t offset = 0;
+        for (auto pageId = 0; pageId < 30; pageId++) {
+            f.seekp(PAGE_SIZE * pageId);
+            for (auto i = 0; i < PAGE_SIZE / (sizeof(uint8_t) + sizeof(uint32_t)); i++) {
+                f.write((char *)&type, sizeof(uint8_t));
+                f.write((char *)&offset, sizeof(uint32_t));
+                type++;
+                if (UINT8_MAX == type) {
+                    type = 0;
+                }
+                offset++;
+            }
         }
+        f.close();
     }
-}
 
-TEST(ColumnTests, ColumnBooleanTest) {
-    gfNodeOffset_t offsets[] = {0, 1, 32767, 32768, (1u << 20u) - 1};
-    int numElements = sizeof(offsets) / sizeof(gfNodeOffset_t);
-    auto *col = new ColumnBoolean(0 /*nodeLabel*/, 1u << 20u /*numElements*/, NULL_GFBOOL);
-    auto offsetsMap = new std::unordered_map<gfNodeOffset_t, gfBool_t>();
-    for (int i = 0; i < numElements; i++) {
-        offsetsMap->insert({offsets[i], (offsets[i] % 2) + 1});
-        col->setVal(offsets[i], (offsets[i] % 2) + 1);
+    void TearDown() override {
+        auto fname = "col1B2BTestFile";
+        remove(fname);
     }
-    for (gfNodeOffset_t i = 0; i < 1u << 20u; i++) {
-        if (offsetsMap->find(i) != offsetsMap->end()) {
-            EXPECT_EQ(col->getVal(i), offsetsMap->find(i)->second);
-        } else {
-            EXPECT_EQ(col->getVal(i), NULL_GFBOOL);
-        }
-    }
-}
+};
 
-TEST(ColumnTests, ColumnStringTest) {
-    gfNodeOffset_t offsets[] = {0, 1, 32767, 32768, (1u << 20u) - 1};
-    gfString_t stringVals[] = {new std::string("Chomsky"), new std::string("Foucault"),
-        new std::string("Derrida"), new std::string("Montaigne"), new std::string("Nietzsche")};
-    int numElements = sizeof(offsets) / sizeof(gfNodeOffset_t);
-    auto *col = new ColumnString(0 /*nodeLabel*/, 1u << 20u /*numElements*/, NULL_GFSTRING);
-    auto offsetsMap = new std::unordered_map<gfNodeOffset_t, gfString_t>();
-    for (int i = 0; i < numElements; i++) {
-        offsetsMap->insert({offsets[i], stringVals[i]});
-        col->setVal(offsets[i], stringVals[i]);
-    }
-    for (gfNodeOffset_t i = 0; i < 1u << 20u; i++) {
-        if (offsetsMap->find(i) != offsetsMap->end()) {
-            auto found = offsetsMap->find(i);
-            EXPECT_EQ(col->getVal(i), found->second);
-        } else {
-            EXPECT_EQ(col->getVal(i), NULL_GFSTRING);
+// Tests the non-specialized Column template.
+TEST_F(Column1BLabel4BOffsetTest, GetVal) {
+    auto numElements = 30 * (PAGE_SIZE / (sizeof(uint8_t) + sizeof(uint32_t)));
+    BufferManager bufferManager(PAGE_SIZE * 30);
+    auto col = new Column1BLabel4BOffset("col1B2BTestFile", numElements, bufferManager);
+    gfLabel_t fetchedLabel = 0;
+    gfNodeOffset_t fetchedOffset = 0;
+    auto expectedLabel = 0;
+    for (auto offset = 0; offset < numElements; offset++) {
+        col->getVal(offset, fetchedLabel, fetchedOffset);
+        ASSERT_EQ(fetchedOffset, offset);
+        ASSERT_EQ(fetchedLabel, expectedLabel++);
+        if (UINT8_MAX == expectedLabel) {
+            expectedLabel = 0;
         }
     }
 }

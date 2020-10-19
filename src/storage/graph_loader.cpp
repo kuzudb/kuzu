@@ -6,7 +6,7 @@
 
 #include "spdlog/sinks/stdout_color_sinks.h"
 
-#include "src/storage/include/file_reader.h"
+#include "src/common/include/csv_reader.h"
 
 using namespace graphflow::common;
 
@@ -14,7 +14,7 @@ namespace graphflow {
 namespace storage {
 
 GraphLoader::GraphLoader(std::string inputDirectory) : inputDirectory(std::move(inputDirectory)) {
-    logger = spdlog::stderr_color_st("GraphLoader");
+
     logger->info("Starting GraphLoader.");
 }
 
@@ -92,7 +92,7 @@ void GraphLoader::readHeaderAndCountLines(const std::string &fname,
     const nlohmann::json &metadata) {
     logger->info("Counting and parsing header: " + fname);
     auto reader =
-        std::make_unique<FileReader>(fname, metadata.at("tokenSeparator").get<std::string>()[0]);
+        std::make_unique<CSVReader>(fname, metadata.at("tokenSeparator").get<std::string>()[0]);
     labelPropertyDescriptors[label] =
         std::move(parseHeader(metadata, std::move(reader->getLine())));
     auto numLines = 0;

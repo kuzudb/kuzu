@@ -14,16 +14,16 @@
 using namespace graphflow::common;
 
 namespace graphflow {
-namespace storage {
+namespace common {
 
-class FileReader {
+class CSVReader {
 
     std::unique_ptr<std::ifstream> f;
     const char tokenSeparator;
     char next;
 
 public:
-    FileReader(const std::string &fname, const char tokenSeparator);
+    CSVReader(const std::string &fname, const char tokenSeparator);
 
     bool hasMoreTokens();
     void skipLine();
@@ -36,7 +36,7 @@ private:
     inline bool isTokenSeparator() { return isLineSeparator() || next == tokenSeparator; }
 };
 
-} // namespace storage
+} // namespace common
 } // namespace graphflow
 
 #endif

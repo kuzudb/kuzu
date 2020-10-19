@@ -1,10 +1,14 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 cc_library(
     name = "column",
     srcs = ["include/column.h"],
     visibility = ["//visibility:public"],
     deps = [
+        "buffer_manager",
+        "file_handle",
+        "//src/common:storage_constants",
         "//src/common:types",
     ],
 )
@@ -25,8 +29,8 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "catalog",
-        "file_reader",
         "graph",
+        "//src/common:csv_reader",
         "//src/common:types",
         "@gabime_spdlog",
         "@nlohmann_json",
@@ -41,12 +45,22 @@ cc_library(
 )
 
 cc_library(
-    name = "file_reader",
-    srcs = ["file_reader.cpp"],
-    hdrs = ["include/file_reader.h"],
+    name = "buffer_manager",
+    srcs = ["buffer_manager.cpp"],
+    hdrs = ["include/buffer_manager.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "column",
-        "//src/common:types",
+        "file_handle",
+        "//src/common:storage_constants",
+    ],
+)
+
+cc_library(
+    name = "file_handle",
+    srcs = ["file_handle.cpp"],
+    hdrs = ["include/file_handle.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common:storage_constants",
     ],
 )
