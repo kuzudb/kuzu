@@ -8,40 +8,53 @@
 #include "src/common/include/types.h"
 
 using namespace graphflow::common;
+using namespace std;
+
+namespace graphflow {
+namespace common {
+
+class GraphLoader;
+
+} // namespace common
+} // namespace graphflow
 
 namespace graphflow {
 namespace storage {
 
 class Catalog {
 
-    std::unique_ptr<std::unordered_map<std::string, gfLabel_t>> stringToNodeLabelMap;
-    std::unique_ptr<std::unordered_map<std::string, gfLabel_t>> stringToRelLabelMap;
-    std::unique_ptr<std::vector<std::unique_ptr<std::vector<Property>>>> nodePropertyMap;
-    std::unique_ptr<std::vector<std::unique_ptr<std::vector<Property>>>> relPropertyMap;
+    friend class graphflow::common::GraphLoader;
 
 public:
-    inline uint32_t getNumNodeLabels() { return stringToNodeLabelMap->size(); }
-    inline uint32_t getNumRelLabels() { return stringToRelLabelMap->size(); }
+    inline uint32_t getNodeLabelsCount() { return stringToNodeLabelMap.size(); }
+    inline uint32_t getRelLabelsCount() { return stringToRelLabelMap.size(); }
+    inline const vector<vector<Property>> &getNodePropertyMap() { return nodePropertyMap; }
 
-    inline void setStringToNodeLabelMap(
-        std::unique_ptr<std::unordered_map<std::string, gfLabel_t>> stringToNodeLabelMap) {
-        this->stringToNodeLabelMap = std::move(stringToNodeLabelMap);
+    inline gfLabel_t getNodeLabelForString(const string &nodeLabelString) {
+        if (stringToNodeLabelMap.find(nodeLabelString) == stringToNodeLabelMap.end()) {
+            throw invalid_argument("Node label: " + nodeLabelString + " not indexed in Catalog.");
+        }
+        return stringToNodeLabelMap[nodeLabelString];
     }
 
-    inline void setStringToRelLabelMap(
-        std::unique_ptr<std::unordered_map<std::string, gfLabel_t>> stringToRelLabelMap) {
-        this->stringToRelLabelMap = std::move(stringToRelLabelMap);
+    inline gfLabel_t getRelLabelForString(const string &relLabelString) {
+        if (stringToRelLabelMap.find(relLabelString) == stringToRelLabelMap.end()) {
+            throw invalid_argument("Rel label: " + relLabelString + " not indexed in Catalog.");
+        }
+        return stringToRelLabelMap[relLabelString];
     }
 
-    inline void setNodePropertyMap(
-        std::unique_ptr<std::vector<std::unique_ptr<std::vector<Property>>>> nodePropertyMap) {
-        this->nodePropertyMap = std::move(nodePropertyMap);
-    }
+private:
+    Catalog(){};
 
-    inline void setRelPropertyMap(
-        std::unique_ptr<std::vector<std::unique_ptr<std::vector<Property>>>> relPropertyMap) {
-        this->relPropertyMap = std::move(relPropertyMap);
-    }
+private:
+    unordered_map<string, gfLabel_t> stringToNodeLabelMap;
+    unordered_map<string, gfLabel_t> stringToRelLabelMap;
+    vector<vector<Property>> nodePropertyMap;
+    vector<vector<Property>> relPropertyMap;
+    vector<vector<gfLabel_t>> relLabelToSrcNodeLabel, relLabelToDstNodeLabel;
+    vector<vector<gfLabel_t>> srcNodeLabelToRelLabel, dstNodeLabelToRelLabel;
+    vector<Cardinality> relLabelToCardinalityMap;
 };
 
 } // namespace storage

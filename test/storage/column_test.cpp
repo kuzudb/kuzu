@@ -20,7 +20,7 @@ protected:
         auto f = ofstream("colIntTestFile", ios_base::out | ios_base::binary);
         uint32_t val = 0;
         for (auto pageId = 0; pageId < 30; pageId++) {
-            for (auto i = 0; i < PAGE_SIZE / sizeof(gfInt_t); i++) {
+            for (auto i = 0u; i < PAGE_SIZE / sizeof(gfInt_t); i++) {
                 f.write((char *)&val, sizeof(gfInt_t));
                 val++;
             }
@@ -40,7 +40,7 @@ TEST_F(ColumnIntegerTest, GetVal) {
     BufferManager bufferManager(PAGE_SIZE * 30);
     auto col = new ColumnInteger("colIntTestFile", numElements, bufferManager);
     gfInt_t fetched = 0;
-    for (auto offset = 0; offset < numElements; offset++) {
+    for (auto offset = 0u; offset < numElements; offset++) {
         col->getVal(offset, fetched);
         ASSERT_EQ(fetched, offset);
     }
@@ -54,7 +54,7 @@ protected:
         uint32_t offset = 0;
         for (auto pageId = 0; pageId < 30; pageId++) {
             f.seekp(PAGE_SIZE * pageId);
-            for (auto i = 0; i < PAGE_SIZE / (sizeof(uint8_t) + sizeof(uint32_t)); i++) {
+            for (auto i = 0u; i < PAGE_SIZE / (sizeof(uint8_t) + sizeof(uint32_t)); i++) {
                 f.write((char *)&type, sizeof(uint8_t));
                 f.write((char *)&offset, sizeof(uint32_t));
                 type++;
@@ -81,7 +81,7 @@ TEST_F(Column1BLabel4BOffsetTest, GetVal) {
     gfLabel_t fetchedLabel = 0;
     gfNodeOffset_t fetchedOffset = 0;
     auto expectedLabel = 0;
-    for (auto offset = 0; offset < numElements; offset++) {
+    for (auto offset = 0u; offset < numElements; offset++) {
         col->getVal(offset, fetchedLabel, fetchedOffset);
         ASSERT_EQ(fetchedOffset, offset);
         ASSERT_EQ(fetchedLabel, expectedLabel++);

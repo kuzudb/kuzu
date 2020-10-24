@@ -1,0 +1,64 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_library(
+    name = "graph_loader",
+    srcs = ["graph_loader.cpp"],
+    hdrs = ["include/graph_loader.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "loader_tasks",
+        "thread_pool",
+        "utils",
+        "//src/common:configs",
+        "//src/common:types",
+        "//src/storage:catalog",
+        "//src/storage:graph",
+        "@gabime_spdlog",
+        "@nlohmann_json",
+    ],
+)
+
+cc_library(
+    name = "utils",
+    hdrs = ["include/utils.h"],
+    visibility = ["//visibility:public"],
+    deps = [],
+)
+
+cc_library(
+    name = "thread_pool",
+    srcs = ["thread_pool.cpp"],
+    hdrs = ["include/thread_pool.h"],
+    visibility = ["//visibility:public"],
+    deps = [],
+)
+
+cc_library(
+    name = "loader_tasks",
+    srcs = ["loader_tasks.cpp"],
+    hdrs = ["include/loader_tasks.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "csv_reader",
+        "utils",
+        "@gabime_spdlog",
+    ],
+)
+
+cc_library(
+    name = "csv_reader",
+    srcs = ["csv_reader.cpp"],
+    hdrs = ["include/csv_reader.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common:configs",
+        "//src/common:types",
+    ],
+)
+
+cc_binary(
+    name = "reader_runner",
+    srcs = ["reader_runner.cpp"],
+    deps = ["csv_reader"],
+)

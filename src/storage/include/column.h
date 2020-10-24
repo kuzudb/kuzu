@@ -3,7 +3,7 @@
 
 #include <bits/unique_ptr.h>
 
-#include "src/common/include/storage_constants.h"
+#include "src/common/include/configs.h"
 #include "src/common/include/types.h"
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/file_handle.h"
@@ -14,8 +14,10 @@ using namespace std;
 namespace graphflow {
 namespace storage {
 
+class ColumnBase {};
+
 template<typename T, typename U>
-class Column {
+class Column : public ColumnBase {
 
 public:
     Column(const string path, uint64_t numElements, BufferManager &bufferManager)
@@ -28,7 +30,7 @@ public:
         auto frame = bufferManager.pin(fileHandle, pageIdx);
         auto pageOffsetInFrame = frame + getPageOffset(nodeOffset);
         memcpy(&label, (void *)pageOffsetInFrame, sizeof(T));
-        memcpy(&offset, (void *)pageOffsetInFrame + sizeof(T), sizeof(U));
+        memcpy(&offset, (void *)(pageOffsetInFrame + sizeof(T)), sizeof(U));
         bufferManager.unpin(fileHandle, pageIdx);
     }
 
@@ -48,7 +50,7 @@ private:
 };
 
 template<typename T>
-class Column<T, void> {
+class Column<T, void> : public ColumnBase {
 
 public:
     Column(const string path, uint64_t numElements, BufferManager &bufferManager)
@@ -59,7 +61,7 @@ public:
     inline void getVal(gfNodeOffset_t nodeOffset, T &t) {
         auto pageIdx = getPageIdx(nodeOffset);
         auto frame = bufferManager.pin(fileHandle, pageIdx);
-        memcpy(&t, (void *)frame + getPageOffset(nodeOffset), elementSize);
+        memcpy(&t, (void *)(frame + getPageOffset(nodeOffset)), elementSize);
         bufferManager.unpin(fileHandle, pageIdx);
     }
 

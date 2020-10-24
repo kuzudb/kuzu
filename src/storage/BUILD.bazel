@@ -8,7 +8,7 @@ cc_library(
     deps = [
         "buffer_manager",
         "file_handle",
-        "//src/common:storage_constants",
+        "//src/common:configs",
         "//src/common:types",
     ],
 )
@@ -19,21 +19,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "catalog",
-    ],
-)
-
-cc_library(
-    name = "graph_loader",
-    srcs = ["graph_loader.cpp"],
-    hdrs = ["include/graph_loader.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "catalog",
-        "graph",
-        "//src/common:csv_reader",
-        "//src/common:types",
-        "@gabime_spdlog",
-        "@nlohmann_json",
     ],
 )
 
@@ -51,7 +36,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "file_handle",
-        "//src/common:storage_constants",
+        "//src/common:configs",
     ],
 )
 
@@ -61,6 +46,6 @@ cc_library(
     hdrs = ["include/file_handle.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/common:storage_constants",
+        "//src/common:configs",
     ],
 )

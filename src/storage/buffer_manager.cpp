@@ -2,7 +2,9 @@
 
 #include <iostream>
 
-#include "src/common/include/storage_constants.h"
+#include "src/common/include/configs.h"
+
+using namespace graphflow::common;
 
 namespace graphflow {
 namespace storage {
@@ -22,7 +24,7 @@ Frame::~Frame() {
 
 BufferManager::BufferManager(uint64_t maxSize)
     : clockHand(0), maxPages(maxSize / PAGE_SIZE), usedPages(0) {
-    for (auto i = 0; i < maxPages; i++) {
+    for (auto i = 0u; i < maxPages; i++) {
         bufferPool.push_back(make_unique<Frame>());
     }
 }

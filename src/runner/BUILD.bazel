@@ -3,9 +3,10 @@ load("@rules_cc//cc:defs.bzl", "cc_binary")
 cc_binary(
     name = "data_loader",
     srcs = ["data_loader.cpp"],
+    linkopts = ["-lpthread"],
     deps = [
-        "//src/storage:graph_loader",
-        "@boost//:program_options",
+        "//src/common/loader:graph_loader",
+        "@Taywee_args",
         "@gabime_spdlog",
     ],
 )

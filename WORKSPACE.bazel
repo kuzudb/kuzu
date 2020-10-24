@@ -26,13 +26,10 @@ http_archive(
     url = "https://github.com/nlohmann/json/releases/download/v3.9.1/include.zip",
 )
 
-git_repository(
-    name = "com_github_nelhage_rules_boost",
-    commit = "1e3a69bf2d5cd10c34b74f066054cd335d033d71",
-    remote = "https://github.com/nelhage/rules_boost",
-    shallow_since = "1591047380 -0700",
+http_archive(
+    name = "Taywee_args",
+    build_file = "Taywee_args.BUILD",
+    sha256 = "1a1c8846acd2d117843f6ab13518cac78bd0f8dcde8531603ac6f2115c9582d6",
+    strip_prefix = "args-6.2.2",
+    url = "https://github.com/Taywee/args/archive/6.2.2.zip",
 )
-
-load("@com_github_nelhage_rules_boost//:boost/boost.bzl", "boost_deps")
-
-boost_deps()
