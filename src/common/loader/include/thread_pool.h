@@ -1,5 +1,4 @@
-#ifndef GRAPHFLOW_COMMON_LOADER_THREAD_POOL_H_
-#define GRAPHFLOW_COMMON_LOADER_THREAD_POOL_H_
+#pragma once
 
 #include <condition_variable>
 #include <future>
@@ -78,5 +77,3 @@ void ThreadPool::execute(F function, Args &&... args) {
 
 } // namespace common
 } // namespace graphflow
-
-#endif // GRAPHFLOW_COMMON_LOADER_THREAD_POOL_H_

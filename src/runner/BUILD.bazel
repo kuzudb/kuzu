@@ -5,7 +5,7 @@ cc_binary(
     srcs = ["data_loader.cpp"],
     linkopts = ["-lpthread"],
     deps = [
-        "//src/common/loader:graph_loader",
+        "//src/common/loader:loader",
         "@Taywee_args",
         "@gabime_spdlog",
     ],

@@ -1,5 +1,4 @@
-#ifndef GRAPHFLOW_STORAGE_BUFFER_MANAGER_H_
-#define GRAPHFLOW_STORAGE_BUFFER_MANAGER_H_
+#pragma once
 
 #include <memory>
 #include <mutex>
@@ -56,5 +55,3 @@ private:
 
 } // namespace storage
 } // namespace graphflow
-
-#endif // GRAPHFLOW_STORAGE_BUFFER_MANAGER_H_

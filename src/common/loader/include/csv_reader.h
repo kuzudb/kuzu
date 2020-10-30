@@ -1,5 +1,4 @@
-#ifndef GRAPHFLOW_COMMON_LOADER_CSV_READER_H_
-#define GRAPHFLOW_COMMON_LOADER_CSV_READER_H_
+#pragma once
 
 #include <stdio.h>
 #include <string.h>
@@ -28,25 +27,28 @@ public:
     gfInt_t getInteger();
     gfDouble_t getDouble();
     gfBool_t getBoolean();
-    std::unique_ptr<std::string> getString();
+    unique_ptr<string> getString();
     void skipLine();
     bool skipTokenIfNULL();
     void skipToken();
-    unique_ptr<string> getLine();
 
 private:
     void updateNext();
-    inline bool isLineSeparator() { return '\n' == next; }
+
+    inline bool isLineSeparator() { return f.eof() || '\n' == next; }
     inline bool isTokenSeparator() { return isLineSeparator() || next == tokenSeparator; }
 
+    void ensureStringBufferCapacity();
+
+private:
     ifstream f;
     const char tokenSeparator;
     char next;
     size_t readingBlockIdx;
     size_t readingBlockEndIdx;
+    unique_ptr<char[]> strBuffer;
+    size_t strBufferLen, strBufferCapacity;
 };
 
 } // namespace common
 } // namespace graphflow
-
-#endif // GRAPHFLOW_COMMON_LOADER_CSV_READER_H_

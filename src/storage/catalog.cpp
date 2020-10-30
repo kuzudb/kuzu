@@ -18,50 +18,8 @@ using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAda
 namespace graphflow {
 namespace storage {
 
-Catalog::Catalog(const nlohmann::json &metadata) {
-    assignLabels(stringToNodeLabelMap, metadata.at("nodeFileDescriptions"));
-    assignLabels(stringToRelLabelMap, metadata.at("relFileDescriptions"));
-    setCardinalities(metadata);
-    setSrcDstNodeLabelsForRelLabels(metadata);
-}
-
-void Catalog::assignLabels(
-    unordered_map<string, gfLabel_t> &stringToLabelMap, const nlohmann::json &fileDescriptions) {
-    auto label = 0;
-    for (auto &descriptor : fileDescriptions) {
-        stringToLabelMap.insert({descriptor.at("label"), label++});
-    }
-}
-
-void Catalog::setCardinalities(const nlohmann::json &metadata) {
-    for (auto &descriptor : metadata.at("relFileDescriptions")) {
-        relLabelToCardinalityMap.push_back(getCardinality(descriptor.at("cardinality")));
-    }
-}
-
-void Catalog::setSrcDstNodeLabelsForRelLabels(const nlohmann::json &metadata) {
-    dstNodeLabelToRelLabel.resize(getNodeLabelsCount());
-    srcNodeLabelToRelLabel.resize(getNodeLabelsCount());
-    relLabelToSrcNodeLabels.resize(getRelLabelsCount());
-    relLabelToDstNodeLabels.resize(getRelLabelsCount());
-    auto relLabel = 0;
-    for (auto &descriptor : metadata.at("relFileDescriptions")) {
-        for (auto &nodeLabelString : descriptor.at("srcNodeLabels")) {
-            auto nodeLabel = stringToNodeLabelMap[nodeLabelString];
-            srcNodeLabelToRelLabel[nodeLabel].push_back(relLabel);
-            relLabelToSrcNodeLabels[relLabel].push_back(nodeLabel);
-        }
-        for (auto &nodeLabelString : descriptor.at("dstNodeLabels")) {
-            auto nodeLabel = stringToNodeLabelMap[nodeLabelString];
-            dstNodeLabelToRelLabel[nodeLabel].push_back(relLabel);
-            relLabelToDstNodeLabels[relLabel].push_back(nodeLabel);
-        }
-        relLabel++;
-    }
-}
-
 const vector<gfLabel_t> &Catalog::getRelLabelsForNodeLabelDirection(
-    gfLabel_t nodeLabel, Direction direction) {
+    gfLabel_t nodeLabel, Direction direction) const{
     if (nodeLabel >= getNodeLabelsCount()) {
         throw invalid_argument("Node label out of the bounds.");
     }
@@ -72,7 +30,7 @@ const vector<gfLabel_t> &Catalog::getRelLabelsForNodeLabelDirection(
 }
 
 const vector<gfLabel_t> &Catalog::getNodeLabelsForRelLabelDir(
-    gfLabel_t relLabel, Direction direction) {
+    gfLabel_t relLabel, Direction direction) const{
     if (relLabel >= getRelLabelsCount()) {
         throw invalid_argument("Node label out of the bounds.");
     }
@@ -91,8 +49,8 @@ void Catalog::serialize(S &s) {
     auto vetorPropertyFunc = [](S &s, vector<Property> &v) {
         s.container(v, UINT32_MAX, [](S &s, Property &w) { s(w.propertyName, w.dataType); });
     };
-    s.container(nodePropertyMap, UINT32_MAX, vetorPropertyFunc);
-    s.container(relPropertyMap, UINT32_MAX, vetorPropertyFunc);
+    s.container(nodePropertyMaps, UINT32_MAX, vetorPropertyFunc);
+    s.container(relPropertyMaps, UINT32_MAX, vetorPropertyFunc);
 
     auto vectorLabelsFunc = [](S &s, vector<gfLabel_t> &v) {
         s.container(v, UINT32_MAX, [](S &s, gfLabel_t &w) { s(w); });

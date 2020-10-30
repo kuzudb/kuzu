@@ -1,5 +1,4 @@
-#ifndef GRAPHFLOW_STORAGE_FILE_HANDLE_H_
-#define GRAPHFLOW_STORAGE_FILE_HANDLE_H_
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -34,5 +33,3 @@ private:
 
 } // namespace storage
 } // namespace graphflow
-
-#endif // GRAPHFLOW_STORAGE_FILE_HANDLE_H_

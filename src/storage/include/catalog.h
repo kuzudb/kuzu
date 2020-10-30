@@ -1,12 +1,10 @@
-#ifndef GRAPHFLOW_STORAGE_CATALOG_H_
-#define GRAPHFLOW_STORAGE_CATALOG_H_
+#pragma once
 
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
 #include "bitsery/bitsery.h"
-#include "nlohmann/json.hpp"
 
 #include "src/common/include/types.h"
 
@@ -31,19 +29,22 @@ class Catalog {
 public:
     Catalog(const string &directory) { readFromFile(directory); };
 
-    inline uint32_t getNodeLabelsCount() { return stringToNodeLabelMap.size(); }
-    inline uint32_t getRelLabelsCount() { return stringToRelLabelMap.size(); }
+    inline uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
+    inline uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
 
-    inline const vector<Property> &getNodePropertyMap(gfLabel_t nodeLabel) {
-        return nodePropertyMap[nodeLabel];
+    inline const vector<Property> &getPropertyMapForNodeLabel(gfLabel_t nodeLabel) const {
+        return nodePropertyMaps[nodeLabel];
+    }
+    inline const vector<Property> &getPropertyMapForRelLabel(gfLabel_t relLabel) const {
+        return relPropertyMaps[relLabel];
     }
 
     const vector<gfLabel_t> &getRelLabelsForNodeLabelDirection(
-        gfLabel_t nodeLabel, Direction direction);
+        gfLabel_t nodeLabel, Direction direction) const;
     const vector<gfLabel_t> &getNodeLabelsForRelLabelDir(
-        gfLabel_t relLabel, Direction direction);
+        gfLabel_t relLabel, Direction direction) const;
 
-    inline bool isSingleCaridinalityInDir(gfLabel_t relLabel, Direction direction) {
+    inline bool isSingleCaridinalityInDir(gfLabel_t relLabel, Direction direction) const {
         auto cardinality = relLabelToCardinalityMap[relLabel];
         if (FORWARD == direction) {
             return ONE_ONE == cardinality || MANY_ONE == cardinality;
@@ -53,12 +54,7 @@ public:
     }
 
 private:
-    Catalog(const nlohmann::json &metadata);
-
-    void assignLabels(
-        unordered_map<string, gfLabel_t> &stringToLabelMap, const nlohmann::json &fileDescriptions);
-    void setCardinalities(const nlohmann::json &metadata);
-    void setSrcDstNodeLabelsForRelLabels(const nlohmann::json &metadata);
+    Catalog() = default;
 
     template<typename S>
     void serialize(S &s);
@@ -69,8 +65,8 @@ private:
 private:
     unordered_map<string, gfLabel_t> stringToNodeLabelMap;
     unordered_map<string, gfLabel_t> stringToRelLabelMap;
-    vector<vector<Property>> nodePropertyMap;
-    vector<vector<Property>> relPropertyMap;
+    vector<vector<Property>> nodePropertyMaps;
+    vector<vector<Property>> relPropertyMaps;
     vector<vector<gfLabel_t>> relLabelToSrcNodeLabels, relLabelToDstNodeLabels;
     vector<vector<gfLabel_t>> srcNodeLabelToRelLabel, dstNodeLabelToRelLabel;
     vector<Cardinality> relLabelToCardinalityMap;
@@ -78,5 +74,3 @@ private:
 
 } // namespace storage
 } // namespace graphflow
-
-#endif // GRAPHFLOW_STORAGE_CATALOG_H_

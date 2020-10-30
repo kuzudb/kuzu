@@ -1,5 +1,4 @@
-#ifndef GRAPHFLOW_COMMON_STORAGE_CONSTANTS_H_
-#define GRAPHFLOW_COMMON_STORAGE_CONSTANTS_H_
+#pragma once
 
 #include <cstdint>
 
@@ -17,5 +16,3 @@ const uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 37;
 
 } // namespace common
 } // namespace graphflow
-
-#endif // GRAPHFLOW_COMMON_STORAGE_CONSTANTS_H_
