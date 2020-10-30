@@ -2,34 +2,6 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 cc_library(
-    name = "column",
-    srcs = ["include/column.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "buffer_manager",
-        "file_handle",
-        "//src/common:configs",
-        "//src/common:types",
-    ],
-)
-
-cc_library(
-    name = "graph",
-    hdrs = ["include/graph.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "catalog",
-    ],
-)
-
-cc_library(
-    name = "catalog",
-    hdrs = ["include/catalog.h"],
-    visibility = ["//visibility:public"],
-    deps = ["//src/common:types"],
-)
-
-cc_library(
     name = "buffer_manager",
     srcs = ["buffer_manager.cpp"],
     hdrs = ["include/buffer_manager.h"],
@@ -47,5 +19,68 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/common:configs",
+    ],
+)
+
+cc_library(
+    name = "column",
+    srcs = ["include/column.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "buffer_manager",
+        "file_handle",
+        "//src/common:configs",
+        "//src/common:types",
+    ],
+)
+
+cc_library(
+    name = "node_property_store",
+    srcs = ["node_property_store.cpp"],
+    hdrs = ["include/node_property_store.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "buffer_manager",
+        "catalog",
+        "column",
+        "//src/common:configs",
+        "//src/common:types",
+    ],
+)
+
+cc_library(
+    name = "adjlists_indexes",
+    srcs = ["adjlists_indexes.cpp"],
+    hdrs = ["include/adjlists_indexes.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "column",
+        "catalog",
+    ],
+)
+
+cc_library(
+    name = "catalog",
+    srcs = ["catalog.cpp"],
+    hdrs = ["include/catalog.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common:types",
+        "@fraillt_bitsery",
+        "@nlohmann_json",
+    ],
+)
+
+cc_library(
+    name = "graph",
+    srcs = ["graph.cpp"],
+    hdrs = ["include/graph.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "adjlists_indexes",
+        "buffer_manager",
+        "catalog",
+        "node_property_store",
+        "@fraillt_bitsery",
     ],
 )

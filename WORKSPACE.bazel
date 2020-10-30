@@ -33,3 +33,11 @@ http_archive(
     strip_prefix = "args-6.2.2",
     url = "https://github.com/Taywee/args/archive/6.2.2.zip",
 )
+
+http_archive(
+    name = "fraillt_bitsery",
+    build_file = "fraillt_bitsery.BUILD",
+    sha256 = "ddb77597360d1557139599e7c9cf88ff11d9b60ee37833a82b05428de249206a",
+    strip_prefix = "bitsery-5.1.0/include",
+    url = "https://github.com/fraillt/bitsery/archive/v5.1.0.zip",
+)

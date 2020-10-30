@@ -21,9 +21,13 @@ cc_library(
 
 cc_library(
     name = "utils",
+    srcs = ["utils.cpp"],
     hdrs = ["include/utils.h"],
     visibility = ["//visibility:public"],
-    deps = [],
+    deps = [
+        "//src/common:configs",
+        "//src/common:types",
+    ],
 )
 
 cc_library(
@@ -55,10 +59,4 @@ cc_library(
         "//src/common:configs",
         "//src/common:types",
     ],
-)
-
-cc_binary(
-    name = "reader_runner",
-    srcs = ["reader_runner.cpp"],
-    deps = ["csv_reader"],
 )

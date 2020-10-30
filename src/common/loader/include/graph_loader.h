@@ -21,40 +21,58 @@ namespace common {
 
 class GraphLoader {
 
-    shared_ptr<spdlog::logger> logger;
-    ThreadPool threadPool{thread::hardware_concurrency()};
-    const string inputDirectory;
-    const string outputDirectory;
-
 public:
-    GraphLoader(string inputDirectory, string outputDirectory);
-    ~GraphLoader() = default;
+    GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads);
+
     void loadGraph();
 
 private:
     unique_ptr<nlohmann::json> readMetadata();
-    void setNodeAndRelLabels(const nlohmann::json &metadata, Catalog &catalog);
-    void assignLabels(
-        unordered_map<string, gfLabel_t> &stringToLabelMap, const nlohmann::json &fileDescriptions);
-    void setCardinalities(const nlohmann::json &metadata, Catalog &catalog);
-    void setSrcDstNodeLabelsForRelLabels(const nlohmann::json &metadata, Catalog &catalog);
-    void loadNodes(
-        const nlohmann::json &metadata, Catalog &catalog, vector<uint64_t> &numNodesPerLabel);
+
+    unique_ptr<vector<shared_ptr<NodeIDMap>>> loadNodes(
+        const nlohmann::json &metadata, Graph &graph, Catalog &catalog);
+
     void readNodePropertiesAndSerialize(Catalog &catalog, const nlohmann::json &metadata,
-        vector<string> &filenames, vector<vector<Property>> &propertyMap,
+        vector<string> &filenames, vector<vector<Property>> &propertyMaps,
         vector<uint64_t> &numNodesPerLabel, vector<uint64_t> &numBlocksPerLabel,
-        vector<vector<uint64_t>> &numLinesPerBlock);
-    unique_ptr<vector<unique_ptr<InMemoryColumnBase>>> createInMemoryColumnsForNodeProperties(
-        vector<Property> &propertyMap, Catalog &catalog, uint64_t numNodes);
-    void loadRels(
-        const nlohmann::json &metadata, Catalog &catalog, vector<uint64_t> &numRelsPerLabel);
+        vector<vector<uint64_t>> &numLinesPerBlock, vector<shared_ptr<NodeIDMap>> &nodeIDMaps);
+
+    shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> createFilesForNodeProperties(
+        Catalog &catalog, gfLabel_t label, vector<Property> &propertyMap);
+
+    void loadRels(const nlohmann::json &metadata, Graph &graph, Catalog &catalog,
+        unique_ptr<vector<shared_ptr<NodeIDMap>>> nodeIDMaps);
+
+    void inferFilenamesInitPropertyMapAndCountLinesPerBlock(gfLabel_t numLabels,
+        nlohmann::json filedescriptions, vector<string> &filenames,
+        vector<uint64_t> &numBlocksPerLabel, vector<vector<Property>> &propertyMap,
+        vector<vector<uint64_t>> &numLinesPerBlock, const char tokenSeparator,
+        vector<uint64_t> &numPerLabel);
+
     void initPropertyMapAndCalcNumBlocksPerLabel(gfLabel_t numLabels, vector<string> &filenames,
-        vector<uint64_t> &numPerLabel, vector<vector<Property>> &propertyMap,
-        const nlohmann::json &metadata);
-    void parseHeader(const nlohmann::json &metadata, string &header, vector<Property> &propertyMap);
+        vector<uint64_t> &numPerLabel, vector<vector<Property>> &propertyMaps,
+        const char tokenSeparator);
+
+    void parseHeader(const char tokenSeparator, string &header, vector<Property> &propertyMap);
+
     void countLinesPerBlockAndInitNumPerLabel(gfLabel_t numLabels,
         vector<vector<uint64_t>> &numLinesPerBlock, vector<uint64_t> &numBlocksPerLabel,
-        vector<uint64_t> &numPerLabel, const nlohmann::json &metadata, vector<string> &filenames);
+        const char tokenSeparator, vector<string> &filenames);
+
+    void createSingleCardinalityAdjListsIndexes(Graph &graph, Catalog &catalog,
+        const char tokenSeparator, vector<uint64_t> &numBlocksPerLabel,
+        vector<vector<uint64_t>> &numLinesPerBlock, vector<string> &filenames,
+        vector<shared_ptr<NodeIDMap>> &nodeIDMaps);
+
+    shared_ptr<vector<unique_ptr<InMemColAdjList>>> createInMemColAdjListsIndex(Graph &graph,
+        Catalog &catalog, shared_ptr<vector<vector<gfLabel_t>>> nodeLabels, gfLabel_t relLabel,
+        Direction direction);
+
+private:
+    shared_ptr<spdlog::logger> logger;
+    ThreadPool threadPool;
+    const string inputDirectory;
+    const string outputDirectory;
 };
 
 } // namespace common
