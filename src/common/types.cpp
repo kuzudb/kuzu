@@ -19,9 +19,24 @@ DataType getDataType(const std::string &dataTypeString) {
     } else if (0 == dataTypeString.compare("STRING")) {
         return STRING;
     }
-    else {
-        throw invalid_argument("Cannot parse dataType.");
+    throw invalid_argument("Cannot parse dataType.");
+}
+
+uint8_t getDataTypeSize(DataType dataType) {
+    switch (dataType) {
+    case INT:
+        return sizeof(gfInt_t);
+    case DOUBLE:
+        return sizeof(gfDouble_t);
+    case BOOLEAN:
+        return sizeof(gfBool_t);
+    case STRING:
+        return sizeof(gfString_t);
+    case NODE:
+    case REL:
+        return sizeof(gfNodeOffset_t);
     }
+    throw invalid_argument("Cannot infer the size of the dataType.");
 }
 
 Cardinality getCardinality(const string &cardinalityString) {
@@ -34,7 +49,13 @@ Cardinality getCardinality(const string &cardinalityString) {
     } else if (0 == cardinalityString.compare("MANY_MANY")) {
         return MANY_MANY;
     }
+    throw invalid_argument("Invalid cardinality string \"" + cardinalityString + "\"");
 }
 
-} // namespace utils
+Direction operator!(Direction &direction) {
+    auto reverse = (FORWARD == direction) ? BACKWARD : FORWARD;
+    return reverse;
+}
+
+} // namespace common
 } // namespace graphflow

@@ -17,21 +17,24 @@ using namespace std;
 namespace graphflow {
 namespace common {
 
-GraphLoader::GraphLoader(string inputDirectory, string outputDirectory)
-    : inputDirectory(inputDirectory), outputDirectory(outputDirectory) {
+GraphLoader::GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads)
+    : threadPool{ThreadPool(numThreads)}, inputDirectory(inputDirectory),
+      outputDirectory(outputDirectory) {
     logger = spdlog::stderr_color_mt("GraphLoader");
     logger->info("Starting GraphLoader.");
 }
 
 void GraphLoader::loadGraph() {
     auto metadata = readMetadata();
-    Catalog catalog;
+    Catalog catalog{*metadata};
     Graph graph;
-    setNodeAndRelLabels(*metadata, catalog);
-    setCardinalities(*metadata, catalog);
-    setSrcDstNodeLabelsForRelLabels(*metadata, catalog);
-    loadNodes(*metadata, catalog, graph.numNodesPerLabel);
-    loadRels(*metadata, catalog, graph.numRelsPerLabel);
+    auto nodeIDMaps = loadNodes(*metadata, graph, catalog);
+    loadRels(*metadata, graph, catalog, move(nodeIDMaps));
+    logger->info("Writing catalog.bin");
+    catalog.saveToFile(outputDirectory);
+    logger->info("Writing graph.bin");
+    graph.saveToFile(outputDirectory);
+    logger->info("done.");
 }
 
 unique_ptr<nlohmann::json> GraphLoader::readMetadata() {
@@ -42,159 +45,129 @@ unique_ptr<nlohmann::json> GraphLoader::readMetadata() {
     return parsedJson;
 }
 
-void GraphLoader::setNodeAndRelLabels(const nlohmann::json &metadata, Catalog &catalog) {
-    assignLabels(catalog.stringToNodeLabelMap, metadata.at("nodeFileDescriptions"));
-    assignLabels(catalog.stringToRelLabelMap, metadata.at("relFileDescriptions"));
-}
-
-void GraphLoader::assignLabels(
-    unordered_map<string, gfLabel_t> &stringToLabelMap, const nlohmann::json &fileDescriptions) {
-    logger->info("Assigning Labels.");
-    auto label = 0;
-    for (auto &descriptor : fileDescriptions) {
-        stringToLabelMap.insert({descriptor.at("label"), label++});
-    }
-}
-
-void GraphLoader::setCardinalities(const nlohmann::json &metadata, Catalog &catalog) {
-    logger->info("Setting Cardinalities.");
-    for (auto &descriptor : metadata.at("relFileDescriptions")) {
-        catalog.relLabelToCardinalityMap.push_back(getCardinality(descriptor.at("cardinality")));
-    }
-}
-
-void GraphLoader::setSrcDstNodeLabelsForRelLabels(
-    const nlohmann::json &metadata, Catalog &catalog) {
-    catalog.dstNodeLabelToRelLabel.resize(catalog.getNodeLabelsCount());
-    catalog.srcNodeLabelToRelLabel.resize(catalog.getNodeLabelsCount());
-    catalog.relLabelToSrcNodeLabel.resize(catalog.getRelLabelsCount());
-    catalog.relLabelToDstNodeLabel.resize(catalog.getRelLabelsCount());
-    auto relLabel = 0;
-    for (auto &descriptor : metadata.at("relFileDescriptions")) {
-        for (auto &nodeLabelString : descriptor.at("srcNodeLabels")) {
-            auto nodeLabel = catalog.getNodeLabelForString(nodeLabelString);
-            catalog.srcNodeLabelToRelLabel[nodeLabel].push_back(relLabel);
-            catalog.relLabelToSrcNodeLabel[relLabel].push_back(nodeLabel);
-        }
-        for (auto &nodeLabelString : descriptor.at("dstNodeLabels")) {
-            auto nodeLabel = catalog.getNodeLabelForString(nodeLabelString);
-            catalog.dstNodeLabelToRelLabel[nodeLabel].push_back(relLabel);
-            catalog.relLabelToDstNodeLabel[relLabel].push_back(nodeLabel);
-        }
-        relLabel++;
-    }
-}
-
-void GraphLoader::loadNodes(
-    const nlohmann::json &metadata, Catalog &catalog, vector<uint64_t> &numNodesPerLabel) {
+unique_ptr<vector<shared_ptr<NodeIDMap>>> GraphLoader::loadNodes(
+    const nlohmann::json &metadata, Graph &graph, Catalog &catalog) {
     logger->info("Starting to load nodes.");
     vector<string> filenames(catalog.getNodeLabelsCount());
-    for (gfLabel_t label = 0; label < catalog.getNodeLabelsCount(); label++) {
-        auto fileDescription = metadata.at("nodeFileDescriptions")[label];
-        filenames[label] = inputDirectory + "/" + fileDescription.at("filename").get<string>();
-    }
     vector<uint64_t> numBlocksPerLabel(catalog.getNodeLabelsCount());
-    initPropertyMapAndCalcNumBlocksPerLabel(catalog.getNodeLabelsCount(), filenames,
-        numBlocksPerLabel, catalog.nodePropertyMap, metadata);
     vector<vector<uint64_t>> numLinesPerBlock(catalog.getNodeLabelsCount());
-    countLinesPerBlockAndInitNumPerLabel(catalog.getNodeLabelsCount(), numLinesPerBlock,
-        numBlocksPerLabel, numNodesPerLabel, metadata, filenames);
+    inferFilenamesInitPropertyMapAndCountLinesPerBlock(catalog.getNodeLabelsCount(),
+        metadata.at("nodeFileDescriptions"), filenames, numBlocksPerLabel, catalog.nodePropertyMap,
+        numLinesPerBlock, metadata.at("tokenSeparator").get<string>()[0], graph.numNodesPerLabel);
+    auto nodeIDMaps = make_unique<vector<shared_ptr<NodeIDMap>>>();
+    for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
+        (*nodeIDMaps).push_back(make_shared<NodeIDMap>(graph.numNodesPerLabel[nodeLabel]));
+    }
     readNodePropertiesAndSerialize(catalog, metadata, filenames, catalog.nodePropertyMap,
-        numNodesPerLabel, numBlocksPerLabel, numLinesPerBlock);
+        graph.numNodesPerLabel, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
+    return nodeIDMaps;
 }
 
 void GraphLoader::readNodePropertiesAndSerialize(Catalog &catalog, const nlohmann::json &metadata,
-    vector<string> &filenames, vector<vector<Property>> &propertyMap,
+    vector<string> &filenames, vector<vector<Property>> &propertyMaps,
     vector<uint64_t> &numNodesPerLabel, vector<uint64_t> &numBlocksPerLabel,
-    vector<vector<uint64_t>> &numLinesPerBlock) {
-    logger->info("Starting to read and store node properties...");
+    vector<vector<uint64_t>> &numLinesPerBlock, vector<shared_ptr<NodeIDMap>> &nodeIDMappings) {
+    logger->info("Starting to read and store node properties.");
+    vector<shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>>> files(
+        catalog.getNodeLabelsCount());
+    vector<gfNodeOffset_t> frontierOffsets(catalog.getNodeLabelsCount());
     for (gfLabel_t label = 0; label < catalog.getNodeLabelsCount(); label++) {
-        logger->info("Initializing `RawColumn` for Node Label {0}...", label);
-        auto inMemoryColumns = createInMemoryColumnsForNodeProperties(
-            propertyMap[label], catalog, numNodesPerLabel[label]);
-        gfNodeOffset_t offset = 0;
-        logger->info("Reading properties for Node Label {0}...", label);
-        for (uint64_t blockId = 0; blockId < numBlocksPerLabel[label]; blockId++) {
-            threadPool.execute(LoaderTasks::NodePropertyReaderTask, filenames[label],
-                metadata.at("tokenSeparator").get<string>()[0], propertyMap[label], blockId, offset,
-                inMemoryColumns.get(), logger);
-            offset += numLinesPerBlock[label][blockId];
-        }
-        threadPool.wait();
-        logger->info("Finished reading properties for Node Label {0}...", label);
-        for (uint32_t i = 1; i < propertyMap[label].size(); i++) {
-            if (nullptr != (*inMemoryColumns)[i].get()) {
-                auto fName = outputDirectory + "/v-" + to_string(label) + "-" +
-                             propertyMap[label][i].propertyName + ".vcol";
-                threadPool.execute(
-                    LoaderTasks::ColumnSerializer, fName, (*inMemoryColumns)[i].get(), logger);
+        files[label] = createFilesForNodeProperties(catalog, label, propertyMaps[label]);
+        frontierOffsets[label] = 0;
+    }
+    auto maxNumBlocks = *max_element(begin(numBlocksPerLabel), end(numBlocksPerLabel));
+    for (auto blockId = 0; blockId < maxNumBlocks; blockId++) {
+        for (gfLabel_t label = 0; label < catalog.getNodeLabelsCount(); label++) {
+            if (blockId < numBlocksPerLabel[label]) {
+                threadPool.execute(LoaderTasks::nodePropertyReaderTask, filenames[label],
+                    metadata.at("tokenSeparator").get<string>()[0], propertyMaps[label], blockId,
+                    numLinesPerBlock[label][blockId], frontierOffsets[label], files[label],
+                    nodeIDMappings[label], logger);
+                frontierOffsets[label] += numLinesPerBlock[label][blockId];
             }
         }
-        threadPool.wait();
     }
+    threadPool.wait();
 }
 
-unique_ptr<vector<unique_ptr<InMemoryColumnBase>>>
-GraphLoader::createInMemoryColumnsForNodeProperties(
-    vector<Property> &propertyMap, Catalog &catalog, uint64_t numNodes) {
-    auto inMemoryColumns = make_unique<vector<unique_ptr<InMemoryColumnBase>>>();
-    for (auto &property : propertyMap) {
-        switch (property.dataType) {
-        case INT:
-            (*inMemoryColumns).push_back(make_unique<InMemoryColumn<gfInt_t>>(numNodes));
-            break;
-        case DOUBLE:
-            (*inMemoryColumns).push_back(make_unique<InMemoryColumn<gfDouble_t>>(numNodes));
-            break;
-        case BOOLEAN:
-            (*inMemoryColumns).push_back(make_unique<InMemoryColumn<gfBool_t>>(numNodes));
-            break;
-        default:
+shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> GraphLoader::createFilesForNodeProperties(
+    Catalog &catalog, gfLabel_t label, vector<Property> &propertyMap) {
+    auto files = make_shared<pair<unique_ptr<mutex>, vector<uint32_t>>>();
+    files->first = make_unique<mutex>();
+    files->second.resize(propertyMap.size());
+    for (auto i = 0u; i < propertyMap.size(); i++) {
+        if (NODE == propertyMap[i].dataType) {
+            continue;
+        } else if (STRING == propertyMap[i].dataType) {
             logger->warn("Ignoring string properties.");
-            (*inMemoryColumns).push_back(nullptr);
+        } else {
+            auto fname = NodePropertyStore::getColumnFname(
+                outputDirectory, label, propertyMap[i].propertyName);
+            files->second[i] = open(fname.c_str(), O_WRONLY | O_CREAT, 0666);
+            if (-1u == files->second[i]) {
+                invalid_argument("cannot create file: " + fname);
+            }
         }
     }
-    return inMemoryColumns;
+    return files;
 }
 
-void GraphLoader::loadRels(
-    const nlohmann::json &metadata, Catalog &catalog, vector<uint64_t> &numRelsPerLabel) {
+void GraphLoader::loadRels(const nlohmann::json &metadata, Graph &graph, Catalog &catalog,
+    unique_ptr<vector<shared_ptr<NodeIDMap>>> nodeIDMaps) {
     logger->info("Starting to load rels.");
     vector<string> filenames(catalog.getRelLabelsCount());
-    for (gfLabel_t label = 0; label < catalog.getRelLabelsCount(); label++) {
-        auto fileDescription = metadata.at("relFileDescriptions")[label];
+    vector<uint64_t> numBlocksPerLabel(catalog.getRelLabelsCount());
+    vector<vector<uint64_t>> numLinesPerBlock(catalog.getRelLabelsCount());
+    inferFilenamesInitPropertyMapAndCountLinesPerBlock(catalog.getRelLabelsCount(),
+        metadata.at("relFileDescriptions"), filenames, numBlocksPerLabel, catalog.relPropertyMap,
+        numLinesPerBlock, metadata.at("tokenSeparator").get<string>()[0], graph.numRelsPerLabel);
+    createSingleCardinalityAdjListsIndexes(graph, catalog,
+        metadata.at("tokenSeparator").get<string>()[0], numBlocksPerLabel, numLinesPerBlock,
+        filenames, *nodeIDMaps);
+}
+
+void GraphLoader::inferFilenamesInitPropertyMapAndCountLinesPerBlock(gfLabel_t numLabels,
+    nlohmann::json filedescriptions, vector<string> &filenames, vector<uint64_t> &numBlocksPerLabel,
+    vector<vector<Property>> &propertyMap, vector<vector<uint64_t>> &numLinesPerBlock,
+    const char tokenSeparator, vector<uint64_t> &numPerLabel) {
+    for (gfLabel_t label = 0; label < numLabels; label++) {
+        auto fileDescription = filedescriptions[label];
         filenames[label] = inputDirectory + "/" + fileDescription.at("filename").get<string>();
     }
-    vector<uint64_t> numBlocksPerLabel(catalog.getRelLabelsCount());
-    initPropertyMapAndCalcNumBlocksPerLabel(catalog.getRelLabelsCount(), filenames,
-        numBlocksPerLabel, catalog.relPropertyMap, metadata);
-    vector<vector<uint64_t>> numLinesPerBlock(catalog.getRelLabelsCount());
-    countLinesPerBlockAndInitNumPerLabel(catalog.getRelLabelsCount(), numLinesPerBlock,
-        numBlocksPerLabel, numRelsPerLabel, metadata, filenames);
+    initPropertyMapAndCalcNumBlocksPerLabel(
+        numLabels, filenames, numBlocksPerLabel, propertyMap, tokenSeparator);
+    countLinesPerBlockAndInitNumPerLabel(
+        numLabels, numLinesPerBlock, numBlocksPerLabel, tokenSeparator, filenames);
+    numPerLabel.resize(numLabels);
+    for (gfLabel_t label = 0; label < numLabels; label++) {
+        numPerLabel[label] = 0;
+        numLinesPerBlock[label][0]--;
+        for (uint64_t blockId = 0; blockId < numBlocksPerLabel[label]; blockId++) {
+            numPerLabel[label] += numLinesPerBlock[label][blockId];
+        }
+    }
 }
 
 void GraphLoader::initPropertyMapAndCalcNumBlocksPerLabel(gfLabel_t numLabels,
     vector<string> &filenames, vector<uint64_t> &numPerLabel, vector<vector<Property>> &propertyMap,
-    const nlohmann::json &metadata) {
+    const char tokenSeparator) {
     propertyMap.resize(numLabels);
     for (gfLabel_t label = 0; label < numLabels; label++) {
         logger->info("Parsing header: " + filenames[label]);
         ifstream f(filenames[label], ios_base::in);
         string header;
         getline(f, header);
-        parseHeader(metadata, header, propertyMap[label]);
+        parseHeader(tokenSeparator, header, propertyMap[label]);
         f.seekg(0, ios_base::end);
         numPerLabel[label] = 1 + (f.tellg() / CSV_READING_BLOCK_SIZE);
     }
 }
 
 void GraphLoader::parseHeader(
-    const nlohmann::json &metadata, string &header, vector<Property> &labelPropertyDescriptors) {
-    auto separator = metadata.at("tokenSeparator").get<string>()[0];
+    const char tokenSeparator, string &header, vector<Property> &labelPropertyDescriptors) {
     auto splittedHeader = make_unique<vector<string>>();
-    size_t startPos = 0;
-    size_t endPos = 0;
-    while ((endPos = header.find(separator, startPos)) != string::npos) {
+    size_t startPos = 0, endPos = 0;
+    while ((endPos = header.find(tokenSeparator, startPos)) != string::npos) {
         splittedHeader->push_back(header.substr(startPos, endPos - startPos));
         startPos = endPos + 1;
     }
@@ -213,27 +186,73 @@ void GraphLoader::parseHeader(
 
 void GraphLoader::countLinesPerBlockAndInitNumPerLabel(gfLabel_t numLabels,
     vector<vector<uint64_t>> &numLinesPerBlock, vector<uint64_t> &numBlocksPerLabel,
-    vector<uint64_t> &numPerLabel, const nlohmann::json &metadata, vector<string> &filenames) {
-    logger->info("Counting number of (nodes/rels) in labels...");
+    const char tokenSeparator, vector<string> &filenames) {
+    logger->info("Counting number of (nodes/rels) in labels.");
     for (gfLabel_t label = 0; label < numLabels; label++) {
         numLinesPerBlock[label].resize(numBlocksPerLabel[label]);
         for (uint64_t blockId = 0; blockId < numBlocksPerLabel[label]; blockId++) {
             threadPool.execute(LoaderTasks::fileBlockLinesCounterTask, filenames[label],
-                metadata.at("tokenSeparator").get<string>()[0], &numLinesPerBlock, label, blockId,
-                logger);
+                tokenSeparator, &numLinesPerBlock, label, blockId, logger);
         }
     }
     threadPool.wait();
-    numPerLabel.resize(numLabels);
-    for (gfLabel_t label = 0; label < numLabels; label++) {
-        numPerLabel[label] = 0;
-        numLinesPerBlock[label][0]--;
-        for (uint64_t blockId = 0; blockId < numBlocksPerLabel[label]; blockId++) {
-            numPerLabel[label] += numLinesPerBlock[label][blockId];
+    logger->info("done.");
+}
+
+void GraphLoader::createSingleCardinalityAdjListsIndexes(Graph &graph, Catalog &catalog,
+    const char tokenSeparator, vector<uint64_t> &numBlocksPerLabel,
+    vector<vector<uint64_t>> &numLinesPerBlock, vector<string> &filenames,
+    vector<shared_ptr<NodeIDMap>> &nodeIDMaps) {
+    logger->info("Creating Single Cardinality Adjacency Lists Indexes.");
+    for (auto relLabel = 0u; relLabel < catalog.getRelLabelsCount(); relLabel++) {
+        vector<bool> isSingleCardinality(2);
+        for (auto direction : DIRECTIONS) {
+            isSingleCardinality[direction] = catalog.isSingleCaridinalityInDir(relLabel, direction);
         }
-        logger->debug("Label {0}: {1}", label, numPerLabel[label]);
+        if (isSingleCardinality[FORWARD] || isSingleCardinality[BACKWARD]) {
+            auto inMemColAdjLists =
+                make_shared<vector<shared_ptr<vector<unique_ptr<InMemColAdjList>>>>>(2);
+            auto nodeLabels = make_shared<vector<vector<gfLabel_t>>>(2);
+            auto srcDstNodeIDMaps = make_shared<vector<vector<shared_ptr<NodeIDMap>>>>(2);
+            for (auto direction : DIRECTIONS) {
+                (*nodeLabels)[direction] = catalog.getNodeLabelsForRelLabelDir(relLabel, direction);
+                for (auto nodeLabel : (*nodeLabels)[direction]) {
+                    (*srcDstNodeIDMaps)[direction].push_back(nodeIDMaps[nodeLabel]);
+                }
+            }
+            for (auto direction : DIRECTIONS) {
+                if (isSingleCardinality[direction]) {
+                    (*inMemColAdjLists)[direction] = createInMemColAdjListsIndex(
+                        graph, catalog, nodeLabels, relLabel, direction);
+                }
+            }
+            auto finishedBlocksCounter = make_shared<atomic<int>>();
+            for (auto blockId = 0u; blockId < numBlocksPerLabel[relLabel]; blockId++) {
+                threadPool.execute(LoaderTasks::readColumnAdjListsTask, filenames[relLabel],
+                    blockId, tokenSeparator, isSingleCardinality, nodeLabels, inMemColAdjLists,
+                    srcDstNodeIDMaps, finishedBlocksCounter, numBlocksPerLabel[relLabel],
+                    catalog.relPropertyMap[relLabel].size() > 2, logger);
+            }
+        }
+        threadPool.wait();
     }
-    logger->info("Finished counting number of (nodes/rels) in labels...");
+    logger->info("done.");
+}
+
+shared_ptr<vector<unique_ptr<InMemColAdjList>>> GraphLoader::createInMemColAdjListsIndex(
+    Graph &graph, Catalog &catalog, shared_ptr<vector<vector<gfLabel_t>>> nodeLabels,
+    gfLabel_t relLabel, Direction direction) {
+    auto columnAdjListScheme = AdjListsIndexes::getColumnAdjListsIndexScheme(
+        (*nodeLabels)[!direction], graph.numNodesPerLabel, catalog.getNodeLabelsCount());
+    auto columns = make_shared<vector<unique_ptr<InMemColAdjList>>>(catalog.getNodeLabelsCount());
+    for (auto boundNodeLabel : (*nodeLabels)[direction]) {
+        auto fname = AdjListsIndexes::getColumnAdjListIndexFname(
+            outputDirectory, relLabel, boundNodeLabel, direction);
+        (*columns)[boundNodeLabel] =
+            make_unique<InMemColAdjList>(fname, graph.numNodesPerLabel[boundNodeLabel],
+                columnAdjListScheme.first, columnAdjListScheme.second);
+    }
+    return columns;
 }
 
 } // namespace common

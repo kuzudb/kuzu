@@ -8,14 +8,14 @@ namespace graphflow {
 namespace common {
 
 CSVReader::CSVReader(const string &fname, const char tokenSeparator, uint64_t blockId)
-    : tokenSeparator(tokenSeparator), readingBlockIdx(CSV_READING_BLOCK_SIZE * blockId),
+    : f(fname, ifstream::in), tokenSeparator(tokenSeparator),
+      readingBlockIdx(CSV_READING_BLOCK_SIZE * blockId),
       readingBlockEndIdx(CSV_READING_BLOCK_SIZE * (blockId + 1)) {
-    f = make_unique<ifstream>(fname, ifstream::in);
     auto isBeginningOfLine = false;
     if (0 == readingBlockIdx) {
         isBeginningOfLine = true;
     } else {
-        f->seekg(--readingBlockIdx);
+        f.seekg(--readingBlockIdx);
         updateNext();
         if (isLineSeparator()) {
             isBeginningOfLine = true;
@@ -30,12 +30,12 @@ CSVReader::CSVReader(const string &fname, const char tokenSeparator, uint64_t bl
 }
 
 bool CSVReader::hasMore() {
-    return readingBlockIdx < readingBlockEndIdx && !f->eof();
+    return readingBlockIdx <= readingBlockEndIdx && !f.eof();
 }
 
 void CSVReader::updateNext() {
     readingBlockIdx++;
-    f->get(next);
+    f.get(next);
 }
 
 void CSVReader::skipLine() {
@@ -70,31 +70,8 @@ unique_ptr<string> CSVReader::getLine() {
     return val;
 }
 
-uint64_t CSVReader::getNodeID() {
-    auto state = 0;
-    uint64_t val = 0;
-    while (!isTokenSeparator()) {
-        if (state == 0) {
-            if (next >= 48 && next <= 57) {
-                val = (val * 10) + (next - 48);
-                state = 1;
-            } else {
-                throw std::invalid_argument("Cannot read the token as a 8-byte NodeID.");
-            }
-        } else if (state == 1) {
-            if (next >= 48 && next <= 57) {
-                val = (val * 10) + (next - 48);
-            } else {
-                throw std::invalid_argument("Cannot read the token as a 8-byte NodeID.");
-            }
-        }
-        updateNext();
-    }
-    updateNext();
-    if (!(state == 1)) {
-        throw std::invalid_argument("Cannot read the token as a 8-byte NodeID.");
-    }
-    return val;
+unique_ptr<string> CSVReader::getNodeID() {
+    return getString();
 }
 
 gfInt_t CSVReader::getInteger() {
@@ -287,29 +264,29 @@ gfBool_t CSVReader::getBoolean() {
             throw std::invalid_argument("Cannot read the token as Boolean.");
         }
         return 1;
-    } else if (falseTokens[0] == tolower(next)) {
-        updateNext();
-        auto i = 1;
-        while (!isTokenSeparator()) {
-            if (i == 5) {
-                throw std::invalid_argument("Cannot read the token as Boolean.");
-            }
-            if (falseTokens[i++] == tolower(next)) {
-                updateNext();
-            } else {
-                throw std::invalid_argument("Cannot read the token as Boolean.");
-            }
-        }
-        updateNext();
-        if (i != 5) {
+    }
+    // else
+    updateNext();
+    auto i = 1;
+    while (!isTokenSeparator()) {
+        if (i == 5) {
             throw std::invalid_argument("Cannot read the token as Boolean.");
         }
-        return 2;
+        if (falseTokens[i++] == tolower(next)) {
+            updateNext();
+        } else {
+            throw std::invalid_argument("Cannot read the token as Boolean.");
+        }
     }
+    updateNext();
+    if (i != 5) {
+        throw std::invalid_argument("Cannot read the token as Boolean.");
+    }
+    return 2;
 }
 
-std::unique_ptr<std::string> CSVReader::getString() {
-    auto val = std::make_unique<std::string>();
+unique_ptr<string> CSVReader::getString() {
+    auto val = make_unique<std::string>();
     while (!isTokenSeparator()) {
         val->push_back(next);
         updateNext();

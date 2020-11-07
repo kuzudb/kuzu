@@ -1,6 +1,8 @@
 #ifndef GRAPHFLOW_STORAGE_COLUMN_H_
 #define GRAPHFLOW_STORAGE_COLUMN_H_
 
+#include <string.h>
+
 #include <bits/unique_ptr.h>
 
 #include "src/common/include/configs.h"
@@ -14,70 +16,68 @@ using namespace std;
 namespace graphflow {
 namespace storage {
 
-class ColumnBase {};
-
-template<typename T, typename U>
-class Column : public ColumnBase {
+class ColumnBase {
 
 public:
-    Column(const string path, uint64_t numElements, BufferManager &bufferManager)
-        : elementSize(sizeof(T) + sizeof(U)), numElementsPerPage(PAGE_SIZE / elementSize),
+    ColumnBase(
+        const string path, size_t elementSize, uint64_t numElements, BufferManager &bufferManager)
+        : elementSize(elementSize), numElementsPerPage(PAGE_SIZE / elementSize),
           fileHandle(FileHandle(path, 1 + (numElements / numElementsPerPage))),
           bufferManager(bufferManager) {}
 
-    inline void getVal(gfNodeOffset_t nodeOffset, gfLabel_t &label, gfNodeOffset_t &offset) {
-        auto pageIdx = getPageIdx(nodeOffset);
-        auto frame = bufferManager.pin(fileHandle, pageIdx);
-        auto pageOffsetInFrame = frame + getPageOffset(nodeOffset);
-        memcpy(&label, (void *)pageOffsetInFrame, sizeof(T));
-        memcpy(&offset, (void *)(pageOffsetInFrame + sizeof(T)), sizeof(U));
-        bufferManager.unpin(fileHandle, pageIdx);
-    }
-
-    inline uint64_t getPageIdx(gfNodeOffset_t nodeOffset) {
+    inline static uint64_t getPageIdx(gfNodeOffset_t nodeOffset, uint32_t numElementsPerPage) {
         return nodeOffset / numElementsPerPage;
     }
 
-    inline uint32_t getPageOffset(gfNodeOffset_t nodeOffset) {
+    inline static uint32_t getPageOffset(
+        gfNodeOffset_t nodeOffset, uint32_t numElementsPerPage, size_t elementSize) {
         return (nodeOffset % numElementsPerPage) * elementSize;
     }
 
-private:
+protected:
     size_t elementSize;
     uint32_t numElementsPerPage;
     FileHandle fileHandle;
     BufferManager &bufferManager;
 };
 
+template<typename T, typename U>
+class Column : public ColumnBase {
+
+public:
+    Column(const string path, uint64_t numElements, BufferManager &bufferManager)
+        : ColumnBase(path, sizeof(T) + sizeof(U), numElements, bufferManager){};
+
+    inline void getVal(gfNodeOffset_t nodeOffset, gfLabel_t &label, gfNodeOffset_t &offset) {
+        auto pageIdx = getPageIdx(nodeOffset, numElementsPerPage);
+        auto frame = bufferManager.pin(fileHandle, pageIdx);
+        auto pageOffsetInFrame = frame + getPageOffset(nodeOffset, numElementsPerPage, elementSize);
+        memcpy(&label, (void *)pageOffsetInFrame, sizeof(T));
+        memcpy(&offset, (void *)(pageOffsetInFrame + sizeof(T)), sizeof(U));
+        bufferManager.unpin(fileHandle, pageIdx);
+    }
+};
+
 template<typename T>
 class Column<T, void> : public ColumnBase {
 
 public:
-    Column(const string path, uint64_t numElements, BufferManager &bufferManager)
-        : elementSize(sizeof(T)), numElementsPerPage(PAGE_SIZE / elementSize),
-          fileHandle(FileHandle(path, 1 + (numElements / numElementsPerPage))),
-          bufferManager(bufferManager) {}
+    Column(const string propertyName, const string path, uint64_t numElements,
+        BufferManager &bufferManager)
+        : ColumnBase(path, sizeof(T), numElements, bufferManager), propertyName(propertyName){};
 
     inline void getVal(gfNodeOffset_t nodeOffset, T &t) {
-        auto pageIdx = getPageIdx(nodeOffset);
+        auto pageIdx = getPageIdx(nodeOffset, numElementsPerPage);
         auto frame = bufferManager.pin(fileHandle, pageIdx);
-        memcpy(&t, (void *)(frame + getPageOffset(nodeOffset)), elementSize);
+        memcpy(&t, (void *)(frame + getPageOffset(nodeOffset, numElementsPerPage, elementSize)),
+            elementSize);
         bufferManager.unpin(fileHandle, pageIdx);
     }
 
-    inline uint64_t getPageIdx(gfNodeOffset_t nodeOffset) {
-        return nodeOffset / numElementsPerPage;
-    }
-
-    inline uint32_t getPageOffset(gfNodeOffset_t nodeOffset) {
-        return (nodeOffset % numElementsPerPage) * elementSize;
-    }
+    inline const string &getPropertyName() { return propertyName; };
 
 private:
-    size_t elementSize;
-    uint32_t numElementsPerPage;
-    FileHandle fileHandle;
-    BufferManager &bufferManager;
+    const string propertyName;
 };
 
 typedef Column<gfInt_t, void> ColumnInteger;

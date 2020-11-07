@@ -49,7 +49,6 @@ private:
 
     template<typename F>
     class TaskContainer : public TaskContainerBase {
-
     public:
         TaskContainer(F &&func) : f(forward<F>(func)){};
         void operator()() override { f(); };

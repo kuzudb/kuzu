@@ -1,0 +1,32 @@
+#ifndef GRAPHFLOW_STORAGE_NODE_PROPERTY_STORE_H_
+#define GRAPHFLOW_STORAGE_NODE_PROPERTY_STORE_H_
+
+#include <memory>
+#include <vector>
+
+#include "src/common/include/types.h"
+#include "src/storage/include/catalog.h"
+#include "src/storage/include/column.h"
+
+namespace graphflow {
+namespace storage {
+
+class NodePropertyStore {
+
+public:
+    NodePropertyStore(Catalog &catalog, vector<uint64_t> &numNodesPerLabel, const string &directory,
+        BufferManager &bufferManager);
+
+    inline static string getColumnFname(
+        const string &directory, gfLabel_t nodeLabel, const string &propertyName) {
+        return directory + "/v-" + to_string(nodeLabel) + "-" + propertyName + ".vcol";
+    }
+
+private:
+    std::vector<std::vector<std::unique_ptr<ColumnBase>>> columns;
+};
+
+} // namespace storage
+} // namespace graphflow
+
+#endif // GRAPHFLOW_STORAGE_NODE_PROPERTY_STORE_H_

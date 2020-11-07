@@ -1,29 +1,52 @@
 #ifndef GRAPHFLOW_COMMON_LOADER_UTILS_H_
 #define GRAPHFLOW_COMMON_LOADER_UTILS_H_
 
+#include <memory>
+#include <mutex>
+#include <unordered_map>
+
 #include "src/common/include/types.h"
+    
+using namespace std;
 
 namespace graphflow {
 namespace common {
 
-class InMemoryColumnBase {
+class NodeIDMap {
+
+public:
+    NodeIDMap(uint64_t size)
+        : nodeIDToOffsetMapping{unordered_map<string, gfNodeOffset_t>(size)} {};
+
+    void setOffset(string nodeID, gfNodeOffset_t offset);
+    gfNodeOffset_t getOffset(string &nodeID);
+    bool hasNodeID(string &nodeID);
+    void merge(NodeIDMap &localMap);
+
+private:
+    unordered_map<string, gfNodeOffset_t> nodeIDToOffsetMapping;
+};
+
+class InMemColAdjList {
+
+public:
+    InMemColAdjList(
+        const string fname, uint64_t numElements, uint64_t maxLabelToFit, uint64_t maxOffsetToFit);
+
+    void set(gfNodeOffset_t offset, gfLabel_t nbrLabel, gfNodeOffset_t nbrOffset);    
+    void saveToFile();
+
 public:
     unique_ptr<uint8_t[]> data;
     size_t size;
-    InMemoryColumnBase(size_t size) : data(make_unique<uint8_t[]>(size)), size(size){};
+
+private:
+    const string fname;
+    uint64_t numElements;
+    uint64_t numLabelBytes;
+    uint64_t numOffsetBytes;
+    uint64_t numElementsPerPage;
 };
-
-template<typename T>
-class InMemoryColumn : public InMemoryColumnBase {
-
-public:
-    InMemoryColumn(uint64_t numElements) : InMemoryColumnBase(sizeof(T) * numElements){};
-    void set(T val, uint64_t offset) {
-        memcpy(data.get() + (offset * sizeof(T)), &val, sizeof(T));
-    }
-};
-
-typedef InMemoryColumn<gfInt_t> RawColumnInteger;
 
 } // namespace common
 } // namespace graphflow

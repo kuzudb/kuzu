@@ -24,7 +24,7 @@ public:
     CSVReader(const string &fname, const char tokenSeparator, uint64_t blockId);
 
     bool hasMore();
-    uint64_t getNodeID();
+    unique_ptr<string> getNodeID();
     gfInt_t getInteger();
     gfDouble_t getDouble();
     gfBool_t getBoolean();
@@ -39,7 +39,7 @@ private:
     inline bool isLineSeparator() { return '\n' == next; }
     inline bool isTokenSeparator() { return isLineSeparator() || next == tokenSeparator; }
 
-    unique_ptr<ifstream> f;
+    ifstream f;
     const char tokenSeparator;
     char next;
     size_t readingBlockIdx;

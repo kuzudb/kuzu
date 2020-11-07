@@ -38,7 +38,7 @@ protected:
 TEST_F(ColumnIntegerTest, GetVal) {
     auto numElements = 30 * (PAGE_SIZE / sizeof(gfInt_t));
     BufferManager bufferManager(PAGE_SIZE * 30);
-    auto col = new ColumnInteger("colIntTestFile", numElements, bufferManager);
+    auto col = new ColumnInteger("propertyA", "colIntTestFile", numElements, bufferManager);
     gfInt_t fetched = 0;
     for (auto offset = 0u; offset < numElements; offset++) {
         col->getVal(offset, fetched);
