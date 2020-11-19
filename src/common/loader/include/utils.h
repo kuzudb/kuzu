@@ -1,12 +1,11 @@
-#ifndef GRAPHFLOW_COMMON_LOADER_UTILS_H_
-#define GRAPHFLOW_COMMON_LOADER_UTILS_H_
+#pragma once
 
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 
 #include "src/common/include/types.h"
-    
+
 using namespace std;
 
 namespace graphflow {
@@ -27,28 +26,44 @@ private:
     unordered_map<string, gfNodeOffset_t> nodeIDToOffsetMapping;
 };
 
-class InMemColAdjList {
+class InMemAdjEdges {
 
 public:
-    InMemColAdjList(
-        const string fname, uint64_t numElements, uint64_t maxLabelToFit, uint64_t maxOffsetToFit);
+    InMemAdjEdges(const string fname, uint64_t numElements, uint64_t numBytesPerLabel,
+        uint64_t numBytesPerOffset);
 
-    void set(gfNodeOffset_t offset, gfLabel_t nbrLabel, gfNodeOffset_t nbrOffset);    
+    void set(gfNodeOffset_t offset, gfLabel_t nbrLabel, gfNodeOffset_t nbrOffset);
+
     void saveToFile();
 
-public:
+private:
     unique_ptr<uint8_t[]> data;
     size_t size;
+    const string fname;
+    uint64_t numBytesPerLabel;
+    uint64_t numBytesPerOffset;
+    uint64_t numElementsPerPage;
+};
+
+class InMemAdjListsIndex {
+
+public:
+    InMemAdjListsIndex(const string fname, uint64_t numPages, uint64_t numBytesPerLabel,
+        uint64_t numBytesPerOffset);
+
+    void set(uint64_t pageIdx, uint16_t pageOffset, uint64_t pos, gfLabel_t nbrLabel,
+        gfNodeOffset_t nbrOffset);
+
+    void saveToFile();
 
 private:
+    unique_ptr<uint8_t[]> data;
+    size_t size;
     const string fname;
-    uint64_t numElements;
-    uint64_t numLabelBytes;
-    uint64_t numOffsetBytes;
+    uint64_t numBytesPerLabel;
+    uint64_t numBytesPerOffset;
     uint64_t numElementsPerPage;
 };
 
 } // namespace common
 } // namespace graphflow
-
-#endif // GRAPHFLOW_COMMON_LOADER_UTILS_H_

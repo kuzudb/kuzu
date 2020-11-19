@@ -1,5 +1,4 @@
-#ifndef GRAPHFLOW_UTILS_TYPES_H_
-#define GRAPHFLOW_UTILS_TYPES_H_
+#pragma once
 
 #include <cfloat>
 #include <cmath>
@@ -74,5 +73,3 @@ Direction operator!(Direction &direction);
 
 } // namespace common
 } // namespace graphflow
-
-#endif // GRAPHFLOW_UTILS_TYPES_H_

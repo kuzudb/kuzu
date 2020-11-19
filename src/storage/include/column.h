@@ -1,5 +1,4 @@
-#ifndef GRAPHFLOW_STORAGE_COLUMN_H_
-#define GRAPHFLOW_STORAGE_COLUMN_H_
+#pragma once
 
 #include <string.h>
 
@@ -85,27 +84,21 @@ typedef Column<gfDouble_t, void> ColumnDouble;
 typedef Column<gfBool_t, void> ColumnBoolean;
 typedef Column<gfString_t, void> ColumnString;
 
-typedef Column<uint8_t, void> Column1BOffset;
 typedef Column<uint16_t, void> Column2BOffset;
 typedef Column<uint32_t, void> Column4BOffset;
 typedef Column<uint64_t, void> Column8BOffset;
 
-typedef Column<uint8_t, uint8_t> Column1BLabel1BOffset;
 typedef Column<uint8_t, uint16_t> Column1BLabel2BOffset;
 typedef Column<uint8_t, uint32_t> Column1BLabel4BOffset;
 typedef Column<uint8_t, uint64_t> Column1BLabel8BOffset;
 
-typedef Column<uint16_t, uint8_t> Column2BLabel1BOffset;
 typedef Column<uint16_t, uint16_t> Column2BLabel2BOffset;
 typedef Column<uint16_t, uint32_t> Column2BLabel4BOffset;
 typedef Column<uint16_t, uint64_t> Column2BLabel8BOffset;
 
-typedef Column<uint32_t, uint8_t> Column4BLabel1BOffset;
 typedef Column<uint32_t, uint16_t> Column4BLabel2BOffset;
 typedef Column<uint32_t, uint32_t> Column4BLabel4BOffset;
 typedef Column<uint32_t, uint64_t> Column4BLabel8BOffset;
 
 } // namespace storage
 } // namespace graphflow
-
-#endif // GRAPHFLOW_STORAGE_COLUMN_H_

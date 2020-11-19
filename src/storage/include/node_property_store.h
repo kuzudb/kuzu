@@ -1,5 +1,4 @@
-#ifndef GRAPHFLOW_STORAGE_NODE_PROPERTY_STORE_H_
-#define GRAPHFLOW_STORAGE_NODE_PROPERTY_STORE_H_
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -28,5 +27,3 @@ private:
 
 } // namespace storage
 } // namespace graphflow
-
-#endif // GRAPHFLOW_STORAGE_NODE_PROPERTY_STORE_H_

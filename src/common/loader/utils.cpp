@@ -27,24 +27,56 @@ void NodeIDMap::merge(NodeIDMap &localMap) {
     nodeIDToOffsetMapping.merge(localMap.nodeIDToOffsetMapping);
 }
 
-InMemColAdjList::InMemColAdjList(
-    const string fname, uint64_t numElements, uint64_t numLabelBytes, uint64_t numOffsetBytes)
-    : fname(fname), numElements(numElements), numLabelBytes(numLabelBytes),
-      numOffsetBytes(numOffsetBytes) {
-    numElementsPerPage = PAGE_SIZE / (numLabelBytes + numOffsetBytes);
+InMemAdjEdges::InMemAdjEdges(
+    const string fname, uint64_t numElements, uint64_t numBytesPerLabel, uint64_t numBytesPerOffset)
+    : fname(fname), numBytesPerLabel(numBytesPerLabel), numBytesPerOffset(numBytesPerOffset) {
+    numElementsPerPage = PAGE_SIZE / (numBytesPerLabel + numBytesPerOffset);
     size = PAGE_SIZE * (1 + numElements / numElementsPerPage);
     data = make_unique<uint8_t[]>(size);
     fill(data.get(), data.get() + size, UINT8_MAX);
 };
 
-void InMemColAdjList::set(gfNodeOffset_t offset, gfLabel_t nbrLabel, gfNodeOffset_t nbrOffset) {
+void InMemAdjEdges::set(gfNodeOffset_t offset, gfLabel_t nbrLabel, gfNodeOffset_t nbrOffset) {
     auto writeOffset = data.get() + (PAGE_SIZE * (offset / numElementsPerPage)) +
-                       ((numLabelBytes + numOffsetBytes) * (offset % numElementsPerPage));
-    memcpy(writeOffset, &nbrLabel, numLabelBytes);
-    memcpy(writeOffset + numLabelBytes, &nbrOffset, numOffsetBytes);
+                       ((numBytesPerLabel + numBytesPerOffset) * (offset % numElementsPerPage));
+    memcpy(writeOffset, &nbrLabel, numBytesPerLabel);
+    memcpy(writeOffset + numBytesPerLabel, &nbrOffset, numBytesPerOffset);
 }
 
-void InMemColAdjList::saveToFile() {
+void InMemAdjEdges::saveToFile() {
+    uint32_t f = open(fname.c_str(), O_WRONLY | O_CREAT, 0666);
+    if (-1u == f) {
+        invalid_argument("cannot create file: " + fname);
+    }
+    if (size != write(f, data.get(), size)) {
+        invalid_argument("Cannot write in file.");
+    }
+    close(f);
+}
+
+InMemAdjListsIndex::InMemAdjListsIndex(
+    const string fname, uint64_t numPages, uint64_t numBytesPerLabel, uint64_t numBytesPerOffset)
+    : fname(fname), numBytesPerLabel(numBytesPerLabel), numBytesPerOffset(numBytesPerOffset) {
+    numElementsPerPage = PAGE_SIZE / (numBytesPerLabel + numBytesPerOffset);
+    size = PAGE_SIZE * numPages;
+    data = make_unique<uint8_t[]>(size);
+    fill(data.get(), data.get() + size, UINT8_MAX);
+};
+
+void InMemAdjListsIndex::set(uint64_t pageIdx, uint16_t pageOffset, uint64_t pos,
+    gfLabel_t nbrLabel, gfNodeOffset_t nbrOffset) {
+    pageOffset += pos;
+    while (pageOffset >= numElementsPerPage) {
+        pageOffset -= numElementsPerPage;
+        pageIdx++;
+    }
+    auto writeOffset =
+        data.get() + (PAGE_SIZE * pageIdx) + ((numBytesPerLabel + numBytesPerOffset) * pageOffset);
+    memcpy(writeOffset, &nbrLabel, numBytesPerLabel);
+    memcpy(writeOffset + numBytesPerLabel, &nbrOffset, numBytesPerOffset);
+}
+
+void InMemAdjListsIndex::saveToFile() {
     uint32_t f = open(fname.c_str(), O_WRONLY | O_CREAT, 0666);
     if (-1u == f) {
         invalid_argument("cannot create file: " + fname);

@@ -1,10 +1,10 @@
-#ifndef GRAPHFLOW_COMMON_LOADER_GRAPH_LOADER_H_
-#define GRAPHFLOW_COMMON_LOADER_GRAPH_LOADER_H_
+#pragma once
 
 #include <thread>
 #include <vector>
 
 #include "nlohmann/json.hpp"
+#include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
 #include "src/common/include/types.h"
@@ -22,34 +22,32 @@ namespace common {
 class GraphLoader {
 
 public:
-    GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads);
+    GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads)
+        : logger{spdlog::stdout_logger_mt("GraphLoader")}, threadPool{ThreadPool(numThreads)},
+          inputDirectory(inputDirectory), outputDirectory(outputDirectory) {}
 
     void loadGraph();
 
 private:
     unique_ptr<nlohmann::json> readMetadata();
 
+    void assignLabels(
+        unordered_map<string, gfLabel_t> &stringToLabelMap, const nlohmann::json &fileDescriptions);
+    void setCardinalities(Catalog &catalog, const nlohmann::json &metadata);
+    void setSrcDstNodeLabelsForRelLabels(Catalog &catalog, const nlohmann::json &metadata);
+
     unique_ptr<vector<shared_ptr<NodeIDMap>>> loadNodes(
         const nlohmann::json &metadata, Graph &graph, Catalog &catalog);
-
-    void readNodePropertiesAndSerialize(Catalog &catalog, const nlohmann::json &metadata,
-        vector<string> &filenames, vector<vector<Property>> &propertyMaps,
-        vector<uint64_t> &numNodesPerLabel, vector<uint64_t> &numBlocksPerLabel,
-        vector<vector<uint64_t>> &numLinesPerBlock, vector<shared_ptr<NodeIDMap>> &nodeIDMaps);
-
-    shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> createFilesForNodeProperties(
-        Catalog &catalog, gfLabel_t label, vector<Property> &propertyMap);
 
     void loadRels(const nlohmann::json &metadata, Graph &graph, Catalog &catalog,
         unique_ptr<vector<shared_ptr<NodeIDMap>>> nodeIDMaps);
 
     void inferFilenamesInitPropertyMapAndCountLinesPerBlock(gfLabel_t numLabels,
-        nlohmann::json filedescriptions, vector<string> &filenames,
+        nlohmann::json filedescriptions, vector<string> &fnames,
         vector<uint64_t> &numBlocksPerLabel, vector<vector<Property>> &propertyMap,
-        vector<vector<uint64_t>> &numLinesPerBlock, const char tokenSeparator,
-        vector<uint64_t> &numPerLabel);
+        const char tokenSeparator);
 
-    void initPropertyMapAndCalcNumBlocksPerLabel(gfLabel_t numLabels, vector<string> &filenames,
+    void initPropertyMapAndCalcNumBlocksPerLabel(gfLabel_t numLabels, vector<string> &fnames,
         vector<uint64_t> &numPerLabel, vector<vector<Property>> &propertyMaps,
         const char tokenSeparator);
 
@@ -57,16 +55,13 @@ private:
 
     void countLinesPerBlockAndInitNumPerLabel(gfLabel_t numLabels,
         vector<vector<uint64_t>> &numLinesPerBlock, vector<uint64_t> &numBlocksPerLabel,
-        const char tokenSeparator, vector<string> &filenames);
+        const char tokenSeparator, vector<string> &fnames, vector<uint64_t> &numPerLabel);
 
-    void createSingleCardinalityAdjListsIndexes(Graph &graph, Catalog &catalog,
-        const char tokenSeparator, vector<uint64_t> &numBlocksPerLabel,
-        vector<vector<uint64_t>> &numLinesPerBlock, vector<string> &filenames,
-        vector<shared_ptr<NodeIDMap>> &nodeIDMaps);
+    // Concurrent Tasks
 
-    shared_ptr<vector<unique_ptr<InMemColAdjList>>> createInMemColAdjListsIndex(Graph &graph,
-        Catalog &catalog, shared_ptr<vector<vector<gfLabel_t>>> nodeLabels, gfLabel_t relLabel,
-        Direction direction);
+    static void fileBlockLinesCounterTask(string fname, char tokenSeparator,
+        vector<vector<uint64_t>> *numLinesPerBlock, gfLabel_t label, uint32_t blockId,
+        shared_ptr<spdlog::logger> logger);
 
 private:
     shared_ptr<spdlog::logger> logger;
@@ -77,5 +72,3 @@ private:
 
 } // namespace common
 } // namespace graphflow
-
-#endif // GRAPHFLOW_COMMON_GRAPH_LOADER_H_

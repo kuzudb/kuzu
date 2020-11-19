@@ -2,18 +2,28 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 cc_library(
-    name = "graph_loader",
-    srcs = ["graph_loader.cpp"],
-    hdrs = ["include/graph_loader.h"],
+    name = "loader",
+    srcs = [
+        "graph_loader.cpp",
+        "nodes_loader.cpp",
+        "rels_loader.cpp",
+    ],
+    hdrs = [
+        "include/graph_loader.h",
+        "include/nodes_loader.h",
+        "include/rels_loader.h",
+    ],
     visibility = ["//visibility:public"],
     deps = [
-        "loader_tasks",
+        "csv_reader",
         "thread_pool",
         "utils",
         "//src/common:configs",
         "//src/common:types",
         "//src/storage:catalog",
         "//src/storage:graph",
+        "//src/storage:node_property_store",
+        "//src/storage:indexes",
         "@gabime_spdlog",
         "@nlohmann_json",
     ],
@@ -36,18 +46,6 @@ cc_library(
     hdrs = ["include/thread_pool.h"],
     visibility = ["//visibility:public"],
     deps = [],
-)
-
-cc_library(
-    name = "loader_tasks",
-    srcs = ["loader_tasks.cpp"],
-    hdrs = ["include/loader_tasks.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "csv_reader",
-        "utils",
-        "@gabime_spdlog",
-    ],
 )
 
 cc_library(

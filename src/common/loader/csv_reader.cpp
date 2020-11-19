@@ -10,7 +10,11 @@ namespace common {
 CSVReader::CSVReader(const string &fname, const char tokenSeparator, uint64_t blockId)
     : f(fname, ifstream::in), tokenSeparator(tokenSeparator),
       readingBlockIdx(CSV_READING_BLOCK_SIZE * blockId),
-      readingBlockEndIdx(CSV_READING_BLOCK_SIZE * (blockId + 1)) {
+      readingBlockEndIdx(CSV_READING_BLOCK_SIZE * (blockId + 1)),
+      strBuffer(make_unique<char[]>(128)), strBufferLen(0), strBufferCapacity(128) {
+    if (!f.good()) {
+        throw invalid_argument("Cannot open file: " + fname);
+    }
     auto isBeginningOfLine = false;
     if (0 == readingBlockIdx) {
         isBeginningOfLine = true;
@@ -30,11 +34,10 @@ CSVReader::CSVReader(const string &fname, const char tokenSeparator, uint64_t bl
 }
 
 bool CSVReader::hasMore() {
-    return readingBlockIdx <= readingBlockEndIdx && !f.eof();
+    return f.tellg() <= readingBlockEndIdx && !f.eof();
 }
 
 void CSVReader::updateNext() {
-    readingBlockIdx++;
     f.get(next);
 }
 
@@ -48,7 +51,7 @@ void CSVReader::skipLine() {
 bool CSVReader::skipTokenIfNULL() {
     auto ret = isTokenSeparator();
     if (ret) {
-        skipToken();
+        updateNext();
     }
     return ret;
 }
@@ -58,16 +61,6 @@ void CSVReader::skipToken() {
         updateNext();
     }
     updateNext();
-}
-
-unique_ptr<string> CSVReader::getLine() {
-    auto val = make_unique<string>();
-    while (!isLineSeparator()) {
-        val->push_back(next);
-        updateNext();
-    }
-    updateNext();
-    return val;
 }
 
 unique_ptr<string> CSVReader::getNodeID() {
@@ -286,13 +279,25 @@ gfBool_t CSVReader::getBoolean() {
 }
 
 unique_ptr<string> CSVReader::getString() {
-    auto val = make_unique<std::string>();
+    strBufferLen = 0;
     while (!isTokenSeparator()) {
-        val->push_back(next);
+        ensureStringBufferCapacity();
+        strBuffer[strBufferLen++] = next;
         updateNext();
     }
+    ensureStringBufferCapacity();
+    strBuffer[strBufferLen++] = 0;
     updateNext();
-    return val;
+    return make_unique<string>(strBuffer.get(), strBufferLen);
+}
+
+void CSVReader::ensureStringBufferCapacity() {
+    if (strBufferLen >= strBufferCapacity) {
+        strBufferCapacity *= 1.5;
+        auto newBuffer = new char[strBufferCapacity];
+        memcpy(newBuffer, strBuffer.get(), strBufferLen);
+        strBuffer.reset(newBuffer);
+    }
 }
 
 } // namespace common

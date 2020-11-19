@@ -7,7 +7,7 @@ NodePropertyStore::NodePropertyStore(Catalog &catalog, vector<uint64_t> &numNode
     const string &directory, BufferManager &bufferManager) {
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
         columns.push_back(std::vector<std::unique_ptr<ColumnBase>>());
-        for (auto &property : catalog.getNodePropertyMap(nodeLabel)) {
+        for (auto &property : catalog.getPropertyMapForNodeLabel(nodeLabel)) {
             auto fname = getColumnFname(directory, nodeLabel, property.propertyName);
             switch (property.dataType) {
             case INT:

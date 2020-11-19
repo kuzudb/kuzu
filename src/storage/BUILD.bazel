@@ -49,9 +49,9 @@ cc_library(
 )
 
 cc_library(
-    name = "adjlists_indexes",
-    srcs = ["adjlists_indexes.cpp"],
-    hdrs = ["include/adjlists_indexes.h"],
+    name = "indexes",
+    srcs = ["indexes.cpp"],
+    hdrs = ["include/indexes.h"],
     visibility = ["//visibility:public"],
     deps = [
         "column",
@@ -67,7 +67,6 @@ cc_library(
     deps = [
         "//src/common:types",
         "@fraillt_bitsery",
-        "@nlohmann_json",
     ],
 )
 
@@ -77,7 +76,7 @@ cc_library(
     hdrs = ["include/graph.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "adjlists_indexes",
+        "indexes",
         "buffer_manager",
         "catalog",
         "node_property_store",

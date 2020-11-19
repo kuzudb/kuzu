@@ -19,13 +19,12 @@ Graph::Graph(const string &directory, uint64_t bufferPoolSize)
     nodePropertyStore =
         make_unique<NodePropertyStore>(*catalog, numNodesPerLabel, directory, *bufferManager);
     adjListIndexes =
-        make_unique<AdjListsIndexes>(*catalog, numNodesPerLabel, directory, *bufferManager);
+        make_unique<Indexes>(*catalog, numNodesPerLabel, directory, *bufferManager);
 }
 
 template<typename S>
 void Graph::serialize(S &s) {
     s(numNodesPerLabel);
-    s(numRelsPerLabel);
 }
 
 void Graph::saveToFile(const string &directory) {
