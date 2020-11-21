@@ -8,59 +8,89 @@ namespace graphflow {
 namespace common {
 
 CSVReader::CSVReader(const string &fname, const char tokenSeparator, uint64_t blockId)
-    : f(fname, ifstream::in), tokenSeparator(tokenSeparator),
-      readingBlockIdx(CSV_READING_BLOCK_SIZE * blockId),
-      readingBlockEndIdx(CSV_READING_BLOCK_SIZE * (blockId + 1)),
-      strBuffer(make_unique<char[]>(128)), strBufferLen(0), strBufferCapacity(128) {
-    if (!f.good()) {
+    : tokenSeparator(tokenSeparator), nextLineIsNotProcessed{false}, isEndOfBlock{false},
+      nextTokenIsNotProcessed{false}, line{new char[1 << 10]}, lineCapacity{1 << 10}, lineLen{0},
+      linePtrStart{-1l}, linePtrEnd{-1l}, readingBlockIdx(CSV_READING_BLOCK_SIZE * blockId),
+      readingBlockEndIdx(CSV_READING_BLOCK_SIZE * (blockId + 1)) {
+    f = fopen(fname.c_str(), "r");
+    if (nullptr == f) {
         throw invalid_argument("Cannot open file: " + fname);
     }
     auto isBeginningOfLine = false;
     if (0 == readingBlockIdx) {
         isBeginningOfLine = true;
     } else {
-        f.seekg(--readingBlockIdx);
-        updateNext();
-        if (isLineSeparator()) {
+        fseek(f, readingBlockIdx - 1, SEEK_SET);
+        if ('\n' == fgetc(f)) {
             isBeginningOfLine = true;
         }
     }
     if (!isBeginningOfLine) {
-        while (!isLineSeparator()) {
-            updateNext();
-        }
+        while ('\n' != fgetc(f)) {}
     }
-    updateNext();
+    nextLineIsNotProcessed = false;
+    isEndOfBlock = false;
 }
 
-bool CSVReader::hasMore() {
-    return f.tellg() <= readingBlockEndIdx && !f.eof();
+CSVReader::~CSVReader() {
+    delete[](line);
 }
 
-void CSVReader::updateNext() {
-    f.get(next);
+bool CSVReader::hasNextLine() {
+    if (isEndOfBlock) {
+        return false;
+    }
+    if (nextLineIsNotProcessed) {
+        return true;
+    }
+    if (ftell(f) >= readingBlockEndIdx) {
+        isEndOfBlock = false;
+        return false;
+    }
+    lineLen = getline(&line, &lineCapacity, f);
+    while (2 > lineLen || '#' == line[0]) {
+        lineLen = getline(&line, &lineCapacity, f);
+    };
+    linePtrStart = linePtrEnd = -1;
+    if (feof(f)) {
+        fclose(f);
+        isEndOfBlock = false;
+        return false;
+    }
+    return true;
 }
 
 void CSVReader::skipLine() {
-    while (!isLineSeparator()) {
-        updateNext();
-    }
-    updateNext();
+    nextLineIsNotProcessed = false;
 }
 
-bool CSVReader::skipTokenIfNULL() {
-    auto ret = isTokenSeparator();
-    if (ret) {
-        updateNext();
+bool CSVReader::skipTokenIfNull() {
+    if (linePtrEnd - linePtrStart == 0) {
+        nextLineIsNotProcessed = false;
+        return true;
     }
-    return ret;
+    return false;
 }
 
 void CSVReader::skipToken() {
-    while (!isTokenSeparator()) {
-        updateNext();
+    nextTokenIsNotProcessed = false;
+}
+
+bool CSVReader::hasNextToken() {
+    if (nextTokenIsNotProcessed) {
+        return true;
     }
-    updateNext();
+    linePtrEnd++;
+    linePtrStart = linePtrEnd;
+    if (linePtrEnd == lineLen) {
+        nextLineIsNotProcessed = false;
+        return false;
+    }
+    while (tokenSeparator != line[linePtrEnd] && '\n' != line[linePtrEnd]) {
+        linePtrEnd++;
+    }
+    line[linePtrEnd] = 10;
+    return true;
 }
 
 unique_ptr<string> CSVReader::getNodeID() {
@@ -68,236 +98,33 @@ unique_ptr<string> CSVReader::getNodeID() {
 }
 
 gfInt_t CSVReader::getInteger() {
-    auto state = 0;
-    gfInt_t val = 0;
-    while (!isTokenSeparator()) {
-        if (state == 1) {
-            if (next >= 48 && next <= 57) {
-                if (val > (numeric_limits<gfInt_t>::max() - (next - 48)) / 10) {
-                    throw std::invalid_argument("Overflow in Integer.");
-                }
-                val = (val * 10) + (next - 48);
-            } else {
-                throw std::invalid_argument("Cannot read the token as Integer.");
-            }
-        } else if (state == 0) {
-            if (next >= 48 && next <= 57) {
-                val = (val * 10) + (next - 48);
-                state = 1;
-            } else if (next == '-') {
-                state = 2;
-            } else if (next == '+') {
-                state = 4;
-            } else {
-                throw std::invalid_argument("Cannot read the token as Integer.");
-            }
-        } else if (state == 4) {
-            if (next >= 48 && next <= 57) {
-                val = next - 48;
-                state = 1;
-            } else {
-                throw std::invalid_argument("Cannot read the token as Integer.");
-            }
-        } else if (state == 2) {
-            if (next >= 48 && next <= 57) {
-                val = -(next - 48);
-                state = 3;
-            } else {
-                throw std::invalid_argument("Cannot read the token as Integer.");
-            }
-        } else if (state == 3) {
-            if (next >= 48 && next <= 57) {
-                if (val < (numeric_limits<gfInt_t>::min() + (next - 48)) / 10) {
-                    throw std::invalid_argument("Underflow in Integer.");
-                }
-                val = (val * 10) - (next - 48);
-            } else {
-                throw std::invalid_argument("Cannot read the token as Integer.");
-            }
-        }
-        updateNext();
-    }
-    updateNext();
-    if (!(state == 1 || state == 3)) {
-        throw std::invalid_argument("Cannot read the token as Integer.");
-    }
-    return val;
+    int a = atoi(line + linePtrStart);
+    nextTokenIsNotProcessed = false;
+    return a;
 }
 
 gfDouble_t CSVReader::getDouble() {
-    auto state = 0;
-    gfDouble_t val = 0.0;
-    auto decimalR = 0.0;
-    auto factor = 1.0;
-    auto power10 = 0;
-    auto isExponentNegative = false;
-    auto isNegative = false;
-    while (!isTokenSeparator()) {
-        if (1 == state) {
-            if (48 <= next && 57 >= next) {
-                val = (val * 10) + (next - 48);
-            } else if ('.' == next) {
-                state = 3;
-            } else {
-                throw std::invalid_argument("Cannot read the token as Double.");
-            }
-        } else if (4 == state) {
-            if (48 <= next && 57 >= next) {
-                factor *= 10;
-                decimalR = (decimalR * 10) + (next - 48);
-            } else if ('e' == next || 'E' == next) {
-                state = 5;
-            } else {
-                throw std::invalid_argument("Cannot read the token as Double.");
-            }
-        } else if (0 == state) {
-            if (48 <= next && 57 >= next) {
-                val = (val * 10) + (next - 48);
-                state = 1;
-            } else if ('-' == next) {
-                isNegative = true;
-                state = 2;
-            } else if ('+' == next) {
-                isNegative = true;
-                state = 8;
-            } else {
-                throw std::invalid_argument("Cannot read the token as Double.");
-            }
-        } else if (3 == state) {
-            if (48 <= next && 57 >= next) {
-                factor *= 10;
-                decimalR = (decimalR * 10) + (next - 48);
-                state = 4;
-            } else {
-                throw std::invalid_argument("Cannot read the token as Double.");
-            }
-        } else if (2 == state) {
-            if (48 <= next && 57 >= next) {
-                val = (val * 10) + (next - 48);
-                state = 1;
-            } else {
-                throw std::invalid_argument("Cannot read the token as Double.");
-            }
-        } else if (8 == state) {
-            if (48 <= next && 57 >= next) {
-                val = (val * 10) + (next - 48);
-                state = 1;
-            } else {
-                throw std::invalid_argument("Cannot read the token as Double.");
-            }
-        } else if (5 == state) {
-            if (48 <= next && 57 >= next) {
-                power10 = (power10 * 10) + (next - 48);
-                state = 6;
-            } else if ('-' == next) {
-                isExponentNegative = true;
-                state = 7;
-            } else if ('+' == next) {
-                isExponentNegative = true;
-                state = 9;
-            } else {
-                throw std::invalid_argument("Cannot read the token as Double.");
-            }
-        } else if (6 == state) {
-            if (48 <= next && 57 >= next) {
-                power10 = (power10 * 10) + (next - 48);
-            } else {
-                throw std::invalid_argument("Cannot read the token as Double.");
-            }
-        } else if (7 == state) {
-            if (48 <= next && 57 >= next) {
-                power10 = (power10 * 10) + (next - 48);
-                state = 6;
-            } else {
-                throw std::invalid_argument("Cannot read the token as Double.");
-            }
-        } else if (9 == state) {
-            if (48 <= next && 57 >= next) {
-                power10 = (power10 * 10) + (next - 48);
-                state = 6;
-            } else {
-                throw std::invalid_argument("Cannot read the token as Double.");
-            }
-        }
-        updateNext();
-    }
-    updateNext();
-    if (!(1 == state || 4 == state || 6 == state)) {
-        throw std::invalid_argument("Cannot read the token as Double.");
-    }
-    if (isExponentNegative) {
-        power10 = -power10;
-    }
-    auto exp = pow(10, power10);
-    decimalR /= factor;
-    val += decimalR;
-    val *= exp;
-    val = isNegative ? -val : val;
-    return val;
+    double a = atof(line + linePtrStart);
+    nextTokenIsNotProcessed = false;
+    return a;
 }
 
 gfBool_t CSVReader::getBoolean() {
-    char trueTokens[] = {'t', 'r', 'u', 'e'};
-    char falseTokens[] = {'f', 'a', 'l', 's', 'e'};
-    if (trueTokens[0] == tolower(next)) {
-        updateNext();
-        auto i = 1;
-        while (!isTokenSeparator()) {
-            if (i == 4) {
-                throw std::invalid_argument("Cannot read the token as Boolean.");
-            }
-            if (trueTokens[i++] == tolower(next)) {
-                updateNext();
-            } else {
-                throw std::invalid_argument("Cannot read the token as Boolean.");
-            }
-        }
-        updateNext();
-        if (i != 4) {
-            throw std::invalid_argument("Cannot read the token as Boolean.");
-        }
+    if (0 == strcmp(line + linePtrStart, trueVal)) {
+        nextTokenIsNotProcessed = false;
         return 1;
     }
-    // else
-    updateNext();
-    auto i = 1;
-    while (!isTokenSeparator()) {
-        if (i == 5) {
-            throw std::invalid_argument("Cannot read the token as Boolean.");
-        }
-        if (falseTokens[i++] == tolower(next)) {
-            updateNext();
-        } else {
-            throw std::invalid_argument("Cannot read the token as Boolean.");
-        }
+    if (0 == strcmp(line + linePtrStart, falseVal)) {
+        nextTokenIsNotProcessed = false;
+        return 2;
     }
-    updateNext();
-    if (i != 5) {
-        throw std::invalid_argument("Cannot read the token as Boolean.");
-    }
-    return 2;
+    throw invalid_argument("invalid boolean val.");
 }
 
 unique_ptr<string> CSVReader::getString() {
-    strBufferLen = 0;
-    while (!isTokenSeparator()) {
-        ensureStringBufferCapacity();
-        strBuffer[strBufferLen++] = next;
-        updateNext();
-    }
-    ensureStringBufferCapacity();
-    strBuffer[strBufferLen++] = 0;
-    updateNext();
-    return make_unique<string>(strBuffer.get(), strBufferLen);
-}
-
-void CSVReader::ensureStringBufferCapacity() {
-    if (strBufferLen >= strBufferCapacity) {
-        strBufferCapacity *= 1.5;
-        auto newBuffer = new char[strBufferCapacity];
-        memcpy(newBuffer, strBuffer.get(), strBufferLen);
-        strBuffer.reset(newBuffer);
-    }
+    auto a = make_unique<string>(line + linePtrStart, linePtrEnd - linePtrStart);
+    nextTokenIsNotProcessed = false;
+    return a;
 }
 
 } // namespace common

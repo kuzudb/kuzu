@@ -65,36 +65,40 @@ void NodesLoader::populateNodePropertyColumnTask(string fname, char tokenSeparat
     CSVReader reader(fname, tokenSeparator, blockId);
     NodeIDMap map(numElements);
     if (0 == blockId) {
-        reader.skipLine(); // skip header line
+        if (reader.hasNextLine()) {}
     }
     auto bufferOffset = 0u;
-    while (reader.hasMore()) {
-        map.setOffset(*reader.getNodeID().get(), beginOffset + bufferOffset);
-        for (auto i = 1u; i < propertyMap.size(); i++) {
-            switch (propertyMap[i].dataType) {
+    while (reader.hasNextLine()) {
+        auto propertyIdx = 0;
+        while (reader.hasNextToken()) {
+            switch (propertyMap[propertyIdx].dataType) {
+            case NODE:
+                map.setOffset(*reader.getNodeID().get(), beginOffset + bufferOffset);
+                break;
             case INT: {
-                auto intVal = reader.skipTokenIfNULL() ? NULL_GFINT : reader.getInteger();
-                memcpy((*buffers)[i] + (bufferOffset * getDataTypeSize(INT)), &intVal,
+                auto intVal = reader.skipTokenIfNull() ? NULL_GFINT : reader.getInteger();
+                memcpy((*buffers)[propertyIdx] + (bufferOffset * getDataTypeSize(INT)), &intVal,
                     getDataTypeSize(INT));
                 break;
             }
             case DOUBLE: {
-                auto doubleVal = reader.skipTokenIfNULL() ? NULL_GFDOUBLE : reader.getDouble();
-                memcpy((*buffers)[i] + (bufferOffset * getDataTypeSize(DOUBLE)), &doubleVal,
-                    getDataTypeSize(DOUBLE));
+                auto doubleVal = reader.skipTokenIfNull() ? NULL_GFDOUBLE : reader.getDouble();
+                memcpy((*buffers)[propertyIdx] + (bufferOffset * getDataTypeSize(DOUBLE)),
+                    &doubleVal, getDataTypeSize(DOUBLE));
                 break;
             }
             case BOOLEAN: {
-                auto boolVal = reader.skipTokenIfNULL() ? NULL_GFBOOL : reader.getBoolean();
-                memcpy((*buffers)[i] + (bufferOffset * getDataTypeSize(BOOLEAN)), &boolVal,
-                    getDataTypeSize(BOOLEAN));
+                auto boolVal = reader.skipTokenIfNull() ? NULL_GFBOOL : reader.getBoolean();
+                memcpy((*buffers)[propertyIdx] + (bufferOffset * getDataTypeSize(BOOLEAN)),
+                    &boolVal, getDataTypeSize(BOOLEAN));
                 break;
             }
             default:
-                if (!reader.skipTokenIfNULL()) {
+                if (!reader.skipTokenIfNull()) {
                     reader.skipToken();
                 }
             }
+            propertyIdx++;
         }
         bufferOffset++;
     }

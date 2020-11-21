@@ -21,7 +21,7 @@ typedef double_t gfDouble_t;
 typedef uint8_t gfBool_t;
 typedef string *gfString_t;
 
-enum DataType : uint8_t { NODE, REL, INT, DOUBLE, BOOLEAN, STRING };
+enum DataType : uint8_t { NODE, REL, LABEL, INT, DOUBLE, BOOLEAN, STRING };
 
 uint8_t getDataTypeSize(DataType dataType);
 

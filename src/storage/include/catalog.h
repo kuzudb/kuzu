@@ -32,6 +32,13 @@ public:
     inline uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
     inline uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
 
+    inline const gfLabel_t &getNodeLabelFromString(string &label) const {
+        return stringToNodeLabelMap.at(label);
+    }
+    inline const gfLabel_t &getRelLabelFromString(string &label) const {
+        return stringToRelLabelMap.at(label);
+    }
+
     inline const vector<Property> &getPropertyMapForNodeLabel(gfLabel_t nodeLabel) const {
         return nodePropertyMaps[nodeLabel];
     }

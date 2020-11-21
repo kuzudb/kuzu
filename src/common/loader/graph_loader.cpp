@@ -95,8 +95,8 @@ unique_ptr<vector<shared_ptr<NodeIDMap>>> GraphLoader::loadNodes(
         (*nodeIDMaps).push_back(make_shared<NodeIDMap>(graph.numNodesPerLabel[nodeLabel]));
     }
     NodesLoader nodesLoader{threadPool, catalog, metadata, outputDirectory};
-    nodesLoader.load(fnames, graph.numNodesPerLabel, numBlocksPerLabel,
-        numLinesPerBlock, *nodeIDMaps);
+    nodesLoader.load(
+        fnames, graph.numNodesPerLabel, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
     return nodeIDMaps;
 }
 
@@ -108,8 +108,8 @@ void GraphLoader::loadRels(const nlohmann::json &metadata, Graph &graph, Catalog
     inferFilenamesInitPropertyMapAndCountLinesPerBlock(catalog.getRelLabelsCount(),
         metadata.at("relFileDescriptions"), fnames, numBlocksPerLabel, catalog.relPropertyMaps,
         metadata.at("tokenSeparator").get<string>()[0]);
-    RelsLoader relsLoader{threadPool, graph, catalog, metadata, outputDirectory};
-    relsLoader.load(fnames, move(nodeIDMaps), numBlocksPerLabel);
+    RelsLoader relsLoader{threadPool, graph, catalog, metadata, *nodeIDMaps, outputDirectory};
+    relsLoader.load(fnames, numBlocksPerLabel);
 }
 
 void GraphLoader::inferFilenamesInitPropertyMapAndCountLinesPerBlock(gfLabel_t numLabels,
@@ -188,9 +188,8 @@ void GraphLoader::fileBlockLinesCounterTask(string fname, char tokenSeparator,
     logger->debug("start {0} {1}", fname, blockId);
     CSVReader reader(fname, tokenSeparator, blockId);
     (*numLinesPerBlock)[label][blockId] = 0ull;
-    while (reader.hasMore()) {
+    while (reader.hasNextLine()) {
         (*numLinesPerBlock)[label][blockId]++;
-        reader.skipLine();
     }
     logger->debug("end   {0} {1} {2}", fname, blockId, (*numLinesPerBlock)[label][blockId]);
 }

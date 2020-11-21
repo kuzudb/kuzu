@@ -38,7 +38,7 @@ public:
 
 private:
     unique_ptr<uint8_t[]> data;
-    size_t size;
+    ssize_t size;
     const string fname;
     uint64_t numBytesPerLabel;
     uint64_t numBytesPerOffset;
@@ -58,7 +58,7 @@ public:
 
 private:
     unique_ptr<uint8_t[]> data;
-    size_t size;
+    ssize_t size;
     const string fname;
     uint64_t numBytesPerLabel;
     uint64_t numBytesPerOffset;
