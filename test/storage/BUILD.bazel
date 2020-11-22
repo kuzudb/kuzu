@@ -12,3 +12,16 @@ cc_test(
         "@gtest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "adjedges_index_test",
+    srcs = ["adjedges_index_test.cpp"],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/storage:indexes",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)

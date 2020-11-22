@@ -21,33 +21,31 @@ class CSVReader {
 
 public:
     CSVReader(const string &fname, const char tokenSeparator, uint64_t blockId);
+    ~CSVReader();
 
-    bool hasMore();
+    bool hasNextLine();
+    bool hasNextToken();
+    void skipLine();
+    bool skipTokenIfNull();
+    void skipToken();
+
     unique_ptr<string> getNodeID();
     gfInt_t getInteger();
     gfDouble_t getDouble();
     gfBool_t getBoolean();
     unique_ptr<string> getString();
-    void skipLine();
-    bool skipTokenIfNULL();
-    void skipToken();
 
 private:
-    void updateNext();
-
-    inline bool isLineSeparator() { return f.eof() || '\n' == next; }
-    inline bool isTokenSeparator() { return isLineSeparator() || next == tokenSeparator; }
-
-    void ensureStringBufferCapacity();
-
-private:
-    ifstream f;
+    FILE *f;
     const char tokenSeparator;
-    char next;
+    bool nextLineIsNotProcessed, isEndOfBlock, nextTokenIsNotProcessed;
+    char *line;
+    size_t lineCapacity, lineLen;
+    int64_t linePtrStart, linePtrEnd;
+    char *trueVal = (char *)"true";
+    char *falseVal = (char *)"false";
     size_t readingBlockIdx;
     size_t readingBlockEndIdx;
-    unique_ptr<char[]> strBuffer;
-    size_t strBufferLen, strBufferCapacity;
 };
 
 } // namespace common

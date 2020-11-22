@@ -6,7 +6,9 @@ namespace graphflow {
 namespace common {
 
 DataType getDataType(const std::string &dataTypeString) {
-    if (0 == dataTypeString.compare("NODE")) {
+    if (0 == dataTypeString.compare("LABEL")) {
+        return LABEL;
+    } else if (0 == dataTypeString.compare("NODE")) {
         return NODE;
     } else if (0 == dataTypeString.compare("REL")) {
         return REL;

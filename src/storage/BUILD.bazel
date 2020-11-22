@@ -1,5 +1,4 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 cc_library(
     name = "buffer_manager",
@@ -50,12 +49,20 @@ cc_library(
 
 cc_library(
     name = "indexes",
-    srcs = ["indexes.cpp"],
-    hdrs = ["include/indexes.h"],
+    srcs = [
+        "adjlists_index.cpp",
+        "indexes.cpp",
+    ],
+    hdrs = [
+        "include/adjedges_index.h",
+        "include/adjlists_index.h",
+        "include/indexes.h",
+    ],
     visibility = ["//visibility:public"],
     deps = [
-        "column",
         "catalog",
+        "column",
+        "@fraillt_bitsery",
     ],
 )
 
@@ -76,9 +83,9 @@ cc_library(
     hdrs = ["include/graph.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "indexes",
         "buffer_manager",
         "catalog",
+        "indexes",
         "node_property_store",
         "@fraillt_bitsery",
     ],
