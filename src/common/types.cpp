@@ -37,6 +37,8 @@ uint8_t getDataTypeSize(DataType dataType) {
     case NODE:
     case REL:
         return sizeof(gfNodeOffset_t);
+    case LABEL:
+        return sizeof(gfLabel_t);
     }
     throw invalid_argument("Cannot infer the size of the dataType.");
 }

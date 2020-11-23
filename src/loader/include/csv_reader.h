@@ -15,7 +15,7 @@ using namespace graphflow::common;
 using namespace std;
 
 namespace graphflow {
-namespace common {
+namespace loader {
 
 class CSVReader {
 
@@ -48,5 +48,5 @@ private:
     size_t readingBlockEndIdx;
 };
 
-} // namespace common
+} // namespace loader
 } // namespace graphflow

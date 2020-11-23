@@ -1,11 +1,10 @@
-#include "src/storage/include/adjlists_index.h"
+#include "src/storage/include/structures/lists.h"
 
 #include <fstream>
-#include <iostream>
 
 #include "bitsery/adapter/stream.h"
+#include "bitsery/brief_syntax.h"
 #include "bitsery/traits/vector.h"
-#include <bitsery/brief_syntax.h>
 
 using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAdapter>;
 
@@ -13,18 +12,16 @@ namespace graphflow {
 namespace storage {
 
 template<typename S>
-void AdjListsMetadata::serialize(S& s) {
+void ListsMetadata::serialize(S& s) {
     s.value8b(numPages);
-    s.container(headers, UINT32_MAX, [](S& s, uint32_t& v) { s(v); });
-
     auto vetorUINT64Func = [](S& s, vector<uint64_t>& v) {
         s.container(v, UINT32_MAX, [](S& s, uint64_t& w) { s(w); });
     };
     s.container(chunksPagesMap, UINT32_MAX, vetorUINT64Func);
-    s.container(lAdjListsPagesMap, UINT32_MAX, vetorUINT64Func);
+    s.container(largeListsPagesMap, UINT32_MAX, vetorUINT64Func);
 }
 
-void AdjListsMetadata::saveToFile(const string& fname) {
+void ListsMetadata::saveToFile(const string& fname) {
     auto path = fname + ".metadata";
     fstream f{path, f.binary | f.trunc | f.out};
     if (!f.is_open()) {
@@ -36,7 +33,7 @@ void AdjListsMetadata::saveToFile(const string& fname) {
     f.close();
 }
 
-void AdjListsMetadata::readFromFile(const string& fname) {
+void ListsMetadata::readFromFile(const string& fname) {
     auto path = fname + ".metadata";
     fstream f{path, f.binary | f.in};
     if (!f.is_open()) {

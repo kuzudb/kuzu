@@ -4,33 +4,24 @@
 
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/catalog.h"
-#include "src/storage/include/indexes.h"
-#include "src/storage/include/node_property_store.h"
-#include "src/storage/include/rel_property_store.h"
+#include "src/storage/include/stores/nodes_store.h"
+#include "src/storage/include/stores/rels_store.h"
 
 using namespace std;
 
 namespace graphflow {
-namespace common {
+namespace loader {
 
 class GraphLoader;
 
-} // namespace common
-} // namespace graphflow
-
-namespace graphflow {
-namespace common {
-
-class GraphLoader;
-
-} // namespace common
+} // namespace loader
 } // namespace graphflow
 
 namespace graphflow {
 namespace storage {
 
 class Graph {
-    friend class graphflow::common::GraphLoader;
+    friend class graphflow::loader::GraphLoader;
     friend class bitsery::Access;
 
 public:
@@ -54,9 +45,8 @@ private:
 private:
     unique_ptr<Catalog> catalog;
     unique_ptr<BufferManager> bufferManager;
-    unique_ptr<NodePropertyStore> nodePropertyStore;
-    unique_ptr<RelPropertyStore> relPropertyStore;
-    unique_ptr<Indexes> indexes;
+    unique_ptr<NodesStore> nodesStore;
+    unique_ptr<RelsStore> relsStore;
     vector<uint64_t> numNodesPerLabel;
 };
 

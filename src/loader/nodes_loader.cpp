@@ -1,10 +1,10 @@
-#include "src/common/loader/include/nodes_loader.h"
+#include "src/loader/include/nodes_loader.h"
 
-#include "src/common/loader/include/csv_reader.h"
-#include "src/storage/include/node_property_store.h"
+#include "src/loader/include/csv_reader.h"
+#include "src/storage/include/stores/nodes_store.h"
 
 namespace graphflow {
-namespace common {
+namespace loader {
 
 void NodesLoader::load(vector<string>& filenames, vector<uint64_t>& numNodesPerLabel,
     vector<uint64_t>& numBlocksPerLabel, vector<vector<uint64_t>>& numLinesPerBlock,
@@ -43,7 +43,7 @@ shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> NodesLoader::createFilesFo
         if (STRING == propertyMap[i].dataType) {
             logger->warn("Ignoring string properties.");
         } else {
-            auto fname = NodePropertyStore::getNodePropertyColumnFname(
+            auto fname = NodesStore::getNodePropertyColumnFname(
                 outputDirectory, label, propertyMap[i].propertyName);
             files->second[i] = open(fname.c_str(), O_WRONLY | O_CREAT, 0666);
             if (-1u == files->second[i]) {
@@ -133,5 +133,5 @@ unique_ptr<vector<uint8_t*>> NodesLoader::getBuffersForWritingNodeProperties(
     return buffers;
 }
 
-} // namespace common
+} // namespace loader
 } // namespace graphflow

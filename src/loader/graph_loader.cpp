@@ -1,4 +1,4 @@
-#include "src/common/loader/include/graph_loader.h"
+#include "src/loader/include/graph_loader.h"
 
 #include <fstream>
 #include <future>
@@ -7,15 +7,14 @@
 #include <unordered_set>
 
 #include "src/common/include/configs.h"
-#include "src/common/loader/include/csv_reader.h"
-#include "src/common/loader/include/nodes_loader.h"
-#include "src/common/loader/include/rels_loader.h"
+#include "src/loader/include/csv_reader.h"
+#include "src/loader/include/nodes_loader.h"
+#include "src/loader/include/rels_loader.h"
 
-using namespace graphflow::common;
-using namespace std;
+using namespace graphflow::storage;
 
 namespace graphflow {
-namespace common {
+namespace loader {
 
 void GraphLoader::loadGraph() {
     logger->info("Starting GraphLoader.");
@@ -196,5 +195,5 @@ void GraphLoader::fileBlockLinesCounterTask(string fname, char tokenSeparator,
     logger->debug("end   {0} {1} {2}", fname, blockId, (*numLinesPerBlock)[label][blockId]);
 }
 
-} // namespace common
+} // namespace loader
 } // namespace graphflow

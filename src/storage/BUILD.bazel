@@ -1,6 +1,18 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
+    name = "file_handle",
+    srcs = ["file_handle.cpp"],
+    hdrs = [
+        "include/file_handle.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common:configs",
+    ],
+)
+
+cc_library(
     name = "buffer_manager",
     srcs = ["buffer_manager.cpp"],
     hdrs = ["include/buffer_manager.h"],
@@ -12,69 +24,52 @@ cc_library(
 )
 
 cc_library(
-    name = "file_handle",
-    srcs = ["file_handle.cpp"],
-    hdrs = ["include/file_handle.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//src/common:configs",
+    name = "structures",
+    srcs = [
+        "structures/adj_lists.cpp",
+        "structures/lists.cpp",
     ],
-)
-
-cc_library(
-    name = "column",
-    srcs = ["include/column.h"],
+    hdrs = [
+        "include/structures/adj_lists.h",
+        "include/structures/adj_rels.h",
+        "include/structures/column.h",
+        "include/structures/lists.h",
+        "include/structures/property_column.h",
+        "include/structures/property_lists.h",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "buffer_manager",
         "file_handle",
         "//src/common:configs",
         "//src/common:types",
+        "@fraillt_bitsery",
     ],
 )
 
 cc_library(
-    name = "property_stores",
+    name = "stores",
     srcs = [
-        "node_property_store.cpp",
-        "rel_property_store.cpp",
+        "stores/nodes_store.cpp",
+        "stores/rels_store.cpp",
     ],
     hdrs = [
-        "include/node_property_store.h",
-        "include/rel_property_store.h",
+        "include/stores/nodes_store.h",
+        "include/stores/rels_store.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "buffer_manager",
         "catalog",
-        "column",
+        "structures",
         "//src/common:configs",
         "//src/common:types",
     ],
 )
 
 cc_library(
-    name = "indexes",
-    srcs = [
-        "adjlists_index.cpp",
-        "indexes.cpp",
-    ],
-    hdrs = [
-        "include/adjedges_index.h",
-        "include/adjlists_index.h",
-        "include/indexes.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "catalog",
-        "column",
-        "@fraillt_bitsery",
-    ],
-)
-
-cc_library(
     name = "catalog",
-    srcs = ["catalog.cpp"],
+    srcs = [],
     hdrs = ["include/catalog.h"],
     visibility = ["//visibility:public"],
     deps = [
@@ -85,14 +80,19 @@ cc_library(
 
 cc_library(
     name = "graph",
-    srcs = ["graph.cpp"],
-    hdrs = ["include/graph.h"],
+    srcs = [
+        "catalog.cpp",
+        "graph.cpp",
+    ],
+    hdrs = [
+        "include/catalog.h",
+        "include/graph.h",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "buffer_manager",
         "catalog",
-        "indexes",
-        "property_stores",
+        "stores",
         "@fraillt_bitsery",
     ],
 )

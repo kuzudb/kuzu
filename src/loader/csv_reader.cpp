@@ -1,11 +1,11 @@
-#include "src/common/loader/include/csv_reader.h"
+#include "src/loader/include/csv_reader.h"
 
 #include <fstream>
 
 #include "src/common/include/configs.h"
 
 namespace graphflow {
-namespace common {
+namespace loader {
 
 CSVReader::CSVReader(const string& fname, const char tokenSeparator, uint64_t blockId)
     : tokenSeparator(tokenSeparator), nextLineIsNotProcessed{false}, isEndOfBlock{false},
@@ -127,5 +127,5 @@ unique_ptr<string> CSVReader::getString() {
     return a;
 }
 
-} // namespace common
+} // namespace loader
 } // namespace graphflow

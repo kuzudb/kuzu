@@ -8,8 +8,8 @@
 #include "spdlog/spdlog.h"
 
 #include "src/common/include/types.h"
-#include "src/common/loader/include/thread_pool.h"
-#include "src/common/loader/include/utils.h"
+#include "src/loader/include/thread_pool.h"
+#include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
 
@@ -17,7 +17,7 @@ using namespace graphflow::storage;
 using namespace std;
 
 namespace graphflow {
-namespace common {
+namespace loader {
 
 class GraphLoader {
 
@@ -70,5 +70,5 @@ private:
     const string outputDirectory;
 };
 
-} // namespace common
+} // namespace loader
 } // namespace graphflow

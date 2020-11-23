@@ -16,11 +16,8 @@ Graph::Graph(const string& directory, uint64_t bufferPoolSize)
     : catalog(make_unique<Catalog>(directory)),
       bufferManager(make_unique<BufferManager>(bufferPoolSize)) {
     readFromFile(directory);
-    nodePropertyStore =
-        make_unique<NodePropertyStore>(*catalog, numNodesPerLabel, directory, *bufferManager);
-    relPropertyStore =
-        make_unique<RelPropertyStore>(*catalog, numNodesPerLabel, directory, *bufferManager);
-    indexes = make_unique<Indexes>(*catalog, numNodesPerLabel, directory, *bufferManager);
+    nodesStore = make_unique<NodesStore>(*catalog, numNodesPerLabel, directory, *bufferManager);
+    relsStore = make_unique<RelsStore>(*catalog, numNodesPerLabel, directory, *bufferManager);
 }
 
 template<typename S>

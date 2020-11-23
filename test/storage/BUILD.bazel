@@ -1,26 +1,26 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
-    name = "column_test",
-    srcs = ["column_test.cpp"],
+    name = "property_column_test",
+    srcs = ["property_column_test.cpp"],
     copts = [
         "-Iexternal/gtest/include",
     ],
     deps = [
-        "//src/storage:column",
+        "//src/storage:structures",
         "@gtest",
         "@gtest//:gtest_main",
     ],
 )
 
 cc_test(
-    name = "adjedges_index_test",
-    srcs = ["adjedges_index_test.cpp"],
+    name = "adj_rels_test",
+    srcs = ["adj_rels_test.cpp"],
     copts = [
         "-Iexternal/gtest/include",
     ],
     deps = [
-        "//src/storage:indexes",
+        "//src/storage:structures",
         "@gtest",
         "@gtest//:gtest_main",
     ],

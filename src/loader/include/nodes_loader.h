@@ -4,15 +4,15 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
-#include "src/common/loader/include/thread_pool.h"
-#include "src/common/loader/include/utils.h"
+#include "src/loader/include/thread_pool.h"
+#include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
 
 using namespace std;
 using namespace graphflow::storage;
 
 namespace graphflow {
-namespace common {
+namespace loader {
 
 class NodesLoader {
     friend class GraphLoader;
@@ -51,5 +51,5 @@ private:
     const string outputDirectory;
 };
 
-} // namespace common
+} // namespace loader
 } // namespace graphflow
