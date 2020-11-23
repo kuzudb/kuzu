@@ -25,7 +25,7 @@ public:
     ~Frame();
 
 private:
-    FileHandle *fileHandle;
+    FileHandle* fileHandle;
     uint32_t pageIdx;
     uint32_t pinCount;
     bool recentlyAccessed;
@@ -36,13 +36,13 @@ class BufferManager {
 public:
     BufferManager(uint64_t maxSize);
 
-    const char *pin(FileHandle &fileHandle, uint32_t pageIdx);
-    void unpin(FileHandle &fileHandle, uint32_t pageIdx);
+    const char* pin(FileHandle& fileHandle, uint32_t pageIdx);
+    void unpin(FileHandle& fileHandle, uint32_t pageIdx);
 
 private:
     uint64_t evict();
-    void readNewPageIntoFrame(Frame *frame, FileHandle &fileHandle, uint32_t pageIdx);
-    
+    void readNewPageIntoFrame(Frame* frame, FileHandle& fileHandle, uint32_t pageIdx);
+
     inline bool isAFrame(uint64_t page) { return UINT64_MAX != page; }
 
 private:

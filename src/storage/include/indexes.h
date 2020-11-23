@@ -12,11 +12,11 @@ namespace storage {
 class Indexes {
 
 public:
-    Indexes(Catalog &catalog, vector<uint64_t> &numNodesPerLabel, const string &directory,
-        BufferManager &bufferManager);
+    Indexes(Catalog& catalog, vector<uint64_t>& numNodesPerLabel, const string& directory,
+        BufferManager& bufferManager);
 
-    static pair<uint32_t, uint32_t> getNumBytesScheme(const vector<gfLabel_t> &nbrNodeLabels,
-        const vector<uint64_t> &numNodesPerLabel, uint32_t numNodeLabels);
+    static pair<uint32_t, uint32_t> getNumBytesScheme(const vector<gfLabel_t>& nbrNodeLabels,
+        const vector<uint64_t>& numNodesPerLabel, uint32_t numNodeLabels);
 
 private:
     static uint32_t getNumBytesForEncoding(uint64_t val, uint8_t minNumBytes);

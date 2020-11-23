@@ -9,7 +9,7 @@
 using namespace graphflow::common;
 using namespace std;
 
-void createDirectory(const string &directory) {
+void createDirectory(const string& directory) {
     struct stat st;
     if (stat(directory.c_str(), &st) != 0) {
         if (mkdir(directory.c_str(), 0755) != 0 && errno != EEXIST) {
@@ -18,7 +18,7 @@ void createDirectory(const string &directory) {
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     args::ArgumentParser parser("Ingest the CSV files and saves in the Graphflow's native format.");
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::Positional<std::string> inputDir(
@@ -28,14 +28,14 @@ int main(int argc, char *argv[]) {
     args::ValueFlag<int> threads(parser, "threads", "The integer flag", {'t'});
     try {
         parser.ParseCLI(argc, argv);
-    } catch (const args::Help &) {
+    } catch (const args::Help&) {
         cout << parser;
         return 0;
-    } catch (const args::ParseError &e) {
+    } catch (const args::ParseError& e) {
         cerr << e.what() << std::endl;
         cerr << parser;
         return 1;
-    } catch (const args::ValidationError &e) {
+    } catch (const args::ValidationError& e) {
         cerr << e.what() << std::endl;
         cerr << parser;
         return 1;

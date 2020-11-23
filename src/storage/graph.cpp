@@ -12,22 +12,23 @@ using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAda
 namespace graphflow {
 namespace storage {
 
-Graph::Graph(const string &directory, uint64_t bufferPoolSize)
+Graph::Graph(const string& directory, uint64_t bufferPoolSize)
     : catalog(make_unique<Catalog>(directory)),
       bufferManager(make_unique<BufferManager>(bufferPoolSize)) {
     readFromFile(directory);
     nodePropertyStore =
         make_unique<NodePropertyStore>(*catalog, numNodesPerLabel, directory, *bufferManager);
-    adjListIndexes =
-        make_unique<Indexes>(*catalog, numNodesPerLabel, directory, *bufferManager);
+    relPropertyStore =
+        make_unique<RelPropertyStore>(*catalog, numNodesPerLabel, directory, *bufferManager);
+    indexes = make_unique<Indexes>(*catalog, numNodesPerLabel, directory, *bufferManager);
 }
 
 template<typename S>
-void Graph::serialize(S &s) {
+void Graph::serialize(S& s) {
     s(numNodesPerLabel);
 }
 
-void Graph::saveToFile(const string &directory) {
+void Graph::saveToFile(const string& directory) {
     auto path = directory + "/graph.bin";
     fstream f{path, f.binary | f.trunc | f.out};
     if (!f.is_open()) {
@@ -39,7 +40,7 @@ void Graph::saveToFile(const string &directory) {
     f.close();
 }
 
-void Graph::readFromFile(const string &directory) {
+void Graph::readFromFile(const string& directory) {
     auto path = directory + "/graph.bin";
     fstream f{path, f.binary | f.in};
     if (!f.is_open()) {

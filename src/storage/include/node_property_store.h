@@ -13,16 +13,16 @@ namespace storage {
 class NodePropertyStore {
 
 public:
-    NodePropertyStore(Catalog &catalog, vector<uint64_t> &numNodesPerLabel, const string &directory,
-        BufferManager &bufferManager);
+    NodePropertyStore(Catalog& catalog, vector<uint64_t>& numNodesPerLabel, const string& directory,
+        BufferManager& bufferManager);
 
-    inline static string getColumnFname(
-        const string &directory, gfLabel_t nodeLabel, const string &propertyName) {
+    inline static string getNodePropertyColumnFname(
+        const string& directory, gfLabel_t nodeLabel, const string& propertyName) {
         return directory + "/v-" + to_string(nodeLabel) + "-" + propertyName + ".vcol";
     }
 
 private:
-    std::vector<std::vector<std::unique_ptr<ColumnBase>>> columns;
+    vector<vector<unique_ptr<BaseColumn>>> columns;
 };
 
 } // namespace storage

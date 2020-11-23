@@ -21,20 +21,20 @@ public:
     ThreadPool(uint32_t threadCount);
     ~ThreadPool();
 
-    ThreadPool(const ThreadPool &) = delete;
-    ThreadPool &operator=(const ThreadPool &) = delete;
+    ThreadPool(const ThreadPool&) = delete;
+    ThreadPool& operator=(const ThreadPool&) = delete;
 
     template<typename F, typename... Args>
-    void execute(F function, Args &&... args);
+    void execute(F function, Args&&... args);
 
     void wait();
 
 private:
-    static void threadInstance(atomic<uint32_t> &numThreadsRunning,
-        queue<unique_ptr<TaskContainerBase>> &tasks, mutex &tasksQueueMutex,
-        condition_variable &tasksQueueCV, bool &stopThreads);
+    static void threadInstance(atomic<uint32_t>& numThreadsRunning,
+        queue<unique_ptr<TaskContainerBase>>& tasks, mutex& tasksQueueMutex,
+        condition_variable& tasksQueueCV, bool& stopThreads);
     template<typename F>
-    inline static unique_ptr<TaskContainerBase> CreateNewTaskContainer(F &&f) {
+    inline static unique_ptr<TaskContainerBase> CreateNewTaskContainer(F&& f) {
         return std::unique_ptr<TaskContainerBase>(new TaskContainer<F>(std::forward<F>(f)));
     };
 
@@ -49,7 +49,7 @@ private:
     template<typename F>
     class TaskContainer : public TaskContainerBase {
     public:
-        TaskContainer(F &&func) : f(forward<F>(func)){};
+        TaskContainer(F&& func) : f(forward<F>(func)){};
         void operator()() override { f(); };
 
     private:
@@ -65,7 +65,7 @@ private:
 };
 
 template<typename F, typename... Args>
-void ThreadPool::execute(F function, Args &&... args) {
+void ThreadPool::execute(F function, Args&&... args) {
     unique_lock<mutex> lock(tasksQueueMutex, defer_lock);
     packaged_task<invoke_result_t<F, Args...>()> taskPackage(bind(function, args...));
     future<invoke_result_t<F, Args...>> future = taskPackage.get_future();

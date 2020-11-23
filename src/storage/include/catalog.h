@@ -27,33 +27,33 @@ class Catalog {
     friend class bitsery::Access;
 
 public:
-    Catalog(const string &directory) { readFromFile(directory); };
+    Catalog(const string& directory) { readFromFile(directory); };
 
     inline uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
     inline uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
 
-    inline const gfLabel_t &getNodeLabelFromString(string &label) const {
+    inline const gfLabel_t& getNodeLabelFromString(string& label) const {
         return stringToNodeLabelMap.at(label);
     }
-    inline const gfLabel_t &getRelLabelFromString(string &label) const {
+    inline const gfLabel_t& getRelLabelFromString(string& label) const {
         return stringToRelLabelMap.at(label);
     }
 
-    inline const vector<Property> &getPropertyMapForNodeLabel(gfLabel_t nodeLabel) const {
+    inline const vector<Property>& getPropertyMapForNodeLabel(gfLabel_t nodeLabel) const {
         return nodePropertyMaps[nodeLabel];
     }
-    inline const vector<Property> &getPropertyMapForRelLabel(gfLabel_t relLabel) const {
+    inline const vector<Property>& getPropertyMapForRelLabel(gfLabel_t relLabel) const {
         return relPropertyMaps[relLabel];
     }
 
-    const vector<gfLabel_t> &getRelLabelsForNodeLabelDirection(
+    const vector<gfLabel_t>& getRelLabelsForNodeLabelDirection(
         gfLabel_t nodeLabel, Direction direction) const;
-    const vector<gfLabel_t> &getNodeLabelsForRelLabelDir(
+    const vector<gfLabel_t>& getNodeLabelsForRelLabelDir(
         gfLabel_t relLabel, Direction direction) const;
 
     inline bool isSingleCaridinalityInDir(gfLabel_t relLabel, Direction direction) const {
         auto cardinality = relLabelToCardinalityMap[relLabel];
-        if (FORWARD == direction) {
+        if (FWD == direction) {
             return ONE_ONE == cardinality || MANY_ONE == cardinality;
         } else {
             return ONE_ONE == cardinality || ONE_MANY == cardinality;
@@ -64,10 +64,10 @@ private:
     Catalog() = default;
 
     template<typename S>
-    void serialize(S &s);
+    void serialize(S& s);
 
-    void saveToFile(const string &directory);
-    void readFromFile(const string &directory);
+    void saveToFile(const string& directory);
+    void readFromFile(const string& directory);
 
 private:
     unordered_map<string, gfLabel_t> stringToNodeLabelMap;

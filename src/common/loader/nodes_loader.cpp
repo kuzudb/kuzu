@@ -6,9 +6,9 @@
 namespace graphflow {
 namespace common {
 
-void NodesLoader::load(vector<string> &filenames, vector<uint64_t> &numNodesPerLabel,
-    vector<uint64_t> &numBlocksPerLabel, vector<vector<uint64_t>> &numLinesPerBlock,
-    vector<shared_ptr<NodeIDMap>> &nodeIDMappings) {
+void NodesLoader::load(vector<string>& filenames, vector<uint64_t>& numNodesPerLabel,
+    vector<uint64_t>& numBlocksPerLabel, vector<vector<uint64_t>>& numLinesPerBlock,
+    vector<shared_ptr<NodeIDMap>>& nodeIDMappings) {
     logger->info("Starting to read and store node properties.");
     vector<shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>>> files(
         catalog.getNodeLabelsCount());
@@ -35,17 +35,15 @@ void NodesLoader::load(vector<string> &filenames, vector<uint64_t> &numNodesPerL
 }
 
 shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> NodesLoader::createFilesForNodeProperties(
-    gfLabel_t label, const vector<Property> &propertyMap) {
+    gfLabel_t label, const vector<Property>& propertyMap) {
     auto files = make_shared<pair<unique_ptr<mutex>, vector<uint32_t>>>();
     files->first = make_unique<mutex>();
     files->second.resize(propertyMap.size());
     for (auto i = 0u; i < propertyMap.size(); i++) {
-        if (NODE == propertyMap[i].dataType) {
-            continue;
-        } else if (STRING == propertyMap[i].dataType) {
+        if (STRING == propertyMap[i].dataType) {
             logger->warn("Ignoring string properties.");
         } else {
-            auto fname = NodePropertyStore::getColumnFname(
+            auto fname = NodePropertyStore::getNodePropertyColumnFname(
                 outputDirectory, label, propertyMap[i].propertyName);
             files->second[i] = open(fname.c_str(), O_WRONLY | O_CREAT, 0666);
             if (-1u == files->second[i]) {
@@ -57,7 +55,7 @@ shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> NodesLoader::createFilesFo
 }
 
 void NodesLoader::populateNodePropertyColumnTask(string fname, char tokenSeparator,
-    const vector<Property> &propertyMap, uint64_t blockId, uint64_t numElements,
+    const vector<Property>& propertyMap, uint64_t blockId, uint64_t numElements,
     gfNodeOffset_t beginOffset, shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> pageFiles,
     shared_ptr<NodeIDMap> nodeIDMap, shared_ptr<spdlog::logger> logger) {
     logger->debug("start {0} {1}", fname, blockId);
@@ -69,12 +67,11 @@ void NodesLoader::populateNodePropertyColumnTask(string fname, char tokenSeparat
     }
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
+        reader.hasNextToken();
+        map.setOffset(*reader.getNodeID().get(), beginOffset + bufferOffset);
         auto propertyIdx = 0;
         while (reader.hasNextToken()) {
             switch (propertyMap[propertyIdx].dataType) {
-            case NODE:
-                map.setOffset(*reader.getNodeID().get(), beginOffset + bufferOffset);
-                break;
             case INT: {
                 auto intVal = reader.skipTokenIfNull() ? NULL_GFINT : reader.getInteger();
                 memcpy((*buffers)[propertyIdx] + (bufferOffset * getDataTypeSize(INT)), &intVal,
@@ -104,16 +101,15 @@ void NodesLoader::populateNodePropertyColumnTask(string fname, char tokenSeparat
     }
     lock_guard lck(*pageFiles->first);
     nodeIDMap->merge(map);
-    for (auto i = 1u; i < propertyMap.size(); i++) {
-        auto dataType = propertyMap[i].dataType;
-        if (STRING == dataType) {
+    for (auto i = 0u; i < propertyMap.size(); i++) {
+        if (STRING == propertyMap[i].dataType) {
             continue;
         }
-        auto offsetInFile = beginOffset * getDataTypeSize(dataType);
+        auto offsetInFile = beginOffset * getDataTypeSize(propertyMap[i].dataType);
         if (-1 == lseek(pageFiles->second[i], offsetInFile, SEEK_SET)) {
             throw invalid_argument("Cannot seek to the required offset in file.");
         }
-        auto bytesToWrite = numElements * getDataTypeSize(dataType);
+        auto bytesToWrite = numElements * getDataTypeSize(propertyMap[i].dataType);
         uint64_t bytesWritten = write(pageFiles->second[i], (*buffers)[i], bytesToWrite);
         if (bytesWritten != bytesToWrite) {
             throw invalid_argument("Cannot write in file.");
@@ -122,12 +118,13 @@ void NodesLoader::populateNodePropertyColumnTask(string fname, char tokenSeparat
     logger->debug("end   {0} {1}", fname, blockId);
 }
 
-unique_ptr<vector<uint8_t *>> NodesLoader::getBuffersForWritingNodeProperties(
-    const vector<Property> &propertyMap, uint64_t numElements, shared_ptr<spdlog::logger> logger) {
+unique_ptr<vector<uint8_t*>> NodesLoader::getBuffersForWritingNodeProperties(
+    const vector<Property>& propertyMap, uint64_t numElements, shared_ptr<spdlog::logger> logger) {
     logger->debug("creating buffers for elements: {0}", numElements);
-    auto buffers = make_unique<vector<uint8_t *>>();
-    for (auto &property : propertyMap) {
+    auto buffers = make_unique<vector<uint8_t*>>();
+    for (auto& property : propertyMap) {
         if (STRING == property.dataType) {
+            // TODO: To be implemented later.
             (*buffers).push_back(nullptr);
         } else {
             (*buffers).push_back(new uint8_t[numElements * getDataTypeSize(property.dataType)]);

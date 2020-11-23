@@ -5,7 +5,7 @@
 namespace graphflow {
 namespace common {
 
-DataType getDataType(const std::string &dataTypeString) {
+DataType getDataType(const std::string& dataTypeString) {
     if (0 == dataTypeString.compare("LABEL")) {
         return LABEL;
     } else if (0 == dataTypeString.compare("NODE")) {
@@ -41,7 +41,7 @@ uint8_t getDataTypeSize(DataType dataType) {
     throw invalid_argument("Cannot infer the size of the dataType.");
 }
 
-Cardinality getCardinality(const string &cardinalityString) {
+Cardinality getCardinality(const string& cardinalityString) {
     if (0 == cardinalityString.compare("ONE_ONE")) {
         return ONE_ONE;
     } else if (0 == cardinalityString.compare("MANY_ONE")) {
@@ -54,8 +54,8 @@ Cardinality getCardinality(const string &cardinalityString) {
     throw invalid_argument("Invalid cardinality string \"" + cardinalityString + "\"");
 }
 
-Direction operator!(Direction &direction) {
-    auto reverse = (FORWARD == direction) ? BACKWARD : FORWARD;
+Direction operator!(Direction& direction) {
+    auto reverse = (FWD == direction) ? BWD : FWD;
     return reverse;
 }
 

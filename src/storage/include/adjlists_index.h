@@ -36,10 +36,10 @@ private:
     AdjListsMetadata(string path) { readFromFile(path); };
 
     template<typename S>
-    void serialize(S &s);
+    void serialize(S& s);
 
-    void saveToFile(const string &fname);
-    void readFromFile(const string &fname);
+    void saveToFile(const string& fname);
+    void readFromFile(const string& fname);
 
 private:
     // A header of a node is a uint32_t value the describes the following information about the
@@ -76,10 +76,12 @@ class AdjLists {
 
 public:
     AdjLists(string fname, uint32_t numBytesPerLabel, uint32_t numBytesPerOffset,
-        BufferManager &bufferManager);
+        BufferManager& bufferManager)
+        : metadata{fname}, fileHandle{fname, metadata.numPages}, numBytesPerLabel{numBytesPerLabel},
+          numBytesPerOffset{numBytesPerOffset}, bufferManager{bufferManager} {};
 
     inline static string getAdjListsIndexFname(
-        const string &directory, gfLabel_t relLabel, gfLabel_t nodeLabel, Direction direction) {
+        const string& directory, gfLabel_t relLabel, gfLabel_t nodeLabel, Direction direction) {
         return directory + "/e-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +
                to_string(direction) + ".adjl";
     }
@@ -89,9 +91,10 @@ public:
 
 private:
     AdjListsMetadata metadata;
+    FileHandle fileHandle;
     uint32_t numBytesPerLabel;
     uint32_t numBytesPerOffset;
-    BufferManager &bufferManager;
+    BufferManager& bufferManager;
 };
 
 } // namespace storage

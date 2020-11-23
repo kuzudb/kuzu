@@ -18,12 +18,29 @@ public:
         : nodeIDToOffsetMapping{unordered_map<string, gfNodeOffset_t>(size)} {};
 
     void setOffset(string nodeID, gfNodeOffset_t offset);
-    gfNodeOffset_t getOffset(string &nodeID);
-    bool hasNodeID(string &nodeID);
-    void merge(NodeIDMap &localMap);
+    gfNodeOffset_t getOffset(string& nodeID);
+    bool hasNodeID(string& nodeID);
+    void merge(NodeIDMap& localMap);
 
 private:
     unordered_map<string, gfNodeOffset_t> nodeIDToOffsetMapping;
+};
+
+class InMemPropCol {
+
+public:
+    InMemPropCol(const string fname, uint64_t numElements, uint8_t numBytesPerElement);
+
+    void set(gfNodeOffset_t offset, byte* val);
+
+    void saveToFile();
+
+private:
+    unique_ptr<uint8_t[]> data;
+    ssize_t size;
+    const string fname;
+    uint64_t numElementsPerPage;
+    uint8_t numBytesPerElement;
 };
 
 class InMemAdjEdges {

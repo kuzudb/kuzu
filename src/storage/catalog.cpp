@@ -18,52 +18,52 @@ using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAda
 namespace graphflow {
 namespace storage {
 
-const vector<gfLabel_t> &Catalog::getRelLabelsForNodeLabelDirection(
-    gfLabel_t nodeLabel, Direction direction) const{
+const vector<gfLabel_t>& Catalog::getRelLabelsForNodeLabelDirection(
+    gfLabel_t nodeLabel, Direction direction) const {
     if (nodeLabel >= getNodeLabelsCount()) {
         throw invalid_argument("Node label out of the bounds.");
     }
-    if (FORWARD == direction) {
+    if (FWD == direction) {
         return srcNodeLabelToRelLabel[nodeLabel];
     }
     return dstNodeLabelToRelLabel[nodeLabel];
 }
 
-const vector<gfLabel_t> &Catalog::getNodeLabelsForRelLabelDir(
-    gfLabel_t relLabel, Direction direction) const{
+const vector<gfLabel_t>& Catalog::getNodeLabelsForRelLabelDir(
+    gfLabel_t relLabel, Direction direction) const {
     if (relLabel >= getRelLabelsCount()) {
         throw invalid_argument("Node label out of the bounds.");
     }
-    if (FORWARD == direction) {
+    if (FWD == direction) {
         return relLabelToSrcNodeLabels[relLabel];
     }
     return relLabelToDstNodeLabels[relLabel];
 }
 
 template<typename S>
-void Catalog::serialize(S &s) {
-    auto stringToLabelMapFunc = [](S &s, string &key, gfLabel_t &value) { s(key, value); };
+void Catalog::serialize(S& s) {
+    auto stringToLabelMapFunc = [](S& s, string& key, gfLabel_t& value) { s(key, value); };
     s.ext(stringToNodeLabelMap, bitsery::ext::StdMap{UINT32_MAX}, stringToLabelMapFunc);
     s.ext(stringToRelLabelMap, bitsery::ext::StdMap{UINT32_MAX}, stringToLabelMapFunc);
 
-    auto vetorPropertyFunc = [](S &s, vector<Property> &v) {
-        s.container(v, UINT32_MAX, [](S &s, Property &w) { s(w.propertyName, w.dataType); });
+    auto vetorPropertyFunc = [](S& s, vector<Property>& v) {
+        s.container(v, UINT32_MAX, [](S& s, Property& w) { s(w.propertyName, w.dataType); });
     };
     s.container(nodePropertyMaps, UINT32_MAX, vetorPropertyFunc);
     s.container(relPropertyMaps, UINT32_MAX, vetorPropertyFunc);
 
-    auto vectorLabelsFunc = [](S &s, vector<gfLabel_t> &v) {
-        s.container(v, UINT32_MAX, [](S &s, gfLabel_t &w) { s(w); });
+    auto vectorLabelsFunc = [](S& s, vector<gfLabel_t>& v) {
+        s.container(v, UINT32_MAX, [](S& s, gfLabel_t& w) { s(w); });
     };
     s.container(relLabelToSrcNodeLabels, UINT32_MAX, vectorLabelsFunc);
     s.container(relLabelToDstNodeLabels, UINT32_MAX, vectorLabelsFunc);
     s.container(srcNodeLabelToRelLabel, UINT32_MAX, vectorLabelsFunc);
     s.container(dstNodeLabelToRelLabel, UINT32_MAX, vectorLabelsFunc);
-    
-    s.container(relLabelToCardinalityMap, UINT32_MAX, [](S &s, Cardinality &v) { s(v); });
+
+    s.container(relLabelToCardinalityMap, UINT32_MAX, [](S& s, Cardinality& v) { s(v); });
 }
 
-void Catalog::saveToFile(const string &directory) {
+void Catalog::saveToFile(const string& directory) {
     auto path = directory + "/catalog.bin";
     fstream f{path, f.binary | f.trunc | f.out};
     if (!f.is_open()) {
@@ -75,7 +75,7 @@ void Catalog::saveToFile(const string &directory) {
     f.close();
 }
 
-void Catalog::readFromFile(const string &directory) {
+void Catalog::readFromFile(const string& directory) {
     auto path = directory + "/catalog.bin";
     fstream f{path, f.binary | f.in};
     if (!f.is_open()) {

@@ -15,14 +15,13 @@ using namespace std;
 namespace graphflow {
 namespace storage {
 
-class ColumnBase {
+class BaseColumn {
 
 public:
-    ColumnBase(
-        const string path, size_t elementSize, uint64_t numElements, BufferManager &bufferManager)
-        : numElementsPerPage(PAGE_SIZE / elementSize),
-          fileHandle(FileHandle(path, 1 + (numElements / numElementsPerPage))),
-          bufferManager(bufferManager) {}
+    BaseColumn(
+        const string fname, size_t elementSize, uint64_t numElements, BufferManager& bufferManager)
+        : numElementsPerPage{PAGE_SIZE / elementSize},
+          fileHandle{fname, 1 + (numElements / numElementsPerPage)}, bufferManager{bufferManager} {}
 
     inline static uint64_t getPageIdx(gfNodeOffset_t nodeOffset, uint32_t numElementsPerPage) {
         return nodeOffset / numElementsPerPage;
@@ -36,26 +35,26 @@ public:
 protected:
     uint32_t numElementsPerPage;
     FileHandle fileHandle;
-    BufferManager &bufferManager;
+    BufferManager& bufferManager;
 };
 
 template<typename T>
-class Column : public ColumnBase {
+class Column : public BaseColumn {
 
 public:
     Column(const string propertyName, const string path, uint64_t numElements,
-        BufferManager &bufferManager)
-        : ColumnBase(path, sizeof(T), numElements, bufferManager), propertyName(propertyName){};
+        BufferManager& bufferManager)
+        : BaseColumn(path, sizeof(T), numElements, bufferManager), propertyName(propertyName){};
 
-    inline void getVal(gfNodeOffset_t nodeOffset, T &t) {
+    inline void getVal(gfNodeOffset_t nodeOffset, T& t) {
         auto pageIdx = getPageIdx(nodeOffset, numElementsPerPage);
         auto frame = bufferManager.pin(fileHandle, pageIdx);
-        memcpy(&t, (void *)(frame + getPageOffset(nodeOffset, numElementsPerPage, sizeof(T))),
+        memcpy(&t, (void*)(frame + getPageOffset(nodeOffset, numElementsPerPage, sizeof(T))),
             sizeof(T));
         bufferManager.unpin(fileHandle, pageIdx);
     }
 
-    inline const string &getPropertyName() { return propertyName; };
+    inline const string& getPropertyName() { return propertyName; };
 
 private:
     const string propertyName;
