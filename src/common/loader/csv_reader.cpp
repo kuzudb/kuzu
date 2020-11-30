@@ -7,7 +7,7 @@
 namespace graphflow {
 namespace common {
 
-CSVReader::CSVReader(const string &fname, const char tokenSeparator, uint64_t blockId)
+CSVReader::CSVReader(const string& fname, const char tokenSeparator, uint64_t blockId)
     : tokenSeparator(tokenSeparator), nextLineIsNotProcessed{false}, isEndOfBlock{false},
       nextTokenIsNotProcessed{false}, line{new char[1 << 10]}, lineCapacity{1 << 10}, lineLen{0},
       linePtrStart{-1l}, linePtrEnd{-1l}, readingBlockIdx(CSV_READING_BLOCK_SIZE * blockId),

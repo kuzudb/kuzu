@@ -5,11 +5,11 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-Indexes::Indexes(Catalog &catalog, vector<uint64_t> &numNodesPerLabel, const string &directory,
-    BufferManager &bufferManager) {
-    for (auto direction : DIRECTIONS) {
+Indexes::Indexes(Catalog& catalog, vector<uint64_t>& numNodesPerLabel, const string& directory,
+    BufferManager& bufferManager) {
+    for (auto direction : DIRS) {
         for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-            auto &relLabels = catalog.getRelLabelsForNodeLabelDirection(nodeLabel, direction);
+            auto& relLabels = catalog.getRelLabelsForNodeLabelDirection(nodeLabel, direction);
             adjEdgesIndexes[direction][nodeLabel].resize(relLabels.size());
             for (auto relLabel : relLabels) {
                 auto numBytesScheme =
@@ -32,8 +32,8 @@ Indexes::Indexes(Catalog &catalog, vector<uint64_t> &numNodesPerLabel, const str
     }
 }
 
-pair<uint32_t, uint32_t> Indexes::getNumBytesScheme(const vector<gfLabel_t> &nbrNodeLabels,
-    const vector<uint64_t> &numNodesPerLabel, uint32_t numNodeLabels) {
+pair<uint32_t, uint32_t> Indexes::getNumBytesScheme(const vector<gfLabel_t>& nbrNodeLabels,
+    const vector<uint64_t>& numNodesPerLabel, uint32_t numNodeLabels) {
     auto maxNodeOffsetToFit = 0ull;
     for (auto nodeLabel : nbrNodeLabels) {
         if (numNodesPerLabel[nodeLabel] > maxNodeOffsetToFit) {

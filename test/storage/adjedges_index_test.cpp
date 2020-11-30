@@ -23,8 +23,8 @@ protected:
         for (auto pageId = 0; pageId < 30; pageId++) {
             f.seekp(PAGE_SIZE * pageId);
             for (auto i = 0u; i < PAGE_SIZE / (sizeof(uint8_t) + sizeof(uint32_t)); i++) {
-                f.write((char *)&type, sizeof(uint8_t));
-                f.write((char *)&offset, sizeof(uint32_t));
+                f.write((char*)&type, sizeof(uint8_t));
+                f.write((char*)&offset, sizeof(uint32_t));
                 type++;
                 if (UINT8_MAX == type) {
                     type = 0;

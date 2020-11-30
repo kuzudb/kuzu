@@ -13,18 +13,18 @@ namespace graphflow {
 namespace storage {
 
 template<typename S>
-void AdjListsMetadata::serialize(S &s) {
+void AdjListsMetadata::serialize(S& s) {
     s.value8b(numPages);
-    s.container(headers, UINT32_MAX, [](S &s, uint32_t &v) { s(v); });
+    s.container(headers, UINT32_MAX, [](S& s, uint32_t& v) { s(v); });
 
-    auto vetorUINT64Func = [](S &s, vector<uint64_t> &v) {
-        s.container(v, UINT32_MAX, [](S &s, uint64_t &w) { s(w); });
+    auto vetorUINT64Func = [](S& s, vector<uint64_t>& v) {
+        s.container(v, UINT32_MAX, [](S& s, uint64_t& w) { s(w); });
     };
     s.container(chunksPagesMap, UINT32_MAX, vetorUINT64Func);
-    s.container(chunksPagesMap, UINT32_MAX, vetorUINT64Func);
+    s.container(lAdjListsPagesMap, UINT32_MAX, vetorUINT64Func);
 }
 
-void AdjListsMetadata::saveToFile(const string &fname) {
+void AdjListsMetadata::saveToFile(const string& fname) {
     auto path = fname + ".metadata";
     fstream f{path, f.binary | f.trunc | f.out};
     if (!f.is_open()) {
@@ -36,7 +36,7 @@ void AdjListsMetadata::saveToFile(const string &fname) {
     f.close();
 }
 
-void AdjListsMetadata::readFromFile(const string &fname) {
+void AdjListsMetadata::readFromFile(const string& fname) {
     auto path = fname + ".metadata";
     fstream f{path, f.binary | f.in};
     if (!f.is_open()) {
@@ -47,13 +47,6 @@ void AdjListsMetadata::readFromFile(const string &fname) {
     if (state.first == bitsery::ReaderError::NoError && state.second) {
         invalid_argument("Cannot deserialize the catalog.");
     }
-}
-
-AdjLists::AdjLists(string fname, uint32_t numBytesPerLabel, uint32_t numBytesPerOffset,
-    BufferManager &bufferMaanger)
-    : metadata{fname}, numBytesPerLabel{numBytesPerLabel}, numBytesPerOffset{numBytesPerOffset},
-      bufferManager{bufferMaanger} {
-    // do all the shitty stuff here.
 }
 
 } // namespace storage

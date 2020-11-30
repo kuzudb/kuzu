@@ -29,12 +29,12 @@ BufferManager::BufferManager(uint64_t maxSize)
     }
 }
 
-const char *BufferManager::pin(FileHandle &fileHandle, uint32_t pageIdx) {
+const char* BufferManager::pin(FileHandle& fileHandle, uint32_t pageIdx) {
     lock_guard lck(bufferManagerMutex);
-    Frame *frame;
+    Frame* frame;
     auto pageIdxEntry = fileHandle.getPageIdxEntry(pageIdx);
     if (isAFrame(pageIdxEntry)) {
-        frame = reinterpret_cast<Frame *>(pageIdxEntry);
+        frame = reinterpret_cast<Frame*>(pageIdxEntry);
         frame->recentlyAccessed = true;
     } else {
         if (usedPages >= maxPages) {
@@ -49,13 +49,11 @@ const char *BufferManager::pin(FileHandle &fileHandle, uint32_t pageIdx) {
     return frame->buffer.get();
 }
 
-void BufferManager::unpin(FileHandle &fileHandle, uint32_t pageIdx) {
+void BufferManager::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
     lock_guard lck(bufferManagerMutex);
     auto pageIdxEntry = fileHandle.getPageIdxEntry(pageIdx);
     if (isAFrame(pageIdxEntry)) {
-        reinterpret_cast<Frame *>(pageIdxEntry)->pinCount--;
-    } else {
-        throw invalid_argument("Requested page is already flushed, pageIdx: " + pageIdx);
+        reinterpret_cast<Frame*>(pageIdxEntry)->pinCount--;
     }
 }
 
@@ -78,7 +76,7 @@ uint64_t BufferManager::evict() {
     return toRet;
 }
 
-void BufferManager::readNewPageIntoFrame(Frame *frame, FileHandle &fileHandle, uint32_t pageIdx) {
+void BufferManager::readNewPageIntoFrame(Frame* frame, FileHandle& fileHandle, uint32_t pageIdx) {
     fileHandle.readPage(frame->buffer.get(), pageIdx);
     frame->pageIdx = pageIdx;
     frame->fileHandle = &fileHandle;

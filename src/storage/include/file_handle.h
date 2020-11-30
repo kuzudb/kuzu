@@ -24,7 +24,7 @@ public:
         pageToFrameMap[pageIdx] = swizzledVal;
     }
 
-    void readPage(char *frame, uint64_t pageIdx);
+    void readPage(char* frame, uint64_t pageIdx);
 
 private:
     int fileDescriptor;

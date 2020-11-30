@@ -16,14 +16,14 @@ ThreadPool::~ThreadPool() {
     stopThreads = true;
     tasksQueueCV.notify_all();
 
-    for (std::thread &thread : threads) {
+    for (std::thread& thread : threads) {
         thread.join();
     }
 }
 
-void ThreadPool::threadInstance(atomic<uint32_t> &numThreadsRunning,
-    queue<unique_ptr<TaskContainerBase>> &tasks, mutex &tasksQueueMutex,
-    condition_variable &tasksQueueCV, bool &stopThreads) {
+void ThreadPool::threadInstance(atomic<uint32_t>& numThreadsRunning,
+    queue<unique_ptr<TaskContainerBase>>& tasks, mutex& tasksQueueMutex,
+    condition_variable& tasksQueueCV, bool& stopThreads) {
     unique_lock<mutex> tasksQueueLock(tasksQueueMutex, defer_lock);
     while (true) {
         tasksQueueLock.lock();

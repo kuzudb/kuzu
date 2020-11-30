@@ -44,33 +44,33 @@ unique_ptr<nlohmann::json> GraphLoader::readMetadata() {
 }
 
 void GraphLoader::assignLabels(
-    unordered_map<string, gfLabel_t> &stringToLabelMap, const nlohmann::json &fileDescriptions) {
+    unordered_map<string, gfLabel_t>& stringToLabelMap, const nlohmann::json& fileDescriptions) {
     auto label = 0;
-    for (auto &descriptor : fileDescriptions) {
+    for (auto& descriptor : fileDescriptions) {
         stringToLabelMap.insert({descriptor.at("label"), label++});
     }
 }
 
-void GraphLoader::setCardinalities(Catalog &catalog, const nlohmann::json &metadata) {
-    for (auto &descriptor : metadata.at("relFileDescriptions")) {
+void GraphLoader::setCardinalities(Catalog& catalog, const nlohmann::json& metadata) {
+    for (auto& descriptor : metadata.at("relFileDescriptions")) {
         catalog.relLabelToCardinalityMap.push_back(getCardinality(descriptor.at("cardinality")));
     }
 }
 
 void GraphLoader::setSrcDstNodeLabelsForRelLabels(
-    Catalog &catalog, const nlohmann::json &metadata) {
+    Catalog& catalog, const nlohmann::json& metadata) {
     catalog.dstNodeLabelToRelLabel.resize(catalog.getNodeLabelsCount());
     catalog.srcNodeLabelToRelLabel.resize(catalog.getNodeLabelsCount());
     catalog.relLabelToSrcNodeLabels.resize(catalog.getRelLabelsCount());
     catalog.relLabelToDstNodeLabels.resize(catalog.getRelLabelsCount());
     auto relLabel = 0;
-    for (auto &descriptor : metadata.at("relFileDescriptions")) {
-        for (auto &nodeLabelString : descriptor.at("srcNodeLabels")) {
+    for (auto& descriptor : metadata.at("relFileDescriptions")) {
+        for (auto& nodeLabelString : descriptor.at("srcNodeLabels")) {
             auto nodeLabel = catalog.stringToNodeLabelMap[nodeLabelString];
             catalog.srcNodeLabelToRelLabel[nodeLabel].push_back(relLabel);
             catalog.relLabelToSrcNodeLabels[relLabel].push_back(nodeLabel);
         }
-        for (auto &nodeLabelString : descriptor.at("dstNodeLabels")) {
+        for (auto& nodeLabelString : descriptor.at("dstNodeLabels")) {
             auto nodeLabel = catalog.stringToNodeLabelMap[nodeLabelString];
             catalog.dstNodeLabelToRelLabel[nodeLabel].push_back(relLabel);
             catalog.relLabelToDstNodeLabels[relLabel].push_back(nodeLabel);
@@ -80,7 +80,7 @@ void GraphLoader::setSrcDstNodeLabelsForRelLabels(
 }
 
 unique_ptr<vector<shared_ptr<NodeIDMap>>> GraphLoader::loadNodes(
-    const nlohmann::json &metadata, Graph &graph, Catalog &catalog) {
+    const nlohmann::json& metadata, Graph& graph, Catalog& catalog) {
     vector<string> fnames(catalog.getNodeLabelsCount());
     vector<uint64_t> numBlocksPerLabel(catalog.getNodeLabelsCount());
     vector<vector<uint64_t>> numLinesPerBlock(catalog.getNodeLabelsCount());
@@ -100,7 +100,7 @@ unique_ptr<vector<shared_ptr<NodeIDMap>>> GraphLoader::loadNodes(
     return nodeIDMaps;
 }
 
-void GraphLoader::loadRels(const nlohmann::json &metadata, Graph &graph, Catalog &catalog,
+void GraphLoader::loadRels(const nlohmann::json& metadata, Graph& graph, Catalog& catalog,
     unique_ptr<vector<shared_ptr<NodeIDMap>>> nodeIDMaps) {
     logger->info("Starting to load rels.");
     vector<string> fnames(catalog.getRelLabelsCount());
@@ -113,8 +113,8 @@ void GraphLoader::loadRels(const nlohmann::json &metadata, Graph &graph, Catalog
 }
 
 void GraphLoader::inferFilenamesInitPropertyMapAndCountLinesPerBlock(gfLabel_t numLabels,
-    nlohmann::json filedescriptions, vector<string> &filenames, vector<uint64_t> &numBlocksPerLabel,
-    vector<vector<Property>> &propertyMap, const char tokenSeparator) {
+    nlohmann::json filedescriptions, vector<string>& filenames, vector<uint64_t>& numBlocksPerLabel,
+    vector<vector<Property>>& propertyMap, const char tokenSeparator) {
     for (gfLabel_t label = 0; label < numLabels; label++) {
         auto fileDescription = filedescriptions[label];
         filenames[label] = inputDirectory + "/" + fileDescription.at("filename").get<string>();
@@ -124,7 +124,7 @@ void GraphLoader::inferFilenamesInitPropertyMapAndCountLinesPerBlock(gfLabel_t n
 }
 
 void GraphLoader::initPropertyMapAndCalcNumBlocksPerLabel(gfLabel_t numLabels,
-    vector<string> &filenames, vector<uint64_t> &numPerLabel, vector<vector<Property>> &propertyMap,
+    vector<string>& filenames, vector<uint64_t>& numPerLabel, vector<vector<Property>>& propertyMap,
     const char tokenSeparator) {
     propertyMap.resize(numLabels);
     for (gfLabel_t label = 0; label < numLabels; label++) {
@@ -139,7 +139,7 @@ void GraphLoader::initPropertyMapAndCalcNumBlocksPerLabel(gfLabel_t numLabels,
 }
 
 void GraphLoader::parseHeader(
-    const char tokenSeparator, string &header, vector<Property> &labelPropertyDescriptors) {
+    const char tokenSeparator, string& header, vector<Property>& labelPropertyDescriptors) {
     auto splittedHeader = make_unique<vector<string>>();
     size_t startPos = 0, endPos = 0;
     while ((endPos = header.find(tokenSeparator, startPos)) != string::npos) {
@@ -148,20 +148,22 @@ void GraphLoader::parseHeader(
     }
     splittedHeader->push_back(header.substr(startPos));
     auto propertyNameSet = make_unique<unordered_set<string>>();
-    for (auto &split : *splittedHeader) {
+    for (auto& split : *splittedHeader) {
         auto propertyName = split.substr(0, split.find(":"));
         if (propertyNameSet->find(propertyName) != propertyNameSet->end()) {
             throw invalid_argument("Same property name in csv file.");
         }
         propertyNameSet->insert(propertyName);
-        labelPropertyDescriptors.push_back(
-            Property(propertyName, getDataType(split.substr(split.find(":") + 1))));
+        auto dataType = getDataType(split.substr(split.find(":") + 1));
+        if (NODE != dataType && LABEL != dataType) {
+            labelPropertyDescriptors.push_back(Property(propertyName, dataType));
+        }
     }
 }
 
 void GraphLoader::countLinesPerBlockAndInitNumPerLabel(gfLabel_t numLabels,
-    vector<vector<uint64_t>> &numLinesPerBlock, vector<uint64_t> &numBlocksPerLabel,
-    const char tokenSeparator, vector<string> &fnames, vector<uint64_t> &numPerLabel) {
+    vector<vector<uint64_t>>& numLinesPerBlock, vector<uint64_t>& numBlocksPerLabel,
+    const char tokenSeparator, vector<string>& fnames, vector<uint64_t>& numPerLabel) {
     logger->info("Counting number of (nodes/rels) in labels.");
     for (gfLabel_t label = 0; label < numLabels; label++) {
         numLinesPerBlock[label].resize(numBlocksPerLabel[label]);
@@ -183,7 +185,7 @@ void GraphLoader::countLinesPerBlockAndInitNumPerLabel(gfLabel_t numLabels,
 }
 
 void GraphLoader::fileBlockLinesCounterTask(string fname, char tokenSeparator,
-    vector<vector<uint64_t>> *numLinesPerBlock, gfLabel_t label, uint32_t blockId,
+    vector<vector<uint64_t>>* numLinesPerBlock, gfLabel_t label, uint32_t blockId,
     shared_ptr<spdlog::logger> logger) {
     logger->debug("start {0} {1}", fname, blockId);
     CSVReader reader(fname, tokenSeparator, blockId);

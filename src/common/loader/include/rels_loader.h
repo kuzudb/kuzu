@@ -4,6 +4,7 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
+#include "src/common/loader/include/csv_reader.h"
 #include "src/common/loader/include/thread_pool.h"
 #include "src/common/loader/include/utils.h"
 #include "src/storage/include/adjlists_index.h"
@@ -22,6 +23,7 @@ struct RelLabelMetadata {
     vector<vector<gfLabel_t>> nodeLabelsPerDir{2};
     vector<bool> isSingleCardinalityPerDir{false, false};
     vector<pair<uint32_t, uint32_t>> numBytesSchemePerDir{2};
+    const vector<Property>* propertyMap;
 };
 
 // stores the size of adjList of a node offset in an AdjLists index.
@@ -37,79 +39,90 @@ class RelsLoader {
     friend class GraphLoader;
 
 private:
-    RelsLoader(ThreadPool &threadPool, const Graph &graph, const Catalog &catalog,
-        const nlohmann::json &metadata, vector<shared_ptr<NodeIDMap>> &nodeIDMaps,
+    RelsLoader(ThreadPool& threadPool, const Graph& graph, const Catalog& catalog,
+        const nlohmann::json& metadata, vector<shared_ptr<NodeIDMap>>& nodeIDMaps,
         const string outputDirectory)
         : logger{spdlog::stdout_logger_mt("relsLoader")}, threadPool{threadPool}, graph{graph},
           catalog{catalog}, metadata{metadata}, nodeIDMaps{nodeIDMaps}, outputDirectory{
                                                                             outputDirectory} {};
 
-    void load(vector<string> &fnames, vector<uint64_t> &numBlocksPerLabel);
+    void load(vector<string>& fnames, vector<uint64_t>& numBlocksPerLabel);
 
-    void loadRelsForLabel(RelLabelMetadata &relLabelMetadata);
+    void loadRelsForLabel(RelLabelMetadata& relLabelMetadata);
 
     // adjEdges Indexes
 
     // constructs adjEdges indexes if the rel label is single cardinality in a direction or
     // otherwise, counts the rels in the adjLists of each node offset.
     void constructAdjEdgesAndCountRelsInAdjLists(
-        RelLabelMetadata &relLabelMetadata, dirLabelListSizes_t &dirLabelListSizes);
+        RelLabelMetadata& relLabelMetadata, dirLabelListSizes_t& dirLabelListSizes);
+
+    unique_ptr<vector<vector<unique_ptr<InMemPropCol>>>> buildInMemPropCols(
+        RelLabelMetadata& relLabelMetadata, Direction dir);
 
     // builds in-memory adjEdges indexes for all src node labels (if the rel label is single
     // cardinality in the forward direction) and the dst node labels (if the rel label is single
     // cardinality in the backward direction)
-    unique_ptr<vector<unique_ptr<vector<unique_ptr<InMemAdjEdges>>>>> buildInMemAdjEdges(
-        RelLabelMetadata &relLabelMetadata);
+    unique_ptr<vector<vector<unique_ptr<InMemAdjEdges>>>> buildInMemAdjEdges(
+        RelLabelMetadata& relLabelMetadata);
 
     // adjLists Indexes
 
     // constructs adjLists indexes if the rel label is multi cardinality in a direction.
-    void contructAdjLists(RelLabelMetadata &relLabelMetadata,
-        dirLabelListSizes_t &dirLabelListSizes,
-        dirLabelAdjListsMetadata_t &dirLabelAdjListsMetadata);
+    void contructAdjLists(RelLabelMetadata& relLabelMetadata,
+        dirLabelListSizes_t& dirLabelListSizes,
+        dirLabelAdjListsMetadata_t& dirLabelAdjListsMetadata);
 
     // Allocate space in adjLists pages to all the adjLists indexes of a particular label.
-    void initAdjListsMetadata(RelLabelMetadata &relLabelMetadata,
-        dirLabelListSizes_t &dirLabelListSizes,
-        dirLabelAdjListsMetadata_t &dirLabelAdjListsIndexMetadata);
+    void initAdjListsMetadata(RelLabelMetadata& relLabelMetadata,
+        dirLabelListSizes_t& dirLabelListSizes,
+        dirLabelAdjListsMetadata_t& dirLabelAdjListsIndexMetadata);
 
     // Populates rels in adjLists indexes using the space allocation scheme of
     // allocateAdjListsPages().
-    void populateAdjLists(RelLabelMetadata &relLabelMetadata,
-        dirLabelListSizes_t &dirLabelListSizes,
-        dirLabelAdjListsMetadata_t &dirLabelAdjListsMetadata);
+    void populateAdjLists(RelLabelMetadata& relLabelMetadata,
+        dirLabelListSizes_t& dirLabelListSizes,
+        dirLabelAdjListsMetadata_t& dirLabelAdjListsMetadata);
+
     // builds in-memory adjLists indexes for all src node labels (if the rel label is multi
     // cardinality in the forward direction) and the dst node labels (if the rel label is multi
     // cardinality in the backward direction)
-    unique_ptr<vector<unique_ptr<vector<unique_ptr<InMemAdjListsIndex>>>>> buildInMemAdjLists(
-        RelLabelMetadata &relLabelMetadata,
-        dirLabelAdjListsMetadata_t &dirLabelAdjListsIndexMetadata);
+    unique_ptr<vector<vector<unique_ptr<InMemAdjListsIndex>>>> buildInMemAdjLists(
+        RelLabelMetadata& relLabelMetadata,
+        dirLabelAdjListsMetadata_t& dirLabelAdjListsIndexMetadata);
 
-    // Concurrent Tasks & Helpers
+    // Concurrent Tasks
 
-    static void populateAdjEdgesAndCountRelsInAdjListsTask(RelLabelMetadata *relLabelMetadata,
-        uint64_t blockId, const char tokenSeparator, dirLabelListSizes_t *dirLabelListSizes,
-        vector<unique_ptr<vector<unique_ptr<InMemAdjEdges>>>> *adjEdgesIndexes,
-        vector<shared_ptr<NodeIDMap>> *nodeIDMaps, const Catalog *catalog, bool hasProperties,
+    static void populateAdjEdgesAndCountRelsInAdjListsTask(RelLabelMetadata* relLabelMetadata,
+        uint64_t blockId, const char tokenSeparator, dirLabelListSizes_t* dirLabelListSizes,
+        vector<vector<unique_ptr<InMemAdjEdges>>>* adjEdgesIndexes,
+        vector<vector<unique_ptr<InMemPropCol>>>* propertyCols,
+        vector<shared_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
         shared_ptr<spdlog::logger> logger);
 
     static void initAdjListsMetadataForAnIndexTask(uint64_t numNodeOffsets,
-        uint32_t numEdgesPerPage, listSizes_t *listSizes, AdjListsMetadata *adjListsIndexMetadata);
+        uint32_t numEdgesPerPage, listSizes_t* listSizes, AdjListsMetadata* adjListsIndexMetadata);
 
-    static void populateAdjListsTask(RelLabelMetadata *relLabelMetadata, uint64_t blockId,
-        const char tokenSeparator, dirLabelListSizes_t *dirLabelListSizes,
-        dirLabelAdjListsMetadata_t *dirLabelAdjListsMetadata,
-        vector<unique_ptr<vector<unique_ptr<InMemAdjListsIndex>>>> *adjListsIndexes,
-        vector<shared_ptr<NodeIDMap>> *nodeIDMaps, const Catalog *catalog, bool hasProperties,
+    static void populateAdjListsTask(RelLabelMetadata* relLabelMetadata, uint64_t blockId,
+        const char tokenSeparator, dirLabelListSizes_t* dirLabelListSizes,
+        dirLabelAdjListsMetadata_t* dirLabelAdjListsMetadata,
+        vector<vector<unique_ptr<InMemAdjListsIndex>>>* adjListsIndexes,
+        vector<shared_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog, bool hasProperties,
         shared_ptr<spdlog::logger> logger);
+
+    // Task Helpers
+
+    static void populateInMemPropColsForNode(RelLabelMetadata& relLabelMetadata,
+        CSVReader& reader, vector<vector<unique_ptr<InMemPropCol>>>* cols, gfLabel_t nodeLabel,
+        gfNodeOffset_t nodeOffset);
 
 private:
     shared_ptr<spdlog::logger> logger;
-    ThreadPool &threadPool;
-    const Graph &graph;
-    const Catalog &catalog;
-    const nlohmann::json &metadata;
-    vector<shared_ptr<NodeIDMap>> &nodeIDMaps;
+    ThreadPool& threadPool;
+    const Graph& graph;
+    const Catalog& catalog;
+    const nlohmann::json& metadata;
+    vector<shared_ptr<NodeIDMap>>& nodeIDMaps;
     const string outputDirectory;
 };
 

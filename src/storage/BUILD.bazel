@@ -34,9 +34,15 @@ cc_library(
 )
 
 cc_library(
-    name = "node_property_store",
-    srcs = ["node_property_store.cpp"],
-    hdrs = ["include/node_property_store.h"],
+    name = "property_stores",
+    srcs = [
+        "node_property_store.cpp",
+        "rel_property_store.cpp",
+    ],
+    hdrs = [
+        "include/node_property_store.h",
+        "include/rel_property_store.h",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "buffer_manager",
@@ -86,7 +92,7 @@ cc_library(
         "buffer_manager",
         "catalog",
         "indexes",
-        "node_property_store",
+        "property_stores",
         "@fraillt_bitsery",
     ],
 )

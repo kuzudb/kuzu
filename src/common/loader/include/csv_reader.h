@@ -20,7 +20,7 @@ namespace common {
 class CSVReader {
 
 public:
-    CSVReader(const string &fname, const char tokenSeparator, uint64_t blockId);
+    CSVReader(const string& fname, const char tokenSeparator, uint64_t blockId);
     ~CSVReader();
 
     bool hasNextLine();
@@ -36,14 +36,14 @@ public:
     unique_ptr<string> getString();
 
 private:
-    FILE *f;
+    FILE* f;
     const char tokenSeparator;
     bool nextLineIsNotProcessed, isEndOfBlock, nextTokenIsNotProcessed;
-    char *line;
+    char* line;
     size_t lineCapacity, lineLen;
     int64_t linePtrStart, linePtrEnd;
-    char *trueVal = (char *)"true";
-    char *falseVal = (char *)"false";
+    char* trueVal = (char*)"true";
+    char* falseVal = (char*)"false";
     size_t readingBlockIdx;
     size_t readingBlockEndIdx;
 };

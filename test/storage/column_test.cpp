@@ -21,7 +21,7 @@ protected:
         uint32_t val = 0;
         for (auto pageId = 0; pageId < 30; pageId++) {
             for (auto i = 0u; i < PAGE_SIZE / sizeof(gfInt_t); i++) {
-                f.write((char *)&val, sizeof(gfInt_t));
+                f.write((char*)&val, sizeof(gfInt_t));
                 val++;
             }
         }
