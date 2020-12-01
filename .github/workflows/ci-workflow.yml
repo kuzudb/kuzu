@@ -16,10 +16,10 @@ jobs:
       run: bazel info
 
     - name: build
-      run: CC=gcc-9 bazel build --cxxopt='-std=c++2a' //...:all
+      run: CC=gcc-9 bazel build //...:all
 
     - name: test
-      run: CC=gcc-9 bazel test --cxxopt='-std=c++2a' //...:all
+      run: CC=gcc-9 bazel test //...:all
 
       #    - name: coveralls
       #uses: coverallsapp/github-action@master
