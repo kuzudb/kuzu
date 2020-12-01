@@ -7,7 +7,7 @@ env:
 
 jobs:
   checks:
-    name: run
+    name: build & test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -21,8 +21,17 @@ jobs:
     - name: test
       run: CC=gcc-9 bazel test --cxxopt='-std=c++2a' //...:all
 
-      #    - name: coveralls
-      #uses: coverallsapp/github-action@master
-      #with:
-      #  github-token: ${{ secrets.GITHUB_TOKEN }}
-      #  path-to-lcov: /home/runner/op/execroot/graphflowDB/bazel-out/_coverage/_coverage_report.dat
+  clang-formatting-check:
+    name: clang-formatting-check
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+      with:
+        repository: Sarcasm/run-clang-format
+        path: run-clang-format
+    - run: sudo apt update && sudo apt install -y clang-format-10
+    - run: clang-format --version
+    - run: pwd
+    - run: ls
+    - run: python3 run-clang-format/run-clang-format.py --clang-format-executable /usr/bin/clang-format-10 -r src/
