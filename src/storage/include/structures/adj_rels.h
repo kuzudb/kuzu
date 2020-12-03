@@ -1,25 +1,17 @@
 #pragma once
 
-#include "src/storage/include/column.h"
+#include "src/storage/include/structures/column.h"
 
 namespace graphflow {
 namespace storage {
 
-typedef BaseColumn AdjEdgesBase;
-
-class AdjEdges : public AdjEdgesBase {
+class AdjRels : public BaseColumn {
 
 public:
-    AdjEdges(const string path, uint64_t numElements, uint32_t numBytesPerLabel,
+    AdjRels(const string path, uint64_t numElements, uint32_t numBytesPerLabel,
         uint32_t numBytesPerOffset, BufferManager& bufferManager)
-        : AdjEdgesBase(path, numBytesPerLabel + numBytesPerOffset, numElements, bufferManager),
+        : BaseColumn(path, numBytesPerLabel + numBytesPerOffset, numElements, bufferManager),
           numBytesPerLabel{numBytesPerLabel}, numBytesPerOffset{numBytesPerOffset} {};
-
-    inline static string getAdjEdgesIndexFname(
-        const string& directory, gfLabel_t relLabel, gfLabel_t nodeLabel, Direction direction) {
-        return directory + "/e-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +
-               to_string(direction) + ".vcol";
-    }
 
     inline void getVal(gfNodeOffset_t nodeOffset, gfLabel_t& label, gfNodeOffset_t& offset) {
         auto pageIdx = getPageIdx(nodeOffset, numElementsPerPage);

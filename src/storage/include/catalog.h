@@ -12,18 +12,18 @@ using namespace graphflow::common;
 using namespace std;
 
 namespace graphflow {
-namespace common {
+namespace loader {
 
 class GraphLoader;
 
-} // namespace common
+} // namespace loader
 } // namespace graphflow
 
 namespace graphflow {
 namespace storage {
 
 class Catalog {
-    friend class graphflow::common::GraphLoader;
+    friend class graphflow::loader::GraphLoader;
     friend class bitsery::Access;
 
 public:

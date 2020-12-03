@@ -8,7 +8,7 @@
 #include "gtest/gtest.h"
 
 #include "src/common/include/types.h"
-#include "src/storage/include/adjedges_index.h"
+#include "src/storage/include/structures/adj_rels.h"
 
 using namespace graphflow::storage;
 using namespace graphflow::common;
@@ -17,17 +17,17 @@ using namespace std;
 class AdjEdgesIndexTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        auto f = ofstream("adjEdges1B4BTestFile", ios_base::out | ios_base::binary);
-        uint8_t type = 0;
+        auto f = ofstream("adjRels1B4BTestFile", ios_base::out | ios_base::binary);
+        uint8_t label = 0;
         uint32_t offset = 0;
         for (auto pageId = 0; pageId < 30; pageId++) {
             f.seekp(PAGE_SIZE * pageId);
             for (auto i = 0u; i < PAGE_SIZE / (sizeof(uint8_t) + sizeof(uint32_t)); i++) {
-                f.write((char*)&type, sizeof(uint8_t));
-                f.write((char*)&offset, sizeof(uint32_t));
-                type++;
-                if (UINT8_MAX == type) {
-                    type = 0;
+                f.write((char *)&label, sizeof(uint8_t));
+                f.write((char *)&offset, sizeof(uint32_t));
+                label++;
+                if (UINT8_MAX == label) {
+                    label = 0;
                 }
                 offset++;
             }
@@ -45,7 +45,7 @@ protected:
 TEST_F(AdjEdgesIndexTest, GetVal) {
     auto numElements = 30 * (PAGE_SIZE / (sizeof(uint8_t) + sizeof(uint32_t)));
     BufferManager bufferManager(PAGE_SIZE * 30);
-    auto col = new AdjEdges("adjEdges1B4BTestFile", numElements, 1 /*numBytesPerLabel*/,
+    auto col = new AdjRels("adjRels1B4BTestFile", numElements, 1 /*numBytesPerLabel*/,
         4 /*numBytesPerOffset*/, bufferManager);
     gfLabel_t fetchedLabel = 0;
     gfNodeOffset_t fetchedOffset = 0;

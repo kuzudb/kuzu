@@ -4,9 +4,9 @@
 #include "args.hxx"
 #include <bits/unique_ptr.h>
 
-#include "src/common/loader/include/graph_loader.h"
+#include "src/loader/include/graph_loader.h"
 
-using namespace graphflow::common;
+using namespace graphflow::loader;
 using namespace std;
 
 void createDirectory(const string& directory) {

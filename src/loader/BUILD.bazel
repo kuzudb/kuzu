@@ -4,39 +4,35 @@ load("@rules_cc//cc:defs.bzl", "cc_binary")
 cc_library(
     name = "loader",
     srcs = [
+        "adj_lists_loader_helper.cpp",
+        "adj_rels_loader_helper.cpp",
         "graph_loader.cpp",
+        "in_mem_structures.cpp",
         "nodes_loader.cpp",
         "rels_loader.cpp",
+        "utils.cpp",
     ],
     hdrs = [
+        "include/adj_lists_loader_helper.h",
+        "include/adj_rels_loader_helper.h",
         "include/graph_loader.h",
+        "include/in_mem_structures.h",
         "include/nodes_loader.h",
         "include/rels_loader.h",
+        "include/utils.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "csv_reader",
         "thread_pool",
-        "utils",
         "//src/common:configs",
         "//src/common:types",
         "//src/storage:catalog",
         "//src/storage:graph",
-        "//src/storage:indexes",
-        "//src/storage:property_stores",
+        "//src/storage:stores",
+        "//src/storage:structures",
         "@gabime_spdlog",
         "@nlohmann_json",
-    ],
-)
-
-cc_library(
-    name = "utils",
-    srcs = ["utils.cpp"],
-    hdrs = ["include/utils.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//src/common:configs",
-        "//src/common:types",
     ],
 )
 

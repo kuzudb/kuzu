@@ -39,12 +39,11 @@ protected:
 };
 
 template<typename T>
-class Column : public BaseColumn {
+class PropertyColumn : public BaseColumn {
 
 public:
-    Column(const string propertyName, const string path, uint64_t numElements,
-        BufferManager& bufferManager)
-        : BaseColumn(path, sizeof(T), numElements, bufferManager), propertyName(propertyName){};
+    PropertyColumn(const string path, uint64_t numElements, BufferManager& bufferManager)
+        : BaseColumn{path, sizeof(T), numElements, bufferManager} {};
 
     inline void getVal(gfNodeOffset_t nodeOffset, T& t) {
         auto pageIdx = getPageIdx(nodeOffset, numElementsPerPage);
@@ -53,17 +52,11 @@ public:
             sizeof(T));
         bufferManager.unpin(fileHandle, pageIdx);
     }
-
-    inline const string& getPropertyName() { return propertyName; };
-
-private:
-    const string propertyName;
 };
 
-typedef Column<gfInt_t> ColumnInteger;
-typedef Column<gfDouble_t> ColumnDouble;
-typedef Column<gfBool_t> ColumnBoolean;
-typedef Column<gfString_t> ColumnString;
+typedef PropertyColumn<gfInt_t> PropertyColumnInteger;
+typedef PropertyColumn<gfDouble_t> PropertyColumnDouble;
+typedef PropertyColumn<gfBool_t> PropertyColumnBoolean;
 
 } // namespace storage
 } // namespace graphflow
