@@ -112,8 +112,8 @@ private:
 
     // Task Helpers
 
-    static void populateInMemPropColsForNode(RelLabelMetadata& relLabelMetadata,
-        CSVReader& reader, vector<vector<unique_ptr<InMemPropCol>>>* cols, gfLabel_t nodeLabel,
+    static void populateInMemPropColsForNode(RelLabelMetadata& relLabelMetadata, CSVReader& reader,
+        vector<vector<unique_ptr<InMemPropCol>>>* cols, gfLabel_t nodeLabel,
         gfNodeOffset_t nodeOffset);
 
 private:
