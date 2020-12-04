@@ -8,7 +8,6 @@
 #include "src/loader/include/adj_rels_loader_helper.h"
 #include "src/loader/include/csv_reader.h"
 #include "src/loader/include/thread_pool.h"
-#include "src/storage/include/structures/lists.h"
 
 namespace graphflow {
 namespace loader {

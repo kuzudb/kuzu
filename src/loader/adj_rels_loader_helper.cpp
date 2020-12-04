@@ -5,10 +5,11 @@
 namespace graphflow {
 namespace loader {
 
-AdjRelsLoaderHelper::AdjRelsLoaderHelper(RelLabelDescription& description, const Graph& graph,
-    const Catalog& catalog, const string outputDirectory, shared_ptr<spdlog::logger> logger)
-    : logger{logger}, description{description}, graph{graph}, catalog{catalog},
-      outputDirectory{outputDirectory} {
+AdjRelsLoaderHelper::AdjRelsLoaderHelper(RelLabelDescription& description, ThreadPool& threadPool,
+    const Graph& graph, const Catalog& catalog, const string outputDirectory,
+    shared_ptr<spdlog::logger> logger)
+    : logger{logger}, description{description},
+      threadPool{threadPool}, graph{graph}, catalog{catalog}, outputDirectory{outputDirectory} {
     if (description.hasProperties()) {
         if (description.isSingleCardinalityPerDir[FWD]) {
             buildInMemPropertyColumns(FWD);
@@ -60,7 +61,8 @@ void AdjRelsLoaderHelper::saveToFile() {
     for (auto& dir : DIRS) {
         if (description.isSingleCardinalityPerDir[dir]) {
             for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
-                (*dirLabelAdjRels)[dir][nodeLabel]->saveToFile();
+                threadPool.execute([&](InMemAdjRels* x) { x->saveToFile(); },
+                    (*dirLabelAdjRels)[dir][nodeLabel].get());
             }
         }
     }
@@ -68,11 +70,13 @@ void AdjRelsLoaderHelper::saveToFile() {
         for (auto& columns : *labelPropertyIdxPropertyColumn) {
             for (auto& column : columns) {
                 if (column) {
-                    column->saveToFile();
+                    threadPool.execute(
+                        [&](InMemPropertyColumn* x) { x->saveToFile(); }, column.get());
                 }
             }
         }
     }
+    threadPool.wait();
 }
 
 } // namespace loader

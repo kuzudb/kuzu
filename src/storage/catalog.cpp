@@ -10,6 +10,7 @@
 #include "bitsery/traits/vector.h"
 #include <bitsery/brief_syntax.h>
 #include <bitsery/brief_syntax/string.h>
+#include <bitsery/ext/pointer.h>
 #include <bitsery/ext/std_map.h>
 
 using namespace std;
@@ -42,10 +43,6 @@ const vector<label_t>& Catalog::getNodeLabelsForRelLabelDir(
 
 template<typename S>
 void Catalog::serialize(S& s) {
-    auto stringToLabelMapFunc = [](S& s, string& key, label_t& value) { s(key, value); };
-    s.ext(stringToNodeLabelMap, bitsery::ext::StdMap{UINT32_MAX}, stringToLabelMapFunc);
-    s.ext(stringToRelLabelMap, bitsery::ext::StdMap{UINT32_MAX}, stringToLabelMapFunc);
-
     auto vetorPropertyFunc = [](S& s, vector<Property>& v) {
         s.container(v, UINT32_MAX, [](S& s, Property& w) { s(w.name, w.dataType); });
     };
@@ -69,6 +66,8 @@ void Catalog::saveToFile(const string& directory) {
     if (!f.is_open()) {
         invalid_argument("cannot open " + path + " for writing");
     }
+    serializeStringToLabelMap(f, stringToNodeLabelMap);
+    serializeStringToLabelMap(f, stringToRelLabelMap);
     OutputStreamAdapter serializer{f};
     serializer.object(*this);
     serializer.adapter().flush();
@@ -81,10 +80,40 @@ void Catalog::readFromFile(const string& directory) {
     if (!f.is_open()) {
         invalid_argument("Cannot open " + path + " for reading the catalog.");
     }
+    deserializeStringToLabelMap(f, stringToNodeLabelMap);
+    deserializeStringToLabelMap(f, stringToRelLabelMap);
     auto state = bitsery::quickDeserialization<bitsery::InputStreamAdapter>(f, *this);
     f.close();
     if (state.first == bitsery::ReaderError::NoError && state.second) {
         invalid_argument("Cannot deserialize the catalog.");
+    }
+}
+
+void Catalog::serializeStringToLabelMap(fstream& f, stringToLabelMap_t& map) {
+    uint32_t mapSize = map.size();
+    f.write(reinterpret_cast<char*>(&mapSize), sizeof(uint32_t));
+    for (auto& entry : map) {
+        mapSize = strlen(entry.first);
+        f.write(reinterpret_cast<char*>(&mapSize), sizeof(uint32_t));
+        for (auto i = 0u; i < strlen(entry.first); i++) {
+            f << entry.first[i];
+        }
+        f.write(reinterpret_cast<char*>(&entry.second), sizeof(label_t));
+    }
+}
+
+void Catalog::deserializeStringToLabelMap(fstream& f, stringToLabelMap_t& map) {
+    uint32_t size;
+    f.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
+    for (auto i = 0u; i < size; i++) {
+        uint32_t arraySize;
+        f.read(reinterpret_cast<char*>(&arraySize), sizeof(uint32_t));
+        auto array = new char[arraySize + 1];
+        f.read(reinterpret_cast<char*>(array), arraySize);
+        array[arraySize] = 0;
+        label_t label;
+        f.read(reinterpret_cast<char*>(&label), sizeof(label_t));
+        map.insert({{array, label}});
     }
 }
 

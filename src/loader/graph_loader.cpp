@@ -42,11 +42,14 @@ unique_ptr<nlohmann::json> GraphLoader::readMetadata() {
     return parsedJson;
 }
 
-void GraphLoader::assignLabels(
-    unordered_map<string, label_t>& stringToLabelMap, const nlohmann::json& fileDescriptions) {
+void GraphLoader::assignLabels(stringToLabelMap_t& map, const nlohmann::json& fileDescriptions) {
     auto label = 0;
     for (auto& descriptor : fileDescriptions) {
-        stringToLabelMap.insert({descriptor.at("label"), label++});
+        auto labelString = descriptor.at("label").get<string>();
+        auto labelCharArray = new char[labelString.size()];
+        memcpy(labelCharArray, labelString.c_str(), labelString.size());
+        labelCharArray[labelString.size()] = 0;
+        map.insert({labelCharArray, label++});
     }
 }
 
@@ -64,15 +67,17 @@ void GraphLoader::setSrcDstNodeLabelsForRelLabels(
     catalog.relLabelToDstNodeLabels.resize(catalog.getRelLabelsCount());
     auto relLabel = 0;
     for (auto& descriptor : metadata.at("relFileDescriptions")) {
-        for (auto& nodeLabelString : descriptor.at("srcNodeLabels")) {
-            auto nodeLabel = catalog.stringToNodeLabelMap[nodeLabelString];
-            catalog.srcNodeLabelToRelLabel[nodeLabel].push_back(relLabel);
-            catalog.relLabelToSrcNodeLabels[relLabel].push_back(nodeLabel);
+        for (auto& nodeLabel : descriptor.at("srcNodeLabels")) {
+            auto labelString = nodeLabel.get<string>();
+            auto labelIdx = catalog.stringToNodeLabelMap[labelString.c_str()];
+            catalog.srcNodeLabelToRelLabel[labelIdx].push_back(relLabel);
+            catalog.relLabelToSrcNodeLabels[relLabel].push_back(labelIdx);
         }
-        for (auto& nodeLabelString : descriptor.at("dstNodeLabels")) {
-            auto nodeLabel = catalog.stringToNodeLabelMap[nodeLabelString];
-            catalog.dstNodeLabelToRelLabel[nodeLabel].push_back(relLabel);
-            catalog.relLabelToDstNodeLabels[relLabel].push_back(nodeLabel);
+        for (auto& nodeLabel : descriptor.at("dstNodeLabels")) {
+            auto labelString = nodeLabel.get<string>();
+            auto labelIdx = catalog.stringToNodeLabelMap[labelString.c_str()];
+            catalog.dstNodeLabelToRelLabel[labelIdx].push_back(relLabel);
+            catalog.relLabelToDstNodeLabels[relLabel].push_back(labelIdx);
         }
         relLabel++;
     }

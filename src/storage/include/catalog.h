@@ -22,6 +22,8 @@ class GraphLoader;
 namespace graphflow {
 namespace storage {
 
+typedef unordered_map<const char*, label_t, charArrayHasher, charArrayEqualTo> stringToLabelMap_t;
+
 class Catalog {
     friend class graphflow::loader::GraphLoader;
     friend class bitsery::Access;
@@ -32,10 +34,10 @@ public:
     inline uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
     inline uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
 
-    inline const label_t& getNodeLabelFromString(string& label) const {
+    inline const label_t& getNodeLabelFromString(const char* label) const {
         return stringToNodeLabelMap.at(label);
     }
-    inline const label_t& getRelLabelFromString(string& label) const {
+    inline const label_t& getRelLabelFromString(const char* label) const {
         return stringToRelLabelMap.at(label);
     }
 
@@ -68,9 +70,12 @@ private:
     void saveToFile(const string& directory);
     void readFromFile(const string& directory);
 
+    void serializeStringToLabelMap(fstream& f, stringToLabelMap_t& map);
+    void deserializeStringToLabelMap(fstream& f, stringToLabelMap_t& map);
+
 private:
-    unordered_map<string, label_t> stringToNodeLabelMap;
-    unordered_map<string, label_t> stringToRelLabelMap;
+    stringToLabelMap_t stringToNodeLabelMap;
+    stringToLabelMap_t stringToRelLabelMap;
     vector<vector<Property>> nodePropertyMaps;
     vector<vector<Property>> relPropertyMaps;
     vector<vector<label_t>> relLabelToSrcNodeLabels, relLabelToDstNodeLabels;

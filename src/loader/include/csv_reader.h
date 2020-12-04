@@ -29,11 +29,10 @@ public:
     bool skipTokenIfNull();
     void skipToken();
 
-    unique_ptr<string> getNodeID();
     int32_t getInteger();
     double_t getDouble();
     uint8_t getBoolean();
-    unique_ptr<string> getString();
+    char* getString();
 
 private:
     FILE* f;

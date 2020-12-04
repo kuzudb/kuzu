@@ -4,6 +4,7 @@
 #include "spdlog/spdlog.h"
 
 #include "src/loader/include/in_mem_structures.h"
+#include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
@@ -23,8 +24,9 @@ typedef vector<vector<vector<unique_ptr<InMemPropertyLists>>>> dirLabelPropertyI
 class AdjListsLoaderHelper {
 
 public:
-    AdjListsLoaderHelper(RelLabelDescription& description, const Graph& graph,
-        const Catalog& catalog, const string outputDirectory, shared_ptr<spdlog::logger> logger);
+    AdjListsLoaderHelper(RelLabelDescription& description, ThreadPool& threadPool,
+        const Graph& graph, const Catalog& catalog, const string outputDirectory,
+        shared_ptr<spdlog::logger> logger);
 
     inline AdjListHeaders& getAdjListHeaders(Direction dir, label_t nodeLabel) {
         return (*dirLabelAdjListHeaders)[dir][nodeLabel];
@@ -68,6 +70,7 @@ private:
 
     shared_ptr<spdlog::logger> logger;
     RelLabelDescription& description;
+    ThreadPool& threadPool;
     const Graph& graph;
     const Catalog& catalog;
     const string outputDirectory;

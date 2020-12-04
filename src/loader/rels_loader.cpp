@@ -29,7 +29,7 @@ void RelsLoader::load(vector<string>& fnames, vector<uint64_t>& numBlocksPerFile
 }
 
 void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
-    logger->info("Creating Indexes for rel label {}.", description.label);
+    logger->info("Processing relLabel {}.", description.label);
     dirLabelListSizes_t dirLabelListSizes{2};
     for (auto& dir : DIRS) {
         if (!description.isSingleCardinalityPerDir[dir]) {
@@ -50,7 +50,8 @@ void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
 
 void RelsLoader::constructAdjRelsAndCountRelsInAdjLists(
     RelLabelDescription& description, dirLabelListSizes_t& dirLabelListSizes) {
-    AdjRelsLoaderHelper adjRelsLoaderHelper(description, graph, catalog, outputDirectory, logger);
+    AdjRelsLoaderHelper adjRelsLoaderHelper(
+        description, threadPool, graph, catalog, outputDirectory, logger);
     logger->info("Populating AdjRels and Rel Property Columns...");
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         threadPool.execute(populateAdjRelsAndCountRelsInAdjListsTask, &description, blockId,
@@ -64,7 +65,8 @@ void RelsLoader::constructAdjRelsAndCountRelsInAdjLists(
 
 void RelsLoader::constructAdjLists(
     RelLabelDescription& description, dirLabelListSizes_t& dirLabelListSizes) {
-    AdjListsLoaderHelper adjListsLoaderHelper(description, graph, catalog, outputDirectory, logger);
+    AdjListsLoaderHelper adjListsLoaderHelper(
+        description, threadPool, graph, catalog, outputDirectory, logger);
     initAdjListHeaders(description, dirLabelListSizes, adjListsLoaderHelper);
     initAdjListsAndPropertyListsMetadata(description, dirLabelListSizes, adjListsLoaderHelper);
     adjListsLoaderHelper.buildInMemStructures();
@@ -151,9 +153,9 @@ void RelsLoader::populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* 
     while (reader.hasNextLine()) {
         for (auto& dir : DIRS) {
             reader.hasNextToken();
-            labels[dir] = (*catalog).getNodeLabelFromString(*reader.getString());
+            labels[dir] = (*catalog).getNodeLabelFromString(reader.getString());
             reader.hasNextToken();
-            offsets[dir] = (*(*nodeIDMaps)[labels[dir]]).getOffset(*reader.getNodeID());
+            offsets[dir] = (*(*nodeIDMaps)[labels[dir]]).getOffset(reader.getString());
         }
         for (auto& dir : DIRS) {
             if (description->isSingleCardinalityPerDir[dir]) {
@@ -265,9 +267,9 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
     while (reader.hasNextLine()) {
         for (auto& dir : DIRS) {
             reader.hasNextToken();
-            labels[dir] = (*catalog).getNodeLabelFromString(*reader.getString());
+            labels[dir] = (*catalog).getNodeLabelFromString(reader.getString());
             reader.hasNextToken();
-            offsets[dir] = (*(*nodeIDMaps)[labels[dir]]).getOffset(*reader.getNodeID());
+            offsets[dir] = (*(*nodeIDMaps)[labels[dir]]).getOffset(reader.getString());
         }
         for (auto& dir : DIRS) {
             if (!description->isSingleCardinalityPerDir[dir]) {

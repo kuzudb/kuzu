@@ -7,16 +7,22 @@
 namespace graphflow {
 namespace loader {
 
-void NodeIDMap::setOffset(string nodeID, node_offset_t offset) {
-    nodeIDToOffsetMapping.insert(make_pair(nodeID, offset));
+NodeIDMap::~NodeIDMap() {
+    for (auto& a : nodeIDToOffsetMapping) {
+        delete[] a.first;
+    }
 }
 
-node_offset_t NodeIDMap::getOffset(string& nodeID) {
+void NodeIDMap::setOffset(const char* nodeID, node_offset_t offset) {
+    auto len = strlen(nodeID);
+    auto nodeIDcopy = new char[len + 1];
+    memcpy(nodeIDcopy, nodeID, len);
+    nodeIDcopy[len] = 0;
+    nodeIDToOffsetMapping.insert({{nodeIDcopy, offset}});
+}
+
+node_offset_t NodeIDMap::getOffset(const char* nodeID) {
     return nodeIDToOffsetMapping[nodeID];
-}
-
-bool NodeIDMap::hasNodeID(string& nodeID) {
-    return nodeIDToOffsetMapping.find(nodeID) != nodeIDToOffsetMapping.end();
 }
 
 void NodeIDMap::merge(NodeIDMap& localMap) {

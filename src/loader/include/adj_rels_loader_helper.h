@@ -4,6 +4,7 @@
 #include "spdlog/spdlog.h"
 
 #include "src/loader/include/in_mem_structures.h"
+#include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
@@ -20,8 +21,9 @@ typedef vector<vector<unique_ptr<InMemAdjRels>>> dirLabelAdjRels_t;
 class AdjRelsLoaderHelper {
 
 public:
-    AdjRelsLoaderHelper(RelLabelDescription& description, const Graph& graph,
-        const Catalog& catalog, const string outputDirectory, shared_ptr<spdlog::logger> logger);
+    AdjRelsLoaderHelper(RelLabelDescription& description, ThreadPool& threadPool,
+        const Graph& graph, const Catalog& catalog, const string outputDirectory,
+        shared_ptr<spdlog::logger> logger);
 
     void saveToFile();
 
@@ -44,6 +46,7 @@ private:
 
     shared_ptr<spdlog::logger> logger;
     RelLabelDescription& description;
+    ThreadPool& threadPool;
     const Graph& graph;
     const Catalog& catalog;
     const string outputDirectory;
