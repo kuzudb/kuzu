@@ -10,18 +10,18 @@ NodesStore::NodesStore(Catalog& catalog, vector<uint64_t>& numNodesPerLabel,
         auto& propertyMap = catalog.getPropertyMapForNodeLabel(nodeLabel);
         for (auto i = 0u; i < propertyMap.size(); i++) {
             auto& property = propertyMap[i];
-            auto fname = getNodePropertyColumnFname(directory, nodeLabel, property.propertyName);
+            auto fname = getNodePropertyColumnFname(directory, nodeLabel, property.name);
             switch (property.dataType) {
             case INT:
-                propertyColumns[nodeLabel][i] = make_unique<PropertyColumnInteger>(
+                propertyColumns[nodeLabel][i] = make_unique<PropertyColumnInt>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case DOUBLE:
                 propertyColumns[nodeLabel][i] = make_unique<PropertyColumnDouble>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
-            case BOOLEAN:
-                propertyColumns[nodeLabel][i] = make_unique<PropertyColumnBoolean>(
+            case BOOL:
+                propertyColumns[nodeLabel][i] = make_unique<PropertyColumnBool>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case STRING:

@@ -15,9 +15,9 @@ public:
     PropertyLists(string fname, BufferManager& bufferManager) : Lists{fname, bufferManager} {};
 };
 
-typedef PropertyLists<gfInt_t> RelPropertyListsInteger;
-typedef PropertyLists<gfDouble_t> RelPropertyListsDouble;
-typedef PropertyLists<gfBool_t> RelPropertyListsBoolean;
+typedef PropertyLists<int32_t> RelPropertyListsInt;
+typedef PropertyLists<double_t> RelPropertyListsDouble;
+typedef PropertyLists<uint8_t> RelPropertyListsBool;
 
 } // namespace storage
 } // namespace graphflow

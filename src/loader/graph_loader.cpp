@@ -43,7 +43,7 @@ unique_ptr<nlohmann::json> GraphLoader::readMetadata() {
 }
 
 void GraphLoader::assignLabels(
-    unordered_map<string, gfLabel_t>& stringToLabelMap, const nlohmann::json& fileDescriptions) {
+    unordered_map<string, label_t>& stringToLabelMap, const nlohmann::json& fileDescriptions) {
     auto label = 0;
     for (auto& descriptor : fileDescriptions) {
         stringToLabelMap.insert({descriptor.at("label"), label++});
@@ -111,10 +111,10 @@ void GraphLoader::loadRels(const nlohmann::json& metadata, Graph& graph, Catalog
     relsLoader.load(fnames, numBlocksPerLabel);
 }
 
-void GraphLoader::inferFilenamesInitPropertyMapAndCountLinesPerBlock(gfLabel_t numLabels,
+void GraphLoader::inferFilenamesInitPropertyMapAndCountLinesPerBlock(label_t numLabels,
     nlohmann::json filedescriptions, vector<string>& filenames, vector<uint64_t>& numBlocksPerLabel,
     vector<vector<Property>>& propertyMap, const char tokenSeparator) {
-    for (gfLabel_t label = 0; label < numLabels; label++) {
+    for (label_t label = 0; label < numLabels; label++) {
         auto fileDescription = filedescriptions[label];
         filenames[label] = inputDirectory + "/" + fileDescription.at("filename").get<string>();
     }
@@ -122,11 +122,11 @@ void GraphLoader::inferFilenamesInitPropertyMapAndCountLinesPerBlock(gfLabel_t n
         numLabels, filenames, numBlocksPerLabel, propertyMap, tokenSeparator);
 }
 
-void GraphLoader::initPropertyMapAndCalcNumBlocksPerLabel(gfLabel_t numLabels,
+void GraphLoader::initPropertyMapAndCalcNumBlocksPerLabel(label_t numLabels,
     vector<string>& filenames, vector<uint64_t>& numPerLabel, vector<vector<Property>>& propertyMap,
     const char tokenSeparator) {
     propertyMap.resize(numLabels);
-    for (gfLabel_t label = 0; label < numLabels; label++) {
+    for (label_t label = 0; label < numLabels; label++) {
         logger->info("Parsing header: " + filenames[label]);
         ifstream f(filenames[label], ios_base::in);
         string header;
@@ -160,11 +160,11 @@ void GraphLoader::parseHeader(
     }
 }
 
-void GraphLoader::countLinesPerBlockAndInitNumPerLabel(gfLabel_t numLabels,
+void GraphLoader::countLinesPerBlockAndInitNumPerLabel(label_t numLabels,
     vector<vector<uint64_t>>& numLinesPerBlock, vector<uint64_t>& numBlocksPerLabel,
     const char tokenSeparator, vector<string>& fnames, vector<uint64_t>& numPerLabel) {
     logger->info("Counting number of (nodes/rels) in labels.");
-    for (gfLabel_t label = 0; label < numLabels; label++) {
+    for (label_t label = 0; label < numLabels; label++) {
         numLinesPerBlock[label].resize(numBlocksPerLabel[label]);
         for (uint64_t blockId = 0; blockId < numBlocksPerLabel[label]; blockId++) {
             threadPool.execute(fileBlockLinesCounterTask, fnames[label], tokenSeparator,
@@ -173,7 +173,7 @@ void GraphLoader::countLinesPerBlockAndInitNumPerLabel(gfLabel_t numLabels,
     }
     threadPool.wait();
     numPerLabel.resize(numLabels);
-    for (gfLabel_t label = 0; label < numLabels; label++) {
+    for (label_t label = 0; label < numLabels; label++) {
         numPerLabel[label] = 0;
         numLinesPerBlock[label][0]--;
         for (uint64_t blockId = 0; blockId < numBlocksPerLabel[label]; blockId++) {
@@ -184,7 +184,7 @@ void GraphLoader::countLinesPerBlockAndInitNumPerLabel(gfLabel_t numLabels,
 }
 
 void GraphLoader::fileBlockLinesCounterTask(string fname, char tokenSeparator,
-    vector<vector<uint64_t>>* numLinesPerBlock, gfLabel_t label, uint32_t blockId,
+    vector<vector<uint64_t>>* numLinesPerBlock, label_t label, uint32_t blockId,
     shared_ptr<spdlog::logger> logger) {
     logger->debug("start {0} {1}", fname, blockId);
     CSVReader reader(fname, tokenSeparator, blockId);

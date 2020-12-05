@@ -55,8 +55,8 @@ private:
         AdjRelsLoaderHelper* adjRelsLoaderHelper, vector<shared_ptr<NodeIDMap>>* nodeIDMaps,
         const Catalog* catalog, shared_ptr<spdlog::logger> logger);
 
-    static void calculateAdjListHeadersForIndexTask(Direction dir, gfLabel_t nodeLabel,
-        gfNodeOffset_t numNodeOffsets, uint32_t numPerPage, listSizes_t* listSizes,
+    static void calculateAdjListHeadersForIndexTask(Direction dir, label_t nodeLabel,
+        node_offset_t numNodeOffsets, uint32_t numPerPage, listSizes_t* listSizes,
         AdjListHeaders* adjListHeaders);
 
     static void calculateListsMetadataForListsTask(uint64_t numNodeOffsets, uint32_t numPerPage,
@@ -70,20 +70,20 @@ private:
     // Task Helpers
 
     static void putPropsOfLineIntoInMemPropertyColumns(const vector<Property>* propertyMap,
-        CSVReader& reader, AdjRelsLoaderHelper* adjRelsLoaderHelper, gfLabel_t nodeLabel,
-        gfNodeOffset_t nodeOffset);
+        CSVReader& reader, AdjRelsLoaderHelper* adjRelsLoaderHelper, label_t nodeLabel,
+        node_offset_t nodeOffset);
 
     static void calcPageIDAndCSROffsetInPage(uint32_t header, uint64_t pos,
-        uint64_t numElementsInAPage, gfNodeOffset_t nodeOffset, uint64_t& pageID,
+        uint64_t numElementsInAPage, node_offset_t nodeOffset, uint64_t& pageID,
         uint64_t& csrOffsetInPage, ListsMetadata& metadata);
 
     static void putPropsOfLineIntoInMemRelPropLists(const vector<Property>* propertyMap,
-        CSVReader& reader, vector<gfLabel_t>& labels, vector<gfNodeOffset_t>& offsets,
+        CSVReader& reader, vector<label_t>& labels, vector<node_offset_t>& offsets,
         vector<uint64_t>& pos, vector<uint32_t>& headers,
         AdjListsLoaderHelper* adjListsLoaderHelper);
 
     static void setValInAnInMemRelPropLists(uint32_t header, uint64_t pos, uint8_t elementSize,
-        gfNodeOffset_t& offset, byte* val, ListsMetadata& listsMetadata,
+        node_offset_t& offset, uint8_t* val, ListsMetadata& listsMetadata,
         InMemPropertyLists& propertyLists);
 
 private:

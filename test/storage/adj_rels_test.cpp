@@ -23,8 +23,8 @@ protected:
         for (auto pageId = 0; pageId < 30; pageId++) {
             f.seekp(PAGE_SIZE * pageId);
             for (auto i = 0u; i < PAGE_SIZE / (sizeof(uint8_t) + sizeof(uint32_t)); i++) {
-                f.write((char *)&label, sizeof(uint8_t));
-                f.write((char *)&offset, sizeof(uint32_t));
+                f.write((char*)&label, sizeof(uint8_t));
+                f.write((char*)&offset, sizeof(uint32_t));
                 label++;
                 if (UINT8_MAX == label) {
                     label = 0;
@@ -47,8 +47,8 @@ TEST_F(AdjEdgesIndexTest, GetVal) {
     BufferManager bufferManager(PAGE_SIZE * 30);
     auto col = new AdjRels("adjRels1B4BTestFile", numElements, 1 /*numBytesPerLabel*/,
         4 /*numBytesPerOffset*/, bufferManager);
-    gfLabel_t fetchedLabel = 0;
-    gfNodeOffset_t fetchedOffset = 0;
+    label_t fetchedLabel = 0;
+    node_offset_t fetchedOffset = 0;
     auto expectedLabel = 0;
     for (auto offset = 0u; offset < numElements; offset++) {
         col->getVal(offset, fetchedLabel, fetchedOffset);

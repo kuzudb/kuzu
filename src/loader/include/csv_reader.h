@@ -30,9 +30,9 @@ public:
     void skipToken();
 
     unique_ptr<string> getNodeID();
-    gfInt_t getInteger();
-    gfDouble_t getDouble();
-    gfBool_t getBoolean();
+    int32_t getInteger();
+    double_t getDouble();
+    uint8_t getBoolean();
     unique_ptr<string> getString();
 
 private:

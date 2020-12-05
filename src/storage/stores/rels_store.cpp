@@ -24,7 +24,7 @@ RelsStore::RelsStore(Catalog& catalog, vector<uint64_t>& numNodesPerLabel, const
     }
 }
 
-pair<uint32_t, uint32_t> RelsStore::getNumBytesScheme(const vector<gfLabel_t>& nbrNodeLabels,
+pair<uint32_t, uint32_t> RelsStore::getNumBytesScheme(const vector<label_t>& nbrNodeLabels,
     const vector<uint64_t>& numNodesPerLabel, uint32_t numNodeLabels) {
     auto maxNodeOffsetToFit = 0ull;
     for (auto nodeLabel : nbrNodeLabels) {
@@ -48,26 +48,25 @@ uint32_t RelsStore::getNumBytesForEncoding(uint64_t val, uint8_t minNumBytes) {
 }
 
 void RelsStore::initPropertyColumnsForRelLabel(Catalog& catalog, vector<uint64_t>& numNodesPerLabel,
-    const string& directory, BufferManager& bufferManager, gfLabel_t relLabel, Direction dir) {
+    const string& directory, BufferManager& bufferManager, label_t relLabel, Direction dir) {
     propertyColumns[relLabel].resize(catalog.getNodeLabelsCount());
     for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDir(relLabel, dir)) {
         auto& propertyMap = catalog.getPropertyMapForRelLabel(relLabel);
         propertyColumns[relLabel][nodeLabel].resize(propertyMap.size());
         for (auto i = 0u; i < propertyMap.size(); i++) {
             auto& property = propertyMap[i];
-            auto fname =
-                getRelPropertyColumnFname(directory, relLabel, nodeLabel, property.propertyName);
+            auto fname = getRelPropertyColumnFname(directory, relLabel, nodeLabel, property.name);
             switch (property.dataType) {
             case INT:
-                propertyColumns[relLabel][nodeLabel][i] = make_unique<PropertyColumnInteger>(
+                propertyColumns[relLabel][nodeLabel][i] = make_unique<PropertyColumnInt>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case DOUBLE:
                 propertyColumns[relLabel][nodeLabel][i] = make_unique<PropertyColumnDouble>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
-            case BOOLEAN:
-                propertyColumns[relLabel][nodeLabel][i] = make_unique<PropertyColumnBoolean>(
+            case BOOL:
+                propertyColumns[relLabel][nodeLabel][i] = make_unique<PropertyColumnBool>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             default:
@@ -79,7 +78,7 @@ void RelsStore::initPropertyColumnsForRelLabel(Catalog& catalog, vector<uint64_t
 }
 
 void RelsStore::initPropertyListsForRelLabel(Catalog& catalog, vector<uint64_t>& numNodesPerLabel,
-    const string& directory, BufferManager& bufferManager, gfLabel_t relLabel) {
+    const string& directory, BufferManager& bufferManager, label_t relLabel) {
     for (auto& dir : DIRS) {
         propertyLists[dir][relLabel].resize(catalog.getNodeLabelsCount());
         for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDir(relLabel, dir)) {
@@ -87,20 +86,20 @@ void RelsStore::initPropertyListsForRelLabel(Catalog& catalog, vector<uint64_t>&
             propertyLists[dir][relLabel][nodeLabel].resize(propertyMap.size());
             for (auto i = 0u; i < propertyMap.size(); i++) {
                 auto& property = propertyMap[i];
-                auto fname = getRelPropertyListsFname(
-                    directory, relLabel, nodeLabel, dir, property.propertyName);
+                auto fname =
+                    getRelPropertyListsFname(directory, relLabel, nodeLabel, dir, property.name);
                 switch (property.dataType) {
                 case INT:
                     propertyLists[dir][relLabel][nodeLabel][i] =
-                        make_unique<RelPropertyListsInteger>(fname, bufferManager);
+                        make_unique<RelPropertyListsInt>(fname, bufferManager);
                     break;
                 case DOUBLE:
                     propertyLists[dir][relLabel][nodeLabel][i] =
                         make_unique<RelPropertyListsDouble>(fname, bufferManager);
                     break;
-                case BOOLEAN:
+                case BOOL:
                     propertyLists[dir][relLabel][nodeLabel][i] =
-                        make_unique<RelPropertyListsBoolean>(fname, bufferManager);
+                        make_unique<RelPropertyListsBool>(fname, bufferManager);
                     break;
                 default:
                     throw std::invalid_argument("not supported.");

@@ -13,7 +13,7 @@ public:
         : BaseColumn(path, numBytesPerLabel + numBytesPerOffset, numElements, bufferManager),
           numBytesPerLabel{numBytesPerLabel}, numBytesPerOffset{numBytesPerOffset} {};
 
-    inline void getVal(gfNodeOffset_t nodeOffset, gfLabel_t& label, gfNodeOffset_t& offset) {
+    inline void getVal(node_offset_t nodeOffset, label_t& label, node_offset_t& offset) {
         auto pageIdx = getPageIdx(nodeOffset, numElementsPerPage);
         auto frame = bufferManager.pin(fileHandle, pageIdx);
         auto pageOffset = frame + getPageOffset(nodeOffset, numElementsPerPage,

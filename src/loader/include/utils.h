@@ -16,16 +16,15 @@ namespace loader {
 class NodeIDMap {
 
 public:
-    NodeIDMap(uint64_t size)
-        : nodeIDToOffsetMapping{unordered_map<string, gfNodeOffset_t>(size)} {};
+    NodeIDMap(uint64_t size) : nodeIDToOffsetMapping{unordered_map<string, node_offset_t>(size)} {};
 
-    void setOffset(string nodeID, gfNodeOffset_t offset);
-    gfNodeOffset_t getOffset(string& nodeID);
+    void setOffset(string nodeID, node_offset_t offset);
+    node_offset_t getOffset(string& nodeID);
     bool hasNodeID(string& nodeID);
     void merge(NodeIDMap& localMap);
 
 private:
-    unordered_map<string, gfNodeOffset_t> nodeIDToOffsetMapping;
+    unordered_map<string, node_offset_t> nodeIDToOffsetMapping;
 };
 
 // Holds information about a rel label that is needed to construct adjRels and adjLists indexes,
@@ -45,10 +44,10 @@ public:
     }
 
 public:
-    gfLabel_t label;
+    label_t label;
     string fname;
     uint64_t numBlocks;
-    vector<vector<gfLabel_t>> nodeLabelsPerDir{2};
+    vector<vector<label_t>> nodeLabelsPerDir{2};
     vector<bool> isSingleCardinalityPerDir{false, false};
     vector<pair<uint32_t, uint32_t>> numBytesSchemePerDir{2};
     const vector<Property>* propertyMap;

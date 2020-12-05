@@ -1,0 +1,16 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_test(
+    name = "processor_tests",
+    srcs = [
+        "operator/scan/scan_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/processor:processor",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)

@@ -28,13 +28,13 @@ private:
         vector<shared_ptr<NodeIDMap>>& nodeIDMaps);
 
     shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> createFilesForNodeProperties(
-        gfLabel_t label, const vector<Property>& propertyMap);
+        label_t label, const vector<Property>& propertyMap);
 
     // Concurrent Tasks
 
     static void populateNodePropertyColumnTask(string fname, char tokenSeparator,
         const vector<Property>& propertyMap, uint64_t blockId, uint64_t numElements,
-        gfNodeOffset_t beginOffset, shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> pageFiles,
+        node_offset_t beginOffset, shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> pageFiles,
         shared_ptr<NodeIDMap> nodeIDMap, shared_ptr<spdlog::logger> logger);
 
     // Task Helpers

@@ -17,7 +17,7 @@ DataType getDataType(const std::string& dataTypeString) {
     } else if (0 == dataTypeString.compare("DOUBLE")) {
         return DOUBLE;
     } else if (0 == dataTypeString.compare("BOOLEAN")) {
-        return BOOLEAN;
+        return BOOL;
     } else if (0 == dataTypeString.compare("STRING")) {
         return STRING;
     }
@@ -27,18 +27,18 @@ DataType getDataType(const std::string& dataTypeString) {
 uint8_t getDataTypeSize(DataType dataType) {
     switch (dataType) {
     case INT:
-        return sizeof(gfInt_t);
+        return sizeof(int32_t);
     case DOUBLE:
-        return sizeof(gfDouble_t);
-    case BOOLEAN:
-        return sizeof(gfBool_t);
+        return sizeof(double_t);
+    case BOOL:
+        return sizeof(uint8_t);
     case STRING:
-        return sizeof(gfString_t);
+        return sizeof(std::string*);
     case NODE:
     case REL:
-        return sizeof(gfNodeOffset_t);
+        return sizeof(node_offset_t);
     case LABEL:
-        return sizeof(gfLabel_t);
+        return sizeof(label_t);
     }
     throw invalid_argument("Cannot infer the size of the dataType.");
 }

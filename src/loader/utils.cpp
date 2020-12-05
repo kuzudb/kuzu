@@ -7,11 +7,11 @@
 namespace graphflow {
 namespace loader {
 
-void NodeIDMap::setOffset(string nodeID, gfNodeOffset_t offset) {
+void NodeIDMap::setOffset(string nodeID, node_offset_t offset) {
     nodeIDToOffsetMapping.insert(make_pair(nodeID, offset));
 }
 
-gfNodeOffset_t NodeIDMap::getOffset(string& nodeID) {
+node_offset_t NodeIDMap::getOffset(string& nodeID) {
     return nodeIDToOffsetMapping[nodeID];
 }
 

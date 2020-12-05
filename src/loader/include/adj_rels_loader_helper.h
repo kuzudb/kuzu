@@ -25,11 +25,11 @@ public:
 
     void saveToFile();
 
-    inline InMemAdjRels& getAdjRels(Direction dir, gfLabel_t nodelabel) {
+    inline InMemAdjRels& getAdjRels(Direction dir, label_t nodelabel) {
         return *(*dirLabelAdjRels)[dir][nodelabel];
     }
 
-    inline InMemPropertyColumn& getPropertyColumn(gfLabel_t nodeLabel, uint32_t propertyIdx) {
+    inline InMemPropertyColumn& getPropertyColumn(label_t nodeLabel, uint32_t propertyIdx) {
         return *(*labelPropertyIdxPropertyColumn)[nodeLabel][propertyIdx];
     }
 

@@ -32,7 +32,7 @@ private:
     unique_ptr<nlohmann::json> readMetadata();
 
     void assignLabels(
-        unordered_map<string, gfLabel_t>& stringToLabelMap, const nlohmann::json& fileDescriptions);
+        unordered_map<string, label_t>& stringToLabelMap, const nlohmann::json& fileDescriptions);
     void setCardinalities(Catalog& catalog, const nlohmann::json& metadata);
     void setSrcDstNodeLabelsForRelLabels(Catalog& catalog, const nlohmann::json& metadata);
 
@@ -42,25 +42,24 @@ private:
     void loadRels(const nlohmann::json& metadata, Graph& graph, Catalog& catalog,
         unique_ptr<vector<shared_ptr<NodeIDMap>>> nodeIDMaps);
 
-    void inferFilenamesInitPropertyMapAndCountLinesPerBlock(gfLabel_t numLabels,
+    void inferFilenamesInitPropertyMapAndCountLinesPerBlock(label_t numLabels,
         nlohmann::json filedescriptions, vector<string>& fnames,
         vector<uint64_t>& numBlocksPerLabel, vector<vector<Property>>& propertyMap,
         const char tokenSeparator);
 
-    void initPropertyMapAndCalcNumBlocksPerLabel(gfLabel_t numLabels, vector<string>& fnames,
+    void initPropertyMapAndCalcNumBlocksPerLabel(label_t numLabels, vector<string>& fnames,
         vector<uint64_t>& numPerLabel, vector<vector<Property>>& propertyMaps,
         const char tokenSeparator);
 
     void parseHeader(const char tokenSeparator, string& header, vector<Property>& propertyMap);
 
-    void countLinesPerBlockAndInitNumPerLabel(gfLabel_t numLabels,
+    void countLinesPerBlockAndInitNumPerLabel(label_t numLabels,
         vector<vector<uint64_t>>& numLinesPerBlock, vector<uint64_t>& numBlocksPerLabel,
         const char tokenSeparator, vector<string>& fnames, vector<uint64_t>& numPerLabel);
 
     // Concurrent Tasks
-
     static void fileBlockLinesCounterTask(string fname, char tokenSeparator,
-        vector<vector<uint64_t>>* numLinesPerBlock, gfLabel_t label, uint32_t blockId,
+        vector<vector<uint64_t>>* numLinesPerBlock, label_t label, uint32_t blockId,
         shared_ptr<spdlog::logger> logger);
 
 private:
