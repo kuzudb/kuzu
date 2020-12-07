@@ -16,7 +16,7 @@ public:
     PropertyColumn(const string path, uint64_t numElements, BufferManager& bufferManager)
         : ColumnBase{path, sizeof(T), numElements, bufferManager} {};
 
-    inline void getVal(gfNodeOffset_t nodeOffset, T& t) {
+    inline void getVal(node_offset_t nodeOffset, T& t) {
         auto pageIdx = getPageIdx(nodeOffset, numElementsPerPage);
         auto frame = bufferManager.pin(fileHandle, pageIdx);
         memcpy(&t, (void*)(frame + getPageOffset(nodeOffset, numElementsPerPage, sizeof(T))),
@@ -25,9 +25,9 @@ public:
     }
 };
 
-typedef PropertyColumn<gfInt_t> PropertyColumnInteger;
+typedef PropertyColumn<gfInt_t> PropertyColumnInt;
 typedef PropertyColumn<gfDouble_t> PropertyColumnDouble;
-typedef PropertyColumn<gfBool_t> PropertyColumnBoolean;
+typedef PropertyColumn<gfBool_t> PropertyColumnBool;
 
 } // namespace storage
 } // namespace graphflow

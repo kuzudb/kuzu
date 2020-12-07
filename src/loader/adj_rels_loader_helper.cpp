@@ -28,8 +28,8 @@ void AdjRelsLoaderHelper::buildInMemPropertyColumns(Direction dir) {
         auto numElements = graph.getNumNodesForLabel(nodeLabel);
         for (auto i = 0u; i < (*description.propertyMap).size(); i++) {
             auto dataType = (*description.propertyMap)[i].dataType;
-            auto fname = RelsStore::getRelPropertyColumnFname(outputDirectory, description.label,
-                nodeLabel, (*description.propertyMap)[i].propertyName);
+            auto fname = RelsStore::getRelPropertyColumnFname(
+                outputDirectory, description.label, nodeLabel, (*description.propertyMap)[i].name);
             if (NODE != dataType && LABEL != dataType && STRING != dataType) {
                 (*labelPropertyIdxPropertyColumn)[nodeLabel][i] =
                     make_unique<InMemPropertyColumn>(fname, numElements, getDataTypeSize(dataType));

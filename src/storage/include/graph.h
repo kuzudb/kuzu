@@ -29,7 +29,7 @@ public:
 
     inline const vector<uint64_t>& getNumNodesPerLabel() const { return numNodesPerLabel; };
 
-    inline const uint64_t getNumNodesForLabel(gfLabel_t label) const {
+    inline const uint64_t getNumNodesForLabel(label_t label) const {
         return numNodesPerLabel[label];
     };
 

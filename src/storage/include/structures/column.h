@@ -23,12 +23,12 @@ public:
         : numElementsPerPage{PAGE_SIZE / elementSize},
           fileHandle{fname, 1 + (numElements / numElementsPerPage)}, bufferManager{bufferManager} {}
 
-    inline static uint64_t getPageIdx(gfNodeOffset_t nodeOffset, uint32_t numElementsPerPage) {
+    inline static uint64_t getPageIdx(node_offset_t nodeOffset, uint32_t numElementsPerPage) {
         return nodeOffset / numElementsPerPage;
     }
 
     inline static uint32_t getPageOffset(
-        gfNodeOffset_t nodeOffset, uint32_t numElementsPerPage, size_t elementSize) {
+        node_offset_t nodeOffset, uint32_t numElementsPerPage, size_t elementSize) {
         return (nodeOffset % numElementsPerPage) * elementSize;
     }
 
@@ -45,7 +45,7 @@ public:
     PropertyColumn(const string path, uint64_t numElements, BufferManager& bufferManager)
         : BaseColumn{path, sizeof(T), numElements, bufferManager} {};
 
-    inline void getVal(gfNodeOffset_t nodeOffset, T& t) {
+    inline void getVal(node_offset_t nodeOffset, T& t) {
         auto pageIdx = getPageIdx(nodeOffset, numElementsPerPage);
         auto frame = bufferManager.pin(fileHandle, pageIdx);
         memcpy(&t, (void*)(frame + getPageOffset(nodeOffset, numElementsPerPage, sizeof(T))),
@@ -54,9 +54,9 @@ public:
     }
 };
 
-typedef PropertyColumn<gfInt_t> PropertyColumnInteger;
-typedef PropertyColumn<gfDouble_t> PropertyColumnDouble;
-typedef PropertyColumn<gfBool_t> PropertyColumnBoolean;
+typedef PropertyColumn<int32_t> PropertyColumnInt;
+typedef PropertyColumn<double_t> PropertyColumnDouble;
+typedef PropertyColumn<uint8_t> PropertyColumnBool;
 
 } // namespace storage
 } // namespace graphflow

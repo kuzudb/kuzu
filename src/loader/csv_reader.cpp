@@ -97,19 +97,19 @@ unique_ptr<string> CSVReader::getNodeID() {
     return getString();
 }
 
-gfInt_t CSVReader::getInteger() {
+int32_t CSVReader::getInteger() {
     int a = atoi(line + linePtrStart);
     nextTokenIsNotProcessed = false;
     return a;
 }
 
-gfDouble_t CSVReader::getDouble() {
+double_t CSVReader::getDouble() {
     double a = atof(line + linePtrStart);
     nextTokenIsNotProcessed = false;
     return a;
 }
 
-gfBool_t CSVReader::getBoolean() {
+uint8_t CSVReader::getBoolean() {
     if (0 == strcmp(line + linePtrStart, trueVal)) {
         nextTokenIsNotProcessed = false;
         return 1;

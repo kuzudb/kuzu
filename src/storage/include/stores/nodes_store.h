@@ -18,7 +18,7 @@ public:
         BufferManager& bufferManager);
 
     inline static string getNodePropertyColumnFname(
-        const string& directory, gfLabel_t nodeLabel, const string& propertyName) {
+        const string& directory, label_t nodeLabel, const string& propertyName) {
         return directory + "/n-" + to_string(nodeLabel) + "-" + propertyName + ".col";
     }
 

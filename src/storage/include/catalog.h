@@ -32,26 +32,25 @@ public:
     inline uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
     inline uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
 
-    inline const gfLabel_t& getNodeLabelFromString(string& label) const {
+    inline const label_t& getNodeLabelFromString(string& label) const {
         return stringToNodeLabelMap.at(label);
     }
-    inline const gfLabel_t& getRelLabelFromString(string& label) const {
+    inline const label_t& getRelLabelFromString(string& label) const {
         return stringToRelLabelMap.at(label);
     }
 
-    inline const vector<Property>& getPropertyMapForNodeLabel(gfLabel_t nodeLabel) const {
+    inline const vector<Property>& getPropertyMapForNodeLabel(label_t nodeLabel) const {
         return nodePropertyMaps[nodeLabel];
     }
-    inline const vector<Property>& getPropertyMapForRelLabel(gfLabel_t relLabel) const {
+    inline const vector<Property>& getPropertyMapForRelLabel(label_t relLabel) const {
         return relPropertyMaps[relLabel];
     }
 
-    const vector<gfLabel_t>& getRelLabelsForNodeLabelDirection(
-        gfLabel_t nodeLabel, Direction direction) const;
-    const vector<gfLabel_t>& getNodeLabelsForRelLabelDir(
-        gfLabel_t relLabel, Direction direction) const;
+    const vector<label_t>& getRelLabelsForNodeLabelDirection(
+        label_t nodeLabel, Direction direction) const;
+    const vector<label_t>& getNodeLabelsForRelLabelDir(label_t relLabel, Direction direction) const;
 
-    inline bool isSingleCaridinalityInDir(gfLabel_t relLabel, Direction direction) const {
+    inline bool isSingleCaridinalityInDir(label_t relLabel, Direction direction) const {
         auto cardinality = relLabelToCardinalityMap[relLabel];
         if (FWD == direction) {
             return ONE_ONE == cardinality || MANY_ONE == cardinality;
@@ -70,12 +69,12 @@ private:
     void readFromFile(const string& directory);
 
 private:
-    unordered_map<string, gfLabel_t> stringToNodeLabelMap;
-    unordered_map<string, gfLabel_t> stringToRelLabelMap;
+    unordered_map<string, label_t> stringToNodeLabelMap;
+    unordered_map<string, label_t> stringToRelLabelMap;
     vector<vector<Property>> nodePropertyMaps;
     vector<vector<Property>> relPropertyMaps;
-    vector<vector<gfLabel_t>> relLabelToSrcNodeLabels, relLabelToDstNodeLabels;
-    vector<vector<gfLabel_t>> srcNodeLabelToRelLabel, dstNodeLabelToRelLabel;
+    vector<vector<label_t>> relLabelToSrcNodeLabels, relLabelToDstNodeLabels;
+    vector<vector<label_t>> srcNodeLabelToRelLabel, dstNodeLabelToRelLabel;
     vector<Cardinality> relLabelToCardinalityMap;
 };
 

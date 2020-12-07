@@ -28,7 +28,7 @@ InMemAdjRels::InMemAdjRels(
     initData();
 };
 
-void InMemAdjRels::set(gfNodeOffset_t offset, gfLabel_t nbrLabel, gfNodeOffset_t nbrOffset) {
+void InMemAdjRels::set(node_offset_t offset, label_t nbrLabel, node_offset_t nbrOffset) {
     auto writeOffset = data.get() + (PAGE_SIZE * (offset / numElementsPerPage)) +
                        ((numBytesPerLabel + numBytesPerOffset) * (offset % numElementsPerPage));
     memcpy(writeOffset, &nbrLabel, numBytesPerLabel);
@@ -43,7 +43,7 @@ InMemAdjLists::InMemAdjLists(
 };
 
 void InMemAdjLists::set(
-    uint64_t pageIdx, uint16_t pageOffset, gfLabel_t nbrLabel, gfNodeOffset_t nbrOffset) {
+    uint64_t pageIdx, uint16_t pageOffset, label_t nbrLabel, node_offset_t nbrOffset) {
     auto writeOffset =
         data.get() + (PAGE_SIZE * pageIdx) + ((numBytesPerLabel + numBytesPerOffset) * pageOffset);
     memcpy(writeOffset, &nbrLabel, numBytesPerLabel);
@@ -61,7 +61,7 @@ InMemPropertyColumn::InMemPropertyColumn(
     initData();
 };
 
-void InMemPropertyColumn::set(gfNodeOffset_t offset, byte* val) {
+void InMemPropertyColumn::set(node_offset_t offset, uint8_t* val) {
     // WARNING: Assuming numBytesPerElement to be power of 2.
     // Under this assumption, PAGE_SIZE / numElementsPerPage = numBytesPerElement
     auto writeOffset = data.get() + (numBytesPerElement * offset) +
@@ -76,7 +76,7 @@ InMemPropertyLists::InMemPropertyLists(
     initData();
 };
 
-void InMemPropertyLists::set(uint64_t pageIdx, uint16_t pageOffset, byte* val) {
+void InMemPropertyLists::set(uint64_t pageIdx, uint16_t pageOffset, uint8_t* val) {
     auto writeOffset = data.get() + (PAGE_SIZE * pageIdx) + (numBytesPerElement * pageOffset);
     memcpy(writeOffset, val, numBytesPerElement);
 }

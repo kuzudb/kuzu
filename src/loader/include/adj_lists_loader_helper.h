@@ -26,25 +26,25 @@ public:
     AdjListsLoaderHelper(RelLabelDescription& description, const Graph& graph,
         const Catalog& catalog, const string outputDirectory, shared_ptr<spdlog::logger> logger);
 
-    inline AdjListHeaders& getAdjListHeaders(Direction dir, gfLabel_t nodeLabel) {
+    inline AdjListHeaders& getAdjListHeaders(Direction dir, label_t nodeLabel) {
         return (*dirLabelAdjListHeaders)[dir][nodeLabel];
     }
 
-    inline ListsMetadata& getAdjListsMetadata(Direction dir, gfLabel_t nodeLabel) {
+    inline ListsMetadata& getAdjListsMetadata(Direction dir, label_t nodeLabel) {
         return (*dirLabelAdjListsMetadata)[dir][nodeLabel];
     }
 
     inline ListsMetadata& getPropertyListsMetadata(
-        Direction dir, gfLabel_t nodeLabel, uint32_t propertyIdx) {
+        Direction dir, label_t nodeLabel, uint32_t propertyIdx) {
         return (*dirLabelPropertyIdxPropertyListsMetadata)[dir][nodeLabel][propertyIdx];
     }
 
-    inline InMemAdjLists& getAdjLists(Direction dir, gfLabel_t nodeLabel) {
+    inline InMemAdjLists& getAdjLists(Direction dir, label_t nodeLabel) {
         return *(*dirLabelAdjLists)[dir][nodeLabel];
     }
 
     inline InMemPropertyLists& getPropertyLists(
-        Direction dir, gfLabel_t nodeLabel, uint32_t propertyIdx) {
+        Direction dir, label_t nodeLabel, uint32_t propertyIdx) {
         return *(*dirLabelPropertyIdxPropertyLists)[dir][nodeLabel][propertyIdx];
     }
 

@@ -1,0 +1,22 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "processor",
+    srcs = [
+        "operator/tuple/data_chunk.cpp",
+
+        "operator/scan/scan.cpp",
+    ], hdrs = [
+        "include/operator/tuple/data_chunk.h",
+
+        "include/operator/operator.h",
+        "include/operator/scan/scan.h",
+
+        "include/task_system/morsel.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common:common",
+        "//src/storage:graph",
+    ],
+)

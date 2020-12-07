@@ -20,8 +20,8 @@ protected:
         auto f = ofstream("colIntTestFile", ios_base::out | ios_base::binary);
         uint32_t val = 0;
         for (auto pageId = 0; pageId < 30; pageId++) {
-            for (auto i = 0u; i < PAGE_SIZE / sizeof(gfInt_t); i++) {
-                f.write((char*)&val, sizeof(gfInt_t));
+            for (auto i = 0u; i < PAGE_SIZE / sizeof(int32_t); i++) {
+                f.write((char*)&val, sizeof(int32_t));
                 val++;
             }
         }
@@ -36,10 +36,10 @@ protected:
 
 // Tests the PropertyColumn template with T=gfInt_t.
 TEST_F(ColumnIntegerTest, GetVal) {
-    auto numElements = 30 * (PAGE_SIZE / sizeof(gfInt_t));
+    auto numElements = 30 * (PAGE_SIZE / sizeof(int32_t));
     BufferManager bufferManager(PAGE_SIZE * 30);
-    auto col = new PropertyColumnInteger("colIntTestFile", numElements, bufferManager);
-    gfInt_t fetched = 0;
+    auto col = new PropertyColumnInt("colIntTestFile", numElements, bufferManager);
+    int32_t fetched = 0;
     for (auto offset = 0u; offset < numElements; offset++) {
         col->getVal(offset, fetched);
         ASSERT_EQ(fetched, offset);

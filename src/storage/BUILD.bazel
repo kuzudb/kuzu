@@ -8,7 +8,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/common:configs",
+        "//src/common:common",
     ],
 )
 
@@ -19,7 +19,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "file_handle",
-        "//src/common:configs",
+        "//src/common:common",
     ],
 )
 
@@ -41,8 +41,7 @@ cc_library(
     deps = [
         "buffer_manager",
         "file_handle",
-        "//src/common:configs",
-        "//src/common:types",
+        "//src/common:common",
         "@fraillt_bitsery",
     ],
 )
@@ -62,8 +61,7 @@ cc_library(
         "buffer_manager",
         "catalog",
         "structures",
-        "//src/common:configs",
-        "//src/common:types",
+        "//src/common:common",
     ],
 )
 
@@ -73,7 +71,7 @@ cc_library(
     hdrs = ["include/catalog.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/common:types",
+        "//src/common:common",
         "@fraillt_bitsery",
     ],
 )

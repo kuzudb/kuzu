@@ -12,15 +12,15 @@ void NodesLoader::load(vector<string>& filenames, vector<uint64_t>& numNodesPerL
     logger->info("Starting to read and store node properties.");
     vector<shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>>> files(
         catalog.getNodeLabelsCount());
-    vector<gfNodeOffset_t> frontierOffsets(catalog.getNodeLabelsCount());
-    for (gfLabel_t label = 0; label < catalog.getNodeLabelsCount(); label++) {
+    vector<node_offset_t> frontierOffsets(catalog.getNodeLabelsCount());
+    for (label_t label = 0; label < catalog.getNodeLabelsCount(); label++) {
         files[label] =
             createFilesForNodeProperties(label, catalog.getPropertyMapForNodeLabel(label));
         frontierOffsets[label] = 0;
     }
     auto maxNumBlocks = *max_element(begin(numBlocksPerLabel), end(numBlocksPerLabel));
     for (auto blockId = 0u; blockId < maxNumBlocks; blockId++) {
-        for (gfLabel_t label = 0; label < catalog.getNodeLabelsCount(); label++) {
+        for (label_t label = 0; label < catalog.getNodeLabelsCount(); label++) {
             if (blockId < numBlocksPerLabel[label]) {
                 threadPool.execute(populateNodePropertyColumnTask, filenames[label],
                     metadata.at("tokenSeparator").get<string>()[0],
@@ -35,7 +35,7 @@ void NodesLoader::load(vector<string>& filenames, vector<uint64_t>& numNodesPerL
 }
 
 shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> NodesLoader::createFilesForNodeProperties(
-    gfLabel_t label, const vector<Property>& propertyMap) {
+    label_t label, const vector<Property>& propertyMap) {
     auto files = make_shared<pair<unique_ptr<mutex>, vector<uint32_t>>>();
     files->first = make_unique<mutex>();
     files->second.resize(propertyMap.size());
@@ -43,8 +43,8 @@ shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> NodesLoader::createFilesFo
         if (STRING == propertyMap[i].dataType) {
             logger->warn("Ignoring string properties.");
         } else {
-            auto fname = NodesStore::getNodePropertyColumnFname(
-                outputDirectory, label, propertyMap[i].propertyName);
+            auto fname =
+                NodesStore::getNodePropertyColumnFname(outputDirectory, label, propertyMap[i].name);
             files->second[i] = open(fname.c_str(), O_WRONLY | O_CREAT, 0666);
             if (-1u == files->second[i]) {
                 invalid_argument("cannot create file: " + fname);
@@ -56,7 +56,7 @@ shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> NodesLoader::createFilesFo
 
 void NodesLoader::populateNodePropertyColumnTask(string fname, char tokenSeparator,
     const vector<Property>& propertyMap, uint64_t blockId, uint64_t numElements,
-    gfNodeOffset_t beginOffset, shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> pageFiles,
+    node_offset_t beginOffset, shared_ptr<pair<unique_ptr<mutex>, vector<uint32_t>>> pageFiles,
     shared_ptr<NodeIDMap> nodeIDMap, shared_ptr<spdlog::logger> logger) {
     logger->debug("start {0} {1}", fname, blockId);
     auto buffers = getBuffersForWritingNodeProperties(propertyMap, numElements, logger);
@@ -73,21 +73,21 @@ void NodesLoader::populateNodePropertyColumnTask(string fname, char tokenSeparat
         while (reader.hasNextToken()) {
             switch (propertyMap[propertyIdx].dataType) {
             case INT: {
-                auto intVal = reader.skipTokenIfNull() ? NULL_GFINT : reader.getInteger();
+                auto intVal = reader.skipTokenIfNull() ? NULL_INT : reader.getInteger();
                 memcpy((*buffers)[propertyIdx] + (bufferOffset * getDataTypeSize(INT)), &intVal,
                     getDataTypeSize(INT));
                 break;
             }
             case DOUBLE: {
-                auto doubleVal = reader.skipTokenIfNull() ? NULL_GFDOUBLE : reader.getDouble();
+                auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
                 memcpy((*buffers)[propertyIdx] + (bufferOffset * getDataTypeSize(DOUBLE)),
                     &doubleVal, getDataTypeSize(DOUBLE));
                 break;
             }
-            case BOOLEAN: {
-                auto boolVal = reader.skipTokenIfNull() ? NULL_GFBOOL : reader.getBoolean();
-                memcpy((*buffers)[propertyIdx] + (bufferOffset * getDataTypeSize(BOOLEAN)),
-                    &boolVal, getDataTypeSize(BOOLEAN));
+            case BOOL: {
+                auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
+                memcpy((*buffers)[propertyIdx] + (bufferOffset * getDataTypeSize(BOOL)), &boolVal,
+                    getDataTypeSize(BOOL));
                 break;
             }
             default:

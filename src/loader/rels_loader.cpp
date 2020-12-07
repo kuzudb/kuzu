@@ -146,8 +146,8 @@ void RelsLoader::populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* 
             reader.skipLine(); // skip header line
         }
     }
-    gfLabel_t labels[2];
-    gfNodeOffset_t offsets[2];
+    label_t labels[2];
+    node_offset_t offsets[2];
     while (reader.hasNextLine()) {
         for (auto& dir : DIRS) {
             reader.hasNextToken();
@@ -178,11 +178,11 @@ void RelsLoader::populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* 
     logger->debug("end   {0} {1}", description->fname, blockId);
 }
 
-void RelsLoader::calculateAdjListHeadersForIndexTask(Direction dir, gfLabel_t nodeLabel,
-    gfNodeOffset_t numNodeOffsets, uint32_t numPerPage, listSizes_t* listSizes,
+void RelsLoader::calculateAdjListHeadersForIndexTask(Direction dir, label_t nodeLabel,
+    node_offset_t numNodeOffsets, uint32_t numPerPage, listSizes_t* listSizes,
     AdjListHeaders* adjListHeaders) {
     auto numChunks = (numNodeOffsets / Lists::LISTS_CHUNK_SIZE) + 1;
-    gfNodeOffset_t nodeOffset = 0u;
+    node_offset_t nodeOffset = 0u;
     uint64_t lAdjListsIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto csrOffset = 0u;
@@ -207,7 +207,7 @@ void RelsLoader::calculateListsMetadataForListsTask(uint64_t numNodeOffsets, uin
     auto globalPageId = 0u;
     auto numChunks = (numNodeOffsets / Lists::LISTS_CHUNK_SIZE) + 1;
     (*adjListsMetadata).chunksPagesMap.resize(numChunks);
-    gfNodeOffset_t nodeOffset = 0u;
+    node_offset_t nodeOffset = 0u;
     auto lAdjListsIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto pageId = 0u, csrOffsetInPage = 0u;
@@ -258,8 +258,8 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
             reader.skipLine(); // skip header line
         }
     }
-    vector<gfLabel_t> labels{2};
-    vector<gfNodeOffset_t> offsets{2};
+    vector<label_t> labels{2};
+    vector<node_offset_t> offsets{2};
     vector<uint64_t> pos{2};
     vector<uint32_t> headers{2};
     while (reader.hasNextLine()) {
@@ -295,30 +295,30 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
 }
 
 void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<Property>* propertyMap,
-    CSVReader& reader, AdjRelsLoaderHelper* adjRelsLoaderHelper, gfLabel_t nodeLabel,
-    gfNodeOffset_t nodeOffset) {
+    CSVReader& reader, AdjRelsLoaderHelper* adjRelsLoaderHelper, label_t nodeLabel,
+    node_offset_t nodeOffset) {
     auto propertyIdx = 0;
     while (reader.hasNextToken()) {
         switch ((*propertyMap)[propertyIdx].dataType) {
         case INT: {
-            auto intVal = reader.skipTokenIfNull() ? NULL_GFINT : reader.getInteger();
+            auto intVal = reader.skipTokenIfNull() ? NULL_INT : reader.getInteger();
             (*adjRelsLoaderHelper)
                 .getPropertyColumn(nodeLabel, propertyIdx)
-                .set(nodeOffset, reinterpret_cast<byte*>(&intVal));
+                .set(nodeOffset, reinterpret_cast<uint8_t*>(&intVal));
             break;
         }
         case DOUBLE: {
-            auto doubleVal = reader.skipTokenIfNull() ? NULL_GFINT : reader.getDouble();
+            auto doubleVal = reader.skipTokenIfNull() ? NULL_INT : reader.getDouble();
             (*adjRelsLoaderHelper)
                 .getPropertyColumn(nodeLabel, propertyIdx)
-                .set(nodeOffset, reinterpret_cast<byte*>(&doubleVal));
+                .set(nodeOffset, reinterpret_cast<uint8_t*>(&doubleVal));
             break;
         }
-        case BOOLEAN: {
-            auto boolVal = reader.skipTokenIfNull() ? NULL_GFINT : reader.getBoolean();
+        case BOOL: {
+            auto boolVal = reader.skipTokenIfNull() ? NULL_INT : reader.getBoolean();
             (*adjRelsLoaderHelper)
                 .getPropertyColumn(nodeLabel, propertyIdx)
-                .set(nodeOffset, reinterpret_cast<byte*>(&boolVal));
+                .set(nodeOffset, reinterpret_cast<uint8_t*>(&boolVal));
             break;
         }
         default:
@@ -331,7 +331,7 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<Property>* 
 }
 
 void RelsLoader::calcPageIDAndCSROffsetInPage(uint32_t header, uint64_t pos,
-    uint64_t numElementsInAPage, gfNodeOffset_t nodeOffset, uint64_t& pageID,
+    uint64_t numElementsInAPage, node_offset_t nodeOffset, uint64_t& pageID,
     uint64_t& csrOffsetInPage, ListsMetadata& metadata) {
     if (header & 0x80000000) {
         // if the corresponding AdjList is large.
@@ -349,36 +349,36 @@ void RelsLoader::calcPageIDAndCSROffsetInPage(uint32_t header, uint64_t pos,
 }
 
 void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<Property>* propertyMap,
-    CSVReader& reader, vector<gfLabel_t>& labels, vector<gfNodeOffset_t>& offsets,
+    CSVReader& reader, vector<label_t>& labels, vector<node_offset_t>& offsets,
     vector<uint64_t>& pos, vector<uint32_t>& headers, AdjListsLoaderHelper* adjListsLoaderHelper) {
     auto propertyIdx = 0;
     while (reader.hasNextToken()) {
         switch ((*propertyMap)[propertyIdx].dataType) {
         case INT: {
-            auto intVal = reader.skipTokenIfNull() ? NULL_GFINT : reader.getInteger();
+            auto intVal = reader.skipTokenIfNull() ? NULL_INT : reader.getInteger();
             for (auto& dir : DIRS) {
                 setValInAnInMemRelPropLists(headers[dir], pos[dir], getDataTypeSize(INT),
-                    offsets[dir], reinterpret_cast<byte*>(&intVal),
+                    offsets[dir], reinterpret_cast<uint8_t*>(&intVal),
                     (*adjListsLoaderHelper).getPropertyListsMetadata(dir, labels[dir], propertyIdx),
                     (*adjListsLoaderHelper).getPropertyLists(dir, labels[dir], propertyIdx));
             }
             break;
         }
         case DOUBLE: {
-            auto doubleVal = reader.skipTokenIfNull() ? NULL_GFDOUBLE : reader.getDouble();
+            auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
             for (auto& dir : DIRS) {
                 setValInAnInMemRelPropLists(headers[dir], pos[dir], getDataTypeSize(DOUBLE),
-                    offsets[dir], reinterpret_cast<byte*>(&doubleVal),
+                    offsets[dir], reinterpret_cast<uint8_t*>(&doubleVal),
                     (*adjListsLoaderHelper).getPropertyListsMetadata(dir, labels[dir], propertyIdx),
                     (*adjListsLoaderHelper).getPropertyLists(dir, labels[dir], propertyIdx));
             }
             break;
         }
-        case BOOLEAN: {
-            auto boolVal = reader.skipTokenIfNull() ? NULL_GFBOOL : reader.getBoolean();
+        case BOOL: {
+            auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
             for (auto& dir : DIRS) {
-                setValInAnInMemRelPropLists(headers[dir], pos[dir], getDataTypeSize(BOOLEAN),
-                    offsets[dir], reinterpret_cast<byte*>(&boolVal),
+                setValInAnInMemRelPropLists(headers[dir], pos[dir], getDataTypeSize(BOOL),
+                    offsets[dir], reinterpret_cast<uint8_t*>(&boolVal),
                     (*adjListsLoaderHelper).getPropertyListsMetadata(dir, labels[dir], propertyIdx),
                     (*adjListsLoaderHelper).getPropertyLists(dir, labels[dir], propertyIdx));
             }
@@ -394,7 +394,7 @@ void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<Property>* pro
 }
 
 void RelsLoader::setValInAnInMemRelPropLists(uint32_t header, uint64_t pos, uint8_t elementSize,
-    gfNodeOffset_t& offset, byte* val, ListsMetadata& listsMetadata,
+    node_offset_t& offset, uint8_t* val, ListsMetadata& listsMetadata,
     InMemPropertyLists& propertyLists) {
     uint64_t pageIdx = 0, pageOffset = 0;
     calcPageIDAndCSROffsetInPage(

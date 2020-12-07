@@ -69,7 +69,7 @@ void AdjListsLoaderHelper::buildInMemPropertyLists() {
                 if (NODE != property.dataType && LABEL != property.dataType &&
                     STRING != property.dataType) {
                     auto fname = RelsStore::getRelPropertyListsFname(
-                        outputDirectory, description.label, nodeLabel, dir, property.propertyName);
+                        outputDirectory, description.label, nodeLabel, dir, property.name);
                     (*dirLabelPropertyIdxPropertyLists)[dir][nodeLabel][i] =
                         make_unique<InMemPropertyLists>(fname,
                             getPropertyListsMetadata(dir, nodeLabel, i).numPages,
@@ -99,8 +99,8 @@ void AdjListsLoaderHelper::saveToFile() {
                     auto& property = (*description.propertyMap)[i];
                     if ((*dirLabelPropertyIdxPropertyLists)[dir][nodeLabel][i]) {
                         (*dirLabelPropertyIdxPropertyLists)[dir][nodeLabel][i]->saveToFile();
-                        auto fname = RelsStore::getRelPropertyListsFname(outputDirectory,
-                            description.label, nodeLabel, dir, property.propertyName);
+                        auto fname = RelsStore::getRelPropertyListsFname(
+                            outputDirectory, description.label, nodeLabel, dir, property.name);
                         (*dirLabelPropertyIdxPropertyListsMetadata)[dir][nodeLabel][i].saveToFile(
                             fname);
                     }
