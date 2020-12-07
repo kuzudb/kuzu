@@ -39,7 +39,7 @@ private:
 
     // Task Helpers
 
-    static unique_ptr<vector<uint8_t*>> getBuffersForWritingNodeProperties(
+    static unique_ptr<vector<unique_ptr<uint8_t[]>>> getBuffersForWritingNodeProperties(
         const vector<Property>& propertyMap, uint64_t numElements,
         shared_ptr<spdlog::logger> logger);
 

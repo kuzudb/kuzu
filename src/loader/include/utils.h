@@ -16,15 +16,16 @@ namespace loader {
 class NodeIDMap {
 
 public:
-    NodeIDMap(uint64_t size) : nodeIDToOffsetMapping{unordered_map<string, node_offset_t>(size)} {};
+    NodeIDMap(uint64_t size) : nodeIDToOffsetMapping{size} {};
+    ~NodeIDMap();
 
-    void setOffset(string nodeID, node_offset_t offset);
-    node_offset_t getOffset(string& nodeID);
-    bool hasNodeID(string& nodeID);
+    void setOffset(const char* nodeID, node_offset_t offset);
+    node_offset_t getOffset(const char* nodeID);
     void merge(NodeIDMap& localMap);
 
 private:
-    unordered_map<string, node_offset_t> nodeIDToOffsetMapping;
+    unordered_map<const char*, node_offset_t, charArrayHasher, charArrayEqualTo>
+        nodeIDToOffsetMapping;
 };
 
 // Holds information about a rel label that is needed to construct adjRels and adjLists indexes,

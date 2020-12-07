@@ -3,6 +3,7 @@
 #include <cfloat>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -28,26 +29,16 @@ struct node_t {
 
 enum DataType { REL, NODE, LABEL, BOOL, INT, DOUBLE, STRING };
 
-struct Property {
+class Property {
 
 public:
     Property(){};
 
     Property(string name, DataType dataType) : name(name), dataType(dataType){};
 
-    bool operator==(const Property& o) const {
-        return dataType == o.dataType && name.compare(o.name) == 0;
-    }
-
 public:
     string name{};
     DataType dataType{};
-};
-
-struct hash_Property {
-    size_t operator()(Property const& property) const {
-        return (hash<string>{}(property.name) * 31) + property.dataType;
-    }
 };
 
 uint8_t getDataTypeSize(DataType dataType);
@@ -65,6 +56,16 @@ enum Direction : uint8_t { FWD = 0, BWD = 1 };
 const vector<Direction> DIRS = {FWD, BWD};
 
 Direction operator!(Direction& direction);
+
+// c-like string equalTo.
+struct charArrayEqualTo {
+    bool operator()(const char* lhs, const char* rhs) const { return strcmp(lhs, rhs) == 0; }
+};
+
+// c-like string hasher.
+struct charArrayHasher {
+    size_t operator()(const char* key) const { return std::_Hash_bytes(key, strlen(key), 31); }
+};
 
 } // namespace common
 } // namespace graphflow

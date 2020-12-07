@@ -3,10 +3,11 @@
 namespace graphflow {
 namespace loader {
 
-AdjListsLoaderHelper::AdjListsLoaderHelper(RelLabelDescription& description, const Graph& graph,
-    const Catalog& catalog, const string outputDirectory, shared_ptr<spdlog::logger> logger)
-    : logger{logger}, description{description}, graph{graph}, catalog{catalog},
-      outputDirectory{outputDirectory} {
+AdjListsLoaderHelper::AdjListsLoaderHelper(RelLabelDescription& description, ThreadPool& threadPool,
+    const Graph& graph, const Catalog& catalog, const string outputDirectory,
+    shared_ptr<spdlog::logger> logger)
+    : logger{logger}, description{description},
+      threadPool{threadPool}, graph{graph}, catalog{catalog}, outputDirectory{outputDirectory} {
     logger->info("Creating AdjLists and PropertyLists Metadata...");
     dirLabelAdjListHeaders = make_unique<dirLabelAdjListHeaders_t>(2);
     dirLabelAdjListsMetadata = make_unique<dirLabelAdjListsMetadata_t>(2);
@@ -87,8 +88,10 @@ void AdjListsLoaderHelper::saveToFile() {
                 (*dirLabelAdjLists)[dir][nodeLabel]->saveToFile();
                 auto fname = RelsStore::getAdjListsIndexFname(
                     outputDirectory, description.label, nodeLabel, dir);
-                (*dirLabelAdjListsMetadata)[dir][nodeLabel].saveToFile(fname);
-                (*dirLabelAdjListHeaders)[dir][nodeLabel].saveToFile(fname);
+                threadPool.execute([&](ListsMetadata& x, string fname) { x.saveToFile(fname); },
+                    (*dirLabelAdjListsMetadata)[dir][nodeLabel], fname);
+                threadPool.execute([&](AdjListHeaders& x, string fname) { x.saveToFile(fname); },
+                    (*dirLabelAdjListHeaders)[dir][nodeLabel], fname);
             }
         }
     }
@@ -98,16 +101,19 @@ void AdjListsLoaderHelper::saveToFile() {
                 for (auto i = 0u; i < description.propertyMap->size(); i++) {
                     auto& property = (*description.propertyMap)[i];
                     if ((*dirLabelPropertyIdxPropertyLists)[dir][nodeLabel][i]) {
-                        (*dirLabelPropertyIdxPropertyLists)[dir][nodeLabel][i]->saveToFile();
+                        threadPool.execute([&](InMemPropertyLists* x) { x->saveToFile(); },
+                            (*dirLabelPropertyIdxPropertyLists)[dir][nodeLabel][i].get());
                         auto fname = RelsStore::getRelPropertyListsFname(
                             outputDirectory, description.label, nodeLabel, dir, property.name);
-                        (*dirLabelPropertyIdxPropertyListsMetadata)[dir][nodeLabel][i].saveToFile(
-                            fname);
+                        threadPool.execute(
+                            [&](ListsMetadata& x, string fname) { x.saveToFile(fname); },
+                            (*dirLabelPropertyIdxPropertyListsMetadata)[dir][nodeLabel][i], fname);
                     }
                 }
             }
         }
     }
+    threadPool.wait();
 }
 
 } // namespace loader

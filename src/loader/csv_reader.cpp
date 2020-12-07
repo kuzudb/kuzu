@@ -33,6 +33,7 @@ CSVReader::CSVReader(const string& fname, const char tokenSeparator, uint64_t bl
 }
 
 CSVReader::~CSVReader() {
+    fclose(f);
     delete[](line);
 }
 
@@ -53,7 +54,6 @@ bool CSVReader::hasNextLine() {
     };
     linePtrStart = linePtrEnd = -1;
     if (feof(f)) {
-        fclose(f);
         isEndOfBlock = false;
         return false;
     }
@@ -89,12 +89,8 @@ bool CSVReader::hasNextToken() {
     while (tokenSeparator != line[linePtrEnd] && '\n' != line[linePtrEnd]) {
         linePtrEnd++;
     }
-    line[linePtrEnd] = 10;
+    line[linePtrEnd] = 0;
     return true;
-}
-
-unique_ptr<string> CSVReader::getNodeID() {
-    return getString();
 }
 
 int32_t CSVReader::getInteger() {
@@ -121,10 +117,9 @@ uint8_t CSVReader::getBoolean() {
     throw invalid_argument("invalid boolean val.");
 }
 
-unique_ptr<string> CSVReader::getString() {
-    auto a = make_unique<string>(line + linePtrStart, linePtrEnd - linePtrStart);
+char* CSVReader::getString() {
     nextTokenIsNotProcessed = false;
-    return a;
+    return line + linePtrStart;
 }
 
 } // namespace loader

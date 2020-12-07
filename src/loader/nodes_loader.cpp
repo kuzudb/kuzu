@@ -68,26 +68,26 @@ void NodesLoader::populateNodePropertyColumnTask(string fname, char tokenSeparat
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
         reader.hasNextToken();
-        map.setOffset(*reader.getNodeID().get(), beginOffset + bufferOffset);
+        map.setOffset(reader.getString(), beginOffset + bufferOffset);
         auto propertyIdx = 0;
         while (reader.hasNextToken()) {
             switch (propertyMap[propertyIdx].dataType) {
             case INT: {
                 auto intVal = reader.skipTokenIfNull() ? NULL_INT : reader.getInteger();
-                memcpy((*buffers)[propertyIdx] + (bufferOffset * getDataTypeSize(INT)), &intVal,
-                    getDataTypeSize(INT));
+                memcpy((*buffers)[propertyIdx].get() + (bufferOffset * getDataTypeSize(INT)),
+                    &intVal, getDataTypeSize(INT));
                 break;
             }
             case DOUBLE: {
                 auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
-                memcpy((*buffers)[propertyIdx] + (bufferOffset * getDataTypeSize(DOUBLE)),
+                memcpy((*buffers)[propertyIdx].get() + (bufferOffset * getDataTypeSize(DOUBLE)),
                     &doubleVal, getDataTypeSize(DOUBLE));
                 break;
             }
             case BOOL: {
                 auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
-                memcpy((*buffers)[propertyIdx] + (bufferOffset * getDataTypeSize(BOOL)), &boolVal,
-                    getDataTypeSize(BOOL));
+                memcpy((*buffers)[propertyIdx].get() + (bufferOffset * getDataTypeSize(BOOL)),
+                    &boolVal, getDataTypeSize(BOOL));
                 break;
             }
             default:
@@ -110,7 +110,7 @@ void NodesLoader::populateNodePropertyColumnTask(string fname, char tokenSeparat
             throw invalid_argument("Cannot seek to the required offset in file.");
         }
         auto bytesToWrite = numElements * getDataTypeSize(propertyMap[i].dataType);
-        uint64_t bytesWritten = write(pageFiles->second[i], (*buffers)[i], bytesToWrite);
+        uint64_t bytesWritten = write(pageFiles->second[i], (*buffers)[i].get(), bytesToWrite);
         if (bytesWritten != bytesToWrite) {
             throw invalid_argument("Cannot write in file.");
         }
@@ -118,18 +118,19 @@ void NodesLoader::populateNodePropertyColumnTask(string fname, char tokenSeparat
     logger->debug("end   {0} {1}", fname, blockId);
 }
 
-unique_ptr<vector<uint8_t*>> NodesLoader::getBuffersForWritingNodeProperties(
+unique_ptr<vector<unique_ptr<uint8_t[]>>> NodesLoader::getBuffersForWritingNodeProperties(
     const vector<Property>& propertyMap, uint64_t numElements, shared_ptr<spdlog::logger> logger) {
     logger->debug("creating buffers for elements: {0}", numElements);
-    auto buffers = make_unique<vector<uint8_t*>>();
-    for (auto& property : propertyMap) {
+    auto buffers = make_unique<vector<unique_ptr<uint8_t[]>>>(propertyMap.size());
+    for (auto propertyIdx = 0; propertyIdx < propertyMap.size(); propertyIdx++) {
+        auto& property = propertyMap[propertyIdx];
         if (STRING == property.dataType) {
             // TODO: To be implemented later.
-            (*buffers).push_back(nullptr);
         } else {
-            (*buffers).push_back(new uint8_t[numElements * getDataTypeSize(property.dataType)]);
+            (*buffers)[propertyIdx] =
+                make_unique<uint8_t[]>(numElements * getDataTypeSize(property.dataType));
         }
-    }
+    };
     return buffers;
 }
 

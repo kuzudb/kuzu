@@ -31,8 +31,7 @@ public:
 private:
     unique_ptr<nlohmann::json> readMetadata();
 
-    void assignLabels(
-        unordered_map<string, label_t>& stringToLabelMap, const nlohmann::json& fileDescriptions);
+    void assignLabels(stringToLabelMap_t& map, const nlohmann::json& fileDescriptions);
     void setCardinalities(Catalog& catalog, const nlohmann::json& metadata);
     void setSrcDstNodeLabelsForRelLabels(Catalog& catalog, const nlohmann::json& metadata);
 
