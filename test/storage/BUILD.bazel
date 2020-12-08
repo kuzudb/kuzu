@@ -1,21 +1,10 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
-    name = "property_column_test",
-    srcs = ["property_column_test.cpp"],
-    copts = [
-        "-Iexternal/gtest/include",
+    name = "storage_tests",
+    srcs = [
+        "adj_rels_test.cpp",
     ],
-    deps = [
-        "//src/storage:structures",
-        "@gtest",
-        "@gtest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "adj_rels_test",
-    srcs = ["adj_rels_test.cpp"],
     copts = [
         "-Iexternal/gtest/include",
     ],

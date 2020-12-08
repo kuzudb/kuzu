@@ -11,17 +11,17 @@ namespace processor {
 
 struct MorselDesc {};
 
-struct MorselSequenceDesc : MorselDesc {
+struct MorselDescSingleLabelNodeIDs : MorselDesc {
     mutex mtx;
     label_t nodeLabel;
     node_offset_t maxNodeOffset;
     node_offset_t currNodeOffset;
 
-    MorselSequenceDesc(label_t label, node_offset_t nodeOffset)
-        : nodeLabel(label), maxNodeOffset(nodeOffset) {}
+    MorselDescSingleLabelNodeIDs(label_t label, node_offset_t maxNodeOffset)
+        : nodeLabel(label), maxNodeOffset(maxNodeOffset), currNodeOffset(0) {}
 };
 
-struct MorselMultiLabelSequenceDesc : MorselDesc {
+struct MorselDescMultiLabelNodeIDs : MorselDesc {
     mutex mtx;
     uint64_t numLabels;
     label_t* nodeLabel;
@@ -29,11 +29,11 @@ struct MorselMultiLabelSequenceDesc : MorselDesc {
     uint64_t currPos;
     node_offset_t currNodeOffset;
 
-    MorselMultiLabelSequenceDesc(uint64_t num_labels)
+    MorselDescMultiLabelNodeIDs(uint64_t num_labels)
         : numLabels(num_labels), nodeLabel(new label_t[numLabels]),
-          maxNodeOffset(new node_offset_t[numLabels]) {}
+          maxNodeOffset(new node_offset_t[numLabels]), currPos(0), currNodeOffset(0) {}
 
-    ~MorselMultiLabelSequenceDesc() {
+    ~MorselDescMultiLabelNodeIDs() {
         delete nodeLabel;
         delete maxNodeOffset;
     }

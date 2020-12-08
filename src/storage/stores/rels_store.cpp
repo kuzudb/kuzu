@@ -1,5 +1,6 @@
 #include "src/storage/include/stores/rels_store.h"
 
+#include "src/storage/include/structures/property_column.h"
 #include "src/storage/include/structures/property_lists.h"
 
 namespace graphflow {

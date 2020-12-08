@@ -8,28 +8,36 @@
 namespace graphflow {
 namespace processor {
 
-class ScanSingleLabel : public Operator {
+class Scan : public Operator {
+
 public:
-    bool getNextMorsel();
     void getNextTuples() {}
-    void initialize(Graph* graph, MorselDesc* morsel);
-    NodeSequenceVector* getNodeVector() { return nodeVector.get(); }
+    virtual void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel);
+    shared_ptr<NodeIDSequenceVector>& getNodeVector() { return nodeIDVector; }
 
 protected:
-    unique_ptr<NodeSequenceVector> nodeVector;
-    MorselSequenceDesc* morsel;
+    shared_ptr<DataChunk> outDataChunk;
+    shared_ptr<NodeIDSequenceVector> nodeIDVector;
 };
 
-class ScanMultiLabel : public Operator {
+class ScanSingleLabel : public Scan {
+
 public:
     bool getNextMorsel();
-    void getNextTuples() {}
-    void initialize(Graph* graph, MorselDesc* morsel);
-    NodeSequenceVector* getNodeVector() { return nodeVector.get(); }
+    void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel);
 
 protected:
-    unique_ptr<NodeSequenceVector> nodeVector;
-    MorselMultiLabelSequenceDesc* morsel;
+    shared_ptr<MorselDescSingleLabelNodeIDs> morsel;
+};
+
+class ScanMultiLabel : public Scan {
+
+public:
+    bool getNextMorsel();
+    void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel);
+
+protected:
+    shared_ptr<MorselDescMultiLabelNodeIDs> morsel;
 };
 
 } // namespace processor

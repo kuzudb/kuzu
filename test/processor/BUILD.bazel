@@ -4,6 +4,7 @@ cc_test(
     name = "processor_tests",
     srcs = [
         "operator/scan/scan_test.cpp",
+        "operator/property_reader/property_reader_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",

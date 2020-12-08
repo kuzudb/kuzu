@@ -1,18 +1,31 @@
 #include "src/processor/include/operator/scan/scan.h"
 
+#include <iostream>
+
 namespace graphflow {
 namespace processor {
 
 using lock_t = unique_lock<mutex>;
 
-void ScanSingleLabel::initialize(Graph* graph, MorselDesc* morsel) {
-    this->morsel = (MorselSequenceDesc*)morsel;
-    outDataChunk = make_unique<DataChunk>();
-    nodeVector = make_unique<NodeSequenceVector>();
-    nodeVector->setLabel(this->morsel->nodeLabel);
-    outDataChunk->append(*nodeVector);
-    outDataChunk->size = VECTOR_SIZE;
-    dataChunks.push_back(outDataChunk.get());
+void Scan::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
+    std::cout << "Scan::initialize start" << std::endl;
+    outDataChunk = make_shared<DataChunk>();
+    nodeIDVector = make_shared<NodeIDSequenceVector>();
+    outDataChunk->append(nodeIDVector);
+    outDataChunk->size = NODE_SEQUENCE_VECTOR_SIZE;
+    outDataChunks.push_back(outDataChunk);
+    std::cout << "Scan::initialize end" << std::endl;
+}
+
+void ScanSingleLabel::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
+    Scan::initialize(graph, morsel);
+    this->morsel = static_pointer_cast<MorselDescSingleLabelNodeIDs>(morsel);
+    nodeIDVector->setLabel(this->morsel->nodeLabel);
+}
+
+void ScanMultiLabel::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
+    Scan::initialize(graph, morsel);
+    this->morsel = static_pointer_cast<MorselDescMultiLabelNodeIDs>(morsel);
 }
 
 bool ScanSingleLabel::getNextMorsel() {
@@ -22,22 +35,13 @@ bool ScanSingleLabel::getNextMorsel() {
         outDataChunk->size = 0;
         return false /* no new morsel */;
     }
-    nodeVector->set(morsel->currNodeOffset);
-    morsel->currNodeOffset += VECTOR_SIZE;
+    nodeIDVector->setStartOffset(morsel->currNodeOffset);
+    morsel->currNodeOffset += NODE_SEQUENCE_VECTOR_SIZE;
     if (morsel->currNodeOffset >= morsel->maxNodeOffset) {
         morsel->currNodeOffset = morsel->maxNodeOffset;
-        outDataChunk->size = morsel->maxNodeOffset % VECTOR_SIZE + 1;
+        outDataChunk->size = morsel->maxNodeOffset % NODE_SEQUENCE_VECTOR_SIZE + 1;
     }
     return true /* a new morsel obtained */;
-}
-
-void ScanMultiLabel::initialize(Graph* graph, MorselDesc* morsel) {
-    this->morsel = (MorselMultiLabelSequenceDesc*)morsel;
-    outDataChunk = make_unique<DataChunk>();
-    nodeVector = make_unique<NodeSequenceVector>();
-    outDataChunk->append(*nodeVector);
-    outDataChunk->size = VECTOR_SIZE;
-    dataChunks.push_back(outDataChunk.get());
 }
 
 bool ScanMultiLabel::getNextMorsel() {
@@ -53,16 +57,16 @@ bool ScanMultiLabel::getNextMorsel() {
         index += 1;
         morsel->currPos += 1;
         morsel->currNodeOffset = 0;
-        outDataChunk->size = VECTOR_SIZE;
+        outDataChunk->size = NODE_SEQUENCE_VECTOR_SIZE;
     }
 
-    nodeVector->setLabel(morsel->nodeLabel[index]);
-    nodeVector->set(morsel->currNodeOffset);
-    morsel->currNodeOffset += VECTOR_SIZE;
+    nodeIDVector->setLabel(morsel->nodeLabel[index]);
+    nodeIDVector->setStartOffset(morsel->currNodeOffset);
+    morsel->currNodeOffset += NODE_SEQUENCE_VECTOR_SIZE;
     auto maxOffset = morsel->maxNodeOffset[index];
-    if (morsel->currNodeOffset > maxOffset) {
+    if (morsel->currNodeOffset >= maxOffset) {
         morsel->currNodeOffset = maxOffset;
-        outDataChunk->size = maxOffset % VECTOR_SIZE + 1;
+        outDataChunk->size = maxOffset % NODE_SEQUENCE_VECTOR_SIZE + 1;
     }
     return true /* a new morsel obtained */;
 }

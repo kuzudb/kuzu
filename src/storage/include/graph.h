@@ -33,9 +33,14 @@ public:
         return numNodesPerLabel[label];
     };
 
-private:
+    virtual BaseColumn* getColumn(label_t label, uint64_t propertyIdx) {
+        return nodesStore->getNodePropertyColumn(label, propertyIdx);
+    }
+
+protected:
     Graph() = default;
 
+private:
     template<typename S>
     void serialize(S& s);
 
