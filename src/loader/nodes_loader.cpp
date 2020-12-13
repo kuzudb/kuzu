@@ -20,7 +20,7 @@ void NodesLoader::load(vector<string>& filenames, vector<uint64_t>& numNodesPerL
     }
     auto maxNumBlocks = *max_element(begin(numBlocksPerLabel), end(numBlocksPerLabel));
     for (auto blockId = 0u; blockId < maxNumBlocks; blockId++) {
-        for (label_t label = 0; label < catalog.getNodeLabelsCount(); label++) {
+        for (label_t label = 0u; label < catalog.getNodeLabelsCount(); label++) {
             if (blockId < numBlocksPerLabel[label]) {
                 threadPool.execute(populateNodePropertyColumnTask, filenames[label],
                     metadata.at("tokenSeparator").get<string>()[0],
@@ -122,7 +122,7 @@ unique_ptr<vector<unique_ptr<uint8_t[]>>> NodesLoader::getBuffersForWritingNodeP
     const vector<Property>& propertyMap, uint64_t numElements, shared_ptr<spdlog::logger> logger) {
     logger->debug("creating buffers for elements: {0}", numElements);
     auto buffers = make_unique<vector<unique_ptr<uint8_t[]>>>(propertyMap.size());
-    for (auto propertyIdx = 0; propertyIdx < propertyMap.size(); propertyIdx++) {
+    for (auto propertyIdx = 0u; propertyIdx < propertyMap.size(); propertyIdx++) {
         auto& property = propertyMap[propertyIdx];
         if (STRING == property.dataType) {
             // TODO: To be implemented later.

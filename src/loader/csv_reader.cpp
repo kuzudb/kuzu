@@ -94,24 +94,22 @@ bool CSVReader::hasNextToken() {
 }
 
 int32_t CSVReader::getInteger() {
-    int a = atoi(line + linePtrStart);
     nextTokenIsNotProcessed = false;
-    return a;
+    return atoi(line + linePtrStart);
 }
 
 double_t CSVReader::getDouble() {
-    double a = atof(line + linePtrStart);
     nextTokenIsNotProcessed = false;
-    return a;
+    return atof(line + linePtrStart);
+    ;
 }
 
 uint8_t CSVReader::getBoolean() {
+    nextTokenIsNotProcessed = false;
     if (0 == strcmp(line + linePtrStart, trueVal)) {
-        nextTokenIsNotProcessed = false;
         return 1;
     }
     if (0 == strcmp(line + linePtrStart, falseVal)) {
-        nextTokenIsNotProcessed = false;
         return 2;
     }
     throw invalid_argument("invalid boolean val.");

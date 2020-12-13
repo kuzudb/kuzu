@@ -4,17 +4,13 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
-#include "src/loader/include/adj_lists_loader_helper.h"
-#include "src/loader/include/adj_rels_loader_helper.h"
+#include "src/loader/include/adj_and_property_columns_loader_helper.h"
+#include "src/loader/include/adj_and_property_lists_loader_helper.h"
 #include "src/loader/include/csv_reader.h"
 #include "src/loader/include/thread_pool.h"
 
 namespace graphflow {
 namespace loader {
-
-// List Sizes.
-typedef vector<atomic<uint64_t>> listSizes_t;
-typedef vector<vector<unique_ptr<listSizes_t>>> dirLabelListSizes_t;
 
 class RelsLoader {
     friend class GraphLoader;
@@ -33,57 +29,46 @@ private:
 
     // constructs AdjRels and PropertyColumns
 
-    void constructAdjRelsAndCountRelsInAdjLists(
-        RelLabelDescription& relLabelMetadata, dirLabelListSizes_t& dirLabelListSizes);
+    void constructAdjRelsAndCountRelsInAdjLists(RelLabelDescription& relLabelMetadata,
+        AdjAndPropertyListsLoaderHelper& adjAndPropertyListsLoaderHelper);
 
-    // constructs AdjLists and PropertyLists
+    // constructs AdjLists Headers, Lists Metadata, AdjLists and PropertyLists
 
-    void constructAdjLists(
-        RelLabelDescription& description, dirLabelListSizes_t& dirLabelListSizes);
-
-    void initAdjListHeaders(RelLabelDescription& description,
-        dirLabelListSizes_t& dirLabelListSizes, AdjListsLoaderHelper& adjListsLoaderHelper);
-
-    void initAdjListsAndPropertyListsMetadata(RelLabelDescription& description,
-        dirLabelListSizes_t& dirLabelListSizes, AdjListsLoaderHelper& adjListsLoaderHelper);
+    void constructAdjLists(RelLabelDescription& description,
+        AdjAndPropertyListsLoaderHelper& adjAndPropertyListsLoaderHelper);
 
     // Concurrent Tasks
 
     static void populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* description,
-        uint64_t blockId, const char tokenSeparator, dirLabelListSizes_t* dirLabelListSizes,
-        AdjRelsLoaderHelper* adjRelsLoaderHelper, vector<shared_ptr<NodeIDMap>>* nodeIDMaps,
-        const Catalog* catalog, shared_ptr<spdlog::logger> logger);
-
-    static void calculateAdjListHeadersForIndexTask(Direction dir, label_t nodeLabel,
-        node_offset_t numNodeOffsets, uint32_t numPerPage, listSizes_t* listSizes,
-        AdjListHeaders* adjListHeaders);
-
-    static void calculateListsMetadataForListsTask(uint64_t numNodeOffsets, uint32_t numPerPage,
-        listSizes_t* listSizes, AdjListHeaders* adjListHeaders, ListsMetadata* adjListsMetadata);
+        uint64_t blockId, const char tokenSeparator,
+        AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
+        AdjAndPropertyColumnsLoaderHelper* adjAndPropertyColumnsLoaderHelper,
+        vector<shared_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
+        shared_ptr<spdlog::logger> logger);
 
     static void populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
-        const char tokenSeparator, dirLabelListSizes_t* dirLabelListSizes,
-        AdjListsLoaderHelper* adjListsLoaderHelper, vector<shared_ptr<NodeIDMap>>* nodeIDMaps,
-        const Catalog* catalog, shared_ptr<spdlog::logger> logger);
+        const char tokenSeparator, AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
+        vector<shared_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
+        shared_ptr<spdlog::logger> logger);
 
     // Task Helpers
 
-    static void putPropsOfLineIntoInMemPropertyColumns(const vector<Property>* propertyMap,
-        CSVReader& reader, AdjRelsLoaderHelper* adjRelsLoaderHelper, label_t nodeLabel,
-        node_offset_t nodeOffset);
+    static void inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
+        vector<shared_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
+        vector<bool>& requireToReadLabels);
 
-    static void calcPageIDAndCSROffsetInPage(uint32_t header, uint64_t pos,
-        uint64_t numElementsInAPage, node_offset_t nodeOffset, uint64_t& pageID,
-        uint64_t& csrOffsetInPage, ListsMetadata& metadata);
+    static void putPropsOfLineIntoInMemPropertyColumns(const vector<Property>* propertyMap,
+        CSVReader& reader, AdjAndPropertyColumnsLoaderHelper* adjAndPropertyColumnsLoaderHelper,
+        const nodeID_t& nodeID, vector<PageCursor>& stringOverflowCursors,
+        shared_ptr<spdlog::logger> logger);
 
     static void putPropsOfLineIntoInMemRelPropLists(const vector<Property>* propertyMap,
-        CSVReader& reader, vector<label_t>& labels, vector<node_offset_t>& offsets,
-        vector<uint64_t>& pos, vector<uint32_t>& headers,
-        AdjListsLoaderHelper* adjListsLoaderHelper);
+        CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& pos,
+        AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
+        vector<vector<PageCursor>>& stringOvreflowCursors, shared_ptr<spdlog::logger> logger);
 
-    static void setValInAnInMemRelPropLists(uint32_t header, uint64_t pos, uint8_t elementSize,
-        node_offset_t& offset, uint8_t* val, ListsMetadata& listsMetadata,
-        InMemPropertyLists& propertyLists);
+public:
+    static const char EMPTY_STRING;
 
 private:
     shared_ptr<spdlog::logger> logger;

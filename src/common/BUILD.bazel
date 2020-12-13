@@ -4,15 +4,14 @@ cc_library(
     name = "common",
     srcs = [
         "types.cpp",
-        "vector/node_vector.cpp"
+        "vector/node_vector.cpp",
     ],
     hdrs = [
-        "include/types.h",
         "include/configs.h",
-
-        "include/vector/value_vector.h",
+        "include/types.h",
         "include/vector/node_vector.h",
         "include/vector/property_vector.h",
+        "include/vector/value_vector.h",
     ],
     visibility = ["//visibility:public"],
 )

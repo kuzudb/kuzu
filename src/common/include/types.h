@@ -12,7 +12,6 @@ using namespace std;
 namespace graphflow {
 namespace common {
 
-//! Types used for vertex, edge, and label identification.
 typedef uint32_t label_t;
 typedef uint64_t node_offset_t;
 
@@ -21,6 +20,16 @@ const uint8_t FALSE = 2;
 const uint8_t NULL_BOOL = 0;
 const int32_t NULL_INT = INT32_MIN;
 const double_t NULL_DOUBLE = DBL_MIN;
+
+//! System representation for strings.
+struct gf_string_t {
+    uint32_t len;
+    uint8_t prefix[4];
+    union {
+        uint8_t data[8];
+        uint64_t overflowPtr;
+    };
+};
 
 struct nodeID_t {
     label_t label;
@@ -57,12 +66,12 @@ const vector<Direction> DIRS = {FWD, BWD};
 
 Direction operator!(Direction& direction);
 
-// c-like string equalTo.
+// C-like string equalTo.
 struct charArrayEqualTo {
     bool operator()(const char* lhs, const char* rhs) const { return strcmp(lhs, rhs) == 0; }
 };
 
-// c-like string hasher.
+// C-like string hasher.
 struct charArrayHasher {
     size_t operator()(const char* key) const { return std::_Hash_bytes(key, strlen(key), 31); }
 };

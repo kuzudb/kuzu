@@ -14,7 +14,7 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace loader {
 
-class AdjListsLoaderHelper;
+class AdjAndPropertyListsLoaderHelper;
 class RelsLoader;
 
 } // namespace loader
@@ -29,7 +29,7 @@ class AdjLists;
 class AdjListHeaders {
     friend class bitsery::Access;
     friend class AdjLists;
-    friend class graphflow::loader::AdjListsLoaderHelper;
+    friend class graphflow::loader::AdjAndPropertyListsLoaderHelper;
     friend class graphflow::loader::RelsLoader;
 
 public:

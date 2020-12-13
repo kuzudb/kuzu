@@ -33,14 +33,14 @@ uint8_t getDataTypeSize(DataType dataType) {
     case BOOL:
         return sizeof(uint8_t);
     case STRING:
-        return sizeof(std::string*);
+        return sizeof(gf_string_t);
     case NODE:
-    case REL:
         return sizeof(node_offset_t);
     case LABEL:
         return sizeof(label_t);
+    default:
+        throw invalid_argument("Cannot infer the size of dataType.");
     }
-    throw invalid_argument("Cannot infer the size of the dataType.");
 }
 
 Cardinality getCardinality(const string& cardinalityString) {
