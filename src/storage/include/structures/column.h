@@ -38,25 +38,5 @@ protected:
     BufferManager& bufferManager;
 };
 
-template<typename T>
-class PropertyColumn : public BaseColumn {
-
-public:
-    PropertyColumn(const string path, uint64_t numElements, BufferManager& bufferManager)
-        : BaseColumn{path, sizeof(T), numElements, bufferManager} {};
-
-    inline void getVal(node_offset_t nodeOffset, T& t) {
-        auto pageIdx = getPageIdx(nodeOffset, numElementsPerPage);
-        auto frame = bufferManager.pin(fileHandle, pageIdx);
-        memcpy(&t, (void*)(frame + getPageOffset(nodeOffset, numElementsPerPage, sizeof(T))),
-            sizeof(T));
-        bufferManager.unpin(fileHandle, pageIdx);
-    }
-};
-
-typedef PropertyColumn<int32_t> PropertyColumnInt;
-typedef PropertyColumn<double_t> PropertyColumnDouble;
-typedef PropertyColumn<uint8_t> PropertyColumnBool;
-
 } // namespace storage
 } // namespace graphflow

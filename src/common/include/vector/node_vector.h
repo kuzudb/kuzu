@@ -26,7 +26,7 @@ enum CompressionScheme {
 
 uint64_t getNumBytes(CompressionScheme compressionScheme);
 
-class NodeIDVector : public ValueVector {
+class BaseNodeIDVector : public ValueVector {
 protected:
     // The common label field is used with compressions schemes
     // LABEL_0_NODEOFFSET_{2/4/8}_BYTES.
@@ -35,43 +35,47 @@ protected:
 
 public:
     label_t getLabel() { return commonLabel; }
-    void setLabel(label_t label) { this->commonLabel = label; };
+    void setLabel(label_t label) { this->commonLabel = label; }
+
+    virtual bool isSequence() { return false; }
+    virtual void get(uint64_t pos, nodeID_t& nodeID) = 0;
 };
 
-class NodeVector : public NodeIDVector {
+class NodeIDVector : public BaseNodeIDVector {
+
 protected:
-    uint8_t* nodes;
+    uint8_t* nodeIDs;
 
 public:
     // creates a Node ID vector where labels are stores in nodes.
-    NodeVector(CompressionScheme scheme);
+    NodeIDVector(CompressionScheme scheme);
     //  Creates a Node ID vector where the label is factored out and
     // stores in the label field and nodes contains node offsets only.
-    NodeVector(label_t label, CompressionScheme scheme);
+    NodeIDVector(label_t label, CompressionScheme scheme);
 
-    ~NodeVector() { delete nodes; }
+    ~NodeIDVector() { delete nodeIDs; }
 
-    uint8_t* getNodes() { return nodes; }
-    void setNodes(uint8_t* nodes) { this->nodes = nodes; }
+    uint8_t* getNodeIDs() { return nodeIDs; }
+    void setNodeIDs(uint8_t* nodeIDs) { this->nodeIDs = nodeIDs; }
 
-    void get(uint64_t index, node_t& node);
-    void set(uint64_t index, node_offset_t node_offset);
+    void get(uint64_t pos, nodeID_t& nodeID);
 };
 
-class NodeSequenceVector : public NodeIDVector {
+class NodeIDSequenceVector : public BaseNodeIDVector {
 protected:
-    uint64_t startNodeOffset;
+    node_offset_t startNodeOffset;
 
 public:
     // creates a Node ID vector where labels are stores in nodes.
-    NodeSequenceVector();
+    NodeIDSequenceVector();
     //  Creates a Node ID vector where the label is factored out and
     // stores in the label field and nodes contains node offsets only.
-    NodeSequenceVector(label_t label);
+    NodeIDSequenceVector(label_t label);
 
-    void get(uint64_t index, node_t& node) { node.nodeOffset = startNodeOffset + index; }
+    bool isSequence() { return true; }
 
-    void set(node_offset_t node_offset) { startNodeOffset = node_offset; }
+    void get(uint64_t pos, nodeID_t& nodeID) { nodeID.offset = startNodeOffset + pos; }
+    void setStartOffset(node_offset_t node_offset) { startNodeOffset = node_offset; }
 };
 
 } // namespace common

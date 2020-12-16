@@ -49,12 +49,11 @@ const char* BufferManager::pin(FileHandle& fileHandle, uint32_t pageIdx) {
     return frame->buffer.get();
 }
 
+// Warning: unpin expects the caller to ensure the page is bound to a frame.
 void BufferManager::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
     lock_guard lck(bufferManagerMutex);
     auto pageIdxEntry = fileHandle.getPageIdxEntry(pageIdx);
-    if (isAFrame(pageIdxEntry)) {
-        reinterpret_cast<Frame*>(pageIdxEntry)->pinCount--;
-    }
+    reinterpret_cast<Frame*>(pageIdxEntry)->pinCount--;
 }
 
 uint64_t BufferManager::evict() {

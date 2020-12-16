@@ -22,6 +22,10 @@ public:
         return directory + "/n-" + to_string(nodeLabel) + "-" + propertyName + ".col";
     }
 
+    BaseColumn* getNodePropertyColumn(label_t label, uint64_t propertyIdx) {
+        return propertyColumns[label][propertyIdx].get();
+    }
+
 private:
     // The properties of nodes in the system are stored in Property Columns with one column for each
     // unique (node label, property) pair. Here, propertyColumns[4][5] refers to the property column

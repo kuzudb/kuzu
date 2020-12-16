@@ -3,14 +3,17 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "processor",
     srcs = [
-        "operator/tuple/data_chunk.cpp",
-
         "operator/scan/scan.cpp",
+        "operator/sink/sink.cpp",
     ], hdrs = [
+        "include/query_plan.h",
+
         "include/operator/tuple/data_chunk.h",
 
         "include/operator/operator.h",
         "include/operator/scan/scan.h",
+        "include/operator/sink/sink.h",
+        "include/operator/property_reader/property_reader.h",
 
         "include/task_system/morsel.h",
     ],

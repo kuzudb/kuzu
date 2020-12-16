@@ -19,13 +19,12 @@ namespace processor {
 */
 class DataChunk {
 public:
-    vector<ValueVector> valueVectors;
+    vector<shared_ptr<ValueVector>> valueVectors;
     uint64_t size;
     //! The current position when vectors are flattened.
     uint64_t curr_idx;
 
-    void append(DataChunk& dataChunk);
-    void append(ValueVector& valueVector) { valueVectors.push_back(valueVector); }
+    void append(shared_ptr<ValueVector> valueVector) { valueVectors.push_back(valueVector); }
 
     uint64_t getNumTuples() const { return size; }
     uint64_t getNumAttributes() const { return valueVectors.size(); }

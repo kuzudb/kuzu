@@ -10,20 +10,20 @@ namespace graphflow {
 namespace common {
 
 template<typename T>
-class PropertyVector : ValueVector {
+class PropertyVector : public ValueVector {
 public:
     //! Create a value vector of the specified data.
-    PropertyVector() {
-        values = new T[VECTOR_SIZE];
-        buffer = values;
-    }
+    PropertyVector() { buffer = new T[NODE_SEQUENCE_VECTOR_SIZE]; }
+    ~PropertyVector() { delete buffer; }
 
+    T* getValues() { return values; }
+    void setValues(T* values) { this->values = values; }
     void reset() { values = buffer; }
 
     //! Returns the [index] value of the List.
-    void get(uint64_t index, T& value) const { value = values[index]; }
+    void get(uint64_t pos, T& value) const { value = values[pos]; }
     //! Sets the [index] value of the List.
-    void set(uint64_t index, T value) { values[index] = value; }
+    void set(uint64_t pos, T value) { values[pos] = value; }
 
 protected:
     T* values;
