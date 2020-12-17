@@ -5,10 +5,10 @@
 namespace graphflow {
 namespace storage {
 
-class AdjRels : public BaseColumn {
+class AdjColumn : public BaseColumn {
 
 public:
-    AdjRels(const string path, uint64_t numElements, uint32_t numBytesPerLabel,
+    AdjColumn(const string path, uint64_t numElements, uint32_t numBytesPerLabel,
         uint32_t numBytesPerOffset, BufferManager& bufferManager)
         : BaseColumn(path, numBytesPerLabel + numBytesPerOffset, numElements, bufferManager),
           numBytesPerLabel{numBytesPerLabel}, numBytesPerOffset{numBytesPerOffset} {};

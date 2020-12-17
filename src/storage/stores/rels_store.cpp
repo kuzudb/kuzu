@@ -71,7 +71,7 @@ void RelsStore::initPropertyColumnsForRelLabel(Catalog& catalog, vector<uint64_t
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             default:
-                throw std::invalid_argument("not supported.");
+                throw invalid_argument("not supported.");
                 propertyColumns[relLabel][nodeLabel][i] = nullptr;
             }
         }
@@ -103,7 +103,7 @@ void RelsStore::initPropertyListsForRelLabel(Catalog& catalog, vector<uint64_t>&
                         make_unique<RelPropertyListsBool>(fname, bufferManager);
                     break;
                 default:
-                    throw std::invalid_argument("not supported.");
+                    throw invalid_argument("not supported.");
                     propertyLists[dir][relLabel][nodeLabel][i] = nullptr;
                 }
             }
@@ -116,15 +116,15 @@ void RelsStore::initPropertyListsForRelLabel(Catalog& catalog, vector<uint64_t>&
     for (auto direction : DIRS) {
         for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
             auto& relLabels = catalog.getRelLabelsForNodeLabelDirection(nodeLabel, direction);
-            adjEdgesIndexes[direction][nodeLabel].resize(relLabels.size());
+            adjColumnIndexes[direction][nodeLabel].resize(relLabels.size());
             for (auto relLabel : relLabels) {
                 auto numBytesScheme =
                     getNumBytesScheme(catalog.getNodeLabelsForRelLabelDir(relLabel, !direction),
                         numNodesPerLabel, catalog.getNodeLabelsCount());
                 if (catalog.isSingleCaridinalityInDir(relLabel, direction)) {
-                    auto fname = getAdjRelsIndexFname(directory, nodeLabel, relLabel, direction);
-                    adjEdgesIndexes[direction][nodeLabel][relLabel] =
-                        make_unique<AdjRels>(fname, numNodesPerLabel[nodeLabel],
+                    auto fname = getAdjColumnIndexFname(directory, nodeLabel, relLabel, direction);
+                    adjColumnIndexes[direction][nodeLabel][relLabel] =
+                        make_unique<AdjColumn>(fname, numNodesPerLabel[nodeLabel],
                             numBytesScheme.first, numBytesScheme.second, bufferManager);
                 } else {
                     auto fname = getAdjListsIndexFname(directory, nodeLabel, relLabel, direction);

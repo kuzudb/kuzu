@@ -8,7 +8,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/common:common",
+        "//src/common",
     ],
 )
 
@@ -19,7 +19,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "file_handle",
-        "//src/common:common",
+        "//src/common",
     ],
 )
 
@@ -30,8 +30,8 @@ cc_library(
         "structures/lists.cpp",
     ],
     hdrs = [
+        "include/structures/adj_column.h",
         "include/structures/adj_lists.h",
-        "include/structures/adj_rels.h",
         "include/structures/column.h",
         "include/structures/lists.h",
         "include/structures/property_column.h",
@@ -41,7 +41,7 @@ cc_library(
     deps = [
         "buffer_manager",
         "file_handle",
-        "//src/common:common",
+        "//src/common",
         "@fraillt_bitsery",
     ],
 )
@@ -61,7 +61,7 @@ cc_library(
         "buffer_manager",
         "catalog",
         "structures",
-        "//src/common:common",
+        "//src/common",
     ],
 )
 
@@ -71,7 +71,7 @@ cc_library(
     hdrs = ["include/catalog.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/common:common",
+        "//src/common",
         "@fraillt_bitsery",
     ],
 )

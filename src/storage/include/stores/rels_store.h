@@ -2,8 +2,8 @@
 
 #include "src/common/include/types.h"
 #include "src/storage/include/catalog.h"
+#include "src/storage/include/structures/adj_column.h"
 #include "src/storage/include/structures/adj_lists.h"
-#include "src/storage/include/structures/adj_rels.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -17,7 +17,7 @@ public:
     RelsStore(Catalog& catalog, vector<uint64_t>& numNodesPerLabel, const string& directory,
         BufferManager& bufferManager);
 
-    inline static string getAdjRelsIndexFname(
+    inline static string getAdjColumnIndexFname(
         const string& directory, label_t relLabel, label_t nodeLabel, Direction direction) {
         return directory + "/r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +
                to_string(direction) + ".col";
@@ -40,6 +40,7 @@ public:
         return directory + "/r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +
                to_string(dir) + "-" + propertyName + ".lists";
     }
+
     static pair<uint32_t, uint32_t> getNumBytesScheme(const vector<label_t>& nbrNodeLabels,
         const vector<uint64_t>& numNodesPerLabel, uint32_t numNodeLabels);
 
@@ -58,7 +59,7 @@ private:
 private:
     vector<vector<vector<unique_ptr<BaseColumn>>>> propertyColumns;
     vector<vector<vector<vector<unique_ptr<Lists>>>>> propertyLists{2};
-    vector<vector<vector<unique_ptr<AdjRels>>>> adjEdgesIndexes{2};
+    vector<vector<vector<unique_ptr<AdjColumn>>>> adjColumnIndexes{2};
     vector<vector<vector<unique_ptr<AdjLists>>>> adjListsIndexes{2};
 };
 

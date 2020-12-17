@@ -4,6 +4,7 @@
 #include <mutex>
 #include <unordered_map>
 
+#include "src/common/include/configs.h"
 #include "src/common/include/types.h"
 
 using namespace std;
@@ -12,7 +13,7 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace loader {
 
-// NodeIDMap maps the primary key of a node to the in-system used node offset.
+//! NodeIDMap maps the primary key of a node to the in-system used node offset.
 class NodeIDMap {
 
 public:
@@ -28,8 +29,8 @@ private:
         nodeIDToOffsetMapping;
 };
 
-// Holds information about a rel label that is needed to construct adjRels and adjLists indexes,
-// property columns, and property lists.
+//! Holds information about a rel label that is needed to construct adjRels and adjLists indexes,
+//! property columns, and property lists.
 class RelLabelDescription {
 
 public:

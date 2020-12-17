@@ -20,7 +20,7 @@ class BaseColumn {
 public:
     BaseColumn(
         const string fname, size_t elementSize, uint64_t numElements, BufferManager& bufferManager)
-        : numElementsPerPage{PAGE_SIZE / elementSize},
+        : numElementsPerPage{(uint32_t)(PAGE_SIZE / elementSize)},
           fileHandle{fname, 1 + (numElements / numElementsPerPage)}, bufferManager{bufferManager} {}
 
     inline static uint64_t getPageIdx(node_offset_t nodeOffset, uint32_t numElementsPerPage) {

@@ -7,7 +7,7 @@
 namespace graphflow {
 namespace loader {
 
-class AdjListsLoaderHelper;
+class AdjAndPropertyListsLoaderHelper;
 class RelsLoader;
 
 } // namespace loader
@@ -21,7 +21,7 @@ class Lists;
 // Lists Metadata holds the information necessary to locate a list in the collection of disk pages
 // thats organizes and stores those lists.
 class ListsMetadata {
-    friend class graphflow::loader::AdjListsLoaderHelper;
+    friend class graphflow::loader::AdjAndPropertyListsLoaderHelper;
     friend class graphflow::loader::RelsLoader;
     friend class Lists;
     friend class bitsery::Access;
