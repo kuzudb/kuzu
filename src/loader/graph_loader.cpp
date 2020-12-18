@@ -83,8 +83,9 @@ void GraphLoader::setSrcDstNodeLabelsForRelLabels(
     }
 }
 
-unique_ptr<vector<shared_ptr<NodeIDMap>>> GraphLoader::loadNodes(
+unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes(
     const nlohmann::json& metadata, Graph& graph, Catalog& catalog) {
+    logger->info("Starting to load nodes.");
     vector<string> fnames(catalog.getNodeLabelsCount());
     vector<uint64_t> numBlocksPerLabel(catalog.getNodeLabelsCount());
     vector<vector<uint64_t>> numLinesPerBlock(catalog.getNodeLabelsCount());
@@ -94,18 +95,17 @@ unique_ptr<vector<shared_ptr<NodeIDMap>>> GraphLoader::loadNodes(
     countLinesPerBlockAndInitNumPerLabel(catalog.getNodeLabelsCount(), numLinesPerBlock,
         numBlocksPerLabel, metadata.at("tokenSeparator").get<string>()[0], fnames,
         graph.numNodesPerLabel);
-    auto nodeIDMaps = make_unique<vector<shared_ptr<NodeIDMap>>>();
+    auto nodeIDMaps = make_unique<vector<unique_ptr<NodeIDMap>>>(catalog.getNodeLabelsCount());
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        (*nodeIDMaps).push_back(make_shared<NodeIDMap>(graph.numNodesPerLabel[nodeLabel]));
+        (*nodeIDMaps)[nodeLabel] = make_unique<NodeIDMap>(graph.numNodesPerLabel[nodeLabel]);
     }
     NodesLoader nodesLoader{threadPool, catalog, metadata, outputDirectory};
-    nodesLoader.load(
-        fnames, graph.numNodesPerLabel, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
+    nodesLoader.load(fnames, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
     return nodeIDMaps;
 }
 
 void GraphLoader::loadRels(const nlohmann::json& metadata, Graph& graph, Catalog& catalog,
-    unique_ptr<vector<shared_ptr<NodeIDMap>>> nodeIDMaps) {
+    unique_ptr<vector<unique_ptr<NodeIDMap>>> nodeIDMaps) {
     logger->info("Starting to load rels.");
     vector<string> fnames(catalog.getRelLabelsCount());
     vector<uint64_t> numBlocksPerLabel(catalog.getRelLabelsCount());

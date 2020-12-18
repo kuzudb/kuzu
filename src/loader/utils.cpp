@@ -26,6 +26,7 @@ node_offset_t NodeIDMap::getOffset(const char* nodeID) {
 }
 
 void NodeIDMap::merge(NodeIDMap& localMap) {
+    lock_guard lck(nodeIDMapMutex);
     nodeIDToOffsetMapping.merge(localMap.nodeIDToOffsetMapping);
 }
 

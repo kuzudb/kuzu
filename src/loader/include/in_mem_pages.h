@@ -6,7 +6,6 @@
 
 #include "src/common/include/configs.h"
 #include "src/common/include/types.h"
-#include "src/loader/include/utils.h"
 
 using namespace graphflow::common;
 
@@ -77,6 +76,11 @@ class InMemStringOverflowPages : public InMemPages {
 
 public:
     InMemStringOverflowPages(const string& fname) : InMemPages{fname, 8} {
+        maxPages = numPages;
+        numPages = 0;
+    };
+
+    InMemStringOverflowPages() : InMemPages{"", 8} {
         maxPages = numPages;
         numPages = 0;
     };

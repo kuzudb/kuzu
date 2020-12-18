@@ -52,11 +52,11 @@ public:
 
     void setRel(const uint64_t& pos, const Direction& dir, const vector<nodeID_t>& nodeIDs);
 
-    void setProperty(const uint64_t& pos, const Direction& dir, const nodeID_t& nodeID,
+    void setProperty(const vector<uint64_t>& pos, const vector<nodeID_t>& nodeIDs,
         const uint32_t& propertyIdx, const uint8_t* val, const DataType& type);
 
-    void setStringProperty(const uint64_t& pos, const Direction& dir, const nodeID_t& nodeID,
-        const uint32_t& propertyIdx, const char* val, PageCursor& cursor);
+    void setStringProperty(const vector<uint64_t>& pos, const vector<nodeID_t>& nodeIDs,
+        const uint32_t& propertyIdx, const char* strVal, PageCursor& stringOverflowCursor);
 
     void sortOverflowStrings();
 
@@ -97,7 +97,8 @@ private:
 
     dirLabelPropertyIdxPropertyListsMetadata_t dirLabelPropertyIdxPropertyListsMetadata{2};
     dirLabelPropertyIdxPropertyLists_t dirLabelPropertyIdxPropertyLists{2};
-    unique_ptr<dirLabelPropertyIdxStringOverflowPages_t> dirLabelPropertyIdxStringOverflow;
+    unique_ptr<vector<unique_ptr<InMemStringOverflowPages>>> propertyIdxUnordStringOverflowPages;
+    unique_ptr<dirLabelPropertyIdxStringOverflowPages_t> dirLabelPropertyIdxStringOverflowPages;
 
     shared_ptr<spdlog::logger> logger;
     RelLabelDescription& description;

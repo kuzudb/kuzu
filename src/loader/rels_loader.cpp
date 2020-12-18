@@ -5,8 +5,6 @@
 namespace graphflow {
 namespace loader {
 
-const char RelsLoader::EMPTY_STRING = 0;
-
 void RelsLoader::load(vector<string>& fnames, vector<uint64_t>& numBlocksPerFile) {
     RelLabelDescription description;
     for (auto relLabel = 0u; relLabel < catalog.getRelLabelsCount(); relLabel++) {
@@ -80,7 +78,7 @@ void RelsLoader::populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* 
     uint64_t blockId, const char tokenSeparator,
     AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
     AdjAndPropertyColumnsLoaderHelper* adjAndPropertyColumnsLoaderHelper,
-    vector<shared_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
+    vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
     shared_ptr<spdlog::logger> logger) {
     logger->debug("start {0} {1}", description->fname, blockId);
     CSVReader reader(description->fname, tokenSeparator, blockId);
@@ -91,7 +89,7 @@ void RelsLoader::populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* 
     }
     vector<bool> requireToReadLabels{true, true};
     vector<nodeID_t> nodeIDs{2};
-    vector<PageCursor> stringOverflowCursors{description->propertyMap->size()};
+    vector<PageCursor> stringOverflowPagesCursors{description->propertyMap->size()};
     for (auto& dir : DIRS) {
         requireToReadLabels[dir] = 1 != description->nodeLabelsPerDir[dir].size();
         nodeIDs[dir].label = description->nodeLabelsPerDir[dir][0];
@@ -108,10 +106,12 @@ void RelsLoader::populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* 
         if (description->hasProperties() && !description->requirePropertyLists()) {
             if (description->isSingleCardinalityPerDir[FWD]) {
                 putPropsOfLineIntoInMemPropertyColumns((*description).propertyMap, reader,
-                    adjAndPropertyColumnsLoaderHelper, nodeIDs[FWD], stringOverflowCursors, logger);
+                    adjAndPropertyColumnsLoaderHelper, nodeIDs[FWD], stringOverflowPagesCursors,
+                    logger);
             } else if (description->isSingleCardinalityPerDir[BWD]) {
                 putPropsOfLineIntoInMemPropertyColumns((*description).propertyMap, reader,
-                    adjAndPropertyColumnsLoaderHelper, nodeIDs[BWD], stringOverflowCursors, logger);
+                    adjAndPropertyColumnsLoaderHelper, nodeIDs[BWD], stringOverflowPagesCursors,
+                    logger);
             }
         }
     }
@@ -120,7 +120,7 @@ void RelsLoader::populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* 
 
 void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
     const char tokenSeparator, AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
-    vector<shared_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
+    vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
     shared_ptr<spdlog::logger> logger) {
     logger->debug("start {0} {1}", description->fname, blockId);
     CSVReader reader(description->fname, tokenSeparator, blockId);
@@ -132,11 +132,10 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
     vector<bool> requireToReadLabels{true, true};
     vector<nodeID_t> nodeIDs{2};
     vector<uint64_t> reversePos{2};
-    vector<vector<PageCursor>> stringOverflows{2};
+    vector<PageCursor> stringOverflowPagesCursors{description->propertyMap->size()};
     for (auto& dir : DIRS) {
         requireToReadLabels[dir] = 1 != description->nodeLabelsPerDir[dir].size();
         nodeIDs[dir].label = description->nodeLabelsPerDir[dir][0];
-        stringOverflows[dir].resize(description->propertyMap->size());
     }
     while (reader.hasNextLine()) {
         inferLabelsAndOffsets(reader, nodeIDs, nodeIDMaps, catalog, requireToReadLabels);
@@ -149,14 +148,14 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
         }
         if (description->requirePropertyLists()) {
             putPropsOfLineIntoInMemRelPropLists(description->propertyMap, reader, nodeIDs,
-                reversePos, adjAndPropertyListsLoaderHelper, stringOverflows, logger);
+                reversePos, adjAndPropertyListsLoaderHelper, stringOverflowPagesCursors, logger);
         }
     }
     logger->debug("end   {0} {1}", description->fname, blockId);
 }
 
 void RelsLoader::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
-    vector<shared_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
+    vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
     vector<bool>& requireToReadLabels) {
     for (auto& dir : DIRS) {
         reader.hasNextToken();
@@ -172,7 +171,7 @@ void RelsLoader::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& node
 
 void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<Property>* propertyMap,
     CSVReader& reader, AdjAndPropertyColumnsLoaderHelper* adjAndPropertyColumnsLoaderHelper,
-    const nodeID_t& nodeID, vector<PageCursor>& stringOverflows,
+    const nodeID_t& nodeID, vector<PageCursor>& stringOverflowPagesCursors,
     shared_ptr<spdlog::logger> logger) {
     auto propertyIdx = 0u;
     while (reader.hasNextToken()) {
@@ -196,9 +195,9 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<Property>* 
             break;
         }
         case STRING: {
-            auto strVal = reader.skipTokenIfNull() ? &RelsLoader::EMPTY_STRING : reader.getString();
+            auto strVal = reader.skipTokenIfNull() ? &EMPTY_STRING : reader.getString();
             adjAndPropertyColumnsLoaderHelper->setStringProperty(
-                nodeID, propertyIdx, strVal, stringOverflows[propertyIdx]);
+                nodeID, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
             break;
         }
         default:
@@ -213,40 +212,32 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<Property>* 
 void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<Property>* propertyMap,
     CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& pos,
     AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
-    vector<vector<PageCursor>>& stringOvreflowCursors, shared_ptr<spdlog::logger> logger) {
+    vector<PageCursor>& stringOverflowPagesCursors, shared_ptr<spdlog::logger> logger) {
     auto propertyIdx = 0;
     while (reader.hasNextToken()) {
         switch ((*propertyMap)[propertyIdx].dataType) {
         case INT: {
             auto intVal = reader.skipTokenIfNull() ? NULL_INT : reader.getInteger();
-            for (auto& dir : DIRS) {
-                adjAndPropertyListsLoaderHelper->setProperty(pos[dir], dir, nodeIDs[dir],
-                    propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT);
-            }
+            adjAndPropertyListsLoaderHelper->setProperty(
+                pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT);
             break;
         }
         case DOUBLE: {
             auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
-            for (auto& dir : DIRS) {
-                adjAndPropertyListsLoaderHelper->setProperty(pos[dir], dir, nodeIDs[dir],
-                    propertyIdx, reinterpret_cast<uint8_t*>(&doubleVal), DOUBLE);
-            }
+            adjAndPropertyListsLoaderHelper->setProperty(
+                pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&doubleVal), DOUBLE);
             break;
         }
         case BOOL: {
             auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
-            for (auto& dir : DIRS) {
-                adjAndPropertyListsLoaderHelper->setProperty(pos[dir], dir, nodeIDs[dir],
-                    propertyIdx, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
-            }
+            adjAndPropertyListsLoaderHelper->setProperty(
+                pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
             break;
         }
         case STRING: {
             auto strVal = reader.skipTokenIfNull() ? &EMPTY_STRING : reader.getString();
-            for (auto& dir : DIRS) {
-                adjAndPropertyListsLoaderHelper->setStringProperty(pos[dir], dir, nodeIDs[dir],
-                    propertyIdx, strVal, stringOvreflowCursors[dir][propertyIdx]);
-            }
+            adjAndPropertyListsLoaderHelper->setStringProperty(
+                pos, nodeIDs, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
         }
         default:
             if (!reader.skipTokenIfNull()) {

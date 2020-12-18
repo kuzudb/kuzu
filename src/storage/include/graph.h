@@ -29,10 +29,8 @@ public:
 
     inline const vector<uint64_t>& getNumNodesPerLabel() const { return numNodesPerLabel; };
 
-    inline const uint64_t getNumNodesForLabel(label_t label) const {
-        return numNodesPerLabel[label];
-    };
-
+    // TODO: This function is present in Graph and is virtual only for supporting the GraphStub
+    // class that is used in test. Should be removed in priority.
     virtual BaseColumn* getColumn(label_t label, uint64_t propertyIdx) {
         return nodesStore->getNodePropertyColumn(label, propertyIdx);
     }

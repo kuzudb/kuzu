@@ -6,8 +6,8 @@
 namespace graphflow {
 namespace storage {
 
-RelsStore::RelsStore(Catalog& catalog, vector<uint64_t>& numNodesPerLabel, const string& directory,
-    BufferManager& bufferManager) {
+RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
+    const string& directory, BufferManager& bufferManager) {
     propertyColumns.resize(catalog.getRelLabelsCount());
     propertyLists[FWD].resize(catalog.getRelLabelsCount());
     propertyLists[BWD].resize(catalog.getRelLabelsCount());
@@ -26,7 +26,7 @@ RelsStore::RelsStore(Catalog& catalog, vector<uint64_t>& numNodesPerLabel, const
 }
 
 pair<uint32_t, uint32_t> RelsStore::getNumBytesScheme(const vector<label_t>& nbrNodeLabels,
-    const vector<uint64_t>& numNodesPerLabel, uint32_t numNodeLabels) {
+    const vector<uint64_t>& numNodesPerLabel, const uint32_t& numNodeLabels) {
     auto maxNodeOffsetToFit = 0ull;
     for (auto nodeLabel : nbrNodeLabels) {
         if (numNodesPerLabel[nodeLabel] > maxNodeOffsetToFit) {
@@ -40,7 +40,7 @@ pair<uint32_t, uint32_t> RelsStore::getNumBytesScheme(const vector<label_t>& nbr
     return make_pair(numBytesPerlabel, numBytesPerOffset);
 }
 
-uint32_t RelsStore::getNumBytesForEncoding(uint64_t val, uint8_t minNumBytes) {
+uint32_t RelsStore::getNumBytesForEncoding(const uint64_t& val, const uint8_t& minNumBytes) {
     auto numBytes = minNumBytes;
     while (val > (1ull << (8 * numBytes)) - 2) {
         numBytes <<= 1;
@@ -48,8 +48,9 @@ uint32_t RelsStore::getNumBytesForEncoding(uint64_t val, uint8_t minNumBytes) {
     return numBytes;
 }
 
-void RelsStore::initPropertyColumnsForRelLabel(Catalog& catalog, vector<uint64_t>& numNodesPerLabel,
-    const string& directory, BufferManager& bufferManager, label_t relLabel, Direction dir) {
+void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
+    const vector<uint64_t>& numNodesPerLabel, const string& directory, BufferManager& bufferManager,
+    const label_t& relLabel, const Direction& dir) {
     propertyColumns[relLabel].resize(catalog.getNodeLabelsCount());
     for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDir(relLabel, dir)) {
         auto& propertyMap = catalog.getPropertyMapForRelLabel(relLabel);
@@ -78,8 +79,9 @@ void RelsStore::initPropertyColumnsForRelLabel(Catalog& catalog, vector<uint64_t
     }
 }
 
-void RelsStore::initPropertyListsForRelLabel(Catalog& catalog, vector<uint64_t>& numNodesPerLabel,
-    const string& directory, BufferManager& bufferManager, label_t relLabel) {
+void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
+    const vector<uint64_t>& numNodesPerLabel, const string& directory, BufferManager& bufferManager,
+    const label_t& relLabel) {
     for (auto& dir : DIRS) {
         propertyLists[dir][relLabel].resize(catalog.getNodeLabelsCount());
         for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDir(relLabel, dir)) {
@@ -111,8 +113,9 @@ void RelsStore::initPropertyListsForRelLabel(Catalog& catalog, vector<uint64_t>&
     }
 }
 
-void RelsStore::initPropertyListsForRelLabel(Catalog& catalog, vector<uint64_t>& numNodesPerLabel,
-    const string& directory, BufferManager& bufferManager) {
+void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
+    const vector<uint64_t>& numNodesPerLabel, const string& directory,
+    BufferManager& bufferManager) {
     for (auto direction : DIRS) {
         for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
             auto& relLabels = catalog.getRelLabelsForNodeLabelDirection(nodeLabel, direction);
