@@ -64,7 +64,7 @@ private:
 void testPropertyReaderNodeSameLabel(int32_t startExpectedValue);
 
 TEST_F(PropertyReaderIntegerTest, PropertyReaderSameLabelSetPointerTest) {
-    //testPropertyReaderNodeSameLabel(0);
+    // testPropertyReaderNodeSameLabel(0);
 }
 
 TEST_F(PropertyReaderIntegerTest, PropertyReaderSameLabelCopyTest) {

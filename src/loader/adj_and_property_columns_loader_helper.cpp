@@ -41,7 +41,7 @@ void AdjAndPropertyColumnsLoaderHelper::setStringProperty(const nodeID_t& nodeID
     calculatePageCursor(getDataTypeSize(STRING), nodeID.offset, propertyListCursor);
     gf_string_t* encodedString = reinterpret_cast<gf_string_t*>(
         labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->get(propertyListCursor));
-    (*labelPropertyIdxStringOverflow)[nodeID.label][propertyIdx]->set(
+    (*labelPropertyIdxStringOverflowPages)[nodeID.label][propertyIdx]->set(
         originalString, cursor, encodedString);
 }
 
@@ -60,7 +60,7 @@ void AdjAndPropertyColumnsLoaderHelper::sortOverflowStrings() {
                     outputDirectory, description.label, nodeLabel, property.name);
                 (*orderedStringOverflows)[nodeLabel][propertyIdx] =
                     make_unique<InMemStringOverflowPages>(fname + ".ovf");
-                auto numNodes = graph.getNumNodesForLabel(nodeLabel);
+                auto numNodes = graph.getNumNodesPerLabel()[nodeLabel];
                 auto numBuckets = numNodes / 256;
                 if (0 != numNodes / 256) {
                     numBuckets++;
@@ -71,14 +71,14 @@ void AdjAndPropertyColumnsLoaderHelper::sortOverflowStrings() {
                     offsetEnd = min(offsetStart + 256, numNodes);
                     threadPool.execute(sortOverflowStringsofPropertyColumnTask, offsetStart,
                         offsetEnd, labelPropertyIdxPropertyColumn[nodeLabel][propertyIdx].get(),
-                        (*labelPropertyIdxStringOverflow)[nodeLabel][propertyIdx].get(),
+                        (*labelPropertyIdxStringOverflowPages)[nodeLabel][propertyIdx].get(),
                         (*orderedStringOverflows)[nodeLabel][propertyIdx].get(), logger);
                 }
             }
         }
     }
     threadPool.wait();
-    labelPropertyIdxStringOverflow = move(orderedStringOverflows);
+    labelPropertyIdxStringOverflowPages = move(orderedStringOverflows);
 }
 
 void AdjAndPropertyColumnsLoaderHelper::saveToFile() {
@@ -100,7 +100,8 @@ void AdjAndPropertyColumnsLoaderHelper::saveToFile() {
                     reinterpret_cast<InMemPropertyPages*>(
                         labelPropertyIdxPropertyColumn[nodeLabel][i].get()));
                 if (STRING == property.dataType) {
-                    (*labelPropertyIdxStringOverflow)[nodeLabel][i]->saveToFile();
+                    threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },
+                        (*labelPropertyIdxStringOverflowPages)[nodeLabel][i].get());
                 }
             }
         }
@@ -111,12 +112,12 @@ void AdjAndPropertyColumnsLoaderHelper::saveToFile() {
 void AdjAndPropertyColumnsLoaderHelper::buildInMemPropertyColumns(Direction dir) {
     logger->info("Creating InMemProperty Columns...");
     labelPropertyIdxPropertyColumn.resize(catalog.getNodeLabelsCount());
-    labelPropertyIdxStringOverflow =
+    labelPropertyIdxStringOverflowPages =
         make_unique<labelPropertyIdxStringOverflow_t>(catalog.getNodeLabelsCount());
     for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
         labelPropertyIdxPropertyColumn[nodeLabel].resize((*description.propertyMap).size());
-        (*labelPropertyIdxStringOverflow)[nodeLabel].resize((*description.propertyMap).size());
-        auto numElements = graph.getNumNodesForLabel(nodeLabel);
+        (*labelPropertyIdxStringOverflowPages)[nodeLabel].resize((*description.propertyMap).size());
+        auto numElements = graph.getNumNodesPerLabel()[nodeLabel];
         for (auto i = 0u; i < (*description.propertyMap).size(); i++) {
             auto property = (*description.propertyMap)[i];
             auto fname = RelsStore::getRelPropertyColumnFname(
@@ -129,7 +130,7 @@ void AdjAndPropertyColumnsLoaderHelper::buildInMemPropertyColumns(Direction dir)
             labelPropertyIdxPropertyColumn[nodeLabel][i] = make_unique<InMemPropertyPages>(
                 fname, numPages, getDataTypeSize(property.dataType));
             if (STRING == property.dataType) {
-                (*labelPropertyIdxStringOverflow)[nodeLabel][i] =
+                (*labelPropertyIdxStringOverflowPages)[nodeLabel][i] =
                     make_unique<InMemStringOverflowPages>(fname + ".ovf");
             }
         }
@@ -145,8 +146,9 @@ void AdjAndPropertyColumnsLoaderHelper::buildInMemAdjColumns() {
                 auto fname = RelsStore::getAdjColumnIndexFname(
                     outputDirectory, description.label, boundNodeLabel, dir);
                 uint32_t numElementsPerPage = PAGE_SIZE / description.getRelSize(dir);
-                uint64_t numPages = graph.getNumNodesForLabel(boundNodeLabel) / numElementsPerPage;
-                if (0 != graph.getNumNodesForLabel(boundNodeLabel) % numElementsPerPage) {
+                auto numNodes = graph.getNumNodesPerLabel()[boundNodeLabel];
+                uint64_t numPages = numNodes / numElementsPerPage;
+                if (0 != numNodes % numElementsPerPage) {
                     numPages++;
                 }
                 dirLabelAdjColumns[dir][boundNodeLabel] = make_unique<InMemAdjPages>(fname,

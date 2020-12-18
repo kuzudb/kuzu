@@ -10,13 +10,16 @@ namespace graphflow {
 namespace loader {
 
 void InMemPages::saveToFile() {
+    if (0 == fname.length()) {
+        throw invalid_argument("InMemPages: Empty filename");
+    }
     uint32_t f = open(fname.c_str(), O_WRONLY | O_CREAT, 0666);
     if (-1u == f) {
-        invalid_argument("cannot create file: " + fname);
+        throw invalid_argument("InMemPages: Cannot create file: " + fname);
     }
     auto size = numPages * PAGE_SIZE;
     if (size != write(f, data.get(), size)) {
-        invalid_argument("Cannot write in file.");
+        throw invalid_argument("InMemPages: Cannot write in file.");
     }
     close(f);
 }
@@ -30,8 +33,11 @@ void InMemAdjPages::set(const PageCursor& cursor, const nodeID_t& nbrNodeID) {
 void InMemStringOverflowPages::set(
     const char* originalString, PageCursor& cursor, gf_string_t* encodedString) {
     encodedString->len = strlen(originalString);
-    memcpy(&encodedString->prefix, originalString, 4);
-    if (encodedString->len <= 12) {
+    memcpy(&encodedString->prefix, originalString, min(encodedString->len, 4u));
+    if (encodedString->len <= 4) {
+        return;
+    }
+    if (encodedString->len > 4 && encodedString->len <= 12) {
         memcpy(&encodedString->overflowPtr, originalString + 4, encodedString->len - 4);
         return;
     }

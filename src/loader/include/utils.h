@@ -13,6 +13,8 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace loader {
 
+constexpr char EMPTY_STRING = 0;
+
 //! NodeIDMap maps the primary key of a node to the in-system used node offset.
 class NodeIDMap {
 
@@ -25,6 +27,7 @@ public:
     void merge(NodeIDMap& localMap);
 
 private:
+    mutex nodeIDMapMutex;
     unordered_map<const char*, node_offset_t, charArrayHasher, charArrayEqualTo>
         nodeIDToOffsetMapping;
 };

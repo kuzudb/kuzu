@@ -5,7 +5,7 @@
 namespace graphflow {
 namespace storage {
 
-NodesStore::NodesStore(Catalog& catalog, vector<uint64_t>& numNodesPerLabel,
+NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
     const string& directory, BufferManager& bufferManager) {
     propertyColumns.resize(catalog.getNodeLabelsCount());
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {

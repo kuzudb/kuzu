@@ -14,16 +14,16 @@ namespace storage {
 class NodesStore {
 
 public:
-    NodesStore(Catalog& catalog, vector<uint64_t>& numNodesPerLabel, const string& directory,
-        BufferManager& bufferManager);
+    NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
+        const string& directory, BufferManager& bufferManager);
 
-    inline static string getNodePropertyColumnFname(
-        const string& directory, label_t nodeLabel, const string& propertyName) {
-        return directory + "/n-" + to_string(nodeLabel) + "-" + propertyName + ".col";
+    BaseColumn* getNodePropertyColumn(const label_t& label, const uint64_t& propertyIdx) {
+        return propertyColumns[label][propertyIdx].get();
     }
 
-    BaseColumn* getNodePropertyColumn(label_t label, uint64_t propertyIdx) {
-        return propertyColumns[label][propertyIdx].get();
+    inline static string getNodePropertyColumnFname(
+        const string& directory, const label_t& nodeLabel, const string& propertyName) {
+        return directory + "/n-" + to_string(nodeLabel) + "-" + propertyName + ".col";
     }
 
 private:

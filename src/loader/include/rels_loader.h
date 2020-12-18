@@ -17,7 +17,7 @@ class RelsLoader {
 
 private:
     RelsLoader(ThreadPool& threadPool, const Graph& graph, const Catalog& catalog,
-        const nlohmann::json& metadata, vector<shared_ptr<NodeIDMap>>& nodeIDMaps,
+        const nlohmann::json& metadata, vector<unique_ptr<NodeIDMap>>& nodeIDMaps,
         const string outputDirectory)
         : logger{spdlog::stdout_logger_mt("RelsLoader")}, threadPool{threadPool}, graph{graph},
           catalog{catalog}, metadata{metadata}, nodeIDMaps{nodeIDMaps},
@@ -43,32 +43,29 @@ private:
         uint64_t blockId, const char tokenSeparator,
         AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
         AdjAndPropertyColumnsLoaderHelper* adjAndPropertyColumnsLoaderHelper,
-        vector<shared_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
+        vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
         shared_ptr<spdlog::logger> logger);
 
     static void populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
         const char tokenSeparator, AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
-        vector<shared_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
+        vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
         shared_ptr<spdlog::logger> logger);
 
     // Task Helpers
 
     static void inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
-        vector<shared_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
+        vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
         vector<bool>& requireToReadLabels);
 
     static void putPropsOfLineIntoInMemPropertyColumns(const vector<Property>* propertyMap,
         CSVReader& reader, AdjAndPropertyColumnsLoaderHelper* adjAndPropertyColumnsLoaderHelper,
-        const nodeID_t& nodeID, vector<PageCursor>& stringOverflowCursors,
+        const nodeID_t& nodeID, vector<PageCursor>& stringOvreflowPagesCursors,
         shared_ptr<spdlog::logger> logger);
 
     static void putPropsOfLineIntoInMemRelPropLists(const vector<Property>* propertyMap,
         CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& pos,
         AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
-        vector<vector<PageCursor>>& stringOvreflowCursors, shared_ptr<spdlog::logger> logger);
-
-public:
-    static const char EMPTY_STRING;
+        vector<PageCursor>& stringOvreflowPagesCursors, shared_ptr<spdlog::logger> logger);
 
 private:
     shared_ptr<spdlog::logger> logger;
@@ -76,7 +73,7 @@ private:
     const Graph& graph;
     const Catalog& catalog;
     const nlohmann::json& metadata;
-    vector<shared_ptr<NodeIDMap>>& nodeIDMaps;
+    vector<unique_ptr<NodeIDMap>>& nodeIDMaps;
     const string outputDirectory;
 };
 

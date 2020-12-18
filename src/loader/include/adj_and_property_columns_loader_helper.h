@@ -56,7 +56,7 @@ private:
 private:
     dirLabelAdjColumn_t dirLabelAdjColumns{2};
 
-    unique_ptr<labelPropertyIdxStringOverflow_t> labelPropertyIdxStringOverflow;
+    unique_ptr<labelPropertyIdxStringOverflow_t> labelPropertyIdxStringOverflowPages;
     labelPropertyIdxPropertyColumn_t labelPropertyIdxPropertyColumn;
 
     shared_ptr<spdlog::logger> logger;

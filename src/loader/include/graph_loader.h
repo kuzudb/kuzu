@@ -35,11 +35,11 @@ private:
     void setCardinalities(Catalog& catalog, const nlohmann::json& metadata);
     void setSrcDstNodeLabelsForRelLabels(Catalog& catalog, const nlohmann::json& metadata);
 
-    unique_ptr<vector<shared_ptr<NodeIDMap>>> loadNodes(
+    unique_ptr<vector<unique_ptr<NodeIDMap>>> loadNodes(
         const nlohmann::json& metadata, Graph& graph, Catalog& catalog);
 
     void loadRels(const nlohmann::json& metadata, Graph& graph, Catalog& catalog,
-        unique_ptr<vector<shared_ptr<NodeIDMap>>> nodeIDMaps);
+        unique_ptr<vector<unique_ptr<NodeIDMap>>> nodeIDMaps);
 
     void inferFilenamesInitPropertyMapAndCountLinesPerBlock(label_t numLabels,
         nlohmann::json filedescriptions, vector<string>& fnames,
