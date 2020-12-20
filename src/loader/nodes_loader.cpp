@@ -39,7 +39,6 @@ void NodesLoader::loadNodesForLabel(const label_t& nodeLabel, const uint64_t& nu
         offsetStart += numLinesPerBlock[blockIdx];
     }
     threadPool.wait();
-
     for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
         if (STRING == property->second.dataType) {
             threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },
@@ -59,21 +58,19 @@ void NodesLoader::populateNodePropertyColumnTask(string fname, uint64_t blockId,
     vector<PageCursor> stringOverflowPagesCursors{propertyDataTypes->size()};
     auto buffers = createBuffersForPropertyMap(*propertyDataTypes, numElements, logger);
     CSVReader reader(fname, tokenSeparator, blockId);
-    NodeIDMap map(numElements);
     if (0 == blockId) {
         if (reader.hasNextLine()) {}
     }
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
         reader.hasNextToken();
-        map.setOffset(reader.getString(), offsetStart + bufferOffset);
+        nodeIDMap->set(reader.getString(), offsetStart + bufferOffset);
         if (0 < propertyDataTypes->size()) {
             putPropsOfLineIntoBuffers(*propertyDataTypes, reader, *buffers, bufferOffset,
                 *propertyIdxStringOverflowPages, stringOverflowPagesCursors, logger);
         }
         bufferOffset++;
     }
-    nodeIDMap->merge(map);
     writeBuffersToFiles(
         *buffers, offsetStart, numElements, *propertyColumnFnames, *propertyDataTypes);
     logger->debug("end   {0} {1}", fname, blockId);

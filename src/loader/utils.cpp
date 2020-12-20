@@ -8,26 +8,21 @@ namespace graphflow {
 namespace loader {
 
 NodeIDMap::~NodeIDMap() {
-    for (auto& a : nodeIDToOffsetMapping) {
-        delete[] a.first;
+    for (auto& charArray : nodeIDToOffsetMap) {
+        delete[] charArray.first;
     }
 }
 
-void NodeIDMap::setOffset(const char* nodeID, node_offset_t offset) {
+void NodeIDMap::set(const char* nodeID, node_offset_t nodeOffset) {
     auto len = strlen(nodeID);
     auto nodeIDcopy = new char[len + 1];
     memcpy(nodeIDcopy, nodeID, len);
     nodeIDcopy[len] = 0;
-    nodeIDToOffsetMapping.insert({{nodeIDcopy, offset}});
+    offsetToNodeIDMap[nodeOffset] = nodeIDcopy;
 }
 
-node_offset_t NodeIDMap::getOffset(const char* nodeID) {
-    return nodeIDToOffsetMapping[nodeID];
-}
-
-void NodeIDMap::merge(NodeIDMap& localMap) {
-    lock_guard lck(nodeIDMapMutex);
-    nodeIDToOffsetMapping.merge(localMap.nodeIDToOffsetMapping);
+node_offset_t NodeIDMap::get(const char* nodeID) {
+    return nodeIDToOffsetMap.at(nodeID);
 }
 
 vector<DataType> createPropertyDataTypes(const unordered_map<string, Property>& propertyMap) {

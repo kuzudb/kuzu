@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "robin_hood.h"
+
 using namespace std;
 
 namespace graphflow {
@@ -73,7 +75,7 @@ struct charArrayEqualTo {
 
 // C-like string hasher.
 struct charArrayHasher {
-    size_t operator()(const char* key) const { return std::_Hash_bytes(key, strlen(key), 31); }
+    size_t operator()(const char* key) const { return robin_hood::hash_bytes(key, strlen(key)); }
 };
 
 } // namespace common

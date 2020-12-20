@@ -101,6 +101,11 @@ unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes(
     }
     NodesLoader nodesLoader{threadPool, catalog, metadata, outputDirectory};
     nodesLoader.load(fnames, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
+    logger->info("Creating reverse NodeIDMaps.");
+    for (auto& nodeIDMap : *nodeIDMaps) {
+        threadPool.execute([&](NodeIDMap* x) { x->createNodeIDToOffsetMap(); }, nodeIDMap.get());
+    }
+    threadPool.wait();
     return nodeIDMaps;
 }
 

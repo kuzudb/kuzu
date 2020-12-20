@@ -15,11 +15,11 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace loader {
 
-typedef vector<vector<unique_ptr<InMemStringOverflowPages>>> labelPropertyIdxStringOverflow_t;
-typedef vector<vector<unique_ptr<InMemPropertyPages>>> labelPropertyIdxPropertyColumn_t;
-typedef vector<vector<unique_ptr<InMemAdjPages>>> dirLabelAdjColumn_t;
-
 class AdjAndPropertyColumnsLoaderHelper {
+
+    typedef vector<vector<unique_ptr<InMemStringOverflowPages>>> labelPropertyIdxStringOverflow_t;
+    typedef vector<vector<unique_ptr<InMemPropertyPages>>> labelPropertyIdxPropertyColumn_t;
+    typedef vector<vector<unique_ptr<InMemAdjPages>>> dirLabelAdjColumn_t;
 
 public:
     AdjAndPropertyColumnsLoaderHelper(RelLabelDescription& description, ThreadPool& threadPool,

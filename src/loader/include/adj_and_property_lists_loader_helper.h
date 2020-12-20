@@ -15,22 +15,23 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace loader {
 
-// List Sizes.
-typedef vector<atomic<uint64_t>> listSizes_t;
-typedef vector<vector<unique_ptr<listSizes_t>>> dirLabelListSizes_t;
-
-typedef vector<vector<AdjListHeaders>> dirLabelAdjListHeaders_t;
-
-typedef vector<vector<ListsMetadata>> dirLabelAdjListsMetadata_t;
-typedef vector<vector<unique_ptr<InMemAdjPages>>> dirLabelAdjLists_t;
-
-typedef vector<vector<vector<ListsMetadata>>> dirLabelPropertyIdxPropertyListsMetadata_t;
-typedef vector<vector<vector<unique_ptr<InMemPropertyPages>>>> dirLabelPropertyIdxPropertyLists_t;
-
-typedef vector<vector<vector<unique_ptr<InMemStringOverflowPages>>>>
-    dirLabelPropertyIdxStringOverflowPages_t;
-
 class AdjAndPropertyListsLoaderHelper {
+
+    // List Sizes.
+    typedef vector<atomic<uint64_t>> listSizes_t;
+    typedef vector<vector<unique_ptr<listSizes_t>>> dirLabelListSizes_t;
+
+    typedef vector<vector<AdjListHeaders>> dirLabelAdjListHeaders_t;
+
+    typedef vector<vector<ListsMetadata>> dirLabelAdjListsMetadata_t;
+    typedef vector<vector<unique_ptr<InMemAdjPages>>> dirLabelAdjLists_t;
+
+    typedef vector<vector<vector<ListsMetadata>>> dirLabelPropertyIdxPropertyListsMetadata_t;
+    typedef vector<vector<vector<unique_ptr<InMemPropertyPages>>>>
+        dirLabelPropertyIdxPropertyLists_t;
+
+    typedef vector<vector<vector<unique_ptr<InMemStringOverflowPages>>>>
+        dirLabelPropertyIdxStringOverflowPages_t;
 
 public:
     AdjAndPropertyListsLoaderHelper(RelLabelDescription& description, ThreadPool& threadPool,

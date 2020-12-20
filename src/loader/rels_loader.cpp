@@ -166,7 +166,7 @@ void RelsLoader::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& node
             reader.skipToken();
         }
         reader.hasNextToken();
-        nodeIDs[dir].offset = (*(*nodeIDMaps)[nodeIDs[dir].label]).getOffset(reader.getString());
+        nodeIDs[dir].offset = (*(*nodeIDMaps)[nodeIDs[dir].label]).get(reader.getString());
     }
 }
 

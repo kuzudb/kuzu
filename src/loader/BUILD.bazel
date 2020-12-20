@@ -1,5 +1,4 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 cc_library(
     name = "loader",
@@ -31,6 +30,7 @@ cc_library(
         "//src/storage:stores",
         "//src/storage:structures",
         "@gabime_spdlog",
+        "@martinus_robin_hood_hashing",
         "@nlohmann_json",
     ],
 )

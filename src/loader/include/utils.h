@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-#include <mutex>
-#include <unordered_map>
+
+#include "robin_hood.h"
 
 #include "src/common/include/configs.h"
 #include "src/common/include/types.h"
@@ -19,17 +19,25 @@ constexpr char EMPTY_STRING = 0;
 class NodeIDMap {
 
 public:
-    NodeIDMap(uint64_t size) : nodeIDToOffsetMapping{size} {};
+    NodeIDMap(const uint64_t& size) : size{size}, offsetToNodeIDMap(make_unique<char*[]>(size)){};
     ~NodeIDMap();
 
-    void setOffset(const char* nodeID, node_offset_t offset);
-    node_offset_t getOffset(const char* nodeID);
-    void merge(NodeIDMap& localMap);
+    void set(const char* nodeID, node_offset_t nodeOffset);
+
+    node_offset_t get(const char* nodeID);
+
+    inline void createNodeIDToOffsetMap() {
+        nodeIDToOffsetMap.reserve(1.5 * size);
+        for (auto i = 0u; i < size; i++) {
+            nodeIDToOffsetMap.emplace(offsetToNodeIDMap[i], i);
+        }
+    }
 
 private:
-    mutex nodeIDMapMutex;
-    unordered_map<const char*, node_offset_t, charArrayHasher, charArrayEqualTo>
-        nodeIDToOffsetMapping;
+    uint64_t size;
+    robin_hood::unordered_flat_map<const char*, node_offset_t, charArrayHasher, charArrayEqualTo>
+        nodeIDToOffsetMap;
+    unique_ptr<char*[]> offsetToNodeIDMap;
 };
 
 vector<DataType> createPropertyDataTypes(const unordered_map<string, Property>& propertyMap);
