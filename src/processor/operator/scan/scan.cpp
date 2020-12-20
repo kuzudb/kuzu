@@ -1,20 +1,16 @@
 #include "src/processor/include/operator/scan/scan.h"
 
-#include <iostream>
-
 namespace graphflow {
 namespace processor {
 
 using lock_t = unique_lock<mutex>;
 
 void Scan::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
-    std::cout << "Scan::initialize start" << std::endl;
     outDataChunk = make_shared<DataChunk>();
     nodeIDVector = make_shared<NodeIDSequenceVector>();
     outDataChunk->append(nodeIDVector);
     outDataChunk->size = NODE_SEQUENCE_VECTOR_SIZE;
     outDataChunks.push_back(outDataChunk);
-    std::cout << "Scan::initialize end" << std::endl;
 }
 
 void ScanSingleLabel::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {

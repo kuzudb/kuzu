@@ -50,7 +50,7 @@ public:
     DataType dataType{};
 };
 
-uint8_t getDataTypeSize(DataType dataType);
+size_t getDataTypeSize(DataType dataType);
 
 DataType getDataType(const std::string& dataTypeString);
 

@@ -17,7 +17,7 @@ public:
     NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
         const string& directory, BufferManager& bufferManager);
 
-    BaseColumn* getNodePropertyColumn(const label_t& label, const uint64_t& propertyIdx) {
+    Column* getNodePropertyColumn(const label_t& label, const uint64_t& propertyIdx) {
         return propertyColumns[label][propertyIdx].get();
     }
 
@@ -30,7 +30,7 @@ private:
     // The properties of nodes in the system are stored in Property Columns with one column for each
     // unique (node label, property) pair. Here, propertyColumns[4][5] refers to the property column
     // of node label 4 of property that have propertyIdx 5 in the propertyMap of label 4.
-    vector<vector<unique_ptr<BaseColumn>>> propertyColumns;
+    vector<vector<unique_ptr<Column>>> propertyColumns;
 };
 
 } // namespace storage

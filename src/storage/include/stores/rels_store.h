@@ -2,8 +2,8 @@
 
 #include "src/common/include/types.h"
 #include "src/storage/include/catalog.h"
-#include "src/storage/include/structures/adj_column.h"
 #include "src/storage/include/structures/adj_lists.h"
+#include "src/storage/include/structures/column.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -16,6 +16,16 @@ class RelsStore {
 public:
     RelsStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
         const string& directory, BufferManager& bufferManager);
+
+    Column* getRelPropertyColumn(
+        const label_t& relLabel, const label_t& nodeLabel, const uint64_t& propertyIdx) {
+        return propertyColumns[relLabel][nodeLabel][propertyIdx].get();
+    }
+
+    Column* getAdjColumn(
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) {
+        return adjColumnIndexes[direction][nodeLabel][relLabel].get();
+    }
 
     inline static string getAdjColumnIndexFname(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
@@ -60,9 +70,9 @@ private:
         BufferManager& bufferManager, const label_t& relLabel);
 
 private:
-    vector<vector<vector<unique_ptr<BaseColumn>>>> propertyColumns;
+    vector<vector<vector<unique_ptr<Column>>>> propertyColumns;
     vector<vector<vector<vector<unique_ptr<Lists>>>>> propertyLists{2};
-    vector<vector<vector<unique_ptr<AdjColumn>>>> adjColumnIndexes{2};
+    vector<vector<vector<unique_ptr<Column>>>> adjColumnIndexes{2};
     vector<vector<vector<unique_ptr<AdjLists>>>> adjListsIndexes{2};
 };
 

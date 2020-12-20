@@ -24,7 +24,7 @@ DataType getDataType(const std::string& dataTypeString) {
     throw invalid_argument("Cannot parse dataType.");
 }
 
-uint8_t getDataTypeSize(DataType dataType) {
+size_t getDataTypeSize(DataType dataType) {
     switch (dataType) {
     case INT:
         return sizeof(int32_t);

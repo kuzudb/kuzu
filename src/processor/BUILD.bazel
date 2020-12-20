@@ -4,18 +4,32 @@ cc_library(
     name = "processor",
     srcs = [
         "operator/scan/scan.cpp",
+
         "operator/sink/sink.cpp",
+
+        "operator/extend/structured_col_extend.cpp",
+
+        "operator/property_reader/property_reader.cpp",
+        "operator/property_reader/node/structured_node_property_reader.cpp",
+        "operator/property_reader/node/unstructured_node_property_reader.cpp",
+        "operator/property_reader/rel/structured_rel_col_property_reader.cpp",
     ], hdrs = [
         "include/query_plan.h",
+        "include/task_system/morsel.h",
 
         "include/operator/tuple/data_chunk.h",
-
         "include/operator/operator.h",
+    
         "include/operator/scan/scan.h",
+    
         "include/operator/sink/sink.h",
+    
+        "include/operator/extend/structured_col_extend.h",
+    
         "include/operator/property_reader/property_reader.h",
-
-        "include/task_system/morsel.h",
+        "include/operator/property_reader/node/structured_node_property_reader.h",
+        "include/operator/property_reader/node/unstructured_node_property_reader.h",
+        "include/operator/property_reader/rel/structured_rel_col_property_reader.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

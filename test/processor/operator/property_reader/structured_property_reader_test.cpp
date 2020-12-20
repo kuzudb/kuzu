@@ -1,16 +1,16 @@
 #include <fstream>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#include "src/processor/include/operator/property_reader/property_reader.h"
 #include "src/processor/include/operator/scan/scan.h"
+#include "src/processor/include/operator/property_reader/node/structured_node_property_reader.h"
 
 using namespace graphflow::processor;
 
 #define NUM_PAGES 3
 
 class PropertyReaderIntegerTest : public ::testing::Test {
+
 protected:
     void SetUp() override {
         auto f = ofstream("ColEvenIntegersFile", ios_base::out | ios_base::binary);
@@ -31,18 +31,21 @@ protected:
 };
 
 class GraphStub : public Graph {
+
 public:
     GraphStub(string columnName, int numPages) : columnName(columnName) {
         bufferManager = make_unique<BufferManager>(PAGE_SIZE * numPages);
+        auto numElements = 30 * (PAGE_SIZE / sizeof(int32_t));
+        column = make_unique<Column>(columnName, sizeof(int32_t), numElements, *bufferManager.get());
     }
 
-    BaseColumn* getColumn(label_t label, uint64_t propertyIdx) {
-        auto numElements = 30 * (PAGE_SIZE / sizeof(int32_t));
-        return new PropertyColumnInt(columnName, numElements, *bufferManager.get());
+    Column* getNodePropertyColumn(const label_t& label, const uint64_t& propertyIdx) {
+        return column.get();
     }
 
 protected:
     string columnName;
+    unique_ptr<Column> column;
     unique_ptr<BufferManager> bufferManager;
 };
 
@@ -64,7 +67,7 @@ private:
 void testPropertyReaderNodeSameLabel(int32_t startExpectedValue);
 
 TEST_F(PropertyReaderIntegerTest, PropertyReaderSameLabelSetPointerTest) {
-    // testPropertyReaderNodeSameLabel(0);
+    testPropertyReaderNodeSameLabel(0);
 }
 
 TEST_F(PropertyReaderIntegerTest, PropertyReaderSameLabelCopyTest) {
@@ -72,7 +75,7 @@ TEST_F(PropertyReaderIntegerTest, PropertyReaderSameLabelCopyTest) {
 }
 
 void testPropertyReaderNodeSameLabel(int32_t startExpectedValue) {
-    auto reader = make_unique<StructuredNodePropertyReader<int32_t>>(
+    auto reader = make_unique<StructuredNodePropertyReader>(
         0 /*label*/, 0 /*propertyIdx*/, 0 /*nodeVectordx*/, 0 /*dataChunkIdx*/);
     reader->setPrevOperator(new ScanStub(startExpectedValue / 2));
     auto graph = make_unique<GraphStub>("ColEvenIntegersFile", NUM_PAGES);
@@ -81,10 +84,10 @@ void testPropertyReaderNodeSameLabel(int32_t startExpectedValue) {
     reader->initialize(graph.get(), baseMorsel);
     ASSERT_EQ(reader->getNextMorsel(), true);
     reader->getNextTuples();
-    auto propertyVector = reader->getPropertyVector();
+    auto values = reader->getPropertyVector()->getValues();
     int32_t actualValue;
     for (uint64_t i = 0; i < 1024; i++) {
-        propertyVector->get(i, actualValue);
+        memcpy(&actualValue, (void*)(values + i * sizeof(int32_t)), sizeof(int32_t));
         ASSERT_EQ(actualValue, startExpectedValue);
         startExpectedValue += 2;
     }

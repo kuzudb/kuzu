@@ -14,7 +14,30 @@ namespace common {
 #define VECTOR_CAPACITY 2048
 
 //! A Vector represents values of the same data type.
-class ValueVector {};
+class ValueVector {
+public:
+    ValueVector(int elementSize) {
+        this->buffer = new uint8_t[VECTOR_CAPACITY * elementSize];
+        this->storedSequentially = false;
+    }
+
+    uint8_t* getValues() { return values; }
+    void setValues(uint8_t* values) { this->values = values; }
+
+    void reset() { values = buffer; }
+
+    bool isStoredSequentially() { return storedSequentially; }
+    void setIsStoredSequentially(bool storedSequentially) {
+        this->storedSequentially = storedSequentially;
+    }
+
+protected:
+    ValueVector() {}
+
+    uint8_t* values;
+    uint8_t* buffer;
+    bool storedSequentially;
+};
 
 } // namespace common
 } // namespace graphflow
