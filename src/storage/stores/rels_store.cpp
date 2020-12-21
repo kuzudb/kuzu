@@ -1,6 +1,7 @@
 #include "src/storage/include/stores/rels_store.h"
 
-#include "src/storage/include/structures/property_column.h"
+#include "src/common/include/compression_scheme.h"
+#include "src/storage/include/structures/column.h"
 #include "src/storage/include/structures/property_lists.h"
 
 namespace graphflow {
@@ -10,29 +11,6 @@ RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& numNodesPer
     const string& directory, BufferManager& bufferManager) {
     initPropertyListsAndColumns(catalog, numNodesPerLabel, directory, bufferManager);
     initAdjListsAndColumns(catalog, numNodesPerLabel, directory, bufferManager);
-}
-
-pair<uint32_t, uint32_t> RelsStore::getNumBytesScheme(const vector<label_t>& nbrNodeLabels,
-    const vector<uint64_t>& numNodesPerLabel, const uint32_t& numNodeLabels) {
-    auto maxNodeOffsetToFit = 0ull;
-    for (auto nodeLabel : nbrNodeLabels) {
-        if (numNodesPerLabel[nodeLabel] > maxNodeOffsetToFit) {
-            maxNodeOffsetToFit = numNodesPerLabel[nodeLabel];
-        }
-    }
-    auto maxLabelToFit = 1 == nbrNodeLabels.size() ? 0 : numNodeLabels - 1;
-    auto numBytesPerlabel =
-        maxLabelToFit == 0 ? 0 : getNumBytesForEncoding(maxLabelToFit, 1 /*min num bytes*/);
-    auto numBytesPerOffset = getNumBytesForEncoding(maxNodeOffsetToFit, 2 /*min num bytes*/);
-    return make_pair(numBytesPerlabel, numBytesPerOffset);
-}
-
-uint32_t RelsStore::getNumBytesForEncoding(const uint64_t& val, const uint8_t& minNumBytes) {
-    auto numBytes = minNumBytes;
-    while (val > (1ull << (8 * numBytes)) - 2) {
-        numBytes <<= 1;
-    }
-    return numBytes;
 }
 
 void RelsStore::initPropertyListsAndColumns(const Catalog& catalog,
@@ -138,9 +116,12 @@ void RelsStore::initAdjListsAndColumns(const Catalog& catalog,
                         numNodesPerLabel, catalog.getNodeLabelsCount());
                 if (catalog.isSingleCaridinalityInDir(relLabel, direction)) {
                     auto fname = getAdjColumnIndexFname(directory, nodeLabel, relLabel, direction);
+                    auto compressionScheme =
+                        getNodeIDCompressionScheme(numBytesScheme.first, numBytesScheme.second);
                     adjColumns[direction][nodeLabel][relLabel] =
-                        make_unique<AdjColumn>(fname, numNodesPerLabel[nodeLabel],
-                            numBytesScheme.first, numBytesScheme.second, bufferManager);
+                        make_unique<AdjColumn>(fname, numBytesScheme.first + numBytesScheme.second,
+                            numNodesPerLabel[nodeLabel], bufferManager, compressionScheme);
+
                 } else {
                     auto fname = getAdjListsIndexFname(directory, nodeLabel, relLabel, direction);
                     adjLists[direction][nodeLabel][relLabel] = make_unique<AdjLists>(

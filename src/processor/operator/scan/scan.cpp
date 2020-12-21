@@ -1,20 +1,16 @@
 #include "src/processor/include/operator/scan/scan.h"
 
-#include <iostream>
-
 namespace graphflow {
 namespace processor {
 
 using lock_t = unique_lock<mutex>;
 
 void Scan::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
-    std::cout << "Scan::initialize start" << std::endl;
     outDataChunk = make_shared<DataChunk>();
     nodeIDVector = make_shared<NodeIDSequenceVector>();
     outDataChunk->append(nodeIDVector);
-    outDataChunk->size = NODE_SEQUENCE_VECTOR_SIZE;
+    outDataChunk->size = ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     outDataChunks.push_back(outDataChunk);
-    std::cout << "Scan::initialize end" << std::endl;
 }
 
 void ScanSingleLabel::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
@@ -36,10 +32,10 @@ bool ScanSingleLabel::getNextMorsel() {
         return false /* no new morsel */;
     }
     nodeIDVector->setStartOffset(morsel->currNodeOffset);
-    morsel->currNodeOffset += NODE_SEQUENCE_VECTOR_SIZE;
+    morsel->currNodeOffset += ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     if (morsel->currNodeOffset >= morsel->maxNodeOffset) {
         morsel->currNodeOffset = morsel->maxNodeOffset;
-        outDataChunk->size = morsel->maxNodeOffset % NODE_SEQUENCE_VECTOR_SIZE + 1;
+        outDataChunk->size = morsel->maxNodeOffset % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1;
     }
     return true /* a new morsel obtained */;
 }
@@ -57,16 +53,16 @@ bool ScanMultiLabel::getNextMorsel() {
         index += 1;
         morsel->currPos += 1;
         morsel->currNodeOffset = 0;
-        outDataChunk->size = NODE_SEQUENCE_VECTOR_SIZE;
+        outDataChunk->size = ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     }
 
     nodeIDVector->setLabel(morsel->nodeLabel[index]);
     nodeIDVector->setStartOffset(morsel->currNodeOffset);
-    morsel->currNodeOffset += NODE_SEQUENCE_VECTOR_SIZE;
+    morsel->currNodeOffset += ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     auto maxOffset = morsel->maxNodeOffset[index];
     if (morsel->currNodeOffset >= maxOffset) {
         morsel->currNodeOffset = maxOffset;
-        outDataChunk->size = maxOffset % NODE_SEQUENCE_VECTOR_SIZE + 1;
+        outDataChunk->size = maxOffset % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1;
     }
     return true /* a new morsel obtained */;
 }
