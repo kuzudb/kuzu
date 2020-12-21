@@ -24,6 +24,7 @@ void RelsLoader::load(vector<string>& fnames, vector<uint64_t>& numBlocksPerFile
                 RelsStore::getNumBytesScheme(description.nodeLabelsPerDir[!dir],
                     graph.getNumNodesPerLabel(), catalog.getNodeLabelsCount());
         }
+        description.propertyDataTypes = createPropertyDataTypes(propertyMap);
         loadRelsForLabel(description);
     }
 }
@@ -105,11 +106,11 @@ void RelsLoader::populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* 
         }
         if (description->hasProperties() && !description->requirePropertyLists()) {
             if (description->isSingleCardinalityPerDir[FWD]) {
-                putPropsOfLineIntoInMemPropertyColumns((*description).propertyMap, reader,
+                putPropsOfLineIntoInMemPropertyColumns(description->propertyDataTypes, reader,
                     adjAndPropertyColumnsLoaderHelper, nodeIDs[FWD], stringOverflowPagesCursors,
                     logger);
             } else if (description->isSingleCardinalityPerDir[BWD]) {
-                putPropsOfLineIntoInMemPropertyColumns((*description).propertyMap, reader,
+                putPropsOfLineIntoInMemPropertyColumns(description->propertyDataTypes, reader,
                     adjAndPropertyColumnsLoaderHelper, nodeIDs[BWD], stringOverflowPagesCursors,
                     logger);
             }
@@ -147,7 +148,7 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
             }
         }
         if (description->requirePropertyLists()) {
-            putPropsOfLineIntoInMemRelPropLists(description->propertyMap, reader, nodeIDs,
+            putPropsOfLineIntoInMemRelPropLists(description->propertyDataTypes, reader, nodeIDs,
                 reversePos, adjAndPropertyListsLoaderHelper, stringOverflowPagesCursors, logger);
         }
     }
@@ -169,13 +170,13 @@ void RelsLoader::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& node
     }
 }
 
-void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<Property>* propertyMap,
+void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<DataType>& propertyDataTypes,
     CSVReader& reader, AdjAndPropertyColumnsLoaderHelper* adjAndPropertyColumnsLoaderHelper,
     const nodeID_t& nodeID, vector<PageCursor>& stringOverflowPagesCursors,
     shared_ptr<spdlog::logger> logger) {
     auto propertyIdx = 0u;
     while (reader.hasNextToken()) {
-        switch ((*propertyMap)[propertyIdx].dataType) {
+        switch (propertyDataTypes[propertyIdx]) {
         case INT: {
             auto intVal = reader.skipTokenIfNull() ? NULL_INT : reader.getInteger();
             adjAndPropertyColumnsLoaderHelper->setProperty(
@@ -209,13 +210,13 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<Property>* 
     }
 }
 
-void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<Property>* propertyMap,
+void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<DataType>& propertyDataTypes,
     CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& pos,
     AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
     vector<PageCursor>& stringOverflowPagesCursors, shared_ptr<spdlog::logger> logger) {
     auto propertyIdx = 0;
     while (reader.hasNextToken()) {
-        switch ((*propertyMap)[propertyIdx].dataType) {
+        switch (propertyDataTypes[propertyIdx]) {
         case INT: {
             auto intVal = reader.skipTokenIfNull() ? NULL_INT : reader.getInteger();
             adjAndPropertyListsLoaderHelper->setProperty(

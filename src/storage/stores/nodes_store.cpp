@@ -10,28 +10,26 @@ NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesP
     propertyColumns.resize(catalog.getNodeLabelsCount());
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
         auto& propertyMap = catalog.getPropertyMapForNodeLabel(nodeLabel);
-        for (auto i = 0u; i < propertyMap.size(); i++) {
-            auto& property = propertyMap[i];
-            auto fname = getNodePropertyColumnFname(directory, nodeLabel, property.name);
-            switch (property.dataType) {
+        for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
+            auto fname = getNodePropertyColumnFname(directory, nodeLabel, property->first);
+            auto idx = property->second.idx;
+            switch (property->second.dataType) {
             case INT:
-                propertyColumns[nodeLabel][i] = make_unique<PropertyColumnInt>(
+                propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnInt>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case DOUBLE:
-                propertyColumns[nodeLabel][i] = make_unique<PropertyColumnDouble>(
+                propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnDouble>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case BOOL:
-                propertyColumns[nodeLabel][i] = make_unique<PropertyColumnBool>(
+                propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnBool>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case STRING:
                 throw std::invalid_argument("not supported.");
-                propertyColumns[nodeLabel][i] = nullptr;
+                propertyColumns[nodeLabel][idx] = nullptr;
                 break;
-            default:
-                propertyColumns[nodeLabel][i] = nullptr;
             }
         }
     }

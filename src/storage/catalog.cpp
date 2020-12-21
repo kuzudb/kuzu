@@ -20,22 +20,22 @@ namespace graphflow {
 namespace storage {
 
 const vector<label_t>& Catalog::getRelLabelsForNodeLabelDirection(
-    label_t nodeLabel, Direction direction) const {
+    const label_t& nodeLabel, const Direction& dir) const {
     if (nodeLabel >= getNodeLabelsCount()) {
         throw invalid_argument("Node label out of the bounds.");
     }
-    if (FWD == direction) {
+    if (FWD == dir) {
         return srcNodeLabelToRelLabel[nodeLabel];
     }
     return dstNodeLabelToRelLabel[nodeLabel];
 }
 
 const vector<label_t>& Catalog::getNodeLabelsForRelLabelDir(
-    label_t relLabel, Direction direction) const {
+    const label_t& relLabel, const Direction& dir) const {
     if (relLabel >= getRelLabelsCount()) {
         throw invalid_argument("Node label out of the bounds.");
     }
-    if (FWD == direction) {
+    if (FWD == dir) {
         return relLabelToSrcNodeLabels[relLabel];
     }
     return relLabelToDstNodeLabels[relLabel];
@@ -43,11 +43,12 @@ const vector<label_t>& Catalog::getNodeLabelsForRelLabelDir(
 
 template<typename S>
 void Catalog::serialize(S& s) {
-    auto vetorPropertyFunc = [](S& s, vector<Property>& v) {
-        s.container(v, UINT32_MAX, [](S& s, Property& w) { s(w.name, w.dataType); });
+    auto propertyMapsFunc = [](S& s, unordered_map<string, Property>& v) {
+        s.ext(v, bitsery::ext::StdMap{UINT32_MAX},
+            [](S& s, string& key, Property& value) { s(key, value.dataType, value.idx); });
     };
-    s.container(nodePropertyMaps, UINT32_MAX, vetorPropertyFunc);
-    s.container(relPropertyMaps, UINT32_MAX, vetorPropertyFunc);
+    s.container(nodePropertyMaps, UINT32_MAX, propertyMapsFunc);
+    s.container(relPropertyMaps, UINT32_MAX, propertyMapsFunc);
 
     auto vectorLabelsFunc = [](S& s, vector<label_t>& v) {
         s.container(v, UINT32_MAX, [](S& s, label_t& w) { s(w); });
@@ -58,7 +59,7 @@ void Catalog::serialize(S& s) {
     s.container(dstNodeLabelToRelLabel, UINT32_MAX, vectorLabelsFunc);
 
     s.container(relLabelToCardinalityMap, UINT32_MAX, [](S& s, Cardinality& v) { s(v); });
-}
+} // namespace storage
 
 void Catalog::saveToFile(const string& directory) {
     auto path = directory + "/catalog.bin";

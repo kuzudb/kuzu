@@ -57,12 +57,12 @@ private:
         vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
         vector<bool>& requireToReadLabels);
 
-    static void putPropsOfLineIntoInMemPropertyColumns(const vector<Property>* propertyMap,
+    static void putPropsOfLineIntoInMemPropertyColumns(const vector<DataType>& propertyDataTypes,
         CSVReader& reader, AdjAndPropertyColumnsLoaderHelper* adjAndPropertyColumnsLoaderHelper,
         const nodeID_t& nodeID, vector<PageCursor>& stringOvreflowPagesCursors,
         shared_ptr<spdlog::logger> logger);
 
-    static void putPropsOfLineIntoInMemRelPropLists(const vector<Property>* propertyMap,
+    static void putPropsOfLineIntoInMemRelPropLists(const vector<DataType>& propertyDataTypes,
         CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& pos,
         AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
         vector<PageCursor>& stringOvreflowPagesCursors, shared_ptr<spdlog::logger> logger);

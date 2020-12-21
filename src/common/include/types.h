@@ -43,11 +43,11 @@ class Property {
 public:
     Property(){};
 
-    Property(string name, DataType dataType) : name(name), dataType(dataType){};
+    Property(DataType dataType, uint32_t idx) : dataType{dataType}, idx{idx} {};
 
 public:
-    string name{};
     DataType dataType{};
+    uint32_t idx{};
 };
 
 uint8_t getDataTypeSize(DataType dataType);

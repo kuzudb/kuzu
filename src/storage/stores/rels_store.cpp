@@ -8,21 +8,8 @@ namespace storage {
 
 RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
     const string& directory, BufferManager& bufferManager) {
-    propertyColumns.resize(catalog.getRelLabelsCount());
-    propertyLists[FWD].resize(catalog.getRelLabelsCount());
-    propertyLists[BWD].resize(catalog.getRelLabelsCount());
-    for (auto relLabel = 0u; catalog.getRelLabelsCount(); relLabel++) {
-        if (catalog.isSingleCaridinalityInDir(relLabel, FWD)) {
-            initPropertyColumnsForRelLabel(
-                catalog, numNodesPerLabel, directory, bufferManager, relLabel, FWD);
-        } else if (catalog.isSingleCaridinalityInDir(relLabel, BWD)) {
-            initPropertyColumnsForRelLabel(
-                catalog, numNodesPerLabel, directory, bufferManager, relLabel, BWD);
-        } else {
-            initPropertyListsForRelLabel(
-                catalog, numNodesPerLabel, directory, bufferManager, relLabel);
-        }
-    }
+    initPropertyListsAndColumns(catalog, numNodesPerLabel, directory, bufferManager);
+    initAdjListsAndColumns(catalog, numNodesPerLabel, directory, bufferManager);
 }
 
 pair<uint32_t, uint32_t> RelsStore::getNumBytesScheme(const vector<label_t>& nbrNodeLabels,
@@ -48,6 +35,31 @@ uint32_t RelsStore::getNumBytesForEncoding(const uint64_t& val, const uint8_t& m
     return numBytes;
 }
 
+void RelsStore::initPropertyListsAndColumns(const Catalog& catalog,
+    const vector<uint64_t>& numNodesPerLabel, const string& directory,
+    BufferManager& bufferManager) {
+    propertyColumns.resize(catalog.getNodeLabelsCount());
+    propertyLists[FWD].resize(catalog.getNodeLabelsCount());
+    propertyLists[BWD].resize(catalog.getNodeLabelsCount());
+    for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
+        propertyColumns[nodeLabel].resize(catalog.getRelLabelsCount());
+        propertyLists[FWD][nodeLabel].resize(catalog.getRelLabelsCount());
+        propertyLists[BWD][nodeLabel].resize(catalog.getRelLabelsCount());
+    }
+    for (auto relLabel = 0u; catalog.getRelLabelsCount(); relLabel++) {
+        if (catalog.isSingleCaridinalityInDir(relLabel, FWD)) {
+            initPropertyColumnsForRelLabel(
+                catalog, numNodesPerLabel, directory, bufferManager, relLabel, FWD);
+        } else if (catalog.isSingleCaridinalityInDir(relLabel, BWD)) {
+            initPropertyColumnsForRelLabel(
+                catalog, numNodesPerLabel, directory, bufferManager, relLabel, BWD);
+        } else {
+            initPropertyListsForRelLabel(
+                catalog, numNodesPerLabel, directory, bufferManager, relLabel);
+        }
+    }
+}
+
 void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
     const vector<uint64_t>& numNodesPerLabel, const string& directory, BufferManager& bufferManager,
     const label_t& relLabel, const Direction& dir) {
@@ -55,25 +67,25 @@ void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
     for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDir(relLabel, dir)) {
         auto& propertyMap = catalog.getPropertyMapForRelLabel(relLabel);
         propertyColumns[relLabel][nodeLabel].resize(propertyMap.size());
-        for (auto i = 0u; i < propertyMap.size(); i++) {
-            auto& property = propertyMap[i];
-            auto fname = getRelPropertyColumnFname(directory, relLabel, nodeLabel, property.name);
-            switch (property.dataType) {
+        for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
+            auto idx = property->second.idx;
+            auto fname = getRelPropertyColumnFname(directory, relLabel, nodeLabel, property->first);
+            switch (property->second.dataType) {
             case INT:
-                propertyColumns[relLabel][nodeLabel][i] = make_unique<PropertyColumnInt>(
+                propertyColumns[relLabel][nodeLabel][idx] = make_unique<PropertyColumnInt>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case DOUBLE:
-                propertyColumns[relLabel][nodeLabel][i] = make_unique<PropertyColumnDouble>(
+                propertyColumns[relLabel][nodeLabel][idx] = make_unique<PropertyColumnDouble>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case BOOL:
-                propertyColumns[relLabel][nodeLabel][i] = make_unique<PropertyColumnBool>(
+                propertyColumns[relLabel][nodeLabel][idx] = make_unique<PropertyColumnBool>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
-            default:
+            case STRING:
                 throw invalid_argument("not supported.");
-                propertyColumns[relLabel][nodeLabel][i] = nullptr;
+                propertyColumns[relLabel][nodeLabel][idx] = nullptr;
             }
         }
     }
@@ -87,51 +99,53 @@ void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
         for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDir(relLabel, dir)) {
             auto& propertyMap = catalog.getPropertyMapForRelLabel(relLabel);
             propertyLists[dir][relLabel][nodeLabel].resize(propertyMap.size());
-            for (auto i = 0u; i < propertyMap.size(); i++) {
-                auto& property = propertyMap[i];
+            for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
                 auto fname =
-                    getRelPropertyListsFname(directory, relLabel, nodeLabel, dir, property.name);
-                switch (property.dataType) {
+                    getRelPropertyListsFname(directory, relLabel, nodeLabel, dir, property->first);
+                auto idx = property->second.idx;
+                switch (property->second.dataType) {
                 case INT:
-                    propertyLists[dir][relLabel][nodeLabel][i] =
+                    propertyLists[dir][relLabel][nodeLabel][idx] =
                         make_unique<RelPropertyListsInt>(fname, bufferManager);
                     break;
                 case DOUBLE:
-                    propertyLists[dir][relLabel][nodeLabel][i] =
+                    propertyLists[dir][relLabel][nodeLabel][idx] =
                         make_unique<RelPropertyListsDouble>(fname, bufferManager);
                     break;
                 case BOOL:
-                    propertyLists[dir][relLabel][nodeLabel][i] =
+                    propertyLists[dir][relLabel][nodeLabel][idx] =
                         make_unique<RelPropertyListsBool>(fname, bufferManager);
                     break;
-                default:
+                case STRING:
                     throw invalid_argument("not supported.");
-                    propertyLists[dir][relLabel][nodeLabel][i] = nullptr;
+                    propertyLists[dir][relLabel][nodeLabel][idx] = nullptr;
                 }
             }
         }
     }
 }
 
-void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
+void RelsStore::initAdjListsAndColumns(const Catalog& catalog,
     const vector<uint64_t>& numNodesPerLabel, const string& directory,
     BufferManager& bufferManager) {
     for (auto direction : DIRS) {
+        adjColumns[direction].resize(catalog.getNodeLabelsCount());
+        adjLists[direction].resize(catalog.getNodeLabelsCount());
         for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-            auto& relLabels = catalog.getRelLabelsForNodeLabelDirection(nodeLabel, direction);
-            adjColumnIndexes[direction][nodeLabel].resize(relLabels.size());
-            for (auto relLabel : relLabels) {
+            adjColumns[direction][nodeLabel].resize(catalog.getRelLabelsCount());
+            adjLists[direction][nodeLabel].resize(catalog.getRelLabelsCount());
+            for (auto relLabel : catalog.getRelLabelsForNodeLabelDirection(nodeLabel, direction)) {
                 auto numBytesScheme =
                     getNumBytesScheme(catalog.getNodeLabelsForRelLabelDir(relLabel, !direction),
                         numNodesPerLabel, catalog.getNodeLabelsCount());
                 if (catalog.isSingleCaridinalityInDir(relLabel, direction)) {
                     auto fname = getAdjColumnIndexFname(directory, nodeLabel, relLabel, direction);
-                    adjColumnIndexes[direction][nodeLabel][relLabel] =
+                    adjColumns[direction][nodeLabel][relLabel] =
                         make_unique<AdjColumn>(fname, numNodesPerLabel[nodeLabel],
                             numBytesScheme.first, numBytesScheme.second, bufferManager);
                 } else {
                     auto fname = getAdjListsIndexFname(directory, nodeLabel, relLabel, direction);
-                    adjListsIndexes[direction][nodeLabel][relLabel] = make_unique<AdjLists>(
+                    adjLists[direction][nodeLabel][relLabel] = make_unique<AdjLists>(
                         fname, numBytesScheme.first, numBytesScheme.second, bufferManager);
                 }
             }

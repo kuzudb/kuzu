@@ -31,8 +31,8 @@ class Catalog {
 public:
     Catalog(const string& directory) { readFromFile(directory); };
 
-    inline uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
-    inline uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
+    inline const uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
+    inline const uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
 
     inline const label_t& getNodeLabelFromString(const char* label) const {
         return stringToNodeLabelMap.at(label);
@@ -41,20 +41,32 @@ public:
         return stringToRelLabelMap.at(label);
     }
 
-    inline const vector<Property>& getPropertyMapForNodeLabel(label_t nodeLabel) const {
+    inline const unordered_map<string, Property>& getPropertyMapForNodeLabel(
+        const label_t& nodeLabel) const {
         return nodePropertyMaps[nodeLabel];
     }
-    inline const vector<Property>& getPropertyMapForRelLabel(label_t relLabel) const {
+    inline const unordered_map<string, Property>& getPropertyMapForRelLabel(
+        const label_t& relLabel) const {
         return relPropertyMaps[relLabel];
     }
 
-    const vector<label_t>& getRelLabelsForNodeLabelDirection(
-        label_t nodeLabel, Direction direction) const;
-    const vector<label_t>& getNodeLabelsForRelLabelDir(label_t relLabel, Direction direction) const;
+    inline const uint32_t& getIdxForNodeLabelPropertyName(
+        const label_t& nodeLabel, const string& name) {
+        return getPropertyMapForNodeLabel(nodeLabel).at(name).idx;
+    }
+    inline const uint32_t& getIdxForRelLabelPropertyName(
+        const label_t& nodeLabel, const string& name) {
+        return getPropertyMapForRelLabel(nodeLabel).at(name).idx;
+    }
 
-    inline bool isSingleCaridinalityInDir(label_t relLabel, Direction direction) const {
+    const vector<label_t>& getRelLabelsForNodeLabelDirection(
+        const label_t& nodeLabel, const Direction& dir) const;
+    const vector<label_t>& getNodeLabelsForRelLabelDir(
+        const label_t& relLabel, const Direction& dir) const;
+
+    inline bool isSingleCaridinalityInDir(const label_t& relLabel, const Direction& dir) const {
         auto cardinality = relLabelToCardinalityMap[relLabel];
-        if (FWD == direction) {
+        if (FWD == dir) {
             return ONE_ONE == cardinality || MANY_ONE == cardinality;
         } else {
             return ONE_ONE == cardinality || ONE_MANY == cardinality;
@@ -76,8 +88,8 @@ private:
 private:
     stringToLabelMap_t stringToNodeLabelMap;
     stringToLabelMap_t stringToRelLabelMap;
-    vector<vector<Property>> nodePropertyMaps;
-    vector<vector<Property>> relPropertyMaps;
+    vector<unordered_map<string, Property>> nodePropertyMaps;
+    vector<unordered_map<string, Property>> relPropertyMaps;
     vector<vector<label_t>> relLabelToSrcNodeLabels, relLabelToDstNodeLabels;
     vector<vector<label_t>> srcNodeLabelToRelLabel, dstNodeLabelToRelLabel;
     vector<Cardinality> relLabelToCardinalityMap;
