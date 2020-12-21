@@ -27,9 +27,11 @@ NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesP
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case STRING:
-                throw std::invalid_argument("not supported.");
-                propertyColumns[nodeLabel][idx] = nullptr;
+                propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnString>(
+                    fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
+            default:
+                throw invalid_argument("invalid type for property column craetion.");
             }
         }
     }

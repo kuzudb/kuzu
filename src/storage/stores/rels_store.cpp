@@ -61,8 +61,11 @@ void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case STRING:
-                throw invalid_argument("not supported.");
-                propertyColumns[nodeLabel][relLabel][idx] = nullptr;
+                propertyColumns[nodeLabel][relLabel][idx] = make_unique<PropertyColumnString>(
+                    fname, numNodesPerLabel[nodeLabel], bufferManager);
+                break;
+            default:
+                throw invalid_argument("invalid type for property list creation.");
             }
         }
     }
@@ -95,6 +98,8 @@ void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
                 case STRING:
                     throw invalid_argument("not supported.");
                     propertyLists[dir][nodeLabel][relLabel][idx] = nullptr;
+                default:
+                    throw invalid_argument("invalid type for property list creation.");
                 }
             }
         }

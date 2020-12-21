@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/processor/include/operator/column_reader/node_property_reader.h"
+#include "src/processor/include/operator/column_reader/column_reader.h"
 
 namespace graphflow {
 namespace processor {

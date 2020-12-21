@@ -10,10 +10,15 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-FileHandle::FileHandle(string path, uint64_t numPages) {
+FileHandle::FileHandle(const string& path) {
     fileDescriptor = open(path.c_str(), O_RDONLY);
     if (-1 == fileDescriptor) {
         throw invalid_argument("Cannot open file: " + path);
+    }
+    auto fileLength = lseek(fileDescriptor, 0, SEEK_END);
+    auto numPages = fileLength / PAGE_SIZE;
+    if (0 != fileLength % PAGE_SIZE) {
+        numPages++;
     }
     pageToFrameMap.resize(numPages);
     for (auto i = 0ull; i < numPages; i++) {

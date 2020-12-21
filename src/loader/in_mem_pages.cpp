@@ -41,7 +41,7 @@ void InMemStringOverflowPages::set(
         memcpy(&encodedString->overflowPtr, originalString + 4, encodedString->len - 4);
         return;
     }
-    copyOverflowString(cursor, (uint8_t*)(originalString + 4), encodedString);
+    copyOverflowString(cursor, (uint8_t*)originalString, encodedString);
 }
 
 void InMemStringOverflowPages::copyOverflowString(
@@ -50,11 +50,10 @@ void InMemStringOverflowPages::copyOverflowString(
         cursor.offset = 0;
         cursor.idx = getNewOverflowPageIdx();
     }
-    memcpy(&encodedString->overflowPtr, &cursor.idx, 6);
-    memcpy(((void*)&encodedString->overflowPtr) + 6, &cursor.offset, 2);
+    encodedString->setOverflowPtrFromPageCursor(cursor);
     auto writeOffset = data.get() + (cursor.idx * PAGE_SIZE) + cursor.offset;
-    memcpy(writeOffset, ptrToCopy, encodedString->len - 4);
-    cursor.offset += encodedString->len - 4;
+    memcpy(writeOffset, ptrToCopy, encodedString->len);
+    cursor.offset += encodedString->len;
 }
 
 uint32_t InMemStringOverflowPages::getNewOverflowPageIdx() {

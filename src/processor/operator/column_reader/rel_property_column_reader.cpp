@@ -1,11 +1,11 @@
-#include "src/processor/include/operator/column_reader/node_property_reader.h"
+#include "src/processor/include/operator/column_reader/rel_property_column_reader.h"
 
 namespace graphflow {
 namespace processor {
 
-void NodePropertyReader::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
+void RelPropertyColumnReader::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
     ColumnReader::initialize(graph, morsel);
-    column = graph->getNodePropertyColumn(nodeLabel, propertyName);
+    column = graph->getRelPropertyColumn(relLabel, nodeLabel, propertyName);
     outValueVector = make_shared<ValueVector>(column->getElementSize());
     outDataChunk->append(outValueVector);
 }

@@ -16,13 +16,14 @@ class FileHandle {
     friend class BufferManager;
 
 public:
-    FileHandle(string path, uint64_t numPages);
+    FileHandle(const string& path);
 
-    inline void unswizzle(uint32_t pageIdx) { pageToFrameMap[pageIdx] = UINT64_MAX; }
+private:
     inline uint64_t getPageIdxEntry(uint32_t pageIdx) { return pageToFrameMap[pageIdx]; }
     inline void swizzle(uint32_t pageIdx, uint64_t swizzledVal) {
         pageToFrameMap[pageIdx] = swizzledVal;
     }
+    inline void unswizzle(uint32_t pageIdx) { pageToFrameMap[pageIdx] = UINT64_MAX; }
 
     void readPage(char* frame, uint64_t pageIdx);
 
