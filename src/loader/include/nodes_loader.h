@@ -35,7 +35,7 @@ private:
     // Concurrent Tasks
 
     static void populateNodePropertyColumnTask(string fname, uint64_t blockId, char tokenSeparator,
-        const vector<Property>* propertyMap, uint64_t numElements, node_offset_t offsetStart,
+        const vector<DataType>* propertyDataTypes, uint64_t numElements, node_offset_t offsetStart,
         NodeIDMap* nodeIDMap, vector<string>* propertyColumnFnames,
         vector<unique_ptr<InMemStringOverflowPages>>* stringOverflowPages,
         shared_ptr<spdlog::logger> logger);
@@ -43,17 +43,17 @@ private:
     // Task Helpers
 
     static unique_ptr<vector<unique_ptr<uint8_t[]>>> createBuffersForPropertyMap(
-        const vector<Property>& propertyMap, uint64_t numElements,
+        const vector<DataType>& propertyDataTypes, uint64_t numElements,
         shared_ptr<spdlog::logger> logger);
 
-    static void putPropsOfLineIntoBuffers(const vector<Property>* propertyMap, CSVReader& reader,
-        vector<unique_ptr<uint8_t[]>>& buffers, const uint32_t& bufferOffset,
+    static void putPropsOfLineIntoBuffers(const vector<DataType>& propertyDataTypes,
+        CSVReader& reader, vector<unique_ptr<uint8_t[]>>& buffers, const uint32_t& bufferOffset,
         vector<unique_ptr<InMemStringOverflowPages>>& InMemStringOverflowPages,
         vector<PageCursor>& stringOverflowPagesCursors, shared_ptr<spdlog::logger> logger);
 
     static void writeBuffersToFiles(const vector<unique_ptr<uint8_t[]>>& buffers,
         const uint64_t& offsetStart, const uint64_t& numElementsToWrite,
-        const vector<string>& propertyColumnFnames, const vector<Property>& propertyMap);
+        const vector<string>& propertyColumnFnames, const vector<DataType>& propertyDataTypes);
 
 private:
     shared_ptr<spdlog::logger> logger;

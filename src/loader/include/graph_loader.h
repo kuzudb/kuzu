@@ -43,14 +43,15 @@ private:
 
     void inferFilenamesInitPropertyMapAndCountLinesPerBlock(label_t numLabels,
         nlohmann::json filedescriptions, vector<string>& fnames,
-        vector<uint64_t>& numBlocksPerLabel, vector<vector<Property>>& propertyMap,
+        vector<uint64_t>& numBlocksPerLabel, vector<unordered_map<string, Property>>& propertyMaps,
         const char tokenSeparator);
 
     void initPropertyMapAndCalcNumBlocksPerLabel(label_t numLabels, vector<string>& fnames,
-        vector<uint64_t>& numPerLabel, vector<vector<Property>>& propertyMaps,
+        vector<uint64_t>& numPerLabel, vector<unordered_map<string, Property>>& propertyMaps,
         const char tokenSeparator);
 
-    void parseHeader(const char tokenSeparator, string& header, vector<Property>& propertyMap);
+    void parseHeader(
+        const char tokenSeparator, string& header, unordered_map<string, Property>& propertyMap);
 
     void countLinesPerBlockAndInitNumPerLabel(label_t numLabels,
         vector<vector<uint64_t>>& numLinesPerBlock, vector<uint64_t>& numBlocksPerLabel,

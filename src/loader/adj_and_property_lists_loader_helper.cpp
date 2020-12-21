@@ -102,13 +102,13 @@ void AdjAndPropertyListsLoaderHelper::sortOverflowStrings() {
         for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
             (*dirLabelPropertyIdxStringOverflowPages)[dir][nodeLabel].resize(
                 description.propertyMap->size());
-            for (auto propertyIdx = 0u; propertyIdx < (*description.propertyMap).size();
-                 propertyIdx++) {
-                auto property = (*description.propertyMap)[propertyIdx];
-                if (STRING == property.dataType) {
+            for (auto property = description.propertyMap->begin();
+                 property != description.propertyMap->end(); property++) {
+                if (STRING == property->second.dataType) {
                     auto fname = RelsStore::getRelPropertyListsFname(
-                        outputDirectory, description.label, nodeLabel, dir, property.name);
-                    (*dirLabelPropertyIdxStringOverflowPages)[dir][nodeLabel][propertyIdx] =
+                        outputDirectory, description.label, nodeLabel, dir, property->first);
+                    (*dirLabelPropertyIdxStringOverflowPages)[dir][nodeLabel][property->second
+                                                                                  .idx] =
                         make_unique<InMemStringOverflowPages>(fname + ".ovf");
                     auto numNodes = graph.getNumNodesPerLabel()[nodeLabel];
                     auto numBuckets = numNodes / 256;
@@ -116,17 +116,16 @@ void AdjAndPropertyListsLoaderHelper::sortOverflowStrings() {
                         numBuckets++;
                     }
                     node_offset_t offsetStart = 0, offsetEnd = 0;
+                    auto idx = property->second.idx;
                     for (auto bucketIdx = 0u; bucketIdx < numBuckets; bucketIdx++) {
                         offsetStart = offsetEnd;
                         offsetEnd = min(offsetStart + 256, numNodes);
                         threadPool.execute(sortOverflowStringsOfPropertyListsTask, offsetStart,
-                            offsetEnd,
-                            dirLabelPropertyIdxPropertyLists[dir][nodeLabel][propertyIdx].get(),
+                            offsetEnd, dirLabelPropertyIdxPropertyLists[dir][nodeLabel][idx].get(),
                             &dirLabelAdjListHeaders[dir][nodeLabel],
-                            &dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][propertyIdx],
-                            (*propertyIdxUnordStringOverflowPages)[propertyIdx].get(),
-                            (*dirLabelPropertyIdxStringOverflowPages)[dir][nodeLabel][propertyIdx]
-                                .get(),
+                            &dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][idx],
+                            (*propertyIdxUnordStringOverflowPages)[idx].get(),
+                            (*dirLabelPropertyIdxStringOverflowPages)[dir][nodeLabel][idx].get(),
                             logger);
                     }
                 }
@@ -155,21 +154,23 @@ void AdjAndPropertyListsLoaderHelper::saveToFile() {
     if (description.requirePropertyLists()) {
         for (auto& dir : DIRS) {
             for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
-                for (auto i = 0u; i < description.propertyMap->size(); i++) {
-                    auto& property = (*description.propertyMap)[i];
-                    if (dirLabelPropertyIdxPropertyLists[dir][nodeLabel][i]) {
+                for (auto property = description.propertyMap->begin();
+                     property != description.propertyMap->end(); property++) {
+                    auto idx = property->second.idx;
+                    if (dirLabelPropertyIdxPropertyLists[dir][nodeLabel][idx]) {
                         threadPool.execute([&](InMemPropertyPages* x) { x->saveToFile(); },
-                            dirLabelPropertyIdxPropertyLists[dir][nodeLabel][i].get());
-                        if (STRING == property.dataType) {
+                            dirLabelPropertyIdxPropertyLists[dir][nodeLabel][idx].get());
+                        if (STRING == property->second.dataType) {
                             threadPool.execute(
                                 [&](InMemStringOverflowPages* x) { x->saveToFile(); },
-                                (*dirLabelPropertyIdxStringOverflowPages)[dir][nodeLabel][i].get());
+                                (*dirLabelPropertyIdxStringOverflowPages)[dir][nodeLabel][idx]
+                                    .get());
                         }
                         auto fname = RelsStore::getRelPropertyListsFname(
-                            outputDirectory, description.label, nodeLabel, dir, property.name);
+                            outputDirectory, description.label, nodeLabel, dir, property->first);
                         threadPool.execute(
                             [&](ListsMetadata& x, string fname) { x.saveToFile(fname); },
-                            dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][i], fname);
+                            dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][idx], fname);
                     }
                 }
             }
@@ -215,12 +216,13 @@ void AdjAndPropertyListsLoaderHelper::initAdjListsAndPropertyListsMetadata() {
             for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
                 auto listsSizes = dirLabelListSizes[dir][nodeLabel].get();
                 auto numNodeOffsets = graph.getNumNodesPerLabel()[nodeLabel];
-                for (auto i = 0u; i < description.propertyMap->size(); i++) {
-                    auto numPerPage =
-                        PAGE_SIZE / getDataTypeSize((*description.propertyMap)[i].dataType);
+                for (auto property = description.propertyMap->begin();
+                     property != description.propertyMap->end(); property++) {
+                    auto idx = property->second.idx;
+                    auto numPerPage = PAGE_SIZE / getDataTypeSize(property->second.dataType);
                     threadPool.execute(calculateListsMetadataForListsTask, numNodeOffsets,
                         numPerPage, listsSizes, &dirLabelAdjListHeaders[dir][nodeLabel],
-                        &dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][i]);
+                        &dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][idx]);
                 }
             }
         }
@@ -252,22 +254,25 @@ void AdjAndPropertyListsLoaderHelper::buildInMemPropertyLists() {
         for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
             dirLabelPropertyIdxPropertyLists[dir][nodeLabel].resize(
                 description.propertyMap->size());
-            for (auto i = 0u; i < description.propertyMap->size(); i++) {
-                auto& property = (*description.propertyMap)[i];
+            for (auto property = description.propertyMap->begin();
+                 property != description.propertyMap->end(); property++) {
+                auto idx = property->second.idx;
                 auto fname = RelsStore::getRelPropertyListsFname(
-                    outputDirectory, description.label, nodeLabel, dir, property.name);
-                dirLabelPropertyIdxPropertyLists[dir][nodeLabel][i] =
+                    outputDirectory, description.label, nodeLabel, dir, property->first);
+                dirLabelPropertyIdxPropertyLists[dir][nodeLabel][idx] =
                     make_unique<InMemPropertyPages>(fname,
-                        dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][i].numPages,
-                        getDataTypeSize(property.dataType));
+                        dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][idx].numPages,
+                        getDataTypeSize(property->second.dataType));
             }
         }
     }
     propertyIdxUnordStringOverflowPages =
         make_unique<vector<unique_ptr<InMemStringOverflowPages>>>(description.propertyMap->size());
-    for (auto i = 0u; i < description.propertyMap->size(); i++) {
-        if (STRING == (*description.propertyMap)[i].dataType) {
-            (*propertyIdxUnordStringOverflowPages)[i] = make_unique<InMemStringOverflowPages>();
+    for (auto property = description.propertyMap->begin();
+         property != description.propertyMap->end(); property++) {
+        if (STRING == property->second.dataType) {
+            (*propertyIdxUnordStringOverflowPages)[property->second.idx] =
+                make_unique<InMemStringOverflowPages>();
         }
     }
 }

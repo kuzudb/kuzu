@@ -19,29 +19,31 @@ void NodesLoader::loadNodesForLabel(const label_t& nodeLabel, const uint64_t& nu
     auto& propertyMap = catalog.getPropertyMapForNodeLabel(nodeLabel);
     vector<unique_ptr<InMemStringOverflowPages>> propertyIdxStringOverflowPages{propertyMap.size()};
     vector<string> propertyColumnFnames(propertyMap.size());
-    for (auto propertyIdx = 0u; propertyIdx < propertyMap.size(); propertyIdx++) {
-        auto& property = propertyMap[propertyIdx];
-        propertyColumnFnames[propertyIdx] =
-            NodesStore::getNodePropertyColumnFname(outputDirectory, nodeLabel, property.name);
-        if (STRING == property.dataType) {
-            propertyIdxStringOverflowPages[propertyIdx] =
-                make_unique<InMemStringOverflowPages>(propertyColumnFnames[propertyIdx] + ".ovf");
+    for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
+        propertyColumnFnames[property->second.idx] =
+            NodesStore::getNodePropertyColumnFname(outputDirectory, nodeLabel, property->first);
+        if (STRING == property->second.dataType) {
+            propertyIdxStringOverflowPages[property->second.idx] =
+                make_unique<InMemStringOverflowPages>(
+                    propertyColumnFnames[property->second.idx] + ".ovf");
         }
     }
+    auto propertyDataTypes = createPropertyDataTypes(propertyMap);
     logger->info("Populating Node Property Columns...");
     node_offset_t offsetStart = 0;
     for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
         threadPool.execute(populateNodePropertyColumnTask, fname, blockIdx,
-            metadata.at("tokenSeparator").get<string>()[0], &propertyMap,
+            metadata.at("tokenSeparator").get<string>()[0], &propertyDataTypes,
             numLinesPerBlock[blockIdx], offsetStart, &nodeIDMap, &propertyColumnFnames,
             &propertyIdxStringOverflowPages, logger);
         offsetStart += numLinesPerBlock[blockIdx];
     }
     threadPool.wait();
-    for (auto propertyIdx = 0u; propertyIdx < propertyMap.size(); propertyIdx++) {
-        if (STRING == propertyMap[propertyIdx].dataType) {
+
+    for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
+        if (STRING == property->second.dataType) {
             threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },
-                propertyIdxStringOverflowPages[propertyIdx].get());
+                propertyIdxStringOverflowPages[property->second.idx].get());
         }
     }
     threadPool.wait();
@@ -49,13 +51,13 @@ void NodesLoader::loadNodesForLabel(const label_t& nodeLabel, const uint64_t& nu
 }
 
 void NodesLoader::populateNodePropertyColumnTask(string fname, uint64_t blockId,
-    char tokenSeparator, const vector<Property>* propertyMap, uint64_t numElements,
+    char tokenSeparator, const vector<DataType>* propertyDataTypes, uint64_t numElements,
     node_offset_t offsetStart, NodeIDMap* nodeIDMap, vector<string>* propertyColumnFnames,
     vector<unique_ptr<InMemStringOverflowPages>>* propertyIdxStringOverflowPages,
     shared_ptr<spdlog::logger> logger) {
     logger->debug("start {0} {1}", fname, blockId);
-    vector<PageCursor> stringOverflowPagesCursors{propertyMap->size()};
-    auto buffers = createBuffersForPropertyMap(*propertyMap, numElements, logger);
+    vector<PageCursor> stringOverflowPagesCursors{propertyDataTypes->size()};
+    auto buffers = createBuffersForPropertyMap(*propertyDataTypes, numElements, logger);
     CSVReader reader(fname, tokenSeparator, blockId);
     NodeIDMap map(numElements);
     if (0 == blockId) {
@@ -65,36 +67,37 @@ void NodesLoader::populateNodePropertyColumnTask(string fname, uint64_t blockId,
     while (reader.hasNextLine()) {
         reader.hasNextToken();
         map.setOffset(reader.getString(), offsetStart + bufferOffset);
-        if (0 < propertyMap->size()) {
-            putPropsOfLineIntoBuffers(propertyMap, reader, *buffers, bufferOffset,
+        if (0 < propertyDataTypes->size()) {
+            putPropsOfLineIntoBuffers(*propertyDataTypes, reader, *buffers, bufferOffset,
                 *propertyIdxStringOverflowPages, stringOverflowPagesCursors, logger);
         }
         bufferOffset++;
     }
     nodeIDMap->merge(map);
-    writeBuffersToFiles(*buffers, offsetStart, numElements, *propertyColumnFnames, *propertyMap);
+    writeBuffersToFiles(
+        *buffers, offsetStart, numElements, *propertyColumnFnames, *propertyDataTypes);
     logger->debug("end   {0} {1}", fname, blockId);
 }
 
 unique_ptr<vector<unique_ptr<uint8_t[]>>> NodesLoader::createBuffersForPropertyMap(
-    const vector<Property>& propertyMap, uint64_t numElements, shared_ptr<spdlog::logger> logger) {
+    const vector<DataType>& propertyDataTypes, uint64_t numElements,
+    shared_ptr<spdlog::logger> logger) {
     logger->debug("creating buffers for elements: {}", numElements);
-    auto buffers = make_unique<vector<unique_ptr<uint8_t[]>>>(propertyMap.size());
-    for (auto propertyIdx = 0u; propertyIdx < propertyMap.size(); propertyIdx++) {
-        auto& property = propertyMap[propertyIdx];
+    auto buffers = make_unique<vector<unique_ptr<uint8_t[]>>>(propertyDataTypes.size());
+    for (auto propertyIdx = 0u; propertyIdx < propertyDataTypes.size(); propertyIdx++) {
         (*buffers)[propertyIdx] =
-            make_unique<uint8_t[]>(numElements * getDataTypeSize(property.dataType));
+            make_unique<uint8_t[]>(numElements * getDataTypeSize(propertyDataTypes[propertyIdx]));
     };
     return buffers;
 }
 
-void NodesLoader::putPropsOfLineIntoBuffers(const vector<Property>* propertyMap, CSVReader& reader,
-    vector<unique_ptr<uint8_t[]>>& buffers, const uint32_t& bufferOffset,
+void NodesLoader::putPropsOfLineIntoBuffers(const vector<DataType>& propertyDataTypes,
+    CSVReader& reader, vector<unique_ptr<uint8_t[]>>& buffers, const uint32_t& bufferOffset,
     vector<unique_ptr<InMemStringOverflowPages>>& propertyIdxStringOverflowPages,
     vector<PageCursor>& stringOverflowPagesCursors, shared_ptr<spdlog::logger> logger) {
     auto propertyIdx = 0;
     while (reader.hasNextToken()) {
-        switch ((*propertyMap)[propertyIdx].dataType) {
+        switch (propertyDataTypes[propertyIdx]) {
         case INT: {
             auto intVal = reader.skipTokenIfNull() ? NULL_INT : reader.getInteger();
             memcpy(buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(INT)), &intVal,
@@ -131,17 +134,17 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<Property>* propertyMap,
 
 void NodesLoader::writeBuffersToFiles(const vector<unique_ptr<uint8_t[]>>& buffers,
     const uint64_t& offsetStart, const uint64_t& numElementsToWrite,
-    const vector<string>& propertyColumnFnames, const vector<Property>& propertyMap) {
-    for (auto propertyIdx = 0u; propertyIdx < propertyMap.size(); propertyIdx++) {
+    const vector<string>& propertyColumnFnames, const vector<DataType>& propertyDataTypes) {
+    for (auto propertyIdx = 0u; propertyIdx < propertyDataTypes.size(); propertyIdx++) {
         auto fd = open(propertyColumnFnames[propertyIdx].c_str(), O_WRONLY | O_CREAT, 0666);
         if (-1 == fd) {
             invalid_argument("cannot open/create file: " + propertyColumnFnames[propertyIdx]);
         }
-        auto offsetInFile = offsetStart * getDataTypeSize(propertyMap[propertyIdx].dataType);
+        auto offsetInFile = offsetStart * getDataTypeSize(propertyDataTypes[propertyIdx]);
         if (-1 == lseek(fd, offsetInFile, SEEK_SET)) {
             throw invalid_argument("Cannot seek to the required offset in file.");
         }
-        auto bytesToWrite = numElementsToWrite * getDataTypeSize(propertyMap[propertyIdx].dataType);
+        auto bytesToWrite = numElementsToWrite * getDataTypeSize(propertyDataTypes[propertyIdx]);
         uint64_t bytesWritten = write(fd, buffers[propertyIdx].get(), bytesToWrite);
         if (bytesWritten != bytesToWrite) {
             throw invalid_argument("Cannot write in file.");

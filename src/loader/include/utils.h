@@ -32,8 +32,10 @@ private:
         nodeIDToOffsetMapping;
 };
 
-//! Holds information about a rel label that is needed to construct adjRels and adjLists indexes,
-//! property columns, and property lists.
+vector<DataType> createPropertyDataTypes(const unordered_map<string, Property>& propertyMap);
+
+//! Holds information about a rel label that is needed to construct adjRels and adjLists
+//! indexes, property columns, and property lists.
 class RelLabelDescription {
 
 public:
@@ -55,7 +57,8 @@ public:
     vector<vector<label_t>> nodeLabelsPerDir{2};
     vector<bool> isSingleCardinalityPerDir{false, false};
     vector<pair<uint32_t, uint32_t>> numBytesSchemePerDir{2};
-    const vector<Property>* propertyMap;
+    const unordered_map<string, Property>* propertyMap;
+    vector<DataType> propertyDataTypes;
 };
 
 } // namespace loader

@@ -47,7 +47,7 @@ public:
 private:
     static uint32_t getNumBytesForEncoding(const uint64_t& val, const uint8_t& minNumBytes);
 
-    void initPropertyListsForRelLabel(const Catalog& catalog,
+    void initPropertyListsAndColumns(const Catalog& catalog,
         const vector<uint64_t>& numNodesPerLabel, const string& directory,
         BufferManager& bufferManager);
 
@@ -59,11 +59,14 @@ private:
         const vector<uint64_t>& numNodesPerLabel, const string& directory,
         BufferManager& bufferManager, const label_t& relLabel);
 
+    void initAdjListsAndColumns(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
+        const string& directory, BufferManager& bufferManager);
+
 private:
     vector<vector<vector<unique_ptr<BaseColumn>>>> propertyColumns;
     vector<vector<vector<vector<unique_ptr<Lists>>>>> propertyLists{2};
-    vector<vector<vector<unique_ptr<AdjColumn>>>> adjColumnIndexes{2};
-    vector<vector<vector<unique_ptr<AdjLists>>>> adjListsIndexes{2};
+    vector<vector<vector<unique_ptr<AdjColumn>>>> adjColumns{2};
+    vector<vector<vector<unique_ptr<AdjLists>>>> adjLists{2};
 };
 
 } // namespace storage

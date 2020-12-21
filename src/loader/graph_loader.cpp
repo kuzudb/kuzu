@@ -118,32 +118,32 @@ void GraphLoader::loadRels(const nlohmann::json& metadata, Graph& graph, Catalog
 
 void GraphLoader::inferFilenamesInitPropertyMapAndCountLinesPerBlock(label_t numLabels,
     nlohmann::json filedescriptions, vector<string>& filenames, vector<uint64_t>& numBlocksPerLabel,
-    vector<vector<Property>>& propertyMap, const char tokenSeparator) {
+    vector<unordered_map<string, Property>>& propertyMaps, const char tokenSeparator) {
     for (label_t label = 0; label < numLabels; label++) {
         auto fileDescription = filedescriptions[label];
         filenames[label] = inputDirectory + "/" + fileDescription.at("filename").get<string>();
     }
     initPropertyMapAndCalcNumBlocksPerLabel(
-        numLabels, filenames, numBlocksPerLabel, propertyMap, tokenSeparator);
+        numLabels, filenames, numBlocksPerLabel, propertyMaps, tokenSeparator);
 }
 
 void GraphLoader::initPropertyMapAndCalcNumBlocksPerLabel(label_t numLabels,
-    vector<string>& filenames, vector<uint64_t>& numPerLabel, vector<vector<Property>>& propertyMap,
-    const char tokenSeparator) {
-    propertyMap.resize(numLabels);
+    vector<string>& filenames, vector<uint64_t>& numPerLabel,
+    vector<unordered_map<string, Property>>& propertyMaps, const char tokenSeparator) {
+    propertyMaps.resize(numLabels);
     for (label_t label = 0; label < numLabels; label++) {
         logger->info("Parsing header: " + filenames[label]);
         ifstream f(filenames[label], ios_base::in);
         string header;
         getline(f, header);
-        parseHeader(tokenSeparator, header, propertyMap[label]);
+        parseHeader(tokenSeparator, header, propertyMaps[label]);
         f.seekg(0, ios_base::end);
         numPerLabel[label] = 1 + (f.tellg() / CSV_READING_BLOCK_SIZE);
     }
 }
 
 void GraphLoader::parseHeader(
-    const char tokenSeparator, string& header, vector<Property>& labelPropertyDescriptors) {
+    const char tokenSeparator, string& header, unordered_map<string, Property>& propertyMap) {
     auto splittedHeader = make_unique<vector<string>>();
     size_t startPos = 0, endPos = 0;
     while ((endPos = header.find(tokenSeparator, startPos)) != string::npos) {
@@ -152,6 +152,7 @@ void GraphLoader::parseHeader(
     }
     splittedHeader->push_back(header.substr(startPos));
     auto propertyNameSet = make_unique<unordered_set<string>>();
+    uint32_t propertyIdx = 0;
     for (auto& split : *splittedHeader) {
         auto propertyName = split.substr(0, split.find(":"));
         if (propertyNameSet->find(propertyName) != propertyNameSet->end()) {
@@ -160,7 +161,7 @@ void GraphLoader::parseHeader(
         propertyNameSet->insert(propertyName);
         auto dataType = getDataType(split.substr(split.find(":") + 1));
         if (NODE != dataType && LABEL != dataType) {
-            labelPropertyDescriptors.push_back(Property(propertyName, dataType));
+            propertyMap.insert({propertyName, Property{dataType, propertyIdx++}});
         }
     }
 }
