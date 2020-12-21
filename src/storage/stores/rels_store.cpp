@@ -63,29 +63,28 @@ void RelsStore::initPropertyListsAndColumns(const Catalog& catalog,
 void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
     const vector<uint64_t>& numNodesPerLabel, const string& directory, BufferManager& bufferManager,
     const label_t& relLabel, const Direction& dir) {
-    propertyColumns[relLabel].resize(catalog.getNodeLabelsCount());
     for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDir(relLabel, dir)) {
         auto& propertyMap = catalog.getPropertyMapForRelLabel(relLabel);
-        propertyColumns[relLabel][nodeLabel].resize(propertyMap.size());
+        propertyColumns[nodeLabel][relLabel].resize(propertyMap.size());
         for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
             auto idx = property->second.idx;
             auto fname = getRelPropertyColumnFname(directory, relLabel, nodeLabel, property->first);
             switch (property->second.dataType) {
             case INT:
-                propertyColumns[relLabel][nodeLabel][idx] = make_unique<PropertyColumnInt>(
+                propertyColumns[nodeLabel][relLabel][idx] = make_unique<PropertyColumnInt>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case DOUBLE:
-                propertyColumns[relLabel][nodeLabel][idx] = make_unique<PropertyColumnDouble>(
+                propertyColumns[nodeLabel][relLabel][idx] = make_unique<PropertyColumnDouble>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case BOOL:
-                propertyColumns[relLabel][nodeLabel][idx] = make_unique<PropertyColumnBool>(
+                propertyColumns[nodeLabel][relLabel][idx] = make_unique<PropertyColumnBool>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case STRING:
                 throw invalid_argument("not supported.");
-                propertyColumns[relLabel][nodeLabel][idx] = nullptr;
+                propertyColumns[nodeLabel][relLabel][idx] = nullptr;
             }
         }
     }
@@ -95,30 +94,29 @@ void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
     const vector<uint64_t>& numNodesPerLabel, const string& directory, BufferManager& bufferManager,
     const label_t& relLabel) {
     for (auto& dir : DIRS) {
-        propertyLists[dir][relLabel].resize(catalog.getNodeLabelsCount());
         for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDir(relLabel, dir)) {
             auto& propertyMap = catalog.getPropertyMapForRelLabel(relLabel);
-            propertyLists[dir][relLabel][nodeLabel].resize(propertyMap.size());
+            propertyLists[dir][nodeLabel][relLabel].resize(propertyMap.size());
             for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
                 auto fname =
                     getRelPropertyListsFname(directory, relLabel, nodeLabel, dir, property->first);
                 auto idx = property->second.idx;
                 switch (property->second.dataType) {
                 case INT:
-                    propertyLists[dir][relLabel][nodeLabel][idx] =
+                    propertyLists[dir][nodeLabel][relLabel][idx] =
                         make_unique<RelPropertyListsInt>(fname, bufferManager);
                     break;
                 case DOUBLE:
-                    propertyLists[dir][relLabel][nodeLabel][idx] =
+                    propertyLists[dir][nodeLabel][relLabel][idx] =
                         make_unique<RelPropertyListsDouble>(fname, bufferManager);
                     break;
                 case BOOL:
-                    propertyLists[dir][relLabel][nodeLabel][idx] =
+                    propertyLists[dir][nodeLabel][relLabel][idx] =
                         make_unique<RelPropertyListsBool>(fname, bufferManager);
                     break;
                 case STRING:
                     throw invalid_argument("not supported.");
-                    propertyLists[dir][relLabel][nodeLabel][idx] = nullptr;
+                    propertyLists[dir][nodeLabel][relLabel][idx] = nullptr;
                 }
             }
         }
