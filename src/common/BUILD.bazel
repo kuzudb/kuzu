@@ -15,4 +15,7 @@ cc_library(
         "include/vector/value_vector.h",
     ],
     visibility = ["//visibility:public"],
+    deps = [
+        "@martinus_robin_hood_hashing",
+    ],
 )
