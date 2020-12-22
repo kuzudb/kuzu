@@ -30,11 +30,9 @@ cc_library(
         "structures/lists.cpp",
     ],
     hdrs = [
-        "include/structures/adj_column.h",
         "include/structures/adj_lists.h",
-        "include/structures/column.h",
         "include/structures/lists.h",
-        "include/structures/property_column.h",
+        "include/structures/column.h",
         "include/structures/property_lists.h",
     ],
     visibility = ["//visibility:public"],

@@ -29,10 +29,21 @@ public:
 
     inline const vector<uint64_t>& getNumNodesPerLabel() const { return numNodesPerLabel; };
 
-    // TODO: This function is present in Graph and is virtual only for supporting the GraphStub
-    // class that is used in test. Should be removed in priority.
-    virtual BaseColumn* getColumn(label_t label, uint64_t propertyIdx) {
-        return nodesStore->getNodePropertyColumn(label, propertyIdx);
+    virtual BaseColumn* getNodePropertyColumn(
+        const label_t& nodeLabel, const string& propertyName) {
+        auto propertyIdx = catalog->getIdxForNodeLabelPropertyName(nodeLabel, propertyName);
+        return nodesStore->getNodePropertyColumn(nodeLabel, propertyIdx);
+    }
+
+    BaseColumn* getRelPropertyColumn(
+        const label_t& relLabel, const label_t& nodeLabel, const string& propertyName) {
+        auto propertyIdx = catalog->getIdxForRelLabelPropertyName(relLabel, propertyName);
+        return relsStore->getRelPropertyColumn(relLabel, nodeLabel, propertyIdx);
+    }
+
+    AdjColumn* getAdjColumn(
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) {
+        return relsStore->getAdjColumn(direction, nodeLabel, relLabel);
     }
 
 protected:

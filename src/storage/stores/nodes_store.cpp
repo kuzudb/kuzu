@@ -1,6 +1,6 @@
 #include "src/storage/include/stores/nodes_store.h"
 
-#include "src/storage/include/structures/property_column.h"
+#include "src/storage/include/structures/column.h"
 
 namespace graphflow {
 namespace storage {

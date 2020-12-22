@@ -15,21 +15,21 @@ TEST(ScanTests, ScanSingleLabelTest) {
     auto dataChunk = scan->getOutDataChunks()[0];
     auto nodeVector = scan->getNodeVector();
     node_offset_t currNodeOffset = 0;
-    uint64_t size = NODE_SEQUENCE_VECTOR_SIZE;
+    uint64_t size = ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     while (morsel->currNodeOffset < 1025012) {
         ASSERT_EQ(scan->getNextMorsel(), true);
         scan->getNextTuples();
         if (morsel->currNodeOffset == 1025012) {
-            size = 1025012 % NODE_SEQUENCE_VECTOR_SIZE + 1;
+            size = 1025012 % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1;
         }
         ASSERT_EQ(dataChunk->size, size);
         ASSERT_EQ(nodeVector->getLabel(), 1);
         nodeID_t node;
         for (uint64_t i = 0; i < dataChunk->size; i++) {
-            nodeVector->get(i, node);
+            nodeVector->readValue(i, node);
             ASSERT_EQ(node.offset, currNodeOffset + i);
         }
-        currNodeOffset += NODE_SEQUENCE_VECTOR_SIZE;
+        currNodeOffset += ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     }
 
     // morsel->currNodeOffset == 1025012.
@@ -65,18 +65,18 @@ void testScanMultiLabel(unique_ptr<ScanMultiLabel>& scan,
     auto dataChunk = scan->getOutDataChunks()[0];
     auto nodeVector = scan->getNodeVector();
     node_offset_t currNodeOffset = 0;
-    uint64_t size = NODE_SEQUENCE_VECTOR_SIZE;
+    uint64_t size = ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     nodeID_t node;
     while (morsel->currNodeOffset < max_offset) {
         scan->getNextMorsel();
         scan->getNextTuples();
         if (morsel->currNodeOffset == max_offset) {
-            size = max_offset % NODE_SEQUENCE_VECTOR_SIZE + 1;
+            size = max_offset % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1;
         }
         ASSERT_EQ(dataChunk->size, size);
         ASSERT_EQ(nodeVector->getLabel(), label);
-        nodeVector->get(0, node);
+        nodeVector->readValue(0, node);
         ASSERT_EQ(node.offset, currNodeOffset);
-        currNodeOffset += NODE_SEQUENCE_VECTOR_SIZE;
+        currNodeOffset += ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     }
 }

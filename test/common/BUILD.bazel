@@ -4,7 +4,6 @@ cc_test(
     name = "common_tests",
     srcs = [
         "vector/node_vector_test.cpp",
-        "vector/property_vector_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",

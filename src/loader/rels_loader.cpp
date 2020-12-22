@@ -21,8 +21,8 @@ void RelsLoader::load(vector<string>& fnames, vector<uint64_t>& numBlocksPerFile
         }
         for (auto& dir : DIRS) {
             description.numBytesSchemePerDir[dir] =
-                RelsStore::getNumBytesScheme(description.nodeLabelsPerDir[!dir],
-                    graph.getNumNodesPerLabel(), catalog.getNodeLabelsCount());
+                getNumBytesScheme(description.nodeLabelsPerDir[!dir], graph.getNumNodesPerLabel(),
+                    catalog.getNodeLabelsCount());
         }
         description.propertyDataTypes = createPropertyDataTypes(propertyMap);
         loadRelsForLabel(description);

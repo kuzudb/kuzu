@@ -2,8 +2,8 @@
 
 #include "src/common/include/types.h"
 #include "src/storage/include/catalog.h"
-#include "src/storage/include/structures/adj_column.h"
 #include "src/storage/include/structures/adj_lists.h"
+#include "src/storage/include/structures/column.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -16,6 +16,16 @@ class RelsStore {
 public:
     RelsStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
         const string& directory, BufferManager& bufferManager);
+
+    BaseColumn* getRelPropertyColumn(
+        const label_t& relLabel, const label_t& nodeLabel, const uint64_t& propertyIdx) {
+        return propertyColumns[relLabel][nodeLabel][propertyIdx].get();
+    }
+
+    AdjColumn* getAdjColumn(
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) {
+        return adjColumns[direction][nodeLabel][relLabel].get();
+    }
 
     inline static string getAdjColumnIndexFname(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
@@ -41,12 +51,7 @@ public:
                to_string(dir) + "-" + propertyName + ".lists";
     }
 
-    static pair<uint32_t, uint32_t> getNumBytesScheme(const vector<label_t>& nbrNodeLabels,
-        const vector<uint64_t>& numNodesPerLabel, const uint32_t& numNodeLabels);
-
 private:
-    static uint32_t getNumBytesForEncoding(const uint64_t& val, const uint8_t& minNumBytes);
-
     void initPropertyListsAndColumns(const Catalog& catalog,
         const vector<uint64_t>& numNodesPerLabel, const string& directory,
         BufferManager& bufferManager);

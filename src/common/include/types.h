@@ -50,7 +50,7 @@ public:
     uint32_t idx{};
 };
 
-uint8_t getDataTypeSize(DataType dataType);
+size_t getDataTypeSize(DataType dataType);
 
 DataType getDataType(const std::string& dataTypeString);
 
