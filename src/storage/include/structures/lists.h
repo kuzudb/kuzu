@@ -57,7 +57,7 @@ class Lists {
 
 protected:
     Lists(string fname, BufferManager& bufferManager)
-        : metadata{fname}, fileHandle{fname, metadata.numPages}, bufferManager{bufferManager} {};
+        : metadata{fname}, fileHandle{fname}, bufferManager{bufferManager} {};
 
 public:
     static const uint16_t LISTS_CHUNK_SIZE = 512;

@@ -30,12 +30,6 @@ protected:
     uint64_t numPages;
 };
 
-//! Holds the cursor to reference a location in an InMemPages.
-typedef struct PageCursor {
-    uint64_t idx = -1;
-    uint16_t offset = -1;
-} PageCursor;
-
 //! InMemPages for storing AdjRels or AdjLists.
 class InMemAdjPages : public InMemPages {
 

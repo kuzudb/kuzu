@@ -2,7 +2,7 @@
 
 #include "gtest/gtest.h"
 
-#include "src/processor/include/operator/column_reader/node_property_reader.h"
+#include "src/processor/include/operator/column_reader/node_property_column_reader.h"
 #include "src/processor/include/operator/scan/scan.h"
 #include "src/storage/include/structures/column.h"
 
@@ -76,7 +76,7 @@ TEST_F(PropertyReaderIntegerTest, PropertyReaderSameLabelCopyTest) {
 }
 
 void testPropertyReaderNodeSameLabel(int32_t startExpectedValue) {
-    auto reader = make_unique<NodePropertyReader>(
+    auto reader = make_unique<NodePropertyColumnReader>(
         0 /*label*/, "prop" /*propertyName*/, 0 /*nodeVectordx*/, 0 /*dataChunkIdx*/);
     reader->setPrevOperator(new ScanStub(startExpectedValue / 2));
     auto graph = make_unique<GraphStub>("ColEvenIntegersFile", NUM_PAGES);

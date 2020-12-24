@@ -23,6 +23,12 @@ const uint8_t NULL_BOOL = 0;
 const int32_t NULL_INT = INT32_MIN;
 const double_t NULL_DOUBLE = DBL_MIN;
 
+//! Holds the cursor to reference a location in an in-mem page.
+typedef struct PageCursor {
+    uint64_t idx = -1;
+    uint16_t offset = -1;
+} PageCursor;
+
 //! System representation for strings.
 struct gf_string_t {
     uint32_t len;
@@ -31,6 +37,17 @@ struct gf_string_t {
         uint8_t data[8];
         uint64_t overflowPtr;
     };
+
+    inline void setOverflowPtrFromPageCursor(const PageCursor& cursor) {
+        memcpy(&overflowPtr, &cursor.idx, 6);
+        memcpy(((uint8_t*)&overflowPtr) + 6, &cursor.offset, 2);
+    }
+
+    inline void setOverflowPtrToPageCursor(PageCursor& cursor) {
+        cursor.idx = 0;
+        memcpy(&cursor.idx, &overflowPtr, 6);
+        memcpy(&cursor.offset, ((uint8_t*)&overflowPtr) + 6, 2);
+    }
 };
 
 struct nodeID_t {
