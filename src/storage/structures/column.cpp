@@ -21,12 +21,6 @@ void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     readFromNonSeqNodeIDs(nodeIDVector, valueVector, size, handle);
 }
 
-void BaseColumn::reclaim(unique_ptr<VectorFrameHandle>& handle) {
-    if (handle->isFrameBound) {
-        bufferManager.unpin(fileHandle, handle->pageIdx);
-    }
-}
-
 void BaseColumn::readFromSeqNodeIDsBySettingFrame(const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<VectorFrameHandle>& handle, node_offset_t startOffset) {
     handle->pageIdx = getPageIdx(startOffset);

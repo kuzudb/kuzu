@@ -27,6 +27,11 @@ public:
         return adjColumns[direction][nodeLabel][relLabel].get();
     }
 
+    AdjLists* getAdjLists(
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) {
+        return adjLists[direction][nodeLabel][relLabel].get();
+    }
+
     inline static string getAdjColumnIndexFname(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
         return directory + "/r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +

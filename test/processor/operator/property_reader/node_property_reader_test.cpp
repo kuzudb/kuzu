@@ -52,9 +52,11 @@ protected:
 
 class ScanStub : public ScanSingleLabel {
 public:
-    ScanStub(node_offset_t startNodeOffset) { this->startNodeOffset = startNodeOffset; }
+    ScanStub(node_offset_t startNodeOffset) : ScanSingleLabel("a") {
+        this->startNodeOffset = startNodeOffset;
+    }
 
-    bool getNextMorsel() { return true; }
+    bool hasNextMorsel() { return true; }
 
     void getNextTuples() {
         nodeIDVector->setStartOffset(startNodeOffset);
@@ -76,16 +78,17 @@ TEST_F(PropertyReaderIntegerTest, PropertyReaderSameLabelCopyTest) {
 }
 
 void testPropertyReaderNodeSameLabel(int32_t startExpectedValue) {
-    auto reader = make_unique<NodePropertyColumnReader>(
-        0 /*label*/, "prop" /*propertyName*/, 0 /*nodeVectordx*/, 0 /*dataChunkIdx*/);
+    auto reader = make_unique<NodePropertyColumnReader>("a", 0 /*label*/, "prop" /*propertyName*/);
     reader->setPrevOperator(new ScanStub(startExpectedValue / 2));
     auto graph = make_unique<GraphStub>("ColEvenIntegersFile", NUM_PAGES);
     auto morsel = make_shared<MorselDescSingleLabelNodeIDs>(0, 1024);
     auto baseMorsel = static_pointer_cast<MorselDesc>(morsel);
     reader->initialize(graph.get(), baseMorsel);
-    ASSERT_EQ(reader->getNextMorsel(), true);
+    ASSERT_EQ(reader->hasNextMorsel(), true);
     reader->getNextTuples();
-    auto values = reader->getPropertyVector()->getValues();
+    shared_ptr<DataChunk> dataChunk;
+    auto values =
+        reader->getOutDataChunks()->getValueVectorAndSetDataChunk("a.prop", dataChunk)->getValues();
     int32_t actualValue;
     for (uint64_t i = 0; i < 1024; i++) {
         memcpy(&actualValue, (void*)(values + i * sizeof(int32_t)), sizeof(int32_t));

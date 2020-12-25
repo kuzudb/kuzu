@@ -4,10 +4,10 @@ namespace graphflow {
 namespace storage {
 
 void BaseLists::readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<VectorFrameHandle>& handle) {
+    uint64_t& adjListLen, const unique_ptr<VectorFrameHandle>& handle) {
     auto header = headers->getHeader(nodeID.offset);
     if (!AdjListHeaders::isALargeAdjList(header)) {
-        auto adjListLen = AdjListHeaders::getAdjListLen(header);
+        adjListLen = AdjListHeaders::getAdjListLen(header);
         auto csrOffsetInChunkPage = AdjListHeaders::getCSROffset(header) % numElementsPerPage;
         auto chunkIdx = nodeID.offset / LISTS_CHUNK_SIZE;
         auto pageIdxInChunk = AdjListHeaders::getCSROffset(header) / numElementsPerPage;

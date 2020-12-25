@@ -27,6 +27,7 @@ cc_library(
     name = "structures",
     srcs = [
         "structures/column.cpp",
+        "structures/common.cpp",
         "structures/lists.cpp",
         "structures/lists_aux_structures.cpp",
     ],

@@ -11,19 +11,25 @@ namespace processor {
 class Scan : public Operator {
 
 public:
-    void getNextTuples() {}
+    Scan(string variableName) : variableName(variableName){};
+    virtual void getNextTuples() = 0;
     virtual void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel);
+    void cleanup(){};
     shared_ptr<NodeIDSequenceVector>& getNodeVector() { return nodeIDVector; }
 
 protected:
+    string variableName;
     shared_ptr<DataChunk> outDataChunk;
     shared_ptr<NodeIDSequenceVector> nodeIDVector;
+    node_offset_t currMorselNodeOffset;
 };
 
 class ScanSingleLabel : public Scan {
 
 public:
-    bool getNextMorsel();
+    ScanSingleLabel(string variableName) : Scan(variableName){};
+    void getNextTuples();
+    bool hasNextMorsel();
     void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel);
 
 protected:
@@ -33,11 +39,14 @@ protected:
 class ScanMultiLabel : public Scan {
 
 public:
-    bool getNextMorsel();
+    ScanMultiLabel(string variableName) : Scan(variableName){};
+    void getNextTuples();
+    bool hasNextMorsel();
     void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel);
 
 protected:
     shared_ptr<MorselDescMultiLabelNodeIDs> morsel;
+    uint64_t currMorselLabelPos;
 };
 
 } // namespace processor

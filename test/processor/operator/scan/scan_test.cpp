@@ -9,15 +9,17 @@ using namespace graphflow::processor;
 TEST(ScanTests, ScanSingleLabelTest) {
     auto morsel = make_shared<MorselDescSingleLabelNodeIDs>(1, 1025012);
     auto baseMorsel = static_pointer_cast<MorselDesc>(morsel);
-    auto scan = make_unique<ScanSingleLabel>();
+    auto scan = make_unique<ScanSingleLabel>("a");
     scan->initialize(NULL /* graph */, baseMorsel);
 
-    auto dataChunk = scan->getOutDataChunks()[0];
-    auto nodeVector = scan->getNodeVector();
+    auto dataChunks = scan->getOutDataChunks();
+    shared_ptr<DataChunk> dataChunk;
+    auto nodeVector = static_pointer_cast<NodeIDVector>(
+        dataChunks->getValueVectorAndSetDataChunk("a", dataChunk));
     node_offset_t currNodeOffset = 0;
     uint64_t size = ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     while (morsel->currNodeOffset < 1025012) {
-        ASSERT_EQ(scan->getNextMorsel(), true);
+        ASSERT_EQ(scan->hasNextMorsel(), true);
         scan->getNextTuples();
         if (morsel->currNodeOffset == 1025012) {
             size = 1025012 % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1;
@@ -34,13 +36,11 @@ TEST(ScanTests, ScanSingleLabelTest) {
 
     // morsel->currNodeOffset == 1025012.
     ASSERT_EQ(morsel->currNodeOffset, 1025012);
-    ASSERT_EQ(scan->getNextMorsel(), false);
-    ASSERT_EQ(dataChunk->size, 0);
+    ASSERT_EQ(scan->hasNextMorsel(), false);
 }
 
 void testScanMultiLabel(unique_ptr<ScanMultiLabel>& scan,
-    shared_ptr<MorselDescMultiLabelNodeIDs>& morsel, node_offset_t max_offset,
-    label_t label);
+    shared_ptr<MorselDescMultiLabelNodeIDs>& morsel, node_offset_t max_offset, label_t label);
 
 TEST(ScanTests, ScanMultiLabelTest) {
     auto morsel = make_shared<MorselDescMultiLabelNodeIDs>(3 /*num_labels*/);
@@ -52,7 +52,7 @@ TEST(ScanTests, ScanMultiLabelTest) {
     morsel->maxNodeOffset[2] = 90909090;
     auto baseMorsel = static_pointer_cast<MorselDesc>(morsel);
 
-    auto scan = make_unique<ScanMultiLabel>();
+    auto scan = make_unique<ScanMultiLabel>("a");
     scan->initialize(NULL /* graph */, baseMorsel);
     testScanMultiLabel(scan, morsel, 123456789, 1);
     testScanMultiLabel(scan, morsel, 666, 5);
@@ -60,15 +60,16 @@ TEST(ScanTests, ScanMultiLabelTest) {
 }
 
 void testScanMultiLabel(unique_ptr<ScanMultiLabel>& scan,
-    shared_ptr<MorselDescMultiLabelNodeIDs>& morsel,
-    node_offset_t max_offset, label_t label) {
-    auto dataChunk = scan->getOutDataChunks()[0];
-    auto nodeVector = scan->getNodeVector();
+    shared_ptr<MorselDescMultiLabelNodeIDs>& morsel, node_offset_t max_offset, label_t label) {
+    auto dataChunks = scan->getOutDataChunks();
+    shared_ptr<DataChunk> dataChunk;
+    auto nodeVector = static_pointer_cast<NodeIDVector>(
+        dataChunks->getValueVectorAndSetDataChunk("a", dataChunk));
     node_offset_t currNodeOffset = 0;
     uint64_t size = ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     nodeID_t node;
     while (morsel->currNodeOffset < max_offset) {
-        scan->getNextMorsel();
+        scan->hasNextMorsel();
         scan->getNextTuples();
         if (morsel->currNodeOffset == max_offset) {
             size = max_offset % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1;

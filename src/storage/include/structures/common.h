@@ -8,7 +8,16 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
+struct VectorFrameHandle {
+    uint32_t pageIdx;
+    bool isFrameBound;
+    VectorFrameHandle() : pageIdx(-1), isFrameBound(false){};
+};
+
 class BaseColumnOrList {
+
+public:
+    void reclaim(unique_ptr<VectorFrameHandle>& handle);
 
 protected:
     BaseColumnOrList(const string& fname, const size_t& elementSize, BufferManager& bufferManager)
@@ -20,12 +29,6 @@ protected:
     uint32_t numElementsPerPage;
     FileHandle fileHandle;
     BufferManager& bufferManager;
-};
-
-struct VectorFrameHandle {
-    uint32_t pageIdx;
-    bool isFrameBound;
-    VectorFrameHandle() : pageIdx(-1), isFrameBound(false){};
 };
 
 } // namespace storage

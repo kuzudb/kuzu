@@ -8,9 +8,9 @@ namespace processor {
 class RelPropertyColumnReader : public NodePropertyColumnReader {
 
 public:
-    RelPropertyColumnReader(const label_t& relLabel, const label_t& nodeLabel,
-        const string& propertyName, const uint64_t& nodeVectorIdx, const uint64_t& dataChunkIdx)
-        : NodePropertyColumnReader{nodeLabel, propertyName, nodeVectorIdx, dataChunkIdx},
+    RelPropertyColumnReader(const string& boundVariableOrRelName, const label_t& relLabel,
+        const label_t& nodeLabel, const string& propertyName)
+        : NodePropertyColumnReader{boundVariableOrRelName, nodeLabel, propertyName},
           relLabel(relLabel) {}
 
     void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel);

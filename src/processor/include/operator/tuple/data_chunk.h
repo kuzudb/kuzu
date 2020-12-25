@@ -18,16 +18,20 @@ namespace processor {
    elements at curr_idx of each value vector.
 */
 class DataChunk {
+
 public:
-    vector<shared_ptr<ValueVector>> valueVectors;
-    uint64_t size;
-    //! The current position when vectors are flattened.
-    uint64_t curr_idx;
+    DataChunk() : size(0), curr_idx(0) {}
 
     void append(shared_ptr<ValueVector> valueVector) { valueVectors.push_back(valueVector); }
 
     uint64_t getNumTuples() const { return size; }
     uint64_t getNumAttributes() const { return valueVectors.size(); }
+
+public:
+    vector<shared_ptr<ValueVector>> valueVectors;
+    uint64_t size;
+    //! The current position when vectors are flattened.
+    uint64_t curr_idx;
 };
 
 } // namespace processor
