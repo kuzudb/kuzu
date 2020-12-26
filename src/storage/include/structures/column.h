@@ -4,11 +4,9 @@
 
 #include <bits/unique_ptr.h>
 
-#include "src/common/include/configs.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/node_vector.h"
-#include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/file_handle.h"
+#include "src/storage/include/structures/common.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -16,29 +14,9 @@ using namespace std;
 namespace graphflow {
 namespace storage {
 
-struct VectorFrameHandle {
-    uint32_t pageIdx;
-    bool isFrameBound;
-    VectorFrameHandle() : pageIdx(-1), isFrameBound(false){};
-};
-
-class BaseColumn {
+class BaseColumn : public BaseColumnOrList {
 
 public:
-    BaseColumn(
-        const string fname, size_t elementSize, uint64_t numElements, BufferManager& bufferManager)
-        : elementSize(elementSize), numElementsPerPage{(uint32_t)(PAGE_SIZE / elementSize)},
-          propertyColumnFileHandle{fname}, bufferManager{bufferManager} {}
-
-    inline uint64_t getPageIdx(node_offset_t nodeOffset, uint32_t numElementsPerPage) {
-        return nodeOffset / numElementsPerPage;
-    }
-
-    inline uint32_t getPageOffset(
-        node_offset_t nodeOffset, uint32_t numElementsPerPage, size_t elementSize) {
-        return (nodeOffset % numElementsPerPage) * elementSize;
-    }
-
     size_t getElementSize() { return elementSize; }
 
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
@@ -48,27 +26,36 @@ public:
     void reclaim(unique_ptr<VectorFrameHandle>& handle);
 
 protected:
+    BaseColumn(const string& fname, const size_t& elementSize, const uint64_t& numElements,
+        BufferManager& bufferManager)
+        : BaseColumnOrList{fname, elementSize, bufferManager} {};
+
     void readFromSeqNodeIDsBySettingFrame(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<VectorFrameHandle>& handle, node_offset_t startOffset);
 
     void readFromSeqNodeIDsByCopying(const shared_ptr<ValueVector>& valueVector,
-        const uint64_t& size, node_offset_t startOffset);
+        const uint64_t& size, const unique_ptr<VectorFrameHandle>& handle,
+        node_offset_t startOffset);
 
     void readFromNonSeqNodeIDs(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const uint64_t& size);
+        const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
+        const unique_ptr<VectorFrameHandle>& handle);
 
-protected:
-    size_t elementSize;
-    uint32_t numElementsPerPage;
-    FileHandle propertyColumnFileHandle;
-    BufferManager& bufferManager;
+private:
+    inline uint64_t getPageIdx(const node_offset_t& nodeOffset) const {
+        return nodeOffset / numElementsPerPage;
+    }
+
+    inline uint32_t getPageOffset(const node_offset_t& nodeOffset) const {
+        return (nodeOffset % numElementsPerPage) * elementSize;
+    }
 };
 
 template<typename T>
 class Column : public BaseColumn {
 
 public:
-    Column(const string path, uint64_t numElements, BufferManager& bufferManager)
+    Column(const string& path, const uint64_t& numElements, BufferManager& bufferManager)
         : BaseColumn{path, sizeof(T), numElements, bufferManager} {};
 };
 
@@ -76,7 +63,7 @@ template<>
 class Column<gf_string_t> : public BaseColumn {
 
 public:
-    Column(const string path, uint64_t numElements, BufferManager& bufferManager)
+    Column(const string& path, const uint64_t& numElements, BufferManager& bufferManager)
         : BaseColumn{path, sizeof(gf_string_t), numElements, bufferManager},
           overflowPagesFileHandle{path + ".ovf"} {};
 
@@ -96,14 +83,15 @@ template<>
 class Column<nodeID_t> : public BaseColumn {
 
 public:
-    Column(const string path, size_t elementSize, uint64_t numElements,
-        BufferManager& bufferManager, NodeIDCompressionScheme compressionScheme)
-        : BaseColumn{path, elementSize, numElements, bufferManager} {};
+    Column(const string& path, const uint64_t& numElements, BufferManager& bufferManager,
+        const NodeIDCompressionScheme& nodeIDCompressionScheme)
+        : BaseColumn{path, nodeIDCompressionScheme.getNumTotalBytes(), numElements, bufferManager},
+          nodeIDCompressionScheme(nodeIDCompressionScheme){};
 
-    NodeIDCompressionScheme getCompressionScheme() { return compressionScheme; }
+    NodeIDCompressionScheme getCompressionScheme() const { return nodeIDCompressionScheme; }
 
 private:
-    NodeIDCompressionScheme compressionScheme;
+    NodeIDCompressionScheme nodeIDCompressionScheme;
 };
 
 typedef Column<int32_t> PropertyColumnInt;

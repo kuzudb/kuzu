@@ -4,6 +4,7 @@
 
 #include "robin_hood.h"
 
+#include "src/common/include/compression_scheme.h"
 #include "src/common/include/configs.h"
 #include "src/common/include/types.h"
 
@@ -54,17 +55,13 @@ public:
                !isSingleCardinalityPerDir[BWD];
     };
 
-    uint32_t getRelSize(Direction dir) {
-        return numBytesSchemePerDir[dir].first + numBytesSchemePerDir[dir].second;
-    }
-
 public:
     label_t label;
     string fname;
     uint64_t numBlocks;
     vector<vector<label_t>> nodeLabelsPerDir{2};
     vector<bool> isSingleCardinalityPerDir{false, false};
-    vector<pair<uint32_t, uint32_t>> numBytesSchemePerDir{2};
+    vector<NodeIDCompressionScheme> nodeIDCompressionSchemePerDir{2};
     const unordered_map<string, Property>* propertyMap;
     vector<DataType> propertyDataTypes;
 };

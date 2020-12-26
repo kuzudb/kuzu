@@ -10,30 +10,27 @@
 namespace graphflow {
 namespace common {
 
-enum NodeIDCompressionScheme {
-    LABEL_0_NODEOFFSET_2_BYTES,
-    LABEL_0_NODEOFFSET_4_BYTES,
-    LABEL_0_NODEOFFSET_8_BYTES,
-    LABEL_1_NODEOFFSET_2_BYTES,
-    LABEL_1_NODEOFFSET_4_BYTES,
-    LABEL_1_NODEOFFSET_8_BYTES,
-    LABEL_2_NODEOFFSET_2_BYTES,
-    LABEL_2_NODEOFFSET_4_BYTES,
-    LABEL_2_NODEOFFSET_8_BYTES,
-    LABEL_4_NODEOFFSET_2_BYTES,
-    LABEL_4_NODEOFFSET_4_BYTES,
-    LABEL_4_NODEOFFSET_8_BYTES,
+class NodeIDCompressionScheme {
+
+public:
+    NodeIDCompressionScheme(const vector<label_t>& nbrNodeLabels,
+        const vector<uint64_t>& numNodesPerLabel, const uint32_t& numNodeLabels);
+    NodeIDCompressionScheme()
+        : numBytesForLabel{0}, numBytesForOffset{8},
+          numTotalBytes(numBytesForLabel + numBytesForOffset){};
+
+    inline uint32_t getNumBytesForLabel() const { return numBytesForLabel; };
+    inline uint32_t getNumBytesForOffset() const { return numBytesForOffset; };
+    inline uint32_t getNumTotalBytes() const { return numTotalBytes; };
+
+private:
+    uint32_t getNumBytesForEncoding(const uint64_t& maxValToEncode, const uint8_t& minNumBytes);
+
+private:
+    uint32_t numBytesForLabel;
+    uint32_t numBytesForOffset;
+    uint32_t numTotalBytes;
 };
-
-uint64_t getNumBytes(NodeIDCompressionScheme compressionScheme);
-
-NodeIDCompressionScheme getNodeIDCompressionScheme(
-    uint32_t numBytesPerlabel, uint32_t numBytesPerOffset);
-
-pair<uint32_t, uint32_t> getNumBytesScheme(const vector<label_t>& nbrNodeLabels,
-    const vector<uint64_t>& numNodesPerLabel, const uint32_t& numNodeLabels);
-
-uint32_t getNumBytesForEncoding(const uint64_t& value, const uint8_t& minNumBytes);
 
 } // namespace common
 } // namespace graphflow

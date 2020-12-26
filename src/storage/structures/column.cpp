@@ -14,62 +14,60 @@ void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         if (pageOffset + size <= numElementsPerPage) {
             readFromSeqNodeIDsBySettingFrame(valueVector, handle, startOffset);
         } else {
-            readFromSeqNodeIDsByCopying(valueVector, size, startOffset);
+            readFromSeqNodeIDsByCopying(valueVector, size, handle, startOffset);
         }
         return;
     }
-    readFromNonSeqNodeIDs(nodeIDVector, valueVector, size);
+    readFromNonSeqNodeIDs(nodeIDVector, valueVector, size, handle);
 }
 
 void BaseColumn::reclaim(unique_ptr<VectorFrameHandle>& handle) {
     if (handle->isFrameBound) {
-        bufferManager.unpin(propertyColumnFileHandle, handle->pageIdx);
+        bufferManager.unpin(fileHandle, handle->pageIdx);
     }
 }
 
 void BaseColumn::readFromSeqNodeIDsBySettingFrame(const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<VectorFrameHandle>& handle, node_offset_t startOffset) {
-    handle->pageIdx = getPageIdx(startOffset, numElementsPerPage);
+    handle->pageIdx = getPageIdx(startOffset);
     handle->isFrameBound = true;
-    auto frame = bufferManager.pin(propertyColumnFileHandle, handle->pageIdx);
+    auto frame = bufferManager.pin(fileHandle, handle->pageIdx);
     valueVector->setValues((uint8_t*)frame);
 }
 
-void BaseColumn::readFromSeqNodeIDsByCopying(
-    const shared_ptr<ValueVector>& valueVector, const uint64_t& size, node_offset_t startOffset) {
+void BaseColumn::readFromSeqNodeIDsByCopying(const shared_ptr<ValueVector>& valueVector,
+    const uint64_t& size, const unique_ptr<VectorFrameHandle>& handle, node_offset_t startOffset) {
+    handle->isFrameBound = false;
     valueVector->reset();
     auto values = valueVector->getValues();
-    uint64_t numElementsCopied = 0;
-    while (numElementsCopied < size) {
-        node_offset_t currOffsetInPage = startOffset % numElementsPerPage;
-        auto pageIdx = getPageIdx(startOffset, numElementsPerPage);
-        auto frame = bufferManager.pin(propertyColumnFileHandle, pageIdx);
-        uint64_t numElementsToCopy = (numElementsPerPage - currOffsetInPage);
-        if (numElementsCopied + numElementsToCopy > size) {
-            numElementsToCopy = size - numElementsCopied;
-        }
-        memcpy((void*)(values + numElementsCopied * elementSize),
-            (void*)(frame + getPageOffset(startOffset, numElementsPerPage, elementSize)),
-            numElementsToCopy * elementSize);
-        bufferManager.unpin(propertyColumnFileHandle, pageIdx);
-        numElementsCopied += numElementsToCopy;
-        startOffset += numElementsToCopy;
+    auto numBytesLeftToCopy = size * elementSize;
+    auto pageOffset = getPageOffset(startOffset);
+    auto pageIdx = getPageIdx(startOffset);
+    while (numBytesLeftToCopy) {
+        auto numBytesToCopyInPage = min(numBytesLeftToCopy, PAGE_SIZE) - pageOffset;
+        auto frame = bufferManager.pin(fileHandle, pageIdx);
+        memcpy(values, frame + pageOffset, numBytesToCopyInPage);
+        bufferManager.unpin(fileHandle, pageIdx);
+        values += numBytesToCopyInPage;
+        numBytesLeftToCopy -= numBytesToCopyInPage;
+        pageOffset = 0;
+        pageIdx++;
     }
 }
 
 void BaseColumn::readFromNonSeqNodeIDs(const shared_ptr<NodeIDVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& valueVector, const uint64_t& size) {
+    const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
+    const unique_ptr<VectorFrameHandle>& handle) {
+    handle->isFrameBound = false;
     valueVector->reset();
     nodeID_t nodeID;
     auto values = valueVector->getValues();
     for (uint64_t i = 0; i < size; i++) {
         nodeIDVector->readValue(i, nodeID);
-        auto pageIdx = getPageIdx(nodeID.offset, numElementsPerPage);
-        auto frame = bufferManager.pin(propertyColumnFileHandle, pageIdx);
-        memcpy((void*)(values + i * elementSize),
-            (void*)(frame + getPageOffset(nodeID.offset, numElementsPerPage, elementSize)),
-            elementSize);
-        bufferManager.unpin(propertyColumnFileHandle, pageIdx);
+        auto pageIdx = getPageIdx(nodeID.offset);
+        auto frame = bufferManager.pin(fileHandle, pageIdx);
+        memcpy(values + (i * elementSize), frame + getPageOffset(nodeID.offset), elementSize);
+        bufferManager.unpin(fileHandle, pageIdx);
     }
 }
 
@@ -80,9 +78,9 @@ void Column<gf_string_t>::readValues(const shared_ptr<NodeIDVector>& nodeIDVecto
     nodeIDVector->readValue(0, nodeID);
     auto startOffset = nodeID.offset;
     if (nodeIDVector->getIsSequence()) {
-        readFromSeqNodeIDsByCopying(valueVector, size, startOffset);
+        readFromSeqNodeIDsByCopying(valueVector, size, handle, startOffset);
     } else {
-        readFromNonSeqNodeIDs(nodeIDVector, valueVector, size);
+        readFromNonSeqNodeIDs(nodeIDVector, valueVector, size, handle);
     }
     readStringsFromOverflowPages(valueVector, size);
 }

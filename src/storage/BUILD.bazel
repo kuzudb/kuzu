@@ -26,15 +26,15 @@ cc_library(
 cc_library(
     name = "structures",
     srcs = [
-        "structures/adj_lists.cpp",
         "structures/column.cpp",
         "structures/lists.cpp",
+        "structures/lists_aux_structures.cpp",
     ],
     hdrs = [
-        "include/structures/adj_lists.h",
         "include/structures/column.h",
+        "include/structures/common.h",
         "include/structures/lists.h",
-        "include/structures/property_lists.h",
+        "include/structures/lists_aux_structures.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

@@ -29,19 +29,19 @@ public:
 
     inline const vector<uint64_t>& getNumNodesPerLabel() const { return numNodesPerLabel; };
 
-    virtual BaseColumn* getNodePropertyColumn(
+    inline virtual BaseColumn* getNodePropertyColumn(
         const label_t& nodeLabel, const string& propertyName) {
         auto propertyIdx = catalog->getIdxForNodeLabelPropertyName(nodeLabel, propertyName);
         return nodesStore->getNodePropertyColumn(nodeLabel, propertyIdx);
     }
 
-    BaseColumn* getRelPropertyColumn(
+    inline BaseColumn* getRelPropertyColumn(
         const label_t& relLabel, const label_t& nodeLabel, const string& propertyName) {
         auto propertyIdx = catalog->getIdxForRelLabelPropertyName(relLabel, propertyName);
         return relsStore->getRelPropertyColumn(relLabel, nodeLabel, propertyIdx);
     }
 
-    AdjColumn* getAdjColumn(
+    inline AdjColumn* getAdjColumn(
         const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) {
         return relsStore->getAdjColumn(direction, nodeLabel, relLabel);
     }

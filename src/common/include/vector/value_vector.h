@@ -13,7 +13,7 @@ class ValueVector {
 public:
     ValueVector(const uint64_t& elementSize) : ValueVector{elementSize, VECTOR_CAPACITY} {}
 
-    uint8_t* getValues() { return values; }
+    uint8_t* getValues() const { return values; }
     void setValues(uint8_t* ptrInFrame) { this->values = ptrInFrame; }
 
     void reset() { values = buffer.get(); }

@@ -20,9 +20,9 @@ void RelsLoader::load(vector<string>& fnames, vector<uint64_t>& numBlocksPerFile
                 catalog.getNodeLabelsForRelLabelDir(description.label, dir);
         }
         for (auto& dir : DIRS) {
-            description.numBytesSchemePerDir[dir] =
-                getNumBytesScheme(description.nodeLabelsPerDir[!dir], graph.getNumNodesPerLabel(),
-                    catalog.getNodeLabelsCount());
+            description.nodeIDCompressionSchemePerDir[dir] =
+                NodeIDCompressionScheme(description.nodeLabelsPerDir[!dir],
+                    graph.getNumNodesPerLabel(), catalog.getNodeLabelsCount());
         }
         description.propertyDataTypes = createPropertyDataTypes(propertyMap);
         loadRelsForLabel(description);
