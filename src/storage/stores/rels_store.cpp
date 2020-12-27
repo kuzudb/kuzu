@@ -1,16 +1,14 @@
 #include "src/storage/include/stores/rels_store.h"
 
 #include "src/common/include/compression_scheme.h"
-#include "src/storage/include/structures/column.h"
-#include "src/storage/include/structures/property_lists.h"
 
 namespace graphflow {
 namespace storage {
 
 RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
     const string& directory, BufferManager& bufferManager) {
-    initPropertyListsAndColumns(catalog, numNodesPerLabel, directory, bufferManager);
     initAdjListsAndColumns(catalog, numNodesPerLabel, directory, bufferManager);
+    initPropertyListsAndColumns(catalog, numNodesPerLabel, directory, bufferManager);
 }
 
 void RelsStore::initPropertyListsAndColumns(const Catalog& catalog,
@@ -78,6 +76,7 @@ void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
         for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDir(relLabel, dir)) {
             auto& propertyMap = catalog.getPropertyMapForRelLabel(relLabel);
             propertyLists[dir][nodeLabel][relLabel].resize(propertyMap.size());
+            auto adjListsHeaders = adjLists[dir][nodeLabel][relLabel]->getHeaders();
             for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
                 auto fname =
                     getRelPropertyListsFname(directory, relLabel, nodeLabel, dir, property->first);
@@ -85,19 +84,19 @@ void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
                 switch (property->second.dataType) {
                 case INT:
                     propertyLists[dir][nodeLabel][relLabel][idx] =
-                        make_unique<RelPropertyListsInt>(fname, bufferManager);
+                        make_unique<RelPropertyListsInt>(fname, adjListsHeaders, bufferManager);
                     break;
                 case DOUBLE:
                     propertyLists[dir][nodeLabel][relLabel][idx] =
-                        make_unique<RelPropertyListsDouble>(fname, bufferManager);
+                        make_unique<RelPropertyListsDouble>(fname, adjListsHeaders, bufferManager);
                     break;
                 case BOOL:
                     propertyLists[dir][nodeLabel][relLabel][idx] =
-                        make_unique<RelPropertyListsBool>(fname, bufferManager);
+                        make_unique<RelPropertyListsBool>(fname, adjListsHeaders, bufferManager);
                     break;
                 case STRING:
-                    throw invalid_argument("not supported.");
-                    propertyLists[dir][nodeLabel][relLabel][idx] = nullptr;
+                    propertyLists[dir][nodeLabel][relLabel][idx] =
+                        make_unique<RelPropertyListsString>(fname, adjListsHeaders, bufferManager);
                 default:
                     throw invalid_argument("invalid type for property list creation.");
                 }
@@ -116,21 +115,17 @@ void RelsStore::initAdjListsAndColumns(const Catalog& catalog,
             adjColumns[direction][nodeLabel].resize(catalog.getRelLabelsCount());
             adjLists[direction][nodeLabel].resize(catalog.getRelLabelsCount());
             for (auto relLabel : catalog.getRelLabelsForNodeLabelDirection(nodeLabel, direction)) {
-                auto numBytesScheme =
-                    getNumBytesScheme(catalog.getNodeLabelsForRelLabelDir(relLabel, !direction),
-                        numNodesPerLabel, catalog.getNodeLabelsCount());
+                NodeIDCompressionScheme nodeIDCompression{
+                    catalog.getNodeLabelsForRelLabelDir(relLabel, !direction), numNodesPerLabel,
+                    catalog.getNodeLabelsCount()};
                 if (catalog.isSingleCaridinalityInDir(relLabel, direction)) {
                     auto fname = getAdjColumnIndexFname(directory, nodeLabel, relLabel, direction);
-                    auto compressionScheme =
-                        getNodeIDCompressionScheme(numBytesScheme.first, numBytesScheme.second);
-                    adjColumns[direction][nodeLabel][relLabel] =
-                        make_unique<AdjColumn>(fname, numBytesScheme.first + numBytesScheme.second,
-                            numNodesPerLabel[nodeLabel], bufferManager, compressionScheme);
-
+                    adjColumns[direction][nodeLabel][relLabel] = make_unique<AdjColumn>(
+                        fname, numNodesPerLabel[nodeLabel], bufferManager, nodeIDCompression);
                 } else {
                     auto fname = getAdjListsIndexFname(directory, nodeLabel, relLabel, direction);
-                    adjLists[direction][nodeLabel][relLabel] = make_unique<AdjLists>(
-                        fname, numBytesScheme.first, numBytesScheme.second, bufferManager);
+                    adjLists[direction][nodeLabel][relLabel] =
+                        make_unique<AdjLists>(fname, bufferManager, nodeIDCompression);
                 }
             }
         }

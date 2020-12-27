@@ -1,48 +1,41 @@
 #include "src/storage/include/structures/lists.h"
 
-#include <fstream>
-
-#include "bitsery/adapter/stream.h"
-#include "bitsery/brief_syntax.h"
-#include "bitsery/traits/vector.h"
-
-using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAdapter>;
-
 namespace graphflow {
 namespace storage {
 
-template<typename S>
-void ListsMetadata::serialize(S& s) {
-    s.value8b(numPages);
-    auto vetorUINT64Func = [](S& s, vector<uint64_t>& v) {
-        s.container(v, UINT32_MAX, [](S& s, uint64_t& w) { s(w); });
-    };
-    s.container(chunksPagesMap, UINT32_MAX, vetorUINT64Func);
-    s.container(largeListsPagesMap, UINT32_MAX, vetorUINT64Func);
-}
-
-void ListsMetadata::saveToFile(const string& fname) {
-    auto path = fname + ".metadata";
-    fstream f{path, f.binary | f.trunc | f.out};
-    if (!f.is_open()) {
-        invalid_argument("cannot open " + path + " for writing");
-    }
-    OutputStreamAdapter serializer{f};
-    serializer.object(*this);
-    serializer.adapter().flush();
-    f.close();
-}
-
-void ListsMetadata::readFromFile(const string& fname) {
-    auto path = fname + ".metadata";
-    fstream f{path, f.binary | f.in};
-    if (!f.is_open()) {
-        invalid_argument("Cannot open " + path + " for reading the catalog.");
-    }
-    auto state = bitsery::quickDeserialization<bitsery::InputStreamAdapter>(f, *this);
-    f.close();
-    if (state.first == bitsery::ReaderError::NoError && state.second) {
-        invalid_argument("Cannot deserialize the catalog.");
+void BaseLists::readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
+    const unique_ptr<VectorFrameHandle>& handle) {
+    auto header = headers->getHeader(nodeID.offset);
+    if (!AdjListHeaders::isALargeAdjList(header)) {
+        auto adjListLen = AdjListHeaders::getAdjListLen(header);
+        auto csrOffsetInChunkPage = AdjListHeaders::getCSROffset(header) % numElementsPerPage;
+        auto chunkIdx = nodeID.offset / LISTS_CHUNK_SIZE;
+        auto pageIdxInChunk = AdjListHeaders::getCSROffset(header) / numElementsPerPage;
+        if (csrOffsetInChunkPage + adjListLen > numElementsPerPage) {
+            handle->isFrameBound = false;
+            valueVector->reset();
+            auto values = valueVector->getValues();
+            auto pageOffset = csrOffsetInChunkPage * elementSize;
+            auto sizeLeftToCopy = adjListLen * elementSize;
+            while (sizeLeftToCopy) {
+                auto pageIdx = metadata.getPageIdx(chunkIdx, pageIdxInChunk);
+                uint64_t sizeToCopyInPage = min(PAGE_SIZE, sizeLeftToCopy) - pageOffset;
+                auto frame = bufferManager.pin(fileHandle, pageIdx);
+                memcpy(values, frame + pageOffset, sizeToCopyInPage);
+                bufferManager.unpin(fileHandle, pageIdx);
+                values += sizeToCopyInPage;
+                sizeLeftToCopy -= sizeToCopyInPage;
+                pageOffset = 0;
+                pageIdxInChunk++;
+            }
+        } else {
+            handle->pageIdx = metadata.getPageIdx(chunkIdx, pageIdxInChunk);
+            handle->isFrameBound = true;
+            auto frame = bufferManager.pin(fileHandle, handle->pageIdx);
+            valueVector->setValues((uint8_t*)frame);
+        }
+    } else {
+        // TODO: Implement handling of large adjLists.
     }
 }
 

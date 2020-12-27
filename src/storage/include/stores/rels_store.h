@@ -2,8 +2,8 @@
 
 #include "src/common/include/types.h"
 #include "src/storage/include/catalog.h"
-#include "src/storage/include/structures/adj_lists.h"
 #include "src/storage/include/structures/column.h"
+#include "src/storage/include/structures/lists.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -68,8 +68,13 @@ private:
         const string& directory, BufferManager& bufferManager);
 
 private:
+    // propertyColumns are organized in 2-dimensional vectors wherein the first dimension gives
+    // nodeLabel and the second dimension is the relLabel.
     vector<vector<vector<unique_ptr<BaseColumn>>>> propertyColumns;
-    vector<vector<vector<vector<unique_ptr<Lists>>>>> propertyLists{2};
+    // propertyLists, adjColumns and adjLists are organized in 3-dimensional vectors wherein the
+    // first dimension gives direction, second dimension gives nodeLabel and the third dimension is
+    // the relLabel.
+    vector<vector<vector<vector<unique_ptr<BaseLists>>>>> propertyLists{2};
     vector<vector<vector<unique_ptr<AdjColumn>>>> adjColumns{2};
     vector<vector<vector<unique_ptr<AdjLists>>>> adjLists{2};
 };

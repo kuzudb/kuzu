@@ -23,7 +23,8 @@ AdjAndPropertyColumnsLoaderHelper::AdjAndPropertyColumnsLoaderHelper(
 void AdjAndPropertyColumnsLoaderHelper::setRel(
     const Direction& dir, const vector<nodeID_t>& nodeIDs) {
     PageCursor cursor;
-    calculatePageCursor(description.getRelSize(dir), nodeIDs[dir].offset, cursor);
+    calculatePageCursor(description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes(),
+        nodeIDs[dir].offset, cursor);
     dirLabelAdjColumns[dir][nodeIDs[dir].label]->set(cursor, nodeIDs[!dir]);
 }
 
@@ -148,15 +149,16 @@ void AdjAndPropertyColumnsLoaderHelper::buildInMemAdjColumns() {
             for (auto boundNodeLabel : description.nodeLabelsPerDir[dir]) {
                 auto fname = RelsStore::getAdjColumnIndexFname(
                     outputDirectory, description.label, boundNodeLabel, dir);
-                uint32_t numElementsPerPage = PAGE_SIZE / description.getRelSize(dir);
+                uint32_t numElementsPerPage =
+                    PAGE_SIZE / description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes();
                 auto numNodes = graph.getNumNodesPerLabel()[boundNodeLabel];
                 uint64_t numPages = numNodes / numElementsPerPage;
                 if (0 != numNodes % numElementsPerPage) {
                     numPages++;
                 }
                 dirLabelAdjColumns[dir][boundNodeLabel] = make_unique<InMemAdjPages>(fname,
-                    numPages, description.numBytesSchemePerDir[dir].first,
-                    description.numBytesSchemePerDir[dir].second);
+                    numPages, description.nodeIDCompressionSchemePerDir[dir].getNumBytesForLabel(),
+                    description.nodeIDCompressionSchemePerDir[dir].getNumBytesForOffset());
             }
         }
     }

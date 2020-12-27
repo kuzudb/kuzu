@@ -53,8 +53,9 @@ void AdjAndPropertyListsLoaderHelper::setRel(
     const uint64_t& pos, const Direction& dir, const vector<nodeID_t>& nodeIDs) {
     PageCursor cursor;
     auto header = dirLabelAdjListHeaders[dir][nodeIDs[dir].label].headers[nodeIDs[dir].offset];
-    calculatePageCursor(header, pos, description.getRelSize(dir), nodeIDs[dir].offset, cursor,
-        dirLabelAdjListsMetadata[dir][nodeIDs[dir].label]);
+    calculatePageCursor(header, pos,
+        description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes(), nodeIDs[dir].offset,
+        cursor, dirLabelAdjListsMetadata[dir][nodeIDs[dir].label]);
     dirLabelAdjLists[dir][nodeIDs[dir].label]->set(cursor, nodeIDs[!dir]);
 }
 
@@ -183,8 +184,7 @@ void AdjAndPropertyListsLoaderHelper::initAdjListHeaders() {
     logger->info("Initializing AdjListHeaders...");
     for (auto& dir : DIRS) {
         if (!description.isSingleCardinalityPerDir[dir]) {
-            auto relSize = description.numBytesSchemePerDir[dir].first +
-                           description.numBytesSchemePerDir[dir].second;
+            auto relSize = description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes();
             for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
                 threadPool.execute(calculateAdjListHeadersForIndexTask, dir, nodeLabel,
                     graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE / relSize,
@@ -200,11 +200,11 @@ void AdjAndPropertyListsLoaderHelper::initAdjListsAndPropertyListsMetadata() {
     logger->info("Initializing AdjLists and PropertyLists Metadata...");
     for (auto& dir : DIRS) {
         if (!description.isSingleCardinalityPerDir[dir]) {
-            auto relSize = description.numBytesSchemePerDir[dir].first +
-                           description.numBytesSchemePerDir[dir].second;
+            auto numPerPage =
+                PAGE_SIZE / description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes();
             for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
                 threadPool.execute(calculateListsMetadataForListsTask,
-                    graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE / relSize,
+                    graph.getNumNodesPerLabel()[nodeLabel], numPerPage,
                     dirLabelListSizes[dir][nodeLabel].get(),
                     &dirLabelAdjListHeaders[dir][nodeLabel],
                     &dirLabelAdjListsMetadata[dir][nodeLabel]);
@@ -240,8 +240,8 @@ void AdjAndPropertyListsLoaderHelper::buildInMemAdjLists() {
                     outputDirectory, description.label, boundNodeLabel, dir);
                 dirLabelAdjLists[dir][boundNodeLabel] = make_unique<InMemAdjPages>(fname,
                     dirLabelAdjListsMetadata[dir][boundNodeLabel].numPages,
-                    description.numBytesSchemePerDir[dir].first,
-                    description.numBytesSchemePerDir[dir].second);
+                    description.nodeIDCompressionSchemePerDir[dir].getNumBytesForLabel(),
+                    description.nodeIDCompressionSchemePerDir[dir].getNumBytesForOffset());
             }
         }
     }
@@ -281,14 +281,14 @@ void AdjAndPropertyListsLoaderHelper::calculatePageCursor(const uint32_t& header
     const uint64_t& reversePos, const uint8_t& numBytesPerElement, const node_offset_t& nodeOffset,
     PageCursor& cursor, ListsMetadata& metadata) {
     auto numElementsInAPage = PAGE_SIZE / numBytesPerElement;
-    if (header & 0x80000000) {
+    if (AdjListHeaders::isALargeAdjList(header)) {
         auto pos = metadata.largeListsPagesMap[header & 0x7fffffff][0] - reversePos;
         cursor.offset = numBytesPerElement * (pos % numElementsInAPage);
         cursor.idx =
             metadata.largeListsPagesMap[header & 0x7fffffff][1 + (pos / numElementsInAPage)];
         return;
     }
-    auto chunkId = nodeOffset / Lists::LISTS_CHUNK_SIZE;
+    auto chunkId = nodeOffset / BaseLists::LISTS_CHUNK_SIZE;
     auto csrOffset = (header >> 11) & 0xfffff;
     auto pos = (header & 0x7ff) - reversePos;
     cursor.idx = metadata.chunksPagesMap[chunkId][(csrOffset + pos) / numElementsInAPage];
@@ -298,18 +298,17 @@ void AdjAndPropertyListsLoaderHelper::calculatePageCursor(const uint32_t& header
 void AdjAndPropertyListsLoaderHelper::calculateAdjListHeadersForIndexTask(Direction dir,
     label_t nodeLabel, node_offset_t numNodeOffsets, uint32_t numPerPage, listSizes_t* listSizes,
     AdjListHeaders* adjListHeaders) {
-    auto numChunks = numNodeOffsets / Lists::LISTS_CHUNK_SIZE;
-    if (0 != numNodeOffsets % Lists::LISTS_CHUNK_SIZE) {
+    auto numChunks = numNodeOffsets / BaseLists::LISTS_CHUNK_SIZE;
+    if (0 != numNodeOffsets % BaseLists::LISTS_CHUNK_SIZE) {
         numChunks++;
     }
     node_offset_t nodeOffset = 0u;
     uint64_t lAdjListsIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto csrOffset = 0u;
-        auto numElementsInChunk = min(nodeOffset + Lists::LISTS_CHUNK_SIZE, numNodeOffsets);
+        auto numElementsInChunk = min(nodeOffset + BaseLists::LISTS_CHUNK_SIZE, numNodeOffsets);
         for (auto i = nodeOffset; i < numElementsInChunk; i++) {
             auto relCount = (*listSizes)[nodeOffset].load(memory_order_relaxed);
-
             uint32_t header;
             if (relCount >= numPerPage) {
                 header = 0x80000000 + (lAdjListsIdx++ & 0x7fffffff);
@@ -328,8 +327,8 @@ void AdjAndPropertyListsLoaderHelper::calculateListsMetadataForListsTask(uint64_
     uint32_t numPerPage, listSizes_t* listSizes, AdjListHeaders* adjListHeaders,
     ListsMetadata* adjListsMetadata) {
     auto globalPageId = 0u;
-    auto numChunks = numNodeOffsets / Lists::LISTS_CHUNK_SIZE;
-    if (0 != numNodeOffsets % Lists::LISTS_CHUNK_SIZE) {
+    auto numChunks = numNodeOffsets / BaseLists::LISTS_CHUNK_SIZE;
+    if (0 != numNodeOffsets % BaseLists::LISTS_CHUNK_SIZE) {
         numChunks++;
     }
     (*adjListsMetadata).chunksPagesMap.resize(numChunks);
@@ -337,22 +336,20 @@ void AdjAndPropertyListsLoaderHelper::calculateListsMetadataForListsTask(uint64_
     auto lAdjListsIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto pageId = 0u, csrOffsetInPage = 0u;
-        auto numElementsInChunk = min(nodeOffset + Lists::LISTS_CHUNK_SIZE, numNodeOffsets);
+        auto numElementsInChunk = min(nodeOffset + BaseLists::LISTS_CHUNK_SIZE, numNodeOffsets);
         for (auto i = nodeOffset; i < numElementsInChunk; i++) {
             auto relCount = (*listSizes)[nodeOffset].load(memory_order_relaxed);
-            if ((*adjListHeaders).headers[nodeOffset] & 0x80000000) {
+            if (AdjListHeaders::isALargeAdjList(adjListHeaders->headers[nodeOffset])) {
                 (*adjListsMetadata).largeListsPagesMap.resize(lAdjListsIdx + 1);
                 auto numPages = relCount / numPerPage;
                 if (0 != relCount % numPerPage) {
                     numPages++;
                 }
-
                 (*adjListsMetadata).largeListsPagesMap[lAdjListsIdx].resize(numPages + 1);
                 (*adjListsMetadata).largeListsPagesMap[lAdjListsIdx][0] = relCount;
                 for (auto i = 1u; i <= numPages; i++) {
                     (*adjListsMetadata).largeListsPagesMap[lAdjListsIdx][i] = globalPageId++;
                 }
-
                 lAdjListsIdx++;
             } else {
                 while (relCount + csrOffsetInPage > numPerPage) {
@@ -383,10 +380,10 @@ void AdjAndPropertyListsLoaderHelper::sortOverflowStringsOfPropertyListsTask(
     for (; offsetStart < offsetEnd; offsetStart++) {
         auto header = adjListsHeaders->headers[offsetStart];
         uint32_t len = 0;
-        if (header & 0x80000000) {
+        if (AdjListHeaders::isALargeAdjList(header)) {
             len = listsMetadata->largeListsPagesMap[header & 0x7fffffff][0];
         } else {
-            len = header & 0x7ff;
+            len = AdjListHeaders::getAdjListLen(header);
         }
         for (auto pos = len; pos > 0; pos--) {
             calculatePageCursor(header, pos, getDataTypeSize(STRING), offsetStart,

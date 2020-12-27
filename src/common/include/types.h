@@ -50,6 +50,7 @@ struct gf_string_t {
     }
 };
 
+//! System representation for nodeID.
 struct nodeID_t {
     label_t label;
     node_offset_t offset;
