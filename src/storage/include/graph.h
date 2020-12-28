@@ -46,6 +46,11 @@ public:
         return relsStore->getAdjColumn(direction, nodeLabel, relLabel);
     }
 
+    inline AdjLists* getAdjLists(
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) {
+        return relsStore->getAdjLists(direction, nodeLabel, relLabel);
+    }
+
 protected:
     Graph() = default;
 
@@ -62,6 +67,7 @@ private:
     unique_ptr<NodesStore> nodesStore;
     unique_ptr<RelsStore> relsStore;
     vector<uint64_t> numNodesPerLabel;
+    unique_ptr<AdjLists> adjLists;
 };
 
 } // namespace storage

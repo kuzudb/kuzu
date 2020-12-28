@@ -8,14 +8,15 @@ namespace processor {
 class AdjColumnReader : public ColumnReader {
 
 public:
-    AdjColumnReader(const Direction& direction, const label_t& nodeLabel, const label_t& relLabel,
-        const uint64_t& propertyIdx, const uint64_t& nodeVectorIdx, const uint64_t& dataChunkIdx)
-        : ColumnReader{nodeLabel, nodeVectorIdx, dataChunkIdx}, direction(direction),
-          relLabel(relLabel) {}
+    AdjColumnReader(const string& boundVariableOrRelName, const string& extensionVariableName,
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel)
+        : ColumnReader{boundVariableOrRelName, nodeLabel},
+          extensionVariableName(extensionVariableName), direction(direction), relLabel(relLabel) {}
 
     void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel);
 
 protected:
+    const string extensionVariableName;
     const Direction direction;
     const label_t relLabel;
 };

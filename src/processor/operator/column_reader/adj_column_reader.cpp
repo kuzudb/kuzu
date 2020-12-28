@@ -8,10 +8,12 @@ namespace processor {
 void AdjColumnReader::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
     ColumnReader::initialize(graph, morsel);
     column = graph->getAdjColumn(direction, nodeLabel, relLabel);
-    auto outNodeIDVector = make_shared<NodeIDVector>(((AdjColumn*)column)->getCompressionScheme());
-    outNodeIDVector->setIsSequence(nodeIDVector->getIsSequence());
+    auto outNodeIDVector = make_shared<NodeIDVector>(
+        extensionVariableName, ((AdjColumn*)column)->getCompressionScheme());
+    outNodeIDVector->setIsSequence(inNodeIDVector->getIsSequence());
     outValueVector = static_pointer_cast<ValueVector>(outNodeIDVector);
-    outDataChunk->append(outValueVector);
+    dataChunk->append(outValueVector);
+    dataChunks->append(dataChunk);
 }
 
 } // namespace processor

@@ -23,8 +23,6 @@ public:
         const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
         const unique_ptr<VectorFrameHandle>& handle);
 
-    void reclaim(unique_ptr<VectorFrameHandle>& handle);
-
 protected:
     BaseColumn(const string& fname, const size_t& elementSize, const uint64_t& numElements,
         BufferManager& bufferManager)

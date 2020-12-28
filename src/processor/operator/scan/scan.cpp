@@ -6,11 +6,10 @@ namespace processor {
 using lock_t = unique_lock<mutex>;
 
 void Scan::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
+    nodeIDVector = make_shared<NodeIDSequenceVector>(variableName);
     outDataChunk = make_shared<DataChunk>();
-    nodeIDVector = make_shared<NodeIDSequenceVector>();
     outDataChunk->append(nodeIDVector);
-    outDataChunk->size = ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
-    outDataChunks.push_back(outDataChunk);
+    dataChunks->append(outDataChunk);
 }
 
 void ScanSingleLabel::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
@@ -24,47 +23,60 @@ void ScanMultiLabel::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
     this->morsel = static_pointer_cast<MorselDescMultiLabelNodeIDs>(morsel);
 }
 
-bool ScanSingleLabel::getNextMorsel() {
+bool ScanSingleLabel::hasNextMorsel() {
     lock_t lock{morsel->mtx};
+    bool hasNextMorsel;
     if (morsel->currNodeOffset == morsel->maxNodeOffset) {
         // no more tuples to scan.
-        outDataChunk->size = 0;
-        return false /* no new morsel */;
+        hasNextMorsel = false;
+    } else {
+        nodeIDVector->setStartOffset(morsel->currNodeOffset);
+        morsel->currNodeOffset += ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
+        if (morsel->currNodeOffset >= morsel->maxNodeOffset) {
+            morsel->currNodeOffset = morsel->maxNodeOffset;
+        }
+        currMorselNodeOffset = morsel->currNodeOffset;
+        hasNextMorsel = true;
     }
-    nodeIDVector->setStartOffset(morsel->currNodeOffset);
-    morsel->currNodeOffset += ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
-    if (morsel->currNodeOffset >= morsel->maxNodeOffset) {
-        morsel->currNodeOffset = morsel->maxNodeOffset;
-        outDataChunk->size = morsel->maxNodeOffset % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1;
-    }
-    return true /* a new morsel obtained */;
+    return hasNextMorsel;
 }
 
-bool ScanMultiLabel::getNextMorsel() {
+void ScanSingleLabel::getNextTuples() {
+    outDataChunk->size = currMorselNodeOffset < morsel->maxNodeOffset ?
+                             ValueVector::NODE_SEQUENCE_VECTOR_SIZE :
+                             morsel->maxNodeOffset % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1;
+}
+
+bool ScanMultiLabel::hasNextMorsel() {
     lock_t lock{morsel->mtx};
-    uint64_t index = morsel->currPos;
-    if (morsel->currNodeOffset == morsel->maxNodeOffset[index]) {
-        if (index == morsel->numLabels) {
+    currMorselLabelPos = morsel->currPos;
+    if (morsel->currNodeOffset == morsel->maxNodeOffset[currMorselLabelPos]) {
+        if (currMorselLabelPos == morsel->numLabels) {
             // no more tuples to scan.
-            outDataChunk->size = 0;
-            return false /* no new morsel */;
+            return false /* has no next morsel */;
         }
         // all nodes of current label are scanned, move to the next label.
-        index += 1;
+        currMorselLabelPos += 1;
         morsel->currPos += 1;
         morsel->currNodeOffset = 0;
-        outDataChunk->size = ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     }
 
-    nodeIDVector->setLabel(morsel->nodeLabel[index]);
+    nodeIDVector->setLabel(morsel->nodeLabel[currMorselLabelPos]);
     nodeIDVector->setStartOffset(morsel->currNodeOffset);
     morsel->currNodeOffset += ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
-    auto maxOffset = morsel->maxNodeOffset[index];
+    auto maxOffset = morsel->maxNodeOffset[currMorselLabelPos];
     if (morsel->currNodeOffset >= maxOffset) {
         morsel->currNodeOffset = maxOffset;
-        outDataChunk->size = maxOffset % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1;
     }
-    return true /* a new morsel obtained */;
+    currMorselNodeOffset = morsel->currNodeOffset;
+    return true /* has a next morsel */;
+}
+
+void ScanMultiLabel::getNextTuples() {
+    auto maxOffset = morsel->maxNodeOffset[currMorselLabelPos];
+    outDataChunk->size = currMorselNodeOffset == maxOffset ?
+                             maxOffset % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1 :
+                             ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
 }
 
 } // namespace processor

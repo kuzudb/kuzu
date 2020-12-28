@@ -6,8 +6,9 @@ namespace processor {
 void RelPropertyColumnReader::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
     ColumnReader::initialize(graph, morsel);
     column = graph->getRelPropertyColumn(relLabel, nodeLabel, propertyName);
-    outValueVector = make_shared<ValueVector>(column->getElementSize());
-    outDataChunk->append(outValueVector);
+    auto name = boundVariableOrRelName + "." + propertyName;
+    outValueVector = make_shared<ValueVector>(name, column->getElementSize());
+    dataChunk->append(outValueVector);
 }
 
 } // namespace processor

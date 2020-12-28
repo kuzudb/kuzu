@@ -12,7 +12,7 @@ class BaseLists : public BaseColumnOrList {
 
 public:
     void readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<VectorFrameHandle>& handle);
+        uint64_t& adjListLen, const unique_ptr<VectorFrameHandle>& handle);
 
 protected:
     BaseLists(const string& fname, size_t elementSize, shared_ptr<AdjListHeaders> headers,

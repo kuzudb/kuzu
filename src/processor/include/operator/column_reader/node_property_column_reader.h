@@ -8,9 +8,9 @@ namespace processor {
 class NodePropertyColumnReader : public ColumnReader {
 
 public:
-    NodePropertyColumnReader(const label_t& nodeLabel, const string& propertyName,
-        const uint64_t& nodeVectorIdx, const uint64_t& dataChunkIdx)
-        : ColumnReader{nodeLabel, nodeVectorIdx, dataChunkIdx}, propertyName(propertyName) {}
+    NodePropertyColumnReader(
+        const string& boundVariableOrRelName, const label_t& nodeLabel, const string& propertyName)
+        : ColumnReader{boundVariableOrRelName, nodeLabel}, propertyName(propertyName) {}
 
     virtual void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel);
 

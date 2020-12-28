@@ -12,9 +12,8 @@ namespace processor {
 class ColumnReader : public Operator {
 
 public:
-    ColumnReader(
-        const label_t& nodeLabel, const uint64_t& dataChunkIdx, const uint64_t& nodeVectorIdx)
-        : nodeLabel(nodeLabel), dataChunkIdx(dataChunkIdx), nodeIDVectorIdx(nodeVectorIdx),
+    ColumnReader(const string& boundVariableOrRelName, const label_t& nodeLabel)
+        : boundVariableOrRelName(boundVariableOrRelName), nodeLabel(nodeLabel),
           handle(make_unique<VectorFrameHandle>()) {}
 
     virtual void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel);
@@ -23,21 +22,16 @@ public:
 
     inline void cleanup() { column->reclaim(handle); }
 
-    shared_ptr<ValueVector>& getPropertyVector() { return outValueVector; }
-
 protected:
+    string boundVariableOrRelName;
     label_t nodeLabel;
 
-    uint64_t dataChunkIdx;
-    shared_ptr<DataChunk> outDataChunk;
-
-    shared_ptr<NodeIDVector> nodeIDVector;
-    uint64_t nodeIDVectorIdx;
-
+    shared_ptr<DataChunk> dataChunk;
+    shared_ptr<NodeIDVector> inNodeIDVector;
     shared_ptr<ValueVector> outValueVector;
-    unique_ptr<VectorFrameHandle> handle;
 
     BaseColumn* column;
+    unique_ptr<VectorFrameHandle> handle;
 };
 
 } // namespace processor

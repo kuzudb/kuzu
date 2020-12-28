@@ -5,15 +5,11 @@ namespace processor {
 
 void Sink::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
     prevOperator->initialize(graph, morsel);
-    auto prevDataChunks = prevOperator->getOutDataChunks();
 }
 
 void Sink::getNextTuples() {
     prevOperator->getNextTuples();
-    uint64_t newTuples = 1;
-    for (auto chunk : prevOperator->getOutDataChunks()) {
-        newTuples *= chunk->size;
-    }
+    numTuples += prevOperator->getOutDataChunks()->getNumTuples();
 }
 
 } // namespace processor

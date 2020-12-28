@@ -6,16 +6,16 @@ namespace processor {
 
 void ColumnReader::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
     prevOperator->initialize(graph, morsel);
-    outDataChunks = prevOperator->getOutDataChunks();
-    outDataChunk = outDataChunks[dataChunkIdx];
-    nodeIDVector = static_pointer_cast<NodeIDVector>(outDataChunk->valueVectors[nodeIDVectorIdx]);
+    dataChunks = prevOperator->getOutDataChunks();
+    inNodeIDVector = static_pointer_cast<NodeIDVector>(
+        dataChunks->getValueVectorAndSetDataChunk(boundVariableOrRelName, dataChunk));
 }
 
 void ColumnReader::getNextTuples() {
     column->reclaim(handle);
     prevOperator->getNextTuples();
-    if (outDataChunk->size > 0) {
-        column->readValues(nodeIDVector, outValueVector, outDataChunk->size, handle);
+    if (dataChunk->size > 0) {
+        column->readValues(inNodeIDVector, outValueVector, dataChunk->size, handle);
     }
 }
 
