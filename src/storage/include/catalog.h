@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "bitsery/bitsery.h"
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
 
 #include "src/common/include/types.h"
 
@@ -29,7 +31,11 @@ class Catalog {
     friend class bitsery::Access;
 
 public:
-    Catalog(const string& directory) { readFromFile(directory); };
+    Catalog(const string& directory) : Catalog() {
+        logger->info("Initializing Catalog.");
+        readFromFile(directory);
+        logger->info("Done.");
+    };
 
     inline const uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
     inline const uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
@@ -74,7 +80,7 @@ public:
     }
 
 private:
-    Catalog() = default;
+    Catalog() : logger{spdlog::get("storage")} {};
 
     template<typename S>
     void serialize(S& s);
@@ -86,6 +92,7 @@ private:
     void deserializeStringToLabelMap(fstream& f, stringToLabelMap_t& map);
 
 private:
+    shared_ptr<spdlog::logger> logger;
     stringToLabelMap_t stringToNodeLabelMap;
     stringToLabelMap_t stringToRelLabelMap;
     vector<unordered_map<string, Property>> nodePropertyMaps;

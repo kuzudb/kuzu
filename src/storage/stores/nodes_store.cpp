@@ -6,13 +6,19 @@ namespace graphflow {
 namespace storage {
 
 NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
-    const string& directory, BufferManager& bufferManager) {
+    const string& directory, BufferManager& bufferManager)
+    : logger{spdlog::get("storage")} {
+    logger->info("Initializing NodesStore.");
     propertyColumns.resize(catalog.getNodeLabelsCount());
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
         auto& propertyMap = catalog.getPropertyMapForNodeLabel(nodeLabel);
+        propertyColumns[nodeLabel].resize(propertyMap.size());
         for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
             auto fname = getNodePropertyColumnFname(directory, nodeLabel, property->first);
             auto idx = property->second.idx;
+            logger->debug("nodeLabel {} propertyIdx {} "
+                          "type {} name `{}`",
+                nodeLabel, idx, property->second.dataType, property->first);
             switch (property->second.dataType) {
             case INT:
                 propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnInt>(
@@ -35,6 +41,7 @@ NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesP
             }
         }
     }
+    logger->info("Done.");
 }
 
 } // namespace storage

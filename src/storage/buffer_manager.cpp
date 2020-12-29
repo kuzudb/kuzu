@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "spdlog/sinks/stdout_sinks.h"
+
 #include "src/common/include/configs.h"
 
 using namespace graphflow::common;
@@ -23,10 +25,13 @@ Frame::~Frame() {
 }
 
 BufferManager::BufferManager(uint64_t maxSize)
-    : clockHand(0), maxPages(maxSize / PAGE_SIZE), usedPages(0) {
+    : logger{spdlog::get("storage")}, clockHand(0), maxPages(maxSize / PAGE_SIZE), usedPages(0) {
+    logger->info("Initializing Buffer Manager.");
+    logger->debug("BufferPool Size {}B, #4KB-pages {}.", maxSize, maxPages);
     for (auto i = 0u; i < maxPages; i++) {
         bufferPool.push_back(make_unique<Frame>());
     }
+    logger->info("Done.");
 }
 
 const char* BufferManager::pin(FileHandle& fileHandle, uint32_t pageIdx) {

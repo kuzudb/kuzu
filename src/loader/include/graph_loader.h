@@ -23,7 +23,7 @@ class GraphLoader {
 
 public:
     GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads)
-        : logger{spdlog::stdout_logger_mt("GraphLoader")}, threadPool{ThreadPool(numThreads)},
+        : logger{spdlog::stdout_logger_mt("loader")}, threadPool{ThreadPool(numThreads)},
           inputDirectory(inputDirectory), outputDirectory(outputDirectory) {}
 
     void loadGraph();

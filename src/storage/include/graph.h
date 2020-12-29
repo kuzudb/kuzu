@@ -1,6 +1,9 @@
 #pragma once
 
+#include <iostream>
 #include <vector>
+
+#include "spdlog/spdlog.h"
 
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/catalog.h"
@@ -52,7 +55,7 @@ public:
     }
 
 protected:
-    Graph() = default;
+    Graph() : logger{spdlog::stdout_logger_st("storage")} {};
 
 private:
     template<typename S>
@@ -61,9 +64,12 @@ private:
     void saveToFile(const string& directory);
     void readFromFile(const string& directory);
 
+protected:
+    shared_ptr<spdlog::logger> logger;
+    unique_ptr<BufferManager> bufferManager;
+
 private:
     unique_ptr<Catalog> catalog;
-    unique_ptr<BufferManager> bufferManager;
     unique_ptr<NodesStore> nodesStore;
     unique_ptr<RelsStore> relsStore;
     vector<uint64_t> numNodesPerLabel;

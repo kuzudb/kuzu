@@ -9,6 +9,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/common",
+        "@gabime_spdlog",
     ],
 )
 
@@ -20,6 +21,7 @@ cc_library(
     deps = [
         "file_handle",
         "//src/common",
+        "@gabime_spdlog",
     ],
 )
 
@@ -73,6 +75,7 @@ cc_library(
     deps = [
         "//src/common",
         "@fraillt_bitsery",
+        "@gabime_spdlog",
     ],
 )
 
@@ -92,5 +95,6 @@ cc_library(
         "catalog",
         "stores",
         "@fraillt_bitsery",
+        "@gabime_spdlog",
     ],
 )

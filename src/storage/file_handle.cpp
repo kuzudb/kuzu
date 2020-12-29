@@ -10,7 +10,8 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-FileHandle::FileHandle(const string& path) {
+FileHandle::FileHandle(const string& path) : logger{spdlog::get("storage")} {
+    logger->trace("FileHandle: Path {}", path);
     fileDescriptor = open(path.c_str(), O_RDONLY);
     if (-1 == fileDescriptor) {
         throw invalid_argument("Cannot open file: " + path);
@@ -20,6 +21,7 @@ FileHandle::FileHandle(const string& path) {
     if (0 != fileLength % PAGE_SIZE) {
         numPages++;
     }
+    logger->trace("FileHandle: Size {}B, #4KB-pages {}", fileLength, numPages);
     pageToFrameMap.resize(numPages);
     for (auto i = 0ull; i < numPages; i++) {
         pageToFrameMap[i] = UINT64_MAX;

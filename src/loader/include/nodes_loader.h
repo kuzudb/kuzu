@@ -22,7 +22,7 @@ class NodesLoader {
 private:
     NodesLoader(ThreadPool& threadPool, const Catalog& catalog, const nlohmann::json& metadata,
         const string outputDirectory)
-        : logger{spdlog::stdout_logger_mt("NodesLoader")}, threadPool{threadPool}, catalog{catalog},
+        : logger{spdlog::get("loader")}, threadPool{threadPool}, catalog{catalog},
           metadata{metadata}, outputDirectory{outputDirectory} {};
 
     void load(const vector<string>& fnames, const vector<uint64_t>& numBlocksPerLabel,

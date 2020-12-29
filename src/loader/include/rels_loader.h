@@ -19,9 +19,8 @@ private:
     RelsLoader(ThreadPool& threadPool, const Graph& graph, const Catalog& catalog,
         const nlohmann::json& metadata, vector<unique_ptr<NodeIDMap>>& nodeIDMaps,
         const string outputDirectory)
-        : logger{spdlog::stdout_logger_mt("RelsLoader")}, threadPool{threadPool}, graph{graph},
-          catalog{catalog}, metadata{metadata}, nodeIDMaps{nodeIDMaps},
-          outputDirectory(outputDirectory){};
+        : logger{spdlog::get("loader")}, threadPool{threadPool}, graph{graph}, catalog{catalog},
+          metadata{metadata}, nodeIDMaps{nodeIDMaps}, outputDirectory(outputDirectory){};
 
     void load(vector<string>& fnames, vector<uint64_t>& numBlocksPerLabel);
 

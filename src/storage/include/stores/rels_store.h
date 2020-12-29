@@ -32,13 +32,13 @@ public:
         return adjLists[direction][nodeLabel][relLabel].get();
     }
 
-    inline static string getAdjColumnIndexFname(const string& directory, const label_t& relLabel,
+    inline static string getAdjColumnFname(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
         return directory + "/r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +
                to_string(direction) + ".col";
     }
 
-    inline static string getAdjListsIndexFname(const string& directory, const label_t& relLabel,
+    inline static string getAdjListsFname(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
         return directory + "/r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +
                to_string(direction) + ".lists";
@@ -57,6 +57,12 @@ public:
     }
 
 private:
+    void initAdjColumns(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
+        const string& directory, BufferManager& bufferManager);
+
+    void initAdjLists(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
+        const string& directory, BufferManager& bufferManager);
+
     void initPropertyListsAndColumns(const Catalog& catalog,
         const vector<uint64_t>& numNodesPerLabel, const string& directory,
         BufferManager& bufferManager);
@@ -69,10 +75,8 @@ private:
         const vector<uint64_t>& numNodesPerLabel, const string& directory,
         BufferManager& bufferManager, const label_t& relLabel);
 
-    void initAdjListsAndColumns(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
-        const string& directory, BufferManager& bufferManager);
-
 private:
+    shared_ptr<spdlog::logger> logger;
     // propertyColumns are organized in 2-dimensional vectors wherein the first dimension gives
     // nodeLabel and the second dimension is the relLabel.
     vector<vector<vector<unique_ptr<BaseColumn>>>> propertyColumns;

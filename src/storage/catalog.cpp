@@ -77,6 +77,7 @@ void Catalog::saveToFile(const string& directory) {
 
 void Catalog::readFromFile(const string& directory) {
     auto path = directory + "/catalog.bin";
+    logger->debug("Reading from {}.", path);
     fstream f{path, f.binary | f.in};
     if (!f.is_open()) {
         invalid_argument("Cannot open " + path + " for reading the catalog.");

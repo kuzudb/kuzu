@@ -21,10 +21,12 @@ public:
 
 protected:
     BaseColumnOrList(const string& fname, const size_t& elementSize, BufferManager& bufferManager)
-        : elementSize{elementSize}, numElementsPerPage{(uint32_t)(PAGE_SIZE / elementSize)},
-          fileHandle{fname}, bufferManager(bufferManager){};
+        : logger{spdlog::get("storage")}, elementSize{elementSize},
+          numElementsPerPage{(uint32_t)(PAGE_SIZE / elementSize)}, fileHandle{fname},
+          bufferManager(bufferManager){};
 
 protected:
+    shared_ptr<spdlog::logger> logger;
     size_t elementSize;
     uint32_t numElementsPerPage;
     FileHandle fileHandle;

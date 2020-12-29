@@ -30,22 +30,22 @@ void RelsLoader::load(vector<string>& fnames, vector<uint64_t>& numBlocksPerFile
 }
 
 void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
-    logger->info("Processing relLabel {}.", description.label);
+    logger->debug("Processing relLabel {}.", description.label);
     AdjAndPropertyListsLoaderHelper adjAndPropertyListsLoaderHelper{
-        description, threadPool, graph, catalog, outputDirectory, logger};
+        description, threadPool, graph, catalog, outputDirectory};
     constructAdjRelsAndCountRelsInAdjLists(description, adjAndPropertyListsLoaderHelper);
     if (!description.isSingleCardinalityPerDir[FWD] ||
         !description.isSingleCardinalityPerDir[BWD]) {
         constructAdjLists(description, adjAndPropertyListsLoaderHelper);
     }
-    logger->info("Done.");
+    logger->debug("Done.");
 }
 
 void RelsLoader::constructAdjRelsAndCountRelsInAdjLists(RelLabelDescription& description,
     AdjAndPropertyListsLoaderHelper& adjAndPropertyListsLoaderHelper) {
     AdjAndPropertyColumnsLoaderHelper adjAndPropertyColumnsLoaderHelper{
-        description, threadPool, graph, catalog, outputDirectory, logger};
-    logger->info("Populating AdjRels and Rel Property Columns...");
+        description, threadPool, graph, catalog, outputDirectory};
+    logger->debug("Populating AdjRels and Rel Property Columns.");
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         threadPool.execute(populateAdjRelsAndCountRelsInAdjListsTask, &description, blockId,
             metadata.at("tokenSeparator").get<string>()[0], &adjAndPropertyListsLoaderHelper,
@@ -62,7 +62,7 @@ void RelsLoader::constructAdjLists(RelLabelDescription& description,
     AdjAndPropertyListsLoaderHelper& adjAndPropertyListsLoaderHelper) {
     adjAndPropertyListsLoaderHelper.buildAdjListsHeadersAndListsMetadata();
     adjAndPropertyListsLoaderHelper.buildInMemStructures();
-    logger->info("Populating AdjLists and Rel Property Lists...");
+    logger->debug("Populating AdjLists and Rel Property Lists.");
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         threadPool.execute(populateAdjListsTask, &description, blockId,
             metadata.at("tokenSeparator").get<string>()[0], &adjAndPropertyListsLoaderHelper,
@@ -81,7 +81,7 @@ void RelsLoader::populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* 
     AdjAndPropertyColumnsLoaderHelper* adjAndPropertyColumnsLoaderHelper,
     vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
     shared_ptr<spdlog::logger> logger) {
-    logger->debug("start {0} {1}", description->fname, blockId);
+    logger->trace("Start: path=`{0}` blkIdx={1}", description->fname, blockId);
     CSVReader reader(description->fname, tokenSeparator, blockId);
     if (0 == blockId) {
         if (reader.hasNextLine()) {
@@ -116,14 +116,14 @@ void RelsLoader::populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* 
             }
         }
     }
-    logger->debug("end   {0} {1}", description->fname, blockId);
+    logger->trace("End: path=`{0}` blkIdx={1}", description->fname, blockId);
 }
 
 void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
     const char tokenSeparator, AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
     vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
     shared_ptr<spdlog::logger> logger) {
-    logger->debug("start {0} {1}", description->fname, blockId);
+    logger->trace("Start: path=`{0}` blkIdx={1}", description->fname, blockId);
     CSVReader reader(description->fname, tokenSeparator, blockId);
     if (0 == blockId) {
         if (reader.hasNextLine()) {
@@ -152,7 +152,7 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
                 reversePos, adjAndPropertyListsLoaderHelper, stringOverflowPagesCursors, logger);
         }
     }
-    logger->debug("end   {0} {1}", description->fname, blockId);
+    logger->trace("End: path=`{0}` blkIdx={1}", description->fname, blockId);
 }
 
 void RelsLoader::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
