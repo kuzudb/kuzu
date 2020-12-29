@@ -14,7 +14,7 @@ git_repository(
 # Logger
 http_archive(
     name = "gabime_spdlog",
-    build_file = "gabime_spdlog.BUILD",
+    build_file = "gabime_spdlog.BUILD.bazel",
     sha256 = "eed0095a1d52d08a0834feda146d4f9148fa4125620cd04d8ea57e0238fa39cd",
     strip_prefix = "spdlog-1.8.1/include",
     url = "https://github.com/gabime/spdlog/archive/v1.8.1.zip",
@@ -23,7 +23,7 @@ http_archive(
 # JSON parser
 http_archive(
     name = "nlohmann_json",
-    build_file = "nlohmann_json.BUILD",
+    build_file = "nlohmann_json.BUILD.bazel",
     sha256 = "6bea5877b1541d353bd77bdfbdb2696333ae5ed8f9e8cc22df657192218cad91",
     strip_prefix = "single_include",
     url = "https://github.com/nlohmann/json/releases/download/v3.9.1/include.zip",
@@ -32,7 +32,7 @@ http_archive(
 # Command-line parser
 http_archive(
     name = "Taywee_args",
-    build_file = "Taywee_args.BUILD",
+    build_file = "Taywee_args.BUILD.bazel",
     sha256 = "1a1c8846acd2d117843f6ab13518cac78bd0f8dcde8531603ac6f2115c9582d6",
     strip_prefix = "args-6.2.2",
     url = "https://github.com/Taywee/args/archive/6.2.2.zip",
@@ -41,7 +41,7 @@ http_archive(
 # Serialization/Deserialization
 http_archive(
     name = "fraillt_bitsery",
-    build_file = "fraillt_bitsery.BUILD",
+    build_file = "fraillt_bitsery.BUILD.bazel",
     sha256 = "ddb77597360d1557139599e7c9cf88ff11d9b60ee37833a82b05428de249206a",
     strip_prefix = "bitsery-5.1.0/include",
     url = "https://github.com/fraillt/bitsery/archive/v5.1.0.zip",
@@ -50,8 +50,44 @@ http_archive(
 # Maps and Hashing
 http_archive(
     name = "martinus_robin_hood_hashing",
-    build_file = "martinus_robin_hood_hashing.BUILD",
+    build_file = "martinus_robin_hood_hashing.BUILD.bazel",
     sha256 = "53f6307fd77a09ce99edc2c7d1238afc54b76e9081f731e729d3c8be03acebcb",
     strip_prefix = "robin-hood-hashing-3.9.1/src/include",
     url = "https://github.com/martinus/robin-hood-hashing/archive/3.9.1.zip",
+)
+
+# Asio
+http_archive(
+    name = "asio",
+    build_file = "asio.BUILD.bazel",
+    sha256 = "9c3f9508a5ced658eaf16321ac2bad39ed1702bb09e00079f43aa74414e5d3ce",
+    strip_prefix = "asio-1.18.1/include",
+    url = "https://managedway.dl.sourceforge.net/project/asio/asio/1.18.1%20%28Stable%29/asio-1.18.1.zip",
+)
+
+# nodjs HTTP Parser
+http_archive(
+    name = "nodejs_http_parser",
+    build_file = "nodejs_http_parser.BUILD.bazel",
+    sha256 = "3ac30468dc99ce310f131be504e8a19a5aeccaf62585b6c49a565dbb313dedc8",
+    strip_prefix = "http-parser-master",
+    url = "https://github.com/nodejs/http-parser/archive/master.zip",
+)
+
+# fmtlib
+http_archive(
+    name = "fmtlib_fmt",
+    build_file = "fmtlib_fmt.BUILD.bazel",
+    sha256 = "50f2fd9f697f89726ae3c7efe84ae48c9e03158a2958eea496eeaa0fb190adb6",
+    strip_prefix = "fmt-7.1.3",  
+    url = "https://github.com/fmtlib/fmt/archive/7.1.3.zip",
+)
+
+# HTTP Server
+http_archive(
+    name = "Stiffstream_restinio",
+    build_file = "Stiffstream_restinio.BUILD.bazel",
+    sha256 = "2ed08bf521aeb2fba9c1966ead771c888b6c208392dbc3c94332f823e0f87d41",
+    strip_prefix = "restinio-v.0.6.13/dev",
+    url = "https://github.com/Stiffstream/restinio/archive/v.0.6.13.zip",
 )

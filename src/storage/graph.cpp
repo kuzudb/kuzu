@@ -13,13 +13,14 @@ using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAda
 namespace graphflow {
 namespace storage {
 
-Graph::Graph(const string& directory, uint64_t bufferPoolSize) : Graph() {
+Graph::Graph(const string& path, uint64_t bufferPoolSize)
+    : logger{spdlog::stdout_logger_st("storage")}, path{path} {
     logger->info("Initializing Graph.");
-    catalog = make_unique<Catalog>(directory);
+    catalog = make_unique<Catalog>(path);
     bufferManager = make_unique<BufferManager>(bufferPoolSize);
-    readFromFile(directory);
-    nodesStore = make_unique<NodesStore>(*catalog, numNodesPerLabel, directory, *bufferManager);
-    relsStore = make_unique<RelsStore>(*catalog, numNodesPerLabel, directory, *bufferManager);
+    readFromFile(path);
+    nodesStore = make_unique<NodesStore>(*catalog, numNodesPerLabel, path, *bufferManager);
+    relsStore = make_unique<RelsStore>(*catalog, numNodesPerLabel, path, *bufferManager);
     logger->info("Done.");
     return;
 }
@@ -29,11 +30,11 @@ void Graph::serialize(S& s) {
     s(numNodesPerLabel);
 }
 
-void Graph::saveToFile(const string& directory) {
-    auto path = directory + "/graph.bin";
+void Graph::saveToFile(const string& path) {
+    auto garphPath = path + "/graph.bin";
     fstream f{path, f.binary | f.trunc | f.out};
-    if (!f.is_open()) {
-        invalid_argument("Cannot open " + path + " for writing.");
+    if (f.fail()) {
+        throw invalid_argument("Cannot open " + garphPath + " for writing.");
     }
     OutputStreamAdapter serializer{f};
     serializer.object(*this);
@@ -41,17 +42,17 @@ void Graph::saveToFile(const string& directory) {
     f.close();
 }
 
-void Graph::readFromFile(const string& directory) {
-    auto path = directory + "/graph.bin";
-    logger->debug("Reading from {}.", path);
-    fstream f{path, f.binary | f.in};
-    if (!f.is_open()) {
-        invalid_argument("Cannot open " + path + " for reading the graph.");
+void Graph::readFromFile(const string& path) {
+    auto garphPath = path + "/graph.bin";
+    logger->debug("Reading from {}.", garphPath);
+    fstream f{garphPath, f.binary | f.in};
+    if (f.fail()) {
+        throw invalid_argument("Cannot open " + garphPath + " for reading the graph.");
     }
     auto state = bitsery::quickDeserialization<bitsery::InputStreamAdapter>(f, *this);
     f.close();
-    if (state.first == bitsery::ReaderError::NoError && state.second) {
-        invalid_argument("Cannot deserialize the graph.");
+    if (!(state.first == bitsery::ReaderError::NoError && state.second)) {
+        throw invalid_argument("Cannot deserialize the graph.");
     }
 }
 

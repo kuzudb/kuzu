@@ -30,8 +30,8 @@ void ListsMetadata::serialize(S& s) {
 void ListsMetadata::saveToFile(const string& fname) {
     auto path = fname + ".metadata";
     fstream f{path, f.binary | f.trunc | f.out};
-    if (!f.is_open()) {
-        invalid_argument("cannot open " + path + " for writing");
+    if (f.fail()) {
+        throw invalid_argument("cannot open " + path + " for writing");
     }
     OutputStreamAdapter serializer{f};
     serializer.object(*this);
@@ -43,13 +43,13 @@ void ListsMetadata::readFromFile(const string& fname) {
     auto path = fname + ".metadata";
     logger->trace("ListsMetadata: Path {}", path);
     fstream f{path, f.binary | f.in};
-    if (!f.is_open()) {
-        invalid_argument("Cannot open " + path + " for reading the catalog.");
+    if (f.fail()) {
+        throw invalid_argument("Cannot open " + path + " for reading the catalog.");
     }
     auto state = bitsery::quickDeserialization<bitsery::InputStreamAdapter>(f, *this);
     f.close();
-    if (state.first == bitsery::ReaderError::NoError && state.second) {
-        invalid_argument("Cannot deserialize the catalog.");
+    if (!(state.first == bitsery::ReaderError::NoError && state.second)) {
+        throw invalid_argument("Cannot deserialize the ListsMetadata.");
     }
 }
 
@@ -66,8 +66,8 @@ void AdjListHeaders::serialize(S& s) {
 void AdjListHeaders::saveToFile(const string& fname) {
     auto path = fname + ".headers";
     fstream f{path, f.binary | f.trunc | f.out};
-    if (!f.is_open()) {
-        invalid_argument("cannot open " + path + " for writing");
+    if (f.fail()) {
+        throw invalid_argument("cannot open " + path + " for writing");
     }
     OutputStreamAdapter serializer{f};
     serializer.object(*this);
@@ -79,13 +79,13 @@ void AdjListHeaders::readFromFile(const string& fname) {
     auto path = fname + ".headers";
     logger->trace("AdjListHeaders: Path {}", path);
     fstream f{path, f.binary | f.in};
-    if (!f.is_open()) {
-        invalid_argument("Cannot open " + path + " for reading the catalog.");
+    if (f.fail()) {
+        throw invalid_argument("Cannot open " + path + " for reading the catalog.");
     }
     auto state = bitsery::quickDeserialization<bitsery::InputStreamAdapter>(f, *this);
     f.close();
-    if (state.first == bitsery::ReaderError::NoError && state.second) {
-        invalid_argument("Cannot deserialize the catalog.");
+    if (!(state.first == bitsery::ReaderError::NoError && state.second)) {
+        throw invalid_argument("Cannot deserialize the AdjListHeaders.");
     }
 }
 

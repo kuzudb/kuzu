@@ -59,13 +59,13 @@ void Catalog::serialize(S& s) {
     s.container(dstNodeLabelToRelLabel, UINT32_MAX, vectorLabelsFunc);
 
     s.container(relLabelToCardinalityMap, UINT32_MAX, [](S& s, Cardinality& v) { s(v); });
-} // namespace storage
+}
 
 void Catalog::saveToFile(const string& directory) {
     auto path = directory + "/catalog.bin";
     fstream f{path, f.binary | f.trunc | f.out};
-    if (!f.is_open()) {
-        invalid_argument("cannot open " + path + " for writing");
+    if (f.fail()) {
+        throw invalid_argument("cannot open " + path + " for writing");
     }
     serializeStringToLabelMap(f, stringToNodeLabelMap);
     serializeStringToLabelMap(f, stringToRelLabelMap);
@@ -79,15 +79,15 @@ void Catalog::readFromFile(const string& directory) {
     auto path = directory + "/catalog.bin";
     logger->debug("Reading from {}.", path);
     fstream f{path, f.binary | f.in};
-    if (!f.is_open()) {
-        invalid_argument("Cannot open " + path + " for reading the catalog.");
+    if (f.fail()) {
+        throw invalid_argument("Cannot open " + path + " for reading the catalog.");
     }
     deserializeStringToLabelMap(f, stringToNodeLabelMap);
     deserializeStringToLabelMap(f, stringToRelLabelMap);
     auto state = bitsery::quickDeserialization<bitsery::InputStreamAdapter>(f, *this);
     f.close();
-    if (state.first == bitsery::ReaderError::NoError && state.second) {
-        invalid_argument("Cannot deserialize the catalog.");
+    if (!(state.first == bitsery::ReaderError::NoError && state.second)) {
+        throw invalid_argument("Cannot deserialize the catalog.");
     }
 }
 

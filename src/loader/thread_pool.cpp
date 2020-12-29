@@ -15,7 +15,6 @@ ThreadPool::ThreadPool(uint32_t threadCount) {
 ThreadPool::~ThreadPool() {
     stopThreads = true;
     tasksQueueCV.notify_all();
-
     for (std::thread& thread : threads) {
         thread.join();
     }

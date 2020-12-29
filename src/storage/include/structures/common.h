@@ -20,10 +20,7 @@ public:
     void reclaim(unique_ptr<VectorFrameHandle>& handle);
 
 protected:
-    BaseColumnOrList(const string& fname, const size_t& elementSize, BufferManager& bufferManager)
-        : logger{spdlog::get("storage")}, elementSize{elementSize},
-          numElementsPerPage{(uint32_t)(PAGE_SIZE / elementSize)}, fileHandle{fname},
-          bufferManager(bufferManager){};
+    BaseColumnOrList(const string& fname, const size_t& elementSize, BufferManager& bufferManager);
 
 protected:
     shared_ptr<spdlog::logger> logger;

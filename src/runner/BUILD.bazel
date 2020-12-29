@@ -1,4 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_binary(
     name = "data_loader",
@@ -8,5 +9,43 @@ cc_binary(
         "//src/loader",
         "@Taywee_args",
         "@gabime_spdlog",
+    ],
+)
+
+cc_library(
+    name = "server",
+    srcs = [
+        "server/server.cpp",
+        "server/session.cpp",
+    ],
+    hdrs = [
+        "include/server/server.h",
+        "include/server/session.h",
+    ],
+    copts = [
+        "-Iexternal/asio",
+        "-Iexternal/fmtlib_fmt/include",
+        "-Iexternal/nodejs_http_parser",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/storage:graph",
+        "@Stiffstream_restinio",
+        "@nlohmann_json",
+    ],
+)
+
+cc_binary(
+    name = "run_server",
+    srcs = ["run_server.cpp"],
+    copts = [
+        "-Iexternal/asio",
+        "-Iexternal/fmtlib_fmt/include",
+        "-Iexternal/nodejs_http_parser",
+    ],
+    linkopts = ["-lpthread"],
+    deps = [
+        "server",
+        "@Taywee_args",
     ],
 )
