@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "bitsery/bitsery.h"
+#include "spdlog/spdlog.h"
 
 #include "src/common/include/types.h"
 
@@ -28,8 +29,8 @@ class ListsMetadata {
     friend class bitsery::Access;
 
 public:
-    ListsMetadata() = default;
-    ListsMetadata(const string& path) { readFromFile(path); };
+    ListsMetadata() : logger{spdlog::get("storage")} {};
+    ListsMetadata(const string& path);
 
     inline uint64_t getPageIdx(const uint32_t& chunkIDx, const uint32_t& pageIdxInChunk) {
         return chunksPagesMap[chunkIDx][pageIdxInChunk];
@@ -43,6 +44,7 @@ private:
     void readFromFile(const string& fname);
 
 private:
+    shared_ptr<spdlog::logger> logger;
     // Holds the list of alloted disk page IDs for each chunk (that is a collection of regular
     // adjlists for 512 node offsets). The outer vector holds one vector per chunk, which holds the
     // pageIdxs of the pages used to hold the small adjlists of LISTS_CHUNK_SIZE number of
@@ -60,8 +62,8 @@ class AdjListHeaders {
     friend class bitsery::Access;
 
 public:
-    AdjListHeaders() = default;
-    AdjListHeaders(string path) { readFromFile(path); };
+    AdjListHeaders() : logger{spdlog::get("storage")} {};
+    AdjListHeaders(string path);
 
     uint32_t getHeader(node_offset_t offset) { return headers[offset]; };
 
@@ -79,6 +81,7 @@ private:
     void readFromFile(const string& fname);
 
 private:
+    shared_ptr<spdlog::logger> logger;
     // A header of a list is a uint32_t value the describes the following information about the
     // list: 1) type: small or large, 2) location of list in pages.
 

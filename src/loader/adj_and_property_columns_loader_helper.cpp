@@ -7,8 +7,8 @@ namespace loader {
 
 AdjAndPropertyColumnsLoaderHelper::AdjAndPropertyColumnsLoaderHelper(
     RelLabelDescription& description, ThreadPool& threadPool, const Graph& graph,
-    const Catalog& catalog, const string outputDirectory, shared_ptr<spdlog::logger> logger)
-    : logger{logger}, description{description},
+    const Catalog& catalog, const string outputDirectory)
+    : logger{spdlog::get("loader")}, description{description},
       threadPool{threadPool}, graph{graph}, catalog{catalog}, outputDirectory{outputDirectory} {
     if (description.hasProperties()) {
         if (description.isSingleCardinalityPerDir[FWD]) {
@@ -47,7 +47,7 @@ void AdjAndPropertyColumnsLoaderHelper::setStringProperty(const nodeID_t& nodeID
 }
 
 void AdjAndPropertyColumnsLoaderHelper::sortOverflowStrings() {
-    logger->info("Ordering String Rel Property Columns...");
+    logger->debug("Ordering String Rel Property Columns.");
     auto orderedStringOverflows =
         make_unique<labelPropertyIdxStringOverflow_t>(catalog.getNodeLabelsCount());
     auto dir = description.isSingleCardinalityPerDir[FWD] ? FWD : BWD;
@@ -81,10 +81,11 @@ void AdjAndPropertyColumnsLoaderHelper::sortOverflowStrings() {
     }
     threadPool.wait();
     labelPropertyIdxStringOverflowPages = move(orderedStringOverflows);
+    logger->debug("Done.");
 }
 
 void AdjAndPropertyColumnsLoaderHelper::saveToFile() {
-    logger->info("Writing AdjColumns and Rel Property Columns to disk...");
+    logger->debug("Writing AdjColumns and Rel Property Columns to disk.");
     for (auto& dir : DIRS) {
         if (description.isSingleCardinalityPerDir[dir]) {
             for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
@@ -110,10 +111,11 @@ void AdjAndPropertyColumnsLoaderHelper::saveToFile() {
         }
     }
     threadPool.wait();
+    logger->debug("Done.");
 }
 
 void AdjAndPropertyColumnsLoaderHelper::buildInMemPropertyColumns(Direction dir) {
-    logger->info("Creating InMemProperty Columns...");
+    logger->debug("Creating InMemProperty Columns.");
     labelPropertyIdxPropertyColumn.resize(catalog.getNodeLabelsCount());
     labelPropertyIdxStringOverflowPages =
         make_unique<labelPropertyIdxStringOverflow_t>(catalog.getNodeLabelsCount());
@@ -139,15 +141,16 @@ void AdjAndPropertyColumnsLoaderHelper::buildInMemPropertyColumns(Direction dir)
             }
         }
     }
+    logger->debug("Done.");
 }
 
 void AdjAndPropertyColumnsLoaderHelper::buildInMemAdjColumns() {
-    logger->info("Creating InMemAdjColumns...");
+    logger->debug("Creating InMemAdjColumns.");
     for (auto& dir : DIRS) {
         if (description.isSingleCardinalityPerDir[dir]) {
             dirLabelAdjColumns[dir].resize(catalog.getNodeLabelsCount());
             for (auto boundNodeLabel : description.nodeLabelsPerDir[dir]) {
-                auto fname = RelsStore::getAdjColumnIndexFname(
+                auto fname = RelsStore::getAdjColumnFname(
                     outputDirectory, description.label, boundNodeLabel, dir);
                 uint32_t numElementsPerPage =
                     PAGE_SIZE / description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes();
@@ -162,6 +165,7 @@ void AdjAndPropertyColumnsLoaderHelper::buildInMemAdjColumns() {
             }
         }
     }
+    logger->debug("Done.");
 }
 
 void AdjAndPropertyColumnsLoaderHelper::calculatePageCursor(

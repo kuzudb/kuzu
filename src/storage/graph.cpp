@@ -6,18 +6,22 @@
 #include "bitsery/bitsery.h"
 #include "bitsery/brief_syntax.h"
 #include "bitsery/brief_syntax/vector.h"
+#include "spdlog/sinks/stdout_sinks.h"
 
 using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAdapter>;
 
 namespace graphflow {
 namespace storage {
 
-Graph::Graph(const string& directory, uint64_t bufferPoolSize)
-    : catalog(make_unique<Catalog>(directory)),
-      bufferManager(make_unique<BufferManager>(bufferPoolSize)) {
+Graph::Graph(const string& directory, uint64_t bufferPoolSize) : Graph() {
+    logger->info("Initializing Graph.");
+    catalog = make_unique<Catalog>(directory);
+    bufferManager = make_unique<BufferManager>(bufferPoolSize);
     readFromFile(directory);
     nodesStore = make_unique<NodesStore>(*catalog, numNodesPerLabel, directory, *bufferManager);
     relsStore = make_unique<RelsStore>(*catalog, numNodesPerLabel, directory, *bufferManager);
+    logger->info("Done.");
+    return;
 }
 
 template<typename S>
@@ -39,6 +43,7 @@ void Graph::saveToFile(const string& directory) {
 
 void Graph::readFromFile(const string& directory) {
     auto path = directory + "/graph.bin";
+    logger->debug("Reading from {}.", path);
     fstream f{path, f.binary | f.in};
     if (!f.is_open()) {
         invalid_argument("Cannot open " + path + " for reading the graph.");

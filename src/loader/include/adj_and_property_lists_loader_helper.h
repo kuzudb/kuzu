@@ -35,8 +35,7 @@ class AdjAndPropertyListsLoaderHelper {
 
 public:
     AdjAndPropertyListsLoaderHelper(RelLabelDescription& description, ThreadPool& threadPool,
-        const Graph& graph, const Catalog& catalog, const string outputDirectory,
-        shared_ptr<spdlog::logger> logger);
+        const Graph& graph, const Catalog& catalog, const string outputDirectory);
 
     inline void incrementListSize(const Direction& dir, const nodeID_t& nodeID) {
         (*dirLabelListSizes[dir][nodeID.label])[nodeID.offset].fetch_add(1, memory_order_relaxed);
@@ -79,10 +78,11 @@ private:
 
     static void calculateAdjListHeadersForIndexTask(Direction dir, label_t nodeLabel,
         node_offset_t numNodeOffsets, uint32_t numPerPage, listSizes_t* listSizes,
-        AdjListHeaders* adjListHeaders);
+        AdjListHeaders* adjListHeaders, shared_ptr<spdlog::logger> logger);
 
     static void calculateListsMetadataForListsTask(uint64_t numNodeOffsets, uint32_t numPerPage,
-        listSizes_t* listSizes, AdjListHeaders* adjListHeaders, ListsMetadata* adjListsMetadata);
+        listSizes_t* listSizes, AdjListHeaders* adjListHeaders, ListsMetadata* adjListsMetadata,
+        shared_ptr<spdlog::logger> logger);
 
     static void sortOverflowStringsOfPropertyListsTask(node_offset_t offsetStart,
         node_offset_t offsetEnd, InMemPropertyPages* propertyLists, AdjListHeaders* adjListsHeaders,

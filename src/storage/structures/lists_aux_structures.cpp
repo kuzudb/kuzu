@@ -11,6 +11,12 @@ using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAda
 namespace graphflow {
 namespace storage {
 
+ListsMetadata::ListsMetadata(const string& path) : ListsMetadata() {
+    readFromFile(path);
+    logger->trace("ListsMetadata: #Pages {}, #Chunks {}, #lAdjLists {}", numPages,
+        chunksPagesMap.size(), largeListsPagesMap.size());
+};
+
 template<typename S>
 void ListsMetadata::serialize(S& s) {
     s.value8b(numPages);
@@ -35,6 +41,7 @@ void ListsMetadata::saveToFile(const string& fname) {
 
 void ListsMetadata::readFromFile(const string& fname) {
     auto path = fname + ".metadata";
+    logger->trace("ListsMetadata: Path {}", path);
     fstream f{path, f.binary | f.in};
     if (!f.is_open()) {
         invalid_argument("Cannot open " + path + " for reading the catalog.");
@@ -45,6 +52,11 @@ void ListsMetadata::readFromFile(const string& fname) {
         invalid_argument("Cannot deserialize the catalog.");
     }
 }
+
+AdjListHeaders::AdjListHeaders(string path) : AdjListHeaders() {
+    readFromFile(path);
+    logger->trace("AdjListHeaders: #Headers {}", headers.size());
+};
 
 template<typename S>
 void AdjListHeaders::serialize(S& s) {
@@ -65,6 +77,7 @@ void AdjListHeaders::saveToFile(const string& fname) {
 
 void AdjListHeaders::readFromFile(const string& fname) {
     auto path = fname + ".headers";
+    logger->trace("AdjListHeaders: Path {}", path);
     fstream f{path, f.binary | f.in};
     if (!f.is_open()) {
         invalid_argument("Cannot open " + path + " for reading the catalog.");

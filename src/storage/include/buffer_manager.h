@@ -4,6 +4,8 @@
 #include <mutex>
 #include <vector>
 
+#include "spdlog/spdlog.h"
+
 #include "src/common/include/configs.h"
 #include "src/storage/include/file_handle.h"
 
@@ -46,6 +48,7 @@ private:
     inline bool isAFrame(uint64_t page) { return UINT64_MAX != page; }
 
 private:
+    shared_ptr<spdlog::logger> logger;
     vector<unique_ptr<Frame>> bufferPool;
     uint64_t clockHand;
     uint64_t maxPages;

@@ -27,6 +27,7 @@ public:
     }
 
 private:
+    shared_ptr<spdlog::logger> logger;
     // The properties of nodes in the system are stored in Property Columns with one column for each
     // unique (node label, property) pair. Here, propertyColumns[4][5] refers to the property column
     // of node label 4 of property that have propertyIdx 5 in the propertyMap of label 4.

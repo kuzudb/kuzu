@@ -15,7 +15,7 @@ void NodesLoader::load(const vector<string>& fnames, const vector<uint64_t>& num
 
 void NodesLoader::loadNodesForLabel(const label_t& nodeLabel, const uint64_t& numBlocks,
     const string& fname, const vector<uint64_t>& numLinesPerBlock, NodeIDMap& nodeIDMap) {
-    logger->info("Processing nodeLabel {}.", nodeLabel);
+    logger->debug("Processing nodeLabel {}.", nodeLabel);
     auto& propertyMap = catalog.getPropertyMapForNodeLabel(nodeLabel);
     vector<unique_ptr<InMemStringOverflowPages>> propertyIdxStringOverflowPages{propertyMap.size()};
     vector<string> propertyColumnFnames(propertyMap.size());
@@ -29,7 +29,7 @@ void NodesLoader::loadNodesForLabel(const label_t& nodeLabel, const uint64_t& nu
         }
     }
     auto propertyDataTypes = createPropertyDataTypes(propertyMap);
-    logger->info("Populating Node Property Columns...");
+    logger->debug("Populating Node PropertyColumns.");
     node_offset_t offsetStart = 0;
     for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
         threadPool.execute(populateNodePropertyColumnTask, fname, blockIdx,
@@ -46,7 +46,7 @@ void NodesLoader::loadNodesForLabel(const label_t& nodeLabel, const uint64_t& nu
         }
     }
     threadPool.wait();
-    logger->info("Done.");
+    logger->debug("Done.");
 }
 
 void NodesLoader::populateNodePropertyColumnTask(string fname, uint64_t blockId,
@@ -54,7 +54,7 @@ void NodesLoader::populateNodePropertyColumnTask(string fname, uint64_t blockId,
     node_offset_t offsetStart, NodeIDMap* nodeIDMap, vector<string>* propertyColumnFnames,
     vector<unique_ptr<InMemStringOverflowPages>>* propertyIdxStringOverflowPages,
     shared_ptr<spdlog::logger> logger) {
-    logger->debug("start {0} {1}", fname, blockId);
+    logger->trace("Start: path={0} blkIdx={1}", fname, blockId);
     vector<PageCursor> stringOverflowPagesCursors{propertyDataTypes->size()};
     auto buffers = createBuffersForPropertyMap(*propertyDataTypes, numElements, logger);
     CSVReader reader(fname, tokenSeparator, blockId);
@@ -73,13 +73,13 @@ void NodesLoader::populateNodePropertyColumnTask(string fname, uint64_t blockId,
     }
     writeBuffersToFiles(
         *buffers, offsetStart, numElements, *propertyColumnFnames, *propertyDataTypes);
-    logger->debug("end   {0} {1}", fname, blockId);
+    logger->trace("End: path={0} blkIdx={1}", fname, blockId);
 }
 
 unique_ptr<vector<unique_ptr<uint8_t[]>>> NodesLoader::createBuffersForPropertyMap(
     const vector<DataType>& propertyDataTypes, uint64_t numElements,
     shared_ptr<spdlog::logger> logger) {
-    logger->debug("creating buffers for elements: {}", numElements);
+    logger->trace("Creating buffers for {}", numElements);
     auto buffers = make_unique<vector<unique_ptr<uint8_t[]>>>(propertyDataTypes.size());
     for (auto propertyIdx = 0u; propertyIdx < propertyDataTypes.size(); propertyIdx++) {
         (*buffers)[propertyIdx] =

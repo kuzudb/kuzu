@@ -23,8 +23,7 @@ class AdjAndPropertyColumnsLoaderHelper {
 
 public:
     AdjAndPropertyColumnsLoaderHelper(RelLabelDescription& description, ThreadPool& threadPool,
-        const Graph& graph, const Catalog& catalog, const string outputDirectory,
-        shared_ptr<spdlog::logger> logger);
+        const Graph& graph, const Catalog& catalog, const string outputDirectory);
 
     void setRel(const Direction& dir, const vector<nodeID_t>& nodeIDs);
 

@@ -3,6 +3,8 @@
 #include <memory>
 #include <vector>
 
+#include "spdlog/spdlog.h"
+
 #include "src/common/include/configs.h"
 
 using namespace std;
@@ -28,6 +30,7 @@ private:
     void readPage(char* frame, uint64_t pageIdx);
 
 private:
+    shared_ptr<spdlog::logger> logger;
     int fileDescriptor;
     vector<uint64_t> pageToFrameMap;
 };

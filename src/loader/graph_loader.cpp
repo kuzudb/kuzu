@@ -136,8 +136,9 @@ void GraphLoader::initPropertyMapAndCalcNumBlocksPerLabel(label_t numLabels,
     vector<string>& filenames, vector<uint64_t>& numPerLabel,
     vector<unordered_map<string, Property>>& propertyMaps, const char tokenSeparator) {
     propertyMaps.resize(numLabels);
+    logger->info("Parsing headers.");
     for (label_t label = 0; label < numLabels; label++) {
-        logger->info("Parsing header: " + filenames[label]);
+        logger->debug("path=`{0}`", filenames[label]);
         ifstream f(filenames[label], ios_base::in);
         string header;
         getline(f, header);
@@ -145,6 +146,7 @@ void GraphLoader::initPropertyMapAndCalcNumBlocksPerLabel(label_t numLabels,
         f.seekg(0, ios_base::end);
         numPerLabel[label] = 1 + (f.tellg() / CSV_READING_BLOCK_SIZE);
     }
+    logger->info("Done.");
 }
 
 void GraphLoader::parseHeader(
@@ -191,19 +193,19 @@ void GraphLoader::countLinesPerBlockAndInitNumPerLabel(label_t numLabels,
             numPerLabel[label] += numLinesPerBlock[label][blockId];
         }
     }
-    logger->info("done.");
+    logger->info("Done.");
 }
 
 void GraphLoader::fileBlockLinesCounterTask(string fname, char tokenSeparator,
     vector<vector<uint64_t>>* numLinesPerBlock, label_t label, uint32_t blockId,
     shared_ptr<spdlog::logger> logger) {
-    logger->debug("start {0} {1}", fname, blockId);
+    logger->trace("Start: path=`{0}` blkIdx={1}", fname, blockId);
     CSVReader reader(fname, tokenSeparator, blockId);
     (*numLinesPerBlock)[label][blockId] = 0ull;
     while (reader.hasNextLine()) {
         (*numLinesPerBlock)[label][blockId]++;
     }
-    logger->debug("end   {0} {1} {2}", fname, blockId, (*numLinesPerBlock)[label][blockId]);
+    logger->trace("End: path=`{0}` blkIdx={1}", fname, blockId);
 }
 
 } // namespace loader
