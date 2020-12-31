@@ -49,6 +49,7 @@ public:
     }
 
 protected:
+    unique_ptr<BufferManager> bufferManager;
     string columnName;
     unique_ptr<BaseColumn> column;
 };

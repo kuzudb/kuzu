@@ -1,0 +1,9 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "nodejs_http_parser",
+    hdrs = glob(["*.h"]),
+    srcs = glob(["*.c"]),
+    visibility = ["//visibility:public"],
+    copts = ["-Iexternal/"],
+)

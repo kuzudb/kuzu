@@ -1,0 +1,9 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "Stiffstream_restinio",
+    hdrs = glob(["*.hpp", "**/*.hpp", "**/*.ipp"]),
+    includes = ["./", "external/Stiffstream_restinio/restinio"],
+    visibility = ["//visibility:public"],
+    deps = ["@asio", "@nodejs_http_parser", "@fmtlib_fmt"],
+)

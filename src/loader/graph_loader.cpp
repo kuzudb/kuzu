@@ -24,7 +24,7 @@ void GraphLoader::loadGraph() {
     assignLabels(catalog.stringToRelLabelMap, metadata->at("relFileDescriptions"));
     setCardinalities(catalog, *metadata);
     setSrcDstNodeLabelsForRelLabels(catalog, *metadata);
-    Graph graph;
+    Graph graph{};
     auto nodeIDMaps = loadNodes(*metadata, graph, catalog);
     loadRels(*metadata, graph, catalog, move(nodeIDMaps));
     logger->info("Writing catalog.bin");

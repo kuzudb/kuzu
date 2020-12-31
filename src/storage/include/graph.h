@@ -28,9 +28,12 @@ class Graph {
     friend class bitsery::Access;
 
 public:
-    Graph(const string& directory, uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE);
+    Graph(const string& path, uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE);
+    ~Graph() { spdlog::drop("storage"); };
 
     inline const vector<uint64_t>& getNumNodesPerLabel() const { return numNodesPerLabel; };
+
+    inline const string& getPath() const { return path; }
 
     inline virtual BaseColumn* getNodePropertyColumn(
         const label_t& nodeLabel, const string& propertyName) {
@@ -64,14 +67,14 @@ private:
     void saveToFile(const string& directory);
     void readFromFile(const string& directory);
 
-protected:
-    shared_ptr<spdlog::logger> logger;
-    unique_ptr<BufferManager> bufferManager;
-
 private:
+    shared_ptr<spdlog::logger> logger;
+    const string path;
+
     unique_ptr<Catalog> catalog;
     unique_ptr<NodesStore> nodesStore;
     unique_ptr<RelsStore> relsStore;
+    unique_ptr<BufferManager> bufferManager;
     vector<uint64_t> numNodesPerLabel;
     unique_ptr<AdjLists> adjLists;
 };
