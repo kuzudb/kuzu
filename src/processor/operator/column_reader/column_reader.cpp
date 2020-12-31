@@ -4,18 +4,18 @@
 namespace graphflow {
 namespace processor {
 
-void ColumnReader::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
-    prevOperator->initialize(graph, morsel);
+void ColumnReader::initialize(Graph* graph) {
+    prevOperator->initialize(graph);
     dataChunks = prevOperator->getOutDataChunks();
     inNodeIDVector = static_pointer_cast<NodeIDVector>(
-        dataChunks->getValueVectorAndSetDataChunk(boundVariableOrRelName, dataChunk));
+        dataChunks->getValueVectorAndSetDataChunk(boundVariableOrRelName, inDataChunk));
 }
 
 void ColumnReader::getNextTuples() {
     column->reclaim(handle);
     prevOperator->getNextTuples();
-    if (dataChunk->size > 0) {
-        column->readValues(inNodeIDVector, outValueVector, dataChunk->size, handle);
+    if (inDataChunk->size > 0) {
+        column->readValues(inNodeIDVector, outValueVector, inDataChunk->size, handle);
     }
 }
 

@@ -17,17 +17,22 @@ public:
     RelsStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
         const string& directory, BufferManager& bufferManager);
 
-    BaseColumn* getRelPropertyColumn(
+    inline BaseColumn* getRelPropertyColumn(
         const label_t& relLabel, const label_t& nodeLabel, const uint64_t& propertyIdx) {
         return propertyColumns[relLabel][nodeLabel][propertyIdx].get();
     }
 
-    AdjColumn* getAdjColumn(
+    inline BaseLists* getRelPropertyLists(const Direction& direction, const label_t& nodeLabel,
+        const label_t& relLabel, const uint64_t& propertyIdx) {
+        return propertyLists[direction][nodeLabel][relLabel][propertyIdx].get();
+    }
+
+    inline AdjColumn* getAdjColumn(
         const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) {
         return adjColumns[direction][nodeLabel][relLabel].get();
     }
 
-    AdjLists* getAdjLists(
+    inline AdjLists* getAdjLists(
         const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) {
         return adjLists[direction][nodeLabel][relLabel].get();
     }

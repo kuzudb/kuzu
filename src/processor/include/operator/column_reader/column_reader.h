@@ -12,11 +12,12 @@ namespace processor {
 class ColumnReader : public Operator {
 
 public:
-    ColumnReader(const string& boundVariableOrRelName, const label_t& nodeLabel)
-        : boundVariableOrRelName(boundVariableOrRelName), nodeLabel(nodeLabel),
-          handle(make_unique<VectorFrameHandle>()) {}
+    ColumnReader(
+        const string& boundVariableOrRelName, const label_t& nodeLabel, Operator* prevOperator)
+        : Operator(prevOperator), boundVariableOrRelName(boundVariableOrRelName),
+          nodeLabel(nodeLabel), handle(make_unique<VectorFrameHandle>()) {}
 
-    virtual void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel);
+    virtual void initialize(Graph* graph);
 
     virtual void getNextTuples();
 
@@ -26,7 +27,7 @@ protected:
     string boundVariableOrRelName;
     label_t nodeLabel;
 
-    shared_ptr<DataChunk> dataChunk;
+    shared_ptr<DataChunk> inDataChunk;
     shared_ptr<NodeIDVector> inNodeIDVector;
     shared_ptr<ValueVector> outValueVector;
 

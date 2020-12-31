@@ -3,12 +3,12 @@
 namespace graphflow {
 namespace processor {
 
-void RelPropertyColumnReader::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
-    ColumnReader::initialize(graph, morsel);
+void RelPropertyColumnReader::initialize(Graph* graph) {
+    ColumnReader::initialize(graph);
     column = graph->getRelPropertyColumn(relLabel, nodeLabel, propertyName);
     auto name = boundVariableOrRelName + "." + propertyName;
     outValueVector = make_shared<ValueVector>(name, column->getElementSize());
-    dataChunk->append(outValueVector);
+    inDataChunk->append(outValueVector);
 }
 
 } // namespace processor

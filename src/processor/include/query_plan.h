@@ -1,33 +1,30 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "src/processor/include/operator/operator.h"
-#include "src/processor/include/task_system/morsel.h"
-
-using namespace std;
+#include "src/processor/include/operator/sink/sink.h"
 
 namespace graphflow {
 namespace processor {
 
-// A single linear plan.
-class Subplan {
-    unique_ptr<Operator> lastOperator;
+class QueryPlan {
 
 public:
-    void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
-        lastOperator->initialize(graph, morsel);
+    QueryPlan(Operator* lastOperator) : lastOperator(unique_ptr<Operator>(lastOperator)) {}
+    QueryPlan(const QueryPlan& plan) : lastOperator() {
+        this->lastOperator = unique_ptr<Operator>(plan.lastOperator->copy());
     }
 
-    void run() {
-        while (lastOperator->getNextMorsel()) {
-            lastOperator->getNextTuples();
-        }
-    }
-};
+    inline void initialize(Graph* graph) { lastOperator->initialize(graph); }
 
-class QueryPlan {
-    vector<Subplan> subplans;
+    void run();
+
+    uint64_t getNumTuples() { return ((Sink*)lastOperator.get())->getNumTuples(); }
+
+private:
+    unique_ptr<Operator> lastOperator;
 };
 
 } // namespace processor

@@ -9,11 +9,15 @@ class RelPropertyColumnReader : public NodePropertyColumnReader {
 
 public:
     RelPropertyColumnReader(const string& boundVariableOrRelName, const label_t& relLabel,
-        const label_t& nodeLabel, const string& propertyName)
-        : NodePropertyColumnReader{boundVariableOrRelName, nodeLabel, propertyName},
+        const label_t& nodeLabel, const string& propertyName, Operator* prevOperator)
+        : NodePropertyColumnReader{boundVariableOrRelName, nodeLabel, propertyName, prevOperator},
           relLabel(relLabel) {}
 
-    void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel);
+    void initialize(Graph* graph);
+    Operator* copy() {
+        return new RelPropertyColumnReader(
+            boundVariableOrRelName, relLabel, nodeLabel, propertyName, prevOperator->copy());
+    }
 
 protected:
     const label_t relLabel;

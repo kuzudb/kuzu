@@ -57,6 +57,12 @@ public:
         return relsStore->getAdjLists(direction, nodeLabel, relLabel);
     }
 
+    inline BaseLists* getRelPropertyLists(const Direction& direction, const label_t& nodeLabel,
+        const label_t& relLabel, const string& propertyName) {
+        auto propertyIdx = catalog->getIdxForRelLabelPropertyName(relLabel, propertyName);
+        return relsStore->getRelPropertyLists(direction, nodeLabel, relLabel, propertyIdx);
+    }
+
 protected:
     Graph() : logger{spdlog::stdout_logger_st("storage")} {};
 

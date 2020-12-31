@@ -5,22 +5,17 @@ namespace processor {
 
 using lock_t = unique_lock<mutex>;
 
-void Scan::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
+void Scan::initialize(Graph* graph) {
+    dataChunks = make_shared<DataChunks>();
     nodeIDVector = make_shared<NodeIDSequenceVector>(variableName);
     outDataChunk = make_shared<DataChunk>();
     outDataChunk->append(nodeIDVector);
     dataChunks->append(outDataChunk);
 }
 
-void ScanSingleLabel::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
-    Scan::initialize(graph, morsel);
-    this->morsel = static_pointer_cast<MorselDescSingleLabelNodeIDs>(morsel);
+void ScanSingleLabel::initialize(Graph* graph) {
+    Scan::initialize(graph);
     nodeIDVector->setLabel(this->morsel->nodeLabel);
-}
-
-void ScanMultiLabel::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
-    Scan::initialize(graph, morsel);
-    this->morsel = static_pointer_cast<MorselDescMultiLabelNodeIDs>(morsel);
 }
 
 bool ScanSingleLabel::hasNextMorsel() {

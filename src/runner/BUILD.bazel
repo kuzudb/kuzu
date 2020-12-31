@@ -49,3 +49,11 @@ cc_binary(
         "@Taywee_args",
     ],
 )
+
+cc_binary(
+    name = "create_plan",
+    srcs = ["create_plan.cpp"],
+    deps = [
+        "//src/processor",
+    ],
+)
