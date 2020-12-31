@@ -16,20 +16,18 @@ namespace processor {
 class Operator {
 
 public:
-    Operator() { dataChunks = make_shared<DataChunks>(); }
+    Operator() = default;
+    Operator(Operator* prevOperator) : prevOperator(unique_ptr<Operator>(prevOperator)) {}
 
     virtual bool hasNextMorsel() { return prevOperator->hasNextMorsel(); }
     // Warning: getNextTuples() should only be called if getNextMorsel() returns true.
     virtual void getNextTuples() = 0;
-    virtual void initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) = 0;
+    virtual void initialize(Graph* graph) = 0;
 
     shared_ptr<DataChunks> getOutDataChunks() { return dataChunks; }
 
-    void setPrevOperator(Operator* prevOperator) {
-        this->prevOperator = unique_ptr<Operator>(prevOperator);
-    }
-
     virtual void cleanup() { prevOperator->cleanup(); }
+    virtual Operator* copy() = 0;
 
 protected:
     shared_ptr<DataChunks> dataChunks;

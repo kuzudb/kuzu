@@ -1,5 +1,3 @@
-#include <memory>
-
 #include "gtest/gtest.h"
 
 #include "src/processor/include/operator/scan/scan.h"
@@ -8,9 +6,8 @@ using namespace graphflow::processor;
 
 TEST(ScanTests, ScanSingleLabelTest) {
     auto morsel = make_shared<MorselDescSingleLabelNodeIDs>(1, 1025012);
-    auto baseMorsel = static_pointer_cast<MorselDesc>(morsel);
-    auto scan = make_unique<ScanSingleLabel>("a");
-    scan->initialize(NULL /* graph */, baseMorsel);
+    auto scan = make_unique<ScanSingleLabel>("a", morsel);
+    scan->initialize(NULL /* graph */);
 
     auto dataChunks = scan->getOutDataChunks();
     shared_ptr<DataChunk> dataChunk;
@@ -50,10 +47,9 @@ TEST(ScanTests, ScanMultiLabelTest) {
     morsel->maxNodeOffset[0] = 123456789;
     morsel->maxNodeOffset[1] = 666;
     morsel->maxNodeOffset[2] = 90909090;
-    auto baseMorsel = static_pointer_cast<MorselDesc>(morsel);
 
-    auto scan = make_unique<ScanMultiLabel>("a");
-    scan->initialize(NULL /* graph */, baseMorsel);
+    auto scan = make_unique<ScanMultiLabel>("a", morsel);
+    scan->initialize(NULL /* graph */);
     testScanMultiLabel(scan, morsel, 123456789, 1);
     testScanMultiLabel(scan, morsel, 666, 5);
     testScanMultiLabel(scan, morsel, 90909090, 17);

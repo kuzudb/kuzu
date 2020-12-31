@@ -1,27 +1,24 @@
-#include "src/processor/include/operator/extend/extend.h"
+#include "src/processor/include/operator/list_reader/adj_list_extend.h"
 
 namespace graphflow {
 namespace processor {
 
-void Extend::initialize(Graph* graph, shared_ptr<MorselDesc>& morsel) {
-    prevOperator->initialize(graph, morsel);
-    dataChunks = prevOperator->getOutDataChunks();
-    inNodeIDVector = static_pointer_cast<NodeIDVector>(
-        dataChunks->getValueVectorAndSetDataChunk(boundVariableName, inDataChunk));
+void AdjListExtend::initialize(Graph* graph) {
+    ListReader::initialize(graph);
     outNodeIDVector = make_shared<NodeIDVector>(extensionVariableName, NodeIDCompressionScheme());
     outDataChunk = make_shared<DataChunk>();
     outDataChunk->append(outNodeIDVector);
     dataChunks->append(outDataChunk);
-    adjLists = graph->getAdjLists(direction, nodeLabel, relLabel);
+    lists = graph->getAdjLists(direction, nodeLabel, relLabel);
 }
 
-bool Extend::hasNextMorsel() {
+bool AdjListExtend::hasNextMorsel() {
     return (inDataChunk->size > 0 && inDataChunk->size > inDataChunk->curr_idx + 1) ||
            prevOperator->hasNextMorsel();
 }
 
-void Extend::getNextTuples() {
-    adjLists->reclaim(handle);
+void AdjListExtend::getNextTuples() {
+    lists->reclaim(handle);
     if (inDataChunk->size == 0 || inDataChunk->size == inDataChunk->curr_idx) {
         inDataChunk->curr_idx = 0;
         prevOperator->getNextTuples();
@@ -31,15 +28,10 @@ void Extend::getNextTuples() {
     if (inDataChunk->size > 0) {
         nodeID_t nodeID;
         inNodeIDVector->readValue(inDataChunk->curr_idx, nodeID);
-        adjLists->readValues(nodeID, outNodeIDVector, outDataChunk->size, handle);
+        lists->readValues(nodeID, outNodeIDVector, outDataChunk->size, handle);
     } else {
         outDataChunk->size = 0;
     }
-}
-
-void Extend::cleanup() {
-    adjLists->reclaim(handle);
-    Operator::cleanup();
 }
 
 } // namespace processor

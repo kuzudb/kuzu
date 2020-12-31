@@ -38,7 +38,6 @@ class GraphStub : public Graph {
 
 public:
     GraphStub(string columnName, int numPages) : columnName(columnName) {
-        cout << "here" << endl;
         bufferManager = make_unique<BufferManager>(PAGE_SIZE * numPages);
         auto numElements = 30 * (PAGE_SIZE / sizeof(int32_t));
         column = make_unique<PropertyColumnInt>(columnName, numElements, *bufferManager.get());
@@ -56,7 +55,8 @@ protected:
 
 class ScanStub : public ScanSingleLabel {
 public:
-    ScanStub(node_offset_t startNodeOffset) : ScanSingleLabel("a") {
+    ScanStub(node_offset_t startNodeOffset, shared_ptr<MorselDescSingleLabelNodeIDs>& morsel)
+        : ScanSingleLabel("a", morsel) {
         this->startNodeOffset = startNodeOffset;
     }
 
@@ -82,23 +82,21 @@ TEST_F(PropertyReaderIntegerTest, PropertyReaderSameLabelCopyTest) {
 }
 
 void testPropertyReaderNodeSameLabel(int32_t startExpectedValue) {
-    auto reader = make_unique<NodePropertyColumnReader>("a", 0 /*label*/, "prop" /*propertyName*/);
-    reader->setPrevOperator(new ScanStub(startExpectedValue / 2));
+    auto morsel = make_shared<MorselDescSingleLabelNodeIDs>(0, 1024);
+    auto reader = make_unique<NodePropertyColumnReader>(
+        "a", 0 /*label*/, "prop" /*propertyName*/, new ScanStub(startExpectedValue / 2, morsel));
     auto graph = make_unique<GraphStub>("ColEvenIntegersFile", NUM_PAGES);
-    // auto morsel = make_shared<MorselDescSingleLabelNodeIDs>(0, 1024);
-    // auto baseMorsel = static_pointer_cast<MorselDesc>(morsel);
-    // reader->initialize(graph.get(), baseMorsel);
-    // ASSERT_EQ(reader->hasNextMorsel(), true);
-    // reader->getNextTuples();
-    // shared_ptr<DataChunk> dataChunk;
-    // auto values =
-    //     reader->getOutDataChunks()->getValueVectorAndSetDataChunk("a.prop",
-    //     dataChunk)->getValues();
-    // int32_t actualValue;
-    // for (uint64_t i = 0; i < 1024; i++) {
-    //     memcpy(&actualValue, (void*)(values + i * sizeof(int32_t)), sizeof(int32_t));
-    //     ASSERT_EQ(actualValue, startExpectedValue);
-    //     startExpectedValue += 2;
-    // }
+    reader->initialize(graph.get());
+    ASSERT_EQ(reader->hasNextMorsel(), true);
+    reader->getNextTuples();
+    shared_ptr<DataChunk> dataChunk;
+    auto values =
+        reader->getOutDataChunks()->getValueVectorAndSetDataChunk("a.prop", dataChunk)->getValues();
+    int32_t actualValue;
+    for (uint64_t i = 0; i < 1024; i++) {
+        memcpy(&actualValue, (void*)(values + i * sizeof(int32_t)), sizeof(int32_t));
+        ASSERT_EQ(actualValue, startExpectedValue);
+        startExpectedValue += 2;
+    }
     reader->cleanup();
 }
