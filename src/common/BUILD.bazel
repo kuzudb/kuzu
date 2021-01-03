@@ -4,12 +4,14 @@ cc_library(
     name = "common",
     srcs = [
         "compression_scheme.cpp",
+        "file_ser_deser_helper.cpp",
         "types.cpp",
         "vector/node_vector.cpp",
     ],
     hdrs = [
         "include/compression_scheme.h",
         "include/configs.h",
+        "include/file_ser_deser_helper.h",
         "include/types.h",
         "include/vector/node_vector.h",
         "include/vector/value_vector.h",

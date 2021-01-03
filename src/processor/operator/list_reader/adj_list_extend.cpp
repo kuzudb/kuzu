@@ -1,11 +1,17 @@
 #include "src/processor/include/operator/list_reader/adj_list_extend.h"
 
+#include "src/processor/include/operator/operator_ser_deser_factory.h"
+
 namespace graphflow {
 namespace processor {
 
+AdjListExtend::AdjListExtend(FileDeserHelper& fdsh) : ListReader{fdsh} {
+    this->setPrevOperator(deserializeOperator(fdsh));
+}
+
 void AdjListExtend::initialize(Graph* graph) {
     ListReader::initialize(graph);
-    outNodeIDVector = make_shared<NodeIDVector>(extensionVariableName, NodeIDCompressionScheme());
+    outNodeIDVector = make_shared<NodeIDVector>(nbrNodeVarName, NodeIDCompressionScheme());
     outDataChunk = make_shared<DataChunk>();
     outDataChunk->append(outNodeIDVector);
     dataChunks->append(outDataChunk);
@@ -32,6 +38,13 @@ void AdjListExtend::getNextTuples() {
     } else {
         outDataChunk->size = 0;
     }
+}
+
+void AdjListExtend::serialize(FileSerHelper& fsh) {
+    string typeIDStr = typeid(AdjListExtend).name();
+    fsh.writeString(typeIDStr);
+    ListReader::serialize(fsh);
+    Operator::serialize(fsh);
 }
 
 } // namespace processor

@@ -20,7 +20,7 @@ namespace processor {
 class DataChunk {
 
 public:
-    DataChunk() : size(0), curr_idx(0) {}
+    DataChunk() : size{0}, curr_idx{0} {};
 
     void append(shared_ptr<ValueVector> valueVector) { valueVectors.push_back(valueVector); }
 

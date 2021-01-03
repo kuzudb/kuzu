@@ -9,29 +9,30 @@ namespace processor {
 class ListReader : public Operator {
 
 public:
-    ListReader(const string& boundVariableName, const string& extensionVariableName,
-        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel,
-        Operator* prevOperator)
-        : Operator(prevOperator), boundVariableName(boundVariableName),
-          extensionVariableName(extensionVariableName), direction(direction), nodeLabel(nodeLabel),
-          relLabel(relLabel), handle(make_unique<VectorFrameHandle>()) {}
+    ListReader(FileDeserHelper& fdsh);
+    ListReader(const string& boundNodeVarName, const string& nbrNodeVarName,
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel)
+        : boundNodeVarName{boundNodeVarName}, nbrNodeVarName{nbrNodeVarName}, direction{direction},
+          nodeLabel{nodeLabel}, relLabel{relLabel} {}
 
-    virtual void initialize(Graph* graph);
+    void initialize(Graph* graph) override;
 
-    void cleanup();
+    void cleanup() override;
+
+    void serialize(FileSerHelper& fsh) override;
 
 protected:
-    string boundVariableName;
-    string extensionVariableName;
-    Direction direction;
-    label_t nodeLabel;
-    label_t relLabel;
+    const string boundNodeVarName;
+    const string nbrNodeVarName;
+    const Direction direction;
+    const label_t nodeLabel;
+    const label_t relLabel;
 
     shared_ptr<DataChunk> inDataChunk;
     shared_ptr<NodeIDVector> inNodeIDVector;
 
     BaseLists* lists;
-    unique_ptr<VectorFrameHandle> handle;
+    unique_ptr<VectorFrameHandle> handle = make_unique<VectorFrameHandle>();
 };
 
 } // namespace processor

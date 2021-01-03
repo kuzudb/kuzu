@@ -12,27 +12,28 @@ namespace processor {
 class ColumnReader : public Operator {
 
 public:
-    ColumnReader(
-        const string& boundVariableOrRelName, const label_t& nodeLabel, Operator* prevOperator)
-        : Operator(prevOperator), boundVariableOrRelName(boundVariableOrRelName),
-          nodeLabel(nodeLabel), handle(make_unique<VectorFrameHandle>()) {}
+    ColumnReader(const string& nodeOrRelVarName, const label_t& nodeLabel)
+        : nodeOrRelVarName{nodeOrRelVarName}, nodeLabel{nodeLabel} {}
+    ColumnReader(FileDeserHelper& fdsh);
 
-    virtual void initialize(Graph* graph);
+    void initialize(Graph* graph) override;
 
-    virtual void getNextTuples();
+    void getNextTuples() override;
 
-    inline void cleanup() { column->reclaim(handle); }
+    inline void cleanup() override { column->reclaim(handle); }
+
+    void serialize(FileSerHelper& fsh) override;
 
 protected:
-    string boundVariableOrRelName;
-    label_t nodeLabel;
+    const string nodeOrRelVarName;
+    const label_t nodeLabel;
 
     shared_ptr<DataChunk> inDataChunk;
     shared_ptr<NodeIDVector> inNodeIDVector;
     shared_ptr<ValueVector> outValueVector;
 
     BaseColumn* column;
-    unique_ptr<VectorFrameHandle> handle;
+    unique_ptr<VectorFrameHandle> handle = make_unique<VectorFrameHandle>();
 };
 
 } // namespace processor

@@ -15,10 +15,10 @@ TEST(ScanTests, ScanSingleLabelTest) {
         dataChunks->getValueVectorAndSetDataChunk("a", dataChunk));
     node_offset_t currNodeOffset = 0;
     uint64_t size = ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
-    while (morsel->currNodeOffset < 1025012) {
+    while (morsel->getCurrNodeOffset() < 1025012) {
         ASSERT_EQ(scan->hasNextMorsel(), true);
         scan->getNextTuples();
-        if (morsel->currNodeOffset == 1025012) {
+        if (morsel->getCurrNodeOffset() == 1025012) {
             size = 1025012 % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1;
         }
         ASSERT_EQ(dataChunk->size, size);
@@ -30,9 +30,7 @@ TEST(ScanTests, ScanSingleLabelTest) {
         }
         currNodeOffset += ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     }
-
-    // morsel->currNodeOffset == 1025012.
-    ASSERT_EQ(morsel->currNodeOffset, 1025012);
+    ASSERT_EQ(morsel->getCurrNodeOffset(), 1025012);
     ASSERT_EQ(scan->hasNextMorsel(), false);
 }
 
@@ -40,19 +38,27 @@ void testScanMultiLabel(unique_ptr<ScanMultiLabel>& scan,
     shared_ptr<MorselDescMultiLabelNodeIDs>& morsel, node_offset_t max_offset, label_t label);
 
 TEST(ScanTests, ScanMultiLabelTest) {
-    auto morsel = make_shared<MorselDescMultiLabelNodeIDs>(3 /*num_labels*/);
-    morsel->nodeLabel[0] = 1;
-    morsel->nodeLabel[1] = 5;
-    morsel->nodeLabel[2] = 17;
-    morsel->maxNodeOffset[0] = 123456789;
-    morsel->maxNodeOffset[1] = 666;
-    morsel->maxNodeOffset[2] = 90909090;
+    cout << "beg" << endl;
+    auto morsel = make_shared<MorselDescMultiLabelNodeIDs>();
+    cout << "obj c" << endl;
+    morsel->addLabel(1, 123456789);
+    cout << "a1" << endl;
+    morsel->addLabel(5, 666);
+    cout << "a2" << endl;
+    morsel->addLabel(17, 90909090);
+    cout << "a3" << endl;
 
+    cout << "before test - 2" << endl;
     auto scan = make_unique<ScanMultiLabel>("a", morsel);
+    cout << "before test - 1" << endl;
     scan->initialize(NULL /* graph */);
+    cout << "before test" << endl;
     testScanMultiLabel(scan, morsel, 123456789, 1);
+    cout << "1d" << endl;
     testScanMultiLabel(scan, morsel, 666, 5);
+    cout << "2d" << endl;
     testScanMultiLabel(scan, morsel, 90909090, 17);
+    cout << "3d" << endl;
 }
 
 void testScanMultiLabel(unique_ptr<ScanMultiLabel>& scan,
@@ -64,10 +70,10 @@ void testScanMultiLabel(unique_ptr<ScanMultiLabel>& scan,
     node_offset_t currNodeOffset = 0;
     uint64_t size = ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     nodeID_t node;
-    while (morsel->currNodeOffset < max_offset) {
+    while (morsel->getCurrNodeOffset() < max_offset) {
         scan->hasNextMorsel();
         scan->getNextTuples();
-        if (morsel->currNodeOffset == max_offset) {
+        if (morsel->getCurrNodeOffset() == max_offset) {
             size = max_offset % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1;
         }
         ASSERT_EQ(dataChunk->size, size);

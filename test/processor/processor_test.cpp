@@ -22,7 +22,10 @@ public:
 TEST(ProcessorTests, MultiThreadedScanTest) {
     unique_ptr<Graph> graph = make_unique<GraphStub>();
     auto morsel = make_shared<MorselDescSingleLabelNodeIDs>(1, 1025012);
-    auto plan = make_unique<QueryPlan>(new Sink(new ScanSingleLabel("a", morsel)));
+    auto scan = make_unique<ScanSingleLabel>("a", morsel);
+    auto sink = make_unique<Sink>();
+    sink->setPrevOperator(move(scan));
+    auto plan = make_unique<QueryPlan>(move(sink));
     auto processor = make_unique<QueryProcessor>(*graph, 10);
     auto result = processor->execute(plan, 3);
     ASSERT_EQ(result->first.getNumOutputTuples(), 1025012 /* max_offset */ + 1);

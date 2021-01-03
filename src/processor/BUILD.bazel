@@ -34,6 +34,7 @@ cc_library(
         "include/operator/list_reader/list_reader.h",
         "include/operator/list_reader/rel_property_list_reader.h",
         "include/operator/operator.h",
+        "include/operator/operator_ser_deser_factory.h",
         "include/operator/scan/scan.h",
         "include/operator/sink/sink.h",
         "include/operator/tuple/data_chunk.h",

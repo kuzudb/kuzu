@@ -83,8 +83,9 @@ TEST_F(PropertyReaderIntegerTest, PropertyReaderSameLabelCopyTest) {
 
 void testPropertyReaderNodeSameLabel(int32_t startExpectedValue) {
     auto morsel = make_shared<MorselDescSingleLabelNodeIDs>(0, 1024);
-    auto reader = make_unique<NodePropertyColumnReader>(
-        "a", 0 /*label*/, "prop" /*propertyName*/, new ScanStub(startExpectedValue / 2, morsel));
+    unique_ptr<Operator> scanStub = make_unique<ScanStub>(startExpectedValue / 2, morsel);
+    auto reader = make_unique<NodePropertyColumnReader>("a", 0 /*label*/, "prop" /*propertyName*/);
+    reader->setPrevOperator(move(scanStub));
     auto graph = make_unique<GraphStub>("ColEvenIntegersFile", NUM_PAGES);
     reader->initialize(graph.get());
     ASSERT_EQ(reader->hasNextMorsel(), true);
