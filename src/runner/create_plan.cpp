@@ -2,7 +2,7 @@
 #include "src/processor/include/operator/list_reader/adj_list_extend.h"
 #include "src/processor/include/operator/scan/scan.h"
 #include "src/processor/include/operator/sink/sink.h"
-#include "src/processor/include/query_plan.h"
+#include "src/processor/include/plan/plan.h"
 
 using namespace graphflow::processor;
 

@@ -5,6 +5,7 @@
 
 #include "src/processor/include/operator/operator.h"
 #include "src/processor/include/operator/sink/sink.h"
+#include "src/processor/include/plan/plan_output.h"
 
 namespace graphflow {
 namespace processor {
@@ -21,7 +22,9 @@ public:
 
     void run();
 
-    uint64_t getNumTuples() { return ((Sink*)lastOperator.get())->getNumTuples(); }
+    unique_ptr<PlanOutput> getPlanOutput() {
+        return make_unique<PlanOutput>(((Sink*)lastOperator.get())->getNumTuples());
+    }
 
 private:
     unique_ptr<Operator> lastOperator;

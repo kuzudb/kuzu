@@ -5,6 +5,7 @@ cc_test(
     srcs = [
         "operator/property_reader/node_property_column_reader_test.cpp",
         "operator/scan/scan_test.cpp",
+        "processor_test.cpp"
     ],
     copts = [
         "-Iexternal/gtest/include",

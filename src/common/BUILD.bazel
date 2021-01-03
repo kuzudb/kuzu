@@ -3,8 +3,8 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "common",
     srcs = [
-        "types.cpp",
         "compression_scheme.cpp",
+        "types.cpp",
         "vector/node_vector.cpp",
     ],
     hdrs = [
@@ -18,4 +18,12 @@ cc_library(
     deps = [
         "@martinus_robin_hood_hashing",
     ],
+)
+
+cc_library(
+    name = "timer",
+    hdrs = [
+        "include/timer.h",
+    ],
+    visibility = ["//visibility:public"],
 )
