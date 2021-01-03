@@ -1,7 +1,19 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "processor",
+    name = "morsel",
+    hdrs = [
+        "include/task_system/morsel.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common",
+        "//src/storage:graph",
+    ],
+)
+
+cc_library(
+    name = "operators",
     srcs = [
         "operator/column_reader/adj_column_extend.cpp",
         "operator/column_reader/column_reader.cpp",
@@ -10,7 +22,6 @@ cc_library(
         "operator/list_reader/adj_list_extend.cpp",
         "operator/list_reader/list_reader.cpp",
         "operator/list_reader/rel_property_list_reader.cpp",
-        "query_plan.cpp",
         "operator/scan/scan.cpp",
         "operator/sink/sink.cpp",
     ],
@@ -27,12 +38,50 @@ cc_library(
         "include/operator/sink/sink.h",
         "include/operator/tuple/data_chunk.h",
         "include/operator/tuple/data_chunks.h",
-        "include/query_plan.h",
-        "include/task_system/morsel.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "morsel",
         "//src/common",
+        "//src/storage:graph",
+    ],
+)
+
+cc_library(
+    name = "plan",
+    srcs = [
+        "plan/plan.cpp",
+    ],
+    hdrs = [
+        "include/plan/plan.h",
+        "include/plan/plan_output.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "operators",
+        "//src/common",
+        "//src/storage:graph",
+    ],
+)
+
+cc_library(
+    name = "processor",
+    srcs = [
+        "processor.cpp",
+        "task_system/task.cpp",
+        "task_system/task_queue.cpp",
+    ],
+    hdrs = [
+        "include/processor.h",
+        "include/task_system/morsel.h",
+        "include/task_system/task.h",
+        "include/task_system/task_queue.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "plan",
+        "//src/common",
+        "//src/common:timer",
         "//src/storage:graph",
     ],
 )

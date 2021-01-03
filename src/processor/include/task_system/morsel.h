@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <mutex>
 
+#include "src/common/include/types.h"
+
 using namespace std;
 using namespace graphflow::common;
 

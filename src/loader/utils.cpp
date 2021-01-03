@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include <unordered_map>
+
 #include "src/common/include/configs.h"
 
 namespace graphflow {

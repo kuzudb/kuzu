@@ -1,4 +1,4 @@
-#include "src/processor/include/query_plan.h"
+#include "src/processor/include/plan/plan.h"
 
 namespace graphflow {
 namespace processor {

@@ -4,7 +4,6 @@
 
 #include "args.hxx"
 #include "spdlog/spdlog.h"
-#include <bits/unique_ptr.h>
 
 #include "src/loader/include/graph_loader.h"
 

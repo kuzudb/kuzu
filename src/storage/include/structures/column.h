@@ -2,8 +2,6 @@
 
 #include <string.h>
 
-#include <bits/unique_ptr.h>
-
 #include "src/common/include/types.h"
 #include "src/common/include/vector/node_vector.h"
 #include "src/storage/include/structures/common.h"
