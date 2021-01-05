@@ -8,21 +8,25 @@ namespace processor {
 class AdjColumnExtend : public ColumnReader {
 
 public:
-    AdjColumnExtend(const string& boundVariableOrRelName, const string& extensionVariableName,
-        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel,
-        Operator* prevOperator)
-        : ColumnReader{boundVariableOrRelName, nodeLabel, prevOperator},
-          extensionVariableName(extensionVariableName), direction(direction), relLabel(relLabel) {}
+    AdjColumnExtend(const string& boundNodeVarName, const string& nbrNodeVarName,
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel)
+        : ColumnReader{boundNodeVarName, nodeLabel}, nbrNodeVarName(nbrNodeVarName),
+          direction(direction), relLabel(relLabel) {}
+    AdjColumnExtend(FileDeserHelper& fdsh);
 
-    void initialize(Graph* graph);
+    void initialize(Graph* graph) override;
 
-    Operator* copy() {
-        return new AdjColumnExtend(boundVariableOrRelName, extensionVariableName, direction,
-            nodeLabel, relLabel, prevOperator->copy());
+    unique_ptr<Operator> clone() override {
+        auto copy = make_unique<AdjColumnExtend>(
+            nodeOrRelVarName, nbrNodeVarName, direction, nodeLabel, relLabel);
+        copy->setPrevOperator(prevOperator->clone());
+        return copy;
     }
 
+    void serialize(FileSerHelper& fsh) override;
+
 protected:
-    const string extensionVariableName;
+    const string nbrNodeVarName;
     const Direction direction;
     const label_t relLabel;
 };

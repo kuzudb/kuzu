@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <mutex>
 
-#include "src/common/include/types.h"
+#include "src/common/include/file_ser_deser_helper.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -11,34 +11,74 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-struct MorselDesc {};
+class ScanSingleLabel;
+class ScanMultiLabel;
 
-struct MorselDescSingleLabelNodeIDs : MorselDesc {
-    mutex mtx;
-    label_t nodeLabel;
-    node_offset_t maxNodeOffset;
-    node_offset_t currNodeOffset;
+class MorselDesc {};
+
+class MorselDescSingleLabelNodeIDs : MorselDesc {
+    friend class graphflow::processor::ScanSingleLabel;
+
+public:
+    MorselDescSingleLabelNodeIDs(FileDeserHelper& fdsh)
+        : nodeLabel{fdsh.read<label_t>()}, maxNodeOffset{fdsh.read<node_offset_t>()} {};
 
     MorselDescSingleLabelNodeIDs(label_t label, node_offset_t maxNodeOffset)
-        : nodeLabel(label), maxNodeOffset(maxNodeOffset), currNodeOffset(0) {}
+        : nodeLabel{label}, maxNodeOffset{maxNodeOffset} {}
+
+    node_offset_t getCurrNodeOffset() { return currNodeOffset; }
+
+private:
+    void serialize(FileSerHelper& fsh) {
+        fsh.write(nodeLabel);
+        fsh.write(maxNodeOffset);
+    }
+
+private:
+    mutex mtx;
+    const label_t nodeLabel;
+    const node_offset_t maxNodeOffset;
+    node_offset_t currNodeOffset{0};
 };
 
-struct MorselDescMultiLabelNodeIDs : MorselDesc {
-    mutex mtx;
-    uint64_t numLabels;
-    label_t* nodeLabel;
-    node_offset_t* maxNodeOffset;
-    uint64_t currPos;
-    node_offset_t currNodeOffset;
+class MorselDescMultiLabelNodeIDs : MorselDesc {
+    friend class ScanMultiLabel;
 
-    MorselDescMultiLabelNodeIDs(uint64_t num_labels)
-        : numLabels(num_labels), nodeLabel(new label_t[numLabels]),
-          maxNodeOffset(new node_offset_t[numLabels]), currPos(0), currNodeOffset(0) {}
+public:
+    MorselDescMultiLabelNodeIDs(){};
+    MorselDescMultiLabelNodeIDs(FileDeserHelper& fdsh) : numLabels{fdsh.read<uint64_t>()} {
+        nodeLabels = make_unique<vector<label_t>>(numLabels);
+        maxNodeOffsets = make_unique<vector<node_offset_t>>(numLabels);
+        for (auto i = 0u; i < numLabels; i++) {
+            (*nodeLabels)[i] = fdsh.read<label_t>();
+            (*maxNodeOffsets)[i] = fdsh.read<node_offset_t>();
+        }
+    };
 
-    ~MorselDescMultiLabelNodeIDs() {
-        delete nodeLabel;
-        delete maxNodeOffset;
+    void addLabel(const label_t& nodeLabel, const node_offset_t& maxNodeOffset) {
+        nodeLabels->push_back(nodeLabel);
+        maxNodeOffsets->push_back(maxNodeOffset);
+        numLabels++;
     }
+
+    node_offset_t getCurrNodeOffset() { return currNodeOffset; }
+
+private:
+    void serialize(FileSerHelper& fsh) {
+        fsh.write(numLabels);
+        for (auto i = 0u; i < numLabels; i++) {
+            fsh.write((*nodeLabels)[i]);
+            fsh.write((*maxNodeOffsets)[i]);
+        }
+    }
+
+private:
+    mutex mtx;
+    uint64_t numLabels{0};
+    unique_ptr<vector<label_t>> nodeLabels = make_unique<vector<label_t>>();
+    unique_ptr<vector<node_offset_t>> maxNodeOffsets = make_unique<vector<node_offset_t>>();
+    uint64_t currPos{0};
+    node_offset_t currNodeOffset{0};
 };
 
 } // namespace processor

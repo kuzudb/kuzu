@@ -51,8 +51,8 @@ cc_binary(
 )
 
 cc_binary(
-    name = "create_plan",
-    srcs = ["create_plan.cpp"],
+    name = "plan_serializer",
+    srcs = ["plan_serializer.cpp"],
     deps = [
         "//src/processor",
     ],

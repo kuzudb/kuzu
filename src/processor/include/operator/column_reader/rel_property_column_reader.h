@@ -1,25 +1,32 @@
 #pragma once
 
-#include "src/processor/include/operator/column_reader/node_property_column_reader.h"
+#include "src/processor/include/operator/column_reader/column_reader.h"
 
 namespace graphflow {
 namespace processor {
 
-class RelPropertyColumnReader : public NodePropertyColumnReader {
+class RelPropertyColumnReader : public ColumnReader {
 
 public:
-    RelPropertyColumnReader(const string& boundVariableOrRelName, const label_t& relLabel,
-        const label_t& nodeLabel, const string& propertyName, Operator* prevOperator)
-        : NodePropertyColumnReader{boundVariableOrRelName, nodeLabel, propertyName, prevOperator},
-          relLabel(relLabel) {}
+    RelPropertyColumnReader(const string& relVariableName, const label_t& relLabel,
+        const label_t& nodeLabel, const string& propertyName)
+        : ColumnReader{relVariableName, nodeLabel}, propertyName{propertyName}, relLabel(relLabel) {
+    }
+    RelPropertyColumnReader(FileDeserHelper& fdsh);
 
-    void initialize(Graph* graph);
-    Operator* copy() {
-        return new RelPropertyColumnReader(
-            boundVariableOrRelName, relLabel, nodeLabel, propertyName, prevOperator->copy());
+    void initialize(Graph* graph) override;
+
+    unique_ptr<Operator> clone() override {
+        auto copy = make_unique<RelPropertyColumnReader>(
+            nodeOrRelVarName, relLabel, nodeLabel, propertyName);
+        copy->setPrevOperator(prevOperator->clone());
+        return copy;
     }
 
+    void serialize(FileSerHelper& fsh) override;
+
 protected:
+    const string propertyName;
     const label_t relLabel;
 };
 

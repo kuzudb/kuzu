@@ -8,20 +8,25 @@ namespace processor {
 class AdjListExtend : public ListReader {
 
 public:
-    AdjListExtend(const string& boundVariableName, const string& extensionVariableName,
-        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel,
-        Operator* prevOperator)
-        : ListReader(boundVariableName, extensionVariableName, direction, nodeLabel, relLabel,
-              prevOperator) {}
+    AdjListExtend(const string& boundNodeVarName, const string& nbrNodeVarName,
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel)
+        : ListReader(boundNodeVarName, nbrNodeVarName, direction, nodeLabel, relLabel) {}
+    AdjListExtend(FileDeserHelper& fdsh);
 
-    bool hasNextMorsel();
-    void getNextTuples();
-    void initialize(Graph* graph);
+    void initialize(Graph* graph) override;
 
-    Operator* copy() {
-        return new AdjListExtend(boundVariableName, extensionVariableName, direction, nodeLabel,
-            relLabel, prevOperator->copy());
+    bool hasNextMorsel() override;
+
+    void getNextTuples() override;
+
+    unique_ptr<Operator> clone() override {
+        auto copy = make_unique<AdjListExtend>(
+            boundNodeVarName, nbrNodeVarName, direction, nodeLabel, relLabel);
+        copy->setPrevOperator(prevOperator->clone());
+        return copy;
     }
+
+    void serialize(FileSerHelper& fsh) override;
 
 private:
     shared_ptr<DataChunk> outDataChunk;

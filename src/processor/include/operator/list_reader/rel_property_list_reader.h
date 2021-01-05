@@ -8,20 +8,25 @@ namespace processor {
 class RelPropertyListReader : public ListReader {
 
 public:
-    RelPropertyListReader(const string& boundVariableName, const string& extensionVariableName,
+    RelPropertyListReader(const string& boundNodeVarName, const string& nbrNodeVarName,
         const Direction& direction, const label_t& nodeLabel, const label_t& relLabel,
-        const string& propertyName, Operator* prevOperator)
-        : ListReader(boundVariableName, extensionVariableName, direction, nodeLabel, relLabel,
-              prevOperator),
+        const string& propertyName)
+        : ListReader(boundNodeVarName, nbrNodeVarName, direction, nodeLabel, relLabel),
           propertyName(propertyName) {}
+    RelPropertyListReader(FileDeserHelper& fdsh);
 
-    void getNextTuples();
-    void initialize(Graph* graph);
+    void initialize(Graph* graph) override;
 
-    Operator* copy() {
-        return new RelPropertyListReader(boundVariableName, extensionVariableName, direction,
-            nodeLabel, relLabel, propertyName, prevOperator->copy());
+    void getNextTuples() override;
+
+    unique_ptr<Operator> clone() override {
+        auto copy = make_unique<RelPropertyListReader>(
+            boundNodeVarName, nbrNodeVarName, direction, nodeLabel, relLabel, propertyName);
+        copy->setPrevOperator(prevOperator->clone());
+        return copy;
     }
+
+    void serialize(FileSerHelper& fsh) override;
 
 private:
     const string propertyName;
