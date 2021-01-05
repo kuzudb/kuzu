@@ -32,15 +32,13 @@ unique_ptr<QueryPlan> create_plan() {
 
 int main(int argc, char* argv[]) {
 
+    // path_to_serialized_query_plan
     string fname("...");
 
-    FileSerHelper* fsh = new FileSerHelper(fname);
+    // serializing
     auto plan = create_plan();
-    plan->serialize(*fsh);
-    delete fsh;
-    plan.reset();
+    plan->serialize(fname);
 
-    // FileDeserHelper* fdsh = new FileDeserHelper(fname);
-    // QueryPlan deserQP{*fdsh};
-    // delete fdsh;
+    // deserializing
+    QueryPlan deserializedPlan{fname};
 }

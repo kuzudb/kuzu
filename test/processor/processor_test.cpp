@@ -26,7 +26,7 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto sink = make_unique<Sink>();
     sink->setPrevOperator(move(scan));
     auto plan = make_unique<QueryPlan>(move(sink));
-    auto processor = make_unique<QueryProcessor>(*graph, 10);
-    auto result = processor->execute(plan, 3);
+    auto processor = make_unique<QueryProcessor>(10);
+    auto result = processor->execute(plan, *graph, 3);
     ASSERT_EQ(result->first.getNumOutputTuples(), 1025012 /* max_offset */ + 1);
 }

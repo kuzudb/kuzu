@@ -15,7 +15,7 @@ class QueryPlan {
 
 public:
     QueryPlan(unique_ptr<Operator> lastOperator) : lastOperator{move(lastOperator)} {}
-    QueryPlan(FileDeserHelper& fdsh);
+    QueryPlan(const string& fname);
 
     QueryPlan(const QueryPlan& plan)
         : lastOperator{unique_ptr<Operator>(plan.lastOperator->clone())} {};
@@ -28,7 +28,7 @@ public:
         return make_unique<PlanOutput>(((Sink*)lastOperator.get())->getNumTuples());
     }
 
-    void serialize(FileSerHelper& fsh);
+    void serialize(const string& fname);
 
 private:
     unique_ptr<Operator> lastOperator;

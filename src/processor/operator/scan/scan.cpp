@@ -24,9 +24,7 @@ void Scan::serialize(FileSerHelper& fsh) {
 }
 
 ScanSingleLabel::ScanSingleLabel(FileDeserHelper& fdsh)
-    : Scan(fdsh), morsel{make_shared<MorselDescSingleLabelNodeIDs>(fdsh)} {
-    cout << "here" << endl;
-}
+    : Scan(fdsh), morsel{make_shared<MorselDescSingleLabelNodeIDs>(fdsh)} {}
 
 void ScanSingleLabel::initialize(Graph* graph) {
     Scan::initialize(graph);

@@ -5,7 +5,10 @@
 namespace graphflow {
 namespace processor {
 
-QueryPlan::QueryPlan(FileDeserHelper& fdsh) : lastOperator{deserializeOperator(fdsh)} {};
+QueryPlan::QueryPlan(const string& fname) {
+    FileDeserHelper fdsh{fname};
+    lastOperator.reset(deserializeOperator(fdsh).release());
+};
 
 void QueryPlan::run() {
     while (lastOperator->hasNextMorsel()) {
@@ -13,7 +16,8 @@ void QueryPlan::run() {
     }
 }
 
-void QueryPlan::serialize(FileSerHelper& fsh) {
+void QueryPlan::serialize(const string& fname) {
+    FileSerHelper fsh{fname};
     lastOperator->serialize(fsh);
 }
 

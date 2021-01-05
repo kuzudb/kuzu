@@ -15,16 +15,15 @@ namespace processor {
 class QueryProcessor {
 
 public:
-    QueryProcessor(Graph& graph, const uint64_t& numThreads);
+    QueryProcessor(const uint64_t& numThreads);
     ~QueryProcessor();
 
     unique_ptr<pair<PlanOutput, chrono::milliseconds>> execute(
-        unique_ptr<QueryPlan>& plan, const uint64_t& maxNumThreads);
+        unique_ptr<QueryPlan>& plan, Graph& graph, const uint64_t& maxNumThreads);
 
     void run();
 
 private:
-    Graph& graph;
     TaskQueue queue;
     condition_variable ready;
     bool stopThreads{false};

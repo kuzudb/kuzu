@@ -38,27 +38,16 @@ void testScanMultiLabel(unique_ptr<ScanMultiLabel>& scan,
     shared_ptr<MorselDescMultiLabelNodeIDs>& morsel, node_offset_t max_offset, label_t label);
 
 TEST(ScanTests, ScanMultiLabelTest) {
-    cout << "beg" << endl;
     auto morsel = make_shared<MorselDescMultiLabelNodeIDs>();
-    cout << "obj c" << endl;
     morsel->addLabel(1, 123456789);
-    cout << "a1" << endl;
     morsel->addLabel(5, 666);
-    cout << "a2" << endl;
     morsel->addLabel(17, 90909090);
-    cout << "a3" << endl;
 
-    cout << "before test - 2" << endl;
     auto scan = make_unique<ScanMultiLabel>("a", morsel);
-    cout << "before test - 1" << endl;
     scan->initialize(NULL /* graph */);
-    cout << "before test" << endl;
     testScanMultiLabel(scan, morsel, 123456789, 1);
-    cout << "1d" << endl;
     testScanMultiLabel(scan, morsel, 666, 5);
-    cout << "2d" << endl;
     testScanMultiLabel(scan, morsel, 90909090, 17);
-    cout << "3d" << endl;
 }
 
 void testScanMultiLabel(unique_ptr<ScanMultiLabel>& scan,

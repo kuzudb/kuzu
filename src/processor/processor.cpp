@@ -5,7 +5,7 @@
 namespace graphflow {
 namespace processor {
 
-QueryProcessor::QueryProcessor(Graph& graph, const uint64_t& numThreads) : graph{graph} {
+QueryProcessor::QueryProcessor(const uint64_t& numThreads) {
     for (auto n = 0u; n < numThreads; ++n) {
         threads.emplace_back([&] { run(); });
     }
@@ -21,7 +21,7 @@ QueryProcessor::~QueryProcessor() {
 // This function is currently blocking. In the future, this should async and return the result
 // wrapped in Future for syncing with the runner.
 unique_ptr<pair<PlanOutput, chrono::milliseconds>> QueryProcessor::execute(
-    unique_ptr<QueryPlan>& plan, const uint64_t& maxNumThreads) {
+    unique_ptr<QueryPlan>& plan, Graph& graph, const uint64_t& maxNumThreads) {
     auto task = make_shared<Task>(plan.get(), graph, maxNumThreads);
     queue.push(task);
     while (!task->isComplete()) {
