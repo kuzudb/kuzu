@@ -1,0 +1,95 @@
+@prefix = http://localhost:3110
+
+@path_to_serialized_data = ...
+@path_to_serialized_query_plan = ...
+
+### Return a list of all API endpoints with description and usage.
+#   Method:
+#       GET
+#   URL:
+#       /help
+
+GET {{prefix}}/help
+
+### Change the bufferPool size.
+#   Method: 
+#       PUT
+#   URL: 
+#       /bufferPoolSize
+#   DataParams:
+# 	    <size>
+#   Notes:
+#       Size of the bufferPool should be in Bytes. 
+#       The size should be in multiple of 4096 (system PAGE_SIZE). Current bounds are 1MB and 1TB. 	
+# 	    The previously loaded Graph is dropped on successful change of bufferSize.
+
+PUT {{prefix}}/bufferPoolSize
+content-type: text/plain;charset=UTF-8
+
+33550336
+
+### Change the number of Processor threads.
+#   Method: 
+#       PUT
+#   URL: 
+#       /numProcessorThreads
+#   DataParams:
+# 	    <num>
+#   Notes:
+#       Number should be greater than 0 and less than the number of physical threads available in
+#           the system. 
+#       Processor is restarted, bufferPool is not affected. 
+
+PUT {{prefix}}/numProcessorThreads
+content-type: text/plain;charset=UTF-8
+
+4
+
+### Gets the current state of session.
+#   Method:
+#       GET
+#   URL:
+#       /session
+
+GET {{prefix}}/session
+
+### Load the serialized graph data from the path.
+#   Method:
+#       POST
+#   URL:
+#       /load
+#   DataParams:
+#       <path_to_serialized_data>
+
+POST {{prefix}}/load
+content-type: text/plain;charset=UTF-8
+
+{{path_to_serialized_data}}
+
+### Print the query plan in a human-readable format.
+#   Method:
+#       GET
+#   URL:
+#       /prettyPlan
+#   DataParams:
+#       <path_to_serialized_query_plan>
+
+GET {{prefix}}/prettyPlan
+content-type: text/plain;charset=UTF-8
+
+{{path_to_serialized_query_plan}}
+
+### Execute a query plan.
+#   Method:
+#       POST
+#   URL:
+#       /execute
+#   DataParams:
+#       <path_to_serialized_query_plan>
+#       <numThreads>
+
+POST {{prefix}}/execute
+content-type: text/plain;charset=UTF-8
+
+{{path_to_serialized_query_plan}}
+3

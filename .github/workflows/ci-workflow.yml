@@ -31,7 +31,4 @@ jobs:
         repository: Sarcasm/run-clang-format
         path: run-clang-format
     - run: sudo apt update && sudo apt install -y clang-format-10
-    - run: clang-format --version
-    - run: pwd
-    - run: ls
     - run: python3 run-clang-format/run-clang-format.py --clang-format-executable /usr/bin/clang-format-10 -r src/
