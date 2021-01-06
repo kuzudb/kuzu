@@ -31,10 +31,10 @@ void Graph::serialize(S& s) {
 }
 
 void Graph::saveToFile(const string& path) {
-    auto garphPath = path + "/graph.bin";
-    fstream f{path, f.binary | f.trunc | f.out};
+    auto graphPath = path + "/graph.bin";
+    fstream f{graphPath, f.binary | f.trunc | f.out};
     if (f.fail()) {
-        throw invalid_argument("Cannot open " + garphPath + " for writing.");
+        throw invalid_argument("Cannot open " + graphPath + " for writing.");
     }
     OutputStreamAdapter serializer{f};
     serializer.object(*this);
