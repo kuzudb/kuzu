@@ -61,11 +61,11 @@ void Catalog::serialize(S& s) {
     s.container(relLabelToCardinalityMap, UINT32_MAX, [](S& s, Cardinality& v) { s(v); });
 }
 
-void Catalog::saveToFile(const string& directory) {
-    auto path = directory + "/catalog.bin";
-    fstream f{path, f.binary | f.trunc | f.out};
+void Catalog::saveToFile(const string& path) {
+    auto catalogPath = path + "/catalog.bin";
+    fstream f{catalogPath, f.binary | f.trunc | f.out};
     if (f.fail()) {
-        throw invalid_argument("cannot open " + path + " for writing");
+        throw invalid_argument("cannot open " + catalogPath + " for writing");
     }
     serializeStringToLabelMap(f, stringToNodeLabelMap);
     serializeStringToLabelMap(f, stringToRelLabelMap);
