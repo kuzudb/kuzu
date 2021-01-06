@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "src/processor/include/operator/scan/scan.h"
+#include "src/processor/include/operator/physical/scan/physical_scan.h"
 #include "src/processor/include/processor.h"
 
 using namespace graphflow::processor;
@@ -21,12 +21,11 @@ public:
 
 TEST(ProcessorTests, MultiThreadedScanTest) {
     unique_ptr<Graph> graph = make_unique<GraphStub>();
-    auto morsel = make_shared<MorselDescSingleLabelNodeIDs>(1, 1025012);
-    auto scan = make_unique<ScanSingleLabel>("a", morsel);
-    auto sink = make_unique<Sink>();
-    sink->setPrevOperator(move(scan));
-    auto plan = make_unique<QueryPlan>(move(sink));
+    auto morsel = make_shared<MorselDesc>(1025012);
+    auto scan = make_unique<PhysicalScan>(morsel);
+    auto sink = make_unique<Sink>(move(scan));
+    auto plan = make_unique<PhysicalPlan>(move(sink));
     auto processor = make_unique<QueryProcessor>(10);
-    auto result = processor->execute(plan, *graph, 3);
+    auto result = processor->execute(plan, *graph, 1);
     ASSERT_EQ(result->first.getNumOutputTuples(), 1025012 /* max_offset */ + 1);
 }

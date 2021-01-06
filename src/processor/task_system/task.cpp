@@ -7,8 +7,7 @@ void Task::run() {
     if (!registerThread()) {
         return;
     }
-    QueryPlan planCopy{*plan};
-    planCopy.initialize(&graph);
+    PhysicalPlan planCopy{*plan};
     planCopy.run();
     deregisterThread(planCopy.getPlanOutput());
 }

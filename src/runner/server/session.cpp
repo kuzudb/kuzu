@@ -1,5 +1,7 @@
 #include "src/runner/include/server/session.h"
 
+#include "src/processor/include/plan/logical/logical_plan.h"
+
 namespace graphflow {
 namespace runner {
 
@@ -62,8 +64,8 @@ unique_ptr<nlohmann::json> Session::getPrettyPlan(const string& path) {
 }
 
 unique_ptr<nlohmann::json> Session::execute(const string& path, const uint32_t& numThreads) {
-    auto queryPlan = make_unique<QueryPlan>(path);
-    auto result = processor->execute(queryPlan, *graph, numThreads);
+    auto physicalPlan = LogicalPlan(path).mapToPhysical(*graph);
+    auto result = processor->execute(physicalPlan, *graph, numThreads);
     auto json = make_unique<nlohmann::json>();
     (*json)["number of tuples"] = result->first.getNumOutputTuples();
     (*json)["time"] = to_string(result->second.count()) + "ms";

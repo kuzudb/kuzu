@@ -54,6 +54,7 @@ cc_binary(
 cc_binary(
     name = "plan_serializer",
     srcs = ["plan_serializer.cpp"],
+    linkopts = ["-lpthread"],
     deps = [
         "//src/processor",
     ],
