@@ -40,6 +40,17 @@ public:
     inline const uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
     inline const uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
 
+    inline const label_t& getNodeLabelFromString(const string& label) const {
+        char labelCharArr[label.size()];
+        strcpy(labelCharArr, label.c_str());
+        return getNodeLabelFromString(labelCharArr);
+    }
+    inline const label_t& getRelLabelFromString(const string& label) const {
+        char labelCharArr[label.size()];
+        strcpy(labelCharArr, label.c_str());
+        return getRelLabelFromString(labelCharArr);
+    }
+
     inline const label_t& getNodeLabelFromString(const char* label) const {
         return stringToNodeLabelMap.at(label);
     }
@@ -56,8 +67,7 @@ public:
         return relPropertyMaps[relLabel];
     }
 
-    inline const uint32_t& getIdxForNodeLabelPropertyName(
-        const label_t& nodeLabel, const string& name) {
+    inline const uint32_t& getPropertyFromString(const label_t& nodeLabel, const string& name) {
         return getPropertyMapForNodeLabel(nodeLabel).at(name).idx;
     }
     inline const uint32_t& getIdxForRelLabelPropertyName(

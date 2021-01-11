@@ -1,8 +1,8 @@
 #pragma once
 
 #include "src/common/include/timer.h"
-#include "src/processor/include/plan/plan.h"
-#include "src/processor/include/plan/plan_output.h"
+#include "src/processor/include/plan/physical/physical_plan.h"
+#include "src/processor/include/plan/physical/plan_output.h"
 
 using namespace std;
 
@@ -14,7 +14,7 @@ using lock_t = unique_lock<mutex>;
 class Task {
 
 public:
-    Task(QueryPlan* plan, Graph& graph, const uint64_t& maxNumThreads)
+    Task(PhysicalPlan* plan, Graph& graph, const uint64_t& maxNumThreads)
         : plan{plan}, graph{graph}, maxNumThreads{maxNumThreads}, timer{"task-timer"} {}
 
     void run();
@@ -37,7 +37,7 @@ private:
 
 private:
     mutex mtx;
-    QueryPlan* plan;
+    PhysicalPlan* plan;
     Graph& graph;
     atomic_uint64_t maxNumThreads{0}, numThreadsFinished{0}, numThreadsRegistered{0};
     Timer timer;

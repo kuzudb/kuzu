@@ -31,35 +31,41 @@ public:
     Graph(const string& path, uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE);
     ~Graph() { spdlog::drop("storage"); };
 
+    inline const Catalog& getCatalog() const { return *catalog; }
+
     inline const vector<uint64_t>& getNumNodesPerLabel() const { return numNodesPerLabel; };
+
+    inline const uint64_t& getNumNodes(const label_t& label) const {
+        return numNodesPerLabel[label];
+    };
 
     inline const string& getPath() const { return path; }
 
     inline virtual BaseColumn* getNodePropertyColumn(
-        const label_t& nodeLabel, const string& propertyName) {
-        auto propertyIdx = catalog->getIdxForNodeLabelPropertyName(nodeLabel, propertyName);
-        return nodesStore->getNodePropertyColumn(nodeLabel, propertyIdx);
+        const label_t& nodeLabel, const string& propertyName) const {
+        auto property = catalog->getPropertyFromString(nodeLabel, propertyName);
+        return nodesStore->getNodePropertyColumn(nodeLabel, property);
     }
 
     inline BaseColumn* getRelPropertyColumn(
-        const label_t& relLabel, const label_t& nodeLabel, const string& propertyName) {
-        auto propertyIdx = catalog->getIdxForRelLabelPropertyName(relLabel, propertyName);
-        return relsStore->getRelPropertyColumn(relLabel, nodeLabel, propertyIdx);
+        const label_t& relLabel, const label_t& nodeLabel, const string& propertyName) const {
+        auto property = catalog->getPropertyFromString(relLabel, propertyName);
+        return relsStore->getRelPropertyColumn(relLabel, nodeLabel, property);
     }
 
     inline AdjColumn* getAdjColumn(
-        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) {
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) const {
         return relsStore->getAdjColumn(direction, nodeLabel, relLabel);
     }
 
     inline AdjLists* getAdjLists(
-        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) {
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) const {
         return relsStore->getAdjLists(direction, nodeLabel, relLabel);
     }
 
     inline BaseLists* getRelPropertyLists(const Direction& direction, const label_t& nodeLabel,
-        const label_t& relLabel, const string& propertyName) {
-        auto propertyIdx = catalog->getIdxForRelLabelPropertyName(relLabel, propertyName);
+        const label_t& relLabel, const string& propertyName) const {
+        auto propertyIdx = catalog->getPropertyFromString(relLabel, propertyName);
         return relsStore->getRelPropertyLists(direction, nodeLabel, relLabel, propertyIdx);
     }
 
@@ -82,7 +88,6 @@ private:
     unique_ptr<RelsStore> relsStore;
     unique_ptr<BufferManager> bufferManager;
     vector<uint64_t> numNodesPerLabel;
-    unique_ptr<AdjLists> adjLists;
 };
 
 } // namespace storage

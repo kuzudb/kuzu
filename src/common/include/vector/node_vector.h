@@ -14,23 +14,21 @@ class NodeIDVector : public ValueVector {
 
 public:
     // creates a Node ID vector where labels are stores in nodes.
-    NodeIDVector(const string& name, const NodeIDCompressionScheme& nodeIDCompressionScheme)
-        : ValueVector{nodeIDCompressionScheme.getNumTotalBytes(), name},
+    NodeIDVector(const NodeIDCompressionScheme& nodeIDCompressionScheme)
+        : ValueVector{nodeIDCompressionScheme.getNumTotalBytes()},
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
-    NodeIDVector(
-        const string& name, const NodeIDCompressionScheme& compression, const bool& isSequence)
-        : ValueVector{compression.getNumTotalBytes(), name}, nodeIDCompressionScheme{compression},
+    NodeIDVector(const NodeIDCompressionScheme& compression, const bool& isSequence)
+        : ValueVector{compression.getNumTotalBytes()}, nodeIDCompressionScheme{compression},
           isSequence{isSequence} {};
 
     //  Creates a Node ID vector where the label is factored out and
     // stores in the label field and nodes contains node offsets only.
-    NodeIDVector(const string& name, const label_t& label,
-        const NodeIDCompressionScheme& nodeIDCompressionScheme)
-        : ValueVector{nodeIDCompressionScheme.getNumTotalBytes(), name}, commonLabel{label},
+    NodeIDVector(const label_t& label, const NodeIDCompressionScheme& nodeIDCompressionScheme)
+        : ValueVector{nodeIDCompressionScheme.getNumTotalBytes()}, commonLabel{label},
           nodeIDCompressionScheme(nodeIDCompressionScheme) {}
-    NodeIDVector(const string& name, const label_t& label,
-        const NodeIDCompressionScheme& nodeIDCompressionScheme, const bool& isSequence)
-        : ValueVector{nodeIDCompressionScheme.getNumTotalBytes(), name}, commonLabel{label},
+    NodeIDVector(const label_t& label, const NodeIDCompressionScheme& nodeIDCompressionScheme,
+        const bool& isSequence)
+        : ValueVector{nodeIDCompressionScheme.getNumTotalBytes()}, commonLabel{label},
           nodeIDCompressionScheme{nodeIDCompressionScheme}, isSequence{isSequence} {};
 
     label_t getLabel() { return commonLabel; }
@@ -48,17 +46,15 @@ public:
     virtual void readValue(const uint64_t& pos, nodeID_t& nodeID);
 
 protected:
-    NodeIDVector(const string& name, const NodeIDCompressionScheme& nodeIDCompressionScheme,
-        const bool& isSequence, const uint64_t& capacity)
-        : ValueVector{nodeIDCompressionScheme.getNumTotalBytes() * capacity, name},
+    NodeIDVector(const NodeIDCompressionScheme& nodeIDCompressionScheme, const bool& isSequence,
+        const uint64_t& capacity)
+        : ValueVector{nodeIDCompressionScheme.getNumTotalBytes() * capacity},
           nodeIDCompressionScheme{nodeIDCompressionScheme}, isSequence(isSequence){};
 
-    NodeIDVector(const string& name, const label_t& label,
-        const NodeIDCompressionScheme& nodeIDCompressionScheme, const bool& isSequence,
-        const uint64_t& capacity)
-        : ValueVector{nodeIDCompressionScheme.getNumTotalBytes() * capacity, name},
-          commonLabel{label}, nodeIDCompressionScheme{nodeIDCompressionScheme},
-          isSequence(isSequence){};
+    NodeIDVector(const label_t& label, const NodeIDCompressionScheme& nodeIDCompressionScheme,
+        const bool& isSequence, const uint64_t& capacity)
+        : ValueVector{nodeIDCompressionScheme.getNumTotalBytes() * capacity}, commonLabel{label},
+          nodeIDCompressionScheme{nodeIDCompressionScheme}, isSequence(isSequence){};
 
 protected:
     // The common label field is used with NodeIDcompressionScheme :
@@ -72,12 +68,11 @@ class NodeIDSequenceVector : public NodeIDVector {
 
 public:
     // creates a Node ID vector where labels are stores in nodes.
-    NodeIDSequenceVector(const string& name)
-        : NodeIDVector{name, NodeIDCompressionScheme(), true, 1} {};
+    NodeIDSequenceVector() : NodeIDVector{NodeIDCompressionScheme(), true, 1} {};
     //  Creates a Node ID vector where the label is factored out and
     // stores in the label field and nodes contains node offsets only.
-    NodeIDSequenceVector(const string& name, const label_t& label)
-        : NodeIDVector{name, label, NodeIDCompressionScheme(), true, 1} {};
+    NodeIDSequenceVector(const label_t& label)
+        : NodeIDVector{label, NodeIDCompressionScheme(), true, 1} {};
 
     void readValue(const uint64_t& pos, nodeID_t& nodeID) {
         nodeID.offset = ((node_offset_t*)values)[0] + pos;

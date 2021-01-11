@@ -1,5 +1,7 @@
 #include "src/storage/include/structures/lists.h"
 
+#include <iostream>
+
 namespace graphflow {
 namespace storage {
 

@@ -18,22 +18,22 @@ public:
         const string& directory, BufferManager& bufferManager);
 
     inline BaseColumn* getRelPropertyColumn(
-        const label_t& relLabel, const label_t& nodeLabel, const uint64_t& propertyIdx) {
+        const label_t& relLabel, const label_t& nodeLabel, const uint64_t& propertyIdx) const {
         return propertyColumns[relLabel][nodeLabel][propertyIdx].get();
     }
 
     inline BaseLists* getRelPropertyLists(const Direction& direction, const label_t& nodeLabel,
-        const label_t& relLabel, const uint64_t& propertyIdx) {
+        const label_t& relLabel, const uint64_t& propertyIdx) const {
         return propertyLists[direction][nodeLabel][relLabel][propertyIdx].get();
     }
 
     inline AdjColumn* getAdjColumn(
-        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) {
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) const {
         return adjColumns[direction][nodeLabel][relLabel].get();
     }
 
     inline AdjLists* getAdjLists(
-        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) {
+        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) const {
         return adjLists[direction][nodeLabel][relLabel].get();
     }
 

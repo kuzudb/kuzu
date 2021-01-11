@@ -4,8 +4,8 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
-#include "src/processor/include/operator/column_reader/node_property_column_reader.h"
-#include "src/processor/include/operator/scan/scan.h"
+#include "src/processor/include/operator/physical/column_reader/node_property_column_reader.h"
+#include "src/processor/include/operator/physical/scan/physical_scan.h"
 #include "src/storage/include/structures/column.h"
 
 using namespace graphflow::processor;
@@ -53,10 +53,10 @@ protected:
     unique_ptr<BaseColumn> column;
 };
 
-class ScanStub : public ScanSingleLabel {
+class ScanStub : public PhysicalScan {
+
 public:
-    ScanStub(node_offset_t startNodeOffset, shared_ptr<MorselDescSingleLabelNodeIDs>& morsel)
-        : ScanSingleLabel("a", morsel) {
+    ScanStub(node_offset_t startNodeOffset, shared_ptr<MorselDesc>& morsel) : PhysicalScan(morsel) {
         this->startNodeOffset = startNodeOffset;
     }
 
@@ -82,17 +82,17 @@ TEST_F(PropertyReaderIntegerTest, PropertyReaderSameLabelCopyTest) {
 }
 
 void testPropertyReaderNodeSameLabel(int32_t startExpectedValue) {
-    auto morsel = make_shared<MorselDescSingleLabelNodeIDs>(0, 1024);
+    auto morsel = make_shared<MorselDesc>(1024);
     unique_ptr<Operator> scanStub = make_unique<ScanStub>(startExpectedValue / 2, morsel);
-    auto reader = make_unique<NodePropertyColumnReader>("a", 0 /*label*/, "prop" /*propertyName*/);
-    reader->setPrevOperator(move(scanStub));
     auto graph = make_unique<GraphStub>("ColEvenIntegersFile", NUM_PAGES);
-    reader->initialize(graph.get());
+    auto column = graph->getNodePropertyColumn(0 /*label*/, "property");
+    auto reader = make_unique<NodePropertyColumnReader>(
+        0 /*inDataChunkIdx*/, 0 /*inValueVectorIdx*/, column, move(scanStub));
     ASSERT_EQ(reader->hasNextMorsel(), true);
     reader->getNextTuples();
-    shared_ptr<DataChunk> dataChunk;
-    auto values =
-        reader->getOutDataChunks()->getValueVectorAndSetDataChunk("a.prop", dataChunk)->getValues();
+    auto values = reader->getOutDataChunks()
+                      ->getValueVector(0 /*inDataChunkIdx*/, 1 /*inValueVectorIdx*/)
+                      ->getValues();
     int32_t actualValue;
     for (uint64_t i = 0; i < 1024; i++) {
         memcpy(&actualValue, (void*)(values + i * sizeof(int32_t)), sizeof(int32_t));

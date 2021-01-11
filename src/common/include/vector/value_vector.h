@@ -11,13 +11,12 @@ namespace common {
 class ValueVector {
 
 public:
-    ValueVector(const string& name, const uint64_t& elementSize)
-        : ValueVector{elementSize * VECTOR_CAPACITY, name} {}
+    ValueVector(const uint64_t& elementSize)
+        : capacity{elementSize * VECTOR_CAPACITY},
+          buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()} {};
 
     uint8_t* getValues() const { return values; }
     void setValues(uint8_t* ptrInFrame) { this->values = ptrInFrame; }
-
-    string getName() { return name; }
 
     void reset() { values = buffer.get(); }
 
@@ -31,11 +30,6 @@ public:
         return buffer.get();
     }
 
-protected:
-    ValueVector(const uint64_t& capacity, const string& name)
-        : capacity{capacity}, buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()},
-          name(name){};
-
 public:
     //! The capacity of vector values is dependent on how the vector is produced.
     //!  Scans produce vectors in chunks of 1024 nodes while extends leads to the
@@ -47,7 +41,6 @@ protected:
     size_t capacity;
     unique_ptr<uint8_t[]> buffer;
     uint8_t* values;
-    string name;
 };
 
 } // namespace common

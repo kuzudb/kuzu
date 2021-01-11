@@ -19,7 +19,7 @@ public:
     ~QueryProcessor();
 
     unique_ptr<pair<PlanOutput, chrono::milliseconds>> execute(
-        unique_ptr<QueryPlan>& plan, Graph& graph, const uint64_t& maxNumThreads);
+        unique_ptr<PhysicalPlan>& plan, Graph& graph, const uint64_t& maxNumThreads);
 
     void run();
 
