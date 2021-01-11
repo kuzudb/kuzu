@@ -9,19 +9,19 @@ void BaseLists::readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>
     uint64_t& adjListLen, const unique_ptr<VectorFrameHandle>& handle) {
     auto header = headers->getHeader(nodeID.offset);
     if (!AdjListHeaders::isALargeAdjList(header)) {
-        adjListLen = AdjListHeaders::getAdjListLen(header);
-        auto csrOffsetInChunkPage = AdjListHeaders::getCSROffset(header) % numElementsPerPage;
+        auto adjListLen = AdjListHeaders::getAdjListLen(header);
+        auto csrOffset = AdjListHeaders::getCSROffset(header);
+        auto pageOffset = getPageOffset(csrOffset);
         auto chunkIdx = nodeID.offset / LISTS_CHUNK_SIZE;
-        auto pageIdxInChunk = AdjListHeaders::getCSROffset(header) / numElementsPerPage;
-        if (csrOffsetInChunkPage + adjListLen > numElementsPerPage) {
+        auto pageIdxInChunk = getPageIdx(csrOffset);
+        auto sizeLeftToCopy = adjListLen * elementSize;
+        if (pageOffset + sizeLeftToCopy > PAGE_SIZE) {
             handle->isFrameBound = false;
             valueVector->reset();
             auto values = valueVector->getValues();
-            auto pageOffset = csrOffsetInChunkPage * elementSize;
-            auto sizeLeftToCopy = adjListLen * elementSize;
             while (sizeLeftToCopy) {
                 auto pageIdx = metadata.getPageIdx(chunkIdx, pageIdxInChunk);
-                uint64_t sizeToCopyInPage = min(PAGE_SIZE, sizeLeftToCopy) - pageOffset;
+                auto sizeToCopyInPage = min(PAGE_SIZE - pageOffset, sizeLeftToCopy);
                 auto frame = bufferManager.pin(fileHandle, pageIdx);
                 memcpy(values, frame + pageOffset, sizeToCopyInPage);
                 bufferManager.unpin(fileHandle, pageIdx);

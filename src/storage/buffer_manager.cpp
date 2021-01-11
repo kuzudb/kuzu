@@ -63,13 +63,23 @@ void BufferManager::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
 
 uint64_t BufferManager::evict() {
     auto i = 0u;
-    while (0 != bufferPool[clockHand]->pinCount || bufferPool[clockHand]->recentlyAccessed) {
-        i++;
-        clockHand = (clockHand + 1) % maxPages;
-        if (i >= maxPages) {
+    while (true) {
+        if (0 != bufferPool[clockHand]->pinCount) {
+            i++;
+            clockHand = (clockHand + 1) % maxPages;
+            continue;
+        }
+        if (bufferPool[clockHand]->recentlyAccessed) {
+            bufferPool[clockHand]->recentlyAccessed = false;
+            clockHand = (clockHand + 1) % maxPages;
+            i++;
+            continue;
+        }
+        if (i > 2 * maxPages) {
             throw invalid_argument(
                 "Cannot evict a page. All pages are either pinned or recentlyAccessed.");
         }
+        break;
     }
     auto frame = bufferPool[clockHand].get();
     frame->fileHandle->unswizzle(frame->pageIdx);
