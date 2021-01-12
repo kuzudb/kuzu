@@ -1,7 +1,5 @@
 #include "src/storage/include/structures/column.h"
 
-#include <iostream>
-
 namespace graphflow {
 namespace storage {
 

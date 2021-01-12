@@ -27,7 +27,7 @@ public:
     void setAsFlat() { isFlat = true; }
 
     uint64_t getNumTuples() const { return isFlat && size > 1 ? 1 : size; }
-    
+
     uint64_t getNumAttributes() const { return valueVectors.size(); }
 
 public:
