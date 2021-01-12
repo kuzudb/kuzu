@@ -1,7 +1,5 @@
 #include "src/processor/include/operator/physical/tuple/data_chunks.h"
 
-#include <iostream>
-
 namespace graphflow {
 namespace processor {
 
