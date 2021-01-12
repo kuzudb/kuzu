@@ -36,15 +36,6 @@ protected:
     void readFromNonSeqNodeIDs(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
         const unique_ptr<VectorFrameHandle>& handle);
-
-private:
-    inline uint64_t getPageIdx(const node_offset_t& nodeOffset) const {
-        return nodeOffset / numElementsPerPage;
-    }
-
-    inline uint32_t getPageOffset(const node_offset_t& nodeOffset) const {
-        return (nodeOffset % numElementsPerPage) * elementSize;
-    }
 };
 
 template<typename T>

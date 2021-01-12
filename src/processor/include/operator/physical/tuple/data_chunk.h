@@ -20,11 +20,14 @@ namespace processor {
 class DataChunk {
 
 public:
-    DataChunk() : size{0}, curr_idx{0} {};
+    DataChunk() : size{0}, curr_idx{0}, isFlat{false} {};
 
     void append(shared_ptr<ValueVector> valueVector) { valueVectors.push_back(valueVector); }
 
-    uint64_t getNumTuples() const { return size; }
+    void setAsFlat() { isFlat = true; }
+
+    uint64_t getNumTuples() const { return isFlat && size > 1 ? 1 : size; }
+
     uint64_t getNumAttributes() const { return valueVectors.size(); }
 
 public:
@@ -32,6 +35,7 @@ public:
     uint64_t size;
     //! The current position when vectors are flattened.
     uint64_t curr_idx;
+    bool isFlat;
 };
 
 } // namespace processor

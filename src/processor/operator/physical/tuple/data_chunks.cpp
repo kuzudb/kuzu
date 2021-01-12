@@ -6,7 +6,7 @@ namespace processor {
 uint64_t DataChunks::getNumTuples() {
     uint64_t numTuples = 1;
     for (auto& dataChunk : dataChunks) {
-        numTuples *= dataChunk->size;
+        numTuples *= dataChunk->getNumTuples();
     }
     return numTuples;
 }

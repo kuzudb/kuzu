@@ -77,6 +77,7 @@ public:
     void readValue(const uint64_t& pos, nodeID_t& nodeID) {
         nodeID.offset = ((node_offset_t*)values)[0] + pos;
     }
+
     void setStartOffset(node_offset_t node_offset) { ((node_offset_t*)values)[0] = node_offset; }
 };
 

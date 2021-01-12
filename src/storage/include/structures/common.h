@@ -22,6 +22,12 @@ public:
 protected:
     BaseColumnOrList(const string& fname, const size_t& elementSize, BufferManager& bufferManager);
 
+    inline uint64_t getPageIdx(const uint64_t& offset) const { return offset / numElementsPerPage; }
+
+    inline uint32_t getPageOffset(const uint64_t& nodeOffset) const {
+        return (nodeOffset % numElementsPerPage) * elementSize;
+    }
+
 protected:
     shared_ptr<spdlog::logger> logger;
     size_t elementSize;

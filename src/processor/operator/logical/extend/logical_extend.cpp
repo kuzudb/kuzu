@@ -2,7 +2,8 @@
 
 #include "src/processor/include/operator/logical/logical_operator_ser_deser.h"
 #include "src/processor/include/operator/physical/column_reader/adj_column_extend.h"
-#include "src/processor/include/operator/physical/list_reader/adj_list_extend.h"
+#include "src/processor/include/operator/physical/list_reader/extend/adj_list_flatten_and_extend.h"
+#include "src/processor/include/operator/physical/list_reader/extend/adj_list_only_extend.h"
 
 namespace graphflow {
 namespace processor {
@@ -33,8 +34,13 @@ unique_ptr<Operator> LogicalExtend::mapToPhysical(
     } else {
         schema.put(nbrNodeVarName, numChunks /*dataChunkPos*/, 0 /*valueVectorPos*/);
         auto nodeLabel = catalog.getNodeLabelFromString(nbrNodeVarLabel);
-        return make_unique<AdjListExtend>(inDataChunkIdx, inValueVectorIdx,
-            graph.getAdjLists(direction, nodeLabel, relLabelFromString), move(prevOperator));
+        if (dataChunks->getDataChunk(inDataChunkIdx)->isFlat) {
+            return make_unique<AdjListOnlyExtend>(inDataChunkIdx, inValueVectorIdx,
+                graph.getAdjLists(direction, nodeLabel, relLabelFromString), move(prevOperator));
+        } else {
+            return make_unique<AdjListFlattenAndExtend>(inDataChunkIdx, inValueVectorIdx,
+                graph.getAdjLists(direction, nodeLabel, relLabelFromString), move(prevOperator));
+        }
     }
 }
 
