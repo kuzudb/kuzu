@@ -6,6 +6,7 @@ namespace processor {
 AdjListExtend::AdjListExtend(const uint64_t& inDataChunkIdx, const uint64_t& inValueVectorIdx,
     BaseLists* lists, unique_ptr<Operator> prevOperator)
     : ListReader{inDataChunkIdx, inValueVectorIdx, lists, move(prevOperator)} {
+    inDataChunk->setAsFlat();
     outNodeIDVector = make_shared<NodeIDVector>(NodeIDCompressionScheme());
     outDataChunk = make_shared<DataChunk>();
     outDataChunk->append(outNodeIDVector);
@@ -19,7 +20,7 @@ bool AdjListExtend::hasNextMorsel() {
 
 void AdjListExtend::getNextTuples() {
     lists->reclaim(handle);
-    if (inDataChunk->size == 0 || inDataChunk->size == inDataChunk->curr_idx) {
+    if (inDataChunk->size == 0 || inDataChunk->size == inDataChunk->curr_idx + 1) {
         inDataChunk->curr_idx = 0;
         prevOperator->getNextTuples();
     } else {

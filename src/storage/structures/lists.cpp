@@ -9,7 +9,7 @@ void BaseLists::readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>
     uint64_t& adjListLen, const unique_ptr<VectorFrameHandle>& handle) {
     auto header = headers->getHeader(nodeID.offset);
     if (!AdjListHeaders::isALargeAdjList(header)) {
-        auto adjListLen = AdjListHeaders::getAdjListLen(header);
+        adjListLen = AdjListHeaders::getAdjListLen(header);
         auto csrOffset = AdjListHeaders::getCSROffset(header);
         auto pageOffset = getPageOffset(csrOffset);
         auto chunkIdx = nodeID.offset / LISTS_CHUNK_SIZE;
