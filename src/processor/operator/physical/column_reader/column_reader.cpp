@@ -20,9 +20,9 @@ void ColumnReader::cleanup() {
 }
 
 void ColumnReader::getNextTuples() {
-    column->reclaim(handle);
     prevOperator->getNextTuples();
     if (inDataChunk->size > 0) {
+        column->reclaim(handle);
         column->readValues(inNodeIDVector, outValueVector, inDataChunk->size, handle);
     }
 }

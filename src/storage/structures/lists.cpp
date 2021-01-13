@@ -34,7 +34,7 @@ void BaseLists::readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>
             handle->pageIdx = metadata.getPageIdx(chunkIdx, pageIdxInChunk);
             handle->isFrameBound = true;
             auto frame = bufferManager.pin(fileHandle, handle->pageIdx);
-            valueVector->setValues((uint8_t*)frame);
+            valueVector->setValues((uint8_t*)frame + pageOffset);
         }
     } else {
         // TODO: Implement handling of large adjLists.
