@@ -24,16 +24,15 @@ unique_ptr<Operator> LogicalExtend::mapToPhysical(
     label_t relLabelFromString = catalog.getRelLabelFromString(relLabel);
     auto dataChunks = prevOperator->getOutDataChunks();
     auto numChunks = dataChunks->getNumDataChunks();
+    auto nodeLabel = catalog.getNodeLabelFromString(boundNodeVarLabel);
     if (catalog.isSingleCaridinalityInDir(relLabelFromString, direction)) {
         auto dataChunkPos = numChunks - 1;
         auto valueVectorPos = dataChunks->getNumValueVectors(dataChunkPos);
         schema.put(nbrNodeVarName, dataChunkPos, valueVectorPos);
-        auto nodeLabel = catalog.getNodeLabelFromString(boundNodeVarLabel);
         return make_unique<AdjColumnExtend>(inDataChunkIdx, inValueVectorIdx,
             graph.getAdjColumn(direction, nodeLabel, relLabelFromString), move(prevOperator));
     } else {
         schema.put(nbrNodeVarName, numChunks /*dataChunkPos*/, 0 /*valueVectorPos*/);
-        auto nodeLabel = catalog.getNodeLabelFromString(nbrNodeVarLabel);
         if (dataChunks->getDataChunk(inDataChunkIdx)->isFlat) {
             return make_unique<AdjListOnlyExtend>(inDataChunkIdx, inValueVectorIdx,
                 graph.getAdjLists(direction, nodeLabel, relLabelFromString), move(prevOperator));

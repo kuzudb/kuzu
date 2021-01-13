@@ -45,6 +45,8 @@ public:
               make_shared<AdjListHeaders>(fname), bufferManager},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
+    NodeIDCompressionScheme& getNodeIDCompressionScheme() { return nodeIDCompressionScheme; }
+
     shared_ptr<AdjListHeaders> getHeaders() { return headers; };
 
 private:

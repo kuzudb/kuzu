@@ -14,12 +14,12 @@ namespace processor {
 class LogicalRelPropertyReader : public LogicalOperator {
 
 public:
-    LogicalRelPropertyReader(const string& boundNodeVarName, const string& boundNodeVarLabel,
-        const string& nbrNodeVarName, const string& nbrNodeVarLabel, const Direction& direction,
+    LogicalRelPropertyReader(const string& fromNodeVarName, const string& fromNodeVarLabel,
+        const string& toNodeVarName, const string& nbrNodeVarLabel, const Direction& direction,
         const string& relLabel, const string& propertyName,
         unique_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, fromNodeVarName{boundNodeVarName},
-          fromNodeVarLabel{boundNodeVarLabel}, toNodeVarName{nbrNodeVarName},
+        : LogicalOperator{move(prevOperator)}, fromNodeVarName{fromNodeVarName},
+          fromNodeVarLabel{fromNodeVarLabel}, toNodeVarName{toNodeVarName},
           toNodeVarLabel{nbrNodeVarLabel}, relLabel{relLabel}, direction{direction},
           propertyName{propertyName} {}
     LogicalRelPropertyReader(FileDeserHelper& fdsh);
