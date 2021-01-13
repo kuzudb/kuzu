@@ -10,11 +10,13 @@ void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         nodeID_t nodeID;
         nodeIDVector->readValue(0, nodeID);
         auto startOffset = nodeID.offset;
-        auto pageOffset = startOffset % numElementsPerPage;
-        if (pageOffset + size <= numElementsPerPage) {
-            readFromSeqNodeIDsBySettingFrame(valueVector, handle, startOffset);
+        auto pageIdx = getPageIdx(startOffset);
+        auto pageOffset = getPageOffset(startOffset);
+        auto sizeLeftToCopy = size * elementSize;
+        if (pageOffset + sizeLeftToCopy <= PAGE_SIZE) {
+            readFromSeqNodeIDsBySettingFrame(valueVector, handle, pageIdx, pageOffset);
         } else {
-            readFromSeqNodeIDsByCopying(valueVector, size, handle, startOffset);
+            readFromSeqNodeIDsByCopying(valueVector, handle, sizeLeftToCopy, pageIdx, pageOffset);
         }
         return;
     }
@@ -22,28 +24,26 @@ void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
 }
 
 void BaseColumn::readFromSeqNodeIDsBySettingFrame(const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<VectorFrameHandle>& handle, node_offset_t startOffset) {
-    handle->pageIdx = getPageIdx(startOffset);
+    const unique_ptr<VectorFrameHandle>& handle, uint64_t pageIdx, uint64_t pageOffset) {
+    handle->pageIdx = pageIdx;
     handle->isFrameBound = true;
     auto frame = bufferManager.pin(fileHandle, handle->pageIdx);
-    valueVector->setValues((uint8_t*)frame);
+    valueVector->setValues((uint8_t*)frame + pageOffset);
 }
 
 void BaseColumn::readFromSeqNodeIDsByCopying(const shared_ptr<ValueVector>& valueVector,
-    const uint64_t& size, const unique_ptr<VectorFrameHandle>& handle, node_offset_t startOffset) {
+    const unique_ptr<VectorFrameHandle>& handle, uint64_t sizeLeftToCopy, uint64_t pageIdx,
+    uint64_t pageOffset) {
     handle->isFrameBound = false;
     valueVector->reset();
     auto values = valueVector->getValues();
-    auto numBytesLeftToCopy = size * elementSize;
-    auto pageOffset = getPageOffset(startOffset);
-    auto pageIdx = getPageIdx(startOffset);
-    while (numBytesLeftToCopy) {
-        auto numBytesToCopyInPage = min(numBytesLeftToCopy, PAGE_SIZE) - pageOffset;
+    while (sizeLeftToCopy) {
+        auto sizeToCopyInPage = min(PAGE_SIZE - pageOffset, sizeLeftToCopy);
         auto frame = bufferManager.pin(fileHandle, pageIdx);
-        memcpy(values, frame + pageOffset, numBytesToCopyInPage);
+        memcpy(values, frame + pageOffset, sizeToCopyInPage);
         bufferManager.unpin(fileHandle, pageIdx);
-        values += numBytesToCopyInPage;
-        numBytesLeftToCopy -= numBytesToCopyInPage;
+        values += sizeToCopyInPage;
+        sizeLeftToCopy -= sizeToCopyInPage;
         pageOffset = 0;
         pageIdx++;
     }
@@ -56,23 +56,28 @@ void BaseColumn::readFromNonSeqNodeIDs(const shared_ptr<NodeIDVector>& nodeIDVec
     valueVector->reset();
     nodeID_t nodeID;
     auto values = valueVector->getValues();
+    auto ValuesOffset = 0;
     for (uint64_t i = 0; i < size; i++) {
         nodeIDVector->readValue(i, nodeID);
         auto pageIdx = getPageIdx(nodeID.offset);
         auto frame = bufferManager.pin(fileHandle, pageIdx);
-        memcpy(values + (i * elementSize), frame + getPageOffset(nodeID.offset), elementSize);
+        memcpy(values + ValuesOffset, frame + getPageOffset(nodeID.offset), elementSize);
         bufferManager.unpin(fileHandle, pageIdx);
+        ValuesOffset += elementSize;
     }
 }
 
 void Column<gf_string_t>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
     const unique_ptr<VectorFrameHandle>& handle) {
-    nodeID_t nodeID;
-    nodeIDVector->readValue(0, nodeID);
-    auto startOffset = nodeID.offset;
     if (nodeIDVector->getIsSequence()) {
-        readFromSeqNodeIDsByCopying(valueVector, size, handle, startOffset);
+        nodeID_t nodeID;
+        nodeIDVector->readValue(0, nodeID);
+        auto startOffset = nodeID.offset;
+        auto pageIdx = getPageIdx(startOffset);
+        auto pageOffset = getPageOffset(startOffset);
+        auto sizeLeftToCopy = size * elementSize;
+        readFromSeqNodeIDsByCopying(valueVector, handle, sizeLeftToCopy, pageIdx, pageOffset);
     } else {
         readFromNonSeqNodeIDs(nodeIDVector, valueVector, size, handle);
     }
