@@ -18,10 +18,8 @@ LogicalRelPropertyReader::LogicalRelPropertyReader(FileDeserHelper& fdsh)
 unique_ptr<Operator> LogicalRelPropertyReader::mapToPhysical(
     const Graph& graph, VarToChunkAndVectorIdxMap& schema) {
     auto prevOperator = this->prevOperator->mapToPhysical(graph, schema);
-    // auto dataChunkPos = schema.getDataChunkPos(srcNodeVarName);
-    // auto valueVectorPos = schema.getValueVectorPos(srcNodeVarName);
-    auto catalog = graph.getCatalog();
-    auto label = catalog.getRelLabelFromString(relLabel);
+    auto& catalog = graph.getCatalog();
+    auto label = catalog.getRelLabelFromString(relLabel.c_str());
     string strNodeVarName;
     string strNodeLabel;
     if (catalog.isSingleCaridinalityInDir(label, FWD)) {
@@ -36,13 +34,13 @@ unique_ptr<Operator> LogicalRelPropertyReader::mapToPhysical(
     }
     auto dataChunkPos = schema.getDataChunkPos(strNodeVarName);
     auto valueVectorPos = schema.getValueVectorPos(strNodeVarName);
-    auto nodeLabel = catalog.getNodeLabelFromString(strNodeLabel);
+    auto nodeLabel = catalog.getNodeLabelFromString(strNodeLabel.c_str());
     if (catalog.isSingleCaridinalityInDir(label, direction)) {
         auto column = graph.getRelPropertyColumn(label, nodeLabel, propertyName);
         return make_unique<RelPropertyColumnReader>(
             dataChunkPos, valueVectorPos, column, move(prevOperator));
     } else {
-        auto lists = graph.getRelPropertyLists(direction, label, nodeLabel, propertyName);
+        auto lists = graph.getRelPropertyLists(direction, nodeLabel, label, propertyName);
         return make_unique<RelPropertyListReader>(
             dataChunkPos, valueVectorPos, lists, move(prevOperator));
     }

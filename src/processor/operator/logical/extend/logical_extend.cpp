@@ -20,11 +20,11 @@ unique_ptr<Operator> LogicalExtend::mapToPhysical(
     auto prevOperator = this->prevOperator->mapToPhysical(graph, schema);
     auto dataChunkPos = schema.getDataChunkPos(boundNodeVarName);
     auto valueVectorPos = schema.getValueVectorPos(boundNodeVarName);
-    auto catalog = graph.getCatalog();
-    label_t relLabelFromString = catalog.getRelLabelFromString(relLabel);
+    auto& catalog = graph.getCatalog();
+    label_t relLabelFromString = catalog.getRelLabelFromString(relLabel.c_str());
     auto dataChunks = prevOperator->getDataChunks();
     auto numChunks = dataChunks->getNumDataChunks();
-    auto nodeLabel = catalog.getNodeLabelFromString(boundNodeVarLabel);
+    auto nodeLabel = catalog.getNodeLabelFromString(boundNodeVarLabel.c_str());
     if (catalog.isSingleCaridinalityInDir(relLabelFromString, direction)) {
         auto dataChunkPos = numChunks - 1;
         auto valueVectorPos = dataChunks->getNumValueVectors(dataChunkPos);

@@ -32,7 +32,9 @@ public:
 
     virtual ~Graph() { spdlog::drop("storage"); };
 
-    inline const Catalog& getCatalog() const { return *catalog; }
+    inline const Catalog& getCatalog() const {
+        return *catalog;
+    }
 
     inline const vector<uint64_t>& getNumNodesPerLabel() const { return numNodesPerLabel; };
 
@@ -44,13 +46,13 @@ public:
 
     inline virtual BaseColumn* getNodePropertyColumn(
         const label_t& nodeLabel, const string& propertyName) const {
-        auto property = catalog->getPropertyFromString(nodeLabel, propertyName);
+        auto property = catalog->getNodePropertyKeyFromString(nodeLabel, propertyName);
         return nodesStore->getNodePropertyColumn(nodeLabel, property);
     }
 
     inline BaseColumn* getRelPropertyColumn(
         const label_t& relLabel, const label_t& nodeLabel, const string& propertyName) const {
-        auto property = catalog->getPropertyFromString(relLabel, propertyName);
+        auto property = catalog->getRelPropertyKeyFromString(relLabel, propertyName);
         return relsStore->getRelPropertyColumn(relLabel, nodeLabel, property);
     }
 
@@ -66,7 +68,7 @@ public:
 
     inline BaseLists* getRelPropertyLists(const Direction& direction, const label_t& nodeLabel,
         const label_t& relLabel, const string& propertyName) const {
-        auto propertyIdx = catalog->getPropertyFromString(relLabel, propertyName);
+        auto propertyIdx = catalog->getRelPropertyKeyFromString(relLabel, propertyName);
         return relsStore->getRelPropertyLists(direction, nodeLabel, relLabel, propertyIdx);
     }
 

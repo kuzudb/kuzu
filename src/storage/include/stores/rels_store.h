@@ -19,7 +19,7 @@ public:
 
     inline BaseColumn* getRelPropertyColumn(
         const label_t& relLabel, const label_t& nodeLabel, const uint64_t& propertyIdx) const {
-        return propertyColumns[relLabel][nodeLabel][propertyIdx].get();
+        return propertyColumns[nodeLabel][relLabel][propertyIdx].get();
     }
 
     inline BaseLists* getRelPropertyLists(const Direction& direction, const label_t& nodeLabel,
