@@ -15,6 +15,8 @@ namespace storage {
 class BaseColumn : public BaseColumnOrList {
 
 public:
+    virtual ~BaseColumn() = default;
+
     size_t getElementSize() { return elementSize; }
 
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,

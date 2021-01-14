@@ -13,7 +13,7 @@ public:
 
     unique_ptr<Operator> clone() override {
         return make_unique<RelPropertyColumnReader>(
-            dataChunkPos, valueVectorPos, column, move(prevOperator->clone()));
+            dataChunkPos, valueVectorPos, column, prevOperator->clone());
     }
 };
 

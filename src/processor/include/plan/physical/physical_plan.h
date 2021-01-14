@@ -16,7 +16,7 @@ class PhysicalPlan {
 public:
     PhysicalPlan(unique_ptr<Operator> lastOperator) : lastOperator{move(lastOperator)} {}
 
-    PhysicalPlan(const PhysicalPlan& plan) : lastOperator{move(plan.lastOperator->clone())} {};
+    PhysicalPlan(const PhysicalPlan& plan) : lastOperator{plan.lastOperator->clone()} {};
 
     void run();
 

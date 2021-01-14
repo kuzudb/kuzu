@@ -18,7 +18,7 @@ public:
 
     unique_ptr<Operator> clone() override {
         return make_unique<AdjListFlattenAndExtend>(
-            dataChunkPos, valueVectorPos, lists, move(prevOperator->clone()));
+            dataChunkPos, valueVectorPos, lists, prevOperator->clone());
     }
 };
 

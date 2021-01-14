@@ -15,7 +15,7 @@ public:
 
     unique_ptr<Operator> clone() override {
         return make_unique<RelPropertyListReader>(
-            dataChunkPos, valueVectorPos, lists, move(prevOperator->clone()));
+            dataChunkPos, valueVectorPos, lists, prevOperator->clone());
     }
 
 private:

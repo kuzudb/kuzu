@@ -14,7 +14,7 @@ public:
 
     void cleanup() override { prevOperator->cleanup(); };
 
-    unique_ptr<Operator> clone() override { return make_unique<Sink>(move(prevOperator->clone())); }
+    unique_ptr<Operator> clone() override { return make_unique<Sink>(prevOperator->clone()); }
 
     uint64_t getNumTuples() { return numTuples; }
 

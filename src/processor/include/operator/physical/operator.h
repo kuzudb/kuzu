@@ -24,6 +24,8 @@ public:
     }
 
     Operator* getPrevOperator() { return prevOperator.get(); }
+    
+    virtual ~Operator() = default;
 
     virtual bool hasNextMorsel() { return prevOperator->hasNextMorsel(); };
 

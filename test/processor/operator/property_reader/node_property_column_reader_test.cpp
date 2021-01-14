@@ -43,7 +43,8 @@ public:
         column = make_unique<PropertyColumnInt>(columnName, numElements, *bufferManager.get());
     }
 
-    BaseColumn* getNodePropertyColumn(const label_t& nodeLabel, const string& propertyName) {
+    BaseColumn* getNodePropertyColumn(
+        const label_t& nodeLabel, const string& propertyName) const override {
         return column.get();
     }
 
