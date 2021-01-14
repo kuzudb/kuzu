@@ -13,13 +13,13 @@ public:
 
     uint64_t getNumTuples();
 
-    shared_ptr<DataChunk> getDataChunk(const uint64_t& inDataChunkIdx) {
-        return dataChunks[inDataChunkIdx];
+    shared_ptr<DataChunk> getDataChunk(const uint64_t& dataChunkPos) {
+        return dataChunks[dataChunkPos];
     }
 
     shared_ptr<ValueVector> getValueVector(
-        const uint64_t& inDataChunkIdx, const uint64_t& inValueVectorIdx) {
-        return dataChunks[inDataChunkIdx]->valueVectors[inValueVectorIdx];
+        const uint64_t& dataChunkPos, const uint64_t& valueVectorPos) {
+        return dataChunks[dataChunkPos]->valueVectors[valueVectorPos];
     }
 
     uint64_t getNumDataChunks() { return dataChunks.size(); }

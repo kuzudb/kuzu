@@ -74,7 +74,7 @@ public:
     NodeIDSequenceVector(const label_t& label)
         : NodeIDVector{label, NodeIDCompressionScheme(), true, 1} {};
 
-    void readValue(const uint64_t& pos, nodeID_t& nodeID) {
+    void readValue(const uint64_t& pos, nodeID_t& nodeID) override {
         nodeID.offset = ((node_offset_t*)values)[0] + pos;
     }
 

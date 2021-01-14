@@ -1,7 +1,5 @@
 #include "src/processor/include/operator/physical/list_reader/extend/adj_list_flatten_and_extend.h"
 
-#include <iostream>
-
 namespace graphflow {
 namespace processor {
 

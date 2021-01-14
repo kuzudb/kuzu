@@ -13,16 +13,16 @@ namespace processor {
 class ColumnReader : public Operator {
 
 public:
-    ColumnReader(const uint64_t& inDataChunkIdx, const uint64_t& inValueVectorIdx,
-        BaseColumn* column, unique_ptr<Operator> prevOperator);
+    ColumnReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos, BaseColumn* column,
+        unique_ptr<Operator> prevOperator);
 
     void getNextTuples() override;
 
     void cleanup() override;
 
 protected:
-    uint64_t inDataChunkIdx;
-    uint64_t inValueVectorIdx;
+    uint64_t dataChunkPos;
+    uint64_t valueVectorPos;
     shared_ptr<DataChunk> inDataChunk;
     shared_ptr<NodeIDVector> inNodeIDVector;
     shared_ptr<ValueVector> outValueVector;

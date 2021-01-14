@@ -8,9 +8,9 @@ namespace processor {
 class AdjListFlattenAndExtend : public AdjListExtend {
 
 public:
-    AdjListFlattenAndExtend(const uint64_t& inDataChunkIdx, const uint64_t& inValueVectorIdx,
+    AdjListFlattenAndExtend(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
         BaseLists* lists, unique_ptr<Operator> prevOperator)
-        : AdjListExtend{inDataChunkIdx, inValueVectorIdx, lists, move(prevOperator)} {};
+        : AdjListExtend{dataChunkPos, valueVectorPos, lists, move(prevOperator)} {};
 
     bool hasNextMorsel() override;
 
@@ -18,7 +18,7 @@ public:
 
     unique_ptr<Operator> clone() override {
         return make_unique<AdjListFlattenAndExtend>(
-            inDataChunkIdx, inValueVectorIdx, lists, move(prevOperator->clone()));
+            dataChunkPos, valueVectorPos, lists, move(prevOperator->clone()));
     }
 };
 

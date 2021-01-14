@@ -5,7 +5,7 @@ namespace processor {
 
 void Sink::getNextTuples() {
     prevOperator->getNextTuples();
-    numTuples += prevOperator->getOutDataChunks()->getNumTuples();
+    numTuples += prevOperator->getDataChunks()->getNumTuples();
 }
 
 } // namespace processor

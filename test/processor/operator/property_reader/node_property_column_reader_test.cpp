@@ -90,7 +90,7 @@ void testPropertyReaderNodeSameLabel(int32_t startExpectedValue) {
         0 /*inDataChunkIdx*/, 0 /*inValueVectorIdx*/, column, move(scanStub));
     ASSERT_EQ(reader->hasNextMorsel(), true);
     reader->getNextTuples();
-    auto values = reader->getOutDataChunks()
+    auto values = reader->getDataChunks()
                       ->getValueVector(0 /*inDataChunkIdx*/, 1 /*inValueVectorIdx*/)
                       ->getValues();
     int32_t actualValue;

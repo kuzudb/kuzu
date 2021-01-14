@@ -3,9 +3,9 @@
 namespace graphflow {
 namespace processor {
 
-RelPropertyListReader::RelPropertyListReader(const uint64_t& inDataChunkIdx,
-    const uint64_t& inValueVectorIdx, BaseLists* lists, unique_ptr<Operator> prevOperator)
-    : ListReader{inDataChunkIdx, inValueVectorIdx, lists, move(prevOperator)} {
+RelPropertyListReader::RelPropertyListReader(const uint64_t& dataChunkPos,
+    const uint64_t& valueVectorPos, BaseLists* lists, unique_ptr<Operator> prevOperator)
+    : ListReader{dataChunkPos, valueVectorPos, lists, move(prevOperator)} {
     outValueVector = make_shared<ValueVector>(8 /* placeholder */);
     inDataChunk->append(outValueVector);
 }

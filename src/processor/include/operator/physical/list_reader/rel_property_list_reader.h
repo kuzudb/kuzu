@@ -8,14 +8,14 @@ namespace processor {
 class RelPropertyListReader : public ListReader {
 
 public:
-    RelPropertyListReader(const uint64_t& inDataChunkIdx, const uint64_t& inValueVectorIdx,
+    RelPropertyListReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
         BaseLists* lists, unique_ptr<Operator> prevOperator);
 
     void getNextTuples() override;
 
     unique_ptr<Operator> clone() override {
         return make_unique<RelPropertyListReader>(
-            inDataChunkIdx, inValueVectorIdx, lists, move(prevOperator->clone()));
+            dataChunkPos, valueVectorPos, lists, move(prevOperator->clone()));
     }
 
 private:

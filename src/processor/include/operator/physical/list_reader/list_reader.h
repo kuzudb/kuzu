@@ -9,14 +9,14 @@ namespace processor {
 class ListReader : public Operator {
 
 public:
-    ListReader(const uint64_t& inDataChunkIdx, const uint64_t& inValueVectorIdx, BaseLists* lists,
+    ListReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos, BaseLists* lists,
         unique_ptr<Operator> prevOperator);
 
     void cleanup() override;
 
 protected:
-    uint64_t inDataChunkIdx;
-    uint64_t inValueVectorIdx;
+    uint64_t dataChunkPos;
+    uint64_t valueVectorPos;
     shared_ptr<DataChunk> inDataChunk;
     shared_ptr<NodeIDVector> inNodeIDVector;
 

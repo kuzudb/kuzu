@@ -80,10 +80,6 @@ public:
     const vector<label_t>& getNodeLabelsForRelLabelDir(
         const label_t& relLabel, const Direction& dir) const;
 
-    Cardinality getCardinality(const label_t& relLabel) {
-        return relLabelToCardinalityMap[relLabel];
-    }
-
     inline bool isSingleCaridinalityInDir(const label_t& relLabel, const Direction& dir) const {
         auto cardinality = relLabelToCardinalityMap[relLabel];
         if (FWD == dir) {

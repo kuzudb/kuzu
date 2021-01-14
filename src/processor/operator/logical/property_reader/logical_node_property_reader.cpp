@@ -15,11 +15,11 @@ LogicalNodePropertyReader::LogicalNodePropertyReader(FileDeserHelper& fdsh)
 unique_ptr<Operator> LogicalNodePropertyReader::mapToPhysical(
     const Graph& graph, VarToChunkAndVectorIdxMap& schema) {
     auto prevOperator = this->prevOperator->mapToPhysical(graph, schema);
-    auto inDataChunkIdx = schema.getDataChunkPos(nodeVarName);
-    auto inValueVectorIdx = schema.getValueVectorPos(nodeVarName);
+    auto dataChunkPos = schema.getDataChunkPos(nodeVarName);
+    auto valueVectorPos = schema.getValueVectorPos(nodeVarName);
     auto catalog = graph.getCatalog();
     auto label = catalog.getNodeLabelFromString(nodeLabel);
-    return make_unique<NodePropertyColumnReader>(inDataChunkIdx, inValueVectorIdx,
+    return make_unique<NodePropertyColumnReader>(dataChunkPos, valueVectorPos,
         graph.getNodePropertyColumn(label, propertyName), move(prevOperator));
 }
 
