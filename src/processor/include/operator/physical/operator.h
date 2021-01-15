@@ -23,9 +23,9 @@ public:
         this->prevOperator.reset(prevOperator.release());
     }
 
-    Operator* getPrevOperator() { return prevOperator.get(); }
-    
     virtual ~Operator() = default;
+
+    Operator* getPrevOperator() { return prevOperator.get(); }    
 
     virtual bool hasNextMorsel() { return prevOperator->hasNextMorsel(); };
 
