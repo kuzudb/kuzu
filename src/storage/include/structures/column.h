@@ -17,8 +17,6 @@ class BaseColumn : public BaseColumnOrList {
 public:
     virtual ~BaseColumn() = default;
 
-    size_t getElementSize() { return elementSize; }
-
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
         const unique_ptr<VectorFrameHandle>& handle);

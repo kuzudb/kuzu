@@ -53,11 +53,11 @@ public:
     }
 
     inline const uint32_t& getNodePropertyKeyFromString(
-        const label_t& nodeLabel, const string& name) {
+        const label_t& nodeLabel, const string& name) const {
         return getPropertyMapForNodeLabel(nodeLabel).at(name).idx;
     }
     inline const uint32_t& getRelPropertyKeyFromString(
-        const label_t& relLabel, const string& name) {
+        const label_t& relLabel, const string& name) const {
         return getPropertyMapForRelLabel(relLabel).at(name).idx;
     }
 

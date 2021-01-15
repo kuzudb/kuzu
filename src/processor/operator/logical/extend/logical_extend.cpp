@@ -25,20 +25,23 @@ unique_ptr<Operator> LogicalExtend::mapToPhysical(
     auto dataChunks = prevOperator->getDataChunks();
     auto numChunks = dataChunks->getNumDataChunks();
     auto nodeLabel = catalog.getNodeLabelFromString(boundNodeVarLabel.c_str());
+    auto& relsStore = graph.getRelsStore();
     if (catalog.isSingleCaridinalityInDir(relLabelFromString, direction)) {
         auto dataChunkPos = numChunks - 1;
         auto valueVectorPos = dataChunks->getNumValueVectors(dataChunkPos);
         schema.put(nbrNodeVarName, dataChunkPos, valueVectorPos);
         return make_unique<AdjColumnExtend>(dataChunkPos, valueVectorPos,
-            graph.getAdjColumn(direction, nodeLabel, relLabelFromString), move(prevOperator));
+            relsStore.getAdjColumn(direction, nodeLabel, relLabelFromString), move(prevOperator));
     } else {
         schema.put(nbrNodeVarName, numChunks /*dataChunkPos*/, 0 /*valueVectorPos*/);
         if (dataChunks->getDataChunk(dataChunkPos)->isFlat) {
             return make_unique<AdjListOnlyExtend>(dataChunkPos, valueVectorPos,
-                graph.getAdjLists(direction, nodeLabel, relLabelFromString), move(prevOperator));
+                relsStore.getAdjLists(direction, nodeLabel, relLabelFromString),
+                move(prevOperator));
         } else {
             return make_unique<AdjListFlattenAndExtend>(dataChunkPos, valueVectorPos,
-                graph.getAdjLists(direction, nodeLabel, relLabelFromString), move(prevOperator));
+                relsStore.getAdjLists(direction, nodeLabel, relLabelFromString),
+                move(prevOperator));
         }
     }
 }

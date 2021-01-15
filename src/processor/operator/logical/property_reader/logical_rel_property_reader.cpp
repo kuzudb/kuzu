@@ -10,7 +10,7 @@ namespace processor {
 LogicalRelPropertyReader::LogicalRelPropertyReader(FileDeserHelper& fdsh)
     : srcNodeVarName{*fdsh.readString()}, srcNodeVarLabel{*fdsh.readString()},
       dstNodeVarName{*fdsh.readString()}, dstNodeVarLabel{*fdsh.readString()},
-      relLabel{*fdsh.readString()}, direction{fdsh.read<Direction>()},
+      relLabel{*fdsh.readString()}, extensionDirectionInPlan{fdsh.read<Direction>()},
       propertyName(*fdsh.readString()) {
     this->setPrevOperator(deserializeOperator(fdsh));
 }
@@ -20,29 +20,37 @@ unique_ptr<Operator> LogicalRelPropertyReader::mapToPhysical(
     auto prevOperator = this->prevOperator->mapToPhysical(graph, schema);
     auto& catalog = graph.getCatalog();
     auto label = catalog.getRelLabelFromString(relLabel.c_str());
-    string strNodeVarName;
-    string strNodeLabel;
+    string inStrNodeVarName;
+    string inStrNodeLabel;
+    string outStrNodeVarName;
     if (catalog.isSingleCaridinalityInDir(label, FWD)) {
-        strNodeVarName = srcNodeVarName;
-        strNodeLabel = srcNodeVarLabel;
+        inStrNodeVarName = srcNodeVarName;
+        inStrNodeLabel = srcNodeVarLabel;
+        outStrNodeVarName = inStrNodeVarName;
     } else if (catalog.isSingleCaridinalityInDir(label, BWD)) {
-        strNodeVarName = dstNodeVarName;
-        strNodeLabel = dstNodeVarLabel;
+        inStrNodeVarName = dstNodeVarName;
+        inStrNodeLabel = dstNodeVarLabel;
+        outStrNodeVarName = inStrNodeVarName;
     } else {
-        strNodeVarName = direction == FWD ? srcNodeVarName : dstNodeVarName;
-        strNodeLabel = direction == FWD ? srcNodeVarLabel : dstNodeVarLabel;
+        inStrNodeVarName = extensionDirectionInPlan == FWD ? srcNodeVarName : dstNodeVarName;
+        inStrNodeLabel = extensionDirectionInPlan == FWD ? srcNodeVarLabel : dstNodeVarLabel;
+        outStrNodeVarName = extensionDirectionInPlan == FWD ? dstNodeVarName : srcNodeVarName;
     }
-    auto dataChunkPos = schema.getDataChunkPos(strNodeVarName);
-    auto valueVectorPos = schema.getValueVectorPos(strNodeVarName);
-    auto nodeLabel = catalog.getNodeLabelFromString(strNodeLabel.c_str());
-    if (catalog.isSingleCaridinalityInDir(label, direction)) {
-        auto column = graph.getRelPropertyColumn(label, nodeLabel, propertyName);
+    auto inDataChunkPos = schema.getDataChunkPos(inStrNodeVarName);
+    auto inValueVectorPos = schema.getValueVectorPos(inStrNodeVarName);
+    auto outDataChunkPos = schema.getDataChunkPos(outStrNodeVarName);
+    auto nodeLabel = catalog.getNodeLabelFromString(inStrNodeLabel.c_str());
+    auto property = catalog.getRelPropertyKeyFromString(label, propertyName);
+    auto& relsStore = graph.getRelsStore();
+    if (catalog.isSingleCaridinalityInDir(label, extensionDirectionInPlan)) {
+        auto column = relsStore.getRelPropertyColumn(label, nodeLabel, property);
         return make_unique<RelPropertyColumnReader>(
-            dataChunkPos, valueVectorPos, column, move(prevOperator));
+            inDataChunkPos, inValueVectorPos, column, move(prevOperator));
     } else {
-        auto lists = graph.getRelPropertyLists(direction, nodeLabel, label, propertyName);
+        auto lists =
+            relsStore.getRelPropertyLists(extensionDirectionInPlan, nodeLabel, label, property);
         return make_unique<RelPropertyListReader>(
-            dataChunkPos, valueVectorPos, lists, move(prevOperator));
+            inDataChunkPos, inValueVectorPos, outDataChunkPos, lists, move(prevOperator));
     }
 }
 
@@ -53,7 +61,7 @@ void LogicalRelPropertyReader::serialize(FileSerHelper& fsh) {
     fsh.writeString(dstNodeVarName);
     fsh.writeString(dstNodeVarLabel);
     fsh.writeString(relLabel);
-    fsh.write(direction);
+    fsh.write(extensionDirectionInPlan);
     fsh.writeString(propertyName);
     LogicalOperator::serialize(fsh);
 }

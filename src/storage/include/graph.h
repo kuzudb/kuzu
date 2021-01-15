@@ -32,9 +32,11 @@ public:
 
     ~Graph() { spdlog::drop("storage"); };
 
-    inline const Catalog& getCatalog() const {
-        return *catalog;
-    }
+    inline const Catalog& getCatalog() const { return *catalog; }
+
+    inline const RelsStore& getRelsStore() const { return *relsStore; }
+
+    inline const NodesStore& getNodesStore() const { return *nodesStore; }
 
     inline const vector<uint64_t>& getNumNodesPerLabel() const { return numNodesPerLabel; };
 
@@ -43,34 +45,6 @@ public:
     };
 
     inline const string& getPath() const { return path; }
-
-    inline virtual BaseColumn* getNodePropertyColumn(
-        const label_t& nodeLabel, const string& propertyName) const {
-        auto property = catalog->getNodePropertyKeyFromString(nodeLabel, propertyName);
-        return nodesStore->getNodePropertyColumn(nodeLabel, property);
-    }
-
-    inline BaseColumn* getRelPropertyColumn(
-        const label_t& relLabel, const label_t& nodeLabel, const string& propertyName) const {
-        auto property = catalog->getRelPropertyKeyFromString(relLabel, propertyName);
-        return relsStore->getRelPropertyColumn(relLabel, nodeLabel, property);
-    }
-
-    inline AdjColumn* getAdjColumn(
-        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) const {
-        return relsStore->getAdjColumn(direction, nodeLabel, relLabel);
-    }
-
-    inline AdjLists* getAdjLists(
-        const Direction& direction, const label_t& nodeLabel, const label_t& relLabel) const {
-        return relsStore->getAdjLists(direction, nodeLabel, relLabel);
-    }
-
-    inline BaseLists* getRelPropertyLists(const Direction& direction, const label_t& nodeLabel,
-        const label_t& relLabel, const string& propertyName) const {
-        auto propertyIdx = catalog->getRelPropertyKeyFromString(relLabel, propertyName);
-        return relsStore->getRelPropertyLists(direction, nodeLabel, relLabel, propertyIdx);
-    }
 
 protected:
     Graph() : logger{spdlog::stdout_logger_st("storage")} {};

@@ -19,6 +19,8 @@ class BaseColumnOrList {
 public:
     void reclaim(unique_ptr<VectorFrameHandle>& handle);
 
+    size_t getElementSize() { return elementSize; }
+
 protected:
     BaseColumnOrList(const string& fname, const size_t& elementSize, BufferManager& bufferManager);
 

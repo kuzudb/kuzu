@@ -19,8 +19,10 @@ unique_ptr<Operator> LogicalNodePropertyReader::mapToPhysical(
     auto valueVectorPos = schema.getValueVectorPos(nodeVarName);
     auto& catalog = graph.getCatalog();
     auto label = catalog.getNodeLabelFromString(nodeLabel.c_str());
+    auto property = catalog.getNodePropertyKeyFromString(label, propertyName);
+    auto& nodesStore = graph.getNodesStore();
     return make_unique<NodePropertyColumnReader>(dataChunkPos, valueVectorPos,
-        graph.getNodePropertyColumn(label, propertyName), move(prevOperator));
+        nodesStore.getNodePropertyColumn(label, property), move(prevOperator));
 }
 
 void LogicalNodePropertyReader::serialize(FileSerHelper& fsh) {

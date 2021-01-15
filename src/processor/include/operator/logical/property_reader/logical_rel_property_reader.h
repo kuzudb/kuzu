@@ -16,12 +16,12 @@ class LogicalRelPropertyReader : public LogicalOperator {
 public:
     LogicalRelPropertyReader(const string& fromNodeVarName, const string& fromNodeVarLabel,
         const string& toNodeVarName, const string& nbrNodeVarLabel, const string& relLabel,
-        const Direction& direction, const string& propertyName,
+        const Direction& extensionDirectionInPlan, const string& propertyName,
         unique_ptr<LogicalOperator> prevOperator)
         : LogicalOperator{move(prevOperator)}, srcNodeVarName{fromNodeVarName},
           srcNodeVarLabel{fromNodeVarLabel}, dstNodeVarName{toNodeVarName},
-          dstNodeVarLabel{nbrNodeVarLabel}, relLabel{relLabel}, direction{direction},
-          propertyName{propertyName} {}
+          dstNodeVarLabel{nbrNodeVarLabel}, relLabel{relLabel},
+          extensionDirectionInPlan{extensionDirectionInPlan}, propertyName{propertyName} {}
     LogicalRelPropertyReader(FileDeserHelper& fdsh);
 
     unique_ptr<Operator> mapToPhysical(
@@ -35,7 +35,7 @@ protected:
     const string dstNodeVarName;
     const string dstNodeVarLabel;
     const string relLabel;
-    const Direction direction;
+    const Direction extensionDirectionInPlan;
     const string propertyName;
 };
 

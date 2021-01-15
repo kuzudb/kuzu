@@ -25,8 +25,6 @@ public:
 
     virtual ~Operator() = default;
 
-    Operator* getPrevOperator() { return prevOperator.get(); }    
-
     virtual bool hasNextMorsel() { return prevOperator->hasNextMorsel(); };
 
     // Warning: getNextTuples() should only be called if getNextMorsel() returns true.
