@@ -31,25 +31,10 @@ class Catalog {
     friend class bitsery::Access;
 
 public:
-    Catalog(const string& directory) : Catalog() {
-        logger->info("Initializing Catalog.");
-        readFromFile(directory);
-        logger->info("Done.");
-    };
+    Catalog(const string& directory);
 
     inline const uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
     inline const uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
-
-    inline const label_t& getNodeLabelFromString(const string& label) const {
-        char labelCharArr[label.size()];
-        strcpy(labelCharArr, label.c_str());
-        return getNodeLabelFromString(labelCharArr);
-    }
-    inline const label_t& getRelLabelFromString(const string& label) const {
-        char labelCharArr[label.size()];
-        strcpy(labelCharArr, label.c_str());
-        return getRelLabelFromString(labelCharArr);
-    }
 
     inline const label_t& getNodeLabelFromString(const char* label) const {
         return stringToNodeLabelMap.at(label);
@@ -67,12 +52,13 @@ public:
         return relPropertyMaps[relLabel];
     }
 
-    inline const uint32_t& getPropertyFromString(const label_t& nodeLabel, const string& name) {
+    inline const uint32_t& getNodePropertyKeyFromString(
+        const label_t& nodeLabel, const string& name) const {
         return getPropertyMapForNodeLabel(nodeLabel).at(name).idx;
     }
-    inline const uint32_t& getIdxForRelLabelPropertyName(
-        const label_t& nodeLabel, const string& name) {
-        return getPropertyMapForRelLabel(nodeLabel).at(name).idx;
+    inline const uint32_t& getRelPropertyKeyFromString(
+        const label_t& relLabel, const string& name) const {
+        return getPropertyMapForRelLabel(relLabel).at(name).idx;
     }
 
     const vector<label_t>& getRelLabelsForNodeLabelDirection(
@@ -80,14 +66,7 @@ public:
     const vector<label_t>& getNodeLabelsForRelLabelDir(
         const label_t& relLabel, const Direction& dir) const;
 
-    inline bool isSingleCaridinalityInDir(const label_t& relLabel, const Direction& dir) const {
-        auto cardinality = relLabelToCardinalityMap[relLabel];
-        if (FWD == dir) {
-            return ONE_ONE == cardinality || MANY_ONE == cardinality;
-        } else {
-            return ONE_ONE == cardinality || ONE_MANY == cardinality;
-        }
-    }
+    bool isSingleCaridinalityInDir(const label_t& relLabel, const Direction& dir) const;
 
 private:
     Catalog() : logger{spdlog::get("storage")} {};

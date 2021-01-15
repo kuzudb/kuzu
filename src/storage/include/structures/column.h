@@ -15,7 +15,7 @@ namespace storage {
 class BaseColumn : public BaseColumnOrList {
 
 public:
-    size_t getElementSize() { return elementSize; }
+    virtual ~BaseColumn() = default;
 
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
@@ -27,11 +27,11 @@ protected:
         : BaseColumnOrList{fname, elementSize, bufferManager} {};
 
     void readFromSeqNodeIDsBySettingFrame(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<VectorFrameHandle>& handle, node_offset_t startOffset);
+        const unique_ptr<VectorFrameHandle>& handle, uint64_t pageIdx, uint64_t pageOffset);
 
     void readFromSeqNodeIDsByCopying(const shared_ptr<ValueVector>& valueVector,
-        const uint64_t& size, const unique_ptr<VectorFrameHandle>& handle,
-        node_offset_t startOffset);
+        const unique_ptr<VectorFrameHandle>& handle, uint64_t sizeLeftToCopy, uint64_t pageIdx,
+        uint64_t pageOffset);
 
     void readFromNonSeqNodeIDs(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const uint64_t& size,

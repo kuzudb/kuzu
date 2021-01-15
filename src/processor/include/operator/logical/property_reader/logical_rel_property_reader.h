@@ -15,24 +15,25 @@ class LogicalRelPropertyReader : public LogicalOperator {
 
 public:
     LogicalRelPropertyReader(const string& boundNodeVarName, const string& boundNodeVarLabel,
-        const string& nbrNodeVarName, const string& nbrNodeVarLabel, const Direction& direction,
-        const string& relLabel, const string& propertyName,
+        const string& nbrNodeVarName, const string& nbrNodeVarLabel, const string& relLabel,
+        const Direction& direction, const string& propertyName,
         unique_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, fromNodeVarName{boundNodeVarName},
-          fromNodeVarLabel{boundNodeVarLabel}, toNodeVarName{nbrNodeVarName},
-          toNodeVarLabel{nbrNodeVarLabel}, relLabel{relLabel}, direction{direction},
+        : LogicalOperator{move(prevOperator)}, boundNodeVarName{boundNodeVarName},
+          boundNodeVarLabel{boundNodeVarLabel}, nbrNodeVarName{nbrNodeVarName},
+          nbrNodeVarLabel{nbrNodeVarLabel}, relLabel{relLabel}, direction{direction},
           propertyName{propertyName} {}
     LogicalRelPropertyReader(FileDeserHelper& fdsh);
 
-    unique_ptr<Operator> mapToPhysical(const Graph& graph, VarToChunkAndVectorIdxMap& schema);
+    unique_ptr<Operator> mapToPhysical(
+        const Graph& graph, VarToChunkAndVectorIdxMap& schema) override;
 
     void serialize(FileSerHelper& fsh) override;
 
 protected:
-    const string fromNodeVarName;
-    const string fromNodeVarLabel;
-    const string toNodeVarName;
-    const string toNodeVarLabel;
+    const string boundNodeVarName;
+    const string boundNodeVarLabel;
+    const string nbrNodeVarName;
+    const string nbrNodeVarLabel;
     const string relLabel;
     const Direction direction;
     const string propertyName;

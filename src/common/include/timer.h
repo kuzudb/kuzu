@@ -30,7 +30,7 @@ public:
 
     chrono::milliseconds getDuration() {
         if (stopped) {
-            return duration_cast<chrono::milliseconds>(checkpoint - start);
+            return chrono::duration_cast<chrono::milliseconds>(checkpoint - start);
         }
         throw new invalid_argument("Timer still running.");
     }
@@ -39,8 +39,8 @@ public:
         auto currentCheckpoint = chrono::high_resolution_clock::now();
         Timer::logger->info(
             "Checkpoint:{}. Time since last checkpoint {} ms. Time since start {} ms.", name,
-            duration_cast<chrono::milliseconds>(currentCheckpoint - checkpoint).count(),
-            duration_cast<chrono::milliseconds>(currentCheckpoint - start).count());
+            chrono::duration_cast<chrono::milliseconds>(currentCheckpoint - checkpoint).count(),
+            chrono::duration_cast<chrono::milliseconds>(currentCheckpoint - start).count());
         checkpoint = currentCheckpoint;
     }
 

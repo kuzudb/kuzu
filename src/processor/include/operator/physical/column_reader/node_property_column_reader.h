@@ -8,12 +8,12 @@ namespace processor {
 class NodePropertyColumnReader : public ColumnReader {
 
 public:
-    NodePropertyColumnReader(const uint64_t& inDataChunkIdx, const uint64_t& inValueVectorIdx,
+    NodePropertyColumnReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
         BaseColumn* column, unique_ptr<Operator> prevOperator);
 
     unique_ptr<Operator> clone() override {
         return make_unique<NodePropertyColumnReader>(
-            inDataChunkIdx, inValueVectorIdx, column, move(prevOperator->clone()));
+            dataChunkPos, valueVectorPos, column, prevOperator->clone());
     }
 };
 

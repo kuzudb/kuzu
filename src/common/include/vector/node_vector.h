@@ -21,6 +21,8 @@ public:
         : ValueVector{compression.getNumTotalBytes()}, nodeIDCompressionScheme{compression},
           isSequence{isSequence} {};
 
+    virtual ~NodeIDVector() = default;
+
     //  Creates a Node ID vector where the label is factored out and
     // stores in the label field and nodes contains node offsets only.
     NodeIDVector(const label_t& label, const NodeIDCompressionScheme& nodeIDCompressionScheme)
@@ -74,7 +76,7 @@ public:
     NodeIDSequenceVector(const label_t& label)
         : NodeIDVector{label, NodeIDCompressionScheme(), true, 1} {};
 
-    void readValue(const uint64_t& pos, nodeID_t& nodeID) {
+    void readValue(const uint64_t& pos, nodeID_t& nodeID) override {
         nodeID.offset = ((node_offset_t*)values)[0] + pos;
     }
 

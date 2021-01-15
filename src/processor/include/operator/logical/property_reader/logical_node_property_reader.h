@@ -18,7 +18,8 @@ public:
           propertyName{propertyName} {}
     LogicalNodePropertyReader(FileDeserHelper& fdsh);
 
-    unique_ptr<Operator> mapToPhysical(const Graph& graph, VarToChunkAndVectorIdxMap& schema);
+    unique_ptr<Operator> mapToPhysical(
+        const Graph& graph, VarToChunkAndVectorIdxMap& schema) override;
 
     void serialize(FileSerHelper& fsh) override;
 

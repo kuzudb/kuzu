@@ -18,28 +18,30 @@ LogicalExtend::LogicalExtend(FileDeserHelper& fdsh)
 unique_ptr<Operator> LogicalExtend::mapToPhysical(
     const Graph& graph, VarToChunkAndVectorIdxMap& schema) {
     auto prevOperator = this->prevOperator->mapToPhysical(graph, schema);
-    auto inDataChunkIdx = schema.getDataChunkPos(boundNodeVarName);
-    auto inValueVectorIdx = schema.getValueVectorPos(boundNodeVarName);
-    auto catalog = graph.getCatalog();
-    label_t relLabelFromString = catalog.getRelLabelFromString(relLabel);
-    auto dataChunks = prevOperator->getOutDataChunks();
+    auto dataChunkPos = schema.getDataChunkPos(boundNodeVarName);
+    auto valueVectorPos = schema.getValueVectorPos(boundNodeVarName);
+    auto& catalog = graph.getCatalog();
+    label_t relLabelFromString = catalog.getRelLabelFromString(relLabel.c_str());
+    auto dataChunks = prevOperator->getDataChunks();
     auto numChunks = dataChunks->getNumDataChunks();
+    auto nodeLabel = catalog.getNodeLabelFromString(boundNodeVarLabel.c_str());
+    auto& relsStore = graph.getRelsStore();
     if (catalog.isSingleCaridinalityInDir(relLabelFromString, direction)) {
         auto dataChunkPos = numChunks - 1;
         auto valueVectorPos = dataChunks->getNumValueVectors(dataChunkPos);
         schema.put(nbrNodeVarName, dataChunkPos, valueVectorPos);
-        auto nodeLabel = catalog.getNodeLabelFromString(boundNodeVarLabel);
-        return make_unique<AdjColumnExtend>(inDataChunkIdx, inValueVectorIdx,
-            graph.getAdjColumn(direction, nodeLabel, relLabelFromString), move(prevOperator));
+        return make_unique<AdjColumnExtend>(dataChunkPos, valueVectorPos,
+            relsStore.getAdjColumn(direction, nodeLabel, relLabelFromString), move(prevOperator));
     } else {
         schema.put(nbrNodeVarName, numChunks /*dataChunkPos*/, 0 /*valueVectorPos*/);
-        auto nodeLabel = catalog.getNodeLabelFromString(nbrNodeVarLabel);
-        if (dataChunks->getDataChunk(inDataChunkIdx)->isFlat) {
-            return make_unique<AdjListOnlyExtend>(inDataChunkIdx, inValueVectorIdx,
-                graph.getAdjLists(direction, nodeLabel, relLabelFromString), move(prevOperator));
+        if (dataChunks->getDataChunk(dataChunkPos)->isFlat) {
+            return make_unique<AdjListOnlyExtend>(dataChunkPos, valueVectorPos,
+                relsStore.getAdjLists(direction, nodeLabel, relLabelFromString),
+                move(prevOperator));
         } else {
-            return make_unique<AdjListFlattenAndExtend>(inDataChunkIdx, inValueVectorIdx,
-                graph.getAdjLists(direction, nodeLabel, relLabelFromString), move(prevOperator));
+            return make_unique<AdjListFlattenAndExtend>(dataChunkPos, valueVectorPos,
+                relsStore.getAdjLists(direction, nodeLabel, relLabelFromString),
+                move(prevOperator));
         }
     }
 }

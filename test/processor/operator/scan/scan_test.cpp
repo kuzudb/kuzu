@@ -10,9 +10,10 @@ void testScan(unique_ptr<PhysicalScan>& scan, shared_ptr<MorselDesc>& morsel,
 TEST(ScanTests, ScanTest) {
     auto morsel = make_shared<MorselDesc>(1025012);
     auto scan = make_unique<PhysicalScan>(morsel);
-    auto dataChunks = scan->getOutDataChunks();
+    auto dataChunks = scan->getDataChunks();
     shared_ptr<DataChunk> dataChunk = dataChunks->getDataChunk(0);
-    auto nodeVector = static_pointer_cast<NodeIDVector>(dataChunks->getValueVector(0, 0));
+    auto nodeVector =
+        static_pointer_cast<NodeIDVector>(dataChunks->getDataChunk(0)->getValueVector(0));
     node_offset_t currNodeOffset = 0;
     uint64_t size = ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
     while (morsel->getCurrNodeOffset() < 1025012) {

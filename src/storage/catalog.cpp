@@ -19,6 +19,12 @@ using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAda
 namespace graphflow {
 namespace storage {
 
+Catalog::Catalog(const string& directory) : Catalog() {
+    logger->info("Initializing Catalog.");
+    readFromFile(directory);
+    logger->info("Done.");
+};
+
 const vector<label_t>& Catalog::getRelLabelsForNodeLabelDirection(
     const label_t& nodeLabel, const Direction& dir) const {
     if (nodeLabel >= getNodeLabelsCount()) {
@@ -39,6 +45,15 @@ const vector<label_t>& Catalog::getNodeLabelsForRelLabelDir(
         return relLabelToSrcNodeLabels[relLabel];
     }
     return relLabelToDstNodeLabels[relLabel];
+}
+
+bool Catalog::isSingleCaridinalityInDir(const label_t& relLabel, const Direction& dir) const {
+    auto cardinality = relLabelToCardinalityMap[relLabel];
+    if (FWD == dir) {
+        return ONE_ONE == cardinality || MANY_ONE == cardinality;
+    } else {
+        return ONE_ONE == cardinality || ONE_MANY == cardinality;
+    }
 }
 
 template<typename S>

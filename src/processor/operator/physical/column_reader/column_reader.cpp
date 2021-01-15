@@ -3,14 +3,13 @@
 namespace graphflow {
 namespace processor {
 
-ColumnReader::ColumnReader(const uint64_t& inDataChunkIdx, const uint64_t& inValueVectorIdx,
+ColumnReader::ColumnReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
     BaseColumn* column, unique_ptr<Operator> prevOperator)
-    : Operator{move(prevOperator)}, inDataChunkIdx{inDataChunkIdx},
-      inValueVectorIdx{inValueVectorIdx}, column{column} {
-    dataChunks = this->prevOperator->getOutDataChunks();
-    inDataChunk = dataChunks->getDataChunk(inDataChunkIdx);
-    inNodeIDVector = static_pointer_cast<NodeIDVector>(
-        dataChunks->getValueVector(inDataChunkIdx, inValueVectorIdx));
+    : Operator{move(prevOperator)}, dataChunkPos{dataChunkPos},
+      valueVectorPos{valueVectorPos}, column{column} {
+    dataChunks = this->prevOperator->getDataChunks();
+    inDataChunk = dataChunks->getDataChunk(dataChunkPos);
+    inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
     handle = make_unique<VectorFrameHandle>();
 }
 
@@ -20,9 +19,9 @@ void ColumnReader::cleanup() {
 }
 
 void ColumnReader::getNextTuples() {
-    column->reclaim(handle);
     prevOperator->getNextTuples();
     if (inDataChunk->size > 0) {
+        column->reclaim(handle);
         column->readValues(inNodeIDVector, outValueVector, inDataChunk->size, handle);
     }
 }

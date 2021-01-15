@@ -18,6 +18,8 @@ public:
         setPrevOperator(move(prevOperator));
     }
 
+    virtual ~LogicalOperator() = default;
+
     void setPrevOperator(unique_ptr<LogicalOperator> prevOperator) {
         this->prevOperator.reset(prevOperator.release());
     }
