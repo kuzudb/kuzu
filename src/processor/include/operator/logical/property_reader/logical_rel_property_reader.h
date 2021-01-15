@@ -14,14 +14,14 @@ namespace processor {
 class LogicalRelPropertyReader : public LogicalOperator {
 
 public:
-    LogicalRelPropertyReader(const string& fromNodeVarName, const string& fromNodeVarLabel,
-        const string& toNodeVarName, const string& nbrNodeVarLabel, const string& relLabel,
-        const Direction& extensionDirectionInPlan, const string& propertyName,
+    LogicalRelPropertyReader(const string& boundNodeVarName, const string& boundNodeVarLabel,
+        const string& nbrNodeVarName, const string& nbrNodeVarLabel, const string& relLabel,
+        const Direction& direction, const string& propertyName,
         unique_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, srcNodeVarName{fromNodeVarName},
-          srcNodeVarLabel{fromNodeVarLabel}, dstNodeVarName{toNodeVarName},
-          dstNodeVarLabel{nbrNodeVarLabel}, relLabel{relLabel},
-          extensionDirectionInPlan{extensionDirectionInPlan}, propertyName{propertyName} {}
+        : LogicalOperator{move(prevOperator)}, boundNodeVarName{boundNodeVarName},
+          boundNodeVarLabel{boundNodeVarLabel}, nbrNodeVarName{nbrNodeVarName},
+          nbrNodeVarLabel{nbrNodeVarLabel}, relLabel{relLabel}, direction{direction},
+          propertyName{propertyName} {}
     LogicalRelPropertyReader(FileDeserHelper& fdsh);
 
     unique_ptr<Operator> mapToPhysical(
@@ -30,12 +30,12 @@ public:
     void serialize(FileSerHelper& fsh) override;
 
 protected:
-    const string srcNodeVarName;
-    const string srcNodeVarLabel;
-    const string dstNodeVarName;
-    const string dstNodeVarLabel;
+    const string boundNodeVarName;
+    const string boundNodeVarLabel;
+    const string nbrNodeVarName;
+    const string nbrNodeVarLabel;
     const string relLabel;
-    const Direction extensionDirectionInPlan;
+    const Direction direction;
     const string propertyName;
 };
 

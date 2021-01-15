@@ -30,6 +30,10 @@ public:
 
     uint64_t getNumAttributes() const { return valueVectors.size(); }
 
+    shared_ptr<ValueVector> getValueVector(const uint64_t& valueVectorPos) {
+        return valueVectors[valueVectorPos];
+    }
+
 public:
     vector<shared_ptr<ValueVector>> valueVectors;
     uint64_t size;

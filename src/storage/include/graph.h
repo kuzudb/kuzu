@@ -30,7 +30,7 @@ class Graph {
 public:
     Graph(const string& path, uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE);
 
-    ~Graph() { spdlog::drop("storage"); };
+    virtual ~Graph() { spdlog::drop("storage"); };
 
     inline const Catalog& getCatalog() const { return *catalog; }
 

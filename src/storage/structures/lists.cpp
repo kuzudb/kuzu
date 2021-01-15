@@ -38,6 +38,9 @@ void BaseLists::readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>
         }
     } else {
         // TODO: Implement handling of large adjLists.
+        // for now we set the adjListLen to zero to ignore large adj lists.
+        adjListLen = 0;
+        handle->isFrameBound = false;
     }
 }
 

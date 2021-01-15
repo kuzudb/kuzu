@@ -9,8 +9,7 @@ ColumnReader::ColumnReader(const uint64_t& dataChunkPos, const uint64_t& valueVe
       valueVectorPos{valueVectorPos}, column{column} {
     dataChunks = this->prevOperator->getDataChunks();
     inDataChunk = dataChunks->getDataChunk(dataChunkPos);
-    inNodeIDVector =
-        static_pointer_cast<NodeIDVector>(dataChunks->getValueVector(dataChunkPos, valueVectorPos));
+    inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
     handle = make_unique<VectorFrameHandle>();
 }
 
