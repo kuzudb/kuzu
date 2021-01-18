@@ -57,6 +57,7 @@ struct nodeID_t {
 };
 
 enum DataType { REL, NODE, LABEL, BOOL, INT, DOUBLE, STRING };
+const string DataTypeNames[] = {"REL", "NODE", "LABEL", "BOOL", "INT", "DOUBLE", "STRING"};
 
 class Property {
 
@@ -76,6 +77,7 @@ DataType getDataType(const std::string& dataTypeString);
 
 // Rel Label Cardinality
 enum Cardinality : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
+const string CardinalityNames[] = {"MANY_MANY", "MANY_ONE", "ONE_MANY", "ONE_ONE"};
 
 Cardinality getCardinality(const string& cardinalityString);
 

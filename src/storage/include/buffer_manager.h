@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 
+#include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
 
 #include "src/common/include/configs.h"
@@ -40,6 +41,7 @@ public:
 
     const char* pin(FileHandle& fileHandle, uint32_t pageIdx);
     void unpin(FileHandle& fileHandle, uint32_t pageIdx);
+    unique_ptr<nlohmann::json> debugInfo();
 
 private:
     uint64_t evict();

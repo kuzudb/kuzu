@@ -16,8 +16,8 @@ const uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
 // storing adjacency lists.
 const uint64_t PAGE_SIZE = 1 << 12;
 
-// The default amount of memory pre-allocated to the buffer pool (= 128GB).
-const uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 37;
+// The default amount of memory pre-allocated to the buffer pool (= 1GB).
+const uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 30;
 
 } // namespace common
 } // namespace graphflow

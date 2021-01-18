@@ -26,6 +26,7 @@ unique_ptr<pair<PlanOutput, chrono::milliseconds>> QueryProcessor::execute(
     queue.push(task);
     while (!task->isComplete()) {
         /*busy wait*/
+        this_thread::sleep_for(chrono::milliseconds(10));
     }
     return task->getResult();
 }
@@ -37,7 +38,7 @@ void QueryProcessor::run() {
         }
         auto task = queue.getTask();
         if (!task) {
-            /*busy wait*/
+            this_thread::sleep_for(chrono::milliseconds(10));
             continue;
         }
         task->run();

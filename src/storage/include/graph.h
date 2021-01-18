@@ -46,6 +46,8 @@ public:
 
     inline const string& getPath() const { return path; }
 
+    unique_ptr<nlohmann::json> debugInfo();
+
 protected:
     Graph() : logger{spdlog::stdout_logger_st("storage")} {};
 
