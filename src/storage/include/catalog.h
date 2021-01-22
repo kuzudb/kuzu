@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "bitsery/bitsery.h"
+#include "nlohmann/json.hpp"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
@@ -39,6 +40,7 @@ public:
     inline const label_t& getNodeLabelFromString(const char* label) const {
         return stringToNodeLabelMap.at(label);
     }
+
     inline const label_t& getRelLabelFromString(const char* label) const {
         return stringToRelLabelMap.at(label);
     }
@@ -61,12 +63,16 @@ public:
         return getPropertyMapForRelLabel(relLabel).at(name).idx;
     }
 
+    const string getStringNodeLabel(const label_t label) const;
+
     const vector<label_t>& getRelLabelsForNodeLabelDirection(
         const label_t& nodeLabel, const Direction& dir) const;
     const vector<label_t>& getNodeLabelsForRelLabelDir(
         const label_t& relLabel, const Direction& dir) const;
 
     bool isSingleCaridinalityInDir(const label_t& relLabel, const Direction& dir) const;
+
+    unique_ptr<nlohmann::json> debugInfo();
 
 private:
     Catalog() : logger{spdlog::get("storage")} {};
@@ -79,6 +85,10 @@ private:
 
     void serializeStringToLabelMap(fstream& f, stringToLabelMap_t& map);
     void deserializeStringToLabelMap(fstream& f, stringToLabelMap_t& map);
+
+    string getNodeLabelsString(vector<label_t> nodeLabels);
+
+    unique_ptr<nlohmann::json> getPropertiesJson(const unordered_map<string, Property>& properties);
 
 private:
     shared_ptr<spdlog::logger> logger;

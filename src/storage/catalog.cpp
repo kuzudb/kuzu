@@ -25,6 +25,16 @@ Catalog::Catalog(const string& directory) : Catalog() {
     logger->info("Done.");
 };
 
+const string Catalog::getStringNodeLabel(const label_t label) const {
+    for (stringToLabelMap_t::const_iterator it = stringToNodeLabelMap.begin();
+         it != stringToNodeLabelMap.end(); ++it) {
+        if (it->second == label) {
+            return string(it->first);
+        }
+    }
+    throw invalid_argument("No node label with labelIdx: " + label);
+}
+
 const vector<label_t>& Catalog::getRelLabelsForNodeLabelDirection(
     const label_t& nodeLabel, const Direction& dir) const {
     if (nodeLabel >= getNodeLabelsCount()) {
@@ -132,6 +142,59 @@ void Catalog::deserializeStringToLabelMap(fstream& f, stringToLabelMap_t& map) {
         f.read(reinterpret_cast<char*>(&label), sizeof(label_t));
         map.insert({{array, label}});
     }
+}
+
+unique_ptr<nlohmann::json> Catalog::debugInfo() {
+    auto json = make_unique<nlohmann::json>();
+    for (stringToLabelMap_t::const_iterator labelIt = stringToNodeLabelMap.begin();
+         labelIt != stringToNodeLabelMap.end(); ++labelIt) {
+        string label(labelIt->first);
+        (*json)["Catalog"]["NodeLabels"][label]["idx"] = to_string(labelIt->second);
+        (*json)["Catalog"]["NodeLabels"][label]["properties"] =
+            *getPropertiesJson(nodePropertyMaps.at(labelIt->second));
+    }
+
+    for (stringToLabelMap_t::const_iterator labelIt = stringToRelLabelMap.begin();
+         labelIt != stringToRelLabelMap.end(); ++labelIt) {
+        string label(labelIt->first);
+        (*json)["Catalog"]["RelLabels"][label]["idx"] = to_string(labelIt->second);
+        (*json)["Catalog"]["RelLabels"][label]["cardinality"] =
+            graphflow::common::CardinalityNames[relLabelToCardinalityMap[labelIt->second]];
+        (*json)["Catalog"]["RelLabels"][label]["properties"] =
+            *getPropertiesJson(relPropertyMaps.at(labelIt->second));
+        (*json)["Catalog"]["RelLabels"][label]["srcNodeLabels"] =
+            getNodeLabelsString(relLabelToSrcNodeLabels[labelIt->second]);
+        (*json)["Catalog"]["RelLabels"][label]["dstNodeLabels"] =
+            getNodeLabelsString(relLabelToDstNodeLabels[labelIt->second]);
+    }
+    return json;
+}
+
+unique_ptr<nlohmann::json> Catalog::getPropertiesJson(
+    const unordered_map<string, Property>& properties) {
+    auto propertiesJson = make_unique<nlohmann::json>();
+    for (unordered_map<string, Property>::const_iterator propIt = properties.begin();
+         propIt != properties.end(); ++propIt) {
+        nlohmann::json propertyJson =
+            nlohmann::json{{"dataType", graphflow::common::DataTypeNames[propIt->second.dataType]},
+                {"propIdx", to_string(propIt->second.idx)}};
+        (*propertiesJson)[propIt->first] = propertyJson;
+    }
+    return propertiesJson;
+}
+
+string Catalog::getNodeLabelsString(vector<label_t> nodeLabels) {
+    string nodeLabelsStr("");
+    bool first = true;
+    for (label_t nodeLabel : nodeLabels) {
+        if (first) {
+            first = false;
+        } else {
+            nodeLabelsStr += ", ";
+        }
+        nodeLabelsStr += getStringNodeLabel(nodeLabel);
+    }
+    return nodeLabelsStr;
 }
 
 } // namespace storage

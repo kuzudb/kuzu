@@ -7,11 +7,12 @@ namespace runner {
 
 void Session::loadGraph(const string& path) {
     if (nullptr == graph || 0 != path.compare(graph->getPath())) {
+        throwErrorIfPathIsEmpty(path);
         graph.reset();
         graph = make_unique<Graph>(path, bufferPoolSize);
         return;
     }
-    throw invalid_argument("Graph is already initialized.");
+    throw invalid_argument("The same graph at path: " + path + " is already loaded.");
 }
 
 uint64_t Session::setBufferPoolSize(const uint64_t& size) {
@@ -27,7 +28,11 @@ uint64_t Session::setBufferPoolSize(const uint64_t& size) {
         throw invalid_argument("No change in size.");
     }
     bufferPoolSize = size;
-    graph.reset();
+    if (nullptr != graph) {
+        string path = graph->getPath();
+        graph.reset();
+        graph = make_unique<Graph>(path, bufferPoolSize);
+    }
     return bufferPoolSize;
 }
 
@@ -64,12 +69,31 @@ unique_ptr<nlohmann::json> Session::getPrettyPlan(const string& path) {
 }
 
 unique_ptr<nlohmann::json> Session::execute(const string& path, const uint32_t& numThreads) {
+    throwErrorIfGraphNotInitialized();
+    throwErrorIfPathIsEmpty(path);
     auto physicalPlan = LogicalPlan(path).mapToPhysical(*graph);
     auto result = processor->execute(physicalPlan, *graph, numThreads);
     auto json = make_unique<nlohmann::json>();
     (*json)["number of tuples"] = result->first.getNumOutputTuples();
     (*json)["time"] = to_string(result->second.count()) + "ms";
     return json;
+}
+
+unique_ptr<nlohmann::json> Session::getGraphDebugInfo() {
+    throwErrorIfGraphNotInitialized();
+    return graph->debugInfo();
+}
+
+void Session::throwErrorIfGraphNotInitialized() {
+    if (nullptr == graph) {
+        throw invalid_argument("Graph is not loaded.");
+    }
+}
+
+void Session::throwErrorIfPathIsEmpty(const string& path) {
+    if (path.empty()) {
+        throw invalid_argument("Given path is empty.");
+    }
 }
 
 } // namespace runner

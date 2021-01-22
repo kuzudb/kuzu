@@ -16,6 +16,7 @@ void Server::run(const string& host, int port) {
     registerPOSTLoad(router);
     registerGETPrettyPlan(router);
     registerPOSTExecute(router);
+    registerGETGraphDebugInfo(router);
 
     try {
         using traits_t = restinio::traits_t<restinio::asio_timer_manager_t,
@@ -185,6 +186,22 @@ void Server::registerPOSTExecute(unique_ptr<router_t>& router) {
                 .set_body(session.execute(plan_path, numThreads)->dump())
                 .done();
         } catch (exception& ex) { createErrorResponse(req, ex); }
+        return restinio::request_accepted();
+    });
+}
+
+void Server::registerGETGraphDebugInfo(unique_ptr<router_t>& router) {
+    nlohmann::json json;
+    json["method"] = "GET";
+    json["url"] = "/graphDebugInfo";
+    json["desc"] = "Gets general information about the loaded graph database.";
+    helpCatalog["help"].push_back(json);
+    router->http_get("/graphDebugInfo", [&](request_handle_t req, auto) {
+        req->create_response()
+            .append_header(restinio::http_field::content_type, "text/plain; charset=utf-8")
+            .set_body(session.getGraphDebugInfo()->dump())
+            .done();
+
         return restinio::request_accepted();
     });
 }

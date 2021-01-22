@@ -43,17 +43,29 @@ void Graph::saveToFile(const string& path) {
 }
 
 void Graph::readFromFile(const string& path) {
-    auto garphPath = path + "/graph.bin";
-    logger->debug("Reading from {}.", garphPath);
-    fstream f{garphPath, f.binary | f.in};
+    auto graphPath = path + "/graph.bin";
+    logger->debug("Reading from {}.", graphPath);
+    fstream f{graphPath, f.binary | f.in};
     if (f.fail()) {
-        throw invalid_argument("Cannot open " + garphPath + " for reading the graph.");
+        throw invalid_argument("Cannot open " + graphPath + " for reading the graph.");
     }
     auto state = bitsery::quickDeserialization<bitsery::InputStreamAdapter>(f, *this);
     f.close();
     if (!(state.first == bitsery::ReaderError::NoError && state.second)) {
         throw invalid_argument("Cannot deserialize the graph.");
     }
+}
+
+unique_ptr<nlohmann::json> Graph::debugInfo() {
+    logger->info("PrintGraphInfo.");
+    logger->info("path to db files: " + getPath());
+    auto json = catalog->debugInfo();
+    for (uint64_t labelIdx = 0; labelIdx < numNodesPerLabel.size(); ++labelIdx) {
+        (*json)["NodeLabelSizes"][catalog->getStringNodeLabel(labelIdx)]["numNodes"] =
+            to_string(numNodesPerLabel.at(labelIdx));
+    }
+    (*json).merge_patch(*(bufferManager->debugInfo()));
+    return json;
 }
 
 } // namespace storage

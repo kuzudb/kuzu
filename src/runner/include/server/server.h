@@ -42,6 +42,9 @@ private:
     // endpoint: [POST] .../execute
     void registerPOSTExecute(unique_ptr<router_t>& router);
 
+    // endpoint: [GET] .../graphDebugInfo
+    void registerGETGraphDebugInfo(unique_ptr<router_t>& router);
+
 private:
     Session session;
     nlohmann::json helpCatalog;

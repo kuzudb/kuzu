@@ -30,12 +30,16 @@ public:
 
     unique_ptr<nlohmann::json> execute(const string& path, const uint32_t& numThreads);
 
+    unique_ptr<nlohmann::json> getGraphDebugInfo();
+
+    void throwErrorIfGraphNotInitialized();
+    void throwErrorIfPathIsEmpty(const string& path);
+
 public:
     uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE;
     uint64_t numProcessorThreads = thread::hardware_concurrency();
     unique_ptr<Graph> graph;
-    unique_ptr<QueryProcessor> processor =
-        make_unique<QueryProcessor>(thread::hardware_concurrency());
+    unique_ptr<QueryProcessor> processor = make_unique<QueryProcessor>(1);
 };
 
 } // namespace runner

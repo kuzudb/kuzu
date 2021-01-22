@@ -97,5 +97,10 @@ void BufferManager::readNewPageIntoFrame(Frame* frame, FileHandle& fileHandle, u
     fileHandle.swizzle(pageIdx, reinterpret_cast<uint64_t>(frame));
 }
 
+unique_ptr<nlohmann::json> BufferManager::debugInfo() {
+    return make_unique<nlohmann::json>(
+        nlohmann::json{{"BufferManager", {{"maxPages", maxPages}, {"usedPages", usedPages}}}});
+}
+
 } // namespace storage
 } // namespace graphflow
