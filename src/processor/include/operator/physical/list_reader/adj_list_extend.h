@@ -9,11 +9,7 @@ class AdjListExtend : public ListReader {
 
 public:
     AdjListExtend(const uint64_t& inDataChunkIdx, const uint64_t& inValueVectorIdx,
-        BaseLists* lists, unique_ptr<Operator> prevOperator);
-
-protected:
-    shared_ptr<DataChunk> outDataChunk;
-    shared_ptr<NodeIDVector> outNodeIDVector;
+        BaseLists* lists, shared_ptr<ListSyncer> listSyncer, unique_ptr<Operator> prevOperator);
 };
 
 } // namespace processor

@@ -4,12 +4,13 @@ namespace graphflow {
 namespace processor {
 
 void AdjListOnlyExtend::getNextTuples() {
-    lists->reclaim(handle);
+    if (handle->hasMoreToRead()) {
+        readValuesFromList();
+        return;
+    }
     prevOperator->getNextTuples();
     if (inDataChunk->size > 0) {
-        nodeID_t nodeID;
-        inNodeIDVector->readValue(inDataChunk->curr_idx, nodeID);
-        lists->readValues(nodeID, outNodeIDVector, outDataChunk->size, handle);
+        readValuesFromList();
     } else {
         outDataChunk->size = 0;
     }

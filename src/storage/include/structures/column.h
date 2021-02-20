@@ -12,30 +12,23 @@ using namespace std;
 namespace graphflow {
 namespace storage {
 
-class BaseColumn : public BaseColumnOrList {
+class BaseColumn : public BaseColumnOrLists {
 
 public:
     virtual ~BaseColumn() = default;
 
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
-        const unique_ptr<VectorFrameHandle>& handle);
+        const unique_ptr<ColumnOrListsHandle>& handle);
 
 protected:
     BaseColumn(const string& fname, const size_t& elementSize, const uint64_t& numElements,
         BufferManager& bufferManager)
-        : BaseColumnOrList{fname, elementSize, bufferManager} {};
+        : BaseColumnOrLists{fname, elementSize, bufferManager} {};
 
-    void readFromSeqNodeIDsBySettingFrame(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<VectorFrameHandle>& handle, uint64_t pageIdx, uint64_t pageOffset);
-
-    void readFromSeqNodeIDsByCopying(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<VectorFrameHandle>& handle, uint64_t sizeLeftToCopy, uint64_t pageIdx,
-        uint64_t pageOffset);
-
-    void readFromNonSeqNodeIDs(const shared_ptr<NodeIDVector>& nodeIDVector,
+    void readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
-        const unique_ptr<VectorFrameHandle>& handle);
+        const unique_ptr<ColumnOrListsHandle>& handle);
 };
 
 template<typename T>
@@ -56,7 +49,7 @@ public:
 
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
-        const unique_ptr<VectorFrameHandle>& handle) override;
+        const unique_ptr<ColumnOrListsHandle>& handle) override;
 
 private:
     void readStringsFromOverflowPages(

@@ -287,15 +287,15 @@ void AdjAndPropertyListsLoaderHelper::calculatePageCursor(const uint32_t& header
     PageCursor& cursor, ListsMetadata& metadata) {
     auto numElementsInAPage = PAGE_SIZE / numBytesPerElement;
     if (AdjListHeaders::isALargeAdjList(header)) {
-        auto pos = metadata.largeListsPagesMap[header & 0x7fffffff][0] - reversePos;
+        auto lAdjListIdx = AdjListHeaders::getLargeAdjListIdx(header);
+        auto pos = metadata.largeListsPagesMap[lAdjListIdx][0] - reversePos;
         cursor.offset = numBytesPerElement * (pos % numElementsInAPage);
-        cursor.idx =
-            metadata.largeListsPagesMap[header & 0x7fffffff][1 + (pos / numElementsInAPage)];
+        cursor.idx = metadata.largeListsPagesMap[lAdjListIdx][1 + (pos / numElementsInAPage)];
         return;
     }
     auto chunkId = nodeOffset / BaseLists::LISTS_CHUNK_SIZE;
-    auto csrOffset = (header >> 11) & 0xfffff;
-    auto pos = (header & 0x7ff) - reversePos;
+    auto csrOffset = AdjListHeaders::getCSROffset(header);
+    auto pos = AdjListHeaders::getAdjListLen(header) - reversePos;
     cursor.idx = metadata.chunksPagesMap[chunkId][(csrOffset + pos) / numElementsInAPage];
     cursor.offset = numBytesPerElement * ((csrOffset + pos) % numElementsInAPage);
 }
@@ -323,7 +323,6 @@ void AdjAndPropertyListsLoaderHelper::calculateAdjListHeadersForIndexTask(Direct
                 csrOffset += relCount;
             }
             (*adjListHeaders).headers[nodeOffset] = header;
-
             nodeOffset++;
         }
     }

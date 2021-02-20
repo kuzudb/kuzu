@@ -27,7 +27,7 @@ private:
     }
     inline void unswizzle(uint32_t pageIdx) { pageToFrameMap[pageIdx] = UINT64_MAX; }
 
-    void readPage(char* frame, uint64_t pageIdx);
+    void readPage(uint8_t* frame, uint64_t pageIdx);
 
 private:
     shared_ptr<spdlog::logger> logger;

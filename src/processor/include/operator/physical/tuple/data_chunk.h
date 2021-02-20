@@ -9,14 +9,11 @@ using namespace std;
 namespace graphflow {
 namespace processor {
 
-//! A DataChunk represents tuples as a set of value vectors and a selector array.
-/*!
-    The data chunk represents a subset of a relation i.e., a set of tuples as
-   lists of the same length. Data chunks are passed as intermediate
-   representations between operators. A data chunk further contains a curr_idx
-   which is used when flatting and implies the value vector only contains the
-   elements at curr_idx of each value vector.
-*/
+//! A DataChunk represents tuples as a set of value vectors and a selector array. It represents a
+//! subset of a relation i.e., a set of tuples as lists of the same length. DataChunks are passed
+//! as intermediate representations between operators.A dataChunk further contains a curr_idx
+//! which is used when flatting and implies the value vector only contains the elements at curr_idx
+//! of each value vector.
 class DataChunk {
 
 public:

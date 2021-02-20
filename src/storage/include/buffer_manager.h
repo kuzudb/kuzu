@@ -21,7 +21,7 @@ class Frame {
     friend class BufferManager;
 
 public:
-    unique_ptr<char[]> buffer;
+    unique_ptr<uint8_t[]> buffer;
 
 public:
     Frame();
@@ -39,7 +39,9 @@ class BufferManager {
 public:
     BufferManager(uint64_t maxSize);
 
-    const char* pin(FileHandle& fileHandle, uint32_t pageIdx);
+    const uint8_t* get(FileHandle& fileHandle, uint32_t pageIdx);
+
+    const uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx);
     void unpin(FileHandle& fileHandle, uint32_t pageIdx);
     unique_ptr<nlohmann::json> debugInfo();
 

@@ -28,7 +28,7 @@ FileHandle::FileHandle(const string& path) : logger{spdlog::get("storage")} {
     }
 }
 
-void FileHandle::readPage(char* frame, uint64_t pageIdx) {
+void FileHandle::readPage(uint8_t* frame, uint64_t pageIdx) {
     lseek(fileDescriptor, pageIdx * PAGE_SIZE, SEEK_SET);
     read(fileDescriptor, frame, PAGE_SIZE);
 }

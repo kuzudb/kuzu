@@ -9,19 +9,26 @@ namespace processor {
 class ListReader : public Operator {
 
 public:
-    ListReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos, BaseLists* lists,
-        unique_ptr<Operator> prevOperator);
+    ListReader(const uint64_t& inDataChunkPos, const uint64_t& inValueVectorPos, BaseLists* lists,
+        shared_ptr<ListSyncer> ListSyncer, unique_ptr<Operator> prevOperator);
 
-    void cleanup() override;
+    ~ListReader() { lists->reclaim(handle); }
 
 protected:
-    uint64_t dataChunkPos;
-    uint64_t valueVectorPos;
+    void readValuesFromList();
+
+protected:
+    static constexpr uint32_t MAX_TO_READ = 512;
+
+    uint64_t inDataChunkPos;
+    uint64_t inValueVectorPos;
     shared_ptr<DataChunk> inDataChunk;
     shared_ptr<NodeIDVector> inNodeIDVector;
+    shared_ptr<DataChunk> outDataChunk;
+    shared_ptr<ValueVector> outValueVector;
 
     BaseLists* lists;
-    unique_ptr<VectorFrameHandle> handle;
+    unique_ptr<ColumnOrListsHandle> handle;
 };
 
 } // namespace processor

@@ -9,7 +9,6 @@ void PhysicalPlan::run() {
     while (lastOperator->hasNextMorsel()) {
         lastOperator->getNextTuples();
     }
-    lastOperator->cleanup();
 }
 
 } // namespace processor

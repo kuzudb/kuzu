@@ -60,6 +60,7 @@ cc_library(
         "morsel",
         "//src/common",
         "//src/storage:graph",
+        "//src/storage:structures",
     ],
 )
 

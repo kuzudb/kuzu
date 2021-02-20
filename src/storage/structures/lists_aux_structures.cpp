@@ -13,7 +13,7 @@ namespace storage {
 
 ListsMetadata::ListsMetadata(const string& path) : ListsMetadata() {
     readFromFile(path);
-    logger->trace("ListsMetadata: #Pages {}, #Chunks {}, #lAdjLists {}", numPages,
+    logger->trace("ListsMetadata: #Pages {}, #Chunks {}, #largeLists {}", numPages,
         chunksPagesMap.size(), largeListsPagesMap.size());
 };
 
