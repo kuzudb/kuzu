@@ -6,7 +6,6 @@ namespace processor {
 AdjListExtend::AdjListExtend(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
     BaseLists* lists, shared_ptr<ListSyncer> listSyncer, unique_ptr<Operator> prevOperator)
     : ListReader{dataChunkPos, valueVectorPos, lists, listSyncer, move(prevOperator)} {
-    inDataChunk->setAsFlat();
     outValueVector =
         make_shared<NodeIDVector>(((Lists<nodeID_t>*)lists)->getNodeIDCompressionScheme());
     outDataChunk = make_shared<DataChunk>();

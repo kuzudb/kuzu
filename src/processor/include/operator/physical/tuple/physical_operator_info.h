@@ -13,11 +13,20 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace processor {
 
-class VarToChunkAndVectorIdxMap {
+class PhysicalOperatorsInfo {
 
 public:
     void put(string variableName, uint64_t dataChunkPos, uint64_t valueVectorPos) {
         variableToDataPosMap.insert({variableName, make_pair(dataChunkPos, valueVectorPos)});
+        dataChunkPosToIsFlatMap.insert({dataChunkPos, false /* is not flat */});
+    }
+
+    void setDataChunkAtPosAsFlat(uint64_t dataChunkPos) {
+        dataChunkPosToIsFlatMap.find(dataChunkPos)->second = true /* is flat */;
+    }
+
+    bool isFlat(uint64_t dataChunkPos) {
+        return dataChunkPosToIsFlatMap.find(dataChunkPos)->second;
     }
 
     void putListSyncer(uint64_t dataChunkPos, shared_ptr<ListSyncer> listSyncer) {
@@ -39,6 +48,7 @@ public:
 private:
     unordered_map<string, pair<uint64_t, uint64_t>> variableToDataPosMap;
     unordered_map<uint64_t, shared_ptr<ListSyncer>> listSyncerPerDataChunk;
+    unordered_map<uint64_t, bool> dataChunkPosToIsFlatMap;
 };
 
 } // namespace processor

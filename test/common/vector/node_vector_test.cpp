@@ -2,6 +2,8 @@
 
 #include "src/common/include/vector/node_vector.h"
 
+using namespace graphflow::common;
+
 TEST(ListTests, CreateSequenceNodeVectorTest) {
     auto vector = NodeIDSequenceVector();
     vector.setStartOffset(100);

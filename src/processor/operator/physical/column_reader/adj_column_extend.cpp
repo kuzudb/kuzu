@@ -10,6 +10,7 @@ AdjColumnExtend::AdjColumnExtend(const uint64_t& dataChunkPos, const uint64_t& v
     outNodeIDVector->setIsSequence(inNodeIDVector->getIsSequence());
     outValueVector = static_pointer_cast<ValueVector>(outNodeIDVector);
     inDataChunk->append(outValueVector);
+    // outValueVector->setDataChunkOwner(inDataChunk);
 }
 
 } // namespace processor

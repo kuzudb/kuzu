@@ -57,6 +57,8 @@ cc_binary(
     srcs = ["plan_serializer.cpp"],
     linkopts = ["-lpthread"],
     deps = [
+        "//src/loader",
         "//src/processor",
+        "@Taywee_args",
     ],
 )

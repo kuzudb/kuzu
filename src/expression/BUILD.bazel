@@ -1,0 +1,15 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "expression",
+    hdrs = [
+        "include/physical/physical_binary_expression.h",
+        "include/physical/physical_expression.h",
+        "include/physical/physical_unary_expression.h",
+        "include/physical/physical_unary_leaf_expression.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common",
+    ],
+)

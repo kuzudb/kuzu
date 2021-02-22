@@ -5,8 +5,11 @@ namespace processor {
 
 uint64_t DataChunks::getNumTuples() {
     uint64_t numTuples = 1;
+    // TODO: loop only over the non-flattened data chunks.
     for (auto& dataChunk : dataChunks) {
-        numTuples *= dataChunk->getNumTuples();
+        if (!dataChunk->isFlat()) {
+            numTuples *= dataChunk->getNumTuples();
+        }
     }
     return numTuples;
 }

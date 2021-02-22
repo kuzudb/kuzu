@@ -1,8 +1,8 @@
 #pragma once
 
 #include "src/common/include/file_ser_deser_helper.h"
-#include "src/processor/include/operator/logical/tuple/var_to_chunk_and_vector_idx_map.h"
 #include "src/processor/include/operator/physical/operator.h"
+#include "src/processor/include/operator/physical/tuple/physical_operator_info.h"
 
 using namespace std;
 
@@ -25,7 +25,7 @@ public:
     }
 
     virtual unique_ptr<Operator> mapToPhysical(
-        const Graph& graph, VarToChunkAndVectorIdxMap& schema) = 0;
+        const Graph& graph, PhysicalOperatorsInfo& schema) = 0;
 
     virtual void serialize(FileSerHelper& fsh) { prevOperator->serialize(fsh); };
 
