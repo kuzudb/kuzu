@@ -10,12 +10,7 @@ ColumnReader::ColumnReader(const uint64_t& dataChunkPos, const uint64_t& valueVe
     dataChunks = this->prevOperator->getDataChunks();
     inDataChunk = dataChunks->getDataChunk(dataChunkPos);
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
-    handle = make_unique<VectorFrameHandle>();
-}
-
-void ColumnReader::cleanup() {
-    column->reclaim(handle);
-    prevOperator->cleanup();
+    handle = make_unique<ColumnOrListsHandle>();
 }
 
 void ColumnReader::getNextTuples() {

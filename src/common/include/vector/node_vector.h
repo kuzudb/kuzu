@@ -17,9 +17,9 @@ public:
     NodeIDVector(const NodeIDCompressionScheme& nodeIDCompressionScheme)
         : ValueVector{nodeIDCompressionScheme.getNumTotalBytes()},
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
-    NodeIDVector(const NodeIDCompressionScheme& compression, const bool& isSequence)
-        : ValueVector{compression.getNumTotalBytes()}, nodeIDCompressionScheme{compression},
-          isSequence{isSequence} {};
+    NodeIDVector(const NodeIDCompressionScheme& nodeIDCompressionScheme, const bool& isSequence)
+        : ValueVector{nodeIDCompressionScheme.getNumTotalBytes()},
+          nodeIDCompressionScheme{nodeIDCompressionScheme}, isSequence{isSequence} {};
 
     virtual ~NodeIDVector() = default;
 
@@ -59,8 +59,6 @@ protected:
           nodeIDCompressionScheme{nodeIDCompressionScheme}, isSequence(isSequence){};
 
 protected:
-    // The common label field is used with NodeIDcompressionScheme :
-    // LABEL_0_NODEOFFSET_{2/4/8}_BYTES.
     label_t commonLabel;
     NodeIDCompressionScheme nodeIDCompressionScheme;
     bool isSequence;

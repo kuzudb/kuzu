@@ -9,6 +9,10 @@ bool AdjListFlattenAndExtend::hasNextMorsel() {
 }
 
 void AdjListFlattenAndExtend::getNextTuples() {
+    if (handle->hasMoreToRead()) {
+        readValuesFromList();
+        return;
+    }
     if (inDataChunk->size == 0 || inDataChunk->size == inDataChunk->curr_idx + 1) {
         inDataChunk->curr_idx = 0;
         prevOperator->getNextTuples();
@@ -16,10 +20,7 @@ void AdjListFlattenAndExtend::getNextTuples() {
         inDataChunk->curr_idx++;
     }
     if (inDataChunk->size > 0) {
-        nodeID_t nodeID;
-        inNodeIDVector->readValue(inDataChunk->curr_idx, nodeID);
-        lists->reclaim(handle);
-        lists->readValues(nodeID, outNodeIDVector, outDataChunk->size, handle);
+        readValuesFromList();
     } else {
         outDataChunk->size = 0;
     }

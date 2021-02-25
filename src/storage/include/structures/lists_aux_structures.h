@@ -7,6 +7,7 @@
 #include "spdlog/spdlog.h"
 
 #include "src/common/include/types.h"
+#include "src/storage/include/structures/common.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -23,7 +24,7 @@ namespace graphflow {
 namespace storage {
 
 // Lists Metadata holds the information necessary to locate a list in the collection of disk pages
-// thats organizes and stores those lists.
+// thats organizes and stores lists.
 class ListsMetadata {
     friend class graphflow::loader::AdjAndPropertyListsLoaderHelper;
     friend class bitsery::Access;
@@ -32,9 +33,25 @@ public:
     ListsMetadata() : logger{spdlog::get("storage")} {};
     ListsMetadata(const string& path);
 
-    inline uint64_t getPageIdx(const uint32_t& chunkIDx, const uint32_t& pageIdxInChunk) {
-        return chunksPagesMap[chunkIDx][pageIdxInChunk];
+    inline uint64_t getNumElementsInLargeLists(uint64_t largeListIdx) {
+        return largeListsPagesMap[largeListIdx][0];
     };
+
+    uint64_t getPageIdxFromLargeListPagesMap(uint64_t largeListIdx, uint32_t pageIdx) {
+        return largeListsPagesMap[largeListIdx][pageIdx + 1];
+    }
+
+    uint64_t getPageIdxFromChunkPagesMap(uint64_t chunkIdx, uint32_t pageIdx) {
+        return largeListsPagesMap[chunkIdx][pageIdx];
+    }
+
+    unique_ptr<LogicalToPhysicalPageIdxMapper> getPageMapperForChunkIdx(uint32_t chunckIdx) {
+        return make_unique<LogicalToPhysicalPageIdxMapper>(chunksPagesMap[chunckIdx], 0);
+    }
+
+    unique_ptr<LogicalToPhysicalPageIdxMapper> getPageMapperForLargeListIdx(uint32_t largeListIdx) {
+        return make_unique<LogicalToPhysicalPageIdxMapper>(largeListsPagesMap[largeListIdx], 1);
+    }
 
 private:
     template<typename S>
@@ -69,9 +86,14 @@ public:
 
     static inline bool isALargeAdjList(const uint32_t& header) { return header & 0x80000000; };
 
-    // These functions returns the expected value only if the header is of a small adjLists.
+    // For small adjList.
     static inline uint32_t getAdjListLen(const uint32_t& header) { return header & 0x7ff; };
-    static inline uint32_t getCSROffset(const uint32_t& header) { return header >> 11; };
+    static inline uint32_t getCSROffset(const uint32_t& header) { return header >> 11 & 0xfffff; };
+
+    // For large adjList.
+    static inline uint32_t getLargeAdjListIdx(const uint32_t& header) {
+        return header & 0x7fffffff;
+    };
 
 private:
     template<typename S>

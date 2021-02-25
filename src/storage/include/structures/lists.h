@@ -7,17 +7,26 @@
 namespace graphflow {
 namespace storage {
 
-// BaseLists is the basic structure that holds a set of lists {of adjacent edges or rel properties}.
-class BaseLists : public BaseColumnOrList {
+// BaseLists is the top-level structure that holds a set of lists {of adjacent edges or rel
+// properties}.
+class BaseLists : public BaseColumnOrLists {
 
 public:
     void readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& adjListLen, const unique_ptr<VectorFrameHandle>& handle);
+        uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle,
+        uint32_t maxElementsToRead);
 
 protected:
     BaseLists(const string& fname, size_t elementSize, shared_ptr<AdjListHeaders> headers,
         BufferManager& bufferManager)
-        : BaseColumnOrList{fname, elementSize, bufferManager}, metadata{fname}, headers{headers} {};
+        : BaseColumnOrLists{fname, elementSize, bufferManager}, metadata{fname}, headers(headers){};
+
+    virtual void readFromLargeList(const nodeID_t& nodeID,
+        const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
+        const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header, uint32_t maxElementsToRead);
+
+    void readSmallList(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
+        uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header);
 
 public:
     constexpr static uint16_t LISTS_CHUNK_SIZE = 512;
@@ -27,6 +36,7 @@ protected:
     shared_ptr<AdjListHeaders> headers;
 };
 
+// Lists<T> is the implementation of BaseLists for Lists of a specific datatype T.
 template<typename T>
 class Lists : public BaseLists {
 
@@ -35,6 +45,7 @@ public:
         : BaseLists{fname, sizeof(T), headers, bufferManager} {};
 };
 
+// Lists<nodeID_t> is the specialization of Lists<T> for lists of nodeIDs.
 template<>
 class Lists<nodeID_t> : public BaseLists {
 
@@ -44,6 +55,10 @@ public:
         : BaseLists{fname, nodeIDCompressionScheme.getNumTotalBytes(),
               make_shared<AdjListHeaders>(fname), bufferManager},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
+
+    void readFromLargeList(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
+        uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header,
+        uint32_t maxElementsToRead) override;
 
     NodeIDCompressionScheme& getNodeIDCompressionScheme() { return nodeIDCompressionScheme; }
 

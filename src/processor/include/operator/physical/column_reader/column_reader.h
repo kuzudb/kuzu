@@ -16,9 +16,9 @@ public:
     ColumnReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos, BaseColumn* column,
         unique_ptr<Operator> prevOperator);
 
-    void getNextTuples() override;
+    ~ColumnReader() { column->reclaim(handle); }
 
-    void cleanup() override;
+    void getNextTuples() override;
 
 protected:
     uint64_t dataChunkPos;
@@ -28,7 +28,7 @@ protected:
     shared_ptr<ValueVector> outValueVector;
 
     BaseColumn* column;
-    unique_ptr<VectorFrameHandle> handle;
+    unique_ptr<ColumnOrListsHandle> handle;
 };
 
 } // namespace processor

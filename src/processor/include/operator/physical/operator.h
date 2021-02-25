@@ -32,8 +32,6 @@ public:
 
     shared_ptr<DataChunks> getDataChunks() { return dataChunks; };
 
-    virtual void cleanup(){};
-
     virtual unique_ptr<Operator> clone() = 0;
 
 protected:

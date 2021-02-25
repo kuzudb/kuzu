@@ -15,7 +15,7 @@ Frame::Frame() {
     fileHandle = nullptr;
     pinCount = 0;
     recentlyAccessed = false;
-    buffer = make_unique<char[]>(PAGE_SIZE);
+    buffer = make_unique<uint8_t[]>(PAGE_SIZE);
 }
 
 Frame::~Frame() {
@@ -34,7 +34,19 @@ BufferManager::BufferManager(uint64_t maxSize)
     logger->info("Done.");
 }
 
-const char* BufferManager::pin(FileHandle& fileHandle, uint32_t pageIdx) {
+const uint8_t* BufferManager::get(FileHandle& fileHandle, uint32_t pageIdx) {
+    Frame* frame;
+    auto pageIdxEntry = fileHandle.getPageIdxEntry(pageIdx);
+    if (isAFrame(pageIdxEntry)) {
+        frame = reinterpret_cast<Frame*>(pageIdxEntry);
+        frame->recentlyAccessed = true;
+    } else {
+        throw invalid_argument("Cannot get an unpinned page.");
+    }
+    return frame->buffer.get();
+}
+
+const uint8_t* BufferManager::pin(FileHandle& fileHandle, uint32_t pageIdx) {
     lock_guard lck(bufferManagerMutex);
     Frame* frame;
     auto pageIdxEntry = fileHandle.getPageIdxEntry(pageIdx);
