@@ -1,0 +1,40 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_library(
+    name = "parser",
+    srcs = [
+        "parser.cpp",
+        "transformer.cpp",
+    ],
+    hdrs = [
+        "include/parser.h",
+        "include/single_query.h",
+        "include/transformer.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "statements",
+        "//src/antlr4:cypher_grammar_lib",
+    ],
+)
+
+cc_library(
+    name = "statements",
+    hdrs = [
+        "include/statements/match_statement.h",
+    ],
+    deps = ["patterns"],
+)
+
+cc_library(
+    name = "patterns",
+    hdrs = [
+        "include/patterns/node_pattern.h",
+        "include/patterns/pattern_element.h",
+        "include/patterns/pattern_element_chain.h",
+        "include/patterns/rel_pattern.h",
+    ],
+    deps = [
+        "//src/common",
+    ],
+)

@@ -1,0 +1,70 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+genrule(
+    name = "generate_grammar",
+    srcs = [
+        "Cypher.g4",
+        "@antlr4-complete//jar",
+    ],
+    outs = [
+        "CypherBaseListener.cpp",
+        "CypherBaseListener.h",
+        "CypherBaseVisitor.cpp",
+        "CypherBaseVisitor.h",
+        "Cypher.interp",
+        "CypherLexer.cpp",
+        "CypherLexer.h",
+        "CypherLexer.interp",
+        "CypherLexer.tokens",
+        "CypherListener.cpp",
+        "CypherListener.h",
+        "CypherParser.cpp",
+        "CypherParser.h",
+        "Cypher.tokens",
+        "CypherVisitor.cpp",
+        "CypherVisitor.h",
+    ],
+    cmd = """
+    java -jar $(location @antlr4-complete//jar) -Dlanguage=Cpp -visitor $(location Cypher.g4) -o $(RULEDIR) \
+        && mv $(RULEDIR)/src/antlr4/CypherBaseListener.cpp $(location CypherBaseListener.cpp) \
+        && mv $(RULEDIR)/src/antlr4/CypherBaseListener.h $(location CypherBaseListener.h) \
+        && mv $(RULEDIR)/src/antlr4/CypherBaseVisitor.cpp $(location CypherBaseVisitor.cpp) \
+        && mv $(RULEDIR)/src/antlr4/CypherBaseVisitor.h $(location CypherBaseVisitor.h) \
+        && mv $(RULEDIR)/src/antlr4/Cypher.interp $(location Cypher.interp) \
+        && mv $(RULEDIR)/src/antlr4/CypherLexer.cpp $(location CypherLexer.cpp) \
+        && mv $(RULEDIR)/src/antlr4/CypherLexer.h $(location CypherLexer.h) \
+        && mv $(RULEDIR)/src/antlr4/CypherLexer.interp $(location CypherLexer.interp) \
+        && mv $(RULEDIR)/src/antlr4/CypherLexer.tokens $(location CypherLexer.tokens) \
+        && mv $(RULEDIR)/src/antlr4/CypherListener.cpp $(location CypherListener.cpp) \
+        && mv $(RULEDIR)/src/antlr4/CypherListener.h $(location CypherListener.h) \
+        && mv $(RULEDIR)/src/antlr4/CypherParser.cpp $(location CypherParser.cpp) \
+        && mv $(RULEDIR)/src/antlr4/CypherParser.h $(location CypherParser.h) \
+        && mv $(RULEDIR)/src/antlr4/Cypher.tokens $(location Cypher.tokens) \
+        && mv $(RULEDIR)/src/antlr4/CypherVisitor.cpp $(location CypherVisitor.cpp) \
+        && mv $(RULEDIR)/src/antlr4/CypherVisitor.h $(location CypherVisitor.h) \
+    """,
+)
+
+cc_library(
+    name = "cypher_grammar_lib",
+    srcs = [
+        "CypherBaseListener.cpp",
+        "CypherBaseVisitor.cpp",
+        "CypherLexer.cpp",
+        "CypherListener.cpp",
+        "CypherParser.cpp",
+        "CypherVisitor.cpp",
+    ],
+    hdrs = [
+        "CypherBaseListener.h",
+        "CypherBaseVisitor.h",
+        "CypherLexer.h",
+        "CypherListener.h",
+        "CypherParser.h",
+        "CypherVisitor.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@antlr4_runtimes//:antlr4_cpp",
+    ],
+)
