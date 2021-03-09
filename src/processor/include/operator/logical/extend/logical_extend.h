@@ -23,7 +23,7 @@ public:
     LogicalExtend(FileDeserHelper& fdsh);
 
     virtual unique_ptr<Operator> mapToPhysical(
-        const Graph& graph, VarToChunkAndVectorIdxMap& schema) override;
+        const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) override;
 
     virtual void serialize(FileSerHelper& fsh) override;
 

@@ -25,7 +25,7 @@ public:
     LogicalRelPropertyReader(FileDeserHelper& fdsh);
 
     unique_ptr<Operator> mapToPhysical(
-        const Graph& graph, VarToChunkAndVectorIdxMap& schema) override;
+        const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) override;
 
     void serialize(FileSerHelper& fsh) override;
 

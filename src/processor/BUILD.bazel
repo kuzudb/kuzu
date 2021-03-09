@@ -38,7 +38,6 @@ cc_library(
         "include/operator/logical/logical_operator.h",
         "include/operator/logical/property_reader/logical_node_property_reader.h",
         "include/operator/logical/property_reader/logical_rel_property_reader.h",
-        "include/operator/logical/tuple/var_to_chunk_and_vector_idx_map.h",
         "include/operator/logical/scan/logical_scan.h",
         "include/operator/physical/column_reader/adj_column_extend.h",
         "include/operator/physical/column_reader/column_reader.h",
@@ -52,8 +51,9 @@ cc_library(
         "include/operator/physical/operator.h",
         "include/operator/physical/scan/physical_scan.h",
         "include/operator/physical/sink/sink.h",
-        "include/operator/physical/tuple/data_chunk.h",
         "include/operator/physical/tuple/data_chunks.h",
+        "include/operator/physical/tuple/physical_operator_info.h",
+
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -101,6 +101,7 @@ cc_library(
         "plan",
         "//src/common",
         "//src/common:timer",
+        "//src/expression",
         "//src/storage:graph",
     ],
 )

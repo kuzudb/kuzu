@@ -16,13 +16,13 @@ LogicalRelPropertyReader::LogicalRelPropertyReader(FileDeserHelper& fdsh)
 }
 
 unique_ptr<Operator> LogicalRelPropertyReader::mapToPhysical(
-    const Graph& graph, VarToChunkAndVectorIdxMap& schema) {
-    auto prevOperator = this->prevOperator->mapToPhysical(graph, schema);
+    const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    auto prevOperator = this->prevOperator->mapToPhysical(graph, physicalOperatorInfo);
     auto& catalog = graph.getCatalog();
     auto label = catalog.getRelLabelFromString(relLabel.c_str());
-    auto inDataChunkPos = schema.getDataChunkPos(boundNodeVarName);
-    auto inValueVectorPos = schema.getValueVectorPos(boundNodeVarName);
-    auto outDataChunkPos = schema.getDataChunkPos(nbrNodeVarName);
+    auto inDataChunkPos = physicalOperatorInfo.getDataChunkPos(boundNodeVarName);
+    auto inValueVectorPos = physicalOperatorInfo.getValueVectorPos(boundNodeVarName);
+    auto outDataChunkPos = physicalOperatorInfo.getDataChunkPos(nbrNodeVarName);
     auto nodeLabel = catalog.getNodeLabelFromString(boundNodeVarLabel.c_str());
     auto property = catalog.getRelPropertyKeyFromString(label, propertyName);
     auto& relsStore = graph.getRelsStore();
@@ -33,7 +33,7 @@ unique_ptr<Operator> LogicalRelPropertyReader::mapToPhysical(
     } else {
         auto lists = relsStore.getRelPropertyLists(direction, nodeLabel, label, property);
         return make_unique<RelPropertyListReader>(inDataChunkPos, inValueVectorPos, outDataChunkPos,
-            lists, schema.getListSyncer(outDataChunkPos), move(prevOperator));
+            lists, physicalOperatorInfo.getListSyncer(outDataChunkPos), move(prevOperator));
     }
 }
 

@@ -13,10 +13,10 @@ LogicalNodePropertyReader::LogicalNodePropertyReader(FileDeserHelper& fdsh)
 }
 
 unique_ptr<Operator> LogicalNodePropertyReader::mapToPhysical(
-    const Graph& graph, VarToChunkAndVectorIdxMap& schema) {
-    auto prevOperator = this->prevOperator->mapToPhysical(graph, schema);
-    auto dataChunkPos = schema.getDataChunkPos(nodeVarName);
-    auto valueVectorPos = schema.getValueVectorPos(nodeVarName);
+    const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    auto prevOperator = this->prevOperator->mapToPhysical(graph, physicalOperatorInfo);
+    auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(nodeVarName);
+    auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(nodeVarName);
     auto& catalog = graph.getCatalog();
     auto label = catalog.getNodeLabelFromString(nodeLabel.c_str());
     auto property = catalog.getNodePropertyKeyFromString(label, propertyName);

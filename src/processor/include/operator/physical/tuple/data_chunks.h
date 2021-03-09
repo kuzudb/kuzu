@@ -1,7 +1,9 @@
 #pragma once
 
+#include "src/common/include/data_chunk/data_chunk.h"
 #include "src/common/include/vector/node_vector.h"
-#include "src/processor/include/operator/physical/tuple/data_chunk.h"
+
+using namespace graphflow::common;
 
 namespace graphflow {
 namespace processor {

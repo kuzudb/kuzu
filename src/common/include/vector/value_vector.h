@@ -1,8 +1,7 @@
 #pragma once
 
+#include "src/common/include/data_chunk/data_chunk.h"
 #include "src/common/include/types.h"
-
-using namespace graphflow::common;
 
 namespace graphflow {
 namespace common {
@@ -13,12 +12,26 @@ class ValueVector {
 public:
     ValueVector(const uint64_t& elementSize)
         : capacity{elementSize * VECTOR_CAPACITY},
-          buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()} {};
+          buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()} {}
 
-    uint8_t* getValues() const { return values; }
-    void setValues(uint8_t* ptrInFrame) { this->values = ptrInFrame; }
+    ValueVector(const DataType& dataType) : ValueVector(getDataTypeSize(dataType)) {
+        this->dataType = dataType;
+    }
 
-    void reset() { values = buffer.get(); }
+    inline DataType getDataType() const { return dataType; }
+
+    inline uint8_t* getValues() const { return values; }
+    inline void setValues(uint8_t* values) { this->values = values; }
+
+    inline void setDataChunkOwner(shared_ptr<DataChunk>& owner) { this->owner = owner; }
+
+    inline int64_t getCurrPos() { return owner->getCurrPos(); }
+
+    inline uint64_t size() { return owner->getNumTuples(); }
+
+    inline bool isFlat() { return owner->isFlat(); }
+
+    inline void reset() { values = buffer.get(); }
 
     uint8_t* reserve(size_t capacity) {
         if (this->capacity < capacity) {
@@ -41,6 +54,8 @@ protected:
     size_t capacity;
     unique_ptr<uint8_t[]> buffer;
     uint8_t* values;
+    shared_ptr<DataChunk> owner;
+    DataType dataType;
 };
 
 } // namespace common

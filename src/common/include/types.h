@@ -17,9 +17,9 @@ namespace common {
 typedef uint32_t label_t;
 typedef uint64_t node_offset_t;
 
+const uint8_t FALSE = 0;
 const uint8_t TRUE = 1;
-const uint8_t FALSE = 2;
-const uint8_t NULL_BOOL = 0;
+const uint8_t NULL_BOOL = 2;
 const int32_t NULL_INT = INT32_MIN;
 const double_t NULL_DOUBLE = DBL_MIN;
 
