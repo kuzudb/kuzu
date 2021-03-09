@@ -8,7 +8,7 @@ void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     const unique_ptr<ColumnOrListsHandle>& handle) {
     if (nodeIDVector->getIsSequence()) {
         nodeID_t nodeID;
-        nodeIDVector->readValue(0, nodeID);
+        nodeIDVector->readNodeOffset(0, nodeID);
         auto startOffset = nodeID.offset;
         auto pageIdx = getPageIdx(startOffset);
         auto pageOffset = getPageOffset(startOffset);
@@ -36,7 +36,7 @@ void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& 
     auto values = valueVector->getValues();
     auto ValuesOffset = 0;
     for (uint64_t i = 0; i < size; i++) {
-        nodeIDVector->readValue(i, nodeID);
+        nodeIDVector->readNodeOffset(i, nodeID);
         auto pageIdx = getPageIdx(nodeID.offset);
         auto frame = bufferManager.pin(fileHandle, pageIdx);
         memcpy(values + ValuesOffset, frame + getPageOffset(nodeID.offset), elementSize);
@@ -50,7 +50,7 @@ void Column<gf_string_t>::readValues(const shared_ptr<NodeIDVector>& nodeIDVecto
     const unique_ptr<ColumnOrListsHandle>& handle) {
     if (nodeIDVector->getIsSequence()) {
         nodeID_t nodeID;
-        nodeIDVector->readValue(0, nodeID);
+        nodeIDVector->readNodeOffset(0, nodeID);
         auto startOffset = nodeID.offset;
         auto pageIdx = getPageIdx(startOffset);
         auto pageOffset = getPageOffset(startOffset);

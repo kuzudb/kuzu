@@ -28,14 +28,14 @@ unique_ptr<PhysicalExpression> ExpressionMapper::mapLogicalToPhysical(
         return mapLogicalPropertyExpressionToPhysicalOne(
             move(expression), physicalOperatorInfo, dataChunks);
     } else if (isExpressionUnary(expressionType)) {
-        auto child = mapLogicalToPhysical(
-            move(expression->getChildExpr(0)), physicalOperatorInfo, dataChunks);
+        auto child =
+            mapLogicalToPhysical(expression->getChildExpr(0), physicalOperatorInfo, dataChunks);
         return make_unique<PhysicalUnaryExpression>(move(child), expression->getExpressionType());
     } else if (isExpressionBinary(expressionType)) {
-        auto leftExpr = mapLogicalToPhysical(
-            move(expression->getChildExpr(0)), physicalOperatorInfo, dataChunks);
-        auto rightExpr = mapLogicalToPhysical(
-            move(expression->getChildExpr(1)), physicalOperatorInfo, dataChunks);
+        auto leftExpr =
+            mapLogicalToPhysical(expression->getChildExpr(0), physicalOperatorInfo, dataChunks);
+        auto rightExpr =
+            mapLogicalToPhysical(expression->getChildExpr(1), physicalOperatorInfo, dataChunks);
         return make_unique<PhysicalBinaryExpression>(
             move(leftExpr), move(rightExpr), expression->getExpressionType());
     }

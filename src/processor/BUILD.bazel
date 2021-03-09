@@ -91,3 +91,22 @@ cc_library(
         "//src/storage:graph",
     ],
 )
+
+cc_library(
+    name = "hash_table",
+    srcs = [
+        "operator/hash_table.cpp",
+        "operator/overflow_blocks.cpp",
+        "memory_manager.cpp",
+    ],
+    hdrs = [
+        "include/operator/hash_table.h",
+        "include/operator/overflow_blocks.h",
+        "include/memory_manager.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "operators",
+        "//src/common",
+    ],
+)

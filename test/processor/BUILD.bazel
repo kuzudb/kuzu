@@ -6,13 +6,16 @@ cc_test(
         "operator/filter/expression/binary_expression_test.cpp",
         "operator/filter/expression/unary_expression_test.cpp",
         "operator/scan/scan_test.cpp",
+        "operator/hash_join/hash_table_test.cpp",
         "processor_test.cpp",
+        "memory_manager_test.cpp"
     ],
     copts = [
         "-Iexternal/gtest/include",
     ],
     deps = [
         "//src/processor",
+        "//src/processor:hash_table",
         "@gtest",
         "@gtest//:gtest_main",
     ],

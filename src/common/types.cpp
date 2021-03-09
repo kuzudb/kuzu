@@ -35,7 +35,7 @@ size_t getDataTypeSize(DataType dataType) {
     case STRING:
         return sizeof(gf_string_t);
     case NODE:
-        return sizeof(node_offset_t);
+        return NUM_BYTES_PER_NODE_ID;
     case LABEL:
         return sizeof(label_t);
     default:
