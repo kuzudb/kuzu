@@ -1,8 +1,9 @@
+#include "src/common/include/vector/operations/vector_comparison_operations.h"
+
 #include <stdexcept>
 
 #include "src/common/include/operations/comparison_operations.h"
 #include "src/common/include/vector/operations/executors/binary_operation_executor.h"
-#include "src/common/include/vector/operations/vector_operations.h"
 
 namespace graphflow {
 namespace common {
@@ -37,28 +38,33 @@ private:
     }
 };
 
-void VectorOperations::Equals(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorComparisonOperations::Equals(
+    ValueVector& left, ValueVector& right, ValueVector& result) {
     ComparisonOperationExecutor::execute<operation::Equals>(left, right, result);
 }
 
-void VectorOperations::NotEquals(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorComparisonOperations::NotEquals(
+    ValueVector& left, ValueVector& right, ValueVector& result) {
     ComparisonOperationExecutor::execute<operation::NotEquals>(left, right, result);
 }
 
-void VectorOperations::GreaterThan(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorComparisonOperations::GreaterThan(
+    ValueVector& left, ValueVector& right, ValueVector& result) {
     ComparisonOperationExecutor::execute<operation::GreaterThan>(left, right, result);
 }
 
-void VectorOperations::GreaterThanEquals(
+void VectorComparisonOperations::GreaterThanEquals(
     ValueVector& left, ValueVector& right, ValueVector& result) {
     ComparisonOperationExecutor::execute<operation::GreaterThanEquals>(left, right, result);
 }
 
-void VectorOperations::LessThan(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorComparisonOperations::LessThan(
+    ValueVector& left, ValueVector& right, ValueVector& result) {
     ComparisonOperationExecutor::execute<operation::LessThan>(left, right, result);
 }
 
-void VectorOperations::LessThanEquals(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorComparisonOperations::LessThanEquals(
+    ValueVector& left, ValueVector& right, ValueVector& result) {
     ComparisonOperationExecutor::execute<operation::LessThanEquals>(left, right, result);
 }
 

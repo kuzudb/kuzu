@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "src/common/include/vector/operations/vector_operations.h"
+#include "src/common/include/vector/value_vector.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -35,28 +35,28 @@ TEST(VectorBoolTests, test) {
     }
 
     uint8_t andExpectedResult[] = {FALSE, FALSE, FALSE, TRUE};
-    auto andOp = VectorOperations::getOperation(BINARY_OPERATION::AND);
+    auto andOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::AND);
     andOp(lVector, rVector, result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i], andExpectedResult[i]);
     }
 
     uint8_t orExpectedResult[] = {FALSE, TRUE, TRUE, TRUE};
-    auto orOp = VectorOperations::getOperation(BINARY_OPERATION::OR);
+    auto orOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::OR);
     orOp(lVector, rVector, result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i], orExpectedResult[i]);
     }
 
     uint8_t xorExpectedResult[] = {FALSE, TRUE, TRUE, FALSE};
-    auto xorOp = VectorOperations::getOperation(BINARY_OPERATION::XOR);
+    auto xorOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::XOR);
     xorOp(lVector, rVector, result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i], xorExpectedResult[i]);
     }
 
     uint8_t notExpectedResult[] = {TRUE, TRUE, FALSE, FALSE};
-    auto notOp = VectorOperations::getOperation(UNARY_OPERATION::NOT);
+    auto notOp = ValueVector::getUnaryOperation(EXPRESSION_TYPE::NOT);
     notOp(lVector, result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i], notExpectedResult[i]);

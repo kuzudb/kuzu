@@ -57,6 +57,7 @@ struct nodeID_t {
 };
 
 enum DataType { REL, NODE, LABEL, BOOL, INT, DOUBLE, STRING };
+
 const string DataTypeNames[] = {"REL", "NODE", "LABEL", "BOOL", "INT", "DOUBLE", "STRING"};
 
 class Property {

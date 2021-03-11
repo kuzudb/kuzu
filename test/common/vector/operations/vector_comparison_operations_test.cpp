@@ -1,8 +1,6 @@
-#include <memory>
-
 #include "gtest/gtest.h"
 
-#include "src/common/include/vector/operations/vector_operations.h"
+#include "src/common/include/vector/value_vector.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -27,41 +25,39 @@ TEST(VectorCmpTests, test) {
         rData[i] = 90 - i;
     }
 
-    auto equalsOp = VectorOperations::getOperation(BINARY_OPERATION::EQUALS);
+    auto equalsOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::EQUALS);
     equalsOp(lVector, rVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], i == 45 ? TRUE : FALSE);
     }
 
-    auto notEqualsOp = VectorOperations::getOperation(BINARY_OPERATION::NOT_EQUALS);
+    auto notEqualsOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::NOT_EQUALS);
     notEqualsOp(lVector, rVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], i == 45 ? FALSE : TRUE);
     }
 
-    auto lessThanOp = VectorOperations::getOperation(BINARY_OPERATION::LESS_THAN);
+    auto lessThanOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::LESS_THAN);
     lessThanOp(lVector, rVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], i < 45 ? TRUE : FALSE);
     }
 
-    auto lessThanEqualsOp = VectorOperations::getOperation(BINARY_OPERATION::LESS_THAN_EQUALS);
+    auto lessThanEqualsOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::LESS_THAN_EQUALS);
     lessThanEqualsOp(lVector, rVector, result);
-    VectorOperations::LessThanEquals(lVector, rVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], i < 46 ? TRUE : FALSE);
     }
 
-    auto greaterThanOp = VectorOperations::getOperation(BINARY_OPERATION::GREATER_THAN);
+    auto greaterThanOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::GREATER_THAN);
     greaterThanOp(lVector, rVector, result);
-    VectorOperations::GreaterThan(lVector, rVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], i < 46 ? FALSE : TRUE);
     }
 
-    auto greaterThanEqualsOp = VectorOperations::getOperation(BINARY_OPERATION::GREATER_THAN_EQUALS);
+    auto greaterThanEqualsOp =
+        ValueVector::getBinaryOperation(EXPRESSION_TYPE::GREATER_THAN_EQUALS);
     greaterThanEqualsOp(lVector, rVector, result);
-    VectorOperations::GreaterThanEquals(lVector, rVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], i < 45 ? FALSE : TRUE);
     }
