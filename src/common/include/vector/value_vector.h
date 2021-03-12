@@ -11,10 +11,10 @@ namespace common {
 class ValueVector {
 
 public:
-    static function<void(ValueVector&, ValueVector&)> getUnaryOperation(EXPRESSION_TYPE type);
+    static function<void(ValueVector&, ValueVector&)> getUnaryOperation(ExpressionType type);
 
     static function<void(ValueVector&, ValueVector&, ValueVector&)> getBinaryOperation(
-        EXPRESSION_TYPE type);
+        ExpressionType type);
 
     ValueVector(const uint64_t& elementSize, const uint64_t& vectorCapacity)
         : capacity{elementSize * vectorCapacity},

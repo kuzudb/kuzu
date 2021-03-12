@@ -26,38 +26,38 @@ TEST(VectorArithTests, test) {
         rData[i] = 110 - i;
     }
 
-    auto negateOp = ValueVector::getUnaryOperation(EXPRESSION_TYPE::NEGATE);
+    auto negateOp = ValueVector::getUnaryOperation(ExpressionType::NEGATE);
     negateOp(lVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], -i);
     }
 
-    auto addOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::ADD);
+    auto addOp = ValueVector::getBinaryOperation(ExpressionType::ADD);
     addOp(lVector, rVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], 110);
     }
 
-    auto subtractOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::SUBTRACT);
+    auto subtractOp = ValueVector::getBinaryOperation(ExpressionType::SUBTRACT);
     subtractOp(lVector, rVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], 2 * i - 110);
     }
 
-    auto multiplyOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::MULTIPLY);
+    auto multiplyOp = ValueVector::getBinaryOperation(ExpressionType::MULTIPLY);
     multiplyOp(lVector, rVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], i * (110 - i));
     }
 
-    auto divideOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::DIVIDE);
+    auto divideOp = ValueVector::getBinaryOperation(ExpressionType::DIVIDE);
     divideOp(lVector, rVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], i / (110 - i));
     }
 
     /* note rVector and lVector are flipped */
-    auto moduloOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::MODULO);
+    auto moduloOp = ValueVector::getBinaryOperation(ExpressionType::MODULO);
     moduloOp(rVector, lVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], i % (110 - i));
@@ -65,7 +65,7 @@ TEST(VectorArithTests, test) {
 
     result = ValueVector(DOUBLE);
     auto resultDataAsDoubleArr = (double_t*)result.getValues();
-    auto powerOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::POWER);
+    auto powerOp = ValueVector::getBinaryOperation(ExpressionType::POWER);
     powerOp(lVector, rVector, result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultDataAsDoubleArr[i], pow(i, 110 - i));

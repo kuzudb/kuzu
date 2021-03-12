@@ -2,3 +2,4 @@
 .vscode
 bazel-*
 .clwb
+.bazelrc

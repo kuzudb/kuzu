@@ -10,7 +10,7 @@ class PhysicalUnaryExpression : public PhysicalExpression {
 
 public:
     PhysicalUnaryExpression(
-        unique_ptr<PhysicalExpression> child, const EXPRESSION_TYPE& expressionType);
+        unique_ptr<PhysicalExpression> child, const ExpressionType& expressionType);
 
     void evaluate() override;
 

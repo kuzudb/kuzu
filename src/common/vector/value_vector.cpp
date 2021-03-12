@@ -18,7 +18,7 @@ uint8_t* ValueVector::reserve(size_t capacity) {
 }
 
 std::function<void(ValueVector&, ValueVector&)> ValueVector::getUnaryOperation(
-    EXPRESSION_TYPE type) {
+    ExpressionType type) {
     switch (type) {
     case NOT:
         return VectorBooleanOperations::Not;
@@ -30,7 +30,7 @@ std::function<void(ValueVector&, ValueVector&)> ValueVector::getUnaryOperation(
 }
 
 std::function<void(ValueVector&, ValueVector&, ValueVector&)> ValueVector::getBinaryOperation(
-    EXPRESSION_TYPE type) {
+    ExpressionType type) {
     switch (type) {
     case AND:
         return VectorBooleanOperations::And;

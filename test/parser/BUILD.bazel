@@ -3,7 +3,8 @@ load("@rules_cc//cc:defs.bzl", "cc_test")
 cc_test(
     name = "parser_tests",
     srcs = [
-        "parser_test.cpp",
+        "expression_test.cpp",
+        "graph_pattern_test.cpp",
     ],
     linkstatic = 1,
     deps = [

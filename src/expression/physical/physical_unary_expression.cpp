@@ -4,7 +4,7 @@ namespace graphflow {
 namespace expression {
 
 PhysicalUnaryExpression::PhysicalUnaryExpression(
-    unique_ptr<PhysicalExpression> child, const EXPRESSION_TYPE& expressionType) {
+    unique_ptr<PhysicalExpression> child, const ExpressionType& expressionType) {
     operands.push_back(child->getResult());
     childrenExpr.push_back(move(child));
     operation = ValueVector::getUnaryOperation(expressionType);

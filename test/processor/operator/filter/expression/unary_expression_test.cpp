@@ -8,9 +8,9 @@ using namespace graphflow::expression;
 
 TEST(ExpressionTests, UnaryPhysicalExpressionTest) {
     auto propertyExpression =
-        make_unique<LogicalExpression>(EXPRESSION_TYPE::VARIABLE, DataType::INT, "a.prop");
+        make_unique<LogicalExpression>(ExpressionType::VARIABLE, DataType::INT, "a.prop");
     auto negateLogicalOperator =
-        make_unique<LogicalExpression>(EXPRESSION_TYPE::NEGATE, move(propertyExpression));
+        make_unique<LogicalExpression>(ExpressionType::NEGATE, move(propertyExpression));
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
     auto dataChunks = DataChunks();

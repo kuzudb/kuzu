@@ -14,19 +14,18 @@ class LogicalExpression {
 
 public:
     // creates a non-leaf logical binary expression.
-    LogicalExpression(EXPRESSION_TYPE expressionType, unique_ptr<LogicalExpression> left,
+    LogicalExpression(ExpressionType expressionType, unique_ptr<LogicalExpression> left,
         unique_ptr<LogicalExpression> right);
 
     // creates a non-leaf logical unary expression.
-    LogicalExpression(EXPRESSION_TYPE expressionType, unique_ptr<LogicalExpression> child);
+    LogicalExpression(ExpressionType expressionType, unique_ptr<LogicalExpression> child);
 
     // creates a leaf variable expression.
-    LogicalExpression(
-        EXPRESSION_TYPE expressionType, DataType dataType, const string& variableName);
+    LogicalExpression(ExpressionType expressionType, DataType dataType, const string& variableName);
 
     // creates a leaf literal expression.
     LogicalExpression(
-        EXPRESSION_TYPE expressionType, DataType dataType, const Literal& literalValue);
+        ExpressionType expressionType, DataType dataType, const Literal& literalValue);
 
     inline string& getVariableName() { return variableName; }
 
@@ -34,14 +33,14 @@ public:
 
     inline DataType getDataType() { return dataType; }
 
-    inline EXPRESSION_TYPE getExpressionType() { return expressionType; }
+    inline ExpressionType getExpressionType() { return expressionType; }
 
     inline unique_ptr<LogicalExpression> getChildExpr(uint64_t pos) {
         return move(childrenExpr[pos]);
     }
 
 protected:
-    LogicalExpression(EXPRESSION_TYPE expressionType, DataType dataType)
+    LogicalExpression(ExpressionType expressionType, DataType dataType)
         : expressionType{expressionType}, dataType{dataType} {}
 
 private:
@@ -50,7 +49,7 @@ private:
     // value used by leaf literal expressions.
     Literal literalValue;
     vector<unique_ptr<LogicalExpression>> childrenExpr;
-    EXPRESSION_TYPE expressionType;
+    ExpressionType expressionType;
     DataType dataType;
 };
 

@@ -3,24 +3,24 @@
 namespace graphflow {
 namespace common {
 
-bool isExpressionUnary(EXPRESSION_TYPE type) {
+bool isExpressionUnary(ExpressionType type) {
     return NOT == type || NEGATE == type;
 }
 
-bool isExpressionBinary(EXPRESSION_TYPE type) {
+bool isExpressionBinary(ExpressionType type) {
     return !isExpressionUnary(type);
 }
 
-bool isExpressionLeafLiteral(EXPRESSION_TYPE type) {
+bool isExpressionLeafLiteral(ExpressionType type) {
     return LITERAL_INT == type || LITERAL_DOUBLE == type || LITERAL_STRING == type ||
            LITERAL_BOOLEAN == type || LITERAL_NULL == type;
 }
 
-bool isExpressionLeafVariable(EXPRESSION_TYPE type) {
+bool isExpressionLeafVariable(ExpressionType type) {
     return VARIABLE == type;
 }
 
-DataType getUnaryExpressionResultDataType(EXPRESSION_TYPE type, DataType operandType) {
+DataType getUnaryExpressionResultDataType(ExpressionType type, DataType operandType) {
     switch (type) {
     case NOT:
         return BOOL;
@@ -32,7 +32,7 @@ DataType getUnaryExpressionResultDataType(EXPRESSION_TYPE type, DataType operand
 }
 
 DataType getBinaryExpressionResultDataType(
-    EXPRESSION_TYPE type, DataType leftOperandType, DataType rightOperandType) {
+    ExpressionType type, DataType leftOperandType, DataType rightOperandType) {
     switch (type) {
     case AND:
     case OR:

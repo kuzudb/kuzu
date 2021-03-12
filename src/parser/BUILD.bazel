@@ -23,7 +23,10 @@ cc_library(
     hdrs = [
         "include/statements/match_statement.h",
     ],
-    deps = ["patterns"],
+    deps = [
+        "expressions",
+        "patterns",
+    ],
 )
 
 cc_library(
@@ -33,6 +36,13 @@ cc_library(
         "include/patterns/pattern_element.h",
         "include/patterns/pattern_element_chain.h",
         "include/patterns/rel_pattern.h",
+    ]
+)
+
+cc_library(
+    name = "expressions",
+    hdrs = [
+        "include/parsed_expression.h",
     ],
     deps = [
         "//src/common",

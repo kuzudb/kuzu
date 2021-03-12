@@ -5,7 +5,7 @@
 namespace graphflow {
 namespace common {
 
-enum EXPRESSION_TYPE {
+enum ExpressionType {
 
     // -----------------------------------------
     // Non Leaf Expression
@@ -82,13 +82,13 @@ enum EXPRESSION_TYPE {
     VARIABLE = 79,
 };
 
-bool isExpressionUnary(EXPRESSION_TYPE type);
-bool isExpressionBinary(EXPRESSION_TYPE type);
-bool isExpressionLeafLiteral(EXPRESSION_TYPE type);
-bool isExpressionLeafVariable(EXPRESSION_TYPE type);
-DataType getUnaryExpressionResultDataType(EXPRESSION_TYPE type, DataType operandType);
+bool isExpressionUnary(ExpressionType type);
+bool isExpressionBinary(ExpressionType type);
+bool isExpressionLeafLiteral(ExpressionType type);
+bool isExpressionLeafVariable(ExpressionType type);
+DataType getUnaryExpressionResultDataType(ExpressionType type, DataType operandType);
 DataType getBinaryExpressionResultDataType(
-    EXPRESSION_TYPE type, DataType leftOperandType, DataType rightOperandType);
+    ExpressionType type, DataType leftOperandType, DataType rightOperandType);
 
 } // namespace common
 } // namespace graphflow

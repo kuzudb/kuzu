@@ -4,7 +4,7 @@ namespace graphflow {
 namespace expression {
 
 PhysicalBinaryExpression::PhysicalBinaryExpression(unique_ptr<PhysicalExpression> leftExpr,
-    unique_ptr<PhysicalExpression> rightExpr, const EXPRESSION_TYPE& expressionType) {
+    unique_ptr<PhysicalExpression> rightExpr, const ExpressionType& expressionType) {
     operands.push_back(leftExpr->getResult());
     operands.push_back(rightExpr->getResult());
     childrenExpr.push_back(move(leftExpr));
