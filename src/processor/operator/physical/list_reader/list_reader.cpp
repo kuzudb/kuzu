@@ -4,14 +4,13 @@ namespace graphflow {
 namespace processor {
 
 ListReader::ListReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
-    BaseLists* lists, shared_ptr<ListSyncer> listSyncer, unique_ptr<Operator> prevOperator)
+    BaseLists* lists, unique_ptr<Operator> prevOperator)
     : Operator{move(prevOperator)}, inDataChunkPos{dataChunkPos},
       inValueVectorPos{valueVectorPos}, lists{lists} {
     dataChunks = this->prevOperator->getDataChunks();
     inDataChunk = dataChunks->getDataChunk(dataChunkPos);
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
     handle = make_unique<ColumnOrListsHandle>();
-    handle->setListSyncer(listSyncer);
 }
 
 void ListReader::readValuesFromList() {

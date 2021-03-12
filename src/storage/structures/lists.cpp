@@ -36,8 +36,8 @@ void BaseLists::readFromLargeList(const nodeID_t& nodeID,
     const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
     const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header, uint32_t maxElementsToRead) {
     auto largeListIdx = AdjListHeaders::getLargeAdjListIdx(header);
-    auto listSyncer = handle->getListSyncer();
-    auto csrOffset = listSyncer->getStartIdx();
+    auto listSyncState = handle->getListSyncState();
+    auto csrOffset = listSyncState->getStartIdx();
     auto pageIdx = getPageIdx(csrOffset);
     auto pageOffset = getPageOffset(csrOffset);
     auto sizeLeftToCopy = elementSize * listLen;
@@ -55,13 +55,13 @@ void Lists<nodeID_t>::readFromLargeList(const nodeID_t& nodeID,
     const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header, uint32_t maxElementsToRead) {
     auto largeListIdx = AdjListHeaders::getLargeAdjListIdx(header);
     auto numElements = metadata.getNumElementsInLargeLists(largeListIdx);
-    auto listSyncer = handle->getListSyncer();
+    auto listSyncState = handle->getListSyncState();
     uint64_t csrOffset;
     if (!handle->hasMoreToRead()) {
-        listSyncer->init(numElements);
+        listSyncState->init(numElements);
         csrOffset = 0;
     } else {
-        csrOffset = listSyncer->getEndIdx();
+        csrOffset = listSyncState->getEndIdx();
     }
     auto pageIdx = getPageIdx(csrOffset);
     auto pageOffset = getPageOffset(csrOffset);
@@ -69,7 +69,7 @@ void Lists<nodeID_t>::readFromLargeList(const nodeID_t& nodeID,
         min(numElementsPerPage - pageOffset, maxElementsToRead));
     auto physicalPageIdx = metadata.getPageIdxFromLargeListPagesMap(largeListIdx, pageIdx);
     readBySettingFrame(valueVector, handle, physicalPageIdx, pageOffset);
-    listSyncer->set(csrOffset, listLen);
+    listSyncState->set(csrOffset, listLen);
 }
 
 } // namespace storage

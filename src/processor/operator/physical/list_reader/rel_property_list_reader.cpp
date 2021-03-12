@@ -5,11 +5,12 @@ namespace processor {
 
 RelPropertyListReader::RelPropertyListReader(const uint64_t& inDataChunkPos,
     const uint64_t& inValueVectorPos, const uint64_t& outDataChunkPos, BaseLists* lists,
-    shared_ptr<ListSyncer> listSyncer, unique_ptr<Operator> prevOperator)
-    : ListReader{inDataChunkPos, inValueVectorPos, lists, listSyncer, move(prevOperator)},
+    unique_ptr<Operator> prevOperator)
+    : ListReader{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)},
       outDataChunkPos{outDataChunkPos} {
     outValueVector = make_shared<ValueVector>(lists->getElementSize());
     outDataChunk = dataChunks->getDataChunk(outDataChunkPos);
+    handle->setListSyncState(dataChunks->getListSyncState(outDataChunkPos));
     outDataChunk->append(outValueVector);
 }
 

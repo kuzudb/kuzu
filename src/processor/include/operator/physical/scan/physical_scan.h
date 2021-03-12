@@ -22,7 +22,8 @@ public:
 protected:
     shared_ptr<DataChunk> outDataChunk;
     shared_ptr<NodeIDSequenceVector> nodeIDVector;
-    node_offset_t currMorselNodeOffset;
+    node_offset_t currentMorselStartOffset{-1u};
+    uint32_t currentMorselSize{-1u};
     shared_ptr<MorselDesc> morsel;
 };
 

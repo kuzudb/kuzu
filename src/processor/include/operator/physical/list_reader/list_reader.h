@@ -10,7 +10,7 @@ class ListReader : public Operator {
 
 public:
     ListReader(const uint64_t& inDataChunkPos, const uint64_t& inValueVectorPos, BaseLists* lists,
-        shared_ptr<ListSyncer> ListSyncer, unique_ptr<Operator> prevOperator);
+        unique_ptr<Operator> prevOperator);
 
     ~ListReader() { lists->reclaim(handle); }
 

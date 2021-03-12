@@ -13,7 +13,7 @@ public:
 
     bool operator==(const MatchStatement& other) {
         auto result = true;
-        for (auto i = 0; i < patternElements.size(); ++i) {
+        for (auto i = 0ul; i < patternElements.size(); ++i) {
             result &= *patternElements[i] == *other.patternElements[i];
         }
         return result;

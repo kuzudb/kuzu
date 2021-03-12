@@ -3,7 +3,7 @@
 namespace graphflow {
 namespace storage {
 
-bool ListSyncer::hasNewRangeToRead() {
+bool ListSyncState::hasNewRangeToRead() {
     if (!hasValidRangeToRead()) {
         return false;
     }
@@ -14,7 +14,7 @@ bool ListSyncer::hasNewRangeToRead() {
     return true;
 }
 
-void ListSyncer::reset() {
+void ListSyncState::reset() {
     startIdx = -1u;
     size = -1u;
     numElements = -1u;
@@ -22,9 +22,9 @@ void ListSyncer::reset() {
 
 bool ColumnOrListsHandle::hasMoreToRead() {
     if (isAdjListsHandle) {
-        return listSyncer->hasNewRangeToRead();
+        return listSyncState->hasNewRangeToRead();
     } else {
-        return listSyncer->hasValidRangeToRead();
+        return listSyncState->hasValidRangeToRead();
     }
 }
 

@@ -17,14 +17,13 @@ class MorselDesc {
     friend class PhysicalScan;
 
 public:
-    MorselDesc(const node_offset_t& maxNodeOffset)
-        : maxNodeOffset{maxNodeOffset}, currNodeOffset{0} {}
+    MorselDesc(const uint64_t& numNodes) : numNodes{numNodes}, currNodeOffset{0} {}
 
     node_offset_t getCurrNodeOffset() { return currNodeOffset; }
 
 private:
     mutex mtx;
-    const node_offset_t maxNodeOffset;
+    const uint64_t numNodes;
     node_offset_t currNodeOffset;
 };
 

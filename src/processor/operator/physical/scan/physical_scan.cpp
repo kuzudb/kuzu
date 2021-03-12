@@ -15,26 +15,23 @@ PhysicalScan::PhysicalScan(shared_ptr<MorselDesc>& morsel) : morsel{morsel} {
 
 bool PhysicalScan::hasNextMorsel() {
     lock_t lock{morsel->mtx};
-    bool hasNextMorsel;
-    if (morsel->currNodeOffset == morsel->maxNodeOffset) {
+    if (morsel->currNodeOffset >= morsel->numNodes) {
         // no more tuples to scan.
-        hasNextMorsel = false;
+        currentMorselStartOffset = -1u;
+        currentMorselSize = -1u;
+        return false;
     } else {
-        nodeIDVector->setStartOffset(morsel->currNodeOffset);
-        morsel->currNodeOffset += ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
-        if (morsel->currNodeOffset >= morsel->maxNodeOffset) {
-            morsel->currNodeOffset = morsel->maxNodeOffset;
-        }
-        currMorselNodeOffset = morsel->currNodeOffset;
-        hasNextMorsel = true;
+        currentMorselStartOffset = morsel->currNodeOffset;
+        currentMorselSize = min(
+            ValueVector::NODE_SEQUENCE_VECTOR_SIZE, morsel->numNodes - currentMorselStartOffset);
+        morsel->currNodeOffset += currentMorselSize;
+        return true;
     }
-    return hasNextMorsel;
 }
 
 void PhysicalScan::getNextTuples() {
-    outDataChunk->size = currMorselNodeOffset < morsel->maxNodeOffset ?
-                             ValueVector::NODE_SEQUENCE_VECTOR_SIZE :
-                             morsel->maxNodeOffset % ValueVector::NODE_SEQUENCE_VECTOR_SIZE + 1;
+    nodeIDVector->setStartOffset(currentMorselStartOffset);
+    outDataChunk->size = currentMorselSize;
 }
 
 } // namespace processor

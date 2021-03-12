@@ -32,8 +32,8 @@ unique_ptr<Operator> LogicalRelPropertyReader::mapToPhysical(
             inDataChunkPos, inValueVectorPos, column, move(prevOperator));
     } else {
         auto lists = relsStore.getRelPropertyLists(direction, nodeLabel, label, property);
-        return make_unique<RelPropertyListReader>(inDataChunkPos, inValueVectorPos, outDataChunkPos,
-            lists, physicalOperatorInfo.getListSyncer(outDataChunkPos), move(prevOperator));
+        return make_unique<RelPropertyListReader>(
+            inDataChunkPos, inValueVectorPos, outDataChunkPos, lists, move(prevOperator));
     }
 }
 

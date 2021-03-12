@@ -5,10 +5,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include "src/storage/include/structures/common.h"
-
 using namespace std;
-using namespace graphflow::storage;
 
 namespace graphflow {
 namespace processor {
@@ -29,14 +26,6 @@ public:
         return dataChunkPosToIsFlatMap.find(dataChunkPos)->second;
     }
 
-    void putListSyncer(uint64_t dataChunkPos, shared_ptr<ListSyncer> listSyncer) {
-        listSyncerPerDataChunk.insert({dataChunkPos, listSyncer});
-    }
-
-    shared_ptr<ListSyncer> getListSyncer(uint64_t dataChunkPos) {
-        return listSyncerPerDataChunk[dataChunkPos];
-    }
-
     uint64_t getDataChunkPos(string variableName) {
         return variableToDataPosMap.at(variableName).first;
     }
@@ -47,7 +36,6 @@ public:
 
 private:
     unordered_map<string, pair<uint64_t, uint64_t>> variableToDataPosMap;
-    unordered_map<uint64_t, shared_ptr<ListSyncer>> listSyncerPerDataChunk;
     unordered_map<uint64_t, bool> dataChunkPosToIsFlatMap;
 };
 
