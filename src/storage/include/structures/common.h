@@ -9,17 +9,17 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-//! ListSyncer holds the data that is required to synchronize reading from multiple Lists that have
-//! related data and hence share same AdjListHeaders. The Lists that share a single copy of
+//! ListSyncState holds the data that is required to synchronize reading from multiple Lists that
+//! have related data and hence share same AdjListHeaders. The Lists that share a single copy of
 //! AdjListHeaders are - a single-directional edges of a rel label and edges' properties. For the
 //! case of reading from a large list, we do not / cannot read the entire list in a single
 //! operation since it can be very big, hence we read in batches from a definite start point to an
 //! end point. List Sync holds this information and helps in co-ordinating all related lists so
 //! that all of them read the correct portion of data.
-class ListSyncer {
+class ListSyncState {
 
 public:
-    ListSyncer() { reset(); };
+    ListSyncState() { reset(); };
 
     inline void init(uint64_t numElements) { this->numElements = numElements; }
 
@@ -59,8 +59,10 @@ public:
     inline void setIsAdjListHandle() { isAdjListsHandle = true; }
     inline bool getIsAdjListsHandle() { return isAdjListsHandle; }
 
-    inline void setListSyncer(shared_ptr<ListSyncer> listSyncer) { this->listSyncer = listSyncer; }
-    inline shared_ptr<ListSyncer> getListSyncer() { return listSyncer; }
+    inline void setListSyncState(shared_ptr<ListSyncState> listSyncState) {
+        this->listSyncState = listSyncState;
+    }
+    inline shared_ptr<ListSyncState> getListSyncState() { return listSyncState; }
 
     inline bool hasPageIdx() { return -1u != pageIdx; }
     inline uint32_t getPageIdx() { return pageIdx; }
@@ -71,7 +73,7 @@ public:
 
 private:
     uint32_t pageIdx;
-    shared_ptr<ListSyncer> listSyncer;
+    shared_ptr<ListSyncState> listSyncState;
     bool isAdjListsHandle;
 };
 

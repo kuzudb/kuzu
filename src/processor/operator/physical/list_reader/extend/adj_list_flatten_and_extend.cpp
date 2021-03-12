@@ -4,7 +4,7 @@ namespace graphflow {
 namespace processor {
 
 bool AdjListFlattenAndExtend::hasNextMorsel() {
-    return (inDataChunk->size > 0 && inDataChunk->size > inDataChunk->currPos + 1) ||
+    return (inDataChunk->size > 0ul && inDataChunk->size > inDataChunk->currPos + 1ul) ||
            prevOperator->hasNextMorsel();
 }
 
@@ -13,7 +13,7 @@ void AdjListFlattenAndExtend::getNextTuples() {
         readValuesFromList();
         return;
     }
-    if (inDataChunk->size == 0 || inDataChunk->size == inDataChunk->currPos + 1) {
+    if (inDataChunk->size == 0ul || inDataChunk->size == inDataChunk->currPos + 1ul) {
         inDataChunk->currPos = -1;
         prevOperator->getNextTuples();
         if (inDataChunk->size == 0) {

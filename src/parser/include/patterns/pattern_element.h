@@ -23,7 +23,7 @@ public:
 
     bool operator==(const PatternElement& other) {
         auto result = *nodePattern == *other.nodePattern;
-        for (auto i = 0; i < patternElementChains.size(); ++i) {
+        for (auto i = 0ul; i < patternElementChains.size(); ++i) {
             result &= *patternElementChains[i] == *other.patternElementChains[i];
         }
         return result;

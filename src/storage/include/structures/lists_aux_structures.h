@@ -42,7 +42,7 @@ public:
     }
 
     uint64_t getPageIdxFromChunkPagesMap(uint64_t chunkIdx, uint32_t pageIdx) {
-        return largeListsPagesMap[chunkIdx][pageIdx];
+        return chunksPagesMap[chunkIdx][pageIdx];
     }
 
     unique_ptr<LogicalToPhysicalPageIdxMapper> getPageMapperForChunkIdx(uint32_t chunckIdx) {

@@ -14,7 +14,7 @@ public:
 
     bool operator==(const SingleQuery& other) {
         auto result = true;
-        for (auto i = 0; i < statements.size(); ++i) {
+        for (auto i = 0ul; i < statements.size(); ++i) {
             result &= *statements[i] == *other.statements[i];
         }
         return result;

@@ -32,17 +32,15 @@ unique_ptr<Operator> LogicalExtend::mapToPhysical(
             relsStore.getAdjColumn(direction, nodeLabel, relLabelFromString), move(prevOperator));
     } else {
         auto numChunks = dataChunks->getNumDataChunks();
-        auto listSyncer = make_shared<ListSyncer>();
         physicalOperatorInfo.put(nbrNodeVarName, numChunks /*dataChunkPos*/, 0 /*valueVectorPos*/);
-        physicalOperatorInfo.putListSyncer(numChunks, listSyncer);
         if (physicalOperatorInfo.isFlat(dataChunkPos)) {
             return make_unique<AdjListOnlyExtend>(dataChunkPos, valueVectorPos,
-                relsStore.getAdjLists(direction, nodeLabel, relLabelFromString), listSyncer,
+                relsStore.getAdjLists(direction, nodeLabel, relLabelFromString),
                 move(prevOperator));
         } else {
             physicalOperatorInfo.setDataChunkAtPosAsFlat(dataChunkPos);
             return make_unique<AdjListFlattenAndExtend>(dataChunkPos, valueVectorPos,
-                relsStore.getAdjLists(direction, nodeLabel, relLabelFromString), listSyncer,
+                relsStore.getAdjLists(direction, nodeLabel, relLabelFromString),
                 move(prevOperator));
         }
     }

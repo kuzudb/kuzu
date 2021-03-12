@@ -12,7 +12,7 @@ unique_ptr<Operator> LogicalScan::mapToPhysical(
     const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
     auto& catalog = graph.getCatalog();
     auto labelFromStr = catalog.getNodeLabelFromString(label.c_str());
-    auto morsel = make_shared<MorselDesc>(graph.getNumNodes(labelFromStr) - 1);
+    auto morsel = make_shared<MorselDesc>(graph.getNumNodes(labelFromStr));
     physicalOperatorInfo.put(nodeVarName, 0 /* dataChunkPos */, 0 /* valueVectorPos */);
     return make_unique<PhysicalScan>(morsel);
 }
