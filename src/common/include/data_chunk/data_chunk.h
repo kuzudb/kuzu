@@ -21,7 +21,7 @@ class ValueVector;
 class DataChunk {
 
 public:
-    DataChunk() : size{0}, currPos{int64_t(-1)} {};
+    DataChunk() : size{0}, currPos{-1l} {};
 
     void append(shared_ptr<ValueVector> valueVector) { valueVectors.push_back(valueVector); }
 
