@@ -21,9 +21,11 @@ public:
     unique_ptr<pair<PlanOutput, chrono::milliseconds>> execute(
         unique_ptr<PhysicalPlan>& plan, Graph& graph, const uint64_t& maxNumThreads);
 
+private:
     void run();
 
 private:
+    shared_ptr<spdlog::logger> logger;
     TaskQueue queue;
     condition_variable ready;
     bool stopThreads{false};

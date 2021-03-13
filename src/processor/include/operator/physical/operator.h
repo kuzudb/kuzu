@@ -17,9 +17,9 @@ namespace processor {
 class Operator {
 
 public:
-    Operator() = default;
+    Operator() : logger{spdlog::get("processor")} {};
 
-    Operator(unique_ptr<Operator> prevOperator) {
+    Operator(unique_ptr<Operator> prevOperator) : Operator{} {
         this->prevOperator.reset(prevOperator.release());
     }
 
@@ -35,6 +35,7 @@ public:
     virtual unique_ptr<Operator> clone() = 0;
 
 protected:
+    shared_ptr<spdlog::logger> logger;
     shared_ptr<DataChunks> dataChunks;
     unique_ptr<Operator> prevOperator;
 };

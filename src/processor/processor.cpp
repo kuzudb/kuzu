@@ -5,10 +5,12 @@
 namespace graphflow {
 namespace processor {
 
-QueryProcessor::QueryProcessor(const uint64_t& numThreads) {
+QueryProcessor::QueryProcessor(const uint64_t& numThreads)
+    : logger{spdlog::stdout_logger_st("processor")} {
     for (auto n = 0u; n < numThreads; ++n) {
         threads.emplace_back([&] { run(); });
     }
+    logger->info("Processor started with {} threads.", numThreads);
 }
 
 QueryProcessor::~QueryProcessor() {
@@ -16,6 +18,7 @@ QueryProcessor::~QueryProcessor() {
     for (auto& thread : threads) {
         thread.join();
     }
+    spdlog::drop("processor");
 }
 
 // This function is currently blocking. In the future, this should async and return the result

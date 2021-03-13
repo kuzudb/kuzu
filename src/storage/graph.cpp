@@ -14,7 +14,7 @@ namespace graphflow {
 namespace storage {
 
 Graph::Graph(const string& path, uint64_t bufferPoolSize)
-    : logger{spdlog::stdout_logger_st("storage")}, path{path} {
+    : logger{spdlog::stdout_logger_mt("storage")}, path{path} {
     logger->info("Initializing Graph.");
     catalog = make_unique<Catalog>(path);
     bufferManager = make_unique<BufferManager>(bufferPoolSize);
