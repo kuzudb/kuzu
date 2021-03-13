@@ -47,8 +47,8 @@ cc_binary(
     linkopts = ["-lpthread"],
     deps = [
         "server",
-        "@nlohmann_json",
         "@Taywee_args",
+        "@nlohmann_json",
     ],
 )
 
