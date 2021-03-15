@@ -4,6 +4,7 @@
 #include <string>
 
 #include "src/antlr4/CypherBaseVisitor.h"
+#include "src/parser/include/parsed_expression.h"
 #include "src/parser/include/single_query.h"
 
 using namespace std;
@@ -27,6 +28,8 @@ private:
     unique_ptr<MatchStatement> transformReadingClause(CypherParser::OC_ReadingClauseContext* ctx);
 
     unique_ptr<MatchStatement> transformMatch(CypherParser::OC_MatchContext* ctx);
+
+    unique_ptr<ParsedExpression> transformWhere(CypherParser::OC_WhereContext* ctx);
 
     vector<unique_ptr<PatternElement>> transformPattern(CypherParser::OC_PatternContext* ctx);
 
@@ -54,7 +57,72 @@ private:
 
     string transformRelTypeName(CypherParser::OC_RelTypeNameContext* ctx);
 
+    unique_ptr<ParsedExpression> transformExpression(CypherParser::OC_ExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformOrExpression(CypherParser::OC_OrExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformXorExpression(CypherParser::OC_XorExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformAndExpression(CypherParser::OC_AndExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformNotExpression(CypherParser::OC_NotExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformComparisonExpression(
+        CypherParser::OC_ComparisonExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformAddOrSubtractExpression(
+        CypherParser::OC_AddOrSubtractExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformMultiplyDivideModuloExpression(
+        CypherParser::OC_MultiplyDivideModuloExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformPowerOfExpression(
+        CypherParser::OC_PowerOfExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformUnaryAddOrSubtractExpression(
+        CypherParser::OC_UnaryAddOrSubtractExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformStringListNullOperatorExpression(
+        CypherParser::OC_StringListNullOperatorExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformStringOperatorExpression(
+        CypherParser::OC_StringOperatorExpressionContext* ctx,
+        unique_ptr<ParsedExpression> propertyExpression);
+
+    unique_ptr<ParsedExpression> transformNullOperatorExpression(
+        CypherParser::OC_NullOperatorExpressionContext* ctx,
+        unique_ptr<ParsedExpression> propertyExpression);
+
+    unique_ptr<ParsedExpression> transformPropertyOrLabelsExpression(
+        CypherParser::OC_PropertyOrLabelsExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformAtom(CypherParser::OC_AtomContext* ctx);
+
+    unique_ptr<ParsedExpression> transformLiteral(CypherParser::OC_LiteralContext* ctx);
+
+    unique_ptr<ParsedExpression> transformBooleanLiteral(
+        CypherParser::OC_BooleanLiteralContext* ctx);
+
+    unique_ptr<ParsedExpression> transformParenthesizedExpression(
+        CypherParser::OC_ParenthesizedExpressionContext* ctx);
+
+    unique_ptr<ParsedExpression> transformFunctionInvocation(
+        CypherParser::OC_FunctionInvocationContext* ctx);
+
+    string transformFunctionName(CypherParser::OC_FunctionNameContext* ctx);
+
+    string transformPropertyLookup(CypherParser::OC_PropertyLookupContext* ctx);
+
     string transformVariable(CypherParser::OC_VariableContext* ctx);
+
+    unique_ptr<ParsedExpression> transformNumberLiteral(CypherParser::OC_NumberLiteralContext* ctx);
+
+    string transformPropertyKeyName(CypherParser::OC_PropertyKeyNameContext* ctx);
+
+    unique_ptr<ParsedExpression> transformIntegerLiteral(
+        CypherParser::OC_IntegerLiteralContext* ctx);
+
+    unique_ptr<ParsedExpression> transformDoubleLiteral(CypherParser::OC_DoubleLiteralContext* ctx);
 
     string transformSchemaName(CypherParser::OC_SchemaNameContext* ctx);
 

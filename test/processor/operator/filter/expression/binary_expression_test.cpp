@@ -8,13 +8,13 @@ using namespace graphflow::expression;
 
 TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
     auto propertyExpression =
-        make_unique<LogicalExpression>(EXPRESSION_TYPE::VARIABLE, DataType::INT, "a.prop");
+        make_unique<LogicalExpression>(ExpressionType::VARIABLE, DataType::INT, "a.prop");
     auto literal = Literal(5);
     auto literalExpression =
-        make_unique<LogicalExpression>(EXPRESSION_TYPE::LITERAL_INT, DataType::INT, literal);
+        make_unique<LogicalExpression>(ExpressionType::LITERAL_INT, DataType::INT, literal);
 
     auto addLogicalOperator = make_unique<LogicalExpression>(
-        EXPRESSION_TYPE::ADD, move(propertyExpression), move(literalExpression));
+            ExpressionType::ADD, move(propertyExpression), move(literalExpression));
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
     auto dataChunks = DataChunks();

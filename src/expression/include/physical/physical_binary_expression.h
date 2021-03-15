@@ -12,7 +12,7 @@ class PhysicalBinaryExpression : public PhysicalExpression {
 
 public:
     PhysicalBinaryExpression(unique_ptr<PhysicalExpression> leftExpr,
-        unique_ptr<PhysicalExpression> rightExpr, const EXPRESSION_TYPE& expressionType);
+        unique_ptr<PhysicalExpression> rightExpr, const ExpressionType& expressionType);
 
     void evaluate() override;
 

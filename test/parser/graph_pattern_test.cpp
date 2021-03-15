@@ -5,10 +5,9 @@
 using namespace graphflow::parser;
 using namespace graphflow::common;
 
-class ParserTest : public :: testing::Test {
+class GraphPatternTest : public :: testing::Test {
 
 public:
-
     unique_ptr<NodePattern> makeNodePattern(string name, string label) {
         auto node = make_unique<NodePattern>();
         node->setName(name);
@@ -40,7 +39,21 @@ public:
 
 };
 
-TEST_F(ParserTest, MATCHSingleElementSingleNodeNoLabelTest) {
+TEST_F(GraphPatternTest, EmptyMatchTest) {
+    auto expectedNode = makeNodePattern(string(), string());
+    auto expectedPatternElement = makePatternElement(move(expectedNode));
+    vector<unique_ptr<PatternElement>> expectedPatternElements;
+    expectedPatternElements.push_back(move(expectedPatternElement));
+    auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
+    auto expectedSingleQuery = make_unique<SingleQuery>();
+    expectedSingleQuery->addMatchStatement(move(expectedMatchStatement));
+
+    graphflow::parser::Parser parser;
+    string input = "MATCH ();";
+    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
+}
+
+TEST_F(GraphPatternTest, MATCHSingleElementSingleNodeNoLabelTest) {
     auto expectedNode = makeNodePattern("a", string());
     auto expectedPatternElement = makePatternElement(move(expectedNode));
     vector<unique_ptr<PatternElement>> expectedPatternElements;
@@ -54,7 +67,7 @@ TEST_F(ParserTest, MATCHSingleElementSingleNodeNoLabelTest) {
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ParserTest, MATCHSingleElementSingleNodeSingleLabelTest) {
+TEST_F(GraphPatternTest, MATCHSingleElementSingleNodeSingleLabelTest) {
     auto expectedNode = makeNodePattern("a", "Person");
     auto expectedPatternElement = makePatternElement(move(expectedNode));
     vector<unique_ptr<PatternElement>> expectedPatternElements;
@@ -68,7 +81,7 @@ TEST_F(ParserTest, MATCHSingleElementSingleNodeSingleLabelTest) {
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ParserTest, MATCHSingleElementAnonymousNodeSingleLabelTest) {
+TEST_F(GraphPatternTest, MATCHSingleElementAnonymousNodeSingleLabelTest) {
     auto expectedNode = makeNodePattern(string(), "Person");
     auto expectedPatternElement = makePatternElement(move(expectedNode));
     vector<unique_ptr<PatternElement>> expectedPatternElements;
@@ -82,7 +95,7 @@ TEST_F(ParserTest, MATCHSingleElementAnonymousNodeSingleLabelTest) {
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ParserTest, MATCHSingleElementSingleEdgeNoTypeTest) {
+TEST_F(GraphPatternTest, MATCHSingleElementSingleEdgeNoTypeTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge = makeRelPattern("e1", string(), FWD);
@@ -100,7 +113,7 @@ TEST_F(ParserTest, MATCHSingleElementSingleEdgeNoTypeTest) {
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ParserTest, MATCHSingleElementSingleEdgeSingleTypeTest) {
+TEST_F(GraphPatternTest, MATCHSingleElementSingleEdgeSingleTypeTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge = makeRelPattern("e1", "knows", FWD);
@@ -118,7 +131,7 @@ TEST_F(ParserTest, MATCHSingleElementSingleEdgeSingleTypeTest) {
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ParserTest, MATCHSingleElementAnonymousEdgeMultiTypesTest) {
+TEST_F(GraphPatternTest, MATCHSingleElementAnonymousEdgeMultiTypesTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge = makeRelPattern(string(), "knows", FWD);
@@ -136,7 +149,7 @@ TEST_F(ParserTest, MATCHSingleElementAnonymousEdgeMultiTypesTest) {
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ParserTest, MATCHSingleElementMultiEdgesTest) {
+TEST_F(GraphPatternTest, MATCHSingleElementMultiEdgesTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge1 = makeRelPattern(string(), "knows", FWD);
@@ -158,7 +171,7 @@ TEST_F(ParserTest, MATCHSingleElementMultiEdgesTest) {
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ParserTest, MATCHMultiElementsTest) {
+TEST_F(GraphPatternTest, MATCHMultiElementsTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge1 = makeRelPattern(string(), "knows", FWD);
@@ -185,7 +198,7 @@ TEST_F(ParserTest, MATCHMultiElementsTest) {
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ParserTest, MultiMatchTest) {
+TEST_F(GraphPatternTest, MultiMatchTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge1 = makeRelPattern(string(), "knows", FWD);

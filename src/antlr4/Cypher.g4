@@ -25,9 +25,14 @@ oC_ReadingClause
     : oC_Match ;
 
 oC_Match 
-    : MATCH SP? oC_Pattern ;
+    : MATCH SP? oC_Pattern (SP? oC_Where)? ;
 
 MATCH : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'C' | 'c' ) ( 'H' | 'h' )  ;
+
+oC_Where
+    : WHERE SP oC_Expression ;
+
+WHERE : ( 'W' | 'w' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'E' | 'e' )  ;
 
 oC_Pattern
     : oC_PatternPart ( SP? ',' SP? oC_PatternPart )* ;
@@ -66,8 +71,182 @@ oC_LabelName
 oC_RelTypeName
     : ':' SP? oC_SchemaName ;
 
+oC_Expression
+    : oC_OrExpression ;
+
+oC_OrExpression
+    : oC_XorExpression ( SP OR SP oC_XorExpression )* ;
+
+OR : ( 'O' | 'o' ) ( 'R' | 'r' ) ;
+
+oC_XorExpression
+    : oC_AndExpression ( SP XOR SP oC_AndExpression )* ;
+
+XOR : ( 'X' | 'x' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ;
+
+oC_AndExpression
+    : oC_NotExpression ( SP AND SP oC_NotExpression )* ;
+
+AND : ( 'A' | 'a' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ;
+
+oC_NotExpression
+    : ( NOT SP? )?  oC_ComparisonExpression ;
+
+NOT : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'T' | 't' ) ;
+
+oC_ComparisonExpression
+    : oC_AddOrSubtractExpression ( SP? gF_ComparisonOperator SP? oC_AddOrSubtractExpression )? ;
+
+gF_ComparisonOperator : '=' | '<>' | '<' | '<=' | '>' | '>=' ;
+
+oC_AddOrSubtractExpression
+    : oC_MultiplyDivideModuloExpression ( SP? gF_AddOrSubtractOperator SP? oC_MultiplyDivideModuloExpression )* ;
+
+gF_AddOrSubtractOperator : '+' | '-' ;
+
+oC_MultiplyDivideModuloExpression
+    : oC_PowerOfExpression ( SP? gF_MultiplyDivideModuloOperator SP? oC_PowerOfExpression )* ;
+
+gF_MultiplyDivideModuloOperator : '*' | '/' | '%' ;
+
+oC_PowerOfExpression
+    : oC_UnaryAddOrSubtractExpression ( SP? '^' SP? oC_UnaryAddOrSubtractExpression )* ;
+
+oC_UnaryAddOrSubtractExpression
+    : ( MINUS SP? )? oC_StringListNullOperatorExpression ;
+
+MINUS : '-' ;
+
+oC_StringListNullOperatorExpression
+    : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_NullOperatorExpression )? ;
+
+oC_StringOperatorExpression
+    :  ( ( SP STARTS SP WITH ) | ( SP ENDS SP WITH ) | ( SP CONTAINS ) ) SP? oC_PropertyOrLabelsExpression ;
+
+STARTS : ( 'S' | 's' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'R' | 'r' ) ( 'T' | 't' ) ( 'S' | 's' ) ;
+
+ENDS : ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ( 'S' | 's' ) ;
+
+CONTAINS : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'S' | 's' ) ;
+
+WITH : ( 'W' | 'w' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'H' | 'h' ) ;
+
+oC_NullOperatorExpression
+    : ( SP IS SP NULL_ )
+        | ( SP IS SP NOT SP NULL_ ) ;
+
+IS : ( 'I' | 'i' ) ( 'S' | 's' ) ;
+
+NULL_ : ( 'N' | 'n' ) ( 'U' | 'u' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
+
+oC_PropertyOrLabelsExpression
+    : oC_Atom ( SP? oC_PropertyLookup )? ;
+
+oC_Atom
+    : oC_Literal
+        | oC_ParenthesizedExpression
+        | oC_FunctionInvocation
+        | oC_Variable
+        ;
+
+oC_Literal
+    : oC_NumberLiteral
+        | StringLiteral
+        | oC_BooleanLiteral
+        | NULL_
+        ;
+
+oC_BooleanLiteral
+    : TRUE
+        | FALSE
+        ;
+
+TRUE : ( 'T' | 't' ) ( 'R' | 'r' ) ( 'U' | 'u' ) ( 'E' | 'e' ) ;
+
+FALSE : ( 'F' | 'f' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'S' | 's' ) ( 'E' | 'e' ) ;
+
+oC_ParenthesizedExpression
+    : '(' SP? oC_Expression SP? ')' ;
+
+oC_FunctionInvocation
+    : oC_FunctionName SP? '(' SP? ( oC_Expression SP? ( ',' SP? oC_Expression SP? )* )? ')' ;
+
+oC_FunctionName
+    : oC_SymbolicName ;
+
+oC_PropertyLookup
+    : '.' SP? ( oC_PropertyKeyName ) ;
+
 oC_Variable
     : oC_SymbolicName ;
+
+StringLiteral
+    : ( '"' ( StringLiteral_0 | EscapedChar )* '"' )
+        | ( '\'' ( StringLiteral_1 | EscapedChar )* '\'' )
+        ;
+
+EscapedChar
+    : '\\' ( '\\' | '\'' | '"' | ( 'B' | 'b' ) | ( 'F' | 'f' ) | ( 'N' | 'n' ) | ( 'R' | 'r' ) | ( 'T' | 't' ) | ( ( 'U' | 'u' ) ( HexDigit HexDigit HexDigit HexDigit ) ) | ( ( 'U' | 'u' ) ( HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit ) ) ) ;
+
+oC_NumberLiteral
+    : oC_DoubleLiteral
+        | oC_IntegerLiteral
+        ;
+
+oC_PropertyKeyName
+    : oC_SchemaName ;
+
+oC_IntegerLiteral
+    : DecimalInteger ;
+
+DecimalInteger
+    : ZeroDigit
+        | ( NonZeroDigit ( Digit )* )
+        ;
+
+HexLetter
+    : ( 'A' | 'a' )
+        | ( 'B' | 'b' )
+        | ( 'C' | 'c' )
+        | ( 'D' | 'd' )
+        | ( 'E' | 'e' )
+        | ( 'F' | 'f' )
+        ;
+
+HexDigit
+    : Digit
+        | HexLetter
+        ;
+
+Digit
+    : ZeroDigit
+        | NonZeroDigit
+        ;
+
+NonZeroDigit
+    : NonZeroOctDigit
+        | '8'
+        | '9'
+        ;
+
+NonZeroOctDigit
+    : '1'
+        | '2'
+        | '3'
+        | '4'
+        | '5'
+        | '6'
+        | '7'
+        ;
+
+ZeroDigit
+    : '0' ;
+
+oC_DoubleLiteral
+    : RegularDecimalReal ;
+
+RegularDecimalReal
+    : ( Digit )* '.' ( Digit )+ ;
 
 oC_SchemaName
     : oC_SymbolicName ;
@@ -75,6 +254,7 @@ oC_SchemaName
 oC_SymbolicName
     : UnescapedSymbolicName
         | EscapedSymbolicName
+        | HexLetter
         ;
 
 UnescapedSymbolicName
@@ -86,7 +266,7 @@ IdentifierStart
         ;
 
 IdentifierPart
-    :  ID_Continue
+    : ID_Continue
         | Sc
         ;
 
@@ -97,7 +277,7 @@ SP
   : ( WHITESPACE )+ ;
 
 WHITESPACE
-    :  SPACE
+    : SPACE
         | TAB
         | LF
         | VT

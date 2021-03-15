@@ -35,28 +35,28 @@ TEST(VectorBoolTests, test) {
     }
 
     uint8_t andExpectedResult[] = {FALSE, FALSE, FALSE, TRUE};
-    auto andOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::AND);
+    auto andOp = ValueVector::getBinaryOperation(ExpressionType::AND);
     andOp(lVector, rVector, result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i], andExpectedResult[i]);
     }
 
     uint8_t orExpectedResult[] = {FALSE, TRUE, TRUE, TRUE};
-    auto orOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::OR);
+    auto orOp = ValueVector::getBinaryOperation(ExpressionType::OR);
     orOp(lVector, rVector, result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i], orExpectedResult[i]);
     }
 
     uint8_t xorExpectedResult[] = {FALSE, TRUE, TRUE, FALSE};
-    auto xorOp = ValueVector::getBinaryOperation(EXPRESSION_TYPE::XOR);
+    auto xorOp = ValueVector::getBinaryOperation(ExpressionType::XOR);
     xorOp(lVector, rVector, result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i], xorExpectedResult[i]);
     }
 
     uint8_t notExpectedResult[] = {TRUE, TRUE, FALSE, FALSE};
-    auto notOp = ValueVector::getUnaryOperation(EXPRESSION_TYPE::NOT);
+    auto notOp = ValueVector::getUnaryOperation(ExpressionType::NOT);
     notOp(lVector, result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i], notExpectedResult[i]);
