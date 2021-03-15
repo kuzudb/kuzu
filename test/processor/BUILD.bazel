@@ -3,8 +3,10 @@ load("@rules_cc//cc:defs.bzl", "cc_test")
 cc_test(
     name = "processor_tests",
     srcs = [
+        "operator/filter/expression/binary_expression_test.cpp",
+        "operator/filter/expression/unary_expression_test.cpp",
         "operator/scan/scan_test.cpp",
-        "processor_test.cpp"
+        "processor_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",

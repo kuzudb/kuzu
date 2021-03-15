@@ -1,7 +1,8 @@
+#include "src/common/include/vector/operations/vector_boolean_operations.h"
+
 #include "src/common/include/operations/boolean_operations.h"
 #include "src/common/include/vector/operations/executors/binary_operation_executor.h"
 #include "src/common/include/vector/operations/executors/unary_operation_executor.h"
-#include "src/common/include/vector/operations/vector_operations.h"
 
 namespace graphflow {
 namespace common {
@@ -33,21 +34,21 @@ private:
     }
 };
 
-void VectorOperations::And(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorBooleanOperations::And(ValueVector& left, ValueVector& right, ValueVector& result) {
     BinaryOperationExecutor::execute<uint8_t, uint8_t, uint8_t, operation::And>(
         left, right, result);
 }
 
-void VectorOperations::Or(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorBooleanOperations::Or(ValueVector& left, ValueVector& right, ValueVector& result) {
     BinaryOperationExecutor::execute<uint8_t, uint8_t, uint8_t, operation::Or>(left, right, result);
 }
 
-void VectorOperations::Xor(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorBooleanOperations::Xor(ValueVector& left, ValueVector& right, ValueVector& result) {
     BinaryOperationExecutor::execute<uint8_t, uint8_t, uint8_t, operation::Xor>(
         left, right, result);
 }
 
-void VectorOperations::Not(ValueVector& operand, ValueVector& result) {
+void VectorBooleanOperations::Not(ValueVector& operand, ValueVector& result) {
     UnaryOperationExecutor::execute<uint8_t, uint8_t, operation::Not>(operand, result);
 }
 

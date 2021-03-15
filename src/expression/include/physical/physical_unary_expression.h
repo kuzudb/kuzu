@@ -1,9 +1,7 @@
 #pragma once
 
-#include "include/physical/physical_expression.h"
-
-#include "src/common/include/vector/operations/vector_operations.h"
 #include "src/common/include/vector/value_vector.h"
+#include "src/expression/include/physical/physical_expression.h"
 
 namespace graphflow {
 namespace expression {
@@ -11,20 +9,13 @@ namespace expression {
 class PhysicalUnaryExpression : public PhysicalExpression {
 
 public:
-    PhysicalUnaryExpression(unique_ptr<PhysicalExpression> child, UNARY_OPERATION operation)
-        : operand{child->getResult()}, result{move(result)}, child{move(child)},
-          operation(VectorOperations::getOperation(operation)) {}
+    PhysicalUnaryExpression(
+        unique_ptr<PhysicalExpression> child, const EXPRESSION_TYPE& expressionType);
 
-    void evaluate() override {
-        child->evaluate();
-        operation(*operand, *result);
-    }
+    void evaluate() override;
 
 protected:
-    ValueVector* operand;
-    unique_ptr<ValueVector> result;
-    unique_ptr<PhysicalExpression> child;
-    std::function<void(ValueVector&, ValueVector&)> operation;
+    function<void(ValueVector&, ValueVector&)> operation;
 };
 
 } // namespace expression

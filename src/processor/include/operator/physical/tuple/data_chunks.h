@@ -32,8 +32,8 @@ public:
 
     uint64_t getNumDataChunks() { return dataChunks.size(); }
 
-    uint64_t getNumValueVectors(const uint64_t& inDataChunkIdx) {
-        return dataChunks[inDataChunkIdx]->getNumAttributes();
+    uint64_t getNumValueVectors(const uint64_t& inDataChunkPos) {
+        return dataChunks[inDataChunkPos]->getNumAttributes();
     }
 
 private:

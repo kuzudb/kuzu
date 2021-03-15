@@ -1,9 +1,10 @@
+#include "src/common/include/vector/operations/vector_arithmetic_operations.h"
+
 #include <stdexcept>
 
 #include "src/common/include/operations/arithmetic_operations.h"
 #include "src/common/include/vector/operations/executors/binary_operation_executor.h"
 #include "src/common/include/vector/operations/executors/unary_operation_executor.h"
-#include "src/common/include/vector/operations/vector_operations.h"
 
 namespace graphflow {
 namespace common {
@@ -70,31 +71,35 @@ public:
     }
 };
 
-void VectorOperations::Add(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorArithmeticOperations::Add(ValueVector& left, ValueVector& right, ValueVector& result) {
     ArithmeticOperationExecutor::execute<operation::Add>(left, right, result);
 }
 
-void VectorOperations::Subtract(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorArithmeticOperations::Subtract(
+    ValueVector& left, ValueVector& right, ValueVector& result) {
     ArithmeticOperationExecutor::execute<operation::Subtract>(left, right, result);
 }
 
-void VectorOperations::Multiply(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorArithmeticOperations::Multiply(
+    ValueVector& left, ValueVector& right, ValueVector& result) {
     ArithmeticOperationExecutor::execute<operation::Multiply>(left, right, result);
 }
 
-void VectorOperations::Divide(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorArithmeticOperations::Divide(
+    ValueVector& left, ValueVector& right, ValueVector& result) {
     ArithmeticOperationExecutor::execute<operation::Divide>(left, right, result);
 }
 
-void VectorOperations::Modulo(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorArithmeticOperations::Modulo(
+    ValueVector& left, ValueVector& right, ValueVector& result) {
     ArithmeticOperationExecutor::execute<operation::Modulo>(left, right, result);
 }
 
-void VectorOperations::Power(ValueVector& left, ValueVector& right, ValueVector& result) {
+void VectorArithmeticOperations::Power(ValueVector& left, ValueVector& right, ValueVector& result) {
     ArithmeticOperationExecutor::execute<operation::Power>(left, right, result);
 }
 
-void VectorOperations::Negate(ValueVector& operand, ValueVector& result) {
+void VectorArithmeticOperations::Negate(ValueVector& operand, ValueVector& result) {
     ArithmeticOperationExecutor::execute<operation::Negate>(operand, result);
 }
 

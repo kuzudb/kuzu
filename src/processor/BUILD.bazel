@@ -1,20 +1,9 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "morsel",
-    hdrs = [
-        "include/task_system/morsel.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//src/common",
-        "//src/storage:graph",
-    ],
-)
-
-cc_library(
     name = "operators",
     srcs = [
+        "operator/physical/filter/expression_mapper.cpp",
         "operator/logical/extend/logical_extend.cpp",
         "operator/logical/property_reader/logical_node_property_reader.cpp",
         "operator/logical/property_reader/logical_rel_property_reader.cpp",
@@ -33,6 +22,7 @@ cc_library(
         "operator/physical/tuple/data_chunks.cpp",
     ],
     hdrs = [
+        "include/task_system/morsel.h",
         "include/operator/logical/extend/logical_extend.h",
         "include/operator/logical/logical_operator_ser_deser.h",
         "include/operator/logical/logical_operator.h",
@@ -52,15 +42,14 @@ cc_library(
         "include/operator/physical/scan/physical_scan.h",
         "include/operator/physical/sink/sink.h",
         "include/operator/physical/tuple/data_chunks.h",
+        "include/operator/physical/filter/expression_mapper.h",
         "include/operator/physical/tuple/physical_operator_info.h",
-
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "morsel",
-        "//src/common",
         "//src/storage:graph",
         "//src/storage:structures",
+        "//src/expression",
     ],
 )
 
@@ -78,7 +67,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "operators",
-        "//src/common",
         "//src/storage:graph",
     ],
 )
@@ -92,7 +80,6 @@ cc_library(
     ],
     hdrs = [
         "include/processor.h",
-        "include/task_system/morsel.h",
         "include/task_system/task.h",
         "include/task_system/task_queue.h",
     ],
@@ -101,7 +88,6 @@ cc_library(
         "plan",
         "//src/common",
         "//src/common:timer",
-        "//src/expression",
         "//src/storage:graph",
     ],
 )

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/common/include/data_chunk/data_chunk.h"
+#include "src/common/include/expression_type.h"
 #include "src/common/include/types.h"
 
 namespace graphflow {
@@ -10,9 +11,21 @@ namespace common {
 class ValueVector {
 
 public:
-    ValueVector(const uint64_t& elementSize)
-        : capacity{elementSize * VECTOR_CAPACITY},
+    static function<void(ValueVector&, ValueVector&)> getUnaryOperation(EXPRESSION_TYPE type);
+
+    static function<void(ValueVector&, ValueVector&, ValueVector&)> getBinaryOperation(
+        EXPRESSION_TYPE type);
+
+    ValueVector(const uint64_t& elementSize, const uint64_t& vectorCapacity)
+        : capacity{elementSize * vectorCapacity},
           buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()} {}
+
+    ValueVector(const uint64_t& elementSize) : ValueVector(elementSize, VECTOR_CAPACITY) {}
+
+    ValueVector(const DataType& dataType, const uint64_t& vectorCapacity)
+        : ValueVector(getDataTypeSize(dataType), vectorCapacity) {
+        this->dataType = dataType;
+    }
 
     ValueVector(const DataType& dataType) : ValueVector(getDataTypeSize(dataType)) {
         this->dataType = dataType;
@@ -22,6 +35,11 @@ public:
 
     inline uint8_t* getValues() const { return values; }
     inline void setValues(uint8_t* values) { this->values = values; }
+
+    template<typename T>
+    void setValue(const uint64_t& pos, const T& value) {
+        ((T*)values)[pos] = value;
+    }
 
     inline void setDataChunkOwner(shared_ptr<DataChunk>& owner) { this->owner = owner; }
 
@@ -33,15 +51,7 @@ public:
 
     inline void reset() { values = buffer.get(); }
 
-    uint8_t* reserve(size_t capacity) {
-        if (this->capacity < capacity) {
-            auto newBuffer = new uint8_t[capacity];
-            memcpy(newBuffer, buffer.get(), this->capacity);
-            buffer.reset(newBuffer);
-            this->capacity = capacity;
-        }
-        return buffer.get();
-    }
+    uint8_t* reserve(size_t capacity);
 
 public:
     //! The capacity of vector values is dependent on how the vector is produced.
