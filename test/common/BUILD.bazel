@@ -7,6 +7,7 @@ cc_test(
         "vector/operations/vector_arithmetic_operations_test.cpp",
         "vector/operations/vector_boolean_operations_test.cpp",
         "vector/operations/vector_comparison_operations_test.cpp",
+        "vector/operations/vector_hash_nodeid_operations_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",

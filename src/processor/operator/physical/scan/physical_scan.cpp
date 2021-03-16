@@ -22,8 +22,8 @@ bool PhysicalScan::hasNextMorsel() {
         return false;
     } else {
         currentMorselStartOffset = morsel->currNodeOffset;
-        currentMorselSize = min(
-            ValueVector::NODE_SEQUENCE_VECTOR_SIZE, morsel->numNodes - currentMorselStartOffset);
+        currentMorselSize = min((uint64_t)ValueVector::NODE_SEQUENCE_VECTOR_SIZE,
+            morsel->numNodes - currentMorselStartOffset);
         morsel->currNodeOffset += currentMorselSize;
         return true;
     }

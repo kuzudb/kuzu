@@ -40,6 +40,11 @@ enum ExpressionType {
     POWER = 25,
     NEGATE = 26,
 
+    /*
+     * Hash Expressions
+     * */
+    HASH_NODE_ID = 32,
+
     /**
      * String Operation Expressions
      **/

@@ -47,6 +47,8 @@ public:
 
     inline uint64_t size() { return owner->getNumTuples(); }
 
+    virtual inline int64_t getElementSize() { return getDataTypeSize(dataType); }
+
     inline bool isFlat() { return owner->isFlat(); }
 
     inline void reset() { values = buffer.get(); }

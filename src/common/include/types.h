@@ -22,14 +22,15 @@ const uint8_t TRUE = 1;
 const uint8_t NULL_BOOL = 2;
 const int32_t NULL_INT = INT32_MIN;
 const double_t NULL_DOUBLE = DBL_MIN;
+const uint64_t NUM_BYTES_PER_NODE_ID = sizeof(node_offset_t) + sizeof(label_t);
 
-//! Holds the cursor to reference a location in an in-mem page.
+// Holds the cursor to reference a location in an in-mem page.
 typedef struct PageCursor {
     uint64_t idx = -1;
     uint16_t offset = -1;
 } PageCursor;
 
-//! System representation for strings.
+// System representation for strings.
 struct gf_string_t {
     uint32_t len;
     uint8_t prefix[4];
@@ -50,14 +51,19 @@ struct gf_string_t {
     }
 };
 
-//! System representation for nodeID.
+// System representation for nodeID.
 struct nodeID_t {
-    label_t label;
     node_offset_t offset;
+    label_t label;
+};
+
+// System representation for a variable-sized overflow value.
+struct overflow_value_t {
+    uint64_t len;
+    uint8_t* value;
 };
 
 enum DataType { REL, NODE, LABEL, BOOL, INT, DOUBLE, STRING };
-
 const string DataTypeNames[] = {"REL", "NODE", "LABEL", "BOOL", "INT", "DOUBLE", "STRING"};
 
 class Property {

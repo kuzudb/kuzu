@@ -25,7 +25,7 @@ TEST(ScanTests, ScanTest) {
         ASSERT_EQ(dataChunk->size, size);
         nodeID_t node;
         for (uint64_t i = 0; i < dataChunk->size; i++) {
-            nodeVector->readValue(i, node);
+            nodeVector->readNodeOffset(i, node);
             ASSERT_EQ(node.offset, currNodeOffset + i);
         }
         currNodeOffset += ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
