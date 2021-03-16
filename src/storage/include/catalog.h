@@ -34,11 +34,32 @@ class Catalog {
 public:
     Catalog(const string& directory);
 
+    // This constructor is used for Binder unit tests
+    Catalog(stringToLabelMap_t stringToNodeLabelMap, stringToLabelMap_t stringToRelLabelMap,
+        vector<vector<label_t>> srcNodeLabelToRelLabel,
+        vector<vector<label_t>> dstNodeLabelToRelLabel,
+        vector<vector<label_t>> relLabelToSrcNodeLabels,
+        vector<vector<label_t>> relLabelToDstNodeLabels)
+        : stringToNodeLabelMap{move(stringToNodeLabelMap)}, stringToRelLabelMap{move(
+                                                                stringToRelLabelMap)},
+          relLabelToSrcNodeLabels{move(relLabelToSrcNodeLabels)}, relLabelToDstNodeLabels{move(
+                                                                      relLabelToDstNodeLabels)},
+          srcNodeLabelToRelLabel{move(srcNodeLabelToRelLabel)}, dstNodeLabelToRelLabel{
+                                                                    move(dstNodeLabelToRelLabel)} {}
+
     inline const uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
     inline const uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
 
+    inline const bool containNodeLabel(const char* label) const {
+        return end(stringToNodeLabelMap) != stringToNodeLabelMap.find(label);
+    }
+
     inline const label_t& getNodeLabelFromString(const char* label) const {
         return stringToNodeLabelMap.at(label);
+    }
+
+    inline const bool containRelLabel(const char* label) const {
+        return end(stringToRelLabelMap) != stringToRelLabelMap.find(label);
     }
 
     inline const label_t& getRelLabelFromString(const char* label) const {
@@ -67,6 +88,7 @@ public:
 
     const vector<label_t>& getRelLabelsForNodeLabelDirection(
         const label_t& nodeLabel, const Direction& dir) const;
+
     const vector<label_t>& getNodeLabelsForRelLabelDir(
         const label_t& relLabel, const Direction& dir) const;
 

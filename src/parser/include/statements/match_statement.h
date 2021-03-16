@@ -12,6 +12,10 @@ public:
     explicit MatchStatement(vector<unique_ptr<PatternElement>> patternElements)
         : graphPattern{move(patternElements)} {}
 
+    int getNumPatternElement() const { return graphPattern.size(); }
+
+    const PatternElement& getPatternElement(int idx) const { return *graphPattern[idx]; }
+
     void setWhereClause(unique_ptr<ParsedExpression> whereClause) {
         this->whereClause = move(whereClause);
     }

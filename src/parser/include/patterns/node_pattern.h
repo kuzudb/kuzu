@@ -14,6 +14,10 @@ namespace parser {
 class NodePattern {
 
 public:
+    string getName() const { return name; }
+
+    string getLabel() const { return label; }
+
     void setName(const string& name) { this->name = name; }
 
     void setLabel(const string& label) { this->label = label; }

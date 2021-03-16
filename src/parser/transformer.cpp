@@ -111,7 +111,8 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
     auto relPattern = ctx->oC_RelationshipDetail() ?
                           transformRelationshipDetail(ctx->oC_RelationshipDetail()) :
                           make_unique<RelPattern>();
-    relPattern->setDirection(ctx->oC_LeftArrowHead() ? BWD : FWD);
+    relPattern->setDirection(
+        ctx->oC_LeftArrowHead() ? ArrowDirection::LEFT : ArrowDirection::RIGHT);
     return relPattern;
 }
 

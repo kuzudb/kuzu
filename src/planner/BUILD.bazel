@@ -1,0 +1,40 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_library(
+    name = "binder",
+    srcs = [
+        "binder.cpp",
+    ],
+    hdrs = [
+        "include/binder.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "bound_statement",
+        "query_graph",
+        "//src/parser",
+        "//src/storage:catalog",
+    ],
+)
+
+cc_library(
+    name = "bound_statement",
+    hdrs = [
+        "include/bound_statements/bound_match_statement.h",
+    ],
+)
+
+cc_library(
+    name = "query_graph",
+    srcs = [
+        "query_graph/query_graph.cpp",
+    ],
+    hdrs = [
+        "include/query_graph/query_graph.h",
+        "include/query_graph/query_node.h",
+        "include/query_graph/query_rel.h",
+    ],
+    deps = [
+        "//src/common",
+    ],
+)

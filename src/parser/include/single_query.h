@@ -8,6 +8,10 @@ namespace parser {
 class SingleQuery {
 
 public:
+    int getNumStatements() const { return statements.size(); }
+
+    const MatchStatement& getMatchStatement(int idx) const { return *statements[idx]; }
+
     void addMatchStatement(unique_ptr<MatchStatement> statement) {
         statements.push_back(move(statement));
     }
