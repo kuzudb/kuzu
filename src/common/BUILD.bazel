@@ -14,6 +14,7 @@ cc_library(
         "vector/operations/vector_boolean_operations.cpp",
         "vector/operations/vector_comparison_operations.cpp",
         "vector/operations/vector_hash_operations.cpp",
+        "vector/operations/vector_decompress_operations.cpp",
     ],
     hdrs = [
         "include/compression_scheme.h",
@@ -26,6 +27,7 @@ cc_library(
         "include/operations/boolean_operations.h",
         "include/operations/comparison_operations.h",
         "include/operations/hash_operations.h",
+        "include/operations/decompress_operations.h",
         "include/types.h",
         "include/vector/node_vector.h",
         "include/vector/value_vector.h",
@@ -35,6 +37,7 @@ cc_library(
         "include/vector/operations/vector_boolean_operations.h",
         "include/vector/operations/vector_comparison_operations.h",
         "include/vector/operations/vector_hash_operations.h",
+        "include/vector/operations/vector_decompress_operations.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

@@ -7,6 +7,7 @@ cc_library(
         "physical_plan/operator/column_reader/column_reader.cpp",
         "physical_plan/operator/column_reader/node_property_column_reader.cpp",
         "physical_plan/operator/column_reader/rel_property_column_reader.cpp",
+        "physical_plan/operator/hash_join/hash_join.cpp",
         "physical_plan/operator/list_reader/adj_list_extend.cpp",
         "physical_plan/operator/list_reader/extend/adj_list_flatten_and_extend.cpp",
         "physical_plan/operator/list_reader/extend/adj_list_only_extend.cpp",
@@ -14,8 +15,6 @@ cc_library(
         "physical_plan/operator/list_reader/rel_property_list_reader.cpp",
         "physical_plan/operator/scan/physical_scan.cpp",
         "physical_plan/operator/sink/sink.cpp",
-        "physical_plan/operator/tuple/data_chunks.cpp",
-        "physical_plan/operator/tuple/data_chunks_iterator.cpp",
     ],
     hdrs = [
         "include/task_system/morsel.h",
@@ -23,6 +22,7 @@ cc_library(
         "include/physical_plan/operator/column_reader/column_reader.h",
         "include/physical_plan/operator/column_reader/node_property_column_reader.h",
         "include/physical_plan/operator/column_reader/rel_property_column_reader.h",
+        "include/physical_plan/operator/hash_join/hash_join.h",
         "include/physical_plan/operator/list_reader/adj_list_extend.h",
         "include/physical_plan/operator/list_reader/extend/adj_list_flatten_and_extend.h",
         "include/physical_plan/operator/list_reader/extend/adj_list_only_extend.h",
@@ -31,16 +31,32 @@ cc_library(
         "include/physical_plan/operator/physical_operator.h",
         "include/physical_plan/operator/scan/physical_scan.h",
         "include/physical_plan/operator/sink/sink.h",
-        "include/physical_plan/operator/tuple/data_chunks.h",
-        "include/physical_plan/operator/tuple/data_chunks_iterator.h",
         "include/physical_plan/operator/tuple/tuple.h",
         "include/physical_plan/operator/tuple/physical_operator_info.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "hash_table",
         "//src/storage:graph",
         "//src/storage:structures",
         "//src/common",
+    ],
+)
+
+cc_library(
+    name = "data_chunks",
+    srcs = [
+        "physical_plan/operator/tuple/data_chunks.cpp",
+        "physical_plan/operator/tuple/data_chunks_iterator.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/operator/tuple/data_chunks.h",
+        "include/physical_plan/operator/tuple/tuple.h",
+        "include/physical_plan/operator/tuple/data_chunks_iterator.h",
+    ],
+    deps = [
+        "//src/common",
+        "//src/storage:structures",
     ],
 )
 
@@ -87,20 +103,32 @@ cc_library(
 )
 
 cc_library(
+    name = "memory_manager",
+    srcs = [
+        "memory_manager.cpp"
+    ],
+    hdrs = [
+        "include/memory_manager.h"
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common"
+    ],
+)
+
+cc_library(
     name = "hash_table",
     srcs = [
         "physical_plan/operator/hash_join/hash_table.cpp",
         "physical_plan/operator/hash_join/overflow_blocks.cpp",
-        "memory_manager.cpp",
     ],
     hdrs = [
         "include/physical_plan/operator/hash_join/hash_table.h",
         "include/physical_plan/operator/hash_join/overflow_blocks.h",
-        "include/memory_manager.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "operators",
-        "//src/common",
+        "data_chunks",
+        "memory_manager"
     ],
 )

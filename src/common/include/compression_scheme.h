@@ -1,7 +1,6 @@
 #pragma once
 
-#include <stdint.h>
-
+#include <cstdint>
 #include <utility>
 #include <vector>
 
@@ -15,9 +14,10 @@ class NodeIDCompressionScheme {
 public:
     NodeIDCompressionScheme(const vector<label_t>& nbrNodeLabels,
         const vector<uint64_t>& numNodesPerLabel, const uint32_t& numNodeLabels);
-    NodeIDCompressionScheme()
-        : numBytesForLabel{0}, numBytesForOffset{8},
-          numTotalBytes(numBytesForLabel + numBytesForOffset){};
+    NodeIDCompressionScheme() : NodeIDCompressionScheme(0, 8){};
+    NodeIDCompressionScheme(uint32_t numBytesForLabel, uint32_t numBytesForOffset)
+        : numBytesForLabel(numBytesForLabel), numBytesForOffset(numBytesForOffset),
+          numTotalBytes(numBytesForLabel + numBytesForOffset) {}
 
     inline uint32_t getNumBytesForLabel() const { return numBytesForLabel; };
     inline uint32_t getNumBytesForOffset() const { return numBytesForOffset; };

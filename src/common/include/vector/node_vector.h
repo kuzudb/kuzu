@@ -26,7 +26,7 @@ public:
 
     NodeIDVector(label_t commonLabel, const NodeIDCompressionScheme& nodeIDCompressionScheme,
         bool isSequence)
-        : NodeIDVector{commonLabel, nodeIDCompressionScheme, isSequence, VECTOR_CAPACITY} {};
+        : NodeIDVector{commonLabel, nodeIDCompressionScheme, isSequence, MAX_VECTOR_SIZE} {};
 
     virtual ~NodeIDVector() = default;
 
@@ -41,7 +41,9 @@ public:
     inline bool getIsSequence() const { return isSequence; }
     inline void setIsSequence(bool storedSequentially) { this->isSequence = storedSequentially; }
 
-    inline int64_t getElementSize() override { return nodeIDCompressionScheme.getNumTotalBytes(); }
+    inline int64_t getNumBytesPerValue() override {
+        return nodeIDCompressionScheme.getNumTotalBytes();
+    }
 
     virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID);
     virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID);
@@ -53,8 +55,9 @@ protected:
 
     NodeIDVector(label_t commonLabel, const NodeIDCompressionScheme& nodeIDCompressionScheme,
         bool isSequence, uint64_t vectorCapacity)
-        : ValueVector{NODE, vectorCapacity}, commonLabel{commonLabel},
-          nodeIDCompressionScheme{nodeIDCompressionScheme}, isSequence{isSequence} {};
+        : ValueVector{vectorCapacity, nodeIDCompressionScheme.getNumTotalBytes(), NODE},
+          commonLabel{commonLabel}, nodeIDCompressionScheme{nodeIDCompressionScheme},
+          isSequence{isSequence} {};
 
 protected:
     label_t commonLabel;

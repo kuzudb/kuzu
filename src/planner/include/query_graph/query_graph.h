@@ -14,7 +14,7 @@ class QueryGraph {
     friend void mergeQueryGraphs(QueryGraph& mergedQueryGraph, QueryGraph& otherQueryGraph);
 
 public:
-    uint numQueryNodes() const;
+    uint32_t numQueryNodes() const;
 
     bool containsQueryNode(const string& nodeName) const;
 
@@ -22,7 +22,7 @@ public:
 
     void addQueryNode(unique_ptr<QueryNode> queryNode);
 
-    uint numQueryRels() const;
+    uint32_t numQueryRels() const;
 
     bool containsQueryRel(const string& relName) const;
 

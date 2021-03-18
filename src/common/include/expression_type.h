@@ -46,6 +46,11 @@ enum ExpressionType {
     HASH_NODE_ID = 32,
 
     /**
+     * Decompress Expressions
+     * */
+    DECOMPRESS_NODE_ID = 33,
+
+    /**
      * String Operation Expressions
      **/
     STARTS_WITH = 37,

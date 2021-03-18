@@ -15,12 +15,12 @@ TEST(ScanTests, ScanTest) {
     auto nodeVector =
         static_pointer_cast<NodeIDVector>(dataChunks->getDataChunk(0)->getValueVector(0));
     node_offset_t currNodeOffset = 0;
-    uint64_t size = ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
+    uint64_t size = ValueVector::DEFAULT_VECTOR_SIZE;
     while (morsel->getCurrNodeOffset() < 1025013) {
         ASSERT_EQ(scan->hasNextMorsel(), true);
         scan->getNextTuples();
         if (morsel->getCurrNodeOffset() >= 1025013) {
-            size = 1025013 % ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
+            size = 1025013 % ValueVector::DEFAULT_VECTOR_SIZE;
         }
         ASSERT_EQ(dataChunk->size, size);
         nodeID_t node;
@@ -28,7 +28,7 @@ TEST(ScanTests, ScanTest) {
             nodeVector->readNodeOffset(i, node);
             ASSERT_EQ(node.offset, currNodeOffset + i);
         }
-        currNodeOffset += ValueVector::NODE_SEQUENCE_VECTOR_SIZE;
+        currNodeOffset += ValueVector::DEFAULT_VECTOR_SIZE;
     }
     ASSERT_EQ(morsel->getCurrNodeOffset(), 1025013);
     ASSERT_EQ(scan->hasNextMorsel(), false);

@@ -12,9 +12,9 @@ void NodeIDVector::readNodeOffset(uint64_t pos, nodeID_t& nodeID) {
 
 void NodeIDVector::readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) {
     auto readOffset = values + (pos * nodeIDCompressionScheme.getNumTotalBytes());
-    nodeID.offset = *(node_offset_t*)(readOffset + nodeIDCompressionScheme.getNumBytesForLabel());
     nodeID.label =
         nodeIDCompressionScheme.getNumBytesForLabel() == 0 ? commonLabel : *(label_t*)(readOffset);
+    nodeID.offset = *(node_offset_t*)(readOffset + nodeIDCompressionScheme.getNumBytesForLabel());
 }
 
 } // namespace common
