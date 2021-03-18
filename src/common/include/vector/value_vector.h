@@ -41,6 +41,14 @@ public:
         ((T*)values)[pos] = value;
     }
 
+    template<typename T>
+    T getValue(uint64_t pos) {
+        if (pos >= VECTOR_CAPACITY) {
+            throw invalid_argument("Position out of bound.");
+        }
+        return ((T*)values)[pos];
+    }
+
     inline void setDataChunkOwner(shared_ptr<DataChunk>& owner) { this->owner = owner; }
 
     inline int64_t getCurrPos() { return owner->getCurrPos(); }
