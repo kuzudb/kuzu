@@ -21,7 +21,7 @@ DataType getDataType(const std::string& dataTypeString) {
     } else if (0 == dataTypeString.compare("STRING")) {
         return STRING;
     }
-    throw invalid_argument("Cannot parse dataType.");
+    throw invalid_argument("Cannot parse dataType: " + dataTypeString);
 }
 
 size_t getDataTypeSize(DataType dataType) {

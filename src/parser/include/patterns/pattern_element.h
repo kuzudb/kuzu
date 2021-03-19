@@ -13,6 +13,14 @@ namespace parser {
 class PatternElement {
 
 public:
+    const NodePattern& getNodePattern() const { return *nodePattern; }
+
+    int getNumPatternElementChain() const { return patternElementChains.size(); }
+
+    const PatternElementChain& getPatternElementChain(int idx) const {
+        return *patternElementChains[idx];
+    }
+
     void setNodePattern(unique_ptr<NodePattern> nodePattern) {
         this->nodePattern = move(nodePattern);
     }

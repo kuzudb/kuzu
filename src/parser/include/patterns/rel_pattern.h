@@ -1,12 +1,11 @@
 #pragma once
 
-#include "src/common/include/types.h"
 #include "src/parser/include/patterns/node_pattern.h"
-
-using namespace graphflow::common;
 
 namespace graphflow {
 namespace parser {
+
+enum ArrowDirection : uint8_t { LEFT = 0, RIGHT = 1 };
 
 /**
  * RelationshipPattern represents "-[relName:RelLabel]-"
@@ -14,22 +13,26 @@ namespace parser {
 class RelPattern {
 
 public:
+    string getName() const { return name; }
+
+    string getType() const { return type; }
+
+    ArrowDirection getDirection() const { return arrowDirection; }
+
     void setName(const string& name) { this->name = name; }
 
     void setType(const string& type) { this->type = type; }
 
-    void setDirection(Direction direction) { this->direction = direction; }
+    void setDirection(ArrowDirection arrowDirection) { this->arrowDirection = arrowDirection; }
 
     bool operator==(const RelPattern& other) {
-        return name == other.name && type == other.type && direction == other.direction;
+        return name == other.name && type == other.type && arrowDirection == other.arrowDirection;
     }
 
 private:
     string name;
-
     string type;
-
-    Direction direction;
+    ArrowDirection arrowDirection;
 };
 
 } // namespace parser

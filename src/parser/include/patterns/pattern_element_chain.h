@@ -11,6 +11,10 @@ namespace parser {
 class PatternElementChain {
 
 public:
+    const RelPattern& getRelPattern() const { return *relPattern; }
+
+    const NodePattern& getNodePattern() const { return *nodePattern; }
+
     void setRelPattern(unique_ptr<RelPattern> relPattern) { this->relPattern = move(relPattern); }
 
     void setNodePattern(unique_ptr<NodePattern> nodePattern) {
