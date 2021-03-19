@@ -1,61 +1,129 @@
 #pragma once
 
-// TODO: add specialized gf_string_t support.
+#include "src/common/include/types.h"
+
 namespace graphflow {
 namespace common {
 namespace operation {
 
 struct Equals {
     template<class T>
-    static inline uint8_t operation(T left, T right) {
+    static inline uint8_t operation(const T& left, const T& right) {
         return left == right;
     }
 };
 
 struct NotEquals {
     template<class T>
-    static inline uint8_t operation(T left, T right) {
+    static inline uint8_t operation(const T& left, const T& right) {
         return left != right;
     }
 };
 
 struct GreaterThan {
     template<class T>
-    static inline uint8_t operation(T left, T right) {
+    static inline uint8_t operation(const T& left, const T& right) {
         return left > right;
     }
 };
 
 struct GreaterThanEquals {
     template<class T>
-    static inline uint8_t operation(T left, T right) {
+    static inline uint8_t operation(const T& left, const T& right) {
         return left >= right;
     }
 };
 
 struct LessThan {
     template<class T>
-    static inline uint8_t operation(T left, T right) {
+    static inline uint8_t operation(const T& left, const T& right) {
         return left < right;
     }
 };
 
 struct LessThanEquals {
     template<class T>
-    static inline uint8_t operation(T left, T right) {
+    static inline uint8_t operation(const T& left, const T& right) {
         return left <= right;
     }
 };
 
 // Specialized operation(s).
 template<>
-inline uint8_t GreaterThan::operation(uint8_t left, uint8_t right) {
+inline uint8_t GreaterThan::operation(const uint8_t& left, const uint8_t& right) {
     return !right && left;
 };
 
 template<>
-inline uint8_t LessThan::operation(uint8_t left, uint8_t right) {
+inline uint8_t LessThan::operation(const uint8_t& left, const uint8_t& right) {
     return !left && right;
+};
+
+struct StringComparisonOperators {
+    template<bool INVERSE>
+    static inline bool EqualsOrNot(const gf_string_t& left, const gf_string_t& right) {
+        // first compare the length and prefix of the strings.
+        if (memcmp(&left, &right, gf_string_t::STR_LENGTH_PLUS_PREFIX_LENGTH) == 0) {
+            // length and prefix of a and b are equal
+            if (left.isShort()) {
+                // compare the 8 byte suffix.
+                if (memcmp(left.data, right.data, left.len - gf_string_t::PREFIX_LENGTH) == 0) {
+                    return INVERSE ? FALSE : TRUE;
+                }
+            } else {
+                // compare the overflow buffers.
+                if (memcmp(reinterpret_cast<uint8_t*>(left.overflowPtr),
+                        reinterpret_cast<uint8_t*>(right.overflowPtr),
+                        left.len - gf_string_t::PREFIX_LENGTH) == 0) {
+                    return INVERSE ? FALSE : TRUE;
+                }
+            }
+        }
+        return INVERSE ? TRUE : FALSE;
+    }
+};
+
+template<>
+inline uint8_t Equals::operation(const gf_string_t& left, const gf_string_t& right) {
+    return StringComparisonOperators::EqualsOrNot<false>(left, right);
+};
+
+template<>
+inline uint8_t NotEquals::operation(const gf_string_t& left, const gf_string_t& right) {
+    return StringComparisonOperators::EqualsOrNot<true>(left, right);
+};
+
+// compare up to shared length. if still the same, compare lengths
+template<class FUNC>
+static uint8_t compare(const gf_string_t& left, const gf_string_t& right) {
+    auto len = left.len < right.len ? left.len : right.len;
+    auto memcmpResult = memcmp(left.prefix, right.prefix,
+        len <= gf_string_t::PREFIX_LENGTH ? len : gf_string_t::PREFIX_LENGTH);
+    if (len > gf_string_t::PREFIX_LENGTH && memcmpResult == 0) {
+        memcmpResult = memcmp(left.getData(), right.getData(), len - gf_string_t::PREFIX_LENGTH);
+    }
+    return memcmpResult == 0 ? FUNC::operation(left.len, right.len) :
+                               FUNC::operation(memcmpResult, 0);
+};
+
+template<>
+inline uint8_t GreaterThan::operation(const gf_string_t& left, const gf_string_t& right) {
+    return compare<GreaterThan>(left, right);
+};
+
+template<>
+inline uint8_t GreaterThanEquals::operation(const gf_string_t& left, const gf_string_t& right) {
+    return compare<GreaterThanEquals>(left, right);
+};
+
+template<>
+inline uint8_t LessThan::operation(const gf_string_t& left, const gf_string_t& right) {
+    return compare<LessThan>(left, right);
+};
+
+template<>
+inline uint8_t LessThanEquals::operation(const gf_string_t& left, const gf_string_t& right) {
+    return compare<LessThanEquals>(left, right);
 };
 
 } // namespace operation
