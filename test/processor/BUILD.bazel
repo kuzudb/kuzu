@@ -3,11 +3,10 @@ load("@rules_cc//cc:defs.bzl", "cc_test")
 cc_test(
     name = "processor_tests",
     srcs = [
-        "operator/filter/expression/binary_expression_test.cpp",
-        "operator/filter/expression/unary_expression_test.cpp",
-        "operator/scan/scan_test.cpp",
-        "operator/hash_join/hash_table_test.cpp",
-        "operator/tuple/data_chunks_iterator_test.cpp",
+        "physical_plan/expression_mapper_test.cpp",
+        "physical_plan/operator/scan/scan_test.cpp",
+        "physical_plan/operator/hash_join/hash_table_test.cpp",
+        "physical_plan/operator/tuple/data_chunks_iterator_test.cpp",
         "processor_test.cpp",
         "memory_manager_test.cpp"
     ],

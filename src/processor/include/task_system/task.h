@@ -1,8 +1,8 @@
 #pragma once
 
 #include "src/common/include/timer.h"
-#include "src/processor/include/plan/physical/physical_plan.h"
-#include "src/processor/include/plan/physical/plan_output.h"
+#include "src/processor/include/physical_plan/physical_plan.h"
+#include "src/processor/include/physical_plan/plan_output.h"
 
 using namespace std;
 

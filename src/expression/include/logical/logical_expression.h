@@ -27,17 +27,15 @@ public:
     LogicalExpression(
         ExpressionType expressionType, DataType dataType, const Literal& literalValue);
 
-    inline string& getVariableName() { return variableName; }
+    inline const string& getVariableName() const { return variableName; }
 
-    inline Literal getLiteralValue() { return literalValue; }
+    inline const Literal& getLiteralValue() const { return literalValue; }
 
-    inline DataType getDataType() { return dataType; }
+    inline DataType getDataType() const { return dataType; }
 
-    inline ExpressionType getExpressionType() { return expressionType; }
+    inline ExpressionType getExpressionType() const { return expressionType; }
 
-    inline unique_ptr<LogicalExpression> getChildExpr(uint64_t pos) {
-        return move(childrenExpr[pos]);
-    }
+    inline const LogicalExpression& getChildExpr(uint64_t pos) const { return *childrenExpr[pos]; }
 
 protected:
     LogicalExpression(ExpressionType expressionType, DataType dataType)
