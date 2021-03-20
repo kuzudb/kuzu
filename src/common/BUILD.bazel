@@ -6,6 +6,7 @@ cc_library(
         "compression_scheme.cpp",
         "expression_type.cpp",
         "file_ser_deser_helper.cpp",
+        "literal.cpp",
         "types.cpp",
         "vector/node_vector.cpp",
         "vector/value_vector.cpp",

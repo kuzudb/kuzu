@@ -3,19 +3,26 @@
 #include <cstdint>
 #include <string>
 
+#include "src/common/include/types.h"
+
 using namespace std;
+
+namespace graphflow {
+namespace common {
 
 class Literal {
 public:
     Literal() = default;
 
-    Literal(uint8_t value) { this->primitive.boolean = value; }
+    explicit Literal(DataType type) : type(type) {}
 
-    Literal(int32_t value) { this->primitive.integer = value; }
+    explicit Literal(uint8_t value) : type(BOOL) { this->primitive.boolean = value; }
 
-    Literal(double value) { this->primitive.double_ = value; }
+    explicit Literal(int32_t value) : type(INT) { this->primitive.integer = value; }
 
-    Literal(const string& str) { this->str = str; }
+    explicit Literal(double value) : type(DOUBLE) { this->primitive.double_ = value; }
+
+    explicit Literal(const string& str) : type(STRING) { this->str = str; }
 
     union PrimitiveValue {
         uint8_t boolean;
@@ -24,4 +31,23 @@ public:
     } primitive;
 
     string str;
+    nodeID_t nodeID;
+
+    inline void setBool(bool val) { this->primitive.boolean = val; }
+
+    inline void setInt(int32_t val) { this->primitive.integer = val; }
+
+    inline void setDouble(double val) { this->primitive.double_ = val; }
+
+    inline void setString(string val) { this->str = std::move(val); }
+
+    inline void setNodeID(nodeID_t val) { this->nodeID = val; }
+
+    string toString() const;
+
+private:
+    DataType type;
 };
+
+} // namespace common
+} // namespace graphflow

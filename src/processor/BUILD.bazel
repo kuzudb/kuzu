@@ -20,6 +20,7 @@ cc_library(
         "operator/physical/scan/physical_scan.cpp",
         "operator/physical/sink/sink.cpp",
         "operator/physical/tuple/data_chunks.cpp",
+        "operator/physical/tuple/data_chunks_iterator.cpp",
     ],
     hdrs = [
         "include/task_system/morsel.h",
@@ -42,6 +43,8 @@ cc_library(
         "include/operator/physical/scan/physical_scan.h",
         "include/operator/physical/sink/sink.h",
         "include/operator/physical/tuple/data_chunks.h",
+        "include/operator/physical/tuple/data_chunks_iterator.h",
+        "include/operator/physical/tuple/tuple.h",
         "include/operator/physical/filter/expression_mapper.h",
         "include/operator/physical/tuple/physical_operator_info.h",
     ],
@@ -50,6 +53,7 @@ cc_library(
         "//src/storage:graph",
         "//src/storage:structures",
         "//src/expression",
+        "//src/common",
     ],
 )
 
