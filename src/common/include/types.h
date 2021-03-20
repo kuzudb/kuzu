@@ -32,6 +32,12 @@ typedef struct PageCursor {
 
 // System representation for strings.
 struct gf_string_t {
+
+    static const uint64_t PREFIX_LENGTH = sizeof(uint8_t) * 4;
+    static const uint64_t STR_LENGTH_PLUS_PREFIX_LENGTH = sizeof(uint32_t) + PREFIX_LENGTH;
+    static const uint64_t INLINED_SUFFIX_LENGTH = sizeof(uint8_t) * 8;
+    static const uint64_t SHORT_STR_LENGTH = sizeof(uint8_t) * 12;
+
     uint32_t len;
     uint8_t prefix[4];
     union {
@@ -48,6 +54,12 @@ struct gf_string_t {
         cursor.idx = 0;
         memcpy(&cursor.idx, &overflowPtr, 6);
         memcpy(&cursor.offset, ((uint8_t*)&overflowPtr) + 6, 2);
+    }
+
+    inline bool isShort() const { return len <= SHORT_STR_LENGTH; }
+
+    inline const uint8_t* getData() const {
+        return len <= SHORT_STR_LENGTH ? data : reinterpret_cast<uint8_t*>(overflowPtr);
     }
 };
 

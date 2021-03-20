@@ -15,8 +15,9 @@ struct BinaryOperationExecutor {
         auto rValues = (B*)right.getValues();
         auto resultValues = (R*)result.getValues();
         if (left.isFlat() && right.isFlat()) {
-            resultValues[0] =
-                FUNC::operation(lValues[left.getCurrPos()], rValues[right.getCurrPos()]);
+            auto lValue = lValues[left.getCurrPos()];
+            auto rValue = rValues[right.getCurrPos()];
+            resultValues[0] = FUNC::operation(lValue, rValue);
         } else if (left.isFlat()) {
             auto size = right.size();
             auto lValue = lValues[left.getCurrPos()];

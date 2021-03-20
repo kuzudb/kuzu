@@ -25,7 +25,9 @@ public:
         case DOUBLE:
             compare<double_t, OP>(left, right, result);
             break;
-        /* TODO: add gf_string_t comparison. */
+        case STRING:
+            compare<gf_string_t, OP>(left, right, result);
+            break;
         default:
             throw std::invalid_argument("Invalid or unsupported type for comparison.");
         }
