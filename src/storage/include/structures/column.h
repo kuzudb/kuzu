@@ -37,6 +37,8 @@ class Column : public BaseColumn {
 public:
     Column(const string& path, const uint64_t& numElements, BufferManager& bufferManager)
         : BaseColumn{path, sizeof(T), numElements, bufferManager} {};
+
+    DataType getDataType() override;
 };
 
 template<>
@@ -50,6 +52,8 @@ public:
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
         const unique_ptr<ColumnOrListsHandle>& handle) override;
+
+    DataType getDataType() override { return STRING; }
 
 private:
     void readStringsFromOverflowPages(
@@ -70,9 +74,20 @@ public:
 
     NodeIDCompressionScheme getCompressionScheme() const { return nodeIDCompressionScheme; }
 
+    DataType getDataType() override { return NODE; }
+
 private:
     NodeIDCompressionScheme nodeIDCompressionScheme;
 };
+
+template<>
+DataType Column<int32_t>::getDataType();
+
+template<>
+DataType Column<double_t>::getDataType();
+
+template<>
+DataType Column<uint8_t>::getDataType();
 
 typedef Column<int32_t> PropertyColumnInt;
 typedef Column<double_t> PropertyColumnDouble;

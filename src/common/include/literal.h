@@ -18,7 +18,7 @@ public:
 
     explicit Literal(uint8_t value) : type(BOOL) { this->primitive.boolean = value; }
 
-    explicit Literal(int32_t value) : type(INT) { this->primitive.integer = value; }
+    explicit Literal(int32_t value) : type(INT32) { this->primitive.integer = value; }
 
     explicit Literal(double value) : type(DOUBLE) { this->primitive.double_ = value; }
 

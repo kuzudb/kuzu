@@ -8,10 +8,10 @@ using namespace graphflow::expression;
 
 TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
     auto propertyExpression =
-        make_unique<LogicalExpression>(ExpressionType::VARIABLE, DataType::INT, "a.prop");
+        make_unique<LogicalExpression>(ExpressionType::VARIABLE, DataType::INT32, "a.prop");
     auto literal = Literal(5);
     auto literalExpression =
-        make_unique<LogicalExpression>(ExpressionType::LITERAL_INT, DataType::INT, literal);
+        make_unique<LogicalExpression>(ExpressionType::LITERAL_INT, DataType::INT32, literal);
 
     auto addLogicalOperator = make_unique<LogicalExpression>(
             ExpressionType::ADD, move(propertyExpression), move(literalExpression));
@@ -20,7 +20,7 @@ TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
     auto dataChunks = DataChunks();
     physicalOperatorInfo.put("a.prop", 0 /*dataChunkPos*/, 0 /*valueVectorPos*/);
 
-    auto valueVector = make_shared<ValueVector>(INT, 100);
+    auto valueVector = make_shared<ValueVector>(INT32, 100);
     auto values = (int32_t*)valueVector->getValues();
     for (auto i = 0u; i < 100; i++) {
         values[i] = i;
@@ -43,7 +43,7 @@ TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
 
 TEST(ExpressionTests, UnaryPhysicalExpressionTest) {
     auto propertyExpression =
-        make_unique<LogicalExpression>(ExpressionType::VARIABLE, DataType::INT, "a.prop");
+        make_unique<LogicalExpression>(ExpressionType::VARIABLE, DataType::INT32, "a.prop");
     auto negateLogicalOperator =
         make_unique<LogicalExpression>(ExpressionType::NEGATE, move(propertyExpression));
 
@@ -51,7 +51,7 @@ TEST(ExpressionTests, UnaryPhysicalExpressionTest) {
     auto dataChunks = DataChunks();
     physicalOperatorInfo.put("a.prop", 0 /*dataChunkPos*/, 0 /*valueVectorPos*/);
 
-    auto valueVector = make_shared<ValueVector>(INT, 100);
+    auto valueVector = make_shared<ValueVector>(INT32, 100);
     auto values = (int32_t*)valueVector->getValues();
     for (auto i = 0u; i < 100; i++) {
         int32_t value = i;

@@ -9,15 +9,15 @@ TEST(VectorArithTests, test) {
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->size = 100;
 
-    auto lVector = ValueVector(INT);
+    auto lVector = ValueVector(INT32);
     lVector.setDataChunkOwner(dataChunk);
     auto lData = (int32_t*)lVector.getValues();
 
-    auto rVector = ValueVector(INT);
+    auto rVector = ValueVector(INT32);
     rVector.setDataChunkOwner(dataChunk);
     auto rData = (int32_t*)rVector.getValues();
 
-    auto result = ValueVector(INT);
+    auto result = ValueVector(INT32);
     auto resultData = (int32_t*)result.getValues();
 
     // Fill values before the comparison.

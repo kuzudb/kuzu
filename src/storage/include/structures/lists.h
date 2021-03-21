@@ -43,6 +43,8 @@ class Lists : public BaseLists {
 public:
     Lists(const string& fname, shared_ptr<AdjListHeaders> headers, BufferManager& bufferManager)
         : BaseLists{fname, sizeof(T), headers, bufferManager} {};
+
+    DataType getDataType() override;
 };
 
 // Lists<nodeID_t> is the specialization of Lists<T> for lists of nodeIDs.
@@ -64,9 +66,23 @@ public:
 
     shared_ptr<AdjListHeaders> getHeaders() { return headers; };
 
+    DataType getDataType() override { return NODE; }
+
 private:
     NodeIDCompressionScheme nodeIDCompressionScheme;
 };
+
+template<>
+DataType Lists<int32_t>::getDataType();
+
+template<>
+DataType Lists<double_t>::getDataType();
+
+template<>
+DataType Lists<uint8_t>::getDataType();
+
+template<>
+DataType Lists<gf_string_t>::getDataType();
 
 typedef Lists<int32_t> RelPropertyListsInt;
 typedef Lists<double_t> RelPropertyListsDouble;

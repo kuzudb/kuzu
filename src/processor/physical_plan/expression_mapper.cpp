@@ -49,7 +49,7 @@ unique_ptr<PhysicalExpression> mapLogicalLiteralExpressionToPhysical(
     auto valueVector = make_shared<ValueVector>(dataType, 1 /* capacity */);
     valueVector->setDataChunkOwner(dataChunkForLiteral);
     switch (dataType) {
-    case INT: {
+    case INT32: {
         valueVector->setValue(0, expression.getLiteralValue().primitive.integer);
     } break;
     case DOUBLE: {

@@ -9,7 +9,7 @@ string Literal::toString() const {
     switch (type) {
     case BOOL:
         return primitive.boolean ? "True" : "False";
-    case INT:
+    case INT32:
         return to_string(primitive.integer);
     case DOUBLE:
         return to_string(primitive.double_);

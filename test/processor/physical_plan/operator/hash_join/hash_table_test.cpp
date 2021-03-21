@@ -20,7 +20,7 @@ void generateSingleLabelDataChunks(
     shared_ptr<DataChunk> keyDataChunk, DataChunks& payloadDataChunks) {
     auto keyIdVec = make_shared<NodeIDSequenceVector>(8);
     keyIdVec->setStartOffset(0);
-    auto ageVec = make_shared<ValueVector>(INT);
+    auto ageVec = make_shared<ValueVector>(INT32);
     auto ageVecData = (int32_t*)ageVec->getValues();
     for (uint64_t i = 0; i < ValueVector::NODE_SEQUENCE_VECTOR_SIZE; i++) {
         ageVecData[i] = (i + 20) % 100;
@@ -35,7 +35,7 @@ void generateSingleLabelDataChunks(
     NodeIDCompressionScheme compressionScheme;
     auto payloadIdVector = make_shared<NodeIDVector>(compressionScheme);
     payloadIdVector->setCommonLabel(100);
-    auto payloadNumVector = make_shared<ValueVector>(INT);
+    auto payloadNumVector = make_shared<ValueVector>(INT32);
     auto payloadIdVectorPtr = (int64_t*)payloadIdVector->getValues();
     auto buildNumVectorPtr = (int32_t*)payloadNumVector->getValues();
     for (uint64_t i = 0; i < ValueVector::NODE_SEQUENCE_VECTOR_SIZE; i++) {

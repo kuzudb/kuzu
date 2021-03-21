@@ -12,11 +12,11 @@ TEST(VectorCmpTests, cmpInt) {
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->size = numTuples;
 
-    auto lVector = ValueVector(INT, numTuples);
+    auto lVector = ValueVector(INT32, numTuples);
     lVector.setDataChunkOwner(dataChunk);
     auto lData = (int32_t*)lVector.getValues();
 
-    auto rVector = ValueVector(INT, numTuples);
+    auto rVector = ValueVector(INT32, numTuples);
     rVector.setDataChunkOwner(dataChunk);
     auto rData = (int32_t*)rVector.getValues();
 

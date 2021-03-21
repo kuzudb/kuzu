@@ -52,5 +52,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/common",
+        "//src/expression"
     ],
 )

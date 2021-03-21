@@ -105,7 +105,7 @@ void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
             logger->debug("DIR {} nodeLabel {} propertyIdx {} type {} name `{}`", dir, nodeLabel,
                 idx, property->second.dataType, property->first);
             switch (property->second.dataType) {
-            case INT:
+            case INT32:
                 propertyColumns[nodeLabel][relLabel][idx] = make_unique<PropertyColumnInt>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
@@ -145,7 +145,7 @@ void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
                 logger->debug("DIR {} nodeLabel {} propertyIdx {} type {} name `{}`", dir,
                     nodeLabel, idx, property->second.dataType, property->first);
                 switch (property->second.dataType) {
-                case INT:
+                case INT32:
                     propertyLists[dir][nodeLabel][relLabel][idx] =
                         make_unique<RelPropertyListsInt>(fname, adjListsHeaders, bufferManager);
                     break;

@@ -16,20 +16,11 @@ public:
     static function<void(ValueVector&, ValueVector&, ValueVector&)> getBinaryOperation(
         ExpressionType type);
 
-    ValueVector(const uint64_t& elementSize, const uint64_t& vectorCapacity)
-        : capacity{elementSize * vectorCapacity},
-          buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()} {}
-
-    ValueVector(const uint64_t& elementSize) : ValueVector(elementSize, VECTOR_CAPACITY) {}
-
     ValueVector(const DataType& dataType, const uint64_t& vectorCapacity)
-        : ValueVector(getDataTypeSize(dataType), vectorCapacity) {
-        this->dataType = dataType;
-    }
+        : capacity{getDataTypeSize(dataType) * vectorCapacity},
+          buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()}, dataType{dataType} {}
 
-    ValueVector(const DataType& dataType) : ValueVector(getDataTypeSize(dataType)) {
-        this->dataType = dataType;
-    }
+    ValueVector(const DataType& dataType) : ValueVector(dataType, VECTOR_CAPACITY) {}
 
     inline DataType getDataType() const { return dataType; }
 

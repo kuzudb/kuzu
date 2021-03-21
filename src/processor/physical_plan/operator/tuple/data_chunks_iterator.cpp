@@ -49,7 +49,7 @@ void DataChunksIterator::getNextTuple(Tuple& tuple) {
         auto tuplePosition = tuplePositions[i];
         for (auto& vector : dataChunk->valueVectors) {
             switch (vector->getDataType()) {
-            case INT: {
+            case INT32: {
                 tuple.getValue(valueInTupleIdx)->setInt(vector->getValue<int32_t>(tuplePosition));
                 break;
             }

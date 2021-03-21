@@ -106,7 +106,7 @@ class BaseColumnOrLists {
 public:
     void reclaim(const unique_ptr<ColumnOrListsHandle>& handle);
 
-    size_t getElementSize() { return elementSize; }
+    virtual DataType getDataType() = 0;
 
 protected:
     BaseColumnOrLists(const string& fname, const size_t& elementSize, BufferManager& bufferManager);

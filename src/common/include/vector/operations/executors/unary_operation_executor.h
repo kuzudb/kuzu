@@ -20,9 +20,7 @@ struct UnaryOperationExecutor {
         } else {
             auto size = operand.size();
             for (uint64_t i = 0; i < size; i++) {
-                std::cout << "values[" << i << "] = " << values[i] << std::endl;
                 resultValues[i] = FUNC::operation(values[i]);
-                std::cout << "resultValues[" << i << "] = " << resultValues[i] << std::endl;
             }
         }
     }
