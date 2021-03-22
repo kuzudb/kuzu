@@ -15,7 +15,7 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
     nodeVector.setDataChunkOwner(dataChunk);
     auto nodeData = (uint64_t*)nodeVector.getValues();
 
-    auto result = ValueVector(sizeof(uint64_t));
+    auto result = ValueVector(INT64);
     auto resultData = (uint64_t*)result.getValues();
 
     // Fill values before the comparison.
@@ -41,11 +41,12 @@ TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->size = 1000;
 
-    auto nodeVector = NodeIDSequenceVector(100);
+    label_t commonLable = 100;
+    auto nodeVector = NodeIDSequenceVector(commonLable);
     nodeVector.setStartOffset(10);
     nodeVector.setDataChunkOwner(dataChunk);
 
-    auto result = ValueVector(sizeof(uint64_t));
+    auto result = ValueVector(INT64);
     auto resultData = (uint64_t*)result.getValues();
 
     auto hashNodeIDOp = ValueVector::getUnaryOperation(HASH_NODE_ID);

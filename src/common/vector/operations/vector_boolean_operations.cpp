@@ -15,7 +15,7 @@ public:
         case BOOL:
             operate<uint8_t, OP>(operand, result);
             break;
-        case INT:
+        case INT32:
             operate<int32_t, OP>(operand, result);
             break;
         case DOUBLE:

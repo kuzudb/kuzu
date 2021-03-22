@@ -6,7 +6,7 @@ namespace processor {
 RelPropertyColumnReader::RelPropertyColumnReader(const uint64_t& dataChunkPos,
     const uint64_t& valueVectorPos, BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator)
     : ColumnReader{dataChunkPos, valueVectorPos, column, move(prevOperator)} {
-    outValueVector = make_shared<ValueVector>(column->getElementSize());
+    outValueVector = make_shared<ValueVector>(column->getDataType());
     inDataChunk->append(outValueVector);
 }
 

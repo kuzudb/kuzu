@@ -16,11 +16,10 @@ NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesP
         for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
             auto fname = getNodePropertyColumnFname(directory, nodeLabel, property->first);
             auto idx = property->second.idx;
-            logger->debug("nodeLabel {} propertyIdx {} "
-                          "type {} name `{}`",
-                nodeLabel, idx, property->second.dataType, property->first);
+            logger->debug("nodeLabel {} propertyIdx {} type {} name `{}`", nodeLabel, idx,
+                property->second.dataType, property->first);
             switch (property->second.dataType) {
-            case INT:
+            case INT32:
                 propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnInt>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;

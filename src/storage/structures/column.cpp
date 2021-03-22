@@ -88,5 +88,20 @@ void Column<gf_string_t>::readStringsFromOverflowPages(
     }
 }
 
+template<>
+DataType Column<int32_t>::getDataType() {
+    return INT32;
+}
+
+template<>
+DataType Column<double_t>::getDataType() {
+    return DOUBLE;
+}
+
+template<>
+DataType Column<uint8_t>::getDataType() {
+    return BOOL;
+}
+
 } // namespace storage
 } // namespace graphflow

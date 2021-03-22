@@ -177,10 +177,10 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<DataType>& 
     auto propertyIdx = 0u;
     while (reader.hasNextToken()) {
         switch (propertyDataTypes[propertyIdx]) {
-        case INT: {
+        case INT32: {
             auto intVal = reader.skipTokenIfNull() ? NULL_INT : reader.getInteger();
             adjAndPropertyColumnsLoaderHelper->setProperty(
-                nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT);
+                nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT32);
             break;
         }
         case DOUBLE: {
@@ -217,10 +217,10 @@ void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<DataType>& pro
     auto propertyIdx = 0;
     while (reader.hasNextToken()) {
         switch (propertyDataTypes[propertyIdx]) {
-        case INT: {
+        case INT32: {
             auto intVal = reader.skipTokenIfNull() ? NULL_INT : reader.getInteger();
             adjAndPropertyListsLoaderHelper->setProperty(
-                pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT);
+                pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT32);
             break;
         }
         case DOUBLE: {

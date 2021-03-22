@@ -19,7 +19,7 @@ public:
         case BOOL:
             compare<uint8_t, OP>(left, right, result);
             break;
-        case INT:
+        case INT32:
             compare<int32_t, OP>(left, right, result);
             break;
         case DOUBLE:

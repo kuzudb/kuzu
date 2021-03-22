@@ -14,9 +14,9 @@ public:
     template<class OP>
     static inline void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
         switch (left.getDataType()) {
-        case INT:
+        case INT32:
             switch (right.getDataType()) {
-            case INT:
+            case INT32:
                 if (std::is_same<OP, operation::Power>::value) {
                     BinaryOperationExecutor::execute<int32_t, int32_t, double_t, OP>(
                         left, right, result);
@@ -36,7 +36,7 @@ public:
             break;
         case DOUBLE:
             switch (right.getDataType()) {
-            case INT:
+            case INT32:
                 BinaryOperationExecutor::execute<double_t, int32_t, int32_t, OP>(
                     left, right, result);
                 break;
@@ -58,7 +58,7 @@ public:
     template<class OP>
     static inline void execute(ValueVector& operand, ValueVector& result) {
         switch (operand.getDataType()) {
-        case INT:
+        case INT32:
             UnaryOperationExecutor::execute<int32_t, int32_t, OP>(operand, result);
             break;
         case DOUBLE:

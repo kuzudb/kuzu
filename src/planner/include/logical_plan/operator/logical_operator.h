@@ -10,9 +10,10 @@ namespace planner {
 
 enum LogicalOperatorType {
     SCAN,
+    EXTEND,
+    FILTER,
     NODE_PROPERTY_READER,
     REL_PROPERTY_READER,
-    EXTEND,
 };
 
 class LogicalOperator {

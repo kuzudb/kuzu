@@ -14,7 +14,7 @@ public:
 
         NodeIDCompressionScheme compressionScheme;
         auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme);
-        auto vectorA2 = make_shared<ValueVector>(INT);
+        auto vectorA2 = make_shared<ValueVector>(INT32);
         auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme);
         auto vectorB2 = make_shared<ValueVector>(DOUBLE);
         auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme);

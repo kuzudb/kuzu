@@ -95,10 +95,10 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<DataType>& propertyData
     auto propertyIdx = 0;
     while (reader.hasNextToken()) {
         switch (propertyDataTypes[propertyIdx]) {
-        case INT: {
+        case INT32: {
             auto intVal = reader.skipTokenIfNull() ? NULL_INT : reader.getInteger();
-            memcpy(buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(INT)), &intVal,
-                getDataTypeSize(INT));
+            memcpy(buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(INT32)), &intVal,
+                getDataTypeSize(INT32));
             break;
         }
         case DOUBLE: {

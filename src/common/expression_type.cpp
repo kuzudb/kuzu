@@ -53,7 +53,7 @@ DataType getBinaryExpressionResultDataType(
         if (leftOperandType == DOUBLE || rightOperandType == DOUBLE) {
             return DOUBLE;
         }
-        return INT;
+        return INT32;
     case POWER:
         return DOUBLE;
     default:

@@ -75,7 +75,7 @@ struct overflow_value_t {
     uint8_t* value;
 };
 
-enum DataType { REL, NODE, LABEL, BOOL, INT, DOUBLE, STRING };
+enum DataType { REL, NODE, LABEL, BOOL, INT32, INT64, DOUBLE, STRING };
 const string DataTypeNames[] = {"REL", "NODE", "LABEL", "BOOL", "INT", "DOUBLE", "STRING"};
 
 class Property {

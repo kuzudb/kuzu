@@ -25,7 +25,7 @@ static uint64_t nextPowerOfTwo(uint64_t v) {
 
 HashTable::HashTable(MemoryManager& memoryManager, vector<PayloadInfo>& payloadInfos)
     : memoryManager(memoryManager), numEntries(0), hashBitMask(0), htDirectory(nullptr),
-      hashVec(sizeof(uint64_t)), overflowBlocks(memoryManager) {
+      hashVec(INT64), overflowBlocks(memoryManager) {
     // key field (node_offset_t + label_t) + prev field (uint8_t*)
     numBytesForFixedTuplePart = sizeof(node_offset_t) + sizeof(label_t) + sizeof(uint8_t*);
     for (auto& payloadInfo : payloadInfos) {
