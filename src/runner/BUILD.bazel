@@ -51,14 +51,3 @@ cc_binary(
         "@nlohmann_json",
     ],
 )
-
-cc_binary(
-    name = "plan_serializer",
-    srcs = ["plan_serializer.cpp"],
-    linkopts = ["-lpthread"],
-    deps = [
-        "//src/loader",
-        "//src/processor",
-        "@Taywee_args",
-    ],
-)
