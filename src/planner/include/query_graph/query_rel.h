@@ -8,11 +8,11 @@ namespace planner {
 class QueryRel {
 
 public:
-    QueryRel(string name, int label) : name{move(name)}, label{label} {}
+    QueryRel(string name, label_t label) : name{move(name)}, label{label} {}
 
     string getName() const { return name; }
 
-    int getLabel() const { return label; }
+    label_t getLabel() const { return label; }
 
     QueryNode* getSrcNode() const { return srcNode; }
 
@@ -31,7 +31,7 @@ public:
 
 private:
     string name;
-    int label;
+    label_t label;
     QueryNode* srcNode;
     QueryNode* dstNode;
 };

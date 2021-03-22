@@ -33,7 +33,7 @@ public:
 };
 
 void VectorHashOperations::HashNodeID(ValueVector& operand, ValueVector& result) {
-    HashNodeIDOperationExecutor::execute<operation::HashNodeID>(operand, result);
+    HashNodeIDOperationExecutor::execute<operation::Hash>(operand, result);
 }
 
 } // namespace common

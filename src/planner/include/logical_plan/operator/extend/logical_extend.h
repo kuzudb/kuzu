@@ -14,10 +14,10 @@ namespace planner {
 class LogicalExtend : public LogicalOperator {
 
 public:
-    LogicalExtend(const string& boundNodeVarName, const string& boundNodeVarLabel,
-        const string& nbrNodeVarName, const string& nbrNodeVarLabel, const string& relLabel,
-        const Direction& direction, unique_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, boundNodeVarName{boundNodeVarName},
+    LogicalExtend(const string& boundNodeVarName, label_t boundNodeVarLabel,
+        const string& nbrNodeVarName, label_t nbrNodeVarLabel, label_t relLabel,
+        const Direction& direction, shared_ptr<LogicalOperator> prevOperator)
+        : LogicalOperator{prevOperator}, boundNodeVarName{boundNodeVarName},
           boundNodeVarLabel{boundNodeVarLabel}, nbrNodeVarName{nbrNodeVarName},
           nbrNodeVarLabel{nbrNodeVarLabel}, relLabel{relLabel}, direction{direction} {}
 
@@ -25,10 +25,10 @@ public:
 
 public:
     const string boundNodeVarName;
-    const string boundNodeVarLabel;
+    const label_t boundNodeVarLabel;
     const string nbrNodeVarName;
-    const string nbrNodeVarLabel;
-    const string relLabel;
+    const label_t nbrNodeVarLabel;
+    const label_t relLabel;
     const Direction direction;
 };
 

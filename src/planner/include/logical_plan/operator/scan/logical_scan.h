@@ -13,14 +13,14 @@ namespace planner {
 class LogicalScan : public LogicalOperator {
 
 public:
-    LogicalScan(const string& variableName, const string& label)
+    LogicalScan(const string& variableName, label_t label)
         : nodeVarName{variableName}, label{label} {}
 
     LogicalOperatorType getLogicalOperatorType() const { return LogicalOperatorType::SCAN; }
 
 public:
     const string nodeVarName;
-    const string label;
+    const label_t label;
 };
 
 } // namespace planner
