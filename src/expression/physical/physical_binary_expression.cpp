@@ -4,14 +4,15 @@ namespace graphflow {
 namespace expression {
 
 PhysicalBinaryExpression::PhysicalBinaryExpression(unique_ptr<PhysicalExpression> leftExpr,
-    unique_ptr<PhysicalExpression> rightExpr, const ExpressionType& expressionType) {
-    operands.push_back(leftExpr->getResult());
-    operands.push_back(rightExpr->getResult());
+    unique_ptr<PhysicalExpression> rightExpr, ExpressionType expressionType) {
+    operands.push_back(leftExpr->result);
+    operands.push_back(rightExpr->result);
     childrenExpr.push_back(move(leftExpr));
     childrenExpr.push_back(move(rightExpr));
+    this->expressionType = expressionType;
     operation = ValueVector::getBinaryOperation(expressionType);
     result = createResultValueVector(getBinaryExpressionResultDataType(expressionType,
-        childrenExpr[0]->getResultDataType(), childrenExpr[1]->getResultDataType()));
+        childrenExpr[0]->result->getDataType(), childrenExpr[1]->result->getDataType()));
 }
 
 void PhysicalBinaryExpression::evaluate() {

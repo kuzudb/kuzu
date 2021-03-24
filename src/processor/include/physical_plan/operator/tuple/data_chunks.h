@@ -22,17 +22,15 @@ public:
 
     uint64_t getNumTuples();
 
-    shared_ptr<DataChunk> getDataChunk(const uint64_t& dataChunkPos) {
-        return dataChunks[dataChunkPos];
-    }
+    shared_ptr<DataChunk> getDataChunk(uint64_t dataChunkPos) { return dataChunks[dataChunkPos]; }
 
-    shared_ptr<ListSyncState> getListSyncState(const uint64_t& dataChunkPos) {
+    shared_ptr<ListSyncState> getListSyncState(uint64_t dataChunkPos) {
         return listSyncStatesPerDataChunk[dataChunkPos];
     }
 
     uint64_t getNumDataChunks() { return dataChunks.size(); }
 
-    uint64_t getNumValueVectors(const uint64_t& inDataChunkPos) {
+    uint64_t getNumValueVectors(uint64_t inDataChunkPos) {
         return dataChunks[inDataChunkPos]->getNumAttributes();
     }
 

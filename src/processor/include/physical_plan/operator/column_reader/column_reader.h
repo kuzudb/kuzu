@@ -13,7 +13,7 @@ namespace processor {
 class ColumnReader : public PhysicalOperator {
 
 public:
-    ColumnReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos, BaseColumn* column,
+    ColumnReader(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
         unique_ptr<PhysicalOperator> prevOperator);
 
     ~ColumnReader() { column->reclaim(handle); }

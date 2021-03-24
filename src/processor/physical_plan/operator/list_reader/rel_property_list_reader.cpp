@@ -3,9 +3,8 @@
 namespace graphflow {
 namespace processor {
 
-RelPropertyListReader::RelPropertyListReader(const uint64_t& inDataChunkPos,
-    const uint64_t& inValueVectorPos, const uint64_t& outDataChunkPos, BaseLists* lists,
-    unique_ptr<PhysicalOperator> prevOperator)
+RelPropertyListReader::RelPropertyListReader(uint64_t inDataChunkPos, uint64_t inValueVectorPos,
+    uint64_t outDataChunkPos, BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator)
     : ListReader{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)},
       outDataChunkPos{outDataChunkPos} {
     outValueVector = make_shared<ValueVector>(lists->getDataType());
@@ -16,7 +15,7 @@ RelPropertyListReader::RelPropertyListReader(const uint64_t& inDataChunkPos,
 
 void RelPropertyListReader::getNextTuples() {
     prevOperator->getNextTuples();
-    if (handle->hasMoreToRead() || inDataChunk->size > 0) {
+    if (inDataChunk->numSelectedValues > 0) {
         readValuesFromList();
     }
 }

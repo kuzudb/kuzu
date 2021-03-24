@@ -8,9 +8,8 @@ namespace processor {
 class RelPropertyListReader : public ListReader {
 
 public:
-    RelPropertyListReader(const uint64_t& inDataChunkPos, const uint64_t& inValueVectorPos,
-        const uint64_t& outDataChunkPos, BaseLists* lists,
-        unique_ptr<PhysicalOperator> prevOperator);
+    RelPropertyListReader(uint64_t inDataChunkPos, uint64_t inValueVectorPos,
+        uint64_t outDataChunkPos, BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator);
 
     void getNextTuples() override;
 

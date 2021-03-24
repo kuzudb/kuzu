@@ -17,7 +17,7 @@ bool isExpressionLeafLiteral(ExpressionType type) {
 }
 
 bool isExpressionLeafVariable(ExpressionType type) {
-    return VARIABLE == type;
+    return PROPERTY == type;
 }
 
 DataType getUnaryExpressionResultDataType(ExpressionType type, DataType operandType) {
@@ -43,6 +43,12 @@ DataType getBinaryExpressionResultDataType(
     case GREATER_THAN_EQUALS:
     case LESS_THAN:
     case LESS_THAN_EQUALS:
+    case EQUALS_NODE_ID:
+    case NOT_EQUALS_NODE_ID:
+    case GREATER_THAN_NODE_ID:
+    case GREATER_THAN_EQUALS_NODE_ID:
+    case LESS_THAN_NODE_ID:
+    case LESS_THAN_EQUALS_NODE_ID:
         return BOOL;
     case ADD:
     case SUBTRACT:

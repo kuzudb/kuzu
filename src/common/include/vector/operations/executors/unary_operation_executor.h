@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include "src/common/include/vector/node_vector.h"
-#include "src/common/include/vector/value_vector.h"
 
 namespace graphflow {
 namespace common {
@@ -16,43 +15,30 @@ struct UnaryOperationExecutor {
         auto values = (A*)operand.getValues();
         auto resultValues = (R*)result.getValues();
         if (operand.isFlat()) {
-            resultValues[0] = FUNC::operation(values[operand.getCurrPos()]);
+            resultValues[0] = FUNC::operation(values[operand.owner->getCurrSelectedValuesPos()]);
         } else {
-            auto size = operand.size();
+            auto selectedValuesPos = operand.getSelectedValuesPos();
+            auto size = operand.getNumSelectedValues();
             for (uint64_t i = 0; i < size; i++) {
-                resultValues[i] = FUNC::operation(values[i]);
+                resultValues[i] = FUNC::operation(values[selectedValuesPos[i]]);
             }
         }
     }
 
     // A (operand type), R (result type)
-    template<class A, class R, class FUNC = std::function<R(A)>>
-    static void executeOnNodeIDVector(NodeIDVector& operand, ValueVector& result) {
-        auto values = (A*)operand.getValues();
+    template<class R, class FUNC = std::function<R(nodeID_t)>>
+    static void executeOnNodeIDVector(ValueVector& operand, ValueVector& result) {
         auto resultValues = (R*)result.getValues();
-        auto isSequence = operand.getIsSequence();
+        nodeID_t nodeID;
         if (operand.isFlat()) {
             nodeID_t nodeID;
-            nodeID.offset =
-                isSequence ? (values[0] + operand.getCurrPos()) : values[operand.getCurrPos()];
-            nodeID.label = operand.getCommonLabel();
+            operand.readNodeOffsetAndLabel(operand.owner->getCurrSelectedValuesPos(), nodeID);
             resultValues[0] = FUNC::operation(nodeID);
         } else {
-            auto numBytesForNode = operand.getCompressionScheme().getNumTotalBytes();
-            auto numBytesForOffset = operand.getCompressionScheme().getNumBytesForOffset();
-            auto isLabelCommon = operand.getCompressionScheme().getNumBytesForLabel() == 0;
-            auto numBytesForLabel = isLabelCommon ?
-                                        sizeof(label_t) :
-                                        operand.getCompressionScheme().getNumBytesForLabel();
-            auto commonLabel = operand.getCommonLabel();
-            auto size = operand.size();
+            auto selectedValuesPos = operand.getSelectedValuesPos();
+            auto size = operand.getNumSelectedValues();
             for (uint64_t i = 0; i < size; i++) {
-                nodeID_t nodeID;
-                nodeID.offset = isSequence ? (values[0] + i) : values[i];
-                memcpy(&nodeID.label,
-                    isLabelCommon ? ((uint8_t*)&commonLabel) :
-                                    ((uint8_t*)values + (i * numBytesForNode) + numBytesForOffset),
-                    numBytesForLabel);
+                operand.readNodeOffsetAndLabel(selectedValuesPos[i], nodeID);
                 resultValues[i] = FUNC::operation(nodeID);
             }
         }

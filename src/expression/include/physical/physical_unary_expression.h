@@ -9,8 +9,7 @@ namespace expression {
 class PhysicalUnaryExpression : public PhysicalExpression {
 
 public:
-    PhysicalUnaryExpression(
-        unique_ptr<PhysicalExpression> child, const ExpressionType& expressionType);
+    PhysicalUnaryExpression(unique_ptr<PhysicalExpression> child, ExpressionType expressionType);
 
     void evaluate() override;
 

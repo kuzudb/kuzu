@@ -48,7 +48,7 @@ struct LessThanEquals {
     }
 };
 
-// Specialized operation(s).
+// Specialized operation(s) for bool (uint8_t).
 template<>
 inline uint8_t GreaterThan::operation(const uint8_t& left, const uint8_t& right) {
     return !right && left;
@@ -59,6 +59,38 @@ inline uint8_t LessThan::operation(const uint8_t& left, const uint8_t& right) {
     return !left && right;
 };
 
+// Specialized operation(s) for nodeID_t.
+template<>
+inline uint8_t Equals::operation(const nodeID_t& left, const nodeID_t& right) {
+    return left.label == right.label && left.offset == right.offset;
+};
+
+template<>
+inline uint8_t NotEquals::operation(const nodeID_t& left, const nodeID_t& right) {
+    return left.label != right.label && left.offset != right.offset;
+};
+
+template<>
+inline uint8_t GreaterThan::operation(const nodeID_t& left, const nodeID_t& right) {
+    return left.label > right.label || (left.label == right.label && left.offset > right.offset);
+};
+
+template<>
+inline uint8_t GreaterThanEquals::operation(const nodeID_t& left, const nodeID_t& right) {
+    return left.label >= right.label || (left.label == right.label && left.offset >= right.offset);
+};
+
+template<>
+inline uint8_t LessThan::operation(const nodeID_t& left, const nodeID_t& right) {
+    return left.label < right.label || (left.label == right.label && left.offset < right.offset);
+};
+
+template<>
+inline uint8_t LessThanEquals::operation(const nodeID_t& left, const nodeID_t& right) {
+    return left.label <= right.label || (left.label == right.label && left.offset <= right.offset);
+};
+
+// Specialized operation(s) for gf_string_t.
 struct StringComparisonOperators {
     template<bool INVERSE>
     static inline bool EqualsOrNot(const gf_string_t& left, const gf_string_t& right) {

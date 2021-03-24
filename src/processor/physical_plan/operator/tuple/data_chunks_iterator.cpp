@@ -24,7 +24,7 @@ bool DataChunksIterator::updateTuplePositions(int64_t chunkIdx) {
         return false;
     }
     tuplePositions[chunkIdx] = tuplePositions[chunkIdx] + 1;
-    if (tuplePositions[chunkIdx] == dataChunks.getDataChunk(chunkIdx)->getNumTuples()) {
+    if (tuplePositions[chunkIdx] == dataChunks.getDataChunk(chunkIdx)->size) {
         tuplePositions[chunkIdx] = 0;
         return false;
     }

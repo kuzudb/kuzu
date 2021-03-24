@@ -3,12 +3,12 @@
 namespace graphflow {
 namespace processor {
 
-AdjListExtend::AdjListExtend(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
-    BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator)
+AdjListExtend::AdjListExtend(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseLists* lists,
+    unique_ptr<PhysicalOperator> prevOperator)
     : ListReader{dataChunkPos, valueVectorPos, lists, move(prevOperator)} {
     outValueVector =
         make_shared<NodeIDVector>(((Lists<nodeID_t>*)lists)->getNodeIDCompressionScheme());
-    outDataChunk = make_shared<DataChunk>();
+    outDataChunk = make_shared<DataChunk>(true /* initializeSelectedValuesPos */);
     outDataChunk->append(outValueVector);
     auto listSyncState = make_shared<ListSyncState>();
     dataChunks->append(outDataChunk, listSyncState);

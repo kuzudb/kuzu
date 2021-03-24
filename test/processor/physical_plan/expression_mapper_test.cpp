@@ -8,17 +8,13 @@ using namespace graphflow::expression;
 
 TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
     auto propertyExpression =
-        make_unique<LogicalExpression>(ExpressionType::VARIABLE, DataType::INT32, "a.prop");
+        make_unique<LogicalExpression>(ExpressionType::PROPERTY, DataType::INT32, "a.prop");
     auto literal = Literal(5);
     auto literalExpression =
         make_unique<LogicalExpression>(ExpressionType::LITERAL_INT, DataType::INT32, literal);
 
     auto addLogicalOperator = make_unique<LogicalExpression>(
-            ExpressionType::ADD, DataType::INT32, move(propertyExpression), move(literalExpression));
-
-    auto physicalOperatorInfo = PhysicalOperatorsInfo();
-    auto dataChunks = DataChunks();
-    physicalOperatorInfo.put("a.prop", 0 /*dataChunkPos*/, 0 /*valueVectorPos*/);
+        ExpressionType::ADD, DataType::INT32, move(propertyExpression), move(literalExpression));
 
     auto valueVector = make_shared<ValueVector>(INT32, 100);
     auto values = (int32_t*)valueVector->getValues();
@@ -27,29 +23,30 @@ TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
     }
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->size = 100;
+    dataChunk->numSelectedValues = 100;
     valueVector->setDataChunkOwner(dataChunk);
     dataChunk->append(valueVector);
+
+    auto physicalOperatorInfo = PhysicalOperatorsInfo();
+    physicalOperatorInfo.put("a.prop", 0 /*dataChunkPos*/, 0 /*valueVectorPos*/);
+    auto dataChunks = DataChunks();
     dataChunks.append(dataChunk);
 
-    auto rootPhysicalExpression = ExpressionMapper::mapToPhysical(
-        *addLogicalOperator, physicalOperatorInfo, dataChunks);
+    auto rootPhysicalExpression =
+        ExpressionMapper::mapToPhysical(*addLogicalOperator, physicalOperatorInfo, dataChunks);
     rootPhysicalExpression->evaluate();
 
-    auto resultValues = (int32_t*)rootPhysicalExpression->getResult()->getValues();
+    auto results = (int32_t*)rootPhysicalExpression->result->getValues();
     for (auto i = 0u; i < 100; i++) {
-        ASSERT_EQ(resultValues[i], i + 5);
+        ASSERT_EQ(results[i], i + 5);
     }
 }
 
 TEST(ExpressionTests, UnaryPhysicalExpressionTest) {
     auto propertyExpression =
-        make_unique<LogicalExpression>(ExpressionType::VARIABLE, DataType::INT32, "a.prop");
+        make_unique<LogicalExpression>(ExpressionType::PROPERTY, DataType::INT32, "a.prop");
     auto negateLogicalOperator =
         make_unique<LogicalExpression>(ExpressionType::NEGATE, DataType::INT32, move(propertyExpression));
-
-    auto physicalOperatorInfo = PhysicalOperatorsInfo();
-    auto dataChunks = DataChunks();
-    physicalOperatorInfo.put("a.prop", 0 /*dataChunkPos*/, 0 /*valueVectorPos*/);
 
     auto valueVector = make_shared<ValueVector>(INT32, 100);
     auto values = (int32_t*)valueVector->getValues();
@@ -63,22 +60,26 @@ TEST(ExpressionTests, UnaryPhysicalExpressionTest) {
     }
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->size = 100;
+    dataChunk->numSelectedValues = 100;
     valueVector->setDataChunkOwner(dataChunk);
     dataChunk->append(valueVector);
+
+    auto physicalOperatorInfo = PhysicalOperatorsInfo();
+    physicalOperatorInfo.put("a.prop", 0 /*dataChunkPos*/, 0 /*valueVectorPos*/);
+    auto dataChunks = DataChunks();
     dataChunks.append(dataChunk);
 
-    auto rootPhysicalExpression = ExpressionMapper::mapToPhysical(
-        *negateLogicalOperator, physicalOperatorInfo, dataChunks);
+    auto rootPhysicalExpression =
+        ExpressionMapper::mapToPhysical(*negateLogicalOperator, physicalOperatorInfo, dataChunks);
     rootPhysicalExpression->evaluate();
 
-    auto result = rootPhysicalExpression->getResult();
-    auto resultValues = (int32_t*)result->getValues();
+    auto results = (int32_t*)rootPhysicalExpression->result->getValues();
     for (auto i = 0u; i < 100; i++) {
         int32_t value = i;
         if (i % 2ul == 0ul) {
-            ASSERT_EQ(resultValues[i], -value);
+            ASSERT_EQ(results[i], -value);
         } else {
-            ASSERT_EQ(resultValues[i], value);
+            ASSERT_EQ(results[i], value);
         }
     }
 }

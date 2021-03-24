@@ -4,7 +4,7 @@ namespace graphflow {
 namespace storage {
 
 void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
+    const shared_ptr<ValueVector>& valueVector, uint64_t size,
     const unique_ptr<ColumnOrListsHandle>& handle) {
     if (nodeIDVector->getIsSequence()) {
         nodeID_t nodeID;
@@ -28,25 +28,27 @@ void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
 }
 
 void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
+    const shared_ptr<ValueVector>& valueVector, uint64_t size,
     const unique_ptr<ColumnOrListsHandle>& handle) {
     reclaim(handle);
     valueVector->reset();
     nodeID_t nodeID;
     auto values = valueVector->getValues();
-    auto ValuesOffset = 0;
-    for (uint64_t i = 0; i < size; i++) {
-        nodeIDVector->readNodeOffset(i, nodeID);
+    auto selectedValPos = valueVector->getSelectedValuesPos();
+    auto numSelectedValues = valueVector->getNumSelectedValues();
+    auto sizeToCopy = numSelectedValues < size ? numSelectedValues : size;
+    for (uint64_t i = 0; i < sizeToCopy; i++) {
+        nodeIDVector->readNodeOffset(selectedValPos[i], nodeID);
         auto pageIdx = getPageIdx(nodeID.offset);
         auto frame = bufferManager.pin(fileHandle, pageIdx);
-        memcpy(values + ValuesOffset, frame + getPageOffset(nodeID.offset), elementSize);
+        memcpy(values + selectedValPos[i] * elementSize, frame + getPageOffset(nodeID.offset),
+            elementSize);
         bufferManager.unpin(fileHandle, pageIdx);
-        ValuesOffset += elementSize;
     }
 }
 
 void Column<gf_string_t>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
+    const shared_ptr<ValueVector>& valueVector, uint64_t size,
     const unique_ptr<ColumnOrListsHandle>& handle) {
     if (nodeIDVector->getIsSequence()) {
         nodeID_t nodeID;
@@ -63,8 +65,9 @@ void Column<gf_string_t>::readValues(const shared_ptr<NodeIDVector>& nodeIDVecto
     readStringsFromOverflowPages(valueVector, size);
 }
 
+// TODO: check selectors in the overflow pages as well.
 void Column<gf_string_t>::readStringsFromOverflowPages(
-    const shared_ptr<ValueVector>& valueVector, const uint64_t& size) {
+    const shared_ptr<ValueVector>& valueVector, uint64_t size) {
     auto values = valueVector->getValues();
     uint64_t overflowPtr = size * sizeof(gf_string_t);
     size_t sizeNeededForOverflowStrings = size * sizeof(gf_string_t);

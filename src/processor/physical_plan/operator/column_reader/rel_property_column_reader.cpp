@@ -3,11 +3,12 @@
 namespace graphflow {
 namespace processor {
 
-RelPropertyColumnReader::RelPropertyColumnReader(const uint64_t& dataChunkPos,
-    const uint64_t& valueVectorPos, BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator)
+RelPropertyColumnReader::RelPropertyColumnReader(uint64_t dataChunkPos, uint64_t valueVectorPos,
+    BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator)
     : ColumnReader{dataChunkPos, valueVectorPos, column, move(prevOperator)} {
     outValueVector = make_shared<ValueVector>(column->getDataType());
     inDataChunk->append(outValueVector);
+    outValueVector->setDataChunkOwner(inDataChunk);
 }
 
 } // namespace processor

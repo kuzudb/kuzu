@@ -135,7 +135,7 @@ void HashTable::addDataChunks(
     }
 
     // Allocate space for tuples
-    auto numTuplesToAppend = keyDataChunk.isFlat() ? 1 : keyDataChunk.getNumTuples();
+    auto numTuplesToAppend = keyDataChunk.isFlat() ? 1 : keyDataChunk.size;
     vector<BlockAppendInfo> blockAppendInfos;
     allocateHTBlocks(numTuplesToAppend, blockAppendInfos);
 
@@ -143,7 +143,7 @@ void HashTable::addDataChunks(
     auto tupleAppendOffset = 0; // The start offset of each field inside the tuple.
     // Append key vector
     auto keyVector = static_pointer_cast<NodeIDVector>(keyDataChunk.getValueVector(keyVectorIdx));
-    auto keyValOffsetInVec = keyDataChunk.isFlat() ? keyDataChunk.getCurrPos() : 0;
+    auto keyValOffsetInVec = keyDataChunk.isFlat() ? keyDataChunk.currPos : 0;
     for (auto& blockAppendInfo : blockAppendInfos) {
         auto blockAppendPtr = blockAppendInfo.buffer + tupleAppendOffset;
         auto blockAppendCount = blockAppendInfo.numEntries;
@@ -159,7 +159,7 @@ void HashTable::addDataChunks(
         }
         // Append payload vectors in the keyDataChunk
         auto payloadVector = keyDataChunk.getValueVector(i);
-        auto valOffsetInVec = keyDataChunk.isFlat() ? keyDataChunk.getCurrPos() : 0;
+        auto valOffsetInVec = keyDataChunk.isFlat() ? keyDataChunk.currPos : 0;
         for (auto& blockAppendInfo : blockAppendInfos) {
             auto blockAppendPtr = blockAppendInfo.buffer + tupleAppendOffset;
             auto blockAppendCount = blockAppendInfo.numEntries;
@@ -241,5 +241,6 @@ uint64_t HashTable::probeDirectory(NodeIDVector& keyVector, uint8_t** probedTupl
     }
     return keyCount;
 }
+
 } // namespace processor
 } // namespace graphflow

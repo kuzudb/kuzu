@@ -8,8 +8,8 @@ namespace processor {
 class AdjListExtend : public ListReader {
 
 public:
-    AdjListExtend(const uint64_t& inDataChunkIdx, const uint64_t& inValueVectorIdx,
-        BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator);
+    AdjListExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, BaseLists* lists,
+        unique_ptr<PhysicalOperator> prevOperator);
 };
 
 } // namespace processor
