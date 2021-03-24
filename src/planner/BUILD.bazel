@@ -1,6 +1,23 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 cc_library(
+    name = "enumerator",
+    srcs = [
+        "enumerator.cpp",
+        "subgraph_plan_table.cpp",
+    ],
+    hdrs = [
+        "include/enumerator.h",
+        "include/subgraph_plan_table.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "binder",
+        "logical_plan",
+    ],
+)
+
+cc_library(
     name = "binder",
     srcs = [
         "binder.cpp",
@@ -52,6 +69,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/common",
-        "//src/expression"
+        "//src/expression",
     ],
 )

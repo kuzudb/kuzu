@@ -8,12 +8,14 @@ namespace planner {
 class LogicalPlan {
 
 public:
-    LogicalPlan(unique_ptr<LogicalOperator> lastOperator) : lastOperator{move(lastOperator)} {}
+    LogicalPlan(shared_ptr<LogicalOperator> lastOperator) : lastOperator{lastOperator} {}
 
-    unique_ptr<LogicalOperator> getLastOperator() { return move(lastOperator); }
+    LogicalPlan(const string& path);
+
+    const LogicalOperator& getLastOperator() { return *lastOperator; }
 
 private:
-    unique_ptr<LogicalOperator> lastOperator;
+    shared_ptr<LogicalOperator> lastOperator;
 };
 
 } // namespace planner

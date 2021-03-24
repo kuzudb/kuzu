@@ -15,7 +15,7 @@ class Binder {
 public:
     explicit Binder(const Catalog& catalog) : catalog{catalog} {}
 
-    vector<unique_ptr<BoundMatchStatement>> bindSingleQuery(const SingleQuery& singleQuery);
+    unique_ptr<QueryGraph> bindSingleQuery(const SingleQuery& singleQuery);
 
 private:
     unique_ptr<BoundMatchStatement> bindStatement(const MatchStatement& matchStatement);
@@ -27,9 +27,9 @@ private:
 
     QueryNode* bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph);
 
-    int bindRelLabel(const string& parsed_label);
+    label_t bindRelLabel(const string& parsed_label);
 
-    int bindNodeLabel(const string& parsed_label);
+    label_t bindNodeLabel(const string& parsed_label);
 
     void bindNodeToRel(QueryRel* queryRel, QueryNode* queryNode, bool isSrcNode);
 

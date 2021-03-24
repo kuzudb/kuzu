@@ -13,8 +13,8 @@ class LogicalNodePropertyReader : public LogicalOperator {
 
 public:
     LogicalNodePropertyReader(const string& nodeVarName, const string& nodeLabel,
-        const string& propertyName, unique_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, nodeVarName{nodeVarName}, nodeLabel{nodeLabel},
+        const string& propertyName, shared_ptr<LogicalOperator> prevOperator)
+        : LogicalOperator{prevOperator}, nodeVarName{nodeVarName}, nodeLabel{nodeLabel},
           propertyName{propertyName} {}
 
     LogicalOperatorType getLogicalOperatorType() const {

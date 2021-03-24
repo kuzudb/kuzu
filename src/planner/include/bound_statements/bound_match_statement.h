@@ -11,6 +11,8 @@ public:
     explicit BoundMatchStatement(unique_ptr<QueryGraph> queryGraph)
         : queryGraph{move(queryGraph)} {}
 
+    QueryGraph& getQueryGraph() { return *queryGraph; }
+
     bool operator==(const BoundMatchStatement& other) const {
         return *queryGraph == *other.queryGraph;
     }

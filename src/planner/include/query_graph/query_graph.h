@@ -11,9 +11,10 @@ namespace graphflow {
 namespace planner {
 
 class QueryGraph {
+    friend void mergeQueryGraphs(QueryGraph& mergedQueryGraph, QueryGraph& otherQueryGraph);
 
 public:
-    int numQueryNodes() const;
+    uint numQueryNodes() const;
 
     bool containsQueryNode(const string& nodeName) const;
 
@@ -21,15 +22,20 @@ public:
 
     void addQueryNode(unique_ptr<QueryNode> queryNode);
 
-    int numQueryRels() const;
+    uint numQueryRels() const;
 
     bool containsQueryRel(const string& relName) const;
+
+    vector<QueryRel*> getQueryRels() const;
 
     QueryRel* getQueryRel(const string& relName) const;
 
     void addQueryRel(unique_ptr<QueryRel> queryRel);
 
-    bool isConnected() const;
+    vector<pair<const QueryRel*, bool>> getConnectedQueryRelsWithDirection(
+        const unordered_set<string>& queryRelNames) const;
+
+    bool isConnected();
 
     bool operator==(const QueryGraph& other) const;
 

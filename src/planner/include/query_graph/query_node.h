@@ -3,21 +3,26 @@
 #include <string>
 #include <utility>
 
+#include "src/common/include/types.h"
+
+using namespace graphflow::common;
 using namespace std;
 
 namespace graphflow {
 namespace planner {
 
-const int ANY_LABEL = -1;
+const label_t ANY_LABEL = numeric_limits<uint32_t>::max();
 
 class QueryNode {
 
 public:
-    QueryNode(string name, int label) : name{move(name)}, label{label} {}
+    QueryNode(string name, label_t label) : name{move(name)}, label{label} {}
 
     string getName() const { return name; }
 
-    int getLabel() const { return label; }
+    label_t getLabel() const { return label; }
+
+    void setLabel(label_t label) { this->label = label; }
 
     bool operator==(const QueryNode& other) const {
         return name == other.name && label == other.label;
@@ -25,7 +30,7 @@ public:
 
 private:
     string name;
-    int label;
+    label_t label;
 };
 
 } // namespace planner

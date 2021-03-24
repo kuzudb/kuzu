@@ -70,7 +70,7 @@ cc_library(
 
 cc_library(
     name = "catalog",
-    srcs = [],
+    srcs = ["catalog.cpp"],
     hdrs = ["include/catalog.h"],
     visibility = ["//visibility:public"],
     deps = [

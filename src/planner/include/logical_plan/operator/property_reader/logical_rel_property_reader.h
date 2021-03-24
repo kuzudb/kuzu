@@ -17,8 +17,8 @@ public:
     LogicalRelPropertyReader(const string& boundNodeVarName, const string& boundNodeVarLabel,
         const string& nbrNodeVarName, const string& nbrNodeVarLabel, const string& relLabel,
         const Direction& direction, const string& propertyName,
-        unique_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, boundNodeVarName{boundNodeVarName},
+        shared_ptr<LogicalOperator> prevOperator)
+        : LogicalOperator{prevOperator}, boundNodeVarName{boundNodeVarName},
           boundNodeVarLabel{boundNodeVarLabel}, nbrNodeVarName{nbrNodeVarName},
           nbrNodeVarLabel{nbrNodeVarLabel}, relLabel{relLabel}, direction{direction},
           propertyName{propertyName} {}
