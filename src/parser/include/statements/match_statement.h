@@ -16,6 +16,10 @@ public:
 
     const PatternElement& getPatternElement(int idx) const { return *graphPattern[idx]; }
 
+    bool hasWhereClause() const { return nullptr != whereClause; }
+
+    const ParsedExpression& getWhereClasue() const { return *whereClause; }
+
     void setWhereClause(unique_ptr<ParsedExpression> whereClause) {
         this->whereClause = move(whereClause);
     }

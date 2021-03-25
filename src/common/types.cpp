@@ -26,6 +26,21 @@ DataType getDataType(const std::string& dataTypeString) {
     throw invalid_argument("Cannot parse dataType: " + dataTypeString);
 }
 
+string dataTypeToString(DataType dataType) {
+    return DataTypeNames[dataType];
+}
+
+bool isNumericalType(DataType dataType) {
+    switch (dataType) {
+    case INT32:
+    case INT64:
+    case DOUBLE:
+        return true;
+    default:
+        return false;
+    }
+}
+
 size_t getDataTypeSize(DataType dataType) {
     switch (dataType) {
     case LABEL:

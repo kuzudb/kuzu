@@ -26,6 +26,14 @@ public:
         children.push_back(move(right));
     }
 
+    ExpressionType getType() const { return type; }
+
+    string getText() const { return text; }
+
+    uint32_t getNumChildren() const { return children.size(); }
+
+    const ParsedExpression& getChildren(uint32_t idx) const { return *children.at(idx); }
+
     void addChild(unique_ptr<ParsedExpression> child) { children.push_back(move(child)); }
 
     bool operator==(const ParsedExpression& other) {

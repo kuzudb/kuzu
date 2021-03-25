@@ -9,13 +9,12 @@ static void rebindSrcAndDstNode(QueryRel* queryRel, const QueryGraph& queryGraph
 
 void mergeQueryGraphs(QueryGraph& mergedQueryGraph, QueryGraph& otherQueryGraph);
 
-unique_ptr<QueryGraph> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
-    auto mergedQueryGraph = make_unique<QueryGraph>();
-    for (auto i = 0u; i < singleQuery.getNumStatements(); ++i) {
-        mergeQueryGraphs(
-            *mergedQueryGraph, bindStatement(singleQuery.getMatchStatement(i))->getQueryGraph());
+vector<unique_ptr<BoundMatchStatement>> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
+    vector<unique_ptr<BoundMatchStatement>> boundStatements;
+    for (auto i = 0; i < singleQuery.getNumStatements(); ++i) {
+        boundStatements.push_back(bindStatement(singleQuery.getMatchStatement(i)));
     }
-    return mergedQueryGraph;
+    return boundStatements;
 }
 
 unique_ptr<BoundMatchStatement> Binder::bindStatement(const MatchStatement& matchStatement) {
@@ -25,6 +24,11 @@ unique_ptr<BoundMatchStatement> Binder::bindStatement(const MatchStatement& matc
     }
     if (!queryGraph->isConnected()) {
         throw invalid_argument("Disconnected query graph is not yet supported.");
+    }
+    if (matchStatement.hasWhereClause()) {
+        auto expressionBinder = make_unique<ExpressionBinder>(*queryGraph, catalog);
+        return make_unique<BoundMatchStatement>(
+            move(queryGraph), expressionBinder->bindExpression(matchStatement.getWhereClasue()));
     }
     return make_unique<BoundMatchStatement>(move(queryGraph));
 }

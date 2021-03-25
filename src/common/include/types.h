@@ -95,6 +95,10 @@ size_t getDataTypeSize(DataType dataType);
 
 DataType getDataType(const std::string& dataTypeString);
 
+string dataTypeToString(DataType dataType);
+
+bool isNumericalType(DataType dataType);
+
 // Rel Label Cardinality
 enum Cardinality : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
 const string CardinalityNames[] = {"MANY_MANY", "MANY_ONE", "ONE_MANY", "ONE_ONE"};
