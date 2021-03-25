@@ -3,7 +3,7 @@
 namespace graphflow {
 namespace planner {
 
-uint QueryGraph::numQueryNodes() const {
+uint32_t QueryGraph::numQueryNodes() const {
     return nameToQueryNodeMap.size();
 }
 
@@ -19,7 +19,7 @@ void QueryGraph::addQueryNode(unique_ptr<QueryNode> queryNode) {
     nameToQueryNodeMap.insert({queryNode->getName(), move(queryNode)});
 }
 
-uint QueryGraph::numQueryRels() const {
+uint32_t QueryGraph::numQueryRels() const {
     return nameToQueryRelMap.size();
 }
 

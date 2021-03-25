@@ -11,7 +11,8 @@ namespace processor {
 
 class DataChunksIterator {
 public:
-    DataChunksIterator(DataChunks& dataChunks) : dataChunks(dataChunks), numIteratedTuples(0) {
+    explicit DataChunksIterator(DataChunks& dataChunks)
+        : dataChunks(dataChunks), numIteratedTuples(0) {
         initializeTuplePositions();
     }
 

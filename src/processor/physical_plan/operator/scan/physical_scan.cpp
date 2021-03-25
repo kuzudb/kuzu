@@ -10,6 +10,7 @@ PhysicalScan::PhysicalScan(shared_ptr<MorselDesc>& morsel) : morsel{morsel} {
     nodeIDVector = make_shared<NodeIDSequenceVector>();
     outDataChunk = make_shared<DataChunk>();
     outDataChunk->append(nodeIDVector);
+    nodeIDVector->setDataChunkOwner(outDataChunk);
     dataChunks->append(outDataChunk);
 }
 
@@ -22,7 +23,7 @@ bool PhysicalScan::hasNextMorsel() {
         return false;
     } else {
         currentMorselStartOffset = morsel->currNodeOffset;
-        currentMorselSize = min((uint64_t)ValueVector::NODE_SEQUENCE_VECTOR_SIZE,
+        currentMorselSize = min((uint64_t)ValueVector::DEFAULT_VECTOR_SIZE,
             morsel->numNodes - currentMorselStartOffset);
         morsel->currNodeOffset += currentMorselSize;
         return true;

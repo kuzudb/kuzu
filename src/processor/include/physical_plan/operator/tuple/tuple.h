@@ -10,7 +10,7 @@ namespace processor {
 class Tuple {
 
 public:
-    Tuple(vector<DataType> valueTypes) {
+    explicit Tuple(const vector<DataType>& valueTypes) {
         for (auto& valueType : valueTypes) {
             auto value = make_unique<Literal>(valueType);
             values.push_back(move(value));

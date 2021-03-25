@@ -12,10 +12,10 @@ namespace graphflow {
 namespace processor {
 
 struct PayloadInfo {
-    PayloadInfo(uint32_t elementSize, bool isStoredAsOverflow)
-        : elementSize(elementSize), isStoredAsOverflow(isStoredAsOverflow) {}
+    PayloadInfo(uint32_t numBytesPerValue, bool isStoredAsOverflow)
+        : numBytesPerValue(numBytesPerValue), isStoredAsOverflow(isStoredAsOverflow) {}
 
-    uint32_t elementSize;
+    uint32_t numBytesPerValue;
     bool isStoredAsOverflow;
 };
 
@@ -29,11 +29,6 @@ struct BlockAppendInfo {
 
 constexpr const uint64_t HT_BLOCK_SIZE = 262144; // By default, block size is 256KB
 
-struct HTProbeStateForTestingOnly {
-    unique_ptr<uint8_t*[]> pointers;
-    uint64_t numEntries;
-};
-
 //! The HashTable data structure for HashJoin. for now, we assume hash only happens on nodeId.
 //! Layout of tuple in blocks: |key|payload|prev|.
 //! Inside payload, variable-sized values are stored in overflowBlocks.
@@ -42,17 +37,20 @@ public:
     HashTable(MemoryManager& memoryManager, vector<PayloadInfo>& payloadInfos);
 
     void addDataChunks(
-        DataChunk& keyDataChunk, uint64_t keyVectorIdx, DataChunks& payloadDataChunks);
-    void buildHTDirectory();
-    unique_ptr<HTProbeStateForTestingOnly> probeForTestingOnly(
-        DataChunk& keyChunk, NodeIDVector& keyVector);
+        DataChunk& keyDataChunk, uint64_t keyVectorIdx, DataChunks& nonKeyDataChunks);
+    void buildDirectory();
+    // For each probe keyVector[i]=k, this function fills the probedTuples[i] with the pointer from
+    // the slot that has hash(k) in directory, without checking the actual key value. Checking the
+    // key values is left to the caller.
+    uint64_t probeDirectory(NodeIDVector& keyVector, uint8_t** probedTuples);
+
+    uint64_t numBytesForFixedTuplePart;
 
 private:
     MemoryManager& memoryManager;
 
     uint64_t numEntries;
     uint64_t hashBitMask;
-    uint64_t numBytesForFixedTuplePart;
     uint64_t htBlockCapacity;
 
     // The main memory blocks holding |key|payload|prev| fields
