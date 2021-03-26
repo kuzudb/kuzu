@@ -3,16 +3,18 @@
 namespace graphflow {
 namespace expression {
 
-LogicalExpression::LogicalExpression(ExpressionType expressionType,
+LogicalExpression::LogicalExpression(ExpressionType expressionType, DataType dataType,
     unique_ptr<LogicalExpression> left, unique_ptr<LogicalExpression> right) {
     childrenExpr.push_back(move(left));
     childrenExpr.push_back(move(right));
+    this->dataType = dataType;
     this->expressionType = expressionType;
 }
 
 LogicalExpression::LogicalExpression(
-    ExpressionType expressionType, unique_ptr<LogicalExpression> child) {
+    ExpressionType expressionType, DataType dataType, unique_ptr<LogicalExpression> child) {
     childrenExpr.push_back(move(child));
+    this->dataType = dataType;
     this->expressionType = expressionType;
 }
 

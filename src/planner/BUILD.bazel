@@ -21,14 +21,17 @@ cc_library(
     name = "binder",
     srcs = [
         "binder.cpp",
+        "expression_binder.cpp",
     ],
     hdrs = [
         "include/binder.h",
+        "include/expression_binder.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "bound_statement",
         "query_graph",
+        "//src/expression",
         "//src/parser",
         "//src/storage:catalog",
     ],

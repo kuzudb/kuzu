@@ -10,6 +10,7 @@ string Literal::toString() const {
     case BOOL:
         return primitive.boolean ? "True" : "False";
     case INT32:
+    case INT64:
         return to_string(primitive.integer);
     case DOUBLE:
         return to_string(primitive.double_);

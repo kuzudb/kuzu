@@ -7,10 +7,6 @@ namespace common {
 
 enum ExpressionType {
 
-    // -----------------------------------------
-    // Non Leaf Expression
-    // -----------------------------------------
-
     /**
      * Boolean Connection Expressions
      **/
@@ -73,10 +69,6 @@ enum ExpressionType {
      **/
     FUNCTION = 63,
 
-    // ------------------------------
-    // Leaf Expression
-    // ------------------------------
-
     /**
      * Literal Expressions
      **/
@@ -99,6 +91,8 @@ bool isExpressionLeafVariable(ExpressionType type);
 DataType getUnaryExpressionResultDataType(ExpressionType type, DataType operandType);
 DataType getBinaryExpressionResultDataType(
     ExpressionType type, DataType leftOperandType, DataType rightOperandType);
+
+string expressionTypeToString(ExpressionType type);
 
 } // namespace common
 } // namespace graphflow

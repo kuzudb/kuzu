@@ -14,11 +14,12 @@ class LogicalExpression {
 
 public:
     // creates a non-leaf logical binary expression.
-    LogicalExpression(ExpressionType expressionType, unique_ptr<LogicalExpression> left,
-        unique_ptr<LogicalExpression> right);
+    LogicalExpression(ExpressionType expressionType, DataType dataType,
+        unique_ptr<LogicalExpression> left, unique_ptr<LogicalExpression> right);
 
     // creates a non-leaf logical unary expression.
-    LogicalExpression(ExpressionType expressionType, unique_ptr<LogicalExpression> child);
+    LogicalExpression(
+        ExpressionType expressionType, DataType dataType, unique_ptr<LogicalExpression> child);
 
     // creates a leaf variable expression.
     LogicalExpression(ExpressionType expressionType, DataType dataType, const string& variableName);

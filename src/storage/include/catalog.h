@@ -34,23 +34,10 @@ class Catalog {
 public:
     Catalog(const string& directory);
 
-    // This constructor is used for Binder unit tests
-    Catalog(stringToLabelMap_t stringToNodeLabelMap, stringToLabelMap_t stringToRelLabelMap,
-        vector<vector<label_t>> srcNodeLabelToRelLabel,
-        vector<vector<label_t>> dstNodeLabelToRelLabel,
-        vector<vector<label_t>> relLabelToSrcNodeLabels,
-        vector<vector<label_t>> relLabelToDstNodeLabels)
-        : stringToNodeLabelMap{move(stringToNodeLabelMap)}, stringToRelLabelMap{move(
-                                                                stringToRelLabelMap)},
-          relLabelToSrcNodeLabels{move(relLabelToSrcNodeLabels)}, relLabelToDstNodeLabels{move(
-                                                                      relLabelToDstNodeLabels)},
-          srcNodeLabelToRelLabel{move(srcNodeLabelToRelLabel)}, dstNodeLabelToRelLabel{
-                                                                    move(dstNodeLabelToRelLabel)} {}
-
     inline const uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
     inline const uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
 
-    inline const bool containNodeLabel(const char* label) const {
+    inline bool containNodeLabel(const char* label) const {
         return end(stringToNodeLabelMap) != stringToNodeLabelMap.find(label);
     }
 
@@ -58,7 +45,7 @@ public:
         return stringToNodeLabelMap.at(label);
     }
 
-    inline const bool containRelLabel(const char* label) const {
+    inline bool containRelLabel(const char* label) const {
         return end(stringToRelLabelMap) != stringToRelLabelMap.find(label);
     }
 
@@ -75,10 +62,33 @@ public:
         return relPropertyMaps[relLabel];
     }
 
+    inline bool containNodeProperty(label_t nodeLabel, const string& propertyName) const {
+        auto& nodeProperties = getPropertyMapForNodeLabel(nodeLabel);
+        return end(nodeProperties) != nodeProperties.find(propertyName);
+    }
+
+    inline const DataType& getNodePropertyTypeFromString(
+        label_t nodeLabel, const string& propertyName) const {
+        auto& nodeProperties = getPropertyMapForNodeLabel(nodeLabel);
+        return nodeProperties.at(propertyName).dataType;
+    }
+
     inline const uint32_t& getNodePropertyKeyFromString(
         const label_t& nodeLabel, const string& name) const {
         return getPropertyMapForNodeLabel(nodeLabel).at(name).idx;
     }
+
+    inline bool containRelProperty(label_t relLabel, const string& propertyName) const {
+        auto relProperties = getPropertyMapForRelLabel(relLabel);
+        return end(relProperties) != relProperties.find(propertyName);
+    }
+
+    inline const DataType& getRelPropertyTypeFromString(
+        label_t relLabel, const string& propertyName) const {
+        auto& relProperties = getPropertyMapForRelLabel(relLabel);
+        return relProperties.at(propertyName).dataType;
+    }
+
     inline const uint32_t& getRelPropertyKeyFromString(
         const label_t& relLabel, const string& name) const {
         return getPropertyMapForRelLabel(relLabel).at(name).idx;

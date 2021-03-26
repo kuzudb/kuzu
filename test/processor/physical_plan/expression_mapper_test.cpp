@@ -14,7 +14,7 @@ TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
         make_unique<LogicalExpression>(ExpressionType::LITERAL_INT, DataType::INT32, literal);
 
     auto addLogicalOperator = make_unique<LogicalExpression>(
-            ExpressionType::ADD, move(propertyExpression), move(literalExpression));
+            ExpressionType::ADD, DataType::INT32, move(propertyExpression), move(literalExpression));
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
     auto dataChunks = DataChunks();
@@ -45,7 +45,7 @@ TEST(ExpressionTests, UnaryPhysicalExpressionTest) {
     auto propertyExpression =
         make_unique<LogicalExpression>(ExpressionType::VARIABLE, DataType::INT32, "a.prop");
     auto negateLogicalOperator =
-        make_unique<LogicalExpression>(ExpressionType::NEGATE, move(propertyExpression));
+        make_unique<LogicalExpression>(ExpressionType::NEGATE, DataType::INT32, move(propertyExpression));
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
     auto dataChunks = DataChunks();
