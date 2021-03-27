@@ -65,6 +65,7 @@ cc_library(
         "include/logical_plan/logical_plan.h",
         "include/logical_plan/operator/extend/logical_extend.h",
         "include/logical_plan/operator/filter/logical_filter.h",
+        "include/logical_plan/operator/hash_join/logical_hash_join.h",
         "include/logical_plan/operator/logical_operator.h",
         "include/logical_plan/operator/property_reader/logical_node_property_reader.h",
         "include/logical_plan/operator/property_reader/logical_rel_property_reader.h",

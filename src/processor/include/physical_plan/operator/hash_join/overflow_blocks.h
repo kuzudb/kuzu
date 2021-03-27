@@ -3,6 +3,7 @@
 #include <cstdlib>
 
 #include "src/common/include/types.h"
+#include "src/common/include/vector/value_vector.h"
 #include "src/processor/include/memory_manager.h"
 
 using namespace graphflow::common;
@@ -18,7 +19,8 @@ class OverflowBlocks {
 public:
     explicit OverflowBlocks(MemoryManager& memoryManager) : memoryManager(memoryManager) {}
 
-    overflow_value_t addValue(uint8_t* valuePtr, uint64_t valueLength);
+    // Add a vector as an overflow value
+    overflow_value_t addVector(ValueVector& vector);
 
 private:
     MemoryManager& memoryManager;

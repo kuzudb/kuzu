@@ -4,7 +4,6 @@
 
 using namespace graphflow::processor;
 
-/*
 class DataChunksIteratorTest : public ::testing::Test {
 
 public:
@@ -45,6 +44,9 @@ public:
         dataChunkA->size = 100;
         dataChunkB->size = 100;
         dataChunkC->size = 100;
+        dataChunkA->numSelectedValues = 100;
+        dataChunkB->numSelectedValues = 100;
+        dataChunkC->numSelectedValues = 100;
         dataChunks.append(dataChunkA);
         dataChunks.append(dataChunkB);
         dataChunks.append(dataChunkC);
@@ -198,4 +200,29 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest4) {
     }
     ASSERT_EQ(tupleIndex, 1);
 }
-*/
+
+TEST_F(DataChunksIteratorTest, DataChunksIteratorTestWithSelector) {
+    auto vectorTypes = GetDataChunksTypes(dataChunks);
+    Tuple tuple(vectorTypes);
+
+    auto dataChunkA = dataChunks.getDataChunk(0);
+    auto dataChunkB = dataChunks.getDataChunk(1);
+    auto dataChunkC = dataChunks.getDataChunk(2);
+    dataChunkA->selectedValuesPos[1] = 5;
+    dataChunkA->currPos = 1;
+    dataChunkB->selectedValuesPos[10] = 15;
+    dataChunkB->currPos = 10;
+    dataChunkC->selectedValuesPos[20] = 25;
+    dataChunkC->currPos = 20;
+
+    auto tupleIndex = 0;
+    DataChunksIterator dataChunksIterator(dataChunks);
+    while (dataChunksIterator.hasNextTuple()) {
+        dataChunksIterator.getNextTuple(tuple);
+        string tupleStr = tuple.toString();
+        string expected = "18:5|10|28:15|7.000000|38:25|False";
+        ASSERT_EQ(tupleStr, expected);
+        tupleIndex++;
+    }
+    ASSERT_EQ(tupleIndex, 1);
+}

@@ -34,10 +34,6 @@ inline uint64_t Hash::operation(const unordered_set<string>& key) {
     return result;
 }
 
-struct DecompressNodeID {
-    static inline nodeID_t operation(nodeID_t nodeID) { return nodeID; }
-};
-
 } // namespace operation
 } // namespace common
 } // namespace graphflow

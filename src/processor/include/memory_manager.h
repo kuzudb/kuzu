@@ -29,10 +29,12 @@ private:
     unique_ptr<uint8_t[]> buffer;
 };
 
+constexpr uint64_t DEFAULT_MAX_MEMORY = 1 << 30;
+
 // Memory manager for allocating/reclaiming large intermediate memory blocks.
 class MemoryManager {
 public:
-    MemoryManager(int64_t maxMemory) : maxMemory(maxMemory), usedMemory(0) {}
+    MemoryManager(uint64_t maxMemory = DEFAULT_MAX_MEMORY) : maxMemory(maxMemory), usedMemory(0) {}
 
     int64_t getUsedMemory() { return usedMemory; }
 

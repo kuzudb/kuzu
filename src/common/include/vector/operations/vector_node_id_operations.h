@@ -20,5 +20,10 @@ struct VectorNodeIDCompareOperations {
     static void LessThanEquals(ValueVector& left, ValueVector& right, ValueVector& result);
 };
 
+struct VectorNodeIDOperations {
+    static void Hash(ValueVector& operand, ValueVector& result);
+    static void Decompress(ValueVector& operand, ValueVector& result);
+};
+
 } // namespace common
 } // namespace graphflow

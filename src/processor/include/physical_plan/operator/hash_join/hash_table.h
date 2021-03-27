@@ -37,7 +37,7 @@ public:
     HashTable(MemoryManager& memoryManager, vector<PayloadInfo>& payloadInfos);
 
     void addDataChunks(
-        DataChunk& keyDataChunk, uint64_t keyVectorIdx, DataChunks& nonKeyDataChunks);
+        DataChunk& keyDataChunk, uint64_t keyVectorPos, DataChunks& nonKeyDataChunks);
     void buildDirectory();
     // For each probe keyVector[i]=k, this function fills the probedTuples[i] with the pointer from
     // the slot that has hash(k) in directory, without checking the actual key value. Checking the
@@ -59,6 +59,8 @@ private:
     ValueVector hashVec;
     // The overflow memory blocks for variable-sized values in tuples
     OverflowBlocks overflowBlocks;
+
+    std::function<void(ValueVector&, ValueVector&)> hashNodeIDOp;
 
     void allocateHTBlocks(uint64_t remaining, vector<BlockAppendInfo>& tuplesAppendInfos);
 

@@ -28,8 +28,8 @@ TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
     dataChunk->append(valueVector);
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
-    physicalOperatorInfo.put("a.prop", 0 /*dataChunkPos*/, 0 /*valueVectorPos*/);
     auto dataChunks = DataChunks();
+    physicalOperatorInfo.appendAsNewDataChunk("a.prop");
     dataChunks.append(dataChunk);
 
     auto rootPhysicalExpression =
@@ -45,8 +45,8 @@ TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
 TEST(ExpressionTests, UnaryPhysicalExpressionTest) {
     auto propertyExpression =
         make_unique<LogicalExpression>(ExpressionType::PROPERTY, DataType::INT32, "a.prop");
-    auto negateLogicalOperator =
-        make_unique<LogicalExpression>(ExpressionType::NEGATE, DataType::INT32, move(propertyExpression));
+    auto negateLogicalOperator = make_unique<LogicalExpression>(
+        ExpressionType::NEGATE, DataType::INT32, move(propertyExpression));
 
     auto valueVector = make_shared<ValueVector>(INT32, 100);
     auto values = (int32_t*)valueVector->getValues();
@@ -65,8 +65,8 @@ TEST(ExpressionTests, UnaryPhysicalExpressionTest) {
     dataChunk->append(valueVector);
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
-    physicalOperatorInfo.put("a.prop", 0 /*dataChunkPos*/, 0 /*valueVectorPos*/);
     auto dataChunks = DataChunks();
+    physicalOperatorInfo.appendAsNewDataChunk("a.prop");
     dataChunks.append(dataChunk);
 
     auto rootPhysicalExpression =

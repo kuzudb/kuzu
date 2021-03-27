@@ -2,7 +2,6 @@
 
 #include <cassert>
 
-#include "src/common//include/vector/operations/vector_hash_operations.h"
 #include "src/common/include/operations/hash_operations.h"
 
 using namespace graphflow::common::operation;
@@ -33,26 +32,29 @@ HashTable::HashTable(MemoryManager& memoryManager, vector<PayloadInfo>& payloadI
                                               payloadInfo.numBytesPerValue);
     }
     htBlockCapacity = HT_BLOCK_SIZE / numBytesForFixedTuplePart;
+    hashNodeIDOp = ValueVector::getUnaryOperation(HASH_NODE_ID);
 }
 
 void HashTable::appendPayloadVectorAsFixSizedValues(ValueVector& vector, uint8_t* appendBuffer,
     uint64_t valueOffsetInVector, uint64_t appendCount, bool isSingleValue) const {
     auto typeSize = vector.getNumBytesPerValue();
+    auto selectedValuesPos = vector.getSelectedValuesPos();
     if (vector.getDataType() == NODE) {
         auto& nodeIDVec = dynamic_cast<NodeIDVector&>(vector);
         if (nodeIDVec.getIsSequence()) {
             auto startNodeOffset = ((node_offset_t*)vector.getValues())[0];
             for (uint64_t i = 0; i < appendCount; i++) {
-                auto nodeOffset = startNodeOffset + valueOffsetInVector + (i * (1 - isSingleValue));
+                auto valuePos = valueOffsetInVector + (i * (1 - isSingleValue));
+                auto nodeOffset = startNodeOffset + selectedValuesPos[valuePos];
                 memcpy(appendBuffer + (i * numBytesForFixedTuplePart), &nodeOffset, typeSize);
             }
             return;
         }
     }
     for (uint64_t i = 0; i < appendCount; i++) {
-        auto valueIndex = valueOffsetInVector + (i * (1 - isSingleValue));
+        auto valuePos = valueOffsetInVector + (i * (1 - isSingleValue));
         memcpy(appendBuffer + (i * numBytesForFixedTuplePart),
-            vector.getValues() + (valueIndex * typeSize), typeSize);
+            vector.getValues() + (selectedValuesPos[valuePos] * typeSize), typeSize);
     }
 }
 
@@ -62,8 +64,7 @@ void HashTable::appendPayloadVectorAsOverflowValue(
     ValueVector& vector, uint8_t* appendBuffer, uint64_t appendCount) {
     assert(
         !((vector.getDataType() == NODE) && (dynamic_cast<NodeIDVector&>(vector).getIsSequence())));
-    auto typeSize = vector.getNumBytesPerValue();
-    auto overflowValue = overflowBlocks.addValue(vector.getValues(), vector.size() * typeSize);
+    auto overflowValue = overflowBlocks.addVector(vector);
     for (uint64_t i = 0; i < appendCount; i++) {
         memcpy(appendBuffer + (i * numBytesForFixedTuplePart), (void*)&overflowValue,
             sizeof(overflow_value_t));
@@ -79,9 +80,10 @@ void HashTable::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
     auto labelSize = isLabelCommon ? sizeof(label_t) : compressionScheme.getNumBytesForLabel();
     auto commonLabel = vector.getCommonLabel();
     auto startNodeOffset = ((node_offset_t*)vector.getValues())[0];
+    auto selectedValuesPos = vector.getSelectedValuesPos();
     if (vector.getIsSequence()) {
         for (uint64_t i = 0; i < appendCount; i++) {
-            auto nodeOffset = startNodeOffset + valueOffsetInVector + i;
+            auto nodeOffset = startNodeOffset + selectedValuesPos[valueOffsetInVector + i];
             memcpy(appendBuffer, &nodeOffset, offsetSize);
             memcpy(appendBuffer + sizeof(node_offset_t), (uint8_t*)&commonLabel, labelSize);
             appendBuffer += numBytesForFixedTuplePart;
@@ -90,11 +92,11 @@ void HashTable::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
     }
 
     for (uint64_t i = 0; i < appendCount; i++) {
-        auto index = valueOffsetInVector + i;
-        memcpy(appendBuffer, vector.getValues() + (index * nodeSize), offsetSize);
+        auto valuePos = selectedValuesPos[valueOffsetInVector + i];
+        memcpy(appendBuffer, vector.getValues() + (valuePos * nodeSize), offsetSize);
         memcpy(appendBuffer + sizeof(node_offset_t),
             (isLabelCommon ? (uint8_t*)&commonLabel :
-                             vector.getValues() + (index * nodeSize) + offsetSize),
+                             vector.getValues() + (valuePos * nodeSize) + offsetSize),
             labelSize);
         appendBuffer += numBytesForFixedTuplePart;
     }
@@ -129,20 +131,20 @@ void HashTable::allocateHTBlocks(uint64_t remaining, vector<BlockAppendInfo>& bl
 }
 
 void HashTable::addDataChunks(
-    DataChunk& keyDataChunk, uint64_t keyVectorIdx, DataChunks& nonKeyDataChunks) {
-    if (keyDataChunk.size == 0) {
+    DataChunk& keyDataChunk, uint64_t keyVectorPos, DataChunks& nonKeyDataChunks) {
+    if (keyDataChunk.numSelectedValues == 0) {
         return;
     }
 
     // Allocate space for tuples
-    auto numTuplesToAppend = keyDataChunk.isFlat() ? 1 : keyDataChunk.size;
+    auto numTuplesToAppend = keyDataChunk.isFlat() ? 1 : keyDataChunk.numSelectedValues;
     vector<BlockAppendInfo> blockAppendInfos;
     allocateHTBlocks(numTuplesToAppend, blockAppendInfos);
 
     // Append tuples
     auto tupleAppendOffset = 0; // The start offset of each field inside the tuple.
     // Append key vector
-    auto keyVector = static_pointer_cast<NodeIDVector>(keyDataChunk.getValueVector(keyVectorIdx));
+    auto keyVector = static_pointer_cast<NodeIDVector>(keyDataChunk.getValueVector(keyVectorPos));
     auto keyValOffsetInVec = keyDataChunk.isFlat() ? keyDataChunk.currPos : 0;
     for (auto& blockAppendInfo : blockAppendInfos) {
         auto blockAppendPtr = blockAppendInfo.buffer + tupleAppendOffset;
@@ -154,7 +156,7 @@ void HashTable::addDataChunks(
 
     // Append payloads in key data chunk
     for (uint64_t i = 0; i < keyDataChunk.getNumAttributes(); i++) {
-        if (i == keyVectorIdx) {
+        if (i == keyVectorPos) {
             continue;
         }
         // Append payload vectors in the keyDataChunk
@@ -171,8 +173,8 @@ void HashTable::addDataChunks(
     }
 
     // Append payload in non-key data chunks
-    for (uint64_t chunkIdx = 0; chunkIdx < nonKeyDataChunks.getNumDataChunks(); chunkIdx++) {
-        auto payloadDataChunk = nonKeyDataChunks.getDataChunk(chunkIdx);
+    for (uint64_t chunkPos = 0; chunkPos < nonKeyDataChunks.getNumDataChunks(); chunkPos++) {
+        auto payloadDataChunk = nonKeyDataChunks.getDataChunk(chunkPos);
         if (payloadDataChunk->isFlat()) {
             for (uint64_t i = 0; i < payloadDataChunk->getNumAttributes(); i++) {
                 auto payloadVector = payloadDataChunk->getValueVector(i);
@@ -212,8 +214,8 @@ void HashTable::buildDirectory() {
     auto directory = (uint8_t**)htDirectory->blockPtr;
     for (auto& block : htBlocks) {
         uint8_t* basePtr = block->blockPtr;
-        uint64_t index = 0;
-        while (index < block->numEntries) {
+        uint64_t entryPos = 0;
+        while (entryPos < block->numEntries) {
             memcpy(&nodeId, basePtr, NUM_BYTES_PER_NODE_ID);
             hash = murmurhash64(nodeId.offset) ^ murmurhash64(nodeId.label);
             auto slotId = hash & hashBitMask;
@@ -221,14 +223,13 @@ void HashTable::buildDirectory() {
             memcpy((uint8_t*)prevPtr, (void*)&(directory[slotId]), sizeof(uint8_t*));
             directory[slotId] = basePtr;
             basePtr += numBytesForFixedTuplePart;
-            index++;
+            entryPos++;
         }
     }
 }
 
 uint64_t HashTable::probeDirectory(NodeIDVector& keyVector, uint8_t** probedTuples) {
-    auto keyCount = keyVector.size();
-    auto hashNodeIDOp = ValueVector::getUnaryOperation(HASH_NODE_ID);
+    auto keyCount = keyVector.getNumSelectedValues();
     hashNodeIDOp(keyVector, hashVec);
     auto hashes = (uint64_t*)hashVec.getValues();
     for (uint64_t i = 0; i < keyCount; i++) {
