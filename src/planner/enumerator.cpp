@@ -8,28 +8,23 @@ static shared_ptr<LogicalExtend> createLogicalExtend(
 
 static shared_ptr<LogicalScan> createLogicalScan(const QueryNode& queryNode);
 
-Enumerator::Enumerator(unique_ptr<QueryGraph> queryGraph) {
-    maxPlanSize = queryGraph->numQueryRels();
-    this->queryGraph = move(queryGraph);
-    subgraphPlanTable = make_unique<SubgraphPlanTable>(maxPlanSize);
-}
-
 vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
-    auto numQueryRelMatched = 0u;
-    enumerateForInitialQueryRel(*queryGraph, numQueryRelMatched);
-    while (numQueryRelMatched < maxPlanSize) {
-        enumerateNextQueryRel(*queryGraph, numQueryRelMatched);
+    auto numEnumeratedQueryRels = 0u;
+    enumerateSingleQueryRel(numEnumeratedQueryRels);
+    while (numEnumeratedQueryRels < queryGraph.numQueryRels()) {
+        enumerateNextNumQueryRel(numEnumeratedQueryRels);
     }
     vector<unique_ptr<LogicalPlan>> plans;
-    auto& lastOperators = subgraphPlanTable->getSubgraphPlans(maxPlanSize).begin()->second;
+    auto& lastOperators =
+        subgraphPlanTable->getSubgraphPlans(queryGraph.numQueryRels()).begin()->second;
     for (auto& lastOperator : lastOperators) {
         plans.emplace_back(make_unique<LogicalPlan>(lastOperator));
     }
     return plans;
 }
 
-void Enumerator::enumerateForInitialQueryRel(
-    const QueryGraph& queryGraph, uint& numQueryRelMatched) {
+void Enumerator::enumerateSingleQueryRel(uint32_t& numEnumeratedQueryRels) {
+    numEnumeratedQueryRels++;
     auto queryRels = queryGraph.getQueryRels();
     for (auto& queryRel : queryRels) {
         unordered_set<string> matchedQueryRels;
@@ -41,11 +36,19 @@ void Enumerator::enumerateForInitialQueryRel(
         auto extendSrc = createLogicalExtend(*queryRel, false, scanDst);
         subgraphPlanTable->addSubgraphPlan(matchedQueryRels, extendSrc);
     }
-    numQueryRelMatched++;
 }
 
-void Enumerator::enumerateNextQueryRel(const QueryGraph& queryGraph, uint& numQueryRelMatched) {
-    auto& prevSubgraphPlansMap = subgraphPlanTable->getSubgraphPlans(numQueryRelMatched);
+void Enumerator::enumerateNextNumQueryRel(uint32_t& numEnumeratedQueryRels) {
+    numEnumeratedQueryRels++;
+    enumerateExtend(numEnumeratedQueryRels);
+    if (numEnumeratedQueryRels >= 4) {
+        enumerateHashJoin(numEnumeratedQueryRels);
+    }
+}
+
+void Enumerator::enumerateExtend(uint32_t nextNumEnumeratedQueryRels) {
+    auto& prevSubgraphPlansMap =
+        subgraphPlanTable->getSubgraphPlans(nextNumEnumeratedQueryRels - 1);
     for (auto& mathchedRelsAndPrevPlans : prevSubgraphPlansMap) {
         auto& matchedRels = mathchedRelsAndPrevPlans.first;
         auto& prevPlans = mathchedRelsAndPrevPlans.second;
@@ -62,7 +65,38 @@ void Enumerator::enumerateNextQueryRel(const QueryGraph& queryGraph, uint& numQu
             }
         }
     }
-    numQueryRelMatched++;
+}
+
+void Enumerator::enumerateHashJoin(uint32_t nextNumEnumeratedQueryRels) {
+    for (auto leftSize = nextNumEnumeratedQueryRels - 2;
+         leftSize >= ceil(nextNumEnumeratedQueryRels / 2.0); --leftSize) {
+        auto& subgraphPlansMap = subgraphPlanTable->getSubgraphPlans(leftSize);
+        for (auto& leftQueryRelsAndSubgraphPlans : subgraphPlansMap) {
+            auto& leftQueryRels = leftQueryRelsAndSubgraphPlans.first;
+            auto rightSubgraphAndJoinNodePairs = queryGraph.getSingleNodeJoiningSubgraph(
+                leftQueryRels, nextNumEnumeratedQueryRels - leftSize);
+            for (auto& rightSubgraphAndJoinNodePair : rightSubgraphAndJoinNodePairs) {
+                auto& leftPlans = leftQueryRelsAndSubgraphPlans.second;
+                auto& rightQueryRels = rightSubgraphAndJoinNodePair.first.queryRelNames;
+                auto& rightPlans = subgraphPlanTable->getSubgraphPlans(rightQueryRels);
+                auto matchedQueryRels = leftQueryRels;
+                matchedQueryRels.insert(begin(rightQueryRels), end(rightQueryRels));
+                for (auto& leftPlan : leftPlans) {
+                    for (auto& rightPlan : rightPlans) {
+                        subgraphPlanTable->addSubgraphPlan(matchedQueryRels,
+                            make_shared<LogicalHashJoin>(
+                                rightSubgraphAndJoinNodePair.second, leftPlan, rightPlan));
+                        // flip build and probe side to get another HashJoin plan
+                        if (leftSize != nextNumEnumeratedQueryRels - leftSize) {
+                            subgraphPlanTable->addSubgraphPlan(matchedQueryRels,
+                                make_shared<LogicalHashJoin>(
+                                    rightSubgraphAndJoinNodePair.second, rightPlan, leftPlan));
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 shared_ptr<LogicalExtend> createLogicalExtend(
