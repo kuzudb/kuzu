@@ -18,7 +18,7 @@ public:
     virtual ~BaseColumn() = default;
 
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
+        const shared_ptr<ValueVector>& valueVector, uint64_t size,
         const unique_ptr<ColumnOrListsHandle>& handle);
 
 protected:
@@ -27,7 +27,7 @@ protected:
         : BaseColumnOrLists{fname, elementSize, bufferManager} {};
 
     void readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
+        const shared_ptr<ValueVector>& valueVector, uint64_t size,
         const unique_ptr<ColumnOrListsHandle>& handle);
 };
 
@@ -50,14 +50,13 @@ public:
           overflowPagesFileHandle{path + ".ovf"} {};
 
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const uint64_t& size,
+        const shared_ptr<ValueVector>& valueVector, uint64_t size,
         const unique_ptr<ColumnOrListsHandle>& handle) override;
 
     DataType getDataType() override { return STRING; }
 
 private:
-    void readStringsFromOverflowPages(
-        const shared_ptr<ValueVector>& valueVector, const uint64_t& size);
+    void readStringsFromOverflowPages(const shared_ptr<ValueVector>& valueVector, uint64_t size);
 
 private:
     FileHandle overflowPagesFileHandle;

@@ -45,8 +45,8 @@ public:
         return nodeIDCompressionScheme.getNumTotalBytes();
     }
 
-    virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID);
-    virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID);
+    virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID) override;
+    virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) override;
 
 protected:
     NodeIDVector(const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isSequence,

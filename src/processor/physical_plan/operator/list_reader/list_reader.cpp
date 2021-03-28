@@ -14,8 +14,9 @@ ListReader::ListReader(const uint64_t& dataChunkPos, const uint64_t& valueVector
 }
 
 void ListReader::readValuesFromList() {
+    lists->reclaim(handle);
     nodeID_t nodeID;
-    inNodeIDVector->readNodeOffset(inDataChunk->currPos, nodeID);
+    inNodeIDVector->readNodeOffset(inDataChunk->getCurrSelectedValuesPos(), nodeID);
     lists->readValues(nodeID, outValueVector, outDataChunk->size, handle, MAX_TO_READ);
 }
 

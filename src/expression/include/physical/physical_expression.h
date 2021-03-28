@@ -1,5 +1,7 @@
 #pragma once
 
+#include <climits>
+
 #include "src/common/include/vector/value_vector.h"
 
 using namespace graphflow::common;
@@ -10,24 +12,44 @@ namespace expression {
 class PhysicalExpression {
 
 public:
-    PhysicalExpression(){};
+    // Creates a leaf literal as value vector physical expression.
+    PhysicalExpression(shared_ptr<ValueVector> result)
+        : PhysicalExpression(result, ULONG_MAX, ULONG_MAX){};
 
-    PhysicalExpression(shared_ptr<ValueVector> result) : result{move(result)} {};
+    // Creates a leaf variable value vector physical expression.
+    PhysicalExpression(
+        shared_ptr<ValueVector> result, uint64_t dataChunkPos, uint64_t valueVectorPos)
+        : result{result}, dataChunkPos{dataChunkPos}, valueVectorPos{valueVectorPos} {};
 
     virtual void evaluate(){};
 
     bool isResultFlat();
 
-    shared_ptr<ValueVector> getResult() { return result; }
-
-    DataType getResultDataType() { return result->getDataType(); }
-
     shared_ptr<ValueVector> createResultValueVector(DataType dataType);
 
+    uint32_t getNumChildrenExpr() const { return childrenExpr.size(); }
+
+    bool isLiteralLeafExpression() const {
+        return childrenExpr.size() == 0 && dataChunkPos == ULONG_MAX;
+    }
+
+    bool isPropertyLeafExpression() const {
+        return childrenExpr.size() == 0 && dataChunkPos != ULONG_MAX;
+    }
+
+    inline const PhysicalExpression& getChildExpr(uint64_t pos) const { return *childrenExpr[pos]; }
+
+public:
+    shared_ptr<ValueVector> result;
+    uint64_t dataChunkPos;
+    uint64_t valueVectorPos;
+    // expression type is needed to clone unary and binary expressions.
+    ExpressionType expressionType;
+
 protected:
+    PhysicalExpression() = default;
     vector<unique_ptr<PhysicalExpression>> childrenExpr;
     vector<shared_ptr<ValueVector>> operands;
-    shared_ptr<ValueVector> result;
 };
 
 } // namespace expression

@@ -11,6 +11,7 @@ TEST(VectorCmpTests, cmpInt) {
 
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->size = numTuples;
+    dataChunk->numSelectedValues = numTuples;
 
     auto lVector = ValueVector(INT32, numTuples);
     lVector.setDataChunkOwner(dataChunk);
@@ -134,21 +135,22 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
 }
 
 TEST(VectorCmpTests, cmpTwoLongStrings) {
-    auto numTuples = 1;
+    auto VECTOR_SIZE = 1;
 
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->size = numTuples;
+    dataChunk->size = VECTOR_SIZE;
+    dataChunk->numSelectedValues = VECTOR_SIZE;
     dataChunk->currPos = 0;
 
-    auto lVector = ValueVector(STRING, numTuples);
+    auto lVector = ValueVector(STRING, VECTOR_SIZE);
     lVector.setDataChunkOwner(dataChunk);
     auto lData = ((gf_string_t*)lVector.getValues());
 
-    auto rVector = ValueVector(STRING, numTuples);
+    auto rVector = ValueVector(STRING, VECTOR_SIZE);
     rVector.setDataChunkOwner(dataChunk);
     auto rData = ((gf_string_t*)rVector.getValues());
 
-    auto result = ValueVector(BOOL, numTuples);
+    auto result = ValueVector(BOOL, VECTOR_SIZE);
     auto resultData = result.getValues();
 
     char* value = "abcdefghijklmnopqrstuvwxy"; // 25.

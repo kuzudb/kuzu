@@ -4,12 +4,13 @@ namespace graphflow {
 namespace expression {
 
 PhysicalUnaryExpression::PhysicalUnaryExpression(
-    unique_ptr<PhysicalExpression> child, const ExpressionType& expressionType) {
-    operands.push_back(child->getResult());
+    unique_ptr<PhysicalExpression> child, ExpressionType expressionType) {
+    operands.push_back(child->result);
     childrenExpr.push_back(move(child));
+    this->expressionType = expressionType;
     operation = ValueVector::getUnaryOperation(expressionType);
     result = createResultValueVector(
-        getUnaryExpressionResultDataType(expressionType, childrenExpr[0]->getResultDataType()));
+        getUnaryExpressionResultDataType(expressionType, childrenExpr[0]->result->getDataType()));
 }
 
 void PhysicalUnaryExpression::evaluate() {

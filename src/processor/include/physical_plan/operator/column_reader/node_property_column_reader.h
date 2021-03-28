@@ -8,8 +8,8 @@ namespace processor {
 class NodePropertyColumnReader : public ColumnReader {
 
 public:
-    NodePropertyColumnReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
-        BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator);
+    NodePropertyColumnReader(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+        unique_ptr<PhysicalOperator> prevOperator);
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<NodePropertyColumnReader>(

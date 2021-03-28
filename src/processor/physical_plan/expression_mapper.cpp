@@ -29,21 +29,38 @@ unique_ptr<PhysicalExpression> ExpressionMapper::mapToPhysical(const LogicalExpr
         auto child = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo, dataChunks);
         return make_unique<PhysicalUnaryExpression>(move(child), expression.getExpressionType());
     } else if (isExpressionBinary(expressionType)) {
-        auto leftExpr = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo, dataChunks);
-        auto rightExpr =
-            mapToPhysical(expression.getChildExpr(1), physicalOperatorInfo, dataChunks);
+        auto lExpr = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo, dataChunks);
+        auto rExpr = mapToPhysical(expression.getChildExpr(1), physicalOperatorInfo, dataChunks);
         return make_unique<PhysicalBinaryExpression>(
-            move(leftExpr), move(rightExpr), expression.getExpressionType());
+            move(lExpr), move(rExpr), expression.getExpressionType());
     }
     // should never happen.
     throw std::invalid_argument("Unsupported expression type.");
+}
+
+unique_ptr<PhysicalExpression> ExpressionMapper::clone(
+    const PhysicalExpression& expression, DataChunks& dataChunks) {
+    if (expression.isLiteralLeafExpression()) {
+        return make_unique<PhysicalExpression>(expression.result);
+    } else if (expression.isPropertyLeafExpression()) {
+        auto dataChunk = dataChunks.getDataChunk(expression.dataChunkPos);
+        auto valueVector = dataChunk->getValueVector(expression.valueVectorPos);
+        return make_unique<PhysicalExpression>(
+            valueVector, expression.dataChunkPos, expression.valueVectorPos);
+    } else if (expression.getNumChildrenExpr() == 1) { // unary expression.
+        return make_unique<PhysicalUnaryExpression>(
+            clone(expression.getChildExpr(0), dataChunks), expression.expressionType);
+    } else { // binary expression.
+        return make_unique<PhysicalBinaryExpression>(clone(expression.getChildExpr(0), dataChunks),
+            clone(expression.getChildExpr(1), dataChunks), expression.expressionType);
+    }
 }
 
 unique_ptr<PhysicalExpression> mapLogicalLiteralExpressionToPhysical(
     const LogicalExpression& expression) {
     auto dataType = expression.getDataType();
     // We create an owner dataChunk which is flat and of size 1 to contain the literal.
-    auto dataChunkForLiteral = make_shared<DataChunk>();
+    auto dataChunkForLiteral = make_shared<DataChunk>(true /* initializeSelectedValuesPos */);
     dataChunkForLiteral->size = 1;
     dataChunkForLiteral->currPos = 0;
     auto valueVector = make_shared<ValueVector>(dataType, 1 /* capacity */);
@@ -72,7 +89,7 @@ unique_ptr<PhysicalExpression> mapLogicalPropertyExpressionToPhysical(
     auto dataChunk = dataChunks.getDataChunk(dataChunkPos);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(variableName);
     auto valueVector = dataChunk->getValueVector(valueVectorPos);
-    return make_unique<PhysicalExpression>(valueVector);
+    return make_unique<PhysicalExpression>(valueVector, dataChunkPos, valueVectorPos);
 }
 
 } // namespace processor

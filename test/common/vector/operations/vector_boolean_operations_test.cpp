@@ -9,6 +9,7 @@ TEST(VectorBoolTests, test) {
     auto VECTOR_SIZE = 4;
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->size = VECTOR_SIZE;
+    dataChunk->numSelectedValues = VECTOR_SIZE;
 
     auto lVector = ValueVector(BOOL);
     lVector.setDataChunkOwner(dataChunk);

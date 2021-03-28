@@ -14,11 +14,11 @@ namespace planner {
 class LogicalRelPropertyReader : public LogicalOperator {
 
 public:
-    LogicalRelPropertyReader(const string& boundNodeVarName, const string& boundNodeVarLabel,
-        const string& nbrNodeVarName, const string& nbrNodeVarLabel, const string& relLabel,
-        const Direction& direction, const string& propertyName,
-        shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{prevOperator}, boundNodeVarName{boundNodeVarName},
+    LogicalRelPropertyReader(const string& relName, const string& boundNodeVarName,
+        const string& boundNodeVarLabel, const string& nbrNodeVarName,
+        const string& nbrNodeVarLabel, const string& relLabel, Direction direction,
+        const string& propertyName, shared_ptr<LogicalOperator> prevOperator)
+        : LogicalOperator{prevOperator}, relName{relName}, boundNodeVarName{boundNodeVarName},
           boundNodeVarLabel{boundNodeVarLabel}, nbrNodeVarName{nbrNodeVarName},
           nbrNodeVarLabel{nbrNodeVarLabel}, relLabel{relLabel}, direction{direction},
           propertyName{propertyName} {}
@@ -28,6 +28,7 @@ public:
     }
 
 public:
+    const string relName;
     const string boundNodeVarName;
     const string boundNodeVarLabel;
     const string nbrNodeVarName;

@@ -37,9 +37,15 @@ enum ExpressionType {
     NEGATE = 26,
 
     /*
-     * Hash Expressions
+     * NODE ID Expressions
      * */
     HASH_NODE_ID = 32,
+    EQUALS_NODE_ID = 33,
+    NOT_EQUALS_NODE_ID = 34,
+    GREATER_THAN_NODE_ID = 35,
+    GREATER_THAN_EQUALS_NODE_ID = 36,
+    LESS_THAN_NODE_ID = 37,
+    LESS_THAN_EQUALS_NODE_ID = 38,
 
     /**
      * Decompress Expressions
@@ -49,39 +55,39 @@ enum ExpressionType {
     /**
      * String Operation Expressions
      **/
-    STARTS_WITH = 37,
-    ENDS_WITH = 38,
-    CONTAINS = 39,
+    STARTS_WITH = 40,
+    ENDS_WITH = 41,
+    CONTAINS = 42,
 
     /**
      * Null Operation Expressions
      **/
-    IS_NULL = 40,
-    IS_NOT_NULL = 41,
+    IS_NULL = 50,
+    IS_NOT_NULL = 51,
 
     /**
      * Property Expression
      **/
-    PROPERTY = 52,
+    PROPERTY = 60,
 
     /**
      * Function Expression
      **/
-    FUNCTION = 63,
+    FUNCTION = 70,
 
     /**
      * Literal Expressions
      **/
-    LITERAL_INT = 74,
-    LITERAL_DOUBLE = 75,
-    LITERAL_STRING = 76,
-    LITERAL_BOOLEAN = 77,
-    LITERAL_NULL = 78,
+    LITERAL_INT = 80,
+    LITERAL_DOUBLE = 81,
+    LITERAL_STRING = 82,
+    LITERAL_BOOLEAN = 83,
+    LITERAL_NULL = 84,
 
     /**
      * Variable Expression
      **/
-    VARIABLE = 79,
+    VARIABLE = 90,
 };
 
 bool isExpressionUnary(ExpressionType type);

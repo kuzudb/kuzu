@@ -8,8 +8,8 @@ namespace processor {
 class RelPropertyColumnReader : public ColumnReader {
 
 public:
-    RelPropertyColumnReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
-        BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator);
+    RelPropertyColumnReader(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+        unique_ptr<PhysicalOperator> prevOperator);
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<RelPropertyColumnReader>(

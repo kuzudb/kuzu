@@ -3,8 +3,8 @@
 namespace graphflow {
 namespace processor {
 
-ColumnReader::ColumnReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
-    BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator)
+ColumnReader::ColumnReader(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+    unique_ptr<PhysicalOperator> prevOperator)
     : PhysicalOperator{move(prevOperator)}, dataChunkPos{dataChunkPos},
       valueVectorPos{valueVectorPos}, column{column} {
     dataChunks = this->prevOperator->getDataChunks();
@@ -15,7 +15,7 @@ ColumnReader::ColumnReader(const uint64_t& dataChunkPos, const uint64_t& valueVe
 
 void ColumnReader::getNextTuples() {
     prevOperator->getNextTuples();
-    if (inDataChunk->size > 0) {
+    if (inDataChunk->numSelectedValues > 0) {
         column->reclaim(handle);
         column->readValues(inNodeIDVector, outValueVector, inDataChunk->size, handle);
     }

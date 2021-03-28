@@ -9,7 +9,7 @@ namespace common {
 namespace operation {
 
 struct DecompressNodeID {
-    static inline nodeID_t operation(nodeID_t nodeID) { return nodeID; }
+    static inline nodeID_t operation(const nodeID_t& nodeID) { return nodeID; }
 };
 
 } // namespace operation

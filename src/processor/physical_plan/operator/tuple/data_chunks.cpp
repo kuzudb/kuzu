@@ -8,7 +8,7 @@ uint64_t DataChunks::getNumTuples() {
     // TODO: loop only over the non-flattened data chunks.
     for (auto& dataChunk : dataChunks) {
         if (!dataChunk->isFlat()) {
-            numTuples *= dataChunk->getNumTuples();
+            numTuples *= dataChunk->numSelectedValues;
         }
     }
     return numTuples;

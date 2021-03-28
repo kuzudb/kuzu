@@ -5,6 +5,7 @@
 #include "src/common/include/vector/operations/vector_comparison_operations.h"
 #include "src/common/include/vector/operations/vector_decompress_operations.h"
 #include "src/common/include/vector/operations/vector_hash_operations.h"
+#include "src/common/include/vector/operations/vector_node_id_operations.h"
 
 namespace graphflow {
 namespace common {
@@ -56,6 +57,18 @@ std::function<void(ValueVector&, ValueVector&, ValueVector&)> ValueVector::getBi
         return VectorComparisonOperations::LessThan;
     case LESS_THAN_EQUALS:
         return VectorComparisonOperations::LessThanEquals;
+    case EQUALS_NODE_ID:
+        return VectorNodeIDCompareOperations::Equals;
+    case NOT_EQUALS_NODE_ID:
+        return VectorNodeIDCompareOperations::NotEquals;
+    case GREATER_THAN_NODE_ID:
+        return VectorNodeIDCompareOperations::GreaterThan;
+    case GREATER_THAN_EQUALS_NODE_ID:
+        return VectorNodeIDCompareOperations::GreaterThanEquals;
+    case LESS_THAN_NODE_ID:
+        return VectorNodeIDCompareOperations::LessThan;
+    case LESS_THAN_EQUALS_NODE_ID:
+        return VectorNodeIDCompareOperations::LessThanEquals;
     case ADD:
         return VectorArithmeticOperations::Add;
     case SUBTRACT:

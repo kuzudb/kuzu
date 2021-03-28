@@ -16,13 +16,14 @@ public:
     static function<void(ValueVector&, ValueVector&, ValueVector&)> getBinaryOperation(
         ExpressionType type);
 
-    ValueVector(const DataType& dataType, const uint64_t& vectorCapacity)
-        : ValueVector(vectorCapacity, getDataTypeSize(dataType), dataType) {}
+    ValueVector(DataType dataType, uint64_t vectorCapacity)
+        : capacity{getDataTypeSize(dataType) * vectorCapacity},
+          buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()}, dataType{dataType} {}
 
-    ValueVector(const uint64_t numBytesPerValue, DataType dataType)
+    ValueVector(uint64_t numBytesPerValue, DataType dataType)
         : ValueVector(MAX_VECTOR_SIZE, numBytesPerValue, dataType) {}
 
-    ValueVector(const DataType& dataType) : ValueVector(dataType, MAX_VECTOR_SIZE) {}
+    ValueVector(DataType dataType) : ValueVector(dataType, MAX_VECTOR_SIZE) {}
 
     inline DataType getDataType() const { return dataType; }
 
@@ -30,23 +31,34 @@ public:
     inline void setValues(uint8_t* values) { this->values = values; }
 
     template<typename T>
-    void setValue(const uint64_t& pos, const T& value) {
+    void setValue(uint64_t pos, const T& value) {
         ((T*)values)[pos] = value;
+    }
+
+    virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID) {
+        throw invalid_argument("not supported.");
+    }
+
+    virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) {
+        throw invalid_argument("not supported.");
     }
 
     template<typename T>
     T getValue(uint64_t pos) {
-        if (pos >= MAX_VECTOR_SIZE) {
-            throw invalid_argument("Position out of bound.");
-        }
         return ((T*)values)[pos];
     }
 
     inline void setDataChunkOwner(shared_ptr<DataChunk>& owner) { this->owner = owner; }
 
-    inline int64_t getCurrPos() { return owner->getCurrPos(); }
+    inline uint64_t getNumSelectedValues() { return owner->numSelectedValues; }
 
-    inline uint64_t size() { return owner->getNumTuples(); }
+    inline uint64_t* getSelectedValuesPos() { return owner->selectedValuesPos.get(); }
+
+    inline uint64_t getCurrSelectedValuesPos() { return owner->getCurrSelectedValuesPos(); }
+
+    inline int64_t getCurrPos() { return owner->selectedValuesPos[owner->currPos]; }
+
+    inline uint64_t size() { return owner->size; }
 
     virtual inline int64_t getNumBytesPerValue() { return getDataTypeSize(dataType); }
 
@@ -57,11 +69,7 @@ public:
     uint8_t* reserve(size_t capacity);
 
 public:
-    //! The capacity of vector values is dependent on how the vector is produced.
-    //!  Scans produce vectors in chunks of 1024 nodes while extends leads to the
-    //!  the max size of an adjacency list which is 2048 nodes.
-    constexpr static size_t MAX_VECTOR_SIZE = 2048;
-    constexpr static size_t DEFAULT_VECTOR_SIZE = 1024;
+    shared_ptr<DataChunk> owner;
 
 protected:
     ValueVector(uint64_t vectorCapacity, uint64_t numBytesPerValue, DataType dataType)
@@ -71,7 +79,6 @@ protected:
     size_t capacity;
     unique_ptr<uint8_t[]> buffer;
     uint8_t* values;
-    shared_ptr<DataChunk> owner;
     DataType dataType;
 };
 

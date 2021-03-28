@@ -8,6 +8,7 @@ using namespace std;
 TEST(VectorArithTests, test) {
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->size = 100;
+    dataChunk->numSelectedValues = 100;
 
     auto lVector = ValueVector(INT32);
     lVector.setDataChunkOwner(dataChunk);

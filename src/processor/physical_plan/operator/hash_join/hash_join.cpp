@@ -37,7 +37,7 @@ HashJoin::HashJoin(MemoryManager& memManager, uint64_t buildSideKeyDataChunkIdx,
     vectorDecompressOp = ValueVector::getUnaryOperation(DECOMPRESS_NODE_ID);
     decompressedProbeKeyVector = make_unique<NodeIDVector>(NodeIDCompressionScheme(8, 8));
 
-    probeState = make_unique<ProbeState>(ValueVector::MAX_VECTOR_SIZE);
+    probeState = make_unique<ProbeState>(MAX_VECTOR_SIZE);
 
     initializeHashTable();
     initializeOutDataChunksAndVectorPtrs();
@@ -125,7 +125,7 @@ void HashJoin::initializeOutDataChunksAndVectorPtrs() {
                 } else {
                     outVector = make_shared<ValueVector>(vector->getDataType());
                 }
-                auto vectorPtrs = make_unique<overflow_value_t[]>(ValueVector::DEFAULT_VECTOR_SIZE);
+                auto vectorPtrs = make_unique<overflow_value_t[]>(NODE_SEQUENCE_VECTOR_SIZE);
                 BuildSideVectorInfo vectorInfo(vector->getNumBytesPerValue(),
                     dataChunks->getNumDataChunks(), unFlatOutDataChunk->getNumAttributes(),
                     buildSideVectorPtrs.size());
@@ -159,7 +159,7 @@ void HashJoin::getNextBatchOfMatchedTuples() {
     auto decompressedProbeKeys = (nodeID_t*)decompressedProbeKeyVector->getValues();
     for (uint64_t i = probeState->probeKeyIndex; i < probeState->probedTuplesSize; i++) {
         while (probeState->probedTuples[i]) {
-            if (ValueVector::DEFAULT_VECTOR_SIZE == probeState->matchedTuplesSize) {
+            if (NODE_SEQUENCE_VECTOR_SIZE == probeState->matchedTuplesSize) {
                 break;
             }
             memcpy(&nodeId, probeState->probedTuples[i], NUM_BYTES_PER_NODE_ID);

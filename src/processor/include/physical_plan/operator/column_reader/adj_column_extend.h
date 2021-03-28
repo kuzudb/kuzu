@@ -8,8 +8,8 @@ namespace processor {
 class AdjColumnExtend : public ColumnReader {
 
 public:
-    AdjColumnExtend(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
-        BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator);
+    AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+        unique_ptr<PhysicalOperator> prevOperator);
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<AdjColumnExtend>(
