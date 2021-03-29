@@ -24,7 +24,7 @@ bool DataChunksIterator::updateTuplePositions(int64_t chunkIdx) {
         return false;
     }
     tuplePositions[chunkIdx] = tuplePositions[chunkIdx] + 1;
-    if (tuplePositions[chunkIdx] == dataChunks.getDataChunk(chunkIdx)->size) {
+    if (tuplePositions[chunkIdx] == dataChunks.getDataChunk(chunkIdx)->numSelectedValues) {
         tuplePositions[chunkIdx] = 0;
         return false;
     }
@@ -48,21 +48,25 @@ void DataChunksIterator::getNextTuple(Tuple& tuple) {
         auto dataChunk = dataChunks.getDataChunk(i);
         auto tuplePosition = tuplePositions[i];
         for (auto& vector : dataChunk->valueVectors) {
+            auto vectorSelectedValuesPos = vector->getSelectedValuesPos();
+            auto selectedTuplePos = vectorSelectedValuesPos[tuplePosition];
             switch (vector->getDataType()) {
             case INT32: {
-                tuple.getValue(valueInTupleIdx)->setInt(vector->getValue<int32_t>(tuplePosition));
+                tuple.getValue(valueInTupleIdx)
+                    ->setInt(vector->getValue<int32_t>(selectedTuplePos));
                 break;
             }
             case BOOL: {
-                tuple.getValue(valueInTupleIdx)->setBool(vector->getValue<bool>(tuplePosition));
+                tuple.getValue(valueInTupleIdx)->setBool(vector->getValue<bool>(selectedTuplePos));
                 break;
             }
             case DOUBLE: {
-                tuple.getValue(valueInTupleIdx)->setDouble(vector->getValue<double>(tuplePosition));
+                tuple.getValue(valueInTupleIdx)
+                    ->setDouble(vector->getValue<double>(selectedTuplePos));
                 break;
             }
             case STRING: {
-                gf_string_t gfString = vector->getValue<gf_string_t>(tuplePosition);
+                gf_string_t gfString = vector->getValue<gf_string_t>(selectedTuplePos);
                 string value;
                 memcpy(&value, vector->getValues() + gfString.overflowPtr, gfString.len);
                 tuple.getValue(valueInTupleIdx)->setString(value);
@@ -70,7 +74,7 @@ void DataChunksIterator::getNextTuple(Tuple& tuple) {
             }
             case NODE: {
                 auto nodeIDVector = static_pointer_cast<NodeIDVector>(vector);
-                nodeIDVector->readNodeOffsetAndLabel(tuplePosition, nodeID);
+                nodeIDVector->readNodeOffsetAndLabel(selectedTuplePos, nodeID);
                 tuple.getValue(valueInTupleIdx)->setNodeID(nodeID);
                 break;
             }

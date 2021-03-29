@@ -13,17 +13,25 @@ namespace processor {
 class PhysicalOperatorsInfo {
 
 public:
-    void put(string variableName, uint64_t dataChunkPos, uint64_t valueVectorPos) {
-        variableToDataPosMap.insert({variableName, make_pair(dataChunkPos, valueVectorPos)});
-        dataChunkPosToIsFlatMap.insert({dataChunkPos, false /* is not flat */});
-    }
-
     void setDataChunkAtPosAsFlat(uint64_t dataChunkPos) {
-        dataChunkPosToIsFlatMap.find(dataChunkPos)->second = true /* is flat */;
+        dataChunkIsFlatVector[dataChunkPos] = true /* is flat */;
     }
 
-    bool isFlat(uint64_t dataChunkPos) {
-        return dataChunkPosToIsFlatMap.find(dataChunkPos)->second;
+    uint64_t appendAsNewDataChunk(string variableName) {
+        vector<string> newDataChunk;
+        newDataChunk.push_back(variableName);
+        auto newDataChunkPos = vectorVariables.size();
+        variableToDataPosMap.insert({variableName, make_pair(newDataChunkPos, 0)});
+        vectorVariables.push_back(newDataChunk);
+        dataChunkIsFlatVector.push_back(false /* is not flat */);
+        return newDataChunkPos;
+    }
+
+    // Append the given variable as a new vector into the given dataChunkPos
+    void appendAsNewValueVector(string variableName, uint64_t dataChunkPos) {
+        auto& dataChunk = vectorVariables[dataChunkPos];
+        variableToDataPosMap.insert({variableName, make_pair(dataChunkPos, dataChunk.size())});
+        dataChunk.push_back(variableName);
     }
 
     uint64_t getDataChunkPos(string variableName) {
@@ -34,9 +42,13 @@ public:
         return variableToDataPosMap.at(variableName).second;
     }
 
-private:
+public:
+    // Record isFlat for each data chunk
+    vector<bool> dataChunkIsFlatVector;
+    // Record variables for each vector, organized as one vector<string> per data chunk.
+    vector<vector<string>> vectorVariables;
+    // Map each variable to its position pair (dataChunkPos, vectorPos)
     unordered_map<string, pair<uint64_t, uint64_t>> variableToDataPosMap;
-    unordered_map<uint64_t, bool> dataChunkPosToIsFlatMap;
 };
 
 } // namespace processor

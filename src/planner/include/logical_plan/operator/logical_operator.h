@@ -15,6 +15,7 @@ enum LogicalOperatorType {
     FILTER,
     NODE_PROPERTY_READER,
     REL_PROPERTY_READER,
+    HASH_JOIN,
 };
 
 class LogicalOperator {

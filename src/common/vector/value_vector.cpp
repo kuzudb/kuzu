@@ -3,8 +3,6 @@
 #include "src/common/include/vector/operations/vector_arithmetic_operations.h"
 #include "src/common/include/vector/operations/vector_boolean_operations.h"
 #include "src/common/include/vector/operations/vector_comparison_operations.h"
-#include "src/common/include/vector/operations/vector_decompress_operations.h"
-#include "src/common/include/vector/operations/vector_hash_operations.h"
 #include "src/common/include/vector/operations/vector_node_id_operations.h"
 
 namespace graphflow {
@@ -28,9 +26,9 @@ std::function<void(ValueVector&, ValueVector&)> ValueVector::getUnaryOperation(
     case NEGATE:
         return VectorArithmeticOperations::Negate;
     case HASH_NODE_ID:
-        return VectorHashOperations::HashNodeID;
+        return VectorNodeIDOperations::Hash;
     case DECOMPRESS_NODE_ID:
-        return VectorDecompressOperations::DecompressNodeID;
+        return VectorNodeIDOperations::Decompress;
     default:
         throw std::invalid_argument("Invalid or unsupported unary expression.");
     }

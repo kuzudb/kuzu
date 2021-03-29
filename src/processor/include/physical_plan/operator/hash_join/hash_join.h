@@ -2,8 +2,7 @@
 
 #include "src/common/include/operations/hash_operations.h"
 #include "src/common/include/types.h"
-#include "src/common/include/vector/operations/vector_decompress_operations.h"
-#include "src/common/include/vector/operations/vector_hash_operations.h"
+#include "src/common/include/vector/operations/vector_node_id_operations.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_table.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/operator/tuple/data_chunks.h"
@@ -16,8 +15,7 @@ namespace graphflow {
 namespace processor {
 
 struct ProbeState {
-    ProbeState(uint64_t pointersSize)
-        : probeKeyIndex(0), probedTuplesSize(0), matchedTuplesSize(0) {
+    ProbeState(uint64_t pointersSize) : probeKeyPos(0), probedTuplesSize(0), matchedTuplesSize(0) {
         probedTuples = make_unique<uint8_t*[]>(pointersSize);
         matchedTuples = make_unique<uint8_t*[]>(pointersSize);
         probeSelVector = make_unique<uint16_t[]>(pointersSize);
@@ -28,7 +26,7 @@ struct ProbeState {
     unique_ptr<uint8_t*[]> matchedTuples;
     // Selective index mapping each matched tuple to its probe side key.
     unique_ptr<uint16_t[]> probeSelVector;
-    uint64_t probeKeyIndex;
+    uint64_t probeKeyPos;
     uint64_t probedTuplesSize;
     uint64_t matchedTuplesSize;
 };
@@ -36,13 +34,13 @@ struct ProbeState {
 struct BuildSideVectorInfo {
     BuildSideVectorInfo(uint32_t numBytesPerValue, uint32_t outDataChunkIdx, uint32_t outVectorIdx,
         uint32_t vectorPtrsIdx)
-        : numBytesPerValue(numBytesPerValue), outDataChunkIdx(outDataChunkIdx),
-          outVectorIdx(outVectorIdx), vectorPtrsIdx(vectorPtrsIdx) {}
+        : numBytesPerValue(numBytesPerValue), outDataChunkPos(outDataChunkIdx),
+          outVectorPos(outVectorIdx), vectorPtrsPos(vectorPtrsIdx) {}
 
     uint32_t numBytesPerValue;
-    uint32_t outDataChunkIdx;
-    uint32_t outVectorIdx;
-    uint32_t vectorPtrsIdx;
+    uint32_t outDataChunkPos;
+    uint32_t outVectorPos;
+    uint32_t vectorPtrsPos;
 };
 
 // WARN: The hash join only supports INNER join type for now
@@ -57,29 +55,29 @@ struct BuildSideVectorInfo {
 // new out data chunk in the output dataChunks.
 // 4) output dataChunks. outKeyDataChunk + probe side non-key data chunks + appended unflat output
 // data chunks.
+template<bool IS_OUT_DATACHUNK_FILTERED>
 class HashJoin : public PhysicalOperator {
 public:
-    HashJoin(MemoryManager& memManager, uint64_t buildSideKeyDataChunkIdx,
-        uint64_t buildSideKeyVectorIdx, uint64_t probeSideKeyDataChunkIdx,
-        uint64_t probeSideKeyVectorIdx, unique_ptr<PhysicalOperator> buildSidePrevOp,
-        unique_ptr<PhysicalOperator> probeSidePrevOp);
+    HashJoin(uint64_t buildSideKeyDataChunkPos, uint64_t buildSideKeyVectorPos,
+        uint64_t probeSideKeyDataChunkPos, uint64_t probeSideKeyVectorPos,
+        unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashJoin>(memManager, buildSideKeyDataChunkIdx, buildSideKeyVectorIdx,
-            probeSideKeyDataChunkIdx, probeSideKeyVectorIdx, prevOperator->clone(),
+        return make_unique<HashJoin>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
+            probeSideKeyDataChunkPos, probeSideKeyVectorPos, prevOperator->clone(),
             buildSidePrevOp->clone());
     }
 
 private:
     std::function<void(ValueVector&, ValueVector&)> vectorDecompressOp;
 
-    MemoryManager& memManager;
-    uint64_t buildSideKeyDataChunkIdx;
-    uint64_t buildSideKeyVectorIdx;
-    uint64_t probeSideKeyDataChunkIdx;
-    uint64_t probeSideKeyVectorIdx;
+    unique_ptr<MemoryManager> memManager;
+    uint64_t buildSideKeyDataChunkPos;
+    uint64_t buildSideKeyVectorPos;
+    uint64_t probeSideKeyDataChunkPos;
+    uint64_t probeSideKeyVectorPos;
     unique_ptr<PhysicalOperator> buildSidePrevOp;
 
     shared_ptr<DataChunk> buildSideKeyDataChunk;

@@ -44,5 +44,29 @@ private:
     uint64_t numTuples;
 };
 
+class ScanMockOpWithSelector : public DataChunksMockOperator {
+public:
+    ScanMockOpWithSelector() : numTuples(0) { generateDataChunks(); }
+
+    void getNextTuples() override;
+
+private:
+    void generateDataChunks();
+
+    uint64_t numTuples;
+};
+
+class ProbeScanMockOpWithSelector : public DataChunksMockOperator {
+public:
+    ProbeScanMockOpWithSelector() : numTuples(0) { generateDataChunks(); }
+
+    void getNextTuples() override;
+
+private:
+    void generateDataChunks();
+
+    uint64_t numTuples;
+};
+
 } // namespace processor
 } // namespace graphflow
