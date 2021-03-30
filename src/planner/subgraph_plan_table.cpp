@@ -3,14 +3,19 @@
 namespace graphflow {
 namespace planner {
 
-SubgraphPlanTable::SubgraphPlanTable(uint maxPlanSize) {
-    init(maxPlanSize);
+SubgraphPlanTable::SubgraphPlanTable(uint32_t maxNumQueryRels) {
+    init(maxNumQueryRels);
 }
 
 const unordered_map<unordered_set<string>, vector<shared_ptr<LogicalOperator>>,
-    stringUnorderedSetHasher>&
-SubgraphPlanTable::getSubgraphPlans(uint planSize) const {
-    return subgraphPlans.at(planSize);
+    StringUnorderedSetHasher>&
+SubgraphPlanTable::getSubgraphPlans(uint32_t numQueryRels) const {
+    return subgraphPlans.at(numQueryRels);
+}
+
+const vector<shared_ptr<LogicalOperator>>& SubgraphPlanTable::getSubgraphPlans(
+    const unordered_set<string>& queryRels) const {
+    return subgraphPlans.at(queryRels.size()).at(queryRels);
 }
 
 void SubgraphPlanTable::addSubgraphPlan(
@@ -22,11 +27,11 @@ void SubgraphPlanTable::addSubgraphPlan(
     subgraphPlansWithSameSize.at(matchedQueryRels).push_back(plan);
 }
 
-void SubgraphPlanTable::init(uint maxPlanSize) {
+void SubgraphPlanTable::init(uint32_t maxPlanSize) {
     for (auto i = 1u; i <= maxPlanSize; ++i) {
         subgraphPlans.emplace(
             i, unordered_map<unordered_set<string>, vector<shared_ptr<LogicalOperator>>,
-                   stringUnorderedSetHasher>());
+                   StringUnorderedSetHasher>());
     }
 }
 
