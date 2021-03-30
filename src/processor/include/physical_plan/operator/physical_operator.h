@@ -13,14 +13,31 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace processor {
 
+// Physical operator type
+enum PhysicalOperatorType : uint8_t {
+    SCAN,
+    FILTER,
+    FLATTEN,
+    HASH_JOIN_BUILD,
+    HASH_JOIN_PROBE,
+    COLUMN_READER,
+    LIST_READER,
+    RESULT_COLLECTOR,
+};
+
 class PhysicalOperator {
 
 public:
-    PhysicalOperator() : logger{spdlog::get("processor")} {};
+    explicit PhysicalOperator(PhysicalOperatorType operatorType)
+        : PhysicalOperator(nullptr, operatorType, false) {}
 
-    PhysicalOperator(unique_ptr<PhysicalOperator> prevOperator) : PhysicalOperator{} {
-        this->prevOperator.reset(prevOperator.release());
-    }
+    PhysicalOperator(unique_ptr<PhysicalOperator> prevOperator, PhysicalOperatorType operatorType)
+        : PhysicalOperator(move(prevOperator), operatorType, false) {}
+
+    PhysicalOperator(unique_ptr<PhysicalOperator> prevOperator, PhysicalOperatorType operatorType,
+        bool isOutDataChunkFiltered)
+        : prevOperator{move(prevOperator)}, operatorType{operatorType},
+          isOutDataChunkFiltered{isOutDataChunkFiltered}, logger{spdlog::get("processor")} {}
 
     virtual ~PhysicalOperator() = default;
 
@@ -33,10 +50,14 @@ public:
 
     virtual unique_ptr<PhysicalOperator> clone() = 0;
 
+public:
+    unique_ptr<PhysicalOperator> prevOperator;
+    PhysicalOperatorType operatorType;
+    bool isOutDataChunkFiltered;
+
 protected:
     shared_ptr<spdlog::logger> logger;
     shared_ptr<DataChunks> dataChunks;
-    unique_ptr<PhysicalOperator> prevOperator;
 };
 
 } // namespace processor

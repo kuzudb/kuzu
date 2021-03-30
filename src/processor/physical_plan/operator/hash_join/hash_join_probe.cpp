@@ -1,19 +1,18 @@
-#include "src/processor/include/physical_plan/operator/hash_join/hash_join.h"
+#include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
 
 namespace graphflow {
 namespace processor {
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
-HashJoin<IS_OUT_DATACHUNK_FILTERED>::HashJoin(uint64_t buildSideKeyDataChunkPos,
+HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::HashJoinProbe(uint64_t buildSideKeyDataChunkPos,
     uint64_t buildSideKeyVectorPos, uint64_t probeSideKeyDataChunkPos,
     uint64_t probeSideKeyVectorPos, unique_ptr<PhysicalOperator> buildSidePrevOp,
     unique_ptr<PhysicalOperator> probeSidePrevOp)
-    : PhysicalOperator(move(probeSidePrevOp)), buildSideKeyDataChunkPos(buildSideKeyDataChunkPos),
+    : PhysicalOperator(move(probeSidePrevOp), HASH_JOIN_PROBE, IS_OUT_DATACHUNK_FILTERED),
+      buildSidePrevOp(move(buildSidePrevOp)), buildSideKeyDataChunkPos(buildSideKeyDataChunkPos),
       buildSideKeyVectorPos(buildSideKeyVectorPos),
       probeSideKeyDataChunkPos(probeSideKeyDataChunkPos),
-      probeSideKeyVectorPos(probeSideKeyVectorPos), buildSidePrevOp(move(buildSidePrevOp)),
-      isHTInitialized(false) {
-    memManager = make_unique<MemoryManager>();
+      probeSideKeyVectorPos(probeSideKeyVectorPos) {
     auto buildSideDataChunks = this->buildSidePrevOp->getDataChunks();
     buildSideKeyDataChunk = buildSideDataChunks->getDataChunk(buildSideKeyDataChunkPos);
     buildSideNonKeyDataChunks = make_shared<DataChunks>();
@@ -22,7 +21,6 @@ HashJoin<IS_OUT_DATACHUNK_FILTERED>::HashJoin(uint64_t buildSideKeyDataChunkPos,
             buildSideNonKeyDataChunks->append(buildSideDataChunks->getDataChunk(i));
         }
     }
-
     // The prevOperator is the probe side prev operator passed in to the PhysicalOperator
     auto probeSideDataChunks = prevOperator->getDataChunks();
     probeSideKeyDataChunk = probeSideDataChunks->getDataChunk(probeSideKeyDataChunkPos);
@@ -36,38 +34,17 @@ HashJoin<IS_OUT_DATACHUNK_FILTERED>::HashJoin(uint64_t buildSideKeyDataChunkPos,
     }
 
     vectorDecompressOp = ValueVector::getUnaryOperation(DECOMPRESS_NODE_ID);
+    vectorHashOp = ValueVector::getUnaryOperation(HASH_NODE_ID);
     decompressedProbeKeyVector = make_unique<NodeIDVector>(NodeIDCompressionScheme(8, 8));
+    hashedProbeKeyVector = make_unique<ValueVector>(INT64);
 
     probeState = make_unique<ProbeState>(MAX_VECTOR_SIZE);
 
-    initializeHashTable();
     initializeOutDataChunksAndVectorPtrs();
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
-void HashJoin<IS_OUT_DATACHUNK_FILTERED>::initializeHashTable() {
-    vector<PayloadInfo> htPayloadInfos;
-    for (uint64_t i = 0; i < buildSideKeyDataChunk->getNumAttributes(); i++) {
-        if (i == buildSideKeyVectorPos) {
-            continue;
-        }
-        PayloadInfo info(buildSideKeyDataChunk->getValueVector(i)->getNumBytesPerValue(), false);
-        htPayloadInfos.push_back(info);
-    }
-    for (uint64_t i = 0; i < buildSideNonKeyDataChunks->getNumDataChunks(); i++) {
-        auto dataChunk = buildSideNonKeyDataChunks->getDataChunk(i);
-        for (auto& vector : dataChunk->valueVectors) {
-            PayloadInfo info(
-                (dataChunk->isFlat() ? vector->getNumBytesPerValue() : sizeof(overflow_value_t)),
-                !dataChunk->isFlat());
-            htPayloadInfos.push_back(info);
-        }
-    }
-    hashTable = make_unique<HashTable>(*memManager, htPayloadInfos);
-}
-
-template<bool IS_OUT_DATACHUNK_FILTERED>
-void HashJoin<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorPtrs() {
+void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorPtrs() {
     dataChunks = make_shared<DataChunks>();
     outKeyDataChunk = make_unique<DataChunk>();
     dataChunks->append(outKeyDataChunk);
@@ -146,7 +123,23 @@ void HashJoin<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorPtrs()
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
-void HashJoin<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
+void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::probeHTDirectory() {
+    auto keyCount = probeSideKeyVector->getNumSelectedValues();
+    vectorHashOp(*probeSideKeyVector, *hashedProbeKeyVector);
+    auto hashes = (uint64_t*)hashedProbeKeyVector->getValues();
+    for (uint64_t i = 0; i < keyCount; i++) {
+        hashes[i] = hashes[i] & sharedState->hashTable->hashBitMask;
+    }
+    auto directory = (uint8_t**)sharedState->hashTable->htDirectory->blockPtr;
+    for (uint64_t i = 0; i < keyCount; i++) {
+        auto hash = hashes[i];
+        probeState->probedTuples[i] = (uint8_t*)(directory[hash]);
+    }
+    probeState->probedTuplesSize = keyCount;
+}
+
+template<bool IS_OUT_DATACHUNK_FILTERED>
+void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
     if (probeState->probedTuplesSize == 0 ||
         probeState->probeKeyPos == probeState->probedTuplesSize) {
         if (!prevOperator->hasNextMorsel()) {
@@ -158,8 +151,7 @@ void HashJoin<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
             probeState->probedTuplesSize = 0;
             return;
         }
-        probeState->probedTuplesSize =
-            hashTable->probeDirectory(*probeSideKeyVector, probeState->probedTuples.get());
+        probeHTDirectory();
         vectorDecompressOp(*probeSideKeyVector, *decompressedProbeKeyVector);
         probeState->probeKeyPos = 0;
     }
@@ -178,25 +170,37 @@ void HashJoin<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
             probeState->matchedTuplesSize += (nodeId.label == decompressedProbeKeys[i].label &&
                                               nodeId.offset == decompressedProbeKeys[i].offset);
             probeState->probedTuples[i] =
-                *(uint8_t**)(probeState->probedTuples[i] + hashTable->numBytesForFixedTuplePart -
-                             sizeof(uint8_t*));
+                *(uint8_t**)(probeState->probedTuples[i] +
+                             sharedState->hashTable->numBytesForFixedTuplePart - sizeof(uint8_t*));
         }
         probeState->probeKeyPos++;
     }
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
-void HashJoin<IS_OUT_DATACHUNK_FILTERED>::populateOutKeyDataChunkAndVectorPtrs() {
+void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::populateOutKeyDataChunkAndVectorPtrs() {
     for (uint64_t i = 0; i < probeSideKeyDataChunk->getNumAttributes(); i++) {
-        auto probeVector = probeSideKeyDataChunk->getValueVector(i);
+        auto probeVector =
+            probeSideKeyDataChunk->getValueVector(i); // todo: bug, vector can be nodeIDSequence
         auto probeVectorValues = probeVector->getValues();
         auto outKeyVector = outKeyDataChunk->getValueVector(i);
         auto outKeyVectorValues = outKeyVector->getValues();
         auto numBytesPerValue = outKeyVector->getNumBytesPerValue();
-        for (uint64_t j = 0; j < probeState->matchedTuplesSize; j++) {
-            memcpy(outKeyVectorValues + (j * numBytesPerValue),
-                probeVectorValues + (probeState->probeSelVector[j] * numBytesPerValue),
-                numBytesPerValue);
+        if (probeVector->getDataType() == NODE &&
+            static_pointer_cast<NodeIDVector>(probeVector)->getIsSequence()) {
+            auto outKeyVectorNodeOffsets = (node_offset_t*)outKeyVectorValues;
+            auto probeKeyStartOffset = *(node_offset_t*)(probeVectorValues);
+            for (uint64_t j = 0; j < probeState->matchedTuplesSize; j++) {
+                outKeyVectorNodeOffsets[j] = probeKeyStartOffset + probeState->probeSelVector[j];
+            }
+            static_pointer_cast<NodeIDVector>(outKeyVector)
+                ->setCommonLabel(static_pointer_cast<NodeIDVector>(probeVector)->getCommonLabel());
+        } else {
+            for (uint64_t j = 0; j < probeState->matchedTuplesSize; j++) {
+                memcpy(outKeyVectorValues + (j * numBytesPerValue),
+                    probeVectorValues + (probeState->probeSelVector[j] * numBytesPerValue),
+                    numBytesPerValue);
+            }
         }
     }
     auto outKeyDataChunkVectorPos = probeSideKeyDataChunk->getNumAttributes();
@@ -248,7 +252,7 @@ void HashJoin<IS_OUT_DATACHUNK_FILTERED>::populateOutKeyDataChunkAndVectorPtrs()
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
-void HashJoin<IS_OUT_DATACHUNK_FILTERED>::updateAppendedUnFlatOutDataChunks() {
+void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::updateAppendedUnFlatOutDataChunks() {
     for (auto& buildVectorInfo : buildSideVectorInfos) {
         auto outDataChunk = dataChunks->getDataChunk(buildVectorInfo.outDataChunkPos);
         auto appendVectorData =
@@ -267,27 +271,15 @@ static void initializeSelectedValuesPos(uint64_t* selectedValuesPos, uint64_t nu
     }
 }
 
-// The general flow of a hash join:
-// 1) append all data chunks from the build side into ht.
-// 2) for probing, first find matched tuples of probe side keys from ht, then populate values from
-// matched tuples into outKeyDataChunk and buildSideVectorPtrs, finally, if build side doesn't
-// contain any unflat non-key data chunks, which means buildSideVectorPtrs is empty, directly unflat
-// outKeyDataChunk. else flat outKeyDataChunk and update currPos of outKeyDataChunk, and update
-// appended unflat data chunks based on buildSideVectorPtrs and outKeyDataChunk.currPos.
+// The general flow of a hash join probe:
+// 1) find matched tuples of probe side keys from ht.
+// 2) populate values from matched tuples into outKeyDataChunk and buildSideVectorPtrs.
+// 3) if build side doesn't contain any unflat non-key data chunks, which means buildSideVectorPtrs
+// is empty, directly unflat outKeyDataChunk. else flat outKeyDataChunk and update currPos of
+// outKeyDataChunk, and update appended unflat data chunks based on buildSideVectorPtrs and
+// outKeyDataChunk.currPos.
 template<bool IS_OUT_DATACHUNK_FILTERED>
-void HashJoin<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
-    if (!isHTInitialized) {
-        while (buildSidePrevOp->hasNextMorsel()) {
-            buildSidePrevOp->getNextTuples();
-            if (0 == buildSideKeyDataChunk->numSelectedValues) {
-                break;
-            }
-            hashTable->addDataChunks(
-                *buildSideKeyDataChunk, buildSideKeyVectorPos, *buildSideNonKeyDataChunks);
-        }
-        hashTable->buildDirectory();
-        isHTInitialized = true;
-    }
+void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     if (!buildSideVectorPtrs.empty() && outKeyDataChunk->currPos < (outKeyDataChunk->size - 1)) {
         outKeyDataChunk->currPos += 1;
         updateAppendedUnFlatOutDataChunks();
@@ -319,7 +311,7 @@ void HashJoin<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     }
 }
 
-template class HashJoin<true>;
-template class HashJoin<false>;
+template class HashJoinProbe<true>;
+template class HashJoinProbe<false>;
 } // namespace processor
 } // namespace graphflow

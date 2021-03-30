@@ -10,7 +10,7 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 class PhysicalScan : public PhysicalOperator {
 
 public:
-    PhysicalScan(shared_ptr<MorselDesc>& morsel) : morsel{morsel} {
+    PhysicalScan(shared_ptr<MorselDesc>& morsel) : PhysicalOperator(SCAN), morsel{morsel} {
         dataChunks = make_shared<DataChunks>();
         nodeIDVector = make_shared<NodeIDSequenceVector>();
         outDataChunk =
@@ -18,6 +18,7 @@ public:
         outDataChunk->append(nodeIDVector);
         nodeIDVector->setDataChunkOwner(outDataChunk);
         dataChunks->append(outDataChunk);
+        isOutDataChunkFiltered = IS_OUT_DATACHUNK_FILTERED;
     }
 
     void getNextTuples() override {

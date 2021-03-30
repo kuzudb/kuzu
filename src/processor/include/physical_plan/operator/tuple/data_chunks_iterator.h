@@ -13,22 +13,25 @@ class DataChunksIterator {
 public:
     explicit DataChunksIterator(DataChunks& dataChunks)
         : dataChunks(dataChunks), numIteratedTuples(0) {
-        initializeTuplePositions();
+        reset();
     }
 
     void setDataChunks(DataChunks& dataChunks) {
         this->dataChunks = dataChunks;
-        initializeTuplePositions();
-        numIteratedTuples = 0;
+        reset();
     }
 
     bool hasNextTuple();
     void getNextTuple(Tuple& tuple);
+    void reset();
+
+public:
+    vector<DataType> dataChunksTypes;
 
 private:
-    void initializeTuplePositions();
     bool updateTuplePositions(int64_t chunkIdx);
     void updateTuplePositions();
+    void setDataChunksTypes();
 
     DataChunks& dataChunks;
 

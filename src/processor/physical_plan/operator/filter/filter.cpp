@@ -5,7 +5,7 @@ namespace processor {
 
 Filter::Filter(unique_ptr<PhysicalExpression> rootExpr, uint64_t dataChunkToSelectPos,
     unique_ptr<PhysicalOperator> prevOperator)
-    : PhysicalOperator{move(prevOperator)}, rootExpr{move(rootExpr)},
+    : PhysicalOperator{move(prevOperator), FILTER}, rootExpr{move(rootExpr)},
       dataChunkToSelectPos(dataChunkToSelectPos) {
     dataChunks = this->prevOperator->getDataChunks();
     dataChunkToSelect = dataChunks->getDataChunk(dataChunkToSelectPos);

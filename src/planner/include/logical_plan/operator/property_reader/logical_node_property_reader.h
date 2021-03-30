@@ -18,7 +18,7 @@ public:
           propertyName{propertyName} {}
 
     LogicalOperatorType getLogicalOperatorType() const {
-        return LogicalOperatorType::NODE_PROPERTY_READER;
+        return LogicalOperatorType::LOGICAL_NODE_PROPERTY_READER;
     }
 
 public:

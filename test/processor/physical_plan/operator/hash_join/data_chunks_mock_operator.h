@@ -10,62 +10,74 @@ namespace processor {
 
 class DataChunksMockOperator : public PhysicalOperator {
 public:
-    DataChunksMockOperator() { dataChunks = make_shared<DataChunks>(); }
-    DataChunksMockOperator(shared_ptr<DataChunks> mockDataChunks) { dataChunks = mockDataChunks; }
+    DataChunksMockOperator(MorselDesc& morsel) : PhysicalOperator(SCAN), morsel(morsel) {
+        dataChunks = make_shared<DataChunks>();
+    }
+    explicit DataChunksMockOperator(shared_ptr<DataChunks> mockDataChunks, MorselDesc& morsel)
+        : PhysicalOperator(SCAN), morsel(morsel) {
+        dataChunks = move(mockDataChunks);
+    }
 
     bool hasNextMorsel() override { return true; };
     void getNextTuples() override {}
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<DataChunksMockOperator>(dataChunks);
+        return make_unique<DataChunksMockOperator>(dataChunks, morsel);
     }
+
+    MorselDesc& morsel;
+    mutex opLock;
 };
 
 class ScanMockOp : public DataChunksMockOperator {
 public:
-    ScanMockOp() : numTuples(0) { generateDataChunks(); }
+    ScanMockOp(MorselDesc& morsel) : DataChunksMockOperator(morsel) { generateDataChunks(); }
 
     void getNextTuples() override;
+    unique_ptr<PhysicalOperator> clone() override { return make_unique<ScanMockOp>(morsel); }
 
 private:
     void generateDataChunks();
-
-    uint64_t numTuples;
 };
 
 class ProbeScanMockOp : public DataChunksMockOperator {
 public:
-    ProbeScanMockOp() : numTuples(2) { generateDataChunks(); }
+    ProbeScanMockOp(MorselDesc& morsel) : DataChunksMockOperator(morsel) { generateDataChunks(); }
 
     void getNextTuples() override;
+    unique_ptr<PhysicalOperator> clone() override { return make_unique<ProbeScanMockOp>(morsel); }
 
 private:
     void generateDataChunks();
-
-    uint64_t numTuples;
 };
 
 class ScanMockOpWithSelector : public DataChunksMockOperator {
 public:
-    ScanMockOpWithSelector() : numTuples(0) { generateDataChunks(); }
+    ScanMockOpWithSelector(MorselDesc& morsel) : DataChunksMockOperator(morsel) {
+        generateDataChunks();
+    }
 
     void getNextTuples() override;
+    unique_ptr<PhysicalOperator> clone() override {
+        return make_unique<ScanMockOpWithSelector>(morsel);
+    }
 
 private:
     void generateDataChunks();
-
-    uint64_t numTuples;
 };
 
 class ProbeScanMockOpWithSelector : public DataChunksMockOperator {
 public:
-    ProbeScanMockOpWithSelector() : numTuples(0) { generateDataChunks(); }
+    ProbeScanMockOpWithSelector(MorselDesc& morsel) : DataChunksMockOperator(morsel) {
+        generateDataChunks();
+    }
 
     void getNextTuples() override;
+    unique_ptr<PhysicalOperator> clone() override {
+        return make_unique<ProbeScanMockOpWithSelector>(morsel);
+    }
 
 private:
     void generateDataChunks();
-
-    uint64_t numTuples;
 };
 
 } // namespace processor

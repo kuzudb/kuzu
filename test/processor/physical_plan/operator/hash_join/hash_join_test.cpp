@@ -1,263 +1,274 @@
 #include "data_chunks_mock_operator.h"
 #include "gtest/gtest.h"
 
-#include "src/processor/include/physical_plan/operator/hash_join/hash_join.h"
-#include "src/processor/include/physical_plan/operator/tuple/data_chunks_iterator.h"
-#include "src/processor/include/physical_plan/operator/tuple/tuple.h"
+#include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
+#include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
+#include "src/processor/include/physical_plan/operator/sink/result_collector.h"
+#include "src/processor/include/physical_plan/physical_plan.h"
+#include "src/processor/include/processor.h"
 
-TEST(HashJoinTests, HashJoinTest1) {
-    auto buildOp = make_unique<ScanMockOp>();
-    auto probeOp = make_unique<ProbeScanMockOp>();
+TEST(HashJoinTests, HashJoinTest1T1) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto hashJoin = make_unique<HashJoin<true>>(0, 0, 0, 0, move(buildOp), move(probeOp));
-    uint64_t matchedNumTuples = 0;
-    while (true) {
-        hashJoin->getNextTuples();
-        auto result = hashJoin->getDataChunks();
-        matchedNumTuples += result->getNumTuples();
-        if (result->getNumTuples() == 0) {
-            break;
-        }
-        ASSERT_EQ(result->getNumTuples(), 100);
-        vector<DataType> types;
-        for (uint64_t i = 0; i < result->getNumDataChunks(); i++) {
-            for (auto& vector : result->getDataChunk(i)->valueVectors) {
-                types.push_back(vector->getDataType());
-            }
-        }
-        Tuple tuple(types);
-        DataChunksIterator dataChunksIterator(*result);
-        uint64_t tupleIndex = 0;
-        while (dataChunksIterator.hasNextTuple()) {
-            dataChunksIterator.getNextTuple(tuple);
-            ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
-            ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 0);
-            ASSERT_EQ(tuple.getValue(1)->primitive.integer, 0);
-            ASSERT_EQ(tuple.getValue(2)->primitive.integer, 0);
-            ASSERT_EQ(tuple.getValue(3)->nodeID.label, 28);
-            auto nodeOffset = 10 - (matchedNumTuples > 1000 ? (matchedNumTuples - 1000) / 100 :
-                                                              matchedNumTuples / 100);
-            ASSERT_EQ(tuple.getValue(3)->nodeID.offset, nodeOffset);
-            ASSERT_EQ(tuple.getValue(4)->primitive.double_, (double)(nodeOffset / 2));
-            ASSERT_EQ(tuple.getValue(5)->nodeID.label, 28);
-            ASSERT_EQ(tuple.getValue(5)->nodeID.offset, (matchedNumTuples > 1000 ? 3 : 2));
-            ASSERT_EQ(tuple.getValue(6)->primitive.double_,
-                (double)(tuple.getValue(5)->nodeID.offset / 2));
-            ASSERT_EQ(tuple.getValue(7)->nodeID.label, 38);
-            ASSERT_EQ(tuple.getValue(7)->nodeID.offset, tupleIndex / 10);
-            ASSERT_EQ(tuple.getValue(8)->primitive.boolean, ((tupleIndex / 10) / 2) == 1);
-            ASSERT_EQ(tuple.getValue(9)->nodeID.label, 38);
-            ASSERT_EQ(tuple.getValue(9)->nodeID.offset, (tupleIndex % 10));
-            ASSERT_EQ(tuple.getValue(10)->primitive.boolean, ((tupleIndex % 10) / 2) == 1);
-            tupleIndex++;
-        }
-    }
-    ASSERT_EQ(matchedNumTuples, 2000);
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(0, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(0, 0, 0, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(1);
+    auto result = processor->execute(move(plan), 1);
+    ASSERT_EQ(result->numTuples, 4000);
 }
 
-TEST(HashJoinTests, HashJoinTest2) {
-    auto buildOp = make_unique<ScanMockOp>();
-    auto probeOp = make_unique<ProbeScanMockOp>();
-    auto hashJoin = make_unique<HashJoin<true>>(2, 0, 2, 0, move(buildOp), move(probeOp));
-    uint64_t matchedNumTuples = 0;
-    while (true) {
-        hashJoin->getNextTuples();
-        auto result = hashJoin->getDataChunks();
-        matchedNumTuples += result->getNumTuples();
-        if (result->getNumTuples() == 0) {
-            break;
-        }
-        ASSERT_EQ(result->getNumTuples(), 100);
-        vector<DataType> types;
-        for (uint64_t i = 0; i < result->getNumDataChunks(); i++) {
-            for (auto& vector : result->getDataChunk(i)->valueVectors) {
-                types.push_back(vector->getDataType());
-            }
-        }
-        Tuple tuple(types);
-        DataChunksIterator dataChunksIterator(*result);
-        uint64_t tupleIndex = 0;
-        while (dataChunksIterator.hasNextTuple()) {
-            dataChunksIterator.getNextTuple(tuple);
-            ASSERT_EQ(tuple.getValue(0)->nodeID.label, 38);
-            ASSERT_EQ(tuple.getValue(0)->nodeID.offset, tupleIndex / 10);
-            ASSERT_EQ(tuple.getValue(1)->primitive.boolean, ((tupleIndex / 10) / 2) == 1);
-            ASSERT_EQ(tuple.getValue(2)->primitive.boolean, ((tupleIndex / 10) / 2) == 1);
-            ASSERT_EQ(tuple.getValue(3)->nodeID.label, 18);
-            ASSERT_EQ(tuple.getValue(3)->nodeID.offset, 0);
-            ASSERT_EQ(tuple.getValue(4)->primitive.integer, 0);
-            ASSERT_EQ(tuple.getValue(5)->nodeID.label, 28);
-            ASSERT_EQ(tuple.getValue(5)->nodeID.offset, (10 - ((tupleIndex % 10) + 1)));
-            ASSERT_EQ(
-                tuple.getValue(6)->primitive.double_, (double)((10 - ((tupleIndex % 10) + 1)) / 2));
-            ASSERT_EQ(tuple.getValue(7)->nodeID.label, 18);
-            ASSERT_EQ(tuple.getValue(7)->nodeID.offset, 0);
-            ASSERT_EQ(tuple.getValue(8)->primitive.integer, 0);
-            ASSERT_EQ(tuple.getValue(9)->nodeID.label, 28);
-            ASSERT_EQ(tuple.getValue(9)->nodeID.offset, (matchedNumTuples / 100) + 1);
-            ASSERT_EQ(tuple.getValue(10)->primitive.double_, (double)(tupleIndex / 100 + 1));
-            tupleIndex++;
-        }
-    }
-    ASSERT_EQ(matchedNumTuples, 200);
+TEST(HashJoinTests, HashJoinTest1T2) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
+
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(0, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(0, 0, 0, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(2);
+    auto result = processor->execute(move(plan), 2);
+    ASSERT_EQ(result->numTuples, 4000);
 }
 
-TEST(HashJoinTests, HashJoinTest3) {
-    auto buildOp = make_unique<ScanMockOp>();
-    auto probeOp = make_unique<ProbeScanMockOp>();
-    auto hashJoin = make_unique<HashJoin<true>>(1, 0, 1, 0, move(buildOp), move(probeOp));
-    uint64_t matchedNumTuples = 0;
-    while (true) {
-        hashJoin->getNextTuples();
-        auto result = hashJoin->getDataChunks();
-        matchedNumTuples += result->getNumTuples();
-        if (result->getNumTuples() == 0) {
-            break;
-        }
-        ASSERT_EQ(result->getNumTuples(), 100);
-        vector<DataType> types;
-        for (uint64_t i = 0; i < result->getNumDataChunks(); i++) {
-            for (auto& vector : result->getDataChunk(i)->valueVectors) {
-                types.push_back(vector->getDataType());
-            }
-        }
-        Tuple tuple(types);
-        DataChunksIterator dataChunksIterator(*result);
-        uint64_t tupleIndex = 0;
-        while (dataChunksIterator.hasNextTuple()) {
-            dataChunksIterator.getNextTuple(tuple);
-            ASSERT_EQ(tuple.getValue(0)->nodeID.label, 28);
-            ASSERT_EQ(tuple.getValue(0)->nodeID.offset, (matchedNumTuples / 100) + 1);
-            ASSERT_EQ(tuple.getValue(1)->primitive.double_, (double)(tupleIndex / 100 + 1));
-            ASSERT_EQ(tuple.getValue(2)->primitive.double_, (double)(tupleIndex / 100 + 1));
-            ASSERT_EQ(tuple.getValue(3)->nodeID.label, 18);
-            ASSERT_EQ(tuple.getValue(3)->nodeID.offset, 0);
-            ASSERT_EQ(tuple.getValue(4)->primitive.integer, 0);
-            ASSERT_EQ(tuple.getValue(5)->nodeID.label, 18);
-            ASSERT_EQ(tuple.getValue(5)->nodeID.offset, 0);
-            ASSERT_EQ(tuple.getValue(6)->primitive.integer, 0);
-            ASSERT_EQ(tuple.getValue(7)->nodeID.label, 38);
-            ASSERT_EQ(tuple.getValue(7)->nodeID.offset, tupleIndex / 10);
-            ASSERT_EQ(tuple.getValue(8)->primitive.boolean, ((tupleIndex / 10) / 2) == 1);
-            ASSERT_EQ(tuple.getValue(9)->nodeID.label, 38);
-            ASSERT_EQ(tuple.getValue(9)->nodeID.offset, (tupleIndex % 10));
-            ASSERT_EQ(tuple.getValue(10)->primitive.boolean, ((tupleIndex % 10) / 2) == 1);
-            tupleIndex++;
-        }
-    }
-    ASSERT_EQ(matchedNumTuples, 200);
+TEST(HashJoinTests, HashJoinTest1T4) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
+
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(0, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(0, 0, 0, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(4);
+    auto result = processor->execute(move(plan), 4);
+    ASSERT_EQ(result->numTuples, 4000);
 }
 
-TEST(HashJoinTests, HashJoinTest4) {
-    auto buildOp = make_unique<ScanMockOp>();
-    auto probeOp = make_unique<ProbeScanMockOp>();
-    auto hashJoin = make_unique<HashJoin<true>>(1, 0, 2, 0, move(buildOp), move(probeOp));
-    uint64_t matchedNumTuples = 0;
-    while (true) {
-        hashJoin->getNextTuples();
-        auto result = hashJoin->getDataChunks();
-        matchedNumTuples += result->getNumTuples();
-        if (result->getNumTuples() == 0) {
-            break;
-        }
-    }
-    ASSERT_EQ(matchedNumTuples, 0);
+TEST(HashJoinTests, HashJoinTest1T8) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
+
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(0, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(0, 0, 0, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(8);
+    auto result = processor->execute(move(plan), 8);
+    ASSERT_EQ(result->numTuples, 4000);
 }
 
-TEST(HashJoinTests, HashJoinTestWithSelector1) {
-    auto buildOp = make_unique<ScanMockOp>();
-    auto probeOp = make_unique<ProbeScanMockOpWithSelector>();
+TEST(HashJoinTests, HashJoinTest2T1) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto hashJoin = make_unique<HashJoin<true>>(0, 0, 0, 0, move(buildOp), move(probeOp));
-    uint64_t matchedNumTuples = 0;
-    while (true) {
-        hashJoin->getNextTuples();
-        auto result = hashJoin->getDataChunks();
-        matchedNumTuples += result->getNumTuples();
-        if (result->getNumTuples() == 0) {
-            break;
-        }
-        ASSERT_EQ(result->getNumTuples(), 10);
-        vector<DataType> types;
-        for (uint64_t i = 0; i < result->getNumDataChunks(); i++) {
-            for (auto& vector : result->getDataChunk(i)->valueVectors) {
-                types.push_back(vector->getDataType());
-            }
-        }
-        Tuple tuple(types);
-        DataChunksIterator dataChunksIterator(*result);
-        uint64_t tupleIndex = 0;
-        while (dataChunksIterator.hasNextTuple()) {
-            dataChunksIterator.getNextTuple(tuple);
-            ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
-            ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 0);
-            ASSERT_EQ(tuple.getValue(1)->primitive.integer, 0);
-            ASSERT_EQ(tuple.getValue(2)->primitive.integer, 0);
-            ASSERT_EQ(tuple.getValue(3)->nodeID.label, 28);
-            auto nodeOffset = 10 - (matchedNumTuples / 10);
-            ASSERT_EQ(tuple.getValue(3)->nodeID.offset, nodeOffset);
-            ASSERT_EQ(tuple.getValue(4)->primitive.double_, (double)(nodeOffset / 2));
-            ASSERT_EQ(tuple.getValue(5)->nodeID.label, 28);
-            ASSERT_EQ(tuple.getValue(5)->nodeID.offset, 2);
-            ASSERT_EQ(tuple.getValue(6)->primitive.double_,
-                (double)(tuple.getValue(5)->nodeID.offset / 2));
-            ASSERT_EQ(tuple.getValue(7)->nodeID.label, 38);
-            ASSERT_EQ(tuple.getValue(7)->nodeID.offset, 3);
-            ASSERT_EQ(tuple.getValue(8)->primitive.boolean, true);
-            ASSERT_EQ(tuple.getValue(9)->nodeID.label, 38);
-            ASSERT_EQ(tuple.getValue(9)->nodeID.offset, (tupleIndex % 10));
-            ASSERT_EQ(tuple.getValue(10)->primitive.boolean, ((tupleIndex % 10) / 2) == 1);
-            tupleIndex++;
-        }
-    }
-    ASSERT_EQ(matchedNumTuples, 100);
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(1, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(1, 0, 1, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(1);
+    auto result = processor->execute(move(plan), 1);
+    ASSERT_EQ(result->numTuples, 400);
 }
 
-TEST(HashJoinTests, HashJoinTestWithSelector2) {
-    auto buildOp = make_unique<ScanMockOpWithSelector>();
-    auto probeOp = make_unique<ProbeScanMockOpWithSelector>();
+TEST(HashJoinTests, HashJoinTest2T2) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto hashJoin = make_unique<HashJoin<true>>(0, 0, 0, 0, move(buildOp), move(probeOp));
-    uint64_t matchedNumTuples = 0;
-    while (true) {
-        hashJoin->getNextTuples();
-        auto result = hashJoin->getDataChunks();
-        matchedNumTuples += result->getNumTuples();
-        if (result->getNumTuples() == 0) {
-            break;
-        }
-        ASSERT_EQ(result->getNumTuples(), 10);
-        vector<DataType> types;
-        for (uint64_t i = 0; i < result->getNumDataChunks(); i++) {
-            for (auto& vector : result->getDataChunk(i)->valueVectors) {
-                types.push_back(vector->getDataType());
-            }
-        }
-        Tuple tuple(types);
-        DataChunksIterator dataChunksIterator(*result);
-        uint64_t tupleIndex = 0;
-        while (dataChunksIterator.hasNextTuple()) {
-            dataChunksIterator.getNextTuple(tuple);
-            ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
-            ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 0);
-            ASSERT_EQ(tuple.getValue(1)->primitive.integer, 0);
-            ASSERT_EQ(tuple.getValue(2)->primitive.integer, 0);
-            ASSERT_EQ(tuple.getValue(3)->nodeID.label, 28);
-            auto nodeOffset = 2;
-            ASSERT_EQ(tuple.getValue(3)->nodeID.offset, nodeOffset);
-            ASSERT_EQ(tuple.getValue(4)->primitive.double_, (double)(nodeOffset / 2));
-            ASSERT_EQ(tuple.getValue(5)->nodeID.label, 28);
-            ASSERT_EQ(tuple.getValue(5)->nodeID.offset, 2);
-            ASSERT_EQ(tuple.getValue(6)->primitive.double_,
-                (double)(tuple.getValue(5)->nodeID.offset / 2));
-            ASSERT_EQ(tuple.getValue(7)->nodeID.label, 38);
-            ASSERT_EQ(tuple.getValue(7)->nodeID.offset, 3);
-            ASSERT_EQ(tuple.getValue(8)->primitive.boolean, true);
-            ASSERT_EQ(tuple.getValue(9)->nodeID.label, 38);
-            ASSERT_EQ(tuple.getValue(9)->nodeID.offset, (tupleIndex % 10));
-            ASSERT_EQ(tuple.getValue(10)->primitive.boolean, ((tupleIndex % 10) / 2) == 1);
-            tupleIndex++;
-        }
-    }
-    ASSERT_EQ(matchedNumTuples, 100);
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(1, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(1, 0, 1, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(2);
+    auto result = processor->execute(move(plan), 2);
+    ASSERT_EQ(result->numTuples, 400);
+}
+
+TEST(HashJoinTests, HashJoinTest2T4) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
+
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(1, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(1, 0, 1, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(4);
+    auto result = processor->execute(move(plan), 4);
+    ASSERT_EQ(result->numTuples, 400);
+}
+
+TEST(HashJoinTests, HashJoinTest2T8) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
+
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(1, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(1, 0, 1, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(8);
+    auto result = processor->execute(move(plan), 8);
+    ASSERT_EQ(result->numTuples, 400);
+}
+
+TEST(HashJoinTests, HashJoinTest3T1) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
+
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(2, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(2, 0, 2, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(1);
+    auto result = processor->execute(move(plan), 1);
+    ASSERT_EQ(result->numTuples, 400);
+}
+
+TEST(HashJoinTests, HashJoinTest3T2) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
+
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(2, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(2, 0, 2, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(2);
+    auto result = processor->execute(move(plan), 2);
+    ASSERT_EQ(result->numTuples, 400);
+}
+
+TEST(HashJoinTests, HashJoinTest3T4) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
+
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(2, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(2, 0, 2, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(4);
+    auto result = processor->execute(move(plan), 4);
+    ASSERT_EQ(result->numTuples, 400);
+}
+
+TEST(HashJoinTests, HashJoinTest3T8) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
+
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(2, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(2, 0, 2, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(8);
+    auto result = processor->execute(move(plan), 8);
+    ASSERT_EQ(result->numTuples, 400);
+}
+
+TEST(HashJoinTests, HashJoinTest4T1) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
+
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(1, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(1, 0, 2, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(1);
+    auto result = processor->execute(move(plan), 1);
+    ASSERT_EQ(result->numTuples, 0);
+}
+
+TEST(HashJoinTests, HashJoinTest4T4) {
+    MorselDesc buildMorsel(10);
+    MorselDesc probeMorsel(4);
+    auto buildOp = make_unique<ScanMockOp>(buildMorsel);
+    auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
+
+    auto sharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(1, 0, move(buildOp));
+    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = sharedState;
+    auto hashJoinProbe =
+        make_unique<HashJoinProbe<false>>(1, 0, 2, 0, move(hashJoinBuild), move(probeOp));
+    hashJoinProbe->sharedState = sharedState;
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(hashJoinProbe)));
+    auto processor = make_unique<QueryProcessor>(4);
+    auto result = processor->execute(move(plan), 4);
+    ASSERT_EQ(result->numTuples, 0);
 }

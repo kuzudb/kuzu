@@ -17,7 +17,9 @@ public:
     LogicalFilter(unique_ptr<LogicalExpression> rootExpr, shared_ptr<LogicalOperator> prevOperator)
         : LogicalOperator{prevOperator}, rootExpr{move(rootExpr)} {}
 
-    LogicalOperatorType getLogicalOperatorType() const { return LogicalOperatorType::FILTER; }
+    LogicalOperatorType getLogicalOperatorType() const {
+        return LogicalOperatorType::LOGICAL_FILTER;
+    }
 
     const LogicalExpression& getRootLogicalExpression() const { return *rootExpr; }
 

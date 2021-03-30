@@ -7,7 +7,7 @@ bool DataChunksIterator::hasNextTuple() {
     return numIteratedTuples < dataChunks.getNumTuples();
 }
 
-void DataChunksIterator::initializeTuplePositions() {
+void DataChunksIterator::reset() {
     tuplePositions.clear();
     for (uint64_t i = 0; i < dataChunks.getNumDataChunks(); i++) {
         auto dataChunk = dataChunks.getDataChunk(i);
@@ -17,6 +17,8 @@ void DataChunksIterator::initializeTuplePositions() {
             tuplePositions.push_back(0);
         }
     }
+    numIteratedTuples = 0;
+    setDataChunksTypes();
 }
 
 bool DataChunksIterator::updateTuplePositions(int64_t chunkIdx) {
@@ -37,6 +39,16 @@ void DataChunksIterator::updateTuplePositions() {
         lastChunkIdx = lastChunkIdx - 1;
         if (lastChunkIdx < 0) {
             return;
+        }
+    }
+}
+
+void DataChunksIterator::setDataChunksTypes() {
+    dataChunksTypes.clear();
+    for (uint64_t i = 0; i < dataChunks.getNumDataChunks(); i++) {
+        auto dataChunk = dataChunks.getDataChunk(i);
+        for (auto& vector : dataChunk->valueVectors) {
+            dataChunksTypes.push_back(vector->getDataType());
         }
     }
 }

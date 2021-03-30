@@ -5,7 +5,7 @@ namespace processor {
 
 ListReader::ListReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
     BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator)
-    : PhysicalOperator{move(prevOperator)}, inDataChunkPos{dataChunkPos},
+    : PhysicalOperator{move(prevOperator), LIST_READER}, inDataChunkPos{dataChunkPos},
       inValueVectorPos{valueVectorPos}, lists{lists} {
     dataChunks = this->prevOperator->getDataChunks();
     inDataChunk = dataChunks->getDataChunk(dataChunkPos);
