@@ -26,6 +26,11 @@ public:
         return directory + "/n-" + to_string(nodeLabel) + "-" + propertyName + ".col";
     }
 
+    inline static string getNodeUnstrPropertyListsFname(
+        const string& directory, const label_t& nodeLabel) {
+        return directory + "/n-" + to_string(nodeLabel) + ".lists";
+    }
+
 private:
     shared_ptr<spdlog::logger> logger;
     // The properties of nodes in the system are stored in Property Columns with one column for each

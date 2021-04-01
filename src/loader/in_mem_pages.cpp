@@ -30,6 +30,14 @@ void InMemAdjPages::set(const PageCursor& cursor, const nodeID_t& nbrNodeID) {
     memcpy(writeOffset + numBytesPerLabel, &nbrNodeID.offset, numBytesPerOffset);
 }
 
+void InMemUnstrPropertyPages::set(const PageCursor& cursor, uint32_t propertyKey,
+    uint8_t dataTypeIdentifier, uint32_t valLen, const uint8_t* val) {
+    auto writeOffset = data.get() + (PAGE_SIZE * cursor.idx) + cursor.offset;
+    memcpy(writeOffset, &propertyKey, 4);
+    memcpy(writeOffset + 4, &dataTypeIdentifier, 1);
+    memcpy(writeOffset + 5, val, valLen);
+}
+
 void InMemStringOverflowPages::set(
     const char* originalString, PageCursor& cursor, gf_string_t* encodedString) {
     encodedString->len = strlen(originalString);
@@ -50,7 +58,7 @@ void InMemStringOverflowPages::copyOverflowString(
         cursor.offset = 0;
         cursor.idx = getNewOverflowPageIdx();
     }
-    encodedString->setOverflowPtrFromPageCursor(cursor);
+    encodedString->copyOverflowPtrFromPageCursor(cursor);
     auto writeOffset = data.get() + (cursor.idx * PAGE_SIZE) + cursor.offset;
     memcpy(writeOffset, ptrToCopy, encodedString->len);
     cursor.offset += encodedString->len;

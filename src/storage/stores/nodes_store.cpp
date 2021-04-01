@@ -8,7 +8,7 @@ namespace storage {
 NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
     const string& directory, BufferManager& bufferManager)
     : logger{spdlog::get("storage")} {
-    logger->debug("Initializing NodesStore.");
+    logger->info("Initializing NodesStore.");
     propertyColumns.resize(catalog.getNodeLabelsCount());
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
         auto& propertyMap = catalog.getPropertyMapForNodeLabel(nodeLabel);
@@ -40,7 +40,7 @@ NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesP
             }
         }
     }
-    logger->debug("Done.");
+    logger->info("Done.");
 }
 
 } // namespace storage

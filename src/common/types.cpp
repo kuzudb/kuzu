@@ -1,6 +1,6 @@
 #include "src/common/include/types.h"
 
-#include <iostream>
+#include <cstdlib>
 
 namespace graphflow {
 namespace common {
@@ -60,6 +60,37 @@ size_t getDataTypeSize(DataType dataType) {
     default:
         throw invalid_argument("Cannot infer the size of dataType.");
     }
+}
+
+int32_t convertToInt32(char* data) {
+    return atoi(data);
+};
+
+double_t convertToDouble(char* data) {
+    return atof(data);
+};
+
+uint8_t convertToBoolean(char* data) {
+    static char* trueVal = (char*)"true";
+    static char* falseVal = (char*)"false";
+    if (0 == strcmp(data, trueVal)) {
+        return 1;
+    }
+    if (0 == strcmp(data, falseVal)) {
+        return 2;
+    }
+    throw invalid_argument("invalid boolean val.");
+}
+
+void gf_string_t::copyOverflowPtrFromPageCursor(const PageCursor& cursor) {
+    memcpy(&overflowPtr, &cursor.idx, 6);
+    memcpy(((uint8_t*)&overflowPtr) + 6, &cursor.offset, 2);
+}
+
+void gf_string_t::copyOverflowPtrToPageCursor(PageCursor& cursor) {
+    cursor.idx = 0;
+    memcpy(&cursor.idx, &overflowPtr, 6);
+    memcpy(&cursor.offset, ((uint8_t*)&overflowPtr) + 6, 2);
 }
 
 Cardinality getCardinality(const string& cardinalityString) {

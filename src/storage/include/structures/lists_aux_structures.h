@@ -15,7 +15,9 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace loader {
 
+class ListsLoaderHelper;
 class AdjAndPropertyListsLoaderHelper;
+class NodesLoader;
 
 } // namespace loader
 } // namespace graphflow
@@ -26,7 +28,9 @@ namespace storage {
 // Lists Metadata holds the information necessary to locate a list in the collection of disk pages
 // thats organizes and stores lists.
 class ListsMetadata {
+    friend class graphflow::loader::ListsLoaderHelper;
     friend class graphflow::loader::AdjAndPropertyListsLoaderHelper;
+    friend class graphflow::loader::NodesLoader;
     friend class bitsery::Access;
 
 public:
@@ -73,27 +77,29 @@ private:
     uint64_t numPages;
 };
 
-// AdjListHeaders holds the headers of all lists in a single AdjLists structue.
-class AdjListHeaders {
+// ListHeaders holds the headers of all lists in a single Lists structue.
+class ListHeaders {
+    friend class graphflow::loader::ListsLoaderHelper;
     friend class graphflow::loader::AdjAndPropertyListsLoaderHelper;
+    friend class graphflow::loader::NodesLoader;
     friend class bitsery::Access;
 
 public:
-    AdjListHeaders() : logger{spdlog::get("storage")} {};
-    AdjListHeaders(string path);
+    ListHeaders() : logger{spdlog::get("storage")} {};
+    ListHeaders(string path);
 
     uint32_t getHeader(node_offset_t offset) { return headers[offset]; };
 
-    static inline bool isALargeAdjList(const uint32_t& header) { return header & 0x80000000; };
+    static inline bool isALargeList(const uint32_t& header) { return header & 0x80000000; };
 
     // For small adjList.
-    static inline uint32_t getAdjListLen(const uint32_t& header) { return header & 0x7ff; };
-    static inline uint32_t getCSROffset(const uint32_t& header) { return header >> 11 & 0xfffff; };
+    static inline uint32_t getSmallListLen(const uint32_t& header) { return header & 0x7ff; };
+    static inline uint32_t getSmallListCSROffset(const uint32_t& header) {
+        return header >> 11 & 0xfffff;
+    };
 
     // For large adjList.
-    static inline uint32_t getLargeAdjListIdx(const uint32_t& header) {
-        return header & 0x7fffffff;
-    };
+    static inline uint32_t getLargeListIdx(const uint32_t& header) { return header & 0x7fffffff; };
 
 private:
     template<typename S>

@@ -15,7 +15,7 @@ RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& numNodesPer
 
 void RelsStore::initAdjColumns(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
     const string& directory, BufferManager& bufferManager) {
-    logger->debug("Initializing AdjColumns.");
+    logger->info("Initializing AdjColumns.");
     for (auto dir : DIRS) {
         adjColumns[dir].resize(catalog.getNodeLabelsCount());
         for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
@@ -35,12 +35,12 @@ void RelsStore::initAdjColumns(const Catalog& catalog, const vector<uint64_t>& n
             }
         }
     }
-    logger->debug("Done.");
+    logger->info("Done.");
 }
 
 void RelsStore::initAdjLists(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
     const string& directory, BufferManager& bufferManager) {
-    logger->debug("Initializing AdjLists.");
+    logger->info("Initializing AdjLists.");
     for (auto dir : DIRS) {
         adjLists[dir].resize(catalog.getNodeLabelsCount());
         for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
@@ -60,13 +60,13 @@ void RelsStore::initAdjLists(const Catalog& catalog, const vector<uint64_t>& num
             }
         }
     }
-    logger->debug("Done.");
+    logger->info("Done.");
 }
 
 void RelsStore::initPropertyListsAndColumns(const Catalog& catalog,
     const vector<uint64_t>& numNodesPerLabel, const string& directory,
     BufferManager& bufferManager) {
-    logger->debug("Initializing PropertyLists and PropertyColumns.");
+    logger->info("Initializing PropertyLists and PropertyColumns.");
     propertyColumns.resize(catalog.getNodeLabelsCount());
     propertyLists[FWD].resize(catalog.getNodeLabelsCount());
     propertyLists[BWD].resize(catalog.getNodeLabelsCount());
@@ -89,7 +89,7 @@ void RelsStore::initPropertyListsAndColumns(const Catalog& catalog,
             }
         }
     }
-    logger->debug("Done.");
+    logger->info("Done.");
 }
 
 void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,

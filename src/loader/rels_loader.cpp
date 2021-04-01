@@ -24,7 +24,7 @@ void RelsLoader::load(vector<string>& fnames, vector<uint64_t>& numBlocksPerFile
                 NodeIDCompressionScheme(description.nodeLabelsPerDir[!dir],
                     graph.getNumNodesPerLabel(), catalog.getNodeLabelsCount());
         }
-        description.propertyDataTypes = createPropertyDataTypes(propertyMap);
+        description.propertyDataTypes = createPropertyDataTypesArray(propertyMap);
         loadRelsForLabel(description);
     }
 }
@@ -33,7 +33,7 @@ void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
     logger->debug("Processing relLabel {}.", description.label);
     AdjAndPropertyListsLoaderHelper adjAndPropertyListsLoaderHelper{
         description, threadPool, graph, catalog, outputDirectory};
-    constructAdjRelsAndCountRelsInAdjLists(description, adjAndPropertyListsLoaderHelper);
+    constructAdjColumnsAndCountRelsInAdjLists(description, adjAndPropertyListsLoaderHelper);
     if (!description.isSingleCardinalityPerDir[FWD] ||
         !description.isSingleCardinalityPerDir[BWD]) {
         constructAdjLists(description, adjAndPropertyListsLoaderHelper);
@@ -41,13 +41,13 @@ void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
     logger->debug("Done.");
 }
 
-void RelsLoader::constructAdjRelsAndCountRelsInAdjLists(RelLabelDescription& description,
+void RelsLoader::constructAdjColumnsAndCountRelsInAdjLists(RelLabelDescription& description,
     AdjAndPropertyListsLoaderHelper& adjAndPropertyListsLoaderHelper) {
     AdjAndPropertyColumnsLoaderHelper adjAndPropertyColumnsLoaderHelper{
         description, threadPool, graph, catalog, outputDirectory};
     logger->debug("Populating AdjRels and Rel Property Columns.");
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
-        threadPool.execute(populateAdjRelsAndCountRelsInAdjListsTask, &description, blockId,
+        threadPool.execute(populateAdjColumnsAndCountRelsInAdjListsTask, &description, blockId,
             metadata.at("tokenSeparator").get<string>()[0], &adjAndPropertyListsLoaderHelper,
             &adjAndPropertyColumnsLoaderHelper, &nodeIDMaps, &catalog, logger);
     }
@@ -75,7 +75,7 @@ void RelsLoader::constructAdjLists(RelLabelDescription& description,
     adjAndPropertyListsLoaderHelper.saveToFile();
 }
 
-void RelsLoader::populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* description,
+void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescription* description,
     uint64_t blockId, const char tokenSeparator,
     AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
     AdjAndPropertyColumnsLoaderHelper* adjAndPropertyColumnsLoaderHelper,
@@ -178,7 +178,7 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<DataType>& 
     while (reader.hasNextToken()) {
         switch (propertyDataTypes[propertyIdx]) {
         case INT32: {
-            auto intVal = reader.skipTokenIfNull() ? NULL_INT32 : reader.getInteger();
+            auto intVal = reader.skipTokenIfNull() ? NULL_INT32 : reader.getInt32();
             adjAndPropertyColumnsLoaderHelper->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT32);
             break;
@@ -218,7 +218,7 @@ void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<DataType>& pro
     while (reader.hasNextToken()) {
         switch (propertyDataTypes[propertyIdx]) {
         case INT32: {
-            auto intVal = reader.skipTokenIfNull() ? NULL_INT32 : reader.getInteger();
+            auto intVal = reader.skipTokenIfNull() ? NULL_INT32 : reader.getInt32();
             adjAndPropertyListsLoaderHelper->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT32);
             break;

@@ -20,13 +20,7 @@ class EmbeddedServer {
 
 public:
     EmbeddedServer(const string& inputGraphPath, const string& outputGraphPath,
-        uint64_t parallelism, uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE)
-        : parallelism(parallelism) {
-        GraphLoader graphLoader(inputGraphPath, outputGraphPath, parallelism);
-        graphLoader.loadGraph();
-        graph = make_unique<Graph>(outputGraphPath, bufferPoolSize);
-        processor = make_unique<QueryProcessor>(parallelism);
-    }
+        uint64_t parallelism, uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE);
 
     vector<unique_ptr<LogicalPlan>> enumerateLogicalPlans(const string& query);
     unique_ptr<QueryResult> execute(unique_ptr<LogicalPlan> plan);

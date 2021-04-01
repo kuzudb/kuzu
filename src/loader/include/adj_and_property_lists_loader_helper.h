@@ -4,6 +4,7 @@
 #include "spdlog/spdlog.h"
 
 #include "src/loader/include/in_mem_pages.h"
+#include "src/loader/include/lists_loader_helper.h"
 #include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
@@ -17,11 +18,9 @@ namespace loader {
 
 class AdjAndPropertyListsLoaderHelper {
 
-    // List Sizes.
-    typedef vector<atomic<uint64_t>> listSizes_t;
     typedef vector<vector<unique_ptr<listSizes_t>>> dirLabelListSizes_t;
 
-    typedef vector<vector<AdjListHeaders>> dirLabelAdjListHeaders_t;
+    typedef vector<vector<ListHeaders>> dirLabelListHeaders_t;
 
     typedef vector<vector<ListsMetadata>> dirLabelAdjListsMetadata_t;
     typedef vector<vector<unique_ptr<InMemAdjPages>>> dirLabelAdjLists_t;
@@ -38,12 +37,13 @@ public:
         const Graph& graph, const Catalog& catalog, const string outputDirectory);
 
     inline void incrementListSize(const Direction& dir, const nodeID_t& nodeID) {
-        (*dirLabelListSizes[dir][nodeID.label])[nodeID.offset].fetch_add(1, memory_order_relaxed);
+        ListsLoaderHelper::incrementListSize(
+            *dirLabelListSizes[dir][nodeID.label], nodeID.offset, 1);
     }
 
     inline uint64_t decrementListSize(const Direction& dir, const nodeID_t& nodeID) {
-        return (*dirLabelListSizes[dir][nodeID.label])[nodeID.offset].fetch_sub(
-            1, memory_order_relaxed);
+        return ListsLoaderHelper::decrementListSize(
+            *dirLabelListSizes[dir][nodeID.label], nodeID.offset, 1);
     }
 
     void buildAdjListsHeadersAndListsMetadata();
@@ -64,35 +64,22 @@ public:
 
 private:
     void initAdjListHeaders();
-
     void initAdjListsAndPropertyListsMetadata();
 
     void buildInMemPropertyLists();
     void buildInMemAdjLists();
 
-    static void calculatePageCursor(const uint32_t& header, const uint64_t& reversePos,
-        const uint8_t& numBytesPerElement, const node_offset_t& nodeOffset, PageCursor& cursor,
-        ListsMetadata& metadata);
-
     // concurrent tasks
 
-    static void calculateAdjListHeadersForIndexTask(Direction dir, label_t nodeLabel,
-        node_offset_t numNodeOffsets, uint32_t numPerPage, listSizes_t* listSizes,
-        AdjListHeaders* adjListHeaders, shared_ptr<spdlog::logger> logger);
-
-    static void calculateListsMetadataForListsTask(uint64_t numNodeOffsets, uint32_t numPerPage,
-        listSizes_t* listSizes, AdjListHeaders* adjListHeaders, ListsMetadata* adjListsMetadata,
-        shared_ptr<spdlog::logger> logger);
-
     static void sortOverflowStringsOfPropertyListsTask(node_offset_t offsetStart,
-        node_offset_t offsetEnd, InMemPropertyPages* propertyLists, AdjListHeaders* adjListsHeaders,
+        node_offset_t offsetEnd, InMemPropertyPages* propertyLists, ListHeaders* adjListsHeaders,
         ListsMetadata* listsMetadata, InMemStringOverflowPages* unorederedStringOverflowPages,
         InMemStringOverflowPages* orderedStringOverflowPages, shared_ptr<spdlog::logger> logger);
 
 private:
     dirLabelListSizes_t dirLabelListSizes{2};
 
-    dirLabelAdjListHeaders_t dirLabelAdjListHeaders{2};
+    dirLabelListHeaders_t dirLabelAdjListHeaders{2};
     dirLabelAdjListsMetadata_t dirLabelAdjListsMetadata{2};
     dirLabelAdjLists_t dirLabelAdjLists{2};
 

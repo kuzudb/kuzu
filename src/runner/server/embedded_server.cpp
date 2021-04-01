@@ -11,6 +11,17 @@ using namespace graphflow::planner;
 namespace graphflow {
 namespace runner {
 
+EmbeddedServer::EmbeddedServer(const string& inputGraphPath, const string& outputGraphPath,
+    uint64_t parallelism, uint64_t bufferPoolSize)
+    : parallelism(parallelism) {
+    {
+        GraphLoader graphLoader(inputGraphPath, outputGraphPath, parallelism);
+        graphLoader.loadGraph();
+    }
+    graph = make_unique<Graph>(outputGraphPath, bufferPoolSize);
+    processor = make_unique<QueryProcessor>(parallelism);
+}
+
 vector<unique_ptr<LogicalPlan>> EmbeddedServer::enumerateLogicalPlans(const string& query) {
     graphflow::parser::Parser parser;
     auto singleQuery = parser.parseQuery(query);
