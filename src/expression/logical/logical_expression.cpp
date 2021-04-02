@@ -4,30 +4,32 @@ namespace graphflow {
 namespace expression {
 
 LogicalExpression::LogicalExpression(ExpressionType expressionType, DataType dataType,
-    unique_ptr<LogicalExpression> left, unique_ptr<LogicalExpression> right) {
+    unique_ptr<LogicalExpression> left, unique_ptr<LogicalExpression> right, string rawExpression)
+    : LogicalExpression(expressionType, dataType) {
     childrenExpr.push_back(move(left));
     childrenExpr.push_back(move(right));
-    this->dataType = dataType;
-    this->expressionType = expressionType;
+    this->rawExpression = move(rawExpression);
 }
 
-LogicalExpression::LogicalExpression(
-    ExpressionType expressionType, DataType dataType, unique_ptr<LogicalExpression> child) {
+LogicalExpression::LogicalExpression(ExpressionType expressionType, DataType dataType,
+    unique_ptr<LogicalExpression> child, string rawExpression)
+    : LogicalExpression(expressionType, dataType) {
     childrenExpr.push_back(move(child));
-    this->dataType = dataType;
-    this->expressionType = expressionType;
+    this->rawExpression = move(rawExpression);
 }
 
-LogicalExpression::LogicalExpression(
-    ExpressionType expressionType, DataType dataType, const string& variableName)
+LogicalExpression::LogicalExpression(ExpressionType expressionType, DataType dataType,
+    const string& variableName, string rawExpression)
     : LogicalExpression(expressionType, dataType) {
     this->variableName = variableName;
+    this->rawExpression = move(rawExpression);
 }
 
-LogicalExpression::LogicalExpression(
-    ExpressionType expressionType, DataType dataType, const Literal& literalValue)
+LogicalExpression::LogicalExpression(ExpressionType expressionType, DataType dataType,
+    const Literal& literalValue, string rawExpression)
     : LogicalExpression(expressionType, dataType) {
     this->literalValue = literalValue;
+    this->rawExpression = move(rawExpression);
 }
 
 } // namespace expression

@@ -23,11 +23,11 @@ public:
     unique_ptr<LogicalExpression> bindExpression(const ParsedExpression& parsedExpression);
 
 private:
-    unique_ptr<LogicalExpression> bindBoolConnectionExpression(
+    unique_ptr<LogicalExpression> bindBinaryBoolConnectionExpression(
         const ParsedExpression& parsedExpression);
 
-    unique_ptr<LogicalExpression> buildBinaryASTForBoolConnectionExpression(
-        const ParsedExpression& parsedExpression, ExpressionType expressionType);
+    unique_ptr<LogicalExpression> bindUnaryBoolConnectionExpression(
+        const ParsedExpression& parsedExpression);
 
     unique_ptr<LogicalExpression> bindComparisonExpression(
         const ParsedExpression& parsedExpression);

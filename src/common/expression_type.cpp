@@ -11,6 +11,28 @@ bool isExpressionBinary(ExpressionType type) {
     return !isExpressionUnary(type);
 }
 
+bool isExpressionBoolConnection(ExpressionType type) {
+    return OR == type || XOR == type || AND == type || NOT == type;
+}
+
+bool isExpressionComparison(ExpressionType type) {
+    return EQUALS == type || NOT_EQUALS == type || GREATER_THAN == type ||
+           GREATER_THAN_EQUALS == type || LESS_THAN == type || LESS_THAN_EQUALS == type;
+}
+
+bool isExpressionArithmetic(ExpressionType type) {
+    return ADD == type || SUBTRACT == type || MULTIPLY == type || DIVIDE == type ||
+           MODULO == type || POWER == type || NEGATE == type;
+}
+
+bool isExpressionStringOperator(ExpressionType type) {
+    return STARTS_WITH == type || ENDS_WITH == type || CONTAINS == type;
+}
+
+bool isExpressionNullComparison(ExpressionType type) {
+    return IS_NULL == type || IS_NOT_NULL == type;
+}
+
 bool isExpressionLeafLiteral(ExpressionType type) {
     return LITERAL_INT == type || LITERAL_DOUBLE == type || LITERAL_STRING == type ||
            LITERAL_BOOLEAN == type || LITERAL_NULL == type;

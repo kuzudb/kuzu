@@ -11,21 +11,14 @@ namespace parser {
 class PatternElementChain {
 
 public:
-    const RelPattern& getRelPattern() const { return *relPattern; }
-
-    const NodePattern& getNodePattern() const { return *nodePattern; }
-
-    void setRelPattern(unique_ptr<RelPattern> relPattern) { this->relPattern = move(relPattern); }
-
-    void setNodePattern(unique_ptr<NodePattern> nodePattern) {
-        this->nodePattern = move(nodePattern);
-    }
+    PatternElementChain(unique_ptr<RelPattern> relPattern, unique_ptr<NodePattern> nodePattern)
+        : relPattern{move(relPattern)}, nodePattern{move(nodePattern)} {}
 
     bool operator==(const PatternElementChain& other) {
         return *relPattern == *other.relPattern && *nodePattern == *other.nodePattern;
     }
 
-private:
+public:
     unique_ptr<RelPattern> relPattern;
     unique_ptr<NodePattern> nodePattern;
 };
