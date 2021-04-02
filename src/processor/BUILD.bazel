@@ -44,7 +44,8 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "hash_table",
+        "data_chunks",
+        "memory_manager",
         "//src/expression",
         "//src/storage:graph",
         "//src/storage:structures",
@@ -117,22 +118,5 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/common"
-    ],
-)
-
-cc_library(
-    name = "hash_table",
-    srcs = [
-        "physical_plan/operator/hash_join/hash_table.cpp",
-        "physical_plan/operator/hash_join/overflow_blocks.cpp",
-    ],
-    hdrs = [
-        "include/physical_plan/operator/hash_join/hash_table.h",
-        "include/physical_plan/operator/hash_join/overflow_blocks.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "data_chunks",
-        "memory_manager"
     ],
 )
