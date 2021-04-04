@@ -34,33 +34,32 @@ constexpr const uint64_t HT_BLOCK_SIZE = 262144; // By default, block size is 25
 //! Inside payload, variable-sized values are stored in overflowBlocks.
 class HashTable {
 public:
-    HashTable(MemoryManager& memoryManager, vector<PayloadInfo>& payloadInfos);
+    HashTable(MemoryManager* memManager, vector<PayloadInfo>& payloadInfos);
 
     void addDataChunks(
         DataChunk& keyDataChunk, uint64_t keyVectorPos, DataChunks& nonKeyDataChunks);
     void buildDirectory();
-    // For each probe keyVector[i]=k, this function fills the probedTuples[i] with the pointer from
-    // the slot that has hash(k) in directory, without checking the actual key value. Checking the
-    // key values is left to the caller.
-    uint64_t probeDirectory(NodeIDVector& keyVector, uint8_t** probedTuples);
 
     uint64_t numBytesForFixedTuplePart;
+    uint64_t hashBitMask;
+    unique_ptr<BlockHandle> htDirectory;
+
+    inline void setMemoryManager(MemoryManager* memManager) {
+        this->memManager = memManager;
+        overflowBlocks.memManager = memManager;
+    }
 
 private:
-    MemoryManager& memoryManager;
+    mutex htLock;
+    MemoryManager* memManager;
 
-    uint64_t numEntries;
-    uint64_t hashBitMask;
+    atomic_uint64_t numEntries;
     uint64_t htBlockCapacity;
 
     // The main memory blocks holding |key|payload|prev| fields
     vector<unique_ptr<BlockHandle>> htBlocks;
-    unique_ptr<BlockHandle> htDirectory;
-    ValueVector hashVec;
     // The overflow memory blocks for variable-sized values in tuples
     OverflowBlocks overflowBlocks;
-
-    std::function<void(ValueVector&, ValueVector&)> hashNodeIDOp;
 
     void allocateHTBlocks(uint64_t remaining, vector<BlockAppendInfo>& tuplesAppendInfos);
 

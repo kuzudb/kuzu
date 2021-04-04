@@ -16,7 +16,7 @@ public:
     LogicalScan(const string& variableName, label_t label)
         : nodeVarName{variableName}, label{label} {}
 
-    LogicalOperatorType getLogicalOperatorType() const { return LogicalOperatorType::SCAN; }
+    LogicalOperatorType getLogicalOperatorType() const { return LogicalOperatorType::LOGICAL_SCAN; }
 
 public:
     const string nodeVarName;

@@ -21,7 +21,9 @@ public:
           boundNodeVarLabel{boundNodeVarLabel}, nbrNodeVarName{nbrNodeVarName},
           nbrNodeVarLabel{nbrNodeVarLabel}, relLabel{relLabel}, direction{direction} {}
 
-    LogicalOperatorType getLogicalOperatorType() const { return LogicalOperatorType::EXTEND; }
+    LogicalOperatorType getLogicalOperatorType() const {
+        return LogicalOperatorType::LOGICAL_EXTEND;
+    }
 
 public:
     const string boundNodeVarName;

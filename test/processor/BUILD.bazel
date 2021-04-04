@@ -5,7 +5,6 @@ cc_test(
     srcs = [
         "physical_plan/expression_mapper_test.cpp",
         "physical_plan/operator/scan/scan_test.cpp",
-        "physical_plan/operator/hash_join/hash_table_test.cpp",
         "physical_plan/operator/hash_join/hash_join_test.cpp",
         "physical_plan/operator/tuple/data_chunks_iterator_test.cpp",
         "processor_test.cpp",
@@ -16,7 +15,7 @@ cc_test(
     ],
     deps = [
         "mock_operators_for_hash_join",
-        "//src/processor:hash_table",
+        "//src/processor",
         "@gtest",
         "@gtest//:gtest_main",
     ],

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
+#include "src/processor/include/physical_plan/operator/tuple/data_chunks_iterator.h"
 
 namespace graphflow {
 namespace processor {
@@ -8,18 +9,16 @@ namespace processor {
 class Sink : public PhysicalOperator {
 
 public:
-    Sink(unique_ptr<PhysicalOperator> prevOperator) : PhysicalOperator{move(prevOperator)} {};
+    explicit Sink(unique_ptr<PhysicalOperator> prevOperator, PhysicalOperatorType operatorType)
+        : PhysicalOperator{move(prevOperator), operatorType} {
+        dataChunks = this->prevOperator->getDataChunks();
+    };
 
-    void getNextTuples() override;
+    virtual void getNextTuples() override = 0;
 
-    unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Sink>(prevOperator->clone());
-    }
+    virtual unique_ptr<PhysicalOperator> clone() override = 0;
 
-    uint64_t getNumTuples() { return numTuples; }
-
-protected:
-    uint64_t numTuples{0};
+    virtual void finalize() {}
 };
 
 } // namespace processor

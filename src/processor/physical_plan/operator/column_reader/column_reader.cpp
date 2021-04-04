@@ -5,7 +5,7 @@ namespace processor {
 
 ColumnReader::ColumnReader(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
     unique_ptr<PhysicalOperator> prevOperator)
-    : PhysicalOperator{move(prevOperator)}, dataChunkPos{dataChunkPos},
+    : PhysicalOperator{move(prevOperator), COLUMN_READER}, dataChunkPos{dataChunkPos},
       valueVectorPos{valueVectorPos}, column{column} {
     dataChunks = this->prevOperator->getDataChunks();
     inDataChunk = dataChunks->getDataChunk(dataChunkPos);

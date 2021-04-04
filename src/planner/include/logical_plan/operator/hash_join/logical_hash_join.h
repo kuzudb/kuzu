@@ -21,7 +21,7 @@ public:
           buildSidePrevOperator(move(buildSidePrevOperator)) {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::HASH_JOIN;
+        return LogicalOperatorType::LOGICAL_HASH_JOIN;
     }
 
 public:

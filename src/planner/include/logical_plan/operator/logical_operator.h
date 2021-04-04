@@ -10,12 +10,12 @@ namespace graphflow {
 namespace planner {
 
 enum LogicalOperatorType {
-    SCAN,
-    EXTEND,
-    FILTER,
-    NODE_PROPERTY_READER,
-    REL_PROPERTY_READER,
-    HASH_JOIN,
+    LOGICAL_SCAN,
+    LOGICAL_EXTEND,
+    LOGICAL_FILTER,
+    LOGICAL_NODE_PROPERTY_READER,
+    LOGICAL_REL_PROPERTY_READER,
+    LOGICAL_HASH_JOIN,
 };
 
 class LogicalOperator {

@@ -1,5 +1,7 @@
 #include "src/processor/include/task_system/task.h"
 
+#include "src/processor/include/physical_plan/operator/sink/result_collector.h"
+
 namespace graphflow {
 namespace processor {
 
@@ -7,9 +9,14 @@ void Task::run() {
     if (!registerThread()) {
         return;
     }
-    PhysicalPlan planCopy{*plan};
-    planCopy.run();
-    deregisterThread(planCopy.getPlanOutput());
+    auto pipelineSinkCopy = sinkOp->clone();
+    while (pipelineSinkCopy->hasNextMorsel()) {
+        pipelineSinkCopy->getNextTuples();
+        if (pipelineSinkCopy->getDataChunks()->getNumTuples() == 0) {
+            break;
+        }
+    }
+    deregisterThread(move(pipelineSinkCopy));
 }
 
 bool Task::registerThread() {
@@ -21,21 +28,20 @@ bool Task::registerThread() {
     return false;
 }
 
-void Task::deregisterThread(unique_ptr<PlanOutput> planOutput) {
+void Task::deregisterThread(unique_ptr<PhysicalOperator> taskSinkOp) {
     lock_t lck{mtx};
-    threadOutputs.emplace_back(planOutput.release());
     if (numThreadsFinished == numThreadsRegistered - 1) {
-        // last thread aggregates planOutputs from all threads.
-        timer.stop();
-        aggregatePlanOutputs();
+        sinkOp->finalize();
+        if (parent) {
+            parent->numDependenciesFinished++;
+        }
+    }
+    if (parent == nullptr) {
+        auto resultCollector = reinterpret_cast<ResultCollector*>(sinkOp);
+        auto threadResultCollector = reinterpret_cast<ResultCollector*>(taskSinkOp.get());
+        resultCollector->queryResult->appendQueryResult(move(threadResultCollector->queryResult));
     }
     ++numThreadsFinished;
-}
-
-void Task::aggregatePlanOutputs() {
-    result = make_unique<pair<PlanOutput, chrono::milliseconds>>();
-    PlanOutput::aggregate(threadOutputs, result->first);
-    result->second = timer.getDuration();
 }
 
 } // namespace processor

@@ -11,7 +11,9 @@ class AdjListFlattenAndExtend : public AdjListExtend {
 public:
     AdjListFlattenAndExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, BaseLists* lists,
         unique_ptr<PhysicalOperator> prevOperator)
-        : AdjListExtend{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)} {};
+        : AdjListExtend{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)} {
+        isOutDataChunkFiltered = IS_OUT_DATACHUNK_FILTERED;
+    };
 
     bool hasNextMorsel() override {
         return (inDataChunk->numSelectedValues > 0ul &&
@@ -22,6 +24,13 @@ public:
     void getNextTuples() override {
         if (handle->hasMoreToRead()) {
             readValuesFromList();
+            outDataChunk->numSelectedValues = outDataChunk->size;
+            if constexpr (IS_OUT_DATACHUNK_FILTERED) {
+                auto selector = outDataChunk->selectedValuesPos.get();
+                for (auto i = 0u; i < outDataChunk->size; i++) {
+                    selector[i] = i;
+                }
+            }
             return;
         }
         if (inDataChunk->numSelectedValues == 0ul ||
@@ -30,6 +39,7 @@ public:
             prevOperator->getNextTuples();
             if (inDataChunk->size == 0) {
                 outDataChunk->size = 0;
+                outDataChunk->numSelectedValues = 0;
                 return;
             }
         }

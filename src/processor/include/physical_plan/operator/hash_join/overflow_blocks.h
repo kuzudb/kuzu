@@ -17,13 +17,15 @@ constexpr static const int64_t OVERFLOW_BLOCK_SIZE = 2 * 1024 * 1024;
 
 class OverflowBlocks {
 public:
-    explicit OverflowBlocks(MemoryManager& memoryManager) : memoryManager(memoryManager) {}
+    explicit OverflowBlocks(MemoryManager* memManager) : memManager(memManager) {}
 
     // Add a vector as an overflow value
     overflow_value_t addVector(ValueVector& vector);
 
+    MemoryManager* memManager;
+
 private:
-    MemoryManager& memoryManager;
+    mutex overflowBlocksLock;
     vector<unique_ptr<BlockHandle>> blocks;
 };
 } // namespace processor

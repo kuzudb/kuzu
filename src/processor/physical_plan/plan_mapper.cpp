@@ -11,11 +11,13 @@
 #include "src/processor/include/physical_plan/operator/column_reader/node_property_column_reader.h"
 #include "src/processor/include/physical_plan/operator/column_reader/rel_property_column_reader.h"
 #include "src/processor/include/physical_plan/operator/filter/filter.h"
-#include "src/processor/include/physical_plan/operator/hash_join/hash_join.h"
+#include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
+#include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
 #include "src/processor/include/physical_plan/operator/list_reader/extend/adj_list_flatten_and_extend.h"
 #include "src/processor/include/physical_plan/operator/list_reader/extend/adj_list_only_extend.h"
 #include "src/processor/include/physical_plan/operator/list_reader/rel_property_list_reader.h"
 #include "src/processor/include/physical_plan/operator/scan/physical_scan.h"
+#include "src/processor/include/physical_plan/operator/sink/result_collector.h"
 
 using namespace graphflow::planner;
 
@@ -52,28 +54,28 @@ static unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
 unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
     unique_ptr<LogicalPlan> logicalPlan, const Graph& graph) {
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
-    auto sink = make_unique<Sink>(
+    auto resultCollector = make_unique<ResultCollector>(
         mapLogicalOperatorToPhysical(logicalPlan->getLastOperator(), graph, physicalOperatorInfo));
-    return make_unique<PhysicalPlan>(move(sink));
+    return make_unique<PhysicalPlan>(move(resultCollector));
 }
 
 unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator& logicalOperator,
     const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
     auto operatorType = logicalOperator.getLogicalOperatorType();
     switch (operatorType) {
-    case SCAN:
+    case LOGICAL_SCAN:
         return mapLogicalScanToPhysical(logicalOperator, graph, physicalOperatorInfo);
-    case EXTEND:
+    case LOGICAL_EXTEND:
         return mapLogicalExtendToPhysical(logicalOperator, graph, physicalOperatorInfo);
-    case FILTER:
+    case LOGICAL_FILTER:
         // warning: assumes flattening is to be taken care of by the enumerator and not the mapper.
         //          we do not append any flattening currently.
         return mapLogicalFilterToPhysical(logicalOperator, graph, physicalOperatorInfo);
-    case HASH_JOIN:
+    case LOGICAL_HASH_JOIN:
         return mapLogicalHashJoinToPhysical(logicalOperator, graph, physicalOperatorInfo);
-    case NODE_PROPERTY_READER:
+    case LOGICAL_NODE_PROPERTY_READER:
         return mapLogicalNodePropertyReaderToPhysical(logicalOperator, graph, physicalOperatorInfo);
-    case REL_PROPERTY_READER:
+    case LOGICAL_REL_PROPERTY_READER:
         return mapLogicalRelPropertyReaderToPhysical(logicalOperator, graph, physicalOperatorInfo);
     default:
         // should never happen.
@@ -245,9 +247,16 @@ unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator&
         physicalOperatorInfo.setDataChunkAtPosAsFlat(0);
     }
 
-    return make_unique<HashJoin<true>>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
-        probeSideKeyDataChunkPos, probeSideKeyVectorPos, move(buildSidePrevOperator),
+    auto hashJoinSharedState = make_shared<HashJoinSharedState>();
+    auto hashJoinBuild = make_unique<HashJoinBuild>(
+        buildSideKeyDataChunkPos, buildSideKeyVectorPos, move(buildSidePrevOperator));
+    hashJoinSharedState->hashTable = hashJoinBuild->initializeHashTable();
+    hashJoinBuild->sharedState = hashJoinSharedState;
+    auto hashJoinProbe = make_unique<HashJoinProbe<true>>(buildSideKeyDataChunkPos,
+        buildSideKeyVectorPos, probeSideKeyDataChunkPos, probeSideKeyVectorPos, move(hashJoinBuild),
         move(probeSidePrevOperator));
+    hashJoinProbe->sharedState = hashJoinSharedState;
+    return hashJoinProbe;
 }
 
 } // namespace processor

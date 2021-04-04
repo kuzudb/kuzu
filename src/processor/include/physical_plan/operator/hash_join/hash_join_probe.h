@@ -1,8 +1,8 @@
 #pragma once
 
-#include "src/common/include/operations/hash_operations.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/operations/vector_node_id_operations.h"
+#include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_table.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/operator/tuple/data_chunks.h"
@@ -13,9 +13,9 @@ using namespace graphflow::common::operation;
 
 namespace graphflow {
 namespace processor {
-
 struct ProbeState {
-    ProbeState(uint64_t pointersSize) : probeKeyPos(0), probedTuplesSize(0), matchedTuplesSize(0) {
+    explicit ProbeState(uint64_t pointersSize)
+        : probeKeyPos(0), probedTuplesSize(0), matchedTuplesSize(0) {
         probedTuples = make_unique<uint8_t*[]>(pointersSize);
         matchedTuples = make_unique<uint8_t*[]>(pointersSize);
         probeSelVector = make_unique<uint16_t[]>(pointersSize);
@@ -43,42 +43,35 @@ struct BuildSideVectorInfo {
     uint32_t vectorPtrsPos;
 };
 
-// WARN: The hash join only supports INNER join type for now
-// Key data structures:
-// 1) outKeyDataChunk. Join results for vectors from the probe side key data chunk, the build
-// side key data chunk (except for the build side key vector), and also build side flat non-key
-// data chunks will be populated into the outKeyDataChunk.
-// 2) buildSideVectorPtrs. Join results of vectors from build side unflat non-key data chunks
-// will first be read from ht as vector ptrs, and kept in buildSideVectorPtrs. Each vector
-// corresponds to an array of overflow_value_t structs.
-// 3) appended unflat output data chunks. for each build side unflat non-key data chunk, append a
-// new out data chunk in the output dataChunks.
-// 4) output dataChunks. outKeyDataChunk + probe side non-key data chunks + appended unflat output
-// data chunks.
 template<bool IS_OUT_DATACHUNK_FILTERED>
-class HashJoin : public PhysicalOperator {
+class HashJoinProbe : public PhysicalOperator {
 public:
-    HashJoin(uint64_t buildSideKeyDataChunkPos, uint64_t buildSideKeyVectorPos,
+    HashJoinProbe(uint64_t buildSideKeyDataChunkPos, uint64_t buildSideKeyVectorPos,
         uint64_t probeSideKeyDataChunkPos, uint64_t probeSideKeyVectorPos,
         unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashJoin>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
-            probeSideKeyDataChunkPos, probeSideKeyVectorPos, prevOperator->clone(),
-            buildSidePrevOp->clone());
+        auto cloneOp = make_unique<HashJoinProbe>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
+            probeSideKeyDataChunkPos, probeSideKeyVectorPos, buildSidePrevOp->clone(),
+            prevOperator->clone());
+        cloneOp->sharedState = this->sharedState;
+        return cloneOp;
     }
+
+public:
+    unique_ptr<PhysicalOperator> buildSidePrevOp;
+    shared_ptr<HashJoinSharedState> sharedState;
 
 private:
     std::function<void(ValueVector&, ValueVector&)> vectorDecompressOp;
+    std::function<void(ValueVector&, ValueVector&)> vectorHashOp;
 
-    unique_ptr<MemoryManager> memManager;
     uint64_t buildSideKeyDataChunkPos;
     uint64_t buildSideKeyVectorPos;
     uint64_t probeSideKeyDataChunkPos;
     uint64_t probeSideKeyVectorPos;
-    unique_ptr<PhysicalOperator> buildSidePrevOp;
 
     shared_ptr<DataChunk> buildSideKeyDataChunk;
     shared_ptr<DataChunks> buildSideNonKeyDataChunks;
@@ -88,20 +81,25 @@ private:
 
     vector<BuildSideVectorInfo> buildSideVectorInfos;
     unique_ptr<ValueVector> decompressedProbeKeyVector;
+    unique_ptr<ValueVector> hashedProbeKeyVector;
     unique_ptr<ProbeState> probeState;
     shared_ptr<DataChunk> outKeyDataChunk;
     vector<unique_ptr<overflow_value_t[]>> buildSideVectorPtrs;
 
-    unique_ptr<HashTable> hashTable;
-    bool isHTInitialized;
-
-    void initializeHashTable();
     // This function initializes:
     // 1) the outKeyDataChunk and appended unflat output data chunks, which are used to initialize
     // the output dataChunks. 2) buildSideVectorPtrs for build side unflat non-key data chunks.
     void initializeOutDataChunksAndVectorPtrs();
 
+    // For each probe keyVector[i]=k, this function fills the probedTuples[i] with the pointer from
+    // the slot that has hash(k) in directory (collision chain), without checking the actual key
+    // value.
+    void probeHTDirectory();
+    // This function calls probeHTDirectory() to update probedTuples. And for each pointer in
+    // probedTuples that points to a collision chain, this function finds all matched tuples along
+    // the chain one batch at a time.
     void getNextBatchOfMatchedTuples();
+
     // This function reads matched tuples from ht and populates:
     // 1) outKeyDataChunk with values from probe side key data chunk, build side key data chunk
     // (except for build side keys), and also build side flat non-key data chunks. 2) populates

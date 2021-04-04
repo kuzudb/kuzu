@@ -15,13 +15,10 @@ namespace common {
 
 class Timer {
 public:
-    Timer(const string& name)
-        : logger{spdlog::stdout_logger_st("timer")}, name{name},
-          start{chrono::high_resolution_clock::now()} {
-        Timer::logger->info("{} started.", name);
-    };
+    explicit Timer(const string& name)
+        : name{name}, stopped{false}, start{chrono::high_resolution_clock::now()} {};
 
-    ~Timer() { spdlog::drop("timer"); }
+    ~Timer() {}
 
     void stop() {
         checkpoint = chrono::high_resolution_clock::now();
@@ -32,22 +29,17 @@ public:
         if (stopped) {
             return chrono::duration_cast<chrono::milliseconds>(checkpoint - start);
         }
-        throw new invalid_argument("Timer still running.");
+        throw invalid_argument("Timer still running.");
     }
 
     void logCheckpoint(const string& checkpointName) {
         auto currentCheckpoint = chrono::high_resolution_clock::now();
-        Timer::logger->info(
-            "Checkpoint:{}. Time since last checkpoint {} ms. Time since start {} ms.", name,
-            chrono::duration_cast<chrono::milliseconds>(currentCheckpoint - checkpoint).count(),
-            chrono::duration_cast<chrono::milliseconds>(currentCheckpoint - start).count());
         checkpoint = currentCheckpoint;
     }
 
 private:
-    shared_ptr<spdlog::logger> logger;
     const string name;
-    bool stopped{false};
+    bool stopped;
     chrono::time_point<chrono::high_resolution_clock> start, checkpoint;
 };
 

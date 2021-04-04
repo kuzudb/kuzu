@@ -1,6 +1,7 @@
 #include "src/processor/include/physical_plan/operator/hash_join/hash_table.h"
 
 #include <cassert>
+#include <iostream>
 
 #include "src/common/include/operations/hash_operations.h"
 
@@ -21,9 +22,9 @@ static uint64_t nextPowerOfTwo(uint64_t v) {
     return v;
 }
 
-HashTable::HashTable(MemoryManager& memoryManager, vector<PayloadInfo>& payloadInfos)
-    : memoryManager(memoryManager), numEntries(0), hashBitMask(0), htDirectory(nullptr),
-      hashVec(INT64), overflowBlocks(memoryManager) {
+HashTable::HashTable(MemoryManager* memManager, vector<PayloadInfo>& payloadInfos)
+    : hashBitMask(0), htDirectory(nullptr), memManager(memManager), numEntries(0),
+      overflowBlocks(memManager) {
     // key field (node_offset_t + label_t) + prev field (uint8_t*)
     numBytesForFixedTuplePart = sizeof(node_offset_t) + sizeof(label_t) + sizeof(uint8_t*);
     for (auto& payloadInfo : payloadInfos) {
@@ -32,7 +33,6 @@ HashTable::HashTable(MemoryManager& memoryManager, vector<PayloadInfo>& payloadI
                                               payloadInfo.numBytesPerValue);
     }
     htBlockCapacity = HT_BLOCK_SIZE / numBytesForFixedTuplePart;
-    hashNodeIDOp = ValueVector::getUnaryOperation(HASH_NODE_ID);
 }
 
 void HashTable::appendPayloadVectorAsFixSizedValues(ValueVector& vector, uint8_t* appendBuffer,
@@ -103,6 +103,7 @@ void HashTable::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
 }
 
 void HashTable::allocateHTBlocks(uint64_t remaining, vector<BlockAppendInfo>& blockAppendInfos) {
+    lock_guard htLockGuard(htLock);
     if (htBlockCapacity == 0) {
         // We need ensure htBlockCapacity is not 0, otherwise, we will fall into a dead for-loop and
         // keep allocating memory blocks.
@@ -123,7 +124,7 @@ void HashTable::allocateHTBlocks(uint64_t remaining, vector<BlockAppendInfo>& bl
     while (remaining > 0) {
         // Need allocate new blocks for tuples
         auto appendCount = min(remaining, htBlockCapacity);
-        auto newBlock = memoryManager.allocateBlock(HT_BLOCK_SIZE, appendCount);
+        auto newBlock = memManager->allocateBlock(HT_BLOCK_SIZE, appendCount);
         blockAppendInfos.emplace_back(newBlock->blockPtr, appendCount);
         htBlocks.push_back(move(newBlock));
         remaining -= appendCount;
@@ -199,14 +200,15 @@ void HashTable::addDataChunks(
         }
     }
 
-    numEntries += numTuplesToAppend;
+    numEntries.fetch_add(numTuplesToAppend);
 }
 
 void HashTable::buildDirectory() {
-    auto directory_capacity = nextPowerOfTwo(max(numEntries * 2, HT_BLOCK_SIZE));
+    auto directory_capacity =
+        nextPowerOfTwo(max(numEntries * 2, (HT_BLOCK_SIZE / sizeof(uint8_t)) + 1));
     hashBitMask = directory_capacity - 1;
 
-    htDirectory = memoryManager.allocateBlock(directory_capacity * sizeof(uint8_t*));
+    htDirectory = memManager->allocateBlock(directory_capacity * sizeof(uint8_t*));
     memset(htDirectory->blockPtr, 0, directory_capacity * sizeof(uint8_t*));
 
     nodeID_t nodeId;
@@ -226,21 +228,6 @@ void HashTable::buildDirectory() {
             entryPos++;
         }
     }
-}
-
-uint64_t HashTable::probeDirectory(NodeIDVector& keyVector, uint8_t** probedTuples) {
-    auto keyCount = keyVector.getNumSelectedValues();
-    hashNodeIDOp(keyVector, hashVec);
-    auto hashes = (uint64_t*)hashVec.getValues();
-    for (uint64_t i = 0; i < keyCount; i++) {
-        hashes[i] = hashes[i] & hashBitMask;
-    }
-    auto directory = (uint8_t**)htDirectory->blockPtr;
-    for (uint64_t i = 0; i < keyCount; i++) {
-        auto hash = hashes[i];
-        probedTuples[i] = (uint8_t*)(directory[hash]);
-    }
-    return keyCount;
 }
 
 } // namespace processor

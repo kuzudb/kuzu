@@ -4,7 +4,7 @@ namespace graphflow {
 namespace processor {
 
 Flatten::Flatten(uint64_t dataChunkPos, unique_ptr<PhysicalOperator> prevOperator)
-    : PhysicalOperator{move(prevOperator)}, dataChunkToFlattenPos{dataChunkToFlattenPos} {
+    : PhysicalOperator{move(prevOperator), FLATTEN}, dataChunkToFlattenPos{dataChunkToFlattenPos} {
     dataChunks = this->prevOperator->getDataChunks();
     dataChunkToFlatten = dataChunks->getDataChunk(dataChunkPos);
 }
