@@ -41,7 +41,7 @@ public:
         return end(stringToNodeLabelMap) != stringToNodeLabelMap.find(label);
     }
 
-    inline const label_t& getNodeLabelFromString(const char* label) const {
+    inline label_t getNodeLabelFromString(const char* label) const {
         return stringToNodeLabelMap.at(label);
     }
 
@@ -49,16 +49,16 @@ public:
         return end(stringToRelLabelMap) != stringToRelLabelMap.find(label);
     }
 
-    inline const label_t& getRelLabelFromString(const char* label) const {
+    inline label_t getRelLabelFromString(const char* label) const {
         return stringToRelLabelMap.at(label);
     }
 
     inline const unordered_map<string, Property>& getPropertyMapForNodeLabel(
-        const label_t& nodeLabel) const {
+        label_t nodeLabel) const {
         return nodePropertyMaps[nodeLabel];
     }
     inline const unordered_map<string, Property>& getPropertyMapForRelLabel(
-        const label_t& relLabel) const {
+        label_t relLabel) const {
         return relPropertyMaps[relLabel];
     }
 
@@ -67,14 +67,13 @@ public:
         return end(nodeProperties) != nodeProperties.find(propertyName);
     }
 
-    inline const DataType& getNodePropertyTypeFromString(
+    inline DataType getNodePropertyTypeFromString(
         label_t nodeLabel, const string& propertyName) const {
         auto& nodeProperties = getPropertyMapForNodeLabel(nodeLabel);
         return nodeProperties.at(propertyName).dataType;
     }
 
-    inline const uint32_t& getNodePropertyKeyFromString(
-        const label_t& nodeLabel, const string& name) const {
+    inline uint32_t getNodePropertyKeyFromString(label_t nodeLabel, const string& name) const {
         return getPropertyMapForNodeLabel(nodeLabel).at(name).idx;
     }
 
@@ -83,26 +82,24 @@ public:
         return end(relProperties) != relProperties.find(propertyName);
     }
 
-    inline const DataType& getRelPropertyTypeFromString(
+    inline DataType getRelPropertyTypeFromString(
         label_t relLabel, const string& propertyName) const {
         auto& relProperties = getPropertyMapForRelLabel(relLabel);
         return relProperties.at(propertyName).dataType;
     }
 
-    inline const uint32_t& getRelPropertyKeyFromString(
-        const label_t& relLabel, const string& name) const {
+    inline uint32_t getRelPropertyKeyFromString(label_t relLabel, const string& name) const {
         return getPropertyMapForRelLabel(relLabel).at(name).idx;
     }
 
-    const string getStringNodeLabel(const label_t label) const;
+    const string getStringNodeLabel(label_t label) const;
 
     const vector<label_t>& getRelLabelsForNodeLabelDirection(
-        const label_t& nodeLabel, const Direction& dir) const;
+        label_t nodeLabel, Direction dir) const;
 
-    const vector<label_t>& getNodeLabelsForRelLabelDir(
-        const label_t& relLabel, const Direction& dir) const;
+    const vector<label_t>& getNodeLabelsForRelLabelDir(label_t relLabel, Direction dir) const;
 
-    bool isSingleCaridinalityInDir(const label_t& relLabel, const Direction& dir) const;
+    bool isSingleCaridinalityInDir(label_t relLabel, Direction dir) const;
 
     unique_ptr<nlohmann::json> debugInfo();
 

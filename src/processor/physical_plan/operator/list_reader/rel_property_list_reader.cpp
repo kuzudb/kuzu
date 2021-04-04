@@ -1,5 +1,9 @@
 #include "src/processor/include/physical_plan/operator/list_reader/rel_property_list_reader.h"
 
+#include "src/common/include/vector/operations/vector_comparison_operations.h"
+
+using namespace graphflow::common;
+
 namespace graphflow {
 namespace processor {
 
@@ -18,6 +22,7 @@ void RelPropertyListReader::getNextTuples() {
     if (inDataChunk->numSelectedValues > 0) {
         readValuesFromList();
     }
+    outValueVector->fillNullMask();
 }
 
 } // namespace processor

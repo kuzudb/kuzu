@@ -25,7 +25,7 @@ Catalog::Catalog(const string& directory) : Catalog() {
     logger->info("Done.");
 };
 
-const string Catalog::getStringNodeLabel(const label_t label) const {
+const string Catalog::getStringNodeLabel(label_t label) const {
     for (stringToLabelMap_t::const_iterator it = stringToNodeLabelMap.begin();
          it != stringToNodeLabelMap.end(); ++it) {
         if (it->second == label) {
@@ -36,7 +36,7 @@ const string Catalog::getStringNodeLabel(const label_t label) const {
 }
 
 const vector<label_t>& Catalog::getRelLabelsForNodeLabelDirection(
-    const label_t& nodeLabel, const Direction& dir) const {
+    label_t nodeLabel, Direction dir) const {
     if (nodeLabel >= getNodeLabelsCount()) {
         throw invalid_argument("Node label out of the bounds.");
     }
@@ -46,8 +46,7 @@ const vector<label_t>& Catalog::getRelLabelsForNodeLabelDirection(
     return dstNodeLabelToRelLabel[nodeLabel];
 }
 
-const vector<label_t>& Catalog::getNodeLabelsForRelLabelDir(
-    const label_t& relLabel, const Direction& dir) const {
+const vector<label_t>& Catalog::getNodeLabelsForRelLabelDir(label_t relLabel, Direction dir) const {
     if (relLabel >= getRelLabelsCount()) {
         throw invalid_argument("Node label out of the bounds.");
     }
@@ -57,7 +56,7 @@ const vector<label_t>& Catalog::getNodeLabelsForRelLabelDir(
     return relLabelToDstNodeLabels[relLabel];
 }
 
-bool Catalog::isSingleCaridinalityInDir(const label_t& relLabel, const Direction& dir) const {
+bool Catalog::isSingleCaridinalityInDir(label_t relLabel, Direction dir) const {
     auto cardinality = relLabelToCardinalityMap[relLabel];
     if (FWD == dir) {
         return ONE_ONE == cardinality || MANY_ONE == cardinality;

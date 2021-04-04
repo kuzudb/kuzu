@@ -2,6 +2,8 @@
 
 #include "src/common/include/vector/value_vector.h"
 
+#include "src/common/include/vector/operations/vector_arithmetic_operations.h"
+
 using namespace graphflow::common;
 using namespace std;
 
@@ -19,6 +21,7 @@ TEST(VectorArithTests, test) {
     auto rData = (int32_t*)rVector.getValues();
 
     auto result = ValueVector(INT32);
+    result.setDataChunkOwner(dataChunk);
     auto resultData = (int32_t*)result.getValues();
 
     // Fill values before the comparison.
@@ -65,6 +68,7 @@ TEST(VectorArithTests, test) {
     }
 
     result = ValueVector(DOUBLE);
+    result.setDataChunkOwner(dataChunk);
     auto resultDataAsDoubleArr = (double_t*)result.getValues();
     auto powerOp = ValueVector::getBinaryOperation(ExpressionType::POWER);
     powerOp(lVector, rVector, result);

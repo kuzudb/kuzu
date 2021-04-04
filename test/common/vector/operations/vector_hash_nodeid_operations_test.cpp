@@ -17,6 +17,7 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
     auto nodeData = (uint64_t*)nodeVector.getValues();
 
     auto result = ValueVector(INT64);
+    result.setDataChunkOwner(dataChunk);
     auto resultData = (uint64_t*)result.getValues();
 
     // Fill values before the comparison.
@@ -49,6 +50,7 @@ TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
     nodeVector.setDataChunkOwner(dataChunk);
 
     auto result = ValueVector(INT64);
+    result.setDataChunkOwner(dataChunk);
     auto resultData = (uint64_t*)result.getValues();
 
     auto hashNodeIDOp = ValueVector::getUnaryOperation(HASH_NODE_ID);

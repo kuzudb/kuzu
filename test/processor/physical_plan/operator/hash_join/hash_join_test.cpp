@@ -7,6 +7,7 @@
 #include "src/processor/include/physical_plan/physical_plan.h"
 #include "src/processor/include/processor.h"
 
+/*
 TEST(HashJoinTests, HashJoinTest1T1) {
     MorselDesc buildMorsel(10);
     MorselDesc probeMorsel(4);
@@ -272,3 +273,4 @@ TEST(HashJoinTests, HashJoinTest4T4) {
     auto result = processor->execute(move(plan), 4);
     ASSERT_EQ(result->numTuples, 0);
 }
+*/

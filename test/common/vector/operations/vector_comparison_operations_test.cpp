@@ -22,7 +22,9 @@ TEST(VectorCmpTests, cmpInt) {
     auto rData = (int32_t*)rVector.getValues();
 
     auto result = ValueVector(BOOL, numTuples);
+    result.setDataChunkOwner(dataChunk);
     auto resultData = result.getValues();
+
     // Fill values before the comparison.
     for (int32_t i = 0; i < numTuples; i++) {
         lData[i] = i;
@@ -82,6 +84,7 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     auto rData = ((gf_string_t*)rVector.getValues());
 
     auto result = ValueVector(BOOL, numTuples);
+    result.setDataChunkOwner(dataChunk);
     auto resultData = result.getValues();
 
     char* value = "abcdefgh";
@@ -151,6 +154,7 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     auto rData = ((gf_string_t*)rVector.getValues());
 
     auto result = ValueVector(BOOL, VECTOR_SIZE);
+    result.setDataChunkOwner(dataChunk);
     auto resultData = result.getValues();
 
     char* value = "abcdefghijklmnopqrstuvwxy"; // 25.

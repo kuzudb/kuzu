@@ -18,15 +18,15 @@ public:
             switch (right.getDataType()) {
             case INT32:
                 if (std::is_same<OP, operation::Power>::value) {
-                    BinaryOperationExecutor::execute<int32_t, int32_t, double_t, OP>(
+                    BinaryOperationExecutor::executeNonBoolOp<int32_t, int32_t, double_t, OP>(
                         left, right, result);
                 } else {
-                    BinaryOperationExecutor::execute<int32_t, int32_t, int32_t, OP>(
+                    BinaryOperationExecutor::executeNonBoolOp<int32_t, int32_t, int32_t, OP>(
                         left, right, result);
                 }
                 break;
             case DOUBLE:
-                BinaryOperationExecutor::execute<int32_t, double_t, double_t, OP>(
+                BinaryOperationExecutor::executeNonBoolOp<int32_t, double_t, double_t, OP>(
                     left, right, result);
                 break;
             default:
@@ -37,11 +37,11 @@ public:
         case DOUBLE:
             switch (right.getDataType()) {
             case INT32:
-                BinaryOperationExecutor::execute<double_t, int32_t, int32_t, OP>(
+                BinaryOperationExecutor::executeNonBoolOp<double_t, int32_t, int32_t, OP>(
                     left, right, result);
                 break;
             case DOUBLE:
-                BinaryOperationExecutor::execute<double_t, double_t, double_t, OP>(
+                BinaryOperationExecutor::executeNonBoolOp<double_t, double_t, double_t, OP>(
                     left, right, result);
                 break;
             default:
@@ -59,10 +59,10 @@ public:
     static inline void execute(ValueVector& operand, ValueVector& result) {
         switch (operand.getDataType()) {
         case INT32:
-            UnaryOperationExecutor::execute<int32_t, int32_t, OP>(operand, result);
+            UnaryOperationExecutor::executeNonBoolOp<int32_t, int32_t, OP>(operand, result);
             break;
         case DOUBLE:
-            UnaryOperationExecutor::execute<double_t, double_t, OP>(operand, result);
+            UnaryOperationExecutor::executeNonBoolOp<double_t, double_t, OP>(operand, result);
             break;
         default:
             throw std::invalid_argument(
