@@ -92,6 +92,11 @@ enum ExpressionType {
 
 bool isExpressionUnary(ExpressionType type);
 bool isExpressionBinary(ExpressionType type);
+bool isExpressionBoolConnection(ExpressionType type);
+bool isExpressionComparison(ExpressionType type);
+bool isExpressionArithmetic(ExpressionType type);
+bool isExpressionStringOperator(ExpressionType type);
+bool isExpressionNullComparison(ExpressionType type);
 bool isExpressionLeafLiteral(ExpressionType type);
 bool isExpressionLeafVariable(ExpressionType type);
 DataType getUnaryExpressionResultDataType(ExpressionType type, DataType operandType);

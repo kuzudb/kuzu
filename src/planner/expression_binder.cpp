@@ -10,11 +10,10 @@ static void validateExpectedType(const LogicalExpression& logicalExpression, Dat
 static void validateNumericalType(const LogicalExpression& logicalExpression);
 
 void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
-    for (auto i = 0ul; i < parsedExpression.getNumChildren(); ++i) {
-        if (LITERAL_NULL == parsedExpression.getChildren(i).getType()) {
+    for (auto& child : parsedExpression.children) {
+        if (LITERAL_NULL == child->type) {
             throw invalid_argument(
-                "Expression of type: " + expressionTypeToString(parsedExpression.getType()) +
-                " cannot have null literal children");
+                "Expression: " + child->rawExpression + " cannot have null literal children");
         }
     }
 }
@@ -22,7 +21,8 @@ void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
 void validateExpectedType(const LogicalExpression& logicalExpression, DataType expectedType) {
     auto dataType = logicalExpression.getDataType();
     if (expectedType != dataType) {
-        throw invalid_argument("LogicalExpression return data type: " + dataTypeToString(dataType) +
+        throw invalid_argument("Expression: " + logicalExpression.getRawExpression() +
+                               " has data type: " + dataTypeToString(dataType) +
                                " expect: " + dataTypeToString(expectedType));
     }
 }
@@ -30,111 +30,82 @@ void validateExpectedType(const LogicalExpression& logicalExpression, DataType e
 void validateNumericalType(const LogicalExpression& logicalExpression) {
     auto dataType = logicalExpression.getDataType();
     if (!isNumericalType(dataType)) {
-        throw invalid_argument("LogicalExpression return data type: " + dataTypeToString(dataType) +
+        throw invalid_argument("Expression: " + logicalExpression.getRawExpression() +
+                               " has data type: " + dataTypeToString(dataType) +
                                " expect numerical type.");
     }
 }
 
 unique_ptr<LogicalExpression> ExpressionBinder::bindExpression(
     const ParsedExpression& parsedExpression) {
-    auto expressionType = parsedExpression.getType();
-    switch (expressionType) {
-    case OR:
-    case XOR:
-    case AND:
-    case NOT:
-        return bindBoolConnectionExpression(parsedExpression);
-    case EQUALS:
-    case NOT_EQUALS:
-    case GREATER_THAN:
-    case GREATER_THAN_EQUALS:
-    case LESS_THAN:
-    case LESS_THAN_EQUALS:
+    auto expressionType = parsedExpression.type;
+    if (isExpressionBoolConnection(expressionType)) {
+        return isExpressionUnary(expressionType) ?
+                   bindUnaryBoolConnectionExpression(parsedExpression) :
+                   bindBinaryBoolConnectionExpression(parsedExpression);
+    }
+    if (isExpressionComparison(expressionType)) {
         return bindComparisonExpression(parsedExpression);
-    case ADD:
-    case SUBTRACT:
-    case MULTIPLY:
-    case DIVIDE:
-    case MODULO:
-    case POWER:
-        return bindBinaryArithmeticExpression(parsedExpression);
-    case NEGATE:
-        return bindUnaryArithmeticExpression(parsedExpression);
-    case STARTS_WITH:
-    case ENDS_WITH:
-    case CONTAINS:
+    }
+    if (isExpressionArithmetic(expressionType)) {
+        return isExpressionUnary(expressionType) ? bindUnaryArithmeticExpression(parsedExpression) :
+                                                   bindBinaryArithmeticExpression(parsedExpression);
+    }
+    if (isExpressionStringOperator(expressionType)) {
         return bindStringOperatorExpression(parsedExpression);
-    case IS_NULL:
-    case IS_NOT_NULL:
+    }
+    if (isExpressionNullComparison(expressionType)) {
         return bindNullComparisonOperatorExpression(parsedExpression);
-    case PROPERTY:
-        return bindPropertyExpression(parsedExpression);
-    case FUNCTION:
-        throw invalid_argument("Bind expression with type FUNCTION is not yet implemented.");
-    case LITERAL_INT:
-    case LITERAL_DOUBLE:
-    case LITERAL_STRING:
-    case LITERAL_BOOLEAN:
-    case LITERAL_NULL:
+    }
+    if (isExpressionLeafLiteral(expressionType)) {
         return bindLiteralExpression(parsedExpression);
-    case VARIABLE:
+    }
+    if (FUNCTION == expressionType) {
+        throw invalid_argument("Bind expression with type FUNCTION is not yet implemented.");
+    }
+    if (PROPERTY == expressionType) {
+        return bindPropertyExpression(parsedExpression);
+    }
+    if (VARIABLE == expressionType) {
         return bindVariableExpression(parsedExpression);
-    default:
-        throw invalid_argument("Bind expression with type: " +
-                               expressionTypeToString(expressionType) + " should never happen.");
     }
+    throw invalid_argument("Bind expression with type: " + expressionTypeToString(expressionType) +
+                           " should never happen.");
 }
 
-unique_ptr<LogicalExpression> ExpressionBinder::bindBoolConnectionExpression(
+unique_ptr<LogicalExpression> ExpressionBinder::bindBinaryBoolConnectionExpression(
     const ParsedExpression& parsedExpression) {
-    validateNoNullLiteralChildren(parsedExpression);
-    auto expressionType = parsedExpression.getType();
-    switch (expressionType) {
-    case OR:
-    case XOR:
-    case AND:
-        return buildBinaryASTForBoolConnectionExpression(parsedExpression, expressionType);
-    case NOT: {
-        auto child = bindExpression(parsedExpression.getChildren(0));
-        validateExpectedType(*child, BOOL);
-        return make_unique<LogicalExpression>(NOT, BOOL, move(child));
-    }
-    default:
-        throw invalid_argument("Should never happen. Cannot bind expression type of " +
-                               expressionTypeToString(expressionType) +
-                               " as bool connection expression.");
-    }
+    auto left = bindExpression(*parsedExpression.children.at(0));
+    validateExpectedType(*left, BOOL);
+    auto right = bindExpression(*parsedExpression.children.at(1));
+    validateExpectedType(*right, BOOL);
+    return make_unique<LogicalExpression>(
+        parsedExpression.type, BOOL, move(left), move(right), parsedExpression.rawExpression);
 }
 
-unique_ptr<LogicalExpression> ExpressionBinder::buildBinaryASTForBoolConnectionExpression(
-    const ParsedExpression& parsedExpression, ExpressionType expressionType) {
-    unique_ptr<LogicalExpression> logicalExpression;
-    for (auto i = 0ul; i < parsedExpression.getNumChildren(); ++i) {
-        auto next = bindExpression(parsedExpression.getChildren(i));
-        validateExpectedType(*next, BOOL);
-        logicalExpression = !logicalExpression ? move(next) :
-                                                 make_unique<LogicalExpression>(expressionType,
-                                                     BOOL, move(logicalExpression), move(next));
-    }
-    return logicalExpression;
+unique_ptr<LogicalExpression> ExpressionBinder::bindUnaryBoolConnectionExpression(
+    const ParsedExpression& parsedExpression) {
+    auto child = bindExpression(*parsedExpression.children.at(0));
+    validateExpectedType(*child, BOOL);
+    return make_unique<LogicalExpression>(NOT, BOOL, move(child), parsedExpression.rawExpression);
 }
 
 unique_ptr<LogicalExpression> ExpressionBinder::bindComparisonExpression(
     const ParsedExpression& parsedExpression) {
-    auto& parsedLeft = parsedExpression.getChildren(0);
-    auto& parsedRight = parsedExpression.getChildren(1);
-    if (LITERAL_NULL == parsedLeft.getType() || LITERAL_NULL == parsedRight.getType()) {
+    auto& parsedLeft = *parsedExpression.children.at(0);
+    auto& parsedRight = *parsedExpression.children.at(1);
+    if (LITERAL_NULL == parsedLeft.type || LITERAL_NULL == parsedRight.type) {
         // rewrite == null as IS NULL
-        if (EQUALS == parsedExpression.getType()) {
+        if (EQUALS == parsedExpression.type) {
             return make_unique<LogicalExpression>(IS_NULL, BOOL,
-                LITERAL_NULL == parsedLeft.getType() ? bindExpression(parsedRight) :
-                                                       bindExpression(parsedLeft));
+                LITERAL_NULL == parsedLeft.type ? bindExpression(parsedRight) :
+                                                  bindExpression(parsedLeft));
         }
         // rewrite <> null as IS NOT NULL
-        if (NOT_EQUALS == parsedExpression.getType()) {
+        if (NOT_EQUALS == parsedExpression.type) {
             return make_unique<LogicalExpression>(IS_NOT_NULL, BOOL,
-                LITERAL_NULL == parsedLeft.getType() ? bindExpression(parsedRight) :
-                                                       bindExpression(parsedLeft));
+                LITERAL_NULL == parsedLeft.type ? bindExpression(parsedRight) :
+                                                  bindExpression(parsedLeft));
         }
     }
     validateNoNullLiteralChildren(parsedExpression);
@@ -143,15 +114,15 @@ unique_ptr<LogicalExpression> ExpressionBinder::bindComparisonExpression(
     isNumericalType(left->getDataType()) ? validateNumericalType(*right) :
                                            validateExpectedType(*right, left->getDataType());
     return make_unique<LogicalExpression>(
-        parsedExpression.getType(), BOOL, move(left), move(right));
+        parsedExpression.type, BOOL, move(left), move(right), parsedExpression.rawExpression);
 }
 
 unique_ptr<LogicalExpression> ExpressionBinder::bindBinaryArithmeticExpression(
     const ParsedExpression& parsedExpression) {
     validateNoNullLiteralChildren(parsedExpression);
-    auto left = bindExpression(parsedExpression.getChildren(0));
+    auto left = bindExpression(*parsedExpression.children.at(0));
     validateNumericalType(*left);
-    auto right = bindExpression(parsedExpression.getChildren(1));
+    auto right = bindExpression(*parsedExpression.children.at(1));
     validateNumericalType(*right);
     DataType resultType;
     if (DOUBLE == left->getDataType() || DOUBLE == right->getDataType()) {
@@ -161,48 +132,53 @@ unique_ptr<LogicalExpression> ExpressionBinder::bindBinaryArithmeticExpression(
     } else {
         resultType = INT32;
     }
-    auto type = parsedExpression.getType();
-    switch (type) {
+    auto expressionType = parsedExpression.type;
+    switch (expressionType) {
     case ADD:
     case SUBTRACT:
     case MULTIPLY:
     case POWER:
-        return make_unique<LogicalExpression>(type, resultType, move(left), move(right));
+        return make_unique<LogicalExpression>(
+            expressionType, resultType, move(left), move(right), parsedExpression.rawExpression);
     case DIVIDE:
-        return make_unique<LogicalExpression>(DIVIDE, DOUBLE, move(left), move(right));
+        return make_unique<LogicalExpression>(
+            DIVIDE, DOUBLE, move(left), move(right), parsedExpression.rawExpression);
     case MODULO:
-        return make_unique<LogicalExpression>(MODULO, INT32, move(left), move(right));
+        return make_unique<LogicalExpression>(
+            MODULO, INT32, move(left), move(right), parsedExpression.rawExpression);
     default:
         throw invalid_argument("Should never happen. Cannot bind expression type of " +
-                               expressionTypeToString(type) + " as binary arithmetic expression.");
+                               expressionTypeToString(expressionType) +
+                               " as binary arithmetic expression.");
     }
 }
 
 unique_ptr<LogicalExpression> ExpressionBinder::bindUnaryArithmeticExpression(
     const ParsedExpression& parsedExpression) {
     validateNoNullLiteralChildren(parsedExpression);
-    auto child = bindExpression(parsedExpression.getChildren(0));
+    auto child = bindExpression(*parsedExpression.children.at(0));
     validateNumericalType(*child);
     return make_unique<LogicalExpression>(
-        parsedExpression.getType(), child->getDataType(), move(child));
+        parsedExpression.type, child->getDataType(), move(child), parsedExpression.rawExpression);
 }
 
 unique_ptr<LogicalExpression> ExpressionBinder::bindStringOperatorExpression(
     const ParsedExpression& parsedExpression) {
     validateNoNullLiteralChildren(parsedExpression);
-    auto left = bindExpression(parsedExpression.getChildren(0));
+    auto left = bindExpression(*parsedExpression.children.at(0));
     validateExpectedType(*left, STRING);
-    auto right = bindExpression(parsedExpression.getChildren(1));
+    auto right = bindExpression(*parsedExpression.children.at(1));
     validateExpectedType(*right, STRING);
     return make_unique<LogicalExpression>(
-        parsedExpression.getType(), BOOL, move(left), move(right));
+        parsedExpression.type, BOOL, move(left), move(right), parsedExpression.rawExpression);
 }
 
 unique_ptr<LogicalExpression> ExpressionBinder::bindNullComparisonOperatorExpression(
     const ParsedExpression& parsedExpression) {
     validateNoNullLiteralChildren(parsedExpression);
-    auto childExpression = bindExpression(parsedExpression.getChildren(0));
-    return make_unique<LogicalExpression>(parsedExpression.getType(), BOOL, move(childExpression));
+    auto childExpression = bindExpression(*parsedExpression.children.at(0));
+    return make_unique<LogicalExpression>(
+        parsedExpression.type, BOOL, move(childExpression), parsedExpression.rawExpression);
 }
 
 // Note ParsedPropertyExpression is unary ,but LogicalPropertyExpression is leaf.
@@ -210,8 +186,8 @@ unique_ptr<LogicalExpression> ExpressionBinder::bindNullComparisonOperatorExpres
 unique_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
     const ParsedExpression& parsedExpression) {
     validateNoNullLiteralChildren(parsedExpression);
-    auto propertyName = parsedExpression.getText();
-    auto childExpression = bindExpression(parsedExpression.getChildren(0));
+    auto propertyName = parsedExpression.text;
+    auto childExpression = bindExpression(*parsedExpression.children.at(0));
     if (NODE == childExpression->getDataType()) {
         auto nodeName = childExpression->getVariableName();
         auto nodeLabel = graphInScope.getQueryNode(nodeName)->getLabel();
@@ -221,7 +197,7 @@ unique_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
         }
         return make_unique<LogicalExpression>(PROPERTY,
             catalog.getNodePropertyTypeFromString(nodeLabel, propertyName),
-            nodeName + "." + propertyName);
+            nodeName + "." + propertyName, parsedExpression.rawExpression);
     }
     if (REL == childExpression->getDataType()) {
         auto relName = childExpression->getVariableName();
@@ -231,30 +207,31 @@ unique_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
         }
         return make_unique<LogicalExpression>(PROPERTY,
             catalog.getRelPropertyTypeFromString(relLabel, propertyName),
-            relName + "." + propertyName);
+            relName + "." + propertyName, parsedExpression.rawExpression);
     }
     throw invalid_argument(
-        "Property: " + parsedExpression.getText() + " is not associated with any node or rel.");
+        "Property: " + parsedExpression.rawExpression + " is not associated with any node or rel.");
 }
 
 unique_ptr<LogicalExpression> ExpressionBinder::bindLiteralExpression(
     const ParsedExpression& parsedExpression) {
-    auto literalVal = parsedExpression.getText();
-    auto literalType = parsedExpression.getType();
+    auto literalVal = parsedExpression.text;
+    auto literalType = parsedExpression.type;
     switch (literalType) {
     case LITERAL_INT:
-        return make_unique<LogicalExpression>(LITERAL_INT, INT32, Literal(stoi(literalVal)));
+        return make_unique<LogicalExpression>(
+            LITERAL_INT, INT32, Literal(stoi(literalVal)), parsedExpression.rawExpression);
     case LITERAL_DOUBLE:
-        return make_unique<LogicalExpression>(LITERAL_DOUBLE, DOUBLE, Literal(stod(literalVal)));
+        return make_unique<LogicalExpression>(
+            LITERAL_DOUBLE, DOUBLE, Literal(stod(literalVal)), parsedExpression.rawExpression);
     case LITERAL_BOOLEAN:
-        return make_unique<LogicalExpression>(
-            LITERAL_BOOLEAN, BOOL, Literal((uint8_t)("true" == literalVal)));
+        return make_unique<LogicalExpression>(LITERAL_BOOLEAN, BOOL,
+            Literal((uint8_t)("true" == literalVal)), parsedExpression.rawExpression);
     case LITERAL_STRING:
-        return make_unique<LogicalExpression>(
-            LITERAL_STRING, STRING, Literal(literalVal.substr(1, literalVal.size() - 2)));
+        return make_unique<LogicalExpression>(LITERAL_STRING, STRING,
+            Literal(literalVal.substr(1, literalVal.size() - 2)), parsedExpression.rawExpression);
     default:
-        throw invalid_argument("Cannot bind expression type of " +
-                               expressionTypeToString(literalType) + " as literal expression");
+        throw invalid_argument("Literal: " + parsedExpression.rawExpression + "is not defined.");
     }
 }
 
@@ -262,14 +239,16 @@ unique_ptr<LogicalExpression> ExpressionBinder::bindLiteralExpression(
 // Should change once we have WITH statement
 unique_ptr<LogicalExpression> ExpressionBinder::bindVariableExpression(
     const ParsedExpression& parsedExpression) {
-    auto varName = parsedExpression.getText();
+    auto varName = parsedExpression.text;
     if (graphInScope.containsQueryNode(varName)) {
-        return make_unique<LogicalExpression>(VARIABLE, NODE, varName);
+        return make_unique<LogicalExpression>(
+            VARIABLE, NODE, varName, parsedExpression.rawExpression);
     }
     if (graphInScope.containsQueryRel(varName)) {
-        return make_unique<LogicalExpression>(VARIABLE, REL, varName);
+        return make_unique<LogicalExpression>(
+            VARIABLE, REL, varName, parsedExpression.rawExpression);
     }
-    throw invalid_argument("Variable: " + varName + " is not in scope.");
+    throw invalid_argument("Variable: " + parsedExpression.rawExpression + " is not in scope.");
 }
 
 } // namespace planner

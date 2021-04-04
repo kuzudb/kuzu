@@ -10,10 +10,9 @@ unique_ptr<SingleQuery> Parser::parseQuery(string query) {
     tokens.fill();
 
     CypherParser cypherParser(&tokens);
-    CypherParser::OC_CypherContext* tree = cypherParser.oC_Cypher();
 
-    Transformer transformer;
-    return transformer.transformParseTree(tree);
+    Transformer transformer(*cypherParser.oC_Cypher());
+    return transformer.transform();
 }
 
 } // namespace parser

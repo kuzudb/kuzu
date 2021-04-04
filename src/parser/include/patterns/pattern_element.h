@@ -13,21 +13,7 @@ namespace parser {
 class PatternElement {
 
 public:
-    const NodePattern& getNodePattern() const { return *nodePattern; }
-
-    int getNumPatternElementChain() const { return patternElementChains.size(); }
-
-    const PatternElementChain& getPatternElementChain(int idx) const {
-        return *patternElementChains[idx];
-    }
-
-    void setNodePattern(unique_ptr<NodePattern> nodePattern) {
-        this->nodePattern = move(nodePattern);
-    }
-
-    void addPatternElementChain(unique_ptr<PatternElementChain> patternElementChain) {
-        patternElementChains.push_back(move(patternElementChain));
-    }
+    explicit PatternElement(unique_ptr<NodePattern> nodePattern) : nodePattern{move(nodePattern)} {}
 
     bool operator==(const PatternElement& other) {
         auto result = *nodePattern == *other.nodePattern;
@@ -37,7 +23,7 @@ public:
         return result;
     }
 
-private:
+public:
     unique_ptr<NodePattern> nodePattern;
     vector<unique_ptr<PatternElementChain>> patternElementChains;
 };

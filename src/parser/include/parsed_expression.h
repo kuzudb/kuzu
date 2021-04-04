@@ -15,27 +15,17 @@ namespace parser {
 class ParsedExpression {
 
 public:
-    explicit ParsedExpression(ExpressionType type) : type{type} {}
+    ParsedExpression(ExpressionType type, string text, string rawExpression)
+        : type{type}, text{move(text)}, rawExpression{move(rawExpression)} {}
 
-    ParsedExpression(ExpressionType type, string text) : type{type}, text{move(text)} {}
-
-    ParsedExpression(
-        ExpressionType type, unique_ptr<ParsedExpression> left, unique_ptr<ParsedExpression> right)
-        : type{type} {
+    ParsedExpression(ExpressionType type, string text, string rawExpression,
+        unique_ptr<ParsedExpression> left, unique_ptr<ParsedExpression> right)
+        : type{type}, text{move(text)}, rawExpression{move(rawExpression)} {
         children.push_back(move(left));
         children.push_back(move(right));
     }
 
-    ExpressionType getType() const { return type; }
-
-    string getText() const { return text; }
-
-    uint32_t getNumChildren() const { return children.size(); }
-
-    const ParsedExpression& getChildren(uint32_t idx) const { return *children.at(idx); }
-
-    void addChild(unique_ptr<ParsedExpression> child) { children.push_back(move(child)); }
-
+    // no need to compare rawExpression
     bool operator==(const ParsedExpression& other) {
         auto result = type == other.type && text == other.text;
         for (auto i = 0ul; i < children.size(); ++i) {
@@ -44,9 +34,10 @@ public:
         return result;
     }
 
-protected:
+public:
     ExpressionType type;
     string text;
+    string rawExpression;
     vector<unique_ptr<ParsedExpression>> children;
 };
 

@@ -8,14 +8,6 @@ namespace parser {
 class SingleQuery {
 
 public:
-    int getNumStatements() const { return statements.size(); }
-
-    const MatchStatement& getMatchStatement(int idx) const { return *statements[idx]; }
-
-    void addMatchStatement(unique_ptr<MatchStatement> statement) {
-        statements.push_back(move(statement));
-    }
-
     bool operator==(const SingleQuery& other) {
         auto result = true;
         for (auto i = 0ul; i < statements.size(); ++i) {
@@ -24,7 +16,7 @@ public:
         return result;
     }
 
-private:
+public:
     vector<unique_ptr<MatchStatement>> statements;
 };
 

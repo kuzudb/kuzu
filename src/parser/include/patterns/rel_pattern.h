@@ -13,25 +13,15 @@ enum ArrowDirection : uint8_t { LEFT = 0, RIGHT = 1 };
 class RelPattern {
 
 public:
-    string getName() const { return name; }
-
-    string getType() const { return type; }
-
-    ArrowDirection getDirection() const { return arrowDirection; }
-
-    void setName(const string& name) { this->name = name; }
-
-    void setType(const string& type) { this->type = type; }
-
-    void setDirection(ArrowDirection arrowDirection) { this->arrowDirection = arrowDirection; }
+    RelPattern(string name, string label) : name{move(name)}, label{move(label)} {}
 
     bool operator==(const RelPattern& other) {
-        return name == other.name && type == other.type && arrowDirection == other.arrowDirection;
+        return name == other.name && label == other.label && arrowDirection == other.arrowDirection;
     }
 
-private:
+public:
     string name;
-    string type;
+    string label;
     ArrowDirection arrowDirection;
 };
 
