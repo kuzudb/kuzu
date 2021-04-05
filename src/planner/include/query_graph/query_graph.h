@@ -1,98 +1,91 @@
 #pragma once
 
+#include <bitset>
 #include <memory>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-#include "src/common/include/operations/hash_operations.h"
 #include "src/planner/include/query_graph/query_rel.h"
-
-using namespace operation;
 
 namespace graphflow {
 namespace planner {
 
-struct Subgraph {
+class QueryGraph;
+
+const uint8_t MAX_NUM_VARIABLES = 64;
+
+class SubqueryGraph {
 
 public:
-    Subgraph() {}
+    explicit SubqueryGraph(const QueryGraph& queryGraph) : queryGraph{queryGraph} {}
 
-    Subgraph(unordered_set<string> queryRelNames, unordered_set<string> queryNodeNames)
-        : queryRelNames{move(queryRelNames)}, queryNodeNames{move(queryNodeNames)} {}
+    SubqueryGraph(const SubqueryGraph& other)
+        : queryGraph{other.queryGraph}, queryNodesSelector{other.queryNodesSelector},
+          queryRelsSelector{other.queryRelsSelector} {}
 
-    bool containRel(string queryRelName) const {
-        return end(queryRelNames) != queryRelNames.find(queryRelName);
-    }
+    void addQueryRel(uint32_t relIdx);
 
-    void addRel(string queryRelName) { queryRelNames.insert(queryRelName); }
+    void addSubqueryGraph(const SubqueryGraph& other);
 
-    bool containNode(string queryNodeName) const {
-        return end(queryNodeNames) != queryNodeNames.find(queryNodeName);
-    }
-
-    void addNode(string queryNodeName) { queryNodeNames.insert(queryNodeName); }
-
-    bool operator==(const Subgraph& other) const { return queryRelNames == other.queryRelNames; }
+    bool operator==(const SubqueryGraph& other) const;
 
 public:
-    unordered_set<string> queryRelNames;
-    unordered_set<string> queryNodeNames;
+    const QueryGraph& queryGraph;
+    bitset<MAX_NUM_VARIABLES> queryNodesSelector;
+    bitset<MAX_NUM_VARIABLES> queryRelsSelector;
 };
 
-struct SubgraphJoinNodePairHasher {
-    std::size_t operator()(const pair<Subgraph, string>& key) const {
-        return Hash::operation(key.first.queryRelNames);
+struct SubqueryGraphJoinNodePairHasher {
+    size_t operator()(const pair<SubqueryGraph, uint32_t>& key) const {
+        return hash<bitset<MAX_NUM_VARIABLES>>{}(key.first.queryRelsSelector);
     }
 };
 
 class QueryGraph {
-    friend void mergeQueryGraphs(QueryGraph& mergedQueryGraph, QueryGraph& otherQueryGraph);
 
 public:
-    uint32_t numQueryNodes() const;
+    bool containsQueryNode(const string& queryNodeName) const;
 
-    bool containsQueryNode(const string& nodeName) const;
+    QueryNode* getQueryNode(const string& queryNodeName) const;
 
-    QueryNode* getQueryNode(const string& nodeName) const;
+    uint32_t getQueryNodeIdx(const string& queryNodeName) const;
 
     void addQueryNode(unique_ptr<QueryNode> queryNode);
 
-    uint32_t numQueryRels() const;
+    bool containsQueryRel(const string& queryRelName) const;
 
-    bool containsQueryRel(const string& relName) const;
-
-    vector<const QueryRel*> getQueryRels() const;
-
-    QueryRel* getQueryRel(const string& relName) const;
+    QueryRel* getQueryRel(const string& queryRelName) const;
 
     void addQueryRel(unique_ptr<QueryRel> queryRel);
 
-    vector<pair<const QueryRel*, bool>> getConnectedQueryRelsWithDirection(
-        const unordered_set<string>& queryRelNames) const;
+    vector<tuple<uint32_t, bool, bool>> getConnectedQueryRelsWithDirection(
+        const SubqueryGraph& subqueryGraph) const;
 
-    unordered_set<pair<Subgraph, string>, SubgraphJoinNodePairHasher> getSingleNodeJoiningSubgraph(
-        const unordered_set<string>& queryRelNames, uint32_t subgraphSize) const;
+    unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
+    getSingleNodeJoiningSubgraph(
+        const SubqueryGraph& matchedSubqueryGraph, uint32_t subgraphSize) const;
 
-    bool isConnected();
+    bool isConnected() const;
 
     bool operator==(const QueryGraph& other) const;
 
 private:
-    unordered_set<string> getNeighbourQueryNodeNames(const string& nodeName) const;
+    unordered_set<string> getNeighbourNodeNames(const string& queryNodeName) const;
 
-    unordered_set<string> getMatchedQueryNodeNames(const unordered_set<string>& relNames) const;
+    unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
+    initSubgraphWithSingleJoinNode(const SubqueryGraph& matchedSubgraph) const;
 
-    unordered_set<pair<Subgraph, string>, SubgraphJoinNodePairHasher>
-    createInitialSubgraphWithSingleJoinNode(const Subgraph& subgraphToExclude) const;
+    unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
+    extendSubgraphByOneQueryRel(const SubqueryGraph& matchedSubgraph,
+        const pair<SubqueryGraph, uint32_t>& subgraphWithSingleJoinNode) const;
 
-    unordered_set<pair<Subgraph, string>, SubgraphJoinNodePairHasher> extendSubgraphWithOneQueryRel(
-        const Subgraph& subgraphToExclude,
-        const pair<Subgraph, string>& subgraphWithSingleJoinNode) const;
-
-private:
-    unordered_map<string, unique_ptr<QueryNode>> nameToQueryNodeMap;
-    unordered_map<string, unique_ptr<QueryRel>> nameToQueryRelMap;
+public:
+    unordered_map<string, uint32_t> queryNodeNameToIdxMap;
+    unordered_map<string, uint32_t> queryRelNameToIdxMap;
+    vector<unique_ptr<QueryNode>> queryNodes;
+    vector<unique_ptr<QueryRel>> queryRels;
 };
 
 } // namespace planner

@@ -3,77 +3,80 @@
 namespace graphflow {
 namespace planner {
 
-uint32_t QueryGraph::numQueryNodes() const {
-    return nameToQueryNodeMap.size();
+void SubqueryGraph::addQueryRel(uint32_t relIdx) {
+    queryRelsSelector[relIdx] = true;
+    queryNodesSelector[queryGraph.getQueryNodeIdx(queryGraph.queryRels[relIdx]->getSrcNodeName())] =
+        true;
+    queryNodesSelector[queryGraph.getQueryNodeIdx(queryGraph.queryRels[relIdx]->getDstNodeName())] =
+        true;
 }
 
-bool QueryGraph::containsQueryNode(const string& nodeName) const {
-    return end(nameToQueryNodeMap) != nameToQueryNodeMap.find(nodeName);
+void SubqueryGraph::addSubqueryGraph(const SubqueryGraph& other) {
+    queryRelsSelector |= other.queryRelsSelector;
+    queryNodesSelector |= other.queryNodesSelector;
 }
 
-QueryNode* QueryGraph::getQueryNode(const string& nodeName) const {
-    return nameToQueryNodeMap.find(nodeName)->second.get();
+bool SubqueryGraph::operator==(const SubqueryGraph& other) const {
+    return queryRelsSelector == other.queryRelsSelector;
+}
+
+bool QueryGraph::containsQueryNode(const string& queryNodeName) const {
+    return end(queryNodeNameToIdxMap) != queryNodeNameToIdxMap.find(queryNodeName);
+}
+
+QueryNode* QueryGraph::getQueryNode(const string& queryNodeName) const {
+    return queryNodes.at(queryNodeNameToIdxMap.at(queryNodeName)).get();
+}
+
+uint32_t QueryGraph::getQueryNodeIdx(const string& queryNodeName) const {
+    return queryNodeNameToIdxMap.at(queryNodeName);
 }
 
 void QueryGraph::addQueryNode(unique_ptr<QueryNode> queryNode) {
-    nameToQueryNodeMap.insert({queryNode->getName(), move(queryNode)});
+    queryNodeNameToIdxMap.insert({queryNode->name, queryNodes.size()});
+    queryNodes.push_back(move(queryNode));
 }
 
-uint32_t QueryGraph::numQueryRels() const {
-    return nameToQueryRelMap.size();
+bool QueryGraph::containsQueryRel(const string& queryRelName) const {
+    return end(queryRelNameToIdxMap) != queryRelNameToIdxMap.find(queryRelName);
 }
 
-bool QueryGraph::containsQueryRel(const string& relName) const {
-    return end(nameToQueryRelMap) != nameToQueryRelMap.find(relName);
-}
-
-vector<const QueryRel*> QueryGraph::getQueryRels() const {
-    vector<const QueryRel*> queryRels;
-    for (auto& nameAndQueryRels : nameToQueryRelMap) {
-        queryRels.push_back(nameAndQueryRels.second.get());
-    }
-    return queryRels;
-}
-
-QueryRel* QueryGraph::getQueryRel(const string& relName) const {
-    return nameToQueryRelMap.find(relName)->second.get();
+QueryRel* QueryGraph::getQueryRel(const string& queryRelName) const {
+    return queryRels.at(queryRelNameToIdxMap.at(queryRelName)).get();
 }
 
 void QueryGraph::addQueryRel(unique_ptr<QueryRel> queryRel) {
-    nameToQueryRelMap.insert({queryRel->getName(), move(queryRel)});
+    queryRelNameToIdxMap.insert({queryRel->name, queryRels.size()});
+    queryRels.push_back(move(queryRel));
 }
 
-vector<pair<const QueryRel*, bool>> QueryGraph::getConnectedQueryRelsWithDirection(
-    const unordered_set<string>& queryRelNames) const {
-    vector<pair<const QueryRel*, bool>> result;
-    auto matchedQueryNodeNames = getMatchedQueryNodeNames(queryRelNames);
-    for (auto& nameAndQueryRel : nameToQueryRelMap) {
-        auto queryRel = nameAndQueryRel.second.get();
-        auto srcNodeName = queryRel->getSrcNode()->getName();
-        auto dstNodeName = queryRel->getDstNode()->getName();
-        auto isSrcNodeMatched =
-            end(matchedQueryNodeNames) != matchedQueryNodeNames.find(srcNodeName);
-        auto isDstNodeMatched =
-            end(matchedQueryNodeNames) != matchedQueryNodeNames.find(dstNodeName);
-        if (isSrcNodeMatched && !isDstNodeMatched) {
-            result.emplace_back(queryRel, true);
-        } else if (!isSrcNodeMatched && isDstNodeMatched) {
-            result.emplace_back(queryRel, false);
+vector<tuple<uint32_t, bool, bool>> QueryGraph::getConnectedQueryRelsWithDirection(
+    const SubqueryGraph& subqueryGraph) const {
+    vector<tuple<uint32_t, bool, bool>> result;
+    for (auto relIdx = 0u; relIdx < queryRels.size(); ++relIdx) {
+        if (subqueryGraph.queryRelsSelector[relIdx]) {
+            continue;
+        }
+        auto srcNodeIdx = queryNodeNameToIdxMap.at(queryRels.at(relIdx)->getSrcNodeName());
+        auto dstNodeIdx = queryNodeNameToIdxMap.at(queryRels.at(relIdx)->getDstNodeName());
+        if (subqueryGraph.queryNodesSelector[srcNodeIdx] ||
+            subqueryGraph.queryNodesSelector[dstNodeIdx]) {
+            result.emplace_back(make_tuple(relIdx, subqueryGraph.queryNodesSelector[srcNodeIdx],
+                subqueryGraph.queryNodesSelector[dstNodeIdx]));
         }
     }
     return result;
 }
 
-unordered_set<pair<Subgraph, string>, SubgraphJoinNodePairHasher>
+unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
 QueryGraph::getSingleNodeJoiningSubgraph(
-    const unordered_set<string>& queryRelNames, uint32_t subgraphSize) const {
-    auto subgraphToExclude = Subgraph(queryRelNames, getMatchedQueryNodeNames(queryRelNames));
-    auto subgraphAndJoinNodePairs = createInitialSubgraphWithSingleJoinNode(subgraphToExclude);
+    const SubqueryGraph& matchedSubqueryGraph, uint32_t subgraphSize) const {
+    auto subgraphAndJoinNodePairs = initSubgraphWithSingleJoinNode(matchedSubqueryGraph);
     for (auto i = 1ul; i < subgraphSize; ++i) {
         auto nextSubgraphAndJoinNodePairs =
-            unordered_set<pair<Subgraph, string>, SubgraphJoinNodePairHasher>();
+            unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>();
         for (auto& subgraphAndJoinNodePair : subgraphAndJoinNodePairs) {
-            auto tmp = extendSubgraphWithOneQueryRel(subgraphToExclude, subgraphAndJoinNodePair);
+            auto tmp = extendSubgraphByOneQueryRel(matchedSubqueryGraph, subgraphAndJoinNodePair);
             nextSubgraphAndJoinNodePairs.insert(begin(tmp), end(tmp));
         }
         subgraphAndJoinNodePairs = nextSubgraphAndJoinNodePairs;
@@ -81,15 +84,16 @@ QueryGraph::getSingleNodeJoiningSubgraph(
     return subgraphAndJoinNodePairs;
 }
 
-bool QueryGraph::isConnected() {
+bool QueryGraph::isConnected() const {
     auto visited = unordered_set<string>();
     auto frontier = unordered_set<string>();
-    auto src = begin(nameToQueryNodeMap)->first;
+    auto src = queryNodes.at(0)->name;
     frontier.insert(src);
+    visited.insert(src);
     while (!frontier.empty()) {
         auto nextFrontier = unordered_set<string>();
         for (auto& nodeInFrontier : frontier) {
-            auto nbrs = getNeighbourQueryNodeNames(nodeInFrontier);
+            auto nbrs = getNeighbourNodeNames(nodeInFrontier);
             for (auto& nbr : nbrs) {
                 if (end(visited) == visited.find(nbr)) {
                     visited.insert(nbr);
@@ -97,7 +101,7 @@ bool QueryGraph::isConnected() {
                 }
             }
         }
-        if (visited.size() == numQueryNodes()) {
+        if (visited.size() == queryNodes.size()) {
             return true;
         }
         frontier = nextFrontier;
@@ -106,93 +110,77 @@ bool QueryGraph::isConnected() {
 }
 
 bool QueryGraph::operator==(const QueryGraph& other) const {
-    auto result = true;
-    result &= nameToQueryNodeMap.size() == other.nameToQueryNodeMap.size();
-    for (auto it = begin(nameToQueryNodeMap); it != end(nameToQueryNodeMap); ++it) {
-        result &=
-            other.containsQueryNode(it->first) && *it->second == *other.getQueryNode(it->first);
+    auto result =
+        queryNodes.size() == other.queryNodes.size() && queryRels.size() == other.queryRels.size();
+    for (auto i = 0u; i < queryNodes.size(); ++i) {
+        result &= *queryNodes.at(i) == *other.queryNodes.at(i);
     }
-    result &= nameToQueryRelMap.size() == other.nameToQueryRelMap.size();
-    for (auto it = begin(nameToQueryRelMap); it != end(nameToQueryRelMap); ++it) {
-        result &= other.containsQueryRel(it->first) && *it->second == *other.getQueryRel(it->first);
+    for (auto i = 0u; i < queryRels.size(); ++i) {
+        result &= *queryRels.at(i) == *other.queryRels.at(i);
     }
     return result;
 }
 
-unordered_set<string> QueryGraph::getNeighbourQueryNodeNames(const string& nodeName) const {
+unordered_set<string> QueryGraph::getNeighbourNodeNames(const string& queryNodeName) const {
     auto nbrs = unordered_set<string>();
-    for (auto& nameAndQueryRel : nameToQueryRelMap) {
-        if (nameAndQueryRel.second->getSrcNode()->getName() == nodeName) {
-            nbrs.insert(nameAndQueryRel.second->getDstNode()->getName());
+    for (auto& rel : queryRels) {
+        if (getQueryNode(rel->getSrcNodeName())->name == queryNodeName) {
+            nbrs.insert(rel->getDstNodeName());
         }
-        if (nameAndQueryRel.second->getDstNode()->getName() == nodeName) {
-            nbrs.insert(nameAndQueryRel.second->getSrcNode()->getName());
+        if (getQueryNode(rel->getDstNodeName())->name == queryNodeName) {
+            nbrs.insert(rel->getSrcNodeName());
         }
     }
     return nbrs;
 }
 
-unordered_set<string> QueryGraph::getMatchedQueryNodeNames(
-    const unordered_set<string>& relNames) const {
-    auto nodes = unordered_set<string>();
-    for (auto& relName : relNames) {
-        auto& queryRel = *nameToQueryRelMap.at(relName);
-        nodes.insert(queryRel.getSrcNode()->getName());
-        nodes.insert(queryRel.getDstNode()->getName());
-    }
-    return nodes;
-}
-
-unordered_set<pair<Subgraph, string>, SubgraphJoinNodePairHasher>
-QueryGraph::createInitialSubgraphWithSingleJoinNode(const Subgraph& subgraphToExclude) const {
-    auto result = unordered_set<pair<Subgraph, string>, SubgraphJoinNodePairHasher>();
-    for (auto& nameAndQueryRelPair : nameToQueryRelMap) {
-        auto relName = nameAndQueryRelPair.first;
-        if (subgraphToExclude.containRel(relName)) {
+unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
+QueryGraph::initSubgraphWithSingleJoinNode(const SubqueryGraph& matchedSubgraph) const {
+    auto result = unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>();
+    for (auto relIdx = 0u; relIdx < queryRels.size(); ++relIdx) {
+        if (matchedSubgraph.queryRelsSelector[relIdx]) {
             continue;
         }
-        auto srcNodeName = nameAndQueryRelPair.second->getSrcNode()->getName();
-        auto dstNodeName = nameAndQueryRelPair.second->getDstNode()->getName();
-        if (subgraphToExclude.containNode(srcNodeName) &&
-            !subgraphToExclude.containNode(dstNodeName)) {
-            result.emplace(make_pair(Subgraph(unordered_set<string>({relName}),
-                                         unordered_set<string>({srcNodeName, dstNodeName})),
-                srcNodeName));
-        } else if (!subgraphToExclude.containNode(srcNodeName) &&
-                   subgraphToExclude.containNode(dstNodeName)) {
-            result.emplace(make_pair(Subgraph(unordered_set<string>({relName}),
-                                         unordered_set<string>({srcNodeName, dstNodeName})),
-                dstNodeName));
+        auto srcNodeIdx = queryNodeNameToIdxMap.at(queryRels[relIdx]->getSrcNodeName());
+        auto dstNodeIdx = queryNodeNameToIdxMap.at(queryRels[relIdx]->getDstNodeName());
+        // check join on single node
+        if (matchedSubgraph.queryNodesSelector[srcNodeIdx] ||
+            !matchedSubgraph.queryNodesSelector[dstNodeIdx]) {
+            auto subgraph = SubqueryGraph(*this);
+            subgraph.addQueryRel(relIdx);
+            result.emplace(make_pair(subgraph, srcNodeIdx));
+        } else if (!matchedSubgraph.queryNodesSelector[srcNodeIdx] &&
+                   matchedSubgraph.queryNodesSelector[dstNodeIdx]) {
+            auto subgraph = SubqueryGraph(*this);
+            subgraph.addQueryRel(relIdx);
+            result.emplace(make_pair(subgraph, dstNodeIdx));
         }
     }
     return result;
 }
 
-unordered_set<pair<Subgraph, string>, SubgraphJoinNodePairHasher>
-QueryGraph::extendSubgraphWithOneQueryRel(const Subgraph& subgraphToExclude,
-    const pair<Subgraph, string>& subgraphWithSingleJoinNode) const {
-    auto result = unordered_set<pair<Subgraph, string>, SubgraphJoinNodePairHasher>();
+unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
+QueryGraph::extendSubgraphByOneQueryRel(const SubqueryGraph& matchedSubgraph,
+    const pair<SubqueryGraph, uint32_t>& subgraphWithSingleJoinNode) const {
+    auto result = unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>();
     auto& subgraph = subgraphWithSingleJoinNode.first;
-    for (auto& nameAndQueryRelPair : nameToQueryRelMap) {
-        auto relName = nameAndQueryRelPair.first;
-        if (subgraphToExclude.containRel(relName) || subgraph.containRel(relName)) {
+    for (auto relIdx = 0u; relIdx < queryRels.size(); ++relIdx) {
+        if (matchedSubgraph.queryRelsSelector[relIdx] || subgraph.queryRelsSelector[relIdx]) {
             continue;
         }
-        auto srcNodeName = nameAndQueryRelPair.second->getSrcNode()->getName();
-        auto dstNodeName = nameAndQueryRelPair.second->getDstNode()->getName();
-        if (subgraph.containNode(srcNodeName) || subgraph.containNode(dstNodeName)) {
-            if (subgraphToExclude.containNode(srcNodeName) &&
-                srcNodeName != subgraphWithSingleJoinNode.second) { // single join node check on src
+        auto srcNodeIdx = queryNodeNameToIdxMap.at(queryRels.at(relIdx)->getSrcNodeName());
+        auto dstNodeIdx = queryNodeNameToIdxMap.at(queryRels.at(relIdx)->getDstNodeName());
+        if (subgraph.queryNodesSelector[srcNodeIdx] || subgraph.queryNodesSelector[dstNodeIdx]) {
+            if (matchedSubgraph.queryNodesSelector[srcNodeIdx] &&
+                srcNodeIdx != subgraphWithSingleJoinNode.second) { // single join node check on src
                 continue;
             }
-            if (subgraphToExclude.containNode(dstNodeName) &&
-                dstNodeName != subgraphWithSingleJoinNode.second) { // single join node check on dst
+            if (matchedSubgraph.queryNodesSelector[dstNodeIdx] &&
+                dstNodeIdx != subgraphWithSingleJoinNode.second) { // single join node check on dst
                 continue;
             }
-            auto newSubgraph = Subgraph(subgraph.queryRelNames, subgraph.queryNodeNames);
-            newSubgraph.addRel(relName);
-            newSubgraph.addNode(srcNodeName);
-            newSubgraph.addNode(dstNodeName);
+            auto newSubgraph = subgraph;
+            newSubgraph.addQueryRel(relIdx);
             result.emplace(make_pair(newSubgraph, subgraphWithSingleJoinNode.second));
         }
     }

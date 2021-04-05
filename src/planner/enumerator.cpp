@@ -9,14 +9,18 @@ static shared_ptr<LogicalExtend> createLogicalExtend(
 static shared_ptr<LogicalScan> createLogicalScan(const QueryNode& queryNode);
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
+    vector<unique_ptr<LogicalPlan>> plans;
+    if (1 == queryGraph.queryNodes.size()) {
+        plans.emplace_back(make_unique<LogicalPlan>(createLogicalScan(*queryGraph.queryNodes[0])));
+        return plans;
+    }
     auto numEnumeratedQueryRels = 0u;
     enumerateSingleQueryRel(numEnumeratedQueryRels);
-    while (numEnumeratedQueryRels < queryGraph.numQueryRels()) {
+    while (numEnumeratedQueryRels < queryGraph.queryRels.size()) {
         enumerateNextNumQueryRel(numEnumeratedQueryRels);
     }
-    vector<unique_ptr<LogicalPlan>> plans;
     auto& lastOperators =
-        subgraphPlanTable->getSubgraphPlans(queryGraph.numQueryRels()).begin()->second;
+        subgraphPlanTable->subgraphPlans[queryGraph.queryRels.size()].begin()->second;
     for (auto& lastOperator : lastOperators) {
         plans.emplace_back(make_unique<LogicalPlan>(lastOperator));
     }
@@ -25,16 +29,16 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
 
 void Enumerator::enumerateSingleQueryRel(uint32_t& numEnumeratedQueryRels) {
     numEnumeratedQueryRels++;
-    auto queryRels = queryGraph.getQueryRels();
-    for (auto& queryRel : queryRels) {
-        unordered_set<string> matchedQueryRels;
-        matchedQueryRels.insert(queryRel->getName());
-        auto scanSrc = createLogicalScan(*queryRel->getSrcNode());
-        auto extendDst = createLogicalExtend(*queryRel, true, scanSrc);
-        subgraphPlanTable->addSubgraphPlan(matchedQueryRels, extendDst);
-        auto scanDst = createLogicalScan(*queryRel->getDstNode());
-        auto extendSrc = createLogicalExtend(*queryRel, false, scanDst);
-        subgraphPlanTable->addSubgraphPlan(matchedQueryRels, extendSrc);
+    for (auto relIdx = 0u; relIdx < queryGraph.queryRels.size(); ++relIdx) {
+        auto subqueryGraph = SubqueryGraph(queryGraph);
+        subqueryGraph.addQueryRel(relIdx);
+        auto& rel = *queryGraph.queryRels[relIdx];
+        auto scanSrc = createLogicalScan(*rel.srcNode);
+        auto extendDst = createLogicalExtend(rel, true, scanSrc);
+        subgraphPlanTable->addSubgraphPlan(subqueryGraph, extendDst);
+        auto scanDst = createLogicalScan(*rel.dstNode);
+        auto extendSrc = createLogicalExtend(rel, false, scanDst);
+        subgraphPlanTable->addSubgraphPlan(subqueryGraph, extendSrc);
     }
 }
 
@@ -47,21 +51,20 @@ void Enumerator::enumerateNextNumQueryRel(uint32_t& numEnumeratedQueryRels) {
 }
 
 void Enumerator::enumerateExtend(uint32_t nextNumEnumeratedQueryRels) {
-    auto& prevSubgraphPlansMap =
-        subgraphPlanTable->getSubgraphPlans(nextNumEnumeratedQueryRels - 1);
-    for (auto& mathchedRelsAndPrevPlans : prevSubgraphPlansMap) {
-        auto& matchedRels = mathchedRelsAndPrevPlans.first;
-        auto& prevPlans = mathchedRelsAndPrevPlans.second;
+    auto& subgraphPlansMap = subgraphPlanTable->subgraphPlans[nextNumEnumeratedQueryRels - 1];
+    for (auto& [subgraph, plans] : subgraphPlansMap) {
         auto connectedQueryRelsWithDirection =
-            queryGraph.getConnectedQueryRelsWithDirection(matchedRels);
-        for (auto& connectedQueryRelWithDirection : connectedQueryRelsWithDirection) {
-            auto connectedQueryRel = connectedQueryRelWithDirection.first;
-            auto isFwd = connectedQueryRelWithDirection.second;
-            for (auto& prevPlan : prevPlans) {
-                auto matchedQueryRels = matchedRels;
-                matchedQueryRels.insert(connectedQueryRel->getName());
-                auto extend = createLogicalExtend(*connectedQueryRel, isFwd, prevPlan);
-                subgraphPlanTable->addSubgraphPlan(matchedQueryRels, extend);
+            queryGraph.getConnectedQueryRelsWithDirection(subgraph);
+        for (auto& [relIdx, isSrcConnected, isDstConnected] : connectedQueryRelsWithDirection) {
+            for (auto& plan : plans) {
+                auto newSubgraph = subgraph;
+                newSubgraph.addQueryRel(relIdx);
+                if (isSrcConnected && isDstConnected) {
+                    throw invalid_argument("Logical intersect is not yet supported.");
+                }
+                auto extend =
+                    createLogicalExtend(*queryGraph.queryRels[relIdx], isSrcConnected, plan);
+                subgraphPlanTable->addSubgraphPlan(newSubgraph, extend);
             }
         }
     }
@@ -70,27 +73,24 @@ void Enumerator::enumerateExtend(uint32_t nextNumEnumeratedQueryRels) {
 void Enumerator::enumerateHashJoin(uint32_t nextNumEnumeratedQueryRels) {
     for (auto leftSize = nextNumEnumeratedQueryRels - 2;
          leftSize >= ceil(nextNumEnumeratedQueryRels / 2.0); --leftSize) {
-        auto& subgraphPlansMap = subgraphPlanTable->getSubgraphPlans(leftSize);
-        for (auto& leftQueryRelsAndSubgraphPlans : subgraphPlansMap) {
-            auto& leftQueryRels = leftQueryRelsAndSubgraphPlans.first;
+        auto& subgraphPlansMap = subgraphPlanTable->subgraphPlans[leftSize];
+        for (auto& [leftSubgraph, leftPlans] : subgraphPlansMap) {
             auto rightSubgraphAndJoinNodePairs = queryGraph.getSingleNodeJoiningSubgraph(
-                leftQueryRels, nextNumEnumeratedQueryRels - leftSize);
-            for (auto& rightSubgraphAndJoinNodePair : rightSubgraphAndJoinNodePairs) {
-                auto& leftPlans = leftQueryRelsAndSubgraphPlans.second;
-                auto& rightQueryRels = rightSubgraphAndJoinNodePair.first.queryRelNames;
-                auto& rightPlans = subgraphPlanTable->getSubgraphPlans(rightQueryRels);
-                auto matchedQueryRels = leftQueryRels;
-                matchedQueryRels.insert(begin(rightQueryRels), end(rightQueryRels));
+                leftSubgraph, nextNumEnumeratedQueryRels - leftSize);
+            for (auto& [rightSubgraph, joinNodePos] : rightSubgraphAndJoinNodePairs) {
+                auto& rightPlans = subgraphPlanTable->getSubgraphPlans(rightSubgraph);
+                auto newSubgraph = leftSubgraph;
+                newSubgraph.addSubqueryGraph(rightSubgraph);
                 for (auto& leftPlan : leftPlans) {
                     for (auto& rightPlan : rightPlans) {
-                        subgraphPlanTable->addSubgraphPlan(matchedQueryRels,
+                        subgraphPlanTable->addSubgraphPlan(newSubgraph,
                             make_shared<LogicalHashJoin>(
-                                rightSubgraphAndJoinNodePair.second, leftPlan, rightPlan));
+                                queryGraph.queryNodes[joinNodePos]->name, leftPlan, rightPlan));
                         // flip build and probe side to get another HashJoin plan
                         if (leftSize != nextNumEnumeratedQueryRels - leftSize) {
-                            subgraphPlanTable->addSubgraphPlan(matchedQueryRels,
+                            subgraphPlanTable->addSubgraphPlan(newSubgraph,
                                 make_shared<LogicalHashJoin>(
-                                    rightSubgraphAndJoinNodePair.second, rightPlan, leftPlan));
+                                    queryGraph.queryNodes[joinNodePos]->name, rightPlan, leftPlan));
                         }
                     }
                 }
@@ -101,25 +101,23 @@ void Enumerator::enumerateHashJoin(uint32_t nextNumEnumeratedQueryRels) {
 
 shared_ptr<LogicalExtend> createLogicalExtend(
     const QueryRel& queryRel, bool isFwd, shared_ptr<LogicalOperator> prevOperator) {
-    if (ANY_LABEL == queryRel.getSrcNode()->getLabel() &&
-        ANY_LABEL == queryRel.getDstNode()->getLabel() && ANY_LABEL == queryRel.getLabel()) {
+    if (ANY_LABEL == queryRel.srcNode->label && ANY_LABEL == queryRel.dstNode->label &&
+        ANY_LABEL == queryRel.label) {
         throw invalid_argument("Match any label is not yet supported in LogicalExtend");
     }
     if (isFwd) {
-        return make_shared<LogicalExtend>(queryRel.getSrcNode()->getName(),
-            queryRel.getSrcNode()->getLabel(), queryRel.getDstNode()->getName(),
-            queryRel.getDstNode()->getLabel(), queryRel.getLabel(), FWD, prevOperator);
+        return make_shared<LogicalExtend>(queryRel.getSrcNodeName(), queryRel.srcNode->label,
+            queryRel.getDstNodeName(), queryRel.dstNode->label, queryRel.label, FWD, prevOperator);
     }
-    return make_shared<LogicalExtend>(queryRel.getDstNode()->getName(),
-        queryRel.getDstNode()->getLabel(), queryRel.getSrcNode()->getName(),
-        queryRel.getSrcNode()->getLabel(), queryRel.getLabel(), BWD, prevOperator);
+    return make_shared<LogicalExtend>(queryRel.getDstNodeName(), queryRel.dstNode->label,
+        queryRel.getSrcNodeName(), queryRel.srcNode->label, queryRel.label, BWD, prevOperator);
 }
 
 shared_ptr<LogicalScan> createLogicalScan(const QueryNode& queryNode) {
-    if (ANY_LABEL == queryNode.getLabel()) {
+    if (ANY_LABEL == queryNode.label) {
         throw invalid_argument("Match any label is not yet supported in LogicalScan.");
     }
-    return make_shared<LogicalScan>(queryNode.getName(), queryNode.getLabel());
+    return make_shared<LogicalScan>(queryNode.name, queryNode.label);
 }
 
 } // namespace planner

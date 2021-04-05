@@ -10,17 +10,9 @@ class QueryRel {
 public:
     QueryRel(string name, label_t label) : name{move(name)}, label{label} {}
 
-    string getName() const { return name; }
+    inline string getSrcNodeName() const { return srcNode->name; }
 
-    label_t getLabel() const { return label; }
-
-    QueryNode* getSrcNode() const { return srcNode; }
-
-    QueryNode* getDstNode() const { return dstNode; }
-
-    void setSrcNode(QueryNode* queryNode) { srcNode = queryNode; }
-
-    void setDstNode(QueryNode* queryNode) { dstNode = queryNode; }
+    inline string getDstNodeName() const { return dstNode->name; }
 
     bool operator==(const QueryRel& other) const {
         auto result = name == other.name && label == other.label;
@@ -29,7 +21,7 @@ public:
         return result;
     }
 
-private:
+public:
     string name;
     label_t label;
     QueryNode* srcNode;

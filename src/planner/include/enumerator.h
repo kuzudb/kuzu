@@ -14,7 +14,7 @@ class Enumerator {
 
 public:
     explicit Enumerator(const QueryGraph& queryGraph) : queryGraph{queryGraph} {
-        subgraphPlanTable = make_unique<SubgraphPlanTable>(queryGraph.numQueryRels());
+        subgraphPlanTable = make_unique<SubgraphPlanTable>(queryGraph.queryRels.size());
     };
 
     vector<unique_ptr<LogicalPlan>> enumeratePlans();
