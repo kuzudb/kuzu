@@ -6,6 +6,7 @@ namespace graphflow {
 namespace common {
 
 constexpr bool ENABLE_DEBUG = false;
+constexpr bool ENABLE_HASH_JOIN_ENUMERATION = true;
 
 // Size (in bytes) of the chunks to be read in GraphLoader.
 const uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;

@@ -3,18 +3,29 @@
 namespace graphflow {
 namespace planner {
 
+static vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(
+    shared_ptr<LogicalExpression> expr);
+
 static void validateQueryNodeWithSameName(QueryNode& queryNodeInGraph, QueryNode& queryNodeToMerge);
 
 static void rebindSrcAndDstNode(QueryRel& queryRel, const QueryGraph& queryGraph);
 
 static void mergeQueryGraphs(QueryGraph& mergedQueryGraph, QueryGraph& otherQueryGraph);
 
-vector<unique_ptr<BoundMatchStatement>> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
-    vector<unique_ptr<BoundMatchStatement>> boundStatements;
+unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
+    auto mergedQueryGraph = make_unique<QueryGraph>();
+    vector<shared_ptr<LogicalExpression>> whereExprsSplitOnAND;
     for (auto& statement : singleQuery.statements) {
-        boundStatements.push_back(bindStatement(*statement));
+        auto boundStatement = bindStatement(*statement);
+        mergeQueryGraphs(*mergedQueryGraph, *boundStatement->queryGraph);
+        if (boundStatement->whereExpression) {
+            auto exprs = splitExpressionOnAND(boundStatement->whereExpression);
+            for (auto& expr : exprs) {
+                whereExprsSplitOnAND.push_back(expr);
+            }
+        }
     }
-    return boundStatements;
+    return make_unique<BoundSingleQuery>(move(mergedQueryGraph), move(whereExprsSplitOnAND));
 }
 
 unique_ptr<BoundMatchStatement> Binder::bindStatement(const MatchStatement& matchStatement) {
@@ -118,6 +129,55 @@ void Binder::bindNodeToRel(QueryRel* queryRel, QueryNode* queryNode, bool isSrcN
                                " doesn't connect to edge with same type as: " + queryRel->name);
     }
     isSrcNode ? queryRel->srcNode = queryNode : queryRel->dstNode = queryNode;
+}
+
+vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(shared_ptr<LogicalExpression> expr) {
+    auto result = vector<shared_ptr<LogicalExpression>>();
+    if (AND == expr->expressionType) {
+        for (auto& child : expr->childrenExpr) {
+            for (auto& exp : splitExpressionOnAND(child)) {
+                result.push_back(exp);
+            }
+        }
+    } else {
+        result.push_back(expr);
+    }
+    return result;
+}
+
+void mergeQueryGraphs(QueryGraph& mergedQueryGraph, QueryGraph& otherQueryGraph) {
+    for (auto& otherNode : otherQueryGraph.queryNodes) {
+        if (mergedQueryGraph.containsQueryNode(otherNode->name)) {
+            validateQueryNodeWithSameName(
+                *mergedQueryGraph.getQueryNode(otherNode->name), *otherNode);
+        } else {
+            mergedQueryGraph.addQueryNode(move(otherNode));
+        }
+    }
+    for (auto& otherRel : otherQueryGraph.queryRels) {
+        if (mergedQueryGraph.containsQueryRel(otherRel->name)) {
+            throw invalid_argument("Reuse name: " + otherRel->name + " for relationship.");
+        } else {
+            rebindSrcAndDstNode(*otherRel, mergedQueryGraph);
+            mergedQueryGraph.addQueryRel(move(otherRel));
+        }
+    }
+}
+
+void validateQueryNodeWithSameName(QueryNode& queryNodeInGraph, QueryNode& queryNodeToMerge) {
+    if (ANY_LABEL == queryNodeInGraph.label && ANY_LABEL != queryNodeToMerge.label) {
+        queryNodeInGraph.label = queryNodeToMerge.label;
+        return;
+    }
+    if (ANY_LABEL != queryNodeInGraph.label && queryNodeInGraph.label != queryNodeToMerge.label) {
+        throw invalid_argument("Multi-label query nodes are not supported. " +
+                               queryNodeInGraph.name + " is given multiple labels.");
+    }
+}
+
+void rebindSrcAndDstNode(QueryRel& queryRel, const QueryGraph& queryGraph) {
+    queryRel.srcNode = queryGraph.getQueryNode(queryRel.getSrcNodeName());
+    queryRel.dstNode = queryGraph.getQueryNode(queryRel.getDstNodeName());
 }
 
 } // namespace planner

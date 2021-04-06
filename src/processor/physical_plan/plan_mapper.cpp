@@ -141,7 +141,7 @@ unique_ptr<PhysicalOperator> mapLogicalNodePropertyReaderToPhysical(
     auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(propertyReader.nodeVarName);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(propertyReader.nodeVarName);
     auto& catalog = graph.getCatalog();
-    auto label = catalog.getNodeLabelFromString(propertyReader.nodeLabel.c_str());
+    auto label = propertyReader.nodeLabel;
     auto property = catalog.getNodePropertyKeyFromString(label, propertyReader.propertyName);
     auto& nodesStore = graph.getNodesStore();
     physicalOperatorInfo.appendAsNewValueVector(
@@ -160,8 +160,8 @@ unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
     auto inValueVectorPos = physicalOperatorInfo.getValueVectorPos(propertyReader.boundNodeVarName);
     auto outDataChunkPos = physicalOperatorInfo.getDataChunkPos(propertyReader.nbrNodeVarName);
     auto& catalog = graph.getCatalog();
-    auto nodeLabel = catalog.getNodeLabelFromString(propertyReader.boundNodeVarLabel.c_str());
-    auto label = catalog.getRelLabelFromString(propertyReader.relLabel.c_str());
+    auto nodeLabel = propertyReader.boundNodeVarLabel;
+    auto label = propertyReader.relLabel;
     auto property = catalog.getRelPropertyKeyFromString(label, propertyReader.propertyName);
     auto& relsStore = graph.getRelsStore();
     physicalOperatorInfo.appendAsNewValueVector(

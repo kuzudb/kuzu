@@ -14,8 +14,8 @@ namespace planner {
 class LogicalFilter : public LogicalOperator {
 
 public:
-    LogicalFilter(unique_ptr<LogicalExpression> rootExpr, shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{prevOperator}, rootExpr{move(rootExpr)} {}
+    LogicalFilter(shared_ptr<LogicalExpression> rootExpr, shared_ptr<LogicalOperator> prevOperator)
+        : LogicalOperator{prevOperator}, rootExpr{rootExpr} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_FILTER;
@@ -26,7 +26,7 @@ public:
     string getOperatorInformation() const override { return ""; }
 
 public:
-    unique_ptr<LogicalExpression> rootExpr;
+    shared_ptr<LogicalExpression> rootExpr;
 };
 
 } // namespace planner

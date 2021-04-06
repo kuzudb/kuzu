@@ -3,68 +3,72 @@
 namespace graphflow {
 namespace planner {
 
-static shared_ptr<LogicalExtend> createLogicalExtend(
-    const QueryRel& queryRel, bool isFwd, shared_ptr<LogicalOperator> prevOperator);
+static unique_ptr<LogicalPlan> appendLogicalHashJoin(
+    const string& joinNodeName, const LogicalPlan& buildPlan, const LogicalPlan& probePlan);
 
-static shared_ptr<LogicalScan> createLogicalScan(const QueryNode& queryNode);
+static unique_ptr<LogicalPlan> appendLogicalExtend(
+    const QueryRel& queryRel, bool isFwd, const LogicalPlan& prevPlan);
+
+static unique_ptr<LogicalPlan> appendLogicalScan(const QueryNode& queryNode);
+
+Enumerator::Enumerator(const BoundSingleQuery& boundSingleQuery)
+    : queryGraph{*boundSingleQuery.queryGraph} {
+    subgraphPlanTable = make_unique<SubgraphPlanTable>(queryGraph.queryRels.size());
+    if (!boundSingleQuery.whereExprsSplitByAND.empty()) {
+        for (auto& expr : boundSingleQuery.whereExprsSplitByAND) {
+            expressionsAndIncludedVariables.emplace_back(
+                make_pair(expr, expr->getIncludedVariables()));
+        }
+    }
+}
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
-    vector<unique_ptr<LogicalPlan>> plans;
-    if (1 == queryGraph.queryNodes.size()) {
-        plans.emplace_back(make_unique<LogicalPlan>(createLogicalScan(*queryGraph.queryNodes[0])));
-        return plans;
-    }
     auto numEnumeratedQueryRels = 0u;
-    enumerateSingleQueryRel(numEnumeratedQueryRels);
+    enumerateSingleQueryNode();
     while (numEnumeratedQueryRels < queryGraph.queryRels.size()) {
         enumerateNextNumQueryRel(numEnumeratedQueryRels);
     }
-    auto& lastOperators =
-        subgraphPlanTable->subgraphPlans[queryGraph.queryRels.size()].begin()->second;
-    for (auto& lastOperator : lastOperators) {
-        plans.emplace_back(make_unique<LogicalPlan>(lastOperator));
-    }
-    return plans;
+    return move(subgraphPlanTable->subgraphPlans[queryGraph.queryRels.size()].begin()->second);
 }
 
-void Enumerator::enumerateSingleQueryRel(uint32_t& numEnumeratedQueryRels) {
-    numEnumeratedQueryRels++;
-    for (auto relIdx = 0u; relIdx < queryGraph.queryRels.size(); ++relIdx) {
+void Enumerator::enumerateSingleQueryNode() {
+    for (auto nodeIdx = 0u; nodeIdx < queryGraph.queryNodes.size(); ++nodeIdx) {
         auto subqueryGraph = SubqueryGraph(queryGraph);
-        subqueryGraph.addQueryRel(relIdx);
-        auto& rel = *queryGraph.queryRels[relIdx];
-        auto scanSrc = createLogicalScan(*rel.srcNode);
-        auto extendDst = createLogicalExtend(rel, true, scanSrc);
-        subgraphPlanTable->addSubgraphPlan(subqueryGraph, extendDst);
-        auto scanDst = createLogicalScan(*rel.dstNode);
-        auto extendSrc = createLogicalExtend(rel, false, scanDst);
-        subgraphPlanTable->addSubgraphPlan(subqueryGraph, extendSrc);
+        subqueryGraph.addQueryNode(nodeIdx);
+        auto& queryNode = *queryGraph.queryNodes[nodeIdx];
+        auto plan = appendLogicalScan(queryNode);
+        appendFiltersIfPossible(
+            SubqueryGraph(queryGraph) /* empty subgraph */, subqueryGraph, *plan);
+        subgraphPlanTable->addSubgraphPlan(subqueryGraph, move(plan));
     }
 }
 
 void Enumerator::enumerateNextNumQueryRel(uint32_t& numEnumeratedQueryRels) {
     numEnumeratedQueryRels++;
     enumerateExtend(numEnumeratedQueryRels);
-    /*if (numEnumeratedQueryRels >= 4) {
-        enumerateHashJoin(numEnumeratedQueryRels);
-    }*/
+    if constexpr (ENABLE_HASH_JOIN_ENUMERATION) {
+        if (numEnumeratedQueryRels >= 4) {
+            enumerateHashJoin(numEnumeratedQueryRels);
+        }
+    }
 }
 
 void Enumerator::enumerateExtend(uint32_t nextNumEnumeratedQueryRels) {
     auto& subgraphPlansMap = subgraphPlanTable->subgraphPlans[nextNumEnumeratedQueryRels - 1];
-    for (auto& [subgraph, plans] : subgraphPlansMap) {
+    for (auto& [prevSubgraph, prevPlans] : subgraphPlansMap) {
         auto connectedQueryRelsWithDirection =
-            queryGraph.getConnectedQueryRelsWithDirection(subgraph);
+            queryGraph.getConnectedQueryRelsWithDirection(prevSubgraph);
         for (auto& [relIdx, isSrcConnected, isDstConnected] : connectedQueryRelsWithDirection) {
-            for (auto& plan : plans) {
-                auto newSubgraph = subgraph;
+            for (auto& prevPlan : prevPlans) {
+                auto newSubgraph = prevSubgraph;
                 newSubgraph.addQueryRel(relIdx);
                 if (isSrcConnected && isDstConnected) {
                     throw invalid_argument("Logical intersect is not yet supported.");
                 }
-                auto extend =
-                    createLogicalExtend(*queryGraph.queryRels[relIdx], isSrcConnected, plan);
-                subgraphPlanTable->addSubgraphPlan(newSubgraph, extend);
+                auto plan =
+                    appendLogicalExtend(*queryGraph.queryRels[relIdx], isSrcConnected, *prevPlan);
+                appendFiltersIfPossible(prevSubgraph, newSubgraph, *plan);
+                subgraphPlanTable->addSubgraphPlan(newSubgraph, move(plan));
             }
         }
     }
@@ -83,14 +87,17 @@ void Enumerator::enumerateHashJoin(uint32_t nextNumEnumeratedQueryRels) {
                 newSubgraph.addSubqueryGraph(rightSubgraph);
                 for (auto& leftPlan : leftPlans) {
                     for (auto& rightPlan : rightPlans) {
-                        subgraphPlanTable->addSubgraphPlan(newSubgraph,
-                            make_shared<LogicalHashJoin>(
-                                queryGraph.queryNodes[joinNodePos]->name, leftPlan, rightPlan));
+                        auto plan = appendLogicalHashJoin(
+                            queryGraph.queryNodes[joinNodePos]->name, *leftPlan, *rightPlan);
+                        appendFiltersIfPossible(leftSubgraph, rightSubgraph, newSubgraph, *plan);
+                        subgraphPlanTable->addSubgraphPlan(newSubgraph, move(plan));
                         // flip build and probe side to get another HashJoin plan
                         if (leftSize != nextNumEnumeratedQueryRels - leftSize) {
-                            subgraphPlanTable->addSubgraphPlan(newSubgraph,
-                                make_shared<LogicalHashJoin>(
-                                    queryGraph.queryNodes[joinNodePos]->name, rightPlan, leftPlan));
+                            auto planFlip = appendLogicalHashJoin(
+                                queryGraph.queryNodes[joinNodePos]->name, *rightPlan, *leftPlan);
+                            appendFiltersIfPossible(
+                                leftSubgraph, rightSubgraph, newSubgraph, *plan);
+                            subgraphPlanTable->addSubgraphPlan(newSubgraph, move(planFlip));
                         }
                     }
                 }
@@ -99,25 +106,98 @@ void Enumerator::enumerateHashJoin(uint32_t nextNumEnumeratedQueryRels) {
     }
 }
 
-shared_ptr<LogicalExtend> createLogicalExtend(
-    const QueryRel& queryRel, bool isFwd, shared_ptr<LogicalOperator> prevOperator) {
+void Enumerator::appendFiltersIfPossible(const SubqueryGraph& leftPrevSubgraph,
+    const SubqueryGraph& rightPrevSubgraph, const SubqueryGraph& subgraph, LogicalPlan& plan) {
+    for (auto& [expr, dependentVars] : expressionsAndIncludedVariables) {
+        if (subgraph.containAllVars(dependentVars) &&
+            !leftPrevSubgraph.containAllVars(dependentVars) &&
+            !rightPrevSubgraph.containAllVars(dependentVars)) {
+            appendFilterAndNecessaryScans(expr, plan);
+        }
+    }
+}
+
+void Enumerator::appendFiltersIfPossible(
+    const SubqueryGraph& prevSubgraph, const SubqueryGraph& subgraph, LogicalPlan& plan) {
+    for (auto& [expr, dependentVars] : expressionsAndIncludedVariables) {
+        if (subgraph.containAllVars(dependentVars) && !prevSubgraph.containAllVars(dependentVars)) {
+            appendFilterAndNecessaryScans(expr, plan);
+        }
+    }
+}
+
+void Enumerator::appendFilterAndNecessaryScans(
+    shared_ptr<LogicalExpression> expr, LogicalPlan& plan) {
+    for (auto& dependentPropertyName : expr->getIncludedProperties()) {
+        if (plan.schema->containsOperator(dependentPropertyName)) {
+            continue;
+        }
+        appendPropertyReader(dependentPropertyName, plan);
+    }
+    auto filter = make_shared<LogicalFilter>(expr, plan.lastOperator);
+    plan.lastOperator = filter;
+}
+
+void Enumerator::appendPropertyReader(const string& varAndPropertyName, LogicalPlan& plan) {
+    auto varName = varAndPropertyName.substr(0, varAndPropertyName.find('.'));
+    auto propertyName = varAndPropertyName.substr(varAndPropertyName.find('.') + 1);
+    queryGraph.containsQueryNode(varName) ? appendNodePropertyReader(varName, propertyName, plan) :
+                                            appendRelPropertyReader(varName, propertyName, plan);
+}
+
+void Enumerator::appendRelPropertyReader(
+    const string& relName, const string& propertyName, LogicalPlan& plan) {
+    auto extend = (LogicalExtend*)plan.schema->getOperator(relName);
+    auto relPropertyReader = make_shared<LogicalRelPropertyReader>(
+        *queryGraph.getQueryRel(relName), extend->direction, propertyName, plan.lastOperator);
+    plan.schema->addOperator(relName + "." + propertyName, relPropertyReader.get());
+    plan.lastOperator = relPropertyReader;
+}
+
+void Enumerator::appendNodePropertyReader(
+    const string& nodeName, const string& propertyName, LogicalPlan& plan) {
+    auto queryNode = queryGraph.getQueryNode(nodeName);
+    auto nodePropertyReader = make_shared<LogicalNodePropertyReader>(
+        queryNode->name, queryNode->label, propertyName, plan.lastOperator);
+    plan.schema->addOperator(nodeName + "." + propertyName, nodePropertyReader.get());
+    plan.lastOperator = nodePropertyReader;
+}
+
+unique_ptr<LogicalPlan> appendLogicalHashJoin(
+    const string& joinNodeName, const LogicalPlan& buildPlan, const LogicalPlan& probePlan) {
+    auto hashJoin =
+        make_shared<LogicalHashJoin>(joinNodeName, buildPlan.lastOperator, probePlan.lastOperator);
+    auto schema = probePlan.schema->copy();
+    for (auto& [varName, logicalOperator] : buildPlan.schema->varNameOperatorMap) {
+        if (!schema->containsOperator(varName)) {
+            schema->addOperator(varName, logicalOperator);
+        }
+    }
+    return make_unique<LogicalPlan>(hashJoin, move(schema));
+}
+
+unique_ptr<LogicalPlan> appendLogicalExtend(
+    const QueryRel& queryRel, bool isFwd, const LogicalPlan& prevPlan) {
     if (ANY_LABEL == queryRel.srcNode->label && ANY_LABEL == queryRel.dstNode->label &&
         ANY_LABEL == queryRel.label) {
         throw invalid_argument("Match any label is not yet supported in LogicalExtend");
     }
-    if (isFwd) {
-        return make_shared<LogicalExtend>(queryRel.getSrcNodeName(), queryRel.srcNode->label,
-            queryRel.getDstNodeName(), queryRel.dstNode->label, queryRel.label, FWD, prevOperator);
-    }
-    return make_shared<LogicalExtend>(queryRel.getDstNodeName(), queryRel.dstNode->label,
-        queryRel.getSrcNodeName(), queryRel.srcNode->label, queryRel.label, BWD, prevOperator);
+    auto schema = prevPlan.schema->copy();
+    auto extend = make_shared<LogicalExtend>(queryRel, isFwd ? FWD : BWD, prevPlan.lastOperator);
+    schema->addOperator(
+        isFwd ? queryRel.getSrcNodeName() : queryRel.getDstNodeName(), extend.get());
+    schema->addOperator(queryRel.name, extend.get());
+    return make_unique<LogicalPlan>(extend, move(schema));
 }
 
-shared_ptr<LogicalScan> createLogicalScan(const QueryNode& queryNode) {
+unique_ptr<LogicalPlan> appendLogicalScan(const QueryNode& queryNode) {
     if (ANY_LABEL == queryNode.label) {
         throw invalid_argument("Match any label is not yet supported in LogicalScan.");
     }
-    return make_shared<LogicalScan>(queryNode.name, queryNode.label);
+    auto scan = make_shared<LogicalScan>(queryNode.name, queryNode.label);
+    auto schema = make_unique<Schema>();
+    schema->addOperator(queryNode.name, scan.get());
+    return make_unique<LogicalPlan>(scan, move(schema));
 }
 
 } // namespace planner

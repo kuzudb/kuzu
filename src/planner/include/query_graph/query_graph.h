@@ -25,9 +25,13 @@ public:
         : queryGraph{other.queryGraph}, queryNodesSelector{other.queryNodesSelector},
           queryRelsSelector{other.queryRelsSelector} {}
 
-    void addQueryRel(uint32_t relIdx);
+    void addQueryNode(uint32_t nodePos);
+
+    void addQueryRel(uint32_t relPos);
 
     void addSubqueryGraph(const SubqueryGraph& other);
+
+    bool containAllVars(unordered_set<string>& vars) const;
 
     bool operator==(const SubqueryGraph& other) const;
 
@@ -50,13 +54,15 @@ public:
 
     QueryNode* getQueryNode(const string& queryNodeName) const;
 
-    uint32_t getQueryNodeIdx(const string& queryNodeName) const;
+    uint32_t getQueryNodePos(const string& queryNodeName) const;
 
     void addQueryNode(unique_ptr<QueryNode> queryNode);
 
     bool containsQueryRel(const string& queryRelName) const;
 
     QueryRel* getQueryRel(const string& queryRelName) const;
+
+    uint32_t getQueryRelPos(const string& queryRelName) const;
 
     void addQueryRel(unique_ptr<QueryRel> queryRel);
 
@@ -82,8 +88,8 @@ private:
         const pair<SubqueryGraph, uint32_t>& subgraphWithSingleJoinNode) const;
 
 public:
-    unordered_map<string, uint32_t> queryNodeNameToIdxMap;
-    unordered_map<string, uint32_t> queryRelNameToIdxMap;
+    unordered_map<string, uint32_t> queryNodeNameToPosMap;
+    unordered_map<string, uint32_t> queryRelNameToPosMap;
     vector<unique_ptr<QueryNode>> queryNodes;
     vector<unique_ptr<QueryRel>> queryRels;
 };

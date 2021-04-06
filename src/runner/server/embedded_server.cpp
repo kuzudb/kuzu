@@ -15,8 +15,8 @@ vector<unique_ptr<LogicalPlan>> EmbeddedServer::enumerateLogicalPlans(const stri
     graphflow::parser::Parser parser;
     auto singleQuery = parser.parseQuery(query);
     Binder binder(graph->getCatalog());
-    auto boundStatements = binder.bindSingleQuery(*singleQuery);
-    Enumerator enumerator(boundStatements[0]->getQueryGraph());
+    auto boundSingleQuery = binder.bindSingleQuery(*singleQuery);
+    Enumerator enumerator(*boundSingleQuery);
     return enumerator.enumeratePlans();
 }
 

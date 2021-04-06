@@ -41,6 +41,7 @@ cc_library(
     name = "bound_statement",
     hdrs = [
         "include/bound_statements/bound_match_statement.h",
+        "include/bound_statements/bound_single_query.h",
     ],
 )
 
@@ -70,9 +71,11 @@ cc_library(
         "include/logical_plan/operator/property_reader/logical_node_property_reader.h",
         "include/logical_plan/operator/property_reader/logical_rel_property_reader.h",
         "include/logical_plan/operator/scan/logical_scan.h",
+        "include/logical_plan/schema.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "query_graph",
         "//src/common",
         "//src/expression",
     ],
