@@ -18,17 +18,11 @@ class QueryNode {
 public:
     QueryNode(string name, label_t label) : name{move(name)}, label{label} {}
 
-    string getName() const { return name; }
-
-    label_t getLabel() const { return label; }
-
-    void setLabel(label_t label) { this->label = label; }
-
     bool operator==(const QueryNode& other) const {
         return name == other.name && label == other.label;
     }
 
-private:
+public:
     string name;
     label_t label;
 };

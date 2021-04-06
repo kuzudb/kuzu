@@ -5,9 +5,9 @@ namespace planner {
 
 static void validateQueryNodeWithSameName(QueryNode& queryNodeInGraph, QueryNode& queryNodeToMerge);
 
-static void rebindSrcAndDstNode(QueryRel* queryRel, const QueryGraph& queryGraph);
+static void rebindSrcAndDstNode(QueryRel& queryRel, const QueryGraph& queryGraph);
 
-void mergeQueryGraphs(QueryGraph& mergedQueryGraph, QueryGraph& otherQueryGraph);
+static void mergeQueryGraphs(QueryGraph& mergedQueryGraph, QueryGraph& otherQueryGraph);
 
 vector<unique_ptr<BoundMatchStatement>> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
     vector<unique_ptr<BoundMatchStatement>> boundStatements;
@@ -38,8 +38,8 @@ void Binder::bindQueryRels(const PatternElement& patternElement, QueryGraph& que
     for (auto& patternElementChain : patternElement.patternElementChains) {
         auto rel = bindQueryRel(*patternElementChain, leftNode, queryGraph);
         leftNode = ArrowDirection::RIGHT == patternElementChain->relPattern->arrowDirection ?
-                       rel->getDstNode() :
-                       rel->getSrcNode();
+                       rel->dstNode :
+                       rel->srcNode;
     }
 }
 
@@ -47,7 +47,7 @@ QueryRel* Binder::bindQueryRel(
     const PatternElementChain& patternElementChain, QueryNode* leftNode, QueryGraph& queryGraph) {
     auto parsedName = patternElementChain.relPattern->name;
     if (parsedName.empty()) {
-        parsedName = "_gfR_" + to_string(queryGraph.numQueryRels());
+        parsedName = "_gfR_" + to_string(queryGraph.queryRels.size());
     } else if (queryGraph.containsQueryRel(parsedName)) {
         throw invalid_argument("Reuse name: " + parsedName + " for different relationships.");
     } else if (queryGraph.containsQueryNode(parsedName)) {
@@ -66,13 +66,14 @@ QueryRel* Binder::bindQueryRel(
 QueryNode* Binder::bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph) {
     auto parsedName = nodePattern.name;
     if (parsedName.empty()) { // create anonymous node
-        parsedName = "_gfN_" + to_string(queryGraph.numQueryNodes());
+        parsedName = "_gfN_" + to_string(queryGraph.queryNodes.size());
     } else if (queryGraph.containsQueryRel(parsedName)) {
         throw invalid_argument("Reuse name: " + parsedName + " for node and relationship");
     } else if (queryGraph.containsQueryNode(parsedName)) { // bind to previous bound node
+        auto boundNode = queryGraph.getQueryNode(parsedName);
         auto label = bindNodeLabel(nodePattern.label);
-        if (ANY_LABEL == label || queryGraph.getQueryNode(parsedName)->getLabel() == label) {
-            return queryGraph.getQueryNode(parsedName);
+        if (ANY_LABEL == label || boundNode->label == label) {
+            return boundNode;
         } else {
             throw invalid_argument("Multi-label query nodes are not supported. " + parsedName +
                                    " is given multiple labels");
@@ -104,57 +105,55 @@ label_t Binder::bindNodeLabel(const string& parsed_label) {
 }
 
 void Binder::bindNodeToRel(QueryRel* queryRel, QueryNode* queryNode, bool isSrcNode) {
-    if (ANY_LABEL != queryNode->getLabel() && ANY_LABEL != queryRel->getLabel()) {
+    if (ANY_LABEL != queryNode->label && ANY_LABEL != queryRel->label) {
         auto relLabels =
-            catalog.getRelLabelsForNodeLabelDirection(queryNode->getLabel(), isSrcNode ? FWD : BWD);
+            catalog.getRelLabelsForNodeLabelDirection(queryNode->label, isSrcNode ? FWD : BWD);
         for (auto& relLabel : relLabels) {
-            if (relLabel == queryRel->getLabel()) {
-                isSrcNode ? queryRel->setSrcNode(queryNode) : queryRel->setDstNode(queryNode);
+            if (relLabel == queryRel->label) {
+                isSrcNode ? queryRel->srcNode = queryNode : queryRel->dstNode = queryNode;
                 return;
             }
         }
-        throw invalid_argument(
-            "Node: " + queryNode->getName() +
-            " doesn't connect to edge with same type as: " + queryRel->getName());
+        throw invalid_argument("Node: " + queryNode->name +
+                               " doesn't connect to edge with same type as: " + queryRel->name);
     }
-    isSrcNode ? queryRel->setSrcNode(queryNode) : queryRel->setDstNode(queryNode);
+    isSrcNode ? queryRel->srcNode = queryNode : queryRel->dstNode = queryNode;
 }
 
 // TODO: move this function out of binder
 void mergeQueryGraphs(QueryGraph& mergedQueryGraph, QueryGraph& otherQueryGraph) {
-    for (auto& nameAndQueryNode : otherQueryGraph.nameToQueryNodeMap) {
-        if (mergedQueryGraph.containsQueryNode(nameAndQueryNode.first)) {
-            validateQueryNodeWithSameName(*mergedQueryGraph.getQueryNode(nameAndQueryNode.first),
-                *otherQueryGraph.getQueryNode(nameAndQueryNode.first));
+    for (auto& otherNode : otherQueryGraph.queryNodes) {
+        if (mergedQueryGraph.containsQueryNode(otherNode->name)) {
+            validateQueryNodeWithSameName(
+                *mergedQueryGraph.getQueryNode(otherNode->name), *otherNode);
         } else {
-            mergedQueryGraph.addQueryNode(move(nameAndQueryNode.second));
+            mergedQueryGraph.addQueryNode(move(otherNode));
         }
     }
-    for (auto& nameAndQueryRel : otherQueryGraph.nameToQueryRelMap) {
-        if (mergedQueryGraph.containsQueryRel(nameAndQueryRel.first)) {
-            throw invalid_argument("Reuse name: " + nameAndQueryRel.first + " for relationship.");
+    for (auto& otherRel : otherQueryGraph.queryRels) {
+        if (mergedQueryGraph.containsQueryRel(otherRel->name)) {
+            throw invalid_argument("Reuse name: " + otherRel->name + " for relationship.");
         } else {
-            rebindSrcAndDstNode(nameAndQueryRel.second.get(), mergedQueryGraph);
-            mergedQueryGraph.addQueryRel(move(nameAndQueryRel.second));
+            rebindSrcAndDstNode(*otherRel, mergedQueryGraph);
+            mergedQueryGraph.addQueryRel(move(otherRel));
         }
     }
 }
 
 void validateQueryNodeWithSameName(QueryNode& queryNodeInGraph, QueryNode& queryNodeToMerge) {
-    if (ANY_LABEL == queryNodeInGraph.getLabel() && ANY_LABEL != queryNodeToMerge.getLabel()) {
-        queryNodeInGraph.setLabel(queryNodeToMerge.getLabel());
+    if (ANY_LABEL == queryNodeInGraph.label && ANY_LABEL != queryNodeToMerge.label) {
+        queryNodeInGraph.label = queryNodeToMerge.label;
         return;
     }
-    if (ANY_LABEL != queryNodeInGraph.getLabel() &&
-        queryNodeToMerge.getLabel() != queryNodeToMerge.getLabel()) {
+    if (ANY_LABEL != queryNodeInGraph.label && queryNodeInGraph.label != queryNodeToMerge.label) {
         throw invalid_argument("Multi-label query nodes are not supported. " +
-                               queryNodeInGraph.getName() + " is given multiple labels.");
+                               queryNodeInGraph.name + " is given multiple labels.");
     }
 }
 
-void rebindSrcAndDstNode(QueryRel* queryRel, const QueryGraph& queryGraph) {
-    queryRel->setSrcNode(queryGraph.getQueryNode(queryRel->getSrcNode()->getName()));
-    queryRel->setDstNode(queryGraph.getQueryNode(queryRel->getDstNode()->getName()));
+void rebindSrcAndDstNode(QueryRel& queryRel, const QueryGraph& queryGraph) {
+    queryRel.srcNode = queryGraph.getQueryNode(queryRel.getSrcNodeName());
+    queryRel.dstNode = queryGraph.getQueryNode(queryRel.getDstNodeName());
 }
 
 } // namespace planner

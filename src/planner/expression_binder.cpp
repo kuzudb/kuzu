@@ -190,7 +190,7 @@ unique_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
     auto childExpression = bindExpression(*parsedExpression.children.at(0));
     if (NODE == childExpression->getDataType()) {
         auto nodeName = childExpression->getVariableName();
-        auto nodeLabel = graphInScope.getQueryNode(nodeName)->getLabel();
+        auto nodeLabel = graphInScope.getQueryNode(nodeName)->label;
         if (!catalog.containNodeProperty(nodeLabel, propertyName)) {
             throw invalid_argument(
                 "Node: " + nodeName + " does not have property: " + propertyName);
@@ -201,7 +201,7 @@ unique_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
     }
     if (REL == childExpression->getDataType()) {
         auto relName = childExpression->getVariableName();
-        auto relLabel = graphInScope.getQueryRel(relName)->getLabel();
+        auto relLabel = graphInScope.getQueryRel(relName)->label;
         if (!catalog.containRelProperty(relLabel, propertyName)) {
             throw invalid_argument("Rel: " + relName + " does not have property: " + propertyName);
         }

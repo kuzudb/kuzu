@@ -24,7 +24,7 @@ public:
         return *queryGraph == *other.queryGraph;
     }
 
-private:
+public:
     unique_ptr<QueryGraph> queryGraph;
     unique_ptr<LogicalExpression> whereExpression;
 };
