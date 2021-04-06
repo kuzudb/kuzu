@@ -23,9 +23,11 @@ public:
           nbrNodeVarLabel{nbrNodeVarLabel}, relLabel{relLabel}, direction{direction},
           propertyName{propertyName} {}
 
-    LogicalOperatorType getLogicalOperatorType() const {
+    LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_REL_PROPERTY_READER;
     }
+
+    string getOperatorInformation() const override { return relName + "." + propertyName; }
 
 public:
     const string relName;

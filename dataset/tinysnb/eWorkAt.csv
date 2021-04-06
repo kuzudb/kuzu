@@ -1,0 +1,4 @@
+fromLabel:LABEL,from:NODE,toLabel:LABEL,to:NODE,year:INT32
+person,3,organisation,4,2015
+person,5,organisation,6,2010
+person,7,organisation,6,2015

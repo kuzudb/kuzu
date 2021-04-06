@@ -24,6 +24,18 @@ public:
         return LogicalOperatorType::LOGICAL_HASH_JOIN;
     }
 
+    string toString(uint64_t depth = 0) const {
+        string result = LogicalOperatorTypeNames[getLogicalOperatorType()] + "[" +
+                        getOperatorInformation() + "]";
+        result += "\nBUILD SIDE: \n";
+        result += buildSidePrevOperator->toString(depth + 1);
+        result += "\nPROBE SIDE: \n";
+        result += prevOperator->toString(depth + 1);
+        return result;
+    }
+
+    string getOperatorInformation() const override { return joinNodeVarName; }
+
 public:
     const string joinNodeVarName;
     const shared_ptr<LogicalOperator> buildSidePrevOperator;

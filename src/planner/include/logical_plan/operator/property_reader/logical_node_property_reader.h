@@ -17,9 +17,11 @@ public:
         : LogicalOperator{prevOperator}, nodeVarName{nodeVarName}, nodeLabel{nodeLabel},
           propertyName{propertyName} {}
 
-    LogicalOperatorType getLogicalOperatorType() const {
+    LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_NODE_PROPERTY_READER;
     }
+
+    string getOperatorInformation() const override { return nodeVarName + "." + propertyName; }
 
 public:
     const string nodeVarName;
