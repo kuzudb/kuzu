@@ -18,7 +18,10 @@ public:
 
     ValueVector(DataType dataType, uint64_t vectorCapacity)
         : capacity{getDataTypeSize(dataType) * vectorCapacity},
-          buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()}, dataType{dataType} {}
+          buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()}, dataType{dataType},
+          nullMask(make_unique<bool[]>(capacity)) {
+        std::fill_n(nullMask.get(), capacity, false /* not null */);
+    }
 
     ValueVector(uint64_t numBytesPerValue, DataType dataType)
         : ValueVector(MAX_VECTOR_SIZE, numBytesPerValue, dataType) {}
@@ -29,6 +32,10 @@ public:
 
     inline uint8_t* getValues() const { return values; }
     inline void setValues(uint8_t* values) { this->values = values; }
+
+    inline bool* getNullMask() const { return nullMask.get(); }
+
+    void fillNullMask();
 
     template<typename T>
     void setValue(uint64_t pos, const T& value) {
@@ -48,7 +55,7 @@ public:
         return ((T*)values)[pos];
     }
 
-    inline void setDataChunkOwner(shared_ptr<DataChunk>& owner) { this->owner = owner; }
+    inline void setDataChunkOwner(shared_ptr<DataChunk> owner) { this->owner = owner; }
 
     inline uint64_t getNumSelectedValues() { return owner->numSelectedValues; }
 
@@ -72,14 +79,19 @@ public:
     shared_ptr<DataChunk> owner;
 
 protected:
+    // TODO: allocate null-mask only when necessary.
     ValueVector(uint64_t vectorCapacity, uint64_t numBytesPerValue, DataType dataType)
         : capacity{numBytesPerValue * vectorCapacity},
-          buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()}, dataType{dataType} {}
+          buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()}, dataType{dataType},
+          nullMask(make_unique<bool[]>(capacity)) {
+        std::fill_n(nullMask.get(), capacity, false /* not null */);
+    }
 
     size_t capacity;
     unique_ptr<uint8_t[]> buffer;
     uint8_t* values;
     DataType dataType;
+    unique_ptr<bool[]> nullMask;
 };
 
 } // namespace common

@@ -20,6 +20,7 @@ TEST(VectorBoolTests, test) {
     auto rData = (uint8_t*)rVector.getValues();
 
     auto result = ValueVector(BOOL);
+    result.setDataChunkOwner(dataChunk);
     auto resultData = (uint8_t*)result.getValues();
 
     // Fill values before the comparison.

@@ -1,9 +1,12 @@
 #include "src/common/include/vector/value_vector.h"
 
+#include "src/common/include/operations/comparison_operations.h"
 #include "src/common/include/vector/operations/vector_arithmetic_operations.h"
 #include "src/common/include/vector/operations/vector_boolean_operations.h"
 #include "src/common/include/vector/operations/vector_comparison_operations.h"
 #include "src/common/include/vector/operations/vector_node_id_operations.h"
+
+using namespace graphflow::common::operation;
 
 namespace graphflow {
 namespace common {
@@ -25,6 +28,10 @@ std::function<void(ValueVector&, ValueVector&)> ValueVector::getUnaryOperation(
         return VectorBooleanOperations::Not;
     case NEGATE:
         return VectorArithmeticOperations::Negate;
+    case IS_NULL:
+        return VectorComparisonOperations::IsNull;
+    case IS_NOT_NULL:
+        return VectorComparisonOperations::IsNotNull;
     case HASH_NODE_ID:
         return VectorNodeIDOperations::Hash;
     case DECOMPRESS_NODE_ID:
@@ -81,6 +88,38 @@ std::function<void(ValueVector&, ValueVector&, ValueVector&)> ValueVector::getBi
         return VectorArithmeticOperations::Power;
     default:
         throw std::invalid_argument("Invalid or unsupported binary expression.");
+    }
+}
+
+template<class T, class FUNC = std::function<uint8_t(T)>>
+static void fillOperandNullMask(ValueVector& operand) {
+    auto values = (T*)operand.getValues();
+    auto nullMask = operand.getNullMask();
+    if (operand.isFlat()) {
+        nullMask[operand.getCurrPos()] =
+            IsNull::operation(values[operand.owner->getCurrSelectedValuesPos()]);
+    } else {
+        auto selectedValuesPos = operand.getSelectedValuesPos();
+        auto size = operand.getNumSelectedValues();
+        for (uint64_t i = 0; i < size; i++) {
+            nullMask[i] = IsNull::operation(values[selectedValuesPos[i]]);
+        }
+    }
+}
+
+void ValueVector::fillNullMask() {
+    switch (dataType) {
+    case BOOL:
+        fillOperandNullMask<uint8_t>(*this);
+        break;
+    case INT32:
+        fillOperandNullMask<int32_t>(*this);
+        break;
+    case DOUBLE:
+        fillOperandNullMask<double_t>(*this);
+        break;
+    default:
+        throw std::invalid_argument("Invalid or unsupported type for comparison.");
     }
 }
 

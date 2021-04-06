@@ -48,6 +48,51 @@ struct LessThanEquals {
     }
 };
 
+struct IsNull {
+    template<class T>
+    static inline uint8_t operation(const T& value) {
+        throw std::invalid_argument("Unsupported type for IsNull.");
+    }
+};
+
+struct IsNotNull {
+    template<class T>
+    static inline uint8_t operation(const T& value) {
+        throw std::invalid_argument("Unsupported type for IsNotNull.");
+    }
+};
+
+// Specialized operation(s) for IsNull and IsNotNull.
+template<>
+inline uint8_t IsNull::operation(const int32_t& value) {
+    return value == NULL_INT ? TRUE : FALSE;
+};
+
+template<>
+inline uint8_t IsNull::operation(const double_t& value) {
+    return value == NULL_DOUBLE ? TRUE : FALSE;
+};
+
+template<>
+inline uint8_t IsNull::operation(const uint8_t& value) {
+    return value == NULL_BOOL ? TRUE : FALSE;
+};
+
+template<>
+inline uint8_t IsNotNull::operation(const int32_t& value) {
+    return value != NULL_INT ? TRUE : FALSE;
+};
+
+template<>
+inline uint8_t IsNotNull::operation(const double_t& value) {
+    return value != NULL_DOUBLE ? TRUE : FALSE;
+};
+
+template<>
+inline uint8_t IsNotNull::operation(const uint8_t& value) {
+    return value != NULL_BOOL ? TRUE : FALSE;
+};
+
 // Specialized operation(s) for bool (uint8_t).
 template<>
 inline uint8_t GreaterThan::operation(const uint8_t& left, const uint8_t& right) {

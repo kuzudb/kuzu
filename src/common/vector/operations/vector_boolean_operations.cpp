@@ -30,26 +30,24 @@ public:
 private:
     template<class T, class OP>
     static inline void operate(ValueVector& operand, ValueVector& result) {
-        UnaryOperationExecutor::execute<T, uint8_t, OP>(operand, result);
+        UnaryOperationExecutor::executeNonBoolOp<T, uint8_t, OP>(operand, result);
     }
 };
 
 void VectorBooleanOperations::And(ValueVector& left, ValueVector& right, ValueVector& result) {
-    BinaryOperationExecutor::execute<uint8_t, uint8_t, uint8_t, operation::And>(
-        left, right, result);
+    BinaryOperationExecutor::executeBoolOp<operation::And>(left, right, result);
 }
 
 void VectorBooleanOperations::Or(ValueVector& left, ValueVector& right, ValueVector& result) {
-    BinaryOperationExecutor::execute<uint8_t, uint8_t, uint8_t, operation::Or>(left, right, result);
+    BinaryOperationExecutor::executeBoolOp<operation::Or>(left, right, result);
 }
 
 void VectorBooleanOperations::Xor(ValueVector& left, ValueVector& right, ValueVector& result) {
-    BinaryOperationExecutor::execute<uint8_t, uint8_t, uint8_t, operation::Xor>(
-        left, right, result);
+    BinaryOperationExecutor::executeBoolOp<operation::Xor>(left, right, result);
 }
 
 void VectorBooleanOperations::Not(ValueVector& operand, ValueVector& result) {
-    UnaryOperationExecutor::execute<uint8_t, uint8_t, operation::Not>(operand, result);
+    UnaryOperationExecutor::executeBoolOp<operation::Not>(operand, result);
 }
 
 } // namespace common
