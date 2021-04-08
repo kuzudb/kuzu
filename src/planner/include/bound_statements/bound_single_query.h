@@ -14,12 +14,12 @@ class BoundSingleQuery {
 
 public:
     BoundSingleQuery(unique_ptr<QueryGraph> queryGraph,
-        vector<shared_ptr<LogicalExpression>> whereExprsSplitByAND)
-        : queryGraph{move(queryGraph)}, whereExprsSplitByAND{move(whereExprsSplitByAND)} {}
+        vector<shared_ptr<LogicalExpression>> whereExpressionsSplitOnAND)
+        : queryGraph{move(queryGraph)}, whereExpressionsSplitOnAND{whereExpressionsSplitOnAND} {}
 
 public:
     unique_ptr<QueryGraph> queryGraph;
-    vector<shared_ptr<LogicalExpression>> whereExprsSplitByAND;
+    vector<shared_ptr<LogicalExpression>> whereExpressionsSplitOnAND;
 };
 
 } // namespace planner
