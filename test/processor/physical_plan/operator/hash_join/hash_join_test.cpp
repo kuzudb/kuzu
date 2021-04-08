@@ -14,9 +14,8 @@ TEST(HashJoinTests, HashJoinTest1T1) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(0, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(0, 0, 0, 0, move(hashJoinBuild), move(probeOp));
@@ -33,9 +32,8 @@ TEST(HashJoinTests, HashJoinTest1T2) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(0, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(0, 0, 0, 0, move(hashJoinBuild), move(probeOp));
@@ -52,9 +50,8 @@ TEST(HashJoinTests, HashJoinTest1T4) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(0, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(0, 0, 0, 0, move(hashJoinBuild), move(probeOp));
@@ -71,9 +68,8 @@ TEST(HashJoinTests, HashJoinTest1T8) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(0, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(0, 0, 0, 0, move(hashJoinBuild), move(probeOp));
@@ -90,9 +86,8 @@ TEST(HashJoinTests, HashJoinTest2T1) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(1, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(1, 0, 1, 0, move(hashJoinBuild), move(probeOp));
@@ -109,9 +104,8 @@ TEST(HashJoinTests, HashJoinTest2T2) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(1, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(1, 0, 1, 0, move(hashJoinBuild), move(probeOp));
@@ -128,9 +122,8 @@ TEST(HashJoinTests, HashJoinTest2T4) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(1, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(1, 0, 1, 0, move(hashJoinBuild), move(probeOp));
@@ -147,9 +140,8 @@ TEST(HashJoinTests, HashJoinTest2T8) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(1, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(1, 0, 1, 0, move(hashJoinBuild), move(probeOp));
@@ -166,9 +158,8 @@ TEST(HashJoinTests, HashJoinTest3T1) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(2, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(2, 0, 2, 0, move(hashJoinBuild), move(probeOp));
@@ -185,9 +176,8 @@ TEST(HashJoinTests, HashJoinTest3T2) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(2, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(2, 0, 2, 0, move(hashJoinBuild), move(probeOp));
@@ -204,9 +194,8 @@ TEST(HashJoinTests, HashJoinTest3T4) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(2, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(2, 0, 2, 0, move(hashJoinBuild), move(probeOp));
@@ -223,9 +212,8 @@ TEST(HashJoinTests, HashJoinTest3T8) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(2, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(2, 0, 2, 0, move(hashJoinBuild), move(probeOp));
@@ -242,9 +230,8 @@ TEST(HashJoinTests, HashJoinTest4T1) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(1, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(1, 0, 2, 0, move(hashJoinBuild), move(probeOp));
@@ -261,9 +248,8 @@ TEST(HashJoinTests, HashJoinTest4T4) {
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
-    auto sharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(1, 0, move(buildOp));
-    sharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto sharedState = make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = sharedState;
     auto hashJoinProbe =
         make_unique<HashJoinProbe<false>>(1, 0, 2, 0, move(hashJoinBuild), move(probeOp));

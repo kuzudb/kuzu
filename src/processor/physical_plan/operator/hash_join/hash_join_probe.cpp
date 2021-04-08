@@ -128,9 +128,9 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::probeHTDirectory() {
     vectorHashOp(*probeSideKeyVector, *hashedProbeKeyVector);
     auto hashes = (uint64_t*)hashedProbeKeyVector->getValues();
     for (uint64_t i = 0; i < keyCount; i++) {
-        hashes[i] = hashes[i] & sharedState->hashTable->hashBitMask;
+        hashes[i] = hashes[i] & sharedState->hashBitMask;
     }
-    auto directory = (uint8_t**)sharedState->hashTable->htDirectory->blockPtr;
+    auto directory = (uint8_t**)sharedState->htDirectory->blockPtr;
     for (uint64_t i = 0; i < keyCount; i++) {
         auto hash = hashes[i];
         probeState->probedTuples[i] = (uint8_t*)(directory[hash]);
@@ -170,8 +170,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
             probeState->matchedTuplesSize += (nodeId.label == decompressedProbeKeys[i].label &&
                                               nodeId.offset == decompressedProbeKeys[i].offset);
             probeState->probedTuples[i] =
-                *(uint8_t**)(probeState->probedTuples[i] +
-                             sharedState->hashTable->numBytesForFixedTuplePart - sizeof(uint8_t*));
+                *(uint8_t**)(probeState->probedTuples[i] + sharedState->numBytesForFixedTuplePart -
+                             sizeof(uint8_t*));
         }
         probeState->probeKeyPos++;
     }

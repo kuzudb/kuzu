@@ -247,10 +247,10 @@ unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator&
         physicalOperatorInfo.setDataChunkAtPosAsFlat(0);
     }
 
-    auto hashJoinSharedState = make_shared<HashJoinSharedState>();
     auto hashJoinBuild = make_unique<HashJoinBuild>(
         buildSideKeyDataChunkPos, buildSideKeyVectorPos, move(buildSidePrevOperator));
-    hashJoinSharedState->hashTable = hashJoinBuild->initializeHashTable();
+    auto hashJoinSharedState =
+        make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = hashJoinSharedState;
     auto hashJoinProbe = make_unique<HashJoinProbe<true>>(buildSideKeyDataChunkPos,
         buildSideKeyVectorPos, probeSideKeyDataChunkPos, probeSideKeyVectorPos, move(hashJoinBuild),
