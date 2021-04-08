@@ -65,7 +65,7 @@ struct IsNotNull {
 // Specialized operation(s) for IsNull and IsNotNull.
 template<>
 inline uint8_t IsNull::operation(const int32_t& value) {
-    return value == NULL_INT ? TRUE : FALSE;
+    return value == NULL_INT32 ? TRUE : FALSE;
 };
 
 template<>
@@ -80,7 +80,7 @@ inline uint8_t IsNull::operation(const uint8_t& value) {
 
 template<>
 inline uint8_t IsNotNull::operation(const int32_t& value) {
-    return value != NULL_INT ? TRUE : FALSE;
+    return value != NULL_INT32 ? TRUE : FALSE;
 };
 
 template<>

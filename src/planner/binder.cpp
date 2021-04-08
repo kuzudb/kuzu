@@ -120,41 +120,5 @@ void Binder::bindNodeToRel(QueryRel* queryRel, QueryNode* queryNode, bool isSrcN
     isSrcNode ? queryRel->srcNode = queryNode : queryRel->dstNode = queryNode;
 }
 
-// TODO: move this function out of binder
-void mergeQueryGraphs(QueryGraph& mergedQueryGraph, QueryGraph& otherQueryGraph) {
-    for (auto& otherNode : otherQueryGraph.queryNodes) {
-        if (mergedQueryGraph.containsQueryNode(otherNode->name)) {
-            validateQueryNodeWithSameName(
-                *mergedQueryGraph.getQueryNode(otherNode->name), *otherNode);
-        } else {
-            mergedQueryGraph.addQueryNode(move(otherNode));
-        }
-    }
-    for (auto& otherRel : otherQueryGraph.queryRels) {
-        if (mergedQueryGraph.containsQueryRel(otherRel->name)) {
-            throw invalid_argument("Reuse name: " + otherRel->name + " for relationship.");
-        } else {
-            rebindSrcAndDstNode(*otherRel, mergedQueryGraph);
-            mergedQueryGraph.addQueryRel(move(otherRel));
-        }
-    }
-}
-
-void validateQueryNodeWithSameName(QueryNode& queryNodeInGraph, QueryNode& queryNodeToMerge) {
-    if (ANY_LABEL == queryNodeInGraph.label && ANY_LABEL != queryNodeToMerge.label) {
-        queryNodeInGraph.label = queryNodeToMerge.label;
-        return;
-    }
-    if (ANY_LABEL != queryNodeInGraph.label && queryNodeInGraph.label != queryNodeToMerge.label) {
-        throw invalid_argument("Multi-label query nodes are not supported. " +
-                               queryNodeInGraph.name + " is given multiple labels.");
-    }
-}
-
-void rebindSrcAndDstNode(QueryRel& queryRel, const QueryGraph& queryGraph) {
-    queryRel.srcNode = queryGraph.getQueryNode(queryRel.getSrcNodeName());
-    queryRel.dstNode = queryGraph.getQueryNode(queryRel.getDstNodeName());
-}
-
 } // namespace planner
 } // namespace graphflow

@@ -23,7 +23,7 @@ typedef uint64_t node_offset_t;
 const uint8_t FALSE = 0;
 const uint8_t TRUE = 1;
 const uint8_t NULL_BOOL = 2;
-const int32_t NULL_INT = INT32_MIN;
+const int32_t NULL_INT32 = INT32_MIN;
 const double_t NULL_DOUBLE = DBL_MIN;
 const uint64_t NUM_BYTES_PER_NODE_ID = sizeof(node_offset_t) + sizeof(label_t);
 

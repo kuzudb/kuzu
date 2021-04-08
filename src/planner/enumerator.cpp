@@ -45,9 +45,9 @@ void Enumerator::enumerateSingleQueryRel(uint32_t& numEnumeratedQueryRels) {
 void Enumerator::enumerateNextNumQueryRel(uint32_t& numEnumeratedQueryRels) {
     numEnumeratedQueryRels++;
     enumerateExtend(numEnumeratedQueryRels);
-    if (numEnumeratedQueryRels >= 4) {
+    /*if (numEnumeratedQueryRels >= 4) {
         enumerateHashJoin(numEnumeratedQueryRels);
-    }
+    }*/
 }
 
 void Enumerator::enumerateExtend(uint32_t nextNumEnumeratedQueryRels) {

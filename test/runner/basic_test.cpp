@@ -6,5 +6,10 @@ using namespace graphflow::testing;
 
 TEST(BasicTest, BasicScan) {
     TestHelper testHelper;
-    ASSERT_TRUE(testHelper.runTest("test/runner/basic_scan.test"));
+    ASSERT_TRUE(testHelper.runTest("test/runner/queries/nodes.test"));
+}
+
+TEST(BasicTest, BasicExtend) {
+    TestHelper testHelper;
+    ASSERT_TRUE(testHelper.runTest("test/runner/queries/paths.test"));
 }
