@@ -50,6 +50,7 @@ class BufferManager {
 
 public:
     BufferManager(uint64_t maxSize);
+    ~BufferManager() { spdlog::drop("buffer_manager"); }
 
     // The function assumes that the requested page is already pinned.
     const uint8_t* get(FileHandle& fileHandle, uint32_t pageIdx);

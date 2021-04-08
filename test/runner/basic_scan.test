@@ -1,0 +1,8 @@
+# description: Basic scan test
+
+-INPUT dataset/tinysnb/
+-PARALLELISM 1
+
+-NAME SimpleMatchTest
+-QUERY MATCH (a:person)
+---- 7

@@ -1,0 +1,15 @@
+fromLabel:LABEL,from:NODE,toLabel:LABEL,to:NODE,date:INT32
+person,0,person,2,1234567890
+person,0,person,3,1234567890
+person,0,person,5,1234567890
+person,2,person,0,1234567890
+person,2,person,3,1234567892
+person,2,person,5,1234567892
+person,3,person,0,1234567890
+person,3,person,2,1234567892
+person,3,person,5,1234567893
+person,5,person,0,1234567890
+person,5,person,2,1234567892
+person,5,person,3,1234567893
+person,7,person,8,1234567897
+person,7,person,9,1234567897

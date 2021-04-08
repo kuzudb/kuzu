@@ -79,7 +79,7 @@ QueryGraph::getSingleNodeJoiningSubgraph(
             auto tmp = extendSubgraphByOneQueryRel(matchedSubqueryGraph, subgraphAndJoinNodePair);
             nextSubgraphAndJoinNodePairs.insert(begin(tmp), end(tmp));
         }
-        subgraphAndJoinNodePairs = nextSubgraphAndJoinNodePairs;
+        subgraphAndJoinNodePairs = move(nextSubgraphAndJoinNodePairs);
     }
     return subgraphAndJoinNodePairs;
 }

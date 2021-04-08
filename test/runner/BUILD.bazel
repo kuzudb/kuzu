@@ -1,0 +1,30 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_test(
+    name = "basic_test",
+    srcs = [
+        "basic_test.cpp"
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/testing:test_helper",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+    data = [
+        "//dataset",
+        "testfiles",
+    ]
+)
+
+filegroup(
+    name = "testfiles",
+    srcs = [
+        "basic_extend.test",
+        "basic_hash_join.test",
+        "basic_scan.test",
+    ],
+    visibility = ["//visibility:public"],
+)

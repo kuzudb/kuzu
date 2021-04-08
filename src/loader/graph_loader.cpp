@@ -27,15 +27,15 @@ void GraphLoader::loadGraph() {
     Graph graph{};
     auto nodeIDMaps = loadNodes(*metadata, graph, catalog);
     loadRels(*metadata, graph, catalog, move(nodeIDMaps));
-    logger->info("Writing catalog.bin");
+    logger->debug("Writing catalog.bin");
     catalog.saveToFile(outputDirectory);
-    logger->info("Writing graph.bin");
+    logger->debug("Writing graph.bin");
     graph.saveToFile(outputDirectory);
-    logger->info("done.");
+    logger->info("Done GraphLoader.");
 }
 
 unique_ptr<nlohmann::json> GraphLoader::readMetadata() {
-    logger->info("Reading metadata and initilializing `Catalog`.");
+    logger->debug("Reading metadata and initilializing `Catalog`.");
     ifstream jsonFile(inputDirectory + "/metadata.json");
     auto parsedJson = make_unique<nlohmann::json>();
     jsonFile >> *parsedJson;
@@ -46,7 +46,7 @@ void GraphLoader::assignLabels(stringToLabelMap_t& map, const nlohmann::json& fi
     auto label = 0;
     for (auto& descriptor : fileDescriptions) {
         auto labelString = descriptor.at("label").get<string>();
-        auto labelCharArray = new char[labelString.size()];
+        auto labelCharArray = new char[labelString.size() + 1];
         memcpy(labelCharArray, labelString.c_str(), labelString.size());
         labelCharArray[labelString.size()] = 0;
         map.insert({labelCharArray, label++});
@@ -85,7 +85,7 @@ void GraphLoader::setSrcDstNodeLabelsForRelLabels(
 
 unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes(
     const nlohmann::json& metadata, Graph& graph, Catalog& catalog) {
-    logger->info("Starting to load nodes.");
+    logger->debug("Starting to load nodes.");
     vector<string> fnames(catalog.getNodeLabelsCount());
     vector<uint64_t> numBlocksPerLabel(catalog.getNodeLabelsCount());
     vector<vector<uint64_t>> numLinesPerBlock(catalog.getNodeLabelsCount());
@@ -101,7 +101,7 @@ unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes(
     }
     NodesLoader nodesLoader{threadPool, catalog, metadata, outputDirectory};
     nodesLoader.load(fnames, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
-    logger->info("Creating reverse NodeIDMaps.");
+    logger->debug("Creating reverse NodeIDMaps.");
     for (auto& nodeIDMap : *nodeIDMaps) {
         threadPool.execute([&](NodeIDMap* x) { x->createNodeIDToOffsetMap(); }, nodeIDMap.get());
     }
@@ -111,7 +111,7 @@ unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes(
 
 void GraphLoader::loadRels(const nlohmann::json& metadata, Graph& graph, Catalog& catalog,
     unique_ptr<vector<unique_ptr<NodeIDMap>>> nodeIDMaps) {
-    logger->info("Starting to load rels.");
+    logger->debug("Starting to load rels.");
     vector<string> fnames(catalog.getRelLabelsCount());
     vector<uint64_t> numBlocksPerLabel(catalog.getRelLabelsCount());
     inferFilenamesInitPropertyMapAndCountLinesPerBlock(catalog.getRelLabelsCount(),
@@ -136,7 +136,7 @@ void GraphLoader::initPropertyMapAndCalcNumBlocksPerLabel(label_t numLabels,
     vector<string>& filenames, vector<uint64_t>& numPerLabel,
     vector<unordered_map<string, Property>>& propertyMaps, const char tokenSeparator) {
     propertyMaps.resize(numLabels);
-    logger->info("Parsing headers.");
+    logger->debug("Parsing headers.");
     for (label_t label = 0; label < numLabels; label++) {
         logger->debug("path=`{0}`", filenames[label]);
         ifstream f(filenames[label], ios_base::in);
@@ -146,7 +146,7 @@ void GraphLoader::initPropertyMapAndCalcNumBlocksPerLabel(label_t numLabels,
         f.seekg(0, ios_base::end);
         numPerLabel[label] = 1 + (f.tellg() / CSV_READING_BLOCK_SIZE);
     }
-    logger->info("Done.");
+    logger->debug("Done.");
 }
 
 void GraphLoader::parseHeader(
@@ -176,7 +176,7 @@ void GraphLoader::parseHeader(
 void GraphLoader::countLinesPerBlockAndInitNumPerLabel(label_t numLabels,
     vector<vector<uint64_t>>& numLinesPerBlock, vector<uint64_t>& numBlocksPerLabel,
     const char tokenSeparator, vector<string>& fnames, vector<uint64_t>& numPerLabel) {
-    logger->info("Counting number of (nodes/rels) in labels.");
+    logger->debug("Counting number of (nodes/rels) in labels.");
     for (label_t label = 0; label < numLabels; label++) {
         numLinesPerBlock[label].resize(numBlocksPerLabel[label]);
         for (uint64_t blockId = 0; blockId < numBlocksPerLabel[label]; blockId++) {
@@ -193,7 +193,7 @@ void GraphLoader::countLinesPerBlockAndInitNumPerLabel(label_t numLabels,
             numPerLabel[label] += numLinesPerBlock[label][blockId];
         }
     }
-    logger->info("Done.");
+    logger->debug("Done.");
 }
 
 void GraphLoader::fileBlockLinesCounterTask(string fname, char tokenSeparator,

@@ -18,6 +18,8 @@ public:
 
     LogicalOperatorType getLogicalOperatorType() const { return LogicalOperatorType::LOGICAL_SCAN; }
 
+    string getOperatorInformation() const override { return nodeVarName; }
+
 public:
     const string nodeVarName;
     const label_t label;

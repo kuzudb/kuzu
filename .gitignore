@@ -3,3 +3,5 @@
 bazel-*
 .clwb
 .bazelrc
+
+test_temp/

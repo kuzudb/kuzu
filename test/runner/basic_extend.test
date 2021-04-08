@@ -1,0 +1,13 @@
+# description: Basic extend test
+
+-INPUT dataset/tinysnb/
+-OUTPUT test/unittest_temp/
+-PARALLELISM 1
+
+-NAME ExtendTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)
+---- 14
+
+-NAME LongPathExtendTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)
+---- 108
