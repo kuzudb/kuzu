@@ -1,6 +1,7 @@
 #pragma once
 
 #include <thread>
+#include <unordered_set>
 #include <vector>
 
 #include "nlohmann/json.hpp"
@@ -33,33 +34,31 @@ private:
     unique_ptr<nlohmann::json> readMetadata();
 
     void assignLabels(stringToLabelMap_t& map, const nlohmann::json& fileDescriptions);
-    void setCardinalities(Catalog& catalog, const nlohmann::json& metadata);
-    void setSrcDstNodeLabelsForRelLabels(Catalog& catalog, const nlohmann::json& metadata);
+    void setCardinalities(const nlohmann::json& metadata);
+    void setSrcDstNodeLabelsForRelLabels(const nlohmann::json& metadata);
 
-    unique_ptr<vector<unique_ptr<NodeIDMap>>> loadNodes(
-        const nlohmann::json& metadata, Graph& graph, Catalog& catalog);
+    unique_ptr<vector<unique_ptr<NodeIDMap>>> loadNodes(const nlohmann::json& metadata);
+    void loadRels(const nlohmann::json& metadata, vector<unique_ptr<NodeIDMap>>& nodeIDMaps);
 
-    void loadRels(const nlohmann::json& metadata, Graph& graph, Catalog& catalog,
-        unique_ptr<vector<unique_ptr<NodeIDMap>>> nodeIDMaps);
-
-    void inferFilenamesInitPropertyMapAndCountLinesPerBlock(label_t numLabels,
+    void inferFilenamesInitPropertyMapAndCalcNumBlocks(label_t numLabels,
         nlohmann::json filedescriptions, vector<string>& fnames,
         vector<uint64_t>& numBlocksPerLabel, vector<unordered_map<string, Property>>& propertyMaps,
-        const char tokenSeparator);
-
-    void initPropertyMapAndCalcNumBlocksPerLabel(label_t numLabels, vector<string>& fnames,
-        vector<uint64_t>& numPerLabel, vector<unordered_map<string, Property>>& propertyMaps,
         const char tokenSeparator);
 
     void parseHeader(
         const char tokenSeparator, string& header, unordered_map<string, Property>& propertyMap);
 
-    void countLinesPerBlockAndInitNumPerLabel(label_t numLabels,
-        vector<vector<uint64_t>>& numLinesPerBlock, vector<uint64_t>& numBlocksPerLabel,
-        const char tokenSeparator, vector<string>& fnames, vector<uint64_t>& numPerLabel);
+    void countNodesAndInitUnstrPropertyMaps(vector<vector<uint64_t>>& numLinesPerBlock,
+        vector<uint64_t>& numBlocksPerLabel, const char tokenSeparator, vector<string>& fnames);
+
+    void initUnstrPropertyMapForLabel(label_t label,
+        vector<unordered_set<const char*, charArrayHasher, charArrayEqualTo>>& unstrPropertyKeys);
 
     // Concurrent Tasks
-    static void fileBlockLinesCounterTask(string fname, char tokenSeparator,
+
+    static void countLinesAndScanUnstrPropertiesInBlockTask(string fname, char tokenSeparator,
+        const uint32_t numProperties,
+        unordered_set<const char*, charArrayHasher, charArrayEqualTo>* unstrPropertyKeys,
         vector<vector<uint64_t>>* numLinesPerBlock, label_t label, uint32_t blockId,
         shared_ptr<spdlog::logger> logger);
 
@@ -68,6 +67,9 @@ private:
     ThreadPool threadPool;
     const string inputDirectory;
     const string outputDirectory;
+
+    Graph graph;
+    Catalog catalog;
 };
 
 } // namespace loader

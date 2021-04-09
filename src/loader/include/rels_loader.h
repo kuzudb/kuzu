@@ -26,19 +26,15 @@ private:
 
     void loadRelsForLabel(RelLabelDescription& relLabelMetadata);
 
-    // constructs AdjRels and PropertyColumns
-
-    void constructAdjRelsAndCountRelsInAdjLists(RelLabelDescription& relLabelMetadata,
+    void constructAdjColumnsAndCountRelsInAdjLists(RelLabelDescription& relLabelMetadata,
         AdjAndPropertyListsLoaderHelper& adjAndPropertyListsLoaderHelper);
-
-    // constructs AdjLists Headers, Lists Metadata, AdjLists and PropertyLists
 
     void constructAdjLists(RelLabelDescription& description,
         AdjAndPropertyListsLoaderHelper& adjAndPropertyListsLoaderHelper);
 
     // Concurrent Tasks
 
-    static void populateAdjRelsAndCountRelsInAdjListsTask(RelLabelDescription* description,
+    static void populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescription* description,
         uint64_t blockId, const char tokenSeparator,
         AdjAndPropertyListsLoaderHelper* adjAndPropertyListsLoaderHelper,
         AdjAndPropertyColumnsLoaderHelper* adjAndPropertyColumnsLoaderHelper,

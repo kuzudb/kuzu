@@ -42,7 +42,7 @@ private:
     unique_ptr<char*[]> offsetToNodeIDMap;
 };
 
-vector<DataType> createPropertyDataTypes(const unordered_map<string, Property>& propertyMap);
+vector<DataType> createPropertyDataTypesArray(const unordered_map<string, Property>& propertyMap);
 
 //! Holds information about a rel label that is needed to construct adjRels and adjLists
 //! indexes, property columns, and property lists.

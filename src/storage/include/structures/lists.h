@@ -17,7 +17,7 @@ public:
         uint32_t maxElementsToRead);
 
 protected:
-    BaseLists(const string& fname, size_t elementSize, shared_ptr<AdjListHeaders> headers,
+    BaseLists(const string& fname, size_t elementSize, shared_ptr<ListHeaders> headers,
         BufferManager& bufferManager)
         : BaseColumnOrLists{fname, elementSize, bufferManager}, metadata{fname}, headers(headers){};
 
@@ -33,7 +33,7 @@ public:
 
 protected:
     ListsMetadata metadata;
-    shared_ptr<AdjListHeaders> headers;
+    shared_ptr<ListHeaders> headers;
 };
 
 // Lists<T> is the implementation of BaseLists for Lists of a specific datatype T.
@@ -41,7 +41,7 @@ template<typename T>
 class Lists : public BaseLists {
 
 public:
-    Lists(const string& fname, shared_ptr<AdjListHeaders> headers, BufferManager& bufferManager)
+    Lists(const string& fname, shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
         : BaseLists{fname, sizeof(T), headers, bufferManager} {};
 
     DataType getDataType() override;
@@ -55,7 +55,7 @@ public:
     Lists(const string& fname, BufferManager& bufferManager,
         NodeIDCompressionScheme nodeIDCompressionScheme)
         : BaseLists{fname, nodeIDCompressionScheme.getNumTotalBytes(),
-              make_shared<AdjListHeaders>(fname), bufferManager},
+              make_shared<ListHeaders>(fname), bufferManager},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
     void readFromLargeList(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
@@ -64,7 +64,7 @@ public:
 
     NodeIDCompressionScheme& getNodeIDCompressionScheme() { return nodeIDCompressionScheme; }
 
-    shared_ptr<AdjListHeaders> getHeaders() { return headers; };
+    shared_ptr<ListHeaders> getHeaders() { return headers; };
 
     DataType getDataType() override { return NODE; }
 

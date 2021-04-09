@@ -65,7 +65,18 @@ private:
     const uint8_t numBytesPerElement;
 };
 
-//! InMemPages for storing string overflow of PropertyColumn or PropertyLists.
+//! InMemPages for storing Nodes' unstructured PropertyLists.
+class InMemUnstrPropertyPages : public InMemPages {
+
+public:
+    InMemUnstrPropertyPages(const string& fname, uint64_t numPages)
+        : InMemPages{fname, numPages} {};
+
+    void set(const PageCursor& cursor, uint32_t propertyKey, uint8_t dataTypeIdentifier,
+        uint32_t valLen, const uint8_t* val);
+};
+
+//!  InMemPages for storing string overflow of PropertyColumn or PropertyLists.
 class InMemStringOverflowPages : public InMemPages {
 
 public:

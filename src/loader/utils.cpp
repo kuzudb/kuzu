@@ -27,7 +27,7 @@ node_offset_t NodeIDMap::get(const char* nodeID) {
     return nodeIDToOffsetMap.at(nodeID);
 }
 
-vector<DataType> createPropertyDataTypes(const unordered_map<string, Property>& propertyMap) {
+vector<DataType> createPropertyDataTypesArray(const unordered_map<string, Property>& propertyMap) {
     vector<DataType> propertyDataTypes{propertyMap.size()};
     for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
         propertyDataTypes[property->second.idx] = property->second.dataType;

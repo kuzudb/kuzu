@@ -35,7 +35,7 @@ BufferManager::BufferManager(uint64_t maxSize)
     : logger{spdlog::stdout_logger_mt("buffer_manager")},
       bufferCache{maxSize / PAGE_SIZE}, clockHand{0}, numFrames{(uint32_t)(maxSize / PAGE_SIZE)} {
     logger->info("Initializing Buffer Manager.");
-    logger->debug("BufferPool Size {}B, #4KB-pages {}.", maxSize, maxSize / PAGE_SIZE);
+    logger->info("BufferPool Size {}B, #4KB-pages {}.", maxSize, maxSize / PAGE_SIZE);
     logger->info("Done Initializing Buffer Manager.");
 }
 

@@ -53,10 +53,16 @@ public:
         return stringToRelLabelMap.at(label);
     }
 
+    inline const unordered_map<string, Property>& getUnstrPropertyMapForNodeLabel(
+        const label_t& nodeLabel) const {
+        return nodeUnstrPropertyMaps[nodeLabel];
+    }
+
     inline const unordered_map<string, Property>& getPropertyMapForNodeLabel(
         label_t nodeLabel) const {
         return nodePropertyMaps[nodeLabel];
     }
+
     inline const unordered_map<string, Property>& getPropertyMapForRelLabel(
         label_t relLabel) const {
         return relPropertyMaps[relLabel];
@@ -121,10 +127,9 @@ private:
 
 private:
     shared_ptr<spdlog::logger> logger;
-    stringToLabelMap_t stringToNodeLabelMap;
-    stringToLabelMap_t stringToRelLabelMap;
-    vector<unordered_map<string, Property>> nodePropertyMaps;
-    vector<unordered_map<string, Property>> relPropertyMaps;
+    stringToLabelMap_t stringToNodeLabelMap, stringToRelLabelMap;
+    vector<unordered_map<string, Property>> nodePropertyMaps, relPropertyMaps;
+    vector<unordered_map<string, Property>> nodeUnstrPropertyMaps;
     vector<vector<label_t>> relLabelToSrcNodeLabels, relLabelToDstNodeLabels;
     vector<vector<label_t>> srcNodeLabelToRelLabel, dstNodeLabelToRelLabel;
     vector<Cardinality> relLabelToCardinalityMap;

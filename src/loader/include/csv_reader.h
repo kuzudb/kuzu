@@ -29,7 +29,7 @@ public:
     bool skipTokenIfNull();
     void skipToken();
 
-    int32_t getInteger();
+    int32_t getInt32();
     double_t getDouble();
     uint8_t getBoolean();
     char* getString();
@@ -41,8 +41,6 @@ private:
     char* line;
     size_t lineCapacity, lineLen;
     int64_t linePtrStart, linePtrEnd;
-    char* trueVal = (char*)"true";
-    char* falseVal = (char*)"false";
     size_t readingBlockIdx;
     size_t readingBlockEndIdx;
 };

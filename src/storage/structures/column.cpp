@@ -80,7 +80,7 @@ void Column<gf_string_t>::readStringsFromOverflowPages(
     PageCursor cursor;
     for (auto i = 0u; i < size; i++) {
         if (((gf_string_t*)values)[i].len > 12) {
-            ((gf_string_t*)values)[i].setOverflowPtrToPageCursor(cursor);
+            ((gf_string_t*)values)[i].copyOverflowPtrToPageCursor(cursor);
             auto frame = bufferManager.pin(overflowPagesFileHandle, cursor.idx);
             memcpy(values + overflowPtr, frame + cursor.offset, ((gf_string_t*)values)[i].len);
             ((gf_string_t*)values)[i].overflowPtr =

@@ -22,6 +22,7 @@ typedef uint64_t node_offset_t;
 
 const uint8_t FALSE = 0;
 const uint8_t TRUE = 1;
+
 const uint8_t NULL_BOOL = 2;
 const int32_t NULL_INT32 = INT32_MIN;
 const double_t NULL_DOUBLE = DBL_MIN;
@@ -48,16 +49,8 @@ struct gf_string_t {
         uint64_t overflowPtr;
     };
 
-    inline void setOverflowPtrFromPageCursor(const PageCursor& cursor) {
-        memcpy(&overflowPtr, &cursor.idx, 6);
-        memcpy(((uint8_t*)&overflowPtr) + 6, &cursor.offset, 2);
-    }
-
-    inline void setOverflowPtrToPageCursor(PageCursor& cursor) {
-        cursor.idx = 0;
-        memcpy(&cursor.idx, &overflowPtr, 6);
-        memcpy(&cursor.offset, ((uint8_t*)&overflowPtr) + 6, 2);
-    }
+    void copyOverflowPtrFromPageCursor(const PageCursor& cursor);
+    void copyOverflowPtrToPageCursor(PageCursor& cursor);
 
     inline bool isShort() const { return len <= SHORT_STR_LENGTH; }
 
@@ -78,10 +71,26 @@ struct overflow_value_t {
     uint8_t* value;
 };
 
-// Data type
-enum DataType { REL, NODE, LABEL, BOOL, INT32, INT64, DOUBLE, STRING };
+enum DataType : uint8_t {
+    REL = 0,
+    NODE = 1,
+    LABEL = 2,
+    BOOL = 3,
+    INT32 = 4,
+    INT64 = 5,
+    DOUBLE = 6,
+    STRING = 7,
+    UNKNOWN = 8
+};
+
 const string DataTypeNames[] = {
-    "REL", "NODE", "LABEL", "BOOL", "INT32", "INT64", "DOUBLE", "STRING"};
+    "REL", "NODE", "LABEL", "BOOL", "INT32", "INT64", "DOUBLE", "STRING", "UNKNOWN"};
+
+int32_t convertToInt32(char* data);
+
+double_t convertToDouble(char* data);
+
+uint8_t convertToBoolean(char* data);
 
 class Property {
 

@@ -53,17 +53,17 @@ void ListsMetadata::readFromFile(const string& fname) {
     }
 }
 
-AdjListHeaders::AdjListHeaders(string path) : AdjListHeaders() {
+ListHeaders::ListHeaders(string path) : ListHeaders() {
     readFromFile(path);
     logger->trace("AdjListHeaders: #Headers {}", headers.size());
 };
 
 template<typename S>
-void AdjListHeaders::serialize(S& s) {
+void ListHeaders::serialize(S& s) {
     s.container(headers, UINT32_MAX, [](S& s, uint32_t& v) { s(v); });
 }
 
-void AdjListHeaders::saveToFile(const string& fname) {
+void ListHeaders::saveToFile(const string& fname) {
     auto path = fname + ".headers";
     fstream f{path, f.binary | f.trunc | f.out};
     if (f.fail()) {
@@ -75,7 +75,7 @@ void AdjListHeaders::saveToFile(const string& fname) {
     f.close();
 }
 
-void AdjListHeaders::readFromFile(const string& fname) {
+void ListHeaders::readFromFile(const string& fname) {
     auto path = fname + ".headers";
     logger->trace("AdjListHeaders: Path {}", path);
     fstream f{path, f.binary | f.in};
