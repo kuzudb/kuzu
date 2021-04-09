@@ -7,10 +7,10 @@ namespace graphflow {
 namespace processor {
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
-class PhysicalScan : public PhysicalOperator {
+class ScanNodeID : public PhysicalOperator {
 
 public:
-    PhysicalScan(shared_ptr<MorselDesc>& morsel) : PhysicalOperator(SCAN), morsel{morsel} {
+    ScanNodeID(shared_ptr<MorselDesc>& morsel) : PhysicalOperator(SCAN), morsel{morsel} {
         dataChunks = make_shared<DataChunks>();
         nodeIDVector = make_shared<NodeIDSequenceVector>();
         outDataChunk =
@@ -35,7 +35,7 @@ public:
     bool hasNextMorsel() override {
         unique_lock<mutex> lock{morsel->mtx};
         if (morsel->currNodeOffset >= morsel->numNodes) {
-            // no more tuples to scan.
+            // no more tuples to scan_node_id.
             currentMorselStartOffset = 0u;
             currentMorselSize = 0u;
             return false;
@@ -51,7 +51,7 @@ public:
     shared_ptr<NodeIDSequenceVector>& getNodeVector() { return nodeIDVector; }
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<PhysicalScan<IS_OUT_DATACHUNK_FILTERED>>(morsel);
+        return make_unique<ScanNodeID<IS_OUT_DATACHUNK_FILTERED>>(morsel);
     }
 
 protected:

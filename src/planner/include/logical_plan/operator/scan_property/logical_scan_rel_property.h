@@ -12,29 +12,23 @@ using namespace std;
 namespace graphflow {
 namespace planner {
 
-class LogicalRelPropertyReader : public LogicalOperator {
+class LogicalScanRelProperty : public LogicalOperator {
 
 public:
-    LogicalRelPropertyReader(const QueryRel& queryRel, Direction direction,
+    LogicalScanRelProperty(const QueryRel& queryRel, Direction direction,
         const string& propertyName, shared_ptr<LogicalOperator> prevOperator)
         : LogicalOperator{prevOperator}, direction{direction}, propertyName{propertyName} {
-        if (FWD == direction) {
-            boundNodeVarName = queryRel.getSrcNodeName();
-            boundNodeVarLabel = queryRel.srcNode->label;
-            nbrNodeVarName = queryRel.getDstNodeName();
-            nbrNodeVarLabel = queryRel.dstNode->label;
-        } else {
-            boundNodeVarName = queryRel.getDstNodeName();
-            boundNodeVarLabel = queryRel.dstNode->label;
-            nbrNodeVarName = queryRel.getSrcNodeName();
-            nbrNodeVarLabel = queryRel.srcNode->label;
-        }
+        auto isFwd = FWD == direction;
+        boundNodeVarName = isFwd ? queryRel.getSrcNodeName() : queryRel.getDstNodeName();
+        boundNodeVarLabel = isFwd ? queryRel.srcNode->label : queryRel.dstNode->label;
+        nbrNodeVarName = isFwd ? queryRel.getDstNodeName() : queryRel.getSrcNodeName();
+        nbrNodeVarLabel = isFwd ? queryRel.dstNode->label : queryRel.srcNode->label;
         relName = queryRel.name;
         relLabel = queryRel.label;
     }
 
     LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_REL_PROPERTY_READER;
+        return LogicalOperatorType::LOGICAL_SCAN_REL_PROPERTY;
     }
 
     string getOperatorInformation() const override { return relName + "." + propertyName; }

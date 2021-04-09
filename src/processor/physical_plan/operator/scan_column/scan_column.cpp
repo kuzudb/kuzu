@@ -1,11 +1,11 @@
-#include "src/processor/include/physical_plan/operator/column_reader/column_reader.h"
+#include "src/processor/include/physical_plan/operator/scan_column/scan_column.h"
 
 namespace graphflow {
 namespace processor {
 
-ColumnReader::ColumnReader(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+ScanColumn::ScanColumn(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
     unique_ptr<PhysicalOperator> prevOperator)
-    : PhysicalOperator{move(prevOperator), COLUMN_READER}, dataChunkPos{dataChunkPos},
+    : PhysicalOperator{move(prevOperator), SCAN_COLUMN}, dataChunkPos{dataChunkPos},
       valueVectorPos{valueVectorPos}, column{column} {
     dataChunks = this->prevOperator->getDataChunks();
     inDataChunk = dataChunks->getDataChunk(dataChunkPos);
@@ -13,7 +13,7 @@ ColumnReader::ColumnReader(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseC
     handle = make_unique<ColumnOrListsHandle>();
 }
 
-void ColumnReader::getNextTuples() {
+void ScanColumn::getNextTuples() {
     prevOperator->getNextTuples();
     if (inDataChunk->numSelectedValues > 0) {
         column->reclaim(handle);

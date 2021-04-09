@@ -1,20 +1,20 @@
 #pragma once
 
-#include "src/processor/include/physical_plan/operator/list_reader/list_reader.h"
+#include "src/processor/include/physical_plan/operator/read_list/read_list.h"
 
 namespace graphflow {
 namespace processor {
 
-class RelPropertyListReader : public ListReader {
+class ReadRelPropertyList : public ReadList {
 
 public:
-    RelPropertyListReader(uint64_t inDataChunkPos, uint64_t inValueVectorPos,
+    ReadRelPropertyList(uint64_t inDataChunkPos, uint64_t inValueVectorPos,
         uint64_t outDataChunkPos, BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<RelPropertyListReader>(
+        return make_unique<ReadRelPropertyList>(
             inDataChunkPos, inValueVectorPos, outDataChunkPos, lists, prevOperator->clone());
     }
 

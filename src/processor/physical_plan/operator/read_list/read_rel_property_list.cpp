@@ -1,4 +1,4 @@
-#include "src/processor/include/physical_plan/operator/list_reader/rel_property_list_reader.h"
+#include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
 
 #include "src/common/include/vector/operations/vector_comparison_operations.h"
 
@@ -7,17 +7,17 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-RelPropertyListReader::RelPropertyListReader(uint64_t inDataChunkPos, uint64_t inValueVectorPos,
+ReadRelPropertyList::ReadRelPropertyList(uint64_t inDataChunkPos, uint64_t inValueVectorPos,
     uint64_t outDataChunkPos, BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator)
-    : ListReader{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)},
-      outDataChunkPos{outDataChunkPos} {
+    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)},
+      outDataChunkPos(outDataChunkPos) {
     outValueVector = make_shared<ValueVector>(lists->getDataType());
     outDataChunk = dataChunks->getDataChunk(outDataChunkPos);
     handle->setListSyncState(dataChunks->getListSyncState(outDataChunkPos));
     outDataChunk->append(outValueVector);
 }
 
-void RelPropertyListReader::getNextTuples() {
+void ReadRelPropertyList::getNextTuples() {
     prevOperator->getNextTuples();
     if (inDataChunk->numSelectedValues > 0) {
         readValuesFromList();

@@ -1,11 +1,11 @@
-#include "src/processor/include/physical_plan/operator/list_reader/list_reader.h"
+#include "src/processor/include/physical_plan/operator/read_list/read_list.h"
 
 namespace graphflow {
 namespace processor {
 
-ListReader::ListReader(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
-    BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator)
-    : PhysicalOperator{move(prevOperator), LIST_READER}, inDataChunkPos{dataChunkPos},
+ReadList::ReadList(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos, BaseLists* lists,
+    unique_ptr<PhysicalOperator> prevOperator)
+    : PhysicalOperator{move(prevOperator), READ_LIST}, inDataChunkPos{dataChunkPos},
       inValueVectorPos{valueVectorPos}, lists{lists} {
     dataChunks = this->prevOperator->getDataChunks();
     inDataChunk = dataChunks->getDataChunk(dataChunkPos);
@@ -13,7 +13,7 @@ ListReader::ListReader(const uint64_t& dataChunkPos, const uint64_t& valueVector
     handle = make_unique<ColumnOrListsHandle>();
 }
 
-void ListReader::readValuesFromList() {
+void ReadList::readValuesFromList() {
     lists->reclaim(handle);
     nodeID_t nodeID;
     inNodeIDVector->readNodeOffset(inDataChunk->getCurrSelectedValuesPos(), nodeID);
