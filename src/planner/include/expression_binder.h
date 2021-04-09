@@ -20,35 +20,35 @@ public:
     explicit ExpressionBinder(const QueryGraph& queryGraph, const Catalog& catalog)
         : graphInScope{queryGraph}, catalog{catalog} {}
 
-    unique_ptr<LogicalExpression> bindExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<LogicalExpression> bindExpression(const ParsedExpression& parsedExpression);
 
 private:
-    unique_ptr<LogicalExpression> bindBinaryBoolConnectionExpression(
+    shared_ptr<LogicalExpression> bindBinaryBoolConnectionExpression(
         const ParsedExpression& parsedExpression);
 
-    unique_ptr<LogicalExpression> bindUnaryBoolConnectionExpression(
+    shared_ptr<LogicalExpression> bindUnaryBoolConnectionExpression(
         const ParsedExpression& parsedExpression);
 
-    unique_ptr<LogicalExpression> bindComparisonExpression(
+    shared_ptr<LogicalExpression> bindComparisonExpression(
         const ParsedExpression& parsedExpression);
 
-    unique_ptr<LogicalExpression> bindBinaryArithmeticExpression(
+    shared_ptr<LogicalExpression> bindBinaryArithmeticExpression(
         const ParsedExpression& parsedExpression);
 
-    unique_ptr<LogicalExpression> bindUnaryArithmeticExpression(
+    shared_ptr<LogicalExpression> bindUnaryArithmeticExpression(
         const ParsedExpression& parsedExpression);
 
-    unique_ptr<LogicalExpression> bindStringOperatorExpression(
+    shared_ptr<LogicalExpression> bindStringOperatorExpression(
         const ParsedExpression& parsedExpression);
 
-    unique_ptr<LogicalExpression> bindNullComparisonOperatorExpression(
+    shared_ptr<LogicalExpression> bindNullComparisonOperatorExpression(
         const ParsedExpression& parsedExpression);
 
-    unique_ptr<LogicalExpression> bindPropertyExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<LogicalExpression> bindPropertyExpression(const ParsedExpression& parsedExpression);
 
-    unique_ptr<LogicalExpression> bindLiteralExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<LogicalExpression> bindLiteralExpression(const ParsedExpression& parsedExpression);
 
-    unique_ptr<LogicalExpression> bindVariableExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<LogicalExpression> bindVariableExpression(const ParsedExpression& parsedExpression);
 
 private:
     const QueryGraph& graphInScope;

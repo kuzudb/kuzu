@@ -2,6 +2,7 @@
 
 #include "src/parser/include/single_query.h"
 #include "src/planner/include/bound_statements/bound_match_statement.h"
+#include "src/planner/include/bound_statements/bound_single_query.h"
 #include "src/planner/include/expression_binder.h"
 #include "src/storage/include/catalog.h"
 
@@ -16,7 +17,7 @@ class Binder {
 public:
     explicit Binder(const Catalog& catalog) : catalog{catalog} {}
 
-    vector<unique_ptr<BoundMatchStatement>> bindSingleQuery(const SingleQuery& singleQuery);
+    unique_ptr<BoundSingleQuery> bindSingleQuery(const SingleQuery& singleQuery);
 
 private:
     unique_ptr<BoundMatchStatement> bindStatement(const MatchStatement& matchStatement);

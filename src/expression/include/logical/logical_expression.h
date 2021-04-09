@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_set>
+
 #include "src/common/include/expression_type.h"
 #include "src/common/include/literal.h"
 #include "src/common/include/types.h"
@@ -15,12 +17,12 @@ class LogicalExpression {
 public:
     // creates a non-leaf logical binary expression.
     LogicalExpression(ExpressionType expressionType, DataType dataType,
-        unique_ptr<LogicalExpression> left, unique_ptr<LogicalExpression> right,
+        shared_ptr<LogicalExpression> left, shared_ptr<LogicalExpression> right,
         string rawExpression = string());
 
     // creates a non-leaf logical unary expression.
     LogicalExpression(ExpressionType expressionType, DataType dataType,
-        unique_ptr<LogicalExpression> child, string rawExpression = string());
+        shared_ptr<LogicalExpression> child, string rawExpression = string());
 
     // creates a leaf variable expression.
     LogicalExpression(ExpressionType expressionType, DataType dataType, const string& variableName,
@@ -42,16 +44,20 @@ public:
 
     inline const string& getRawExpression() const { return rawExpression; }
 
+    unordered_set<string> getIncludedVariables() const;
+
+    unordered_set<string> getIncludedProperties() const;
+
 protected:
     LogicalExpression(ExpressionType expressionType, DataType dataType)
         : expressionType{expressionType}, dataType{dataType} {}
 
-private:
+public:
     // variable name for leaf variable expressions.
     string variableName;
     // value used by leaf literal expressions.
     Literal literalValue;
-    vector<unique_ptr<LogicalExpression>> childrenExpr;
+    vector<shared_ptr<LogicalExpression>> childrenExpr;
     ExpressionType expressionType;
     DataType dataType;
     string rawExpression;

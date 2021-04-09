@@ -22,5 +22,6 @@ string Literal::toString() const {
         throw std::invalid_argument("Unsupported data type " + DataTypeNames[type]);
     }
 }
+
 } // namespace common
 } // namespace graphflow
