@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/common/include/vector/value_vector.h"
+#include "src/common/include/vector/node_vector.h"
 
 namespace graphflow {
 namespace common {
