@@ -29,5 +29,18 @@ uint32_t NodeIDCompressionScheme::getNumBytesForEncoding(
     return numBytes;
 }
 
+uint64_t NodeIDCompressionScheme::getNodeOffsetNullValue() {
+    switch (numBytesForOffset) {
+    case 2:
+        return UINT16_MAX;
+    case 4:
+        return UINT32_MAX;
+    case 8:
+        return UINT64_MAX;
+    default:
+        throw std::invalid_argument("Invalid compression scheme in node ID vector.");
+    }
+}
+
 } // namespace common
 } // namespace graphflow

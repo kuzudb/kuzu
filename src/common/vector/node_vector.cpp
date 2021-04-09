@@ -1,5 +1,7 @@
 #include "src/common/include/vector/node_vector.h"
 
+#include <cassert>
+
 namespace graphflow {
 namespace common {
 
@@ -15,6 +17,20 @@ void NodeIDVector::readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) {
     nodeID.label =
         nodeIDCompressionScheme.getNumBytesForLabel() == 0 ? commonLabel : *(label_t*)(readOffset);
     nodeID.offset = *(node_offset_t*)(readOffset + nodeIDCompressionScheme.getNumBytesForLabel());
+}
+
+void NodeIDVector::discardNulls() {
+    assert(owner->currPos == -1);
+    node_offset_t nullOffset = nodeIDCompressionScheme.getNodeOffsetNullValue();
+    nodeID_t nodeID;
+    auto selectedPos = 0u;
+    for (auto j = 0u; j < owner->numSelectedValues; j++) {
+        readNodeOffset(owner->selectedValuesPos[j], nodeID);
+        if (nodeID.offset != nullOffset) {
+            owner->selectedValuesPos[selectedPos++] = j;
+        }
+    }
+    owner->numSelectedValues = selectedPos;
 }
 
 } // namespace common

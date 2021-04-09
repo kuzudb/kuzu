@@ -13,5 +13,10 @@ AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos,
     outValueVector->setDataChunkOwner(inDataChunk);
 }
 
+void AdjColumnExtend::getNextTuples() {
+    ScanColumn::getNextTuples();
+    static_pointer_cast<NodeIDVector>(outValueVector)->discardNulls();
+}
+
 } // namespace processor
 } // namespace graphflow
