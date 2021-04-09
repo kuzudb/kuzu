@@ -9,16 +9,16 @@ using namespace std;
 namespace graphflow {
 namespace planner {
 
-class LogicalNodePropertyReader : public LogicalOperator {
+class LogicalScanNodeProperty : public LogicalOperator {
 
 public:
-    LogicalNodePropertyReader(const string& nodeVarName, label_t nodeLabel,
+    LogicalScanNodeProperty(const string& nodeVarName, label_t nodeLabel,
         const string& propertyName, shared_ptr<LogicalOperator> prevOperator)
         : LogicalOperator{prevOperator}, nodeVarName{nodeVarName}, nodeLabel{nodeLabel},
           propertyName{propertyName} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
-        return LogicalOperatorType::LOGICAL_NODE_PROPERTY_READER;
+        return LogicalOperatorType::LOGICAL_SCAN_NODE_PROPERTY;
     }
 
     string getOperatorInformation() const override { return nodeVarName + "." + propertyName; }

@@ -6,9 +6,9 @@
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
-#include "src/planner/include/logical_plan/operator/property_reader/logical_node_property_reader.h"
-#include "src/planner/include/logical_plan/operator/property_reader/logical_rel_property_reader.h"
-#include "src/planner/include/logical_plan/operator/scan/logical_scan.h"
+#include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
+#include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
+#include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
 #include "src/planner/include/subgraph_plan_table.h"
 
 namespace graphflow {
@@ -38,12 +38,12 @@ private:
 
     void appendFilterAndNecessaryScans(shared_ptr<LogicalExpression> expr, LogicalPlan& plan);
 
-    void appendPropertyReader(const string& varAndPropertyName, LogicalPlan& plan);
+    void appendScanProperty(const string& varAndPropertyName, LogicalPlan& plan);
 
-    void appendNodePropertyReader(
+    void appendScanNodeProperty(
         const string& nodeName, const string& propertyName, LogicalPlan& plan);
 
-    void appendRelPropertyReader(
+    void appendScanRelProperty(
         const string& relName, const string& propertyName, LogicalPlan& plan);
 
 private:

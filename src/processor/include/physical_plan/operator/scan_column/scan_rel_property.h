@@ -1,20 +1,20 @@
 #pragma once
 
-#include "src/processor/include/physical_plan/operator/column_reader/column_reader.h"
+#include "src/processor/include/physical_plan/operator/scan_column/scan_column.h"
 
 namespace graphflow {
 namespace processor {
 
-class RelPropertyColumnReader : public ColumnReader {
+class ScanRelProperty : public ScanColumn {
 
 public:
-    RelPropertyColumnReader(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+    ScanRelProperty(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
         unique_ptr<PhysicalOperator> prevOperator);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<RelPropertyColumnReader>(
+        return make_unique<ScanRelProperty>(
             dataChunkPos, valueVectorPos, column, prevOperator->clone());
     }
 };

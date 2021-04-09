@@ -18,10 +18,10 @@ enum PhysicalOperatorType : uint8_t {
     SCAN,
     FILTER,
     FLATTEN,
+    READ_LIST,
+    SCAN_COLUMN,
     HASH_JOIN_BUILD,
     HASH_JOIN_PROBE,
-    COLUMN_READER,
-    LIST_READER,
     RESULT_COLLECTOR,
 };
 

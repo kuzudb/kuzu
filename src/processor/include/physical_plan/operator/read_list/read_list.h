@@ -2,32 +2,32 @@
 
 #include "src/common/include/vector/node_vector.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
-#include "src/processor/include/task_system/morsel.h"
-#include "src/storage/include/structures/column.h"
-
-using namespace graphflow::storage;
 
 namespace graphflow {
 namespace processor {
 
-class ColumnReader : public PhysicalOperator {
+class ReadList : public PhysicalOperator {
 
 public:
-    ColumnReader(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+    ReadList(const uint64_t& inDataChunkPos, const uint64_t& inValueVectorPos, BaseLists* lists,
         unique_ptr<PhysicalOperator> prevOperator);
 
-    ~ColumnReader() { column->reclaim(handle); }
-
-    void getNextTuples() override;
+    ~ReadList() { lists->reclaim(handle); }
 
 protected:
-    uint64_t dataChunkPos;
-    uint64_t valueVectorPos;
+    void readValuesFromList();
+
+protected:
+    static constexpr uint32_t MAX_TO_READ = 512;
+
+    uint64_t inDataChunkPos;
+    uint64_t inValueVectorPos;
     shared_ptr<DataChunk> inDataChunk;
     shared_ptr<NodeIDVector> inNodeIDVector;
+    shared_ptr<DataChunk> outDataChunk;
     shared_ptr<ValueVector> outValueVector;
 
-    BaseColumn* column;
+    BaseLists* lists;
     unique_ptr<ColumnOrListsHandle> handle;
 };
 

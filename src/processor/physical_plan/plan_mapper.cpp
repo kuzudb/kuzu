@@ -3,21 +3,22 @@
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
-#include "src/planner/include/logical_plan/operator/property_reader/logical_node_property_reader.h"
-#include "src/planner/include/logical_plan/operator/property_reader/logical_rel_property_reader.h"
-#include "src/planner/include/logical_plan/operator/scan/logical_scan.h"
+#include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
+#include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
+#include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
-#include "src/processor/include/physical_plan/operator/column_reader/adj_column_extend.h"
-#include "src/processor/include/physical_plan/operator/column_reader/node_property_column_reader.h"
-#include "src/processor/include/physical_plan/operator/column_reader/rel_property_column_reader.h"
 #include "src/processor/include/physical_plan/operator/filter/filter.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
-#include "src/processor/include/physical_plan/operator/list_reader/extend/adj_list_flatten_and_extend.h"
-#include "src/processor/include/physical_plan/operator/list_reader/extend/adj_list_only_extend.h"
-#include "src/processor/include/physical_plan/operator/list_reader/rel_property_list_reader.h"
-#include "src/processor/include/physical_plan/operator/scan/physical_scan.h"
+#include "src/processor/include/physical_plan/operator/read_list/extend/extend.h"
+#include "src/processor/include/physical_plan/operator/read_list/extend/flatten_and_extend.h"
+#include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
+#include "src/processor/include/physical_plan/operator/scan_column/adj_column_extend.h"
+#include "src/processor/include/physical_plan/operator/scan_column/scan_node_property.h"
+#include "src/processor/include/physical_plan/operator/scan_column/scan_rel_property.h"
+#include "src/processor/include/physical_plan/operator/scan_node_id/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
+#include "src/processor/include/physical_plan/operator/tuple/physical_operator_info.h"
 
 using namespace graphflow::planner;
 
@@ -28,8 +29,9 @@ static unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
     const LogicalOperator& logicalOperator, const Graph& graph,
     PhysicalOperatorsInfo& physicalOperatorInfo);
 
-static unique_ptr<PhysicalOperator> mapLogicalScanToPhysical(const LogicalOperator& logicalOperator,
-    const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo);
+static unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo);
 
 static unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
     const LogicalOperator& logicalOperator, const Graph& graph,
@@ -63,8 +65,8 @@ unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator&
     const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
     auto operatorType = logicalOperator.getLogicalOperatorType();
     switch (operatorType) {
-    case LOGICAL_SCAN:
-        return mapLogicalScanToPhysical(logicalOperator, graph, physicalOperatorInfo);
+    case LOGICAL_NODE_ID_SCAN:
+        return mapLogicalScanNodeIDToPhysical(logicalOperator, graph, physicalOperatorInfo);
     case LOGICAL_EXTEND:
         return mapLogicalExtendToPhysical(logicalOperator, graph, physicalOperatorInfo);
     case LOGICAL_FILTER:
@@ -73,9 +75,9 @@ unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator&
         return mapLogicalFilterToPhysical(logicalOperator, graph, physicalOperatorInfo);
     case LOGICAL_HASH_JOIN:
         return mapLogicalHashJoinToPhysical(logicalOperator, graph, physicalOperatorInfo);
-    case LOGICAL_NODE_PROPERTY_READER:
+    case LOGICAL_SCAN_NODE_PROPERTY:
         return mapLogicalNodePropertyReaderToPhysical(logicalOperator, graph, physicalOperatorInfo);
-    case LOGICAL_REL_PROPERTY_READER:
+    case LOGICAL_SCAN_REL_PROPERTY:
         return mapLogicalRelPropertyReaderToPhysical(logicalOperator, graph, physicalOperatorInfo);
     default:
         // should never happen.
@@ -83,12 +85,12 @@ unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator&
     }
 }
 
-unique_ptr<PhysicalOperator> mapLogicalScanToPhysical(const LogicalOperator& logicalOperator,
+unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(const LogicalOperator& logicalOperator,
     const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
-    auto& scan = (const LogicalScan&)logicalOperator;
+    auto& scan = (const LogicalScanNodeID&)logicalOperator;
     auto morsel = make_shared<MorselDesc>(graph.getNumNodes(scan.label));
     physicalOperatorInfo.appendAsNewDataChunk(scan.nodeVarName);
-    return make_unique<PhysicalScan<true>>(morsel);
+    return make_unique<ScanNodeID<true>>(morsel);
 }
 
 unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& logicalOperator,
@@ -108,12 +110,12 @@ unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& l
     } else {
         physicalOperatorInfo.appendAsNewDataChunk(extend.nbrNodeVarName);
         if (physicalOperatorInfo.dataChunkIsFlatVector[dataChunkPos]) {
-            return make_unique<AdjListOnlyExtend>(dataChunkPos, valueVectorPos,
+            return make_unique<Extend>(dataChunkPos, valueVectorPos,
                 relsStore.getAdjLists(extend.direction, extend.boundNodeVarLabel, extend.relLabel),
                 move(prevOperator));
         } else {
             physicalOperatorInfo.setDataChunkAtPosAsFlat(dataChunkPos);
-            return make_unique<AdjListFlattenAndExtend<true>>(dataChunkPos, valueVectorPos,
+            return make_unique<FlattenAndExtend<true>>(dataChunkPos, valueVectorPos,
                 relsStore.getAdjLists(extend.direction, extend.boundNodeVarLabel, extend.relLabel),
                 move(prevOperator));
         }
@@ -135,45 +137,45 @@ unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(const LogicalOperator& l
 unique_ptr<PhysicalOperator> mapLogicalNodePropertyReaderToPhysical(
     const LogicalOperator& logicalOperator, const Graph& graph,
     PhysicalOperatorsInfo& physicalOperatorInfo) {
-    auto& propertyReader = (const LogicalNodePropertyReader&)logicalOperator;
+    auto& scanProperty = (const LogicalScanNodeProperty&)logicalOperator;
     auto prevOperator =
         mapLogicalOperatorToPhysical(*logicalOperator.prevOperator, graph, physicalOperatorInfo);
-    auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(propertyReader.nodeVarName);
-    auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(propertyReader.nodeVarName);
+    auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.nodeVarName);
+    auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(scanProperty.nodeVarName);
     auto& catalog = graph.getCatalog();
-    auto label = propertyReader.nodeLabel;
-    auto property = catalog.getNodePropertyKeyFromString(label, propertyReader.propertyName);
+    auto property =
+        catalog.getNodePropertyKeyFromString(scanProperty.nodeLabel, scanProperty.propertyName);
     auto& nodesStore = graph.getNodesStore();
     physicalOperatorInfo.appendAsNewValueVector(
-        propertyReader.nodeVarName + "." + propertyReader.propertyName, dataChunkPos);
-    return make_unique<NodePropertyColumnReader>(dataChunkPos, valueVectorPos,
-        nodesStore.getNodePropertyColumn(label, property), move(prevOperator));
+        scanProperty.nodeVarName + "." + scanProperty.propertyName, dataChunkPos);
+    return make_unique<ScanNodeProperty>(dataChunkPos, valueVectorPos,
+        nodesStore.getNodePropertyColumn(scanProperty.nodeLabel, property), move(prevOperator));
 }
 
 unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
     const LogicalOperator& logicalOperator, const Graph& graph,
     PhysicalOperatorsInfo& physicalOperatorInfo) {
-    auto& propertyReader = (const LogicalRelPropertyReader&)logicalOperator;
+    auto& scanProperty = (const LogicalScanRelProperty&)logicalOperator;
     auto prevOperator =
         mapLogicalOperatorToPhysical(*logicalOperator.prevOperator, graph, physicalOperatorInfo);
-    auto inDataChunkPos = physicalOperatorInfo.getDataChunkPos(propertyReader.boundNodeVarName);
-    auto inValueVectorPos = physicalOperatorInfo.getValueVectorPos(propertyReader.boundNodeVarName);
-    auto outDataChunkPos = physicalOperatorInfo.getDataChunkPos(propertyReader.nbrNodeVarName);
+    auto inDataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.boundNodeVarName);
+    auto inValueVectorPos = physicalOperatorInfo.getValueVectorPos(scanProperty.boundNodeVarName);
+    auto outDataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.nbrNodeVarName);
     auto& catalog = graph.getCatalog();
-    auto nodeLabel = propertyReader.boundNodeVarLabel;
-    auto label = propertyReader.relLabel;
-    auto property = catalog.getRelPropertyKeyFromString(label, propertyReader.propertyName);
+    auto property =
+        catalog.getRelPropertyKeyFromString(scanProperty.relLabel, scanProperty.propertyName);
     auto& relsStore = graph.getRelsStore();
     physicalOperatorInfo.appendAsNewValueVector(
-        propertyReader.relName + "." + propertyReader.propertyName, outDataChunkPos);
-    if (catalog.isSingleCaridinalityInDir(label, propertyReader.direction)) {
-        auto column = relsStore.getRelPropertyColumn(label, nodeLabel, property);
-        return make_unique<RelPropertyColumnReader>(
+        scanProperty.relName + "." + scanProperty.propertyName, outDataChunkPos);
+    if (catalog.isSingleCaridinalityInDir(scanProperty.relLabel, scanProperty.direction)) {
+        auto column = relsStore.getRelPropertyColumn(
+            scanProperty.relLabel, scanProperty.boundNodeVarLabel, property);
+        return make_unique<ScanRelProperty>(
             inDataChunkPos, inValueVectorPos, column, move(prevOperator));
     } else {
-        auto lists =
-            relsStore.getRelPropertyLists(propertyReader.direction, nodeLabel, label, property);
-        return make_unique<RelPropertyListReader>(
+        auto lists = relsStore.getRelPropertyLists(scanProperty.direction,
+            scanProperty.boundNodeVarLabel, scanProperty.relLabel, property);
+        return make_unique<ReadRelPropertyList>(
             inDataChunkPos, inValueVectorPos, outDataChunkPos, lists, move(prevOperator));
     }
 }

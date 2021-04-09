@@ -5,7 +5,7 @@
 -PARALLELISM 1
 
 -NAME OneHopKnowsTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)
+-QUERY MATCH (a:person)-[e:knows]->(b:person)
 ---- 14
 
 -NAME TwoHopKnowsTest

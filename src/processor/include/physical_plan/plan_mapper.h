@@ -1,7 +1,6 @@
 #pragma once
 
 #include "src/planner/include/logical_plan/logical_plan.h"
-#include "src/processor/include/physical_plan/operator/tuple/physical_operator_info.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
 
 using namespace graphflow::planner;

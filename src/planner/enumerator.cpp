@@ -132,35 +132,35 @@ void Enumerator::appendFilterAndNecessaryScans(
         if (plan.schema->containsOperator(dependentPropertyName)) {
             continue;
         }
-        appendPropertyReader(dependentPropertyName, plan);
+        appendScanProperty(dependentPropertyName, plan);
     }
     auto filter = make_shared<LogicalFilter>(expr, plan.lastOperator);
     plan.lastOperator = filter;
 }
 
-void Enumerator::appendPropertyReader(const string& varAndPropertyName, LogicalPlan& plan) {
+void Enumerator::appendScanProperty(const string& varAndPropertyName, LogicalPlan& plan) {
     auto varName = varAndPropertyName.substr(0, varAndPropertyName.find('.'));
     auto propertyName = varAndPropertyName.substr(varAndPropertyName.find('.') + 1);
-    queryGraph.containsQueryNode(varName) ? appendNodePropertyReader(varName, propertyName, plan) :
-                                            appendRelPropertyReader(varName, propertyName, plan);
+    queryGraph.containsQueryNode(varName) ? appendScanNodeProperty(varName, propertyName, plan) :
+                                            appendScanRelProperty(varName, propertyName, plan);
 }
 
-void Enumerator::appendRelPropertyReader(
+void Enumerator::appendScanRelProperty(
     const string& relName, const string& propertyName, LogicalPlan& plan) {
     auto extend = (LogicalExtend*)plan.schema->getOperator(relName);
-    auto relPropertyReader = make_shared<LogicalRelPropertyReader>(
+    auto scanProperty = make_shared<LogicalScanRelProperty>(
         *queryGraph.getQueryRel(relName), extend->direction, propertyName, plan.lastOperator);
-    plan.schema->addOperator(relName + "." + propertyName, relPropertyReader.get());
-    plan.lastOperator = relPropertyReader;
+    plan.schema->addOperator(relName + "." + propertyName, scanProperty.get());
+    plan.lastOperator = scanProperty;
 }
 
-void Enumerator::appendNodePropertyReader(
+void Enumerator::appendScanNodeProperty(
     const string& nodeName, const string& propertyName, LogicalPlan& plan) {
     auto queryNode = queryGraph.getQueryNode(nodeName);
-    auto nodePropertyReader = make_shared<LogicalNodePropertyReader>(
+    auto scanProperty = make_shared<LogicalScanNodeProperty>(
         queryNode->name, queryNode->label, propertyName, plan.lastOperator);
-    plan.schema->addOperator(nodeName + "." + propertyName, nodePropertyReader.get());
-    plan.lastOperator = nodePropertyReader;
+    plan.schema->addOperator(nodeName + "." + propertyName, scanProperty.get());
+    plan.lastOperator = scanProperty;
 }
 
 unique_ptr<LogicalPlan> appendLogicalHashJoin(
@@ -192,9 +192,9 @@ unique_ptr<LogicalPlan> appendLogicalExtend(
 
 unique_ptr<LogicalPlan> appendLogicalScan(const QueryNode& queryNode) {
     if (ANY_LABEL == queryNode.label) {
-        throw invalid_argument("Match any label is not yet supported in LogicalScan.");
+        throw invalid_argument("Match any label is not yet supported in LogicalScanNodeID.");
     }
-    auto scan = make_shared<LogicalScan>(queryNode.name, queryNode.label);
+    auto scan = make_shared<LogicalScanNodeID>(queryNode.name, queryNode.label);
     auto schema = make_unique<Schema>();
     schema->addOperator(queryNode.name, scan.get());
     return make_unique<LogicalPlan>(scan, move(schema));

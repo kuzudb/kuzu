@@ -10,13 +10,15 @@ using namespace std;
 namespace graphflow {
 namespace planner {
 
-class LogicalScan : public LogicalOperator {
+class LogicalScanNodeID : public LogicalOperator {
 
 public:
-    LogicalScan(const string& variableName, label_t label)
+    LogicalScanNodeID(const string& variableName, label_t label)
         : nodeVarName{variableName}, label{label} {}
 
-    LogicalOperatorType getLogicalOperatorType() const { return LogicalOperatorType::LOGICAL_SCAN; }
+    LogicalOperatorType getLogicalOperatorType() const {
+        return LogicalOperatorType::LOGICAL_NODE_ID_SCAN;
+    }
 
     string getOperatorInformation() const override { return nodeVarName; }
 

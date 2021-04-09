@@ -1,9 +1,9 @@
-#include "src/processor/include/physical_plan/operator/list_reader/extend/adj_list_only_extend.h"
+#include "src/processor/include/physical_plan/operator/read_list/extend/extend.h"
 
 namespace graphflow {
 namespace processor {
 
-void AdjListOnlyExtend::getNextTuples() {
+void Extend::getNextTuples() {
     if (handle->hasMoreToRead()) {
         readValuesFromList();
         return;

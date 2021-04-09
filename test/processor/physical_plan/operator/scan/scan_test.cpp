@@ -1,12 +1,12 @@
 #include "gtest/gtest.h"
 
-#include "src/processor/include/physical_plan/operator/scan/physical_scan.h"
+#include "src/processor/include/physical_plan/operator/scan_node_id/scan_node_id.h"
 
 using namespace graphflow::processor;
 
 TEST(ScanTests, ScanTest) {
     auto morsel = make_shared<MorselDesc>(1025013 /*numNodes*/);
-    auto scan = make_unique<PhysicalScan<true>>(morsel);
+    auto scan = make_unique<ScanNodeID<true>>(morsel);
     auto dataChunks = scan->getDataChunks();
     auto dataChunk = dataChunks->getDataChunk(0);
     auto nodeVector =
