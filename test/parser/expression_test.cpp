@@ -1,11 +1,11 @@
 #include "gtest/gtest.h"
 
-#include "src/parser/include/parser.h"
 #include "src/parser/include/parsed_expression.h"
+#include "src/parser/include/parser.h"
 
 using namespace graphflow::parser;
 
-class ExpressionTest : public :: testing::Test {
+class ExpressionTest : public ::testing::Test {
 
 public:
     unique_ptr<MatchStatement> makeBaseMatchStatement() {
@@ -43,7 +43,6 @@ public:
         expr->children.push_back(move(bExpr));
         return expr;
     }
-
 };
 
 TEST_F(ExpressionTest, VariablePropertyAndBooleanConnectionTest) {
@@ -91,11 +90,14 @@ TEST_F(ExpressionTest, StringOperatorAndMultiBooleanConnectionTest) {
     auto aIsStudent = makeAIsStudentExpression();
     auto bIsMale = makeBIsMaleExpression();
     auto aName = makeANameExpression();
-    auto xiyang = make_unique<ParsedExpression>(ExpressionType::LITERAL_STRING, "\"Xiyang\"", string());
-    auto aNameContainsXiyang = make_unique<ParsedExpression>(ExpressionType::CONTAINS, string(), string());
+    auto xiyang =
+        make_unique<ParsedExpression>(ExpressionType::LITERAL_STRING, "\"Xiyang\"", string());
+    auto aNameContainsXiyang =
+        make_unique<ParsedExpression>(ExpressionType::CONTAINS, string(), string());
     aNameContainsXiyang->children.push_back(move(aName));
     aNameContainsXiyang->children.push_back(move(xiyang));
-    auto aIsStudentAndBIsMale = make_unique<ParsedExpression>(ExpressionType::AND, string(), string());
+    auto aIsStudentAndBIsMale =
+        make_unique<ParsedExpression>(ExpressionType::AND, string(), string());
     aIsStudentAndBIsMale->children.push_back(move(aIsStudent));
     aIsStudentAndBIsMale->children.push_back(move(bIsMale));
     auto expectedExpr = make_unique<ParsedExpression>(ExpressionType::OR, string(), string());
@@ -115,8 +117,10 @@ TEST_F(ExpressionTest, ArithmeticAndComparisonTest) {
     auto a = make_unique<ParsedExpression>(ExpressionType::VARIABLE, "a", string());
     auto two = make_unique<ParsedExpression>(ExpressionType::LITERAL_INT, "2", string());
     auto pointOne = make_unique<ParsedExpression>(ExpressionType::LITERAL_DOUBLE, "0.1", string());
-    auto multiExpr = make_unique<ParsedExpression>(ExpressionType::MULTIPLY, string(), string(), move(a), move(pointOne));
-    auto arithmeticExpr = make_unique<ParsedExpression>(ExpressionType::ADD, string(), string(), move(two), move(multiExpr));
+    auto multiExpr = make_unique<ParsedExpression>(
+        ExpressionType::MULTIPLY, string(), string(), move(a), move(pointOne));
+    auto arithmeticExpr = make_unique<ParsedExpression>(
+        ExpressionType::ADD, string(), string(), move(two), move(multiExpr));
     auto aAge = makeAAgeExpression();
     auto expectedExpr = make_unique<ParsedExpression>(ExpressionType::EQUALS, string(), string());
     expectedExpr->children.push_back(move(arithmeticExpr));
@@ -135,10 +139,13 @@ TEST_F(ExpressionTest, ArithmeticExpressionWithParenthesizeTest) {
     auto a = make_unique<ParsedExpression>(ExpressionType::VARIABLE, "a", string());
     auto two = make_unique<ParsedExpression>(ExpressionType::LITERAL_INT, "2", string());
     auto pointOne = make_unique<ParsedExpression>(ExpressionType::LITERAL_DOUBLE, "0.1", string());
-    auto addExpr = make_unique<ParsedExpression>(ExpressionType::SUBTRACT, string(), string(), move(two), move(a));
-    auto arithmeticExpr = make_unique<ParsedExpression>(ExpressionType::MODULO, string(), string(), move(addExpr), move(pointOne));
+    auto addExpr = make_unique<ParsedExpression>(
+        ExpressionType::SUBTRACT, string(), string(), move(two), move(a));
+    auto arithmeticExpr = make_unique<ParsedExpression>(
+        ExpressionType::MODULO, string(), string(), move(addExpr), move(pointOne));
     auto aAge = makeAAgeExpression();
-    auto expectedExpr = make_unique<ParsedExpression>(ExpressionType::GREATER_THAN, string(), string());
+    auto expectedExpr =
+        make_unique<ParsedExpression>(ExpressionType::GREATER_THAN, string(), string());
     expectedExpr->children.push_back(move(arithmeticExpr));
     expectedExpr->children.push_back(move(aAge));
     expectedMatch->whereClause = move(expectedExpr);
@@ -155,7 +162,8 @@ TEST_F(ExpressionTest, FunctionMultiParamsTest) {
     auto aExpr = make_unique<ParsedExpression>(ExpressionType::VARIABLE, "a", string());
     auto bExpr = make_unique<ParsedExpression>(ExpressionType::VARIABLE, "b", string());
     auto two = make_unique<ParsedExpression>(ExpressionType::LITERAL_INT, "2", string());
-    auto bPowerTwo = make_unique<ParsedExpression>(ExpressionType::POWER, string(), string(), move(bExpr), move(two));
+    auto bPowerTwo = make_unique<ParsedExpression>(
+        ExpressionType::POWER, string(), string(), move(bExpr), move(two));
     auto expectedExpr = make_unique<ParsedExpression>(ExpressionType::FUNCTION, "MIN", string());
     expectedExpr->children.push_back(move(aExpr));
     expectedExpr->children.push_back(move(bPowerTwo));

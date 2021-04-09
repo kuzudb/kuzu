@@ -5,7 +5,7 @@
 using namespace graphflow::parser;
 using namespace graphflow::common;
 
-class GraphPatternTest : public :: testing::Test {
+class GraphPatternTest : public ::testing::Test {
 
 public:
     unique_ptr<NodePattern> makeNodePattern(string name, string label) {
@@ -18,8 +18,8 @@ public:
         return rel;
     }
 
-    unique_ptr<PatternElementChain> makePatternElementChain(unique_ptr<RelPattern> rel,
-            unique_ptr<NodePattern> node) {
+    unique_ptr<PatternElementChain> makePatternElementChain(
+        unique_ptr<RelPattern> rel, unique_ptr<NodePattern> node) {
         return make_unique<PatternElementChain>(move(rel), move(node));
     }
 
@@ -27,7 +27,6 @@ public:
         auto patternElement = make_unique<PatternElement>(move(nodePattern));
         return patternElement;
     }
-
 };
 
 TEST_F(GraphPatternTest, EmptyMatchTest) {
@@ -90,7 +89,8 @@ TEST_F(GraphPatternTest, MATCHSingleElementSingleEdgeNoTypeTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge = makeRelPattern("e1", string(), RIGHT);
-    auto expectedPatternElementChain = makePatternElementChain(move(expectedEdge), move(expectedNodeB));
+    auto expectedPatternElementChain =
+        makePatternElementChain(move(expectedEdge), move(expectedNodeB));
     auto expectedPatternElement = makePatternElement(move(expectedNodeA));
     expectedPatternElement->patternElementChains.push_back(move(expectedPatternElementChain));
     vector<unique_ptr<PatternElement>> expectedPatternElements;
@@ -108,7 +108,8 @@ TEST_F(GraphPatternTest, MATCHSingleElementSingleEdgeSingleTypeTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge = makeRelPattern("e1", "knows", RIGHT);
-    auto expectedPatternElementChain = makePatternElementChain(move(expectedEdge), move(expectedNodeB));
+    auto expectedPatternElementChain =
+        makePatternElementChain(move(expectedEdge), move(expectedNodeB));
     auto expectedPatternElement = makePatternElement(move(expectedNodeA));
     expectedPatternElement->patternElementChains.push_back(move(expectedPatternElementChain));
     vector<unique_ptr<PatternElement>> expectedPatternElements;
@@ -126,7 +127,8 @@ TEST_F(GraphPatternTest, MATCHSingleElementAnonymousEdgeMultiTypesTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge = makeRelPattern(string(), "knows", RIGHT);
-    auto expectedPatternElementChain = makePatternElementChain(move(expectedEdge), move(expectedNodeB));
+    auto expectedPatternElementChain =
+        makePatternElementChain(move(expectedEdge), move(expectedNodeB));
     auto expectedPatternElement = makePatternElement(move(expectedNodeA));
     expectedPatternElement->patternElementChains.push_back(move(expectedPatternElementChain));
     vector<unique_ptr<PatternElement>> expectedPatternElements;
@@ -144,10 +146,12 @@ TEST_F(GraphPatternTest, MATCHSingleElementMultiEdgesTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge1 = makeRelPattern(string(), "knows", RIGHT);
-    auto expectedPatternElementChain1 = makePatternElementChain(move(expectedEdge1), move(expectedNodeB));
+    auto expectedPatternElementChain1 =
+        makePatternElementChain(move(expectedEdge1), move(expectedNodeB));
     auto expectedNodeC = makeNodePattern("c", "Student");
     auto expectedEdge2 = makeRelPattern("e2", "likes", LEFT);
-    auto expectedPatternElementChain2 = makePatternElementChain(move(expectedEdge2), move(expectedNodeC));
+    auto expectedPatternElementChain2 =
+        makePatternElementChain(move(expectedEdge2), move(expectedNodeC));
     auto expectedPatternElement = makePatternElement(move(expectedNodeA));
     expectedPatternElement->patternElementChains.push_back(move(expectedPatternElementChain1));
     expectedPatternElement->patternElementChains.push_back(move(expectedPatternElementChain2));
@@ -166,14 +170,16 @@ TEST_F(GraphPatternTest, MATCHMultiElementsTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge1 = makeRelPattern(string(), "knows", RIGHT);
-    auto expectedPatternElementChain1 = makePatternElementChain(move(expectedEdge1), move(expectedNodeB));
+    auto expectedPatternElementChain1 =
+        makePatternElementChain(move(expectedEdge1), move(expectedNodeB));
     auto expectedPatternElement1 = makePatternElement(move(expectedNodeA));
     expectedPatternElement1->patternElementChains.push_back(move(expectedPatternElementChain1));
 
     auto expectedNodeBDup = makeNodePattern("b", string());
     auto expectedNodeC = makeNodePattern("c", "Student");
     auto expectedEdge2 = makeRelPattern("e2", "likes", LEFT);
-    auto expectedPatternElementChain2 = makePatternElementChain(move(expectedEdge2), move(expectedNodeC));
+    auto expectedPatternElementChain2 =
+        makePatternElementChain(move(expectedEdge2), move(expectedNodeC));
     auto expectedPatternElement2 = makePatternElement(move(expectedNodeBDup));
     expectedPatternElement2->patternElementChains.push_back(move(expectedPatternElementChain2));
 
@@ -193,7 +199,8 @@ TEST_F(GraphPatternTest, MultiMatchTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge1 = makeRelPattern(string(), "knows", RIGHT);
-    auto expectedPatternElementChain1 = makePatternElementChain(move(expectedEdge1), move(expectedNodeB));
+    auto expectedPatternElementChain1 =
+        makePatternElementChain(move(expectedEdge1), move(expectedNodeB));
     auto expectedPatternElement1 = makePatternElement(move(expectedNodeA));
     expectedPatternElement1->patternElementChains.push_back(move(expectedPatternElementChain1));
     vector<unique_ptr<PatternElement>> expectedPatternElements1;
@@ -203,7 +210,8 @@ TEST_F(GraphPatternTest, MultiMatchTest) {
     auto expectedNodeBDup = makeNodePattern("b", string());
     auto expectedNodeC = makeNodePattern("c", "Student");
     auto expectedEdge2 = makeRelPattern("e2", "likes", LEFT);
-    auto expectedPatternElementChain2 = makePatternElementChain(move(expectedEdge2), move(expectedNodeC));
+    auto expectedPatternElementChain2 =
+        makePatternElementChain(move(expectedEdge2), move(expectedNodeC));
     auto expectedPatternElement2 = makePatternElement(move(expectedNodeBDup));
     expectedPatternElement2->patternElementChains.push_back(move(expectedPatternElementChain2));
     vector<unique_ptr<PatternElement>> expectedPatternElements2;
