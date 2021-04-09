@@ -3,6 +3,10 @@
 -INPUT dataset/tinysnb/
 -PARALLELISM 1
 
--NAME SimpleMatchTest
+-NAME PersonNodesTest
 -QUERY MATCH (a:person)
 ---- 7
+
+-NAME OrganizationNodesTest
+-QUERY MATCH (a:organisation)
+---- 3

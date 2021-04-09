@@ -12,7 +12,7 @@ void AdjListOnlyExtend::getNextTuples() {
     if (inDataChunk->size > 0) {
         readValuesFromList();
     } else {
-        outDataChunk->size = 0;
+        outDataChunk->size = outDataChunk->numSelectedValues = 0;
     }
 }
 

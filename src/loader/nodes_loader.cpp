@@ -96,7 +96,7 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<DataType>& propertyData
     while (reader.hasNextToken()) {
         switch (propertyDataTypes[propertyIdx]) {
         case INT32: {
-            auto intVal = reader.skipTokenIfNull() ? NULL_INT : reader.getInteger();
+            auto intVal = reader.skipTokenIfNull() ? NULL_INT32 : reader.getInteger();
             memcpy(buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(INT32)), &intVal,
                 getDataTypeSize(INT32));
             break;
