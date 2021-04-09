@@ -79,8 +79,8 @@ private:
     shared_ptr<DataChunks> probeSideNonKeyDataChunks;
 
     vector<BuildSideVectorInfo> buildSideVectorInfos;
-    unique_ptr<ValueVector> decompressedProbeKeyVector;
-    unique_ptr<ValueVector> hashedProbeKeyVector;
+    shared_ptr<ValueVector> decompressedProbeKeyVector;
+    shared_ptr<ValueVector> hashedProbeKeyVector;
     unique_ptr<ProbeState> probeState;
     shared_ptr<DataChunk> outKeyDataChunk;
     vector<unique_ptr<overflow_value_t[]>> buildSideVectorPtrs;

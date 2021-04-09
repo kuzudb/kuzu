@@ -10,18 +10,17 @@ AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos,
     outNodeIDVector->setIsSequence(inNodeIDVector->getIsSequence());
     outValueVector = static_pointer_cast<ValueVector>(outNodeIDVector);
     inDataChunk->append(outValueVector);
-    outValueVector->setDataChunkOwner(inDataChunk);
 }
 
 void AdjColumnExtend::getNextTuples() {
     bool hasAtLeastOneNonNullValue;
     do {
-        inDataChunk->numSelectedValues = prevInDataChunkNumSelectedValues;
+        inDataChunk->state->numSelectedValues = prevInDataChunkNumSelectedValues;
         ScanColumn::getNextTuples();
-        prevInDataChunkNumSelectedValues = inDataChunk->numSelectedValues;
+        prevInDataChunkNumSelectedValues = inDataChunk->state->numSelectedValues;
         hasAtLeastOneNonNullValue =
             static_pointer_cast<NodeIDVector>(outValueVector)->discardNulls();
-    } while (inDataChunk->size > 0 && !hasAtLeastOneNonNullValue);
+    } while (inDataChunk->state->size > 0 && !hasAtLeastOneNonNullValue);
 }
 
 } // namespace processor

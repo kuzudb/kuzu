@@ -16,31 +16,32 @@ public:
     void getNextTuples() override {
         if (handle->hasMoreToRead()) {
             readValuesFromList();
-            outDataChunk->numSelectedValues = outDataChunk->size;
+            outDataChunk->state->numSelectedValues = outDataChunk->state->size;
             if constexpr (IS_OUT_DATACHUNK_FILTERED) {
                 initializeSelector();
             }
             return;
         }
         while (true) {
-            if (inDataChunk->numSelectedValues == 0ul ||
-                inDataChunk->numSelectedValues == inDataChunk->currPos + 1ul) {
+            if (inDataChunk->state->numSelectedValues == 0ul ||
+                inDataChunk->state->numSelectedValues == inDataChunk->state->currPos + 1ul) {
                 do {
-                    inDataChunk->currPos = -1;
+                    inDataChunk->state->currPos = -1;
                     prevOperator->getNextTuples();
-                } while (inDataChunk->size > 0 && inDataChunk->numSelectedValues == 0);
-                if (inDataChunk->size == 0) {
-                    outDataChunk->numSelectedValues = outDataChunk->size = 0;
+                } while (
+                    inDataChunk->state->size > 0 && inDataChunk->state->numSelectedValues == 0);
+                if (inDataChunk->state->size == 0) {
+                    outDataChunk->state->numSelectedValues = outDataChunk->state->size = 0;
                     return;
                 }
             }
             do {
-                inDataChunk->currPos++;
+                inDataChunk->state->currPos++;
                 readValuesFromList();
-            } while (outDataChunk->size == 0 &&
-                     inDataChunk->numSelectedValues > inDataChunk->currPos + 1ul);
-            if (outDataChunk->size > 0) {
-                outDataChunk->numSelectedValues = outDataChunk->size;
+            } while (outDataChunk->state->size == 0 &&
+                     inDataChunk->state->numSelectedValues > inDataChunk->state->currPos + 1ul);
+            if (outDataChunk->state->size > 0) {
+                outDataChunk->state->numSelectedValues = outDataChunk->state->size;
                 if constexpr (IS_OUT_DATACHUNK_FILTERED) {
                     initializeSelector();
                 }
@@ -50,8 +51,8 @@ public:
     }
 
     void initializeSelector() {
-        auto selector = outDataChunk->selectedValuesPos.get();
-        for (auto i = 0u; i < outDataChunk->size; i++) {
+        auto selector = outDataChunk->state->selectedValuesPos.get();
+        for (auto i = 0u; i < outDataChunk->state->size; i++) {
             selector[i] = i;
         }
     }

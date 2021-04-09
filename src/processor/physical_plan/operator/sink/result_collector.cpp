@@ -5,11 +5,13 @@ namespace processor {
 
 void ResultCollector::getNextTuples() {
     prevOperator->getNextTuples();
-    queryResult->numTuples += prevOperator->getDataChunks()->getNumTuples();
+    auto resultDataChunks = prevOperator->getDataChunks();
+    queryResult->numTuples += resultDataChunks->getNumTuples() * resultDataChunks->multiplicity;
     if constexpr (ENABLE_DEBUG) {
         dataChunksIterator->reset();
         while (dataChunksIterator->hasNextTuple()) {
             Tuple tuple(dataChunksIterator->dataChunksTypes);
+            tuple.multiplicity = resultDataChunks->multiplicity;
             dataChunksIterator->getNextTuple(tuple);
             queryResult->tuples.push_back(move(tuple));
         }

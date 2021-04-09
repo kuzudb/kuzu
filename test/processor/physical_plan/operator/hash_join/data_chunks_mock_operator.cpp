@@ -3,16 +3,16 @@
 void ScanMockOp::getNextTuples() {
     lock_guard lock(morsel.mtx);
     if (morsel.currNodeOffset < morsel.numNodes) {
-        dataChunks->getDataChunk(1)->currPos = morsel.currNodeOffset;
+        dataChunks->getDataChunkState(1)->currPos = morsel.currNodeOffset;
         morsel.currNodeOffset += 1;
         return;
     }
-    dataChunks->getDataChunk(0)->size = 0;
-    dataChunks->getDataChunk(1)->size = 0;
-    dataChunks->getDataChunk(2)->size = 0;
-    dataChunks->getDataChunk(0)->numSelectedValues = 0;
-    dataChunks->getDataChunk(1)->numSelectedValues = 0;
-    dataChunks->getDataChunk(2)->numSelectedValues = 0;
+    dataChunks->getDataChunkState(0)->size = 0;
+    dataChunks->getDataChunkState(1)->size = 0;
+    dataChunks->getDataChunkState(2)->size = 0;
+    dataChunks->getDataChunkState(0)->numSelectedValues = 0;
+    dataChunks->getDataChunkState(1)->numSelectedValues = 0;
+    dataChunks->getDataChunkState(2)->numSelectedValues = 0;
 }
 
 void ScanMockOp::generateDataChunks() {
@@ -37,27 +37,21 @@ void ScanMockOp::generateDataChunks() {
         vectorC2->setValue(i, (bool)((i / 2) == 1));
     }
     dataChunkA->append(vectorA1);
-    vectorA1->setDataChunkOwner(dataChunkA);
     dataChunkA->append(vectorA2);
-    vectorA2->setDataChunkOwner(dataChunkA);
     dataChunkB->append(vectorB1);
-    vectorB1->setDataChunkOwner(dataChunkB);
     dataChunkB->append(vectorB2);
-    vectorB2->setDataChunkOwner(dataChunkB);
     dataChunkC->append(vectorC1);
-    vectorC1->setDataChunkOwner(dataChunkC);
     dataChunkC->append(vectorC2);
-    vectorC2->setDataChunkOwner(dataChunkC);
 
-    dataChunkA->size = 10;
-    dataChunkB->size = 10;
-    dataChunkC->size = 10;
-    dataChunkA->numSelectedValues = 10;
-    dataChunkB->numSelectedValues = 10;
-    dataChunkC->numSelectedValues = 10;
-    dataChunkA->currPos = 0;
-    dataChunkB->currPos = 0;
-    dataChunkC->currPos = -1;
+    dataChunkA->state->size = 10;
+    dataChunkB->state->size = 10;
+    dataChunkC->state->size = 10;
+    dataChunkA->state->numSelectedValues = 10;
+    dataChunkB->state->numSelectedValues = 10;
+    dataChunkC->state->numSelectedValues = 10;
+    dataChunkA->state->currPos = 0;
+    dataChunkB->state->currPos = 0;
+    dataChunkC->state->currPos = -1;
     dataChunks->append(dataChunkA);
     dataChunks->append(dataChunkB);
     dataChunks->append(dataChunkC);
@@ -66,16 +60,16 @@ void ScanMockOp::generateDataChunks() {
 void ScanMockOpWithSelector::getNextTuples() {
     lock_guard lock(morsel.mtx);
     if (morsel.currNodeOffset < morsel.numNodes) {
-        dataChunks->getDataChunk(1)->currPos = morsel.currNodeOffset;
+        dataChunks->getDataChunk(1)->state->currPos = morsel.currNodeOffset;
         morsel.currNodeOffset += 1;
         return;
     }
-    dataChunks->getDataChunk(0)->size = 0;
-    dataChunks->getDataChunk(1)->size = 0;
-    dataChunks->getDataChunk(2)->size = 0;
-    dataChunks->getDataChunk(0)->numSelectedValues = 0;
-    dataChunks->getDataChunk(1)->numSelectedValues = 0;
-    dataChunks->getDataChunk(2)->numSelectedValues = 0;
+    dataChunks->getDataChunkState(0)->size = 0;
+    dataChunks->getDataChunkState(1)->size = 0;
+    dataChunks->getDataChunkState(2)->size = 0;
+    dataChunks->getDataChunkState(0)->numSelectedValues = 0;
+    dataChunks->getDataChunkState(1)->numSelectedValues = 0;
+    dataChunks->getDataChunkState(2)->numSelectedValues = 0;
 }
 
 void ScanMockOpWithSelector::generateDataChunks() {
@@ -100,30 +94,24 @@ void ScanMockOpWithSelector::generateDataChunks() {
         vectorC2->setValue(i, (bool)((i / 2) == 1));
     }
     dataChunkA->append(vectorA1);
-    vectorA1->setDataChunkOwner(dataChunkA);
     dataChunkA->append(vectorA2);
-    vectorA2->setDataChunkOwner(dataChunkA);
     dataChunkB->append(vectorB1);
-    vectorB1->setDataChunkOwner(dataChunkB);
     dataChunkB->append(vectorB2);
-    vectorB2->setDataChunkOwner(dataChunkB);
     dataChunkC->append(vectorC1);
-    vectorC1->setDataChunkOwner(dataChunkC);
     dataChunkC->append(vectorC2);
-    vectorC2->setDataChunkOwner(dataChunkC);
 
-    dataChunkA->size = 10;
-    dataChunkB->size = 10;
-    dataChunkC->size = 10;
-    dataChunkA->numSelectedValues = 10;
-    dataChunkB->numSelectedValues = 10;
-    dataChunkC->numSelectedValues = 10;
+    dataChunkA->state->size = 10;
+    dataChunkB->state->size = 10;
+    dataChunkC->state->size = 10;
+    dataChunkA->state->numSelectedValues = 10;
+    dataChunkB->state->numSelectedValues = 10;
+    dataChunkC->state->numSelectedValues = 10;
     for (uint64_t i = 0; i < 10; i++) {
-        dataChunkB->selectedValuesPos[i] = 2;
+        dataChunkB->state->selectedValuesPos[i] = 2;
     }
-    dataChunkA->currPos = 0;
-    dataChunkB->currPos = 0;
-    dataChunkC->currPos = -1;
+    dataChunkA->state->currPos = 0;
+    dataChunkB->state->currPos = 0;
+    dataChunkC->state->currPos = -1;
     dataChunks->append(dataChunkA);
     dataChunks->append(dataChunkB);
     dataChunks->append(dataChunkC);
@@ -132,16 +120,16 @@ void ScanMockOpWithSelector::generateDataChunks() {
 void ProbeScanMockOp::getNextTuples() {
     lock_guard lock(morsel.mtx);
     if (morsel.currNodeOffset < morsel.numNodes) {
-        dataChunks->getDataChunk(1)->currPos = morsel.currNodeOffset;
+        dataChunks->getDataChunk(1)->state->currPos = morsel.currNodeOffset;
         morsel.currNodeOffset += 1;
         return;
     }
-    dataChunks->getDataChunk(0)->size = 0;
-    dataChunks->getDataChunk(1)->size = 0;
-    dataChunks->getDataChunk(2)->size = 0;
-    dataChunks->getDataChunk(0)->numSelectedValues = 0;
-    dataChunks->getDataChunk(1)->numSelectedValues = 0;
-    dataChunks->getDataChunk(2)->numSelectedValues = 0;
+    dataChunks->getDataChunkState(0)->size = 0;
+    dataChunks->getDataChunkState(1)->size = 0;
+    dataChunks->getDataChunkState(2)->size = 0;
+    dataChunks->getDataChunkState(0)->numSelectedValues = 0;
+    dataChunks->getDataChunkState(1)->numSelectedValues = 0;
+    dataChunks->getDataChunkState(2)->numSelectedValues = 0;
 }
 
 void ProbeScanMockOp::generateDataChunks() {
@@ -166,27 +154,21 @@ void ProbeScanMockOp::generateDataChunks() {
         vectorC2->setValue(i, (bool)((i / 2) == 1));
     }
     dataChunkA->append(vectorA1);
-    vectorA1->setDataChunkOwner(dataChunkA);
     dataChunkA->append(vectorA2);
-    vectorA2->setDataChunkOwner(dataChunkA);
     dataChunkB->append(vectorB1);
-    vectorB1->setDataChunkOwner(dataChunkB);
     dataChunkB->append(vectorB2);
-    vectorB2->setDataChunkOwner(dataChunkB);
     dataChunkC->append(vectorC1);
-    vectorC1->setDataChunkOwner(dataChunkC);
     dataChunkC->append(vectorC2);
-    vectorC2->setDataChunkOwner(dataChunkC);
 
-    dataChunkA->size = 10;
-    dataChunkB->size = 10;
-    dataChunkC->size = 10;
-    dataChunkA->numSelectedValues = 10;
-    dataChunkB->numSelectedValues = 10;
-    dataChunkC->numSelectedValues = 10;
-    dataChunkA->currPos = 0;
-    dataChunkB->currPos = 2;
-    dataChunkC->currPos = -1;
+    dataChunkA->state->size = 10;
+    dataChunkB->state->size = 10;
+    dataChunkC->state->size = 10;
+    dataChunkA->state->numSelectedValues = 10;
+    dataChunkB->state->numSelectedValues = 10;
+    dataChunkC->state->numSelectedValues = 10;
+    dataChunkA->state->currPos = 0;
+    dataChunkB->state->currPos = 2;
+    dataChunkC->state->currPos = -1;
     dataChunks->append(dataChunkA);
     dataChunks->append(dataChunkB);
     dataChunks->append(dataChunkC);
@@ -195,16 +177,16 @@ void ProbeScanMockOp::generateDataChunks() {
 void ProbeScanMockOpWithSelector::getNextTuples() {
     lock_guard lock(morsel.mtx);
     if (morsel.currNodeOffset < morsel.numNodes) {
-        dataChunks->getDataChunk(1)->currPos = morsel.currNodeOffset;
+        dataChunks->getDataChunk(1)->state->currPos = morsel.currNodeOffset;
         morsel.currNodeOffset += 1;
         return;
     }
-    dataChunks->getDataChunk(0)->size = 0;
-    dataChunks->getDataChunk(1)->size = 0;
-    dataChunks->getDataChunk(2)->size = 0;
-    dataChunks->getDataChunk(0)->numSelectedValues = 0;
-    dataChunks->getDataChunk(1)->numSelectedValues = 0;
-    dataChunks->getDataChunk(2)->numSelectedValues = 0;
+    dataChunks->getDataChunkState(0)->size = 0;
+    dataChunks->getDataChunkState(1)->size = 0;
+    dataChunks->getDataChunkState(2)->size = 0;
+    dataChunks->getDataChunkState(0)->numSelectedValues = 0;
+    dataChunks->getDataChunkState(1)->numSelectedValues = 0;
+    dataChunks->getDataChunkState(2)->numSelectedValues = 0;
 }
 
 void ProbeScanMockOpWithSelector::generateDataChunks() {
@@ -229,30 +211,24 @@ void ProbeScanMockOpWithSelector::generateDataChunks() {
         vectorC2->setValue(i, (bool)((i / 2) == 1));
     }
     dataChunkA->append(vectorA1);
-    vectorA1->setDataChunkOwner(dataChunkA);
     dataChunkA->append(vectorA2);
-    vectorA2->setDataChunkOwner(dataChunkA);
     dataChunkB->append(vectorB1);
-    vectorB1->setDataChunkOwner(dataChunkB);
     dataChunkB->append(vectorB2);
-    vectorB2->setDataChunkOwner(dataChunkB);
     dataChunkC->append(vectorC1);
-    vectorC1->setDataChunkOwner(dataChunkC);
     dataChunkC->append(vectorC2);
-    vectorC2->setDataChunkOwner(dataChunkC);
 
-    dataChunkA->size = 10;
-    dataChunkB->size = 10;
-    dataChunkC->size = 10;
-    dataChunkA->selectedValuesPos[0] = 0;
-    dataChunkB->selectedValuesPos[0] = 2;
-    dataChunkC->selectedValuesPos[0] = 3;
-    dataChunkA->numSelectedValues = 1;
-    dataChunkB->numSelectedValues = 1;
-    dataChunkC->numSelectedValues = 1;
-    dataChunkA->currPos = 0;
-    dataChunkB->currPos = 0;
-    dataChunkC->currPos = -1;
+    dataChunkA->state->size = 10;
+    dataChunkB->state->size = 10;
+    dataChunkC->state->size = 10;
+    dataChunkA->state->selectedValuesPos[0] = 0;
+    dataChunkB->state->selectedValuesPos[0] = 2;
+    dataChunkC->state->selectedValuesPos[0] = 3;
+    dataChunkA->state->numSelectedValues = 1;
+    dataChunkB->state->numSelectedValues = 1;
+    dataChunkC->state->numSelectedValues = 1;
+    dataChunkA->state->currPos = 0;
+    dataChunkB->state->currPos = 0;
+    dataChunkC->state->currPos = -1;
     dataChunks->append(dataChunkA);
     dataChunks->append(dataChunkB);
     dataChunks->append(dataChunkC);

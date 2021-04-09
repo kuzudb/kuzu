@@ -16,26 +16,26 @@ public:
 
     explicit Literal(DataType type) : type(type) {}
 
-    explicit Literal(uint8_t value) : type(BOOL) { this->primitive.boolean = value; }
+    explicit Literal(uint8_t value) : type(BOOL) { this->primitive.boolean_ = value; }
 
-    explicit Literal(int32_t value) : type(INT32) { this->primitive.integer = value; }
+    explicit Literal(int32_t value) : type(INT32) { this->primitive.integer_ = value; }
 
     explicit Literal(double value) : type(DOUBLE) { this->primitive.double_ = value; }
 
     explicit Literal(const string& str) : type(STRING) { this->str = str; }
 
     union PrimitiveValue {
-        uint8_t boolean;
-        int32_t integer;
+        uint8_t boolean_;
+        int32_t integer_;
         double double_;
     } primitive;
 
     string str;
     nodeID_t nodeID;
 
-    inline void setBool(bool val) { this->primitive.boolean = val; }
+    inline void setBool(bool val) { this->primitive.boolean_ = val; }
 
-    inline void setInt(int32_t val) { this->primitive.integer = val; }
+    inline void setInt(int32_t val) { this->primitive.integer_ = val; }
 
     inline void setDouble(double val) { this->primitive.double_ = val; }
 
@@ -45,7 +45,7 @@ public:
 
     string toString() const;
 
-private:
+public:
     DataType type;
 };
 

@@ -18,9 +18,9 @@ TEST(ScanTests, ScanTest) {
         if (morsel->currNodeOffset >= 1025013) {
             size = 1025013 % NODE_SEQUENCE_VECTOR_SIZE;
         }
-        ASSERT_EQ(dataChunk->size, size);
+        ASSERT_EQ(dataChunk->state->size, size);
         nodeID_t node;
-        for (uint64_t i = 0; i < dataChunk->size; i++) {
+        for (uint64_t i = 0; i < dataChunk->state->size; i++) {
             nodeVector->readNodeOffset(i, node);
             ASSERT_EQ(node.offset, currNodeOffset + i);
         }

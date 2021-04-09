@@ -10,11 +10,14 @@ namespace testing {
 
 struct TestSuiteConfig {
     string graphInputDir;
+    string graphOutputDir;
     uint64_t numThreads = 1;
     uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE;
+    bool compareResult = false;
     vector<string> name;
     vector<string> query;
     vector<uint64_t> expectedNumTuples;
+    vector<vector<string>> expectedTuples;
 };
 
 class TestHelper {

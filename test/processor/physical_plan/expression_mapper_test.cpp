@@ -22,18 +22,17 @@ TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
         values[i] = i;
     }
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->size = 100;
-    dataChunk->numSelectedValues = 100;
-    valueVector->setDataChunkOwner(dataChunk);
+    dataChunk->state->size = 100;
+    dataChunk->state->numSelectedValues = 100;
     dataChunk->append(valueVector);
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
-    auto dataChunks = DataChunks();
     physicalOperatorInfo.appendAsNewDataChunk("a.prop");
-    dataChunks.append(dataChunk);
 
     auto rootPhysicalExpression =
-        ExpressionMapper::mapToPhysical(*addLogicalOperator, physicalOperatorInfo, dataChunks);
+        ExpressionMapper::mapToPhysical(*addLogicalOperator, physicalOperatorInfo);
+    rootPhysicalExpression->setExpressionInputDataChunk(dataChunk);
+    rootPhysicalExpression->setExpressionResultOwnerState(dataChunk->state);
     rootPhysicalExpression->evaluate();
 
     auto results = (int32_t*)rootPhysicalExpression->result->getValues();
@@ -59,18 +58,17 @@ TEST(ExpressionTests, UnaryPhysicalExpressionTest) {
         }
     }
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->size = 100;
-    dataChunk->numSelectedValues = 100;
-    valueVector->setDataChunkOwner(dataChunk);
+    dataChunk->state->size = 100;
+    dataChunk->state->numSelectedValues = 100;
     dataChunk->append(valueVector);
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
-    auto dataChunks = DataChunks();
     physicalOperatorInfo.appendAsNewDataChunk("a.prop");
-    dataChunks.append(dataChunk);
 
     auto rootPhysicalExpression =
-        ExpressionMapper::mapToPhysical(*negateLogicalOperator, physicalOperatorInfo, dataChunks);
+        ExpressionMapper::mapToPhysical(*negateLogicalOperator, physicalOperatorInfo);
+    rootPhysicalExpression->setExpressionInputDataChunk(dataChunk);
+    rootPhysicalExpression->setExpressionResultOwnerState(dataChunk->state);
     rootPhysicalExpression->evaluate();
 
     auto results = (int32_t*)rootPhysicalExpression->result->getValues();

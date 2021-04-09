@@ -16,7 +16,6 @@ public:
         outDataChunk =
             make_shared<DataChunk>(!IS_OUT_DATACHUNK_FILTERED /* initializeSelectedValuesPos */);
         outDataChunk->append(nodeIDVector);
-        nodeIDVector->setDataChunkOwner(outDataChunk);
         dataChunks->append(outDataChunk);
     }
 
@@ -26,18 +25,18 @@ public:
             if (morsel->currNodeOffset >= morsel->numNodes) {
                 // no more tuples to scan_node_id.
                 nodeIDVector->setStartOffset(0u);
-                outDataChunk->size = 0u;
+                outDataChunk->state->size = 0u;
             } else {
                 nodeIDVector->setStartOffset(morsel->currNodeOffset);
-                outDataChunk->size = min(
+                outDataChunk->state->size = min(
                     (uint64_t)NODE_SEQUENCE_VECTOR_SIZE, morsel->numNodes - morsel->currNodeOffset);
-                morsel->currNodeOffset += outDataChunk->size;
+                morsel->currNodeOffset += outDataChunk->state->size;
             }
         }
-        outDataChunk->numSelectedValues = outDataChunk->size;
+        outDataChunk->state->numSelectedValues = outDataChunk->state->size;
         if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-            for (auto i = 0u; i < outDataChunk->size; i++) {
-                outDataChunk->selectedValuesPos[i] = i;
+            for (auto i = 0u; i < outDataChunk->state->size; i++) {
+                outDataChunk->state->selectedValuesPos[i] = i;
             }
         }
     }

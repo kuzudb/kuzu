@@ -12,7 +12,7 @@ void DataChunksIterator::reset() {
     for (uint64_t i = 0; i < dataChunks.getNumDataChunks(); i++) {
         auto dataChunk = dataChunks.getDataChunk(i);
         if (dataChunk->isFlat()) {
-            tuplePositions.push_back(dataChunk->currPos);
+            tuplePositions.push_back(dataChunk->state->currPos);
         } else {
             tuplePositions.push_back(0);
         }
@@ -26,7 +26,7 @@ bool DataChunksIterator::updateTuplePositions(int64_t chunkIdx) {
         return false;
     }
     tuplePositions[chunkIdx] = tuplePositions[chunkIdx] + 1;
-    if (tuplePositions[chunkIdx] == dataChunks.getDataChunk(chunkIdx)->numSelectedValues) {
+    if (tuplePositions[chunkIdx] == dataChunks.getDataChunkState(chunkIdx)->numSelectedValues) {
         tuplePositions[chunkIdx] = 0;
         return false;
     }

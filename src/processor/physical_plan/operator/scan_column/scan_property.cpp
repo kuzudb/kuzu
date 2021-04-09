@@ -12,7 +12,6 @@ ScanProperty::ScanProperty(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseC
     : ScanColumn{dataChunkPos, valueVectorPos, column, move(prevOperator)} {
     outValueVector = make_shared<ValueVector>(column->getDataType());
     inDataChunk->append(outValueVector);
-    outValueVector->setDataChunkOwner(inDataChunk);
 }
 
 void ScanProperty::getNextTuples() {

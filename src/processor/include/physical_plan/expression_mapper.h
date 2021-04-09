@@ -13,11 +13,10 @@ namespace processor {
 class ExpressionMapper {
 
 public:
-    static unique_ptr<PhysicalExpression> mapToPhysical(const LogicalExpression& expression,
-        PhysicalOperatorsInfo& physicalOperatorInfo, DataChunks& dataChunks);
+    static unique_ptr<PhysicalExpression> mapToPhysical(
+        const LogicalExpression& expression, PhysicalOperatorsInfo& physicalOperatorInfo);
 
-    static unique_ptr<PhysicalExpression> clone(
-        const PhysicalExpression& expression, DataChunks& dataChunks);
+    static unique_ptr<PhysicalExpression> clone(const PhysicalExpression& expression);
 };
 
 } // namespace processor

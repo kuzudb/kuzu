@@ -13,6 +13,8 @@ namespace processor {
 class DataChunks {
 
 public:
+    DataChunks() : multiplicity(1) {}
+
     void append(shared_ptr<DataChunk> dataChunk, shared_ptr<ListSyncState> listSyncer) {
         dataChunks.push_back(dataChunk);
         listSyncStatesPerDataChunk.push_back(listSyncer);
@@ -22,17 +24,22 @@ public:
 
     uint64_t getNumTuples();
 
-    shared_ptr<DataChunk> getDataChunk(uint64_t dataChunkPos) { return dataChunks[dataChunkPos]; }
+    inline shared_ptr<DataChunk> getDataChunk(uint64_t dataChunkPos) {
+        return dataChunks[dataChunkPos];
+    }
+
+    inline shared_ptr<DataChunkState> getDataChunkState(uint64_t dataChunkPos) {
+        return dataChunks[dataChunkPos]->state;
+    }
 
     shared_ptr<ListSyncState> getListSyncState(uint64_t dataChunkPos) {
         return listSyncStatesPerDataChunk[dataChunkPos];
     }
 
-    uint64_t getNumDataChunks() { return dataChunks.size(); }
+    inline uint64_t getNumDataChunks() { return dataChunks.size(); }
 
-    uint64_t getNumValueVectors(uint64_t inDataChunkPos) {
-        return dataChunks[inDataChunkPos]->getNumAttributes();
-    }
+public:
+    uint64_t multiplicity;
 
 private:
     vector<shared_ptr<DataChunk>> dataChunks;

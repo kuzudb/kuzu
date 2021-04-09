@@ -67,7 +67,7 @@ struct BinaryOperationExecutor {
                 }
             }
         }
-        result.owner->numSelectedValues = size;
+        result.setNumSelectedValues(size);
     }
 
     // A (left operand type), B (right operand type), R (result type)
@@ -125,7 +125,7 @@ struct BinaryOperationExecutor {
                 resultNullMask[pos] = resultValues[pos] == NULL_BOOL;
             }
         }
-        result.owner->numSelectedValues = size;
+        result.setNumSelectedValues(size);
     }
 
     template<class FUNC = std::function<uint8_t(nodeID_t, nodeID_t)>>
@@ -140,41 +140,41 @@ struct BinaryOperationExecutor {
             left.readNodeOffsetAndLabel(left.getCurrSelectedValuesPos(), lNodeID);
             right.readNodeOffsetAndLabel(right.getCurrSelectedValuesPos(), rNodeID);
             auto resPos = result.getCurrSelectedValuesPos();
-            resultNullMask[resPos] =
-                leftNullMask[left.getCurrPos()] || rightNullMask[right.getCurrPos()];
+            resultNullMask[resPos] = leftNullMask[left.getCurrSelectedValuesPos()] ||
+                                     rightNullMask[right.getCurrSelectedValuesPos()];
             if (!resultNullMask[resPos]) { // not NULL.
                 resultValues[resPos] = FUNC::operation(lNodeID, rNodeID);
             }
             size = 1;
         } else if (left.isFlat()) {
             size = right.size();
-            auto lNullMask = leftNullMask[left.getCurrPos()];
+            auto lNullMask = leftNullMask[left.getCurrSelectedValuesPos()];
             // right and result vectors share the same selectedValuesPos.
             auto selectedValuesPos = right.getSelectedValuesPos();
             left.readNodeOffsetAndLabel(left.getCurrSelectedValuesPos(), lNodeID);
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
                 right.readNodeOffsetAndLabel(pos, rNodeID);
-                resultNullMask[i] = lNullMask || rightNullMask[right.getCurrPos()];
+                resultNullMask[i] = lNullMask || rightNullMask[right.getCurrSelectedValuesPos()];
                 if (!resultNullMask[i]) { // not NULL.
                     resultValues[i] = FUNC::operation(lNodeID, rNodeID);
                 }
             }
         } else if (right.isFlat()) {
             size = left.size();
-            auto rNullMask = leftNullMask[left.getCurrPos()];
+            auto rNullMask = leftNullMask[left.getCurrSelectedValuesPos()];
             // left and result vectors share the same selectedValuesPos.
             auto selectedValuesPos = left.getSelectedValuesPos();
             right.readNodeOffsetAndLabel(right.getCurrSelectedValuesPos(), rNodeID);
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
                 left.readNodeOffsetAndLabel(pos, lNodeID);
-                resultNullMask[pos] = leftNullMask[left.getCurrPos()] || rNullMask;
+                resultNullMask[pos] = leftNullMask[left.getCurrSelectedValuesPos()] || rNullMask;
                 if (!resultNullMask[pos]) { // not NULL.
                     resultValues[pos] = FUNC::operation(lNodeID, rNodeID);
                 }
             }
-            result.owner->numSelectedValues = size;
+            result.setNumSelectedValues(size);
         } else {
             size = left.size();
             // right, left, and result vectors share the same selectedValuesPos.
@@ -183,14 +183,14 @@ struct BinaryOperationExecutor {
                 auto pos = selectedValuesPos[i];
                 left.readNodeOffsetAndLabel(pos, lNodeID);
                 right.readNodeOffsetAndLabel(pos, rNodeID);
-                resultNullMask[pos] =
-                    leftNullMask[left.getCurrPos()] || rightNullMask[right.getCurrPos()];
+                resultNullMask[pos] = leftNullMask[left.getCurrSelectedValuesPos()] ||
+                                      rightNullMask[right.getCurrSelectedValuesPos()];
                 if (!resultNullMask[pos]) { // not NULL.
                     resultValues[pos] = FUNC::operation(lNodeID, rNodeID);
                 }
             }
         }
-        result.owner->numSelectedValues = size;
+        result.setNumSelectedValues(size);
     }
 };
 

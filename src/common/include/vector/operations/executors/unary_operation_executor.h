@@ -17,7 +17,7 @@ struct UnaryOperationExecutor {
         auto resultNullMask = result.getNullMask();
         uint64_t size;
         if (operand.isFlat()) {
-            auto pos = operand.owner->getCurrSelectedValuesPos();
+            auto pos = operand.getCurrSelectedValuesPos();
             resultNullMask[pos] = nullMask[pos];
             if (!resultNullMask[pos]) { // not NULL.
                 resultValues[pos] = FUNC::operation(values[pos]);
@@ -34,7 +34,7 @@ struct UnaryOperationExecutor {
                 }
             }
         }
-        result.owner->numSelectedValues = size;
+        result.setNumSelectedValues(size);
     }
 
     template<class FUNC = std::function<uint8_t(uint8_t)>>
@@ -45,7 +45,7 @@ struct UnaryOperationExecutor {
         auto resultNullMask = result.getNullMask();
         uint64_t size;
         if (operand.isFlat()) {
-            auto pos = operand.owner->getCurrSelectedValuesPos();
+            auto pos = operand.getCurrSelectedValuesPos();
             resultValues[pos] = FUNC::operation(values[pos], nullMask[pos]);
             resultNullMask[pos] = resultValues[pos] == NULL_BOOL;
             size = 1;
@@ -58,7 +58,7 @@ struct UnaryOperationExecutor {
                 resultNullMask[pos] = resultValues[pos] == NULL_BOOL;
             }
         }
-        result.owner->numSelectedValues = size;
+        result.setNumSelectedValues(size);
     }
 
     template<class R, class FUNC = std::function<R(nodeID_t)>>
@@ -69,7 +69,7 @@ struct UnaryOperationExecutor {
         uint64_t size;
         nodeID_t nodeID{};
         if (operand.isFlat()) {
-            auto pos = operand.owner->getCurrSelectedValuesPos();
+            auto pos = operand.getCurrSelectedValuesPos();
             operand.readNodeOffsetAndLabel(pos, nodeID);
             resultValues[pos] = FUNC::operation(nodeID);
             resultNullMask[pos] = nullMask[pos];
@@ -84,7 +84,7 @@ struct UnaryOperationExecutor {
                 resultNullMask[pos] = nullMask[pos];
             }
         }
-        result.owner->numSelectedValues = size;
+        result.setNumSelectedValues(size);
     }
 
     template<bool value>
@@ -93,7 +93,7 @@ struct UnaryOperationExecutor {
         auto nullMask = operand.getNullMask();
         uint64_t size;
         if (operand.isFlat()) {
-            auto pos = operand.owner->getCurrSelectedValuesPos();
+            auto pos = operand.getCurrSelectedValuesPos();
             resultValues[pos] = nullMask[pos] == value;
             size = 1;
         } else {
@@ -104,7 +104,7 @@ struct UnaryOperationExecutor {
                 resultValues[pos] = nullMask[pos] == value;
             }
         }
-        result.owner->numSelectedValues = size;
+        result.setNumSelectedValues(size);
     }
 };
 

@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 
+#include "src/common/include/data_chunk/data_chunk.h"
 #include "src/common/include/vector/operations/vector_comparison_operations.h"
 #include "src/common/include/vector/value_vector.h"
 
@@ -10,20 +11,20 @@ TEST(VectorCmpTests, cmpInt) {
     auto numTuples = 100;
 
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->size = numTuples;
-    dataChunk->numSelectedValues = numTuples;
+    dataChunk->state->size = numTuples;
+    dataChunk->state->numSelectedValues = numTuples;
 
-    auto lVector = ValueVector(INT32, numTuples);
-    lVector.setDataChunkOwner(dataChunk);
-    auto lData = (int32_t*)lVector.getValues();
+    auto lVector = make_shared<ValueVector>(INT32, numTuples);
+    dataChunk->append(lVector);
+    auto lData = (int32_t*)lVector->getValues();
 
-    auto rVector = ValueVector(INT32, numTuples);
-    rVector.setDataChunkOwner(dataChunk);
-    auto rData = (int32_t*)rVector.getValues();
+    auto rVector = make_shared<ValueVector>(INT32, numTuples);
+    dataChunk->append(rVector);
+    auto rData = (int32_t*)rVector->getValues();
 
-    auto result = ValueVector(BOOL, numTuples);
-    result.setDataChunkOwner(dataChunk);
-    auto resultData = result.getValues();
+    auto result = make_shared<ValueVector>(BOOL, numTuples);
+    dataChunk->append(result);
+    auto resultData = result->getValues();
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < numTuples; i++) {
@@ -32,37 +33,37 @@ TEST(VectorCmpTests, cmpInt) {
     }
 
     auto equalsOp = ValueVector::getBinaryOperation(ExpressionType::EQUALS);
-    equalsOp(lVector, rVector, result);
+    equalsOp(*lVector, *rVector, *result);
     for (int32_t i = 0; i < numTuples; i++) {
         ASSERT_EQ(resultData[i], i == 45 ? TRUE : FALSE);
     }
 
     auto notEqualsOp = ValueVector::getBinaryOperation(ExpressionType::NOT_EQUALS);
-    notEqualsOp(lVector, rVector, result);
+    notEqualsOp(*lVector, *rVector, *result);
     for (int32_t i = 0; i < numTuples; i++) {
         ASSERT_EQ(resultData[i], i == 45 ? FALSE : TRUE);
     }
 
     auto lessThanOp = ValueVector::getBinaryOperation(ExpressionType::LESS_THAN);
-    lessThanOp(lVector, rVector, result);
+    lessThanOp(*lVector, *rVector, *result);
     for (int32_t i = 0; i < numTuples; i++) {
         ASSERT_EQ(resultData[i], i < 45 ? TRUE : FALSE);
     }
 
     auto lessThanEqualsOp = ValueVector::getBinaryOperation(ExpressionType::LESS_THAN_EQUALS);
-    lessThanEqualsOp(lVector, rVector, result);
+    lessThanEqualsOp(*lVector, *rVector, *result);
     for (int32_t i = 0; i < numTuples; i++) {
         ASSERT_EQ(resultData[i], i < 46 ? TRUE : FALSE);
     }
 
     auto greaterThanOp = ValueVector::getBinaryOperation(ExpressionType::GREATER_THAN);
-    greaterThanOp(lVector, rVector, result);
+    greaterThanOp(*lVector, *rVector, *result);
     for (int32_t i = 0; i < numTuples; i++) {
         ASSERT_EQ(resultData[i], i < 46 ? FALSE : TRUE);
     }
 
     auto greaterThanEqualsOp = ValueVector::getBinaryOperation(ExpressionType::GREATER_THAN_EQUALS);
-    greaterThanEqualsOp(lVector, rVector, result);
+    greaterThanEqualsOp(*lVector, *rVector, *result);
     for (int32_t i = 0; i < numTuples; i++) {
         ASSERT_EQ(resultData[i], i < 45 ? FALSE : TRUE);
     }
@@ -72,20 +73,20 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     auto numTuples = 1;
 
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->size = numTuples;
-    dataChunk->currPos = 0;
+    dataChunk->state->size = numTuples;
+    dataChunk->state->currPos = 0;
 
-    auto lVector = ValueVector(STRING, numTuples);
-    lVector.setDataChunkOwner(dataChunk);
-    auto lData = ((gf_string_t*)lVector.getValues());
+    auto lVector = make_shared<ValueVector>(STRING, numTuples);
+    dataChunk->append(lVector);
+    auto lData = ((gf_string_t*)lVector->getValues());
 
-    auto rVector = ValueVector(STRING, numTuples);
-    rVector.setDataChunkOwner(dataChunk);
-    auto rData = ((gf_string_t*)rVector.getValues());
+    auto rVector = make_shared<ValueVector>(STRING, numTuples);
+    dataChunk->append(rVector);
+    auto rData = ((gf_string_t*)rVector->getValues());
 
-    auto result = ValueVector(BOOL, numTuples);
-    result.setDataChunkOwner(dataChunk);
-    auto resultData = result.getValues();
+    auto result = make_shared<ValueVector>(BOOL, numTuples);
+    dataChunk->append(result);
+    auto resultData = result->getValues();
 
     char* value = "abcdefgh";
     lData[0].len = 8;
@@ -96,44 +97,44 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     memcpy(rData[0].data, value + gf_string_t::PREFIX_LENGTH, 8 - gf_string_t::PREFIX_LENGTH);
 
     auto equalsOp = ValueVector::getBinaryOperation(ExpressionType::EQUALS);
-    equalsOp(lVector, rVector, result);
+    equalsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
     rData[0].data[3] = 'i';
-    equalsOp(lVector, rVector, result);
+    equalsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
     auto notEqualsOp = ValueVector::getBinaryOperation(ExpressionType::NOT_EQUALS);
-    notEqualsOp(lVector, rVector, result);
+    notEqualsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
     auto lessThanOp = ValueVector::getBinaryOperation(ExpressionType::LESS_THAN);
-    lessThanOp(lVector, rVector, result);
+    lessThanOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
     auto lessThanEqualsOp = ValueVector::getBinaryOperation(ExpressionType::LESS_THAN_EQUALS);
-    lessThanEqualsOp(lVector, rVector, result);
+    lessThanEqualsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
     auto greaterThanOp = ValueVector::getBinaryOperation(ExpressionType::GREATER_THAN);
-    greaterThanOp(lVector, rVector, result);
+    greaterThanOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
     auto greaterThanEqualsOp = ValueVector::getBinaryOperation(ExpressionType::GREATER_THAN_EQUALS);
-    greaterThanEqualsOp(lVector, rVector, result);
+    greaterThanEqualsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
     rData[0].data[3] = 'a';
-    lessThanOp(lVector, rVector, result);
+    lessThanOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
-    lessThanEqualsOp(lVector, rVector, result);
+    lessThanEqualsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
-    greaterThanOp(lVector, rVector, result);
+    greaterThanOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
-    greaterThanEqualsOp(lVector, rVector, result);
+    greaterThanEqualsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 }
 
@@ -141,21 +142,21 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     auto VECTOR_SIZE = 1;
 
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->size = VECTOR_SIZE;
-    dataChunk->numSelectedValues = VECTOR_SIZE;
-    dataChunk->currPos = 0;
+    dataChunk->state->size = VECTOR_SIZE;
+    dataChunk->state->numSelectedValues = VECTOR_SIZE;
+    dataChunk->state->currPos = 0;
 
-    auto lVector = ValueVector(STRING, VECTOR_SIZE);
-    lVector.setDataChunkOwner(dataChunk);
-    auto lData = ((gf_string_t*)lVector.getValues());
+    auto lVector = make_shared<ValueVector>(STRING, VECTOR_SIZE);
+    dataChunk->append(lVector);
+    auto lData = ((gf_string_t*)lVector->getValues());
 
-    auto rVector = ValueVector(STRING, VECTOR_SIZE);
-    rVector.setDataChunkOwner(dataChunk);
-    auto rData = ((gf_string_t*)rVector.getValues());
+    auto rVector = make_shared<ValueVector>(STRING, VECTOR_SIZE);
+    dataChunk->append(rVector);
+    auto rData = ((gf_string_t*)rVector->getValues());
 
-    auto result = ValueVector(BOOL, VECTOR_SIZE);
-    result.setDataChunkOwner(dataChunk);
-    auto resultData = result.getValues();
+    auto result = make_shared<ValueVector>(BOOL, VECTOR_SIZE);
+    dataChunk->append(result);
+    auto resultData = result->getValues();
 
     char* value = "abcdefghijklmnopqrstuvwxy"; // 25.
     lData[0].len = 25;
@@ -171,43 +172,43 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     rData->overflowPtr = reinterpret_cast<uintptr_t>(rOverflow);
 
     auto equalsOp = ValueVector::getBinaryOperation(ExpressionType::EQUALS);
-    equalsOp(lVector, rVector, result);
+    equalsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
     rOverflow[overflowLen - 1] = 'z';
-    equalsOp(lVector, rVector, result);
+    equalsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
     auto notEqualsOp = ValueVector::getBinaryOperation(ExpressionType::NOT_EQUALS);
-    notEqualsOp(lVector, rVector, result);
+    notEqualsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
     auto lessThanOp = ValueVector::getBinaryOperation(ExpressionType::LESS_THAN);
-    lessThanOp(lVector, rVector, result);
+    lessThanOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
     auto lessThanEqualsOp = ValueVector::getBinaryOperation(ExpressionType::LESS_THAN_EQUALS);
-    lessThanEqualsOp(lVector, rVector, result);
+    lessThanEqualsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
     auto greaterThanOp = ValueVector::getBinaryOperation(ExpressionType::GREATER_THAN);
-    greaterThanOp(lVector, rVector, result);
+    greaterThanOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
     auto greaterThanEqualsOp = ValueVector::getBinaryOperation(ExpressionType::GREATER_THAN_EQUALS);
-    greaterThanEqualsOp(lVector, rVector, result);
+    greaterThanEqualsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
     rOverflow[overflowLen - 1] = 'a';
-    lessThanOp(lVector, rVector, result);
+    lessThanOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
-    lessThanEqualsOp(lVector, rVector, result);
+    lessThanEqualsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
-    greaterThanOp(lVector, rVector, result);
+    greaterThanOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
-    greaterThanEqualsOp(lVector, rVector, result);
+    greaterThanEqualsOp(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 }

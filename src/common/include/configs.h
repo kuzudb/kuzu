@@ -5,7 +5,7 @@
 namespace graphflow {
 namespace common {
 
-constexpr bool ENABLE_DEBUG = false;
+constexpr bool ENABLE_DEBUG = true;
 constexpr bool ENABLE_HASH_JOIN_ENUMERATION = false;
 
 // Size (in bytes) of the chunks to be read in GraphLoader.
