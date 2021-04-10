@@ -25,7 +25,8 @@ unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQu
             }
         }
     }
-    return make_unique<BoundSingleQuery>(move(mergedQueryGraph), move(whereExprsSplitOnAND));
+    return make_unique<BoundSingleQuery>(
+        move(mergedQueryGraph), move(whereExprsSplitOnAND), make_unique<BoundReturnStatement>());
 }
 
 unique_ptr<BoundMatchStatement> Binder::bindStatement(const MatchStatement& matchStatement) {

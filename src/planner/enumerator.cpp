@@ -3,6 +3,7 @@
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
+#include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
@@ -32,6 +33,7 @@ Enumerator::Enumerator(const BoundSingleQuery& boundSingleQuery)
                 make_pair(expression, expression->getIncludedVariables()));
         }
     }
+    returnClause = move(boundSingleQuery.boundReturnStatement->expressionsToReturn);
 }
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
@@ -40,7 +42,15 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
     while (numEnumeratedQueryRels < queryGraph.queryRels.size()) {
         enumerateNextNumQueryRel(numEnumeratedQueryRels);
     }
-    return move(subgraphPlanTable->subgraphPlans[queryGraph.queryRels.size()].begin()->second);
+    auto finalPlans =
+        move(subgraphPlanTable->subgraphPlans[queryGraph.queryRels.size()].begin()->second);
+    // Do not append projection until back-end support
+    if (auto APPEND_PROJECTION = false) {
+        for (auto& plan : finalPlans) {
+            appendProjection(*plan);
+        }
+    }
+    return finalPlans;
 }
 
 void Enumerator::enumerateSingleQueryNode() {
@@ -166,6 +176,20 @@ void Enumerator::appendLogicalHashJoin(
 }
 
 void Enumerator::appendFilter(shared_ptr<LogicalExpression> expression, LogicalPlan& plan) {
+    appendNecessaryScans(expression, plan);
+    auto filter = make_shared<LogicalFilter>(expression, plan.lastOperator);
+    plan.appendOperator(filter);
+}
+
+void Enumerator::appendProjection(LogicalPlan& plan) {
+    for (auto& expression : returnClause) {
+        appendNecessaryScans(expression, plan);
+    }
+    auto projection = make_shared<LogicalProjection>(returnClause, plan.lastOperator);
+    plan.appendOperator(projection);
+}
+
+void Enumerator::appendNecessaryScans(shared_ptr<LogicalExpression> expression, LogicalPlan& plan) {
     for (auto& includedPropertyName : expression->getIncludedProperties()) {
         if (plan.schema->containsName(includedPropertyName)) {
             continue;
@@ -175,8 +199,6 @@ void Enumerator::appendFilter(shared_ptr<LogicalExpression> expression, LogicalP
             appendScanNodeProperty(nodeOrRelName, propertyName, plan) :
             appendScanRelProperty(nodeOrRelName, propertyName, plan);
     }
-    auto filter = make_shared<LogicalFilter>(expression, plan.lastOperator);
-    plan.appendOperator(filter);
 }
 
 void Enumerator::appendScanNodeProperty(

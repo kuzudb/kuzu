@@ -33,6 +33,10 @@ private:
 
     void appendFilter(shared_ptr<LogicalExpression> expression, LogicalPlan& plan);
 
+    void appendProjection(LogicalPlan& plan);
+
+    void appendNecessaryScans(shared_ptr<LogicalExpression> expression, LogicalPlan& plan);
+
     void appendScanNodeProperty(
         const string& nodeName, const string& propertyName, LogicalPlan& plan);
 
@@ -44,6 +48,7 @@ private:
     const QueryGraph& queryGraph;
     vector<pair<shared_ptr<LogicalExpression>, unordered_set<string>>>
         whereClauseAndIncludedVariables;
+    vector<shared_ptr<LogicalExpression>> returnClause;
 };
 
 } // namespace planner
