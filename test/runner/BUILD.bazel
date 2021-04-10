@@ -1,9 +1,9 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
-    name = "basic_test",
+    name = "end_to_end_test",
     srcs = [
-        "basic_test.cpp",
+        "end_to_end_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",
@@ -22,9 +22,9 @@ cc_test(
 filegroup(
     name = "testfiles",
     srcs = [
-        "queries/basic_hash_join.test",
-        "queries/nodes.test",
-        "queries/paths.test",
+        "queries/structural/nodes.test",
+        "queries/structural/paths.test",
+        "queries/structural/stars.test",
     ],
     visibility = ["//visibility:public"],
 )

@@ -20,17 +20,22 @@ void NodeIDVector::readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) {
 }
 
 void NodeIDVector::discardNulls() {
-    assert(owner->currPos == -1);
     node_offset_t nullOffset = nodeIDCompressionScheme.getNodeOffsetNullValue();
     nodeID_t nodeID;
-    auto selectedPos = 0u;
-    for (auto j = 0u; j < owner->numSelectedValues; j++) {
-        readNodeOffset(owner->selectedValuesPos[j], nodeID);
-        if (nodeID.offset != nullOffset) {
-            owner->selectedValuesPos[selectedPos++] = j;
+    if (owner->currPos == -1) {
+        auto selectedPos = 0u;
+        for (auto j = 0u; j < owner->numSelectedValues; j++) {
+            readNodeOffset(owner->selectedValuesPos[j], nodeID);
+            if (nodeID.offset != nullOffset) {
+                owner->selectedValuesPos[selectedPos++] = j;
+            }
         }
+        owner->numSelectedValues = selectedPos;
+    } else {
+        auto selectedPos = getCurrSelectedValuesPos();
+        readNodeOffset(selectedPos, nodeID);
+        owner->numSelectedValues = nodeID.offset != nullOffset;
     }
-    owner->numSelectedValues = selectedPos;
 }
 
 } // namespace common

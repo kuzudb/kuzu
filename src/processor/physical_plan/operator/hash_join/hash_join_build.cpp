@@ -274,17 +274,14 @@ void HashJoinBuild::appendDataChunks() {
 
 void HashJoinBuild::getNextTuples() {
     // Append thread-local tuples
-    while (prevOperator->hasNextMorsel()) {
+    do {
         prevOperator->getNextTuples();
-        if (0 == keyDataChunk->numSelectedValues) {
-            break;
-        }
         appendDataChunks();
-    }
+    } while (keyDataChunk->size > 0);
 
     // Merge thread-local state (numEntries, htBlocks, overflowBlocks) with the shared one
     {
-        lock_guard sharedStateLock(sharedState->hashJoinSharedStateLock);
+        lock_guard<mutex> sharedStateLock(sharedState->hashJoinSharedStateLock);
         sharedState->numEntries += numEntries;
         move(begin(htBlocks), end(htBlocks), back_inserter(sharedState->htBlocks));
         move(

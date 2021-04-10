@@ -11,12 +11,12 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-struct MorselDesc {
+struct MorselsDesc {
     mutex mtx;
     const uint64_t numNodes;
     node_offset_t currNodeOffset;
 
-    MorselDesc(uint64_t numNodes) : numNodes{numNodes}, currNodeOffset{0} {}
+    MorselsDesc(uint64_t numNodes) : numNodes{numNodes}, currNodeOffset{0} {}
 };
 
 } // namespace processor

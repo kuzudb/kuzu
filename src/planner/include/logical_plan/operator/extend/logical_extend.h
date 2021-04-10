@@ -37,7 +37,7 @@ public:
     }
 
     string getOperatorInformation() const override {
-        return boundNodeVarName + "->" + nbrNodeVarName;
+        return boundNodeVarName + (direction == Direction::FWD ? "->" : "<-") + nbrNodeVarName;
     }
 
 public:

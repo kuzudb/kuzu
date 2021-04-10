@@ -10,9 +10,9 @@ void Task::run() {
         return;
     }
     auto pipelineSinkCopy = sinkOp->clone();
-    while (pipelineSinkCopy->hasNextMorsel()) {
+    do {
         pipelineSinkCopy->getNextTuples();
-    }
+    } while (pipelineSinkCopy->getDataChunks()->getNumTuples() > 0);
     deregisterThread(move(pipelineSinkCopy));
 }
 

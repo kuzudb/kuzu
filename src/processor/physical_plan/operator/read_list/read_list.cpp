@@ -18,7 +18,6 @@ void ReadList::readValuesFromList() {
     nodeID_t nodeID;
     inNodeIDVector->readNodeOffset(inDataChunk->getCurrSelectedValuesPos(), nodeID);
     lists->readValues(nodeID, outValueVector, outDataChunk->size, handle, MAX_TO_READ);
-    outDataChunk->numSelectedValues = outDataChunk->size;
 }
 
 } // namespace processor

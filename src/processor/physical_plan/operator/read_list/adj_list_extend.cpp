@@ -3,9 +3,9 @@
 namespace graphflow {
 namespace processor {
 
-AdjListExtend::AdjListExtend(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseLists* lists,
+AdjListExtend::AdjListExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, BaseLists* lists,
     unique_ptr<PhysicalOperator> prevOperator)
-    : ReadList{dataChunkPos, valueVectorPos, lists, move(prevOperator)} {
+    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)} {
     outValueVector =
         make_shared<NodeIDVector>(((Lists<nodeID_t>*)lists)->getNodeIDCompressionScheme());
     outDataChunk = make_shared<DataChunk>(true /* initializeSelectedValuesPos */);

@@ -10,27 +10,26 @@ namespace processor {
 
 class DataChunksMockOperator : public PhysicalOperator {
 public:
-    DataChunksMockOperator(MorselDesc& morsel) : PhysicalOperator(SCAN), morsel(morsel) {
+    DataChunksMockOperator(MorselsDesc& morsel) : PhysicalOperator(SCAN), morsel(morsel) {
         dataChunks = make_shared<DataChunks>();
     }
-    explicit DataChunksMockOperator(shared_ptr<DataChunks> mockDataChunks, MorselDesc& morsel)
+    explicit DataChunksMockOperator(shared_ptr<DataChunks> mockDataChunks, MorselsDesc& morsel)
         : PhysicalOperator(SCAN), morsel(morsel) {
         dataChunks = move(mockDataChunks);
     }
 
-    bool hasNextMorsel() override { return true; };
     void getNextTuples() override {}
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<DataChunksMockOperator>(dataChunks, morsel);
     }
 
-    MorselDesc& morsel;
+    MorselsDesc& morsel;
     mutex opLock;
 };
 
 class ScanMockOp : public DataChunksMockOperator {
 public:
-    ScanMockOp(MorselDesc& morsel) : DataChunksMockOperator(morsel) { generateDataChunks(); }
+    ScanMockOp(MorselsDesc& morsel) : DataChunksMockOperator(morsel) { generateDataChunks(); }
 
     void getNextTuples() override;
     unique_ptr<PhysicalOperator> clone() override { return make_unique<ScanMockOp>(morsel); }
@@ -41,7 +40,7 @@ private:
 
 class ProbeScanMockOp : public DataChunksMockOperator {
 public:
-    ProbeScanMockOp(MorselDesc& morsel) : DataChunksMockOperator(morsel) { generateDataChunks(); }
+    ProbeScanMockOp(MorselsDesc& morsel) : DataChunksMockOperator(morsel) { generateDataChunks(); }
 
     void getNextTuples() override;
     unique_ptr<PhysicalOperator> clone() override { return make_unique<ProbeScanMockOp>(morsel); }
@@ -52,7 +51,7 @@ private:
 
 class ScanMockOpWithSelector : public DataChunksMockOperator {
 public:
-    ScanMockOpWithSelector(MorselDesc& morsel) : DataChunksMockOperator(morsel) {
+    ScanMockOpWithSelector(MorselsDesc& morsel) : DataChunksMockOperator(morsel) {
         generateDataChunks();
     }
 
@@ -67,7 +66,7 @@ private:
 
 class ProbeScanMockOpWithSelector : public DataChunksMockOperator {
 public:
-    ProbeScanMockOpWithSelector(MorselDesc& morsel) : DataChunksMockOperator(morsel) {
+    ProbeScanMockOpWithSelector(MorselsDesc& morsel) : DataChunksMockOperator(morsel) {
         generateDataChunks();
     }
 

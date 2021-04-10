@@ -10,7 +10,7 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 class ScanNodeID : public PhysicalOperator {
 
 public:
-    ScanNodeID(shared_ptr<MorselDesc>& morsel) : PhysicalOperator(SCAN), morsel{morsel} {
+    ScanNodeID(shared_ptr<MorselsDesc>& morsel) : PhysicalOperator(SCAN), morsel{morsel} {
         dataChunks = make_shared<DataChunks>();
         nodeIDVector = make_shared<NodeIDSequenceVector>();
         outDataChunk =
@@ -22,29 +22,24 @@ public:
     }
 
     void getNextTuples() override {
-        nodeIDVector->setStartOffset(currentMorselStartOffset);
-        outDataChunk->size = currentMorselSize;
-        outDataChunk->numSelectedValues = currentMorselSize;
+        {
+            unique_lock<mutex> lock{morsel->mtx};
+            if (morsel->currNodeOffset >= morsel->numNodes) {
+                // no more tuples to scan_node_id.
+                nodeIDVector->setStartOffset(0u);
+                outDataChunk->size = 0u;
+            } else {
+                nodeIDVector->setStartOffset(morsel->currNodeOffset);
+                outDataChunk->size = min(
+                    (uint64_t)NODE_SEQUENCE_VECTOR_SIZE, morsel->numNodes - morsel->currNodeOffset);
+                morsel->currNodeOffset += outDataChunk->size;
+            }
+        }
+        outDataChunk->numSelectedValues = outDataChunk->size;
         if constexpr (IS_OUT_DATACHUNK_FILTERED) {
             for (auto i = 0u; i < outDataChunk->size; i++) {
                 outDataChunk->selectedValuesPos[i] = i;
             }
-        }
-    }
-
-    bool hasNextMorsel() override {
-        unique_lock<mutex> lock{morsel->mtx};
-        if (morsel->currNodeOffset >= morsel->numNodes) {
-            // no more tuples to scan_node_id.
-            currentMorselStartOffset = 0u;
-            currentMorselSize = 0u;
-            return false;
-        } else {
-            currentMorselStartOffset = morsel->currNodeOffset;
-            currentMorselSize = min(
-                (uint64_t)NODE_SEQUENCE_VECTOR_SIZE, morsel->numNodes - currentMorselStartOffset);
-            morsel->currNodeOffset += currentMorselSize;
-            return true;
         }
     }
 
@@ -57,9 +52,7 @@ public:
 protected:
     shared_ptr<DataChunk> outDataChunk;
     shared_ptr<NodeIDSequenceVector> nodeIDVector;
-    node_offset_t currentMorselStartOffset{-1u};
-    uint32_t currentMorselSize{-1u};
-    shared_ptr<MorselDesc> morsel;
+    shared_ptr<MorselsDesc> morsel;
 };
 
 } // namespace processor

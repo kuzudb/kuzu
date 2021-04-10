@@ -1,0 +1,41 @@
+# description: matching paths
+
+-INPUT dataset/tinysnb/
+-OUTPUT test/unittest_temp/
+-PARALLELISM 1
+
+-NAME OneHopKnowsTest
+-QUERY MATCH (a:person)-[e:knows]->(b:person)
+---- 14
+
+-NAME OneHopStudyAtTest
+-QUERY MATCH (a:person)-[e1:studyAt]->(b:organisation)
+---- 3
+
+-NAME OneHopWorkAtTest
+-QUERY MATCH (a:person)-[e1:workAt]->(b:organisation)
+---- 3
+
+-NAME TwoHopKnowsTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)
+---- 36
+
+-NAME TwoHopKnowsStudyAtTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation)
+---- 7
+
+-NAME TwoHopKnowsWorkAtTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:workAt]->(c:organisation)
+---- 6
+
+-NAME ThreeHopKnowsWorkAtKnowsTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)
+---- 108
+
+-NAME ThreeHopTwoKnowsOneStudyAtTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:studyAt]->(d:organisation)
+---- 18
+
+-NAME ThreeHopTwoKnowsOneWorkAtTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:workAt]->(d:organisation)
+---- 18

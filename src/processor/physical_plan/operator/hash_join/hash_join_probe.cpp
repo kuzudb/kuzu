@@ -142,10 +142,6 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
     if (probeState->probedTuplesSize == 0 ||
         probeState->probeKeyPos == probeState->probedTuplesSize) {
-        if (!prevOperator->hasNextMorsel()) {
-            probeState->probedTuplesSize = 0;
-            return;
-        }
         prevOperator->getNextTuples();
         if (probeSideKeyDataChunk->numSelectedValues == 0) {
             probeState->probedTuplesSize = 0;

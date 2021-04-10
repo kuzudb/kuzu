@@ -22,7 +22,7 @@ public:
 
 TEST(ProcessorTests, MultiThreadedScanTest) {
     unique_ptr<Graph> graph = make_unique<GraphStub>();
-    auto morsel = make_shared<MorselDesc>(1025013 /*numNodes*/);
+    auto morsel = make_shared<MorselsDesc>(1025013 /*numNodes*/);
     auto plan = make_unique<PhysicalPlan>(
         make_unique<ResultCollector>(make_unique<ScanNodeID<true>>(morsel)));
     auto processor = make_unique<QueryProcessor>(10);

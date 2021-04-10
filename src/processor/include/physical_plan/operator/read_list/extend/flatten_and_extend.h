@@ -11,46 +11,48 @@ class FlattenAndExtend : public AdjListExtend {
 public:
     FlattenAndExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, BaseLists* lists,
         unique_ptr<PhysicalOperator> prevOperator)
-        : AdjListExtend{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)} {
-        isOutDataChunkFiltered = IS_OUT_DATACHUNK_FILTERED;
-    };
-
-    bool hasNextMorsel() override {
-        return (inDataChunk->numSelectedValues > 0ul &&
-                   inDataChunk->numSelectedValues > inDataChunk->currPos + 1l) ||
-               handle->hasMoreToRead() || prevOperator->hasNextMorsel();
-    }
+        : AdjListExtend{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)} {};
 
     void getNextTuples() override {
         if (handle->hasMoreToRead()) {
             readValuesFromList();
             outDataChunk->numSelectedValues = outDataChunk->size;
             if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-                auto selector = outDataChunk->selectedValuesPos.get();
-                for (auto i = 0u; i < outDataChunk->size; i++) {
-                    selector[i] = i;
-                }
+                initializeSelector();
             }
             return;
         }
-        if (inDataChunk->numSelectedValues == 0ul ||
-            inDataChunk->numSelectedValues == inDataChunk->currPos + 1ul) {
-            inDataChunk->currPos = -1;
-            prevOperator->getNextTuples();
-            if (inDataChunk->size == 0) {
-                outDataChunk->size = 0;
-                outDataChunk->numSelectedValues = 0;
+        while (true) {
+            if (inDataChunk->numSelectedValues == 0ul ||
+                inDataChunk->numSelectedValues == inDataChunk->currPos + 1ul) {
+                do {
+                    inDataChunk->currPos = -1;
+                    prevOperator->getNextTuples();
+                } while (inDataChunk->size > 0 && inDataChunk->numSelectedValues == 0);
+                if (inDataChunk->size == 0) {
+                    outDataChunk->numSelectedValues = outDataChunk->size = 0;
+                    return;
+                }
+            }
+            do {
+                inDataChunk->currPos++;
+                readValuesFromList();
+            } while (outDataChunk->size == 0 &&
+                     inDataChunk->numSelectedValues > inDataChunk->currPos + 1ul);
+            if (outDataChunk->size > 0) {
+                outDataChunk->numSelectedValues = outDataChunk->size;
+                if constexpr (IS_OUT_DATACHUNK_FILTERED) {
+                    initializeSelector();
+                }
                 return;
             }
         }
-        inDataChunk->currPos++;
-        readValuesFromList();
-        outDataChunk->numSelectedValues = outDataChunk->size;
-        if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-            auto selector = outDataChunk->selectedValuesPos.get();
-            for (auto i = 0u; i < outDataChunk->size; i++) {
-                selector[i] = i;
-            }
+    }
+
+    void initializeSelector() {
+        auto selector = outDataChunk->selectedValuesPos.get();
+        for (auto i = 0u; i < outDataChunk->size; i++) {
+            selector[i] = i;
         }
     }
 

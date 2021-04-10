@@ -14,8 +14,10 @@ ScanColumn::ScanColumn(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColum
 }
 
 void ScanColumn::getNextTuples() {
-    prevOperator->getNextTuples();
-    if (inDataChunk->numSelectedValues > 0) {
+    do {
+        prevOperator->getNextTuples();
+    } while (inDataChunk->size > 0 && inDataChunk->numSelectedValues == 0);
+    if (inDataChunk->size > 0) {
         column->reclaim(handle);
         column->readValues(inNodeIDVector, outValueVector, inDataChunk->size, handle);
     }

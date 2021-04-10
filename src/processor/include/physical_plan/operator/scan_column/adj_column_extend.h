@@ -17,6 +17,9 @@ public:
         return make_unique<AdjColumnExtend>(
             dataChunkPos, valueVectorPos, column, prevOperator->clone());
     }
+
+private:
+    uint64_t prevInDataChunkNumSelectedValues = 0ul;
 };
 
 } // namespace processor

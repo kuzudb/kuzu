@@ -1,6 +1,7 @@
-# description: Basic scan test
+# description: matching nodes
 
 -INPUT dataset/tinysnb/
+-OUTPUT test/unittest_temp/
 -PARALLELISM 1
 
 -NAME PersonNodesTest
