@@ -21,7 +21,7 @@ enum LogicalOperatorType : uint8_t {
 
 const string LogicalOperatorTypeNames[] = {"LOGICAL_NODE_ID_SCAN", "LOGICAL_EXTEND",
     "LOGICAL_FILTER", "LOGICAL_NODE_PROPERTY_SCAN", "LOGICAL_REL_PROPERTY_SCAN",
-    "LOGICAL_HASH_JOIN"};
+    "LOGICAL_HASH_JOIN", "LOGICAL_PROJECTION"};
 
 class LogicalOperator {
 public:

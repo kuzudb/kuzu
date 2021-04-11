@@ -5,37 +5,37 @@
 -PARALLELISM 1
 
 -NAME OneHopKnowsTest
--QUERY MATCH (a:person)-[e:knows]->(b:person)
+-QUERY MATCH (a:person)-[e:knows]->(b:person) RETURN COUNT(*)
 ---- 14
 
 -NAME OneHopStudyAtTest
--QUERY MATCH (a:person)-[e1:studyAt]->(b:organisation)
+-QUERY MATCH (a:person)-[e1:studyAt]->(b:organisation) RETURN COUNT(*)
 ---- 3
 
 -NAME OneHopWorkAtTest
--QUERY MATCH (a:person)-[e1:workAt]->(b:organisation)
+-QUERY MATCH (a:person)-[e1:workAt]->(b:organisation) RETURN COUNT(*)
 ---- 3
 
 -NAME TwoHopKnowsTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) RETURN COUNT(*)
 ---- 36
 
 -NAME TwoHopKnowsStudyAtTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation)
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
 ---- 7
 
 -NAME TwoHopKnowsWorkAtTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:workAt]->(c:organisation)
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
 ---- 6
 
 -NAME ThreeHopKnowsWorkAtKnowsTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN COUNT(*)
 ---- 108
 
 -NAME ThreeHopTwoKnowsOneStudyAtTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:studyAt]->(d:organisation)
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:studyAt]->(d:organisation) RETURN COUNT(*)
 ---- 18
 
 -NAME ThreeHopTwoKnowsOneWorkAtTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:workAt]->(d:organisation)
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:workAt]->(d:organisation) RETURN COUNT(*)
 ---- 18

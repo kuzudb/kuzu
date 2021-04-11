@@ -25,8 +25,9 @@ unique_ptr<SingleQuery> Transformer::transformSinglePartQuery(
     CypherParser::OC_SinglePartQueryContext& ctx) {
     auto singleQuery = make_unique<SingleQuery>();
     for (auto& readingClause : ctx.oC_ReadingClause()) {
-        singleQuery->statements.push_back(transformReadingClause(*readingClause));
+        singleQuery->matchStatements.push_back(transformReadingClause(*readingClause));
     }
+    singleQuery->returnStatement = transformReturn(*ctx.oC_Return());
     return singleQuery;
 }
 
@@ -41,6 +42,24 @@ unique_ptr<MatchStatement> Transformer::transformMatch(CypherParser::OC_MatchCon
         matchStatement->whereClause = transformWhere(*ctx.oC_Where());
     }
     return matchStatement;
+}
+
+unique_ptr<ReturnStatement> Transformer::transformReturn(CypherParser::OC_ReturnContext& ctx) {
+    auto projectionItems = ctx.oC_ProjectionBody()->oC_ProjectionItems();
+    auto expressions = vector<unique_ptr<ParsedExpression>>();
+    for (auto& projectionItem : projectionItems->oC_ProjectionItem()) {
+        expressions.push_back(transformProjectionItem(*projectionItem));
+    }
+    return make_unique<ReturnStatement>(move(expressions), nullptr != projectionItems->STAR());
+}
+
+unique_ptr<ParsedExpression> Transformer::transformProjectionItem(
+    CypherParser::OC_ProjectionItemContext& ctx) {
+    auto expression = transformExpression(*ctx.oC_Expression());
+    if (ctx.AS()) {
+        expression->alias = transformVariable(*ctx.oC_Variable());
+    }
+    return expression;
 }
 
 unique_ptr<ParsedExpression> Transformer::transformWhere(CypherParser::OC_WhereContext& ctx) {
@@ -360,6 +379,8 @@ unique_ptr<ParsedExpression> Transformer::transformPropertyOrLabelsExpression(
 unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_AtomContext& ctx) {
     if (ctx.oC_Literal()) {
         return transformLiteral(*ctx.oC_Literal());
+    } else if (ctx.STAR()) {
+        return make_unique<ParsedExpression>(FUNCTION, "COUNT_STAR", ctx.getText());
     } else if (ctx.oC_ParenthesizedExpression()) {
         return transformParenthesizedExpression(*ctx.oC_ParenthesizedExpression());
     } else if (ctx.oC_FunctionInvocation()) {

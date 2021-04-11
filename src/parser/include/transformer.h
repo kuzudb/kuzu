@@ -31,6 +31,11 @@ private:
 
     unique_ptr<MatchStatement> transformMatch(CypherParser::OC_MatchContext& ctx);
 
+    unique_ptr<ReturnStatement> transformReturn(CypherParser::OC_ReturnContext& ctx);
+
+    unique_ptr<ParsedExpression> transformProjectionItem(
+        CypherParser::OC_ProjectionItemContext& ctx);
+
     unique_ptr<ParsedExpression> transformWhere(CypherParser::OC_WhereContext& ctx);
 
     vector<unique_ptr<PatternElement>> transformPattern(CypherParser::OC_PatternContext& ctx);

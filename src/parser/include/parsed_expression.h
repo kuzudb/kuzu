@@ -25,9 +25,11 @@ public:
         children.push_back(move(right));
     }
 
+    string getName() const { return alias.empty() ? rawExpression : alias; }
+
     // no need to compare rawExpression
     bool operator==(const ParsedExpression& other) {
-        auto result = type == other.type && text == other.text;
+        auto result = type == other.type && text == other.text && alias == other.alias;
         for (auto i = 0ul; i < children.size(); ++i) {
             result &= *children[i] == *other.children[i];
         }
@@ -36,7 +38,9 @@ public:
 
 public:
     ExpressionType type;
+    // variableName, propertyName or functionName
     string text;
+    string alias;
     string rawExpression;
     vector<unique_ptr<ParsedExpression>> children;
 };

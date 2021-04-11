@@ -5,9 +5,9 @@
 -PARALLELISM 1
 
 -NAME PersonNodesTest
--QUERY MATCH (a:person)
+-QUERY MATCH (a:person) RETURN COUNT(*)
 ---- 7
 
 -NAME OrganizationNodesTest
--QUERY MATCH (a:organisation)
+-QUERY MATCH (a:organisation) RETURN COUNT(*)
 ---- 3

@@ -27,7 +27,7 @@ vector<unique_ptr<LogicalPlan>> EmbeddedServer::enumerateLogicalPlans(const stri
     auto singleQuery = parser.parseQuery(query);
     Binder binder(graph->getCatalog());
     auto boundSingleQuery = binder.bindSingleQuery(*singleQuery);
-    Enumerator enumerator(*boundSingleQuery);
+    Enumerator enumerator(graph->getCatalog(), *boundSingleQuery);
     return enumerator.enumeratePlans();
 }
 

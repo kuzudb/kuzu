@@ -5,13 +5,13 @@
 -PARALLELISM 1
 
 -NAME PersonNodesAgeFilteredTest
--QUERY MATCH (a:person) WHERE a.age <= 25
+-QUERY MATCH (a:person) WHERE a.age <= 25 RETURN COUNT(*)
 ---- 3
 
 -NAME PersonNodesIsWorkerFilteredTest
--QUERY MATCH (a:person) WHERE a.isWorker = true
+-QUERY MATCH (a:person) WHERE a.isWorker = true RETURN COUNT(*)
 ---- 3
 
 -NAME OrganisationNodesIsWorkerFilteredTest
--QUERY MATCH (a:organisation) WHERE a.mark >= 3.7
+-QUERY MATCH (a:organisation) WHERE a.mark >= 3.7 RETURN COUNT(*)
 ---- 3
