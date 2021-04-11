@@ -1,9 +1,0 @@
-# description: Basic hash join test
-
--INPUT dataset/tinysnb/
--OUTPUT test/unittest_temp/
--PARALLELISM 1
-
--NAME HashJoinTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)-[e4:knows]->(e:person)
----- 108

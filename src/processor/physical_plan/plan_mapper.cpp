@@ -14,8 +14,7 @@
 #include "src/processor/include/physical_plan/operator/read_list/extend/flatten_and_extend.h"
 #include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
 #include "src/processor/include/physical_plan/operator/scan_column/adj_column_extend.h"
-#include "src/processor/include/physical_plan/operator/scan_column/scan_node_property.h"
-#include "src/processor/include/physical_plan/operator/scan_column/scan_rel_property.h"
+#include "src/processor/include/physical_plan/operator/scan_column/scan_property.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
 #include "src/processor/include/physical_plan/operator/tuple/physical_operator_info.h"
@@ -88,7 +87,7 @@ unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator&
 unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(const LogicalOperator& logicalOperator,
     const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
     auto& scan = (const LogicalScanNodeID&)logicalOperator;
-    auto morsel = make_shared<MorselDesc>(graph.getNumNodes(scan.label));
+    auto morsel = make_shared<MorselsDesc>(graph.getNumNodes(scan.label));
     physicalOperatorInfo.appendAsNewDataChunk(scan.nodeVarName);
     return make_unique<ScanNodeID<true>>(morsel);
 }
@@ -110,7 +109,7 @@ unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& l
     } else {
         physicalOperatorInfo.appendAsNewDataChunk(extend.nbrNodeVarName);
         if (physicalOperatorInfo.dataChunkIsFlatVector[dataChunkPos]) {
-            return make_unique<Extend>(dataChunkPos, valueVectorPos,
+            return make_unique<Extend<true>>(dataChunkPos, valueVectorPos,
                 relsStore.getAdjLists(extend.direction, extend.boundNodeVarLabel, extend.relLabel),
                 move(prevOperator));
         } else {
@@ -148,7 +147,7 @@ unique_ptr<PhysicalOperator> mapLogicalNodePropertyReaderToPhysical(
     auto& nodesStore = graph.getNodesStore();
     physicalOperatorInfo.appendAsNewValueVector(
         scanProperty.nodeVarName + "." + scanProperty.propertyName, dataChunkPos);
-    return make_unique<ScanNodeProperty>(dataChunkPos, valueVectorPos,
+    return make_unique<ScanProperty>(dataChunkPos, valueVectorPos,
         nodesStore.getNodePropertyColumn(scanProperty.nodeLabel, property), move(prevOperator));
 }
 
@@ -170,7 +169,7 @@ unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
     if (catalog.isSingleCaridinalityInDir(scanProperty.relLabel, scanProperty.direction)) {
         auto column = relsStore.getRelPropertyColumn(
             scanProperty.relLabel, scanProperty.boundNodeVarLabel, property);
-        return make_unique<ScanRelProperty>(
+        return make_unique<ScanProperty>(
             inDataChunkPos, inValueVectorPos, column, move(prevOperator));
     } else {
         auto lists = relsStore.getRelPropertyLists(scanProperty.direction,

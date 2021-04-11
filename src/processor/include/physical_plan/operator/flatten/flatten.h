@@ -10,8 +10,6 @@ class Flatten : public PhysicalOperator {
 public:
     Flatten(uint64_t dataChunkToFlattenPos, unique_ptr<PhysicalOperator> prevOperator);
 
-    bool hasNextMorsel() override;
-
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {

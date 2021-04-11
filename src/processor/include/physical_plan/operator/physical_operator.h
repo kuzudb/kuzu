@@ -41,9 +41,6 @@ public:
 
     virtual ~PhysicalOperator() = default;
 
-    virtual bool hasNextMorsel() { return prevOperator->hasNextMorsel(); };
-
-    // Warning: getNextTuples() should only be called if getNextMorsel() returns true.
     virtual void getNextTuples() = 0;
 
     shared_ptr<DataChunks> getDataChunks() { return dataChunks; };

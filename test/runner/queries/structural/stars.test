@@ -1,0 +1,45 @@
+# description: matching stars
+
+-INPUT dataset/tinysnb/
+-OUTPUT test/unittest_temp/
+-PARALLELISM 1
+
+-NAME OpenWedgeKnowsTest
+-QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person)
+---- 40
+
+-NAME OpenWedgeKnowsStudyAtTest
+-QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:studyAt]->(c:organisation)
+---- 6
+
+-NAME OpenWedgeKnowsWorkAtTest
+-QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:workAt]->(c:organisation)
+---- 8
+
+-NAME OpenWedgeKnowsTest
+-QUERY MATCH (b:person)-[e1:knows]->(a:person)<-[e2:knows]-(c:person)
+---- 38
+
+-NAME OpenWedgeStudyAtTest
+-QUERY MATCH (b:organisation)<-[e1:studyAt]-(a:person)-[e2:studyAt]->(c:organisation)
+---- 3
+
+-NAME OpenWedgeWorkAtTest
+-QUERY MATCH (b:organisation)<-[e1:workAt]-(a:person)-[e2:workAt]->(c:organisation)
+---- 3
+
+-NAME OpenWedgeWorkAtTest
+-QUERY MATCH (b:organisation)<-[e1:workAt]-(a:person)-[e2:studyAt]->(c:organisation)
+---- 0
+
+-NAME OpenWedgeKnowsTest
+-QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person),(a)-[e3:knows]->(d:person)
+---- 116
+
+-NAME OpenWedgeKnowsTest
+-QUERY MATCH (b:person)-[e1:knows]->(a:person)<-[e2:knows]-(c:person),(a)<-[e3:knows]-(d:person)
+---- 110
+
+-NAME OpenTwoHopWedgeKnowsTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person),(a:person)-[e3:knows]->(d:person)-[e4:knows]->(e:person)
+---- 324

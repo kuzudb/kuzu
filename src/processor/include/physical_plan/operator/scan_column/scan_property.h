@@ -5,16 +5,16 @@
 namespace graphflow {
 namespace processor {
 
-class ScanNodeProperty : public ScanColumn {
+class ScanProperty : public ScanColumn {
 
 public:
-    ScanNodeProperty(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+    ScanProperty(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
         unique_ptr<PhysicalOperator> prevOperator);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanNodeProperty>(
+        return make_unique<ScanProperty>(
             dataChunkPos, valueVectorPos, column, prevOperator->clone());
     }
 };

@@ -5,7 +5,7 @@
 using namespace graphflow::processor;
 
 TEST(ScanTests, ScanTest) {
-    auto morsel = make_shared<MorselDesc>(1025013 /*numNodes*/);
+    auto morsel = make_shared<MorselsDesc>(1025013 /*numNodes*/);
     auto scan = make_unique<ScanNodeID<true>>(morsel);
     auto dataChunks = scan->getDataChunks();
     auto dataChunk = dataChunks->getDataChunk(0);
@@ -14,7 +14,6 @@ TEST(ScanTests, ScanTest) {
     node_offset_t currNodeOffset = 0;
     auto size = NODE_SEQUENCE_VECTOR_SIZE;
     while (morsel->currNodeOffset < 1025013) {
-        ASSERT_EQ(scan->hasNextMorsel(), true);
         scan->getNextTuples();
         if (morsel->currNodeOffset >= 1025013) {
             size = 1025013 % NODE_SEQUENCE_VECTOR_SIZE;
@@ -28,5 +27,4 @@ TEST(ScanTests, ScanTest) {
         currNodeOffset += NODE_SEQUENCE_VECTOR_SIZE;
     }
     ASSERT_EQ(morsel->currNodeOffset, 1025013);
-    ASSERT_EQ(scan->hasNextMorsel(), false);
 }

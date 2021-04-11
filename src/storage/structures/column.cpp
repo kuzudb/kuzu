@@ -34,16 +34,23 @@ void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& 
     valueVector->reset();
     nodeID_t nodeID;
     auto values = valueVector->getValues();
-    auto selectedValPos = valueVector->getSelectedValuesPos();
-    auto numSelectedValues = valueVector->getNumSelectedValues();
-    auto sizeToCopy = numSelectedValues < size ? numSelectedValues : size;
-    for (uint64_t i = 0; i < sizeToCopy; i++) {
-        nodeIDVector->readNodeOffset(selectedValPos[i], nodeID);
+    if (nodeIDVector->isFlat()) {
+        auto pos = nodeIDVector->getCurrSelectedValuesPos();
+        nodeIDVector->readNodeOffset(pos, nodeID);
         auto pageIdx = getPageIdx(nodeID.offset);
         auto frame = bufferManager.pin(fileHandle, pageIdx);
-        memcpy(values + selectedValPos[i] * elementSize, frame + getPageOffset(nodeID.offset),
-            elementSize);
+        memcpy(values + pos * elementSize, frame + getPageOffset(nodeID.offset), elementSize);
         bufferManager.unpin(fileHandle, pageIdx);
+    } else {
+        auto selectedValPos = valueVector->getSelectedValuesPos();
+        for (uint64_t i = 0; i < valueVector->getNumSelectedValues(); i++) {
+            nodeIDVector->readNodeOffset(selectedValPos[i], nodeID);
+            auto pageIdx = getPageIdx(nodeID.offset);
+            auto frame = bufferManager.pin(fileHandle, pageIdx);
+            memcpy(values + selectedValPos[i] * elementSize, frame + getPageOffset(nodeID.offset),
+                elementSize);
+            bufferManager.unpin(fileHandle, pageIdx);
+        }
     }
 }
 

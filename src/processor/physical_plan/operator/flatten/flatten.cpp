@@ -9,12 +9,6 @@ Flatten::Flatten(uint64_t dataChunkPos, unique_ptr<PhysicalOperator> prevOperato
     dataChunkToFlatten = dataChunks->getDataChunk(dataChunkPos);
 }
 
-bool Flatten::hasNextMorsel() {
-    return (dataChunkToFlatten->size > 0ul &&
-               dataChunkToFlatten->size > dataChunkToFlatten->currPos + 1l) ||
-           prevOperator->hasNextMorsel();
-}
-
 void Flatten::getNextTuples() {
     if (dataChunkToFlatten->size == 0ul ||
         dataChunkToFlatten->size == dataChunkToFlatten->currPos + 1ul) {
