@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "src/planner/include/logical_plan/operator/logical_operator.h"
 
 namespace graphflow {
@@ -8,24 +10,25 @@ namespace planner {
 class Schema {
 
 public:
-    void addOperator(const string& varName, LogicalOperator* logicalOperator) {
-        varNameOperatorMap.insert({varName, logicalOperator});
+    Schema() = default;
+
+    explicit Schema(unordered_map<string, LogicalOperator*> nameOperatorMap)
+        : nameOperatorMap{move(nameOperatorMap)} {}
+
+    void addOperator(const string& name, LogicalOperator* op) {
+        nameOperatorMap.insert({name, op});
     }
 
-    bool containsOperator(const string& varName) {
-        return end(varNameOperatorMap) != varNameOperatorMap.find(varName);
+    bool containsName(const string& name) {
+        return end(nameOperatorMap) != nameOperatorMap.find(name);
     }
 
-    LogicalOperator* getOperator(const string& varName) { return varNameOperatorMap.at(varName); }
+    LogicalOperator* getOperator(const string& name) { return nameOperatorMap.at(name); }
 
-    unique_ptr<Schema> copy() {
-        auto newSchema = make_unique<Schema>();
-        newSchema->varNameOperatorMap = varNameOperatorMap;
-        return newSchema;
-    }
+    unique_ptr<Schema> copy() { return make_unique<Schema>(nameOperatorMap); }
 
 public:
-    unordered_map<string, LogicalOperator*> varNameOperatorMap;
+    unordered_map<string, LogicalOperator*> nameOperatorMap;
 };
 
 } // namespace planner

@@ -9,14 +9,18 @@ namespace planner {
 class LogicalPlan {
 
 public:
-    LogicalPlan(shared_ptr<LogicalOperator> lastOperator) : lastOperator{lastOperator} {}
+    LogicalPlan() { schema = make_unique<Schema>(); }
 
     LogicalPlan(shared_ptr<LogicalOperator> lastOperator, unique_ptr<Schema> schema)
         : lastOperator{lastOperator}, schema{move(schema)} {}
 
-    LogicalPlan(const string& path);
-
     const LogicalOperator& getLastOperator() { return *lastOperator; }
+
+    void appendOperator(shared_ptr<LogicalOperator> op) { lastOperator = op; }
+
+    unique_ptr<LogicalPlan> copy() {
+        return make_unique<LogicalPlan>(lastOperator, schema->copy());
+    }
 
 public:
     shared_ptr<LogicalOperator> lastOperator;
