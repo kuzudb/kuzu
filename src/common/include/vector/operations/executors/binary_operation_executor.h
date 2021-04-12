@@ -32,6 +32,7 @@ struct BinaryOperationExecutor {
             auto lPos = left.getCurrSelectedValuesPos();
             auto lValue = lValues[lPos];
             auto isLeftNull = leftNullMask[lPos];
+            // right and result vectors share the same selectedValuesPos.
             auto selectedValuesPos = right.getSelectedValuesPos();
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
@@ -45,6 +46,7 @@ struct BinaryOperationExecutor {
             auto rPos = right.getCurrSelectedValuesPos();
             auto rValue = rValues[rPos];
             auto isRightNull = rightNullMask[rPos];
+            // left and result vectors share the same selectedValuesPos.
             auto selectedValuesPos = left.getSelectedValuesPos();
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
@@ -55,6 +57,7 @@ struct BinaryOperationExecutor {
             }
         } else {
             size = left.getNumSelectedValues();
+            // right, left, and result vectors share the same selectedValuesPos.
             auto selectedValuesPos = left.getSelectedValuesPos();
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
@@ -90,6 +93,7 @@ struct BinaryOperationExecutor {
             auto lPos = left.getCurrSelectedValuesPos();
             auto lValue = lValues[lPos];
             auto isLeftNull = leftNullMask[lPos];
+            // right and result vectors share the same selectedValuesPos.
             auto selectedValuesPos = right.getSelectedValuesPos();
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
@@ -102,6 +106,7 @@ struct BinaryOperationExecutor {
             auto rPos = right.getCurrSelectedValuesPos();
             auto rValue = rValues[rPos];
             auto isRightNull = rightNullMask[rPos];
+            // left and result vectors share the same selectedValuesPos.
             auto selectedValuesPos = left.getSelectedValuesPos();
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
@@ -111,6 +116,7 @@ struct BinaryOperationExecutor {
             }
         } else {
             size = left.getNumSelectedValues();
+            // right, left, and result vectors share the same selectedValuesPos.
             auto selectedValuesPos = left.getSelectedValuesPos();
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
@@ -143,6 +149,7 @@ struct BinaryOperationExecutor {
         } else if (left.isFlat()) {
             size = right.size();
             auto lNullMask = leftNullMask[left.getCurrPos()];
+            // right and result vectors share the same selectedValuesPos.
             auto selectedValuesPos = right.getSelectedValuesPos();
             left.readNodeOffsetAndLabel(left.getCurrSelectedValuesPos(), lNodeID);
             for (uint64_t i = 0; i < size; i++) {
@@ -156,6 +163,7 @@ struct BinaryOperationExecutor {
         } else if (right.isFlat()) {
             size = left.size();
             auto rNullMask = leftNullMask[left.getCurrPos()];
+            // left and result vectors share the same selectedValuesPos.
             auto selectedValuesPos = left.getSelectedValuesPos();
             right.readNodeOffsetAndLabel(right.getCurrSelectedValuesPos(), rNodeID);
             for (uint64_t i = 0; i < size; i++) {
@@ -169,6 +177,7 @@ struct BinaryOperationExecutor {
             result.owner->numSelectedValues = size;
         } else {
             size = left.size();
+            // right, left, and result vectors share the same selectedValuesPos.
             auto selectedValuesPos = left.getSelectedValuesPos();
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
