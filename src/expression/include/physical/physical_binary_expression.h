@@ -16,9 +16,6 @@ public:
 
     void evaluate() override;
 
-public:
-    ExpressionType expressionType;
-
 private:
     function<void(ValueVector&, ValueVector&, ValueVector&)> operation;
 };

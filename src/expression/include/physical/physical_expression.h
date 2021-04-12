@@ -13,13 +13,14 @@ class PhysicalExpression {
 
 public:
     // Creates a leaf literal as value vector physical expression.
-    PhysicalExpression(shared_ptr<ValueVector> result)
-        : PhysicalExpression(result, ULONG_MAX, ULONG_MAX){};
+    PhysicalExpression(shared_ptr<ValueVector> result, ExpressionType expressionType)
+        : PhysicalExpression(result, ULONG_MAX, ULONG_MAX, expressionType){};
 
     // Creates a leaf variable value vector physical expression.
-    PhysicalExpression(
-        shared_ptr<ValueVector> result, uint64_t dataChunkPos, uint64_t valueVectorPos)
-        : result{result}, dataChunkPos{dataChunkPos}, valueVectorPos{valueVectorPos} {};
+    PhysicalExpression(shared_ptr<ValueVector> result, uint64_t dataChunkPos,
+        uint64_t valueVectorPos, ExpressionType expressionType)
+        : result{result}, dataChunkPos{dataChunkPos}, valueVectorPos{valueVectorPos},
+          expressionType{expressionType} {};
 
     virtual void evaluate(){};
 

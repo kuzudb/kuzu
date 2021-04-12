@@ -1,0 +1,17 @@
+# description: matching nodes
+
+-INPUT dataset/tinysnb/
+-OUTPUT test/unittest_temp/
+-PARALLELISM 1
+
+-NAME PersonNodesAgeFilteredTest
+-QUERY MATCH (a:person) WHERE a.age <= 25
+---- 3
+
+-NAME PersonNodesIsWorkerFilteredTest
+-QUERY MATCH (a:person) WHERE a.isWorker = true
+---- 3
+
+-NAME OrganisationNodesIsWorkerFilteredTest
+-QUERY MATCH (a:organisation) WHERE a.mark >= 3.7
+---- 3
