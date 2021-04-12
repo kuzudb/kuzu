@@ -13,7 +13,9 @@ Filter::Filter(unique_ptr<PhysicalExpression> rootExpr, uint64_t dataChunkToSele
 }
 
 void Filter::getNextTuples() {
-    prevOperator->getNextTuples();
+    do {
+        prevOperator->getNextTuples();
+    } while (dataChunkToSelect->size > 0 && dataChunkToSelect->numSelectedValues == 0);
     if (dataChunkToSelect->numSelectedValues > 0) {
         rootExpr->evaluate();
         auto sizeFiltered = dataChunkToSelect->numSelectedValues;
@@ -26,6 +28,12 @@ void Filter::getNextTuples() {
         }
         dataChunkToSelect->numSelectedValues = pos;
     }
+}
+
+unique_ptr<PhysicalOperator> Filter::clone() {
+    auto prevOperatorClone = prevOperator->clone();
+    auto rootExprClone = ExpressionMapper::clone(*rootExpr, *prevOperatorClone->getDataChunks());
+    return make_unique<Filter>(move(rootExprClone), dataChunkToSelectPos, move(prevOperatorClone));
 }
 
 } // namespace processor

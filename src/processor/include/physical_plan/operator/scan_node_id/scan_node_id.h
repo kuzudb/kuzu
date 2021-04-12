@@ -18,7 +18,6 @@ public:
         outDataChunk->append(nodeIDVector);
         nodeIDVector->setDataChunkOwner(outDataChunk);
         dataChunks->append(outDataChunk);
-        isOutDataChunkFiltered = IS_OUT_DATACHUNK_FILTERED;
     }
 
     void getNextTuples() override {

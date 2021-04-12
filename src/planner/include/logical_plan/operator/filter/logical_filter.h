@@ -23,7 +23,7 @@ public:
 
     const LogicalExpression& getRootLogicalExpression() const { return *rootExpr; }
 
-    string getOperatorInformation() const override { return ""; }
+    string getOperatorInformation() const override { return rootExpr->getRawExpression(); }
 
 public:
     shared_ptr<LogicalExpression> rootExpr;

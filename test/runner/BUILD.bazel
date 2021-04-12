@@ -22,6 +22,8 @@ cc_test(
 filegroup(
     name = "testfiles",
     srcs = [
+        "queries/filtered/nodes.test",
+        "queries/filtered/paths.test",
         "queries/structural/nodes.test",
         "queries/structural/paths.test",
         "queries/structural/stars.test",

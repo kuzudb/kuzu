@@ -17,10 +17,7 @@ public:
 
     void getNextTuples() override;
 
-    unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Filter>(ExpressionMapper::clone(*rootExpr, *dataChunks),
-            dataChunkToSelectPos, prevOperator->clone());
-    }
+    unique_ptr<PhysicalOperator> clone() override;
 
 protected:
     unique_ptr<PhysicalExpression> rootExpr;

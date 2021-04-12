@@ -41,12 +41,12 @@ unique_ptr<PhysicalExpression> ExpressionMapper::mapToPhysical(const LogicalExpr
 unique_ptr<PhysicalExpression> ExpressionMapper::clone(
     const PhysicalExpression& expression, DataChunks& dataChunks) {
     if (expression.isLiteralLeafExpression()) {
-        return make_unique<PhysicalExpression>(expression.result);
+        return make_unique<PhysicalExpression>(expression.result, expression.expressionType);
     } else if (expression.isPropertyLeafExpression()) {
         auto dataChunk = dataChunks.getDataChunk(expression.dataChunkPos);
         auto valueVector = dataChunk->getValueVector(expression.valueVectorPos);
-        return make_unique<PhysicalExpression>(
-            valueVector, expression.dataChunkPos, expression.valueVectorPos);
+        return make_unique<PhysicalExpression>(valueVector, expression.dataChunkPos,
+            expression.valueVectorPos, expression.expressionType);
     } else if (expression.getNumChildrenExpr() == 1) { // unary expression.
         return make_unique<PhysicalUnaryExpression>(
             clone(expression.getChildExpr(0), dataChunks), expression.expressionType);
@@ -78,18 +78,19 @@ unique_ptr<PhysicalExpression> mapLogicalLiteralExpressionToPhysical(
     default:
         throw std::invalid_argument("Unsupported data type for literal expressions.");
     }
-    return make_unique<PhysicalExpression>(valueVector);
+    return make_unique<PhysicalExpression>(valueVector, expression.expressionType);
 }
 
 unique_ptr<PhysicalExpression> mapLogicalPropertyExpressionToPhysical(
     const LogicalExpression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
     DataChunks& dataChunks) {
-    auto variableName = expression.getVariableName();
+    const auto& variableName = expression.getVariableName();
     auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(variableName);
     auto dataChunk = dataChunks.getDataChunk(dataChunkPos);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(variableName);
     auto valueVector = dataChunk->getValueVector(valueVectorPos);
-    return make_unique<PhysicalExpression>(valueVector, dataChunkPos, valueVectorPos);
+    return make_unique<PhysicalExpression>(
+        valueVector, dataChunkPos, valueVectorPos, expression.expressionType);
 }
 
 } // namespace processor
