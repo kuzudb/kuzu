@@ -18,17 +18,11 @@ public:
     LogicalExtend(const QueryRel& queryRel, const Direction& direction,
         shared_ptr<LogicalOperator> prevOperator)
         : LogicalOperator{prevOperator}, direction{direction} {
-        if (FWD == direction) {
-            boundNodeVarName = queryRel.getSrcNodeName();
-            boundNodeVarLabel = queryRel.srcNode->label;
-            nbrNodeVarName = queryRel.getDstNodeName();
-            nbrNodeVarLabel = queryRel.dstNode->label;
-        } else {
-            boundNodeVarName = queryRel.getDstNodeName();
-            boundNodeVarLabel = queryRel.dstNode->label;
-            nbrNodeVarName = queryRel.getSrcNodeName();
-            nbrNodeVarLabel = queryRel.srcNode->label;
-        }
+        auto isFwd = FWD == direction;
+        boundNodeVarName = isFwd ? queryRel.getSrcNodeName() : queryRel.getDstNodeName();
+        boundNodeVarLabel = isFwd ? queryRel.srcNode->label : queryRel.dstNode->label;
+        nbrNodeVarName = isFwd ? queryRel.getDstNodeName() : queryRel.getSrcNodeName();
+        nbrNodeVarLabel = isFwd ? queryRel.dstNode->label : queryRel.srcNode->label;
         relLabel = queryRel.label;
     }
 
