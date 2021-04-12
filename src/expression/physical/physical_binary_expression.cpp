@@ -21,5 +21,11 @@ void PhysicalBinaryExpression::evaluate() {
     operation(*operands[0], *operands[1], *result);
 }
 
+void PhysicalBinaryExpression::setExpressionResultOwners(shared_ptr<DataChunk> dataChunk) {
+    result->setDataChunkOwner(dataChunk);
+    childrenExpr[0]->setExpressionResultOwners(dataChunk);
+    childrenExpr[1]->setExpressionResultOwners(dataChunk);
+}
+
 } // namespace expression
 } // namespace graphflow

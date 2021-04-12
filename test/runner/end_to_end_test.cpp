@@ -28,3 +28,8 @@ TEST(ProcessorTest, FilteredPathQueries) {
     TestHelper testHelper;
     ASSERT_TRUE(testHelper.runTest("test/runner/queries/filtered/paths.test"));
 }
+
+TEST(ProcessorTest, FilteredStarQueries) {
+    TestHelper testHelper;
+    ASSERT_TRUE(testHelper.runTest("test/runner/queries/filtered/stars.test"));
+}

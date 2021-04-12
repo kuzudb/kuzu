@@ -18,5 +18,10 @@ void PhysicalUnaryExpression::evaluate() {
     operation(*operands[0], *result);
 }
 
+void PhysicalUnaryExpression::setExpressionResultOwners(shared_ptr<DataChunk> dataChunk) {
+    result->setDataChunkOwner(dataChunk);
+    childrenExpr[0]->setExpressionResultOwners(dataChunk);
+}
+
 } // namespace expression
 } // namespace graphflow
