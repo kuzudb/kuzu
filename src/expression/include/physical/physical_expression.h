@@ -26,6 +26,8 @@ public:
 
     bool isResultFlat();
 
+    virtual void setExpressionResultOwners(shared_ptr<DataChunk> dataChunk) {}
+
     shared_ptr<ValueVector> createResultValueVector(DataType dataType);
 
     uint32_t getNumChildrenExpr() const { return childrenExpr.size(); }

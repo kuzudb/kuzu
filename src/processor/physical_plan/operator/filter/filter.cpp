@@ -9,25 +9,30 @@ Filter::Filter(unique_ptr<PhysicalExpression> rootExpr, uint64_t dataChunkToSele
       dataChunkToSelectPos(dataChunkToSelectPos) {
     dataChunks = this->prevOperator->getDataChunks();
     dataChunkToSelect = dataChunks->getDataChunk(dataChunkToSelectPos);
+    this->rootExpr->setExpressionResultOwners(dataChunkToSelect);
     exprResult = this->rootExpr->result->getValues();
 }
 
 void Filter::getNextTuples() {
     do {
         prevOperator->getNextTuples();
-    } while (dataChunkToSelect->size > 0 && dataChunkToSelect->numSelectedValues == 0);
-    if (dataChunkToSelect->numSelectedValues > 0) {
-        rootExpr->evaluate();
-        auto sizeFiltered = dataChunkToSelect->numSelectedValues;
-        auto pos = 0;
-        for (auto i = 0ul; i < sizeFiltered; i++) {
-            if (exprResult[i] == TRUE) {
-                dataChunkToSelect->selectedValuesPos[pos++] =
-                    dataChunkToSelect->selectedValuesPos[i];
+        if (dataChunkToSelect->numSelectedValues > 0) {
+            if (dataChunkToSelect->isFlat()) {
+                // not currently used due to the enumerator filter push down.
+            } else {
+                rootExpr->evaluate();
+                auto sizeFiltered = dataChunkToSelect->numSelectedValues;
+                auto writePos = 0;
+                for (auto i = 0ul; i < sizeFiltered; i++) {
+                    auto pos = dataChunkToSelect->selectedValuesPos[i];
+                    if (exprResult[pos] == TRUE) {
+                        dataChunkToSelect->selectedValuesPos[writePos++] = pos;
+                    }
+                }
+                dataChunkToSelect->numSelectedValues = writePos;
             }
         }
-        dataChunkToSelect->numSelectedValues = pos;
-    }
+    } while (dataChunkToSelect->size > 0 && dataChunkToSelect->numSelectedValues == 0);
 }
 
 unique_ptr<PhysicalOperator> Filter::clone() {

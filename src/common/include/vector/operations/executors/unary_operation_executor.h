@@ -18,9 +18,9 @@ struct UnaryOperationExecutor {
         uint64_t size;
         if (operand.isFlat()) {
             auto pos = operand.owner->getCurrSelectedValuesPos();
-            resultNullMask[0] = nullMask[pos];
-            if (!resultNullMask[0]) { // not NULL.
-                resultValues[0] = FUNC::operation(values[pos]);
+            resultNullMask[pos] = nullMask[pos];
+            if (!resultNullMask[pos]) { // not NULL.
+                resultValues[pos] = FUNC::operation(values[pos]);
             }
             size = 1;
         } else {
@@ -28,9 +28,9 @@ struct UnaryOperationExecutor {
             size = operand.getNumSelectedValues();
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
-                resultNullMask[i] = nullMask[pos];
-                if (!resultNullMask[i]) { // not NULL.
-                    resultValues[i] = FUNC::operation(values[pos]);
+                resultNullMask[pos] = nullMask[pos];
+                if (!resultNullMask[pos]) { // not NULL.
+                    resultValues[pos] = FUNC::operation(values[pos]);
                 }
             }
         }
@@ -46,16 +46,16 @@ struct UnaryOperationExecutor {
         uint64_t size;
         if (operand.isFlat()) {
             auto pos = operand.owner->getCurrSelectedValuesPos();
-            resultValues[0] = FUNC::operation(values[pos], nullMask[pos]);
-            resultNullMask[0] = resultValues[0] == NULL_BOOL;
+            resultValues[pos] = FUNC::operation(values[pos], nullMask[pos]);
+            resultNullMask[pos] = resultValues[pos] == NULL_BOOL;
             size = 1;
         } else {
             auto selectedValuesPos = operand.getSelectedValuesPos();
             size = operand.getNumSelectedValues();
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
-                resultValues[i] = FUNC::operation(values[pos], nullMask[pos]);
-                resultNullMask[i] = resultValues[i] == NULL_BOOL;
+                resultValues[pos] = FUNC::operation(values[pos], nullMask[pos]);
+                resultNullMask[pos] = resultValues[pos] == NULL_BOOL;
             }
         }
         result.owner->numSelectedValues = size;
@@ -71,8 +71,8 @@ struct UnaryOperationExecutor {
         if (operand.isFlat()) {
             auto pos = operand.owner->getCurrSelectedValuesPos();
             operand.readNodeOffsetAndLabel(pos, nodeID);
-            resultValues[0] = FUNC::operation(nodeID);
-            resultNullMask[0] = nullMask[0];
+            resultValues[pos] = FUNC::operation(nodeID);
+            resultNullMask[pos] = nullMask[pos];
             size = 1;
         } else {
             auto selectedValuesPos = operand.getSelectedValuesPos();
@@ -80,8 +80,8 @@ struct UnaryOperationExecutor {
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
                 operand.readNodeOffsetAndLabel(pos, nodeID);
-                resultValues[i] = FUNC::operation(nodeID);
-                resultNullMask[i] = nullMask[i];
+                resultValues[pos] = FUNC::operation(nodeID);
+                resultNullMask[pos] = nullMask[pos];
             }
         }
         result.owner->numSelectedValues = size;
@@ -94,14 +94,14 @@ struct UnaryOperationExecutor {
         uint64_t size;
         if (operand.isFlat()) {
             auto pos = operand.owner->getCurrSelectedValuesPos();
-            resultValues[0] = nullMask[pos] == value;
+            resultValues[pos] = nullMask[pos] == value;
             size = 1;
         } else {
             auto selectedValuesPos = operand.getSelectedValuesPos();
             size = operand.getNumSelectedValues();
             for (uint64_t i = 0; i < size; i++) {
                 auto pos = selectedValuesPos[i];
-                resultValues[i] = nullMask[pos] == value;
+                resultValues[pos] = nullMask[pos] == value;
             }
         }
         result.owner->numSelectedValues = size;

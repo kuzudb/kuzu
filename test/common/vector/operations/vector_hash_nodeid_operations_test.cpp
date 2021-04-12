@@ -36,7 +36,8 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
     dataChunk->currPos = 8;
     hashNodeIDOp(nodeVector, result);
     auto expected = operation::murmurhash64(8 * 10 + 1) ^ operation::murmurhash64(100);
-    ASSERT_EQ(resultData[0], expected);
+    auto pos = result.getCurrSelectedValuesPos();
+    ASSERT_EQ(resultData[pos], expected);
 }
 
 TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
@@ -64,5 +65,6 @@ TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
     dataChunk->currPos = 8;
     hashNodeIDOp(nodeVector, result);
     auto expected = operation::murmurhash64(10 + 8) ^ operation::murmurhash64(100);
-    ASSERT_EQ(resultData[0], expected);
+    auto pos = result.getCurrSelectedValuesPos();
+    ASSERT_EQ(resultData[pos], expected);
 }

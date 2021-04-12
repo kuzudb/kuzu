@@ -1,0 +1,9 @@
+# description: matching stars
+
+-INPUT dataset/tinysnb/
+-OUTPUT test/unittest_temp/
+-PARALLELISM 1
+
+-NAME TwoHopKnowsFilteredTest
+-MATCH (a:person)-[e1:knows]->(b:person), (a:person)-[e2:knows]->(c:person) WHERE e1.date = e2.date
+---- 24
