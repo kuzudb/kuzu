@@ -48,7 +48,7 @@ public:
     virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID) override;
     virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) override;
 
-    void discardNulls();
+    bool discardNulls();
 
 protected:
     NodeIDVector(const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isSequence,

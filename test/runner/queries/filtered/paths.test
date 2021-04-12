@@ -4,6 +4,6 @@
 -OUTPUT test/unittest_temp/
 -PARALLELISM 1
 
--NAME OneHopKnowsTest
+-NAME OneHopKnowsFilteredTest
 -QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE a.gender = 1 AND b.gender = 2
 ---- 6
