@@ -14,12 +14,14 @@ AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos,
 }
 
 void AdjColumnExtend::getNextTuples() {
+    bool hasAtLeastOneNonNullValue;
     do {
         inDataChunk->numSelectedValues = prevInDataChunkNumSelectedValues;
         ScanColumn::getNextTuples();
         prevInDataChunkNumSelectedValues = inDataChunk->numSelectedValues;
-        static_pointer_cast<NodeIDVector>(outValueVector)->discardNulls();
-    } while (inDataChunk->size > 0 && inDataChunk->numSelectedValues == 0);
+        hasAtLeastOneNonNullValue =
+            static_pointer_cast<NodeIDVector>(outValueVector)->discardNulls();
+    } while (inDataChunk->size > 0 && !hasAtLeastOneNonNullValue);
 }
 
 } // namespace processor

@@ -19,9 +19,9 @@ void NodeIDVector::readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) {
     nodeID.offset = *(node_offset_t*)(readOffset + nodeIDCompressionScheme.getNumBytesForLabel());
 }
 
-void NodeIDVector::discardNulls() {
-    node_offset_t nullOffset = nodeIDCompressionScheme.getNodeOffsetNullValue();
-    nodeID_t nodeID;
+bool NodeIDVector::discardNulls() {
+    auto nullOffset = nodeIDCompressionScheme.getNodeOffsetNullValue();
+    nodeID_t nodeID{};
     if (owner->currPos == -1) {
         auto selectedPos = 0u;
         for (auto j = 0u; j < owner->numSelectedValues; j++) {
@@ -31,10 +31,10 @@ void NodeIDVector::discardNulls() {
             }
         }
         owner->numSelectedValues = selectedPos;
+        return owner->numSelectedValues > 0;
     } else {
-        auto selectedPos = getCurrSelectedValuesPos();
-        readNodeOffset(selectedPos, nodeID);
-        owner->numSelectedValues = nodeID.offset != nullOffset;
+        readNodeOffset(getCurrSelectedValuesPos(), nodeID);
+        return nodeID.offset != nullOffset;
     }
 }
 
