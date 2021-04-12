@@ -8,7 +8,7 @@ namespace processor {
 class AdjListExtend : public ReadList {
 
 public:
-    AdjListExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, BaseLists* lists,
+    AdjListExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, AdjLists* lists,
         unique_ptr<PhysicalOperator> prevOperator);
 };
 

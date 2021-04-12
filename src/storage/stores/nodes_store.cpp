@@ -9,6 +9,14 @@ NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesP
     const string& directory, BufferManager& bufferManager)
     : logger{spdlog::get("storage")} {
     logger->info("Initializing NodesStore.");
+    initPropertyColumns(catalog, numNodesPerLabel, directory, bufferManager);
+    initUnstrPropertyLists(catalog, directory, bufferManager);
+    logger->info("Done NodesStore.");
+}
+
+void NodesStore::initPropertyColumns(const Catalog& catalog,
+    const vector<uint64_t>& numNodesPerLabel, const string& directory,
+    BufferManager& bufferManager) {
     propertyColumns.resize(catalog.getNodeLabelsCount());
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
         auto& propertyMap = catalog.getPropertyMapForNodeLabel(nodeLabel);
@@ -40,7 +48,18 @@ NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesP
             }
         }
     }
-    logger->info("Done.");
+}
+
+void NodesStore::initUnstrPropertyLists(
+    const Catalog& catalog, const string& directory, BufferManager& bufferManager) {
+    unstrPropertyLists.resize(catalog.getNodeLabelsCount());
+    for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
+        if (catalog.getUnstrPropertyMapForNodeLabel(nodeLabel).size() > 0) {
+            auto fname = getNodeUnstrPropertyListsFname(directory, nodeLabel);
+            unstrPropertyLists[nodeLabel] =
+                make_unique<UnstructuredPropertyLists>(fname, bufferManager);
+        }
+    }
 }
 
 } // namespace storage

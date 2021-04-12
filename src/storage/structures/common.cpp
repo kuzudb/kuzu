@@ -28,9 +28,9 @@ bool ColumnOrListsHandle::hasMoreToRead() {
     }
 }
 
-BaseColumnOrLists::BaseColumnOrLists(
-    const string& fname, const size_t& elementSize, BufferManager& bufferManager)
-    : logger{spdlog::get("storage")}, elementSize{elementSize},
+BaseColumnOrLists::BaseColumnOrLists(const string& fname, const DataType& dataType,
+    const size_t& elementSize, BufferManager& bufferManager)
+    : logger{spdlog::get("storage")}, dataType{dataType}, elementSize{elementSize},
       numElementsPerPage{(uint32_t)(PAGE_SIZE / elementSize)}, fileHandle{fname},
       bufferManager(bufferManager){};
 

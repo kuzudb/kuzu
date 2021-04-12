@@ -17,9 +17,10 @@ public:
         uint32_t maxElementsToRead);
 
 protected:
-    BaseLists(const string& fname, size_t elementSize, shared_ptr<ListHeaders> headers,
-        BufferManager& bufferManager)
-        : BaseColumnOrLists{fname, elementSize, bufferManager}, metadata{fname}, headers(headers){};
+    BaseLists(const string& fname, const DataType& dataType, const size_t& elementSize,
+        shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
+        : BaseColumnOrLists{fname, dataType, elementSize, bufferManager}, metadata{fname},
+          headers{headers} {};
 
     virtual void readFromLargeList(const nodeID_t& nodeID,
         const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
@@ -36,25 +37,23 @@ protected:
     shared_ptr<ListHeaders> headers;
 };
 
-// Lists<T> is the implementation of BaseLists for Lists of a specific datatype T.
-template<typename T>
+// Lists<D> is the implementation of BaseLists for Lists of a specific datatype D.
+template<DataType D>
 class Lists : public BaseLists {
 
 public:
     Lists(const string& fname, shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
-        : BaseLists{fname, sizeof(T), headers, bufferManager} {};
-
-    DataType getDataType() override;
+        : BaseLists{fname, D, getDataTypeSize(D), headers, bufferManager} {};
 };
 
-// Lists<nodeID_t> is the specialization of Lists<T> for lists of nodeIDs.
+// Lists<NODE> is the specialization of Lists<D> for lists of nodeIDs.
 template<>
-class Lists<nodeID_t> : public BaseLists {
+class Lists<NODE> : public BaseLists {
 
 public:
     Lists(const string& fname, BufferManager& bufferManager,
         NodeIDCompressionScheme nodeIDCompressionScheme)
-        : BaseLists{fname, nodeIDCompressionScheme.getNumTotalBytes(),
+        : BaseLists{fname, NODE, nodeIDCompressionScheme.getNumTotalBytes(),
               make_shared<ListHeaders>(fname), bufferManager},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
@@ -66,29 +65,34 @@ public:
 
     shared_ptr<ListHeaders> getHeaders() { return headers; };
 
-    DataType getDataType() override { return NODE; }
-
 private:
     NodeIDCompressionScheme nodeIDCompressionScheme;
 };
 
+// Lists<UNKNOWN> is the specialization of Lists<D> for Node's unstructured PropertyLists. Though is
+// shares the identical representation as BaseLists, it is more aligned to Columns in terms of
+// access. In particular, readValues(...) of Lists<UNKNOWN> is given a NodeVector as input, similar
+// to readValues() in Columns. For each node in NodeVector, unstructured property list of that node
+// is read and the reqired property alongwith its dataType is copied to a specialized UNKNOWN-typed
+// ValueVector.
 template<>
-DataType Lists<int32_t>::getDataType();
+class Lists<UNKNOWN> : public BaseLists {
 
-template<>
-DataType Lists<double_t>::getDataType();
+public:
+    Lists(const string& fname, BufferManager& bufferManager)
+        : BaseLists{fname, UNKNOWN, 1, make_shared<ListHeaders>(fname), bufferManager} {};
 
-template<>
-DataType Lists<uint8_t>::getDataType();
+    // readValues is overloaded. Lists<UNKNOWN> is not supposed to use the one defined in BaseLists.
+    void readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
+        uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle);
+};
 
-template<>
-DataType Lists<gf_string_t>::getDataType();
-
-typedef Lists<int32_t> RelPropertyListsInt;
-typedef Lists<double_t> RelPropertyListsDouble;
-typedef Lists<uint8_t> RelPropertyListsBool;
-typedef Lists<gf_string_t> RelPropertyListsString;
-typedef Lists<nodeID_t> AdjLists;
+typedef Lists<INT32> RelPropertyListsInt;
+typedef Lists<DOUBLE> RelPropertyListsDouble;
+typedef Lists<BOOL> RelPropertyListsBool;
+typedef Lists<STRING> RelPropertyListsString;
+typedef Lists<NODE> AdjLists;
+typedef Lists<UNKNOWN> UnstructuredPropertyLists;
 
 } // namespace storage
 } // namespace graphflow

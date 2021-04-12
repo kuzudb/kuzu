@@ -11,6 +11,7 @@ using namespace std;
 namespace graphflow {
 namespace storage {
 
+// RelsStore stores adjacent rels of a node as well as the properties of rels in the system.
 class RelsStore {
 
 public:
