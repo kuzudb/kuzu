@@ -9,13 +9,13 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-//! ListSyncState holds the data that is required to synchronize reading from multiple Lists that
-//! have related data and hence share same AdjListHeaders. The Lists that share a single copy of
-//! AdjListHeaders are - a single-directional edges of a rel label and edges' properties. For the
-//! case of reading from a large list, we do not / cannot read the entire list in a single
-//! operation since it can be very big, hence we read in batches from a definite start point to an
-//! end point. List Sync holds this information and helps in co-ordinating all related lists so
-//! that all of them read the correct portion of data.
+// ListSyncState holds the data that is required to synchronize reading from multiple Lists that
+// have related data and hence share same AdjListHeaders. The Lists that share a single copy of
+// AdjListHeaders are - a single-directional edges of a rel label and edges' properties. For the
+// case of reading from a large list, we do not / cannot read the entire list in a single
+// operation since it can be very big, hence we read in batches from a definite start point to an
+// end point. List Sync holds this information and helps in co-ordinating all related lists so
+// that all of them read the correct portion of data.
 class ListSyncState {
 
 public:
@@ -106,10 +106,11 @@ class BaseColumnOrLists {
 public:
     void reclaim(const unique_ptr<ColumnOrListsHandle>& handle);
 
-    virtual DataType getDataType() = 0;
+    DataType getDataType() { return dataType; }
 
 protected:
-    BaseColumnOrLists(const string& fname, const size_t& elementSize, BufferManager& bufferManager);
+    BaseColumnOrLists(const string& fname, const DataType& dataType, const size_t& elementSize,
+        BufferManager& bufferManager);
 
     virtual ~BaseColumnOrLists() = default;
 
@@ -128,6 +129,7 @@ protected:
 
 protected:
     shared_ptr<spdlog::logger> logger;
+    DataType dataType;
     size_t elementSize;
     uint32_t numElementsPerPage;
     FileHandle fileHandle;

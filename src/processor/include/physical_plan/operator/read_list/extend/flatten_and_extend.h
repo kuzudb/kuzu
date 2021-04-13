@@ -9,7 +9,7 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 class FlattenAndExtend : public AdjListExtend {
 
 public:
-    FlattenAndExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, BaseLists* lists,
+    FlattenAndExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, AdjLists* lists,
         unique_ptr<PhysicalOperator> prevOperator)
         : AdjListExtend{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)} {};
 
@@ -58,7 +58,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<FlattenAndExtend<IS_OUT_DATACHUNK_FILTERED>>(
-            inDataChunkPos, inValueVectorPos, lists, prevOperator->clone());
+            inDataChunkPos, inValueVectorPos, (AdjLists*)lists, prevOperator->clone());
     }
 };
 

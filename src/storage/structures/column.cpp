@@ -54,7 +54,7 @@ void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& 
     }
 }
 
-void Column<gf_string_t>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
+void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, uint64_t size,
     const unique_ptr<ColumnOrListsHandle>& handle) {
     if (nodeIDVector->getIsSequence()) {
@@ -73,7 +73,7 @@ void Column<gf_string_t>::readValues(const shared_ptr<NodeIDVector>& nodeIDVecto
 }
 
 // TODO: check selectors in the overflow pages as well.
-void Column<gf_string_t>::readStringsFromOverflowPages(
+void Column<STRING>::readStringsFromOverflowPages(
     const shared_ptr<ValueVector>& valueVector, uint64_t size) {
     auto values = valueVector->getValues();
     uint64_t overflowPtr = size * sizeof(gf_string_t);
@@ -96,21 +96,6 @@ void Column<gf_string_t>::readStringsFromOverflowPages(
             bufferManager.unpin(overflowPagesFileHandle, cursor.idx);
         }
     }
-}
-
-template<>
-DataType Column<int32_t>::getDataType() {
-    return INT32;
-}
-
-template<>
-DataType Column<double_t>::getDataType() {
-    return DOUBLE;
-}
-
-template<>
-DataType Column<uint8_t>::getDataType() {
-    return BOOL;
 }
 
 } // namespace storage

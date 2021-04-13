@@ -73,6 +73,7 @@ void Catalog::serialize(S& s) {
     };
     s.container(nodePropertyMaps, UINT32_MAX, propertyMapsFunc);
     s.container(relPropertyMaps, UINT32_MAX, propertyMapsFunc);
+    s.container(nodeUnstrPropertyMaps, UINT32_MAX, propertyMapsFunc);
 
     auto vectorLabelsFunc = [](S& s, vector<label_t>& v) {
         s.container(v, UINT32_MAX, [](S& s, label_t& w) { s(w); });

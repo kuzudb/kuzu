@@ -50,7 +50,7 @@ void BaseLists::readFromLargeList(const nodeID_t& nodeID,
     }
 }
 
-void Lists<nodeID_t>::readFromLargeList(const nodeID_t& nodeID,
+void Lists<NODE>::readFromLargeList(const nodeID_t& nodeID,
     const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
     const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header, uint32_t maxElementsToRead) {
     auto largeListIdx = ListHeaders::getLargeListIdx(header);
@@ -72,24 +72,9 @@ void Lists<nodeID_t>::readFromLargeList(const nodeID_t& nodeID,
     listSyncState->set(csrOffset, listLen);
 }
 
-template<>
-DataType Lists<int32_t>::getDataType() {
-    return INT32;
-}
-
-template<>
-DataType Lists<double_t>::getDataType() {
-    return DOUBLE;
-}
-
-template<>
-DataType Lists<uint8_t>::getDataType() {
-    return BOOL;
-}
-
-template<>
-DataType Lists<gf_string_t>::getDataType() {
-    return STRING;
+void Lists<UNKNOWN>::readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
+    uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle) {
+    // to do.
 }
 
 } // namespace storage
