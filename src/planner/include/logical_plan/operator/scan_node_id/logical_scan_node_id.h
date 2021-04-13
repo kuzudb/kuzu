@@ -17,7 +17,7 @@ public:
         : nodeVarName{variableName}, label{label} {}
 
     LogicalOperatorType getLogicalOperatorType() const {
-        return LogicalOperatorType::LOGICAL_NODE_ID_SCAN;
+        return LogicalOperatorType::LOGICAL_SCAN_NODE_ID;
     }
 
     string getOperatorInformation() const override { return nodeVarName; }

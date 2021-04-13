@@ -33,17 +33,7 @@ public:
     LogicalExpression(
         ExpressionType expressionType, DataType dataType, const Literal& literalValue);
 
-    inline const string& getVariableName() const { return variableName; }
-
-    inline const Literal& getLiteralValue() const { return literalValue; }
-
-    inline DataType getDataType() const { return dataType; }
-
-    inline ExpressionType getExpressionType() const { return expressionType; }
-
     inline const LogicalExpression& getChildExpr(uint64_t pos) const { return *childrenExpr[pos]; }
-
-    inline const string& getRawExpression() const { return rawExpression; }
 
     unordered_set<string> getIncludedVariables() const;
 

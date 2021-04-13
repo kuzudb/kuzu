@@ -93,16 +93,14 @@ std::function<void(ValueVector&, ValueVector&, ValueVector&)> ValueVector::getBi
 
 template<class T, class FUNC = std::function<uint8_t(T)>>
 static void fillOperandNullMask(ValueVector& operand) {
-    auto values = (T*)operand.getValues();
-    auto nullMask = operand.getNullMask();
-    if (operand.isFlat()) {
-        nullMask[operand.getCurrSelectedValuesPos()] =
-            IsNull::operation(values[operand.getCurrSelectedValuesPos()]);
+    auto values = (T*)operand.values;
+    if (operand.state->isFlat()) {
+        operand.nullMask[operand.state->getCurrSelectedValuesPos()] =
+            IsNull::operation(values[operand.state->getCurrSelectedValuesPos()]);
     } else {
-        auto selectedValuesPos = operand.getSelectedValuesPos();
-        auto size = operand.getNumSelectedValues();
+        auto size = operand.state->numSelectedValues;
         for (uint64_t i = 0; i < size; i++) {
-            nullMask[i] = IsNull::operation(values[selectedValuesPos[i]]);
+            operand.nullMask[i] = IsNull::operation(values[operand.state->selectedValuesPos[i]]);
         }
     }
 }

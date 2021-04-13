@@ -4,8 +4,8 @@ namespace graphflow {
 namespace expression {
 
 bool PhysicalExpression::isResultFlat() {
-    if (childrenExpr.size() == 0) {
-        return result->isFlat();
+    if (childrenExpr.empty()) {
+        return result->state->isFlat();
     }
     for (auto& expr : childrenExpr) {
         if (!expr->isResultFlat()) {
@@ -13,13 +13,6 @@ bool PhysicalExpression::isResultFlat() {
         }
     }
     return true;
-}
-
-shared_ptr<ValueVector> PhysicalExpression::createResultValueVector(DataType dataType) {
-    auto valueVector = make_shared<ValueVector>(dataType, MAX_VECTOR_SIZE);
-    auto dataChunk =
-        make_shared<DataChunk>(true /* initializeSelectedValuesPos */, MAX_VECTOR_SIZE);
-    return valueVector;
 }
 
 } // namespace expression

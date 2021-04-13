@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/common/include/vector/node_vector.h"
+#include "src/common/include/vector/node_id_sequence_vector.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 
 namespace graphflow {

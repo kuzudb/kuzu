@@ -23,7 +23,7 @@ public:
     unique_ptr<PhysicalOperator> clone() override {
         vector<unique_ptr<PhysicalExpression>> clonedExpressions;
         for (auto& expr : expressions) {
-            clonedExpressions.push_back(ExpressionMapper::clone(*expr));
+            clonedExpressions.push_back(ExpressionMapper::clone(*expr, *dataChunks));
         }
         return make_unique<Projection>(
             move(clonedExpressions), expressionsPerInDataChunk, prevOperator->clone());

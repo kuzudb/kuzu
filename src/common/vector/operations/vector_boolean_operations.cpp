@@ -11,7 +11,7 @@ struct UnaryBooleanOperationExecutor {
 public:
     template<class OP>
     static inline void execute(ValueVector& operand, ValueVector& result) {
-        switch (operand.getDataType()) {
+        switch (operand.dataType) {
         case BOOL:
             operate<uint8_t, OP>(operand, result);
             break;

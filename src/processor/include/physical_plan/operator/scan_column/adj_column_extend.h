@@ -19,7 +19,7 @@ public:
     }
 
 private:
-    uint64_t prevInDataChunkNumSelectedValues = 0ul;
+    uint64_t prevInNumSelectedValues;
 };
 
 } // namespace processor

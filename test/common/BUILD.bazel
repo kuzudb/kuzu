@@ -3,7 +3,6 @@ load("@rules_cc//cc:defs.bzl", "cc_test")
 cc_test(
     name = "common_tests",
     srcs = [
-        "vector/node_vector_test.cpp",
         "vector/operations/vector_arithmetic_operations_test.cpp",
         "vector/operations/vector_boolean_operations_test.cpp",
         "vector/operations/vector_comparison_operations_test.cpp",

@@ -25,12 +25,7 @@ public:
 
     ValueVector(DataType dataType) : ValueVector(dataType, MAX_VECTOR_SIZE) {}
 
-    inline DataType getDataType() const { return dataType; }
-
-    inline uint8_t* getValues() const { return values; }
-    inline void setValues(uint8_t* values) { this->values = values; }
-
-    inline bool* getNullMask() const { return nullMask.get(); }
+    inline void reset() { values = buffer.get(); }
 
     void fillNullMask();
 
@@ -40,69 +35,32 @@ public:
     }
 
     template<typename T>
-    void fillValue(const T& value) {
-        auto vectorCapacity = capacity / getNumBytesPerValue();
-        for (uint64_t i = 0; i < vectorCapacity; i++) {
-            ((T*)values)[i] = value;
-        }
-    }
-
-    virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID) {
-        throw invalid_argument("not supported.");
-    }
-
-    virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) {
-        throw invalid_argument("not supported.");
-    }
-
-    template<typename T>
     T getValue(uint64_t pos) {
         return ((T*)values)[pos];
     }
 
-    inline void setDataChunkOwnerState(shared_ptr<DataChunkState> dataChunkOwnerState) {
-        this->ownerState = dataChunkOwnerState;
-    }
-
-    inline void setNumSelectedValues(uint64_t numSelectedValues) {
-        ownerState->numSelectedValues = numSelectedValues;
-    }
-
-    inline uint64_t getNumSelectedValues() { return ownerState->numSelectedValues; }
-
-    inline uint64_t* getSelectedValuesPos() { return ownerState->selectedValuesPos.get(); }
-
-    inline uint64_t getCurrSelectedValuesPos() {
-        return ownerState->selectedValuesPos[ownerState->currPos];
-    }
-
-    inline int64_t getCurrPos() { return ownerState->currPos; }
-
-    inline uint64_t size() { return ownerState->size; }
-
     virtual inline int64_t getNumBytesPerValue() { return getDataTypeSize(dataType); }
-
-    inline bool isFlat() { return ownerState->currPos != -1; }
-
-    inline void reset() { values = buffer.get(); }
 
     uint8_t* reserve(size_t capacity);
 
 protected:
-    // TODO: allocate null-mask only when necessary.
     ValueVector(uint64_t vectorCapacity, uint64_t numBytesPerValue, DataType dataType)
-        : capacity{numBytesPerValue * vectorCapacity},
-          buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()}, dataType{dataType},
-          nullMask(make_unique<bool[]>(capacity)) {
-        std::fill_n(nullMask.get(), capacity, false /* not null */);
+        : capacity{numBytesPerValue * vectorCapacity}, buffer{make_unique<uint8_t[]>(capacity)},
+          nullMaskPtr{make_unique<bool[]>(capacity)}, dataType{dataType}, values{buffer.get()},
+          nullMask{nullMaskPtr.get()} {
+        fill_n(nullMask, capacity, false /* not null */);
     }
 
+protected:
     size_t capacity;
     unique_ptr<uint8_t[]> buffer;
-    uint8_t* values;
+    unique_ptr<bool[]> nullMaskPtr;
+
+public:
     DataType dataType;
-    unique_ptr<bool[]> nullMask;
-    shared_ptr<DataChunkState> ownerState;
+    uint8_t* values;
+    bool* nullMask;
+    shared_ptr<DataChunkState> state;
 };
 
 } // namespace common

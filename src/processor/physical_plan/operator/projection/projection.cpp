@@ -7,7 +7,7 @@ Projection::Projection(vector<unique_ptr<PhysicalExpression>> expressions,
     vector<vector<uint64_t>>& expressionsPerDataChunk, unique_ptr<PhysicalOperator> prevOperator)
     : PhysicalOperator(move(prevOperator), PROJECTION), expressions(move(expressions)),
       expressionsPerInDataChunk(expressionsPerDataChunk) {
-    inDataChunks = this->prevOperator->getDataChunks();
+    /* inDataChunks = this->prevOperator->getDataChunks();
     assert(expressionsPerDataChunk.size() == inDataChunks->getNumDataChunks());
     dataChunks = make_shared<DataChunks>();
     discardedDataChunks = make_shared<DataChunks>();
@@ -17,15 +17,17 @@ Projection::Projection(vector<unique_ptr<PhysicalExpression>> expressions,
         } else {
             auto outDataChunk = make_shared<DataChunk>(inDataChunks->getDataChunkState(i));
             for (auto& expressionPos : expressionsPerDataChunk[i]) {
+
                 this->expressions[expressionPos]->setExpressionInputDataChunk(
                     inDataChunks->getDataChunk(i));
                 this->expressions[expressionPos]->setExpressionResultOwnerState(
                     outDataChunk->state);
                 outDataChunk->append(this->expressions[expressionPos]->result);
+
             }
             dataChunks->append(outDataChunk);
         }
-    }
+    }*/
 }
 
 void Projection::getNextTuples() {

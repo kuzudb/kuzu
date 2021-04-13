@@ -4,13 +4,13 @@ namespace graphflow {
 namespace expression {
 
 PhysicalBinaryExpression::PhysicalBinaryExpression(unique_ptr<PhysicalExpression> leftExpr,
-    unique_ptr<PhysicalExpression> rightExpr, ExpressionType expressionType) {
+    unique_ptr<PhysicalExpression> rightExpr, ExpressionType expressionType, DataType dataType) {
     childrenExpr.push_back(move(leftExpr));
     childrenExpr.push_back(move(rightExpr));
     this->expressionType = expressionType;
+    this->dataType = dataType;
     operation = ValueVector::getBinaryOperation(expressionType);
-    result = createResultValueVector(getBinaryExpressionResultDataType(
-        expressionType, childrenExpr[0]->dataType, childrenExpr[1]->dataType));
+    result = createResultValueVector();
 }
 
 void PhysicalBinaryExpression::evaluate() {
@@ -19,16 +19,17 @@ void PhysicalBinaryExpression::evaluate() {
     operation(*childrenExpr[0]->result, *childrenExpr[1]->result, *result);
 }
 
-void PhysicalBinaryExpression::setExpressionInputDataChunk(shared_ptr<DataChunk> dataChunk) {
-    childrenExpr[0]->setExpressionInputDataChunk(dataChunk);
-    childrenExpr[1]->setExpressionInputDataChunk(dataChunk);
-}
-
-void PhysicalBinaryExpression::setExpressionResultOwnerState(
-    shared_ptr<DataChunkState> dataChunkState) {
-    result->setDataChunkOwnerState(dataChunkState);
-    childrenExpr[0]->setExpressionResultOwnerState(dataChunkState);
-    childrenExpr[1]->setExpressionResultOwnerState(dataChunkState);
+shared_ptr<ValueVector> PhysicalBinaryExpression::createResultValueVector() {
+    auto valueVector = make_shared<ValueVector>(dataType, MAX_VECTOR_SIZE);
+    auto isLeftResultFlat = childrenExpr[0]->isResultFlat();
+    auto isRightResultFlat = childrenExpr[1]->isResultFlat();
+    if (isLeftResultFlat && isRightResultFlat) {
+        valueVector->state = DataChunkState::getSingleValueDataChunkState();
+    } else {
+        auto& unflatVector = !isLeftResultFlat ? childrenExpr[0]->result : childrenExpr[1]->result;
+        valueVector->state = unflatVector->state;
+    }
+    return valueVector;
 }
 
 } // namespace expression

@@ -13,10 +13,10 @@ struct ComparisonOperationExecutor {
 public:
     template<class OP>
     static inline void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
-        if (left.getDataType() != right.getDataType()) {
+        if (left.dataType != right.dataType) {
             throw std::invalid_argument("Different data types cannot be compared.");
         }
-        switch (left.getDataType()) {
+        switch (left.dataType) {
         case BOOL:
             compare<uint8_t, OP>(left, right, result);
             break;

@@ -9,6 +9,7 @@ using namespace graphflow::expression;
 namespace graphflow {
 namespace processor {
 
+template<bool IS_AFTER_FLATTEN>
 class Filter : public PhysicalOperator {
 
 public:
@@ -17,13 +18,22 @@ public:
 
     void getNextTuples() override;
 
-    unique_ptr<PhysicalOperator> clone() override;
+    unique_ptr<PhysicalOperator> clone();
+
+private:
+    void restoreDataChunkToSelectState();
+    void saveDataChunkToSelectState();
 
 protected:
     unique_ptr<PhysicalExpression> rootExpr;
     uint64_t dataChunkToSelectPos;
     shared_ptr<DataChunk> dataChunkToSelect;
     uint8_t* exprResult;
+
+private:
+    // state to save and store before and after filtering if following flatten operators.
+    uint64_t prevInNumSelectedValues;
+    unique_ptr<uint64_t[]> prevInSelectedValuesPos;
 };
 
 } // namespace processor

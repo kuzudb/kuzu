@@ -19,18 +19,18 @@ void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
 }
 
 void validateExpectedType(const LogicalExpression& logicalExpression, DataType expectedType) {
-    auto dataType = logicalExpression.getDataType();
+    auto dataType = logicalExpression.dataType;
     if (expectedType != dataType) {
-        throw invalid_argument("Expression: " + logicalExpression.getRawExpression() +
+        throw invalid_argument("Expression: " + logicalExpression.rawExpression +
                                " has data type: " + dataTypeToString(dataType) +
                                " expect: " + dataTypeToString(expectedType));
     }
 }
 
 void validateNumericalType(const LogicalExpression& logicalExpression) {
-    auto dataType = logicalExpression.getDataType();
+    auto dataType = logicalExpression.dataType;
     if (!isNumericalType(dataType)) {
-        throw invalid_argument("Expression: " + logicalExpression.getRawExpression() +
+        throw invalid_argument("Expression: " + logicalExpression.rawExpression +
                                " has data type: " + dataTypeToString(dataType) +
                                " expect numerical type.");
     }
@@ -119,8 +119,8 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindComparisonExpression(
     validateNoNullLiteralChildren(parsedExpression);
     auto left = bindExpression(parsedLeft);
     auto right = bindExpression(parsedRight);
-    isNumericalType(left->getDataType()) ? validateNumericalType(*right) :
-                                           validateExpectedType(*right, left->getDataType());
+    isNumericalType(left->dataType) ? validateNumericalType(*right) :
+                                      validateExpectedType(*right, left->dataType);
     return make_shared<LogicalExpression>(parsedExpression.type, BOOL, move(left), move(right));
 }
 
@@ -132,9 +132,9 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindBinaryArithmeticExpression(
     auto right = bindExpression(*parsedExpression.children.at(1));
     validateNumericalType(*right);
     DataType resultType;
-    if (DOUBLE == left->getDataType() || DOUBLE == right->getDataType()) {
+    if (DOUBLE == left->dataType || DOUBLE == right->dataType) {
         resultType = DOUBLE;
-    } else if (INT64 == left->getDataType() || INT64 == right->getDataType()) {
+    } else if (INT64 == left->dataType || INT64 == right->dataType) {
         resultType = INT64;
     } else {
         resultType = INT32;
@@ -162,7 +162,7 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindUnaryArithmeticExpression(
     validateNoNullLiteralChildren(parsedExpression);
     auto child = bindExpression(*parsedExpression.children.at(0));
     validateNumericalType(*child);
-    return make_shared<LogicalExpression>(parsedExpression.type, child->getDataType(), move(child));
+    return make_shared<LogicalExpression>(parsedExpression.type, child->dataType, move(child));
 }
 
 shared_ptr<LogicalExpression> ExpressionBinder::bindStringOperatorExpression(
@@ -189,8 +189,8 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
     validateNoNullLiteralChildren(parsedExpression);
     auto propertyName = parsedExpression.text;
     auto childExpression = bindExpression(*parsedExpression.children.at(0));
-    if (NODE == childExpression->getDataType()) {
-        auto nodeName = childExpression->getVariableName();
+    if (NODE == childExpression->dataType) {
+        auto nodeName = childExpression->variableName;
         auto nodeLabel = graphInScope.getQueryNode(nodeName)->label;
         if (!catalog.containNodeProperty(nodeLabel, propertyName)) {
             throw invalid_argument(
@@ -200,8 +200,8 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
             catalog.getNodePropertyTypeFromString(nodeLabel, propertyName),
             nodeName + "." + propertyName);
     }
-    if (REL == childExpression->getDataType()) {
-        auto relName = childExpression->getVariableName();
+    if (REL == childExpression->dataType) {
+        auto relName = childExpression->variableName;
         auto relLabel = graphInScope.getQueryRel(relName)->label;
         if (!catalog.containRelProperty(relLabel, propertyName)) {
             throw invalid_argument("Rel: " + relName + " does not have property: " + propertyName);

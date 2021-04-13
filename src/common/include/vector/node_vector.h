@@ -30,23 +30,12 @@ public:
 
     virtual ~NodeIDVector() = default;
 
-    inline label_t getCommonLabel() const { return commonLabel; }
-    inline void setCommonLabel(label_t commonLabel) { this->commonLabel = commonLabel; }
-
-    inline void setCompressionScheme(const NodeIDCompressionScheme& nodeIDCompressionScheme) {
-        this->nodeIDCompressionScheme = nodeIDCompressionScheme;
-    }
-    inline NodeIDCompressionScheme& getCompressionScheme() { return nodeIDCompressionScheme; }
-
-    inline bool getIsSequence() const { return isSequence; }
-    inline void setIsSequence(bool storedSequentially) { this->isSequence = storedSequentially; }
+    virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID);
+    virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID);
 
     inline int64_t getNumBytesPerValue() override {
         return nodeIDCompressionScheme.getNumTotalBytes();
     }
-
-    virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID) override;
-    virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) override;
 
     bool discardNulls();
 
@@ -61,32 +50,10 @@ protected:
           commonLabel{commonLabel}, nodeIDCompressionScheme{nodeIDCompressionScheme},
           isSequence{isSequence} {};
 
-protected:
+public:
     label_t commonLabel;
     NodeIDCompressionScheme nodeIDCompressionScheme;
     bool isSequence = false;
-};
-
-class NodeIDSequenceVector : public NodeIDVector {
-
-public:
-    // creates a Node ID vector where labels are stores in nodes.
-    NodeIDSequenceVector() : NodeIDVector{NodeIDCompressionScheme(), true, 1} {};
-    //  Creates a Node ID vector where the label is factored out and
-    // stores in the label field and nodes contains node offsets only.
-    NodeIDSequenceVector(label_t commonLabel)
-        : NodeIDVector{commonLabel, NodeIDCompressionScheme(), true, 1} {};
-
-    void readNodeOffset(uint64_t pos, nodeID_t& nodeID) override {
-        nodeID.offset = ((node_offset_t*)values)[0] + pos;
-    }
-
-    void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) override {
-        nodeID.offset = ((node_offset_t*)values)[0] + pos;
-        nodeID.label = commonLabel;
-    }
-
-    void setStartOffset(node_offset_t node_offset) { ((node_offset_t*)values)[0] = node_offset; }
 };
 
 } // namespace common

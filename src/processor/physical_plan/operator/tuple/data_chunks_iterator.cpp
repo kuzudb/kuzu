@@ -11,7 +11,7 @@ void DataChunksIterator::reset() {
     tuplePositions.clear();
     for (uint64_t i = 0; i < dataChunks.getNumDataChunks(); i++) {
         auto dataChunk = dataChunks.getDataChunk(i);
-        if (dataChunk->isFlat()) {
+        if (dataChunk->state->isFlat()) {
             tuplePositions.push_back(dataChunk->state->currPos);
         } else {
             tuplePositions.push_back(0);
@@ -22,7 +22,7 @@ void DataChunksIterator::reset() {
 }
 
 bool DataChunksIterator::updateTuplePositions(int64_t chunkIdx) {
-    if (dataChunks.getDataChunk(chunkIdx)->isFlat()) {
+    if (dataChunks.getDataChunk(chunkIdx)->state->isFlat()) {
         return false;
     }
     tuplePositions[chunkIdx] = tuplePositions[chunkIdx] + 1;
@@ -48,7 +48,7 @@ void DataChunksIterator::setDataChunksTypes() {
     for (uint64_t i = 0; i < dataChunks.getNumDataChunks(); i++) {
         auto dataChunk = dataChunks.getDataChunk(i);
         for (auto& vector : dataChunk->valueVectors) {
-            dataChunksTypes.push_back(vector->getDataType());
+            dataChunksTypes.push_back(vector->dataType);
         }
     }
 }
@@ -60,9 +60,8 @@ void DataChunksIterator::getNextTuple(Tuple& tuple) {
         auto dataChunk = dataChunks.getDataChunk(i);
         auto tuplePosition = tuplePositions[i];
         for (auto& vector : dataChunk->valueVectors) {
-            auto vectorSelectedValuesPos = vector->getSelectedValuesPos();
-            auto selectedTuplePos = vectorSelectedValuesPos[tuplePosition];
-            switch (vector->getDataType()) {
+            auto selectedTuplePos = vector->state->selectedValuesPos[tuplePosition];
+            switch (vector->dataType) {
             case INT32: {
                 tuple.getValue(valueInTupleIdx)
                     ->setInt(vector->getValue<int32_t>(selectedTuplePos));
@@ -80,7 +79,7 @@ void DataChunksIterator::getNextTuple(Tuple& tuple) {
             case STRING: {
                 gf_string_t gfString = vector->getValue<gf_string_t>(selectedTuplePos);
                 string value;
-                memcpy(&value, vector->getValues() + gfString.overflowPtr, gfString.len);
+                memcpy(&value, vector->values + gfString.overflowPtr, gfString.len);
                 tuple.getValue(valueInTupleIdx)->setString(value);
                 break;
             }
@@ -92,7 +91,7 @@ void DataChunksIterator::getNextTuple(Tuple& tuple) {
             }
             default:
                 throw std::invalid_argument(
-                    "Unsupported data type " + DataTypeNames[vector->getDataType()]);
+                    "Unsupported data type " + DataTypeNames[vector->dataType]);
             }
             valueInTupleIdx++;
         }

@@ -27,23 +27,18 @@ public:
     DataChunk(bool initializeSelectedValuesPos)
         : DataChunk(initializeSelectedValuesPos, MAX_VECTOR_SIZE) {}
 
-    DataChunk(shared_ptr<DataChunkState> dataChunkState) : state{dataChunkState} {}
-
-    DataChunk(bool initializeSelectedValuesPos, uint64_t capacity)
-        : state{make_shared<DataChunkState>(initializeSelectedValuesPos, capacity)} {};
+    DataChunk(bool initializeSelectedValuesPos, uint64_t capacity) {
+        state = make_shared<DataChunkState>(initializeSelectedValuesPos, capacity);
+    }
 
     void append(shared_ptr<ValueVector> valueVector) {
-        valueVector->ownerState = this->state;
+        valueVector->state = this->state;
         valueVectors.push_back(valueVector);
     }
 
     inline shared_ptr<ValueVector> getValueVector(uint64_t valueVectorPos) {
         return valueVectors[valueVectorPos];
     }
-
-    inline uint64_t getCurrSelectedValuesPos() { return state->selectedValuesPos[state->currPos]; }
-
-    inline bool isFlat() const { return state->currPos != -1; }
 
 public:
     vector<shared_ptr<ValueVector>> valueVectors;

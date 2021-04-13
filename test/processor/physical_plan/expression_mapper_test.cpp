@@ -17,7 +17,7 @@ TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
         ExpressionType::ADD, DataType::INT32, move(propertyExpression), move(literalExpression));
 
     auto valueVector = make_shared<ValueVector>(INT32, 100);
-    auto values = (int32_t*)valueVector->getValues();
+    auto values = (int32_t*)valueVector->values;
     for (auto i = 0u; i < 100; i++) {
         values[i] = i;
     }
@@ -27,15 +27,17 @@ TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
     dataChunk->append(valueVector);
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
+    auto dataChunksExpr = DataChunks();
     physicalOperatorInfo.appendAsNewDataChunk("a.prop");
+    dataChunksExpr.append(dataChunk);
+
+    auto dataChunks = DataChunks();
 
     auto rootPhysicalExpression =
-        ExpressionMapper::mapToPhysical(*addLogicalOperator, physicalOperatorInfo);
-    rootPhysicalExpression->setExpressionInputDataChunk(dataChunk);
-    rootPhysicalExpression->setExpressionResultOwnerState(dataChunk->state);
+        ExpressionMapper::mapToPhysical(*addLogicalOperator, physicalOperatorInfo, dataChunksExpr);
     rootPhysicalExpression->evaluate();
 
-    auto results = (int32_t*)rootPhysicalExpression->result->getValues();
+    auto results = (int32_t*)rootPhysicalExpression->result->values;
     for (auto i = 0u; i < 100; i++) {
         ASSERT_EQ(results[i], i + 5);
     }
@@ -48,7 +50,7 @@ TEST(ExpressionTests, UnaryPhysicalExpressionTest) {
         ExpressionType::NEGATE, DataType::INT32, move(propertyExpression));
 
     auto valueVector = make_shared<ValueVector>(INT32, 100);
-    auto values = (int32_t*)valueVector->getValues();
+    auto values = (int32_t*)valueVector->values;
     for (auto i = 0u; i < 100; i++) {
         int32_t value = i;
         if (i % 2ul == 0ul) {
@@ -63,15 +65,15 @@ TEST(ExpressionTests, UnaryPhysicalExpressionTest) {
     dataChunk->append(valueVector);
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
+    auto dataChunksExpr = DataChunks();
     physicalOperatorInfo.appendAsNewDataChunk("a.prop");
+    dataChunksExpr.append(dataChunk);
 
-    auto rootPhysicalExpression =
-        ExpressionMapper::mapToPhysical(*negateLogicalOperator, physicalOperatorInfo);
-    rootPhysicalExpression->setExpressionInputDataChunk(dataChunk);
-    rootPhysicalExpression->setExpressionResultOwnerState(dataChunk->state);
+    auto rootPhysicalExpression = ExpressionMapper::mapToPhysical(
+        *negateLogicalOperator, physicalOperatorInfo, dataChunksExpr);
     rootPhysicalExpression->evaluate();
 
-    auto results = (int32_t*)rootPhysicalExpression->result->getValues();
+    auto results = (int32_t*)rootPhysicalExpression->result->values;
     for (auto i = 0u; i < 100; i++) {
         int32_t value = i;
         if (i % 2ul == 0ul) {

@@ -14,15 +14,15 @@ TEST(VectorBoolTests, test) {
 
     auto lVector = make_shared<ValueVector>(BOOL);
     dataChunk->append(lVector);
-    auto lData = (uint8_t*)lVector->getValues();
+    auto lData = (uint8_t*)lVector->values;
 
     auto rVector = make_shared<ValueVector>(BOOL);
     dataChunk->append(rVector);
-    auto rData = (uint8_t*)rVector->getValues();
+    auto rData = (uint8_t*)rVector->values;
 
     auto result = make_shared<ValueVector>(BOOL);
     dataChunk->append(result);
-    auto resultData = (uint8_t*)result->getValues();
+    auto resultData = (uint8_t*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {

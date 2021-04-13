@@ -4,6 +4,7 @@ cc_library(
     name = "common",
     srcs = [
         "compression_scheme.cpp",
+        "data_chunk/data_chunk_state.cpp",
         "expression_type.cpp",
         "file_ser_deser_helper.cpp",
         "literal.cpp",
@@ -29,6 +30,7 @@ cc_library(
         "include/operations/hash_operations.h",
         "include/operations/decompress_operations.h",
         "include/types.h",
+        "include/vector/node_id_sequence_vector.h",
         "include/vector/node_vector.h",
         "include/vector/value_vector.h",
         "include/vector/operations/executors/binary_operation_executor.h",

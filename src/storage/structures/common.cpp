@@ -51,7 +51,7 @@ void BaseColumnOrLists::readBySettingFrame(const shared_ptr<ValueVector>& valueV
     } else {
         frame = bufferManager.get(fileHandle, pageIdx);
     }
-    valueVector->setValues((uint8_t*)frame + pageOffset);
+    valueVector->values = (uint8_t*)frame + pageOffset;
 }
 
 void BaseColumnOrLists::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
@@ -59,7 +59,7 @@ void BaseColumnOrLists::readBySequentialCopy(const shared_ptr<ValueVector>& valu
     uint64_t pageOffset, unique_ptr<LogicalToPhysicalPageIdxMapper> mapper) {
     reclaim(handle);
     valueVector->reset();
-    auto values = valueVector->getValues();
+    auto values = valueVector->values;
     while (sizeLeftToCopy) {
         uint64_t physicalPageIdx = nullptr == mapper ? pageIdx : mapper->getPageIdx(pageIdx);
         auto sizeToCopyInPage = min(PAGE_SIZE - pageOffset, sizeLeftToCopy);
