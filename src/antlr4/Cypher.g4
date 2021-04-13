@@ -16,10 +16,18 @@ oC_RegularQuery
     : oC_SingleQuery ;
 
 oC_SingleQuery 
-    : oC_SinglePartQuery ;
+    : oC_SinglePartQuery
+        | oC_MultiPartQuery
+        ;
 
 oC_SinglePartQuery 
     : ( oC_ReadingClause SP? )* oC_Return ;
+
+oC_MultiPartQuery
+    : ( gF_QueryPart SP? )+ oC_SinglePartQuery;
+
+gF_QueryPart
+    : (oC_ReadingClause SP? )* oC_With ;
 
 oC_ReadingClause 
     : oC_Match ;
@@ -28,6 +36,11 @@ oC_Match
     : MATCH SP? oC_Pattern (SP? oC_Where)? ;
 
 MATCH : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'C' | 'c' ) ( 'H' | 'h' )  ;
+
+oC_With
+    : WITH oC_ProjectionBody ( SP? oC_Where )? ;
+
+WITH : ( 'W' | 'w' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'H' | 'h' )  ;
 
 oC_Return
     : RETURN oC_ProjectionBody ;
@@ -150,8 +163,6 @@ STARTS : ( 'S' | 's' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'R' | 'r' ) ( 'T' | 't' ) (
 ENDS : ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ( 'S' | 's' ) ;
 
 CONTAINS : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'S' | 's' ) ;
-
-WITH : ( 'W' | 'w' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'H' | 'h' ) ;
 
 oC_NullOperatorExpression
     : ( SP IS SP NULL_ )

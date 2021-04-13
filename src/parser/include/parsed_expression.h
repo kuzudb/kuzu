@@ -27,15 +27,6 @@ public:
 
     string getName() const { return alias.empty() ? rawExpression : alias; }
 
-    // no need to compare rawExpression
-    bool operator==(const ParsedExpression& other) {
-        auto result = type == other.type && text == other.text && alias == other.alias;
-        for (auto i = 0ul; i < children.size(); ++i) {
-            result &= *children[i] == *other.children[i];
-        }
-        return result;
-    }
-
 public:
     ExpressionType type;
     // variableName, propertyName or functionName

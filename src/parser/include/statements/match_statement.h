@@ -12,17 +12,6 @@ public:
     explicit MatchStatement(vector<unique_ptr<PatternElement>> patternElements)
         : graphPattern{move(patternElements)} {}
 
-    bool operator==(const MatchStatement& other) {
-        auto result = true;
-        for (auto i = 0ul; i < graphPattern.size(); ++i) {
-            result &= *graphPattern[i] == *other.graphPattern[i];
-        }
-        if (whereClause) {
-            result &= other.whereClause ? *whereClause == *other.whereClause : false;
-        }
-        return result;
-    }
-
 public:
     vector<unique_ptr<PatternElement>> graphPattern;
     unique_ptr<ParsedExpression> whereClause;

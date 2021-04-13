@@ -5,7 +5,7 @@
 
 #include "src/antlr4/CypherParser.h"
 #include "src/parser/include/parsed_expression.h"
-#include "src/parser/include/single_query.h"
+#include "src/parser/include/queries/single_query.h"
 
 using namespace std;
 
@@ -27,9 +27,13 @@ private:
 
     unique_ptr<SingleQuery> transformSinglePartQuery(CypherParser::OC_SinglePartQueryContext& ctx);
 
+    unique_ptr<QueryPart> transformQueryPart(CypherParser::GF_QueryPartContext& ctx);
+
     unique_ptr<MatchStatement> transformReadingClause(CypherParser::OC_ReadingClauseContext& ctx);
 
     unique_ptr<MatchStatement> transformMatch(CypherParser::OC_MatchContext& ctx);
+
+    unique_ptr<WithStatement> transformWith(CypherParser::OC_WithContext& ctx);
 
     unique_ptr<ReturnStatement> transformReturn(CypherParser::OC_ReturnContext& ctx);
 

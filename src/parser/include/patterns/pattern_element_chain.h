@@ -14,10 +14,6 @@ public:
     PatternElementChain(unique_ptr<RelPattern> relPattern, unique_ptr<NodePattern> nodePattern)
         : relPattern{move(relPattern)}, nodePattern{move(nodePattern)} {}
 
-    bool operator==(const PatternElementChain& other) {
-        return *relPattern == *other.relPattern && *nodePattern == *other.nodePattern;
-    }
-
 public:
     unique_ptr<RelPattern> relPattern;
     unique_ptr<NodePattern> nodePattern;
