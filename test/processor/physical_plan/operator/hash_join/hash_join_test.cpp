@@ -9,8 +9,8 @@
 
 /*
 TEST(HashJoinTests, HashJoinTest1T1) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -27,8 +27,8 @@ TEST(HashJoinTests, HashJoinTest1T1) {
 }
 
 TEST(HashJoinTests, HashJoinTest1T2) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -45,8 +45,8 @@ TEST(HashJoinTests, HashJoinTest1T2) {
 }
 
 TEST(HashJoinTests, HashJoinTest1T4) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -63,8 +63,8 @@ TEST(HashJoinTests, HashJoinTest1T4) {
 }
 
 TEST(HashJoinTests, HashJoinTest1T8) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -81,8 +81,8 @@ TEST(HashJoinTests, HashJoinTest1T8) {
 }
 
 TEST(HashJoinTests, HashJoinTest2T1) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -99,8 +99,8 @@ TEST(HashJoinTests, HashJoinTest2T1) {
 }
 
 TEST(HashJoinTests, HashJoinTest2T2) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -117,8 +117,8 @@ TEST(HashJoinTests, HashJoinTest2T2) {
 }
 
 TEST(HashJoinTests, HashJoinTest2T4) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -135,8 +135,8 @@ TEST(HashJoinTests, HashJoinTest2T4) {
 }
 
 TEST(HashJoinTests, HashJoinTest2T8) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -153,8 +153,8 @@ TEST(HashJoinTests, HashJoinTest2T8) {
 }
 
 TEST(HashJoinTests, HashJoinTest3T1) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -171,8 +171,8 @@ TEST(HashJoinTests, HashJoinTest3T1) {
 }
 
 TEST(HashJoinTests, HashJoinTest3T2) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -189,8 +189,8 @@ TEST(HashJoinTests, HashJoinTest3T2) {
 }
 
 TEST(HashJoinTests, HashJoinTest3T4) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -207,8 +207,8 @@ TEST(HashJoinTests, HashJoinTest3T4) {
 }
 
 TEST(HashJoinTests, HashJoinTest3T8) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -225,8 +225,8 @@ TEST(HashJoinTests, HashJoinTest3T8) {
 }
 
 TEST(HashJoinTests, HashJoinTest4T1) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -243,8 +243,8 @@ TEST(HashJoinTests, HashJoinTest4T1) {
 }
 
 TEST(HashJoinTests, HashJoinTest4T4) {
-    MorselDesc buildMorsel(10);
-    MorselDesc probeMorsel(4);
+    MorselsDesc buildMorsel(10);
+    MorselsDesc probeMorsel(4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 

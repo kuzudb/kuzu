@@ -29,7 +29,7 @@ HashJoinBuild::HashJoinBuild(
     }
     // key field (node_offset_t + label_t) + prev field (uint8_t*)
     numBytesForFixedTuplePart = sizeof(node_offset_t) + sizeof(label_t) + sizeof(uint8_t*);
-    for (uint64_t i = 0; i < keyDataChunk->getNumAttributes(); i++) {
+    for (uint64_t i = 0; i < keyDataChunk->valueVectors.size(); i++) {
         if (i == keyVectorPos) {
             continue;
         }
@@ -202,12 +202,12 @@ void HashJoinBuild::allocateHTBlocks(
 }
 
 void HashJoinBuild::appendDataChunks() {
-    if (keyDataChunk->numSelectedValues == 0) {
+    if (keyDataChunk->state->numSelectedValues == 0) {
         return;
     }
 
     // Allocate space for tuples
-    auto numTuplesToAppend = keyDataChunk->isFlat() ? 1 : keyDataChunk->numSelectedValues;
+    auto numTuplesToAppend = keyDataChunk->isFlat() ? 1 : keyDataChunk->state->numSelectedValues;
     vector<BlockAppendInfo> blockAppendInfos;
     allocateHTBlocks(numTuplesToAppend, blockAppendInfos);
 
@@ -215,7 +215,7 @@ void HashJoinBuild::appendDataChunks() {
     auto tupleAppendOffset = 0; // The start offset of each field inside the tuple.
     // Append key vector
     auto keyVector = static_pointer_cast<NodeIDVector>(keyDataChunk->getValueVector(keyVectorPos));
-    auto keyValOffsetInVec = keyDataChunk->isFlat() ? keyDataChunk->currPos : 0;
+    auto keyValOffsetInVec = keyDataChunk->isFlat() ? keyDataChunk->state->currPos : 0;
     for (auto& blockAppendInfo : blockAppendInfos) {
         auto blockAppendPtr = blockAppendInfo.buffer + tupleAppendOffset;
         auto blockAppendCount = blockAppendInfo.numEntries;
@@ -225,13 +225,13 @@ void HashJoinBuild::appendDataChunks() {
     tupleAppendOffset += NUM_BYTES_PER_NODE_ID;
 
     // Append payloads in key data chunk
-    for (uint64_t i = 0; i < keyDataChunk->getNumAttributes(); i++) {
+    for (uint64_t i = 0; i < keyDataChunk->valueVectors.size(); i++) {
         if (i == keyVectorPos) {
             continue;
         }
         // Append payload vectors in the keyDataChunk
         auto payloadVector = keyDataChunk->getValueVector(i);
-        auto valOffsetInVec = keyDataChunk->isFlat() ? keyDataChunk->currPos : 0;
+        auto valOffsetInVec = keyDataChunk->isFlat() ? keyDataChunk->state->currPos : 0;
         for (auto& blockAppendInfo : blockAppendInfos) {
             auto blockAppendPtr = blockAppendInfo.buffer + tupleAppendOffset;
             auto blockAppendCount = blockAppendInfo.numEntries;
@@ -246,18 +246,18 @@ void HashJoinBuild::appendDataChunks() {
     for (uint64_t chunkPos = 0; chunkPos < nonKeyDataChunks->getNumDataChunks(); chunkPos++) {
         auto payloadDataChunk = nonKeyDataChunks->getDataChunk(chunkPos);
         if (payloadDataChunk->isFlat()) {
-            for (uint64_t i = 0; i < payloadDataChunk->getNumAttributes(); i++) {
+            for (uint64_t i = 0; i < payloadDataChunk->valueVectors.size(); i++) {
                 auto payloadVector = payloadDataChunk->getValueVector(i);
                 for (auto& blockAppendInfo : blockAppendInfos) {
                     auto appendCount = blockAppendInfo.numEntries;
                     auto appendBuffer = blockAppendInfo.buffer + tupleAppendOffset;
                     appendPayloadVectorAsFixSizedValues(*payloadVector, appendBuffer,
-                        payloadVector->getCurrPos(), appendCount, true);
+                        payloadVector->getCurrSelectedValuesPos(), appendCount, true);
                 }
                 tupleAppendOffset += payloadVector->getNumBytesPerValue();
             }
         } else {
-            for (uint64_t i = 0; i < payloadDataChunk->getNumAttributes(); i++) {
+            for (uint64_t i = 0; i < payloadDataChunk->valueVectors.size(); i++) {
                 auto payloadVector = payloadDataChunk->getValueVector(i);
                 for (auto& blockAppendInfo : blockAppendInfos) {
                     auto appendCount = blockAppendInfo.numEntries;
@@ -277,7 +277,7 @@ void HashJoinBuild::getNextTuples() {
     do {
         prevOperator->getNextTuples();
         appendDataChunks();
-    } while (keyDataChunk->size > 0);
+    } while (keyDataChunk->state->size > 0);
 
     // Merge thread-local state (numEntries, htBlocks, overflowBlocks) with the shared one
     {
@@ -288,8 +288,8 @@ void HashJoinBuild::getNextTuples() {
             begin(overflowBlocks), end(overflowBlocks), back_inserter(sharedState->overflowBlocks));
     }
 
-    keyDataChunk->size = 0;
-    keyDataChunk->numSelectedValues = 0;
+    keyDataChunk->state->size = 0;
+    keyDataChunk->state->numSelectedValues = 0;
 }
 } // namespace processor
 } // namespace graphflow

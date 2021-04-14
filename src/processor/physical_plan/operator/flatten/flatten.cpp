@@ -10,16 +10,16 @@ Flatten::Flatten(uint64_t dataChunkPos, unique_ptr<PhysicalOperator> prevOperato
 }
 
 void Flatten::getNextTuples() {
-    if (dataChunkToFlatten->size == 0ul ||
-        dataChunkToFlatten->size == dataChunkToFlatten->currPos + 1ul) {
-        dataChunkToFlatten->currPos = -1;
+    if (dataChunkToFlatten->state->size == 0ul ||
+        dataChunkToFlatten->state->size == dataChunkToFlatten->state->currPos + 1ul) {
+        dataChunkToFlatten->state->currPos = -1;
         prevOperator->getNextTuples();
-        if (dataChunkToFlatten->size == 0) {
-            dataChunkToFlatten->size = 0;
+        if (dataChunkToFlatten->state->size == 0) {
+            dataChunkToFlatten->state->size = 0;
             return;
         }
     }
-    dataChunkToFlatten->currPos++;
+    dataChunkToFlatten->state->currPos++;
 }
 
 } // namespace processor

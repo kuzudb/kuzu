@@ -29,24 +29,18 @@ public:
             vectorC2->setValue(i, (bool)((i / 2) == 1));
         }
         dataChunkA->append(vectorA1);
-        vectorA1->setDataChunkOwner(dataChunkA);
         dataChunkA->append(vectorA2);
-        vectorA2->setDataChunkOwner(dataChunkA);
         dataChunkB->append(vectorB1);
-        vectorB1->setDataChunkOwner(dataChunkB);
         dataChunkB->append(vectorB2);
-        vectorB2->setDataChunkOwner(dataChunkB);
         dataChunkC->append(vectorC1);
-        vectorC1->setDataChunkOwner(dataChunkC);
         dataChunkC->append(vectorC2);
-        vectorC2->setDataChunkOwner(dataChunkC);
 
-        dataChunkA->size = 100;
-        dataChunkB->size = 100;
-        dataChunkC->size = 100;
-        dataChunkA->numSelectedValues = 100;
-        dataChunkB->numSelectedValues = 100;
-        dataChunkC->numSelectedValues = 100;
+        dataChunkA->state->size = 100;
+        dataChunkB->state->size = 100;
+        dataChunkC->state->size = 100;
+        dataChunkA->state->numSelectedValues = 100;
+        dataChunkB->state->numSelectedValues = 100;
+        dataChunkC->state->numSelectedValues = 100;
         dataChunks.append(dataChunkA);
         dataChunks.append(dataChunkB);
         dataChunks.append(dataChunkC);
@@ -74,9 +68,9 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest1) {
     auto dataChunkA = dataChunks.getDataChunk(0);
     auto dataChunkB = dataChunks.getDataChunk(1);
     auto dataChunkC = dataChunks.getDataChunk(2);
-    dataChunkA->currPos = 1;
-    dataChunkB->currPos = -1;
-    dataChunkC->currPos = 10;
+    dataChunkA->state->currPos = 1;
+    dataChunkB->state->currPos = -1;
+    dataChunkC->state->currPos = 10;
 
     DataChunksIterator dataChunksIterator(dataChunks);
     auto tupleIndex = 0;
@@ -84,33 +78,33 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest1) {
         dataChunksIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 1);
-        ASSERT_EQ(tuple.getValue(1)->primitive.integer, (int32_t)(1 * 2));
+        ASSERT_EQ(tuple.getValue(1)->primitive.integer_, (int32_t)(1 * 2));
         ASSERT_EQ(tuple.getValue(2)->nodeID.label, 28);
         ASSERT_EQ(tuple.getValue(2)->nodeID.offset, tupleIndex);
         ASSERT_EQ(tuple.getValue(3)->primitive.double_, (double)(tupleIndex / 2));
         ASSERT_EQ(tuple.getValue(4)->nodeID.label, 38);
         ASSERT_EQ(tuple.getValue(4)->nodeID.offset, 10);
-        ASSERT_EQ(tuple.getValue(5)->primitive.boolean, (bool)false);
+        ASSERT_EQ(tuple.getValue(5)->primitive.boolean_, (bool)false);
         tupleIndex++;
     }
     ASSERT_EQ(tupleIndex, 100);
 
-    dataChunkA->currPos = 1;
-    dataChunkB->currPos = 9;
-    dataChunkC->currPos = 99;
+    dataChunkA->state->currPos = 1;
+    dataChunkB->state->currPos = 9;
+    dataChunkC->state->currPos = 99;
     dataChunksIterator.setDataChunks(dataChunks);
     tupleIndex = 0;
     while (dataChunksIterator.hasNextTuple()) {
         dataChunksIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 1);
-        ASSERT_EQ(tuple.getValue(1)->primitive.integer, (int32_t)(1 * 2));
+        ASSERT_EQ(tuple.getValue(1)->primitive.integer_, (int32_t)(1 * 2));
         ASSERT_EQ(tuple.getValue(2)->nodeID.label, 28);
         ASSERT_EQ(tuple.getValue(2)->nodeID.offset, 9);
         ASSERT_EQ(tuple.getValue(3)->primitive.double_, (double)(9 / 2));
         ASSERT_EQ(tuple.getValue(4)->nodeID.label, 38);
         ASSERT_EQ(tuple.getValue(4)->nodeID.offset, 99);
-        ASSERT_EQ(tuple.getValue(5)->primitive.boolean, (bool)((99 / 2) == 1));
+        ASSERT_EQ(tuple.getValue(5)->primitive.boolean_, (bool)((99 / 2) == 1));
         tupleIndex++;
     }
     ASSERT_EQ(tupleIndex, 1);
@@ -125,9 +119,9 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest2) {
     auto dataChunkC = dataChunks.getDataChunk(2);
 
     auto tupleIndex = 0;
-    dataChunkA->currPos = 1;
-    dataChunkB->currPos = -1;
-    dataChunkC->currPos = -1;
+    dataChunkA->state->currPos = 1;
+    dataChunkB->state->currPos = -1;
+    dataChunkC->state->currPos = -1;
     DataChunksIterator dataChunksIterator(dataChunks);
     while (dataChunksIterator.hasNextTuple()) {
         auto bid = tupleIndex / 100;
@@ -135,13 +129,13 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest2) {
         dataChunksIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 1);
-        ASSERT_EQ(tuple.getValue(1)->primitive.integer, (int32_t)(1 * 2));
+        ASSERT_EQ(tuple.getValue(1)->primitive.integer_, (int32_t)(1 * 2));
         ASSERT_EQ(tuple.getValue(2)->nodeID.label, 28);
         ASSERT_EQ(tuple.getValue(2)->nodeID.offset, bid);
         ASSERT_EQ(tuple.getValue(3)->primitive.double_, (double)(bid / 2));
         ASSERT_EQ(tuple.getValue(4)->nodeID.label, 38);
         ASSERT_EQ(tuple.getValue(4)->nodeID.offset, cid);
-        ASSERT_EQ(tuple.getValue(5)->primitive.boolean, (bool)((cid / 2) == 1));
+        ASSERT_EQ(tuple.getValue(5)->primitive.boolean_, (bool)((cid / 2) == 1));
         tupleIndex++;
     }
     ASSERT_EQ(tupleIndex, 10000);
@@ -156,9 +150,9 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest3) {
     auto dataChunkC = dataChunks.getDataChunk(2);
 
     auto tupleIndex = 0;
-    dataChunkA->currPos = -1;
-    dataChunkB->currPos = 10;
-    dataChunkC->currPos = -1;
+    dataChunkA->state->currPos = -1;
+    dataChunkB->state->currPos = 10;
+    dataChunkC->state->currPos = -1;
     DataChunksIterator dataChunksIterator(dataChunks);
     while (dataChunksIterator.hasNextTuple()) {
         auto aid = tupleIndex / 100;
@@ -166,13 +160,13 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest3) {
         dataChunksIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->nodeID.offset, aid);
-        ASSERT_EQ(tuple.getValue(1)->primitive.integer, (int32_t)(aid * 2));
+        ASSERT_EQ(tuple.getValue(1)->primitive.integer_, (int32_t)(aid * 2));
         ASSERT_EQ(tuple.getValue(2)->nodeID.label, 28);
         ASSERT_EQ(tuple.getValue(2)->nodeID.offset, 10);
         ASSERT_EQ(tuple.getValue(3)->primitive.double_, (double)(10 / 2));
         ASSERT_EQ(tuple.getValue(4)->nodeID.label, 38);
         ASSERT_EQ(tuple.getValue(4)->nodeID.offset, cid);
-        ASSERT_EQ(tuple.getValue(5)->primitive.boolean, (bool)((cid / 2) == 1));
+        ASSERT_EQ(tuple.getValue(5)->primitive.boolean_, (bool)((cid / 2) == 1));
         tupleIndex++;
     }
     ASSERT_EQ(tupleIndex, 10000);
@@ -185,9 +179,9 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest4) {
     auto dataChunkA = dataChunks.getDataChunk(0);
     auto dataChunkB = dataChunks.getDataChunk(1);
     auto dataChunkC = dataChunks.getDataChunk(2);
-    dataChunkA->currPos = 1;
-    dataChunkB->currPos = 10;
-    dataChunkC->currPos = 20;
+    dataChunkA->state->currPos = 1;
+    dataChunkB->state->currPos = 10;
+    dataChunkC->state->currPos = 20;
 
     auto tupleIndex = 0;
     DataChunksIterator dataChunksIterator(dataChunks);
@@ -208,12 +202,12 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTestWithSelector) {
     auto dataChunkA = dataChunks.getDataChunk(0);
     auto dataChunkB = dataChunks.getDataChunk(1);
     auto dataChunkC = dataChunks.getDataChunk(2);
-    dataChunkA->selectedValuesPos[1] = 5;
-    dataChunkA->currPos = 1;
-    dataChunkB->selectedValuesPos[10] = 15;
-    dataChunkB->currPos = 10;
-    dataChunkC->selectedValuesPos[20] = 25;
-    dataChunkC->currPos = 20;
+    dataChunkA->state->selectedValuesPos[1] = 5;
+    dataChunkA->state->currPos = 1;
+    dataChunkB->state->selectedValuesPos[10] = 15;
+    dataChunkB->state->currPos = 10;
+    dataChunkC->state->selectedValuesPos[20] = 25;
+    dataChunkC->state->currPos = 20;
 
     auto tupleIndex = 0;
     DataChunksIterator dataChunksIterator(dataChunks);

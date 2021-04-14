@@ -35,7 +35,8 @@ bool SubqueryGraph::containAllVars(unordered_set<string>& vars) const {
 }
 
 bool SubqueryGraph::operator==(const SubqueryGraph& other) const {
-    return queryRelsSelector == other.queryRelsSelector;
+    return queryRelsSelector == other.queryRelsSelector &&
+           queryNodesSelector == other.queryNodesSelector;
 }
 
 bool QueryGraph::containsQueryNode(const string& queryNodeName) const {

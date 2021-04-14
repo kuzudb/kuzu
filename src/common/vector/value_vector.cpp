@@ -96,8 +96,8 @@ static void fillOperandNullMask(ValueVector& operand) {
     auto values = (T*)operand.getValues();
     auto nullMask = operand.getNullMask();
     if (operand.isFlat()) {
-        nullMask[operand.getCurrPos()] =
-            IsNull::operation(values[operand.owner->getCurrSelectedValuesPos()]);
+        nullMask[operand.getCurrSelectedValuesPos()] =
+            IsNull::operation(values[operand.getCurrSelectedValuesPos()]);
     } else {
         auto selectedValuesPos = operand.getSelectedValuesPos();
         auto size = operand.getNumSelectedValues();

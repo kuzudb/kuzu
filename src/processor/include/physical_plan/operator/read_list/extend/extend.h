@@ -16,7 +16,7 @@ public:
     void getNextTuples() override {
         if (handle->hasMoreToRead()) {
             readValuesFromList();
-            outDataChunk->numSelectedValues = outDataChunk->size;
+            outDataChunk->state->numSelectedValues = outDataChunk->state->size;
             if constexpr (IS_OUT_DATACHUNK_FILTERED) {
                 initializeSelector();
             }
@@ -25,26 +25,26 @@ public:
         while (true) {
             do {
                 prevOperator->getNextTuples();
-            } while (inDataChunk->size > 0 && inDataChunk->numSelectedValues == 0);
-            if (inDataChunk->size > 0) {
+            } while (inDataChunk->state->size > 0 && inDataChunk->state->numSelectedValues == 0);
+            if (inDataChunk->state->size > 0) {
                 readValuesFromList();
-                if (outDataChunk->size > 0) {
-                    outDataChunk->numSelectedValues = outDataChunk->size;
+                if (outDataChunk->state->size > 0) {
+                    outDataChunk->state->numSelectedValues = outDataChunk->state->size;
                     if constexpr (IS_OUT_DATACHUNK_FILTERED) {
                         initializeSelector();
                     }
                     return;
                 }
             } else {
-                outDataChunk->size = outDataChunk->numSelectedValues = 0;
+                outDataChunk->state->size = outDataChunk->state->numSelectedValues = 0;
                 return;
             }
         }
     }
 
     void initializeSelector() {
-        auto selector = outDataChunk->selectedValuesPos.get();
-        for (auto i = 0u; i < outDataChunk->size; i++) {
+        auto selector = outDataChunk->state->selectedValuesPos.get();
+        for (auto i = 0u; i < outDataChunk->state->size; i++) {
             selector[i] = i;
         }
     }

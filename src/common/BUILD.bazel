@@ -19,6 +19,7 @@ cc_library(
         "include/compression_scheme.h",
         "include/configs.h",
         "include/data_chunk/data_chunk.h",
+        "include/data_chunk/data_chunk_state.h",
         "include/expression_type.h",
         "include/file_ser_deser_helper.h",
         "include/literal.h",

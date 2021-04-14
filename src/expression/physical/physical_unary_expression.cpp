@@ -5,22 +5,25 @@ namespace expression {
 
 PhysicalUnaryExpression::PhysicalUnaryExpression(
     unique_ptr<PhysicalExpression> child, ExpressionType expressionType) {
-    operands.push_back(child->result);
     childrenExpr.push_back(move(child));
     this->expressionType = expressionType;
     operation = ValueVector::getUnaryOperation(expressionType);
     result = createResultValueVector(
-        getUnaryExpressionResultDataType(expressionType, childrenExpr[0]->result->getDataType()));
+        getUnaryExpressionResultDataType(expressionType, childrenExpr[0]->dataType));
 }
 
 void PhysicalUnaryExpression::evaluate() {
     childrenExpr[0]->evaluate();
-    operation(*operands[0], *result);
+    operation(*childrenExpr[0]->result, *result);
 }
 
-void PhysicalUnaryExpression::setExpressionResultOwners(shared_ptr<DataChunk> dataChunk) {
-    result->setDataChunkOwner(dataChunk);
-    childrenExpr[0]->setExpressionResultOwners(dataChunk);
+void PhysicalUnaryExpression::setExpressionInputDataChunk(shared_ptr<DataChunk> dataChunk) {
+    childrenExpr[0]->setExpressionInputDataChunk(dataChunk);
+}
+void PhysicalUnaryExpression::setExpressionResultOwnerState(
+    shared_ptr<DataChunkState> dataChunkState) {
+    result->setDataChunkOwnerState(dataChunkState);
+    childrenExpr[0]->setExpressionResultOwnerState(dataChunkState);
 }
 
 } // namespace expression

@@ -9,13 +9,14 @@ using namespace graphflow::planner;
 namespace graphflow {
 namespace testing {
 
-const string TEST_TEMP_DIR = "test_temp";
-
 bool TestHelper::runTest(const string& path) {
     auto testConfig = parseTestFile(path);
-    filesystem::create_directory(TEST_TEMP_DIR);
-    auto server = make_unique<EmbeddedServer>(
-        testConfig.graphInputDir, TEST_TEMP_DIR, testConfig.numThreads, testConfig.bufferPoolSize);
+    if (!filesystem::create_directory(testConfig.graphOutputDir)) {
+        throw invalid_argument(
+            "Graph output directory cannot be created. Check if it exists and remove it.");
+    }
+    auto server = make_unique<EmbeddedServer>(testConfig.graphInputDir, testConfig.graphOutputDir,
+        testConfig.numThreads, testConfig.bufferPoolSize);
     auto numQueries = testConfig.query.size();
     uint64_t numPassedQueries = 0;
     vector<uint64_t> numPlansOfEachQuery(numQueries);
@@ -35,9 +36,31 @@ bool TestHelper::runTest(const string& path) {
                     j, result->numTuples, testConfig.expectedNumTuples[i]);
                 spdlog::info("PLAN: \n{}", planStr);
             } else {
-                spdlog::info("PLAN{} PASSED", j);
-                spdlog::debug("PLAN: \n{}", planStr);
-                numPassedPlans++;
+                if (testConfig.compareResult) {
+                    vector<string> resultTuples;
+                    for (auto& tuple : result->tuples) {
+                        for (uint64_t k = 0; k < tuple.multiplicity; k++) {
+                            resultTuples.push_back(tuple.toString());
+                        }
+                    }
+                    sort(resultTuples.begin(), resultTuples.end());
+                    if (resultTuples == testConfig.expectedTuples[i]) {
+                        spdlog::info("PLAN{} PASSED", j);
+                        spdlog::debug("PLAN: \n{}", planStr);
+                        numPassedPlans++;
+                    } else {
+                        spdlog::error("PLAN{} NOT PASSED. Result tuples are not matched", j);
+                        spdlog::info("PLAN: \n{}", planStr);
+                        spdlog::info("RESULT: \n");
+                        for (auto& tuple : resultTuples) {
+                            spdlog::info(tuple);
+                        }
+                    }
+                } else {
+                    spdlog::info("PLAN{} PASSED", j);
+                    spdlog::debug("PLAN: \n{}", planStr);
+                    numPassedPlans++;
+                }
             }
         }
         numPassedPlansOfEachQuery[i] = numPassedPlans;
@@ -48,6 +71,10 @@ bool TestHelper::runTest(const string& path) {
         spdlog::info("{}: {}/{} PLANS PASSED", testConfig.name[i], numPassedPlansOfEachQuery[i],
             numPlansOfEachQuery[i]);
         numPassedQueries += (numPlansOfEachQuery[i] == numPassedPlansOfEachQuery[i]);
+    }
+    error_code removeErrorCode;
+    if (!filesystem::remove_all(testConfig.graphOutputDir, removeErrorCode)) {
+        spdlog::error("Remove graph output directory error: {}", removeErrorCode.message());
     }
     return numPassedQueries == numQueries;
 }
@@ -63,16 +90,30 @@ TestSuiteConfig TestHelper::parseTestFile(const string& path) {
             while (getline(ifs, line)) {
                 if (line.starts_with("-INPUT")) {
                     config.graphInputDir = line.substr(7, line.length());
+                } else if (line.starts_with("-OUTPUT")) {
+                    config.graphOutputDir = line.substr(8, line.length());
                 } else if (line.starts_with("-PARALLELISM")) {
                     config.numThreads = stoi(line.substr(13, line.length()));
                 } else if (line.starts_with("-BUFFER_POOL_SIZE")) {
                     config.bufferPoolSize = stoi(line.substr(18, line.length()));
+                } else if (line.starts_with("-COMPARE_RESULT")) {
+                    config.compareResult = (line.substr(16, line.length()) == "1");
                 } else if (line.starts_with("-NAME")) {
                     config.name.push_back(line.substr(6, line.length()));
                 } else if (line.starts_with("-QUERY")) {
                     config.query.push_back(line.substr(7, line.length()));
                 } else if (line.starts_with("----")) {
-                    config.expectedNumTuples.push_back(stoi(line.substr(5, line.length())));
+                    uint64_t numTuples = stoi(line.substr(5, line.length()));
+                    config.expectedNumTuples.push_back(numTuples);
+                    vector<string> queryExpectedTuples;
+                    if (config.compareResult) {
+                        for (uint64_t i = 0; i < numTuples; i++) {
+                            getline(ifs, line);
+                            queryExpectedTuples.push_back(line);
+                        }
+                    }
+                    sort(queryExpectedTuples.begin(), queryExpectedTuples.end());
+                    config.expectedTuples.push_back(queryExpectedTuples);
                 }
             }
             return config;

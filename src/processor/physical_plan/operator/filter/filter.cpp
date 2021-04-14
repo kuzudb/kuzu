@@ -9,36 +9,37 @@ Filter::Filter(unique_ptr<PhysicalExpression> rootExpr, uint64_t dataChunkToSele
       dataChunkToSelectPos(dataChunkToSelectPos) {
     dataChunks = this->prevOperator->getDataChunks();
     dataChunkToSelect = dataChunks->getDataChunk(dataChunkToSelectPos);
-    this->rootExpr->setExpressionResultOwners(dataChunkToSelect);
+    this->rootExpr->setExpressionInputDataChunk(dataChunkToSelect);
+    this->rootExpr->setExpressionResultOwnerState(dataChunkToSelect->state);
     exprResult = this->rootExpr->result->getValues();
 }
 
 void Filter::getNextTuples() {
     do {
         prevOperator->getNextTuples();
-        if (dataChunkToSelect->numSelectedValues > 0) {
+        if (dataChunkToSelect->state->numSelectedValues > 0) {
             if (dataChunkToSelect->isFlat()) {
                 // not currently used due to the enumerator filter push down.
             } else {
                 rootExpr->evaluate();
-                auto sizeFiltered = dataChunkToSelect->numSelectedValues;
+                auto sizeFiltered = dataChunkToSelect->state->numSelectedValues;
                 auto writePos = 0;
                 for (auto i = 0ul; i < sizeFiltered; i++) {
-                    auto pos = dataChunkToSelect->selectedValuesPos[i];
+                    auto pos = dataChunkToSelect->state->selectedValuesPos[i];
                     if (exprResult[pos] == TRUE) {
-                        dataChunkToSelect->selectedValuesPos[writePos++] = pos;
+                        dataChunkToSelect->state->selectedValuesPos[writePos++] = pos;
                     }
                 }
-                dataChunkToSelect->numSelectedValues = writePos;
+                dataChunkToSelect->state->numSelectedValues = writePos;
             }
         }
-    } while (dataChunkToSelect->size > 0 && dataChunkToSelect->numSelectedValues == 0);
+    } while (
+        dataChunkToSelect->state->size > 0 && dataChunkToSelect->state->numSelectedValues == 0);
 }
 
 unique_ptr<PhysicalOperator> Filter::clone() {
-    auto prevOperatorClone = prevOperator->clone();
-    auto rootExprClone = ExpressionMapper::clone(*rootExpr, *prevOperatorClone->getDataChunks());
-    return make_unique<Filter>(move(rootExprClone), dataChunkToSelectPos, move(prevOperatorClone));
+    auto rootExprClone = ExpressionMapper::clone(*rootExpr);
+    return make_unique<Filter>(move(rootExprClone), dataChunkToSelectPos, prevOperator->clone());
 }
 
 } // namespace processor

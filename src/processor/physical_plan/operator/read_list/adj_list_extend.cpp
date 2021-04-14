@@ -9,7 +9,6 @@ AdjListExtend::AdjListExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos,
     outValueVector = make_shared<NodeIDVector>(lists->getNodeIDCompressionScheme());
     outDataChunk = make_shared<DataChunk>(true /* initializeSelectedValuesPos */);
     outDataChunk->append(outValueVector);
-    outValueVector->setDataChunkOwner(outDataChunk);
     auto listSyncState = make_shared<ListSyncState>();
     dataChunks->append(outDataChunk, listSyncState);
     handle->setListSyncState(listSyncState);

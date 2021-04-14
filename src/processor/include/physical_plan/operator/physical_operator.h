@@ -20,6 +20,7 @@ enum PhysicalOperatorType : uint8_t {
     FLATTEN,
     READ_LIST,
     SCAN_COLUMN,
+    PROJECTION,
     HASH_JOIN_BUILD,
     HASH_JOIN_PROBE,
     RESULT_COLLECTOR,

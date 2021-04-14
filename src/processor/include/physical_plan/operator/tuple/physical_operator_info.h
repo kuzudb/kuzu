@@ -34,12 +34,18 @@ public:
         dataChunk.push_back(variableName);
     }
 
-    uint64_t getDataChunkPos(string variableName) {
+    inline uint64_t getDataChunkPos(string variableName) {
         return variableToDataPosMap.at(variableName).first;
     }
 
-    uint64_t getValueVectorPos(string variableName) {
+    inline uint64_t getValueVectorPos(string variableName) {
         return variableToDataPosMap.at(variableName).second;
+    }
+
+    void clear() {
+        dataChunkIsFlatVector.clear();
+        vectorVariables.clear();
+        variableToDataPosMap.clear();
     }
 
 public:

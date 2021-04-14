@@ -19,7 +19,6 @@ shared_ptr<ValueVector> PhysicalExpression::createResultValueVector(DataType dat
     auto valueVector = make_shared<ValueVector>(dataType, MAX_VECTOR_SIZE);
     auto dataChunk =
         make_shared<DataChunk>(true /* initializeSelectedValuesPos */, MAX_VECTOR_SIZE);
-    valueVector->setDataChunkOwner(dataChunk);
     return valueVector;
 }
 

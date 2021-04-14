@@ -16,7 +16,8 @@ public:
 
     void evaluate() override;
 
-    void setExpressionResultOwners(shared_ptr<DataChunk> dataChunk) override;
+    void setExpressionInputDataChunk(shared_ptr<DataChunk> dataChunk) override;
+    void setExpressionResultOwnerState(shared_ptr<DataChunkState> dataChunkState) override;
 
 private:
     function<void(ValueVector&, ValueVector&, ValueVector&)> operation;

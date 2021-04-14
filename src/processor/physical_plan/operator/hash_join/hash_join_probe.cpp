@@ -35,8 +35,12 @@ HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::HashJoinProbe(uint64_t buildSideKeyDat
 
     vectorDecompressOp = ValueVector::getUnaryOperation(DECOMPRESS_NODE_ID);
     vectorHashOp = ValueVector::getUnaryOperation(HASH_NODE_ID);
-    decompressedProbeKeyVector = make_unique<NodeIDVector>(NodeIDCompressionScheme(8, 8));
-    hashedProbeKeyVector = make_unique<ValueVector>(INT64);
+    auto decompressedProbeKeyState = make_shared<DataChunkState>(true, MAX_VECTOR_SIZE);
+    decompressedProbeKeyVector = make_shared<NodeIDVector>(NodeIDCompressionScheme(8, 8));
+    decompressedProbeKeyVector->setDataChunkOwnerState(decompressedProbeKeyState);
+    auto hashedProbeKeyState = make_shared<DataChunkState>(true, MAX_VECTOR_SIZE);
+    hashedProbeKeyVector = make_shared<ValueVector>(INT64);
+    hashedProbeKeyVector->setDataChunkOwnerState(hashedProbeKeyState);
 
     probeState = make_unique<ProbeState>(MAX_VECTOR_SIZE);
 
@@ -52,7 +56,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
         dataChunks->append(probeSideNonKeyDataChunks->getDataChunk(i));
     }
 
-    for (uint64_t i = 0; i < probeSideKeyDataChunk->getNumAttributes(); i++) {
+    for (uint64_t i = 0; i < probeSideKeyDataChunk->valueVectors.size(); i++) {
         auto probeSideVector = probeSideKeyDataChunk->getValueVector(i);
         shared_ptr<ValueVector> outVector;
         if (probeSideVector->getDataType() == NODE) {
@@ -63,9 +67,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
             outVector = make_shared<ValueVector>(probeSideVector->getDataType());
         }
         outKeyDataChunk->append(outVector);
-        outVector->setDataChunkOwner(outKeyDataChunk);
     }
-    for (uint64_t i = 0; i < buildSideKeyDataChunk->getNumAttributes(); i++) {
+    for (uint64_t i = 0; i < buildSideKeyDataChunk->valueVectors.size(); i++) {
         if (i == buildSideKeyVectorPos) {
             continue;
         }
@@ -79,7 +82,6 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
             outVector = make_shared<ValueVector>(buildSideVector->getDataType());
         }
         outKeyDataChunk->append(outVector);
-        outVector->setDataChunkOwner(outKeyDataChunk);
     }
 
     for (uint64_t i = 0; i < buildSideNonKeyDataChunks->getNumDataChunks(); i++) {
@@ -95,7 +97,6 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
                     outVector = make_shared<ValueVector>(vector->getDataType());
                 }
                 outKeyDataChunk->append(outVector);
-                outVector->setDataChunkOwner(outKeyDataChunk);
             }
         } else {
             auto unFlatOutDataChunk = make_shared<DataChunk>();
@@ -110,12 +111,11 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
                 }
                 auto vectorPtrs = make_unique<overflow_value_t[]>(NODE_SEQUENCE_VECTOR_SIZE);
                 BuildSideVectorInfo vectorInfo(vector->getNumBytesPerValue(),
-                    dataChunks->getNumDataChunks(), unFlatOutDataChunk->getNumAttributes(),
+                    dataChunks->getNumDataChunks(), unFlatOutDataChunk->valueVectors.size(),
                     buildSideVectorPtrs.size());
                 buildSideVectorInfos.push_back(vectorInfo);
                 buildSideVectorPtrs.push_back(move(vectorPtrs));
                 unFlatOutDataChunk->append(outVector);
-                outVector->setDataChunkOwner(unFlatOutDataChunk);
             }
             dataChunks->append(unFlatOutDataChunk);
         }
@@ -143,7 +143,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
     if (probeState->probedTuplesSize == 0 ||
         probeState->probeKeyPos == probeState->probedTuplesSize) {
         prevOperator->getNextTuples();
-        if (probeSideKeyDataChunk->numSelectedValues == 0) {
+        if (probeSideKeyDataChunk->state->numSelectedValues == 0) {
             probeState->probedTuplesSize = 0;
             return;
         }
@@ -161,8 +161,9 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
             memcpy(&nodeId, probeState->probedTuples[i], NUM_BYTES_PER_NODE_ID);
             probeState->matchedTuples[probeState->matchedTuplesSize] = probeState->probedTuples[i];
             probeState->probeSelVector[probeState->matchedTuplesSize] =
-                probeSideKeyDataChunk->isFlat() ? probeSideKeyDataChunk->currPos :
-                                                  probeState->probeKeyPos;
+                probeSideKeyDataChunk->isFlat() ?
+                    probeSideKeyDataChunk->getCurrSelectedValuesPos() :
+                    probeState->probeKeyPos;
             probeState->matchedTuplesSize += (nodeId.label == decompressedProbeKeys[i].label &&
                                               nodeId.offset == decompressedProbeKeys[i].offset);
             probeState->probedTuples[i] =
@@ -175,9 +176,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::populateOutKeyDataChunkAndVectorPtrs() {
-    for (uint64_t i = 0; i < probeSideKeyDataChunk->getNumAttributes(); i++) {
-        auto probeVector =
-            probeSideKeyDataChunk->getValueVector(i); // todo: bug, vector can be nodeIDSequence
+    for (uint64_t i = 0; i < probeSideKeyDataChunk->valueVectors.size(); i++) {
+        auto probeVector = probeSideKeyDataChunk->getValueVector(i);
         auto probeVectorValues = probeVector->getValues();
         auto outKeyVector = outKeyDataChunk->getValueVector(i);
         auto outKeyVectorValues = outKeyVector->getValues();
@@ -199,9 +199,9 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::populateOutKeyDataChunkAndVectorP
             }
         }
     }
-    auto outKeyDataChunkVectorPos = probeSideKeyDataChunk->getNumAttributes();
+    auto outKeyDataChunkVectorPos = probeSideKeyDataChunk->valueVectors.size();
     auto tupleReadOffset = NUM_BYTES_PER_NODE_ID;
-    for (uint64_t i = 0; i < buildSideKeyDataChunk->getNumAttributes(); i++) {
+    for (uint64_t i = 0; i < buildSideKeyDataChunk->valueVectors.size(); i++) {
         if (i == buildSideKeyVectorPos) {
             continue;
         }
@@ -242,8 +242,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::populateOutKeyDataChunkAndVectorP
         }
     }
 
-    outKeyDataChunk->size = probeState->matchedTuplesSize;
-    outKeyDataChunk->numSelectedValues = probeState->matchedTuplesSize;
+    outKeyDataChunk->state->size = probeState->matchedTuplesSize;
+    outKeyDataChunk->state->numSelectedValues = probeState->matchedTuplesSize;
     probeState->matchedTuplesSize = 0;
 }
 
@@ -253,11 +253,11 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::updateAppendedUnFlatOutDataChunks
         auto outDataChunk = dataChunks->getDataChunk(buildVectorInfo.outDataChunkPos);
         auto appendVectorData =
             outDataChunk->getValueVector(buildVectorInfo.outVectorPos)->getValues();
-        auto overflowVal =
-            buildSideVectorPtrs[buildVectorInfo.vectorPtrsPos].operator[](outKeyDataChunk->currPos);
+        auto overflowVal = buildSideVectorPtrs[buildVectorInfo.vectorPtrsPos].operator[](
+            outKeyDataChunk->state->currPos);
         memcpy(appendVectorData, overflowVal.value, overflowVal.len);
-        outDataChunk->size = overflowVal.len / buildVectorInfo.numBytesPerValue;
-        outDataChunk->numSelectedValues = outDataChunk->size;
+        outDataChunk->state->size = overflowVal.len / buildVectorInfo.numBytesPerValue;
+        outDataChunk->state->numSelectedValues = outDataChunk->state->size;
     }
 }
 
@@ -276,14 +276,16 @@ static void initializeSelectedValuesPos(uint64_t* selectedValuesPos, uint64_t nu
 // outKeyDataChunk.currPos.
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
-    if (!buildSideVectorPtrs.empty() && outKeyDataChunk->currPos < (outKeyDataChunk->size - 1)) {
-        outKeyDataChunk->currPos += 1;
+    if (!buildSideVectorPtrs.empty() &&
+        outKeyDataChunk->state->currPos < (int64_t)(outKeyDataChunk->state->size - 1)) {
+        outKeyDataChunk->state->currPos += 1;
         updateAppendedUnFlatOutDataChunks();
         if constexpr (IS_OUT_DATACHUNK_FILTERED) {
             for (uint64_t i = (probeSideNonKeyDataChunks->getNumDataChunks() + 1);
                  i < dataChunks->getNumDataChunks(); i++) {
-                initializeSelectedValuesPos(dataChunks->getDataChunk(i)->selectedValuesPos.get(),
-                    dataChunks->getDataChunk(i)->numSelectedValues);
+                initializeSelectedValuesPos(
+                    dataChunks->getDataChunkState(i)->selectedValuesPos.get(),
+                    dataChunks->getDataChunkState(i)->numSelectedValues);
             }
         }
         return;
@@ -291,18 +293,18 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     getNextBatchOfMatchedTuples();
     populateOutKeyDataChunkAndVectorPtrs();
     if (buildSideVectorPtrs.empty()) {
-        outKeyDataChunk->currPos = -1;
+        outKeyDataChunk->state->currPos = -1;
     } else {
-        outKeyDataChunk->currPos = 0;
+        outKeyDataChunk->state->currPos = 0;
         updateAppendedUnFlatOutDataChunks();
     }
     if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-        initializeSelectedValuesPos(
-            outKeyDataChunk->selectedValuesPos.get(), outKeyDataChunk->numSelectedValues);
+        initializeSelectedValuesPos(outKeyDataChunk->state->selectedValuesPos.get(),
+            outKeyDataChunk->state->numSelectedValues);
         for (uint64_t i = (probeSideNonKeyDataChunks->getNumDataChunks() + 1);
              i < dataChunks->getNumDataChunks(); i++) {
-            initializeSelectedValuesPos(dataChunks->getDataChunk(i)->selectedValuesPos.get(),
-                dataChunks->getDataChunk(i)->numSelectedValues);
+            initializeSelectedValuesPos(dataChunks->getDataChunkState(i)->selectedValuesPos.get(),
+                dataChunks->getDataChunkState(i)->numSelectedValues);
         }
     }
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/common/include/data_chunk/data_chunk.h"
+#include "src/common/include/data_chunk/data_chunk_state.h"
 #include "src/common/include/expression_type.h"
 #include "src/common/include/types.h"
 
@@ -9,6 +9,7 @@ namespace common {
 
 //! A Vector represents values of the same data type.
 class ValueVector {
+    friend class DataChunk;
 
 public:
     static function<void(ValueVector&, ValueVector&)> getUnaryOperation(ExpressionType type);
@@ -17,11 +18,7 @@ public:
         ExpressionType type);
 
     ValueVector(DataType dataType, uint64_t vectorCapacity)
-        : capacity{getDataTypeSize(dataType) * vectorCapacity},
-          buffer(make_unique<uint8_t[]>(capacity)), values{buffer.get()}, dataType{dataType},
-          nullMask(make_unique<bool[]>(capacity)) {
-        std::fill_n(nullMask.get(), capacity, false /* not null */);
-    }
+        : ValueVector(vectorCapacity, getDataTypeSize(dataType), dataType) {}
 
     ValueVector(uint64_t numBytesPerValue, DataType dataType)
         : ValueVector(MAX_VECTOR_SIZE, numBytesPerValue, dataType) {}
@@ -42,6 +39,14 @@ public:
         ((T*)values)[pos] = value;
     }
 
+    template<typename T>
+    void fillValue(const T& value) {
+        auto vectorCapacity = capacity / getNumBytesPerValue();
+        for (uint64_t i = 0; i < vectorCapacity; i++) {
+            ((T*)values)[i] = value;
+        }
+    }
+
     virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID) {
         throw invalid_argument("not supported.");
     }
@@ -55,28 +60,33 @@ public:
         return ((T*)values)[pos];
     }
 
-    inline void setDataChunkOwner(shared_ptr<DataChunk> owner) { this->owner = owner; }
+    inline void setDataChunkOwnerState(shared_ptr<DataChunkState> dataChunkOwnerState) {
+        this->ownerState = dataChunkOwnerState;
+    }
 
-    inline uint64_t getNumSelectedValues() { return owner->numSelectedValues; }
+    inline void setNumSelectedValues(uint64_t numSelectedValues) {
+        ownerState->numSelectedValues = numSelectedValues;
+    }
 
-    inline uint64_t* getSelectedValuesPos() { return owner->selectedValuesPos.get(); }
+    inline uint64_t getNumSelectedValues() { return ownerState->numSelectedValues; }
 
-    inline uint64_t getCurrSelectedValuesPos() { return owner->getCurrSelectedValuesPos(); }
+    inline uint64_t* getSelectedValuesPos() { return ownerState->selectedValuesPos.get(); }
 
-    inline int64_t getCurrPos() { return owner->selectedValuesPos[owner->currPos]; }
+    inline uint64_t getCurrSelectedValuesPos() {
+        return ownerState->selectedValuesPos[ownerState->currPos];
+    }
 
-    inline uint64_t size() { return owner->size; }
+    inline int64_t getCurrPos() { return ownerState->currPos; }
+
+    inline uint64_t size() { return ownerState->size; }
 
     virtual inline int64_t getNumBytesPerValue() { return getDataTypeSize(dataType); }
 
-    inline bool isFlat() { return owner->isFlat(); }
+    inline bool isFlat() { return ownerState->currPos != -1; }
 
     inline void reset() { values = buffer.get(); }
 
     uint8_t* reserve(size_t capacity);
-
-public:
-    shared_ptr<DataChunk> owner;
 
 protected:
     // TODO: allocate null-mask only when necessary.
@@ -92,6 +102,7 @@ protected:
     uint8_t* values;
     DataType dataType;
     unique_ptr<bool[]> nullMask;
+    shared_ptr<DataChunkState> ownerState;
 };
 
 } // namespace common

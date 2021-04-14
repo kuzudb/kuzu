@@ -15,22 +15,21 @@ static unique_ptr<PhysicalExpression> mapLogicalLiteralExpressionToPhysical(
     const LogicalExpression& expression);
 
 static unique_ptr<PhysicalExpression> mapLogicalPropertyExpressionToPhysical(
-    const LogicalExpression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
-    DataChunks& dataChunks);
+    const LogicalExpression& expression, PhysicalOperatorsInfo& physicalOperatorInfo);
 
-unique_ptr<PhysicalExpression> ExpressionMapper::mapToPhysical(const LogicalExpression& expression,
-    PhysicalOperatorsInfo& physicalOperatorInfo, DataChunks& dataChunks) {
+unique_ptr<PhysicalExpression> ExpressionMapper::mapToPhysical(
+    const LogicalExpression& expression, PhysicalOperatorsInfo& physicalOperatorInfo) {
     auto expressionType = expression.getExpressionType();
     if (isExpressionLeafLiteral(expressionType)) {
         return mapLogicalLiteralExpressionToPhysical(expression);
     } else if (isExpressionLeafVariable(expressionType)) {
-        return mapLogicalPropertyExpressionToPhysical(expression, physicalOperatorInfo, dataChunks);
+        return mapLogicalPropertyExpressionToPhysical(expression, physicalOperatorInfo);
     } else if (isExpressionUnary(expressionType)) {
-        auto child = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo, dataChunks);
+        auto child = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo);
         return make_unique<PhysicalUnaryExpression>(move(child), expression.getExpressionType());
     } else if (isExpressionBinary(expressionType)) {
-        auto lExpr = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo, dataChunks);
-        auto rExpr = mapToPhysical(expression.getChildExpr(1), physicalOperatorInfo, dataChunks);
+        auto lExpr = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo);
+        auto rExpr = mapToPhysical(expression.getChildExpr(1), physicalOperatorInfo);
         return make_unique<PhysicalBinaryExpression>(
             move(lExpr), move(rExpr), expression.getExpressionType());
     }
@@ -38,59 +37,32 @@ unique_ptr<PhysicalExpression> ExpressionMapper::mapToPhysical(const LogicalExpr
     throw std::invalid_argument("Unsupported expression type.");
 }
 
-unique_ptr<PhysicalExpression> ExpressionMapper::clone(
-    const PhysicalExpression& expression, DataChunks& dataChunks) {
+unique_ptr<PhysicalExpression> ExpressionMapper::clone(const PhysicalExpression& expression) {
     if (expression.isLiteralLeafExpression()) {
-        return make_unique<PhysicalExpression>(expression.result, expression.expressionType);
+        return make_unique<PhysicalExpression>(
+            expression.literal, expression.expressionType, expression.dataType);
     } else if (expression.isPropertyLeafExpression()) {
-        auto dataChunk = dataChunks.getDataChunk(expression.dataChunkPos);
-        auto valueVector = dataChunk->getValueVector(expression.valueVectorPos);
-        return make_unique<PhysicalExpression>(valueVector, expression.dataChunkPos,
-            expression.valueVectorPos, expression.expressionType);
+        return make_unique<PhysicalExpression>(expression.valueVectorPos, expression.dataType);
     } else if (expression.getNumChildrenExpr() == 1) { // unary expression.
         return make_unique<PhysicalUnaryExpression>(
-            clone(expression.getChildExpr(0), dataChunks), expression.expressionType);
+            clone(expression.getChildExpr(0)), expression.expressionType);
     } else { // binary expression.
-        return make_unique<PhysicalBinaryExpression>(clone(expression.getChildExpr(0), dataChunks),
-            clone(expression.getChildExpr(1), dataChunks), expression.expressionType);
+        return make_unique<PhysicalBinaryExpression>(clone(expression.getChildExpr(0)),
+            clone(expression.getChildExpr(1)), expression.expressionType);
     }
 }
 
 unique_ptr<PhysicalExpression> mapLogicalLiteralExpressionToPhysical(
     const LogicalExpression& expression) {
-    auto dataType = expression.getDataType();
-    // We create an owner dataChunk which is flat and of size 1 to contain the literal.
-    auto dataChunkForLiteral = make_shared<DataChunk>(true /* initializeSelectedValuesPos */);
-    dataChunkForLiteral->size = 1;
-    dataChunkForLiteral->currPos = 0;
-    auto valueVector = make_shared<ValueVector>(dataType, 1 /* capacity */);
-    valueVector->setDataChunkOwner(dataChunkForLiteral);
-    switch (dataType) {
-    case INT32: {
-        valueVector->setValue(0, expression.getLiteralValue().primitive.integer);
-    } break;
-    case DOUBLE: {
-        valueVector->setValue(0, expression.getLiteralValue().primitive.double_);
-    } break;
-    case BOOL:
-        valueVector->setValue(0, expression.getLiteralValue().primitive.boolean);
-        break;
-    default:
-        throw std::invalid_argument("Unsupported data type for literal expressions.");
-    }
-    return make_unique<PhysicalExpression>(valueVector, expression.expressionType);
+    return make_unique<PhysicalExpression>(
+        expression.literalValue, expression.expressionType, expression.dataType);
 }
 
 unique_ptr<PhysicalExpression> mapLogicalPropertyExpressionToPhysical(
-    const LogicalExpression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
-    DataChunks& dataChunks) {
+    const LogicalExpression& expression, PhysicalOperatorsInfo& physicalOperatorInfo) {
     const auto& variableName = expression.getVariableName();
-    auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(variableName);
-    auto dataChunk = dataChunks.getDataChunk(dataChunkPos);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(variableName);
-    auto valueVector = dataChunk->getValueVector(valueVectorPos);
-    return make_unique<PhysicalExpression>(
-        valueVector, dataChunkPos, valueVectorPos, expression.expressionType);
+    return make_unique<PhysicalExpression>(valueVectorPos, expression.dataType);
 }
 
 } // namespace processor
