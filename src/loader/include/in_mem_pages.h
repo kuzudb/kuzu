@@ -12,7 +12,7 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace loader {
 
-//! InMemPages holds a collection of pages in memory for storing a column or lists.
+// InMemPages holds a collection of pages in memory for storing a column or lists.
 class InMemPages {
 
 public:
@@ -30,7 +30,7 @@ protected:
     uint64_t numPages;
 };
 
-//! InMemPages for storing AdjRels or AdjLists.
+// InMemPages for storing AdjColumns or AdjLists.
 class InMemAdjPages : public InMemPages {
 
 public:
@@ -46,7 +46,7 @@ protected:
     const uint8_t numBytesPerOffset;
 };
 
-//! InMemPages for storing PropertyColumn or PropertyLists.
+// InMemPages for storing PropertyColumn or PropertyLists.
 class InMemPropertyPages : public InMemPages {
 
 public:
@@ -65,7 +65,7 @@ private:
     const uint8_t numBytesPerElement;
 };
 
-//! InMemPages for storing Nodes' unstructured PropertyLists.
+// InMemPages for storing Nodes' unstructured PropertyLists.
 class InMemUnstrPropertyPages : public InMemPages {
 
 public:
@@ -76,7 +76,7 @@ public:
         uint32_t valLen, const uint8_t* val);
 };
 
-//!  InMemPages for storing string overflow of PropertyColumn or PropertyLists.
+//  InMemPages for storing string overflow of PropertyColumn or PropertyLists.
 class InMemStringOverflowPages : public InMemPages {
 
 public:

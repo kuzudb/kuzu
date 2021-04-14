@@ -1,7 +1,12 @@
 name: CI
 
-on: [push, pull_request]
-
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
 env:
         USE_BAZEL_VERSION: 3.5.0
 

@@ -16,7 +16,7 @@ namespace graphflow {
 namespace loader {
 
 class ListsLoaderHelper;
-class AdjAndPropertyListsLoaderHelper;
+class AdjAndPropertyListsBuilder;
 class NodesLoader;
 
 } // namespace loader
@@ -29,7 +29,7 @@ namespace storage {
 // thats organizes and stores lists.
 class ListsMetadata {
     friend class graphflow::loader::ListsLoaderHelper;
-    friend class graphflow::loader::AdjAndPropertyListsLoaderHelper;
+    friend class graphflow::loader::AdjAndPropertyListsBuilder;
     friend class graphflow::loader::NodesLoader;
     friend class bitsery::Access;
 
@@ -80,7 +80,7 @@ private:
 // ListHeaders holds the headers of all lists in a single Lists structue.
 class ListHeaders {
     friend class graphflow::loader::ListsLoaderHelper;
-    friend class graphflow::loader::AdjAndPropertyListsLoaderHelper;
+    friend class graphflow::loader::AdjAndPropertyListsBuilder;
     friend class graphflow::loader::NodesLoader;
     friend class bitsery::Access;
 

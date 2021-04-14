@@ -187,9 +187,9 @@ void Enumerator::appendProjection(LogicalPlan& plan) {
     for (auto& expression : returnClause) {
         if (VARIABLE == expression->expressionType) {
             auto propertyMap = NODE == expression->dataType ?
-                                   catalog.getPropertyMapForNodeLabel(
+                                   catalog.getPropertyKeyMapForNodeLabel(
                                        queryGraph.getQueryNode(expression->variableName)->label) :
-                                   catalog.getPropertyMapForRelLabel(
+                                   catalog.getPropertyKeyMapForRelLabel(
                                        queryGraph.getQueryRel(expression->variableName)->label);
             for (auto& [propertyName, property] : propertyMap) {
                 auto propertyExpression = make_shared<LogicalExpression>(

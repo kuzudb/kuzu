@@ -15,31 +15,43 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace loader {
 
-class AdjAndPropertyColumnsLoaderHelper {
+// This class helps RelsLoader to build AdjColumns and RelPropertyColumns for a particular rel
+// label (if FWD/BWD cardinality is 1) else, count the adjacent edges of each src/dest nodes.
+// AdjAndPropertyColumnsBuilder exposes functions to construct columns step-by-step and populate
+// in-memory pages (for AdjColumns and RelPropertyColumns) and finally save the in-mem data
+// structures to the disk.
+class AdjAndPropertyColsBuilderAndListSizeCounter {
 
     typedef vector<vector<unique_ptr<InMemStringOverflowPages>>> labelPropertyIdxStringOverflow_t;
     typedef vector<vector<unique_ptr<InMemPropertyPages>>> labelPropertyIdxPropertyColumn_t;
     typedef vector<vector<unique_ptr<InMemAdjPages>>> dirLabelAdjColumn_t;
 
 public:
-    AdjAndPropertyColumnsLoaderHelper(RelLabelDescription& description, ThreadPool& threadPool,
-        const Graph& graph, const Catalog& catalog, const string outputDirectory);
+    // Initialize the builder and construct relevant propertyColumns and adjColumns.
+    AdjAndPropertyColsBuilderAndListSizeCounter(RelLabelDescription& description,
+        ThreadPool& threadPool, const Graph& graph, const Catalog& catalog,
+        const string outputDirectory);
 
+    // Sets a neighbour nodeID of the given nodeID in a corresponding adjColumn. If dir=FWD,
+    // adjCol[nodeIDs[FWD]] = nodeIDs[BWD], and vice-versa.
     void setRel(const Direction& dir, const vector<nodeID_t>& nodeIDs);
 
+    // Sets a property of a rel in RelPropertyColumn at a given nodeID.
     void setProperty(const nodeID_t& nodeID, const uint32_t& propertyIdx, const uint8_t* val,
         const DataType& type);
 
+    // Sets a string property of a rel in RelPropertyColumn at a given nodeID.
     void setStringProperty(
         const nodeID_t& nodeID, const uint32_t& propertyIdx, const char* val, PageCursor& cursor);
 
+    // Sorts data in String overflow pages in the order of nodeIDs.
     void sortOverflowStrings();
 
+    // Saves all columns to disk.
     void saveToFile();
 
 private:
     void buildInMemPropertyColumns(Direction dir);
-
     void buildInMemAdjColumns();
 
     static void calculatePageCursor(

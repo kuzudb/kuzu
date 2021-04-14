@@ -22,6 +22,9 @@ namespace loader {
 
 class GraphLoader {
 
+    typedef vector<vector<unordered_set<const char*, charArrayHasher, charArrayEqualTo>>>
+        labelBlockUnstrPropertyKeys_t;
+
 public:
     GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads)
         : logger{spdlog::stdout_logger_mt("loader")}, threadPool{ThreadPool(numThreads)},
@@ -33,26 +36,31 @@ public:
 private:
     unique_ptr<nlohmann::json> readMetadata();
 
-    void assignLabels(stringToLabelMap_t& map, const nlohmann::json& fileDescriptions);
-    void setCardinalities(const nlohmann::json& metadata);
+    void assignIdxToLabels(stringToLabelMap_t& map, const nlohmann::json& fileDescriptions);
+
+    void setCardinalitiesOfRelLabels(const nlohmann::json& metadata);
+
     void setSrcDstNodeLabelsForRelLabels(const nlohmann::json& metadata);
 
     unique_ptr<vector<unique_ptr<NodeIDMap>>> loadNodes(const nlohmann::json& metadata);
+
     void loadRels(const nlohmann::json& metadata, vector<unique_ptr<NodeIDMap>>& nodeIDMaps);
 
-    void inferFilenamesInitPropertyMapAndCalcNumBlocks(label_t numLabels,
-        nlohmann::json filedescriptions, vector<string>& fnames,
-        vector<uint64_t>& numBlocksPerLabel, vector<unordered_map<string, Property>>& propertyMaps,
-        const char tokenSeparator);
+    void inferFnamesFromMetadataFileDesriptions(
+        label_t numLabels, nlohmann::json fileDescriptions, vector<string>& filenames);
 
-    void parseHeader(
-        const char tokenSeparator, string& header, unordered_map<string, Property>& propertyMap);
+    void initPropertyKeyMapAndCalcNumBlocks(label_t numLabels, vector<string>& filenames,
+        vector<uint64_t>& numBlocksPerLabel,
+        vector<unordered_map<string, PropertyKey>>& propertyKeysMaps, const char tokenSeparator);
 
-    void countNodesAndInitUnstrPropertyMaps(vector<vector<uint64_t>>& numLinesPerBlock,
+    void parseHeader(const char tokenSeparator, string& header,
+        unordered_map<string, PropertyKey>& propertyKeyMap);
+
+    void countLinesAndGetUnstrPropertyKeys(vector<vector<uint64_t>>& numLinesPerBlock,
+        labelBlockUnstrPropertyKeys_t& labelBlockUnstrPropertyKeys,
         vector<uint64_t>& numBlocksPerLabel, const char tokenSeparator, vector<string>& fnames);
 
-    void initUnstrPropertyMapForLabel(label_t label,
-        vector<unordered_set<const char*, charArrayHasher, charArrayEqualTo>>& unstrPropertyKeys);
+    void initNodeUnstrPropertyKeyMaps(labelBlockUnstrPropertyKeys_t& labelBlockUnstrPropertyKeys);
 
     // Concurrent Tasks
 

@@ -19,7 +19,7 @@ void NodesStore::initPropertyColumns(const Catalog& catalog,
     BufferManager& bufferManager) {
     propertyColumns.resize(catalog.getNodeLabelsCount());
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        auto& propertyMap = catalog.getPropertyMapForNodeLabel(nodeLabel);
+        auto& propertyMap = catalog.getPropertyKeyMapForNodeLabel(nodeLabel);
         propertyColumns[nodeLabel].resize(propertyMap.size());
         for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
             auto fname = getNodePropertyColumnFname(directory, nodeLabel, property->first);
@@ -54,7 +54,7 @@ void NodesStore::initUnstrPropertyLists(
     const Catalog& catalog, const string& directory, BufferManager& bufferManager) {
     unstrPropertyLists.resize(catalog.getNodeLabelsCount());
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        if (catalog.getUnstrPropertyMapForNodeLabel(nodeLabel).size() > 0) {
+        if (catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
             auto fname = getNodeUnstrPropertyListsFname(directory, nodeLabel);
             unstrPropertyLists[nodeLabel] =
                 make_unique<UnstructuredPropertyLists>(fname, bufferManager);

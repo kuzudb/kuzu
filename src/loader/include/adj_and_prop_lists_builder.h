@@ -4,7 +4,6 @@
 #include "spdlog/spdlog.h"
 
 #include "src/loader/include/in_mem_pages.h"
-#include "src/loader/include/lists_loader_helper.h"
 #include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
@@ -16,7 +15,12 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace loader {
 
-class AdjAndPropertyListsLoaderHelper {
+// This builder class helps RelsLoader to build AdjLists and RelPropertyLists for a particular rel
+// label (if FWD/BWD cardinality is not 1). Similar to AdjAndPropertyColsBuilderAndListSizeCounter,
+// this also exposes functions to construct Lists and its auxilliary data structures (ListHeaders
+// and ListsMetadata) step-by-step and populate in-memory pages and finally save the in-mem data
+// structures to the disk.
+class AdjAndPropertyListsBuilder {
 
     typedef vector<vector<unique_ptr<listSizes_t>>> dirLabelListSizes_t;
 
@@ -33,7 +37,7 @@ class AdjAndPropertyListsLoaderHelper {
         dirLabelPropertyIdxStringOverflowPages_t;
 
 public:
-    AdjAndPropertyListsLoaderHelper(RelLabelDescription& description, ThreadPool& threadPool,
+    AdjAndPropertyListsBuilder(RelLabelDescription& description, ThreadPool& threadPool,
         const Graph& graph, const Catalog& catalog, const string outputDirectory);
 
     inline void incrementListSize(const Direction& dir, const nodeID_t& nodeID) {
@@ -46,20 +50,31 @@ public:
             *dirLabelListSizes[dir][nodeID.label], nodeID.offset, 1);
     }
 
+    // Should be called after the listSizes has been updated. Encodes the header info of each list
+    // in all AdjLists structures.
     void buildAdjListsHeadersAndListsMetadata();
 
+    // should be called after ListHeaders have been created. Calculates the metadata info of each
+    // Lists structure (AdjLists / RelPropertyLists) besed on its relevant headers info.
     void buildInMemStructures();
 
+    // Sets a neighbour nodeID in the adjList of the given nodeID in a particular adjLists
+    // structure.
     void setRel(const uint64_t& pos, const Direction& dir, const vector<nodeID_t>& nodeIDs);
 
+    // Sets a proeprty in the propertyList of the given nodeID in a particular RelPropertyLists
+    // structure.
     void setProperty(const vector<uint64_t>& pos, const vector<nodeID_t>& nodeIDs,
         const uint32_t& propertyIdx, const uint8_t* val, const DataType& type);
 
+    // Sets a string proeprty in the propertyList of the given nodeID in a particular
+    // RelPropertyLists structure.
     void setStringProperty(const vector<uint64_t>& pos, const vector<nodeID_t>& nodeIDs,
         const uint32_t& propertyIdx, const char* strVal, PageCursor& stringOverflowCursor);
 
     void sortOverflowStrings();
 
+    // Saves all the Lists and String Overflow pages to disk.
     void saveToFile();
 
 private:
