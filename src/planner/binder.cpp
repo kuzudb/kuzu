@@ -3,6 +3,16 @@
 namespace graphflow {
 namespace planner {
 
+static bool isAnonymousVariable(const string& variableName);
+
+static vector<unique_ptr<ParsedExpression>> getAllVariablesAsExpression(
+    const QueryGraph& queryGraph);
+
+static void validateOnlyFunctionIsCountStar(vector<unique_ptr<ParsedExpression>>& expressions);
+
+static void validateReturnExpressionNamesAreUnique(
+    vector<unique_ptr<ParsedExpression>>& expressions);
+
 static vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(
     shared_ptr<LogicalExpression> expr);
 
@@ -15,8 +25,8 @@ static void mergeQueryGraphs(QueryGraph& mergedQueryGraph, QueryGraph& otherQuer
 unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
     auto mergedQueryGraph = make_unique<QueryGraph>();
     vector<shared_ptr<LogicalExpression>> whereExprsSplitOnAND;
-    for (auto& statement : singleQuery.statements) {
-        auto boundStatement = bindStatement(*statement);
+    for (auto& statement : singleQuery.matchStatements) {
+        auto boundStatement = bindMatchStatement(*statement);
         mergeQueryGraphs(*mergedQueryGraph, *boundStatement->queryGraph);
         if (boundStatement->whereExpression) {
             auto exprs = splitExpressionOnAND(boundStatement->whereExpression);
@@ -25,15 +35,14 @@ unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQu
             }
         }
     }
+    auto boundReturnStatement =
+        bindReturnStatement(*singleQuery.returnStatement, *mergedQueryGraph);
     return make_unique<BoundSingleQuery>(
-        move(mergedQueryGraph), move(whereExprsSplitOnAND), make_unique<BoundReturnStatement>());
+        move(mergedQueryGraph), move(whereExprsSplitOnAND), move(boundReturnStatement));
 }
 
-unique_ptr<BoundMatchStatement> Binder::bindStatement(const MatchStatement& matchStatement) {
-    auto queryGraph = make_unique<QueryGraph>();
-    for (auto& patternElement : matchStatement.graphPattern) {
-        bindQueryRels(*patternElement, *queryGraph);
-    }
+unique_ptr<BoundMatchStatement> Binder::bindMatchStatement(const MatchStatement& matchStatement) {
+    auto queryGraph = bindQueryGraph(matchStatement.graphPattern);
     if (!queryGraph->isConnected()) {
         throw invalid_argument("Disconnected query graph is not yet supported.");
     }
@@ -45,14 +54,40 @@ unique_ptr<BoundMatchStatement> Binder::bindStatement(const MatchStatement& matc
     return make_unique<BoundMatchStatement>(move(queryGraph));
 }
 
-void Binder::bindQueryRels(const PatternElement& patternElement, QueryGraph& queryGraph) {
-    QueryNode* leftNode = bindQueryNode(*patternElement.nodePattern, queryGraph);
-    for (auto& patternElementChain : patternElement.patternElementChains) {
-        auto rel = bindQueryRel(*patternElementChain, leftNode, queryGraph);
-        leftNode = ArrowDirection::RIGHT == patternElementChain->relPattern->arrowDirection ?
-                       rel->dstNode :
-                       rel->srcNode;
+unique_ptr<BoundReturnStatement> Binder::bindReturnStatement(
+    ReturnStatement& returnStatement, const QueryGraph& graphInScope) {
+    auto parsedExpressions = vector<unique_ptr<ParsedExpression>>();
+    if (returnStatement.containsStar) { // rewrite * as all variables
+        for (auto& expression : getAllVariablesAsExpression(graphInScope)) {
+            parsedExpressions.push_back(move(expression));
+        }
     }
+    for (auto& expression : returnStatement.expressions) {
+        parsedExpressions.push_back(move(expression));
+    }
+    validateOnlyFunctionIsCountStar(parsedExpressions);
+    validateReturnExpressionNamesAreUnique(parsedExpressions);
+    auto expressionsToProject = vector<shared_ptr<LogicalExpression>>();
+    auto expressionBinder = make_unique<ExpressionBinder>(graphInScope, catalog);
+    for (auto& expression : parsedExpressions) {
+        expressionsToProject.push_back(expressionBinder->bindExpression(*expression));
+    }
+    return make_unique<BoundReturnStatement>(expressionsToProject);
+}
+
+unique_ptr<QueryGraph> Binder::bindQueryGraph(
+    const vector<unique_ptr<PatternElement>>& graphPattern) {
+    auto queryGraph = make_unique<QueryGraph>();
+    for (auto& patternElement : graphPattern) {
+        QueryNode* leftNode = bindQueryNode(*patternElement->nodePattern, *queryGraph);
+        for (auto& patternElementChain : patternElement->patternElementChains) {
+            auto rel = bindQueryRel(*patternElementChain, leftNode, *queryGraph);
+            leftNode = ArrowDirection::RIGHT == patternElementChain->relPattern->arrowDirection ?
+                           rel->dstNode :
+                           rel->srcNode;
+        }
+    }
+    return queryGraph;
 }
 
 QueryRel* Binder::bindQueryRel(
@@ -130,6 +165,46 @@ void Binder::bindNodeToRel(QueryRel* queryRel, QueryNode* queryNode, bool isSrcN
                                " doesn't connect to edge with same type as: " + queryRel->name);
     }
     isSrcNode ? queryRel->srcNode = queryNode : queryRel->dstNode = queryNode;
+}
+
+bool isAnonymousVariable(const string& variableName) {
+    return variableName.substr(0, 3) == "_gf";
+}
+
+vector<unique_ptr<ParsedExpression>> getAllVariablesAsExpression(const QueryGraph& queryGraph) {
+    auto expressions = vector<unique_ptr<ParsedExpression>>();
+    for (auto& queryNode : queryGraph.queryNodes) {
+        if (!isAnonymousVariable(queryNode->name)) {
+            expressions.push_back(
+                make_unique<ParsedExpression>(VARIABLE, queryNode->name, queryNode->name));
+        }
+    }
+    for (auto& queryRel : queryGraph.queryRels) {
+        if (!isAnonymousVariable(queryRel->name)) {
+            expressions.push_back(
+                make_unique<ParsedExpression>(VARIABLE, queryRel->name, queryRel->name));
+        }
+    }
+    return expressions;
+}
+
+void validateOnlyFunctionIsCountStar(vector<unique_ptr<ParsedExpression>>& expressions) {
+    for (auto& expression : expressions) {
+        if (FUNCTION == expression->type && "COUNT_STAR" == expression->text &&
+            1 != expressions.size()) {
+            throw invalid_argument("The only function in the return clause should be COUNT(*).");
+        }
+    }
+}
+
+void validateReturnExpressionNamesAreUnique(vector<unique_ptr<ParsedExpression>>& expressions) {
+    auto existVariableNames = unordered_set<string>();
+    for (auto& expression : expressions) {
+        if (end(existVariableNames) != existVariableNames.find(expression->getName())) {
+            throw invalid_argument("Duplicate return column name: " + expression->getName());
+        }
+        existVariableNames.insert(expression->getName());
+    }
 }
 
 vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(shared_ptr<LogicalExpression> expr) {

@@ -46,6 +46,8 @@ private:
 
     shared_ptr<LogicalExpression> bindPropertyExpression(const ParsedExpression& parsedExpression);
 
+    shared_ptr<LogicalExpression> bindFunctionExpression(const ParsedExpression& parsedExpression);
+
     shared_ptr<LogicalExpression> bindLiteralExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<LogicalExpression> bindVariableExpression(const ParsedExpression& parsedExpression);

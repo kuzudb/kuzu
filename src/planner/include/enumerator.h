@@ -11,7 +11,7 @@ namespace planner {
 class Enumerator {
 
 public:
-    explicit Enumerator(const BoundSingleQuery& boundSingleQuery);
+    explicit Enumerator(const Catalog& catalog, const BoundSingleQuery& boundSingleQuery);
 
     vector<unique_ptr<LogicalPlan>> enumeratePlans();
 
@@ -45,6 +45,7 @@ private:
 
 private:
     unique_ptr<SubgraphPlanTable> subgraphPlanTable; // cached subgraph plans
+    const Catalog& catalog;
     const QueryGraph& queryGraph;
     vector<pair<shared_ptr<LogicalExpression>, unordered_set<string>>>
         whereClauseAndIncludedVariables;

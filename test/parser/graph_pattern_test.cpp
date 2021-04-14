@@ -36,75 +36,32 @@ TEST_F(GraphPatternTest, EmptyMatchTest) {
     expectedPatternElements.push_back(move(expectedPatternElement));
     auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
     auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatchStatement));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement));
+    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    expectedSingleQuery->returnStatement = move(returnStar);
 
     graphflow::parser::Parser parser;
-    string input = "MATCH ();";
+    string input = "MATCH () RETURN *;";
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(GraphPatternTest, MATCHSingleElementSingleNodeNoLabelTest) {
-    auto expectedNode = makeNodePattern("a", string());
-    auto expectedPatternElement = makePatternElement(move(expectedNode));
-    vector<unique_ptr<PatternElement>> expectedPatternElements;
-    expectedPatternElements.push_back(move(expectedPatternElement));
-    auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
-    auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatchStatement));
-
-    graphflow::parser::Parser parser;
-    string input = "MATCH (a);";
-    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
-}
-
-TEST_F(GraphPatternTest, MATCHSingleElementSingleNodeSingleLabelTest) {
+TEST_F(GraphPatternTest, MATCHSingleNodeTest) {
     auto expectedNode = makeNodePattern("a", "Person");
     auto expectedPatternElement = makePatternElement(move(expectedNode));
     vector<unique_ptr<PatternElement>> expectedPatternElements;
     expectedPatternElements.push_back(move(expectedPatternElement));
     auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
     auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatchStatement));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement));
+    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    expectedSingleQuery->returnStatement = move(returnStar);
 
     graphflow::parser::Parser parser;
-    string input = "MATCH (a:Person);";
+    string input = "MATCH (a:Person) RETURN *;";
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(GraphPatternTest, MATCHSingleElementAnonymousNodeSingleLabelTest) {
-    auto expectedNode = makeNodePattern(string(), "Person");
-    auto expectedPatternElement = makePatternElement(move(expectedNode));
-    vector<unique_ptr<PatternElement>> expectedPatternElements;
-    expectedPatternElements.push_back(move(expectedPatternElement));
-    auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
-    auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatchStatement));
-
-    graphflow::parser::Parser parser;
-    string input = "MATCH (:Person);";
-    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
-}
-
-TEST_F(GraphPatternTest, MATCHSingleElementSingleEdgeNoTypeTest) {
-    auto expectedNodeA = makeNodePattern("a", "Person");
-    auto expectedNodeB = makeNodePattern("b", "Student");
-    auto expectedEdge = makeRelPattern("e1", string(), RIGHT);
-    auto expectedPatternElementChain =
-        makePatternElementChain(move(expectedEdge), move(expectedNodeB));
-    auto expectedPatternElement = makePatternElement(move(expectedNodeA));
-    expectedPatternElement->patternElementChains.push_back(move(expectedPatternElementChain));
-    vector<unique_ptr<PatternElement>> expectedPatternElements;
-    expectedPatternElements.push_back(move(expectedPatternElement));
-    auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
-    auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatchStatement));
-
-    graphflow::parser::Parser parser;
-    string input = "MATCH (a:Person)-[e1]->(b:Student);";
-    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
-}
-
-TEST_F(GraphPatternTest, MATCHSingleElementSingleEdgeSingleTypeTest) {
+TEST_F(GraphPatternTest, MATCHSingleEdgeTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge = makeRelPattern("e1", "knows", RIGHT);
@@ -116,33 +73,16 @@ TEST_F(GraphPatternTest, MATCHSingleElementSingleEdgeSingleTypeTest) {
     expectedPatternElements.push_back(move(expectedPatternElement));
     auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
     auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatchStatement));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement));
+    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    expectedSingleQuery->returnStatement = move(returnStar);
 
     graphflow::parser::Parser parser;
-    string input = "MATCH (a:Person)-[e1:knows]->(b:Student);";
+    string input = "MATCH (a:Person)-[e1:knows]->(b:Student) RETURN *;";
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(GraphPatternTest, MATCHSingleElementAnonymousEdgeMultiTypesTest) {
-    auto expectedNodeA = makeNodePattern("a", "Person");
-    auto expectedNodeB = makeNodePattern("b", "Student");
-    auto expectedEdge = makeRelPattern(string(), "knows", RIGHT);
-    auto expectedPatternElementChain =
-        makePatternElementChain(move(expectedEdge), move(expectedNodeB));
-    auto expectedPatternElement = makePatternElement(move(expectedNodeA));
-    expectedPatternElement->patternElementChains.push_back(move(expectedPatternElementChain));
-    vector<unique_ptr<PatternElement>> expectedPatternElements;
-    expectedPatternElements.push_back(move(expectedPatternElement));
-    auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
-    auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatchStatement));
-
-    graphflow::parser::Parser parser;
-    string input = "MATCH (a:Person)-[:knows]->(b:Student);";
-    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
-}
-
-TEST_F(GraphPatternTest, MATCHSingleElementMultiEdgesTest) {
+TEST_F(GraphPatternTest, MATCHMultiEdgesTest) {
     auto expectedNodeA = makeNodePattern("a", "Person");
     auto expectedNodeB = makeNodePattern("b", "Student");
     auto expectedEdge1 = makeRelPattern(string(), "knows", RIGHT);
@@ -159,10 +99,12 @@ TEST_F(GraphPatternTest, MATCHSingleElementMultiEdgesTest) {
     expectedPatternElements.push_back(move(expectedPatternElement));
     auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
     auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatchStatement));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement));
+    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    expectedSingleQuery->returnStatement = move(returnStar);
 
     graphflow::parser::Parser parser;
-    string input = "MATCH (a:Person)-[:knows]->(b:Student)<-[e2:likes]-(c:Student);";
+    string input = "MATCH (a:Person)-[:knows]->(b:Student)<-[e2:likes]-(c:Student) RETURN *;";
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
@@ -188,10 +130,12 @@ TEST_F(GraphPatternTest, MATCHMultiElementsTest) {
     expectedPatternElements.push_back(move(expectedPatternElement2));
     auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
     auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatchStatement));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement));
+    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    expectedSingleQuery->returnStatement = move(returnStar);
 
     graphflow::parser::Parser parser;
-    string input = "MATCH (a:Person)-[:knows]->(b:Student), (b)<-[e2:likes]-(c:Student);";
+    string input = "MATCH (a:Person)-[:knows]->(b:Student), (b)<-[e2:likes]-(c:Student) RETURN *;";
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
@@ -219,10 +163,13 @@ TEST_F(GraphPatternTest, MultiMatchTest) {
     auto expectedMatchStatement2 = make_unique<MatchStatement>(move(expectedPatternElements2));
 
     auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatchStatement1));
-    expectedSingleQuery->statements.push_back(move(expectedMatchStatement2));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement1));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement2));
+    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    expectedSingleQuery->returnStatement = move(returnStar);
 
     graphflow::parser::Parser parser;
-    string input = "MATCH (a:Person)-[:knows]->(b:Student) MATCH (b)<-[e2:likes]-(c:Student);";
+    string input =
+        "MATCH (a:Person)-[:knows]->(b:Student) MATCH (b)<-[e2:likes]-(c:Student) RETURN *;";
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }

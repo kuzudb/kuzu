@@ -12,25 +12,26 @@ using namespace std;
 namespace graphflow {
 namespace expression {
 
+// replace this with function enum once we have multiple default functions
+const string COUNT_STAR = "COUNT_STAR";
+
 class LogicalExpression {
 
 public:
     // creates a non-leaf logical binary expression.
     LogicalExpression(ExpressionType expressionType, DataType dataType,
-        shared_ptr<LogicalExpression> left, shared_ptr<LogicalExpression> right,
-        string rawExpression = string());
+        shared_ptr<LogicalExpression> left, shared_ptr<LogicalExpression> right);
 
     // creates a non-leaf logical unary expression.
-    LogicalExpression(ExpressionType expressionType, DataType dataType,
-        shared_ptr<LogicalExpression> child, string rawExpression = string());
+    LogicalExpression(
+        ExpressionType expressionType, DataType dataType, shared_ptr<LogicalExpression> child);
 
     // creates a leaf variable expression.
-    LogicalExpression(ExpressionType expressionType, DataType dataType, const string& variableName,
-        string rawExpression = string());
+    LogicalExpression(ExpressionType expressionType, DataType dataType, const string& variableName);
 
     // creates a leaf literal expression.
-    LogicalExpression(ExpressionType expressionType, DataType dataType, const Literal& literalValue,
-        string rawExpression = string());
+    LogicalExpression(
+        ExpressionType expressionType, DataType dataType, const Literal& literalValue);
 
     inline const string& getVariableName() const { return variableName; }
 
@@ -60,6 +61,7 @@ public:
     vector<shared_ptr<LogicalExpression>> childrenExpr;
     ExpressionType expressionType;
     DataType dataType;
+    string alias;
     string rawExpression;
 };
 

@@ -45,7 +45,56 @@ public:
     }
 };
 
-TEST_F(ExpressionTest, VariablePropertyAndBooleanConnectionTest) {
+TEST_F(ExpressionTest, ReturnCountStarTest) {
+    auto expectedMatch = makeBaseMatchStatement();
+    auto countStar = make_unique<ParsedExpression>(FUNCTION, "COUNT_STAR", "COUNT(*)");
+    auto expectedSingleQuery = make_unique<SingleQuery>();
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatch));
+    auto returnStatement =
+        make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), false);
+    returnStatement->expressions.push_back(move(countStar));
+    expectedSingleQuery->returnStatement = move(returnStatement);
+
+    graphflow::parser::Parser parser;
+    string input = "MATCH () RETURN COUNT(*);";
+    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
+}
+
+TEST_F(ExpressionTest, ReturnStarAndPropertyTest) {
+    auto expectedMatch = makeBaseMatchStatement();
+    auto aName = makeANameExpression();
+    auto expectedSingleQuery = make_unique<SingleQuery>();
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatch));
+    auto returnStatement =
+        make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    returnStatement->expressions.push_back(move(aName));
+    expectedSingleQuery->returnStatement = move(returnStatement);
+
+    graphflow::parser::Parser parser;
+    string input = "MATCH () RETURN *, a.name;";
+    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
+}
+
+TEST_F(ExpressionTest, ReturnAliasTest) {
+    auto expectedMatch = makeBaseMatchStatement();
+    auto aAge = makeAAgeExpression();
+    aAge->alias = "age";
+    auto aName = makeANameExpression();
+    aName->alias = "whatever";
+    auto expectedSingleQuery = make_unique<SingleQuery>();
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatch));
+    auto returnStatement =
+        make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), false);
+    returnStatement->expressions.push_back(move(aAge));
+    returnStatement->expressions.push_back(move(aName));
+    expectedSingleQuery->returnStatement = move(returnStatement);
+
+    graphflow::parser::Parser parser;
+    string input = "MATCH () RETURN a.age AS age, a.name AS whatever;";
+    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
+}
+
+TEST_F(ExpressionTest, FilterBooleanConnectionTest) {
     auto expectedMatch = makeBaseMatchStatement();
     auto aIsStudent = makeAIsStudentExpression();
     auto bIsMale = makeBIsMaleExpression();
@@ -56,14 +105,16 @@ TEST_F(ExpressionTest, VariablePropertyAndBooleanConnectionTest) {
     expectedExpr->children.push_back(move(bIsNotMale));
     expectedMatch->whereClause = move(expectedExpr);
     auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatch));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatch));
+    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    expectedSingleQuery->returnStatement = move(returnStar);
 
     graphflow::parser::Parser parser;
-    string input = "MATCH () WHERE a.isStudent AND NOT b.isMale;";
+    string input = "MATCH () WHERE a.isStudent AND NOT b.isMale RETURN *;";
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ExpressionTest, NullOperatorAndMultiBooleanConnectionTest) {
+TEST_F(ExpressionTest, FilterNullOperatorTest) {
     auto expectedMatch = makeBaseMatchStatement();
     auto aIsStudent = makeAIsStudentExpression();
     auto bIsMale = makeBIsMaleExpression();
@@ -78,14 +129,16 @@ TEST_F(ExpressionTest, NullOperatorAndMultiBooleanConnectionTest) {
     expectedExpr->children.push_back(move(aNameIsNull));
     expectedMatch->whereClause = move(expectedExpr);
     auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatch));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatch));
+    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    expectedSingleQuery->returnStatement = move(returnStar);
 
     graphflow::parser::Parser parser;
-    string input = "MATCH () WHERE a.isStudent AND b.isMale AND a.name IS NULL;";
+    string input = "MATCH () WHERE a.isStudent AND b.isMale AND a.name IS NULL RETURN *;";
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ExpressionTest, StringOperatorAndMultiBooleanConnectionTest) {
+TEST_F(ExpressionTest, FilterStringOperatorTest) {
     auto expectedMatch = makeBaseMatchStatement();
     auto aIsStudent = makeAIsStudentExpression();
     auto bIsMale = makeBIsMaleExpression();
@@ -105,14 +158,17 @@ TEST_F(ExpressionTest, StringOperatorAndMultiBooleanConnectionTest) {
     expectedExpr->children.push_back(move(aNameContainsXiyang));
     expectedMatch->whereClause = move(expectedExpr);
     auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatch));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatch));
+    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    expectedSingleQuery->returnStatement = move(returnStar);
 
     graphflow::parser::Parser parser;
-    string input = "MATCH () WHERE (a.isStudent AND b.isMale) OR a.name CONTAINS \"Xiyang\";";
+    string input =
+        "MATCH () WHERE (a.isStudent AND b.isMale) OR a.name CONTAINS \"Xiyang\" RETURN *;";
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ExpressionTest, ArithmeticAndComparisonTest) {
+TEST_F(ExpressionTest, FilterArithmeticComparisonTest) {
     auto expectedMatch = makeBaseMatchStatement();
     auto a = make_unique<ParsedExpression>(ExpressionType::VARIABLE, "a", string());
     auto two = make_unique<ParsedExpression>(ExpressionType::LITERAL_INT, "2", string());
@@ -127,14 +183,16 @@ TEST_F(ExpressionTest, ArithmeticAndComparisonTest) {
     expectedExpr->children.push_back(move(aAge));
     expectedMatch->whereClause = move(expectedExpr);
     auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatch));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatch));
+    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    expectedSingleQuery->returnStatement = move(returnStar);
 
     graphflow::parser::Parser parser;
-    string input = "MATCH () WHERE (2 + a * 0.1) = a.age;";
+    string input = "MATCH () WHERE (2 + a * 0.1) = a.age RETURN *";
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ExpressionTest, ArithmeticExpressionWithParenthesizeTest) {
+TEST_F(ExpressionTest, FilterParenthesizeTest) {
     auto expectedMatch = makeBaseMatchStatement();
     auto a = make_unique<ParsedExpression>(ExpressionType::VARIABLE, "a", string());
     auto two = make_unique<ParsedExpression>(ExpressionType::LITERAL_INT, "2", string());
@@ -150,14 +208,16 @@ TEST_F(ExpressionTest, ArithmeticExpressionWithParenthesizeTest) {
     expectedExpr->children.push_back(move(aAge));
     expectedMatch->whereClause = move(expectedExpr);
     auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatch));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatch));
+    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    expectedSingleQuery->returnStatement = move(returnStar);
 
     graphflow::parser::Parser parser;
-    string input = "MATCH () WHERE ((2 - a) % 0.1) > a.age;";
+    string input = "MATCH () WHERE ((2 - a) % 0.1) > a.age RETURN *;";
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }
 
-TEST_F(ExpressionTest, FunctionMultiParamsTest) {
+TEST_F(ExpressionTest, FilterFunctionMultiParamsTest) {
     auto expectedMatch = makeBaseMatchStatement();
     auto aExpr = make_unique<ParsedExpression>(ExpressionType::VARIABLE, "a", string());
     auto bExpr = make_unique<ParsedExpression>(ExpressionType::VARIABLE, "b", string());
@@ -169,9 +229,11 @@ TEST_F(ExpressionTest, FunctionMultiParamsTest) {
     expectedExpr->children.push_back(move(bPowerTwo));
     expectedMatch->whereClause = move(expectedExpr);
     auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->statements.push_back(move(expectedMatch));
+    expectedSingleQuery->matchStatements.push_back(move(expectedMatch));
+    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
+    expectedSingleQuery->returnStatement = move(returnStar);
 
     graphflow::parser::Parser parser;
-    string input = "MATCH () WHERE MIN(a, b^2);";
+    string input = "MATCH () WHERE MIN(a, b^2) RETURN *;";
     ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
 }

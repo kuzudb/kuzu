@@ -24,8 +24,8 @@ static vector<shared_ptr<LogicalExpression>> getNewMatchedWhereExpressions(
 
 static pair<string, string> splitVariableAndPropertyName(const string& name);
 
-Enumerator::Enumerator(const BoundSingleQuery& boundSingleQuery)
-    : queryGraph{*boundSingleQuery.queryGraph} {
+Enumerator::Enumerator(const Catalog& catalog, const BoundSingleQuery& boundSingleQuery)
+    : catalog{catalog}, queryGraph{*boundSingleQuery.queryGraph} {
     subgraphPlanTable = make_unique<SubgraphPlanTable>(queryGraph.queryRels.size());
     if (!boundSingleQuery.whereExpressionsSplitOnAND.empty()) {
         for (auto& expression : boundSingleQuery.whereExpressionsSplitOnAND) {
@@ -33,7 +33,7 @@ Enumerator::Enumerator(const BoundSingleQuery& boundSingleQuery)
                 make_pair(expression, expression->getIncludedVariables()));
         }
     }
-    returnClause = move(boundSingleQuery.boundReturnStatement->expressionsToReturn);
+    returnClause = move(boundSingleQuery.boundReturnStatement->expressions);
 }
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
@@ -44,11 +44,8 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
     }
     auto finalPlans =
         move(subgraphPlanTable->subgraphPlans[queryGraph.queryRels.size()].begin()->second);
-    // Do not append projection until back-end support
-    if (auto APPEND_PROJECTION = false) {
-        for (auto& plan : finalPlans) {
-            appendProjection(*plan);
-        }
+    for (auto& plan : finalPlans) {
+        appendProjection(*plan);
     }
     return finalPlans;
 }
@@ -182,8 +179,26 @@ void Enumerator::appendFilter(shared_ptr<LogicalExpression> expression, LogicalP
 }
 
 void Enumerator::appendProjection(LogicalPlan& plan) {
+    // Do not append projection in case of RETURN COUNT(*)
+    if (1 == returnClause.size() && FUNCTION == returnClause[0]->expressionType &&
+        COUNT_STAR == returnClause[0]->variableName) {
+        return;
+    }
     for (auto& expression : returnClause) {
-        appendNecessaryScans(expression, plan);
+        if (VARIABLE == expression->expressionType) {
+            auto propertyMap = NODE == expression->dataType ?
+                                   catalog.getPropertyMapForNodeLabel(
+                                       queryGraph.getQueryNode(expression->variableName)->label) :
+                                   catalog.getPropertyMapForRelLabel(
+                                       queryGraph.getQueryRel(expression->variableName)->label);
+            for (auto& [propertyName, property] : propertyMap) {
+                auto propertyExpression = make_shared<LogicalExpression>(
+                    PROPERTY, property.dataType, expression->variableName + "." + propertyName);
+                appendNecessaryScans(propertyExpression, plan);
+            }
+        } else {
+            appendNecessaryScans(expression, plan);
+        }
     }
     auto projection = make_shared<LogicalProjection>(returnClause, plan.lastOperator);
     plan.appendOperator(projection);

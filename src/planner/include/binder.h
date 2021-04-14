@@ -20,10 +20,12 @@ public:
     unique_ptr<BoundSingleQuery> bindSingleQuery(const SingleQuery& singleQuery);
 
 private:
-    unique_ptr<BoundMatchStatement> bindStatement(const MatchStatement& matchStatement);
+    unique_ptr<BoundMatchStatement> bindMatchStatement(const MatchStatement& matchStatement);
 
-    // Bind query graph
-    void bindQueryRels(const PatternElement& patternElement, QueryGraph& queryGraph);
+    unique_ptr<BoundReturnStatement> bindReturnStatement(
+        ReturnStatement& returnStatement, const QueryGraph& graphInScope);
+
+    unique_ptr<QueryGraph> bindQueryGraph(const vector<unique_ptr<PatternElement>>& graphPattern);
 
     QueryRel* bindQueryRel(const PatternElementChain& patternElementChain, QueryNode* leftNode,
         QueryGraph& queryGraph);
@@ -34,6 +36,7 @@ private:
 
     label_t bindNodeLabel(const string& parsed_label);
 
+    // set queryNode as src or dst for queryRel
     void bindNodeToRel(QueryRel* queryRel, QueryNode* queryNode, bool isSrcNode);
 
 private:

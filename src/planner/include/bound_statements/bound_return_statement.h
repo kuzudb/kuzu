@@ -10,7 +10,11 @@ namespace planner {
 class BoundReturnStatement {
 
 public:
-    vector<shared_ptr<LogicalExpression>> expressionsToReturn;
+    explicit BoundReturnStatement(vector<shared_ptr<LogicalExpression>> expressions)
+        : expressions{move(expressions)} {}
+
+public:
+    vector<shared_ptr<LogicalExpression>> expressions;
 };
 
 } // namespace planner

@@ -22,6 +22,7 @@ cc_library(
     name = "statements",
     hdrs = [
         "include/statements/match_statement.h",
+        "include/statements/return_statement.h",
     ],
     deps = [
         "expressions",
@@ -36,7 +37,7 @@ cc_library(
         "include/patterns/pattern_element.h",
         "include/patterns/pattern_element_chain.h",
         "include/patterns/rel_pattern.h",
-    ]
+    ],
 )
 
 cc_library(

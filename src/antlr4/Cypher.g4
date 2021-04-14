@@ -19,7 +19,7 @@ oC_SingleQuery
     : oC_SinglePartQuery ;
 
 oC_SinglePartQuery 
-    : ( oC_ReadingClause SP? )* ;
+    : ( oC_ReadingClause SP? )* oC_Return ;
 
 oC_ReadingClause 
     : oC_Match ;
@@ -28,6 +28,28 @@ oC_Match
     : MATCH SP? oC_Pattern (SP? oC_Where)? ;
 
 MATCH : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'C' | 'c' ) ( 'H' | 'h' )  ;
+
+oC_Return
+    : RETURN oC_ProjectionBody ;
+
+RETURN : ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'T' | 't' ) ( 'U' | 'u' ) ( 'R' | 'r' ) ( 'N' | 'n' ) ;
+
+oC_ProjectionBody
+    : SP oC_ProjectionItems ;
+
+oC_ProjectionItems
+    : ( STAR ( SP? ',' SP? oC_ProjectionItem )* )
+        | ( oC_ProjectionItem ( SP? ',' SP? oC_ProjectionItem )* )
+        ;
+
+STAR : '*' ;
+
+oC_ProjectionItem
+    : ( oC_Expression SP AS SP oC_Variable )
+        | oC_Expression
+        ;
+
+AS : ( 'A' | 'a' ) ( 'S' | 's' )  ;
 
 oC_Where
     : WHERE SP oC_Expression ;
@@ -145,9 +167,12 @@ oC_PropertyOrLabelsExpression
 oC_Atom
     : oC_Literal
         | oC_ParenthesizedExpression
+        | ( COUNT SP? '(' SP? '*' SP? ')' )
         | oC_FunctionInvocation
         | oC_Variable
         ;
+
+COUNT : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'T' | 't' )  ;
 
 oC_Literal
     : oC_NumberLiteral
