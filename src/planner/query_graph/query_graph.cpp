@@ -107,54 +107,30 @@ QueryGraph::getSingleNodeJoiningSubgraph(
     return subgraphAndJoinNodePairs;
 }
 
-bool QueryGraph::isConnected() const {
-    auto visited = unordered_set<string>();
-    auto frontier = unordered_set<string>();
-    auto src = queryNodes.at(0)->name;
-    frontier.insert(src);
-    visited.insert(src);
-    while (!frontier.empty()) {
-        auto nextFrontier = unordered_set<string>();
-        for (auto& nodeInFrontier : frontier) {
-            auto nbrs = getNeighbourNodeNames(nodeInFrontier);
-            for (auto& nbr : nbrs) {
-                if (end(visited) == visited.find(nbr)) {
-                    visited.insert(nbr);
-                    nextFrontier.insert(nbr);
-                }
-            }
-        }
-        if (visited.size() == queryNodes.size()) {
-            return true;
-        }
-        frontier = nextFrontier;
-    }
-    return false;
-}
-
-bool QueryGraph::operator==(const QueryGraph& other) const {
-    auto result =
-        queryNodes.size() == other.queryNodes.size() && queryRels.size() == other.queryRels.size();
-    for (auto i = 0u; i < queryNodes.size(); ++i) {
-        result &= *queryNodes.at(i) == *other.queryNodes.at(i);
-    }
-    for (auto i = 0u; i < queryRels.size(); ++i) {
-        result &= *queryRels.at(i) == *other.queryRels.at(i);
-    }
-    return result;
-}
-
 unordered_set<string> QueryGraph::getNeighbourNodeNames(const string& queryNodeName) const {
     auto nbrs = unordered_set<string>();
     for (auto& rel : queryRels) {
-        if (getQueryNode(rel->getSrcNodeName())->name == queryNodeName) {
-            nbrs.insert(rel->getDstNodeName());
+        if (rel->getSrcNodeName() == queryNodeName) {
+            if (end(queryNodeNameToPosMap) != queryNodeNameToPosMap.find(rel->getDstNodeName())) {
+                nbrs.insert(rel->getDstNodeName());
+            }
         }
-        if (getQueryNode(rel->getDstNodeName())->name == queryNodeName) {
-            nbrs.insert(rel->getSrcNodeName());
+        if (rel->getDstNodeName() == queryNodeName) {
+            if (end(queryNodeNameToPosMap) != queryNodeNameToPosMap.find(rel->getSrcNodeName())) {
+                nbrs.insert(rel->getSrcNodeName());
+            }
         }
     }
     return nbrs;
+}
+
+void QueryGraph::merge(QueryGraph& other) {
+    for (auto& otherNode : other.queryNodes) {
+        addQueryNode(move(otherNode));
+    }
+    for (auto& otherRel : other.queryRels) {
+        addQueryRel(move(otherRel));
+    }
 }
 
 unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>

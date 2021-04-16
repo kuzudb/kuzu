@@ -2,9 +2,8 @@
 
 #include <unordered_set>
 
-#include "src/expression/include/logical/logical_expression.h"
 #include "src/parser/include/parsed_expression.h"
-#include "src/planner/include/query_graph/query_graph.h"
+#include "src/planner/include/variables_in_scope.h"
 #include "src/storage/include/catalog.h"
 
 using namespace graphflow::parser;
@@ -17,8 +16,8 @@ namespace planner {
 class ExpressionBinder {
 
 public:
-    explicit ExpressionBinder(const QueryGraph& queryGraph, const Catalog& catalog)
-        : graphInScope{queryGraph}, catalog{catalog} {}
+    explicit ExpressionBinder(const VariablesInScope& variablesInScope, const Catalog& catalog)
+        : variablesInScope{variablesInScope}, catalog{catalog} {}
 
     shared_ptr<LogicalExpression> bindExpression(const ParsedExpression& parsedExpression);
 
@@ -53,7 +52,7 @@ private:
     shared_ptr<LogicalExpression> bindVariableExpression(const ParsedExpression& parsedExpression);
 
 private:
-    const QueryGraph& graphInScope;
+    const VariablesInScope& variablesInScope;
     const Catalog& catalog;
 };
 

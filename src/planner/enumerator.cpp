@@ -22,13 +22,20 @@ static vector<shared_ptr<LogicalExpression>> getNewMatchedWhereExpressions(
     vector<pair<shared_ptr<LogicalExpression>, unordered_set<string>>>&
         expressionsAndIncludedVariables);
 
+static vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(
+    shared_ptr<LogicalExpression> expr);
+
 static pair<string, string> splitVariableAndPropertyName(const string& name);
 
 Enumerator::Enumerator(const Catalog& catalog, const BoundSingleQuery& boundSingleQuery)
-    : catalog{catalog}, queryGraph{*boundSingleQuery.queryGraph} {
+    : catalog{catalog}, queryGraph{*boundSingleQuery.boundMatchStatement->queryGraph} {
+    if (!boundSingleQuery.boundQueryParts.empty()) {
+        throw invalid_argument("Multi-part query enumeration is not supported.");
+    }
     subgraphPlanTable = make_unique<SubgraphPlanTable>(queryGraph.queryRels.size());
-    if (!boundSingleQuery.whereExpressionsSplitOnAND.empty()) {
-        for (auto& expression : boundSingleQuery.whereExpressionsSplitOnAND) {
+    if (boundSingleQuery.boundMatchStatement->whereExpression) {
+        for (auto& expression :
+            splitExpressionOnAND(boundSingleQuery.boundMatchStatement->whereExpression)) {
             whereClauseAndIncludedVariables.emplace_back(
                 make_pair(expression, expression->getIncludedVariables()));
         }
@@ -262,6 +269,20 @@ vector<shared_ptr<LogicalExpression>> getNewMatchedWhereExpressions(
         }
     }
     return expressions;
+}
+
+vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(shared_ptr<LogicalExpression> expr) {
+    auto result = vector<shared_ptr<LogicalExpression>>();
+    if (AND == expr->expressionType) {
+        for (auto& child : expr->childrenExpr) {
+            for (auto& exp : splitExpressionOnAND(child)) {
+                result.push_back(exp);
+            }
+        }
+    } else {
+        result.push_back(expr);
+    }
+    return result;
 }
 
 pair<string, string> splitVariableAndPropertyName(const string& name) {

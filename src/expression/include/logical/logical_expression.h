@@ -34,6 +34,8 @@ public:
 
     inline const LogicalExpression& getChildExpr(uint64_t pos) const { return *childrenExpr[pos]; }
 
+    inline const string getName() const { return alias.empty() ? rawExpression : alias; }
+
     unordered_set<string> getIncludedVariables() const;
 
     unordered_set<string> getIncludedProperties() const;
