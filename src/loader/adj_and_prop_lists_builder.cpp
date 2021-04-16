@@ -1,9 +1,9 @@
-#include "src/loader/include/adj_and_property_lists_loader_helper.h"
+#include "src/loader/include/adj_and_prop_lists_builder.h"
 
 namespace graphflow {
 namespace loader {
 
-AdjAndPropertyListsLoaderHelper::AdjAndPropertyListsLoaderHelper(RelLabelDescription& description,
+AdjAndPropertyListsBuilder::AdjAndPropertyListsBuilder(RelLabelDescription& description,
     ThreadPool& threadPool, const Graph& graph, const Catalog& catalog,
     const string outputDirectory)
     : logger{spdlog::get("loader")}, description{description},
@@ -19,7 +19,7 @@ AdjAndPropertyListsLoaderHelper::AdjAndPropertyListsLoaderHelper(RelLabelDescrip
     }
 }
 
-void AdjAndPropertyListsLoaderHelper::buildAdjListsHeadersAndListsMetadata() {
+void AdjAndPropertyListsBuilder::buildAdjListsHeadersAndListsMetadata() {
     for (auto& dir : DIRS) {
         dirLabelAdjListHeaders[dir].resize(catalog.getNodeLabelsCount());
         for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
@@ -41,14 +41,14 @@ void AdjAndPropertyListsLoaderHelper::buildAdjListsHeadersAndListsMetadata() {
     initAdjListsAndPropertyListsMetadata();
 }
 
-void AdjAndPropertyListsLoaderHelper::buildInMemStructures() {
+void AdjAndPropertyListsBuilder::buildInMemStructures() {
     if (description.requirePropertyLists()) {
         buildInMemPropertyLists();
     }
     buildInMemAdjLists();
 }
 
-void AdjAndPropertyListsLoaderHelper::setRel(
+void AdjAndPropertyListsBuilder::setRel(
     const uint64_t& pos, const Direction& dir, const vector<nodeID_t>& nodeIDs) {
     PageCursor cursor;
     auto header = dirLabelAdjListHeaders[dir][nodeIDs[dir].label].headers[nodeIDs[dir].offset];
@@ -58,7 +58,7 @@ void AdjAndPropertyListsLoaderHelper::setRel(
     dirLabelAdjLists[dir][nodeIDs[dir].label]->set(cursor, nodeIDs[!dir]);
 }
 
-void AdjAndPropertyListsLoaderHelper::setProperty(const vector<uint64_t>& pos,
+void AdjAndPropertyListsBuilder::setProperty(const vector<uint64_t>& pos,
     const vector<nodeID_t>& nodeIDs, const uint32_t& propertyIdx, const uint8_t* val,
     const DataType& type) {
     PageCursor cursor;
@@ -71,7 +71,7 @@ void AdjAndPropertyListsLoaderHelper::setProperty(const vector<uint64_t>& pos,
     }
 }
 
-void AdjAndPropertyListsLoaderHelper::setStringProperty(const vector<uint64_t>& pos,
+void AdjAndPropertyListsBuilder::setStringProperty(const vector<uint64_t>& pos,
     const vector<nodeID_t>& nodeIDs, const uint32_t& propertyIdx, const char* strVal,
     PageCursor& stringOverflowCursor) {
     PageCursor propertyListCursor;
@@ -94,7 +94,7 @@ void AdjAndPropertyListsLoaderHelper::setStringProperty(const vector<uint64_t>& 
     memcpy(encodedStrBwd, encodedStrFwd, getDataTypeSize(STRING));
 }
 
-void AdjAndPropertyListsLoaderHelper::sortOverflowStrings() {
+void AdjAndPropertyListsBuilder::sortOverflowStrings() {
     logger->debug("Ordering String Rel PropertyList.");
     dirLabelPropertyIdxStringOverflowPages =
         make_unique<dirLabelPropertyIdxStringOverflowPages_t>(2);
@@ -135,10 +135,10 @@ void AdjAndPropertyListsLoaderHelper::sortOverflowStrings() {
     }
     threadPool.wait();
     propertyIdxUnordStringOverflowPages.reset();
-    logger->debug("Done.");
+    logger->debug("Done ordering String Rel PropertyList.");
 }
 
-void AdjAndPropertyListsLoaderHelper::saveToFile() {
+void AdjAndPropertyListsBuilder::saveToFile() {
     logger->debug("Writing AdjLists and Rel Property Lists to disk.");
     for (auto& dir : DIRS) {
         if (!description.isSingleCardinalityPerDir[dir]) {
@@ -179,10 +179,10 @@ void AdjAndPropertyListsLoaderHelper::saveToFile() {
         }
     }
     threadPool.wait();
-    logger->debug("Done.");
+    logger->debug("Done writing AdjLists and Rel Property Lists to disk.");
 }
 
-void AdjAndPropertyListsLoaderHelper::initAdjListHeaders() {
+void AdjAndPropertyListsBuilder::initAdjListHeaders() {
     logger->debug("Initializing AdjListHeaders.");
     for (auto& dir : DIRS) {
         if (!description.isSingleCardinalityPerDir[dir]) {
@@ -196,10 +196,10 @@ void AdjAndPropertyListsLoaderHelper::initAdjListHeaders() {
         }
     }
     threadPool.wait();
-    logger->debug("Done.");
+    logger->debug("Done initializing AdjListHeaders.");
 }
 
-void AdjAndPropertyListsLoaderHelper::initAdjListsAndPropertyListsMetadata() {
+void AdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata() {
     logger->debug("Initializing AdjLists and PropertyLists Metadata.");
     for (auto& dir : DIRS) {
         if (!description.isSingleCardinalityPerDir[dir]) {
@@ -232,10 +232,10 @@ void AdjAndPropertyListsLoaderHelper::initAdjListsAndPropertyListsMetadata() {
         }
     }
     threadPool.wait();
-    logger->debug("Done.");
+    logger->debug("Done initializing AdjLists and PropertyLists Metadata.");
 }
 
-void AdjAndPropertyListsLoaderHelper::buildInMemAdjLists() {
+void AdjAndPropertyListsBuilder::buildInMemAdjLists() {
     logger->debug("Creating InMemAdjLists.");
     for (auto& dir : DIRS) {
         if (!description.isSingleCardinalityPerDir[dir]) {
@@ -250,10 +250,10 @@ void AdjAndPropertyListsLoaderHelper::buildInMemAdjLists() {
             }
         }
     }
-    logger->debug("Done.");
+    logger->debug("Done creating InMemAdjLists.");
 }
 
-void AdjAndPropertyListsLoaderHelper::buildInMemPropertyLists() {
+void AdjAndPropertyListsBuilder::buildInMemPropertyLists() {
     logger->debug("Creating InMemPropertyLists.");
     for (auto& dir : DIRS) {
         dirLabelPropertyIdxPropertyLists[dir].resize(catalog.getNodeLabelsCount());
@@ -281,13 +281,12 @@ void AdjAndPropertyListsLoaderHelper::buildInMemPropertyLists() {
                 make_unique<InMemStringOverflowPages>();
         }
     }
-    logger->debug("Done.");
+    logger->debug("Done creating InMemPropertyLists.");
 }
 
-void AdjAndPropertyListsLoaderHelper::sortOverflowStringsOfPropertyListsTask(
-    node_offset_t offsetStart, node_offset_t offsetEnd, InMemPropertyPages* propertyLists,
-    ListHeaders* adjListsHeaders, ListsMetadata* listsMetadata,
-    InMemStringOverflowPages* unorderedStringOverflow,
+void AdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(node_offset_t offsetStart,
+    node_offset_t offsetEnd, InMemPropertyPages* propertyLists, ListHeaders* adjListsHeaders,
+    ListsMetadata* listsMetadata, InMemStringOverflowPages* unorderedStringOverflow,
     InMemStringOverflowPages* orderedStringOverflow, shared_ptr<spdlog::logger> logger) {
     PageCursor unorderedStringOverflowCursor, orderedStringOverflowCursor, propertyListCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {

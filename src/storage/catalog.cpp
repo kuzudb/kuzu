@@ -67,13 +67,13 @@ bool Catalog::isSingleCaridinalityInDir(label_t relLabel, Direction dir) const {
 
 template<typename S>
 void Catalog::serialize(S& s) {
-    auto propertyMapsFunc = [](S& s, unordered_map<string, Property>& v) {
+    auto propertyMapsFunc = [](S& s, unordered_map<string, PropertyKey>& v) {
         s.ext(v, bitsery::ext::StdMap{UINT32_MAX},
-            [](S& s, string& key, Property& value) { s(key, value.dataType, value.idx); });
+            [](S& s, string& key, PropertyKey& value) { s(key, value.dataType, value.idx); });
     };
-    s.container(nodePropertyMaps, UINT32_MAX, propertyMapsFunc);
-    s.container(relPropertyMaps, UINT32_MAX, propertyMapsFunc);
-    s.container(nodeUnstrPropertyMaps, UINT32_MAX, propertyMapsFunc);
+    s.container(nodePropertyKeyMaps, UINT32_MAX, propertyMapsFunc);
+    s.container(relPropertyKeyMaps, UINT32_MAX, propertyMapsFunc);
+    s.container(nodeUnstrPropertyKeyMaps, UINT32_MAX, propertyMapsFunc);
 
     auto vectorLabelsFunc = [](S& s, vector<label_t>& v) {
         s.container(v, UINT32_MAX, [](S& s, label_t& w) { s(w); });
@@ -151,7 +151,7 @@ unique_ptr<nlohmann::json> Catalog::debugInfo() {
         string label(labelIt->first);
         (*json)["Catalog"]["NodeLabels"][label]["idx"] = to_string(labelIt->second);
         (*json)["Catalog"]["NodeLabels"][label]["properties"] =
-            *getPropertiesJson(nodePropertyMaps.at(labelIt->second));
+            *getPropertiesJson(nodePropertyKeyMaps.at(labelIt->second));
     }
 
     for (stringToLabelMap_t::const_iterator labelIt = stringToRelLabelMap.begin();
@@ -161,7 +161,7 @@ unique_ptr<nlohmann::json> Catalog::debugInfo() {
         (*json)["Catalog"]["RelLabels"][label]["cardinality"] =
             graphflow::common::CardinalityNames[relLabelToCardinalityMap[labelIt->second]];
         (*json)["Catalog"]["RelLabels"][label]["properties"] =
-            *getPropertiesJson(relPropertyMaps.at(labelIt->second));
+            *getPropertiesJson(relPropertyKeyMaps.at(labelIt->second));
         (*json)["Catalog"]["RelLabels"][label]["srcNodeLabels"] =
             getNodeLabelsString(relLabelToSrcNodeLabels[labelIt->second]);
         (*json)["Catalog"]["RelLabels"][label]["dstNodeLabels"] =
@@ -171,9 +171,9 @@ unique_ptr<nlohmann::json> Catalog::debugInfo() {
 }
 
 unique_ptr<nlohmann::json> Catalog::getPropertiesJson(
-    const unordered_map<string, Property>& properties) {
+    const unordered_map<string, PropertyKey>& properties) {
     auto propertiesJson = make_unique<nlohmann::json>();
-    for (unordered_map<string, Property>::const_iterator propIt = properties.begin();
+    for (unordered_map<string, PropertyKey>::const_iterator propIt = properties.begin();
          propIt != properties.end(); ++propIt) {
         nlohmann::json propertyJson =
             nlohmann::json{{"dataType", graphflow::common::DataTypeNames[propIt->second.dataType]},

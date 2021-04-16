@@ -53,49 +53,49 @@ public:
         return stringToRelLabelMap.at(label);
     }
 
-    inline const unordered_map<string, Property>& getUnstrPropertyMapForNodeLabel(
+    inline const unordered_map<string, PropertyKey>& getUnstrPropertyKeyMapForNodeLabel(
         const label_t& nodeLabel) const {
-        return nodeUnstrPropertyMaps[nodeLabel];
+        return nodeUnstrPropertyKeyMaps[nodeLabel];
     }
 
-    inline const unordered_map<string, Property>& getPropertyMapForNodeLabel(
+    inline const unordered_map<string, PropertyKey>& getPropertyKeyMapForNodeLabel(
         label_t nodeLabel) const {
-        return nodePropertyMaps[nodeLabel];
+        return nodePropertyKeyMaps[nodeLabel];
     }
 
-    inline const unordered_map<string, Property>& getPropertyMapForRelLabel(
+    inline const unordered_map<string, PropertyKey>& getPropertyKeyMapForRelLabel(
         label_t relLabel) const {
-        return relPropertyMaps[relLabel];
+        return relPropertyKeyMaps[relLabel];
     }
 
     inline bool containNodeProperty(label_t nodeLabel, const string& propertyName) const {
-        auto& nodeProperties = getPropertyMapForNodeLabel(nodeLabel);
+        auto& nodeProperties = getPropertyKeyMapForNodeLabel(nodeLabel);
         return end(nodeProperties) != nodeProperties.find(propertyName);
     }
 
     inline DataType getNodePropertyTypeFromString(
         label_t nodeLabel, const string& propertyName) const {
-        auto& nodeProperties = getPropertyMapForNodeLabel(nodeLabel);
+        auto& nodeProperties = getPropertyKeyMapForNodeLabel(nodeLabel);
         return nodeProperties.at(propertyName).dataType;
     }
 
     inline uint32_t getNodePropertyKeyFromString(label_t nodeLabel, const string& name) const {
-        return getPropertyMapForNodeLabel(nodeLabel).at(name).idx;
+        return getPropertyKeyMapForNodeLabel(nodeLabel).at(name).idx;
     }
 
     inline bool containRelProperty(label_t relLabel, const string& propertyName) const {
-        auto relProperties = getPropertyMapForRelLabel(relLabel);
+        auto relProperties = getPropertyKeyMapForRelLabel(relLabel);
         return end(relProperties) != relProperties.find(propertyName);
     }
 
     inline DataType getRelPropertyTypeFromString(
         label_t relLabel, const string& propertyName) const {
-        auto& relProperties = getPropertyMapForRelLabel(relLabel);
+        auto& relProperties = getPropertyKeyMapForRelLabel(relLabel);
         return relProperties.at(propertyName).dataType;
     }
 
     inline uint32_t getRelPropertyKeyFromString(label_t relLabel, const string& name) const {
-        return getPropertyMapForRelLabel(relLabel).at(name).idx;
+        return getPropertyKeyMapForRelLabel(relLabel).at(name).idx;
     }
 
     const string getStringNodeLabel(label_t label) const;
@@ -123,13 +123,21 @@ private:
 
     string getNodeLabelsString(vector<label_t> nodeLabels);
 
-    unique_ptr<nlohmann::json> getPropertiesJson(const unordered_map<string, Property>& properties);
+    unique_ptr<nlohmann::json> getPropertiesJson(
+        const unordered_map<string, PropertyKey>& properties);
 
 private:
     shared_ptr<spdlog::logger> logger;
     stringToLabelMap_t stringToNodeLabelMap, stringToRelLabelMap;
-    vector<unordered_map<string, Property>> nodePropertyMaps, relPropertyMaps;
-    vector<unordered_map<string, Property>> nodeUnstrPropertyMaps;
+    // A prpertyKeyMap of a node or rel label maps the name of a structured property of that label
+    // to a PropertyKey object that comprises of an index value (called propertyKeyIdx) and the
+    // property's dataType. Hence, {(node/rel) label, propertyKeyIdx} pair uniquely represents a
+    // structured property in the system.
+    vector<unordered_map<string, PropertyKey>> nodePropertyKeyMaps, relPropertyKeyMaps;
+    // nodeUnstrPrpertyKeyMap is a propertyKeyMap for a node label's unstructured properties. Each
+    // entry of the map has the UNKNOWN dataType which means that the dataType of value of such a
+    // property is not fixed and hence can vary from node to node.
+    vector<unordered_map<string, PropertyKey>> nodeUnstrPropertyKeyMaps;
     vector<vector<label_t>> relLabelToSrcNodeLabels, relLabelToDstNodeLabels;
     vector<vector<label_t>> srcNodeLabelToRelLabel, dstNodeLabelToRelLabel;
     vector<Cardinality> relLabelToCardinalityMap;

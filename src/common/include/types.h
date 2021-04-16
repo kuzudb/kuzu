@@ -92,12 +92,14 @@ double_t convertToDouble(char* data);
 
 uint8_t convertToBoolean(char* data);
 
-class Property {
+// A PropertyKey is a pair of index and a dataType. If the property is unstructured, then the
+// dataType is UNKNOWN, otherwise it is one of those supported by the system.
+class PropertyKey {
 
 public:
-    Property(){};
+    PropertyKey(){};
 
-    Property(DataType dataType, uint32_t idx) : dataType{dataType}, idx{idx} {};
+    PropertyKey(DataType dataType, uint32_t idx) : dataType{dataType}, idx{idx} {};
 
 public:
     DataType dataType{};

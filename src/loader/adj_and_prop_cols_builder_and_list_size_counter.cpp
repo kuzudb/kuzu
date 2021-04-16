@@ -1,11 +1,11 @@
-#include "src/loader/include/adj_and_property_columns_loader_helper.h"
+#include "src/loader/include/adj_and_prop_cols_builder_and_list_size_counter.h"
 
 #include "src/storage/include/stores/rels_store.h"
 
 namespace graphflow {
 namespace loader {
 
-AdjAndPropertyColumnsLoaderHelper::AdjAndPropertyColumnsLoaderHelper(
+AdjAndPropertyColsBuilderAndListSizeCounter::AdjAndPropertyColsBuilderAndListSizeCounter(
     RelLabelDescription& description, ThreadPool& threadPool, const Graph& graph,
     const Catalog& catalog, const string outputDirectory)
     : logger{spdlog::get("loader")}, description{description},
@@ -20,7 +20,7 @@ AdjAndPropertyColumnsLoaderHelper::AdjAndPropertyColumnsLoaderHelper(
     buildInMemAdjColumns();
 }
 
-void AdjAndPropertyColumnsLoaderHelper::setRel(
+void AdjAndPropertyColsBuilderAndListSizeCounter::setRel(
     const Direction& dir, const vector<nodeID_t>& nodeIDs) {
     PageCursor cursor;
     calculatePageCursor(description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes(),
@@ -28,14 +28,14 @@ void AdjAndPropertyColumnsLoaderHelper::setRel(
     dirLabelAdjColumns[dir][nodeIDs[dir].label]->set(cursor, nodeIDs[!dir]);
 }
 
-void AdjAndPropertyColumnsLoaderHelper::setProperty(
+void AdjAndPropertyColsBuilderAndListSizeCounter::setProperty(
     const nodeID_t& nodeID, const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
     PageCursor cursor;
     calculatePageCursor(getDataTypeSize(type), nodeID.offset, cursor);
     labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->set(cursor, val);
 }
 
-void AdjAndPropertyColumnsLoaderHelper::setStringProperty(const nodeID_t& nodeID,
+void AdjAndPropertyColsBuilderAndListSizeCounter::setStringProperty(const nodeID_t& nodeID,
     const uint32_t& propertyIdx, const char* originalString, PageCursor& cursor) {
     PageCursor propertyListCursor;
 
@@ -46,7 +46,7 @@ void AdjAndPropertyColumnsLoaderHelper::setStringProperty(const nodeID_t& nodeID
         originalString, cursor, encodedString);
 }
 
-void AdjAndPropertyColumnsLoaderHelper::sortOverflowStrings() {
+void AdjAndPropertyColsBuilderAndListSizeCounter::sortOverflowStrings() {
     logger->debug("Ordering String Rel Property Columns.");
     auto orderedStringOverflows =
         make_unique<labelPropertyIdxStringOverflow_t>(catalog.getNodeLabelsCount());
@@ -81,10 +81,10 @@ void AdjAndPropertyColumnsLoaderHelper::sortOverflowStrings() {
     }
     threadPool.wait();
     labelPropertyIdxStringOverflowPages = move(orderedStringOverflows);
-    logger->debug("Done.");
+    logger->debug("Done ordering String Rel Property Columns.");
 }
 
-void AdjAndPropertyColumnsLoaderHelper::saveToFile() {
+void AdjAndPropertyColsBuilderAndListSizeCounter::saveToFile() {
     logger->debug("Writing AdjColumns and Rel Property Columns to disk.");
     for (auto& dir : DIRS) {
         if (description.isSingleCardinalityPerDir[dir]) {
@@ -111,10 +111,10 @@ void AdjAndPropertyColumnsLoaderHelper::saveToFile() {
         }
     }
     threadPool.wait();
-    logger->debug("Done.");
+    logger->debug("Done writing AdjColumns and Rel Property Columns to disk.");
 }
 
-void AdjAndPropertyColumnsLoaderHelper::buildInMemPropertyColumns(Direction dir) {
+void AdjAndPropertyColsBuilderAndListSizeCounter::buildInMemPropertyColumns(Direction dir) {
     logger->debug("Creating InMemProperty Columns.");
     labelPropertyIdxPropertyColumn.resize(catalog.getNodeLabelsCount());
     labelPropertyIdxStringOverflowPages =
@@ -141,10 +141,10 @@ void AdjAndPropertyColumnsLoaderHelper::buildInMemPropertyColumns(Direction dir)
             }
         }
     }
-    logger->debug("Done.");
+    logger->debug("Done creating InMemProperty Columns.");
 }
 
-void AdjAndPropertyColumnsLoaderHelper::buildInMemAdjColumns() {
+void AdjAndPropertyColsBuilderAndListSizeCounter::buildInMemAdjColumns() {
     logger->debug("Creating InMemAdjColumns.");
     for (auto& dir : DIRS) {
         if (description.isSingleCardinalityPerDir[dir]) {
@@ -165,17 +165,17 @@ void AdjAndPropertyColumnsLoaderHelper::buildInMemAdjColumns() {
             }
         }
     }
-    logger->debug("Done.");
+    logger->debug("Done creating InMemAdjColumns.");
 }
 
-void AdjAndPropertyColumnsLoaderHelper::calculatePageCursor(
+void AdjAndPropertyColsBuilderAndListSizeCounter::calculatePageCursor(
     const uint8_t& numBytesPerElement, const node_offset_t& nodeOffset, PageCursor& cursor) {
     auto numElementsPerPage = PAGE_SIZE / numBytesPerElement;
     cursor.idx = nodeOffset / numElementsPerPage;
     cursor.offset = numBytesPerElement * (nodeOffset % numElementsPerPage);
 }
 
-void AdjAndPropertyColumnsLoaderHelper::sortOverflowStringsofPropertyColumnTask(
+void AdjAndPropertyColsBuilderAndListSizeCounter::sortOverflowStringsofPropertyColumnTask(
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemPropertyPages* propertyColumn,
     InMemStringOverflowPages* unorderedStringOverflow,
     InMemStringOverflowPages* orderedStringOverflow, shared_ptr<spdlog::logger> logger) {

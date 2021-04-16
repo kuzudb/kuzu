@@ -76,7 +76,7 @@ void RelsStore::initPropertyListsAndColumns(const Catalog& catalog,
         propertyLists[BWD][nodeLabel].resize(catalog.getRelLabelsCount());
     }
     for (auto relLabel = 0u; relLabel < catalog.getRelLabelsCount(); relLabel++) {
-        if (0 != catalog.getPropertyMapForRelLabel(relLabel).size()) {
+        if (0 != catalog.getPropertyKeyMapForRelLabel(relLabel).size()) {
             if (catalog.isSingleCaridinalityInDir(relLabel, FWD)) {
                 initPropertyColumnsForRelLabel(
                     catalog, numNodesPerLabel, directory, bufferManager, relLabel, FWD);
@@ -97,7 +97,7 @@ void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
     const label_t& relLabel, const Direction& dir) {
     logger->debug("Initializing PropertyColumns: relLabel {}", relLabel);
     for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDir(relLabel, dir)) {
-        auto& propertyMap = catalog.getPropertyMapForRelLabel(relLabel);
+        auto& propertyMap = catalog.getPropertyKeyMapForRelLabel(relLabel);
         propertyColumns[nodeLabel][relLabel].resize(propertyMap.size());
         for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
             auto idx = property->second.idx;
@@ -135,7 +135,7 @@ void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
     logger->debug("Initializing PropertyLists: relLabel {}", relLabel);
     for (auto& dir : DIRS) {
         for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDir(relLabel, dir)) {
-            auto& propertyMap = catalog.getPropertyMapForRelLabel(relLabel);
+            auto& propertyMap = catalog.getPropertyKeyMapForRelLabel(relLabel);
             propertyLists[dir][nodeLabel][relLabel].resize(propertyMap.size());
             auto adjListsHeaders = adjLists[dir][nodeLabel][relLabel]->getHeaders();
             for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
