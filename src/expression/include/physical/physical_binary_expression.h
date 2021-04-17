@@ -12,12 +12,11 @@ class PhysicalBinaryExpression : public PhysicalExpression {
 
 public:
     PhysicalBinaryExpression(unique_ptr<PhysicalExpression> leftExpr,
-        unique_ptr<PhysicalExpression> rightExpr, ExpressionType expressionType);
+        unique_ptr<PhysicalExpression> rightExpr, ExpressionType expressionType, DataType dataType);
 
     void evaluate() override;
 
-    void setExpressionInputDataChunk(shared_ptr<DataChunk> dataChunk) override;
-    void setExpressionResultOwnerState(shared_ptr<DataChunkState> dataChunkState) override;
+    shared_ptr<ValueVector> createResultValueVector();
 
 private:
     function<void(ValueVector&, ValueVector&, ValueVector&)> operation;

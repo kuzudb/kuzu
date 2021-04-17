@@ -10,7 +10,7 @@ namespace graphflow {
 namespace planner {
 
 enum LogicalOperatorType : uint8_t {
-    LOGICAL_NODE_ID_SCAN,
+    LOGICAL_SCAN_NODE_ID,
     LOGICAL_EXTEND,
     LOGICAL_FILTER,
     LOGICAL_PROJECTION,
@@ -19,9 +19,9 @@ enum LogicalOperatorType : uint8_t {
     LOGICAL_HASH_JOIN,
 };
 
-const string LogicalOperatorTypeNames[] = {"LOGICAL_NODE_ID_SCAN", "LOGICAL_EXTEND",
-    "LOGICAL_FILTER", "LOGICAL_PROJECTION", "LOGICAL_NODE_PROPERTY_SCAN",
-    "LOGICAL_REL_PROPERTY_SCAN", "LOGICAL_HASH_JOIN"};
+const string LogicalOperatorTypeNames[] = {"LOGICAL_SCAN_NODE_ID", "LOGICAL_EXTEND",
+    "LOGICAL_FILTER", "LOGICAL_SCAN_NODE_PROPERTY", "LOGICAL_SCAN_REL_PROPERTY",
+    "LOGICAL_HASH_JOIN"};
 
 class LogicalOperator {
 public:

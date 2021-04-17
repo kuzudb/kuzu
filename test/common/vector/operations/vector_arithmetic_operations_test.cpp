@@ -14,15 +14,15 @@ TEST(VectorArithTests, test) {
 
     auto lVector = make_shared<ValueVector>(INT32);
     dataChunk->append(lVector);
-    auto lData = (int32_t*)lVector->getValues();
+    auto lData = (int32_t*)lVector->values;
 
     auto rVector = make_shared<ValueVector>(INT32);
     dataChunk->append(rVector);
-    auto rData = (int32_t*)rVector->getValues();
+    auto rData = (int32_t*)rVector->values;
 
     auto result = make_shared<ValueVector>(INT32);
     dataChunk->append(result);
-    auto resultData = (int32_t*)result->getValues();
+    auto resultData = (int32_t*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < 100; i++) {
@@ -69,7 +69,7 @@ TEST(VectorArithTests, test) {
 
     result = make_shared<ValueVector>(DOUBLE);
     dataChunk->append(result);
-    auto resultDataAsDoubleArr = (double_t*)result->getValues();
+    auto resultDataAsDoubleArr = (double_t*)result->values;
     auto powerOp = ValueVector::getBinaryOperation(ExpressionType::POWER);
     powerOp(*lVector, *rVector, *result);
     for (int32_t i = 0; i < 100; i++) {

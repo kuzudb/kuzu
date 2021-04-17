@@ -9,12 +9,12 @@ namespace expression {
 class PhysicalUnaryExpression : public PhysicalExpression {
 
 public:
-    PhysicalUnaryExpression(unique_ptr<PhysicalExpression> child, ExpressionType expressionType);
+    PhysicalUnaryExpression(
+        unique_ptr<PhysicalExpression> child, ExpressionType expressionType, DataType dataType);
 
     void evaluate() override;
 
-    void setExpressionInputDataChunk(shared_ptr<DataChunk> dataChunk) override;
-    void setExpressionResultOwnerState(shared_ptr<DataChunkState> dataChunkState) override;
+    shared_ptr<ValueVector> createResultValueVector();
 
 protected:
     function<void(ValueVector&, ValueVector&)> operation;

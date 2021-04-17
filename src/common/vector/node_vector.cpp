@@ -22,18 +22,19 @@ void NodeIDVector::readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) {
 bool NodeIDVector::discardNulls() {
     auto nullOffset = nodeIDCompressionScheme.getNodeOffsetNullValue();
     nodeID_t nodeID{};
-    if (ownerState->currPos == -1) {
+    if (state->currPos == -1) {
+        auto selectedValuesPos = state->selectedValuesPos;
         auto selectedPos = 0u;
-        for (auto j = 0u; j < ownerState->numSelectedValues; j++) {
-            readNodeOffset(ownerState->selectedValuesPos[j], nodeID);
+        for (auto j = 0u; j < state->numSelectedValues; j++) {
+            readNodeOffset(state->selectedValuesPos[j], nodeID);
             if (nodeID.offset != nullOffset) {
-                ownerState->selectedValuesPos[selectedPos++] = j;
+                selectedValuesPos[selectedPos++] = j;
             }
         }
-        ownerState->numSelectedValues = selectedPos;
-        return ownerState->numSelectedValues > 0;
+        state->numSelectedValues = selectedPos;
+        return state->numSelectedValues > 0;
     } else {
-        readNodeOffset(getCurrSelectedValuesPos(), nodeID);
+        readNodeOffset(state->getCurrSelectedValuesPos(), nodeID);
         return nodeID.offset != nullOffset;
     }
 }

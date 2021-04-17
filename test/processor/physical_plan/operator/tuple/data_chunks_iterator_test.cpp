@@ -51,7 +51,7 @@ public:
         for (uint64_t i = 0; i < dataChunks.getNumDataChunks(); i++) {
             auto dataChunk = dataChunks.getDataChunk(i);
             for (auto& vector : dataChunk->valueVectors) {
-                vectorTypes.push_back(vector->getDataType());
+                vectorTypes.push_back(vector->dataType);
             }
         }
         return vectorTypes;

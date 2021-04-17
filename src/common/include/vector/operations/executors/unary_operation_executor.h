@@ -11,100 +11,78 @@ namespace common {
 struct UnaryOperationExecutor {
     template<class T, class R, class FUNC = std::function<R(T)>>
     static void executeNonBoolOp(ValueVector& operand, ValueVector& result) {
-        auto values = (T*)operand.getValues();
-        auto resultValues = (R*)result.getValues();
-        auto nullMask = operand.getNullMask();
-        auto resultNullMask = result.getNullMask();
-        uint64_t size;
-        if (operand.isFlat()) {
-            auto pos = operand.getCurrSelectedValuesPos();
-            resultNullMask[pos] = nullMask[pos];
-            if (!resultNullMask[pos]) { // not NULL.
+        auto values = (T*)operand.values;
+        auto resultValues = (R*)result.values;
+        if (operand.state->isFlat()) {
+            auto pos = operand.state->getCurrSelectedValuesPos();
+            result.nullMask[pos] = operand.nullMask[pos];
+            if (!result.nullMask[pos]) { // not NULL.
                 resultValues[pos] = FUNC::operation(values[pos]);
             }
-            size = 1;
         } else {
-            auto selectedValuesPos = operand.getSelectedValuesPos();
-            size = operand.getNumSelectedValues();
+            auto size = operand.state->numSelectedValues;
             for (uint64_t i = 0; i < size; i++) {
-                auto pos = selectedValuesPos[i];
-                resultNullMask[pos] = nullMask[pos];
-                if (!resultNullMask[pos]) { // not NULL.
+                auto pos = operand.state->selectedValuesPos[i];
+                result.nullMask[pos] = operand.nullMask[pos];
+                if (!result.nullMask[pos]) { // not NULL.
                     resultValues[pos] = FUNC::operation(values[pos]);
                 }
             }
         }
-        result.setNumSelectedValues(size);
     }
 
     template<class FUNC = std::function<uint8_t(uint8_t)>>
     static void executeBoolOp(ValueVector& operand, ValueVector& result) {
-        auto values = operand.getValues();
-        auto resultValues = result.getValues();
-        auto nullMask = operand.getNullMask();
-        auto resultNullMask = result.getNullMask();
-        uint64_t size;
-        if (operand.isFlat()) {
-            auto pos = operand.getCurrSelectedValuesPos();
-            resultValues[pos] = FUNC::operation(values[pos], nullMask[pos]);
-            resultNullMask[pos] = resultValues[pos] == NULL_BOOL;
-            size = 1;
+        auto values = operand.values;
+        auto resultValues = result.values;
+        if (operand.state->isFlat()) {
+            auto pos = operand.state->getCurrSelectedValuesPos();
+            resultValues[pos] = FUNC::operation(values[pos], operand.nullMask[pos]);
+            result.nullMask[pos] = resultValues[pos] == NULL_BOOL;
         } else {
-            auto selectedValuesPos = operand.getSelectedValuesPos();
-            size = operand.getNumSelectedValues();
+            auto size = operand.state->numSelectedValues;
             for (uint64_t i = 0; i < size; i++) {
-                auto pos = selectedValuesPos[i];
-                resultValues[pos] = FUNC::operation(values[pos], nullMask[pos]);
-                resultNullMask[pos] = resultValues[pos] == NULL_BOOL;
+                auto pos = operand.state->selectedValuesPos[i];
+                resultValues[pos] = FUNC::operation(values[pos], operand.nullMask[pos]);
+                result.nullMask[pos] = resultValues[pos] == NULL_BOOL;
             }
         }
-        result.setNumSelectedValues(size);
     }
 
     template<class R, class FUNC = std::function<R(nodeID_t)>>
     static void executeOnNodeIDVector(ValueVector& operand, ValueVector& result) {
-        auto resultValues = (R*)result.getValues();
-        auto nullMask = operand.getNullMask();
-        auto resultNullMask = result.getNullMask();
-        uint64_t size;
+        auto& nodeIDVector = (NodeIDVector&)operand;
+        auto resultValues = (R*)result.values;
         nodeID_t nodeID{};
-        if (operand.isFlat()) {
-            auto pos = operand.getCurrSelectedValuesPos();
-            operand.readNodeOffsetAndLabel(pos, nodeID);
+        if (operand.state->isFlat()) {
+            auto pos = operand.state->getCurrSelectedValuesPos();
+            nodeIDVector.readNodeOffsetAndLabel(pos, nodeID);
             resultValues[pos] = FUNC::operation(nodeID);
-            resultNullMask[pos] = nullMask[pos];
-            size = 1;
+            result.nullMask[pos] = operand.nullMask[pos];
         } else {
-            auto selectedValuesPos = operand.getSelectedValuesPos();
-            size = operand.getNumSelectedValues();
+            auto size = operand.state->numSelectedValues;
             for (uint64_t i = 0; i < size; i++) {
-                auto pos = selectedValuesPos[i];
-                operand.readNodeOffsetAndLabel(pos, nodeID);
+                auto pos = operand.state->selectedValuesPos[i];
+                nodeIDVector.readNodeOffsetAndLabel(pos, nodeID);
                 resultValues[pos] = FUNC::operation(nodeID);
-                resultNullMask[pos] = nullMask[pos];
+                result.nullMask[pos] = operand.nullMask[pos];
             }
         }
-        result.setNumSelectedValues(size);
     }
 
     template<bool value>
     static void nullMaskCmp(ValueVector& operand, ValueVector& result) {
-        auto resultValues = result.getValues();
-        auto nullMask = operand.getNullMask();
-        uint64_t size;
-        if (operand.isFlat()) {
-            auto pos = operand.getCurrSelectedValuesPos();
-            resultValues[pos] = nullMask[pos] == value;
-            size = 1;
+        auto resultValues = result.values;
+        if (operand.state->isFlat()) {
+            auto pos = operand.state->getCurrSelectedValuesPos();
+            resultValues[pos] = operand.nullMask[pos] == value;
         } else {
-            auto selectedValuesPos = operand.getSelectedValuesPos();
-            size = operand.getNumSelectedValues();
+            auto size = operand.state->numSelectedValues;
             for (uint64_t i = 0; i < size; i++) {
-                auto pos = selectedValuesPos[i];
-                resultValues[pos] = nullMask[pos] == value;
+                auto pos = operand.state->selectedValuesPos[i];
+                resultValues[pos] = operand.nullMask[pos] == value;
             }
         }
-        result.setNumSelectedValues(size);
     }
 };
 

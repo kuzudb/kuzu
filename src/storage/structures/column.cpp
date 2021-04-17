@@ -6,7 +6,7 @@ namespace storage {
 void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, uint64_t size,
     const unique_ptr<ColumnOrListsHandle>& handle) {
-    if (nodeIDVector->getIsSequence()) {
+    if (nodeIDVector->isSequence) {
         nodeID_t nodeID;
         nodeIDVector->readNodeOffset(0, nodeID);
         auto startOffset = nodeID.offset;
@@ -33,22 +33,21 @@ void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& 
     reclaim(handle);
     valueVector->reset();
     nodeID_t nodeID;
-    auto values = valueVector->getValues();
-    if (nodeIDVector->isFlat()) {
-        auto pos = nodeIDVector->getCurrSelectedValuesPos();
+    auto values = valueVector->values;
+    if (nodeIDVector->state->isFlat()) {
+        auto pos = nodeIDVector->state->getCurrSelectedValuesPos();
         nodeIDVector->readNodeOffset(pos, nodeID);
         auto pageIdx = getPageIdx(nodeID.offset);
         auto frame = bufferManager.pin(fileHandle, pageIdx);
         memcpy(values + pos * elementSize, frame + getPageOffset(nodeID.offset), elementSize);
         bufferManager.unpin(fileHandle, pageIdx);
     } else {
-        auto selectedValPos = valueVector->getSelectedValuesPos();
-        for (uint64_t i = 0; i < valueVector->getNumSelectedValues(); i++) {
-            nodeIDVector->readNodeOffset(selectedValPos[i], nodeID);
+        for (uint64_t i = 0; i < valueVector->state->numSelectedValues; i++) {
+            nodeIDVector->readNodeOffset(valueVector->state->selectedValuesPos[i], nodeID);
             auto pageIdx = getPageIdx(nodeID.offset);
             auto frame = bufferManager.pin(fileHandle, pageIdx);
-            memcpy(values + selectedValPos[i] * elementSize, frame + getPageOffset(nodeID.offset),
-                elementSize);
+            memcpy(values + valueVector->state->selectedValuesPos[i] * elementSize,
+                frame + getPageOffset(nodeID.offset), elementSize);
             bufferManager.unpin(fileHandle, pageIdx);
         }
     }
@@ -57,7 +56,7 @@ void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& 
 void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, uint64_t size,
     const unique_ptr<ColumnOrListsHandle>& handle) {
-    if (nodeIDVector->getIsSequence()) {
+    if (nodeIDVector->isSequence) {
         nodeID_t nodeID;
         nodeIDVector->readNodeOffset(0, nodeID);
         auto startOffset = nodeID.offset;
@@ -75,7 +74,7 @@ void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
 // TODO: check selectors in the overflow pages as well.
 void Column<STRING>::readStringsFromOverflowPages(
     const shared_ptr<ValueVector>& valueVector, uint64_t size) {
-    auto values = valueVector->getValues();
+    auto values = valueVector->values;
     uint64_t overflowPtr = size * sizeof(gf_string_t);
     size_t sizeNeededForOverflowStrings = size * sizeof(gf_string_t);
     for (auto i = 0u; i < size; i++) {

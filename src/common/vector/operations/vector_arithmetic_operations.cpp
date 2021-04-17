@@ -13,9 +13,9 @@ struct ArithmeticOperationExecutor {
 public:
     template<class OP>
     static inline void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
-        switch (left.getDataType()) {
+        switch (left.dataType) {
         case INT32:
-            switch (right.getDataType()) {
+            switch (right.dataType) {
             case INT32:
                 if (std::is_same<OP, operation::Power>::value) {
                     BinaryOperationExecutor::executeNonBoolOp<int32_t, int32_t, double_t, OP>(
@@ -35,7 +35,7 @@ public:
             }
             break;
         case DOUBLE:
-            switch (right.getDataType()) {
+            switch (right.dataType) {
             case INT32:
                 BinaryOperationExecutor::executeNonBoolOp<double_t, int32_t, int32_t, OP>(
                     left, right, result);
@@ -57,7 +57,7 @@ public:
 
     template<class OP>
     static inline void execute(ValueVector& operand, ValueVector& result) {
-        switch (operand.getDataType()) {
+        switch (operand.dataType) {
         case INT32:
             UnaryOperationExecutor::executeNonBoolOp<int32_t, int32_t, OP>(operand, result);
             break;

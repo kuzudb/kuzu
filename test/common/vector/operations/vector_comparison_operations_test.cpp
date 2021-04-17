@@ -16,15 +16,15 @@ TEST(VectorCmpTests, cmpInt) {
 
     auto lVector = make_shared<ValueVector>(INT32, numTuples);
     dataChunk->append(lVector);
-    auto lData = (int32_t*)lVector->getValues();
+    auto lData = (int32_t*)lVector->values;
 
     auto rVector = make_shared<ValueVector>(INT32, numTuples);
     dataChunk->append(rVector);
-    auto rData = (int32_t*)rVector->getValues();
+    auto rData = (int32_t*)rVector->values;
 
     auto result = make_shared<ValueVector>(BOOL, numTuples);
     dataChunk->append(result);
-    auto resultData = result->getValues();
+    auto resultData = result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < numTuples; i++) {
@@ -78,15 +78,15 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
 
     auto lVector = make_shared<ValueVector>(STRING, numTuples);
     dataChunk->append(lVector);
-    auto lData = ((gf_string_t*)lVector->getValues());
+    auto lData = ((gf_string_t*)lVector->values);
 
     auto rVector = make_shared<ValueVector>(STRING, numTuples);
     dataChunk->append(rVector);
-    auto rData = ((gf_string_t*)rVector->getValues());
+    auto rData = ((gf_string_t*)rVector->values);
 
     auto result = make_shared<ValueVector>(BOOL, numTuples);
     dataChunk->append(result);
-    auto resultData = result->getValues();
+    auto resultData = result->values;
 
     char* value = "abcdefgh";
     lData[0].len = 8;
@@ -148,15 +148,15 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
 
     auto lVector = make_shared<ValueVector>(STRING, VECTOR_SIZE);
     dataChunk->append(lVector);
-    auto lData = ((gf_string_t*)lVector->getValues());
+    auto lData = ((gf_string_t*)lVector->values);
 
     auto rVector = make_shared<ValueVector>(STRING, VECTOR_SIZE);
     dataChunk->append(rVector);
-    auto rData = ((gf_string_t*)rVector->getValues());
+    auto rData = ((gf_string_t*)rVector->values);
 
     auto result = make_shared<ValueVector>(BOOL, VECTOR_SIZE);
     dataChunk->append(result);
-    auto resultData = result->getValues();
+    auto resultData = result->values;
 
     char* value = "abcdefghijklmnopqrstuvwxy"; // 25.
     lData[0].len = 25;

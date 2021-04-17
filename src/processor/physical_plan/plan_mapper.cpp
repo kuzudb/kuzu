@@ -1,5 +1,7 @@
 #include "src/processor/include/physical_plan/plan_mapper.h"
 
+#include <set>
+
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
@@ -9,6 +11,7 @@
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/filter/filter.h"
+#include "src/processor/include/physical_plan/operator/flatten/flatten.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
 #include "src/processor/include/physical_plan/operator/projection/projection.h"
@@ -58,6 +61,10 @@ static unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
     const LogicalOperator& logicalOperator, const Graph& graph,
     PhysicalOperatorsInfo& physicalOperatorInfo);
 
+static unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
+    const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo,
+    unique_ptr<PhysicalOperator> prevOperator, uint64_t& dataChunkPos, bool& appendedFlatten);
+
 unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
     unique_ptr<LogicalPlan> logicalPlan, const Graph& graph) {
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
@@ -70,15 +77,14 @@ unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator&
     const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
     auto operatorType = logicalOperator.getLogicalOperatorType();
     switch (operatorType) {
-    case LOGICAL_NODE_ID_SCAN:
+    case LOGICAL_SCAN_NODE_ID:
         return mapLogicalScanNodeIDToPhysical(logicalOperator, graph, physicalOperatorInfo);
     case LOGICAL_EXTEND:
         return mapLogicalExtendToPhysical(logicalOperator, graph, physicalOperatorInfo);
     case LOGICAL_FILTER:
-        // warning: assumes flattening is to be taken care of by the enumerator and not the mapper.
-        //          we do not append any flattening currently.
         return mapLogicalFilterToPhysical(logicalOperator, graph, physicalOperatorInfo);
     case LOGICAL_PROJECTION:
+        // TODO: We do not handle flattening for projections currently.
         return mapLogicalProjectionToPhysical(logicalOperator, graph, physicalOperatorInfo);
     case LOGICAL_HASH_JOIN:
         return mapLogicalHashJoinToPhysical(logicalOperator, graph, physicalOperatorInfo);
@@ -135,10 +141,49 @@ unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(const LogicalOperator& l
     auto prevOperator =
         mapLogicalOperatorToPhysical(*logicalOperator.prevOperator, graph, physicalOperatorInfo);
     auto dataChunks = prevOperator->getDataChunks();
-    auto rootExpr = ExpressionMapper::mapToPhysical(
-        logicalFilter.getRootLogicalExpression(), physicalOperatorInfo);
-    return make_unique<Filter>(move(rootExpr),
-        dataChunks->getNumDataChunks() - 1 /* select over last extension */, move(prevOperator));
+    const auto& logicalRootExpr = logicalFilter.getRootLogicalExpression();
+    uint64_t dataChunkToSelectPos;
+    bool appendedFlatten;
+    prevOperator = appendFlattenOperatorsIfNecessary(logicalRootExpr, physicalOperatorInfo,
+        move(prevOperator), dataChunkToSelectPos, appendedFlatten);
+    auto physicalRootExpr = ExpressionMapper::mapToPhysical(
+        logicalRootExpr, physicalOperatorInfo, *prevOperator->getDataChunks());
+    if (appendedFlatten) {
+        return make_unique<Filter<true /* isAfterFlatten */>>(
+            move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator));
+    } else {
+        return make_unique<Filter<false /* isAfterFlatten */>>(
+            move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator));
+    }
+}
+
+unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
+    const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo,
+    unique_ptr<PhysicalOperator> prevOperator, uint64_t& dataChunkPos, bool& appendedFlatten) {
+    set<uint64_t> unflatDataChunkPosSet;
+    for (auto& property : logicalRootExpr.getIncludedProperties()) {
+        auto pos = physicalOperatorInfo.getDataChunkPos(property);
+        if (!physicalOperatorInfo.dataChunkIsFlatVector[pos]) {
+            unflatDataChunkPosSet.insert(pos);
+        }
+    }
+    appendedFlatten = false;
+    if (!unflatDataChunkPosSet.empty()) {
+        vector<uint64_t> unflatDataChunkPos(
+            unflatDataChunkPosSet.begin(), unflatDataChunkPosSet.end());
+        if (unflatDataChunkPosSet.size() > 1) {
+            appendedFlatten = true;
+            for (auto i = 0u; i < unflatDataChunkPos.size() - 1; i++) {
+                auto pos = unflatDataChunkPos[i];
+                prevOperator = make_unique<Flatten>(pos, move(prevOperator));
+                physicalOperatorInfo.dataChunkIsFlatVector[pos] = true;
+            }
+        }
+        // We only need to set the dataChunkPos if at least one dataChunk is unflat.
+        dataChunkPos = unflatDataChunkPos[unflatDataChunkPos.size() - 1];
+        return prevOperator;
+    }
+    return prevOperator;
 }
 
 // For each expression, map its result vector to the input dataChunks positions:
@@ -156,7 +201,7 @@ static vector<vector<uint64_t>> mapProjectionExpressionsToDataChunkPos(DataChunk
     for (uint64_t i = 0; i < expressionsToProject.size(); i++) {
         auto expression = expressionsToProject[i];
         if (expression->expressionType == PROPERTY) {
-            auto exprVariable = expression->getVariableName();
+            auto exprVariable = expression->variableName;
             auto exprDataChunkPos = physicalOperatorInfo.getDataChunkPos(exprVariable);
             expressionPosPerDataChunk[exprDataChunkPos].push_back(i);
         } else {
@@ -177,7 +222,6 @@ static vector<vector<uint64_t>> mapProjectionExpressionsToDataChunkPos(DataChunk
             expressionPosPerDataChunk[exprDataChunkPos].push_back(i);
         }
     }
-
     return expressionPosPerDataChunk;
 }
 
@@ -196,7 +240,7 @@ unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(const LogicalOperato
     vector<unique_ptr<PhysicalExpression>> physicalExpressions;
     for (auto& expression : logicalProjection.expressionsToProject) {
         physicalExpressions.push_back(
-            ExpressionMapper::mapToPhysical(*expression, physicalOperatorInfo));
+            ExpressionMapper::mapToPhysical(*expression, physicalOperatorInfo, *dataChunks));
     }
 
     // Update physical operator info
@@ -216,7 +260,7 @@ unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(const LogicalOperato
                 outDataChunkPos);
         }
         physicalOperatorInfo.dataChunkIsFlatVector[outDataChunkPos] =
-            dataChunks->getDataChunk(i)->isFlat();
+            dataChunks->getDataChunk(i)->state->isFlat();
     }
 
     return make_unique<Projection>(

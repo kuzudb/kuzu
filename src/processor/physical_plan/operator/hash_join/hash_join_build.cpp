@@ -38,8 +38,9 @@ HashJoinBuild::HashJoinBuild(
     for (uint64_t i = 0; i < nonKeyDataChunks->getNumDataChunks(); i++) {
         auto dataChunk = nonKeyDataChunks->getDataChunk(i);
         for (auto& vector : dataChunk->valueVectors) {
-            numBytesForFixedTuplePart +=
-                dataChunk->isFlat() ? vector->getNumBytesPerValue() : sizeof(overflow_value_t);
+            numBytesForFixedTuplePart += dataChunk->state->isFlat() ?
+                                             vector->getNumBytesPerValue() :
+                                             sizeof(overflow_value_t);
         }
     }
     htBlockCapacity = DEFAULT_HT_BLOCK_SIZE / numBytesForFixedTuplePart;
@@ -75,11 +76,11 @@ void HashJoinBuild::finalize() {
 void HashJoinBuild::appendPayloadVectorAsFixSizedValues(ValueVector& vector, uint8_t* appendBuffer,
     uint64_t valueOffsetInVector, uint64_t appendCount, bool isSingleValue) {
     auto typeSize = vector.getNumBytesPerValue();
-    auto selectedValuesPos = vector.getSelectedValuesPos();
-    if (vector.getDataType() == NODE) {
+    auto selectedValuesPos = vector.state->selectedValuesPos;
+    if (vector.dataType == NODE) {
         auto& nodeIDVec = dynamic_cast<NodeIDVector&>(vector);
-        if (nodeIDVec.getIsSequence()) {
-            auto startNodeOffset = ((node_offset_t*)vector.getValues())[0];
+        if (nodeIDVec.isSequence) {
+            auto startNodeOffset = ((node_offset_t*)vector.values)[0];
             for (uint64_t i = 0; i < appendCount; i++) {
                 auto valuePos = valueOffsetInVector + (i * (1 - isSingleValue));
                 auto nodeOffset = startNodeOffset + selectedValuesPos[valuePos];
@@ -91,15 +92,15 @@ void HashJoinBuild::appendPayloadVectorAsFixSizedValues(ValueVector& vector, uin
     for (uint64_t i = 0; i < appendCount; i++) {
         auto valuePos = valueOffsetInVector + (i * (1 - isSingleValue));
         memcpy(appendBuffer + (i * numBytesForFixedTuplePart),
-            vector.getValues() + (selectedValuesPos[valuePos] * typeSize), typeSize);
+            vector.values + (selectedValuesPos[valuePos] * typeSize), typeSize);
     }
 }
 
 overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
     auto numBytesPerValue = vector.getNumBytesPerValue();
-    auto valuesLength = vector.getNumBytesPerValue() * vector.getNumSelectedValues();
-    auto vectorValues = vector.getValues();
-    auto vectorSelectedValuesPos = vector.getSelectedValuesPos();
+    auto valuesLength = vector.getNumBytesPerValue() * vector.state->numSelectedValues;
+    auto vectorValues = vector.values;
+    auto vectorSelectedValuesPos = vector.state->selectedValuesPos;
     if (valuesLength > DEFAULT_OVERFLOW_BLOCK_SIZE) {
         throw invalid_argument("Value length is larger than a overflow block.");
     }
@@ -121,7 +122,7 @@ overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
         overflowBlocks.push_back(move(blockHandle));
     }
 
-    for (uint64_t i = 0; i < vector.getNumSelectedValues(); i++) {
+    for (uint64_t i = 0; i < vector.state->numSelectedValues; i++) {
         memcpy(blockAppendPos + (i * numBytesPerValue),
             vectorValues + (vectorSelectedValuesPos[i] * numBytesPerValue), numBytesPerValue);
     }
@@ -132,8 +133,7 @@ overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
 // appendCount times. (a sequence nodeID vector should never be passed in this function)
 void HashJoinBuild::appendPayloadVectorAsOverflowValue(
     ValueVector& vector, uint8_t* appendBuffer, uint64_t appendCount) {
-    assert(
-        !((vector.getDataType() == NODE) && (dynamic_cast<NodeIDVector&>(vector).getIsSequence())));
+    assert(!((vector.dataType == NODE) && (dynamic_cast<NodeIDVector&>(vector).isSequence)));
     auto overflowValue = addVectorInOverflowBlocks(vector);
     for (uint64_t i = 0; i < appendCount; i++) {
         memcpy(appendBuffer + (i * numBytesForFixedTuplePart), (void*)&overflowValue,
@@ -143,19 +143,18 @@ void HashJoinBuild::appendPayloadVectorAsOverflowValue(
 
 void HashJoinBuild::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
     uint64_t valueOffsetInVector, uint64_t appendCount) const {
-    auto compressionScheme = vector.getCompressionScheme();
-    auto offsetSize = compressionScheme.getNumBytesForOffset();
-    auto nodeSize = compressionScheme.getNumTotalBytes();
-    auto isLabelCommon = compressionScheme.getNumBytesForLabel() == 0;
-    auto labelSize = isLabelCommon ? sizeof(label_t) : compressionScheme.getNumBytesForLabel();
-    auto commonLabel = vector.getCommonLabel();
-    auto startNodeOffset = ((node_offset_t*)vector.getValues())[0];
-    auto selectedValuesPos = vector.getSelectedValuesPos();
-    if (vector.getIsSequence()) {
+    auto offsetSize = vector.nodeIDCompressionScheme.getNumBytesForOffset();
+    auto nodeSize = vector.nodeIDCompressionScheme.getNumTotalBytes();
+    auto isLabelCommon = vector.nodeIDCompressionScheme.getNumBytesForLabel() == 0;
+    auto labelSize =
+        isLabelCommon ? sizeof(label_t) : vector.nodeIDCompressionScheme.getNumBytesForLabel();
+    auto startNodeOffset = ((node_offset_t*)vector.values)[0];
+    auto selectedValuesPos = vector.state->selectedValuesPos;
+    if (vector.isSequence) {
         for (uint64_t i = 0; i < appendCount; i++) {
             auto nodeOffset = startNodeOffset + selectedValuesPos[valueOffsetInVector + i];
             memcpy(appendBuffer, &nodeOffset, offsetSize);
-            memcpy(appendBuffer + sizeof(node_offset_t), (uint8_t*)&commonLabel, labelSize);
+            memcpy(appendBuffer + sizeof(node_offset_t), (uint8_t*)&vector.commonLabel, labelSize);
             appendBuffer += numBytesForFixedTuplePart;
         }
         return;
@@ -163,10 +162,10 @@ void HashJoinBuild::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
 
     for (uint64_t i = 0; i < appendCount; i++) {
         auto valuePos = selectedValuesPos[valueOffsetInVector + i];
-        memcpy(appendBuffer, vector.getValues() + (valuePos * nodeSize), offsetSize);
+        memcpy(appendBuffer, vector.values + (valuePos * nodeSize), offsetSize);
         memcpy(appendBuffer + sizeof(node_offset_t),
-            (isLabelCommon ? (uint8_t*)&commonLabel :
-                             vector.getValues() + (valuePos * nodeSize) + offsetSize),
+            (isLabelCommon ? (uint8_t*)&vector.commonLabel :
+                             vector.values + (valuePos * nodeSize) + offsetSize),
             labelSize);
         appendBuffer += numBytesForFixedTuplePart;
     }
@@ -207,7 +206,8 @@ void HashJoinBuild::appendDataChunks() {
     }
 
     // Allocate space for tuples
-    auto numTuplesToAppend = keyDataChunk->isFlat() ? 1 : keyDataChunk->state->numSelectedValues;
+    auto numTuplesToAppend =
+        keyDataChunk->state->isFlat() ? 1 : keyDataChunk->state->numSelectedValues;
     vector<BlockAppendInfo> blockAppendInfos;
     allocateHTBlocks(numTuplesToAppend, blockAppendInfos);
 
@@ -215,7 +215,7 @@ void HashJoinBuild::appendDataChunks() {
     auto tupleAppendOffset = 0; // The start offset of each field inside the tuple.
     // Append key vector
     auto keyVector = static_pointer_cast<NodeIDVector>(keyDataChunk->getValueVector(keyVectorPos));
-    auto keyValOffsetInVec = keyDataChunk->isFlat() ? keyDataChunk->state->currPos : 0;
+    auto keyValOffsetInVec = keyDataChunk->state->isFlat() ? keyDataChunk->state->currPos : 0;
     for (auto& blockAppendInfo : blockAppendInfos) {
         auto blockAppendPtr = blockAppendInfo.buffer + tupleAppendOffset;
         auto blockAppendCount = blockAppendInfo.numEntries;
@@ -231,12 +231,12 @@ void HashJoinBuild::appendDataChunks() {
         }
         // Append payload vectors in the keyDataChunk
         auto payloadVector = keyDataChunk->getValueVector(i);
-        auto valOffsetInVec = keyDataChunk->isFlat() ? keyDataChunk->state->currPos : 0;
+        auto valOffsetInVec = keyDataChunk->state->isFlat() ? keyDataChunk->state->currPos : 0;
         for (auto& blockAppendInfo : blockAppendInfos) {
             auto blockAppendPtr = blockAppendInfo.buffer + tupleAppendOffset;
             auto blockAppendCount = blockAppendInfo.numEntries;
             appendPayloadVectorAsFixSizedValues(*payloadVector, blockAppendPtr, valOffsetInVec,
-                blockAppendCount, keyDataChunk->isFlat());
+                blockAppendCount, keyDataChunk->state->isFlat());
             valOffsetInVec += blockAppendCount;
         }
         tupleAppendOffset += payloadVector->getNumBytesPerValue();
@@ -245,14 +245,14 @@ void HashJoinBuild::appendDataChunks() {
     // Append payload in non-key data chunks
     for (uint64_t chunkPos = 0; chunkPos < nonKeyDataChunks->getNumDataChunks(); chunkPos++) {
         auto payloadDataChunk = nonKeyDataChunks->getDataChunk(chunkPos);
-        if (payloadDataChunk->isFlat()) {
+        if (payloadDataChunk->state->isFlat()) {
             for (uint64_t i = 0; i < payloadDataChunk->valueVectors.size(); i++) {
                 auto payloadVector = payloadDataChunk->getValueVector(i);
                 for (auto& blockAppendInfo : blockAppendInfos) {
                     auto appendCount = blockAppendInfo.numEntries;
                     auto appendBuffer = blockAppendInfo.buffer + tupleAppendOffset;
                     appendPayloadVectorAsFixSizedValues(*payloadVector, appendBuffer,
-                        payloadVector->getCurrSelectedValuesPos(), appendCount, true);
+                        payloadVector->state->getCurrSelectedValuesPos(), appendCount, true);
                 }
                 tupleAppendOffset += payloadVector->getNumBytesPerValue();
             }

@@ -4,12 +4,12 @@ namespace graphflow {
 namespace expression {
 
 PhysicalUnaryExpression::PhysicalUnaryExpression(
-    unique_ptr<PhysicalExpression> child, ExpressionType expressionType) {
+    unique_ptr<PhysicalExpression> child, ExpressionType expressionType, DataType dataType) {
     childrenExpr.push_back(move(child));
     this->expressionType = expressionType;
+    this->dataType = dataType;
     operation = ValueVector::getUnaryOperation(expressionType);
-    result = createResultValueVector(
-        getUnaryExpressionResultDataType(expressionType, childrenExpr[0]->dataType));
+    result = createResultValueVector();
 }
 
 void PhysicalUnaryExpression::evaluate() {
@@ -17,13 +17,10 @@ void PhysicalUnaryExpression::evaluate() {
     operation(*childrenExpr[0]->result, *result);
 }
 
-void PhysicalUnaryExpression::setExpressionInputDataChunk(shared_ptr<DataChunk> dataChunk) {
-    childrenExpr[0]->setExpressionInputDataChunk(dataChunk);
-}
-void PhysicalUnaryExpression::setExpressionResultOwnerState(
-    shared_ptr<DataChunkState> dataChunkState) {
-    result->setDataChunkOwnerState(dataChunkState);
-    childrenExpr[0]->setExpressionResultOwnerState(dataChunkState);
+shared_ptr<ValueVector> PhysicalUnaryExpression::createResultValueVector() {
+    auto valueVector = make_shared<ValueVector>(dataType, MAX_VECTOR_SIZE);
+    valueVector->state = childrenExpr[0]->result->state;
+    return valueVector;
 }
 
 } // namespace expression

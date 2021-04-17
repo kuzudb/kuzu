@@ -11,3 +11,7 @@
 -NAME OneHopKnowsFilteredTest2
 -QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE a.age > 22 RETURN COUNT(*)
 ---- 9
+
+-NAME TwoHopKnowsFilteredTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE a.age = c.age RETURN COUNT(*)
+---- 12
