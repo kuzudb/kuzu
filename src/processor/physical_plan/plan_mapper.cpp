@@ -101,7 +101,7 @@ unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(const LogicalOperato
     const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
     auto& scan = (const LogicalScanNodeID&)logicalOperator;
     auto morsel = make_shared<MorselsDesc>(scan.label, graph.getNumNodes(scan.label));
-    physicalOperatorInfo.appendAsNewDataChunk(scan.nodeVarName);
+    physicalOperatorInfo.appendAsNewDataChunk(scan.nodeID);
     return make_unique<ScanNodeID<true>>(morsel);
 }
 
@@ -110,23 +110,23 @@ unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& l
     auto& extend = (const LogicalExtend&)logicalOperator;
     auto prevOperator =
         mapLogicalOperatorToPhysical(*logicalOperator.prevOperator, graph, physicalOperatorInfo);
-    auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(extend.boundNodeVarName);
-    auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(extend.boundNodeVarName);
+    auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(extend.boundNodeID);
+    auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(extend.boundNodeID);
     auto& catalog = graph.getCatalog();
     auto& relsStore = graph.getRelsStore();
     if (catalog.isSingleCaridinalityInDir(extend.relLabel, extend.direction)) {
-        physicalOperatorInfo.appendAsNewValueVector(extend.nbrNodeVarName, dataChunkPos);
+        physicalOperatorInfo.appendAsNewValueVector(extend.nbrNodeID, dataChunkPos);
         return make_unique<AdjColumnExtend>(dataChunkPos, valueVectorPos,
-            relsStore.getAdjColumn(extend.direction, extend.boundNodeVarLabel, extend.relLabel),
+            relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
             move(prevOperator));
     } else {
         if (!physicalOperatorInfo.dataChunkIsFlatVector[dataChunkPos]) {
             physicalOperatorInfo.dataChunkIsFlatVector[dataChunkPos] = true;
             prevOperator = make_unique<Flatten>(dataChunkPos, move(prevOperator));
         }
-        physicalOperatorInfo.appendAsNewDataChunk(extend.nbrNodeVarName);
+        physicalOperatorInfo.appendAsNewDataChunk(extend.nbrNodeID);
         return make_unique<AdjListExtend<true>>(dataChunkPos, valueVectorPos,
-            relsStore.getAdjLists(extend.direction, extend.boundNodeVarLabel, extend.relLabel),
+            relsStore.getAdjLists(extend.direction, extend.boundNodeLabel, extend.relLabel),
             move(prevOperator));
     }
 }
@@ -269,12 +269,12 @@ unique_ptr<PhysicalOperator> mapLogicalNodePropertyReaderToPhysical(
     auto& scanProperty = (const LogicalScanNodeProperty&)logicalOperator;
     auto prevOperator =
         mapLogicalOperatorToPhysical(*logicalOperator.prevOperator, graph, physicalOperatorInfo);
-    auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.nodeVarName);
-    auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(scanProperty.nodeVarName);
+    auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.nodeID);
+    auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(scanProperty.nodeID);
     auto& catalog = graph.getCatalog();
     auto& nodesStore = graph.getNodesStore();
     physicalOperatorInfo.appendAsNewValueVector(
-        scanProperty.nodeVarName + "." + scanProperty.propertyName, dataChunkPos);
+        scanProperty.nodeName + "." + scanProperty.propertyName, dataChunkPos);
     if (catalog.containNodeProperty(scanProperty.nodeLabel, scanProperty.propertyName)) {
         auto property =
             catalog.getNodePropertyKeyFromString(scanProperty.nodeLabel, scanProperty.propertyName);
@@ -293,9 +293,9 @@ unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
     auto& scanProperty = (const LogicalScanRelProperty&)logicalOperator;
     auto prevOperator =
         mapLogicalOperatorToPhysical(*logicalOperator.prevOperator, graph, physicalOperatorInfo);
-    auto inDataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.boundNodeVarName);
-    auto inValueVectorPos = physicalOperatorInfo.getValueVectorPos(scanProperty.boundNodeVarName);
-    auto outDataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.nbrNodeVarName);
+    auto inDataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.boundNodeID);
+    auto inValueVectorPos = physicalOperatorInfo.getValueVectorPos(scanProperty.boundNodeID);
+    auto outDataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.nbrNodeID);
     auto& catalog = graph.getCatalog();
     auto property =
         catalog.getRelPropertyKeyFromString(scanProperty.relLabel, scanProperty.propertyName);
@@ -304,12 +304,12 @@ unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
         scanProperty.relName + "." + scanProperty.propertyName, outDataChunkPos);
     if (catalog.isSingleCaridinalityInDir(scanProperty.relLabel, scanProperty.direction)) {
         auto column = relsStore.getRelPropertyColumn(
-            scanProperty.relLabel, scanProperty.boundNodeVarLabel, property);
+            scanProperty.relLabel, scanProperty.boundNodeLabel, property);
         return make_unique<ScanStructuredProperty>(
             inDataChunkPos, inValueVectorPos, column, move(prevOperator));
     } else {
-        auto lists = relsStore.getRelPropertyLists(scanProperty.direction,
-            scanProperty.boundNodeVarLabel, scanProperty.relLabel, property);
+        auto lists = relsStore.getRelPropertyLists(
+            scanProperty.direction, scanProperty.boundNodeLabel, scanProperty.relLabel, property);
         return make_unique<ReadRelPropertyList>(
             inDataChunkPos, inValueVectorPos, outDataChunkPos, lists, move(prevOperator));
     }
@@ -323,10 +323,10 @@ unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator&
         mapLogicalOperatorToPhysical(*hashJoin.prevOperator, graph, probeSideOperatorInfo);
     auto buildSidePrevOperator =
         mapLogicalOperatorToPhysical(*hashJoin.buildSidePrevOperator, graph, buildSideOperatorInfo);
-    auto probeSideKeyDataChunkPos = probeSideOperatorInfo.getDataChunkPos(hashJoin.joinNodeVarName);
-    auto probeSideKeyVectorPos = probeSideOperatorInfo.getValueVectorPos(hashJoin.joinNodeVarName);
-    auto buildSideKeyDataChunkPos = buildSideOperatorInfo.getDataChunkPos(hashJoin.joinNodeVarName);
-    auto buildSideKeyVectorPos = buildSideOperatorInfo.getValueVectorPos(hashJoin.joinNodeVarName);
+    auto probeSideKeyDataChunkPos = probeSideOperatorInfo.getDataChunkPos(hashJoin.joinNodeID);
+    auto probeSideKeyVectorPos = probeSideOperatorInfo.getValueVectorPos(hashJoin.joinNodeID);
+    auto buildSideKeyDataChunkPos = buildSideOperatorInfo.getDataChunkPos(hashJoin.joinNodeID);
+    auto buildSideKeyVectorPos = buildSideOperatorInfo.getValueVectorPos(hashJoin.joinNodeID);
     // Hash join data chunks construction
     // Probe side: 1) append the key data chunk as dataChunks[0].
     //             2) append other non-key data chunks.

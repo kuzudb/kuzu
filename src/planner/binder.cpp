@@ -23,8 +23,8 @@ static void validateProjectionColumnNamesAreUnique(
 
 static void validateOnlyFunctionIsCountStar(vector<shared_ptr<LogicalExpression>>& expressions) {
     for (auto& expression : expressions) {
-        if (FUNCTION == expression->expressionType && COUNT_STAR == expression->variableName &&
-            1 != expressions.size()) {
+        if (FUNCTION == expression->expressionType &&
+            FUNCTION_COUNT_STAR == expression->variableName && expressions.size() != 1) {
             throw invalid_argument("The only function in the return clause should be COUNT(*).");
         }
     }

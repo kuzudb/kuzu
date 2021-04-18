@@ -33,6 +33,21 @@ public:
     }
 };
 
+TEST_F(WhereTest, FilterIDComparisonTest) {
+    auto a = make_unique<ParsedExpression>(VARIABLE, "a", EMPTY);
+    auto aID = make_unique<ParsedExpression>(FUNCTION, "id", EMPTY);
+    aID->children.push_back(move(a));
+    auto b = make_unique<ParsedExpression>(VARIABLE, "b", EMPTY);
+    auto bID = make_unique<ParsedExpression>(FUNCTION, "id", EMPTY);
+    bID->children.push_back(move(b));
+    auto where = make_unique<ParsedExpression>(EQUALS, EMPTY, EMPTY, move(aID), move(bID));
+
+    graphflow::parser::Parser parser;
+    string input = "MATCH () WHERE id(a) = id(b) RETURN *;";
+    auto singleQuery = parser.parseQuery(input);
+    ASSERT_TRUE(ParserTestUtils::equals(*where, *singleQuery->matchStatements[0]->whereClause));
+}
+
 TEST_F(WhereTest, FilterBooleanConnectionTest) {
     auto aIsStudent = makeAIsStudentExpression();
     auto bIsMale = makeBIsMaleExpression();

@@ -24,6 +24,8 @@ static vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(
 
 static pair<string, string> splitVariableAndPropertyName(const string& name);
 
+static string variableNameToID(const string& name);
+
 Enumerator::Enumerator(const Catalog& catalog, const BoundSingleQuery& boundSingleQuery)
     : catalog{catalog}, boundSingleQuery{boundSingleQuery} {
     subgraphPlanTable = make_unique<SubgraphPlanTable>(boundSingleQuery.getNumQueryRels());
@@ -221,8 +223,9 @@ void Enumerator::appendLogicalScan(uint32_t queryNodePos, LogicalPlan& plan) {
     if (ANY_LABEL == queryNode.label) {
         throw invalid_argument("Match any label is not yet supported in LogicalScanNodeID.");
     }
-    auto scan = make_shared<LogicalScanNodeID>(queryNode.name, queryNode.label);
-    plan.schema->nameOperatorMap.insert({queryNode.name, scan.get()});
+    auto nodeID = variableNameToID(queryNode.name);
+    auto scan = make_shared<LogicalScanNodeID>(nodeID, queryNode.label);
+    plan.schema->nameOperatorMap.insert({nodeID, scan.get()});
     plan.appendOperator(scan);
 }
 
@@ -232,18 +235,22 @@ void Enumerator::appendLogicalExtend(uint32_t queryRelPos, Direction direction, 
         ANY_LABEL == queryRel.label) {
         throw invalid_argument("Match any label is not yet supported in LogicalExtend");
     }
-    auto extend = make_shared<LogicalExtend>(queryRel, direction, plan.lastOperator);
-    auto nbrNodeName = FWD == direction ? queryRel.getSrcNodeName() : queryRel.getDstNodeName();
-    plan.schema->addOperator(nbrNodeName, extend.get());
+    auto boundNode = FWD == direction ? queryRel.srcNode : queryRel.dstNode;
+    auto nbrNode = FWD == direction ? queryRel.dstNode : queryRel.srcNode;
+    auto boundNodeID = variableNameToID(boundNode->name);
+    auto nbrNodeID = variableNameToID(nbrNode->name);
+    auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->label, nbrNodeID,
+        nbrNode->label, queryRel.label, direction, plan.lastOperator);
+    plan.schema->addOperator(nbrNodeID, extend.get());
     plan.schema->addOperator(queryRel.name, extend.get());
     plan.appendOperator(extend);
 }
 
 void Enumerator::appendLogicalHashJoin(
     uint32_t joinNodePos, const LogicalPlan& planToJoin, LogicalPlan& plan) {
-    auto joinNodeName = mergedQueryGraph->queryNodes[joinNodePos]->name;
+    auto joinNodeID = variableNameToID(mergedQueryGraph->queryNodes[joinNodePos]->name);
     auto hashJoin =
-        make_shared<LogicalHashJoin>(joinNodeName, plan.lastOperator, planToJoin.lastOperator);
+        make_shared<LogicalHashJoin>(joinNodeID, plan.lastOperator, planToJoin.lastOperator);
     for (auto& [name, op] : planToJoin.schema->nameOperatorMap) {
         if (!plan.schema->containsName(name)) {
             plan.schema->addOperator(name, op);
@@ -262,7 +269,7 @@ void Enumerator::appendProjection(
     const vector<shared_ptr<LogicalExpression>>& returnOrWithClause, LogicalPlan& plan) {
     // Do not append projection in case of RETURN COUNT(*)
     if (1 == returnOrWithClause.size() && FUNCTION == returnOrWithClause[0]->expressionType &&
-        COUNT_STAR == returnOrWithClause[0]->variableName) {
+        FUNCTION_COUNT_STAR == returnOrWithClause[0]->variableName) {
         return;
     }
     for (auto& expression : returnOrWithClause) {
@@ -304,18 +311,18 @@ void Enumerator::appendNecessaryScans(shared_ptr<LogicalExpression> expression, 
 void Enumerator::appendScanNodeProperty(
     const string& nodeName, const string& propertyName, LogicalPlan& plan) {
     auto queryNode = mergedQueryGraph->getQueryNode(nodeName);
-    auto scanProperty = make_shared<LogicalScanNodeProperty>(
-        queryNode->name, queryNode->label, propertyName, plan.lastOperator);
-    plan.schema->addOperator(nodeName + "." + propertyName, scanProperty.get());
+    auto scanProperty = make_shared<LogicalScanNodeProperty>(variableNameToID(queryNode->name),
+        queryNode->label, queryNode->name, propertyName, plan.lastOperator);
+    plan.schema->addOperator(queryNode->name + "." + propertyName, scanProperty.get());
     plan.appendOperator(scanProperty);
 }
 
 void Enumerator::appendScanRelProperty(
     const string& relName, const string& propertyName, LogicalPlan& plan) {
     auto extend = (LogicalExtend*)plan.schema->getOperator(relName);
-    auto queryRel = mergedQueryGraph->getQueryRel(relName);
-    auto scanProperty = make_shared<LogicalScanRelProperty>(
-        *queryRel, extend->direction, propertyName, plan.lastOperator);
+    auto scanProperty = make_shared<LogicalScanRelProperty>(extend->boundNodeID,
+        extend->boundNodeLabel, extend->nbrNodeID, extend->nbrNodeLabel, relName, extend->relLabel,
+        extend->direction, propertyName, plan.lastOperator);
     plan.schema->addOperator(relName + "." + propertyName, scanProperty.get());
     plan.appendOperator(scanProperty);
 }
@@ -367,6 +374,10 @@ vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(
 pair<string, string> splitVariableAndPropertyName(const string& name) {
     auto splitPos = name.find('.');
     return make_pair(name.substr(0, splitPos), name.substr(splitPos + 1));
+}
+
+string variableNameToID(const string& name) {
+    return name + "._id";
 }
 
 } // namespace planner

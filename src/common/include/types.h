@@ -49,11 +49,12 @@ enum DataType : uint8_t {
     INT64 = 5,
     DOUBLE = 6,
     STRING = 7,
-    UNSTRUCTURED = 8
+    NODE_ID = 8,
+    UNSTRUCTURED = 9
 };
 
 const string DataTypeNames[] = {
-    "REL", "NODE", "LABEL", "BOOL", "INT32", "INT64", "DOUBLE", "STRING", "UNSTRUCTURED"};
+    "REL", "NODE", "LABEL", "BOOL", "INT32", "INT64", "DOUBLE", "STRING", "NODE_ID", "UNKNOWN"};
 
 int32_t convertToInt32(char* data);
 

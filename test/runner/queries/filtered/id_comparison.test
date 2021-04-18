@@ -1,0 +1,29 @@
+# description: test node ID comparison
+
+-INPUT dataset/tinysnb/
+-OUTPUT test/unittest_temp/
+-PARALLELISM 1
+
+-NAME TwoHopKnowsIDEqualTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) = id(c) RETURN COUNT(*)
+---- 12
+
+-NAME TwoHopKnowsIDEqualTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) <> id(c) RETURN COUNT(*)
+---- 24
+
+-NAME TwoHopKnowsIDGreaterThanTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) > id(b) RETURN COUNT(*)
+---- 6
+
+-NAME TwoHopKnowsIDGreaterThanEqualsTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) >= id(c) RETURN COUNT(*)
+---- 24
+
+-NAME TwoHopKnowsIDLessThanTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) < id(b) RETURN COUNT(*)
+---- 8
+
+-NAME TwoHopKnowsIDLessThanEqualsTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) <= id(c) RETURN COUNT(*)
+---- 24

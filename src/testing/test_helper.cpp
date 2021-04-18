@@ -95,7 +95,7 @@ bool TestHelper::runExceptionTest(const string& path) {
         try {
             auto plans = server->enumerateLogicalPlans(testConfig.query[i]);
             spdlog::error(
-                "QUERY: {} NOT PASSED. Expect exception to be thrown.", testConfig.query[i]);
+                "QUERY: {} NOT PASSED. Expect malformed to be thrown.", testConfig.query[i]);
         } catch (const invalid_argument& exception) {
             if (testConfig.expectedErrorMsgs[i] != exception.what()) {
                 spdlog::error("QUERY: {} NOT PASSED. Expect error message {} but get {}.",

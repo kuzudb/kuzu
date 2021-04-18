@@ -109,7 +109,10 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindComparisonExpression(
     } else if (left->dataType != right->dataType) {
         return make_shared<LogicalLiteralExpression>(LITERAL_BOOLEAN, BOOL, Value(NULL_BOOL));
     }
-    return make_shared<LogicalExpression>(parsedExpression.type, BOOL, move(left), move(right));
+    return make_shared<LogicalExpression>(NODE_ID == left->dataType ?
+                                              comparisonToIDComparison(parsedExpression.type) :
+                                              parsedExpression.type,
+        BOOL, move(left), move(right));
 }
 
 shared_ptr<LogicalExpression> ExpressionBinder::bindBinaryArithmeticExpression(
@@ -211,11 +214,27 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
                            dataTypeToString(childExpression->dataType) + ".");
 }
 
-// COUNT(*) is the only function expression supported
+// only support COUNT(*) or ID(nodeVariable)
 shared_ptr<LogicalExpression> ExpressionBinder::bindFunctionExpression(
     const ParsedExpression& parsedExpression) {
-    assert("COUNT_STAR" == parsedExpression.text);
-    return make_shared<LogicalExpression>(FUNCTION, INT64, COUNT_STAR);
+    auto functionName = parsedExpression.text;
+    transform(begin(functionName), end(functionName), begin(functionName), ::toupper);
+    if (FUNCTION_COUNT_STAR == functionName) {
+        return make_shared<LogicalExpression>(FUNCTION, INT64, FUNCTION_COUNT_STAR);
+    } else if (FUNCTION_ID == functionName) {
+        if (1 != parsedExpression.children.size()) {
+            throw invalid_argument(functionName + " takes exactly one parameter.");
+        }
+        auto child = bindExpression(*parsedExpression.children[0]);
+        if (NODE != child->dataType) {
+            throw invalid_argument("Expect " + child->rawExpression + " to be a node, but it was " +
+                                   dataTypeToString(child->dataType));
+        }
+        auto nodeName = static_pointer_cast<LogicalNodeExpression>(child)->name;
+        return make_shared<LogicalExpression>(PROPERTY, NODE_ID, nodeName + "._id");
+    } else {
+        throw invalid_argument(functionName + " is not supported.");
+    }
 }
 
 shared_ptr<LogicalExpression> ExpressionBinder::bindLiteralExpression(
@@ -260,7 +279,7 @@ void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
 void validateExpectedType(const LogicalExpression& logicalExpression, DataType expectedType) {
     auto dataType = logicalExpression.dataType;
     if (expectedType != dataType) {
-        throw invalid_argument(logicalExpression.rawExpression + " is of data type " +
+        throw invalid_argument(logicalExpression.rawExpression + " has data type " +
                                dataTypeToString(dataType) + ". " + dataTypeToString(expectedType) +
                                " was expected.");
     }
