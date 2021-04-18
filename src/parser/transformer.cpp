@@ -18,7 +18,18 @@ unique_ptr<SingleQuery> Transformer::transformRegularQuery(
 
 unique_ptr<SingleQuery> Transformer::transformSingleQuery(
     CypherParser::OC_SingleQueryContext& ctx) {
-    return transformSinglePartQuery(*ctx.oC_SinglePartQuery());
+    vector<unique_ptr<QueryPart>> queryParts;
+    if (ctx.oC_MultiPartQuery()) {
+        for (auto queryPart : ctx.oC_MultiPartQuery()->gF_QueryPart()) {
+            queryParts.push_back(transformQueryPart(*queryPart));
+        }
+    }
+    auto singleQuery =
+        ctx.oC_MultiPartQuery() ?
+            transformSinglePartQuery(*ctx.oC_MultiPartQuery()->oC_SinglePartQuery()) :
+            transformSinglePartQuery(*ctx.oC_SinglePartQuery());
+    singleQuery->queryParts = move(queryParts);
+    return singleQuery;
 }
 
 unique_ptr<SingleQuery> Transformer::transformSinglePartQuery(
@@ -29,6 +40,14 @@ unique_ptr<SingleQuery> Transformer::transformSinglePartQuery(
     }
     singleQuery->returnStatement = transformReturn(*ctx.oC_Return());
     return singleQuery;
+}
+
+unique_ptr<QueryPart> Transformer::transformQueryPart(CypherParser::GF_QueryPartContext& ctx) {
+    auto queryPart = make_unique<QueryPart>(transformWith(*ctx.oC_With()));
+    for (auto& readingClause : ctx.oC_ReadingClause()) {
+        queryPart->matchStatements.push_back(transformReadingClause(*readingClause));
+    }
+    return queryPart;
 }
 
 unique_ptr<MatchStatement> Transformer::transformReadingClause(
@@ -42,6 +61,20 @@ unique_ptr<MatchStatement> Transformer::transformMatch(CypherParser::OC_MatchCon
         matchStatement->whereClause = transformWhere(*ctx.oC_Where());
     }
     return matchStatement;
+}
+
+unique_ptr<WithStatement> Transformer::transformWith(CypherParser::OC_WithContext& ctx) {
+    auto projectionItems = ctx.oC_ProjectionBody()->oC_ProjectionItems();
+    auto expressions = vector<unique_ptr<ParsedExpression>>();
+    for (auto& projectionItem : projectionItems->oC_ProjectionItem()) {
+        expressions.push_back(transformProjectionItem(*projectionItem));
+    }
+    auto withStatement =
+        make_unique<WithStatement>(move(expressions), nullptr != projectionItems->STAR());
+    if (ctx.oC_Where()) {
+        withStatement->whereClause = transformWhere(*ctx.oC_Where());
+    }
+    return withStatement;
 }
 
 unique_ptr<ReturnStatement> Transformer::transformReturn(CypherParser::OC_ReturnContext& ctx) {

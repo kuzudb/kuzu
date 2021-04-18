@@ -1,175 +1,127 @@
 #include "gtest/gtest.h"
+#include "test/parser/parser_test_utils.h"
 
 #include "src/parser/include/parser.h"
 
 using namespace graphflow::parser;
-using namespace graphflow::common;
 
 class GraphPatternTest : public ::testing::Test {
 
 public:
-    unique_ptr<NodePattern> makeNodePattern(string name, string label) {
-        return make_unique<NodePattern>(name, label);
-    }
-
     unique_ptr<RelPattern> makeRelPattern(string name, string type, ArrowDirection direction) {
         auto rel = make_unique<RelPattern>(name, type);
         rel->arrowDirection = direction;
         return rel;
     }
-
-    unique_ptr<PatternElementChain> makePatternElementChain(
-        unique_ptr<RelPattern> rel, unique_ptr<NodePattern> node) {
-        return make_unique<PatternElementChain>(move(rel), move(node));
-    }
-
-    unique_ptr<PatternElement> makePatternElement(unique_ptr<NodePattern> nodePattern) {
-        auto patternElement = make_unique<PatternElement>(move(nodePattern));
-        return patternElement;
-    }
 };
 
 TEST_F(GraphPatternTest, EmptyMatchTest) {
-    auto expectedNode = makeNodePattern(string(), string());
-    auto expectedPatternElement = makePatternElement(move(expectedNode));
-    vector<unique_ptr<PatternElement>> expectedPatternElements;
-    expectedPatternElements.push_back(move(expectedPatternElement));
-    auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
-    auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement));
-    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
-    expectedSingleQuery->returnStatement = move(returnStar);
+    auto expectNode = make_unique<NodePattern>(string(), string());
+    auto expectPElement = make_unique<PatternElement>(move(expectNode));
 
     graphflow::parser::Parser parser;
-    string input = "MATCH () RETURN *;";
-    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
-}
-
-TEST_F(GraphPatternTest, MATCHSingleNodeTest) {
-    auto expectedNode = makeNodePattern("a", "Person");
-    auto expectedPatternElement = makePatternElement(move(expectedNode));
-    vector<unique_ptr<PatternElement>> expectedPatternElements;
-    expectedPatternElements.push_back(move(expectedPatternElement));
-    auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
-    auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement));
-    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
-    expectedSingleQuery->returnStatement = move(returnStar);
-
-    graphflow::parser::Parser parser;
-    string input = "MATCH (a:Person) RETURN *;";
-    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
+    string input = "MATCH () RETURN COUNT(*);";
+    auto singleQuery = parser.parseQuery(input);
+    ASSERT_TRUE(1u == singleQuery->matchStatements.size());
+    ASSERT_TRUE(1u == singleQuery->matchStatements[0]->graphPattern.size());
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *expectPElement, *singleQuery->matchStatements[0]->graphPattern[0]));
 }
 
 TEST_F(GraphPatternTest, MATCHSingleEdgeTest) {
-    auto expectedNodeA = makeNodePattern("a", "Person");
-    auto expectedNodeB = makeNodePattern("b", "Student");
-    auto expectedEdge = makeRelPattern("e1", "knows", RIGHT);
-    auto expectedPatternElementChain =
-        makePatternElementChain(move(expectedEdge), move(expectedNodeB));
-    auto expectedPatternElement = makePatternElement(move(expectedNodeA));
-    expectedPatternElement->patternElementChains.push_back(move(expectedPatternElementChain));
-    vector<unique_ptr<PatternElement>> expectedPatternElements;
-    expectedPatternElements.push_back(move(expectedPatternElement));
-    auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
-    auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement));
-    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
-    expectedSingleQuery->returnStatement = move(returnStar);
+    auto expectNodeA = make_unique<NodePattern>("a", "Person");
+    auto expectNodeB = make_unique<NodePattern>("b", "Student");
+    auto expectRel = makeRelPattern("e1", "knows", RIGHT);
+    auto expectPElementChain = make_unique<PatternElementChain>(move(expectRel), move(expectNodeB));
+    auto expectPElement = make_unique<PatternElement>(move(expectNodeA));
+    expectPElement->patternElementChains.push_back(move(expectPElementChain));
 
     graphflow::parser::Parser parser;
     string input = "MATCH (a:Person)-[e1:knows]->(b:Student) RETURN *;";
-    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
+    auto singleQuery = parser.parseQuery(input);
+    ASSERT_TRUE(1u == singleQuery->matchStatements.size());
+    ASSERT_TRUE(1u == singleQuery->matchStatements[0]->graphPattern.size());
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *expectPElement, *singleQuery->matchStatements[0]->graphPattern[0]));
 }
 
 TEST_F(GraphPatternTest, MATCHMultiEdgesTest) {
-    auto expectedNodeA = makeNodePattern("a", "Person");
-    auto expectedNodeB = makeNodePattern("b", "Student");
-    auto expectedEdge1 = makeRelPattern(string(), "knows", RIGHT);
-    auto expectedPatternElementChain1 =
-        makePatternElementChain(move(expectedEdge1), move(expectedNodeB));
-    auto expectedNodeC = makeNodePattern("c", "Student");
-    auto expectedEdge2 = makeRelPattern("e2", "likes", LEFT);
-    auto expectedPatternElementChain2 =
-        makePatternElementChain(move(expectedEdge2), move(expectedNodeC));
-    auto expectedPatternElement = makePatternElement(move(expectedNodeA));
-    expectedPatternElement->patternElementChains.push_back(move(expectedPatternElementChain1));
-    expectedPatternElement->patternElementChains.push_back(move(expectedPatternElementChain2));
-    vector<unique_ptr<PatternElement>> expectedPatternElements;
-    expectedPatternElements.push_back(move(expectedPatternElement));
-    auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
-    auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement));
-    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
-    expectedSingleQuery->returnStatement = move(returnStar);
+    auto expectNodeA = make_unique<NodePattern>("a", "Person");
+    auto expectNodeB = make_unique<NodePattern>("b", "Student");
+    auto expectRel1 = makeRelPattern(string(), "knows", RIGHT);
+    auto expectedPElementChain1 =
+        make_unique<PatternElementChain>(move(expectRel1), move(expectNodeB));
+    auto expectNodeC = make_unique<NodePattern>("c", "Student");
+    auto expectRel2 = makeRelPattern("e2", "likes", LEFT);
+    auto expectedPElementChain2 =
+        make_unique<PatternElementChain>(move(expectRel2), move(expectNodeC));
+    auto expectPElement = make_unique<PatternElement>(move(expectNodeA));
+    expectPElement->patternElementChains.push_back(move(expectedPElementChain1));
+    expectPElement->patternElementChains.push_back(move(expectedPElementChain2));
 
     graphflow::parser::Parser parser;
     string input = "MATCH (a:Person)-[:knows]->(b:Student)<-[e2:likes]-(c:Student) RETURN *;";
-    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
+    auto singleQuery = parser.parseQuery(input);
+    ASSERT_TRUE(1u == singleQuery->matchStatements.size());
+    ASSERT_TRUE(1u == singleQuery->matchStatements[0]->graphPattern.size());
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *expectPElement, *singleQuery->matchStatements[0]->graphPattern[0]));
 }
 
 TEST_F(GraphPatternTest, MATCHMultiElementsTest) {
-    auto expectedNodeA = makeNodePattern("a", "Person");
-    auto expectedNodeB = makeNodePattern("b", "Student");
-    auto expectedEdge1 = makeRelPattern(string(), "knows", RIGHT);
-    auto expectedPatternElementChain1 =
-        makePatternElementChain(move(expectedEdge1), move(expectedNodeB));
-    auto expectedPatternElement1 = makePatternElement(move(expectedNodeA));
-    expectedPatternElement1->patternElementChains.push_back(move(expectedPatternElementChain1));
+    auto expectNodeA = make_unique<NodePattern>("a", "Person");
+    auto expectNodeB = make_unique<NodePattern>("b", "Student");
+    auto expectRel1 = makeRelPattern(string(), "knows", RIGHT);
+    auto expectedPElementChain1 =
+        make_unique<PatternElementChain>(move(expectRel1), move(expectNodeB));
+    auto expectPElement1 = make_unique<PatternElement>(move(expectNodeA));
+    expectPElement1->patternElementChains.push_back(move(expectedPElementChain1));
 
-    auto expectedNodeBDup = makeNodePattern("b", string());
-    auto expectedNodeC = makeNodePattern("c", "Student");
-    auto expectedEdge2 = makeRelPattern("e2", "likes", LEFT);
-    auto expectedPatternElementChain2 =
-        makePatternElementChain(move(expectedEdge2), move(expectedNodeC));
-    auto expectedPatternElement2 = makePatternElement(move(expectedNodeBDup));
-    expectedPatternElement2->patternElementChains.push_back(move(expectedPatternElementChain2));
-
-    vector<unique_ptr<PatternElement>> expectedPatternElements;
-    expectedPatternElements.push_back(move(expectedPatternElement1));
-    expectedPatternElements.push_back(move(expectedPatternElement2));
-    auto expectedMatchStatement = make_unique<MatchStatement>(move(expectedPatternElements));
-    auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement));
-    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
-    expectedSingleQuery->returnStatement = move(returnStar);
+    auto expectNodeB2 = make_unique<NodePattern>("b", string());
+    auto expectNodeC = make_unique<NodePattern>("c", "Student");
+    auto expectRel2 = makeRelPattern("e2", "likes", LEFT);
+    auto expectedPElementChain2 =
+        make_unique<PatternElementChain>(move(expectRel2), move(expectNodeC));
+    auto expectPElement2 = make_unique<PatternElement>(move(expectNodeB2));
+    expectPElement2->patternElementChains.push_back(move(expectedPElementChain2));
 
     graphflow::parser::Parser parser;
     string input = "MATCH (a:Person)-[:knows]->(b:Student), (b)<-[e2:likes]-(c:Student) RETURN *;";
-    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
+    auto singleQuery = parser.parseQuery(input);
+    ASSERT_TRUE(1u == singleQuery->matchStatements.size());
+    ASSERT_TRUE(2u == singleQuery->matchStatements[0]->graphPattern.size());
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *expectPElement1, *singleQuery->matchStatements[0]->graphPattern[0]));
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *expectPElement2, *singleQuery->matchStatements[0]->graphPattern[1]));
 }
 
 TEST_F(GraphPatternTest, MultiMatchTest) {
-    auto expectedNodeA = makeNodePattern("a", "Person");
-    auto expectedNodeB = makeNodePattern("b", "Student");
-    auto expectedEdge1 = makeRelPattern(string(), "knows", RIGHT);
-    auto expectedPatternElementChain1 =
-        makePatternElementChain(move(expectedEdge1), move(expectedNodeB));
-    auto expectedPatternElement1 = makePatternElement(move(expectedNodeA));
-    expectedPatternElement1->patternElementChains.push_back(move(expectedPatternElementChain1));
-    vector<unique_ptr<PatternElement>> expectedPatternElements1;
-    expectedPatternElements1.push_back(move(expectedPatternElement1));
-    auto expectedMatchStatement1 = make_unique<MatchStatement>(move(expectedPatternElements1));
+    auto expectNodeA = make_unique<NodePattern>("a", "Person");
+    auto expectNodeB = make_unique<NodePattern>("b", "Student");
+    auto expectRel1 = makeRelPattern(string(), "knows", RIGHT);
+    auto expectedPElementChain1 =
+        make_unique<PatternElementChain>(move(expectRel1), move(expectNodeB));
+    auto expectPElement1 = make_unique<PatternElement>(move(expectNodeA));
+    expectPElement1->patternElementChains.push_back(move(expectedPElementChain1));
 
-    auto expectedNodeBDup = makeNodePattern("b", string());
-    auto expectedNodeC = makeNodePattern("c", "Student");
-    auto expectedEdge2 = makeRelPattern("e2", "likes", LEFT);
-    auto expectedPatternElementChain2 =
-        makePatternElementChain(move(expectedEdge2), move(expectedNodeC));
-    auto expectedPatternElement2 = makePatternElement(move(expectedNodeBDup));
-    expectedPatternElement2->patternElementChains.push_back(move(expectedPatternElementChain2));
-    vector<unique_ptr<PatternElement>> expectedPatternElements2;
-    expectedPatternElements2.push_back(move(expectedPatternElement2));
-    auto expectedMatchStatement2 = make_unique<MatchStatement>(move(expectedPatternElements2));
-
-    auto expectedSingleQuery = make_unique<SingleQuery>();
-    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement1));
-    expectedSingleQuery->matchStatements.push_back(move(expectedMatchStatement2));
-    auto returnStar = make_unique<ReturnStatement>(vector<unique_ptr<ParsedExpression>>(), true);
-    expectedSingleQuery->returnStatement = move(returnStar);
+    auto expectNodeB2 = make_unique<NodePattern>("b", string());
+    auto expectNodeC = make_unique<NodePattern>("c", "Student");
+    auto expectRel2 = makeRelPattern("e2", "likes", LEFT);
+    auto expectedPElementChain2 =
+        make_unique<PatternElementChain>(move(expectRel2), move(expectNodeC));
+    auto expectPElement2 = make_unique<PatternElement>(move(expectNodeB2));
+    expectPElement2->patternElementChains.push_back(move(expectedPElementChain2));
 
     graphflow::parser::Parser parser;
     string input =
         "MATCH (a:Person)-[:knows]->(b:Student) MATCH (b)<-[e2:likes]-(c:Student) RETURN *;";
-    ASSERT_TRUE(*parser.parseQuery(input) == *expectedSingleQuery);
+    auto singleQuery = parser.parseQuery(input);
+    ASSERT_TRUE(2u == singleQuery->matchStatements.size());
+    ASSERT_TRUE(1u == singleQuery->matchStatements[0]->graphPattern.size());
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *expectPElement1, *singleQuery->matchStatements[0]->graphPattern[0]));
+    ASSERT_TRUE(1u == singleQuery->matchStatements[1]->graphPattern.size());
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *expectPElement2, *singleQuery->matchStatements[1]->graphPattern[0]));
 }

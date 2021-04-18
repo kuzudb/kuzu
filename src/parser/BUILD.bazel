@@ -8,13 +8,23 @@ cc_library(
     ],
     hdrs = [
         "include/parser.h",
-        "include/single_query.h",
         "include/transformer.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "statements",
+        "queries",
         "//src/antlr4:cypher_grammar_lib",
+    ],
+)
+
+cc_library(
+    name = "queries",
+    hdrs = [
+        "include/queries/query_part.h",
+        "include/queries/single_query.h",
+    ],
+    deps = [
+        "statements",
     ],
 )
 
@@ -23,6 +33,7 @@ cc_library(
     hdrs = [
         "include/statements/match_statement.h",
         "include/statements/return_statement.h",
+        "include/statements/with_statement.h",
     ],
     deps = [
         "expressions",

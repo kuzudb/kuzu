@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/parser/include/single_query.h"
+#include "src/parser/include/queries/single_query.h"
 #include "src/planner/include/bound_statements/bound_match_statement.h"
 #include "src/planner/include/bound_statements/bound_single_query.h"
 #include "src/planner/include/expression_binder.h"
