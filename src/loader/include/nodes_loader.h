@@ -10,7 +10,7 @@
 #include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
-#include "src/storage/include/structures/lists_aux_structures.h"
+#include "src/storage/include/structures/lists.h"
 
 using namespace std;
 using namespace graphflow::storage;
@@ -66,9 +66,10 @@ private:
 
     static void populateUnstrPropertyListsTask(string fname, uint64_t blockId, char tokenSeparator,
         uint32_t numProperties, uint64_t numElements, node_offset_t offsetStart,
-        unordered_map<string, PropertyKey>* unstrPropertyMap, listSizes_t* unstrPropertyListSizes,
-        ListHeaders* unstrPropertyListHeaders, ListsMetadata* unstrPropertyListsMetadata,
-        InMemUnstrPropertyPages* unstrPropertyPages, shared_ptr<spdlog::logger> logger);
+        const unordered_map<string, PropertyKey> unstrPropertyMap,
+        listSizes_t* unstrPropertyListSizes, ListHeaders* unstrPropertyListHeaders,
+        ListsMetadata* unstrPropertyListsMetadata, InMemUnstrPropertyPages* unstrPropertyPages,
+        shared_ptr<spdlog::logger> logger);
 
     // Task Helpers
 
@@ -89,9 +90,9 @@ private:
         const vector<string>& propertyColumnFnames, const vector<DataType>& propertyDataTypes);
 
     static void putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t nodeOffset,
-        unordered_map<string, PropertyKey>& unstrPropertyMap, listSizes_t& unstrPropertyListSizes,
-        ListHeaders& unstrPropertyListHeaders, ListsMetadata& unstrPropertyListsMetadata,
-        InMemUnstrPropertyPages& unstrPropertyPages);
+        const unordered_map<string, PropertyKey>& unstrPropertyMap,
+        listSizes_t& unstrPropertyListSizes, ListHeaders& unstrPropertyListHeaders,
+        ListsMetadata& unstrPropertyListsMetadata, InMemUnstrPropertyPages& unstrPropertyPages);
 
 private:
     shared_ptr<spdlog::logger> logger;

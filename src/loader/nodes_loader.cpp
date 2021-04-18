@@ -2,6 +2,8 @@
 
 #include "src/storage/include/stores/nodes_store.h"
 
+using namespace graphflow::storage;
+
 namespace graphflow {
 namespace loader {
 
@@ -83,7 +85,6 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& fnames,
     for (label_t nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
         if (catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
             node_offset_t offsetStart = 0;
-            auto unstrPropertyMap = catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel);
             auto listSizes = labelUnstrPropertyListsSizes[nodeLabel].get();
             auto& listsHeaders = labelUnstrPropertyListHeaders[nodeLabel];
             auto& listsMetadata = labelUnstrPropertyListsMetadata[nodeLabel];
@@ -92,8 +93,9 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& fnames,
                 threadPool.execute(populateUnstrPropertyListsTask, fnames[nodeLabel], blockIdx,
                     metadata.at("tokenSeparator").get<string>()[0],
                     catalog.getPropertyKeyMapForNodeLabel(nodeLabel).size(),
-                    numLinesPerBlock[nodeLabel][blockIdx], offsetStart, &unstrPropertyMap,
-                    listSizes, &listsHeaders, &listsMetadata, unstrPropertyLists, logger);
+                    numLinesPerBlock[nodeLabel][blockIdx], offsetStart,
+                    catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel), listSizes, &listsHeaders,
+                    &listsMetadata, unstrPropertyLists, logger);
                 offsetStart += numLinesPerBlock[nodeLabel][blockIdx];
             }
         }
@@ -141,6 +143,7 @@ void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
 }
 
 void NodesLoader::buildInMemUnstrPropertyLists() {
+    labelUnstrPropertyLists.resize(catalog.getNodeLabelsCount());
     for (label_t nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
         if (catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
             auto unstrPropertyListsFname =
@@ -202,7 +205,7 @@ void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(stri
 // puts in unstrPropertyLists.
 void NodesLoader::populateUnstrPropertyListsTask(string fname, uint64_t blockId,
     char tokenSeparator, uint32_t numProperties, uint64_t numElements, node_offset_t offsetStart,
-    unordered_map<string, PropertyKey>* unstrPropertyMap, listSizes_t* unstrPropertyListSizes,
+    const unordered_map<string, PropertyKey> unstrPropertyMap, listSizes_t* unstrPropertyListSizes,
     ListHeaders* unstrPropertyListHeaders, ListsMetadata* unstrPropertyListsMetadata,
     InMemUnstrPropertyPages* unstrPropertyPages, shared_ptr<spdlog::logger> logger) {
     logger->trace("Start: path={0} blkIdx={1}", fname, blockId);
@@ -216,7 +219,7 @@ void NodesLoader::populateUnstrPropertyListsTask(string fname, uint64_t blockId,
         for (auto i = 0u; i < numProperties; ++i) {
             reader.hasNextToken();
         }
-        putUnstrPropsOfALineToLists(reader, offsetStart + bufferOffset, *unstrPropertyMap,
+        putUnstrPropsOfALineToLists(reader, offsetStart + bufferOffset, unstrPropertyMap,
             *unstrPropertyListSizes, *unstrPropertyListHeaders, *unstrPropertyListsMetadata,
             *unstrPropertyPages);
         bufferOffset++;
@@ -230,11 +233,11 @@ void NodesLoader::calcLengthOfUnstrPropertyLists(
     CSVReader& reader, node_offset_t nodeOffset, listSizes_t& unstrPropertyListSizes) {
     while (reader.hasNextToken()) {
         auto unstrPropertyString = reader.getString();
-        cout << unstrPropertyString << endl;
         auto startPos = strchr(unstrPropertyString, ':') + 1;
         *strchr(startPos, ':') = 0;
         ListsLoaderHelper::incrementListSize(unstrPropertyListSizes, nodeOffset,
-            4 /* propertyKeyIdx */ + 1 /* dataType */ +
+            UnstructuredPropertyLists::PROPERTY_IDX_LEN +
+                UnstructuredPropertyLists::PROPERTY_DATATYPE_LEN +
                 getDataTypeSize(getDataType(string(startPos))));
     }
 }
@@ -317,40 +320,48 @@ void NodesLoader::writeBuffersToFiles(const vector<unique_ptr<uint8_t[]>>& buffe
 // Parses the line by converting each unstructured property value to the dataType that is specified
 // with that property puts the value at appropiate location in unstrPropertyPages.
 void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t nodeOffset,
-    unordered_map<string, PropertyKey>& unstrPropertyMap, listSizes_t& unstrPropertyListSizes,
+    const unordered_map<string, PropertyKey>& unstrPropertyMap, listSizes_t& unstrPropertyListSizes,
     ListHeaders& unstrPropertyListHeaders, ListsMetadata& unstrPropertyListsMetadata,
     InMemUnstrPropertyPages& unstrPropertyPages) {
     while (reader.hasNextToken()) {
-        auto uPropertyString = reader.getString();
-        auto uPropertyStringBreaker1 = strchr(uPropertyString, ':');
-        *uPropertyStringBreaker1 = 0;
-        auto propertyKey = unstrPropertyMap.find(string(uPropertyString))->second.idx;
-        auto uPropertyStringBreaker2 = strchr(uPropertyStringBreaker1 + 1, ':');
-        *uPropertyStringBreaker2 = 0;
-        auto dataType = getDataType(string(uPropertyStringBreaker1 + 1));
+        auto unstrPropertyString = reader.getString();
+        auto unstrPropertyStringBreaker1 = strchr(unstrPropertyString, ':');
+        *unstrPropertyStringBreaker1 = 0;
+        auto propertyKey = unstrPropertyMap.find(string(unstrPropertyString))->second.idx;
+        auto unstrPropertyStringBreaker2 = strchr(unstrPropertyStringBreaker1 + 1, ':');
+        *unstrPropertyStringBreaker2 = 0;
+        auto dataType = getDataType(string(unstrPropertyStringBreaker1 + 1));
         auto dataTypeSize = getDataTypeSize(dataType);
-        auto reversePos = ListsLoaderHelper::decrementListSize(
-            unstrPropertyListSizes, nodeOffset, 5 + dataTypeSize);
+        auto reversePos = ListsLoaderHelper::decrementListSize(unstrPropertyListSizes, nodeOffset,
+            UnstructuredPropertyLists::PROPERTY_IDX_LEN +
+                UnstructuredPropertyLists::PROPERTY_DATATYPE_LEN + dataTypeSize);
         PageCursor pageCursor;
         ListsLoaderHelper::calculatePageCursor(unstrPropertyListHeaders.headers[nodeOffset],
             reversePos, 1, nodeOffset, pageCursor, unstrPropertyListsMetadata);
         switch (dataType) {
         case INT32: {
-            auto intVal = convertToInt32(uPropertyStringBreaker2 + 1);
+            auto intVal = convertToInt32(unstrPropertyStringBreaker2 + 1);
             unstrPropertyPages.set(pageCursor, propertyKey, static_cast<uint8_t>(dataType),
                 dataTypeSize, reinterpret_cast<uint8_t*>(&intVal));
             break;
         }
         case DOUBLE: {
-            auto doubleVal = convertToDouble(uPropertyStringBreaker2 + 1);
+            auto doubleVal = convertToDouble(unstrPropertyStringBreaker2 + 1);
             unstrPropertyPages.set(pageCursor, propertyKey, static_cast<uint8_t>(dataType),
                 dataTypeSize, reinterpret_cast<uint8_t*>(&doubleVal));
             break;
         }
         case BOOL: {
-            auto boolVal = convertToBoolean(uPropertyStringBreaker2 + 1);
+            auto boolVal = convertToBoolean(unstrPropertyStringBreaker2 + 1);
             unstrPropertyPages.set(pageCursor, propertyKey, static_cast<uint8_t>(dataType),
                 dataTypeSize, reinterpret_cast<uint8_t*>(&boolVal));
+            break;
+        }
+        case STRING: {
+            // parsing string dataType is not supported yet.
+            gf_string_t dummyStr;
+            unstrPropertyPages.set(pageCursor, propertyKey, static_cast<uint8_t>(dataType),
+                dataTypeSize, reinterpret_cast<uint8_t*>(&dummyStr));
             break;
         }
         default:

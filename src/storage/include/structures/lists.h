@@ -22,9 +22,9 @@ protected:
         : BaseColumnOrLists{fname, dataType, elementSize, bufferManager}, metadata{fname},
           headers{headers} {};
 
-    virtual void readFromLargeList(const nodeID_t& nodeID,
-        const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-        const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header, uint32_t maxElementsToRead);
+    void readFromLargeList(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
+        uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header,
+        uint32_t maxElementsToRead);
 
     void readSmallList(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
         uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header);
@@ -57,10 +57,6 @@ public:
               make_shared<ListHeaders>(fname), bufferManager},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
-    void readFromLargeList(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header,
-        uint32_t maxElementsToRead) override;
-
     NodeIDCompressionScheme& getNodeIDCompressionScheme() { return nodeIDCompressionScheme; }
 
     shared_ptr<ListHeaders> getHeaders() { return headers; };
@@ -83,8 +79,27 @@ public:
         : BaseLists{fname, UNKNOWN, 1, make_shared<ListHeaders>(fname), bufferManager} {};
 
     // readValues is overloaded. Lists<UNKNOWN> is not supposed to use the one defined in BaseLists.
-    void readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle);
+    void readValues(const shared_ptr<NodeIDVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<ColumnOrListsHandle>& handle);
+
+private:
+    void readUnstrPropertyListOfNode(const nodeID_t& nodeID, uint32_t propertyKeyIdxToRead,
+        const shared_ptr<ValueVector>& valueVector, uint64_t pos,
+        const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header);
+
+    bool readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
+        uint64_t& physicalPageIdx, const uint32_t*& propertyKeyIdxPtr,
+        DataType& propertyKeyDataType, const unique_ptr<ColumnOrListsHandle>& handle,
+        PageCursor& pageCursor, uint32_t listLen, LogicalToPhysicalPageIdxMapper& mapper);
+
+    void readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx, DataType& propertyDataType,
+        const unique_ptr<ColumnOrListsHandle>& handle, PageCursor& pageCursor, uint32_t listLen,
+        LogicalToPhysicalPageIdxMapper& mapper, const shared_ptr<ValueVector>& valueVector,
+        uint64_t pos, bool toRead);
+
+public:
+    static constexpr uint8_t PROPERTY_IDX_LEN = 4;
+    static constexpr uint8_t PROPERTY_DATATYPE_LEN = 1;
 };
 
 typedef Lists<INT32> RelPropertyListsInt;

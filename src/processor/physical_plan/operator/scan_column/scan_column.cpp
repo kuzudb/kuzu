@@ -19,7 +19,7 @@ void ScanColumn::getNextTuples() {
     } while (inDataChunk->state->size > 0 && inDataChunk->state->numSelectedValues == 0);
     if (inDataChunk->state->size > 0) {
         column->reclaim(handle);
-        column->readValues(inNodeIDVector, outValueVector, inDataChunk->state->size, handle);
+        column->readValues(inNodeIDVector, outValueVector, handle);
     }
 }
 
