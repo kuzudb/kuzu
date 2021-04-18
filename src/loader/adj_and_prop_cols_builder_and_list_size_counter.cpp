@@ -187,7 +187,8 @@ void AdjAndPropertyColsBuilderAndListSizeCounter::sortOverflowStringsofPropertyC
         auto valPtr = reinterpret_cast<gf_string_t*>(propertyColumn->get(propertyListCursor));
         auto len = ((uint32_t*)valPtr)[0];
         if (len > 12 && 0xffffffff != len) {
-            valPtr->copyOverflowPtrToPageCursor(unorderedStringOverflowCursor);
+            valPtr->getOverflowPtrInfo(
+                unorderedStringOverflowCursor.idx, unorderedStringOverflowCursor.offset);
             orderedStringOverflow->copyOverflowString(orderedStringOverflowCursor,
                 unorderedStringOverflow->get(unorderedStringOverflowCursor), valPtr);
         }

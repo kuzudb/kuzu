@@ -82,15 +82,15 @@ uint8_t convertToBoolean(char* data) {
     throw invalid_argument("invalid boolean val.");
 }
 
-void gf_string_t::copyOverflowPtrFromPageCursor(const PageCursor& cursor) {
-    memcpy(&overflowPtr, &cursor.idx, 6);
-    memcpy(((uint8_t*)&overflowPtr) + 6, &cursor.offset, 2);
+void gf_string_t::setOverflowPtrInfo(const uint64_t& pageIdx, const uint16_t& pageOffset) {
+    memcpy(&overflowPtr, &pageIdx, 6);
+    memcpy(((uint8_t*)&overflowPtr) + 6, &pageOffset, 2);
 }
 
-void gf_string_t::copyOverflowPtrToPageCursor(PageCursor& cursor) {
-    cursor.idx = 0;
-    memcpy(&cursor.idx, &overflowPtr, 6);
-    memcpy(&cursor.offset, ((uint8_t*)&overflowPtr) + 6, 2);
+void gf_string_t::getOverflowPtrInfo(uint64_t& pageIdx, uint16_t& pageOffset) {
+    pageIdx = 0;
+    memcpy(&pageIdx, &overflowPtr, 6);
+    memcpy(&pageOffset, ((uint8_t*)&overflowPtr) + 6, 2);
 }
 
 Cardinality getCardinality(const string& cardinalityString) {

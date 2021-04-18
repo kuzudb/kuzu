@@ -30,8 +30,8 @@ public:
         double double_;
     } primitive;
 
-    string str;
     nodeID_t nodeID;
+    string str;
 
     inline void setBool(bool val) { this->primitive.boolean_ = val; }
 
@@ -41,7 +41,7 @@ public:
 
     inline void setString(string val) { this->str = std::move(val); }
 
-    inline void setNodeID(nodeID_t val) { this->nodeID = val; }
+    inline void setNodeID(const nodeID_t& val) { this->nodeID = val; }
 
     string toString() const;
 

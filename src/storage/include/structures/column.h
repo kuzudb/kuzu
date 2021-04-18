@@ -18,8 +18,7 @@ public:
     virtual ~BaseColumn() = default;
 
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, uint64_t size,
-        const unique_ptr<ColumnOrListsHandle>& handle);
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<ColumnOrListsHandle>& handle);
 
 protected:
     BaseColumn(const string& fname, const DataType& dataType, const size_t& elementSize,
@@ -27,8 +26,7 @@ protected:
         : BaseColumnOrLists{fname, dataType, elementSize, bufferManager} {};
 
     void readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, uint64_t size,
-        const unique_ptr<ColumnOrListsHandle>& handle);
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<ColumnOrListsHandle>& handle);
 };
 
 template<DataType D>
@@ -48,7 +46,7 @@ public:
           overflowPagesFileHandle{path + ".ovf"} {};
 
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, uint64_t size,
+        const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<ColumnOrListsHandle>& handle) override;
 
 private:

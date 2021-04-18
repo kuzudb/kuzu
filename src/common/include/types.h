@@ -28,29 +28,23 @@ const int32_t NULL_INT32 = INT32_MIN;
 const double_t NULL_DOUBLE = DBL_MIN;
 const uint64_t NUM_BYTES_PER_NODE_ID = sizeof(node_offset_t) + sizeof(label_t);
 
-// Holds the cursor to reference a location in an in-mem page.
-typedef struct PageCursor {
-    uint64_t idx = -1;
-    uint16_t offset = -1;
-} PageCursor;
-
 // System representation for strings.
 struct gf_string_t {
 
-    static const uint64_t PREFIX_LENGTH = sizeof(uint8_t) * 4;
+    static const uint64_t PREFIX_LENGTH = 4;
     static const uint64_t STR_LENGTH_PLUS_PREFIX_LENGTH = sizeof(uint32_t) + PREFIX_LENGTH;
-    static const uint64_t INLINED_SUFFIX_LENGTH = sizeof(uint8_t) * 8;
-    static const uint64_t SHORT_STR_LENGTH = sizeof(uint8_t) * 12;
+    static const uint64_t INLINED_SUFFIX_LENGTH = 8;
+    static const uint64_t SHORT_STR_LENGTH = PREFIX_LENGTH + INLINED_SUFFIX_LENGTH;
 
     uint32_t len;
-    uint8_t prefix[4];
+    uint8_t prefix[PREFIX_LENGTH];
     union {
-        uint8_t data[8];
+        uint8_t data[INLINED_SUFFIX_LENGTH];
         uint64_t overflowPtr;
     };
 
-    void copyOverflowPtrFromPageCursor(const PageCursor& cursor);
-    void copyOverflowPtrToPageCursor(PageCursor& cursor);
+    void setOverflowPtrInfo(const uint64_t& pageIdx, const uint16_t& pageOffset);
+    void getOverflowPtrInfo(uint64_t& pageIdx, uint16_t& pageOffset);
 
     inline bool isShort() const { return len <= SHORT_STR_LENGTH; }
 

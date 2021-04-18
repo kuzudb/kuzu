@@ -6,8 +6,9 @@
 
 #include "src/common/include/configs.h"
 #include "src/common/include/types.h"
+#include "src/storage/include/structures/common.h"
 
-using namespace graphflow::common;
+using namespace graphflow::storage;
 
 namespace graphflow {
 namespace loader {

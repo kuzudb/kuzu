@@ -303,7 +303,8 @@ void AdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(node_off
             auto valPtr = reinterpret_cast<gf_string_t*>(propertyLists->get(propertyListCursor));
             if (12 < valPtr->len && 0xffffffff != valPtr->len) {
                 unorderedStringOverflowCursor.idx = 0;
-                valPtr->copyOverflowPtrToPageCursor(unorderedStringOverflowCursor);
+                valPtr->getOverflowPtrInfo(
+                    unorderedStringOverflowCursor.idx, unorderedStringOverflowCursor.offset);
                 orderedStringOverflow->copyOverflowString(orderedStringOverflowCursor,
                     unorderedStringOverflow->get(unorderedStringOverflowCursor), valPtr);
             }

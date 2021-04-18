@@ -9,6 +9,17 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
+// Holds the reference to a location in a collection of pages of a Column or Lists.
+typedef struct PageCursor {
+
+    PageCursor(uint64_t idx, uint16_t offset) : idx{idx}, offset{offset} {};
+    PageCursor() : PageCursor{-1ul, (uint16_t)-1} {};
+
+    uint64_t idx;
+    uint16_t offset;
+
+} PageCursor;
+
 // ListSyncState holds the data that is required to synchronize reading from multiple Lists that
 // have related data and hence share same AdjListHeaders. The Lists that share a single copy of
 // AdjListHeaders are - a single-directional edges of a rel label and edges' properties. For the
@@ -114,18 +125,17 @@ protected:
 
     virtual ~BaseColumnOrLists() = default;
 
-    inline uint64_t getPageIdx(const uint64_t& offset) const { return offset / numElementsPerPage; }
-
-    inline uint32_t getPageOffset(const uint64_t& nodeOffset) const {
-        return (nodeOffset % numElementsPerPage) * elementSize;
+    inline PageCursor getPageCursorForOffset(const uint64_t& offset) {
+        return PageCursor{
+            offset / numElementsPerPage, (uint16_t)((offset % numElementsPerPage) * elementSize)};
     }
 
     void readBySettingFrame(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<ColumnOrListsHandle>& handle, uint64_t pageIdx, uint64_t pageOffset);
+        const unique_ptr<ColumnOrListsHandle>& handle, PageCursor& pageCursor);
 
     void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<ColumnOrListsHandle>& handle, uint64_t sizeLeftToCopy, uint64_t pageIdx,
-        uint64_t pageOffset, unique_ptr<LogicalToPhysicalPageIdxMapper> mapper);
+        const unique_ptr<ColumnOrListsHandle>& handle, uint64_t sizeLeftToCopy,
+        PageCursor& pageCursor, unique_ptr<LogicalToPhysicalPageIdxMapper> mapper);
 
 protected:
     shared_ptr<spdlog::logger> logger;

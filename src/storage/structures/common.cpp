@@ -42,34 +42,35 @@ void BaseColumnOrLists::reclaim(const unique_ptr<ColumnOrListsHandle>& handle) {
 }
 
 void BaseColumnOrLists::readBySettingFrame(const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<ColumnOrListsHandle>& handle, uint64_t pageIdx, uint64_t pageOffset) {
+    const unique_ptr<ColumnOrListsHandle>& handle, PageCursor& pageCursor) {
     const uint8_t* frame;
-    if (handle->getPageIdx() != pageIdx) {
+    if (handle->getPageIdx() != pageCursor.idx) {
         reclaim(handle);
-        handle->setPageIdx(pageIdx);
-        frame = bufferManager.pin(fileHandle, pageIdx);
+        handle->setPageIdx(pageCursor.idx);
+        frame = bufferManager.pin(fileHandle, pageCursor.idx);
     } else {
-        frame = bufferManager.get(fileHandle, pageIdx);
+        frame = bufferManager.get(fileHandle, pageCursor.idx);
     }
-    valueVector->values = (uint8_t*)frame + pageOffset;
+    valueVector->values = ((uint8_t*)frame + pageCursor.offset);
 }
 
 void BaseColumnOrLists::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<ColumnOrListsHandle>& handle, uint64_t sizeLeftToCopy, uint64_t pageIdx,
-    uint64_t pageOffset, unique_ptr<LogicalToPhysicalPageIdxMapper> mapper) {
+    const unique_ptr<ColumnOrListsHandle>& handle, uint64_t sizeLeftToCopy, PageCursor& pageCursor,
+    unique_ptr<LogicalToPhysicalPageIdxMapper> mapper) {
     reclaim(handle);
     valueVector->reset();
     auto values = valueVector->values;
     while (sizeLeftToCopy) {
-        uint64_t physicalPageIdx = nullptr == mapper ? pageIdx : mapper->getPageIdx(pageIdx);
-        auto sizeToCopyInPage = min(PAGE_SIZE - pageOffset, sizeLeftToCopy);
+        uint64_t physicalPageIdx =
+            nullptr == mapper ? pageCursor.idx : mapper->getPageIdx(pageCursor.idx);
+        auto sizeToCopyInPage = min(PAGE_SIZE - pageCursor.offset, sizeLeftToCopy);
         auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
-        memcpy(values, frame + pageOffset, sizeToCopyInPage);
+        memcpy(values, frame + pageCursor.offset, sizeToCopyInPage);
         bufferManager.unpin(fileHandle, physicalPageIdx);
         values += sizeToCopyInPage;
         sizeLeftToCopy -= sizeToCopyInPage;
-        pageOffset = 0;
-        pageIdx++;
+        pageCursor.offset = 0;
+        pageCursor.idx++;
     }
 }
 

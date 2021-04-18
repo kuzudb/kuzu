@@ -58,7 +58,7 @@ void InMemStringOverflowPages::copyOverflowString(
         cursor.offset = 0;
         cursor.idx = getNewOverflowPageIdx();
     }
-    encodedString->copyOverflowPtrFromPageCursor(cursor);
+    encodedString->setOverflowPtrInfo(cursor.idx, cursor.offset);
     auto writeOffset = data.get() + (cursor.idx * PAGE_SIZE) + cursor.offset;
     memcpy(writeOffset, ptrToCopy, encodedString->len);
     cursor.offset += encodedString->len;
