@@ -10,36 +10,9 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 class ScanNodeID : public PhysicalOperator {
 
 public:
-    ScanNodeID(shared_ptr<MorselsDesc>& morsel) : PhysicalOperator(SCAN), morsel{morsel} {
-        dataChunks = make_shared<DataChunks>();
-        nodeIDVector = make_shared<NodeIDSequenceVector>();
-        outDataChunk =
-            make_shared<DataChunk>(!IS_OUT_DATACHUNK_FILTERED /* initializeSelectedValuesPos */);
-        outDataChunk->append(nodeIDVector);
-        dataChunks->append(outDataChunk);
-    }
+    ScanNodeID(shared_ptr<MorselsDesc>& morselDesc);
 
-    void getNextTuples() override {
-        {
-            unique_lock<mutex> lock{morsel->mtx};
-            if (morsel->currNodeOffset >= morsel->numNodes) {
-                // no more tuples to scan_node_id.
-                nodeIDVector->setStartOffset(0u);
-                outDataChunk->state->size = 0u;
-            } else {
-                nodeIDVector->setStartOffset(morsel->currNodeOffset);
-                outDataChunk->state->size = min(
-                    (uint64_t)NODE_SEQUENCE_VECTOR_SIZE, morsel->numNodes - morsel->currNodeOffset);
-                morsel->currNodeOffset += outDataChunk->state->size;
-            }
-        }
-        outDataChunk->state->numSelectedValues = outDataChunk->state->size;
-        if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-            for (auto i = 0u; i < outDataChunk->state->size; i++) {
-                outDataChunk->state->selectedValuesPos[i] = i;
-            }
-        }
-    }
+    void getNextTuples() override;
 
     shared_ptr<NodeIDSequenceVector>& getNodeVector() { return nodeIDVector; }
 

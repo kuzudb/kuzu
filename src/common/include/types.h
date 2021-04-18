@@ -14,8 +14,8 @@ using namespace std;
 namespace graphflow {
 namespace common {
 
-constexpr uint32_t MAX_VECTOR_SIZE = 2048;
-constexpr uint32_t NODE_SEQUENCE_VECTOR_SIZE = 1024;
+constexpr uint64_t MAX_VECTOR_SIZE = 2048;
+constexpr uint64_t NODE_SEQUENCE_VECTOR_SIZE = 1024;
 
 typedef uint32_t label_t;
 typedef uint64_t node_offset_t;

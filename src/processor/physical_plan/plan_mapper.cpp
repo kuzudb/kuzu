@@ -15,8 +15,7 @@
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
 #include "src/processor/include/physical_plan/operator/projection/projection.h"
-#include "src/processor/include/physical_plan/operator/read_list/extend/extend.h"
-#include "src/processor/include/physical_plan/operator/read_list/extend/flatten_and_extend.h"
+#include "src/processor/include/physical_plan/operator/read_list/adj_list_extend.h"
 #include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
 #include "src/processor/include/physical_plan/operator/scan_column/adj_column_extend.h"
 #include "src/processor/include/physical_plan/operator/scan_column/scan_property.h"
@@ -121,17 +120,14 @@ unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& l
             relsStore.getAdjColumn(extend.direction, extend.boundNodeVarLabel, extend.relLabel),
             move(prevOperator));
     } else {
-        physicalOperatorInfo.appendAsNewDataChunk(extend.nbrNodeVarName);
-        if (physicalOperatorInfo.dataChunkIsFlatVector[dataChunkPos]) {
-            return make_unique<Extend<true>>(dataChunkPos, valueVectorPos,
-                relsStore.getAdjLists(extend.direction, extend.boundNodeVarLabel, extend.relLabel),
-                move(prevOperator));
-        } else {
-            physicalOperatorInfo.setDataChunkAtPosAsFlat(dataChunkPos);
-            return make_unique<FlattenAndExtend<true>>(dataChunkPos, valueVectorPos,
-                relsStore.getAdjLists(extend.direction, extend.boundNodeVarLabel, extend.relLabel),
-                move(prevOperator));
+        if (!physicalOperatorInfo.dataChunkIsFlatVector[dataChunkPos]) {
+            physicalOperatorInfo.dataChunkIsFlatVector[dataChunkPos] = true;
+            prevOperator = make_unique<Flatten>(dataChunkPos, move(prevOperator));
         }
+        physicalOperatorInfo.appendAsNewDataChunk(extend.nbrNodeVarName);
+        return make_unique<AdjListExtend<true>>(dataChunkPos, valueVectorPos,
+            relsStore.getAdjLists(extend.direction, extend.boundNodeVarLabel, extend.relLabel),
+            move(prevOperator));
     }
 }
 
@@ -379,7 +375,7 @@ unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator&
     }
     // Set dataChunks[0] as flat if there are unflat data chunks from the build side.
     if (buildSideHasUnFlatDataChunk) {
-        physicalOperatorInfo.setDataChunkAtPosAsFlat(0);
+        physicalOperatorInfo.dataChunkIsFlatVector[0] = true;
     }
 
     auto hashJoinBuild = make_unique<HashJoinBuild>(
