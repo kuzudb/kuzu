@@ -1,6 +1,6 @@
 #include "src/storage/include/structures/lists.h"
 
-#include "src/common/include/literal.h"
+#include "src/common/include/value.h"
 
 using namespace graphflow::common;
 
@@ -172,7 +172,7 @@ void Lists<UNKNOWN>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx,
     const shared_ptr<ValueVector>& valueVector, uint64_t pos, bool toRead) {
     auto frame = bufferManager.get(fileHandle, physicalPageIdx);
     auto dataTypeSize = getDataTypeSize(propertyDataType);
-    auto values = (Literal*)valueVector->values;
+    auto values = (Value*)valueVector->values;
     if (pageCursor.offset + dataTypeSize < PAGE_SIZE) {
         if (toRead) {
             memcpy(&values[pos].primitive, frame + pageCursor.offset, dataTypeSize);
@@ -195,7 +195,7 @@ void Lists<UNKNOWN>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx,
         pageCursor.offset = dataTypeSize - bytesInCurrentFrame;
     }
     listLen -= dataTypeSize;
-    values[pos].type = propertyDataType;
+    values[pos].dataType = propertyDataType;
 }
 
 } // namespace storage

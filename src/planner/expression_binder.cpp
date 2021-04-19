@@ -134,8 +134,6 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindBinaryArithmeticExpression(
     DataType resultType;
     if (DOUBLE == left->dataType || DOUBLE == right->dataType) {
         resultType = DOUBLE;
-    } else if (INT64 == left->dataType || INT64 == right->dataType) {
-        resultType = INT64;
     } else {
         resultType = INT32;
     }
@@ -145,11 +143,9 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindBinaryArithmeticExpression(
     case SUBTRACT:
     case MULTIPLY:
     case POWER:
-        return make_shared<LogicalExpression>(expressionType, resultType, move(left), move(right));
     case DIVIDE:
-        return make_shared<LogicalExpression>(DIVIDE, DOUBLE, move(left), move(right));
     case MODULO:
-        return make_shared<LogicalExpression>(MODULO, INT32, move(left), move(right));
+        return make_shared<LogicalExpression>(expressionType, resultType, move(left), move(right));
     default:
         throw invalid_argument("Should never happen. Cannot bind expression type of " +
                                expressionTypeToString(expressionType) +
@@ -227,15 +223,15 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindLiteralExpression(
     auto literalType = parsedExpression.type;
     switch (literalType) {
     case LITERAL_INT:
-        return make_shared<LogicalExpression>(LITERAL_INT, INT32, Literal(stoi(literalVal)));
+        return make_shared<LogicalExpression>(LITERAL_INT, INT32, Value(stoi(literalVal)));
     case LITERAL_DOUBLE:
-        return make_shared<LogicalExpression>(LITERAL_DOUBLE, DOUBLE, Literal(stod(literalVal)));
+        return make_shared<LogicalExpression>(LITERAL_DOUBLE, DOUBLE, Value(stod(literalVal)));
     case LITERAL_BOOLEAN:
         return make_shared<LogicalExpression>(
-            LITERAL_BOOLEAN, BOOL, Literal((uint8_t)("true" == literalVal)));
+            LITERAL_BOOLEAN, BOOL, Value((uint8_t)("true" == literalVal)));
     case LITERAL_STRING:
         return make_shared<LogicalExpression>(
-            LITERAL_STRING, STRING, Literal(literalVal.substr(1, literalVal.size() - 2)));
+            LITERAL_STRING, STRING, Value(literalVal.substr(1, literalVal.size() - 2)));
     default:
         throw invalid_argument("Literal: " + parsedExpression.rawExpression + "is not defined.");
     }

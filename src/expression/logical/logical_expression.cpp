@@ -23,7 +23,7 @@ LogicalExpression::LogicalExpression(
 }
 
 LogicalExpression::LogicalExpression(
-    ExpressionType expressionType, DataType dataType, const Literal& literalValue)
+    ExpressionType expressionType, DataType dataType, const Value& literalValue)
     : LogicalExpression(expressionType, dataType) {
     this->literalValue = literalValue;
 }

@@ -9,35 +9,78 @@
 namespace graphflow {
 namespace common {
 
+void throwException(DataType lDataType, DataType rDataType) {
+    throw invalid_argument(DataTypeNames[lDataType] + "left operand compared with " +
+                           DataTypeNames[rDataType] + " right operand should return false. " +
+                           "Not supported for now.");
+}
+
 struct ComparisonOperationExecutor {
 public:
     template<class OP>
     static inline void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
-        if (left.dataType != right.dataType) {
-            throw std::invalid_argument("Different data types cannot be compared.");
-        }
         switch (left.dataType) {
         case BOOL:
-            compare<uint8_t, OP>(left, right, result);
+            switch (right.dataType) {
+            case BOOL:
+                BinaryOperationExecutor::executeArithmeticAndComparisonOperations<uint8_t, uint8_t,
+                    uint8_t, OP>(left, right, result);
+                break;
+            default:
+                throwException(left.dataType, right.dataType);
+            }
             break;
         case INT32:
-            compare<int32_t, OP>(left, right, result);
+            switch (right.dataType) {
+            case INT32:
+                BinaryOperationExecutor::executeArithmeticAndComparisonOperations<int32_t, int32_t,
+                    uint8_t, OP>(left, right, result);
+                break;
+            case DOUBLE:
+                BinaryOperationExecutor::executeArithmeticAndComparisonOperations<int32_t, double_t,
+                    uint8_t, OP>(left, right, result);
+                break;
+            default:
+                throwException(left.dataType, right.dataType);
+            }
             break;
         case DOUBLE:
-            compare<double_t, OP>(left, right, result);
+            switch (right.dataType) {
+            case INT32:
+                BinaryOperationExecutor::executeArithmeticAndComparisonOperations<double_t, int32_t,
+                    uint8_t, OP>(left, right, result);
+                break;
+            case DOUBLE:
+                BinaryOperationExecutor::executeArithmeticAndComparisonOperations<double_t,
+                    double_t, uint8_t, OP>(left, right, result);
+                break;
+            default:
+                throwException(left.dataType, right.dataType);
+            }
             break;
         case STRING:
-            compare<gf_string_t, OP>(left, right, result);
+            switch (right.dataType) {
+            case STRING:
+                BinaryOperationExecutor::executeArithmeticAndComparisonOperations<gf_string_t,
+                    gf_string_t, uint8_t, OP>(left, right, result);
+                break;
+            default:
+                throwException(left.dataType, right.dataType);
+            }
+            break;
+        case UNKNOWN:
+            switch (right.dataType) {
+            case UNKNOWN:
+                BinaryOperationExecutor::executeArithmeticAndComparisonOperations<Value, Value,
+                    uint8_t, OP>(left, right, result);
+                break;
+            default:
+                assert(false); // Should never happen as we should always cast.
+            }
             break;
         default:
-            throw std::invalid_argument("Invalid or unsupported type for comparison.");
+            assert(false);
         }
-    }
-
-private:
-    template<class T, class OP>
-    static inline void compare(ValueVector& left, ValueVector& right, ValueVector& result) {
-        BinaryOperationExecutor::executeNonBoolOp<T, T, uint8_t, OP>(left, right, result);
     }
 };
 
