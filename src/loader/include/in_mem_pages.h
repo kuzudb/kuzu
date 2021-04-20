@@ -40,7 +40,7 @@ public:
         : InMemPages{fname, numPages}, numBytesPerLabel{numBytesPerLabel},
           numBytesPerOffset(numBytesPerOffset){};
 
-    void set(const PageCursor& cursor, const nodeID_t& nbrNodeID);
+    void setNbrNode(const PageCursor& cursor, const nodeID_t& nbrNodeID);
 
 protected:
     const uint8_t numBytesPerLabel;
@@ -54,11 +54,11 @@ public:
     InMemPropertyPages(const string& fname, uint64_t numPages, const uint8_t& numBytesPerElement)
         : InMemPages{fname, numPages}, numBytesPerElement{numBytesPerElement} {};
 
-    inline void set(const PageCursor& cursor, const uint8_t* val) {
-        memcpy(get(cursor), val, numBytesPerElement);
+    inline void setPorperty(const PageCursor& cursor, const uint8_t* val) {
+        memcpy(getPtrToMemLoc(cursor), val, numBytesPerElement);
     };
 
-    inline uint8_t* get(const PageCursor& cursor) {
+    inline uint8_t* getPtrToMemLoc(const PageCursor& cursor) {
         return data.get() + (PAGE_SIZE * cursor.idx) + cursor.offset;
     }
 
@@ -73,8 +73,12 @@ public:
     InMemUnstrPropertyPages(const string& fname, uint64_t numPages)
         : InMemPages{fname, numPages} {};
 
-    void set(const PageCursor& cursor, uint32_t propertyKey, uint8_t dataTypeIdentifier,
-        uint32_t valLen, const uint8_t* val);
+    inline uint8_t* getPtrToMemLoc(const PageCursor& cursor) {
+        return data.get() + (PAGE_SIZE * cursor.idx) + cursor.offset;
+    }
+
+    void setUnstrProperty(const PageCursor& cursor, uint32_t propertyKey,
+        uint8_t dataTypeIdentifier, uint32_t valLen, const uint8_t* val);
 };
 
 //  InMemPages for storing string overflow of PropertyColumn or PropertyLists.
@@ -91,11 +95,12 @@ public:
         numPages = 0;
     };
 
-    void set(const char* originalString, PageCursor& cursor, gf_string_t* encodedString);
+    void setStrInOvfPageAndPtrInEncString(
+        const char* originalString, PageCursor& cursor, gf_string_t* encodedString);
 
     void copyOverflowString(PageCursor& cursor, uint8_t* ptrToCopy, gf_string_t* encodedString);
 
-    uint8_t* get(PageCursor& cursor) {
+    uint8_t* getPtrToMemLoc(PageCursor& cursor) {
         return data.get() + (PAGE_SIZE * cursor.idx) + cursor.offset;
     }
 

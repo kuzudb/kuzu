@@ -24,21 +24,21 @@ void InMemPages::saveToFile() {
     close(f);
 }
 
-void InMemAdjPages::set(const PageCursor& cursor, const nodeID_t& nbrNodeID) {
+void InMemAdjPages::setNbrNode(const PageCursor& cursor, const nodeID_t& nbrNodeID) {
     auto writeOffset = data.get() + (PAGE_SIZE * cursor.idx) + cursor.offset;
     memcpy(writeOffset, &nbrNodeID.label, numBytesPerLabel);
     memcpy(writeOffset + numBytesPerLabel, &nbrNodeID.offset, numBytesPerOffset);
 }
 
-void InMemUnstrPropertyPages::set(const PageCursor& cursor, uint32_t propertyKey,
+void InMemUnstrPropertyPages::setUnstrProperty(const PageCursor& cursor, uint32_t propertyKey,
     uint8_t dataTypeIdentifier, uint32_t valLen, const uint8_t* val) {
-    auto writeOffset = data.get() + (PAGE_SIZE * cursor.idx) + cursor.offset;
+    auto writeOffset = getPtrToMemLoc(cursor);
     memcpy(writeOffset, &propertyKey, 4);
     memcpy(writeOffset + 4, &dataTypeIdentifier, 1);
     memcpy(writeOffset + 5, val, valLen);
 }
 
-void InMemStringOverflowPages::set(
+void InMemStringOverflowPages::setStrInOvfPageAndPtrInEncString(
     const char* originalString, PageCursor& cursor, gf_string_t* encodedString) {
     encodedString->len = strlen(originalString);
     memcpy(&encodedString->prefix, originalString, min(encodedString->len, 4u));

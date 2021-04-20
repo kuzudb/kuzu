@@ -65,13 +65,13 @@ unique_ptr<PhysicalExpression> mapLogicalLiteralExpressionToPhysical(
     valueVector->state = DataChunkState::getSingleValueDataChunkState();
     switch (expression.dataType) {
     case INT32: {
-        valueVector->setValue(0, expression.literalValue.primitive.integer_);
+        valueVector->setValue(0, expression.literalValue.primitive.int32Val);
     } break;
     case DOUBLE: {
-        valueVector->setValue(0, expression.literalValue.primitive.double_);
+        valueVector->setValue(0, expression.literalValue.primitive.doubleVal);
     } break;
     case BOOL:
-        valueVector->setValue(0, expression.literalValue.primitive.boolean_);
+        valueVector->setValue(0, expression.literalValue.primitive.booleanVal);
         break;
     default:
         throw std::invalid_argument("Unsupported data type for literal expressions.");

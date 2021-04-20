@@ -69,7 +69,7 @@ private:
         const unordered_map<string, PropertyKey> unstrPropertyMap,
         listSizes_t* unstrPropertyListSizes, ListHeaders* unstrPropertyListHeaders,
         ListsMetadata* unstrPropertyListsMetadata, InMemUnstrPropertyPages* unstrPropertyPages,
-        shared_ptr<spdlog::logger> logger);
+        InMemStringOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger> logger);
 
     // Task Helpers
 
@@ -92,7 +92,8 @@ private:
     static void putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t nodeOffset,
         const unordered_map<string, PropertyKey>& unstrPropertyMap,
         listSizes_t& unstrPropertyListSizes, ListHeaders& unstrPropertyListHeaders,
-        ListsMetadata& unstrPropertyListsMetadata, InMemUnstrPropertyPages& unstrPropertyPages);
+        ListsMetadata& unstrPropertyListsMetadata, InMemUnstrPropertyPages& unstrPropertyPages,
+        InMemStringOverflowPages& stringOverflowPages, PageCursor& stringOvfPagesCursor);
 
 private:
     shared_ptr<spdlog::logger> logger;
@@ -106,6 +107,7 @@ private:
     labelListHeaders_t labelUnstrPropertyListHeaders;
     labelListsMetadata_t labelUnstrPropertyListsMetadata;
     labelUnstrPropertyLists_t labelUnstrPropertyLists;
+    vector<unique_ptr<InMemStringOverflowPages>> labelUnstrPropertyListsStringOverflowPages;
 };
 
 } // namespace loader

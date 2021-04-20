@@ -84,7 +84,6 @@ void Lists<UNSTRUCTURED>::readValues(const shared_ptr<NodeIDVector>& nodeIDVecto
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getCurrSelectedValuesPos();
         nodeIDVector->readNodeOffset(pos, nodeID);
-        auto header = headers->getHeader(nodeID.offset);
         readUnstrPropertyListOfNode(nodeID, propertyKeyIdxToRead, valueVector, pos, handle,
             headers->getHeader(nodeID.offset));
     } else {
@@ -196,6 +195,39 @@ void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx
     }
     listLen -= dataTypeSize;
     values[pos].dataType = propertyDataType;
+    readStringsFromOverflowPages(valueVector);
+}
+
+void Lists<UNSTRUCTURED>::readStringsFromOverflowPages(const shared_ptr<ValueVector>& valueVector) {
+    auto values = valueVector->values;
+    uint64_t overflowPtr = valueVector->state->size * sizeof(Value);
+    size_t sizeNeededForOverflowStrings = valueVector->state->size * sizeof(Value);
+    for (auto i = 0u; i < valueVector->state->numSelectedValues; i++) {
+        auto pos = valueVector->state->selectedValuesPos[i];
+        if (!valueVector->nullMask[pos] && ((Value*)values)[pos].dataType == STRING) {
+            if (((Value*)values)[pos].primitive.gf_stringVal.len > 4) {
+                sizeNeededForOverflowStrings += ((Value*)values)[pos].primitive.gf_stringVal.len;
+            }
+        }
+    }
+    values = valueVector->reserve(sizeNeededForOverflowStrings);
+    PageCursor cursor;
+    for (auto i = 0u; i < valueVector->state->numSelectedValues; i++) {
+        auto pos = valueVector->state->selectedValuesPos[i];
+        if (!valueVector->nullMask[pos] && ((Value*)values)[pos].dataType == STRING) {
+            if (((Value*)values)[pos].primitive.gf_stringVal.len > 12) {
+                ((Value*)values)[pos].primitive.gf_stringVal.getOverflowPtrInfo(
+                    cursor.idx, cursor.offset);
+                auto frame = bufferManager.pin(overflowPagesFileHandle, cursor.idx);
+                memcpy(
+                    values + overflowPtr, frame + cursor.offset, ((gf_string_t*)values)[pos].len);
+                ((Value*)values)[pos].primitive.gf_stringVal.overflowPtr =
+                    reinterpret_cast<uintptr_t>(values + overflowPtr);
+                overflowPtr += ((Value*)values)[pos].primitive.gf_stringVal.len;
+                bufferManager.unpin(overflowPagesFileHandle, cursor.idx);
+            }
+        }
+    }
 }
 
 } // namespace storage

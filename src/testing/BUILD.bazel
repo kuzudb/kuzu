@@ -1,10 +1,10 @@
 cc_library(
     name = "test_helper",
     srcs = [
-        "test_helper.cpp"
+        "test_helper.cpp",
     ],
     hdrs = [
-        "include/test_helper.h"
+        "include/test_helper.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

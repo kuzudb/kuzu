@@ -78,9 +78,10 @@ struct EqualsOrNotEqualsValues {
         case BOOL:
             switch (right.dataType) {
             case BOOL:
-                return equals ?
-                           Equals::operation(left.primitive.boolean_, right.primitive.boolean_) :
-                           NotEquals::operation(left.primitive.boolean_, right.primitive.boolean_);
+                return equals ? Equals::operation(
+                                    left.primitive.booleanVal, right.primitive.booleanVal) :
+                                NotEquals::operation(
+                                    left.primitive.booleanVal, right.primitive.booleanVal);
             case INT32:
             case DOUBLE:
             case STRING:
@@ -92,12 +93,12 @@ struct EqualsOrNotEqualsValues {
             switch (right.dataType) {
             case INT32:
                 return equals ?
-                           Equals::operation(left.primitive.integer_, right.primitive.integer_) :
-                           NotEquals::operation(left.primitive.integer_, right.primitive.integer_);
+                           Equals::operation(left.primitive.int32Val, right.primitive.int32Val) :
+                           NotEquals::operation(left.primitive.int32Val, right.primitive.int32Val);
             case DOUBLE:
                 return equals ?
-                           Equals::operation(left.primitive.integer_, right.primitive.double_) :
-                           NotEquals::operation(left.primitive.integer_, right.primitive.double_);
+                           Equals::operation(left.primitive.int32Val, right.primitive.doubleVal) :
+                           NotEquals::operation(left.primitive.int32Val, right.primitive.doubleVal);
             case BOOL:
             case STRING:
                 return equals ? FALSE : TRUE;
@@ -108,12 +109,13 @@ struct EqualsOrNotEqualsValues {
             switch (right.dataType) {
             case INT32:
                 return equals ?
-                           Equals::operation(left.primitive.double_, right.primitive.integer_) :
-                           NotEquals::operation(left.primitive.double_, right.primitive.integer_);
+                           Equals::operation(left.primitive.doubleVal, right.primitive.int32Val) :
+                           NotEquals::operation(left.primitive.doubleVal, right.primitive.int32Val);
             case DOUBLE:
                 return equals ?
-                           Equals::operation(left.primitive.double_, right.primitive.double_) :
-                           NotEquals::operation(left.primitive.double_, right.primitive.double_);
+                           Equals::operation(left.primitive.doubleVal, right.primitive.doubleVal) :
+                           NotEquals::operation(
+                               left.primitive.doubleVal, right.primitive.doubleVal);
             case BOOL:
             case STRING:
                 return equals ? FALSE : TRUE;
@@ -209,7 +211,7 @@ struct CompareValues {
         case BOOL:
             switch (right.dataType) {
             case BOOL:
-                return FUNC::operation(left.primitive.boolean_, right.primitive.boolean_);
+                return FUNC::operation(left.primitive.booleanVal, right.primitive.booleanVal);
             case INT32:
             case DOUBLE:
             case STRING:
@@ -220,9 +222,9 @@ struct CompareValues {
         case INT32:
             switch (right.dataType) {
             case INT32:
-                return FUNC::operation(left.primitive.integer_, right.primitive.integer_);
+                return FUNC::operation(left.primitive.int32Val, right.primitive.int32Val);
             case DOUBLE:
-                return FUNC::operation(left.primitive.integer_, right.primitive.double_);
+                return FUNC::operation(left.primitive.int32Val, right.primitive.doubleVal);
             case BOOL:
             case STRING:
                 return NULL_BOOL;
@@ -232,9 +234,9 @@ struct CompareValues {
         case DOUBLE:
             switch (right.dataType) {
             case INT32:
-                return FUNC::operation(left.primitive.double_, right.primitive.integer_);
+                return FUNC::operation(left.primitive.doubleVal, right.primitive.int32Val);
             case DOUBLE:
-                return FUNC::operation(left.primitive.double_, right.primitive.double_);
+                return FUNC::operation(left.primitive.doubleVal, right.primitive.doubleVal);
             case BOOL:
             case STRING:
                 return NULL_BOOL;
