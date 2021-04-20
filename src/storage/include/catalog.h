@@ -79,6 +79,10 @@ public:
         return nodeProperties.at(propertyName).dataType;
     }
 
+    inline uint32_t getUnstrNodePropertyKeyFromString(label_t nodeLabel, const string& name) const {
+        return getUnstrPropertyKeyMapForNodeLabel(nodeLabel).at(name).idx;
+    }
+
     inline uint32_t getNodePropertyKeyFromString(label_t nodeLabel, const string& name) const {
         return getPropertyKeyMapForNodeLabel(nodeLabel).at(name).idx;
     }

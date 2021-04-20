@@ -10,15 +10,11 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace processor {
 
-class ScanColumn : public PhysicalOperator {
+class ScanAttribute : public PhysicalOperator {
 
 public:
-    ScanColumn(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
-        unique_ptr<PhysicalOperator> prevOperator);
-
-    ~ScanColumn() { column->reclaim(handle); }
-
-    void getNextTuples() override;
+    ScanAttribute(
+        uint64_t dataChunkPos, uint64_t valueVectorPos, unique_ptr<PhysicalOperator> prevOperator);
 
 protected:
     uint64_t dataChunkPos;
@@ -26,8 +22,6 @@ protected:
     shared_ptr<DataChunk> inDataChunk;
     shared_ptr<NodeIDVector> inNodeIDVector;
     shared_ptr<ValueVector> outValueVector;
-
-    BaseColumn* column;
     unique_ptr<ColumnOrListsHandle> handle;
 };
 

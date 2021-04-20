@@ -141,12 +141,12 @@ struct EqualsOrNotEqualsValues {
 // specialized for Value.
 template<>
 inline uint8_t Equals::operation(const Value& left, const Value& right) {
-    EqualsOrNotEqualsValues::operation<true>(left, right);
+    return EqualsOrNotEqualsValues::operation<true>(left, right);
 };
 
 template<>
 inline uint8_t NotEquals::operation(const Value& left, const Value& right) {
-    EqualsOrNotEqualsValues::operation<false>(left, right);
+    return EqualsOrNotEqualsValues::operation<false>(left, right);
 };
 
 // Equals and NotEquals function for gf_string_t.

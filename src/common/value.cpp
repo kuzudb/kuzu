@@ -10,7 +10,7 @@ namespace common {
 string Value::toString() const {
     switch (dataType) {
     case BOOL:
-        return primitive.boolean_ ? "true" : "false";
+        return primitive.boolean_ ? "True" : "False";
     case INT32:
     case INT64:
         return to_string(primitive.integer_);
@@ -28,7 +28,7 @@ string Value::toString() const {
 string Value::toValueAndType() const {
     switch (dataType) {
     case BOOL:
-        return primitive.boolean_ ? "Bool(true)" : "Bool(false)";
+        return primitive.boolean_ ? "Bool(True)" : "Bool(False)";
     case INT32:
         return "Integer(" + to_string(primitive.integer_) + ")";
     case DOUBLE:

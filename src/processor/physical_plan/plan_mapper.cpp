@@ -17,8 +17,9 @@
 #include "src/processor/include/physical_plan/operator/projection/projection.h"
 #include "src/processor/include/physical_plan/operator/read_list/adj_list_extend.h"
 #include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
-#include "src/processor/include/physical_plan/operator/scan_column/adj_column_extend.h"
-#include "src/processor/include/physical_plan/operator/scan_column/scan_property.h"
+#include "src/processor/include/physical_plan/operator/scan_attribute/adj_column_extend.h"
+#include "src/processor/include/physical_plan/operator/scan_attribute/scan_structured_property.h"
+#include "src/processor/include/physical_plan/operator/scan_attribute/scan_unstructured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
 #include "src/processor/include/physical_plan/operator/tuple/physical_operator_info.h"
@@ -272,13 +273,19 @@ unique_ptr<PhysicalOperator> mapLogicalNodePropertyReaderToPhysical(
     auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.nodeVarName);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(scanProperty.nodeVarName);
     auto& catalog = graph.getCatalog();
-    auto property =
-        catalog.getNodePropertyKeyFromString(scanProperty.nodeLabel, scanProperty.propertyName);
     auto& nodesStore = graph.getNodesStore();
     physicalOperatorInfo.appendAsNewValueVector(
         scanProperty.nodeVarName + "." + scanProperty.propertyName, dataChunkPos);
-    return make_unique<ScanProperty>(dataChunkPos, valueVectorPos,
-        nodesStore.getNodePropertyColumn(scanProperty.nodeLabel, property), move(prevOperator));
+    if (catalog.containNodeProperty(scanProperty.nodeLabel, scanProperty.propertyName)) {
+        auto property =
+            catalog.getNodePropertyKeyFromString(scanProperty.nodeLabel, scanProperty.propertyName);
+        return make_unique<ScanStructuredProperty>(dataChunkPos, valueVectorPos,
+            nodesStore.getNodePropertyColumn(scanProperty.nodeLabel, property), move(prevOperator));
+    }
+    auto property = catalog.getUnstrNodePropertyKeyFromString(
+        scanProperty.nodeLabel, scanProperty.propertyName);
+    return make_unique<ScanUnstructuredProperty>(dataChunkPos, valueVectorPos, property,
+        nodesStore.getNodeUnstrPropertyLists(scanProperty.nodeLabel), move(prevOperator));
 }
 
 unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
@@ -299,7 +306,7 @@ unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
     if (catalog.isSingleCaridinalityInDir(scanProperty.relLabel, scanProperty.direction)) {
         auto column = relsStore.getRelPropertyColumn(
             scanProperty.relLabel, scanProperty.boundNodeVarLabel, property);
-        return make_unique<ScanProperty>(
+        return make_unique<ScanStructuredProperty>(
             inDataChunkPos, inValueVectorPos, column, move(prevOperator));
     } else {
         auto lists = relsStore.getRelPropertyLists(scanProperty.direction,
