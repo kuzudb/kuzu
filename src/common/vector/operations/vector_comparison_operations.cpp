@@ -9,12 +9,6 @@
 namespace graphflow {
 namespace common {
 
-void throwException(DataType lDataType, DataType rDataType) {
-    throw invalid_argument(DataTypeNames[lDataType] + "left operand compared with " +
-                           DataTypeNames[rDataType] + " right operand should return false. " +
-                           "Not supported for now.");
-}
-
 struct ComparisonOperationExecutor {
 public:
     template<class OP>
@@ -27,7 +21,7 @@ public:
                     uint8_t, OP>(left, right, result);
                 break;
             default:
-                throwException(left.dataType, right.dataType);
+                assert(false);
             }
             break;
         case INT32:
@@ -41,7 +35,7 @@ public:
                     uint8_t, OP>(left, right, result);
                 break;
             default:
-                throwException(left.dataType, right.dataType);
+                assert(false);
             }
             break;
         case DOUBLE:
@@ -55,7 +49,7 @@ public:
                     double_t, uint8_t, OP>(left, right, result);
                 break;
             default:
-                throwException(left.dataType, right.dataType);
+                assert(false);
             }
             break;
         case STRING:
@@ -65,17 +59,17 @@ public:
                     gf_string_t, uint8_t, OP>(left, right, result);
                 break;
             default:
-                throwException(left.dataType, right.dataType);
+                assert(false);
             }
             break;
-        case UNKNOWN:
+        case UNSTRUCTURED:
             switch (right.dataType) {
-            case UNKNOWN:
+            case UNSTRUCTURED:
                 BinaryOperationExecutor::executeArithmeticAndComparisonOperations<Value, Value,
                     uint8_t, OP>(left, right, result);
                 break;
             default:
-                assert(false); // Should never happen as we should always cast.
+                assert(false);
             }
             break;
         default:

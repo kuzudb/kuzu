@@ -46,9 +46,7 @@ struct BinaryOperationExecutor {
                 auto pos = left.state->selectedValuesPos[i];
                 result.nullMask[pos] = left.nullMask[pos] || isRightNull;
                 if (!result.nullMask[i]) { // not NULL.
-                    auto lVal = lValues[pos];
-                    auto res = FUNC::operation(lVal, rValue);
-                    resultValues[pos] = res; // FUNC::operation(lValues[pos], rValue);
+                    resultValues[pos] = FUNC::operation(lValues[pos], rValue);
                 }
             }
         } else {

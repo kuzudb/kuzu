@@ -72,11 +72,11 @@ private:
 // is read and the reqired property alongwith its dataType is copied to a specialized UNKNOWN-typed
 // ValueVector.
 template<>
-class Lists<UNKNOWN> : public BaseLists {
+class Lists<UNSTRUCTURED> : public BaseLists {
 
 public:
     Lists(const string& fname, BufferManager& bufferManager)
-        : BaseLists{fname, UNKNOWN, 1, make_shared<ListHeaders>(fname), bufferManager} {};
+        : BaseLists{fname, UNSTRUCTURED, 1, make_shared<ListHeaders>(fname), bufferManager} {};
 
     // readValues is overloaded. Lists<UNKNOWN> is not supposed to use the one defined in BaseLists.
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
@@ -107,7 +107,7 @@ typedef Lists<DOUBLE> RelPropertyListsDouble;
 typedef Lists<BOOL> RelPropertyListsBool;
 typedef Lists<STRING> RelPropertyListsString;
 typedef Lists<NODE> AdjLists;
-typedef Lists<UNKNOWN> UnstructuredPropertyLists;
+typedef Lists<UNSTRUCTURED> UnstructuredPropertyLists;
 
 } // namespace storage
 } // namespace graphflow

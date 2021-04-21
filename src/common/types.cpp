@@ -52,7 +52,7 @@ size_t getDataTypeSize(DataType dataType) {
         return sizeof(uint8_t);
     case STRING:
         return sizeof(gf_string_t);
-    case UNKNOWN:
+    case UNSTRUCTURED:
         return sizeof(Value);
     default:
         throw invalid_argument("Cannot infer the size of dataType.");

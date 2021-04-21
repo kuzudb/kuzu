@@ -3,6 +3,7 @@
 #include "src/common/include/operations/comparison_operations.h"
 #include "src/common/include/vector/operations/vector_arithmetic_operations.h"
 #include "src/common/include/vector/operations/vector_boolean_operations.h"
+#include "src/common/include/vector/operations/vector_cast_operations.h"
 #include "src/common/include/vector/operations/vector_comparison_operations.h"
 #include "src/common/include/vector/operations/vector_node_id_operations.h"
 
@@ -36,6 +37,10 @@ std::function<void(ValueVector&, ValueVector&)> ValueVector::getUnaryOperation(
         return VectorNodeIDOperations::Hash;
     case DECOMPRESS_NODE_ID:
         return VectorNodeIDOperations::Decompress;
+    case CAST_TO_UNKNOWN:
+        return VectorCastOperations::castStructuredToUnstructuredValue;
+    case CAST_UNKNOWN_TO_BOOL:
+        return VectorCastOperations::castUnstructuredToBoolValue;
     default:
         throw std::invalid_argument("Invalid or unsupported unary expression.");
     }

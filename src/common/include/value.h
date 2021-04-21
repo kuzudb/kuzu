@@ -34,8 +34,6 @@ public:
 
     inline void setNodeID(nodeID_t value) { this->nodeID = value; }
 
-    string toValueAndType() const;
-
     string toString() const;
 
 public:

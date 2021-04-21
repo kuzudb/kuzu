@@ -7,8 +7,9 @@
 namespace graphflow {
 namespace common {
 
-void VectorCastOperations::castStructuredToUnknownValue(ValueVector& operand, ValueVector& result) {
-    assert(operand.dataType != UNKNOWN && result.dataType == UNKNOWN);
+void VectorCastOperations::castStructuredToUnstructuredValue(
+    ValueVector& operand, ValueVector& result) {
+    assert(operand.dataType != UNSTRUCTURED && result.dataType == UNSTRUCTURED);
     auto outValues = (Value*)result.values;
     switch (operand.dataType) {
     case BOOL: {
@@ -36,14 +37,15 @@ void VectorCastOperations::castStructuredToUnknownValue(ValueVector& operand, Va
     }
 }
 
-void VectorCastOperations::castUnknownToBoolValue(ValueVector& operand, ValueVector& result) {
-    assert(operand.dataType == UNKNOWN && result.dataType == BOOL);
+void VectorCastOperations::castUnstructuredToBoolValue(ValueVector& operand, ValueVector& result) {
+    assert(operand.dataType == UNSTRUCTURED && result.dataType == BOOL);
     auto inValues = (Value*)result.values;
     for (auto i = 0u; i < operand.state->numSelectedValues; i++) {
         auto pos = operand.state->selectedValuesPos[i];
         if (inValues[pos].dataType != BOOL) {
             throw std::invalid_argument("don’t know how to treat that as a predicate: “" +
-                                        inValues[pos].toValueAndType() + "”.");
+                                        DataTypeNames[inValues[pos].dataType] + "(" +
+                                        inValues[pos].toString() + ")”.");
         }
         result.values[pos] = inValues[pos].primitive.boolean_;
     }

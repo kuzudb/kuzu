@@ -8,7 +8,7 @@ namespace processor {
 ScanUnstructuredProperty::ScanUnstructuredProperty(uint64_t dataChunkPos, uint64_t valueVectorPos,
     uint32_t propertyKey, BaseLists* column, unique_ptr<PhysicalOperator> prevOperator)
     : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator)},
-      propertyKey{propertyKey}, lists{(Lists<UNKNOWN>*)lists} {
+      propertyKey{propertyKey}, lists{(Lists<UNSTRUCTURED>*)lists} {
     dataChunks = this->prevOperator->getDataChunks();
     inDataChunk = dataChunks->getDataChunk(dataChunkPos);
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));

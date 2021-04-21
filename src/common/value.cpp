@@ -21,24 +21,7 @@ string Value::toString() const {
     case NODE:
         return to_string(nodeID.label) + ":" + to_string(nodeID.offset);
     default:
-        assert(false); // should never happen.
-    }
-}
-
-string Value::toValueAndType() const {
-    switch (dataType) {
-    case BOOL:
-        return primitive.boolean_ ? "Bool(True)" : "Bool(False)";
-    case INT32:
-        return "Integer(" + to_string(primitive.integer_) + ")";
-    case DOUBLE:
-        return "Double(" + to_string(primitive.double_) + ")";
-    case STRING:
-        return "String(" + str + ")";
-    case NODE:
-        return "Node(" + to_string(nodeID.label) + ":" + to_string(nodeID.offset) + ")";
-    default:
-        assert(false); // should never happen.
+        assert(false);
     }
 }
 

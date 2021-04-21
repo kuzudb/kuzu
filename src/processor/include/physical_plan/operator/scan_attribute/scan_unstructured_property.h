@@ -27,7 +27,7 @@ public:
 
 protected:
     uint32_t propertyKey;
-    Lists<UNKNOWN>* lists;
+    Lists<UNSTRUCTURED>* lists;
 };
 
 } // namespace processor

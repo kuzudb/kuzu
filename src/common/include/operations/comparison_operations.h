@@ -86,7 +86,7 @@ struct EqualsOrNotEqualsValues {
             case STRING:
                 return equals ? FALSE : TRUE;
             default:
-                assert(false); // should never happen.
+                assert(false);
             }
         case INT32:
             switch (right.dataType) {
@@ -102,7 +102,7 @@ struct EqualsOrNotEqualsValues {
             case STRING:
                 return equals ? FALSE : TRUE;
             default:
-                assert(false); // should never happen.
+                assert(false);
             }
         case DOUBLE:
             switch (right.dataType) {
@@ -118,7 +118,7 @@ struct EqualsOrNotEqualsValues {
             case STRING:
                 return equals ? FALSE : TRUE;
             default:
-                assert(false); // should never happen.
+                assert(false);
             }
         case STRING:
             switch (right.dataType) {
@@ -130,10 +130,10 @@ struct EqualsOrNotEqualsValues {
                 return equals ? Equals::operation(left.str, right.str) :
                                 NotEquals::operation(left.str, right.str);
             default:
-                assert(false); // should never happen.
+                assert(false);
             }
         default:
-            assert(false); // should never happen.
+            assert(false);
         }
     }
 };

@@ -4,37 +4,8 @@ namespace graphflow {
 namespace planner {
 
 static void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression);
-
 static void validateExpectedType(const LogicalExpression& logicalExpression, DataType expectedType);
-
 static void validateNumericalType(const LogicalExpression& logicalExpression);
-
-void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
-    for (auto& child : parsedExpression.children) {
-        if (LITERAL_NULL == child->type) {
-            throw invalid_argument(
-                "Expression: " + child->rawExpression + " cannot have null literal children");
-        }
-    }
-}
-
-void validateExpectedType(const LogicalExpression& logicalExpression, DataType expectedType) {
-    auto dataType = logicalExpression.dataType;
-    if (expectedType != dataType) {
-        throw invalid_argument("Expression: " + logicalExpression.rawExpression +
-                               " has data type: " + dataTypeToString(dataType) +
-                               " expect: " + dataTypeToString(expectedType));
-    }
-}
-
-void validateNumericalType(const LogicalExpression& logicalExpression) {
-    auto dataType = logicalExpression.dataType;
-    if (!isNumericalType(dataType)) {
-        throw invalid_argument("Expression: " + logicalExpression.rawExpression +
-                               " has data type: " + dataTypeToString(dataType) +
-                               " expect numerical type.");
-    }
-}
 
 shared_ptr<LogicalExpression> ExpressionBinder::bindExpression(
     const ParsedExpression& parsedExpression) {
@@ -42,36 +13,27 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindExpression(
     auto expressionType = parsedExpression.type;
     if (isExpressionBoolConnection(expressionType)) {
         expression = isExpressionUnary(expressionType) ?
-                         bindUnaryBoolConnectionExpression(parsedExpression) :
-                         bindBinaryBoolConnectionExpression(parsedExpression);
-    }
-    if (isExpressionComparison(expressionType)) {
+                         bindUnaryBooleanExpression(parsedExpression) :
+                         bindBinaryBooleanExpression(parsedExpression);
+    } else if (isExpressionComparison(expressionType)) {
         expression = bindComparisonExpression(parsedExpression);
-    }
-    if (isExpressionArithmetic(expressionType)) {
+    } else if (isExpressionArithmetic(expressionType)) {
         expression = isExpressionUnary(expressionType) ?
                          bindUnaryArithmeticExpression(parsedExpression) :
                          bindBinaryArithmeticExpression(parsedExpression);
-    }
-    if (isExpressionStringOperator(expressionType)) {
+    } else if (isExpressionStringOperator(expressionType)) {
         expression = bindStringOperatorExpression(parsedExpression);
-    }
-    if (isExpressionNullComparison(expressionType)) {
+    } else if (isExpressionNullComparison(expressionType)) {
         expression = bindNullComparisonOperatorExpression(parsedExpression);
-    }
-    if (isExpressionLeafLiteral(expressionType)) {
+    } else if (isExpressionLeafLiteral(expressionType)) {
         expression = bindLiteralExpression(parsedExpression);
-    }
-    if (FUNCTION == expressionType) {
+    } else if (FUNCTION == expressionType) {
         expression = bindFunctionExpression(parsedExpression);
-    }
-    if (PROPERTY == expressionType) {
+    } else if (PROPERTY == expressionType) {
         expression = bindPropertyExpression(parsedExpression);
-    }
-    if (VARIABLE == expressionType) {
+    } else if (VARIABLE == expressionType) {
         expression = bindVariableExpression(parsedExpression);
-    }
-    if (!expression) {
+    } else if (!expression) {
         throw invalid_argument(
             "Bind " + expressionTypeToString(expressionType) + " expression is not implemented.");
     }
@@ -82,45 +44,56 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindExpression(
     return expression;
 }
 
-shared_ptr<LogicalExpression> ExpressionBinder::bindBinaryBoolConnectionExpression(
-    const ParsedExpression& parsedExpression) {
-    auto left = bindExpression(*parsedExpression.children.at(0));
-    validateExpectedType(*left, BOOL);
-    auto right = bindExpression(*parsedExpression.children.at(1));
-    validateExpectedType(*right, BOOL);
-    return make_shared<LogicalExpression>(parsedExpression.type, BOOL, move(left), move(right));
+static shared_ptr<LogicalExpression> validateAsBoolAndCastIfNecessary(
+    shared_ptr<LogicalExpression> expression) {
+    if (expression->dataType != UNSTRUCTURED) {
+        validateExpectedType(*expression, BOOL);
+    } else {
+        assert(expression->dataType == UNSTRUCTURED);
+        expression = make_shared<LogicalExpression>(CAST_UNKNOWN_TO_BOOL, BOOL, move(expression));
+    }
+    return expression;
 }
 
-shared_ptr<LogicalExpression> ExpressionBinder::bindUnaryBoolConnectionExpression(
+shared_ptr<LogicalExpression> ExpressionBinder::bindBinaryBooleanExpression(
+    const ParsedExpression& parsedExpression) {
+    auto left = bindExpression(*parsedExpression.children[0]);
+    auto right = bindExpression(*parsedExpression.children[1]);
+    return make_shared<LogicalExpression>(parsedExpression.type, BOOL,
+        validateAsBoolAndCastIfNecessary(left), validateAsBoolAndCastIfNecessary(right));
+}
+
+shared_ptr<LogicalExpression> ExpressionBinder::bindUnaryBooleanExpression(
     const ParsedExpression& parsedExpression) {
     auto child = bindExpression(*parsedExpression.children.at(0));
-    validateExpectedType(*child, BOOL);
-    return make_shared<LogicalExpression>(NOT, BOOL, move(child));
+    return make_shared<LogicalExpression>(NOT, BOOL, validateAsBoolAndCastIfNecessary(child));
 }
 
 shared_ptr<LogicalExpression> ExpressionBinder::bindComparisonExpression(
     const ParsedExpression& parsedExpression) {
     auto& parsedLeft = *parsedExpression.children.at(0);
     auto& parsedRight = *parsedExpression.children.at(1);
-    if (LITERAL_NULL == parsedLeft.type || LITERAL_NULL == parsedRight.type) {
-        // rewrite == null as IS NULL
-        if (EQUALS == parsedExpression.type) {
-            return make_shared<LogicalExpression>(IS_NULL, BOOL,
-                LITERAL_NULL == parsedLeft.type ? bindExpression(parsedRight) :
-                                                  bindExpression(parsedLeft));
-        }
-        // rewrite <> null as IS NOT NULL
-        if (NOT_EQUALS == parsedExpression.type) {
-            return make_shared<LogicalExpression>(IS_NOT_NULL, BOOL,
-                LITERAL_NULL == parsedLeft.type ? bindExpression(parsedRight) :
-                                                  bindExpression(parsedLeft));
+    if (parsedLeft.type == LITERAL_NULL || parsedRight.type == LITERAL_NULL) {
+        if (parsedExpression.type == EQUALS || parsedExpression.type == NOT_EQUALS) {
+            return make_shared<LogicalExpression>(LITERAL_BOOLEAN, BOOL, Value(FALSE));
+        } else {
+            return make_shared<LogicalExpression>(LITERAL_BOOLEAN, BOOL, Value(NULL_BOOL));
         }
     }
-    validateNoNullLiteralChildren(parsedExpression);
     auto left = bindExpression(parsedLeft);
     auto right = bindExpression(parsedRight);
-    isNumericalType(left->dataType) ? validateNumericalType(*right) :
-                                      validateExpectedType(*right, left->dataType);
+    if (left->dataType == UNSTRUCTURED && right->dataType != UNSTRUCTURED) {
+        right = make_shared<LogicalExpression>(CAST_TO_UNKNOWN, UNSTRUCTURED, move(right));
+    } else if (left->dataType != UNSTRUCTURED && right->dataType == UNSTRUCTURED) {
+        left = make_shared<LogicalExpression>(CAST_TO_UNKNOWN, UNSTRUCTURED, move(left));
+    }
+    if (isNumericalType(left->dataType)) {
+        if (!isNumericalType(right->dataType)) {
+            return make_shared<LogicalExpression>(LITERAL_BOOLEAN, BOOL, Value(FALSE));
+        }
+    } else if (left->dataType != right->dataType) {
+        return make_shared<LogicalExpression>(LITERAL_BOOLEAN, BOOL, Value(FALSE));
+    }
     return make_shared<LogicalExpression>(parsedExpression.type, BOOL, move(left), move(right));
 }
 
@@ -128,29 +101,24 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindBinaryArithmeticExpression(
     const ParsedExpression& parsedExpression) {
     validateNoNullLiteralChildren(parsedExpression);
     auto left = bindExpression(*parsedExpression.children.at(0));
-    validateNumericalType(*left);
     auto right = bindExpression(*parsedExpression.children.at(1));
+    if (left->dataType == STRING)
+
+        validateNumericalType(*left);
     validateNumericalType(*right);
     DataType resultType;
-    if (DOUBLE == left->dataType || DOUBLE == right->dataType) {
+    if (left->dataType == DOUBLE || right->dataType == DOUBLE) {
         resultType = DOUBLE;
     } else {
         resultType = INT32;
     }
-    auto expressionType = parsedExpression.type;
-    switch (expressionType) {
-    case ADD:
-    case SUBTRACT:
-    case MULTIPLY:
-    case POWER:
-    case DIVIDE:
-    case MODULO:
-        return make_shared<LogicalExpression>(expressionType, resultType, move(left), move(right));
-    default:
+    if (!isExpressionArithmetic(parsedExpression.type)) {
         throw invalid_argument("Should never happen. Cannot bind expression type of " +
-                               expressionTypeToString(expressionType) +
+                               expressionTypeToString(parsedExpression.type) +
                                " as binary arithmetic expression.");
     }
+    return make_shared<LogicalExpression>(
+        parsedExpression.type, resultType, move(left), move(right));
 }
 
 shared_ptr<LogicalExpression> ExpressionBinder::bindUnaryArithmeticExpression(
@@ -249,6 +217,33 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindVariableExpression(
         return make_shared<LogicalExpression>(VARIABLE, REL, varName);
     }
     throw invalid_argument("Variable: " + parsedExpression.rawExpression + " is not in scope.");
+}
+
+void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
+    for (auto& child : parsedExpression.children) {
+        if (LITERAL_NULL == child->type) {
+            throw invalid_argument(
+                "Expression: " + child->rawExpression + " cannot have null literal children");
+        }
+    }
+}
+
+void validateExpectedType(const LogicalExpression& logicalExpression, DataType expectedType) {
+    auto dataType = logicalExpression.dataType;
+    if (expectedType != dataType) {
+        throw invalid_argument("Expression: " + logicalExpression.rawExpression +
+                               " has data type: " + dataTypeToString(dataType) +
+                               " expect: " + dataTypeToString(expectedType));
+    }
+}
+
+void validateNumericalType(const LogicalExpression& logicalExpression) {
+    auto dataType = logicalExpression.dataType;
+    if (!isNumericalType(dataType)) {
+        throw invalid_argument("Expression: " + logicalExpression.rawExpression +
+                               " has data type: " + dataTypeToString(dataType) +
+                               " expect numerical type.");
+    }
 }
 
 } // namespace planner
