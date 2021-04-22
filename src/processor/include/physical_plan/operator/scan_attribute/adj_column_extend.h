@@ -1,11 +1,11 @@
 #pragma once
 
-#include "src/processor/include/physical_plan/operator/scan_column/scan_column.h"
+#include "src/processor/include/physical_plan/operator/scan_attribute/scan_structured_column.h"
 
 namespace graphflow {
 namespace processor {
 
-class AdjColumnExtend : public ScanColumn {
+class AdjColumnExtend : public ScanStructuredColumn {
 
 public:
     AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,

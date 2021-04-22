@@ -18,16 +18,16 @@ public:
             switch (right.dataType) {
             case INT32:
                 if (std::is_same<OP, operation::Power>::value) {
-                    BinaryOperationExecutor::executeNonBoolOp<int32_t, int32_t, double_t, OP>(
-                        left, right, result);
+                    BinaryOperationExecutor::executeArithmeticAndComparisonOperations<int32_t,
+                        int32_t, double_t, OP>(left, right, result);
                 } else {
-                    BinaryOperationExecutor::executeNonBoolOp<int32_t, int32_t, int32_t, OP>(
-                        left, right, result);
+                    BinaryOperationExecutor::executeArithmeticAndComparisonOperations<int32_t,
+                        int32_t, int32_t, OP>(left, right, result);
                 }
                 break;
             case DOUBLE:
-                BinaryOperationExecutor::executeNonBoolOp<int32_t, double_t, double_t, OP>(
-                    left, right, result);
+                BinaryOperationExecutor::executeArithmeticAndComparisonOperations<int32_t, double_t,
+                    double_t, OP>(left, right, result);
                 break;
             default:
                 throw std::invalid_argument(
@@ -37,12 +37,12 @@ public:
         case DOUBLE:
             switch (right.dataType) {
             case INT32:
-                BinaryOperationExecutor::executeNonBoolOp<double_t, int32_t, int32_t, OP>(
-                    left, right, result);
+                BinaryOperationExecutor::executeArithmeticAndComparisonOperations<double_t, int32_t,
+                    int32_t, OP>(left, right, result);
                 break;
             case DOUBLE:
-                BinaryOperationExecutor::executeNonBoolOp<double_t, double_t, double_t, OP>(
-                    left, right, result);
+                BinaryOperationExecutor::executeArithmeticAndComparisonOperations<double_t,
+                    double_t, double_t, OP>(left, right, result);
                 break;
             default:
                 throw std::invalid_argument(

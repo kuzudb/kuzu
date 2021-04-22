@@ -15,3 +15,11 @@
 -NAME OrganisationNodesIsWorkerFilteredTest
 -QUERY MATCH (a:organisation) WHERE a.mark >= 3.7 RETURN COUNT(*)
 ---- 3
+
+-NAME PersonNodesGenderFilteredTest1
+-QUERY MATCH (a:person) WHERE (a.gender/2 <= 0.5) RETURN COUNT(*)
+---- 3
+
+-NAME PersonNodesGenderFilteredTest2
+-QUERY MATCH (a:person) WHERE (a.gender*3.5 = 7.0) RETURN COUNT(*)
+---- 4

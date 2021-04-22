@@ -2,6 +2,8 @@
 
 #include <math.h>
 
+#include "src/common/include/value.h"
+
 namespace graphflow {
 namespace common {
 namespace operation {
@@ -55,7 +57,6 @@ struct Negate {
     }
 };
 
-// Specialized operation(s).
 template<>
 inline auto Modulo::operation(int32_t left, int32_t right) {
     return right % left;

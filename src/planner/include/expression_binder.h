@@ -23,10 +23,10 @@ public:
     shared_ptr<LogicalExpression> bindExpression(const ParsedExpression& parsedExpression);
 
 private:
-    shared_ptr<LogicalExpression> bindBinaryBoolConnectionExpression(
+    shared_ptr<LogicalExpression> bindBinaryBooleanExpression(
         const ParsedExpression& parsedExpression);
 
-    shared_ptr<LogicalExpression> bindUnaryBoolConnectionExpression(
+    shared_ptr<LogicalExpression> bindUnaryBooleanExpression(
         const ParsedExpression& parsedExpression);
 
     shared_ptr<LogicalExpression> bindComparisonExpression(

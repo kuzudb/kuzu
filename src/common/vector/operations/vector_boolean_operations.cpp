@@ -35,15 +35,15 @@ private:
 };
 
 void VectorBooleanOperations::And(ValueVector& left, ValueVector& right, ValueVector& result) {
-    BinaryOperationExecutor::executeBoolOp<operation::And>(left, right, result);
+    BinaryOperationExecutor::executeBoolOperation<operation::And>(left, right, result);
 }
 
 void VectorBooleanOperations::Or(ValueVector& left, ValueVector& right, ValueVector& result) {
-    BinaryOperationExecutor::executeBoolOp<operation::Or>(left, right, result);
+    BinaryOperationExecutor::executeBoolOperation<operation::Or>(left, right, result);
 }
 
 void VectorBooleanOperations::Xor(ValueVector& left, ValueVector& right, ValueVector& result) {
-    BinaryOperationExecutor::executeBoolOp<operation::Xor>(left, right, result);
+    BinaryOperationExecutor::executeBoolOperation<operation::Xor>(left, right, result);
 }
 
 void VectorBooleanOperations::Not(ValueVector& operand, ValueVector& result) {

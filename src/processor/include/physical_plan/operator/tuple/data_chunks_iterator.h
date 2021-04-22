@@ -1,6 +1,5 @@
 #pragma once
 
-#include "src/common/include/literal.h"
 #include "src/processor/include/physical_plan/operator/tuple/data_chunks.h"
 #include "src/processor/include/physical_plan/operator/tuple/tuple.h"
 

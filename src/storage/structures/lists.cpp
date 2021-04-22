@@ -1,6 +1,6 @@
 #include "src/storage/include/structures/lists.h"
 
-#include "src/common/include/literal.h"
+#include "src/common/include/value.h"
 
 using namespace graphflow::common;
 
@@ -76,7 +76,7 @@ void BaseLists::readFromLargeList(const nodeID_t& nodeID,
     }
 }
 
-void Lists<UNKNOWN>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
+void Lists<UNSTRUCTURED>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     uint32_t propertyKeyIdxToRead, const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<ColumnOrListsHandle>& handle) {
     valueVector->reset();
@@ -98,7 +98,7 @@ void Lists<UNKNOWN>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     reclaim(handle);
 }
 
-void Lists<UNKNOWN>::readUnstrPropertyListOfNode(const nodeID_t& nodeID,
+void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(const nodeID_t& nodeID,
     uint32_t propertyKeyIdxToRead, const shared_ptr<ValueVector>& valueVector, uint64_t pos,
     const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header) {
     PageCursor pageCursor;
@@ -140,7 +140,7 @@ void Lists<UNKNOWN>::readUnstrPropertyListOfNode(const nodeID_t& nodeID,
     valueVector->nullMask[pos] = true;
 }
 
-bool Lists<UNKNOWN>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
+bool Lists<UNSTRUCTURED>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
     uint64_t& physicalPageIdx, const uint32_t*& propertyKeyIdxPtr, DataType& propertyDataType,
     const unique_ptr<ColumnOrListsHandle>& handle, PageCursor& pageCursor, uint32_t listLen,
     LogicalToPhysicalPageIdxMapper& mapper) {
@@ -166,13 +166,13 @@ bool Lists<UNKNOWN>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyData
     listLen -= PROPERTY_IDX_LEN + PROPERTY_DATATYPE_LEN;
 }
 
-void Lists<UNKNOWN>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx,
+void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx,
     DataType& propertyDataType, const unique_ptr<ColumnOrListsHandle>& handle,
     PageCursor& pageCursor, uint32_t listLen, LogicalToPhysicalPageIdxMapper& mapper,
     const shared_ptr<ValueVector>& valueVector, uint64_t pos, bool toRead) {
     auto frame = bufferManager.get(fileHandle, physicalPageIdx);
     auto dataTypeSize = getDataTypeSize(propertyDataType);
-    auto values = (Literal*)valueVector->values;
+    auto values = (Value*)valueVector->values;
     if (pageCursor.offset + dataTypeSize < PAGE_SIZE) {
         if (toRead) {
             memcpy(&values[pos].primitive, frame + pageCursor.offset, dataTypeSize);
@@ -195,7 +195,7 @@ void Lists<UNKNOWN>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx,
         pageCursor.offset = dataTypeSize - bytesInCurrentFrame;
     }
     listLen -= dataTypeSize;
-    values[pos].type = propertyDataType;
+    values[pos].dataType = propertyDataType;
 }
 
 } // namespace storage

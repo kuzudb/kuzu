@@ -1,12 +1,14 @@
-#include "src/common/include/literal.h"
+#include "src/common/include/value.h"
+
+#include <cassert>
 
 using namespace std;
 
 namespace graphflow {
 namespace common {
 
-string Literal::toString() const {
-    switch (type) {
+string Value::toString() const {
+    switch (dataType) {
     case BOOL:
         return primitive.boolean_ ? "True" : "False";
     case INT32:
@@ -19,7 +21,7 @@ string Literal::toString() const {
     case NODE:
         return to_string(nodeID.label) + ":" + to_string(nodeID.offset);
     default:
-        throw std::invalid_argument("Unsupported data type " + DataTypeNames[type]);
+        assert(false);
     }
 }
 

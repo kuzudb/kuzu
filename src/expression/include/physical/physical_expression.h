@@ -3,7 +3,7 @@
 #include <climits>
 
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/literal.h"
+#include "src/common/include/value.h"
 #include "src/common/include/vector/value_vector.h"
 
 using namespace graphflow::common;

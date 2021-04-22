@@ -74,7 +74,7 @@ enum DataType : uint8_t {
     INT64 = 5,
     DOUBLE = 6,
     STRING = 7,
-    UNKNOWN = 8
+    UNSTRUCTURED = 8
 };
 
 const string DataTypeNames[] = {

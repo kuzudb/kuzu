@@ -5,7 +5,7 @@
 namespace graphflow {
 namespace common {
 
-enum ExpressionType {
+enum ExpressionType : uint8_t {
 
     /**
      * Boolean Connection Expressions
@@ -38,6 +38,7 @@ enum ExpressionType {
 
     /*
      * NODE ID Expressions
+     * Comparison and Decompress
      * */
     HASH_NODE_ID = 32,
     EQUALS_NODE_ID = 33,
@@ -46,11 +47,7 @@ enum ExpressionType {
     GREATER_THAN_EQUALS_NODE_ID = 36,
     LESS_THAN_NODE_ID = 37,
     LESS_THAN_EQUALS_NODE_ID = 38,
-
-    /**
-     * Decompress Expressions
-     * */
-    DECOMPRESS_NODE_ID = 33,
+    DECOMPRESS_NODE_ID = 39,
 
     /**
      * String Operation Expressions
@@ -88,6 +85,12 @@ enum ExpressionType {
      * Variable Expression
      **/
     VARIABLE = 90,
+
+    /**
+     * Cast Expressions
+     ***/
+    CAST_TO_UNKNOWN = 100,
+    CAST_UNKNOWN_TO_BOOL = 101
 };
 
 bool isExpressionUnary(ExpressionType type);

@@ -2,6 +2,8 @@
 
 #include <cstdlib>
 
+#include "src/common/include/value.h"
+
 namespace graphflow {
 namespace common {
 
@@ -31,14 +33,7 @@ string dataTypeToString(DataType dataType) {
 }
 
 bool isNumericalType(DataType dataType) {
-    switch (dataType) {
-    case INT32:
-    case INT64:
-    case DOUBLE:
-        return true;
-    default:
-        return false;
-    }
+    return dataType == INT32 || dataType == INT64 || dataType == DOUBLE;
 }
 
 size_t getDataTypeSize(DataType dataType) {
@@ -57,6 +52,8 @@ size_t getDataTypeSize(DataType dataType) {
         return sizeof(uint8_t);
     case STRING:
         return sizeof(gf_string_t);
+    case UNSTRUCTURED:
+        return sizeof(Value);
     default:
         throw invalid_argument("Cannot infer the size of dataType.");
     }
@@ -107,8 +104,7 @@ Cardinality getCardinality(const string& cardinalityString) {
 }
 
 Direction operator!(Direction& direction) {
-    auto reverse = (FWD == direction) ? BWD : FWD;
-    return reverse;
+    return (FWD == direction) ? BWD : FWD;
 }
 
 } // namespace common

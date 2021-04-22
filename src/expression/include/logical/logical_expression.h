@@ -3,8 +3,8 @@
 #include <unordered_set>
 
 #include "src/common/include/expression_type.h"
-#include "src/common/include/literal.h"
 #include "src/common/include/types.h"
+#include "src/common/include/value.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -30,8 +30,7 @@ public:
     LogicalExpression(ExpressionType expressionType, DataType dataType, const string& variableName);
 
     // creates a leaf literal expression.
-    LogicalExpression(
-        ExpressionType expressionType, DataType dataType, const Literal& literalValue);
+    LogicalExpression(ExpressionType expressionType, DataType dataType, const Value& literalValue);
 
     inline const LogicalExpression& getChildExpr(uint64_t pos) const { return *childrenExpr[pos]; }
 
@@ -47,7 +46,7 @@ public:
     // variable name for leaf variable expressions.
     string variableName;
     // value used by leaf literal expressions.
-    Literal literalValue;
+    Value literalValue;
     vector<shared_ptr<LogicalExpression>> childrenExpr;
     ExpressionType expressionType;
     DataType dataType;

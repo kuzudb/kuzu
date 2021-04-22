@@ -249,7 +249,7 @@ void GraphLoader::initNodeUnstrPropertyKeyMaps(
         auto propertyIdx = 0u;
         for (auto& propertyKeyString : unionOfUnstrPropertyKeys) {
             catalog.nodeUnstrPropertyKeyMaps[label].emplace(
-                string(propertyKeyString), PropertyKey(UNKNOWN, propertyIdx++));
+                string(propertyKeyString), PropertyKey(UNSTRUCTURED, propertyIdx++));
         }
     }
     logger->debug("Done initializing node unstructured PropertyKey maps.");
