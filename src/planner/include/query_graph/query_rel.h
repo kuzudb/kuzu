@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_set>
+
 #include "src/planner/include/query_graph/query_node.h"
 
 namespace graphflow {
@@ -13,13 +15,6 @@ public:
     inline string getSrcNodeName() const { return srcNode->name; }
 
     inline string getDstNodeName() const { return dstNode->name; }
-
-    bool operator==(const QueryRel& other) const {
-        auto result = name == other.name && label == other.label;
-        result &= *srcNode == *other.srcNode;
-        result &= *dstNode == *other.dstNode;
-        return result;
-    }
 
 public:
     string name;

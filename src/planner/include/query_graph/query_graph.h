@@ -73,13 +73,11 @@ public:
     getSingleNodeJoiningSubgraph(
         const SubqueryGraph& matchedSubqueryGraph, uint32_t subgraphSize) const;
 
-    bool isConnected() const;
-
-    bool operator==(const QueryGraph& other) const;
-
-private:
     unordered_set<string> getNeighbourNodeNames(const string& queryNodeName) const;
 
+    void merge(QueryGraph& other);
+
+private:
     unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
     initSubgraphWithSingleJoinNode(const SubqueryGraph& matchedSubgraph) const;
 

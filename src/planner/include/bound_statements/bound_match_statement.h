@@ -10,18 +10,22 @@ using namespace graphflow::expression;
 namespace graphflow {
 namespace planner {
 
+/**
+ * BoundMatchStatement may not have whereExpression
+ */
 class BoundMatchStatement {
 
 public:
     explicit BoundMatchStatement(unique_ptr<QueryGraph> queryGraph)
         : queryGraph{move(queryGraph)} {}
 
-    BoundMatchStatement(
-        unique_ptr<QueryGraph> queryGraph, shared_ptr<LogicalExpression> whereExpression)
-        : queryGraph{move(queryGraph)}, whereExpression{move(whereExpression)} {}
-
-    bool operator==(const BoundMatchStatement& other) const {
-        return *queryGraph == *other.queryGraph;
+    void merge(BoundMatchStatement& other) {
+        queryGraph->merge(*other.queryGraph);
+        if (other.whereExpression) {
+            whereExpression = whereExpression ? make_shared<LogicalExpression>(AND, BOOL,
+                                                    whereExpression, other.whereExpression) :
+                                                other.whereExpression;
+        }
     }
 
 public:

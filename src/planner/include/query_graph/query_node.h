@@ -1,12 +1,8 @@
 #pragma once
 
-#include <string>
-#include <utility>
-
 #include "src/common/include/types.h"
 
 using namespace graphflow::common;
-using namespace std;
 
 namespace graphflow {
 namespace planner {
@@ -17,10 +13,6 @@ class QueryNode {
 
 public:
     QueryNode(string name, label_t label) : name{move(name)}, label{label} {}
-
-    bool operator==(const QueryNode& other) const {
-        return name == other.name && label == other.label;
-    }
 
 public:
     string name;

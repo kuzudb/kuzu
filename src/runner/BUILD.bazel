@@ -55,18 +55,17 @@ cc_binary(
 cc_library(
     name = "embedded_server",
     srcs = [
-        "server/embedded_server.cpp"
+        "server/embedded_server.cpp",
     ],
     hdrs = [
-        "include/server/embedded_server.h"
+        "include/server/embedded_server.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/processor",
-        "//src/storage:graph",
         "//src/loader",
         "//src/parser",
-        "//src/planner:binder",
         "//src/planner:enumerator",
+        "//src/processor",
+        "//src/storage:graph",
     ],
 )

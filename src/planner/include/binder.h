@@ -1,13 +1,8 @@
 #pragma once
 
 #include "src/parser/include/queries/single_query.h"
-#include "src/planner/include/bound_statements/bound_match_statement.h"
-#include "src/planner/include/bound_statements/bound_single_query.h"
+#include "src/planner/include/bound_queries/bound_single_query.h"
 #include "src/planner/include/expression_binder.h"
-#include "src/storage/include/catalog.h"
-
-using namespace graphflow::storage;
-using namespace graphflow::parser;
 
 namespace graphflow {
 namespace planner {
@@ -15,20 +10,31 @@ namespace planner {
 class Binder {
 
 public:
-    explicit Binder(const Catalog& catalog) : catalog{catalog} {}
+    explicit Binder(const Catalog& catalog) : catalog{catalog}, lastVariableIdx{0} {}
 
     unique_ptr<BoundSingleQuery> bindSingleQuery(const SingleQuery& singleQuery);
 
 private:
+    unique_ptr<BoundMatchStatement> bindMatchStatementsAndMerge(
+        const vector<unique_ptr<MatchStatement>>& matchStatements);
+
     unique_ptr<BoundMatchStatement> bindMatchStatement(const MatchStatement& matchStatement);
 
-    unique_ptr<BoundReturnStatement> bindReturnStatement(
-        ReturnStatement& returnStatement, const QueryGraph& graphInScope);
+    unique_ptr<BoundWithStatement> bindWithStatement(const WithStatement& withStatement);
+
+    unique_ptr<BoundReturnStatement> bindReturnStatement(const ReturnStatement& returnStatement);
+
+    shared_ptr<LogicalExpression> bindWhereExpression(const ParsedExpression& parsedExpression);
+
+    vector<shared_ptr<LogicalExpression>> bindProjectExpressions(
+        const vector<unique_ptr<ParsedExpression>>& parsedExpressions, bool projectStar);
 
     unique_ptr<QueryGraph> bindQueryGraph(const vector<unique_ptr<PatternElement>>& graphPattern);
 
-    QueryRel* bindQueryRel(const PatternElementChain& patternElementChain, QueryNode* leftNode,
+    void bindQueryRel(const RelPattern& relPattern, QueryNode* leftNode, QueryNode* rightNode,
         QueryGraph& queryGraph);
+
+    void bindNodeToRel(QueryRel& queryRel, QueryNode* queryNode, bool isSrcNode);
 
     QueryNode* bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph);
 
@@ -36,11 +42,10 @@ private:
 
     label_t bindNodeLabel(const string& parsed_label);
 
-    // set queryNode as src or dst for queryRel
-    void bindNodeToRel(QueryRel* queryRel, QueryNode* queryNode, bool isSrcNode);
-
 private:
     const Catalog& catalog;
+    VariablesInScope variablesInScope;
+    uint32_t lastVariableIdx;
 };
 
 } // namespace planner

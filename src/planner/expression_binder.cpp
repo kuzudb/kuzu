@@ -102,9 +102,7 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindBinaryArithmeticExpression(
     validateNoNullLiteralChildren(parsedExpression);
     auto left = bindExpression(*parsedExpression.children.at(0));
     auto right = bindExpression(*parsedExpression.children.at(1));
-    if (left->dataType == STRING)
-
-        validateNumericalType(*left);
+    validateNumericalType(*left);
     validateNumericalType(*right);
     DataType resultType;
     if (left->dataType == DOUBLE || right->dataType == DOUBLE) {
@@ -154,25 +152,25 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
     auto propertyName = parsedExpression.text;
     auto childExpression = bindExpression(*parsedExpression.children.at(0));
     if (NODE == childExpression->dataType) {
-        auto nodeName = childExpression->variableName;
-        auto nodeLabel = graphInScope.getQueryNode(nodeName)->label;
+        auto nodeName = childExpression->alias;
+        auto nodeLabel = variablesInScope.getQueryNode(nodeName)->label;
         if (!catalog.containNodeProperty(nodeLabel, propertyName)) {
             throw invalid_argument(
                 "Node: " + nodeName + " does not have property: " + propertyName);
         }
         return make_shared<LogicalExpression>(PROPERTY,
             catalog.getNodePropertyTypeFromString(nodeLabel, propertyName),
-            nodeName + "." + propertyName);
+            childExpression->variableName + "." + propertyName);
     }
     if (REL == childExpression->dataType) {
-        auto relName = childExpression->variableName;
-        auto relLabel = graphInScope.getQueryRel(relName)->label;
+        auto relName = childExpression->alias;
+        auto relLabel = variablesInScope.getQueryRel(relName)->label;
         if (!catalog.containRelProperty(relLabel, propertyName)) {
             throw invalid_argument("Rel: " + relName + " does not have property: " + propertyName);
         }
         return make_shared<LogicalExpression>(PROPERTY,
             catalog.getRelPropertyTypeFromString(relLabel, propertyName),
-            relName + "." + propertyName);
+            childExpression->variableName + "." + propertyName);
     }
     throw invalid_argument(
         "Property: " + parsedExpression.rawExpression + " is not associated with any node or rel.");
@@ -205,16 +203,24 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindLiteralExpression(
     }
 }
 
-// Bind variable to either node or rel in the query graph
-// Should change once we have WITH statement
 shared_ptr<LogicalExpression> ExpressionBinder::bindVariableExpression(
     const ParsedExpression& parsedExpression) {
-    auto varName = parsedExpression.text;
-    if (graphInScope.containsQueryNode(varName)) {
-        return make_shared<LogicalExpression>(VARIABLE, NODE, varName);
+    auto variableName = parsedExpression.text;
+    if (variablesInScope.containsQueryNode(variableName)) {
+        // input node "a" gets unique name "a_gf0" and "a" becomes alias name
+        auto nodeExpression = make_shared<LogicalExpression>(
+            VARIABLE, NODE, variablesInScope.getQueryNode(variableName)->name);
+        nodeExpression->alias = variableName;
+        return nodeExpression;
     }
-    if (graphInScope.containsQueryRel(varName)) {
-        return make_shared<LogicalExpression>(VARIABLE, REL, varName);
+    if (variablesInScope.containsQueryRel(variableName)) {
+        auto relExpression = make_shared<LogicalExpression>(
+            VARIABLE, REL, variablesInScope.getQueryRel(variableName)->name);
+        relExpression->alias = variableName;
+        return relExpression;
+    }
+    if (variablesInScope.containsExpression(variableName)) {
+        return variablesInScope.getExpression(variableName);
     }
     throw invalid_argument("Variable: " + parsedExpression.rawExpression + " is not in scope.");
 }
