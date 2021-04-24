@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 #include "src/expression/include/logical/logical_expression.h"
 #include "src/planner/include/query_graph/query_graph.h"
 

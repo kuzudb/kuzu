@@ -39,6 +39,10 @@ bool SubqueryGraph::operator==(const SubqueryGraph& other) const {
            queryNodesSelector == other.queryNodesSelector;
 }
 
+uint32_t QueryGraph::getNumQueryNodes() const {
+    return queryNodes.size();
+}
+
 bool QueryGraph::containsQueryNode(const string& queryNodeName) const {
     return end(queryNodeNameToPosMap) != queryNodeNameToPosMap.find(queryNodeName);
 }
@@ -51,9 +55,15 @@ uint32_t QueryGraph::getQueryNodePos(const string& queryNodeName) const {
     return queryNodeNameToPosMap.at(queryNodeName);
 }
 
-void QueryGraph::addQueryNode(unique_ptr<QueryNode> queryNode) {
-    queryNodeNameToPosMap.insert({queryNode->name, queryNodes.size()});
-    queryNodes.push_back(move(queryNode));
+void QueryGraph::addQueryNodeIfNotExist(shared_ptr<QueryNode> queryNode) {
+    if (!containsQueryNode(queryNode->name)) {
+        queryNodeNameToPosMap.insert({queryNode->name, queryNodes.size()});
+        queryNodes.push_back(queryNode);
+    }
+}
+
+uint32_t QueryGraph::getNumQueryRels() const {
+    return queryRels.size();
 }
 
 bool QueryGraph::containsQueryRel(const string& queryRelName) const {
@@ -68,9 +78,11 @@ uint32_t QueryGraph::getQueryRelPos(const string& queryRelName) const {
     return queryRelNameToPosMap.at(queryRelName);
 }
 
-void QueryGraph::addQueryRel(unique_ptr<QueryRel> queryRel) {
-    queryRelNameToPosMap.insert({queryRel->name, queryRels.size()});
-    queryRels.push_back(move(queryRel));
+void QueryGraph::addQueryRelIfNotExist(shared_ptr<QueryRel> queryRel) {
+    if (!containsQueryRel(queryRel->name)) {
+        queryRelNameToPosMap.insert({queryRel->name, queryRels.size()});
+        queryRels.push_back(queryRel);
+    }
 }
 
 vector<tuple<uint32_t, bool, bool>> QueryGraph::getConnectedQueryRelsWithDirection(
@@ -126,10 +138,10 @@ unordered_set<string> QueryGraph::getNeighbourNodeNames(const string& queryNodeN
 
 void QueryGraph::merge(QueryGraph& other) {
     for (auto& otherNode : other.queryNodes) {
-        addQueryNode(move(otherNode));
+        addQueryNodeIfNotExist(otherNode);
     }
     for (auto& otherRel : other.queryRels) {
-        addQueryRel(move(otherRel));
+        addQueryRelIfNotExist(otherRel);
     }
 }
 

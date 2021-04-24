@@ -16,13 +16,21 @@ public:
     vector<unique_ptr<LogicalPlan>> enumeratePlans();
 
 private:
-    void enumerateSingleQueryNode();
+    void enumerateBoundQueryPart(BoundQueryPart& boundQueryPart);
 
-    void enumerateNextNumQueryRel(uint32_t& numEnumeratedQueryRels);
+    void updateQueryGraph(BoundMatchStatement& boundMatchStatement);
 
-    void enumerateHashJoin(uint32_t nextNumEnumeratedQueryRels);
+    void enumerateSubplans(const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND,
+        const vector<shared_ptr<LogicalExpression>>& returnOrWithClause);
 
-    void enumerateExtend(uint32_t nextNumEnumeratedQueryRels);
+    void enumerateSingleQueryNode(
+        const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND);
+
+    void enumerateNextLevel(const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND);
+
+    void enumerateHashJoin(const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND);
+
+    void enumerateExtend(const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND);
 
     void appendLogicalScan(uint32_t queryNodePos, LogicalPlan& plan);
 
@@ -33,7 +41,8 @@ private:
 
     void appendFilter(shared_ptr<LogicalExpression> expression, LogicalPlan& plan);
 
-    void appendProjection(LogicalPlan& plan);
+    void appendProjection(
+        const vector<shared_ptr<LogicalExpression>>& returnOrWithClause, LogicalPlan& plan);
 
     void appendNecessaryScans(shared_ptr<LogicalExpression> expression, LogicalPlan& plan);
 
@@ -46,10 +55,12 @@ private:
 private:
     unique_ptr<SubgraphPlanTable> subgraphPlanTable; // cached subgraph plans
     const Catalog& catalog;
-    const QueryGraph& queryGraph;
-    vector<pair<shared_ptr<LogicalExpression>, unordered_set<string>>>
-        whereClauseAndIncludedVariables;
-    vector<shared_ptr<LogicalExpression>> returnClause;
+    const BoundSingleQuery& boundSingleQuery;
+
+    uint32_t currentLevel;
+    unique_ptr<QueryGraph> mergedQueryGraph;
+    // query rels matched in previous query graph
+    bitset<MAX_NUM_VARIABLES> matchedQueryRels;
 };
 
 } // namespace planner

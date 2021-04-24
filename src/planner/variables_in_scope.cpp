@@ -15,11 +15,11 @@ bool VariablesInScope::containsExpression(const string& name) const {
     return nameToExpressionMap.end() != nameToExpressionMap.find(name);
 }
 
-QueryNode* VariablesInScope::getQueryNode(const string& name) const {
+shared_ptr<QueryNode> VariablesInScope::getQueryNode(const string& name) const {
     return nameToQueryNodeMap.at(name);
 }
 
-QueryRel* VariablesInScope::getQueryRel(const string& name) const {
+shared_ptr<QueryRel> VariablesInScope::getQueryRel(const string& name) const {
     return nameToQueryRelMap.at(name);
 }
 
@@ -27,11 +27,11 @@ shared_ptr<LogicalExpression> VariablesInScope::getExpression(const string& name
     return nameToExpressionMap.at(name);
 }
 
-void VariablesInScope::addQueryNode(const string& name, QueryNode* queryNode) {
+void VariablesInScope::addQueryNode(const string& name, shared_ptr<QueryNode> queryNode) {
     nameToQueryNodeMap.insert({name, queryNode});
 }
 
-void VariablesInScope::addQueryRel(const string& name, QueryRel* queryRel) {
+void VariablesInScope::addQueryRel(const string& name, shared_ptr<QueryRel> queryRel) {
     nameToQueryRelMap.insert({name, queryRel});
 }
 
