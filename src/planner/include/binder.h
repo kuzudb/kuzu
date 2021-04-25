@@ -36,7 +36,7 @@ private:
 
     void bindNodeToRel(QueryRel& queryRel, QueryNode* queryNode, bool isSrcNode);
 
-    QueryNode* bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph);
+    shared_ptr<QueryNode> bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph);
 
     label_t bindRelLabel(const string& parsed_label);
 

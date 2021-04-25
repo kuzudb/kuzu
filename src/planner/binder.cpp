@@ -32,14 +32,18 @@ static void validateOnlyFunctionIsCountStar(vector<shared_ptr<LogicalExpression>
     }
 }
 
-static void validateQueryGraphIsConnected(
-    const QueryGraph& queryGraph, const unordered_map<string, QueryNode*>& queryNodesInScope) {
+static void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
+    const unordered_map<string, shared_ptr<QueryNode>>& queryNodesInScope) {
     auto visited = unordered_set<string>();
     for (auto& [name, queryNode] : queryNodesInScope) {
         visited.insert(queryNode->name);
     }
     if (visited.empty()) {
         visited.insert(queryGraph.queryNodes[0]->name);
+    }
+    auto target = visited;
+    for (auto& queryNode : queryGraph.queryNodes) {
+        target.insert(queryNode->name);
     }
     auto frontier = visited;
     while (!frontier.empty()) {
@@ -53,7 +57,7 @@ static void validateQueryGraphIsConnected(
                 }
             }
         }
-        if (visited.size() == queryNodesInScope.size() + queryGraph.queryNodes.size()) {
+        if (visited.size() == target.size()) {
             return;
         }
         frontier = nextFrontier;
@@ -189,9 +193,9 @@ unique_ptr<QueryGraph> Binder::bindQueryGraph(
     const vector<unique_ptr<PatternElement>>& graphPattern) {
     auto queryGraph = make_unique<QueryGraph>();
     for (auto& patternElement : graphPattern) {
-        auto leftNode = bindQueryNode(*patternElement->nodePattern, *queryGraph);
+        auto leftNode = bindQueryNode(*patternElement->nodePattern, *queryGraph).get();
         for (auto& patternElementChain : patternElement->patternElementChains) {
-            auto rightNode = bindQueryNode(*patternElementChain->nodePattern, *queryGraph);
+            auto rightNode = bindQueryNode(*patternElementChain->nodePattern, *queryGraph).get();
             bindQueryRel(*patternElementChain->relPattern, leftNode, rightNode, *queryGraph);
             leftNode = rightNode;
         }
@@ -219,15 +223,15 @@ void Binder::bindQueryRel(const RelPattern& relPattern, QueryNode* leftNode, Que
         throw invalid_argument("Bind relationship " + parsedName +
                                " to relationship with same name is not supported.");
     }
-    auto rel = make_unique<QueryRel>(
+    auto rel = make_shared<QueryRel>(
         makeUniqueVariableName(parsedName, lastVariableIdx), bindRelLabel(relPattern.label));
     auto isLeftNodeSrc = RIGHT == relPattern.arrowDirection;
     bindNodeToRel(*rel, leftNode, isLeftNodeSrc);
     bindNodeToRel(*rel, rightNode, !isLeftNodeSrc);
     if (!parsedName.empty()) {
-        variablesInScope.addQueryRel(parsedName, rel.get());
+        variablesInScope.addQueryRel(parsedName, rel);
     }
-    queryGraph.addQueryRel(move(rel));
+    queryGraph.addQueryRelIfNotExist(rel);
 }
 
 void Binder::bindNodeToRel(QueryRel& queryRel, QueryNode* queryNode, bool isSrcNode) {
@@ -246,7 +250,8 @@ void Binder::bindNodeToRel(QueryRel& queryRel, QueryNode* queryNode, bool isSrcN
     isSrcNode ? queryRel.srcNode = queryNode : queryRel.dstNode = queryNode;
 }
 
-QueryNode* Binder::bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph) {
+shared_ptr<QueryNode> Binder::bindQueryNode(
+    const NodePattern& nodePattern, QueryGraph& queryGraph) {
     auto parsedName = nodePattern.name;
     // should be one conflict naming check once QNode, QRel becomes LogicalExpression
     if (variablesInScope.containsQueryRel(parsedName)) {
@@ -258,29 +263,27 @@ QueryNode* Binder::bindQueryNode(const NodePattern& nodePattern, QueryGraph& que
                                expressionTypeToString(expression->expressionType) +
                                " expression (expect node).");
     }
-    // bind to node in scope
-    if (variablesInScope.containsQueryNode(parsedName)) {
-        auto nodeInScope = variablesInScope.getQueryNode(parsedName);
+    shared_ptr<QueryNode> queryNode;
+    if (variablesInScope.containsQueryNode(parsedName)) { // bind to node in scope
+        queryNode = variablesInScope.getQueryNode(parsedName);
         auto otherLabel = bindNodeLabel(nodePattern.label);
-        if (ANY_LABEL == nodeInScope->label) {
-            nodeInScope->label = otherLabel;
-            return nodeInScope;
+        if (ANY_LABEL == queryNode->label) {
+            queryNode->label = otherLabel;
         } else {
-            if (ANY_LABEL != otherLabel && nodeInScope->label != otherLabel) {
+            if (ANY_LABEL != otherLabel && queryNode->label != otherLabel) {
                 throw invalid_argument("Multi-label is not supported. Node (" + parsedName +
                                        ") is given multiple labels.");
             }
         }
-        return nodeInScope;
+    } else {
+        queryNode = make_shared<QueryNode>(
+            makeUniqueVariableName(parsedName, lastVariableIdx), bindNodeLabel(nodePattern.label));
     }
-    auto node = make_unique<QueryNode>(
-        makeUniqueVariableName(parsedName, lastVariableIdx), bindNodeLabel(nodePattern.label));
-    auto nodePtr = node.get();
-    queryGraph.addQueryNode(move(node));
+    queryGraph.addQueryNodeIfNotExist(queryNode);
     if (!parsedName.empty()) {
-        variablesInScope.addQueryNode(parsedName, nodePtr);
+        variablesInScope.addQueryNode(parsedName, queryNode);
     }
-    return nodePtr;
+    return queryNode;
 }
 
 label_t Binder::bindRelLabel(const string& parsed_label) {

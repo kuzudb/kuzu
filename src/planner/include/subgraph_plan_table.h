@@ -26,10 +26,14 @@ class SubgraphPlanTable {
 public:
     explicit SubgraphPlanTable(uint32_t maxSubqueryGraphSize);
 
+    bool containSubgraphPlans(const SubqueryGraph& subqueryGraph) const;
+
     const vector<unique_ptr<LogicalPlan>>& getSubgraphPlans(
         const SubqueryGraph& subqueryGraph) const;
 
-    void addSubgraphPlan(const SubqueryGraph& subQueryGraph, unique_ptr<LogicalPlan> plan);
+    void addSubgraphPlan(const SubqueryGraph& subqueryGraph, unique_ptr<LogicalPlan> plan);
+
+    void clearUntil(uint32_t size);
 
 public:
     vector<unordered_map<SubqueryGraph, vector<unique_ptr<LogicalPlan>>, SubqueryGraphHasher>>

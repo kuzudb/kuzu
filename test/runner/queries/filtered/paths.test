@@ -19,3 +19,7 @@
 -NAME TwoHopKnowsFilteredTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE a.age = c.age RETURN COUNT(*)
 ---- 12
+
+-NAME TwoHopKnowsFilteredTwoQueryPartsTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH * MATCH (b)-[e2:knows]->(c:person) WHERE a.age = c.age RETURN COUNT(*)
+---- 12

@@ -50,13 +50,17 @@ struct SubqueryGraphJoinNodePairHasher {
 class QueryGraph {
 
 public:
+    uint32_t getNumQueryNodes() const;
+
     bool containsQueryNode(const string& queryNodeName) const;
 
     QueryNode* getQueryNode(const string& queryNodeName) const;
 
     uint32_t getQueryNodePos(const string& queryNodeName) const;
 
-    void addQueryNode(unique_ptr<QueryNode> queryNode);
+    void addQueryNodeIfNotExist(shared_ptr<QueryNode> queryNode);
+
+    uint32_t getNumQueryRels() const;
 
     bool containsQueryRel(const string& queryRelName) const;
 
@@ -64,7 +68,7 @@ public:
 
     uint32_t getQueryRelPos(const string& queryRelName) const;
 
-    void addQueryRel(unique_ptr<QueryRel> queryRel);
+    void addQueryRelIfNotExist(shared_ptr<QueryRel> queryRel);
 
     vector<tuple<uint32_t, bool, bool>> getConnectedQueryRelsWithDirection(
         const SubqueryGraph& subqueryGraph) const;
@@ -88,8 +92,8 @@ private:
 public:
     unordered_map<string, uint32_t> queryNodeNameToPosMap;
     unordered_map<string, uint32_t> queryRelNameToPosMap;
-    vector<unique_ptr<QueryNode>> queryNodes;
-    vector<unique_ptr<QueryRel>> queryRels;
+    vector<shared_ptr<QueryNode>> queryNodes;
+    vector<shared_ptr<QueryRel>> queryRels;
 };
 
 } // namespace planner

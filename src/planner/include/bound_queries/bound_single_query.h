@@ -14,6 +14,16 @@ namespace planner {
 class BoundSingleQuery {
 
 public:
+    uint32_t getNumQueryRels() const {
+        auto numQueryRels =
+            boundMatchStatement ? boundMatchStatement->queryGraph->getNumQueryRels() : 0;
+        for (auto& boundQueryPart : boundQueryParts) {
+            numQueryRels += boundQueryPart->getNumQueryRels();
+        }
+        return numQueryRels;
+    }
+
+public:
     // WITH query parts
     vector<unique_ptr<BoundQueryPart>> boundQueryParts;
     unique_ptr<BoundMatchStatement> boundMatchStatement;
