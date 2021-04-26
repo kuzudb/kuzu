@@ -23,8 +23,7 @@ void AdjAndPropertyListsBuilder::buildAdjListsHeadersAndListsMetadata() {
     for (auto& dir : DIRS) {
         dirLabelAdjListHeaders[dir].resize(catalog.getNodeLabelsCount());
         for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
-            dirLabelAdjListHeaders[dir][nodeLabel].headers.resize(
-                graph.getNumNodesPerLabel()[nodeLabel]);
+            dirLabelAdjListHeaders[dir][nodeLabel].init(graph.getNumNodesPerLabel()[nodeLabel]);
         }
         dirLabelAdjListsMetadata[dir].resize(catalog.getNodeLabelsCount());
     }
@@ -150,8 +149,8 @@ void AdjAndPropertyListsBuilder::saveToFile() {
                     RelsStore::getAdjListsFname(outputDirectory, description.label, nodeLabel, dir);
                 threadPool.execute([&](ListsMetadata& x, string fname) { x.saveToFile(fname); },
                     dirLabelAdjListsMetadata[dir][nodeLabel], fname);
-                threadPool.execute([&](ListHeaders& x, string fname) { x.saveToFile(fname); },
-                    dirLabelAdjListHeaders[dir][nodeLabel], fname);
+                threadPool.execute([&](ListHeaders* x, string fname) { x->saveToFile(fname); },
+                    &dirLabelAdjListHeaders[dir][nodeLabel], fname);
             }
         }
     }

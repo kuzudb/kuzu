@@ -55,38 +55,44 @@ void ListsMetadata::readFromFile(const string& fname) {
 
 ListHeaders::ListHeaders(string path) : ListHeaders() {
     readFromFile(path);
-    logger->trace("AdjListHeaders: #Headers {}", headers.size());
+    logger->trace("AdjListHeaders: #Headers {}", sizeof(headers.get()));
 };
 
-template<typename S>
-void ListHeaders::serialize(S& s) {
-    s.container(headers, UINT32_MAX, [](S& s, uint32_t& v) { s(v); });
+void ListHeaders::init(uint32_t size) {
+    this->size = size;
+    headers = make_unique<uint32_t[]>(size);
 }
 
 void ListHeaders::saveToFile(const string& fname) {
     auto path = fname + ".headers";
-    fstream f{path, f.binary | f.trunc | f.out};
-    if (f.fail()) {
-        throw invalid_argument("cannot open " + path + " for writing");
+    if (0 == path.length()) {
+        throw invalid_argument("ListHeaders: Empty filename");
     }
-    OutputStreamAdapter serializer{f};
-    serializer.object(*this);
-    serializer.adapter().flush();
-    f.close();
+    uint32_t f = open(path.c_str(), O_WRONLY | O_CREAT, 0666);
+    if (-1u == f) {
+        throw invalid_argument("ListHeaders: Cannot create file: " + path);
+    }
+    auto bytesToWrite = size * sizeof(uint32_t);
+    if (bytesToWrite != write(f, headers.get(), bytesToWrite)) {
+        throw invalid_argument("ListHeaders: Cannot write in file.");
+    }
+    close(f);
 }
 
 void ListHeaders::readFromFile(const string& fname) {
     auto path = fname + ".headers";
-    logger->trace("AdjListHeaders: Path {}", path);
-    fstream f{path, f.binary | f.in};
-    if (f.fail()) {
-        throw invalid_argument("Cannot open " + path + " for reading the catalog.");
+    if (0 == path.length()) {
+        throw invalid_argument("ListHeaders: Empty filename");
     }
-    auto state = bitsery::quickDeserialization<bitsery::InputStreamAdapter>(f, *this);
-    f.close();
-    if (!(state.first == bitsery::ReaderError::NoError && state.second)) {
-        throw invalid_argument("Cannot deserialize the AdjListHeaders.");
+    uint32_t f = open(path.c_str(), O_RDONLY);
+    auto bytesToRead = lseek(f, 0, SEEK_END);
+    size = bytesToRead / sizeof(uint32_t);
+    headers = make_unique<uint32_t[]>(size);
+    lseek(f, 0, SEEK_SET);
+    if (bytesToRead != read(f, headers.get(), bytesToRead)) {
+        throw invalid_argument("ListHeaders: Cannot read from file.");
     }
+    close(f);
 }
 
 } // namespace storage

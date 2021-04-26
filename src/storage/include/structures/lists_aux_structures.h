@@ -82,7 +82,6 @@ class ListHeaders {
     friend class graphflow::loader::ListsLoaderHelper;
     friend class graphflow::loader::AdjAndPropertyListsBuilder;
     friend class graphflow::loader::NodesLoader;
-    friend class bitsery::Access;
 
 public:
     ListHeaders() : logger{spdlog::get("storage")} {};
@@ -102,8 +101,7 @@ public:
     static inline uint32_t getLargeListIdx(const uint32_t& header) { return header & 0x7fffffff; };
 
 private:
-    template<typename S>
-    void serialize(S& s);
+    void init(uint32_t size);
 
     void saveToFile(const string& fname);
     void readFromFile(const string& fname);
@@ -125,7 +123,8 @@ private:
     //      1. MSB (31st bit) is set
     //      2. 30-0  bits denote the idx in the largeListsPagesMaps where the length and the disk
     //      page IDs are located.
-    vector<uint32_t> headers;
+    unique_ptr<uint32_t[]> headers;
+    uint32_t size;
 };
 
 } // namespace storage
