@@ -10,12 +10,12 @@ namespace common {
 string Value::toString() const {
     switch (dataType) {
     case BOOL:
-        return primitive.boolean_ ? "True" : "False";
+        return primitive.booleanVal ? "True" : "False";
     case INT32:
     case INT64:
-        return to_string(primitive.integer_);
+        return to_string(primitive.int32Val);
     case DOUBLE:
-        return to_string(primitive.double_);
+        return to_string(primitive.doubleVal);
     case STRING:
         return str;
     case NODE:

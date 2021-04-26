@@ -55,7 +55,7 @@ void AdjAndPropertyListsBuilder::setRel(
     ListsLoaderHelper::calculatePageCursor(header, pos,
         description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes(), nodeIDs[dir].offset,
         cursor, dirLabelAdjListsMetadata[dir][nodeIDs[dir].label]);
-    dirLabelAdjLists[dir][nodeIDs[dir].label]->set(cursor, nodeIDs[!dir]);
+    dirLabelAdjLists[dir][nodeIDs[dir].label]->setNbrNode(cursor, nodeIDs[!dir]);
 }
 
 void AdjAndPropertyListsBuilder::setProperty(const vector<uint64_t>& pos,
@@ -67,7 +67,8 @@ void AdjAndPropertyListsBuilder::setProperty(const vector<uint64_t>& pos,
         ListsLoaderHelper::calculatePageCursor(header, pos[dir], getDataTypeSize(type),
             nodeIDs[dir].offset, cursor,
             dirLabelPropertyIdxPropertyListsMetadata[dir][nodeIDs[dir].label][propertyIdx]);
-        dirLabelPropertyIdxPropertyLists[dir][nodeIDs[dir].label][propertyIdx]->set(cursor, val);
+        dirLabelPropertyIdxPropertyLists[dir][nodeIDs[dir].label][propertyIdx]->setPorperty(
+            cursor, val);
     }
 }
 
@@ -80,16 +81,16 @@ void AdjAndPropertyListsBuilder::setStringProperty(const vector<uint64_t>& pos,
         getDataTypeSize(STRING), nodeIDs[FWD].offset, propertyListCursor,
         dirLabelPropertyIdxPropertyListsMetadata[FWD][nodeIDs[FWD].label][propertyIdx]);
     auto encodedStrFwd = reinterpret_cast<gf_string_t*>(
-        dirLabelPropertyIdxPropertyLists[FWD][nodeIDs[FWD].label][propertyIdx]->get(
+        dirLabelPropertyIdxPropertyLists[FWD][nodeIDs[FWD].label][propertyIdx]->getPtrToMemLoc(
             propertyListCursor));
-    (*propertyIdxUnordStringOverflowPages)[propertyIdx]->set(
+    (*propertyIdxUnordStringOverflowPages)[propertyIdx]->setStrInOvfPageAndPtrInEncString(
         strVal, stringOverflowCursor, encodedStrFwd);
     ListsLoaderHelper::calculatePageCursor(
         dirLabelAdjListHeaders[BWD][nodeIDs[BWD].label].headers[nodeIDs[BWD].offset], pos[BWD],
         getDataTypeSize(STRING), nodeIDs[BWD].offset, propertyListCursor,
         dirLabelPropertyIdxPropertyListsMetadata[BWD][nodeIDs[BWD].label][propertyIdx]);
     auto encodedStrBwd = reinterpret_cast<gf_string_t*>(
-        dirLabelPropertyIdxPropertyLists[BWD][nodeIDs[BWD].label][propertyIdx]->get(
+        dirLabelPropertyIdxPropertyLists[BWD][nodeIDs[BWD].label][propertyIdx]->getPtrToMemLoc(
             propertyListCursor));
     memcpy(encodedStrBwd, encodedStrFwd, getDataTypeSize(STRING));
 }
@@ -143,7 +144,8 @@ void AdjAndPropertyListsBuilder::saveToFile() {
     for (auto& dir : DIRS) {
         if (!description.isSingleCardinalityPerDir[dir]) {
             for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
-                dirLabelAdjLists[dir][nodeLabel]->saveToFile();
+                threadPool.execute([&](InMemAdjPages* x) { x->saveToFile(); },
+                    dirLabelAdjLists[dir][nodeLabel].get());
                 auto fname =
                     RelsStore::getAdjListsFname(outputDirectory, description.label, nodeLabel, dir);
                 threadPool.execute([&](ListsMetadata& x, string fname) { x.saveToFile(fname); },
@@ -300,13 +302,14 @@ void AdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(node_off
         for (auto pos = len; pos > 0; pos--) {
             ListsLoaderHelper::calculatePageCursor(header, pos, getDataTypeSize(STRING),
                 offsetStart, propertyListCursor, *listsMetadata);
-            auto valPtr = reinterpret_cast<gf_string_t*>(propertyLists->get(propertyListCursor));
+            auto valPtr =
+                reinterpret_cast<gf_string_t*>(propertyLists->getPtrToMemLoc(propertyListCursor));
             if (12 < valPtr->len && 0xffffffff != valPtr->len) {
                 unorderedStringOverflowCursor.idx = 0;
                 valPtr->getOverflowPtrInfo(
                     unorderedStringOverflowCursor.idx, unorderedStringOverflowCursor.offset);
                 orderedStringOverflow->copyOverflowString(orderedStringOverflowCursor,
-                    unorderedStringOverflow->get(unorderedStringOverflowCursor), valPtr);
+                    unorderedStringOverflow->getPtrToMemLoc(unorderedStringOverflowCursor), valPtr);
             }
         }
     }

@@ -25,14 +25,14 @@ void AdjAndPropertyColsBuilderAndListSizeCounter::setRel(
     PageCursor cursor;
     calculatePageCursor(description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes(),
         nodeIDs[dir].offset, cursor);
-    dirLabelAdjColumns[dir][nodeIDs[dir].label]->set(cursor, nodeIDs[!dir]);
+    dirLabelAdjColumns[dir][nodeIDs[dir].label]->setNbrNode(cursor, nodeIDs[!dir]);
 }
 
 void AdjAndPropertyColsBuilderAndListSizeCounter::setProperty(
     const nodeID_t& nodeID, const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
     PageCursor cursor;
     calculatePageCursor(getDataTypeSize(type), nodeID.offset, cursor);
-    labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->set(cursor, val);
+    labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->setPorperty(cursor, val);
 }
 
 void AdjAndPropertyColsBuilderAndListSizeCounter::setStringProperty(const nodeID_t& nodeID,
@@ -41,9 +41,10 @@ void AdjAndPropertyColsBuilderAndListSizeCounter::setStringProperty(const nodeID
 
     calculatePageCursor(getDataTypeSize(STRING), nodeID.offset, propertyListCursor);
     gf_string_t* encodedString = reinterpret_cast<gf_string_t*>(
-        labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->get(propertyListCursor));
-    (*labelPropertyIdxStringOverflowPages)[nodeID.label][propertyIdx]->set(
-        originalString, cursor, encodedString);
+        labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->getPtrToMemLoc(
+            propertyListCursor));
+    (*labelPropertyIdxStringOverflowPages)[nodeID.label][propertyIdx]
+        ->setStrInOvfPageAndPtrInEncString(originalString, cursor, encodedString);
 }
 
 void AdjAndPropertyColsBuilderAndListSizeCounter::sortOverflowStrings() {
@@ -184,13 +185,14 @@ void AdjAndPropertyColsBuilderAndListSizeCounter::sortOverflowStringsofPropertyC
     unorderedStringOverflowCursor.offset = 0;
     for (; offsetStart < offsetEnd; offsetStart++) {
         calculatePageCursor(getDataTypeSize(STRING), offsetStart, propertyListCursor);
-        auto valPtr = reinterpret_cast<gf_string_t*>(propertyColumn->get(propertyListCursor));
+        auto valPtr =
+            reinterpret_cast<gf_string_t*>(propertyColumn->getPtrToMemLoc(propertyListCursor));
         auto len = ((uint32_t*)valPtr)[0];
         if (len > 12 && 0xffffffff != len) {
             valPtr->getOverflowPtrInfo(
                 unorderedStringOverflowCursor.idx, unorderedStringOverflowCursor.offset);
             orderedStringOverflow->copyOverflowString(orderedStringOverflowCursor,
-                unorderedStringOverflow->get(unorderedStringOverflowCursor), valPtr);
+                unorderedStringOverflow->getPtrToMemLoc(unorderedStringOverflowCursor), valPtr);
         }
     }
 }

@@ -15,21 +15,21 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
     case BOOL: {
         for (auto i = 0u; i < operand.state->numSelectedValues; i++) {
             auto pos = operand.state->selectedValuesPos[i];
-            outValues[pos].primitive.boolean_ = operand.values[pos];
+            outValues[pos].primitive.booleanVal = operand.values[pos];
         }
     } break;
     case INT32: {
         auto intValues = (int32_t*)operand.values;
         for (auto i = 0u; i < operand.state->numSelectedValues; i++) {
             auto pos = operand.state->selectedValuesPos[i];
-            outValues[pos].primitive.integer_ = intValues[pos];
+            outValues[pos].primitive.int32Val = intValues[pos];
         }
     } break;
     case DOUBLE: {
         auto doubleValues = (double_t*)operand.values;
         for (auto i = 0u; i < operand.state->numSelectedValues; i++) {
             auto pos = operand.state->selectedValuesPos[i];
-            outValues[pos].primitive.double_ = doubleValues[pos];
+            outValues[pos].primitive.doubleVal = doubleValues[pos];
         }
     } break;
     default:
@@ -47,7 +47,7 @@ void VectorCastOperations::castUnstructuredToBoolValue(ValueVector& operand, Val
                                         DataTypeNames[inValues[pos].dataType] + "(" +
                                         inValues[pos].toString() + ")”.");
         }
-        result.values[pos] = inValues[pos].primitive.boolean_;
+        result.values[pos] = inValues[pos].primitive.booleanVal;
     }
 }
 

@@ -78,13 +78,13 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest1) {
         dataChunksIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 1);
-        ASSERT_EQ(tuple.getValue(1)->primitive.integer_, (int32_t)(1 * 2));
+        ASSERT_EQ(tuple.getValue(1)->primitive.int32Val, (int32_t)(1 * 2));
         ASSERT_EQ(tuple.getValue(2)->nodeID.label, 28);
         ASSERT_EQ(tuple.getValue(2)->nodeID.offset, tupleIndex);
-        ASSERT_EQ(tuple.getValue(3)->primitive.double_, (double)(tupleIndex / 2));
+        ASSERT_EQ(tuple.getValue(3)->primitive.doubleVal, (double)(tupleIndex / 2));
         ASSERT_EQ(tuple.getValue(4)->nodeID.label, 38);
         ASSERT_EQ(tuple.getValue(4)->nodeID.offset, 10);
-        ASSERT_EQ(tuple.getValue(5)->primitive.boolean_, (bool)false);
+        ASSERT_EQ(tuple.getValue(5)->primitive.booleanVal, (bool)false);
         tupleIndex++;
     }
     ASSERT_EQ(tupleIndex, 100);
@@ -98,13 +98,13 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest1) {
         dataChunksIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 1);
-        ASSERT_EQ(tuple.getValue(1)->primitive.integer_, (int32_t)(1 * 2));
+        ASSERT_EQ(tuple.getValue(1)->primitive.int32Val, (int32_t)(1 * 2));
         ASSERT_EQ(tuple.getValue(2)->nodeID.label, 28);
         ASSERT_EQ(tuple.getValue(2)->nodeID.offset, 9);
-        ASSERT_EQ(tuple.getValue(3)->primitive.double_, (double)(9 / 2));
+        ASSERT_EQ(tuple.getValue(3)->primitive.doubleVal, (double)(9 / 2));
         ASSERT_EQ(tuple.getValue(4)->nodeID.label, 38);
         ASSERT_EQ(tuple.getValue(4)->nodeID.offset, 99);
-        ASSERT_EQ(tuple.getValue(5)->primitive.boolean_, (bool)((99 / 2) == 1));
+        ASSERT_EQ(tuple.getValue(5)->primitive.booleanVal, (bool)((99 / 2) == 1));
         tupleIndex++;
     }
     ASSERT_EQ(tupleIndex, 1);
@@ -129,13 +129,13 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest2) {
         dataChunksIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 1);
-        ASSERT_EQ(tuple.getValue(1)->primitive.integer_, (int32_t)(1 * 2));
+        ASSERT_EQ(tuple.getValue(1)->primitive.int32Val, (int32_t)(1 * 2));
         ASSERT_EQ(tuple.getValue(2)->nodeID.label, 28);
         ASSERT_EQ(tuple.getValue(2)->nodeID.offset, bid);
-        ASSERT_EQ(tuple.getValue(3)->primitive.double_, (double)(bid / 2));
+        ASSERT_EQ(tuple.getValue(3)->primitive.doubleVal, (double)(bid / 2));
         ASSERT_EQ(tuple.getValue(4)->nodeID.label, 38);
         ASSERT_EQ(tuple.getValue(4)->nodeID.offset, cid);
-        ASSERT_EQ(tuple.getValue(5)->primitive.boolean_, (bool)((cid / 2) == 1));
+        ASSERT_EQ(tuple.getValue(5)->primitive.booleanVal, (bool)((cid / 2) == 1));
         tupleIndex++;
     }
     ASSERT_EQ(tupleIndex, 10000);
@@ -160,13 +160,13 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest3) {
         dataChunksIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->nodeID.offset, aid);
-        ASSERT_EQ(tuple.getValue(1)->primitive.integer_, (int32_t)(aid * 2));
+        ASSERT_EQ(tuple.getValue(1)->primitive.int32Val, (int32_t)(aid * 2));
         ASSERT_EQ(tuple.getValue(2)->nodeID.label, 28);
         ASSERT_EQ(tuple.getValue(2)->nodeID.offset, 10);
-        ASSERT_EQ(tuple.getValue(3)->primitive.double_, (double)(10 / 2));
+        ASSERT_EQ(tuple.getValue(3)->primitive.doubleVal, (double)(10 / 2));
         ASSERT_EQ(tuple.getValue(4)->nodeID.label, 38);
         ASSERT_EQ(tuple.getValue(4)->nodeID.offset, cid);
-        ASSERT_EQ(tuple.getValue(5)->primitive.boolean_, (bool)((cid / 2) == 1));
+        ASSERT_EQ(tuple.getValue(5)->primitive.booleanVal, (bool)((cid / 2) == 1));
         tupleIndex++;
     }
     ASSERT_EQ(tupleIndex, 10000);

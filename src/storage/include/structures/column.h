@@ -50,7 +50,7 @@ public:
         const unique_ptr<ColumnOrListsHandle>& handle) override;
 
 private:
-    void readStringsFromOverflowPages(const shared_ptr<ValueVector>& valueVector, uint64_t size);
+    void readStringsFromOverflowPages(const shared_ptr<ValueVector>& valueVector);
 
 private:
     FileHandle overflowPagesFileHandle;

@@ -76,7 +76,8 @@ class Lists<UNSTRUCTURED> : public BaseLists {
 
 public:
     Lists(const string& fname, BufferManager& bufferManager)
-        : BaseLists{fname, UNSTRUCTURED, 1, make_shared<ListHeaders>(fname), bufferManager} {};
+        : BaseLists{fname, UNSTRUCTURED, 1, make_shared<ListHeaders>(fname), bufferManager},
+          overflowPagesFileHandle{fname + ".ovf"} {};
 
     // readValues is overloaded. Lists<UNKNOWN> is not supposed to use the one defined in BaseLists.
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
@@ -97,9 +98,13 @@ private:
         LogicalToPhysicalPageIdxMapper& mapper, const shared_ptr<ValueVector>& valueVector,
         uint64_t pos, bool toRead);
 
+    void readStringsFromOverflowPages(const shared_ptr<ValueVector>& valueVector);
+
 public:
     static constexpr uint8_t PROPERTY_IDX_LEN = 4;
     static constexpr uint8_t PROPERTY_DATATYPE_LEN = 1;
+
+    FileHandle overflowPagesFileHandle;
 };
 
 typedef Lists<INT32> RelPropertyListsInt;
