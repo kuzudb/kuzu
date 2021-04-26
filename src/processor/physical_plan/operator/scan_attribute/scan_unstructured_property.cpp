@@ -6,7 +6,7 @@ namespace graphflow {
 namespace processor {
 
 ScanUnstructuredProperty::ScanUnstructuredProperty(uint64_t dataChunkPos, uint64_t valueVectorPos,
-    uint32_t propertyKey, BaseLists* column, unique_ptr<PhysicalOperator> prevOperator)
+    uint32_t propertyKey, BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator)
     : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator)},
       propertyKey{propertyKey}, lists{(Lists<UNSTRUCTURED>*)lists} {
     dataChunks = this->prevOperator->getDataChunks();

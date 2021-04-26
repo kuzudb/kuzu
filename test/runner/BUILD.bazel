@@ -26,6 +26,8 @@ filegroup(
         "queries/filtered/nodes.test",
         "queries/filtered/paths.test",
         "queries/filtered/stars.test",
+        "queries/filtered/str_operations.test",
+        "queries/filtered/unstructured_properties.test",
         "queries/structural/nodes.test",
         "queries/structural/paths.test",
         "queries/structural/stars.test",

@@ -38,3 +38,13 @@ TEST(ProcessorTest, FilteredStarQueries) {
     TestHelper testHelper;
     ASSERT_TRUE(testHelper.runTest("test/runner/queries/filtered/stars.test"));
 }
+
+TEST(ProcessorTest, StrOperations) {
+    TestHelper testHelper;
+    ASSERT_TRUE(testHelper.runTest("test/runner/queries/filtered/str_operations.test"));
+}
+
+TEST(ProcessorTest, UnstructuredOperations) {
+    TestHelper testHelper;
+    ASSERT_TRUE(testHelper.runTest("test/runner/queries/filtered/unstructured_properties.test"));
+}

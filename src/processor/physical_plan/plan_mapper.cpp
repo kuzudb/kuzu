@@ -93,8 +93,7 @@ unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator&
     case LOGICAL_SCAN_REL_PROPERTY:
         return mapLogicalRelPropertyReaderToPhysical(logicalOperator, graph, physicalOperatorInfo);
     default:
-        // should never happen.
-        throw std::invalid_argument("Unsupported operator type.");
+        assert(false);
     }
 }
 

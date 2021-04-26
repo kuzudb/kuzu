@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <unordered_set>
 
 #include "src/common/include/expression_type.h"
@@ -29,8 +30,9 @@ public:
     // creates a leaf variable expression.
     LogicalExpression(ExpressionType expressionType, DataType dataType, const string& variableName);
 
-    // creates a leaf literal expression.
-    LogicalExpression(ExpressionType expressionType, DataType dataType, const Value& literalValue);
+    virtual void cast(DataType dataTypeToCast) {
+        throw invalid_argument("LogicalExpression does not support cast(DataType).");
+    }
 
     inline const LogicalExpression& getChildExpr(uint64_t pos) const { return *childrenExpr[pos]; }
 
@@ -49,8 +51,6 @@ protected:
 public:
     // variable name for leaf variable expressions.
     string variableName;
-    // value used by leaf literal expressions.
-    Value literalValue;
     vector<shared_ptr<LogicalExpression>> childrenExpr;
     ExpressionType expressionType;
     DataType dataType;

@@ -65,26 +65,16 @@ void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
 }
 
 void Column<STRING>::readStringsFromOverflowPages(const shared_ptr<ValueVector>& valueVector) {
-    auto values = valueVector->values;
-    uint64_t overflowPtr = valueVector->state->size * sizeof(gf_string_t);
-    size_t sizeNeededForOverflowStrings = valueVector->state->size * sizeof(gf_string_t);
-    for (auto i = 0u; i < valueVector->state->numSelectedValues; i++) {
-        auto pos = valueVector->state->selectedValuesPos[i];
-        if (((gf_string_t*)values)[pos].len > 4) {
-            sizeNeededForOverflowStrings += ((gf_string_t*)values)[pos].len;
-        }
-    }
-    values = valueVector->reserve(sizeNeededForOverflowStrings);
     PageCursor cursor;
     for (auto i = 0u; i < valueVector->state->numSelectedValues; i++) {
         auto pos = valueVector->state->selectedValuesPos[i];
-        if (((gf_string_t*)values)[pos].len > 12) {
-            ((gf_string_t*)values)[pos].getOverflowPtrInfo(cursor.idx, cursor.offset);
+        auto& value = ((gf_string_t*)valueVector->values)[pos];
+        if (value.len > gf_string_t::SHORT_STR_LENGTH) {
+            value.getOverflowPtrInfo(cursor.idx, cursor.offset);
             auto frame = bufferManager.pin(overflowPagesFileHandle, cursor.idx);
-            memcpy(values + overflowPtr, frame + cursor.offset, ((gf_string_t*)values)[pos].len);
-            ((gf_string_t*)values)[pos].overflowPtr =
-                reinterpret_cast<uintptr_t>(values + overflowPtr);
-            overflowPtr += ((gf_string_t*)values)[pos].len;
+            auto copyStr = new char[value.len];
+            memcpy(copyStr, frame + cursor.offset, value.len);
+            value.overflowPtr = reinterpret_cast<uintptr_t>(copyStr);
             bufferManager.unpin(overflowPagesFileHandle, cursor.idx);
         }
     }

@@ -14,7 +14,7 @@
 
 -NAME PersonNodesIsWorkerFilteredTest
 -QUERY MATCH (a:person) WHERE a.isWorker = true RETURN COUNT(*)
----- 3
+---- 4
 
 -NAME OrganisationNodesIsWorkerFilteredTest
 -QUERY MATCH (a:organisation) WHERE a.mark >= 3.7 RETURN COUNT(*)
@@ -26,8 +26,24 @@
 
 -NAME PersonNodesGenderFilteredTest2
 -QUERY MATCH (a:person) WHERE (a.gender*3.5 = 7.0) RETURN COUNT(*)
+---- 5
+
+-NAME PersonNodesFNameFilteredTest1
+-QUERY MATCH (a:person) WHERE a.fName = 'Farooq' RETURN COUNT(*)
+---- 1
+
+-NAME PersonNodesFNameFilteredTest2
+-QUERY MATCH (a:person) WHERE a.fName <> 'Farooq' RETURN COUNT(*)
+---- 7
+
+-NAME PersonNodesFNameFilteredTest3
+-QUERY MATCH (a:person) WHERE a.fName < 'Carom' RETURN COUNT(*)
+---- 3
+
+-NAME PersonNodesFNameFilteredTest4
+-QUERY MATCH (a:person) WHERE a.fName >= 'Eliz' RETURN COUNT(*)
 ---- 4
 
 -NAME PersonNodesGenderFilteredTest3
 -QUERY WITH 3.5 AS threshold MATCH (a:person) WHERE (a.gender*threshold = 7.0) RETURN COUNT(*)
----- 4
+---- 5

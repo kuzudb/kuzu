@@ -1,7 +1,7 @@
 #include "src/processor/include/physical_plan/expression_mapper.h"
 
 #include "src/common/include/expression_type.h"
-#include "src/expression/include/logical/logical_expression.h"
+#include "src/expression/include/logical/logical_literal_expression.h"
 #include "src/expression/include/physical/physical_binary_expression.h"
 #include "src/expression/include/physical/physical_expression.h"
 #include "src/expression/include/physical/physical_unary_expression.h"
@@ -29,14 +29,13 @@ unique_ptr<PhysicalExpression> ExpressionMapper::mapToPhysical(const LogicalExpr
         auto child = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo, dataChunks);
         return make_unique<PhysicalUnaryExpression>(
             move(child), expressionType, expression.dataType);
-    } else if (isExpressionBinary(expressionType)) {
+    } else {
+        assert(isExpressionBinary(expressionType));
         auto lExpr = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo, dataChunks);
         auto rExpr = mapToPhysical(expression.getChildExpr(1), physicalOperatorInfo, dataChunks);
         return make_unique<PhysicalBinaryExpression>(
             move(lExpr), move(rExpr), expressionType, expression.dataType);
     }
-    // should never happen.
-    throw std::invalid_argument("Unsupported expression type.");
 }
 
 unique_ptr<PhysicalExpression> ExpressionMapper::clone(
@@ -60,21 +59,33 @@ unique_ptr<PhysicalExpression> ExpressionMapper::clone(
 
 unique_ptr<PhysicalExpression> mapLogicalLiteralExpressionToPhysical(
     const LogicalExpression& expression) {
+    auto& literalExpression = (LogicalLiteralExpression&)expression;
     // We create an owner dataChunk which is flat and of size 1 to contain the literal.
-    auto valueVector = make_shared<ValueVector>(expression.dataType, 1 /* capacity */);
+    auto valueVector = make_shared<ValueVector>(
+        literalExpression.storeAsPrimitiveVector ? literalExpression.dataType : UNSTRUCTURED,
+        1 /* capacity */);
     valueVector->state = DataChunkState::getSingleValueDataChunkState();
-    switch (expression.dataType) {
-    case INT32: {
-        valueVector->setValue(0, expression.literalValue.primitive.int32Val);
-    } break;
-    case DOUBLE: {
-        valueVector->setValue(0, expression.literalValue.primitive.doubleVal);
-    } break;
-    case BOOL:
-        valueVector->setValue(0, expression.literalValue.primitive.booleanVal);
-        break;
-    default:
-        throw std::invalid_argument("Unsupported data type for literal expressions.");
+    if (!literalExpression.storeAsPrimitiveVector) {
+        ((Value*)valueVector->values)[0] = literalExpression.literal;
+    } else {
+        switch (expression.dataType) {
+        case INT32: {
+            valueVector->setValue(0, literalExpression.literal.primitive.int32Val);
+        } break;
+        case DOUBLE: {
+            valueVector->setValue(0, literalExpression.literal.primitive.doubleVal);
+        } break;
+        case BOOL: {
+            auto val = literalExpression.literal.primitive.booleanVal;
+            valueVector->nullMask[0] = val == NULL_BOOL;
+            valueVector->setValue(0, val);
+        } break;
+        case STRING: {
+            valueVector->setValue(0, literalExpression.literal.strVal);
+        } break;
+        default:
+            assert(false);
+        }
     }
     return make_unique<PhysicalExpression>(valueVector, expression.expressionType);
 }

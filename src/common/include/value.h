@@ -22,7 +22,9 @@ public:
 
     explicit Value(double value) : dataType(DOUBLE) { this->primitive.doubleVal = value; }
 
-    explicit Value(const string& value) : dataType(STRING) { this->str = value; }
+    explicit Value(const string& value) : dataType(STRING) { this->strVal.set(value); }
+
+    Value& operator=(const Value& other);
 
     inline void setBool(bool value) { this->primitive.booleanVal = value; }
 
@@ -30,9 +32,11 @@ public:
 
     inline void setDouble(double value) { this->primitive.doubleVal = value; }
 
-    inline void setString(string value) { this->str = std::move(value); }
+    inline void setString(const gf_string_t& value) { this->strVal = strVal; }
 
     inline void setNodeID(nodeID_t value) { this->nodeID = value; }
+
+    void castToString();
 
     string toString() const;
 
@@ -41,13 +45,11 @@ public:
         uint8_t booleanVal;
         int32_t int32Val;
         double doubleVal;
-        gf_string_t gf_stringVal;
-    } primitive;
+    } primitive{};
 
-    string str;
-    nodeID_t nodeID;
+    gf_string_t strVal{};
+    nodeID_t nodeID{};
 
-public:
     DataType dataType;
 };
 

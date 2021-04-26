@@ -1,0 +1,5 @@
+# description: matching nodes
+
+-INPUT dataset/tinysnb/
+-OUTPUT test/unittest_temp/
+-PARALLELISM 1

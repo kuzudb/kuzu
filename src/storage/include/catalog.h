@@ -73,6 +73,11 @@ public:
         return end(nodeProperties) != nodeProperties.find(propertyName);
     }
 
+    inline bool containUnstrNodeProperty(label_t nodeLabel, const string& propertyName) const {
+        auto& nodeProperties = getUnstrPropertyKeyMapForNodeLabel(nodeLabel);
+        return end(nodeProperties) != nodeProperties.find(propertyName);
+    }
+
     inline DataType getNodePropertyTypeFromString(
         label_t nodeLabel, const string& propertyName) const {
         auto& nodeProperties = getPropertyKeyMapForNodeLabel(nodeLabel);

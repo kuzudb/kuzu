@@ -88,7 +88,7 @@ private:
         const shared_ptr<ValueVector>& valueVector, uint64_t pos,
         const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header);
 
-    bool readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
+    void readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
         uint64_t& physicalPageIdx, const uint32_t*& propertyKeyIdxPtr,
         DataType& propertyKeyDataType, const unique_ptr<ColumnOrListsHandle>& handle,
         PageCursor& pageCursor, uint32_t listLen, LogicalToPhysicalPageIdxMapper& mapper);

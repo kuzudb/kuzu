@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/vector/value_vector.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -162,12 +161,12 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     rData[0].len = 25;
     memcpy(lData[0].prefix, value, gf_string_t::PREFIX_LENGTH);
     memcpy(rData[0].prefix, value, gf_string_t::PREFIX_LENGTH);
-    auto overflowLen = 25 - gf_string_t::PREFIX_LENGTH;
+    auto overflowLen = 25;
     char lOverflow[overflowLen];
-    memcpy(lOverflow, value + gf_string_t::PREFIX_LENGTH, overflowLen);
+    memcpy(lOverflow, value, overflowLen);
     lData->overflowPtr = reinterpret_cast<uintptr_t>(lOverflow);
     char rOverflow[overflowLen];
-    memcpy(rOverflow, value + gf_string_t::PREFIX_LENGTH, overflowLen);
+    memcpy(rOverflow, value, overflowLen);
     rData->overflowPtr = reinterpret_cast<uintptr_t>(rOverflow);
 
     auto equalsOp = ValueVector::getBinaryOperation(ExpressionType::EQUALS);

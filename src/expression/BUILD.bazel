@@ -4,12 +4,14 @@ cc_library(
     name = "expression",
     srcs = [
         "logical/logical_expression.cpp",
+        "logical/logical_literal_expression.cpp",
         "physical/physical_binary_expression.cpp",
         "physical/physical_expression.cpp",
         "physical/physical_unary_expression.cpp",
     ],
     hdrs = [
         "include/logical/logical_expression.h",
+        "include/logical/logical_literal_expression.h",
         "include/logical/logical_node_expression.h",
         "include/logical/logical_rel_expression.h",
         "include/physical/physical_binary_expression.h",

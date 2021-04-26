@@ -12,16 +12,6 @@ using namespace graphflow::common::operation;
 namespace graphflow {
 namespace common {
 
-uint8_t* ValueVector::reserve(size_t capacity) {
-    if (this->capacity < capacity) {
-        auto newBuffer = new uint8_t[capacity];
-        memcpy(newBuffer, buffer.get(), this->capacity);
-        buffer.reset(newBuffer);
-        this->capacity = capacity;
-    }
-    return buffer.get();
-}
-
 std::function<void(ValueVector&, ValueVector&)> ValueVector::getUnaryOperation(
     ExpressionType type) {
     switch (type) {
@@ -37,12 +27,14 @@ std::function<void(ValueVector&, ValueVector&)> ValueVector::getUnaryOperation(
         return VectorNodeIDOperations::Hash;
     case DECOMPRESS_NODE_ID:
         return VectorNodeIDOperations::Decompress;
-    case CAST_TO_UNKNOWN:
+    case CAST_TO_STRING:
+        return VectorCastOperations::castStructuredToStringValue;
+    case CAST_TO_UNSTRUCTURED_VECTOR:
         return VectorCastOperations::castStructuredToUnstructuredValue;
-    case CAST_UNKNOWN_TO_BOOL:
+    case CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR:
         return VectorCastOperations::castUnstructuredToBoolValue;
     default:
-        throw std::invalid_argument("Invalid or unsupported unary expression.");
+        assert(false);
     }
 }
 
@@ -92,7 +84,7 @@ std::function<void(ValueVector&, ValueVector&, ValueVector&)> ValueVector::getBi
     case POWER:
         return VectorArithmeticOperations::Power;
     default:
-        throw std::invalid_argument("Invalid or unsupported binary expression.");
+        assert(false);
     }
 }
 
@@ -120,6 +112,10 @@ void ValueVector::fillNullMask() {
         break;
     case DOUBLE:
         fillOperandNullMask<double_t>(*this);
+        break;
+    case STRING:
+        // TODO: fillOperandNullMask<gf_string_t>(*this);
+        //  Currently we do not distinguish empty and NULL gf_string_t.
         break;
     default:
         throw std::invalid_argument("Invalid or unsupported type for comparison.");

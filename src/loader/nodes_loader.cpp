@@ -172,6 +172,7 @@ void NodesLoader::saveUnstrPropertyListsToFile() {
                 labelUnstrPropertyListHeaders[nodeLabel], fname);
         }
     }
+    threadPool.wait();
 }
 
 // Iterate over each line in a block of CSV file. For each line, infer the node offset and call the
