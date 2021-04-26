@@ -7,10 +7,6 @@ static string makeUniqueVariableName(const string& name, uint32_t& idx) {
     return name + "_gf" + to_string(idx++);
 }
 
-static bool isAnonymousVariable(const string& variableName) {
-    return variableName.substr(0, 3) == "_gf";
-}
-
 static void validateProjectionColumnNamesAreUnique(
     const vector<shared_ptr<LogicalExpression>>& expressions) {
     auto existColumnNames = unordered_set<string>();
@@ -33,10 +29,12 @@ static void validateOnlyFunctionIsCountStar(vector<shared_ptr<LogicalExpression>
 }
 
 static void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
-    const unordered_map<string, shared_ptr<QueryNode>>& queryNodesInScope) {
+    const unordered_map<string, shared_ptr<LogicalExpression>>& variablesInScope) {
     auto visited = unordered_set<string>();
-    for (auto& [name, queryNode] : queryNodesInScope) {
-        visited.insert(queryNode->name);
+    for (auto& [name, variable] : variablesInScope) {
+        if (NODE == variable->dataType) {
+            visited.insert(static_pointer_cast<LogicalNodeExpression>(variable)->name);
+        }
     }
     if (visited.empty()) {
         visited.insert(queryGraph.queryNodes[0]->name);
@@ -63,32 +61,6 @@ static void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
         frontier = nextFrontier;
     }
     throw invalid_argument("Disconnect query graph is not supported.");
-}
-
-// This function should be removed once QNode, QRel becomes LogicalExpression
-static vector<shared_ptr<LogicalExpression>> getAllVariablesInScopeAsExpressions(
-    const VariablesInScope& variablesInScope) {
-    auto expressions = vector<shared_ptr<LogicalExpression>>();
-    for (auto& [name, queryNode] : variablesInScope.nameToQueryNodeMap) {
-        if (isAnonymousVariable(name)) {
-            continue;
-        }
-        auto node = make_shared<LogicalExpression>(VARIABLE, NODE, queryNode->name);
-        node->alias = name;
-        expressions.push_back(node);
-    }
-    for (auto& [name, queryRel] : variablesInScope.nameToQueryRelMap) {
-        if (isAnonymousVariable(name)) {
-            continue;
-        }
-        auto rel = make_shared<LogicalExpression>(VARIABLE, REL, queryRel->name);
-        rel->alias = name;
-        expressions.push_back(rel);
-    }
-    for (auto& [name, expression] : variablesInScope.nameToExpressionMap) {
-        expressions.push_back(expression);
-    }
-    return expressions;
 }
 
 unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
@@ -124,7 +96,7 @@ unique_ptr<BoundMatchStatement> Binder::bindMatchStatementsAndMerge(
 }
 
 unique_ptr<BoundMatchStatement> Binder::bindMatchStatement(const MatchStatement& matchStatement) {
-    auto prevVariablesInScope = variablesInScope.nameToQueryNodeMap;
+    auto prevVariablesInScope = variablesInScope;
     auto queryGraph = bindQueryGraph(matchStatement.graphPattern);
     validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
     auto boundMatchStatement = make_unique<BoundMatchStatement>(move(queryGraph));
@@ -137,21 +109,10 @@ unique_ptr<BoundMatchStatement> Binder::bindMatchStatement(const MatchStatement&
 unique_ptr<BoundWithStatement> Binder::bindWithStatement(const WithStatement& withStatement) {
     auto expressionsToProject =
         bindProjectExpressions(withStatement.expressions, withStatement.containsStar);
-    auto newVariablesInScope =
-        withStatement.containsStar ? variablesInScope.copy() : VariablesInScope();
-    // if else statement should go away once we have QNode, QRel as LogicalExpression
+    variablesInScope.clear();
     for (auto& expression : expressionsToProject) {
-        if (NODE == expression->dataType) {
-            auto nodeName = expression->alias;
-            newVariablesInScope.addQueryNode(nodeName, variablesInScope.getQueryNode(nodeName));
-        } else if (REL == expression->dataType) {
-            auto relName = expression->alias;
-            newVariablesInScope.addQueryRel(relName, variablesInScope.getQueryRel(relName));
-        } else {
-            newVariablesInScope.addExpression(expression->getName(), expression);
-        }
+        variablesInScope.insert({expression->getName(), expression});
     }
-    variablesInScope = newVariablesInScope;
     auto boundWithStatement = make_unique<BoundWithStatement>(move(expressionsToProject));
     if (withStatement.whereClause) {
         boundWithStatement->whereExpression = bindWhereExpression(*withStatement.whereClause);
@@ -179,8 +140,12 @@ shared_ptr<LogicalExpression> Binder::bindWhereExpression(
 vector<shared_ptr<LogicalExpression>> Binder::bindProjectExpressions(
     const vector<unique_ptr<ParsedExpression>>& parsedExpressions, bool projectStar) {
     auto expressionBinder = make_unique<ExpressionBinder>(variablesInScope, catalog);
-    auto expressions = projectStar ? getAllVariablesInScopeAsExpressions(variablesInScope) :
-                                     vector<shared_ptr<LogicalExpression>>();
+    auto expressions = vector<shared_ptr<LogicalExpression>>();
+    if (projectStar) {
+        for (auto& [name, expression] : variablesInScope) {
+            expressions.push_back(expression);
+        }
+    }
     for (auto& parsedExpression : parsedExpressions) {
         expressions.push_back(expressionBinder->bindExpression(*parsedExpression));
     }
@@ -203,38 +168,37 @@ unique_ptr<QueryGraph> Binder::bindQueryGraph(
     return queryGraph;
 }
 
-void Binder::bindQueryRel(const RelPattern& relPattern, QueryNode* leftNode, QueryNode* rightNode,
-    QueryGraph& queryGraph) {
+void Binder::bindQueryRel(const RelPattern& relPattern, LogicalNodeExpression* leftNode,
+    LogicalNodeExpression* rightNode, QueryGraph& queryGraph) {
     auto parsedName = relPattern.name;
-    // should be one conflict naming check once QNode, QRel becomes LogicalExpression
-    if (variablesInScope.containsQueryNode(parsedName)) {
-        throw invalid_argument(parsedName + " is defined as node (expect relationship).");
+    if (variablesInScope.contains(parsedName)) {
+        auto variableInScope = variablesInScope.at(parsedName);
+        if (REL != variableInScope->dataType) {
+            throw invalid_argument(parsedName + " is defined as " +
+                                   dataTypeToString(variableInScope->dataType) +
+                                   " expect RELATIONSHIP.");
+        } else {
+            // Bind to queryRel in scope requires QueryRel takes multiple src & dst nodes
+            // Example MATCH (a)-[r1]->(b) MATCH (c)-[r1]->(d)
+            // Should be bound as (a,c)-[r1]->(b,d)
+            throw invalid_argument("Bind relationship " + parsedName +
+                                   " to relationship with same name is not supported.");
+        }
     }
-    if (variablesInScope.containsExpression(parsedName)) {
-        auto expression = variablesInScope.getExpression(parsedName);
-        throw invalid_argument(parsedName + " is defined as " +
-                               expressionTypeToString(expression->expressionType) +
-                               " expression (expect relationship).");
-    }
-    // Bind to rel in scope requires QueryRel takes multiple src & dst nodes
-    // Example MATCH (a)-[r1]->(b) MATCH (c)-[r1]->(d)
-    // Should be bound as (a,c)-[r1]->(b,d)
-    if (variablesInScope.containsQueryRel(parsedName)) {
-        throw invalid_argument("Bind relationship " + parsedName +
-                               " to relationship with same name is not supported.");
-    }
-    auto rel = make_shared<QueryRel>(
+    auto queryRel = make_shared<LogicalRelExpression>(
         makeUniqueVariableName(parsedName, lastVariableIdx), bindRelLabel(relPattern.label));
+    queryRel->alias = parsedName;
     auto isLeftNodeSrc = RIGHT == relPattern.arrowDirection;
-    bindNodeToRel(*rel, leftNode, isLeftNodeSrc);
-    bindNodeToRel(*rel, rightNode, !isLeftNodeSrc);
-    if (!parsedName.empty()) {
-        variablesInScope.addQueryRel(parsedName, rel);
+    bindNodeToRel(*queryRel, leftNode, isLeftNodeSrc);
+    bindNodeToRel(*queryRel, rightNode, !isLeftNodeSrc);
+    if (!queryRel->alias.empty()) {
+        variablesInScope.insert({queryRel->alias, queryRel});
     }
-    queryGraph.addQueryRelIfNotExist(rel);
+    queryGraph.addQueryRelIfNotExist(queryRel);
 }
 
-void Binder::bindNodeToRel(QueryRel& queryRel, QueryNode* queryNode, bool isSrcNode) {
+void Binder::bindNodeToRel(
+    LogicalRelExpression& queryRel, LogicalNodeExpression* queryNode, bool isSrcNode) {
     if (ANY_LABEL != queryNode->label && ANY_LABEL != queryRel.label) {
         auto relLabels =
             catalog.getRelLabelsForNodeLabelDirection(queryNode->label, isSrcNode ? FWD : BWD);
@@ -250,39 +214,33 @@ void Binder::bindNodeToRel(QueryRel& queryRel, QueryNode* queryNode, bool isSrcN
     isSrcNode ? queryRel.srcNode = queryNode : queryRel.dstNode = queryNode;
 }
 
-shared_ptr<QueryNode> Binder::bindQueryNode(
+shared_ptr<LogicalNodeExpression> Binder::bindQueryNode(
     const NodePattern& nodePattern, QueryGraph& queryGraph) {
     auto parsedName = nodePattern.name;
-    // should be one conflict naming check once QNode, QRel becomes LogicalExpression
-    if (variablesInScope.containsQueryRel(parsedName)) {
-        throw invalid_argument(parsedName + " is defined as relationship (expect node).");
-    }
-    if (variablesInScope.containsExpression(parsedName)) {
-        auto expression = variablesInScope.getExpression(parsedName);
-        throw invalid_argument(parsedName + " is defined as " +
-                               expressionTypeToString(expression->expressionType) +
-                               " expression (expect node).");
-    }
-    shared_ptr<QueryNode> queryNode;
-    if (variablesInScope.containsQueryNode(parsedName)) { // bind to node in scope
-        queryNode = variablesInScope.getQueryNode(parsedName);
+    shared_ptr<LogicalNodeExpression> queryNode;
+    if (variablesInScope.contains(parsedName)) { // bind to node in scope
+        auto variableInScope = variablesInScope.at(parsedName);
+        if (NODE != variableInScope->dataType) {
+            throw invalid_argument(parsedName + " is defined as " +
+                                   dataTypeToString(variableInScope->dataType) + " expect NODE.");
+        }
+        queryNode = static_pointer_cast<LogicalNodeExpression>(variableInScope);
         auto otherLabel = bindNodeLabel(nodePattern.label);
         if (ANY_LABEL == queryNode->label) {
             queryNode->label = otherLabel;
-        } else {
-            if (ANY_LABEL != otherLabel && queryNode->label != otherLabel) {
-                throw invalid_argument("Multi-label is not supported. Node (" + parsedName +
-                                       ") is given multiple labels.");
-            }
+        } else if (ANY_LABEL != otherLabel && queryNode->label != otherLabel) {
+            throw invalid_argument("Multi-label is not supported. Node (" + parsedName +
+                                   ") is given multiple labels.");
         }
     } else {
-        queryNode = make_shared<QueryNode>(
+        queryNode = make_shared<LogicalNodeExpression>(
             makeUniqueVariableName(parsedName, lastVariableIdx), bindNodeLabel(nodePattern.label));
+        queryNode->alias = parsedName;
+        if (!queryNode->alias.empty()) {
+            variablesInScope.insert({queryNode->alias, queryNode});
+        }
     }
     queryGraph.addQueryNodeIfNotExist(queryNode);
-    if (!parsedName.empty()) {
-        variablesInScope.addQueryNode(parsedName, queryNode);
-    }
     return queryNode;
 }
 

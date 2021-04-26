@@ -265,12 +265,15 @@ void Enumerator::appendProjection(
             auto propertyMap =
                 NODE == expression->dataType ?
                     catalog.getPropertyKeyMapForNodeLabel(
-                        mergedQueryGraph->getQueryNode(expression->variableName)->label) :
+                        static_pointer_cast<LogicalNodeExpression>(expression)->label) :
                     catalog.getPropertyKeyMapForRelLabel(
-                        mergedQueryGraph->getQueryRel(expression->variableName)->label);
+                        static_pointer_cast<LogicalRelExpression>(expression)->label);
+            auto nodeOrRelName = NODE == expression->dataType ?
+                                     static_pointer_cast<LogicalNodeExpression>(expression)->name :
+                                     static_pointer_cast<LogicalRelExpression>(expression)->name;
             for (auto& [propertyName, property] : propertyMap) {
                 auto propertyExpression = make_shared<LogicalExpression>(
-                    PROPERTY, property.dataType, expression->variableName + "." + propertyName);
+                    PROPERTY, property.dataType, nodeOrRelName + "." + propertyName);
                 appendNecessaryScans(propertyExpression, plan);
             }
         } else {

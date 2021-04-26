@@ -22,12 +22,10 @@ cc_library(
     srcs = [
         "binder.cpp",
         "expression_binder.cpp",
-        "variables_in_scope.cpp",
     ],
     hdrs = [
         "include/binder.h",
         "include/expression_binder.h",
-        "include/variables_in_scope.h",
     ],
     deps = [
         "bound_query",
@@ -56,7 +54,6 @@ cc_library(
     ],
     deps = [
         "query_graph",
-        "//src/expression",
     ],
 )
 
@@ -67,11 +64,9 @@ cc_library(
     ],
     hdrs = [
         "include/query_graph/query_graph.h",
-        "include/query_graph/query_node.h",
-        "include/query_graph/query_rel.h",
     ],
     deps = [
-        "//src/common",
+        "//src/expression",
     ],
 )
 
@@ -91,8 +86,6 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "query_graph",
-        "//src/common",
         "//src/expression",
     ],
 )
