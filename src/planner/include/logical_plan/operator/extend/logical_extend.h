@@ -3,9 +3,10 @@
 #include <string>
 
 #include "src/common/include/types.h"
+#include "src/expression/include/logical/logical_rel_expression.h"
 #include "src/planner/include/logical_plan/operator/logical_operator.h"
-#include "src/planner/include/query_graph/query_rel.h"
 
+using namespace graphflow::expression;
 using namespace graphflow::common;
 using namespace std;
 
@@ -15,7 +16,7 @@ namespace planner {
 class LogicalExtend : public LogicalOperator {
 
 public:
-    LogicalExtend(const QueryRel& queryRel, const Direction& direction,
+    LogicalExtend(const LogicalRelExpression& queryRel, const Direction& direction,
         shared_ptr<LogicalOperator> prevOperator)
         : LogicalOperator{prevOperator}, direction{direction} {
         auto isFwd = FWD == direction;

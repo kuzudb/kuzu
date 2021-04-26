@@ -31,12 +31,14 @@ private:
 
     unique_ptr<QueryGraph> bindQueryGraph(const vector<unique_ptr<PatternElement>>& graphPattern);
 
-    void bindQueryRel(const RelPattern& relPattern, QueryNode* leftNode, QueryNode* rightNode,
-        QueryGraph& queryGraph);
+    void bindQueryRel(const RelPattern& relPattern, LogicalNodeExpression* leftNode,
+        LogicalNodeExpression* rightNode, QueryGraph& queryGraph);
 
-    void bindNodeToRel(QueryRel& queryRel, QueryNode* queryNode, bool isSrcNode);
+    void bindNodeToRel(
+        LogicalRelExpression& queryRel, LogicalNodeExpression* queryNode, bool isSrcNode);
 
-    shared_ptr<QueryNode> bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph);
+    shared_ptr<LogicalNodeExpression> bindQueryNode(
+        const NodePattern& nodePattern, QueryGraph& queryGraph);
 
     label_t bindRelLabel(const string& parsed_label);
 
@@ -44,7 +46,7 @@ private:
 
 private:
     const Catalog& catalog;
-    VariablesInScope variablesInScope;
+    unordered_map<string, shared_ptr<LogicalExpression>> variablesInScope;
     uint32_t lastVariableIdx;
 };
 

@@ -47,7 +47,7 @@ bool QueryGraph::containsQueryNode(const string& queryNodeName) const {
     return end(queryNodeNameToPosMap) != queryNodeNameToPosMap.find(queryNodeName);
 }
 
-QueryNode* QueryGraph::getQueryNode(const string& queryNodeName) const {
+LogicalNodeExpression* QueryGraph::getQueryNode(const string& queryNodeName) const {
     return queryNodes.at(queryNodeNameToPosMap.at(queryNodeName)).get();
 }
 
@@ -55,7 +55,7 @@ uint32_t QueryGraph::getQueryNodePos(const string& queryNodeName) const {
     return queryNodeNameToPosMap.at(queryNodeName);
 }
 
-void QueryGraph::addQueryNodeIfNotExist(shared_ptr<QueryNode> queryNode) {
+void QueryGraph::addQueryNodeIfNotExist(shared_ptr<LogicalNodeExpression> queryNode) {
     if (!containsQueryNode(queryNode->name)) {
         queryNodeNameToPosMap.insert({queryNode->name, queryNodes.size()});
         queryNodes.push_back(queryNode);
@@ -70,7 +70,7 @@ bool QueryGraph::containsQueryRel(const string& queryRelName) const {
     return end(queryRelNameToPosMap) != queryRelNameToPosMap.find(queryRelName);
 }
 
-QueryRel* QueryGraph::getQueryRel(const string& queryRelName) const {
+LogicalRelExpression* QueryGraph::getQueryRel(const string& queryRelName) const {
     return queryRels.at(queryRelNameToPosMap.at(queryRelName)).get();
 }
 
@@ -78,7 +78,7 @@ uint32_t QueryGraph::getQueryRelPos(const string& queryRelName) const {
     return queryRelNameToPosMap.at(queryRelName);
 }
 
-void QueryGraph::addQueryRelIfNotExist(shared_ptr<QueryRel> queryRel) {
+void QueryGraph::addQueryRelIfNotExist(shared_ptr<LogicalRelExpression> queryRel) {
     if (!containsQueryRel(queryRel->name)) {
         queryRelNameToPosMap.insert({queryRel->name, queryRels.size()});
         queryRels.push_back(queryRel);

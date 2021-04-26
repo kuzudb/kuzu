@@ -1,5 +1,7 @@
 #include "src/planner/include/expression_binder.h"
 
+#include "src/expression/include/logical/logical_rel_expression.h"
+
 namespace graphflow {
 namespace planner {
 
@@ -152,25 +154,24 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
     auto propertyName = parsedExpression.text;
     auto childExpression = bindExpression(*parsedExpression.children.at(0));
     if (NODE == childExpression->dataType) {
-        auto nodeName = childExpression->alias;
-        auto nodeLabel = variablesInScope.getQueryNode(nodeName)->label;
-        if (!catalog.containNodeProperty(nodeLabel, propertyName)) {
+        auto node = static_pointer_cast<LogicalNodeExpression>(childExpression);
+        if (!catalog.containNodeProperty(node->label, propertyName)) {
             throw invalid_argument(
-                "Node: " + nodeName + " does not have property: " + propertyName);
+                "Node: " + node->name + " does not have property: " + propertyName);
         }
         return make_shared<LogicalExpression>(PROPERTY,
-            catalog.getNodePropertyTypeFromString(nodeLabel, propertyName),
-            childExpression->variableName + "." + propertyName);
+            catalog.getNodePropertyTypeFromString(node->label, propertyName),
+            node->name + "." + propertyName);
     }
     if (REL == childExpression->dataType) {
-        auto relName = childExpression->alias;
-        auto relLabel = variablesInScope.getQueryRel(relName)->label;
-        if (!catalog.containRelProperty(relLabel, propertyName)) {
-            throw invalid_argument("Rel: " + relName + " does not have property: " + propertyName);
+        auto rel = static_pointer_cast<LogicalRelExpression>(childExpression);
+        if (!catalog.containRelProperty(rel->label, propertyName)) {
+            throw invalid_argument(
+                "Rel: " + rel->name + " does not have property: " + propertyName);
         }
         return make_shared<LogicalExpression>(PROPERTY,
-            catalog.getRelPropertyTypeFromString(relLabel, propertyName),
-            childExpression->variableName + "." + propertyName);
+            catalog.getRelPropertyTypeFromString(rel->label, propertyName),
+            rel->name + "." + propertyName);
     }
     throw invalid_argument(
         "Property: " + parsedExpression.rawExpression + " is not associated with any node or rel.");
@@ -206,21 +207,8 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindLiteralExpression(
 shared_ptr<LogicalExpression> ExpressionBinder::bindVariableExpression(
     const ParsedExpression& parsedExpression) {
     auto variableName = parsedExpression.text;
-    if (variablesInScope.containsQueryNode(variableName)) {
-        // input node "a" gets unique name "a_gf0" and "a" becomes alias name
-        auto nodeExpression = make_shared<LogicalExpression>(
-            VARIABLE, NODE, variablesInScope.getQueryNode(variableName)->name);
-        nodeExpression->alias = variableName;
-        return nodeExpression;
-    }
-    if (variablesInScope.containsQueryRel(variableName)) {
-        auto relExpression = make_shared<LogicalExpression>(
-            VARIABLE, REL, variablesInScope.getQueryRel(variableName)->name);
-        relExpression->alias = variableName;
-        return relExpression;
-    }
-    if (variablesInScope.containsExpression(variableName)) {
-        return variablesInScope.getExpression(variableName);
+    if (variablesInScope.contains(variableName)) {
+        return variablesInScope.at(variableName);
     }
     throw invalid_argument("Variable: " + parsedExpression.rawExpression + " is not in scope.");
 }

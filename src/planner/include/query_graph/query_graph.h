@@ -7,13 +7,16 @@
 #include <unordered_set>
 #include <vector>
 
-#include "src/planner/include/query_graph/query_rel.h"
+#include "src/expression/include/logical/logical_rel_expression.h"
+
+using namespace graphflow::expression;
 
 namespace graphflow {
 namespace planner {
 
 class QueryGraph;
 
+const label_t ANY_LABEL = numeric_limits<uint32_t>::max();
 const uint8_t MAX_NUM_VARIABLES = 64;
 
 class SubqueryGraph {
@@ -54,21 +57,21 @@ public:
 
     bool containsQueryNode(const string& queryNodeName) const;
 
-    QueryNode* getQueryNode(const string& queryNodeName) const;
+    LogicalNodeExpression* getQueryNode(const string& queryNodeName) const;
 
     uint32_t getQueryNodePos(const string& queryNodeName) const;
 
-    void addQueryNodeIfNotExist(shared_ptr<QueryNode> queryNode);
+    void addQueryNodeIfNotExist(shared_ptr<LogicalNodeExpression> queryNode);
 
     uint32_t getNumQueryRels() const;
 
     bool containsQueryRel(const string& queryRelName) const;
 
-    QueryRel* getQueryRel(const string& queryRelName) const;
+    LogicalRelExpression* getQueryRel(const string& queryRelName) const;
 
     uint32_t getQueryRelPos(const string& queryRelName) const;
 
-    void addQueryRelIfNotExist(shared_ptr<QueryRel> queryRel);
+    void addQueryRelIfNotExist(shared_ptr<LogicalRelExpression> queryRel);
 
     vector<tuple<uint32_t, bool, bool>> getConnectedQueryRelsWithDirection(
         const SubqueryGraph& subqueryGraph) const;
@@ -92,8 +95,8 @@ private:
 public:
     unordered_map<string, uint32_t> queryNodeNameToPosMap;
     unordered_map<string, uint32_t> queryRelNameToPosMap;
-    vector<shared_ptr<QueryNode>> queryNodes;
-    vector<shared_ptr<QueryRel>> queryRels;
+    vector<shared_ptr<LogicalNodeExpression>> queryNodes;
+    vector<shared_ptr<LogicalRelExpression>> queryRels;
 };
 
 } // namespace planner
