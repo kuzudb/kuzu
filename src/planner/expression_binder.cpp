@@ -156,8 +156,8 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
     if (NODE == childExpression->dataType) {
         auto node = static_pointer_cast<LogicalNodeExpression>(childExpression);
         if (!catalog.containNodeProperty(node->label, propertyName)) {
-            throw invalid_argument(
-                "Node: " + node->name + " does not have property: " + propertyName);
+            throw invalid_argument("Node " + node->getAliasElseRawExpression() +
+                                   " does not have property " + propertyName + ".");
         }
         return make_shared<LogicalExpression>(PROPERTY,
             catalog.getNodePropertyTypeFromString(node->label, propertyName),
@@ -166,15 +166,16 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
     if (REL == childExpression->dataType) {
         auto rel = static_pointer_cast<LogicalRelExpression>(childExpression);
         if (!catalog.containRelProperty(rel->label, propertyName)) {
-            throw invalid_argument(
-                "Rel: " + rel->name + " does not have property: " + propertyName);
+            throw invalid_argument("Rel " + rel->getAliasElseRawExpression() +
+                                   " does not have property " + propertyName + ".");
         }
         return make_shared<LogicalExpression>(PROPERTY,
             catalog.getRelPropertyTypeFromString(rel->label, propertyName),
             rel->name + "." + propertyName);
     }
-    throw invalid_argument(
-        "Property: " + parsedExpression.rawExpression + " is not associated with any node or rel.");
+    throw invalid_argument("Type mismatch: expect NODE or REL, but " +
+                           childExpression->rawExpression + " was " +
+                           dataTypeToString(childExpression->dataType) + ".");
 }
 
 // COUNT(*) is the only function expression supported
@@ -200,7 +201,7 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindLiteralExpression(
         return make_shared<LogicalExpression>(
             LITERAL_STRING, STRING, Value(literalVal.substr(1, literalVal.size() - 2)));
     default:
-        throw invalid_argument("Literal: " + parsedExpression.rawExpression + "is not defined.");
+        throw invalid_argument("Literal " + parsedExpression.rawExpression + "is not defined.");
     }
 }
 
@@ -210,14 +211,14 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindVariableExpression(
     if (variablesInScope.contains(variableName)) {
         return variablesInScope.at(variableName);
     }
-    throw invalid_argument("Variable: " + parsedExpression.rawExpression + " is not in scope.");
+    throw invalid_argument("Variable " + parsedExpression.rawExpression + " not defined.");
 }
 
 void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
     for (auto& child : parsedExpression.children) {
         if (LITERAL_NULL == child->type) {
             throw invalid_argument(
-                "Expression: " + child->rawExpression + " cannot have null literal children");
+                "Expression " + child->rawExpression + " cannot have null literal children.");
         }
     }
 }
@@ -225,18 +226,17 @@ void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
 void validateExpectedType(const LogicalExpression& logicalExpression, DataType expectedType) {
     auto dataType = logicalExpression.dataType;
     if (expectedType != dataType) {
-        throw invalid_argument("Expression: " + logicalExpression.rawExpression +
-                               " has data type: " + dataTypeToString(dataType) +
-                               " expect: " + dataTypeToString(expectedType));
+        throw invalid_argument("Expression " + logicalExpression.rawExpression + " has data type " +
+                               dataTypeToString(dataType) + " expect " +
+                               dataTypeToString(expectedType) + ".");
     }
 }
 
 void validateNumericalType(const LogicalExpression& logicalExpression) {
     auto dataType = logicalExpression.dataType;
     if (!isNumericalType(dataType)) {
-        throw invalid_argument("Expression: " + logicalExpression.rawExpression +
-                               " has data type: " + dataTypeToString(dataType) +
-                               " expect numerical type.");
+        throw invalid_argument("Expression " + logicalExpression.rawExpression + " has data type " +
+                               dataTypeToString(dataType) + " expect numerical type.");
     }
 }
 

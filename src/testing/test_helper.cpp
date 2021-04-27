@@ -79,6 +79,39 @@ bool TestHelper::runTest(const string& path) {
     return numPassedQueries == numQueries;
 }
 
+bool TestHelper::runExceptionTest(const string& path) {
+    auto testConfig = parseTestFile(path);
+    if (!filesystem::create_directory(testConfig.graphOutputDir)) {
+        throw invalid_argument(
+            "Graph output directory cannot be created. Check if it exists and remove it.");
+    }
+    auto server = make_unique<EmbeddedServer>(testConfig.graphInputDir, testConfig.graphOutputDir,
+        testConfig.numThreads, testConfig.bufferPoolSize);
+    auto numQueries = testConfig.query.size();
+    uint64_t numPassedQueries = 0;
+    for (auto i = 0u; i < numQueries; i++) {
+        spdlog::info("TEST: {}", testConfig.name[i]);
+        spdlog::info("QUERY: {}", testConfig.query[i]);
+        try {
+            auto plans = server->enumerateLogicalPlans(testConfig.query[i]);
+            spdlog::error(
+                "QUERY: {} NOT PASSED. Expect exception to be thrown.", testConfig.query[i]);
+        } catch (const invalid_argument& exception) {
+            if (testConfig.expectedErrorMsgs[i] != exception.what()) {
+                spdlog::error("QUERY: {} NOT PASSED. Expect error message {} but get {}.",
+                    testConfig.query[i], testConfig.expectedErrorMsgs[i], exception.what());
+            } else {
+                numPassedQueries++;
+            }
+        }
+    }
+    error_code removeErrorCode;
+    if (!filesystem::remove_all(testConfig.graphOutputDir, removeErrorCode)) {
+        spdlog::error("Remove graph output directory error: {}", removeErrorCode.message());
+    }
+    return numPassedQueries == numQueries;
+}
+
 TestSuiteConfig TestHelper::parseTestFile(const string& path) {
     if (access(path.c_str(), 0) == 0) {
         struct stat status;
@@ -102,6 +135,8 @@ TestSuiteConfig TestHelper::parseTestFile(const string& path) {
                     config.name.push_back(line.substr(6, line.length()));
                 } else if (line.starts_with("-QUERY")) {
                     config.query.push_back(line.substr(7, line.length()));
+                } else if (line.starts_with("-EXCEPTION")) {
+                    config.expectedErrorMsgs.push_back(line.substr(11, line.length()));
                 } else if (line.starts_with("----")) {
                     uint64_t numTuples = stoi(line.substr(5, line.length()));
                     config.expectedNumTuples.push_back(numTuples);

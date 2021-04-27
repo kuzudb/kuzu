@@ -19,9 +19,9 @@ public:
     }
 
     string getOperatorInformation() const override {
-        auto result = expressionsToProject[0]->getName();
+        auto result = expressionsToProject[0]->getAliasElseRawExpression();
         for (auto i = 1u; i < expressionsToProject.size(); ++i) {
-            result += ", " + expressionsToProject[i]->getName();
+            result += ", " + expressionsToProject[i]->getAliasElseRawExpression();
         }
         return result;
     }

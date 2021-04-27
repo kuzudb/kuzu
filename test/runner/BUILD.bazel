@@ -22,6 +22,7 @@ cc_test(
 filegroup(
     name = "testfiles",
     srcs = [
+        "queries/exception/exception.test",
         "queries/filtered/nodes.test",
         "queries/filtered/paths.test",
         "queries/filtered/stars.test",

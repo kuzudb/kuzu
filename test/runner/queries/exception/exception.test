@@ -1,0 +1,69 @@
+# description: front-end exception
+
+-INPUT dataset/tinysnb/
+-OUTPUT test/unittest_temp/
+-PARALLELISM 1
+
+# Binder Exception Tests
+
+-NAME DisconnectedGraph
+-QUERY MATCH (a:person), (b:person) RETURN COUNT(*);
+-EXCEPTION Disconnect query graph is not supported.
+
+-NAME DisconnectedGraph2
+-QUERY MATCH (a:person) WITH * MATCH (b:person) RETURN COUNT(*);
+-EXCEPTION Disconnect query graph is not supported.
+
+-NAME NodeLabelNotExist
+-QUERY MATCH (a:PERSON) RETURN COUNT(*);
+-EXCEPTION Node label PERSON does not exist.
+
+-NAME RelLabelNotExist
+-QUERY MATCH (a:person)-[e1:KNOWS]->(b:person) RETURN COUNT(*);
+-EXCEPTION Rel label KNOWS does not exist.
+
+-NAME NodeRelNotConnect
+-QUERY MATCH (a:person)-[e1:workAt]->(b:person) RETURN COUNT(*);
+-EXCEPTION Node b doesn't connect to edge with same type as e1.
+
+-NAME RepeatedRelName
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)<-[e1:knows]-(:person) RETURN COUNT(*);
+-EXCEPTION Bind relationship e1 to relationship with same name is not supported.
+
+-NAME RepeatedReturnColumnName1
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN a.age AS b, b;
+-EXCEPTION Multiple result column with the same name b are not supported.
+
+-NAME RepeatedReturnColumnName2
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN *, e1;
+-EXCEPTION Multiple result column with the same name e1 are not supported.
+
+-NAME WITHExpressionAliased
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH a.age RETURN *;
+-EXCEPTION Expression in WITH multi be aliased (use AS).
+
+-NAME BindToDifferentVariableType1
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH e1 AS a MATCH (a) RETURN *;
+-EXCEPTION a defined with conflicting type REL (expect NODE).
+
+-NAME BindToDifferentVariableType
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH a.age + 1 AS a MATCH (a) RETURN *;
+-EXCEPTION a defined with conflicting type INT32 (expect NODE).
+
+# Expression Binder Exception Tests
+
+-NAME BindVariableNotInScope1
+-QUERY WITH a MATCH (a:person)-[e1:knows]->(b:person) RETURN *;
+-EXCEPTION Variable a not defined.
+
+-NAME BindVariableNotInScope2
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.age > foo RETURN *;
+-EXCEPTION Variable foo not defined.
+
+-NAME BindPropertyLookUpOnExpression
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN (a.age + 2).age;
+-EXCEPTION Type mismatch: expect NODE or REL, but a.age + 2 was INT32.
+
+-NAME BindPropertyNotExist
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN a.foo;
+-EXCEPTION Node a does not have property foo.

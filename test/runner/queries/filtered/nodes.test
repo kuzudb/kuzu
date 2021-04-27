@@ -4,8 +4,12 @@
 -OUTPUT test/unittest_temp/
 -PARALLELISM 1
 
--NAME PersonNodesAgeFilteredTest
+-NAME PersonNodesAgeFilteredTest1
 -QUERY MATCH (a:person) WHERE a.age <= 25 RETURN COUNT(*)
+---- 3
+
+-NAME PersonNodesAgeFilteredTest2
+-QUERY WITH 25 AS foo WITH foo AS age MATCH (a:person) WHERE a.age <= age RETURN COUNT(*)
 ---- 3
 
 -NAME PersonNodesIsWorkerFilteredTest
@@ -22,4 +26,8 @@
 
 -NAME PersonNodesGenderFilteredTest2
 -QUERY MATCH (a:person) WHERE (a.gender*3.5 = 7.0) RETURN COUNT(*)
+---- 4
+
+-NAME PersonNodesGenderFilteredTest3
+-QUERY WITH 3.5 AS threshold MATCH (a:person) WHERE (a.gender*threshold = 7.0) RETURN COUNT(*)
 ---- 4

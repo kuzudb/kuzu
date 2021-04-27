@@ -20,7 +20,7 @@
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) RETURN COUNT(*)
 ---- 36
 
--NAME TwoHopKnowsTwoQueryPartsTest
+-NAME TwoHopKnowsTest2
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH b MATCH (b)-[e2:knows]->(c:person) RETURN COUNT(*)
 ---- 36
 
@@ -40,7 +40,7 @@
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:studyAt]->(d:organisation) RETURN COUNT(*)
 ---- 18
 
--NAME ThreeHopTwoKnowsOneStudyAtTwoQueryPartsTest
+-NAME ThreeHopTwoKnowsOneStudyAtTest2
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH * MATCH (b)-[e2:knows]->(c:person)-[e3:studyAt]->(d:organisation) RETURN COUNT(*)
 ---- 18
 
@@ -48,6 +48,6 @@
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:workAt]->(d:organisation) RETURN COUNT(*)
 ---- 18
 
--NAME ThreeHopTwoKnowsOneWorkAtTwoQueryPartsTest
+-NAME ThreeHopTwoKnowsOneWorkAtTest2
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WITH * MATCH (c)-[e3:workAt]->(d:organisation) RETURN COUNT(*)
 ---- 18

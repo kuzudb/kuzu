@@ -18,11 +18,14 @@ struct TestSuiteConfig {
     vector<string> query;
     vector<uint64_t> expectedNumTuples;
     vector<vector<string>> expectedTuples;
+    vector<string> expectedErrorMsgs;
 };
 
 class TestHelper {
 public:
     static bool runTest(const string& path);
+
+    static bool runExceptionTest(const string& path);
 
 private:
     static TestSuiteConfig parseTestFile(const string& path);
