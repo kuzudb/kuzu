@@ -33,14 +33,14 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
     for (auto& boundQueryPart : boundSingleQuery.boundQueryParts) {
         enumerateBoundQueryPart(*boundQueryPart);
     }
+    auto whereClauseSplitOnAND = vector<shared_ptr<LogicalExpression>>();
     if (boundSingleQuery.boundMatchStatement) {
         updateQueryGraph(*boundSingleQuery.boundMatchStatement);
-    }
-    auto whereClauseSplitOnAND = vector<shared_ptr<LogicalExpression>>();
-    if (boundSingleQuery.boundMatchStatement->whereExpression) {
-        for (auto& expression :
-            splitExpressionOnAND(boundSingleQuery.boundMatchStatement->whereExpression)) {
-            whereClauseSplitOnAND.push_back(expression);
+        if (boundSingleQuery.boundMatchStatement->whereExpression) {
+            for (auto& expression :
+                splitExpressionOnAND(boundSingleQuery.boundMatchStatement->whereExpression)) {
+                whereClauseSplitOnAND.push_back(expression);
+            }
         }
     }
     enumerateSubplans(whereClauseSplitOnAND, boundSingleQuery.boundReturnStatement->expressions);
@@ -48,14 +48,14 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
 }
 
 void Enumerator::enumerateBoundQueryPart(BoundQueryPart& boundQueryPart) {
+    auto whereClauseSplitOnAND = vector<shared_ptr<LogicalExpression>>();
     if (boundQueryPart.boundMatchStatement) {
         updateQueryGraph(*boundQueryPart.boundMatchStatement);
-    }
-    auto whereClauseSplitOnAND = vector<shared_ptr<LogicalExpression>>();
-    if (boundQueryPart.boundMatchStatement->whereExpression) {
-        for (auto& expression :
-            splitExpressionOnAND(boundQueryPart.boundWithStatement->whereExpression)) {
-            whereClauseSplitOnAND.push_back(expression);
+        if (boundQueryPart.boundMatchStatement->whereExpression) {
+            for (auto& expression :
+                splitExpressionOnAND(boundQueryPart.boundMatchStatement->whereExpression)) {
+                whereClauseSplitOnAND.push_back(expression);
+            }
         }
     }
     if (boundQueryPart.boundWithStatement->whereExpression) {
@@ -87,6 +87,11 @@ void Enumerator::updateQueryGraph(BoundMatchStatement& boundMatchStatement) {
 
 void Enumerator::enumerateSubplans(const vector<shared_ptr<LogicalExpression>>& whereClause,
     const vector<shared_ptr<LogicalExpression>>& returnOrWithClause) {
+    // first query part may not have query graph
+    // E.g. WITH 1 AS one MATCH (a) ...
+    if (!mergedQueryGraph) {
+        return;
+    }
     enumerateSingleQueryNode(whereClause);
     while (currentLevel < mergedQueryGraph->getNumQueryRels()) {
         enumerateNextLevel(whereClause);

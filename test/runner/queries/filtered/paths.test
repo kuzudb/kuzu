@@ -16,10 +16,22 @@
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE (a.gender/2 <= 0.5) AND (b.gender*3.5 = 7.0) RETURN COUNT(*)
 ---- 6
 
+-NAME OneHopKnowsFilteredTest4
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE (a.gender/2 <= 0.5) WITH b WHERE b.gender*3.5 = 7.0 RETURN COUNT(*)
+---- 6
+
 -NAME TwoHopKnowsFilteredTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE a.age = c.age RETURN COUNT(*)
 ---- 12
 
--NAME TwoHopKnowsFilteredTwoQueryPartsTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH * MATCH (b)-[e2:knows]->(c:person) WHERE a.age = c.age RETURN COUNT(*)
+-NAME TwoHopKnowsFilteredTest2
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH b, a.age AS foo MATCH (b)-[e2:knows]->(c:person) WHERE foo = c.age RETURN COUNT(*)
+---- 12
+
+-NAME TwoHopKnowsFilteredTest3
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH b AS d, a.age AS foo MATCH (d)-[e2:knows]->(a:person) WHERE foo = a.age RETURN COUNT(*)
+---- 12
+
+-NAME TwoHopKnowsFilteredTest4
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH b AS d, a.age * 2.0 AS foo MATCH (d)-[e2:knows]->(a:person) WHERE foo = a.age * 2.0 RETURN COUNT(*)
 ---- 12

@@ -4,6 +4,11 @@
 
 using namespace graphflow::testing;
 
+TEST(FrontEndTest, ExceptionQueries) {
+    TestHelper testHelper;
+    ASSERT_TRUE(testHelper.runExceptionTest("test/runner/queries/exception/exception.test"));
+}
+
 TEST(ProcessorTest, StructuralNodeQueries) {
     TestHelper testHelper;
     ASSERT_TRUE(testHelper.runTest("test/runner/queries/structural/nodes.test"));

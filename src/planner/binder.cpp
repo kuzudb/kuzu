@@ -12,10 +12,12 @@ static void validateProjectionColumnNamesAreUnique(
     auto existColumnNames = unordered_set<string>();
     for (auto& expression : expressions) {
         auto k = *expression;
-        if (end(existColumnNames) != existColumnNames.find(expression->getName())) {
-            throw invalid_argument("Duplicate return column name: " + expression->getName());
+        if (end(existColumnNames) !=
+            existColumnNames.find(expression->getAliasElseRawExpression())) {
+            throw invalid_argument("Multiple result column with the same name " +
+                                   expression->getAliasElseRawExpression() + " are not supported.");
         }
-        existColumnNames.insert(expression->getName());
+        existColumnNames.insert(expression->getAliasElseRawExpression());
     }
 }
 
@@ -111,7 +113,10 @@ unique_ptr<BoundWithStatement> Binder::bindWithStatement(const WithStatement& wi
         bindProjectExpressions(withStatement.expressions, withStatement.containsStar);
     variablesInScope.clear();
     for (auto& expression : expressionsToProject) {
-        variablesInScope.insert({expression->getName(), expression});
+        if (expression->alias.empty()) {
+            throw invalid_argument("Expression in WITH multi be aliased (use AS).");
+        }
+        variablesInScope.insert({expression->getAliasElseRawExpression(), expression});
     }
     auto boundWithStatement = make_unique<BoundWithStatement>(move(expressionsToProject));
     if (withStatement.whereClause) {
@@ -174,9 +179,9 @@ void Binder::bindQueryRel(const RelPattern& relPattern, LogicalNodeExpression* l
     if (variablesInScope.contains(parsedName)) {
         auto variableInScope = variablesInScope.at(parsedName);
         if (REL != variableInScope->dataType) {
-            throw invalid_argument(parsedName + " is defined as " +
+            throw invalid_argument(parsedName + " defined with conflicting type " +
                                    dataTypeToString(variableInScope->dataType) +
-                                   " expect RELATIONSHIP.");
+                                   " (expect RELATIONSHIP).");
         } else {
             // Bind to queryRel in scope requires QueryRel takes multiple src & dst nodes
             // Example MATCH (a)-[r1]->(b) MATCH (c)-[r1]->(d)
@@ -208,8 +213,9 @@ void Binder::bindNodeToRel(
                 return;
             }
         }
-        throw invalid_argument("Node: " + queryNode->name +
-                               " doesn't connect to edge with same type as: " + queryRel.name);
+        throw invalid_argument("Node " + queryNode->getAliasElseRawExpression() +
+                               " doesn't connect to edge with same type as " +
+                               queryRel.getAliasElseRawExpression() + ".");
     }
     isSrcNode ? queryRel.srcNode = queryNode : queryRel.dstNode = queryNode;
 }
@@ -221,16 +227,16 @@ shared_ptr<LogicalNodeExpression> Binder::bindQueryNode(
     if (variablesInScope.contains(parsedName)) { // bind to node in scope
         auto variableInScope = variablesInScope.at(parsedName);
         if (NODE != variableInScope->dataType) {
-            throw invalid_argument(parsedName + " is defined as " +
-                                   dataTypeToString(variableInScope->dataType) + " expect NODE.");
+            throw invalid_argument(parsedName + " defined with conflicting type " +
+                                   dataTypeToString(variableInScope->dataType) + " (expect NODE).");
         }
         queryNode = static_pointer_cast<LogicalNodeExpression>(variableInScope);
         auto otherLabel = bindNodeLabel(nodePattern.label);
         if (ANY_LABEL == queryNode->label) {
             queryNode->label = otherLabel;
         } else if (ANY_LABEL != otherLabel && queryNode->label != otherLabel) {
-            throw invalid_argument("Multi-label is not supported. Node (" + parsedName +
-                                   ") is given multiple labels.");
+            throw invalid_argument(
+                "Multi-label is not supported. Node " + parsedName + " is given multiple labels.");
         }
     } else {
         queryNode = make_shared<LogicalNodeExpression>(
@@ -249,7 +255,7 @@ label_t Binder::bindRelLabel(const string& parsed_label) {
         return ANY_LABEL;
     }
     if (!catalog.containRelLabel(parsed_label.c_str())) {
-        throw invalid_argument("Rel label: " + parsed_label + " does not exist.");
+        throw invalid_argument("Rel label " + parsed_label + " does not exist.");
     }
     return catalog.getRelLabelFromString(parsed_label.c_str());
 }
@@ -259,7 +265,7 @@ label_t Binder::bindNodeLabel(const string& parsed_label) {
         return ANY_LABEL;
     }
     if (!catalog.containNodeLabel(parsed_label.c_str())) {
-        throw invalid_argument("Node label: " + parsed_label + " does not exist.");
+        throw invalid_argument("Node label " + parsed_label + " does not exist.");
     }
     return catalog.getNodeLabelFromString(parsed_label.c_str());
 }
