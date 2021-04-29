@@ -98,20 +98,27 @@ private:
 class LogicalToPhysicalPageIdxMapper {
 
 public:
-    LogicalToPhysicalPageIdxMapper(const vector<uint64_t>& map, uint32_t baseOffset)
-        : map{map}, baseOffset{baseOffset} {}
+    LogicalToPhysicalPageIdxMapper(const unique_ptr<uint32_t[]>& pageLists, uint32_t pageListHead)
+        : pageLists{pageLists}, pageListHead{pageListHead} {}
 
-    uint64_t getPageIdx(uint64_t pageIdx) { return map[pageIdx + baseOffset]; }
+    uint64_t getPageIdx(uint64_t pageIdx) {
+        auto pageListPtr = pageListHead;
+        while (3 <= pageIdx) {
+            pageListPtr = pageLists[pageListPtr + 3];
+            pageIdx -= 3;
+        }
+        return pageLists[pageListPtr + pageIdx];
+    }
 
 private:
-    const vector<uint64_t>& map;
-    uint32_t baseOffset;
+    const unique_ptr<uint32_t[]>& pageLists;
+    uint32_t pageListHead;
 };
 
-// Common class that is extended by both BaseColumn and BaseLists class. It abstracts the state and
-// functions that common in both column and lists, like, 1) layout info (size of a unit of element
-// and number of elements that can be accomodated in a page), 2) getting pageIdx and pageOffset of
-// an element and, 3) reading from pages.
+// Common class that is extended by both BaseColumn and BaseLists class. It abstracts the state
+// and functions that common in both column and lists, like, 1) layout info (size of a unit of
+// element and number of elements that can be accomodated in a page), 2) getting pageIdx and
+// pageOffset of an element and, 3) reading from pages.
 class BaseColumnOrLists {
 
 public:

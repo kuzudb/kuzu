@@ -165,9 +165,9 @@ void NodesLoader::saveUnstrPropertyListsToFile() {
             threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },
                 labelUnstrPropertyListsStringOverflowPages[nodeLabel].get());
             auto fname = NodesStore::getNodeUnstrPropertyListsFname(outputDirectory, nodeLabel);
-            threadPool.execute([&](ListsMetadata& x, string fname) { x.saveToFile(fname); },
-                labelUnstrPropertyListsMetadata[nodeLabel], fname);
-            threadPool.execute([&](ListHeaders* x, string fname) { x->saveToFile(fname); },
+            threadPool.execute([&](ListsMetadata* x, string fname) { x->saveToDisk(fname); },
+                &labelUnstrPropertyListsMetadata[nodeLabel], fname);
+            threadPool.execute([&](ListHeaders* x, string fname) { x->saveToDisk(fname); },
                 &labelUnstrPropertyListHeaders[nodeLabel], fname);
         }
     }
