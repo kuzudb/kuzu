@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "src/expression/include/logical/logical_expression.h"
+#include "src/expression/include/logical/logical_literal_expression.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
 
 using namespace graphflow::processor;
@@ -10,8 +10,8 @@ TEST(ExpressionTests, BinaryPhysicalExpressionTest) {
     auto propertyExpression =
         make_unique<LogicalExpression>(ExpressionType::PROPERTY, DataType::INT32, "a.prop");
     auto literal = Value(5);
-    auto literalExpression =
-        make_unique<LogicalExpression>(ExpressionType::LITERAL_INT, DataType::INT32, literal);
+    auto literalExpression = make_unique<LogicalLiteralExpression>(
+        ExpressionType::LITERAL_INT, DataType::INT32, literal);
 
     auto addLogicalOperator = make_unique<LogicalExpression>(
         ExpressionType::ADD, DataType::INT32, move(propertyExpression), move(literalExpression));

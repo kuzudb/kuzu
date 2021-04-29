@@ -1,5 +1,6 @@
 #include "src/planner/include/expression_binder.h"
 
+#include "src/expression/include/logical/logical_literal_expression.h"
 #include "src/expression/include/logical/logical_rel_expression.h"
 
 namespace graphflow {
@@ -52,7 +53,8 @@ static shared_ptr<LogicalExpression> validateAsBoolAndCastIfNecessary(
         validateExpectedType(*expression, BOOL);
     } else {
         assert(expression->dataType == UNSTRUCTURED);
-        expression = make_shared<LogicalExpression>(CAST_UNKNOWN_TO_BOOL, BOOL, move(expression));
+        expression = make_shared<LogicalExpression>(
+            CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR, BOOL, move(expression));
     }
     return expression;
 }
@@ -77,24 +79,35 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindComparisonExpression(
     auto& parsedRight = *parsedExpression.children.at(1);
     if (parsedLeft.type == LITERAL_NULL || parsedRight.type == LITERAL_NULL) {
         if (parsedExpression.type == EQUALS || parsedExpression.type == NOT_EQUALS) {
-            return make_shared<LogicalExpression>(LITERAL_BOOLEAN, BOOL, Value(FALSE));
+            return make_shared<LogicalLiteralExpression>(LITERAL_BOOLEAN, BOOL, Value(FALSE));
         } else {
-            return make_shared<LogicalExpression>(LITERAL_BOOLEAN, BOOL, Value(NULL_BOOL));
+            return make_shared<LogicalLiteralExpression>(LITERAL_BOOLEAN, BOOL, Value(NULL_BOOL));
         }
     }
     auto left = bindExpression(parsedLeft);
     auto right = bindExpression(parsedRight);
-    if (left->dataType == UNSTRUCTURED && right->dataType != UNSTRUCTURED) {
-        right = make_shared<LogicalExpression>(CAST_TO_UNKNOWN, UNSTRUCTURED, move(right));
-    } else if (left->dataType != UNSTRUCTURED && right->dataType == UNSTRUCTURED) {
-        left = make_shared<LogicalExpression>(CAST_TO_UNKNOWN, UNSTRUCTURED, move(left));
+    if (left->dataType != UNSTRUCTURED && right->dataType == UNSTRUCTURED) {
+        if (isExpressionLeafLiteral(left->expressionType)) {
+            left->cast(UNSTRUCTURED);
+        } else {
+            left = make_shared<LogicalExpression>(
+                CAST_TO_UNSTRUCTURED_VECTOR, UNSTRUCTURED, move(left));
+        }
+    } else if (left->dataType == UNSTRUCTURED && right->dataType != UNSTRUCTURED) {
+        if (isExpressionLeafLiteral(right->expressionType)) {
+            right->cast(UNSTRUCTURED);
+        } else {
+            right = make_shared<LogicalExpression>(
+                CAST_TO_UNSTRUCTURED_VECTOR, UNSTRUCTURED, move(right));
+        }
+        return make_shared<LogicalExpression>(parsedExpression.type, BOOL, move(left), move(right));
     }
     if (isNumericalType(left->dataType)) {
         if (!isNumericalType(right->dataType)) {
-            return make_shared<LogicalExpression>(LITERAL_BOOLEAN, BOOL, Value(FALSE));
+            return make_shared<LogicalLiteralExpression>(LITERAL_BOOLEAN, BOOL, Value(NULL_BOOL));
         }
     } else if (left->dataType != right->dataType) {
-        return make_shared<LogicalExpression>(LITERAL_BOOLEAN, BOOL, Value(FALSE));
+        return make_shared<LogicalLiteralExpression>(LITERAL_BOOLEAN, BOOL, Value(NULL_BOOL));
     }
     return make_shared<LogicalExpression>(parsedExpression.type, BOOL, move(left), move(right));
 }
@@ -104,6 +117,26 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindBinaryArithmeticExpression(
     validateNoNullLiteralChildren(parsedExpression);
     auto left = bindExpression(*parsedExpression.children.at(0));
     auto right = bindExpression(*parsedExpression.children.at(1));
+    if (parsedExpression.type == ADD) {
+        if (left->dataType == STRING || right->dataType == STRING) {
+            if (left->dataType != STRING) {
+                if (isExpressionLeafLiteral(left->expressionType)) {
+                    left->cast(STRING);
+                } else {
+                    left = make_shared<LogicalExpression>(CAST_TO_STRING, STRING, move(left));
+                }
+            }
+            if (right->dataType != STRING) {
+                if (isExpressionLeafLiteral(right->expressionType)) {
+                    right->cast(STRING);
+                } else {
+                    right = make_shared<LogicalExpression>(CAST_TO_STRING, STRING, move(right));
+                }
+            }
+            return make_shared<LogicalExpression>(
+                parsedExpression.type, STRING, move(left), move(right));
+        }
+    }
     validateNumericalType(*left);
     validateNumericalType(*right);
     DataType resultType;
@@ -146,8 +179,6 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindNullComparisonOperatorExpres
     return make_shared<LogicalExpression>(parsedExpression.type, BOOL, move(childExpression));
 }
 
-// Note ParsedPropertyExpression is unary ,but LogicalPropertyExpression is leaf.
-// Bind property to node or rel. This should change for unstructured properties.
 shared_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
     const ParsedExpression& parsedExpression) {
     validateNoNullLiteralChildren(parsedExpression);
@@ -155,13 +186,15 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
     auto childExpression = bindExpression(*parsedExpression.children.at(0));
     if (NODE == childExpression->dataType) {
         auto node = static_pointer_cast<LogicalNodeExpression>(childExpression);
-        if (!catalog.containNodeProperty(node->label, propertyName)) {
+        if (!catalog.containNodeProperty(node->label, propertyName) &&
+            !catalog.containUnstrNodeProperty(node->label, propertyName)) {
             throw invalid_argument("Node " + node->getAliasElseRawExpression() +
                                    " does not have property " + propertyName + ".");
         }
-        return make_shared<LogicalExpression>(PROPERTY,
-            catalog.getNodePropertyTypeFromString(node->label, propertyName),
-            node->name + "." + propertyName);
+        auto dataType = catalog.containNodeProperty(node->label, propertyName) ?
+                            catalog.getNodePropertyTypeFromString(node->label, propertyName) :
+                            UNSTRUCTURED;
+        return make_shared<LogicalExpression>(PROPERTY, dataType, node->name + "." + propertyName);
     }
     if (REL == childExpression->dataType) {
         auto rel = static_pointer_cast<LogicalRelExpression>(childExpression);
@@ -191,14 +224,15 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindLiteralExpression(
     auto literalType = parsedExpression.type;
     switch (literalType) {
     case LITERAL_INT:
-        return make_shared<LogicalExpression>(LITERAL_INT, INT32, Value(stoi(literalVal)));
+        return make_shared<LogicalLiteralExpression>(LITERAL_INT, INT32, Value(stoi(literalVal)));
     case LITERAL_DOUBLE:
-        return make_shared<LogicalExpression>(LITERAL_DOUBLE, DOUBLE, Value(stod(literalVal)));
+        return make_shared<LogicalLiteralExpression>(
+            LITERAL_DOUBLE, DOUBLE, Value(stod(literalVal)));
     case LITERAL_BOOLEAN:
-        return make_shared<LogicalExpression>(
+        return make_shared<LogicalLiteralExpression>(
             LITERAL_BOOLEAN, BOOL, Value((uint8_t)("true" == literalVal)));
     case LITERAL_STRING:
-        return make_shared<LogicalExpression>(
+        return make_shared<LogicalLiteralExpression>(
             LITERAL_STRING, STRING, Value(literalVal.substr(1, literalVal.size() - 2)));
     default:
         throw invalid_argument("Literal " + parsedExpression.rawExpression + "is not defined.");
@@ -226,17 +260,18 @@ void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
 void validateExpectedType(const LogicalExpression& logicalExpression, DataType expectedType) {
     auto dataType = logicalExpression.dataType;
     if (expectedType != dataType) {
-        throw invalid_argument("Expression " + logicalExpression.rawExpression + " has data type " +
-                               dataTypeToString(dataType) + " expect " +
-                               dataTypeToString(expectedType) + ".");
+        throw invalid_argument(logicalExpression.rawExpression + " is of data type " +
+                               dataTypeToString(dataType) + ". " + dataTypeToString(expectedType) +
+                               " was expected.");
     }
 }
 
 void validateNumericalType(const LogicalExpression& logicalExpression) {
     auto dataType = logicalExpression.dataType;
     if (!isNumericalType(dataType)) {
-        throw invalid_argument("Expression " + logicalExpression.rawExpression + " has data type " +
-                               dataTypeToString(dataType) + " expect numerical type.");
+        throw invalid_argument(logicalExpression.rawExpression + " has data type " +
+                               dataTypeToString(dataType) +
+                               ". A numerical data type was expected.");
     }
 }
 

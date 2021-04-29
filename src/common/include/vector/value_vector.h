@@ -41,8 +41,6 @@ public:
 
     virtual inline int64_t getNumBytesPerValue() { return getDataTypeSize(dataType); }
 
-    uint8_t* reserve(size_t capacity);
-
 protected:
     ValueVector(uint64_t vectorCapacity, uint64_t numBytesPerValue, DataType dataType)
         : capacity{numBytesPerValue * vectorCapacity}, buffer{make_unique<uint8_t[]>(capacity)},

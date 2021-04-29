@@ -19,13 +19,14 @@ void PhysicalUnaryExpression::evaluate() {
 
 shared_ptr<ValueVector> PhysicalUnaryExpression::createResultValueVector() {
     auto valueVector = make_shared<ValueVector>(dataType, MAX_VECTOR_SIZE);
-    if (expressionType == CAST_TO_UNKNOWN) {
+    if (expressionType == CAST_TO_UNSTRUCTURED_VECTOR) {
         auto unstructuredValues = (Value*)valueVector->values;
         for (auto i = 0u; i < MAX_VECTOR_SIZE; i++) {
             unstructuredValues[i].dataType = childrenExpr[0]->dataType;
         }
     }
     valueVector->state = childrenExpr[0]->result->state;
+    valueVector->nullMask = childrenExpr[0]->result->nullMask;
     return valueVector;
 }
 

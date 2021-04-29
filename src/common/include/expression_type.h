@@ -36,7 +36,7 @@ enum ExpressionType : uint8_t {
     POWER = 25,
     NEGATE = 26,
 
-    /*
+    /**
      * NODE ID Expressions
      * Comparison and Decompress
      * */
@@ -89,8 +89,9 @@ enum ExpressionType : uint8_t {
     /**
      * Cast Expressions
      ***/
-    CAST_TO_UNKNOWN = 100,
-    CAST_UNKNOWN_TO_BOOL = 101
+    CAST_TO_STRING = 100,
+    CAST_TO_UNSTRUCTURED_VECTOR = 101,
+    CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR = 102
 };
 
 bool isExpressionUnary(ExpressionType type);
@@ -102,9 +103,6 @@ bool isExpressionStringOperator(ExpressionType type);
 bool isExpressionNullComparison(ExpressionType type);
 bool isExpressionLeafLiteral(ExpressionType type);
 bool isExpressionLeafVariable(ExpressionType type);
-DataType getUnaryExpressionResultDataType(ExpressionType type, DataType operandType);
-DataType getBinaryExpressionResultDataType(
-    ExpressionType type, DataType leftOperandType, DataType rightOperandType);
 
 string expressionTypeToString(ExpressionType type);
 

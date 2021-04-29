@@ -22,12 +22,6 @@ LogicalExpression::LogicalExpression(
     this->variableName = variableName;
 }
 
-LogicalExpression::LogicalExpression(
-    ExpressionType expressionType, DataType dataType, const Value& literalValue)
-    : LogicalExpression(expressionType, dataType) {
-    this->literalValue = literalValue;
-}
-
 unordered_set<string> LogicalExpression::getIncludedVariables() const {
     auto result = unordered_set<string>();
     if (isExpressionLeafLiteral(expressionType)) {

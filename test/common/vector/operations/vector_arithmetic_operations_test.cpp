@@ -1,8 +1,6 @@
 #include "gtest/gtest.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/vector/operations/vector_arithmetic_operations.h"
-#include "src/common/include/vector/value_vector.h"
 
 using namespace graphflow::common;
 using namespace std;

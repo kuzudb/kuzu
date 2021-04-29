@@ -2,12 +2,12 @@
 
 #include <cfloat>
 #include <cmath>
-#include <cstdint>
 #include <cstring>
-#include <string>
 #include <vector>
 
 #include "robin_hood.h"
+
+#include "src/common/include/string.h"
 
 using namespace std;
 
@@ -27,31 +27,6 @@ const uint8_t NULL_BOOL = 2;
 const int32_t NULL_INT32 = INT32_MIN;
 const double_t NULL_DOUBLE = DBL_MIN;
 const uint64_t NUM_BYTES_PER_NODE_ID = sizeof(node_offset_t) + sizeof(label_t);
-
-// System representation for strings.
-struct gf_string_t {
-
-    static const uint64_t PREFIX_LENGTH = 4;
-    static const uint64_t STR_LENGTH_PLUS_PREFIX_LENGTH = sizeof(uint32_t) + PREFIX_LENGTH;
-    static const uint64_t INLINED_SUFFIX_LENGTH = 8;
-    static const uint64_t SHORT_STR_LENGTH = PREFIX_LENGTH + INLINED_SUFFIX_LENGTH;
-
-    uint32_t len;
-    uint8_t prefix[PREFIX_LENGTH];
-    union {
-        uint8_t data[INLINED_SUFFIX_LENGTH];
-        uint64_t overflowPtr;
-    };
-
-    void setOverflowPtrInfo(const uint64_t& pageIdx, const uint16_t& pageOffset);
-    void getOverflowPtrInfo(uint64_t& pageIdx, uint16_t& pageOffset);
-
-    inline bool isShort() const { return len <= SHORT_STR_LENGTH; }
-
-    inline const uint8_t* getData() const {
-        return len <= SHORT_STR_LENGTH ? data : reinterpret_cast<uint8_t*>(overflowPtr);
-    }
-};
 
 // System representation for nodeID.
 struct nodeID_t {
@@ -78,7 +53,7 @@ enum DataType : uint8_t {
 };
 
 const string DataTypeNames[] = {
-    "REL", "NODE", "LABEL", "BOOL", "INT32", "INT64", "DOUBLE", "STRING", "UNKNOWN"};
+    "REL", "NODE", "LABEL", "BOOL", "INT32", "INT64", "DOUBLE", "STRING", "UNSTRUCTURED"};
 
 int32_t convertToInt32(char* data);
 

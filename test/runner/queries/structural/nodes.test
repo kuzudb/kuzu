@@ -6,7 +6,7 @@
 
 -NAME PersonNodesTest
 -QUERY MATCH (a:person) RETURN COUNT(*)
----- 7
+---- 8
 
 -NAME OrganizationNodesTest
 -QUERY MATCH (a:organisation) RETURN COUNT(*)

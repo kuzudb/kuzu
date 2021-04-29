@@ -55,7 +55,6 @@ void DataChunksIterator::setDataChunksTypes() {
 
 void DataChunksIterator::getNextTuple(Tuple& tuple) {
     auto valueInTupleIdx = 0;
-    nodeID_t nodeID;
     for (uint64_t i = 0; i < dataChunks.getNumDataChunks(); i++) {
         auto dataChunk = dataChunks.getDataChunk(i);
         auto tuplePosition = tuplePositions[i];
@@ -65,33 +64,30 @@ void DataChunksIterator::getNextTuple(Tuple& tuple) {
             case INT32: {
                 tuple.getValue(valueInTupleIdx)
                     ->setInt(vector->getValue<int32_t>(selectedTuplePos));
-                break;
-            }
+            } break;
             case BOOL: {
                 tuple.getValue(valueInTupleIdx)->setBool(vector->getValue<bool>(selectedTuplePos));
-                break;
-            }
+            } break;
             case DOUBLE: {
                 tuple.getValue(valueInTupleIdx)
                     ->setDouble(vector->getValue<double>(selectedTuplePos));
-                break;
-            }
+            } break;
             case STRING: {
-                gf_string_t gfString = vector->getValue<gf_string_t>(selectedTuplePos);
-                string value;
-                memcpy(&value, vector->values + gfString.overflowPtr, gfString.len);
-                tuple.getValue(valueInTupleIdx)->setString(value);
-                break;
-            }
+                tuple.getValue(valueInTupleIdx)
+                    ->setString(vector->getValue<gf_string_t>(selectedTuplePos));
+            } break;
             case NODE: {
+                nodeID_t nodeID{};
                 auto nodeIDVector = static_pointer_cast<NodeIDVector>(vector);
                 nodeIDVector->readNodeOffsetAndLabel(selectedTuplePos, nodeID);
                 tuple.getValue(valueInTupleIdx)->setNodeID(nodeID);
                 break;
             }
+            case UNSTRUCTURED: {
+                *(tuple.getValue(valueInTupleIdx)) = vector->getValue<Value>(selectedTuplePos);
+            } break;
             default:
-                throw std::invalid_argument(
-                    "Unsupported data type " + DataTypeNames[vector->dataType]);
+                assert(false);
             }
             valueInTupleIdx++;
         }

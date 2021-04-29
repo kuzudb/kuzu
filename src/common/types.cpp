@@ -8,21 +8,21 @@ namespace graphflow {
 namespace common {
 
 DataType getDataType(const std::string& dataTypeString) {
-    if (0 == dataTypeString.compare("LABEL")) {
+    if ("LABEL" == dataTypeString) {
         return LABEL;
-    } else if (0 == dataTypeString.compare("NODE")) {
+    } else if ("NODE" == dataTypeString) {
         return NODE;
-    } else if (0 == dataTypeString.compare("REL")) {
+    } else if ("REL" == dataTypeString) {
         return REL;
-    } else if (0 == dataTypeString.compare("INT32")) {
+    } else if ("INT32" == dataTypeString) {
         return INT32;
-    } else if (0 == dataTypeString.compare("INT64")) {
+    } else if ("INT64" == dataTypeString) {
         return INT64;
-    } else if (0 == dataTypeString.compare("DOUBLE")) {
+    } else if ("DOUBLE" == dataTypeString) {
         return DOUBLE;
-    } else if (0 == dataTypeString.compare("BOOLEAN")) {
+    } else if ("BOOLEAN" == dataTypeString) {
         return BOOL;
-    } else if (0 == dataTypeString.compare("STRING")) {
+    } else if ("STRING" == dataTypeString) {
         return STRING;
     }
     throw invalid_argument("Cannot parse dataType: " + dataTypeString);
@@ -79,25 +79,14 @@ uint8_t convertToBoolean(char* data) {
     throw invalid_argument("invalid boolean val.");
 }
 
-void gf_string_t::setOverflowPtrInfo(const uint64_t& pageIdx, const uint16_t& pageOffset) {
-    memcpy(&overflowPtr, &pageIdx, 6);
-    memcpy(((uint8_t*)&overflowPtr) + 6, &pageOffset, 2);
-}
-
-void gf_string_t::getOverflowPtrInfo(uint64_t& pageIdx, uint16_t& pageOffset) {
-    pageIdx = 0;
-    memcpy(&pageIdx, &overflowPtr, 6);
-    memcpy(&pageOffset, ((uint8_t*)&overflowPtr) + 6, 2);
-}
-
 Cardinality getCardinality(const string& cardinalityString) {
-    if (0 == cardinalityString.compare("ONE_ONE")) {
+    if ("ONE_ONE" == cardinalityString) {
         return ONE_ONE;
-    } else if (0 == cardinalityString.compare("MANY_ONE")) {
+    } else if ("MANY_ONE" == cardinalityString) {
         return MANY_ONE;
-    } else if (0 == cardinalityString.compare("ONE_MANY")) {
+    } else if ("ONE_MANY" == cardinalityString) {
         return ONE_MANY;
-    } else if (0 == cardinalityString.compare("MANY_MANY")) {
+    } else if ("MANY_MANY" == cardinalityString) {
         return MANY_MANY;
     }
     throw invalid_argument("Invalid cardinality string \"" + cardinalityString + "\"");
