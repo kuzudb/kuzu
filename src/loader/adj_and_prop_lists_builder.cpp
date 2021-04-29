@@ -23,8 +23,7 @@ void AdjAndPropertyListsBuilder::buildAdjListsHeadersAndListsMetadata() {
     for (auto& dir : DIRS) {
         dirLabelAdjListHeaders[dir].resize(catalog.getNodeLabelsCount());
         for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
-            dirLabelAdjListHeaders[dir][nodeLabel].headers.resize(
-                graph.getNumNodesPerLabel()[nodeLabel]);
+            dirLabelAdjListHeaders[dir][nodeLabel].init(graph.getNumNodesPerLabel()[nodeLabel]);
         }
         dirLabelAdjListsMetadata[dir].resize(catalog.getNodeLabelsCount());
     }
@@ -148,10 +147,10 @@ void AdjAndPropertyListsBuilder::saveToFile() {
                     dirLabelAdjLists[dir][nodeLabel].get());
                 auto fname =
                     RelsStore::getAdjListsFname(outputDirectory, description.label, nodeLabel, dir);
-                threadPool.execute([&](ListsMetadata& x, string fname) { x.saveToFile(fname); },
-                    dirLabelAdjListsMetadata[dir][nodeLabel], fname);
-                threadPool.execute([&](ListHeaders& x, string fname) { x.saveToFile(fname); },
-                    dirLabelAdjListHeaders[dir][nodeLabel], fname);
+                threadPool.execute([&](ListsMetadata* x, string fname) { x->saveToDisk(fname); },
+                    &dirLabelAdjListsMetadata[dir][nodeLabel], fname);
+                threadPool.execute([&](ListHeaders* x, string fname) { x->saveToDisk(fname); },
+                    &dirLabelAdjListHeaders[dir][nodeLabel], fname);
             }
         }
     }
@@ -173,8 +172,8 @@ void AdjAndPropertyListsBuilder::saveToFile() {
                         auto fname = RelsStore::getRelPropertyListsFname(
                             outputDirectory, description.label, nodeLabel, dir, property->first);
                         threadPool.execute(
-                            [&](ListsMetadata& x, string fname) { x.saveToFile(fname); },
-                            dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][idx], fname);
+                            [&](ListsMetadata* x, string fname) { x->saveToDisk(fname); },
+                            &dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][idx], fname);
                     }
                 }
             }
@@ -295,7 +294,7 @@ void AdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(node_off
         auto header = adjListsHeaders->headers[offsetStart];
         uint32_t len = 0;
         if (ListHeaders::isALargeList(header)) {
-            len = listsMetadata->largeListsPagesMap[header & 0x7fffffff][0];
+            len = listsMetadata->getNumElementsInLargeLists(header & 0x7fffffff);
         } else {
             len = ListHeaders::getSmallListLen(header);
         }

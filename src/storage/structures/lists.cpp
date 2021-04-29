@@ -30,7 +30,7 @@ void BaseLists::readSmallList(const nodeID_t& nodeID, const shared_ptr<ValueVect
             metadata.getPageMapperForChunkIdx(chunkIdx));
     } else {
         // map logical pageIdx to physical pageIdx
-        pageCursor.idx = metadata.getPageIdxFromChunkPagesMap(chunkIdx, pageCursor.idx);
+        pageCursor.idx = metadata.getPageIdxFromAChunkPageList(chunkIdx, pageCursor.idx);
         readBySettingFrame(valueVector, handle, pageCursor);
     }
 }
@@ -71,7 +71,7 @@ void BaseLists::readFromLargeList(const nodeID_t& nodeID,
             metadata.getPageMapperForLargeListIdx(largeListIdx));
     } else {
         // map logical pageIdx to physical pageIdx
-        pageCursor.idx = metadata.getPageIdxFromLargeListPagesMap(largeListIdx, pageCursor.idx);
+        pageCursor.idx = metadata.getPageIdxFromALargeListPageList(largeListIdx, pageCursor.idx);
         readBySettingFrame(valueVector, handle, pageCursor);
     }
 }

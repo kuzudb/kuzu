@@ -113,8 +113,7 @@ void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); ++nodeLabel) {
         if (catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
             auto a = catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel);
-            labelUnstrPropertyListHeaders[nodeLabel].headers.resize(
-                graph.getNumNodesPerLabel()[nodeLabel]);
+            labelUnstrPropertyListHeaders[nodeLabel].init(graph.getNumNodesPerLabel()[nodeLabel]);
         }
     }
     labelUnstrPropertyListsMetadata.resize(catalog.getNodeLabelsCount());
@@ -166,10 +165,10 @@ void NodesLoader::saveUnstrPropertyListsToFile() {
             threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },
                 labelUnstrPropertyListsStringOverflowPages[nodeLabel].get());
             auto fname = NodesStore::getNodeUnstrPropertyListsFname(outputDirectory, nodeLabel);
-            threadPool.execute([&](ListsMetadata& x, string fname) { x.saveToFile(fname); },
-                labelUnstrPropertyListsMetadata[nodeLabel], fname);
-            threadPool.execute([&](ListHeaders& x, string fname) { x.saveToFile(fname); },
-                labelUnstrPropertyListHeaders[nodeLabel], fname);
+            threadPool.execute([&](ListsMetadata* x, string fname) { x->saveToDisk(fname); },
+                &labelUnstrPropertyListsMetadata[nodeLabel], fname);
+            threadPool.execute([&](ListHeaders* x, string fname) { x->saveToDisk(fname); },
+                &labelUnstrPropertyListHeaders[nodeLabel], fname);
         }
     }
     threadPool.wait();
