@@ -23,10 +23,7 @@ public:
     inline uint32_t getNumBytesForOffset() const { return numBytesForOffset; };
     inline uint32_t getNumTotalBytes() const { return numTotalBytes; };
 
-    uint64_t getNodeOffsetNullValue();
-
-private:
-    uint32_t getNumBytesForEncoding(const uint64_t& maxValToEncode, const uint8_t& minNumBytes);
+    uint64_t getNodeOffsetNullValue() const;
 
 private:
     uint32_t numBytesForLabel;

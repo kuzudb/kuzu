@@ -33,7 +33,6 @@ cc_library(
         "include/string.h",
         "include/types.h",
         "include/value.h",
-        "include/vector/node_id_sequence_vector.h",
         "include/vector/node_vector.h",
         "include/vector/operations/executors/binary_operation_executor.h",
         "include/vector/operations/executors/unary_operation_executor.h",

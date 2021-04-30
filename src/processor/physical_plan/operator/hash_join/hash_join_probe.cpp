@@ -36,7 +36,7 @@ HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::HashJoinProbe(uint64_t buildSideKeyDat
     vectorDecompressOp = ValueVector::getUnaryOperation(DECOMPRESS_NODE_ID);
     vectorHashOp = ValueVector::getUnaryOperation(HASH_NODE_ID);
     auto decompressedProbeKeyState = make_shared<DataChunkState>(true, MAX_VECTOR_SIZE);
-    decompressedProbeKeyVector = make_shared<NodeIDVector>(NodeIDCompressionScheme(8, 8));
+    decompressedProbeKeyVector = make_shared<NodeIDVector>(0, NodeIDCompressionScheme(8, 8), false);
     decompressedProbeKeyVector->state = decompressedProbeKeyState;
     auto hashedProbeKeyState = make_shared<DataChunkState>(true, MAX_VECTOR_SIZE);
     hashedProbeKeyVector = make_shared<ValueVector>(INT64);
@@ -61,8 +61,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
         shared_ptr<ValueVector> outVector;
         if (probeSideVector->dataType == NODE) {
             auto probeSideNodeIDVector = static_pointer_cast<NodeIDVector>(probeSideVector);
-            outVector = make_shared<NodeIDVector>(
-                probeSideNodeIDVector->commonLabel, probeSideNodeIDVector->nodeIDCompressionScheme);
+            outVector = make_shared<NodeIDVector>(probeSideNodeIDVector->representation.commonLabel,
+                probeSideNodeIDVector->representation.compressionScheme, false);
         } else {
             outVector = make_shared<ValueVector>(probeSideVector->dataType);
         }
@@ -76,8 +76,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
         shared_ptr<ValueVector> outVector;
         if (buildSideVector->dataType == NODE) {
             auto buildSideNodeIDVector = static_pointer_cast<NodeIDVector>(buildSideVector);
-            outVector = make_shared<NodeIDVector>(
-                buildSideNodeIDVector->commonLabel, buildSideNodeIDVector->nodeIDCompressionScheme);
+            outVector = make_shared<NodeIDVector>(buildSideNodeIDVector->representation.commonLabel,
+                buildSideNodeIDVector->representation.compressionScheme, false);
         } else {
             outVector = make_shared<ValueVector>(buildSideVector->dataType);
         }
@@ -91,8 +91,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
                 shared_ptr<ValueVector> outVector;
                 if (vector->dataType == NODE) {
                     auto nodeIDVector = static_pointer_cast<NodeIDVector>(vector);
-                    outVector = make_shared<NodeIDVector>(
-                        nodeIDVector->commonLabel, nodeIDVector->nodeIDCompressionScheme);
+                    outVector = make_shared<NodeIDVector>(nodeIDVector->representation.commonLabel,
+                        nodeIDVector->representation.compressionScheme, false);
                 } else {
                     outVector = make_shared<ValueVector>(vector->dataType);
                 }
@@ -104,8 +104,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
                 shared_ptr<ValueVector> outVector;
                 if (vector->dataType == NODE) {
                     auto nodeIDVector = static_pointer_cast<NodeIDVector>(vector);
-                    outVector = make_shared<NodeIDVector>(
-                        nodeIDVector->commonLabel, nodeIDVector->nodeIDCompressionScheme);
+                    outVector = make_shared<NodeIDVector>(nodeIDVector->representation.commonLabel,
+                        nodeIDVector->representation.compressionScheme, false);
                 } else {
                     outVector = make_shared<ValueVector>(vector->dataType);
                 }
@@ -183,14 +183,14 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::populateOutKeyDataChunkAndVectorP
         auto outKeyVectorValues = outKeyVector->values;
         auto numBytesPerValue = outKeyVector->getNumBytesPerValue();
         if (probeVector->dataType == NODE &&
-            static_pointer_cast<NodeIDVector>(probeVector)->isSequence) {
+            static_pointer_cast<NodeIDVector>(probeVector)->isSequence()) {
             auto outKeyVectorNodeOffsets = (node_offset_t*)outKeyVectorValues;
             auto probeKeyStartOffset = *(node_offset_t*)(probeVectorValues);
             for (uint64_t j = 0; j < probeState->matchedTuplesSize; j++) {
                 outKeyVectorNodeOffsets[j] = probeKeyStartOffset + probeState->probeSelVector[j];
             }
-            static_pointer_cast<NodeIDVector>(outKeyVector)->commonLabel =
-                static_pointer_cast<NodeIDVector>(probeVector)->commonLabel;
+            // static_pointer_cast<NodeIDVector>(outKeyVector)->representation.commonLabel =
+            //    static_pointer_cast<NodeIDVector>(probeVector)->representation.commonLabel;
         } else {
             for (uint64_t j = 0; j < probeState->matchedTuplesSize; j++) {
                 memcpy(outKeyVectorValues + (j * numBytesPerValue),

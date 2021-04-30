@@ -5,7 +5,7 @@ namespace storage {
 
 void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, const unique_ptr<ColumnOrListsHandle>& handle) {
-    if (nodeIDVector->isSequence) {
+    if (nodeIDVector->isSequence()) {
         nodeID_t nodeID;
         nodeIDVector->readNodeOffset(0, nodeID);
         auto pageCursor = getPageCursorForOffset(nodeID.offset);
@@ -51,7 +51,7 @@ void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& 
 
 void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, const unique_ptr<ColumnOrListsHandle>& handle) {
-    if (nodeIDVector->isSequence) {
+    if (nodeIDVector->isSequence()) {
         nodeID_t nodeID;
         nodeIDVector->readNodeOffset(0, nodeID);
         auto pageCursor = getPageCursorForOffset(nodeID.offset);

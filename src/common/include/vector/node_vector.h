@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include <cassert>
 #include <memory>
 
 #include "src/common/include/compression_scheme.h"
@@ -10,34 +11,39 @@
 namespace graphflow {
 namespace common {
 
+struct NodeIDRepresentation {
+
+    NodeIDRepresentation(
+        bool isSequence, label_t commonLabel, const NodeIDCompressionScheme& compressionScheme)
+        : isSequence{isSequence}, commonLabel{commonLabel}, compressionScheme{compressionScheme} {}
+
+    const bool isSequence;
+    const label_t commonLabel;
+    NodeIDCompressionScheme compressionScheme;
+};
+
 class NodeIDVector : public ValueVector {
 
 public:
-    // creates a Node ID vector where labels are stores in nodes.
-    NodeIDVector(const NodeIDCompressionScheme& nodeIDCompressionScheme)
-        : NodeIDVector{0, nodeIDCompressionScheme, false} {}
-    NodeIDVector(const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isSequence)
-        : NodeIDVector{0, nodeIDCompressionScheme, isSequence} {}
-
-    //  Creates a Node ID vector where the label is factored out and
-    // stores in the label field and nodes contains node offsets only.
-    NodeIDVector(label_t commonLabel, const NodeIDCompressionScheme& nodeIDCompressionScheme)
-        : NodeIDVector{commonLabel, nodeIDCompressionScheme, false} {}
-
     NodeIDVector(label_t commonLabel, const NodeIDCompressionScheme& nodeIDCompressionScheme,
         bool isSequence)
         : NodeIDVector{commonLabel, nodeIDCompressionScheme, isSequence, MAX_VECTOR_SIZE} {};
 
-    virtual ~NodeIDVector() = default;
+    void readNodeOffset(uint64_t pos, nodeID_t& nodeID) override;
+    void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) override;
 
-    virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID);
-    virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID);
+    void setStartOffset(node_offset_t node_offset) {
+        assert(representation.isSequence);
+        ((node_offset_t*)values)[0] = node_offset;
+    }
 
     inline int64_t getNumBytesPerValue() override {
-        return nodeIDCompressionScheme.getNumTotalBytes();
+        return representation.compressionScheme.getNumTotalBytes();
     }
 
     bool discardNulls();
+
+    bool isSequence() const { return representation.isSequence; }
 
 protected:
     NodeIDVector(const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isSequence,
@@ -47,13 +53,10 @@ protected:
     NodeIDVector(label_t commonLabel, const NodeIDCompressionScheme& nodeIDCompressionScheme,
         bool isSequence, uint64_t vectorCapacity)
         : ValueVector{vectorCapacity, nodeIDCompressionScheme.getNumTotalBytes(), NODE},
-          commonLabel{commonLabel}, nodeIDCompressionScheme{nodeIDCompressionScheme},
-          isSequence{isSequence} {};
+          representation{NodeIDRepresentation(isSequence, commonLabel, nodeIDCompressionScheme)} {};
 
 public:
-    label_t commonLabel;
-    NodeIDCompressionScheme nodeIDCompressionScheme;
-    bool isSequence = false;
+    NodeIDRepresentation representation;
 };
 
 } // namespace common

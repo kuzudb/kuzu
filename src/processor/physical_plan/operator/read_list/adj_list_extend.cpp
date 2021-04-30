@@ -7,7 +7,7 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::AdjListExtend(uint64_t inDataChunkPos,
     uint64_t inValueVectorPos, AdjLists* lists, unique_ptr<PhysicalOperator> prevOperator)
     : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)} {
-    outValueVector = make_shared<NodeIDVector>(lists->getNodeIDCompressionScheme());
+    outValueVector = make_shared<NodeIDVector>(0, lists->getNodeIDCompressionScheme(), false);
     outDataChunk = make_shared<DataChunk>(true /* initializeSelectedValuesPos */);
     outDataChunk->append(outValueVector);
     auto listSyncState = make_shared<ListSyncState>();

@@ -7,7 +7,7 @@ using namespace graphflow::processor;
 
 namespace graphflow {
 namespace processor {
-
+/*
 class DataChunksMockOperator : public PhysicalOperator {
 public:
     DataChunksMockOperator(MorselsDesc& morsel) : PhysicalOperator(SCAN), morsel(morsel) {
@@ -78,6 +78,6 @@ public:
 private:
     void generateDataChunks();
 };
-
+*/
 } // namespace processor
 } // namespace graphflow

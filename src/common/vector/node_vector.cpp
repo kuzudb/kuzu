@@ -6,21 +6,36 @@ namespace graphflow {
 namespace common {
 
 void NodeIDVector::readNodeOffset(uint64_t pos, nodeID_t& nodeID) {
-    auto readOffset = values + (pos * nodeIDCompressionScheme.getNumTotalBytes());
+    if (representation.isSequence) {
+        nodeID.offset = ((node_offset_t*)values)[0] + pos;
+        return;
+    }
+    auto readOffset = values + (pos * representation.compressionScheme.getNumTotalBytes());
     nodeID.offset = 0;
-    memcpy(&nodeID.offset, readOffset + nodeIDCompressionScheme.getNumBytesForLabel(),
-        nodeIDCompressionScheme.getNumBytesForOffset());
+    memcpy(&nodeID.offset, readOffset + representation.compressionScheme.getNumBytesForLabel(),
+        representation.compressionScheme.getNumBytesForOffset());
 }
 
 void NodeIDVector::readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) {
-    auto readOffset = values + (pos * nodeIDCompressionScheme.getNumTotalBytes());
-    nodeID.label =
-        nodeIDCompressionScheme.getNumBytesForLabel() == 0 ? commonLabel : *(label_t*)(readOffset);
-    nodeID.offset = *(node_offset_t*)(readOffset + nodeIDCompressionScheme.getNumBytesForLabel());
+    if (representation.isSequence) {
+        nodeID.offset = ((node_offset_t*)values)[0] + pos;
+        nodeID.label = representation.commonLabel;
+        return;
+    }
+    auto readOffset = values + (pos * representation.compressionScheme.getNumTotalBytes());
+    if (representation.compressionScheme.getNumBytesForLabel() == 0) {
+        nodeID.label = representation.commonLabel;
+    } else {
+        nodeID.label = 0;
+        memcpy(&nodeID.label, readOffset, representation.compressionScheme.getNumBytesForLabel());
+    }
+    nodeID.offset = 0;
+    memcpy(&nodeID.offset, readOffset + representation.compressionScheme.getNumBytesForLabel(),
+        representation.compressionScheme.getNumBytesForOffset());
 }
 
 bool NodeIDVector::discardNulls() {
-    auto nullOffset = nodeIDCompressionScheme.getNodeOffsetNullValue();
+    auto nullOffset = representation.compressionScheme.getNodeOffsetNullValue();
     nodeID_t nodeID{};
     if (state->currPos == -1) {
         auto selectedValuesPos = state->selectedValuesPos;

@@ -4,6 +4,7 @@
 
 using namespace graphflow::processor;
 
+/*
 class DataChunksIteratorTest : public ::testing::Test {
 
 public:
@@ -220,3 +221,4 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTestWithSelector) {
     }
     ASSERT_EQ(tupleIndex, 1);
 }
+*/

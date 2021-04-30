@@ -7,8 +7,8 @@ AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos,
     unique_ptr<PhysicalOperator> prevOperator)
     : ScanStructuredColumn{dataChunkPos, valueVectorPos, column, move(prevOperator)},
       prevInNumSelectedValues(0ul) {
-    auto outNodeIDVector = make_shared<NodeIDVector>(((AdjColumn*)column)->getCompressionScheme());
-    outNodeIDVector->isSequence = inNodeIDVector->isSequence;
+    auto outNodeIDVector = make_shared<NodeIDVector>(
+        0, ((AdjColumn*)column)->getCompressionScheme(), false /*inNodeIDVector->isSequence()*/);
     outValueVector = static_pointer_cast<ValueVector>(outNodeIDVector);
     inDataChunk->append(outValueVector);
 }

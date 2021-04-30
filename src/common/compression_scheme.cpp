@@ -5,6 +5,8 @@
 namespace graphflow {
 namespace common {
 
+static uint32_t getNumBytesForEncoding(const uint64_t& maxValToEncode, const uint8_t& minNumBytes);
+
 NodeIDCompressionScheme::NodeIDCompressionScheme(const vector<label_t>& nbrNodeLabels,
     const vector<uint64_t>& numNodesPerLabel, const uint32_t& numNodeLabels) {
     auto maxNodeOffsetToFit = 0ull;
@@ -20,8 +22,7 @@ NodeIDCompressionScheme::NodeIDCompressionScheme(const vector<label_t>& nbrNodeL
     numTotalBytes = numBytesForLabel + numBytesForOffset;
 }
 
-uint32_t NodeIDCompressionScheme::getNumBytesForEncoding(
-    const uint64_t& maxValToEncode, const uint8_t& minNumBytes) {
+uint32_t getNumBytesForEncoding(const uint64_t& maxValToEncode, const uint8_t& minNumBytes) {
     auto numBytes = minNumBytes;
     while (maxValToEncode > (1ull << (8 * numBytes)) - 2) {
         numBytes <<= 1;
@@ -29,7 +30,7 @@ uint32_t NodeIDCompressionScheme::getNumBytesForEncoding(
     return numBytes;
 }
 
-uint64_t NodeIDCompressionScheme::getNodeOffsetNullValue() {
+uint64_t NodeIDCompressionScheme::getNodeOffsetNullValue() const {
     switch (numBytesForOffset) {
     case 2:
         return UINT16_MAX;

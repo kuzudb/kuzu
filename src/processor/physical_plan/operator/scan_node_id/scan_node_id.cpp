@@ -7,7 +7,7 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::ScanNodeID(shared_ptr<MorselsDesc>& morsel)
     : PhysicalOperator(SCAN), morsel{morsel} {
     dataChunks = make_shared<DataChunks>();
-    nodeIDVector = make_shared<NodeIDSequenceVector>();
+    nodeIDVector = make_shared<NodeIDVector>(morsel->label, NodeIDCompressionScheme(), true);
     outDataChunk =
         make_shared<DataChunk>(!IS_OUT_DATACHUNK_FILTERED /* initializeSelectedValuesPos */);
     outDataChunk->append(nodeIDVector);

@@ -57,10 +57,12 @@ public:
     static inline void execute(ValueVector& operand, ValueVector& result) {
         switch (operand.dataType) {
         case INT32:
-            UnaryOperationExecutor::execute<int32_t, int32_t, OP>(operand, result);
+            UnaryOperationExecutor::executeArithmeticAndComparisonOps<int32_t, int32_t, OP>(
+                operand, result);
             break;
         case DOUBLE:
-            UnaryOperationExecutor::execute<double_t, double_t, OP>(operand, result);
+            UnaryOperationExecutor::executeArithmeticAndComparisonOps<double_t, double_t, OP>(
+                operand, result);
             break;
         default:
             throw std::invalid_argument(

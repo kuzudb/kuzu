@@ -5,7 +5,7 @@
 using namespace graphflow::processor;
 
 TEST(ScanTests, ScanTest) {
-    auto morsel = make_shared<MorselsDesc>(1025013 /*numNodes*/);
+    auto morsel = make_shared<MorselsDesc>(0, 1025013 /*numNodes*/);
     auto scan = make_unique<ScanNodeID<true>>(morsel);
     auto dataChunks = scan->getDataChunks();
     auto dataChunk = dataChunks->getDataChunk(0);

@@ -26,16 +26,6 @@ public:
 
     Value& operator=(const Value& other);
 
-    inline void setBool(bool value) { this->primitive.booleanVal = value; }
-
-    inline void setInt(int32_t value) { this->primitive.int32Val = value; }
-
-    inline void setDouble(double value) { this->primitive.doubleVal = value; }
-
-    inline void setString(const gf_string_t& value) { this->strVal = strVal; }
-
-    inline void setNodeID(nodeID_t value) { this->nodeID = value; }
-
     void castToString();
 
     string toString() const;
