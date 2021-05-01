@@ -61,33 +61,33 @@ unique_ptr<PhysicalExpression> mapLogicalLiteralExpressionToPhysical(
     const LogicalExpression& expression) {
     auto& literalExpression = (LogicalLiteralExpression&)expression;
     // We create an owner dataChunk which is flat and of size 1 to contain the literal.
-    auto valueVector = make_shared<ValueVector>(
+    auto vector = make_shared<ValueVector>(
         literalExpression.storeAsPrimitiveVector ? literalExpression.dataType : UNSTRUCTURED,
         1 /* capacity */);
-    valueVector->state = DataChunkState::getSingleValueDataChunkState();
+    vector->state = DataChunkState::getSingleValueDataChunkState();
     if (!literalExpression.storeAsPrimitiveVector) {
-        ((Value*)valueVector->values)[0] = literalExpression.literal;
+        ((Value*)vector->values)[0] = literalExpression.literal;
     } else {
         switch (expression.dataType) {
         case INT32: {
-            valueVector->setValue(0, literalExpression.literal.primitive.int32Val);
+            ((int32_t*)vector->values)[0] = literalExpression.literal.primitive.int32Val;
         } break;
         case DOUBLE: {
-            valueVector->setValue(0, literalExpression.literal.primitive.doubleVal);
+            ((double_t*)vector->values)[0] = literalExpression.literal.primitive.doubleVal;
         } break;
         case BOOL: {
             auto val = literalExpression.literal.primitive.booleanVal;
-            valueVector->nullMask[0] = val == NULL_BOOL;
-            valueVector->setValue(0, val);
+            vector->nullMask[0] = val == NULL_BOOL;
+            vector->values[0] = val;
         } break;
         case STRING: {
-            valueVector->setValue(0, literalExpression.literal.strVal);
+            ((gf_string_t*)vector->values)[0] = literalExpression.literal.strVal;
         } break;
         default:
             assert(false);
         }
     }
-    return make_unique<PhysicalExpression>(valueVector, expression.expressionType);
+    return make_unique<PhysicalExpression>(vector, expression.expressionType);
 }
 
 unique_ptr<PhysicalExpression> mapLogicalPropertyExpressionToPhysical(

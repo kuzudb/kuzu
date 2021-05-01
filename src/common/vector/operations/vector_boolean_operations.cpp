@@ -20,7 +20,7 @@ void VectorBooleanOperations::Xor(ValueVector& left, ValueVector& right, ValueVe
 }
 
 void VectorBooleanOperations::Not(ValueVector& operand, ValueVector& result) {
-    UnaryOperationExecutor::executeBoolOperation<operation::Not>(operand, result);
+    UnaryOperationExecutor::executeBoolOps<operation::Not>(operand, result);
 }
 
 } // namespace common

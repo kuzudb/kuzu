@@ -79,7 +79,7 @@ void HashJoinBuild::appendPayloadVectorAsFixSizedValues(ValueVector& vector, uin
     auto selectedValuesPos = vector.state->selectedValuesPos;
     if (vector.dataType == NODE) {
         auto& nodeIDVec = dynamic_cast<NodeIDVector&>(vector);
-        if (nodeIDVec.isSequence) {
+        if (nodeIDVec.isSequence()) {
             auto startNodeOffset = ((node_offset_t*)vector.values)[0];
             for (uint64_t i = 0; i < appendCount; i++) {
                 auto valuePos = valueOffsetInVector + (i * (1 - isSingleValue));
@@ -133,7 +133,7 @@ overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
 // appendCount times. (a sequence nodeID vector should never be passed in this function)
 void HashJoinBuild::appendPayloadVectorAsOverflowValue(
     ValueVector& vector, uint8_t* appendBuffer, uint64_t appendCount) {
-    assert(!((vector.dataType == NODE) && (dynamic_cast<NodeIDVector&>(vector).isSequence)));
+    assert(!((vector.dataType == NODE) && (dynamic_cast<NodeIDVector&>(vector).isSequence())));
     auto overflowValue = addVectorInOverflowBlocks(vector);
     for (uint64_t i = 0; i < appendCount; i++) {
         memcpy(appendBuffer + (i * numBytesForFixedTuplePart), (void*)&overflowValue,
@@ -143,18 +143,19 @@ void HashJoinBuild::appendPayloadVectorAsOverflowValue(
 
 void HashJoinBuild::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
     uint64_t valueOffsetInVector, uint64_t appendCount) const {
-    auto offsetSize = vector.nodeIDCompressionScheme.getNumBytesForOffset();
-    auto nodeSize = vector.nodeIDCompressionScheme.getNumTotalBytes();
-    auto isLabelCommon = vector.nodeIDCompressionScheme.getNumBytesForLabel() == 0;
-    auto labelSize =
-        isLabelCommon ? sizeof(label_t) : vector.nodeIDCompressionScheme.getNumBytesForLabel();
+    auto offsetSize = vector.representation.compressionScheme.getNumBytesForOffset();
+    auto nodeSize = vector.representation.compressionScheme.getNumTotalBytes();
+    auto isLabelCommon = vector.representation.compressionScheme.getNumBytesForLabel() == 0;
+    auto labelSize = isLabelCommon ? sizeof(label_t) :
+                                     vector.representation.compressionScheme.getNumBytesForLabel();
     auto startNodeOffset = ((node_offset_t*)vector.values)[0];
     auto selectedValuesPos = vector.state->selectedValuesPos;
-    if (vector.isSequence) {
+    if (vector.isSequence()) {
         for (uint64_t i = 0; i < appendCount; i++) {
             auto nodeOffset = startNodeOffset + selectedValuesPos[valueOffsetInVector + i];
             memcpy(appendBuffer, &nodeOffset, offsetSize);
-            memcpy(appendBuffer + sizeof(node_offset_t), (uint8_t*)&vector.commonLabel, labelSize);
+            memcpy(appendBuffer + sizeof(node_offset_t),
+                (uint8_t*)&vector.representation.commonLabel, labelSize);
             appendBuffer += numBytesForFixedTuplePart;
         }
         return;
@@ -164,7 +165,7 @@ void HashJoinBuild::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
         auto valuePos = selectedValuesPos[valueOffsetInVector + i];
         memcpy(appendBuffer, vector.values + (valuePos * nodeSize), offsetSize);
         memcpy(appendBuffer + sizeof(node_offset_t),
-            (isLabelCommon ? (uint8_t*)&vector.commonLabel :
+            (isLabelCommon ? (uint8_t*)&vector.representation.commonLabel :
                              vector.values + (valuePos * nodeSize) + offsetSize),
             labelSize);
         appendBuffer += numBytesForFixedTuplePart;

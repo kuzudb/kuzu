@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/common/include/vector/node_id_sequence_vector.h"
+#include "src/common/include/vector/node_vector.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 
 namespace graphflow {
@@ -14,7 +14,7 @@ public:
 
     void getNextTuples() override;
 
-    shared_ptr<NodeIDSequenceVector>& getNodeVector() { return nodeIDVector; }
+    shared_ptr<NodeIDVector>& getNodeVector() { return nodeIDVector; }
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanNodeID<IS_OUT_DATACHUNK_FILTERED>>(morsel);
@@ -22,7 +22,7 @@ public:
 
 protected:
     shared_ptr<DataChunk> outDataChunk;
-    shared_ptr<NodeIDSequenceVector> nodeIDVector;
+    shared_ptr<NodeIDVector> nodeIDVector;
     shared_ptr<MorselsDesc> morsel;
 };
 

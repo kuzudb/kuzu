@@ -140,32 +140,28 @@ struct BinaryOperationExecutor {
 
     template<class FUNC = std::function<uint8_t(nodeID_t, nodeID_t)>>
     static void executeOnNodeIDs(ValueVector& left, ValueVector& right, ValueVector& result) {
-        auto& lNodeIDVector = (NodeIDVector&)left;
-        auto& rNodeIDVector = (NodeIDVector&)right;
-        nodeID_t nodeID{}, otherNodeID{};
+        nodeID_t nodeID, otherNodeID;
         if (left.state->isFlat() && right.state->isFlat()) {
-            lNodeIDVector.readNodeOffsetAndLabel(left.state->getCurrSelectedValuesPos(), nodeID);
-            rNodeIDVector.readNodeOffsetAndLabel(
-                right.state->getCurrSelectedValuesPos(), otherNodeID);
-            auto resPos = result.state->getCurrSelectedValuesPos();
-            result.nullMask[resPos] = left.nullMask[left.state->getCurrSelectedValuesPos()] ||
-                                      right.nullMask[right.state->getCurrSelectedValuesPos()];
-            if (!result.nullMask[resPos]) {
-                result.values[resPos] = FUNC::operation(nodeID, otherNodeID);
+            auto lPos = left.state->getCurrSelectedValuesPos();
+            left.readNodeOffsetAndLabel(lPos, nodeID);
+            auto rPos = right.state->getCurrSelectedValuesPos();
+            right.readNodeOffsetAndLabel(rPos, otherNodeID);
+            result.nullMask[0] = left.nullMask[lPos] || right.nullMask[rPos];
+            if (!result.nullMask[0]) {
+                result.values[0] = FUNC::operation(nodeID, otherNodeID);
             }
         } else if (left.state->isFlat() || right.state->isFlat()) {
             auto isLeftFlat = left.state->isFlat();
-            auto& flatVector = isLeftFlat ? lNodeIDVector : rNodeIDVector;
-            auto& unflatVector = !isLeftFlat ? lNodeIDVector : rNodeIDVector;
-            auto isFlatNull = flatVector.nullMask[flatVector.state->getCurrSelectedValuesPos()];
+            auto& flatVector = isLeftFlat ? left : right;
+            auto& unflatVector = !isLeftFlat ? left : right;
+            auto pos = flatVector.state->getCurrSelectedValuesPos();
+            auto isFlatNull = flatVector.nullMask[pos];
+            flatVector.readNodeOffsetAndLabel(pos, nodeID);
             // unflat and result vectors share the same selectedValuesPos.
-            flatVector.readNodeOffsetAndLabel(flatVector.state->getCurrSelectedValuesPos(), nodeID);
             for (uint64_t i = 0; i < unflatVector.state->numSelectedValues; i++) {
                 auto pos = unflatVector.state->selectedValuesPos[i];
                 unflatVector.readNodeOffsetAndLabel(pos, otherNodeID);
-                result.nullMask[i] =
-                    isFlatNull ||
-                    unflatVector.nullMask[unflatVector.state->getCurrSelectedValuesPos()];
+                result.nullMask[i] = isFlatNull || unflatVector.nullMask[pos];
                 if (!result.nullMask[i]) {
                     result.values[i] = isLeftFlat ? FUNC::operation(nodeID, otherNodeID) :
                                                     FUNC::operation(otherNodeID, nodeID);
@@ -175,10 +171,9 @@ struct BinaryOperationExecutor {
             // right, left, and result vectors share the same selectedValuesPos.
             for (uint64_t i = 0; i < left.state->numSelectedValues; i++) {
                 auto pos = left.state->selectedValuesPos[i];
-                lNodeIDVector.readNodeOffsetAndLabel(pos, nodeID);
-                lNodeIDVector.readNodeOffsetAndLabel(pos, otherNodeID);
-                result.nullMask[pos] = left.nullMask[left.state->getCurrSelectedValuesPos()] ||
-                                       right.nullMask[right.state->getCurrSelectedValuesPos()];
+                left.readNodeOffsetAndLabel(pos, nodeID);
+                right.readNodeOffsetAndLabel(pos, otherNodeID);
+                result.nullMask[pos] = left.nullMask[pos] || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
                     result.values[pos] = FUNC::operation(nodeID, otherNodeID);
                 }

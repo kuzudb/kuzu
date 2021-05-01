@@ -100,7 +100,7 @@ unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator&
 unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(const LogicalOperator& logicalOperator,
     const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
     auto& scan = (const LogicalScanNodeID&)logicalOperator;
-    auto morsel = make_shared<MorselsDesc>(graph.getNumNodes(scan.label));
+    auto morsel = make_shared<MorselsDesc>(scan.label, graph.getNumNodes(scan.label));
     physicalOperatorInfo.appendAsNewDataChunk(scan.nodeVarName);
     return make_unique<ScanNodeID<true>>(morsel);
 }

@@ -62,29 +62,29 @@ void DataChunksIterator::getNextTuple(Tuple& tuple) {
             auto selectedTuplePos = vector->state->selectedValuesPos[tuplePosition];
             switch (vector->dataType) {
             case INT32: {
-                tuple.getValue(valueInTupleIdx)
-                    ->setInt(vector->getValue<int32_t>(selectedTuplePos));
+                tuple.getValue(valueInTupleIdx)->primitive.int32Val =
+                    (((int32_t*)vector->values)[selectedTuplePos]);
             } break;
             case BOOL: {
-                tuple.getValue(valueInTupleIdx)->setBool(vector->getValue<bool>(selectedTuplePos));
+                tuple.getValue(valueInTupleIdx)->primitive.booleanVal =
+                    vector->values[selectedTuplePos];
             } break;
             case DOUBLE: {
-                tuple.getValue(valueInTupleIdx)
-                    ->setDouble(vector->getValue<double>(selectedTuplePos));
+                tuple.getValue(valueInTupleIdx)->primitive.doubleVal =
+                    ((double_t*)vector->values)[selectedTuplePos];
             } break;
             case STRING: {
-                tuple.getValue(valueInTupleIdx)
-                    ->setString(vector->getValue<gf_string_t>(selectedTuplePos));
+                tuple.getValue(valueInTupleIdx)->strVal =
+                    ((gf_string_t*)vector->values)[selectedTuplePos];
             } break;
             case NODE: {
-                nodeID_t nodeID{};
-                auto nodeIDVector = static_pointer_cast<NodeIDVector>(vector);
-                nodeIDVector->readNodeOffsetAndLabel(selectedTuplePos, nodeID);
-                tuple.getValue(valueInTupleIdx)->setNodeID(nodeID);
+                nodeID_t nodeID;
+                vector->readNodeOffsetAndLabel(selectedTuplePos, nodeID);
+                tuple.getValue(valueInTupleIdx)->nodeID = nodeID;
                 break;
             }
             case UNSTRUCTURED: {
-                *(tuple.getValue(valueInTupleIdx)) = vector->getValue<Value>(selectedTuplePos);
+                *(tuple.getValue(valueInTupleIdx)) = ((Value*)vector->values)[selectedTuplePos];
             } break;
             default:
                 assert(false);

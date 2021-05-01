@@ -9,7 +9,6 @@ namespace common {
 
 //! A Vector represents values of the same data type.
 class ValueVector {
-    friend class DataChunk;
 
 public:
     static function<void(ValueVector&, ValueVector&)> getUnaryOperation(ExpressionType type);
@@ -25,19 +24,16 @@ public:
 
     ValueVector(DataType dataType) : ValueVector(dataType, MAX_VECTOR_SIZE) {}
 
+    virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID) {
+        throw invalid_argument("readNodeOffset unsupported.");
+    }
+    virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) {
+        throw invalid_argument("readNodeOffsetAndLabel unsupported.");
+    }
+
     inline void reset() { values = buffer.get(); }
 
     void fillNullMask();
-
-    template<typename T>
-    void setValue(uint64_t pos, const T& value) {
-        ((T*)values)[pos] = value;
-    }
-
-    template<typename T>
-    T getValue(uint64_t pos) {
-        return ((T*)values)[pos];
-    }
 
     virtual inline int64_t getNumBytesPerValue() { return getDataTypeSize(dataType); }
 

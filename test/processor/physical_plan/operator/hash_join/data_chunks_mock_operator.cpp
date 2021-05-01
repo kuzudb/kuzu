@@ -1,5 +1,5 @@
 #include "data_chunks_mock_operator.h"
-
+/*
 void ScanMockOp::getNextTuples() {
     lock_guard lock(morsel.mtx);
     if (morsel.currNodeOffset < morsel.numNodes) {
@@ -233,3 +233,4 @@ void ProbeScanMockOpWithSelector::generateDataChunks() {
     dataChunks->append(dataChunkB);
     dataChunks->append(dataChunkC);
 }
+*/
