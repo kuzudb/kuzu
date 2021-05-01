@@ -4,7 +4,12 @@
 
 using namespace graphflow::testing;
 
-TEST(FrontEndTest, BinderException) {
+TEST(FrontEndTest, SyntaxExceptionQueries) {
+    TestHelper testHelper;
+    ASSERT_TRUE(testHelper.runExceptionTest("test/runner/queries/malformed/syntax.test"));
+}
+
+TEST(FrontEndTest, ExceptionQueries) {
     TestHelper testHelper;
     ASSERT_TRUE(testHelper.runExceptionTest("test/runner/queries/malformed/binder.test"));
 }

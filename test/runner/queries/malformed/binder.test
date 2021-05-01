@@ -47,3 +47,7 @@
 -NAME BindToDifferentVariableType
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH a.age + 1 AS a MATCH (a) RETURN *;
 -EXCEPTION a defined with conflicting type INT32 (expect NODE).
+
+-NAME BindEmptyStar
+-QUERY RETURN *;
+-EXCEPTION RETURN or WITH * is not allowed when there are no variables in scope.
