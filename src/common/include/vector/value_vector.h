@@ -31,7 +31,7 @@ public:
         throw invalid_argument("readNodeOffsetAndLabel unsupported.");
     }
 
-    inline void reset() { values = buffer.get(); }
+    inline void reset() { values = bufferValues.get(); }
 
     void fillNullMask();
 
@@ -39,16 +39,17 @@ public:
 
 protected:
     ValueVector(uint64_t vectorCapacity, uint64_t numBytesPerValue, DataType dataType)
-        : capacity{numBytesPerValue * vectorCapacity}, buffer{make_unique<uint8_t[]>(capacity)},
-          nullMaskPtr{make_unique<bool[]>(capacity)}, dataType{dataType}, values{buffer.get()},
-          nullMask{nullMaskPtr.get()} {
+        : capacity{numBytesPerValue * vectorCapacity}, bufferValues{make_unique<uint8_t[]>(
+                                                           capacity)},
+          bufferNullMask{make_unique<bool[]>(capacity)}, dataType{dataType},
+          values{bufferValues.get()}, nullMask{bufferNullMask.get()} {
         fill_n(nullMask, capacity, false /* not null */);
     }
 
 protected:
     size_t capacity;
-    unique_ptr<uint8_t[]> buffer;
-    unique_ptr<bool[]> nullMaskPtr;
+    unique_ptr<uint8_t[]> bufferValues;
+    unique_ptr<bool[]> bufferNullMask;
 
 public:
     DataType dataType;
