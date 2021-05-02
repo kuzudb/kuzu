@@ -10,33 +10,20 @@ namespace common {
 
 struct UnaryOperationExecutor {
     template<class T, class R, class FUNC = std::function<R(T)>>
-    static void executeArithmeticAndComparisonOps(ValueVector& operand, ValueVector& result) {
+    static void executeArithmeticOps(ValueVector& operand, ValueVector& result) {
         auto inputValues = (T*)operand.values;
         auto resultValues = (R*)result.values;
         if (operand.state->isFlat()) {
             auto pos = operand.state->getCurrSelectedValuesPos();
             if (!operand.nullMask[pos]) {
-                resultValues[0] = FUNC::operation(inputValues[pos]);
+                FUNC::operation(inputValues[pos], resultValues[0]);
             }
         } else {
             for (auto i = 0ul; i < operand.state->numSelectedValues; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 if (!operand.nullMask[pos]) {
-                    resultValues[pos] = FUNC::operation(inputValues[pos]);
+                    FUNC::operation(inputValues[pos], resultValues[pos]);
                 }
-            }
-        }
-    }
-
-    template<class FUNC = std::function<uint8_t(uint8_t, uint8_t)>>
-    static void executeBoolOps(ValueVector& operand, ValueVector& result) {
-        if (operand.state->isFlat()) {
-            auto pos = operand.state->getCurrSelectedValuesPos();
-            result.values[pos] = FUNC::operation(operand.values[pos], operand.nullMask[pos]);
-        } else {
-            for (auto i = 0ul; i < operand.state->numSelectedValues; i++) {
-                auto pos = operand.state->selectedValuesPos[i];
-                result.values[pos] = FUNC::operation(operand.values[pos], operand.nullMask[pos]);
             }
         }
     }

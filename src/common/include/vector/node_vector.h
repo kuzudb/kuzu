@@ -32,7 +32,7 @@ public:
     void readNodeOffset(uint64_t pos, nodeID_t& nodeID) override;
     void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) override;
 
-    void setStartOffset(node_offset_t node_offset) {
+    inline void setStartOffset(node_offset_t node_offset) {
         assert(representation.isSequence);
         ((node_offset_t*)values)[0] = node_offset;
     }
@@ -46,10 +46,6 @@ public:
     bool isSequence() const { return representation.isSequence; }
 
 protected:
-    NodeIDVector(const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isSequence,
-        uint64_t vectorCapacity)
-        : NodeIDVector{0, nodeIDCompressionScheme, isSequence, vectorCapacity} {}
-
     NodeIDVector(label_t commonLabel, const NodeIDCompressionScheme& nodeIDCompressionScheme,
         bool isSequence, uint64_t vectorCapacity)
         : ValueVector{vectorCapacity, nodeIDCompressionScheme.getNumTotalBytes(), NODE},

@@ -17,8 +17,8 @@ public:
         case BOOL:
             switch (right.dataType) {
             case BOOL:
-                BinaryOperationExecutor::executeArithmeticOpsOnPrimitivesAndComparisonOps<uint8_t,
-                    uint8_t, uint8_t, OP>(left, right, result);
+                BinaryOperationExecutor::executeComparisonOps<uint8_t, uint8_t, OP>(
+                    left, right, result);
                 break;
             default:
                 assert(false);
@@ -27,12 +27,12 @@ public:
         case INT32:
             switch (right.dataType) {
             case INT32:
-                BinaryOperationExecutor::executeArithmeticOpsOnPrimitivesAndComparisonOps<int32_t,
-                    int32_t, uint8_t, OP>(left, right, result);
+                BinaryOperationExecutor::executeComparisonOps<int32_t, int32_t, OP>(
+                    left, right, result);
                 break;
             case DOUBLE:
-                BinaryOperationExecutor::executeArithmeticOpsOnPrimitivesAndComparisonOps<int32_t,
-                    double_t, uint8_t, OP>(left, right, result);
+                BinaryOperationExecutor::executeComparisonOps<int32_t, double_t, OP>(
+                    left, right, result);
                 break;
             default:
                 assert(false);
@@ -41,12 +41,12 @@ public:
         case DOUBLE:
             switch (right.dataType) {
             case INT32:
-                BinaryOperationExecutor::executeArithmeticOpsOnPrimitivesAndComparisonOps<double_t,
-                    int32_t, uint8_t, OP>(left, right, result);
+                BinaryOperationExecutor::executeComparisonOps<double_t, int32_t, OP>(
+                    left, right, result);
                 break;
             case DOUBLE:
-                BinaryOperationExecutor::executeArithmeticOpsOnPrimitivesAndComparisonOps<double_t,
-                    double_t, uint8_t, OP>(left, right, result);
+                BinaryOperationExecutor::executeComparisonOps<double_t, double_t, OP>(
+                    left, right, result);
                 break;
             default:
                 assert(false);
@@ -55,8 +55,8 @@ public:
         case STRING:
             switch (right.dataType) {
             case STRING:
-                BinaryOperationExecutor::executeArithmeticOpsOnPrimitivesAndComparisonOps<
-                    gf_string_t, gf_string_t, uint8_t, OP>(left, right, result);
+                BinaryOperationExecutor::executeComparisonOps<gf_string_t, gf_string_t, OP>(
+                    left, right, result);
                 break;
             default:
                 assert(false);
@@ -65,8 +65,8 @@ public:
         case UNSTRUCTURED:
             switch (right.dataType) {
             case UNSTRUCTURED:
-                BinaryOperationExecutor::executeArithmeticOpsOnPrimitivesAndComparisonOps<Value,
-                    Value, uint8_t, OP>(left, right, result);
+                BinaryOperationExecutor::executeComparisonOps<Value, Value, OP>(
+                    left, right, result);
                 break;
             default:
                 assert(false);

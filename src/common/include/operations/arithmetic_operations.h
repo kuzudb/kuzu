@@ -11,51 +11,51 @@ namespace common {
 namespace operation {
 
 struct Add {
-    template<class A, class B>
-    static inline auto operation(A left, B right) {
-        return left + right;
+    template<class A, class B, class R>
+    static inline void operation(A& left, B& right, R& result) {
+        result = left + right;
     }
 };
 
 struct Subtract {
-    template<class A, class B>
-    static inline auto operation(A left, B right) {
-        return left - right;
+    template<class A, class B, class R>
+    static inline void operation(A& left, B& right, R& result) {
+        result = left - right;
     }
 };
 
 struct Multiply {
-    template<class A, class B>
-    static inline auto operation(A left, B right) {
-        return left * right;
+    template<class A, class B, class R>
+    static inline void operation(A& left, B& right, R& result) {
+        result = left * right;
     }
 };
 
 struct Divide {
-    template<class A, class B>
-    static inline auto operation(A left, B right) {
-        return left / right;
+    template<class A, class B, class R>
+    static inline void operation(A& left, B& right, R& result) {
+        result = left / right;
     }
 };
 
 struct Modulo {
-    template<class A, class B>
-    static inline auto operation(A left, B right) {
+    template<class A, class B, class R>
+    static inline void operation(A& left, B& right, R& result) {
         assert(false);
     }
 };
 
 struct Power {
-    template<class T>
-    static inline double_t operation(T left, double_t right) {
-        return pow(left, right);
+    template<class A, class B, class R>
+    static inline void operation(A& left, B& right, R& result) {
+        result = pow(left, right);
     }
 };
 
 struct Negate {
     template<class T>
-    static inline T operation(T input) {
-        return -input;
+    static inline void operation(T& input, T& result) {
+        result = -input;
     }
 };
 
@@ -66,23 +66,23 @@ struct Negate {
  ********************************************/
 
 template<>
-inline auto Modulo::operation(int32_t left, int32_t right) {
-    return right % left;
+inline void Modulo::operation(int32_t& left, int32_t& right, int32_t& result) {
+    result = right % left;
 };
 
 template<>
-inline auto Modulo::operation(int32_t left, double_t right) {
-    return fmod(left, right);
+inline void Modulo::operation(int32_t& left, double_t& right, double_t& result) {
+    result = fmod(left, right);
 };
 
 template<>
-inline auto Modulo::operation(double_t left, int32_t right) {
-    return fmod(left, right);
+inline void Modulo::operation(double_t& left, int32_t& right, double_t& result) {
+    result = fmod(left, right);
 };
 
 template<>
-inline auto Modulo::operation(double_t left, double_t right) {
-    return fmod(left, right);
+inline void Modulo::operation(double_t& left, double_t& right, double_t& result) {
+    result = fmod(left, right);
 };
 
 /*******************************************
@@ -91,21 +91,20 @@ inline auto Modulo::operation(double_t left, double_t right) {
  **                                       **
  *******************************************/
 
-struct ConcatStrings {
-    static inline void operation(gf_string_t& left, gf_string_t& right, gf_string_t& result) {
-        auto len = left.len + right.len;
-        if (len <= gf_string_t::SHORT_STR_LENGTH /* concat isShort() */) {
-            result.deleteOverflowBufferIfAllocated();
-            memcpy(result.prefix, left.prefix, left.len);
-            memcpy(result.prefix + left.len, right.prefix, right.len);
-        } else {
-            auto buffer = result.resizeOverflowBufferIfNecessary(len);
-            memcpy(buffer, left.getData(), left.len);
-            memcpy(buffer + left.len, right.getData(), right.len);
-            memcpy(result.prefix, buffer, gf_string_t::PREFIX_LENGTH);
-        }
-        result.len = len;
+template<>
+inline void Add::operation(gf_string_t& left, gf_string_t& right, gf_string_t& result) {
+    auto len = left.len + right.len;
+    if (len <= gf_string_t::SHORT_STR_LENGTH /* concat's result is short */) {
+        result.deleteOverflowBufferIfAllocated();
+        memcpy(result.prefix, left.prefix, left.len);
+        memcpy(result.prefix + left.len, right.prefix, right.len);
+    } else {
+        auto buffer = result.resizeOverflowBufferIfNecessary(len);
+        memcpy(buffer, left.getData(), left.len);
+        memcpy(buffer + left.len, right.getData(), right.len);
+        memcpy(result.prefix, buffer, gf_string_t::PREFIX_LENGTH);
     }
+    result.len = len;
 };
 
 /**********************************************
@@ -115,20 +114,20 @@ struct ConcatStrings {
  **********************************************/
 
 struct ArithmeticOnValues {
-    template<class arithmeticOp, const char* arithmeticOpStr>
+    template<class FUNC, const char* arithmeticOpStr>
     static void operation(Value& left, Value& right, Value& result) {
         switch (left.dataType) {
         case INT32:
             switch (left.dataType) {
             case INT32:
                 result.dataType = INT32;
-                result.primitive.int32Val =
-                    arithmeticOp::operation(left.primitive.int32Val, right.primitive.int32Val);
+                FUNC::operation(
+                    left.primitive.int32Val, right.primitive.int32Val, result.primitive.int32Val);
                 break;
             case DOUBLE:
                 result.dataType = DOUBLE;
-                result.primitive.doubleVal =
-                    arithmeticOp::operation(left.primitive.int32Val, right.primitive.doubleVal);
+                FUNC::operation(
+                    left.primitive.int32Val, right.primitive.doubleVal, result.primitive.doubleVal);
                 break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `INT32` and `" +
@@ -139,13 +138,13 @@ struct ArithmeticOnValues {
             switch (left.dataType) {
             case INT32:
                 result.dataType = DOUBLE;
-                result.primitive.doubleVal =
-                    arithmeticOp::operation(left.primitive.doubleVal, right.primitive.int32Val);
+                FUNC::operation(
+                    left.primitive.doubleVal, right.primitive.int32Val, result.primitive.doubleVal);
                 break;
             case DOUBLE:
                 result.dataType = DOUBLE;
-                result.primitive.doubleVal =
-                    arithmeticOp::operation(left.primitive.doubleVal, right.primitive.doubleVal);
+                FUNC::operation(left.primitive.doubleVal, right.primitive.doubleVal,
+                    result.primitive.doubleVal);
                 break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
@@ -169,67 +168,60 @@ static const char moduloStr[] = "modulo";
 static const char powerStr[] = "power";
 static const char negateStr[] = "negate";
 
-struct AddOrConcatValues {
-    static inline void operation(Value& left, Value& right, Value& result) {
-        if (left.dataType == STRING || right.dataType == STRING) {
-            if (left.dataType != STRING) {
-                left.castToString();
-            }
-            if (right.dataType != STRING) {
-                right.castToString();
-            }
-            result.dataType = STRING;
-            ConcatStrings::operation(left.strVal, right.strVal, result.strVal);
-            return;
+template<>
+inline void Add::operation(Value& left, Value& right, Value& result) {
+    if (left.dataType == STRING || right.dataType == STRING) {
+        if (left.dataType != STRING) {
+            left.castToString();
         }
-        ArithmeticOnValues::operation<Add, addStr>(left, right, result);
-    }
-};
-
-struct SubtractValues {
-    static inline void operation(Value& left, Value& right, Value& result) {
-        ArithmeticOnValues::operation<Subtract, subtractStr>(left, right, result);
-    }
-};
-
-struct MultiplyValues {
-    static inline void operation(Value& left, Value& right, Value& result) {
-        ArithmeticOnValues::operation<Multiply, multiplyStr>(left, right, result);
-    }
-};
-
-struct DivideValues {
-    static inline void operation(Value& left, Value& right, Value& result) {
-        ArithmeticOnValues::operation<Divide, divideStr>(left, right, result);
-    }
-};
-
-struct ModuloValues {
-    static inline void operation(Value& left, Value& right, Value& result) {
-        ArithmeticOnValues::operation<Modulo, moduloStr>(left, right, result);
-    }
-};
-
-struct PowerValues {
-    static inline void operation(Value& left, Value& right, Value& result) {
-        ArithmeticOnValues::operation<Power, powerStr>(left, right, result);
-    }
-};
-
-struct NegateValues {
-    static inline void operation(Value& operand, Value& result) {
-        switch (operand.dataType) {
-        case INT32:
-            result.dataType = INT32;
-            result.primitive.int32Val = -operand.primitive.int32Val;
-            break;
-        case DOUBLE:
-            result.dataType = DOUBLE;
-            result.primitive.doubleVal = -operand.primitive.doubleVal;
-            break;
-        default:
-            throw invalid_argument("Cannot negate `" + DataTypeNames[operand.dataType] + "`.");
+        if (right.dataType != STRING) {
+            right.castToString();
         }
+        result.dataType = STRING;
+        Add::operation(left.strVal, right.strVal, result.strVal);
+        return;
+    }
+    ArithmeticOnValues::operation<Add, addStr>(left, right, result);
+};
+
+template<>
+inline void Subtract::operation(Value& left, Value& right, Value& result) {
+    ArithmeticOnValues::operation<Subtract, subtractStr>(left, right, result);
+};
+
+template<>
+inline void Multiply::operation(Value& left, Value& right, Value& result) {
+    ArithmeticOnValues::operation<Multiply, multiplyStr>(left, right, result);
+};
+
+template<>
+inline void Divide::operation(Value& left, Value& right, Value& result) {
+    ArithmeticOnValues::operation<Divide, divideStr>(left, right, result);
+};
+
+template<>
+inline void Modulo::operation(Value& left, Value& right, Value& result) {
+    ArithmeticOnValues::operation<Modulo, moduloStr>(left, right, result);
+};
+
+template<>
+inline void Power::operation(Value& left, Value& right, Value& result) {
+    ArithmeticOnValues::operation<Power, powerStr>(left, right, result);
+};
+
+template<>
+inline void Negate::operation(Value& operand, Value& result) {
+    switch (operand.dataType) {
+    case INT32:
+        result.dataType = INT32;
+        result.primitive.int32Val = -operand.primitive.int32Val;
+        break;
+    case DOUBLE:
+        result.dataType = DOUBLE;
+        result.primitive.doubleVal = -operand.primitive.doubleVal;
+        break;
+    default:
+        throw invalid_argument("Cannot negate `" + DataTypeNames[operand.dataType] + "`.");
     }
 };
 

@@ -20,7 +20,16 @@ void VectorBooleanOperations::Xor(ValueVector& left, ValueVector& right, ValueVe
 }
 
 void VectorBooleanOperations::Not(ValueVector& operand, ValueVector& result) {
-    UnaryOperationExecutor::executeBoolOps<operation::Not>(operand, result);
+    if (operand.state->isFlat()) {
+        auto pos = operand.state->getCurrSelectedValuesPos();
+        result.values[pos] = operation::Not::operation(operand.values[pos], operand.nullMask[pos]);
+    } else {
+        for (auto i = 0ul; i < operand.state->numSelectedValues; i++) {
+            auto pos = operand.state->selectedValuesPos[i];
+            result.values[pos] =
+                operation::Not::operation(operand.values[pos], operand.nullMask[pos]);
+        }
+    }
 }
 
 } // namespace common

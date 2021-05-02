@@ -8,10 +8,9 @@ namespace graphflow {
 namespace common {
 
 struct BinaryOperationExecutor {
-    // A (left operand type), B (right operand type), R (result type)
-    template<class A, class B, class R, class FUNC = function<R(A, B)>>
-    static void executeArithmeticOpsOnPrimitivesAndComparisonOps(
-        ValueVector& left, ValueVector& right, ValueVector& result) {
+
+    template<class A, class B, class R, class FUNC = function<void(A&, B&, R&)>>
+    static void executeArithmeticOps(ValueVector& left, ValueVector& right, ValueVector& result) {
         auto lValues = (A*)left.values;
         auto rValues = (B*)right.values;
         auto resultValues = (R*)result.values;
@@ -21,7 +20,7 @@ struct BinaryOperationExecutor {
             auto resPos = result.state->getCurrSelectedValuesPos();
             result.nullMask[resPos] = left.nullMask[lPos] || right.nullMask[rPos];
             if (!result.nullMask[resPos]) {
-                resultValues[resPos] = FUNC::operation(lValues[lPos], rValues[rPos]);
+                FUNC::operation(lValues[lPos], rValues[rPos], resultValues[resPos]);
             }
         } else if (left.state->isFlat()) {
             auto lPos = left.state->getCurrSelectedValuesPos();
@@ -32,7 +31,7 @@ struct BinaryOperationExecutor {
                 auto pos = right.state->selectedValuesPos[i];
                 result.nullMask[pos] = isLeftNull || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
-                    resultValues[pos] = FUNC::operation(lValue, rValues[pos]);
+                    FUNC::operation(lValue, rValues[pos], resultValues[pos]);
                 }
             }
         } else if (right.state->isFlat()) {
@@ -44,7 +43,55 @@ struct BinaryOperationExecutor {
                 auto pos = left.state->selectedValuesPos[i];
                 result.nullMask[pos] = left.nullMask[pos] || isRightNull;
                 if (!result.nullMask[i]) {
-                    resultValues[pos] = FUNC::operation(lValues[pos], rValue);
+                    FUNC::operation(lValues[pos], rValue, resultValues[pos]);
+                }
+            }
+        } else {
+            // right, left, and result vectors share the same selectedValuesPos.
+            for (uint64_t i = 0; i < result.state->numSelectedValues; i++) {
+                auto pos = result.state->selectedValuesPos[i];
+                result.nullMask[pos] = left.nullMask[pos] || right.nullMask[pos];
+                if (!result.nullMask[pos]) {
+                    FUNC::operation(lValues[pos], rValues[pos], resultValues[pos]);
+                }
+            }
+        }
+    }
+
+    template<class A, class B, class FUNC = function<void(A, B)>>
+    static void executeComparisonOps(ValueVector& left, ValueVector& right, ValueVector& result) {
+        auto lValues = (A*)left.values;
+        auto rValues = (B*)right.values;
+        if (left.state->isFlat() && right.state->isFlat()) {
+            auto lPos = left.state->getCurrSelectedValuesPos();
+            auto rPos = right.state->getCurrSelectedValuesPos();
+            auto resPos = result.state->getCurrSelectedValuesPos();
+            result.nullMask[resPos] = left.nullMask[lPos] || right.nullMask[rPos];
+            if (!result.nullMask[resPos]) {
+                result.values[resPos] = FUNC::operation(lValues[lPos], rValues[rPos]);
+            }
+        } else if (left.state->isFlat()) {
+            auto lPos = left.state->getCurrSelectedValuesPos();
+            auto lValue = lValues[lPos];
+            auto isLeftNull = left.nullMask[lPos];
+            // right and result vectors share the same selectedValuesPos.
+            for (uint64_t i = 0; i < right.state->numSelectedValues; i++) {
+                auto pos = right.state->selectedValuesPos[i];
+                result.nullMask[pos] = isLeftNull || right.nullMask[pos];
+                if (!result.nullMask[pos]) {
+                    result.values[pos] = FUNC::operation(lValue, rValues[pos]);
+                }
+            }
+        } else if (right.state->isFlat()) {
+            auto rPos = right.state->getCurrSelectedValuesPos();
+            auto rValue = rValues[rPos];
+            auto isRightNull = right.nullMask[rPos];
+            // left and result vectors share the same selectedValuesPos.
+            for (uint64_t i = 0; i < left.state->numSelectedValues; i++) {
+                auto pos = left.state->selectedValuesPos[i];
+                result.nullMask[pos] = left.nullMask[pos] || isRightNull;
+                if (!result.nullMask[i]) {
+                    result.values[pos] = FUNC::operation(lValues[pos], rValue);
                 }
             }
         } else {
@@ -53,7 +100,7 @@ struct BinaryOperationExecutor {
                 auto pos = left.state->selectedValuesPos[i];
                 result.nullMask[pos] = left.nullMask[pos] || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
-                    resultValues[pos] = FUNC::operation(lValues[pos], rValues[pos]);
+                    result.values[pos] = FUNC::operation(lValues[pos], rValues[pos]);
                 }
             }
         }
@@ -92,52 +139,6 @@ struct BinaryOperationExecutor {
         }
     }
 
-    template<class T, class FUNC = function<void(T&, T&, T&)>>
-    static void executeArithmeticOpsOnObjects(
-        ValueVector& left, ValueVector& right, ValueVector& result) {
-        auto lValues = (T*)left.values;
-        auto rValues = (T*)right.values;
-        auto resultValues = (T*)result.values;
-        if (left.state->isFlat() && right.state->isFlat()) {
-            auto lPos = left.state->getCurrSelectedValuesPos();
-            auto rPos = right.state->getCurrSelectedValuesPos();
-            auto resPos = result.state->getCurrSelectedValuesPos();
-            result.nullMask[resPos] = left.nullMask[lPos] || right.nullMask[rPos];
-            if (!result.nullMask[resPos]) {
-                FUNC::operation(lValues[lPos], rValues[rPos], resultValues[resPos]);
-            }
-        } else if (left.state->isFlat() || right.state->isFlat()) {
-            auto isLeftFlat = left.state->isFlat();
-            auto& flatVector = isLeftFlat ? left : right;
-            auto& unflatVector = !isLeftFlat ? left : right;
-            auto unflatValues = (T*)unflatVector.values;
-            auto pos = flatVector.state->getCurrSelectedValuesPos();
-            auto& flatValue = ((T*)flatVector.values)[pos];
-            auto isFlatNull = flatVector.nullMask[flatVector.state->getCurrSelectedValuesPos()];
-            // right and result vectors share the same selectedValuesPos.
-            for (uint64_t i = 0; i < unflatVector.state->numSelectedValues; i++) {
-                pos = unflatVector.state->selectedValuesPos[i];
-                result.nullMask[pos] = isFlatNull || unflatVector.nullMask[pos];
-                if (!result.nullMask[pos]) {
-                    if (isLeftFlat) {
-                        FUNC::operation(flatValue, unflatValues[pos], resultValues[pos]);
-                    } else {
-                        FUNC::operation(unflatValues[pos], flatValue, resultValues[pos]);
-                    }
-                }
-            }
-        } else {
-            // right, left, and result vectors share the same selectedValuesPos.
-            for (uint64_t i = 0; i < result.state->numSelectedValues; i++) {
-                auto pos = result.state->selectedValuesPos[i];
-                result.nullMask[pos] = left.nullMask[pos] || right.nullMask[pos];
-                if (!result.nullMask[pos]) {
-                    FUNC::operation(lValues[pos], rValues[pos], resultValues[pos]);
-                }
-            }
-        }
-    }
-
     template<class FUNC = std::function<uint8_t(nodeID_t, nodeID_t)>>
     static void executeOnNodeIDs(ValueVector& left, ValueVector& right, ValueVector& result) {
         nodeID_t nodeID, otherNodeID;
@@ -146,9 +147,10 @@ struct BinaryOperationExecutor {
             left.readNodeOffsetAndLabel(lPos, nodeID);
             auto rPos = right.state->getCurrSelectedValuesPos();
             right.readNodeOffsetAndLabel(rPos, otherNodeID);
-            result.nullMask[0] = left.nullMask[lPos] || right.nullMask[rPos];
-            if (!result.nullMask[0]) {
-                result.values[0] = FUNC::operation(nodeID, otherNodeID);
+            auto resPos = result.state->getCurrSelectedValuesPos();
+            result.nullMask[resPos] = left.nullMask[lPos] || right.nullMask[rPos];
+            if (!result.nullMask[resPos]) {
+                result.values[resPos] = FUNC::operation(nodeID, otherNodeID);
             }
         } else if (left.state->isFlat() || right.state->isFlat()) {
             auto isLeftFlat = left.state->isFlat();
@@ -159,7 +161,7 @@ struct BinaryOperationExecutor {
             flatVector.readNodeOffsetAndLabel(pos, nodeID);
             // unflat and result vectors share the same selectedValuesPos.
             for (uint64_t i = 0; i < unflatVector.state->numSelectedValues; i++) {
-                auto pos = unflatVector.state->selectedValuesPos[i];
+                pos = unflatVector.state->selectedValuesPos[i];
                 unflatVector.readNodeOffsetAndLabel(pos, otherNodeID);
                 result.nullMask[i] = isFlatNull || unflatVector.nullMask[pos];
                 if (!result.nullMask[i]) {
