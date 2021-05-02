@@ -4,9 +4,15 @@
 
 using namespace graphflow::testing;
 
-TEST(FrontEndTest, ExceptionQueries) {
+TEST(FrontEndTest, BinderException) {
     TestHelper testHelper;
-    ASSERT_TRUE(testHelper.runExceptionTest("test/runner/queries/exception/exception.test"));
+    ASSERT_TRUE(testHelper.runExceptionTest("test/runner/queries/malformed/binder.test"));
+}
+
+TEST(FrontEndTest, ExpressionBinderException) {
+    TestHelper testHelper;
+    ASSERT_TRUE(
+        testHelper.runExceptionTest("test/runner/queries/malformed/expression_binder.test"));
 }
 
 TEST(ProcessorTest, StructuralNodeQueries) {
@@ -47,4 +53,9 @@ TEST(ProcessorTest, StrOperations) {
 TEST(ProcessorTest, UnstructuredOperations) {
     TestHelper testHelper;
     ASSERT_TRUE(testHelper.runTest("test/runner/queries/filtered/unstructured_properties.test"));
+}
+
+TEST(ProcessorTest, IDComparisonQueries) {
+    TestHelper testHelper;
+    ASSERT_TRUE(testHelper.runTest("test/runner/queries/filtered/id_comparison.test"));
 }

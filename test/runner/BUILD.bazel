@@ -22,12 +22,14 @@ cc_test(
 filegroup(
     name = "testfiles",
     srcs = [
-        "queries/exception/exception.test",
+        "queries/filtered/id_comparison.test",
         "queries/filtered/nodes.test",
         "queries/filtered/paths.test",
         "queries/filtered/stars.test",
         "queries/filtered/str_operations.test",
         "queries/filtered/unstructured_properties.test",
+        "queries/malformed/binder.test",
+        "queries/malformed/expression_binder.test",
         "queries/structural/nodes.test",
         "queries/structural/paths.test",
         "queries/structural/stars.test",

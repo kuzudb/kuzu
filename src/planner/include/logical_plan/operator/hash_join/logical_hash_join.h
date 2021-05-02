@@ -1,13 +1,6 @@
 #pragma once
 
-#include <string>
-#include <utility>
-
-#include "src/common/include/types.h"
 #include "src/planner/include/logical_plan/operator/logical_operator.h"
-
-using namespace graphflow::common;
-using namespace std;
 
 namespace graphflow {
 namespace planner {
@@ -15,9 +8,9 @@ namespace planner {
 class LogicalHashJoin : public LogicalOperator {
 
 public:
-    LogicalHashJoin(string joinNodeVarName, shared_ptr<LogicalOperator> buildSidePrevOperator,
+    LogicalHashJoin(string joinNodeID, shared_ptr<LogicalOperator> buildSidePrevOperator,
         shared_ptr<LogicalOperator> probeSidePrevOperator)
-        : LogicalOperator(move(probeSidePrevOperator)), joinNodeVarName(move(joinNodeVarName)),
+        : LogicalOperator(move(probeSidePrevOperator)), joinNodeID(move(joinNodeID)),
           buildSidePrevOperator(move(buildSidePrevOperator)) {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
@@ -34,10 +27,10 @@ public:
         return result;
     }
 
-    string getOperatorInformation() const override { return joinNodeVarName; }
+    string getOperatorInformation() const override { return joinNodeID; }
 
 public:
-    const string joinNodeVarName;
+    const string joinNodeID;
     const shared_ptr<LogicalOperator> buildSidePrevOperator;
 };
 } // namespace planner

@@ -13,8 +13,9 @@ using namespace std;
 namespace graphflow {
 namespace expression {
 
-// replace this with function enum once we have multiple default functions
-const string COUNT_STAR = "COUNT_STAR";
+// replace this with function enum once we have more functions
+const string FUNCTION_COUNT_STAR = "COUNT_STAR";
+const string FUNCTION_ID = "ID";
 
 class LogicalExpression {
 
@@ -40,7 +41,7 @@ public:
         return alias.empty() ? rawExpression : alias;
     }
 
-    unordered_set<string> getIncludedVariables() const;
+    virtual unordered_set<string> getIncludedVariables() const;
 
     unordered_set<string> getIncludedProperties() const;
 

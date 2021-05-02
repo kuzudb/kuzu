@@ -28,8 +28,7 @@ unordered_set<string> LogicalExpression::getIncludedVariables() const {
         return result;
     }
     if (VARIABLE == expressionType) {
-        result.insert(variableName);
-        return result;
+        return getIncludedVariables();
     }
     if (PROPERTY == expressionType) {
         result.insert(variableName.substr(0, variableName.find('.')));

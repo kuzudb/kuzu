@@ -104,6 +104,7 @@ bool isExpressionNullComparison(ExpressionType type);
 bool isExpressionLeafLiteral(ExpressionType type);
 bool isExpressionLeafVariable(ExpressionType type);
 
+ExpressionType comparisonToIDComparison(ExpressionType type);
 string expressionTypeToString(ExpressionType type);
 
 } // namespace common

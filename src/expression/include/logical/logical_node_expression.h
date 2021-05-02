@@ -11,6 +11,10 @@ public:
     LogicalNodeExpression(string name, label_t label)
         : LogicalExpression{VARIABLE, NODE}, name{move(name)}, label{label} {}
 
+    unordered_set<string> getIncludedVariables() const override {
+        return unordered_set<string>{name};
+    }
+
 public:
     string name;
     label_t label;

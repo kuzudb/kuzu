@@ -1,12 +1,9 @@
 #pragma once
 
-#include "src/common/include/types.h"
 #include "src/expression/include/logical/logical_expression.h"
 #include "src/planner/include/logical_plan/operator/logical_operator.h"
 
 using namespace graphflow::expression;
-using namespace graphflow::common;
-using namespace std;
 
 namespace graphflow {
 namespace planner {

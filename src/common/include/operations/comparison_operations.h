@@ -185,7 +185,7 @@ inline uint8_t Equals::operation(const nodeID_t& left, const nodeID_t& right) {
 
 template<>
 inline uint8_t NotEquals::operation(const nodeID_t& left, const nodeID_t& right) {
-    return left.label != right.label && left.offset != right.offset;
+    return left.label != right.label || left.offset != right.offset;
 };
 
 /*******************************************************
@@ -324,7 +324,7 @@ inline uint8_t GreaterThan::operation(const nodeID_t& left, const nodeID_t& righ
 
 template<>
 inline uint8_t GreaterThanEquals::operation(const nodeID_t& left, const nodeID_t& right) {
-    return left.label >= right.label || (left.label == right.label && left.offset >= right.offset);
+    return left.label > right.label || (left.label == right.label && left.offset >= right.offset);
 };
 
 template<>
@@ -334,7 +334,7 @@ inline uint8_t LessThan::operation(const nodeID_t& left, const nodeID_t& right) 
 
 template<>
 inline uint8_t LessThanEquals::operation(const nodeID_t& left, const nodeID_t& right) {
-    return left.label <= right.label || (left.label == right.label && left.offset <= right.offset);
+    return left.label < right.label || (left.label == right.label && left.offset <= right.offset);
 };
 
 /********************************************

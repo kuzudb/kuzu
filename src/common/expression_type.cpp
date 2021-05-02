@@ -44,6 +44,25 @@ bool isExpressionLeafVariable(ExpressionType type) {
     return PROPERTY == type;
 }
 
+ExpressionType comparisonToIDComparison(ExpressionType type) {
+    switch (type) {
+    case EQUALS:
+        return EQUALS_NODE_ID;
+    case NOT_EQUALS:
+        return NOT_EQUALS_NODE_ID;
+    case GREATER_THAN:
+        return GREATER_THAN_NODE_ID;
+    case GREATER_THAN_EQUALS:
+        return GREATER_THAN_EQUALS_NODE_ID;
+    case LESS_THAN:
+        return LESS_THAN_NODE_ID;
+    case LESS_THAN_EQUALS:
+        return LESS_THAN_EQUALS_NODE_ID;
+    default:
+        throw invalid_argument("Cannot map " + expressionTypeToString(type) + " to ID comparison.");
+    }
+}
+
 string expressionTypeToString(ExpressionType type) {
     switch (type) {
     case OR:

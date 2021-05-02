@@ -1,10 +1,8 @@
-# description: front-end exception
+# description: binder exception
 
 -INPUT dataset/tinysnb/
 -OUTPUT test/unittest_temp/
 -PARALLELISM 1
-
-# Binder Exception Tests
 
 -NAME DisconnectedGraph
 -QUERY MATCH (a:person), (b:person) RETURN COUNT(*);
@@ -49,21 +47,3 @@
 -NAME BindToDifferentVariableType
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH a.age + 1 AS a MATCH (a) RETURN *;
 -EXCEPTION a defined with conflicting type INT32 (expect NODE).
-
-# Expression Binder Exception Tests
-
--NAME BindVariableNotInScope1
--QUERY WITH a MATCH (a:person)-[e1:knows]->(b:person) RETURN *;
--EXCEPTION Variable a not defined.
-
--NAME BindVariableNotInScope2
--QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.age > foo RETURN *;
--EXCEPTION Variable foo not defined.
-
--NAME BindPropertyLookUpOnExpression
--QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN (a.age + 2).age;
--EXCEPTION Type mismatch: expect NODE or REL, but a.age + 2 was INT32.
-
--NAME BindPropertyNotExist
--QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN a.foo;
--EXCEPTION Node a does not have property foo.
