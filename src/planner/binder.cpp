@@ -4,7 +4,7 @@ namespace graphflow {
 namespace planner {
 
 static string makeUniqueVariableName(const string& name, uint32_t& idx) {
-    return name + "_gf" + to_string(idx++);
+    return "_gf" + to_string(idx++) + "_" + name;
 }
 
 static void validateProjectionColumnNamesAreUnique(
@@ -35,15 +35,15 @@ static void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
     auto visited = unordered_set<string>();
     for (auto& [name, variable] : variablesInScope) {
         if (NODE == variable->dataType) {
-            visited.insert(static_pointer_cast<LogicalNodeExpression>(variable)->name);
+            visited.insert(variable->variableName);
         }
     }
     if (visited.empty()) {
-        visited.insert(queryGraph.queryNodes[0]->name);
+        visited.insert(queryGraph.queryNodes[0]->variableName);
     }
     auto target = visited;
     for (auto& queryNode : queryGraph.queryNodes) {
-        target.insert(queryNode->name);
+        target.insert(queryNode->variableName);
     }
     auto frontier = visited;
     while (!frontier.empty()) {

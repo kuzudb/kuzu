@@ -197,7 +197,8 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
         auto dataType = catalog.containNodeProperty(node->label, propertyName) ?
                             catalog.getNodePropertyTypeFromString(node->label, propertyName) :
                             UNSTRUCTURED;
-        return make_shared<LogicalExpression>(PROPERTY, dataType, node->name + "." + propertyName);
+        return make_shared<LogicalExpression>(
+            PROPERTY, dataType, node->variableName + "." + propertyName);
     }
     if (REL == childExpression->dataType) {
         auto rel = static_pointer_cast<LogicalRelExpression>(childExpression);
@@ -207,7 +208,7 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindPropertyExpression(
         }
         return make_shared<LogicalExpression>(PROPERTY,
             catalog.getRelPropertyTypeFromString(rel->label, propertyName),
-            rel->name + "." + propertyName);
+            rel->variableName + "." + propertyName);
     }
     throw invalid_argument("Type mismatch: expect NODE or REL, but " +
                            childExpression->rawExpression + " was " +
@@ -230,8 +231,7 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindFunctionExpression(
             throw invalid_argument("Expect " + child->rawExpression + " to be a node, but it was " +
                                    dataTypeToString(child->dataType));
         }
-        auto nodeName = static_pointer_cast<LogicalNodeExpression>(child)->name;
-        return make_shared<LogicalExpression>(PROPERTY, NODE_ID, nodeName + "._id");
+        return make_shared<LogicalExpression>(PROPERTY, NODE_ID, child->variableName + "._id");
     } else {
         throw invalid_argument(functionName + " is not supported.");
     }

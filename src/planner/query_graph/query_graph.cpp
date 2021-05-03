@@ -56,8 +56,8 @@ uint32_t QueryGraph::getQueryNodePos(const string& queryNodeName) const {
 }
 
 void QueryGraph::addQueryNodeIfNotExist(shared_ptr<LogicalNodeExpression> queryNode) {
-    if (!containsQueryNode(queryNode->name)) {
-        queryNodeNameToPosMap.insert({queryNode->name, queryNodes.size()});
+    if (!containsQueryNode(queryNode->variableName)) {
+        queryNodeNameToPosMap.insert({queryNode->variableName, queryNodes.size()});
         queryNodes.push_back(queryNode);
     }
 }
@@ -79,8 +79,8 @@ uint32_t QueryGraph::getQueryRelPos(const string& queryRelName) const {
 }
 
 void QueryGraph::addQueryRelIfNotExist(shared_ptr<LogicalRelExpression> queryRel) {
-    if (!containsQueryRel(queryRel->name)) {
-        queryRelNameToPosMap.insert({queryRel->name, queryRels.size()});
+    if (!containsQueryRel(queryRel->variableName)) {
+        queryRelNameToPosMap.insert({queryRel->variableName, queryRels.size()});
         queryRels.push_back(queryRel);
     }
 }
