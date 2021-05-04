@@ -22,6 +22,12 @@ static vector<shared_ptr<LogicalExpression>> getNewMatchedWhereExpressions(
 static vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(
     shared_ptr<LogicalExpression> expression);
 
+static vector<shared_ptr<LogicalExpression>> rewriteVariableAsAllProperties(
+    shared_ptr<LogicalExpression> variableExpression, const Catalog& catalog);
+
+static vector<shared_ptr<LogicalExpression>> createLogicalPropertyExpressions(
+    const string& variableName, const unordered_map<string, PropertyKey>& propertyMap);
+
 static pair<string, string> splitVariableAndPropertyName(const string& name);
 
 static string variableNameToID(const string& name);
@@ -223,7 +229,7 @@ void Enumerator::appendLogicalScan(uint32_t queryNodePos, LogicalPlan& plan) {
     if (ANY_LABEL == queryNode.label) {
         throw invalid_argument("Match any label is not yet supported in LogicalScanNodeID.");
     }
-    auto nodeID = variableNameToID(queryNode.name);
+    auto nodeID = variableNameToID(queryNode.variableName);
     auto scan = make_shared<LogicalScanNodeID>(nodeID, queryNode.label);
     plan.schema->nameOperatorMap.insert({nodeID, scan.get()});
     plan.appendOperator(scan);
@@ -237,18 +243,18 @@ void Enumerator::appendLogicalExtend(uint32_t queryRelPos, Direction direction, 
     }
     auto boundNode = FWD == direction ? queryRel.srcNode : queryRel.dstNode;
     auto nbrNode = FWD == direction ? queryRel.dstNode : queryRel.srcNode;
-    auto boundNodeID = variableNameToID(boundNode->name);
-    auto nbrNodeID = variableNameToID(nbrNode->name);
+    auto boundNodeID = variableNameToID(boundNode->variableName);
+    auto nbrNodeID = variableNameToID(nbrNode->variableName);
     auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->label, nbrNodeID,
         nbrNode->label, queryRel.label, direction, plan.lastOperator);
     plan.schema->addOperator(nbrNodeID, extend.get());
-    plan.schema->addOperator(queryRel.name, extend.get());
+    plan.schema->addOperator(queryRel.variableName, extend.get());
     plan.appendOperator(extend);
 }
 
 void Enumerator::appendLogicalHashJoin(
     uint32_t joinNodePos, const LogicalPlan& planToJoin, LogicalPlan& plan) {
-    auto joinNodeID = variableNameToID(mergedQueryGraph->queryNodes[joinNodePos]->name);
+    auto joinNodeID = variableNameToID(mergedQueryGraph->queryNodes[joinNodePos]->variableName);
     auto hashJoin =
         make_shared<LogicalHashJoin>(joinNodeID, plan.lastOperator, planToJoin.lastOperator);
     for (auto& [name, op] : planToJoin.schema->nameOperatorMap) {
@@ -272,27 +278,19 @@ void Enumerator::appendProjection(
         FUNCTION_COUNT_STAR == returnOrWithClause[0]->variableName) {
         return;
     }
+    auto expressionsToProject = vector<shared_ptr<LogicalExpression>>();
     for (auto& expression : returnOrWithClause) {
         if (VARIABLE == expression->expressionType) {
-            auto propertyMap =
-                NODE == expression->dataType ?
-                    catalog.getPropertyKeyMapForNodeLabel(
-                        static_pointer_cast<LogicalNodeExpression>(expression)->label) :
-                    catalog.getPropertyKeyMapForRelLabel(
-                        static_pointer_cast<LogicalRelExpression>(expression)->label);
-            auto nodeOrRelName = NODE == expression->dataType ?
-                                     static_pointer_cast<LogicalNodeExpression>(expression)->name :
-                                     static_pointer_cast<LogicalRelExpression>(expression)->name;
-            for (auto& [propertyName, property] : propertyMap) {
-                auto propertyExpression = make_shared<LogicalExpression>(
-                    PROPERTY, property.dataType, nodeOrRelName + "." + propertyName);
+            for (auto& propertyExpression : rewriteVariableAsAllProperties(expression, catalog)) {
                 appendNecessaryScans(propertyExpression, plan);
+                expressionsToProject.push_back(propertyExpression);
             }
         } else {
             appendNecessaryScans(expression, plan);
+            expressionsToProject.push_back(expression);
         }
     }
-    auto projection = make_shared<LogicalProjection>(returnOrWithClause, plan.lastOperator);
+    auto projection = make_shared<LogicalProjection>(move(expressionsToProject), plan.lastOperator);
     plan.appendOperator(projection);
 }
 
@@ -311,9 +309,10 @@ void Enumerator::appendNecessaryScans(shared_ptr<LogicalExpression> expression, 
 void Enumerator::appendScanNodeProperty(
     const string& nodeName, const string& propertyName, LogicalPlan& plan) {
     auto queryNode = mergedQueryGraph->getQueryNode(nodeName);
-    auto scanProperty = make_shared<LogicalScanNodeProperty>(variableNameToID(queryNode->name),
-        queryNode->label, queryNode->name, propertyName, plan.lastOperator);
-    plan.schema->addOperator(queryNode->name + "." + propertyName, scanProperty.get());
+    auto scanProperty =
+        make_shared<LogicalScanNodeProperty>(variableNameToID(queryNode->variableName),
+            queryNode->label, queryNode->variableName, propertyName, plan.lastOperator);
+    plan.schema->addOperator(queryNode->variableName + "." + propertyName, scanProperty.get());
     plan.appendOperator(scanProperty);
 }
 
@@ -369,6 +368,46 @@ vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(
         result.push_back(expression);
     }
     return result;
+}
+
+// all properties are given an alias in order to print
+static vector<shared_ptr<LogicalExpression>> rewriteVariableAsAllProperties(
+    shared_ptr<LogicalExpression> variableExpression, const Catalog& catalog) {
+    if (NODE == variableExpression->dataType) {
+        auto nodeExpression = static_pointer_cast<LogicalNodeExpression>(variableExpression);
+        auto propertyExpressions = createLogicalPropertyExpressions(nodeExpression->variableName,
+            catalog.getPropertyKeyMapForNodeLabel(nodeExpression->label));
+        // unstructured properties
+        for (auto& propertyExpression :
+            createLogicalPropertyExpressions(nodeExpression->variableName,
+                catalog.getUnstrPropertyKeyMapForNodeLabel(nodeExpression->label))) {
+            propertyExpressions.push_back(propertyExpression);
+        }
+        auto idProperty = make_shared<LogicalExpression>(
+            PROPERTY, NODE_ID, variableNameToID(variableExpression->variableName));
+        idProperty->alias = variableNameToID(variableExpression->variableName);
+        propertyExpressions.push_back(idProperty);
+        return propertyExpressions;
+    } else {
+        auto relExpression = static_pointer_cast<LogicalRelExpression>(variableExpression);
+        return createLogicalPropertyExpressions(relExpression->variableName,
+            catalog.getPropertyKeyMapForRelLabel(relExpression->label));
+    }
+}
+
+vector<shared_ptr<LogicalExpression>> createLogicalPropertyExpressions(
+    const string& variableName, const unordered_map<string, PropertyKey>& propertyMap) {
+    auto propertyExpressions = vector<shared_ptr<LogicalExpression>>();
+    for (auto& [propertyName, property] : propertyMap) {
+        auto propertyWithVariableName = variableName + "." + propertyName;
+        auto expression =
+            make_shared<LogicalExpression>(PROPERTY, property.dataType, propertyWithVariableName);
+        // This alias set should be removed if we can print all properties in a single column.
+        // And column name should be variable name
+        expression->alias = propertyWithVariableName;
+        propertyExpressions.push_back(expression);
+    }
+    return propertyExpressions;
 }
 
 pair<string, string> splitVariableAndPropertyName(const string& name) {
