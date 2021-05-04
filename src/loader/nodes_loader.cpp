@@ -245,8 +245,7 @@ void NodesLoader::calcLengthOfUnstrPropertyLists(
         auto startPos = strchr(unstrPropertyString, ':') + 1;
         *strchr(startPos, ':') = 0;
         ListsLoaderHelper::incrementListSize(unstrPropertyListSizes, nodeOffset,
-            UnstructuredPropertyLists::PROPERTY_IDX_LEN +
-                UnstructuredPropertyLists::PROPERTY_DATATYPE_LEN +
+            UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN +
                 getDataTypeSize(getDataType(string(startPos))));
     }
 }
@@ -343,8 +342,7 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
         auto dataType = getDataType(string(unstrPropertyStringBreaker1 + 1));
         auto dataTypeSize = getDataTypeSize(dataType);
         auto reversePos = ListsLoaderHelper::decrementListSize(unstrPropertyListSizes, nodeOffset,
-            UnstructuredPropertyLists::PROPERTY_IDX_LEN +
-                UnstructuredPropertyLists::PROPERTY_DATATYPE_LEN + dataTypeSize);
+            UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN + dataTypeSize);
         PageCursor pageCursor;
         ListsLoaderHelper::calculatePageCursor(unstrPropertyListHeaders.headers[nodeOffset],
             reversePos, 1, nodeOffset, pageCursor, unstrPropertyListsMetadata);
@@ -372,9 +370,8 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             auto strVal = reader.skipTokenIfNull() ? &EMPTY_STRING : reader.getString();
             auto encodedString = reinterpret_cast<gf_string_t*>(
                 unstrPropertyPages.getPtrToMemLoc(pageCursor) +
-                UnstructuredPropertyLists::PROPERTY_IDX_LEN +
                 UnstructuredPropertyLists::
-                    PROPERTY_DATATYPE_LEN /*leave space for idx and dataType*/);
+                    UNSTR_PROP_HEADER_LEN /*leave space for idx and dataType*/);
             stringOverflowPages.setStrInOvfPageAndPtrInEncString(
                 strVal, stringOvfPagesCursor, encodedString);
             // in case of string, we want to set only the property key idx and datatype.

@@ -3,3 +3,15 @@
 -INPUT dataset/tinysnb/
 -OUTPUT test/unittest_temp/
 -PARALLELISM 1
+
+-NAME PersonUnstrFilteredTest
+-QUERY MATCH (a:person) WHERE a.unstrProp > 48 RETURN COUNT(*)
+---- 2
+
+-NAME PersonUnstrFilteredTest
+-QUERY MATCH (a:person) WHERE a.unstrProp <= 68 RETURN COUNT(*)
+---- 3
+
+-NAME PersonUnstrFilteredTest
+-QUERY MATCH (a:person) WHERE a.unstrProp = 52 RETURN COUNT(*)
+---- 1
