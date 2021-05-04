@@ -10,7 +10,7 @@ ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::ScanNodeID(shared_ptr<MorselsDesc>& morse
     nodeIDVector = make_shared<NodeIDVector>(morsel->label, NodeIDCompressionScheme(), true);
     outDataChunk =
         make_shared<DataChunk>(!IS_OUT_DATACHUNK_FILTERED /* initializeSelectedValuesPos */);
-    outDataChunk->append(nodeIDVector);
+    outDataChunk->appendAndSetVectorState(nodeIDVector);
     dataChunks->append(outDataChunk);
 }
 

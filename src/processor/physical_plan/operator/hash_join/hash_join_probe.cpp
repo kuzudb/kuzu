@@ -66,7 +66,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
         } else {
             outVector = make_shared<ValueVector>(probeSideVector->dataType);
         }
-        outKeyDataChunk->append(outVector);
+        outKeyDataChunk->appendAndSetVectorState(outVector);
     }
     for (uint64_t i = 0; i < buildSideKeyDataChunk->valueVectors.size(); i++) {
         if (i == buildSideKeyVectorPos) {
@@ -81,7 +81,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
         } else {
             outVector = make_shared<ValueVector>(buildSideVector->dataType);
         }
-        outKeyDataChunk->append(outVector);
+        outKeyDataChunk->appendAndSetVectorState(outVector);
     }
 
     for (uint64_t i = 0; i < buildSideNonKeyDataChunks->getNumDataChunks(); i++) {
@@ -96,7 +96,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
                 } else {
                     outVector = make_shared<ValueVector>(vector->dataType);
                 }
-                outKeyDataChunk->append(outVector);
+                outKeyDataChunk->appendAndSetVectorState(outVector);
             }
         } else {
             auto unFlatOutDataChunk = make_shared<DataChunk>();
@@ -115,7 +115,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
                     buildSideVectorPtrs.size());
                 buildSideVectorInfos.push_back(vectorInfo);
                 buildSideVectorPtrs.push_back(move(vectorPtrs));
-                unFlatOutDataChunk->append(outVector);
+                unFlatOutDataChunk->appendAndSetVectorState(outVector);
             }
             dataChunks->append(unFlatOutDataChunk);
         }

@@ -9,7 +9,7 @@ AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::AdjListExtend(uint64_t inDataChunkPos,
     : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)} {
     outValueVector = make_shared<NodeIDVector>(0, lists->getNodeIDCompressionScheme(), false);
     outDataChunk = make_shared<DataChunk>(true /* initializeSelectedValuesPos */);
-    outDataChunk->append(outValueVector);
+    outDataChunk->appendAndSetVectorState(outValueVector);
     auto listSyncState = make_shared<ListSyncState>();
     dataChunks->append(outDataChunk, listSyncState);
     handle->setListSyncState(listSyncState);

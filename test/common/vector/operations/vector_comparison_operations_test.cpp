@@ -13,15 +13,15 @@ TEST(VectorCmpTests, cmpInt) {
     dataChunk->state->numSelectedValues = numTuples;
 
     auto lVector = make_shared<ValueVector>(INT32, numTuples);
-    dataChunk->append(lVector);
+    dataChunk->appendAndSetVectorState(lVector);
     auto lData = (int32_t*)lVector->values;
 
     auto rVector = make_shared<ValueVector>(INT32, numTuples);
-    dataChunk->append(rVector);
+    dataChunk->appendAndSetVectorState(rVector);
     auto rData = (int32_t*)rVector->values;
 
     auto result = make_shared<ValueVector>(BOOL, numTuples);
-    dataChunk->append(result);
+    dataChunk->appendAndSetVectorState(result);
     auto resultData = result->values;
 
     // Fill values before the comparison.
@@ -75,15 +75,15 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     dataChunk->state->currPos = 0;
 
     auto lVector = make_shared<ValueVector>(STRING, numTuples);
-    dataChunk->append(lVector);
+    dataChunk->appendAndSetVectorState(lVector);
     auto lData = ((gf_string_t*)lVector->values);
 
     auto rVector = make_shared<ValueVector>(STRING, numTuples);
-    dataChunk->append(rVector);
+    dataChunk->appendAndSetVectorState(rVector);
     auto rData = ((gf_string_t*)rVector->values);
 
     auto result = make_shared<ValueVector>(BOOL, numTuples);
-    dataChunk->append(result);
+    dataChunk->appendAndSetVectorState(result);
     auto resultData = result->values;
 
     char* value = "abcdefgh";
@@ -145,15 +145,15 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     dataChunk->state->currPos = 0;
 
     auto lVector = make_shared<ValueVector>(STRING, VECTOR_SIZE);
-    dataChunk->append(lVector);
+    dataChunk->appendAndSetVectorState(lVector);
     auto lData = ((gf_string_t*)lVector->values);
 
     auto rVector = make_shared<ValueVector>(STRING, VECTOR_SIZE);
-    dataChunk->append(rVector);
+    dataChunk->appendAndSetVectorState(rVector);
     auto rData = ((gf_string_t*)rVector->values);
 
     auto result = make_shared<ValueVector>(BOOL, VECTOR_SIZE);
-    dataChunk->append(result);
+    dataChunk->appendAndSetVectorState(result);
     auto resultData = result->values;
 
     char* value = "abcdefghijklmnopqrstuvwxy"; // 25.

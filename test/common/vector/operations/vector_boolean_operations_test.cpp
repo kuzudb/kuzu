@@ -12,15 +12,15 @@ TEST(VectorBoolTests, test) {
     dataChunk->state->numSelectedValues = VECTOR_SIZE;
 
     auto lVector = make_shared<ValueVector>(BOOL);
-    dataChunk->append(lVector);
+    dataChunk->appendAndSetVectorState(lVector);
     auto lData = (uint8_t*)lVector->values;
 
     auto rVector = make_shared<ValueVector>(BOOL);
-    dataChunk->append(rVector);
+    dataChunk->appendAndSetVectorState(rVector);
     auto rData = (uint8_t*)rVector->values;
 
     auto result = make_shared<ValueVector>(BOOL);
-    dataChunk->append(result);
+    dataChunk->appendAndSetVectorState(result);
     auto resultData = (uint8_t*)result->values;
 
     // Fill values before the comparison.

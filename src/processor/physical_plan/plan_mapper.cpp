@@ -61,9 +61,13 @@ static unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
     const LogicalOperator& logicalOperator, const Graph& graph,
     PhysicalOperatorsInfo& physicalOperatorInfo);
 
+// helper functions used by mapLogical{Filter/Projection}ToPhysical.
 static unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
     const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo,
-    unique_ptr<PhysicalOperator> prevOperator, uint64_t& dataChunkPos, bool& appendedFlatten);
+    unique_ptr<PhysicalOperator> prevOperator);
+
+static uint64_t getDependentUnflatDataChunkPos(
+    const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo);
 
 unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
     unique_ptr<LogicalPlan> logicalPlan, const Graph& graph) {
@@ -84,7 +88,6 @@ unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator&
     case LOGICAL_FILTER:
         return mapLogicalFilterToPhysical(logicalOperator, graph, physicalOperatorInfo);
     case LOGICAL_PROJECTION:
-        // TODO: We do not handle flattening for projections currently.
         return mapLogicalProjectionToPhysical(logicalOperator, graph, physicalOperatorInfo);
     case LOGICAL_HASH_JOIN:
         return mapLogicalHashJoinToPhysical(logicalOperator, graph, physicalOperatorInfo);
@@ -136,15 +139,14 @@ unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(const LogicalOperator& l
     auto& logicalFilter = (const LogicalFilter&)logicalOperator;
     auto prevOperator =
         mapLogicalOperatorToPhysical(*logicalOperator.prevOperator, graph, physicalOperatorInfo);
-    auto dataChunks = prevOperator->getDataChunks();
     const auto& logicalRootExpr = logicalFilter.getRootLogicalExpression();
-    uint64_t dataChunkToSelectPos;
-    bool appendedFlatten;
-    prevOperator = appendFlattenOperatorsIfNecessary(logicalRootExpr, physicalOperatorInfo,
-        move(prevOperator), dataChunkToSelectPos, appendedFlatten);
+    prevOperator = appendFlattenOperatorsIfNecessary(
+        logicalRootExpr, physicalOperatorInfo, move(prevOperator));
+    auto dataChunkToSelectPos =
+        getDependentUnflatDataChunkPos(logicalRootExpr, physicalOperatorInfo);
     auto physicalRootExpr = ExpressionMapper::mapToPhysical(
         logicalRootExpr, physicalOperatorInfo, *prevOperator->getDataChunks());
-    if (appendedFlatten) {
+    if (prevOperator->operatorType == FLATTEN) {
         return make_unique<Filter<true /* isAfterFlatten */>>(
             move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator));
     } else {
@@ -155,7 +157,8 @@ unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(const LogicalOperator& l
 
 unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
     const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo,
-    unique_ptr<PhysicalOperator> prevOperator, uint64_t& dataChunkPos, bool& appendedFlatten) {
+    unique_ptr<PhysicalOperator> prevOperator) {
+    pair<unique_ptr<PhysicalOperator>, uint64_t> result;
     set<uint64_t> unflatDataChunkPosSet;
     for (auto& property : logicalRootExpr.getIncludedProperties()) {
         auto pos = physicalOperatorInfo.getDataChunkPos(property);
@@ -163,104 +166,96 @@ unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
             unflatDataChunkPosSet.insert(pos);
         }
     }
-    appendedFlatten = false;
     if (!unflatDataChunkPosSet.empty()) {
         vector<uint64_t> unflatDataChunkPos(
             unflatDataChunkPosSet.begin(), unflatDataChunkPosSet.end());
         if (unflatDataChunkPosSet.size() > 1) {
-            appendedFlatten = true;
             for (auto i = 0u; i < unflatDataChunkPos.size() - 1; i++) {
                 auto pos = unflatDataChunkPos[i];
                 prevOperator = make_unique<Flatten>(pos, move(prevOperator));
                 physicalOperatorInfo.dataChunkIsFlatVector[pos] = true;
             }
         }
-        // We only need to set the dataChunkPos if at least one dataChunk is unflat.
-        dataChunkPos = unflatDataChunkPos[unflatDataChunkPos.size() - 1];
-        return prevOperator;
     }
     return prevOperator;
 }
 
-// For each expression, map its result vector to the input dataChunks positions:
-// 1) Property expressions will simply hold references to inputs, so their result are in the same
-// data chunk as their input.
-// 2) For non-property expressions: if the expression contains a input vector from a unflat data
-// chunk, the result will be in the unflat data chunk; else, the result can be in any of the data
-// chunks of the properties. We set it to the last property we read when we call
-// getIncludedProperties().
-static vector<vector<uint64_t>> mapProjectionExpressionsToDataChunkPos(DataChunks& dataChunks,
-    vector<shared_ptr<LogicalExpression>> expressionsToProject,
-    PhysicalOperatorsInfo& physicalOperatorInfo) {
-    vector<vector<uint64_t>> expressionPosPerDataChunk;
-    expressionPosPerDataChunk.resize(dataChunks.getNumDataChunks());
-    for (uint64_t i = 0; i < expressionsToProject.size(); i++) {
-        auto expression = expressionsToProject[i];
-        if (expression->expressionType == PROPERTY) {
-            auto exprVariable = expression->variableName;
-            auto exprDataChunkPos = physicalOperatorInfo.getDataChunkPos(exprVariable);
-            expressionPosPerDataChunk[exprDataChunkPos].push_back(i);
-        } else {
-            auto includedProps = expression->getIncludedProperties();
-            int64_t exprDataChunkPos = -1;
-            for (auto& prop : includedProps) {
-                auto propDataChunkPos = physicalOperatorInfo.getDataChunkPos(prop);
-                exprDataChunkPos = propDataChunkPos;
-                if (!physicalOperatorInfo.dataChunkIsFlatVector[propDataChunkPos]) {
-                    break; // Break here as we found a unflat data chunk
-                }
-            }
-            if (exprDataChunkPos == -1) {
-                throw invalid_argument(
-                    "Unable to find data chunk position for the result vector of expression " +
-                    expression->variableName);
-            }
-            expressionPosPerDataChunk[exprDataChunkPos].push_back(i);
+// The function finds the data chunk position of the unflat vectors in the expression, if
+// all vectors in the expressions are flat, we return null as UINT64_MAX.
+uint64_t getDependentUnflatDataChunkPos(
+    const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    for (auto& property : logicalRootExpr.getIncludedProperties()) {
+        auto pos = physicalOperatorInfo.getDataChunkPos(property);
+        if (!physicalOperatorInfo.dataChunkIsFlatVector[pos]) {
+            return pos;
         }
     }
-    return expressionPosPerDataChunk;
+    return UINT64_MAX /* null */;
 }
 
-// todo: add flatten operator
 unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(const LogicalOperator& logicalOperator,
     const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
-    auto& logicalProjection = (const LogicalProjection&)logicalOperator;
     auto prevOperator =
         mapLogicalOperatorToPhysical(*logicalOperator.prevOperator, graph, physicalOperatorInfo);
-    auto dataChunks = prevOperator->getDataChunks();
+    auto& logicalProjection = (const LogicalProjection&)logicalOperator;
+    // We obtain the number of dataChunks from the previous operator as the projection operator
+    // creates new dataChunks and we will be emptying the physicalOperatorInfo object.
+    auto numInputDataChunks = physicalOperatorInfo.vectorVariables.size();
 
-    auto expressionPosPerInDataChunk = mapProjectionExpressionsToDataChunkPos(
-        *dataChunks, logicalProjection.expressionsToProject, physicalOperatorInfo);
-
-    // Map logical expressions to physical ones
-    vector<unique_ptr<PhysicalExpression>> physicalExpressions;
-    for (auto& expression : logicalProjection.expressionsToProject) {
-        physicalExpressions.push_back(
-            ExpressionMapper::mapToPhysical(*expression, physicalOperatorInfo, *dataChunks));
+    // We append flatten(s) as necessary and map each logical expression to a physical one.
+    auto physicalExpressions = make_unique<vector<unique_ptr<PhysicalExpression>>>();
+    for (const auto& logicalRootExpr : logicalProjection.expressionsToProject) {
+        prevOperator = appendFlattenOperatorsIfNecessary(
+            *logicalRootExpr, physicalOperatorInfo, move(prevOperator));
+        physicalExpressions->push_back(ExpressionMapper::mapToPhysical(
+            *logicalRootExpr, physicalOperatorInfo, *prevOperator->getDataChunks()));
     }
 
-    // Update physical operator info
+    // We collect the input data chunk positions for the vectors in the expressions.
+    vector<string> expressionName;
+    vector<uint64_t> exprResultInDataChunkPos;
+    for (const auto& logicalRootExpr : logicalProjection.expressionsToProject) {
+        auto name = logicalRootExpr->getAliasElseRawExpression();
+        expressionName.push_back(name);
+        auto isLeafVariableExpr = isExpressionLeafVariable(logicalRootExpr->expressionType);
+        exprResultInDataChunkPos.push_back(
+            isLeafVariableExpr ?
+                physicalOperatorInfo.getDataChunkPos(name) :
+                getDependentUnflatDataChunkPos(*logicalRootExpr, physicalOperatorInfo));
+    }
+
+    // We map the input data chunk positions from the prev operator to new normalized ones from 0 to
+    // m, where m is the number of output data chunk positions.
     physicalOperatorInfo.clear();
-    for (uint64_t i = 0; i < expressionPosPerInDataChunk.size(); i++) {
-        if (expressionPosPerInDataChunk[i].empty()) { // Skip empty (projected out) data chunks that
-                                                      // contain no expression outputs
-            continue;
-        }
-        auto outDataChunkPos = physicalOperatorInfo.appendAsNewDataChunk(
-            logicalProjection.expressionsToProject[expressionPosPerInDataChunk[i][0]]
-                ->rawExpression);
-        for (uint64_t j = 1; j < expressionPosPerInDataChunk[i].size(); j++) {
+    vector<uint64_t> exprResultOutDataChunkPos;
+    exprResultOutDataChunkPos.reserve(physicalExpressions->size());
+    auto currNumOutDataChunks = 0;
+    unordered_map<uint64_t, uint64_t> inToOutDataChunkPosMap;
+    for (auto i = 0u; i < physicalExpressions->size(); i++) {
+        auto it = inToOutDataChunkPosMap.find(exprResultInDataChunkPos[i]);
+        if (it != end(inToOutDataChunkPosMap)) {
+            exprResultOutDataChunkPos[i] = inToOutDataChunkPosMap.at(exprResultInDataChunkPos[i]);
             physicalOperatorInfo.appendAsNewValueVector(
-                logicalProjection.expressionsToProject[expressionPosPerInDataChunk[i][j]]
-                    ->rawExpression,
-                outDataChunkPos);
+                expressionName[i], exprResultOutDataChunkPos[i]);
+        } else {
+            exprResultOutDataChunkPos[i] = currNumOutDataChunks++;
+            inToOutDataChunkPosMap.insert(
+                {exprResultInDataChunkPos[i], exprResultOutDataChunkPos[i]});
+            physicalOperatorInfo.appendAsNewDataChunk(expressionName[i]);
         }
-        physicalOperatorInfo.dataChunkIsFlatVector[outDataChunkPos] =
-            dataChunks->getDataChunk(i)->state->isFlat();
     }
 
-    return make_unique<Projection>(
-        move(physicalExpressions), expressionPosPerInDataChunk, move(prevOperator));
+    // We collect the discarded dataChunk positions in the input data chunks to obtain their
+    // multiplicity in the projection operation.
+    vector<uint64_t> discardedDataChunkPos;
+    for (auto i = 0u; i < numInputDataChunks; i++) {
+        auto it = find(exprResultOutDataChunkPos.begin(), exprResultOutDataChunkPos.end(), i);
+        if (it == exprResultOutDataChunkPos.end()) {
+            discardedDataChunkPos.push_back(i);
+        }
+    }
+    return make_unique<Projection>(move(physicalExpressions), exprResultOutDataChunkPos,
+        discardedDataChunkPos, move(prevOperator));
 }
 
 unique_ptr<PhysicalOperator> mapLogicalNodePropertyReaderToPhysical(
