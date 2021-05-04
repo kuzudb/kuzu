@@ -51,7 +51,7 @@ cc_library(
         "//src/common",
         "//src/expression",
         "//src/storage:graph",
-        "//src/storage:structures",
+        "//src/storage:lists_aux",
     ],
 )
 
@@ -68,7 +68,7 @@ cc_library(
     ],
     deps = [
         "//src/common",
-        "//src/storage:structures",
+        "//src/storage:lists_aux",
     ],
 )
 

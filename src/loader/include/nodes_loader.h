@@ -9,8 +9,8 @@
 #include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
+#include "src/storage/include/data_structure/lists/lists.h"
 #include "src/storage/include/graph.h"
-#include "src/storage/include/structures/lists.h"
 
 using namespace std;
 using namespace graphflow::storage;

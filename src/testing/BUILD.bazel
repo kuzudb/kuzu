@@ -8,6 +8,6 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/runner:embedded_server",
+        "//src/main:embedded_server",
     ],
 )

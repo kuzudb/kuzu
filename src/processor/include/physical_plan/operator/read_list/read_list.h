@@ -28,7 +28,7 @@ protected:
     shared_ptr<ValueVector> outValueVector;
 
     BaseLists* lists;
-    unique_ptr<ColumnOrListsHandle> handle;
+    unique_ptr<DataStructureHandle> handle;
 };
 
 } // namespace processor

@@ -3,10 +3,10 @@
 #include "nlohmann/json.hpp"
 #include "restinio/all.hpp"
 
-#include "src/runner/include/server/session.h"
+#include "src/main/include/session.h"
 
 namespace graphflow {
-namespace runner {
+namespace main {
 
 using router_t = restinio::router::express_router_t<>;
 using request_handle_t = router_t::actual_request_handle_t;
@@ -50,5 +50,5 @@ private:
     nlohmann::json helpCatalog;
 };
 
-} // namespace runner
+} // namespace main
 } // namespace graphflow

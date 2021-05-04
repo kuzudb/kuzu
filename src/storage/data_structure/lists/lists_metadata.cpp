@@ -1,10 +1,6 @@
-#include "src/storage/include/structures/lists_aux_structures.h"
+#include "src/storage/include/data_structure/lists/lists_metadata.h"
 
 #include <fstream>
-
-#include "bitsery/adapter/stream.h"
-#include "bitsery/brief_syntax.h"
-#include "bitsery/traits/vector.h"
 
 namespace graphflow {
 namespace storage {
@@ -161,56 +157,6 @@ void ListsMetadata::increasePageListsCapacityIfNeeded(
         pageLists.reset(newMemBlock);
         pageListsCapacity = newCapacity;
     }
-}
-
-ListHeaders::ListHeaders(string path) : ListHeaders() {
-    readFromDisk(path);
-    logger->trace("AdjListHeaders: #Headers {}", sizeof(headers.get()));
-};
-
-void ListHeaders::init(uint32_t size) {
-    this->size = size;
-    headers = make_unique<uint32_t[]>(size);
-}
-
-void ListHeaders::saveToDisk(const string& fname) {
-    saveListOfIntsToFile(fname + ".headers", headers, size);
-}
-
-void ListHeaders::readFromDisk(const string& fname) {
-    auto listSize = readListOfIntsFromFile(headers, fname + ".headers");
-    this->size = listSize;
-}
-
-void saveListOfIntsToFile(const string& path, unique_ptr<uint32_t[]>& data, uint32_t listSize) {
-    if (0 == path.length()) {
-        throw invalid_argument("Lists Aux structures: Empty filename");
-    }
-    uint32_t f = open(path.c_str(), O_WRONLY | O_CREAT, 0666);
-    if (-1u == f) {
-        throw invalid_argument("Lists Aux structures: Cannot create file: " + path);
-    }
-    auto bytesToWrite = sizeof(uint32_t) * listSize;
-    if (bytesToWrite != write(f, data.get(), bytesToWrite)) {
-        throw invalid_argument("Lists Aux structures: Cannot write in file: " + path);
-    }
-    close(f);
-}
-
-uint32_t readListOfIntsFromFile(unique_ptr<uint32_t[]>& data, const string& path) {
-    if (0 == path.length()) {
-        throw invalid_argument("Lists Aux structures: Empty filename");
-    }
-    uint32_t f = open(path.c_str(), O_RDONLY);
-    auto bytesToRead = lseek(f, 0, SEEK_END);
-    auto listSize = bytesToRead / sizeof(uint32_t);
-    data.reset(new uint32_t[listSize]);
-    lseek(f, 0, SEEK_SET);
-    if (bytesToRead != read(f, data.get(), bytesToRead)) {
-        throw invalid_argument("Lists Aux structures: Cannot read from file.");
-    }
-    close(f);
-    return listSize;
 }
 
 } // namespace storage

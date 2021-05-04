@@ -1,4 +1,4 @@
-#include "src/storage/include/stores/rels_store.h"
+#include "src/storage/include/store/rels_store.h"
 
 #include "src/common/include/compression_scheme.h"
 

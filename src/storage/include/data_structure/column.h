@@ -4,7 +4,7 @@
 
 #include "src/common/include/types.h"
 #include "src/common/include/vector/node_vector.h"
-#include "src/storage/include/structures/common.h"
+#include "src/storage/include/data_structure/data_structure.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -12,21 +12,21 @@ using namespace std;
 namespace graphflow {
 namespace storage {
 
-class BaseColumn : public BaseColumnOrLists {
+class BaseColumn : public DataStructure {
 
 public:
     virtual ~BaseColumn() = default;
 
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<ColumnOrListsHandle>& handle);
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle);
 
 protected:
     BaseColumn(const string& fname, const DataType& dataType, const size_t& elementSize,
         const uint64_t& numElements, BufferManager& bufferManager)
-        : BaseColumnOrLists{fname, dataType, elementSize, bufferManager} {};
+        : DataStructure{fname, dataType, elementSize, bufferManager} {};
 
     void readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<ColumnOrListsHandle>& handle);
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle);
 };
 
 template<DataType D>
@@ -47,7 +47,7 @@ public:
 
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<ColumnOrListsHandle>& handle) override;
+        const unique_ptr<DataStructureHandle>& handle) override;
 
 private:
     void readStringsFromOverflowPages(const shared_ptr<ValueVector>& valueVector);

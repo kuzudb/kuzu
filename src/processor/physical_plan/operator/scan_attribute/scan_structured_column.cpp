@@ -9,7 +9,7 @@ ScanStructuredColumn::ScanStructuredColumn(uint64_t dataChunkPos, uint64_t value
     dataChunks = this->prevOperator->getDataChunks();
     inDataChunk = dataChunks->getDataChunk(dataChunkPos);
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
-    handle = make_unique<ColumnOrListsHandle>();
+    handle = make_unique<DataStructureHandle>();
 }
 
 void ScanStructuredColumn::getNextTuples() {

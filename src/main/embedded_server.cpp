@@ -1,4 +1,4 @@
-#include "src/runner/include/server/embedded_server.h"
+#include "src/main/include/embedded_server.h"
 
 #include "src/parser/include/parser.h"
 #include "src/planner/include/binder.h"
@@ -9,7 +9,7 @@ using namespace graphflow::processor;
 using namespace graphflow::planner;
 
 namespace graphflow {
-namespace runner {
+namespace main {
 
 EmbeddedServer::EmbeddedServer(const string& inputGraphPath, const string& outputGraphPath,
     uint64_t parallelism, uint64_t bufferPoolSize)
@@ -36,5 +36,5 @@ unique_ptr<QueryResult> EmbeddedServer::execute(unique_ptr<LogicalPlan> plan) {
     auto result = processor->execute(move(physicalPlan), parallelism);
     return result;
 }
-} // namespace runner
+} // namespace main
 } // namespace graphflow

@@ -10,7 +10,7 @@ ScanAttribute::ScanAttribute(
     dataChunks = this->prevOperator->getDataChunks();
     inDataChunk = dataChunks->getDataChunk(dataChunkPos);
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
-    handle = make_unique<ColumnOrListsHandle>();
+    handle = make_unique<DataStructureHandle>();
 }
 
 } // namespace processor

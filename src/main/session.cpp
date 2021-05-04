@@ -1,4 +1,4 @@
-#include "src/runner/include/server/session.h"
+#include "src/main/include/session.h"
 
 #include "src/planner/include/logical_plan/logical_plan.h"
 #include "src/processor/include/physical_plan/plan_mapper.h"
@@ -6,7 +6,7 @@
 using namespace graphflow::planner;
 
 namespace graphflow {
-namespace runner {
+namespace main {
 
 void Session::loadGraph(const string& path) {
     if (nullptr == graph || 0 != path.compare(graph->getPath())) {
@@ -99,5 +99,5 @@ void Session::throwErrorIfPathIsEmpty(const string& path) {
     }
 }
 
-} // namespace runner
+} // namespace main
 } // namespace graphflow

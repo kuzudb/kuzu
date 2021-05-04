@@ -3,7 +3,7 @@
 #include "src/common/include/vector/node_vector.h"
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_attribute.h"
 #include "src/processor/include/task_system/morsel.h"
-#include "src/storage/include/structures/lists.h"
+#include "src/storage/include/data_structure/lists/lists.h"
 
 using namespace graphflow::storage;
 

@@ -14,7 +14,7 @@ using namespace graphflow::loader;
 using namespace graphflow::planner;
 
 namespace graphflow {
-namespace runner {
+namespace main {
 
 class EmbeddedServer {
 
@@ -31,5 +31,5 @@ private:
     unique_ptr<QueryProcessor> processor;
 };
 
-} // namespace runner
+} // namespace main
 } // namespace graphflow
