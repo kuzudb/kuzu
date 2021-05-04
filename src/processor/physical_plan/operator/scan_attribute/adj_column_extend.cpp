@@ -10,7 +10,7 @@ AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos,
     auto outNodeIDVector = make_shared<NodeIDVector>(
         0, ((AdjColumn*)column)->getCompressionScheme(), false /*inNodeIDVector->isSequence()*/);
     outValueVector = static_pointer_cast<ValueVector>(outNodeIDVector);
-    inDataChunk->appendAndSetVectorState(outValueVector);
+    inDataChunk->append(outValueVector);
 }
 
 void AdjColumnExtend::getNextTuples() {

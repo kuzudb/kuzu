@@ -12,7 +12,7 @@ void Task::run() {
     auto pipelineSinkCopy = sinkOp->clone();
     do {
         pipelineSinkCopy->getNextTuples();
-    } while (pipelineSinkCopy->getDataChunks()->getNumTuples() > 0);
+    } while (pipelineSinkCopy->getResultSet()->getNumTuples() > 0);
     deregisterThread(move(pipelineSinkCopy));
 }
 

@@ -3,7 +3,7 @@
 #include <exception>
 #include <memory>
 
-#include "src/processor/include/physical_plan/operator/tuple/data_chunks.h"
+#include "src/processor/include/physical_plan/operator/result/result_set.h"
 #include "src/processor/include/task_system/morsel.h"
 #include "src/storage/include/graph.h"
 
@@ -44,7 +44,7 @@ public:
 
     virtual void getNextTuples() = 0;
 
-    shared_ptr<DataChunks> getDataChunks() { return dataChunks; };
+    shared_ptr<ResultSet> getResultSet() { return resultSet; };
 
     virtual unique_ptr<PhysicalOperator> clone() = 0;
 
@@ -55,7 +55,7 @@ public:
 
 protected:
     shared_ptr<spdlog::logger> logger;
-    shared_ptr<DataChunks> dataChunks;
+    shared_ptr<ResultSet> resultSet;
 };
 
 } // namespace processor

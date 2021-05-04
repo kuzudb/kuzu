@@ -5,8 +5,8 @@
 #include "src/common/include/vector/operations/vector_node_id_operations.h"
 #include "src/processor/include/memory_manager.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
+#include "src/processor/include/physical_plan/operator/result/result_set.h"
 #include "src/processor/include/physical_plan/operator/sink/sink.h"
-#include "src/processor/include/physical_plan/operator/tuple/data_chunks.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -81,7 +81,7 @@ private:
     uint64_t keyVectorPos;
 
     shared_ptr<DataChunk> keyDataChunk;
-    shared_ptr<DataChunks> nonKeyDataChunks;
+    shared_ptr<ResultSet> nonKeyDataChunks;
 
     uint64_t htBlockCapacity;
     uint64_t numEntries; // Thread-local num entries in htBlocks

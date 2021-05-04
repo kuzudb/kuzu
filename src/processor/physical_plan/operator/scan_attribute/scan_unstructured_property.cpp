@@ -9,12 +9,12 @@ ScanUnstructuredProperty::ScanUnstructuredProperty(uint64_t dataChunkPos, uint64
     uint32_t propertyKey, BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator)
     : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator)},
       propertyKey{propertyKey}, lists{(Lists<UNSTRUCTURED>*)lists} {
-    dataChunks = this->prevOperator->getDataChunks();
-    inDataChunk = dataChunks->getDataChunk(dataChunkPos);
+    resultSet = this->prevOperator->getResultSet();
+    inDataChunk = resultSet->dataChunks[dataChunkPos];
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
     handle = make_unique<DataStructureHandle>();
     outValueVector = make_shared<ValueVector>(lists->getDataType());
-    inDataChunk->appendAndSetVectorState(outValueVector);
+    inDataChunk->append(outValueVector);
 }
 
 void ScanUnstructuredProperty::getNextTuples() {

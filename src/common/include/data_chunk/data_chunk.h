@@ -31,11 +31,9 @@ public:
         state = make_shared<DataChunkState>(initializeSelectedValuesPos, capacity);
     }
 
-    void append(shared_ptr<ValueVector> valueVector) { valueVectors.push_back(valueVector); }
-
-    void appendAndSetVectorState(shared_ptr<ValueVector> valueVector) {
+    void append(shared_ptr<ValueVector> valueVector) {
         valueVector->state = this->state;
-        append(valueVector);
+        valueVectors.push_back(valueVector);
     }
 
     inline shared_ptr<ValueVector> getValueVector(uint64_t valueVectorPos) {

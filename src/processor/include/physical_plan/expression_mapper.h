@@ -2,8 +2,8 @@
 
 #include "src/expression/include/logical/logical_expression.h"
 #include "src/expression/include/physical/physical_expression.h"
-#include "src/processor/include/physical_plan/operator/tuple/data_chunks.h"
-#include "src/processor/include/physical_plan/operator/tuple/physical_operator_info.h"
+#include "src/processor/include/physical_plan/operator/physical_operator_info.h"
+#include "src/processor/include/physical_plan/operator/result/result_set.h"
 
 using namespace graphflow::expression;
 
@@ -14,10 +14,10 @@ class ExpressionMapper {
 
 public:
     static unique_ptr<PhysicalExpression> mapToPhysical(const LogicalExpression& expression,
-        PhysicalOperatorsInfo& physicalOperatorInfo, DataChunks& dataChunks);
+        PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet);
 
     static unique_ptr<PhysicalExpression> clone(
-        const PhysicalExpression& expression, DataChunks& dataChunks);
+        const PhysicalExpression& expression, ResultSet& resultSet);
 };
 
 } // namespace processor

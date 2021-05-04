@@ -1,16 +1,16 @@
-#include "src/processor/include/physical_plan/operator/tuple/data_chunks_iterator.h"
+#include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
 
 namespace graphflow {
 namespace processor {
 
-bool DataChunksIterator::hasNextTuple() {
-    return numIteratedTuples < dataChunks.getNumTuples();
+bool ResultSetIterator::hasNextTuple() {
+    return numIteratedTuples < resultSet.getNumTuples();
 }
 
-void DataChunksIterator::reset() {
+void ResultSetIterator::reset() {
     tuplePositions.clear();
-    for (uint64_t i = 0; i < dataChunks.getNumDataChunks(); i++) {
-        auto dataChunk = dataChunks.getDataChunk(i);
+    for (uint64_t i = 0; i < resultSet.dataChunks.size(); i++) {
+        auto dataChunk = resultSet.dataChunks[i];
         if (dataChunk->state->isFlat()) {
             tuplePositions.push_back(dataChunk->state->currPos);
         } else {
@@ -21,20 +21,20 @@ void DataChunksIterator::reset() {
     setDataChunksTypes();
 }
 
-bool DataChunksIterator::updateTuplePositions(int64_t chunkIdx) {
-    if (dataChunks.getDataChunk(chunkIdx)->state->isFlat()) {
+bool ResultSetIterator::updateTuplePositions(int64_t chunkIdx) {
+    if (resultSet.dataChunks[chunkIdx]->state->isFlat()) {
         return false;
     }
     tuplePositions[chunkIdx] = tuplePositions[chunkIdx] + 1;
-    if (tuplePositions[chunkIdx] == dataChunks.getDataChunkState(chunkIdx)->numSelectedValues) {
+    if (tuplePositions[chunkIdx] == resultSet.dataChunks[chunkIdx]->state->numSelectedValues) {
         tuplePositions[chunkIdx] = 0;
         return false;
     }
     return true;
 }
 
-void DataChunksIterator::updateTuplePositions() {
-    int64_t lastChunkIdx = dataChunks.getNumDataChunks() - 1;
+void ResultSetIterator::updateTuplePositions() {
+    int64_t lastChunkIdx = resultSet.dataChunks.size() - 1;
     while (!updateTuplePositions(lastChunkIdx)) {
         lastChunkIdx = lastChunkIdx - 1;
         if (lastChunkIdx < 0) {
@@ -43,20 +43,20 @@ void DataChunksIterator::updateTuplePositions() {
     }
 }
 
-void DataChunksIterator::setDataChunksTypes() {
+void ResultSetIterator::setDataChunksTypes() {
     dataChunksTypes.clear();
-    for (uint64_t i = 0; i < dataChunks.getNumDataChunks(); i++) {
-        auto dataChunk = dataChunks.getDataChunk(i);
+    for (uint64_t i = 0; i < resultSet.dataChunks.size(); i++) {
+        auto dataChunk = resultSet.dataChunks[i];
         for (auto& vector : dataChunk->valueVectors) {
             dataChunksTypes.push_back(vector->dataType);
         }
     }
 }
 
-void DataChunksIterator::getNextTuple(Tuple& tuple) {
+void ResultSetIterator::getNextTuple(Tuple& tuple) {
     auto valueInTupleIdx = 0;
-    for (uint64_t i = 0; i < dataChunks.getNumDataChunks(); i++) {
-        auto dataChunk = dataChunks.getDataChunk(i);
+    for (uint64_t i = 0; i < resultSet.dataChunks.size(); i++) {
+        auto dataChunk = resultSet.dataChunks[i];
         auto tuplePosition = tuplePositions[i];
         for (auto& vector : dataChunk->valueVectors) {
             auto selectedTuplePos = vector->state->selectedValuesPos[tuplePosition];
@@ -95,5 +95,6 @@ void DataChunksIterator::getNextTuple(Tuple& tuple) {
     numIteratedTuples++;
     updateTuplePositions();
 }
+
 } // namespace processor
 } // namespace graphflow

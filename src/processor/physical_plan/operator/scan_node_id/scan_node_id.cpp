@@ -6,12 +6,12 @@ namespace processor {
 template<bool IS_OUT_DATACHUNK_FILTERED>
 ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::ScanNodeID(shared_ptr<MorselsDesc>& morsel)
     : PhysicalOperator(SCAN), morsel{morsel} {
-    dataChunks = make_shared<DataChunks>();
+    resultSet = make_shared<ResultSet>();
     nodeIDVector = make_shared<NodeIDVector>(morsel->label, NodeIDCompressionScheme(), true);
     outDataChunk =
         make_shared<DataChunk>(!IS_OUT_DATACHUNK_FILTERED /* initializeSelectedValuesPos */);
-    outDataChunk->appendAndSetVectorState(nodeIDVector);
-    dataChunks->append(outDataChunk);
+    outDataChunk->append(nodeIDVector);
+    resultSet->append(outDataChunk);
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>

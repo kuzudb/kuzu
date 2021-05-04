@@ -1,22 +1,21 @@
 #pragma once
 
-#include "src/processor/include/physical_plan/operator/tuple/data_chunks.h"
-#include "src/processor/include/physical_plan/operator/tuple/tuple.h"
+#include "src/processor/include/physical_plan/operator/result/result_set.h"
+#include "src/processor/include/physical_plan/operator/result/tuple.h"
 
 using namespace graphflow::common;
 
 namespace graphflow {
 namespace processor {
 
-class DataChunksIterator {
+class ResultSetIterator {
 public:
-    explicit DataChunksIterator(DataChunks& dataChunks)
-        : dataChunks(dataChunks), numIteratedTuples(0) {
+    explicit ResultSetIterator(ResultSet& resultSet) : resultSet(resultSet), numIteratedTuples(0) {
         reset();
     }
 
-    void setDataChunks(DataChunks& dataChunks) {
-        this->dataChunks = dataChunks;
+    void setDataChunks(ResultSet& dataChunks) {
+        this->resultSet = dataChunks;
         reset();
     }
 
@@ -32,7 +31,7 @@ private:
     void updateTuplePositions();
     void setDataChunksTypes();
 
-    DataChunks& dataChunks;
+    ResultSet& resultSet;
 
     uint64_t numIteratedTuples;
     vector<uint64_t> tuplePositions;

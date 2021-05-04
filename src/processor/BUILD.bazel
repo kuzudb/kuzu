@@ -39,14 +39,13 @@ cc_library(
         "include/physical_plan/operator/scan_node_id/scan_node_id.h",
         "include/physical_plan/operator/sink/result_collector.h",
         "include/physical_plan/operator/sink/sink.h",
-        "include/physical_plan/operator/tuple/physical_operator_info.h",
-        "include/physical_plan/operator/tuple/tuple.h",
+        "include/physical_plan/operator/physical_operator_info.h",
         "include/physical_plan/query_result.h",
         "include/task_system/morsel.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "data_chunks",
+        "result_set",
         "memory_manager",
         "//src/common",
         "//src/expression",
@@ -56,15 +55,15 @@ cc_library(
 )
 
 cc_library(
-    name = "data_chunks",
+    name = "result_set",
     srcs = [
-        "physical_plan/operator/tuple/data_chunks.cpp",
-        "physical_plan/operator/tuple/data_chunks_iterator.cpp",
+        "physical_plan/operator/result/result_set_iterator.cpp",
+        "physical_plan/operator/result/result_set.cpp",
     ],
     hdrs = [
-        "include/physical_plan/operator/tuple/data_chunks.h",
-        "include/physical_plan/operator/tuple/data_chunks_iterator.h",
-        "include/physical_plan/operator/tuple/tuple.h",
+        "include/physical_plan/operator/result/result_set_iterator.h",
+        "include/physical_plan/operator/result/result_set.h",
+        "include/physical_plan/operator/result/tuple.h",
     ],
     deps = [
         "//src/common",

@@ -4,7 +4,7 @@
 #include "src/common/include/vector/operations/vector_node_id_operations.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
-#include "src/processor/include/physical_plan/operator/tuple/data_chunks.h"
+#include "src/processor/include/physical_plan/operator/result/result_set.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -73,10 +73,10 @@ private:
     uint64_t probeSideKeyVectorPos;
 
     shared_ptr<DataChunk> buildSideKeyDataChunk;
-    shared_ptr<DataChunks> buildSideNonKeyDataChunks;
+    shared_ptr<ResultSet> buildSideNonKeyDataChunks;
     shared_ptr<NodeIDVector> probeSideKeyVector;
     shared_ptr<DataChunk> probeSideKeyDataChunk;
-    shared_ptr<DataChunks> probeSideNonKeyDataChunks;
+    shared_ptr<ResultSet> probeSideNonKeyDataChunks;
 
     vector<BuildSideVectorInfo> buildSideVectorInfos;
     shared_ptr<ValueVector> decompressedProbeKeyVector;

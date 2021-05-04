@@ -13,23 +13,23 @@ HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::HashJoinProbe(uint64_t buildSideKeyDat
       buildSideKeyVectorPos(buildSideKeyVectorPos),
       probeSideKeyDataChunkPos(probeSideKeyDataChunkPos),
       probeSideKeyVectorPos(probeSideKeyVectorPos) {
-    auto buildSideDataChunks = this->buildSidePrevOp->getDataChunks();
-    buildSideKeyDataChunk = buildSideDataChunks->getDataChunk(buildSideKeyDataChunkPos);
-    buildSideNonKeyDataChunks = make_shared<DataChunks>();
-    for (uint64_t i = 0; i < buildSideDataChunks->getNumDataChunks(); i++) {
+    auto buildSideDataChunks = this->buildSidePrevOp->getResultSet();
+    buildSideKeyDataChunk = buildSideDataChunks->dataChunks[buildSideKeyDataChunkPos];
+    buildSideNonKeyDataChunks = make_shared<ResultSet>();
+    for (uint64_t i = 0; i < buildSideDataChunks->dataChunks.size(); i++) {
         if (i != buildSideKeyDataChunkPos) {
-            buildSideNonKeyDataChunks->append(buildSideDataChunks->getDataChunk(i));
+            buildSideNonKeyDataChunks->append(buildSideDataChunks->dataChunks[i]);
         }
     }
     // The prevOperator is the probe side prev operator passed in to the PhysicalOperator
-    auto probeSideDataChunks = prevOperator->getDataChunks();
-    probeSideKeyDataChunk = probeSideDataChunks->getDataChunk(probeSideKeyDataChunkPos);
+    auto probeSideDataChunks = prevOperator->getResultSet();
+    probeSideKeyDataChunk = probeSideDataChunks->dataChunks[probeSideKeyDataChunkPos];
     probeSideKeyVector = static_pointer_cast<NodeIDVector>(
         probeSideKeyDataChunk->getValueVector(probeSideKeyVectorPos));
-    probeSideNonKeyDataChunks = make_shared<DataChunks>();
-    for (uint64_t i = 0; i < probeSideDataChunks->getNumDataChunks(); i++) {
+    probeSideNonKeyDataChunks = make_shared<ResultSet>();
+    for (uint64_t i = 0; i < probeSideDataChunks->dataChunks.size(); i++) {
         if (i != probeSideKeyDataChunkPos) {
-            probeSideNonKeyDataChunks->append(probeSideDataChunks->getDataChunk(i));
+            probeSideNonKeyDataChunks->append(probeSideDataChunks->dataChunks[i]);
         }
     }
 
@@ -49,11 +49,11 @@ HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::HashJoinProbe(uint64_t buildSideKeyDat
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorPtrs() {
-    dataChunks = make_shared<DataChunks>();
+    resultSet = make_shared<ResultSet>();
     outKeyDataChunk = make_unique<DataChunk>();
-    dataChunks->append(outKeyDataChunk);
-    for (uint64_t i = 0; i < probeSideNonKeyDataChunks->getNumDataChunks(); i++) {
-        dataChunks->append(probeSideNonKeyDataChunks->getDataChunk(i));
+    resultSet->append(outKeyDataChunk);
+    for (uint64_t i = 0; i < probeSideNonKeyDataChunks->dataChunks.size(); i++) {
+        resultSet->append(probeSideNonKeyDataChunks->dataChunks[i]);
     }
 
     for (uint64_t i = 0; i < probeSideKeyDataChunk->valueVectors.size(); i++) {
@@ -66,7 +66,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
         } else {
             outVector = make_shared<ValueVector>(probeSideVector->dataType);
         }
-        outKeyDataChunk->appendAndSetVectorState(outVector);
+        outKeyDataChunk->append(outVector);
     }
     for (uint64_t i = 0; i < buildSideKeyDataChunk->valueVectors.size(); i++) {
         if (i == buildSideKeyVectorPos) {
@@ -81,11 +81,11 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
         } else {
             outVector = make_shared<ValueVector>(buildSideVector->dataType);
         }
-        outKeyDataChunk->appendAndSetVectorState(outVector);
+        outKeyDataChunk->append(outVector);
     }
 
-    for (uint64_t i = 0; i < buildSideNonKeyDataChunks->getNumDataChunks(); i++) {
-        auto dataChunk = buildSideNonKeyDataChunks->getDataChunk(i);
+    for (uint64_t i = 0; i < buildSideNonKeyDataChunks->dataChunks.size(); i++) {
+        auto dataChunk = buildSideNonKeyDataChunks->dataChunks[i];
         if (dataChunk->state->isFlat()) {
             for (auto& vector : dataChunk->valueVectors) {
                 shared_ptr<ValueVector> outVector;
@@ -96,7 +96,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
                 } else {
                     outVector = make_shared<ValueVector>(vector->dataType);
                 }
-                outKeyDataChunk->appendAndSetVectorState(outVector);
+                outKeyDataChunk->append(outVector);
             }
         } else {
             auto unFlatOutDataChunk = make_shared<DataChunk>();
@@ -111,13 +111,13 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutDataChunksAndVectorP
                 }
                 auto vectorPtrs = make_unique<overflow_value_t[]>(NODE_SEQUENCE_VECTOR_SIZE);
                 BuildSideVectorInfo vectorInfo(vector->getNumBytesPerValue(),
-                    dataChunks->getNumDataChunks(), unFlatOutDataChunk->valueVectors.size(),
+                    resultSet->dataChunks.size(), unFlatOutDataChunk->valueVectors.size(),
                     buildSideVectorPtrs.size());
                 buildSideVectorInfos.push_back(vectorInfo);
                 buildSideVectorPtrs.push_back(move(vectorPtrs));
-                unFlatOutDataChunk->appendAndSetVectorState(outVector);
+                unFlatOutDataChunk->append(outVector);
             }
-            dataChunks->append(unFlatOutDataChunk);
+            resultSet->append(unFlatOutDataChunk);
         }
     }
 }
@@ -215,8 +215,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::populateOutKeyDataChunkAndVectorP
         outKeyDataChunkVectorPos++;
     }
     auto buildSideVectorPtrsPos = 0;
-    for (uint64_t i = 0; i < buildSideNonKeyDataChunks->getNumDataChunks(); i++) {
-        auto dataChunk = buildSideNonKeyDataChunks->getDataChunk(i);
+    for (uint64_t i = 0; i < buildSideNonKeyDataChunks->dataChunks.size(); i++) {
+        auto dataChunk = buildSideNonKeyDataChunks->dataChunks[i];
         if (dataChunk->state->isFlat()) {
             for (auto& vector : dataChunk->valueVectors) {
                 auto outVectorValues =
@@ -249,7 +249,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::populateOutKeyDataChunkAndVectorP
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::updateAppendedUnFlatOutDataChunks() {
     for (auto& buildVectorInfo : buildSideVectorInfos) {
-        auto outDataChunk = dataChunks->getDataChunk(buildVectorInfo.outDataChunkPos);
+        auto outDataChunk = resultSet->dataChunks[buildVectorInfo.outDataChunkPos];
         auto appendVectorData = outDataChunk->getValueVector(buildVectorInfo.outVectorPos)->values;
         auto overflowVal = buildSideVectorPtrs[buildVectorInfo.vectorPtrsPos].operator[](
             outKeyDataChunk->state->currPos);
@@ -273,9 +273,9 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
         outKeyDataChunk->state->currPos += 1;
         updateAppendedUnFlatOutDataChunks();
         if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-            for (uint64_t i = (probeSideNonKeyDataChunks->getNumDataChunks() + 1);
-                 i < dataChunks->getNumDataChunks(); i++) {
-                dataChunks->getDataChunkState(i)->initializeSelector();
+            for (uint64_t i = (probeSideNonKeyDataChunks->dataChunks.size() + 1);
+                 i < resultSet->dataChunks.size(); i++) {
+                resultSet->dataChunks[i]->state->initializeSelector();
             }
         }
         return;
@@ -290,9 +290,9 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     }
     if constexpr (IS_OUT_DATACHUNK_FILTERED) {
         outKeyDataChunk->state->initializeSelector();
-        for (uint64_t i = (probeSideNonKeyDataChunks->getNumDataChunks() + 1);
-             i < dataChunks->getNumDataChunks(); i++) {
-            dataChunks->getDataChunkState(i)->initializeSelector();
+        for (uint64_t i = (probeSideNonKeyDataChunks->dataChunks.size() + 1);
+             i < resultSet->dataChunks.size(); i++) {
+            resultSet->dataChunks[i]->state->initializeSelector();
         }
     }
 }

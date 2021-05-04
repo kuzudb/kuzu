@@ -5,14 +5,14 @@ namespace processor {
 
 void ResultCollector::getNextTuples() {
     prevOperator->getNextTuples();
-    auto resultDataChunks = prevOperator->getDataChunks();
-    queryResult->numTuples += resultDataChunks->getNumTuples() * resultDataChunks->multiplicity;
+    auto resultSet = prevOperator->getResultSet();
+    queryResult->numTuples += resultSet->getNumTuples() * resultSet->multiplicity;
     if constexpr (ENABLE_DEBUG) {
-        dataChunksIterator->reset();
-        while (dataChunksIterator->hasNextTuple()) {
-            Tuple tuple(dataChunksIterator->dataChunksTypes);
-            tuple.multiplicity = resultDataChunks->multiplicity;
-            dataChunksIterator->getNextTuple(tuple);
+        resultSetIterator->reset();
+        while (resultSetIterator->hasNextTuple()) {
+            Tuple tuple(resultSetIterator->dataChunksTypes);
+            tuple.multiplicity = resultSet->multiplicity;
+            resultSetIterator->getNextTuple(tuple);
             queryResult->tuples.push_back(move(tuple));
         }
     }

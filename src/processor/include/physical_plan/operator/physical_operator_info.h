@@ -19,7 +19,7 @@ public:
         auto newDataChunkPos = vectorVariables.size();
         variableToDataPosMap.insert({variableName, make_pair(newDataChunkPos, 0)});
         vectorVariables.push_back(newDataChunk);
-        dataChunkIsFlatVector.push_back(false /* is not flat */);
+        dataChunkPosToIsFlat.push_back(false /* is not flat */);
         return newDataChunkPos;
     }
 
@@ -39,14 +39,14 @@ public:
     }
 
     void clear() {
-        dataChunkIsFlatVector.clear();
+        dataChunkPosToIsFlat.clear();
         vectorVariables.clear();
         variableToDataPosMap.clear();
     }
 
 public:
     // Record isFlat for each data chunk
-    vector<bool> dataChunkIsFlatVector;
+    vector<bool> dataChunkPosToIsFlat;
     // Record variables for each vector, organized as one vector<string> per data chunk.
     vector<vector<string>> vectorVariables;
 
