@@ -91,18 +91,19 @@ private:
     void readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
         uint64_t& physicalPageIdx, const uint32_t*& propertyKeyIdxPtr,
         DataType& propertyKeyDataType, const unique_ptr<ColumnOrListsHandle>& handle,
-        PageCursor& pageCursor, uint32_t listLen, LogicalToPhysicalPageIdxMapper& mapper);
+        PageCursor& pageCursor, uint64_t& listLen, LogicalToPhysicalPageIdxMapper& mapper);
 
     void readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx, DataType& propertyDataType,
-        const unique_ptr<ColumnOrListsHandle>& handle, PageCursor& pageCursor, uint32_t listLen,
+        const unique_ptr<ColumnOrListsHandle>& handle, PageCursor& pageCursor, uint64_t& listLen,
         LogicalToPhysicalPageIdxMapper& mapper, const shared_ptr<ValueVector>& valueVector,
         uint64_t pos, bool toRead);
 
     void readStringsFromOverflowPages(const shared_ptr<ValueVector>& valueVector);
 
 public:
-    static constexpr uint8_t PROPERTY_IDX_LEN = 4;
-    static constexpr uint8_t PROPERTY_DATATYPE_LEN = 1;
+    static constexpr uint8_t UNSTR_PROP_IDX_LEN = 4;
+    static constexpr uint8_t UNSTR_PROP_DATATYPE_LEN = 1;
+    static constexpr uint8_t UNSTR_PROP_HEADER_LEN = UNSTR_PROP_IDX_LEN + UNSTR_PROP_DATATYPE_LEN;
 
     FileHandle overflowPagesFileHandle;
 };
