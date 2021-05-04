@@ -147,6 +147,10 @@ vector<shared_ptr<LogicalExpression>> Binder::bindProjectExpressions(
     auto expressionBinder = make_unique<ExpressionBinder>(variablesInScope, catalog);
     auto expressions = vector<shared_ptr<LogicalExpression>>();
     if (projectStar) {
+        if (variablesInScope.empty()) {
+            throw invalid_argument(
+                "RETURN or WITH * is not allowed when there are no variables in scope.");
+        }
         for (auto& [name, expression] : variablesInScope) {
             expressions.push_back(expression);
         }

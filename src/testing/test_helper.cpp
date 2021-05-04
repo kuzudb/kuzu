@@ -137,6 +137,9 @@ TestSuiteConfig TestHelper::parseTestFile(const string& path) {
                     config.query.push_back(line.substr(7, line.length()));
                 } else if (line.starts_with("-EXCEPTION")) {
                     config.expectedErrorMsgs.push_back(line.substr(11, line.length()));
+                } else if (line.starts_with("-CONTINUE_EXCEPTION")) {
+                    auto& errorMsg = config.expectedErrorMsgs[config.expectedErrorMsgs.size() - 1];
+                    errorMsg += "\n" + line.substr(20, line.length());
                 } else if (line.starts_with("----")) {
                     uint64_t numTuples = stoi(line.substr(5, line.length()));
                     config.expectedNumTuples.push_back(numTuples);

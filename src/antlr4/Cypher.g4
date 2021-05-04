@@ -3,6 +3,15 @@
 */
 grammar Cypher;
 
+// provide ad-hoc error messages for common syntax errors
+@parser::declarations {
+    virtual void notifyQueryNotConcludeWithReturn(antlr4::Token* startToken) {};
+    virtual void notifyNodePatternWithoutParentheses(std::string nodeName, antlr4::Token* startToken) {};
+    virtual void notifyInvalidNotEqualOperator(antlr4::Token* startToken) {};
+    virtual void notifyEmptyToken(antlr4::Token* startToken) {};
+    virtual void notifyReturnNotAtEnd(antlr4::Token* startToken) {};
+}
+
 oC_Cypher 
     : SP ? oC_Statement ( SP? ';' )? SP? EOF ;
 
@@ -13,15 +22,19 @@ oC_Query
     : oC_RegularQuery ;
 
 oC_RegularQuery
-    : oC_SingleQuery ;
+    : oC_SingleQuery
+        | (oC_Return SP? )+ oC_SingleQuery { notifyReturnNotAtEnd($ctx->start); }
+        ;
 
-oC_SingleQuery 
+oC_SingleQuery
     : oC_SinglePartQuery
         | oC_MultiPartQuery
         ;
 
-oC_SinglePartQuery 
-    : ( oC_ReadingClause SP? )* oC_Return ;
+oC_SinglePartQuery
+    : ( oC_ReadingClause SP? )* oC_Return
+        | ( oC_ReadingClause SP? )* { notifyQueryNotConcludeWithReturn($ctx->start); }
+        ;
 
 oC_MultiPartQuery
     : ( gF_QueryPart SP? )+ oC_SinglePartQuery;
@@ -84,7 +97,9 @@ oC_PatternElement
         ;
 
 oC_NodePattern
-    : '(' SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ')' ;
+    : '(' SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? ')'
+        | SP? ( oC_Variable SP? )? ( oC_NodeLabel SP? )? { notifyNodePatternWithoutParentheses($oC_Variable.text, $oC_Variable.start); }
+        ;
 
 oC_PatternElementChain
     : oC_RelationshipPattern SP? oC_NodePattern ;
@@ -130,9 +145,13 @@ oC_NotExpression
 NOT : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'T' | 't' ) ;
 
 oC_ComparisonExpression
-    : oC_AddOrSubtractExpression ( SP? gF_ComparisonOperator SP? oC_AddOrSubtractExpression )? ;
+    : oC_AddOrSubtractExpression ( SP? gF_ComparisonOperator SP? oC_AddOrSubtractExpression )?
+        | oC_AddOrSubtractExpression ( SP? INVALID_NOT_EQUAL SP? oC_AddOrSubtractExpression ) { notifyInvalidNotEqualOperator($INVALID_NOT_EQUAL); }
+        ;
 
 gF_ComparisonOperator : '=' | '<>' | '<' | '<=' | '>' | '>=' ;
+
+INVALID_NOT_EQUAL : '!=' ;
 
 oC_AddOrSubtractExpression
     : oC_MultiplyDivideModuloExpression ( SP? gF_AddOrSubtractOperator SP? oC_MultiplyDivideModuloExpression )* ;
@@ -289,7 +308,7 @@ oC_SchemaName
 
 oC_SymbolicName
     : UnescapedSymbolicName
-        | EscapedSymbolicName
+        | EscapedSymbolicName {if ($EscapedSymbolicName.text == "``") { notifyEmptyToken($EscapedSymbolicName); }}
         | HexLetter
         ;
 

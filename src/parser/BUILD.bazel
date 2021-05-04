@@ -3,10 +3,16 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "parser",
     srcs = [
+        "antlr_parser/graphflow_cypher_parser.cpp",
+        "antlr_parser/parser_error_listener.cpp",
+        "antlr_parser/parser_error_strategy.cpp",
         "parser.cpp",
         "transformer.cpp",
     ],
     hdrs = [
+        "include/antlr_parser/graphflow_cypher_parser.h",
+        "include/antlr_parser/parser_error_listener.h",
+        "include/antlr_parser/parser_error_strategy.h",
         "include/parser.h",
         "include/transformer.h",
     ],

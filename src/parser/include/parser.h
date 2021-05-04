@@ -1,10 +1,4 @@
-#include "antlr4-runtime.h"
-
-#include "src/antlr4/CypherLexer.h"
-#include "src/antlr4/CypherParser.h"
-#include "src/parser/include/transformer.h"
-
-using namespace antlr4;
+#include "src/parser/include/queries/single_query.h"
 
 namespace graphflow {
 namespace parser {
