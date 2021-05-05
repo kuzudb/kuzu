@@ -7,8 +7,8 @@
 
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/catalog.h"
-#include "src/storage/include/stores/nodes_store.h"
-#include "src/storage/include/stores/rels_store.h"
+#include "src/storage/include/store/nodes_store.h"
+#include "src/storage/include/store/rels_store.h"
 
 using namespace std;
 

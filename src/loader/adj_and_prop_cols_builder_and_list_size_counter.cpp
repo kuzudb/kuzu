@@ -1,6 +1,6 @@
 #include "src/loader/include/adj_and_prop_cols_builder_and_list_size_counter.h"
 
-#include "src/storage/include/stores/rels_store.h"
+#include "src/storage/include/store/rels_store.h"
 
 namespace graphflow {
 namespace loader {

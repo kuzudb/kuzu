@@ -3,7 +3,7 @@
 #include <filesystem>
 
 using namespace std;
-using namespace graphflow::runner;
+using namespace graphflow::main;
 using namespace graphflow::planner;
 
 namespace graphflow {

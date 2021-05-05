@@ -1,10 +1,10 @@
-#include "src/storage/include/structures/column.h"
+#include "src/storage/include/data_structure/column.h"
 
 namespace graphflow {
 namespace storage {
 
 void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& valueVector, const unique_ptr<ColumnOrListsHandle>& handle) {
+    const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle) {
     if (nodeIDVector->isSequence()) {
         nodeID_t nodeID;
         nodeIDVector->readNodeOffset(0, nodeID);
@@ -25,7 +25,7 @@ void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
 }
 
 void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& valueVector, const unique_ptr<ColumnOrListsHandle>& handle) {
+    const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle) {
     reclaim(handle);
     valueVector->reset();
     nodeID_t nodeID;
@@ -50,7 +50,7 @@ void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& 
 }
 
 void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& valueVector, const unique_ptr<ColumnOrListsHandle>& handle) {
+    const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle) {
     if (nodeIDVector->isSequence()) {
         nodeID_t nodeID;
         nodeIDVector->readNodeOffset(0, nodeID);

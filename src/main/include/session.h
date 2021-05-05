@@ -12,10 +12,9 @@ using namespace graphflow::storage;
 using namespace graphflow::processor;
 
 namespace graphflow {
-namespace runner {
+namespace main {
 
-// Persists the state of Graphflowdb server and interfaces Graph Storage and Query Processor with
-// the exposed API.
+// Holds the state of a single connection to the Graphflowdb server.
 class Session {
 
 public:
@@ -42,5 +41,5 @@ public:
     unique_ptr<QueryProcessor> processor = make_unique<QueryProcessor>(1);
 };
 
-} // namespace runner
+} // namespace main
 } // namespace graphflow

@@ -8,7 +8,9 @@
 #include "src/common/include/compression_scheme.h"
 #include "src/common/include/configs.h"
 #include "src/common/include/types.h"
-#include "src/storage/include/structures/lists.h"
+#include "src/storage/include/data_structure/lists/list_headers.h"
+#include "src/storage/include/data_structure/lists/lists_metadata.h"
+#include "src/storage/include/data_structure/utils.h"
 
 using namespace std;
 using namespace graphflow::common;

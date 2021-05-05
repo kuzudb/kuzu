@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <string>
 
-#include "src/runner/include/server/embedded_server.h"
+#include "src/main/include/embedded_server.h"
 using namespace std;
 
 namespace graphflow {

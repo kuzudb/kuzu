@@ -1,26 +1,15 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
-cc_binary(
-    name = "data_loader",
-    srcs = ["data_loader.cpp"],
-    linkopts = ["-lpthread"],
-    deps = [
-        "//src/loader",
-        "@Taywee_args",
-        "@gabime_spdlog",
-    ],
-)
-
 cc_library(
     name = "server",
     srcs = [
-        "server/server.cpp",
-        "server/session.cpp",
+        "server.cpp",
+        "session.cpp",
     ],
     hdrs = [
-        "include/server/server.h",
-        "include/server/session.h",
+        "include/server.h",
+        "include/session.h",
     ],
     copts = [
         "-Iexternal/asio",
@@ -55,14 +44,14 @@ cc_binary(
 cc_library(
     name = "embedded_server",
     srcs = [
-        "server/embedded_server.cpp",
+        "embedded_server.cpp",
     ],
     hdrs = [
-        "include/server/embedded_server.h",
+        "include/embedded_server.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/loader",
+        "//src/loader:graph_loader",
         "//src/parser",
         "//src/planner:enumerator",
         "//src/processor",

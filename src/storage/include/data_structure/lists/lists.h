@@ -1,33 +1,35 @@
 #pragma once
 
 #include "src/common/include/vector/node_vector.h"
-#include "src/storage/include/structures/common.h"
-#include "src/storage/include/structures/lists_aux_structures.h"
+#include "src/storage/include/data_structure/data_structure.h"
+#include "src/storage/include/data_structure/data_structure_handle.h"
+#include "src/storage/include/data_structure/lists/list_headers.h"
+#include "src/storage/include/data_structure/lists/lists_metadata.h"
 
 namespace graphflow {
 namespace storage {
 
 // BaseLists is the top-level structure that holds a set of lists {of adjacent edges or rel
 // properties}.
-class BaseLists : public BaseColumnOrLists {
+class BaseLists : public DataStructure {
 
 public:
     void readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle,
+        uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle,
         uint32_t maxElementsToRead);
 
 protected:
     BaseLists(const string& fname, const DataType& dataType, const size_t& elementSize,
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
-        : BaseColumnOrLists{fname, dataType, elementSize, bufferManager}, metadata{fname},
-          headers{headers} {};
+        : DataStructure{fname, dataType, elementSize, bufferManager}, metadata{fname},
+          headers(headers){};
 
     void readFromLargeList(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header,
+        uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header,
         uint32_t maxElementsToRead);
 
     void readSmallList(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header);
+        uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header);
 
 public:
     constexpr static uint16_t LISTS_CHUNK_SIZE = 512;
@@ -81,20 +83,20 @@ public:
 
     // readValues is overloaded. Lists<UNKNOWN> is not supposed to use the one defined in BaseLists.
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<ColumnOrListsHandle>& handle);
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle);
 
 private:
     void readUnstrPropertyListOfNode(const nodeID_t& nodeID, uint32_t propertyKeyIdxToRead,
         const shared_ptr<ValueVector>& valueVector, uint64_t pos,
-        const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header);
+        const unique_ptr<DataStructureHandle>& handle, uint32_t header);
 
     void readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
         uint64_t& physicalPageIdx, const uint32_t*& propertyKeyIdxPtr,
-        DataType& propertyKeyDataType, const unique_ptr<ColumnOrListsHandle>& handle,
+        DataType& propertyKeyDataType, const unique_ptr<DataStructureHandle>& handle,
         PageCursor& pageCursor, uint64_t& listLen, LogicalToPhysicalPageIdxMapper& mapper);
 
     void readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx, DataType& propertyDataType,
-        const unique_ptr<ColumnOrListsHandle>& handle, PageCursor& pageCursor, uint64_t& listLen,
+        const unique_ptr<DataStructureHandle>& handle, PageCursor& pageCursor, uint64_t& listLen,
         LogicalToPhysicalPageIdxMapper& mapper, const shared_ptr<ValueVector>& valueVector,
         uint64_t pos, bool toRead);
 

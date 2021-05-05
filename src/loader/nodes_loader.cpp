@@ -1,6 +1,6 @@
 #include "src/loader/include/nodes_loader.h"
 
-#include "src/storage/include/stores/nodes_store.h"
+#include "src/storage/include/store/nodes_store.h"
 
 using namespace graphflow::storage;
 

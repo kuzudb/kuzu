@@ -27,43 +27,75 @@ cc_library(
 )
 
 cc_library(
-    name = "structures",
+    name = "data_structure_utils",
     srcs = [
-        "structures/column.cpp",
-        "structures/common.cpp",
-        "structures/lists.cpp",
-        "structures/lists_aux_structures.cpp",
+        "data_structure/utils.cpp",
     ],
     hdrs = [
-        "include/structures/column.h",
-        "include/structures/common.h",
-        "include/structures/lists.h",
-        "include/structures/lists_aux_structures.h",
+        "include/data_structure/utils.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+    ],
+)
+
+cc_library(
+    name = "lists_aux",
+    srcs = [
+        "data_structure/lists/list_headers.cpp",
+        "data_structure/lists/list_sync_state.cpp",
+        "data_structure/lists/lists_metadata.cpp",
+    ],
+    hdrs = [
+        "include/data_structure/lists/list_headers.h",
+        "include/data_structure/lists/list_sync_state.h",
+        "include/data_structure/lists/lists_metadata.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":data_structure_utils",
+        "//src/common",
+        "@gabime_spdlog",
+    ],
+)
+
+cc_library(
+    name = "data_structure",
+    srcs = [
+        "data_structure/column.cpp",
+        "data_structure/data_structure.cpp",
+        "data_structure/lists/lists.cpp",
+    ],
+    hdrs = [
+        "include/data_structure/column.h",
+        "include/data_structure/data_structure.h",
+        "include/data_structure/data_structure_handle.h",
+        "include/data_structure/lists/lists.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "buffer_manager",
         "file_handle",
+        ":lists_aux",
         "//src/common",
-        "@fraillt_bitsery",
     ],
 )
 
 cc_library(
-    name = "stores",
+    name = "store",
     srcs = [
-        "stores/nodes_store.cpp",
-        "stores/rels_store.cpp",
+        "store/nodes_store.cpp",
+        "store/rels_store.cpp",
     ],
     hdrs = [
-        "include/stores/nodes_store.h",
-        "include/stores/rels_store.h",
+        "include/store/nodes_store.h",
+        "include/store/rels_store.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "buffer_manager",
         "catalog",
-        "structures",
+        "data_structure",
         "//src/common",
     ],
 )
@@ -95,7 +127,7 @@ cc_library(
     deps = [
         "buffer_manager",
         "catalog",
-        "stores",
+        "store",
         "@fraillt_bitsery",
         "@gabime_spdlog",
     ],

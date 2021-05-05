@@ -1,7 +1,7 @@
-#include "src/runner/include/server/server.h"
+#include "src/main/include/server.h"
 
 namespace graphflow {
-namespace runner {
+namespace main {
 
 Server::Server() {
     helpCatalog["help"] = nlohmann::json::array();
@@ -206,5 +206,5 @@ void Server::registerGETGraphDebugInfo(unique_ptr<router_t>& router) {
     });
 }
 
-} // namespace runner
+} // namespace main
 } // namespace graphflow

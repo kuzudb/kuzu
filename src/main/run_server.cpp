@@ -2,10 +2,10 @@
 
 #include "args.hxx"
 
-#include "src/runner/include/server/server.h"
+#include "src/main/include/server.h"
 
 using namespace std;
-using namespace graphflow::runner;
+using namespace graphflow::main;
 
 int main(int argc, char* argv[]) {
     args::ArgumentParser parser("Runs the GraphflowDB Server.");

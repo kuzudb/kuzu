@@ -1,4 +1,4 @@
-#include "src/storage/include/structures/lists.h"
+#include "src/storage/include/data_structure/lists/lists.h"
 
 #include "src/common/include/value.h"
 
@@ -8,7 +8,7 @@ namespace graphflow {
 namespace storage {
 
 void BaseLists::readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
-    uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle, uint32_t maxElementsToRead) {
+    uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t maxElementsToRead) {
     auto header = headers->getHeader(nodeID.offset);
     if (handle->hasMoreToRead() || ListHeaders::isALargeList(header)) {
         readFromLargeList(nodeID, valueVector, listLen, handle, header, maxElementsToRead);
@@ -18,7 +18,7 @@ void BaseLists::readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>
 }
 
 void BaseLists::readSmallList(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
-    uint64_t& listLen, const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header) {
+    uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header) {
     if (handle->getIsAdjListsHandle()) {
         listLen = ListHeaders::getSmallListLen(header);
     }
@@ -37,7 +37,7 @@ void BaseLists::readSmallList(const nodeID_t& nodeID, const shared_ptr<ValueVect
 
 void BaseLists::readFromLargeList(const nodeID_t& nodeID,
     const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-    const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header, uint32_t maxElementsToRead) {
+    const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead) {
     auto largeListIdx = ListHeaders::getLargeListIdx(header);
     auto listSyncState = handle->getListSyncState();
     uint32_t sizeLeftToCopy;
@@ -78,7 +78,7 @@ void BaseLists::readFromLargeList(const nodeID_t& nodeID,
 
 void Lists<UNSTRUCTURED>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     uint32_t propertyKeyIdxToRead, const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<ColumnOrListsHandle>& handle) {
+    const unique_ptr<DataStructureHandle>& handle) {
     valueVector->reset();
     nodeID_t nodeID;
     if (nodeIDVector->state->isFlat()) {
@@ -99,7 +99,7 @@ void Lists<UNSTRUCTURED>::readValues(const shared_ptr<NodeIDVector>& nodeIDVecto
 
 void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(const nodeID_t& nodeID,
     uint32_t propertyKeyIdxToRead, const shared_ptr<ValueVector>& valueVector, uint64_t pos,
-    const unique_ptr<ColumnOrListsHandle>& handle, uint32_t header) {
+    const unique_ptr<DataStructureHandle>& handle, uint32_t header) {
     PageCursor pageCursor;
     uint64_t listLen;
     unique_ptr<LogicalToPhysicalPageIdxMapper> mapper;
@@ -142,7 +142,7 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(const nodeID_t& nodeID,
 
 void Lists<UNSTRUCTURED>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
     uint64_t& physicalPageIdx, const uint32_t*& propertyKeyIdxPtr, DataType& propertyDataType,
-    const unique_ptr<ColumnOrListsHandle>& handle, PageCursor& pageCursor, uint64_t& listLen,
+    const unique_ptr<DataStructureHandle>& handle, PageCursor& pageCursor, uint64_t& listLen,
     LogicalToPhysicalPageIdxMapper& mapper) {
     auto frame = bufferManager.get(fileHandle, physicalPageIdx);
     const uint8_t* readFrom;
@@ -167,7 +167,7 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKe
 }
 
 void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx,
-    DataType& propertyDataType, const unique_ptr<ColumnOrListsHandle>& handle,
+    DataType& propertyDataType, const unique_ptr<DataStructureHandle>& handle,
     PageCursor& pageCursor, uint64_t& listLen, LogicalToPhysicalPageIdxMapper& mapper,
     const shared_ptr<ValueVector>& valueVector, uint64_t pos, bool toRead) {
     auto frame = bufferManager.get(fileHandle, physicalPageIdx);
