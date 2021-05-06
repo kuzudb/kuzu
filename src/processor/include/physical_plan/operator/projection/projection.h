@@ -14,27 +14,20 @@ namespace processor {
 class Projection : public PhysicalOperator {
 
 public:
-    Projection(vector<unique_ptr<PhysicalExpression>> expressions,
-        vector<vector<uint64_t>>& expressionsPerDataChunk,
+    Projection(unique_ptr<vector<unique_ptr<PhysicalExpression>>> expressions,
+        vector<uint64_t> expressionPosToDataChunkPos, const vector<uint64_t>& discardedDataChunkPos,
         unique_ptr<PhysicalOperator> prevOperator);
 
     void getNextTuples() override;
 
-    unique_ptr<PhysicalOperator> clone() override {
-        vector<unique_ptr<PhysicalExpression>> clonedExpressions;
-        for (auto& expr : expressions) {
-            clonedExpressions.push_back(ExpressionMapper::clone(*expr, *dataChunks));
-        }
-        return make_unique<Projection>(
-            move(clonedExpressions), expressionsPerInDataChunk, prevOperator->clone());
-    }
+    unique_ptr<PhysicalOperator> clone() override;
 
 private:
-    vector<unique_ptr<PhysicalExpression>> expressions;
-    vector<vector<uint64_t>> expressionsPerInDataChunk;
-
-    shared_ptr<DataChunks> inDataChunks;
+    unique_ptr<vector<unique_ptr<PhysicalExpression>>> expressions;
+    vector<uint64_t> expressionPosToDataChunkPos;
+    vector<uint64_t> discardedDataChunkPos;
     shared_ptr<DataChunks> discardedDataChunks;
+    shared_ptr<DataChunks> inDataChunks;
 };
 
 } // namespace processor

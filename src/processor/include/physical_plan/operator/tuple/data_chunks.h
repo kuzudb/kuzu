@@ -40,9 +40,9 @@ public:
 
 public:
     uint64_t multiplicity;
+    vector<shared_ptr<DataChunk>> dataChunks;
 
 private:
-    vector<shared_ptr<DataChunk>> dataChunks;
     vector<shared_ptr<ListSyncState>> listSyncStatesPerDataChunk;
 };
 

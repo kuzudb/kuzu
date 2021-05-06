@@ -14,7 +14,7 @@ ScanUnstructuredProperty::ScanUnstructuredProperty(uint64_t dataChunkPos, uint64
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
     handle = make_unique<DataStructureHandle>();
     outValueVector = make_shared<ValueVector>(lists->getDataType());
-    inDataChunk->append(outValueVector);
+    inDataChunk->appendAndSetVectorState(outValueVector);
 }
 
 void ScanUnstructuredProperty::getNextTuples() {
