@@ -2,43 +2,35 @@
 
 #include "thread"
 
-#include "nlohmann/json.hpp"
-
-#include "src/processor/include/processor.h"
-#include "src/storage/include/graph.h"
+#include "src/main/include/system.h"
+#include "src/planner/include/logical_plan/logical_plan.h"
 
 using namespace std;
 using namespace graphflow::storage;
 using namespace graphflow::processor;
+using namespace graphflow::planner;
 
 namespace graphflow {
 namespace main {
 
-// Holds the state of a single connection to the Graphflowdb server.
+// Holds the state of a single connection to the system.
 class Session {
 
 public:
-    void loadGraph(const string& path);
+    Session(unique_ptr<System>& system) : system{system}, activeTransaction{nullptr} {};
 
-    uint64_t setBufferPoolSize(const uint64_t& size);
-    uint32_t setNumProcessorThreads(const uint32_t& num);
+    unique_ptr<nlohmann::json> submitQuery(string query, uint32_t numThreads);
 
-    unique_ptr<nlohmann::json> getSession();
+    unique_ptr<nlohmann::json> debugInfo();
 
-    unique_ptr<nlohmann::json> getPrettyPlan(const string& path);
+private:
+    unique_ptr<nlohmann::json> beginTransaction();
+    unique_ptr<nlohmann::json> commitTransaction();
+    unique_ptr<nlohmann::json> rollbackTransaction();
 
-    unique_ptr<nlohmann::json> execute(const string& path, const uint32_t& numThreads);
-
-    unique_ptr<nlohmann::json> getGraphDebugInfo();
-
-    void throwErrorIfGraphNotInitialized();
-    void throwErrorIfPathIsEmpty(const string& path);
-
-public:
-    uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE;
-    uint64_t numProcessorThreads = thread::hardware_concurrency();
-    unique_ptr<Graph> graph;
-    unique_ptr<QueryProcessor> processor = make_unique<QueryProcessor>(1);
+private:
+    unique_ptr<System>& system;
+    Transaction* activeTransaction;
 };
 
 } // namespace main

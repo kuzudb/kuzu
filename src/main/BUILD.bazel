@@ -2,6 +2,26 @@ load("@rules_cc//cc:defs.bzl", "cc_binary")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
+    name = "system",
+    srcs = [
+        "system.cpp",
+        "system_config.cpp",
+    ],
+    hdrs = [
+        "include/system.h",
+        "include/system_config.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/planner:query_planner",
+        "//src/processor",
+        "//src/storage:graph",
+        "//src/transaction",
+        "@nlohmann_json",
+    ],
+)
+
+cc_library(
     name = "server",
     srcs = [
         "server.cpp",
@@ -18,6 +38,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "system",
         "//src/processor",
         "//src/storage:graph",
         "@Stiffstream_restinio",
@@ -38,23 +59,5 @@ cc_binary(
         "server",
         "@Taywee_args",
         "@nlohmann_json",
-    ],
-)
-
-cc_library(
-    name = "embedded_server",
-    srcs = [
-        "embedded_server.cpp",
-    ],
-    hdrs = [
-        "include/embedded_server.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//src/loader:graph_loader",
-        "//src/parser",
-        "//src/planner:enumerator",
-        "//src/processor",
-        "//src/storage:graph",
     ],
 )

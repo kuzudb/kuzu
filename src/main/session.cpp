@@ -1,102 +1,84 @@
 #include "src/main/include/session.h"
 
-#include "src/planner/include/logical_plan/logical_plan.h"
-#include "src/processor/include/physical_plan/plan_mapper.h"
-
-using namespace graphflow::planner;
-
 namespace graphflow {
 namespace main {
 
-void Session::loadGraph(const string& path) {
-    if (nullptr == graph || 0 != path.compare(graph->getPath())) {
-        throwErrorIfPathIsEmpty(path);
-        graph.reset();
-        graph = make_unique<Graph>(path, bufferPoolSize);
-        return;
-    }
-    throw invalid_argument("The same graph at path: " + path + " is already loaded.");
-}
-
-uint64_t Session::setBufferPoolSize(const uint64_t& size) {
-    if (size < (1 << 20) || size > (1ul << 40u)) {
-        throw invalid_argument(
-            "Buffer pool size argument should be graeter than 1MB or less than 1TB.");
-    }
-    if (0 != size % PAGE_SIZE) {
-        throw invalid_argument(
-            "Buffer pool size should be aligned to the system PAGE SIZE (=4096B)");
-    }
-    if (bufferPoolSize == size) {
-        throw invalid_argument("No change in size.");
-    }
-    bufferPoolSize = size;
-    if (nullptr != graph) {
-        string path = graph->getPath();
-        graph.reset();
-        graph = make_unique<Graph>(path, bufferPoolSize);
-    }
-    return bufferPoolSize;
-}
-
-uint32_t Session::setNumProcessorThreads(const uint32_t& num) {
-    if (num < 1 || num > thread::hardware_concurrency()) {
-        throw invalid_argument(
-            "Number should be greater than 0 and less than the number of physical threads "
-            "available in the system.");
-    }
-    if (numProcessorThreads == num) {
-        throw invalid_argument("No change in num.");
-    }
-    numProcessorThreads = num;
-    processor.reset(new QueryProcessor(numProcessorThreads));
-    return numProcessorThreads;
-}
-
-unique_ptr<nlohmann::json> Session::getSession() {
+unique_ptr<nlohmann::json> Session::debugInfo() {
     auto json = make_unique<nlohmann::json>();
-    (*json)["session"]["bufferPoolSize"] = bufferPoolSize;
-    (*json)["session"]["numProcessorThreads"] = numProcessorThreads;
-    if (nullptr != graph.get()) {
-        (*json)["session"]["graph"] = graph->getPath();
+    (*json)["system"] = *system->debugInfo();
+    return json;
+}
+
+// NOTE: At present, we only support auto-commit transactions.
+unique_ptr<nlohmann::json> Session::submitQuery(const string query, const uint32_t numThreads) {
+    if (!system->isInitialized()) {
+        throw invalid_argument("The system is not properly initialized");
+    }
+    auto json = make_unique<nlohmann::json>();
+    (*json)["txn"] = *beginTransaction();
+    if (!(*json)["txn"]["begin"]) {
+        return json;
+    }
+    auto success = true;
+    unique_ptr<QueryResult> result;
+    try {
+        auto allPlans = system->enumerateLogicalPlans(query);
+        result = system->execute(move(allPlans[0]), numThreads);
+        (*json)["result"]["numTuples"] = result->numTuples;
+        (*json)["result"]["duration"] = result->duration.count();
+    } catch (exception& e) {
+        // query failed to execute
+        success = false;
+        (*json)["result"] = {};
+        (*json)["result"]["error"] = "Query failed: " + string(e.what());
+    }
+    if (!success) {
+        // rollback the transaction if execution fails.
+        (*json)["txn"]["rollback"] = *rollbackTransaction();
     } else {
-        (*json)["session"]["graph"] = "";
+        // commit the transaction if the query execution is successful and autoCommit is true.
+        (*json)["txn"]["commit"] = *commitTransaction();
     }
     return json;
 }
 
-unique_ptr<nlohmann::json> Session::getPrettyPlan(const string& path) {
+unique_ptr<nlohmann::json> Session::beginTransaction() {
+    if (activeTransaction) {
+        throw invalid_argument("Cannot start nested transaction.");
+    }
     auto json = make_unique<nlohmann::json>();
-    (*json)["plan"] = "not implemented";
+    try {
+        activeTransaction = system->transactionManager->startTranscation();
+        (*json)["begin"] = true;
+        (*json)["id"] = activeTransaction->getId();
+    } catch (exception& e) {
+        (*json)["begin"] = false;
+        (*json)["error"] = "Failed to begin transaction: " + string(e.what());
+    }
     return json;
 }
 
-unique_ptr<nlohmann::json> Session::execute(const string& path, const uint32_t& numThreads) {
-    throwErrorIfGraphNotInitialized();
-    throwErrorIfPathIsEmpty(path);
-    // auto physicalPlan = PlanMapper::mapToPhysical(make_unique<LogicalPlan>(path), *graph);
-    // auto result = processor->execute(physicalPlan, *graph, numThreads);
+unique_ptr<nlohmann::json> Session::commitTransaction() {
+    if (!activeTransaction) {
+        throw invalid_argument("No active transaction to commit.");
+    }
+    auto status = system->transactionManager->commit(activeTransaction);
     auto json = make_unique<nlohmann::json>();
-    // (*json)["number of tuples"] = result->first.getNumOutputTuples();
-    // (*json)["time"] = to_string(result->second.count()) + "ms";
+    (*json)["status"] = COMMITTED == status.statusType ? "Committed" : "Rollbacked";
+    (*json)["msg"] = status.msg;
+    activeTransaction = nullptr;
     return json;
 }
 
-unique_ptr<nlohmann::json> Session::getGraphDebugInfo() {
-    throwErrorIfGraphNotInitialized();
-    return graph->debugInfo();
-}
-
-void Session::throwErrorIfGraphNotInitialized() {
-    if (nullptr == graph) {
-        throw invalid_argument("Graph is not loaded.");
+unique_ptr<nlohmann::json> Session::rollbackTransaction() {
+    if (!activeTransaction) {
+        throw invalid_argument("No active transaction to rollback.");
     }
-}
-
-void Session::throwErrorIfPathIsEmpty(const string& path) {
-    if (path.empty()) {
-        throw invalid_argument("Given path is empty.");
-    }
+    auto status = system->transactionManager->rollback(activeTransaction);
+    auto json = make_unique<nlohmann::json>();
+    (*json)["status"] = "Rollbacked";
+    activeTransaction = nullptr;
+    return json;
 }
 
 } // namespace main

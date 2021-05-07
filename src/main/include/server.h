@@ -4,6 +4,7 @@
 #include "restinio/all.hpp"
 
 #include "src/main/include/session.h"
+#include "src/main/include/system.h"
 
 namespace graphflow {
 namespace main {
@@ -24,29 +25,33 @@ private:
     // endpoint: [GET] .../help
     void registerGETHelp(unique_ptr<router_t>& router);
 
+    // System-level functions
+
     // endpoint: [PUT] .../bufferPoolSize
     void registerPUTBufferPoolSize(unique_ptr<router_t>& router);
 
     // endpoint: [PUT] .../numProcessorThreads
     void registerPUTNumProcessorThreads(unique_ptr<router_t>& router);
 
-    // endpoint: [GET] .../session
-    void registerGETSession(unique_ptr<router_t>& router);
-
     // endpoint: [POST] .../load
     void registerPOSTLoad(unique_ptr<router_t>& router);
 
-    // endpoint: [GET] .../prettyPlan
-    void registerGETPrettyPlan(unique_ptr<router_t>& router);
+    // Session-level functions
 
     // endpoint: [POST] .../execute
+    // At present, we assume autoCommit = true.
     void registerPOSTExecute(unique_ptr<router_t>& router);
 
     // endpoint: [GET] .../graphDebugInfo
-    void registerGETGraphDebugInfo(unique_ptr<router_t>& router);
+    void registerGETDebugInfo(unique_ptr<router_t>& router);
 
 private:
+    unique_ptr<System> system;
+    SystemConfig config;
+
+    // At present, the server runs on a single thread and supports only one session.
     Session session;
+
     nlohmann::json helpCatalog;
 };
 

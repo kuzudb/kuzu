@@ -59,7 +59,7 @@ cc_binary(
     srcs = ["loader_runner.cpp"],
     linkopts = ["-lpthread"],
     deps = [
-        ":graph_loader",
+        "graph_loader",
         "@Taywee_args",
         "@gabime_spdlog",
     ],

@@ -16,7 +16,6 @@ void ListsMetadata::saveToDisk(const string& fname) {
         chunkToPageListHeadIdxMap, numChunks + 1);
     saveListOfIntsToFile(
         metadataBasePath + CHUNK_PAGE_LISTS_SUFFIX, chunkPageLists, chunkPageListsCapacity);
-    logger->info("save ll f2, size {}", (2 * numLargeLists) + 1);
     saveListOfIntsToFile(metadataBasePath + LARGE_LISTS_PAGE_LIST_HEAD_IDX_MAP_SUFFIX,
         largeListIdxToPageListHeadIdxMap, (2 * numLargeLists) + 1);
     saveListOfIntsToFile(metadataBasePath + LARGE_LISTS_PAGE_LISTS_SUFFIX, largeListPageLists,
