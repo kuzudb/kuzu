@@ -33,6 +33,7 @@ class Catalog {
 
 public:
     Catalog(const string& directory);
+    Catalog() : logger{spdlog::get("storage")} {};
 
     inline const uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
     inline const uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
@@ -119,8 +120,6 @@ public:
     unique_ptr<nlohmann::json> debugInfo();
 
 private:
-    Catalog() : logger{spdlog::get("storage")} {};
-
     template<typename S>
     void serialize(S& s);
 

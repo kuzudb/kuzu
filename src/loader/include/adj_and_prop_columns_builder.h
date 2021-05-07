@@ -3,6 +3,7 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
+#include "src/loader/include/adj_and_prop_structures_builder.h"
 #include "src/loader/include/in_mem_pages.h"
 #include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
@@ -16,11 +17,10 @@ namespace graphflow {
 namespace loader {
 
 // This class helps RelsLoader to build AdjColumns and RelPropertyColumns for a particular rel
-// label (if FWD/BWD cardinality is 1) else, count the adjacent edges of each src/dest nodes.
-// AdjAndPropertyColumnsBuilder exposes functions to construct columns step-by-step and populate
-// in-memory pages (for AdjColumns and RelPropertyColumns) and finally save the in-mem data
-// structures to the disk.
-class AdjAndPropertyColsBuilderAndListSizeCounter {
+// label if FWD/BWD cardinality is 1. AdjAndPropertyColumnsBuilder exposes functions to construct
+// columns step-by-step and populate in-memory pages (for AdjColumns and RelPropertyColumns) and
+// finally save the in-mem data structures to the disk.
+class AdjAndPropertyColumnsBuilder : public AdjAndPropertyStructuresBuilder {
 
     typedef vector<vector<unique_ptr<InMemStringOverflowPages>>> labelPropertyIdxStringOverflow_t;
     typedef vector<vector<unique_ptr<InMemPropertyPages>>> labelPropertyIdxPropertyColumn_t;
@@ -28,9 +28,8 @@ class AdjAndPropertyColsBuilderAndListSizeCounter {
 
 public:
     // Initialize the builder and construct relevant propertyColumns and adjColumns.
-    AdjAndPropertyColsBuilderAndListSizeCounter(RelLabelDescription& description,
-        ThreadPool& threadPool, const Graph& graph, const Catalog& catalog,
-        const string outputDirectory);
+    AdjAndPropertyColumnsBuilder(RelLabelDescription& description, ThreadPool& threadPool,
+        const Graph& graph, const string outputDirectory);
 
     // Sets a neighbour nodeID of the given nodeID in a corresponding adjColumn. If dir=FWD,
     // adjCol[nodeIDs[FWD]] = nodeIDs[BWD], and vice-versa.
@@ -44,11 +43,9 @@ public:
     void setStringProperty(
         const nodeID_t& nodeID, const uint32_t& propertyIdx, const char* val, PageCursor& cursor);
 
-    // Sorts data in String overflow pages in the order of nodeIDs.
-    void sortOverflowStrings();
+    void sortOverflowStrings() override;
 
-    // Saves all columns to disk.
-    void saveToFile();
+    void saveToFile() override;
 
 private:
     void buildInMemPropertyColumns(Direction dir);
@@ -69,13 +66,6 @@ private:
 
     unique_ptr<labelPropertyIdxStringOverflow_t> labelPropertyIdxStringOverflowPages;
     labelPropertyIdxPropertyColumn_t labelPropertyIdxPropertyColumn;
-
-    shared_ptr<spdlog::logger> logger;
-    RelLabelDescription& description;
-    ThreadPool& threadPool;
-    const Graph& graph;
-    const Catalog& catalog;
-    const string outputDirectory;
 };
 
 } // namespace loader

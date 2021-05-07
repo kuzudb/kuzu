@@ -20,9 +20,11 @@ void GraphLoader::loadGraph() {
     logger->info("Starting GraphLoader.");
     auto metadata = readMetadata();
 
+    graph.catalog = make_unique<Catalog>();
+
     // populate data fields in Catalog
-    assignIdxToLabels(catalog.stringToNodeLabelMap, metadata->at("nodeFileDescriptions"));
-    assignIdxToLabels(catalog.stringToRelLabelMap, metadata->at("relFileDescriptions"));
+    assignIdxToLabels(graph.catalog->stringToNodeLabelMap, metadata->at("nodeFileDescriptions"));
+    assignIdxToLabels(graph.catalog->stringToRelLabelMap, metadata->at("relFileDescriptions"));
     setCardinalitiesOfRelLabels(*metadata);
     setSrcDstNodeLabelsForRelLabels(*metadata);
 
@@ -38,7 +40,7 @@ void GraphLoader::loadGraph() {
 
     // write catalog and graph objects to file
     logger->info("Writing Catalog object.");
-    catalog.saveToFile(outputDirectory);
+    graph.catalog->saveToFile(outputDirectory);
     logger->info("Writing Graph object.");
     graph.saveToFile(outputDirectory);
 
@@ -67,28 +69,29 @@ void GraphLoader::assignIdxToLabels(
 
 void GraphLoader::setCardinalitiesOfRelLabels(const nlohmann::json& metadata) {
     for (auto& descriptor : metadata.at("relFileDescriptions")) {
-        catalog.relLabelToCardinalityMap.push_back(getCardinality(descriptor.at("cardinality")));
+        graph.catalog->relLabelToCardinalityMap.push_back(
+            getCardinality(descriptor.at("cardinality")));
     }
 }
 
 void GraphLoader::setSrcDstNodeLabelsForRelLabels(const nlohmann::json& metadata) {
-    catalog.dstNodeLabelToRelLabel.resize(catalog.getNodeLabelsCount());
-    catalog.srcNodeLabelToRelLabel.resize(catalog.getNodeLabelsCount());
-    catalog.relLabelToSrcNodeLabels.resize(catalog.getRelLabelsCount());
-    catalog.relLabelToDstNodeLabels.resize(catalog.getRelLabelsCount());
+    graph.catalog->dstNodeLabelToRelLabel.resize(graph.catalog->getNodeLabelsCount());
+    graph.catalog->srcNodeLabelToRelLabel.resize(graph.catalog->getNodeLabelsCount());
+    graph.catalog->relLabelToSrcNodeLabels.resize(graph.catalog->getRelLabelsCount());
+    graph.catalog->relLabelToDstNodeLabels.resize(graph.catalog->getRelLabelsCount());
     auto relLabel = 0;
     for (auto& descriptor : metadata.at("relFileDescriptions")) {
         for (auto& nodeLabel : descriptor.at("srcNodeLabels")) {
             auto labelString = nodeLabel.get<string>();
-            auto labelIdx = catalog.stringToNodeLabelMap[labelString.c_str()];
-            catalog.srcNodeLabelToRelLabel[labelIdx].push_back(relLabel);
-            catalog.relLabelToSrcNodeLabels[relLabel].push_back(labelIdx);
+            auto labelIdx = graph.catalog->stringToNodeLabelMap[labelString.c_str()];
+            graph.catalog->srcNodeLabelToRelLabel[labelIdx].push_back(relLabel);
+            graph.catalog->relLabelToSrcNodeLabels[relLabel].push_back(labelIdx);
         }
         for (auto& nodeLabel : descriptor.at("dstNodeLabels")) {
             auto labelString = nodeLabel.get<string>();
-            auto labelIdx = catalog.stringToNodeLabelMap[labelString.c_str()];
-            catalog.dstNodeLabelToRelLabel[labelIdx].push_back(relLabel);
-            catalog.relLabelToDstNodeLabels[relLabel].push_back(labelIdx);
+            auto labelIdx = graph.catalog->stringToNodeLabelMap[labelString.c_str()];
+            graph.catalog->dstNodeLabelToRelLabel[labelIdx].push_back(relLabel);
+            graph.catalog->relLabelToDstNodeLabels[relLabel].push_back(labelIdx);
         }
         relLabel++;
     }
@@ -98,18 +101,19 @@ unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes(const nlohmann:
     logger->info("Starting to load nodes.");
 
     // get the name of csv file for each node label
-    vector<string> fnames(catalog.getNodeLabelsCount());
+    vector<string> fnames(graph.catalog->getNodeLabelsCount());
     inferFnamesFromMetadataFileDesriptions(
-        catalog.getNodeLabelsCount(), metadata.at("nodeFileDescriptions"), fnames);
+        graph.catalog->getNodeLabelsCount(), metadata.at("nodeFileDescriptions"), fnames);
 
     // initialize node's propertyKey map and count number of blocks in each label's csv file
-    vector<uint64_t> numBlocksPerLabel(catalog.getNodeLabelsCount());
-    initPropertyKeyMapAndCalcNumBlocks(catalog.getNodeLabelsCount(), fnames, numBlocksPerLabel,
-        catalog.nodePropertyKeyMaps, metadata.at("tokenSeparator").get<string>()[0]);
+    vector<uint64_t> numBlocksPerLabel(graph.catalog->getNodeLabelsCount());
+    initPropertyKeyMapAndCalcNumBlocks(graph.catalog->getNodeLabelsCount(), fnames,
+        numBlocksPerLabel, graph.catalog->nodePropertyKeyMaps,
+        metadata.at("tokenSeparator").get<string>()[0]);
 
     // count number of lines and get unstructured propertyKeys in each block of each label.
-    labelBlockUnstrPropertyKeys_t labelBlockUnstrPropertyKeys(catalog.getNodeLabelsCount());
-    vector<vector<uint64_t>> numLinesPerBlock(catalog.getNodeLabelsCount());
+    labelBlockUnstrPropertyKeys_t labelBlockUnstrPropertyKeys(graph.catalog->getNodeLabelsCount());
+    vector<vector<uint64_t>> numLinesPerBlock(graph.catalog->getNodeLabelsCount());
     countLinesAndGetUnstrPropertyKeys(numLinesPerBlock, labelBlockUnstrPropertyKeys,
         numBlocksPerLabel, metadata.at("tokenSeparator").get<string>()[0], fnames);
 
@@ -117,11 +121,12 @@ unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes(const nlohmann:
     initNodeUnstrPropertyKeyMaps(labelBlockUnstrPropertyKeys);
 
     // create NodeIDMaps and call NodesLoader.
-    auto nodeIDMaps = make_unique<vector<unique_ptr<NodeIDMap>>>(catalog.getNodeLabelsCount());
-    for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
+    auto nodeIDMaps =
+        make_unique<vector<unique_ptr<NodeIDMap>>>(graph.catalog->getNodeLabelsCount());
+    for (auto nodeLabel = 0u; nodeLabel < graph.catalog->getNodeLabelsCount(); nodeLabel++) {
         (*nodeIDMaps)[nodeLabel] = make_unique<NodeIDMap>(graph.numNodesPerLabel[nodeLabel]);
     }
-    NodesLoader nodesLoader{threadPool, graph, catalog, metadata, outputDirectory};
+    NodesLoader nodesLoader{threadPool, graph, metadata, outputDirectory};
     nodesLoader.load(fnames, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
 
     return nodeIDMaps;
@@ -132,16 +137,17 @@ void GraphLoader::loadRels(
     logger->info("Starting to load rels.");
 
     // get the name of csv file for each label
-    vector<string> fnames(catalog.getRelLabelsCount());
+    vector<string> fnames(graph.catalog->getRelLabelsCount());
     inferFnamesFromMetadataFileDesriptions(
-        catalog.getRelLabelsCount(), metadata.at("relFileDescriptions"), fnames);
+        graph.catalog->getRelLabelsCount(), metadata.at("relFileDescriptions"), fnames);
 
     // initialize rel's propertyKey map and count number of blocks in each label's csv file
-    vector<uint64_t> numBlocksPerLabel(catalog.getRelLabelsCount());
-    initPropertyKeyMapAndCalcNumBlocks(catalog.getRelLabelsCount(), fnames, numBlocksPerLabel,
-        catalog.relPropertyKeyMaps, metadata.at("tokenSeparator").get<string>()[0]);
+    vector<uint64_t> numBlocksPerLabel(graph.catalog->getRelLabelsCount());
+    initPropertyKeyMapAndCalcNumBlocks(graph.catalog->getRelLabelsCount(), fnames,
+        numBlocksPerLabel, graph.catalog->relPropertyKeyMaps,
+        metadata.at("tokenSeparator").get<string>()[0]);
 
-    RelsLoader relsLoader{threadPool, graph, catalog, metadata, nodeIDMaps, outputDirectory};
+    RelsLoader relsLoader{threadPool, graph, metadata, nodeIDMaps, outputDirectory};
     relsLoader.load(fnames, numBlocksPerLabel);
 }
 
@@ -204,13 +210,13 @@ void GraphLoader::countLinesAndGetUnstrPropertyKeys(vector<vector<uint64_t>>& nu
     labelBlockUnstrPropertyKeys_t& labelBlockUnstrPropertyKeys, vector<uint64_t>& numBlocksPerLabel,
     const char tokenSeparator, vector<string>& fnames) {
     logger->info("Counting number of lines in each label.");
-    auto numLabels = catalog.getNodeLabelsCount();
+    auto numLabels = graph.catalog->getNodeLabelsCount();
     for (label_t label = 0; label < numLabels; label++) {
         labelBlockUnstrPropertyKeys[label].resize(numBlocksPerLabel[label]);
         numLinesPerBlock[label].resize(numBlocksPerLabel[label]);
         for (uint64_t blockId = 0; blockId < numBlocksPerLabel[label]; blockId++) {
             threadPool.execute(countLinesAndScanUnstrPropertiesInBlockTask, fnames[label],
-                tokenSeparator, catalog.nodePropertyKeyMaps[label].size(),
+                tokenSeparator, graph.catalog->nodePropertyKeyMaps[label].size(),
                 &labelBlockUnstrPropertyKeys[label][blockId], &numLinesPerBlock, label, blockId,
                 logger);
         }
@@ -233,8 +239,8 @@ void GraphLoader::countLinesAndGetUnstrPropertyKeys(vector<vector<uint64_t>>& nu
 void GraphLoader::initNodeUnstrPropertyKeyMaps(
     labelBlockUnstrPropertyKeys_t& labelBlockUnstrPropertyKeys) {
     logger->debug("Initialize node unstructured PropertyKey maps.");
-    catalog.nodeUnstrPropertyKeyMaps.resize(catalog.getNodeLabelsCount());
-    for (label_t label = 0; label < catalog.getNodeLabelsCount(); label++) {
+    graph.catalog->nodeUnstrPropertyKeyMaps.resize(graph.catalog->getNodeLabelsCount());
+    for (label_t label = 0; label < graph.catalog->getNodeLabelsCount(); label++) {
         unordered_set<const char*, charArrayHasher, charArrayEqualTo> unionOfUnstrPropertyKeys;
         for (auto& unstrPropertyKeys : labelBlockUnstrPropertyKeys[label]) {
             for (auto& propertyKey : unstrPropertyKeys) {
@@ -248,7 +254,7 @@ void GraphLoader::initNodeUnstrPropertyKeyMaps(
         }
         auto propertyIdx = 0u;
         for (auto& propertyKeyString : unionOfUnstrPropertyKeys) {
-            catalog.nodeUnstrPropertyKeyMaps[label].emplace(
+            graph.catalog->nodeUnstrPropertyKeyMaps[label].emplace(
                 string(propertyKeyString), PropertyKey(UNSTRUCTURED, propertyIdx++));
         }
     }

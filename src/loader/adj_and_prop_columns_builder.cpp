@@ -1,15 +1,13 @@
-#include "src/loader/include/adj_and_prop_cols_builder_and_list_size_counter.h"
+#include "src/loader/include/adj_and_prop_columns_builder.h"
 
 #include "src/storage/include/store/rels_store.h"
 
 namespace graphflow {
 namespace loader {
 
-AdjAndPropertyColsBuilderAndListSizeCounter::AdjAndPropertyColsBuilderAndListSizeCounter(
-    RelLabelDescription& description, ThreadPool& threadPool, const Graph& graph,
-    const Catalog& catalog, const string outputDirectory)
-    : logger{spdlog::get("loader")}, description{description},
-      threadPool{threadPool}, graph{graph}, catalog{catalog}, outputDirectory{outputDirectory} {
+AdjAndPropertyColumnsBuilder::AdjAndPropertyColumnsBuilder(RelLabelDescription& description,
+    ThreadPool& threadPool, const Graph& graph, const string outputDirectory)
+    : AdjAndPropertyStructuresBuilder(description, threadPool, graph, outputDirectory) {
     if (description.hasProperties()) {
         if (description.isSingleCardinalityPerDir[FWD]) {
             buildInMemPropertyColumns(FWD);
@@ -20,22 +18,22 @@ AdjAndPropertyColsBuilderAndListSizeCounter::AdjAndPropertyColsBuilderAndListSiz
     buildInMemAdjColumns();
 }
 
-void AdjAndPropertyColsBuilderAndListSizeCounter::setRel(
-    const Direction& dir, const vector<nodeID_t>& nodeIDs) {
+void AdjAndPropertyColumnsBuilder::setRel(const Direction& dir, const vector<nodeID_t>& nodeIDs) {
     PageCursor cursor;
     calculatePageCursor(description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes(),
         nodeIDs[dir].offset, cursor);
     dirLabelAdjColumns[dir][nodeIDs[dir].label]->setNbrNode(cursor, nodeIDs[!dir]);
+    (*dirLabelNumRels[dir])[nodeIDs[dir].label]++;
 }
 
-void AdjAndPropertyColsBuilderAndListSizeCounter::setProperty(
+void AdjAndPropertyColumnsBuilder::setProperty(
     const nodeID_t& nodeID, const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
     PageCursor cursor;
     calculatePageCursor(getDataTypeSize(type), nodeID.offset, cursor);
     labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->setPorperty(cursor, val);
 }
 
-void AdjAndPropertyColsBuilderAndListSizeCounter::setStringProperty(const nodeID_t& nodeID,
+void AdjAndPropertyColumnsBuilder::setStringProperty(const nodeID_t& nodeID,
     const uint32_t& propertyIdx, const char* originalString, PageCursor& cursor) {
     PageCursor propertyListCursor;
 
@@ -47,10 +45,10 @@ void AdjAndPropertyColsBuilderAndListSizeCounter::setStringProperty(const nodeID
         ->setStrInOvfPageAndPtrInEncString(originalString, cursor, encodedString);
 }
 
-void AdjAndPropertyColsBuilderAndListSizeCounter::sortOverflowStrings() {
+void AdjAndPropertyColumnsBuilder::sortOverflowStrings() {
     logger->debug("Ordering String Rel Property Columns.");
     auto orderedStringOverflows =
-        make_unique<labelPropertyIdxStringOverflow_t>(catalog.getNodeLabelsCount());
+        make_unique<labelPropertyIdxStringOverflow_t>(graph.getCatalog().getNodeLabelsCount());
     auto dir = description.isSingleCardinalityPerDir[FWD] ? FWD : BWD;
     for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
         (*orderedStringOverflows)[nodeLabel].resize(description.propertyMap->size());
@@ -85,7 +83,7 @@ void AdjAndPropertyColsBuilderAndListSizeCounter::sortOverflowStrings() {
     logger->debug("Done ordering String Rel Property Columns.");
 }
 
-void AdjAndPropertyColsBuilderAndListSizeCounter::saveToFile() {
+void AdjAndPropertyColumnsBuilder::saveToFile() {
     logger->debug("Writing AdjColumns and Rel Property Columns to disk.");
     for (auto& dir : DIRS) {
         if (description.isSingleCardinalityPerDir[dir]) {
@@ -115,11 +113,11 @@ void AdjAndPropertyColsBuilderAndListSizeCounter::saveToFile() {
     logger->debug("Done writing AdjColumns and Rel Property Columns to disk.");
 }
 
-void AdjAndPropertyColsBuilderAndListSizeCounter::buildInMemPropertyColumns(Direction dir) {
+void AdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction dir) {
     logger->debug("Creating InMemProperty Columns.");
-    labelPropertyIdxPropertyColumn.resize(catalog.getNodeLabelsCount());
+    labelPropertyIdxPropertyColumn.resize(graph.getCatalog().getNodeLabelsCount());
     labelPropertyIdxStringOverflowPages =
-        make_unique<labelPropertyIdxStringOverflow_t>(catalog.getNodeLabelsCount());
+        make_unique<labelPropertyIdxStringOverflow_t>(graph.getCatalog().getNodeLabelsCount());
     for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
         labelPropertyIdxPropertyColumn[nodeLabel].resize((*description.propertyMap).size());
         (*labelPropertyIdxStringOverflowPages)[nodeLabel].resize((*description.propertyMap).size());
@@ -145,11 +143,13 @@ void AdjAndPropertyColsBuilderAndListSizeCounter::buildInMemPropertyColumns(Dire
     logger->debug("Done creating InMemProperty Columns.");
 }
 
-void AdjAndPropertyColsBuilderAndListSizeCounter::buildInMemAdjColumns() {
+void AdjAndPropertyColumnsBuilder::buildInMemAdjColumns() {
     logger->debug("Creating InMemAdjColumns.");
     for (auto& dir : DIRS) {
         if (description.isSingleCardinalityPerDir[dir]) {
-            dirLabelAdjColumns[dir].resize(catalog.getNodeLabelsCount());
+            dirLabelAdjColumns[dir].resize(graph.getCatalog().getNodeLabelsCount());
+            dirLabelNumRels[dir] =
+                make_unique<listSizes_t>(graph.getCatalog().getNodeLabelsCount());
             for (auto boundNodeLabel : description.nodeLabelsPerDir[dir]) {
                 auto fname = RelsStore::getAdjColumnFname(
                     outputDirectory, description.label, boundNodeLabel, dir);
@@ -169,14 +169,14 @@ void AdjAndPropertyColsBuilderAndListSizeCounter::buildInMemAdjColumns() {
     logger->debug("Done creating InMemAdjColumns.");
 }
 
-void AdjAndPropertyColsBuilderAndListSizeCounter::calculatePageCursor(
+void AdjAndPropertyColumnsBuilder::calculatePageCursor(
     const uint8_t& numBytesPerElement, const node_offset_t& nodeOffset, PageCursor& cursor) {
     auto numElementsPerPage = PAGE_SIZE / numBytesPerElement;
     cursor.idx = nodeOffset / numElementsPerPage;
     cursor.offset = numBytesPerElement * (nodeOffset % numElementsPerPage);
 }
 
-void AdjAndPropertyColsBuilderAndListSizeCounter::sortOverflowStringsofPropertyColumnTask(
+void AdjAndPropertyColumnsBuilder::sortOverflowStringsofPropertyColumnTask(
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemPropertyPages* propertyColumn,
     InMemStringOverflowPages* unorderedStringOverflow,
     InMemStringOverflowPages* orderedStringOverflow, shared_ptr<spdlog::logger> logger) {

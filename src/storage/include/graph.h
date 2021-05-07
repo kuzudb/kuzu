@@ -16,6 +16,7 @@ namespace graphflow {
 namespace loader {
 
 class GraphLoader;
+class RelsLoader;
 
 } // namespace loader
 } // namespace graphflow
@@ -25,6 +26,7 @@ namespace storage {
 
 class Graph {
     friend class graphflow::loader::GraphLoader;
+    friend class graphflow::loader::RelsLoader;
     friend class bitsery::Access;
 
 public:
@@ -66,7 +68,9 @@ private:
     unique_ptr<NodesStore> nodesStore;
     unique_ptr<RelsStore> relsStore;
     unique_ptr<BufferManager> bufferManager;
+
     vector<uint64_t> numNodesPerLabel;
+    vector<vector<vector<uint64_t>>> numRelsPerDirBoundLabelRelLabel;
 };
 
 } // namespace storage

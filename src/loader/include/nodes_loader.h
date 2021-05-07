@@ -30,10 +30,10 @@ class NodesLoader {
     typedef vector<unique_ptr<InMemStringOverflowPages>> labelStringOverflowPages_t;
 
 private:
-    NodesLoader(ThreadPool& threadPool, const Graph& graph, const Catalog& catalog,
-        const nlohmann::json& metadata, const string outputDirectory)
-        : logger{spdlog::get("loader")}, threadPool{threadPool}, graph{graph}, catalog{catalog},
-          metadata{metadata}, outputDirectory{outputDirectory} {
+    NodesLoader(ThreadPool& threadPool, const Graph& graph, const nlohmann::json& metadata,
+        const string outputDirectory)
+        : logger{spdlog::get("loader")}, threadPool{threadPool}, graph{graph}, metadata{metadata},
+          outputDirectory{outputDirectory} {
         logger->debug("Initializing NodesLoader.");
     };
 
@@ -99,7 +99,6 @@ private:
     shared_ptr<spdlog::logger> logger;
     ThreadPool& threadPool;
     const Graph& graph;
-    const Catalog& catalog;
     const nlohmann::json& metadata;
     const string outputDirectory;
 

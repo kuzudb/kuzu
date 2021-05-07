@@ -4,16 +4,16 @@ namespace graphflow {
 namespace loader {
 
 AdjAndPropertyListsBuilder::AdjAndPropertyListsBuilder(RelLabelDescription& description,
-    ThreadPool& threadPool, const Graph& graph, const Catalog& catalog,
-    const string outputDirectory)
-    : logger{spdlog::get("loader")}, description{description},
-      threadPool{threadPool}, graph{graph}, catalog{catalog}, outputDirectory{outputDirectory} {
+    ThreadPool& threadPool, const Graph& graph, const string outputDirectory)
+    : AdjAndPropertyStructuresBuilder(description, threadPool, graph, outputDirectory) {
     for (auto& dir : DIRS) {
         if (!description.isSingleCardinalityPerDir[dir]) {
-            dirLabelListSizes[dir].resize(catalog.getNodeLabelsCount());
+            dirLabelListSizes[dir].resize(graph.getCatalog().getNodeLabelsCount());
+            dirLabelNumRels[dir] =
+                make_unique<listSizes_t>(graph.getCatalog().getNodeLabelsCount());
             for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
                 dirLabelListSizes[dir][nodeLabel] =
-                    make_unique<vector<atomic<uint64_t>>>(graph.getNumNodesPerLabel()[nodeLabel]);
+                    make_unique<listSizes_t>(graph.getNumNodesPerLabel()[nodeLabel]);
             }
         }
     }
@@ -21,15 +21,16 @@ AdjAndPropertyListsBuilder::AdjAndPropertyListsBuilder(RelLabelDescription& desc
 
 void AdjAndPropertyListsBuilder::buildAdjListsHeadersAndListsMetadata() {
     for (auto& dir : DIRS) {
-        dirLabelAdjListHeaders[dir].resize(catalog.getNodeLabelsCount());
+        dirLabelAdjListHeaders[dir].resize(graph.getCatalog().getNodeLabelsCount());
         for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
             dirLabelAdjListHeaders[dir][nodeLabel].init(graph.getNumNodesPerLabel()[nodeLabel]);
         }
-        dirLabelAdjListsMetadata[dir].resize(catalog.getNodeLabelsCount());
+        dirLabelAdjListsMetadata[dir].resize(graph.getCatalog().getNodeLabelsCount());
     }
     if (description.requirePropertyLists()) {
         for (auto& dir : DIRS) {
-            dirLabelPropertyIdxPropertyListsMetadata[dir].resize(catalog.getNodeLabelsCount());
+            dirLabelPropertyIdxPropertyListsMetadata[dir].resize(
+                graph.getCatalog().getNodeLabelsCount());
             for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
                 dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel].resize(
                     description.propertyMap->size());
@@ -91,7 +92,7 @@ void AdjAndPropertyListsBuilder::setStringProperty(const vector<uint64_t>& pos,
     auto encodedStrBwd = reinterpret_cast<gf_string_t*>(
         dirLabelPropertyIdxPropertyLists[BWD][nodeIDs[BWD].label][propertyIdx]->getPtrToMemLoc(
             propertyListCursor));
-    memcpy(encodedStrBwd, encodedStrFwd, getDataTypeSize(STRING));
+    memcpy((void*)encodedStrBwd, (void*)encodedStrFwd, getDataTypeSize(STRING));
 }
 
 void AdjAndPropertyListsBuilder::sortOverflowStrings() {
@@ -99,7 +100,8 @@ void AdjAndPropertyListsBuilder::sortOverflowStrings() {
     dirLabelPropertyIdxStringOverflowPages =
         make_unique<dirLabelPropertyIdxStringOverflowPages_t>(2);
     for (auto& dir : DIRS) {
-        (*dirLabelPropertyIdxStringOverflowPages)[dir].resize(catalog.getNodeLabelsCount());
+        (*dirLabelPropertyIdxStringOverflowPages)[dir].resize(
+            graph.getCatalog().getNodeLabelsCount());
         for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
             (*dirLabelPropertyIdxStringOverflowPages)[dir][nodeLabel].resize(
                 description.propertyMap->size());
@@ -240,7 +242,7 @@ void AdjAndPropertyListsBuilder::buildInMemAdjLists() {
     logger->debug("Creating InMemAdjLists.");
     for (auto& dir : DIRS) {
         if (!description.isSingleCardinalityPerDir[dir]) {
-            dirLabelAdjLists[dir].resize(catalog.getNodeLabelsCount());
+            dirLabelAdjLists[dir].resize(graph.getCatalog().getNodeLabelsCount());
             for (auto boundNodeLabel : description.nodeLabelsPerDir[dir]) {
                 auto fname = RelsStore::getAdjListsFname(
                     outputDirectory, description.label, boundNodeLabel, dir);
@@ -257,7 +259,7 @@ void AdjAndPropertyListsBuilder::buildInMemAdjLists() {
 void AdjAndPropertyListsBuilder::buildInMemPropertyLists() {
     logger->debug("Creating InMemPropertyLists.");
     for (auto& dir : DIRS) {
-        dirLabelPropertyIdxPropertyLists[dir].resize(catalog.getNodeLabelsCount());
+        dirLabelPropertyIdxPropertyLists[dir].resize(graph.getCatalog().getNodeLabelsCount());
         for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
             dirLabelPropertyIdxPropertyLists[dir][nodeLabel].resize(
                 description.propertyMap->size());
