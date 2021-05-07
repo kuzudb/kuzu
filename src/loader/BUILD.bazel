@@ -22,8 +22,9 @@ cc_library(
 cc_library(
     name = "graph_loader",
     srcs = [
-        "adj_and_prop_cols_builder_and_list_size_counter.cpp",
+        "adj_and_prop_columns_builder.cpp",
         "adj_and_prop_lists_builder.cpp",
+        "adj_and_prop_structures_builder.cpp",
         "graph_loader.cpp",
         "in_mem_pages.cpp",
         "nodes_loader.cpp",
@@ -31,8 +32,9 @@ cc_library(
         "utils.cpp",
     ],
     hdrs = [
-        "include/adj_and_prop_cols_builder_and_list_size_counter.h",
+        "include/adj_and_prop_columns_builder.h",
         "include/adj_and_prop_lists_builder.h",
+        "include/adj_and_prop_structures_builder.h",
         "include/graph_loader.h",
         "include/in_mem_pages.h",
         "include/nodes_loader.h",

@@ -28,6 +28,12 @@ Graph::Graph(const string& path, uint64_t bufferPoolSize)
 template<typename S>
 void Graph::serialize(S& s) {
     s(numNodesPerLabel);
+    auto vectorSerFunc = [](S& s, vector<vector<uint64_t>>& v) {
+        s.container(v, UINT32_MAX, [](S& s, vector<uint64_t>& w) {
+            s.container(w, UINT32_MAX, [](S& s, uint64_t& x) { s(x); });
+        });
+    };
+    s.container(numRelsPerDirBoundLabelRelLabel, UINT32_MAX, vectorSerFunc);
 }
 
 void Graph::saveToFile(const string& path) {

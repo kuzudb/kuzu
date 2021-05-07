@@ -77,7 +77,6 @@ private:
     const string outputDirectory;
 
     Graph graph;
-    Catalog catalog;
 };
 
 } // namespace loader

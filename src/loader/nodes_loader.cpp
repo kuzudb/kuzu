@@ -9,9 +9,9 @@ namespace loader {
 
 void NodesLoader::load(const vector<string>& fnames, const vector<uint64_t>& numBlocksPerLabel,
     const vector<vector<uint64_t>>& numLinesPerBlock, vector<unique_ptr<NodeIDMap>>& nodeIDMaps) {
-    labelUnstrPropertyListsSizes.resize(catalog.getNodeLabelsCount());
-    for (label_t nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        if (catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
+    labelUnstrPropertyListsSizes.resize(graph.getCatalog().getNodeLabelsCount());
+    for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
+        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
             labelUnstrPropertyListsSizes[nodeLabel] =
                 make_unique<vector<atomic<uint64_t>>>(graph.getNumNodesPerLabel()[nodeLabel]);
         }
@@ -29,10 +29,10 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
     const vector<uint64_t>& numBlocksPerLabel, const vector<vector<uint64_t>>& numLinesPerBlock,
     vector<unique_ptr<NodeIDMap>>& nodeIDMaps) {
     vector<vector<unique_ptr<InMemStringOverflowPages>>> labelPropertyIdxStringOverflowPages(
-        catalog.getNodeLabelsCount());
-    vector<vector<string>> labelPropertyColumnFnames(catalog.getNodeLabelsCount());
-    for (label_t nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        auto& propertyMap = catalog.getPropertyKeyMapForNodeLabel(nodeLabel);
+        graph.getCatalog().getNodeLabelsCount());
+    vector<vector<string>> labelPropertyColumnFnames(graph.getCatalog().getNodeLabelsCount());
+    for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
+        auto& propertyMap = graph.getCatalog().getPropertyKeyMapForNodeLabel(nodeLabel);
         labelPropertyColumnFnames[nodeLabel].resize(propertyMap.size());
         labelPropertyIdxStringOverflowPages[nodeLabel].resize(propertyMap.size());
         for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
@@ -46,8 +46,8 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
         }
     }
     logger->debug("Populating PropertyColumns and Counting unstructured properties.");
-    for (label_t nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        auto& propertyMap = catalog.getPropertyKeyMapForNodeLabel(nodeLabel);
+    for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
+        auto& propertyMap = graph.getCatalog().getPropertyKeyMapForNodeLabel(nodeLabel);
         auto propertyDataTypes = createPropertyDataTypesArray(propertyMap);
         node_offset_t offsetStart = 0;
         for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
@@ -61,8 +61,8 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
         }
     }
     threadPool.wait();
-    for (label_t nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        auto& propertyMap = catalog.getPropertyKeyMapForNodeLabel(nodeLabel);
+    for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
+        auto& propertyMap = graph.getCatalog().getPropertyKeyMapForNodeLabel(nodeLabel);
         for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
             if (STRING == property->second.dataType) {
                 threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },
@@ -82,8 +82,8 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& fnames,
     buildUnstrPropertyListsHeadersAndMetadata();
     buildInMemUnstrPropertyLists();
     logger->debug("Populating Unstructured Property Lists.");
-    for (label_t nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        if (catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
+    for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
+        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
             node_offset_t offsetStart = 0;
             auto listSizes = labelUnstrPropertyListsSizes[nodeLabel].get();
             auto& listsHeaders = labelUnstrPropertyListHeaders[nodeLabel];
@@ -92,10 +92,10 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& fnames,
             for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
                 threadPool.execute(populateUnstrPropertyListsTask, fnames[nodeLabel], blockIdx,
                     metadata.at("tokenSeparator").get<string>()[0],
-                    catalog.getPropertyKeyMapForNodeLabel(nodeLabel).size(),
+                    graph.getCatalog().getPropertyKeyMapForNodeLabel(nodeLabel).size(),
                     numLinesPerBlock[nodeLabel][blockIdx], offsetStart,
-                    catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel), listSizes, &listsHeaders,
-                    &listsMetadata, unstrPropertyLists,
+                    graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel), listSizes,
+                    &listsHeaders, &listsMetadata, unstrPropertyLists,
                     labelUnstrPropertyListsStringOverflowPages[nodeLabel].get(), logger);
                 offsetStart += numLinesPerBlock[nodeLabel][blockIdx];
             }
@@ -109,17 +109,16 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& fnames,
 // Initializes ListHeaders and ListsMetadata auxilliary structures for all unstructured
 // PropertyLists.
 void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
-    labelUnstrPropertyListHeaders.resize(catalog.getNodeLabelsCount());
-    for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); ++nodeLabel) {
-        if (catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
-            auto a = catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel);
+    labelUnstrPropertyListHeaders.resize(graph.getCatalog().getNodeLabelsCount());
+    for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
+        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
             labelUnstrPropertyListHeaders[nodeLabel].init(graph.getNumNodesPerLabel()[nodeLabel]);
         }
     }
-    labelUnstrPropertyListsMetadata.resize(catalog.getNodeLabelsCount());
+    labelUnstrPropertyListsMetadata.resize(graph.getCatalog().getNodeLabelsCount());
     logger->debug("Initializing UnstructuredPropertyListHeaders.");
-    for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); ++nodeLabel) {
-        if (catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
+    for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
+        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
             threadPool.execute(ListsLoaderHelper::calculateListHeadersTask,
                 graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE,
                 labelUnstrPropertyListsSizes[nodeLabel].get(),
@@ -129,8 +128,8 @@ void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
     threadPool.wait();
     logger->debug("Done initializing UnstructuredPropertyListHeaders.");
     logger->debug("Initializing UnstructuredPropertyListsMetadata.");
-    for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); ++nodeLabel) {
-        if (catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
+    for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
+        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
             threadPool.execute(ListsLoaderHelper::calculateListsMetadataTask,
                 graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE,
                 labelUnstrPropertyListsSizes[nodeLabel].get(),
@@ -143,10 +142,10 @@ void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
 }
 
 void NodesLoader::buildInMemUnstrPropertyLists() {
-    labelUnstrPropertyLists.resize(catalog.getNodeLabelsCount());
-    labelUnstrPropertyListsStringOverflowPages.resize(catalog.getNodeLabelsCount());
-    for (label_t nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        if (catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
+    labelUnstrPropertyLists.resize(graph.getCatalog().getNodeLabelsCount());
+    labelUnstrPropertyListsStringOverflowPages.resize(graph.getCatalog().getNodeLabelsCount());
+    for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
+        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
             auto unstrPropertyListsFname =
                 NodesStore::getNodeUnstrPropertyListsFname(outputDirectory, nodeLabel);
             labelUnstrPropertyLists[nodeLabel] = make_unique<InMemUnstrPropertyPages>(
@@ -158,8 +157,8 @@ void NodesLoader::buildInMemUnstrPropertyLists() {
 }
 
 void NodesLoader::saveUnstrPropertyListsToFile() {
-    for (label_t nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        if (catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
+    for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
+        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
             threadPool.execute([&](InMemUnstrPropertyPages* x) { x->saveToFile(); },
                 labelUnstrPropertyLists[nodeLabel].get());
             threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },

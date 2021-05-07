@@ -9,22 +9,22 @@ namespace loader {
 // calls the loadRelsForLabel.
 void RelsLoader::load(vector<string>& fnames, vector<uint64_t>& numBlocksPerFile) {
     RelLabelDescription description;
-    for (auto relLabel = 0u; relLabel < catalog.getRelLabelsCount(); relLabel++) {
-        auto& propertyMap = catalog.getPropertyKeyMapForRelLabel(relLabel);
+    for (auto relLabel = 0u; relLabel < graph.getCatalog().getRelLabelsCount(); relLabel++) {
+        auto& propertyMap = graph.getCatalog().getPropertyKeyMapForRelLabel(relLabel);
         description.propertyMap = &propertyMap;
         description.label = relLabel;
         description.fname = fnames[relLabel];
         description.numBlocks = numBlocksPerFile[relLabel];
         for (auto& dir : DIRS) {
             description.isSingleCardinalityPerDir[dir] =
-                catalog.isSingleCaridinalityInDir(description.label, dir);
+                graph.getCatalog().isSingleCaridinalityInDir(description.label, dir);
             description.nodeLabelsPerDir[dir] =
-                catalog.getNodeLabelsForRelLabelDir(description.label, dir);
+                graph.getCatalog().getNodeLabelsForRelLabelDir(description.label, dir);
         }
         for (auto& dir : DIRS) {
             description.nodeIDCompressionSchemePerDir[dir] =
                 NodeIDCompressionScheme(description.nodeLabelsPerDir[!dir],
-                    graph.getNumNodesPerLabel(), catalog.getNodeLabelsCount());
+                    graph.getNumNodesPerLabel(), graph.getCatalog().getNodeLabelsCount());
         }
         description.propertyDataTypes = createPropertyDataTypesArray(propertyMap);
         loadRelsForLabel(description);
@@ -37,7 +37,7 @@ void RelsLoader::load(vector<string>& fnames, vector<uint64_t>& numBlocksPerFile
 void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
     logger->debug("Processing relLabel {}.", description.label);
     AdjAndPropertyListsBuilder adjAndPropertyListsBuilder{
-        description, threadPool, graph, catalog, outputDirectory};
+        description, threadPool, graph, outputDirectory};
     constructAdjColumnsAndCountRelsInAdjLists(description, adjAndPropertyListsBuilder);
     if (!description.isSingleCardinalityPerDir[FWD] ||
         !description.isSingleCardinalityPerDir[BWD]) {
@@ -53,20 +53,36 @@ void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
 // populateAdjColumnsAndCountRelsInAdjListsTask(...) on each block of the CSV file.
 void RelsLoader::constructAdjColumnsAndCountRelsInAdjLists(
     RelLabelDescription& description, AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder) {
-    AdjAndPropertyColsBuilderAndListSizeCounter adjAndPropertyColumnsBuilder{
-        description, threadPool, graph, catalog, outputDirectory};
+    AdjAndPropertyColumnsBuilder adjAndPropertyColumnsBuilder{
+        description, threadPool, graph, outputDirectory};
     logger->debug("Populating AdjColumns and Rel Property Columns.");
+    auto& catalog = graph.getCatalog();
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         threadPool.execute(populateAdjColumnsAndCountRelsInAdjListsTask, &description, blockId,
             metadata.at("tokenSeparator").get<string>()[0], &adjAndPropertyListsBuilder,
             &adjAndPropertyColumnsBuilder, &nodeIDMaps, &catalog, logger);
     }
     threadPool.wait();
+    populateNumRels(adjAndPropertyColumnsBuilder, adjAndPropertyListsBuilder);
     logger->debug("Done populating AdjColumns and Rel Property Columns.");
     if (description.hasProperties() && !description.requirePropertyLists()) {
         adjAndPropertyColumnsBuilder.sortOverflowStrings();
     }
     adjAndPropertyColumnsBuilder.saveToFile();
+}
+
+void RelsLoader::populateNumRels(AdjAndPropertyColumnsBuilder& adjAndPropertyColumnsBuilder,
+    AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder) {
+    graph.numRelsPerDirBoundLabelRelLabel.resize(2);
+    for (auto& dir : DIRS) {
+        graph.numRelsPerDirBoundLabelRelLabel[dir].resize(graph.getCatalog().getNodeLabelsCount());
+        for (auto i = 0; i < graph.getCatalog().getNodeLabelsCount(); i++) {
+            graph.numRelsPerDirBoundLabelRelLabel[dir][i].resize(
+                graph.getCatalog().getRelLabelsCount(), 0);
+        }
+    }
+    adjAndPropertyColumnsBuilder.populateNumRelsInfo(graph.numRelsPerDirBoundLabelRelLabel, true);
+    adjAndPropertyListsBuilder.populateNumRelsInfo(graph.numRelsPerDirBoundLabelRelLabel, false);
 }
 
 // Constructs AdjLists and RelPropertyLists if rel label does not have single cardinality. For
@@ -78,6 +94,7 @@ void RelsLoader::constructAdjLists(
     adjAndPropertyListsBuilder.buildAdjListsHeadersAndListsMetadata();
     adjAndPropertyListsBuilder.buildInMemStructures();
     logger->debug("Populating AdjLists and Rel Property Lists.");
+    auto& catalog = graph.getCatalog();
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         threadPool.execute(populateAdjListsTask, &description, blockId,
             metadata.at("tokenSeparator").get<string>()[0], &adjAndPropertyListsBuilder,
@@ -99,7 +116,7 @@ void RelsLoader::constructAdjLists(
 void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescription* description,
     uint64_t blockId, const char tokenSeparator,
     AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
-    AdjAndPropertyColsBuilderAndListSizeCounter* adjAndPropertyColumnsBuilder,
+    AdjAndPropertyColumnsBuilder* adjAndPropertyColumnsBuilder,
     vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
     shared_ptr<spdlog::logger> logger) {
     logger->trace("Start: path=`{0}` blkIdx={1}", description->fname, blockId);
@@ -194,7 +211,7 @@ void RelsLoader::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& node
 // Parses the line by converting each property value to the corresponding dataType as given by
 // propertyDataTypes array and puts the value in appropriate propertyColumns.
 void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<DataType>& propertyDataTypes,
-    CSVReader& reader, AdjAndPropertyColsBuilderAndListSizeCounter* adjAndPropertyColumnsBuilder,
+    CSVReader& reader, AdjAndPropertyColumnsBuilder* adjAndPropertyColumnsBuilder,
     const nodeID_t& nodeID, vector<PageCursor>& stringOverflowPagesCursors,
     shared_ptr<spdlog::logger> logger) {
     auto propertyIdx = 0u;

@@ -3,6 +3,7 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
+#include "src/loader/include/adj_and_prop_structures_builder.h"
 #include "src/loader/include/in_mem_pages.h"
 #include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
@@ -16,11 +17,10 @@ namespace graphflow {
 namespace loader {
 
 // This builder class helps RelsLoader to build AdjLists and RelPropertyLists for a particular rel
-// label (if FWD/BWD cardinality is not 1). Similar to AdjAndPropertyColsBuilderAndListSizeCounter,
-// this also exposes functions to construct Lists and its auxilliary data structures (ListHeaders
-// and ListsMetadata) step-by-step and populate in-memory pages and finally save the in-mem data
-// structures to the disk.
-class AdjAndPropertyListsBuilder {
+// label if FWD/BWD cardinality is not 1. Similar to AdjAndPropertyColsBuilderAndListSizeCounter,
+// this also exposes functions to construct Lists step-by-step and populate in-memory pages and
+// finally save the in-mem data structures to the disk.
+class AdjAndPropertyListsBuilder : public AdjAndPropertyStructuresBuilder {
 
     typedef vector<vector<unique_ptr<listSizes_t>>> dirLabelListSizes_t;
 
@@ -38,11 +38,12 @@ class AdjAndPropertyListsBuilder {
 
 public:
     AdjAndPropertyListsBuilder(RelLabelDescription& description, ThreadPool& threadPool,
-        const Graph& graph, const Catalog& catalog, const string outputDirectory);
+        const Graph& graph, const string outputDirectory);
 
     inline void incrementListSize(const Direction& dir, const nodeID_t& nodeID) {
         ListsLoaderHelper::incrementListSize(
             *dirLabelListSizes[dir][nodeID.label], nodeID.offset, 1);
+        (*dirLabelNumRels[dir])[nodeID.label]++;
     }
 
     inline uint64_t decrementListSize(const Direction& dir, const nodeID_t& nodeID) {
@@ -72,10 +73,9 @@ public:
     void setStringProperty(const vector<uint64_t>& pos, const vector<nodeID_t>& nodeIDs,
         const uint32_t& propertyIdx, const char* strVal, PageCursor& stringOverflowCursor);
 
-    void sortOverflowStrings();
+    void sortOverflowStrings() override;
 
-    // Saves all the Lists and String Overflow pages to disk.
-    void saveToFile();
+    void saveToFile() override;
 
 private:
     void initAdjListHeaders();
@@ -102,14 +102,6 @@ private:
     dirLabelPropertyIdxPropertyLists_t dirLabelPropertyIdxPropertyLists{2};
     unique_ptr<vector<unique_ptr<InMemStringOverflowPages>>> propertyIdxUnordStringOverflowPages;
     unique_ptr<dirLabelPropertyIdxStringOverflowPages_t> dirLabelPropertyIdxStringOverflowPages;
-
-    shared_ptr<spdlog::logger> logger;
-    RelLabelDescription& description;
-
-    ThreadPool& threadPool;
-    const Graph& graph;
-    const Catalog& catalog;
-    const string outputDirectory;
 };
 
 } // namespace loader
