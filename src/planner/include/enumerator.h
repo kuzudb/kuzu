@@ -1,9 +1,11 @@
 #pragma once
 
-#include "src/common/include/configs.h"
-#include "src/planner/include/binder.h"
+#include "src/planner/include/bound_queries/bound_single_query.h"
 #include "src/planner/include/logical_plan/logical_plan.h"
 #include "src/planner/include/subgraph_plan_table.h"
+#include "src/storage/include/graph.h"
+
+using namespace graphflow::storage;
 
 namespace graphflow {
 namespace planner {
@@ -11,7 +13,9 @@ namespace planner {
 class Enumerator {
 
 public:
-    explicit Enumerator(const Catalog& catalog, const BoundSingleQuery& boundSingleQuery);
+    explicit Enumerator(const Graph& graph, const BoundSingleQuery& boundSingleQuery);
+
+    unique_ptr<LogicalPlan> getBestPlan();
 
     vector<unique_ptr<LogicalPlan>> enumeratePlans();
 
@@ -54,7 +58,7 @@ private:
 
 private:
     unique_ptr<SubgraphPlanTable> subgraphPlanTable; // cached subgraph plans
-    const Catalog& catalog;
+    const Graph& graph;
     const BoundSingleQuery& boundSingleQuery;
 
     uint32_t currentLevel;

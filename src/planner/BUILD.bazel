@@ -30,7 +30,7 @@ cc_library(
     deps = [
         "bound_query",
         "//src/parser",
-        "//src/storage:catalog",
+        "//src/storage:graph",
     ],
 )
 
@@ -72,6 +72,10 @@ cc_library(
 
 cc_library(
     name = "logical_plan",
+    srcs = [
+        "logical_plan/logical_plan.cpp",
+        "logical_plan/schema.cpp",
+    ],
     hdrs = [
         "include/logical_plan/logical_plan.h",
         "include/logical_plan/operator/extend/logical_extend.h",

@@ -8,8 +8,17 @@
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
 
+const double PREDICATE_SELECTIVITY = 0.2;
+
 namespace graphflow {
 namespace planner {
+
+// return empty string if all variables are flat
+static string getLargestUnflatVariableAndFlattenOthers(
+    const LogicalExpression& expression, LogicalPlan& plan);
+
+static uint64_t getExtensionRate(
+    label_t boundNodeLabel, label_t relLabel, Direction direction, const Graph& graph);
 
 static vector<shared_ptr<LogicalExpression>> getNewMatchedWhereExpressions(
     const SubqueryGraph& prevSubgraph, const SubqueryGraph& newSubgraph,
@@ -32,9 +41,20 @@ static pair<string, string> splitVariableAndPropertyName(const string& name);
 
 static string variableNameToID(const string& name);
 
-Enumerator::Enumerator(const Catalog& catalog, const BoundSingleQuery& boundSingleQuery)
-    : catalog{catalog}, boundSingleQuery{boundSingleQuery} {
+Enumerator::Enumerator(const Graph& graph, const BoundSingleQuery& boundSingleQuery)
+    : graph{graph}, boundSingleQuery{boundSingleQuery} {
     subgraphPlanTable = make_unique<SubgraphPlanTable>(boundSingleQuery.getNumQueryRels());
+}
+
+unique_ptr<LogicalPlan> Enumerator::getBestPlan() {
+    auto plans = enumeratePlans();
+    unique_ptr<LogicalPlan> bestPlan = move(plans[0]);
+    for (auto i = 1u; i < plans.size(); ++i) {
+        if (plans[i]->cost < bestPlan->cost) {
+            bestPlan = move(plans[i]);
+        }
+    }
+    return bestPlan;
 }
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
@@ -231,7 +251,9 @@ void Enumerator::appendLogicalScan(uint32_t queryNodePos, LogicalPlan& plan) {
     }
     auto nodeID = variableNameToID(queryNode.variableName);
     auto scan = make_shared<LogicalScanNodeID>(nodeID, queryNode.label);
-    plan.schema->nameOperatorMap.insert({nodeID, scan.get()});
+    plan.schema->addMatchedAttribute(nodeID);
+    plan.schema->initFlatFactorizationGroup(
+        queryNode.variableName, graph.getNumNodes(queryNode.label));
     plan.appendOperator(scan);
 }
 
@@ -245,10 +267,22 @@ void Enumerator::appendLogicalExtend(uint32_t queryRelPos, Direction direction, 
     auto nbrNode = FWD == direction ? queryRel.dstNode : queryRel.srcNode;
     auto boundNodeID = variableNameToID(boundNode->variableName);
     auto nbrNodeID = variableNameToID(nbrNode->variableName);
+    auto isColumnExtend = graph.getCatalog().isSingleCaridinalityInDir(queryRel.label, direction);
     auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->label, nbrNodeID,
-        nbrNode->label, queryRel.label, direction, plan.lastOperator);
-    plan.schema->addOperator(nbrNodeID, extend.get());
-    plan.schema->addOperator(queryRel.variableName, extend.get());
+        nbrNode->label, queryRel.label, direction, isColumnExtend, plan.lastOperator);
+    plan.schema->addMatchedAttribute(nbrNodeID);
+    plan.schema->addMatchedAttribute(queryRel.variableName);
+    plan.schema->addQueryRelAndLogicalExtend(queryRel.variableName, extend.get());
+    if (isColumnExtend) {
+        plan.schema->getFactorizationGroup(boundNode->variableName)
+            ->addVariables(unordered_set<string>{queryRel.variableName, nbrNode->variableName});
+    } else {
+        plan.schema->flattenFactorizationGroupIfNecessary(boundNode->variableName);
+        plan.schema->addUnFlatFactorizationGroup(
+            unordered_set<string>{queryRel.variableName, nbrNode->variableName},
+            getExtensionRate(boundNode->label, queryRel.label, direction, graph));
+    }
+    plan.cost += plan.schema->getCardinality();
     plan.appendOperator(extend);
 }
 
@@ -257,17 +291,20 @@ void Enumerator::appendLogicalHashJoin(
     auto joinNodeID = variableNameToID(mergedQueryGraph->queryNodes[joinNodePos]->variableName);
     auto hashJoin =
         make_shared<LogicalHashJoin>(joinNodeID, plan.lastOperator, planToJoin.lastOperator);
-    for (auto& [name, op] : planToJoin.schema->nameOperatorMap) {
-        if (!plan.schema->containsName(name)) {
-            plan.schema->addOperator(name, op);
-        }
-    }
+    plan.schema->merge(*planToJoin.schema);
     plan.appendOperator(hashJoin);
 }
 
 void Enumerator::appendFilter(shared_ptr<LogicalExpression> expression, LogicalPlan& plan) {
     appendNecessaryScans(expression, plan);
     auto filter = make_shared<LogicalFilter>(expression, plan.lastOperator);
+    auto largestUnflatVariable = getLargestUnflatVariableAndFlattenOthers(*expression, plan);
+    if (largestUnflatVariable.empty()) {
+        plan.schema->flatGroup->cardinalityOrExtensionRate *= PREDICATE_SELECTIVITY;
+    } else {
+        plan.schema->getFactorizationGroup(largestUnflatVariable)->cardinalityOrExtensionRate *=
+            PREDICATE_SELECTIVITY;
+    }
     plan.appendOperator(filter);
 }
 
@@ -281,13 +318,15 @@ void Enumerator::appendProjection(
     auto expressionsToProject = vector<shared_ptr<LogicalExpression>>();
     for (auto& expression : returnOrWithClause) {
         if (VARIABLE == expression->expressionType) {
-            for (auto& propertyExpression : rewriteVariableAsAllProperties(expression, catalog)) {
+            for (auto& propertyExpression :
+                rewriteVariableAsAllProperties(expression, graph.getCatalog())) {
                 appendNecessaryScans(propertyExpression, plan);
                 expressionsToProject.push_back(propertyExpression);
             }
         } else {
             appendNecessaryScans(expression, plan);
             expressionsToProject.push_back(expression);
+            getLargestUnflatVariableAndFlattenOthers(*expression, plan);
         }
     }
     auto projection = make_shared<LogicalProjection>(move(expressionsToProject), plan.lastOperator);
@@ -296,7 +335,7 @@ void Enumerator::appendProjection(
 
 void Enumerator::appendNecessaryScans(shared_ptr<LogicalExpression> expression, LogicalPlan& plan) {
     for (auto& includedPropertyName : expression->getIncludedProperties()) {
-        if (plan.schema->containsName(includedPropertyName)) {
+        if (plan.schema->containsAttributeName(includedPropertyName)) {
             continue;
         }
         auto [nodeOrRelName, propertyName] = splitVariableAndPropertyName(includedPropertyName);
@@ -312,18 +351,51 @@ void Enumerator::appendScanNodeProperty(
     auto scanProperty =
         make_shared<LogicalScanNodeProperty>(variableNameToID(queryNode->variableName),
             queryNode->label, queryNode->variableName, propertyName, plan.lastOperator);
-    plan.schema->addOperator(queryNode->variableName + "." + propertyName, scanProperty.get());
+    plan.schema->addMatchedAttribute(queryNode->variableName + "." + propertyName);
     plan.appendOperator(scanProperty);
 }
 
 void Enumerator::appendScanRelProperty(
     const string& relName, const string& propertyName, LogicalPlan& plan) {
-    auto extend = (LogicalExtend*)plan.schema->getOperator(relName);
+    auto extend = plan.schema->getExistingLogicalExtend(relName);
     auto scanProperty = make_shared<LogicalScanRelProperty>(extend->boundNodeID,
         extend->boundNodeLabel, extend->nbrNodeID, extend->nbrNodeLabel, relName, extend->relLabel,
         extend->direction, propertyName, plan.lastOperator);
-    plan.schema->addOperator(relName + "." + propertyName, scanProperty.get());
+    plan.schema->addMatchedAttribute(relName + "." + propertyName);
     plan.appendOperator(scanProperty);
+}
+
+string getLargestUnflatVariableAndFlattenOthers(
+    const LogicalExpression& expression, LogicalPlan& plan) {
+    auto unflatVariables = vector<string>();
+    for (auto& variable : expression.getIncludedVariables()) {
+        if (!plan.schema->isVariableFlat(variable)) {
+            unflatVariables.push_back(variable);
+        }
+    }
+    auto largestUnflatVariable = string();
+    auto largestExtensionRate = 0u;
+    for (auto& unflatVariable : unflatVariables) {
+        if (plan.schema->getFactorizationGroup(unflatVariable)->cardinalityOrExtensionRate >
+            largestExtensionRate) {
+            largestUnflatVariable = unflatVariable;
+            largestExtensionRate =
+                plan.schema->getFactorizationGroup(unflatVariable)->cardinalityOrExtensionRate;
+        }
+    }
+    for (auto& unflatVariable : unflatVariables) {
+        if (unflatVariable != largestUnflatVariable) {
+            plan.schema->flattenFactorizationGroupIfNecessary(unflatVariable);
+            plan.cost += plan.schema->getCardinality();
+        }
+    }
+    return largestUnflatVariable;
+}
+
+uint64_t getExtensionRate(
+    label_t boundNodeLabel, label_t relLabel, Direction direction, const Graph& graph) {
+    auto numRels = graph.getNumRelsForDirBoundLabelRelLabel(direction, boundNodeLabel, relLabel);
+    return ceil((double)numRels / graph.getNumNodes(boundNodeLabel));
 }
 
 vector<shared_ptr<LogicalExpression>> getNewMatchedWhereExpressions(
