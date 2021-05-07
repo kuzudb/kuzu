@@ -19,12 +19,12 @@ HashJoinBuild::HashJoinBuild(
     uint64_t keyDataChunkPos, uint64_t keyVectorPos, unique_ptr<PhysicalOperator> prevOperator)
     : Sink(move(prevOperator), HASH_JOIN_BUILD), keyDataChunkPos(keyDataChunkPos),
       keyVectorPos(keyVectorPos), numEntries(0) {
-    dataChunks = this->prevOperator->getDataChunks();
-    keyDataChunk = dataChunks->getDataChunk(keyDataChunkPos);
-    nonKeyDataChunks = make_shared<DataChunks>();
-    for (uint64_t i = 0; i < dataChunks->getNumDataChunks(); i++) {
+    resultSet = this->prevOperator->getResultSet();
+    keyDataChunk = resultSet->dataChunks[keyDataChunkPos];
+    nonKeyDataChunks = make_shared<ResultSet>();
+    for (uint64_t i = 0; i < resultSet->dataChunks.size(); i++) {
         if (i != keyDataChunkPos) {
-            nonKeyDataChunks->append(dataChunks->getDataChunk(i));
+            nonKeyDataChunks->append(resultSet->dataChunks[i]);
         }
     }
     // key field (node_offset_t + label_t) + prev field (uint8_t*)
@@ -35,8 +35,8 @@ HashJoinBuild::HashJoinBuild(
         }
         numBytesForFixedTuplePart += keyDataChunk->getValueVector(i)->getNumBytesPerValue();
     }
-    for (uint64_t i = 0; i < nonKeyDataChunks->getNumDataChunks(); i++) {
-        auto dataChunk = nonKeyDataChunks->getDataChunk(i);
+    for (uint64_t i = 0; i < nonKeyDataChunks->dataChunks.size(); i++) {
+        auto dataChunk = nonKeyDataChunks->dataChunks[i];
         for (auto& vector : dataChunk->valueVectors) {
             numBytesForFixedTuplePart += dataChunk->state->isFlat() ?
                                              vector->getNumBytesPerValue() :
@@ -244,8 +244,8 @@ void HashJoinBuild::appendDataChunks() {
     }
 
     // Append payload in non-key data chunks
-    for (uint64_t chunkPos = 0; chunkPos < nonKeyDataChunks->getNumDataChunks(); chunkPos++) {
-        auto payloadDataChunk = nonKeyDataChunks->getDataChunk(chunkPos);
+    for (uint64_t chunkPos = 0; chunkPos < nonKeyDataChunks->dataChunks.size(); chunkPos++) {
+        auto payloadDataChunk = nonKeyDataChunks->dataChunks[chunkPos];
         if (payloadDataChunk->state->isFlat()) {
             for (uint64_t i = 0; i < payloadDataChunk->valueVectors.size(); i++) {
                 auto payloadVector = payloadDataChunk->getValueVector(i);

@@ -7,8 +7,8 @@ ReadList::ReadList(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
     unique_ptr<PhysicalOperator> prevOperator)
     : PhysicalOperator{move(prevOperator), READ_LIST}, inDataChunkPos{dataChunkPos},
       inValueVectorPos{valueVectorPos}, lists{lists} {
-    dataChunks = this->prevOperator->getDataChunks();
-    inDataChunk = dataChunks->getDataChunk(dataChunkPos);
+    resultSet = this->prevOperator->getResultSet();
+    inDataChunk = resultSet->dataChunks[dataChunkPos];
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
     handle = make_unique<DataStructureHandle>();
 }

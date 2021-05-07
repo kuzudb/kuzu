@@ -1,7 +1,7 @@
 #pragma once
 
+#include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
 #include "src/processor/include/physical_plan/operator/sink/sink.h"
-#include "src/processor/include/physical_plan/operator/tuple/data_chunks_iterator.h"
 #include "src/processor/include/physical_plan/query_result.h"
 
 namespace graphflow {
@@ -13,8 +13,8 @@ public:
     explicit ResultCollector(unique_ptr<PhysicalOperator> prevOperator,
         PhysicalOperatorType operatorType = RESULT_COLLECTOR)
         : Sink{move(prevOperator), operatorType} {
-        dataChunks = this->prevOperator->getDataChunks();
-        dataChunksIterator = make_unique<DataChunksIterator>(*dataChunks);
+        resultSet = this->prevOperator->getResultSet();
+        resultSetIterator = make_unique<ResultSetIterator>(*resultSet);
         queryResult = make_unique<QueryResult>();
     };
 
@@ -28,7 +28,7 @@ public:
     unique_ptr<QueryResult> queryResult;
 
 private:
-    unique_ptr<DataChunksIterator> dataChunksIterator;
+    unique_ptr<ResultSetIterator> resultSetIterator;
 };
 
 } // namespace processor

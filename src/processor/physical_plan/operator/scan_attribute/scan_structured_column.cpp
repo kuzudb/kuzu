@@ -6,8 +6,8 @@ namespace processor {
 ScanStructuredColumn::ScanStructuredColumn(uint64_t dataChunkPos, uint64_t valueVectorPos,
     BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator)
     : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator)}, column{column} {
-    dataChunks = this->prevOperator->getDataChunks();
-    inDataChunk = dataChunks->getDataChunk(dataChunkPos);
+    resultSet = this->prevOperator->getResultSet();
+    inDataChunk = resultSet->dataChunks[dataChunkPos];
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
     handle = make_unique<DataStructureHandle>();
 }

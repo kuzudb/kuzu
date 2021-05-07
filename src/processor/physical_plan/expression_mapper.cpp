@@ -16,43 +16,43 @@ static unique_ptr<PhysicalExpression> mapLogicalLiteralExpressionToPhysical(
 
 static unique_ptr<PhysicalExpression> mapLogicalPropertyExpressionToPhysical(
     const LogicalExpression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
-    DataChunks& dataChunks);
+    ResultSet& resultSet);
 
 unique_ptr<PhysicalExpression> ExpressionMapper::mapToPhysical(const LogicalExpression& expression,
-    PhysicalOperatorsInfo& physicalOperatorInfo, DataChunks& dataChunks) {
+    PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet) {
     auto expressionType = expression.expressionType;
     if (isExpressionLeafLiteral(expressionType)) {
         return mapLogicalLiteralExpressionToPhysical(expression);
     } else if (isExpressionLeafVariable(expressionType)) {
-        return mapLogicalPropertyExpressionToPhysical(expression, physicalOperatorInfo, dataChunks);
+        return mapLogicalPropertyExpressionToPhysical(expression, physicalOperatorInfo, resultSet);
     } else if (isExpressionUnary(expressionType)) {
-        auto child = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo, dataChunks);
+        auto child = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo, resultSet);
         return make_unique<PhysicalUnaryExpression>(
             move(child), expressionType, expression.dataType);
     } else {
         assert(isExpressionBinary(expressionType));
-        auto lExpr = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo, dataChunks);
-        auto rExpr = mapToPhysical(expression.getChildExpr(1), physicalOperatorInfo, dataChunks);
+        auto lExpr = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo, resultSet);
+        auto rExpr = mapToPhysical(expression.getChildExpr(1), physicalOperatorInfo, resultSet);
         return make_unique<PhysicalBinaryExpression>(
             move(lExpr), move(rExpr), expressionType, expression.dataType);
     }
 }
 
 unique_ptr<PhysicalExpression> ExpressionMapper::clone(
-    const PhysicalExpression& expression, DataChunks& dataChunks) {
+    const PhysicalExpression& expression, ResultSet& resultSet) {
     if (isExpressionLeafLiteral(expression.expressionType)) {
         return make_unique<PhysicalExpression>(expression.result, expression.expressionType);
     } else if (isExpressionLeafVariable(expression.expressionType)) {
-        auto dataChunk = dataChunks.getDataChunk(expression.dataChunkPos);
+        auto dataChunk = resultSet.dataChunks[expression.dataChunkPos];
         auto valueVector = dataChunk->getValueVector(expression.valueVectorPos);
         return make_unique<PhysicalExpression>(
             valueVector, expression.dataChunkPos, expression.valueVectorPos);
     } else if (expression.getNumChildrenExpr() == 1) { // unary expression.
-        return make_unique<PhysicalUnaryExpression>(clone(expression.getChildExpr(0), dataChunks),
+        return make_unique<PhysicalUnaryExpression>(clone(expression.getChildExpr(0), resultSet),
             expression.expressionType, expression.dataType);
     } else { // binary expression.
-        return make_unique<PhysicalBinaryExpression>(clone(expression.getChildExpr(0), dataChunks),
-            clone(expression.getChildExpr(1), dataChunks), expression.expressionType,
+        return make_unique<PhysicalBinaryExpression>(clone(expression.getChildExpr(0), resultSet),
+            clone(expression.getChildExpr(1), resultSet), expression.expressionType,
             expression.dataType);
     }
 }
@@ -92,11 +92,11 @@ unique_ptr<PhysicalExpression> mapLogicalLiteralExpressionToPhysical(
 
 unique_ptr<PhysicalExpression> mapLogicalPropertyExpressionToPhysical(
     const LogicalExpression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
-    DataChunks& dataChunks) {
+    ResultSet& resultSet) {
     const auto& variableName = expression.variableName;
     auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(variableName);
-    auto dataChunk = dataChunks.getDataChunk(dataChunkPos);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(variableName);
+    auto dataChunk = resultSet.dataChunks[dataChunkPos];
     auto valueVector = dataChunk->getValueVector(valueVectorPos);
     return make_unique<PhysicalExpression>(valueVector, dataChunkPos, valueVectorPos);
 }

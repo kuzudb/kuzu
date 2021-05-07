@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "src/processor/include/physical_plan/operator/tuple/tuple.h"
+#include "src/processor/include/physical_plan/operator/result/tuple.h"
 
 namespace graphflow {
 namespace processor {

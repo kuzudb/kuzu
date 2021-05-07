@@ -11,8 +11,8 @@ Filter<IS_AFTER_FLATTEN>::Filter(unique_ptr<PhysicalExpression> rootExpr,
     if (IS_AFTER_FLATTEN) {
         prevInSelectedValuesPos = make_unique<uint64_t[]>(MAX_VECTOR_SIZE);
     }
-    dataChunks = this->prevOperator->getDataChunks();
-    dataChunkToSelect = dataChunks->getDataChunk(dataChunkToSelectPos);
+    resultSet = this->prevOperator->getResultSet();
+    dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
     exprResult = this->rootExpr->result->values;
 }
 
@@ -50,7 +50,7 @@ void Filter<IS_AFTER_FLATTEN>::getNextTuples() {
 template<bool IS_AFTER_FLATTEN>
 unique_ptr<PhysicalOperator> Filter<IS_AFTER_FLATTEN>::clone() {
     auto prevOperatorClone = prevOperator->clone();
-    auto rootExprClone = ExpressionMapper::clone(*rootExpr, *prevOperatorClone->getDataChunks());
+    auto rootExprClone = ExpressionMapper::clone(*rootExpr, *prevOperatorClone->getResultSet());
     return make_unique<Filter<IS_AFTER_FLATTEN>>(
         move(rootExprClone), dataChunkToSelectPos, move(prevOperatorClone));
 }

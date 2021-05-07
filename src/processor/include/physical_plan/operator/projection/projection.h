@@ -26,8 +26,8 @@ private:
     unique_ptr<vector<unique_ptr<PhysicalExpression>>> expressions;
     vector<uint64_t> expressionPosToDataChunkPos;
     vector<uint64_t> discardedDataChunkPos;
-    shared_ptr<DataChunks> discardedDataChunks;
-    shared_ptr<DataChunks> inDataChunks;
+    shared_ptr<ResultSet> discardedResultSet;
+    shared_ptr<ResultSet> inResultSet;
 };
 
 } // namespace processor

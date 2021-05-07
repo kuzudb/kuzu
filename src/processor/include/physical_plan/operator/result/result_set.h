@@ -10,10 +10,10 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace processor {
 
-class DataChunks {
+class ResultSet {
 
 public:
-    DataChunks() : multiplicity(1) {}
+    ResultSet() : multiplicity(1) {}
 
     void append(shared_ptr<DataChunk> dataChunk, shared_ptr<ListSyncState> listSyncer) {
         dataChunks.push_back(dataChunk);
@@ -24,19 +24,9 @@ public:
 
     uint64_t getNumTuples();
 
-    inline shared_ptr<DataChunk> getDataChunk(uint64_t dataChunkPos) {
-        return dataChunks[dataChunkPos];
-    }
-
-    inline shared_ptr<DataChunkState> getDataChunkState(uint64_t dataChunkPos) {
-        return dataChunks[dataChunkPos]->state;
-    }
-
     shared_ptr<ListSyncState> getListSyncState(uint64_t dataChunkPos) {
         return listSyncStatesPerDataChunk[dataChunkPos];
     }
-
-    inline uint64_t getNumDataChunks() { return dataChunks.size(); }
 
 public:
     uint64_t multiplicity;

@@ -9,7 +9,7 @@ Projection::Projection(unique_ptr<vector<unique_ptr<PhysicalExpression>>> expres
     : PhysicalOperator(move(prevOperator), PROJECTION), expressions{move(expressions)},
       expressionPosToDataChunkPos(expressionPosToDataChunkPos),
       discardedDataChunkPos(discardedDataChunkPos) {
-    dataChunks = make_shared<DataChunks>();
+    resultSet = make_shared<ResultSet>();
     unordered_map<uint64_t, shared_ptr<DataChunk>> posToDataChunkMap;
     for (auto exprPos = 0u; exprPos < expressionPosToDataChunkPos.size(); exprPos++) {
         auto dataChunkPos = expressionPosToDataChunkPos[exprPos];
@@ -22,18 +22,18 @@ Projection::Projection(unique_ptr<vector<unique_ptr<PhysicalExpression>>> expres
             posToDataChunkMap.at(dataChunkPos)->append((*expressions)[exprPos]->result);
         }
     }
-    inDataChunks = prevOperator->getDataChunks();
-    discardedDataChunks = make_shared<DataChunks>();
+    inResultSet = prevOperator->getResultSet();
+    discardedResultSet = make_shared<ResultSet>();
     for (auto pos : discardedDataChunkPos) {
-        discardedDataChunks->append(inDataChunks->getDataChunk(pos));
+        discardedResultSet->append(inResultSet->dataChunks[pos]);
     }
 }
 
 void Projection::getNextTuples() {
     prevOperator->getNextTuples();
-    if (inDataChunks->getNumTuples() > 0) {
-        dataChunks->multiplicity = 0;
-        for (auto& dataChunk : dataChunks->dataChunks) {
+    if (inResultSet->getNumTuples() > 0) {
+        resultSet->multiplicity = 0;
+        for (auto& dataChunk : resultSet->dataChunks) {
             dataChunk->state->size = 0;
         }
         return;
@@ -41,7 +41,7 @@ void Projection::getNextTuples() {
     for (auto& expression : *expressions) {
         expression->evaluate();
     }
-    dataChunks->multiplicity = discardedDataChunks->getNumTuples();
+    resultSet->multiplicity = discardedResultSet->getNumTuples();
 }
 
 unique_ptr<PhysicalOperator> Projection::clone() {
@@ -49,7 +49,7 @@ unique_ptr<PhysicalOperator> Projection::clone() {
     auto rootExpressionsCloned = make_unique<vector<unique_ptr<PhysicalExpression>>>();
     for (auto& expr : *expressions) {
         (*rootExpressionsCloned)
-            .push_back(ExpressionMapper::clone(*expr, *prevOperatorClone->getDataChunks()));
+            .push_back(ExpressionMapper::clone(*expr, *prevOperatorClone->getResultSet()));
     }
     return make_unique<Projection>(move(rootExpressionsCloned), expressionPosToDataChunkPos,
         discardedDataChunkPos, move(prevOperatorClone));

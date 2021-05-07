@@ -14,6 +14,7 @@
 #include "src/processor/include/physical_plan/operator/flatten/flatten.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
+#include "src/processor/include/physical_plan/operator/physical_operator_info.h"
 #include "src/processor/include/physical_plan/operator/projection/projection.h"
 #include "src/processor/include/physical_plan/operator/read_list/adj_list_extend.h"
 #include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
@@ -22,7 +23,6 @@
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_unstructured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
-#include "src/processor/include/physical_plan/operator/tuple/physical_operator_info.h"
 
 using namespace graphflow::planner;
 
@@ -123,8 +123,8 @@ unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& l
             relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
             move(prevOperator));
     } else {
-        if (!physicalOperatorInfo.dataChunkIsFlatVector[dataChunkPos]) {
-            physicalOperatorInfo.dataChunkIsFlatVector[dataChunkPos] = true;
+        if (!physicalOperatorInfo.dataChunkPosToIsFlat[dataChunkPos]) {
+            physicalOperatorInfo.dataChunkPosToIsFlat[dataChunkPos] = true;
             prevOperator = make_unique<Flatten>(dataChunkPos, move(prevOperator));
         }
         physicalOperatorInfo.appendAsNewDataChunk(extend.nbrNodeID);
@@ -145,7 +145,7 @@ unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(const LogicalOperator& l
     auto dataChunkToSelectPos =
         getDependentUnflatDataChunkPos(logicalRootExpr, physicalOperatorInfo);
     auto physicalRootExpr = ExpressionMapper::mapToPhysical(
-        logicalRootExpr, physicalOperatorInfo, *prevOperator->getDataChunks());
+        logicalRootExpr, physicalOperatorInfo, *prevOperator->getResultSet());
     if (prevOperator->operatorType == FLATTEN) {
         return make_unique<Filter<true /* isAfterFlatten */>>(
             move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator));
@@ -153,44 +153,6 @@ unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(const LogicalOperator& l
         return make_unique<Filter<false /* isAfterFlatten */>>(
             move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator));
     }
-}
-
-unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
-    const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo,
-    unique_ptr<PhysicalOperator> prevOperator) {
-    pair<unique_ptr<PhysicalOperator>, uint64_t> result;
-    set<uint64_t> unflatDataChunkPosSet;
-    for (auto& property : logicalRootExpr.getIncludedProperties()) {
-        auto pos = physicalOperatorInfo.getDataChunkPos(property);
-        if (!physicalOperatorInfo.dataChunkIsFlatVector[pos]) {
-            unflatDataChunkPosSet.insert(pos);
-        }
-    }
-    if (!unflatDataChunkPosSet.empty()) {
-        vector<uint64_t> unflatDataChunkPos(
-            unflatDataChunkPosSet.begin(), unflatDataChunkPosSet.end());
-        if (unflatDataChunkPosSet.size() > 1) {
-            for (auto i = 0u; i < unflatDataChunkPos.size() - 1; i++) {
-                auto pos = unflatDataChunkPos[i];
-                prevOperator = make_unique<Flatten>(pos, move(prevOperator));
-                physicalOperatorInfo.dataChunkIsFlatVector[pos] = true;
-            }
-        }
-    }
-    return prevOperator;
-}
-
-// The function finds the data chunk position of the unflat vectors in the expression, if
-// all vectors in the expressions are flat, we return null as UINT64_MAX.
-uint64_t getDependentUnflatDataChunkPos(
-    const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo) {
-    for (auto& property : logicalRootExpr.getIncludedProperties()) {
-        auto pos = physicalOperatorInfo.getDataChunkPos(property);
-        if (!physicalOperatorInfo.dataChunkIsFlatVector[pos]) {
-            return pos;
-        }
-    }
-    return UINT64_MAX /* null */;
 }
 
 unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(const LogicalOperator& logicalOperator,
@@ -208,7 +170,7 @@ unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(const LogicalOperato
         prevOperator = appendFlattenOperatorsIfNecessary(
             *logicalRootExpr, physicalOperatorInfo, move(prevOperator));
         physicalExpressions->push_back(ExpressionMapper::mapToPhysical(
-            *logicalRootExpr, physicalOperatorInfo, *prevOperator->getDataChunks()));
+            *logicalRootExpr, physicalOperatorInfo, *prevOperator->getResultSet()));
     }
 
     // We collect the input data chunk positions for the vectors in the expressions.
@@ -256,6 +218,44 @@ unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(const LogicalOperato
     }
     return make_unique<Projection>(move(physicalExpressions), exprResultOutDataChunkPos,
         discardedDataChunkPos, move(prevOperator));
+}
+
+unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
+    const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo,
+    unique_ptr<PhysicalOperator> prevOperator) {
+    pair<unique_ptr<PhysicalOperator>, uint64_t> result;
+    set<uint64_t> unflatDataChunkPosSet;
+    for (auto& property : logicalRootExpr.getIncludedProperties()) {
+        auto pos = physicalOperatorInfo.getDataChunkPos(property);
+        if (!physicalOperatorInfo.dataChunkPosToIsFlat[pos]) {
+            unflatDataChunkPosSet.insert(pos);
+        }
+    }
+    if (!unflatDataChunkPosSet.empty()) {
+        vector<uint64_t> unflatDataChunkPos(
+            unflatDataChunkPosSet.begin(), unflatDataChunkPosSet.end());
+        if (unflatDataChunkPosSet.size() > 1) {
+            for (auto i = 0u; i < unflatDataChunkPos.size() - 1; i++) {
+                auto pos = unflatDataChunkPos[i];
+                prevOperator = make_unique<Flatten>(pos, move(prevOperator));
+                physicalOperatorInfo.dataChunkPosToIsFlat[pos] = true;
+            }
+        }
+    }
+    return prevOperator;
+}
+
+// The function finds the data chunk position of the unflat vectors in the expression, if
+// all vectors in the expressions are flat, we return null as UINT64_MAX.
+uint64_t getDependentUnflatDataChunkPos(
+    const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    for (auto& property : logicalRootExpr.getIncludedProperties()) {
+        auto pos = physicalOperatorInfo.getDataChunkPos(property);
+        if (!physicalOperatorInfo.dataChunkPosToIsFlat[pos]) {
+            return pos;
+        }
+    }
+    return UINT64_MAX /* null */;
 }
 
 unique_ptr<PhysicalOperator> mapLogicalNodePropertyReaderToPhysical(
@@ -338,8 +338,8 @@ unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator&
         }
         auto newDataChunkPos =
             physicalOperatorInfo.appendAsNewDataChunk(probeSideOperatorInfo.vectorVariables[i][0]);
-        physicalOperatorInfo.dataChunkIsFlatVector[newDataChunkPos] =
-            probeSideOperatorInfo.dataChunkIsFlatVector[i];
+        physicalOperatorInfo.dataChunkPosToIsFlat[newDataChunkPos] =
+            probeSideOperatorInfo.dataChunkPosToIsFlat[i];
         for (uint64_t j = 1; j < probeSideOperatorInfo.vectorVariables[i].size(); j++) {
             physicalOperatorInfo.appendAsNewValueVector(
                 probeSideOperatorInfo.vectorVariables[i][j], newDataChunkPos);
@@ -360,7 +360,7 @@ unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator&
         if (i == buildSideKeyDataChunkPos) {
             continue;
         }
-        if (buildSideOperatorInfo.dataChunkIsFlatVector[i]) {
+        if (buildSideOperatorInfo.dataChunkPosToIsFlat[i]) {
             for (auto& variableName : buildSideOperatorInfo.vectorVariables[i]) {
                 physicalOperatorInfo.appendAsNewValueVector(variableName, 0);
             }
@@ -376,7 +376,7 @@ unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator&
     }
     // Set dataChunks[0] as flat if there are unflat data chunks from the build side.
     if (buildSideHasUnFlatDataChunk) {
-        physicalOperatorInfo.dataChunkIsFlatVector[0] = true;
+        physicalOperatorInfo.dataChunkPosToIsFlat[0] = true;
     }
 
     auto hashJoinBuild = make_unique<HashJoinBuild>(

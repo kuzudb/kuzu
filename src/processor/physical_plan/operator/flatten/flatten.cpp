@@ -5,8 +5,8 @@ namespace processor {
 
 Flatten::Flatten(uint64_t dataChunkPos, unique_ptr<PhysicalOperator> prevOperator)
     : PhysicalOperator{move(prevOperator), FLATTEN}, dataChunkToFlattenPos{dataChunkPos} {
-    dataChunks = this->prevOperator->getDataChunks();
-    dataChunkToFlatten = dataChunks->getDataChunk(dataChunkPos);
+    resultSet = this->prevOperator->getResultSet();
+    dataChunkToFlatten = resultSet->dataChunks[dataChunkPos];
 }
 
 void Flatten::getNextTuples() {

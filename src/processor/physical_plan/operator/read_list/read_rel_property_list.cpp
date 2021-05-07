@@ -12,9 +12,9 @@ ReadRelPropertyList::ReadRelPropertyList(uint64_t inDataChunkPos, uint64_t inVal
     : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)},
       outDataChunkPos(outDataChunkPos) {
     outValueVector = make_shared<ValueVector>(lists->getDataType());
-    outDataChunk = dataChunks->getDataChunk(outDataChunkPos);
-    handle->setListSyncState(dataChunks->getListSyncState(outDataChunkPos));
-    outDataChunk->appendAndSetVectorState(outValueVector);
+    outDataChunk = resultSet->dataChunks[outDataChunkPos];
+    handle->setListSyncState(resultSet->getListSyncState(outDataChunkPos));
+    outDataChunk->append(outValueVector);
 }
 
 void ReadRelPropertyList::getNextTuples() {

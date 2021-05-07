@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
-#include "src/processor/include/physical_plan/operator/tuple/data_chunks.h"
+#include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
 
 using namespace graphflow::processor;
 
