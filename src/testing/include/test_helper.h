@@ -1,9 +1,12 @@
 #pragma once
+
 #include <cstdint>
 #include <string>
 
-#include "src/main/include/embedded_server.h"
+#include "src/main/include/system.h"
+
 using namespace std;
+using namespace graphflow::main;
 
 namespace graphflow {
 namespace testing {
@@ -29,6 +32,9 @@ public:
 
 private:
     static TestSuiteConfig parseTestFile(const string& path);
+
+    static unique_ptr<System> getInitializedSystem(TestSuiteConfig& testConfig);
 };
+
 } // namespace testing
 } // namespace graphflow

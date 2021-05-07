@@ -1,7 +1,5 @@
 #include "src/processor/include/processor.h"
 
-#include <iostream>
-
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
@@ -10,6 +8,7 @@
 #include "src/processor/include/physical_plan/query_result.h"
 
 using namespace graphflow::common;
+using namespace graphflow::planner;
 
 namespace graphflow {
 namespace processor {
@@ -33,6 +32,12 @@ QueryProcessor::~QueryProcessor() {
 
 // This function is currently blocking. In the future, this should async and return the result
 // wrapped in Future for syncing with the runner.
+unique_ptr<QueryResult> QueryProcessor::execute(
+    unique_ptr<LogicalPlan> plan, uint64_t maxNumThreads, const Graph& graph) {
+    auto physicalPlan = PlanMapper::mapToPhysical(move(plan), graph);
+    return execute(move(physicalPlan), maxNumThreads);
+}
+
 unique_ptr<QueryResult> QueryProcessor::execute(
     unique_ptr<PhysicalPlan> plan, uint64_t maxNumThreads) {
     auto resultCollector = reinterpret_cast<ResultCollector*>(plan->lastOperator.get());

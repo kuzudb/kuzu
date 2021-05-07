@@ -60,11 +60,12 @@ unique_ptr<nlohmann::json> Graph::debugInfo() {
     logger->info("PrintGraphInfo.");
     logger->info("path to db files: " + getPath());
     auto json = catalog->debugInfo();
+    (*json)["path"] = getPath();
     for (uint64_t labelIdx = 0; labelIdx < numNodesPerLabel.size(); ++labelIdx) {
         (*json)["NodeLabelSizes"][catalog->getStringNodeLabel(labelIdx)]["numNodes"] =
             to_string(numNodesPerLabel.at(labelIdx));
     }
-    (*json).merge_patch(*(bufferManager->debugInfo()));
+    (*json)["bufferManager"] = *(bufferManager->debugInfo());
     return json;
 }
 

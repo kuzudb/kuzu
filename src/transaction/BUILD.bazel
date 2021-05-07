@@ -1,0 +1,27 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "local_storage",
+    hdrs = [
+        "include/local_storage.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = ["//src/common"],
+)
+
+cc_library(
+    name = "transaction",
+    srcs = [
+        "transaction.cpp",
+        "transaction_manager.cpp",
+    ],
+    hdrs = [
+        "include/transaction.h",
+        "include/transaction_manager.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "local_storage",
+    ],
+)

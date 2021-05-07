@@ -2,9 +2,11 @@
 
 #include <filesystem>
 
+#include "src/loader/include/graph_loader.h"
+
 using namespace std;
-using namespace graphflow::main;
 using namespace graphflow::planner;
+using namespace graphflow::loader;
 
 namespace graphflow {
 namespace testing {
@@ -15,8 +17,7 @@ bool TestHelper::runTest(const string& path) {
         throw invalid_argument(
             "Graph output directory cannot be created. Check if it exists and remove it.");
     }
-    auto server = make_unique<EmbeddedServer>(testConfig.graphInputDir, testConfig.graphOutputDir,
-        testConfig.numThreads, testConfig.bufferPoolSize);
+    auto system = getInitializedSystem(testConfig);
     auto numQueries = testConfig.query.size();
     uint64_t numPassedQueries = 0;
     vector<uint64_t> numPlansOfEachQuery(numQueries);
@@ -24,13 +25,13 @@ bool TestHelper::runTest(const string& path) {
     for (uint64_t i = 0; i < numQueries; i++) {
         spdlog::info("TEST: {}", testConfig.name[i]);
         spdlog::info("QUERY: {}", testConfig.query[i]);
-        auto plans = server->enumerateLogicalPlans(testConfig.query[i]);
+        auto plans = system->enumerateLogicalPlans(testConfig.query[i]);
         auto numPlans = plans.size();
         numPlansOfEachQuery[i] = numPlans;
         uint64_t numPassedPlans = 0;
         for (uint64_t j = 0; j < numPlans; j++) {
             auto planStr = plans[j]->getLastOperator().toString();
-            auto result = server->execute(move(plans[j]));
+            auto result = system->execute(move(plans[j]), testConfig.numThreads);
             if (result->numTuples != testConfig.expectedNumTuples[i]) {
                 spdlog::error("PLAN{} NOT PASSED. Result num tuples: {}, Expected num tuples: {}",
                     j, result->numTuples, testConfig.expectedNumTuples[i]);
@@ -85,15 +86,14 @@ bool TestHelper::runExceptionTest(const string& path) {
         throw invalid_argument(
             "Graph output directory cannot be created. Check if it exists and remove it.");
     }
-    auto server = make_unique<EmbeddedServer>(testConfig.graphInputDir, testConfig.graphOutputDir,
-        testConfig.numThreads, testConfig.bufferPoolSize);
+    auto system = getInitializedSystem(testConfig);
     auto numQueries = testConfig.query.size();
     uint64_t numPassedQueries = 0;
     for (auto i = 0u; i < numQueries; i++) {
         spdlog::info("TEST: {}", testConfig.name[i]);
         spdlog::info("QUERY: {}", testConfig.query[i]);
         try {
-            auto plans = server->enumerateLogicalPlans(testConfig.query[i]);
+            auto plans = system->enumerateLogicalPlans(testConfig.query[i]);
             spdlog::error(
                 "QUERY: {} NOT PASSED. Expect malformed to be thrown.", testConfig.query[i]);
         } catch (const invalid_argument& exception) {
@@ -159,5 +159,19 @@ TestSuiteConfig TestHelper::parseTestFile(const string& path) {
     }
     throw invalid_argument("Test file not exists! [" + path + "].");
 }
+
+unique_ptr<System> TestHelper::getInitializedSystem(TestSuiteConfig& testConfig) {
+    {
+        GraphLoader graphLoader(
+            testConfig.graphInputDir, testConfig.graphOutputDir, testConfig.numThreads);
+        graphLoader.loadGraph();
+    }
+    SystemConfig config;
+    config.setBufferPoolSize(testConfig.bufferPoolSize);
+    config.setNumProcessorThreads(testConfig.numThreads);
+    auto system = make_unique<System>(config, testConfig.graphOutputDir);
+    return system;
+}
+
 } // namespace testing
 } // namespace graphflow

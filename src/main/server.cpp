@@ -3,20 +3,18 @@
 namespace graphflow {
 namespace main {
 
-Server::Server() {
+Server::Server() : session{system} {
     helpCatalog["help"] = nlohmann::json::array();
 }
 
 void Server::run(const string& host, int port) {
     auto router = make_unique<router_t>();
     registerGETHelp(router);
+    registerPOSTLoad(router);
     registerPUTBufferPoolSize(router);
     registerPUTNumProcessorThreads(router);
-    registerGETSession(router);
-    registerPOSTLoad(router);
-    registerGETPrettyPlan(router);
     registerPOSTExecute(router);
-    registerGETGraphDebugInfo(router);
+    registerGETDebugInfo(router);
 
     try {
         using traits_t = restinio::traits_t<restinio::asio_timer_manager_t,
@@ -50,6 +48,30 @@ void Server::registerGETHelp(unique_ptr<router_t>& router) {
     });
 }
 
+void Server::registerPOSTLoad(unique_ptr<router_t>& router) {
+    nlohmann::json json;
+    json["method"] = "POST";
+    json["url"] = "/load";
+    json["dataParams"] = "<path_to_serialized_data>";
+    json["desc"] = "Loads the serialized graph data from the path.";
+    helpCatalog["help"].push_back(json);
+
+    router->http_post("/load", [&](request_handle_t req, auto) {
+        try {
+            auto path = req->body();
+            system.reset(new System(config, path));
+            nlohmann::json json;
+            json["msg"] = "Intialized the Graph at " + path + ".";
+            req->create_response()
+                .append_header(
+                    restinio::http_field::content_type, "application/json; charset=utf-8")
+                .set_body(json.dump())
+                .done();
+        } catch (exception& ex) { createErrorResponse(req, ex); }
+        return restinio::request_accepted();
+    });
+}
+
 void Server::registerPUTBufferPoolSize(unique_ptr<router_t>& router) {
     nlohmann::json json;
     json["method"] = "PUT";
@@ -64,9 +86,12 @@ void Server::registerPUTBufferPoolSize(unique_ptr<router_t>& router) {
     router->http_put("/bufferPoolSize", [&](request_handle_t req, auto) {
         try {
             auto size = stoll(req->body());
+            config.setBufferPoolSize(size);
+            if (nullptr != system.get()) {
+                system->restart(config);
+            }
             nlohmann::json json;
-            json["msg"] = "BufferPool size has been set to " +
-                          to_string(session.setBufferPoolSize(size)) + " B";
+            json["msg"] = "BufferPool size has been set to " + to_string(size) + " B";
             req->create_response()
                 .append_header(
                     restinio::http_field::content_type, "application/json; charset=utf-8")
@@ -91,73 +116,16 @@ void Server::registerPUTNumProcessorThreads(unique_ptr<router_t>& router) {
     router->http_put("/numProcessorThreads", [&](request_handle_t req, auto) {
         try {
             auto num = stoi(req->body());
+            config.setNumProcessorThreads(num);
+            if (nullptr != system.get()) {
+                system->restart(config);
+            }
             nlohmann::json json;
-            json["msg"] = "Number of processor Threads has been set to " +
-                          to_string(session.setNumProcessorThreads(num)) + ".";
+            json["msg"] = "Number of processor Threads has been set to " + to_string(num) + ".";
             req->create_response()
                 .append_header(
                     restinio::http_field::content_type, "application/json; charset=utf-8")
                 .set_body(json.dump())
-                .done();
-        } catch (exception& ex) { createErrorResponse(req, ex); }
-        return restinio::request_accepted();
-    });
-}
-
-void Server::registerGETSession(unique_ptr<router_t>& router) {
-    nlohmann::json json;
-    json["method"] = "GET";
-    json["url"] = "/session";
-    json["desc"] = "Gets the current state of session.";
-    helpCatalog["help"].push_back(json);
-
-    router->http_get("/session", [&](request_handle_t req, auto) {
-        req->create_response()
-            .append_header(restinio::http_field::content_type, "application/json; charset=utf-8")
-            .set_body(session.getSession()->dump())
-            .done();
-        return restinio::request_accepted();
-    });
-}
-
-void Server::registerPOSTLoad(unique_ptr<router_t>& router) {
-    nlohmann::json json;
-    json["method"] = "POST";
-    json["url"] = "/load";
-    json["dataParams"] = "<path_to_serialized_data>";
-    json["desc"] = "Loads the serialized graph data from the path.";
-    helpCatalog["help"].push_back(json);
-
-    router->http_post("/load", [&](request_handle_t req, auto) {
-        try {
-            auto path = req->body();
-            session.loadGraph(path);
-            nlohmann::json json;
-            json["msg"] = "Intialized the Graph at " + path + ".";
-            req->create_response()
-                .append_header(
-                    restinio::http_field::content_type, "application/json; charset=utf-8")
-                .set_body(json.dump())
-                .done();
-        } catch (exception& ex) { createErrorResponse(req, ex); }
-        return restinio::request_accepted();
-    });
-}
-
-void Server::registerGETPrettyPlan(unique_ptr<router_t>& router) {
-    nlohmann::json json;
-    json["method"] = "GET";
-    json["url"] = "/prettyPlan";
-    json["dataParams"] = "<path_to_serialized_query_plan>";
-    json["desc"] = "Print the query plan in a human-readable format.";
-    helpCatalog["help"].push_back(json);
-
-    router->http_get("/prettyPlan", [&](request_handle_t req, auto) {
-        try {
-            req->create_response()
-                .append_header(
-                    restinio::http_field::content_type, "application/json; charset=utf-8")
-                .set_body(session.getPrettyPlan(req->body())->dump())
                 .done();
         } catch (exception& ex) { createErrorResponse(req, ex); }
         return restinio::request_accepted();
@@ -168,38 +136,39 @@ void Server::registerPOSTExecute(unique_ptr<router_t>& router) {
     nlohmann::json json;
     json["method"] = "POST";
     json["url"] = "/execute";
-    json["dataParams"] = "<path_to_serialized_query_plan>";
-    json["desc"] = "Execute a query plan.";
+    json["dataParams"] = "<cypher_query>";
+    json["desc"] = "Execute a query.";
     json["note"] = "Executing the query is synchronous at present.";
     helpCatalog["help"].push_back(json);
 
     router->http_post("/execute", [&](request_handle_t req, auto) {
         try {
             stringstream stream(req->body().data());
-            string plan_path;
+            string cypherQuery;
             uint32_t numThreads;
-            stream >> plan_path;
+            stream >> cypherQuery;
             stream >> numThreads;
+            auto result = session.submitQuery(cypherQuery, numThreads);
             req->create_response()
                 .append_header(
                     restinio::http_field::content_type, "application/json; charset=utf-8")
-                .set_body(session.execute(plan_path, numThreads)->dump())
+                .set_body(result->dump())
                 .done();
         } catch (exception& ex) { createErrorResponse(req, ex); }
         return restinio::request_accepted();
     });
 }
 
-void Server::registerGETGraphDebugInfo(unique_ptr<router_t>& router) {
+void Server::registerGETDebugInfo(unique_ptr<router_t>& router) {
     nlohmann::json json;
     json["method"] = "GET";
     json["url"] = "/graphDebugInfo";
-    json["desc"] = "Gets general information about the loaded graph database.";
+    json["desc"] = "Gets general information about the System and current Session.";
     helpCatalog["help"].push_back(json);
     router->http_get("/graphDebugInfo", [&](request_handle_t req, auto) {
         req->create_response()
             .append_header(restinio::http_field::content_type, "text/plain; charset=utf-8")
-            .set_body(session.getGraphDebugInfo()->dump())
+            .set_body(session.debugInfo()->dump())
             .done();
 
         return restinio::request_accepted();
