@@ -1,7 +1,5 @@
 #pragma once
 
-#include <unordered_set>
-
 #include "src/expression/include/logical/logical_expression.h"
 #include "src/parser/include/parsed_expression.h"
 #include "src/storage/include/catalog.h"

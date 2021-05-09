@@ -10,6 +10,7 @@ cc_library(
         "include/enumerator.h",
         "include/subgraph_plan_table.h",
     ],
+    visibility = ["//visibility:public"],
     deps = [
         "binder",
         "logical_plan",
@@ -66,24 +67,6 @@ cc_library(
     ],
     deps = [
         "//src/expression",
-    ],
-)
-
-cc_library(
-    name = "query_planner",
-    srcs = [
-        "query_planner.cpp",
-    ],
-    hdrs = [
-        "include/query_planner.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "binder",
-        "enumerator",
-        "logical_plan",
-        "//src/parser",
-        "//src/storage:catalog",
     ],
 )
 
