@@ -7,10 +7,9 @@
 #include "src/processor/include/physical_plan/physical_plan.h"
 #include "src/processor/include/processor.h"
 
-/*
 TEST(HashJoinTests, HashJoinTest1T1) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0 /* not used */, 10);
+    MorselsDesc probeMorsel(0 /* not used */, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -27,8 +26,8 @@ TEST(HashJoinTests, HashJoinTest1T1) {
 }
 
 TEST(HashJoinTests, HashJoinTest1T2) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0 /* not used */, 10);
+    MorselsDesc probeMorsel(0 /* not used */, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -45,8 +44,8 @@ TEST(HashJoinTests, HashJoinTest1T2) {
 }
 
 TEST(HashJoinTests, HashJoinTest1T4) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0 /* not used */, 10);
+    MorselsDesc probeMorsel(0 /* not used */, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -63,8 +62,8 @@ TEST(HashJoinTests, HashJoinTest1T4) {
 }
 
 TEST(HashJoinTests, HashJoinTest1T8) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0 /* not used */, 10);
+    MorselsDesc probeMorsel(0 /* not used */, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -80,9 +79,9 @@ TEST(HashJoinTests, HashJoinTest1T8) {
     ASSERT_EQ(result->numTuples, 4000);
 }
 
-TEST(HashJoinTests, HashJoinTest2T1) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+/*TEST(HashJoinTests, HashJoinTest2T1) {
+    MorselsDesc buildMorsel(0, 10);
+    MorselsDesc probeMorsel(0, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -99,8 +98,8 @@ TEST(HashJoinTests, HashJoinTest2T1) {
 }
 
 TEST(HashJoinTests, HashJoinTest2T2) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0, 10);
+    MorselsDesc probeMorsel(0, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -117,8 +116,8 @@ TEST(HashJoinTests, HashJoinTest2T2) {
 }
 
 TEST(HashJoinTests, HashJoinTest2T4) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0, 10);
+    MorselsDesc probeMorsel(0, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -135,8 +134,8 @@ TEST(HashJoinTests, HashJoinTest2T4) {
 }
 
 TEST(HashJoinTests, HashJoinTest2T8) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0, 10);
+    MorselsDesc probeMorsel(0, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -150,11 +149,11 @@ TEST(HashJoinTests, HashJoinTest2T8) {
     auto processor = make_unique<QueryProcessor>(8);
     auto result = processor->execute(move(plan), 8);
     ASSERT_EQ(result->numTuples, 400);
-}
+}*/
 
 TEST(HashJoinTests, HashJoinTest3T1) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0 /* not used */, 10);
+    MorselsDesc probeMorsel(0 /* not used */, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -171,8 +170,8 @@ TEST(HashJoinTests, HashJoinTest3T1) {
 }
 
 TEST(HashJoinTests, HashJoinTest3T2) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0 /* not used */, 10);
+    MorselsDesc probeMorsel(0 /* not used */, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -189,8 +188,8 @@ TEST(HashJoinTests, HashJoinTest3T2) {
 }
 
 TEST(HashJoinTests, HashJoinTest3T4) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0 /* not used */, 10);
+    MorselsDesc probeMorsel(0 /* not used */, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -207,8 +206,8 @@ TEST(HashJoinTests, HashJoinTest3T4) {
 }
 
 TEST(HashJoinTests, HashJoinTest3T8) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0 /* not used */, 10);
+    MorselsDesc probeMorsel(0 /* not used */, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -225,8 +224,8 @@ TEST(HashJoinTests, HashJoinTest3T8) {
 }
 
 TEST(HashJoinTests, HashJoinTest4T1) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0 /* not used */, 10);
+    MorselsDesc probeMorsel(0 /* not used */, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -243,8 +242,8 @@ TEST(HashJoinTests, HashJoinTest4T1) {
 }
 
 TEST(HashJoinTests, HashJoinTest4T4) {
-    MorselsDesc buildMorsel(10);
-    MorselsDesc probeMorsel(4);
+    MorselsDesc buildMorsel(0 /* not used */, 10);
+    MorselsDesc probeMorsel(0 /* not used */, 4);
     auto buildOp = make_unique<ScanMockOp>(buildMorsel);
     auto probeOp = make_unique<ProbeScanMockOp>(probeMorsel);
 
@@ -259,4 +258,3 @@ TEST(HashJoinTests, HashJoinTest4T4) {
     auto result = processor->execute(move(plan), 4);
     ASSERT_EQ(result->numTuples, 0);
 }
-*/

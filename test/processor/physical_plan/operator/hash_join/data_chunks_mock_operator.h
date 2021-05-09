@@ -7,20 +7,20 @@ using namespace graphflow::processor;
 
 namespace graphflow {
 namespace processor {
-/*
+
 class DataChunksMockOperator : public PhysicalOperator {
 public:
     DataChunksMockOperator(MorselsDesc& morsel) : PhysicalOperator(SCAN), morsel(morsel) {
-        dataChunks = make_shared<DataChunks>();
+        resultSet = make_shared<ResultSet>();
     }
-    explicit DataChunksMockOperator(shared_ptr<DataChunks> mockDataChunks, MorselsDesc& morsel)
+    explicit DataChunksMockOperator(shared_ptr<ResultSet> mockDataChunks, MorselsDesc& morsel)
         : PhysicalOperator(SCAN), morsel(morsel) {
-        dataChunks = move(mockDataChunks);
+        resultSet = move(mockDataChunks);
     }
 
     void getNextTuples() override {}
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<DataChunksMockOperator>(dataChunks, morsel);
+        return make_unique<DataChunksMockOperator>(resultSet, morsel);
     }
 
     MorselsDesc& morsel;
@@ -78,6 +78,6 @@ public:
 private:
     void generateDataChunks();
 };
-*/
+
 } // namespace processor
 } // namespace graphflow

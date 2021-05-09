@@ -1,18 +1,16 @@
 #include "data_chunks_mock_operator.h"
-/*
+
 void ScanMockOp::getNextTuples() {
-    lock_guard lock(morsel.mtx);
+    lock_guard<mutex> lock(morsel.mtx);
     if (morsel.currNodeOffset < morsel.numNodes) {
-        dataChunks->getDataChunkState(1)->currPos = morsel.currNodeOffset;
+        resultSet->dataChunks[1]->state->currPos = morsel.currNodeOffset;
         morsel.currNodeOffset += 1;
         return;
     }
-    dataChunks->getDataChunkState(0)->size = 0;
-    dataChunks->getDataChunkState(1)->size = 0;
-    dataChunks->getDataChunkState(2)->size = 0;
-    dataChunks->getDataChunkState(0)->numSelectedValues = 0;
-    dataChunks->getDataChunkState(1)->numSelectedValues = 0;
-    dataChunks->getDataChunkState(2)->numSelectedValues = 0;
+    for (auto i = 0u; i < 3; i++) {
+        resultSet->dataChunks[i]->state->size = 0;
+        resultSet->dataChunks[i]->state->numSelectedValues = 0;
+    }
 }
 
 void ScanMockOp::generateDataChunks() {
@@ -21,20 +19,20 @@ void ScanMockOp::generateDataChunks() {
     auto dataChunkC = make_shared<DataChunk>();
 
     NodeIDCompressionScheme compressionScheme;
-    auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme);
+    auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme, false);
     auto vectorA2 = make_shared<ValueVector>(INT32);
-    auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme);
+    auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme, false);
     auto vectorB2 = make_shared<ValueVector>(DOUBLE);
-    auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme);
+    auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme, false);
     auto vectorC2 = make_shared<ValueVector>(BOOL);
 
     for (int32_t i = 0; i < 10; i++) {
-        vectorA1->setValue<uint64_t>(i, (uint64_t)i);
-        vectorA2->setValue<int32_t>(i, (int32_t)(i * 2));
-        vectorB1->setValue<uint64_t>(i, (uint64_t)i);
-        vectorB2->setValue(i, (double)(i / 2));
-        vectorC1->setValue<uint64_t>(i, (uint64_t)i);
-        vectorC2->setValue(i, (bool)((i / 2) == 1));
+        ((uint64_t*)vectorA1->values)[i] = (uint64_t)i;
+        ((int32_t*)vectorA1->values)[i] = (int32_t)(i * 2);
+        ((uint64_t*)vectorB1->values)[i] = (uint64_t)i;
+        ((double_t*)vectorB2->values)[i] = (double_t)(i / 2);
+        ((uint64_t*)vectorC1->values)[i] = (uint64_t)i;
+        ((uint8_t*)vectorC2->values)[i] = (bool)((i / 2) == 1);
     }
     dataChunkA->append(vectorA1);
     dataChunkA->append(vectorA2);
@@ -52,24 +50,22 @@ void ScanMockOp::generateDataChunks() {
     dataChunkA->state->currPos = 0;
     dataChunkB->state->currPos = 0;
     dataChunkC->state->currPos = -1;
-    dataChunks->append(dataChunkA);
-    dataChunks->append(dataChunkB);
-    dataChunks->append(dataChunkC);
+    resultSet->append(dataChunkA);
+    resultSet->append(dataChunkB);
+    resultSet->append(dataChunkC);
 }
 
 void ScanMockOpWithSelector::getNextTuples() {
-    lock_guard lock(morsel.mtx);
+    lock_guard<mutex> lock(morsel.mtx);
     if (morsel.currNodeOffset < morsel.numNodes) {
-        dataChunks->getDataChunk(1)->state->currPos = morsel.currNodeOffset;
+        resultSet->dataChunks[1]->state->currPos = morsel.currNodeOffset;
         morsel.currNodeOffset += 1;
         return;
     }
-    dataChunks->getDataChunkState(0)->size = 0;
-    dataChunks->getDataChunkState(1)->size = 0;
-    dataChunks->getDataChunkState(2)->size = 0;
-    dataChunks->getDataChunkState(0)->numSelectedValues = 0;
-    dataChunks->getDataChunkState(1)->numSelectedValues = 0;
-    dataChunks->getDataChunkState(2)->numSelectedValues = 0;
+    for (auto i = 0u; i < 3; i++) {
+        resultSet->dataChunks[i]->state->size = 0;
+        resultSet->dataChunks[i]->state->numSelectedValues = 0;
+    }
 }
 
 void ScanMockOpWithSelector::generateDataChunks() {
@@ -78,20 +74,20 @@ void ScanMockOpWithSelector::generateDataChunks() {
     auto dataChunkC = make_shared<DataChunk>();
 
     NodeIDCompressionScheme compressionScheme;
-    auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme);
+    auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme, false);
     auto vectorA2 = make_shared<ValueVector>(INT32);
-    auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme);
+    auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme, false);
     auto vectorB2 = make_shared<ValueVector>(DOUBLE);
-    auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme);
+    auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme, false);
     auto vectorC2 = make_shared<ValueVector>(BOOL);
 
     for (int32_t i = 0; i < 10; i++) {
-        vectorA1->setValue<uint64_t>(i, (uint64_t)i);
-        vectorA2->setValue<int32_t>(i, (int32_t)(i * 2));
-        vectorB1->setValue<uint64_t>(i, (uint64_t)i);
-        vectorB2->setValue(i, (double)(i / 2));
-        vectorC1->setValue<uint64_t>(i, (uint64_t)i);
-        vectorC2->setValue(i, (bool)((i / 2) == 1));
+        ((uint64_t*)vectorA1->values)[i] = (uint64_t)i;
+        ((int32_t*)vectorA1->values)[i] = (int32_t)(i * 2);
+        ((uint64_t*)vectorB1->values)[i] = (uint64_t)i;
+        ((double_t*)vectorB2->values)[i] = (double_t)(i / 2);
+        ((uint64_t*)vectorC1->values)[i] = (uint64_t)i;
+        vectorC2->values[i] = (bool)((i / 2) == 1);
     }
     dataChunkA->append(vectorA1);
     dataChunkA->append(vectorA2);
@@ -106,30 +102,28 @@ void ScanMockOpWithSelector::generateDataChunks() {
     dataChunkA->state->numSelectedValues = 10;
     dataChunkB->state->numSelectedValues = 10;
     dataChunkC->state->numSelectedValues = 10;
-    for (uint64_t i = 0; i < 10; i++) {
+    for (auto i = 0u; i < 10; i++) {
         dataChunkB->state->selectedValuesPos[i] = 2;
     }
     dataChunkA->state->currPos = 0;
     dataChunkB->state->currPos = 0;
     dataChunkC->state->currPos = -1;
-    dataChunks->append(dataChunkA);
-    dataChunks->append(dataChunkB);
-    dataChunks->append(dataChunkC);
+    resultSet->append(dataChunkA);
+    resultSet->append(dataChunkB);
+    resultSet->append(dataChunkC);
 }
 
 void ProbeScanMockOp::getNextTuples() {
-    lock_guard lock(morsel.mtx);
+    lock_guard<mutex> lock(morsel.mtx);
     if (morsel.currNodeOffset < morsel.numNodes) {
-        dataChunks->getDataChunk(1)->state->currPos = morsel.currNodeOffset;
+        resultSet->dataChunks[1]->state->currPos = morsel.currNodeOffset;
         morsel.currNodeOffset += 1;
         return;
     }
-    dataChunks->getDataChunkState(0)->size = 0;
-    dataChunks->getDataChunkState(1)->size = 0;
-    dataChunks->getDataChunkState(2)->size = 0;
-    dataChunks->getDataChunkState(0)->numSelectedValues = 0;
-    dataChunks->getDataChunkState(1)->numSelectedValues = 0;
-    dataChunks->getDataChunkState(2)->numSelectedValues = 0;
+    for (auto i = 0u; i < 3; i++) {
+        resultSet->dataChunks[i]->state->size = 0;
+        resultSet->dataChunks[i]->state->numSelectedValues = 0;
+    }
 }
 
 void ProbeScanMockOp::generateDataChunks() {
@@ -138,20 +132,20 @@ void ProbeScanMockOp::generateDataChunks() {
     auto dataChunkC = make_shared<DataChunk>();
 
     NodeIDCompressionScheme compressionScheme;
-    auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme);
+    auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme, false);
     auto vectorA2 = make_shared<ValueVector>(INT32);
-    auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme);
+    auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme, false);
     auto vectorB2 = make_shared<ValueVector>(DOUBLE);
-    auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme);
+    auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme, false);
     auto vectorC2 = make_shared<ValueVector>(BOOL);
 
     for (int32_t i = 0; i < 10; i++) {
-        vectorA1->setValue<uint64_t>(i, (uint64_t)i);
-        vectorA2->setValue<int32_t>(i, (int32_t)(i * 2));
-        vectorB1->setValue<uint64_t>(i, (uint64_t)i);
-        vectorB2->setValue(i, (double)(i / 2));
-        vectorC1->setValue<uint64_t>(i, (uint64_t)i);
-        vectorC2->setValue(i, (bool)((i / 2) == 1));
+        ((uint64_t*)vectorA1->values)[i] = (uint64_t)i;
+        ((int32_t*)vectorA1->values)[i] = (int32_t)(i * 2);
+        ((uint64_t*)vectorB1->values)[i] = (uint64_t)i;
+        ((double_t*)vectorB2->values)[i] = (double_t)(i / 2);
+        ((uint64_t*)vectorC1->values)[i] = (uint64_t)i;
+        vectorC2->values[i] = (bool)((i / 2) == 1);
     }
     dataChunkA->append(vectorA1);
     dataChunkA->append(vectorA2);
@@ -169,24 +163,22 @@ void ProbeScanMockOp::generateDataChunks() {
     dataChunkA->state->currPos = 0;
     dataChunkB->state->currPos = 2;
     dataChunkC->state->currPos = -1;
-    dataChunks->append(dataChunkA);
-    dataChunks->append(dataChunkB);
-    dataChunks->append(dataChunkC);
+    resultSet->append(dataChunkA);
+    resultSet->append(dataChunkB);
+    resultSet->append(dataChunkC);
 }
 
 void ProbeScanMockOpWithSelector::getNextTuples() {
-    lock_guard lock(morsel.mtx);
+    lock_guard<mutex> lock(morsel.mtx);
     if (morsel.currNodeOffset < morsel.numNodes) {
-        dataChunks->getDataChunk(1)->state->currPos = morsel.currNodeOffset;
+        resultSet->dataChunks[1]->state->currPos = morsel.currNodeOffset;
         morsel.currNodeOffset += 1;
         return;
     }
-    dataChunks->getDataChunkState(0)->size = 0;
-    dataChunks->getDataChunkState(1)->size = 0;
-    dataChunks->getDataChunkState(2)->size = 0;
-    dataChunks->getDataChunkState(0)->numSelectedValues = 0;
-    dataChunks->getDataChunkState(1)->numSelectedValues = 0;
-    dataChunks->getDataChunkState(2)->numSelectedValues = 0;
+    for (auto i = 0u; i < 3; i++) {
+        resultSet->dataChunks[i]->state->size = 0;
+        resultSet->dataChunks[i]->state->numSelectedValues = 0;
+    }
 }
 
 void ProbeScanMockOpWithSelector::generateDataChunks() {
@@ -195,20 +187,20 @@ void ProbeScanMockOpWithSelector::generateDataChunks() {
     auto dataChunkC = make_shared<DataChunk>();
 
     NodeIDCompressionScheme compressionScheme;
-    auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme);
+    auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme, false);
     auto vectorA2 = make_shared<ValueVector>(INT32);
-    auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme);
+    auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme, false);
     auto vectorB2 = make_shared<ValueVector>(DOUBLE);
-    auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme);
+    auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme, false);
     auto vectorC2 = make_shared<ValueVector>(BOOL);
 
     for (int32_t i = 0; i < 10; i++) {
-        vectorA1->setValue<uint64_t>(i, (uint64_t)i);
-        vectorA2->setValue<int32_t>(i, (int32_t)(i * 2));
-        vectorB1->setValue<uint64_t>(i, (uint64_t)i);
-        vectorB2->setValue(i, (double)(i / 2));
-        vectorC1->setValue<uint64_t>(i, (uint64_t)i);
-        vectorC2->setValue(i, (bool)((i / 2) == 1));
+        ((uint64_t*)vectorA1->values)[i] = (uint64_t)i;
+        ((int32_t*)vectorA1->values)[i] = (int32_t)(i * 2);
+        ((uint64_t*)vectorB1->values)[i] = (uint64_t)i;
+        ((double_t*)vectorB2->values)[i] = (double_t)(i / 2);
+        ((uint64_t*)vectorC1->values)[i] = (uint64_t)i;
+        vectorC2->values[i] = (bool)((i / 2) == 1);
     }
     dataChunkA->append(vectorA1);
     dataChunkA->append(vectorA2);
@@ -229,8 +221,7 @@ void ProbeScanMockOpWithSelector::generateDataChunks() {
     dataChunkA->state->currPos = 0;
     dataChunkB->state->currPos = 0;
     dataChunkC->state->currPos = -1;
-    dataChunks->append(dataChunkA);
-    dataChunks->append(dataChunkB);
-    dataChunks->append(dataChunkC);
+    resultSet->append(dataChunkA);
+    resultSet->append(dataChunkB);
+    resultSet->append(dataChunkC);
 }
-*/
