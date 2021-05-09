@@ -10,13 +10,13 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace processor {
 
-class ScanStructuredColumn : public ScanAttribute {
+class ScanColumn : public ScanAttribute {
 
 public:
-    ScanStructuredColumn(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+    ScanColumn(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
         unique_ptr<PhysicalOperator> prevOperator);
 
-    ~ScanStructuredColumn() { column->reclaim(handle); }
+    ~ScanColumn() { column->reclaim(handle); }
 
     void getNextTuples() override;
 

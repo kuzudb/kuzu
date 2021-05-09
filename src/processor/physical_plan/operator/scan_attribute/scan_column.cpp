@@ -1,10 +1,10 @@
-#include "src/processor/include/physical_plan/operator/scan_attribute/scan_structured_column.h"
+#include "src/processor/include/physical_plan/operator/scan_attribute/scan_column.h"
 
 namespace graphflow {
 namespace processor {
 
-ScanStructuredColumn::ScanStructuredColumn(uint64_t dataChunkPos, uint64_t valueVectorPos,
-    BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator)
+ScanColumn::ScanColumn(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+    unique_ptr<PhysicalOperator> prevOperator)
     : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator)}, column{column} {
     resultSet = this->prevOperator->getResultSet();
     inDataChunk = resultSet->dataChunks[dataChunkPos];
@@ -12,7 +12,7 @@ ScanStructuredColumn::ScanStructuredColumn(uint64_t dataChunkPos, uint64_t value
     handle = make_unique<DataStructureHandle>();
 }
 
-void ScanStructuredColumn::getNextTuples() {
+void ScanColumn::getNextTuples() {
     do {
         prevOperator->getNextTuples();
     } while (inDataChunk->state->size > 0 && inDataChunk->state->numSelectedValues == 0);

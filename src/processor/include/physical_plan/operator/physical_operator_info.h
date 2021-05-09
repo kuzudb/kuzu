@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 using namespace std;
 
@@ -13,22 +14,10 @@ namespace processor {
 class PhysicalOperatorsInfo {
 
 public:
-    uint64_t appendAsNewDataChunk(const string& variableName) {
-        vector<string> newDataChunk;
-        newDataChunk.push_back(variableName);
-        auto newDataChunkPos = vectorVariables.size();
-        variableToDataPosMap.insert({variableName, make_pair(newDataChunkPos, 0)});
-        vectorVariables.push_back(newDataChunk);
-        dataChunkPosToIsFlat.push_back(false /* is not flat */);
-        return newDataChunkPos;
-    }
+    uint64_t appendAsNewDataChunk(const string& variableName);
 
     // Append the given variable as a new vector into the given dataChunkPos
-    void appendAsNewValueVector(const string& variableName, uint64_t dataChunkPos) {
-        auto& dataChunk = vectorVariables[dataChunkPos];
-        variableToDataPosMap.insert({variableName, make_pair(dataChunkPos, dataChunk.size())});
-        dataChunk.push_back(variableName);
-    }
+    void appendAsNewValueVector(const string& variableName, uint64_t dataChunkPos);
 
     inline uint64_t getDataChunkPos(const string& variableName) {
         return variableToDataPosMap.at(variableName).first;
@@ -38,11 +27,7 @@ public:
         return variableToDataPosMap.at(variableName).second;
     }
 
-    void clear() {
-        dataChunkPosToIsFlat.clear();
-        vectorVariables.clear();
-        variableToDataPosMap.clear();
-    }
+    void clear();
 
 public:
     // Record isFlat for each data chunk
