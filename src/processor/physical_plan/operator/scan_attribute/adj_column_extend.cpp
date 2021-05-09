@@ -5,7 +5,7 @@ namespace processor {
 
 AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
     unique_ptr<PhysicalOperator> prevOperator)
-    : ScanStructuredColumn{dataChunkPos, valueVectorPos, column, move(prevOperator)},
+    : ScanColumn{dataChunkPos, valueVectorPos, column, move(prevOperator)},
       prevInNumSelectedValues(0ul) {
     auto outNodeIDVector = make_shared<NodeIDVector>(
         0, ((AdjColumn*)column)->getCompressionScheme(), false /*inNodeIDVector->isSequence()*/);
@@ -17,7 +17,7 @@ void AdjColumnExtend::getNextTuples() {
     bool hasAtLeastOneNonNullValue;
     do {
         inDataChunk->state->numSelectedValues = prevInNumSelectedValues;
-        ScanStructuredColumn::getNextTuples();
+        ScanColumn::getNextTuples();
         prevInNumSelectedValues = inDataChunk->state->numSelectedValues;
         hasAtLeastOneNonNullValue =
             static_pointer_cast<NodeIDVector>(outValueVector)->discardNulls();
