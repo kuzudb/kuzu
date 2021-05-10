@@ -6,7 +6,7 @@ namespace parser {
 class Parser {
 
 public:
-    unique_ptr<SingleQuery> parseQuery(string query);
+    static unique_ptr<SingleQuery> parseQuery(const string& query);
 };
 
 } // namespace parser

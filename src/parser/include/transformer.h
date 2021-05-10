@@ -1,10 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <string>
-
 #include "src/antlr4/CypherParser.h"
-#include "src/parser/include/parsed_expression.h"
 #include "src/parser/include/queries/single_query.h"
 
 using namespace std;

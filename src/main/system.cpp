@@ -1,6 +1,7 @@
 #include "src/main/include/system.h"
 
-using namespace graphflow::planner;
+#include "src/parser/include/parser.h"
+#include "src/planner/include/enumerator.h"
 
 namespace graphflow {
 namespace main {
@@ -25,11 +26,13 @@ void System::initialize(string path) {
     processor.reset(new QueryProcessor(config.numProcessorThreads));
 }
 
-vector<unique_ptr<LogicalPlan>> System::enumerateLogicalPlans(string query) {
+vector<unique_ptr<LogicalPlan>> System::enumerateLogicalPlans(const string& query) {
     if (!isInitialized()) {
         throw invalid_argument("System is not initialized");
     }
-    return QueryPlanner::enumeratePlans(query, graph->getCatalog());
+    auto parsedQuery = Parser::parseQuery(query);
+    auto boundQuery = Binder(graph->getCatalog()).bindSingleQuery(*parsedQuery);
+    return Enumerator(graph->getCatalog(), *boundQuery).enumeratePlans();
 }
 
 unique_ptr<QueryResult> System::execute(unique_ptr<LogicalPlan> plan, uint32_t numThreads) {

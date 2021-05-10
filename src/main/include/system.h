@@ -2,7 +2,6 @@
 
 #include "src/main/include/system_config.h"
 #include "src/planner/include/logical_plan/logical_plan.h"
-#include "src/planner/include/query_planner.h"
 #include "src/processor/include/processor.h"
 #include "src/storage/include/graph.h"
 #include "src/transaction/include/transaction.h"
@@ -28,7 +27,7 @@ public:
                nullptr != processor.get();
     }
 
-    vector<unique_ptr<LogicalPlan>> enumerateLogicalPlans(string query);
+    vector<unique_ptr<LogicalPlan>> enumerateLogicalPlans(const string& query);
 
     unique_ptr<QueryResult> execute(unique_ptr<LogicalPlan> plan, uint32_t numThreads);
 

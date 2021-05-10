@@ -3,7 +3,6 @@
 #include <functional>
 #include <unordered_map>
 #include <unordered_set>
-#include <vector>
 
 #include "src/planner/include/logical_plan/logical_plan.h"
 #include "src/planner/include/query_graph/query_graph.h"

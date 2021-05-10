@@ -11,7 +11,7 @@ using namespace antlr4;
 namespace graphflow {
 namespace parser {
 
-unique_ptr<SingleQuery> Parser::parseQuery(string query) {
+unique_ptr<SingleQuery> Parser::parseQuery(const string& query) {
     auto inputStream = ANTLRInputStream(query);
     auto parserErrorListener = ParserErrorListener();
 
