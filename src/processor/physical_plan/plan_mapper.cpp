@@ -5,6 +5,7 @@
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
+#include "src/planner/include/logical_plan/operator/load_csv/logical_load_csv.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
@@ -14,6 +15,7 @@
 #include "src/processor/include/physical_plan/operator/flatten/flatten.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
+#include "src/processor/include/physical_plan/operator/load_csv/load_csv.h"
 #include "src/processor/include/physical_plan/operator/physical_operator_info.h"
 #include "src/processor/include/physical_plan/operator/projection/projection.h"
 #include "src/processor/include/physical_plan/operator/read_list/adj_list_extend.h"
@@ -61,6 +63,10 @@ static unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
     const LogicalOperator& logicalOperator, const Graph& graph,
     PhysicalOperatorsInfo& physicalOperatorInfo);
 
+static unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo);
+
 // helper functions used by mapLogical{Filter/Projection}ToPhysical.
 static unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
     const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo,
@@ -95,6 +101,8 @@ unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator&
         return mapLogicalNodePropertyReaderToPhysical(logicalOperator, graph, physicalOperatorInfo);
     case LOGICAL_SCAN_REL_PROPERTY:
         return mapLogicalRelPropertyReaderToPhysical(logicalOperator, graph, physicalOperatorInfo);
+    case LOGICAL_LOAD_CSV:
+        return mapLogicalLoadCSVToPhysical(logicalOperator, graph, physicalOperatorInfo);
     default:
         assert(false);
     }
@@ -389,6 +397,25 @@ unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator&
         move(probeSidePrevOperator));
     hashJoinProbe->sharedState = hashJoinSharedState;
     return hashJoinProbe;
+}
+
+unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(const LogicalOperator& logicalOperator,
+    const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    auto& logicalLoadCSV = (const LogicalLoadCSV&)logicalOperator;
+    auto& columnInfo = logicalLoadCSV.csvColumnVariableInfo;
+    assert(0 != columnInfo.size());
+    vector<DataType> csvColumnDataTypes;
+    uint64_t dataChunkPos;
+    for (auto i = 0u; i < columnInfo.size(); i++) {
+        if (0u == i) {
+            dataChunkPos = physicalOperatorInfo.appendAsNewDataChunk(columnInfo[0].first);
+        } else {
+            physicalOperatorInfo.appendAsNewValueVector(columnInfo[i].first, dataChunkPos);
+        }
+        csvColumnDataTypes.push_back(columnInfo[i].second);
+    }
+    return make_unique<LoadCSV>(
+        logicalLoadCSV.path, logicalLoadCSV.tokenSeparator, csvColumnDataTypes);
 }
 
 } // namespace processor

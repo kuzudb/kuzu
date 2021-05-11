@@ -13,8 +13,8 @@ public:
         string propertyName, shared_ptr<LogicalOperator> prevOperator)
         : LogicalOperator{prevOperator}, boundNodeID{move(boundNodeID)},
           boundNodeLabel{boundNodeLabel}, nbrNodeID{move(nbrNodeID)}, nbrNodeLabel{nbrNodeLabel},
-          relName{move(relName)}, relLabel{relLabel}, direction{direction}, propertyName{move(
-                                                                                propertyName)} {}
+          relName{move(relName)}, relLabel{relLabel}, direction{direction},
+          propertyName(move(propertyName)) {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_SCAN_REL_PROPERTY;

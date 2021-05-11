@@ -1,21 +1,17 @@
-#include "src/loader/include/csv_reader.h"
+#include "src/common/include/csv_reader/csv_reader.h"
 
 #include <fstream>
 
 #include "src/common/include/configs.h"
 
 namespace graphflow {
-namespace loader {
+namespace common {
 
 CSVReader::CSVReader(const string& fname, const char tokenSeparator, uint64_t blockId)
-    : tokenSeparator(tokenSeparator), nextLineIsNotProcessed{false}, isEndOfBlock{false},
-      nextTokenIsNotProcessed{false}, line{new char[1 << 10]}, lineCapacity{1 << 10}, lineLen{0},
-      linePtrStart{-1l}, linePtrEnd{-1l}, readingBlockIdx(CSV_READING_BLOCK_SIZE * blockId),
+    : tokenSeparator(tokenSeparator), line{new char[1 << 10]},
+      readingBlockIdx(CSV_READING_BLOCK_SIZE * blockId),
       readingBlockEndIdx(CSV_READING_BLOCK_SIZE * (blockId + 1)) {
-    f = fopen(fname.c_str(), "r");
-    if (nullptr == f) {
-        throw invalid_argument("Cannot open file: " + fname);
-    }
+    openFile(fname);
     auto isBeginningOfLine = false;
     if (0 == readingBlockIdx) {
         isBeginningOfLine = true;
@@ -28,8 +24,13 @@ CSVReader::CSVReader(const string& fname, const char tokenSeparator, uint64_t bl
     if (!isBeginningOfLine) {
         while ('\n' != fgetc(f)) {}
     }
-    nextLineIsNotProcessed = false;
-    isEndOfBlock = false;
+}
+
+CSVReader::CSVReader(const string& fname, const char tokenSeparator)
+    : tokenSeparator(tokenSeparator), line{new char[1 << 10]} {
+    openFile(fname);
+    readingBlockIdx = 0;
+    readingBlockEndIdx = UINT64_MAX;
 }
 
 CSVReader::~CSVReader() {
@@ -38,23 +39,28 @@ CSVReader::~CSVReader() {
 }
 
 bool CSVReader::hasNextLine() {
+    // the block has already been ended, return false.
     if (isEndOfBlock) {
         return false;
     }
+    // the previous line has not been processed yet, return true.
     if (nextLineIsNotProcessed) {
         return true;
     }
+    // file cursor is past the block limit, end the block, return false.
     if (ftell(f) >= readingBlockEndIdx) {
-        isEndOfBlock = false;
+        isEndOfBlock = true;
         return false;
     }
+    // else, read the next line.
     lineLen = getline(&line, &lineCapacity, f);
     while (2 > lineLen || '#' == line[0]) {
         lineLen = getline(&line, &lineCapacity, f);
     };
     linePtrStart = linePtrEnd = -1;
+    // file ends, end the file.
     if (feof(f)) {
-        isEndOfBlock = false;
+        isEndOfBlock = true;
         return false;
     }
     return true;
@@ -113,5 +119,12 @@ char* CSVReader::getString() {
     return line + linePtrStart;
 }
 
-} // namespace loader
+void CSVReader::openFile(string fname) {
+    f = fopen(fname.c_str(), "r");
+    if (nullptr == f) {
+        throw invalid_argument("Cannot open file: " + fname);
+    }
+}
+
+} // namespace common
 } // namespace graphflow

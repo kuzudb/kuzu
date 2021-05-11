@@ -3,15 +3,6 @@
 namespace graphflow {
 namespace processor {
 
-ScanColumn::ScanColumn(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
-    unique_ptr<PhysicalOperator> prevOperator)
-    : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator)}, column{column} {
-    resultSet = this->prevOperator->getResultSet();
-    inDataChunk = resultSet->dataChunks[dataChunkPos];
-    inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
-    handle = make_unique<DataStructureHandle>();
-}
-
 void ScanColumn::getNextTuples() {
     do {
         prevOperator->getNextTuples();

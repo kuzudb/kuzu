@@ -14,7 +14,8 @@ class ScanColumn : public ScanAttribute {
 
 public:
     ScanColumn(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
-        unique_ptr<PhysicalOperator> prevOperator);
+        unique_ptr<PhysicalOperator> prevOperator)
+        : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator)}, column{column} {};
 
     ~ScanColumn() { column->reclaim(handle); }
 

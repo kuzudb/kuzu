@@ -4,9 +4,9 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
+#include "src/common/include/csv_reader/csv_reader.h"
 #include "src/loader/include/adj_and_prop_columns_builder.h"
 #include "src/loader/include/adj_and_prop_lists_builder.h"
-#include "src/loader/include/csv_reader.h"
 #include "src/loader/include/thread_pool.h"
 
 namespace graphflow {

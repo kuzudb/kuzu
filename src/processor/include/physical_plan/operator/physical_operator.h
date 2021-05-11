@@ -24,6 +24,7 @@ enum PhysicalOperatorType : uint8_t {
     HASH_JOIN_BUILD,
     HASH_JOIN_PROBE,
     RESULT_COLLECTOR,
+    LOAD_CSV
 };
 
 class PhysicalOperator {

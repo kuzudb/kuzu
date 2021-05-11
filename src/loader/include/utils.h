@@ -19,8 +19,6 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace loader {
 
-constexpr char EMPTY_STRING = 0;
-
 // Maps the primary key of a node to the in-system used node offset.
 class NodeIDMap {
 
