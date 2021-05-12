@@ -39,8 +39,6 @@ static vector<shared_ptr<LogicalExpression>> createLogicalPropertyExpressions(
 
 static pair<string, string> splitVariableAndPropertyName(const string& name);
 
-static string variableNameToID(const string& name);
-
 Enumerator::Enumerator(const Graph& graph, const BoundSingleQuery& boundSingleQuery)
     : graph{graph}, boundSingleQuery{boundSingleQuery} {
     subgraphPlanTable = make_unique<SubgraphPlanTable>(boundSingleQuery.getNumQueryRels());
@@ -249,7 +247,7 @@ void Enumerator::appendLogicalScan(uint32_t queryNodePos, LogicalPlan& plan) {
     if (ANY_LABEL == queryNode.label) {
         throw invalid_argument("Match any label is not yet supported in LogicalScanNodeID.");
     }
-    auto nodeID = variableNameToID(queryNode.variableName);
+    auto nodeID = queryNode.getIDProperty();
     auto scan = make_shared<LogicalScanNodeID>(nodeID, queryNode.label);
     plan.schema->addMatchedAttribute(nodeID);
     plan.schema->initFlatFactorizationGroup(
@@ -265,8 +263,8 @@ void Enumerator::appendLogicalExtend(uint32_t queryRelPos, Direction direction, 
     }
     auto boundNode = FWD == direction ? queryRel.srcNode : queryRel.dstNode;
     auto nbrNode = FWD == direction ? queryRel.dstNode : queryRel.srcNode;
-    auto boundNodeID = variableNameToID(boundNode->variableName);
-    auto nbrNodeID = variableNameToID(nbrNode->variableName);
+    auto boundNodeID = boundNode->getIDProperty();
+    auto nbrNodeID = nbrNode->getIDProperty();
     auto isColumnExtend = graph.getCatalog().isSingleCaridinalityInDir(queryRel.label, direction);
     auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->label, nbrNodeID,
         nbrNode->label, queryRel.label, direction, isColumnExtend, plan.lastOperator);
@@ -288,7 +286,7 @@ void Enumerator::appendLogicalExtend(uint32_t queryRelPos, Direction direction, 
 
 void Enumerator::appendLogicalHashJoin(
     uint32_t joinNodePos, const LogicalPlan& planToJoin, LogicalPlan& plan) {
-    auto joinNodeID = variableNameToID(mergedQueryGraph->queryNodes[joinNodePos]->variableName);
+    auto joinNodeID = mergedQueryGraph->queryNodes[joinNodePos]->getIDProperty();
     auto hashJoin =
         make_shared<LogicalHashJoin>(joinNodeID, plan.lastOperator, planToJoin.lastOperator);
     plan.schema->merge(*planToJoin.schema);
@@ -348,9 +346,8 @@ void Enumerator::appendNecessaryScans(shared_ptr<LogicalExpression> expression, 
 void Enumerator::appendScanNodeProperty(
     const string& nodeName, const string& propertyName, LogicalPlan& plan) {
     auto queryNode = mergedQueryGraph->getQueryNode(nodeName);
-    auto scanProperty =
-        make_shared<LogicalScanNodeProperty>(variableNameToID(queryNode->variableName),
-            queryNode->label, queryNode->variableName, propertyName, plan.lastOperator);
+    auto scanProperty = make_shared<LogicalScanNodeProperty>(queryNode->getIDProperty(),
+        queryNode->label, queryNode->variableName, propertyName, plan.lastOperator);
     plan.schema->addMatchedAttribute(queryNode->variableName + "." + propertyName);
     plan.appendOperator(scanProperty);
 }
@@ -455,9 +452,9 @@ static vector<shared_ptr<LogicalExpression>> rewriteVariableAsAllProperties(
                 catalog.getUnstrPropertyKeyMapForNodeLabel(nodeExpression->label))) {
             propertyExpressions.push_back(propertyExpression);
         }
-        auto idProperty = make_shared<LogicalExpression>(
-            PROPERTY, NODE_ID, variableNameToID(variableExpression->variableName));
-        idProperty->alias = variableNameToID(variableExpression->variableName);
+        auto idProperty =
+            make_shared<LogicalExpression>(PROPERTY, NODE_ID, nodeExpression->getIDProperty());
+        idProperty->alias = nodeExpression->getIDProperty();
         propertyExpressions.push_back(idProperty);
         return propertyExpressions;
     } else {
@@ -485,10 +482,6 @@ vector<shared_ptr<LogicalExpression>> createLogicalPropertyExpressions(
 pair<string, string> splitVariableAndPropertyName(const string& name) {
     auto splitPos = name.find('.');
     return make_pair(name.substr(0, splitPos), name.substr(splitPos + 1));
-}
-
-string variableNameToID(const string& name) {
-    return name + "._id";
 }
 
 } // namespace planner

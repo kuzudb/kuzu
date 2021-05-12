@@ -1,0 +1,25 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_library(
+    name = "mock_objects",
+    hdrs = [
+        "mock_catalog.h",
+        "mock_graph.h",
+    ],
+    deps = [
+        "//src/storage:graph",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "optimizer_test",
+    srcs = [
+        "optimizer_test.cpp",
+    ],
+    deps = [
+        "mock_objects",
+        "//src/parser",
+        "//src/planner:enumerator",
+    ],
+)

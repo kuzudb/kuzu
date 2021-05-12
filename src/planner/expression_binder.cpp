@@ -231,7 +231,8 @@ shared_ptr<LogicalExpression> ExpressionBinder::bindFunctionExpression(
             throw invalid_argument("Expect " + child->rawExpression + " to be a node, but it was " +
                                    dataTypeToString(child->dataType));
         }
-        return make_shared<LogicalExpression>(PROPERTY, NODE_ID, child->variableName + "._id");
+        return make_shared<LogicalExpression>(
+            PROPERTY, NODE_ID, static_pointer_cast<LogicalNodeExpression>(child)->getIDProperty());
     } else {
         throw invalid_argument(functionName + " is not supported.");
     }
