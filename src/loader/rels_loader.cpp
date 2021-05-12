@@ -1,7 +1,5 @@
 #include "src/loader/include/rels_loader.h"
 
-#include "src/loader/include/csv_reader.h"
-
 namespace graphflow {
 namespace loader {
 
@@ -76,7 +74,7 @@ void RelsLoader::populateNumRels(AdjAndPropertyColumnsBuilder& adjAndPropertyCol
     graph.numRelsPerDirBoundLabelRelLabel.resize(2);
     for (auto& dir : DIRS) {
         graph.numRelsPerDirBoundLabelRelLabel[dir].resize(graph.getCatalog().getNodeLabelsCount());
-        for (auto i = 0; i < graph.getCatalog().getNodeLabelsCount(); i++) {
+        for (auto i = 0u; i < graph.getCatalog().getNodeLabelsCount(); i++) {
             graph.numRelsPerDirBoundLabelRelLabel[dir][i].resize(
                 graph.getCatalog().getRelLabelsCount(), 0);
         }
@@ -236,7 +234,8 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<DataType>& 
             break;
         }
         case STRING: {
-            auto strVal = reader.skipTokenIfNull() ? &EMPTY_STRING : reader.getString();
+            auto strVal =
+                reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
             adjAndPropertyColumnsBuilder->setStringProperty(
                 nodeID, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
             break;
@@ -278,7 +277,8 @@ void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<DataType>& pro
             break;
         }
         case STRING: {
-            auto strVal = reader.skipTokenIfNull() ? &EMPTY_STRING : reader.getString();
+            auto strVal =
+                reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
             adjAndPropertyListsBuilder->setStringProperty(
                 pos, nodeIDs, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
         }

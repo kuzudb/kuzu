@@ -11,18 +11,21 @@
 
 #include "src/common/include/types.h"
 
-using namespace graphflow::common;
 using namespace std;
 
 namespace graphflow {
-namespace loader {
+namespace common {
 
 // Iterator-like interface to read one block in a CSV file line-by-line while parsing into primitive
 // dataTypes.
 class CSVReader {
 
 public:
+    // Initializes to read a block in file.
     CSVReader(const string& fname, const char tokenSeparator, uint64_t blockId);
+    // Intializes to read the complete file.
+    CSVReader(const string& fname, const char tokenSeparator);
+
     ~CSVReader();
 
     // returns true if there are more lines to be parsed in a block of a CSV file, else false.
@@ -46,15 +49,18 @@ public:
     char* getString();
 
 private:
+    void openFile(string fname);
+
+private:
     FILE* f;
     const char tokenSeparator;
-    bool nextLineIsNotProcessed, isEndOfBlock, nextTokenIsNotProcessed;
+    bool nextLineIsNotProcessed = false, isEndOfBlock = false, nextTokenIsNotProcessed = false;
     char* line;
-    size_t lineCapacity, lineLen;
-    int64_t linePtrStart, linePtrEnd;
+    size_t lineCapacity = 1 << 10, lineLen = 0;
+    int64_t linePtrStart = -1l, linePtrEnd = -1l;
     size_t readingBlockIdx;
     size_t readingBlockEndIdx;
 };
 
-} // namespace loader
+} // namespace common
 } // namespace graphflow

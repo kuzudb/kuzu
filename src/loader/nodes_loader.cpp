@@ -289,7 +289,8 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<DataType>& propertyData
             break;
         }
         case STRING: {
-            auto strVal = reader.skipTokenIfNull() ? &EMPTY_STRING : reader.getString();
+            auto strVal =
+                reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
             auto encodedString = reinterpret_cast<gf_string_t*>(
                 buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(STRING)));
             propertyIdxStringOverflowPages[propertyIdx]->setStrInOvfPageAndPtrInEncString(
@@ -366,7 +367,8 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             break;
         }
         case STRING: {
-            auto strVal = reader.skipTokenIfNull() ? &EMPTY_STRING : reader.getString();
+            auto strVal =
+                reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
             auto encodedString = reinterpret_cast<gf_string_t*>(
                 unstrPropertyPages.getPtrToMemLoc(pageCursor) +
                 UnstructuredPropertyLists::

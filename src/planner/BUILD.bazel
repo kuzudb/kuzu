@@ -77,6 +77,7 @@ cc_library(
         "include/logical_plan/operator/extend/logical_extend.h",
         "include/logical_plan/operator/filter/logical_filter.h",
         "include/logical_plan/operator/hash_join/logical_hash_join.h",
+        "include/logical_plan/operator/load_csv/logical_load_csv.h",
         "include/logical_plan/operator/logical_operator.h",
         "include/logical_plan/operator/projection/logical_projection.h",
         "include/logical_plan/operator/scan_node_id/logical_scan_node_id.h",

@@ -7,7 +7,7 @@
 #include <unordered_set>
 
 #include "src/common/include/configs.h"
-#include "src/loader/include/csv_reader.h"
+#include "src/common/include/csv_reader/csv_reader.h"
 #include "src/loader/include/nodes_loader.h"
 #include "src/loader/include/rels_loader.h"
 

@@ -9,16 +9,6 @@ cc_library(
 )
 
 cc_library(
-    name = "csv_reader",
-    srcs = ["csv_reader.cpp"],
-    hdrs = ["include/csv_reader.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//src/common",
-    ],
-)
-
-cc_library(
     name = "graph_loader",
     srcs = [
         "adj_and_prop_columns_builder.cpp",
@@ -42,9 +32,9 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "csv_reader",
         "thread_pool",
         "//src/common",
+        "//src/common:csv_reader",
         "//src/storage:catalog",
         "//src/storage:data_structure_utils",
         "//src/storage:graph",
