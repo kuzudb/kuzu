@@ -54,5 +54,14 @@ bool NodeIDVector::discardNulls() {
     }
 }
 
+shared_ptr<ValueVector> NodeIDVector::clone() {
+    auto vectorCapacity = capacity / representation.compressionScheme.getNumTotalBytes();
+    auto newVector = make_shared<NodeIDVector>(
+        representation.commonLabel, representation.compressionScheme, representation.isSequence);
+    memcpy(newVector->nullMask, nullMask, vectorCapacity);
+    memcpy(newVector->values, values, capacity);
+    return newVector;
+}
+
 } // namespace common
 } // namespace graphflow

@@ -4,7 +4,7 @@ namespace graphflow {
 namespace common {
 
 DataChunkState::DataChunkState(bool initializeSelectedValuesPos, uint64_t capacity)
-    : size{0}, currPos{-1}, numSelectedValues(0) {
+    : size{0}, currPos{-1}, numSelectedValues{0} {
     valuesPos = make_unique<uint64_t[]>(capacity);
     selectedValuesPos = valuesPos.get();
     if (initializeSelectedValuesPos) {
@@ -21,6 +21,16 @@ shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
     state->size = 1;
     state->currPos = 0;
     return state;
+}
+
+shared_ptr<DataChunkState> DataChunkState::clone() {
+    auto capacity = sizeof(valuesPos.get()) / sizeof(uint64_t);
+    auto newState = make_shared<DataChunkState>(false /*initializeSelectedValuesPos*/, capacity);
+    newState->size = size;
+    newState->currPos = currPos;
+    newState->numSelectedValues = numSelectedValues;
+    memcpy(newState->valuesPos.get(), valuesPos.get(), capacity * sizeof(uint64_t));
+    return newState;
 }
 
 } // namespace common

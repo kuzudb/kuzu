@@ -38,7 +38,7 @@ TransactionStatus TransactionManager::rollback(Transaction* transaction) {
 void TransactionManager::removeTransaction(Transaction* transaction) {
     lock_guard lck(transaction_manager_lock);
     auto idx = activeTransactions.size();
-    for (auto i = 0; i < activeTransactions.size(); i++) {
+    for (auto i = 0u; i < activeTransactions.size(); i++) {
         if (activeTransactions[i].get() == transaction) {
             idx = i;
             break;

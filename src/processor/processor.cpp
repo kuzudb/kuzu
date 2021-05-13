@@ -32,9 +32,9 @@ QueryProcessor::~QueryProcessor() {
 
 // This function is currently blocking. In the future, this should async and return the result
 // wrapped in Future for syncing with the runner.
-unique_ptr<QueryResult> QueryProcessor::execute(
-    unique_ptr<LogicalPlan> plan, uint64_t maxNumThreads, const Graph& graph) {
-    auto physicalPlan = PlanMapper::mapToPhysical(move(plan), graph);
+unique_ptr<QueryResult> QueryProcessor::execute(unique_ptr<LogicalPlan> plan,
+    uint64_t maxNumThreads, Transaction* transactionPtr, const Graph& graph) {
+    auto physicalPlan = PlanMapper::mapToPhysical(move(plan), transactionPtr, graph);
     return execute(move(physicalPlan), maxNumThreads);
 }
 

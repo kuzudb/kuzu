@@ -27,6 +27,8 @@ public:
 
     inline uint64_t getCurrSelectedValuesPos() { return selectedValuesPos[currPos]; }
 
+    shared_ptr<DataChunkState> clone();
+
 public:
     uint64_t size;
     // The current position when vectors are flattened.

@@ -38,11 +38,12 @@ vector<unique_ptr<LogicalPlan>> System::enumerateLogicalPlans(const string& quer
     return Enumerator(*graph, *boundQuery).enumeratePlans();
 }
 
-unique_ptr<QueryResult> System::execute(unique_ptr<LogicalPlan> plan, uint32_t numThreads) {
+unique_ptr<QueryResult> System::execute(
+    unique_ptr<LogicalPlan> plan, Transaction* transactionPtr, uint32_t numThreads) {
     if (!isInitialized()) {
         throw invalid_argument("System is not initialized");
     }
-    auto result = processor->execute(move(plan), numThreads, *graph);
+    auto result = processor->execute(move(plan), numThreads, transactionPtr, *graph);
     return result;
 }
 

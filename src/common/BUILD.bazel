@@ -4,6 +4,7 @@ cc_library(
     name = "common",
     srcs = [
         "compression_scheme.cpp",
+        "data_chunk/data_chunk.cpp",
         "data_chunk/data_chunk_state.cpp",
         "expression_type.cpp",
         "file_ser_deser_helper.cpp",

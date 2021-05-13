@@ -22,5 +22,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "local_storage",
+        "//src/storage:data_structure",
     ],
 )
