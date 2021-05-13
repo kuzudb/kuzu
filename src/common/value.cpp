@@ -25,6 +25,8 @@ Value& Value::operator=(const Value& other) {
     default:
         assert(false);
     }
+
+    return *this;
 }
 
 void Value::castToString() {

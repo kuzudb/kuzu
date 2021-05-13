@@ -5,8 +5,7 @@ cc_test(
     srcs = [
         "physical_plan/expression_mapper_test.cpp",
         "physical_plan/operator/scan/scan_test.cpp",
-        "physical_plan/operator/hash_join/hash_join_test.cpp",
-        "physical_plan/operator/tuple/data_chunks_iterator_test.cpp",
+        "physical_plan/operator/tuple/result_set_iterator_test.cpp",
         "processor_test.cpp",
         "memory_manager_test.cpp"
     ],
@@ -14,22 +13,8 @@ cc_test(
         "-Iexternal/gtest/include",
     ],
     deps = [
-        "mock_operators_for_hash_join",
         "//src/processor",
         "@gtest",
         "@gtest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "mock_operators_for_hash_join",
-    srcs = [
-        "physical_plan/operator/hash_join/data_chunks_mock_operator.cpp"
-    ],
-    hdrs = [
-        "physical_plan/operator/hash_join/data_chunks_mock_operator.h"
-    ],
-    deps = [
-        "//src/processor"
     ],
 )

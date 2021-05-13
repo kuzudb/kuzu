@@ -15,32 +15,30 @@ static uint64_t nextPowerOfTwo(uint64_t v) {
     return v;
 }
 
-HashJoinBuild::HashJoinBuild(
-    uint64_t keyDataChunkPos, uint64_t keyVectorPos, unique_ptr<PhysicalOperator> prevOperator)
-    : Sink(move(prevOperator), HASH_JOIN_BUILD), keyDataChunkPos(keyDataChunkPos),
-      keyVectorPos(keyVectorPos), numEntries(0) {
-    resultSet = this->prevOperator->getResultSet();
-    keyDataChunk = resultSet->dataChunks[keyDataChunkPos];
-    nonKeyDataChunks = make_shared<ResultSet>();
-    for (uint64_t i = 0; i < resultSet->dataChunks.size(); i++) {
-        if (i != keyDataChunkPos) {
-            nonKeyDataChunks->append(resultSet->dataChunks[i]);
-        }
-    }
+HashJoinBuild::HashJoinBuild(uint64_t keyDataChunkPos, uint64_t keyVectorPos,
+    vector<bool> dataChunkPosToIsFlat, unique_ptr<PhysicalOperator> prevOperator)
+    : Sink{move(prevOperator), HASH_JOIN_BUILD}, memManager{nullptr},
+      keyDataChunkPos{keyDataChunkPos}, keyVectorPos{keyVectorPos},
+      dataChunkPosToIsFlat{dataChunkPosToIsFlat}, numEntries{0} {
+    auto prevResultSet = this->prevOperator->getResultSet();
+    keyDataChunk = prevResultSet->dataChunks[keyDataChunkPos];
+    resultSetWithoutKeyDataChunk = make_shared<ResultSet>();
     // key field (node_offset_t + label_t) + prev field (uint8_t*)
     numBytesForFixedTuplePart = sizeof(node_offset_t) + sizeof(label_t) + sizeof(uint8_t*);
-    for (uint64_t i = 0; i < keyDataChunk->valueVectors.size(); i++) {
-        if (i == keyVectorPos) {
+    for (auto vectorPos = 0u; vectorPos < keyDataChunk->valueVectors.size(); vectorPos++) {
+        if (vectorPos == keyVectorPos) {
             continue;
         }
-        numBytesForFixedTuplePart += keyDataChunk->getValueVector(i)->getNumBytesPerValue();
+        numBytesForFixedTuplePart += keyDataChunk->getValueVector(vectorPos)->getNumBytesPerValue();
     }
-    for (uint64_t i = 0; i < nonKeyDataChunks->dataChunks.size(); i++) {
-        auto dataChunk = nonKeyDataChunks->dataChunks[i];
-        for (auto& vector : dataChunk->valueVectors) {
-            numBytesForFixedTuplePart += dataChunk->state->isFlat() ?
-                                             vector->getNumBytesPerValue() :
-                                             sizeof(overflow_value_t);
+    for (auto dataChunkPos = 0u; dataChunkPos < prevResultSet->dataChunks.size(); dataChunkPos++) {
+        if (dataChunkPos != keyDataChunkPos) {
+            resultSetWithoutKeyDataChunk->append(prevResultSet->dataChunks[dataChunkPos]);
+            for (auto& vector : prevResultSet->dataChunks[dataChunkPos]->valueVectors) {
+                numBytesForFixedTuplePart += this->dataChunkPosToIsFlat[dataChunkPos] ?
+                                                 vector->getNumBytesPerValue() :
+                                                 sizeof(overflow_value_t);
+            }
         }
     }
     htBlockCapacity = DEFAULT_HT_BLOCK_SIZE / numBytesForFixedTuplePart;
@@ -81,7 +79,7 @@ void HashJoinBuild::appendPayloadVectorAsFixSizedValues(ValueVector& vector, uin
         auto& nodeIDVec = dynamic_cast<NodeIDVector&>(vector);
         if (nodeIDVec.isSequence()) {
             auto startNodeOffset = ((node_offset_t*)vector.values)[0];
-            for (uint64_t i = 0; i < appendCount; i++) {
+            for (auto i = 0u; i < appendCount; i++) {
                 auto valuePos = valueOffsetInVector + (i * (1 - isSingleValue));
                 auto nodeOffset = startNodeOffset + selectedValuesPos[valuePos];
                 memcpy(appendBuffer + (i * numBytesForFixedTuplePart), &nodeOffset, typeSize);
@@ -89,7 +87,7 @@ void HashJoinBuild::appendPayloadVectorAsFixSizedValues(ValueVector& vector, uin
             return;
         }
     }
-    for (uint64_t i = 0; i < appendCount; i++) {
+    for (auto i = 0u; i < appendCount; i++) {
         auto valuePos = valueOffsetInVector + (i * (1 - isSingleValue));
         memcpy(appendBuffer + (i * numBytesForFixedTuplePart),
             vector.values + (selectedValuesPos[valuePos] * typeSize), typeSize);
@@ -122,7 +120,7 @@ overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
         overflowBlocks.push_back(move(blockHandle));
     }
 
-    for (uint64_t i = 0; i < vector.state->numSelectedValues; i++) {
+    for (auto i = 0u; i < vector.state->numSelectedValues; i++) {
         memcpy(blockAppendPos + (i * numBytesPerValue),
             vectorValues + (vectorSelectedValuesPos[i] * numBytesPerValue), numBytesPerValue);
     }
@@ -135,7 +133,7 @@ void HashJoinBuild::appendPayloadVectorAsOverflowValue(
     ValueVector& vector, uint8_t* appendBuffer, uint64_t appendCount) {
     assert(!((vector.dataType == NODE) && (dynamic_cast<NodeIDVector&>(vector).isSequence())));
     auto overflowValue = addVectorInOverflowBlocks(vector);
-    for (uint64_t i = 0; i < appendCount; i++) {
+    for (auto i = 0u; i < appendCount; i++) {
         memcpy(appendBuffer + (i * numBytesForFixedTuplePart), (void*)&overflowValue,
             sizeof(overflow_value_t));
     }
@@ -151,7 +149,7 @@ void HashJoinBuild::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
     auto startNodeOffset = ((node_offset_t*)vector.values)[0];
     auto selectedValuesPos = vector.state->selectedValuesPos;
     if (vector.isSequence()) {
-        for (uint64_t i = 0; i < appendCount; i++) {
+        for (auto i = 0u; i < appendCount; i++) {
             auto nodeOffset = startNodeOffset + selectedValuesPos[valueOffsetInVector + i];
             memcpy(appendBuffer, &nodeOffset, offsetSize);
             memcpy(appendBuffer + sizeof(node_offset_t),
@@ -161,7 +159,7 @@ void HashJoinBuild::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
         return;
     }
 
-    for (uint64_t i = 0; i < appendCount; i++) {
+    for (auto i = 0u; i < appendCount; i++) {
         auto valuePos = selectedValuesPos[valueOffsetInVector + i];
         memcpy(appendBuffer, vector.values + (valuePos * nodeSize), offsetSize);
         memcpy(appendBuffer + sizeof(node_offset_t),
@@ -201,7 +199,7 @@ void HashJoinBuild::allocateHTBlocks(
     }
 }
 
-void HashJoinBuild::appendDataChunks() {
+void HashJoinBuild::appendResultSet() {
     if (keyDataChunk->state->numSelectedValues == 0) {
         return;
     }
@@ -226,7 +224,7 @@ void HashJoinBuild::appendDataChunks() {
     tupleAppendOffset += NUM_BYTES_PER_NODE_ID;
 
     // Append payloads in key data chunk
-    for (uint64_t i = 0; i < keyDataChunk->valueVectors.size(); i++) {
+    for (auto i = 0u; i < keyDataChunk->valueVectors.size(); i++) {
         if (i == keyVectorPos) {
             continue;
         }
@@ -244,10 +242,9 @@ void HashJoinBuild::appendDataChunks() {
     }
 
     // Append payload in non-key data chunks
-    for (uint64_t chunkPos = 0; chunkPos < nonKeyDataChunks->dataChunks.size(); chunkPos++) {
-        auto payloadDataChunk = nonKeyDataChunks->dataChunks[chunkPos];
+    for (auto& payloadDataChunk : resultSetWithoutKeyDataChunk->dataChunks) {
         if (payloadDataChunk->state->isFlat()) {
-            for (uint64_t i = 0; i < payloadDataChunk->valueVectors.size(); i++) {
+            for (auto i = 0u; i < payloadDataChunk->valueVectors.size(); i++) {
                 auto payloadVector = payloadDataChunk->getValueVector(i);
                 for (auto& blockAppendInfo : blockAppendInfos) {
                     auto appendCount = blockAppendInfo.numEntries;
@@ -258,7 +255,7 @@ void HashJoinBuild::appendDataChunks() {
                 tupleAppendOffset += payloadVector->getNumBytesPerValue();
             }
         } else {
-            for (uint64_t i = 0; i < payloadDataChunk->valueVectors.size(); i++) {
+            for (auto i = 0u; i < payloadDataChunk->valueVectors.size(); i++) {
                 auto payloadVector = payloadDataChunk->getValueVector(i);
                 for (auto& blockAppendInfo : blockAppendInfos) {
                     auto appendCount = blockAppendInfo.numEntries;
@@ -277,7 +274,7 @@ void HashJoinBuild::getNextTuples() {
     // Append thread-local tuples
     do {
         prevOperator->getNextTuples();
-        appendDataChunks();
+        appendResultSet();
     } while (keyDataChunk->state->size > 0);
 
     // Merge thread-local state (numEntries, htBlocks, overflowBlocks) with the shared one

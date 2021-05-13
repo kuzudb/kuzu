@@ -386,14 +386,14 @@ unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator&
         physicalOperatorInfo.dataChunkPosToIsFlat[0] = true;
     }
 
-    auto hashJoinBuild = make_unique<HashJoinBuild>(
-        buildSideKeyDataChunkPos, buildSideKeyVectorPos, move(buildSidePrevOperator));
+    auto hashJoinBuild = make_unique<HashJoinBuild>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
+        buildSideOperatorInfo.dataChunkPosToIsFlat, move(buildSidePrevOperator));
     auto hashJoinSharedState =
         make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = hashJoinSharedState;
     auto hashJoinProbe = make_unique<HashJoinProbe<true>>(buildSideKeyDataChunkPos,
-        buildSideKeyVectorPos, probeSideKeyDataChunkPos, probeSideKeyVectorPos, move(hashJoinBuild),
-        move(probeSidePrevOperator));
+        buildSideKeyVectorPos, buildSideOperatorInfo.dataChunkPosToIsFlat, probeSideKeyDataChunkPos,
+        probeSideKeyVectorPos, move(hashJoinBuild), move(probeSidePrevOperator));
     hashJoinProbe->sharedState = hashJoinSharedState;
     return hashJoinProbe;
 }

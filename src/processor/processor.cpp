@@ -83,6 +83,7 @@ void QueryProcessor::decomposePlanIntoTasks(
             hashJoinBuild->setMemoryManager(memManager.get());
             decomposePlanIntoTasks(hashJoinBuild, maxNumThreads, parentTask);
         }
+        decomposePlanIntoTasks(op->prevOperator.get(), maxNumThreads, parentTask);
         break;
     }
     case HASH_JOIN_BUILD: {

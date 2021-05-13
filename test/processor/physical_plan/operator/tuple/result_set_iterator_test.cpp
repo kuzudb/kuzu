@@ -4,8 +4,7 @@
 
 using namespace graphflow::processor;
 
-/*
-class DataChunksIteratorTest : public ::testing::Test {
+class ResultSetIteratorTest : public ::testing::Test {
 
 public:
     void SetUp() override {
@@ -14,20 +13,26 @@ public:
         auto dataChunkC = make_shared<DataChunk>();
 
         NodeIDCompressionScheme compressionScheme;
-        auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme);
+        auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme, false);
         auto vectorA2 = make_shared<ValueVector>(INT32);
-        auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme);
+        auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme, false);
         auto vectorB2 = make_shared<ValueVector>(DOUBLE);
-        auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme);
+        auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme, false);
         auto vectorC2 = make_shared<ValueVector>(BOOL);
+        auto vectorA1Data = (uint64_t*)vectorA1->values;
+        auto vectorA2Data = (uint32_t*)vectorA2->values;
+        auto vectorB1Data = (uint64_t*)vectorB1->values;
+        auto vectorB2Data = (double*)vectorB2->values;
+        auto vectorC1Data = (uint64_t*)vectorC1->values;
+        auto vectorC2Data = (bool*)vectorC2->values;
 
         for (int32_t i = 0; i < 100; i++) {
-            vectorA1->setValue<uint64_t>(i, (uint64_t)i);
-            vectorA2->setValue<int32_t>(i, (int32_t)(i * 2));
-            vectorB1->setValue<uint64_t>(i, (uint64_t)i);
-            vectorB2->setValue(i, (double)(i / 2));
-            vectorC1->setValue<uint64_t>(i, (uint64_t)i);
-            vectorC2->setValue(i, (bool)((i / 2) == 1));
+            vectorA1Data[i] = (uint64_t)i;
+            vectorA2Data[i] = (int32_t)(i * 2);
+            vectorB1Data[i] = (uint64_t)(i);
+            vectorB2Data[i] = (double)(i / 2);
+            vectorC1Data[i] = (uint64_t)i;
+            vectorC2Data[i] = (bool)((i / 2) == 1);
         }
         dataChunkA->append(vectorA1);
         dataChunkA->append(vectorA2);
@@ -42,15 +47,14 @@ public:
         dataChunkA->state->numSelectedValues = 100;
         dataChunkB->state->numSelectedValues = 100;
         dataChunkC->state->numSelectedValues = 100;
-        dataChunks.append(dataChunkA);
-        dataChunks.append(dataChunkB);
-        dataChunks.append(dataChunkC);
+        resultSet.append(dataChunkA);
+        resultSet.append(dataChunkB);
+        resultSet.append(dataChunkC);
     }
 
-    vector<DataType> GetDataChunksTypes(DataChunks& dataChunks) {
+    static vector<DataType> GetDataChunksTypes(ResultSet& resultSet) {
         vector<DataType> vectorTypes;
-        for (uint64_t i = 0; i < dataChunks.getNumDataChunks(); i++) {
-            auto dataChunk = dataChunks.getDataChunk(i);
+        for (const auto& dataChunk : resultSet.dataChunks) {
             for (auto& vector : dataChunk->valueVectors) {
                 vectorTypes.push_back(vector->dataType);
             }
@@ -59,24 +63,24 @@ public:
     }
 
 public:
-    DataChunks dataChunks;
+    ResultSet resultSet;
 };
 
-TEST_F(DataChunksIteratorTest, DataChunksIteratorTest1) {
-    auto vectorTypes = GetDataChunksTypes(dataChunks);
+TEST_F(ResultSetIteratorTest, DataChunksIteratorTest1) {
+    auto vectorTypes = GetDataChunksTypes(resultSet);
     Tuple tuple(vectorTypes);
 
-    auto dataChunkA = dataChunks.getDataChunk(0);
-    auto dataChunkB = dataChunks.getDataChunk(1);
-    auto dataChunkC = dataChunks.getDataChunk(2);
+    auto dataChunkA = resultSet.dataChunks[0];
+    auto dataChunkB = resultSet.dataChunks[1];
+    auto dataChunkC = resultSet.dataChunks[2];
     dataChunkA->state->currPos = 1;
     dataChunkB->state->currPos = -1;
     dataChunkC->state->currPos = 10;
 
-    DataChunksIterator dataChunksIterator(dataChunks);
+    ResultSetIterator resultSetIterator(resultSet);
     auto tupleIndex = 0;
-    while (dataChunksIterator.hasNextTuple()) {
-        dataChunksIterator.getNextTuple(tuple);
+    while (resultSetIterator.hasNextTuple()) {
+        resultSetIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 1);
         ASSERT_EQ(tuple.getValue(1)->primitive.int32Val, (int32_t)(1 * 2));
@@ -93,10 +97,10 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest1) {
     dataChunkA->state->currPos = 1;
     dataChunkB->state->currPos = 9;
     dataChunkC->state->currPos = 99;
-    dataChunksIterator.setDataChunks(dataChunks);
+    resultSetIterator.setDataChunks(resultSet);
     tupleIndex = 0;
-    while (dataChunksIterator.hasNextTuple()) {
-        dataChunksIterator.getNextTuple(tuple);
+    while (resultSetIterator.hasNextTuple()) {
+        resultSetIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 1);
         ASSERT_EQ(tuple.getValue(1)->primitive.int32Val, (int32_t)(1 * 2));
@@ -111,23 +115,23 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest1) {
     ASSERT_EQ(tupleIndex, 1);
 }
 
-TEST_F(DataChunksIteratorTest, DataChunksIteratorTest2) {
-    auto vectorTypes = GetDataChunksTypes(dataChunks);
+TEST_F(ResultSetIteratorTest, DataChunksIteratorTest2) {
+    auto vectorTypes = GetDataChunksTypes(resultSet);
     Tuple tuple(vectorTypes);
 
-    auto dataChunkA = dataChunks.getDataChunk(0);
-    auto dataChunkB = dataChunks.getDataChunk(1);
-    auto dataChunkC = dataChunks.getDataChunk(2);
+    auto dataChunkA = resultSet.dataChunks[0];
+    auto dataChunkB = resultSet.dataChunks[1];
+    auto dataChunkC = resultSet.dataChunks[2];
 
     auto tupleIndex = 0;
     dataChunkA->state->currPos = 1;
     dataChunkB->state->currPos = -1;
     dataChunkC->state->currPos = -1;
-    DataChunksIterator dataChunksIterator(dataChunks);
-    while (dataChunksIterator.hasNextTuple()) {
+    ResultSetIterator resultSetIterator(resultSet);
+    while (resultSetIterator.hasNextTuple()) {
         auto bid = tupleIndex / 100;
         auto cid = tupleIndex % 100;
-        dataChunksIterator.getNextTuple(tuple);
+        resultSetIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 1);
         ASSERT_EQ(tuple.getValue(1)->primitive.int32Val, (int32_t)(1 * 2));
@@ -142,23 +146,23 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest2) {
     ASSERT_EQ(tupleIndex, 10000);
 }
 
-TEST_F(DataChunksIteratorTest, DataChunksIteratorTest3) {
-    auto vectorTypes = GetDataChunksTypes(dataChunks);
+TEST_F(ResultSetIteratorTest, DataChunksIteratorTest3) {
+    auto vectorTypes = GetDataChunksTypes(resultSet);
     Tuple tuple(vectorTypes);
 
-    auto dataChunkA = dataChunks.getDataChunk(0);
-    auto dataChunkB = dataChunks.getDataChunk(1);
-    auto dataChunkC = dataChunks.getDataChunk(2);
+    auto dataChunkA = resultSet.dataChunks[0];
+    auto dataChunkB = resultSet.dataChunks[1];
+    auto dataChunkC = resultSet.dataChunks[2];
 
     auto tupleIndex = 0;
     dataChunkA->state->currPos = -1;
     dataChunkB->state->currPos = 10;
     dataChunkC->state->currPos = -1;
-    DataChunksIterator dataChunksIterator(dataChunks);
-    while (dataChunksIterator.hasNextTuple()) {
+    ResultSetIterator resultSetIterator(resultSet);
+    while (resultSetIterator.hasNextTuple()) {
         auto aid = tupleIndex / 100;
         auto cid = tupleIndex % 100;
-        dataChunksIterator.getNextTuple(tuple);
+        resultSetIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->nodeID.offset, aid);
         ASSERT_EQ(tuple.getValue(1)->primitive.int32Val, (int32_t)(aid * 2));
@@ -173,21 +177,21 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest3) {
     ASSERT_EQ(tupleIndex, 10000);
 }
 
-TEST_F(DataChunksIteratorTest, DataChunksIteratorTest4) {
-    auto vectorTypes = GetDataChunksTypes(dataChunks);
+TEST_F(ResultSetIteratorTest, DataChunksIteratorTest4) {
+    auto vectorTypes = GetDataChunksTypes(resultSet);
     Tuple tuple(vectorTypes);
 
-    auto dataChunkA = dataChunks.getDataChunk(0);
-    auto dataChunkB = dataChunks.getDataChunk(1);
-    auto dataChunkC = dataChunks.getDataChunk(2);
+    auto dataChunkA = resultSet.dataChunks[0];
+    auto dataChunkB = resultSet.dataChunks[1];
+    auto dataChunkC = resultSet.dataChunks[2];
     dataChunkA->state->currPos = 1;
     dataChunkB->state->currPos = 10;
     dataChunkC->state->currPos = 20;
 
     auto tupleIndex = 0;
-    DataChunksIterator dataChunksIterator(dataChunks);
-    while (dataChunksIterator.hasNextTuple()) {
-        dataChunksIterator.getNextTuple(tuple);
+    ResultSetIterator resultSetIterator(resultSet);
+    while (resultSetIterator.hasNextTuple()) {
+        resultSetIterator.getNextTuple(tuple);
         string tupleStr = tuple.toString();
         string expected = "18:1|2|28:10|5.000000|38:20|False";
         ASSERT_EQ(tupleStr, expected);
@@ -196,13 +200,13 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTest4) {
     ASSERT_EQ(tupleIndex, 1);
 }
 
-TEST_F(DataChunksIteratorTest, DataChunksIteratorTestWithSelector) {
-    auto vectorTypes = GetDataChunksTypes(dataChunks);
+TEST_F(ResultSetIteratorTest, DataChunksIteratorTestWithSelector) {
+    auto vectorTypes = GetDataChunksTypes(resultSet);
     Tuple tuple(vectorTypes);
 
-    auto dataChunkA = dataChunks.getDataChunk(0);
-    auto dataChunkB = dataChunks.getDataChunk(1);
-    auto dataChunkC = dataChunks.getDataChunk(2);
+    auto dataChunkA = resultSet.dataChunks[0];
+    auto dataChunkB = resultSet.dataChunks[1];
+    auto dataChunkC = resultSet.dataChunks[2];
     dataChunkA->state->selectedValuesPos[1] = 5;
     dataChunkA->state->currPos = 1;
     dataChunkB->state->selectedValuesPos[10] = 15;
@@ -211,9 +215,9 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTestWithSelector) {
     dataChunkC->state->currPos = 20;
 
     auto tupleIndex = 0;
-    DataChunksIterator dataChunksIterator(dataChunks);
-    while (dataChunksIterator.hasNextTuple()) {
-        dataChunksIterator.getNextTuple(tuple);
+    ResultSetIterator resultSetIterator(resultSet);
+    while (resultSetIterator.hasNextTuple()) {
+        resultSetIterator.getNextTuple(tuple);
         string tupleStr = tuple.toString();
         string expected = "18:5|10|28:15|7.000000|38:25|False";
         ASSERT_EQ(tupleStr, expected);
@@ -221,4 +225,3 @@ TEST_F(DataChunksIteratorTest, DataChunksIteratorTestWithSelector) {
     }
     ASSERT_EQ(tupleIndex, 1);
 }
-*/

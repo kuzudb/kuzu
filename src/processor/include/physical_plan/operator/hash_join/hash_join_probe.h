@@ -46,15 +46,16 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 class HashJoinProbe : public PhysicalOperator {
 public:
     HashJoinProbe(uint64_t buildSideKeyDataChunkPos, uint64_t buildSideKeyVectorPos,
-        uint64_t probeSideKeyDataChunkPos, uint64_t probeSideKeyVectorPos,
-        unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp);
+        vector<bool> buildSideDataChunkPosToIsFlat, uint64_t probeSideKeyDataChunkPos,
+        uint64_t probeSideKeyVectorPos, unique_ptr<PhysicalOperator> buildSidePrevOp,
+        unique_ptr<PhysicalOperator> probeSidePrevOp);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         auto cloneOp = make_unique<HashJoinProbe>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
-            probeSideKeyDataChunkPos, probeSideKeyVectorPos, buildSidePrevOp->clone(),
-            prevOperator->clone());
+            buildSideDataChunkPosToIsFlat, probeSideKeyDataChunkPos, probeSideKeyVectorPos,
+            buildSidePrevOp->clone(), prevOperator->clone());
         cloneOp->sharedState = this->sharedState;
         return cloneOp;
     }
@@ -69,14 +70,15 @@ private:
 
     uint64_t buildSideKeyDataChunkPos;
     uint64_t buildSideKeyVectorPos;
+    vector<bool> buildSideDataChunkPosToIsFlat;
     uint64_t probeSideKeyDataChunkPos;
     uint64_t probeSideKeyVectorPos;
 
     shared_ptr<DataChunk> buildSideKeyDataChunk;
-    shared_ptr<ResultSet> buildSideNonKeyDataChunks;
+    shared_ptr<ResultSet> buildSideResultSet;
     shared_ptr<NodeIDVector> probeSideKeyVector;
     shared_ptr<DataChunk> probeSideKeyDataChunk;
-    shared_ptr<ResultSet> probeSideNonKeyDataChunks;
+    shared_ptr<ResultSet> probeSideResultSet;
 
     vector<BuildSideVectorInfo> buildSideVectorInfos;
     shared_ptr<ValueVector> decompressedProbeKeyVector;
@@ -87,8 +89,8 @@ private:
 
     // This function initializes:
     // 1) the outKeyDataChunk and appended unflat output data chunks, which are used to initialize
-    // the output dataChunks. 2) buildSideVectorPtrs for build side unflat non-key data chunks.
-    void initializeOutDataChunksAndVectorPtrs();
+    // the output resultSet. 2) buildSideVectorPtrs for build side unflat non-key data chunks.
+    void initializeOutResultSetAndVectorPtrs();
 
     // For each probe keyVector[i]=k, this function fills the probedTuples[i] with the pointer from
     // the slot that has hash(k) in directory (collision chain), without checking the actual key
@@ -106,7 +108,7 @@ private:
     void populateOutKeyDataChunkAndVectorPtrs();
     // This function updates appended unflat output data chunks based on vector ptrs and
     // outKeyDataChunk.currPos.
-    void updateAppendedUnFlatOutDataChunks();
+    void updateAppendedUnFlatOutResultSet();
 };
 } // namespace processor
 } // namespace graphflow
