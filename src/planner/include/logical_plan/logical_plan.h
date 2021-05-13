@@ -9,22 +9,20 @@ namespace planner {
 class LogicalPlan {
 
 public:
-    LogicalPlan() { schema = make_unique<Schema>(); }
+    LogicalPlan() : cost{0} { schema = make_unique<Schema>(); }
 
-    LogicalPlan(shared_ptr<LogicalOperator> lastOperator, unique_ptr<Schema> schema)
-        : lastOperator{lastOperator}, schema{move(schema)} {}
+    explicit LogicalPlan(unique_ptr<Schema> schema) : schema{move(schema)}, cost{0} {}
 
-    const LogicalOperator& getLastOperator() { return *lastOperator; }
+    const LogicalOperator& getLastOperator();
 
-    void appendOperator(shared_ptr<LogicalOperator> op) { lastOperator = op; }
+    void appendOperator(shared_ptr<LogicalOperator> op);
 
-    unique_ptr<LogicalPlan> copy() {
-        return make_unique<LogicalPlan>(lastOperator, schema->copy());
-    }
+    unique_ptr<LogicalPlan> copy() const;
 
 public:
     shared_ptr<LogicalOperator> lastOperator;
     unique_ptr<Schema> schema;
+    uint64_t cost;
 };
 
 } // namespace planner

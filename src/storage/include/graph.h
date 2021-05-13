@@ -44,7 +44,12 @@ public:
 
     inline const uint64_t& getNumNodes(const label_t& label) const {
         return numNodesPerLabel[label];
-    };
+    }
+
+    inline const uint64_t getNumRelsForDirBoundLabelRelLabel(
+        Direction direction, label_t boundNodeLabel, label_t relLabel) const {
+        return numRelsPerDirBoundLabelRelLabel[FWD == direction ? 0 : 1][boundNodeLabel][relLabel];
+    }
 
     inline const string& getPath() const { return path; }
 

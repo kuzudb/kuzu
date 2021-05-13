@@ -9,11 +9,11 @@ class LogicalExtend : public LogicalOperator {
 
 public:
     LogicalExtend(string boundNodeID, label_t boundNodeLabel, string nbrNodeID,
-        label_t nbrNodeLabel, label_t relLabel, Direction direction,
+        label_t nbrNodeLabel, label_t relLabel, Direction direction, bool isColumnExtend,
         shared_ptr<LogicalOperator> prevOperator)
         : LogicalOperator{prevOperator}, boundNodeID{move(boundNodeID)},
-          boundNodeLabel{boundNodeLabel}, nbrNodeID{move(nbrNodeID)},
-          nbrNodeLabel{nbrNodeLabel}, relLabel{relLabel}, direction{direction} {}
+          boundNodeLabel{boundNodeLabel}, nbrNodeID{move(nbrNodeID)}, nbrNodeLabel{nbrNodeLabel},
+          relLabel{relLabel}, direction{direction}, isColumnExtend{isColumnExtend} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_EXTEND;
@@ -30,6 +30,7 @@ public:
     label_t nbrNodeLabel;
     label_t relLabel;
     Direction direction;
+    bool isColumnExtend;
 };
 
 } // namespace planner

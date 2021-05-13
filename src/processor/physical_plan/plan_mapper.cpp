@@ -123,9 +123,8 @@ unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& l
         mapLogicalOperatorToPhysical(*logicalOperator.prevOperator, graph, physicalOperatorInfo);
     auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(extend.boundNodeID);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(extend.boundNodeID);
-    auto& catalog = graph.getCatalog();
     auto& relsStore = graph.getRelsStore();
-    if (catalog.isSingleCaridinalityInDir(extend.relLabel, extend.direction)) {
+    if (extend.isColumnExtend) {
         physicalOperatorInfo.appendAsNewValueVector(extend.nbrNodeID, dataChunkPos);
         return make_unique<AdjColumnExtend>(dataChunkPos, valueVectorPos,
             relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
