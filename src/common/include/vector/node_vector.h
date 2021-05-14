@@ -18,7 +18,7 @@ struct NodeIDRepresentation {
         : isSequence{isSequence}, commonLabel{commonLabel}, compressionScheme{compressionScheme} {}
 
     const bool isSequence;
-    const label_t commonLabel;
+    label_t commonLabel;
     NodeIDCompressionScheme compressionScheme;
 };
 

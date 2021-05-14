@@ -55,7 +55,10 @@ void Schema::flattenFactorizationGroupIfNecessary(const string& variable) {
     if (flatGroup->containsVariable(variable)) {
         return;
     }
-    flattenFactorizationGroup(*unflatGroups[variableUnflatGroupPosMap.at(variable)]);
+    // TODO: Remove the if statement once cost model support is added
+    if (variableUnflatGroupPosMap.contains(variable)) {
+        flattenFactorizationGroup(*unflatGroups[variableUnflatGroupPosMap.at(variable)]);
+    }
 }
 
 uint64_t Schema::getCardinality() const {

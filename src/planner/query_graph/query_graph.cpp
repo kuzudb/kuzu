@@ -155,7 +155,7 @@ QueryGraph::initSubgraphWithSingleJoinNode(const SubqueryGraph& matchedSubgraph)
         auto srcNodePos = queryNodeNameToPosMap.at(queryRels[relPos]->getSrcNodeName());
         auto dstNodePos = queryNodeNameToPosMap.at(queryRels[relPos]->getDstNodeName());
         // check join on single node
-        if (matchedSubgraph.queryNodesSelector[srcNodePos] ||
+        if (matchedSubgraph.queryNodesSelector[srcNodePos] &&
             !matchedSubgraph.queryNodesSelector[dstNodePos]) {
             auto subgraph = SubqueryGraph(*this);
             subgraph.addQueryRel(relPos);

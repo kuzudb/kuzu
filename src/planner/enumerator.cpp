@@ -151,10 +151,8 @@ void Enumerator::enumerateNextLevel(
     const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND) {
     currentLevel++;
     enumerateExtend(whereClauseSplitOnAND);
-    if constexpr (ENABLE_HASH_JOIN_ENUMERATION) {
-        if (currentLevel >= 4) {
-            enumerateHashJoin(whereClauseSplitOnAND);
-        }
+    if (currentLevel >= 4) {
+        enumerateHashJoin(whereClauseSplitOnAND);
     }
 }
 

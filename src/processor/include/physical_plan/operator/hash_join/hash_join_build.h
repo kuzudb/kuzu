@@ -53,14 +53,14 @@ struct BlockAppendInfo {
 
 class HashJoinBuild : public Sink {
 public:
-    HashJoinBuild(
-        uint64_t keyDataChunkPos, uint64_t keyVectorPos, unique_ptr<PhysicalOperator> prevOperator);
+    HashJoinBuild(uint64_t keyDataChunkPos, uint64_t keyVectorPos,
+        vector<bool> dataChunkPosToIsFlat, unique_ptr<PhysicalOperator> prevOperator);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        auto cloneOp =
-            make_unique<HashJoinBuild>(keyDataChunkPos, keyVectorPos, prevOperator->clone());
+        auto cloneOp = make_unique<HashJoinBuild>(
+            keyDataChunkPos, keyVectorPos, dataChunkPosToIsFlat, prevOperator->clone());
         cloneOp->sharedState = this->sharedState;
         cloneOp->memManager = this->memManager;
         return cloneOp;
@@ -79,9 +79,10 @@ private:
     MemoryManager* memManager;
     uint64_t keyDataChunkPos;
     uint64_t keyVectorPos;
+    vector<bool> dataChunkPosToIsFlat;
 
     shared_ptr<DataChunk> keyDataChunk;
-    shared_ptr<ResultSet> nonKeyDataChunks;
+    shared_ptr<ResultSet> resultSetWithoutKeyDataChunk;
 
     uint64_t htBlockCapacity;
     uint64_t numEntries; // Thread-local num entries in htBlocks
@@ -101,7 +102,7 @@ private:
         uint64_t appendCount) const;
     overflow_value_t addVectorInOverflowBlocks(ValueVector& vector);
 
-    void appendDataChunks();
+    void appendResultSet();
 };
 } // namespace processor
 } // namespace graphflow
