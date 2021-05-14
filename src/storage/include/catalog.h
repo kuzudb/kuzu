@@ -35,22 +35,24 @@ public:
     Catalog(const string& directory);
     Catalog() : logger{spdlog::get("storage")} {};
 
+    virtual ~Catalog() = default;
+
     inline const uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
     inline const uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
 
-    inline bool containNodeLabel(const char* label) const {
+    virtual inline bool containNodeLabel(const char* label) const {
         return end(stringToNodeLabelMap) != stringToNodeLabelMap.find(label);
     }
 
-    inline label_t getNodeLabelFromString(const char* label) const {
+    virtual inline label_t getNodeLabelFromString(const char* label) const {
         return stringToNodeLabelMap.at(label);
     }
 
-    inline bool containRelLabel(const char* label) const {
+    virtual inline bool containRelLabel(const char* label) const {
         return end(stringToRelLabelMap) != stringToRelLabelMap.find(label);
     }
 
-    inline label_t getRelLabelFromString(const char* label) const {
+    virtual inline label_t getRelLabelFromString(const char* label) const {
         return stringToRelLabelMap.at(label);
     }
 
@@ -69,17 +71,18 @@ public:
         return relPropertyKeyMaps[relLabel];
     }
 
-    inline bool containNodeProperty(label_t nodeLabel, const string& propertyName) const {
+    virtual inline bool containNodeProperty(label_t nodeLabel, const string& propertyName) const {
         auto& nodeProperties = getPropertyKeyMapForNodeLabel(nodeLabel);
         return end(nodeProperties) != nodeProperties.find(propertyName);
     }
 
-    inline bool containUnstrNodeProperty(label_t nodeLabel, const string& propertyName) const {
+    virtual inline bool containUnstrNodeProperty(
+        label_t nodeLabel, const string& propertyName) const {
         auto& nodeProperties = getUnstrPropertyKeyMapForNodeLabel(nodeLabel);
         return end(nodeProperties) != nodeProperties.find(propertyName);
     }
 
-    inline DataType getNodePropertyTypeFromString(
+    virtual inline DataType getNodePropertyTypeFromString(
         label_t nodeLabel, const string& propertyName) const {
         auto& nodeProperties = getPropertyKeyMapForNodeLabel(nodeLabel);
         return nodeProperties.at(propertyName).dataType;
@@ -93,12 +96,12 @@ public:
         return getPropertyKeyMapForNodeLabel(nodeLabel).at(name).idx;
     }
 
-    inline bool containRelProperty(label_t relLabel, const string& propertyName) const {
+    virtual inline bool containRelProperty(label_t relLabel, const string& propertyName) const {
         auto relProperties = getPropertyKeyMapForRelLabel(relLabel);
         return end(relProperties) != relProperties.find(propertyName);
     }
 
-    inline DataType getRelPropertyTypeFromString(
+    virtual inline DataType getRelPropertyTypeFromString(
         label_t relLabel, const string& propertyName) const {
         auto& relProperties = getPropertyKeyMapForRelLabel(relLabel);
         return relProperties.at(propertyName).dataType;
@@ -110,12 +113,12 @@ public:
 
     const string getStringNodeLabel(label_t label) const;
 
-    const vector<label_t>& getRelLabelsForNodeLabelDirection(
+    virtual const vector<label_t>& getRelLabelsForNodeLabelDirection(
         label_t nodeLabel, Direction dir) const;
 
     const vector<label_t>& getNodeLabelsForRelLabelDir(label_t relLabel, Direction dir) const;
 
-    bool isSingleCaridinalityInDir(label_t relLabel, Direction dir) const;
+    virtual bool isSingleCaridinalityInDir(label_t relLabel, Direction dir) const;
 
     unique_ptr<nlohmann::json> debugInfo();
 

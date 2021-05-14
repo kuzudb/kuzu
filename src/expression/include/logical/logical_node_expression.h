@@ -5,6 +5,8 @@
 namespace graphflow {
 namespace expression {
 
+const string INTERNAL_ID = "_id";
+
 class LogicalNodeExpression : public LogicalExpression {
 
 public:
@@ -14,6 +16,8 @@ public:
     unordered_set<string> getIncludedVariables() const override {
         return unordered_set<string>{variableName};
     }
+
+    string getIDProperty() { return variableName + "." + INTERNAL_ID; }
 
 public:
     label_t label;

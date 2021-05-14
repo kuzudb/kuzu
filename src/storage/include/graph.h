@@ -34,7 +34,7 @@ public:
 
     virtual ~Graph() { spdlog::drop("storage"); };
 
-    inline const Catalog& getCatalog() const { return *catalog; }
+    virtual inline const Catalog& getCatalog() const { return *catalog; }
 
     inline const RelsStore& getRelsStore() const { return *relsStore; }
 
@@ -42,11 +42,9 @@ public:
 
     inline const vector<uint64_t>& getNumNodesPerLabel() const { return numNodesPerLabel; };
 
-    inline const uint64_t& getNumNodes(const label_t& label) const {
-        return numNodesPerLabel[label];
-    }
+    virtual inline uint64_t getNumNodes(label_t label) const { return numNodesPerLabel[label]; }
 
-    inline const uint64_t getNumRelsForDirBoundLabelRelLabel(
+    virtual inline uint64_t getNumRelsForDirBoundLabelRelLabel(
         Direction direction, label_t boundNodeLabel, label_t relLabel) const {
         return numRelsPerDirBoundLabelRelLabel[FWD == direction ? 0 : 1][boundNodeLabel][relLabel];
     }
