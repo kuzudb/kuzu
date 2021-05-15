@@ -37,13 +37,15 @@ public:
 
     virtual inline int64_t getNumBytesPerValue() { return getDataTypeSize(dataType); }
 
+    virtual shared_ptr<ValueVector> clone();
+
 protected:
     ValueVector(uint64_t vectorCapacity, uint64_t numBytesPerValue, DataType dataType)
-        : capacity{numBytesPerValue * vectorCapacity}, bufferValues{make_unique<uint8_t[]>(
-                                                           capacity)},
-          bufferNullMask{make_unique<bool[]>(capacity)}, dataType{dataType},
+        : capacity{numBytesPerValue * vectorCapacity},
+          bufferValues(make_unique<uint8_t[]>(capacity)),
+          bufferNullMask(make_unique<bool[]>(vectorCapacity)), dataType{dataType},
           values{bufferValues.get()}, nullMask{bufferNullMask.get()} {
-        fill_n(nullMask, capacity, false /* not null */);
+        fill_n(nullMask, vectorCapacity, false /* not null */);
     }
 
 protected:

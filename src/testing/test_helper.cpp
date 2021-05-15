@@ -31,7 +31,8 @@ bool TestHelper::runTest(const string& path) {
         uint64_t numPassedPlans = 0;
         for (uint64_t j = 0; j < numPlans; j++) {
             auto planStr = plans[j]->getLastOperator().toString();
-            auto result = system->execute(move(plans[j]), testConfig.numThreads);
+            auto result =
+                system->execute(move(plans[j]), nullptr /*transaction*/, testConfig.numThreads);
             if (result->numTuples != testConfig.expectedNumTuples[i]) {
                 spdlog::error("PLAN{} NOT PASSED. Result num tuples: {}, Expected num tuples: {}",
                     j, result->numTuples, testConfig.expectedNumTuples[i]);

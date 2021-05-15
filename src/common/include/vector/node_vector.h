@@ -45,6 +45,8 @@ public:
 
     bool isSequence() const { return representation.isSequence; }
 
+    shared_ptr<ValueVector> clone() override;
+
 protected:
     NodeIDVector(label_t commonLabel, const NodeIDCompressionScheme& nodeIDCompressionScheme,
         bool isSequence, uint64_t vectorCapacity)

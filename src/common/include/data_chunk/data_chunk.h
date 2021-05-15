@@ -40,6 +40,8 @@ public:
         return valueVectors[valueVectorPos];
     }
 
+    unique_ptr<DataChunk> clone();
+
 public:
     vector<shared_ptr<ValueVector>> valueVectors;
     shared_ptr<DataChunkState> state;

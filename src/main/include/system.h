@@ -29,7 +29,8 @@ public:
 
     vector<unique_ptr<LogicalPlan>> enumerateLogicalPlans(const string& query);
 
-    unique_ptr<QueryResult> execute(unique_ptr<LogicalPlan> plan, uint32_t numThreads);
+    unique_ptr<QueryResult> execute(
+        unique_ptr<LogicalPlan> plan, Transaction* transactionPtr, uint32_t numThreads);
 
     unique_ptr<nlohmann::json> debugInfo();
 

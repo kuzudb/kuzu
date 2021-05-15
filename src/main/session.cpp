@@ -23,7 +23,7 @@ unique_ptr<nlohmann::json> Session::submitQuery(const string query, const uint32
     unique_ptr<QueryResult> result;
     try {
         auto allPlans = system->enumerateLogicalPlans(query);
-        result = system->execute(move(allPlans[0]), numThreads);
+        result = system->execute(move(allPlans[0]), activeTransaction, numThreads);
         (*json)["result"]["numTuples"] = result->numTuples;
         (*json)["result"]["duration"] = result->duration.count();
     } catch (exception& e) {

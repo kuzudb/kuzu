@@ -8,7 +8,6 @@
 #include "src/storage/include/graph.h"
 
 using namespace std;
-using namespace graphflow::storage;
 
 namespace graphflow {
 namespace processor {
@@ -24,7 +23,8 @@ enum PhysicalOperatorType : uint8_t {
     HASH_JOIN_BUILD,
     HASH_JOIN_PROBE,
     RESULT_COLLECTOR,
-    LOAD_CSV
+    LOAD_CSV,
+    CREATE_NODE
 };
 
 class PhysicalOperator {

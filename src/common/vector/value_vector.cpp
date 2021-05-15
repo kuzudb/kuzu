@@ -122,5 +122,19 @@ void ValueVector::fillNullMask() {
     }
 }
 
+shared_ptr<ValueVector> ValueVector::clone() {
+    auto vectorCapacity = capacity / getDataTypeSize(dataType);
+    auto newVector = make_shared<ValueVector>(dataType, vectorCapacity);
+    memcpy(newVector->nullMask, nullMask, vectorCapacity);
+    if (STRING == dataType) {
+        for (auto i = 0; i < vectorCapacity; i++) {
+            ((gf_string_t*)newVector->values)[i] = ((gf_string_t*)values)[i];
+        }
+    } else {
+        memcpy(newVector->values, values, capacity);
+    }
+    return newVector;
+}
+
 } // namespace common
 } // namespace graphflow
