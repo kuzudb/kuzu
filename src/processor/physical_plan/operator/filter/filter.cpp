@@ -4,7 +4,7 @@ namespace graphflow {
 namespace processor {
 
 template<bool IS_AFTER_FLATTEN>
-Filter<IS_AFTER_FLATTEN>::Filter(unique_ptr<PhysicalExpression> rootExpr,
+Filter<IS_AFTER_FLATTEN>::Filter(unique_ptr<ExpressionEvaluator> rootExpr,
     uint64_t dataChunkToSelectPos, unique_ptr<PhysicalOperator> prevOperator)
     : PhysicalOperator{move(prevOperator), FILTER}, rootExpr{move(rootExpr)},
       dataChunkToSelectPos(dataChunkToSelectPos), prevInNumSelectedValues{0ul} {

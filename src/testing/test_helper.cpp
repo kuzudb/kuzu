@@ -27,6 +27,7 @@ bool TestHelper::runTest(const string& path) {
         spdlog::info("QUERY: {}", testConfig.query[i]);
         auto plans = system->enumerateLogicalPlans(testConfig.query[i]);
         auto numPlans = plans.size();
+        assert(numPlans > 0);
         numPlansOfEachQuery[i] = numPlans;
         uint64_t numPassedPlans = 0;
         for (uint64_t j = 0; j < numPlans; j++) {

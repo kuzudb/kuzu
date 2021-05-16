@@ -1,0 +1,76 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "binder",
+    srcs = [
+        "expression_binder.cpp",
+        "query_binder.cpp",
+    ],
+    hdrs = [
+        "include/expression_binder.h",
+        "include/query_binder.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "bound_query",
+        "//src/parser",
+        "//src/storage:catalog",
+    ],
+)
+
+cc_library(
+    name = "bound_query",
+    hdrs = [
+        "include/bound_queries/bound_query_part.h",
+        "include/bound_queries/bound_single_query.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "bound_statement",
+    ],
+)
+
+cc_library(
+    name = "bound_statement",
+    hdrs = [
+        "include/bound_statements/bound_match_statement.h",
+        "include/bound_statements/bound_return_statement.h",
+        "include/bound_statements/bound_with_statement.h",
+    ],
+    deps = [
+        "query_graph",
+    ],
+)
+
+cc_library(
+    name = "query_graph",
+    srcs = [
+        "query_graph/query_graph.cpp",
+    ],
+    hdrs = [
+        "include/query_graph/query_graph.h",
+    ],
+    deps = [
+        "expression",
+    ],
+)
+
+cc_library(
+    name = "expression",
+    srcs = [
+        "expression/expression.cpp",
+        "expression/literal_expression.cpp",
+    ],
+    hdrs = [
+        "include/expression/expression.h",
+        "include/expression/literal_expression.h",
+        "include/expression/node_expression.h",
+        "include/expression/property_expression.h",
+        "include/expression/rel_expression.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common:expression_type",
+        "//src/common:types",
+    ],
+)

@@ -2,11 +2,11 @@
 
 #include <cassert>
 
-#include "src/expression/include/physical/physical_expression.h"
+#include "src/expression_evaluator/include/expression_evaluator.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 
-using namespace graphflow::expression;
+using namespace graphflow::evaluator;
 
 namespace graphflow {
 namespace processor {
@@ -14,7 +14,7 @@ namespace processor {
 class Projection : public PhysicalOperator {
 
 public:
-    Projection(unique_ptr<vector<unique_ptr<PhysicalExpression>>> expressions,
+    Projection(unique_ptr<vector<unique_ptr<ExpressionEvaluator>>> expressions,
         vector<uint64_t> expressionPosToDataChunkPos, const vector<uint64_t>& discardedDataChunkPos,
         unique_ptr<PhysicalOperator> prevOperator);
 
@@ -23,7 +23,7 @@ public:
     unique_ptr<PhysicalOperator> clone() override;
 
 private:
-    unique_ptr<vector<unique_ptr<PhysicalExpression>>> expressions;
+    unique_ptr<vector<unique_ptr<ExpressionEvaluator>>> expressions;
     vector<uint64_t> expressionPosToDataChunkPos;
     vector<uint64_t> discardedDataChunkPos;
     shared_ptr<ResultSet> discardedResultSet;
