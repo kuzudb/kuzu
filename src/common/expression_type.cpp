@@ -1,5 +1,7 @@
 #include "src/common/include/expression_type.h"
 
+#include <stdexcept>
+
 namespace graphflow {
 namespace common {
 

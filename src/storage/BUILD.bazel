@@ -8,7 +8,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/common",
+        "//src/common:configs",
         "@gabime_spdlog",
     ],
 )
@@ -20,8 +20,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "file_handle",
-        "//src/common",
-        "@gabime_spdlog",
         "@nlohmann_json",
     ],
 )
@@ -54,7 +52,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "data_structure_utils",
-        "//src/common",
+        "//src/common:types",
         "@gabime_spdlog",
     ],
 )
@@ -75,9 +73,8 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "buffer_manager",
-        "file_handle",
         "lists_aux",
-        "//src/common",
+        "//src/common:vector",
     ],
 )
 
@@ -93,10 +90,8 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "buffer_manager",
         "catalog",
         "data_structure",
-        "//src/common",
     ],
 )
 
@@ -106,7 +101,8 @@ cc_library(
     hdrs = ["include/catalog.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/common",
+        "//src/common:types",
+        "//src/common:utils",
         "@fraillt_bitsery",
         "@gabime_spdlog",
         "@nlohmann_json",
@@ -116,19 +112,13 @@ cc_library(
 cc_library(
     name = "graph",
     srcs = [
-        "catalog.cpp",
         "graph.cpp",
     ],
     hdrs = [
-        "include/catalog.h",
         "include/graph.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "buffer_manager",
-        "catalog",
         "store",
-        "@fraillt_bitsery",
-        "@gabime_spdlog",
     ],
 )

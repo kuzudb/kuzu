@@ -1,21 +1,20 @@
 #pragma once
 
+#include <cstring>
 #include <memory>
 #include <vector>
-
-#include "src/common/include/types.h"
 
 using namespace std;
 
 namespace graphflow {
 namespace common {
 
-class DataChunkState {
+class VectorState {
 public:
     // returns a dataChunkState for vectors holding a single value.
-    static shared_ptr<DataChunkState> getSingleValueDataChunkState();
+    static shared_ptr<VectorState> getSingleValueDataChunkState();
 
-    DataChunkState(bool initializeSelectedValuesPos, uint64_t capacity);
+    VectorState(bool initializeSelectedValuesPos, uint64_t capacity);
 
     void initializeSelector() {
         for (auto i = 0u; i < numSelectedValues; i++) {
@@ -27,7 +26,7 @@ public:
 
     inline uint64_t getCurrSelectedValuesPos() { return selectedValuesPos[currPos]; }
 
-    shared_ptr<DataChunkState> clone();
+    shared_ptr<VectorState> clone();
 
 public:
     uint64_t size;

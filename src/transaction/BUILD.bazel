@@ -6,7 +6,9 @@ cc_library(
         "include/local_storage.h",
     ],
     visibility = ["//visibility:public"],
-    deps = ["//src/common"],
+    deps = [
+        "//src/common:data_chunk",
+    ],
 )
 
 cc_library(

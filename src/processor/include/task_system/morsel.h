@@ -3,8 +3,6 @@
 #include <cstdint>
 #include <mutex>
 
-#include "src/common/include/file_ser_deser_helper.h"
-
 using namespace std;
 using namespace graphflow::common;
 

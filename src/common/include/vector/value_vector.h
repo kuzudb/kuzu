@@ -1,8 +1,7 @@
 #pragma once
 
-#include "src/common/include/data_chunk/data_chunk_state.h"
-#include "src/common/include/expression_type.h"
 #include "src/common/include/types.h"
+#include "src/common/include/vector/vector_state.h"
 
 namespace graphflow {
 namespace common {
@@ -11,11 +10,6 @@ namespace common {
 class ValueVector {
 
 public:
-    static function<void(ValueVector&, ValueVector&)> getUnaryOperation(ExpressionType type);
-
-    static function<void(ValueVector&, ValueVector&, ValueVector&)> getBinaryOperation(
-        ExpressionType type);
-
     ValueVector(DataType dataType, uint64_t vectorCapacity)
         : ValueVector(vectorCapacity, getDataTypeSize(dataType), dataType) {}
 
@@ -57,7 +51,7 @@ public:
     DataType dataType;
     uint8_t* values;
     bool* nullMask;
-    shared_ptr<DataChunkState> state;
+    shared_ptr<VectorState> state;
 };
 
 } // namespace common

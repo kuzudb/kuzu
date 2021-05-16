@@ -12,7 +12,8 @@ cc_test(
         "-Iexternal/gtest/include",
     ],
     deps = [
-        "//src/common:common",
+        "//src/common:data_chunk",
+        "//src/common:vector_operations",
         "@gtest",
         "@gtest//:gtest_main",
     ],

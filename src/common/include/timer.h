@@ -5,9 +5,6 @@
 #include <string>
 #include <vector>
 
-#include <spdlog/sinks/stdout_sinks.h>
-#include <spdlog/spdlog.h>
-
 using namespace std;
 
 namespace graphflow {

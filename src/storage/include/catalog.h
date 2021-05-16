@@ -10,6 +10,7 @@
 #include "spdlog/spdlog.h"
 
 #include "src/common/include/types.h"
+#include "src/common/include/utils.h"
 
 using namespace graphflow::common;
 using namespace std;

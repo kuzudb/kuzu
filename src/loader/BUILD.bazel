@@ -33,12 +33,9 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "thread_pool",
-        "//src/common",
         "//src/common:csv_reader",
-        "//src/storage:catalog",
         "//src/storage:data_structure_utils",
         "//src/storage:graph",
-        "//src/storage:store",
         "@gabime_spdlog",
         "@martinus_robin_hood_hashing",
         "@nlohmann_json",

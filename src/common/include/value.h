@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 
+#include "src/common/include/string.h"
 #include "src/common/include/types.h"
 
 using namespace std;

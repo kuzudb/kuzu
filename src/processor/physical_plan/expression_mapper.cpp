@@ -64,7 +64,7 @@ unique_ptr<PhysicalExpression> mapLogicalLiteralExpressionToPhysical(
     auto vector = make_shared<ValueVector>(
         literalExpression.storeAsPrimitiveVector ? literalExpression.dataType : UNSTRUCTURED,
         1 /* capacity */);
-    vector->state = DataChunkState::getSingleValueDataChunkState();
+    vector->state = VectorState::getSingleValueDataChunkState();
     if (!literalExpression.storeAsPrimitiveVector) {
         ((Value*)vector->values)[0] = literalExpression.literal;
     } else {

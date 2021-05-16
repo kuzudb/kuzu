@@ -9,7 +9,7 @@ PhysicalBinaryExpression::PhysicalBinaryExpression(unique_ptr<PhysicalExpression
     childrenExpr.push_back(move(rightExpr));
     this->expressionType = expressionType;
     this->dataType = dataType;
-    operation = ValueVector::getBinaryOperation(expressionType);
+    operation = getBinaryOperation(expressionType);
     result = createResultValueVector();
 }
 
@@ -24,7 +24,7 @@ shared_ptr<ValueVector> PhysicalBinaryExpression::createResultValueVector() {
     auto isLeftResultFlat = childrenExpr[0]->isResultFlat();
     auto isRightResultFlat = childrenExpr[1]->isResultFlat();
     if (isLeftResultFlat && isRightResultFlat) {
-        valueVector->state = DataChunkState::getSingleValueDataChunkState();
+        valueVector->state = VectorState::getSingleValueDataChunkState();
     } else {
         auto& unflatVector = !isLeftResultFlat ? childrenExpr[0]->result : childrenExpr[1]->result;
         valueVector->state = unflatVector->state;

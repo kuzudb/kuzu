@@ -4,10 +4,7 @@
 #include <memory>
 #include <mutex>
 
-#include "src/common/include/types.h"
-
 using namespace std;
-using namespace graphflow::common;
 
 namespace graphflow {
 namespace processor {

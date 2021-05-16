@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <functional>
 
 #include "src/common/include/types.h"
 #include "src/common/include/value.h"
