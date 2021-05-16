@@ -43,6 +43,7 @@ cc_library(
         "vector/operations/vector_boolean_operations.cpp",
         "vector/operations/vector_cast_operations.cpp",
         "vector/operations/vector_comparison_operations.cpp",
+        "vector/operations/vector_hash_operations.cpp",
         "vector/operations/vector_node_id_operations.cpp",
     ],
     hdrs = [
@@ -52,6 +53,7 @@ cc_library(
         "include/vector/operations/vector_boolean_operations.h",
         "include/vector/operations/vector_cast_operations.h",
         "include/vector/operations/vector_comparison_operations.h",
+        "include/vector/operations/vector_hash_operations.h",
         "include/vector/operations/vector_node_id_operations.h",
     ],
     visibility = ["//visibility:public"],

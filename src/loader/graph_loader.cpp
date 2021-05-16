@@ -155,7 +155,8 @@ void GraphLoader::inferFnamesFromMetadataFileDesriptions(
     label_t numLabels, nlohmann::json filedescriptions, vector<string>& filenames) {
     for (label_t label = 0; label < numLabels; label++) {
         auto fileDescription = filedescriptions[label];
-        filenames[label] = inputDirectory + "/" + fileDescription.at("filename").get<string>();
+        filenames[label] =
+            FileUtils::joinPath(inputDirectory, fileDescription.at("filename").get<string>());
     }
 }
 

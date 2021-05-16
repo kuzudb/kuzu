@@ -5,9 +5,9 @@ namespace storage {
 
 DataStructure::DataStructure(const string& fname, const DataType& dataType,
     const size_t& elementSize, BufferManager& bufferManager)
-    : logger{spdlog::get("storage")}, dataType{dataType}, elementSize{elementSize},
-      numElementsPerPage{(uint32_t)(PAGE_SIZE / elementSize)}, fileHandle{fname},
-      bufferManager(bufferManager){};
+    : dataType{dataType}, elementSize{elementSize}, numElementsPerPage{(uint32_t)(
+                                                        PAGE_SIZE / elementSize)},
+      logger{spdlog::get("storage")}, fileHandle{fname, O_RDWR}, bufferManager(bufferManager){};
 
 void DataStructure::reclaim(const unique_ptr<DataStructureHandle>& handle) {
     if (handle->hasPageIdx()) {

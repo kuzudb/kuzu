@@ -39,26 +39,29 @@ public:
 
     inline static string getAdjColumnFname(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
-        return directory + "/r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +
-               to_string(direction) + ".col";
+        return FileUtils::joinPath(directory, "r-" + to_string(relLabel) + "-" +
+                                                  to_string(nodeLabel) + "-" +
+                                                  to_string(direction) + ".col");
     }
 
     inline static string getAdjListsFname(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
-        return directory + "/r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +
-               to_string(direction) + ".lists";
+        return FileUtils::joinPath(directory, "r-" + to_string(relLabel) + "-" +
+                                                  to_string(nodeLabel) + "-" +
+                                                  to_string(direction) + ".lists");
     }
 
     inline static string getRelPropertyColumnFname(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const string& propertyName) {
-        return directory + "/r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +
-               propertyName + ".col";
+        return FileUtils::joinPath(directory,
+            "r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" + propertyName + ".col");
     }
 
     inline static string getRelPropertyListsFname(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& dir, const string& propertyName) {
-        return directory + "/r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +
-               to_string(dir) + "-" + propertyName + ".lists";
+        return FileUtils::joinPath(directory, "r-" + to_string(relLabel) + "-" +
+                                                  to_string(nodeLabel) + "-" + to_string(dir) +
+                                                  "-" + propertyName + ".lists");
     }
 
 private:

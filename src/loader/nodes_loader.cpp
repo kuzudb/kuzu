@@ -1,5 +1,6 @@
 #include "src/loader/include/nodes_loader.h"
 
+#include "src/storage/include/file_utils.h"
 #include "src/storage/include/store/nodes_store.h"
 
 using namespace graphflow::storage;
@@ -308,20 +309,13 @@ void NodesLoader::writeBuffersToFiles(const vector<unique_ptr<uint8_t[]>>& buffe
     const uint64_t& offsetStart, const uint64_t& numElementsToWrite,
     const vector<string>& propertyColumnFnames, const vector<DataType>& propertyDataTypes) {
     for (auto propertyIdx = 0u; propertyIdx < propertyDataTypes.size(); propertyIdx++) {
-        auto fd = open(propertyColumnFnames[propertyIdx].c_str(), O_WRONLY | O_CREAT, 0666);
-        if (-1 == fd) {
-            invalid_argument("cannot open/create file: " + propertyColumnFnames[propertyIdx]);
-        }
+        auto fd = FileUtils::openFile(propertyColumnFnames[propertyIdx], O_WRONLY | O_CREAT);
         auto offsetInFile = offsetStart * getDataTypeSize(propertyDataTypes[propertyIdx]);
-        if (-1 == lseek(fd, offsetInFile, SEEK_SET)) {
-            throw invalid_argument("Cannot seek to the required offset in file.");
-        }
         auto bytesToWrite = numElementsToWrite * getDataTypeSize(propertyDataTypes[propertyIdx]);
-        uint64_t bytesWritten = write(fd, buffers[propertyIdx].get(), bytesToWrite);
-        if (bytesWritten != bytesToWrite) {
-            throw invalid_argument("Cannot write in file.");
-        }
-        close(fd);
+        auto numPagesToWrite = (bytesToWrite + PAGE_SIZE - 1) / PAGE_SIZE;
+        FileUtils::writeToFile(
+            fd, buffers[propertyIdx].get(), numPagesToWrite * PAGE_SIZE, offsetInFile);
+        FileUtils::closeFile(fd);
     }
 }
 

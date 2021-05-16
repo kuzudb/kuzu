@@ -28,12 +28,13 @@ public:
 
     inline static string getNodePropertyColumnFname(
         const string& directory, const label_t& nodeLabel, const string& propertyName) {
-        return directory + "/n-" + to_string(nodeLabel) + "-" + propertyName + ".col";
+        return FileUtils::joinPath(
+            directory, "n-" + to_string(nodeLabel) + "-" + propertyName + ".col");
     }
 
     inline static string getNodeUnstrPropertyListsFname(
         const string& directory, const label_t& nodeLabel) {
-        return directory + "/n-" + to_string(nodeLabel) + ".lists";
+        return FileUtils::joinPath(directory, "n-" + to_string(nodeLabel) + ".lists");
     }
 
 private:
