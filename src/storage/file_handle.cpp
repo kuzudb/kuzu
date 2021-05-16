@@ -18,7 +18,7 @@ FileHandle::FileHandle(const string& path)
         throw invalid_argument("Cannot open file: " + path);
     }
     auto fileLength = lseek(fileDescriptor, 0, SEEK_END);
-    auto numPages = fileLength / PAGE_SIZE;
+    numPages = fileLength / PAGE_SIZE;
     if (0 != fileLength % PAGE_SIZE) {
         numPages++;
     }

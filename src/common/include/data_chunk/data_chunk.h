@@ -25,11 +25,7 @@ public:
     DataChunk() : DataChunk(true){};
 
     DataChunk(bool initializeSelectedValuesPos)
-        : DataChunk(initializeSelectedValuesPos, MAX_VECTOR_SIZE) {}
-
-    DataChunk(bool initializeSelectedValuesPos, uint64_t capacity) {
-        state = make_shared<VectorState>(initializeSelectedValuesPos, capacity);
-    }
+        : state{new VectorState(initializeSelectedValuesPos, MAX_VECTOR_SIZE)} {};
 
     void append(shared_ptr<ValueVector> valueVector) {
         valueVector->state = this->state;

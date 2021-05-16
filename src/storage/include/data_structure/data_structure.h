@@ -23,16 +23,18 @@ public:
 
     DataType getDataType() { return dataType; }
 
-protected:
-    DataStructure(const string& fname, const DataType& dataType, const size_t& elementSize,
-        BufferManager& bufferManager);
-
-    virtual ~DataStructure() = default;
+    FileHandle* getFileHandle() { return &fileHandle; }
 
     inline PageCursor getPageCursorForOffset(const uint64_t& offset) {
         return PageCursor{
             offset / numElementsPerPage, (uint16_t)((offset % numElementsPerPage) * elementSize)};
     }
+
+protected:
+    DataStructure(const string& fname, const DataType& dataType, const size_t& elementSize,
+        BufferManager& bufferManager);
+
+    virtual ~DataStructure() = default;
 
     void readBySettingFrame(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<DataStructureHandle>& handle, PageCursor& pageCursor);
@@ -41,11 +43,14 @@ protected:
         const unique_ptr<DataStructureHandle>& handle, uint64_t sizeLeftToCopy,
         PageCursor& pageCursor, unique_ptr<LogicalToPhysicalPageIdxMapper> mapper);
 
-protected:
-    shared_ptr<spdlog::logger> logger;
+public:
     DataType dataType;
     size_t elementSize;
     uint32_t numElementsPerPage;
+
+protected:
+    shared_ptr<spdlog::logger> logger;
+
     FileHandle fileHandle;
     BufferManager& bufferManager;
 };
