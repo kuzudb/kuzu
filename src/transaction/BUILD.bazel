@@ -2,12 +2,16 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "local_storage",
+    srcs = [
+        "local_storage.cpp",
+    ],
     hdrs = [
         "include/local_storage.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "//src/common:data_chunk",
+        "//src/storage:data_structure",
     ],
 )
 

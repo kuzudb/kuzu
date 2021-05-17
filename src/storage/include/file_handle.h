@@ -25,9 +25,14 @@ public:
     FileHandle(const string& path);
     ~FileHandle();
 
+    bool hasPage(uint8_t* frame, uint64_t pageIdx) { return pageIdx < numPages; }
+
+    void readPage(uint8_t* frame, uint64_t pageIdx);
+
 private:
     inline uint64_t getFrameIdx(uint32_t pageIdx) { return pageIdxToFrameMap[pageIdx]->load(); }
 
+    // Page lock management
     bool acquire(uint32_t pageIdx, bool block);
     void release(uint32_t pageIdx) { pageLocks[pageIdx]->clear(); }
 
@@ -37,11 +42,10 @@ private:
 
     inline void unswizzle(uint32_t pageIdx) { pageIdxToFrameMap[pageIdx]->store(UINT64_MAX); }
 
-    void readPage(uint8_t* frame, uint64_t pageIdx);
-
 private:
     shared_ptr<spdlog::logger> logger;
     const int fileDescriptor;
+    uint32_t numPages;
     unique_ptr<atomic<uint64_t>>* pageIdxToFrameMap;
     unique_ptr<atomic_flag>* pageLocks;
 };
