@@ -1,5 +1,8 @@
 #include "src/parser/include/transformer.h"
 
+#include "src/parser/include/statements/load_csv_statement.h"
+#include "src/parser/include/statements/match_statement.h"
+
 namespace graphflow {
 namespace parser {
 
@@ -36,7 +39,7 @@ unique_ptr<SingleQuery> Transformer::transformSinglePartQuery(
     CypherParser::OC_SinglePartQueryContext& ctx) {
     auto singleQuery = make_unique<SingleQuery>();
     for (auto& readingClause : ctx.oC_ReadingClause()) {
-        singleQuery->matchStatements.push_back(transformReadingClause(*readingClause));
+        singleQuery->readingStatements.push_back(transformReadingClause(*readingClause));
     }
     singleQuery->returnStatement = transformReturn(*ctx.oC_Return());
     return singleQuery;
@@ -45,17 +48,27 @@ unique_ptr<SingleQuery> Transformer::transformSinglePartQuery(
 unique_ptr<QueryPart> Transformer::transformQueryPart(CypherParser::GF_QueryPartContext& ctx) {
     auto queryPart = make_unique<QueryPart>(transformWith(*ctx.oC_With()));
     for (auto& readingClause : ctx.oC_ReadingClause()) {
-        queryPart->matchStatements.push_back(transformReadingClause(*readingClause));
+        queryPart->readingStatements.push_back(transformReadingClause(*readingClause));
     }
     return queryPart;
 }
 
-unique_ptr<MatchStatement> Transformer::transformReadingClause(
+unique_ptr<ReadingStatement> Transformer::transformReadingClause(
     CypherParser::OC_ReadingClauseContext& ctx) {
-    return transformMatch(*ctx.oC_Match());
+    return ctx.oC_Match() ? transformMatch(*ctx.oC_Match()) : transformLoadCSV(*ctx.oC_LoadCSV());
 }
 
-unique_ptr<MatchStatement> Transformer::transformMatch(CypherParser::OC_MatchContext& ctx) {
+unique_ptr<ReadingStatement> Transformer::transformLoadCSV(CypherParser::OC_LoadCSVContext& ctx) {
+    auto inputExpression = transformExpression(*ctx.oC_Expression());
+    auto loadCSVStatement =
+        make_unique<LoadCSVStatement>(move(inputExpression), transformVariable(*ctx.oC_Variable()));
+    if (ctx.FIELDTERMINATOR()) {
+        loadCSVStatement->fieldTerminator = ctx.StringLiteral()->getText();
+    }
+    return loadCSVStatement;
+}
+
+unique_ptr<ReadingStatement> Transformer::transformMatch(CypherParser::OC_MatchContext& ctx) {
     auto matchStatement = make_unique<MatchStatement>(transformPattern(*ctx.oC_Pattern()));
     if (ctx.oC_Where()) {
         matchStatement->whereClause = transformWhere(*ctx.oC_Where());

@@ -6,13 +6,13 @@ namespace graphflow {
 namespace parser {
 
 /**
- * Represents (QueryPart)* (MATCH)* RETURN
+ * Represents (QueryPart)* (Reading)* RETURN
  */
 class SingleQuery {
 
 public:
     vector<unique_ptr<QueryPart>> queryParts;
-    vector<unique_ptr<MatchStatement>> matchStatements;
+    vector<unique_ptr<ReadingStatement>> readingStatements;
     unique_ptr<ReturnStatement> returnStatement;
 };
 

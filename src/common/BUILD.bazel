@@ -78,6 +78,14 @@ cc_library(
 )
 
 cc_library(
+    name = "statement_type",
+    hdrs = [
+        "include/statement_type.h",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "csv_reader",
     srcs = ["csv_reader/csv_reader.cpp"],
     hdrs = ["include/csv_reader/csv_reader.h"],

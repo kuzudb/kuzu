@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/antlr4/CypherParser.h"
+#include "src/parser/include/patterns/pattern_element.h"
 #include "src/parser/include/queries/single_query.h"
 
 using namespace std;
@@ -25,9 +26,11 @@ private:
 
     unique_ptr<QueryPart> transformQueryPart(CypherParser::GF_QueryPartContext& ctx);
 
-    unique_ptr<MatchStatement> transformReadingClause(CypherParser::OC_ReadingClauseContext& ctx);
+    unique_ptr<ReadingStatement> transformReadingClause(CypherParser::OC_ReadingClauseContext& ctx);
 
-    unique_ptr<MatchStatement> transformMatch(CypherParser::OC_MatchContext& ctx);
+    unique_ptr<ReadingStatement> transformLoadCSV(CypherParser::OC_LoadCSVContext& ctx);
+
+    unique_ptr<ReadingStatement> transformMatch(CypherParser::OC_MatchContext& ctx);
 
     unique_ptr<WithStatement> transformWith(CypherParser::OC_WithContext& ctx);
 

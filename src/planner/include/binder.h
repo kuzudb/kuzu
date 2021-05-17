@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/parser/include/queries/single_query.h"
+#include "src/parser/include/statements/match_statement.h"
 #include "src/planner/include/bound_queries/bound_single_query.h"
 #include "src/planner/include/expression_binder.h"
 
@@ -16,7 +17,7 @@ public:
 
 private:
     unique_ptr<BoundMatchStatement> bindMatchStatementsAndMerge(
-        const vector<unique_ptr<MatchStatement>>& matchStatements);
+        const vector<unique_ptr<ReadingStatement>>& readingStatements);
 
     unique_ptr<BoundMatchStatement> bindMatchStatement(const MatchStatement& matchStatement);
 

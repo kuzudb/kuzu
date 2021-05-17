@@ -69,29 +69,29 @@ unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQu
     auto boundSingleQuery = make_unique<BoundSingleQuery>();
     for (auto& parsedQueryPart : singleQuery.queryParts) {
         auto boundQueryPart = make_unique<BoundQueryPart>();
-        if (!parsedQueryPart->matchStatements.empty()) {
+        if (!parsedQueryPart->readingStatements.empty()) {
             boundQueryPart->boundMatchStatement =
-                bindMatchStatementsAndMerge(parsedQueryPart->matchStatements);
+                bindMatchStatementsAndMerge(parsedQueryPart->readingStatements);
         }
         boundQueryPart->boundWithStatement = bindWithStatement(*parsedQueryPart->withStatement);
         boundSingleQuery->boundQueryParts.push_back(move(boundQueryPart));
     }
-    if (!singleQuery.matchStatements.empty()) {
+    if (!singleQuery.readingStatements.empty()) {
         boundSingleQuery->boundMatchStatement =
-            bindMatchStatementsAndMerge(singleQuery.matchStatements);
+            bindMatchStatementsAndMerge(singleQuery.readingStatements);
     }
     boundSingleQuery->boundReturnStatement = bindReturnStatement(*singleQuery.returnStatement);
     return boundSingleQuery;
 }
 
 unique_ptr<BoundMatchStatement> Binder::bindMatchStatementsAndMerge(
-    const vector<unique_ptr<MatchStatement>>& matchStatements) {
+    const vector<unique_ptr<ReadingStatement>>& readingStatements) {
     unique_ptr<BoundMatchStatement> mergedMatchStatement;
-    for (auto& matchStatement : matchStatements) {
+    for (auto& matchStatement : readingStatements) {
         if (!mergedMatchStatement) {
-            mergedMatchStatement = bindMatchStatement(*matchStatement);
+            mergedMatchStatement = bindMatchStatement((MatchStatement&)*matchStatement);
         } else {
-            mergedMatchStatement->merge(*bindMatchStatement(*matchStatement));
+            mergedMatchStatement->merge(*bindMatchStatement((MatchStatement&)*matchStatement));
         }
     }
     return mergedMatchStatement;
