@@ -1,8 +1,10 @@
 #pragma once
 
 #include <climits>
+#include <functional>
 
 #include "src/common/include/data_chunk/data_chunk.h"
+#include "src/common/include/expression_type.h"
 #include "src/common/include/value.h"
 #include "src/common/include/vector/value_vector.h"
 
@@ -14,6 +16,11 @@ namespace expression {
 class PhysicalExpression {
 
 public:
+    static function<void(ValueVector&, ValueVector&)> getUnaryOperation(ExpressionType type);
+
+    static function<void(ValueVector&, ValueVector&, ValueVector&)> getBinaryOperation(
+        ExpressionType type);
+
     // Creates a leaf literal as value vector physical expression.
     PhysicalExpression(shared_ptr<ValueVector> result, ExpressionType expressionType)
         : result{result}, valueVectorPos{UINT64_MAX}, expressionType{expressionType},

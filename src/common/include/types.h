@@ -3,11 +3,8 @@
 #include <cfloat>
 #include <cmath>
 #include <cstring>
+#include <string>
 #include <vector>
-
-#include "robin_hood.h"
-
-#include "src/common/include/string.h"
 
 using namespace std;
 
@@ -96,16 +93,6 @@ enum Direction : uint8_t { FWD = 0, BWD = 1 };
 const vector<Direction> DIRS = {FWD, BWD};
 
 Direction operator!(Direction& direction);
-
-// C-like string equalTo.
-struct charArrayEqualTo {
-    bool operator()(const char* lhs, const char* rhs) const { return strcmp(lhs, rhs) == 0; }
-};
-
-// C-like string hasher.
-struct charArrayHasher {
-    size_t operator()(const char* key) const { return robin_hood::hash_bytes(key, strlen(key)); }
-};
 
 } // namespace common
 } // namespace graphflow

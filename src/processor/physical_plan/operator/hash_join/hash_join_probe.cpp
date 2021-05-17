@@ -23,8 +23,6 @@ HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::HashJoinProbe(uint64_t buildSideKeyDat
     probeSideKeyVector = static_pointer_cast<NodeIDVector>(
         probeSideKeyDataChunk->getValueVector(probeSideKeyVectorPos));
 
-    vectorDecompressOp = ValueVector::getUnaryOperation(DECOMPRESS_NODE_ID);
-    vectorHashOp = ValueVector::getUnaryOperation(HASH_NODE_ID);
     decompressedProbeKeyVector = make_shared<NodeIDVector>(0, NodeIDCompressionScheme(8, 8), false);
     decompressedProbeKeyVector->state = probeSideKeyVector->state;
     hashedProbeKeyVector = make_shared<ValueVector>(INT64);
@@ -109,7 +107,7 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::probeHTDirectory() {
     auto keyCount =
         hashedProbeKeyVector->state->isFlat() ? 1 : hashedProbeKeyVector->state->numSelectedValues;
-    vectorHashOp(*probeSideKeyVector, *hashedProbeKeyVector);
+    VectorNodeIDOperations::Hash(*probeSideKeyVector, *hashedProbeKeyVector);
     auto hashes = (uint64_t*)hashedProbeKeyVector->values;
     auto directory = (uint8_t**)sharedState->htDirectory->blockPtr;
     if (hashedProbeKeyVector->state->isFlat()) {
@@ -137,7 +135,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
                 return;
             }
             probeHTDirectory();
-            vectorDecompressOp(*probeSideKeyVector, *decompressedProbeKeyVector);
+            VectorNodeIDOperations::Decompress(*probeSideKeyVector, *decompressedProbeKeyVector);
             probeState->probeKeyPos = 0;
         }
         nodeID_t nodeId;

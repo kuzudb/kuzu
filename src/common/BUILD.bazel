@@ -1,40 +1,51 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "common",
+    name = "data_chunk",
+    srcs = [
+        "data_chunk/data_chunk.cpp",
+    ],
+    hdrs = [
+        "include/data_chunk/data_chunk.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "vector",
+    ],
+)
+
+cc_library(
+    name = "vector",
     srcs = [
         "compression_scheme.cpp",
-        "data_chunk/data_chunk.cpp",
-        "data_chunk/data_chunk_state.cpp",
-        "expression_type.cpp",
-        "file_ser_deser_helper.cpp",
-        "string.cpp",
-        "types.cpp",
-        "value.cpp",
         "vector/node_vector.cpp",
+        "vector/value_vector.cpp",
+        "vector/vector_state.cpp"
+    ],
+    hdrs = [
+        "include/compression_scheme.h",
+        "include/vector/node_vector.h",
+        "include/vector/value_vector.h",
+        "include/vector/vector_state.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "types",
+        "expression_type",
+        "operations",
+    ],
+)
+
+cc_library(
+    name = "vector_operations",
+    srcs = [
         "vector/operations/vector_arithmetic_operations.cpp",
         "vector/operations/vector_boolean_operations.cpp",
         "vector/operations/vector_cast_operations.cpp",
         "vector/operations/vector_comparison_operations.cpp",
         "vector/operations/vector_node_id_operations.cpp",
-        "vector/value_vector.cpp",
     ],
     hdrs = [
-        "include/compression_scheme.h",
-        "include/configs.h",
-        "include/data_chunk/data_chunk.h",
-        "include/data_chunk/data_chunk_state.h",
-        "include/expression_type.h",
-        "include/file_ser_deser_helper.h",
-        "include/operations/arithmetic_operations.h",
-        "include/operations/boolean_operations.h",
-        "include/operations/comparison_operations.h",
-        "include/operations/decompress_operations.h",
-        "include/operations/hash_operations.h",
-        "include/string.h",
-        "include/types.h",
-        "include/value.h",
-        "include/vector/node_vector.h",
         "include/vector/operations/executors/binary_operation_executor.h",
         "include/vector/operations/executors/unary_operation_executor.h",
         "include/vector/operations/vector_arithmetic_operations.h",
@@ -42,11 +53,27 @@ cc_library(
         "include/vector/operations/vector_cast_operations.h",
         "include/vector/operations/vector_comparison_operations.h",
         "include/vector/operations/vector_node_id_operations.h",
-        "include/vector/value_vector.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "@martinus_robin_hood_hashing",
+        "operations",
+        "vector",
+    ],
+)
+
+cc_library(
+    name = "operations",
+    srcs = [],
+    hdrs = [
+        "include/operations/arithmetic_operations.h",
+        "include/operations/boolean_operations.h",
+        "include/operations/comparison_operations.h",
+        "include/operations/decompress_operations.h",
+        "include/operations/hash_operations.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "types",
     ],
 )
 
@@ -56,8 +83,72 @@ cc_library(
     hdrs = ["include/csv_reader/csv_reader.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "common",
+        "types",
+        "configs",
+        "utils",
     ],
+)
+
+cc_library(
+    name = "utils",
+    srcs = [],
+    hdrs = [
+        "include/utils.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@martinus_robin_hood_hashing",
+    ],
+)
+
+cc_library(
+    name = "types",
+    srcs = [
+        "types.cpp",
+        "value.cpp",
+        "string.cpp",
+    ],
+    hdrs = [
+        "include/types.h",
+        "include/value.h",
+        "include/string.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [],
+)
+
+cc_library(
+    name = "configs",
+    srcs = [],
+    hdrs = [
+        "include/configs.h"
+    ],
+    visibility = ["//visibility:public"],
+    deps = [],
+)
+
+cc_library(
+    name = "expression_type",
+    srcs = [
+        "expression_type.cpp",
+    ],
+    hdrs = [
+        "include/expression_type.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [],
+)
+
+cc_library(
+    name = "file_ser_deser_helper",
+    srcs = [
+        "file_ser_deser_helper.cpp",
+    ],
+    hdrs = [
+        "include/file_ser_deser_helper.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [],
 )
 
 cc_library(

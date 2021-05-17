@@ -54,9 +54,9 @@ cc_library(
     deps = [
         "memory_manager",
         "result_set",
-        "//src/common",
         "//src/common:csv_reader",
-        "//src/expression",
+        "//src/expression:logical_expression",
+        "//src/expression:physical_expression",
         "//src/storage:graph",
         "//src/storage:lists_aux",
         "//src/transaction",
@@ -75,7 +75,7 @@ cc_library(
         "include/physical_plan/operator/result/tuple.h",
     ],
     deps = [
-        "//src/common",
+        "//src/common:data_chunk",
         "//src/storage:lists_aux",
     ],
 )
@@ -127,6 +127,5 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/common",
     ],
 )

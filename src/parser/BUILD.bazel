@@ -63,6 +63,6 @@ cc_library(
         "include/parsed_expression.h",
     ],
     deps = [
-        "//src/common",
+        "//src/common:expression_type",
     ],
 )

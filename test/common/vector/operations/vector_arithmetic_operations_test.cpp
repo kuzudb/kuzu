@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
+#include "src/common/include/vector/operations/vector_arithmetic_operations.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -28,39 +29,33 @@ TEST(VectorArithTests, test) {
         rData[i] = 110 - i;
     }
 
-    auto negateOp = ValueVector::getUnaryOperation(ExpressionType::NEGATE);
-    negateOp(*lVector, *result);
+    VectorArithmeticOperations::Negate(*lVector, *result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], -i);
     }
 
-    auto addOp = ValueVector::getBinaryOperation(ExpressionType::ADD);
-    addOp(*lVector, *rVector, *result);
+    VectorArithmeticOperations::Add(*lVector, *rVector, *result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], 110);
     }
 
-    auto subtractOp = ValueVector::getBinaryOperation(ExpressionType::SUBTRACT);
-    subtractOp(*lVector, *rVector, *result);
+    VectorArithmeticOperations::Subtract(*lVector, *rVector, *result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], 2 * i - 110);
     }
 
-    auto multiplyOp = ValueVector::getBinaryOperation(ExpressionType::MULTIPLY);
-    multiplyOp(*lVector, *rVector, *result);
+    VectorArithmeticOperations::Multiply(*lVector, *rVector, *result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], i * (110 - i));
     }
 
-    auto divideOp = ValueVector::getBinaryOperation(ExpressionType::DIVIDE);
-    divideOp(*lVector, *rVector, *result);
+    VectorArithmeticOperations::Divide(*lVector, *rVector, *result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], i / (110 - i));
     }
 
     /* note rVector and lVector are flipped */
-    auto moduloOp = ValueVector::getBinaryOperation(ExpressionType::MODULO);
-    moduloOp(*rVector, *lVector, *result);
+    VectorArithmeticOperations::Modulo(*rVector, *lVector, *result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultData[i], i % (110 - i));
     }
@@ -68,8 +63,7 @@ TEST(VectorArithTests, test) {
     result = make_shared<ValueVector>(DOUBLE);
     dataChunk->append(result);
     auto resultDataAsDoubleArr = (double_t*)result->values;
-    auto powerOp = ValueVector::getBinaryOperation(ExpressionType::POWER);
-    powerOp(*lVector, *rVector, *result);
+    VectorArithmeticOperations::Power(*lVector, *rVector, *result);
     for (int32_t i = 0; i < 100; i++) {
         ASSERT_EQ(resultDataAsDoubleArr[i], pow(i, 110 - i));
     }

@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
+#include "src/common/include/string.h"
+#include "src/common/include/vector/operations/vector_comparison_operations.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -30,38 +32,32 @@ TEST(VectorCmpTests, cmpInt) {
         rData[i] = 90 - i;
     }
 
-    auto equalsOp = ValueVector::getBinaryOperation(ExpressionType::EQUALS);
-    equalsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::Equals(*lVector, *rVector, *result);
     for (int32_t i = 0; i < numTuples; i++) {
         ASSERT_EQ(resultData[i], i == 45 ? TRUE : FALSE);
     }
 
-    auto notEqualsOp = ValueVector::getBinaryOperation(ExpressionType::NOT_EQUALS);
-    notEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::NotEquals(*lVector, *rVector, *result);
     for (int32_t i = 0; i < numTuples; i++) {
         ASSERT_EQ(resultData[i], i == 45 ? FALSE : TRUE);
     }
 
-    auto lessThanOp = ValueVector::getBinaryOperation(ExpressionType::LESS_THAN);
-    lessThanOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
     for (int32_t i = 0; i < numTuples; i++) {
         ASSERT_EQ(resultData[i], i < 45 ? TRUE : FALSE);
     }
 
-    auto lessThanEqualsOp = ValueVector::getBinaryOperation(ExpressionType::LESS_THAN_EQUALS);
-    lessThanEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
     for (int32_t i = 0; i < numTuples; i++) {
         ASSERT_EQ(resultData[i], i < 46 ? TRUE : FALSE);
     }
 
-    auto greaterThanOp = ValueVector::getBinaryOperation(ExpressionType::GREATER_THAN);
-    greaterThanOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
     for (int32_t i = 0; i < numTuples; i++) {
         ASSERT_EQ(resultData[i], i < 46 ? FALSE : TRUE);
     }
 
-    auto greaterThanEqualsOp = ValueVector::getBinaryOperation(ExpressionType::GREATER_THAN_EQUALS);
-    greaterThanEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
     for (int32_t i = 0; i < numTuples; i++) {
         ASSERT_EQ(resultData[i], i < 45 ? FALSE : TRUE);
     }
@@ -94,45 +90,39 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     memcpy(lData[0].data, value + gf_string_t::PREFIX_LENGTH, 8 - gf_string_t::PREFIX_LENGTH);
     memcpy(rData[0].data, value + gf_string_t::PREFIX_LENGTH, 8 - gf_string_t::PREFIX_LENGTH);
 
-    auto equalsOp = ValueVector::getBinaryOperation(ExpressionType::EQUALS);
-    equalsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::Equals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
     rData[0].data[3] = 'i';
-    equalsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::Equals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
-    auto notEqualsOp = ValueVector::getBinaryOperation(ExpressionType::NOT_EQUALS);
-    notEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::NotEquals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
-    auto lessThanOp = ValueVector::getBinaryOperation(ExpressionType::LESS_THAN);
-    lessThanOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
-    auto lessThanEqualsOp = ValueVector::getBinaryOperation(ExpressionType::LESS_THAN_EQUALS);
-    lessThanEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
-    auto greaterThanOp = ValueVector::getBinaryOperation(ExpressionType::GREATER_THAN);
-    greaterThanOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
-    auto greaterThanEqualsOp = ValueVector::getBinaryOperation(ExpressionType::GREATER_THAN_EQUALS);
-    greaterThanEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
     rData[0].data[3] = 'a';
-    lessThanOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
-    lessThanEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
-    greaterThanOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
-    greaterThanEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 }
 
@@ -169,44 +159,38 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     memcpy(rOverflow, value, overflowLen);
     rData->overflowPtr = reinterpret_cast<uintptr_t>(rOverflow);
 
-    auto equalsOp = ValueVector::getBinaryOperation(ExpressionType::EQUALS);
-    equalsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::Equals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
     rOverflow[overflowLen - 1] = 'z';
-    equalsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::Equals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
-    auto notEqualsOp = ValueVector::getBinaryOperation(ExpressionType::NOT_EQUALS);
-    notEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::NotEquals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
-    auto lessThanOp = ValueVector::getBinaryOperation(ExpressionType::LESS_THAN);
-    lessThanOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
-    auto lessThanEqualsOp = ValueVector::getBinaryOperation(ExpressionType::LESS_THAN_EQUALS);
-    lessThanEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
-    auto greaterThanOp = ValueVector::getBinaryOperation(ExpressionType::GREATER_THAN);
-    greaterThanOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
-    auto greaterThanEqualsOp = ValueVector::getBinaryOperation(ExpressionType::GREATER_THAN_EQUALS);
-    greaterThanEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
     rOverflow[overflowLen - 1] = 'a';
-    lessThanOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
-    lessThanEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], FALSE);
 
-    greaterThanOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 
-    greaterThanEqualsOp(*lVector, *rVector, *result);
+    VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
 }

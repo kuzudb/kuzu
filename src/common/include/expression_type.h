@@ -1,6 +1,9 @@
 #pragma once
 
-#include "src/common/include/types.h"
+#include <cstdint>
+#include <string>
+
+using namespace std;
 
 namespace graphflow {
 namespace common {

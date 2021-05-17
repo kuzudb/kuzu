@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "src/common/include/string.h"
+
 using namespace graphflow::common;
 
 namespace graphflow {

@@ -66,7 +66,7 @@ cc_library(
         "include/query_graph/query_graph.h",
     ],
     deps = [
-        "//src/expression",
+        "//src/expression:logical_expression",
     ],
 )
 
@@ -92,6 +92,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/expression",
+        "//src/expression:logical_expression",
+        "//src/common:file_ser_deser_helper",
     ],
 )

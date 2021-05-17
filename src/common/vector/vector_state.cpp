@@ -1,9 +1,9 @@
-#include "src/common/include/data_chunk/data_chunk_state.h"
+#include "src/common/include/vector/vector_state.h"
 
 namespace graphflow {
 namespace common {
 
-DataChunkState::DataChunkState(bool initializeSelectedValuesPos, uint64_t capacity)
+VectorState::VectorState(bool initializeSelectedValuesPos, uint64_t capacity)
     : size{0}, currPos{-1}, numSelectedValues{0} {
     valuesPos = make_unique<uint64_t[]>(capacity);
     selectedValuesPos = valuesPos.get();
@@ -16,16 +16,16 @@ DataChunkState::DataChunkState(bool initializeSelectedValuesPos, uint64_t capaci
     }
 }
 
-shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
-    auto state = make_shared<DataChunkState>(true /* init SelectedValuesPos */, 1);
+shared_ptr<VectorState> VectorState::getSingleValueDataChunkState() {
+    auto state = make_shared<VectorState>(true /* init SelectedValuesPos */, 1);
     state->size = 1;
     state->currPos = 0;
     return state;
 }
 
-shared_ptr<DataChunkState> DataChunkState::clone() {
+shared_ptr<VectorState> VectorState::clone() {
     auto capacity = sizeof(valuesPos.get()) / sizeof(uint64_t);
-    auto newState = make_shared<DataChunkState>(false /*initializeSelectedValuesPos*/, capacity);
+    auto newState = make_shared<VectorState>(false /*initializeSelectedValuesPos*/, capacity);
     newState->size = size;
     newState->currPos = currPos;
     newState->numSelectedValues = numSelectedValues;

@@ -65,9 +65,6 @@ public:
     shared_ptr<HashJoinSharedState> sharedState;
 
 private:
-    std::function<void(ValueVector&, ValueVector&)> vectorDecompressOp;
-    std::function<void(ValueVector&, ValueVector&)> vectorHashOp;
-
     uint64_t buildSideKeyDataChunkPos;
     uint64_t buildSideKeyVectorPos;
     vector<bool> buildSideDataChunkPosToIsFlat;

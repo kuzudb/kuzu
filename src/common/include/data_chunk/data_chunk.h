@@ -3,9 +3,9 @@
 #include <memory>
 #include <vector>
 
-#include "src/common/include/data_chunk/data_chunk_state.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/value_vector.h"
+#include "src/common/include/vector/vector_state.h"
 
 using namespace std;
 
@@ -28,7 +28,7 @@ public:
         : DataChunk(initializeSelectedValuesPos, MAX_VECTOR_SIZE) {}
 
     DataChunk(bool initializeSelectedValuesPos, uint64_t capacity) {
-        state = make_shared<DataChunkState>(initializeSelectedValuesPos, capacity);
+        state = make_shared<VectorState>(initializeSelectedValuesPos, capacity);
     }
 
     void append(shared_ptr<ValueVector> valueVector) {
@@ -44,7 +44,7 @@ public:
 
 public:
     vector<shared_ptr<ValueVector>> valueVectors;
-    shared_ptr<DataChunkState> state;
+    shared_ptr<VectorState> state;
 };
 
 } // namespace common

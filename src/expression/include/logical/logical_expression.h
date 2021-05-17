@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <memory>
 #include <unordered_set>
 
 #include "src/common/include/expression_type.h"

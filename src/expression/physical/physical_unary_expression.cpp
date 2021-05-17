@@ -8,7 +8,7 @@ PhysicalUnaryExpression::PhysicalUnaryExpression(
     childrenExpr.push_back(move(child));
     this->expressionType = expressionType;
     this->dataType = dataType;
-    operation = ValueVector::getUnaryOperation(expressionType);
+    operation = getUnaryOperation(expressionType);
     result = createResultValueVector();
 }
 

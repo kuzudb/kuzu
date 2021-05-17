@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "src/common/include/configs.h"
+#include "src/common/include/utils.h"
 
 namespace graphflow {
 namespace common {

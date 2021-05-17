@@ -1,7 +1,9 @@
 #include "src/common/include/types.h"
 
 #include <cstdlib>
+#include <stdexcept>
 
+#include "src/common/include/string.h"
 #include "src/common/include/value.h"
 
 namespace graphflow {
