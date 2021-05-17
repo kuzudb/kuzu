@@ -40,8 +40,11 @@ cc_library(
         "include/statements/match_statement.h",
         "include/statements/return_statement.h",
         "include/statements/with_statement.h",
+        "include/statements/load_csv_statement.h",
+        "include/statements/reading_statement.h"
     ],
     deps = [
+        "//src/common:statement_type",
         "expressions",
         "patterns",
     ],

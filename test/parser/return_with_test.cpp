@@ -26,9 +26,8 @@ TEST_F(ReturnWithTest, ReturnCountStarTest) {
     expressions.push_back(make_unique<ParsedExpression>(FUNCTION, "COUNT_STAR", EMPTY));
     auto returnStatement = make_unique<ReturnStatement>(move(expressions), false);
 
-    graphflow::parser::Parser parser;
     string input = "MATCH () RETURN COUNT(*);";
-    auto singleQuery = parser.parseQuery(input);
+    auto singleQuery = Parser::parseQuery(input);
     ASSERT_TRUE(ParserTestUtils::equals(*returnStatement, *singleQuery->returnStatement));
 }
 
@@ -37,9 +36,8 @@ TEST_F(ReturnWithTest, ReturnStarAndPropertyTest) {
     expressions.push_back(makeANameExpression());
     auto returnStatement = make_unique<ReturnStatement>(move(expressions), true);
 
-    graphflow::parser::Parser parser;
     string input = "MATCH () RETURN *, a.name;";
-    auto singleQuery = parser.parseQuery(input);
+    auto singleQuery = Parser::parseQuery(input);
     ASSERT_TRUE(ParserTestUtils::equals(*returnStatement, *singleQuery->returnStatement));
 }
 
@@ -51,9 +49,8 @@ TEST_F(ReturnWithTest, ReturnAliasTest) {
     expressions.push_back(move(aName2));
     auto returnStatement = make_unique<ReturnStatement>(move(expressions), false);
 
-    graphflow::parser::Parser parser;
     string input = "MATCH () RETURN a.name, a.name AS whatever;";
-    auto singleQuery = parser.parseQuery(input);
+    auto singleQuery = Parser::parseQuery(input);
     ASSERT_TRUE(ParserTestUtils::equals(*returnStatement, *singleQuery->returnStatement));
 }
 
@@ -67,11 +64,10 @@ TEST_F(ReturnWithTest, SingleWithTest) {
     expressions.push_back(move(name));
     auto withStatement = make_unique<WithStatement>(move(expressions), false);
 
-    graphflow::parser::Parser parser;
     string input = "WITH 1 AS one, \"Xiyang\" AS name MATCH () RETURN *;";
-    auto singleQuery = parser.parseQuery(input);
+    auto singleQuery = Parser::parseQuery(input);
     ASSERT_TRUE(1u == singleQuery->queryParts.size());
-    ASSERT_TRUE(0u == singleQuery->queryParts[0]->matchStatements.size());
+    ASSERT_TRUE(singleQuery->queryParts[0]->readingStatements.empty());
     ASSERT_TRUE(
         ParserTestUtils::equals(*withStatement, *singleQuery->queryParts[0]->withStatement));
 }
@@ -83,11 +79,10 @@ TEST_F(ReturnWithTest, MultiMatchWithStarTest) {
     expressions.push_back(move(one));
     auto withStatement = make_unique<WithStatement>(move(expressions), true);
 
-    graphflow::parser::Parser parser;
     string input = "MATCH () MATCH () WITH *, 1 AS one MATCH () RETURN *;";
-    auto singleQuery = parser.parseQuery(input);
+    auto singleQuery = Parser::parseQuery(input);
     ASSERT_TRUE(1u == singleQuery->queryParts.size());
-    ASSERT_TRUE(2u == singleQuery->queryParts[0]->matchStatements.size());
+    ASSERT_TRUE(2u == singleQuery->queryParts[0]->readingStatements.size());
     ASSERT_TRUE(
         ParserTestUtils::equals(*withStatement, *singleQuery->queryParts[0]->withStatement));
 }
@@ -110,15 +105,14 @@ TEST_F(ReturnWithTest, MultiWithWhereTest) {
     auto where2 = make_unique<ParsedExpression>(EQUALS, EMPTY, EMPTY, move(newAge), move(ten2));
     withStatement2->whereClause = move(where2);
 
-    graphflow::parser::Parser parser;
     string input =
         "MATCH () WITH * WHERE a.age < 1 WITH a.age AS newAge WHERE newAge = 10 MATCH () RETURN *;";
-    auto singleQuery = parser.parseQuery(input);
+    auto singleQuery = Parser::parseQuery(input);
     ASSERT_TRUE(2u == singleQuery->queryParts.size());
-    ASSERT_TRUE(1u == singleQuery->queryParts[0]->matchStatements.size());
+    ASSERT_TRUE(1u == singleQuery->queryParts[0]->readingStatements.size());
     ASSERT_TRUE(
         ParserTestUtils::equals(*withStatement1, *singleQuery->queryParts[0]->withStatement));
-    ASSERT_TRUE(0u == singleQuery->queryParts[1]->matchStatements.size());
+    ASSERT_TRUE(singleQuery->queryParts[1]->readingStatements.empty());
     ASSERT_TRUE(
         ParserTestUtils::equals(*withStatement2, *singleQuery->queryParts[1]->withStatement));
 }

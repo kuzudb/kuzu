@@ -13,9 +13,9 @@ cc_library(
 cc_test(
     name = "parser_tests",
     srcs = [
-        "graph_pattern_test.cpp",
+        "reading_clause_test.cpp",
         "return_with_test.cpp",
-        "where_test.cpp",
+        "expression_test.cpp",
     ],
     linkstatic = 1,
     deps = [
