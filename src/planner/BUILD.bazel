@@ -26,7 +26,7 @@ cc_library(
     ],
     hdrs = [
         "include/logical_plan/logical_plan.h",
-        "include/logical_plan/operator/crud/logical_create_node.h",
+        "include/logical_plan/operator/crud/logical_crud_node.h",
         "include/logical_plan/operator/extend/logical_extend.h",
         "include/logical_plan/operator/filter/logical_filter.h",
         "include/logical_plan/operator/hash_join/logical_hash_join.h",

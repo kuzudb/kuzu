@@ -3,61 +3,31 @@
 namespace graphflow {
 namespace transaction {
 
-void LocalStorage::computeCreateNode(vector<uint32_t> propertyKeyIdxToVectorPosMap,
-    label_t nodeLabel, vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes) {
-    auto numRecycledIDs = assignNodeIDs(nodeLabel);
-    uncommittedLabelToNumNodes.emplace(nodeLabel, numNodes + max(0ul, numTuples - numRecycledIDs));
-    for (auto i = 0u; i < propertyKeyIdxToVectorPosMap.size(); i++) {
-        auto numUpdates = numRecycledIDs;
-        auto& column = *nodePropertyColumns[i];
-        uncommittedPages.emplace(column.getFileHandle(), pageIdxToDirtyPageMap());
-        auto& dirtyPagesMap = uncommittedPages[column.getFileHandle()];
-        auto nullValue = make_unique<uint8_t[]>(getDataTypeSize(column.dataType));
-        switch (column.dataType) {
-        case INT32:
-            memcpy(nullValue.get(), &NULL_INT32, getDataTypeSize(column.dataType));
-            break;
-        case DOUBLE:
-            memcpy(nullValue.get(), &NULL_DOUBLE, getDataTypeSize(column.dataType));
-            break;
-        case BOOL:
-            memcpy(nullValue.get(), &NULL_BOOL, getDataTypeSize(column.dataType));
-            break;
-        case STRING: {
-            gf_string_t nullStr;
-            nullStr.set(string(&gf_string_t::EMPTY_STRING));
-            memcpy(nullValue.get(), &NULL_BOOL, getDataTypeSize(column.dataType));
-            break;
-        }
-        default:
-            assert(false);
-        }
-        ValueVector* propertyValueVector = nullptr;
-        auto dataChunkIdx = 0u;
-        auto idxInDataChunk = 0u;
-        while (dataChunkIdx < dataChunks.size()) {
-            auto& dataChunk = *dataChunks[dataChunkIdx];
-            auto nodeIDVector = (NodeIDVector*)dataChunk.valueVectors.back().get();
-            if (-1 != propertyKeyIdxToVectorPosMap[i]) {
-                propertyValueVector = dataChunk.valueVectors[propertyKeyIdxToVectorPosMap[i]].get();
-            }
-            if (0 < numUpdates) {
-                updateNodePropertyColumn(dataChunkIdx, idxInDataChunk,
-                    propertyKeyIdxToVectorPosMap[i], numUpdates, column, nullValue.get(),
-                    dirtyPagesMap, dataChunk.state->size, propertyValueVector, nodeIDVector);
-            }
-            // If there are more created nodes that are left in the datachunk.
-            if (0 == numUpdates) {
-                appendToNodePropertyColumn(dataChunkIdx, idxInDataChunk,
-                    propertyKeyIdxToVectorPosMap[i], column, nullValue.get(), dirtyPagesMap,
-                    dataChunk.state->size, propertyValueVector, nodeIDVector);
-            }
-        }
+static unique_ptr<uint8_t[]> getNullValuePtrForDataType(DataType dataType) {
+    auto nullValue = make_unique<uint8_t[]>(getDataTypeSize(dataType));
+    switch (dataType) {
+    case INT32:
+        memcpy(nullValue.get(), &NULL_INT32, getDataTypeSize(dataType));
+        break;
+    case DOUBLE:
+        memcpy(nullValue.get(), &NULL_DOUBLE, getDataTypeSize(dataType));
+        break;
+    case BOOL:
+        memcpy(nullValue.get(), &NULL_BOOL, getDataTypeSize(dataType));
+        break;
+    case STRING: {
+        gf_string_t nullStr;
+        nullStr.set(string(&gf_string_t::EMPTY_STRING));
+        memcpy(nullValue.get(), &NULL_BOOL, getDataTypeSize(dataType));
+        break;
     }
-    dataChunks.clear();
+    default:
+        assert(false);
+    }
+    return nullValue;
 }
 
-uint32_t LocalStorage::assignNodeIDs(label_t nodeLabel) {
+void LocalStorage::assignNodeIDs(label_t nodeLabel) {
     // TODO: get the list of nodeIDs from the free list, and recycle them.
     // // Since we do not have the free list implemented yet, assume that the number of recycled
     // // nodeIds is 0.
@@ -75,75 +45,158 @@ uint32_t LocalStorage::assignNodeIDs(label_t nodeLabel) {
         //  }
         // handle the remaining.
     }
-    return numRecycledIds;
+    uncommittedNumRecycledNodeIDs = numRecycledIds;
 }
 
-void LocalStorage::updateNodePropertyColumn(uint32_t& dataChunkIdx, uint32_t& idxInDataChunk,
-    uint32_t vectorPos, uint32_t& numUpdates, BaseColumn& column, uint8_t* nullValue,
-    pageIdxToDirtyPageMap& dirtyPagesMap, uint32_t dataChunkSize, ValueVector* propertyValueVector,
+void LocalStorage::mapNodeIDs(label_t nodeLabel) {
+    for (auto& dataChunk : dataChunks) {
+        // The last vector in the dataChunk is the nodeIDVector containing newly assigned nodeIDs.
+        auto nodeIDVector = make_shared<NodeIDVector>(nodeLabel, NodeIDCompressionScheme(), false);
+        dataChunk->append(nodeIDVector);
+        // TODO: Map property keys to nodeIDs using hash index.
+    }
+    uncommittedNumRecycledNodeIDs = 0;
+}
+
+void LocalStorage::computeCreateNode(vector<uint32_t> propertyKeyIdxToVectorPosMap,
+    label_t nodeLabel, vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes) {
+    uncommittedLabelToNumNodes.emplace(
+        nodeLabel, numNodes + max(0ul, numTuples - uncommittedNumRecycledNodeIDs));
+    for (auto i = 0u; i < propertyKeyIdxToVectorPosMap.size(); i++) {
+        auto numUpdates = uncommittedNumRecycledNodeIDs;
+        auto& column = *nodePropertyColumns[i];
+        //  Here, we are assuming that the fileHandle of the column is not already in the
+        // uncommittedPages map and hence, none of its pages are dirty.
+        uncommittedPages.emplace(column.getFileHandle(), page_idx_to_dirty_page_map());
+        auto& dirtyPagesMap = uncommittedPages[column.getFileHandle()];
+        auto dataChunkIdx = 0u;
+        auto currPosInDataChunk = 0u;
+        ValueVector* propertyValueVector = nullptr;
+        auto nullValue = getNullValuePtrForDataType(column.dataType);
+        while (dataChunkIdx < dataChunks.size()) {
+            auto& dataChunk = *dataChunks[dataChunkIdx];
+            auto nodeIDVector = (NodeIDVector*)dataChunk.valueVectors.back().get();
+            if (-1ul != propertyKeyIdxToVectorPosMap[i]) {
+                propertyValueVector = dataChunk.valueVectors[propertyKeyIdxToVectorPosMap[i]].get();
+            }
+            if (0 < numUpdates) {
+                auto numUpdatesInDataChunk =
+                    numUpdates >= dataChunk.state->size ? dataChunk.state->size : numUpdates;
+                numUpdates -= numUpdatesInDataChunk;
+                updateNodePropertyColumn(currPosInDataChunk, numUpdatesInDataChunk, column,
+                    nullValue.get(), dirtyPagesMap, propertyValueVector, nodeIDVector);
+                if (numUpdatesInDataChunk + currPosInDataChunk == dataChunk.state->size) {
+                    // dataChunk exhausted, continue to the next dataChunk
+                    dataChunkIdx++;
+                    currPosInDataChunk = 0;
+                    continue;
+                } else {
+                    currPosInDataChunk += numUpdatesInDataChunk;
+                }
+            }
+            // If there are more created nodes that are left in the datachunk.
+            if (0 == numUpdates) {
+                appendToNodePropertyColumn(dataChunkIdx, currPosInDataChunk, column,
+                    nullValue.get(), dirtyPagesMap, dataChunk.state->size, propertyValueVector,
+                    nodeIDVector);
+            }
+        }
+    }
+    dataChunks.clear();
+}
+
+void LocalStorage::computeUpdateNode(vector<uint32_t> propertyKeyIdxToVectorPosMap,
+    label_t nodeLabel, vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes) {
+    for (auto i = 0u; i < propertyKeyIdxToVectorPosMap.size(); i++) {
+        if (-1ul == propertyKeyIdxToVectorPosMap[i]) {
+            continue;
+        }
+        auto& column = *nodePropertyColumns[i];
+        // Here, we are assuming that the fileHandle of the column is not already in the
+        // uncommittedPages map and hence, none of its pages are dirty.
+        uncommittedPages.emplace(column.getFileHandle(), page_idx_to_dirty_page_map());
+        auto& dirtyPagesMap = uncommittedPages[column.getFileHandle()];
+        auto dataChunkIdx = 0u;
+        while (dataChunkIdx < dataChunks.size()) {
+            auto& dataChunk = *dataChunks[dataChunkIdx];
+            auto nodeIDVector = (NodeIDVector*)dataChunk.valueVectors.back().get();
+            auto propertyValueVector =
+                dataChunk.valueVectors[propertyKeyIdxToVectorPosMap[i]].get();
+            updateNodePropertyColumn(0 /*currPos*/, dataChunk.state->size, column,
+                nullptr /*nullValue pointer*/, dirtyPagesMap, propertyValueVector, nodeIDVector);
+            dataChunkIdx++;
+        }
+    }
+    dataChunks.clear();
+}
+
+void LocalStorage::updateNodePropertyColumn(uint32_t currPosInDataChunk,
+    uint64_t numUpdatesInDataChunk, BaseColumn& column, uint8_t* nullValue,
+    page_idx_to_dirty_page_map& dirtyPagesMap, ValueVector* propertyValueVector,
     NodeIDVector* nodeIDVector) {
-    auto numUpdatesInDataChunk = numUpdates >= dataChunkSize ? dataChunkSize : numUpdates;
-    numUpdates -= numUpdatesInDataChunk;
     nodeID_t nodeID;
-    for (auto i = idxInDataChunk; i < numUpdatesInDataChunk + idxInDataChunk; i++) {
+    for (auto i = currPosInDataChunk; i < numUpdatesInDataChunk + currPosInDataChunk; i++) {
         nodeIDVector->readNodeOffset(i, nodeID);
         auto pageCursor = column.getPageCursorForOffset(nodeID.offset);
-        if (dirtyPagesMap.find(pageCursor.idx) == dirtyPagesMap.end()) {
-            auto newPage = new uint8_t[PAGE_SIZE];
-            dirtyPagesMap.emplace(pageCursor.idx, newPage);
-            column.getFileHandle()->readPage(newPage, pageCursor.idx);
-        }
-        auto& page = dirtyPagesMap[pageCursor.idx];
+        auto page =
+            putPageInDirtyPagesMap(dirtyPagesMap, pageCursor.idx, column.getFileHandle(), true);
         if (propertyValueVector) {
-            memcpy(page.get() + pageCursor.offset,
-                propertyValueVector + dataChunkIdx * column.elementSize, column.elementSize);
+            memcpy(page + pageCursor.offset,
+                propertyValueVector + currPosInDataChunk * column.elementSize, column.elementSize);
         } else {
-            memcpy(page.get() + pageCursor.offset, nullValue, column.elementSize);
+            memcpy(page + pageCursor.offset, nullValue, column.elementSize);
         }
-    }
-    if (numUpdatesInDataChunk + idxInDataChunk == dataChunkSize) {
-        // dataChunk exhausted, continue to the next dataChunk
-        dataChunkIdx++;
-        idxInDataChunk = 0;
-    } else {
-        idxInDataChunk += numUpdatesInDataChunk;
     }
 }
 
-void LocalStorage::appendToNodePropertyColumn(uint32_t& dataChunkIdx, uint32_t& idxInDataChunk,
-    uint32_t vectorPos, BaseColumn& column, uint8_t* nullValue,
-    pageIdxToDirtyPageMap& dirtyPagesMap, uint32_t dataChunkSize, ValueVector* propertyValueVector,
-    NodeIDVector* nodeIDVector) {
+void LocalStorage::appendToNodePropertyColumn(uint32_t& dataChunkIdx, uint32_t& currPosInDataChunk,
+    BaseColumn& column, uint8_t* nullValue, page_idx_to_dirty_page_map& dirtyPagesMap,
+    uint32_t dataChunkSize, ValueVector* propertyValueVector, NodeIDVector* nodeIDVector) {
     nodeID_t nodeID;
-    nodeIDVector->readNodeOffset(idxInDataChunk, nodeID);
+    nodeIDVector->readNodeOffset(currPosInDataChunk, nodeID);
     auto pageCursor = column.getPageCursorForOffset(nodeID.offset);
-    if (dirtyPagesMap.find(pageCursor.idx) == dirtyPagesMap.end()) {
-        auto newPage = new uint8_t[PAGE_SIZE];
-        dirtyPagesMap.emplace(pageCursor.idx, newPage);
-        if (column.getFileHandle()->hasPage(newPage, pageCursor.idx)) {
-            column.getFileHandle()->readPage(newPage, pageCursor.idx);
-        }
-    }
-    auto& page = dirtyPagesMap[pageCursor.idx];
+    auto page = putPageInDirtyPagesMap(dirtyPagesMap, pageCursor.idx, column.getFileHandle(), true);
     auto freePosInPage = (PAGE_SIZE - pageCursor.offset) / column.elementSize;
-    auto elementsLeftInDataChunk = dataChunkSize - idxInDataChunk;
+    auto elementsLeftInDataChunk = dataChunkSize - currPosInDataChunk;
     auto numElementsToCopy = min(freePosInPage, (uint64_t)elementsLeftInDataChunk);
     if (propertyValueVector) {
-        memcpy(page.get() + pageCursor.offset,
-            propertyValueVector + dataChunkIdx * column.elementSize,
+        memcpy(page + pageCursor.offset,
+            propertyValueVector + currPosInDataChunk * column.elementSize,
             numElementsToCopy * column.elementSize);
     } else {
         for (auto i = 0u; i < numElementsToCopy; i++) {
-            memcpy(page.get() + pageCursor.offset, nullValue, column.elementSize);
+            memcpy(page + pageCursor.offset, nullValue, column.elementSize);
             pageCursor.offset += column.elementSize;
         }
     }
     if (freePosInPage >= elementsLeftInDataChunk) {
         dataChunkIdx++;
-        idxInDataChunk = 0;
+        currPosInDataChunk = 0;
     } else {
-        idxInDataChunk += freePosInPage;
+        currPosInDataChunk += freePosInPage;
     }
+}
+
+uint8_t* LocalStorage::putPageInDirtyPagesMap(page_idx_to_dirty_page_map& dirtyPagesMap,
+    uint32_t pageIdx, FileHandle* fileHandle, bool createEmptyPage) {
+    if (dirtyPagesMap.find(pageIdx) == dirtyPagesMap.end()) {
+        auto newPage = new uint8_t[PAGE_SIZE];
+        dirtyPagesMap.emplace(pageIdx, newPage);
+        if (fileHandle->hasPage(newPage, pageIdx)) {
+            fileHandle->readPage(newPage, pageIdx);
+        } else if (!createEmptyPage) {
+            throw invalid_argument("LocalStorage: cannot find page in file handle.");
+        } else {
+            if (uncommittedFileHandleNumPages.end() ==
+                uncommittedFileHandleNumPages.find(fileHandle)) {
+                uncommittedFileHandleNumPages[fileHandle] = pageIdx + 1;
+            } else {
+                uncommittedFileHandleNumPages[fileHandle] =
+                    max(uncommittedFileHandleNumPages[fileHandle], pageIdx + 1ul);
+            }
+        }
+    }
+    return dirtyPagesMap[pageIdx].get();
 }
 
 } // namespace transaction

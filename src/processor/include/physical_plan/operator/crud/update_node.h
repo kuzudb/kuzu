@@ -8,20 +8,20 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace processor {
 
-class CreateNode : public CRUDNode {
+class UpdateNode : public CRUDNode {
 
 public:
-    CreateNode(uint64_t dataChunkPos, Transaction* transactionPtr,
+    UpdateNode(uint64_t dataChunkPos, Transaction* transactionPtr,
         vector<uint32_t> propertyKeyVectorPos, label_t nodeLabel,
         vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes,
         unique_ptr<PhysicalOperator> prevOperator)
-        : CRUDNode{CREATE_NODE, dataChunkPos, transactionPtr, move(propertyKeyVectorPos), nodeLabel,
+        : CRUDNode{UPDATE_NODE, dataChunkPos, transactionPtr, move(propertyKeyVectorPos), nodeLabel,
               move(nodePropertyColumns), numNodes, move(prevOperator)} {};
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<CreateNode>(dataChunkPos, transactionPtr, propertyKeyVectorPos,
+        return make_unique<UpdateNode>(dataChunkPos, transactionPtr, propertyKeyVectorPos,
             nodeLabel, nodePropertyColumns, numNodes, prevOperator->clone());
     }
 };

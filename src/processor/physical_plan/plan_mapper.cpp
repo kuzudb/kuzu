@@ -2,7 +2,7 @@
 
 #include <set>
 
-#include "src/planner/include/logical_plan/operator/crud/logical_create_node.h"
+#include "src/planner/include/logical_plan/operator/crud/logical_crud_node.h"
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
@@ -13,6 +13,7 @@
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/crud/create_node.h"
+#include "src/processor/include/physical_plan/operator/crud/update_node.h"
 #include "src/processor/include/physical_plan/operator/filter/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten/flatten.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
@@ -69,7 +70,7 @@ static unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(
     const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
     PhysicalOperatorsInfo& physicalOperatorInfo);
 
-static unique_ptr<PhysicalOperator> mapLogicalCreateNodeToPhysical(
+static unique_ptr<PhysicalOperator> mapLogicalCRUDNodeToPhysical(
     const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
     PhysicalOperatorsInfo& physicalOperatorInfo);
 
@@ -118,7 +119,8 @@ unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator&
         return mapLogicalLoadCSVToPhysical(
             logicalOperator, transactionPtr, graph, physicalOperatorInfo);
     case LOGICAL_CREATE_NODE:
-        return mapLogicalCreateNodeToPhysical(
+    case LOGICAL_UPDATE_NODE:
+        return mapLogicalCRUDNodeToPhysical(
             logicalOperator, transactionPtr, graph, physicalOperatorInfo);
     default:
         assert(false);
@@ -424,28 +426,35 @@ unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(const LogicalOperator& 
         logicalLoadCSV.path, logicalLoadCSV.tokenSeparator, csvColumnDataTypes);
 }
 
-unique_ptr<PhysicalOperator> mapLogicalCreateNodeToPhysical(const LogicalOperator& logicalOperator,
+unique_ptr<PhysicalOperator> mapLogicalCRUDNodeToPhysical(const LogicalOperator& logicalOperator,
     Transaction* transactionPtr, const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
-    auto& logicalCreateNode = (const LogicalCreateNode&)logicalOperator;
+    auto& logicalCRUDNode = (const LogicalCRUDNode&)logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(
         *logicalOperator.prevOperator, transactionPtr, graph, physicalOperatorInfo);
     auto& catalog = graph.getCatalog();
-    auto& propertyKeyMap = catalog.getPropertyKeyMapForNodeLabel(logicalCreateNode.nodeLabel);
+    auto& propertyKeyMap = catalog.getPropertyKeyMapForNodeLabel(logicalCRUDNode.nodeLabel);
     vector<BaseColumn*> nodePropertyColumns(propertyKeyMap.size());
     for (auto& entry : propertyKeyMap) {
         nodePropertyColumns[entry.second.idx] = graph.getNodesStore().getNodePropertyColumn(
-            logicalCreateNode.nodeLabel, entry.second.idx);
+            logicalCRUDNode.nodeLabel, entry.second.idx);
     }
-    auto& propertyKeyToColVarMap = logicalCreateNode.propertyKeyToCSVColumnVariableMap;
+    auto& propertyKeyToColVarMap = logicalCRUDNode.propertyKeyToCSVColumnVariableMap;
     vector<uint32_t> propertyKeyVectorPos(propertyKeyMap.size(), -1);
     uint32_t dataChunkPos;
     for (auto& entry : propertyKeyToColVarMap) {
         propertyKeyVectorPos[entry.first] = physicalOperatorInfo.getValueVectorPos(entry.second);
         dataChunkPos = physicalOperatorInfo.getDataChunkPos(entry.second);
     }
-    return make_unique<CreateNode>(dataChunkPos, transactionPtr, move(propertyKeyVectorPos),
-        logicalCreateNode.nodeLabel, move(nodePropertyColumns),
-        graph.getNumNodes(logicalCreateNode.nodeLabel), move(prevOperator));
+    if (LOGICAL_CREATE_NODE == logicalCRUDNode.getLogicalOperatorType()) {
+        return make_unique<CreateNode>(dataChunkPos, transactionPtr, move(propertyKeyVectorPos),
+            logicalCRUDNode.nodeLabel, move(nodePropertyColumns),
+            graph.getNumNodes(logicalCRUDNode.nodeLabel), move(prevOperator));
+    } else if (LOGICAL_UPDATE_NODE == logicalCRUDNode.getLogicalOperatorType()) {
+        return make_unique<UpdateNode>(dataChunkPos, transactionPtr, move(propertyKeyVectorPos),
+            logicalCRUDNode.nodeLabel, move(nodePropertyColumns),
+            graph.getNumNodes(logicalCRUDNode.nodeLabel), move(prevOperator));
+    }
+    assert(false);
 }
 
 } // namespace processor

@@ -5,6 +5,7 @@ namespace processor {
 
 void CreateNode::getNextTuples() {
     CRUDOperator::getNextTuples();
+    transactionPtr->localStorage.assignNodeIDs(nodeLabel);
     transactionPtr->localStorage.computeCreateNode(
         move(propertyKeyVectorPos), nodeLabel, nodePropertyColumns, numNodes);
 };
