@@ -1,8 +1,6 @@
 #pragma once
 
-#include "src/expression/include/logical/logical_expression.h"
-
-using namespace graphflow::expression;
+#include "src/binder/include/expression/expression.h"
 
 namespace graphflow {
 namespace planner {
@@ -11,7 +9,7 @@ class LogicalProjection : public LogicalOperator {
 
 public:
     explicit LogicalProjection(
-        vector<shared_ptr<LogicalExpression>> expressions, shared_ptr<LogicalOperator> prevOperator)
+        vector<shared_ptr<Expression>> expressions, shared_ptr<LogicalOperator> prevOperator)
         : LogicalOperator{prevOperator}, expressionsToProject{move(expressions)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
@@ -27,7 +25,7 @@ public:
     }
 
 public:
-    vector<shared_ptr<LogicalExpression>> expressionsToProject;
+    vector<shared_ptr<Expression>> expressionsToProject;
 };
 
 } // namespace planner

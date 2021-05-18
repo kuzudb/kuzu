@@ -1,10 +1,12 @@
 #pragma once
 
-#include "src/planner/include/bound_queries/bound_single_query.h"
+#include "src/binder/include/bound_queries/bound_single_query.h"
+#include "src/binder/include/expression/property_expression.h"
 #include "src/planner/include/logical_plan/logical_plan.h"
-#include "src/planner/include/subgraph_plan_table.h"
+#include "src/planner/include/subplans_table.h"
 #include "src/storage/include/graph.h"
 
+using namespace graphflow::binder;
 using namespace graphflow::storage;
 
 namespace graphflow {
@@ -24,17 +26,16 @@ private:
 
     void updateQueryGraph(BoundMatchStatement& boundMatchStatement);
 
-    void enumerateSubplans(const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND,
-        const vector<shared_ptr<LogicalExpression>>& returnOrWithClause);
+    void enumerateSubplans(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND,
+        const vector<shared_ptr<Expression>>& returnOrWithClause);
 
-    void enumerateSingleQueryNode(
-        const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND);
+    void enumerateSingleQueryNode(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
 
-    void enumerateNextLevel(const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND);
+    void enumerateNextLevel(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
 
-    void enumerateHashJoin(const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND);
+    void enumerateHashJoin(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
 
-    void enumerateExtend(const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND);
+    void enumerateExtend(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
 
     void appendLogicalScan(uint32_t queryNodePos, LogicalPlan& plan);
 
@@ -43,21 +44,19 @@ private:
     void appendLogicalHashJoin(
         uint32_t joinNodePos, const LogicalPlan& planToJoin, LogicalPlan& plan);
 
-    void appendFilter(shared_ptr<LogicalExpression> expression, LogicalPlan& plan);
+    void appendFilter(shared_ptr<Expression> expression, LogicalPlan& plan);
 
     void appendProjection(
-        const vector<shared_ptr<LogicalExpression>>& returnOrWithClause, LogicalPlan& plan);
+        const vector<shared_ptr<Expression>>& returnOrWithClause, LogicalPlan& plan);
 
-    void appendNecessaryScans(shared_ptr<LogicalExpression> expression, LogicalPlan& plan);
+    void appendNecessaryScans(shared_ptr<Expression> expression, LogicalPlan& plan);
 
-    void appendScanNodeProperty(
-        const string& nodeName, const string& propertyName, LogicalPlan& plan);
+    void appendScanNodeProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
 
-    void appendScanRelProperty(
-        const string& relName, const string& propertyName, LogicalPlan& plan);
+    void appendScanRelProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
 
 private:
-    unique_ptr<SubgraphPlanTable> subgraphPlanTable; // cached subgraph plans
+    unique_ptr<SubplansTable> subplansTable; // cached subgraph plans
     const Graph& graph;
     const BoundSingleQuery& boundSingleQuery;
 

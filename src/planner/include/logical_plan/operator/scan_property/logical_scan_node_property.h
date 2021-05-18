@@ -8,22 +8,24 @@ namespace planner {
 class LogicalScanNodeProperty : public LogicalOperator {
 
 public:
-    LogicalScanNodeProperty(string nodeID, label_t nodeLabel, string nodeName, string propertyName,
-        shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{prevOperator}, nodeID{move(nodeID)}, nodeName{move(nodeName)},
-          nodeLabel{nodeLabel}, propertyName{move(propertyName)} {}
+    LogicalScanNodeProperty(string nodeID, label_t nodeLabel, string propertyVariableName,
+        uint32_t propertyKey, bool isUnstructuredProperty, shared_ptr<LogicalOperator> prevOperator)
+        : LogicalOperator{prevOperator}, nodeID{move(nodeID)}, nodeLabel{nodeLabel},
+          propertyVariableName{move(propertyVariableName)}, propertyKey{propertyKey},
+          isUnstructuredProperty{isUnstructuredProperty} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_SCAN_NODE_PROPERTY;
     }
 
-    string getOperatorInformation() const override { return nodeName + "." + propertyName; }
+    string getOperatorInformation() const override { return propertyVariableName; }
 
 public:
     const string nodeID;
-    const string nodeName;
     const label_t nodeLabel;
-    const string propertyName;
+    const string propertyVariableName;
+    const uint32_t propertyKey;
+    const bool isUnstructuredProperty;
 };
 
 } // namespace planner

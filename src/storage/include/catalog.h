@@ -93,7 +93,8 @@ public:
         return getUnstrPropertyKeyMapForNodeLabel(nodeLabel).at(name).idx;
     }
 
-    inline uint32_t getNodePropertyKeyFromString(label_t nodeLabel, const string& name) const {
+    virtual inline uint32_t getNodePropertyKeyFromString(
+        label_t nodeLabel, const string& name) const {
         return getPropertyKeyMapForNodeLabel(nodeLabel).at(name).idx;
     }
 
@@ -108,7 +109,8 @@ public:
         return relProperties.at(propertyName).dataType;
     }
 
-    inline uint32_t getRelPropertyKeyFromString(label_t relLabel, const string& name) const {
+    virtual inline uint32_t getRelPropertyKeyFromString(
+        label_t relLabel, const string& name) const {
         return getPropertyKeyMapForRelLabel(relLabel).at(name).idx;
     }
 

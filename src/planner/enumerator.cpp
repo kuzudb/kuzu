@@ -15,33 +15,30 @@ namespace planner {
 
 // return empty string if all variables are flat
 static string getLargestUnflatVariableAndFlattenOthers(
-    const LogicalExpression& expression, LogicalPlan& plan);
+    const Expression& expression, LogicalPlan& plan);
 
 static uint64_t getExtensionRate(
     label_t boundNodeLabel, label_t relLabel, Direction direction, const Graph& graph);
 
-static vector<shared_ptr<LogicalExpression>> getNewMatchedWhereExpressions(
+static vector<shared_ptr<Expression>> getNewMatchedWhereExpressions(
     const SubqueryGraph& prevSubgraph, const SubqueryGraph& newSubgraph,
-    const vector<shared_ptr<LogicalExpression>>& expressions);
+    const vector<shared_ptr<Expression>>& expressions);
 
-static vector<shared_ptr<LogicalExpression>> getNewMatchedWhereExpressions(
+static vector<shared_ptr<Expression>> getNewMatchedWhereExpressions(
     const SubqueryGraph& prevLeftSubgraph, const SubqueryGraph& prevRightSubgraph,
-    const SubqueryGraph& newSubgraph, const vector<shared_ptr<LogicalExpression>>& expressions);
+    const SubqueryGraph& newSubgraph, const vector<shared_ptr<Expression>>& expressions);
 
-static vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(
-    shared_ptr<LogicalExpression> expression);
+static vector<shared_ptr<Expression>> splitExpressionOnAND(shared_ptr<Expression> expression);
 
-static vector<shared_ptr<LogicalExpression>> rewriteVariableAsAllProperties(
-    shared_ptr<LogicalExpression> variableExpression, const Catalog& catalog);
+static vector<shared_ptr<Expression>> rewriteVariableAsAllProperties(
+    shared_ptr<Expression> variableExpression, const Catalog& catalog);
 
-static vector<shared_ptr<LogicalExpression>> createLogicalPropertyExpressions(
+static vector<shared_ptr<Expression>> createLogicalPropertyExpressions(
     const string& variableName, const unordered_map<string, PropertyKey>& propertyMap);
-
-static pair<string, string> splitVariableAndPropertyName(const string& name);
 
 Enumerator::Enumerator(const Graph& graph, const BoundSingleQuery& boundSingleQuery)
     : graph{graph}, boundSingleQuery{boundSingleQuery} {
-    subgraphPlanTable = make_unique<SubgraphPlanTable>(boundSingleQuery.getNumQueryRels());
+    subplansTable = make_unique<SubplansTable>(boundSingleQuery.getNumQueryRels());
 }
 
 unique_ptr<LogicalPlan> Enumerator::getBestPlan() {
@@ -59,7 +56,7 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
     for (auto& boundQueryPart : boundSingleQuery.boundQueryParts) {
         enumerateBoundQueryPart(*boundQueryPart);
     }
-    auto whereClauseSplitOnAND = vector<shared_ptr<LogicalExpression>>();
+    auto whereClauseSplitOnAND = vector<shared_ptr<Expression>>();
     if (boundSingleQuery.boundMatchStatement) {
         updateQueryGraph(*boundSingleQuery.boundMatchStatement);
         if (boundSingleQuery.boundMatchStatement->whereExpression) {
@@ -70,11 +67,11 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
         }
     }
     enumerateSubplans(whereClauseSplitOnAND, boundSingleQuery.boundReturnStatement->expressions);
-    return move(subgraphPlanTable->subgraphPlans[currentLevel].begin()->second);
+    return move(subplansTable->subgraphPlans[currentLevel].begin()->second);
 }
 
 void Enumerator::enumerateBoundQueryPart(BoundQueryPart& boundQueryPart) {
-    auto whereClauseSplitOnAND = vector<shared_ptr<LogicalExpression>>();
+    auto whereClauseSplitOnAND = vector<shared_ptr<Expression>>();
     if (boundQueryPart.boundMatchStatement) {
         updateQueryGraph(*boundQueryPart.boundMatchStatement);
         if (boundQueryPart.boundMatchStatement->whereExpression) {
@@ -100,10 +97,10 @@ void Enumerator::updateQueryGraph(BoundMatchStatement& boundMatchStatement) {
         mergedQueryGraph->merge(*boundMatchStatement.queryGraph);
         // When entering from one query part to another, subgraphPlans at currentLevel
         // contains only one entry which is the full mergedQueryGraph
-        assert(1 == subgraphPlanTable->subgraphPlans[currentLevel].size());
-        subgraphPlanTable->clearUntil(currentLevel);
+        assert(1 == subplansTable->subgraphPlans[currentLevel].size());
+        subplansTable->clearUntil(currentLevel);
         matchedQueryRels =
-            subgraphPlanTable->subgraphPlans[currentLevel].begin()->first.queryRelsSelector;
+            subplansTable->subgraphPlans[currentLevel].begin()->first.queryRelsSelector;
     }
     // Restart from level 0 for new query part so that we get hashJoin based plans
     // that uses subplans coming from previous query part.
@@ -111,8 +108,8 @@ void Enumerator::updateQueryGraph(BoundMatchStatement& boundMatchStatement) {
     currentLevel = 0;
 }
 
-void Enumerator::enumerateSubplans(const vector<shared_ptr<LogicalExpression>>& whereClause,
-    const vector<shared_ptr<LogicalExpression>>& returnOrWithClause) {
+void Enumerator::enumerateSubplans(const vector<shared_ptr<Expression>>& whereClause,
+    const vector<shared_ptr<Expression>>& returnOrWithClause) {
     // first query part may not have query graph
     // E.g. WITH 1 AS one MATCH (a) ...
     if (!mergedQueryGraph) {
@@ -122,9 +119,9 @@ void Enumerator::enumerateSubplans(const vector<shared_ptr<LogicalExpression>>& 
     while (currentLevel < mergedQueryGraph->getNumQueryRels()) {
         enumerateNextLevel(whereClause);
     }
-    assert(1 == subgraphPlanTable->subgraphPlans[currentLevel].size());
+    assert(1 == subplansTable->subgraphPlans[currentLevel].size());
     if (auto APPEND_PROJECTION = false) {
-        auto& plans = subgraphPlanTable->subgraphPlans[currentLevel].begin()->second;
+        auto& plans = subplansTable->subgraphPlans[currentLevel].begin()->second;
         for (auto& plan : plans) {
             appendProjection(returnOrWithClause, *plan);
         }
@@ -132,7 +129,7 @@ void Enumerator::enumerateSubplans(const vector<shared_ptr<LogicalExpression>>& 
 }
 
 void Enumerator::enumerateSingleQueryNode(
-    const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND) {
+    const vector<shared_ptr<Expression>>& whereClauseSplitOnAND) {
     for (auto nodePos = 0u; nodePos < mergedQueryGraph->getNumQueryNodes(); ++nodePos) {
         auto newSubgraph = SubqueryGraph(*mergedQueryGraph);
         newSubgraph.addQueryNode(nodePos);
@@ -143,12 +140,11 @@ void Enumerator::enumerateSingleQueryNode(
                 newSubgraph, whereClauseSplitOnAND)) {
             appendFilter(expression, *plan);
         }
-        subgraphPlanTable->addSubgraphPlan(newSubgraph, move(plan));
+        subplansTable->addSubgraphPlan(newSubgraph, move(plan));
     }
 }
 
-void Enumerator::enumerateNextLevel(
-    const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND) {
+void Enumerator::enumerateNextLevel(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND) {
     currentLevel++;
     enumerateExtend(whereClauseSplitOnAND);
     if (currentLevel >= 4) {
@@ -156,9 +152,8 @@ void Enumerator::enumerateNextLevel(
     }
 }
 
-void Enumerator::enumerateExtend(
-    const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND) {
-    auto& subgraphPlansMap = subgraphPlanTable->subgraphPlans[currentLevel - 1];
+void Enumerator::enumerateExtend(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND) {
+    auto& subgraphPlansMap = subplansTable->subgraphPlans[currentLevel - 1];
     for (auto& [prevSubgraph, prevPlans] : subgraphPlansMap) {
         auto connectedQueryRelsWithDirection =
             mergedQueryGraph->getConnectedQueryRelsWithDirection(prevSubgraph);
@@ -187,16 +182,15 @@ void Enumerator::enumerateExtend(
                          prevSubgraph, newSubgraph, whereClauseSplitOnAND)) {
                     appendFilter(expression, *plan);
                 }
-                subgraphPlanTable->addSubgraphPlan(newSubgraph, move(plan));
+                subplansTable->addSubgraphPlan(newSubgraph, move(plan));
             }
         }
     }
 }
 
-void Enumerator::enumerateHashJoin(
-    const vector<shared_ptr<LogicalExpression>>& whereClauseSplitOnAND) {
+void Enumerator::enumerateHashJoin(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND) {
     for (auto leftSize = currentLevel - 2; leftSize >= ceil(currentLevel / 2.0); --leftSize) {
-        auto& subgraphPlansMap = subgraphPlanTable->subgraphPlans[leftSize];
+        auto& subgraphPlansMap = subplansTable->subgraphPlans[leftSize];
         for (auto& [leftSubgraph, leftPlans] : subgraphPlansMap) {
             auto rightSubgraphAndJoinNodePairs = mergedQueryGraph->getSingleNodeJoiningSubgraph(
                 leftSubgraph, currentLevel - leftSize);
@@ -206,12 +200,12 @@ void Enumerator::enumerateHashJoin(
                 // we get left subgraph as f, d, e (size = 2), and try to find a connected
                 // right subgraph of size 2. A possible right graph could be b, c, d.
                 // However, b, c, d is a subgraph enumerated in the first MATCH and has been
-                // cleared before enumeration of second MATCH. So subgraphPlanTable does not
+                // cleared before enumeration of second MATCH. So subplansTable does not
                 // contain this subgraph.
-                if (!subgraphPlanTable->containSubgraphPlans(rightSubgraph)) {
+                if (!subplansTable->containSubgraphPlans(rightSubgraph)) {
                     continue;
                 }
-                auto& rightPlans = subgraphPlanTable->getSubgraphPlans(rightSubgraph);
+                auto& rightPlans = subplansTable->getSubgraphPlans(rightSubgraph);
                 auto newSubgraph = leftSubgraph;
                 newSubgraph.addSubqueryGraph(rightSubgraph);
                 auto expressionsToFilter = getNewMatchedWhereExpressions(
@@ -223,7 +217,7 @@ void Enumerator::enumerateHashJoin(
                         for (auto& expression : expressionsToFilter) {
                             appendFilter(expression, *plan);
                         }
-                        subgraphPlanTable->addSubgraphPlan(newSubgraph, move(plan));
+                        subplansTable->addSubgraphPlan(newSubgraph, move(plan));
                         // flip build and probe side to get another HashJoin plan
                         if (leftSize != currentLevel - leftSize) {
                             auto planFilpped = rightPlan->copy();
@@ -231,7 +225,7 @@ void Enumerator::enumerateHashJoin(
                             for (auto& expression : expressionsToFilter) {
                                 appendFilter(expression, *planFilpped);
                             }
-                            subgraphPlanTable->addSubgraphPlan(newSubgraph, move(planFilpped));
+                            subplansTable->addSubgraphPlan(newSubgraph, move(planFilpped));
                         }
                     }
                 }
@@ -291,7 +285,7 @@ void Enumerator::appendLogicalHashJoin(
     plan.appendOperator(hashJoin);
 }
 
-void Enumerator::appendFilter(shared_ptr<LogicalExpression> expression, LogicalPlan& plan) {
+void Enumerator::appendFilter(shared_ptr<Expression> expression, LogicalPlan& plan) {
     appendNecessaryScans(expression, plan);
     auto filter = make_shared<LogicalFilter>(expression, plan.lastOperator);
     auto largestUnflatVariable = getLargestUnflatVariableAndFlattenOthers(*expression, plan);
@@ -305,13 +299,13 @@ void Enumerator::appendFilter(shared_ptr<LogicalExpression> expression, LogicalP
 }
 
 void Enumerator::appendProjection(
-    const vector<shared_ptr<LogicalExpression>>& returnOrWithClause, LogicalPlan& plan) {
+    const vector<shared_ptr<Expression>>& returnOrWithClause, LogicalPlan& plan) {
     // Do not append projection in case of RETURN COUNT(*)
     if (1 == returnOrWithClause.size() && FUNCTION == returnOrWithClause[0]->expressionType &&
         FUNCTION_COUNT_STAR == returnOrWithClause[0]->variableName) {
         return;
     }
-    auto expressionsToProject = vector<shared_ptr<LogicalExpression>>();
+    auto expressionsToProject = vector<shared_ptr<Expression>>();
     for (auto& expression : returnOrWithClause) {
         if (VARIABLE == expression->expressionType) {
             for (auto& propertyExpression :
@@ -329,41 +323,42 @@ void Enumerator::appendProjection(
     plan.appendOperator(projection);
 }
 
-void Enumerator::appendNecessaryScans(shared_ptr<LogicalExpression> expression, LogicalPlan& plan) {
-    for (auto& includedPropertyName : expression->getIncludedProperties()) {
-        if (plan.schema->containsAttributeName(includedPropertyName)) {
+void Enumerator::appendNecessaryScans(shared_ptr<Expression> expression, LogicalPlan& plan) {
+    for (auto& propertyExpression : expression->getIncludedPropertyExpressions()) {
+        if (plan.schema->containsAttributeName(propertyExpression->variableName)) {
             continue;
         }
-        auto [nodeOrRelName, propertyName] = splitVariableAndPropertyName(includedPropertyName);
-        mergedQueryGraph->containsQueryNode(nodeOrRelName) ?
-            appendScanNodeProperty(nodeOrRelName, propertyName, plan) :
-            appendScanRelProperty(nodeOrRelName, propertyName, plan);
+        NODE == propertyExpression->childrenExpr[0]->dataType ?
+            appendScanNodeProperty((PropertyExpression&)*propertyExpression, plan) :
+            appendScanRelProperty((PropertyExpression&)*propertyExpression, plan);
     }
 }
 
 void Enumerator::appendScanNodeProperty(
-    const string& nodeName, const string& propertyName, LogicalPlan& plan) {
-    auto queryNode = mergedQueryGraph->getQueryNode(nodeName);
-    auto scanProperty = make_shared<LogicalScanNodeProperty>(queryNode->getIDProperty(),
-        queryNode->label, queryNode->variableName, propertyName, plan.lastOperator);
-    plan.schema->addMatchedAttribute(queryNode->variableName + "." + propertyName);
+    const PropertyExpression& propertyExpression, LogicalPlan& plan) {
+    auto nodeExpression = static_pointer_cast<NodeExpression>(propertyExpression.childrenExpr[0]);
+    auto scanProperty = make_shared<LogicalScanNodeProperty>(nodeExpression->getIDProperty(),
+        nodeExpression->label, propertyExpression.variableName, propertyExpression.propertyKey,
+        UNSTRUCTURED == propertyExpression.dataType, plan.lastOperator);
+    plan.schema->addMatchedAttribute(propertyExpression.variableName);
     plan.appendOperator(scanProperty);
 }
 
 void Enumerator::appendScanRelProperty(
-    const string& relName, const string& propertyName, LogicalPlan& plan) {
-    auto extend = plan.schema->getExistingLogicalExtend(relName);
-    auto scanProperty = make_shared<LogicalScanRelProperty>(extend->boundNodeID,
-        extend->boundNodeLabel, extend->nbrNodeID, extend->nbrNodeLabel, relName, extend->relLabel,
-        extend->direction, propertyName, plan.lastOperator);
-    plan.schema->addMatchedAttribute(relName + "." + propertyName);
+    const PropertyExpression& propertyExpression, LogicalPlan& plan) {
+    auto relExpression = static_pointer_cast<RelExpression>(propertyExpression.childrenExpr[0]);
+    auto extend = plan.schema->getExistingLogicalExtend(relExpression->variableName);
+    auto scanProperty =
+        make_shared<LogicalScanRelProperty>(extend->boundNodeID, extend->boundNodeLabel,
+            extend->nbrNodeID, extend->relLabel, extend->direction, propertyExpression.variableName,
+            propertyExpression.propertyKey, extend->isColumn, plan.lastOperator);
+    plan.schema->addMatchedAttribute(propertyExpression.variableName);
     plan.appendOperator(scanProperty);
 }
 
-string getLargestUnflatVariableAndFlattenOthers(
-    const LogicalExpression& expression, LogicalPlan& plan) {
+string getLargestUnflatVariableAndFlattenOthers(const Expression& expression, LogicalPlan& plan) {
     auto unflatVariables = vector<string>();
-    for (auto& variable : expression.getIncludedVariables()) {
+    for (auto& variable : expression.getIncludedVariableNames()) {
         if (!plan.schema->isVariableFlat(variable)) {
             unflatVariables.push_back(variable);
         }
@@ -393,12 +388,11 @@ uint64_t getExtensionRate(
     return ceil((double)numRels / graph.getNumNodes(boundNodeLabel));
 }
 
-vector<shared_ptr<LogicalExpression>> getNewMatchedWhereExpressions(
-    const SubqueryGraph& prevSubgraph, const SubqueryGraph& newSubgraph,
-    const vector<shared_ptr<LogicalExpression>>& expressions) {
-    vector<shared_ptr<LogicalExpression>> newMatchedExpressions;
+vector<shared_ptr<Expression>> getNewMatchedWhereExpressions(const SubqueryGraph& prevSubgraph,
+    const SubqueryGraph& newSubgraph, const vector<shared_ptr<Expression>>& expressions) {
+    vector<shared_ptr<Expression>> newMatchedExpressions;
     for (auto& expression : expressions) {
-        auto includedVariables = expression->getIncludedVariables();
+        auto includedVariables = expression->getIncludedVariableNames();
         if (newSubgraph.containAllVars(includedVariables) &&
             !prevSubgraph.containAllVars(includedVariables)) {
             newMatchedExpressions.push_back(expression);
@@ -407,12 +401,12 @@ vector<shared_ptr<LogicalExpression>> getNewMatchedWhereExpressions(
     return newMatchedExpressions;
 }
 
-vector<shared_ptr<LogicalExpression>> getNewMatchedWhereExpressions(
-    const SubqueryGraph& prevLeftSubgraph, const SubqueryGraph& prevRightSubgraph,
-    const SubqueryGraph& newSubgraph, const vector<shared_ptr<LogicalExpression>>& expressions) {
-    vector<shared_ptr<LogicalExpression>> newMatchedExpressions;
+vector<shared_ptr<Expression>> getNewMatchedWhereExpressions(const SubqueryGraph& prevLeftSubgraph,
+    const SubqueryGraph& prevRightSubgraph, const SubqueryGraph& newSubgraph,
+    const vector<shared_ptr<Expression>>& expressions) {
+    vector<shared_ptr<Expression>> newMatchedExpressions;
     for (auto& expression : expressions) {
-        auto includedVariables = expression->getIncludedVariables();
+        auto includedVariables = expression->getIncludedVariableNames();
         if (newSubgraph.containAllVars(includedVariables) &&
             !prevLeftSubgraph.containAllVars(includedVariables) &&
             !prevRightSubgraph.containAllVars(includedVariables)) {
@@ -422,9 +416,8 @@ vector<shared_ptr<LogicalExpression>> getNewMatchedWhereExpressions(
     return newMatchedExpressions;
 }
 
-vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(
-    shared_ptr<LogicalExpression> expression) {
-    auto result = vector<shared_ptr<LogicalExpression>>();
+vector<shared_ptr<Expression>> splitExpressionOnAND(shared_ptr<Expression> expression) {
+    auto result = vector<shared_ptr<Expression>>();
     if (AND == expression->expressionType) {
         for (auto& child : expression->childrenExpr) {
             for (auto& exp : splitExpressionOnAND(child)) {
@@ -438,10 +431,10 @@ vector<shared_ptr<LogicalExpression>> splitExpressionOnAND(
 }
 
 // all properties are given an alias in order to print
-static vector<shared_ptr<LogicalExpression>> rewriteVariableAsAllProperties(
-    shared_ptr<LogicalExpression> variableExpression, const Catalog& catalog) {
+static vector<shared_ptr<Expression>> rewriteVariableAsAllProperties(
+    shared_ptr<Expression> variableExpression, const Catalog& catalog) {
     if (NODE == variableExpression->dataType) {
-        auto nodeExpression = static_pointer_cast<LogicalNodeExpression>(variableExpression);
+        auto nodeExpression = static_pointer_cast<NodeExpression>(variableExpression);
         auto propertyExpressions = createLogicalPropertyExpressions(nodeExpression->variableName,
             catalog.getPropertyKeyMapForNodeLabel(nodeExpression->label));
         // unstructured properties
@@ -451,35 +444,30 @@ static vector<shared_ptr<LogicalExpression>> rewriteVariableAsAllProperties(
             propertyExpressions.push_back(propertyExpression);
         }
         auto idProperty =
-            make_shared<LogicalExpression>(PROPERTY, NODE_ID, nodeExpression->getIDProperty());
+            make_shared<Expression>(PROPERTY, NODE_ID, nodeExpression->getIDProperty());
         idProperty->alias = nodeExpression->getIDProperty();
         propertyExpressions.push_back(idProperty);
         return propertyExpressions;
     } else {
-        auto relExpression = static_pointer_cast<LogicalRelExpression>(variableExpression);
+        auto relExpression = static_pointer_cast<RelExpression>(variableExpression);
         return createLogicalPropertyExpressions(relExpression->variableName,
             catalog.getPropertyKeyMapForRelLabel(relExpression->label));
     }
 }
 
-vector<shared_ptr<LogicalExpression>> createLogicalPropertyExpressions(
+vector<shared_ptr<Expression>> createLogicalPropertyExpressions(
     const string& variableName, const unordered_map<string, PropertyKey>& propertyMap) {
-    auto propertyExpressions = vector<shared_ptr<LogicalExpression>>();
+    auto propertyExpressions = vector<shared_ptr<Expression>>();
     for (auto& [propertyName, property] : propertyMap) {
         auto propertyWithVariableName = variableName + "." + propertyName;
         auto expression =
-            make_shared<LogicalExpression>(PROPERTY, property.dataType, propertyWithVariableName);
+            make_shared<Expression>(PROPERTY, property.dataType, propertyWithVariableName);
         // This alias set should be removed if we can print all properties in a single column.
         // And column name should be variable name
         expression->alias = propertyWithVariableName;
         propertyExpressions.push_back(expression);
     }
     return propertyExpressions;
-}
-
-pair<string, string> splitVariableAndPropertyName(const string& name) {
-    auto splitPos = name.find('.');
-    return make_pair(name.substr(0, splitPos), name.substr(splitPos + 1));
 }
 
 } // namespace planner

@@ -2,8 +2,8 @@
 #include "mock_catalog.h"
 #include "mock_graph.h"
 
+#include "src/binder/include/query_binder.h"
 #include "src/parser/include/parser.h"
-#include "src/planner/include/binder.h"
 #include "src/planner/include/enumerator.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 
@@ -37,9 +37,11 @@ public:
         setActionForGetRelLabelsForNodeLabelDirection();
         setActionForContainNodeProperty();
         setActionForGetNodePropertyTypeFromString();
+        setActionForGetNodePropertyKeyFromString();
         setActionForContainUnstrNodeProperty();
         setActionForContainRelProperty();
         setActionForGetRelPropertyTypeFromString();
+        setActionForGetRelPropertyKeyFromString();
         setActionForIsSingleCardinalityInDir();
     }
 
@@ -82,6 +84,10 @@ private:
         ON_CALL(*this, getNodePropertyTypeFromString(0, "age")).WillByDefault(Return(INT32));
     }
 
+    void setActionForGetNodePropertyKeyFromString() {
+        ON_CALL(*this, getNodePropertyKeyFromString(0, "age")).WillByDefault(Return(0));
+    }
+
     void setActionForContainUnstrNodeProperty() {
         ON_CALL(*this, containUnstrNodeProperty(_, _))
             .WillByDefault(Throw(invalid_argument("Should never happen.")));
@@ -98,6 +104,10 @@ private:
     void setActionForGetRelPropertyTypeFromString() {
         ON_CALL(*this, getRelPropertyTypeFromString(0, "description"))
             .WillByDefault(Return(STRING));
+    }
+
+    void setActionForGetRelPropertyKeyFromString() {
+        ON_CALL(*this, getRelPropertyKeyFromString(0, "description")).WillByDefault(Return(0));
     }
 
     void setActionForIsSingleCardinalityInDir() {
@@ -166,7 +176,7 @@ class OptimizerTest : public Test {
 public:
     static unique_ptr<LogicalPlan> getBestPlan(const string& query, const Graph& graph) {
         auto parsedQuery = Parser::parseQuery(query);
-        auto boundQuery = Binder(graph.getCatalog()).bindSingleQuery(*parsedQuery);
+        auto boundQuery = QueryBinder(graph.getCatalog()).bindSingleQuery(*parsedQuery);
         return Enumerator(graph, *boundQuery).getBestPlan();
     }
 

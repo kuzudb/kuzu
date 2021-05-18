@@ -3,7 +3,7 @@
 namespace graphflow {
 namespace processor {
 
-Projection::Projection(unique_ptr<vector<unique_ptr<PhysicalExpression>>> expressions,
+Projection::Projection(unique_ptr<vector<unique_ptr<ExpressionEvaluator>>> expressions,
     vector<uint64_t> expressionPosToDataChunkPos, const vector<uint64_t>& discardedDataChunkPos,
     unique_ptr<PhysicalOperator> prevOperator)
     : PhysicalOperator(move(prevOperator), PROJECTION), expressions{move(expressions)},
@@ -46,7 +46,7 @@ void Projection::getNextTuples() {
 
 unique_ptr<PhysicalOperator> Projection::clone() {
     auto prevOperatorClone = prevOperator->clone();
-    auto rootExpressionsCloned = make_unique<vector<unique_ptr<PhysicalExpression>>>();
+    auto rootExpressionsCloned = make_unique<vector<unique_ptr<ExpressionEvaluator>>>();
     for (auto& expr : *expressions) {
         (*rootExpressionsCloned)
             .push_back(ExpressionMapper::clone(*expr, *prevOperatorClone->getResultSet()));

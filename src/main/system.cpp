@@ -1,7 +1,7 @@
 #include "src/main/include/system.h"
 
+#include "src/binder/include/query_binder.h"
 #include "src/parser/include/parser.h"
-#include "src/planner/include/binder.h"
 #include "src/planner/include/enumerator.h"
 
 using namespace graphflow::parser;
@@ -34,7 +34,7 @@ vector<unique_ptr<LogicalPlan>> System::enumerateLogicalPlans(const string& quer
         throw invalid_argument("System is not initialized");
     }
     auto parsedQuery = Parser::parseQuery(query);
-    auto boundQuery = Binder(graph->getCatalog()).bindSingleQuery(*parsedQuery);
+    auto boundQuery = QueryBinder(graph->getCatalog()).bindSingleQuery(*parsedQuery);
     return Enumerator(*graph, *boundQuery).enumeratePlans();
 }
 

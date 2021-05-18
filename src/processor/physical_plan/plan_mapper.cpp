@@ -75,11 +75,11 @@ static unique_ptr<PhysicalOperator> mapLogicalCreateNodeToPhysical(
 
 // helper functions used by mapLogical{Filter/Projection}ToPhysical.
 static unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
-    const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo,
+    const Expression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo,
     unique_ptr<PhysicalOperator> prevOperator);
 
 static uint64_t getDependentUnflatDataChunkPos(
-    const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo);
+    const Expression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo);
 
 unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
     unique_ptr<LogicalPlan> logicalPlan, Transaction* transactionPtr, const Graph& graph) {
@@ -141,7 +141,7 @@ unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& l
     auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(extend.boundNodeID);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(extend.boundNodeID);
     auto& relsStore = graph.getRelsStore();
-    if (extend.isColumnExtend) {
+    if (extend.isColumn) {
         physicalOperatorInfo.appendAsNewValueVector(extend.nbrNodeID, dataChunkPos);
         return make_unique<AdjColumnExtend>(dataChunkPos, valueVectorPos,
             relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
@@ -163,7 +163,7 @@ unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(const LogicalOperator& l
     auto& logicalFilter = (const LogicalFilter&)logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(
         *logicalOperator.prevOperator, transactionPtr, graph, physicalOperatorInfo);
-    const auto& logicalRootExpr = logicalFilter.getRootLogicalExpression();
+    const auto& logicalRootExpr = logicalFilter.getRootExpression();
     prevOperator = appendFlattenOperatorsIfNecessary(
         logicalRootExpr, physicalOperatorInfo, move(prevOperator));
     auto dataChunkToSelectPos =
@@ -188,12 +188,13 @@ unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(const LogicalOperato
     // creates new dataChunks and we will be emptying the physicalOperatorInfo object.
     auto numInputDataChunks = physicalOperatorInfo.vectorVariables.size();
 
-    // We append flatten(s) as necessary and map each logical expression to a physical one.
-    auto physicalExpressions = make_unique<vector<unique_ptr<PhysicalExpression>>>();
+    // We append flatten(s) as necessary and map each logical expression to a expression_evaluator
+    // one.
+    auto expressionEvaluators = make_unique<vector<unique_ptr<ExpressionEvaluator>>>();
     for (const auto& logicalRootExpr : logicalProjection.expressionsToProject) {
         prevOperator = appendFlattenOperatorsIfNecessary(
             *logicalRootExpr, physicalOperatorInfo, move(prevOperator));
-        physicalExpressions->push_back(ExpressionMapper::mapToPhysical(
+        expressionEvaluators->push_back(ExpressionMapper::mapToPhysical(
             *logicalRootExpr, physicalOperatorInfo, *prevOperator->getResultSet()));
     }
 
@@ -214,10 +215,10 @@ unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(const LogicalOperato
     // m, where m is the number of output data chunk positions.
     physicalOperatorInfo.clear();
     vector<uint64_t> exprResultOutDataChunkPos;
-    exprResultOutDataChunkPos.reserve(physicalExpressions->size());
+    exprResultOutDataChunkPos.reserve(expressionEvaluators->size());
     auto currNumOutDataChunks = 0;
     unordered_map<uint64_t, uint64_t> inToOutDataChunkPosMap;
-    for (auto i = 0u; i < physicalExpressions->size(); i++) {
+    for (auto i = 0u; i < expressionEvaluators->size(); i++) {
         auto it = inToOutDataChunkPosMap.find(exprResultInDataChunkPos[i]);
         if (it != end(inToOutDataChunkPosMap)) {
             exprResultOutDataChunkPos[i] = inToOutDataChunkPosMap.at(exprResultInDataChunkPos[i]);
@@ -240,17 +241,16 @@ unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(const LogicalOperato
             discardedDataChunkPos.push_back(i);
         }
     }
-    return make_unique<Projection>(move(physicalExpressions), exprResultOutDataChunkPos,
+    return make_unique<Projection>(move(expressionEvaluators), exprResultOutDataChunkPos,
         discardedDataChunkPos, move(prevOperator));
 }
 
-unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
-    const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo,
-    unique_ptr<PhysicalOperator> prevOperator) {
+unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(const Expression& logicalRootExpr,
+    PhysicalOperatorsInfo& physicalOperatorInfo, unique_ptr<PhysicalOperator> prevOperator) {
     pair<unique_ptr<PhysicalOperator>, uint64_t> result;
     set<uint64_t> unflatDataChunkPosSet;
-    for (auto& property : logicalRootExpr.getIncludedProperties()) {
-        auto pos = physicalOperatorInfo.getDataChunkPos(property);
+    for (auto& propertyExpression : logicalRootExpr.getIncludedPropertyExpressions()) {
+        auto pos = physicalOperatorInfo.getDataChunkPos(propertyExpression->variableName);
         if (!physicalOperatorInfo.dataChunkPosToIsFlat[pos]) {
             unflatDataChunkPosSet.insert(pos);
         }
@@ -272,9 +272,9 @@ unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
 // The function finds the data chunk position of the unflat vectors in the expression, if
 // all vectors in the expressions are flat, we return null as UINT64_MAX.
 uint64_t getDependentUnflatDataChunkPos(
-    const LogicalExpression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo) {
-    for (auto& property : logicalRootExpr.getIncludedProperties()) {
-        auto pos = physicalOperatorInfo.getDataChunkPos(property);
+    const Expression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    for (auto& propertyExpression : logicalRootExpr.getIncludedPropertyExpressions()) {
+        auto pos = physicalOperatorInfo.getDataChunkPos(propertyExpression->variableName);
         if (!physicalOperatorInfo.dataChunkPosToIsFlat[pos]) {
             return pos;
         }
@@ -290,20 +290,16 @@ unique_ptr<PhysicalOperator> mapLogicalNodePropertyReaderToPhysical(
         *logicalOperator.prevOperator, transactionPtr, graph, physicalOperatorInfo);
     auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.nodeID);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(scanProperty.nodeID);
-    auto& catalog = graph.getCatalog();
-    auto& nodesStore = graph.getNodesStore();
-    physicalOperatorInfo.appendAsNewValueVector(
-        scanProperty.nodeName + "." + scanProperty.propertyName, dataChunkPos);
-    if (catalog.containNodeProperty(scanProperty.nodeLabel, scanProperty.propertyName)) {
-        auto property =
-            catalog.getNodePropertyKeyFromString(scanProperty.nodeLabel, scanProperty.propertyName);
-        return make_unique<ScanStructuredProperty>(dataChunkPos, valueVectorPos,
-            nodesStore.getNodePropertyColumn(scanProperty.nodeLabel, property), move(prevOperator));
+    physicalOperatorInfo.appendAsNewValueVector(scanProperty.propertyVariableName, dataChunkPos);
+    if (scanProperty.isUnstructuredProperty) {
+        auto lists = graph.getNodesStore().getNodeUnstrPropertyLists(scanProperty.nodeLabel);
+        return make_unique<ScanUnstructuredProperty>(
+            dataChunkPos, valueVectorPos, scanProperty.propertyKey, lists, move(prevOperator));
     }
-    auto property = catalog.getUnstrNodePropertyKeyFromString(
-        scanProperty.nodeLabel, scanProperty.propertyName);
-    return make_unique<ScanUnstructuredProperty>(dataChunkPos, valueVectorPos, property,
-        nodesStore.getNodeUnstrPropertyLists(scanProperty.nodeLabel), move(prevOperator));
+    auto column = graph.getNodesStore().getNodePropertyColumn(
+        scanProperty.nodeLabel, scanProperty.propertyKey);
+    return make_unique<ScanStructuredProperty>(
+        dataChunkPos, valueVectorPos, column, move(prevOperator));
 }
 
 unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
@@ -315,23 +311,17 @@ unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
     auto inDataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.boundNodeID);
     auto inValueVectorPos = physicalOperatorInfo.getValueVectorPos(scanProperty.boundNodeID);
     auto outDataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.nbrNodeID);
-    auto& catalog = graph.getCatalog();
-    auto property =
-        catalog.getRelPropertyKeyFromString(scanProperty.relLabel, scanProperty.propertyName);
-    auto& relsStore = graph.getRelsStore();
-    physicalOperatorInfo.appendAsNewValueVector(
-        scanProperty.relName + "." + scanProperty.propertyName, outDataChunkPos);
-    if (catalog.isSingleCaridinalityInDir(scanProperty.relLabel, scanProperty.direction)) {
-        auto column = relsStore.getRelPropertyColumn(
-            scanProperty.relLabel, scanProperty.boundNodeLabel, property);
+    physicalOperatorInfo.appendAsNewValueVector(scanProperty.propertyVariableName, outDataChunkPos);
+    if (scanProperty.isColumn) {
+        auto column = graph.getRelsStore().getRelPropertyColumn(
+            scanProperty.relLabel, scanProperty.boundNodeLabel, scanProperty.propertyKey);
         return make_unique<ScanStructuredProperty>(
             inDataChunkPos, inValueVectorPos, column, move(prevOperator));
-    } else {
-        auto lists = relsStore.getRelPropertyLists(
-            scanProperty.direction, scanProperty.boundNodeLabel, scanProperty.relLabel, property);
-        return make_unique<ReadRelPropertyList>(
-            inDataChunkPos, inValueVectorPos, outDataChunkPos, lists, move(prevOperator));
     }
+    auto lists = graph.getRelsStore().getRelPropertyLists(scanProperty.direction,
+        scanProperty.boundNodeLabel, scanProperty.relLabel, scanProperty.propertyKey);
+    return make_unique<ReadRelPropertyList>(
+        inDataChunkPos, inValueVectorPos, outDataChunkPos, lists, move(prevOperator));
 }
 
 unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator& logicalOperator,

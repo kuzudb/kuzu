@@ -1,10 +1,10 @@
 #pragma once
 
-#include "src/expression/include/physical/physical_expression.h"
+#include "src/expression_evaluator/include/expression_evaluator.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 
-using namespace graphflow::expression;
+using namespace graphflow::evaluator;
 
 namespace graphflow {
 namespace processor {
@@ -13,7 +13,7 @@ template<bool IS_AFTER_FLATTEN>
 class Filter : public PhysicalOperator {
 
 public:
-    Filter(unique_ptr<PhysicalExpression> rootExpr, uint64_t dataChunkToSelectPos,
+    Filter(unique_ptr<ExpressionEvaluator> rootExpr, uint64_t dataChunkToSelectPos,
         unique_ptr<PhysicalOperator> prevOperator);
 
     void getNextTuples() override;
@@ -25,7 +25,7 @@ private:
     void saveDataChunkToSelectState();
 
 protected:
-    unique_ptr<PhysicalExpression> rootExpr;
+    unique_ptr<ExpressionEvaluator> rootExpr;
     uint64_t dataChunkToSelectPos;
     shared_ptr<DataChunk> dataChunkToSelect;
     uint8_t* exprResult;

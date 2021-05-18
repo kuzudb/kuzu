@@ -12,7 +12,8 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/parser:parser",
+        "//src/binder",
+        "//src/parser",
         "//src/planner:enumerator",
         "//src/processor",
         "//src/storage:graph",

@@ -17,11 +17,15 @@ public:
         (const, override));
     MOCK_METHOD(DataType, getNodePropertyTypeFromString,
         (label_t nodeLabel, const string& propertyName), (const, override));
+    MOCK_METHOD(uint32_t, getNodePropertyKeyFromString,
+        (label_t nodeLabel, const string& propertyName), (const, override));
     MOCK_METHOD(bool, containUnstrNodeProperty, (label_t nodeLabel, const string& propertyName),
         (const, override));
     MOCK_METHOD(bool, containRelProperty, (label_t relLabel, const string& propertyName),
         (const, override));
     MOCK_METHOD(DataType, getRelPropertyTypeFromString,
+        (label_t relLabel, const string& propertyName), (const, override));
+    MOCK_METHOD(uint32_t, getRelPropertyKeyFromString,
         (label_t relLabel, const string& propertyName), (const, override));
     MOCK_METHOD(
         bool, isSingleCaridinalityInDir, (label_t relLabel, Direction dir), (const, override));
