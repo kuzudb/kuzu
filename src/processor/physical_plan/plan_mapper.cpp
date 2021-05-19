@@ -22,6 +22,7 @@
 #include "src/processor/include/physical_plan/operator/physical_operator_info.h"
 #include "src/processor/include/physical_plan/operator/projection/projection.h"
 #include "src/processor/include/physical_plan/operator/read_list/adj_list_extend.h"
+#include "src/processor/include/physical_plan/operator/read_list/frontier_extend.h"
 #include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
 #include "src/processor/include/physical_plan/operator/scan_attribute/adj_column_extend.h"
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_structured_property.h"
@@ -144,6 +145,7 @@ unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& l
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(extend.boundNodeID);
     auto& relsStore = graph.getRelsStore();
     if (extend.isColumn) {
+        assert(extend.lowerBound == extend.upperBound && extend.lowerBound == 1);
         physicalOperatorInfo.appendAsNewValueVector(extend.nbrNodeID, dataChunkPos);
         return make_unique<AdjColumnExtend>(dataChunkPos, valueVectorPos,
             relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
@@ -154,9 +156,15 @@ unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& l
             prevOperator = make_unique<Flatten>(dataChunkPos, move(prevOperator));
         }
         physicalOperatorInfo.appendAsNewDataChunk(extend.nbrNodeID);
-        return make_unique<AdjListExtend<true>>(dataChunkPos, valueVectorPos,
-            relsStore.getAdjLists(extend.direction, extend.boundNodeLabel, extend.relLabel),
-            move(prevOperator));
+        auto adjLists =
+            relsStore.getAdjLists(extend.direction, extend.boundNodeLabel, extend.relLabel);
+        if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
+            return make_unique<AdjListExtend<true>>(
+                dataChunkPos, valueVectorPos, adjLists, move(prevOperator));
+        } else {
+            return make_unique<FrontierExtend<true>>(dataChunkPos, valueVectorPos, adjLists,
+                extend.lowerBound, extend.upperBound, move(prevOperator));
+        }
     }
 }
 
@@ -411,7 +419,7 @@ unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(const LogicalOperator& 
     Transaction* transactionPtr, const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
     auto& logicalLoadCSV = (const LogicalLoadCSV&)logicalOperator;
     auto& columnInfo = logicalLoadCSV.csvColumnVariableInfo;
-    assert(0 != columnInfo.size());
+    assert(!columnInfo.empty());
     vector<DataType> csvColumnDataTypes;
     uint64_t dataChunkPos;
     for (auto i = 0u; i < columnInfo.size(); i++) {

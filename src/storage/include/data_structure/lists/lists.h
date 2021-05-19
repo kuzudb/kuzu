@@ -18,6 +18,8 @@ public:
         uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle,
         uint32_t maxElementsToRead);
 
+    uint64_t getNumElementsInList(const nodeID_t& nodeID);
+
 protected:
     BaseLists(const string& fname, const DataType& dataType, const size_t& elementSize,
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager)

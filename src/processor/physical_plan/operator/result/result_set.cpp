@@ -6,9 +6,7 @@ namespace processor {
 uint64_t ResultSet::getNumTuples() {
     uint64_t numTuples = 1;
     for (auto& dataChunk : dataChunks) {
-        if (!dataChunk->state->isFlat()) {
-            numTuples *= dataChunk->state->numSelectedValues;
-        }
+        numTuples *= dataChunk->state->getNumSelectedValues();
     }
     return numTuples;
 }

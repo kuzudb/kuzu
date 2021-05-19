@@ -259,7 +259,8 @@ void Enumerator::appendLogicalExtend(uint32_t queryRelPos, Direction direction, 
     auto nbrNodeID = nbrNode->getIDProperty();
     auto isColumnExtend = graph.getCatalog().isSingleCaridinalityInDir(queryRel.label, direction);
     auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->label, nbrNodeID,
-        nbrNode->label, queryRel.label, direction, isColumnExtend, plan.lastOperator);
+        nbrNode->label, queryRel.label, direction, isColumnExtend, queryRel.lowerBound,
+        queryRel.upperBound, plan.lastOperator);
     plan.schema->addMatchedAttribute(nbrNodeID);
     plan.schema->addMatchedAttribute(queryRel.variableName);
     plan.schema->addQueryRelAndLogicalExtend(queryRel.variableName, extend.get());

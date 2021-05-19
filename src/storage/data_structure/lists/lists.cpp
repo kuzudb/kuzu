@@ -7,6 +7,15 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
+uint64_t BaseLists::getNumElementsInList(const nodeID_t& nodeID) {
+    auto header = headers->getHeader(nodeID.offset);
+    auto numElements =
+        ListHeaders::isALargeList(header) ?
+            metadata.getNumElementsInLargeLists(ListHeaders::getLargeListIdx(header)) :
+            ListHeaders::getSmallListLen(header);
+    return numElements;
+}
+
 void BaseLists::readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
     uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t maxElementsToRead) {
     auto header = headers->getHeader(nodeID.offset);

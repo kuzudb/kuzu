@@ -29,8 +29,8 @@ public:
         bool isSequence)
         : NodeIDVector{commonLabel, nodeIDCompressionScheme, isSequence, MAX_VECTOR_SIZE} {};
 
-    void readNodeOffset(uint64_t pos, nodeID_t& nodeID) override;
-    void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) override;
+    void readNodeOffset(uint64_t pos, nodeID_t& nodeID) const override;
+    void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) const override;
 
     inline void setStartOffset(node_offset_t node_offset) {
         assert(representation.isSequence);

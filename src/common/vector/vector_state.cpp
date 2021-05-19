@@ -14,6 +14,21 @@ VectorState::VectorState(bool initializeSelectedValuesPos, uint64_t capacity)
             selectedValuesPos[i] = i;
         }
     }
+    multiplicity = nullptr;
+}
+
+uint64_t VectorState::getNumSelectedValues() {
+    if (isFlat()) {
+        return multiplicity == nullptr ? 1 : multiplicity[getCurrSelectedValuesPos()];
+    } else if (multiplicity == nullptr) {
+        return numSelectedValues;
+    } else {
+        auto numSelectedValuesSum = 0u;
+        for (auto i = 0; i < numSelectedValues; i++) {
+            numSelectedValuesSum += multiplicity[selectedValuesPos[i]];
+        }
+        return numSelectedValuesSum;
+    }
 }
 
 shared_ptr<VectorState> VectorState::getSingleValueDataChunkState() {
