@@ -22,7 +22,10 @@ public:
     }
 
 public:
+    // Currently supports CREATE, UPDATE and DELETE node.
+    // TODO: Add support for REMOVE property of a node.
     LogicalOperatorType CRUDType;
+
     label_t nodeLabel;
     unordered_map<uint32_t, string> propertyKeyToCSVColumnVariableMap;
 };

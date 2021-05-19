@@ -25,7 +25,8 @@ enum PhysicalOperatorType : uint8_t {
     RESULT_COLLECTOR,
     LOAD_CSV,
     CREATE_NODE,
-    UPDATE_NODE
+    UPDATE_NODE,
+    DELETE_NODE
 };
 
 class PhysicalOperator {

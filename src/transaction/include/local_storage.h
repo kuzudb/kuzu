@@ -24,10 +24,15 @@ public:
 
     void mapNodeIDs(label_t nodeLabel);
 
+    void deleteNodeIDs(label_t nodeLabel);
+
     void computeCreateNode(vector<uint32_t> propertyKeyIdxToVectorPosMap, label_t nodeLabel,
         vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes);
 
     void computeUpdateNode(vector<uint32_t> propertyKeyIdxToVectorPosMap, label_t nodeLabel,
+        vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes);
+
+    void computeDeleteNode(vector<uint32_t> propertyKeyIdxToVectorPosMap, label_t nodeLabel,
         vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes);
 
 private:

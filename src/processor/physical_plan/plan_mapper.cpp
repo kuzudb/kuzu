@@ -13,6 +13,7 @@
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/crud/create_node.h"
+#include "src/processor/include/physical_plan/operator/crud/delete_node.h"
 #include "src/processor/include/physical_plan/operator/crud/update_node.h"
 #include "src/processor/include/physical_plan/operator/filter/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten/flatten.h"
@@ -451,6 +452,10 @@ unique_ptr<PhysicalOperator> mapLogicalCRUDNodeToPhysical(const LogicalOperator&
             graph.getNumNodes(logicalCRUDNode.nodeLabel), move(prevOperator));
     } else if (LOGICAL_UPDATE_NODE == logicalCRUDNode.getLogicalOperatorType()) {
         return make_unique<UpdateNode>(dataChunkPos, transactionPtr, move(propertyKeyVectorPos),
+            logicalCRUDNode.nodeLabel, move(nodePropertyColumns),
+            graph.getNumNodes(logicalCRUDNode.nodeLabel), move(prevOperator));
+    } else if (LOGICAL_DELETE_NODE == logicalCRUDNode.getLogicalOperatorType()) {
+        return make_unique<DeleteNode>(dataChunkPos, transactionPtr, move(propertyKeyVectorPos),
             logicalCRUDNode.nodeLabel, move(nodePropertyColumns),
             graph.getNumNodes(logicalCRUDNode.nodeLabel), move(prevOperator));
     }
