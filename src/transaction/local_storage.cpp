@@ -58,6 +58,14 @@ void LocalStorage::mapNodeIDs(label_t nodeLabel) {
     uncommittedNumRecycledNodeIDs = 0;
 }
 
+void LocalStorage::deleteNodeIDs(label_t nodeLabel) {
+    for (auto& dataChunk : dataChunks) {
+        // TODO: delete the nodeID entry from the hash index.
+        // TODO: put the deleted nodeID in the free list.
+    }
+    uncommittedNumRecycledNodeIDs = 0;
+}
+
 void LocalStorage::computeCreateNode(vector<uint32_t> propertyKeyIdxToVectorPosMap,
     label_t nodeLabel, vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes) {
     uncommittedLabelToNumNodes.emplace(
@@ -65,8 +73,10 @@ void LocalStorage::computeCreateNode(vector<uint32_t> propertyKeyIdxToVectorPosM
     for (auto i = 0u; i < propertyKeyIdxToVectorPosMap.size(); i++) {
         auto numUpdates = uncommittedNumRecycledNodeIDs;
         auto& column = *nodePropertyColumns[i];
-        //  Here, we are assuming that the fileHandle of the column is not already in the
-        // uncommittedPages map and hence, none of its pages are dirty.
+        // Here, we are assuming that the fileHandle of the column is not already in the
+        // uncommittedPages map and hence, none of its pages are dirty. That is we assume that a
+        // previous update or create node has not happened to the same set of nodes that are being
+        // deleted.
         uncommittedPages.emplace(column.getFileHandle(), page_idx_to_dirty_page_map());
         auto& dirtyPagesMap = uncommittedPages[column.getFileHandle()];
         auto dataChunkIdx = 0u;
@@ -113,7 +123,9 @@ void LocalStorage::computeUpdateNode(vector<uint32_t> propertyKeyIdxToVectorPosM
         }
         auto& column = *nodePropertyColumns[i];
         // Here, we are assuming that the fileHandle of the column is not already in the
-        // uncommittedPages map and hence, none of its pages are dirty.
+        // uncommittedPages map and hence, none of its pages are dirty. That is we assume that a
+        // previous update or create node has not happened to the same set of nodes that are being
+        // deleted.
         uncommittedPages.emplace(column.getFileHandle(), page_idx_to_dirty_page_map());
         auto& dirtyPagesMap = uncommittedPages[column.getFileHandle()];
         auto dataChunkIdx = 0u;
@@ -130,6 +142,34 @@ void LocalStorage::computeUpdateNode(vector<uint32_t> propertyKeyIdxToVectorPosM
     dataChunks.clear();
 }
 
+void LocalStorage::computeDeleteNode(vector<uint32_t> propertyKeyIdxToVectorPosMap,
+    label_t nodeLabel, vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes) {
+    for (auto i = 0u; i < propertyKeyIdxToVectorPosMap.size(); i++) {
+        assert(-1ul == propertyKeyIdxToVectorPosMap[i]);
+        auto& column = *nodePropertyColumns[i];
+        auto nullValue = getNullValuePtrForDataType(column.dataType);
+        // Here, we are assuming that the fileHandle of the column is not already in the
+        // uncommittedPages map and hence, none of its pages are dirty. That is we assume that a
+        // previous update or create node has not happened to the same set of nodes that are being
+        // deleted.
+        uncommittedPages.emplace(column.getFileHandle(), page_idx_to_dirty_page_map());
+        auto& dirtyPagesMap = uncommittedPages[column.getFileHandle()];
+        auto dataChunkIdx = 0u;
+        while (dataChunkIdx < dataChunks.size()) {
+            auto& dataChunk = *dataChunks[dataChunkIdx];
+            auto nodeIDVector = (NodeIDVector*)dataChunk.valueVectors.back().get();
+            updateNodePropertyColumn(0 /*currPos*/, dataChunk.state->size, column, nullValue.get(),
+                dirtyPagesMap, nullptr /*property value vector*/, nodeIDVector);
+            dataChunkIdx++;
+        }
+    }
+    dataChunks.clear();
+}
+
+// This function perform updates to specific pages of the column for `numUpdatesInDataChunk` number
+// of tuples in the current dataChunk. For each nodeID in the `nodeIDVector`, its corresponding
+// property value is read from the `propertyValueVector` and put in the appropriate page. If the
+// `propertyValueVector` is a nullptr, `nullValue` is put in the page.
 void LocalStorage::updateNodePropertyColumn(uint32_t currPosInDataChunk,
     uint64_t numUpdatesInDataChunk, BaseColumn& column, uint8_t* nullValue,
     page_idx_to_dirty_page_map& dirtyPagesMap, ValueVector* propertyValueVector,
