@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/binder/include/bound_statements/bound_reading_statement.h"
 #include "src/binder/include/expression/expression.h"
 #include "src/binder/include/query_graph/query_graph.h"
 
@@ -9,11 +10,11 @@ namespace binder {
 /**
  * BoundMatchStatement may not have whereExpression
  */
-class BoundMatchStatement {
+class BoundMatchStatement : public BoundReadingStatement {
 
 public:
     explicit BoundMatchStatement(unique_ptr<QueryGraph> queryGraph)
-        : queryGraph{move(queryGraph)} {}
+        : BoundReadingStatement(MATCH_STATEMENT), queryGraph{move(queryGraph)} {}
 
     void merge(BoundMatchStatement& other) {
         queryGraph->merge(*other.queryGraph);

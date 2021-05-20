@@ -20,7 +20,7 @@ cc_library(
         "compression_scheme.cpp",
         "vector/node_vector.cpp",
         "vector/value_vector.cpp",
-        "vector/vector_state.cpp"
+        "vector/vector_state.cpp",
     ],
     hdrs = [
         "include/compression_scheme.h",
@@ -30,9 +30,9 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "types",
         "expression_type",
         "operations",
+        "types",
     ],
 )
 
@@ -91,15 +91,17 @@ cc_library(
     hdrs = ["include/csv_reader/csv_reader.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "types",
         "configs",
+        "types",
         "utils",
     ],
 )
 
 cc_library(
     name = "utils",
-    srcs = [],
+    srcs = [
+        "utils.cpp",
+    ],
     hdrs = [
         "include/utils.h",
     ],
@@ -112,14 +114,14 @@ cc_library(
 cc_library(
     name = "types",
     srcs = [
+        "string.cpp",
         "types.cpp",
         "value.cpp",
-        "string.cpp",
     ],
     hdrs = [
+        "include/string.h",
         "include/types.h",
         "include/value.h",
-        "include/string.h",
     ],
     visibility = ["//visibility:public"],
     deps = [],
@@ -129,7 +131,7 @@ cc_library(
     name = "configs",
     srcs = [],
     hdrs = [
-        "include/configs.h"
+        "include/configs.h",
     ],
     visibility = ["//visibility:public"],
     deps = [],

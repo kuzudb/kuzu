@@ -136,6 +136,10 @@ unordered_set<string> QueryGraph::getNeighbourNodeNames(const string& queryNodeN
     return nbrs;
 }
 
+bool QueryGraph::isEmpty() const {
+    return queryNodes.empty();
+}
+
 void QueryGraph::merge(QueryGraph& other) {
     for (auto& otherNode : other.queryNodes) {
         addQueryNodeIfNotExist(otherNode);

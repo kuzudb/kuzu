@@ -7,26 +7,19 @@ namespace graphflow {
 namespace binder {
 
 /**
- * Represents (QueryPart)* (MATCH WHERE?)* RETURN
- * Merge multiple match statements into single match statement
- * BoundSingleQuery may not have boundQueryParts or boundMatchStatement
+ * Represents (QueryPart)* (Reading)* RETURN
+ * Similar to BoundQueryPart, all match statements in the reading statements are merged as single
+ * match statement and appended at the end. See bound_query_part.h for more.
  */
 class BoundSingleQuery {
 
 public:
-    uint32_t getNumQueryRels() const {
-        auto numQueryRels =
-            boundMatchStatement ? boundMatchStatement->queryGraph->getNumQueryRels() : 0;
-        for (auto& boundQueryPart : boundQueryParts) {
-            numQueryRels += boundQueryPart->getNumQueryRels();
-        }
-        return numQueryRels;
-    }
+    uint32_t getNumQueryRels() const;
 
 public:
     // WITH query parts
     vector<unique_ptr<BoundQueryPart>> boundQueryParts;
-    unique_ptr<BoundMatchStatement> boundMatchStatement;
+    vector<unique_ptr<BoundReadingStatement>> boundReadingStatements;
     unique_ptr<BoundReturnStatement> boundReturnStatement;
 };
 

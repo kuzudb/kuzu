@@ -9,10 +9,11 @@ namespace planner {
 class LogicalLoadCSV : public LogicalOperator {
 
 public:
-    LogicalLoadCSV(string path, vector<pair<string, DataType>> csvColumnVariableInfo,
-        shared_ptr<LogicalOperator> prevOperator, char tokenSeparator = ',')
-        : LogicalOperator{prevOperator}, path{path}, tokenSeparator{tokenSeparator},
-          csvColumnVariableInfo{csvColumnVariableInfo} {}
+    LogicalLoadCSV(string path, char tokenSeparator,
+        vector<pair<string, DataType>> csvColumnVariableInfo,
+        shared_ptr<LogicalOperator> prevOperator)
+        : LogicalOperator{prevOperator}, path{move(path)}, tokenSeparator{tokenSeparator},
+          csvColumnVariableInfo{move(csvColumnVariableInfo)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_LOAD_CSV;

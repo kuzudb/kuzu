@@ -3,6 +3,7 @@
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
+#include "src/planner/include/logical_plan/operator/load_csv/logical_load_csv.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
@@ -39,6 +40,7 @@ static vector<shared_ptr<Expression>> createLogicalPropertyExpressions(
 Enumerator::Enumerator(const Graph& graph, const BoundSingleQuery& boundSingleQuery)
     : graph{graph}, boundSingleQuery{boundSingleQuery} {
     subplansTable = make_unique<SubplansTable>(boundSingleQuery.getNumQueryRels());
+    mergedQueryGraph = make_unique<QueryGraph>();
 }
 
 unique_ptr<LogicalPlan> Enumerator::getBestPlan() {
@@ -57,13 +59,14 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
         enumerateBoundQueryPart(*boundQueryPart);
     }
     auto whereClauseSplitOnAND = vector<shared_ptr<Expression>>();
-    if (boundSingleQuery.boundMatchStatement) {
-        updateQueryGraph(*boundSingleQuery.boundMatchStatement);
-        if (boundSingleQuery.boundMatchStatement->whereExpression) {
-            for (auto& expression :
-                splitExpressionOnAND(boundSingleQuery.boundMatchStatement->whereExpression)) {
-                whereClauseSplitOnAND.push_back(expression);
-            }
+    for (auto i = 0u; i < boundSingleQuery.boundReadingStatements.size(); ++i) {
+        auto& boundReadingStatement = *boundSingleQuery.boundReadingStatements[i];
+        if (LOAD_CSV_STATEMENT == boundReadingStatement.statementType) {
+            throw invalid_argument("should not happen.");
+        } else {
+            assert(i == boundSingleQuery.boundReadingStatements.size() - 1);
+            updateQueryGraphAndWhereClause(
+                (BoundMatchStatement&)boundReadingStatement, whereClauseSplitOnAND);
         }
     }
     enumerateSubplans(whereClauseSplitOnAND, boundSingleQuery.boundReturnStatement->expressions);
@@ -72,13 +75,14 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
 
 void Enumerator::enumerateBoundQueryPart(BoundQueryPart& boundQueryPart) {
     auto whereClauseSplitOnAND = vector<shared_ptr<Expression>>();
-    if (boundQueryPart.boundMatchStatement) {
-        updateQueryGraph(*boundQueryPart.boundMatchStatement);
-        if (boundQueryPart.boundMatchStatement->whereExpression) {
-            for (auto& expression :
-                splitExpressionOnAND(boundQueryPart.boundMatchStatement->whereExpression)) {
-                whereClauseSplitOnAND.push_back(expression);
-            }
+    for (auto i = 0u; i < boundQueryPart.boundReadingStatements.size(); ++i) {
+        auto& boundReadingStatement = *boundQueryPart.boundReadingStatements[i];
+        if (LOAD_CSV_STATEMENT == boundReadingStatement.statementType) {
+            throw invalid_argument("should not happen.");
+        } else {
+            assert(i == boundQueryPart.boundReadingStatements.size() - 1);
+            updateQueryGraphAndWhereClause(
+                (BoundMatchStatement&)boundReadingStatement, whereClauseSplitOnAND);
         }
     }
     if (boundQueryPart.boundWithStatement->whereExpression) {
@@ -90,11 +94,9 @@ void Enumerator::enumerateBoundQueryPart(BoundQueryPart& boundQueryPart) {
     enumerateSubplans(whereClauseSplitOnAND, boundQueryPart.boundWithStatement->expressions);
 }
 
-void Enumerator::updateQueryGraph(BoundMatchStatement& boundMatchStatement) {
-    if (!mergedQueryGraph) {
-        mergedQueryGraph = move(boundMatchStatement.queryGraph);
-    } else {
-        mergedQueryGraph->merge(*boundMatchStatement.queryGraph);
+void Enumerator::updateQueryGraphAndWhereClause(BoundMatchStatement& boundMatchStatement,
+    vector<shared_ptr<Expression>>& whereClauseSplitOnAND) {
+    if (!mergedQueryGraph->isEmpty()) {
         // When entering from one query part to another, subgraphPlans at currentLevel
         // contains only one entry which is the full mergedQueryGraph
         assert(1 == subplansTable->subgraphPlans[currentLevel].size());
@@ -102,17 +104,23 @@ void Enumerator::updateQueryGraph(BoundMatchStatement& boundMatchStatement) {
         matchedQueryRels =
             subplansTable->subgraphPlans[currentLevel].begin()->first.queryRelsSelector;
     }
+    mergedQueryGraph->merge(*boundMatchStatement.queryGraph);
     // Restart from level 0 for new query part so that we get hashJoin based plans
     // that uses subplans coming from previous query part.
     // See example in enumerateExtend().
     currentLevel = 0;
+    if (boundMatchStatement.whereExpression) {
+        for (auto& expression : splitExpressionOnAND(boundMatchStatement.whereExpression)) {
+            whereClauseSplitOnAND.push_back(expression);
+        }
+    }
 }
 
 void Enumerator::enumerateSubplans(const vector<shared_ptr<Expression>>& whereClause,
     const vector<shared_ptr<Expression>>& returnOrWithClause) {
     // first query part may not have query graph
     // E.g. WITH 1 AS one MATCH (a) ...
-    if (!mergedQueryGraph) {
+    if (mergedQueryGraph->isEmpty()) {
         return;
     }
     enumerateSingleQueryNode(whereClause);

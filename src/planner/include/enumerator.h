@@ -1,6 +1,8 @@
 #pragma once
 
 #include "src/binder/include/bound_queries/bound_single_query.h"
+#include "src/binder/include/bound_statements/bound_load_csv_statement.h"
+#include "src/binder/include/bound_statements/bound_match_statement.h"
 #include "src/binder/include/expression/property_expression.h"
 #include "src/planner/include/logical_plan/logical_plan.h"
 #include "src/planner/include/subplans_table.h"
@@ -24,7 +26,8 @@ public:
 private:
     void enumerateBoundQueryPart(BoundQueryPart& boundQueryPart);
 
-    void updateQueryGraph(BoundMatchStatement& boundMatchStatement);
+    void updateQueryGraphAndWhereClause(BoundMatchStatement& boundMatchStatement,
+        vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
 
     void enumerateSubplans(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND,
         const vector<shared_ptr<Expression>>& returnOrWithClause);

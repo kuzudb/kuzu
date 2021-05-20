@@ -1,103 +1,106 @@
 #include "src/binder/include/query_binder.h"
 
+#include <fstream>
+
+#include "src/binder/include/bound_statements/bound_load_csv_statement.h"
+#include "src/binder/include/bound_statements/bound_match_statement.h"
+#include "src/binder/include/expression/literal_expression.h"
+#include "src/binder/include/expression_binder.h"
+#include "src/common/include/csv_reader/csv_reader.h"
+
 namespace graphflow {
 namespace binder {
 
-static string makeUniqueVariableName(const string& name, uint32_t& idx) {
-    return "_gf" + to_string(idx++) + "_" + name;
-}
+const char DEFAULT_LOAD_CSV_TOKEN_SEPARATOR = ',';
 
+static string makeUniqueVariableName(const string& name, uint32_t& idx);
+static vector<pair<string, DataType>> parseCSVHeader(const string& headerLine, char tokenSeparator);
+static vector<unique_ptr<BoundReadingStatement>> mergeAllMatchStatements(
+    vector<unique_ptr<BoundReadingStatement>> boundReadingStatements);
+
+static void validateCSVHeaderColumnNamesAreUnique(const vector<pair<string, DataType>>& headerInfo);
 static void validateProjectionColumnNamesAreUnique(
-    const vector<shared_ptr<Expression>>& expressions) {
-    auto existColumnNames = unordered_set<string>();
-    for (auto& expression : expressions) {
-        auto k = *expression;
-        if (end(existColumnNames) !=
-            existColumnNames.find(expression->getAliasElseRawExpression())) {
-            throw invalid_argument("Multiple result column with the same name " +
-                                   expression->getAliasElseRawExpression() + " are not supported.");
-        }
-        existColumnNames.insert(expression->getAliasElseRawExpression());
-    }
-}
-
-static void validateOnlyFunctionIsCountStar(vector<shared_ptr<Expression>>& expressions) {
-    for (auto& expression : expressions) {
-        if (FUNCTION == expression->expressionType &&
-            FUNCTION_COUNT_STAR == expression->variableName && expressions.size() != 1) {
-            throw invalid_argument("The only function in the return clause should be COUNT(*).");
-        }
-    }
-}
-
+    const vector<shared_ptr<Expression>>& expressions);
+static void validateOnlyFunctionIsCountStar(vector<shared_ptr<Expression>>& expressions);
 static void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
-    const unordered_map<string, shared_ptr<Expression>>& variablesInScope) {
-    auto visited = unordered_set<string>();
-    for (auto& [name, variable] : variablesInScope) {
-        if (NODE == variable->dataType) {
-            visited.insert(variable->variableName);
-        }
+    const unordered_map<string, shared_ptr<Expression>>& variablesInScope);
+
+unique_ptr<BoundSingleQuery> QueryBinder::bind(const SingleQuery& singleQuery) {
+    auto boundSingleQuery = bindSingleQuery(singleQuery);
+    optimizeReadingStatements(*boundSingleQuery);
+    return boundSingleQuery;
+}
+
+void QueryBinder::optimizeReadingStatements(BoundSingleQuery& boundSingleQuery) {
+    for (auto& boundQueryPart : boundSingleQuery.boundQueryParts) {
+        boundQueryPart->boundReadingStatements =
+            mergeAllMatchStatements(move(boundQueryPart->boundReadingStatements));
     }
-    if (visited.empty()) {
-        visited.insert(queryGraph.queryNodes[0]->variableName);
-    }
-    auto target = visited;
-    for (auto& queryNode : queryGraph.queryNodes) {
-        target.insert(queryNode->variableName);
-    }
-    auto frontier = visited;
-    while (!frontier.empty()) {
-        auto nextFrontier = unordered_set<string>();
-        for (auto& nodeInFrontier : frontier) {
-            auto nbrs = queryGraph.getNeighbourNodeNames(nodeInFrontier);
-            for (auto& nbr : nbrs) {
-                if (end(visited) == visited.find(nbr)) {
-                    visited.insert(nbr);
-                    nextFrontier.insert(nbr);
-                }
-            }
-        }
-        if (visited.size() == target.size()) {
-            return;
-        }
-        frontier = nextFrontier;
-    }
-    throw invalid_argument("Disconnect query graph is not supported.");
+    boundSingleQuery.boundReadingStatements =
+        mergeAllMatchStatements(move(boundSingleQuery.boundReadingStatements));
 }
 
 unique_ptr<BoundSingleQuery> QueryBinder::bindSingleQuery(const SingleQuery& singleQuery) {
     auto boundSingleQuery = make_unique<BoundSingleQuery>();
-    for (auto& parsedQueryPart : singleQuery.queryParts) {
-        auto boundQueryPart = make_unique<BoundQueryPart>();
-        if (!parsedQueryPart->readingStatements.empty()) {
-            boundQueryPart->boundMatchStatement =
-                bindMatchStatementsAndMerge(parsedQueryPart->readingStatements);
-        }
-        boundQueryPart->boundWithStatement = bindWithStatement(*parsedQueryPart->withStatement);
-        boundSingleQuery->boundQueryParts.push_back(move(boundQueryPart));
+    for (auto& queryPart : singleQuery.queryParts) {
+        boundSingleQuery->boundQueryParts.push_back(bindQueryPart(*queryPart));
     }
-    if (!singleQuery.readingStatements.empty()) {
-        boundSingleQuery->boundMatchStatement =
-            bindMatchStatementsAndMerge(singleQuery.readingStatements);
+    for (auto& readingStatement : singleQuery.readingStatements) {
+        boundSingleQuery->boundReadingStatements.push_back(bindReadingStatement(*readingStatement));
     }
     boundSingleQuery->boundReturnStatement = bindReturnStatement(*singleQuery.returnStatement);
     return boundSingleQuery;
 }
 
-unique_ptr<BoundMatchStatement> QueryBinder::bindMatchStatementsAndMerge(
-    const vector<unique_ptr<ReadingStatement>>& readingStatements) {
-    unique_ptr<BoundMatchStatement> mergedMatchStatement;
-    for (auto& matchStatement : readingStatements) {
-        if (!mergedMatchStatement) {
-            mergedMatchStatement = bindMatchStatement((MatchStatement&)*matchStatement);
-        } else {
-            mergedMatchStatement->merge(*bindMatchStatement((MatchStatement&)*matchStatement));
-        }
+unique_ptr<BoundQueryPart> QueryBinder::bindQueryPart(const QueryPart& queryPart) {
+    auto boundQueryPart = make_unique<BoundQueryPart>();
+    for (auto& readingStatement : queryPart.readingStatements) {
+        boundQueryPart->boundReadingStatements.push_back(bindReadingStatement(*readingStatement));
     }
-    return mergedMatchStatement;
+    boundQueryPart->boundWithStatement = bindWithStatement(*queryPart.withStatement);
+    return boundQueryPart;
 }
 
-unique_ptr<BoundMatchStatement> QueryBinder::bindMatchStatement(
+unique_ptr<BoundReadingStatement> QueryBinder::bindReadingStatement(
+    const ReadingStatement& readingStatement) {
+    if (MATCH_STATEMENT == readingStatement.statementType) {
+        return bindMatchStatement((MatchStatement&)readingStatement);
+    }
+    return bindLoadCSVStatement((LoadCSVStatement&)readingStatement);
+}
+
+unique_ptr<BoundReadingStatement> QueryBinder::bindLoadCSVStatement(
+    const LoadCSVStatement& loadCSVStatement) {
+    auto tokenSeparator = DEFAULT_LOAD_CSV_TOKEN_SEPARATOR;
+    if (!loadCSVStatement.fieldTerminator.empty()) {
+        if (loadCSVStatement.fieldTerminator.size() > 1) {
+            throw invalid_argument("FIELDTERMINATOR has data type STRING. CHAR was expected.");
+        }
+        tokenSeparator = loadCSVStatement.fieldTerminator.at(0);
+    }
+    auto boundInputExpression = ExpressionBinder(variablesInScope, catalog)
+                                    .bindExpression(*loadCSVStatement.inputExpression);
+    if (LITERAL_STRING != boundInputExpression->expressionType) {
+        throw invalid_argument("LOAD CSV FROM " +
+                               expressionTypeToString(boundInputExpression->expressionType) +
+                               " is not supported. STRING was expected.");
+    }
+    auto filePath = gf_string_t::getAsString(
+        static_pointer_cast<LiteralExpression>(boundInputExpression)->literal.strVal);
+    auto fileStream = ifstream(filePath, ios_base::in);
+    if (!fileStream.is_open()) {
+        throw invalid_argument("Cannot open file at " + filePath + ".");
+    }
+    string headerLine;
+    getline(fileStream, headerLine);
+    auto headerInfo = parseCSVHeader(headerLine, tokenSeparator);
+    validateCSVHeaderColumnNamesAreUnique(headerInfo);
+    fileStream.seekg(0, ios_base::end);
+    return make_unique<BoundLoadCSVStatement>(
+        filePath, tokenSeparator, loadCSVStatement.lineVariableName, headerInfo);
+}
+
+unique_ptr<BoundReadingStatement> QueryBinder::bindMatchStatement(
     const MatchStatement& matchStatement) {
     auto prevVariablesInScope = variablesInScope;
     auto queryGraph = bindQueryGraph(matchStatement.graphPattern);
@@ -272,6 +275,111 @@ label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
         throw invalid_argument("Node label " + parsed_label + " does not exist.");
     }
     return catalog.getNodeLabelFromString(parsed_label.c_str());
+}
+
+string makeUniqueVariableName(const string& name, uint32_t& idx) {
+    return "_gf" + to_string(idx++) + "_" + name;
+}
+
+vector<pair<string, DataType>> parseCSVHeader(const string& headerLine, char tokenSeparator) {
+    auto headerInfo = vector<pair<string, DataType>>();
+    for (auto& entry : StringUtils::split(headerLine, string(1, tokenSeparator))) {
+        auto propertyDataType = StringUtils::split(entry, PROPERTY_DATATYPE_SEPARATOR);
+        if (propertyDataType.size() == 1) {
+            throw invalid_argument("Missing colon separated dataType in " + entry + ".");
+        } else if (propertyDataType.size() > 2) {
+            throw invalid_argument("Multiple dataType in " + entry + " is not supported.");
+        }
+        headerInfo.emplace_back(make_pair(propertyDataType[0], getDataType(propertyDataType[1])));
+    }
+    return headerInfo;
+}
+
+// Merge all match statements as one given a list of reading statement.
+// This is still valid in the case of MATCH LOAD CSV MATCH. Because our LOAD CSV reads header during
+// binding, it cannot depend on runtime output of previous match. So the order of MATCH and LOAD CSV
+// doesn't matter (similar to Cartesian Product).
+vector<unique_ptr<BoundReadingStatement>> mergeAllMatchStatements(
+    vector<unique_ptr<BoundReadingStatement>> boundReadingStatements) {
+    auto result = vector<unique_ptr<BoundReadingStatement>>();
+    auto mergedMatchStatement = make_unique<BoundMatchStatement>(make_unique<QueryGraph>());
+    for (auto& boundReadingStatement : boundReadingStatements) {
+        if (LOAD_CSV_STATEMENT == boundReadingStatement->statementType) {
+            result.push_back(move(boundReadingStatement));
+        } else {
+            mergedMatchStatement->merge((BoundMatchStatement&)*boundReadingStatement);
+        }
+    }
+    result.push_back(move(mergedMatchStatement));
+    return result;
+}
+
+void validateCSVHeaderColumnNamesAreUnique(const vector<pair<string, DataType>>& headerInfo) {
+    auto propertyNames = unordered_set<string>();
+    for (auto& [propertyName, dataType] : headerInfo) {
+        if (propertyNames.contains(propertyName)) {
+            throw invalid_argument("Multiple property columns with the same name " + propertyName +
+                                   " is not supported.");
+        }
+        propertyNames.insert(propertyName);
+    }
+}
+
+void validateProjectionColumnNamesAreUnique(const vector<shared_ptr<Expression>>& expressions) {
+    auto existColumnNames = unordered_set<string>();
+    for (auto& expression : expressions) {
+        auto k = *expression;
+        if (end(existColumnNames) !=
+            existColumnNames.find(expression->getAliasElseRawExpression())) {
+            throw invalid_argument("Multiple result column with the same name " +
+                                   expression->getAliasElseRawExpression() + " are not supported.");
+        }
+        existColumnNames.insert(expression->getAliasElseRawExpression());
+    }
+}
+
+void validateOnlyFunctionIsCountStar(vector<shared_ptr<Expression>>& expressions) {
+    for (auto& expression : expressions) {
+        if (FUNCTION == expression->expressionType &&
+            FUNCTION_COUNT_STAR == expression->variableName && expressions.size() != 1) {
+            throw invalid_argument("The only function in the return clause should be COUNT(*).");
+        }
+    }
+}
+
+void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
+    const unordered_map<string, shared_ptr<Expression>>& variablesInScope) {
+    auto visited = unordered_set<string>();
+    for (auto& [name, variable] : variablesInScope) {
+        if (NODE == variable->dataType) {
+            visited.insert(variable->variableName);
+        }
+    }
+    if (visited.empty()) {
+        visited.insert(queryGraph.queryNodes[0]->variableName);
+    }
+    auto target = visited;
+    for (auto& queryNode : queryGraph.queryNodes) {
+        target.insert(queryNode->variableName);
+    }
+    auto frontier = visited;
+    while (!frontier.empty()) {
+        auto nextFrontier = unordered_set<string>();
+        for (auto& nodeInFrontier : frontier) {
+            auto nbrs = queryGraph.getNeighbourNodeNames(nodeInFrontier);
+            for (auto& nbr : nbrs) {
+                if (end(visited) == visited.find(nbr)) {
+                    visited.insert(nbr);
+                    nextFrontier.insert(nbr);
+                }
+            }
+        }
+        if (visited.size() == target.size()) {
+            return;
+        }
+        frontier = nextFrontier;
+    }
+    throw invalid_argument("Disconnect query graph is not supported.");
 }
 
 } // namespace binder

@@ -1,0 +1,14 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_library(
+    name = "mock_objects",
+    hdrs = [
+        "mock_catalog.h",
+        "mock_graph.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/storage:graph",
+        "@gtest//:gtest_main",
+    ],
+)

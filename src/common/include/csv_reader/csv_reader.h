@@ -16,6 +16,8 @@ using namespace std;
 namespace graphflow {
 namespace common {
 
+const string PROPERTY_DATATYPE_SEPARATOR = ":";
+
 // Iterator-like interface to read one block in a CSV file line-by-line while parsing into primitive
 // dataTypes.
 class CSVReader {
