@@ -10,8 +10,8 @@ enum StatementType : uint8_t {
     /**
      * Reading clause
      **/
-    LOAD_CSV = 0,
-    MATCH = 1,
+    LOAD_CSV_STATEMENT = 0,
+    MATCH_STATEMENT = 1,
 };
 
 } // namespace common

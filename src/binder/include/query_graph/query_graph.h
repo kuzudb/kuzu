@@ -79,6 +79,8 @@ public:
 
     unordered_set<string> getNeighbourNodeNames(const string& queryNodeName) const;
 
+    bool isEmpty() const;
+
     void merge(QueryGraph& other);
 
 private:

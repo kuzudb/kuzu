@@ -20,6 +20,7 @@ cc_library(
     deps = [
         "queries",
         "//src/antlr4:cypher_grammar_lib",
+        "//src/common:utils",
     ],
 )
 
@@ -37,16 +38,16 @@ cc_library(
 cc_library(
     name = "statements",
     hdrs = [
+        "include/statements/load_csv_statement.h",
         "include/statements/match_statement.h",
+        "include/statements/reading_statement.h",
         "include/statements/return_statement.h",
         "include/statements/with_statement.h",
-        "include/statements/load_csv_statement.h",
-        "include/statements/reading_statement.h"
     ],
     deps = [
-        "//src/common:statement_type",
         "expressions",
         "patterns",
+        "//src/common:statement_type",
     ],
 )
 

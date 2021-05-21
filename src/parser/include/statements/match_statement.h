@@ -11,7 +11,7 @@ class MatchStatement : public ReadingStatement {
 
 public:
     explicit MatchStatement(vector<unique_ptr<PatternElement>> patternElements)
-        : ReadingStatement{MATCH}, graphPattern{move(patternElements)} {}
+        : ReadingStatement{MATCH_STATEMENT}, graphPattern{move(patternElements)} {}
 
 public:
     vector<unique_ptr<PatternElement>> graphPattern;

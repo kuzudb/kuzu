@@ -13,6 +13,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "bound_query",
+        "//src/common:csv_reader",
         "//src/parser",
         "//src/storage:catalog",
     ],
@@ -20,6 +21,10 @@ cc_library(
 
 cc_library(
     name = "bound_query",
+    srcs = [
+        "bound_queries/bound_query_part.cpp",
+        "bound_queries/bound_single_query.cpp",
+    ],
     hdrs = [
         "include/bound_queries/bound_query_part.h",
         "include/bound_queries/bound_single_query.h",
@@ -33,12 +38,15 @@ cc_library(
 cc_library(
     name = "bound_statement",
     hdrs = [
+        "include/bound_statements/bound_load_csv_statement.h",
         "include/bound_statements/bound_match_statement.h",
+        "include/bound_statements/bound_reading_statement.h",
         "include/bound_statements/bound_return_statement.h",
         "include/bound_statements/bound_with_statement.h",
     ],
     deps = [
         "query_graph",
+        "//src/common:statement_type",
     ],
 )
 

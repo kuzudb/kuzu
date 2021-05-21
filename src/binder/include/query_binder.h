@@ -1,9 +1,14 @@
 #pragma once
 
 #include "src/binder/include/bound_queries/bound_single_query.h"
-#include "src/binder/include/expression_binder.h"
+#include "src/binder/include/query_graph/query_graph.h"
 #include "src/parser/include/queries/single_query.h"
+#include "src/parser/include/statements/load_csv_statement.h"
 #include "src/parser/include/statements/match_statement.h"
+#include "src/storage/include/catalog.h"
+
+using namespace graphflow::parser;
+using namespace graphflow::storage;
 
 namespace graphflow {
 namespace binder {
@@ -13,13 +18,24 @@ class QueryBinder {
 public:
     explicit QueryBinder(const Catalog& catalog) : catalog{catalog}, lastVariableIdx{0} {}
 
-    unique_ptr<BoundSingleQuery> bindSingleQuery(const SingleQuery& singleQuery);
+    unique_ptr<BoundSingleQuery> bind(const SingleQuery& singleQuery);
 
 private:
-    unique_ptr<BoundMatchStatement> bindMatchStatementsAndMerge(
-        const vector<unique_ptr<ReadingStatement>>& readingStatements);
+    /* optimizing functions */
+    void optimizeReadingStatements(BoundSingleQuery& boundSingleQuery);
 
-    unique_ptr<BoundMatchStatement> bindMatchStatement(const MatchStatement& matchStatement);
+    /* binding functions */
+    unique_ptr<BoundSingleQuery> bindSingleQuery(const SingleQuery& singleQuery);
+
+    unique_ptr<BoundQueryPart> bindQueryPart(const QueryPart& queryPart);
+
+    unique_ptr<BoundReadingStatement> bindReadingStatement(
+        const ReadingStatement& readingStatement);
+
+    unique_ptr<BoundReadingStatement> bindLoadCSVStatement(
+        const LoadCSVStatement& loadCSVStatement);
+
+    unique_ptr<BoundReadingStatement> bindMatchStatement(const MatchStatement& matchStatement);
 
     unique_ptr<BoundWithStatement> bindWithStatement(const WithStatement& withStatement);
 

@@ -180,26 +180,20 @@ void GraphLoader::initPropertyKeyMapAndCalcNumBlocks(label_t numLabels, vector<s
 // separated by a given `tokenSeparator`.
 void GraphLoader::parseHeader(
     const char tokenSeparator, string& header, unordered_map<string, PropertyKey>& propertyKeyMap) {
-    auto splittedHeader = make_unique<vector<string>>();
-    size_t startPos = 0, endPos = 0;
-    while ((endPos = header.find(tokenSeparator, startPos)) != string::npos) {
-        splittedHeader->push_back(header.substr(startPos, endPos - startPos));
-        startPos = endPos + 1;
-    }
-    splittedHeader->push_back(header.substr(startPos));
+    auto splittedHeader = StringUtils::split(header, string(1, tokenSeparator));
     auto propertyKeyNameSet = make_unique<unordered_set<string>>();
     uint32_t propertyIdx = 0;
-    for (auto& split : *splittedHeader) {
-        auto nameEndPos = split.find(":");
+    for (auto& split : splittedHeader) {
+        auto nameEndPos = split.find(PROPERTY_DATATYPE_SEPARATOR);
         if (nameEndPos == string::npos) {
             throw invalid_argument("Cannot find dataType in column head `" + split + "`.");
         }
-        auto propertyKeyName = split.substr(0, split.find(":"));
+        auto propertyKeyName = split.substr(0, split.find(PROPERTY_DATATYPE_SEPARATOR));
         if (propertyKeyNameSet->find(propertyKeyName) != propertyKeyNameSet->end()) {
             throw invalid_argument("Same property name in csv file.");
         }
         propertyKeyNameSet->insert(propertyKeyName);
-        auto dataType = getDataType(split.substr(split.find(":") + 1));
+        auto dataType = getDataType(split.substr(split.find(PROPERTY_DATATYPE_SEPARATOR) + 1));
         if (NODE != dataType && LABEL != dataType) {
             propertyKeyMap.insert({propertyKeyName, PropertyKey{dataType, propertyIdx++}});
         }

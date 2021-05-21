@@ -10,7 +10,7 @@ class LoadCSVStatement : public ReadingStatement {
 
 public:
     LoadCSVStatement(unique_ptr<ParsedExpression> inputExpression, string lineVariableName)
-        : ReadingStatement{LOAD_CSV}, inputExpression{move(inputExpression)},
+        : ReadingStatement{LOAD_CSV_STATEMENT}, inputExpression{move(inputExpression)},
           lineVariableName{move(lineVariableName)} {}
 
 public:

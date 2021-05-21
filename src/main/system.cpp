@@ -34,7 +34,7 @@ vector<unique_ptr<LogicalPlan>> System::enumerateLogicalPlans(const string& quer
         throw invalid_argument("System is not initialized");
     }
     auto parsedQuery = Parser::parseQuery(query);
-    auto boundQuery = QueryBinder(graph->getCatalog()).bindSingleQuery(*parsedQuery);
+    auto boundQuery = QueryBinder(graph->getCatalog()).bind(*parsedQuery);
     return Enumerator(*graph, *boundQuery).enumeratePlans();
 }
 
