@@ -369,6 +369,10 @@ unique_ptr<ParsedExpression> Transformer::transformStringListNullOperatorExpress
         return transformNullOperatorExpression(
             *ctx.oC_NullOperatorExpression(), move(propertyExpression));
     }
+    if (ctx.oC_ListOperatorExpression()) {
+        return transformListOperatorExpression(
+            *ctx.oC_ListOperatorExpression(), move(propertyExpression));
+    }
     if (ctx.oC_StringOperatorExpression()) {
         return transformStringOperatorExpression(
             *ctx.oC_StringOperatorExpression(), move(propertyExpression));
@@ -393,6 +397,16 @@ unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression(
     expression->children.push_back(move(propertyExpression));
     expression->children.push_back(
         transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression()));
+    return expression;
+}
+
+unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
+    CypherParser::OC_ListOperatorExpressionContext& ctx,
+    unique_ptr<ParsedExpression> propertyExpression) {
+    auto rawExpression = propertyExpression->rawExpression + " " + ctx.getText();
+    auto expression = make_unique<ParsedExpression>(LIST_EXTRACT, string(), rawExpression);
+    expression->children.push_back(move(propertyExpression));
+    expression->children.push_back(transformExpression(*ctx.oC_Expression()));
     return expression;
 }
 

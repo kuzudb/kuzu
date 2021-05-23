@@ -1,7 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_library(
-    name = "binder_utils",
+    name = "binder_test_utils",
     srcs = [
         "binder_test_utils.cpp",
     ],
@@ -22,7 +22,7 @@ cc_test(
         "//dataset",
     ],
     deps = [
-        "binder_utils",
+        "binder_test_utils",
         "//src/parser",
         "//test/mock:mock_objects",
     ],

@@ -99,6 +99,10 @@ private:
         CypherParser::OC_StringOperatorExpressionContext& ctx,
         unique_ptr<ParsedExpression> propertyExpression);
 
+    unique_ptr<ParsedExpression> transformListOperatorExpression(
+        CypherParser::OC_ListOperatorExpressionContext& ctx,
+        unique_ptr<ParsedExpression> propertyExpression);
+
     unique_ptr<ParsedExpression> transformNullOperatorExpression(
         CypherParser::OC_NullOperatorExpressionContext& ctx,
         unique_ptr<ParsedExpression> propertyExpression);

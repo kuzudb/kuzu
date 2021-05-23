@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/binder/include/bound_statements/bound_reading_statement.h"
+#include "src/binder/include/expression/expression.h"
 #include "src/common/include/types.h"
 
 using namespace graphflow::common;
@@ -14,17 +15,17 @@ namespace binder {
 class BoundLoadCSVStatement : public BoundReadingStatement {
 
 public:
-    BoundLoadCSVStatement(string filePath, char tokenSeparator, string lineVariableName,
-        vector<pair<string, DataType>> headerInfo)
+    BoundLoadCSVStatement(string filePath, char tokenSeparator,
+        vector<pair<string, DataType>> headerInfo, shared_ptr<Expression> csvLineVariable)
         : BoundReadingStatement{LOAD_CSV_STATEMENT}, filePath{move(filePath)},
-          tokenSeparator(tokenSeparator), lineVariableName{move(lineVariableName)},
-          headerInfo{move(headerInfo)} {}
+          tokenSeparator(tokenSeparator), headerInfo{move(headerInfo)}, csvLineVariable{move(
+                                                                            csvLineVariable)} {}
 
 public:
     string filePath;
     char tokenSeparator;
-    string lineVariableName;
     vector<pair<string, DataType>> headerInfo;
+    shared_ptr<Expression> csvLineVariable;
 };
 
 } // namespace binder

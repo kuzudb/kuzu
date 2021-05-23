@@ -96,8 +96,12 @@ unique_ptr<BoundReadingStatement> QueryBinder::bindLoadCSVStatement(
     auto headerInfo = parseCSVHeader(headerLine, tokenSeparator);
     validateCSVHeaderColumnNamesAreUnique(headerInfo);
     fileStream.seekg(0, ios_base::end);
+    auto csvLineVariable = make_shared<Expression>(VARIABLE, LIST_STRING,
+        makeUniqueVariableName(loadCSVStatement.lineVariableName, lastVariableIdx));
+    csvLineVariable->alias = loadCSVStatement.lineVariableName;
+    variablesInScope.insert({csvLineVariable->alias, csvLineVariable});
     return make_unique<BoundLoadCSVStatement>(
-        filePath, tokenSeparator, loadCSVStatement.lineVariableName, headerInfo);
+        filePath, tokenSeparator, headerInfo, csvLineVariable);
 }
 
 unique_ptr<BoundReadingStatement> QueryBinder::bindMatchStatement(

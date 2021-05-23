@@ -53,14 +53,19 @@ enum ExpressionType : uint8_t {
     DECOMPRESS_NODE_ID = 39,
 
     /**
-     * String Operation Expressions
+     * String Operator Expressions
      **/
     STARTS_WITH = 40,
     ENDS_WITH = 41,
     CONTAINS = 42,
 
     /**
-     * Null Operation Expressions
+     * List Operator Expressions
+     */
+    LIST_EXTRACT = 45,
+
+    /**
+     * Null Operator Expressions
      **/
     IS_NULL = 50,
     IS_NOT_NULL = 51,
@@ -94,7 +99,7 @@ enum ExpressionType : uint8_t {
      ***/
     CAST_TO_STRING = 100,
     CAST_TO_UNSTRUCTURED_VECTOR = 101,
-    CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR = 102
+    CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR = 102,
 };
 
 bool isExpressionUnary(ExpressionType type);
@@ -103,6 +108,7 @@ bool isExpressionBoolConnection(ExpressionType type);
 bool isExpressionComparison(ExpressionType type);
 bool isExpressionArithmetic(ExpressionType type);
 bool isExpressionStringOperator(ExpressionType type);
+bool isExpressionListExtractOperator(ExpressionType type);
 bool isExpressionNullComparison(ExpressionType type);
 bool isExpressionLeafLiteral(ExpressionType type);
 bool isExpressionLeafVariable(ExpressionType type);

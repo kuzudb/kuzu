@@ -97,14 +97,17 @@ private:
             .WillByDefault(Throw(invalid_argument("Should never happen.")));
         ON_CALL(*this, containNodeProperty(0, _)).WillByDefault(Return(false));
         ON_CALL(*this, containNodeProperty(0, "age")).WillByDefault(Return(true));
+        ON_CALL(*this, containNodeProperty(0, "name")).WillByDefault(Return(true));
     }
 
     void setActionForGetNodePropertyTypeFromString() {
         ON_CALL(*this, getNodePropertyTypeFromString(0, "age")).WillByDefault(Return(INT32));
+        ON_CALL(*this, getNodePropertyTypeFromString(0, "name")).WillByDefault(Return(STRING));
     }
 
     void setActionForGetNodePropertyKeyFromString() {
         ON_CALL(*this, getNodePropertyKeyFromString(0, "age")).WillByDefault(Return(0));
+        ON_CALL(*this, getNodePropertyKeyFromString(0, "name")).WillByDefault(Return(1));
     }
 
     void setActionForContainUnstrNodeProperty() {

@@ -26,6 +26,8 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
                          bindBinaryArithmeticExpression(parsedExpression);
     } else if (isExpressionStringOperator(expressionType)) {
         expression = bindStringOperatorExpression(parsedExpression);
+    } else if (isExpressionListExtractOperator(expressionType)) {
+        expression = bindListExtractOperatorExpression(parsedExpression);
     } else if (isExpressionNullComparison(expressionType)) {
         expression = bindNullComparisonOperatorExpression(parsedExpression);
     } else if (isExpressionLeafLiteral(expressionType)) {
@@ -168,6 +170,25 @@ shared_ptr<Expression> ExpressionBinder::bindStringOperatorExpression(
     auto right = bindExpression(*parsedExpression.children.at(1));
     validateExpectedType(*right, STRING);
     return make_shared<Expression>(parsedExpression.type, BOOL, move(left), move(right));
+}
+
+shared_ptr<Expression> ExpressionBinder::bindListExtractOperatorExpression(
+    const ParsedExpression& parsedExpression) {
+    auto list = bindExpression(*parsedExpression.children.at(0));
+    validateExpectedType(*list, LIST_STRING);
+    assert(2 == parsedExpression.children.size());
+    auto idx = bindExpression(*parsedExpression.children.at(1));
+    // Note this is a constraint we add to avoid implementing expression evaluator for list
+    // expressions
+    if (LITERAL_INT != idx->expressionType) {
+        throw invalid_argument("LIST EXTRACT INDEX must be LITERAL_INT.");
+    }
+    auto listExtractName =
+        list->variableName + "[" + ((LiteralExpression&)*idx).literal.toString() + "]";
+    auto listExtractExpression =
+        make_shared<Expression>(parsedExpression.type, STRING, move(list), move(idx));
+    listExtractExpression->variableName = listExtractName;
+    return listExtractExpression;
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNullComparisonOperatorExpression(
