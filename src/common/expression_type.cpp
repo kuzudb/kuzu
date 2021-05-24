@@ -33,6 +33,10 @@ bool isExpressionStringOperator(ExpressionType type) {
     return STARTS_WITH == type || ENDS_WITH == type || CONTAINS == type;
 }
 
+bool isExpressionListExtractOperator(ExpressionType type) {
+    return LIST_EXTRACT == type;
+}
+
 bool isExpressionNullComparison(ExpressionType type) {
     return IS_NULL == type || IS_NOT_NULL == type;
 }

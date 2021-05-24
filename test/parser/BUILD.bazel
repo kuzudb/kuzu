@@ -1,7 +1,10 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_library(
-    name = "helper",
+    name = "parser_test_utils",
+    srcs = [
+        "parser_test_utils.cpp",
+    ],
     hdrs = [
         "parser_test_utils.h",
     ],
@@ -13,13 +16,13 @@ cc_library(
 cc_test(
     name = "parser_tests",
     srcs = [
+        "expression_test.cpp",
         "reading_clause_test.cpp",
         "return_with_test.cpp",
-        "expression_test.cpp",
     ],
     linkstatic = 1,
     deps = [
-        "helper",
+        "parser_test_utils",
         "@gtest",
         "@gtest//:gtest_main",
     ],

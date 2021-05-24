@@ -98,6 +98,21 @@ TEST_F(ExpressionTest, FilterStringOperatorTest) {
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
+TEST_F(ExpressionTest, FilterLtOperatorTest) {
+    auto aAge = makeAAgeExpression();
+    auto csvLine0 = make_unique<ParsedExpression>(LIST_EXTRACT, EMPTY, EMPTY);
+    csvLine0->children.emplace_back(make_unique<ParsedExpression>(VARIABLE, "csvLine", EMPTY));
+    csvLine0->children.emplace_back(make_unique<ParsedExpression>(LITERAL_INT, "0", EMPTY));
+    auto where = make_unique<ParsedExpression>(EQUALS, EMPTY, EMPTY, move(aAge), move(csvLine0));
+
+    string input = "LOAD CSV WITH HEADERS FROM \"file\" AS csvLine MATCH () WHERE a.age = "
+                   "csvLine[0] RETURN COUNT(*)";
+    auto singleQuery = Parser::parseQuery(input);
+    ASSERT_EQ(2, singleQuery->readingStatements.size());
+    auto& matchStatement = (MatchStatement&)*singleQuery->readingStatements[1];
+    ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
+}
+
 TEST_F(ExpressionTest, FilterArithmeticComparisonTest) {
     auto a = make_unique<ParsedExpression>(VARIABLE, "a", EMPTY);
     auto two = make_unique<ParsedExpression>(LITERAL_INT, "2", EMPTY);

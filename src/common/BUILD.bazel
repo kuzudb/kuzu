@@ -124,7 +124,6 @@ cc_library(
         "include/value.h",
     ],
     visibility = ["//visibility:public"],
-    deps = [],
 )
 
 cc_library(
