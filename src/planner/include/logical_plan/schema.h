@@ -34,6 +34,8 @@ public:
 class Schema {
 
 public:
+    Schema();
+
     void addMatchedAttribute(const string& attribute);
 
     void addQueryRelAndLogicalExtend(const string& queryRel, LogicalExtend* extend);
@@ -46,8 +48,6 @@ public:
     bool isVariableFlat(const string& variable) const;
 
     FactorizationGroup* getFactorizationGroup(const string& variable);
-
-    void initFlatFactorizationGroup(const string& variable, uint64_t cardinality);
 
     void addUnFlatFactorizationGroup(unordered_set<string> variables, uint64_t extensionRate);
 

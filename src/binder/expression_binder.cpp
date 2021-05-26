@@ -26,8 +26,8 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
                          bindBinaryArithmeticExpression(parsedExpression);
     } else if (isExpressionStringOperator(expressionType)) {
         expression = bindStringOperatorExpression(parsedExpression);
-    } else if (isExpressionListExtractOperator(expressionType)) {
-        expression = bindListExtractOperatorExpression(parsedExpression);
+    } else if (CSV_LINE_EXTRACT == expressionType) {
+        expression = bindCSVLineExtractExpression(parsedExpression);
     } else if (isExpressionNullComparison(expressionType)) {
         expression = bindNullComparisonOperatorExpression(parsedExpression);
     } else if (isExpressionLeafLiteral(expressionType)) {
@@ -172,23 +172,19 @@ shared_ptr<Expression> ExpressionBinder::bindStringOperatorExpression(
     return make_shared<Expression>(parsedExpression.type, BOOL, move(left), move(right));
 }
 
-shared_ptr<Expression> ExpressionBinder::bindListExtractOperatorExpression(
+shared_ptr<Expression> ExpressionBinder::bindCSVLineExtractExpression(
     const ParsedExpression& parsedExpression) {
-    auto list = bindExpression(*parsedExpression.children.at(0));
-    validateExpectedType(*list, LIST_STRING);
-    assert(2 == parsedExpression.children.size());
-    auto idx = bindExpression(*parsedExpression.children.at(1));
-    // Note this is a constraint we add to avoid implementing expression evaluator for list
-    // expressions
-    if (LITERAL_INT != idx->expressionType) {
+    auto idxExpression = bindExpression(*parsedExpression.children[1]);
+    if (LITERAL_INT != idxExpression->expressionType) {
         throw invalid_argument("LIST EXTRACT INDEX must be LITERAL_INT.");
     }
-    auto listExtractName =
-        list->variableName + "[" + ((LiteralExpression&)*idx).literal.toString() + "]";
-    auto listExtractExpression =
-        make_shared<Expression>(parsedExpression.type, STRING, move(list), move(idx));
-    listExtractExpression->variableName = listExtractName;
-    return listExtractExpression;
+    auto csvVariableName = parsedExpression.children[0]->text;
+    auto csvLineExtractExpressionName =
+        csvVariableName + "[" + ((LiteralExpression&)*idxExpression).literal.toString() + "]";
+    if (!variablesInScope.contains(csvLineExtractExpressionName)) {
+        throw invalid_argument("Variable " + csvVariableName + " not defined or idx out of bound.");
+    }
+    return variablesInScope.at(csvLineExtractExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNullComparisonOperatorExpression(

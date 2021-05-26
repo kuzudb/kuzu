@@ -132,9 +132,15 @@ unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator&
 unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(const LogicalOperator& logicalOperator,
     Transaction* transactionPtr, const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
     auto& scan = (const LogicalScanNodeID&)logicalOperator;
+    unique_ptr<PhysicalOperator> prevOperator;
+    if (scan.prevOperator) {
+        prevOperator = mapLogicalOperatorToPhysical(
+            *scan.prevOperator, transactionPtr, graph, physicalOperatorInfo);
+    }
     auto morsel = make_shared<MorselsDesc>(scan.label, graph.getNumNodes(scan.label));
     physicalOperatorInfo.appendAsNewDataChunk(scan.nodeID);
-    return make_unique<ScanNodeID<true>>(morsel);
+    return prevOperator ? make_unique<ScanNodeID<true>>(morsel, move(prevOperator)) :
+                          make_unique<ScanNodeID<true>>(morsel);
 }
 
 unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& logicalOperator,
@@ -260,8 +266,8 @@ unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(const Expression&
     PhysicalOperatorsInfo& physicalOperatorInfo, unique_ptr<PhysicalOperator> prevOperator) {
     pair<unique_ptr<PhysicalOperator>, uint64_t> result;
     set<uint64_t> unflatDataChunkPosSet;
-    for (auto& propertyExpression : logicalRootExpr.getIncludedPropertyExpressions()) {
-        auto pos = physicalOperatorInfo.getDataChunkPos(propertyExpression->variableName);
+    for (auto& leafVariableExpression : logicalRootExpr.getIncludedLeafVariableExpressions()) {
+        auto pos = physicalOperatorInfo.getDataChunkPos(leafVariableExpression->variableName);
         if (!physicalOperatorInfo.dataChunkPosToIsFlat[pos]) {
             unflatDataChunkPosSet.insert(pos);
         }
@@ -284,7 +290,7 @@ unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(const Expression&
 // all vectors in the expressions are flat, we return null as UINT64_MAX.
 uint64_t getDependentUnflatDataChunkPos(
     const Expression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo) {
-    for (auto& propertyExpression : logicalRootExpr.getIncludedPropertyExpressions()) {
+    for (auto& propertyExpression : logicalRootExpr.getIncludedLeafVariableExpressions()) {
         auto pos = physicalOperatorInfo.getDataChunkPos(propertyExpression->variableName);
         if (!physicalOperatorInfo.dataChunkPosToIsFlat[pos]) {
             return pos;
@@ -419,19 +425,19 @@ unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator&
 unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(const LogicalOperator& logicalOperator,
     Transaction* transactionPtr, const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
     auto& logicalLoadCSV = (const LogicalLoadCSV&)logicalOperator;
-    auto& columnInfo = logicalLoadCSV.csvColumnVariableInfo;
-    assert(!columnInfo.empty());
+    assert(!logicalLoadCSV.csvColumnVariables.empty());
     vector<DataType> csvColumnDataTypes;
     uint64_t dataChunkPos;
-    for (auto i = 0u; i < columnInfo.size(); i++) {
+    for (auto i = 0u; i < logicalLoadCSV.csvColumnVariables.size(); i++) {
+        auto csvColumnName = logicalLoadCSV.csvColumnVariables[i]->variableName;
         if (0u == i) {
-            dataChunkPos = physicalOperatorInfo.appendAsNewDataChunk(columnInfo[0].first);
+            dataChunkPos = physicalOperatorInfo.appendAsNewDataChunk(csvColumnName);
         } else {
-            physicalOperatorInfo.appendAsNewValueVector(columnInfo[i].first, dataChunkPos);
+            physicalOperatorInfo.appendAsNewValueVector(csvColumnName, dataChunkPos);
         }
-        csvColumnDataTypes.push_back(columnInfo[i].second);
+        csvColumnDataTypes.push_back(logicalLoadCSV.csvColumnVariables[i]->dataType);
     }
-    return make_unique<LoadCSV>(
+    return make_unique<LoadCSV<true>>(
         logicalLoadCSV.path, logicalLoadCSV.tokenSeparator, csvColumnDataTypes);
 }
 

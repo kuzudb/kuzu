@@ -31,7 +31,7 @@ public:
 
     void addSubqueryGraph(const SubqueryGraph& other);
 
-    bool containAllVars(unordered_set<string>& vars) const;
+    bool containAllVariables(unordered_set<string>& variables) const;
 
     bool operator==(const SubqueryGraph& other) const;
 

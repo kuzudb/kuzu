@@ -64,3 +64,8 @@ TEST(ProcessorTest, FrontierQueries) {
     TestHelper testHelper;
     ASSERT_TRUE(testHelper.runTest("test/runner/queries/structural/frontier.test"));
 }
+
+TEST(ProcessorTest, LOADCSVQueries) {
+    TestHelper testHelper;
+    ASSERT_TRUE(testHelper.runTest("test/runner/queries/filtered/load_csv.test"));
+}

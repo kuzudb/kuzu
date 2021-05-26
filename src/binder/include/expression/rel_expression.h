@@ -17,10 +17,6 @@ public:
 
     inline string getDstNodeName() const { return dstNode->variableName; }
 
-    unordered_set<string> getIncludedVariableNames() const override {
-        return unordered_set<string>{variableName};
-    }
-
 public:
     label_t label;
     NodeExpression* srcNode;

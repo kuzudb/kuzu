@@ -96,12 +96,25 @@ unique_ptr<BoundReadingStatement> QueryBinder::bindLoadCSVStatement(
     auto headerInfo = parseCSVHeader(headerLine, tokenSeparator);
     validateCSVHeaderColumnNamesAreUnique(headerInfo);
     fileStream.seekg(0, ios_base::end);
-    auto csvLineVariable = make_shared<Expression>(VARIABLE, LIST_STRING,
-        makeUniqueVariableName(loadCSVStatement.lineVariableName, lastVariableIdx));
-    csvLineVariable->alias = loadCSVStatement.lineVariableName;
-    variablesInScope.insert({csvLineVariable->alias, csvLineVariable});
-    return make_unique<BoundLoadCSVStatement>(
-        filePath, tokenSeparator, headerInfo, csvLineVariable);
+    /**
+     * In order to avoid creating LIST datatype or expression, we directly create
+     * csvColumnExpression with type CSV_LINE_EXTRACT for each column e.g. csvLine[0], csvLine[1]
+     * ... One consequence is we won't allow user to refer csvLine later. Instead, we force user to
+     * write csvLine[i]. By doing so, we don't need to implement evaluator for list.
+     */
+    auto csvVariableAliasName = loadCSVStatement.lineVariableName;
+    auto csvVariableName = makeUniqueVariableName(csvVariableAliasName, lastVariableIdx);
+    auto csvColumnVariables = vector<shared_ptr<Expression>>();
+    for (auto i = 0u; i < headerInfo.size(); ++i) {
+        auto csvColumnVariableAliasName = csvVariableAliasName + "[" + to_string(i) + "]";
+        auto csvColumnVariableName = csvVariableName + "[" + to_string(i) + "]";
+        auto csvColumnVariable =
+            make_shared<Expression>(CSV_LINE_EXTRACT, headerInfo[i].second, csvColumnVariableName);
+        csvColumnVariable->alias = csvColumnVariableAliasName;
+        variablesInScope.insert({csvColumnVariable->alias, csvColumnVariable});
+        csvColumnVariables.push_back(csvColumnVariable);
+    }
+    return make_unique<BoundLoadCSVStatement>(filePath, tokenSeparator, move(csvColumnVariables));
 }
 
 unique_ptr<BoundReadingStatement> QueryBinder::bindMatchStatement(

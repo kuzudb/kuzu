@@ -102,6 +102,7 @@ void QueryProcessor::decomposePlanIntoTasks(
         break;
     }
     case SCAN:
+    case LOAD_CSV:
         break;
     default:
         decomposePlanIntoTasks(op->prevOperator.get(), maxNumThreads, parentTask);

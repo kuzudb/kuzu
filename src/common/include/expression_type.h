@@ -60,9 +60,9 @@ enum ExpressionType : uint8_t {
     CONTAINS = 42,
 
     /**
-     * List Operator Expressions
+     * List Operator Expressions works only for CSV Line
      */
-    LIST_EXTRACT = 45,
+    CSV_LINE_EXTRACT = 45,
 
     /**
      * Null Operator Expressions
@@ -108,7 +108,6 @@ bool isExpressionBoolConnection(ExpressionType type);
 bool isExpressionComparison(ExpressionType type);
 bool isExpressionArithmetic(ExpressionType type);
 bool isExpressionStringOperator(ExpressionType type);
-bool isExpressionListExtractOperator(ExpressionType type);
 bool isExpressionNullComparison(ExpressionType type);
 bool isExpressionLeafLiteral(ExpressionType type);
 bool isExpressionLeafVariable(ExpressionType type);

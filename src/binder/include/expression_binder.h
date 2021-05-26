@@ -33,8 +33,7 @@ private:
 
     shared_ptr<Expression> bindStringOperatorExpression(const ParsedExpression& parsedExpression);
 
-    shared_ptr<Expression> bindListExtractOperatorExpression(
-        const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindCSVLineExtractExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindNullComparisonOperatorExpression(
         const ParsedExpression& parsedExpression);

@@ -13,6 +13,10 @@ void FactorizationGroup::addVariables(unordered_set<string> variablesToAdd) {
     variables.insert(variablesToAdd.begin(), variablesToAdd.end());
 }
 
+Schema::Schema() {
+    flatGroup = make_unique<FactorizationGroup>(unordered_set<string>(), 1);
+}
+
 void Schema::addMatchedAttribute(const string& attribute) {
     matchedAttributes.insert(attribute);
 }
@@ -38,10 +42,6 @@ FactorizationGroup* Schema::getFactorizationGroup(const string& variable) {
         return flatGroup.get();
     }
     return unflatGroups[variableUnflatGroupPosMap.at(variable)].get();
-}
-
-void Schema::initFlatFactorizationGroup(const string& variable, uint64_t cardinality) {
-    flatGroup = make_unique<FactorizationGroup>(unordered_set<string>{variable}, cardinality);
 }
 
 void Schema::addUnFlatFactorizationGroup(unordered_set<string> variables, uint64_t extensionRate) {
@@ -84,7 +84,6 @@ unique_ptr<Schema> Schema::copy() {
 }
 
 void Schema::flattenFactorizationGroup(const FactorizationGroup& groupToFlatten) {
-    assert(!flatGroup->variables.empty());
     for (auto& variable : groupToFlatten.variables) {
         variableUnflatGroupPosMap.erase(variable);
     }

@@ -20,8 +20,8 @@ void SubqueryGraph::addSubqueryGraph(const SubqueryGraph& other) {
     queryNodesSelector |= other.queryNodesSelector;
 }
 
-bool SubqueryGraph::containAllVars(unordered_set<string>& vars) const {
-    for (auto& var : vars) {
+bool SubqueryGraph::containAllVariables(unordered_set<string>& variables) const {
+    for (auto& var : variables) {
         if (queryGraph.containsQueryNode(var) &&
             !queryNodesSelector[queryGraph.getQueryNodePos(var)]) {
             return false;

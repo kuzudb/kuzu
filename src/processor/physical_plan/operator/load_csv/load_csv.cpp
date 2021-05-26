@@ -9,24 +9,32 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-LoadCSV::LoadCSV(string fname, char tokenSeparator, vector<DataType> csvColumnDataTypes)
+template<bool IS_OUT_DATACHUNK_FILTERED>
+LoadCSV<IS_OUT_DATACHUNK_FILTERED>::LoadCSV(
+    string fname, char tokenSeparator, vector<DataType> csvColumnDataTypes)
     : PhysicalOperator{LOAD_CSV}, fname{fname}, tokenSeparator{tokenSeparator},
       reader{fname, tokenSeparator}, csvColumnDataTypes{csvColumnDataTypes} {
     resultSet = make_shared<ResultSet>();
-    outDataChunk = make_shared<DataChunk>(false /* initializeSelectedValuesPos */);
+    outDataChunk =
+        make_shared<DataChunk>(!IS_OUT_DATACHUNK_FILTERED /* initializeSelectedValuesPos */);
     for (auto tokenIdx = 0u; tokenIdx < csvColumnDataTypes.size(); tokenIdx++) {
         outValueVectors.emplace_back(new ValueVector(csvColumnDataTypes[tokenIdx]));
     }
+    for (auto& outValueVector : outValueVectors) {
+        outDataChunk->append(outValueVector);
+    }
+    resultSet->append(outDataChunk);
     // skip the file header.
     if (reader.hasNextLine()) {
         reader.skipLine();
     }
 }
 
-void LoadCSV::getNextTuples() {
+template<bool IS_OUT_DATACHUNK_FILTERED>
+void LoadCSV<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     auto lineIdx = 0ul;
     while (lineIdx < MAX_VECTOR_SIZE && reader.hasNextLine()) {
-        auto tokenIdx = 0;
+        auto tokenIdx = 0ul;
         while (reader.hasNextToken()) {
             auto& vector = *outValueVectors[tokenIdx];
             auto vectorDataType = csvColumnDataTypes[tokenIdx];
@@ -64,11 +72,14 @@ void LoadCSV::getNextTuples() {
         lineIdx++;
     }
     outDataChunk->state->size = lineIdx;
+    outDataChunk->state->numSelectedValues = lineIdx;
+    if constexpr (IS_OUT_DATACHUNK_FILTERED) {
+        for (auto i = 0u; i < outDataChunk->state->size; i++) {
+            outDataChunk->state->selectedValuesPos[i] = i;
+        }
+    }
 }
-
-unique_ptr<PhysicalOperator> LoadCSV::clone() {
-    return make_unique<LoadCSV>(fname, tokenSeparator, csvColumnDataTypes);
-}
-
+template class LoadCSV<true>;
+template class LoadCSV<false>;
 } // namespace processor
 } // namespace graphflow

@@ -40,13 +40,24 @@ public:
         return alias.empty() ? rawExpression : alias;
     }
 
-    virtual unordered_set<string> getIncludedVariableNames() const;
+    vector<const Expression*> getIncludedPropertyExpressions() const {
+        return getIncludedExpressionsWithTypes(unordered_set<ExpressionType>{PROPERTY});
+    }
 
-    vector<const Expression*> getIncludedPropertyExpressions() const;
+    vector<const Expression*> getIncludedLeafVariableExpressions() const {
+        return getIncludedExpressionsWithTypes(
+            unordered_set<ExpressionType>{PROPERTY, CSV_LINE_EXTRACT});
+    }
+
+    unordered_set<string> getIncludedVariableNames() const;
 
 protected:
     Expression(ExpressionType expressionType, DataType dataType)
         : expressionType{expressionType}, dataType{dataType} {}
+
+private:
+    vector<const Expression*> getIncludedExpressionsWithTypes(
+        const unordered_set<ExpressionType>& expressionTypes) const;
 
 public:
     // variable name for leaf variable expressions.

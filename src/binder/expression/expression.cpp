@@ -27,7 +27,7 @@ unordered_set<string> Expression::getIncludedVariableNames() const {
         return result;
     }
     if (VARIABLE == expressionType) {
-        return getIncludedVariableNames();
+        return unordered_set<string>{variableName};
     }
     for (auto& childExpr : childrenExpr) {
         auto tmp = childExpr->getIncludedVariableNames();
@@ -36,17 +36,15 @@ unordered_set<string> Expression::getIncludedVariableNames() const {
     return result;
 }
 
-vector<const Expression*> Expression::getIncludedPropertyExpressions() const {
+vector<const Expression*> Expression::getIncludedExpressionsWithTypes(
+    const unordered_set<ExpressionType>& expressionTypes) const {
     auto result = vector<const Expression*>();
-    if (isExpressionLeafLiteral(expressionType) || VARIABLE == expressionType) {
-        return result;
-    }
-    if (PROPERTY == expressionType) {
+    if (expressionTypes.contains(expressionType)) {
         result.push_back(this);
         return result;
     }
     for (auto& childExpr : childrenExpr) {
-        auto tmp = childExpr->getIncludedPropertyExpressions();
+        auto tmp = childExpr->getIncludedExpressionsWithTypes(expressionTypes);
         result.insert(end(result), begin(tmp), end(tmp));
     }
     return result;

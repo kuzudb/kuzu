@@ -59,31 +59,30 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans() {
         enumerateBoundQueryPart(*boundQueryPart);
     }
     auto whereClauseSplitOnAND = vector<shared_ptr<Expression>>();
-    for (auto i = 0u; i < boundSingleQuery.boundReadingStatements.size(); ++i) {
-        auto& boundReadingStatement = *boundSingleQuery.boundReadingStatements[i];
-        if (LOAD_CSV_STATEMENT == boundReadingStatement.statementType) {
-            throw invalid_argument("should not happen.");
-        } else {
-            assert(i == boundSingleQuery.boundReadingStatements.size() - 1);
-            updateQueryGraphAndWhereClause(
-                (BoundMatchStatement&)boundReadingStatement, whereClauseSplitOnAND);
-        }
+    for (auto& boundReadingStatement : boundSingleQuery.boundReadingStatements) {
+        enumerateBoundReadingStatement(*boundReadingStatement, whereClauseSplitOnAND);
     }
     enumerateSubplans(whereClauseSplitOnAND, boundSingleQuery.boundReturnStatement->expressions);
-    return move(subplansTable->subgraphPlans[currentLevel].begin()->second);
+    auto& subgraphPlansMapInCurrentLevel = subplansTable->subgraphPlans[currentLevel];
+    /**
+     * This is case where we have a static plan and a single node match. Both will have current
+     * level = 0. We return single node match plan in this case.
+     */
+    if (subgraphPlansMapInCurrentLevel.size() > 1) {
+        assert(0 == currentLevel && 2 == subgraphPlansMapInCurrentLevel.size());
+        for (auto& [subgraph, plans] : subgraphPlansMapInCurrentLevel) {
+            if (0 != subgraph.queryNodesSelector.count()) {
+                return move(plans);
+            }
+        }
+    }
+    return move(subgraphPlansMapInCurrentLevel.begin()->second);
 }
 
 void Enumerator::enumerateBoundQueryPart(BoundQueryPart& boundQueryPart) {
     auto whereClauseSplitOnAND = vector<shared_ptr<Expression>>();
-    for (auto i = 0u; i < boundQueryPart.boundReadingStatements.size(); ++i) {
-        auto& boundReadingStatement = *boundQueryPart.boundReadingStatements[i];
-        if (LOAD_CSV_STATEMENT == boundReadingStatement.statementType) {
-            throw invalid_argument("should not happen.");
-        } else {
-            assert(i == boundQueryPart.boundReadingStatements.size() - 1);
-            updateQueryGraphAndWhereClause(
-                (BoundMatchStatement&)boundReadingStatement, whereClauseSplitOnAND);
-        }
+    for (auto& boundReadingStatement : boundQueryPart.boundReadingStatements) {
+        enumerateBoundReadingStatement(*boundReadingStatement, whereClauseSplitOnAND);
     }
     if (boundQueryPart.boundWithStatement->whereExpression) {
         for (auto& expression :
@@ -92,6 +91,26 @@ void Enumerator::enumerateBoundQueryPart(BoundQueryPart& boundQueryPart) {
         }
     }
     enumerateSubplans(whereClauseSplitOnAND, boundQueryPart.boundWithStatement->expressions);
+}
+
+void Enumerator::enumerateBoundReadingStatement(BoundReadingStatement& boundReadingStatement,
+    vector<shared_ptr<Expression>>& whereClauseSplitOnAND) {
+    if (LOAD_CSV_STATEMENT == boundReadingStatement.statementType) {
+        enumerateBoundLoadCSVStatement((BoundLoadCSVStatement&)boundReadingStatement);
+    } else {
+        updateQueryGraphAndWhereClause(
+            (BoundMatchStatement&)boundReadingStatement, whereClauseSplitOnAND);
+    }
+}
+
+void Enumerator::enumerateBoundLoadCSVStatement(
+    const BoundLoadCSVStatement& boundLoadCSVStatement) {
+    if (!mergedQueryGraph->isEmpty()) {
+        throw invalid_argument("LOAD CSV not being the first statement is not supported.");
+    }
+    auto plan = make_unique<LogicalPlan>();
+    appendLoadCSV(boundLoadCSVStatement, *plan);
+    subplansTable->addSubgraphPlan(SubqueryGraph(*mergedQueryGraph), move(plan));
 }
 
 void Enumerator::updateQueryGraphAndWhereClause(BoundMatchStatement& boundMatchStatement,
@@ -127,7 +146,9 @@ void Enumerator::enumerateSubplans(const vector<shared_ptr<Expression>>& whereCl
     while (currentLevel < mergedQueryGraph->getNumQueryRels()) {
         enumerateNextLevel(whereClause);
     }
-    assert(1 == subplansTable->subgraphPlans[currentLevel].size());
+    if (currentLevel != 0) {
+        assert(1 == subplansTable->subgraphPlans[currentLevel].size());
+    }
     if (auto APPEND_PROJECTION = false) {
         auto& plans = subplansTable->subgraphPlans[currentLevel].begin()->second;
         for (auto& plan : plans) {
@@ -138,10 +159,14 @@ void Enumerator::enumerateSubplans(const vector<shared_ptr<Expression>>& whereCl
 
 void Enumerator::enumerateSingleQueryNode(
     const vector<shared_ptr<Expression>>& whereClauseSplitOnAND) {
+    auto emptySubgraph = SubqueryGraph(*mergedQueryGraph);
+    auto prevPlan = subplansTable->containSubgraphPlans(emptySubgraph) ?
+                        subplansTable->getSubgraphPlans(emptySubgraph)[0]->copy() :
+                        make_unique<LogicalPlan>();
     for (auto nodePos = 0u; nodePos < mergedQueryGraph->getNumQueryNodes(); ++nodePos) {
         auto newSubgraph = SubqueryGraph(*mergedQueryGraph);
         newSubgraph.addQueryNode(nodePos);
-        auto plan = make_unique<LogicalPlan>();
+        auto plan = prevPlan->copy();
         appendLogicalScan(nodePos, *plan);
         for (auto& expression :
             getNewMatchedWhereExpressions(SubqueryGraph(*mergedQueryGraph) /* empty subGraph */,
@@ -242,16 +267,31 @@ void Enumerator::enumerateHashJoin(const vector<shared_ptr<Expression>>& whereCl
     }
 }
 
+void Enumerator::appendLoadCSV(
+    const BoundLoadCSVStatement& boundLoadCSVStatement, LogicalPlan& plan) {
+    auto loadCSV = make_shared<LogicalLoadCSV>(boundLoadCSVStatement.filePath,
+        boundLoadCSVStatement.tokenSeparator, move(boundLoadCSVStatement.csvColumnVariables));
+    auto csvColumnNames = unordered_set<string>();
+    for (auto& csvColumnVariable : loadCSV->csvColumnVariables) {
+        plan.schema->addMatchedAttribute(csvColumnVariable->variableName);
+        csvColumnNames.insert(csvColumnVariable->variableName);
+    }
+    plan.schema->addUnFlatFactorizationGroup(csvColumnNames, 1);
+    plan.appendOperator(loadCSV);
+}
+
 void Enumerator::appendLogicalScan(uint32_t queryNodePos, LogicalPlan& plan) {
     auto& queryNode = *mergedQueryGraph->queryNodes[queryNodePos];
     if (ANY_LABEL == queryNode.label) {
         throw invalid_argument("Match any label is not yet supported in LogicalScanNodeID.");
     }
     auto nodeID = queryNode.getIDProperty();
-    auto scan = make_shared<LogicalScanNodeID>(nodeID, queryNode.label);
+    auto scan = plan.lastOperator ?
+                    make_shared<LogicalScanNodeID>(nodeID, queryNode.label, plan.lastOperator) :
+                    make_shared<LogicalScanNodeID>(nodeID, queryNode.label);
     plan.schema->addMatchedAttribute(nodeID);
-    plan.schema->initFlatFactorizationGroup(
-        queryNode.variableName, graph.getNumNodes(queryNode.label));
+    plan.schema->addUnFlatFactorizationGroup(
+        unordered_set<string>{queryNode.variableName}, graph.getNumNodes(queryNode.label));
     plan.appendOperator(scan);
 }
 
@@ -367,9 +407,12 @@ void Enumerator::appendScanRelProperty(
 
 string getLargestUnflatVariableAndFlattenOthers(const Expression& expression, LogicalPlan& plan) {
     auto unflatVariables = vector<string>();
-    for (auto& variable : expression.getIncludedVariableNames()) {
-        if (!plan.schema->isVariableFlat(variable)) {
-            unflatVariables.push_back(variable);
+    for (auto& leafVariableExpression : expression.getIncludedLeafVariableExpressions()) {
+        auto variableName = leafVariableExpression->expressionType == CSV_LINE_EXTRACT ?
+                                leafVariableExpression->variableName :
+                                leafVariableExpression->childrenExpr[0]->variableName;
+        if (!plan.schema->isVariableFlat(variableName)) {
+            unflatVariables.push_back(variableName);
         }
     }
     auto largestUnflatVariable = string();
@@ -402,8 +445,8 @@ vector<shared_ptr<Expression>> getNewMatchedWhereExpressions(const SubqueryGraph
     vector<shared_ptr<Expression>> newMatchedExpressions;
     for (auto& expression : expressions) {
         auto includedVariables = expression->getIncludedVariableNames();
-        if (newSubgraph.containAllVars(includedVariables) &&
-            !prevSubgraph.containAllVars(includedVariables)) {
+        if (newSubgraph.containAllVariables(includedVariables) &&
+            !prevSubgraph.containAllVariables(includedVariables)) {
             newMatchedExpressions.push_back(expression);
         }
     }
@@ -416,9 +459,9 @@ vector<shared_ptr<Expression>> getNewMatchedWhereExpressions(const SubqueryGraph
     vector<shared_ptr<Expression>> newMatchedExpressions;
     for (auto& expression : expressions) {
         auto includedVariables = expression->getIncludedVariableNames();
-        if (newSubgraph.containAllVars(includedVariables) &&
-            !prevLeftSubgraph.containAllVars(includedVariables) &&
-            !prevRightSubgraph.containAllVars(includedVariables)) {
+        if (newSubgraph.containAllVariables(includedVariables) &&
+            !prevLeftSubgraph.containAllVariables(includedVariables) &&
+            !prevRightSubgraph.containAllVariables(includedVariables)) {
             newMatchedExpressions.push_back(expression);
         }
     }

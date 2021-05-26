@@ -15,10 +15,6 @@ public:
         variableName = nodeName;
     }
 
-    unordered_set<string> getIncludedVariableNames() const override {
-        return unordered_set<string>{variableName};
-    }
-
     string getIDProperty() { return variableName + "." + INTERNAL_ID; }
 
 public:

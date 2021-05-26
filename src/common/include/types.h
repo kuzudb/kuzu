@@ -48,13 +48,10 @@ enum DataType : uint8_t {
     STRING = 7,
     NODE_ID = 8,
     UNSTRUCTURED = 9,
-    // This is a temporary solution to bind LOAD CSV statement. This data type should be removed
-    // once we have a complete LIST implementation.
-    LIST_STRING = 10,
 };
 
 const string DataTypeNames[] = {"REL", "NODE", "LABEL", "BOOL", "INT32", "INT64", "DOUBLE",
-    "STRING", "NODE_ID", "UNSTRUCTURED", "LIST_STRING"};
+    "STRING", "NODE_ID", "UNSTRUCTURED"};
 
 int32_t convertToInt32(char* data);
 
