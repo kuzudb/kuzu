@@ -15,7 +15,7 @@ FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::FrontierExtend(uint64_t inDataChunkPo
       startLayer{lowerBound}, endLayer{upperBound} {
     operatorType = FRONTIER_EXTEND;
     outValueVector = make_shared<NodeIDVector>(0, NodeIDCompressionScheme(), false);
-    outDataChunk = make_shared<DataChunk>(true /* initializeSelectedValuesPos */);
+    outDataChunk = make_shared<DataChunk>(!IS_OUT_DATACHUNK_FILTERED);
     outDataChunk->append(outValueVector);
     outValueVector->state->initMultiplicity();
     resultSet->append(outDataChunk, make_shared<ListSyncState>());
@@ -166,6 +166,9 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
                         if (outValueVector->state->size == MAX_VECTOR_SIZE) {
                             outValueVector->state->numSelectedValues = MAX_VECTOR_SIZE;
                             currOutputPos.hasMoreTuplesToProduce = true;
+                            if constexpr (IS_OUT_DATACHUNK_FILTERED) {
+                                outDataChunk->state->initializeSelector();
+                            }
                             return;
                         }
                     }
@@ -179,6 +182,9 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
         currOutputPos.layer++;
     }
     outValueVector->state->numSelectedValues = outValueVector->state->size;
+    if constexpr (IS_OUT_DATACHUNK_FILTERED) {
+        outDataChunk->state->initializeSelector();
+    }
     for (auto& frontier : frontierPerLayer) {
         delete frontier;
         frontier = nullptr;
