@@ -5,7 +5,7 @@
 namespace graphflow {
 namespace common {
 
-void NodeIDVector::readNodeOffset(uint64_t pos, nodeID_t& nodeID) {
+void NodeIDVector::readNodeOffset(uint64_t pos, nodeID_t& nodeID) const {
     if (representation.isSequence) {
         nodeID.offset = ((node_offset_t*)values)[0] + pos;
         return;
@@ -16,7 +16,7 @@ void NodeIDVector::readNodeOffset(uint64_t pos, nodeID_t& nodeID) {
         representation.compressionScheme.getNumBytesForOffset());
 }
 
-void NodeIDVector::readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) {
+void NodeIDVector::readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) const {
     if (representation.isSequence) {
         nodeID.offset = ((node_offset_t*)values)[0] + pos;
         nodeID.label = representation.commonLabel;

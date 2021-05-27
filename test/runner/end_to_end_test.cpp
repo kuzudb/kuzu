@@ -60,7 +60,7 @@ TEST(ProcessorTest, UnstructuredOperations) {
     ASSERT_TRUE(testHelper.runTest("test/runner/queries/filtered/unstructured_properties.test"));
 }
 
-TEST(ProcessorTest, IDComparisonQueries) {
+TEST(ProcessorTest, FrontierQueries) {
     TestHelper testHelper;
-    ASSERT_TRUE(testHelper.runTest("test/runner/queries/filtered/id_comparison.test"));
+    ASSERT_TRUE(testHelper.runTest("test/runner/queries/structural/frontier.test"));
 }

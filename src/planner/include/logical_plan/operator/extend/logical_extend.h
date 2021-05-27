@@ -8,12 +8,12 @@ namespace planner {
 class LogicalExtend : public LogicalOperator {
 
 public:
-    LogicalExtend(string boundNodeID, label_t boundNodeLabel, string nbrNodeID,
+    LogicalExtend(const string& boundNodeID, label_t boundNodeLabel, const string& nbrNodeID,
         label_t nbrNodeLabel, label_t relLabel, Direction direction, bool isColumn,
-        shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{prevOperator}, boundNodeID{move(boundNodeID)},
-          boundNodeLabel{boundNodeLabel}, nbrNodeID{move(nbrNodeID)},
-          nbrNodeLabel{nbrNodeLabel}, relLabel{relLabel}, direction{direction}, isColumn{isColumn} {
+        uint8_t lowerBound, uint8_t upperBound, shared_ptr<LogicalOperator> prevOperator)
+        : LogicalOperator{prevOperator}, boundNodeID{boundNodeID}, boundNodeLabel{boundNodeLabel},
+          nbrNodeID{nbrNodeID}, nbrNodeLabel{nbrNodeLabel}, relLabel{relLabel},
+          direction{direction}, isColumn{isColumn}, lowerBound{lowerBound}, upperBound{upperBound} {
     }
 
     LogicalOperatorType getLogicalOperatorType() const override {
@@ -32,6 +32,8 @@ public:
     label_t relLabel;
     Direction direction;
     bool isColumn;
+    uint8_t lowerBound;
+    uint8_t upperBound;
 };
 
 } // namespace planner

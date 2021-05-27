@@ -201,8 +201,8 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern, NodeExpression* lef
                                    " to relationship with same name is not supported.");
         }
     }
-    auto queryRel = make_shared<RelExpression>(
-        makeUniqueVariableName(parsedName, lastVariableIdx), bindRelLabel(relPattern.label));
+    auto queryRel = make_shared<RelExpression>(makeUniqueVariableName(parsedName, lastVariableIdx),
+        bindRelLabel(relPattern.label), relPattern.lowerBound, relPattern.upperBound);
     queryRel->alias = parsedName;
     auto isLeftNodeSrc = RIGHT == relPattern.arrowDirection;
     bindNodeToRel(*queryRel, leftNode, isLeftNodeSrc);

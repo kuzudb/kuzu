@@ -124,10 +124,13 @@ oC_RelationshipPattern
         ;
 
 oC_RelationshipDetail
-    : '[' SP? ( oC_Variable SP? )? ( oC_RelTypeName SP? )? ']' ;
+    : '[' SP? ( oC_Variable SP? )? ( oC_RelTypeName SP? )? ( oC_RangeLiteral SP? ) ? ']' ;
 
 oC_NodeLabel
     : ':' SP? oC_LabelName ;
+
+oC_RangeLiteral
+            :  '*' SP? oC_IntegerLiteral SP? '..' SP? oC_IntegerLiteral ;
 
 oC_LabelName
     : oC_SchemaName ;

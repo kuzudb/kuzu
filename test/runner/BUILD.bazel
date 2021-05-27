@@ -31,6 +31,7 @@ filegroup(
         "queries/malformed/binder.test",
         "queries/malformed/expression_binder.test",
         "queries/malformed/syntax.test",
+        "queries/structural/frontier.test",
         "queries/structural/nodes.test",
         "queries/structural/paths.test",
         "queries/structural/stars.test",

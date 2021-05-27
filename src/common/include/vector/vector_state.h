@@ -22,9 +22,16 @@ public:
         }
     }
 
+    void initMultiplicity() {
+        multiplicityBuffer = make_unique<uint64_t[]>(2048 /* Max Vector Size */);
+        multiplicity = multiplicityBuffer.get();
+    }
+
     inline bool isFlat() const { return currPos != -1; }
 
-    inline uint64_t getCurrSelectedValuesPos() { return selectedValuesPos[currPos]; }
+    inline uint64_t getCurrSelectedValuesPos() const { return selectedValuesPos[currPos]; }
+
+    uint64_t getNumSelectedValues();
 
     shared_ptr<VectorState> clone();
 
@@ -34,9 +41,11 @@ public:
     int64_t currPos;
     uint64_t numSelectedValues;
     uint64_t* selectedValuesPos;
+    uint64_t* multiplicity;
 
 private:
     unique_ptr<uint64_t[]> valuesPos;
+    unique_ptr<uint64_t[]> multiplicityBuffer;
 };
 
 } // namespace common

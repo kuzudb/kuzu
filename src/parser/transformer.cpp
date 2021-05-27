@@ -170,9 +170,16 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
 
 unique_ptr<RelPattern> Transformer::transformRelationshipDetail(
     CypherParser::OC_RelationshipDetailContext& ctx) {
+    uint64_t lowerBound = 1u;
+    uint64_t upperBound = 1u;
+    if (ctx.oC_RangeLiteral()) {
+        stringstream(ctx.oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText()) >> lowerBound;
+        stringstream(ctx.oC_RangeLiteral()->oC_IntegerLiteral()[1]->getText()) >> upperBound;
+    }
     return make_unique<RelPattern>(
         ctx.oC_Variable() ? transformVariable(*ctx.oC_Variable()) : string(),
-        ctx.oC_RelTypeName() ? transformRelTypeName(*ctx.oC_RelTypeName()) : string());
+        ctx.oC_RelTypeName() ? transformRelTypeName(*ctx.oC_RelTypeName()) : string(), lowerBound,
+        upperBound);
 }
 
 string Transformer::transformNodeLabel(CypherParser::OC_NodeLabelContext& ctx) {

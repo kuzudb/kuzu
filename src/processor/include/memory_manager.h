@@ -33,9 +33,9 @@ class MemoryManager {
 public:
     MemoryManager(uint64_t maxMemory = DEFAULT_MAX_MEMORY) : maxMemory(maxMemory), usedMemory(0) {}
 
-    int64_t getUsedMemory() { return usedMemory; }
+    int64_t getUsedMemory() const { return usedMemory; }
 
-    int64_t getMaxMemory() { return maxMemory; }
+    int64_t getMaxMemory() const { return maxMemory; }
 
     unique_ptr<BlockHandle> allocateBlock(uint64_t size, int numEntries = 0);
 

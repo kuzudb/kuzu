@@ -36,6 +36,7 @@ void ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
         }
     }
 }
+
 template class ScanNodeID<true>;
 template class ScanNodeID<false>;
 } // namespace processor

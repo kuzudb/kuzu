@@ -18,10 +18,10 @@ public:
 
     ValueVector(DataType dataType) : ValueVector(dataType, MAX_VECTOR_SIZE) {}
 
-    virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID) {
+    virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID) const {
         throw invalid_argument("readNodeOffset unsupported.");
     }
-    virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) {
+    virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) const {
         throw invalid_argument("readNodeOffsetAndLabel unsupported.");
     }
 

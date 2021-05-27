@@ -2,6 +2,7 @@
 
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
+#include "src/processor/include/physical_plan/operator/read_list/frontier_extend.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
 #include "src/processor/include/physical_plan/operator/sink/sink.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
@@ -92,6 +93,12 @@ void QueryProcessor::decomposePlanIntoTasks(
         decomposePlanIntoTasks(op->prevOperator.get(), maxNumThreads, childTask.get());
         childTask->parent = parentTask;
         parentTask->children.push_back(move(childTask));
+        break;
+    }
+    case FRONTIER_EXTEND: {
+        auto frontierExtend = reinterpret_cast<FrontierExtend<true>*>(op);
+        frontierExtend->setMemoryManager(memManager.get());
+        decomposePlanIntoTasks(op->prevOperator.get(), maxNumThreads, parentTask);
         break;
     }
     case SCAN:

@@ -21,10 +21,10 @@ jobs:
       run: bazel info
 
     - name: build
-      run: CC=gcc-9 bazel build --cxxopt='-std=c++2a' //...:all
+      run: CC=gcc-9 bazel build --cxxopt='-std=c++2a' --cxxopt='-fopenmp' --linkopt='-lgomp' //...:all
 
     - name: test
-      run: CC=gcc-9 bazel test --cxxopt='-std=c++2a' //...:all
+      run: CC=gcc-9 bazel test --cxxopt='-std=c++2a' --cxxopt='-fopenmp' --linkopt='-lgomp' //...:all
 
   clang-formatting-check:
     name: clang-formatting-check
