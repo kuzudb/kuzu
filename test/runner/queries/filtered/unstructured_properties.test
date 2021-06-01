@@ -1,9 +1,5 @@
 # description: matching nodes
 
--INPUT dataset/tinysnb/
--OUTPUT test/unittest_temp/
--PARALLELISM 1
-
 -NAME PersonUnstrFilteredTest
 -QUERY MATCH (a:person) WHERE a.unstrProp > 48 RETURN COUNT(*)
 ---- 2

@@ -32,7 +32,7 @@ TEST_F(BinderTest, LOADCSVBasicTest) {
     auto expectedLoadCSVStatement =
         make_unique<BoundLoadCSVStatement>("dataset/tinysnb/params.csv", ',', move(csvLines));
 
-    NiceMock<PersonKnowsPersonCatalog> catalog;
+    NiceMock<TinySnbCatalog> catalog;
     catalog.setUp();
 
     auto query = "LOAD CSV WITH HEADERS FROM \"dataset/tinysnb/params.csv\" AS csvLine "
@@ -50,7 +50,7 @@ TEST_F(BinderTest, LOADCSVMATCHTest) {
     csvLine1->alias = "csvLine[1]";
     auto expectedWhere = make_shared<Expression>(EQUALS, BOOL, move(aName), move(csvLine1));
 
-    NiceMock<PersonKnowsPersonCatalog> catalog;
+    NiceMock<TinySnbCatalog> catalog;
     catalog.setUp();
 
     auto query = "LOAD CSV WITH HEADERS FROM \"dataset/tinysnb/params.csv\" AS csvLine "
@@ -61,7 +61,7 @@ TEST_F(BinderTest, LOADCSVMATCHTest) {
 }
 
 TEST_F(BinderTest, LOADCSVExceptionTest) {
-    NiceMock<PersonKnowsPersonCatalog> catalog;
+    NiceMock<TinySnbCatalog> catalog;
     catalog.setUp();
 
     auto query = "LOAD CSV WITH HEADERS FROM \"dummy\" AS csvLine "

@@ -1,7 +1,5 @@
 #include "src/testing/include/test_helper.h"
 
-#include <filesystem>
-
 #include "src/loader/include/graph_loader.h"
 
 using namespace std;
@@ -11,13 +9,7 @@ using namespace graphflow::loader;
 namespace graphflow {
 namespace testing {
 
-bool TestHelper::runTest(const string& path) {
-    auto testConfig = parseTestFile(path);
-    if (!filesystem::create_directory(testConfig.graphOutputDir)) {
-        throw invalid_argument(
-            "Graph output directory cannot be created. Check if it exists and remove it.");
-    }
-    auto system = getInitializedSystem(testConfig);
+bool TestHelper::runTest(const TestSuiteQueryConfig& testConfig, const System& system) {
     auto numQueries = testConfig.query.size();
     uint64_t numPassedQueries = 0;
     vector<uint64_t> numPlansOfEachQuery(numQueries);
@@ -25,7 +17,7 @@ bool TestHelper::runTest(const string& path) {
     for (uint64_t i = 0; i < numQueries; i++) {
         spdlog::info("TEST: {}", testConfig.name[i]);
         spdlog::info("QUERY: {}", testConfig.query[i]);
-        auto plans = system->enumerateLogicalPlans(testConfig.query[i]);
+        auto plans = system.enumerateLogicalPlans(testConfig.query[i]);
         auto numPlans = plans.size();
         assert(numPlans > 0);
         numPlansOfEachQuery[i] = numPlans;
@@ -33,7 +25,7 @@ bool TestHelper::runTest(const string& path) {
         for (uint64_t j = 0; j < numPlans; j++) {
             auto planStr = plans[j]->getLastOperator().toString();
             auto result =
-                system->execute(move(plans[j]), nullptr /*transaction*/, testConfig.numThreads);
+                system.execute(move(plans[j]), nullptr /*transaction*/, testConfig.numThreads);
             if (result->numTuples != testConfig.expectedNumTuples[i]) {
                 spdlog::error("PLAN{} NOT PASSED. Result num tuples: {}, Expected num tuples: {}",
                     j, result->numTuples, testConfig.expectedNumTuples[i]);
@@ -75,85 +67,38 @@ bool TestHelper::runTest(const string& path) {
             numPlansOfEachQuery[i]);
         numPassedQueries += (numPlansOfEachQuery[i] == numPassedPlansOfEachQuery[i]);
     }
-    error_code removeErrorCode;
-    if (!filesystem::remove_all(testConfig.graphOutputDir, removeErrorCode)) {
-        spdlog::error("Remove graph output directory error: {}", removeErrorCode.message());
-    }
     return numPassedQueries == numQueries;
 }
 
-bool TestHelper::runExceptionTest(const string& path) {
-    auto testConfig = parseTestFile(path);
-    if (!filesystem::create_directory(testConfig.graphOutputDir)) {
-        throw invalid_argument(
-            "Graph output directory cannot be created. Check if it exists and remove it.");
-    }
-    auto system = getInitializedSystem(testConfig);
-    auto numQueries = testConfig.query.size();
-    uint64_t numPassedQueries = 0;
-    for (auto i = 0u; i < numQueries; i++) {
-        spdlog::info("TEST: {}", testConfig.name[i]);
-        spdlog::info("QUERY: {}", testConfig.query[i]);
-        try {
-            auto plans = system->enumerateLogicalPlans(testConfig.query[i]);
-            spdlog::error(
-                "QUERY: {} NOT PASSED. Expect malformed to be thrown.", testConfig.query[i]);
-        } catch (const invalid_argument& exception) {
-            if (testConfig.expectedErrorMsgs[i] != exception.what()) {
-                spdlog::error("QUERY: {} NOT PASSED. Expect error message {} but get {}.",
-                    testConfig.query[i], testConfig.expectedErrorMsgs[i], exception.what());
-            } else {
-                numPassedQueries++;
-            }
-        }
-    }
-    error_code removeErrorCode;
-    if (!filesystem::remove_all(testConfig.graphOutputDir, removeErrorCode)) {
-        spdlog::error("Remove graph output directory error: {}", removeErrorCode.message());
-    }
-    return numPassedQueries == numQueries;
-}
-
-TestSuiteConfig TestHelper::parseTestFile(const string& path) {
+unique_ptr<TestSuiteQueryConfig> TestHelper::parseTestFile(const string& path) {
     if (access(path.c_str(), 0) == 0) {
         struct stat status;
         stat(path.c_str(), &status);
         if (!(status.st_mode & S_IFDIR)) {
             ifstream ifs(path);
             string line;
-            TestSuiteConfig config;
+            auto config = make_unique<TestSuiteQueryConfig>();
             while (getline(ifs, line)) {
-                if (line.starts_with("-INPUT")) {
-                    config.graphInputDir = line.substr(7, line.length());
-                } else if (line.starts_with("-OUTPUT")) {
-                    config.graphOutputDir = line.substr(8, line.length());
-                } else if (line.starts_with("-PARALLELISM")) {
-                    config.numThreads = stoi(line.substr(13, line.length()));
-                } else if (line.starts_with("-BUFFER_POOL_SIZE")) {
-                    config.bufferPoolSize = stoi(line.substr(18, line.length()));
+                if (line.starts_with("-PARALLELISM")) {
+                    config->numThreads = stoi(line.substr(13, line.length()));
                 } else if (line.starts_with("-COMPARE_RESULT")) {
-                    config.compareResult = (line.substr(16, line.length()) == "1");
+                    config->compareResult = (line.substr(16, line.length()) == "1");
                 } else if (line.starts_with("-NAME")) {
-                    config.name.push_back(line.substr(6, line.length()));
+                    config->name.push_back(line.substr(6, line.length()));
                 } else if (line.starts_with("-QUERY")) {
-                    config.query.push_back(line.substr(7, line.length()));
-                } else if (line.starts_with("-EXCEPTION")) {
-                    config.expectedErrorMsgs.push_back(line.substr(11, line.length()));
-                } else if (line.starts_with("-CONTINUE_EXCEPTION")) {
-                    auto& errorMsg = config.expectedErrorMsgs[config.expectedErrorMsgs.size() - 1];
-                    errorMsg += "\n" + line.substr(20, line.length());
+                    config->query.push_back(line.substr(7, line.length()));
                 } else if (line.starts_with("----")) {
                     uint64_t numTuples = stoi(line.substr(5, line.length()));
-                    config.expectedNumTuples.push_back(numTuples);
+                    config->expectedNumTuples.push_back(numTuples);
                     vector<string> queryExpectedTuples;
-                    if (config.compareResult) {
+                    if (config->compareResult) {
                         for (uint64_t i = 0; i < numTuples; i++) {
                             getline(ifs, line);
                             queryExpectedTuples.push_back(line);
                         }
                     }
                     sort(queryExpectedTuples.begin(), queryExpectedTuples.end());
-                    config.expectedTuples.push_back(queryExpectedTuples);
+                    config->expectedTuples.push_back(queryExpectedTuples);
                 }
             }
             return config;
@@ -162,17 +107,15 @@ TestSuiteConfig TestHelper::parseTestFile(const string& path) {
     throw invalid_argument("Test file not exists! [" + path + "].");
 }
 
-unique_ptr<System> TestHelper::getInitializedSystem(TestSuiteConfig& testConfig) {
+unique_ptr<System> TestHelper::getInitializedSystem(TestSuiteSystemConfig& config) {
     {
-        GraphLoader graphLoader(
-            testConfig.graphInputDir, testConfig.graphOutputDir, testConfig.numThreads);
+        GraphLoader graphLoader(config.graphInputDir, config.graphOutputDir, config.maxNumThreads);
         graphLoader.loadGraph();
     }
-    SystemConfig config;
-    config.setBufferPoolSize(testConfig.bufferPoolSize);
-    config.setNumProcessorThreads(testConfig.numThreads);
-    auto system = make_unique<System>(config, testConfig.graphOutputDir);
-    return system;
+    SystemConfig systemConfig;
+    systemConfig.setBufferPoolSize(config.bufferPoolSize);
+    systemConfig.setNumProcessorThreads(config.maxNumThreads);
+    return make_unique<System>(systemConfig, config.graphOutputDir);
 }
 
 } // namespace testing

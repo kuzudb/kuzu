@@ -19,6 +19,7 @@ cc_test(
         "expression_test.cpp",
         "reading_clause_test.cpp",
         "return_with_test.cpp",
+        "syntax_error_test.cpp",
     ],
     linkstatic = 1,
     deps = [

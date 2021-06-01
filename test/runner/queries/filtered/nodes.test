@@ -1,9 +1,5 @@
 # description: matching nodes
 
--INPUT dataset/tinysnb/
--OUTPUT test/unittest_temp/
--PARALLELISM 1
-
 -NAME PersonNodesAgeFilteredTest1
 -QUERY MATCH (a:person) WHERE a.age <= 25 RETURN COUNT(*)
 ---- 3

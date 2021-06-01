@@ -26,7 +26,7 @@ public:
 };
 
 TEST_F(OptimizerTest, OneHopSingleFilter) {
-    NiceMock<PersonKnowsPersonGraph> graph;
+    NiceMock<TinySnbGraph> graph;
     graph.setUp();
 
     auto query = "MATCH (a:person)-[:knows]->(b:person) WHERE a.age = 1 RETURN COUNT(*)";
@@ -40,7 +40,7 @@ TEST_F(OptimizerTest, OneHopSingleFilter) {
 }
 
 TEST_F(OptimizerTest, OneHopMultiFilters) {
-    NiceMock<PersonKnowsPersonGraph> graph;
+    NiceMock<TinySnbGraph> graph;
     graph.setUp();
 
     auto query = "MATCH (a:person)-[:knows]->(b:person) WHERE a.age > 10 AND a.age < 20 AND b.age "
@@ -55,7 +55,7 @@ TEST_F(OptimizerTest, OneHopMultiFilters) {
 }
 
 TEST_F(OptimizerTest, TwoHop) {
-    NiceMock<PersonKnowsPersonGraph> graph;
+    NiceMock<TinySnbGraph> graph;
     graph.setUp();
 
     auto query = "MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(*)";
@@ -66,7 +66,7 @@ TEST_F(OptimizerTest, TwoHop) {
 }
 
 TEST_F(OptimizerTest, TwoHopMultiFilters) {
-    NiceMock<PersonKnowsPersonGraph> graph;
+    NiceMock<TinySnbGraph> graph;
     graph.setUp();
 
     auto query = "MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.age = 20 AND "

@@ -1,9 +1,5 @@
 # description: load csv test
 
--INPUT dataset/tinysnb/
--OUTPUT test/unittest_temp/
--PARALLELISM 1
-
 -NAME LOADCSVOneHopTest
 -QUERY LOAD CSV WITH HEADERS FROM "dataset/tinysnb/params.csv" AS csvLine MATCH (a:person)-[:knows]->(:person) WHERE a.age = csvLine[0] RETURN COUNT(*)
 ---- 3

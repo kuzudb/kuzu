@@ -1,9 +1,5 @@
 # description: test node ID comparison
 
--INPUT dataset/tinysnb/
--OUTPUT test/unittest_temp/
--PARALLELISM 1
-
 -NAME TwoHopKnowsIDEqualTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) = id(c) RETURN COUNT(*)
 ---- 12

@@ -9,7 +9,7 @@ using namespace graphflow::parser;
 namespace graphflow {
 namespace main {
 
-System::System(const SystemConfig& config, const string path) {
+System::System(const SystemConfig& config, const string& path) {
     if (path.empty()) {
         throw invalid_argument("Given path is empty.");
     }
@@ -23,13 +23,13 @@ void System::restart(const SystemConfig& config) {
     initialize(path);
 }
 
-void System::initialize(string path) {
+void System::initialize(const string& path) {
     graph.reset(new Graph(path, config.bufferPoolSize));
     transactionManager.reset(new TransactionManager());
     processor.reset(new QueryProcessor(config.numProcessorThreads));
 }
 
-vector<unique_ptr<LogicalPlan>> System::enumerateLogicalPlans(const string& query) {
+vector<unique_ptr<LogicalPlan>> System::enumerateLogicalPlans(const string& query) const {
     if (!isInitialized()) {
         throw invalid_argument("System is not initialized");
     }
@@ -39,7 +39,7 @@ vector<unique_ptr<LogicalPlan>> System::enumerateLogicalPlans(const string& quer
 }
 
 unique_ptr<QueryResult> System::execute(
-    unique_ptr<LogicalPlan> plan, Transaction* transactionPtr, uint32_t numThreads) {
+    unique_ptr<LogicalPlan> plan, Transaction* transactionPtr, uint32_t numThreads) const {
     if (!isInitialized()) {
         throw invalid_argument("System is not initialized");
     }

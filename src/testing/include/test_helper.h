@@ -11,29 +11,29 @@ using namespace graphflow::main;
 namespace graphflow {
 namespace testing {
 
-struct TestSuiteConfig {
+struct TestSuiteSystemConfig {
     string graphInputDir;
     string graphOutputDir;
-    uint64_t numThreads = 1;
+    uint64_t maxNumThreads = 1;
     uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE;
+};
+
+struct TestSuiteQueryConfig {
+    uint64_t numThreads = 1;
     bool compareResult = false;
     vector<string> name;
     vector<string> query;
     vector<uint64_t> expectedNumTuples;
     vector<vector<string>> expectedTuples;
-    vector<string> expectedErrorMsgs;
 };
 
 class TestHelper {
 public:
-    static bool runTest(const string& path);
+    static bool runTest(const TestSuiteQueryConfig& testConfig, const System& system);
 
-    static bool runExceptionTest(const string& path);
+    static unique_ptr<TestSuiteQueryConfig> parseTestFile(const string& path);
 
-private:
-    static TestSuiteConfig parseTestFile(const string& path);
-
-    static unique_ptr<System> getInitializedSystem(TestSuiteConfig& testConfig);
+    static unique_ptr<System> getInitializedSystem(TestSuiteSystemConfig& config);
 };
 
 } // namespace testing

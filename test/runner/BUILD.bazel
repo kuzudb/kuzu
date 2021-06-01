@@ -29,13 +29,9 @@ filegroup(
         "queries/filtered/stars.test",
         "queries/filtered/str_operations.test",
         "queries/filtered/unstructured_properties.test",
-        "queries/malformed/binder.test",
-        "queries/malformed/expression_binder.test",
-        "queries/malformed/syntax.test",
         "queries/structural/frontier.test",
         "queries/structural/nodes.test",
         "queries/structural/paths.test",
         "queries/structural/stars.test",
     ],
-    visibility = ["//visibility:public"],
 )

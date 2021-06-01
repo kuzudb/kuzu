@@ -1,9 +1,5 @@
 # description: matching paths
 
--INPUT dataset/tinysnb/
--OUTPUT test/unittest_temp/
--PARALLELISM 1
-
 -NAME OneHopKnowsTest
 -QUERY MATCH (a:person)-[e:knows]->(b:person) RETURN COUNT(*)
 ---- 14

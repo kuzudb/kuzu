@@ -38,11 +38,12 @@ public:
 };
 
 /**
- * Mock person-knows-person catalog with 1 node label person
- * and 1 rel label knows. Person has property age with type INT32.
+ * Mock tiny snb catalog with 2 node labels person and organisation
+ * and 2 rel label knows and workAt.
+ * Person has property age with type INT32.
  * Knows has property description with type STRING.
  */
-class PersonKnowsPersonCatalog : public MockCatalog {
+class TinySnbCatalog : public MockCatalog {
 
 public:
     void setUp() {
@@ -68,19 +69,23 @@ private:
     void setActionForContainNodeLabel() {
         ON_CALL(*this, containNodeLabel(_)).WillByDefault(Return(false));
         ON_CALL(*this, containNodeLabel(StrEq("person"))).WillByDefault(Return(true));
+        ON_CALL(*this, containNodeLabel(StrEq("organisation"))).WillByDefault(Return(true));
     }
 
     void setActionForGetNodeLabelFromString() {
         ON_CALL(*this, getNodeLabelFromString(StrEq("person"))).WillByDefault(Return(0));
+        ON_CALL(*this, getNodeLabelFromString(StrEq("workAt"))).WillByDefault(Return(1));
     }
 
     void setActionForContainRelLabel() {
         ON_CALL(*this, containRelLabel(_)).WillByDefault(Return(false));
         ON_CALL(*this, containRelLabel(StrEq("knows"))).WillByDefault(Return(true));
+        ON_CALL(*this, containRelLabel(StrEq("workAt"))).WillByDefault(Return(true));
     }
 
     void setActionForGetRelLabelFromString() {
         ON_CALL(*this, getRelLabelFromString(StrEq("knows"))).WillByDefault(Return(0));
+        ON_CALL(*this, getRelLabelFromString(StrEq("workAt"))).WillByDefault(Return(1));
     }
 
     void setActionForGetRelLabelsForNodeLabelDirection() {
@@ -98,6 +103,7 @@ private:
         ON_CALL(*this, containNodeProperty(0, _)).WillByDefault(Return(false));
         ON_CALL(*this, containNodeProperty(0, "age")).WillByDefault(Return(true));
         ON_CALL(*this, containNodeProperty(0, "name")).WillByDefault(Return(true));
+        ON_CALL(*this, containNodeProperty(1, _)).WillByDefault(Return(false));
     }
 
     void setActionForGetNodePropertyTypeFromString() {
@@ -114,6 +120,7 @@ private:
         ON_CALL(*this, containUnstrNodeProperty(_, _))
             .WillByDefault(Throw(invalid_argument("Should never happen.")));
         ON_CALL(*this, containUnstrNodeProperty(0, _)).WillByDefault(Return(false));
+        ON_CALL(*this, containUnstrNodeProperty(1, _)).WillByDefault(Return(false));
     }
 
     void setActionForContainRelProperty() {
@@ -121,6 +128,7 @@ private:
             .WillByDefault(Throw(invalid_argument("Should never happen.")));
         ON_CALL(*this, containRelProperty(0, _)).WillByDefault(Return(false));
         ON_CALL(*this, containRelProperty(0, "description")).WillByDefault(Return(true));
+        ON_CALL(*this, containRelProperty(1, _)).WillByDefault(Return(false));
     }
 
     void setActionForGetRelPropertyTypeFromString() {
@@ -134,16 +142,21 @@ private:
 
     void setActionForIsSingleCardinalityInDir() {
         ON_CALL(*this, isSingleCaridinalityInDir(_, _)).WillByDefault(Return(false));
+        ON_CALL(*this, isSingleCaridinalityInDir(1, FWD)).WillByDefault(Return(true));
     }
 
     void setSrcNodeLabelToRelLabels() {
-        vector<label_t> personToRelLabels = {0};
+        vector<label_t> personToRelLabels = {0, 1};
+        vector<label_t> organisationToRelLabels = {};
         srcNodeLabelToRelLabels.push_back(move(personToRelLabels));
+        srcNodeLabelToRelLabels.push_back(move(organisationToRelLabels));
     }
 
     void setDstNodeLabelToRelLabels() {
         vector<label_t> personToRelLabels = {0};
+        vector<label_t> organisationToRelLabels = {1};
         dstNodeLabelToRelLabels.push_back(move(personToRelLabels));
+        dstNodeLabelToRelLabels.push_back(move(organisationToRelLabels));
     }
 
     vector<vector<label_t>> srcNodeLabelToRelLabels, dstNodeLabelToRelLabels;

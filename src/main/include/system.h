@@ -18,19 +18,18 @@ namespace main {
 class System {
 
 public:
-    System(const SystemConfig& config, const string path);
+    System(const SystemConfig& config, const string& path);
 
     void restart(const SystemConfig& config);
 
-    bool isInitialized() {
-        return nullptr != graph.get() && nullptr != transactionManager.get() &&
-               nullptr != processor.get();
+    bool isInitialized() const {
+        return nullptr != graph && nullptr != transactionManager && nullptr != processor;
     }
 
-    vector<unique_ptr<LogicalPlan>> enumerateLogicalPlans(const string& query);
+    vector<unique_ptr<LogicalPlan>> enumerateLogicalPlans(const string& query) const;
 
     unique_ptr<QueryResult> execute(
-        unique_ptr<LogicalPlan> plan, Transaction* transactionPtr, uint32_t numThreads);
+        unique_ptr<LogicalPlan> plan, Transaction* transactionPtr, uint32_t numThreads) const;
 
     unique_ptr<nlohmann::json> debugInfo();
 
@@ -39,7 +38,7 @@ public:
     unique_ptr<TransactionManager> transactionManager;
 
 private:
-    void initialize(string path);
+    void initialize(const string& path);
 
 private:
     unique_ptr<Graph> graph;
