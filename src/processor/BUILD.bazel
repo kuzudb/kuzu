@@ -120,6 +120,7 @@ cc_library(
         "include/processor.h",
         "include/task_system/task.h",
         "include/task_system/task_queue.h",
+        "include/execution_context.h"
     ],
     visibility = ["//visibility:public"],
     deps = [

@@ -7,7 +7,12 @@ namespace graphflow {
 namespace parser {
 
 unique_ptr<SingleQuery> Transformer::transform() {
-    return transformQuery(*root.oC_Statement()->oC_Query());
+    auto singleQuery = transformQuery(*root.oC_Statement()->oC_Query());
+    // Currently PROFILE is the only cypher option.
+    if (root.oC_AnyCypherOption()) {
+        singleQuery->enable_profile = true;
+    }
+    return singleQuery;
 }
 
 unique_ptr<SingleQuery> Transformer::transformQuery(CypherParser::OC_QueryContext& ctx) {

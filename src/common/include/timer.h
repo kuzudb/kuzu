@@ -1,7 +1,7 @@
 #pragma once
 
 #include <chrono>
-#include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -11,33 +11,30 @@ namespace graphflow {
 namespace common {
 
 class Timer {
-public:
-    explicit Timer(const string& name)
-        : name{name}, stopped{false}, start{chrono::high_resolution_clock::now()} {};
 
-    ~Timer() {}
+public:
+    void start() {
+        finished = false;
+        startTime = chrono::high_resolution_clock::now();
+    }
 
     void stop() {
-        checkpoint = chrono::high_resolution_clock::now();
-        stopped = true;
+        stopTime = chrono::high_resolution_clock::now();
+        finished = true;
     }
 
-    chrono::milliseconds getDuration() {
-        if (stopped) {
-            return chrono::duration_cast<chrono::milliseconds>(checkpoint - start);
+    double getDuration() {
+        if (finished) {
+            auto duration = stopTime - startTime;
+            return chrono::duration_cast<chrono::milliseconds>(duration).count();
         }
-        throw invalid_argument("Timer still running.");
-    }
-
-    void logCheckpoint(const string& checkpointName) {
-        auto currentCheckpoint = chrono::high_resolution_clock::now();
-        checkpoint = currentCheckpoint;
+        throw invalid_argument("Timer is still running.");
     }
 
 private:
-    const string name;
-    bool stopped;
-    chrono::time_point<chrono::high_resolution_clock> start, checkpoint;
+    chrono::time_point<chrono::high_resolution_clock> startTime;
+    chrono::time_point<chrono::high_resolution_clock> stopTime;
+    bool finished = false;
 };
 
 } // namespace common

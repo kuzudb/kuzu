@@ -10,6 +10,7 @@ namespace graphflow {
 namespace testing {
 
 bool TestHelper::runTest(const TestSuiteQueryConfig& testConfig, const System& system) {
+    auto sessionContext = SessionContext();
     auto numQueries = testConfig.query.size();
     uint64_t numPassedQueries = 0;
     vector<uint64_t> numPlansOfEachQuery(numQueries);
@@ -17,15 +18,15 @@ bool TestHelper::runTest(const TestSuiteQueryConfig& testConfig, const System& s
     for (uint64_t i = 0; i < numQueries; i++) {
         spdlog::info("TEST: {}", testConfig.name[i]);
         spdlog::info("QUERY: {}", testConfig.query[i]);
-        auto plans = system.enumerateLogicalPlans(testConfig.query[i]);
+        sessionContext.query = testConfig.query[i];
+        auto plans = system.enumerateAllPlans(sessionContext);
         auto numPlans = plans.size();
         assert(numPlans > 0);
         numPlansOfEachQuery[i] = numPlans;
         uint64_t numPassedPlans = 0;
         for (uint64_t j = 0; j < numPlans; j++) {
             auto planStr = plans[j]->getLastOperator().toString();
-            auto result =
-                system.execute(move(plans[j]), nullptr /*transaction*/, testConfig.numThreads);
+            auto result = system.executePlan(move(plans[j]), sessionContext);
             if (result->numTuples != testConfig.expectedNumTuples[i]) {
                 spdlog::error("PLAN{} NOT PASSED. Result num tuples: {}, Expected num tuples: {}",
                     j, result->numTuples, testConfig.expectedNumTuples[i]);
@@ -112,10 +113,7 @@ unique_ptr<System> TestHelper::getInitializedSystem(TestSuiteSystemConfig& confi
         GraphLoader graphLoader(config.graphInputDir, config.graphOutputDir, config.maxNumThreads);
         graphLoader.loadGraph();
     }
-    SystemConfig systemConfig;
-    systemConfig.setBufferPoolSize(config.bufferPoolSize);
-    systemConfig.setNumProcessorThreads(config.maxNumThreads);
-    return make_unique<System>(systemConfig, config.graphOutputDir);
+    return make_unique<System>(config.graphOutputDir);
 }
 
 } // namespace testing

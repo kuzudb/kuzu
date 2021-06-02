@@ -1,10 +1,8 @@
 #pragma once
 
-#include "src/main/include/system_config.h"
+#include "src/main/include/session_context.h"
 #include "src/planner/include/logical_plan/logical_plan.h"
 #include "src/processor/include/processor.h"
-#include "src/storage/include/graph.h"
-#include "src/transaction/include/transaction.h"
 #include "src/transaction/include/transaction_manager.h"
 
 using namespace graphflow::storage;
@@ -18,31 +16,22 @@ namespace main {
 class System {
 
 public:
-    System(const SystemConfig& config, const string& path);
+    explicit System(const string& path);
 
-    void restart(const SystemConfig& config);
+    unique_ptr<QueryResult> executeQuery(SessionContext& sessionContext) const;
 
-    bool isInitialized() const {
-        return nullptr != graph && nullptr != transactionManager && nullptr != processor;
-    }
+    // currently used in testing framework
+    vector<unique_ptr<LogicalPlan>> enumerateAllPlans(SessionContext& sessionContext) const;
+    unique_ptr<QueryResult> executePlan(
+        unique_ptr<LogicalPlan> logicalPlan, SessionContext& sessionContext) const;
 
-    vector<unique_ptr<LogicalPlan>> enumerateLogicalPlans(const string& query) const;
-
-    unique_ptr<QueryResult> execute(
-        unique_ptr<LogicalPlan> plan, Transaction* transactionPtr, uint32_t numThreads) const;
-
-    unique_ptr<nlohmann::json> debugInfo();
+    unique_ptr<nlohmann::json> debugInfo() const;
 
 public:
-    SystemConfig config;
-    unique_ptr<TransactionManager> transactionManager;
-
-private:
-    void initialize(const string& path);
-
-private:
     unique_ptr<Graph> graph;
     unique_ptr<QueryProcessor> processor;
+    unique_ptr<TransactionManager> transactionManager;
+    bool initialized = false;
 };
 
 } // namespace main

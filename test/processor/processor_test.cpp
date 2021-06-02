@@ -26,6 +26,7 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto plan = make_unique<PhysicalPlan>(
         make_unique<ResultCollector>(make_unique<ScanNodeID<true>>(morsel)));
     auto processor = make_unique<QueryProcessor>(10);
-    auto result = processor->execute(move(plan), 1);
+    auto executionContext = ExecutionContext(move(plan), 1);
+    auto result = processor->execute(executionContext);
     ASSERT_EQ(result->numTuples, 1025013);
 }

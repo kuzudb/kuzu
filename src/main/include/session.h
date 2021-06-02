@@ -1,14 +1,8 @@
 #pragma once
 
-#include "thread"
-
 #include "src/main/include/system.h"
-#include "src/planner/include/logical_plan/logical_plan.h"
 
 using namespace std;
-using namespace graphflow::storage;
-using namespace graphflow::processor;
-using namespace graphflow::planner;
 
 namespace graphflow {
 namespace main {
@@ -17,20 +11,20 @@ namespace main {
 class Session {
 
 public:
-    Session(unique_ptr<System>& system) : system{system}, activeTransaction{nullptr} {};
+    explicit Session(const System& system);
 
-    unique_ptr<nlohmann::json> submitQuery(string query, uint32_t numThreads);
+    nlohmann::json executeQuery();
 
-    unique_ptr<nlohmann::json> debugInfo();
-
-private:
-    unique_ptr<nlohmann::json> beginTransaction();
-    unique_ptr<nlohmann::json> commitTransaction();
-    unique_ptr<nlohmann::json> rollbackTransaction();
+    nlohmann::json debugInfo();
 
 private:
-    unique_ptr<System>& system;
-    Transaction* activeTransaction;
+    nlohmann::json beginTransaction();
+    nlohmann::json commitTransaction();
+    nlohmann::json rollbackTransaction();
+
+public:
+    const System& system;
+    unique_ptr<SessionContext> sessionContext;
 };
 
 } // namespace main

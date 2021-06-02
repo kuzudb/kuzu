@@ -10,10 +10,9 @@ namespace processor {
 class QueryResult {
 
 public:
-    explicit QueryResult(uint64_t numTuples) : numTuples{numTuples}, duration{0} {}
+    explicit QueryResult(uint64_t numTuples) : numTuples{numTuples} {}
 
-    explicit QueryResult(vector<Tuple> tuples)
-        : numTuples{tuples.size()}, tuples{move(tuples)}, duration{0} {}
+    explicit QueryResult(vector<Tuple> tuples) : numTuples{tuples.size()}, tuples{move(tuples)} {}
 
     QueryResult() : QueryResult(0) {}
 
@@ -27,7 +26,6 @@ public:
 public:
     uint64_t numTuples;
     vector<Tuple> tuples;
-    chrono::milliseconds duration;
 };
 
 } // namespace processor
