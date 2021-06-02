@@ -69,9 +69,9 @@ http_archive(
 http_archive(
     name = "nodejs_http_parser",
     build_file = "nodejs_http_parser.BUILD.bazel",
-    sha256 = "3ac30468dc99ce310f131be504e8a19a5aeccaf62585b6c49a565dbb313dedc8",
-    strip_prefix = "http-parser-master",
-    url = "https://github.com/nodejs/http-parser/archive/master.zip",
+    sha256 = "27c600a8ce1fbf0d83b0d5b2d4e540617f538d6c4f8b88b592e62a26e362bf03",
+    strip_prefix = "http-parser-2.9.4",
+    url = "https://github.com/nodejs/http-parser/archive/v2.9.4.zip",
 )
 
 # fmtlib
