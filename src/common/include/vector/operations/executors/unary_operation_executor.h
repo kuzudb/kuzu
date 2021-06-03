@@ -28,6 +28,25 @@ struct UnaryOperationExecutor {
         }
     }
 
+    template<class T, class FUNC = std::function<uint64_t(T)>>
+    static void executeHashOps(ValueVector& operand, ValueVector& result) {
+        auto inputValues = (T*)operand.values;
+        auto resultValues = (uint64_t*)result.values;
+        if (operand.state->isFlat()) {
+            auto pos = operand.state->getCurrSelectedValuesPos();
+            if (!operand.nullMask[pos]) {
+                resultValues[pos] = FUNC::operation(inputValues[pos]);
+            }
+        } else {
+            for (auto i = 0ul; i < operand.state->numSelectedValues; i++) {
+                auto pos = operand.state->selectedValuesPos[i];
+                if (!operand.nullMask[pos]) {
+                    resultValues[pos] = FUNC::operation(inputValues[pos]);
+                }
+            }
+        }
+    }
+
     template<class R, class FUNC = std::function<R(nodeID_t)>>
     static void executeOnNodeIDVector(ValueVector& operand, ValueVector& result) {
         auto resultValues = (R*)result.values;

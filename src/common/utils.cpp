@@ -1,5 +1,8 @@
 #include "src/common/include/utils.h"
 
+#include <string>
+#include <vector>
+
 namespace graphflow {
 namespace common {
 

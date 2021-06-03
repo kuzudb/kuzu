@@ -1,10 +1,10 @@
 #pragma once
 
-#include "src/processor/include/memory_manager.h"
 #include "src/processor/include/physical_plan/plan_mapper.h"
 #include "src/processor/include/physical_plan/query_result.h"
 #include "src/processor/include/task_system/task_queue.h"
 #include "src/storage/include/graph.h"
+#include "src/storage/include/memory_manager.h"
 #include "src/transaction/include/transaction.h"
 
 using namespace graphflow::storage;

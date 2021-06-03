@@ -21,5 +21,11 @@ const uint64_t PAGE_SIZE = 1 << 12;
 // The default amount of memory pre-allocated to the buffer pool (= 1GB).
 const uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 30;
 
+// Hash Index Configurations
+struct HashIndexConfig {
+    static constexpr uint64_t SLOT_CAPACITY = 4;
+    static constexpr double MAX_LOAD_FACTOR = 0.5;
+};
+
 } // namespace common
 } // namespace graphflow

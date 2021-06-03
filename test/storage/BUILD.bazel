@@ -1,0 +1,16 @@
+load("@rules_cc//cc:defs.bzl", "cc_test", "cc_library")
+
+cc_test(
+    name = "memory_manager_test",
+    srcs = [
+        "memory_manager_test.cpp"
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/storage:memory_manager",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)

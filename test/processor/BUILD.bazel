@@ -3,7 +3,6 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 cc_test(
     name = "processor_tests",
     srcs = [
-        "memory_manager_test.cpp",
         "physical_plan/expression_mapper_test.cpp",
         "physical_plan/operator/frontier/frontier_test.cpp",
         "physical_plan/operator/scan/scan_test.cpp",

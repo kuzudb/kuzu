@@ -21,6 +21,26 @@ struct Hash {
 };
 
 template<>
+inline uint64_t Hash::operation(const uint32_t& key) {
+    return murmurhash64(key);
+}
+
+template<>
+inline uint64_t Hash::operation(const uint64_t& key) {
+    return murmurhash64(key);
+}
+
+template<>
+inline uint64_t Hash::operation(const int64_t& key) {
+    return murmurhash64(key);
+}
+
+template<>
+inline uint64_t Hash::operation(const string& key) {
+    return std::hash<string>()(key);
+}
+
+template<>
 inline uint64_t Hash::operation(const nodeID_t& nodeID) {
     return murmurhash64(nodeID.offset) ^ murmurhash64(nodeID.label);
 }

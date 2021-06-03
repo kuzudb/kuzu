@@ -69,7 +69,7 @@ void LocalStorage::deleteNodeIDs(label_t nodeLabel) {
 void LocalStorage::computeCreateNode(vector<uint32_t> propertyKeyIdxToVectorPosMap,
     label_t nodeLabel, vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes) {
     uncommittedLabelToNumNodes.emplace(
-        nodeLabel, numNodes + max(0ul, numTuples - uncommittedNumRecycledNodeIDs));
+        nodeLabel, numNodes + max((uint64_t)0ul, numTuples - uncommittedNumRecycledNodeIDs));
     for (auto i = 0u; i < propertyKeyIdxToVectorPosMap.size(); i++) {
         auto numUpdates = uncommittedNumRecycledNodeIDs;
         auto& column = *nodePropertyColumns[i];
@@ -86,7 +86,7 @@ void LocalStorage::computeCreateNode(vector<uint32_t> propertyKeyIdxToVectorPosM
         while (dataChunkIdx < dataChunks.size()) {
             auto& dataChunk = *dataChunks[dataChunkIdx];
             auto nodeIDVector = (NodeIDVector*)dataChunk.valueVectors.back().get();
-            if (-1ul != propertyKeyIdxToVectorPosMap[i]) {
+            if (-1u != propertyKeyIdxToVectorPosMap[i]) {
                 propertyValueVector = dataChunk.valueVectors[propertyKeyIdxToVectorPosMap[i]].get();
             }
             if (0 < numUpdates) {
@@ -118,7 +118,7 @@ void LocalStorage::computeCreateNode(vector<uint32_t> propertyKeyIdxToVectorPosM
 void LocalStorage::computeUpdateNode(vector<uint32_t> propertyKeyIdxToVectorPosMap,
     label_t nodeLabel, vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes) {
     for (auto i = 0u; i < propertyKeyIdxToVectorPosMap.size(); i++) {
-        if (-1ul == propertyKeyIdxToVectorPosMap[i]) {
+        if (-1u == propertyKeyIdxToVectorPosMap[i]) {
             continue;
         }
         auto& column = *nodePropertyColumns[i];
@@ -145,7 +145,7 @@ void LocalStorage::computeUpdateNode(vector<uint32_t> propertyKeyIdxToVectorPosM
 void LocalStorage::computeDeleteNode(vector<uint32_t> propertyKeyIdxToVectorPosMap,
     label_t nodeLabel, vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes) {
     for (auto i = 0u; i < propertyKeyIdxToVectorPosMap.size(); i++) {
-        assert(-1ul == propertyKeyIdxToVectorPosMap[i]);
+        assert(-1u == propertyKeyIdxToVectorPosMap[i]);
         auto& column = *nodePropertyColumns[i];
         auto nullValue = getNullValuePtrForDataType(column.dataType);
         // Here, we are assuming that the fileHandle of the column is not already in the
@@ -180,12 +180,11 @@ void LocalStorage::updateNodePropertyColumn(uint32_t currPosInDataChunk,
         auto pageCursor = column.getPageCursorForOffset(nodeID.offset);
         auto page =
             putPageInDirtyPagesMap(dirtyPagesMap, pageCursor.idx, column.getFileHandle(), true);
-        if (propertyValueVector) {
-            memcpy(page + pageCursor.offset,
-                propertyValueVector + currPosInDataChunk * column.elementSize, column.elementSize);
-        } else {
-            memcpy(page + pageCursor.offset, nullValue, column.elementSize);
-        }
+        memcpy(page + pageCursor.offset,
+            propertyValueVector ?
+                propertyValueVector->values + currPosInDataChunk * column.elementSize :
+                nullValue,
+            column.elementSize);
     }
 }
 
@@ -201,7 +200,7 @@ void LocalStorage::appendToNodePropertyColumn(uint32_t& dataChunkIdx, uint32_t& 
     auto numElementsToCopy = min(freePosInPage, (uint64_t)elementsLeftInDataChunk);
     if (propertyValueVector) {
         memcpy(page + pageCursor.offset,
-            propertyValueVector + currPosInDataChunk * column.elementSize,
+            propertyValueVector->values + currPosInDataChunk * column.elementSize,
             numElementsToCopy * column.elementSize);
     } else {
         for (auto i = 0u; i < numElementsToCopy; i++) {
@@ -222,7 +221,7 @@ uint8_t* LocalStorage::putPageInDirtyPagesMap(page_idx_to_dirty_page_map& dirtyP
     if (dirtyPagesMap.find(pageIdx) == dirtyPagesMap.end()) {
         auto newPage = new uint8_t[PAGE_SIZE];
         dirtyPagesMap.emplace(pageIdx, newPage);
-        if (fileHandle->hasPage(newPage, pageIdx)) {
+        if (fileHandle->hasPage(pageIdx)) {
             fileHandle->readPage(newPage, pageIdx);
         } else if (!createEmptyPage) {
             throw invalid_argument("LocalStorage: cannot find page in file handle.");
@@ -232,7 +231,7 @@ uint8_t* LocalStorage::putPageInDirtyPagesMap(page_idx_to_dirty_page_map& dirtyP
                 uncommittedFileHandleNumPages[fileHandle] = pageIdx + 1;
             } else {
                 uncommittedFileHandleNumPages[fileHandle] =
-                    max(uncommittedFileHandleNumPages[fileHandle], pageIdx + 1ul);
+                    max(uncommittedFileHandleNumPages[fileHandle], (uint64_t)pageIdx + 1ul);
             }
         }
     }

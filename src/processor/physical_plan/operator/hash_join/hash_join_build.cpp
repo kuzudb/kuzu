@@ -49,8 +49,8 @@ void HashJoinBuild::finalize() {
         max(sharedState->numEntries * 2, (DEFAULT_HT_BLOCK_SIZE / sizeof(uint8_t*)) + 1));
     sharedState->hashBitMask = directory_capacity - 1;
 
-    sharedState->htDirectory = memManager->allocateBlock(directory_capacity * sizeof(uint8_t*));
-    memset(sharedState->htDirectory->blockPtr, 0, directory_capacity * sizeof(uint8_t*));
+    sharedState->htDirectory =
+        memManager->allocateBlock(directory_capacity * sizeof(uint8_t*), true /* initialize */);
 
     nodeID_t nodeId;
     uint64_t hash;
@@ -192,7 +192,8 @@ void HashJoinBuild::allocateHTBlocks(
     while (remaining > 0) {
         // Need allocate new blocks for tuples
         auto appendCount = min(remaining, htBlockCapacity);
-        auto newBlock = memManager->allocateBlock(DEFAULT_HT_BLOCK_SIZE, appendCount);
+        auto newBlock =
+            memManager->allocateBlock(DEFAULT_HT_BLOCK_SIZE, true /* initialize */, appendCount);
         blockAppendInfos.emplace_back(newBlock->blockPtr, appendCount);
         htBlocks.push_back(move(newBlock));
         remaining -= appendCount;

@@ -3,10 +3,10 @@
 #include "src/common/include/operations/hash_operations.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/operations/vector_node_id_operations.h"
-#include "src/processor/include/memory_manager.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/operator/result/result_set.h"
 #include "src/processor/include/physical_plan/operator/sink/sink.h"
+#include "src/storage/include/memory_manager.h"
 
 using namespace std;
 using namespace graphflow::common;

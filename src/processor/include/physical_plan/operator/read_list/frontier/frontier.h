@@ -2,9 +2,10 @@
 
 #include "src/common/include/types.h"
 #include "src/common/include/vector/node_vector.h"
-#include "src/processor/include/memory_manager.h"
+#include "src/storage/include/memory_manager.h"
 
 using namespace graphflow::common;
+using namespace graphflow::storage;
 
 namespace graphflow {
 namespace processor {

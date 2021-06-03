@@ -81,7 +81,7 @@ class Lists<UNSTRUCTURED> : public BaseLists {
 public:
     Lists(const string& fname, BufferManager& bufferManager)
         : BaseLists{fname, UNSTRUCTURED, 1, make_shared<ListHeaders>(fname), bufferManager},
-          overflowPagesFileHandle{fname + ".ovf"} {};
+          overflowPagesFileHandle{fname + ".ovf", O_RDWR} {};
 
     // readValues is overloaded. Lists<UNKNOWN> is not supposed to use the one defined in BaseLists.
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,

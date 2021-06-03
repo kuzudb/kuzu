@@ -6,6 +6,8 @@
 
 #include <iostream>
 
+#include "src/storage/include/file_utils.h"
+
 namespace graphflow {
 namespace loader {
 
@@ -13,15 +15,11 @@ void InMemPages::saveToFile() {
     if (0 == fname.length()) {
         throw invalid_argument("InMemPages: Empty filename");
     }
-    uint32_t f = open(fname.c_str(), O_WRONLY | O_CREAT, 0666);
-    if (-1u == f) {
-        throw invalid_argument("InMemPages: Cannot create file: " + fname);
-    }
+    int fd = FileUtils::openFile(fname, O_WRONLY | O_CREAT);
     auto size = numPages * PAGE_SIZE;
-    if (size != write(f, data.get(), size)) {
-        throw invalid_argument("InMemPages: Cannot write in file.");
-    }
-    close(f);
+    cout << "InMemPages write to file at size " << size << endl;
+    FileUtils::writeToFile(fd, data.get(), size, 0);
+    FileUtils::closeFile(fd);
 }
 
 void InMemAdjPages::setNbrNode(const PageCursor& cursor, const nodeID_t& nbrNodeID) {

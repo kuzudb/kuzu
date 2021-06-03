@@ -2,12 +2,15 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "file_handle",
-    srcs = ["file_handle.cpp"],
+    srcs = [
+        "file_handle.cpp",
+    ],
     hdrs = [
         "include/file_handle.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "file_utils",
         "//src/common:configs",
         "@gabime_spdlog",
     ],
@@ -15,13 +18,29 @@ cc_library(
 
 cc_library(
     name = "buffer_manager",
-    srcs = ["buffer_manager.cpp"],
-    hdrs = ["include/buffer_manager.h"],
+    srcs = [
+        "buffer_manager.cpp",
+    ],
+    hdrs = [
+        "include/buffer_manager.h",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "file_handle",
         "@nlohmann_json",
     ],
+)
+
+cc_library(
+    name = "memory_manager",
+    srcs = [
+        "memory_manager.cpp",
+    ],
+    hdrs = [
+        "include/memory_manager.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [],
 )
 
 cc_library(
@@ -97,8 +116,12 @@ cc_library(
 
 cc_library(
     name = "catalog",
-    srcs = ["catalog.cpp"],
-    hdrs = ["include/catalog.h"],
+    srcs = [
+        "catalog.cpp"
+    ],
+    hdrs = [
+        "include/catalog.h"
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "//src/common:types",
@@ -121,4 +144,34 @@ cc_library(
     deps = [
         "store",
     ],
+)
+
+cc_library(
+    name = "hash_index",
+    srcs = [
+        "index/hash_index.cpp",
+    ],
+    hdrs = [
+        "include/index/hash_index.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "memory_manager",
+        "buffer_manager",
+        "//src/common:types",
+        "//src/common:vector",
+        "//src/common:vector_operations",
+    ],
+)
+
+cc_library(
+    name = "file_utils",
+    srcs = [
+        "file_utils.cpp"
+    ],
+    hdrs = [
+        "include/file_utils.h"
+    ],
+    visibility = ["//visibility:public"],
+    deps = [],
 )

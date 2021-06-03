@@ -16,7 +16,9 @@ public:
     ValueVector(uint64_t numBytesPerValue, DataType dataType)
         : ValueVector(MAX_VECTOR_SIZE, numBytesPerValue, dataType) {}
 
-    ValueVector(DataType dataType) : ValueVector(dataType, MAX_VECTOR_SIZE) {}
+    explicit ValueVector(DataType dataType) : ValueVector(dataType, MAX_VECTOR_SIZE) {}
+
+    virtual ~ValueVector() = default;
 
     virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID) const {
         throw invalid_argument("readNodeOffset unsupported.");
