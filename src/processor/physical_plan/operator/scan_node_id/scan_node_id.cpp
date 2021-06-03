@@ -15,7 +15,22 @@ ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::ScanNodeID(shared_ptr<MorselsDesc>& morse
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
+ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::ScanNodeID(
+    shared_ptr<MorselsDesc>& morsel, unique_ptr<PhysicalOperator> prevOperator)
+    : PhysicalOperator{move(prevOperator), SCAN}, morsel{morsel} {
+    resultSet = this->prevOperator->getResultSet();
+    nodeIDVector = make_shared<NodeIDVector>(morsel->label, NodeIDCompressionScheme(), true);
+    outDataChunk =
+        make_shared<DataChunk>(!IS_OUT_DATACHUNK_FILTERED /* initializeSelectedValuesPos */);
+    outDataChunk->append(nodeIDVector);
+    resultSet->append(outDataChunk);
+}
+
+template<bool IS_OUT_DATACHUNK_FILTERED>
 void ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
+    if (prevOperator) {
+        prevOperator->getNextTuples();
+    }
     {
         unique_lock<mutex> lock{morsel->mtx};
         if (morsel->currNodeOffset >= morsel->numNodes) {

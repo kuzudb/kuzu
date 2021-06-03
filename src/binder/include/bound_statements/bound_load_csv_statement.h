@@ -15,17 +15,15 @@ namespace binder {
 class BoundLoadCSVStatement : public BoundReadingStatement {
 
 public:
-    BoundLoadCSVStatement(string filePath, char tokenSeparator,
-        vector<pair<string, DataType>> headerInfo, shared_ptr<Expression> csvLineVariable)
+    BoundLoadCSVStatement(
+        string filePath, char tokenSeparator, vector<shared_ptr<Expression>> csvColumnVariables)
         : BoundReadingStatement{LOAD_CSV_STATEMENT}, filePath{move(filePath)},
-          tokenSeparator(tokenSeparator), headerInfo{move(headerInfo)}, csvLineVariable{move(
-                                                                            csvLineVariable)} {}
+          tokenSeparator(tokenSeparator), csvColumnVariables{move(csvColumnVariables)} {}
 
 public:
     string filePath;
     char tokenSeparator;
-    vector<pair<string, DataType>> headerInfo;
-    shared_ptr<Expression> csvLineVariable;
+    vector<shared_ptr<Expression>> csvColumnVariables;
 };
 
 } // namespace binder

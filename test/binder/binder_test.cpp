@@ -20,19 +20,22 @@ public:
 
 TEST_F(BinderTest, LOADCSVBasicTest) {
     auto expectedCSVColumnInfo = vector<pair<string, DataType>>();
-    expectedCSVColumnInfo.emplace_back(make_pair("id", NODE));
+    expectedCSVColumnInfo.emplace_back(make_pair("age", INT32));
     expectedCSVColumnInfo.emplace_back(make_pair("name", STRING));
-    expectedCSVColumnInfo.emplace_back(make_pair("orgCode", INT32));
-    expectedCSVColumnInfo.emplace_back(make_pair("mark", DOUBLE));
-    auto csvLine = make_shared<Expression>(VARIABLE, LIST_STRING, "_gf0_csvLine");
-    csvLine->alias = "csvLine";
-    auto expectedLoadCSVStatement = make_unique<BoundLoadCSVStatement>(
-        "dataset/tinysnb/vOrganisation.csv", ',', move(expectedCSVColumnInfo), csvLine);
+    auto csvLines = vector<shared_ptr<Expression>>();
+    auto csvLine0 = make_shared<Expression>(CSV_LINE_EXTRACT, INT32, "_gf0_csvLine[0]");
+    csvLine0->alias = "csvLine[0]";
+    auto csvLine1 = make_shared<Expression>(CSV_LINE_EXTRACT, STRING, "_gf0_csvLine[1]");
+    csvLine1->alias = "csvLine[1]";
+    csvLines.push_back(csvLine0);
+    csvLines.push_back(csvLine1);
+    auto expectedLoadCSVStatement =
+        make_unique<BoundLoadCSVStatement>("dataset/tinysnb/params.csv", ',', move(csvLines));
 
     NiceMock<PersonKnowsPersonCatalog> catalog;
     catalog.setUp();
 
-    auto query = "LOAD CSV WITH HEADERS FROM \"dataset/tinysnb/vOrganisation.csv\" AS csvLine "
+    auto query = "LOAD CSV WITH HEADERS FROM \"dataset/tinysnb/params.csv\" AS csvLine "
                  "RETURN COUNT(*);";
     auto boundQuery = BinderTest::getBoundQuery(query, catalog);
     ASSERT_TRUE(BinderTestUtils::equals(
@@ -43,18 +46,15 @@ TEST_F(BinderTest, LOADCSVMATCHTest) {
     auto a = make_shared<NodeExpression>("_gf1_a", 0);
     a->alias = "a";
     auto aName = make_shared<PropertyExpression>("_gf1_a.name", STRING, 1, move(a));
-    auto csvLine = make_shared<Expression>(VARIABLE, LIST_STRING, "_gf0_csvLine");
-    csvLine->alias = "csvLine";
-    auto zero = make_shared<LiteralExpression>(LITERAL_INT, INT32, Value((int32_t)0u));
-    auto csvLine0 = make_shared<Expression>(LIST_EXTRACT, STRING, move(csvLine), move(zero));
-    csvLine0->variableName = "_gf0_csvLine[0]";
-    auto expectedWhere = make_shared<Expression>(EQUALS, BOOL, move(aName), move(csvLine0));
+    auto csvLine1 = make_shared<Expression>(CSV_LINE_EXTRACT, STRING, "_gf0_csvLine[1]");
+    csvLine1->alias = "csvLine[1]";
+    auto expectedWhere = make_shared<Expression>(EQUALS, BOOL, move(aName), move(csvLine1));
 
     NiceMock<PersonKnowsPersonCatalog> catalog;
     catalog.setUp();
 
-    auto query = "LOAD CSV WITH HEADERS FROM \"dataset/tinysnb/vOrganisation.csv\" AS csvLine "
-                 "MATCH (a:person) where a.name = csvLine[0] RETURN COUNT(*);";
+    auto query = "LOAD CSV WITH HEADERS FROM \"dataset/tinysnb/params.csv\" AS csvLine "
+                 "MATCH (a:person) where a.name = csvLine[1] RETURN COUNT(*);";
     auto boundQuery = BinderTest::getBoundQuery(query, catalog);
     ASSERT_TRUE(BinderTestUtils::equals(*expectedWhere,
         *((BoundMatchStatement&)*boundQuery->boundReadingStatements[1]).whereExpression));

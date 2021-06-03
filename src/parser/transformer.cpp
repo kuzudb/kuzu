@@ -411,7 +411,7 @@ unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     CypherParser::OC_ListOperatorExpressionContext& ctx,
     unique_ptr<ParsedExpression> propertyExpression) {
     auto rawExpression = propertyExpression->rawExpression + " " + ctx.getText();
-    auto expression = make_unique<ParsedExpression>(LIST_EXTRACT, string(), rawExpression);
+    auto expression = make_unique<ParsedExpression>(CSV_LINE_EXTRACT, string(), rawExpression);
     expression->children.push_back(move(propertyExpression));
     expression->children.push_back(transformExpression(*ctx.oC_Expression()));
     return expression;

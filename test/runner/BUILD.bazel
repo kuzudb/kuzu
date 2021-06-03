@@ -23,6 +23,7 @@ filegroup(
     name = "testfiles",
     srcs = [
         "queries/filtered/id_comparison.test",
+        "queries/filtered/load_csv.test",
         "queries/filtered/nodes.test",
         "queries/filtered/paths.test",
         "queries/filtered/stars.test",

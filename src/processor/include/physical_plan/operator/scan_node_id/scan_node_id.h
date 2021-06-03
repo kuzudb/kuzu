@@ -10,14 +10,18 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 class ScanNodeID : public PhysicalOperator {
 
 public:
-    ScanNodeID(shared_ptr<MorselsDesc>& morselDesc);
+    explicit ScanNodeID(shared_ptr<MorselsDesc>& morselDesc);
+
+    ScanNodeID(shared_ptr<MorselsDesc>& morselsDesc, unique_ptr<PhysicalOperator> prevOperator);
 
     void getNextTuples() override;
 
     shared_ptr<NodeIDVector>& getNodeVector() { return nodeIDVector; }
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanNodeID<IS_OUT_DATACHUNK_FILTERED>>(morsel);
+        return prevOperator ? make_unique<ScanNodeID<IS_OUT_DATACHUNK_FILTERED>>(
+                                  morsel, prevOperator->clone()) :
+                              make_unique<ScanNodeID<IS_OUT_DATACHUNK_FILTERED>>(morsel);
     }
 
 protected:

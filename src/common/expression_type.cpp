@@ -33,10 +33,6 @@ bool isExpressionStringOperator(ExpressionType type) {
     return STARTS_WITH == type || ENDS_WITH == type || CONTAINS == type;
 }
 
-bool isExpressionListExtractOperator(ExpressionType type) {
-    return LIST_EXTRACT == type;
-}
-
 bool isExpressionNullComparison(ExpressionType type) {
     return IS_NULL == type || IS_NOT_NULL == type;
 }
@@ -46,8 +42,12 @@ bool isExpressionLeafLiteral(ExpressionType type) {
            LITERAL_BOOLEAN == type || LITERAL_NULL == type;
 }
 
+/**
+ * Expression being leaf variable means it doesn't require evaluator and directly grabs value
+ * vector.
+ */
 bool isExpressionLeafVariable(ExpressionType type) {
-    return PROPERTY == type;
+    return PROPERTY == type || CSV_LINE_EXTRACT == type;
 }
 
 ExpressionType comparisonToIDComparison(ExpressionType type) {

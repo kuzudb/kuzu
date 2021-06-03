@@ -3,14 +3,12 @@
 bool BinderTestUtils::equals(
     const BoundLoadCSVStatement& left, const BoundLoadCSVStatement& right) {
     auto result = left.filePath == right.filePath && left.tokenSeparator == right.tokenSeparator &&
-                  left.headerInfo.size() == right.headerInfo.size() &&
-                  equals(*left.csvLineVariable, *right.csvLineVariable);
+                  left.csvColumnVariables.size() == right.csvColumnVariables.size();
     if (!result) {
         return false;
     }
-    for (auto i = 0u; i < left.headerInfo.size(); ++i) {
-        if (left.headerInfo[i].first != right.headerInfo[i].first ||
-            left.headerInfo[i].second != right.headerInfo[i].second) {
+    for (auto i = 0u; i < left.csvColumnVariables.size(); ++i) {
+        if (!equals(*left.csvColumnVariables[i], *right.csvColumnVariables[i])) {
             return false;
         }
     }

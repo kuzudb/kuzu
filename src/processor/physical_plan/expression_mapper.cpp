@@ -13,7 +13,7 @@ namespace processor {
 static unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToPhysical(
     const Expression& expression);
 
-static unique_ptr<ExpressionEvaluator> mapLogicalPropertyExpressionToPhysical(
+static unique_ptr<ExpressionEvaluator> mapLogicalPropertyOrCSVLineExtractExpressionToPhysical(
     const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
     ResultSet& resultSet);
 
@@ -23,7 +23,12 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(const Expression
     if (isExpressionLeafLiteral(expressionType)) {
         return mapLogicalLiteralExpressionToPhysical(expression);
     } else if (isExpressionLeafVariable(expressionType)) {
-        return mapLogicalPropertyExpressionToPhysical(expression, physicalOperatorInfo, resultSet);
+        /**
+         *Both CSV_LINE_EXTRACT and PropertyExpression are mapped to the same physical expression
+         *evaluator, because both of them only grab data from a value vector.
+         */
+        return mapLogicalPropertyOrCSVLineExtractExpressionToPhysical(
+            expression, physicalOperatorInfo, resultSet);
     } else if (isExpressionUnary(expressionType)) {
         auto child = mapToPhysical(expression.getChildExpr(0), physicalOperatorInfo, resultSet);
         return make_unique<UnaryExpressionEvaluator>(
@@ -89,8 +94,9 @@ unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToPhysical(
     return make_unique<ExpressionEvaluator>(vector, expression.expressionType);
 }
 
-unique_ptr<ExpressionEvaluator> mapLogicalPropertyExpressionToPhysical(const Expression& expression,
-    PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet) {
+unique_ptr<ExpressionEvaluator> mapLogicalPropertyOrCSVLineExtractExpressionToPhysical(
+    const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
+    ResultSet& resultSet) {
     const auto& variableName = expression.variableName;
     auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(variableName);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(variableName);

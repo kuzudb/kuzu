@@ -100,7 +100,7 @@ TEST_F(ExpressionTest, FilterStringOperatorTest) {
 
 TEST_F(ExpressionTest, FilterLtOperatorTest) {
     auto aAge = makeAAgeExpression();
-    auto csvLine0 = make_unique<ParsedExpression>(LIST_EXTRACT, EMPTY, EMPTY);
+    auto csvLine0 = make_unique<ParsedExpression>(CSV_LINE_EXTRACT, EMPTY, EMPTY);
     csvLine0->children.emplace_back(make_unique<ParsedExpression>(VARIABLE, "csvLine", EMPTY));
     csvLine0->children.emplace_back(make_unique<ParsedExpression>(LITERAL_INT, "0", EMPTY));
     auto where = make_unique<ParsedExpression>(EQUALS, EMPTY, EMPTY, move(aAge), move(csvLine0));

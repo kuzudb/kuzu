@@ -26,6 +26,11 @@ public:
 private:
     void enumerateBoundQueryPart(BoundQueryPart& boundQueryPart);
 
+    void enumerateBoundReadingStatement(BoundReadingStatement& boundReadingStatement,
+        vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
+
+    void enumerateBoundLoadCSVStatement(const BoundLoadCSVStatement& boundLoadCSVStatement);
+
     void updateQueryGraphAndWhereClause(BoundMatchStatement& boundMatchStatement,
         vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
 
@@ -39,6 +44,8 @@ private:
     void enumerateHashJoin(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
 
     void enumerateExtend(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
+
+    void appendLoadCSV(const BoundLoadCSVStatement& boundLoadCSVStatement, LogicalPlan& plan);
 
     void appendLogicalScan(uint32_t queryNodePos, LogicalPlan& plan);
 
