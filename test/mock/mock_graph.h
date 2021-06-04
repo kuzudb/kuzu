@@ -22,14 +22,16 @@ public:
 };
 
 /**
- * Mock person-knows-person graph with 10000 person nodes
- * fwd average degree 10, bwd average degree 20
+ * Mock tiny snb graph with 10000 person nodes and 100 organisation nodes
+ * knows edge has fwd average degree 10, bwd average degree 20
+ * workAt edge has fwd average degree 1 (column extend), bwd average degree 100
  */
-class PersonKnowsPersonGraph : public MockGraph {
+class TinySnbGraph : public MockGraph {
 
 public:
     void setUp() {
         numPersonNodes = 10000;
+        numOrganisationNodes = 100;
         setCatalog();
 
         setActionForGetCatalog();
@@ -44,6 +46,7 @@ private:
         ON_CALL(*this, getNumNodes(_))
             .WillByDefault(Throw(invalid_argument("Should never happen.")));
         ON_CALL(*this, getNumNodes(0)).WillByDefault(Return(numPersonNodes));
+        ON_CALL(*this, getNumNodes(1)).WillByDefault(Return(numOrganisationNodes));
     }
 
     void setActionForGetNumRelsForDirBoundLabelRelLabel() {
@@ -53,14 +56,19 @@ private:
             .WillByDefault(Return(10 * numPersonNodes));
         ON_CALL(*this, getNumRelsForDirBoundLabelRelLabel(BWD, 0, 0))
             .WillByDefault(Return(20 * numPersonNodes));
+        ON_CALL(*this, getNumRelsForDirBoundLabelRelLabel(FWD, 0, 1))
+            .WillByDefault(Return(1 * numPersonNodes));
+        ON_CALL(*this, getNumRelsForDirBoundLabelRelLabel(BWD, 1, 1))
+            .WillByDefault(Return(100 * numOrganisationNodes));
     }
 
     void setCatalog() {
-        auto mockCatalog = make_unique<NiceMock<PersonKnowsPersonCatalog>>();
+        auto mockCatalog = make_unique<NiceMock<TinySnbCatalog>>();
         mockCatalog->setUp();
         catalog = move(mockCatalog);
     }
 
     unique_ptr<Catalog> catalog;
     uint64_t numPersonNodes;
+    uint64_t numOrganisationNodes;
 };

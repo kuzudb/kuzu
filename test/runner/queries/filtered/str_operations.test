@@ -1,9 +1,5 @@
 # description: matching nodes
 
--INPUT dataset/tinysnb/
--OUTPUT test/unittest_temp/
--PARALLELISM 1
-
 -NAME StrVarAndStrLiteralConcat
 -QUERY MATCH (a:person) WHERE a.fName + 'xyz' = 'Farooqxyz' RETURN COUNT(*)
 ---- 1

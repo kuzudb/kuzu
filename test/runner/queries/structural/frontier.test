@@ -1,9 +1,5 @@
 # description: extending frontiers.
 
--INPUT dataset/tinysnb/
--OUTPUT test/unittest_temp/
--PARALLELISM 1
-
 -NAME KnowsOneToTwoHopTest
 -QUERY MATCH (a:person)-[:knows*1..2]->(b:person) RETURN COUNT(*)
 ---- 50

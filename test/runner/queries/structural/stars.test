@@ -1,9 +1,5 @@
 # description: matching stars
 
--INPUT dataset/tinysnb/
--OUTPUT test/unittest_temp/
--PARALLELISM 1
-
 -NAME OpenWedgeKnowsTest
 -QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) RETURN COUNT(*)
 ---- 40

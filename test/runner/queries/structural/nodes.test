@@ -1,9 +1,5 @@
 # description: matching nodes
 
--INPUT dataset/tinysnb/
--OUTPUT test/unittest_temp/
--PARALLELISM 1
-
 -NAME PersonNodesTest
 -QUERY MATCH (a:person) RETURN COUNT(*)
 ---- 8
