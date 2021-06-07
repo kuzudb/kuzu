@@ -1,48 +1,48 @@
 #include "src/storage/include/index/hash_index.h"
 
-#include <iostream>
-
 #include "src/common/include/vector/operations/vector_hash_operations.h"
 
 namespace graphflow {
 namespace storage {
 
 HashIndex::HashIndex(const string& indexPath, uint64_t indexId, MemoryManager& memoryManager,
-    BufferManager& bufferManager, DataType keyType)
-    : indexHeader{indexId}, memoryManager{memoryManager}, bufferManager{bufferManager} {
-    // entry in slot: hash + key (fixed sized part) + node_offset
-    indexHeader.numBytesPerEntry =
-        sizeof(uint64_t) + getDataTypeSize(keyType) + sizeof(node_offset_t);
-    indexHeader.numBytesPerSlot =
-        (indexHeader.numBytesPerEntry * indexHeader.slotCapacity) + NUM_BYTES_PER_SLOT_HEADER;
-    indexHeader.numSlotsPerBlock = PAGE_SIZE / indexHeader.numBytesPerSlot;
+    BufferManager& bufferManager, OverflowPagesManager& overflowPagesManager, DataType keyType)
+    : memoryManager{memoryManager}, bufferManager{bufferManager}, overflowPagesManager{
+                                                                      overflowPagesManager} {
+    // Entry in slot: hash + key (fixed sized part) + node_offset
+    numBytesPerEntry = sizeof(uint64_t) + getDataTypeSize(keyType) + sizeof(node_offset_t);
+    numBytesPerSlot = (numBytesPerEntry * indexHeader.slotCapacity) + NUM_BYTES_PER_SLOT_HEADER;
+    numSlotsPerPrimaryBlock = PAGE_SIZE / numBytesPerSlot;
+    numSlotsPerOverflowBlock = numSlotsPerPrimaryBlock;
+    // Num of bytes used for storing the slots bitset in the overflow page to keep track of if each
+    // slot is free or not.
+    numBytesPerOverflowSlotsBitset = (numSlotsPerOverflowBlock + (CHAR_BIT - 1)) / CHAR_BIT;
+    while (
+        numBytesPerOverflowSlotsBitset + (numSlotsPerOverflowBlock * numBytesPerSlot) > PAGE_SIZE) {
+        numBytesPerOverflowSlotsBitset = (numSlotsPerOverflowBlock + (CHAR_BIT)) / CHAR_BIT;
+        numSlotsPerOverflowBlock--;
+    }
     initialize(indexPath, indexId);
 }
 
 void HashIndex::initialize(const string& indexBasePath, uint64_t indexId) {
-    vector<string> filePaths(2); // [indexPrimaryFilePath,indexOverflowFilePath]
-    filePaths[0] = FileUtils::joinPath(indexBasePath, (to_string(indexId) + INDEX_FILE_POSTFIX));
-    filePaths[1] = FileUtils::joinPath(indexBasePath, OVERFLOW_FILE_NAME + INDEX_FILE_POSTFIX);
-    memoryBlocks.resize(2);
-    fileHandles.resize(2);
+    auto filePath = FileUtils::joinPath(indexBasePath, (to_string(indexId) + INDEX_FILE_POSTFIX));
     bool isIndexFileExist = true;
-    // Open index files
-    for (auto i = 0u; i < 2; i++) {
-        int flags = O_RDWR;
-        if (!FileUtils::fileExists(filePaths[i])) {
-            flags |= O_CREAT;
-            isIndexFileExist = false;
-        }
-        fileHandles[i] = make_unique<FileHandle>(filePaths[i], flags);
-        // Cache the first page of primary and overflow index file
-        getMemoryBlock(0, i == 1);
+    // Open the index file and create it if not exists
+    int flags = O_RDWR;
+    if (!FileUtils::fileExists(filePath)) {
+        flags |= O_CREAT;
+        isIndexFileExist = false;
     }
+    fileHandle = make_unique<FileHandle>(filePath, flags);
+    // Cache the first page of primary index file
+    getMemoryBlock(0);
     if (isIndexFileExist) {
-        deSerIndexHeaderAndOvfPageSet();
+        deSerIndexHeaderAndOverflowPageSet();
     } else {
         // Pre-allocate primary slots so it is consistent with the initialization of IndexHeader
         // that the index starts with level 1 and 2 slots.
-        memoryBlocks[0][1] = memoryManager.allocateBlock(PAGE_SIZE, true /* initialize */);
+        memoryBlocks[1] = memoryManager.allocateBlock(PAGE_SIZE, true /* initialize */);
     }
 }
 
@@ -68,11 +68,11 @@ void HashIndex::lookup(ValueVector& keys, ValueVector& result) {
     VectorHashOperations::Hash(keys, *hashes);
     auto offset = keys.state->isFlat() ? keys.state->getCurrSelectedValuesPos() : 0;
     auto numKeys = keys.state->isFlat() ? 1 : keys.state->numSelectedValues;
-    auto slots = calculateSlotIdForHashes(*hashes, offset, numKeys);
+    auto slotIds = calculateSlotIdsForHashes(*hashes, offset, numKeys);
     auto numBytesPerKey = keys.getNumBytesPerValue();
     for (auto keyPos = 0u; keyPos < numKeys; keyPos++) {
-        auto blockId = getPrimaryBlockIdForSlot(slots[keyPos]);
-        auto slotIdInBlock = slots[keyPos] % indexHeader.numSlotsPerBlock;
+        auto blockId = getPrimaryBlockIdForSlot(slotIds[keyPos]);
+        auto slotIdInBlock = slotIds[keyPos] % numSlotsPerPrimaryBlock;
         uint8_t* expectedKey =
             keyData + (keys.state->selectedValuesPos[keyPos + offset] * numBytesPerKey);
         auto resultValue = lookupKeyInSlot(expectedKey, numBytesPerKey, blockId, slotIdInBlock);
@@ -84,79 +84,60 @@ void HashIndex::lookup(ValueVector& keys, ValueVector& result) {
 // First visit the primary slot, then loop over all overflow slots until the key is found, or all
 // slots are done. Return UINT64_MAX if no key is found.
 uint64_t HashIndex::lookupKeyInSlot(
-    uint8_t* key, uint64_t numBytesPerKey, uint64_t blockId, uint64_t slotIdInBlock) {
-    auto fileHandle = fileHandles[0].get(); // Primary file handle
-    while (blockId != 0) {
-        const uint8_t* block = bufferManager.pin(*fileHandle, blockId);
-        const uint8_t* slot = block + (slotIdInBlock * indexHeader.numBytesPerSlot);
+    uint8_t* key, uint64_t numBytesPerKey, uint64_t pageId, uint64_t slotIdInBlock) const {
+    bool isOverflow = false;
+    auto currentFileHandle = fileHandle.get();
+    while (pageId != 0) {
+        const uint8_t* block = bufferManager.pin(*currentFileHandle, pageId);
+        const uint8_t* slot = block + (isOverflow * numBytesPerOverflowSlotsBitset) +
+                              (slotIdInBlock * numBytesPerSlot);
         auto slotHeader = deSerSlotHeader(*(uint64_t*)slot);
         for (auto entryPos = 0u; entryPos < slotHeader.numEntries; entryPos++) {
-            auto keyInSlot = slot + NUM_BYTES_PER_SLOT_HEADER +
-                             (entryPos * indexHeader.numBytesPerEntry) + sizeof(uint64_t);
+            auto keyInSlot =
+                slot + NUM_BYTES_PER_SLOT_HEADER + (entryPos * numBytesPerEntry) + sizeof(uint64_t);
             if (memcmp(key, keyInSlot, numBytesPerKey) == 0) {
                 uint64_t result = *(uint64_t*)(keyInSlot + numBytesPerKey);
-                bufferManager.unpin(*fileHandle, blockId);
+                bufferManager.unpin(*currentFileHandle, pageId);
                 return result;
             }
         }
-        bufferManager.unpin(*fileHandle, blockId);
-        fileHandle = fileHandles[1].get(); // Overflow file handle
-        blockId = slotHeader.ovfPageId;
-        slotIdInBlock = slotHeader.ovfSlotIdInPage;
+        bufferManager.unpin(*currentFileHandle, pageId);
+        currentFileHandle = overflowPagesManager.fileHandle.get();
+        pageId = slotHeader.overflowPageId;
+        slotIdInBlock = slotHeader.overflowSlotIdInPage;
+        isOverflow = true;
     }
     return UINT64_MAX;
 }
 
-// Check if key exists in the given slot. Return true if key not exists, else false.
-bool HashIndex::keyNotExistInSlot(
-    uint8_t* key, uint64_t numBytesPerKey, uint64_t blockId, uint64_t slotIdInBlock) {
-    bool isOverflow = false;
-    while (blockId != 0) {
-        uint8_t* block = getMemoryBlock(blockId, isOverflow);
-        uint8_t* slot = block + (slotIdInBlock * indexHeader.numBytesPerSlot);
-        auto slotHeader = deSerSlotHeader(*(uint64_t*)slot);
-        for (auto entryPos = 0u; entryPos < slotHeader.numEntries; entryPos++) {
-            uint8_t* keyInSlot = slot + NUM_BYTES_PER_SLOT_HEADER +
-                                 (entryPos * indexHeader.numBytesPerEntry) + sizeof(uint64_t);
-            if (memcmp(key, keyInSlot, numBytesPerKey) == 0) {
-                return false;
-            }
-        }
-        isOverflow = true;
-        blockId = slotHeader.ovfPageId;
-        slotIdInBlock = slotHeader.ovfSlotIdInPage;
-    }
-    return true;
-}
-
 uint8_t* HashIndex::findEntryToAppendAndUpdateSlotHeader(uint8_t* slot) {
     auto slotHeader = deSerSlotHeader(*(uint64_t*)slot);
-    while (slotHeader.ovfPageId > 0) {
-        uint8_t* slotBlock = getMemoryBlock(slotHeader.ovfPageId, true);
-        slot = slotBlock + (slotHeader.ovfSlotIdInPage * indexHeader.numBytesPerSlot);
+    // Find the last overflow page in the chain if exists.
+    while (slotHeader.overflowPageId > 0) {
+        uint8_t* slotBlock = overflowPagesManager.getMemoryBlock(slotHeader.overflowPageId);
+        slot = slotBlock + numBytesPerOverflowSlotsBitset +
+               (slotHeader.overflowSlotIdInPage * numBytesPerSlot);
         slotHeader = deSerSlotHeader(*(uint64_t*)slot);
     }
     if (slotHeader.numEntries == indexHeader.slotCapacity) {
+        // Allocate a new overflow slot and chain it if the current one is full.
         uint8_t* overflowSlot = findFreeOverflowSlot(slotHeader);
         *(uint64_t*)slot = serSlotHeader(slotHeader);
         slot = overflowSlot;
         slotHeader = deSerSlotHeader(*(uint64_t*)slot);
     }
-    uint8_t* entry =
-        slot + NUM_BYTES_PER_SLOT_HEADER + slotHeader.numEntries * indexHeader.numBytesPerEntry;
+    uint8_t* entry = slot + NUM_BYTES_PER_SLOT_HEADER + slotHeader.numEntries * numBytesPerEntry;
     slotHeader.numEntries++;
     *(uint64_t*)slot = serSlotHeader(slotHeader);
     return entry;
 }
 
 void HashIndex::flush() {
-    serIndexHeaderAndOvfPageSet();
-    for (auto& block : memoryBlocks[0]) {
-        fileHandles[0]->writePage(block.second->blockPtr, block.first);
+    serIndexHeaderAndOverflowPageSet();
+    for (auto& block : memoryBlocks) {
+        fileHandle->writePage(block.second->blockPtr, block.first);
     }
-    for (auto& block : memoryBlocks[1]) {
-        fileHandles[1]->writePage(block.second->blockPtr, block.first);
-    }
+    overflowPagesManager.flush();
 }
 
 vector<bool> HashIndex::notExists(ValueVector& keys, ValueVector& hashes) {
@@ -164,21 +145,46 @@ vector<bool> HashIndex::notExists(ValueVector& keys, ValueVector& hashes) {
     auto offset = keys.state->isFlat() ? keys.state->getCurrSelectedValuesPos() : 0;
     auto numKeys = keys.state->isFlat() ? 1 : keys.state->numSelectedValues;
     if (indexHeader.currentNumEntries == 0) {
-        vector<bool> notExistsVector(numKeys, true);
-        return notExistsVector;
+        // The index is empty, all keys not exist in the current index.
+        vector<bool> keyNotExists(numKeys, true);
+        return keyNotExists;
     }
-    auto slots = calculateSlotIdForHashes(hashes, offset, numKeys);
+    auto slotIds = calculateSlotIdsForHashes(hashes, offset, numKeys);
     vector<bool> keyNotExists(numKeys);
     auto numBytesPerKey = keys.getNumBytesPerValue();
     for (auto keyPos = 0u; keyPos < numKeys; keyPos++) {
-        auto blockId = getPrimaryBlockIdForSlot(slots[keyPos]);
-        auto slotIdInBlock = slots[keyPos] % indexHeader.numSlotsPerBlock;
+        auto blockId = getPrimaryBlockIdForSlot(slotIds[keyPos]);
+        auto slotIdInBlock = slotIds[keyPos] % numSlotsPerPrimaryBlock;
         auto expectedKey =
             keyData + (keys.state->selectedValuesPos[keyPos + offset] * numBytesPerKey);
         keyNotExists[keyPos] =
             keyNotExistInSlot(expectedKey, numBytesPerKey, blockId, slotIdInBlock);
     }
     return keyNotExists;
+}
+
+// Check if key exists in the given slot. Return true if key not exists, else false.
+bool HashIndex::keyNotExistInSlot(
+    uint8_t* key, uint64_t numBytesPerKey, uint64_t blockId, uint64_t slotIdInBlock) {
+    bool isOverflow = false;
+    while (blockId != 0) {
+        uint8_t* block =
+            isOverflow ? overflowPagesManager.getMemoryBlock(blockId) : getMemoryBlock(blockId);
+        uint8_t* slot = block + (isOverflow * numBytesPerOverflowSlotsBitset) +
+                        (slotIdInBlock * numBytesPerSlot);
+        auto slotHeader = deSerSlotHeader(*(uint64_t*)slot);
+        for (auto entryPos = 0u; entryPos < slotHeader.numEntries; entryPos++) {
+            uint8_t* keyInSlot =
+                slot + NUM_BYTES_PER_SLOT_HEADER + (entryPos * numBytesPerEntry) + sizeof(uint64_t);
+            if (memcmp(key, keyInSlot, numBytesPerKey) == 0) {
+                return false;
+            }
+        }
+        isOverflow = true;
+        blockId = slotHeader.overflowPageId;
+        slotIdInBlock = slotHeader.overflowSlotIdInPage;
+    }
+    return true;
 }
 
 void HashIndex::insertInternal(
@@ -188,17 +194,17 @@ void HashIndex::insertInternal(
     auto offset = keys.state->isFlat() ? keys.state->getCurrSelectedValuesPos() : 0;
     auto numKeys = keys.state->isFlat() ? 1 : keys.state->numSelectedValues;
     vector<uint64_t> keyPositions(numKeys);
-    auto numEntriesToInsert = 0;
+    uint64_t numEntriesToInsert = 0;
     for (auto pos = 0u; pos < numKeys; pos++) {
         keyPositions[numEntriesToInsert] = keys.state->selectedValuesPos[pos + offset];
         // numEntriesToInsert is only incremented when key exists. otherwise keyNotExists[pos] is 0.
         numEntriesToInsert += keyNotExists[pos];
     }
     reserve(numEntriesToInsert + indexHeader.currentNumEntries);
-    auto slotIds = calculateSlotIdForHashes(hashes, offset, numKeys);
+    auto slotIds = calculateSlotIdsForHashes(hashes, offset, numKeys);
     for (auto i = 0u; i < numEntriesToInsert; i++) {
         uint8_t* slot = getPrimarySlot(slotIds[i]);
-        auto entryInSlot = findEntryToAppendAndUpdateSlotHeader(slot);
+        uint8_t* entryInSlot = findEntryToAppendAndUpdateSlotHeader(slot);
         memcpy(entryInSlot, &hashesData[i], sizeof(uint64_t));
         memcpy(entryInSlot + sizeof(uint64_t), keys.values + keyPositions[i] * numBytesPerKey,
             numBytesPerKey);
@@ -208,237 +214,224 @@ void HashIndex::insertInternal(
     indexHeader.currentNumEntries += numEntriesToInsert;
 }
 
-uint8_t* HashIndex::getMemoryBlock(uint64_t blockId, bool isOverflow) {
-    auto& memoryBlockMap = memoryBlocks[isOverflow];
-    auto fileHandle = fileHandles[isOverflow].get();
-    if (memoryBlockMap.find(blockId) == memoryBlockMap.end()) {
+uint8_t* HashIndex::getMemoryBlock(uint64_t blockId) {
+    if (memoryBlocks.find(blockId) == memoryBlocks.end()) {
+        // Allocate a memory block for the page, if failed, clean up allocated memoryBlocks and
+        // throw an exception.
         try {
-            memoryBlockMap[blockId] = memoryManager.allocateBlock(PAGE_SIZE, true /* initialize */);
+            memoryBlocks[blockId] = memoryManager.allocateBlock(PAGE_SIZE, true /* initialize */);
         } catch (const invalid_argument& exception) {
             memoryBlocks.clear();
             throw invalid_argument(exception.what());
         }
         if (blockId < fileHandle->numPages) {
-            fileHandle->readPage(memoryBlockMap[blockId]->blockPtr, blockId);
+            // Read from the primary index file if the page exists on disk.
+            fileHandle->readPage(memoryBlocks[blockId]->blockPtr, blockId);
         }
     }
-    return memoryBlockMap[blockId]->blockPtr;
+    return memoryBlocks[blockId]->blockPtr;
 }
 
 uint8_t* HashIndex::getPrimarySlot(uint64_t slotId) {
     auto blockId = getPrimaryBlockIdForSlot(slotId);
-    uint8_t* block = getMemoryBlock(blockId, false);
-    auto slotIdInBlock = slotId % indexHeader.numSlotsPerBlock;
-    return block + (slotIdInBlock * indexHeader.numBytesPerSlot);
+    uint8_t* block = getMemoryBlock(blockId);
+    auto slotIdInBlock = slotId % numSlotsPerPrimaryBlock;
+    return block + (slotIdInBlock * numBytesPerSlot);
 }
 
 void HashIndex::reserve(uint64_t numEntries) {
     while (
         (double)(numEntries) / (double)(indexHeader.slotCapacity * indexHeader.currentNumSlots) >=
         indexHeader.maxLoadFactor) {
-        splitSlot();
+        split();
     }
 }
 
-vector<uint64_t> HashIndex::calculateSlotIdForHashes(
+vector<uint64_t> HashIndex::calculateSlotIdsForHashes(
     ValueVector& hashes, uint64_t offset, uint64_t numValues) const {
     auto hashesData = (uint64_t*)hashes.values;
-    vector<uint64_t> slots(numValues);
+    vector<uint64_t> slotIds(numValues);
     auto hashMask = (1 << indexHeader.currentLevel) - 1;
     auto splitHashMask = (1 << (indexHeader.currentLevel + 1)) - 1;
     for (auto i = 0u; i < numValues; i++) {
         auto pos = hashes.state->selectedValuesPos[i + offset];
         auto slotId = hashesData[pos] & hashMask;
-        slots[i] =
+        slotIds[i] =
             slotId >= indexHeader.nextSplitSlotId ? slotId : (hashesData[pos] & splitHashMask);
     }
-    return slots;
+    return slotIds;
 }
 
-vector<uint8_t*> HashIndex::getPrimaryAndOverflowSlots(uint64_t slotId) {
-    uint8_t* slot = getPrimarySlot(slotId);
-    auto slotHeader = deSerSlotHeader(*(uint64_t*)slot);
-    vector<uint8_t*> slots;
-    slots.push_back(slot);
-    while (slotHeader.ovfPageId > 0) {
-        auto block = getMemoryBlock(slotHeader.ovfPageId, false);
-        slot = block + (slotHeader.ovfSlotIdInPage * indexHeader.numBytesPerSlot);
-        slotHeader = deSerSlotHeader(*(uint64_t*)slot);
-        slots.push_back(slot);
-    }
-    return slots;
-}
-
-uint64_t HashIndex::allocateFreeOverflowPage() {
-    uint64_t pageGroupId = 0;
-    uint64_t freeOverflowPageId = 0;
-    while (freeOverflowPageId == 0) {
-        if (pageGroupId >= ovfPagesAllocationBitsets.size()) {
-            auto newPageGroupBitset = bitset<NUM_PAGES_PER_PAGE_GROUP>();
-            newPageGroupBitset[0] = true;
-            pageGroupId = ovfPagesAllocationBitsets.size();
-            ovfPagesAllocationBitsets.push_back(newPageGroupBitset);
-            freeOverflowPageId = pageGroupId * NUM_PAGES_PER_PAGE_GROUP + 1;
-        }
-        auto& pageGroupBitset = ovfPagesAllocationBitsets[pageGroupId];
-        if (!pageGroupBitset.all()) {
-            // skip the first page in each page group
-            for (auto pagePos = 1u; pagePos < pageGroupBitset.size(); pagePos++) {
-                if (!pageGroupBitset[pagePos]) {
-                    freeOverflowPageId = pageGroupId * NUM_PAGES_PER_PAGE_GROUP + pagePos;
-                    ovfPagesAllocationBitsets[pageGroupId][pagePos] = true;
-                    break;
-                }
-            }
-        } else {
-            pageGroupId++;
-        }
-    }
-    return freeOverflowPageId;
-}
-
-void HashIndex::splitSlot() {
+void HashIndex::split() {
     auto newSlotId = indexHeader.currentNumSlots + 1;
     auto newSlotBlockId = getPrimaryBlockIdForSlot(newSlotId);
-    if (newSlotId % indexHeader.numSlotsPerBlock == 0) {
+    if (newSlotId % numSlotsPerPrimaryBlock == 0) {
         // Allocate a new primary index page for the new slot
-        memoryBlocks[0][newSlotBlockId] =
+        memoryBlocks[newSlotBlockId] =
             memoryManager.allocateBlock(PAGE_SIZE, true /* initialize */);
     } else {
-        getMemoryBlock(newSlotBlockId, false);
+        getMemoryBlock(newSlotBlockId);
     }
-    // Find all slots to be splitted, including the primary slot and its overflow slots.
-    auto slotsToSplit = getPrimaryAndOverflowSlots(indexHeader.nextSplitSlotId);
-    vector<uint64_t> slotIds(indexHeader.slotCapacity);
-    auto hashMask = (1 << (indexHeader.currentLevel + 1)) - 1;
-    for (auto slotToSplit : slotsToSplit) {
-        auto slotToSplitHeader = deSerSlotHeader(*(uint64_t*)slotToSplit);
-        auto numEntriesInSlotToSplit = slotToSplitHeader.numEntries;
-        // Read hash value for each entry, and re-compute slot ids to be inserted.
-        for (auto entryPos = 0u; entryPos < numEntriesInSlotToSplit; entryPos++) {
-            auto hash = *(uint64_t*)(slotToSplit + NUM_BYTES_PER_SLOT_HEADER +
-                                     (entryPos * indexHeader.numBytesPerEntry));
-            slotIds[entryPos] = hash & hashMask;
-        }
-        slotToSplitHeader.reset();
-        *(uint64_t*)slotToSplit = serSlotHeader(slotToSplitHeader);
-        for (auto i = 0u; i < numEntriesInSlotToSplit; i++) {
-            uint8_t* targetSlot = getPrimarySlot(slotIds[i]);
-            auto targetEntry = findEntryToAppendAndUpdateSlotHeader(targetSlot);
-            memcpy(targetEntry,
-                slotToSplit + NUM_BYTES_PER_SLOT_HEADER + (i * indexHeader.numBytesPerEntry),
-                indexHeader.numBytesPerEntry);
-        }
+    uint8_t* slotToSplit = getPrimarySlot(indexHeader.nextSplitSlotId);
+    auto slotHeader = deSerSlotHeader(*(uint64_t*)slotToSplit);
+    splitASlot(slotToSplit);
+    while (slotHeader.overflowPageId > 0) {
+        auto overflowPageId = slotHeader.overflowPageId;
+        auto overflowSlotIdInPage = slotHeader.overflowSlotIdInPage;
+        auto block = overflowPagesManager.getMemoryBlock(overflowPageId);
+        slotToSplit =
+            block + numBytesPerOverflowSlotsBitset + (overflowSlotIdInPage * numBytesPerSlot);
+        slotHeader = deSerSlotHeader(*(uint64_t*)slotToSplit);
+        auto updatedSlotHeader = splitASlot(slotToSplit);
+        // Update overflowPageHeader for the overflow page
+        auto isOverflowSlotsUsed =
+            OverflowPagesManager::deSerOverflowPageHeader(block, numSlotsPerOverflowBlock);
+        isOverflowSlotsUsed[overflowSlotIdInPage] = updatedSlotHeader.numEntries > 0;
+        OverflowPagesManager::serOverflowPageHeader(block, isOverflowSlotsUsed);
+        updateOverflowPageFreeStatus(overflowPageId, isOverflowSlotsUsed);
     }
     updateIndexHeaderAfterSlotSplit();
+}
+
+SlotHeader HashIndex::splitASlot(uint8_t* slotToSplit) {
+    auto slotToSplitHeader = deSerSlotHeader(*(uint64_t*)slotToSplit);
+    auto numEntriesInSlotToSplit = slotToSplitHeader.numEntries;
+    // Read hash value for each entry, and re-compute slot ids to be inserted.
+    vector<uint64_t> slotIds(indexHeader.slotCapacity);
+    auto hashMask = (1 << (indexHeader.currentLevel + 1)) - 1;
+    for (auto entryPos = 0u; entryPos < numEntriesInSlotToSplit; entryPos++) {
+        auto hash =
+            *(uint64_t*)(slotToSplit + NUM_BYTES_PER_SLOT_HEADER + (entryPos * numBytesPerEntry));
+        slotIds[entryPos] = hash & hashMask;
+    }
+    slotToSplitHeader.reset();
+    *(uint64_t*)slotToSplit = serSlotHeader(slotToSplitHeader);
+    for (auto i = 0u; i < numEntriesInSlotToSplit; i++) {
+        uint8_t* targetSlot = getPrimarySlot(slotIds[i]);
+        auto targetEntry = findEntryToAppendAndUpdateSlotHeader(targetSlot);
+        memcpy(targetEntry, slotToSplit + NUM_BYTES_PER_SLOT_HEADER + (i * numBytesPerEntry),
+            numBytesPerEntry);
+    }
+    return slotToSplitHeader;
 }
 
 uint8_t* HashIndex::findFreeOverflowSlot(SlotHeader& prevSlotHeader) {
     uint64_t freeOverflowPageId = 0; // pageId 0 should never be a free overflow page.
     // Check if there are free slots in allocated overflow pages of this index.
-    for (auto& page : ovfPagesFreeMap) {
+    for (auto& page : overflowPagesFreeMap) {
         if (page.second) {
             freeOverflowPageId = page.first;
             break;
         }
     }
-    // Find available page to be allocated in the allocation bitset of overflow page groups.
+    // Find an available page to be allocated in the allocation bitset of overflow page groups.
     if (freeOverflowPageId == 0) {
-        freeOverflowPageId = allocateFreeOverflowPage();
+        freeOverflowPageId = overflowPagesManager.allocateFreeOverflowPage();
     }
-    prevSlotHeader.ovfPageId = freeOverflowPageId;
-    // Find free slot in page.
-    uint8_t* block = getMemoryBlock(freeOverflowPageId, true);
-    uint8_t* result;
-    uint64_t numFreeSlots = 0;
-    for (auto slotPos = 0u; slotPos < indexHeader.numSlotsPerBlock; slotPos++) {
-        uint8_t* slot = block + (slotPos * indexHeader.numBytesPerSlot);
-        auto slotHeader = deSerSlotHeader(*(uint64_t*)slot);
-        if (slotHeader.numEntries == (uint8_t)0) {
-            numFreeSlots++;
-            result = slot;
-            prevSlotHeader.ovfSlotIdInPage = slotPos;
+    prevSlotHeader.overflowPageId = freeOverflowPageId;
+    // Find a free slot in the page.
+    uint8_t* block = overflowPagesManager.getMemoryBlock(freeOverflowPageId);
+    uint8_t* result = nullptr;
+    auto isOverflowSlotsUsed =
+        OverflowPagesManager::deSerOverflowPageHeader(block, numSlotsPerOverflowBlock);
+    for (auto slotPos = 0u; slotPos < numSlotsPerOverflowBlock; slotPos++) {
+        if (!isOverflowSlotsUsed[slotPos]) {
+            result = block + numBytesPerOverflowSlotsBitset + (slotPos * numBytesPerSlot);
+            prevSlotHeader.overflowSlotIdInPage = slotPos;
+            isOverflowSlotsUsed[slotPos] = true;
+            break;
         }
     }
-    // Add the page into index's overflow pages map.
-    ovfPagesFreeMap[freeOverflowPageId] = numFreeSlots > 1;
+    OverflowPagesManager::serOverflowPageHeader(block, isOverflowSlotsUsed);
+    updateOverflowPageFreeStatus(freeOverflowPageId, isOverflowSlotsUsed);
     return result;
 }
 
+void HashIndex::updateOverflowPageFreeStatus(
+    uint64_t overflowPageId, vector<bool>& isOverflowSlotsUsed) {
+    uint64_t numFreeSlots = 0;
+    for (auto isUsed : isOverflowSlotsUsed) {
+        numFreeSlots += (1 - isUsed);
+    }
+    // Add the page into index's overflow pages map.
+    overflowPagesFreeMap[overflowPageId] = numFreeSlots > 0;
+}
+
 uint64_t HashIndex::serSlotHeader(SlotHeader& slotHeader) {
-    uint64_t value = slotHeader.ovfPageId;
-    value |= ((uint64_t)slotHeader.ovfSlotIdInPage << 32);
+    uint64_t value = slotHeader.overflowPageId;
+    value |= ((uint64_t)slotHeader.overflowSlotIdInPage << 32);
     value |= ((uint64_t)slotHeader.numEntries << 56);
     return value;
 }
 
-SlotHeader HashIndex::deSerSlotHeader(const uint64_t value) {
+SlotHeader HashIndex::deSerSlotHeader(uint64_t value) {
     SlotHeader slotHeader;
     slotHeader.numEntries = value >> 56;
-    slotHeader.ovfSlotIdInPage = (value >> 32) & OVF_SLOT_ID_MASK;
-    slotHeader.ovfPageId = value & OVF_PAGE_ID_MASK;
+    slotHeader.overflowSlotIdInPage = (value >> 32) & OVERFLOW_SLOT_ID_MASK;
+    slotHeader.overflowPageId = value & OVERFLOW_PAGE_ID_MASK;
     return slotHeader;
 }
 
-void HashIndex::serIndexHeaderAndOvfPageSet() {
-    uint8_t* headerBuffer = memoryBlocks[0][0]->blockPtr;
-    auto ovfPageSetSize = (PAGE_SIZE - INDEX_HEADER_SIZE) / sizeof(uint32_t);
-    ovfPageSetSize = min(ovfPageSetSize, (uint64_t)ovfPagesFreeMap.size());
-    uint32_t ovfPagesList[ovfPageSetSize];
-    auto ovfPagesFreeMapItr = ovfPagesFreeMap.begin();
-    for (auto i = 0u; i < ovfPageSetSize; i++) {
-        auto ovfPageId = ovfPagesFreeMapItr->first;
-        ovfPagesList[i] = ovfPagesFreeMapItr->second ? ovfPageId | PAGE_FREE_MASK : ovfPageId;
-        ovfPagesFreeMapItr++;
-    }
-    memcpy(headerBuffer + INDEX_HEADER_SIZE, &ovfPagesList, ovfPageSetSize * sizeof(uint32_t));
-    auto leftOvfPagesSize = ovfPagesFreeMap.size() - ovfPageSetSize;
-    auto nextBlockIdForOvfPageSet = getPrimaryBlockIdForSlot(indexHeader.currentNumSlots) +
-                                    1; // next block/page after current slots
-    indexHeader.nextBlockIdForOvfPageSet = leftOvfPagesSize > 0 ? nextBlockIdForOvfPageSet : 0;
-    uint8_t* nextBlockForOvfPageSet;
-    while (leftOvfPagesSize > 0) {
-        nextBlockForOvfPageSet = getMemoryBlock(nextBlockIdForOvfPageSet, false);
-        ovfPageSetSize = min((PAGE_SIZE - sizeof(uint64_t)) / sizeof(uint32_t), leftOvfPagesSize);
-        uint32_t nextOvfPagesList[ovfPageSetSize];
-        for (auto i = 0u; i < ovfPageSetSize; i++) {
-            auto ovfPageId = ovfPagesFreeMapItr->first;
-            nextOvfPagesList[i] =
-                ovfPagesFreeMapItr->second ? ovfPageId | PAGE_FREE_MASK : ovfPageId;
-            ovfPagesFreeMapItr++;
+void HashIndex::serIndexHeaderAndOverflowPageSet() {
+    auto blockIdForOverflowPageSet = 0;
+    auto overflowPageSetSize = (PAGE_SIZE - INDEX_HEADER_SIZE) / sizeof(uint32_t);
+    overflowPageSetSize = min(overflowPageSetSize, (uint64_t)overflowPagesFreeMap.size());
+    uint64_t leftOverflowPagesSize = overflowPagesFreeMap.size();
+    auto numSpilledBlocks = 0;
+    auto overflowPagesFreeMapItr = overflowPagesFreeMap.begin();
+    auto numBytesPerBlockHeader = INDEX_HEADER_SIZE;
+    do {
+        auto block = getMemoryBlock(blockIdForOverflowPageSet);
+        uint32_t overflowPagesList[overflowPageSetSize];
+        for (auto i = 0u; i < overflowPageSetSize; i++) {
+            auto overflowPageId = overflowPagesFreeMapItr->first;
+            overflowPagesList[i] = overflowPagesFreeMapItr->second ?
+                                       overflowPageId | OVERFLOW_PAGE_FREE_MASK :
+                                       overflowPageId;
+            overflowPagesFreeMapItr++;
         }
-        memcpy(nextBlockForOvfPageSet + sizeof(uint64_t), &nextOvfPagesList,
-            ovfPageSetSize * sizeof(uint32_t));
-        leftOvfPagesSize -= ovfPageSetSize;
-        nextBlockIdForOvfPageSet++;
-        *(uint64_t*)nextBlockForOvfPageSet = leftOvfPagesSize > 0 ? nextBlockIdForOvfPageSet : 0;
-    }
-    memcpy(headerBuffer, &indexHeader, INDEX_HEADER_SIZE);
+        memcpy(block + numBytesPerBlockHeader, &overflowPagesList,
+            overflowPageSetSize * sizeof(uint32_t));
+        numBytesPerBlockHeader = sizeof(uint64_t);
+        leftOverflowPagesSize -= overflowPageSetSize;
+        overflowPageSetSize =
+            min((PAGE_SIZE - sizeof(uint64_t)) / sizeof(uint32_t), leftOverflowPagesSize);
+        numSpilledBlocks++;
+        blockIdForOverflowPageSet =
+            getPrimaryBlockIdForSlot(indexHeader.currentNumSlots) + numSpilledBlocks;
+        if (blockIdForOverflowPageSet > 0) {
+            *(uint64_t*)block = leftOverflowPagesSize > 0 ? blockIdForOverflowPageSet : 0;
+        } else {
+            indexHeader.nextBlockIdForOverflowPageSet =
+                leftOverflowPagesSize > 0 ? blockIdForOverflowPageSet : 0;
+        }
+    } while (leftOverflowPagesSize > 0);
+    memcpy(getMemoryBlock(0), &indexHeader, INDEX_HEADER_SIZE);
 }
 
-void HashIndex::deSerIndexHeaderAndOvfPageSet() {
-    uint8_t* headerBuffer = memoryBlocks[0][0]->blockPtr;
+void HashIndex::deSerIndexHeaderAndOverflowPageSet() {
+    uint8_t* headerBuffer = memoryBlocks[0]->blockPtr;
     memcpy(&indexHeader, headerBuffer, INDEX_HEADER_SIZE);
-    auto ovfPageSetSize = (PAGE_SIZE - INDEX_HEADER_SIZE) / sizeof(uint32_t);
-    ovfPagesFreeMap.reserve(ovfPageSetSize);
-    uint32_t ovfPagesInHeaderSet[ovfPageSetSize];
-    memcpy(
-        &ovfPagesInHeaderSet, headerBuffer + INDEX_HEADER_SIZE, ovfPageSetSize * sizeof(uint32_t));
-    for (auto i = 0u; i < ovfPageSetSize; i++) {
-        auto pageId = ovfPagesInHeaderSet[i] & PAGE_FULL_MASK;
-        ovfPagesFreeMap[pageId] = pageId != ovfPagesInHeaderSet[i];
+    auto overflowPageSetSize = (PAGE_SIZE - INDEX_HEADER_SIZE) / sizeof(uint32_t);
+    overflowPagesFreeMap.reserve(overflowPageSetSize);
+    uint32_t overflowPagesInHeaderSet[overflowPageSetSize];
+    memcpy(&overflowPagesInHeaderSet, headerBuffer + INDEX_HEADER_SIZE,
+        overflowPageSetSize * sizeof(uint32_t));
+    for (auto i = 0u; i < overflowPageSetSize; i++) {
+        auto pageId = overflowPagesInHeaderSet[i] & OVERFLOW_PAGE_FULL_MASK;
+        overflowPagesFreeMap[pageId] = pageId != overflowPagesInHeaderSet[i];
     }
-    auto nextBlockIdForOvfPageSet = indexHeader.nextBlockIdForOvfPageSet;
-    while (nextBlockIdForOvfPageSet > 0) {
-        uint8_t* nextBlock = getMemoryBlock(nextBlockIdForOvfPageSet, true);
-        ovfPageSetSize = (PAGE_SIZE - sizeof(uint64_t)) / sizeof(uint32_t);
-        uint32_t nextOvfPagesSet[ovfPageSetSize];
-        memcpy(&nextOvfPagesSet, nextBlock, ovfPageSetSize * sizeof(uint32_t));
-        for (auto i = 0u; i < ovfPageSetSize; i++) {
-            auto pageId = nextOvfPagesSet[i] & PAGE_FULL_MASK;
-            ovfPagesFreeMap[pageId] = pageId != nextOvfPagesSet[i];
+    auto nextBlockIdForOverflowPageSet = indexHeader.nextBlockIdForOverflowPageSet;
+    while (nextBlockIdForOverflowPageSet > 0) {
+        uint8_t* nextBlock = getMemoryBlock(nextBlockIdForOverflowPageSet);
+        overflowPageSetSize = (PAGE_SIZE - sizeof(uint64_t)) / sizeof(uint32_t);
+        uint32_t nextOverflowPagesSet[overflowPageSetSize];
+        memcpy(&nextOverflowPagesSet, nextBlock, overflowPageSetSize * sizeof(uint32_t));
+        for (auto i = 0u; i < overflowPageSetSize; i++) {
+            auto pageId = nextOverflowPagesSet[i] & OVERFLOW_PAGE_FULL_MASK;
+            overflowPagesFreeMap[pageId] = pageId != nextOverflowPagesSet[i];
         }
-        nextBlockIdForOvfPageSet = *(uint64_t*)nextBlock;
+        nextBlockIdForOverflowPageSet = *(uint64_t*)nextBlock;
     }
 }
 
