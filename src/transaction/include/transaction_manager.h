@@ -16,7 +16,7 @@ namespace transaction {
 class TransactionManager {
 
 public:
-    Transaction* startTranscation();
+    Transaction* startTransaction();
 
     TransactionStatus commit(Transaction* transaction);
     TransactionStatus rollback(Transaction* transaction);

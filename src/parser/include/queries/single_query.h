@@ -14,6 +14,7 @@ public:
     vector<unique_ptr<QueryPart>> queryParts;
     vector<unique_ptr<ReadingStatement>> readingStatements;
     unique_ptr<ReturnStatement> returnStatement;
+    bool enable_profile = false;
 };
 
 } // namespace parser

@@ -3,7 +3,7 @@
 namespace graphflow {
 namespace transaction {
 
-Transaction* TransactionManager::startTranscation() {
+Transaction* TransactionManager::startTransaction() {
     lock_guard lck(transaction_manager_lock);
     auto newTransaction = make_unique<Transaction>(logicalTransactionClock++);
     auto transactionPtr = newTransaction.get();

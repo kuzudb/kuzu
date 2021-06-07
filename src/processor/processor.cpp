@@ -5,11 +5,9 @@
 #include "src/processor/include/physical_plan/operator/read_list/frontier_extend.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
 #include "src/processor/include/physical_plan/operator/sink/sink.h"
-#include "src/processor/include/physical_plan/physical_plan.h"
 #include "src/processor/include/physical_plan/query_result.h"
 
 using namespace graphflow::common;
-using namespace graphflow::planner;
 
 namespace graphflow {
 namespace processor {
@@ -31,22 +29,15 @@ QueryProcessor::~QueryProcessor() {
     spdlog::drop("processor");
 }
 
-// This function is currently blocking. In the future, this should async and return the result
-// wrapped in Future for syncing with the runner.
-unique_ptr<QueryResult> QueryProcessor::execute(unique_ptr<LogicalPlan> plan,
-    uint64_t maxNumThreads, Transaction* transactionPtr, const Graph& graph) {
-    auto physicalPlan = PlanMapper::mapToPhysical(move(plan), transactionPtr, graph);
-    return execute(move(physicalPlan), maxNumThreads);
-}
-
-unique_ptr<QueryResult> QueryProcessor::execute(
-    unique_ptr<PhysicalPlan> plan, uint64_t maxNumThreads) {
-    auto resultCollector = reinterpret_cast<ResultCollector*>(plan->lastOperator.get());
+unique_ptr<QueryResult> QueryProcessor::execute(ExecutionContext& executionContext) {
+    auto resultCollector =
+        reinterpret_cast<ResultCollector*>(executionContext.physicalPlan->lastOperator.get());
     // The root pipeline(task) consists of operators and its prevOperator only, because by default,
     // our plan is a linear one. For binary operators, e.g., HashJoin, we always keep probe and its
     // prevOperator in the same pipeline, and decompose build and its prevOperator into another one.
-    auto task = make_unique<Task>(resultCollector, maxNumThreads);
-    decomposePlanIntoTasks(plan->lastOperator.get(), maxNumThreads, task.get());
+    auto task = make_unique<Task>(resultCollector, executionContext.numThreads);
+    decomposePlanIntoTasks(
+        executionContext.physicalPlan->lastOperator.get(), executionContext.numThreads, task.get());
     scheduleTask(task.get());
     while (!task->isCompleted()) {
         /*busy wait*/

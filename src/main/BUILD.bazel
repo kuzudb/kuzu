@@ -1,14 +1,28 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
+    name = "session_context",
+    srcs = [
+        "profiler.cpp",
+    ],
+    hdrs = [
+        "include/session_context.h",
+        "include/profiler.h"
+    ],
+    deps = [
+        "//src/common:timer",
+        "//src/transaction",
+        "@nlohmann_json",
+    ],
+)
+
+cc_library(
     name = "system",
     srcs = [
         "system.cpp",
-        "system_config.cpp",
     ],
     hdrs = [
         "include/system.h",
-        "include/system_config.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -16,9 +30,22 @@ cc_library(
         "//src/parser",
         "//src/planner:enumerator",
         "//src/processor",
-        "//src/storage:graph",
         "//src/transaction",
-        "@nlohmann_json",
+        "session_context",
+    ],
+)
+
+cc_library(
+    name = "session",
+    srcs = [
+        "session.cpp"
+    ],
+    hdrs = [
+        "include/session.h",
+    ],
+    deps = [
+        "//src/common:timer",
+        "system",
     ],
 )
 
@@ -26,11 +53,9 @@ cc_library(
     name = "server",
     srcs = [
         "server.cpp",
-        "session.cpp",
     ],
     hdrs = [
         "include/server.h",
-        "include/session.h",
     ],
     copts = [
         "-Iexternal/asio",
@@ -39,11 +64,8 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "system",
-        "//src/processor",
-        "//src/storage:graph",
+        "session",
         "@Stiffstream_restinio",
-        "@nlohmann_json",
     ],
 )
 
@@ -59,6 +81,5 @@ cc_binary(
     deps = [
         "server",
         "@Taywee_args",
-        "@nlohmann_json",
     ],
 )

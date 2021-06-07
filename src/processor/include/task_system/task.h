@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/common/include/timer.h"
+#include "src/processor/include/execution_context.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
 #include "src/processor/include/physical_plan/query_result.h"
 

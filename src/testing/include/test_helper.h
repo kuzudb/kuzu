@@ -28,6 +28,7 @@ struct TestSuiteQueryConfig {
 };
 
 class TestHelper {
+
 public:
     static bool runTest(const TestSuiteQueryConfig& testConfig, const System& system);
 

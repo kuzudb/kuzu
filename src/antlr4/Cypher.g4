@@ -13,7 +13,15 @@ grammar Cypher;
 }
 
 oC_Cypher 
-    : SP ? oC_Statement ( SP? ';' )? SP? EOF ;
+    : SP ? oC_AnyCypherOption? SP? oC_Statement ( SP? ';' )? SP? EOF ;
+
+oC_AnyCypherOption
+    : oC_Profile ;
+
+oC_Profile
+    : PROFILE ;
+
+PROFILE : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 oC_Statement 
     : oC_Query ;
