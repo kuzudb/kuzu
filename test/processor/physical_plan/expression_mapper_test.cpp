@@ -16,7 +16,7 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
     auto addLogicalOperator = make_unique<Expression>(
         ExpressionType::ADD, DataType::INT32, move(propertyExpression), move(literalExpression));
 
-    auto valueVector = make_shared<ValueVector>(INT32, 100);
+    auto valueVector = make_shared<ValueVector>(INT32);
     auto values = (int32_t*)valueVector->values;
     for (auto i = 0u; i < 100; i++) {
         values[i] = i;
@@ -47,7 +47,7 @@ TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
     auto negateLogicalOperator =
         make_unique<Expression>(ExpressionType::NEGATE, DataType::INT32, move(propertyExpression));
 
-    auto valueVector = make_shared<ValueVector>(INT32, 100);
+    auto valueVector = make_shared<ValueVector>(INT32);
     auto values = (int32_t*)valueVector->values;
     for (auto i = 0u; i < 100; i++) {
         int32_t value = i;

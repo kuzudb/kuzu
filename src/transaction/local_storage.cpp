@@ -174,10 +174,9 @@ void LocalStorage::updateNodePropertyColumn(uint32_t currPosInDataChunk,
     uint64_t numUpdatesInDataChunk, BaseColumn& column, uint8_t* nullValue,
     page_idx_to_dirty_page_map& dirtyPagesMap, ValueVector* propertyValueVector,
     NodeIDVector* nodeIDVector) {
-    nodeID_t nodeID;
     for (auto i = currPosInDataChunk; i < numUpdatesInDataChunk + currPosInDataChunk; i++) {
-        nodeIDVector->readNodeOffset(i, nodeID);
-        auto pageCursor = column.getPageCursorForOffset(nodeID.offset);
+        auto nodeOffset = nodeIDVector->readNodeOffset(i);
+        auto pageCursor = column.getPageCursorForOffset(nodeOffset);
         auto page =
             putPageInDirtyPagesMap(dirtyPagesMap, pageCursor.idx, column.getFileHandle(), true);
         memcpy(page + pageCursor.offset,
@@ -191,9 +190,8 @@ void LocalStorage::updateNodePropertyColumn(uint32_t currPosInDataChunk,
 void LocalStorage::appendToNodePropertyColumn(uint32_t& dataChunkIdx, uint32_t& currPosInDataChunk,
     BaseColumn& column, uint8_t* nullValue, page_idx_to_dirty_page_map& dirtyPagesMap,
     uint32_t dataChunkSize, ValueVector* propertyValueVector, NodeIDVector* nodeIDVector) {
-    nodeID_t nodeID;
-    nodeIDVector->readNodeOffset(currPosInDataChunk, nodeID);
-    auto pageCursor = column.getPageCursorForOffset(nodeID.offset);
+    auto nodeOffset = nodeIDVector->readNodeOffset(currPosInDataChunk);
+    auto pageCursor = column.getPageCursorForOffset(nodeOffset);
     auto page = putPageInDirtyPagesMap(dirtyPagesMap, pageCursor.idx, column.getFileHandle(), true);
     auto freePosInPage = (PAGE_SIZE - pageCursor.offset) / column.elementSize;
     auto elementsLeftInDataChunk = dataChunkSize - currPosInDataChunk;

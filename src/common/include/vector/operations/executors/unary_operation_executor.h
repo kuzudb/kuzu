@@ -53,14 +53,14 @@ struct UnaryOperationExecutor {
         nodeID_t nodeID;
         if (operand.state->isFlat()) {
             auto pos = operand.state->getCurrSelectedValuesPos();
-            operand.readNodeOffsetAndLabel(pos, nodeID);
+            operand.readNodeID(pos, nodeID);
             if (!operand.nullMask[pos]) {
                 resultValues[pos] = FUNC::operation(nodeID);
             }
         } else {
             for (auto i = 0ul; i < operand.state->numSelectedValues; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
-                operand.readNodeOffsetAndLabel(pos, nodeID);
+                operand.readNodeID(pos, nodeID);
                 if (!operand.nullMask[pos]) {
                     resultValues[pos] = FUNC::operation(nodeID);
                 }

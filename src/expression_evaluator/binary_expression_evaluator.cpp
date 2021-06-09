@@ -20,7 +20,7 @@ void BinaryExpressionEvaluator::evaluate() {
 }
 
 shared_ptr<ValueVector> BinaryExpressionEvaluator::createResultValueVector() {
-    auto valueVector = make_shared<ValueVector>(dataType, MAX_VECTOR_SIZE);
+    auto valueVector = make_shared<ValueVector>(dataType);
     auto isLeftResultFlat = childrenExpr[0]->isResultFlat();
     auto isRightResultFlat = childrenExpr[1]->isResultFlat();
     if (isLeftResultFlat && isRightResultFlat) {

@@ -9,7 +9,7 @@ Filter<IS_AFTER_FLATTEN>::Filter(unique_ptr<ExpressionEvaluator> rootExpr,
     : PhysicalOperator{move(prevOperator), FILTER}, rootExpr{move(rootExpr)},
       dataChunkToSelectPos(dataChunkToSelectPos), prevInNumSelectedValues{0ul} {
     if (IS_AFTER_FLATTEN) {
-        prevInSelectedValuesPos = make_unique<uint64_t[]>(MAX_VECTOR_SIZE);
+        prevInSelectedValuesPos = make_unique<uint64_t[]>(DEFAULT_VECTOR_CAPACITY);
     }
     resultSet = this->prevOperator->getResultSet();
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];

@@ -79,7 +79,7 @@ void ResultSetIterator::getNextTuple(Tuple& tuple) {
             } break;
             case NODE: {
                 nodeID_t nodeID;
-                vector->readNodeOffsetAndLabel(selectedTuplePos, nodeID);
+                vector->readNodeID(selectedTuplePos, nodeID);
                 tuple.getValue(valueInTupleIdx)->nodeID = nodeID;
                 break;
             }

@@ -40,7 +40,7 @@ void ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
         } else {
             nodeIDVector->setStartOffset(morsel->currNodeOffset);
             outDataChunk->state->size =
-                min(NODE_SEQUENCE_VECTOR_SIZE, morsel->numNodes - morsel->currNodeOffset);
+                min(NODE_SEQUENCE_VECTOR_CAPACITY, morsel->numNodes - morsel->currNodeOffset);
             morsel->currNodeOffset += outDataChunk->state->size;
         }
     }

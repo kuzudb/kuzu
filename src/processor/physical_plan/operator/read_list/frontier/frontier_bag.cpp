@@ -24,16 +24,15 @@ NodeIDOverflow* FrontierBag::getOverflowPtr() {
 }
 
 void FrontierBag::append(const NodeIDVector& vector, uint64_t multiplicity) {
-    nodeID_t nodeID;
     for (auto i = 0u; i < vector.state->size; i++) {
-        vector.readNodeOffset(i, nodeID);
-        auto slot = nodeID.offset & moduloSlotBitMask;
+        auto nodeOffset = vector.readNodeOffset(i);
+        auto slot = nodeOffset & moduloSlotBitMask;
         if (hashTable[slot].size < NODE_IDS_PER_SLOT_FOR_BAG) {
-            hashTable[slot].nodeOffsets[hashTable[slot].size] = nodeID.offset;
+            hashTable[slot].nodeOffsets[hashTable[slot].size] = nodeOffset;
             hashTable[slot].multiplicity[hashTable[slot].size++] = multiplicity;
         } else {
             auto overflowPtr = getOverflowPtr();
-            overflowPtr->nodeOffset = nodeID.offset;
+            overflowPtr->nodeOffset = nodeOffset;
             overflowPtr->multiplicity = multiplicity;
             if (hashTable[slot].tail == nullptr) {
                 hashTable[slot].next = hashTable[slot].tail = overflowPtr;

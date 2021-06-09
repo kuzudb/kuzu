@@ -144,9 +144,9 @@ struct BinaryOperationExecutor {
         nodeID_t nodeID, otherNodeID;
         if (left.state->isFlat() && right.state->isFlat()) {
             auto lPos = left.state->getCurrSelectedValuesPos();
-            left.readNodeOffsetAndLabel(lPos, nodeID);
+            left.readNodeID(lPos, nodeID);
             auto rPos = right.state->getCurrSelectedValuesPos();
-            right.readNodeOffsetAndLabel(rPos, otherNodeID);
+            right.readNodeID(rPos, otherNodeID);
             auto resPos = result.state->getCurrSelectedValuesPos();
             result.nullMask[resPos] = left.nullMask[lPos] || right.nullMask[rPos];
             if (!result.nullMask[resPos]) {
@@ -158,11 +158,11 @@ struct BinaryOperationExecutor {
             auto& unflatVector = !isLeftFlat ? left : right;
             auto pos = flatVector.state->getCurrSelectedValuesPos();
             auto isFlatNull = flatVector.nullMask[pos];
-            flatVector.readNodeOffsetAndLabel(pos, nodeID);
+            flatVector.readNodeID(pos, nodeID);
             // unflat and result vectors share the same selectedValuesPos.
             for (uint64_t i = 0; i < unflatVector.state->numSelectedValues; i++) {
                 pos = unflatVector.state->selectedValuesPos[i];
-                unflatVector.readNodeOffsetAndLabel(pos, otherNodeID);
+                unflatVector.readNodeID(pos, otherNodeID);
                 result.nullMask[i] = isFlatNull || unflatVector.nullMask[pos];
                 if (!result.nullMask[i]) {
                     result.values[i] = isLeftFlat ? FUNC::operation(nodeID, otherNodeID) :
@@ -173,8 +173,8 @@ struct BinaryOperationExecutor {
             // right, left, and result vectors share the same selectedValuesPos.
             for (uint64_t i = 0; i < left.state->numSelectedValues; i++) {
                 auto pos = left.state->selectedValuesPos[i];
-                left.readNodeOffsetAndLabel(pos, nodeID);
-                right.readNodeOffsetAndLabel(pos, otherNodeID);
+                left.readNodeID(pos, nodeID);
+                right.readNodeID(pos, otherNodeID);
                 result.nullMask[pos] = left.nullMask[pos] || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
                     result.values[pos] = FUNC::operation(nodeID, otherNodeID);

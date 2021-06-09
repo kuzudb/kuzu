@@ -42,15 +42,14 @@ void ValueVector::fillNullMask() {
 }
 
 shared_ptr<ValueVector> ValueVector::clone() {
-    auto vectorCapacity = capacity / getDataTypeSize(dataType);
     auto newVector = make_shared<ValueVector>(dataType, vectorCapacity);
     memcpy(newVector->nullMask, nullMask, vectorCapacity);
     if (STRING == dataType) {
-        for (auto i = 0; i < vectorCapacity; i++) {
+        for (auto i = 0u; i < vectorCapacity; i++) {
             ((gf_string_t*)newVector->values)[i] = ((gf_string_t*)values)[i];
         }
     } else {
-        memcpy(newVector->values, values, capacity);
+        memcpy(newVector->values, values, vectorCapacity * getNumBytesPerValue());
     }
     return newVector;
 }

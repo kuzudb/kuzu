@@ -11,19 +11,18 @@ TEST(ScanTests, ScanTest) {
     auto dataChunk = resultSet->dataChunks[0];
     auto nodeVector = static_pointer_cast<NodeIDVector>(dataChunk->getValueVector(0));
     node_offset_t currNodeOffset = 0;
-    auto size = NODE_SEQUENCE_VECTOR_SIZE;
+    auto size = NODE_SEQUENCE_VECTOR_CAPACITY;
     while (morsel->currNodeOffset < 1025013) {
         scan->getNextTuples();
         if (morsel->currNodeOffset >= 1025013) {
-            size = 1025013 % NODE_SEQUENCE_VECTOR_SIZE;
+            size = 1025013 % NODE_SEQUENCE_VECTOR_CAPACITY;
         }
         ASSERT_EQ(dataChunk->state->size, size);
-        nodeID_t node;
         for (uint64_t i = 0; i < dataChunk->state->size; i++) {
-            nodeVector->readNodeOffset(i, node);
-            ASSERT_EQ(node.offset, currNodeOffset + i);
+            auto nodeOffset = nodeVector->readNodeOffset(i);
+            ASSERT_EQ(nodeOffset, currNodeOffset + i);
         }
-        currNodeOffset += NODE_SEQUENCE_VECTOR_SIZE;
+        currNodeOffset += NODE_SEQUENCE_VECTOR_CAPACITY;
     }
     ASSERT_EQ(morsel->currNodeOffset, 1025013);
 }

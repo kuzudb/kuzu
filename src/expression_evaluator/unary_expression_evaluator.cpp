@@ -18,10 +18,10 @@ void UnaryExpressionEvaluator::evaluate() {
 }
 
 shared_ptr<ValueVector> UnaryExpressionEvaluator::createResultValueVector() {
-    auto valueVector = make_shared<ValueVector>(dataType, MAX_VECTOR_SIZE);
+    auto valueVector = make_shared<ValueVector>(dataType);
     if (expressionType == CAST_TO_UNSTRUCTURED_VECTOR) {
         auto unstructuredValues = (Value*)valueVector->values;
-        for (auto i = 0u; i < MAX_VECTOR_SIZE; i++) {
+        for (auto i = 0u; i < DEFAULT_VECTOR_CAPACITY; i++) {
             unstructuredValues[i].dataType = childrenExpr[0]->dataType;
         }
     }

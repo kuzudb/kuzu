@@ -27,10 +27,11 @@ class NodeIDVector : public ValueVector {
 public:
     NodeIDVector(label_t commonLabel, const NodeIDCompressionScheme& nodeIDCompressionScheme,
         bool isSequence)
-        : NodeIDVector{commonLabel, nodeIDCompressionScheme, isSequence, MAX_VECTOR_SIZE} {};
+        : NodeIDVector{
+              commonLabel, nodeIDCompressionScheme, isSequence, DEFAULT_VECTOR_CAPACITY} {};
 
-    void readNodeOffset(uint64_t pos, nodeID_t& nodeID) const override;
-    void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) const override;
+    node_offset_t readNodeOffset(uint64_t pos) const override;
+    void readNodeID(uint64_t pos, nodeID_t& nodeID) const override;
 
     inline void setStartOffset(node_offset_t node_offset) {
         assert(representation.isSequence);

@@ -14,11 +14,11 @@ namespace storage {
 class BaseLists : public DataStructure {
 
 public:
-    void readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
+    void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
         uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle,
         uint32_t maxElementsToRead);
 
-    uint64_t getNumElementsInList(const nodeID_t& nodeID);
+    uint64_t getNumElementsInList(node_offset_t nodeOffset);
 
 protected:
     BaseLists(const string& fname, const DataType& dataType, const size_t& elementSize,
@@ -26,11 +26,10 @@ protected:
         : DataStructure{fname, dataType, elementSize, bufferManager}, metadata{fname},
           headers(headers){};
 
-    void readFromLargeList(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header,
-        uint32_t maxElementsToRead);
+    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
+        const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead);
 
-    void readSmallList(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
+    void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
         uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header);
 
 public:
@@ -88,7 +87,7 @@ public:
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle);
 
 private:
-    void readUnstrPropertyListOfNode(const nodeID_t& nodeID, uint32_t propertyKeyIdxToRead,
+    void readUnstrPropertyListOfNode(node_offset_t nodeOffset, uint32_t propertyKeyIdxToRead,
         const shared_ptr<ValueVector>& valueVector, uint64_t pos,
         const unique_ptr<DataStructureHandle>& handle, uint32_t header);
 
