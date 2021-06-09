@@ -18,9 +18,22 @@ nlohmann::json Session::executeQuery() {
     auto success = true;
     unique_ptr<QueryResult> result;
     try {
-        result = system.executeQuery(*sessionContext);
-        json["profile"] = sessionContext->profiler.toJson();
-        json["result"]["numTuples"] = result->numTuples;
+        auto executionResult = system.executeQuery(*sessionContext);
+        json["result"] = {};
+        json["result"]["numTuples"] = executionResult->queryResult->numTuples;
+        if (sessionContext->profiler->enabled) {
+            json["profile"] = {};
+            json["profile"]["binding"] =
+                sessionContext->profiler->sumAllTimeMetricsWithKey("binding");
+            json["profile"]["planning"] =
+                sessionContext->profiler->sumAllTimeMetricsWithKey("planning");
+            json["profile"]["mapping"] =
+                sessionContext->profiler->sumAllTimeMetricsWithKey("mapping");
+            json["profile"]["executing"] =
+                sessionContext->profiler->sumAllTimeMetricsWithKey("executing");
+            json["profile"]["plan"] =
+                executionResult->physicalPlan->lastOperator->toJson(*sessionContext->profiler);
+        }
     } catch (exception& e) {
         // query failed to execute
         success = false;

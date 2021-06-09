@@ -3,10 +3,9 @@
 namespace graphflow {
 namespace processor {
 
-CRUDOperator::CRUDOperator(uint64_t dataChunkPos, Transaction* transactionPtr,
-    PhysicalOperatorType type, unique_ptr<PhysicalOperator> prevOperator)
-    : PhysicalOperator{move(prevOperator), type}, transactionPtr{transactionPtr}, graph{graph},
-      dataChunkPos{dataChunkPos} {
+CRUDOperator::CRUDOperator(uint64_t dataChunkPos, PhysicalOperatorType type,
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+    : PhysicalOperator{move(prevOperator), type, context, id}, dataChunkPos{dataChunkPos} {
     inDataChunk = resultSet->dataChunks[dataChunkPos];
 }
 
@@ -16,7 +15,7 @@ void CRUDOperator::getNextTuples() {
         if (inDataChunk->state->size == 0) {
             break;
         }
-        transactionPtr->localStorage.addDataChunk(inDataChunk.get());
+        context.transaction->localStorage.addDataChunk(inDataChunk.get());
     }
 }
 

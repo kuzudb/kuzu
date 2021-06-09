@@ -1,7 +1,6 @@
 #pragma once
 
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/vector/node_vector.h"
 #include "src/storage/include/data_structure/lists/list_sync_state.h"
 
 using namespace graphflow::common;

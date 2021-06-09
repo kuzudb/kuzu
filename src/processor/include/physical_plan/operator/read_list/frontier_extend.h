@@ -11,15 +11,17 @@ class FrontierExtend : public ReadList {
 
 public:
     FrontierExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, AdjLists* lists,
-        uint64_t lowerBound, uint64_t upperBound, unique_ptr<PhysicalOperator> prevOperator);
+        uint64_t lowerBound, uint64_t upperBound, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;
 
     void setMemoryManager(MemoryManager* memMan) { this->memMan = memMan; }
 
     unique_ptr<PhysicalOperator> clone() override {
-        auto cloneOp = make_unique<FrontierExtend<IS_OUT_DATACHUNK_FILTERED>>(inDataChunkPos,
-            inValueVectorPos, (AdjLists*)lists, startLayer, endLayer, prevOperator->clone());
+        auto cloneOp =
+            make_unique<FrontierExtend<IS_OUT_DATACHUNK_FILTERED>>(inDataChunkPos, inValueVectorPos,
+                (AdjLists*)lists, startLayer, endLayer, prevOperator->clone(), context, id);
         cloneOp->memMan = this->memMan;
         return cloneOp;
     }

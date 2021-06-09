@@ -8,12 +8,13 @@ namespace processor {
 class Flatten : public PhysicalOperator {
 
 public:
-    Flatten(uint64_t dataChunkToFlattenPos, unique_ptr<PhysicalOperator> prevOperator);
+    Flatten(uint64_t dataChunkToFlattenPos, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Flatten>(dataChunkToFlattenPos, prevOperator->clone());
+        return make_unique<Flatten>(dataChunkToFlattenPos, prevOperator->clone(), context, id);
     }
 
 private:

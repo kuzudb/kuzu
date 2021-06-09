@@ -37,117 +37,123 @@ namespace graphflow {
 namespace processor {
 
 static unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
-    const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
-    PhysicalOperatorsInfo& physicalOperatorInfo);
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context, uint32_t& id);
 
 static unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(
-    const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
-    PhysicalOperatorsInfo& physicalOperatorInfo);
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context, uint32_t& id);
 
 static unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
-    const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
-    PhysicalOperatorsInfo& physicalOperatorInfo);
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context, uint32_t& id);
 
 static unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(
-    const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
-    PhysicalOperatorsInfo& physicalOperatorInfo);
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context, uint32_t& id);
 
 static unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(
-    const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
-    PhysicalOperatorsInfo& physicalOperatorInfo);
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context, uint32_t& id);
 
 static unique_ptr<PhysicalOperator> mapLogicalNodePropertyReaderToPhysical(
-    const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
-    PhysicalOperatorsInfo& physicalOperatorInfo);
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context, uint32_t& id);
 
 static unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
-    const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
-    PhysicalOperatorsInfo& physicalOperatorInfo);
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context, uint32_t& id);
 
 static unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
-    const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
-    PhysicalOperatorsInfo& physicalOperatorInfo);
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context, uint32_t& id);
 
 static unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(
-    const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
-    PhysicalOperatorsInfo& physicalOperatorInfo);
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context, uint32_t& id);
 
 static unique_ptr<PhysicalOperator> mapLogicalCRUDNodeToPhysical(
-    const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
-    PhysicalOperatorsInfo& physicalOperatorInfo);
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context, uint32_t& id);
 
 // helper functions used by mapLogical{Filter/Projection}ToPhysical.
 static unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
     const Expression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo,
-    unique_ptr<PhysicalOperator> prevOperator);
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t& id);
 
 static uint64_t getDependentUnflatDataChunkPos(
     const Expression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo);
 
 unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
-    unique_ptr<LogicalPlan> logicalPlan, Transaction* transactionPtr, const Graph& graph) {
+    unique_ptr<LogicalPlan> logicalPlan, const Graph& graph, ExecutionContext& context) {
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
-    auto resultCollector = make_unique<ResultCollector>(mapLogicalOperatorToPhysical(
-        logicalPlan->getLastOperator(), transactionPtr, graph, physicalOperatorInfo));
+    auto id = 0u;
+    auto prevOperator = mapLogicalOperatorToPhysical(
+        logicalPlan->getLastOperator(), graph, physicalOperatorInfo, context, id);
+    auto resultCollector =
+        make_unique<ResultCollector>(move(prevOperator), RESULT_COLLECTOR, context, id);
     return make_unique<PhysicalPlan>(move(resultCollector));
 }
 
 unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(const LogicalOperator& logicalOperator,
-    Transaction* transactionPtr, const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context,
+    uint32_t& id) {
     auto operatorType = logicalOperator.getLogicalOperatorType();
     switch (operatorType) {
     case LOGICAL_SCAN_NODE_ID:
         return mapLogicalScanNodeIDToPhysical(
-            logicalOperator, transactionPtr, graph, physicalOperatorInfo);
+            logicalOperator, graph, physicalOperatorInfo, context, id);
     case LOGICAL_EXTEND:
         return mapLogicalExtendToPhysical(
-            logicalOperator, transactionPtr, graph, physicalOperatorInfo);
+            logicalOperator, graph, physicalOperatorInfo, context, id);
     case LOGICAL_FILTER:
         return mapLogicalFilterToPhysical(
-            logicalOperator, transactionPtr, graph, physicalOperatorInfo);
+            logicalOperator, graph, physicalOperatorInfo, context, id);
     case LOGICAL_PROJECTION:
         return mapLogicalProjectionToPhysical(
-            logicalOperator, transactionPtr, graph, physicalOperatorInfo);
+            logicalOperator, graph, physicalOperatorInfo, context, id);
     case LOGICAL_HASH_JOIN:
         return mapLogicalHashJoinToPhysical(
-            logicalOperator, transactionPtr, graph, physicalOperatorInfo);
+            logicalOperator, graph, physicalOperatorInfo, context, id);
     case LOGICAL_SCAN_NODE_PROPERTY:
         return mapLogicalNodePropertyReaderToPhysical(
-            logicalOperator, transactionPtr, graph, physicalOperatorInfo);
+            logicalOperator, graph, physicalOperatorInfo, context, id);
     case LOGICAL_SCAN_REL_PROPERTY:
         return mapLogicalRelPropertyReaderToPhysical(
-            logicalOperator, transactionPtr, graph, physicalOperatorInfo);
+            logicalOperator, graph, physicalOperatorInfo, context, id);
     case LOGICAL_LOAD_CSV:
         return mapLogicalLoadCSVToPhysical(
-            logicalOperator, transactionPtr, graph, physicalOperatorInfo);
+            logicalOperator, graph, physicalOperatorInfo, context, id);
     case LOGICAL_CREATE_NODE:
     case LOGICAL_UPDATE_NODE:
         return mapLogicalCRUDNodeToPhysical(
-            logicalOperator, transactionPtr, graph, physicalOperatorInfo);
+            logicalOperator, graph, physicalOperatorInfo, context, id);
     default:
         assert(false);
     }
 }
 
 unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(const LogicalOperator& logicalOperator,
-    Transaction* transactionPtr, const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context,
+    uint32_t& id) {
     auto& scan = (const LogicalScanNodeID&)logicalOperator;
     unique_ptr<PhysicalOperator> prevOperator;
     if (scan.prevOperator) {
         prevOperator = mapLogicalOperatorToPhysical(
-            *scan.prevOperator, transactionPtr, graph, physicalOperatorInfo);
+            *scan.prevOperator, graph, physicalOperatorInfo, context, id);
     }
     auto morsel = make_shared<MorselsDesc>(scan.label, graph.getNumNodes(scan.label));
     physicalOperatorInfo.appendAsNewDataChunk(scan.nodeID);
-    return prevOperator ? make_unique<ScanNodeID<true>>(morsel, move(prevOperator)) :
-                          make_unique<ScanNodeID<true>>(morsel);
+    return prevOperator ? make_unique<ScanNodeID<true>>(morsel, move(prevOperator), context, id++) :
+                          make_unique<ScanNodeID<true>>(morsel, context, id++);
 }
 
 unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& logicalOperator,
-    Transaction* transactionPtr, const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context,
+    uint32_t& id) {
     auto& extend = (const LogicalExtend&)logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(
-        *logicalOperator.prevOperator, transactionPtr, graph, physicalOperatorInfo);
+        *logicalOperator.prevOperator, graph, physicalOperatorInfo, context, id);
     auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(extend.boundNodeID);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(extend.boundNodeID);
     auto& relsStore = graph.getRelsStore();
@@ -156,50 +162,52 @@ unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(const LogicalOperator& l
         physicalOperatorInfo.appendAsNewValueVector(extend.nbrNodeID, dataChunkPos);
         return make_unique<AdjColumnExtend>(dataChunkPos, valueVectorPos,
             relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
-            move(prevOperator));
+            move(prevOperator), context, id++);
     } else {
         if (!physicalOperatorInfo.dataChunkPosToIsFlat[dataChunkPos]) {
             physicalOperatorInfo.dataChunkPosToIsFlat[dataChunkPos] = true;
-            prevOperator = make_unique<Flatten>(dataChunkPos, move(prevOperator));
+            prevOperator = make_unique<Flatten>(dataChunkPos, move(prevOperator), context, id++);
         }
         physicalOperatorInfo.appendAsNewDataChunk(extend.nbrNodeID);
         auto adjLists =
             relsStore.getAdjLists(extend.direction, extend.boundNodeLabel, extend.relLabel);
         if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
             return make_unique<AdjListExtend<true>>(
-                dataChunkPos, valueVectorPos, adjLists, move(prevOperator));
+                dataChunkPos, valueVectorPos, adjLists, move(prevOperator), context, id++);
         } else {
             return make_unique<FrontierExtend<true>>(dataChunkPos, valueVectorPos, adjLists,
-                extend.lowerBound, extend.upperBound, move(prevOperator));
+                extend.lowerBound, extend.upperBound, move(prevOperator), context, id++);
         }
     }
 }
 
 unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(const LogicalOperator& logicalOperator,
-    Transaction* transactionPtr, const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context,
+    uint32_t& id) {
     auto& logicalFilter = (const LogicalFilter&)logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(
-        *logicalOperator.prevOperator, transactionPtr, graph, physicalOperatorInfo);
+        *logicalOperator.prevOperator, graph, physicalOperatorInfo, context, id);
     const auto& logicalRootExpr = logicalFilter.getRootExpression();
     prevOperator = appendFlattenOperatorsIfNecessary(
-        logicalRootExpr, physicalOperatorInfo, move(prevOperator));
+        logicalRootExpr, physicalOperatorInfo, move(prevOperator), context, id);
     auto dataChunkToSelectPos =
         getDependentUnflatDataChunkPos(logicalRootExpr, physicalOperatorInfo);
     auto physicalRootExpr = ExpressionMapper::mapToPhysical(
         logicalRootExpr, physicalOperatorInfo, *prevOperator->getResultSet());
     if (prevOperator->operatorType == FLATTEN) {
         return make_unique<Filter<true /* isAfterFlatten */>>(
-            move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator));
+            move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator), context, id++);
     } else {
         return make_unique<Filter<false /* isAfterFlatten */>>(
-            move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator));
+            move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator), context, id++);
     }
 }
 
 unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(const LogicalOperator& logicalOperator,
-    Transaction* transactionPtr, const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context,
+    uint32_t& id) {
     auto prevOperator = mapLogicalOperatorToPhysical(
-        *logicalOperator.prevOperator, transactionPtr, graph, physicalOperatorInfo);
+        *logicalOperator.prevOperator, graph, physicalOperatorInfo, context, id);
     auto& logicalProjection = (const LogicalProjection&)logicalOperator;
     // We obtain the number of dataChunks from the previous operator as the projection operator
     // creates new dataChunks and we will be emptying the physicalOperatorInfo object.
@@ -210,7 +218,7 @@ unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(const LogicalOperato
     auto expressionEvaluators = make_unique<vector<unique_ptr<ExpressionEvaluator>>>();
     for (const auto& logicalRootExpr : logicalProjection.expressionsToProject) {
         prevOperator = appendFlattenOperatorsIfNecessary(
-            *logicalRootExpr, physicalOperatorInfo, move(prevOperator));
+            *logicalRootExpr, physicalOperatorInfo, move(prevOperator), context, id);
         expressionEvaluators->push_back(ExpressionMapper::mapToPhysical(
             *logicalRootExpr, physicalOperatorInfo, *prevOperator->getResultSet()));
     }
@@ -259,11 +267,12 @@ unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(const LogicalOperato
         }
     }
     return make_unique<Projection>(move(expressionEvaluators), exprResultOutDataChunkPos,
-        discardedDataChunkPos, move(prevOperator));
+        discardedDataChunkPos, move(prevOperator), context, id++);
 }
 
 unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(const Expression& logicalRootExpr,
-    PhysicalOperatorsInfo& physicalOperatorInfo, unique_ptr<PhysicalOperator> prevOperator) {
+    PhysicalOperatorsInfo& physicalOperatorInfo, unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t& id) {
     pair<unique_ptr<PhysicalOperator>, uint64_t> result;
     set<uint64_t> unflatDataChunkPosSet;
     for (auto& leafVariableExpression : logicalRootExpr.getIncludedLeafVariableExpressions()) {
@@ -278,7 +287,7 @@ unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(const Expression&
         if (unflatDataChunkPosSet.size() > 1) {
             for (auto i = 0u; i < unflatDataChunkPos.size() - 1; i++) {
                 auto pos = unflatDataChunkPos[i];
-                prevOperator = make_unique<Flatten>(pos, move(prevOperator));
+                prevOperator = make_unique<Flatten>(pos, move(prevOperator), context, id++);
                 physicalOperatorInfo.dataChunkPosToIsFlat[pos] = true;
             }
         }
@@ -300,31 +309,31 @@ uint64_t getDependentUnflatDataChunkPos(
 }
 
 unique_ptr<PhysicalOperator> mapLogicalNodePropertyReaderToPhysical(
-    const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
-    PhysicalOperatorsInfo& physicalOperatorInfo) {
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context, uint32_t& id) {
     auto& scanProperty = (const LogicalScanNodeProperty&)logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(
-        *logicalOperator.prevOperator, transactionPtr, graph, physicalOperatorInfo);
+        *logicalOperator.prevOperator, graph, physicalOperatorInfo, context, id);
     auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.nodeID);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(scanProperty.nodeID);
     physicalOperatorInfo.appendAsNewValueVector(scanProperty.propertyVariableName, dataChunkPos);
     if (scanProperty.isUnstructuredProperty) {
         auto lists = graph.getNodesStore().getNodeUnstrPropertyLists(scanProperty.nodeLabel);
-        return make_unique<ScanUnstructuredProperty>(
-            dataChunkPos, valueVectorPos, scanProperty.propertyKey, lists, move(prevOperator));
+        return make_unique<ScanUnstructuredProperty>(dataChunkPos, valueVectorPos,
+            scanProperty.propertyKey, lists, move(prevOperator), context, id++);
     }
     auto column = graph.getNodesStore().getNodePropertyColumn(
         scanProperty.nodeLabel, scanProperty.propertyKey);
     return make_unique<ScanStructuredProperty>(
-        dataChunkPos, valueVectorPos, column, move(prevOperator));
+        dataChunkPos, valueVectorPos, column, move(prevOperator), context, id++);
 }
 
 unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
-    const LogicalOperator& logicalOperator, Transaction* transactionPtr, const Graph& graph,
-    PhysicalOperatorsInfo& physicalOperatorInfo) {
+    const LogicalOperator& logicalOperator, const Graph& graph,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context, uint32_t& id) {
     auto& scanProperty = (const LogicalScanRelProperty&)logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(
-        *logicalOperator.prevOperator, transactionPtr, graph, physicalOperatorInfo);
+        *logicalOperator.prevOperator, graph, physicalOperatorInfo, context, id);
     auto inDataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.boundNodeID);
     auto inValueVectorPos = physicalOperatorInfo.getValueVectorPos(scanProperty.boundNodeID);
     auto outDataChunkPos = physicalOperatorInfo.getDataChunkPos(scanProperty.nbrNodeID);
@@ -333,22 +342,23 @@ unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
         auto column = graph.getRelsStore().getRelPropertyColumn(
             scanProperty.relLabel, scanProperty.boundNodeLabel, scanProperty.propertyKey);
         return make_unique<ScanStructuredProperty>(
-            inDataChunkPos, inValueVectorPos, column, move(prevOperator));
+            inDataChunkPos, inValueVectorPos, column, move(prevOperator), context, id++);
     }
     auto lists = graph.getRelsStore().getRelPropertyLists(scanProperty.direction,
         scanProperty.boundNodeLabel, scanProperty.relLabel, scanProperty.propertyKey);
-    return make_unique<ReadRelPropertyList>(
-        inDataChunkPos, inValueVectorPos, outDataChunkPos, lists, move(prevOperator));
+    return make_unique<ReadRelPropertyList>(inDataChunkPos, inValueVectorPos, outDataChunkPos,
+        lists, move(prevOperator), context, id++);
 }
 
 unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator& logicalOperator,
-    Transaction* transactionPtr, const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context,
+    uint32_t& id) {
     auto& hashJoin = (const LogicalHashJoin&)logicalOperator;
     PhysicalOperatorsInfo probeSideOperatorInfo, buildSideOperatorInfo;
     auto probeSidePrevOperator = mapLogicalOperatorToPhysical(
-        *hashJoin.prevOperator, transactionPtr, graph, probeSideOperatorInfo);
+        *hashJoin.prevOperator, graph, probeSideOperatorInfo, context, id);
     auto buildSidePrevOperator = mapLogicalOperatorToPhysical(
-        *hashJoin.buildSidePrevOperator, transactionPtr, graph, buildSideOperatorInfo);
+        *hashJoin.buildSidePrevOperator, graph, buildSideOperatorInfo, context, id);
     auto probeSideKeyDataChunkPos = probeSideOperatorInfo.getDataChunkPos(hashJoin.joinNodeID);
     auto probeSideKeyVectorPos = probeSideOperatorInfo.getValueVectorPos(hashJoin.joinNodeID);
     auto buildSideKeyDataChunkPos = buildSideOperatorInfo.getDataChunkPos(hashJoin.joinNodeID);
@@ -411,19 +421,20 @@ unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(const LogicalOperator&
     }
 
     auto hashJoinBuild = make_unique<HashJoinBuild>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
-        buildSideOperatorInfo.dataChunkPosToIsFlat, move(buildSidePrevOperator));
+        buildSideOperatorInfo.dataChunkPosToIsFlat, move(buildSidePrevOperator), context, id++);
     auto hashJoinSharedState =
         make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = hashJoinSharedState;
     auto hashJoinProbe = make_unique<HashJoinProbe<true>>(buildSideKeyDataChunkPos,
         buildSideKeyVectorPos, buildSideOperatorInfo.dataChunkPosToIsFlat, probeSideKeyDataChunkPos,
-        probeSideKeyVectorPos, move(hashJoinBuild), move(probeSidePrevOperator));
+        probeSideKeyVectorPos, move(hashJoinBuild), move(probeSidePrevOperator), context, id++);
     hashJoinProbe->sharedState = hashJoinSharedState;
     return hashJoinProbe;
 }
 
 unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(const LogicalOperator& logicalOperator,
-    Transaction* transactionPtr, const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context,
+    uint32_t& id) {
     auto& logicalLoadCSV = (const LogicalLoadCSV&)logicalOperator;
     assert(!logicalLoadCSV.csvColumnVariables.empty());
     vector<DataType> csvColumnDataTypes;
@@ -438,14 +449,15 @@ unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(const LogicalOperator& 
         csvColumnDataTypes.push_back(logicalLoadCSV.csvColumnVariables[i]->dataType);
     }
     return make_unique<LoadCSV<true>>(
-        logicalLoadCSV.path, logicalLoadCSV.tokenSeparator, csvColumnDataTypes);
+        logicalLoadCSV.path, logicalLoadCSV.tokenSeparator, csvColumnDataTypes, context, id++);
 }
 
 unique_ptr<PhysicalOperator> mapLogicalCRUDNodeToPhysical(const LogicalOperator& logicalOperator,
-    Transaction* transactionPtr, const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo) {
+    const Graph& graph, PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context,
+    uint32_t& id) {
     auto& logicalCRUDNode = (const LogicalCRUDNode&)logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(
-        *logicalOperator.prevOperator, transactionPtr, graph, physicalOperatorInfo);
+        *logicalOperator.prevOperator, graph, physicalOperatorInfo, context, id);
     auto& catalog = graph.getCatalog();
     auto& propertyKeyMap = catalog.getPropertyKeyMapForNodeLabel(logicalCRUDNode.nodeLabel);
     vector<BaseColumn*> nodePropertyColumns(propertyKeyMap.size());
@@ -461,17 +473,17 @@ unique_ptr<PhysicalOperator> mapLogicalCRUDNodeToPhysical(const LogicalOperator&
         dataChunkPos = physicalOperatorInfo.getDataChunkPos(entry.second);
     }
     if (LOGICAL_CREATE_NODE == logicalCRUDNode.getLogicalOperatorType()) {
-        return make_unique<CreateNode>(dataChunkPos, transactionPtr, move(propertyKeyVectorPos),
+        return make_unique<CreateNode>(dataChunkPos, move(propertyKeyVectorPos),
             logicalCRUDNode.nodeLabel, move(nodePropertyColumns),
-            graph.getNumNodes(logicalCRUDNode.nodeLabel), move(prevOperator));
+            graph.getNumNodes(logicalCRUDNode.nodeLabel), move(prevOperator), context, id++);
     } else if (LOGICAL_UPDATE_NODE == logicalCRUDNode.getLogicalOperatorType()) {
-        return make_unique<UpdateNode>(dataChunkPos, transactionPtr, move(propertyKeyVectorPos),
+        return make_unique<UpdateNode>(dataChunkPos, move(propertyKeyVectorPos),
             logicalCRUDNode.nodeLabel, move(nodePropertyColumns),
-            graph.getNumNodes(logicalCRUDNode.nodeLabel), move(prevOperator));
+            graph.getNumNodes(logicalCRUDNode.nodeLabel), move(prevOperator), context, id++);
     } else if (LOGICAL_DELETE_NODE == logicalCRUDNode.getLogicalOperatorType()) {
-        return make_unique<DeleteNode>(dataChunkPos, transactionPtr, move(propertyKeyVectorPos),
+        return make_unique<DeleteNode>(dataChunkPos, move(propertyKeyVectorPos),
             logicalCRUDNode.nodeLabel, move(nodePropertyColumns),
-            graph.getNumNodes(logicalCRUDNode.nodeLabel), move(prevOperator));
+            graph.getNumNodes(logicalCRUDNode.nodeLabel), move(prevOperator), context, id++);
     }
     assert(false);
 }

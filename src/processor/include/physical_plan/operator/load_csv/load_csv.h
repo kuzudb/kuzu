@@ -12,13 +12,14 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 class LoadCSV : public PhysicalOperator {
 
 public:
-    LoadCSV(string fname, char tokenSeparator, vector<DataType> csvColumnDataTypes);
+    LoadCSV(string fname, char tokenSeparator, vector<DataType> csvColumnDataTypes,
+        ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<LoadCSV<IS_OUT_DATACHUNK_FILTERED>>(
-            fname, tokenSeparator, csvColumnDataTypes);
+            fname, tokenSeparator, csvColumnDataTypes, context, id);
     }
 
 private:
@@ -28,7 +29,7 @@ private:
     shared_ptr<DataChunk> outDataChunk;
 
     vector<DataType> csvColumnDataTypes;
-    vector<shared_ptr<ValueVector>> outValueVectors{};
+    vector<shared_ptr<ValueVector>> outValueVectors;
 };
 
 } // namespace processor

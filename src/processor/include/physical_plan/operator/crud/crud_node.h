@@ -11,13 +11,13 @@ namespace processor {
 class CRUDNode : public CRUDOperator {
 
 public:
-    CRUDNode(PhysicalOperatorType type, uint64_t dataChunkPos, Transaction* transactionPtr,
+    CRUDNode(PhysicalOperatorType type, uint64_t dataChunkPos,
         vector<uint32_t> propertyKeyVectorPos, label_t nodeLabel,
         vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes,
-        unique_ptr<PhysicalOperator> prevOperator)
-        : CRUDOperator{dataChunkPos, transactionPtr, type, move(prevOperator)},
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+        : CRUDOperator{dataChunkPos, type, move(prevOperator), context, id},
           propertyKeyVectorPos{move(propertyKeyVectorPos)}, nodeLabel{nodeLabel},
-          nodePropertyColumns{nodePropertyColumns}, numNodes{numNodes} {};
+          nodePropertyColumns{move(nodePropertyColumns)}, numNodes{numNodes} {};
 
 protected:
     vector<uint32_t> propertyKeyVectorPos;

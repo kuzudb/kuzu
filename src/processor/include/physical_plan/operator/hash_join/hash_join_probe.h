@@ -48,16 +48,22 @@ public:
     HashJoinProbe(uint64_t buildSideKeyDataChunkPos, uint64_t buildSideKeyVectorPos,
         vector<bool> buildSideDataChunkPosToIsFlat, uint64_t probeSideKeyDataChunkPos,
         uint64_t probeSideKeyVectorPos, unique_ptr<PhysicalOperator> buildSidePrevOp,
-        unique_ptr<PhysicalOperator> probeSidePrevOp);
+        unique_ptr<PhysicalOperator> probeSidePrevOp, ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         auto cloneOp = make_unique<HashJoinProbe>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
             buildSideDataChunkPosToIsFlat, probeSideKeyDataChunkPos, probeSideKeyVectorPos,
-            buildSidePrevOp->clone(), prevOperator->clone());
+            buildSidePrevOp->clone(), prevOperator->clone(), context, id);
         cloneOp->sharedState = this->sharedState;
         return cloneOp;
+    }
+
+    nlohmann::json toJson(Profiler& profiler) override {
+        auto json = PhysicalOperator::toJson(profiler);
+        json["buildSide"] = buildSidePrevOp->toJson(profiler);
+        return json;
     }
 
 public:

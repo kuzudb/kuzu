@@ -4,8 +4,9 @@ namespace graphflow {
 namespace processor {
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
-ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::ScanNodeID(shared_ptr<MorselsDesc>& morsel)
-    : PhysicalOperator(SCAN), morsel{morsel} {
+ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::ScanNodeID(
+    shared_ptr<MorselsDesc>& morsel, ExecutionContext& context, uint32_t id)
+    : PhysicalOperator(SCAN, context, id), morsel{morsel} {
     resultSet = make_shared<ResultSet>();
     nodeIDVector = make_shared<NodeIDVector>(morsel->label, NodeIDCompressionScheme(), true);
     outDataChunk =
@@ -15,9 +16,9 @@ ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::ScanNodeID(shared_ptr<MorselsDesc>& morse
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
-ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::ScanNodeID(
-    shared_ptr<MorselsDesc>& morsel, unique_ptr<PhysicalOperator> prevOperator)
-    : PhysicalOperator{move(prevOperator), SCAN}, morsel{morsel} {
+ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::ScanNodeID(shared_ptr<MorselsDesc>& morsel,
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+    : PhysicalOperator{move(prevOperator), SCAN, context, id}, morsel{morsel} {
     resultSet = this->prevOperator->getResultSet();
     nodeIDVector = make_shared<NodeIDVector>(morsel->label, NodeIDCompressionScheme(), true);
     outDataChunk =
@@ -28,6 +29,7 @@ ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::ScanNodeID(
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
+    executionTime->start();
     if (prevOperator) {
         prevOperator->getNextTuples();
     }
@@ -49,6 +51,8 @@ void ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
             outDataChunk->state->selectedValuesPos[i] = i;
         }
     }
+    executionTime->stop();
+    numOutputTuple->increase(outDataChunk->state->size);
 }
 
 template class ScanNodeID<true>;

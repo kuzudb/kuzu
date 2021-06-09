@@ -2,8 +2,6 @@
 
 #include "src/common/include/vector/node_vector.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
-#include "src/processor/include/task_system/morsel.h"
-#include "src/storage/include/data_structure/column.h"
 
 using namespace graphflow::storage;
 
@@ -13,8 +11,8 @@ namespace processor {
 class ScanAttribute : public PhysicalOperator {
 
 public:
-    ScanAttribute(
-        uint64_t dataChunkPos, uint64_t valueVectorPos, unique_ptr<PhysicalOperator> prevOperator);
+    ScanAttribute(uint64_t dataChunkPos, uint64_t valueVectorPos,
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
 protected:
     uint64_t dataChunkPos;

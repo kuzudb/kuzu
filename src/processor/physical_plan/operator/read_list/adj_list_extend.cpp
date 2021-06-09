@@ -5,8 +5,9 @@ namespace processor {
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::AdjListExtend(uint64_t inDataChunkPos,
-    uint64_t inValueVectorPos, AdjLists* lists, unique_ptr<PhysicalOperator> prevOperator)
-    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)} {
+    uint64_t inValueVectorPos, AdjLists* lists, unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t id)
+    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id} {
     outValueVector = make_shared<NodeIDVector>(0, lists->getNodeIDCompressionScheme(), false);
     outDataChunk = make_shared<DataChunk>(!IS_OUT_DATACHUNK_FILTERED);
     outDataChunk->append(outValueVector);
@@ -18,6 +19,7 @@ AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::AdjListExtend(uint64_t inDataChunkPos,
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
+    executionTime->start();
     if (handle->hasMoreToRead()) {
         readValuesFromList();
         if constexpr (IS_OUT_DATACHUNK_FILTERED) {
@@ -33,13 +35,15 @@ void AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
                 if constexpr (IS_OUT_DATACHUNK_FILTERED) {
                     outDataChunk->state->initializeSelector();
                 }
-                return;
+                break;
             }
         } else {
             outDataChunk->state->size = 0;
-            return;
+            break;
         }
     }
+    executionTime->stop();
+    numOutputTuple->increase(outDataChunk->state->size);
 }
 
 template class AdjListExtend<true>;

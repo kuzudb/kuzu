@@ -1,12 +1,14 @@
 #include "src/processor/include/physical_plan/operator/projection/projection.h"
 
+#include "src/processor/include/physical_plan/expression_mapper.h"
+
 namespace graphflow {
 namespace processor {
 
 Projection::Projection(unique_ptr<vector<unique_ptr<ExpressionEvaluator>>> expressions,
     vector<uint64_t> expressionPosToDataChunkPos, const vector<uint64_t>& discardedDataChunkPos,
-    unique_ptr<PhysicalOperator> prevOperator)
-    : PhysicalOperator(move(prevOperator), PROJECTION), expressions{move(expressions)},
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+    : PhysicalOperator(move(prevOperator), PROJECTION, context, id), expressions{move(expressions)},
       expressionPosToDataChunkPos(expressionPosToDataChunkPos),
       discardedDataChunkPos(discardedDataChunkPos) {
     resultSet = make_shared<ResultSet>();
@@ -30,6 +32,7 @@ Projection::Projection(unique_ptr<vector<unique_ptr<ExpressionEvaluator>>> expre
 }
 
 void Projection::getNextTuples() {
+    executionTime->start();
     prevOperator->getNextTuples();
     if (inResultSet->getNumTuples() > 0) {
         resultSet->multiplicity = 0;
@@ -42,6 +45,7 @@ void Projection::getNextTuples() {
         expression->evaluate();
     }
     resultSet->multiplicity = discardedResultSet->getNumTuples();
+    executionTime->stop();
 }
 
 unique_ptr<PhysicalOperator> Projection::clone() {
@@ -52,7 +56,7 @@ unique_ptr<PhysicalOperator> Projection::clone() {
             .push_back(ExpressionMapper::clone(*expr, *prevOperatorClone->getResultSet()));
     }
     return make_unique<Projection>(move(rootExpressionsCloned), expressionPosToDataChunkPos,
-        discardedDataChunkPos, move(prevOperatorClone));
+        discardedDataChunkPos, move(prevOperatorClone), context, id);
 }
 
 } // namespace processor

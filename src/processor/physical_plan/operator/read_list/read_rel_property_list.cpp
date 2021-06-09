@@ -1,15 +1,12 @@
 #include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
 
-#include "src/common/include/vector/operations/vector_comparison_operations.h"
-
-using namespace graphflow::common;
-
 namespace graphflow {
 namespace processor {
 
 ReadRelPropertyList::ReadRelPropertyList(uint64_t inDataChunkPos, uint64_t inValueVectorPos,
-    uint64_t outDataChunkPos, BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator)
-    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)},
+    uint64_t outDataChunkPos, BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t id)
+    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id},
       outDataChunkPos(outDataChunkPos) {
     outValueVector = make_shared<ValueVector>(lists->getDataType());
     outDataChunk = resultSet->dataChunks[outDataChunkPos];
@@ -18,11 +15,13 @@ ReadRelPropertyList::ReadRelPropertyList(uint64_t inDataChunkPos, uint64_t inVal
 }
 
 void ReadRelPropertyList::getNextTuples() {
+    executionTime->start();
     prevOperator->getNextTuples();
     if (inDataChunk->state->size > 0) {
         readValuesFromList();
     }
     outValueVector->fillNullMask();
+    executionTime->stop();
 }
 
 } // namespace processor

@@ -4,8 +4,8 @@ namespace graphflow {
 namespace processor {
 
 AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
-    unique_ptr<PhysicalOperator> prevOperator)
-    : ScanColumn{dataChunkPos, valueVectorPos, column, move(prevOperator)},
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+    : ScanColumn{dataChunkPos, valueVectorPos, column, move(prevOperator), context, id},
       prevInNumSelectedValues(0ul) {
     auto outNodeIDVector = make_shared<NodeIDVector>(
         0, ((AdjColumn*)column)->getCompressionScheme(), false /*inNodeIDVector->isSequence()*/);
@@ -14,6 +14,7 @@ AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos,
 }
 
 void AdjColumnExtend::getNextTuples() {
+    executionTime->start();
     bool hasAtLeastOneNonNullValue;
     do {
         inDataChunk->state->size = prevInNumSelectedValues;
@@ -22,6 +23,8 @@ void AdjColumnExtend::getNextTuples() {
         hasAtLeastOneNonNullValue =
             static_pointer_cast<NodeIDVector>(outValueVector)->discardNulls();
     } while (inDataChunk->state->size > 0 && !hasAtLeastOneNonNullValue);
+    executionTime->stop();
+    numOutputTuple->increase(inDataChunk->state->size);
 }
 
 } // namespace processor

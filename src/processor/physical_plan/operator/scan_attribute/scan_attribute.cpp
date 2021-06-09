@@ -3,9 +3,9 @@
 namespace graphflow {
 namespace processor {
 
-ScanAttribute::ScanAttribute(
-    uint64_t dataChunkPos, uint64_t valueVectorPos, unique_ptr<PhysicalOperator> prevOperator)
-    : PhysicalOperator{move(prevOperator), SCAN_ATTRIBUTE}, dataChunkPos{dataChunkPos},
+ScanAttribute::ScanAttribute(uint64_t dataChunkPos, uint64_t valueVectorPos,
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+    : PhysicalOperator{move(prevOperator), SCAN_ATTRIBUTE, context, id}, dataChunkPos{dataChunkPos},
       valueVectorPos{valueVectorPos}, handle{make_unique<DataStructureHandle>()} {
     resultSet = this->prevOperator->getResultSet();
     inDataChunk = resultSet->dataChunks[dataChunkPos];

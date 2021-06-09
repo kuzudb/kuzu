@@ -7,8 +7,10 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::HashJoinProbe(uint64_t buildSideKeyDataChunkPos,
     uint64_t buildSideKeyVectorPos, vector<bool> buildSideDataChunkPosToIsFlat,
     uint64_t probeSideKeyDataChunkPos, uint64_t probeSideKeyVectorPos,
-    unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp)
-    : PhysicalOperator{move(probeSidePrevOp), HASH_JOIN_PROBE, IS_OUT_DATACHUNK_FILTERED},
+    unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp,
+    ExecutionContext& context, uint32_t id)
+    : PhysicalOperator{move(probeSidePrevOp), HASH_JOIN_PROBE, IS_OUT_DATACHUNK_FILTERED, context,
+          id},
       buildSidePrevOp{move(buildSidePrevOp)}, buildSideKeyDataChunkPos{buildSideKeyDataChunkPos},
       buildSideKeyVectorPos{buildSideKeyVectorPos},
       buildSideDataChunkPosToIsFlat{buildSideDataChunkPosToIsFlat},
@@ -274,6 +276,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::updateAppendedUnFlatOutResultSet(
 // outKeyDataChunk.currPos.
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
+    executionTime->start();
     if (!buildSideVectorPtrs.empty() &&
         outKeyDataChunk->state->currPos < (int64_t)(outKeyDataChunk->state->size - 1)) {
         outKeyDataChunk->state->currPos += 1;
@@ -284,6 +287,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
                 resultSet->dataChunks[i]->state->initializeSelector();
             }
         }
+        executionTime->stop();
+        numOutputTuple->increase(resultSet->getNumTuples());
         return;
     }
     getNextBatchOfMatchedTuples();
@@ -301,6 +306,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
             resultSet->dataChunks[i]->state->initializeSelector();
         }
     }
+    executionTime->stop();
+    numOutputTuple->increase(resultSet->getNumTuples());
 }
 
 template class HashJoinProbe<true>;

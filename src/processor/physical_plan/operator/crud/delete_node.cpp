@@ -5,11 +5,11 @@ namespace processor {
 
 void DeleteNode::getNextTuples() {
     CRUDOperator::getNextTuples();
-    transactionPtr->localStorage.mapNodeIDs(nodeLabel);
-    transactionPtr->localStorage.deleteNodeIDs(nodeLabel);
-    transactionPtr->localStorage.computeDeleteNode(
+    context.transaction->localStorage.mapNodeIDs(nodeLabel);
+    context.transaction->localStorage.deleteNodeIDs(nodeLabel);
+    context.transaction->localStorage.computeDeleteNode(
         move(propertyKeyVectorPos), nodeLabel, nodePropertyColumns, numNodes);
-};
+}
 
 } // namespace processor
 } // namespace graphflow

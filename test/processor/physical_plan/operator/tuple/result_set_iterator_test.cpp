@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 
+#include "src/common/include/vector/node_vector.h"
 #include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
 
 using namespace graphflow::processor;
