@@ -150,9 +150,11 @@ cc_library(
     name = "hash_index",
     srcs = [
         "index/hash_index.cpp",
+        "index/overflow_pages_manager.cpp",
     ],
     hdrs = [
         "include/index/hash_index.h",
+        "include/index/overflow_pages_manager.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

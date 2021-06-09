@@ -1,7 +1,5 @@
 #include "src/storage/include/file_utils.h"
 
-#include <sys/stat.h>
-
 #include <cstring>
 #include <stdexcept>
 
@@ -22,14 +20,6 @@ void FileUtils::closeFile(int fd) {
     if (fd != -1) {
         close(fd);
     }
-}
-
-int64_t FileUtils::getFileSize(int fd) {
-    struct stat s;
-    if (fstat(fd, &s) == -1) {
-        return -1;
-    }
-    return s.st_size;
 }
 
 void FileUtils::writeToFile(int fd, void* buffer, int64_t numBytes, uint64_t offset) {
