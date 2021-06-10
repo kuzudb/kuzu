@@ -6,23 +6,23 @@ namespace graphflow {
 namespace processor {
 
 void Task::run() {
-    if (!registerThread()) {
+    auto pipelineSinkCopy = registerThread();
+    if (pipelineSinkCopy == nullptr) {
         return;
     }
-    auto pipelineSinkCopy = sinkOp->clone();
     do {
         pipelineSinkCopy->getNextTuples();
     } while (pipelineSinkCopy->getResultSet()->getNumTuples() > 0);
     deregisterThread(move(pipelineSinkCopy));
 }
 
-bool Task::registerThread() {
+unique_ptr<PhysicalOperator> Task::registerThread() {
     lock_t lck{mtx};
     if (canRegister()) {
         numThreadsRegistered++;
-        return true;
+        return sinkOp->clone();
     }
-    return false;
+    return nullptr;
 }
 
 void Task::deregisterThread(unique_ptr<PhysicalOperator> taskSinkOp) {

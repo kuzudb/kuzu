@@ -30,7 +30,7 @@ public:
     }
 
 private:
-    bool registerThread();
+    unique_ptr<PhysicalOperator> registerThread();
     void deregisterThread(unique_ptr<PhysicalOperator> taskSinkOp);
 
 public:
