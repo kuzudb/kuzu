@@ -4,9 +4,7 @@ namespace graphflow {
 namespace processor {
 
 void ScanColumn::getNextTuples() {
-    do {
-        prevOperator->getNextTuples();
-    } while (inDataChunk->state->size > 0 && inDataChunk->state->numSelectedValues == 0);
+    prevOperator->getNextTuples();
     if (inDataChunk->state->size > 0) {
         column->reclaim(handle);
         column->readValues(inNodeIDVector, outValueVector, handle);

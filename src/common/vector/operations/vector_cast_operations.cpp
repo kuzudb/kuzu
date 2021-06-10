@@ -30,21 +30,21 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
     } else {
         switch (operand.dataType) {
         case BOOL: {
-            for (auto i = 0u; i < operand.state->numSelectedValues; i++) {
+            for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 outValues[pos].primitive.booleanVal = operand.values[pos];
             }
         } break;
         case INT32: {
             auto intValues = (int32_t*)operand.values;
-            for (auto i = 0u; i < operand.state->numSelectedValues; i++) {
+            for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 outValues[pos].primitive.int32Val = intValues[pos];
             }
         } break;
         case DOUBLE: {
             auto doubleValues = (double_t*)operand.values;
-            for (auto i = 0u; i < operand.state->numSelectedValues; i++) {
+            for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 outValues[pos].primitive.doubleVal = doubleValues[pos];
             }
@@ -81,7 +81,7 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
     } else {
         switch (operand.dataType) {
         case BOOL: {
-            for (auto i = 0u; i < operand.state->numSelectedValues; i++) {
+            for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 outValues[pos].set(operand.values[pos] == TRUE ?
                                        "True" :
@@ -90,14 +90,14 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
         } break;
         case INT32: {
             auto intValues = (int32_t*)operand.values;
-            for (auto i = 0u; i < operand.state->numSelectedValues; i++) {
+            for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 outValues[pos].set(to_string(intValues[pos]));
             }
         } break;
         case DOUBLE: {
             auto doubleValues = (double_t*)operand.values;
-            for (auto i = 0u; i < operand.state->numSelectedValues; i++) {
+            for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 outValues[pos].set(to_string(doubleValues[pos]));
             }
@@ -112,7 +112,7 @@ void VectorCastOperations::castUnstructuredToBoolValue(ValueVector& operand, Val
     assert(operand.dataType == UNSTRUCTURED && result.dataType == BOOL);
     auto inValues = (Value*)result.values;
     if (!operand.state->isFlat()) {
-        for (auto i = 0u; i < operand.state->numSelectedValues; i++) {
+        for (auto i = 0u; i < operand.state->size; i++) {
             auto pos = operand.state->selectedValuesPos[i];
             if (inValues[pos].dataType != BOOL) {
                 throw std::invalid_argument("Don’t know how to treat that as a predicate: “" +

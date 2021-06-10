@@ -14,7 +14,7 @@ static void fillOperandNullMask(ValueVector& operand) {
         operand.nullMask[operand.state->getCurrSelectedValuesPos()] =
             IsNull::operation(values[operand.state->getCurrSelectedValuesPos()]);
     } else {
-        auto size = operand.state->numSelectedValues;
+        auto size = operand.state->size;
         for (uint64_t i = 0; i < size; i++) {
             operand.nullMask[i] = IsNull::operation(values[operand.state->selectedValuesPos[i]]);
         }

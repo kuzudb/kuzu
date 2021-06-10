@@ -4,7 +4,7 @@ namespace graphflow {
 namespace common {
 
 VectorState::VectorState(bool initializeSelectedValuesPos, uint64_t capacity)
-    : size{0}, currPos{-1}, numSelectedValues{0} {
+    : currPos{-1}, size{0} {
     valuesPos = make_unique<uint64_t[]>(capacity);
     selectedValuesPos = valuesPos.get();
     if (initializeSelectedValuesPos) {
@@ -21,10 +21,10 @@ uint64_t VectorState::getNumSelectedValues() const {
     if (isFlat()) {
         return multiplicity == nullptr ? 1 : multiplicity[getCurrSelectedValuesPos()];
     } else if (multiplicity == nullptr) {
-        return numSelectedValues;
+        return size;
     } else {
         auto numSelectedValuesSum = 0u;
-        for (auto i = 0u; i < numSelectedValues; i++) {
+        for (auto i = 0u; i < size; i++) {
             numSelectedValuesSum += multiplicity[selectedValuesPos[i]];
         }
         return numSelectedValuesSum;
@@ -39,12 +39,11 @@ shared_ptr<VectorState> VectorState::getSingleValueDataChunkState() {
 }
 
 shared_ptr<VectorState> VectorState::clone() {
-    auto capacity = size == 1 ? 1 : DEFAULT_VECTOR_CAPACITY;
-    auto newState = make_shared<VectorState>(false /*initializeSelectedValuesPos*/, capacity);
-    newState->size = size;
+    auto newState =
+        make_shared<VectorState>(false /*initializeSelectedValuesPos*/, DEFAULT_VECTOR_CAPACITY);
     newState->currPos = currPos;
-    newState->numSelectedValues = numSelectedValues;
-    memcpy(newState->valuesPos.get(), valuesPos.get(), capacity * sizeof(uint64_t));
+    newState->size = size;
+    memcpy(newState->valuesPos.get(), valuesPos.get(), DEFAULT_VECTOR_CAPACITY * sizeof(uint64_t));
     return newState;
 }
 

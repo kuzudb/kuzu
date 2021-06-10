@@ -26,7 +26,7 @@ public:
             TEMP_INDEX, 0, insertionMemoryManager, insertionBufferManager, ovfPagesManager, INT64);
         auto numEntries = 1000;
         auto state = make_shared<VectorState>(true, numEntries);
-        state->numSelectedValues = numEntries;
+        state->size = numEntries;
         ValueVector keys(INT64);
         keys.state = state;
         ValueVector values(INT64);
@@ -58,7 +58,7 @@ TEST_F(HashIndexTest, HashIndexInsertExists) {
     HashIndex hashIndex(TEMP_INDEX, 0, memoryManager, bufferManager, ovfPagesManager, INT64);
     auto numEntries = 10;
     auto state = make_shared<VectorState>(true, numEntries);
-    state->numSelectedValues = numEntries;
+    state->size = numEntries;
     ValueVector keys(INT64);
     keys.state = state;
     ValueVector values(INT64);
@@ -83,7 +83,7 @@ TEST_F(HashIndexTest, HashIndexSmallLookup) {
     HashIndex lookupHashIndex(TEMP_INDEX, 0, memoryManager, bufferManager, ovfPagesManager, INT64);
     auto numEntries = 10;
     auto state = make_shared<VectorState>(true, numEntries);
-    state->numSelectedValues = numEntries;
+    state->size = numEntries;
     ValueVector result(INT64);
     result.state = state;
     ValueVector keys(INT64);
@@ -106,7 +106,7 @@ TEST_F(HashIndexTest, HashIndexRandomLookup) {
     HashIndex lookupHashIndex(TEMP_INDEX, 0, memoryManager, bufferManager, ovfPagesManager, INT64);
     auto numEntries = 1000;
     auto state = make_shared<VectorState>(true, numEntries);
-    state->numSelectedValues = numEntries;
+    state->size = numEntries;
     ValueVector keys(INT64);
     keys.state = state;
     auto keysData = (uint64_t*)keys.values;

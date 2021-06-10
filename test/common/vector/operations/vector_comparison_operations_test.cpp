@@ -12,7 +12,6 @@ TEST(VectorCmpTests, cmpInt) {
 
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = numTuples;
-    dataChunk->state->numSelectedValues = numTuples;
 
     auto lVector = make_shared<ValueVector>(INT32);
     dataChunk->append(lVector);
@@ -131,7 +130,6 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
 
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = VECTOR_SIZE;
-    dataChunk->state->numSelectedValues = VECTOR_SIZE;
     dataChunk->state->currPos = 0;
 
     auto lVector = make_shared<ValueVector>(STRING);

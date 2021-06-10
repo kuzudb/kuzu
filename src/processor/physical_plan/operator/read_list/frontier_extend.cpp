@@ -51,8 +51,7 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     }
     do {
         prevOperator->getNextTuples();
-        if (inNodeIDVector->state->numSelectedValues == 0) {
-            outValueVector->state->size = outValueVector->state->numSelectedValues = 0;
+        if (inNodeIDVector->state->size == 0) {
             return;
         }
     } while (computeFrontiers());
@@ -163,7 +162,6 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
                             slot->multiplicity;
                         slot = slot->next;
                         if (outValueVector->state->size == DEFAULT_VECTOR_CAPACITY) {
-                            outValueVector->state->numSelectedValues = DEFAULT_VECTOR_CAPACITY;
                             currOutputPos.hasMoreTuplesToProduce = true;
                             if constexpr (IS_OUT_DATACHUNK_FILTERED) {
                                 outDataChunk->state->initializeSelector();
@@ -180,7 +178,6 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
         currOutputPos.blockIdx = 0u;
         currOutputPos.layer++;
     }
-    outValueVector->state->numSelectedValues = outValueVector->state->size;
     if constexpr (IS_OUT_DATACHUNK_FILTERED) {
         outDataChunk->state->initializeSelector();
     }

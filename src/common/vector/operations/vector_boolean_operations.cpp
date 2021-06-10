@@ -24,7 +24,7 @@ void VectorBooleanOperations::Not(ValueVector& operand, ValueVector& result) {
         auto pos = operand.state->getCurrSelectedValuesPos();
         result.values[pos] = operation::Not::operation(operand.values[pos], operand.nullMask[pos]);
     } else {
-        for (auto i = 0ul; i < operand.state->numSelectedValues; i++) {
+        for (auto i = 0ul; i < operand.state->size; i++) {
             auto pos = operand.state->selectedValuesPos[i];
             result.values[pos] =
                 operation::Not::operation(operand.values[pos], operand.nullMask[pos]);

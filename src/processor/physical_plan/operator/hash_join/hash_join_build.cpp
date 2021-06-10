@@ -96,7 +96,7 @@ void HashJoinBuild::appendPayloadVectorAsFixSizedValues(ValueVector& vector, uin
 
 overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
     auto numBytesPerValue = vector.getNumBytesPerValue();
-    auto valuesLength = vector.getNumBytesPerValue() * vector.state->numSelectedValues;
+    auto valuesLength = vector.getNumBytesPerValue() * vector.state->size;
     auto vectorValues = vector.values;
     auto vectorSelectedValuesPos = vector.state->selectedValuesPos;
     if (valuesLength > DEFAULT_OVERFLOW_BLOCK_SIZE) {
@@ -120,7 +120,7 @@ overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
         overflowBlocks.push_back(move(blockHandle));
     }
 
-    for (auto i = 0u; i < vector.state->numSelectedValues; i++) {
+    for (auto i = 0u; i < vector.state->size; i++) {
         memcpy(blockAppendPos + (i * numBytesPerValue),
             vectorValues + (vectorSelectedValuesPos[i] * numBytesPerValue), numBytesPerValue);
     }
@@ -201,13 +201,12 @@ void HashJoinBuild::allocateHTBlocks(
 }
 
 void HashJoinBuild::appendResultSet() {
-    if (keyDataChunk->state->numSelectedValues == 0) {
+    if (keyDataChunk->state->size == 0) {
         return;
     }
 
     // Allocate space for tuples
-    auto numTuplesToAppend =
-        keyDataChunk->state->isFlat() ? 1 : keyDataChunk->state->numSelectedValues;
+    auto numTuplesToAppend = keyDataChunk->state->isFlat() ? 1 : keyDataChunk->state->size;
     vector<BlockAppendInfo> blockAppendInfos;
     allocateHTBlocks(numTuplesToAppend, blockAppendInfos);
 
@@ -288,7 +287,6 @@ void HashJoinBuild::getNextTuples() {
     }
 
     keyDataChunk->state->size = 0;
-    keyDataChunk->state->numSelectedValues = 0;
 }
 } // namespace processor
 } // namespace graphflow

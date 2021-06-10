@@ -18,9 +18,7 @@ ScanUnstructuredProperty::ScanUnstructuredProperty(uint64_t dataChunkPos, uint64
 }
 
 void ScanUnstructuredProperty::getNextTuples() {
-    do {
-        prevOperator->getNextTuples();
-    } while (inDataChunk->state->size > 0 && inDataChunk->state->numSelectedValues == 0);
+    prevOperator->getNextTuples();
     if (inDataChunk->state->size > 0) {
         lists->reclaim(handle);
         lists->readValues(inNodeIDVector, propertyKey, outValueVector, handle);

@@ -20,27 +20,23 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 void AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     if (handle->hasMoreToRead()) {
         readValuesFromList();
-        outDataChunk->state->numSelectedValues = outDataChunk->state->size;
         if constexpr (IS_OUT_DATACHUNK_FILTERED) {
             outDataChunk->state->initializeSelector();
         }
         return;
     }
     while (true) {
-        do {
-            prevOperator->getNextTuples();
-        } while (inDataChunk->state->size > 0 && inDataChunk->state->numSelectedValues == 0);
+        prevOperator->getNextTuples();
         if (inDataChunk->state->size > 0) {
             readValuesFromList();
             if (outDataChunk->state->size > 0) {
-                outDataChunk->state->numSelectedValues = outDataChunk->state->size;
                 if constexpr (IS_OUT_DATACHUNK_FILTERED) {
                     outDataChunk->state->initializeSelector();
                 }
                 return;
             }
         } else {
-            outDataChunk->state->size = outDataChunk->state->numSelectedValues = 0;
+            outDataChunk->state->size = 0;
             return;
         }
     }
