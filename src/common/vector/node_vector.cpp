@@ -40,14 +40,14 @@ bool NodeIDVector::discardNulls() {
     if (state->currPos == -1) {
         auto selectedValuesPos = state->selectedValuesPos;
         auto selectedPos = 0u;
-        for (auto j = 0u; j < state->numSelectedValues; j++) {
+        for (auto j = 0u; j < state->size; j++) {
             readNodeOffset(state->selectedValuesPos[j], nodeID);
             if (nodeID.offset != nullOffset) {
                 selectedValuesPos[selectedPos++] = j;
             }
         }
-        state->numSelectedValues = selectedPos;
-        return state->numSelectedValues > 0;
+        state->size = selectedPos;
+        return state->size > 0;
     } else {
         readNodeOffset(state->getCurrSelectedValuesPos(), nodeID);
         return nodeID.offset != nullOffset;

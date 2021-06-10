@@ -106,7 +106,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutResultSetAndVectorPt
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::probeHTDirectory() {
     auto keyCount =
-        hashedProbeKeyVector->state->isFlat() ? 1 : hashedProbeKeyVector->state->numSelectedValues;
+        hashedProbeKeyVector->state->isFlat() ? 1 : hashedProbeKeyVector->state->size;
     VectorNodeIDOperations::Hash(*probeSideKeyVector, *hashedProbeKeyVector);
     auto hashes = (uint64_t*)hashedProbeKeyVector->values;
     auto directory = (uint8_t**)sharedState->htDirectory->blockPtr;
@@ -130,7 +130,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
         if (probeState->probedTuplesSize == 0 ||
             probeState->probeKeyPos == probeState->probedTuplesSize) {
             prevOperator->getNextTuples();
-            if (probeSideKeyDataChunk->state->numSelectedValues == 0) {
+            if (probeSideKeyDataChunk->state->size == 0) {
                 probeState->probedTuplesSize = 0;
                 return;
             }
@@ -243,17 +243,17 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::populateOutKeyDataChunkAndVectorP
     }
 
     outKeyDataChunk->state->size = probeState->matchedTuplesSize;
-    outKeyDataChunk->state->numSelectedValues = probeState->matchedTuplesSize;
+    outKeyDataChunk->state->size = probeState->matchedTuplesSize;
     probeState->matchedTuplesSize = 0;
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::updateAppendedUnFlatOutResultSet() {
-    if (outKeyDataChunk->state->numSelectedValues == 0) {
+    if (outKeyDataChunk->state->size == 0) {
         for (auto& buildVectorInfo : buildSideVectorInfos) {
             auto outDataChunk = resultSet->dataChunks[buildVectorInfo.outDataChunkPos];
             outDataChunk->state->size = 0;
-            outDataChunk->state->numSelectedValues = 0;
+            outDataChunk->state->size = 0;
         }
     } else {
         for (auto& buildVectorInfo : buildSideVectorInfos) {
@@ -264,7 +264,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::updateAppendedUnFlatOutResultSet(
                 outKeyDataChunk->state->currPos);
             memcpy(appendVectorData, overflowVal.value, overflowVal.len);
             outDataChunk->state->size = overflowVal.len / buildVectorInfo.numBytesPerValue;
-            outDataChunk->state->numSelectedValues = outDataChunk->state->size;
+            outDataChunk->state->size = outDataChunk->state->size;
         }
     }
 }
@@ -279,7 +279,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::updateAppendedUnFlatOutResultSet(
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     if (!buildSideVectorPtrs.empty() &&
-        outKeyDataChunk->state->currPos < (int64_t)(outKeyDataChunk->state->size - 1)) {
+        outKeyDataChunk->state->currPos < outKeyDataChunk->state->size - 1) {
         outKeyDataChunk->state->currPos += 1;
         updateAppendedUnFlatOutResultSet();
         if constexpr (IS_OUT_DATACHUNK_FILTERED) {

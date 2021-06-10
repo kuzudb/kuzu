@@ -44,7 +44,6 @@ void ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
             morsel->currNodeOffset += outDataChunk->state->size;
         }
     }
-    outDataChunk->state->numSelectedValues = outDataChunk->state->size;
     if constexpr (IS_OUT_DATACHUNK_FILTERED) {
         for (auto i = 0u; i < outDataChunk->state->size; i++) {
             outDataChunk->state->selectedValuesPos[i] = i;

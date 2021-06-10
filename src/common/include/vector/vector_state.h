@@ -17,7 +17,7 @@ public:
     VectorState(bool initializeSelectedValuesPos, uint64_t capacity);
 
     void initializeSelector() {
-        for (auto i = 0u; i < numSelectedValues; i++) {
+        for (auto i = 0u; i < size; i++) {
             valuesPos[i] = i;
         }
     }
@@ -27,7 +27,7 @@ public:
         multiplicity = multiplicityBuffer.get();
     }
 
-    inline bool isFlat() const { return currPos != -1; }
+    inline bool isFlat() const { return currPos != UINT64_MAX; }
 
     inline uint64_t getCurrSelectedValuesPos() const { return selectedValuesPos[currPos]; }
 
@@ -38,8 +38,7 @@ public:
 public:
     uint64_t size;
     // The current position when vectors are flattened.
-    int64_t currPos;
-    uint64_t numSelectedValues;
+    uint64_t currPos;
     uint64_t* selectedValuesPos;
     uint64_t* multiplicity;
 

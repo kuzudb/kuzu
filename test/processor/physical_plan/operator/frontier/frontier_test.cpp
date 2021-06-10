@@ -12,7 +12,7 @@ TEST(FrontierTests, frontierCreationTest) {
     NodeIDCompressionScheme compressionScheme;
     NodeIDVector vector = NodeIDVector(0, compressionScheme, false);
     vector.state = make_shared<VectorState>(true /*initializeSelectedValuesPos*/, MAX_VECTOR_SIZE);
-    vector.state->size = vector.state->numSelectedValues = MAX_VECTOR_SIZE;
+    vector.state->size = vector.state->size = MAX_VECTOR_SIZE;
     for (auto i = 0u; i < vector.state->size; i++) {
         ((node_offset_t*)vector.values)[i] = i;
     }

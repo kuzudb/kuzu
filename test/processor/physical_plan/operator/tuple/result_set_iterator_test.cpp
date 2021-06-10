@@ -44,9 +44,9 @@ public:
         dataChunkA->state->size = 100;
         dataChunkB->state->size = 100;
         dataChunkC->state->size = 100;
-        dataChunkA->state->numSelectedValues = 100;
-        dataChunkB->state->numSelectedValues = 100;
-        dataChunkC->state->numSelectedValues = 100;
+        dataChunkA->state->size = 100;
+        dataChunkB->state->size = 100;
+        dataChunkC->state->size = 100;
         resultSet.append(dataChunkA);
         resultSet.append(dataChunkB);
         resultSet.append(dataChunkC);
