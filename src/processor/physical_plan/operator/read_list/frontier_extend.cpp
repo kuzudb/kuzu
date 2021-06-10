@@ -25,7 +25,7 @@ FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::FrontierExtend(uint64_t inDataChunkPo
     for (auto i = 0u; i < maxNumThreads; i++) {
         vectors.push_back(make_shared<NodeIDVector>(0, lists->getNodeIDCompressionScheme(), false));
         vectors[i]->state =
-            make_shared<VectorState>(false /* initSelectedValuesPos */, MAX_VECTOR_SIZE);
+            make_shared<VectorState>(false /* initSelectedValuesPos */, DEFAULT_VECTOR_CAPACITY);
         handles.push_back(make_unique<DataStructureHandle>());
         handles[i]->setListSyncState(make_shared<ListSyncState>());
         handles[i]->setIsAdjListHandle();
@@ -96,10 +96,8 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::extendToThreadLocalFrontiers(uin
                 if (mainBlock[slotToExtendFrom].hasValue) {
                     auto slot = &mainBlock[slotToExtendFrom];
                     while (slot) {
-                        nodeID_t nodeID;
-                        nodeID.offset = slot->nodeOffset;
                         do {
-                            lists->readValues(nodeID, vectors[threadId],
+                            lists->readValues(slot->nodeOffset, vectors[threadId],
                                 vectors[threadId]->state->size, handles[threadId], MAX_TO_READ);
                             threadLocalFrontierPerLayer[layer][threadId]->append(
                                 *(NodeIDVector*)(vectors[threadId].get()), slot->multiplicity);
@@ -155,7 +153,8 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
         while (currOutputPos.blockIdx < frontier->hashTableBlocks.size()) {
             auto mainBlock = frontier->hashTableBlocks[currOutputPos.blockIdx];
             auto maxSlot = NUM_SLOTS_PER_BLOCK_SET;
-            while (outValueVector->state->size < MAX_VECTOR_SIZE && currOutputPos.slot < maxSlot) {
+            while (outValueVector->state->size < DEFAULT_VECTOR_CAPACITY &&
+                   currOutputPos.slot < maxSlot) {
                 if (mainBlock[currOutputPos.slot].hasValue) {
                     auto slot = &mainBlock[currOutputPos.slot];
                     while (slot) {
@@ -163,8 +162,8 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
                         outValueVector->state->multiplicity[outValueVector->state->size++] =
                             slot->multiplicity;
                         slot = slot->next;
-                        if (outValueVector->state->size == MAX_VECTOR_SIZE) {
-                            outValueVector->state->numSelectedValues = MAX_VECTOR_SIZE;
+                        if (outValueVector->state->size == DEFAULT_VECTOR_CAPACITY) {
+                            outValueVector->state->numSelectedValues = DEFAULT_VECTOR_CAPACITY;
                             currOutputPos.hasMoreTuplesToProduce = true;
                             if constexpr (IS_OUT_DATACHUNK_FILTERED) {
                                 outDataChunk->state->initializeSelector();
@@ -194,10 +193,9 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
 template<bool IS_OUT_DATACHUNK_FILTERED>
 FrontierSet* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::createInitialFrontierSet() {
     // We assume the inNodeIDVector to be flat similar to AdjListExtend's assumption.
-    nodeID_t nodeID;
     auto pos = inNodeIDVector->state->getCurrSelectedValuesPos();
-    inNodeIDVector->readNodeOffset(pos, nodeID);
-    auto numSlots = getNextPowerOfTwo(lists->getNumElementsInList(nodeID));
+    auto nodeOffset = inNodeIDVector->readNodeOffset(pos);
+    auto numSlots = getNextPowerOfTwo(lists->getNumElementsInList(nodeOffset));
     if (numSlots == 0) {
         return nullptr;
     }
@@ -205,7 +203,7 @@ FrontierSet* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::createInitialFrontierSet
     frontier->setMemoryManager(memMan);
     frontier->initHashTable(numSlots);
     do {
-        lists->readValues(nodeID, vectors[0], vectors[0]->state->size, handles[0], MAX_TO_READ);
+        lists->readValues(nodeOffset, vectors[0], vectors[0]->state->size, handles[0], MAX_TO_READ);
         frontier->insert(*vectors[0]);
     } while (handles[0]->hasMoreToRead());
     lists->reclaim(handles[0]);

@@ -28,7 +28,7 @@ HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::HashJoinProbe(uint64_t buildSideKeyDat
     hashedProbeKeyVector = make_shared<ValueVector>(INT64);
     hashedProbeKeyVector->state = probeSideKeyVector->state;
 
-    probeState = make_unique<ProbeState>(MAX_VECTOR_SIZE);
+    probeState = make_unique<ProbeState>(DEFAULT_VECTOR_CAPACITY);
 
     initializeOutResultSetAndVectorPtrs();
 }
@@ -92,7 +92,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::initializeOutResultSetAndVectorPt
             createVectorsFromExistingOnesAndAppend(
                 *dataChunk, *unFlatOutDataChunk, dataChunkVectorPositions);
             for (auto j = 0u; j < dataChunk->valueVectors.size(); j++) {
-                auto vectorPtrs = make_unique<overflow_value_t[]>(NODE_SEQUENCE_VECTOR_SIZE);
+                auto vectorPtrs = make_unique<overflow_value_t[]>(NODE_SEQUENCE_VECTOR_CAPACITY);
                 BuildSideVectorInfo vectorInfo(dataChunk->valueVectors[j]->getNumBytesPerValue(),
                     resultSet->dataChunks.size(), j, buildSideVectorPtrs.size());
                 buildSideVectorInfos.push_back(vectorInfo);
@@ -143,7 +143,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
         uint64_t decompressedProbeKeyPos, probeSelPos;
         for (uint64_t i = probeState->probeKeyPos; i < probeState->probedTuplesSize; i++) {
             while (probeState->probedTuples[i]) {
-                if (NODE_SEQUENCE_VECTOR_SIZE == probeState->matchedTuplesSize) {
+                if (NODE_SEQUENCE_VECTOR_CAPACITY == probeState->matchedTuplesSize) {
                     break;
                 }
                 memcpy(&nodeId, probeState->probedTuples[i], NUM_BYTES_PER_NODE_ID);

@@ -11,8 +11,9 @@ TEST(FrontierTests, frontierCreationTest) {
 
     NodeIDCompressionScheme compressionScheme;
     NodeIDVector vector = NodeIDVector(0, compressionScheme, false);
-    vector.state = make_shared<VectorState>(true /*initializeSelectedValuesPos*/, MAX_VECTOR_SIZE);
-    vector.state->size = vector.state->numSelectedValues = MAX_VECTOR_SIZE;
+    vector.state =
+        make_shared<VectorState>(true /*initializeSelectedValuesPos*/, DEFAULT_VECTOR_CAPACITY);
+    vector.state->size = vector.state->numSelectedValues = DEFAULT_VECTOR_CAPACITY;
     for (auto i = 0u; i < vector.state->size; i++) {
         ((node_offset_t*)vector.values)[i] = i;
     }
@@ -25,13 +26,13 @@ TEST(FrontierTests, frontierCreationTest) {
     for (auto i = 0u; i < 10; i++) {
         for (auto j = 0u; j < vector.state->size; j++) {
             ((node_offset_t*)vector.values)[j] =
-                ((node_offset_t*)vector.values)[j] + MAX_VECTOR_SIZE;
+                ((node_offset_t*)vector.values)[j] + DEFAULT_VECTOR_CAPACITY;
         }
         frontierBag.append(vector, FIXED_MULTIPLICITY_VALUE);
     }
-    ASSERT_EQ(frontierBag.size, MAX_VECTOR_SIZE * 11);
+    ASSERT_EQ(frontierBag.size, DEFAULT_VECTOR_CAPACITY * 11);
 
-    auto highestID = MAX_VECTOR_SIZE * 11;
+    auto highestID = DEFAULT_VECTOR_CAPACITY * 11;
     for (auto i = 0u; i < NUM_SLOTS_BAG; i++) {
         auto slot = frontierBag.hashTable[i];
         auto arrSize =

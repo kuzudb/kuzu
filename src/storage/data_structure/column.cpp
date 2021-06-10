@@ -6,9 +6,8 @@ namespace storage {
 void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle) {
     if (nodeIDVector->isSequence()) {
-        nodeID_t nodeID;
-        nodeIDVector->readNodeOffset(0, nodeID);
-        auto pageCursor = getPageCursorForOffset(nodeID.offset);
+        auto nodeOffset = nodeIDVector->readNodeOffset(0);
+        auto pageCursor = getPageCursorForOffset(nodeOffset);
         auto sizeLeftToCopy = nodeIDVector->state->size * elementSize;
         if (pageCursor.offset + sizeLeftToCopy <= PAGE_SIZE) {
             // Case when all the values are in a single page on disk.
@@ -28,19 +27,19 @@ void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& 
     const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle) {
     reclaim(handle);
     valueVector->reset();
-    nodeID_t nodeID;
     auto values = valueVector->values;
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getCurrSelectedValuesPos();
-        nodeIDVector->readNodeOffset(pos, nodeID);
-        auto pageCursor = getPageCursorForOffset(nodeID.offset);
+        auto nodeOffset = nodeIDVector->readNodeOffset(pos);
+        auto pageCursor = getPageCursorForOffset(nodeOffset);
         auto frame = bufferManager.pin(fileHandle, pageCursor.idx);
         memcpy(values + pos * elementSize, frame + pageCursor.offset, elementSize);
         bufferManager.unpin(fileHandle, pageCursor.idx);
     } else {
         for (auto i = 0ul; i < nodeIDVector->state->numSelectedValues; i++) {
-            nodeIDVector->readNodeOffset(nodeIDVector->state->selectedValuesPos[i], nodeID);
-            auto pageCursor = getPageCursorForOffset(nodeID.offset);
+            auto nodeOffset =
+                nodeIDVector->readNodeOffset(nodeIDVector->state->selectedValuesPos[i]);
+            auto pageCursor = getPageCursorForOffset(nodeOffset);
             auto frame = bufferManager.pin(fileHandle, pageCursor.idx);
             memcpy(values + valueVector->state->selectedValuesPos[i] * elementSize,
                 frame + pageCursor.offset, elementSize);
@@ -52,9 +51,8 @@ void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& 
 void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle) {
     if (nodeIDVector->isSequence()) {
-        nodeID_t nodeID;
-        nodeIDVector->readNodeOffset(0, nodeID);
-        auto pageCursor = getPageCursorForOffset(nodeID.offset);
+        auto nodeOffset = nodeIDVector->readNodeOffset(0);
+        auto pageCursor = getPageCursorForOffset(nodeOffset);
         auto sizeLeftToCopy = nodeIDVector->state->size * elementSize;
         readBySequentialCopy(valueVector, handle, sizeLeftToCopy, pageCursor,
             nullptr /*no page mapping is required*/);

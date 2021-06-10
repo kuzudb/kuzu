@@ -4,6 +4,8 @@
 #include <memory>
 #include <vector>
 
+#include "src/common/include/types.h"
+
 using namespace std;
 
 namespace graphflow {
@@ -23,7 +25,7 @@ public:
     }
 
     void initMultiplicity() {
-        multiplicityBuffer = make_unique<uint64_t[]>(2048 /* Max Vector Size */);
+        multiplicityBuffer = make_unique<uint64_t[]>(DEFAULT_VECTOR_CAPACITY);
         multiplicity = multiplicityBuffer.get();
     }
 
@@ -31,7 +33,7 @@ public:
 
     inline uint64_t getCurrSelectedValuesPos() const { return selectedValuesPos[currPos]; }
 
-    uint64_t getNumSelectedValues();
+    uint64_t getNumSelectedValues() const;
 
     shared_ptr<VectorState> clone();
 

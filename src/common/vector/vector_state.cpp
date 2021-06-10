@@ -17,14 +17,14 @@ VectorState::VectorState(bool initializeSelectedValuesPos, uint64_t capacity)
     multiplicity = nullptr;
 }
 
-uint64_t VectorState::getNumSelectedValues() {
+uint64_t VectorState::getNumSelectedValues() const {
     if (isFlat()) {
         return multiplicity == nullptr ? 1 : multiplicity[getCurrSelectedValuesPos()];
     } else if (multiplicity == nullptr) {
         return numSelectedValues;
     } else {
         auto numSelectedValuesSum = 0u;
-        for (auto i = 0; i < numSelectedValues; i++) {
+        for (auto i = 0u; i < numSelectedValues; i++) {
             numSelectedValuesSum += multiplicity[selectedValuesPos[i]];
         }
         return numSelectedValuesSum;
@@ -39,7 +39,7 @@ shared_ptr<VectorState> VectorState::getSingleValueDataChunkState() {
 }
 
 shared_ptr<VectorState> VectorState::clone() {
-    auto capacity = sizeof(valuesPos.get()) / sizeof(uint64_t);
+    auto capacity = size == 1 ? 1 : DEFAULT_VECTOR_CAPACITY;
     auto newState = make_shared<VectorState>(false /*initializeSelectedValuesPos*/, capacity);
     newState->size = size;
     newState->currPos = currPos;

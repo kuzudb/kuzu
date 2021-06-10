@@ -14,15 +14,15 @@ TEST(VectorCmpTests, cmpInt) {
     dataChunk->state->size = numTuples;
     dataChunk->state->numSelectedValues = numTuples;
 
-    auto lVector = make_shared<ValueVector>(INT32, numTuples);
+    auto lVector = make_shared<ValueVector>(INT32);
     dataChunk->append(lVector);
     auto lData = (int32_t*)lVector->values;
 
-    auto rVector = make_shared<ValueVector>(INT32, numTuples);
+    auto rVector = make_shared<ValueVector>(INT32);
     dataChunk->append(rVector);
     auto rData = (int32_t*)rVector->values;
 
-    auto result = make_shared<ValueVector>(BOOL, numTuples);
+    auto result = make_shared<ValueVector>(BOOL);
     dataChunk->append(result);
     auto resultData = result->values;
 
@@ -70,15 +70,15 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     dataChunk->state->size = numTuples;
     dataChunk->state->currPos = 0;
 
-    auto lVector = make_shared<ValueVector>(STRING, numTuples);
+    auto lVector = make_shared<ValueVector>(STRING);
     dataChunk->append(lVector);
     auto lData = ((gf_string_t*)lVector->values);
 
-    auto rVector = make_shared<ValueVector>(STRING, numTuples);
+    auto rVector = make_shared<ValueVector>(STRING);
     dataChunk->append(rVector);
     auto rData = ((gf_string_t*)rVector->values);
 
-    auto result = make_shared<ValueVector>(BOOL, numTuples);
+    auto result = make_shared<ValueVector>(BOOL);
     dataChunk->append(result);
     auto resultData = result->values;
 
@@ -134,15 +134,15 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     dataChunk->state->numSelectedValues = VECTOR_SIZE;
     dataChunk->state->currPos = 0;
 
-    auto lVector = make_shared<ValueVector>(STRING, VECTOR_SIZE);
+    auto lVector = make_shared<ValueVector>(STRING);
     dataChunk->append(lVector);
     auto lData = ((gf_string_t*)lVector->values);
 
-    auto rVector = make_shared<ValueVector>(STRING, VECTOR_SIZE);
+    auto rVector = make_shared<ValueVector>(STRING);
     dataChunk->append(rVector);
     auto rData = ((gf_string_t*)rVector->values);
 
-    auto result = make_shared<ValueVector>(BOOL, VECTOR_SIZE);
+    auto result = make_shared<ValueVector>(BOOL);
     dataChunk->append(result);
     auto resultData = result->values;
 

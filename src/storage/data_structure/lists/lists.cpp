@@ -7,8 +7,8 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-uint64_t BaseLists::getNumElementsInList(const nodeID_t& nodeID) {
-    auto header = headers->getHeader(nodeID.offset);
+uint64_t BaseLists::getNumElementsInList(node_offset_t nodeOffset) {
+    auto header = headers->getHeader(nodeOffset);
     auto numElements =
         ListHeaders::isALargeList(header) ?
             metadata.getNumElementsInLargeLists(ListHeaders::getLargeListIdx(header)) :
@@ -16,24 +16,24 @@ uint64_t BaseLists::getNumElementsInList(const nodeID_t& nodeID) {
     return numElements;
 }
 
-void BaseLists::readValues(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
+void BaseLists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
     uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t maxElementsToRead) {
-    auto header = headers->getHeader(nodeID.offset);
+    auto header = headers->getHeader(nodeOffset);
     if (handle->hasMoreToRead() || ListHeaders::isALargeList(header)) {
-        readFromLargeList(nodeID, valueVector, listLen, handle, header, maxElementsToRead);
+        readFromLargeList(valueVector, listLen, handle, header, maxElementsToRead);
     } else {
-        readSmallList(nodeID, valueVector, listLen, handle, header);
+        readSmallList(nodeOffset, valueVector, listLen, handle, header);
     }
 }
 
-void BaseLists::readSmallList(const nodeID_t& nodeID, const shared_ptr<ValueVector>& valueVector,
+void BaseLists::readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
     uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header) {
     if (handle->getIsAdjListsHandle()) {
         listLen = ListHeaders::getSmallListLen(header);
     }
     auto pageCursor = getPageCursorForOffset(ListHeaders::getSmallListCSROffset(header));
     auto sizeLeftToCopy = listLen * elementSize;
-    uint32_t chunkIdx = nodeID.offset / LISTS_CHUNK_SIZE;
+    uint32_t chunkIdx = nodeOffset / LISTS_CHUNK_SIZE;
     if (pageCursor.offset + sizeLeftToCopy > PAGE_SIZE) {
         readBySequentialCopy(valueVector, handle, sizeLeftToCopy, pageCursor,
             metadata.getPageMapperForChunkIdx(chunkIdx));
@@ -44,8 +44,7 @@ void BaseLists::readSmallList(const nodeID_t& nodeID, const shared_ptr<ValueVect
     }
 }
 
-void BaseLists::readFromLargeList(const nodeID_t& nodeID,
-    const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
+void BaseLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
     const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead) {
     auto largeListIdx = ListHeaders::getLargeListIdx(header);
     auto listSyncState = handle->getListSyncState();
@@ -89,24 +88,24 @@ void Lists<UNSTRUCTURED>::readValues(const shared_ptr<NodeIDVector>& nodeIDVecto
     uint32_t propertyKeyIdxToRead, const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<DataStructureHandle>& handle) {
     valueVector->reset();
-    nodeID_t nodeID;
+    node_offset_t nodeOffset;
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getCurrSelectedValuesPos();
-        nodeIDVector->readNodeOffset(pos, nodeID);
-        readUnstrPropertyListOfNode(nodeID, propertyKeyIdxToRead, valueVector, pos, handle,
-            headers->getHeader(nodeID.offset));
+        nodeOffset = nodeIDVector->readNodeOffset(pos);
+        readUnstrPropertyListOfNode(nodeOffset, propertyKeyIdxToRead, valueVector, pos, handle,
+            headers->getHeader(nodeOffset));
     } else {
         for (auto i = 0ul; i < valueVector->state->numSelectedValues; i++) {
             auto pos = valueVector->state->selectedValuesPos[i];
-            nodeIDVector->readNodeOffset(pos, nodeID);
-            readUnstrPropertyListOfNode(nodeID, propertyKeyIdxToRead, valueVector, pos, handle,
-                headers->getHeader(nodeID.offset));
+            nodeOffset = nodeIDVector->readNodeOffset(pos);
+            readUnstrPropertyListOfNode(nodeOffset, propertyKeyIdxToRead, valueVector, pos, handle,
+                headers->getHeader(nodeOffset));
         }
     }
     reclaim(handle);
 }
 
-void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(const nodeID_t& nodeID,
+void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(node_offset_t nodeOffset,
     uint32_t propertyKeyIdxToRead, const shared_ptr<ValueVector>& valueVector, uint64_t pos,
     const unique_ptr<DataStructureHandle>& handle, uint32_t header) {
     PageCursor pageCursor;
@@ -120,7 +119,7 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(const nodeID_t& nodeID,
     } else {
         pageCursor = getPageCursorForOffset(ListHeaders::getSmallListCSROffset(header));
         listLen = ListHeaders::getSmallListLen(header);
-        uint32_t chunkIdx = nodeID.offset / LISTS_CHUNK_SIZE;
+        uint32_t chunkIdx = nodeOffset / LISTS_CHUNK_SIZE;
         mapper = metadata.getPageMapperForChunkIdx(chunkIdx);
     }
     auto propertyKeyDataTypeCache = make_unique<uint8_t[]>(UNSTR_PROP_HEADER_LEN);

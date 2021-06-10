@@ -27,9 +27,9 @@ public:
         auto numEntries = 1000;
         auto state = make_shared<VectorState>(true, numEntries);
         state->numSelectedValues = numEntries;
-        ValueVector keys(INT64, numEntries);
+        ValueVector keys(INT64);
         keys.state = state;
-        ValueVector values(INT64, numEntries);
+        ValueVector values(INT64);
         values.state = state;
         auto keysData = (uint64_t*)keys.values;
         auto valuesData = (uint64_t*)values.values;
@@ -59,9 +59,9 @@ TEST_F(HashIndexTest, HashIndexInsertExists) {
     auto numEntries = 10;
     auto state = make_shared<VectorState>(true, numEntries);
     state->numSelectedValues = numEntries;
-    ValueVector keys(INT64, numEntries);
+    ValueVector keys(INT64);
     keys.state = state;
-    ValueVector values(INT64, numEntries);
+    ValueVector values(INT64);
     values.state = state;
     auto keysData = (uint64_t*)keys.values;
     auto valuesData = (uint64_t*)values.values;
@@ -84,9 +84,9 @@ TEST_F(HashIndexTest, HashIndexSmallLookup) {
     auto numEntries = 10;
     auto state = make_shared<VectorState>(true, numEntries);
     state->numSelectedValues = numEntries;
-    ValueVector result(INT64, numEntries);
+    ValueVector result(INT64);
     result.state = state;
-    ValueVector keys(INT64, numEntries);
+    ValueVector keys(INT64);
     keys.state = state;
     auto keysData = (uint64_t*)keys.values;
     for (auto i = 0; i < numEntries; i++) {
@@ -107,7 +107,7 @@ TEST_F(HashIndexTest, HashIndexRandomLookup) {
     auto numEntries = 1000;
     auto state = make_shared<VectorState>(true, numEntries);
     state->numSelectedValues = numEntries;
-    ValueVector keys(INT64, numEntries);
+    ValueVector keys(INT64);
     keys.state = state;
     auto keysData = (uint64_t*)keys.values;
 
@@ -125,7 +125,7 @@ TEST_F(HashIndexTest, HashIndexRandomLookup) {
     for (auto i = 0; i < numEntries; i++) {
         keysData[i] = distribution(gen);
     }
-    ValueVector result(INT64, numEntries);
+    ValueVector result(INT64);
     result.state = state;
     lookupHashIndex.lookup(keys, result);
     auto resultData = (uint64_t*)result.values;

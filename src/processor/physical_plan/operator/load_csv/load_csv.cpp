@@ -33,7 +33,7 @@ LoadCSV<IS_OUT_DATACHUNK_FILTERED>::LoadCSV(
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void LoadCSV<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     auto lineIdx = 0ul;
-    while (lineIdx < MAX_VECTOR_SIZE && reader.hasNextLine()) {
+    while (lineIdx < DEFAULT_VECTOR_CAPACITY && reader.hasNextLine()) {
         auto tokenIdx = 0ul;
         while (reader.hasNextToken()) {
             auto& vector = *outValueVectors[tokenIdx];

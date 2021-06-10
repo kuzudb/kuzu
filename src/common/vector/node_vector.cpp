@@ -5,18 +5,18 @@
 namespace graphflow {
 namespace common {
 
-void NodeIDVector::readNodeOffset(uint64_t pos, nodeID_t& nodeID) const {
+node_offset_t NodeIDVector::readNodeOffset(uint64_t pos) const {
     if (representation.isSequence) {
-        nodeID.offset = ((node_offset_t*)values)[0] + pos;
-        return;
+        return ((node_offset_t*)values)[0] + pos;
     }
     auto readOffset = values + (pos * representation.compressionScheme.getNumTotalBytes());
-    nodeID.offset = 0;
-    memcpy(&nodeID.offset, readOffset + representation.compressionScheme.getNumBytesForLabel(),
+    node_offset_t nodeOffset = 0;
+    memcpy(&nodeOffset, readOffset + representation.compressionScheme.getNumBytesForLabel(),
         representation.compressionScheme.getNumBytesForOffset());
+    return nodeOffset;
 }
 
-void NodeIDVector::readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) const {
+void NodeIDVector::readNodeID(uint64_t pos, nodeID_t& nodeID) const {
     if (representation.isSequence) {
         nodeID.offset = ((node_offset_t*)values)[0] + pos;
         nodeID.label = representation.commonLabel;
@@ -36,30 +36,29 @@ void NodeIDVector::readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) const 
 
 bool NodeIDVector::discardNulls() {
     auto nullOffset = representation.compressionScheme.getNodeOffsetNullValue();
-    nodeID_t nodeID{};
+    node_offset_t nodeOffset;
     if (state->currPos == -1) {
         auto selectedValuesPos = state->selectedValuesPos;
         auto selectedPos = 0u;
         for (auto j = 0u; j < state->numSelectedValues; j++) {
-            readNodeOffset(state->selectedValuesPos[j], nodeID);
-            if (nodeID.offset != nullOffset) {
+            nodeOffset = readNodeOffset(state->selectedValuesPos[j]);
+            if (nodeOffset != nullOffset) {
                 selectedValuesPos[selectedPos++] = j;
             }
         }
         state->numSelectedValues = selectedPos;
         return state->numSelectedValues > 0;
     } else {
-        readNodeOffset(state->getCurrSelectedValuesPos(), nodeID);
-        return nodeID.offset != nullOffset;
+        nodeOffset = readNodeOffset(state->getCurrSelectedValuesPos());
+        return nodeOffset != nullOffset;
     }
 }
 
 shared_ptr<ValueVector> NodeIDVector::clone() {
-    auto vectorCapacity = capacity / representation.compressionScheme.getNumTotalBytes();
     auto newVector = make_shared<NodeIDVector>(
         representation.commonLabel, representation.compressionScheme, representation.isSequence);
     memcpy(newVector->nullMask, nullMask, vectorCapacity);
-    memcpy(newVector->values, values, capacity);
+    memcpy(newVector->values, values, vectorCapacity * getNumBytesPerValue());
     return newVector;
 }
 

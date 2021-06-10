@@ -7,24 +7,21 @@ namespace graphflow {
 namespace common {
 
 //! A Vector represents values of the same data type.
+//! The capacity of a ValueVector is either 1 (single value) or DEFAULT_VECTOR_CAPACITY.
 class ValueVector {
 
 public:
-    ValueVector(DataType dataType, uint64_t vectorCapacity)
-        : ValueVector(vectorCapacity, getDataTypeSize(dataType), dataType) {}
-
-    ValueVector(uint64_t numBytesPerValue, DataType dataType)
-        : ValueVector(MAX_VECTOR_SIZE, numBytesPerValue, dataType) {}
-
-    explicit ValueVector(DataType dataType) : ValueVector(dataType, MAX_VECTOR_SIZE) {}
+    ValueVector(DataType dataType, bool isSingleValue = false)
+        : ValueVector(
+              isSingleValue ? 1 : DEFAULT_VECTOR_CAPACITY, getDataTypeSize(dataType), dataType) {}
 
     virtual ~ValueVector() = default;
 
-    virtual void readNodeOffset(uint64_t pos, nodeID_t& nodeID) const {
+    virtual node_offset_t readNodeOffset(uint64_t pos) const {
         throw invalid_argument("readNodeOffset unsupported.");
     }
-    virtual void readNodeOffsetAndLabel(uint64_t pos, nodeID_t& nodeID) const {
-        throw invalid_argument("readNodeOffsetAndLabel unsupported.");
+    virtual void readNodeID(uint64_t pos, nodeID_t& nodeID) const {
+        throw invalid_argument("readNodeID unsupported.");
     }
 
     inline void reset() { values = bufferValues.get(); }
@@ -37,15 +34,15 @@ public:
 
 protected:
     ValueVector(uint64_t vectorCapacity, uint64_t numBytesPerValue, DataType dataType)
-        : capacity{numBytesPerValue * vectorCapacity},
-          bufferValues(make_unique<uint8_t[]>(capacity)),
+        : vectorCapacity{vectorCapacity},
+          bufferValues(make_unique<uint8_t[]>(numBytesPerValue * vectorCapacity)),
           bufferNullMask(make_unique<bool[]>(vectorCapacity)), dataType{dataType},
           values{bufferValues.get()}, nullMask{bufferNullMask.get()} {
         fill_n(nullMask, vectorCapacity, false /* not null */);
     }
 
 protected:
-    size_t capacity;
+    uint64_t vectorCapacity;
     unique_ptr<uint8_t[]> bufferValues;
     unique_ptr<bool[]> bufferNullMask;
 
