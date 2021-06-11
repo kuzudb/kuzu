@@ -10,7 +10,6 @@ TEST(VectorBoolTests, test) {
     auto VECTOR_SIZE = 4;
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = VECTOR_SIZE;
-    dataChunk->state->numSelectedValues = VECTOR_SIZE;
 
     auto lVector = make_shared<ValueVector>(BOOL);
     dataChunk->append(lVector);

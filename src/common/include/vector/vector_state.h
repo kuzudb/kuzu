@@ -19,7 +19,7 @@ public:
     VectorState(bool initializeSelectedValuesPos, uint64_t capacity);
 
     void initializeSelector() {
-        for (auto i = 0u; i < numSelectedValues; i++) {
+        for (auto i = 0u; i < size; i++) {
             valuesPos[i] = i;
         }
     }
@@ -38,10 +38,9 @@ public:
     shared_ptr<VectorState> clone();
 
 public:
-    uint64_t size;
     // The current position when vectors are flattened.
     int64_t currPos;
-    uint64_t numSelectedValues;
+    uint64_t size;
     uint64_t* selectedValuesPos;
     uint64_t* multiplicity;
 

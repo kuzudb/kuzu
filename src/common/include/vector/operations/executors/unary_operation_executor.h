@@ -19,7 +19,7 @@ struct UnaryOperationExecutor {
                 FUNC::operation(inputValues[pos], resultValues[0]);
             }
         } else {
-            for (auto i = 0ul; i < operand.state->numSelectedValues; i++) {
+            for (auto i = 0ul; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 if (!operand.nullMask[pos]) {
                     FUNC::operation(inputValues[pos], resultValues[pos]);
@@ -38,7 +38,7 @@ struct UnaryOperationExecutor {
                 resultValues[pos] = FUNC::operation(inputValues[pos]);
             }
         } else {
-            for (auto i = 0ul; i < operand.state->numSelectedValues; i++) {
+            for (auto i = 0ul; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 if (!operand.nullMask[pos]) {
                     resultValues[pos] = FUNC::operation(inputValues[pos]);
@@ -58,7 +58,7 @@ struct UnaryOperationExecutor {
                 resultValues[pos] = FUNC::operation(nodeID);
             }
         } else {
-            for (auto i = 0ul; i < operand.state->numSelectedValues; i++) {
+            for (auto i = 0ul; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 operand.readNodeID(pos, nodeID);
                 if (!operand.nullMask[pos]) {
@@ -74,7 +74,7 @@ struct UnaryOperationExecutor {
             auto pos = operand.state->getCurrSelectedValuesPos();
             result.values[pos] = operand.nullMask[pos] == value;
         } else {
-            for (auto i = 0ul; i < operand.state->numSelectedValues; i++) {
+            for (auto i = 0ul; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 result.values[pos] = operand.nullMask[pos] == value;
             }

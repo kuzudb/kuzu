@@ -24,27 +24,28 @@ void Filter<IS_AFTER_FLATTEN>::getNextTuples() {
             restoreDataChunkToSelectState();
         }
         prevOperator->getNextTuples();
-        if (dataChunkToSelect->state->numSelectedValues > 0) {
-            if (IS_AFTER_FLATTEN) {
-                saveDataChunkToSelectState();
-            }
-            rootExpr->evaluate();
-            if (dataChunkToSelect->state->isFlat()) {
-                hasAtLeastOneSelectedValue =
-                    exprResult[dataChunkToSelect->state->getCurrSelectedValuesPos()] == TRUE;
-            } else {
-                auto resultPos = 0;
-                for (auto i = 0ul; i < dataChunkToSelect->state->numSelectedValues; i++) {
-                    auto pos = dataChunkToSelect->state->selectedValuesPos[i];
-                    if (exprResult[pos] == TRUE) {
-                        dataChunkToSelect->state->selectedValuesPos[resultPos++] = pos;
-                    }
-                }
-                dataChunkToSelect->state->numSelectedValues = resultPos;
-                hasAtLeastOneSelectedValue = resultPos > 0;
-            }
+        if (dataChunkToSelect->state->size == 0) {
+            break;
         }
-    } while (dataChunkToSelect->state->size > 0 && !hasAtLeastOneSelectedValue);
+        if (IS_AFTER_FLATTEN) {
+            saveDataChunkToSelectState();
+        }
+        rootExpr->evaluate();
+        if (dataChunkToSelect->state->isFlat()) {
+            hasAtLeastOneSelectedValue =
+                exprResult[dataChunkToSelect->state->getCurrSelectedValuesPos()] == TRUE;
+        } else {
+            auto resultPos = 0;
+            for (auto i = 0ul; i < dataChunkToSelect->state->size; i++) {
+                auto pos = dataChunkToSelect->state->selectedValuesPos[i];
+                if (exprResult[pos] == TRUE) {
+                    dataChunkToSelect->state->selectedValuesPos[resultPos++] = pos;
+                }
+            }
+            dataChunkToSelect->state->size = resultPos;
+            hasAtLeastOneSelectedValue = resultPos > 0;
+        }
+    } while (!hasAtLeastOneSelectedValue);
 }
 
 template<bool IS_AFTER_FLATTEN>
@@ -57,7 +58,7 @@ unique_ptr<PhysicalOperator> Filter<IS_AFTER_FLATTEN>::clone() {
 
 template<bool IS_AFTER_FLATTEN>
 void Filter<IS_AFTER_FLATTEN>::restoreDataChunkToSelectState() {
-    dataChunkToSelect->state->numSelectedValues = prevInNumSelectedValues;
+    dataChunkToSelect->state->size = prevInNumSelectedValues;
     std::copy(prevInSelectedValuesPos.get(),
         prevInSelectedValuesPos.get() + prevInNumSelectedValues,
         dataChunkToSelect->state->selectedValuesPos);
@@ -65,7 +66,7 @@ void Filter<IS_AFTER_FLATTEN>::restoreDataChunkToSelectState() {
 
 template<bool IS_AFTER_FLATTEN>
 void Filter<IS_AFTER_FLATTEN>::saveDataChunkToSelectState() {
-    prevInNumSelectedValues = dataChunkToSelect->state->numSelectedValues;
+    prevInNumSelectedValues = dataChunkToSelect->state->size;
     std::copy(dataChunkToSelect->state->selectedValuesPos,
         dataChunkToSelect->state->selectedValuesPos + prevInNumSelectedValues,
         prevInSelectedValuesPos.get());

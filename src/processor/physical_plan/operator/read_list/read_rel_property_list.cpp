@@ -19,7 +19,7 @@ ReadRelPropertyList::ReadRelPropertyList(uint64_t inDataChunkPos, uint64_t inVal
 
 void ReadRelPropertyList::getNextTuples() {
     prevOperator->getNextTuples();
-    if (inDataChunk->state->numSelectedValues > 0) {
+    if (inDataChunk->state->size > 0) {
         readValuesFromList();
     }
     outValueVector->fillNullMask();

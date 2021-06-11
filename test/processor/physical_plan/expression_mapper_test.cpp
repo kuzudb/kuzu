@@ -23,7 +23,6 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
     }
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = 100;
-    dataChunk->state->numSelectedValues = 100;
     dataChunk->append(valueVector);
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
@@ -59,7 +58,6 @@ TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
     }
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = 100;
-    dataChunk->state->numSelectedValues = 100;
     dataChunk->append(valueVector);
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();

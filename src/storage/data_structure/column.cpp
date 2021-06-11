@@ -36,7 +36,7 @@ void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& 
         memcpy(values + pos * elementSize, frame + pageCursor.offset, elementSize);
         bufferManager.unpin(fileHandle, pageCursor.idx);
     } else {
-        for (auto i = 0ul; i < nodeIDVector->state->numSelectedValues; i++) {
+        for (auto i = 0ul; i < nodeIDVector->state->size; i++) {
             auto nodeOffset =
                 nodeIDVector->readNodeOffset(nodeIDVector->state->selectedValuesPos[i]);
             auto pageCursor = getPageCursorForOffset(nodeOffset);
@@ -64,7 +64,7 @@ void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
 
 void Column<STRING>::readStringsFromOverflowPages(const shared_ptr<ValueVector>& valueVector) {
     PageCursor cursor;
-    for (auto i = 0u; i < valueVector->state->numSelectedValues; i++) {
+    for (auto i = 0u; i < valueVector->state->size; i++) {
         auto pos = valueVector->state->selectedValuesPos[i];
         auto& value = ((gf_string_t*)valueVector->values)[pos];
         if (value.len > gf_string_t::SHORT_STR_LENGTH) {

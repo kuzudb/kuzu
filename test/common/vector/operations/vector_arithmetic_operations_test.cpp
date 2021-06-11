@@ -9,7 +9,6 @@ using namespace std;
 TEST(VectorArithTests, test) {
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = 100;
-    dataChunk->state->numSelectedValues = 100;
 
     auto lVector = make_shared<ValueVector>(INT32);
     dataChunk->append(lVector);

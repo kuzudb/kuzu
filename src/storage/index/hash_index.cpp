@@ -67,7 +67,7 @@ void HashIndex::lookup(ValueVector& keys, ValueVector& result) {
     hashes->state = keys.state;
     VectorHashOperations::Hash(keys, *hashes);
     auto offset = keys.state->isFlat() ? keys.state->getCurrSelectedValuesPos() : 0;
-    auto numKeys = keys.state->isFlat() ? 1 : keys.state->numSelectedValues;
+    auto numKeys = keys.state->isFlat() ? 1 : keys.state->size;
     auto slotIds = calculateSlotIdsForHashes(*hashes, offset, numKeys);
     auto numBytesPerKey = keys.getNumBytesPerValue();
     for (auto keyPos = 0u; keyPos < numKeys; keyPos++) {
@@ -143,7 +143,7 @@ void HashIndex::flush() {
 vector<bool> HashIndex::notExists(ValueVector& keys, ValueVector& hashes) {
     uint8_t* keyData = keys.values;
     auto offset = keys.state->isFlat() ? keys.state->getCurrSelectedValuesPos() : 0;
-    auto numKeys = keys.state->isFlat() ? 1 : keys.state->numSelectedValues;
+    auto numKeys = keys.state->isFlat() ? 1 : keys.state->size;
     if (indexHeader.currentNumEntries == 0) {
         // The index is empty, all keys not exist in the current index.
         vector<bool> keyNotExists(numKeys, true);
@@ -192,7 +192,7 @@ void HashIndex::insertInternal(
     auto numBytesPerKey = keys.getNumBytesPerValue();
     auto hashesData = (uint64_t*)hashes.values;
     auto offset = keys.state->isFlat() ? keys.state->getCurrSelectedValuesPos() : 0;
-    auto numKeys = keys.state->isFlat() ? 1 : keys.state->numSelectedValues;
+    auto numKeys = keys.state->isFlat() ? 1 : keys.state->size;
     vector<uint64_t> keyPositions(numKeys);
     uint64_t numEntriesToInsert = 0;
     for (auto pos = 0u; pos < numKeys; pos++) {

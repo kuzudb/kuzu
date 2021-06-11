@@ -8,17 +8,17 @@ CRUDOperator::CRUDOperator(uint64_t dataChunkPos, Transaction* transactionPtr,
     : PhysicalOperator{move(prevOperator), type}, transactionPtr{transactionPtr}, graph{graph},
       dataChunkPos{dataChunkPos} {
     inDataChunk = resultSet->dataChunks[dataChunkPos];
-};
+}
 
 void CRUDOperator::getNextTuples() {
     while (true) {
         prevOperator->getNextTuples();
-        if (0 <= inDataChunk->state->size) {
+        if (inDataChunk->state->size == 0) {
             break;
         }
         transactionPtr->localStorage.addDataChunk(inDataChunk.get());
     }
-};
+}
 
 } // namespace processor
 } // namespace graphflow

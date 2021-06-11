@@ -72,7 +72,6 @@ void LoadCSV<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
         lineIdx++;
     }
     outDataChunk->state->size = lineIdx;
-    outDataChunk->state->numSelectedValues = lineIdx;
     if constexpr (IS_OUT_DATACHUNK_FILTERED) {
         for (auto i = 0u; i < outDataChunk->state->size; i++) {
             outDataChunk->state->selectedValuesPos[i] = i;

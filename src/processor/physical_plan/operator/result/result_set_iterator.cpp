@@ -26,7 +26,7 @@ bool ResultSetIterator::updateTuplePositions(int64_t chunkIdx) {
         return false;
     }
     tuplePositions[chunkIdx] = tuplePositions[chunkIdx] + 1;
-    if (tuplePositions[chunkIdx] == resultSet.dataChunks[chunkIdx]->state->numSelectedValues) {
+    if (tuplePositions[chunkIdx] == resultSet.dataChunks[chunkIdx]->state->size) {
         tuplePositions[chunkIdx] = 0;
         return false;
     }
