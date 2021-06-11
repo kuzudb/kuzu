@@ -79,10 +79,8 @@ struct EqualsOrNotEqualsValues {
         case BOOL:
             switch (right.dataType) {
             case BOOL:
-                return equals ? Equals::operation(
-                                    left.primitive.booleanVal, right.primitive.booleanVal) :
-                                NotEquals::operation(
-                                    left.primitive.booleanVal, right.primitive.booleanVal);
+                return equals ? Equals::operation(left.val.booleanVal, right.val.booleanVal) :
+                                NotEquals::operation(left.val.booleanVal, right.val.booleanVal);
             case INT32:
             case DOUBLE:
             case STRING:
@@ -93,13 +91,11 @@ struct EqualsOrNotEqualsValues {
         case INT32:
             switch (right.dataType) {
             case INT32:
-                return equals ?
-                           Equals::operation(left.primitive.int32Val, right.primitive.int32Val) :
-                           NotEquals::operation(left.primitive.int32Val, right.primitive.int32Val);
+                return equals ? Equals::operation(left.val.int32Val, right.val.int32Val) :
+                                NotEquals::operation(left.val.int32Val, right.val.int32Val);
             case DOUBLE:
-                return equals ?
-                           Equals::operation(left.primitive.int32Val, right.primitive.doubleVal) :
-                           NotEquals::operation(left.primitive.int32Val, right.primitive.doubleVal);
+                return equals ? Equals::operation(left.val.int32Val, right.val.doubleVal) :
+                                NotEquals::operation(left.val.int32Val, right.val.doubleVal);
             case BOOL:
             case STRING:
                 return equals ? FALSE : TRUE;
@@ -109,14 +105,11 @@ struct EqualsOrNotEqualsValues {
         case DOUBLE:
             switch (right.dataType) {
             case INT32:
-                return equals ?
-                           Equals::operation(left.primitive.doubleVal, right.primitive.int32Val) :
-                           NotEquals::operation(left.primitive.doubleVal, right.primitive.int32Val);
+                return equals ? Equals::operation(left.val.doubleVal, right.val.int32Val) :
+                                NotEquals::operation(left.val.doubleVal, right.val.int32Val);
             case DOUBLE:
-                return equals ?
-                           Equals::operation(left.primitive.doubleVal, right.primitive.doubleVal) :
-                           NotEquals::operation(
-                               left.primitive.doubleVal, right.primitive.doubleVal);
+                return equals ? Equals::operation(left.val.doubleVal, right.val.doubleVal) :
+                                NotEquals::operation(left.val.doubleVal, right.val.doubleVal);
             case BOOL:
             case STRING:
                 return equals ? FALSE : TRUE;
@@ -130,8 +123,8 @@ struct EqualsOrNotEqualsValues {
             case DOUBLE:
                 return equals ? FALSE : TRUE;
             case STRING:
-                return equals ? Equals::operation(left.strVal, right.strVal) :
-                                NotEquals::operation(left.strVal, right.strVal);
+                return equals ? Equals::operation(left.val.strVal, right.val.strVal) :
+                                NotEquals::operation(left.val.strVal, right.val.strVal);
             default:
                 assert(false);
             }
@@ -202,7 +195,7 @@ struct CompareValues {
         case BOOL:
             switch (right.dataType) {
             case BOOL:
-                return FUNC::operation(left.primitive.booleanVal, right.primitive.booleanVal);
+                return FUNC::operation(left.val.booleanVal, right.val.booleanVal);
             case INT32:
             case DOUBLE:
             case STRING:
@@ -213,9 +206,9 @@ struct CompareValues {
         case INT32:
             switch (right.dataType) {
             case INT32:
-                return FUNC::operation(left.primitive.int32Val, right.primitive.int32Val);
+                return FUNC::operation(left.val.int32Val, right.val.int32Val);
             case DOUBLE:
-                return FUNC::operation(left.primitive.int32Val, right.primitive.doubleVal);
+                return FUNC::operation(left.val.int32Val, right.val.doubleVal);
             case BOOL:
             case STRING:
                 return NULL_BOOL;
@@ -225,9 +218,9 @@ struct CompareValues {
         case DOUBLE:
             switch (right.dataType) {
             case INT32:
-                return FUNC::operation(left.primitive.doubleVal, right.primitive.int32Val);
+                return FUNC::operation(left.val.doubleVal, right.val.int32Val);
             case DOUBLE:
-                return FUNC::operation(left.primitive.doubleVal, right.primitive.doubleVal);
+                return FUNC::operation(left.val.doubleVal, right.val.doubleVal);
             case BOOL:
             case STRING:
                 return NULL_BOOL;
@@ -241,7 +234,7 @@ struct CompareValues {
             case DOUBLE:
                 return NULL_BOOL;
             case STRING:
-                return FUNC::operation(left.strVal, right.strVal);
+                return FUNC::operation(left.val.strVal, right.val.strVal);
             default:
                 assert(false);
             }

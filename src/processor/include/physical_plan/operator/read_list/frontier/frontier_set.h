@@ -45,9 +45,9 @@ public:
     uint64_t moduloMainBlockBitMask;
 
 private:
-    vector<unique_ptr<BlockHandle>> mainBlocks;
+    vector<unique_ptr<MemoryBlock>> mainBlocks;
     mutex overflowLock;
-    vector<unique_ptr<BlockHandle>> overflowBlocks;
+    vector<unique_ptr<MemoryBlock>> overflowBlocks;
 };
 
 } // namespace processor

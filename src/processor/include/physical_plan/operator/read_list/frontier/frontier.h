@@ -1,11 +1,10 @@
 #pragma once
 
+#include "src/common/include/memory_manager.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/node_vector.h"
-#include "src/storage/include/memory_manager.h"
 
 using namespace graphflow::common;
-using namespace graphflow::storage;
 
 namespace graphflow {
 namespace processor {
@@ -26,7 +25,7 @@ public:
 
 protected:
     uint64_t currOverflowOffset;
-    vector<unique_ptr<BlockHandle>> overflowBlocks;
+    vector<unique_ptr<MemoryBlock>> overflowBlocks;
     MemoryManager* memMan;
 };
 

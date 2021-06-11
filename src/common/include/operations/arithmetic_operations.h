@@ -1,8 +1,7 @@
 #pragma once
 
-#include <math.h>
-
 #include "cassert"
+#include <cmath>
 
 #include "src/common/include/value.h"
 
@@ -95,11 +94,10 @@ template<>
 inline void Add::operation(gf_string_t& left, gf_string_t& right, gf_string_t& result) {
     auto len = left.len + right.len;
     if (len <= gf_string_t::SHORT_STR_LENGTH /* concat's result is short */) {
-        result.deleteOverflowBufferIfAllocated();
         memcpy(result.prefix, left.prefix, left.len);
         memcpy(result.prefix + left.len, right.prefix, right.len);
     } else {
-        auto buffer = result.resizeOverflowBufferIfNecessary(len);
+        auto buffer = reinterpret_cast<char*>(result.overflowPtr);
         memcpy(buffer, left.getData(), left.len);
         memcpy(buffer + left.len, right.getData(), right.len);
         memcpy(result.prefix, buffer, gf_string_t::PREFIX_LENGTH);
@@ -121,35 +119,29 @@ struct ArithmeticOnValues {
             switch (left.dataType) {
             case INT32:
                 result.dataType = INT32;
-                FUNC::operation(
-                    left.primitive.int32Val, right.primitive.int32Val, result.primitive.int32Val);
+                FUNC::operation(left.val.int32Val, right.val.int32Val, result.val.int32Val);
                 break;
             case DOUBLE:
                 result.dataType = DOUBLE;
-                FUNC::operation(
-                    left.primitive.int32Val, right.primitive.doubleVal, result.primitive.doubleVal);
+                FUNC::operation(left.val.int32Val, right.val.doubleVal, result.val.doubleVal);
                 break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `INT32` and `" +
                                        dataTypeToString(right.dataType) + "`");
-                break;
             }
         case DOUBLE:
             switch (left.dataType) {
             case INT32:
                 result.dataType = DOUBLE;
-                FUNC::operation(
-                    left.primitive.doubleVal, right.primitive.int32Val, result.primitive.doubleVal);
+                FUNC::operation(left.val.doubleVal, right.val.int32Val, result.val.doubleVal);
                 break;
             case DOUBLE:
                 result.dataType = DOUBLE;
-                FUNC::operation(left.primitive.doubleVal, right.primitive.doubleVal,
-                    result.primitive.doubleVal);
+                FUNC::operation(left.val.doubleVal, right.val.doubleVal, result.val.doubleVal);
                 break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
                                        dataTypeToString(right.dataType) + "`");
-                break;
             }
             break;
         default:
@@ -178,7 +170,7 @@ inline void Add::operation(Value& left, Value& right, Value& result) {
             right.castToString();
         }
         result.dataType = STRING;
-        Add::operation(left.strVal, right.strVal, result.strVal);
+        Add::operation(left.val.strVal, right.val.strVal, result.val.strVal);
         return;
     }
     ArithmeticOnValues::operation<Add, addStr>(left, right, result);
@@ -214,11 +206,11 @@ inline void Negate::operation(Value& operand, Value& result) {
     switch (operand.dataType) {
     case INT32:
         result.dataType = INT32;
-        result.primitive.int32Val = -operand.primitive.int32Val;
+        result.val.int32Val = -operand.val.int32Val;
         break;
     case DOUBLE:
         result.dataType = DOUBLE;
-        result.primitive.doubleVal = -operand.primitive.doubleVal;
+        result.val.doubleVal = -operand.val.doubleVal;
         break;
     default:
         throw invalid_argument("Cannot negate `" + DataTypeNames[operand.dataType] + "`.");

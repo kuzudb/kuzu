@@ -187,43 +187,41 @@ void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx
     auto values = (Value*)valueVector->values;
     if (pageCursor.offset + dataTypeSize < PAGE_SIZE) {
         if (toRead) {
-            memcpy(&values[pos].primitive, frame + pageCursor.offset, dataTypeSize);
+            memcpy(&values[pos].val, frame + pageCursor.offset, dataTypeSize);
         }
         pageCursor.offset += dataTypeSize;
     } else {
         auto bytesInCurrentFrame = PAGE_SIZE - pageCursor.offset;
         if (toRead) {
-            memcpy(&values[pos].primitive, frame + pageCursor.offset, bytesInCurrentFrame);
+            memcpy(&values[pos].val, frame + pageCursor.offset, bytesInCurrentFrame);
         }
         reclaim(handle);
         physicalPageIdx = mapper.getPageIdx(++pageCursor.idx);
         frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
         handle->setPageIdx(physicalPageIdx);
         if (toRead) {
-            memcpy(&values[pos].primitive + bytesInCurrentFrame, frame,
-                dataTypeSize - bytesInCurrentFrame);
+            memcpy(
+                &values[pos].val + bytesInCurrentFrame, frame, dataTypeSize - bytesInCurrentFrame);
         }
         pageCursor.offset = dataTypeSize - bytesInCurrentFrame;
     }
     listLen -= dataTypeSize;
     values[pos].dataType = propertyDataType;
-    readStringsFromOverflowPages(valueVector, metrics);
+    readStringsFromOverflowPages(*valueVector, metrics);
 }
 
 void Lists<UNSTRUCTURED>::readStringsFromOverflowPages(
-    const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
-    auto values = valueVector->values;
+    ValueVector& valueVector, BufferManagerMetrics& metrics) {
+    auto values = valueVector.values;
     PageCursor cursor;
-    for (auto i = 0u; i < valueVector->state->size; i++) {
-        auto pos = valueVector->state->selectedValuesPos[i];
-        if (!valueVector->nullMask[pos] && ((Value*)values)[pos].dataType == STRING) {
-            auto& value = ((Value*)values)[pos].strVal;
+    for (auto i = 0u; i < valueVector.state->size; i++) {
+        auto pos = valueVector.state->selectedValuesPos[i];
+        if (!valueVector.nullMask[pos] && ((Value*)values)[pos].dataType == STRING) {
+            auto& value = ((gf_string_t*)valueVector.values)[pos];
             if (value.len > gf_string_t::SHORT_STR_LENGTH) {
                 value.getOverflowPtrInfo(cursor.idx, cursor.offset);
                 auto frame = bufferManager.pin(overflowPagesFileHandle, cursor.idx, metrics);
-                auto copyStr = new char[value.len];
-                memcpy(copyStr, frame + cursor.offset, value.len);
-                value.overflowPtr = reinterpret_cast<uintptr_t>(copyStr);
+                valueVector.addString(pos, (char*)frame + cursor.offset, value.len);
                 bufferManager.unpin(overflowPagesFileHandle, cursor.idx);
             }
         }

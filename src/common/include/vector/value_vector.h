@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/common/include/types.h"
+#include "src/common/include/vector/string_buffer.h"
 #include "src/common/include/vector/vector_state.h"
 
 namespace graphflow {
@@ -11,7 +12,7 @@ namespace common {
 class ValueVector {
 
 public:
-    ValueVector(DataType dataType, bool isSingleValue = false)
+    explicit ValueVector(DataType dataType, bool isSingleValue = false)
         : ValueVector(
               isSingleValue ? 1 : DEFAULT_VECTOR_CAPACITY, getDataTypeSize(dataType), dataType) {}
 
@@ -23,6 +24,10 @@ public:
     virtual void readNodeID(uint64_t pos, nodeID_t& nodeID) const {
         throw invalid_argument("readNodeID unsupported.");
     }
+
+    void addString(uint64_t pos, string value) const;
+    void addString(uint64_t pos, char* value, uint64_t len) const;
+    void allocateStringOverflowSpace(uint64_t pos, uint64_t len) const;
 
     inline void reset() { values = bufferValues.get(); }
 
@@ -37,8 +42,11 @@ protected:
         : vectorCapacity{vectorCapacity},
           bufferValues(make_unique<uint8_t[]>(numBytesPerValue * vectorCapacity)),
           bufferNullMask(make_unique<bool[]>(vectorCapacity)), dataType{dataType},
-          values{bufferValues.get()}, nullMask{bufferNullMask.get()} {
+          values{bufferValues.get()}, nullMask{bufferNullMask.get()}, stringBuffer{nullptr} {
         fill_n(nullMask, vectorCapacity, false /* not null */);
+        if (dataType == STRING || dataType == UNSTRUCTURED) {
+            stringBuffer = make_unique<StringBuffer>();
+        }
     }
 
 protected:
@@ -50,6 +58,7 @@ public:
     DataType dataType;
     uint8_t* values;
     bool* nullMask;
+    unique_ptr<StringBuffer> stringBuffer;
     shared_ptr<VectorState> state;
 };
 

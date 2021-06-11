@@ -34,16 +34,16 @@ uint8_t* OverflowPagesManager::getMemoryBlock(uint64_t blockId) {
         }
         if (blockId < fileHandle->numPages) {
             // Read from the overflow index file if the page exists on disk.
-            fileHandle->readPage(memoryBlocks[blockId]->blockPtr, blockId);
+            fileHandle->readPage(memoryBlocks[blockId]->data, blockId);
         }
     }
-    return memoryBlocks[blockId]->blockPtr;
+    return memoryBlocks[blockId]->data;
 }
 
 void OverflowPagesManager::flush() {
     serOverflowPagesAllocationBitsets();
     for (auto& block : memoryBlocks) {
-        fileHandle->writePage(block.second->blockPtr, block.first);
+        fileHandle->writePage(block.second->data, block.first);
     }
 }
 

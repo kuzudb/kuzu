@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/string.h"
+#include "src/common/include/gf_string.h"
 #include "src/common/include/vector/operations/vector_comparison_operations.h"
 
 using namespace graphflow::common;

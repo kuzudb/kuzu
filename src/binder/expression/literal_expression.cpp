@@ -4,9 +4,8 @@ namespace graphflow {
 namespace binder {
 
 LiteralExpression::LiteralExpression(
-    ExpressionType expressionType, DataType dataType, const Value& literal)
-    : Expression(expressionType, dataType) {
-    this->literal = literal;
+    ExpressionType expressionType, DataType dataType, const Literal& literal)
+    : Expression(expressionType, dataType), literal{literal} {
     this->storeAsPrimitiveVector = true;
 }
 
@@ -19,18 +18,18 @@ void LiteralExpression::cast(DataType dataTypeToCast) {
         string valAsString;
         switch (dataType) {
         case BOOL:
-            valAsString = literal.primitive.booleanVal == TRUE ? "True" : "False";
+            valAsString = literal.val.booleanVal == TRUE ? "True" : "False";
             break;
         case INT32:
-            valAsString = to_string(literal.primitive.int32Val);
+            valAsString = to_string(literal.val.int32Val);
             break;
         case DOUBLE:
-            valAsString = to_string(literal.primitive.doubleVal);
+            valAsString = to_string(literal.val.doubleVal);
             break;
         default:
             assert(false);
         }
-        literal.strVal.set(valAsString);
+        literal.strVal = valAsString;
         dataType = dataTypeToCast;
     }
 }

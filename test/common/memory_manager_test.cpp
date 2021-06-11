@@ -1,8 +1,8 @@
-#include "gtest/gtest.h"
+#include "include/gtest/gtest.h"
 
-#include "src/storage/include/memory_manager.h"
+#include "src/common/include/memory_manager.h"
 
-using namespace graphflow::storage;
+using namespace graphflow::common;
 using namespace std;
 
 TEST(MemoryManagerTests, OutOfMemoryTest) {

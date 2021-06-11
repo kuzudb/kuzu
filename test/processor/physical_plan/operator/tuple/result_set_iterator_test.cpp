@@ -79,15 +79,15 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest1) {
     auto tupleIndex = 0;
     while (resultSetIterator.hasNextTuple()) {
         resultSetIterator.getNextTuple(tuple);
-        ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
-        ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 1);
-        ASSERT_EQ(tuple.getValue(1)->primitive.int32Val, (int32_t)(1 * 2));
-        ASSERT_EQ(tuple.getValue(2)->nodeID.label, 28);
-        ASSERT_EQ(tuple.getValue(2)->nodeID.offset, tupleIndex);
-        ASSERT_EQ(tuple.getValue(3)->primitive.doubleVal, (double)(tupleIndex / 2));
-        ASSERT_EQ(tuple.getValue(4)->nodeID.label, 38);
-        ASSERT_EQ(tuple.getValue(4)->nodeID.offset, 10);
-        ASSERT_EQ(tuple.getValue(5)->primitive.booleanVal, (bool)false);
+        ASSERT_EQ(tuple.getValue(0)->val.nodeID.label, 18);
+        ASSERT_EQ(tuple.getValue(0)->val.nodeID.offset, 1);
+        ASSERT_EQ(tuple.getValue(1)->val.int32Val, (int32_t)(1 * 2));
+        ASSERT_EQ(tuple.getValue(2)->val.nodeID.label, 28);
+        ASSERT_EQ(tuple.getValue(2)->val.nodeID.offset, tupleIndex);
+        ASSERT_EQ(tuple.getValue(3)->val.doubleVal, (double)(tupleIndex / 2));
+        ASSERT_EQ(tuple.getValue(4)->val.nodeID.label, 38);
+        ASSERT_EQ(tuple.getValue(4)->val.nodeID.offset, 10);
+        ASSERT_EQ(tuple.getValue(5)->val.booleanVal, (bool)false);
         tupleIndex++;
     }
     ASSERT_EQ(tupleIndex, 100);
@@ -99,15 +99,15 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest1) {
     tupleIndex = 0;
     while (resultSetIterator.hasNextTuple()) {
         resultSetIterator.getNextTuple(tuple);
-        ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
-        ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 1);
-        ASSERT_EQ(tuple.getValue(1)->primitive.int32Val, (int32_t)(1 * 2));
-        ASSERT_EQ(tuple.getValue(2)->nodeID.label, 28);
-        ASSERT_EQ(tuple.getValue(2)->nodeID.offset, 9);
-        ASSERT_EQ(tuple.getValue(3)->primitive.doubleVal, (double)(9 / 2));
-        ASSERT_EQ(tuple.getValue(4)->nodeID.label, 38);
-        ASSERT_EQ(tuple.getValue(4)->nodeID.offset, 99);
-        ASSERT_EQ(tuple.getValue(5)->primitive.booleanVal, (bool)((99 / 2) == 1));
+        ASSERT_EQ(tuple.getValue(0)->val.nodeID.label, 18);
+        ASSERT_EQ(tuple.getValue(0)->val.nodeID.offset, 1);
+        ASSERT_EQ(tuple.getValue(1)->val.int32Val, (int32_t)(1 * 2));
+        ASSERT_EQ(tuple.getValue(2)->val.nodeID.label, 28);
+        ASSERT_EQ(tuple.getValue(2)->val.nodeID.offset, 9);
+        ASSERT_EQ(tuple.getValue(3)->val.doubleVal, (double)(9 / 2));
+        ASSERT_EQ(tuple.getValue(4)->val.nodeID.label, 38);
+        ASSERT_EQ(tuple.getValue(4)->val.nodeID.offset, 99);
+        ASSERT_EQ(tuple.getValue(5)->val.booleanVal, (bool)((99 / 2) == 1));
         tupleIndex++;
     }
     ASSERT_EQ(tupleIndex, 1);
@@ -130,15 +130,15 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest2) {
         auto bid = tupleIndex / 100;
         auto cid = tupleIndex % 100;
         resultSetIterator.getNextTuple(tuple);
-        ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
-        ASSERT_EQ(tuple.getValue(0)->nodeID.offset, 1);
-        ASSERT_EQ(tuple.getValue(1)->primitive.int32Val, (int32_t)(1 * 2));
-        ASSERT_EQ(tuple.getValue(2)->nodeID.label, 28);
-        ASSERT_EQ(tuple.getValue(2)->nodeID.offset, bid);
-        ASSERT_EQ(tuple.getValue(3)->primitive.doubleVal, (double)(bid / 2));
-        ASSERT_EQ(tuple.getValue(4)->nodeID.label, 38);
-        ASSERT_EQ(tuple.getValue(4)->nodeID.offset, cid);
-        ASSERT_EQ(tuple.getValue(5)->primitive.booleanVal, (bool)((cid / 2) == 1));
+        ASSERT_EQ(tuple.getValue(0)->val.nodeID.label, 18);
+        ASSERT_EQ(tuple.getValue(0)->val.nodeID.offset, 1);
+        ASSERT_EQ(tuple.getValue(1)->val.int32Val, (int32_t)(1 * 2));
+        ASSERT_EQ(tuple.getValue(2)->val.nodeID.label, 28);
+        ASSERT_EQ(tuple.getValue(2)->val.nodeID.offset, bid);
+        ASSERT_EQ(tuple.getValue(3)->val.doubleVal, (double)(bid / 2));
+        ASSERT_EQ(tuple.getValue(4)->val.nodeID.label, 38);
+        ASSERT_EQ(tuple.getValue(4)->val.nodeID.offset, cid);
+        ASSERT_EQ(tuple.getValue(5)->val.booleanVal, (bool)((cid / 2) == 1));
         tupleIndex++;
     }
     ASSERT_EQ(tupleIndex, 10000);
@@ -161,15 +161,15 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest3) {
         auto aid = tupleIndex / 100;
         auto cid = tupleIndex % 100;
         resultSetIterator.getNextTuple(tuple);
-        ASSERT_EQ(tuple.getValue(0)->nodeID.label, 18);
-        ASSERT_EQ(tuple.getValue(0)->nodeID.offset, aid);
-        ASSERT_EQ(tuple.getValue(1)->primitive.int32Val, (int32_t)(aid * 2));
-        ASSERT_EQ(tuple.getValue(2)->nodeID.label, 28);
-        ASSERT_EQ(tuple.getValue(2)->nodeID.offset, 10);
-        ASSERT_EQ(tuple.getValue(3)->primitive.doubleVal, (double)(10 / 2));
-        ASSERT_EQ(tuple.getValue(4)->nodeID.label, 38);
-        ASSERT_EQ(tuple.getValue(4)->nodeID.offset, cid);
-        ASSERT_EQ(tuple.getValue(5)->primitive.booleanVal, (bool)((cid / 2) == 1));
+        ASSERT_EQ(tuple.getValue(0)->val.nodeID.label, 18);
+        ASSERT_EQ(tuple.getValue(0)->val.nodeID.offset, aid);
+        ASSERT_EQ(tuple.getValue(1)->val.int32Val, (int32_t)(aid * 2));
+        ASSERT_EQ(tuple.getValue(2)->val.nodeID.label, 28);
+        ASSERT_EQ(tuple.getValue(2)->val.nodeID.offset, 10);
+        ASSERT_EQ(tuple.getValue(3)->val.doubleVal, (double)(10 / 2));
+        ASSERT_EQ(tuple.getValue(4)->val.nodeID.label, 38);
+        ASSERT_EQ(tuple.getValue(4)->val.nodeID.offset, cid);
+        ASSERT_EQ(tuple.getValue(5)->val.booleanVal, (bool)((cid / 2) == 1));
         tupleIndex++;
     }
     ASSERT_EQ(tupleIndex, 10000);

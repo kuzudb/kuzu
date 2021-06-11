@@ -9,7 +9,7 @@ FrontierBag::FrontierBag() : Frontier(), size{0u} {
 
 void FrontierBag::initHashTable() {
     mainBlock = memMan->allocateBlock(DEFAULT_BLOCK_SIZE);
-    hashTable = (SlotNodeIDs*)mainBlock->blockPtr;
+    hashTable = (SlotNodeIDs*)mainBlock->data;
 }
 
 NodeIDOverflow* FrontierBag::getOverflowPtr() {
@@ -20,7 +20,7 @@ NodeIDOverflow* FrontierBag::getOverflowPtr() {
     }
     currOverflowOffset += elementSize;
     auto pos = overflowBlocks.size() - 1;
-    return (NodeIDOverflow*)(overflowBlocks[pos]->blockPtr + currOverflowOffset);
+    return (NodeIDOverflow*)(overflowBlocks[pos]->data + currOverflowOffset);
 }
 
 void FrontierBag::append(const NodeIDVector& vector, uint64_t multiplicity) {

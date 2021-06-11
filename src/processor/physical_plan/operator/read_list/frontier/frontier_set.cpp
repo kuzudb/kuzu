@@ -11,7 +11,7 @@ void FrontierSet::initHashTable(uint64_t numSlots) {
     auto numBlocks = numSlots < NUM_SLOTS_PER_BLOCK_SET ? 1 : numSlots / NUM_SLOTS_PER_BLOCK_SET;
     for (auto i = 0u; i < numBlocks; i++) {
         auto mainBlock = memMan->allocateBlock(DEFAULT_BLOCK_SIZE);
-        hashTableBlocks.push_back((SlotNodeIDAndMultiplicity*)mainBlock->blockPtr);
+        hashTableBlocks.push_back((SlotNodeIDAndMultiplicity*)mainBlock->data);
         mainBlocks.push_back(move(mainBlock));
     }
     moduloMainBlockBitMask = numBlocks - 1;
@@ -32,7 +32,7 @@ SlotNodeIDAndMultiplicity* FrontierSet::getOverflowPtr() {
             currOverflowOffset += elementSize;
         }
         auto pos = overflowBlocks.size() - 1;
-        ptr = (SlotNodeIDAndMultiplicity*)(overflowBlocks[pos]->blockPtr + currOverflowOffset);
+        ptr = (SlotNodeIDAndMultiplicity*)(overflowBlocks[pos]->data + currOverflowOffset);
     }
     return ptr;
 }

@@ -9,7 +9,8 @@ namespace common {
 
 struct BinaryOperationExecutor {
 
-    template<class A, class B, class R, class FUNC = function<void(A&, B&, R&)>>
+    template<class A, class B, class R, class FUNC = function<void(A&, B&, R&)>,
+        bool ALLOCATE_STRING_OVERFLOW>
     static void executeArithmeticOps(ValueVector& left, ValueVector& right, ValueVector& result) {
         auto lValues = (A*)left.values;
         auto rValues = (B*)right.values;
@@ -20,6 +21,10 @@ struct BinaryOperationExecutor {
             auto resPos = result.state->getCurrSelectedValuesPos();
             result.nullMask[resPos] = left.nullMask[lPos] || right.nullMask[rPos];
             if (!result.nullMask[resPos]) {
+                if constexpr (ALLOCATE_STRING_OVERFLOW) {
+                    result.allocateStringOverflowSpace(
+                        resPos, lValues[lPos].len + rValues[rPos].len);
+                }
                 FUNC::operation(lValues[lPos], rValues[rPos], resultValues[resPos]);
             }
         } else if (left.state->isFlat()) {
@@ -31,6 +36,9 @@ struct BinaryOperationExecutor {
                 auto pos = right.state->selectedValuesPos[i];
                 result.nullMask[pos] = isLeftNull || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
+                    if constexpr (ALLOCATE_STRING_OVERFLOW) {
+                        result.allocateStringOverflowSpace(pos, lValue.len + rValues[pos].len);
+                    }
                     FUNC::operation(lValue, rValues[pos], resultValues[pos]);
                 }
             }
@@ -43,6 +51,9 @@ struct BinaryOperationExecutor {
                 auto pos = left.state->selectedValuesPos[i];
                 result.nullMask[pos] = left.nullMask[pos] || isRightNull;
                 if (!result.nullMask[i]) {
+                    if constexpr (ALLOCATE_STRING_OVERFLOW) {
+                        result.allocateStringOverflowSpace(pos, lValues[pos].len + rValue.len);
+                    }
                     FUNC::operation(lValues[pos], rValue, resultValues[pos]);
                 }
             }
@@ -52,6 +63,10 @@ struct BinaryOperationExecutor {
                 auto pos = result.state->selectedValuesPos[i];
                 result.nullMask[pos] = left.nullMask[pos] || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
+                    if constexpr (ALLOCATE_STRING_OVERFLOW) {
+                        result.allocateStringOverflowSpace(
+                            pos, lValues[pos].len + rValues[pos].len);
+                    }
                     FUNC::operation(lValues[pos], rValues[pos], resultValues[pos]);
                 }
             }

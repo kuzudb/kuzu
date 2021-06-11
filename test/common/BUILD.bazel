@@ -1,7 +1,22 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
-    name = "common_tests",
+    name = "memory_manager_test",
+    srcs = [
+        "memory_manager_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/common:memory_manager",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "vector_operations_tests",
     srcs = [
         "vector/operations/vector_arithmetic_operations_test.cpp",
         "vector/operations/vector_boolean_operations_test.cpp",

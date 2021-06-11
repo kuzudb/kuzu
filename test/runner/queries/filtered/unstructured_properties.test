@@ -1,13 +1,13 @@
 # description: matching nodes
 
--NAME PersonUnstrFilteredTest
+-NAME PersonUnstrFilteredTest1
 -QUERY MATCH (a:person) WHERE a.unstrProp > 48 RETURN COUNT(*)
 ---- 2
 
--NAME PersonUnstrFilteredTest
+-NAME PersonUnstrFilteredTest2
 -QUERY MATCH (a:person) WHERE a.unstrProp <= 68 RETURN COUNT(*)
 ---- 3
 
--NAME PersonUnstrFilteredTest
+-NAME PersonUnstrFilteredTest3
 -QUERY MATCH (a:person) WHERE a.unstrProp = 52 RETURN COUNT(*)
 ---- 1

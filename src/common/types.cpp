@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <stdexcept>
 
-#include "src/common/include/string.h"
+#include "src/common/include/gf_string.h"
 #include "src/common/include/value.h"
 
 namespace graphflow {

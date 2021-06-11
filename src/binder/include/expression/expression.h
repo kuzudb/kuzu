@@ -6,7 +6,6 @@
 
 #include "src/common/include/expression_type.h"
 #include "src/common/include/types.h"
-#include "src/common/include/value.h"
 
 using namespace graphflow::common;
 using namespace std;

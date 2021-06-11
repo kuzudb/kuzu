@@ -3,11 +3,11 @@
 #include <bitset>
 
 #include "src/common/include/configs.h"
+#include "src/common/include/memory_manager.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/file_utils.h"
-#include "src/storage/include/memory_manager.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -42,7 +42,7 @@ private:
 private:
     MemoryManager& memoryManager;
 
-    unordered_map<uint64_t, unique_ptr<BlockHandle>> memoryBlocks;
+    unordered_map<uint64_t, unique_ptr<MemoryBlock>> memoryBlocks;
     // TRUE: page already allocated for usage; FALSE: page is available for allocation
     vector<bitset<NUM_PAGES_PER_PAGE_GROUP>> overflowPagesAllocationBitsets;
 };
