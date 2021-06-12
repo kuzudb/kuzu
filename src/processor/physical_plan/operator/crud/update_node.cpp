@@ -5,10 +5,10 @@ namespace processor {
 
 void UpdateNode::getNextTuples() {
     CRUDOperator::getNextTuples();
-    transactionPtr->localStorage.mapNodeIDs(nodeLabel);
-    transactionPtr->localStorage.computeUpdateNode(
+    context.transaction->localStorage.mapNodeIDs(nodeLabel);
+    context.transaction->localStorage.computeUpdateNode(
         move(propertyKeyVectorPos), nodeLabel, nodePropertyColumns, numNodes);
-};
+}
 
 } // namespace processor
 } // namespace graphflow

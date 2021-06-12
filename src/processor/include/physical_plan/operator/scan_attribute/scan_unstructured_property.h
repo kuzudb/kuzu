@@ -1,8 +1,6 @@
 #pragma once
 
-#include "src/common/include/vector/node_vector.h"
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_attribute.h"
-#include "src/processor/include/task_system/morsel.h"
 #include "src/storage/include/data_structure/lists/lists.h"
 
 using namespace graphflow::storage;
@@ -14,7 +12,8 @@ class ScanUnstructuredProperty : public ScanAttribute {
 
 public:
     ScanUnstructuredProperty(uint64_t dataChunkPos, uint64_t valueVectorPos, uint32_t propertyKey,
-        BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator);
+        BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context,
+        uint32_t id);
 
     ~ScanUnstructuredProperty() { lists->reclaim(handle); }
 
@@ -22,7 +21,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanUnstructuredProperty>(
-            dataChunkPos, valueVectorPos, propertyKey, lists, prevOperator->clone());
+            dataChunkPos, valueVectorPos, propertyKey, lists, prevOperator->clone(), context, id);
     }
 
 protected:

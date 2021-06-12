@@ -6,8 +6,9 @@ namespace graphflow {
 namespace processor {
 
 ScanUnstructuredProperty::ScanUnstructuredProperty(uint64_t dataChunkPos, uint64_t valueVectorPos,
-    uint32_t propertyKey, BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator)
-    : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator)},
+    uint32_t propertyKey, BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t id)
+    : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator), context, id},
       propertyKey{propertyKey}, lists{(Lists<UNSTRUCTURED>*)lists} {
     resultSet = this->prevOperator->getResultSet();
     inDataChunk = resultSet->dataChunks[dataChunkPos];
@@ -18,11 +19,13 @@ ScanUnstructuredProperty::ScanUnstructuredProperty(uint64_t dataChunkPos, uint64
 }
 
 void ScanUnstructuredProperty::getNextTuples() {
+    executionTime->start();
     prevOperator->getNextTuples();
     if (inDataChunk->state->size > 0) {
         lists->reclaim(handle);
         lists->readValues(inNodeIDVector, propertyKey, outValueVector, handle);
     }
+    executionTime->stop();
 }
 
 } // namespace processor

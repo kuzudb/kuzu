@@ -16,8 +16,9 @@ static uint64_t nextPowerOfTwo(uint64_t v) {
 }
 
 HashJoinBuild::HashJoinBuild(uint64_t keyDataChunkPos, uint64_t keyVectorPos,
-    vector<bool> dataChunkPosToIsFlat, unique_ptr<PhysicalOperator> prevOperator)
-    : Sink{move(prevOperator), HASH_JOIN_BUILD}, memManager{nullptr},
+    vector<bool> dataChunkPosToIsFlat, unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t id)
+    : Sink{move(prevOperator), HASH_JOIN_BUILD, context, id}, memManager{nullptr},
       keyDataChunkPos{keyDataChunkPos}, keyVectorPos{keyVectorPos},
       dataChunkPosToIsFlat{dataChunkPosToIsFlat}, numEntries{0} {
     auto prevResultSet = this->prevOperator->getResultSet();
@@ -271,6 +272,7 @@ void HashJoinBuild::appendResultSet() {
 }
 
 void HashJoinBuild::getNextTuples() {
+    executionTime->start();
     // Append thread-local tuples
     do {
         prevOperator->getNextTuples();
@@ -287,6 +289,7 @@ void HashJoinBuild::getNextTuples() {
     }
 
     keyDataChunk->state->size = 0;
+    executionTime->stop();
 }
 } // namespace processor
 } // namespace graphflow

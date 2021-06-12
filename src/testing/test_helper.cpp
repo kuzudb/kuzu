@@ -26,7 +26,7 @@ bool TestHelper::runTest(const TestSuiteQueryConfig& testConfig, const System& s
         uint64_t numPassedPlans = 0;
         for (uint64_t j = 0; j < numPlans; j++) {
             auto planStr = plans[j]->getLastOperator().toString();
-            auto result = system.executePlan(move(plans[j]), sessionContext);
+            auto result = move(system.executePlan(move(plans[j]), sessionContext)->queryResult);
             if (result->numTuples != testConfig.expectedNumTuples[i]) {
                 spdlog::error("PLAN{} NOT PASSED. Result num tuples: {}, Expected num tuples: {}",
                     j, result->numTuples, testConfig.expectedNumTuples[i]);

@@ -1,6 +1,17 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
+    name = "execution_context",
+    hdrs = [
+        "include/execution_context.h"
+    ],
+    deps = [
+        "//src/common:profiler",
+        "//src/transaction:transaction"
+    ],
+)
+
+cc_library(
     name = "operators",
     srcs = [
         "physical_plan/expression_mapper.cpp",
@@ -28,6 +39,7 @@ cc_library(
         "physical_plan/operator/scan_attribute/scan_unstructured_property.cpp",
         "physical_plan/operator/scan_node_id/scan_node_id.cpp",
         "physical_plan/operator/sink/result_collector.cpp",
+        "physical_plan/operator/physical_operator.cpp"
     ],
     hdrs = [
         "include/physical_plan/expression_mapper.h",
@@ -65,6 +77,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "result_set",
+        "execution_context",
         "//src/binder:expression",
         "//src/common:csv_reader",
         "//src/expression_evaluator",
@@ -105,7 +118,6 @@ cc_library(
     deps = [
         "operators",
         "//src/planner:logical_plan",
-        "//src/storage:graph",
     ],
 )
 
@@ -120,12 +132,9 @@ cc_library(
         "include/processor.h",
         "include/task_system/task.h",
         "include/task_system/task_queue.h",
-        "include/execution_context.h"
     ],
     visibility = ["//visibility:public"],
     deps = [
         "physical_plan",
-        "//src/common:timer",
-        "//src/storage:graph",
     ],
 )

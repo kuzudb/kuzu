@@ -10,9 +10,9 @@ namespace graphflow {
 namespace processor {
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
-LoadCSV<IS_OUT_DATACHUNK_FILTERED>::LoadCSV(
-    string fname, char tokenSeparator, vector<DataType> csvColumnDataTypes)
-    : PhysicalOperator{LOAD_CSV}, fname{fname}, tokenSeparator{tokenSeparator},
+LoadCSV<IS_OUT_DATACHUNK_FILTERED>::LoadCSV(string fname, char tokenSeparator,
+    vector<DataType> csvColumnDataTypes, ExecutionContext& context, uint32_t id)
+    : PhysicalOperator{LOAD_CSV, context, id}, fname{fname}, tokenSeparator{tokenSeparator},
       reader{fname, tokenSeparator}, csvColumnDataTypes{csvColumnDataTypes} {
     resultSet = make_shared<ResultSet>();
     outDataChunk =
@@ -32,6 +32,7 @@ LoadCSV<IS_OUT_DATACHUNK_FILTERED>::LoadCSV(
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void LoadCSV<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
+    executionTime->start();
     auto lineIdx = 0ul;
     while (lineIdx < DEFAULT_VECTOR_CAPACITY && reader.hasNextLine()) {
         auto tokenIdx = 0ul;
@@ -77,6 +78,8 @@ void LoadCSV<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
             outDataChunk->state->selectedValuesPos[i] = i;
         }
     }
+    executionTime->stop();
+    numOutputTuple->increase(outDataChunk->state->size);
 }
 template class LoadCSV<true>;
 template class LoadCSV<false>;

@@ -10,8 +10,8 @@ static uint64_t getNextPowerOfTwo(uint64_t value);
 template<bool IS_OUT_DATACHUNK_FILTERED>
 FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::FrontierExtend(uint64_t inDataChunkPos,
     uint64_t inValueVectorPos, AdjLists* lists, uint64_t lowerBound, uint64_t upperBound,
-    unique_ptr<PhysicalOperator> prevOperator)
-    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator)},
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id},
       startLayer{lowerBound}, endLayer{upperBound} {
     operatorType = FRONTIER_EXTEND;
     outValueVector = make_shared<NodeIDVector>(0, NodeIDCompressionScheme(), false);
@@ -45,18 +45,22 @@ FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::FrontierExtend(uint64_t inDataChunkPo
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
+    executionTime->start();
     if (currOutputPos.hasMoreTuplesToProduce) {
         produceOutputTuples();
+        executionTime->stop();
         return;
     }
     do {
         prevOperator->getNextTuples();
         if (inNodeIDVector->state->size == 0) {
+            executionTime->stop();
             return;
         }
     } while (computeFrontiers());
     currOutputPos.reset(startLayer - 1);
     produceOutputTuples();
+    executionTime->stop();
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
@@ -185,6 +189,7 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
         delete frontier;
         frontier = nullptr;
     }
+    numOutputTuple->increase(outDataChunk->state->size);
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>

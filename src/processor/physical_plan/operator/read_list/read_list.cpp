@@ -4,8 +4,8 @@ namespace graphflow {
 namespace processor {
 
 ReadList::ReadList(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos, BaseLists* lists,
-    unique_ptr<PhysicalOperator> prevOperator)
-    : PhysicalOperator{move(prevOperator), READ_LIST}, inDataChunkPos{dataChunkPos},
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+    : PhysicalOperator{move(prevOperator), READ_LIST, context, id}, inDataChunkPos{dataChunkPos},
       inValueVectorPos{valueVectorPos}, lists{lists} {
     resultSet = this->prevOperator->getResultSet();
     inDataChunk = resultSet->dataChunks[dataChunkPos];

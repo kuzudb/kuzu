@@ -1,8 +1,6 @@
 #pragma once
 
-#include "src/common/include/vector/node_vector.h"
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_attribute.h"
-#include "src/processor/include/task_system/morsel.h"
 #include "src/storage/include/data_structure/column.h"
 
 using namespace graphflow::storage;
@@ -14,8 +12,9 @@ class ScanColumn : public ScanAttribute {
 
 public:
     ScanColumn(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
-        unique_ptr<PhysicalOperator> prevOperator)
-        : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator)}, column{column} {};
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+        : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator), context, id},
+          column{column} {};
 
     ~ScanColumn() { column->reclaim(handle); }
 

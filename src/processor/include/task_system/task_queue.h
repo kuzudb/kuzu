@@ -1,5 +1,7 @@
 #pragma once
 
+#include <deque>
+
 #include "src/processor/include/task_system/task.h"
 
 namespace graphflow {

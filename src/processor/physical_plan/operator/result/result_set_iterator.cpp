@@ -1,5 +1,7 @@
 #include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
 
+#include <cassert>
+
 namespace graphflow {
 namespace processor {
 

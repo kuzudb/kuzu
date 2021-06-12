@@ -6,15 +6,18 @@ namespace graphflow {
 namespace processor {
 
 ScanStructuredProperty::ScanStructuredProperty(uint64_t dataChunkPos, uint64_t valueVectorPos,
-    BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator)
-    : ScanColumn{dataChunkPos, valueVectorPos, column, move(prevOperator)} {
+    BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context,
+    uint32_t id)
+    : ScanColumn{dataChunkPos, valueVectorPos, column, move(prevOperator), context, id} {
     outValueVector = make_shared<ValueVector>(column->getDataType());
     inDataChunk->append(outValueVector);
 }
 
 void ScanStructuredProperty::getNextTuples() {
+    executionTime->start();
     ScanColumn::getNextTuples();
     outValueVector->fillNullMask();
+    executionTime->stop();
 }
 
 } // namespace processor

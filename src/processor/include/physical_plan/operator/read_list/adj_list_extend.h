@@ -10,13 +10,13 @@ class AdjListExtend : public ReadList {
 
 public:
     AdjListExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, AdjLists* lists,
-        unique_ptr<PhysicalOperator> prevOperator);
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<AdjListExtend<IS_OUT_DATACHUNK_FILTERED>>(
-            inDataChunkPos, inValueVectorPos, (AdjLists*)lists, prevOperator->clone());
+            inDataChunkPos, inValueVectorPos, (AdjLists*)lists, prevOperator->clone(), context, id);
     }
 };
 

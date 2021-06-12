@@ -11,8 +11,8 @@ class ResultCollector : public Sink {
 
 public:
     explicit ResultCollector(unique_ptr<PhysicalOperator> prevOperator,
-        PhysicalOperatorType operatorType = RESULT_COLLECTOR)
-        : Sink{move(prevOperator), operatorType} {
+        PhysicalOperatorType operatorType, ExecutionContext& context, uint32_t id)
+        : Sink{move(prevOperator), operatorType, context, id} {
         resultSet = this->prevOperator->getResultSet();
         resultSetIterator = make_unique<ResultSetIterator>(*resultSet);
         queryResult = make_unique<QueryResult>();
@@ -21,7 +21,7 @@ public:
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ResultCollector>(prevOperator->clone(), operatorType);
+        return make_unique<ResultCollector>(prevOperator->clone(), operatorType, context, id);
     }
 
 public:

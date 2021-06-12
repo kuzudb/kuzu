@@ -2,6 +2,7 @@
 
 #include "src/common/include/vector/node_vector.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
+#include "src/processor/include/task_system/morsel.h"
 
 namespace graphflow {
 namespace processor {
@@ -10,18 +11,19 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 class ScanNodeID : public PhysicalOperator {
 
 public:
-    explicit ScanNodeID(shared_ptr<MorselsDesc>& morselDesc);
+    explicit ScanNodeID(
+        shared_ptr<MorselsDesc>& morselDesc, ExecutionContext& context, uint32_t id);
 
-    ScanNodeID(shared_ptr<MorselsDesc>& morselsDesc, unique_ptr<PhysicalOperator> prevOperator);
+    ScanNodeID(shared_ptr<MorselsDesc>& morselsDesc, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;
 
-    shared_ptr<NodeIDVector>& getNodeVector() { return nodeIDVector; }
-
     unique_ptr<PhysicalOperator> clone() override {
-        return prevOperator ? make_unique<ScanNodeID<IS_OUT_DATACHUNK_FILTERED>>(
-                                  morsel, prevOperator->clone()) :
-                              make_unique<ScanNodeID<IS_OUT_DATACHUNK_FILTERED>>(morsel);
+        return prevOperator ?
+                   make_unique<ScanNodeID<IS_OUT_DATACHUNK_FILTERED>>(
+                       morsel, prevOperator->clone(), context, id) :
+                   make_unique<ScanNodeID<IS_OUT_DATACHUNK_FILTERED>>(morsel, context, id);
     }
 
 protected:

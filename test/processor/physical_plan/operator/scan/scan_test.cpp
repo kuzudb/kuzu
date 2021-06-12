@@ -6,7 +6,9 @@ using namespace graphflow::processor;
 
 TEST(ScanTests, ScanTest) {
     auto morsel = make_shared<MorselsDesc>(0, 1025013 /*numNodes*/);
-    auto scan = make_unique<ScanNodeID<true>>(morsel);
+    auto profiler = make_unique<Profiler>();
+    auto executionContext = ExecutionContext(*profiler, nullptr);
+    auto scan = make_unique<ScanNodeID<true>>(morsel, executionContext, 0);
     auto resultSet = scan->getResultSet();
     auto dataChunk = resultSet->dataChunks[0];
     auto nodeVector = static_pointer_cast<NodeIDVector>(dataChunk->getValueVector(0));

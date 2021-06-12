@@ -1,5 +1,7 @@
 #pragma once
 
+#include "src/processor/include/physical_plan/physical_plan.h"
+#include "src/processor/include/physical_plan/query_result.h"
 #include "src/processor/include/task_system/task_queue.h"
 #include "src/storage/include/memory_manager.h"
 
@@ -15,15 +17,14 @@ public:
     explicit QueryProcessor(uint64_t numThreads);
     ~QueryProcessor();
 
-    unique_ptr<QueryResult> execute(ExecutionContext& executionContext);
+    unique_ptr<QueryResult> execute(PhysicalPlan* physicalPlan, uint64_t numThreads);
 
 private:
     void run();
-    void decomposePlanIntoTasks(PhysicalOperator* op, uint64_t maxNumThreads, Task* parentTask);
+    void decomposePlanIntoTasks(PhysicalOperator* op, Task* parentTask, uint64_t numThreads);
     void scheduleTask(Task* task);
 
 private:
-    shared_ptr<spdlog::logger> logger;
     TaskQueue queue;
     bool stopThreads{false};
     vector<thread> threads;

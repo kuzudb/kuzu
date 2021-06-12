@@ -2,6 +2,7 @@
 
 #include "src/common/include/vector/node_vector.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
+#include "src/storage/include/data_structure/lists/lists.h"
 
 namespace graphflow {
 namespace processor {
@@ -10,7 +11,7 @@ class ReadList : public PhysicalOperator {
 
 public:
     ReadList(const uint64_t& inDataChunkPos, const uint64_t& inValueVectorPos, BaseLists* lists,
-        unique_ptr<PhysicalOperator> prevOperator);
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
     ~ReadList() { lists->reclaim(handle); }
 

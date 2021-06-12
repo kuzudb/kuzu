@@ -54,13 +54,14 @@ struct BlockAppendInfo {
 class HashJoinBuild : public Sink {
 public:
     HashJoinBuild(uint64_t keyDataChunkPos, uint64_t keyVectorPos,
-        vector<bool> dataChunkPosToIsFlat, unique_ptr<PhysicalOperator> prevOperator);
+        vector<bool> dataChunkPosToIsFlat, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        auto cloneOp = make_unique<HashJoinBuild>(
-            keyDataChunkPos, keyVectorPos, dataChunkPosToIsFlat, prevOperator->clone());
+        auto cloneOp = make_unique<HashJoinBuild>(keyDataChunkPos, keyVectorPos,
+            dataChunkPosToIsFlat, prevOperator->clone(), context, id);
         cloneOp->sharedState = this->sharedState;
         cloneOp->memManager = this->memManager;
         return cloneOp;

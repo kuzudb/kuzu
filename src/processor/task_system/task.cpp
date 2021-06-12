@@ -5,6 +5,13 @@
 namespace graphflow {
 namespace processor {
 
+Task::Task(Sink* sinkOp, uint64_t numThreads) : sinkOp{sinkOp}, maxNumThreads{numThreads} {
+    numThreadsFinished = 0;
+    numThreadsRegistered = 0;
+    numDependenciesFinished = 0;
+    parent = nullptr;
+}
+
 void Task::run() {
     auto pipelineSinkCopy = registerThread();
     if (pipelineSinkCopy == nullptr) {

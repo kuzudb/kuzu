@@ -3,7 +3,6 @@
 #include <cassert>
 
 #include "src/expression_evaluator/include/expression_evaluator.h"
-#include "src/processor/include/physical_plan/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 
 using namespace graphflow::evaluator;
@@ -16,7 +15,7 @@ class Projection : public PhysicalOperator {
 public:
     Projection(unique_ptr<vector<unique_ptr<ExpressionEvaluator>>> expressions,
         vector<uint64_t> expressionPosToDataChunkPos, const vector<uint64_t>& discardedDataChunkPos,
-        unique_ptr<PhysicalOperator> prevOperator);
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;
 

@@ -26,7 +26,7 @@ public:
     double getDuration() {
         if (finished) {
             auto duration = stopTime - startTime;
-            return chrono::duration_cast<chrono::milliseconds>(duration).count();
+            return chrono::duration_cast<chrono::microseconds>(duration).count();
         }
         throw invalid_argument("Timer is still running.");
     }

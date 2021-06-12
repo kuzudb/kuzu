@@ -12,13 +12,11 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-QueryProcessor::QueryProcessor(uint64_t numThreads)
-    : logger{spdlog::stdout_logger_st("processor")} {
+QueryProcessor::QueryProcessor(uint64_t numThreads) {
     memManager = make_unique<MemoryManager>();
     for (auto n = 0u; n < numThreads; ++n) {
         threads.emplace_back([&] { run(); });
     }
-    logger->info("Processor started with {} threads.", numThreads);
 }
 
 QueryProcessor::~QueryProcessor() {
@@ -29,15 +27,14 @@ QueryProcessor::~QueryProcessor() {
     spdlog::drop("processor");
 }
 
-unique_ptr<QueryResult> QueryProcessor::execute(ExecutionContext& executionContext) {
-    auto resultCollector =
-        reinterpret_cast<ResultCollector*>(executionContext.physicalPlan->lastOperator.get());
+unique_ptr<QueryResult> QueryProcessor::execute(PhysicalPlan* physicalPlan, uint64_t numThreads) {
+    auto lastOperator = physicalPlan->lastOperator.get();
+    auto resultCollector = reinterpret_cast<ResultCollector*>(lastOperator);
     // The root pipeline(task) consists of operators and its prevOperator only, because by default,
     // our plan is a linear one. For binary operators, e.g., HashJoin, we always keep probe and its
     // prevOperator in the same pipeline, and decompose build and its prevOperator into another one.
-    auto task = make_unique<Task>(resultCollector, executionContext.numThreads);
-    decomposePlanIntoTasks(
-        executionContext.physicalPlan->lastOperator.get(), executionContext.numThreads, task.get());
+    auto task = make_unique<Task>(resultCollector, numThreads);
+    decomposePlanIntoTasks(lastOperator, task.get(), numThreads);
     scheduleTask(task.get());
     while (!task->isCompleted()) {
         /*busy wait*/
@@ -59,7 +56,7 @@ void QueryProcessor::scheduleTask(Task* task) {
 }
 
 void QueryProcessor::decomposePlanIntoTasks(
-    PhysicalOperator* op, uint64_t maxNumThreads, Task* parentTask) {
+    PhysicalOperator* op, Task* parentTask, uint64_t numThreads) {
     switch (op->operatorType) {
     case HASH_JOIN_PROBE: {
         if (op->isOutDataChunkFiltered) {
@@ -67,21 +64,21 @@ void QueryProcessor::decomposePlanIntoTasks(
             auto hashJoinBuild =
                 reinterpret_cast<HashJoinBuild*>(hashJoinProbe->buildSidePrevOp.get());
             hashJoinBuild->setMemoryManager(memManager.get());
-            decomposePlanIntoTasks(hashJoinBuild, maxNumThreads, parentTask);
+            decomposePlanIntoTasks(hashJoinBuild, parentTask, numThreads);
         } else {
             auto hashJoinProbe = reinterpret_cast<HashJoinProbe<false>*>(op);
             auto hashJoinBuild =
                 reinterpret_cast<HashJoinBuild*>(hashJoinProbe->buildSidePrevOp.get());
             hashJoinBuild->setMemoryManager(memManager.get());
-            decomposePlanIntoTasks(hashJoinBuild, maxNumThreads, parentTask);
+            decomposePlanIntoTasks(hashJoinBuild, parentTask, numThreads);
         }
-        decomposePlanIntoTasks(op->prevOperator.get(), maxNumThreads, parentTask);
+        decomposePlanIntoTasks(op->prevOperator.get(), parentTask, numThreads);
         break;
     }
     case HASH_JOIN_BUILD: {
         auto hashJoinBuild = reinterpret_cast<HashJoinBuild*>(op);
-        auto childTask = make_unique<Task>(reinterpret_cast<Sink*>(hashJoinBuild), maxNumThreads);
-        decomposePlanIntoTasks(op->prevOperator.get(), maxNumThreads, childTask.get());
+        auto childTask = make_unique<Task>(reinterpret_cast<Sink*>(hashJoinBuild), numThreads);
+        decomposePlanIntoTasks(op->prevOperator.get(), childTask.get(), numThreads);
         childTask->parent = parentTask;
         parentTask->children.push_back(move(childTask));
         break;
@@ -89,14 +86,14 @@ void QueryProcessor::decomposePlanIntoTasks(
     case FRONTIER_EXTEND: {
         auto frontierExtend = reinterpret_cast<FrontierExtend<true>*>(op);
         frontierExtend->setMemoryManager(memManager.get());
-        decomposePlanIntoTasks(op->prevOperator.get(), maxNumThreads, parentTask);
+        decomposePlanIntoTasks(op->prevOperator.get(), parentTask, numThreads);
         break;
     }
     case SCAN:
     case LOAD_CSV:
         break;
     default:
-        decomposePlanIntoTasks(op->prevOperator.get(), maxNumThreads, parentTask);
+        decomposePlanIntoTasks(op->prevOperator.get(), parentTask, numThreads);
         break;
     }
 }

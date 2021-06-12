@@ -2,17 +2,12 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
     name = "session_context",
-    srcs = [
-        "profiler.cpp",
-    ],
     hdrs = [
         "include/session_context.h",
-        "include/profiler.h"
     ],
     deps = [
-        "//src/common:timer",
-        "//src/transaction",
-        "@nlohmann_json",
+        "//src/transaction:transaction",
+        "//src/common:profiler"
     ],
 )
 
@@ -30,7 +25,6 @@ cc_library(
         "//src/parser",
         "//src/planner:enumerator",
         "//src/processor",
-        "//src/transaction",
         "session_context",
     ],
 )
@@ -44,7 +38,6 @@ cc_library(
         "include/session.h",
     ],
     deps = [
-        "//src/common:timer",
         "system",
     ],
 )

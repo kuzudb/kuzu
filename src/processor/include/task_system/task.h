@@ -1,9 +1,9 @@
 #pragma once
 
-#include "src/common/include/timer.h"
+#include <mutex>
+
 #include "src/processor/include/execution_context.h"
-#include "src/processor/include/physical_plan/physical_plan.h"
-#include "src/processor/include/physical_plan/query_result.h"
+#include "src/processor/include/physical_plan/operator/sink/sink.h"
 
 using namespace std;
 
@@ -15,9 +15,7 @@ using lock_t = unique_lock<mutex>;
 class Task {
 
 public:
-    Task(Sink* sinkOp, const uint64_t& maxNumThreads)
-        : sinkOp{sinkOp}, maxNumThreads{maxNumThreads}, numThreadsFinished{0},
-          numThreadsRegistered{0}, numDependenciesFinished{0}, parent{nullptr} {}
+    Task(Sink* sinkOp, uint64_t numThreads);
 
     void run();
 
