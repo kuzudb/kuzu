@@ -8,6 +8,7 @@
 #include "bitsery/ext/std_map.h"
 #include "bitsery/traits/string.h"
 #include "bitsery/traits/vector.h"
+#include "spdlog/spdlog.h"
 #include <bitsery/brief_syntax.h>
 #include <bitsery/brief_syntax/string.h>
 #include <bitsery/ext/pointer.h>
@@ -18,6 +19,10 @@ using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAda
 
 namespace graphflow {
 namespace storage {
+
+Catalog::Catalog() {
+    logger = spdlog::get("storage");
+}
 
 Catalog::Catalog(const string& directory) : Catalog() {
     logger->info("Initializing Catalog.");

@@ -1,6 +1,7 @@
 #include "src/storage/include/buffer_manager.h"
 
 #include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
 
 #include "src/common/include/configs.h"
 
@@ -37,6 +38,10 @@ BufferManager::BufferManager(uint64_t maxSize)
     logger->info("Initializing Buffer Manager.");
     logger->info("BufferPool Size {}B, #4KB-pages {}.", maxSize, maxSize / PAGE_SIZE);
     logger->info("Done Initializing Buffer Manager.");
+}
+
+BufferManager::~BufferManager() {
+    spdlog::drop("buffer_manager");
 }
 
 const uint8_t* BufferManager::get(FileHandle& fileHandle, uint32_t pageIdx) {

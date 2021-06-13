@@ -7,6 +7,7 @@
 #include "bitsery/brief_syntax.h"
 #include "bitsery/brief_syntax/vector.h"
 #include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
 
 using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAdapter>;
 
@@ -22,7 +23,14 @@ Graph::Graph(const string& path, uint64_t bufferPoolSize)
     nodesStore = make_unique<NodesStore>(*catalog, numNodesPerLabel, path, *bufferManager);
     relsStore = make_unique<RelsStore>(*catalog, numNodesPerLabel, path, *bufferManager);
     logger->info("Done.");
-    return;
+}
+
+Graph::Graph() {
+    logger = spdlog::stdout_logger_st("storage");
+}
+
+Graph::~Graph() {
+    spdlog::drop("storage");
 }
 
 template<typename S>

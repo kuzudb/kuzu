@@ -2,8 +2,16 @@
 
 #include <fstream>
 
+#include "spdlog/spdlog.h"
+
+#include "src/storage/include/data_structure/utils.h"
+
 namespace graphflow {
 namespace storage {
+
+ListHeaders::ListHeaders() {
+    logger = spdlog::get("storage");
+}
 
 ListHeaders::ListHeaders(string path) : ListHeaders() {
     readFromDisk(path);

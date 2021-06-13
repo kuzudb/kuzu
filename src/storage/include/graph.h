@@ -3,14 +3,15 @@
 #include <iostream>
 #include <vector>
 
-#include "spdlog/spdlog.h"
-
 #include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/catalog.h"
 #include "src/storage/include/store/nodes_store.h"
 #include "src/storage/include/store/rels_store.h"
 
 using namespace std;
+
+namespace spdlog {
+class logger;
+}
 
 namespace graphflow {
 namespace loader {
@@ -32,7 +33,7 @@ class Graph {
 public:
     Graph(const string& path, uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE);
 
-    virtual ~Graph() { spdlog::drop("storage"); };
+    virtual ~Graph();
 
     virtual inline const Catalog& getCatalog() const { return *catalog; }
 
@@ -54,7 +55,7 @@ public:
     unique_ptr<nlohmann::json> debugInfo();
 
 protected:
-    Graph() : logger{spdlog::stdout_logger_st("storage")} {};
+    Graph();
 
 private:
     template<typename S>

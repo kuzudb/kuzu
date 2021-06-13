@@ -4,6 +4,8 @@
 
 #include <unordered_map>
 
+#include "spdlog/spdlog.h"
+
 #include "src/common/include/configs.h"
 #include "src/storage/include/data_structure/lists/lists.h"
 

@@ -1,5 +1,7 @@
 #include "src/storage/include/index/hash_index.h"
 
+#include <climits>
+
 #include "src/common/include/vector/operations/vector_hash_operations.h"
 
 namespace graphflow {

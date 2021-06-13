@@ -1,5 +1,7 @@
 #include "src/testing/include/test_helper.h"
 
+#include "spdlog/spdlog.h"
+
 #include "src/loader/include/graph_loader.h"
 
 using namespace std;

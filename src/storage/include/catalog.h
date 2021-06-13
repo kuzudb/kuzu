@@ -2,18 +2,22 @@
 
 #include <memory>
 #include <unordered_map>
-#include <vector>
 
-#include "bitsery/bitsery.h"
 #include "nlohmann/json.hpp"
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
 
 #include "src/common/include/types.h"
 #include "src/common/include/utils.h"
 
 using namespace graphflow::common;
 using namespace std;
+
+namespace spdlog {
+class logger;
+}
+
+namespace bitsery {
+class Access;
+}
 
 namespace graphflow {
 namespace loader {
@@ -33,8 +37,8 @@ class Catalog {
     friend class bitsery::Access;
 
 public:
+    Catalog();
     Catalog(const string& directory);
-    Catalog() : logger{spdlog::get("storage")} {};
 
     virtual ~Catalog() = default;
 

@@ -1,8 +1,5 @@
 #pragma once
 
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
-
 #include "src/loader/include/adj_and_prop_structures_builder.h"
 #include "src/loader/include/in_mem_pages.h"
 #include "src/loader/include/thread_pool.h"
@@ -38,7 +35,7 @@ class AdjAndPropertyListsBuilder : public AdjAndPropertyStructuresBuilder {
 
 public:
     AdjAndPropertyListsBuilder(RelLabelDescription& description, ThreadPool& threadPool,
-        const Graph& graph, const string outputDirectory);
+        const Graph& graph, const string& outputDirectory);
 
     inline void incrementListSize(const Direction& dir, const nodeID_t& nodeID) {
         ListsLoaderHelper::incrementListSize(

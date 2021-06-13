@@ -1,8 +1,6 @@
 #pragma once
 
 #include "nlohmann/json.hpp"
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
 
 #include "src/common/include/csv_reader/csv_reader.h"
 #include "src/loader/include/adj_and_prop_columns_builder.h"
@@ -17,9 +15,7 @@ class RelsLoader {
 
 private:
     RelsLoader(ThreadPool& threadPool, Graph& graph, const nlohmann::json& metadata,
-        vector<unique_ptr<NodeIDMap>>& nodeIDMaps, const string outputDirectory)
-        : logger{spdlog::get("loader")}, threadPool{threadPool}, graph{graph}, metadata{metadata},
-          nodeIDMaps{nodeIDMaps}, outputDirectory(outputDirectory){};
+        vector<unique_ptr<NodeIDMap>>& nodeIDMaps, const string& outputDirectory);
 
     void load(vector<string>& fnames, vector<uint64_t>& numBlocksPerLabel);
 

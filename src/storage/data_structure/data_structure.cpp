@@ -1,5 +1,7 @@
 #include "src/storage/include/data_structure/data_structure.h"
 
+#include "spdlog/spdlog.h"
+
 namespace graphflow {
 namespace storage {
 

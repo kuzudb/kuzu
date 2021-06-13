@@ -1,15 +1,15 @@
 #pragma once
 
-#include <string>
-#include <vector>
-
-#include "spdlog/spdlog.h"
+#include <memory>
 
 #include "src/common/include/types.h"
-#include "src/storage/include/data_structure/utils.h"
 
 using namespace std;
 using namespace graphflow::common;
+
+namespace spdlog {
+class logger;
+}
 
 namespace graphflow {
 namespace loader {
@@ -31,7 +31,7 @@ class ListHeaders {
     friend class graphflow::loader::NodesLoader;
 
 public:
-    ListHeaders() : logger{spdlog::get("storage")} {};
+    ListHeaders();
     ListHeaders(string path);
 
     uint32_t getHeader(node_offset_t offset) { return headers[offset]; };

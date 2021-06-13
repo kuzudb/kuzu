@@ -2,7 +2,6 @@
 
 #include <fcntl.h>
 #include <string.h>
-#include <unistd.h>
 
 #include <iostream>
 
@@ -17,7 +16,6 @@ void InMemPages::saveToFile() {
     }
     int fd = FileUtils::openFile(fname, O_WRONLY | O_CREAT);
     auto size = numPages * PAGE_SIZE;
-    cout << "InMemPages write to file at size " << size << endl;
     FileUtils::writeToFile(fd, data.get(), size, 0);
     FileUtils::closeFile(fd);
 }

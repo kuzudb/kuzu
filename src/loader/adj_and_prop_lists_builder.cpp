@@ -1,10 +1,12 @@
 #include "src/loader/include/adj_and_prop_lists_builder.h"
 
+#include "spdlog/sinks/stdout_sinks.h"
+
 namespace graphflow {
 namespace loader {
 
 AdjAndPropertyListsBuilder::AdjAndPropertyListsBuilder(RelLabelDescription& description,
-    ThreadPool& threadPool, const Graph& graph, const string outputDirectory)
+    ThreadPool& threadPool, const Graph& graph, const string& outputDirectory)
     : AdjAndPropertyStructuresBuilder(description, threadPool, graph, outputDirectory) {
     for (auto& dir : DIRS) {
         if (!description.isSingleCardinalityPerDir[dir]) {

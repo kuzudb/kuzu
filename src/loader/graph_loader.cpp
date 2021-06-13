@@ -1,10 +1,11 @@
 #include "src/loader/include/graph_loader.h"
 
-#include <fstream>
-#include <future>
 #include <iostream>
 #include <memory>
 #include <unordered_set>
+
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
 
 #include "src/common/include/configs.h"
 #include "src/common/include/csv_reader/csv_reader.h"
@@ -15,6 +16,15 @@ using namespace graphflow::storage;
 
 namespace graphflow {
 namespace loader {
+
+GraphLoader::GraphLoader(
+    const string& inputDirectory, const string& outputDirectory, uint32_t numThreads)
+    : logger{spdlog::stdout_logger_mt("loader")}, threadPool{ThreadPool(numThreads)},
+      inputDirectory(inputDirectory), outputDirectory(outputDirectory) {}
+
+GraphLoader::~GraphLoader() {
+    spdlog::drop("loader");
+};
 
 void GraphLoader::loadGraph() {
     logger->info("Starting GraphLoader.");

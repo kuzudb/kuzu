@@ -1,5 +1,7 @@
 #include "src/storage/include/store/nodes_store.h"
 
+#include "spdlog/spdlog.h"
+
 #include "src/storage/include/data_structure/column.h"
 
 namespace graphflow {

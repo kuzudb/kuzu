@@ -1,5 +1,7 @@
 #include "src/storage/include/store/rels_store.h"
 
+#include "spdlog/spdlog.h"
+
 #include "src/common/include/compression_scheme.h"
 
 namespace graphflow {

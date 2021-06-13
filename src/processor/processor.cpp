@@ -24,7 +24,6 @@ QueryProcessor::~QueryProcessor() {
     for (auto& thread : threads) {
         thread.join();
     }
-    spdlog::drop("processor");
 }
 
 unique_ptr<QueryResult> QueryProcessor::execute(PhysicalPlan* physicalPlan, uint64_t numThreads) {

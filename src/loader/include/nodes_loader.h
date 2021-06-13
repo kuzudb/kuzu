@@ -1,19 +1,19 @@
 #pragma once
 
 #include "nlohmann/json.hpp"
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
 
 #include "src/common/include/csv_reader/csv_reader.h"
 #include "src/loader/include/in_mem_pages.h"
 #include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
-#include "src/storage/include/catalog.h"
-#include "src/storage/include/data_structure/lists/lists.h"
 #include "src/storage/include/graph.h"
 
 using namespace std;
 using namespace graphflow::storage;
+
+namespace spdlog {
+class logger;
+}
 
 namespace graphflow {
 namespace loader {
@@ -31,11 +31,7 @@ class NodesLoader {
 
 private:
     NodesLoader(ThreadPool& threadPool, const Graph& graph, const nlohmann::json& metadata,
-        const string outputDirectory)
-        : logger{spdlog::get("loader")}, threadPool{threadPool}, graph{graph}, metadata{metadata},
-          outputDirectory{outputDirectory} {
-        logger->debug("Initializing NodesLoader.");
-    };
+        const string& outputDirectory);
 
     void load(const vector<string>& fnames, const vector<uint64_t>& numBlocksPerLabel,
         const vector<vector<uint64_t>>& numLinesPerBlock,

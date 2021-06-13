@@ -1,14 +1,13 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
-#include <vector>
-
-#include "spdlog/spdlog.h"
-
-#include "src/common/include/configs.h"
-#include "src/storage/include/file_utils.h"
 
 using namespace std;
+
+namespace spdlog {
+class logger;
+}
 
 namespace graphflow {
 namespace storage {

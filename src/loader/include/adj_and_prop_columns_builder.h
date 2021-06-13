@@ -1,13 +1,9 @@
 #pragma once
 
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
-
 #include "src/loader/include/adj_and_prop_structures_builder.h"
 #include "src/loader/include/in_mem_pages.h"
 #include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
-#include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
 
 using namespace graphflow::common;
@@ -29,7 +25,7 @@ class AdjAndPropertyColumnsBuilder : public AdjAndPropertyStructuresBuilder {
 public:
     // Initialize the builder and construct relevant propertyColumns and adjColumns.
     AdjAndPropertyColumnsBuilder(RelLabelDescription& description, ThreadPool& threadPool,
-        const Graph& graph, const string outputDirectory);
+        const Graph& graph, const string& outputDirectory);
 
     // Sets a neighbour nodeID of the given nodeID in a corresponding adjColumn. If dir=FWD,
     // adjCol[nodeIDs[FWD]] = nodeIDs[BWD], and vice-versa.
