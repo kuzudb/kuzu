@@ -3,6 +3,7 @@
 
 #include "gtest/gtest.h"
 #include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
 
 #include "src/storage/include/index/hash_index.h"
 

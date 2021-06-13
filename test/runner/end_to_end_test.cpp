@@ -1,6 +1,7 @@
 #include <filesystem>
 
 #include "gtest/gtest.h"
+#include "spdlog/spdlog.h"
 
 #include "src/testing/include/test_helper.h"
 

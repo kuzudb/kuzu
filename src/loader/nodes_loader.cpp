@@ -1,5 +1,8 @@
 #include "src/loader/include/nodes_loader.h"
 
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
+
 #include "src/storage/include/file_utils.h"
 #include "src/storage/include/store/nodes_store.h"
 
@@ -7,6 +10,13 @@ using namespace graphflow::storage;
 
 namespace graphflow {
 namespace loader {
+
+NodesLoader::NodesLoader(ThreadPool& threadPool, const Graph& graph, const nlohmann::json& metadata,
+    const string& outputDirectory)
+    : logger{spdlog::get("loader")}, threadPool{threadPool}, graph{graph}, metadata{metadata},
+      outputDirectory{outputDirectory} {
+    logger->debug("Initializing NodesLoader.");
+};
 
 void NodesLoader::load(const vector<string>& fnames, const vector<uint64_t>& numBlocksPerLabel,
     const vector<vector<uint64_t>>& numLinesPerBlock, vector<unique_ptr<NodeIDMap>>& nodeIDMaps) {

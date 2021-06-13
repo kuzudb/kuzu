@@ -5,8 +5,6 @@
 #include <vector>
 
 #include "nlohmann/json.hpp"
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
 
 #include "src/common/include/types.h"
 #include "src/loader/include/thread_pool.h"
@@ -26,10 +24,8 @@ class GraphLoader {
         labelBlockUnstrPropertyKeys_t;
 
 public:
-    GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads)
-        : logger{spdlog::stdout_logger_mt("loader")}, threadPool{ThreadPool(numThreads)},
-          inputDirectory(inputDirectory), outputDirectory(outputDirectory) {}
-    ~GraphLoader() { spdlog::drop("loader"); };
+    GraphLoader(const string& inputDirectory, const string& outputDirectory, uint32_t numThreads);
+    ~GraphLoader();
 
     void loadGraph();
 

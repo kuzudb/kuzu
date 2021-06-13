@@ -1,16 +1,17 @@
 #pragma once
 
-#include <memory>
 #include <mutex>
 #include <vector>
 
 #include "nlohmann/json.hpp"
-#include "spdlog/spdlog.h"
 
-#include "src/common/include/configs.h"
 #include "src/storage/include/file_handle.h"
 
 using namespace std;
+
+namespace spdlog {
+class logger;
+}
 
 namespace graphflow {
 namespace storage {
@@ -50,7 +51,7 @@ class BufferManager {
 
 public:
     BufferManager(uint64_t maxSize);
-    ~BufferManager() { spdlog::drop("buffer_manager"); }
+    ~BufferManager();
 
     // The function assumes that the requested page is already pinned.
     const uint8_t* get(FileHandle& fileHandle, uint32_t pageIdx);

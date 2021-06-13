@@ -12,7 +12,7 @@ class ProcessorTest : public ::testing::Test {
 protected:
     void SetUp() override {}
 
-    void TearDown() override { spdlog::shutdown(); }
+    void TearDown() override {}
 };
 
 class GraphStub : public Graph {

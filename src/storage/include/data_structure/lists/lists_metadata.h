@@ -1,15 +1,14 @@
 #pragma once
 
-#include <string>
-#include <vector>
-
-#include "spdlog/spdlog.h"
-
 #include "src/common/include/types.h"
 #include "src/storage/include/data_structure/utils.h"
 
 using namespace std;
 using namespace graphflow::common;
+
+namespace spdlog {
+class logger;
+}
 
 namespace graphflow {
 namespace loader {
@@ -32,7 +31,7 @@ class ListsMetadata {
     friend class graphflow::loader::NodesLoader;
 
 public:
-    ListsMetadata() : logger{spdlog::get("storage")} {};
+    ListsMetadata();
     ListsMetadata(const string& path);
 
     inline uint64_t getNumElementsInLargeLists(uint64_t largeListIdx) {

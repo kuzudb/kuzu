@@ -1,6 +1,5 @@
 #include "src/storage/include/file_utils.h"
 
-#include <cstring>
 #include <stdexcept>
 
 using namespace std;

@@ -2,7 +2,6 @@
 
 #include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
-#include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
 
 using namespace graphflow::common;
@@ -28,9 +27,7 @@ public:
 
 protected:
     AdjAndPropertyStructuresBuilder(RelLabelDescription& description, ThreadPool& threadPool,
-        const Graph& graph, const string outputDirectory)
-        : logger{spdlog::get("loader")}, description{description},
-          threadPool{threadPool}, graph{graph}, outputDirectory{outputDirectory} {};
+        const Graph& graph, const string& outputDirectory);
 
 protected:
     shared_ptr<spdlog::logger> logger;

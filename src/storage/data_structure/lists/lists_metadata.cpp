@@ -2,8 +2,14 @@
 
 #include <fstream>
 
+#include "spdlog/spdlog.h"
+
 namespace graphflow {
 namespace storage {
+
+ListsMetadata::ListsMetadata() {
+    logger = spdlog::get("storage");
+}
 
 ListsMetadata::ListsMetadata(const string& path) : ListsMetadata() {
     readFromDisk(path);

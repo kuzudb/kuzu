@@ -1,7 +1,15 @@
 #include "src/loader/include/rels_loader.h"
 
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
+
 namespace graphflow {
 namespace loader {
+
+RelsLoader::RelsLoader(ThreadPool& threadPool, Graph& graph, const nlohmann::json& metadata,
+    vector<unique_ptr<NodeIDMap>>& nodeIDMaps, const string& outputDirectory)
+    : logger{spdlog::get("loader")}, threadPool{threadPool}, graph{graph}, metadata{metadata},
+      nodeIDMaps{nodeIDMaps}, outputDirectory(outputDirectory){};
 
 // For each rel label, constructs the RelLabelDescription object with relevant meta info and
 // calls the loadRelsForLabel.

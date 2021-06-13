@@ -1,12 +1,14 @@
 #include "src/loader/include/adj_and_prop_columns_builder.h"
 
+#include "spdlog/sinks/stdout_sinks.h"
+
 #include "src/storage/include/store/rels_store.h"
 
 namespace graphflow {
 namespace loader {
 
 AdjAndPropertyColumnsBuilder::AdjAndPropertyColumnsBuilder(RelLabelDescription& description,
-    ThreadPool& threadPool, const Graph& graph, const string outputDirectory)
+    ThreadPool& threadPool, const Graph& graph, const string& outputDirectory)
     : AdjAndPropertyStructuresBuilder(description, threadPool, graph, outputDirectory) {
     if (description.hasProperties()) {
         if (description.isSingleCardinalityPerDir[FWD]) {
