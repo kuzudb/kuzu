@@ -15,13 +15,13 @@ ReadRelPropertyList::ReadRelPropertyList(uint64_t inDataChunkPos, uint64_t inVal
 }
 
 void ReadRelPropertyList::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     prevOperator->getNextTuples();
     if (inDataChunk->state->size > 0) {
         readValuesFromList();
     }
     outValueVector->fillNullMask();
-    executionTime->stop();
+    metrics->executionTime.stop();
 }
 
 } // namespace processor

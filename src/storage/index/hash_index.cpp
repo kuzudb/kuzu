@@ -62,7 +62,7 @@ vector<bool> HashIndex::insert(ValueVector& keys, ValueVector& values) {
 
 // The nullmask of result value vector indicates if the key is found in the index or not.
 // nullmask value is true means the key cannot be found in the index.
-void HashIndex::lookup(ValueVector& keys, ValueVector& result) {
+void HashIndex::lookup(ValueVector& keys, ValueVector& result, BufferManagerMetrics& metrics) {
     uint8_t* keyData = keys.values;
     auto resultData = (uint64_t*)result.values;
     auto hashes = make_shared<ValueVector>(INT64);
@@ -77,7 +77,8 @@ void HashIndex::lookup(ValueVector& keys, ValueVector& result) {
         auto slotIdInBlock = slotIds[keyPos] % numSlotsPerPrimaryBlock;
         uint8_t* expectedKey =
             keyData + (keys.state->selectedValuesPos[keyPos + offset] * numBytesPerKey);
-        auto resultValue = lookupKeyInSlot(expectedKey, numBytesPerKey, blockId, slotIdInBlock);
+        auto resultValue =
+            lookupKeyInSlot(expectedKey, numBytesPerKey, blockId, slotIdInBlock, metrics);
         resultData[keyPos] = resultValue;
         result.nullMask[keyPos] = resultValue == UINT64_MAX;
     }
@@ -85,12 +86,12 @@ void HashIndex::lookup(ValueVector& keys, ValueVector& result) {
 
 // First visit the primary slot, then loop over all overflow slots until the key is found, or all
 // slots are done. Return UINT64_MAX if no key is found.
-uint64_t HashIndex::lookupKeyInSlot(
-    uint8_t* key, uint64_t numBytesPerKey, uint64_t pageId, uint64_t slotIdInBlock) const {
+uint64_t HashIndex::lookupKeyInSlot(uint8_t* key, uint64_t numBytesPerKey, uint64_t pageId,
+    uint64_t slotIdInBlock, BufferManagerMetrics& metrics) const {
     bool isOverflow = false;
     auto currentFileHandle = fileHandle.get();
     while (pageId != 0) {
-        const uint8_t* block = bufferManager.pin(*currentFileHandle, pageId);
+        const uint8_t* block = bufferManager.pin(*currentFileHandle, pageId, metrics);
         const uint8_t* slot = block + (isOverflow * numBytesPerOverflowSlotsBitset) +
                               (slotIdInBlock * numBytesPerSlot);
         auto slotHeader = deSerSlotHeader(*(uint64_t*)slot);

@@ -5,38 +5,55 @@
 namespace graphflow {
 namespace processor {
 
-static string getTimeMetricKey(uint32_t id) {
-    return "time-" + to_string(id);
-}
-static string getNumTupleMetricKey(uint32_t id) {
-    return "numTuple-" + to_string(id);
-}
-
 PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> prevOperator,
     PhysicalOperatorType operatorType, bool isOutDataChunkFiltered, ExecutionContext& context,
     uint32_t id)
     : prevOperator{move(prevOperator)}, operatorType{operatorType},
       isOutDataChunkFiltered{isOutDataChunkFiltered}, context{context}, id{id} {
-    executionTime = context.profiler.registerTimeMetric(getTimeMetricKey(id));
-    numOutputTuple = context.profiler.registerNumericMetric(getNumTupleMetricKey(id));
+    registerProfilingMetrics();
 }
 
 nlohmann::json PhysicalOperator::toJson(Profiler& profiler) {
     auto json = nlohmann::json();
     json["physicalName"] = PhysicalOperatorTypeNames[operatorType];
-    double prevExecutionTime = 0.0;
-    if (prevOperator) {
-        prevExecutionTime = profiler.sumAllTimeMetricsWithKey(getTimeMetricKey(prevOperator->id));
-    }
-    // Time metric measures execution time of the subplan under current operator (like a CDF).
-    // By subtracting prevOperator runtime, we get the runtime of current operator
-    json["executionTime"] =
-        profiler.sumAllTimeMetricsWithKey(getTimeMetricKey(id)) - prevExecutionTime;
-    json["numOutputTuples"] = profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey(id));
+    flushTimeAndNumOutputMetrics(json, profiler);
     if (prevOperator) {
         json["child"] = prevOperator->toJson(profiler);
     }
     return json;
+}
+
+void PhysicalOperator::registerProfilingMetrics() {
+    auto executionTime = context.profiler.registerTimeMetric(getTimeMetricKey());
+    auto numOutputTuple = context.profiler.registerNumericMetric(getNumTupleMetricKey());
+    auto numBufferHit = context.profiler.registerNumericMetric(getNumBufferHitMetricKey());
+    auto numBufferMiss = context.profiler.registerNumericMetric(getNumBufferMissMetricKey());
+    auto numIO = context.profiler.registerNumericMetric(getNumIOMetricKey());
+    auto bufferManageMetrics =
+        make_unique<BufferManagerMetrics>(*numBufferHit, *numBufferMiss, *numIO);
+    metrics =
+        make_unique<OperatorMetrics>(*executionTime, *numOutputTuple, move(bufferManageMetrics));
+}
+
+void PhysicalOperator::flushTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler) {
+    double prevExecutionTime = 0.0;
+    if (prevOperator) {
+        prevExecutionTime = profiler.sumAllTimeMetricsWithKey(prevOperator->getTimeMetricKey());
+    }
+    // Time metric measures execution time of the subplan under current operator (like a CDF).
+    // By subtracting prevOperator runtime, we get the runtime of current operator
+    json["executionTime"] =
+        profiler.sumAllTimeMetricsWithKey(getTimeMetricKey()) - prevExecutionTime;
+    json["numOutputTuples"] = profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
+}
+
+void PhysicalOperator::flushBufferManagerMetrics(nlohmann::json& json, Profiler& profiler) {
+    auto bufferHit = profiler.sumAllNumericMetricsWithKey(getNumBufferHitMetricKey());
+    auto bufferMiss = profiler.sumAllNumericMetricsWithKey(getNumBufferMissMetricKey());
+    json["numBufferHit"] = bufferHit;
+    json["numBufferMiss"] = bufferMiss;
+    json["cacheMissRatio"] = ((double)bufferMiss) / (double)(bufferMiss + bufferHit);
+    json["numIO"] = profiler.sumAllNumericMetricsWithKey(getNumIOMetricKey());
 }
 
 } // namespace processor

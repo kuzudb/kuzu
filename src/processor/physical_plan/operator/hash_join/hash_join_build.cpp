@@ -272,7 +272,7 @@ void HashJoinBuild::appendResultSet() {
 }
 
 void HashJoinBuild::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     // Append thread-local tuples
     do {
         prevOperator->getNextTuples();
@@ -289,7 +289,7 @@ void HashJoinBuild::getNextTuples() {
     }
 
     keyDataChunk->state->size = 0;
-    executionTime->stop();
+    metrics->executionTime.stop();
 }
 } // namespace processor
 } // namespace graphflow

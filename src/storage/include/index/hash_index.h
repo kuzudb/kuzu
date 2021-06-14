@@ -126,7 +126,7 @@ public:
 
 public:
     vector<bool> insert(ValueVector& keys, ValueVector& values);
-    void lookup(ValueVector& keys, ValueVector& result);
+    void lookup(ValueVector& keys, ValueVector& result, BufferManagerMetrics& metrics);
     // Reserves space for at least the specified number of elements.
     void reserve(uint64_t numEntries);
     void flush();
@@ -145,8 +145,8 @@ private:
 
     uint8_t* findFreeOverflowSlot(SlotHeader& prevSlotHeader);
 
-    uint64_t lookupKeyInSlot(
-        uint8_t* key, uint64_t numBytesPerKey, uint64_t pageId, uint64_t slotIdInPage) const;
+    uint64_t lookupKeyInSlot(uint8_t* key, uint64_t numBytesPerKey, uint64_t pageId,
+        uint64_t slotIdInPage, BufferManagerMetrics& metrics) const;
     bool keyNotExistInSlot(
         uint8_t* key, uint64_t numBytesPerKey, uint64_t blockId, uint64_t slotIdInBlock);
 

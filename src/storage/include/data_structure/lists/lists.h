@@ -16,7 +16,7 @@ class BaseLists : public DataStructure {
 public:
     void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
         uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle,
-        uint32_t maxElementsToRead);
+        uint32_t maxElementsToRead, BufferManagerMetrics& metrics);
 
     uint64_t getNumElementsInList(node_offset_t nodeOffset);
 
@@ -27,10 +27,12 @@ protected:
           headers(headers){};
 
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-        const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead);
+        const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead,
+        BufferManagerMetrics& metrics);
 
     void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header);
+        uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header,
+        BufferManagerMetrics& metrics);
 
 public:
     constexpr static uint16_t LISTS_CHUNK_SIZE = 512;
@@ -84,24 +86,28 @@ public:
 
     // readValues is overloaded. Lists<UNKNOWN> is not supposed to use the one defined in BaseLists.
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle);
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
+        BufferManagerMetrics& metrics);
 
 private:
     void readUnstrPropertyListOfNode(node_offset_t nodeOffset, uint32_t propertyKeyIdxToRead,
         const shared_ptr<ValueVector>& valueVector, uint64_t pos,
-        const unique_ptr<DataStructureHandle>& handle, uint32_t header);
+        const unique_ptr<DataStructureHandle>& handle, uint32_t header,
+        BufferManagerMetrics& metrics);
 
     void readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
         uint64_t& physicalPageIdx, const uint32_t*& propertyKeyIdxPtr,
         DataType& propertyKeyDataType, const unique_ptr<DataStructureHandle>& handle,
-        PageCursor& pageCursor, uint64_t& listLen, LogicalToPhysicalPageIdxMapper& mapper);
+        PageCursor& pageCursor, uint64_t& listLen, LogicalToPhysicalPageIdxMapper& mapper,
+        BufferManagerMetrics& metrics);
 
     void readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx, DataType& propertyDataType,
         const unique_ptr<DataStructureHandle>& handle, PageCursor& pageCursor, uint64_t& listLen,
         LogicalToPhysicalPageIdxMapper& mapper, const shared_ptr<ValueVector>& valueVector,
-        uint64_t pos, bool toRead);
+        uint64_t pos, bool toRead, BufferManagerMetrics& metrics);
 
-    void readStringsFromOverflowPages(const shared_ptr<ValueVector>& valueVector);
+    void readStringsFromOverflowPages(
+        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
 
 public:
     static constexpr uint8_t UNSTR_PROP_IDX_LEN = 4;

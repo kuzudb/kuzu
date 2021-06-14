@@ -40,5 +40,12 @@ void NumericMetric::increase(uint64_t value) {
     accumulatedValue += value;
 }
 
+void NumericMetric::incrementByOne() {
+    if (!enabled) {
+        return;
+    }
+    accumulatedValue++;
+}
+
 } // namespace common
 } // namespace graphflow

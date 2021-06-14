@@ -18,6 +18,8 @@ public:
 protected:
     void readValuesFromList();
 
+    nlohmann::json toJson(Profiler& profiler) override;
+
 protected:
     static constexpr uint32_t MAX_TO_READ = 512;
 

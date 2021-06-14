@@ -37,11 +37,13 @@ protected:
     virtual ~DataStructure() = default;
 
     void readBySettingFrame(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<DataStructureHandle>& handle, PageCursor& pageCursor);
+        const unique_ptr<DataStructureHandle>& handle, PageCursor& pageCursor,
+        BufferManagerMetrics& metrics);
 
     void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<DataStructureHandle>& handle, uint64_t sizeLeftToCopy,
-        PageCursor& pageCursor, unique_ptr<LogicalToPhysicalPageIdxMapper> mapper);
+        PageCursor& pageCursor, unique_ptr<LogicalToPhysicalPageIdxMapper> mapper,
+        BufferManagerMetrics& metrics);
 
 public:
     DataType dataType;

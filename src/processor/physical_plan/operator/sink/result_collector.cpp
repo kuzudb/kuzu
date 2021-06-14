@@ -4,7 +4,7 @@ namespace graphflow {
 namespace processor {
 
 void ResultCollector::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     prevOperator->getNextTuples();
     auto resultSet = prevOperator->getResultSet();
     queryResult->numTuples += resultSet->getNumTuples() * resultSet->multiplicity;
@@ -17,7 +17,7 @@ void ResultCollector::getNextTuples() {
             queryResult->tuples.push_back(move(tuple));
         }
     }
-    executionTime->stop();
+    metrics->executionTime.stop();
 }
 
 } // namespace processor

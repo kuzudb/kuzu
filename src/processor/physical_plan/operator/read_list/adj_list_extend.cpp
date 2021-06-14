@@ -19,7 +19,7 @@ AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::AdjListExtend(uint64_t inDataChunkPos,
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     if (handle->hasMoreToRead()) {
         readValuesFromList();
         if constexpr (IS_OUT_DATACHUNK_FILTERED) {
@@ -42,8 +42,8 @@ void AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
             break;
         }
     }
-    executionTime->stop();
-    numOutputTuple->increase(outDataChunk->state->size);
+    metrics->executionTime.stop();
+    metrics->numOutputTuple.increase(outDataChunk->state->size);
 }
 
 template class AdjListExtend<true>;

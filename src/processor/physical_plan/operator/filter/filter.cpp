@@ -21,7 +21,7 @@ Filter<IS_AFTER_FLATTEN>::Filter(unique_ptr<ExpressionEvaluator> rootExpr,
 
 template<bool IS_AFTER_FLATTEN>
 void Filter<IS_AFTER_FLATTEN>::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     bool hasAtLeastOneSelectedValue;
     do {
         if (IS_AFTER_FLATTEN) {
@@ -50,8 +50,8 @@ void Filter<IS_AFTER_FLATTEN>::getNextTuples() {
             hasAtLeastOneSelectedValue = resultPos > 0;
         }
     } while (!hasAtLeastOneSelectedValue);
-    executionTime->stop();
-    numOutputTuple->increase(dataChunkToSelect->state->size);
+    metrics->executionTime.stop();
+    metrics->numOutputTuple.increase(dataChunkToSelect->state->size);
 }
 
 template<bool IS_AFTER_FLATTEN>

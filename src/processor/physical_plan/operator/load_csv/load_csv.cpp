@@ -32,7 +32,7 @@ LoadCSV<IS_OUT_DATACHUNK_FILTERED>::LoadCSV(string fname, char tokenSeparator,
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void LoadCSV<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     auto lineIdx = 0ul;
     while (lineIdx < DEFAULT_VECTOR_CAPACITY && reader.hasNextLine()) {
         auto tokenIdx = 0ul;
@@ -78,8 +78,8 @@ void LoadCSV<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
             outDataChunk->state->selectedValuesPos[i] = i;
         }
     }
-    executionTime->stop();
-    numOutputTuple->increase(outDataChunk->state->size);
+    metrics->executionTime.stop();
+    metrics->numOutputTuple.increase(outDataChunk->state->size);
 }
 template class LoadCSV<true>;
 template class LoadCSV<false>;

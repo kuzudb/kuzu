@@ -18,13 +18,7 @@ public:
 
     void setMemoryManager(MemoryManager* memMan) { this->memMan = memMan; }
 
-    unique_ptr<PhysicalOperator> clone() override {
-        auto cloneOp =
-            make_unique<FrontierExtend<IS_OUT_DATACHUNK_FILTERED>>(inDataChunkPos, inValueVectorPos,
-                (AdjLists*)lists, startLayer, endLayer, prevOperator->clone(), context, id);
-        cloneOp->memMan = this->memMan;
-        return cloneOp;
-    }
+    unique_ptr<PhysicalOperator> clone() override;
 
 private:
     bool computeFrontiers();

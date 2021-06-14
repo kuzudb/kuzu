@@ -31,6 +31,21 @@ const string PhysicalOperatorTypeNames[] = {"SCAN", "FILTER", "FLATTEN", "READ_L
     "SCAN_ATTRIBUTE", "PROJECTION", "FRONTIER_EXTEND", "HASH_JOIN_BUILD", "HASH_JOIN_PROBE",
     "RESULT_COLLECTOR", "LOAD_CSV", "CREATE_NODE", "UPDATE_NODE", "DELETE_NODE"};
 
+struct OperatorMetrics {
+
+public:
+    OperatorMetrics(TimeMetric& executionTime, NumericMetric& numOutputTuple,
+        unique_ptr<BufferManagerMetrics> bufferManagerMetrics)
+        : executionTime{executionTime}, numOutputTuple{numOutputTuple}, bufferManagerMetrics{move(
+                                                                            bufferManagerMetrics)} {
+    }
+
+public:
+    TimeMetric& executionTime;
+    NumericMetric& numOutputTuple;
+    unique_ptr<BufferManagerMetrics> bufferManagerMetrics;
+};
+
 class PhysicalOperator {
 
 public:
@@ -54,14 +69,25 @@ public:
 
     virtual nlohmann::json toJson(Profiler& profiler);
 
+protected:
+    string getTimeMetricKey() { return "time-" + to_string(id); }
+    string getNumTupleMetricKey() { return "numTuple-" + to_string(id); }
+    string getNumBufferHitMetricKey() { return "numBufferHit-" + to_string(id); }
+    string getNumBufferMissMetricKey() { return "numBufferMiss-" + to_string(id); }
+    string getNumIOMetricKey() { return "numIO-" + to_string(id); }
+
+    void registerProfilingMetrics();
+
+    void flushTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler);
+    void flushBufferManagerMetrics(nlohmann::json& json, Profiler& profiler);
+
 public:
     unique_ptr<PhysicalOperator> prevOperator;
     PhysicalOperatorType operatorType;
     bool isOutDataChunkFiltered;
     ExecutionContext& context;
     uint32_t id;
-    TimeMetric* executionTime;
-    NumericMetric* numOutputTuple;
+    unique_ptr<OperatorMetrics> metrics;
 
 protected:
     shared_ptr<ResultSet> resultSet;

@@ -45,22 +45,22 @@ FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::FrontierExtend(uint64_t inDataChunkPo
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     if (currOutputPos.hasMoreTuplesToProduce) {
         produceOutputTuples();
-        executionTime->stop();
+        metrics->executionTime.stop();
         return;
     }
     do {
         prevOperator->getNextTuples();
         if (inNodeIDVector->state->size == 0) {
-            executionTime->stop();
+            metrics->executionTime.stop();
             return;
         }
     } while (computeFrontiers());
     currOutputPos.reset(startLayer - 1);
     produceOutputTuples();
-    executionTime->stop();
+    metrics->executionTime.stop();
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
@@ -100,8 +100,11 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::extendToThreadLocalFrontiers(uin
                     auto slot = &mainBlock[slotToExtendFrom];
                     while (slot) {
                         do {
+                            // Warning: we use non-thread-safe metric inside openmp parallelization
+                            // metrics won't be exactly but hopefully good enough.
                             lists->readValues(slot->nodeOffset, vectors[threadId],
-                                vectors[threadId]->state->size, handles[threadId], MAX_TO_READ);
+                                vectors[threadId]->state->size, handles[threadId], MAX_TO_READ,
+                                *metrics->bufferManagerMetrics);
                             threadLocalFrontierPerLayer[layer][threadId]->append(
                                 *(NodeIDVector*)(vectors[threadId].get()), slot->multiplicity);
                         } while (handles[threadId]->hasMoreToRead());
@@ -189,7 +192,7 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
         delete frontier;
         frontier = nullptr;
     }
-    numOutputTuple->increase(outDataChunk->state->size);
+    metrics->numOutputTuple.increase(outDataChunk->state->size);
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
@@ -205,7 +208,8 @@ FrontierSet* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::createInitialFrontierSet
     frontier->setMemoryManager(memMan);
     frontier->initHashTable(numSlots);
     do {
-        lists->readValues(nodeOffset, vectors[0], vectors[0]->state->size, handles[0], MAX_TO_READ);
+        lists->readValues(nodeOffset, vectors[0], vectors[0]->state->size, handles[0], MAX_TO_READ,
+            *metrics->bufferManagerMetrics);
         frontier->insert(*vectors[0]);
     } while (handles[0]->hasMoreToRead());
     lists->reclaim(handles[0]);
@@ -237,6 +241,15 @@ FrontierBag* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::createFrontierBag() {
     frontierBag->setMemoryManager(memMan);
     frontierBag->initHashTable();
     return frontierBag;
+}
+
+template<bool IS_OUT_DATACHUNK_FILTERED>
+unique_ptr<PhysicalOperator> FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::clone() {
+    auto cloneOp =
+        make_unique<FrontierExtend<IS_OUT_DATACHUNK_FILTERED>>(inDataChunkPos, inValueVectorPos,
+            (AdjLists*)lists, startLayer, endLayer, prevOperator->clone(), context, id);
+    cloneOp->memMan = this->memMan;
+    return cloneOp;
 }
 
 static uint64_t getNextPowerOfTwo(uint64_t value) {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "src/common/include/timer.h"
 
 using namespace std;
@@ -7,6 +9,9 @@ using namespace std;
 namespace graphflow {
 namespace common {
 
+/**
+ * Note that all metrics are not thread safe
+ */
 class Metric {
 
 public:
@@ -36,6 +41,8 @@ public:
     explicit NumericMetric(bool enable);
 
     void increase(uint64_t value);
+
+    void incrementByOne();
 
 public:
     uint64_t accumulatedValue;

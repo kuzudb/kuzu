@@ -41,6 +41,9 @@ public:
         auto result = insertionHashIndex.insert(keys, values);
         insertionHashIndex.flush();
         spdlog::drop("buffer_manager");
+        dummyMetric = make_unique<NumericMetric>(false);
+        bufferManagerMetrics =
+            make_unique<BufferManagerMetrics>(*dummyMetric, *dummyMetric, *dummyMetric);
     }
 
     void TearDown() override {
@@ -50,6 +53,10 @@ public:
         }
         spdlog::drop("storage");
     }
+
+public:
+    unique_ptr<NumericMetric> dummyMetric;
+    unique_ptr<BufferManagerMetrics> bufferManagerMetrics;
 };
 
 TEST_F(HashIndexTest, HashIndexInsertExists) {
@@ -93,7 +100,7 @@ TEST_F(HashIndexTest, HashIndexSmallLookup) {
     for (auto i = 0; i < numEntries; i++) {
         keysData[i] = i;
     }
-    lookupHashIndex.lookup(keys, result);
+    lookupHashIndex.lookup(keys, result, *bufferManagerMetrics);
     auto resultData = (uint64_t*)result.values;
     for (auto i = 0; i < numEntries; i++) {
         ASSERT_EQ(resultData[i], keysData[i] * 2);
@@ -128,7 +135,8 @@ TEST_F(HashIndexTest, HashIndexRandomLookup) {
     }
     ValueVector result(INT64);
     result.state = state;
-    lookupHashIndex.lookup(keys, result);
+    auto dummyMetric = make_unique<NumericMetric>(false);
+    lookupHashIndex.lookup(keys, result, *bufferManagerMetrics);
     auto resultData = (uint64_t*)result.values;
     for (auto i = 0; i < numEntries; i++) {
         ASSERT_EQ(resultData[i], keysData[i] * 2);

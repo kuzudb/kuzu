@@ -29,7 +29,7 @@ ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::ScanNodeID(shared_ptr<MorselsDesc>& morse
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     if (prevOperator) {
         prevOperator->getNextTuples();
     }
@@ -51,8 +51,8 @@ void ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
             outDataChunk->state->selectedValuesPos[i] = i;
         }
     }
-    executionTime->stop();
-    numOutputTuple->increase(outDataChunk->state->size);
+    metrics->executionTime.stop();
+    metrics->numOutputTuple.increase(outDataChunk->state->size);
 }
 
 template class ScanNodeID<true>;

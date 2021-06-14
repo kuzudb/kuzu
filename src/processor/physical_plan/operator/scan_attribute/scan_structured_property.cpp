@@ -14,10 +14,10 @@ ScanStructuredProperty::ScanStructuredProperty(uint64_t dataChunkPos, uint64_t v
 }
 
 void ScanStructuredProperty::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     ScanColumn::getNextTuples();
     outValueVector->fillNullMask();
-    executionTime->stop();
+    metrics->executionTime.stop();
 }
 
 } // namespace processor

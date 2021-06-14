@@ -19,13 +19,14 @@ ScanUnstructuredProperty::ScanUnstructuredProperty(uint64_t dataChunkPos, uint64
 }
 
 void ScanUnstructuredProperty::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     prevOperator->getNextTuples();
     if (inDataChunk->state->size > 0) {
         lists->reclaim(handle);
-        lists->readValues(inNodeIDVector, propertyKey, outValueVector, handle);
+        lists->readValues(
+            inNodeIDVector, propertyKey, outValueVector, handle, *metrics->bufferManagerMetrics);
     }
-    executionTime->stop();
+    metrics->executionTime.stop();
 }
 
 } // namespace processor
