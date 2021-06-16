@@ -7,7 +7,7 @@ void ScanColumn::getNextTuples() {
     prevOperator->getNextTuples();
     if (inDataChunk->state->size > 0) {
         column->reclaim(handle);
-        column->readValues(inNodeIDVector, outValueVector, handle);
+        column->readValues(inNodeIDVector, outValueVector, handle, *metrics->bufferManagerMetrics);
     }
 }
 

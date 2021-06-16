@@ -276,7 +276,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::updateAppendedUnFlatOutResultSet(
 // outKeyDataChunk.currPos.
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     if (!buildSideVectorPtrs.empty() &&
         outKeyDataChunk->state->currPos < (int64_t)(outKeyDataChunk->state->size - 1)) {
         outKeyDataChunk->state->currPos += 1;
@@ -287,8 +287,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
                 resultSet->dataChunks[i]->state->initializeSelector();
             }
         }
-        executionTime->stop();
-        numOutputTuple->increase(resultSet->getNumTuples());
+        metrics->executionTime.stop();
+        metrics->numOutputTuple.increase(resultSet->getNumTuples());
         return;
     }
     getNextBatchOfMatchedTuples();
@@ -306,8 +306,8 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
             resultSet->dataChunks[i]->state->initializeSelector();
         }
     }
-    executionTime->stop();
-    numOutputTuple->increase(resultSet->getNumTuples());
+    metrics->executionTime.stop();
+    metrics->numOutputTuple.increase(resultSet->getNumTuples());
 }
 
 template class HashJoinProbe<true>;

@@ -5,8 +5,10 @@
 
 #include "nlohmann/json.hpp"
 
+#include "src/common/include/metric.h"
 #include "src/storage/include/file_handle.h"
 
+using namespace graphflow::common;
 using namespace std;
 
 namespace spdlog {
@@ -17,6 +19,19 @@ namespace graphflow {
 namespace storage {
 
 class BufferManager;
+
+struct BufferManagerMetrics {
+
+public:
+    BufferManagerMetrics(
+        NumericMetric& numBufferHit, NumericMetric& numBufferMiss, NumericMetric& numIO)
+        : numBufferHit{numBufferHit}, numBufferMiss{numBufferMiss}, numIO{numIO} {}
+
+public:
+    NumericMetric& numBufferHit;
+    NumericMetric& numBufferMiss;
+    NumericMetric& numIO;
+};
 
 // A frame is a unit of buffer space having a fixed size of 4KB, where a single file page is
 // read from the disk. Frame also stores other metadata to locate and maintain this buffer in the
@@ -54,9 +69,9 @@ public:
     ~BufferManager();
 
     // The function assumes that the requested page is already pinned.
-    const uint8_t* get(FileHandle& fileHandle, uint32_t pageIdx);
+    const uint8_t* get(FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
 
-    const uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx);
+    const uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
 
     // The function assumes that the requested page is already pinned.
     void unpin(FileHandle& fileHandle, uint32_t pageIdx);
@@ -64,15 +79,18 @@ public:
     unique_ptr<nlohmann::json> debugInfo();
 
 private:
-    uint32_t claimAFrame(FileHandle& fileHandle, uint32_t pageIdx);
+    uint32_t claimAFrame(FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
 
-    bool fillEmptyFrame(uint32_t frameIdx, FileHandle& fileHandle, uint32_t pageIdx);
+    bool fillEmptyFrame(
+        uint32_t frameIdx, FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
 
-    bool tryEvict(uint32_t frameIdx, FileHandle& fileHandle, uint32_t pageIdx);
+    bool tryEvict(
+        uint32_t frameIdx, FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
 
     void moveClockHand(uint64_t newClockHand);
 
-    void readNewPageIntoFrame(Frame& frame, FileHandle& fileHandle, uint32_t pageIdx);
+    void readNewPageIntoFrame(
+        Frame& frame, FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
 
     inline bool isAFrame(uint64_t pageIdx) { return UINT64_MAX != pageIdx; }
 

@@ -15,6 +15,9 @@ public:
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
 protected:
+    nlohmann::json toJson(Profiler& profiler) override;
+
+protected:
     uint64_t dataChunkPos;
     uint64_t valueVectorPos;
     shared_ptr<DataChunk> inDataChunk;

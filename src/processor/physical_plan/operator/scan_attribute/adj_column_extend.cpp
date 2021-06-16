@@ -14,7 +14,7 @@ AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos,
 }
 
 void AdjColumnExtend::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     bool hasAtLeastOneNonNullValue;
     do {
         inDataChunk->state->size = prevInNumSelectedValues;
@@ -23,8 +23,8 @@ void AdjColumnExtend::getNextTuples() {
         hasAtLeastOneNonNullValue =
             static_pointer_cast<NodeIDVector>(outValueVector)->discardNulls();
     } while (inDataChunk->state->size > 0 && !hasAtLeastOneNonNullValue);
-    executionTime->stop();
-    numOutputTuple->increase(inDataChunk->state->size);
+    metrics->executionTime.stop();
+    metrics->numOutputTuple.increase(inDataChunk->state->size);
 }
 
 } // namespace processor

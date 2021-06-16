@@ -19,7 +19,8 @@ public:
     virtual ~BaseColumn() = default;
 
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle);
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
+        BufferManagerMetrics& metrics);
 
 protected:
     BaseColumn(const string& fname, const DataType& dataType, const size_t& elementSize,
@@ -27,7 +28,8 @@ protected:
         : DataStructure{fname, dataType, elementSize, bufferManager} {};
 
     void readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle);
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
+        BufferManagerMetrics& metrics);
 };
 
 template<DataType D>
@@ -47,11 +49,12 @@ public:
           overflowPagesFileHandle{path + ".ovf", O_RDWR} {};
 
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<DataStructureHandle>& handle) override;
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
+        BufferManagerMetrics& metrics) override;
 
 private:
-    void readStringsFromOverflowPages(const shared_ptr<ValueVector>& valueVector);
+    void readStringsFromOverflowPages(
+        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
 
 private:
     FileHandle overflowPagesFileHandle;

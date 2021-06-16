@@ -32,7 +32,7 @@ Projection::Projection(unique_ptr<vector<unique_ptr<ExpressionEvaluator>>> expre
 }
 
 void Projection::getNextTuples() {
-    executionTime->start();
+    metrics->executionTime.start();
     prevOperator->getNextTuples();
     if (inResultSet->getNumTuples() > 0) {
         resultSet->multiplicity = 0;
@@ -45,7 +45,7 @@ void Projection::getNextTuples() {
         expression->evaluate();
     }
     resultSet->multiplicity = discardedResultSet->getNumTuples();
-    executionTime->stop();
+    metrics->executionTime.stop();
 }
 
 unique_ptr<PhysicalOperator> Projection::clone() {

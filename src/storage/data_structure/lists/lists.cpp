@@ -17,17 +17,19 @@ uint64_t BaseLists::getNumElementsInList(node_offset_t nodeOffset) {
 }
 
 void BaseLists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-    uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t maxElementsToRead) {
+    uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t maxElementsToRead,
+    BufferManagerMetrics& metrics) {
     auto header = headers->getHeader(nodeOffset);
     if (handle->hasMoreToRead() || ListHeaders::isALargeList(header)) {
-        readFromLargeList(valueVector, listLen, handle, header, maxElementsToRead);
+        readFromLargeList(valueVector, listLen, handle, header, maxElementsToRead, metrics);
     } else {
-        readSmallList(nodeOffset, valueVector, listLen, handle, header);
+        readSmallList(nodeOffset, valueVector, listLen, handle, header, metrics);
     }
 }
 
 void BaseLists::readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-    uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header) {
+    uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header,
+    BufferManagerMetrics& metrics) {
     if (handle->getIsAdjListsHandle()) {
         listLen = ListHeaders::getSmallListLen(header);
     }
@@ -36,16 +38,17 @@ void BaseLists::readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVe
     uint32_t chunkIdx = nodeOffset / LISTS_CHUNK_SIZE;
     if (pageCursor.offset + sizeLeftToCopy > PAGE_SIZE) {
         readBySequentialCopy(valueVector, handle, sizeLeftToCopy, pageCursor,
-            metadata.getPageMapperForChunkIdx(chunkIdx));
+            metadata.getPageMapperForChunkIdx(chunkIdx), metrics);
     } else {
         // map logical pageIdx to physical pageIdx
         pageCursor.idx = metadata.getPageIdxFromAChunkPageList(chunkIdx, pageCursor.idx);
-        readBySettingFrame(valueVector, handle, pageCursor);
+        readBySettingFrame(valueVector, handle, pageCursor, metrics);
     }
 }
 
 void BaseLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-    const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead) {
+    const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead,
+    BufferManagerMetrics& metrics) {
     auto largeListIdx = ListHeaders::getLargeListIdx(header);
     auto listSyncState = handle->getListSyncState();
     uint32_t sizeLeftToCopy;
@@ -76,30 +79,30 @@ void BaseLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector, ui
     }
     if (pageCursor.offset + sizeLeftToCopy > PAGE_SIZE) {
         readBySequentialCopy(valueVector, handle, sizeLeftToCopy, pageCursor,
-            metadata.getPageMapperForLargeListIdx(largeListIdx));
+            metadata.getPageMapperForLargeListIdx(largeListIdx), metrics);
     } else {
         // map logical pageIdx to physical pageIdx
         pageCursor.idx = metadata.getPageIdxFromALargeListPageList(largeListIdx, pageCursor.idx);
-        readBySettingFrame(valueVector, handle, pageCursor);
+        readBySettingFrame(valueVector, handle, pageCursor, metrics);
     }
 }
 
 void Lists<UNSTRUCTURED>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     uint32_t propertyKeyIdxToRead, const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<DataStructureHandle>& handle) {
+    const unique_ptr<DataStructureHandle>& handle, BufferManagerMetrics& metrics) {
     valueVector->reset();
     node_offset_t nodeOffset;
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getCurrSelectedValuesPos();
         nodeOffset = nodeIDVector->readNodeOffset(pos);
         readUnstrPropertyListOfNode(nodeOffset, propertyKeyIdxToRead, valueVector, pos, handle,
-            headers->getHeader(nodeOffset));
+            headers->getHeader(nodeOffset), metrics);
     } else {
         for (auto i = 0ul; i < valueVector->state->size; i++) {
             auto pos = valueVector->state->selectedValuesPos[i];
             nodeOffset = nodeIDVector->readNodeOffset(pos);
             readUnstrPropertyListOfNode(nodeOffset, propertyKeyIdxToRead, valueVector, pos, handle,
-                headers->getHeader(nodeOffset));
+                headers->getHeader(nodeOffset), metrics);
         }
     }
     reclaim(handle);
@@ -107,7 +110,7 @@ void Lists<UNSTRUCTURED>::readValues(const shared_ptr<NodeIDVector>& nodeIDVecto
 
 void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(node_offset_t nodeOffset,
     uint32_t propertyKeyIdxToRead, const shared_ptr<ValueVector>& valueVector, uint64_t pos,
-    const unique_ptr<DataStructureHandle>& handle, uint32_t header) {
+    const unique_ptr<DataStructureHandle>& handle, uint32_t header, BufferManagerMetrics& metrics) {
     PageCursor pageCursor;
     uint64_t listLen;
     unique_ptr<LogicalToPhysicalPageIdxMapper> mapper;
@@ -127,23 +130,23 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(node_offset_t nodeOffset,
         auto physicalPageIdx = mapper->getPageIdx(pageCursor.idx);
         if (handle->getPageIdx() != physicalPageIdx) {
             reclaim(handle);
-            bufferManager.pin(fileHandle, physicalPageIdx);
+            bufferManager.pin(fileHandle, physicalPageIdx, metrics);
             handle->setPageIdx(physicalPageIdx);
         }
         const uint32_t* propertyKeyIdxPtr;
         DataType propertyDataType;
         readUnstrPropertyKeyIdxAndDatatype(propertyKeyDataTypeCache.get(), physicalPageIdx,
-            propertyKeyIdxPtr, propertyDataType, handle, pageCursor, listLen, *mapper);
+            propertyKeyIdxPtr, propertyDataType, handle, pageCursor, listLen, *mapper, metrics);
         if (propertyKeyIdxToRead == *propertyKeyIdxPtr) {
             readOrSkipUnstrPropertyValue(physicalPageIdx, propertyDataType, handle, pageCursor,
-                listLen, *mapper, valueVector, pos, true /*to read*/);
+                listLen, *mapper, valueVector, pos, true /*to read*/, metrics);
             valueVector->nullMask[pos] = false;
             // found the property, exiting.
             return;
         }
         // property not found, skipping the current property value.
         readOrSkipUnstrPropertyValue(physicalPageIdx, propertyDataType, handle, pageCursor, listLen,
-            *mapper, valueVector, pos, false /*to read*/);
+            *mapper, valueVector, pos, false /*to read*/, metrics);
     }
     valueVector->nullMask[pos] = true;
 }
@@ -151,8 +154,8 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(node_offset_t nodeOffset,
 void Lists<UNSTRUCTURED>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
     uint64_t& physicalPageIdx, const uint32_t*& propertyKeyIdxPtr, DataType& propertyDataType,
     const unique_ptr<DataStructureHandle>& handle, PageCursor& pageCursor, uint64_t& listLen,
-    LogicalToPhysicalPageIdxMapper& mapper) {
-    auto frame = bufferManager.get(fileHandle, physicalPageIdx);
+    LogicalToPhysicalPageIdxMapper& mapper, BufferManagerMetrics& metrics) {
+    auto frame = bufferManager.get(fileHandle, physicalPageIdx, metrics);
     const uint8_t* readFrom;
     if (pageCursor.offset + UNSTR_PROP_HEADER_LEN < PAGE_SIZE) {
         readFrom = frame + pageCursor.offset;
@@ -162,7 +165,7 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKe
         memcpy(propertyKeyDataTypeCache, frame + pageCursor.offset, bytesInCurrentFrame);
         reclaim(handle);
         physicalPageIdx = mapper.getPageIdx(++pageCursor.idx);
-        frame = bufferManager.pin(fileHandle, physicalPageIdx);
+        frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
         handle->setPageIdx(physicalPageIdx);
         memcpy(propertyKeyDataTypeCache + bytesInCurrentFrame, frame,
             UNSTR_PROP_HEADER_LEN - bytesInCurrentFrame);
@@ -177,8 +180,9 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKe
 void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx,
     DataType& propertyDataType, const unique_ptr<DataStructureHandle>& handle,
     PageCursor& pageCursor, uint64_t& listLen, LogicalToPhysicalPageIdxMapper& mapper,
-    const shared_ptr<ValueVector>& valueVector, uint64_t pos, bool toRead) {
-    auto frame = bufferManager.get(fileHandle, physicalPageIdx);
+    const shared_ptr<ValueVector>& valueVector, uint64_t pos, bool toRead,
+    BufferManagerMetrics& metrics) {
+    auto frame = bufferManager.get(fileHandle, physicalPageIdx, metrics);
     auto dataTypeSize = getDataTypeSize(propertyDataType);
     auto values = (Value*)valueVector->values;
     if (pageCursor.offset + dataTypeSize < PAGE_SIZE) {
@@ -193,7 +197,7 @@ void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx
         }
         reclaim(handle);
         physicalPageIdx = mapper.getPageIdx(++pageCursor.idx);
-        frame = bufferManager.pin(fileHandle, physicalPageIdx);
+        frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
         handle->setPageIdx(physicalPageIdx);
         if (toRead) {
             memcpy(&values[pos].primitive + bytesInCurrentFrame, frame,
@@ -203,10 +207,11 @@ void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx
     }
     listLen -= dataTypeSize;
     values[pos].dataType = propertyDataType;
-    readStringsFromOverflowPages(valueVector);
+    readStringsFromOverflowPages(valueVector, metrics);
 }
 
-void Lists<UNSTRUCTURED>::readStringsFromOverflowPages(const shared_ptr<ValueVector>& valueVector) {
+void Lists<UNSTRUCTURED>::readStringsFromOverflowPages(
+    const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
     auto values = valueVector->values;
     PageCursor cursor;
     for (auto i = 0u; i < valueVector->state->size; i++) {
@@ -215,7 +220,7 @@ void Lists<UNSTRUCTURED>::readStringsFromOverflowPages(const shared_ptr<ValueVec
             auto& value = ((Value*)values)[pos].strVal;
             if (value.len > gf_string_t::SHORT_STR_LENGTH) {
                 value.getOverflowPtrInfo(cursor.idx, cursor.offset);
-                auto frame = bufferManager.pin(overflowPagesFileHandle, cursor.idx);
+                auto frame = bufferManager.pin(overflowPagesFileHandle, cursor.idx, metrics);
                 auto copyStr = new char[value.len];
                 memcpy(copyStr, frame + cursor.offset, value.len);
                 value.overflowPtr = reinterpret_cast<uintptr_t>(copyStr);

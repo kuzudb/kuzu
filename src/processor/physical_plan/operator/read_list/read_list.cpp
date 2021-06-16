@@ -17,7 +17,14 @@ void ReadList::readValuesFromList() {
     lists->reclaim(handle);
     auto nodeOffset =
         inNodeIDVector->readNodeOffset(inDataChunk->state->getCurrSelectedValuesPos());
-    lists->readValues(nodeOffset, outValueVector, outDataChunk->state->size, handle, MAX_TO_READ);
+    lists->readValues(nodeOffset, outValueVector, outDataChunk->state->size, handle, MAX_TO_READ,
+        *metrics->bufferManagerMetrics);
+}
+
+nlohmann::json ReadList::toJson(Profiler& profiler) {
+    auto json = PhysicalOperator::toJson(profiler);
+    flushBufferManagerMetrics(json, profiler);
+    return json;
 }
 
 } // namespace processor
