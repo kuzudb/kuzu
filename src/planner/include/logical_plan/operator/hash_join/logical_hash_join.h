@@ -19,7 +19,7 @@ public:
 
     string toString(uint64_t depth = 0) const {
         string result = LogicalOperatorTypeNames[getLogicalOperatorType()] + "[" +
-                        getOperatorInformation() + "]";
+                        getExpressionsForPrinting() + "]";
         result += "\nBUILD SIDE: \n";
         result += buildSidePrevOperator->toString(depth + 1);
         result += "\nPROBE SIDE: \n";
@@ -27,7 +27,7 @@ public:
         return result;
     }
 
-    string getOperatorInformation() const override { return joinNodeID; }
+    string getExpressionsForPrinting() const override { return joinNodeID; }
 
 public:
     const string joinNodeID;

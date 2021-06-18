@@ -19,7 +19,7 @@ public:
 
     uint64_t sumAllNumericMetricsWithKey(const string& key);
 
-    void reset();
+    void resetMetrics();
 
 private:
     void addMetric(const string& key, unique_ptr<Metric> metric);

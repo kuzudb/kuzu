@@ -20,7 +20,7 @@ public:
         return LogicalOperatorType::LOGICAL_SCAN_REL_PROPERTY;
     }
 
-    string getOperatorInformation() const override { return propertyVariableName; }
+    string getExpressionsForPrinting() const override { return propertyVariableName; }
 
 public:
     string boundNodeID;

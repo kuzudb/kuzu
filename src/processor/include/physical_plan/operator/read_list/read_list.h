@@ -15,10 +15,10 @@ public:
 
     ~ReadList() { lists->reclaim(handle); }
 
+    void printMetricsToJson(nlohmann::json& json, Profiler& profiler) override;
+
 protected:
     void readValuesFromList();
-
-    nlohmann::json toJson(Profiler& profiler) override;
 
 protected:
     static constexpr uint32_t MAX_TO_READ = 512;

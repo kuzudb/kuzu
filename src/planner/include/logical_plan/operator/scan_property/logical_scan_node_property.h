@@ -18,7 +18,7 @@ public:
         return LogicalOperatorType::LOGICAL_SCAN_NODE_PROPERTY;
     }
 
-    string getOperatorInformation() const override { return propertyVariableName; }
+    string getExpressionsForPrinting() const override { return propertyVariableName; }
 
 public:
     const string nodeID;

@@ -60,12 +60,6 @@ public:
         return cloneOp;
     }
 
-    nlohmann::json toJson(Profiler& profiler) override {
-        auto json = PhysicalOperator::toJson(profiler);
-        json["buildSide"] = buildSidePrevOp->toJson(profiler);
-        return json;
-    }
-
 public:
     unique_ptr<PhysicalOperator> buildSidePrevOp;
     shared_ptr<HashJoinSharedState> sharedState;

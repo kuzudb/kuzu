@@ -47,7 +47,7 @@ public:
     virtual string toString(uint64_t depth = 0) const {
         string result = string(depth * 4, ' ');
         result += LogicalOperatorTypeNames[getLogicalOperatorType()] + "[" +
-                  getOperatorInformation() + "]";
+                  getExpressionsForPrinting() + "]";
         if (prevOperator) {
             result += "\n";
             result += prevOperator->toString(depth);
@@ -55,7 +55,7 @@ public:
         return result;
     }
 
-    virtual string getOperatorInformation() const = 0;
+    virtual string getExpressionsForPrinting() const = 0;
 
 public:
     shared_ptr<LogicalOperator> prevOperator;

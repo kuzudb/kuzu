@@ -16,23 +16,28 @@ nlohmann::json Session::executeQuery() {
         return json;
     }
     auto success = true;
-    unique_ptr<QueryResult> result;
     try {
-        auto executionResult = system.executeQuery(*sessionContext);
         json["result"] = {};
-        json["result"]["numTuples"] = executionResult->queryResult->numTuples;
-        if (sessionContext->profiler->enabled) {
-            json["profile"] = {};
-            json["profile"]["binding"] =
-                sessionContext->profiler->sumAllTimeMetricsWithKey("binding");
-            json["profile"]["planning"] =
-                sessionContext->profiler->sumAllTimeMetricsWithKey("planning");
-            json["profile"]["mapping"] =
-                sessionContext->profiler->sumAllTimeMetricsWithKey("mapping");
-            json["profile"]["executing"] =
-                sessionContext->profiler->sumAllTimeMetricsWithKey("executing");
-            json["profile"]["plan"] =
-                executionResult->physicalPlan->lastOperator->toJson(*sessionContext->profiler);
+        auto planAndContext = system.prepareQuery(*sessionContext);
+        auto plan = move(planAndContext.first);
+        if (sessionContext->enable_explain) {
+            json["result"]["plan"] =
+                sessionContext->planPrinter->printPlanToJson(plan.get(), *sessionContext->profiler);
+        } else {
+            auto queryResult = system.executePlan(plan.get(), *sessionContext);
+            json["result"]["numTuples"] = queryResult->numTuples;
+            if (sessionContext->profiler->enabled) {
+                json["result"][BINDING_STAGE] =
+                    sessionContext->profiler->sumAllTimeMetricsWithKey(BINDING_STAGE);
+                json["result"][PLANNING_STAGE] =
+                    sessionContext->profiler->sumAllTimeMetricsWithKey(PLANNING_STAGE);
+                json["result"][MAPPING_STAGE] =
+                    sessionContext->profiler->sumAllTimeMetricsWithKey(MAPPING_STAGE);
+                json["result"][EXECUTING_STAGE] =
+                    sessionContext->profiler->sumAllTimeMetricsWithKey(EXECUTING_STAGE);
+                json["result"]["plan"] = sessionContext->planPrinter->printPlanToJson(
+                    plan.get(), *sessionContext->profiler);
+            }
         }
     } catch (exception& e) {
         // query failed to execute

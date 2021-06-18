@@ -14,8 +14,7 @@ public:
     ScanAttribute(uint64_t dataChunkPos, uint64_t valueVectorPos,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
-protected:
-    nlohmann::json toJson(Profiler& profiler) override;
+    void printMetricsToJson(nlohmann::json& json, Profiler& profiler) override;
 
 protected:
     uint64_t dataChunkPos;

@@ -12,10 +12,9 @@ ScanAttribute::ScanAttribute(uint64_t dataChunkPos, uint64_t valueVectorPos,
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
 }
 
-nlohmann::json ScanAttribute::toJson(Profiler& profiler) {
-    auto json = PhysicalOperator::toJson(profiler);
-    flushBufferManagerMetrics(json, profiler);
-    return json;
+void ScanAttribute::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
+    PhysicalOperator::printMetricsToJson(json, profiler);
+    printBufferManagerMetrics(json, profiler);
 }
 
 } // namespace processor

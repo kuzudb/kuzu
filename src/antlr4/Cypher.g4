@@ -16,7 +16,13 @@ oC_Cypher
     : SP ? oC_AnyCypherOption? SP? oC_Statement ( SP? ';' )? SP? EOF ;
 
 oC_AnyCypherOption
-    : oC_Profile ;
+    : oC_Explain
+        | oC_Profile ;
+
+oC_Explain
+    : EXPLAIN ;
+
+EXPLAIN : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'P' | 'p' ) ( 'L' | 'l' ) ( 'A' | 'a' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ;
 
 oC_Profile
     : PROFILE ;

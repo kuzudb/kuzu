@@ -67,7 +67,7 @@ public:
 
     virtual unique_ptr<PhysicalOperator> clone() = 0;
 
-    virtual nlohmann::json toJson(Profiler& profiler);
+    virtual void printMetricsToJson(nlohmann::json& json, Profiler& profiler);
 
 protected:
     string getTimeMetricKey() { return "time-" + to_string(id); }
@@ -78,8 +78,8 @@ protected:
 
     void registerProfilingMetrics();
 
-    void flushTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler);
-    void flushBufferManagerMetrics(nlohmann::json& json, Profiler& profiler);
+    void printTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler);
+    void printBufferManagerMetrics(nlohmann::json& json, Profiler& profiler);
 
 public:
     unique_ptr<PhysicalOperator> prevOperator;

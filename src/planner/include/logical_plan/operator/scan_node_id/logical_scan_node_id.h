@@ -17,7 +17,7 @@ public:
         return LogicalOperatorType::LOGICAL_SCAN_NODE_ID;
     }
 
-    string getOperatorInformation() const override { return nodeID; }
+    string getExpressionsForPrinting() const override { return nodeID; }
 
 public:
     const string nodeID;

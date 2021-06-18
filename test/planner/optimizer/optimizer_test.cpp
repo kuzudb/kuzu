@@ -31,7 +31,7 @@ TEST_F(OptimizerTest, OneHopSingleFilter) {
 
     auto query = "MATCH (a:person)-[:knows]->(b:person) WHERE a.age = 1 RETURN COUNT(*)";
     auto plan = OptimizerTest::getBestPlan(query, graph);
-    auto& op1 = plan->getLastOperator();
+    auto& op1 = *plan->lastOperator;
     ASSERT_EQ(LOGICAL_EXTEND, op1.getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalExtend&)op1).nbrNodeID, "_b." + INTERNAL_ID));
     auto& op2 = *op1.prevOperator->prevOperator->prevOperator;
@@ -46,7 +46,7 @@ TEST_F(OptimizerTest, OneHopMultiFilters) {
     auto query = "MATCH (a:person)-[:knows]->(b:person) WHERE a.age > 10 AND a.age < 20 AND b.age "
                  "= 45 RETURN COUNT(*)";
     auto plan = OptimizerTest::getBestPlan(query, graph);
-    auto& op1 = *plan->getLastOperator().prevOperator->prevOperator;
+    auto& op1 = *plan->lastOperator->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_EXTEND, op1.getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalExtend&)op1).nbrNodeID, "_b." + INTERNAL_ID));
     auto& op2 = *op1.prevOperator->prevOperator->prevOperator->prevOperator;
@@ -60,7 +60,7 @@ TEST_F(OptimizerTest, TwoHop) {
 
     auto query = "MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(*)";
     auto plan = OptimizerTest::getBestPlan(query, graph);
-    auto& op1 = *plan->getLastOperator().prevOperator->prevOperator;
+    auto& op1 = *plan->lastOperator->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op1.getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op1).nodeID, "_b." + INTERNAL_ID));
 }
@@ -72,9 +72,8 @@ TEST_F(OptimizerTest, TwoHopMultiFilters) {
     auto query = "MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.age = 20 AND "
                  "b.age = 35 RETURN COUNT(*)";
     auto plan = OptimizerTest::getBestPlan(query, graph);
-    auto& op1 =
-        *plan->getLastOperator()
-             .prevOperator->prevOperator->prevOperator->prevOperator->prevOperator->prevOperator;
+    auto& op1 = *plan->lastOperator->prevOperator->prevOperator->prevOperator->prevOperator
+                     ->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op1.getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op1).nodeID, "_b." + INTERNAL_ID));
 }

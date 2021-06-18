@@ -13,16 +13,6 @@ PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> prevOperator,
     registerProfilingMetrics();
 }
 
-nlohmann::json PhysicalOperator::toJson(Profiler& profiler) {
-    auto json = nlohmann::json();
-    json["physicalName"] = PhysicalOperatorTypeNames[operatorType];
-    flushTimeAndNumOutputMetrics(json, profiler);
-    if (prevOperator) {
-        json["child"] = prevOperator->toJson(profiler);
-    }
-    return json;
-}
-
 void PhysicalOperator::registerProfilingMetrics() {
     auto executionTime = context.profiler.registerTimeMetric(getTimeMetricKey());
     auto numOutputTuple = context.profiler.registerNumericMetric(getNumTupleMetricKey());
@@ -35,7 +25,11 @@ void PhysicalOperator::registerProfilingMetrics() {
         make_unique<OperatorMetrics>(*executionTime, *numOutputTuple, move(bufferManageMetrics));
 }
 
-void PhysicalOperator::flushTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler) {
+void PhysicalOperator::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
+    printTimeAndNumOutputMetrics(json, profiler);
+}
+
+void PhysicalOperator::printTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler) {
     double prevExecutionTime = 0.0;
     if (prevOperator) {
         prevExecutionTime = profiler.sumAllTimeMetricsWithKey(prevOperator->getTimeMetricKey());
@@ -47,7 +41,7 @@ void PhysicalOperator::flushTimeAndNumOutputMetrics(nlohmann::json& json, Profil
     json["numOutputTuples"] = profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
 }
 
-void PhysicalOperator::flushBufferManagerMetrics(nlohmann::json& json, Profiler& profiler) {
+void PhysicalOperator::printBufferManagerMetrics(nlohmann::json& json, Profiler& profiler) {
     auto bufferHit = profiler.sumAllNumericMetricsWithKey(getNumBufferHitMetricKey());
     auto bufferMiss = profiler.sumAllNumericMetricsWithKey(getNumBufferMissMetricKey());
     json["numBufferHit"] = bufferHit;

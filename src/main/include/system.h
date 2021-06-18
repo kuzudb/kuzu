@@ -14,24 +14,24 @@ using namespace graphflow::planner;
 namespace graphflow {
 namespace main {
 
-struct ExecutionResult {
-public:
-    ExecutionResult(unique_ptr<PhysicalPlan> physicalPlan, unique_ptr<QueryResult> queryResult)
-        : physicalPlan{move(physicalPlan)}, queryResult{move(queryResult)} {}
-    unique_ptr<PhysicalPlan> physicalPlan;
-    unique_ptr<QueryResult> queryResult;
-};
+const string BINDING_STAGE = "binding";
+const string PLANNING_STAGE = "planning";
+const string MAPPING_STAGE = "mapping";
+const string EXECUTING_STAGE = "executing";
 
 class System {
 
 public:
     explicit System(const string& path);
 
-    unique_ptr<ExecutionResult> executeQuery(SessionContext& sessionContext) const;
+    pair<unique_ptr<PhysicalPlan>, unique_ptr<ExecutionContext>> prepareQuery(
+        SessionContext& context) const;
+
+    unique_ptr<QueryResult> executePlan(PhysicalPlan* plan, SessionContext& context) const;
 
     // currently used in testing framework
     vector<unique_ptr<LogicalPlan>> enumerateAllPlans(SessionContext& sessionContext) const;
-    unique_ptr<ExecutionResult> executePlan(
+    unique_ptr<QueryResult> executePlan(
         unique_ptr<LogicalPlan> logicalPlan, SessionContext& sessionContext) const;
 
     unique_ptr<nlohmann::json> debugInfo() const;

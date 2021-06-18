@@ -5,10 +5,6 @@
 namespace graphflow {
 namespace planner {
 
-const LogicalOperator& LogicalPlan::getLastOperator() {
-    return *lastOperator;
-}
-
 void LogicalPlan::appendOperator(shared_ptr<LogicalOperator> op) {
     lastOperator = move(op);
 }
