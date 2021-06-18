@@ -2,12 +2,18 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
     name = "session_context",
+    srcs = [
+        "plan_printer.cpp",
+    ],
     hdrs = [
         "include/session_context.h",
+        "include/plan_printer.h"
     ],
     deps = [
         "//src/transaction:transaction",
-        "//src/common:profiler"
+        "//src/common:profiler",
+        "//src/planner:logical_plan",
+        "//src/processor:physical_plan"
     ],
 )
 

@@ -20,7 +20,7 @@ public:
         return LogicalOperatorType::LOGICAL_EXTEND;
     }
 
-    string getOperatorInformation() const override {
+    string getExpressionsForPrinting() const override {
         return boundNodeID + (direction == Direction::FWD ? "->" : "<-") + nbrNodeID;
     }
 

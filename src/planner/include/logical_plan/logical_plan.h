@@ -13,8 +13,6 @@ public:
 
     explicit LogicalPlan(unique_ptr<Schema> schema) : schema{move(schema)}, cost{0} {}
 
-    const LogicalOperator& getLastOperator();
-
     void appendOperator(shared_ptr<LogicalOperator> op);
 
     unique_ptr<LogicalPlan> copy() const;

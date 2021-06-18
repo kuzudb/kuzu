@@ -17,7 +17,7 @@ public:
 
     LogicalOperatorType getLogicalOperatorType() const override { return CRUDType; }
 
-    string getOperatorInformation() const override {
+    string getExpressionsForPrinting() const override {
         return LogicalOperatorTypeNames[CRUDType] + ": " + to_string(nodeLabel);
     }
 

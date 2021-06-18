@@ -8,9 +8,10 @@ namespace parser {
 
 unique_ptr<SingleQuery> Transformer::transform() {
     auto singleQuery = transformQuery(*root.oC_Statement()->oC_Query());
-    // Currently PROFILE is the only cypher option.
     if (root.oC_AnyCypherOption()) {
-        singleQuery->enable_profile = true;
+        auto cypherOption = root.oC_AnyCypherOption();
+        singleQuery->enable_explain = cypherOption->oC_Explain() != nullptr;
+        singleQuery->enable_profile = cypherOption->oC_Profile() != nullptr;
     }
     return singleQuery;
 }

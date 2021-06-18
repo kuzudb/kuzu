@@ -20,7 +20,7 @@ public:
 
     const Expression& getRootExpression() const { return *rootExpr; }
 
-    string getOperatorInformation() const override { return rootExpr->rawExpression; }
+    string getExpressionsForPrinting() const override { return rootExpr->rawExpression; }
 
 public:
     shared_ptr<Expression> rootExpr;

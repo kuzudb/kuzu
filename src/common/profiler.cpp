@@ -37,7 +37,7 @@ uint64_t Profiler::sumAllNumericMetricsWithKey(const string& key) {
     return sum;
 }
 
-void Profiler::reset() {
+void Profiler::resetMetrics() {
     metrics.clear();
 }
 

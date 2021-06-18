@@ -18,7 +18,7 @@ public:
         return LogicalOperatorType::LOGICAL_LOAD_CSV;
     }
 
-    string getOperatorInformation() const override { return path; }
+    string getExpressionsForPrinting() const override { return path; }
 
 public:
     string path;

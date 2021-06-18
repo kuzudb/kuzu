@@ -19,38 +19,44 @@ System::System(const string& path) {
     initialized = true;
 }
 
-unique_ptr<ExecutionResult> System::executeQuery(SessionContext& sessionContext) const {
+pair<unique_ptr<PhysicalPlan>, unique_ptr<ExecutionContext>> System::prepareQuery(
+    SessionContext& context) const {
     if (!initialized) {
         throw invalid_argument("System is not initialized");
     }
-    sessionContext.profiler->reset();
+    context.profiler->resetMetrics();
+    auto parsedQuery = Parser::parseQuery(context.query);
+    context.enable_explain = parsedQuery->enable_explain;
+    context.profiler->enabled = parsedQuery->enable_profile;
 
-    auto parsedQuery = Parser::parseQuery(sessionContext.query);
-    sessionContext.profiler->enabled = parsedQuery->enable_profile;
-
-    auto bindingTimeMetric = sessionContext.profiler->registerTimeMetric("binding");
+    auto bindingTimeMetric = context.profiler->registerTimeMetric(BINDING_STAGE);
     bindingTimeMetric->start();
     auto boundQuery = QueryBinder(graph->getCatalog()).bind(*parsedQuery);
     bindingTimeMetric->stop();
 
-    auto planningTimeMetric = sessionContext.profiler->registerTimeMetric("planning");
+    auto planningTimeMetric = context.profiler->registerTimeMetric(PLANNING_STAGE);
     planningTimeMetric->start();
     auto logicalPlan = Enumerator(*graph, *boundQuery).getBestPlan();
     planningTimeMetric->stop();
 
     auto executionContext =
-        ExecutionContext(*sessionContext.profiler, sessionContext.activeTransaction);
-    auto mappingTimeMetric = sessionContext.profiler->registerTimeMetric("mapping");
+        make_unique<ExecutionContext>(*context.profiler, context.activeTransaction);
+    auto mappingTimeMetric = context.profiler->registerTimeMetric(MAPPING_STAGE);
     mappingTimeMetric->start();
-    auto physicalPlan = PlanMapper::mapToPhysical(move(logicalPlan), *graph, executionContext);
+    auto mapper = PlanMapper(*graph);
+    auto physicalPlan = mapper.mapToPhysical(move(logicalPlan), *executionContext);
     mappingTimeMetric->stop();
 
-    auto executingTimeMetric = sessionContext.profiler->registerTimeMetric("executing");
-    executingTimeMetric->start();
-    auto result = processor->execute(physicalPlan.get(), sessionContext.numThreads);
-    executingTimeMetric->stop();
+    context.planPrinter = make_unique<PlanPrinter>(mapper.physicalIDToLogicalOperatorMap);
+    return make_pair(move(physicalPlan), move(executionContext));
+}
 
-    return make_unique<ExecutionResult>(move(physicalPlan), move(result));
+unique_ptr<QueryResult> System::executePlan(PhysicalPlan* plan, SessionContext& context) const {
+    auto executingTimeMetric = context.profiler->registerTimeMetric(EXECUTING_STAGE);
+    executingTimeMetric->start();
+    auto result = processor->execute(plan, context.numThreads);
+    executingTimeMetric->stop();
+    return result;
 }
 
 vector<unique_ptr<LogicalPlan>> System::enumerateAllPlans(SessionContext& sessionContext) const {
@@ -63,14 +69,13 @@ vector<unique_ptr<LogicalPlan>> System::enumerateAllPlans(SessionContext& sessio
     return logicalPlans;
 }
 
-unique_ptr<ExecutionResult> System::executePlan(
+unique_ptr<QueryResult> System::executePlan(
     unique_ptr<LogicalPlan> logicalPlan, SessionContext& sessionContext) const {
-    sessionContext.profiler->reset();
+    sessionContext.profiler->resetMetrics();
     auto executionContext =
         ExecutionContext(*sessionContext.profiler, sessionContext.activeTransaction);
-    auto physicalPlan = PlanMapper::mapToPhysical(move(logicalPlan), *graph, executionContext);
-    auto result = processor->execute(physicalPlan.get(), sessionContext.numThreads);
-    return make_unique<ExecutionResult>(move(physicalPlan), move(result));
+    auto physicalPlan = PlanMapper(*graph).mapToPhysical(move(logicalPlan), executionContext);
+    return processor->execute(physicalPlan.get(), sessionContext.numThreads);
 }
 
 unique_ptr<nlohmann::json> System::debugInfo() const {

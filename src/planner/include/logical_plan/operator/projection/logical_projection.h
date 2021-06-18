@@ -16,7 +16,7 @@ public:
         return LogicalOperatorType::LOGICAL_PROJECTION;
     }
 
-    string getOperatorInformation() const override {
+    string getExpressionsForPrinting() const override {
         auto result = expressionsToProject[0]->getAliasElseRawExpression();
         for (auto i = 1u; i < expressionsToProject.size(); ++i) {
             result += ", " + expressionsToProject[i]->getAliasElseRawExpression();
