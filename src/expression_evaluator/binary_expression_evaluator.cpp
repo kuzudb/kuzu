@@ -3,14 +3,15 @@
 namespace graphflow {
 namespace evaluator {
 
-BinaryExpressionEvaluator::BinaryExpressionEvaluator(unique_ptr<ExpressionEvaluator> leftExpr,
-    unique_ptr<ExpressionEvaluator> rightExpr, ExpressionType expressionType, DataType dataType) {
+BinaryExpressionEvaluator::BinaryExpressionEvaluator(MemoryManager& memoryManager,
+    unique_ptr<ExpressionEvaluator> leftExpr, unique_ptr<ExpressionEvaluator> rightExpr,
+    ExpressionType expressionType, DataType dataType) {
     childrenExpr.push_back(move(leftExpr));
     childrenExpr.push_back(move(rightExpr));
     this->expressionType = expressionType;
     this->dataType = dataType;
     operation = getBinaryOperation(expressionType);
-    result = createResultValueVector();
+    result = createResultValueVector(memoryManager);
 }
 
 void BinaryExpressionEvaluator::evaluate() {
@@ -19,8 +20,9 @@ void BinaryExpressionEvaluator::evaluate() {
     operation(*childrenExpr[0]->result, *childrenExpr[1]->result, *result);
 }
 
-shared_ptr<ValueVector> BinaryExpressionEvaluator::createResultValueVector() {
-    auto valueVector = make_shared<ValueVector>(dataType);
+shared_ptr<ValueVector> BinaryExpressionEvaluator::createResultValueVector(
+    MemoryManager& memoryManager) {
+    auto valueVector = make_shared<ValueVector>(&memoryManager, dataType);
     auto isLeftResultFlat = childrenExpr[0]->isResultFlat();
     auto isRightResultFlat = childrenExpr[1]->isResultFlat();
     if (isLeftResultFlat && isRightResultFlat) {

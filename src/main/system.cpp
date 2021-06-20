@@ -39,8 +39,8 @@ pair<unique_ptr<PhysicalPlan>, unique_ptr<ExecutionContext>> System::prepareQuer
     auto logicalPlan = Enumerator(*graph, *boundQuery).getBestPlan();
     planningTimeMetric->stop();
 
-    auto executionContext =
-        make_unique<ExecutionContext>(*context.profiler, context.activeTransaction);
+    auto executionContext = make_unique<ExecutionContext>(
+        *context.profiler, context.activeTransaction, processor->memManager.get());
     auto mappingTimeMetric = context.profiler->registerTimeMetric(MAPPING_STAGE);
     mappingTimeMetric->start();
     auto mapper = PlanMapper(*graph);
@@ -72,8 +72,8 @@ vector<unique_ptr<LogicalPlan>> System::enumerateAllPlans(SessionContext& sessio
 unique_ptr<QueryResult> System::executePlan(
     unique_ptr<LogicalPlan> logicalPlan, SessionContext& sessionContext) const {
     sessionContext.profiler->resetMetrics();
-    auto executionContext =
-        ExecutionContext(*sessionContext.profiler, sessionContext.activeTransaction);
+    auto executionContext = ExecutionContext(
+        *sessionContext.profiler, sessionContext.activeTransaction, processor->memManager.get());
     auto physicalPlan = PlanMapper(*graph).mapToPhysical(move(logicalPlan), executionContext);
     return processor->execute(physicalPlan.get(), sessionContext.numThreads);
 }

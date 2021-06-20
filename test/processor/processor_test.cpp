@@ -25,7 +25,8 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     unique_ptr<Graph> graph = make_unique<GraphStub>();
     auto morsel = make_shared<MorselsDesc>(0, 1025013 /*numNodes*/);
     auto profiler = make_unique<Profiler>();
-    auto executionContext = ExecutionContext(*profiler, nullptr);
+    auto memoryManager = make_unique<MemoryManager>();
+    auto executionContext = ExecutionContext(*profiler, nullptr, memoryManager.get());
     auto plan = make_unique<PhysicalPlan>(
         make_unique<ResultCollector>(make_unique<ScanNodeID<true>>(morsel, executionContext, 0),
             RESULT_COLLECTOR, executionContext, 1));

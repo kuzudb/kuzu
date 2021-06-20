@@ -16,8 +16,6 @@ public:
 
     void getNextTuples() override;
 
-    void setMemoryManager(MemoryManager* memMan) { this->memMan = memMan; }
-
     unique_ptr<PhysicalOperator> clone() override;
 
 private:
@@ -38,7 +36,6 @@ private:
     // Each thread uses their vector and handle for uncoordinated extensions.
     vector<shared_ptr<NodeIDVector>> vectors;
     vector<unique_ptr<DataStructureHandle>> handles;
-    MemoryManager* memMan;
 
     struct CurrentOutputPosition {
         bool hasMoreTuplesToProduce;

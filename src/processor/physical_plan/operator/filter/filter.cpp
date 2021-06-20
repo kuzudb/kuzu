@@ -57,7 +57,8 @@ void Filter<IS_AFTER_FLATTEN>::getNextTuples() {
 template<bool IS_AFTER_FLATTEN>
 unique_ptr<PhysicalOperator> Filter<IS_AFTER_FLATTEN>::clone() {
     auto prevOperatorClone = prevOperator->clone();
-    auto rootExprClone = ExpressionMapper::clone(*rootExpr, *prevOperatorClone->getResultSet());
+    auto rootExprClone = ExpressionMapper::clone(
+        *context.memoryManager, *rootExpr, *prevOperatorClone->getResultSet());
     return make_unique<Filter<IS_AFTER_FLATTEN>>(
         move(rootExprClone), dataChunkToSelectPos, move(prevOperatorClone), context, id);
 }

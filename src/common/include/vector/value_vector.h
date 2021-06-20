@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 #include "src/common/include/types.h"
 #include "src/common/include/vector/string_buffer.h"
 #include "src/common/include/vector/vector_state.h"
@@ -12,9 +14,9 @@ namespace common {
 class ValueVector {
 
 public:
-    explicit ValueVector(DataType dataType, bool isSingleValue = false)
-        : ValueVector(
-              isSingleValue ? 1 : DEFAULT_VECTOR_CAPACITY, getDataTypeSize(dataType), dataType) {}
+    ValueVector(MemoryManager* memoryManager, DataType dataType, bool isSingleValue = false)
+        : ValueVector(memoryManager, isSingleValue ? 1 : DEFAULT_VECTOR_CAPACITY,
+              getDataTypeSize(dataType), dataType) {}
 
     virtual ~ValueVector() = default;
 
@@ -38,14 +40,17 @@ public:
     virtual shared_ptr<ValueVector> clone();
 
 protected:
-    ValueVector(uint64_t vectorCapacity, uint64_t numBytesPerValue, DataType dataType)
+    ValueVector(MemoryManager* memoryManager, uint64_t vectorCapacity, uint64_t numBytesPerValue,
+        DataType dataType)
         : vectorCapacity{vectorCapacity},
           bufferValues(make_unique<uint8_t[]>(numBytesPerValue * vectorCapacity)),
-          bufferNullMask(make_unique<bool[]>(vectorCapacity)), dataType{dataType},
-          values{bufferValues.get()}, nullMask{bufferNullMask.get()}, stringBuffer{nullptr} {
+          bufferNullMask(make_unique<bool[]>(vectorCapacity)), memoryManager{memoryManager},
+          dataType{dataType}, values{bufferValues.get()}, nullMask{bufferNullMask.get()},
+          stringBuffer{nullptr} {
         fill_n(nullMask, vectorCapacity, false /* not null */);
         if (dataType == STRING || dataType == UNSTRUCTURED) {
-            stringBuffer = make_unique<StringBuffer>();
+            assert(memoryManager);
+            stringBuffer = make_unique<StringBuffer>(*memoryManager);
         }
     }
 
@@ -53,6 +58,7 @@ protected:
     uint64_t vectorCapacity;
     unique_ptr<uint8_t[]> bufferValues;
     unique_ptr<bool[]> bufferNullMask;
+    MemoryManager* memoryManager;
 
 public:
     DataType dataType;

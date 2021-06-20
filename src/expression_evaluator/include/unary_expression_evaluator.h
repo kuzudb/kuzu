@@ -9,12 +9,12 @@ namespace evaluator {
 class UnaryExpressionEvaluator : public ExpressionEvaluator {
 
 public:
-    UnaryExpressionEvaluator(
-        unique_ptr<ExpressionEvaluator> child, ExpressionType expressionType, DataType dataType);
+    UnaryExpressionEvaluator(MemoryManager& memoryManager, unique_ptr<ExpressionEvaluator> child,
+        ExpressionType expressionType, DataType dataType);
 
     void evaluate() override;
 
-    shared_ptr<ValueVector> createResultValueVector();
+    shared_ptr<ValueVector> createResultValueVector(MemoryManager& memoryManager);
 
 protected:
     function<void(ValueVector&, ValueVector&)> operation;

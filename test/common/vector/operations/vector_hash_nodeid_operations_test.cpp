@@ -17,7 +17,8 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
     dataChunk->append(nodeVector);
     auto nodeData = (uint64_t*)nodeVector->values;
 
-    auto result = make_shared<ValueVector>(INT64);
+    auto memoryManager = make_unique<MemoryManager>();
+    auto result = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->append(result);
     auto resultData = (uint64_t*)result->values;
 
@@ -50,7 +51,8 @@ TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
     nodeVector->setStartOffset(10);
     dataChunk->append(nodeVector);
 
-    auto result = make_shared<ValueVector>(INT64);
+    auto memoryManager = make_unique<MemoryManager>();
+    auto result = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->append(result);
     auto resultData = (uint64_t*)result->values;
 

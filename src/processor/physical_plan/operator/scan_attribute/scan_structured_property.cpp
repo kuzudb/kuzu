@@ -9,7 +9,7 @@ ScanStructuredProperty::ScanStructuredProperty(uint64_t dataChunkPos, uint64_t v
     BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context,
     uint32_t id)
     : ScanColumn{dataChunkPos, valueVectorPos, column, move(prevOperator), context, id} {
-    outValueVector = make_shared<ValueVector>(column->getDataType());
+    outValueVector = make_shared<ValueVector>(context.memoryManager, column->getDataType());
     inDataChunk->append(outValueVector);
 }
 

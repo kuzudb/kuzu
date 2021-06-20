@@ -11,13 +11,13 @@ namespace evaluator {
 class BinaryExpressionEvaluator : public ExpressionEvaluator {
 
 public:
-    BinaryExpressionEvaluator(unique_ptr<ExpressionEvaluator> leftExpr,
-        unique_ptr<ExpressionEvaluator> rightExpr, ExpressionType expressionType,
-        DataType dataType);
+    BinaryExpressionEvaluator(MemoryManager& memoryManager,
+        unique_ptr<ExpressionEvaluator> leftExpr, unique_ptr<ExpressionEvaluator> rightExpr,
+        ExpressionType expressionType, DataType dataType);
 
     void evaluate() override;
 
-    shared_ptr<ValueVector> createResultValueVector();
+    shared_ptr<ValueVector> createResultValueVector(MemoryManager& memoryManager);
 
 private:
     function<void(ValueVector&, ValueVector&, ValueVector&)> operation;

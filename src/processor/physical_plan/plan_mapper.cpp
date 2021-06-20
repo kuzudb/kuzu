@@ -161,8 +161,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
         logicalRootExpr, move(prevOperator), physicalOperatorInfo, context);
     auto dataChunkToSelectPos =
         getDependentUnflatDataChunkPos(logicalRootExpr, physicalOperatorInfo);
-    auto physicalRootExpr = ExpressionMapper::mapToPhysical(
-        logicalRootExpr, physicalOperatorInfo, *prevOperator->getResultSet());
+    auto physicalRootExpr = ExpressionMapper::mapToPhysical(*context.memoryManager, logicalRootExpr,
+        physicalOperatorInfo, *prevOperator->getResultSet());
     if (prevOperator->operatorType == FLATTEN) {
         return make_unique<Filter<true /* isAfterFlatten */>>(move(physicalRootExpr),
             dataChunkToSelectPos, move(prevOperator), context, physicalOperatorID++);
@@ -188,7 +188,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
     for (const auto& logicalRootExpr : logicalProjection.expressionsToProject) {
         prevOperator = appendFlattenOperatorsIfNecessary(
             *logicalRootExpr, move(prevOperator), physicalOperatorInfo, context);
-        expressionEvaluators->push_back(ExpressionMapper::mapToPhysical(
+        expressionEvaluators->push_back(ExpressionMapper::mapToPhysical(*context.memoryManager,
             *logicalRootExpr, physicalOperatorInfo, *prevOperator->getResultSet()));
     }
 

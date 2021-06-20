@@ -52,7 +52,7 @@ void HashIndex::initialize(const string& indexBasePath, uint64_t indexId) {
 // For now, we don't support re-write of keys. Existing keys will not be inserted.
 // Return: true, insertion succeeds. false, insertion failed due to that the key already exists.
 vector<bool> HashIndex::insert(ValueVector& keys, ValueVector& values) {
-    auto hashes = make_shared<ValueVector>(INT64);
+    auto hashes = make_shared<ValueVector>(&memoryManager, INT64);
     hashes->state = keys.state;
     VectorHashOperations::Hash(keys, *hashes);
     auto keyNotExists = notExists(keys, *hashes);
@@ -65,7 +65,7 @@ vector<bool> HashIndex::insert(ValueVector& keys, ValueVector& values) {
 void HashIndex::lookup(ValueVector& keys, ValueVector& result, BufferManagerMetrics& metrics) {
     uint8_t* keyData = keys.values;
     auto resultData = (uint64_t*)result.values;
-    auto hashes = make_shared<ValueVector>(INT64);
+    auto hashes = make_shared<ValueVector>(&memoryManager, INT64);
     hashes->state = keys.state;
     VectorHashOperations::Hash(keys, *hashes);
     auto offset = keys.state->isFlat() ? keys.state->getCurrSelectedValuesPos() : 0;

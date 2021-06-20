@@ -51,7 +51,7 @@ public:
 protected:
     NodeIDVector(label_t commonLabel, const NodeIDCompressionScheme& nodeIDCompressionScheme,
         bool isSequence, uint64_t vectorCapacity)
-        : ValueVector{vectorCapacity, nodeIDCompressionScheme.getNumTotalBytes(), NODE},
+        : ValueVector{nullptr, vectorCapacity, nodeIDCompressionScheme.getNumTotalBytes(), NODE},
           representation{NodeIDRepresentation(isSequence, commonLabel, nodeIDCompressionScheme)} {};
 
 public:

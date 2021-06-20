@@ -62,13 +62,11 @@ void QueryProcessor::decomposePlanIntoTasks(
             auto hashJoinProbe = reinterpret_cast<HashJoinProbe<true>*>(op);
             auto hashJoinBuild =
                 reinterpret_cast<HashJoinBuild*>(hashJoinProbe->buildSidePrevOp.get());
-            hashJoinBuild->setMemoryManager(memManager.get());
             decomposePlanIntoTasks(hashJoinBuild, parentTask, numThreads);
         } else {
             auto hashJoinProbe = reinterpret_cast<HashJoinProbe<false>*>(op);
             auto hashJoinBuild =
                 reinterpret_cast<HashJoinBuild*>(hashJoinProbe->buildSidePrevOp.get());
-            hashJoinBuild->setMemoryManager(memManager.get());
             decomposePlanIntoTasks(hashJoinBuild, parentTask, numThreads);
         }
         decomposePlanIntoTasks(op->prevOperator.get(), parentTask, numThreads);
@@ -80,12 +78,6 @@ void QueryProcessor::decomposePlanIntoTasks(
         decomposePlanIntoTasks(op->prevOperator.get(), childTask.get(), numThreads);
         childTask->parent = parentTask;
         parentTask->children.push_back(move(childTask));
-        break;
-    }
-    case FRONTIER_EXTEND: {
-        auto frontierExtend = reinterpret_cast<FrontierExtend<true>*>(op);
-        frontierExtend->setMemoryManager(memManager.get());
-        decomposePlanIntoTasks(op->prevOperator.get(), parentTask, numThreads);
         break;
     }
     case SCAN:

@@ -10,16 +10,17 @@ TEST(VectorBoolTests, test) {
     auto VECTOR_SIZE = 4;
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = VECTOR_SIZE;
+    auto memoryManager = make_unique<MemoryManager>();
 
-    auto lVector = make_shared<ValueVector>(BOOL);
+    auto lVector = make_shared<ValueVector>(memoryManager.get(), BOOL);
     dataChunk->append(lVector);
     auto lData = (uint8_t*)lVector->values;
 
-    auto rVector = make_shared<ValueVector>(BOOL);
+    auto rVector = make_shared<ValueVector>(memoryManager.get(), BOOL);
     dataChunk->append(rVector);
     auto rData = (uint8_t*)rVector->values;
 
-    auto result = make_shared<ValueVector>(BOOL);
+    auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
     dataChunk->append(result);
     auto resultData = (uint8_t*)result->values;
 

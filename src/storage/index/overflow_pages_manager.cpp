@@ -104,7 +104,7 @@ void OverflowPagesManager::serOverflowPagesAllocationBitsets() {
 
 void OverflowPagesManager::deSerOverflowPagesAllocationBitsets() {
     auto numPageGroups = fileHandle->numPages / NUM_PAGES_PER_PAGE_GROUP;
-    for (auto pageGroupId = 0; pageGroupId < numPageGroups; pageGroupId++) {
+    for (auto pageGroupId = 0ul; pageGroupId < numPageGroups; pageGroupId++) {
         bitset<NUM_PAGES_PER_PAGE_GROUP> pageGroupBitset;
         uint8_t* block = getMemoryBlock(pageGroupId * NUM_PAGES_PER_PAGE_GROUP);
         for (auto pageInGroupId = 0ul; pageInGroupId < NUM_PAGES_PER_PAGE_GROUP; pageInGroupId++) {

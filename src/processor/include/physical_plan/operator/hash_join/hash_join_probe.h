@@ -84,11 +84,12 @@ private:
     shared_ptr<DataChunk> outKeyDataChunk;
     vector<unique_ptr<overflow_value_t[]>> buildSideVectorPtrs;
 
+    void createVectorsFromExistingOnesAndAppend(
+        DataChunk& inDataChunk, DataChunk& outDataChunk, vector<uint64_t>& vectorPositions);
     // This function initializes:
     // 1) the outKeyDataChunk and appended unflat output data chunks, which are used to initialize
     // the output resultSet. 2) buildSideVectorPtrs for build side unflat non-key data chunks.
     void initializeOutResultSetAndVectorPtrs();
-
     // For each probe keyVector[i]=k, this function fills the probedTuples[i] with the pointer from
     // the slot that has hash(k) in directory (collision chain), without checking the actual key
     // value.
@@ -97,7 +98,6 @@ private:
     // probedTuples that points to a collision chain, this function finds all matched tuples along
     // the chain one batch at a time.
     void getNextBatchOfMatchedTuples();
-
     // This function reads matched tuples from ht and populates:
     // 1) outKeyDataChunk with values from probe side key data chunk, build side key data chunk
     // (except for build side keys), and also build side flat non-key data chunks. 2) populates

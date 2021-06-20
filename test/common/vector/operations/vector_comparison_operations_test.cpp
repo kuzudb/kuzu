@@ -12,16 +12,17 @@ TEST(VectorCmpTests, cmpInt) {
 
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = numTuples;
+    auto memoryManager = make_unique<MemoryManager>();
 
-    auto lVector = make_shared<ValueVector>(INT32);
+    auto lVector = make_shared<ValueVector>(memoryManager.get(), INT32);
     dataChunk->append(lVector);
     auto lData = (int32_t*)lVector->values;
 
-    auto rVector = make_shared<ValueVector>(INT32);
+    auto rVector = make_shared<ValueVector>(memoryManager.get(), INT32);
     dataChunk->append(rVector);
     auto rData = (int32_t*)rVector->values;
 
-    auto result = make_shared<ValueVector>(BOOL);
+    auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
     dataChunk->append(result);
     auto resultData = result->values;
 
@@ -68,26 +69,29 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = numTuples;
     dataChunk->state->currPos = 0;
+    auto memoryManager = make_unique<MemoryManager>();
 
-    auto lVector = make_shared<ValueVector>(STRING);
+    auto lVector = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->append(lVector);
     auto lData = ((gf_string_t*)lVector->values);
 
-    auto rVector = make_shared<ValueVector>(STRING);
+    auto rVector = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->append(rVector);
     auto rData = ((gf_string_t*)rVector->values);
 
-    auto result = make_shared<ValueVector>(BOOL);
+    auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
     dataChunk->append(result);
     auto resultData = result->values;
 
-    char* value = "abcdefgh";
+    string value = "abcdefgh";
     lData[0].len = 8;
     rData[0].len = 8;
-    memcpy(lData[0].prefix, value, gf_string_t::PREFIX_LENGTH);
-    memcpy(rData[0].prefix, value, gf_string_t::PREFIX_LENGTH);
-    memcpy(lData[0].data, value + gf_string_t::PREFIX_LENGTH, 8 - gf_string_t::PREFIX_LENGTH);
-    memcpy(rData[0].data, value + gf_string_t::PREFIX_LENGTH, 8 - gf_string_t::PREFIX_LENGTH);
+    memcpy(lData[0].prefix, value.data(), gf_string_t::PREFIX_LENGTH);
+    memcpy(rData[0].prefix, value.data(), gf_string_t::PREFIX_LENGTH);
+    memcpy(
+        lData[0].data, value.data() + gf_string_t::PREFIX_LENGTH, 8 - gf_string_t::PREFIX_LENGTH);
+    memcpy(
+        rData[0].data, value.data() + gf_string_t::PREFIX_LENGTH, 8 - gf_string_t::PREFIX_LENGTH);
 
     VectorComparisonOperations::Equals(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], TRUE);
@@ -131,30 +135,31 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = VECTOR_SIZE;
     dataChunk->state->currPos = 0;
+    auto memoryManager = make_unique<MemoryManager>();
 
-    auto lVector = make_shared<ValueVector>(STRING);
+    auto lVector = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->append(lVector);
     auto lData = ((gf_string_t*)lVector->values);
 
-    auto rVector = make_shared<ValueVector>(STRING);
+    auto rVector = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->append(rVector);
     auto rData = ((gf_string_t*)rVector->values);
 
-    auto result = make_shared<ValueVector>(BOOL);
+    auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
     dataChunk->append(result);
     auto resultData = result->values;
 
-    char* value = "abcdefghijklmnopqrstuvwxy"; // 25.
+    string value = "abcdefghijklmnopqrstuvwxy"; // 25.
     lData[0].len = 25;
     rData[0].len = 25;
-    memcpy(lData[0].prefix, value, gf_string_t::PREFIX_LENGTH);
-    memcpy(rData[0].prefix, value, gf_string_t::PREFIX_LENGTH);
+    memcpy(lData[0].prefix, value.data(), gf_string_t::PREFIX_LENGTH);
+    memcpy(rData[0].prefix, value.data(), gf_string_t::PREFIX_LENGTH);
     auto overflowLen = 25;
     char lOverflow[overflowLen];
-    memcpy(lOverflow, value, overflowLen);
+    memcpy(lOverflow, value.data(), overflowLen);
     lData->overflowPtr = reinterpret_cast<uintptr_t>(lOverflow);
     char rOverflow[overflowLen];
-    memcpy(rOverflow, value, overflowLen);
+    memcpy(rOverflow, value.data(), overflowLen);
     rData->overflowPtr = reinterpret_cast<uintptr_t>(rOverflow);
 
     VectorComparisonOperations::Equals(*lVector, *rVector, *result);
