@@ -3,12 +3,12 @@
 #include <bitset>
 
 #include "src/common/include/configs.h"
+#include "src/common/include/memory_manager.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/file_utils.h"
 #include "src/storage/include/index/overflow_pages_manager.h"
-#include "src/storage/include/memory_manager.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -189,7 +189,7 @@ private:
     // The map caches all overflow pages allocated for this index.
     unordered_map<uint32_t, bool> overflowPagesFreeMap;
     unique_ptr<FileHandle> fileHandle;
-    unordered_map<uint64_t, unique_ptr<BlockHandle>> memoryBlocks;
+    unordered_map<uint64_t, unique_ptr<MemoryBlock>> memoryBlocks;
 };
 } // namespace storage
 } // namespace graphflow

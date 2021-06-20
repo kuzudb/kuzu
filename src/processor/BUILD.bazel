@@ -80,10 +80,10 @@ cc_library(
         "execution_context",
         "//src/binder:expression",
         "//src/common:csv_reader",
+        "//src/common:memory_manager",
         "//src/expression_evaluator",
         "//src/storage:graph",
         "//src/storage:lists_aux",
-        "//src/storage:memory_manager",
         "//src/transaction",
     ],
 )

@@ -2,10 +2,10 @@
 
 #include <thread>
 
+#include "src/common/include/memory_manager.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
 #include "src/processor/include/physical_plan/query_result.h"
 #include "src/processor/include/task_system/task_queue.h"
-#include "src/storage/include/memory_manager.h"
 
 using namespace graphflow::storage;
 using namespace graphflow::transaction;

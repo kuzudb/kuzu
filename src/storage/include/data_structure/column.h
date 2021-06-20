@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "src/common/include/string.h"
+#include "src/common/include/gf_string.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/node_vector.h"
 #include "src/storage/include/data_structure/data_structure.h"
@@ -53,8 +53,7 @@ public:
         BufferManagerMetrics& metrics) override;
 
 private:
-    void readStringsFromOverflowPages(
-        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
+    void readStringsFromOverflowPages(ValueVector& valueVector, BufferManagerMetrics& metrics);
 
 private:
     FileHandle overflowPagesFileHandle;

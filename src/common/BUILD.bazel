@@ -19,18 +19,21 @@ cc_library(
     srcs = [
         "compression_scheme.cpp",
         "vector/node_vector.cpp",
+        "vector/string_buffer.cpp",
         "vector/value_vector.cpp",
         "vector/vector_state.cpp",
     ],
     hdrs = [
         "include/compression_scheme.h",
         "include/vector/node_vector.h",
+        "include/vector/string_buffer.h",
         "include/vector/value_vector.h",
         "include/vector/vector_state.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "expression_type",
+        "memory_manager",
         "operations",
         "types",
     ],
@@ -116,12 +119,14 @@ cc_library(
 cc_library(
     name = "types",
     srcs = [
-        "string.cpp",
+        "gf_string.cpp",
+        "literal.cpp",
         "types.cpp",
         "value.cpp",
     ],
     hdrs = [
-        "include/string.h",
+        "include/gf_string.h",
+        "include/literal.h",
         "include/types.h",
         "include/value.h",
     ],
@@ -145,6 +150,18 @@ cc_library(
     ],
     hdrs = [
         "include/expression_type.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [],
+)
+
+cc_library(
+    name = "memory_manager",
+    srcs = [
+        "memory_manager.cpp",
+    ],
+    hdrs = [
+        "include/memory_manager.h",
     ],
     visibility = ["//visibility:public"],
     deps = [],
@@ -180,7 +197,7 @@ cc_library(
         "include/metric.h",
         "include/profiler.h",
     ],
-    visibility =  ["//visibility:public"],
+    visibility = ["//visibility:public"],
     deps = [
         "timer",
     ],

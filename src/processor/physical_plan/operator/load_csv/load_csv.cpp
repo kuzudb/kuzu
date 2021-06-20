@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "src/common/include/string.h"
+#include "src/common/include/gf_string.h"
 
 using namespace graphflow::common;
 
@@ -56,9 +56,8 @@ void LoadCSV<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
                 break;
             }
             case STRING: {
-                auto strVal = &((gf_string_t*)vector.values)[lineIdx];
-                strVal->set(reader.skipTokenIfNull() ? string(&gf_string_t::EMPTY_STRING) :
-                                                       string(reader.getString()));
+                auto strToken = reader.skipTokenIfNull() ? string() : string(reader.getString());
+                vector.addString(lineIdx, strToken);
                 break;
             }
             default:

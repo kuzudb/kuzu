@@ -106,8 +106,7 @@ private:
         LogicalToPhysicalPageIdxMapper& mapper, const shared_ptr<ValueVector>& valueVector,
         uint64_t pos, bool toRead, BufferManagerMetrics& metrics);
 
-    void readStringsFromOverflowPages(
-        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
+    void readStringsFromOverflowPages(ValueVector& valueVector, BufferManagerMetrics& metrics);
 
 public:
     static constexpr uint8_t UNSTR_PROP_IDX_LEN = 4;

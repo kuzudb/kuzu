@@ -9,7 +9,7 @@ using namespace graphflow::binder;
 TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
     auto propertyExpression =
         make_unique<Expression>(ExpressionType::PROPERTY, DataType::INT32, "a.prop");
-    auto literal = Value(5);
+    auto literal = Literal(5);
     auto literalExpression =
         make_unique<LiteralExpression>(ExpressionType::LITERAL_INT, DataType::INT32, literal);
 

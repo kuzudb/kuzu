@@ -33,18 +33,6 @@ cc_library(
 )
 
 cc_library(
-    name = "memory_manager",
-    srcs = [
-        "memory_manager.cpp",
-    ],
-    hdrs = [
-        "include/memory_manager.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [],
-)
-
-cc_library(
     name = "data_structure_utils",
     srcs = [
         "data_structure/utils.cpp",
@@ -160,11 +148,11 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "memory_manager",
         "buffer_manager",
         "//src/common:types",
         "//src/common:vector",
         "//src/common:vector_operations",
+        "//src/common:memory_manager",
     ],
 )
 

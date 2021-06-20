@@ -5,7 +5,7 @@
 #include <mutex>
 
 #include "src/common/include/configs.h"
-#include "src/common/include/string.h"
+#include "src/common/include/gf_string.h"
 #include "src/common/include/types.h"
 #include "src/storage/include/data_structure/utils.h"
 

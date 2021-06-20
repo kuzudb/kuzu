@@ -85,8 +85,7 @@ unique_ptr<BoundReadingStatement> QueryBinder::bindLoadCSVStatement(
                                expressionTypeToString(boundInputExpression->expressionType) +
                                " is not supported. STRING was expected.");
     }
-    auto filePath = gf_string_t::getAsString(
-        static_pointer_cast<LiteralExpression>(boundInputExpression)->literal.strVal);
+    auto filePath = static_pointer_cast<LiteralExpression>(boundInputExpression)->literal.strVal;
     auto fileStream = ifstream(filePath, ios_base::in);
     if (!fileStream.is_open()) {
         throw invalid_argument("Cannot open file at " + filePath + ".");

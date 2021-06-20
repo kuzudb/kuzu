@@ -62,21 +62,19 @@ void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     } else {
         readFromNonSequentialLocations(nodeIDVector, valueVector, handle, metrics);
     }
-    readStringsFromOverflowPages(valueVector, metrics);
+    readStringsFromOverflowPages(*valueVector, metrics);
 }
 
 void Column<STRING>::readStringsFromOverflowPages(
-    const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
+    ValueVector& valueVector, BufferManagerMetrics& metrics) {
     PageCursor cursor;
-    for (auto i = 0u; i < valueVector->state->size; i++) {
-        auto pos = valueVector->state->selectedValuesPos[i];
-        auto& value = ((gf_string_t*)valueVector->values)[pos];
+    for (auto i = 0u; i < valueVector.state->size; i++) {
+        auto pos = valueVector.state->selectedValuesPos[i];
+        auto& value = ((gf_string_t*)valueVector.values)[pos];
         if (value.len > gf_string_t::SHORT_STR_LENGTH) {
             value.getOverflowPtrInfo(cursor.idx, cursor.offset);
             auto frame = bufferManager.pin(overflowPagesFileHandle, cursor.idx, metrics);
-            auto copyStr = new char[value.len];
-            memcpy(copyStr, frame + cursor.offset, value.len);
-            value.overflowPtr = reinterpret_cast<uintptr_t>(copyStr);
+            valueVector.addString(pos, (char*)frame + cursor.offset, value.len);
             bufferManager.unpin(overflowPagesFileHandle, cursor.idx);
         }
     }

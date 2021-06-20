@@ -54,5 +54,25 @@ shared_ptr<ValueVector> ValueVector::clone() {
     return newVector;
 }
 
+void ValueVector::allocateStringOverflowSpace(uint64_t pos, uint64_t len) const {
+    assert(dataType == STRING);
+    auto vectorData = (gf_string_t*)values;
+    vectorData[pos].len = len;
+    if (len > gf_string_t::SHORT_STR_LENGTH) {
+        vectorData[pos] = stringBuffer->allocateLargeString(len);
+    }
+}
+
+void ValueVector::addString(uint64_t pos, char* value, uint64_t len) const {
+    assert(dataType == STRING);
+    auto vectorData = (gf_string_t*)values;
+    allocateStringOverflowSpace(pos, len);
+    vectorData[pos].set(value, len);
+}
+
+void ValueVector::addString(uint64_t pos, string value) const {
+    addString(pos, value.data(), value.length());
+}
+
 } // namespace common
 } // namespace graphflow

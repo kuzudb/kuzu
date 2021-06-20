@@ -19,16 +19,16 @@ public:
             switch (right.dataType) {
             case INT32:
                 if (std::is_same<OP, operation::Power>::value) {
-                    BinaryOperationExecutor::executeArithmeticOps<int32_t, int32_t, double_t, OP>(
-                        left, right, result);
+                    BinaryOperationExecutor::executeArithmeticOps<int32_t, int32_t, double_t, OP,
+                        false /* ALLOCATE_STRING_OVERFLOW */>(left, right, result);
                 } else {
-                    BinaryOperationExecutor::executeArithmeticOps<int32_t, int32_t, int32_t, OP>(
-                        left, right, result);
+                    BinaryOperationExecutor::executeArithmeticOps<int32_t, int32_t, int32_t, OP,
+                        false /* ALLOCATE_STRING_OVERFLOW */>(left, right, result);
                 }
                 break;
             case DOUBLE:
-                BinaryOperationExecutor::executeArithmeticOps<int32_t, double_t, double_t, OP>(
-                    left, right, result);
+                BinaryOperationExecutor::executeArithmeticOps<int32_t, double_t, double_t, OP,
+                    false /* ALLOCATE_STRING_OVERFLOW */>(left, right, result);
                 break;
             default:
                 assert(false);
@@ -37,12 +37,12 @@ public:
         case DOUBLE:
             switch (right.dataType) {
             case INT32:
-                BinaryOperationExecutor::executeArithmeticOps<double_t, int32_t, double_t, OP>(
-                    left, right, result);
+                BinaryOperationExecutor::executeArithmeticOps<double_t, int32_t, double_t, OP,
+                    false /* ALLOCATE_STRING_OVERFLOW */>(left, right, result);
                 break;
             case DOUBLE:
-                BinaryOperationExecutor::executeArithmeticOps<double_t, double_t, double_t, OP>(
-                    left, right, result);
+                BinaryOperationExecutor::executeArithmeticOps<double_t, double_t, double_t, OP,
+                    false /* ALLOCATE_STRING_OVERFLOW */>(left, right, result);
                 break;
             default:
                 assert(false);
@@ -50,8 +50,8 @@ public:
             break;
         case UNSTRUCTURED:
             assert(right.dataType == UNSTRUCTURED);
-            BinaryOperationExecutor::executeArithmeticOps<Value, Value, Value, OP>(
-                left, right, result);
+            BinaryOperationExecutor::executeArithmeticOps<Value, Value, Value, OP,
+                false /* ALLOCATE_STRING_OVERFLOW */>(left, right, result);
             break;
         default:
             assert(false);
@@ -80,7 +80,7 @@ void VectorArithmeticOperations::Add(ValueVector& left, ValueVector& right, Valu
     if (left.dataType == STRING) {
         assert(right.dataType == STRING);
         BinaryOperationExecutor::executeArithmeticOps<gf_string_t, gf_string_t, gf_string_t,
-            operation::Add>(left, right, result);
+            operation::Add, true /* ALLOCATE_STRING_OVERFLOW */>(left, right, result);
     } else {
         ArithmeticOperationExecutor::execute<operation::Add>(left, right, result);
     }

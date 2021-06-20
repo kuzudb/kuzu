@@ -110,7 +110,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::probeHTDirectory() {
     auto keyCount = hashedProbeKeyVector->state->isFlat() ? 1 : hashedProbeKeyVector->state->size;
     VectorNodeIDOperations::Hash(*probeSideKeyVector, *hashedProbeKeyVector);
     auto hashes = (uint64_t*)hashedProbeKeyVector->values;
-    auto directory = (uint8_t**)sharedState->htDirectory->blockPtr;
+    auto directory = (uint8_t**)sharedState->htDirectory->data;
     if (hashedProbeKeyVector->state->isFlat()) {
         auto hash = hashes[hashedProbeKeyVector->state->getCurrSelectedValuesPos()] &
                     sharedState->hashBitMask;

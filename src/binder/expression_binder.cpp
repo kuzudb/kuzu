@@ -80,9 +80,9 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     auto& parsedRight = *parsedExpression.children.at(1);
     if (parsedLeft.type == LITERAL_NULL || parsedRight.type == LITERAL_NULL) {
         if (parsedExpression.type == EQUALS || parsedExpression.type == NOT_EQUALS) {
-            return make_shared<LiteralExpression>(LITERAL_BOOLEAN, BOOL, Value(FALSE));
+            return make_shared<LiteralExpression>(LITERAL_BOOLEAN, BOOL, Literal(FALSE));
         } else {
-            return make_shared<LiteralExpression>(LITERAL_BOOLEAN, BOOL, Value(NULL_BOOL));
+            return make_shared<LiteralExpression>(LITERAL_BOOLEAN, BOOL, Literal(NULL_BOOL));
         }
     }
     auto left = bindExpression(parsedLeft);
@@ -103,10 +103,10 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     }
     if (isNumericalType(left->dataType)) {
         if (!isNumericalType(right->dataType)) {
-            return make_shared<LiteralExpression>(LITERAL_BOOLEAN, BOOL, Value(NULL_BOOL));
+            return make_shared<LiteralExpression>(LITERAL_BOOLEAN, BOOL, Literal(NULL_BOOL));
         }
     } else if (left->dataType != right->dataType) {
-        return make_shared<LiteralExpression>(LITERAL_BOOLEAN, BOOL, Value(NULL_BOOL));
+        return make_shared<LiteralExpression>(LITERAL_BOOLEAN, BOOL, Literal(NULL_BOOL));
     }
     return make_shared<Expression>(NODE_ID == left->dataType ?
                                        comparisonToIDComparison(parsedExpression.type) :
@@ -264,15 +264,15 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     auto literalType = parsedExpression.type;
     switch (literalType) {
     case LITERAL_INT:
-        return make_shared<LiteralExpression>(LITERAL_INT, INT32, Value(stoi(literalVal)));
+        return make_shared<LiteralExpression>(LITERAL_INT, INT32, Literal(stoi(literalVal)));
     case LITERAL_DOUBLE:
-        return make_shared<LiteralExpression>(LITERAL_DOUBLE, DOUBLE, Value(stod(literalVal)));
+        return make_shared<LiteralExpression>(LITERAL_DOUBLE, DOUBLE, Literal(stod(literalVal)));
     case LITERAL_BOOLEAN:
         return make_shared<LiteralExpression>(
-            LITERAL_BOOLEAN, BOOL, Value((uint8_t)("true" == literalVal)));
+            LITERAL_BOOLEAN, BOOL, Literal((uint8_t)("true" == literalVal)));
     case LITERAL_STRING:
         return make_shared<LiteralExpression>(
-            LITERAL_STRING, STRING, Value(literalVal.substr(1, literalVal.size() - 2)));
+            LITERAL_STRING, STRING, Literal(literalVal.substr(1, literalVal.size() - 2)));
     default:
         throw invalid_argument("Literal " + parsedExpression.rawExpression + "is not defined.");
     }

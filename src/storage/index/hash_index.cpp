@@ -138,7 +138,7 @@ uint8_t* HashIndex::findEntryToAppendAndUpdateSlotHeader(uint8_t* slot) {
 void HashIndex::flush() {
     serIndexHeaderAndOverflowPageSet();
     for (auto& block : memoryBlocks) {
-        fileHandle->writePage(block.second->blockPtr, block.first);
+        fileHandle->writePage(block.second->data, block.first);
     }
     overflowPagesManager.flush();
 }
@@ -229,10 +229,10 @@ uint8_t* HashIndex::getMemoryBlock(uint64_t blockId) {
         }
         if (blockId < fileHandle->numPages) {
             // Read from the primary index file if the page exists on disk.
-            fileHandle->readPage(memoryBlocks[blockId]->blockPtr, blockId);
+            fileHandle->readPage(memoryBlocks[blockId]->data, blockId);
         }
     }
-    return memoryBlocks[blockId]->blockPtr;
+    return memoryBlocks[blockId]->data;
 }
 
 uint8_t* HashIndex::getPrimarySlot(uint64_t slotId) {
@@ -413,7 +413,7 @@ void HashIndex::serIndexHeaderAndOverflowPageSet() {
 }
 
 void HashIndex::deSerIndexHeaderAndOverflowPageSet() {
-    uint8_t* headerBuffer = memoryBlocks[0]->blockPtr;
+    uint8_t* headerBuffer = memoryBlocks[0]->data;
     memcpy(&indexHeader, headerBuffer, INDEX_HEADER_SIZE);
     auto overflowPageSetSize = (PAGE_SIZE - INDEX_HEADER_SIZE) / sizeof(uint32_t);
     overflowPagesFreeMap.reserve(overflowPageSetSize);

@@ -70,22 +70,43 @@ unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToPhysical(
         true /* isSingleValue */);
     vector->state = VectorState::getSingleValueDataChunkState();
     if (!literalExpression.storeAsPrimitiveVector) {
-        ((Value*)vector->values)[0] = literalExpression.literal;
+        auto& val = ((Value*)vector->values)[0];
+        val.dataType = literalExpression.literal.dataType;
+        switch (val.dataType) {
+        case INT32: {
+            val.val.int32Val = literalExpression.literal.val.int32Val;
+        } break;
+        case DOUBLE: {
+            val.val.doubleVal = literalExpression.literal.val.doubleVal;
+        } break;
+        case BOOL: {
+            val.val.booleanVal = literalExpression.literal.val.booleanVal;
+        } break;
+        case STRING: {
+            if (literalExpression.literal.strVal.length() > gf_string_t::SHORT_STR_LENGTH) {
+                val.val.strVal = vector->stringBuffer->allocateLargeString(
+                    literalExpression.literal.strVal.length());
+            }
+            val.val.strVal.set(literalExpression.literal.strVal);
+        } break;
+        default:
+            assert(false);
+        }
     } else {
         switch (expression.dataType) {
         case INT32: {
-            ((int32_t*)vector->values)[0] = literalExpression.literal.primitive.int32Val;
+            ((int32_t*)vector->values)[0] = literalExpression.literal.val.int32Val;
         } break;
         case DOUBLE: {
-            ((double_t*)vector->values)[0] = literalExpression.literal.primitive.doubleVal;
+            ((double_t*)vector->values)[0] = literalExpression.literal.val.doubleVal;
         } break;
         case BOOL: {
-            auto val = literalExpression.literal.primitive.booleanVal;
+            auto val = literalExpression.literal.val.booleanVal;
             vector->nullMask[0] = val == NULL_BOOL;
             vector->values[0] = val;
         } break;
         case STRING: {
-            ((gf_string_t*)vector->values)[0] = literalExpression.literal.strVal;
+            vector->addString(0 /* pos */, literalExpression.literal.strVal);
         } break;
         default:
             assert(false);

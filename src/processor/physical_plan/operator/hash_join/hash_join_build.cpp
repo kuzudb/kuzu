@@ -55,11 +55,11 @@ void HashJoinBuild::finalize() {
 
     nodeID_t nodeId;
     uint64_t hash;
-    auto directory = (uint8_t**)sharedState->htDirectory->blockPtr;
+    auto directory = (uint8_t**)sharedState->htDirectory->data;
     for (auto& block : sharedState->htBlocks) {
-        uint8_t* basePtr = block->blockPtr;
+        uint8_t* basePtr = block.data;
         uint64_t entryPos = 0;
-        while (entryPos < block->numEntries) {
+        while (entryPos < block.numEntries) {
             memcpy(&nodeId, basePtr, NUM_BYTES_PER_NODE_ID);
             hash = murmurhash64(nodeId.offset) ^ murmurhash64(nodeId.label);
             auto slotId = hash & sharedState->hashBitMask;
@@ -106,18 +106,16 @@ overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
     uint8_t* blockAppendPos = nullptr;
     // Find free space in existing memory blocks
     for (auto& blockHandle : overflowBlocks) {
-        if (blockHandle->freeSize >= valuesLength) {
-            blockAppendPos =
-                blockHandle->blockPtr + DEFAULT_OVERFLOW_BLOCK_SIZE - blockHandle->freeSize;
-            blockHandle->freeSize -= valuesLength;
+        if (blockHandle.freeSize >= valuesLength) {
+            blockAppendPos = blockHandle.data + DEFAULT_OVERFLOW_BLOCK_SIZE - blockHandle.freeSize;
+            blockHandle.freeSize -= valuesLength;
         }
     }
     if (blockAppendPos == nullptr) {
         // If no free space found in existing memory blocks, allocate a new one
-        auto blockHandle = memManager->allocateBlock(DEFAULT_OVERFLOW_BLOCK_SIZE);
-        memset(blockHandle->blockPtr, 0, DEFAULT_OVERFLOW_BLOCK_SIZE);
-        blockAppendPos = blockHandle->blockPtr;
-        blockHandle->freeSize -= valuesLength;
+        BlockHandle blockHandle(memManager->allocateBlock(DEFAULT_OVERFLOW_BLOCK_SIZE, true), 0);
+        blockAppendPos = blockHandle.data;
+        blockHandle.freeSize -= valuesLength;
         overflowBlocks.push_back(move(blockHandle));
     }
 
@@ -180,23 +178,22 @@ void HashJoinBuild::allocateHTBlocks(
     }
     if (!htBlocks.empty()) {
         auto& lastBlock = htBlocks.back();
-        if (lastBlock->numEntries < htBlockCapacity) {
+        if (lastBlock.numEntries < htBlockCapacity) {
             // Find free space in existing blocks
-            auto appendCount = min(remaining, htBlockCapacity - lastBlock->numEntries);
-            auto currentPos =
-                lastBlock->blockPtr + (lastBlock->numEntries * numBytesForFixedTuplePart);
+            auto appendCount = min(remaining, htBlockCapacity - lastBlock.numEntries);
+            auto currentPos = lastBlock.data + (lastBlock.numEntries * numBytesForFixedTuplePart);
             blockAppendInfos.emplace_back(currentPos, appendCount);
-            lastBlock->numEntries += appendCount;
+            lastBlock.numEntries += appendCount;
             remaining -= appendCount;
         }
     }
     while (remaining > 0) {
         // Need allocate new blocks for tuples
         auto appendCount = min(remaining, htBlockCapacity);
-        auto newBlock =
-            memManager->allocateBlock(DEFAULT_HT_BLOCK_SIZE, true /* initialize */, appendCount);
-        blockAppendInfos.emplace_back(newBlock->blockPtr, appendCount);
-        htBlocks.push_back(move(newBlock));
+        auto newBlock = memManager->allocateBlock(DEFAULT_HT_BLOCK_SIZE, true /* initialize */);
+        blockAppendInfos.emplace_back(newBlock->data, appendCount);
+        BlockHandle blockHandle(move(newBlock), appendCount);
+        htBlocks.push_back(move(blockHandle));
         remaining -= appendCount;
     }
 }

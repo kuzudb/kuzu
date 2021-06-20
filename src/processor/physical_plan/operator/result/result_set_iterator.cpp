@@ -64,25 +64,24 @@ void ResultSetIterator::getNextTuple(Tuple& tuple) {
             auto selectedTuplePos = vector->state->selectedValuesPos[tuplePosition];
             switch (vector->dataType) {
             case INT32: {
-                tuple.getValue(valueInTupleIdx)->primitive.int32Val =
+                tuple.getValue(valueInTupleIdx)->val.int32Val =
                     (((int32_t*)vector->values)[selectedTuplePos]);
             } break;
             case BOOL: {
-                tuple.getValue(valueInTupleIdx)->primitive.booleanVal =
-                    vector->values[selectedTuplePos];
+                tuple.getValue(valueInTupleIdx)->val.booleanVal = vector->values[selectedTuplePos];
             } break;
             case DOUBLE: {
-                tuple.getValue(valueInTupleIdx)->primitive.doubleVal =
+                tuple.getValue(valueInTupleIdx)->val.doubleVal =
                     ((double_t*)vector->values)[selectedTuplePos];
             } break;
             case STRING: {
-                tuple.getValue(valueInTupleIdx)->strVal =
+                tuple.getValue(valueInTupleIdx)->val.strVal =
                     ((gf_string_t*)vector->values)[selectedTuplePos];
             } break;
             case NODE: {
                 nodeID_t nodeID;
                 vector->readNodeID(selectedTuplePos, nodeID);
-                tuple.getValue(valueInTupleIdx)->nodeID = nodeID;
+                tuple.getValue(valueInTupleIdx)->val.nodeID = nodeID;
                 break;
             }
             case UNSTRUCTURED: {
