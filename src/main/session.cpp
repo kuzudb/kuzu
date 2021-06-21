@@ -18,14 +18,12 @@ nlohmann::json Session::executeQuery() {
     auto success = true;
     try {
         json["result"] = {};
-        auto planAndContext = system.prepareQuery(*sessionContext);
-        auto plan = move(planAndContext.first);
+        system.executeQuery(*sessionContext);
         if (sessionContext->enable_explain) {
             json["result"]["plan"] =
-                sessionContext->planPrinter->printPlanToJson(plan.get(), *sessionContext->profiler);
+                sessionContext->planPrinter->printPlanToJson(*sessionContext->profiler);
         } else {
-            auto queryResult = system.executePlan(plan.get(), *sessionContext);
-            json["result"]["numTuples"] = queryResult->numTuples;
+            json["result"]["numTuples"] = sessionContext->queryResult->numTuples;
             if (sessionContext->profiler->enabled) {
                 json["result"][BINDING_STAGE] =
                     sessionContext->profiler->sumAllTimeMetricsWithKey(BINDING_STAGE);
@@ -35,8 +33,8 @@ nlohmann::json Session::executeQuery() {
                     sessionContext->profiler->sumAllTimeMetricsWithKey(MAPPING_STAGE);
                 json["result"][EXECUTING_STAGE] =
                     sessionContext->profiler->sumAllTimeMetricsWithKey(EXECUTING_STAGE);
-                json["result"]["plan"] = sessionContext->planPrinter->printPlanToJson(
-                    plan.get(), *sessionContext->profiler);
+                json["result"]["plan"] =
+                    sessionContext->planPrinter->printPlanToJson(*sessionContext->profiler);
             }
         }
     } catch (exception& e) {

@@ -13,15 +13,18 @@ namespace main {
 class PlanPrinter {
 
 public:
-    PlanPrinter(unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalToLogicalOperatorMap)
-        : physicalToLogicalOperatorMap{move(physicalToLogicalOperatorMap)} {}
+    PlanPrinter(unique_ptr<PhysicalPlan> physicalPlan,
+        unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalToLogicalOperatorMap)
+        : physicalPlan{move(physicalPlan)}, physicalToLogicalOperatorMap{
+                                                move(physicalToLogicalOperatorMap)} {}
 
-    nlohmann::json printPlanToJson(PhysicalPlan* physicalPlan, Profiler& profiler);
+    nlohmann::json printPlanToJson(Profiler& profiler);
 
 private:
     nlohmann::json toJson(PhysicalOperator* physicalOperator, Profiler& profiler);
 
 private:
+    unique_ptr<PhysicalPlan> physicalPlan;
     unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalToLogicalOperatorMap;
 };
 

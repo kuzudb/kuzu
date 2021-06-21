@@ -24,10 +24,7 @@ class System {
 public:
     explicit System(const string& path);
 
-    pair<unique_ptr<PhysicalPlan>, unique_ptr<ExecutionContext>> prepareQuery(
-        SessionContext& context) const;
-
-    unique_ptr<QueryResult> executePlan(PhysicalPlan* plan, SessionContext& context) const;
+    void executeQuery(SessionContext& context) const;
 
     // currently used in testing framework
     vector<unique_ptr<LogicalPlan>> enumerateAllPlans(SessionContext& sessionContext) const;
