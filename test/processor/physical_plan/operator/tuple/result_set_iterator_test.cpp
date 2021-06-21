@@ -13,13 +13,14 @@ public:
         auto dataChunkB = make_shared<DataChunk>();
         auto dataChunkC = make_shared<DataChunk>();
 
+        auto memoryManager = make_unique<MemoryManager>();
         NodeIDCompressionScheme compressionScheme;
         auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme, false);
-        auto vectorA2 = make_shared<ValueVector>(INT32);
+        auto vectorA2 = make_shared<ValueVector>(memoryManager.get(), INT32);
         auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme, false);
-        auto vectorB2 = make_shared<ValueVector>(DOUBLE);
+        auto vectorB2 = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
         auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme, false);
-        auto vectorC2 = make_shared<ValueVector>(BOOL);
+        auto vectorC2 = make_shared<ValueVector>(memoryManager.get(), BOOL);
         auto vectorA1Data = (uint64_t*)vectorA1->values;
         auto vectorA2Data = (uint32_t*)vectorA2->values;
         auto vectorB1Data = (uint64_t*)vectorB1->values;

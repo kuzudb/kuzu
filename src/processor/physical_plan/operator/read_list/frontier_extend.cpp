@@ -205,7 +205,7 @@ FrontierSet* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::createInitialFrontierSet
         return nullptr;
     }
     auto frontier = new FrontierSet();
-    frontier->setMemoryManager(memMan);
+    frontier->setMemoryManager(context.memoryManager);
     frontier->initHashTable(numSlots);
     do {
         lists->readValues(nodeOffset, vectors[0], vectors[0]->state->size, handles[0], MAX_TO_READ,
@@ -230,7 +230,7 @@ FrontierSet* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::makeFrontierSet(uint64_t
         return nullptr;
     }
     auto frontier = new FrontierSet();
-    frontier->setMemoryManager(memMan);
+    frontier->setMemoryManager(context.memoryManager);
     frontier->initHashTable(numSlots < NUM_SLOTS_BAG ? NUM_SLOTS_BAG : numSlots);
     return frontier;
 }
@@ -238,7 +238,7 @@ FrontierSet* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::makeFrontierSet(uint64_t
 template<bool IS_OUT_DATACHUNK_FILTERED>
 FrontierBag* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::createFrontierBag() {
     auto frontierBag = new FrontierBag();
-    frontierBag->setMemoryManager(memMan);
+    frontierBag->setMemoryManager(context.memoryManager);
     frontierBag->initHashTable();
     return frontierBag;
 }
@@ -248,7 +248,6 @@ unique_ptr<PhysicalOperator> FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::clone() 
     auto cloneOp =
         make_unique<FrontierExtend<IS_OUT_DATACHUNK_FILTERED>>(inDataChunkPos, inValueVectorPos,
             (AdjLists*)lists, startLayer, endLayer, prevOperator->clone(), context, id);
-    cloneOp->memMan = this->memMan;
     return cloneOp;
 }
 

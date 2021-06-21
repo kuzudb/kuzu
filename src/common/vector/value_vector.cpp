@@ -42,7 +42,7 @@ void ValueVector::fillNullMask() {
 }
 
 shared_ptr<ValueVector> ValueVector::clone() {
-    auto newVector = make_shared<ValueVector>(dataType, vectorCapacity);
+    auto newVector = make_shared<ValueVector>(memoryManager, dataType, vectorCapacity);
     memcpy(newVector->nullMask, nullMask, vectorCapacity);
     if (STRING == dataType) {
         for (auto i = 0u; i < vectorCapacity; i++) {

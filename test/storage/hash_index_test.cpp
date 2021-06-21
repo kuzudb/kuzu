@@ -20,17 +20,17 @@ public:
                 "Graph output directory cannot be created. Check if it exists and remove it.");
         }
         spdlog::stdout_logger_mt("storage");
-        MemoryManager insertionMemoryManager;
-        BufferManager insertionBufferManager(DEFAULT_BUFFER_POOL_SIZE);
-        OverflowPagesManager ovfPagesManager(TEMP_INDEX, insertionMemoryManager);
-        HashIndex insertionHashIndex(
-            TEMP_INDEX, 0, insertionMemoryManager, insertionBufferManager, ovfPagesManager, INT64);
+        auto insertionMemoryManager = make_unique<MemoryManager>();
+        auto insertionBufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
+        OverflowPagesManager ovfPagesManager(TEMP_INDEX, *insertionMemoryManager);
+        HashIndex insertionHashIndex(TEMP_INDEX, 0, *insertionMemoryManager,
+            *insertionBufferManager, ovfPagesManager, INT64);
         auto numEntries = 1000;
         auto state = make_shared<VectorState>(true, numEntries);
         state->size = numEntries;
-        ValueVector keys(INT64);
+        ValueVector keys(insertionMemoryManager.get(), INT64);
         keys.state = state;
-        ValueVector values(INT64);
+        ValueVector values(insertionMemoryManager.get(), INT64);
         values.state = state;
         auto keysData = (uint64_t*)keys.values;
         auto valuesData = (uint64_t*)values.values;
@@ -60,16 +60,16 @@ public:
 };
 
 TEST_F(HashIndexTest, HashIndexInsertExists) {
-    MemoryManager memoryManager;
-    BufferManager bufferManager(DEFAULT_BUFFER_POOL_SIZE);
-    OverflowPagesManager ovfPagesManager(TEMP_INDEX, memoryManager);
-    HashIndex hashIndex(TEMP_INDEX, 0, memoryManager, bufferManager, ovfPagesManager, INT64);
+    auto memoryManager = make_unique<MemoryManager>();
+    auto bufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
+    OverflowPagesManager ovfPagesManager(TEMP_INDEX, *memoryManager);
+    HashIndex hashIndex(TEMP_INDEX, 0, *memoryManager, *bufferManager, ovfPagesManager, INT64);
     auto numEntries = 10;
     auto state = make_shared<VectorState>(true, numEntries);
     state->size = numEntries;
-    ValueVector keys(INT64);
+    ValueVector keys(memoryManager.get(), INT64);
     keys.state = state;
-    ValueVector values(INT64);
+    ValueVector values(memoryManager.get(), INT64);
     values.state = state;
     auto keysData = (uint64_t*)keys.values;
     auto valuesData = (uint64_t*)values.values;
@@ -85,22 +85,22 @@ TEST_F(HashIndexTest, HashIndexInsertExists) {
 }
 
 TEST_F(HashIndexTest, HashIndexSmallLookup) {
-    MemoryManager memoryManager;
-    BufferManager bufferManager(DEFAULT_BUFFER_POOL_SIZE);
-    OverflowPagesManager ovfPagesManager(TEMP_INDEX, memoryManager);
-    HashIndex lookupHashIndex(TEMP_INDEX, 0, memoryManager, bufferManager, ovfPagesManager, INT64);
+    auto memoryManager = make_unique<MemoryManager>();
+    auto bufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
+    OverflowPagesManager ovfPagesManager(TEMP_INDEX, *memoryManager);
+    HashIndex hashIndex(TEMP_INDEX, 0, *memoryManager, *bufferManager, ovfPagesManager, INT64);
     auto numEntries = 10;
     auto state = make_shared<VectorState>(true, numEntries);
     state->size = numEntries;
-    ValueVector result(INT64);
+    ValueVector result(memoryManager.get(), INT64);
     result.state = state;
-    ValueVector keys(INT64);
+    ValueVector keys(memoryManager.get(), INT64);
     keys.state = state;
     auto keysData = (uint64_t*)keys.values;
     for (auto i = 0; i < numEntries; i++) {
         keysData[i] = i;
     }
-    lookupHashIndex.lookup(keys, result, *bufferManagerMetrics);
+    hashIndex.lookup(keys, result, *bufferManagerMetrics);
     auto resultData = (uint64_t*)result.values;
     for (auto i = 0; i < numEntries; i++) {
         ASSERT_EQ(resultData[i], keysData[i] * 2);
@@ -108,14 +108,14 @@ TEST_F(HashIndexTest, HashIndexSmallLookup) {
 }
 
 TEST_F(HashIndexTest, HashIndexRandomLookup) {
-    MemoryManager memoryManager;
-    BufferManager bufferManager(DEFAULT_BUFFER_POOL_SIZE);
-    OverflowPagesManager ovfPagesManager(TEMP_INDEX, memoryManager);
-    HashIndex lookupHashIndex(TEMP_INDEX, 0, memoryManager, bufferManager, ovfPagesManager, INT64);
+    auto memoryManager = make_unique<MemoryManager>();
+    auto bufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
+    OverflowPagesManager ovfPagesManager(TEMP_INDEX, *memoryManager);
+    HashIndex hashIndex(TEMP_INDEX, 0, *memoryManager, *bufferManager, ovfPagesManager, INT64);
     auto numEntries = 1000;
     auto state = make_shared<VectorState>(true, numEntries);
     state->size = numEntries;
-    ValueVector keys(INT64);
+    ValueVector keys(memoryManager.get(), INT64);
     keys.state = state;
     auto keysData = (uint64_t*)keys.values;
 
@@ -133,10 +133,9 @@ TEST_F(HashIndexTest, HashIndexRandomLookup) {
     for (auto i = 0; i < numEntries; i++) {
         keysData[i] = distribution(gen);
     }
-    ValueVector result(INT64);
+    ValueVector result(memoryManager.get(), INT64);
     result.state = state;
-    auto dummyMetric = make_unique<NumericMetric>(false);
-    lookupHashIndex.lookup(keys, result, *bufferManagerMetrics);
+    hashIndex.lookup(keys, result, *bufferManagerMetrics);
     auto resultData = (uint64_t*)result.values;
     for (auto i = 0; i < numEntries; i++) {
         ASSERT_EQ(resultData[i], keysData[i] * 2);

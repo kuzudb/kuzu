@@ -10,7 +10,7 @@ namespace graphflow {
 namespace processor {
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
-LoadCSV<IS_OUT_DATACHUNK_FILTERED>::LoadCSV(string fname, char tokenSeparator,
+LoadCSV<IS_OUT_DATACHUNK_FILTERED>::LoadCSV(const string& fname, char tokenSeparator,
     vector<DataType> csvColumnDataTypes, ExecutionContext& context, uint32_t id)
     : PhysicalOperator{LOAD_CSV, context, id}, fname{fname}, tokenSeparator{tokenSeparator},
       reader{fname, tokenSeparator}, csvColumnDataTypes{csvColumnDataTypes} {
@@ -18,7 +18,8 @@ LoadCSV<IS_OUT_DATACHUNK_FILTERED>::LoadCSV(string fname, char tokenSeparator,
     outDataChunk =
         make_shared<DataChunk>(!IS_OUT_DATACHUNK_FILTERED /* initializeSelectedValuesPos */);
     for (auto tokenIdx = 0u; tokenIdx < csvColumnDataTypes.size(); tokenIdx++) {
-        outValueVectors.emplace_back(new ValueVector(csvColumnDataTypes[tokenIdx]));
+        outValueVectors.emplace_back(
+            new ValueVector(context.memoryManager, csvColumnDataTypes[tokenIdx]));
     }
     for (auto& outValueVector : outValueVectors) {
         outDataChunk->append(outValueVector);

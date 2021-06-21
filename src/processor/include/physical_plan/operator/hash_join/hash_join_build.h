@@ -77,21 +77,16 @@ public:
         auto cloneOp = make_unique<HashJoinBuild>(keyDataChunkPos, keyVectorPos,
             dataChunkPosToIsFlat, prevOperator->clone(), context, id);
         cloneOp->sharedState = this->sharedState;
-        cloneOp->memManager = this->memManager;
         return cloneOp;
     }
 
     // Finalize the hash table directory
     void finalize() override;
 
-    // The memory manager should be set when processor prepares pipeline tasks
-    inline void setMemoryManager(MemoryManager* memManager) { this->memManager = memManager; }
-
     shared_ptr<HashJoinSharedState> sharedState;
     uint64_t numBytesForFixedTuplePart;
 
 private:
-    MemoryManager* memManager;
     uint64_t keyDataChunkPos;
     uint64_t keyVectorPos;
     vector<bool> dataChunkPosToIsFlat;

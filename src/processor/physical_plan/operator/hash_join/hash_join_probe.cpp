@@ -27,7 +27,7 @@ HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::HashJoinProbe(uint64_t buildSideKeyDat
 
     decompressedProbeKeyVector = make_shared<NodeIDVector>(0, NodeIDCompressionScheme(8, 8), false);
     decompressedProbeKeyVector->state = probeSideKeyVector->state;
-    hashedProbeKeyVector = make_shared<ValueVector>(INT64);
+    hashedProbeKeyVector = make_shared<ValueVector>(context.memoryManager, INT64);
     hashedProbeKeyVector->state = probeSideKeyVector->state;
 
     probeState = make_unique<ProbeState>(DEFAULT_VECTOR_CAPACITY);
@@ -35,7 +35,8 @@ HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::HashJoinProbe(uint64_t buildSideKeyDat
     initializeOutResultSetAndVectorPtrs();
 }
 
-static void createVectorsFromExistingOnesAndAppend(
+template<bool IS_OUT_DATACHUNK_FILTERED>
+void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::createVectorsFromExistingOnesAndAppend(
     DataChunk& inDataChunk, DataChunk& outDataChunk, vector<uint64_t>& vectorPositions) {
     for (auto pos : vectorPositions) {
         auto inVector = inDataChunk.valueVectors[pos];
@@ -45,7 +46,7 @@ static void createVectorsFromExistingOnesAndAppend(
             outVector = make_shared<NodeIDVector>(nodeIDVector->representation.commonLabel,
                 nodeIDVector->representation.compressionScheme, false);
         } else {
-            outVector = make_shared<ValueVector>(inVector->dataType);
+            outVector = make_shared<ValueVector>(context.memoryManager, inVector->dataType);
         }
         outDataChunk.append(outVector);
     }

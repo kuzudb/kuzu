@@ -157,7 +157,7 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKe
     LogicalToPhysicalPageIdxMapper& mapper, BufferManagerMetrics& metrics) {
     auto frame = bufferManager.get(fileHandle, physicalPageIdx, metrics);
     const uint8_t* readFrom;
-    if (pageCursor.offset + UNSTR_PROP_HEADER_LEN < PAGE_SIZE) {
+    if ((uint64_t)(pageCursor.offset + UNSTR_PROP_HEADER_LEN) < PAGE_SIZE) {
         readFrom = frame + pageCursor.offset;
         pageCursor.offset += UNSTR_PROP_HEADER_LEN;
     } else {

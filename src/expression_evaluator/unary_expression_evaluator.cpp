@@ -3,13 +3,13 @@
 namespace graphflow {
 namespace evaluator {
 
-UnaryExpressionEvaluator::UnaryExpressionEvaluator(
+UnaryExpressionEvaluator::UnaryExpressionEvaluator(MemoryManager& memoryManager,
     unique_ptr<ExpressionEvaluator> child, ExpressionType expressionType, DataType dataType) {
     childrenExpr.push_back(move(child));
     this->expressionType = expressionType;
     this->dataType = dataType;
     operation = getUnaryOperation(expressionType);
-    result = createResultValueVector();
+    result = createResultValueVector(memoryManager);
 }
 
 void UnaryExpressionEvaluator::evaluate() {
@@ -17,8 +17,9 @@ void UnaryExpressionEvaluator::evaluate() {
     operation(*childrenExpr[0]->result, *result);
 }
 
-shared_ptr<ValueVector> UnaryExpressionEvaluator::createResultValueVector() {
-    auto valueVector = make_shared<ValueVector>(dataType);
+shared_ptr<ValueVector> UnaryExpressionEvaluator::createResultValueVector(
+    MemoryManager& memoryManager) {
+    auto valueVector = make_shared<ValueVector>(&memoryManager, dataType);
     if (expressionType == CAST_TO_UNSTRUCTURED_VECTOR) {
         auto unstructuredValues = (Value*)valueVector->values;
         for (auto i = 0u; i < DEFAULT_VECTOR_CAPACITY; i++) {

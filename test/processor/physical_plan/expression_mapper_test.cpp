@@ -16,7 +16,8 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
     auto addLogicalOperator = make_unique<Expression>(
         ExpressionType::ADD, DataType::INT32, move(propertyExpression), move(literalExpression));
 
-    auto valueVector = make_shared<ValueVector>(INT32);
+    auto memoryManager = make_unique<MemoryManager>();
+    auto valueVector = make_shared<ValueVector>(memoryManager.get(), INT32);
     auto values = (int32_t*)valueVector->values;
     for (auto i = 0u; i < 100; i++) {
         values[i] = i;
@@ -30,8 +31,8 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
     physicalOperatorInfo.appendAsNewDataChunk("a.prop");
     resultSet.append(dataChunk);
 
-    auto rootExpressionEvaluator =
-        ExpressionMapper::mapToPhysical(*addLogicalOperator, physicalOperatorInfo, resultSet);
+    auto rootExpressionEvaluator = ExpressionMapper::mapToPhysical(
+        *memoryManager, *addLogicalOperator, physicalOperatorInfo, resultSet);
     rootExpressionEvaluator->evaluate();
 
     auto results = (int32_t*)rootExpressionEvaluator->result->values;
@@ -46,7 +47,8 @@ TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
     auto negateLogicalOperator =
         make_unique<Expression>(ExpressionType::NEGATE, DataType::INT32, move(propertyExpression));
 
-    auto valueVector = make_shared<ValueVector>(INT32);
+    auto memoryManager = make_unique<MemoryManager>();
+    auto valueVector = make_shared<ValueVector>(memoryManager.get(), INT32);
     auto values = (int32_t*)valueVector->values;
     for (auto i = 0u; i < 100; i++) {
         int32_t value = i;
@@ -65,8 +67,8 @@ TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
     physicalOperatorInfo.appendAsNewDataChunk("a.prop");
     resultSet.append(dataChunk);
 
-    auto rootExpressionEvaluator =
-        ExpressionMapper::mapToPhysical(*negateLogicalOperator, physicalOperatorInfo, resultSet);
+    auto rootExpressionEvaluator = ExpressionMapper::mapToPhysical(
+        *memoryManager, *negateLogicalOperator, physicalOperatorInfo, resultSet);
     rootExpressionEvaluator->evaluate();
 
     auto results = (int32_t*)rootExpressionEvaluator->result->values;

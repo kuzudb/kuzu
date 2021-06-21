@@ -9,16 +9,17 @@ using namespace std;
 TEST(VectorArithTests, test) {
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = 100;
+    auto memoryManager = make_unique<MemoryManager>();
 
-    auto lVector = make_shared<ValueVector>(INT32);
+    auto lVector = make_shared<ValueVector>(memoryManager.get(), INT32);
     dataChunk->append(lVector);
     auto lData = (int32_t*)lVector->values;
 
-    auto rVector = make_shared<ValueVector>(INT32);
+    auto rVector = make_shared<ValueVector>(memoryManager.get(), INT32);
     dataChunk->append(rVector);
     auto rData = (int32_t*)rVector->values;
 
-    auto result = make_shared<ValueVector>(INT32);
+    auto result = make_shared<ValueVector>(memoryManager.get(), INT32);
     dataChunk->append(result);
     auto resultData = (int32_t*)result->values;
 
@@ -59,7 +60,7 @@ TEST(VectorArithTests, test) {
         ASSERT_EQ(resultData[i], i % (110 - i));
     }
 
-    result = make_shared<ValueVector>(DOUBLE);
+    result = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
     dataChunk->append(result);
     auto resultDataAsDoubleArr = (double_t*)result->values;
     VectorArithmeticOperations::Power(*lVector, *rVector, *result);

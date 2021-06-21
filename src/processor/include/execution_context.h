@@ -11,12 +11,13 @@ namespace processor {
 struct ExecutionContext {
 
 public:
-    ExecutionContext(Profiler& profiler, Transaction* transaction)
-        : profiler{profiler}, transaction{transaction} {}
+    ExecutionContext(Profiler& profiler, Transaction* transaction, MemoryManager* memoryManager)
+        : profiler{profiler}, transaction{transaction}, memoryManager{memoryManager} {}
 
 public:
     Profiler& profiler;
     Transaction* transaction;
+    MemoryManager* memoryManager;
 };
 
 } // namespace processor

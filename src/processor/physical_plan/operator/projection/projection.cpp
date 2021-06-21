@@ -53,7 +53,8 @@ unique_ptr<PhysicalOperator> Projection::clone() {
     auto rootExpressionsCloned = make_unique<vector<unique_ptr<ExpressionEvaluator>>>();
     for (auto& expr : *expressions) {
         (*rootExpressionsCloned)
-            .push_back(ExpressionMapper::clone(*expr, *prevOperatorClone->getResultSet()));
+            .push_back(ExpressionMapper::clone(
+                *context.memoryManager, *expr, *prevOperatorClone->getResultSet()));
     }
     return make_unique<Projection>(move(rootExpressionsCloned), expressionPosToDataChunkPos,
         discardedDataChunkPos, move(prevOperatorClone), context, id);

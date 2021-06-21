@@ -12,7 +12,7 @@ template<bool IS_OUT_DATACHUNK_FILTERED>
 class LoadCSV : public PhysicalOperator {
 
 public:
-    LoadCSV(string fname, char tokenSeparator, vector<DataType> csvColumnDataTypes,
+    LoadCSV(const string& fname, char tokenSeparator, vector<DataType> csvColumnDataTypes,
         ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;

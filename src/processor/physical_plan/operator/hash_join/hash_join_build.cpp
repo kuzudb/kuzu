@@ -18,9 +18,8 @@ static uint64_t nextPowerOfTwo(uint64_t v) {
 HashJoinBuild::HashJoinBuild(uint64_t keyDataChunkPos, uint64_t keyVectorPos,
     vector<bool> dataChunkPosToIsFlat, unique_ptr<PhysicalOperator> prevOperator,
     ExecutionContext& context, uint32_t id)
-    : Sink{move(prevOperator), HASH_JOIN_BUILD, context, id}, memManager{nullptr},
-      keyDataChunkPos{keyDataChunkPos}, keyVectorPos{keyVectorPos},
-      dataChunkPosToIsFlat{dataChunkPosToIsFlat}, numEntries{0} {
+    : Sink{move(prevOperator), HASH_JOIN_BUILD, context, id}, keyDataChunkPos{keyDataChunkPos},
+      keyVectorPos{keyVectorPos}, dataChunkPosToIsFlat{dataChunkPosToIsFlat}, numEntries{0} {
     auto prevResultSet = this->prevOperator->getResultSet();
     keyDataChunk = prevResultSet->dataChunks[keyDataChunkPos];
     resultSetWithoutKeyDataChunk = make_shared<ResultSet>();
@@ -50,8 +49,8 @@ void HashJoinBuild::finalize() {
         max(sharedState->numEntries * 2, (DEFAULT_HT_BLOCK_SIZE / sizeof(uint8_t*)) + 1));
     sharedState->hashBitMask = directory_capacity - 1;
 
-    sharedState->htDirectory =
-        memManager->allocateBlock(directory_capacity * sizeof(uint8_t*), true /* initialize */);
+    sharedState->htDirectory = context.memoryManager->allocateBlock(
+        directory_capacity * sizeof(uint8_t*), true /* initialize */);
 
     nodeID_t nodeId;
     uint64_t hash;
@@ -113,7 +112,8 @@ overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
     }
     if (blockAppendPos == nullptr) {
         // If no free space found in existing memory blocks, allocate a new one
-        BlockHandle blockHandle(memManager->allocateBlock(DEFAULT_OVERFLOW_BLOCK_SIZE, true), 0);
+        BlockHandle blockHandle(
+            context.memoryManager->allocateBlock(DEFAULT_OVERFLOW_BLOCK_SIZE, true), 0);
         blockAppendPos = blockHandle.data;
         blockHandle.freeSize -= valuesLength;
         overflowBlocks.push_back(move(blockHandle));
@@ -190,7 +190,8 @@ void HashJoinBuild::allocateHTBlocks(
     while (remaining > 0) {
         // Need allocate new blocks for tuples
         auto appendCount = min(remaining, htBlockCapacity);
-        auto newBlock = memManager->allocateBlock(DEFAULT_HT_BLOCK_SIZE, true /* initialize */);
+        auto newBlock =
+            context.memoryManager->allocateBlock(DEFAULT_HT_BLOCK_SIZE, true /* initialize */);
         blockAppendInfos.emplace_back(newBlock->data, appendCount);
         BlockHandle blockHandle(move(newBlock), appendCount);
         htBlocks.push_back(move(blockHandle));
