@@ -4,14 +4,14 @@ namespace graphflow {
 namespace binder {
 
 Expression::Expression(ExpressionType expressionType, DataType dataType,
-    shared_ptr<Expression> left, shared_ptr<Expression> right)
+    const shared_ptr<Expression>& left, const shared_ptr<Expression>& right)
     : Expression(expressionType, dataType) {
     childrenExpr.push_back(left);
     childrenExpr.push_back(right);
 }
 
 Expression::Expression(
-    ExpressionType expressionType, DataType dataType, shared_ptr<Expression> child)
+    ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child)
     : Expression(expressionType, dataType) {
     childrenExpr.push_back(child);
 }

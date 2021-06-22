@@ -29,23 +29,6 @@ Value& Value::operator=(const Value& other) {
     return *this;
 }
 
-void Value::castToString() {
-    switch (dataType) {
-    case BOOL: {
-        val.strVal.set(to_string(val.booleanVal));
-    } break;
-    case INT32: {
-        val.strVal.set(to_string(val.int32Val));
-    } break;
-    case DOUBLE: {
-        val.strVal.set(to_string(val.doubleVal));
-    } break;
-    default:
-        assert(false);
-    }
-    dataType = STRING;
-}
-
 string Value::toString() const {
     switch (dataType) {
     case BOOL:

@@ -2,6 +2,7 @@
 
 #include <functional>
 
+#include "src/common/include/value.h"
 #include "src/common/include/vector/node_vector.h"
 
 namespace graphflow {
@@ -9,9 +10,27 @@ namespace common {
 
 struct BinaryOperationExecutor {
 
+    static void prepareUnstructuredString(Value& lValue, Value& rValue, Value& resVal,
+        ValueVector& lVec, ValueVector& rVec, ValueVector& resVec) {
+        assert(lValue.dataType == STRING || rValue.dataType == STRING);
+        if (lValue.dataType != STRING) {
+            lVec.allocateStringOverflowSpace(lValue.val.strVal, lValue.toString().length());
+            lValue.val.strVal.set(lValue.toString());
+            lValue.dataType = STRING;
+        } else {
+            rVec.allocateStringOverflowSpace(rValue.val.strVal, rValue.toString().length());
+            rValue.val.strVal.set(rValue.toString());
+            rValue.dataType = STRING;
+        }
+        resVec.allocateStringOverflowSpace(
+            resVal.val.strVal, lValue.val.strVal.len + rValue.val.strVal.len);
+    }
+
     template<class A, class B, class R, class FUNC = function<void(A&, B&, R&)>,
-        bool ALLOCATE_STRING_OVERFLOW>
+        bool IS_STRUCTURED_STRING, bool IS_UNSTRUCTURED>
     static void executeArithmeticOps(ValueVector& left, ValueVector& right, ValueVector& result) {
+        // Operands can't be structured string and unstructured value at the same time
+        assert((IS_STRUCTURED_STRING && IS_UNSTRUCTURED) == false);
         auto lValues = (A*)left.values;
         auto rValues = (B*)right.values;
         auto resultValues = (R*)result.values;
@@ -21,9 +40,14 @@ struct BinaryOperationExecutor {
             auto resPos = result.state->getCurrSelectedValuesPos();
             result.nullMask[resPos] = left.nullMask[lPos] || right.nullMask[rPos];
             if (!result.nullMask[resPos]) {
-                if constexpr (ALLOCATE_STRING_OVERFLOW) {
+                if constexpr (IS_STRUCTURED_STRING) {
                     result.allocateStringOverflowSpace(
-                        resPos, lValues[lPos].len + rValues[rPos].len);
+                        resultValues[resPos], lValues[lPos].len + rValues[rPos].len);
+                } else if constexpr (IS_UNSTRUCTURED) {
+                    if (lValues[lPos].dataType == STRING || rValues[rPos].dataType == STRING) {
+                        prepareUnstructuredString(lValues[lPos], rValues[rPos],
+                            resultValues[resPos], left, right, result);
+                    }
                 }
                 FUNC::operation(lValues[lPos], rValues[rPos], resultValues[resPos]);
             }
@@ -36,8 +60,14 @@ struct BinaryOperationExecutor {
                 auto pos = right.state->selectedValuesPos[i];
                 result.nullMask[pos] = isLeftNull || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
-                    if constexpr (ALLOCATE_STRING_OVERFLOW) {
-                        result.allocateStringOverflowSpace(pos, lValue.len + rValues[pos].len);
+                    if constexpr (IS_STRUCTURED_STRING) {
+                        result.allocateStringOverflowSpace(
+                            resultValues[pos], lValue.len + rValues[pos].len);
+                    } else if constexpr (IS_UNSTRUCTURED) {
+                        if ((lValue.dataType == STRING || rValues[pos].dataType == STRING)) {
+                            prepareUnstructuredString(
+                                lValue, rValues[pos], resultValues[pos], left, right, result);
+                        }
                     }
                     FUNC::operation(lValue, rValues[pos], resultValues[pos]);
                 }
@@ -51,8 +81,14 @@ struct BinaryOperationExecutor {
                 auto pos = left.state->selectedValuesPos[i];
                 result.nullMask[pos] = left.nullMask[pos] || isRightNull;
                 if (!result.nullMask[i]) {
-                    if constexpr (ALLOCATE_STRING_OVERFLOW) {
-                        result.allocateStringOverflowSpace(pos, lValues[pos].len + rValue.len);
+                    if constexpr (IS_STRUCTURED_STRING) {
+                        result.allocateStringOverflowSpace(
+                            resultValues[pos], lValues[pos].len + rValue.len);
+                    } else if constexpr (IS_UNSTRUCTURED) {
+                        if ((lValues[pos].dataType == STRING || rValue.dataType == STRING)) {
+                            prepareUnstructuredString(
+                                lValues[pos], rValue, resultValues[pos], left, right, result);
+                        }
                     }
                     FUNC::operation(lValues[pos], rValue, resultValues[pos]);
                 }
@@ -63,9 +99,14 @@ struct BinaryOperationExecutor {
                 auto pos = result.state->selectedValuesPos[i];
                 result.nullMask[pos] = left.nullMask[pos] || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
-                    if constexpr (ALLOCATE_STRING_OVERFLOW) {
+                    if constexpr (IS_STRUCTURED_STRING) {
                         result.allocateStringOverflowSpace(
-                            pos, lValues[pos].len + rValues[pos].len);
+                            resultValues[pos], lValues[pos].len + rValues[pos].len);
+                    } else if constexpr (IS_UNSTRUCTURED) {
+                        if ((lValues[pos].dataType == STRING || rValues[pos].dataType == STRING)) {
+                            prepareUnstructuredString(
+                                lValues[pos], rValues[pos], resultValues[pos], left, right, result);
+                        }
                     }
                     FUNC::operation(lValues[pos], rValues[pos], resultValues[pos]);
                 }

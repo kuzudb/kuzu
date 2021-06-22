@@ -11,3 +11,23 @@
 -NAME PersonUnstrFilteredTest3
 -QUERY MATCH (a:person) WHERE a.unstrProp = 52 RETURN COUNT(*)
 ---- 1
+
+-NAME PersonUnstrFilteredTest4
+-QUERY MATCH (a:person) WHERE 10 + a.unstrProp = 57 RETURN COUNT(*)
+---- 1
+
+-NAME PersonUnstrFilteredTest5
+-QUERY MATCH (a:person) WHERE a.unstrProp + a.unstrProp2 = 67 RETURN COUNT(*)
+---- 1
+
+-NAME PersonUnstrFilteredTest6
+-QUERY MATCH (a:person) WHERE a.unstrProp - 10 > a.unstrProp2 RETURN COUNT(*)
+---- 1
+
+-NAME PersonUnstrFilteredTest7
+-QUERY MATCH (a:person) WHERE 'abc ' + a.unstrProp = 'abc 52' RETURN COUNT(*)
+---- 1
+
+-NAME PersonUnstrFilteredTest8
+-QUERY MATCH (a:person) WHERE a.unstrProp2 + ' abcdefghijklm' = '20 abcdefghijklm' RETURN COUNT(*)
+---- 1

@@ -29,7 +29,7 @@ public:
 
     void addString(uint64_t pos, string value) const;
     void addString(uint64_t pos, char* value, uint64_t len) const;
-    void allocateStringOverflowSpace(uint64_t pos, uint64_t len) const;
+    void allocateStringOverflowSpace(gf_string_t& gfString, uint64_t len) const;
 
     inline void reset() { values = bufferValues.get(); }
 
