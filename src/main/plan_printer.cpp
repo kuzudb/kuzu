@@ -5,7 +5,7 @@
 namespace graphflow {
 namespace main {
 
-nlohmann::json PlanPrinter::printPlanToJson(PhysicalPlan* physicalPlan, Profiler& profiler) {
+nlohmann::json PlanPrinter::printPlanToJson(Profiler& profiler) {
     return toJson(physicalPlan->lastOperator.get(), profiler);
 }
 
@@ -21,11 +21,11 @@ nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler&
     }
     json["name"] = operatorName;
     if (operatorType == HASH_JOIN_PROBE) {
-        json["buildChild"] =
+        json["prevBuild"] =
             toJson(((HashJoinProbe<true>*)physicalOperator)->buildSidePrevOp.get(), profiler);
     }
     if (physicalOperator->prevOperator) {
-        json["child"] = toJson(physicalOperator->prevOperator.get(), profiler);
+        json["prev"] = toJson(physicalOperator->prevOperator.get(), profiler);
     }
     if (profiler.enabled) {
         physicalOperator->printMetricsToJson(json, profiler);

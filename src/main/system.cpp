@@ -19,8 +19,7 @@ System::System(const string& path) {
     initialized = true;
 }
 
-pair<unique_ptr<PhysicalPlan>, unique_ptr<ExecutionContext>> System::prepareQuery(
-    SessionContext& context) const {
+void System::executeQuery(SessionContext& context) const {
     if (!initialized) {
         throw invalid_argument("System is not initialized");
     }
@@ -47,16 +46,20 @@ pair<unique_ptr<PhysicalPlan>, unique_ptr<ExecutionContext>> System::prepareQuer
     auto physicalPlan = mapper.mapToPhysical(move(logicalPlan), *executionContext);
     mappingTimeMetric->stop();
 
-    context.planPrinter = make_unique<PlanPrinter>(mapper.physicalIDToLogicalOperatorMap);
-    return make_pair(move(physicalPlan), move(executionContext));
-}
+    if (context.enable_explain) {
+        context.planPrinter =
+            make_unique<PlanPrinter>(move(physicalPlan), mapper.physicalIDToLogicalOperatorMap);
+        return;
+    }
 
-unique_ptr<QueryResult> System::executePlan(PhysicalPlan* plan, SessionContext& context) const {
     auto executingTimeMetric = context.profiler->registerTimeMetric(EXECUTING_STAGE);
     executingTimeMetric->start();
-    auto result = processor->execute(plan, context.numThreads);
+    auto result = processor->execute(physicalPlan.get(), context.numThreads);
     executingTimeMetric->stop();
-    return result;
+
+    context.planPrinter =
+        make_unique<PlanPrinter>(move(physicalPlan), mapper.physicalIDToLogicalOperatorMap);
+    context.queryResult = move(result);
 }
 
 vector<unique_ptr<LogicalPlan>> System::enumerateAllPlans(SessionContext& sessionContext) const {

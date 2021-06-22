@@ -1,0 +1,27 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "embedded_shell",
+    srcs = [
+        "embedded_shell.cpp",
+        "linenoise.cpp",
+    ],
+    hdrs = [
+        "include/embedded_shell.h",
+        "include/linenoise.h",
+    ],
+    deps = [
+        "//src/main:system",
+    ],
+)
+
+cc_binary(
+    name = "graphflowdb",
+    srcs = [
+        "shell_runner.cpp",
+    ],
+    linkopts = ["-lpthread"],
+    deps = [
+        "embedded_shell",
+    ],
+)
