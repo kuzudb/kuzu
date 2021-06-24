@@ -3,7 +3,6 @@
 #include <iostream>
 #include <vector>
 
-#include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/store/nodes_store.h"
 #include "src/storage/include/store/rels_store.h"
 
@@ -31,7 +30,7 @@ class Graph {
     friend class bitsery::Access;
 
 public:
-    Graph(const string& path, uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE);
+    Graph(const string& path, BufferManager& bufferManager);
 
     virtual ~Graph();
 
@@ -71,7 +70,6 @@ private:
     unique_ptr<Catalog> catalog;
     unique_ptr<NodesStore> nodesStore;
     unique_ptr<RelsStore> relsStore;
-    unique_ptr<BufferManager> bufferManager;
 
     vector<uint64_t> numNodesPerLabel;
     vector<vector<vector<uint64_t>>> numRelsPerDirBoundLabelRelLabel;

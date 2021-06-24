@@ -9,19 +9,20 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
+#include "src/storage/include/buffer_manager.h"
+
 using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAdapter>;
 
 namespace graphflow {
 namespace storage {
 
-Graph::Graph(const string& path, uint64_t bufferPoolSize)
+Graph::Graph(const string& path, BufferManager& bufferManager)
     : logger{spdlog::stdout_logger_mt("storage")}, path{path} {
     logger->info("Initializing Graph.");
     catalog = make_unique<Catalog>(path);
-    bufferManager = make_unique<BufferManager>(bufferPoolSize);
     readFromFile(path);
-    nodesStore = make_unique<NodesStore>(*catalog, numNodesPerLabel, path, *bufferManager);
-    relsStore = make_unique<RelsStore>(*catalog, numNodesPerLabel, path, *bufferManager);
+    nodesStore = make_unique<NodesStore>(*catalog, numNodesPerLabel, path, bufferManager);
+    relsStore = make_unique<RelsStore>(*catalog, numNodesPerLabel, path, bufferManager);
     logger->info("Done.");
 }
 
@@ -79,7 +80,6 @@ unique_ptr<nlohmann::json> Graph::debugInfo() {
         (*json)["NodeLabelSizes"][catalog->getStringNodeLabel(labelIdx)]["numNodes"] =
             to_string(numNodesPerLabel.at(labelIdx));
     }
-    (*json)["bufferManager"] = *(bufferManager->debugInfo());
     return json;
 }
 

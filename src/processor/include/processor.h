@@ -26,9 +26,6 @@ private:
     void decomposePlanIntoTasks(PhysicalOperator* op, Task* parentTask, uint64_t numThreads);
     void scheduleTask(Task* task);
 
-public:
-    unique_ptr<MemoryManager> memManager;
-
 private:
     TaskQueue queue;
     bool stopThreads{false};

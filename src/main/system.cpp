@@ -13,7 +13,9 @@ namespace graphflow {
 namespace main {
 
 System::System(const string& path) {
-    graph = make_unique<Graph>(path);
+    memManager = make_unique<MemoryManager>();
+    bufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
+    graph = make_unique<Graph>(path, *bufferManager);
     processor = make_unique<QueryProcessor>(thread::hardware_concurrency());
     transactionManager = make_unique<TransactionManager>();
     initialized = true;
@@ -39,7 +41,7 @@ void System::executeQuery(SessionContext& context) const {
     planningTimeMetric->stop();
 
     auto executionContext = make_unique<ExecutionContext>(
-        *context.profiler, context.activeTransaction, processor->memManager.get());
+        *context.profiler, context.activeTransaction, memManager.get());
     auto mappingTimeMetric = context.profiler->registerTimeMetric(MAPPING_STAGE);
     mappingTimeMetric->start();
     auto mapper = PlanMapper(*graph);
@@ -76,7 +78,7 @@ unique_ptr<QueryResult> System::executePlan(
     unique_ptr<LogicalPlan> logicalPlan, SessionContext& sessionContext) const {
     sessionContext.profiler->resetMetrics();
     auto executionContext = ExecutionContext(
-        *sessionContext.profiler, sessionContext.activeTransaction, processor->memManager.get());
+        *sessionContext.profiler, sessionContext.activeTransaction, memManager.get());
     auto physicalPlan = PlanMapper(*graph).mapToPhysical(move(logicalPlan), executionContext);
     return processor->execute(physicalPlan.get(), sessionContext.numThreads);
 }
@@ -84,6 +86,7 @@ unique_ptr<QueryResult> System::executePlan(
 unique_ptr<nlohmann::json> System::debugInfo() const {
     auto json = make_unique<nlohmann::json>();
     (*json)["graph"] = *graph->debugInfo();
+    (*json)["bufferManager"] = *(bufferManager->debugInfo());
     return json;
 }
 

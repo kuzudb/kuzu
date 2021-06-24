@@ -32,39 +32,6 @@ content-type: text/plain;charset=UTF-8
 {{path_to_serialized_query_plan}}
 4
 
-### Change the bufferPool size.
-#   Method: 
-#       PUT
-#   URL: 
-#       /bufferPoolSize
-#   DataParams:
-# 	    <size>
-#   Notes:
-#       Size of the bufferPool should be in Bytes. 
-#       The size should be in multiple of 4096 (system PAGE_SIZE). Current bounds are 1MB and 1TB. 	
-# 	    The previously loaded Graph is dropped on successful change of bufferSize.
-
-PUT {{prefix}}/bufferPoolSize
-content-type: text/plain;charset=UTF-8
-
-33550336
-
-### Change the number of Processor threads.
-#   Method: 
-#       PUT
-#   URL: 
-#       /numProcessorThreads
-#   DataParams:
-# 	    <num>
-#   Notes:
-#       Number should be greater than 0 and less than the number of physical threads available in
-#           the system. 
-#       Processor is restarted, bufferPool is not affected. 
-
-PUT {{prefix}}/numProcessorThreads
-content-type: text/plain;charset=UTF-8
-
-4
 
 ### Gets debug information about the database.
 #   Method:
@@ -83,24 +50,3 @@ content-type: text/plain;charset=UTF-8
 #       /help
 
 GET {{prefix}}/help
-
-### Gets the current state of session.
-#   Method:
-#       GET
-#   URL:
-#       /session
-
-GET {{prefix}}/session
-
-### Print the query plan in a human-readable format.
-#   Method:
-#       GET
-#   URL:
-#       /prettyPlan
-#   DataParams:
-#       <path_to_serialized_query_plan>
-
-GET {{prefix}}/prettyPlan
-content-type: text/plain;charset=UTF-8
-
-{{path_to_serialized_query_plan}}
