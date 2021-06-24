@@ -13,7 +13,6 @@ namespace graphflow {
 namespace processor {
 
 QueryProcessor::QueryProcessor(uint64_t numThreads) {
-    memManager = make_unique<MemoryManager>();
     for (auto n = 0u; n < numThreads; ++n) {
         threads.emplace_back([&] { run(); });
     }

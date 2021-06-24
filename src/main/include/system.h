@@ -37,6 +37,8 @@ public:
     unique_ptr<Graph> graph;
     unique_ptr<QueryProcessor> processor;
     unique_ptr<TransactionManager> transactionManager;
+    unique_ptr<MemoryManager> memManager;
+    unique_ptr<BufferManager> bufferManager;
     bool initialized = false;
 };
 
