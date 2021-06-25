@@ -45,7 +45,7 @@ void Graph::serialize(S& s) {
     s.container(numRelsPerDirBoundLabelRelLabel, UINT32_MAX, vectorSerFunc);
 }
 
-void Graph::saveToFile(const string& path) {
+void Graph::saveToFile(const string& path) const {
     auto graphPath = path + "/graph.bin";
     fstream f{graphPath, f.binary | f.trunc | f.out};
     if (f.fail()) {
@@ -77,7 +77,7 @@ unique_ptr<nlohmann::json> Graph::debugInfo() {
     auto json = catalog->debugInfo();
     (*json)["path"] = getPath();
     for (uint64_t labelIdx = 0; labelIdx < numNodesPerLabel.size(); ++labelIdx) {
-        (*json)["NodeLabelSizes"][catalog->getStringNodeLabel(labelIdx)]["numNodes"] =
+        (*json)["NodeLabelSizes"][catalog->getNodeLabelName(labelIdx)]["numNodes"] =
             to_string(numNodesPerLabel.at(labelIdx));
     }
     return json;

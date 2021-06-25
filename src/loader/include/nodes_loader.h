@@ -23,25 +23,20 @@ class NodesLoader {
 
     // For unstructured Property Lists per node label.
     typedef vector<unique_ptr<listSizes_t>> labelUnstrPropertyListSizes_t;
-    typedef vector<ListHeaders> labelListHeaders_t;
-    typedef vector<ListsMetadata> labelListsMetadata_t;
-    typedef vector<unique_ptr<InMemUnstrPropertyPages>> labelUnstrPropertyLists_t;
-
-    typedef vector<unique_ptr<InMemStringOverflowPages>> labelStringOverflowPages_t;
 
 private:
-    NodesLoader(ThreadPool& threadPool, const Graph& graph, const nlohmann::json& metadata,
-        const string& outputDirectory);
+    NodesLoader(
+        ThreadPool& threadPool, const Graph& graph, string outputDirectory, char tokenSeparator);
 
-    void load(const vector<string>& fnames, const vector<uint64_t>& numBlocksPerLabel,
+    void load(const vector<string>& filePaths, const vector<uint64_t>& numBlocksPerLabel,
         const vector<vector<uint64_t>>& numLinesPerBlock,
         vector<unique_ptr<NodeIDMap>>& nodeIDMaps);
 
-    void constructPropertyColumnsAndCountUnstrProperties(const vector<string>& fnames,
+    void constructPropertyColumnsAndCountUnstrProperties(const vector<string>& filePaths,
         const vector<uint64_t>& numBlocksPerLabel, const vector<vector<uint64_t>>& numLinesPerBlock,
         vector<unique_ptr<NodeIDMap>>& nodeIDMaps);
 
-    void constructUnstrPropertyLists(const vector<string>& fnames,
+    void constructUnstrPropertyLists(const vector<string>& filePaths,
         const vector<uint64_t>& numBlocksPerLabel,
         const vector<vector<uint64_t>>& numLinesPerBlock);
 
@@ -53,29 +48,28 @@ private:
 
     // Concurrent Tasks
 
-    static void populatePropertyColumnsAndCountUnstrPropertyListSizesTask(string fname,
-        uint64_t blockId, char tokenSeparator, vector<DataType> propertyDataTypes,
-        vector<bool> isPrimaryKeys, uint64_t numElements, node_offset_t offsetStart,
-        NodeIDMap* nodeIDMap, vector<string> propertyColumnFnames,
+    static void populatePropertyColumnsAndCountUnstrPropertyListSizesTask(const string& fName,
+        uint64_t blockId, char tokenSeparator, const vector<PropertyDefinition>& properties,
+        uint64_t numElements, node_offset_t offsetStart, NodeIDMap* nodeIDMap,
+        const vector<string>& propertyColumnFNames,
         vector<unique_ptr<InMemStringOverflowPages>>* stringOverflowPages,
-        listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger> logger);
+        listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger>& logger);
 
-    static void populateUnstrPropertyListsTask(string fname, uint64_t blockId, char tokenSeparator,
-        uint32_t numProperties, uint64_t numElements, node_offset_t offsetStart,
-        const unordered_map<string, PropertyKey> unstrPropertyMap,
+    static void populateUnstrPropertyListsTask(const string& fName, uint64_t blockId,
+        char tokenSeparator, uint32_t numStructuredProperties, node_offset_t offsetStart,
+        const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
         listSizes_t* unstrPropertyListSizes, ListHeaders* unstrPropertyListHeaders,
         ListsMetadata* unstrPropertyListsMetadata, InMemUnstrPropertyPages* unstrPropertyPages,
-        InMemStringOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger> logger);
+        InMemStringOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger>& logger);
 
     // Task Helpers
 
-    static unique_ptr<vector<unique_ptr<uint8_t[]>>> createBuffersForPropertyMap(
-        const vector<DataType>& propertyDataTypes, uint64_t numElements,
-        shared_ptr<spdlog::logger> logger);
+    static unique_ptr<vector<unique_ptr<uint8_t[]>>> createBuffersForProperties(
+        const vector<PropertyDefinition>& properties, uint64_t numElements,
+        shared_ptr<spdlog::logger>& logger);
 
-    static void putPropsOfLineIntoBuffers(const vector<DataType>& propertyDataTypes,
-        const vector<bool>& isPrimaryKeys, CSVReader& reader,
-        vector<unique_ptr<uint8_t[]>>& buffers, const uint32_t& bufferOffset,
+    static void putPropsOfLineIntoBuffers(const vector<PropertyDefinition>& properties,
+        CSVReader& reader, vector<unique_ptr<uint8_t[]>>& buffers, const uint32_t& bufferOffset,
         vector<unique_ptr<InMemStringOverflowPages>>& inMemStringOverflowPages,
         vector<PageCursor>& stringOverflowPagesCursors, NodeIDMap* nodeIDMap, uint64_t nodeOffset);
 
@@ -84,10 +78,10 @@ private:
 
     static void writeBuffersToFiles(const vector<unique_ptr<uint8_t[]>>& buffers,
         const uint64_t& offsetStart, const uint64_t& numElementsToWrite,
-        const vector<string>& propertyColumnFnames, const vector<DataType>& propertyDataTypes);
+        const vector<string>& propertyColumnFnames, const vector<PropertyDefinition>& properties);
 
     static void putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t nodeOffset,
-        const unordered_map<string, PropertyKey>& unstrPropertyMap,
+        const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
         listSizes_t& unstrPropertyListSizes, ListHeaders& unstrPropertyListHeaders,
         ListsMetadata& unstrPropertyListsMetadata, InMemUnstrPropertyPages& unstrPropertyPages,
         InMemStringOverflowPages& stringOverflowPages, PageCursor& stringOvfPagesCursor);
@@ -96,13 +90,13 @@ private:
     shared_ptr<spdlog::logger> logger;
     ThreadPool& threadPool;
     const Graph& graph;
-    const nlohmann::json& metadata;
     const string outputDirectory;
+    const char tokenSeparator;
 
     labelUnstrPropertyListSizes_t labelUnstrPropertyListsSizes;
-    labelListHeaders_t labelUnstrPropertyListHeaders;
-    labelListsMetadata_t labelUnstrPropertyListsMetadata;
-    labelUnstrPropertyLists_t labelUnstrPropertyLists;
+    vector<ListHeaders> labelUnstrPropertyListHeaders;
+    vector<ListsMetadata> labelUnstrPropertyListsMetadata;
+    vector<unique_ptr<InMemUnstrPropertyPages>> labelUnstrPropertyLists;
     vector<unique_ptr<InMemStringOverflowPages>> labelUnstrPropertyListsStringOverflowPages;
 };
 

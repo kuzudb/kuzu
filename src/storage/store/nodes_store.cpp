@@ -11,59 +11,52 @@ NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesP
     const string& directory, BufferManager& bufferManager)
     : logger{spdlog::get("storage")} {
     logger->info("Initializing NodesStore.");
-    initPropertyColumns(catalog, numNodesPerLabel, directory, bufferManager);
-    initUnstrPropertyLists(catalog, directory, bufferManager);
+    initPropertyColumnsAndLists(catalog, numNodesPerLabel, directory, bufferManager);
     logger->info("Done NodesStore.");
 }
 
-void NodesStore::initPropertyColumns(const Catalog& catalog,
+void NodesStore::initPropertyColumnsAndLists(const Catalog& catalog,
     const vector<uint64_t>& numNodesPerLabel, const string& directory,
     BufferManager& bufferManager) {
-    propertyColumns.resize(catalog.getNodeLabelsCount());
+    auto numNodeLabels = catalog.getNodeLabelsCount();
+    propertyColumns.resize(numNodeLabels);
+    unstrPropertyLists.resize(numNodeLabels);
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        auto& propertyMap = catalog.getPropertyKeyMapForNodeLabel(nodeLabel);
-        propertyColumns[nodeLabel].resize(propertyMap.size());
-        for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
-            auto fname = getNodePropertyColumnFname(directory, nodeLabel, property->first);
-            auto idx = property->second.idx;
-            logger->debug("nodeLabel {} propertyIdx {} type {} name `{}`", nodeLabel, idx,
-                property->second.dataType, property->first);
-            switch (property->second.dataType) {
+        auto& properties = catalog.getNodeProperties(nodeLabel);
+        propertyColumns[nodeLabel].resize(properties.size());
+        for (auto& property : properties) {
+            auto propertyId = property.id;
+            auto fName = getNodePropertyColumnFname(directory, nodeLabel, property.name);
+            logger->debug("nodeLabel {} propertyId {} type {} name `{}`", nodeLabel, property.id,
+                property.dataType, property.name);
+            switch (property.dataType) {
             case INT32:
-                propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnInt>(
-                    fname, numNodesPerLabel[nodeLabel], bufferManager);
+                propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnInt>(
+                    fName, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case DOUBLE:
-                propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnDouble>(
-                    fname, numNodesPerLabel[nodeLabel], bufferManager);
+                propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnDouble>(
+                    fName, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case BOOL:
-                propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnBool>(
-                    fname, numNodesPerLabel[nodeLabel], bufferManager);
+                propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnBool>(
+                    fName, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case STRING:
-                propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnString>(
-                    fname, numNodesPerLabel[nodeLabel], bufferManager);
+                propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnString>(
+                    fName, numNodesPerLabel[nodeLabel], bufferManager);
+                break;
+            case UNSTRUCTURED:
+                unstrPropertyLists[nodeLabel] = make_unique<UnstructuredPropertyLists>(
+                    getNodeUnstrPropertyListsFname(directory, nodeLabel), bufferManager);
                 break;
             case DATE:
-                propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnDate>(
-                    fname, numNodesPerLabel[nodeLabel], bufferManager);
+                propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnDate>(
+                    fName, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             default:
-                throw invalid_argument("invalid type for property column craetion.");
+                throw invalid_argument("invalid type for property column and lists creation.");
             }
-        }
-    }
-}
-
-void NodesStore::initUnstrPropertyLists(
-    const Catalog& catalog, const string& directory, BufferManager& bufferManager) {
-    unstrPropertyLists.resize(catalog.getNodeLabelsCount());
-    for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        if (catalog.getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
-            auto fname = getNodeUnstrPropertyListsFname(directory, nodeLabel);
-            unstrPropertyLists[nodeLabel] =
-                make_unique<UnstructuredPropertyLists>(fname, bufferManager);
         }
     }
 }

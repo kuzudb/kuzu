@@ -2,9 +2,11 @@
 
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "nlohmann/json.hpp"
 
+#include "src/common/include/file_utils.h"
 #include "src/common/include/types.h"
 #include "src/common/include/utils.h"
 
@@ -15,150 +17,167 @@ namespace spdlog {
 class logger;
 }
 
-namespace bitsery {
-class Access;
-}
-
 namespace graphflow {
 namespace loader {
-
 class GraphLoader;
-
 } // namespace loader
 } // namespace graphflow
 
 namespace graphflow {
 namespace storage {
 
-typedef unordered_map<const char*, label_t, charArrayHasher, charArrayEqualTo> stringToLabelMap_t;
+// Rel Multiplicity
+enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
+const string RelMultiplicityNames[] = {"MANY_MANY", "MANY_ONE", "ONE_MANY", "ONE_ONE"};
+RelMultiplicity getRelMultiplicity(const string& relMultiplicityString);
+
+// A PropertyDefinition consists of its name, dataType, id and isPrimaryKey. If the property is
+// unstructured, then the dataType is UNSTRUCTURED, otherwise it is one of those supported by the
+// system.
+struct PropertyDefinition {
+
+public:
+    PropertyDefinition() : id{0}, dataType{0}, isPrimaryKey{false} {};
+
+    PropertyDefinition(string name, uint32_t id, DataType dataType)
+        : name{move(name)}, id{id}, dataType{dataType}, isPrimaryKey{false} {};
+
+public:
+    string name;
+    uint32_t id;
+    DataType dataType;
+    bool isPrimaryKey;
+};
+
+struct LabelDefinition {
+protected:
+    LabelDefinition(string labelName, label_t labelId)
+        : labelName{move(labelName)}, labelId{labelId} {}
+
+public:
+    string labelName;
+    label_t labelId;
+};
+
+struct NodeLabelDefinition : LabelDefinition {
+    NodeLabelDefinition() : LabelDefinition{"", 0}, primaryPropertyId{0} {}
+    NodeLabelDefinition(string labelName, label_t labelId, uint64_t primaryPropertyId,
+        vector<PropertyDefinition> properties)
+        : LabelDefinition{move(labelName), labelId}, primaryPropertyId{primaryPropertyId},
+          properties{move(properties)} {
+        for (auto& property : this->properties) {
+            if (property.dataType == UNSTRUCTURED) {
+                unstrPropertiesNameToIdMap[property.name] = property.id;
+            }
+        }
+    }
+
+    uint64_t primaryPropertyId;
+    vector<PropertyDefinition> properties;
+    unordered_set<label_t> fwdRelLabelIdSet; // srcNode->rel
+    unordered_set<label_t> bwdRelLabelIdSet; // dstNode->rel
+    // This map is maintained as a cache for unstructured properties. It is not serialized to the
+    // catalog file, but is re-constructed when reading from the catalog file.
+    unordered_map<string, uint64_t> unstrPropertiesNameToIdMap;
+};
+
+struct RelLabelDefinition : LabelDefinition {
+    RelLabelDefinition() : LabelDefinition{"", 0}, relMultiplicity{0} {}
+    RelLabelDefinition(string labelName, label_t labelId, RelMultiplicity relMultiplicity,
+        vector<PropertyDefinition> properties, unordered_set<label_t> srcNodeLabelIdSet,
+        unordered_set<label_t> dstNodeLabelIdSet)
+        : LabelDefinition{move(labelName), labelId}, relMultiplicity{relMultiplicity},
+          properties{move(properties)}, srcNodeLabelIdSet{move(srcNodeLabelIdSet)},
+          dstNodeLabelIdSet{move(dstNodeLabelIdSet)} {}
+
+    RelMultiplicity relMultiplicity;
+    vector<PropertyDefinition> properties;
+    unordered_set<label_t> srcNodeLabelIdSet;
+    unordered_set<label_t> dstNodeLabelIdSet;
+};
 
 class Catalog {
-    friend class graphflow::loader::GraphLoader;
-    friend class bitsery::Access;
 
 public:
     Catalog();
-    Catalog(const string& directory);
+    explicit Catalog(const string& directory);
 
     virtual ~Catalog() = default;
 
-    inline const uint32_t getNodeLabelsCount() const { return stringToNodeLabelMap.size(); }
-    inline const uint32_t getRelLabelsCount() const { return stringToRelLabelMap.size(); }
+    void addNodeLabel(string labelName, vector<PropertyDefinition> properties,
+        const string& primaryKeyPropertyName);
+    void addRelLabel(string labelName, RelMultiplicity relMultiplicity,
+        vector<PropertyDefinition> properties, const vector<string>& srcNodeLabelNames,
+        const vector<string>& dstNodeLabelNames);
+    void addNodeUnstrProperty(uint64_t labelId, const string& propertyName);
 
-    virtual inline bool containNodeLabel(const char* label) const {
-        return end(stringToNodeLabelMap) != stringToNodeLabelMap.find(label);
+    virtual bool containNodeProperty(label_t labelId, const string& propertyName) const;
+    virtual bool containRelProperty(label_t relLabel, const string& propertyName) const;
+    // getNodeProperty and getRelProperty should be called after checking if property exists
+    // (containNodeProperty and containRelProperty).
+    virtual const PropertyDefinition& getNodeProperty(
+        label_t labelId, const string& propertyName) const;
+    virtual const PropertyDefinition& getRelProperty(
+        label_t labelId, const string& propertyName) const;
+    const unordered_set<label_t>& getNodeLabelsForRelLabelDirection(
+        label_t relLabel, Direction direction) const;
+    virtual const unordered_set<label_t>& getRelLabelsForNodeLabelDirection(
+        label_t nodeLabel, Direction direction) const;
+    virtual bool isSingleMultiplicityInDirection(label_t relLabel, Direction direction) const;
+
+    inline string getNodeLabelName(label_t labelId) const { return nodeLabels[labelId].labelName; }
+    inline uint64_t getNodeLabelsCount() const { return nodeLabels.size(); }
+    inline uint64_t getRelLabelsCount() const { return relLabels.size(); }
+    virtual inline bool containNodeLabel(const string& label) const {
+        return end(nodeLabelNameToIdMap) != nodeLabelNameToIdMap.find(label);
     }
-
+    virtual inline bool containRelLabel(const string& label) const {
+        return end(relLabelNameToIdMap) != relLabelNameToIdMap.find(label);
+    }
     virtual inline label_t getNodeLabelFromString(const char* label) const {
-        return stringToNodeLabelMap.at(label);
+        return nodeLabelNameToIdMap.at(label);
     }
-
-    virtual inline bool containRelLabel(const char* label) const {
-        return end(stringToRelLabelMap) != stringToRelLabelMap.find(label);
-    }
-
     virtual inline label_t getRelLabelFromString(const char* label) const {
-        return stringToRelLabelMap.at(label);
+        return relLabelNameToIdMap.at(label);
     }
-
-    inline const unordered_map<string, PropertyKey>& getUnstrPropertyKeyMapForNodeLabel(
-        const label_t& nodeLabel) const {
-        return nodeUnstrPropertyKeyMaps[nodeLabel];
+    inline const vector<PropertyDefinition>& getNodeProperties(label_t nodeLabel) const {
+        return nodeLabels[nodeLabel].properties;
     }
-
-    inline const unordered_map<string, PropertyKey>& getPropertyKeyMapForNodeLabel(
+    inline const vector<PropertyDefinition>& getRelProperties(label_t relLabel) const {
+        return relLabels[relLabel].properties;
+    }
+    inline const unordered_map<string, uint64_t>& getUnstrPropertiesNameToIdMap(
         label_t nodeLabel) const {
-        return nodePropertyKeyMaps[nodeLabel];
+        return nodeLabels[nodeLabel].unstrPropertiesNameToIdMap;
     }
-
-    inline const unordered_map<string, PropertyKey>& getPropertyKeyMapForRelLabel(
-        label_t relLabel) const {
-        return relPropertyKeyMaps[relLabel];
-    }
-
-    virtual inline bool containNodeProperty(label_t nodeLabel, const string& propertyName) const {
-        auto& nodeProperties = getPropertyKeyMapForNodeLabel(nodeLabel);
-        return end(nodeProperties) != nodeProperties.find(propertyName);
-    }
-
-    virtual inline bool containUnstrNodeProperty(
-        label_t nodeLabel, const string& propertyName) const {
-        auto& nodeProperties = getUnstrPropertyKeyMapForNodeLabel(nodeLabel);
-        return end(nodeProperties) != nodeProperties.find(propertyName);
-    }
-
-    virtual inline DataType getNodePropertyTypeFromString(
-        label_t nodeLabel, const string& propertyName) const {
-        auto& nodeProperties = getPropertyKeyMapForNodeLabel(nodeLabel);
-        return nodeProperties.at(propertyName).dataType;
-    }
-
-    inline uint32_t getUnstrNodePropertyKeyFromString(label_t nodeLabel, const string& name) const {
-        return getUnstrPropertyKeyMapForNodeLabel(nodeLabel).at(name).idx;
-    }
-
-    virtual inline uint32_t getNodePropertyKeyFromString(
-        label_t nodeLabel, const string& name) const {
-        return getPropertyKeyMapForNodeLabel(nodeLabel).at(name).idx;
-    }
-
-    virtual inline bool containRelProperty(label_t relLabel, const string& propertyName) const {
-        auto relProperties = getPropertyKeyMapForRelLabel(relLabel);
-        return end(relProperties) != relProperties.find(propertyName);
-    }
-
-    virtual inline DataType getRelPropertyTypeFromString(
-        label_t relLabel, const string& propertyName) const {
-        auto& relProperties = getPropertyKeyMapForRelLabel(relLabel);
-        return relProperties.at(propertyName).dataType;
-    }
-
-    virtual inline uint32_t getRelPropertyKeyFromString(
-        label_t relLabel, const string& name) const {
-        return getPropertyKeyMapForRelLabel(relLabel).at(name).idx;
-    }
-
-    const string getStringNodeLabel(label_t label) const;
-
-    virtual const vector<label_t>& getRelLabelsForNodeLabelDirection(
-        label_t nodeLabel, Direction dir) const;
-
-    const vector<label_t>& getNodeLabelsForRelLabelDir(label_t relLabel, Direction dir) const;
-
-    virtual bool isSingleCaridinalityInDir(label_t relLabel, Direction dir) const;
 
     unique_ptr<nlohmann::json> debugInfo();
-
-private:
-    template<typename S>
-    void serialize(S& s);
-
     void saveToFile(const string& directory);
     void readFromFile(const string& directory);
 
-    void serializeStringToLabelMap(fstream& f, stringToLabelMap_t& map);
-    void deserializeStringToLabelMap(fstream& f, stringToLabelMap_t& map);
-
-    string getNodeLabelsString(vector<label_t> nodeLabels);
-
-    unique_ptr<nlohmann::json> getPropertiesJson(
-        const unordered_map<string, PropertyKey>& properties);
-
 private:
+    template<typename T>
+    uint64_t serializeValue(const T& value, int fd, uint64_t offset);
+    template<typename T>
+    uint64_t deSerializeValue(T& value, int fd, uint64_t offset);
+    template<typename T>
+    uint64_t serializeVector(const vector<T>& values, int fd, uint64_t offset);
+    template<typename T>
+    uint64_t deSerializeVector(vector<T>& values, int fd, uint64_t offset);
+    template<typename T>
+    uint64_t serializeUnorderedSet(const unordered_set<T>& values, int fd, uint64_t offset);
+    template<typename T>
+    uint64_t deSerializeUnorderedSet(unordered_set<T>& values, int fd, uint64_t offset);
+
+    string getNodeLabelsString(const unordered_set<label_t>& nodeLabels) const;
+
     shared_ptr<spdlog::logger> logger;
-    stringToLabelMap_t stringToNodeLabelMap, stringToRelLabelMap;
-    // A prpertyKeyMap of a node or rel label maps the name of a structured property of that label
-    // to a PropertyKey object that comprises of an index value (called propertyKeyIdx) and the
-    // property's dataType. Hence, {(node/rel) label, propertyKeyIdx} pair uniquely represents a
-    // structured property in the system.
-    vector<unordered_map<string, PropertyKey>> nodePropertyKeyMaps, relPropertyKeyMaps;
-    // nodeUnstrPrpertyKeyMap is a propertyKeyMap for a node label's unstructured properties. Each
-    // entry of the map has the UNKNOWN dataType which means that the dataType of value of such a
-    // property is not fixed and hence can vary from node to node.
-    vector<unordered_map<string, PropertyKey>> nodeUnstrPropertyKeyMaps;
-    vector<vector<label_t>> relLabelToSrcNodeLabels, relLabelToDstNodeLabels;
-    vector<vector<label_t>> srcNodeLabelToRelLabel, dstNodeLabelToRelLabel;
-    vector<Cardinality> relLabelToCardinalityMap;
+    vector<NodeLabelDefinition> nodeLabels;
+    vector<RelLabelDefinition> relLabels;
+    // These two maps are maintained as caches for label name and id mapping. They are not
+    // serialized to the catalog file, but is re-constructed when reading from the catalog file.
+    unordered_map<string, label_t> nodeLabelNameToIdMap;
+    unordered_map<string, label_t> relLabelNameToIdMap;
 };
 
 } // namespace storage

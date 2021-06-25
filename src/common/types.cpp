@@ -85,19 +85,6 @@ uint8_t convertToBoolean(char* data) {
     throw invalid_argument("invalid boolean val.");
 }
 
-Cardinality getCardinality(const string& cardinalityString) {
-    if ("ONE_ONE" == cardinalityString) {
-        return ONE_ONE;
-    } else if ("MANY_ONE" == cardinalityString) {
-        return MANY_ONE;
-    } else if ("ONE_MANY" == cardinalityString) {
-        return ONE_MANY;
-    } else if ("MANY_MANY" == cardinalityString) {
-        return MANY_MANY;
-    }
-    throw invalid_argument("Invalid cardinality string \"" + cardinalityString + "\"");
-}
-
 Direction operator!(Direction& direction) {
     return (FWD == direction) ? BWD : FWD;
 }

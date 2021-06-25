@@ -12,62 +12,61 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace loader {
 
-NodesLoader::NodesLoader(ThreadPool& threadPool, const Graph& graph, const nlohmann::json& metadata,
-    const string& outputDirectory)
-    : logger{spdlog::get("loader")}, threadPool{threadPool}, graph{graph}, metadata{metadata},
-      outputDirectory{outputDirectory} {
+NodesLoader::NodesLoader(
+    ThreadPool& threadPool, const Graph& graph, string outputDirectory, char tokenSeparator)
+    : logger{spdlog::get("loader")}, threadPool{threadPool}, graph{graph},
+      outputDirectory{std::move(outputDirectory)}, tokenSeparator{tokenSeparator} {
     logger->debug("Initializing NodesLoader.");
 };
 
-void NodesLoader::load(const vector<string>& fnames, const vector<uint64_t>& numBlocksPerLabel,
+void NodesLoader::load(const vector<string>& filePaths, const vector<uint64_t>& numBlocksPerLabel,
     const vector<vector<uint64_t>>& numLinesPerBlock, vector<unique_ptr<NodeIDMap>>& nodeIDMaps) {
     labelUnstrPropertyListsSizes.resize(graph.getCatalog().getNodeLabelsCount());
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
+        if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
             labelUnstrPropertyListsSizes[nodeLabel] =
                 make_unique<vector<atomic<uint64_t>>>(graph.getNumNodesPerLabel()[nodeLabel]);
         }
     }
     constructPropertyColumnsAndCountUnstrProperties(
-        fnames, numBlocksPerLabel, numLinesPerBlock, nodeIDMaps);
-    constructUnstrPropertyLists(fnames, numBlocksPerLabel, numLinesPerBlock);
+        filePaths, numBlocksPerLabel, numLinesPerBlock, nodeIDMaps);
+    constructUnstrPropertyLists(filePaths, numBlocksPerLabel, numLinesPerBlock);
 }
 
 // Constructs PropertyColumn for structured properties of all node labels and also counts the number
 // of unstructured property and their sizes for each node. The task is executed in parallel by
 // calling populatePropertyColumnsAndCountUnstrPropertyListSizesTask(...) on each block of all
 // labels.
-void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<string>& fnames,
+void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<string>& filePaths,
     const vector<uint64_t>& numBlocksPerLabel, const vector<vector<uint64_t>>& numLinesPerBlock,
     vector<unique_ptr<NodeIDMap>>& nodeIDMaps) {
+    auto numNodeLabels = graph.getCatalog().getNodeLabelsCount();
     vector<vector<unique_ptr<InMemStringOverflowPages>>> labelPropertyIdxStringOverflowPages(
-        graph.getCatalog().getNodeLabelsCount());
-    vector<vector<string>> labelPropertyColumnFnames(graph.getCatalog().getNodeLabelsCount());
-    for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        auto& propertyMap = graph.getCatalog().getPropertyKeyMapForNodeLabel(nodeLabel);
-        labelPropertyColumnFnames[nodeLabel].resize(propertyMap.size());
-        labelPropertyIdxStringOverflowPages[nodeLabel].resize(propertyMap.size());
-        for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
-            labelPropertyColumnFnames[nodeLabel][property->second.idx] =
-                NodesStore::getNodePropertyColumnFname(outputDirectory, nodeLabel, property->first);
-            if (STRING == property->second.dataType) {
-                labelPropertyIdxStringOverflowPages[nodeLabel][property->second.idx] =
+        numNodeLabels);
+    vector<vector<string>> labelPropertyColumnFnames(numNodeLabels);
+    for (label_t nodeLabel = 0u; nodeLabel < numNodeLabels; nodeLabel++) {
+        auto properties = graph.getCatalog().getNodeProperties(nodeLabel);
+        labelPropertyColumnFnames[nodeLabel].resize(properties.size());
+        labelPropertyIdxStringOverflowPages[nodeLabel].resize(properties.size());
+        for (const auto& property : properties) {
+            labelPropertyColumnFnames[nodeLabel][property.id] =
+                NodesStore::getNodePropertyColumnFname(outputDirectory, nodeLabel, property.name);
+            if (STRING == property.dataType) {
+                labelPropertyIdxStringOverflowPages[nodeLabel][property.id] =
                     make_unique<InMemStringOverflowPages>(
-                        labelPropertyColumnFnames[nodeLabel][property->second.idx] + ".ovf");
+                        labelPropertyColumnFnames[nodeLabel][property.id] + OVERFLOW_FILE_SUFFIX);
             }
         }
     }
     logger->debug("Populating PropertyColumns and Counting unstructured properties.");
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        auto& propertyMap = graph.getCatalog().getPropertyKeyMapForNodeLabel(nodeLabel);
-        auto propertyDataTypes = createPropertyDataTypesArray(propertyMap);
-        auto isPrimaryKeys = getPropertyIsPrimaryKeys(propertyMap);
+        auto properties = graph.getCatalog().getNodeProperties(nodeLabel);
         node_offset_t offsetStart = 0;
         for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
             threadPool.execute(populatePropertyColumnsAndCountUnstrPropertyListSizesTask,
-                fnames[nodeLabel], blockIdx, metadata.at("tokenSeparator").get<string>()[0],
-                propertyDataTypes, isPrimaryKeys, numLinesPerBlock[nodeLabel][blockIdx],
-                offsetStart, nodeIDMaps[nodeLabel].get(), labelPropertyColumnFnames[nodeLabel],
+                filePaths[nodeLabel], blockIdx, tokenSeparator, properties,
+                numLinesPerBlock[nodeLabel][blockIdx], offsetStart, nodeIDMaps[nodeLabel].get(),
+                labelPropertyColumnFnames[nodeLabel],
                 &labelPropertyIdxStringOverflowPages[nodeLabel],
                 labelUnstrPropertyListsSizes[nodeLabel].get(), logger);
             offsetStart += numLinesPerBlock[nodeLabel][blockIdx];
@@ -75,11 +74,11 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
     }
     threadPool.wait();
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        auto& propertyMap = graph.getCatalog().getPropertyKeyMapForNodeLabel(nodeLabel);
-        for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
-            if (STRING == property->second.dataType) {
+        auto& properties = graph.getCatalog().getNodeProperties(nodeLabel);
+        for (const auto& property : properties) {
+            if (STRING == property.dataType) {
                 threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },
-                    labelPropertyIdxStringOverflowPages[nodeLabel][property->second.idx].get());
+                    labelPropertyIdxStringOverflowPages[nodeLabel][property.id].get());
             }
         }
     }
@@ -87,29 +86,31 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
     logger->debug("Done populating PropertyColumns and Counting unstructured properties.");
 }
 
-// Constructs unstructered PropertyLists for the labels that have atleast one unstructured property.
-// The task is executed in parallel by calling populateUnstrPropertyListsTask(...) on each block of
-// all labels.
-void NodesLoader::constructUnstrPropertyLists(const vector<string>& fnames,
+// Constructs unstructured PropertyLists for the labels that have at least one unstructured
+// property. The task is executed in parallel by calling populateUnstrPropertyListsTask(...) on each
+// block of all labels.
+void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
     const vector<uint64_t>& numBlocksPerLabel, const vector<vector<uint64_t>>& numLinesPerBlock) {
     buildUnstrPropertyListsHeadersAndMetadata();
     buildInMemUnstrPropertyLists();
     logger->debug("Populating Unstructured Property Lists.");
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
+        auto unstrPropertiesNameToIdMap =
+            graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel);
+        auto numStructuredProperties = graph.getCatalog().getNodeProperties(nodeLabel).size() -
+                                       unstrPropertiesNameToIdMap.size();
+        if (!unstrPropertiesNameToIdMap.empty()) {
             node_offset_t offsetStart = 0;
             auto listSizes = labelUnstrPropertyListsSizes[nodeLabel].get();
             auto& listsHeaders = labelUnstrPropertyListHeaders[nodeLabel];
             auto& listsMetadata = labelUnstrPropertyListsMetadata[nodeLabel];
             auto unstrPropertyLists = labelUnstrPropertyLists[nodeLabel].get();
             for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
-                threadPool.execute(populateUnstrPropertyListsTask, fnames[nodeLabel], blockIdx,
-                    metadata.at("tokenSeparator").get<string>()[0],
-                    graph.getCatalog().getPropertyKeyMapForNodeLabel(nodeLabel).size(),
-                    numLinesPerBlock[nodeLabel][blockIdx], offsetStart,
-                    graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel), listSizes,
-                    &listsHeaders, &listsMetadata, unstrPropertyLists,
-                    labelUnstrPropertyListsStringOverflowPages[nodeLabel].get(), logger);
+                threadPool.execute(populateUnstrPropertyListsTask, filePaths[nodeLabel], blockIdx,
+                    tokenSeparator, numStructuredProperties, offsetStart,
+                    unstrPropertiesNameToIdMap, listSizes, &listsHeaders, &listsMetadata,
+                    unstrPropertyLists, labelUnstrPropertyListsStringOverflowPages[nodeLabel].get(),
+                    logger);
                 offsetStart += numLinesPerBlock[nodeLabel][blockIdx];
             }
         }
@@ -119,19 +120,19 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& fnames,
     logger->debug("Done populating Unstructured Property Lists.");
 }
 
-// Initializes ListHeaders and ListsMetadata auxilliary structures for all unstructured
+// Initializes ListHeaders and ListsMetadata auxiliary structures for all unstructured
 // PropertyLists.
 void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
     labelUnstrPropertyListHeaders.resize(graph.getCatalog().getNodeLabelsCount());
     for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
-        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
+        if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
             labelUnstrPropertyListHeaders[nodeLabel].init(graph.getNumNodesPerLabel()[nodeLabel]);
         }
     }
     labelUnstrPropertyListsMetadata.resize(graph.getCatalog().getNodeLabelsCount());
     logger->debug("Initializing UnstructuredPropertyListHeaders.");
     for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
-        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
+        if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
             threadPool.execute(ListsLoaderHelper::calculateListHeadersTask,
                 graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE,
                 labelUnstrPropertyListsSizes[nodeLabel].get(),
@@ -142,7 +143,7 @@ void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
     logger->debug("Done initializing UnstructuredPropertyListHeaders.");
     logger->debug("Initializing UnstructuredPropertyListsMetadata.");
     for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
-        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
+        if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
             threadPool.execute(ListsLoaderHelper::calculateListsMetadataTask,
                 graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE,
                 labelUnstrPropertyListsSizes[nodeLabel].get(),
@@ -158,66 +159,66 @@ void NodesLoader::buildInMemUnstrPropertyLists() {
     labelUnstrPropertyLists.resize(graph.getCatalog().getNodeLabelsCount());
     labelUnstrPropertyListsStringOverflowPages.resize(graph.getCatalog().getNodeLabelsCount());
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
-            auto unstrPropertyListsFname =
+        if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
+            auto unstrPropertyListsFName =
                 NodesStore::getNodeUnstrPropertyListsFname(outputDirectory, nodeLabel);
             labelUnstrPropertyLists[nodeLabel] = make_unique<InMemUnstrPropertyPages>(
-                unstrPropertyListsFname, labelUnstrPropertyListsMetadata[nodeLabel].numPages);
+                unstrPropertyListsFName, labelUnstrPropertyListsMetadata[nodeLabel].numPages);
             labelUnstrPropertyListsStringOverflowPages[nodeLabel] =
-                make_unique<InMemStringOverflowPages>(unstrPropertyListsFname + ".ovf");
+                make_unique<InMemStringOverflowPages>(
+                    unstrPropertyListsFName + OVERFLOW_FILE_SUFFIX);
         }
     }
 }
 
 void NodesLoader::saveUnstrPropertyListsToFile() {
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        if (graph.getCatalog().getUnstrPropertyKeyMapForNodeLabel(nodeLabel).size() > 0) {
+        if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
             threadPool.execute([&](InMemUnstrPropertyPages* x) { x->saveToFile(); },
                 labelUnstrPropertyLists[nodeLabel].get());
             threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },
                 labelUnstrPropertyListsStringOverflowPages[nodeLabel].get());
-            auto fname = NodesStore::getNodeUnstrPropertyListsFname(outputDirectory, nodeLabel);
-            threadPool.execute([&](ListsMetadata* x, string fname) { x->saveToDisk(fname); },
-                &labelUnstrPropertyListsMetadata[nodeLabel], fname);
-            threadPool.execute([&](ListHeaders* x, string fname) { x->saveToDisk(fname); },
-                &labelUnstrPropertyListHeaders[nodeLabel], fname);
+            auto fName = NodesStore::getNodeUnstrPropertyListsFname(outputDirectory, nodeLabel);
+            threadPool.execute([&](ListsMetadata* x, const string& fName) { x->saveToDisk(fName); },
+                &labelUnstrPropertyListsMetadata[nodeLabel], fName);
+            threadPool.execute([&](ListHeaders* x, const string& fName) { x->saveToDisk(fName); },
+                &labelUnstrPropertyListHeaders[nodeLabel], fName);
         }
     }
     threadPool.wait();
 }
 
 // Iterate over each line in a block of CSV file. For each line, infer the node offset and call the
-// parser that reads structured properties of that line and puts in appropraite buffers. Also infers
+// parser that reads structured properties of that line and puts in appropriate buffers. Also infers
 // the size of list needed to store unstructured properties of the current node. Finally, dump the
-// buffers to approriate locations in files on disk.
-void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(string fname,
-    uint64_t blockId, char tokenSeparator, vector<DataType> propertyDataTypes,
-    vector<bool> isPrimaryKeys, uint64_t numElements, node_offset_t offsetStart,
-    NodeIDMap* nodeIDMap, vector<string> propertyColumnFnames,
+// buffers to appropriate locations in files on disk.
+void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(const string& fName,
+    uint64_t blockId, char tokenSeparator, const vector<PropertyDefinition>& properties,
+    uint64_t numElements, node_offset_t offsetStart, NodeIDMap* nodeIDMap,
+    const vector<string>& propertyColumnFNames,
     vector<unique_ptr<InMemStringOverflowPages>>* propertyIdxStringOverflowPages,
-    listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger> logger) {
+    listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger>& logger) {
     try {
-        logger->trace("Start: path={0} blkIdx={1}", fname, blockId);
-        vector<PageCursor> stringOverflowPagesCursors{propertyDataTypes.size()};
-        auto buffers = createBuffersForPropertyMap(propertyDataTypes, numElements, logger);
-        CSVReader reader(fname, tokenSeparator, blockId);
+        logger->trace("Start: path={0} blkIdx={1}", fName, blockId);
+        vector<PageCursor> stringOverflowPagesCursors{properties.size()};
+        auto buffers = createBuffersForProperties(properties, numElements, logger);
+        CSVReader reader(fName, tokenSeparator, blockId);
         if (0 == blockId) {
             if (reader.hasNextLine()) {}
         }
         auto bufferOffset = 0u;
         while (reader.hasNextLine()) {
-            if (!propertyDataTypes.empty()) {
-                putPropsOfLineIntoBuffers(propertyDataTypes, isPrimaryKeys, reader, *buffers,
-                    bufferOffset, *propertyIdxStringOverflowPages, stringOverflowPagesCursors,
-                    nodeIDMap, offsetStart + bufferOffset);
+            if (!properties.empty()) {
+                putPropsOfLineIntoBuffers(properties, reader, *buffers, bufferOffset,
+                    *propertyIdxStringOverflowPages, stringOverflowPagesCursors, nodeIDMap,
+                    offsetStart + bufferOffset);
             }
             calcLengthOfUnstrPropertyLists(
                 reader, offsetStart + bufferOffset, *unstrPropertyListSizes);
             bufferOffset++;
         }
-        writeBuffersToFiles(
-            *buffers, offsetStart, numElements, propertyColumnFnames, propertyDataTypes);
-        logger->trace("End: path={0} blkIdx={1}", fname, blockId);
+        writeBuffersToFiles(*buffers, offsetStart, numElements, propertyColumnFNames, properties);
+        logger->trace("End: path={0} blkIdx={1}", fName, blockId);
     } catch (exception& e) {
         logger->error("Caught an exception during loading!!");
         logger->error(e.what());
@@ -226,35 +227,35 @@ void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(stri
 }
 
 // Iterate over each line in a block of CSV file. For each line, infer the node offset, skip
-// structured properties and calls the parser that reads unstructured properties of that line and
-// puts in unstrPropertyLists.
-void NodesLoader::populateUnstrPropertyListsTask(string fname, uint64_t blockId,
-    char tokenSeparator, uint32_t numProperties, uint64_t numElements, node_offset_t offsetStart,
-    const unordered_map<string, PropertyKey> unstrPropertyMap, listSizes_t* unstrPropertyListSizes,
-    ListHeaders* unstrPropertyListHeaders, ListsMetadata* unstrPropertyListsMetadata,
-    InMemUnstrPropertyPages* unstrPropertyPages, InMemStringOverflowPages* stringOverflowPages,
-    shared_ptr<spdlog::logger> logger) {
-    logger->trace("Start: path={0} blkIdx={1}", fname, blockId);
-    CSVReader reader(fname, tokenSeparator, blockId);
+// structured properties and calls the parser that reads unstructured properties of that line
+// and puts in unstrPropertyLists.
+void NodesLoader::populateUnstrPropertyListsTask(const string& fName, uint64_t blockId,
+    char tokenSeparator, uint32_t numStructuredProperties, node_offset_t offsetStart,
+    const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
+    listSizes_t* unstrPropertyListSizes, ListHeaders* unstrPropertyListHeaders,
+    ListsMetadata* unstrPropertyListsMetadata, InMemUnstrPropertyPages* unstrPropertyPages,
+    InMemStringOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger>& logger) {
+    logger->trace("Start: path={0} blkIdx={1}", fName, blockId);
+    CSVReader reader(fName, tokenSeparator, blockId);
     PageCursor stringOvfPagesCursor;
     if (0 == blockId) {
         if (reader.hasNextLine()) {}
     }
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
-        for (auto i = 0u; i < numProperties; ++i) {
+        for (auto i = 0u; i < numStructuredProperties; ++i) {
             reader.hasNextToken();
         }
-        putUnstrPropsOfALineToLists(reader, offsetStart + bufferOffset, unstrPropertyMap,
+        putUnstrPropsOfALineToLists(reader, offsetStart + bufferOffset, unstrPropertiesNameToIdMap,
             *unstrPropertyListSizes, *unstrPropertyListHeaders, *unstrPropertyListsMetadata,
             *unstrPropertyPages, *stringOverflowPages, stringOvfPagesCursor);
         bufferOffset++;
     }
-    logger->trace("End: path={0} blkIdx={1}", fname, blockId);
+    logger->trace("End: path={0} blkIdx={1}", fName, blockId);
 }
 
-// Calculates the size of unstructured property lists by iterating over unstructured properties on a
-// line and deducing the size needed to store each property based on its dataType.
+// Calculates the size of unstructured property lists by iterating over unstructured properties
+// on a line and deducing the size needed to store each property based on its dataType.
 void NodesLoader::calcLengthOfUnstrPropertyLists(
     CSVReader& reader, node_offset_t nodeOffset, listSizes_t& unstrPropertyListSizes) {
     while (reader.hasNextToken()) {
@@ -267,52 +268,57 @@ void NodesLoader::calcLengthOfUnstrPropertyLists(
     }
 }
 
-unique_ptr<vector<unique_ptr<uint8_t[]>>> NodesLoader::createBuffersForPropertyMap(
-    const vector<DataType>& propertyDataTypes, uint64_t numElements,
-    shared_ptr<spdlog::logger> logger) {
+unique_ptr<vector<unique_ptr<uint8_t[]>>> NodesLoader::createBuffersForProperties(
+    const vector<PropertyDefinition>& properties, uint64_t numElements,
+    shared_ptr<spdlog::logger>& logger) {
     logger->trace("Creating buffers of size {}", numElements);
-    auto buffers = make_unique<vector<unique_ptr<uint8_t[]>>>(propertyDataTypes.size());
-    for (auto propertyIdx = 0u; propertyIdx < propertyDataTypes.size(); propertyIdx++) {
-        (*buffers)[propertyIdx] =
-            make_unique<uint8_t[]>(numElements * getDataTypeSize(propertyDataTypes[propertyIdx]));
+    auto buffers = make_unique<vector<unique_ptr<uint8_t[]>>>(properties.size());
+    for (auto propertyIdx = 0u; propertyIdx < properties.size(); propertyIdx++) {
+        if (properties[propertyIdx].dataType != UNSTRUCTURED) {
+            (*buffers)[propertyIdx] = make_unique<uint8_t[]>(
+                numElements * getDataTypeSize(properties[propertyIdx].dataType));
+        }
     };
     return buffers;
 }
 
 // Parses the line by converting each property value to the corresponding dataType as given by
 // propertyDataTypes array and puts the value into appropriate buffer.
-void NodesLoader::putPropsOfLineIntoBuffers(const vector<DataType>& propertyDataTypes,
-    const vector<bool>& isPrimaryKeys, CSVReader& reader, vector<unique_ptr<uint8_t[]>>& buffers,
-    const uint32_t& bufferOffset,
+void NodesLoader::putPropsOfLineIntoBuffers(const vector<PropertyDefinition>& properties,
+    CSVReader& reader, vector<unique_ptr<uint8_t[]>>& buffers, const uint32_t& bufferOffset,
     vector<unique_ptr<InMemStringOverflowPages>>& propertyIdxStringOverflowPages,
     vector<PageCursor>& stringOverflowPagesCursors, NodeIDMap* nodeIDMap, uint64_t nodeOffset) {
-    for (auto propertyIdx = 0u; propertyIdx < propertyDataTypes.size(); ++propertyIdx) {
+    for (auto propertyId = 0u; propertyId < properties.size(); ++propertyId) {
+        auto property = properties[propertyId];
+        if (property.dataType == UNSTRUCTURED) {
+            continue;
+        }
         reader.hasNextToken();
-        switch (propertyDataTypes[propertyIdx]) {
+        switch (property.dataType) {
         case INT32: {
             auto intVal = reader.skipTokenIfNull() ? NULL_INT32 : reader.getInt32();
-            memcpy(buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(INT32)), &intVal,
+            memcpy(buffers[propertyId].get() + (bufferOffset * getDataTypeSize(INT32)), &intVal,
                 getDataTypeSize(INT32));
-            if (isPrimaryKeys[propertyIdx]) {
+            if (property.isPrimaryKey) {
                 nodeIDMap->set(to_string(intVal).c_str(), nodeOffset);
             }
             break;
         }
         case DOUBLE: {
             auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
-            memcpy(buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(DOUBLE)),
-                &doubleVal, getDataTypeSize(DOUBLE));
+            memcpy(buffers[propertyId].get() + (bufferOffset * getDataTypeSize(DOUBLE)), &doubleVal,
+                getDataTypeSize(DOUBLE));
             break;
         }
         case BOOL: {
             auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
-            memcpy(buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(BOOL)), &boolVal,
+            memcpy(buffers[propertyId].get() + (bufferOffset * getDataTypeSize(BOOL)), &boolVal,
                 getDataTypeSize(BOOL));
             break;
         }
         case DATE: {
             auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
-            memcpy(buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(DATE)), &dateVal,
+            memcpy(buffers[propertyId].get() + (bufferOffset * getDataTypeSize(DATE)), &dateVal,
                 getDataTypeSize(DATE));
             break;
         }
@@ -320,10 +326,10 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<DataType>& propertyData
             auto strVal =
                 reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
             auto encodedString = reinterpret_cast<gf_string_t*>(
-                buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(STRING)));
-            propertyIdxStringOverflowPages[propertyIdx]->setStrInOvfPageAndPtrInEncString(
-                strVal, stringOverflowPagesCursors[propertyIdx], encodedString);
-            if (isPrimaryKeys[propertyIdx]) {
+                buffers[propertyId].get() + (bufferOffset * getDataTypeSize(STRING)));
+            propertyIdxStringOverflowPages[propertyId]->setStrInOvfPageAndPtrInEncString(
+                strVal, stringOverflowPagesCursors[propertyId], encodedString);
+            if (property.isPrimaryKey) {
                 nodeIDMap->set(strVal, nodeOffset);
             }
             break;
@@ -338,30 +344,33 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<DataType>& propertyData
 
 void NodesLoader::writeBuffersToFiles(const vector<unique_ptr<uint8_t[]>>& buffers,
     const uint64_t& offsetStart, const uint64_t& numElementsToWrite,
-    const vector<string>& propertyColumnFnames, const vector<DataType>& propertyDataTypes) {
-    for (auto propertyIdx = 0u; propertyIdx < propertyDataTypes.size(); propertyIdx++) {
-        auto fd = FileUtils::openFile(propertyColumnFnames[propertyIdx], O_WRONLY | O_CREAT);
-        auto offsetInFile = offsetStart * getDataTypeSize(propertyDataTypes[propertyIdx]);
-        auto bytesToWrite = numElementsToWrite * getDataTypeSize(propertyDataTypes[propertyIdx]);
+    const vector<string>& propertyColumnFnames, const vector<PropertyDefinition>& properties) {
+    for (auto propertyId = 0u; propertyId < properties.size(); propertyId++) {
+        if (properties[propertyId].dataType == UNSTRUCTURED) {
+            continue;
+        }
+        auto fd = FileUtils::openFile(propertyColumnFnames[propertyId], O_WRONLY | O_CREAT);
+        auto offsetInFile = offsetStart * getDataTypeSize(properties[propertyId].dataType);
+        auto bytesToWrite = numElementsToWrite * getDataTypeSize(properties[propertyId].dataType);
         auto numPagesToWrite = (bytesToWrite + PAGE_SIZE - 1) / PAGE_SIZE;
         FileUtils::writeToFile(
-            fd, buffers[propertyIdx].get(), numPagesToWrite * PAGE_SIZE, offsetInFile);
+            fd, buffers[propertyId].get(), numPagesToWrite * PAGE_SIZE, offsetInFile);
         FileUtils::closeFile(fd);
     }
 }
 
-// Parses the line by converting each unstructured property value to the dataType that is specified
-// with that property puts the value at appropiate location in unstrPropertyPages.
+// Parses the line by converting each unstructured property value to the dataType that is
+// specified with that property puts the value at appropiate location in unstrPropertyPages.
 void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t nodeOffset,
-    const unordered_map<string, PropertyKey>& unstrPropertyMap, listSizes_t& unstrPropertyListSizes,
-    ListHeaders& unstrPropertyListHeaders, ListsMetadata& unstrPropertyListsMetadata,
-    InMemUnstrPropertyPages& unstrPropertyPages, InMemStringOverflowPages& stringOverflowPages,
-    PageCursor& stringOvfPagesCursor) {
+    const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
+    listSizes_t& unstrPropertyListSizes, ListHeaders& unstrPropertyListHeaders,
+    ListsMetadata& unstrPropertyListsMetadata, InMemUnstrPropertyPages& unstrPropertyPages,
+    InMemStringOverflowPages& stringOverflowPages, PageCursor& stringOvfPagesCursor) {
     while (reader.hasNextToken()) {
         auto unstrPropertyString = reader.getString();
         auto unstrPropertyStringBreaker1 = strchr(unstrPropertyString, ':');
         *unstrPropertyStringBreaker1 = 0;
-        auto propertyKeyIdx = unstrPropertyMap.find(string(unstrPropertyString))->second.idx;
+        auto propertyKeyId = unstrPropertiesNameToIdMap.at(string(unstrPropertyString));
         auto unstrPropertyStringBreaker2 = strchr(unstrPropertyStringBreaker1 + 1, ':');
         *unstrPropertyStringBreaker2 = 0;
         auto dataType = getDataType(string(unstrPropertyStringBreaker1 + 1));
@@ -374,26 +383,26 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
         switch (dataType) {
         case INT32: {
             auto intVal = convertToInt32(unstrPropertyStringBreaker2 + 1);
-            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyIdx,
+            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&intVal));
             break;
         }
         case DOUBLE: {
             auto doubleVal = convertToDouble(unstrPropertyStringBreaker2 + 1);
-            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyIdx,
+            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize,
                 reinterpret_cast<uint8_t*>(&doubleVal));
             break;
         }
         case BOOL: {
             auto boolVal = convertToBoolean(unstrPropertyStringBreaker2 + 1);
-            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyIdx,
+            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&boolVal));
             break;
         }
         case DATE: {
             auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
-            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyIdx,
+            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&dateVal));
             break;
         }
@@ -403,12 +412,12 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             auto encodedString = reinterpret_cast<gf_string_t*>(
                 unstrPropertyPages.getPtrToMemLoc(pageCursor) +
                 UnstructuredPropertyLists::
-                    UNSTR_PROP_HEADER_LEN /*leave space for idx and dataType*/);
+                    UNSTR_PROP_HEADER_LEN /*leave space for id and dataType*/);
             stringOverflowPages.setStrInOvfPageAndPtrInEncString(
                 strVal, stringOvfPagesCursor, encodedString);
-            // in case of string, we want to set only the property key idx and datatype.
+            // in case of string, we want to set only the property key id and datatype.
             unstrPropertyPages.setUnstrProperty(
-                pageCursor, propertyKeyIdx, static_cast<uint8_t>(dataType), 0, nullptr);
+                pageCursor, propertyKeyId, static_cast<uint8_t>(dataType), 0, nullptr);
             break;
         }
         default:

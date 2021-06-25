@@ -39,11 +39,9 @@ public:
     }
 
 private:
-    void initPropertyColumns(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
-        const string& directory, BufferManager& bufferManager);
-
-    void initUnstrPropertyLists(
-        const Catalog& catalog, const string& directory, BufferManager& bufferManager);
+    void initPropertyColumnsAndLists(const Catalog& catalog,
+        const vector<uint64_t>& numNodesPerLabel, const string& directory,
+        BufferManager& bufferManager);
 
 private:
     shared_ptr<spdlog::logger> logger;

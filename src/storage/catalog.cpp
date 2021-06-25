@@ -1,204 +1,391 @@
 #include "src/storage/include/catalog.h"
 
-#include <fstream>
 #include <iostream>
 
-#include "bitsery/adapter/stream.h"
-#include "bitsery/bitsery.h"
-#include "bitsery/ext/std_map.h"
-#include "bitsery/traits/string.h"
-#include "bitsery/traits/vector.h"
 #include "spdlog/spdlog.h"
-#include <bitsery/brief_syntax.h>
-#include <bitsery/brief_syntax/string.h>
-#include <bitsery/ext/pointer.h>
-#include <bitsery/ext/std_map.h>
 
 using namespace std;
-using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAdapter>;
 
 namespace graphflow {
 namespace storage {
+
+RelMultiplicity getRelMultiplicity(const string& relMultiplicityString) {
+    if ("ONE_ONE" == relMultiplicityString) {
+        return ONE_ONE;
+    } else if ("MANY_ONE" == relMultiplicityString) {
+        return MANY_ONE;
+    } else if ("ONE_MANY" == relMultiplicityString) {
+        return ONE_MANY;
+    } else if ("MANY_MANY" == relMultiplicityString) {
+        return MANY_MANY;
+    }
+    throw invalid_argument("Invalid relMultiplicity string \"" + relMultiplicityString + "\"");
+}
+
+/**
+ * Serialize and deSerialize functions for primitive (container) data types.
+ * */
+template<typename T>
+uint64_t Catalog::serializeValue(const T& value, int fd, uint64_t offset) {
+    FileUtils::writeToFile(fd, (uint8_t*)&value, sizeof(T), offset);
+    return offset + sizeof(T);
+}
+template<typename T>
+uint64_t Catalog::deSerializeValue(T& value, int fd, uint64_t offset) {
+    FileUtils::readFromFile(fd, (uint8_t*)&value, sizeof(T), offset);
+    return offset + sizeof(T);
+}
+template<typename T>
+uint64_t Catalog::serializeVector(const vector<T>& values, int fd, uint64_t offset) {
+    uint64_t vectorSize = values.size();
+    offset = serializeValue<uint64_t>(vectorSize, fd, offset);
+    for (auto& value : values) {
+        offset = serializeValue<T>(value, fd, offset);
+    }
+    return offset;
+}
+template<typename T>
+uint64_t Catalog::deSerializeVector(vector<T>& values, int fd, uint64_t offset) {
+    uint64_t vectorSize;
+    offset = deSerializeValue<uint64_t>(vectorSize, fd, offset);
+    values.resize(vectorSize);
+    for (auto& value : values) {
+        offset = deSerializeValue<T>(value, fd, offset);
+    }
+    return offset;
+}
+template<typename T>
+uint64_t Catalog::serializeUnorderedSet(const unordered_set<T>& values, int fd, uint64_t offset) {
+    uint64_t setSize = values.size();
+    offset = serializeValue<uint64_t>(setSize, fd, offset);
+    for (auto& value : values) {
+        offset = serializeValue<T>(value, fd, offset);
+    }
+    return offset;
+}
+template<typename T>
+uint64_t Catalog::deSerializeUnorderedSet(unordered_set<T>& values, int fd, uint64_t offset) {
+    uint64_t setSize;
+    offset = deSerializeValue<uint64_t>(setSize, fd, offset);
+    for (auto i = 0u; i < setSize; i++) {
+        T value;
+        offset = deSerializeValue<T>(value, fd, offset);
+        values.insert(value);
+    }
+    return offset;
+}
+template<>
+uint64_t Catalog::serializeValue<string>(const string& value, int fd, uint64_t offset) {
+    uint64_t valueLength = value.length();
+    FileUtils::writeToFile(fd, &valueLength, sizeof(uint64_t), offset);
+    FileUtils::writeToFile(fd, (uint8_t*)value.data(), valueLength, offset + sizeof(uint64_t));
+    return offset + sizeof(uint64_t) + valueLength;
+}
+template<>
+uint64_t Catalog::deSerializeValue<string>(string& value, int fd, uint64_t offset) {
+    uint64_t valueLength = 0;
+    offset = deSerializeValue<uint64_t>(valueLength, fd, offset);
+    value.resize(valueLength);
+    FileUtils::readFromFile(fd, (uint8_t*)value.data(), valueLength, offset);
+    return offset + valueLength;
+}
+
+/**
+ * Serialize and deSerialize functions for Catalog customized data types.
+ * */
+template<>
+uint64_t Catalog::serializeValue<PropertyDefinition>(
+    const PropertyDefinition& value, int fd, uint64_t offset) {
+    offset = serializeValue<string>(value.name, fd, offset);
+    offset = serializeValue<uint32_t>(value.id, fd, offset);
+    offset = serializeValue<DataType>(value.dataType, fd, offset);
+    return serializeValue<bool>(value.isPrimaryKey, fd, offset);
+}
+template<>
+uint64_t Catalog::deSerializeValue<PropertyDefinition>(
+    PropertyDefinition& value, int fd, uint64_t offset) {
+    offset = deSerializeValue<string>(value.name, fd, offset);
+    offset = deSerializeValue<uint32_t>(value.id, fd, offset);
+    offset = deSerializeValue<DataType>(value.dataType, fd, offset);
+    return deSerializeValue<bool>(value.isPrimaryKey, fd, offset);
+}
+template<>
+uint64_t Catalog::serializeValue<NodeLabelDefinition>(
+    const NodeLabelDefinition& value, int fd, uint64_t offset) {
+    offset = serializeValue<string>(value.labelName, fd, offset);
+    offset = serializeValue<label_t>(value.labelId, fd, offset);
+    offset = serializeValue<uint64_t>(value.primaryPropertyId, fd, offset);
+    offset = serializeVector<PropertyDefinition>(value.properties, fd, offset);
+    offset = serializeUnorderedSet<label_t>(value.fwdRelLabelIdSet, fd, offset);
+    return serializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fd, offset);
+}
+template<>
+uint64_t Catalog::deSerializeValue<NodeLabelDefinition>(
+    NodeLabelDefinition& value, int fd, uint64_t offset) {
+    offset = deSerializeValue<string>(value.labelName, fd, offset);
+    offset = deSerializeValue<label_t>(value.labelId, fd, offset);
+    offset = deSerializeValue<uint64_t>(value.primaryPropertyId, fd, offset);
+    offset = deSerializeVector<PropertyDefinition>(value.properties, fd, offset);
+    offset = deSerializeUnorderedSet<label_t>(value.fwdRelLabelIdSet, fd, offset);
+    return deSerializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fd, offset);
+}
+template<>
+uint64_t Catalog::serializeValue<RelLabelDefinition>(
+    const RelLabelDefinition& value, int fd, uint64_t offset) {
+    offset = serializeValue<string>(value.labelName, fd, offset);
+    offset = serializeValue<label_t>(value.labelId, fd, offset);
+    offset = serializeValue<RelMultiplicity>(value.relMultiplicity, fd, offset);
+    offset = serializeVector<PropertyDefinition>(value.properties, fd, offset);
+    offset = serializeUnorderedSet<label_t>(value.srcNodeLabelIdSet, fd, offset);
+    return serializeUnorderedSet<label_t>(value.dstNodeLabelIdSet, fd, offset);
+}
+template<>
+uint64_t Catalog::deSerializeValue<RelLabelDefinition>(
+    RelLabelDefinition& value, int fd, uint64_t offset) {
+    offset = deSerializeValue<string>(value.labelName, fd, offset);
+    offset = deSerializeValue<label_t>(value.labelId, fd, offset);
+    offset = deSerializeValue<RelMultiplicity>(value.relMultiplicity, fd, offset);
+    offset = deSerializeVector<PropertyDefinition>(value.properties, fd, offset);
+    offset = deSerializeUnorderedSet<label_t>(value.srcNodeLabelIdSet, fd, offset);
+    return deSerializeUnorderedSet<label_t>(value.dstNodeLabelIdSet, fd, offset);
+}
 
 Catalog::Catalog() {
     logger = spdlog::get("storage");
 }
 
 Catalog::Catalog(const string& directory) : Catalog() {
-    logger->info("Initializing Catalog.");
+    logger->info("Initializing catalog.");
     readFromFile(directory);
-    logger->info("Done.");
-};
+    logger->info("Initializing catalog done.");
+}
 
-const string Catalog::getStringNodeLabel(label_t label) const {
-    for (stringToLabelMap_t::const_iterator it = stringToNodeLabelMap.begin();
-         it != stringToNodeLabelMap.end(); ++it) {
-        if (it->second == label) {
-            return string(it->first);
+void Catalog::addNodeLabel(
+    string labelName, vector<PropertyDefinition> properties, const string& primaryKeyPropertyName) {
+    label_t labelId = nodeLabels.size();
+    bool hasFoundPrimaryKey = false;
+    uint64_t primaryKeyPropertyId;
+    for (auto i = 0u; i < properties.size(); i++) {
+        if (properties[i].name == primaryKeyPropertyName) {
+            hasFoundPrimaryKey = true;
+            properties[i].isPrimaryKey = true;
+            primaryKeyPropertyId = i;
+            break;
         }
     }
-    throw invalid_argument("No node label with labelIdx: " + label);
+    if (!hasFoundPrimaryKey) {
+        throw invalid_argument(
+            "Specified primary key property" + primaryKeyPropertyName + " is not found.");
+    }
+    nodeLabelNameToIdMap[labelName] = labelId;
+    nodeLabels.emplace_back(move(labelName), labelId, primaryKeyPropertyId, move(properties));
 }
 
-const vector<label_t>& Catalog::getRelLabelsForNodeLabelDirection(
-    label_t nodeLabel, Direction dir) const {
-    if (nodeLabel >= getNodeLabelsCount()) {
-        throw invalid_argument("Node label out of the bounds.");
+void Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
+    vector<PropertyDefinition> properties, const vector<string>& srcNodeLabelNames,
+    const vector<string>& dstNodeLabelNames) {
+    label_t labelId = relLabels.size();
+    unordered_set<label_t> srcNodeLabelIdSet, dstNodeLabelIdSet;
+    for (auto& nodeLabelName : srcNodeLabelNames) {
+        if (nodeLabelNameToIdMap.find(nodeLabelName) == nodeLabelNameToIdMap.end()) {
+            throw invalid_argument(
+                "Specified src node " + nodeLabelName + " is not found in the catalog.");
+        }
+        srcNodeLabelIdSet.insert(nodeLabelNameToIdMap[nodeLabelName]);
     }
-    if (FWD == dir) {
-        return srcNodeLabelToRelLabel[nodeLabel];
+    for (auto& nodeLabelName : dstNodeLabelNames) {
+        if (nodeLabelNameToIdMap.find(nodeLabelName) == nodeLabelNameToIdMap.end()) {
+            throw invalid_argument(
+                "Specified dst node " + nodeLabelName + " is not found in the catalog.");
+        }
+        dstNodeLabelIdSet.insert(nodeLabelNameToIdMap[nodeLabelName]);
     }
-    return dstNodeLabelToRelLabel[nodeLabel];
+    for (auto& nodeLabelId : srcNodeLabelIdSet) {
+        nodeLabels[nodeLabelId].fwdRelLabelIdSet.insert(labelId);
+    }
+    for (auto& nodeLabelId : dstNodeLabelIdSet) {
+        nodeLabels[nodeLabelId].bwdRelLabelIdSet.insert(labelId);
+    }
+    relLabelNameToIdMap[labelName] = labelId;
+    relLabels.emplace_back(move(labelName), labelId, relMultiplicity, move(properties),
+        move(srcNodeLabelIdSet), move(dstNodeLabelIdSet));
 }
 
-const vector<label_t>& Catalog::getNodeLabelsForRelLabelDir(label_t relLabel, Direction dir) const {
-    if (relLabel >= getRelLabelsCount()) {
-        throw invalid_argument("Node label out of the bounds.");
+void Catalog::addNodeUnstrProperty(uint64_t labelId, const string& propertyName) {
+    auto& nodeLabel = nodeLabels[labelId];
+    if (nodeLabel.unstrPropertiesNameToIdMap.contains(propertyName)) {
+        // Unstructured property with the same name already exists, skip it.
+        return;
     }
-    if (FWD == dir) {
-        return relLabelToSrcNodeLabels[relLabel];
-    }
-    return relLabelToDstNodeLabels[relLabel];
+    auto propertyId = nodeLabel.properties.size();
+    nodeLabel.properties.emplace_back(propertyName, propertyId, UNSTRUCTURED);
+    nodeLabel.unstrPropertiesNameToIdMap[propertyName] = propertyId;
 }
 
-bool Catalog::isSingleCaridinalityInDir(label_t relLabel, Direction dir) const {
-    auto cardinality = relLabelToCardinalityMap[relLabel];
-    if (FWD == dir) {
-        return ONE_ONE == cardinality || MANY_ONE == cardinality;
+bool Catalog::containNodeProperty(label_t labelId, const string& propertyName) const {
+    for (auto& property : nodeLabels[labelId].properties) {
+        if (propertyName == property.name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const PropertyDefinition& Catalog::getNodeProperty(
+    label_t labelId, const string& propertyName) const {
+    for (auto& property : nodeLabels[labelId].properties) {
+        if (propertyName == property.name) {
+            return property;
+        }
+    }
+    assert(false);
+}
+
+bool Catalog::containRelProperty(label_t labelId, const string& propertyName) const {
+    for (auto& property : relLabels[labelId].properties) {
+        if (propertyName == property.name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const PropertyDefinition& Catalog::getRelProperty(
+    label_t labelId, const string& propertyName) const {
+    for (auto& property : relLabels[labelId].properties) {
+        if (propertyName == property.name) {
+            return property;
+        }
+    }
+    assert(false);
+}
+
+const unordered_set<label_t>& Catalog::getRelLabelsForNodeLabelDirection(
+    label_t nodeLabel, Direction direction) const {
+    if (nodeLabel >= nodeLabels.size()) {
+        throw invalid_argument("Node label " + to_string(nodeLabel) + " is out of bounds.");
+    }
+    if (FWD == direction) {
+        return nodeLabels[nodeLabel].fwdRelLabelIdSet;
+    }
+    return nodeLabels[nodeLabel].bwdRelLabelIdSet;
+}
+
+const unordered_set<label_t>& Catalog::getNodeLabelsForRelLabelDirection(
+    label_t relLabel, Direction direction) const {
+    if (relLabel >= relLabels.size()) {
+        throw invalid_argument("Rel label " + to_string(relLabel) + " is out of bounds.");
+    }
+    if (FWD == direction) {
+        return relLabels[relLabel].srcNodeLabelIdSet;
+    }
+    return relLabels[relLabel].dstNodeLabelIdSet;
+}
+
+bool Catalog::isSingleMultiplicityInDirection(label_t relLabel, Direction direction) const {
+    auto relMultiplicity = relLabels[relLabel].relMultiplicity;
+    if (FWD == direction) {
+        return ONE_ONE == relMultiplicity || MANY_ONE == relMultiplicity;
     } else {
-        return ONE_ONE == cardinality || ONE_MANY == cardinality;
+        return ONE_ONE == relMultiplicity || ONE_MANY == relMultiplicity;
     }
 }
 
-template<typename S>
-void Catalog::serialize(S& s) {
-    auto propertyMapsFunc = [](S& s, unordered_map<string, PropertyKey>& v) {
-        s.ext(v, bitsery::ext::StdMap{UINT32_MAX}, [](S& s, string& key, PropertyKey& value) {
-            s(key, value.dataType, value.idx, value.isPrimaryKey);
-        });
-    };
-    s.container(nodePropertyKeyMaps, UINT32_MAX, propertyMapsFunc);
-    s.container(relPropertyKeyMaps, UINT32_MAX, propertyMapsFunc);
-    s.container(nodeUnstrPropertyKeyMaps, UINT32_MAX, propertyMapsFunc);
-
-    auto vectorLabelsFunc = [](S& s, vector<label_t>& v) {
-        s.container(v, UINT32_MAX, [](S& s, label_t& w) { s(w); });
-    };
-    s.container(relLabelToSrcNodeLabels, UINT32_MAX, vectorLabelsFunc);
-    s.container(relLabelToDstNodeLabels, UINT32_MAX, vectorLabelsFunc);
-    s.container(srcNodeLabelToRelLabel, UINT32_MAX, vectorLabelsFunc);
-    s.container(dstNodeLabelToRelLabel, UINT32_MAX, vectorLabelsFunc);
-
-    s.container(relLabelToCardinalityMap, UINT32_MAX, [](S& s, Cardinality& v) { s(v); });
-}
-
-void Catalog::saveToFile(const string& path) {
-    auto catalogPath = path + "/catalog.bin";
-    fstream f{catalogPath, f.binary | f.trunc | f.out};
-    if (f.fail()) {
-        throw invalid_argument("cannot open " + catalogPath + " for writing");
+void Catalog::saveToFile(const string& directory) {
+    auto catalogPath = FileUtils::joinPath(directory, "catalog.bin");
+    int fd = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
+    uint64_t offset = 0;
+    uint64_t numNodeLabels = nodeLabels.size();
+    uint64_t numRelLabels = relLabels.size();
+    offset = serializeValue<uint64_t>(numNodeLabels, fd, offset);
+    offset = serializeValue<uint64_t>(numRelLabels, fd, offset);
+    for (auto& nodeLabel : nodeLabels) {
+        offset = serializeValue<NodeLabelDefinition>(nodeLabel, fd, offset);
     }
-    serializeStringToLabelMap(f, stringToNodeLabelMap);
-    serializeStringToLabelMap(f, stringToRelLabelMap);
-    OutputStreamAdapter serializer{f};
-    serializer.object(*this);
-    serializer.adapter().flush();
-    f.close();
+    for (auto& relLabel : relLabels) {
+        offset = serializeValue<RelLabelDefinition>(relLabel, fd, offset);
+    }
+    FileUtils::closeFile(fd);
 }
 
 void Catalog::readFromFile(const string& directory) {
-    auto path = directory + "/catalog.bin";
-    logger->debug("Reading from {}.", path);
-    fstream f{path, f.binary | f.in};
-    if (f.fail()) {
-        throw invalid_argument("Cannot open " + path + " for reading the catalog.");
+    auto catalogPath = FileUtils::joinPath(directory, "catalog.bin");
+    logger->debug("Reading from {}.", catalogPath);
+    int fd = FileUtils::openFile(catalogPath, O_RDONLY);
+    uint64_t offset = 0;
+    uint64_t numNodeLabels, numRelLabels;
+    offset = deSerializeValue<uint64_t>(numNodeLabels, fd, offset);
+    offset = deSerializeValue<uint64_t>(numRelLabels, fd, offset);
+    nodeLabels.resize(numNodeLabels);
+    relLabels.resize(numRelLabels);
+    for (auto labelId = 0u; labelId < numNodeLabels; labelId++) {
+        offset = deSerializeValue<NodeLabelDefinition>(nodeLabels[labelId], fd, offset);
     }
-    deserializeStringToLabelMap(f, stringToNodeLabelMap);
-    deserializeStringToLabelMap(f, stringToRelLabelMap);
-    auto state = bitsery::quickDeserialization<bitsery::InputStreamAdapter>(f, *this);
-    f.close();
-    if (!(state.first == bitsery::ReaderError::NoError && state.second)) {
-        throw invalid_argument("Cannot deserialize the catalog.");
+    for (auto labelId = 0u; labelId < numRelLabels; labelId++) {
+        offset = deSerializeValue<RelLabelDefinition>(relLabels[labelId], fd, offset);
     }
-}
-
-void Catalog::serializeStringToLabelMap(fstream& f, stringToLabelMap_t& map) {
-    uint32_t mapSize = map.size();
-    f.write(reinterpret_cast<char*>(&mapSize), sizeof(uint32_t));
-    for (auto& entry : map) {
-        mapSize = strlen(entry.first);
-        f.write(reinterpret_cast<char*>(&mapSize), sizeof(uint32_t));
-        for (auto i = 0u; i < strlen(entry.first); i++) {
-            f << entry.first[i];
+    // construct the labelNameToIdMap and label's unstrPropertiesNameToIdMap
+    for (auto& label : nodeLabels) {
+        nodeLabelNameToIdMap[label.labelName] = label.labelId;
+        for (auto i = 0u; i < label.properties.size(); i++) {
+            auto& property = label.properties[i];
+            if (property.dataType == UNSTRUCTURED) {
+                label.unstrPropertiesNameToIdMap[property.name] = property.id;
+            }
         }
-        f.write(reinterpret_cast<char*>(&entry.second), sizeof(label_t));
     }
+    for (auto& label : relLabels) {
+        relLabelNameToIdMap[label.labelName] = label.labelId;
+    }
+    FileUtils::closeFile(fd);
 }
 
-void Catalog::deserializeStringToLabelMap(fstream& f, stringToLabelMap_t& map) {
-    uint32_t size;
-    f.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-    for (auto i = 0u; i < size; i++) {
-        uint32_t arraySize;
-        f.read(reinterpret_cast<char*>(&arraySize), sizeof(uint32_t));
-        auto array = new char[arraySize + 1];
-        f.read(reinterpret_cast<char*>(array), arraySize);
-        array[arraySize] = 0;
-        label_t label;
-        f.read(reinterpret_cast<char*>(&label), sizeof(label_t));
-        map.insert({{array, label}});
-    }
-}
-
-unique_ptr<nlohmann::json> Catalog::debugInfo() {
-    auto json = make_unique<nlohmann::json>();
-    for (stringToLabelMap_t::const_iterator labelIt = stringToNodeLabelMap.begin();
-         labelIt != stringToNodeLabelMap.end(); ++labelIt) {
-        string label(labelIt->first);
-        (*json)["Catalog"]["NodeLabels"][label]["idx"] = to_string(labelIt->second);
-        (*json)["Catalog"]["NodeLabels"][label]["properties"] =
-            *getPropertiesJson(nodePropertyKeyMaps.at(labelIt->second));
-    }
-
-    for (stringToLabelMap_t::const_iterator labelIt = stringToRelLabelMap.begin();
-         labelIt != stringToRelLabelMap.end(); ++labelIt) {
-        string label(labelIt->first);
-        (*json)["Catalog"]["RelLabels"][label]["idx"] = to_string(labelIt->second);
-        (*json)["Catalog"]["RelLabels"][label]["cardinality"] =
-            graphflow::common::CardinalityNames[relLabelToCardinalityMap[labelIt->second]];
-        (*json)["Catalog"]["RelLabels"][label]["properties"] =
-            *getPropertiesJson(relPropertyKeyMaps.at(labelIt->second));
-        (*json)["Catalog"]["RelLabels"][label]["srcNodeLabels"] =
-            getNodeLabelsString(relLabelToSrcNodeLabels[labelIt->second]);
-        (*json)["Catalog"]["RelLabels"][label]["dstNodeLabels"] =
-            getNodeLabelsString(relLabelToDstNodeLabels[labelIt->second]);
-    }
-    return json;
-}
-
-unique_ptr<nlohmann::json> Catalog::getPropertiesJson(
-    const unordered_map<string, PropertyKey>& properties) {
+static unique_ptr<nlohmann::json> getPropertiesJson(const vector<PropertyDefinition>& properties) {
     auto propertiesJson = make_unique<nlohmann::json>();
-    for (unordered_map<string, PropertyKey>::const_iterator propIt = properties.begin();
-         propIt != properties.end(); ++propIt) {
+    for (const auto& property : properties) {
         nlohmann::json propertyJson =
-            nlohmann::json{{"dataType", graphflow::common::DataTypeNames[propIt->second.dataType]},
-                {"propIdx", to_string(propIt->second.idx)}};
-        (*propertiesJson)[propIt->first] = propertyJson;
+            nlohmann::json{{"dataType", graphflow::common::DataTypeNames[property.dataType]},
+                {"propIdx", to_string(property.id)},
+                {"isPrimaryKey", to_string(property.isPrimaryKey)}};
+        (*propertiesJson)[property.name] = propertyJson;
     }
     return propertiesJson;
 }
 
-string Catalog::getNodeLabelsString(vector<label_t> nodeLabels) {
-    string nodeLabelsStr("");
+unique_ptr<nlohmann::json> Catalog::debugInfo() {
+    auto json = make_unique<nlohmann::json>();
+    for (auto& label : nodeLabels) {
+        string labelName = label.labelName;
+        (*json)["Catalog"]["NodeLabels"][labelName]["id"] = to_string(label.labelId);
+        (*json)["Catalog"]["NodeLabels"][labelName]["properties"] =
+            *getPropertiesJson(label.properties);
+    }
+
+    for (auto& label : relLabels) {
+        string labelName = label.labelName;
+        (*json)["Catalog"]["RelLabels"][labelName]["id"] = to_string(label.labelId);
+        (*json)["Catalog"]["RelLabels"][labelName]["relMultiplicity"] =
+            RelMultiplicityNames[label.relMultiplicity];
+        (*json)["Catalog"]["RelLabels"][labelName]["properties"] =
+            *getPropertiesJson(label.properties);
+        (*json)["Catalog"]["RelLabels"][labelName]["srcNodeLabels"] =
+            getNodeLabelsString(label.srcNodeLabelIdSet);
+        (*json)["Catalog"]["RelLabels"][labelName]["dstNodeLabels"] =
+            getNodeLabelsString(label.dstNodeLabelIdSet);
+    }
+    return json;
+}
+
+string Catalog::getNodeLabelsString(const unordered_set<label_t>& nodeLabelIds) const {
+    string nodeLabelsStr;
     bool first = true;
-    for (label_t nodeLabel : nodeLabels) {
+    for (label_t nodeLabelId : nodeLabelIds) {
         if (first) {
             first = false;
         } else {
             nodeLabelsStr += ", ";
         }
-        nodeLabelsStr += getStringNodeLabel(nodeLabel);
+        nodeLabelsStr += nodeLabels[nodeLabelId].labelName;
     }
     return nodeLabelsStr;
 }

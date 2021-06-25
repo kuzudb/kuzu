@@ -69,22 +69,6 @@ double_t convertToDouble(char* data);
 
 uint8_t convertToBoolean(char* data);
 
-// A PropertyKey is a pair of index and a dataType. If the property is unstructured, then the
-// dataType is UNKNOWN, otherwise it is one of those supported by the system.
-class PropertyKey {
-
-public:
-    PropertyKey() : dataType{0}, idx{0}, isPrimaryKey{false} {};
-
-    PropertyKey(DataType dataType, uint32_t idx, bool isPrimaryKey)
-        : dataType{dataType}, idx{idx}, isPrimaryKey{isPrimaryKey} {};
-
-public:
-    DataType dataType;
-    uint32_t idx;
-    bool isPrimaryKey;
-};
-
 size_t getDataTypeSize(DataType dataType);
 
 DataType getDataType(const std::string& dataTypeString);
@@ -93,16 +77,10 @@ string dataTypeToString(DataType dataType);
 
 bool isNumericalType(DataType dataType);
 
-// Rel Label Cardinality
-enum Cardinality : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
-const string CardinalityNames[] = {"MANY_MANY", "MANY_ONE", "ONE_MANY", "ONE_ONE"};
-
-Cardinality getCardinality(const string& cardinalityString);
-
 // Direction
 enum Direction : uint8_t { FWD = 0, BWD = 1 };
 
-const vector<Direction> DIRS = {FWD, BWD};
+const vector<Direction> DIRECTIONS = {FWD, BWD};
 
 Direction operator!(Direction& direction);
 

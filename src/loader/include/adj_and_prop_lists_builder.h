@@ -14,38 +14,39 @@ namespace graphflow {
 namespace loader {
 
 // This builder class helps RelsLoader to build AdjLists and RelPropertyLists for a particular rel
-// label if FWD/BWD cardinality is not 1. Similar to AdjAndPropertyColsBuilderAndListSizeCounter,
-// this also exposes functions to construct Lists step-by-step and populate in-memory pages and
-// finally save the in-mem data structures to the disk.
+// label if FWD/BWD relMultiplicity is not 1. Similar to
+// AdjAndPropertyColsBuilderAndListSizeCounter, this also exposes functions to construct Lists
+// step-by-step and populate in-memory pages and finally save the in-mem data structures to the
+// disk.
 class AdjAndPropertyListsBuilder : public AdjAndPropertyStructuresBuilder {
 
-    typedef vector<vector<unique_ptr<listSizes_t>>> dirLabelListSizes_t;
+    typedef vector<vector<unique_ptr<listSizes_t>>> directionLabelListSizes_t;
 
-    typedef vector<vector<ListHeaders>> dirLabelListHeaders_t;
+    typedef vector<vector<ListHeaders>> directionLabelListHeaders_t;
 
-    typedef vector<vector<ListsMetadata>> dirLabelAdjListsMetadata_t;
-    typedef vector<vector<unique_ptr<InMemAdjPages>>> dirLabelAdjLists_t;
+    typedef vector<vector<ListsMetadata>> directionLabelAdjListsMetadata_t;
+    typedef vector<vector<unique_ptr<InMemAdjPages>>> directionLabelAdjLists_t;
 
-    typedef vector<vector<vector<ListsMetadata>>> dirLabelPropertyIdxPropertyListsMetadata_t;
+    typedef vector<vector<vector<ListsMetadata>>> directionLabelPropertyIdxPropertyListsMetadata_t;
     typedef vector<vector<vector<unique_ptr<InMemPropertyPages>>>>
-        dirLabelPropertyIdxPropertyLists_t;
+        directionLabelPropertyIdxPropertyLists_t;
 
     typedef vector<vector<vector<unique_ptr<InMemStringOverflowPages>>>>
-        dirLabelPropertyIdxStringOverflowPages_t;
+        directionLabelPropertyIdxStringOverflowPages_t;
 
 public:
     AdjAndPropertyListsBuilder(RelLabelDescription& description, ThreadPool& threadPool,
         const Graph& graph, const string& outputDirectory);
 
-    inline void incrementListSize(const Direction& dir, const nodeID_t& nodeID) {
+    inline void incrementListSize(const Direction& direction, const nodeID_t& nodeID) {
         ListsLoaderHelper::incrementListSize(
-            *dirLabelListSizes[dir][nodeID.label], nodeID.offset, 1);
-        (*dirLabelNumRels[dir])[nodeID.label]++;
+            *directionLabelListSizes[direction][nodeID.label], nodeID.offset, 1);
+        (*directionLabelNumRels[direction])[nodeID.label]++;
     }
 
-    inline uint64_t decrementListSize(const Direction& dir, const nodeID_t& nodeID) {
+    inline uint64_t decrementListSize(const Direction& direction, const nodeID_t& nodeID) {
         return ListsLoaderHelper::decrementListSize(
-            *dirLabelListSizes[dir][nodeID.label], nodeID.offset, 1);
+            *directionLabelListSizes[direction][nodeID.label], nodeID.offset, 1);
     }
 
     // Should be called after the listSizes has been updated. Encodes the header info of each list
@@ -58,7 +59,7 @@ public:
 
     // Sets a neighbour nodeID in the adjList of the given nodeID in a particular adjLists
     // structure.
-    void setRel(const uint64_t& pos, const Direction& dir, const vector<nodeID_t>& nodeIDs);
+    void setRel(const uint64_t& pos, const Direction& direction, const vector<nodeID_t>& nodeIDs);
 
     // Sets a proeprty in the propertyList of the given nodeID in a particular RelPropertyLists
     // structure.
@@ -86,19 +87,21 @@ private:
     static void sortOverflowStringsOfPropertyListsTask(node_offset_t offsetStart,
         node_offset_t offsetEnd, InMemPropertyPages* propertyLists, ListHeaders* adjListsHeaders,
         ListsMetadata* listsMetadata, InMemStringOverflowPages* unorederedStringOverflowPages,
-        InMemStringOverflowPages* orderedStringOverflowPages, shared_ptr<spdlog::logger> logger);
+        InMemStringOverflowPages* orderedStringOverflowPages);
 
 private:
-    dirLabelListSizes_t dirLabelListSizes{2};
+    directionLabelListSizes_t directionLabelListSizes{2};
 
-    dirLabelListHeaders_t dirLabelAdjListHeaders{2};
-    dirLabelAdjListsMetadata_t dirLabelAdjListsMetadata{2};
-    dirLabelAdjLists_t dirLabelAdjLists{2};
+    directionLabelListHeaders_t directionLabelAdjListHeaders{2};
+    directionLabelAdjListsMetadata_t directionLabelAdjListsMetadata{2};
+    directionLabelAdjLists_t directionLabelAdjLists{2};
 
-    dirLabelPropertyIdxPropertyListsMetadata_t dirLabelPropertyIdxPropertyListsMetadata{2};
-    dirLabelPropertyIdxPropertyLists_t dirLabelPropertyIdxPropertyLists{2};
+    directionLabelPropertyIdxPropertyListsMetadata_t directionLabelPropertyIdxPropertyListsMetadata{
+        2};
+    directionLabelPropertyIdxPropertyLists_t directionLabelPropertyIdxPropertyLists{2};
     unique_ptr<vector<unique_ptr<InMemStringOverflowPages>>> propertyIdxUnordStringOverflowPages;
-    unique_ptr<dirLabelPropertyIdxStringOverflowPages_t> dirLabelPropertyIdxStringOverflowPages;
+    unique_ptr<directionLabelPropertyIdxStringOverflowPages_t>
+        directionLabelPropertyIdxStringOverflowPages;
 };
 
 } // namespace loader

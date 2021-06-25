@@ -14,10 +14,10 @@ class RelsLoader {
     friend class GraphLoader;
 
 private:
-    RelsLoader(ThreadPool& threadPool, Graph& graph, const nlohmann::json& metadata,
-        vector<unique_ptr<NodeIDMap>>& nodeIDMaps, const string& outputDirectory);
+    RelsLoader(ThreadPool& threadPool, Graph& graph, string outputDirectory, char tokenSeparator,
+        vector<unique_ptr<NodeIDMap>>& nodeIDMaps);
 
-    void load(vector<string>& fnames, vector<uint64_t>& numBlocksPerLabel);
+    void load(const vector<string>& filePaths, vector<uint64_t>& numBlocksPerLabel);
 
     void loadRelsForLabel(RelLabelDescription& relLabelMetadata);
 
@@ -33,16 +33,16 @@ private:
     // Concurrent Tasks
 
     static void populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescription* description,
-        uint64_t blockId, const char tokenSeparator,
+        uint64_t blockId, char tokenSeparator,
         AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
         AdjAndPropertyColumnsBuilder* adjAndPropertyColumnsBuilder,
         vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
-        shared_ptr<spdlog::logger> logger);
+        shared_ptr<spdlog::logger>& logger);
 
     static void populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
-        const char tokenSeparator, AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
+        char tokenSeparator, AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
         vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
-        shared_ptr<spdlog::logger> logger);
+        shared_ptr<spdlog::logger>& logger);
 
     // Task Helpers
 
@@ -50,23 +50,22 @@ private:
         vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
         vector<bool>& requireToReadLabels);
 
-    static void putPropsOfLineIntoInMemPropertyColumns(const vector<DataType>& propertyDataTypes,
+    static void putPropsOfLineIntoInMemPropertyColumns(const vector<PropertyDefinition>& properties,
         CSVReader& reader, AdjAndPropertyColumnsBuilder* adjAndPropertyColumnsBuilder,
-        const nodeID_t& nodeID, vector<PageCursor>& stringOvreflowPagesCursors,
-        shared_ptr<spdlog::logger> logger);
+        const nodeID_t& nodeID, vector<PageCursor>& stringOverflowPagesCursors);
 
-    static void putPropsOfLineIntoInMemRelPropLists(const vector<DataType>& propertyDataTypes,
+    static void putPropsOfLineIntoInMemRelPropLists(const vector<PropertyDefinition>& properties,
         CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& pos,
         AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
-        vector<PageCursor>& stringOvreflowPagesCursors, shared_ptr<spdlog::logger> logger);
+        vector<PageCursor>& stringOverflowPagesCursors);
 
 private:
     shared_ptr<spdlog::logger> logger;
     ThreadPool& threadPool;
     Graph& graph;
-    const nlohmann::json& metadata;
-    vector<unique_ptr<NodeIDMap>>& nodeIDMaps;
     const string outputDirectory;
+    const char tokenSeparator;
+    vector<unique_ptr<NodeIDMap>>& nodeIDMaps;
 };
 
 } // namespace loader

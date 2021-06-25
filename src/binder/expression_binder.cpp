@@ -216,14 +216,9 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
         auto node = static_pointer_cast<NodeExpression>(childExpression);
         auto propertyVariableName = node->variableName + "." + propertyName;
         if (catalog.containNodeProperty(node->label, propertyName)) {
-            auto dataType = catalog.getNodePropertyTypeFromString(node->label, propertyName);
-            auto propertyKey = catalog.getNodePropertyKeyFromString(node->label, propertyName);
+            auto property = catalog.getNodeProperty(node->label, propertyName);
             return make_shared<PropertyExpression>(
-                propertyVariableName, dataType, propertyKey, move(childExpression));
-        } else if (catalog.containUnstrNodeProperty(node->label, propertyName)) {
-            auto propertyKey = catalog.getUnstrNodePropertyKeyFromString(node->label, propertyName);
-            return make_shared<PropertyExpression>(
-                propertyVariableName, UNSTRUCTURED, propertyKey, move(childExpression));
+                propertyVariableName, property.dataType, property.id, move(childExpression));
         } else {
             throw invalid_argument("Node " + node->getAliasElseRawExpression() +
                                    " does not have property " + propertyName + ".");
@@ -233,10 +228,9 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
         auto rel = static_pointer_cast<RelExpression>(childExpression);
         auto propertyVariableName = rel->variableName + "." + propertyName;
         if (catalog.containRelProperty(rel->label, propertyName)) {
-            auto dataType = catalog.getRelPropertyTypeFromString(rel->label, propertyName);
-            auto propertyKey = catalog.getRelPropertyKeyFromString(rel->label, propertyName);
+            auto property = catalog.getRelProperty(rel->label, propertyName);
             return make_shared<PropertyExpression>(
-                propertyVariableName, dataType, propertyKey, move(childExpression));
+                propertyVariableName, property.dataType, property.id, move(childExpression));
         } else {
             throw invalid_argument("Rel " + rel->getAliasElseRawExpression() +
                                    " does not have property " + propertyName + ".");

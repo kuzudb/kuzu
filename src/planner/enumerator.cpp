@@ -35,7 +35,7 @@ static vector<shared_ptr<Expression>> rewriteVariableAsAllProperties(
     shared_ptr<Expression> variableExpression, const Catalog& catalog);
 
 static vector<shared_ptr<Expression>> createLogicalPropertyExpressions(
-    const string& variableName, const unordered_map<string, PropertyKey>& propertyMap);
+    const string& variableName, const vector<PropertyDefinition>& properties);
 
 Enumerator::Enumerator(const Graph& graph, const BoundSingleQuery& boundSingleQuery)
     : graph{graph}, boundSingleQuery{boundSingleQuery} {
@@ -305,7 +305,8 @@ void Enumerator::appendLogicalExtend(uint32_t queryRelPos, Direction direction, 
     auto nbrNode = FWD == direction ? queryRel.dstNode : queryRel.srcNode;
     auto boundNodeID = boundNode->getIDProperty();
     auto nbrNodeID = nbrNode->getIDProperty();
-    auto isColumnExtend = graph.getCatalog().isSingleCaridinalityInDir(queryRel.label, direction);
+    auto isColumnExtend =
+        graph.getCatalog().isSingleMultiplicityInDirection(queryRel.label, direction);
     auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->label, nbrNodeID,
         nbrNode->label, queryRel.label, direction, isColumnExtend, queryRel.lowerBound,
         queryRel.upperBound, plan.lastOperator);
@@ -487,14 +488,8 @@ static vector<shared_ptr<Expression>> rewriteVariableAsAllProperties(
     shared_ptr<Expression> variableExpression, const Catalog& catalog) {
     if (NODE == variableExpression->dataType) {
         auto nodeExpression = static_pointer_cast<NodeExpression>(variableExpression);
-        auto propertyExpressions = createLogicalPropertyExpressions(nodeExpression->variableName,
-            catalog.getPropertyKeyMapForNodeLabel(nodeExpression->label));
-        // unstructured properties
-        for (auto& propertyExpression :
-            createLogicalPropertyExpressions(nodeExpression->variableName,
-                catalog.getUnstrPropertyKeyMapForNodeLabel(nodeExpression->label))) {
-            propertyExpressions.push_back(propertyExpression);
-        }
+        auto propertyExpressions = createLogicalPropertyExpressions(
+            nodeExpression->variableName, catalog.getNodeProperties(nodeExpression->label));
         auto idProperty =
             make_shared<Expression>(PROPERTY, NODE_ID, nodeExpression->getIDProperty());
         idProperty->alias = nodeExpression->getIDProperty();
@@ -502,16 +497,16 @@ static vector<shared_ptr<Expression>> rewriteVariableAsAllProperties(
         return propertyExpressions;
     } else {
         auto relExpression = static_pointer_cast<RelExpression>(variableExpression);
-        return createLogicalPropertyExpressions(relExpression->variableName,
-            catalog.getPropertyKeyMapForRelLabel(relExpression->label));
+        return createLogicalPropertyExpressions(
+            relExpression->variableName, catalog.getRelProperties(relExpression->label));
     }
 }
 
 vector<shared_ptr<Expression>> createLogicalPropertyExpressions(
-    const string& variableName, const unordered_map<string, PropertyKey>& propertyMap) {
+    const string& variableName, const vector<PropertyDefinition>& properties) {
     auto propertyExpressions = vector<shared_ptr<Expression>>();
-    for (auto& [propertyName, property] : propertyMap) {
-        auto propertyWithVariableName = variableName + "." + propertyName;
+    for (auto& property : properties) {
+        auto propertyWithVariableName = variableName + "." + property.name;
         auto expression =
             make_shared<Expression>(PROPERTY, property.dataType, propertyWithVariableName);
         // This alias set should be removed if we can print all properties in a single column.

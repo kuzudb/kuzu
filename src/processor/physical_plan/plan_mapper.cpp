@@ -431,14 +431,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCRUDNodeToPhysical(
     auto prevOperator =
         mapLogicalOperatorToPhysical(logicalOperator->prevOperator, physicalOperatorInfo, context);
     auto& catalog = graph.getCatalog();
-    auto& propertyKeyMap = catalog.getPropertyKeyMapForNodeLabel(logicalCRUDNode.nodeLabel);
-    vector<BaseColumn*> nodePropertyColumns(propertyKeyMap.size());
-    for (auto& entry : propertyKeyMap) {
-        nodePropertyColumns[entry.second.idx] = graph.getNodesStore().getNodePropertyColumn(
-            logicalCRUDNode.nodeLabel, entry.second.idx);
+    auto& properties = catalog.getNodeProperties(logicalCRUDNode.nodeLabel);
+    vector<BaseColumn*> nodePropertyColumns(properties.size());
+    for (auto& entry : properties) {
+        if (entry.dataType != UNSTRUCTURED) {
+            nodePropertyColumns[entry.id] =
+                graph.getNodesStore().getNodePropertyColumn(logicalCRUDNode.nodeLabel, entry.id);
+        }
     }
     auto& propertyKeyToColVarMap = logicalCRUDNode.propertyKeyToCSVColumnVariableMap;
-    vector<uint32_t> propertyKeyVectorPos(propertyKeyMap.size(), -1);
+    vector<uint32_t> propertyKeyVectorPos(properties.size(), -1);
     uint32_t dataChunkPos;
     for (auto& entry : propertyKeyToColVarMap) {
         propertyKeyVectorPos[entry.first] = physicalOperatorInfo.getValueVectorPos(entry.second);

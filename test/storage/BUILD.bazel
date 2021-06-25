@@ -4,15 +4,15 @@ cc_library(
     name = "loader_scanners",
     srcs = [
         "node_fixed_size_property_file_scanner.cpp",
-            ],
+    ],
     hdrs = [
         "include/node_fixed_size_property_file_scanner.h",
-        ],
+    ],
     visibility = ["//visibility:public"],
     deps = [
-            "//src/common:types",
-            "//src/common:utils",
-            "//src/storage:store",
+        "//src/common:types",
+        "//src/common:utils",
+        "//src/storage:store",
     ],
 )
 
@@ -26,6 +26,22 @@ cc_test(
     ],
     deps = [
         "//src/storage:hash_index",
+        "//test/test_utility:test_helper",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "catalog_test",
+    srcs = [
+        "catalog_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/storage:catalog",
         "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",

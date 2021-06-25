@@ -16,46 +16,34 @@
     {
       "filename": "eKnows.csv",
       "label": "knows",
-      "cardinality": "MANY_MANY",
+      "multiplicity": "MANY_MANY",
       "srcNodeLabels": [
         "person"
       ],
       "dstNodeLabels": [
         "person"
-      ],
-      "storeCompressed": [
-        false,
-        true
       ]
     },
     {
       "filename": "eStudyAt.csv",
       "label": "studyAt",
-      "cardinality": "MANY_ONE",
+      "multiplicity": "MANY_ONE",
       "srcNodeLabels": [
         "person"
       ],
       "dstNodeLabels": [
         "organisation"
-      ],
-      "storeCompressed": [
-        false,
-        true
       ]
     },
     {
       "filename": "eWorkAt.csv",
       "label": "workAt",
-      "cardinality": "MANY_ONE",
+      "multiplicity": "MANY_ONE",
       "srcNodeLabels": [
         "person"
       ],
       "dstNodeLabels": [
         "organisation"
-      ],
-      "storeCompressed": [
-        false,
-        true
       ]
     }
   ]

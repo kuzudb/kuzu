@@ -7,7 +7,7 @@ namespace common {
 
 static uint32_t getNumBytesForEncoding(const uint64_t& maxValToEncode, const uint8_t& minNumBytes);
 
-NodeIDCompressionScheme::NodeIDCompressionScheme(const vector<label_t>& nbrNodeLabels,
+NodeIDCompressionScheme::NodeIDCompressionScheme(const unordered_set<label_t>& nbrNodeLabels,
     const vector<uint64_t>& numNodesPerLabel, const uint32_t& numNodeLabels) {
     auto maxNodeOffsetToFit = 0ull;
     for (auto nodeLabel : nbrNodeLabels) {

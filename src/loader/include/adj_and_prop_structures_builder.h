@@ -13,7 +13,7 @@ namespace loader {
 // Base class for AdjAndPropertyColumnsBuilder and AdjAndPropertyListsBuilder.
 class AdjAndPropertyStructuresBuilder {
 
-    typedef vector<unique_ptr<listSizes_t>> dirLabelNumRels_t;
+    typedef vector<unique_ptr<listSizes_t>> directionLabelNumRels_t;
 
 public:
     void populateNumRelsInfo(
@@ -27,7 +27,7 @@ public:
 
 protected:
     AdjAndPropertyStructuresBuilder(RelLabelDescription& description, ThreadPool& threadPool,
-        const Graph& graph, const string& outputDirectory);
+        const Graph& graph, string outputDirectory);
 
 protected:
     shared_ptr<spdlog::logger> logger;
@@ -37,7 +37,7 @@ protected:
     const string outputDirectory;
 
     // To count the number of rels per adjLists/adjColumn
-    dirLabelNumRels_t dirLabelNumRels{2};
+    directionLabelNumRels_t directionLabelNumRels{2};
 };
 
 } // namespace loader

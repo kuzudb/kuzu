@@ -3,6 +3,16 @@
 #include <iostream>
 #include <vector>
 
+#include "bitsery/adapter/stream.h"
+#include "bitsery/bitsery.h"
+#include "bitsery/ext/std_map.h"
+#include "bitsery/traits/string.h"
+#include "bitsery/traits/vector.h"
+#include <bitsery/brief_syntax.h>
+#include <bitsery/brief_syntax/string.h>
+#include <bitsery/ext/pointer.h>
+#include <bitsery/ext/std_map.h>
+
 #include "src/storage/include/store/nodes_store.h"
 #include "src/storage/include/store/rels_store.h"
 
@@ -34,7 +44,7 @@ public:
 
     virtual ~Graph();
 
-    virtual inline const Catalog& getCatalog() const { return *catalog; }
+    virtual inline Catalog& getCatalog() const { return *catalog; }
 
     inline const RelsStore& getRelsStore() const { return *relsStore; }
 
@@ -60,7 +70,7 @@ private:
     template<typename S>
     void serialize(S& s);
 
-    void saveToFile(const string& directory);
+    void saveToFile(const string& directory) const;
     void readFromFile(const string& directory);
 
 private:

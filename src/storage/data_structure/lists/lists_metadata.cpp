@@ -1,7 +1,5 @@
 #include "src/storage/include/data_structure/lists/lists_metadata.h"
 
-#include <fstream>
-
 #include "spdlog/spdlog.h"
 
 namespace graphflow {
@@ -127,7 +125,7 @@ uint32_t ListsMetadata::enumeratePageIdsInAPageList(unique_ptr<uint32_t[]>& page
         numPageListGroups++;
     }
     // During the initial allocation, we allocate all the pageListGroups of a pageList contiguously.
-    // pageListTailIdx is the idx in the pageLists blob where the pageList ends and the next
+    // pageListTailIdx is the id in the pageLists blob where the pageList ends and the next
     // pageLists should start.
     auto pageListTailIdx = pageListHeadIdx + ((PAGE_LIST_GROUP_SIZE + 1) * numPageListGroups);
     increasePageListsCapacityIfNeeded(pageLists, pageListsCapacity, pageListTailIdx);
@@ -142,7 +140,7 @@ uint32_t ListsMetadata::enumeratePageIdsInAPageList(unique_ptr<uint32_t[]>& page
         }
         numPages -= numPagesInThisGroup;
         pageListHeadIdx += PAGE_LIST_GROUP_SIZE;
-        // store the idx to the next pageListGroup, if exists, other -1.
+        // store the id to the next pageListGroup, if exists, other -1.
         pageLists[pageListHeadIdx] = (0 == numPages) ? -1 : 1 + pageListHeadIdx;
         pageListHeadIdx++;
     }

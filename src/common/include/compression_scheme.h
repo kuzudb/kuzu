@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -12,7 +13,7 @@ namespace common {
 class NodeIDCompressionScheme {
 
 public:
-    NodeIDCompressionScheme(const vector<label_t>& nbrNodeLabels,
+    NodeIDCompressionScheme(const unordered_set<label_t>& nbrNodeLabels,
         const vector<uint64_t>& numNodesPerLabel, const uint32_t& numNodeLabels);
     NodeIDCompressionScheme() : NodeIDCompressionScheme(0, 8){};
     NodeIDCompressionScheme(uint32_t numBytesForLabel, uint32_t numBytesForOffset)

@@ -62,7 +62,7 @@ private:
     void saveToDisk(const string& fname);
     void readFromDisk(const string& fname);
 
-    uint64_t getPageIdxFromAPageList(
+    static uint64_t getPageIdxFromAPageList(
         unique_ptr<uint32_t[]>& pageLists, uint32_t pageListHead, uint32_t pageIdx);
 
     // Below functions are to be used only in the loader to create the ListsMetadata object
@@ -81,11 +81,11 @@ private:
 
     // Creates a new pageList (in pageListGropus of size 3) by enumerating the pageIds sequentially
     // in the list, starting from `startPageId` till `startPageId + numPages - 1`.
-    uint32_t enumeratePageIdsInAPageList(unique_ptr<uint32_t[]>& pageLists,
+    static uint32_t enumeratePageIdsInAPageList(unique_ptr<uint32_t[]>& pageLists,
         uint64_t& pageListsCapacity, uint32_t pageListHead, uint32_t numPages,
         uint32_t startPageId);
 
-    void increasePageListsCapacityIfNeeded(
+    static void increasePageListsCapacityIfNeeded(
         unique_ptr<uint32_t[]>& pageLists, uint64_t& pageListsCapacity, uint32_t requiredCapacity);
 
 private:
@@ -135,10 +135,6 @@ private:
     // pages used by all chunks and large lists.
     uint32_t numPages;
 };
-
-void saveListOfIntsToFile(const string& path, unique_ptr<uint32_t[]>& data, uint32_t listSize);
-
-uint32_t readListOfIntsFromFile(unique_ptr<uint32_t[]>& data, const string& path);
 
 } // namespace storage
 } // namespace graphflow

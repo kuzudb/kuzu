@@ -25,9 +25,9 @@ public:
 
 public:
     unordered_set<string> variables;
-    // For flat factorization group, we store cardinality of the sub-query that contains variables
-    // in flat factorization group. Otherwise, for unflat factorization group, we store the
-    // extension rate per flat prefix.
+    // For flat factorization group, we store relMultiplicity of the sub-query that contains
+    // variables in flat factorization group. Otherwise, for unflat factorization group, we store
+    // the extension rate per flat prefix.
     uint64_t cardinalityOrExtensionRate;
 };
 
