@@ -90,10 +90,8 @@ unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToPhysical(
             val.val.booleanVal = literalExpression.literal.val.booleanVal;
         } break;
         case STRING: {
-            if (literalExpression.literal.strVal.length() > gf_string_t::SHORT_STR_LENGTH) {
-                val.val.strVal = vector->stringBuffer->allocateLargeString(
-                    literalExpression.literal.strVal.length());
-            }
+            vector->allocateStringOverflowSpace(
+                val.val.strVal, literalExpression.literal.strVal.length());
             val.val.strVal.set(literalExpression.literal.strVal);
         } break;
         default:

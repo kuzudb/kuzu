@@ -30,7 +30,7 @@ public:
         : memoryManager{memoryManager}, currentBlock{nullptr} {};
 
 public:
-    gf_string_t allocateLargeString(uint64_t len);
+    void allocateLargeString(gf_string_t& result, uint64_t len);
     void appendBuffer(StringBuffer& other);
 
 private:

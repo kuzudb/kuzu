@@ -27,9 +27,6 @@ public:
 
     Value& operator=(const Value& other);
 
-    // todo: move this to the StringVector level
-    void castToString();
-
     string toString() const;
 
 public:

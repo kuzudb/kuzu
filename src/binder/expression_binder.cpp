@@ -74,6 +74,16 @@ shared_ptr<Expression> ExpressionBinder::bindUnaryBooleanExpression(
     return make_shared<Expression>(NOT, BOOL, validateAsBoolAndCastIfNecessary(child));
 }
 
+static shared_ptr<Expression> castToUnstructured(shared_ptr<Expression> expression) {
+    if (isExpressionLeafLiteral(expression->expressionType)) {
+        expression->cast(UNSTRUCTURED);
+    } else {
+        expression =
+            make_shared<Expression>(CAST_TO_UNSTRUCTURED_VECTOR, UNSTRUCTURED, move(expression));
+    }
+    return expression;
+}
+
 shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     const ParsedExpression& parsedExpression) {
     auto& parsedLeft = *parsedExpression.children.at(0);
@@ -87,17 +97,11 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     }
     auto left = bindExpression(parsedLeft);
     auto right = bindExpression(parsedRight);
-    if (left->dataType != UNSTRUCTURED && right->dataType == UNSTRUCTURED) {
-        if (isExpressionLeafLiteral(left->expressionType)) {
-            left->cast(UNSTRUCTURED);
-        } else {
-            left = make_shared<Expression>(CAST_TO_UNSTRUCTURED_VECTOR, UNSTRUCTURED, move(left));
-        }
-    } else if (left->dataType == UNSTRUCTURED && right->dataType != UNSTRUCTURED) {
-        if (isExpressionLeafLiteral(right->expressionType)) {
-            right->cast(UNSTRUCTURED);
-        } else {
-            right = make_shared<Expression>(CAST_TO_UNSTRUCTURED_VECTOR, UNSTRUCTURED, move(right));
+    if (left->dataType == UNSTRUCTURED || right->dataType == UNSTRUCTURED) {
+        if (left->dataType != UNSTRUCTURED) {
+            left = castToUnstructured(move(left));
+        } else if (right->dataType != UNSTRUCTURED) {
+            right = castToUnstructured(move(right));
         }
         return make_shared<Expression>(parsedExpression.type, BOOL, move(left), move(right));
     }
@@ -119,6 +123,15 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
     validateNoNullLiteralChildren(parsedExpression);
     auto left = bindExpression(*parsedExpression.children.at(0));
     auto right = bindExpression(*parsedExpression.children.at(1));
+    if (left->dataType == UNSTRUCTURED || right->dataType == UNSTRUCTURED) {
+        if (left->dataType != UNSTRUCTURED) {
+            left = castToUnstructured(move(left));
+        } else if (right->dataType != UNSTRUCTURED) {
+            right = castToUnstructured(move(right));
+        }
+        return make_shared<Expression>(
+            parsedExpression.type, UNSTRUCTURED, move(left), move(right));
+    }
     if (parsedExpression.type == ADD) {
         if (left->dataType == STRING || right->dataType == STRING) {
             if (left->dataType != STRING) {

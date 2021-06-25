@@ -22,6 +22,7 @@ void gf_string_t::set(const string& str) {
 
 void gf_string_t::set(const char* value, uint64_t length) {
     auto prefixLen = length < gf_string_t::PREFIX_LENGTH ? length : gf_string_t::PREFIX_LENGTH;
+    this->len = length;
     memcpy(prefix, value, prefixLen);
     if (length > gf_string_t::PREFIX_LENGTH) {
         if (length <= gf_string_t::SHORT_STR_LENGTH) {

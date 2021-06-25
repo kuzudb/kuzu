@@ -21,11 +21,12 @@ class Expression {
 
 public:
     // creates a non-leaf logical binary expression.
-    Expression(ExpressionType expressionType, DataType dataType, shared_ptr<Expression> left,
-        shared_ptr<Expression> right);
+    Expression(ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& left,
+        const shared_ptr<Expression>& right);
 
     // creates a non-leaf logical unary expression.
-    Expression(ExpressionType expressionType, DataType dataType, shared_ptr<Expression> child);
+    Expression(
+        ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child);
 
     Expression(ExpressionType expressionType, DataType dataType, const string& variableName);
 

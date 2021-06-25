@@ -54,20 +54,19 @@ shared_ptr<ValueVector> ValueVector::clone() {
     return newVector;
 }
 
-void ValueVector::allocateStringOverflowSpace(uint64_t pos, uint64_t len) const {
-    assert(dataType == STRING);
-    auto vectorData = (gf_string_t*)values;
-    vectorData[pos].len = len;
+void ValueVector::allocateStringOverflowSpace(gf_string_t& result, uint64_t len) const {
+    assert(dataType == STRING || dataType == UNSTRUCTURED);
     if (len > gf_string_t::SHORT_STR_LENGTH) {
-        vectorData[pos] = stringBuffer->allocateLargeString(len);
+        stringBuffer->allocateLargeString(result, len);
     }
 }
 
 void ValueVector::addString(uint64_t pos, char* value, uint64_t len) const {
     assert(dataType == STRING);
     auto vectorData = (gf_string_t*)values;
-    allocateStringOverflowSpace(pos, len);
-    vectorData[pos].set(value, len);
+    auto& result = vectorData[pos];
+    allocateStringOverflowSpace(result, len);
+    result.set(value, len);
 }
 
 void ValueVector::addString(uint64_t pos, string value) const {

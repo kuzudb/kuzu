@@ -129,6 +129,7 @@ struct ArithmeticOnValues {
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `INT32` and `" +
                                        dataTypeToString(right.dataType) + "`");
             }
+            break;
         case DOUBLE:
             switch (left.dataType) {
             case INT32:
@@ -162,13 +163,8 @@ static const char negateStr[] = "negate";
 
 template<>
 inline void Add::operation(Value& left, Value& right, Value& result) {
-    if (left.dataType == STRING || right.dataType == STRING) {
-        if (left.dataType != STRING) {
-            left.castToString();
-        }
-        if (right.dataType != STRING) {
-            right.castToString();
-        }
+    if (left.dataType == STRING) {
+        assert(right.dataType == STRING);
         result.dataType = STRING;
         Add::operation(left.val.strVal, right.val.strVal, result.val.strVal);
         return;
