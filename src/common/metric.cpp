@@ -29,6 +29,10 @@ void TimeMetric::stop() {
     isStarted = false;
 }
 
+double TimeMetric::getElapsedTimeMS() {
+    return accumulatedTime / 1000;
+}
+
 NumericMetric::NumericMetric(bool enable) : Metric(enable) {
     accumulatedValue = 0u;
 }

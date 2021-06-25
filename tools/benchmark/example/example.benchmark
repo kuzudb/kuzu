@@ -1,0 +1,7 @@
+name example
+
+query
+MATCH (:Person)
+RETURN COUNT(*)
+
+expectedNumOutput 8

@@ -12,7 +12,7 @@ namespace graphflow {
 namespace testing {
 
 bool TestHelper::runTest(const TestSuiteQueryConfig& testConfig, const System& system) {
-    auto sessionContext = SessionContext();
+    SessionContext context;
     auto numQueries = testConfig.query.size();
     uint64_t numPassedQueries = 0;
     vector<uint64_t> numPlansOfEachQuery(numQueries);
@@ -20,15 +20,15 @@ bool TestHelper::runTest(const TestSuiteQueryConfig& testConfig, const System& s
     for (uint64_t i = 0; i < numQueries; i++) {
         spdlog::info("TEST: {}", testConfig.name[i]);
         spdlog::info("QUERY: {}", testConfig.query[i]);
-        sessionContext.query = testConfig.query[i];
-        auto plans = system.enumerateAllPlans(sessionContext);
+        context.query = testConfig.query[i];
+        auto plans = system.enumerateAllPlans(context);
         auto numPlans = plans.size();
         assert(numPlans > 0);
         numPlansOfEachQuery[i] = numPlans;
         uint64_t numPassedPlans = 0;
         for (uint64_t j = 0; j < numPlans; j++) {
             auto planStr = plans[j]->lastOperator->toString();
-            auto result = system.executePlan(move(plans[j]), sessionContext);
+            auto result = system.executePlan(move(plans[j]), context);
             if (result->numTuples != testConfig.expectedNumTuples[i]) {
                 spdlog::error("PLAN{} NOT PASSED. Result num tuples: {}, Expected num tuples: {}",
                     j, result->numTuples, testConfig.expectedNumTuples[i]);
