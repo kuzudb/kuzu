@@ -64,13 +64,15 @@ uint8_t convertToBoolean(char* data);
 class PropertyKey {
 
 public:
-    PropertyKey(){};
+    PropertyKey() : dataType{0}, idx{0}, isPrimaryKey{false} {};
 
-    PropertyKey(DataType dataType, uint32_t idx) : dataType{dataType}, idx{idx} {};
+    PropertyKey(DataType dataType, uint32_t idx, bool isPrimaryKey)
+        : dataType{dataType}, idx{idx}, isPrimaryKey{isPrimaryKey} {};
 
 public:
-    DataType dataType{};
-    uint32_t idx{};
+    DataType dataType;
+    uint32_t idx;
+    bool isPrimaryKey;
 };
 
 size_t getDataTypeSize(DataType dataType);

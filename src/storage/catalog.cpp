@@ -73,8 +73,9 @@ bool Catalog::isSingleCaridinalityInDir(label_t relLabel, Direction dir) const {
 template<typename S>
 void Catalog::serialize(S& s) {
     auto propertyMapsFunc = [](S& s, unordered_map<string, PropertyKey>& v) {
-        s.ext(v, bitsery::ext::StdMap{UINT32_MAX},
-            [](S& s, string& key, PropertyKey& value) { s(key, value.dataType, value.idx); });
+        s.ext(v, bitsery::ext::StdMap{UINT32_MAX}, [](S& s, string& key, PropertyKey& value) {
+            s(key, value.dataType, value.idx, value.isPrimaryKey);
+        });
     };
     s.container(nodePropertyKeyMaps, UINT32_MAX, propertyMapsFunc);
     s.container(relPropertyKeyMaps, UINT32_MAX, propertyMapsFunc);

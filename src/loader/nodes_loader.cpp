@@ -60,12 +60,13 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
         auto& propertyMap = graph.getCatalog().getPropertyKeyMapForNodeLabel(nodeLabel);
         auto propertyDataTypes = createPropertyDataTypesArray(propertyMap);
+        auto isPrimaryKeys = getPropertyIsPrimaryKeys(propertyMap);
         node_offset_t offsetStart = 0;
         for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
             threadPool.execute(populatePropertyColumnsAndCountUnstrPropertyListSizesTask,
                 fnames[nodeLabel], blockIdx, metadata.at("tokenSeparator").get<string>()[0],
-                propertyDataTypes, numLinesPerBlock[nodeLabel][blockIdx], offsetStart,
-                nodeIDMaps[nodeLabel].get(), labelPropertyColumnFnames[nodeLabel],
+                propertyDataTypes, isPrimaryKeys, numLinesPerBlock[nodeLabel][blockIdx],
+                offsetStart, nodeIDMaps[nodeLabel].get(), labelPropertyColumnFnames[nodeLabel],
                 &labelPropertyIdxStringOverflowPages[nodeLabel],
                 labelUnstrPropertyListsSizes[nodeLabel].get(), logger);
             offsetStart += numLinesPerBlock[nodeLabel][blockIdx];
@@ -189,9 +190,9 @@ void NodesLoader::saveUnstrPropertyListsToFile() {
 // the size of list needed to store unstructured properties of the current node. Finally, dump the
 // buffers to approriate locations in files on disk.
 void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(string fname,
-    uint64_t blockId, char tokenSeparator, const vector<DataType> propertyDataTypes,
-    uint64_t numElements, node_offset_t offsetStart, NodeIDMap* nodeIDMap,
-    vector<string> propertyColumnFnames,
+    uint64_t blockId, char tokenSeparator, vector<DataType> propertyDataTypes,
+    vector<bool> isPrimaryKeys, uint64_t numElements, node_offset_t offsetStart,
+    NodeIDMap* nodeIDMap, vector<string> propertyColumnFnames,
     vector<unique_ptr<InMemStringOverflowPages>>* propertyIdxStringOverflowPages,
     listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger> logger) {
     logger->trace("Start: path={0} blkIdx={1}", fname, blockId);
@@ -203,11 +204,10 @@ void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(stri
     }
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
-        reader.hasNextToken();
-        nodeIDMap->set(reader.getString(), offsetStart + bufferOffset);
-        if (0 < propertyDataTypes.size()) {
-            putPropsOfLineIntoBuffers(propertyDataTypes, reader, *buffers, bufferOffset,
-                *propertyIdxStringOverflowPages, stringOverflowPagesCursors, logger);
+        if (!propertyDataTypes.empty()) {
+            putPropsOfLineIntoBuffers(propertyDataTypes, isPrimaryKeys, reader, *buffers,
+                bufferOffset, *propertyIdxStringOverflowPages, stringOverflowPagesCursors,
+                nodeIDMap, offsetStart + bufferOffset);
         }
         calcLengthOfUnstrPropertyLists(reader, offsetStart + bufferOffset, *unstrPropertyListSizes);
         bufferOffset++;
@@ -234,7 +234,6 @@ void NodesLoader::populateUnstrPropertyListsTask(string fname, uint64_t blockId,
     }
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
-        reader.hasNextToken();
         for (auto i = 0u; i < numProperties; ++i) {
             reader.hasNextToken();
         }
@@ -275,9 +274,10 @@ unique_ptr<vector<unique_ptr<uint8_t[]>>> NodesLoader::createBuffersForPropertyM
 // Parses the line by converting each property value to the corresponding dataType as given by
 // propertyDataTypes array and puts the value into appropriate buffer.
 void NodesLoader::putPropsOfLineIntoBuffers(const vector<DataType>& propertyDataTypes,
-    CSVReader& reader, vector<unique_ptr<uint8_t[]>>& buffers, const uint32_t& bufferOffset,
+    const vector<bool>& isPrimaryKeys, CSVReader& reader, vector<unique_ptr<uint8_t[]>>& buffers,
+    const uint32_t& bufferOffset,
     vector<unique_ptr<InMemStringOverflowPages>>& propertyIdxStringOverflowPages,
-    vector<PageCursor>& stringOverflowPagesCursors, shared_ptr<spdlog::logger> logger) {
+    vector<PageCursor>& stringOverflowPagesCursors, NodeIDMap* nodeIDMap, uint64_t nodeOffset) {
     for (auto propertyIdx = 0u; propertyIdx < propertyDataTypes.size(); ++propertyIdx) {
         reader.hasNextToken();
         switch (propertyDataTypes[propertyIdx]) {
@@ -285,6 +285,9 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<DataType>& propertyData
             auto intVal = reader.skipTokenIfNull() ? NULL_INT32 : reader.getInt32();
             memcpy(buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(INT32)), &intVal,
                 getDataTypeSize(INT32));
+            if (isPrimaryKeys[propertyIdx]) {
+                nodeIDMap->set(to_string(intVal).c_str(), nodeOffset);
+            }
             break;
         }
         case DOUBLE: {
@@ -306,6 +309,10 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<DataType>& propertyData
                 buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(STRING)));
             propertyIdxStringOverflowPages[propertyIdx]->setStrInOvfPageAndPtrInEncString(
                 strVal, stringOverflowPagesCursors[propertyIdx], encodedString);
+            if (isPrimaryKeys[propertyIdx]) {
+                nodeIDMap->set(strVal, nodeOffset);
+            }
+            break;
         }
         default:
             if (!reader.skipTokenIfNull()) {

@@ -57,7 +57,9 @@ int main(int argc, char* argv[]) {
     spdlog::set_level(verbosity ? args::get(verbosity) : verbosityMap["info"]);
     createDirectory(args::get(outputDir));
     auto numThreads = threads ? args::get(threads) : thread::hardware_concurrency();
-    GraphLoader graphLoader(args::get(inputDir), args::get(outputDir), numThreads);
-    graphLoader.loadGraph();
+    try {
+        GraphLoader graphLoader(args::get(inputDir), args::get(outputDir), numThreads);
+        graphLoader.loadGraph();
+    } catch (const exception& e) { cerr << "Failed to load graph. Error: " << e.what() << endl; }
     return 0;
 }

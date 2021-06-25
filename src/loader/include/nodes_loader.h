@@ -54,9 +54,9 @@ private:
     // Concurrent Tasks
 
     static void populatePropertyColumnsAndCountUnstrPropertyListSizesTask(string fname,
-        uint64_t blockId, char tokenSeparator, const vector<DataType> propertyDataTypes,
-        uint64_t numElements, node_offset_t offsetStart, NodeIDMap* nodeIDMap,
-        vector<string> propertyColumnFnames,
+        uint64_t blockId, char tokenSeparator, vector<DataType> propertyDataTypes,
+        vector<bool> isPrimaryKeys, uint64_t numElements, node_offset_t offsetStart,
+        NodeIDMap* nodeIDMap, vector<string> propertyColumnFnames,
         vector<unique_ptr<InMemStringOverflowPages>>* stringOverflowPages,
         listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger> logger);
 
@@ -74,9 +74,10 @@ private:
         shared_ptr<spdlog::logger> logger);
 
     static void putPropsOfLineIntoBuffers(const vector<DataType>& propertyDataTypes,
-        CSVReader& reader, vector<unique_ptr<uint8_t[]>>& buffers, const uint32_t& bufferOffset,
-        vector<unique_ptr<InMemStringOverflowPages>>& InMemStringOverflowPages,
-        vector<PageCursor>& stringOverflowPagesCursors, shared_ptr<spdlog::logger> logger);
+        const vector<bool>& isPrimaryKeys, CSVReader& reader,
+        vector<unique_ptr<uint8_t[]>>& buffers, const uint32_t& bufferOffset,
+        vector<unique_ptr<InMemStringOverflowPages>>& inMemStringOverflowPages,
+        vector<PageCursor>& stringOverflowPagesCursors, NodeIDMap* nodeIDMap, uint64_t nodeOffset);
 
     static void calcLengthOfUnstrPropertyLists(
         CSVReader& reader, node_offset_t nodeOffset, listSizes_t& unstrPropertyListSizes);

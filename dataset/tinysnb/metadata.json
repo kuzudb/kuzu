@@ -3,11 +3,13 @@
   "nodeFileDescriptions": [
     {
       "filename": "vPerson.csv",
-      "label": "person"
+      "label": "person",
+      "primaryKey": "id"
     },
     {
       "filename": "vOrganisation.csv",
-      "label": "organisation"
+      "label": "organisation",
+      "primaryKey": "id"
     }
   ],
   "relFileDescriptions": [
@@ -15,25 +17,46 @@
       "filename": "eKnows.csv",
       "label": "knows",
       "cardinality": "MANY_MANY",
-      "srcNodeLabels" : ["person"],
-      "dstNodeLabels" : ["person"],
-      "storeCompressed": [false, true]
+      "srcNodeLabels": [
+        "person"
+      ],
+      "dstNodeLabels": [
+        "person"
+      ],
+      "storeCompressed": [
+        false,
+        true
+      ]
     },
     {
       "filename": "eStudyAt.csv",
       "label": "studyAt",
       "cardinality": "MANY_ONE",
-      "srcNodeLabels" : ["person"],
-      "dstNodeLabels" : ["organisation"],
-      "storeCompressed": [false, true]
+      "srcNodeLabels": [
+        "person"
+      ],
+      "dstNodeLabels": [
+        "organisation"
+      ],
+      "storeCompressed": [
+        false,
+        true
+      ]
     },
     {
       "filename": "eWorkAt.csv",
       "label": "workAt",
       "cardinality": "MANY_ONE",
-      "srcNodeLabels" : ["person"],
-      "dstNodeLabels" : ["organisation"],
-      "storeCompressed": [false, true]
+      "srcNodeLabels": [
+        "person"
+      ],
+      "dstNodeLabels": [
+        "organisation"
+      ],
+      "storeCompressed": [
+        false,
+        true
+      ]
     }
   ]
 }

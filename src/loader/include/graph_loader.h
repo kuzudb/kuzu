@@ -33,21 +33,24 @@ private:
     unique_ptr<nlohmann::json> readMetadata();
 
     void assignIdxToLabels(stringToLabelMap_t& map, const nlohmann::json& fileDescriptions);
-
     void setCardinalitiesOfRelLabels(const nlohmann::json& metadata);
-
     void setSrcDstNodeLabelsForRelLabels(const nlohmann::json& metadata);
 
+    void checkNodePrimaryKeyConstraints();
     unique_ptr<vector<unique_ptr<NodeIDMap>>> loadNodes(const nlohmann::json& metadata);
 
     void loadRels(const nlohmann::json& metadata, vector<unique_ptr<NodeIDMap>>& nodeIDMaps);
 
     void inferFnamesFromMetadataFileDesriptions(
         label_t numLabels, nlohmann::json fileDescriptions, vector<string>& filenames);
+    vector<string> getNodePrimaryKeysFromMetadata(
+        label_t numLabels, nlohmann::json fileDescriptions);
 
     void initPropertyKeyMapAndCalcNumBlocks(label_t numLabels, vector<string>& filenames,
         vector<uint64_t>& numBlocksPerLabel,
         vector<unordered_map<string, PropertyKey>>& propertyKeysMaps, const char tokenSeparator);
+
+    void initNodePropertyPrimaryKeys(vector<string>& primaryKeys);
 
     void parseHeader(const char tokenSeparator, string& header,
         unordered_map<string, PropertyKey>& propertyKeyMap);

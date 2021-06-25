@@ -1,4 +1,4 @@
-id:NODE,fName:STRING,gender:INT32,isStudent:BOOLEAN,isWorker:BOOLEAN,age:INT32,eyeSight:DOUBLE
+id:INT32,fName:STRING,gender:INT32,isStudent:BOOLEAN,isWorker:BOOLEAN,age:INT32,eyeSight:DOUBLE
 0,Alice,1,true,false,35,5.0
 2,Bob,2,true,false,30,5.1,unstrProp:INT32:47,unstrProp2:INT32:20
 3,Carol,1,false,true,45,5.0,unstrProp:INT32:52
