@@ -39,6 +39,14 @@ vector<DataType> createPropertyDataTypesArray(
     return propertyDataTypes;
 }
 
+vector<bool> getPropertyIsPrimaryKeys(const unordered_map<string, PropertyKey>& propertyMap) {
+    vector<bool> isPrimaryKeys(propertyMap.size());
+    for (auto& property : propertyMap) {
+        isPrimaryKeys[property.second.idx] = property.second.isPrimaryKey;
+    }
+    return isPrimaryKeys;
+}
+
 void ListsLoaderHelper::calculateListHeadersTask(node_offset_t numNodeOffsets,
     uint32_t numElementsPerPage, listSizes_t* listSizes, ListHeaders* listHeaders,
     shared_ptr<spdlog::logger> logger) {

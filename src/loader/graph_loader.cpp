@@ -107,6 +107,33 @@ void GraphLoader::setSrcDstNodeLabelsForRelLabels(const nlohmann::json& metadata
     }
 }
 
+// Enforce primary key constraint: 1) a primary key must be specified for a node label; 2) one
+// node label can only contains one primary key; 3) data type of primary key must be INT32 or
+// STRING.
+void GraphLoader::checkNodePrimaryKeyConstraints() {
+    for (auto& propertyKeyMap : graph.catalog->nodePropertyKeyMaps) {
+        bool hasPrimaryKey = false;
+        for (auto& property : propertyKeyMap) {
+            if (property.second.isPrimaryKey) {
+                if (hasPrimaryKey) {
+                    throw invalid_argument(
+                        "More than one primary key is specified for the same label.");
+                } else if (property.second.dataType != INT32 &&
+                           property.second.dataType != STRING) {
+                    throw invalid_argument("The data type of the primary key cannot be " +
+                                           dataTypeToString(property.second.dataType) +
+                                           ", only INT32 and STRING are allowed.");
+                } else {
+                    hasPrimaryKey = true;
+                }
+            }
+        }
+        if (!hasPrimaryKey) {
+            throw invalid_argument("A primary key is required for a node label.");
+        }
+    }
+}
+
 unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes(const nlohmann::json& metadata) {
     logger->info("Starting to load nodes.");
 
@@ -120,6 +147,10 @@ unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes(const nlohmann:
     initPropertyKeyMapAndCalcNumBlocks(graph.catalog->getNodeLabelsCount(), fnames,
         numBlocksPerLabel, graph.catalog->nodePropertyKeyMaps,
         metadata.at("tokenSeparator").get<string>()[0]);
+    auto primaryKeys = getNodePrimaryKeysFromMetadata(
+        graph.catalog->getNodeLabelsCount(), metadata.at("nodeFileDescriptions"));
+    initNodePropertyPrimaryKeys(primaryKeys);
+    checkNodePrimaryKeyConstraints();
 
     // count number of lines and get unstructured propertyKeys in each block of each label.
     labelBlockUnstrPropertyKeys_t labelBlockUnstrPropertyKeys(graph.catalog->getNodeLabelsCount());
@@ -170,6 +201,20 @@ void GraphLoader::inferFnamesFromMetadataFileDesriptions(
     }
 }
 
+vector<string> GraphLoader::getNodePrimaryKeysFromMetadata(
+    label_t numLabels, nlohmann::json fileDescriptions) {
+    vector<string> primaryKeys(numLabels);
+    for (label_t label = 0; label < numLabels; label++) {
+        auto fileDescription = fileDescriptions[label];
+        // Currently, we assume that there is only one primary key column for each node label.
+        auto primaryKeyEntry = fileDescription.find("primaryKey");
+        if (primaryKeyEntry != fileDescription.end()) {
+            primaryKeys[label] = primaryKeyEntry->get<string>();
+        }
+    }
+    return primaryKeys;
+}
+
 void GraphLoader::initPropertyKeyMapAndCalcNumBlocks(label_t numLabels, vector<string>& filenames,
     vector<uint64_t>& numBlocksPerLabel,
     vector<unordered_map<string, PropertyKey>>& propertyKeyMaps, const char tokenSeparator) {
@@ -187,26 +232,42 @@ void GraphLoader::initPropertyKeyMapAndCalcNumBlocks(label_t numLabels, vector<s
     logger->info("Done parsing headers.");
 }
 
+void GraphLoader::initNodePropertyPrimaryKeys(vector<string>& primaryKeys) {
+    for (auto labelId = 0u; labelId < graph.catalog->getNodeLabelsCount(); labelId++) {
+        auto primaryKeyName = primaryKeys[labelId];
+        if (primaryKeyName.empty()) {
+            throw invalid_argument("Primary key is empty or not specified.");
+        }
+        auto& propertyMap = graph.catalog->nodePropertyKeyMaps[labelId];
+        auto propertyKeyEntry = propertyMap.find(primaryKeyName);
+        if (propertyKeyEntry != propertyMap.end()) {
+            propertyKeyEntry->second.isPrimaryKey = true;
+        } else {
+            throw invalid_argument("Specified primary key " + primaryKeyName + " is not found.");
+        }
+    }
+}
+
 // Parses the header of a CSV file. The header contains the name and dataType of each column
 // separated by a given `tokenSeparator`.
 void GraphLoader::parseHeader(
     const char tokenSeparator, string& header, unordered_map<string, PropertyKey>& propertyKeyMap) {
-    auto splittedHeader = StringUtils::split(header, string(1, tokenSeparator));
-    auto propertyKeyNameSet = make_unique<unordered_set<string>>();
+    auto propertyHeaders = StringUtils::split(header, string(1, tokenSeparator));
     uint32_t propertyIdx = 0;
-    for (auto& split : splittedHeader) {
-        auto nameEndPos = split.find(PROPERTY_DATATYPE_SEPARATOR);
-        if (nameEndPos == string::npos) {
-            throw invalid_argument("Cannot find dataType in column head `" + split + "`.");
+    for (auto& propertyHeader : propertyHeaders) {
+        auto propertyDescriptors = StringUtils::split(propertyHeader, PROPERTY_DATATYPE_SEPARATOR);
+        if (propertyDescriptors.size() < 2) {
+            throw invalid_argument("Cannot find dataType in column head `" + propertyHeader + "`.");
         }
-        auto propertyKeyName = split.substr(0, split.find(PROPERTY_DATATYPE_SEPARATOR));
-        if (propertyKeyNameSet->find(propertyKeyName) != propertyKeyNameSet->end()) {
-            throw invalid_argument("Same property name in csv file.");
+        auto propertyKeyName = propertyDescriptors[0];
+        if (propertyKeyMap.find(propertyKeyName) != propertyKeyMap.end()) {
+            throw invalid_argument(
+                "Property name " + propertyKeyName + " already exists in the node label.");
         }
-        propertyKeyNameSet->insert(propertyKeyName);
-        auto dataType = getDataType(split.substr(split.find(PROPERTY_DATATYPE_SEPARATOR) + 1));
+        auto dataType = getDataType(propertyDescriptors[1]);
         if (NODE != dataType && LABEL != dataType) {
-            propertyKeyMap.insert({propertyKeyName, PropertyKey{dataType, propertyIdx++}});
+            propertyKeyMap.insert(
+                {propertyKeyName, PropertyKey{dataType, propertyIdx++, false /* isPrimaryKey */}});
         }
     }
 }
@@ -239,8 +300,8 @@ void GraphLoader::countLinesAndGetUnstrPropertyKeys(vector<vector<uint64_t>>& nu
 }
 
 // Initializes node's unstructured propertyKeyMaps, similar to how the the structured
-// propertyKeyMaps are initialized. The only difference is that the dataType of the propertyKey is
-// UNKNOWN since it can vary from node to node.
+// propertyKeyMaps are initialized. The only difference is that the dataType of the propertyKey
+// is UNKNOWN since it can vary from node to node.
 void GraphLoader::initNodeUnstrPropertyKeyMaps(
     labelBlockUnstrPropertyKeys_t& labelBlockUnstrPropertyKeys) {
     logger->debug("Initialize node unstructured PropertyKey maps.");
@@ -259,8 +320,8 @@ void GraphLoader::initNodeUnstrPropertyKeyMaps(
         }
         auto propertyIdx = 0u;
         for (auto& propertyKeyString : unionOfUnstrPropertyKeys) {
-            graph.catalog->nodeUnstrPropertyKeyMaps[label].emplace(
-                string(propertyKeyString), PropertyKey(UNSTRUCTURED, propertyIdx++));
+            graph.catalog->nodeUnstrPropertyKeyMaps[label].emplace(string(propertyKeyString),
+                PropertyKey(UNSTRUCTURED, propertyIdx++, false /* isPrimaryKey */));
         }
     }
     logger->debug("Done initializing node unstructured PropertyKey maps.");
@@ -276,7 +337,6 @@ void GraphLoader::countLinesAndScanUnstrPropertiesInBlockTask(string fname, char
     (*numLinesPerBlock)[label][blockId] = 0ull;
     while (reader.hasNextLine()) {
         (*numLinesPerBlock)[label][blockId]++;
-        reader.hasNextToken();
         for (auto i = 0u; i < numProperties; ++i) {
             reader.hasNextToken();
         }

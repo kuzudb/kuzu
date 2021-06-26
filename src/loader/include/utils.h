@@ -49,6 +49,8 @@ private:
 vector<DataType> createPropertyDataTypesArray(
     const unordered_map<string, PropertyKey>& propertyMap);
 
+vector<bool> getPropertyIsPrimaryKeys(const unordered_map<string, PropertyKey>& propertyMap);
+
 // Holds information about a rel label that is needed to construct adjRels and adjLists
 // indexes, property columns, and property lists.
 class RelLabelDescription {
