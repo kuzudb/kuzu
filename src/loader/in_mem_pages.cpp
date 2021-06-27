@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-#include "src/storage/include/file_utils.h"
+#include "src/common/include/file_utils.h"
 
 namespace graphflow {
 namespace loader {

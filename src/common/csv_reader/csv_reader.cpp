@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "src/common/include/configs.h"
+#include "src/common/include/date.h"
 #include "src/common/include/utils.h"
 
 namespace graphflow {
@@ -80,7 +81,7 @@ bool CSVReader::skipTokenIfNull() {
 }
 
 void CSVReader::skipToken() {
-    nextTokenIsNotProcessed = false;
+    setNextTokenIsNotProcessed();
 }
 
 bool CSVReader::hasNextToken() {
@@ -93,31 +94,47 @@ bool CSVReader::hasNextToken() {
         nextLineIsNotProcessed = false;
         return false;
     }
+    nextTokenLen = 0;
     while (tokenSeparator != line[linePtrEnd] && '\n' != line[linePtrEnd]) {
+        nextTokenLen++;
         linePtrEnd++;
     }
     line[linePtrEnd] = 0;
     return true;
 }
+uint64_t CSVReader::getNextTokenLen() {
+    return nextTokenLen;
+}
 
 int32_t CSVReader::getInt32() {
-    nextTokenIsNotProcessed = false;
+    setNextTokenIsNotProcessed();
     return convertToInt32(line + linePtrStart);
 }
 
 double_t CSVReader::getDouble() {
-    nextTokenIsNotProcessed = false;
+    setNextTokenIsNotProcessed();
     return convertToDouble(line + linePtrStart);
 }
 
 uint8_t CSVReader::getBoolean() {
-    nextTokenIsNotProcessed = false;
+    setNextTokenIsNotProcessed();
     return convertToBoolean(line + linePtrStart);
 }
 
 char* CSVReader::getString() {
-    nextTokenIsNotProcessed = false;
+    setNextTokenIsNotProcessed();
     return line + linePtrStart;
+}
+
+date_t CSVReader::getDate() {
+    date_t retVal = Date::FromCString(line + linePtrStart, nextTokenLen);
+    setNextTokenIsNotProcessed();
+    return retVal;
+}
+
+void CSVReader::setNextTokenIsNotProcessed() {
+    nextTokenIsNotProcessed = false;
+    nextTokenLen = -1;
 }
 
 void CSVReader::openFile(string fname) {

@@ -26,6 +26,8 @@ DataType getDataType(const std::string& dataTypeString) {
         return BOOL;
     } else if ("STRING" == dataTypeString) {
         return STRING;
+    } else if ("DATE" == dataTypeString) {
+        return DATE;
     }
     throw invalid_argument("Cannot parse dataType: " + dataTypeString);
 }
@@ -56,6 +58,8 @@ size_t getDataTypeSize(DataType dataType) {
         return sizeof(gf_string_t);
     case UNSTRUCTURED:
         return sizeof(Value);
+    case DATE:
+        return sizeof(date_t);
     default:
         throw invalid_argument("Cannot infer the size of dataType.");
     }

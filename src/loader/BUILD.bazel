@@ -34,6 +34,7 @@ cc_library(
     deps = [
         "thread_pool",
         "//src/common:csv_reader",
+        "//src/common:types",
         "//src/storage:data_structure_utils",
         "//src/storage:graph",
         "@gabime_spdlog",

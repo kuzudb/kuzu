@@ -45,6 +45,10 @@ void NodesStore::initPropertyColumns(const Catalog& catalog,
                 propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnString>(
                     fname, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
+            case DATE:
+                propertyColumns[nodeLabel][idx] = make_unique<PropertyColumnDate>(
+                    fname, numNodesPerLabel[nodeLabel], bufferManager);
+                break;
             default:
                 throw invalid_argument("invalid type for property column craetion.");
             }

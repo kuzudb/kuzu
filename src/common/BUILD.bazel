@@ -98,17 +98,22 @@ cc_library(
     deps = [
         "configs",
         "types",
-        "utils",
     ],
 )
 
 cc_library(
     name = "utils",
     srcs = [
+        "assert.cpp",
         "utils.cpp",
+        "exception.cpp",
+        "file_utils.cpp"
     ],
     hdrs = [
+        "include/assert.h",
         "include/utils.h",
+        "include/exception.h",
+        "include/file_utils.h"
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -119,18 +124,23 @@ cc_library(
 cc_library(
     name = "types",
     srcs = [
+        "date.cpp",
         "gf_string.cpp",
         "literal.cpp",
         "types.cpp",
         "value.cpp",
     ],
     hdrs = [
+        "include/date.h",
         "include/gf_string.h",
         "include/literal.h",
         "include/types.h",
         "include/value.h",
     ],
     visibility = ["//visibility:public"],
+    deps = [
+        "utils",
+    ],
 )
 
 cc_library(

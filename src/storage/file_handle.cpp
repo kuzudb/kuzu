@@ -3,7 +3,7 @@
 #include "spdlog/spdlog.h"
 
 #include "src/common/include/configs.h"
-#include "src/storage/include/file_utils.h"
+#include "src/common/include/file_utils.h"
 
 using namespace graphflow::common;
 

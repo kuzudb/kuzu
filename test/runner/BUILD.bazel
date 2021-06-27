@@ -13,7 +13,7 @@ cc_test(
         "//dataset",
     ],
     deps = [
-        "//src/testing:test_helper",
+        "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",
     ],

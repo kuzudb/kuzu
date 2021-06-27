@@ -1,5 +1,6 @@
 #include "src/loader/include/graph_loader.h"
 
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <unordered_set>
@@ -27,34 +28,42 @@ GraphLoader::~GraphLoader() {
 };
 
 void GraphLoader::loadGraph() {
-    logger->info("Starting GraphLoader.");
-    auto metadata = readMetadata();
+    try {
+        logger->info("Starting GraphLoader.");
+        auto metadata = readMetadata();
 
-    graph.catalog = make_unique<Catalog>();
+        graph.catalog = make_unique<Catalog>();
 
-    // populate data fields in Catalog
-    assignIdxToLabels(graph.catalog->stringToNodeLabelMap, metadata->at("nodeFileDescriptions"));
-    assignIdxToLabels(graph.catalog->stringToRelLabelMap, metadata->at("relFileDescriptions"));
-    setCardinalitiesOfRelLabels(*metadata);
-    setSrcDstNodeLabelsForRelLabels(*metadata);
+        // populate data fields in Catalog
+        assignIdxToLabels(
+            graph.catalog->stringToNodeLabelMap, metadata->at("nodeFileDescriptions"));
+        assignIdxToLabels(graph.catalog->stringToRelLabelMap, metadata->at("relFileDescriptions"));
+        setCardinalitiesOfRelLabels(*metadata);
+        setSrcDstNodeLabelsForRelLabels(*metadata);
 
-    auto nodeIDMaps = loadNodes(*metadata);
+        auto nodeIDMaps = loadNodes(*metadata);
 
-    logger->info("Creating reverse NodeIDMaps.");
-    for (auto& nodeIDMap : *nodeIDMaps) {
-        threadPool.execute([&](NodeIDMap* x) { x->createNodeIDToOffsetMap(); }, nodeIDMap.get());
+        logger->info("Creating reverse NodeIDMaps.");
+        for (auto& nodeIDMap : *nodeIDMaps) {
+            threadPool.execute(
+                [&](NodeIDMap* x) { x->createNodeIDToOffsetMap(); }, nodeIDMap.get());
+        }
+        threadPool.wait();
+
+        loadRels(*metadata, *nodeIDMaps);
+
+        // write catalog and graph objects to file
+        logger->info("Writing Catalog object.");
+        graph.catalog->saveToFile(outputDirectory);
+        logger->info("Writing Graph object.");
+        graph.saveToFile(outputDirectory);
+
+        logger->info("Done GraphLoader.");
+    } catch (exception& e) {
+        logger->info("Inside GraphLoader::loadGraph()");
+        logger->error(e.what());
+        throw e;
     }
-    threadPool.wait();
-
-    loadRels(*metadata, *nodeIDMaps);
-
-    // write catalog and graph objects to file
-    logger->info("Writing Catalog object.");
-    graph.catalog->saveToFile(outputDirectory);
-    logger->info("Writing Graph object.");
-    graph.saveToFile(outputDirectory);
-
-    logger->info("Done GraphLoader.");
 }
 
 unique_ptr<nlohmann::json> GraphLoader::readMetadata() {
