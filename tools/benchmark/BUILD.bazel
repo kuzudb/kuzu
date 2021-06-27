@@ -1,0 +1,28 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "benchmark",
+    srcs = [
+        "benchmark.cpp",
+        "benchmark_runner.cpp",
+    ],
+    hdrs = [
+        "include/benchmark.h",
+        "include/benchmark_config.h",
+        "include/benchmark_runner.h",
+    ],
+    deps = [
+        "//src/main:system",
+    ],
+)
+
+cc_binary(
+    name = "benchmark_tool",
+    srcs = [
+        "main.cpp",
+    ],
+    linkopts = ["-lpthread"],
+    deps = [
+        "benchmark",
+    ],
+)

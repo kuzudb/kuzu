@@ -23,7 +23,7 @@ double Profiler::sumAllTimeMetricsWithKey(const string& key) {
     auto sum = 0.0;
     assert(metrics.contains(key));
     for (auto& metric : metrics.at(key)) {
-        sum += ((TimeMetric*)metric.get())->accumulatedTime;
+        sum += ((TimeMetric*)metric.get())->getElapsedTimeMS();
     }
     return sum;
 }

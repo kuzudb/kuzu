@@ -37,7 +37,7 @@ void PhysicalOperator::printTimeAndNumOutputMetrics(nlohmann::json& json, Profil
     // Time metric measures execution time of the subplan under current operator (like a CDF).
     // By subtracting prevOperator runtime, we get the runtime of current operator
     json["executionTime"] =
-        profiler.sumAllTimeMetricsWithKey(getTimeMetricKey()) - prevExecutionTime;
+        to_string(profiler.sumAllTimeMetricsWithKey(getTimeMetricKey()) - prevExecutionTime);
     json["numOutputTuples"] = profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
 }
 
@@ -46,7 +46,7 @@ void PhysicalOperator::printBufferManagerMetrics(nlohmann::json& json, Profiler&
     auto bufferMiss = profiler.sumAllNumericMetricsWithKey(getNumBufferMissMetricKey());
     json["numBufferHit"] = bufferHit;
     json["numBufferMiss"] = bufferMiss;
-    json["cacheMissRatio"] = ((double)bufferMiss) / (double)(bufferMiss + bufferHit);
+    json["cacheMissRatio"] = to_string(((double)bufferMiss) / (double)(bufferMiss + bufferHit));
     json["numIO"] = profiler.sumAllNumericMetricsWithKey(getNumIOMetricKey());
 }
 

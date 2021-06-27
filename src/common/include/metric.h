@@ -29,6 +29,8 @@ public:
     void start();
     void stop();
 
+    double getElapsedTimeMS();
+
 public:
     double accumulatedTime;
     bool isStarted;
