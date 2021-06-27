@@ -60,6 +60,9 @@ void GraphLoader::loadGraph() {
 unique_ptr<nlohmann::json> GraphLoader::readMetadata() {
     logger->info("Reading metadata and initilializing `Catalog`.");
     ifstream jsonFile(inputDirectory + "/metadata.json");
+    if (!jsonFile.is_open()) {
+        throw invalid_argument("Unable to open metadata.json");
+    }
     auto parsedJson = make_unique<nlohmann::json>();
     jsonFile >> *parsedJson;
     return parsedJson;
@@ -223,6 +226,9 @@ void GraphLoader::initPropertyKeyMapAndCalcNumBlocks(label_t numLabels, vector<s
     for (label_t label = 0; label < numLabels; label++) {
         logger->debug("path=`{0}`", filenames[label]);
         ifstream f(filenames[label], ios_base::in);
+        if (!f.is_open()) {
+            throw invalid_argument("Unable to open file " + filenames[label]);
+        }
         string header;
         getline(f, header);
         parseHeader(tokenSeparator, header, propertyKeyMaps[label]);
