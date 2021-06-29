@@ -35,6 +35,10 @@ public:
     static unique_ptr<TestSuiteQueryConfig> parseTestFile(const string& path);
 
     static unique_ptr<System> getInitializedSystem(TestSuiteSystemConfig& config);
+
+    static void createDirOrError(const string& dir);
+
+    static void removeDirOrError(const string& dir);
 };
 
 } // namespace testing

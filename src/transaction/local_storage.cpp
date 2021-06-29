@@ -15,6 +15,9 @@ static unique_ptr<uint8_t[]> getNullValuePtrForDataType(DataType dataType) {
     case BOOL:
         memcpy(nullValue.get(), &NULL_BOOL, getDataTypeSize(dataType));
         break;
+    case DATE:
+        memcpy(nullValue.get(), &NULL_DATE, getDataTypeSize(dataType));
+        break;
     case STRING: {
         gf_string_t nullStr;
         nullStr.set(string(&gf_string_t::EMPTY_STRING));

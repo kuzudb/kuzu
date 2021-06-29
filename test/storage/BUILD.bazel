@@ -1,5 +1,21 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
+cc_library(
+    name = "loader_scanners",
+    srcs = [
+        "node_fixed_size_property_file_scanner.cpp",
+            ],
+    hdrs = [
+        "include/node_fixed_size_property_file_scanner.h",
+        ],
+    visibility = ["//visibility:public"],
+    deps = [
+            "//src/common:types",
+            "//src/common:utils",
+            "//src/storage:store",
+    ],
+)
+
 cc_test(
     name = "hash_index_test",
     srcs = [
@@ -10,6 +26,7 @@ cc_test(
     ],
     deps = [
         "//src/storage:hash_index",
+        "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",
     ],

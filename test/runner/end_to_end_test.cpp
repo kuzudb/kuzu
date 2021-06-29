@@ -2,42 +2,13 @@
 
 #include "gtest/gtest.h"
 #include "spdlog/spdlog.h"
-
-#include "src/testing/include/test_helper.h"
+#include "test/test_utility/include/db_loaded_test.h"
+#include "test/test_utility/include/test_helper.h"
 
 using ::testing::Test;
 using namespace graphflow::testing;
 
-class TinySnbProcessorTest : public Test {
-
-public:
-    void SetUp() override {
-        createDefaultSystemConfig();
-        if (!filesystem::exists(defaultSystemConfig->graphOutputDir) &&
-            !filesystem::create_directory(defaultSystemConfig->graphOutputDir)) {
-            throw invalid_argument(
-                "Graph output directory cannot be created. Check if it exists and remove it.");
-        }
-        defaultSystem = TestHelper::getInitializedSystem(*defaultSystemConfig);
-    }
-
-    void TearDown() override {
-        error_code removeErrorCode;
-        if (!filesystem::remove_all(defaultSystemConfig->graphOutputDir, removeErrorCode)) {
-            spdlog::error("Remove graph output directory error: {}", removeErrorCode.message());
-        }
-    }
-
-    void createDefaultSystemConfig() {
-        defaultSystemConfig = make_unique<TestSuiteSystemConfig>();
-        defaultSystemConfig->graphInputDir = "dataset/tinysnb/";
-        defaultSystemConfig->graphOutputDir = "test/unittest_temp/";
-    }
-
-public:
-    unique_ptr<TestSuiteSystemConfig> defaultSystemConfig;
-    unique_ptr<System> defaultSystem;
-};
+class TinySnbProcessorTest : public DBLoadedTest {};
 
 TEST_F(TinySnbProcessorTest, StructuralQueries) {
     unique_ptr<TestSuiteQueryConfig> queryConfig;

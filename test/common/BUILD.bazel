@@ -16,6 +16,21 @@ cc_test(
 )
 
 cc_test(
+    name = "date_test",
+    srcs = [
+        "date_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/common:types",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "vector_operations_tests",
     srcs = [
         "vector/operations/vector_arithmetic_operations_test.cpp",

@@ -10,7 +10,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "file_utils",
+        "//src/common:utils",
         "//src/common:configs",
         "@gabime_spdlog",
     ],
@@ -115,7 +115,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/common:types",
-        "//src/common:utils",
         "@fraillt_bitsery",
         "@gabime_spdlog",
         "@nlohmann_json",
@@ -156,12 +155,3 @@ cc_library(
     ],
 )
 
-cc_library(
-    name = "file_utils",
-    srcs = [
-        "file_utils.cpp"
-    ],
-    hdrs = [
-        "include/file_utils.h"
-    ],
-)

@@ -1,0 +1,19 @@
+cc_test(
+    name = "load_dates_test",
+    srcs = [
+        "load_dates_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "//dataset",
+    ],
+    deps = [
+        "//test/test_utility:test_helper",
+        "//src/common:types",
+        "//test/storage:loader_scanners",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)

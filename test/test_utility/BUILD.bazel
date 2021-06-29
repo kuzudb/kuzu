@@ -7,10 +7,12 @@ cc_library(
     ],
     hdrs = [
         "include/test_helper.h",
+        "include/db_loaded_test.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "//src/loader:graph_loader",
         "//src/main:system",
+        "@gtest",
     ],
 )

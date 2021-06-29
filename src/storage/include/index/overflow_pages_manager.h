@@ -3,11 +3,11 @@
 #include <bitset>
 
 #include "src/common/include/configs.h"
+#include "src/common/include/file_utils.h"
 #include "src/common/include/memory_manager.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/file_utils.h"
 
 using namespace std;
 using namespace graphflow::common;

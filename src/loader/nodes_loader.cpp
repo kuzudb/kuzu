@@ -3,7 +3,8 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
-#include "src/storage/include/file_utils.h"
+#include "src/common/include/date.h"
+#include "src/common/include/file_utils.h"
 #include "src/storage/include/store/nodes_store.h"
 
 using namespace graphflow::storage;
@@ -195,26 +196,33 @@ void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(stri
     NodeIDMap* nodeIDMap, vector<string> propertyColumnFnames,
     vector<unique_ptr<InMemStringOverflowPages>>* propertyIdxStringOverflowPages,
     listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger> logger) {
-    logger->trace("Start: path={0} blkIdx={1}", fname, blockId);
-    vector<PageCursor> stringOverflowPagesCursors{propertyDataTypes.size()};
-    auto buffers = createBuffersForPropertyMap(propertyDataTypes, numElements, logger);
-    CSVReader reader(fname, tokenSeparator, blockId);
-    if (0 == blockId) {
-        if (reader.hasNextLine()) {}
-    }
-    auto bufferOffset = 0u;
-    while (reader.hasNextLine()) {
-        if (!propertyDataTypes.empty()) {
-            putPropsOfLineIntoBuffers(propertyDataTypes, isPrimaryKeys, reader, *buffers,
-                bufferOffset, *propertyIdxStringOverflowPages, stringOverflowPagesCursors,
-                nodeIDMap, offsetStart + bufferOffset);
+    try {
+        logger->trace("Start: path={0} blkIdx={1}", fname, blockId);
+        vector<PageCursor> stringOverflowPagesCursors{propertyDataTypes.size()};
+        auto buffers = createBuffersForPropertyMap(propertyDataTypes, numElements, logger);
+        CSVReader reader(fname, tokenSeparator, blockId);
+        if (0 == blockId) {
+            if (reader.hasNextLine()) {}
         }
-        calcLengthOfUnstrPropertyLists(reader, offsetStart + bufferOffset, *unstrPropertyListSizes);
-        bufferOffset++;
+        auto bufferOffset = 0u;
+        while (reader.hasNextLine()) {
+            if (!propertyDataTypes.empty()) {
+                putPropsOfLineIntoBuffers(propertyDataTypes, isPrimaryKeys, reader, *buffers,
+                    bufferOffset, *propertyIdxStringOverflowPages, stringOverflowPagesCursors,
+                    nodeIDMap, offsetStart + bufferOffset);
+            }
+            calcLengthOfUnstrPropertyLists(
+                reader, offsetStart + bufferOffset, *unstrPropertyListSizes);
+            bufferOffset++;
+        }
+        writeBuffersToFiles(
+            *buffers, offsetStart, numElements, propertyColumnFnames, propertyDataTypes);
+        logger->trace("End: path={0} blkIdx={1}", fname, blockId);
+    } catch (exception& e) {
+        logger->error("Caught an exception during loading!!");
+        logger->error(e.what());
+        exit(1);
     }
-    writeBuffersToFiles(
-        *buffers, offsetStart, numElements, propertyColumnFnames, propertyDataTypes);
-    logger->trace("End: path={0} blkIdx={1}", fname, blockId);
 }
 
 // Iterate over each line in a block of CSV file. For each line, infer the node offset, skip
@@ -302,6 +310,12 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<DataType>& propertyData
                 getDataTypeSize(BOOL));
             break;
         }
+        case DATE: {
+            auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
+            memcpy(buffers[propertyIdx].get() + (bufferOffset * getDataTypeSize(DATE)), &dateVal,
+                getDataTypeSize(DATE));
+            break;
+        }
         case STRING: {
             auto strVal =
                 reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
@@ -375,6 +389,12 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             auto boolVal = convertToBoolean(unstrPropertyStringBreaker2 + 1);
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyIdx,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&boolVal));
+            break;
+        }
+        case DATE: {
+            auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
+            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyIdx,
+                static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&dateVal));
             break;
         }
         case STRING: {

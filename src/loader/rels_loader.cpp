@@ -241,6 +241,12 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(const vector<DataType>& 
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
             break;
         }
+        case DATE: {
+            auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
+            adjAndPropertyColumnsBuilder->setProperty(
+                nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&dateVal), DATE);
+            break;
+        }
         case STRING: {
             auto strVal =
                 reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
@@ -282,6 +288,12 @@ void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<DataType>& pro
             auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
             adjAndPropertyListsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
+            break;
+        }
+        case DATE: {
+            auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
+            adjAndPropertyListsBuilder->setProperty(
+                pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&dateVal), DATE);
             break;
         }
         case STRING: {

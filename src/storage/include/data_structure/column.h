@@ -80,6 +80,7 @@ typedef Column<DOUBLE> PropertyColumnDouble;
 typedef Column<BOOL> PropertyColumnBool;
 typedef Column<STRING> PropertyColumnString;
 typedef Column<NODE> AdjColumn;
+typedef Column<DATE> PropertyColumnDate;
 
 } // namespace storage
 } // namespace graphflow

@@ -1,4 +1,6 @@
-#include "src/testing/include/test_helper.h"
+#include "test/test_utility/include/test_helper.h"
+
+#include <filesystem>
 
 #include "spdlog/spdlog.h"
 
@@ -118,5 +120,18 @@ unique_ptr<System> TestHelper::getInitializedSystem(TestSuiteSystemConfig& confi
     return make_unique<System>(config.graphOutputDir);
 }
 
+void TestHelper::createDirOrError(const string& dir) {
+    if (!filesystem::exists(dir) && !filesystem::create_directory(dir)) {
+        throw runtime_error(
+            "Graph output directory cannot be created. Check if it exists and remove it.");
+    }
+}
+
+void TestHelper::removeDirOrError(const string& dir) {
+    error_code removeErrorCode;
+    if (!filesystem::remove_all(dir, removeErrorCode)) {
+        throw runtime_error("Remove graph output directory error: " + removeErrorCode.message());
+    }
+}
 } // namespace testing
 } // namespace graphflow

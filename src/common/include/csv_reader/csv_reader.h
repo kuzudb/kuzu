@@ -34,6 +34,8 @@ public:
     bool hasNextLine();
     // returns true if the currently-pointed to line has more data to be parsed, else false.
     bool hasNextToken();
+    // returns the lenght of the next token (the len of the char *)
+    uint64_t getNextTokenLen();
 
     // Marks the currently-pointed to line as processed. hasNextLine() has to be called the move the
     // iterator to the next line.
@@ -49,9 +51,11 @@ public:
     double_t getDouble();
     uint8_t getBoolean();
     char* getString();
+    date_t getDate();
 
 private:
     void openFile(string fname);
+    void setNextTokenIsNotProcessed();
 
 private:
     FILE* f;
@@ -62,6 +66,7 @@ private:
     int64_t linePtrStart = -1l, linePtrEnd = -1l;
     size_t readingBlockIdx;
     size_t readingBlockEndIdx;
+    uint64_t nextTokenLen = -1;
 };
 
 } // namespace common

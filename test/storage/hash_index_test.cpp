@@ -4,6 +4,7 @@
 #include "gtest/gtest.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
+#include "test/test_utility/include/test_helper.h"
 
 #include "src/storage/include/index/hash_index.h"
 
@@ -15,10 +16,7 @@ public:
     const string TEMP_INDEX = "test/temp_index/";
 
     void SetUp() override {
-        if (!filesystem::exists(TEMP_INDEX) && !filesystem::create_directory(TEMP_INDEX)) {
-            throw invalid_argument(
-                "Graph output directory cannot be created. Check if it exists and remove it.");
-        }
+        graphflow::testing::TestHelper::createDirOrError(TEMP_INDEX);
         spdlog::stdout_logger_mt("storage");
         auto insertionMemoryManager = make_unique<MemoryManager>();
         auto insertionBufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
@@ -47,10 +45,7 @@ public:
     }
 
     void TearDown() override {
-        error_code removeErrorCode;
-        if (!filesystem::remove_all(TEMP_INDEX, removeErrorCode)) {
-            spdlog::error("Remove graph output directory error: {}", removeErrorCode.message());
-        }
+        graphflow::testing::TestHelper::removeDirOrError(TEMP_INDEX);
         spdlog::drop("storage");
     }
 
