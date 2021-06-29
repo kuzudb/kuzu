@@ -95,7 +95,7 @@ void QueryProcessor::run() {
         }
         auto task = queue.getTask();
         if (!task) {
-            this_thread::sleep_for(chrono::milliseconds(10));
+            this_thread::sleep_for(chrono::microseconds(100));
             continue;
         }
         task->run();

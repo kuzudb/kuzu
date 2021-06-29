@@ -4,6 +4,8 @@
 #include <memory>
 #include <mutex>
 
+#include "src/common/include/configs.h"
+
 using namespace std;
 
 namespace graphflow {
@@ -26,8 +28,6 @@ private:
 
 // Memory manager for allocating/reclaiming large intermediate memory blocks.
 class MemoryManager {
-    static constexpr uint64_t DEFAULT_MEMORY_MANAGER_MAX_MEMORY = 1 << 30;
-
 public:
     explicit MemoryManager(uint64_t maxMemory = DEFAULT_MEMORY_MANAGER_MAX_MEMORY)
         : maxMemory(maxMemory), usedMemory(0) {}

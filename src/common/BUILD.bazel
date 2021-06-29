@@ -105,15 +105,15 @@ cc_library(
     name = "utils",
     srcs = [
         "assert.cpp",
-        "utils.cpp",
         "exception.cpp",
-        "file_utils.cpp"
+        "file_utils.cpp",
+        "utils.cpp",
     ],
     hdrs = [
         "include/assert.h",
-        "include/utils.h",
         "include/exception.h",
-        "include/file_utils.h"
+        "include/file_utils.h",
+        "include/utils.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -174,7 +174,9 @@ cc_library(
         "include/memory_manager.h",
     ],
     visibility = ["//visibility:public"],
-    deps = [],
+    deps = [
+        "configs",
+    ],
 )
 
 cc_library(
