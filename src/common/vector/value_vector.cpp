@@ -32,12 +32,16 @@ void ValueVector::fillNullMask() {
     case DOUBLE:
         fillOperandNullMask<double_t>(*this);
         break;
+    case DATE:
+        fillOperandNullMask<date_t>(*this);
+        break;
     case STRING:
         // TODO: fillOperandNullMask<gf_string_t>(*this);
         //  Currently we do not distinguish empty and NULL gf_string_t.
         break;
     default:
-        throw std::invalid_argument("Invalid or unsupported type for comparison.");
+        throw std::invalid_argument(
+            "Invalid or unsupported type for comparison: " + dataTypeToString(dataType) + ".");
     }
 }
 

@@ -1,8 +1,10 @@
 #include "src/common/include/date.h"
 
 #include "src/common/include/assert.h"
+#include "src/common/include/cast_helpers.h"
 #include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
+
 using namespace std;
 
 namespace graphflow {
@@ -245,6 +247,18 @@ date_t Date::FromCString(const char* buf, uint64_t len) {
             "date string " + string(buf, len) + " is not in expected format of (YYYY-MM-DD)");
     }
     return result;
+}
+
+string Date::toString(date_t date) {
+    int32_t date_units[3];
+    uint64_t year_length;
+    bool add_bc;
+    Date::Convert(date, date_units[0], date_units[1], date_units[2]);
+
+    auto length = DateToStringCast::Length(date_units, year_length, add_bc);
+    auto buffer = unique_ptr<char[]>(new char[length]);
+    DateToStringCast::Format(buffer.get(), date_units, year_length, add_bc);
+    return string(buffer.get(), length);
 }
 
 bool Date::IsLeapYear(int32_t year) {

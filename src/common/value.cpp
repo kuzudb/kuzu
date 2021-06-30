@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "src/common/include/date.h"
+
 using namespace std;
 
 namespace graphflow {
@@ -21,6 +23,9 @@ Value& Value::operator=(const Value& other) {
     } break;
     case STRING: {
         val.strVal = other.val.strVal;
+    } break;
+    case DATE: {
+        val.dateVal = other.val.dateVal;
     } break;
     default:
         assert(false);
@@ -42,6 +47,8 @@ string Value::toString() const {
         return gf_string_t::getAsString(val.strVal);
     case NODE:
         return to_string(val.nodeID.label) + ":" + to_string(val.nodeID.offset);
+    case DATE:
+        return Date::toString(val.dateVal);
     default:
         assert(false);
     }

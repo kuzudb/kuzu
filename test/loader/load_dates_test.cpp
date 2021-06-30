@@ -17,12 +17,12 @@ class LoadDatesTest : public DBLoadedTest {};
 TEST_F(LoadDatesTest, NodePropertyColumnWithDate) {
     NodeFixedSizePropertyFileScanner scanner(TEMP_TEST_DIR,
         defaultSystem->graph->getCatalog().getNodeLabelFromString("person"), "birthdate");
-    EXPECT_EQ(Date::FromDate(1920, 4, 20).days, scanner.readProperty<int32_t>(0));
-    EXPECT_EQ(Date::FromDate(1930, 5, 21).days, scanner.readProperty<int32_t>(1));
+    EXPECT_EQ(Date::FromDate(1900, 1, 1).days, scanner.readProperty<int32_t>(0));
+    EXPECT_EQ(Date::FromDate(1900, 1, 1).days, scanner.readProperty<int32_t>(1));
     EXPECT_EQ(Date::FromDate(1940, 6, 22).days, scanner.readProperty<int32_t>(2));
     EXPECT_EQ(Date::FromDate(1950, 7, 23).days, scanner.readProperty<int32_t>(3));
-    EXPECT_EQ(Date::FromDate(1960, 8, 24).days, scanner.readProperty<int32_t>(4));
-    EXPECT_EQ(Date::FromDate(1970, 9, 25).days, scanner.readProperty<int32_t>(5));
+    EXPECT_EQ(Date::FromDate(1980, 10, 26).days, scanner.readProperty<int32_t>(4));
+    EXPECT_EQ(Date::FromDate(1980, 10, 26).days, scanner.readProperty<int32_t>(5));
     EXPECT_EQ(Date::FromDate(1980, 10, 26).days, scanner.readProperty<int32_t>(6));
     EXPECT_EQ(Date::FromDate(1990, 11, 27).days, scanner.readProperty<int32_t>(7));
 }

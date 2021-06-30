@@ -1,0 +1,48 @@
+# description: handling of date properties
+
+-NAME StruturedDateComparisonAcrossNodesEquality
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate = b.birthdate RETURN COUNT(*)
+---- 4
+
+-NAME StruturedDateComparisonAcrossNodesNonEquality
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate <> b.birthdate RETURN COUNT(*)
+---- 10
+
+-NAME StruturedDateComparisonAcrossNodesLessThan
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate < b.birthdate RETURN COUNT(*)
+---- 5
+
+-NAME StruturedDateComparisonAcrossNodesLessThanOrEqualTo
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate <= b.birthdate RETURN COUNT(*)
+---- 9
+
+-NAME StruturedDateComparisonAcrossNodesGreaterThan
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate > b.birthdate RETURN COUNT(*)
+---- 5
+
+-NAME StruturedDateComparisonAcrossNodesGreaterThanOrEqualTo
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate >= b.birthdate RETURN COUNT(*)
+---- 9
+
+-NAME StruturedDateComparisonAcrossEdges
+-QUERY MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE e1.date = e2.date AND id(a) <> id(c) RETURN COUNT(*)
+---- 10
+
+#  For the below query, these are the 3 edges that should pass the filter: (1) 5, 2,1950-05-14 (5's birthday is 1950-7-23)
+#  (2-3) 7,8,1905-12-12 and 7,9,1905-12-12 (7's birthday is 1980-10-26)
+-NAME StruturedDateComparisonAcrossEdgeAndNode
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate > e1.date  RETURN COUNT(*)
+---- 3
+
+-NAME UnstruturedStructuredDateComparison
+-QUERY MATCH (a:person) WHERE a.birthdate = a.unstrDateProp1 RETURN COUNT(*)
+---- 1
+
+-NAME TwoUnstructuredDateComparison
+-QUERY MATCH (a:person) WHERE a.unstrDateProp1 <> a.unstrDateProp2 RETURN COUNT(*)
+---- 2
+
+-NAME TwoUnstructuredDateComparison
+-QUERY MATCH (a:person) WHERE a.unstrDateProp1 >= a.unstrDateProp2 RETURN COUNT(*)
+---- 1
+

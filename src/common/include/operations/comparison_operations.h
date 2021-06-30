@@ -89,6 +89,9 @@ struct EqualsOrNotEqualsValues {
             case STRING:
                 return equals ? Equals::operation(left.val.strVal, right.val.strVal) :
                                 NotEquals::operation(left.val.strVal, right.val.strVal);
+            case DATE:
+                return equals ? Equals::operation(left.val.dateVal, right.val.dateVal) :
+                                NotEquals::operation(left.val.dateVal, right.val.dateVal);
             default:
                 assert(false);
             }
@@ -171,6 +174,8 @@ struct CompareValues {
                 return FUNC::operation(left.val.doubleVal, right.val.doubleVal);
             case STRING:
                 return FUNC::operation(left.val.strVal, right.val.strVal);
+            case DATE:
+                return FUNC::operation(left.val.dateVal, right.val.dateVal);
             default:
                 assert(false);
             }
@@ -290,6 +295,11 @@ inline uint8_t IsNull::operation(const int32_t& value) {
 template<>
 inline uint8_t IsNull::operation(const double_t& value) {
     return value == NULL_DOUBLE ? TRUE : FALSE;
+};
+
+template<>
+inline uint8_t IsNull::operation(const date_t& value) {
+    return value == NULL_DATE ? TRUE : FALSE;
 };
 
 /***********************************************

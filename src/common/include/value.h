@@ -36,6 +36,7 @@ public:
         double doubleVal;
         gf_string_t strVal{};
         nodeID_t nodeID;
+        date_t dateVal;
     } val;
     // Note: dataType cannot be UNSTRUCTURED. Any Value has a fixed known data type.
     DataType dataType;
