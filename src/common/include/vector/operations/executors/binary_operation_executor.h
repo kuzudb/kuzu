@@ -219,10 +219,10 @@ struct BinaryOperationExecutor {
             for (uint64_t i = 0; i < unflatVector.state->size; i++) {
                 pos = unflatVector.state->selectedValuesPos[i];
                 unflatVector.readNodeID(pos, otherNodeID);
-                result.nullMask[i] = isFlatNull || unflatVector.nullMask[pos];
-                if (!result.nullMask[i]) {
-                    result.values[i] = isLeftFlat ? FUNC::operation(nodeID, otherNodeID) :
-                                                    FUNC::operation(otherNodeID, nodeID);
+                result.nullMask[pos] = isFlatNull || unflatVector.nullMask[pos];
+                if (!result.nullMask[pos]) {
+                    result.values[pos] = isLeftFlat ? FUNC::operation(nodeID, otherNodeID) :
+                                                      FUNC::operation(otherNodeID, nodeID);
                 }
             }
         } else {

@@ -23,3 +23,7 @@
 -NAME TwoHopKnowsIDLessThanEqualsTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) <= id(c) RETURN COUNT(*)
 ---- 24
+
+-NAME SymmetricTwoHop
+-QUERY MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE b.fName = 'Bob' AND e1.date = e2.date AND id(a) <> id(c) RETURN COUNT(*)
+---- 2
