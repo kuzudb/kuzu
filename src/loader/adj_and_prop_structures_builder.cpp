@@ -6,25 +6,25 @@ namespace graphflow {
 namespace loader {
 
 AdjAndPropertyStructuresBuilder::AdjAndPropertyStructuresBuilder(RelLabelDescription& description,
-    ThreadPool& threadPool, const Graph& graph, const string& outputDirectory)
+    ThreadPool& threadPool, const Graph& graph, string outputDirectory)
     : logger{spdlog::get("loader")}, description{description}, threadPool{threadPool}, graph{graph},
-      outputDirectory{outputDirectory} {};
+      outputDirectory{move(outputDirectory)} {}
 
 void AdjAndPropertyStructuresBuilder::populateNumRelsInfo(
     vector<vector<vector<uint64_t>>>& numRelsPerDirBoundLabelRelLabel, bool forColumns) {
-    for (auto& dir : DIRS) {
+    for (auto& direction : DIRECTIONS) {
         if (forColumns) {
-            if (description.isSingleCardinalityPerDir[dir]) {
-                for (auto boundNodeLabel : description.nodeLabelsPerDir[dir]) {
-                    numRelsPerDirBoundLabelRelLabel[dir][boundNodeLabel][description.label] =
-                        (*dirLabelNumRels[dir])[boundNodeLabel].load();
+            if (description.isSingleMultiplicityPerDirection[direction]) {
+                for (auto boundNodeLabel : description.nodeLabelsPerDirection[direction]) {
+                    numRelsPerDirBoundLabelRelLabel[direction][boundNodeLabel][description.label] =
+                        (*directionLabelNumRels[direction])[boundNodeLabel].load();
                 }
             }
         } else {
-            if (!description.isSingleCardinalityPerDir[dir]) {
-                for (auto boundNodeLabel : description.nodeLabelsPerDir[dir]) {
-                    numRelsPerDirBoundLabelRelLabel[dir][boundNodeLabel][description.label] =
-                        (*dirLabelNumRels[dir])[boundNodeLabel].load();
+            if (!description.isSingleMultiplicityPerDirection[direction]) {
+                for (auto boundNodeLabel : description.nodeLabelsPerDirection[direction]) {
+                    numRelsPerDirBoundLabelRelLabel[direction][boundNodeLabel][description.label] =
+                        (*directionLabelNumRels[direction])[boundNodeLabel].load();
                 }
             }
         }

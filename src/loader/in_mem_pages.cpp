@@ -1,8 +1,8 @@
 #include "src/loader/include/in_mem_pages.h"
 
 #include <fcntl.h>
-#include <string.h>
 
+#include <cstring>
 #include <iostream>
 
 #include "src/common/include/file_utils.h"
@@ -11,10 +11,10 @@ namespace graphflow {
 namespace loader {
 
 void InMemPages::saveToFile() {
-    if (0 == fname.length()) {
+    if (0 == fName.length()) {
         throw invalid_argument("InMemPages: Empty filename");
     }
-    int fd = FileUtils::openFile(fname, O_WRONLY | O_CREAT);
+    int fd = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
     auto size = numPages * PAGE_SIZE;
     FileUtils::writeToFile(fd, data.get(), size, 0);
     FileUtils::closeFile(fd);

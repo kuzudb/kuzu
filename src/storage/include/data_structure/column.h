@@ -46,7 +46,7 @@ class Column<STRING> : public BaseColumn {
 public:
     Column(const string& path, const uint64_t& numElements, BufferManager& bufferManager)
         : BaseColumn{path, STRING, sizeof(gf_string_t), numElements, bufferManager},
-          overflowPagesFileHandle{path + ".ovf", O_RDWR} {};
+          overflowPagesFileHandle{path + OVERFLOW_FILE_SUFFIX, O_RDWR} {};
 
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,

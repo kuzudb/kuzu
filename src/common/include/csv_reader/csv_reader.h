@@ -1,13 +1,6 @@
 #pragma once
 
-#include <stdio.h>
-#include <string.h>
-
-#include <cmath>
 #include <fstream>
-#include <iostream>
-#include <memory>
-#include <string>
 
 #include "src/common/include/types.h"
 
@@ -34,8 +27,6 @@ public:
     bool hasNextLine();
     // returns true if the currently-pointed to line has more data to be parsed, else false.
     bool hasNextToken();
-    // returns the lenght of the next token (the len of the char *)
-    uint64_t getNextTokenLen();
 
     // Marks the currently-pointed to line as processed. hasNextLine() has to be called the move the
     // iterator to the next line.
@@ -54,11 +45,11 @@ public:
     date_t getDate();
 
 private:
-    void openFile(string fname);
+    void openFile(const string& fName);
     void setNextTokenIsNotProcessed();
 
 private:
-    FILE* f;
+    FILE* fd;
     const char tokenSeparator;
     bool nextLineIsNotProcessed = false, isEndOfBlock = false, nextTokenIsNotProcessed = false;
     char* line;

@@ -4,27 +4,26 @@
 
 #include "src/common/include/configs.h"
 #include "src/common/include/date.h"
-#include "src/common/include/utils.h"
 
 namespace graphflow {
 namespace common {
 
-CSVReader::CSVReader(const string& fname, const char tokenSeparator, uint64_t blockId)
-    : tokenSeparator(tokenSeparator), line{new char[1 << 10]},
-      readingBlockIdx(CSV_READING_BLOCK_SIZE * blockId),
-      readingBlockEndIdx(CSV_READING_BLOCK_SIZE * (blockId + 1)) {
-    openFile(fname);
+CSVReader::CSVReader(const string& fName, const char tokenSeparator, uint64_t blockId)
+    : fd{nullptr}, tokenSeparator{tokenSeparator}, line{new char[1 << 10]},
+      readingBlockIdx{CSV_READING_BLOCK_SIZE * blockId}, readingBlockEndIdx{CSV_READING_BLOCK_SIZE *
+                                                                            (blockId + 1)} {
+    openFile(fName);
     auto isBeginningOfLine = false;
     if (0 == readingBlockIdx) {
         isBeginningOfLine = true;
     } else {
-        fseek(f, readingBlockIdx - 1, SEEK_SET);
-        if ('\n' == fgetc(f)) {
+        fseek(fd, readingBlockIdx - 1, SEEK_SET);
+        if ('\n' == fgetc(fd)) {
             isBeginningOfLine = true;
         }
     }
     if (!isBeginningOfLine) {
-        while ('\n' != fgetc(f)) {}
+        while ('\n' != fgetc(fd)) {}
     }
 }
 
@@ -36,7 +35,7 @@ CSVReader::CSVReader(const string& fname, const char tokenSeparator)
 }
 
 CSVReader::~CSVReader() {
-    fclose(f);
+    fclose(fd);
     delete[](line);
 }
 
@@ -50,18 +49,18 @@ bool CSVReader::hasNextLine() {
         return true;
     }
     // file cursor is past the block limit, end the block, return false.
-    if (ftell(f) >= readingBlockEndIdx) {
+    if (ftell(fd) >= readingBlockEndIdx) {
         isEndOfBlock = true;
         return false;
     }
     // else, read the next line.
-    lineLen = getline(&line, &lineCapacity, f);
+    lineLen = getline(&line, &lineCapacity, fd);
     while (2 > lineLen || '#' == line[0]) {
-        lineLen = getline(&line, &lineCapacity, f);
+        lineLen = getline(&line, &lineCapacity, fd);
     };
     linePtrStart = linePtrEnd = -1;
     // file ends, end the file.
-    if (feof(f)) {
+    if (feof(fd)) {
         isEndOfBlock = true;
         return false;
     }
@@ -102,9 +101,6 @@ bool CSVReader::hasNextToken() {
     line[linePtrEnd] = 0;
     return true;
 }
-uint64_t CSVReader::getNextTokenLen() {
-    return nextTokenLen;
-}
 
 int32_t CSVReader::getInt32() {
     setNextTokenIsNotProcessed();
@@ -137,10 +133,10 @@ void CSVReader::setNextTokenIsNotProcessed() {
     nextTokenLen = -1;
 }
 
-void CSVReader::openFile(string fname) {
-    f = fopen(fname.c_str(), "r");
-    if (nullptr == f) {
-        throw invalid_argument("Cannot open file: " + fname);
+void CSVReader::openFile(const string& fName) {
+    fd = fopen(fName.c_str(), "r");
+    if (nullptr == fd) {
+        throw invalid_argument("Cannot open file: " + fName);
     }
 }
 

@@ -30,26 +30,9 @@ node_offset_t NodeIDMap::get(const char* nodeID) {
     return nodeIDToOffsetMap.at(nodeID);
 }
 
-vector<DataType> createPropertyDataTypesArray(
-    const unordered_map<string, PropertyKey>& propertyMap) {
-    vector<DataType> propertyDataTypes{propertyMap.size()};
-    for (auto property = propertyMap.begin(); property != propertyMap.end(); property++) {
-        propertyDataTypes[property->second.idx] = property->second.dataType;
-    }
-    return propertyDataTypes;
-}
-
-vector<bool> getPropertyIsPrimaryKeys(const unordered_map<string, PropertyKey>& propertyMap) {
-    vector<bool> isPrimaryKeys(propertyMap.size());
-    for (auto& property : propertyMap) {
-        isPrimaryKeys[property.second.idx] = property.second.isPrimaryKey;
-    }
-    return isPrimaryKeys;
-}
-
 void ListsLoaderHelper::calculateListHeadersTask(node_offset_t numNodeOffsets,
     uint32_t numElementsPerPage, listSizes_t* listSizes, ListHeaders* listHeaders,
-    shared_ptr<spdlog::logger> logger) {
+    const shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: ListHeaders={0:p}", (void*)listHeaders);
     auto numChunks = numNodeOffsets / BaseLists::LISTS_CHUNK_SIZE;
     if (0 != numNodeOffsets % BaseLists::LISTS_CHUNK_SIZE) {
@@ -78,7 +61,7 @@ void ListsLoaderHelper::calculateListHeadersTask(node_offset_t numNodeOffsets,
 
 void ListsLoaderHelper::calculateListsMetadataTask(uint64_t numNodeOffsets, uint32_t numPerPage,
     listSizes_t* listSizes, ListHeaders* listHeaders, ListsMetadata* listsMetadata,
-    shared_ptr<spdlog::logger> logger) {
+    const shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: listsMetadata={0:p} adjListHeaders={1:p}", (void*)listsMetadata,
         (void*)listHeaders);
     auto globalPageId = 0u;

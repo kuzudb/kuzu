@@ -19,7 +19,7 @@ namespace loader {
 class InMemPages {
 
 public:
-    InMemPages(const string& fname, const uint64_t& numPages) : fname{fname}, numPages{numPages} {
+    InMemPages(string fName, const uint64_t& numPages) : fName{move(fName)}, numPages{numPages} {
         auto size = numPages * PAGE_SIZE;
         data = make_unique<uint8_t[]>(size);
         fill(data.get(), data.get() + size, UINT8_MAX);
@@ -29,7 +29,7 @@ public:
 
 protected:
     unique_ptr<uint8_t[]> data;
-    const string fname;
+    const string fName;
     uint64_t numPages;
 };
 
@@ -37,9 +37,9 @@ protected:
 class InMemAdjPages : public InMemPages {
 
 public:
-    InMemAdjPages(const string& fname, const uint64_t& numPages, const uint8_t& numBytesPerLabel,
+    InMemAdjPages(const string& fName, const uint64_t& numPages, const uint8_t& numBytesPerLabel,
         const uint8_t& numBytesPerOffset)
-        : InMemPages{fname, numPages}, numBytesPerLabel{numBytesPerLabel},
+        : InMemPages{fName, numPages}, numBytesPerLabel{numBytesPerLabel},
           numBytesPerOffset(numBytesPerOffset){};
 
     void setNbrNode(const PageCursor& cursor, const nodeID_t& nbrNodeID);
@@ -53,8 +53,8 @@ protected:
 class InMemPropertyPages : public InMemPages {
 
 public:
-    InMemPropertyPages(const string& fname, uint64_t numPages, const uint8_t& numBytesPerElement)
-        : InMemPages{fname, numPages}, numBytesPerElement{numBytesPerElement} {};
+    InMemPropertyPages(const string& fName, uint64_t numPages, const uint8_t& numBytesPerElement)
+        : InMemPages{fName, numPages}, numBytesPerElement{numBytesPerElement} {};
 
     inline void setPorperty(const PageCursor& cursor, const uint8_t* val) {
         memcpy(getPtrToMemLoc(cursor), val, numBytesPerElement);
@@ -72,8 +72,8 @@ private:
 class InMemUnstrPropertyPages : public InMemPages {
 
 public:
-    InMemUnstrPropertyPages(const string& fname, uint64_t numPages)
-        : InMemPages{fname, numPages} {};
+    InMemUnstrPropertyPages(const string& fName, uint64_t numPages)
+        : InMemPages{fName, numPages} {};
 
     inline uint8_t* getPtrToMemLoc(const PageCursor& cursor) {
         return data.get() + (PAGE_SIZE * cursor.idx) + cursor.offset;
@@ -87,7 +87,7 @@ public:
 class InMemStringOverflowPages : public InMemPages {
 
 public:
-    InMemStringOverflowPages(const string& fname) : InMemPages{fname, 8} {
+    explicit InMemStringOverflowPages(const string& fName) : InMemPages{fName, 8} {
         maxPages = numPages;
         numPages = 0;
     };

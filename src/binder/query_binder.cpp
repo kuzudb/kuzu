@@ -277,7 +277,7 @@ label_t QueryBinder::bindRelLabel(const string& parsed_label) {
     if (parsed_label.empty()) {
         return ANY_LABEL;
     }
-    if (!catalog.containRelLabel(parsed_label.c_str())) {
+    if (!catalog.containRelLabel(parsed_label)) {
         throw invalid_argument("Rel label " + parsed_label + " does not exist.");
     }
     return catalog.getRelLabelFromString(parsed_label.c_str());
@@ -287,7 +287,7 @@ label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
     if (parsed_label.empty()) {
         return ANY_LABEL;
     }
-    if (!catalog.containNodeLabel(parsed_label.c_str())) {
+    if (!catalog.containNodeLabel(parsed_label)) {
         throw invalid_argument("Node label " + parsed_label + " does not exist.");
     }
     return catalog.getNodeLabelFromString(parsed_label.c_str());

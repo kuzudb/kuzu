@@ -38,31 +38,31 @@ public:
         return adjLists[direction][nodeLabel][relLabel].get();
     }
 
-    inline static string getAdjColumnFname(const string& directory, const label_t& relLabel,
+    inline static string getAdjColumnFName(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
         return FileUtils::joinPath(directory, "r-" + to_string(relLabel) + "-" +
                                                   to_string(nodeLabel) + "-" +
                                                   to_string(direction) + ".col");
     }
 
-    inline static string getAdjListsFname(const string& directory, const label_t& relLabel,
+    inline static string getAdjListsFName(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
         return FileUtils::joinPath(directory, "r-" + to_string(relLabel) + "-" +
                                                   to_string(nodeLabel) + "-" +
                                                   to_string(direction) + ".lists");
     }
 
-    inline static string getRelPropertyColumnFname(const string& directory, const label_t& relLabel,
+    inline static string getRelPropertyColumnFName(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const string& propertyName) {
         return FileUtils::joinPath(directory,
             "r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" + propertyName + ".col");
     }
 
-    inline static string getRelPropertyListsFname(const string& directory, const label_t& relLabel,
-        const label_t& nodeLabel, const Direction& dir, const string& propertyName) {
-        return FileUtils::joinPath(directory, "r-" + to_string(relLabel) + "-" +
-                                                  to_string(nodeLabel) + "-" + to_string(dir) +
-                                                  "-" + propertyName + ".lists");
+    inline static string getRelPropertyListsFName(const string& directory, const label_t& relLabel,
+        const label_t& nodeLabel, const Direction& direction, const string& propertyName) {
+        return FileUtils::joinPath(
+            directory, "r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +
+                           to_string(direction) + "-" + propertyName + ".lists");
     }
 
 private:
@@ -78,7 +78,7 @@ private:
 
     void initPropertyColumnsForRelLabel(const Catalog& catalog,
         const vector<uint64_t>& numNodesPerLabel, const string& directory,
-        BufferManager& bufferManager, const label_t& relLabel, const Direction& dir);
+        BufferManager& bufferManager, const label_t& relLabel, const Direction& direction);
 
     void initPropertyListsForRelLabel(const Catalog& catalog,
         const vector<uint64_t>& numNodesPerLabel, const string& directory,

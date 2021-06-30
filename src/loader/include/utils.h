@@ -10,6 +10,7 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/types.h"
 #include "src/common/include/utils.h"
+#include "src/storage/include/catalog.h"
 #include "src/storage/include/data_structure/lists/list_headers.h"
 #include "src/storage/include/data_structure/lists/lists_metadata.h"
 #include "src/storage/include/data_structure/utils.h"
@@ -46,32 +47,58 @@ private:
     unique_ptr<char*[]> offsetToNodeIDMap;
 };
 
-vector<DataType> createPropertyDataTypesArray(
-    const unordered_map<string, PropertyKey>& propertyMap);
+struct LabelFileDescription {
+protected:
+    LabelFileDescription(string filePath, string labelName)
+        : filePath{move(filePath)}, labelName{move(labelName)} {}
 
-vector<bool> getPropertyIsPrimaryKeys(const unordered_map<string, PropertyKey>& propertyMap);
+public:
+    string filePath;
+    string labelName;
+};
+
+struct NodeFileDescription : public LabelFileDescription {
+    NodeFileDescription(string filePath, string labelName, string primaryKeyPropertyName)
+        : LabelFileDescription{move(filePath), move(labelName)}, primaryKeyPropertyName{move(
+                                                                     primaryKeyPropertyName)} {}
+
+    string primaryKeyPropertyName;
+};
+
+struct RelFileDescription : public LabelFileDescription {
+    RelFileDescription(string filePath, string labelName, string relMultiplicity,
+        vector<string> srcNodeLabelNames, vector<string> dstNodeLabelNames)
+        : LabelFileDescription{move(filePath), move(labelName)}, relMultiplicity{relMultiplicity},
+          srcNodeLabelNames{srcNodeLabelNames}, dstNodeLabelNames{dstNodeLabelNames} {}
+
+    string relMultiplicity;
+    vector<string> srcNodeLabelNames;
+    vector<string> dstNodeLabelNames;
+};
 
 // Holds information about a rel label that is needed to construct adjRels and adjLists
 // indexes, property columns, and property lists.
 class RelLabelDescription {
 
 public:
-    bool hasProperties() { return propertyMap->size() > 0; }
+    explicit RelLabelDescription(const vector<PropertyDefinition>& properties)
+        : properties{properties} {}
+
+    bool hasProperties() { return !properties.empty(); }
 
     bool requirePropertyLists() {
-        return hasProperties() && !isSingleCardinalityPerDir[FWD] &&
-               !isSingleCardinalityPerDir[BWD];
+        return hasProperties() && !isSingleMultiplicityPerDirection[FWD] &&
+               !isSingleMultiplicityPerDirection[BWD];
     };
 
 public:
     label_t label;
-    string fname;
+    string fName;
     uint64_t numBlocks;
-    vector<vector<label_t>> nodeLabelsPerDir{2};
-    vector<bool> isSingleCardinalityPerDir{false, false};
-    vector<NodeIDCompressionScheme> nodeIDCompressionSchemePerDir{2};
-    const unordered_map<string, PropertyKey>* propertyMap;
-    vector<DataType> propertyDataTypes;
+    vector<unordered_set<label_t>> nodeLabelsPerDirection{2};
+    vector<bool> isSingleMultiplicityPerDirection{false, false};
+    vector<NodeIDCompressionScheme> nodeIDCompressionSchemePerDirection{2};
+    const vector<PropertyDefinition>& properties;
 };
 
 // listSizes_t is the type of structure that is used to count the size of each list in the
@@ -96,15 +123,15 @@ public:
     // ListSizes is used to determine if the list is small or large, based on which, information is
     // encoded in the 4 byte header.
     static void calculateListHeadersTask(node_offset_t numNodeOffsets, uint32_t numPerPage,
-        listSizes_t* listSizes, ListHeaders* listHeaders, shared_ptr<spdlog::logger> logger);
+        listSizes_t* listSizes, ListHeaders* listHeaders, const shared_ptr<spdlog::logger>& logger);
 
     // Initializes Metadata information of a Lists structure, that is chunksPagesMap and
     // largeListsPagesMap, using listSizes and listHeaders.
     static void calculateListsMetadataTask(uint64_t numNodeOffsets, uint32_t numPerPage,
         listSizes_t* listSizes, ListHeaders* listHeaders, ListsMetadata* listsMetadata,
-        shared_ptr<spdlog::logger> logger);
+        const shared_ptr<spdlog::logger>& logger);
 
-    // Calculates the page idx and offset in page where the data of a particular list has to be put
+    // Calculates the page id and offset in page where the data of a particular list has to be put
     // in the in-mem pages.
     static void calculatePageCursor(const uint32_t& header, const uint64_t& reversePos,
         const uint8_t& numBytesPerElement, const node_offset_t& nodeOffset, PageCursor& cursor,

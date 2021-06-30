@@ -8,13 +8,13 @@ namespace loader {
 AdjAndPropertyListsBuilder::AdjAndPropertyListsBuilder(RelLabelDescription& description,
     ThreadPool& threadPool, const Graph& graph, const string& outputDirectory)
     : AdjAndPropertyStructuresBuilder(description, threadPool, graph, outputDirectory) {
-    for (auto& dir : DIRS) {
-        if (!description.isSingleCardinalityPerDir[dir]) {
-            dirLabelListSizes[dir].resize(graph.getCatalog().getNodeLabelsCount());
-            dirLabelNumRels[dir] =
+    for (auto& direction : DIRECTIONS) {
+        if (!description.isSingleMultiplicityPerDirection[direction]) {
+            directionLabelListSizes[direction].resize(graph.getCatalog().getNodeLabelsCount());
+            directionLabelNumRels[direction] =
                 make_unique<listSizes_t>(graph.getCatalog().getNodeLabelsCount());
-            for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
-                dirLabelListSizes[dir][nodeLabel] =
+            for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
+                directionLabelListSizes[direction][nodeLabel] =
                     make_unique<listSizes_t>(graph.getNumNodesPerLabel()[nodeLabel]);
             }
         }
@@ -22,20 +22,21 @@ AdjAndPropertyListsBuilder::AdjAndPropertyListsBuilder(RelLabelDescription& desc
 }
 
 void AdjAndPropertyListsBuilder::buildAdjListsHeadersAndListsMetadata() {
-    for (auto& dir : DIRS) {
-        dirLabelAdjListHeaders[dir].resize(graph.getCatalog().getNodeLabelsCount());
-        for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
-            dirLabelAdjListHeaders[dir][nodeLabel].init(graph.getNumNodesPerLabel()[nodeLabel]);
+    for (auto& direction : DIRECTIONS) {
+        directionLabelAdjListHeaders[direction].resize(graph.getCatalog().getNodeLabelsCount());
+        for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
+            directionLabelAdjListHeaders[direction][nodeLabel].init(
+                graph.getNumNodesPerLabel()[nodeLabel]);
         }
-        dirLabelAdjListsMetadata[dir].resize(graph.getCatalog().getNodeLabelsCount());
+        directionLabelAdjListsMetadata[direction].resize(graph.getCatalog().getNodeLabelsCount());
     }
     if (description.requirePropertyLists()) {
-        for (auto& dir : DIRS) {
-            dirLabelPropertyIdxPropertyListsMetadata[dir].resize(
+        for (auto& direction : DIRECTIONS) {
+            directionLabelPropertyIdxPropertyListsMetadata[direction].resize(
                 graph.getCatalog().getNodeLabelsCount());
-            for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
-                dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel].resize(
-                    description.propertyMap->size());
+            for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
+                directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel].resize(
+                    description.properties.size());
             }
         }
     }
@@ -51,26 +52,31 @@ void AdjAndPropertyListsBuilder::buildInMemStructures() {
 }
 
 void AdjAndPropertyListsBuilder::setRel(
-    const uint64_t& pos, const Direction& dir, const vector<nodeID_t>& nodeIDs) {
+    const uint64_t& pos, const Direction& direction, const vector<nodeID_t>& nodeIDs) {
     PageCursor cursor;
-    auto header = dirLabelAdjListHeaders[dir][nodeIDs[dir].label].headers[nodeIDs[dir].offset];
+    auto header = directionLabelAdjListHeaders[direction][nodeIDs[direction].label]
+                      .headers[nodeIDs[direction].offset];
     ListsLoaderHelper::calculatePageCursor(header, pos,
-        description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes(), nodeIDs[dir].offset,
-        cursor, dirLabelAdjListsMetadata[dir][nodeIDs[dir].label]);
-    dirLabelAdjLists[dir][nodeIDs[dir].label]->setNbrNode(cursor, nodeIDs[!dir]);
+        description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes(),
+        nodeIDs[direction].offset, cursor,
+        directionLabelAdjListsMetadata[direction][nodeIDs[direction].label]);
+    directionLabelAdjLists[direction][nodeIDs[direction].label]->setNbrNode(
+        cursor, nodeIDs[!direction]);
 }
 
 void AdjAndPropertyListsBuilder::setProperty(const vector<uint64_t>& pos,
     const vector<nodeID_t>& nodeIDs, const uint32_t& propertyIdx, const uint8_t* val,
     const DataType& type) {
     PageCursor cursor;
-    for (auto& dir : DIRS) {
-        auto header = dirLabelAdjListHeaders[dir][nodeIDs[dir].label].headers[nodeIDs[dir].offset];
-        ListsLoaderHelper::calculatePageCursor(header, pos[dir], getDataTypeSize(type),
-            nodeIDs[dir].offset, cursor,
-            dirLabelPropertyIdxPropertyListsMetadata[dir][nodeIDs[dir].label][propertyIdx]);
-        dirLabelPropertyIdxPropertyLists[dir][nodeIDs[dir].label][propertyIdx]->setPorperty(
-            cursor, val);
+    for (auto& direction : DIRECTIONS) {
+        auto header = directionLabelAdjListHeaders[direction][nodeIDs[direction].label]
+                          .headers[nodeIDs[direction].offset];
+        ListsLoaderHelper::calculatePageCursor(header, pos[direction], getDataTypeSize(type),
+            nodeIDs[direction].offset, cursor,
+            directionLabelPropertyIdxPropertyListsMetadata[direction][nodeIDs[direction].label]
+                                                          [propertyIdx]);
+        directionLabelPropertyIdxPropertyLists[direction][nodeIDs[direction].label][propertyIdx]
+            ->setPorperty(cursor, val);
     }
 }
 
@@ -79,59 +85,61 @@ void AdjAndPropertyListsBuilder::setStringProperty(const vector<uint64_t>& pos,
     PageCursor& stringOverflowCursor) {
     PageCursor propertyListCursor;
     ListsLoaderHelper::calculatePageCursor(
-        dirLabelAdjListHeaders[FWD][nodeIDs[FWD].label].headers[nodeIDs[FWD].offset], pos[FWD],
-        getDataTypeSize(STRING), nodeIDs[FWD].offset, propertyListCursor,
-        dirLabelPropertyIdxPropertyListsMetadata[FWD][nodeIDs[FWD].label][propertyIdx]);
+        directionLabelAdjListHeaders[FWD][nodeIDs[FWD].label].headers[nodeIDs[FWD].offset],
+        pos[FWD], getDataTypeSize(STRING), nodeIDs[FWD].offset, propertyListCursor,
+        directionLabelPropertyIdxPropertyListsMetadata[FWD][nodeIDs[FWD].label][propertyIdx]);
     auto encodedStrFwd = reinterpret_cast<gf_string_t*>(
-        dirLabelPropertyIdxPropertyLists[FWD][nodeIDs[FWD].label][propertyIdx]->getPtrToMemLoc(
-            propertyListCursor));
+        directionLabelPropertyIdxPropertyLists[FWD][nodeIDs[FWD].label][propertyIdx]
+            ->getPtrToMemLoc(propertyListCursor));
     (*propertyIdxUnordStringOverflowPages)[propertyIdx]->setStrInOvfPageAndPtrInEncString(
         strVal, stringOverflowCursor, encodedStrFwd);
     ListsLoaderHelper::calculatePageCursor(
-        dirLabelAdjListHeaders[BWD][nodeIDs[BWD].label].headers[nodeIDs[BWD].offset], pos[BWD],
-        getDataTypeSize(STRING), nodeIDs[BWD].offset, propertyListCursor,
-        dirLabelPropertyIdxPropertyListsMetadata[BWD][nodeIDs[BWD].label][propertyIdx]);
+        directionLabelAdjListHeaders[BWD][nodeIDs[BWD].label].headers[nodeIDs[BWD].offset],
+        pos[BWD], getDataTypeSize(STRING), nodeIDs[BWD].offset, propertyListCursor,
+        directionLabelPropertyIdxPropertyListsMetadata[BWD][nodeIDs[BWD].label][propertyIdx]);
     auto encodedStrBwd = reinterpret_cast<gf_string_t*>(
-        dirLabelPropertyIdxPropertyLists[BWD][nodeIDs[BWD].label][propertyIdx]->getPtrToMemLoc(
-            propertyListCursor));
+        directionLabelPropertyIdxPropertyLists[BWD][nodeIDs[BWD].label][propertyIdx]
+            ->getPtrToMemLoc(propertyListCursor));
     memcpy((void*)encodedStrBwd, (void*)encodedStrFwd, getDataTypeSize(STRING));
 }
 
 void AdjAndPropertyListsBuilder::sortOverflowStrings() {
     logger->debug("Ordering String Rel PropertyList.");
-    dirLabelPropertyIdxStringOverflowPages =
-        make_unique<dirLabelPropertyIdxStringOverflowPages_t>(2);
-    for (auto& dir : DIRS) {
-        (*dirLabelPropertyIdxStringOverflowPages)[dir].resize(
+    directionLabelPropertyIdxStringOverflowPages =
+        make_unique<directionLabelPropertyIdxStringOverflowPages_t>(2);
+    for (auto& direction : DIRECTIONS) {
+        (*directionLabelPropertyIdxStringOverflowPages)[direction].resize(
             graph.getCatalog().getNodeLabelsCount());
-        for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
-            (*dirLabelPropertyIdxStringOverflowPages)[dir][nodeLabel].resize(
-                description.propertyMap->size());
-            for (auto property = description.propertyMap->begin();
-                 property != description.propertyMap->end(); property++) {
-                if (STRING == property->second.dataType) {
-                    auto fname = RelsStore::getRelPropertyListsFname(
-                        outputDirectory, description.label, nodeLabel, dir, property->first);
-                    (*dirLabelPropertyIdxStringOverflowPages)[dir][nodeLabel][property->second
-                                                                                  .idx] =
-                        make_unique<InMemStringOverflowPages>(fname + ".ovf");
+        for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
+            (*directionLabelPropertyIdxStringOverflowPages)[direction][nodeLabel].resize(
+                description.properties.size());
+            for (auto& property : description.properties) {
+                if (STRING == property.dataType) {
+                    auto fName = RelsStore::getRelPropertyListsFName(
+                        outputDirectory, description.label, nodeLabel, direction, property.name);
+                    (*directionLabelPropertyIdxStringOverflowPages)[direction][nodeLabel][property
+                                                                                              .id] =
+                        make_unique<InMemStringOverflowPages>(fName + OVERFLOW_FILE_SUFFIX);
                     auto numNodes = graph.getNumNodesPerLabel()[nodeLabel];
                     auto numBuckets = numNodes / 256;
                     if (0 != numNodes % 256) {
                         numBuckets++;
                     }
                     node_offset_t offsetStart = 0, offsetEnd = 0;
-                    auto idx = property->second.idx;
+                    auto idx = property.id;
                     for (auto bucketIdx = 0u; bucketIdx < numBuckets; bucketIdx++) {
                         offsetStart = offsetEnd;
                         offsetEnd = min(offsetStart + 256, numNodes);
                         threadPool.execute(sortOverflowStringsOfPropertyListsTask, offsetStart,
-                            offsetEnd, dirLabelPropertyIdxPropertyLists[dir][nodeLabel][idx].get(),
-                            &dirLabelAdjListHeaders[dir][nodeLabel],
-                            &dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][idx],
+                            offsetEnd,
+                            directionLabelPropertyIdxPropertyLists[direction][nodeLabel][idx].get(),
+                            &directionLabelAdjListHeaders[direction][nodeLabel],
+                            &directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel]
+                                                                           [idx],
                             (*propertyIdxUnordStringOverflowPages)[idx].get(),
-                            (*dirLabelPropertyIdxStringOverflowPages)[dir][nodeLabel][idx].get(),
-                            logger);
+                            (*directionLabelPropertyIdxStringOverflowPages)[direction][nodeLabel]
+                                                                           [idx]
+                                                                               .get());
                     }
                 }
             }
@@ -144,40 +152,45 @@ void AdjAndPropertyListsBuilder::sortOverflowStrings() {
 
 void AdjAndPropertyListsBuilder::saveToFile() {
     logger->debug("Writing AdjLists and Rel Property Lists to disk.");
-    for (auto& dir : DIRS) {
-        if (!description.isSingleCardinalityPerDir[dir]) {
-            for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
+    for (auto& direction : DIRECTIONS) {
+        if (!description.isSingleMultiplicityPerDirection[direction]) {
+            for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 threadPool.execute([&](InMemAdjPages* x) { x->saveToFile(); },
-                    dirLabelAdjLists[dir][nodeLabel].get());
-                auto fname =
-                    RelsStore::getAdjListsFname(outputDirectory, description.label, nodeLabel, dir);
-                threadPool.execute([&](ListsMetadata* x, string fname) { x->saveToDisk(fname); },
-                    &dirLabelAdjListsMetadata[dir][nodeLabel], fname);
-                threadPool.execute([&](ListHeaders* x, string fname) { x->saveToDisk(fname); },
-                    &dirLabelAdjListHeaders[dir][nodeLabel], fname);
+                    directionLabelAdjLists[direction][nodeLabel].get());
+                auto fName = RelsStore::getAdjListsFName(
+                    outputDirectory, description.label, nodeLabel, direction);
+                threadPool.execute(
+                    [&](ListsMetadata* x, const string& fName) { x->saveToDisk(fName); },
+                    &directionLabelAdjListsMetadata[direction][nodeLabel], fName);
+                threadPool.execute(
+                    [&](ListHeaders* x, const string& fName) { x->saveToDisk(fName); },
+                    &directionLabelAdjListHeaders[direction][nodeLabel], fName);
             }
         }
     }
     if (description.requirePropertyLists()) {
-        for (auto& dir : DIRS) {
-            for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
-                for (auto property = description.propertyMap->begin();
-                     property != description.propertyMap->end(); property++) {
-                    auto idx = property->second.idx;
-                    if (dirLabelPropertyIdxPropertyLists[dir][nodeLabel][idx]) {
+        for (auto& direction : DIRECTIONS) {
+            for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
+                for (auto& property : description.properties) {
+                    auto idx = property.id;
+                    if (directionLabelPropertyIdxPropertyLists[direction][nodeLabel][idx]) {
                         threadPool.execute([&](InMemPropertyPages* x) { x->saveToFile(); },
-                            dirLabelPropertyIdxPropertyLists[dir][nodeLabel][idx].get());
-                        if (STRING == property->second.dataType) {
+                            directionLabelPropertyIdxPropertyLists[direction][nodeLabel][idx]
+                                .get());
+                        if (STRING == property.dataType) {
                             threadPool.execute(
                                 [&](InMemStringOverflowPages* x) { x->saveToFile(); },
-                                (*dirLabelPropertyIdxStringOverflowPages)[dir][nodeLabel][idx]
-                                    .get());
+                                (*directionLabelPropertyIdxStringOverflowPages)[direction]
+                                                                               [nodeLabel][idx]
+                                                                                   .get());
                         }
-                        auto fname = RelsStore::getRelPropertyListsFname(
-                            outputDirectory, description.label, nodeLabel, dir, property->first);
+                        auto fName = RelsStore::getRelPropertyListsFName(outputDirectory,
+                            description.label, nodeLabel, direction, property.name);
                         threadPool.execute(
-                            [&](ListsMetadata* x, string fname) { x->saveToDisk(fname); },
-                            &dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][idx], fname);
+                            [&](ListsMetadata* x, const string& fName) { x->saveToDisk(fName); },
+                            &directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel]
+                                                                           [idx],
+                            fName);
                     }
                 }
             }
@@ -189,14 +202,15 @@ void AdjAndPropertyListsBuilder::saveToFile() {
 
 void AdjAndPropertyListsBuilder::initAdjListHeaders() {
     logger->debug("Initializing AdjListHeaders.");
-    for (auto& dir : DIRS) {
-        if (!description.isSingleCardinalityPerDir[dir]) {
-            auto relSize = description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes();
-            for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
+    for (auto direction : DIRECTIONS) {
+        if (!description.isSingleMultiplicityPerDirection[direction]) {
+            auto relSize =
+                description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes();
+            for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 threadPool.execute(ListsLoaderHelper::calculateListHeadersTask,
                     graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE / relSize,
-                    dirLabelListSizes[dir][nodeLabel].get(),
-                    &dirLabelAdjListHeaders[dir][nodeLabel], logger);
+                    directionLabelListSizes[direction][nodeLabel].get(),
+                    &directionLabelAdjListHeaders[direction][nodeLabel], logger);
             }
         }
     }
@@ -206,32 +220,33 @@ void AdjAndPropertyListsBuilder::initAdjListHeaders() {
 
 void AdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata() {
     logger->debug("Initializing AdjLists and PropertyLists Metadata.");
-    for (auto& dir : DIRS) {
-        if (!description.isSingleCardinalityPerDir[dir]) {
+    for (auto direction : DIRECTIONS) {
+        if (!description.isSingleMultiplicityPerDirection[direction]) {
             auto numPerPage =
-                PAGE_SIZE / description.nodeIDCompressionSchemePerDir[dir].getNumTotalBytes();
-            for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
+                PAGE_SIZE /
+                description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes();
+            for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 threadPool.execute(ListsLoaderHelper::calculateListsMetadataTask,
                     graph.getNumNodesPerLabel()[nodeLabel], numPerPage,
-                    dirLabelListSizes[dir][nodeLabel].get(),
-                    &dirLabelAdjListHeaders[dir][nodeLabel],
-                    &dirLabelAdjListsMetadata[dir][nodeLabel], logger);
+                    directionLabelListSizes[direction][nodeLabel].get(),
+                    &directionLabelAdjListHeaders[direction][nodeLabel],
+                    &directionLabelAdjListsMetadata[direction][nodeLabel], logger);
             }
         }
     }
     if (description.requirePropertyLists()) {
-        for (auto& dir : DIRS) {
-            for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
-                auto listsSizes = dirLabelListSizes[dir][nodeLabel].get();
+        for (auto direction : DIRECTIONS) {
+            for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
+                auto listsSizes = directionLabelListSizes[direction][nodeLabel].get();
                 auto numNodeOffsets = graph.getNumNodesPerLabel()[nodeLabel];
-                for (auto property = description.propertyMap->begin();
-                     property != description.propertyMap->end(); property++) {
-                    auto idx = property->second.idx;
-                    auto numPerPage = PAGE_SIZE / getDataTypeSize(property->second.dataType);
+                for (auto& property : description.properties) {
+                    auto idx = property.id;
+                    auto numPerPage = PAGE_SIZE / getDataTypeSize(property.dataType);
                     threadPool.execute(ListsLoaderHelper::calculateListsMetadataTask,
                         numNodeOffsets, numPerPage, listsSizes,
-                        &dirLabelAdjListHeaders[dir][nodeLabel],
-                        &dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][idx], logger);
+                        &directionLabelAdjListHeaders[direction][nodeLabel],
+                        &directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel][idx],
+                        logger);
                 }
             }
         }
@@ -242,16 +257,18 @@ void AdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata() {
 
 void AdjAndPropertyListsBuilder::buildInMemAdjLists() {
     logger->debug("Creating InMemAdjLists.");
-    for (auto& dir : DIRS) {
-        if (!description.isSingleCardinalityPerDir[dir]) {
-            dirLabelAdjLists[dir].resize(graph.getCatalog().getNodeLabelsCount());
-            for (auto boundNodeLabel : description.nodeLabelsPerDir[dir]) {
-                auto fname = RelsStore::getAdjListsFname(
-                    outputDirectory, description.label, boundNodeLabel, dir);
-                dirLabelAdjLists[dir][boundNodeLabel] = make_unique<InMemAdjPages>(fname,
-                    dirLabelAdjListsMetadata[dir][boundNodeLabel].numPages,
-                    description.nodeIDCompressionSchemePerDir[dir].getNumBytesForLabel(),
-                    description.nodeIDCompressionSchemePerDir[dir].getNumBytesForOffset());
+    for (auto& direction : DIRECTIONS) {
+        if (!description.isSingleMultiplicityPerDirection[direction]) {
+            directionLabelAdjLists[direction].resize(graph.getCatalog().getNodeLabelsCount());
+            for (auto boundNodeLabel : description.nodeLabelsPerDirection[direction]) {
+                auto fName = RelsStore::getAdjListsFName(
+                    outputDirectory, description.label, boundNodeLabel, direction);
+                directionLabelAdjLists[direction][boundNodeLabel] = make_unique<InMemAdjPages>(
+                    fName, directionLabelAdjListsMetadata[direction][boundNodeLabel].numPages,
+                    description.nodeIDCompressionSchemePerDirection[direction]
+                        .getNumBytesForLabel(),
+                    description.nodeIDCompressionSchemePerDirection[direction]
+                        .getNumBytesForOffset());
             }
         }
     }
@@ -260,29 +277,29 @@ void AdjAndPropertyListsBuilder::buildInMemAdjLists() {
 
 void AdjAndPropertyListsBuilder::buildInMemPropertyLists() {
     logger->debug("Creating InMemPropertyLists.");
-    for (auto& dir : DIRS) {
-        dirLabelPropertyIdxPropertyLists[dir].resize(graph.getCatalog().getNodeLabelsCount());
-        for (auto& nodeLabel : description.nodeLabelsPerDir[dir]) {
-            dirLabelPropertyIdxPropertyLists[dir][nodeLabel].resize(
-                description.propertyMap->size());
-            for (auto property = description.propertyMap->begin();
-                 property != description.propertyMap->end(); property++) {
-                auto idx = property->second.idx;
-                auto fname = RelsStore::getRelPropertyListsFname(
-                    outputDirectory, description.label, nodeLabel, dir, property->first);
-                dirLabelPropertyIdxPropertyLists[dir][nodeLabel][idx] =
-                    make_unique<InMemPropertyPages>(fname,
-                        dirLabelPropertyIdxPropertyListsMetadata[dir][nodeLabel][idx].numPages,
-                        getDataTypeSize(property->second.dataType));
+    for (auto& direction : DIRECTIONS) {
+        directionLabelPropertyIdxPropertyLists[direction].resize(
+            graph.getCatalog().getNodeLabelsCount());
+        for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
+            directionLabelPropertyIdxPropertyLists[direction][nodeLabel].resize(
+                description.properties.size());
+            for (auto& property : description.properties) {
+                auto idx = property.id;
+                auto fName = RelsStore::getRelPropertyListsFName(
+                    outputDirectory, description.label, nodeLabel, direction, property.name);
+                directionLabelPropertyIdxPropertyLists[direction][nodeLabel][idx] =
+                    make_unique<InMemPropertyPages>(fName,
+                        directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel][idx]
+                            .numPages,
+                        getDataTypeSize(property.dataType));
             }
         }
     }
     propertyIdxUnordStringOverflowPages =
-        make_unique<vector<unique_ptr<InMemStringOverflowPages>>>(description.propertyMap->size());
-    for (auto property = description.propertyMap->begin();
-         property != description.propertyMap->end(); property++) {
-        if (STRING == property->second.dataType) {
-            (*propertyIdxUnordStringOverflowPages)[property->second.idx] =
+        make_unique<vector<unique_ptr<InMemStringOverflowPages>>>(description.properties.size());
+    for (auto& property : description.properties) {
+        if (STRING == property.dataType) {
+            (*propertyIdxUnordStringOverflowPages)[property.id] =
                 make_unique<InMemStringOverflowPages>();
         }
     }
@@ -292,7 +309,7 @@ void AdjAndPropertyListsBuilder::buildInMemPropertyLists() {
 void AdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(node_offset_t offsetStart,
     node_offset_t offsetEnd, InMemPropertyPages* propertyLists, ListHeaders* adjListsHeaders,
     ListsMetadata* listsMetadata, InMemStringOverflowPages* unorderedStringOverflow,
-    InMemStringOverflowPages* orderedStringOverflow, shared_ptr<spdlog::logger> logger) {
+    InMemStringOverflowPages* orderedStringOverflow) {
     PageCursor unorderedStringOverflowCursor, orderedStringOverflowCursor, propertyListCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
         auto header = adjListsHeaders->headers[offsetStart];

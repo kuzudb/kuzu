@@ -70,21 +70,22 @@ private:
     NodeIDCompressionScheme nodeIDCompressionScheme;
 };
 
-// Lists<UNKNOWN> is the specialization of Lists<D> for Node's unstructured PropertyLists. Though is
-// shares the identical representation as BaseLists, it is more aligned to Columns in terms of
-// access. In particular, readValues(...) of Lists<UNKNOWN> is given a NodeVector as input, similar
-// to readValues() in Columns. For each node in NodeVector, unstructured property list of that node
-// is read and the reqired property alongwith its dataType is copied to a specialized UNKNOWN-typed
-// ValueVector.
+// Lists<UNSTRUCTURED> is the specialization of Lists<D> for Node's unstructured PropertyLists.
+// Though this shares the identical representation as BaseLists, it is more aligned to Columns in
+// terms of access. In particular, readValues(...) of Lists<UNSTRUCTURED> is given a NodeVector as
+// input, similar to readValues() in Columns. For each node in NodeVector, unstructured property
+// list of that node is read and the reqired property alongwith its dataType is copied to a
+// specialized UNSTRUCTURED-typed ValueVector.
 template<>
 class Lists<UNSTRUCTURED> : public BaseLists {
 
 public:
     Lists(const string& fname, BufferManager& bufferManager)
         : BaseLists{fname, UNSTRUCTURED, 1, make_shared<ListHeaders>(fname), bufferManager},
-          overflowPagesFileHandle{fname + ".ovf", O_RDWR} {};
+          overflowPagesFileHandle{fname + OVERFLOW_FILE_SUFFIX, O_RDWR} {};
 
-    // readValues is overloaded. Lists<UNKNOWN> is not supposed to use the one defined in BaseLists.
+    // readValues is overloaded. Lists<UNSTRUCTURED> is not supposed to use the one defined in
+    // BaseLists.
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
         BufferManagerMetrics& metrics);
