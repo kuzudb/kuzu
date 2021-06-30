@@ -20,6 +20,11 @@ public:
 
     static unique_ptr<ExpressionEvaluator> clone(
         MemoryManager& memoryManager, const ExpressionEvaluator& expression, ResultSet& resultSet);
+
+private:
+    static unique_ptr<ExpressionEvaluator> mapChildExpressionAndCastToUnstructuredIfNecessary(
+        MemoryManager& memoryManager, const Expression& expression, bool castToUnstructured,
+        PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet);
 };
 
 } // namespace processor

@@ -74,16 +74,6 @@ shared_ptr<Expression> ExpressionBinder::bindUnaryBooleanExpression(
     return make_shared<Expression>(NOT, BOOL, validateAsBoolAndCastIfNecessary(child));
 }
 
-static shared_ptr<Expression> castToUnstructured(shared_ptr<Expression> expression) {
-    if (isExpressionLeafLiteral(expression->expressionType)) {
-        expression->cast(UNSTRUCTURED);
-    } else {
-        expression =
-            make_shared<Expression>(CAST_TO_UNSTRUCTURED_VECTOR, UNSTRUCTURED, move(expression));
-    }
-    return expression;
-}
-
 shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     const ParsedExpression& parsedExpression) {
     auto& parsedLeft = *parsedExpression.children.at(0);
@@ -98,18 +88,12 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     auto left = bindExpression(parsedLeft);
     auto right = bindExpression(parsedRight);
     if (left->dataType == UNSTRUCTURED || right->dataType == UNSTRUCTURED) {
-        if (left->dataType != UNSTRUCTURED) {
-            left = castToUnstructured(move(left));
-        } else if (right->dataType != UNSTRUCTURED) {
-            right = castToUnstructured(move(right));
-        }
         return make_shared<Expression>(parsedExpression.type, BOOL, move(left), move(right));
     }
-    if (isNumericalType(left->dataType)) {
-        if (!isNumericalType(right->dataType)) {
-            return make_shared<LiteralExpression>(LITERAL_BOOLEAN, BOOL, Literal(NULL_BOOL));
-        }
-    } else if (left->dataType != right->dataType) {
+    auto isLNumerical = isNumericalType(left->dataType);
+    auto isRNumerical = isNumericalType(right->dataType);
+    if ((isLNumerical && !isRNumerical) || (!isLNumerical && isRNumerical) ||
+        (!isLNumerical && !isRNumerical && left->dataType != right->dataType)) {
         return make_shared<LiteralExpression>(LITERAL_BOOLEAN, BOOL, Literal(NULL_BOOL));
     }
     return make_shared<Expression>(NODE_ID == left->dataType ?
@@ -124,11 +108,6 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
     auto left = bindExpression(*parsedExpression.children.at(0));
     auto right = bindExpression(*parsedExpression.children.at(1));
     if (left->dataType == UNSTRUCTURED || right->dataType == UNSTRUCTURED) {
-        if (left->dataType != UNSTRUCTURED) {
-            left = castToUnstructured(move(left));
-        } else if (right->dataType != UNSTRUCTURED) {
-            right = castToUnstructured(move(right));
-        }
         return make_shared<Expression>(
             parsedExpression.type, UNSTRUCTURED, move(left), move(right));
     }
@@ -136,14 +115,14 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
         if (left->dataType == STRING || right->dataType == STRING) {
             if (left->dataType != STRING) {
                 if (isExpressionLeafLiteral(left->expressionType)) {
-                    left->cast(STRING);
+                    static_pointer_cast<LiteralExpression>(left)->castToString();
                 } else {
                     left = make_shared<Expression>(CAST_TO_STRING, STRING, move(left));
                 }
             }
             if (right->dataType != STRING) {
                 if (isExpressionLeafLiteral(right->expressionType)) {
-                    right->cast(STRING);
+                    static_pointer_cast<LiteralExpression>(right)->castToString();
                 } else {
                     right = make_shared<Expression>(CAST_TO_STRING, STRING, move(right));
                 }

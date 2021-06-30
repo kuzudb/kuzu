@@ -75,61 +75,31 @@ struct IsNotNull {
 struct EqualsOrNotEqualsValues {
     template<bool equals>
     static inline uint8_t operation(const Value& left, const Value& right) {
-        switch (left.dataType) {
-        case BOOL:
-            switch (right.dataType) {
+        if (left.dataType == right.dataType) {
+            switch (left.dataType) {
             case BOOL:
                 return equals ? Equals::operation(left.val.booleanVal, right.val.booleanVal) :
                                 NotEquals::operation(left.val.booleanVal, right.val.booleanVal);
             case INT32:
-            case DOUBLE:
-            case STRING:
-                return equals ? FALSE : TRUE;
-            default:
-                assert(false);
-            }
-        case INT32:
-            switch (right.dataType) {
-            case INT32:
                 return equals ? Equals::operation(left.val.int32Val, right.val.int32Val) :
                                 NotEquals::operation(left.val.int32Val, right.val.int32Val);
             case DOUBLE:
-                return equals ? Equals::operation(left.val.int32Val, right.val.doubleVal) :
-                                NotEquals::operation(left.val.int32Val, right.val.doubleVal);
-            case BOOL:
-            case STRING:
-                return equals ? FALSE : TRUE;
-            default:
-                assert(false);
-            }
-        case DOUBLE:
-            switch (right.dataType) {
-            case INT32:
-                return equals ? Equals::operation(left.val.doubleVal, right.val.int32Val) :
-                                NotEquals::operation(left.val.doubleVal, right.val.int32Val);
-            case DOUBLE:
                 return equals ? Equals::operation(left.val.doubleVal, right.val.doubleVal) :
                                 NotEquals::operation(left.val.doubleVal, right.val.doubleVal);
-            case BOOL:
-            case STRING:
-                return equals ? FALSE : TRUE;
-            default:
-                assert(false);
-            }
-        case STRING:
-            switch (right.dataType) {
-            case BOOL:
-            case INT32:
-            case DOUBLE:
-                return equals ? FALSE : TRUE;
             case STRING:
                 return equals ? Equals::operation(left.val.strVal, right.val.strVal) :
                                 NotEquals::operation(left.val.strVal, right.val.strVal);
             default:
                 assert(false);
             }
-        default:
-            assert(false);
+        } else if (left.dataType == INT32 && right.dataType == DOUBLE) {
+            return equals ? Equals::operation(left.val.int32Val, right.val.doubleVal) :
+                            NotEquals::operation(left.val.int32Val, right.val.doubleVal);
+        } else if (left.dataType == DOUBLE && right.dataType == INT32) {
+            return equals ? Equals::operation(left.val.doubleVal, right.val.int32Val) :
+                            NotEquals::operation(left.val.doubleVal, right.val.int32Val);
+        } else {
+            return equals ? FALSE : TRUE;
         }
     }
 };
@@ -191,55 +161,25 @@ inline uint8_t NotEquals::operation(const nodeID_t& left, const nodeID_t& right)
 struct CompareValues {
     template<class FUNC = function<uint8_t(Value, Value)>>
     static inline uint8_t operation(const Value& left, const Value& right) {
-        switch (left.dataType) {
-        case BOOL:
-            switch (right.dataType) {
+        if (left.dataType == right.dataType) {
+            switch (left.dataType) {
             case BOOL:
                 return FUNC::operation(left.val.booleanVal, right.val.booleanVal);
             case INT32:
-            case DOUBLE:
-            case STRING:
-                return NULL_BOOL;
-            default:
-                assert(false);
-            }
-        case INT32:
-            switch (right.dataType) {
-            case INT32:
                 return FUNC::operation(left.val.int32Val, right.val.int32Val);
             case DOUBLE:
-                return FUNC::operation(left.val.int32Val, right.val.doubleVal);
-            case BOOL:
-            case STRING:
-                return NULL_BOOL;
-            default:
-                assert(false);
-            }
-        case DOUBLE:
-            switch (right.dataType) {
-            case INT32:
-                return FUNC::operation(left.val.doubleVal, right.val.int32Val);
-            case DOUBLE:
                 return FUNC::operation(left.val.doubleVal, right.val.doubleVal);
-            case BOOL:
-            case STRING:
-                return NULL_BOOL;
-            default:
-                assert(false);
-            }
-        case STRING:
-            switch (right.dataType) {
-            case BOOL:
-            case INT32:
-            case DOUBLE:
-                return NULL_BOOL;
             case STRING:
                 return FUNC::operation(left.val.strVal, right.val.strVal);
             default:
                 assert(false);
             }
-        default:
-            assert(false);
+        } else if (left.dataType == INT32 && right.dataType == DOUBLE) {
+            return FUNC::operation(left.val.int32Val, right.val.doubleVal);
+        } else if (left.dataType == DOUBLE && right.dataType == INT32) {
+            return FUNC::operation(left.val.doubleVal, right.val.int32Val);
+        } else {
+            return NULL_BOOL;
         }
     }
 };
