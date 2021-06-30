@@ -30,10 +30,6 @@ public:
 
     Expression(ExpressionType expressionType, DataType dataType, const string& variableName);
 
-    virtual void cast(DataType dataTypeToCast) {
-        throw invalid_argument("Expression does not support cast(DataType).");
-    }
-
     inline const Expression& getChildExpr(uint64_t pos) const { return *childrenExpr[pos]; }
 
     inline const string getAliasElseRawExpression() const {
