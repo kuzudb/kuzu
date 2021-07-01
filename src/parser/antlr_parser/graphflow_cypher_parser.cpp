@@ -36,5 +36,10 @@ void GraphflowCypherParser::notifyReturnNotAtEnd(antlr4::Token* startToken) {
     notifyErrorListeners(startToken, errorMsg, nullptr);
 }
 
+void GraphflowCypherParser::notifyNonBinaryComparison(antlr4::Token* startToken) {
+    auto errorMsg = "Non-binary comparison (e.g. a=b=c) is not supported";
+    notifyErrorListeners(startToken, errorMsg, nullptr);
+}
+
 } // namespace parser
 } // namespace graphflow

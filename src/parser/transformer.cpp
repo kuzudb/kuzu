@@ -1,5 +1,6 @@
 #include "src/parser/include/transformer.h"
 
+#include "src/common/include/assert.h"
 #include "src/parser/include/statements/load_csv_statement.h"
 #include "src/parser/include/statements/match_statement.h"
 
@@ -270,7 +271,10 @@ unique_ptr<ParsedExpression> Transformer::transformComparisonExpression(
         return transformAddOrSubtractExpression(*ctx.oC_AddOrSubtractExpression(0));
     }
     unique_ptr<ParsedExpression> expression;
-    auto comparisonOperator = ctx.gF_ComparisonOperator()->getText();
+    // Antlr parser throws error for conjunctive comparison.
+    // Transformer should only handle the case of single comparison operator.
+    GF_ASSERT(ctx.gF_ComparisonOperator().size() == 1);
+    auto comparisonOperator = ctx.gF_ComparisonOperator()[0]->getText();
     if (comparisonOperator == "=") {
         expression = make_unique<ParsedExpression>(EQUALS, string(), ctx.getText());
     } else if (comparisonOperator == "<>") {

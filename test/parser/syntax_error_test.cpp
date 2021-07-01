@@ -76,3 +76,14 @@ TEST_F(SyntaxErrorTest, ReturnNotAtEnd) {
     auto input = "RETURN a MATCH (a) RETURN a;";
     ASSERT_STREQ(expectedException.c_str(), getParsingError(input).c_str());
 }
+
+TEST_F(SyntaxErrorTest, ConjunctiveComparison) {
+    string expectedException =
+        "Non-binary comparison (e.g. a=b=c) is not supported (line: 1, offset: 69)\n";
+    expectedException += "\"MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE "
+                         "b.fName = e1.date = e2.date AND id(a) <> id(c) RETURN COUNT(*);\"\n";
+    expectedException += "                                                                      ^";
+    auto input = "MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE b.fName = "
+                 "e1.date = e2.date AND id(a) <> id(c) RETURN COUNT(*);";
+    ASSERT_STREQ(expectedException.c_str(), getParsingError(input).c_str());
+}

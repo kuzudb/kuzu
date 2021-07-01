@@ -10,6 +10,7 @@ grammar Cypher;
     virtual void notifyInvalidNotEqualOperator(antlr4::Token* startToken) {};
     virtual void notifyEmptyToken(antlr4::Token* startToken) {};
     virtual void notifyReturnNotAtEnd(antlr4::Token* startToken) {};
+    virtual void notifyNonBinaryComparison(antlr4::Token* startToken) {};
 }
 
 oC_Cypher 
@@ -178,6 +179,7 @@ NOT : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'T' | 't' ) ;
 oC_ComparisonExpression
     : oC_AddOrSubtractExpression ( SP? gF_ComparisonOperator SP? oC_AddOrSubtractExpression )?
         | oC_AddOrSubtractExpression ( SP? INVALID_NOT_EQUAL SP? oC_AddOrSubtractExpression ) { notifyInvalidNotEqualOperator($INVALID_NOT_EQUAL); }
+        | oC_AddOrSubtractExpression SP? gF_ComparisonOperator SP? oC_AddOrSubtractExpression ( SP? gF_ComparisonOperator SP? oC_AddOrSubtractExpression )+ { notifyNonBinaryComparison($ctx->start); }
         ;
 
 gF_ComparisonOperator : '=' | '<>' | '<' | '<=' | '>' | '>=' ;
