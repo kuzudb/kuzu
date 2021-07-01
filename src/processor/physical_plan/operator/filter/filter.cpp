@@ -16,7 +16,8 @@ Filter<IS_AFTER_FLATTEN>::Filter(unique_ptr<ExpressionEvaluator> rootExpr,
     }
     resultSet = this->prevOperator->getResultSet();
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
-    exprResult = this->rootExpr->result->values;
+    exprResultValues = this->rootExpr->result->values;
+    exprResultNullMask = this->rootExpr->result->nullMask;
 }
 
 template<bool IS_AFTER_FLATTEN>
@@ -36,15 +37,15 @@ void Filter<IS_AFTER_FLATTEN>::getNextTuples() {
         }
         rootExpr->evaluate();
         if (dataChunkToSelect->state->isFlat()) {
+            auto pos = dataChunkToSelect->state->getCurrSelectedValuesPos();
             hasAtLeastOneSelectedValue =
-                exprResult[dataChunkToSelect->state->getCurrSelectedValuesPos()] == TRUE;
+                (exprResultValues[pos] == TRUE) & (!exprResultNullMask[pos]);
         } else {
             auto resultPos = 0;
             for (auto i = 0ul; i < dataChunkToSelect->state->size; i++) {
                 auto pos = dataChunkToSelect->state->selectedValuesPos[i];
-                if (exprResult[pos] == TRUE) {
-                    dataChunkToSelect->state->selectedValuesPos[resultPos++] = pos;
-                }
+                dataChunkToSelect->state->selectedValuesPos[resultPos] = pos;
+                resultPos += (exprResultValues[pos] == TRUE) & (!exprResultNullMask[pos]);
             }
             dataChunkToSelect->state->size = resultPos;
             hasAtLeastOneSelectedValue = resultPos > 0;

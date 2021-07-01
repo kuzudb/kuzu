@@ -27,7 +27,8 @@ protected:
     unique_ptr<ExpressionEvaluator> rootExpr;
     uint64_t dataChunkToSelectPos;
     shared_ptr<DataChunk> dataChunkToSelect;
-    uint8_t* exprResult;
+    uint8_t* exprResultValues;
+    bool* exprResultNullMask;
 
 private:
     // state to save and store before and after filtering if following flatten operators.
