@@ -4,6 +4,7 @@
 #include <unordered_set>
 
 #include "src/common/include/types.h"
+#include "src/common/include/utils.h"
 
 namespace graphflow {
 namespace common {
@@ -16,7 +17,8 @@ inline uint64_t murmurhash64(uint64_t x) {
 struct Hash {
     template<class T>
     static inline uint64_t operation(const T& key) {
-        throw invalid_argument("Hash type: " + string(typeid(T).name()) + " is not supported.");
+        throw invalid_argument(
+            StringUtils::string_format("Hash type: %s is not supported.", typeid(T).name()));
     }
 };
 

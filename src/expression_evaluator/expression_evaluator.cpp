@@ -22,8 +22,6 @@ std::function<void(ValueVector&, ValueVector&)> ExpressionEvaluator::getUnaryOpe
         return VectorComparisonOperations::IsNotNull;
     case HASH_NODE_ID:
         return VectorNodeIDOperations::Hash;
-    case DECOMPRESS_NODE_ID:
-        return VectorNodeIDOperations::Decompress;
     case CAST_TO_STRING:
         return VectorCastOperations::castStructuredToStringValue;
     case CAST_TO_UNSTRUCTURED_VECTOR:

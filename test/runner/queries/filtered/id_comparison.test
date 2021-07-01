@@ -4,7 +4,7 @@
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) = id(c) RETURN COUNT(*)
 ---- 12
 
--NAME TwoHopKnowsIDEqualTest
+-NAME TwoHopKnowsIDNotEqualTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) <> id(c) RETURN COUNT(*)
 ---- 24
 

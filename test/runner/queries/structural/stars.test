@@ -1,6 +1,6 @@
 # description: matching stars
 
--NAME OpenWedgeKnowsTest
+-NAME OpenWedgeKnowsTest1
 -QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) RETURN COUNT(*)
 ---- 40
 
@@ -12,7 +12,7 @@
 -QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
 ---- 8
 
--NAME OpenWedgeKnowsTest
+-NAME OpenWedgeKnowsTest2
 -QUERY MATCH (b:person)-[e1:knows]->(a:person)<-[e2:knows]-(c:person) RETURN COUNT(*)
 ---- 38
 
@@ -20,19 +20,19 @@
 -QUERY MATCH (b:organisation)<-[e1:studyAt]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
 ---- 3
 
--NAME OpenWedgeWorkAtTest
+-NAME OpenWedgeWorkAtTest1
 -QUERY MATCH (b:organisation)<-[e1:workAt]-(a:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
 ---- 3
 
--NAME OpenWedgeWorkAtTest
+-NAME OpenWedgeWorkAtTest2
 -QUERY MATCH (b:organisation)<-[e1:workAt]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
 ---- 0
 
--NAME OpenWedgeKnowsTest
+-NAME OpenWedgeKnowsTest3
 -QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person),(a)-[e3:knows]->(d:person) RETURN COUNT(*)
 ---- 116
 
--NAME OpenWedgeKnowsTest
+-NAME OpenWedgeKnowsTest4
 -QUERY MATCH (b:person)-[e1:knows]->(a:person)<-[e2:knows]-(c:person),(a)<-[e3:knows]-(d:person) RETURN COUNT(*)
 ---- 110
 

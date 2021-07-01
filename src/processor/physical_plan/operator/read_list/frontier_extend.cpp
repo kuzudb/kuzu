@@ -54,6 +54,7 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     do {
         prevOperator->getNextTuples();
         if (inNodeIDVector->state->size == 0) {
+            outDataChunk->state->size = 0;
             metrics->executionTime.stop();
             return;
         }

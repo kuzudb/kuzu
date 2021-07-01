@@ -41,7 +41,6 @@ enum ExpressionType : uint8_t {
 
     /**
      * NODE ID Expressions
-     * Comparison and Decompress
      * */
     HASH_NODE_ID = 32,
     EQUALS_NODE_ID = 33,
@@ -50,7 +49,6 @@ enum ExpressionType : uint8_t {
     GREATER_THAN_EQUALS_NODE_ID = 36,
     LESS_THAN_NODE_ID = 37,
     LESS_THAN_EQUALS_NODE_ID = 38,
-    DECOMPRESS_NODE_ID = 39,
 
     /**
      * String Operator Expressions

@@ -22,7 +22,6 @@ struct VectorNodeIDCompareOperations {
 
 struct VectorNodeIDOperations {
     static void Hash(ValueVector& operand, ValueVector& result);
-    static void Decompress(ValueVector& operand, ValueVector& result);
 };
 
 } // namespace common
