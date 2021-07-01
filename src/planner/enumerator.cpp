@@ -314,8 +314,8 @@ void Enumerator::appendLogicalExtend(uint32_t queryRelPos, Direction direction, 
     plan.schema->addMatchedAttribute(queryRel.variableName);
     plan.schema->addQueryRelAndLogicalExtend(queryRel.variableName, extend.get());
     if (isColumnExtend) {
-        plan.schema->getFactorizationGroup(boundNode->variableName)
-            ->addVariables(unordered_set<string>{queryRel.variableName, nbrNode->variableName});
+        plan.schema->addToExistingFactorizetionGroup(boundNode->variableName,
+            unordered_set<string>{queryRel.variableName, nbrNode->variableName});
     } else {
         plan.schema->flattenFactorizationGroupIfNecessary(boundNode->variableName);
         plan.schema->addUnFlatFactorizationGroup(
