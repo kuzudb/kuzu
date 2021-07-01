@@ -60,7 +60,7 @@ struct BinaryOperationExecutor {
             }
         } else if (left.state->isFlat()) {
             auto lPos = left.state->getCurrSelectedValuesPos();
-            auto lValue = lValues[lPos];
+            auto& lValue = lValues[lPos];
             auto isLeftNull = left.nullMask[lPos];
             // right and result vectors share the same selectedValuesPos.
             for (uint64_t i = 0; i < right.state->size; i++) {
@@ -76,7 +76,7 @@ struct BinaryOperationExecutor {
             }
         } else if (right.state->isFlat()) {
             auto rPos = right.state->getCurrSelectedValuesPos();
-            auto rValue = rValues[rPos];
+            auto& rValue = rValues[rPos];
             auto isRightNull = right.nullMask[rPos];
             // left and result vectors share the same selectedValuesPos.
             for (uint64_t i = 0; i < left.state->size; i++) {
@@ -120,7 +120,7 @@ struct BinaryOperationExecutor {
             }
         } else if (left.state->isFlat()) {
             auto lPos = left.state->getCurrSelectedValuesPos();
-            auto lValue = lValues[lPos];
+            auto& lValue = lValues[lPos];
             auto isLeftNull = left.nullMask[lPos];
             // right and result vectors share the same selectedValuesPos.
             for (uint64_t i = 0; i < right.state->size; i++) {
@@ -132,13 +132,13 @@ struct BinaryOperationExecutor {
             }
         } else if (right.state->isFlat()) {
             auto rPos = right.state->getCurrSelectedValuesPos();
-            auto rValue = rValues[rPos];
+            auto& rValue = rValues[rPos];
             auto isRightNull = right.nullMask[rPos];
             // left and result vectors share the same selectedValuesPos.
             for (uint64_t i = 0; i < left.state->size; i++) {
                 auto pos = left.state->selectedValuesPos[i];
                 result.nullMask[pos] = left.nullMask[pos] || isRightNull;
-                if (!result.nullMask[i]) {
+                if (!result.nullMask[pos]) {
                     result.values[pos] = FUNC::operation(lValues[pos], rValue);
                 }
             }
@@ -167,7 +167,7 @@ struct BinaryOperationExecutor {
             auto& flatVector = left.state->isFlat() ? left : right;
             auto& unflatVector = !left.state->isFlat() ? left : right;
             auto pos = flatVector.state->getCurrSelectedValuesPos();
-            auto flatValue = flatVector.values[pos];
+            auto& flatValue = flatVector.values[pos];
             auto isFlatNull = flatVector.nullMask[flatVector.state->getCurrSelectedValuesPos()];
             // unflat and result vectors share the same selectedValuesPos.
             for (uint64_t i = 0; i < unflatVector.state->size; i++) {
