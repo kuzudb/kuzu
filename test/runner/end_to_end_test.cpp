@@ -4,7 +4,6 @@
 #include "spdlog/spdlog.h"
 #include "test/test_utility/include/db_loaded_test.h"
 #include "test/test_utility/include/test_helper.h"
-
 using ::testing::Test;
 using namespace graphflow::testing;
 
@@ -42,5 +41,11 @@ TEST_F(TinySnbProcessorTest, FilteredQueries) {
 TEST_F(TinySnbProcessorTest, FrontierQueries) {
     unique_ptr<TestSuiteQueryConfig> queryConfig;
     queryConfig = TestHelper::parseTestFile("test/runner/queries/structural/frontier.test");
+    ASSERT_TRUE(TestHelper::runTest(*queryConfig, *defaultSystem));
+}
+
+TEST_F(TinySnbProcessorTest, DateDataTypeTests) {
+    unique_ptr<TestSuiteQueryConfig> queryConfig;
+    queryConfig = TestHelper::parseTestFile("test/runner/queries/data_types/date_data_type.test");
     ASSERT_TRUE(TestHelper::runTest(*queryConfig, *defaultSystem));
 }

@@ -123,6 +123,7 @@ typedef Lists<BOOL> RelPropertyListsBool;
 typedef Lists<STRING> RelPropertyListsString;
 typedef Lists<NODE> AdjLists;
 typedef Lists<UNSTRUCTURED> UnstructuredPropertyLists;
+typedef Lists<DATE> RelPropertyListsDate;
 
 } // namespace storage
 } // namespace graphflow

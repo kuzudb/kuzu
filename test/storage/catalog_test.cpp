@@ -34,7 +34,7 @@ public:
         personProperties.emplace_back("age", 5, INT32);
         personProperties.emplace_back("eyeSight", 6, DOUBLE);
         catalog->addNodeLabel("person", move(personProperties), "id");
-        catalog->addNodeUnstrProperty(0, "unstrProp");
+        catalog->addNodeUnstrProperty(0, "unstrIntProp");
 
         vector<PropertyDefinition> knowsProperties;
         knowsProperties.emplace_back("date", 0, INT32);
@@ -62,7 +62,7 @@ TEST_F(CatalogTest, AddLabelsTest) {
     ASSERT_TRUE(catalog->getNodeProperties(0)[0].isPrimaryKey);
     ASSERT_EQ(catalog->getNodeProperty(0, "age").id, 5);
     ASSERT_EQ(catalog->getNodeProperty(0, "age").dataType, INT32);
-    ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrProp"), 7);
+    ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrIntProp"), 7);
     ASSERT_EQ(catalog->getNodeProperties(0)[7].dataType, UNSTRUCTURED);
     ASSERT_EQ(catalog->getRelProperty(0, "date").dataType, INT32);
 }
@@ -77,5 +77,5 @@ TEST_F(CatalogTest, SaveAndReadTest) {
     ASSERT_FALSE(catalog->containNodeLabel("organisation"));
     ASSERT_TRUE(catalog->containRelLabel("knows"));
     ASSERT_FALSE(catalog->containRelLabel("likes"));
-    ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrProp"), 7);
+    ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrIntProp"), 7);
 }

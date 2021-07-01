@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "src/common/include/date.h"
 #include "src/common/include/value.h"
 
 namespace graphflow {
@@ -23,6 +24,9 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
         } break;
         case DOUBLE: {
             outValues[resPos].val.doubleVal = ((double_t*)operand.values)[pos];
+        } break;
+        case DATE: {
+            outValues[resPos].val.dateVal = ((date_t*)operand.values)[pos];
         } break;
         default:
             assert(false);
@@ -49,6 +53,13 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
                 outValues[pos].val.doubleVal = doubleValues[pos];
             }
         } break;
+        case DATE: {
+            auto dateValues = (date_t*)operand.values;
+            for (auto i = 0u; i < operand.state->size; i++) {
+                auto pos = operand.state->selectedValuesPos[i];
+                outValues[pos].val.dateVal = dateValues[pos];
+            }
+        } break;
         default:
             assert(false);
         }
@@ -56,7 +67,8 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
 }
 
 void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, ValueVector& result) {
-    assert((operand.dataType == INT32 || operand.dataType == DOUBLE || operand.dataType == BOOL) &&
+    assert((operand.dataType == INT32 || operand.dataType == DOUBLE || operand.dataType == BOOL ||
+               operand.dataType == DATE) &&
            result.dataType == STRING);
     if (operand.state->isFlat()) {
         auto pos = operand.state->getCurrSelectedValuesPos();
@@ -72,6 +84,9 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
         } break;
         case DOUBLE: {
             val = to_string(((double_t*)operand.values)[pos]);
+        } break;
+        case DATE: {
+            val = Date::toString(((date_t*)operand.values)[pos]);
         } break;
         default:
             assert(false);
@@ -99,6 +114,13 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
             for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 result.addString(pos, to_string(doubleValues[pos]));
+            }
+        } break;
+        case DATE: {
+            auto dateValues = (date_t*)operand.values;
+            for (auto i = 0u; i < operand.state->size; i++) {
+                auto pos = operand.state->selectedValuesPos[i];
+                result.addString(pos, Date::toString(((date_t*)operand.values)[pos]));
             }
         } break;
         default:

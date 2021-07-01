@@ -10,6 +10,18 @@ namespace common {
 
 struct BinaryOperationExecutor {
 
+    template<class A, class B, class R, bool IS_STRUCTURED_STRING, bool IS_UNSTRUCTURED>
+    static void allocateStringIfNecessary(A& lValue, B& rValue, R& resultVal, ValueVector& lVec,
+        ValueVector& rVec, ValueVector& resultVec) {
+        if constexpr (IS_STRUCTURED_STRING) {
+            resultVec.allocateStringOverflowSpace(resultVal, lValue.len + rValue.len);
+        } else if constexpr (IS_UNSTRUCTURED) {
+            if (lValue.dataType == STRING || rValue.dataType == STRING) {
+                prepareUnstructuredString(lValue, rValue, resultVal, lVec, rVec, resultVec);
+            }
+        }
+    }
+
     static void prepareUnstructuredString(Value& lValue, Value& rValue, Value& resVal,
         ValueVector& lVec, ValueVector& rVec, ValueVector& resVec) {
         assert(lValue.dataType == STRING || rValue.dataType == STRING);
@@ -40,14 +52,9 @@ struct BinaryOperationExecutor {
             auto resPos = result.state->getCurrSelectedValuesPos();
             result.nullMask[resPos] = left.nullMask[lPos] || right.nullMask[rPos];
             if (!result.nullMask[resPos]) {
-                if constexpr (IS_STRUCTURED_STRING) {
-                    result.allocateStringOverflowSpace(
-                        resultValues[resPos], lValues[lPos].len + rValues[rPos].len);
-                } else if constexpr (IS_UNSTRUCTURED) {
-                    if (lValues[lPos].dataType == STRING || rValues[rPos].dataType == STRING) {
-                        prepareUnstructuredString(lValues[lPos], rValues[rPos],
-                            resultValues[resPos], left, right, result);
-                    }
+                if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
+                    allocateStringIfNecessary<A, B, R, IS_STRUCTURED_STRING, IS_UNSTRUCTURED>(
+                        lValues[lPos], rValues[lPos], resultValues[resPos], left, right, result);
                 }
                 FUNC::operation(lValues[lPos], rValues[rPos], resultValues[resPos]);
             }
@@ -60,14 +67,9 @@ struct BinaryOperationExecutor {
                 auto pos = right.state->selectedValuesPos[i];
                 result.nullMask[pos] = isLeftNull || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
-                    if constexpr (IS_STRUCTURED_STRING) {
-                        result.allocateStringOverflowSpace(
-                            resultValues[pos], lValue.len + rValues[pos].len);
-                    } else if constexpr (IS_UNSTRUCTURED) {
-                        if ((lValue.dataType == STRING || rValues[pos].dataType == STRING)) {
-                            prepareUnstructuredString(
-                                lValue, rValues[pos], resultValues[pos], left, right, result);
-                        }
+                    if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
+                        allocateStringIfNecessary<A, B, R, IS_STRUCTURED_STRING, IS_UNSTRUCTURED>(
+                            lValue, rValues[pos], resultValues[pos], left, right, result);
                     }
                     FUNC::operation(lValue, rValues[pos], resultValues[pos]);
                 }
@@ -81,14 +83,9 @@ struct BinaryOperationExecutor {
                 auto pos = left.state->selectedValuesPos[i];
                 result.nullMask[pos] = left.nullMask[pos] || isRightNull;
                 if (!result.nullMask[i]) {
-                    if constexpr (IS_STRUCTURED_STRING) {
-                        result.allocateStringOverflowSpace(
-                            resultValues[pos], lValues[pos].len + rValue.len);
-                    } else if constexpr (IS_UNSTRUCTURED) {
-                        if ((lValues[pos].dataType == STRING || rValue.dataType == STRING)) {
-                            prepareUnstructuredString(
-                                lValues[pos], rValue, resultValues[pos], left, right, result);
-                        }
+                    if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
+                        allocateStringIfNecessary<A, B, R, IS_STRUCTURED_STRING, IS_UNSTRUCTURED>(
+                            lValues[pos], rValue, resultValues[pos], left, right, result);
                     }
                     FUNC::operation(lValues[pos], rValue, resultValues[pos]);
                 }
@@ -99,14 +96,9 @@ struct BinaryOperationExecutor {
                 auto pos = result.state->selectedValuesPos[i];
                 result.nullMask[pos] = left.nullMask[pos] || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
-                    if constexpr (IS_STRUCTURED_STRING) {
-                        result.allocateStringOverflowSpace(
-                            resultValues[pos], lValues[pos].len + rValues[pos].len);
-                    } else if constexpr (IS_UNSTRUCTURED) {
-                        if ((lValues[pos].dataType == STRING || rValues[pos].dataType == STRING)) {
-                            prepareUnstructuredString(
-                                lValues[pos], rValues[pos], resultValues[pos], left, right, result);
-                        }
+                    if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
+                        allocateStringIfNecessary<A, B, R, IS_STRUCTURED_STRING, IS_UNSTRUCTURED>(
+                            lValues[pos], rValues[pos], resultValues[pos], left, right, result);
                     }
                     FUNC::operation(lValues[pos], rValues[pos], resultValues[pos]);
                 }

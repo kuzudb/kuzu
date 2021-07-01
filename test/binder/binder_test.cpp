@@ -72,3 +72,20 @@ TEST_F(BinderTest, LOADCSVExceptionTest) {
         ASSERT_STREQ("Cannot open file at dummy.", exception.what());
     }
 }
+
+TEST_F(BinderTest, DateNodePropertyBindingTest) {
+    NiceMock<TinySnbCatalog> catalog;
+    catalog.setUp();
+
+    auto query = "MATCH (a:person)-[e:knows]->(b:person) where a.birthdate < b.birthdate "
+                 "AND e.knowsdate < b.birthdate RETURN COUNT(*);";
+    auto boundQuery = BinderTest::getBoundQuery(query, catalog);
+    BoundMatchStatement* matchStatement =
+        (BoundMatchStatement*)(boundQuery->boundReadingStatements[0].get());
+    auto& leftANDExpr = matchStatement->whereExpression->childrenExpr[0];
+    auto& rightANDExpr = matchStatement->whereExpression->childrenExpr[1];
+    ASSERT_EQ(DATE, leftANDExpr->childrenExpr[0]->dataType);
+    ASSERT_EQ(DATE, leftANDExpr->childrenExpr[1]->dataType);
+    ASSERT_EQ(DATE, rightANDExpr->childrenExpr[0]->dataType);
+    ASSERT_EQ(DATE, rightANDExpr->childrenExpr[1]->dataType);
+}

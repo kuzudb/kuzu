@@ -131,6 +131,7 @@ cc_library(
         "value.cpp",
     ],
     hdrs = [
+        "include/cast_helpers.h",
         "include/date.h",
         "include/gf_string.h",
         "include/literal.h",

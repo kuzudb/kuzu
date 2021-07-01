@@ -72,6 +72,16 @@ public:
                 assert(false);
             }
             break;
+        case DATE:
+            switch (right.dataType) {
+            case DATE:
+                BinaryOperationExecutor::executeComparisonOps<date_t, date_t, OP>(
+                    left, right, result);
+                break;
+            default:
+                assert(false);
+            }
+            break;
         default:
             assert(false);
         }

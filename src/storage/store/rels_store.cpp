@@ -167,6 +167,10 @@ void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
                     propertyLists[dir][nodeLabel][relLabel][property.id] =
                         make_unique<RelPropertyListsString>(fname, adjListsHeaders, bufferManager);
                     break;
+                case DATE:
+                    propertyLists[dir][nodeLabel][relLabel][property.id] =
+                        make_unique<RelPropertyListsDate>(fname, adjListsHeaders, bufferManager);
+                    break;
                 default:
                     throw invalid_argument("Invalid type for property list creation.");
                 }

@@ -124,3 +124,10 @@ TEST_F(BinderErrorTest, BindIDArithmetic) {
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, BindDateArithmetic) {
+    string expectedException =
+        "a.birthdate has data type DATE. A numerical data type was expected.";
+    auto input = "MATCH (a:person) WHERE a.birthdate + 1 < 5 RETURN *;";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

@@ -35,6 +35,14 @@ struct date_t {
 
     date_t() = default;
     explicit inline date_t(int32_t days_p) : days(days_p) {}
+
+    // comparison operators
+    inline bool operator==(const date_t& rhs) const { return days == rhs.days; };
+    inline bool operator!=(const date_t& rhs) const { return days != rhs.days; };
+    inline bool operator<=(const date_t& rhs) const { return days <= rhs.days; };
+    inline bool operator<(const date_t& rhs) const { return days < rhs.days; };
+    inline bool operator>(const date_t& rhs) const { return days > rhs.days; };
+    inline bool operator>=(const date_t& rhs) const { return days >= rhs.days; };
 };
 
 const uint8_t FALSE = 0;

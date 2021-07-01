@@ -61,7 +61,8 @@ size_t getDataTypeSize(DataType dataType) {
     case DATE:
         return sizeof(date_t);
     default:
-        throw invalid_argument("Cannot infer the size of dataType.");
+        throw invalid_argument(
+            "Cannot infer the size of dataType: " + dataTypeToString(dataType) + ".");
     }
 }
 

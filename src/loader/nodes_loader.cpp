@@ -401,7 +401,8 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             break;
         }
         case DATE: {
-            auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
+            char* beginningOfDateStr = unstrPropertyStringBreaker2 + 1;
+            date_t dateVal = Date::FromCString(beginningOfDateStr, strlen(beginningOfDateStr));
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&dateVal));
             break;
