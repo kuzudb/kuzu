@@ -19,6 +19,8 @@ public:
     void notifyEmptyToken(antlr4::Token* startToken) override;
 
     void notifyReturnNotAtEnd(antlr4::Token* startToken) override;
+
+    void notifyNonBinaryComparison(antlr4::Token* startToken) override;
 };
 
 } // namespace parser
