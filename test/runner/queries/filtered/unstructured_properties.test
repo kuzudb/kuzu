@@ -35,3 +35,11 @@
 -NAME PersonUnstrFilteredTest9
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.unstrNumericProp > b.unstrNumericProp RETURN COUNT(*)
 ---- 1
+
+-NAME PersonUnstrFilteredTest10
+-QUERY MATCH (a:person) WHERE '47Bob' = a.unstrNumericProp + a.fName RETURN COUNT(*)
+---- 1
+
+-NAME PersonUnstrFilteredTest11
+-QUERY MATCH (a:person) WHERE a.unstrDateProp1 + a.fName = '1950-01-01Bob' RETURN COUNT(*)
+---- 1

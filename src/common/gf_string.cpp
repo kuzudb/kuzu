@@ -16,28 +16,36 @@ void gf_string_t::getOverflowPtrInfo(uint64_t& pageIdx, uint16_t& pageOffset) {
     memcpy(&pageOffset, ((uint8_t*)&overflowPtr) + 6, 2);
 }
 
-void gf_string_t::set(const string& str) {
-    set(str.data(), str.length());
+void gf_string_t::set(const string& value) {
+    set(value.data(), value.length());
 }
 
 void gf_string_t::set(const char* value, uint64_t length) {
-    auto prefixLen = length < gf_string_t::PREFIX_LENGTH ? length : gf_string_t::PREFIX_LENGTH;
     this->len = length;
-    memcpy(prefix, value, prefixLen);
-    if (length > gf_string_t::PREFIX_LENGTH) {
-        if (length <= gf_string_t::SHORT_STR_LENGTH) {
-            memcpy(data, value + gf_string_t::PREFIX_LENGTH, length - gf_string_t::PREFIX_LENGTH);
-        } else {
-            memcpy(reinterpret_cast<char*>(overflowPtr), value, length);
-        }
+    if (length <= SHORT_STR_LENGTH) {
+        memcpy(prefix, value, length);
+    } else {
+        memcpy(prefix, value, PREFIX_LENGTH);
+        memcpy(reinterpret_cast<char*>(overflowPtr), value, length);
     }
 }
 
-string gf_string_t::getAsString(const gf_string_t& gf_string) {
-    if (gf_string.len <= gf_string_t::SHORT_STR_LENGTH) {
-        return string((char*)gf_string.prefix, gf_string.len);
+void gf_string_t::set(const gf_string_t& value) {
+    this->len = value.len;
+    if (value.len <= SHORT_STR_LENGTH) {
+        memcpy(prefix, value.prefix, value.len);
     } else {
-        return string(reinterpret_cast<char*>(gf_string.overflowPtr), gf_string.len);
+        memcpy(prefix, value.prefix, PREFIX_LENGTH);
+        memcpy(reinterpret_cast<char*>(overflowPtr), reinterpret_cast<char*>(value.overflowPtr),
+            value.len);
+    }
+}
+
+string gf_string_t::getAsString() const {
+    if (len <= SHORT_STR_LENGTH) {
+        return string((char*)prefix, len);
+    } else {
+        return string(reinterpret_cast<char*>(overflowPtr), len);
     }
 }
 

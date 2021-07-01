@@ -35,10 +35,11 @@ struct gf_string_t {
 
     // This function does *NOT* allocate/resize the overflow buffer, it only copies the content and
     // set the length.
-    void set(const string& str);
+    void set(const string& value);
     void set(const char* value, uint64_t length);
+    void set(const gf_string_t& value);
 
-    static string getAsString(const gf_string_t& gf_string);
+    string getAsString() const;
 };
 
 } // namespace common

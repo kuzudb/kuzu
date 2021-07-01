@@ -116,7 +116,7 @@ struct ArithmeticOnValues {
     static void operation(Value& left, Value& right, Value& result) {
         switch (left.dataType) {
         case INT32:
-            switch (left.dataType) {
+            switch (right.dataType) {
             case INT32:
                 result.dataType = INT32;
                 FUNC::operation(left.val.int32Val, right.val.int32Val, result.val.int32Val);
@@ -131,7 +131,7 @@ struct ArithmeticOnValues {
             }
             break;
         case DOUBLE:
-            switch (left.dataType) {
+            switch (right.dataType) {
             case INT32:
                 result.dataType = DOUBLE;
                 FUNC::operation(left.val.doubleVal, right.val.int32Val, result.val.doubleVal);
