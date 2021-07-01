@@ -44,6 +44,19 @@ FactorizationGroup* Schema::getFactorizationGroup(const string& variable) {
     return unflatGroups[variableUnflatGroupPosMap.at(variable)].get();
 }
 
+void Schema::addToExistingFactorizetionGroup(
+    const string& existingVariable, unordered_set<string> variables) {
+    if (flatGroup->containsVariable(existingVariable)) {
+        flatGroup->addVariables(move(variables));
+    } else {
+        auto unflatGroupPos = variableUnflatGroupPosMap.at(existingVariable);
+        for (auto& variable : variables) {
+            variableUnflatGroupPosMap.insert({variable, unflatGroupPos});
+        }
+        unflatGroups[unflatGroupPos]->addVariables(move(variables));
+    }
+}
+
 void Schema::addUnFlatFactorizationGroup(unordered_set<string> variables, uint64_t extensionRate) {
     for (auto& variable : variables) {
         variableUnflatGroupPosMap.insert({variable, unflatGroups.size()});

@@ -49,6 +49,10 @@ public:
 
     FactorizationGroup* getFactorizationGroup(const string& variable);
 
+    // add variables to the same factorization group as existingVariable
+    void addToExistingFactorizetionGroup(
+        const string& existingVariable, unordered_set<string> variables);
+
     void addUnFlatFactorizationGroup(unordered_set<string> variables, uint64_t extensionRate);
 
     void flattenFactorizationGroupIfNecessary(const string& variable);

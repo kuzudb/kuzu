@@ -31,3 +31,7 @@
 -NAME TwoHopKnowsFilteredTest4
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH b AS d, a.age * 2.0 AS foo MATCH (d)-[e2:knows]->(c:person) WHERE foo = c.age * 2.0 RETURN COUNT(*)
 ---- 12
+
+-NAME OneHopOrgCodeFilter
+-QUERY MATCH (a:person)-[e1:studyAt]->(b:organisation) WHERE b.orgCode > 100 RETURN COUNT(*)
+---- 3
