@@ -28,6 +28,11 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
         case DATE: {
             outValues[resPos].val.dateVal = ((date_t*)operand.values)[pos];
         } break;
+        case STRING: {
+            auto& operandVal = ((gf_string_t*)operand.values)[pos];
+            result.allocateStringOverflowSpace(outValues[resPos].val.strVal, operandVal.len);
+            outValues[resPos].val.strVal.set(operandVal);
+        } break;
         default:
             assert(false);
         }
@@ -58,6 +63,14 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
             for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 outValues[pos].val.dateVal = dateValues[pos];
+            }
+        } break;
+        case STRING: {
+            for (auto i = 0u; i < operand.state->size; i++) {
+                auto pos = operand.state->selectedValuesPos[i];
+                auto& operandVal = ((gf_string_t*)operand.values)[pos];
+                result.allocateStringOverflowSpace(outValues[pos].val.strVal, operandVal.len);
+                outValues[pos].val.strVal.set(operandVal);
             }
         } break;
         default:
@@ -117,7 +130,6 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
             }
         } break;
         case DATE: {
-            auto dateValues = (date_t*)operand.values;
             for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 result.addString(pos, Date::toString(((date_t*)operand.values)[pos]));
@@ -131,7 +143,7 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
 
 void VectorCastOperations::castUnstructuredToBoolValue(ValueVector& operand, ValueVector& result) {
     assert(operand.dataType == UNSTRUCTURED && result.dataType == BOOL);
-    auto inValues = (Value*)result.values;
+    auto inValues = (Value*)operand.values;
     if (!operand.state->isFlat()) {
         for (auto i = 0u; i < operand.state->size; i++) {
             auto pos = operand.state->selectedValuesPos[i];
@@ -140,6 +152,7 @@ void VectorCastOperations::castUnstructuredToBoolValue(ValueVector& operand, Val
                                             DataTypeNames[inValues[pos].dataType] + "(" +
                                             inValues[pos].toString() + ")”.");
             }
+            result.values[pos] = inValues[pos].val.booleanVal;
         }
     } else {
         auto pos = operand.state->getCurrSelectedValuesPos();

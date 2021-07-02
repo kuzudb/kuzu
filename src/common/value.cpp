@@ -44,7 +44,7 @@ string Value::toString() const {
     case DOUBLE:
         return to_string(val.doubleVal);
     case STRING:
-        return gf_string_t::getAsString(val.strVal);
+        return val.strVal.getAsString();
     case NODE:
         return to_string(val.nodeID.label) + ":" + to_string(val.nodeID.offset);
     case DATE:
