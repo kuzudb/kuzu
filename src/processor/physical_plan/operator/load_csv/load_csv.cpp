@@ -41,9 +41,9 @@ void LoadCSV<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
             auto& vector = *outValueVectors[tokenIdx];
             auto vectorDataType = csvColumnDataTypes[tokenIdx];
             switch (vectorDataType) {
-            case INT32: {
-                ((int*)vector.values)[lineIdx] =
-                    reader.skipTokenIfNull() ? NULL_INT32 : reader.getInt32();
+            case INT64: {
+                ((int64_t*)vector.values)[lineIdx] =
+                    reader.skipTokenIfNull() ? NULL_INT64 : reader.getInt64();
                 break;
             }
             case DOUBLE: {

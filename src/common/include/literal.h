@@ -13,7 +13,7 @@ public:
 
     explicit Literal(uint8_t value) : dataType(BOOL) { this->val.booleanVal = value; }
 
-    explicit Literal(int32_t value) : dataType(INT32) { this->val.int32Val = value; }
+    explicit Literal(int64_t value) : dataType(INT64) { this->val.int64Val = value; }
 
     explicit Literal(double value) : dataType(DOUBLE) { this->val.doubleVal = value; }
 
@@ -26,7 +26,7 @@ public:
 public:
     union Val {
         uint8_t booleanVal;
-        int32_t int32Val;
+        int64_t int64Val;
         double doubleVal;
         nodeID_t nodeID;
     } val{};

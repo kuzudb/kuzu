@@ -3,6 +3,7 @@
 #include "src/binder/include/expression/literal_expression.h"
 #include "src/binder/include/expression/property_expression.h"
 #include "src/binder/include/expression/rel_expression.h"
+#include "src/common/include/types.h"
 
 namespace graphflow {
 namespace binder {
@@ -90,8 +91,8 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     if (left->dataType == UNSTRUCTURED || right->dataType == UNSTRUCTURED) {
         return make_shared<Expression>(parsedExpression.type, BOOL, move(left), move(right));
     }
-    auto isLNumerical = isNumericalType(left->dataType);
-    auto isRNumerical = isNumericalType(right->dataType);
+    auto isLNumerical = TypeUtils::isNumericalType(left->dataType);
+    auto isRNumerical = TypeUtils::isNumericalType(right->dataType);
     if ((isLNumerical && !isRNumerical) || (!isLNumerical && isRNumerical) ||
         (!isLNumerical && !isRNumerical && left->dataType != right->dataType)) {
         return make_shared<LiteralExpression>(LITERAL_BOOLEAN, BOOL, Literal(NULL_BOOL));
@@ -136,7 +137,7 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
     if (left->dataType == DOUBLE || right->dataType == DOUBLE) {
         resultType = DOUBLE;
     } else {
-        resultType = INT32;
+        resultType = INT64;
     }
     if (!isExpressionArithmetic(parsedExpression.type)) {
         throw invalid_argument("Should never happen. Cannot bind expression type of " +
@@ -217,7 +218,7 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     }
     throw invalid_argument("Type mismatch: expect NODE or REL, but " +
                            childExpression->rawExpression + " was " +
-                           dataTypeToString(childExpression->dataType) + ".");
+                           TypeUtils::dataTypeToString(childExpression->dataType) + ".");
 }
 
 // only support COUNT(*) or ID(nodeVariable)
@@ -234,7 +235,7 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
         auto child = bindExpression(*parsedExpression.children[0]);
         if (NODE != child->dataType) {
             throw invalid_argument("Expect " + child->rawExpression + " to be a node, but it was " +
-                                   dataTypeToString(child->dataType));
+                                   TypeUtils::dataTypeToString(child->dataType));
         }
         auto node = static_pointer_cast<NodeExpression>(child);
         return make_shared<PropertyExpression>(
@@ -250,12 +251,14 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     auto literalType = parsedExpression.type;
     switch (literalType) {
     case LITERAL_INT:
-        return make_shared<LiteralExpression>(LITERAL_INT, INT32, Literal(stoi(literalVal)));
+        return make_shared<LiteralExpression>(
+            LITERAL_INT, INT64, Literal(TypeUtils::convertToInt64(literalVal.c_str())));
     case LITERAL_DOUBLE:
-        return make_shared<LiteralExpression>(LITERAL_DOUBLE, DOUBLE, Literal(stod(literalVal)));
+        return make_shared<LiteralExpression>(
+            LITERAL_DOUBLE, DOUBLE, Literal(TypeUtils::convertToDouble(literalVal.c_str())));
     case LITERAL_BOOLEAN:
         return make_shared<LiteralExpression>(
-            LITERAL_BOOLEAN, BOOL, Literal((uint8_t)("true" == literalVal)));
+            LITERAL_BOOLEAN, BOOL, Literal(TypeUtils::convertToBoolean(literalVal.c_str())));
     case LITERAL_STRING:
         return make_shared<LiteralExpression>(
             LITERAL_STRING, STRING, Literal(literalVal.substr(1, literalVal.size() - 2)));
@@ -286,16 +289,16 @@ void validateExpectedType(const Expression& expression, DataType expectedType) {
     auto dataType = expression.dataType;
     if (expectedType != dataType) {
         throw invalid_argument(expression.rawExpression + " has data type " +
-                               dataTypeToString(dataType) + ". " + dataTypeToString(expectedType) +
-                               " was expected.");
+                               TypeUtils::dataTypeToString(dataType) + ". " +
+                               TypeUtils::dataTypeToString(expectedType) + " was expected.");
     }
 }
 
 void validateNumericalType(const Expression& expression) {
     auto dataType = expression.dataType;
-    if (!isNumericalType(dataType)) {
+    if (!TypeUtils::isNumericalType(dataType)) {
         throw invalid_argument(expression.rawExpression + " has data type " +
-                               dataTypeToString(dataType) +
+                               TypeUtils::dataTypeToString(dataType) +
                                ". A numerical data type was expected.");
     }
 }

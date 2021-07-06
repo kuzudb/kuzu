@@ -33,7 +33,7 @@ void AdjAndPropertyColumnsBuilder::setRel(Direction direction, const vector<node
 void AdjAndPropertyColumnsBuilder::setProperty(
     const nodeID_t& nodeID, const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
     PageCursor cursor;
-    calculatePageCursor(getDataTypeSize(type), nodeID.offset, cursor);
+    calculatePageCursor(TypeUtils::getDataTypeSize(type), nodeID.offset, cursor);
     labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->setPorperty(cursor, val);
 }
 
@@ -41,7 +41,7 @@ void AdjAndPropertyColumnsBuilder::setStringProperty(const nodeID_t& nodeID,
     const uint32_t& propertyIdx, const char* originalString, PageCursor& cursor) {
     PageCursor propertyListCursor;
 
-    calculatePageCursor(getDataTypeSize(STRING), nodeID.offset, propertyListCursor);
+    calculatePageCursor(TypeUtils::getDataTypeSize(STRING), nodeID.offset, propertyListCursor);
     auto* encodedString = reinterpret_cast<gf_string_t*>(
         labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->getPtrToMemLoc(
             propertyListCursor));
@@ -120,14 +120,14 @@ void AdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction direction
         for (auto& property : description.properties) {
             auto fName = RelsStore::getRelPropertyColumnFName(
                 outputDirectory, description.label, nodeLabel, property.name);
-            uint32_t numElementsPerPage = PAGE_SIZE / getDataTypeSize(property.dataType);
+            uint32_t numElementsPerPage = PAGE_SIZE / TypeUtils::getDataTypeSize(property.dataType);
             uint64_t numPages = numElements / numElementsPerPage;
             if (0 != numElements % numElementsPerPage) {
                 numPages++;
             }
             labelPropertyIdxPropertyColumn[nodeLabel][property.id] =
                 make_unique<InMemPropertyPages>(
-                    fName, numPages, getDataTypeSize(property.dataType));
+                    fName, numPages, TypeUtils::getDataTypeSize(property.dataType));
             if (STRING == property.dataType) {
                 labelPropertyIdxStringOverflowPages[nodeLabel][property.id] =
                     make_unique<InMemStringOverflowPages>(fName + OVERFLOW_FILE_SUFFIX);
@@ -182,7 +182,7 @@ void AdjAndPropertyColumnsBuilder::sortOverflowStringsofPropertyColumnTask(
     unorderedStringOverflowCursor.idx = 0;
     unorderedStringOverflowCursor.offset = 0;
     for (; offsetStart < offsetEnd; offsetStart++) {
-        calculatePageCursor(getDataTypeSize(STRING), offsetStart, propertyListCursor);
+        calculatePageCursor(TypeUtils::getDataTypeSize(STRING), offsetStart, propertyListCursor);
         auto valPtr =
             reinterpret_cast<gf_string_t*>(propertyColumn->getPtrToMemLoc(propertyListCursor));
         auto len = ((uint32_t*)valPtr)[0];

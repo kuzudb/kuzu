@@ -37,7 +37,7 @@ class Column : public BaseColumn {
 
 public:
     Column(const string& path, const uint64_t& numElements, BufferManager& bufferManager)
-        : BaseColumn{path, D, getDataTypeSize(D), numElements, bufferManager} {};
+        : BaseColumn{path, D, TypeUtils::getDataTypeSize(D), numElements, bufferManager} {};
 };
 
 template<>
@@ -75,7 +75,7 @@ private:
     NodeIDCompressionScheme nodeIDCompressionScheme;
 };
 
-typedef Column<INT32> PropertyColumnInt;
+typedef Column<INT64> PropertyColumnInt64;
 typedef Column<DOUBLE> PropertyColumnDouble;
 typedef Column<BOOL> PropertyColumnBool;
 typedef Column<STRING> PropertyColumnString;

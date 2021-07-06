@@ -19,7 +19,7 @@ public:
 
     explicit Value(uint8_t value) : dataType(BOOL) { this->val.booleanVal = value; }
 
-    explicit Value(int32_t value) : dataType(INT32) { this->val.int32Val = value; }
+    explicit Value(int64_t value) : dataType(INT64) { this->val.int64Val = value; }
 
     explicit Value(double value) : dataType(DOUBLE) { this->val.doubleVal = value; }
 
@@ -32,7 +32,7 @@ public:
 public:
     union Val {
         uint8_t booleanVal;
-        int32_t int32Val;
+        int64_t int64Val;
         double doubleVal;
         gf_string_t strVal{};
         nodeID_t nodeID;

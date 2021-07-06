@@ -1,4 +1,4 @@
-id:INT32,name:STRING,orgCode:INT32,mark:DOUBLE
+id:INT64,name:STRING,orgCode:INT64,mark:DOUBLE
 1,ABFsUni,325,3.7
 4,CsWork,934,4.1
 6,DEsWork,824,4.1

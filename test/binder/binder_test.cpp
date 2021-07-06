@@ -20,10 +20,10 @@ public:
 
 TEST_F(BinderTest, LOADCSVBasicTest) {
     auto expectedCSVColumnInfo = vector<pair<string, DataType>>();
-    expectedCSVColumnInfo.emplace_back(make_pair("age", INT32));
+    expectedCSVColumnInfo.emplace_back(make_pair("age", INT64));
     expectedCSVColumnInfo.emplace_back(make_pair("name", STRING));
     auto csvLines = vector<shared_ptr<Expression>>();
-    auto csvLine0 = make_shared<Expression>(CSV_LINE_EXTRACT, INT32, "_gf0_csvLine[0]");
+    auto csvLine0 = make_shared<Expression>(CSV_LINE_EXTRACT, INT64, "_gf0_csvLine[0]");
     csvLine0->alias = "csvLine[0]";
     auto csvLine1 = make_shared<Expression>(CSV_LINE_EXTRACT, STRING, "_gf0_csvLine[1]");
     csvLine1->alias = "csvLine[1]";

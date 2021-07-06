@@ -19,8 +19,8 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
         case BOOL: {
             outValues[resPos].val.booleanVal = operand.values[pos];
         } break;
-        case INT32: {
-            outValues[resPos].val.int32Val = ((int32_t*)operand.values)[pos];
+        case INT64: {
+            outValues[resPos].val.int64Val = ((int64_t*)operand.values)[pos];
         } break;
         case DOUBLE: {
             outValues[resPos].val.doubleVal = ((double_t*)operand.values)[pos];
@@ -44,11 +44,11 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
                 outValues[pos].val.booleanVal = operand.values[pos];
             }
         } break;
-        case INT32: {
-            auto intValues = (int32_t*)operand.values;
+        case INT64: {
+            auto intValues = (int64_t*)operand.values;
             for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
-                outValues[pos].val.int32Val = intValues[pos];
+                outValues[pos].val.int64Val = intValues[pos];
             }
         } break;
         case DOUBLE: {
@@ -80,7 +80,7 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
 }
 
 void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, ValueVector& result) {
-    assert((operand.dataType == INT32 || operand.dataType == DOUBLE || operand.dataType == BOOL ||
+    assert((operand.dataType == INT64 || operand.dataType == DOUBLE || operand.dataType == BOOL ||
                operand.dataType == DATE) &&
            result.dataType == STRING);
     if (operand.state->isFlat()) {
@@ -92,8 +92,8 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
             val = operand.values[pos] == TRUE ? "True" :
                                                 (operand.values[pos] == FALSE ? "False" : "");
         } break;
-        case INT32: {
-            val = to_string(((int32_t*)operand.values)[pos]);
+        case INT64: {
+            val = to_string(((int64_t*)operand.values)[pos]);
         } break;
         case DOUBLE: {
             val = to_string(((double_t*)operand.values)[pos]);
@@ -115,8 +115,8 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
                                           (operand.values[pos] == FALSE ? "False" : ""));
             }
         } break;
-        case INT32: {
-            auto intValues = (int32_t*)operand.values;
+        case INT64: {
+            auto intValues = (int64_t*)operand.values;
             for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
                 result.addString(pos, to_string(intValues[pos]));

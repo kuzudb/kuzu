@@ -63,9 +63,9 @@ void ResultSetIterator::getNextTuple(Tuple& tuple) {
         for (auto& vector : dataChunk->valueVectors) {
             auto selectedTuplePos = vector->state->selectedValuesPos[tuplePosition];
             switch (vector->dataType) {
-            case INT32: {
-                tuple.getValue(valueInTupleIdx)->val.int32Val =
-                    (((int32_t*)vector->values)[selectedTuplePos]);
+            case INT64: {
+                tuple.getValue(valueInTupleIdx)->val.int64Val =
+                    (((int64_t*)vector->values)[selectedTuplePos]);
             } break;
             case BOOL: {
                 tuple.getValue(valueInTupleIdx)->val.booleanVal = vector->values[selectedTuplePos];

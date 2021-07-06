@@ -83,7 +83,7 @@ TEST_F(BinderErrorTest, BindToDifferentVariableType1) {
 }
 
 TEST_F(BinderErrorTest, BindToDifferentVariableType2) {
-    string expectedException = "a defined with conflicting type INT32 (expect NODE).";
+    string expectedException = "a defined with conflicting type INT64 (expect NODE).";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) WITH a.age + 1 AS a MATCH (a) RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -108,7 +108,7 @@ TEST_F(BinderErrorTest, BindVariableNotInScope2) {
 }
 
 TEST_F(BinderErrorTest, BindPropertyLookUpOnExpression) {
-    string expectedException = "Type mismatch: expect NODE or REL, but a.age + 2 was INT32.";
+    string expectedException = "Type mismatch: expect NODE or REL, but a.age + 2 was INT64.";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) RETURN (a.age + 2).age;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

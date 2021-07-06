@@ -38,7 +38,7 @@ public:
     bool skipTokenIfNull();
 
     // reads the data currently pointed to by the cursor and returns the value in a specific format.
-    int32_t getInt32();
+    int64_t getInt64();
     double_t getDouble();
     uint8_t getBoolean();
     char* getString();

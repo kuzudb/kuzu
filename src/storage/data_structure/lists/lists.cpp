@@ -183,7 +183,7 @@ void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx
     const shared_ptr<ValueVector>& valueVector, uint64_t pos, bool toRead,
     BufferManagerMetrics& metrics) {
     auto frame = bufferManager.get(fileHandle, physicalPageIdx, metrics);
-    auto dataTypeSize = getDataTypeSize(propertyDataType);
+    auto dataTypeSize = TypeUtils::getDataTypeSize(propertyDataType);
     auto values = (Value*)valueVector->values;
     if (pageCursor.offset + dataTypeSize < PAGE_SIZE) {
         if (toRead) {

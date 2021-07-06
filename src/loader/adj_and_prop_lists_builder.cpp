@@ -71,8 +71,8 @@ void AdjAndPropertyListsBuilder::setProperty(const vector<uint64_t>& pos,
     for (auto& direction : DIRECTIONS) {
         auto header = directionLabelAdjListHeaders[direction][nodeIDs[direction].label]
                           .headers[nodeIDs[direction].offset];
-        ListsLoaderHelper::calculatePageCursor(header, pos[direction], getDataTypeSize(type),
-            nodeIDs[direction].offset, cursor,
+        ListsLoaderHelper::calculatePageCursor(header, pos[direction],
+            TypeUtils::getDataTypeSize(type), nodeIDs[direction].offset, cursor,
             directionLabelPropertyIdxPropertyListsMetadata[direction][nodeIDs[direction].label]
                                                           [propertyIdx]);
         directionLabelPropertyIdxPropertyLists[direction][nodeIDs[direction].label][propertyIdx]
@@ -86,7 +86,7 @@ void AdjAndPropertyListsBuilder::setStringProperty(const vector<uint64_t>& pos,
     PageCursor propertyListCursor;
     ListsLoaderHelper::calculatePageCursor(
         directionLabelAdjListHeaders[FWD][nodeIDs[FWD].label].headers[nodeIDs[FWD].offset],
-        pos[FWD], getDataTypeSize(STRING), nodeIDs[FWD].offset, propertyListCursor,
+        pos[FWD], TypeUtils::getDataTypeSize(STRING), nodeIDs[FWD].offset, propertyListCursor,
         directionLabelPropertyIdxPropertyListsMetadata[FWD][nodeIDs[FWD].label][propertyIdx]);
     auto encodedStrFwd = reinterpret_cast<gf_string_t*>(
         directionLabelPropertyIdxPropertyLists[FWD][nodeIDs[FWD].label][propertyIdx]
@@ -95,12 +95,12 @@ void AdjAndPropertyListsBuilder::setStringProperty(const vector<uint64_t>& pos,
         strVal, stringOverflowCursor, encodedStrFwd);
     ListsLoaderHelper::calculatePageCursor(
         directionLabelAdjListHeaders[BWD][nodeIDs[BWD].label].headers[nodeIDs[BWD].offset],
-        pos[BWD], getDataTypeSize(STRING), nodeIDs[BWD].offset, propertyListCursor,
+        pos[BWD], TypeUtils::getDataTypeSize(STRING), nodeIDs[BWD].offset, propertyListCursor,
         directionLabelPropertyIdxPropertyListsMetadata[BWD][nodeIDs[BWD].label][propertyIdx]);
     auto encodedStrBwd = reinterpret_cast<gf_string_t*>(
         directionLabelPropertyIdxPropertyLists[BWD][nodeIDs[BWD].label][propertyIdx]
             ->getPtrToMemLoc(propertyListCursor));
-    memcpy((void*)encodedStrBwd, (void*)encodedStrFwd, getDataTypeSize(STRING));
+    memcpy((void*)encodedStrBwd, (void*)encodedStrFwd, TypeUtils::getDataTypeSize(STRING));
 }
 
 void AdjAndPropertyListsBuilder::sortOverflowStrings() {
@@ -241,7 +241,7 @@ void AdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata() {
                 auto numNodeOffsets = graph.getNumNodesPerLabel()[nodeLabel];
                 for (auto& property : description.properties) {
                     auto idx = property.id;
-                    auto numPerPage = PAGE_SIZE / getDataTypeSize(property.dataType);
+                    auto numPerPage = PAGE_SIZE / TypeUtils::getDataTypeSize(property.dataType);
                     threadPool.execute(ListsLoaderHelper::calculateListsMetadataTask,
                         numNodeOffsets, numPerPage, listsSizes,
                         &directionLabelAdjListHeaders[direction][nodeLabel],
@@ -291,7 +291,7 @@ void AdjAndPropertyListsBuilder::buildInMemPropertyLists() {
                     make_unique<InMemPropertyPages>(fName,
                         directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel][idx]
                             .numPages,
-                        getDataTypeSize(property.dataType));
+                        TypeUtils::getDataTypeSize(property.dataType));
             }
         }
     }
@@ -320,7 +320,7 @@ void AdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(node_off
             len = ListHeaders::getSmallListLen(header);
         }
         for (auto pos = len; pos > 0; pos--) {
-            ListsLoaderHelper::calculatePageCursor(header, pos, getDataTypeSize(STRING),
+            ListsLoaderHelper::calculatePageCursor(header, pos, TypeUtils::getDataTypeSize(STRING),
                 offsetStart, propertyListCursor, *listsMetadata);
             auto valPtr =
                 reinterpret_cast<gf_string_t*>(propertyLists->getPtrToMemLoc(propertyListCursor));

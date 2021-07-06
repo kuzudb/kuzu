@@ -48,7 +48,7 @@ class Lists : public BaseLists {
 
 public:
     Lists(const string& fname, shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
-        : BaseLists{fname, D, getDataTypeSize(D), headers, bufferManager} {};
+        : BaseLists{fname, D, TypeUtils::getDataTypeSize(D), headers, bufferManager} {};
 };
 
 // Lists<NODE> is the specialization of Lists<D> for lists of nodeIDs.
@@ -117,7 +117,7 @@ public:
     FileHandle overflowPagesFileHandle;
 };
 
-typedef Lists<INT32> RelPropertyListsInt;
+typedef Lists<INT64> RelPropertyListsInt64;
 typedef Lists<DOUBLE> RelPropertyListsDouble;
 typedef Lists<BOOL> RelPropertyListsBool;
 typedef Lists<STRING> RelPropertyListsString;

@@ -8,17 +8,17 @@ using namespace graphflow::binder;
 
 TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
     auto propertyExpression =
-        make_unique<Expression>(ExpressionType::PROPERTY, DataType::INT32, "a.prop");
-    auto literal = Literal(5);
+        make_unique<Expression>(ExpressionType::PROPERTY, DataType::INT64, "a.prop");
+    Literal literal = Literal((int64_t)5);
     auto literalExpression =
-        make_unique<LiteralExpression>(ExpressionType::LITERAL_INT, DataType::INT32, literal);
+        make_unique<LiteralExpression>(ExpressionType::LITERAL_INT, DataType::INT64, literal);
 
     auto addLogicalOperator = make_unique<Expression>(
-        ExpressionType::ADD, DataType::INT32, move(propertyExpression), move(literalExpression));
+        ExpressionType::ADD, DataType::INT64, move(propertyExpression), move(literalExpression));
 
     auto memoryManager = make_unique<MemoryManager>();
-    auto valueVector = make_shared<ValueVector>(memoryManager.get(), INT32);
-    auto values = (int32_t*)valueVector->values;
+    auto valueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
+    auto values = (int64_t*)valueVector->values;
     for (auto i = 0u; i < 100; i++) {
         values[i] = i;
     }
@@ -35,7 +35,7 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
         *memoryManager, *addLogicalOperator, physicalOperatorInfo, resultSet);
     rootExpressionEvaluator->evaluate();
 
-    auto results = (int32_t*)rootExpressionEvaluator->result->values;
+    auto results = (int64_t*)rootExpressionEvaluator->result->values;
     for (auto i = 0u; i < 100; i++) {
         ASSERT_EQ(results[i], i + 5);
     }
@@ -43,15 +43,15 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
 
 TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
     auto propertyExpression =
-        make_unique<Expression>(ExpressionType::PROPERTY, DataType::INT32, "a.prop");
+        make_unique<Expression>(ExpressionType::PROPERTY, DataType::INT64, "a.prop");
     auto negateLogicalOperator =
-        make_unique<Expression>(ExpressionType::NEGATE, DataType::INT32, move(propertyExpression));
+        make_unique<Expression>(ExpressionType::NEGATE, DataType::INT64, move(propertyExpression));
 
     auto memoryManager = make_unique<MemoryManager>();
-    auto valueVector = make_shared<ValueVector>(memoryManager.get(), INT32);
-    auto values = (int32_t*)valueVector->values;
+    auto valueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
+    auto values = (int64_t*)valueVector->values;
     for (auto i = 0u; i < 100; i++) {
-        int32_t value = i;
+        int64_t value = i;
         if (i % 2ul == 0ul) {
             values[i] = value;
         } else {
@@ -71,9 +71,9 @@ TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
         *memoryManager, *negateLogicalOperator, physicalOperatorInfo, resultSet);
     rootExpressionEvaluator->evaluate();
 
-    auto results = (int32_t*)rootExpressionEvaluator->result->values;
+    auto results = (int64_t*)rootExpressionEvaluator->result->values;
     for (auto i = 0u; i < 100; i++) {
-        int32_t value = i;
+        int64_t value = i;
         if (i % 2ul == 0ul) {
             ASSERT_EQ(results[i], -value);
         } else {

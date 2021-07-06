@@ -26,8 +26,8 @@ void ValueVector::fillNullMask() {
     case BOOL:
         fillOperandNullMask<uint8_t>(*this);
         break;
-    case INT32:
-        fillOperandNullMask<int32_t>(*this);
+    case INT64:
+        fillOperandNullMask<int64_t>(*this);
         break;
     case DOUBLE:
         fillOperandNullMask<double_t>(*this);
@@ -40,8 +40,8 @@ void ValueVector::fillNullMask() {
         //  Currently we do not distinguish empty and NULL gf_string_t.
         break;
     default:
-        throw std::invalid_argument(
-            "Invalid or unsupported type for comparison: " + dataTypeToString(dataType) + ".");
+        throw std::invalid_argument("Invalid or unsupported type for comparison: " +
+                                    TypeUtils::dataTypeToString(dataType) + ".");
     }
 }
 

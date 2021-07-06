@@ -16,7 +16,7 @@ class ValueVector {
 public:
     ValueVector(MemoryManager* memoryManager, DataType dataType, bool isSingleValue = false)
         : ValueVector(memoryManager, isSingleValue ? 1 : DEFAULT_VECTOR_CAPACITY,
-              getDataTypeSize(dataType), dataType) {}
+              TypeUtils::getDataTypeSize(dataType), dataType) {}
 
     virtual ~ValueVector() = default;
 
@@ -30,12 +30,11 @@ public:
     void addString(uint64_t pos, string value) const;
     void addString(uint64_t pos, char* value, uint64_t len) const;
     void allocateStringOverflowSpace(gf_string_t& gfString, uint64_t len) const;
-
     inline void reset() { values = bufferValues.get(); }
 
     void fillNullMask();
 
-    virtual inline int64_t getNumBytesPerValue() { return getDataTypeSize(dataType); }
+    virtual inline int64_t getNumBytesPerValue() { return TypeUtils::getDataTypeSize(dataType); }
 
     virtual shared_ptr<ValueVector> clone();
 

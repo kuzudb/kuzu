@@ -154,7 +154,7 @@ vector<PropertyDefinition> GraphLoader::parseHeader(string& header) const {
                 "Property name " + propertyName + " already exists in the node label.");
         }
         propertyNameSet.insert(propertyName);
-        auto dataType = getDataType(propertyDescriptors[1]);
+        auto dataType = TypeUtils::getDataType(propertyDescriptors[1]);
         if (NODE != dataType && LABEL != dataType) {
             propertyDefinitions.emplace_back(propertyName, propertyId++, dataType);
         }

@@ -11,11 +11,12 @@ NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesP
     const string& directory, BufferManager& bufferManager)
     : logger{spdlog::get("storage")} {
     logger->info("Initializing NodesStore.");
-    initPropertyColumnsAndLists(catalog, numNodesPerLabel, directory, bufferManager);
+    initStructuredPropertyColumnsAndUnstructuredPropertyLists(
+        catalog, numNodesPerLabel, directory, bufferManager);
     logger->info("Done NodesStore.");
 }
 
-void NodesStore::initPropertyColumnsAndLists(const Catalog& catalog,
+void NodesStore::initStructuredPropertyColumnsAndUnstructuredPropertyLists(const Catalog& catalog,
     const vector<uint64_t>& numNodesPerLabel, const string& directory,
     BufferManager& bufferManager) {
     auto numNodeLabels = catalog.getNodeLabelsCount();
@@ -30,8 +31,8 @@ void NodesStore::initPropertyColumnsAndLists(const Catalog& catalog,
             logger->debug("nodeLabel {} propertyId {} type {} name `{}`", nodeLabel, property.id,
                 property.dataType, property.name);
             switch (property.dataType) {
-            case INT32:
-                propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnInt>(
+            case INT64:
+                propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnInt64>(
                     fName, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case DOUBLE:
