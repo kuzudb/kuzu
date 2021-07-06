@@ -352,9 +352,7 @@ void NodesLoader::writeBuffersToFiles(const vector<unique_ptr<uint8_t[]>>& buffe
         auto fd = FileUtils::openFile(propertyColumnFnames[propertyId], O_WRONLY | O_CREAT);
         auto offsetInFile = offsetStart * getDataTypeSize(properties[propertyId].dataType);
         auto bytesToWrite = numElementsToWrite * getDataTypeSize(properties[propertyId].dataType);
-        auto numPagesToWrite = (bytesToWrite + PAGE_SIZE - 1) / PAGE_SIZE;
-        FileUtils::writeToFile(
-            fd, buffers[propertyId].get(), numPagesToWrite * PAGE_SIZE, offsetInFile);
+        FileUtils::writeToFile(fd, buffers[propertyId].get(), bytesToWrite, offsetInFile);
         FileUtils::closeFile(fd);
     }
 }
