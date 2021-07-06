@@ -49,7 +49,7 @@ unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
-    shared_ptr<LogicalOperator> logicalOperator, PhysicalOperatorsInfo& physicalOperatorInfo,
+    const shared_ptr<LogicalOperator>& logicalOperator, PhysicalOperatorsInfo& physicalOperatorInfo,
     ExecutionContext& context) {
     unique_ptr<PhysicalOperator> physicalOperator;
     auto operatorType = logicalOperator->getLogicalOperatorType();
@@ -324,72 +324,61 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& physicalOperatorInfo,
     ExecutionContext& context) {
     auto& hashJoin = (const LogicalHashJoin&)*logicalOperator;
-    PhysicalOperatorsInfo probeSideOperatorInfo, buildSideOperatorInfo;
+    PhysicalOperatorsInfo buildSideOperatorInfo;
     auto probeSidePrevOperator =
-        mapLogicalOperatorToPhysical(hashJoin.prevOperator, probeSideOperatorInfo, context);
+        mapLogicalOperatorToPhysical(hashJoin.prevOperator, physicalOperatorInfo, context);
     auto buildSidePrevOperator = mapLogicalOperatorToPhysical(
         hashJoin.buildSidePrevOperator, buildSideOperatorInfo, context);
-    auto probeSideKeyDataChunkPos = probeSideOperatorInfo.getDataChunkPos(hashJoin.joinNodeID);
-    auto probeSideKeyVectorPos = probeSideOperatorInfo.getValueVectorPos(hashJoin.joinNodeID);
+    auto probeSideKeyDataChunkPos = physicalOperatorInfo.getDataChunkPos(hashJoin.joinNodeID);
+    auto probeSideKeyVectorPos = physicalOperatorInfo.getValueVectorPos(hashJoin.joinNodeID);
     auto buildSideKeyDataChunkPos = buildSideOperatorInfo.getDataChunkPos(hashJoin.joinNodeID);
     auto buildSideKeyVectorPos = buildSideOperatorInfo.getValueVectorPos(hashJoin.joinNodeID);
-    // Hash join data chunks construction
-    // Probe side: 1) append the key data chunk as dataChunks[0].
-    //             2) append other non-key data chunks.
-    physicalOperatorInfo.appendAsNewDataChunk(
-        probeSideOperatorInfo.vectorVariables[probeSideKeyDataChunkPos][0]);
-    for (uint64_t i = 1; i < probeSideOperatorInfo.vectorVariables[probeSideKeyDataChunkPos].size();
-         i++) {
-        physicalOperatorInfo.appendAsNewValueVector(
-            probeSideOperatorInfo.vectorVariables[probeSideKeyDataChunkPos][i], 0);
+    // Flat probe side key data chunk if necessary
+    if (!physicalOperatorInfo.dataChunkPosToIsFlat[probeSideKeyDataChunkPos]) {
+        probeSidePrevOperator = make_unique<Flatten>(
+            probeSideKeyDataChunkPos, move(probeSidePrevOperator), context, physicalOperatorID++);
+        physicalOperatorInfo.dataChunkPosToIsFlat[probeSideKeyDataChunkPos] = true;
     }
-    for (uint64_t i = 0; i < probeSideOperatorInfo.vectorVariables.size(); i++) {
-        if (i == probeSideKeyDataChunkPos) {
-            continue;
-        }
-        auto newDataChunkPos =
-            physicalOperatorInfo.appendAsNewDataChunk(probeSideOperatorInfo.vectorVariables[i][0]);
-        physicalOperatorInfo.dataChunkPosToIsFlat[newDataChunkPos] =
-            probeSideOperatorInfo.dataChunkPosToIsFlat[i];
-        for (uint64_t j = 1; j < probeSideOperatorInfo.vectorVariables[i].size(); j++) {
-            physicalOperatorInfo.appendAsNewValueVector(
-                probeSideOperatorInfo.vectorVariables[i][j], newDataChunkPos);
-        }
-    }
-    // Build side: 1) append non-key vectors in the key data chunk into dataChunk[0].
-    //             2) append flat non-key data chunks into dataChunks[0].
+    // Build side: 1) append non-key vectors in the key data chunk into probe side key data chunk.
+    //             2) append flat non-key data chunks into buildSideNonKeyFlatDataChunk.
     //             3) append unflat non-key data chunks as new data chunks into dataChunks.
     auto& buildSideKeyDataChunk = buildSideOperatorInfo.vectorVariables[buildSideKeyDataChunkPos];
-    for (uint64_t i = 0; i < buildSideKeyDataChunk.size(); i++) {
+    for (auto i = 0u; i < buildSideKeyDataChunk.size(); i++) {
         if (i == buildSideKeyVectorPos) {
             continue;
         }
-        physicalOperatorInfo.appendAsNewValueVector(buildSideKeyDataChunk[i], 0);
+        physicalOperatorInfo.appendAsNewValueVector(
+            buildSideKeyDataChunk[i], probeSideKeyDataChunkPos);
     }
-    bool buildSideHasUnFlatDataChunk = false;
-    for (uint64_t i = 0; i < buildSideOperatorInfo.vectorVariables.size(); i++) {
+    bool buildSideHasNonKeyUnFlatDataChunk = false;
+    uint64_t buildSideNonKeyFlatDataChunkPos = 0;
+    for (auto i = 0u; i < buildSideOperatorInfo.vectorVariables.size(); i++) {
         if (i == buildSideKeyDataChunkPos) {
             continue;
         }
         if (buildSideOperatorInfo.dataChunkPosToIsFlat[i]) {
+            if (buildSideNonKeyFlatDataChunkPos == 0) {
+                buildSideNonKeyFlatDataChunkPos = physicalOperatorInfo.appendAsNewDataChunk(
+                    buildSideOperatorInfo.vectorVariables[i][0]);
+            }
             for (auto& variableName : buildSideOperatorInfo.vectorVariables[i]) {
-                physicalOperatorInfo.appendAsNewValueVector(variableName, 0);
+                physicalOperatorInfo.appendAsNewValueVector(
+                    variableName, buildSideNonKeyFlatDataChunkPos);
             }
         } else {
             auto newDataChunkPos = physicalOperatorInfo.appendAsNewDataChunk(
                 buildSideOperatorInfo.vectorVariables[i][0]);
-            for (uint64_t j = 1; j < buildSideOperatorInfo.vectorVariables[i].size(); j++) {
+            for (auto j = 1u; j < buildSideOperatorInfo.vectorVariables[i].size(); j++) {
                 physicalOperatorInfo.appendAsNewValueVector(
                     buildSideOperatorInfo.vectorVariables[i][j], newDataChunkPos);
             }
-            buildSideHasUnFlatDataChunk = true;
+            buildSideHasNonKeyUnFlatDataChunk = true;
         }
     }
-    // Set dataChunks[0] as flat if there are unflat data chunks from the build side.
-    if (buildSideHasUnFlatDataChunk) {
-        physicalOperatorInfo.dataChunkPosToIsFlat[0] = true;
+    // Set buildSideFlatResultDataChunk as flat if there are unFlat data chunks from the build side.
+    if (buildSideHasNonKeyUnFlatDataChunk) {
+        physicalOperatorInfo.dataChunkPosToIsFlat[buildSideNonKeyFlatDataChunkPos] = true;
     }
-
     auto hashJoinBuild = make_unique<HashJoinBuild>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
         buildSideOperatorInfo.dataChunkPosToIsFlat, move(buildSidePrevOperator), context,
         physicalOperatorID++);

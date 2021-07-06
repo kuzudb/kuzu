@@ -43,10 +43,5 @@ void VectorNodeIDOperations::Hash(ValueVector& operand, ValueVector& result) {
     UnaryOperationExecutor::executeOnNodeIDVector<uint64_t, operation::Hash>(operand, result);
 }
 
-void VectorNodeIDOperations::Decompress(ValueVector& operand, ValueVector& result) {
-    UnaryOperationExecutor::executeOnNodeIDVector<nodeID_t, operation::DecompressNodeID>(
-        operand, result);
-}
-
 } // namespace common
 } // namespace graphflow

@@ -22,8 +22,8 @@ public:
 
 private:
     unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
-        shared_ptr<LogicalOperator> logicalOperator, PhysicalOperatorsInfo& physicalOperatorInfo,
-        ExecutionContext& executionContext);
+        const shared_ptr<LogicalOperator>& logicalOperator,
+        PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& executionContext);
 
     unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(LogicalOperator* logicalOperator,
         PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
