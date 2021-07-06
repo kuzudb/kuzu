@@ -146,12 +146,10 @@ cc_library(
 
 cc_library(
     name = "configs",
-    srcs = [],
     hdrs = [
         "include/configs.h",
     ],
     visibility = ["//visibility:public"],
-    deps = [],
 )
 
 cc_library(
@@ -189,7 +187,6 @@ cc_library(
         "include/file_ser_deser_helper.h",
     ],
     visibility = ["//visibility:public"],
-    deps = [],
 )
 
 cc_library(
@@ -213,5 +210,16 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "timer",
+    ],
+)
+
+cc_library(
+    name = "functions",
+    hdrs = [
+        "include/function.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "types",
     ],
 )

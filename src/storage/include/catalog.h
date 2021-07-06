@@ -7,6 +7,7 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/file_utils.h"
+#include "src/common/include/function.h"
 #include "src/common/include/types.h"
 #include "src/common/include/utils.h"
 
@@ -150,6 +151,13 @@ public:
         label_t nodeLabel) const {
         return nodeLabels[nodeLabel].unstrPropertiesNameToIdMap;
     }
+    // getFunction() should always be called after containFunction()
+    inline bool containFunction(const string& functionName) const {
+        return builtInFunctions.contains(functionName);
+    }
+    inline Function* getFunction(const string& functionName) const {
+        return builtInFunctions.at(functionName).get();
+    }
 
     unique_ptr<nlohmann::json> debugInfo();
     void saveToFile(const string& directory);
@@ -171,13 +179,16 @@ private:
 
     string getNodeLabelsString(const unordered_set<label_t>& nodeLabels) const;
 
+    void registerBuiltInFunctions();
+
     shared_ptr<spdlog::logger> logger;
     vector<NodeLabelDefinition> nodeLabels;
     vector<RelLabelDefinition> relLabels;
-    // These two maps are maintained as caches for label name and id mapping. They are not
-    // serialized to the catalog file, but is re-constructed when reading from the catalog file.
+    // These three maps are maintained as caches. They are not serialized to the catalog file, but
+    // is re-constructed when reading from the catalog file.
     unordered_map<string, label_t> nodeLabelNameToIdMap;
     unordered_map<string, label_t> relLabelNameToIdMap;
+    unordered_map<string, unique_ptr<Function>> builtInFunctions;
 };
 
 } // namespace storage

@@ -121,6 +121,9 @@ static unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToUnstructured
     case BOOL: {
         val.val.booleanVal = literalExpression.literal.val.booleanVal;
     } break;
+    case DATE: {
+        val.val.dateVal = literalExpression.literal.val.dateVal;
+    } break;
     case STRING: {
         vector->allocateStringOverflowSpace(
             val.val.strVal, literalExpression.literal.strVal.length());
@@ -153,6 +156,9 @@ unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToStructuredPhysical(
     } break;
     case STRING: {
         vector->addString(0 /* pos */, literalExpression.literal.strVal);
+    } break;
+    case DATE: {
+        ((date_t*)vector->values)[0] = literalExpression.literal.val.dateVal;
     } break;
     default:
         assert(false);

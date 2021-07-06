@@ -114,6 +114,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//src/common:functions",
         "//src/common:types",
         "@fraillt_bitsery",
         "@gabime_spdlog",

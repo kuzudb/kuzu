@@ -131,3 +131,21 @@ TEST_F(BinderErrorTest, BindDateArithmetic) {
     auto input = "MATCH (a:person) WHERE a.birthdate + 1 < 5 RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, BindNonExistingFunction) {
+    string expectedException = "dummy function does not exist.";
+    auto input = "MATCH (a:person) WHERE dummy() < 2 RETURN COUNT(*);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, BindFunctionWithWrongNumParams) {
+    string expectedException = "Expected 1 parameters for date function but get 0.";
+    auto input = "MATCH (a:person) WHERE date() < 2 RETURN COUNT(*);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, BindFunctionWithWrongParamType) {
+    string expectedException = "2012 has data type INT64. STRING was expected.";
+    auto input = "MATCH (a:person) WHERE date(2012) < 2 RETURN COUNT(*);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

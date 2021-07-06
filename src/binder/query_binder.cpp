@@ -360,7 +360,7 @@ void validateProjectionColumnNamesAreUnique(const vector<shared_ptr<Expression>>
 void validateOnlyFunctionIsCountStar(vector<shared_ptr<Expression>>& expressions) {
     for (auto& expression : expressions) {
         if (FUNCTION == expression->expressionType &&
-            FUNCTION_COUNT_STAR == expression->variableName && expressions.size() != 1) {
+            COUNT_STAR_FUNC_NAME == expression->variableName && expressions.size() != 1) {
             throw invalid_argument("The only function in the return clause should be COUNT(*).");
         }
     }

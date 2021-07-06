@@ -152,11 +152,13 @@ uint64_t Catalog::deSerializeValue<RelLabelDefinition>(
 
 Catalog::Catalog() {
     logger = spdlog::get("storage");
+    registerBuiltInFunctions();
 }
 
 Catalog::Catalog(const string& directory) : Catalog() {
     logger->info("Initializing catalog.");
     readFromFile(directory);
+    registerBuiltInFunctions();
     logger->info("Initializing catalog done.");
 }
 
@@ -388,6 +390,12 @@ string Catalog::getNodeLabelsString(const unordered_set<label_t>& nodeLabelIds) 
         nodeLabelsStr += nodeLabels[nodeLabelId].labelName;
     }
     return nodeLabelsStr;
+}
+
+void Catalog::registerBuiltInFunctions() {
+    builtInFunctions.insert({COUNT_STAR_FUNC_NAME, make_unique<CountStarFunc>()});
+    builtInFunctions.insert({ID_FUNC_NAME, make_unique<IDFunc>()});
+    builtInFunctions.insert({DATE_FUNC_NAME, make_unique<DateFunc>()});
 }
 
 } // namespace storage

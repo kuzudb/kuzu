@@ -85,7 +85,8 @@ enum ExpressionType : uint8_t {
     LITERAL_DOUBLE = 81,
     LITERAL_STRING = 82,
     LITERAL_BOOLEAN = 83,
-    LITERAL_NULL = 84,
+    LITERAL_DATE = 84,
+    LITERAL_NULL = 85,
 
     /**
      * Variable Expression

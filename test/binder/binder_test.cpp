@@ -9,6 +9,9 @@
 using ::testing::NiceMock;
 using ::testing::Test;
 
+/**
+ * Remove this test once LIST data type is supported.
+ */
 class BinderTest : public Test {
 
 public:

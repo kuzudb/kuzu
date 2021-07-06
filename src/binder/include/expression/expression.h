@@ -13,10 +13,6 @@ using namespace std;
 namespace graphflow {
 namespace binder {
 
-// replace this with function enum once we have more functions
-const string FUNCTION_COUNT_STAR = "COUNT_STAR";
-const string FUNCTION_ID = "ID";
-
 class Expression {
 
 public:
