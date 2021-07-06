@@ -33,7 +33,7 @@ void FileUtils::writeToFile(int fd, void* buffer, int64_t numBytes, uint64_t off
 
 void FileUtils::readFromFile(int fd, void* buffer, int64_t numBytes, uint64_t position) {
     auto numBytesRead = pread(fd, buffer, numBytes, position);
-    if (numBytesRead != numBytes) {
+    if (numBytesRead != numBytes && getFileSize(fd) != position + numBytesRead) {
         throw invalid_argument("Cannot read from file. numBytesRead: " + to_string(numBytesRead) +
                                " numBytesToRead: " + to_string(numBytes));
     }
