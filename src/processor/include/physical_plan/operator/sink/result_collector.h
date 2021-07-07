@@ -11,24 +11,27 @@ class ResultCollector : public Sink {
 
 public:
     explicit ResultCollector(unique_ptr<PhysicalOperator> prevOperator,
-        PhysicalOperatorType operatorType, ExecutionContext& context, uint32_t id)
-        : Sink{move(prevOperator), operatorType, context, id} {
+        PhysicalOperatorType operatorType, ExecutionContext& context, uint32_t id,
+        bool enableProjection)
+        : Sink{move(prevOperator), operatorType, context, id}, enableProjection{enableProjection} {
         resultSet = this->prevOperator->getResultSet();
-        resultSetIterator = make_unique<ResultSetIterator>(*resultSet);
         queryResult = make_unique<QueryResult>();
     };
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ResultCollector>(prevOperator->clone(), operatorType, context, id);
+        return make_unique<ResultCollector>(
+            prevOperator->clone(), operatorType, context, id, enableProjection);
     }
 
 public:
     unique_ptr<QueryResult> queryResult;
 
 private:
-    unique_ptr<ResultSetIterator> resultSetIterator;
+    void resetStringBuffer();
+
+    bool enableProjection;
 };
 
 } // namespace processor

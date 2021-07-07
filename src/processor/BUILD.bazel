@@ -3,11 +3,11 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "execution_context",
     hdrs = [
-        "include/execution_context.h"
+        "include/execution_context.h",
     ],
     deps = [
         "//src/common:profiler",
-        "//src/transaction:transaction"
+        "//src/transaction",
     ],
 )
 
@@ -24,12 +24,13 @@ cc_library(
         "physical_plan/operator/hash_join/hash_join_build.cpp",
         "physical_plan/operator/hash_join/hash_join_probe.cpp",
         "physical_plan/operator/load_csv/load_csv.cpp",
+        "physical_plan/operator/physical_operator.cpp",
         "physical_plan/operator/physical_operator_info.cpp",
         "physical_plan/operator/projection/projection.cpp",
         "physical_plan/operator/read_list/adj_list_extend.cpp",
-        "physical_plan/operator/read_list/frontier_extend.cpp",
         "physical_plan/operator/read_list/frontier/frontier_bag.cpp",
         "physical_plan/operator/read_list/frontier/frontier_set.cpp",
+        "physical_plan/operator/read_list/frontier_extend.cpp",
         "physical_plan/operator/read_list/read_list.cpp",
         "physical_plan/operator/read_list/read_rel_property_list.cpp",
         "physical_plan/operator/scan_attribute/adj_column_extend.cpp",
@@ -39,7 +40,7 @@ cc_library(
         "physical_plan/operator/scan_attribute/scan_unstructured_property.cpp",
         "physical_plan/operator/scan_node_id/scan_node_id.cpp",
         "physical_plan/operator/sink/result_collector.cpp",
-        "physical_plan/operator/physical_operator.cpp"
+        "physical_plan/query_result.cpp",
     ],
     hdrs = [
         "include/physical_plan/expression_mapper.h",
@@ -57,10 +58,10 @@ cc_library(
         "include/physical_plan/operator/physical_operator_info.h",
         "include/physical_plan/operator/projection/projection.h",
         "include/physical_plan/operator/read_list/adj_list_extend.h",
-        "include/physical_plan/operator/read_list/frontier_extend.h",
+        "include/physical_plan/operator/read_list/frontier/frontier.h",
         "include/physical_plan/operator/read_list/frontier/frontier_bag.h",
         "include/physical_plan/operator/read_list/frontier/frontier_set.h",
-        "include/physical_plan/operator/read_list/frontier/frontier.h",
+        "include/physical_plan/operator/read_list/frontier_extend.h",
         "include/physical_plan/operator/read_list/read_list.h",
         "include/physical_plan/operator/read_list/read_rel_property_list.h",
         "include/physical_plan/operator/scan_attribute/adj_column_extend.h",
@@ -76,8 +77,8 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "result_set",
         "execution_context",
+        "result_set",
         "//src/binder:expression",
         "//src/common:csv_reader",
         "//src/common:memory_manager",

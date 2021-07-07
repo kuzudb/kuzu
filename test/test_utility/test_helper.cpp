@@ -5,6 +5,7 @@
 #include "spdlog/spdlog.h"
 
 #include "src/loader/include/graph_loader.h"
+#include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
 
 using namespace std;
 using namespace graphflow::planner;
@@ -38,9 +39,16 @@ bool TestHelper::runTest(const TestSuiteQueryConfig& testConfig, const System& s
             } else {
                 if (testConfig.compareResult) {
                     vector<string> resultTuples;
-                    for (auto& tuple : result->tuples) {
-                        for (uint64_t k = 0; k < tuple.multiplicity; k++) {
-                            resultTuples.push_back(tuple.toString());
+                    auto resultSetIterator =
+                        make_unique<ResultSetIterator>(result->resultSetCollection[0].get());
+                    Tuple tuple(resultSetIterator->dataTypes);
+                    for (auto& resultSet : result->resultSetCollection) {
+                        resultSetIterator->setResultSet(resultSet.get());
+                        while (resultSetIterator->hasNextTuple()) {
+                            resultSetIterator->getNextTuple(tuple);
+                            for (auto k = 0u; k < resultSet->multiplicity; k++) {
+                                resultTuples.push_back(tuple.toString());
+                            }
                         }
                     }
                     sort(resultTuples.begin(), resultTuples.end());
@@ -97,7 +105,7 @@ unique_ptr<TestSuiteQueryConfig> TestHelper::parseTestFile(const string& path) {
                     config->expectedNumTuples.push_back(numTuples);
                     vector<string> queryExpectedTuples;
                     if (config->compareResult) {
-                        for (uint64_t i = 0; i < numTuples; i++) {
+                        for (auto i = 0u; i < numTuples; i++) {
                             getline(ifs, line);
                             queryExpectedTuples.push_back(line);
                         }

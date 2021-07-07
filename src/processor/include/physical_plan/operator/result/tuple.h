@@ -10,10 +10,12 @@ namespace processor {
 class Tuple {
 
 public:
-    explicit Tuple(const vector<DataType>& valueTypes) : multiplicity(1) {
-        for (auto& valueType : valueTypes) {
-            auto value = make_unique<Value>(valueType);
-            values.push_back(move(value));
+    explicit Tuple(const vector<DataType>& valueTypes) {
+        values.resize(valueTypes.size());
+        nullMask.resize(valueTypes.size());
+        for (auto i = 0u; i < valueTypes.size(); i++) {
+            values[i] = make_unique<Value>(valueTypes[i]);
+            nullMask[i] = false;
         }
     }
 
@@ -21,15 +23,20 @@ public:
 
     string toString(const string& delimiter = "|") {
         string result;
-        for (uint64_t i = 0; i < values.size() - 1; i++) {
-            result += values[i]->toString() + delimiter;
+        for (auto i = 0u; i < values.size() - 1; i++) {
+            if (!nullMask[i]) {
+                result += values[i]->toString();
+            }
+            result += delimiter;
         }
-        result += values[values.size() - 1]->toString();
+        if (!nullMask[values.size() - 1]) {
+            result += values[values.size() - 1]->toString();
+        }
         return result;
     }
 
 public:
-    uint64_t multiplicity;
+    vector<bool> nullMask;
 
 private:
     vector<unique_ptr<Value>> values;

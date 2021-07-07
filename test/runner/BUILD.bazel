@@ -30,6 +30,7 @@ filegroup(
         "queries/filtered/stars.test",
         "queries/filtered/str_operations.test",
         "queries/filtered/unstructured_properties.test",
+        "queries/projection/projection.test",
         "queries/structural/frontier.test",
         "queries/structural/nodes.test",
         "queries/structural/paths.test",

@@ -11,5 +11,14 @@ uint64_t ResultSet::getNumTuples() {
     return numTuples;
 }
 
+unique_ptr<ResultSet> ResultSet::clone() {
+    auto clonedResultSet = make_unique<ResultSet>();
+    for (auto& dataChunk : dataChunks) {
+        clonedResultSet->dataChunks.push_back(dataChunk->clone());
+    }
+    clonedResultSet->multiplicity = multiplicity;
+    return clonedResultSet;
+}
+
 } // namespace processor
 } // namespace graphflow

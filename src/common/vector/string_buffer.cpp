@@ -19,13 +19,5 @@ void StringBuffer::allocateLargeString(gf_string_t& result, uint64_t len) {
     currentBlock->currentOffset += len;
 }
 
-void StringBuffer::appendBuffer(StringBuffer& other) {
-    if (other.blocks.empty()) {
-        return;
-    }
-    blocks.insert(blocks.end(), make_move_iterator(other.blocks.begin()),
-        make_move_iterator(other.blocks.end()));
-    currentBlock = other.currentBlock;
-}
 } // namespace common
 } // namespace graphflow
