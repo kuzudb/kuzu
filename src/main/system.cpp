@@ -25,28 +25,25 @@ void System::executeQuery(SessionContext& context) const {
     if (!initialized) {
         throw invalid_argument("System is not initialized");
     }
-    context.profiler->resetMetrics();
+    context.clear();
+
     auto parsedQuery = Parser::parseQuery(context.query);
     context.enable_explain = parsedQuery->enable_explain;
     context.profiler->enabled = parsedQuery->enable_profile;
 
-    auto bindingTimeMetric = context.profiler->registerTimeMetric(BINDING_STAGE);
-    bindingTimeMetric->start();
+    // compiling stage
+    auto compilingTimeMetric = TimeMetric(true);
+    compilingTimeMetric.start();
     auto boundQuery = QueryBinder(graph->getCatalog()).bind(*parsedQuery);
-    bindingTimeMetric->stop();
 
-    auto planningTimeMetric = context.profiler->registerTimeMetric(PLANNING_STAGE);
-    planningTimeMetric->start();
     auto logicalPlan = Enumerator(*graph, *boundQuery).getBestPlan();
-    planningTimeMetric->stop();
 
     auto executionContext = make_unique<ExecutionContext>(
         *context.profiler, context.activeTransaction, memManager.get());
-    auto mappingTimeMetric = context.profiler->registerTimeMetric(MAPPING_STAGE);
-    mappingTimeMetric->start();
     auto mapper = PlanMapper(*graph);
     auto physicalPlan = mapper.mapToPhysical(move(logicalPlan), *executionContext);
-    mappingTimeMetric->stop();
+    compilingTimeMetric.stop();
+    context.compilingTime = compilingTimeMetric.getElapsedTimeMS();
 
     if (context.enable_explain) {
         context.planPrinter =
@@ -54,10 +51,11 @@ void System::executeQuery(SessionContext& context) const {
         return;
     }
 
-    auto executingTimeMetric = context.profiler->registerTimeMetric(EXECUTING_STAGE);
-    executingTimeMetric->start();
+    auto executingTimeMetric = TimeMetric(true);
+    executingTimeMetric.start();
     auto result = processor->execute(physicalPlan.get(), context.numThreads);
-    executingTimeMetric->stop();
+    executingTimeMetric.stop();
+    context.executingTime = executingTimeMetric.getElapsedTimeMS();
 
     context.planPrinter =
         make_unique<PlanPrinter>(move(physicalPlan), mapper.physicalIDToLogicalOperatorMap);

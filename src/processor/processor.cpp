@@ -36,7 +36,7 @@ unique_ptr<QueryResult> QueryProcessor::execute(PhysicalPlan* physicalPlan, uint
     scheduleTask(task.get());
     while (!task->isCompleted()) {
         /*busy wait*/
-        this_thread::sleep_for(chrono::milliseconds(10));
+        this_thread::sleep_for(chrono::microseconds(100));
     }
     return move(resultCollector->queryResult);
 }

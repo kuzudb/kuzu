@@ -14,11 +14,6 @@ using namespace graphflow::planner;
 namespace graphflow {
 namespace main {
 
-const string BINDING_STAGE = "binding";
-const string PLANNING_STAGE = "planning";
-const string MAPPING_STAGE = "mapping";
-const string EXECUTING_STAGE = "executing";
-
 class System {
 
 public:

@@ -16,6 +16,12 @@ struct SessionContext {
 public:
     SessionContext() { profiler = make_unique<Profiler>(); }
 
+    void clear() {
+        profiler->resetMetrics();
+        compilingTime = 0;
+        executingTime = 0;
+    };
+
 public:
     // configurable user input
     string query;
@@ -25,7 +31,12 @@ public:
     unique_ptr<Profiler> profiler;
     unique_ptr<PlanPrinter> planPrinter;
     Transaction* activeTransaction{nullptr};
+
+    // query execution information that will always be returned to user regardless whether EXPLAIN
+    // or PROFILE is enabled or not
     unique_ptr<QueryResult> queryResult;
+    double compilingTime;
+    double executingTime;
 };
 
 } // namespace main

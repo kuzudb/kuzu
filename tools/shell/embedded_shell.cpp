@@ -124,14 +124,8 @@ void EmbeddedShell::printExecutionResult() {
             printf("==============================================\n");
             printf("=============== Profiler Summary =============\n");
             printf("==============================================\n");
-            printf(">> %s: %.2fms\n", BINDING_STAGE.c_str(),
-                context.profiler->sumAllTimeMetricsWithKey(BINDING_STAGE));
-            printf(">> %s: %.2fms\n", PLANNING_STAGE.c_str(),
-                context.profiler->sumAllTimeMetricsWithKey(PLANNING_STAGE));
-            printf(">> %s: %.2fms\n", MAPPING_STAGE.c_str(),
-                context.profiler->sumAllTimeMetricsWithKey(MAPPING_STAGE));
-            printf(">> %s: %.2fms\n", EXECUTING_STAGE.c_str(),
-                context.profiler->sumAllTimeMetricsWithKey(EXECUTING_STAGE));
+            printf(">> Compiling time: %.2fms\n", context.compilingTime);
+            printf(">> Executing time: %.2fms\n", context.executingTime);
             printf(">> plan\n");
             string plan = context.planPrinter->printPlanToJson(*context.profiler).dump(4);
             printf("%s\n", plan.c_str());
