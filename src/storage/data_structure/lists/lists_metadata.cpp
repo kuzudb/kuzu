@@ -47,8 +47,8 @@ void ListsMetadata::readFromDisk(const string& fname) {
     this->numChunks = listSize - 1;
     listSize = readListOfIntsFromFile(chunkPageLists, metadataBasePath + CHUNK_PAGE_LISTS_SUFFIX);
     this->chunkPageListsCapacity = listSize;
-    listSize = readListOfIntsFromFile(
-        chunkToPageListHeadIdxMap, metadataBasePath + LARGE_LISTS_PAGE_LIST_HEAD_IDX_MAP_SUFFIX);
+    listSize = readListOfIntsFromFile(largeListIdxToPageListHeadIdxMap,
+        metadataBasePath + LARGE_LISTS_PAGE_LIST_HEAD_IDX_MAP_SUFFIX);
     this->numLargeLists = (listSize - 1) / 2;
     listSize = readListOfIntsFromFile(
         largeListPageLists, metadataBasePath + LARGE_LISTS_PAGE_LISTS_SUFFIX);
