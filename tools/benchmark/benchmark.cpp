@@ -57,25 +57,24 @@ void Benchmark::loadBenchmark(const string& benchmarkPath) {
 }
 
 void Benchmark::run() {
-    auto timeMetric = TimeMetric(true);
-    timeMetric.start();
     system.executeQuery(*context);
-    timeMetric.stop();
-    executionTime = timeMetric.getElapsedTimeMS();
-
     verify();
 }
 
 void Benchmark::log() {
-    string time = "Execution time: " + to_string(executionTime);
+    auto numOutput = context->queryResult->numTuples;
     string plan = "Plan: \n" + context->planPrinter->printPlanToJson(*context->profiler).dump(4);
-    spdlog::info("{}", time);
+    spdlog::info("Number of output {}", numOutput);
+    spdlog::info("Compiling time {}", context->compilingTime);
+    spdlog::info("Execution time {}", context->executingTime);
     if (config.enableProfile) {
         spdlog::info("{}", plan);
     }
     if (!config.outputPath.empty()) {
         ofstream f(config.outputPath + "/" + name + ".result", ios_base::app);
-        f << time << endl;
+        f << "Number of ouput " << numOutput << endl;
+        f << "Compiling time " << context->compilingTime << endl;
+        f << "Execution time " << context->executingTime << endl;
         if (config.enableProfile) {
             f << plan << endl;
         }

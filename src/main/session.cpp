@@ -24,15 +24,9 @@ nlohmann::json Session::executeQuery() {
                 sessionContext->planPrinter->printPlanToJson(*sessionContext->profiler);
         } else {
             json["result"]["numTuples"] = sessionContext->queryResult->numTuples;
+            json["result"]["compilingTime"] = sessionContext->compilingTime;
+            json["result"]["executingTime"] = sessionContext->executingTime;
             if (sessionContext->profiler->enabled) {
-                json["result"][BINDING_STAGE] =
-                    sessionContext->profiler->sumAllTimeMetricsWithKey(BINDING_STAGE);
-                json["result"][PLANNING_STAGE] =
-                    sessionContext->profiler->sumAllTimeMetricsWithKey(PLANNING_STAGE);
-                json["result"][MAPPING_STAGE] =
-                    sessionContext->profiler->sumAllTimeMetricsWithKey(MAPPING_STAGE);
-                json["result"][EXECUTING_STAGE] =
-                    sessionContext->profiler->sumAllTimeMetricsWithKey(EXECUTING_STAGE);
                 json["result"]["plan"] =
                     sessionContext->planPrinter->printPlanToJson(*sessionContext->profiler);
             }

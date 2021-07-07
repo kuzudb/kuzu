@@ -33,7 +33,6 @@ public:
     uint64_t expectedNumOutput;
 
     unique_ptr<SessionContext> context;
-    double executionTime;
 };
 
 } // namespace benchmark
