@@ -112,8 +112,8 @@ static unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToUnstructured
     auto& val = ((Value*)vector->values)[0];
     val.dataType = literalExpression.literal.dataType;
     switch (val.dataType) {
-    case INT32: {
-        val.val.int32Val = literalExpression.literal.val.int32Val;
+    case INT64: {
+        val.val.int64Val = literalExpression.literal.val.int64Val;
     } break;
     case DOUBLE: {
         val.val.doubleVal = literalExpression.literal.val.doubleVal;
@@ -140,8 +140,8 @@ unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToStructuredPhysical(
         &memoryManager, literalExpression.dataType, true /* isSingleValue */);
     vector->state = VectorState::getSingleValueDataChunkState();
     switch (expression.dataType) {
-    case INT32: {
-        ((int32_t*)vector->values)[0] = literalExpression.literal.val.int32Val;
+    case INT64: {
+        ((int64_t*)vector->values)[0] = literalExpression.literal.val.int64Val;
     } break;
     case DOUBLE: {
         ((double_t*)vector->values)[0] = literalExpression.literal.val.doubleVal;

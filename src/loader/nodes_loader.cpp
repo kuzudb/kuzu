@@ -264,7 +264,7 @@ void NodesLoader::calcLengthOfUnstrPropertyLists(
         *strchr(startPos, ':') = 0;
         ListsLoaderHelper::incrementListSize(unstrPropertyListSizes, nodeOffset,
             UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN +
-                getDataTypeSize(getDataType(string(startPos))));
+                TypeUtils::getDataTypeSize(TypeUtils::getDataType(string(startPos))));
     }
 }
 
@@ -276,7 +276,7 @@ unique_ptr<vector<unique_ptr<uint8_t[]>>> NodesLoader::createBuffersForPropertie
     for (auto propertyIdx = 0u; propertyIdx < properties.size(); propertyIdx++) {
         if (properties[propertyIdx].dataType != UNSTRUCTURED) {
             (*buffers)[propertyIdx] = make_unique<uint8_t[]>(
-                numElements * getDataTypeSize(properties[propertyIdx].dataType));
+                numElements * TypeUtils::getDataTypeSize(properties[propertyIdx].dataType));
         }
     };
     return buffers;
@@ -295,38 +295,38 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<PropertyDefinition>& pr
         }
         reader.hasNextToken();
         switch (property.dataType) {
-        case INT32: {
-            auto intVal = reader.skipTokenIfNull() ? NULL_INT32 : reader.getInt32();
-            memcpy(buffers[propertyId].get() + (bufferOffset * getDataTypeSize(INT32)), &intVal,
-                getDataTypeSize(INT32));
+        case INT64: {
+            auto int64Val = reader.skipTokenIfNull() ? NULL_INT64 : reader.getInt64();
+            memcpy(buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(INT64)),
+                &int64Val, TypeUtils::getDataTypeSize(INT64));
             if (property.isPrimaryKey) {
-                nodeIDMap->set(to_string(intVal).c_str(), nodeOffset);
+                nodeIDMap->set(to_string(int64Val).c_str(), nodeOffset);
             }
             break;
         }
         case DOUBLE: {
             auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
-            memcpy(buffers[propertyId].get() + (bufferOffset * getDataTypeSize(DOUBLE)), &doubleVal,
-                getDataTypeSize(DOUBLE));
+            memcpy(buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(DOUBLE)),
+                &doubleVal, TypeUtils::getDataTypeSize(DOUBLE));
             break;
         }
         case BOOL: {
             auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
-            memcpy(buffers[propertyId].get() + (bufferOffset * getDataTypeSize(BOOL)), &boolVal,
-                getDataTypeSize(BOOL));
+            memcpy(buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(BOOL)),
+                &boolVal, TypeUtils::getDataTypeSize(BOOL));
             break;
         }
         case DATE: {
             auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
-            memcpy(buffers[propertyId].get() + (bufferOffset * getDataTypeSize(DATE)), &dateVal,
-                getDataTypeSize(DATE));
+            memcpy(buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(DATE)),
+                &dateVal, TypeUtils::getDataTypeSize(DATE));
             break;
         }
         case STRING: {
             auto strVal =
                 reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
             auto encodedString = reinterpret_cast<gf_string_t*>(
-                buffers[propertyId].get() + (bufferOffset * getDataTypeSize(STRING)));
+                buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(STRING)));
             propertyIdxStringOverflowPages[propertyId]->setStrInOvfPageAndPtrInEncString(
                 strVal, stringOverflowPagesCursors[propertyId], encodedString);
             if (property.isPrimaryKey) {
@@ -350,8 +350,10 @@ void NodesLoader::writeBuffersToFiles(const vector<unique_ptr<uint8_t[]>>& buffe
             continue;
         }
         auto fd = FileUtils::openFile(propertyColumnFnames[propertyId], O_WRONLY | O_CREAT);
-        auto offsetInFile = offsetStart * getDataTypeSize(properties[propertyId].dataType);
-        auto bytesToWrite = numElementsToWrite * getDataTypeSize(properties[propertyId].dataType);
+        auto offsetInFile =
+            offsetStart * TypeUtils::getDataTypeSize(properties[propertyId].dataType);
+        auto bytesToWrite =
+            numElementsToWrite * TypeUtils::getDataTypeSize(properties[propertyId].dataType);
         FileUtils::writeToFile(fd, buffers[propertyId].get(), bytesToWrite, offsetInFile);
         FileUtils::closeFile(fd);
     }
@@ -371,29 +373,29 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
         auto propertyKeyId = unstrPropertiesNameToIdMap.at(string(unstrPropertyString));
         auto unstrPropertyStringBreaker2 = strchr(unstrPropertyStringBreaker1 + 1, ':');
         *unstrPropertyStringBreaker2 = 0;
-        auto dataType = getDataType(string(unstrPropertyStringBreaker1 + 1));
-        auto dataTypeSize = getDataTypeSize(dataType);
+        auto dataType = TypeUtils::getDataType(string(unstrPropertyStringBreaker1 + 1));
+        auto dataTypeSize = TypeUtils::getDataTypeSize(dataType);
         auto reversePos = ListsLoaderHelper::decrementListSize(unstrPropertyListSizes, nodeOffset,
             UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN + dataTypeSize);
         PageCursor pageCursor;
         ListsLoaderHelper::calculatePageCursor(unstrPropertyListHeaders.headers[nodeOffset],
             reversePos, 1, nodeOffset, pageCursor, unstrPropertyListsMetadata);
         switch (dataType) {
-        case INT32: {
-            auto intVal = convertToInt32(unstrPropertyStringBreaker2 + 1);
+        case INT64: {
+            auto intVal = TypeUtils::convertToInt64(unstrPropertyStringBreaker2 + 1);
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&intVal));
             break;
         }
         case DOUBLE: {
-            auto doubleVal = convertToDouble(unstrPropertyStringBreaker2 + 1);
+            auto doubleVal = TypeUtils::convertToDouble(unstrPropertyStringBreaker2 + 1);
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize,
                 reinterpret_cast<uint8_t*>(&doubleVal));
             break;
         }
         case BOOL: {
-            auto boolVal = convertToBoolean(unstrPropertyStringBreaker2 + 1);
+            auto boolVal = TypeUtils::convertToBoolean(unstrPropertyStringBreaker2 + 1);
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&boolVal));
             break;

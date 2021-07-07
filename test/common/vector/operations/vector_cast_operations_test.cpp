@@ -43,10 +43,10 @@ TEST_F(VectorCastOperationsTest, CastStructuredBoolToUnstructuredValueTest) {
     }
 }
 
-TEST_F(VectorCastOperationsTest, CastStructuredInt32ToUnstructuredValueTest) {
-    auto lVector = make_shared<ValueVector>(memoryManager.get(), INT32);
+TEST_F(VectorCastOperationsTest, CastStructuredInt64ToUnstructuredValueTest) {
+    auto lVector = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->append(lVector);
-    auto lData = (int32_t*)lVector->values;
+    auto lData = (int64_t*)lVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
     dataChunk->append(result);
@@ -58,7 +58,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredInt32ToUnstructuredValueTest) {
     }
     VectorCastOperations::castStructuredToUnstructuredValue(*lVector, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
-        ASSERT_EQ(resultData[i].val.int32Val, i * 2);
+        ASSERT_EQ(resultData[i].val.int64Val, i * 2);
     }
 }
 
@@ -141,9 +141,9 @@ TEST_F(VectorCastOperationsTest, CastStructuredBooleanToStringTest) {
 }
 
 TEST_F(VectorCastOperationsTest, CastStructuredInt32ToStringTest) {
-    auto lVector = make_shared<ValueVector>(memoryManager.get(), INT32);
+    auto lVector = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->append(lVector);
-    auto lData = (int32_t*)lVector->values;
+    auto lData = (int64_t*)lVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->append(result);

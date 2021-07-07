@@ -22,18 +22,18 @@ public:
     unique_ptr<MemoryManager> memoryManager;
 };
 
-TEST_F(VectorArithmeticOperationsTest, Int32Test) {
-    auto lVector = make_shared<ValueVector>(memoryManager.get(), INT32);
+TEST_F(VectorArithmeticOperationsTest, Int64Test) {
+    auto lVector = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->append(lVector);
-    auto lData = (int32_t*)lVector->values;
+    auto lData = (int64_t*)lVector->values;
 
-    auto rVector = make_shared<ValueVector>(memoryManager.get(), INT32);
+    auto rVector = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->append(rVector);
-    auto rData = (int32_t*)rVector->values;
+    auto rData = (int64_t*)rVector->values;
 
-    auto result = make_shared<ValueVector>(memoryManager.get(), INT32);
+    auto result = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->append(result);
-    auto resultData = (int32_t*)result->values;
+    auto resultData = (int64_t*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
@@ -128,7 +128,7 @@ TEST_F(VectorArithmeticOperationsTest, BigStringTest) {
     }
 }
 
-TEST_F(VectorArithmeticOperationsTest, UnstructuredInt32Test) {
+TEST_F(VectorArithmeticOperationsTest, UnstructuredInt64Test) {
     auto lVector = make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
     dataChunk->append(lVector);
     auto lData = (Value*)lVector->values;
@@ -143,39 +143,39 @@ TEST_F(VectorArithmeticOperationsTest, UnstructuredInt32Test) {
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
-        lData[i] = Value(i);
-        rData[i] = Value(110 - i);
+        lData[i] = Value((int64_t)i);
+        rData[i] = Value((int64_t)110 - i);
     }
 
     VectorArithmeticOperations::Negate(*lVector, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
-        ASSERT_EQ(resultData[i].val.int32Val, -i);
+        ASSERT_EQ(resultData[i].val.int64Val, -i);
     }
 
     VectorArithmeticOperations::Add(*lVector, *rVector, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
-        ASSERT_EQ(resultData[i].val.int32Val, 110);
+        ASSERT_EQ(resultData[i].val.int64Val, 110);
     }
 
     VectorArithmeticOperations::Subtract(*lVector, *rVector, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
-        ASSERT_EQ(resultData[i].val.int32Val, 2 * i - 110);
+        ASSERT_EQ(resultData[i].val.int64Val, 2 * i - 110);
     }
 
     VectorArithmeticOperations::Multiply(*lVector, *rVector, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
-        ASSERT_EQ(resultData[i].val.int32Val, i * (110 - i));
+        ASSERT_EQ(resultData[i].val.int64Val, i * (110 - i));
     }
 
     VectorArithmeticOperations::Divide(*lVector, *rVector, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
-        ASSERT_EQ(resultData[i].val.int32Val, i / (110 - i));
+        ASSERT_EQ(resultData[i].val.int64Val, i / (110 - i));
     }
 
     /* note rVector and lVector are flipped */
     VectorArithmeticOperations::Modulo(*rVector, *lVector, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
-        ASSERT_EQ(resultData[i].val.int32Val, i % (110 - i));
+        ASSERT_EQ(resultData[i].val.int64Val, i % (110 - i));
     }
 }
 
@@ -195,7 +195,7 @@ TEST_F(VectorArithmeticOperationsTest, UnstructuredInt32AndDoubleTest) {
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = Value((double)i);
-        rData[i] = Value(110 - i);
+        rData[i] = Value((int64_t)110 - i);
     }
 
     VectorArithmeticOperations::Negate(*lVector, *result);
@@ -243,7 +243,7 @@ TEST_F(VectorArithmeticOperationsTest, UnstructuredStringAndInt32Test) {
         lVector->allocateStringOverflowSpace(lData[i].val.strVal, lStr.length());
         lData[i].val.strVal.set(lStr);
         lData[i].dataType = STRING;
-        rData[i] = Value(110 - i);
+        rData[i] = Value((int64_t)110 - i);
     }
 
     VectorArithmeticOperations::Add(*lVector, *rVector, *result);

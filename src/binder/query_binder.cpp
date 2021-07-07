@@ -156,7 +156,8 @@ shared_ptr<Expression> QueryBinder::bindWhereExpression(const ParsedExpression& 
     auto whereExpression = expressionBinder->bindExpression(parsedExpression);
     if (BOOL != whereExpression->dataType) {
         throw invalid_argument("Type mismatch: " + whereExpression->rawExpression + " returns " +
-                               dataTypeToString(whereExpression->dataType) + " expected Boolean.");
+                               TypeUtils::dataTypeToString(whereExpression->dataType) +
+                               " expected Boolean.");
     }
     return whereExpression;
 }
@@ -203,7 +204,7 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern, NodeExpression* lef
         auto variableInScope = variablesInScope.at(parsedName);
         if (REL != variableInScope->dataType) {
             throw invalid_argument(parsedName + " defined with conflicting type " +
-                                   dataTypeToString(variableInScope->dataType) +
+                                   TypeUtils::dataTypeToString(variableInScope->dataType) +
                                    " (expect RELATIONSHIP).");
         } else {
             // Bind to queryRel in scope requires QueryRel takes multiple src & dst nodes
@@ -251,7 +252,8 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
         auto variableInScope = variablesInScope.at(parsedName);
         if (NODE != variableInScope->dataType) {
             throw invalid_argument(parsedName + " defined with conflicting type " +
-                                   dataTypeToString(variableInScope->dataType) + " (expect NODE).");
+                                   TypeUtils::dataTypeToString(variableInScope->dataType) +
+                                   " (expect NODE).");
         }
         queryNode = static_pointer_cast<NodeExpression>(variableInScope);
         auto otherLabel = bindNodeLabel(nodePattern.label);
@@ -306,7 +308,8 @@ vector<pair<string, DataType>> parseCSVHeader(const string& headerLine, char tok
         } else if (propertyDataType.size() > 2) {
             throw invalid_argument("Multiple dataType in " + entry + " is not supported.");
         }
-        headerInfo.emplace_back(make_pair(propertyDataType[0], getDataType(propertyDataType[1])));
+        headerInfo.emplace_back(
+            make_pair(propertyDataType[0], TypeUtils::getDataType(propertyDataType[1])));
     }
     return headerInfo;
 }

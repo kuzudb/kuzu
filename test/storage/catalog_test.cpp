@@ -26,18 +26,18 @@ public:
 
     void setupCatalog() const {
         vector<PropertyDefinition> personProperties;
-        personProperties.emplace_back("id", 0, INT32);
+        personProperties.emplace_back("id", 0, INT64);
         personProperties.emplace_back("fName", 1, STRING);
-        personProperties.emplace_back("gender", 2, INT32);
+        personProperties.emplace_back("gender", 2, INT64);
         personProperties.emplace_back("isStudent", 3, BOOL);
         personProperties.emplace_back("isWorker", 4, BOOL);
-        personProperties.emplace_back("age", 5, INT32);
+        personProperties.emplace_back("age", 5, INT64);
         personProperties.emplace_back("eyeSight", 6, DOUBLE);
         catalog->addNodeLabel("person", move(personProperties), "id");
         catalog->addNodeUnstrProperty(0, "unstrIntProp");
 
         vector<PropertyDefinition> knowsProperties;
-        knowsProperties.emplace_back("date", 0, INT32);
+        knowsProperties.emplace_back("date", 0, INT64);
         vector<string> knowsSrcNodeLabelNames = {"person"};
         vector<string> knowsDstNodeLabelNames = {"person"};
         catalog->addRelLabel("knows", MANY_MANY, move(knowsProperties), knowsSrcNodeLabelNames,
@@ -61,10 +61,10 @@ TEST_F(CatalogTest, AddLabelsTest) {
     // Test property definition
     ASSERT_TRUE(catalog->getNodeProperties(0)[0].isPrimaryKey);
     ASSERT_EQ(catalog->getNodeProperty(0, "age").id, 5);
-    ASSERT_EQ(catalog->getNodeProperty(0, "age").dataType, INT32);
+    ASSERT_EQ(catalog->getNodeProperty(0, "age").dataType, INT64);
     ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrIntProp"), 7);
     ASSERT_EQ(catalog->getNodeProperties(0)[7].dataType, UNSTRUCTURED);
-    ASSERT_EQ(catalog->getRelProperty(0, "date").dataType, INT32);
+    ASSERT_EQ(catalog->getRelProperty(0, "date").dataType, INT64);
 }
 
 TEST_F(CatalogTest, SaveAndReadTest) {

@@ -80,9 +80,9 @@ struct EqualsOrNotEqualsValues {
             case BOOL:
                 return equals ? Equals::operation(left.val.booleanVal, right.val.booleanVal) :
                                 NotEquals::operation(left.val.booleanVal, right.val.booleanVal);
-            case INT32:
-                return equals ? Equals::operation(left.val.int32Val, right.val.int32Val) :
-                                NotEquals::operation(left.val.int32Val, right.val.int32Val);
+            case INT64:
+                return equals ? Equals::operation(left.val.int64Val, right.val.int64Val) :
+                                NotEquals::operation(left.val.int64Val, right.val.int64Val);
             case DOUBLE:
                 return equals ? Equals::operation(left.val.doubleVal, right.val.doubleVal) :
                                 NotEquals::operation(left.val.doubleVal, right.val.doubleVal);
@@ -95,12 +95,12 @@ struct EqualsOrNotEqualsValues {
             default:
                 assert(false);
             }
-        } else if (left.dataType == INT32 && right.dataType == DOUBLE) {
-            return equals ? Equals::operation(left.val.int32Val, right.val.doubleVal) :
-                            NotEquals::operation(left.val.int32Val, right.val.doubleVal);
-        } else if (left.dataType == DOUBLE && right.dataType == INT32) {
-            return equals ? Equals::operation(left.val.doubleVal, right.val.int32Val) :
-                            NotEquals::operation(left.val.doubleVal, right.val.int32Val);
+        } else if (left.dataType == INT64 && right.dataType == DOUBLE) {
+            return equals ? Equals::operation(left.val.int64Val, right.val.doubleVal) :
+                            NotEquals::operation(left.val.int64Val, right.val.doubleVal);
+        } else if (left.dataType == DOUBLE && right.dataType == INT64) {
+            return equals ? Equals::operation(left.val.doubleVal, right.val.int64Val) :
+                            NotEquals::operation(left.val.doubleVal, right.val.int64Val);
         } else {
             return equals ? FALSE : TRUE;
         }
@@ -168,8 +168,8 @@ struct CompareValues {
             switch (left.dataType) {
             case BOOL:
                 return FUNC::operation(left.val.booleanVal, right.val.booleanVal);
-            case INT32:
-                return FUNC::operation(left.val.int32Val, right.val.int32Val);
+            case INT64:
+                return FUNC::operation(left.val.int64Val, right.val.int64Val);
             case DOUBLE:
                 return FUNC::operation(left.val.doubleVal, right.val.doubleVal);
             case STRING:
@@ -179,10 +179,10 @@ struct CompareValues {
             default:
                 assert(false);
             }
-        } else if (left.dataType == INT32 && right.dataType == DOUBLE) {
-            return FUNC::operation(left.val.int32Val, right.val.doubleVal);
-        } else if (left.dataType == DOUBLE && right.dataType == INT32) {
-            return FUNC::operation(left.val.doubleVal, right.val.int32Val);
+        } else if (left.dataType == INT64 && right.dataType == DOUBLE) {
+            return FUNC::operation(left.val.int64Val, right.val.doubleVal);
+        } else if (left.dataType == DOUBLE && right.dataType == INT64) {
+            return FUNC::operation(left.val.doubleVal, right.val.int64Val);
         } else {
             return NULL_BOOL;
         }
@@ -288,8 +288,8 @@ inline uint8_t IsNull::operation(const uint8_t& value) {
 };
 
 template<>
-inline uint8_t IsNull::operation(const int32_t& value) {
-    return value == NULL_INT32 ? TRUE : FALSE;
+inline uint8_t IsNull::operation(const int64_t& value) {
+    return value == NULL_INT64 ? TRUE : FALSE;
 };
 
 template<>
@@ -313,8 +313,8 @@ inline uint8_t IsNotNull::operation(const uint8_t& value) {
 };
 
 template<>
-inline uint8_t IsNotNull::operation(const int32_t& value) {
-    return value != NULL_INT32 ? TRUE : FALSE;
+inline uint8_t IsNotNull::operation(const int64_t& value) {
+    return value != NULL_INT64 ? TRUE : FALSE;
 };
 
 template<>

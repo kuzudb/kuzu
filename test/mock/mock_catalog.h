@@ -51,7 +51,7 @@ public:
 /**
  * Mock tiny snb catalog with 2 node labels person and organisation
  * and 2 rel label knows and workAt.
- * Person has property age with type INT32.
+ * Person has property age with type INT64.
  * Knows has property description with type STRING.
  */
 class TinySnbCatalog : public MockCatalog {
@@ -175,7 +175,7 @@ private:
 
     void setProperties() {
         ageProperty =
-            make_unique<PropertyDefinition>(AGE_PROPERTY_KEY_STR, AGE_PROPERTY_KEY_ID, INT32);
+            make_unique<PropertyDefinition>(AGE_PROPERTY_KEY_STR, AGE_PROPERTY_KEY_ID, INT64);
         nameProperty =
             make_unique<PropertyDefinition>(NAME_PROPERTY_KEY_STR, NAME_PROPERTY_KEY_ID, STRING);
         birthDateProperty = make_unique<PropertyDefinition>(

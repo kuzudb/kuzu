@@ -14,13 +14,13 @@ TEST(VectorCmpTests, cmpInt) {
     dataChunk->state->size = numTuples;
     auto memoryManager = make_unique<MemoryManager>();
 
-    auto lVector = make_shared<ValueVector>(memoryManager.get(), INT32);
+    auto lVector = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->append(lVector);
-    auto lData = (int32_t*)lVector->values;
+    auto lData = (int64_t*)lVector->values;
 
-    auto rVector = make_shared<ValueVector>(memoryManager.get(), INT32);
+    auto rVector = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->append(rVector);
-    auto rData = (int32_t*)rVector->values;
+    auto rData = (int64_t*)rVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
     dataChunk->append(result);

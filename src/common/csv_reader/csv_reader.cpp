@@ -100,19 +100,19 @@ bool CSVReader::hasNextToken() {
     return true;
 }
 
-int32_t CSVReader::getInt32() {
+int64_t CSVReader::getInt64() {
     setNextTokenIsNotProcessed();
-    return convertToInt32(line + linePtrStart);
+    return TypeUtils::convertToInt64(line + linePtrStart);
 }
 
 double_t CSVReader::getDouble() {
     setNextTokenIsNotProcessed();
-    return convertToDouble(line + linePtrStart);
+    return TypeUtils::convertToDouble(line + linePtrStart);
 }
 
 uint8_t CSVReader::getBoolean() {
     setNextTokenIsNotProcessed();
-    return convertToBoolean(line + linePtrStart);
+    return TypeUtils::convertToBoolean(line + linePtrStart);
 }
 
 char* CSVReader::getString() {

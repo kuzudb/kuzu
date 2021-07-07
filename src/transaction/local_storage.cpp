@@ -4,24 +4,24 @@ namespace graphflow {
 namespace transaction {
 
 static unique_ptr<uint8_t[]> getNullValuePtrForDataType(DataType dataType) {
-    auto nullValue = make_unique<uint8_t[]>(getDataTypeSize(dataType));
+    auto nullValue = make_unique<uint8_t[]>(TypeUtils::getDataTypeSize(dataType));
     switch (dataType) {
-    case INT32:
-        memcpy(nullValue.get(), &NULL_INT32, getDataTypeSize(dataType));
+    case INT64:
+        memcpy(nullValue.get(), &NULL_INT64, TypeUtils::getDataTypeSize(dataType));
         break;
     case DOUBLE:
-        memcpy(nullValue.get(), &NULL_DOUBLE, getDataTypeSize(dataType));
+        memcpy(nullValue.get(), &NULL_DOUBLE, TypeUtils::getDataTypeSize(dataType));
         break;
     case BOOL:
-        memcpy(nullValue.get(), &NULL_BOOL, getDataTypeSize(dataType));
+        memcpy(nullValue.get(), &NULL_BOOL, TypeUtils::getDataTypeSize(dataType));
         break;
     case DATE:
-        memcpy(nullValue.get(), &NULL_DATE, getDataTypeSize(dataType));
+        memcpy(nullValue.get(), &NULL_DATE, TypeUtils::getDataTypeSize(dataType));
         break;
     case STRING: {
         gf_string_t nullStr;
         nullStr.set(string(&gf_string_t::EMPTY_STRING));
-        memcpy(nullValue.get(), &NULL_BOOL, getDataTypeSize(dataType));
+        memcpy(nullValue.get(), &NULL_BOOL, TypeUtils::getDataTypeSize(dataType));
         break;
     }
     default:

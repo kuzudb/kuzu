@@ -17,18 +17,20 @@ TEST(DateTests, FromDate) {
     // Year out of range
     try {
         date_t result = Date::FromDate(110000, 11, 42);
-    } catch (ConversionException e) {
-    } catch (exception e) { FAIL(); }
+        FAIL();
+    } catch (ConversionException& e) {
+    } catch (exception& e) { FAIL(); }
     // Month out of range
     try {
         date_t result = Date::FromDate(2000, 15, 22);
-    } catch (ConversionException e) {
-    } catch (exception e) { FAIL(); }
+        FAIL();
+    } catch (ConversionException& e) {
+    } catch (exception& e) { FAIL(); }
     // Day out of range
     try {
         date_t result = Date::FromDate(2000, 11, 42);
-    } catch (ConversionException e) {
-    } catch (exception e) { FAIL(); }
+    } catch (ConversionException& e) {
+    } catch (exception& e) { FAIL(); }
 
     EXPECT_EQ(0, Date::FromDate(1970, 1, 1).days);
     EXPECT_EQ(7, Date::FromDate(1970, 1, 8).days);

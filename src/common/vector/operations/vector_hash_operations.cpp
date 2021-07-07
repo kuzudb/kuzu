@@ -10,9 +10,6 @@ struct VectorHashExecutor {
     template<class OP>
     static inline void execute(ValueVector& operand, ValueVector& result) {
         switch (operand.dataType) {
-        case INT32:
-            UnaryOperationExecutor::executeHashOps<int32_t, OP>(operand, result);
-            break;
         case INT64:
             UnaryOperationExecutor::executeHashOps<int64_t, OP>(operand, result);
             break;

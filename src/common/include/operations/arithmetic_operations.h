@@ -65,17 +65,17 @@ struct Negate {
  ********************************************/
 
 template<>
-inline void Modulo::operation(int32_t& left, int32_t& right, int32_t& result) {
+inline void Modulo::operation(int64_t& left, int64_t& right, int64_t& result) {
     result = right % left;
 };
 
 template<>
-inline void Modulo::operation(int32_t& left, double_t& right, double_t& result) {
+inline void Modulo::operation(int64_t& left, double_t& right, double_t& result) {
     result = fmod(left, right);
 };
 
 template<>
-inline void Modulo::operation(double_t& left, int32_t& right, double_t& result) {
+inline void Modulo::operation(double_t& left, int64_t& right, double_t& result) {
     result = fmod(left, right);
 };
 
@@ -115,26 +115,26 @@ struct ArithmeticOnValues {
     template<class FUNC, const char* arithmeticOpStr>
     static void operation(Value& left, Value& right, Value& result) {
         switch (left.dataType) {
-        case INT32:
+        case INT64:
             switch (right.dataType) {
-            case INT32:
-                result.dataType = INT32;
-                FUNC::operation(left.val.int32Val, right.val.int32Val, result.val.int32Val);
+            case INT64:
+                result.dataType = INT64;
+                FUNC::operation(left.val.int64Val, right.val.int64Val, result.val.int64Val);
                 break;
             case DOUBLE:
                 result.dataType = DOUBLE;
-                FUNC::operation(left.val.int32Val, right.val.doubleVal, result.val.doubleVal);
+                FUNC::operation(left.val.int64Val, right.val.doubleVal, result.val.doubleVal);
                 break;
             default:
-                throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `INT32` and `" +
-                                       dataTypeToString(right.dataType) + "`");
+                throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `INT64` and `" +
+                                       TypeUtils::dataTypeToString(right.dataType) + "`");
             }
             break;
         case DOUBLE:
             switch (right.dataType) {
-            case INT32:
+            case INT64:
                 result.dataType = DOUBLE;
-                FUNC::operation(left.val.doubleVal, right.val.int32Val, result.val.doubleVal);
+                FUNC::operation(left.val.doubleVal, right.val.int64Val, result.val.doubleVal);
                 break;
             case DOUBLE:
                 result.dataType = DOUBLE;
@@ -142,13 +142,13 @@ struct ArithmeticOnValues {
                 break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
-                                       dataTypeToString(right.dataType) + "`");
+                                       TypeUtils::dataTypeToString(right.dataType) + "`");
             }
             break;
         default:
             throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
-                                   dataTypeToString(left.dataType) + "` and `" +
-                                   dataTypeToString(right.dataType) + "`");
+                                   TypeUtils::dataTypeToString(left.dataType) + "` and `" +
+                                   TypeUtils::dataTypeToString(right.dataType) + "`");
         }
     }
 };
@@ -200,9 +200,9 @@ inline void Power::operation(Value& left, Value& right, Value& result) {
 template<>
 inline void Negate::operation(Value& operand, Value& result) {
     switch (operand.dataType) {
-    case INT32:
-        result.dataType = INT32;
-        result.val.int32Val = -operand.val.int32Val;
+    case INT64:
+        result.dataType = INT64;
+        result.val.int64Val = -operand.val.int64Val;
         break;
     case DOUBLE:
         result.dataType = DOUBLE;

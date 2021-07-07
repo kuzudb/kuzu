@@ -39,7 +39,7 @@ public:
     }
 
 private:
-    void initPropertyColumnsAndLists(const Catalog& catalog,
+    void initStructuredPropertyColumnsAndUnstructuredPropertyLists(const Catalog& catalog,
         const vector<uint64_t>& numNodesPerLabel, const string& directory,
         BufferManager& bufferManager);
 

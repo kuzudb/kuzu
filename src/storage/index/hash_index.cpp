@@ -12,7 +12,8 @@ HashIndex::HashIndex(const string& indexPath, uint64_t indexId, MemoryManager& m
     : memoryManager{memoryManager}, bufferManager{bufferManager}, overflowPagesManager{
                                                                       overflowPagesManager} {
     // Entry in slot: hash + key (fixed sized part) + node_offset
-    numBytesPerEntry = sizeof(uint64_t) + getDataTypeSize(keyType) + sizeof(node_offset_t);
+    numBytesPerEntry =
+        sizeof(uint64_t) + TypeUtils::getDataTypeSize(keyType) + sizeof(node_offset_t);
     numBytesPerSlot = (numBytesPerEntry * indexHeader.slotCapacity) + NUM_BYTES_PER_SLOT_HEADER;
     numSlotsPerPrimaryBlock = PAGE_SIZE / numBytesPerSlot;
     numSlotsPerOverflowBlock = numSlotsPerPrimaryBlock;

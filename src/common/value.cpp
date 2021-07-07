@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "src/common/include/date.h"
+#include "src/common/include/types.h"
 
 using namespace std;
 
@@ -15,8 +16,8 @@ Value& Value::operator=(const Value& other) {
     case BOOL: {
         val.booleanVal = other.val.booleanVal;
     } break;
-    case INT32: {
-        val.int32Val = other.val.int32Val;
+    case INT64: {
+        val.int64Val = other.val.int64Val;
     } break;
     case DOUBLE: {
         val.doubleVal = other.val.doubleVal;
@@ -37,16 +38,15 @@ Value& Value::operator=(const Value& other) {
 string Value::toString() const {
     switch (dataType) {
     case BOOL:
-        return val.booleanVal == TRUE ? "True" : (val.booleanVal == FALSE ? "False" : "");
-    case INT32:
+        return TypeUtils::toString(val.booleanVal);
     case INT64:
-        return to_string(val.int32Val);
+        return TypeUtils::toString(val.int64Val);
     case DOUBLE:
-        return to_string(val.doubleVal);
+        return TypeUtils::toString(val.doubleVal);
     case STRING:
         return val.strVal.getAsString();
     case NODE:
-        return to_string(val.nodeID.label) + ":" + to_string(val.nodeID.offset);
+        return TypeUtils::toString(val.nodeID);
     case DATE:
         return Date::toString(val.dateVal);
     default:

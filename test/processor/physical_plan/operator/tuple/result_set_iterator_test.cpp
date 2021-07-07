@@ -16,13 +16,13 @@ public:
         auto memoryManager = make_unique<MemoryManager>();
         NodeIDCompressionScheme compressionScheme;
         auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme, false);
-        auto vectorA2 = make_shared<ValueVector>(memoryManager.get(), INT32);
+        auto vectorA2 = make_shared<ValueVector>(memoryManager.get(), INT64);
         auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme, false);
         auto vectorB2 = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
         auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme, false);
         auto vectorC2 = make_shared<ValueVector>(memoryManager.get(), BOOL);
         auto vectorA1Data = (uint64_t*)vectorA1->values;
-        auto vectorA2Data = (uint32_t*)vectorA2->values;
+        auto vectorA2Data = (int64_t*)vectorA2->values;
         auto vectorB1Data = (uint64_t*)vectorB1->values;
         auto vectorB2Data = (double*)vectorB2->values;
         auto vectorC1Data = (uint64_t*)vectorC1->values;
@@ -30,7 +30,7 @@ public:
 
         for (int32_t i = 0; i < 100; i++) {
             vectorA1Data[i] = (uint64_t)i;
-            vectorA2Data[i] = (int32_t)(i * 2);
+            vectorA2Data[i] = (int64_t)(i * 2);
             vectorB1Data[i] = (uint64_t)(i);
             vectorB2Data[i] = (double)(i / 2);
             vectorC1Data[i] = (uint64_t)i;
@@ -82,7 +82,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest1) {
         resultSetIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->val.nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->val.nodeID.offset, 1);
-        ASSERT_EQ(tuple.getValue(1)->val.int32Val, (int32_t)(1 * 2));
+        ASSERT_EQ(tuple.getValue(1)->val.int64Val, (int64_t)(1 * 2));
         ASSERT_EQ(tuple.getValue(2)->val.nodeID.label, 28);
         ASSERT_EQ(tuple.getValue(2)->val.nodeID.offset, tupleIndex);
         ASSERT_EQ(tuple.getValue(3)->val.doubleVal, (double)(tupleIndex / 2));
@@ -102,7 +102,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest1) {
         resultSetIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->val.nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->val.nodeID.offset, 1);
-        ASSERT_EQ(tuple.getValue(1)->val.int32Val, (int32_t)(1 * 2));
+        ASSERT_EQ(tuple.getValue(1)->val.int64Val, (int64_t)(1 * 2));
         ASSERT_EQ(tuple.getValue(2)->val.nodeID.label, 28);
         ASSERT_EQ(tuple.getValue(2)->val.nodeID.offset, 9);
         ASSERT_EQ(tuple.getValue(3)->val.doubleVal, (double)(9 / 2));
@@ -133,7 +133,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest2) {
         resultSetIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->val.nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->val.nodeID.offset, 1);
-        ASSERT_EQ(tuple.getValue(1)->val.int32Val, (int32_t)(1 * 2));
+        ASSERT_EQ(tuple.getValue(1)->val.int64Val, (int64_t)(1 * 2));
         ASSERT_EQ(tuple.getValue(2)->val.nodeID.label, 28);
         ASSERT_EQ(tuple.getValue(2)->val.nodeID.offset, bid);
         ASSERT_EQ(tuple.getValue(3)->val.doubleVal, (double)(bid / 2));
@@ -164,7 +164,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest3) {
         resultSetIterator.getNextTuple(tuple);
         ASSERT_EQ(tuple.getValue(0)->val.nodeID.label, 18);
         ASSERT_EQ(tuple.getValue(0)->val.nodeID.offset, aid);
-        ASSERT_EQ(tuple.getValue(1)->val.int32Val, (int32_t)(aid * 2));
+        ASSERT_EQ(tuple.getValue(1)->val.int64Val, (int64_t)(aid * 2));
         ASSERT_EQ(tuple.getValue(2)->val.nodeID.label, 28);
         ASSERT_EQ(tuple.getValue(2)->val.nodeID.offset, 10);
         ASSERT_EQ(tuple.getValue(3)->val.doubleVal, (double)(10 / 2));

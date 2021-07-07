@@ -24,14 +24,14 @@ public:
                 assert(false);
             }
             break;
-        case INT32:
+        case INT64:
             switch (right.dataType) {
-            case INT32:
-                BinaryOperationExecutor::executeComparisonOps<int32_t, int32_t, OP>(
+            case INT64:
+                BinaryOperationExecutor::executeComparisonOps<int64_t, int64_t, OP>(
                     left, right, result);
                 break;
             case DOUBLE:
-                BinaryOperationExecutor::executeComparisonOps<int32_t, double_t, OP>(
+                BinaryOperationExecutor::executeComparisonOps<int64_t, double_t, OP>(
                     left, right, result);
                 break;
             default:
@@ -40,8 +40,8 @@ public:
             break;
         case DOUBLE:
             switch (right.dataType) {
-            case INT32:
-                BinaryOperationExecutor::executeComparisonOps<double_t, int32_t, OP>(
+            case INT64:
+                BinaryOperationExecutor::executeComparisonOps<double_t, int64_t, OP>(
                     left, right, result);
                 break;
             case DOUBLE:
