@@ -1,6 +1,7 @@
 #include "src/common/include/literal.h"
 
-#include <cassert>
+#include "src/common/include/assert.h"
+#include "src/common/include/date.h"
 
 namespace graphflow {
 namespace common {
@@ -17,11 +18,14 @@ Literal& Literal::operator=(const Literal& other) {
     case DOUBLE: {
         val.doubleVal = other.val.doubleVal;
     } break;
+    case DATE: {
+        val.dateVal = other.val.dateVal;
+    } break;
     case STRING: {
         strVal = other.strVal;
     } break;
     default:
-        assert(false);
+        GF_ASSERT(false);
     }
 
     return *this;
@@ -35,13 +39,17 @@ string Literal::toString() const {
         return TypeUtils::toString(val.int64Val);
     case DOUBLE:
         return TypeUtils::toString(val.doubleVal);
-    case STRING:
-        return strVal;
     case NODE:
         return TypeUtils::toString(val.nodeID);
+    case DATE:
+        return Date::toString(val.dateVal);
+    case STRING:
+        return strVal;
     default:
-        assert(false);
+        GF_ASSERT(false);
     }
+    // Should never happen. Add empty return to remove compilation warning.
+    return string();
 }
 } // namespace common
 } // namespace graphflow

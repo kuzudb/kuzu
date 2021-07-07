@@ -39,7 +39,7 @@ bool isExpressionNullComparison(ExpressionType type) {
 
 bool isExpressionLeafLiteral(ExpressionType type) {
     return LITERAL_INT == type || LITERAL_DOUBLE == type || LITERAL_STRING == type ||
-           LITERAL_BOOLEAN == type || LITERAL_NULL == type;
+           LITERAL_BOOLEAN == type || LITERAL_DATE == type || LITERAL_NULL == type;
 }
 
 /**

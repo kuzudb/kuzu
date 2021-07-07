@@ -1,6 +1,7 @@
 #include "src/parser/include/transformer.h"
 
 #include "src/common/include/assert.h"
+#include "src/common/include/function.h"
 #include "src/parser/include/statements/load_csv_statement.h"
 #include "src/parser/include/statements/match_statement.h"
 
@@ -457,7 +458,7 @@ unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_AtomCon
     if (ctx.oC_Literal()) {
         return transformLiteral(*ctx.oC_Literal());
     } else if (ctx.STAR()) {
-        return make_unique<ParsedExpression>(FUNCTION, "COUNT_STAR", ctx.getText());
+        return make_unique<ParsedExpression>(FUNCTION, COUNT_STAR_FUNC_NAME, ctx.getText());
     } else if (ctx.oC_ParenthesizedExpression()) {
         return transformParenthesizedExpression(*ctx.oC_ParenthesizedExpression());
     } else if (ctx.oC_FunctionInvocation()) {

@@ -89,14 +89,13 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
         string val;
         switch (operand.dataType) {
         case BOOL: {
-            val = operand.values[pos] == TRUE ? "True" :
-                                                (operand.values[pos] == FALSE ? "False" : "");
+            val = TypeUtils::toString(operand.values[pos]);
         } break;
         case INT64: {
-            val = to_string(((int64_t*)operand.values)[pos]);
+            val = TypeUtils::toString(((int64_t*)operand.values)[pos]);
         } break;
         case DOUBLE: {
-            val = to_string(((double_t*)operand.values)[pos]);
+            val = TypeUtils::toString(((double_t*)operand.values)[pos]);
         } break;
         case DATE: {
             val = Date::toString(((date_t*)operand.values)[pos]);
@@ -110,23 +109,21 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
         case BOOL: {
             for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
-                result.addString(pos, operand.values[pos] == TRUE ?
-                                          "True" :
-                                          (operand.values[pos] == FALSE ? "False" : ""));
+                result.addString(pos, TypeUtils::toString(operand.values[pos]));
             }
         } break;
         case INT64: {
             auto intValues = (int64_t*)operand.values;
             for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
-                result.addString(pos, to_string(intValues[pos]));
+                result.addString(pos, TypeUtils::toString(intValues[pos]));
             }
         } break;
         case DOUBLE: {
             auto doubleValues = (double_t*)operand.values;
             for (auto i = 0u; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedValuesPos[i];
-                result.addString(pos, to_string(doubleValues[pos]));
+                result.addString(pos, TypeUtils::toString(doubleValues[pos]));
             }
         } break;
         case DATE: {

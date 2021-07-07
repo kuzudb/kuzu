@@ -17,6 +17,8 @@ public:
 
     explicit Literal(double value) : dataType(DOUBLE) { this->val.doubleVal = value; }
 
+    explicit Literal(date_t value) : dataType(DATE) { this->val.dateVal = value; }
+
     explicit Literal(const string& value) : dataType(STRING) { this->strVal = value; }
 
     Literal& operator=(const Literal& other);
@@ -29,6 +31,7 @@ public:
         int64_t int64Val;
         double doubleVal;
         nodeID_t nodeID;
+        date_t dateVal;
     } val{};
 
     string strVal;

@@ -352,7 +352,7 @@ void Enumerator::appendProjection(
     const vector<shared_ptr<Expression>>& returnOrWithClause, LogicalPlan& plan) {
     // Do not append projection in case of RETURN COUNT(*)
     if (1 == returnOrWithClause.size() && FUNCTION == returnOrWithClause[0]->expressionType &&
-        FUNCTION_COUNT_STAR == returnOrWithClause[0]->variableName) {
+        COUNT_STAR_FUNC_NAME == returnOrWithClause[0]->variableName) {
         return;
     }
     auto expressionsToProject = vector<shared_ptr<Expression>>();

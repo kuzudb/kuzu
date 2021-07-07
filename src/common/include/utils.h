@@ -22,6 +22,14 @@ class StringUtils {
 public:
     static vector<string> split(const string& input, const string& delimiter);
 
+    static void toUpper(string& input) {
+        transform(input.begin(), input.end(), input.begin(), ::toupper);
+    }
+
+    static void toLower(string& input) {
+        transform(input.begin(), input.end(), input.begin(), ::tolower);
+    }
+
     static bool CharacterIsSpace(char c) {
         return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f' || c == '\r';
     }

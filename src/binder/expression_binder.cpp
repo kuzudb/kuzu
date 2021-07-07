@@ -3,6 +3,7 @@
 #include "src/binder/include/expression/literal_expression.h"
 #include "src/binder/include/expression/property_expression.h"
 #include "src/binder/include/expression/rel_expression.h"
+#include "src/common/include/date.h"
 #include "src/common/include/types.h"
 
 namespace graphflow {
@@ -221,28 +222,43 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
                            TypeUtils::dataTypeToString(childExpression->dataType) + ".");
 }
 
-// only support COUNT(*) or ID(nodeVariable)
 shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     const ParsedExpression& parsedExpression) {
     auto functionName = parsedExpression.text;
-    transform(begin(functionName), end(functionName), begin(functionName), ::toupper);
-    if (FUNCTION_COUNT_STAR == functionName) {
-        return make_shared<Expression>(FUNCTION, INT64, FUNCTION_COUNT_STAR);
-    } else if (FUNCTION_ID == functionName) {
-        if (1 != parsedExpression.children.size()) {
-            throw invalid_argument(functionName + " takes exactly one parameter.");
-        }
-        auto child = bindExpression(*parsedExpression.children[0]);
-        if (NODE != child->dataType) {
-            throw invalid_argument("Expect " + child->rawExpression + " to be a node, but it was " +
-                                   TypeUtils::dataTypeToString(child->dataType));
-        }
-        auto node = static_pointer_cast<NodeExpression>(child);
-        return make_shared<PropertyExpression>(
-            node->getIDProperty(), NODE_ID, UINT32_MAX, move(child));
-    } else {
-        throw invalid_argument(functionName + " is not supported.");
+    StringUtils::toUpper(functionName);
+    if (!catalog.containFunction(functionName)) {
+        throw invalid_argument(parsedExpression.text + " function does not exist.");
     }
+    auto function = catalog.getFunction(functionName);
+    if (parsedExpression.children.size() != function->getNumParameters()) {
+        throw invalid_argument("Expected " + to_string(function->getNumParameters()) +
+                               " parameters for " + parsedExpression.text + " function but get " +
+                               to_string(parsedExpression.children.size()) + ".");
+    }
+    vector<shared_ptr<Expression>> children;
+    for (auto i = 0u; i < function->getNumParameters(); ++i) {
+        auto child = bindExpression(*parsedExpression.children[i]);
+        validateExpectedType(*child, function->parameterTypes[i]);
+        children.push_back(move(child));
+    }
+    // Check for special bindings
+    if (functionName == ID_FUNC_NAME) {
+        // Binds ID(a) function as a._id property
+        auto node = static_pointer_cast<NodeExpression>(children[0]);
+        return make_shared<PropertyExpression>(
+            node->getIDProperty(), NODE_ID, UINT32_MAX, move(children[0]));
+    } else if (functionName == DATE_FUNC_NAME) {
+        // Binds date(2012-10-10) as date literal
+        if (children[0]->expressionType == LITERAL_STRING) {
+            auto dateInString = static_pointer_cast<LiteralExpression>(children[0])->literal.strVal;
+            return make_shared<LiteralExpression>(LITERAL_DATE, DATE,
+                Literal(Date::FromCString(dateInString.c_str(), dateInString.length())));
+        }
+    }
+    auto functionExpression =
+        make_shared<Expression>(FUNCTION, function->returnType, function->name);
+    functionExpression->childrenExpr = move(children);
+    return functionExpression;
 }
 
 shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
