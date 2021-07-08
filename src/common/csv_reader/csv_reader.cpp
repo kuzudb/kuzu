@@ -53,7 +53,7 @@ bool CSVReader::hasNextLine() {
     }
     // else, read the next line.
     lineLen = getline(&line, &lineCapacity, fd);
-    while (2 > lineLen || '#' == line[0]) {
+    while (2 > lineLen || CSVReader::COMMENT_LINE_CHAR == line[0]) {
         lineLen = getline(&line, &lineCapacity, fd);
     };
     linePtrStart = linePtrEnd = -1;

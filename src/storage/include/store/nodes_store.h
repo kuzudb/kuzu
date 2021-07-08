@@ -33,6 +33,16 @@ public:
             directory, "n-" + to_string(nodeLabel) + "-" + propertyName + ".col");
     }
 
+    inline static string getStringOverflowFnameOfColumnOrList(const string& columnOrListFname) {
+        return columnOrListFname + OVERFLOW_FILE_SUFFIX;
+    }
+
+    inline static string getStringNodePropertyOverflowFname(
+        const string& directory, const label_t& nodeLabel, const string& propertyName) {
+        return getNodePropertyColumnFname(directory, nodeLabel, propertyName) +
+               OVERFLOW_FILE_SUFFIX;
+    }
+
     inline static string getNodeUnstrPropertyListsFname(
         const string& directory, const label_t& nodeLabel) {
         return FileUtils::joinPath(directory, "n-" + to_string(nodeLabel) + ".lists");

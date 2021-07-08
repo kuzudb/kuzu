@@ -1,5 +1,8 @@
 filegroup(
     name = "dataset",
-    srcs = glob(["tinysnb/**"]),
+    srcs = glob([
+        "tinysnb/**",
+        "string_column_test/**",
+        ]),
     visibility = ["//visibility:public"],
 )

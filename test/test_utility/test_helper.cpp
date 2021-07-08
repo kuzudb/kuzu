@@ -112,11 +112,13 @@ unique_ptr<TestSuiteQueryConfig> TestHelper::parseTestFile(const string& path) {
     throw invalid_argument("Test file not exists! [" + path + "].");
 }
 
+void TestHelper::loadGraph(TestSuiteSystemConfig& config) {
+    GraphLoader graphLoader(config.graphInputDir, config.graphOutputDir, config.maxNumThreads);
+    graphLoader.loadGraph();
+}
+
 unique_ptr<System> TestHelper::getInitializedSystem(TestSuiteSystemConfig& config) {
-    {
-        GraphLoader graphLoader(config.graphInputDir, config.graphOutputDir, config.maxNumThreads);
-        graphLoader.loadGraph();
-    }
+    loadGraph(config);
     return make_unique<System>(config.graphOutputDir);
 }
 
@@ -133,5 +135,13 @@ void TestHelper::removeDirOrError(const string& dir) {
         throw runtime_error("Remove graph output directory error: " + removeErrorCode.message());
     }
 }
+
+void BaseGraphLoadingTest::SetUp() {
+    TestHelper::createDirOrError(TEMP_TEST_DIR);
+    testSuiteSystemConfig.graphInputDir = getInputCSVDir();
+    testSuiteSystemConfig.graphOutputDir = TEMP_TEST_DIR;
+    TestHelper::loadGraph(testSuiteSystemConfig);
+}
+
 } // namespace testing
 } // namespace graphflow

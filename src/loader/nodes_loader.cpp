@@ -54,7 +54,8 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
             if (STRING == property.dataType) {
                 labelPropertyIdxStringOverflowPages[nodeLabel][property.id] =
                     make_unique<InMemStringOverflowPages>(
-                        labelPropertyColumnFnames[nodeLabel][property.id] + OVERFLOW_FILE_SUFFIX);
+                        NodesStore::getStringNodePropertyOverflowFname(
+                            outputDirectory, nodeLabel, property.name));
             }
         }
     }
@@ -166,7 +167,7 @@ void NodesLoader::buildInMemUnstrPropertyLists() {
                 unstrPropertyListsFName, labelUnstrPropertyListsMetadata[nodeLabel].numPages);
             labelUnstrPropertyListsStringOverflowPages[nodeLabel] =
                 make_unique<InMemStringOverflowPages>(
-                    unstrPropertyListsFName + OVERFLOW_FILE_SUFFIX);
+                    NodesStore::getStringOverflowFnameOfColumnOrList(unstrPropertyListsFName));
         }
     }
 }
