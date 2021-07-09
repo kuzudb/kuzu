@@ -1,12 +1,12 @@
 #include "src/storage/include/data_structure/lists/lists_metadata.h"
 
-#include "spdlog/spdlog.h"
+#include "src/common/include/utils.h"
 
 namespace graphflow {
 namespace storage {
 
 ListsMetadata::ListsMetadata() {
-    logger = spdlog::get("storage");
+    logger = LoggerUtils::getOrCreateSpdLogger("storage");
 }
 
 ListsMetadata::ListsMetadata(const string& path) : ListsMetadata() {

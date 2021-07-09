@@ -1,9 +1,8 @@
 #include "src/storage/include/file_handle.h"
 
-#include "spdlog/spdlog.h"
-
 #include "src/common/include/configs.h"
 #include "src/common/include/file_utils.h"
+#include "src/common/include/utils.h"
 
 using namespace graphflow::common;
 
@@ -11,7 +10,8 @@ namespace graphflow {
 namespace storage {
 
 FileHandle::FileHandle(const string& path, int flags)
-    : logger{spdlog::get("storage")}, fileDescriptor{FileUtils::openFile(path, flags)} {
+    : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, fileDescriptor{
+                                                                FileUtils::openFile(path, flags)} {
     logger->trace("FileHandle: Path {}", path);
     auto fileLength = FileUtils::getFileSize(fileDescriptor);
     numPages = fileLength / PAGE_SIZE;

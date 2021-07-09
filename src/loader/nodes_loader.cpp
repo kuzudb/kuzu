@@ -14,7 +14,7 @@ namespace loader {
 
 NodesLoader::NodesLoader(
     ThreadPool& threadPool, const Graph& graph, string outputDirectory, char tokenSeparator)
-    : logger{spdlog::get("loader")}, threadPool{threadPool}, graph{graph},
+    : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, threadPool{threadPool}, graph{graph},
       outputDirectory{std::move(outputDirectory)}, tokenSeparator{tokenSeparator} {
     logger->debug("Initializing NodesLoader.");
 };

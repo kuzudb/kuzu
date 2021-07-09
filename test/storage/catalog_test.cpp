@@ -16,7 +16,6 @@ public:
         graphflow::testing::TestHelper::createDirOrError(CATALOG_TEMP_DIRECTORY);
         catalog = make_unique<Catalog>();
         setupCatalog();
-        spdlog::stdout_logger_mt("storage");
     }
 
     void TearDown() override {

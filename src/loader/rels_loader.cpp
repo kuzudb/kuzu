@@ -1,14 +1,13 @@
 #include "src/loader/include/rels_loader.h"
 
 #include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
 
 namespace graphflow {
 namespace loader {
 
 RelsLoader::RelsLoader(ThreadPool& threadPool, Graph& graph, string outputDirectory,
     char tokenSeparator, vector<unique_ptr<NodeIDMap>>& nodeIDMaps)
-    : logger{spdlog::get("loader")}, threadPool{threadPool}, graph{graph},
+    : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, threadPool{threadPool}, graph{graph},
       outputDirectory(std::move(outputDirectory)), tokenSeparator{tokenSeparator},
       nodeIDMaps{nodeIDMaps} {}
 
