@@ -1,6 +1,8 @@
 #pragma once
 
 #include "robin_hood.h"
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
 
 using namespace std;
 
@@ -15,6 +17,18 @@ struct charArrayEqualTo {
 // C-like string hasher.
 struct charArrayHasher {
     size_t operator()(const char* key) const { return robin_hood::hash_bytes(key, strlen(key)); }
+};
+
+class LoggerUtils {
+
+public:
+    static shared_ptr<spdlog::logger> getOrCreateSpdLogger(string loggerName) {
+        shared_ptr<spdlog::logger> logger = spdlog::get(loggerName);
+        if (!logger) {
+            logger = spdlog::stdout_logger_mt(loggerName);
+        }
+        return logger;
+    }
 };
 
 class StringUtils {

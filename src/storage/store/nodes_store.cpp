@@ -1,7 +1,6 @@
 #include "src/storage/include/store/nodes_store.h"
 
-#include "spdlog/spdlog.h"
-
+#include "src/common/include/utils.h"
 #include "src/storage/include/data_structure/column.h"
 
 namespace graphflow {
@@ -9,7 +8,7 @@ namespace storage {
 
 NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
     const string& directory, BufferManager& bufferManager)
-    : logger{spdlog::get("storage")} {
+    : logger{LoggerUtils::getOrCreateSpdLogger("storage")} {
     logger->info("Initializing NodesStore.");
     initStructuredPropertyColumnsAndUnstructuredPropertyLists(
         catalog, numNodesPerLabel, directory, bufferManager);

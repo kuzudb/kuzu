@@ -2,15 +2,14 @@
 
 #include <fstream>
 
-#include "spdlog/spdlog.h"
-
+#include "src/common/include/utils.h"
 #include "src/storage/include/data_structure/utils.h"
 
 namespace graphflow {
 namespace storage {
 
 ListHeaders::ListHeaders() {
-    logger = spdlog::get("storage");
+    logger = LoggerUtils::getOrCreateSpdLogger("storage");
 }
 
 ListHeaders::ListHeaders(string path) : ListHeaders() {

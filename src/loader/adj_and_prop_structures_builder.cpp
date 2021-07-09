@@ -7,8 +7,8 @@ namespace loader {
 
 AdjAndPropertyStructuresBuilder::AdjAndPropertyStructuresBuilder(RelLabelDescription& description,
     ThreadPool& threadPool, const Graph& graph, string outputDirectory)
-    : logger{spdlog::get("loader")}, description{description}, threadPool{threadPool}, graph{graph},
-      outputDirectory{move(outputDirectory)} {}
+    : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, description{description},
+      threadPool{threadPool}, graph{graph}, outputDirectory{move(outputDirectory)} {}
 
 void AdjAndPropertyStructuresBuilder::populateNumRelsInfo(
     vector<vector<vector<uint64_t>>>& numRelsPerDirBoundLabelRelLabel, bool forColumns) {

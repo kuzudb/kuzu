@@ -1,7 +1,5 @@
 #include "src/storage/include/store/rels_store.h"
 
-#include "spdlog/spdlog.h"
-
 #include "src/common/include/compression_scheme.h"
 
 namespace graphflow {
@@ -9,7 +7,7 @@ namespace storage {
 
 RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
     const string& directory, BufferManager& bufferManager)
-    : logger{spdlog::get("storage")} {
+    : logger{LoggerUtils::getOrCreateSpdLogger("storage")} {
     initAdjColumns(catalog, numNodesPerLabel, directory, bufferManager);
     initAdjLists(catalog, numNodesPerLabel, directory, bufferManager);
     initPropertyListsAndColumns(catalog, numNodesPerLabel, directory, bufferManager);

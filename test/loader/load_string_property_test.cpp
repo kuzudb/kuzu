@@ -1,3 +1,5 @@
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
 #include "test/storage/include/node_property_file_scanner.h"
 #include "test/test_utility/include/test_helper.h"
 
@@ -13,19 +15,18 @@ class LoadStringPropertyTest : public BaseGraphLoadingTest {
 public:
     void SetUp() override {
         BaseGraphLoadingTest::SetUp();
-        auto bufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
-        graph = make_unique<Graph>(TEMP_TEST_DIR, *bufferManager);
+        catalog = make_unique<Catalog>(TEMP_TEST_DIR);
     }
 
     string getInputCSVDir() override { return "dataset/string_column_test/"; }
 
 public:
-    unique_ptr<Graph> graph;
+    unique_ptr<Catalog> catalog;
 };
 
 TEST_F(LoadStringPropertyTest, NodePropertyColumnWithDate) {
     StructuredStringNodePropertyFileScanner scanner(
-        TEMP_TEST_DIR, graph->getCatalog().getNodeLabelFromString("person"), "randomString");
+        TEMP_TEST_DIR, catalog->getNodeLabelFromString("person"), "randomString");
     string fName = getInputCSVDir() + "vPerson.csv";
     CSVReader csvReader(fName, ',');
     int lineIdx = 0;

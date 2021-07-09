@@ -4,6 +4,8 @@
 
 #include "spdlog/spdlog.h"
 
+#include "src/common/include/utils.h"
+
 using namespace std;
 
 namespace graphflow {
@@ -151,7 +153,7 @@ uint64_t Catalog::deSerializeValue<RelLabelDefinition>(
 }
 
 Catalog::Catalog() {
-    logger = spdlog::get("storage");
+    logger = LoggerUtils::getOrCreateSpdLogger("storage");
     registerBuiltInFunctions();
 }
 
