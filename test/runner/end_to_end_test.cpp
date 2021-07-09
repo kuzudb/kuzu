@@ -2,7 +2,6 @@
 
 #include "gtest/gtest.h"
 #include "spdlog/spdlog.h"
-#include "test/test_utility/include/db_loaded_test.h"
 #include "test/test_utility/include/test_helper.h"
 using ::testing::Test;
 using namespace graphflow::testing;

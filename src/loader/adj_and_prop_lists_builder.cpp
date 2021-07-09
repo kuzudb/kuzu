@@ -324,7 +324,7 @@ void AdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(node_off
                 offsetStart, propertyListCursor, *listsMetadata);
             auto valPtr =
                 reinterpret_cast<gf_string_t*>(propertyLists->getPtrToMemLoc(propertyListCursor));
-            if (12 < valPtr->len && 0xffffffff != valPtr->len) {
+            if (gf_string_t::SHORT_STR_LENGTH < valPtr->len && 0xffffffff != valPtr->len) {
                 unorderedStringOverflowCursor.idx = 0;
                 valPtr->getOverflowPtrInfo(
                     unorderedStringOverflowCursor.idx, unorderedStringOverflowCursor.offset);

@@ -16,6 +16,7 @@ const string PROPERTY_DATATYPE_SEPARATOR = ":";
 class CSVReader {
 
 public:
+    constexpr static char COMMENT_LINE_CHAR = '#';
     // Initializes to read a block in file.
     CSVReader(const string& fname, const char tokenSeparator, uint64_t blockId);
     // Intializes to read the complete file.

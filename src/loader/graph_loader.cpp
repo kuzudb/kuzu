@@ -107,7 +107,9 @@ void GraphLoader::readCSVHeaderAndCalcNumBlocks(const vector<string>& filePaths,
         if (!inf.is_open()) {
             throw invalid_argument("Cannot open file " + filePaths[i] + ".");
         }
-        getline(inf, fileHeader);
+        do {
+            getline(inf, fileHeader);
+        } while (fileHeader.empty() || fileHeader.at(0) == CSVReader::COMMENT_LINE_CHAR);
         fileHeaders[i] = fileHeader;
         inf.seekg(0, ios_base::end);
         numBlocksPerLabel[i] = 1 + (inf.tellg() / CSV_READING_BLOCK_SIZE);
