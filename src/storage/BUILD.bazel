@@ -71,12 +71,14 @@ cc_library(
         "data_structure/column.cpp",
         "data_structure/data_structure.cpp",
         "data_structure/lists/lists.cpp",
+        "data_structure/string_overflow_pages.cpp",
     ],
     hdrs = [
         "include/data_structure/column.h",
         "include/data_structure/data_structure.h",
         "include/data_structure/data_structure_handle.h",
         "include/data_structure/lists/lists.h",
+        "include/data_structure/string_overflow_pages.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

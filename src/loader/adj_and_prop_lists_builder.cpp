@@ -119,7 +119,8 @@ void AdjAndPropertyListsBuilder::sortOverflowStrings() {
                         outputDirectory, description.label, nodeLabel, direction, property.name);
                     (*directionLabelPropertyIdxStringOverflowPages)[direction][nodeLabel][property
                                                                                               .id] =
-                        make_unique<InMemStringOverflowPages>(fName + OVERFLOW_FILE_SUFFIX);
+                        make_unique<InMemStringOverflowPages>(
+                            StringOverflowPages::getStringOverflowPagesFName(fName));
                     auto numNodes = graph.getNumNodesPerLabel()[nodeLabel];
                     auto numBuckets = numNodes / 256;
                     if (0 != numNodes % 256) {

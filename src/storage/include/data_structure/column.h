@@ -6,6 +6,7 @@
 #include "src/common/include/types.h"
 #include "src/common/include/vector/node_vector.h"
 #include "src/storage/include/data_structure/data_structure.h"
+#include "src/storage/include/data_structure/string_overflow_pages.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -23,9 +24,9 @@ public:
         BufferManagerMetrics& metrics);
 
 protected:
-    BaseColumn(const string& fname, const DataType& dataType, const size_t& elementSize,
+    BaseColumn(const string& fName, const DataType& dataType, const size_t& elementSize,
         const uint64_t& numElements, BufferManager& bufferManager)
-        : DataStructure{fname, dataType, elementSize, bufferManager} {};
+        : DataStructure{fName, dataType, elementSize, bufferManager} {};
 
     void readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
@@ -36,36 +37,33 @@ template<DataType D>
 class Column : public BaseColumn {
 
 public:
-    Column(const string& path, const uint64_t& numElements, BufferManager& bufferManager)
-        : BaseColumn{path, D, TypeUtils::getDataTypeSize(D), numElements, bufferManager} {};
+    Column(const string& fName, const uint64_t& numElements, BufferManager& bufferManager)
+        : BaseColumn{fName, D, TypeUtils::getDataTypeSize(D), numElements, bufferManager} {};
 };
 
 template<>
 class Column<STRING> : public BaseColumn {
 
 public:
-    Column(const string& path, const uint64_t& numElements, BufferManager& bufferManager)
-        : BaseColumn{path, STRING, sizeof(gf_string_t), numElements, bufferManager},
-          overflowPagesFileHandle{path + OVERFLOW_FILE_SUFFIX, O_RDWR} {};
+    Column(const string& fName, const uint64_t& numElements, BufferManager& bufferManager)
+        : BaseColumn{fName, STRING, sizeof(gf_string_t), numElements, bufferManager},
+          stringOverflowPages{fName, bufferManager} {};
 
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
         BufferManagerMetrics& metrics) override;
 
 private:
-    void readStringsFromOverflowPages(ValueVector& valueVector, BufferManagerMetrics& metrics);
-
-private:
-    FileHandle overflowPagesFileHandle;
+    StringOverflowPages stringOverflowPages;
 };
 
 template<>
 class Column<NODE> : public BaseColumn {
 
 public:
-    Column(const string& path, const uint64_t& numElements, BufferManager& bufferManager,
+    Column(const string& fName, const uint64_t& numElements, BufferManager& bufferManager,
         const NodeIDCompressionScheme& nodeIDCompressionScheme)
-        : BaseColumn{path, NODE, nodeIDCompressionScheme.getNumTotalBytes(), numElements,
+        : BaseColumn{fName, NODE, nodeIDCompressionScheme.getNumTotalBytes(), numElements,
               bufferManager},
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 

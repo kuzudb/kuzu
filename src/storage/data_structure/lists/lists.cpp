@@ -184,47 +184,30 @@ void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx
     BufferManagerMetrics& metrics) {
     auto frame = bufferManager.get(fileHandle, physicalPageIdx, metrics);
     auto dataTypeSize = TypeUtils::getDataTypeSize(propertyDataType);
-    auto values = (Value*)valueVector->values;
+    auto& value = ((Value*)valueVector->values)[pos];
     if (pageCursor.offset + dataTypeSize < PAGE_SIZE) {
         if (toRead) {
-            memcpy(&values[pos].val, frame + pageCursor.offset, dataTypeSize);
+            memcpy(&value.val, frame + pageCursor.offset, dataTypeSize);
         }
         pageCursor.offset += dataTypeSize;
     } else {
         auto bytesInCurrentFrame = PAGE_SIZE - pageCursor.offset;
         if (toRead) {
-            memcpy(&values[pos].val, frame + pageCursor.offset, bytesInCurrentFrame);
+            memcpy(&value.val, frame + pageCursor.offset, bytesInCurrentFrame);
         }
         reclaim(handle);
         physicalPageIdx = mapper.getPageIdx(++pageCursor.idx);
         frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
         handle->setPageIdx(physicalPageIdx);
         if (toRead) {
-            memcpy(
-                &values[pos].val + bytesInCurrentFrame, frame, dataTypeSize - bytesInCurrentFrame);
+            memcpy(&value.val + bytesInCurrentFrame, frame, dataTypeSize - bytesInCurrentFrame);
         }
         pageCursor.offset = dataTypeSize - bytesInCurrentFrame;
     }
     listLen -= dataTypeSize;
-    values[pos].dataType = propertyDataType;
-    readStringsFromOverflowPages(*valueVector, metrics);
-}
-
-void Lists<UNSTRUCTURED>::readStringsFromOverflowPages(
-    ValueVector& valueVector, BufferManagerMetrics& metrics) {
-    auto values = valueVector.values;
-    PageCursor cursor;
-    for (auto i = 0u; i < valueVector.state->size; i++) {
-        auto pos = valueVector.state->selectedValuesPos[i];
-        if (!valueVector.nullMask[pos] && ((Value*)values)[pos].dataType == STRING) {
-            auto& value = ((gf_string_t*)valueVector.values)[pos];
-            if (value.len > gf_string_t::SHORT_STR_LENGTH) {
-                value.getOverflowPtrInfo(cursor.idx, cursor.offset);
-                auto frame = bufferManager.pin(overflowPagesFileHandle, cursor.idx, metrics);
-                valueVector.addString(pos, (char*)frame + cursor.offset, value.len);
-                bufferManager.unpin(overflowPagesFileHandle, cursor.idx);
-            }
-        }
+    value.dataType = propertyDataType;
+    if (toRead && STRING == propertyDataType) {
+        stringOverflowPages.readAStringFromOverflowPages(*valueVector, pos, metrics);
     }
 }
 
