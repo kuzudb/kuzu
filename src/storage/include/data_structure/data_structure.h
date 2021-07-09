@@ -12,8 +12,6 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-const string OVERFLOW_FILE_SUFFIX = ".ovf";
-
 // DataStructure is the parent class of BaseColumn and BaseLists. It abstracts the state and
 // functions that are common in both column and lists, like, 1) layout info (size of a unit of
 // element and number of elements that can be accomodated in a page), 2) getting pageIdx and

@@ -59,7 +59,8 @@ void AdjAndPropertyColumnsBuilder::sortOverflowStrings() {
                 auto fName = RelsStore::getRelPropertyColumnFName(
                     outputDirectory, description.label, nodeLabel, property.name);
                 labelPropertyIdxStringOverflowPages[nodeLabel][property.id] =
-                    make_unique<InMemStringOverflowPages>(fName + OVERFLOW_FILE_SUFFIX);
+                    make_unique<InMemStringOverflowPages>(
+                        StringOverflowPages::getStringOverflowPagesFName(fName));
                 auto numNodes = graph.getNumNodesPerLabel()[nodeLabel];
                 auto numBuckets = numNodes / 256;
                 if (0 != numNodes / 256) {
@@ -130,7 +131,8 @@ void AdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction direction
                     fName, numPages, TypeUtils::getDataTypeSize(property.dataType));
             if (STRING == property.dataType) {
                 labelPropertyIdxStringOverflowPages[nodeLabel][property.id] =
-                    make_unique<InMemStringOverflowPages>(fName + OVERFLOW_FILE_SUFFIX);
+                    make_unique<InMemStringOverflowPages>(
+                        StringOverflowPages::getStringOverflowPagesFName(fName));
             }
         }
     }

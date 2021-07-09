@@ -1,10 +1,14 @@
 #pragma once
 
+#include <utility>
+
+#include "src/common/include/value.h"
 #include "src/common/include/vector/node_vector.h"
 #include "src/storage/include/data_structure/data_structure.h"
 #include "src/storage/include/data_structure/data_structure_handle.h"
 #include "src/storage/include/data_structure/lists/list_headers.h"
 #include "src/storage/include/data_structure/lists/lists_metadata.h"
+#include "src/storage/include/data_structure/string_overflow_pages.h"
 
 namespace graphflow {
 namespace storage {
@@ -21,10 +25,10 @@ public:
     uint64_t getNumElementsInList(node_offset_t nodeOffset);
 
 protected:
-    BaseLists(const string& fname, const DataType& dataType, const size_t& elementSize,
+    BaseLists(const string& fName, const DataType& dataType, const size_t& elementSize,
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
-        : DataStructure{fname, dataType, elementSize, bufferManager}, metadata{fname},
-          headers(headers){};
+        : DataStructure{fName, dataType, elementSize, bufferManager}, metadata{fName},
+          headers(move(headers)){};
 
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
         const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead,
@@ -47,8 +51,8 @@ template<DataType D>
 class Lists : public BaseLists {
 
 public:
-    Lists(const string& fname, shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
-        : BaseLists{fname, D, TypeUtils::getDataTypeSize(D), headers, bufferManager} {};
+    Lists(const string& fName, shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
+        : BaseLists{fName, D, TypeUtils::getDataTypeSize(D), headers, bufferManager} {};
 };
 
 // Lists<NODE> is the specialization of Lists<D> for lists of nodeIDs.
@@ -56,10 +60,10 @@ template<>
 class Lists<NODE> : public BaseLists {
 
 public:
-    Lists(const string& fname, BufferManager& bufferManager,
+    Lists(const string& fName, BufferManager& bufferManager,
         NodeIDCompressionScheme nodeIDCompressionScheme)
-        : BaseLists{fname, NODE, nodeIDCompressionScheme.getNumTotalBytes(),
-              make_shared<ListHeaders>(fname), bufferManager},
+        : BaseLists{fName, NODE, nodeIDCompressionScheme.getNumTotalBytes(),
+              make_shared<ListHeaders>(fName), bufferManager},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
     NodeIDCompressionScheme& getNodeIDCompressionScheme() { return nodeIDCompressionScheme; }
@@ -74,15 +78,16 @@ private:
 // Though this shares the identical representation as BaseLists, it is more aligned to Columns in
 // terms of access. In particular, readValues(...) of Lists<UNSTRUCTURED> is given a NodeVector as
 // input, similar to readValues() in Columns. For each node in NodeVector, unstructured property
-// list of that node is read and the reqired property alongwith its dataType is copied to a
+// list of that node is read and the required property along with its dataType is copied to a
 // specialized UNSTRUCTURED-typed ValueVector.
 template<>
 class Lists<UNSTRUCTURED> : public BaseLists {
 
 public:
-    Lists(const string& fname, BufferManager& bufferManager)
-        : BaseLists{fname, UNSTRUCTURED, 1, make_shared<ListHeaders>(fname), bufferManager},
-          overflowPagesFileHandle{fname + OVERFLOW_FILE_SUFFIX, O_RDWR} {};
+    Lists(const string& fName, BufferManager& bufferManager)
+        : BaseLists{fName, UNSTRUCTURED, 1, make_shared<ListHeaders>(fName), bufferManager},
+          stringOverflowPages{fName, bufferManager} {};
+    ;
 
     // readValues is overloaded. Lists<UNSTRUCTURED> is not supposed to use the one defined in
     // BaseLists.
@@ -107,14 +112,12 @@ private:
         LogicalToPhysicalPageIdxMapper& mapper, const shared_ptr<ValueVector>& valueVector,
         uint64_t pos, bool toRead, BufferManagerMetrics& metrics);
 
-    void readStringsFromOverflowPages(ValueVector& valueVector, BufferManagerMetrics& metrics);
-
 public:
     static constexpr uint8_t UNSTR_PROP_IDX_LEN = 4;
     static constexpr uint8_t UNSTR_PROP_DATATYPE_LEN = 1;
     static constexpr uint8_t UNSTR_PROP_HEADER_LEN = UNSTR_PROP_IDX_LEN + UNSTR_PROP_DATATYPE_LEN;
 
-    FileHandle overflowPagesFileHandle;
+    StringOverflowPages stringOverflowPages;
 };
 
 typedef Lists<INT64> RelPropertyListsInt64;

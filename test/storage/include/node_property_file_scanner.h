@@ -30,8 +30,8 @@ public:
     StructuredStringNodePropertyFileScanner(const string& directory,
         const graphflow::common::label_t& nodeLabel, const string& propertyName)
         : structuredNodePropertyFileScanner(directory, nodeLabel, propertyName),
-          stringOverflowFileScanner(
-              NodesStore::getStringNodePropertyOverflowFname(directory, nodeLabel, propertyName)) {}
+          stringOverflowFileScanner(StringOverflowPages::getStringOverflowPagesFName(
+              NodesStore::getNodePropertyColumnFname(directory, nodeLabel, propertyName))) {}
 
     string readString(int nodeOffset) {
         gf_string_t mainString =

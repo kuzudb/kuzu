@@ -62,22 +62,7 @@ void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     } else {
         readFromNonSequentialLocations(nodeIDVector, valueVector, handle, metrics);
     }
-    readStringsFromOverflowPages(*valueVector, metrics);
-}
-
-void Column<STRING>::readStringsFromOverflowPages(
-    ValueVector& valueVector, BufferManagerMetrics& metrics) {
-    PageCursor cursor;
-    for (auto i = 0u; i < valueVector.state->size; i++) {
-        auto pos = valueVector.state->selectedValuesPos[i];
-        auto& value = ((gf_string_t*)valueVector.values)[pos];
-        if (value.len > gf_string_t::SHORT_STR_LENGTH) {
-            value.getOverflowPtrInfo(cursor.idx, cursor.offset);
-            auto frame = bufferManager.pin(overflowPagesFileHandle, cursor.idx, metrics);
-            valueVector.addString(pos, (char*)frame + cursor.offset, value.len);
-            bufferManager.unpin(overflowPagesFileHandle, cursor.idx);
-        }
-    }
+    stringOverflowPages.readStringsFromOverflowPages(*valueVector, metrics);
 }
 
 } // namespace storage
