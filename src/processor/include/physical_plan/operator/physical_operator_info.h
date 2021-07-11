@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 
+#include "src/common/include/assert.h"
+
 using namespace std;
 
 namespace graphflow {
@@ -20,10 +22,12 @@ public:
     void appendAsNewValueVector(const string& variableName, uint64_t dataChunkPos);
 
     inline uint64_t getDataChunkPos(const string& variableName) {
+        GF_ASSERT(variableToDataPosMap.contains(variableName));
         return variableToDataPosMap.at(variableName).first;
     }
 
     inline uint64_t getValueVectorPos(const string& variableName) {
+        GF_ASSERT(variableToDataPosMap.contains(variableName));
         return variableToDataPosMap.at(variableName).second;
     }
 

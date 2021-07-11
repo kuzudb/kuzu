@@ -76,7 +76,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest1) {
     dataChunkB->state->currPos = -1;
     dataChunkC->state->currPos = 10;
 
-    ResultSetIterator resultSetIterator(resultSet);
+    ResultSetIterator resultSetIterator(&resultSet);
     auto tupleIndex = 0;
     while (resultSetIterator.hasNextTuple()) {
         resultSetIterator.getNextTuple(tuple);
@@ -96,7 +96,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest1) {
     dataChunkA->state->currPos = 1;
     dataChunkB->state->currPos = 9;
     dataChunkC->state->currPos = 99;
-    resultSetIterator.setDataChunks(resultSet);
+    resultSetIterator.setResultSet(&resultSet);
     tupleIndex = 0;
     while (resultSetIterator.hasNextTuple()) {
         resultSetIterator.getNextTuple(tuple);
@@ -126,7 +126,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest2) {
     dataChunkA->state->currPos = 1;
     dataChunkB->state->currPos = -1;
     dataChunkC->state->currPos = -1;
-    ResultSetIterator resultSetIterator(resultSet);
+    ResultSetIterator resultSetIterator(&resultSet);
     while (resultSetIterator.hasNextTuple()) {
         auto bid = tupleIndex / 100;
         auto cid = tupleIndex % 100;
@@ -157,7 +157,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest3) {
     dataChunkA->state->currPos = -1;
     dataChunkB->state->currPos = 10;
     dataChunkC->state->currPos = -1;
-    ResultSetIterator resultSetIterator(resultSet);
+    ResultSetIterator resultSetIterator(&resultSet);
     while (resultSetIterator.hasNextTuple()) {
         auto aid = tupleIndex / 100;
         auto cid = tupleIndex % 100;
@@ -188,7 +188,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest4) {
     dataChunkC->state->currPos = 20;
 
     auto tupleIndex = 0;
-    ResultSetIterator resultSetIterator(resultSet);
+    ResultSetIterator resultSetIterator(&resultSet);
     while (resultSetIterator.hasNextTuple()) {
         resultSetIterator.getNextTuple(tuple);
         string tupleStr = tuple.toString();
@@ -214,7 +214,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTestWithSelector) {
     dataChunkC->state->currPos = 20;
 
     auto tupleIndex = 0;
-    ResultSetIterator resultSetIterator(resultSet);
+    ResultSetIterator resultSetIterator(&resultSet);
     while (resultSetIterator.hasNextTuple()) {
         resultSetIterator.getNextTuple(tuple);
         string tupleStr = tuple.toString();

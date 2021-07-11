@@ -39,7 +39,3 @@
 -NAME OpenTwoHopWedgeKnowsTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person),(a:person)-[e3:knows]->(d:person)-[e4:knows]->(e:person) RETURN COUNT(*)
 ---- 324
-
--NAME OpenTwoHopWedgeKnowsTest3
--QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH * MATCH (b)-[e2:knows]->(c:person) WITH * MATCH (a)-[e3:knows]->(d:person)-[e4:knows]->(e:person) RETURN COUNT(*)
----- 324

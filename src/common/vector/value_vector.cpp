@@ -45,16 +45,11 @@ void ValueVector::fillNullMask() {
     }
 }
 
+// Notice that this clone function only copies values and nullMask without copying string buffers.
 shared_ptr<ValueVector> ValueVector::clone() {
-    auto newVector = make_shared<ValueVector>(memoryManager, dataType, vectorCapacity);
+    auto newVector = make_shared<ValueVector>(memoryManager, dataType, vectorCapacity == 1);
     memcpy(newVector->nullMask, nullMask, vectorCapacity);
-    if (STRING == dataType) {
-        for (auto i = 0u; i < vectorCapacity; i++) {
-            ((gf_string_t*)newVector->values)[i] = ((gf_string_t*)values)[i];
-        }
-    } else {
-        memcpy(newVector->values, values, vectorCapacity * getNumBytesPerValue());
-    }
+    memcpy(newVector->values, values, vectorCapacity * getNumBytesPerValue());
     return newVector;
 }
 

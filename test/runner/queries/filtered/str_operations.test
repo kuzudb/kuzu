@@ -72,8 +72,6 @@
 -QUERY MATCH (a:person) WHERE '1900-01-01Alice' = a.birthdate + a.fName RETURN COUNT(*)
 ---- 1
 
-# This test is commented out because until we support casting structured strings to unstructured values
-# it gives a runtime error.
-#-NAME DateVarAndStrVarConcatUnstructured
-#-QUERY MATCH (a:person) WHERE '47Bob' = a.unstrNumericProp + a.fName RETURN COUNT(*)
-#---- 1
+-NAME DateVarAndStrVarConcatUnstructured
+-QUERY MATCH (a:person) WHERE '47Bob' = a.unstrNumericProp + a.fName RETURN COUNT(*)
+---- 1

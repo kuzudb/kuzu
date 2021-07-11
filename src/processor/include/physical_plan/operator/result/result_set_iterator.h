@@ -10,28 +10,28 @@ namespace processor {
 
 class ResultSetIterator {
 public:
-    explicit ResultSetIterator(ResultSet& resultSet) : resultSet(resultSet), numIteratedTuples(0) {
+    explicit ResultSetIterator(ResultSet* resultSet) : resultSet(resultSet), numIteratedTuples(0) {
         reset();
     }
 
-    void setDataChunks(ResultSet& dataChunks) {
-        this->resultSet = dataChunks;
+    void setResultSet(ResultSet* resultSet) {
+        this->resultSet = resultSet;
         reset();
     }
 
     bool hasNextTuple();
     void getNextTuple(Tuple& tuple);
-    void reset();
 
 public:
-    vector<DataType> dataChunksTypes;
+    vector<DataType> dataTypes;
 
 private:
+    void reset();
     bool updateTuplePositions(int64_t chunkIdx);
     void updateTuplePositions();
     void setDataChunksTypes();
 
-    ResultSet& resultSet;
+    ResultSet* resultSet;
 
     uint64_t numIteratedTuples;
     vector<uint64_t> tuplePositions;

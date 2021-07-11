@@ -31,12 +31,13 @@ public:
 
 public:
     void allocateLargeString(gf_string_t& result, uint64_t len);
-    void appendBuffer(StringBuffer& other);
+
+public:
+    vector<unique_ptr<BufferBlock>> blocks;
 
 private:
     MemoryManager& memoryManager;
     BufferBlock* currentBlock;
-    vector<unique_ptr<BufferBlock>> blocks;
 };
 } // namespace common
 } // namespace graphflow

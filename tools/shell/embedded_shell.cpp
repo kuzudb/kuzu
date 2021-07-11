@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
+
 // prompt for user input
 const char* PROMPT = "graphflowdb> ";
 // file to read/write shell history
@@ -119,6 +121,19 @@ void EmbeddedShell::printExecutionResult() {
     } else {
         // print query result (numTuples & tuples)
         printf(">> Number of output tuples: %lu\n", context.queryResult->numTuples);
+        if (!context.queryResult->resultSetCollection.empty()) {
+            ResultSetIterator resultSetIterator(context.queryResult->resultSetCollection[0].get());
+            Tuple tuple(resultSetIterator.dataTypes);
+            for (auto& resultSet : context.queryResult->resultSetCollection) {
+                resultSetIterator.setResultSet(resultSet.get());
+                while (resultSetIterator.hasNextTuple()) {
+                    resultSetIterator.getNextTuple(tuple);
+                    for (uint64_t k = 0; k < resultSet->multiplicity; k++) {
+                        printf("%s\n", tuple.toString().c_str());
+                    }
+                }
+            }
+        }
         if (context.profiler->enabled) {
             // print plan with profiling metrics
             printf("==============================================\n");

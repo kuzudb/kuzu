@@ -13,7 +13,7 @@ namespace processor {
 class Projection : public PhysicalOperator {
 
 public:
-    Projection(unique_ptr<vector<unique_ptr<ExpressionEvaluator>>> expressions,
+    Projection(vector<unique_ptr<ExpressionEvaluator>> expressions,
         vector<uint64_t> expressionPosToDataChunkPos, const vector<uint64_t>& discardedDataChunkPos,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
@@ -22,7 +22,7 @@ public:
     unique_ptr<PhysicalOperator> clone() override;
 
 private:
-    unique_ptr<vector<unique_ptr<ExpressionEvaluator>>> expressions;
+    vector<unique_ptr<ExpressionEvaluator>> expressions;
     vector<uint64_t> expressionPosToDataChunkPos;
     vector<uint64_t> discardedDataChunkPos;
     shared_ptr<ResultSet> discardedResultSet;

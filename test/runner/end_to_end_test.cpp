@@ -48,3 +48,9 @@ TEST_F(TinySnbProcessorTest, DateDataTypeTests) {
     queryConfig = TestHelper::parseTestFile("test/runner/queries/data_types/date_data_type.test");
     ASSERT_TRUE(TestHelper::runTest(*queryConfig, *defaultSystem));
 }
+
+TEST_F(TinySnbProcessorTest, ProjectionTests) {
+    unique_ptr<TestSuiteQueryConfig> queryConfig;
+    queryConfig = TestHelper::parseTestFile("test/runner/queries/projection/projection.test");
+    ASSERT_TRUE(TestHelper::runTest(*queryConfig, *defaultSystem));
+}

@@ -43,8 +43,9 @@ unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
     auto prevOperator =
         mapLogicalOperatorToPhysical(logicalPlan->lastOperator, physicalOperatorInfo, context);
-    auto resultCollector = make_unique<ResultCollector>(
-        move(prevOperator), RESULT_COLLECTOR, context, physicalOperatorID++);
+    auto resultCollector = make_unique<ResultCollector>(move(prevOperator), RESULT_COLLECTOR,
+        context, physicalOperatorID++,
+        logicalPlan->lastOperator->getLogicalOperatorType() == LOGICAL_PROJECTION);
     return make_unique<PhysicalPlan>(move(resultCollector));
 }
 
@@ -175,44 +176,45 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& physicalOperatorInfo,
     ExecutionContext& context) {
+    PhysicalOperatorsInfo prevOperatorInfo;
     auto prevOperator =
-        mapLogicalOperatorToPhysical(logicalOperator->prevOperator, physicalOperatorInfo, context);
+        mapLogicalOperatorToPhysical(logicalOperator->prevOperator, prevOperatorInfo, context);
     auto& logicalProjection = (const LogicalProjection&)*logicalOperator;
     // We obtain the number of dataChunks from the previous operator as the projection operator
-    // creates new dataChunks and we will be emptying the physicalOperatorInfo object.
-    auto numInputDataChunks = physicalOperatorInfo.vectorVariables.size();
+    // creates new dataChunks and we will create a new physicalOperatorInfo object.
+    auto numInputDataChunks = prevOperatorInfo.vectorVariables.size();
 
     // We append flatten(s) as necessary and map each logical expression to a expression_evaluator
     // one.
-    auto expressionEvaluators = make_unique<vector<unique_ptr<ExpressionEvaluator>>>();
+    vector<unique_ptr<ExpressionEvaluator>> expressionEvaluators;
     for (const auto& logicalRootExpr : logicalProjection.expressionsToProject) {
         prevOperator = appendFlattenOperatorsIfNecessary(
-            *logicalRootExpr, move(prevOperator), physicalOperatorInfo, context);
-        expressionEvaluators->push_back(ExpressionMapper::mapToPhysical(*context.memoryManager,
-            *logicalRootExpr, physicalOperatorInfo, *prevOperator->getResultSet()));
+            *logicalRootExpr, move(prevOperator), prevOperatorInfo, context);
+        expressionEvaluators.push_back(ExpressionMapper::mapToPhysical(*context.memoryManager,
+            *logicalRootExpr, prevOperatorInfo, *prevOperator->getResultSet()));
     }
 
     // We collect the input data chunk positions for the vectors in the expressions.
     vector<string> expressionName;
     vector<uint64_t> exprResultInDataChunkPos;
     for (const auto& logicalRootExpr : logicalProjection.expressionsToProject) {
-        auto name = logicalRootExpr->getAliasElseRawExpression();
-        expressionName.push_back(name);
         auto isLeafVariableExpr = isExpressionLeafVariable(logicalRootExpr->expressionType);
+        auto name = isLeafVariableExpr ? logicalRootExpr->variableName :
+                                         logicalRootExpr->getAliasElseRawExpression();
+        expressionName.push_back(name);
         exprResultInDataChunkPos.push_back(
             isLeafVariableExpr ?
-                physicalOperatorInfo.getDataChunkPos(name) :
-                getDependentUnflatDataChunkPos(*logicalRootExpr, physicalOperatorInfo));
+                prevOperatorInfo.getDataChunkPos(name) :
+                getDependentUnflatDataChunkPos(*logicalRootExpr, prevOperatorInfo));
     }
 
     // We map the input data chunk positions from the prev operator to new normalized ones from 0 to
     // m, where m is the number of output data chunk positions.
-    physicalOperatorInfo.clear();
     vector<uint64_t> exprResultOutDataChunkPos;
-    exprResultOutDataChunkPos.reserve(expressionEvaluators->size());
+    exprResultOutDataChunkPos.resize(expressionEvaluators.size());
     auto currNumOutDataChunks = 0;
     unordered_map<uint64_t, uint64_t> inToOutDataChunkPosMap;
-    for (auto i = 0u; i < expressionEvaluators->size(); i++) {
+    for (auto i = 0u; i < expressionEvaluators.size(); i++) {
         auto it = inToOutDataChunkPosMap.find(exprResultInDataChunkPos[i]);
         if (it != end(inToOutDataChunkPosMap)) {
             exprResultOutDataChunkPos[i] = inToOutDataChunkPosMap.at(exprResultInDataChunkPos[i]);
@@ -222,7 +224,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
             exprResultOutDataChunkPos[i] = currNumOutDataChunks++;
             inToOutDataChunkPosMap.insert(
                 {exprResultInDataChunkPos[i], exprResultOutDataChunkPos[i]});
-            physicalOperatorInfo.appendAsNewDataChunk(expressionName[i]);
+            auto newDataChunkPos = physicalOperatorInfo.appendAsNewDataChunk(expressionName[i]);
+            physicalOperatorInfo.dataChunkPosToIsFlat[newDataChunkPos] =
+                prevOperatorInfo.dataChunkPosToIsFlat[exprResultInDataChunkPos[i]];
         }
     }
 
@@ -230,8 +234,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
     // multiplicity in the projection operation.
     vector<uint64_t> discardedDataChunkPos;
     for (auto i = 0u; i < numInputDataChunks; i++) {
-        auto it = find(exprResultOutDataChunkPos.begin(), exprResultOutDataChunkPos.end(), i);
-        if (it == exprResultOutDataChunkPos.end()) {
+        if (!inToOutDataChunkPosMap.contains(i)) {
             discardedDataChunkPos.push_back(i);
         }
     }
@@ -243,19 +246,19 @@ unique_ptr<PhysicalOperator> PlanMapper::appendFlattenOperatorsIfNecessary(
     const Expression& logicalRootExpr, unique_ptr<PhysicalOperator> prevOperator,
     PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context) {
     pair<unique_ptr<PhysicalOperator>, uint64_t> result;
-    set<uint64_t> unflatDataChunkPosSet;
+    set<uint64_t> unFlatDataChunkPosSet;
     for (auto& leafVariableExpression : logicalRootExpr.getIncludedLeafVariableExpressions()) {
         auto pos = physicalOperatorInfo.getDataChunkPos(leafVariableExpression->variableName);
         if (!physicalOperatorInfo.dataChunkPosToIsFlat[pos]) {
-            unflatDataChunkPosSet.insert(pos);
+            unFlatDataChunkPosSet.insert(pos);
         }
     }
-    if (!unflatDataChunkPosSet.empty()) {
-        vector<uint64_t> unflatDataChunkPos(
-            unflatDataChunkPosSet.begin(), unflatDataChunkPosSet.end());
-        if (unflatDataChunkPosSet.size() > 1) {
-            for (auto i = 0u; i < unflatDataChunkPos.size() - 1; i++) {
-                auto pos = unflatDataChunkPos[i];
+    if (!unFlatDataChunkPosSet.empty()) {
+        vector<uint64_t> unFlatDataChunkPos(
+            unFlatDataChunkPosSet.begin(), unFlatDataChunkPosSet.end());
+        if (unFlatDataChunkPosSet.size() > 1) {
+            for (auto i = 0u; i < unFlatDataChunkPos.size() - 1; i++) {
+                auto pos = unFlatDataChunkPos[i];
                 prevOperator =
                     make_unique<Flatten>(pos, move(prevOperator), context, physicalOperatorID++);
                 physicalOperatorInfo.dataChunkPosToIsFlat[pos] = true;

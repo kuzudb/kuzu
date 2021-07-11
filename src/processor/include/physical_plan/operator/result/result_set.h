@@ -23,6 +23,8 @@ public:
 
     uint64_t getNumTuples();
 
+    unique_ptr<ResultSet> clone();
+
     shared_ptr<ListSyncState> getListSyncState(uint64_t dataChunkPos) {
         return listSyncStatesPerDataChunk[dataChunkPos];
     }

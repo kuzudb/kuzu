@@ -1,0 +1,142 @@
+# description: projections
+
+-NAME PersonNodesTestUnstructuredProperty
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.id,a.unstrDateProp1
+---- 8
+0|1900-01-01
+2|1950-01-01
+3|1950-01-01
+5|
+7|
+8|
+9|
+10|
+
+-NAME PersonNodesTestString
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.fName
+---- 8
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME PersonNodesTestInt
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.age
+---- 8
+35
+30
+45
+20
+20
+25
+40
+83
+
+-NAME PersonNodesTestBoolean
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.isStudent
+---- 8
+True
+True
+False
+False
+False
+True
+False
+False
+
+-NAME PersonNodesTestDouble
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.eyeSight
+---- 8
+5.000000
+5.100000
+5.000000
+4.800000
+4.700000
+4.500000
+4.900000
+4.900000
+
+-NAME PersonNodesTestDate
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.birthdate
+---- 8
+1900-01-01
+1900-01-01
+1940-06-22
+1950-07-23
+1980-10-26
+1980-10-26
+1980-10-26
+1990-11-27
+
+-NAME KnowsRelTestDate
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person)-[e:knows]->(b:person) RETURN e.date
+---- 14
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+1950-05-14
+1950-05-14
+2021-06-30
+1950-05-14
+2000-01-01
+2021-06-30
+1950-05-14
+2000-01-01
+1905-12-12
+1905-12-12
+
+-NAME KnowsOneHopTest
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE b.age=20 RETURN b.age
+---- 3
+20
+20
+20
+
+-NAME KnowsTwoHopTest1
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person)-[:knows]->(:person)-[:knows]->(b:person) WHERE b.age>40 RETURN b.age
+---- 9
+45
+45
+45
+45
+45
+45
+45
+45
+45
+
+-NAME KnowsTwoHopTest2
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person)-[:knows]->(:person)-[:knows]->(b:person) WHERE a.age>b.age+10 RETURN a.age, b.age
+---- 6
+35|20
+35|20
+45|20
+45|20
+45|30
+45|30
+
+-NAME KnowsTwoHopTest3
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.age>c.age+10 RETURN a.age, b.fName, c.age
+---- 6
+35|Bob|20
+35|Carol|20
+45|Alice|20
+45|Bob|20
+45|Dan|30
+45|Alice|30
