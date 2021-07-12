@@ -172,7 +172,7 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
                         if (outValueVector->state->size == DEFAULT_VECTOR_CAPACITY) {
                             currOutputPos.hasMoreTuplesToProduce = true;
                             if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-                                outDataChunk->state->initializeSelector();
+                                outDataChunk->state->resetSelector();
                             }
                             return;
                         }
@@ -187,7 +187,7 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
         currOutputPos.layer++;
     }
     if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-        outDataChunk->state->initializeSelector();
+        outDataChunk->state->resetSelector();
     }
     for (auto& frontier : frontierPerLayer) {
         delete frontier;

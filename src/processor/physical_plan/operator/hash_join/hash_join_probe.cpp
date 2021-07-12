@@ -54,7 +54,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::createVectorsFromExistingOnesAndA
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::createVectorPtrs(DataChunk& buildSideDataChunk) {
     for (auto j = 0u; j < buildSideDataChunk.valueVectors.size(); j++) {
-        auto vectorPtrs = make_unique<overflow_value_t[]>(NODE_SEQUENCE_VECTOR_CAPACITY);
+        auto vectorPtrs = make_unique<overflow_value_t[]>(DEFAULT_VECTOR_CAPACITY);
         BuildSideVectorInfo vectorInfo(buildSideDataChunk.valueVectors[j]->getNumBytesPerValue(),
             resultSet->dataChunks.size(), j, buildSideVectorPtrs.size());
         buildSideVectorInfos.push_back(vectorInfo);
@@ -125,7 +125,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextBatchOfMatchedTuples() {
         }
         nodeID_t nodeIDFromHT;
         while (probeState->probedTuple) {
-            if (NODE_SEQUENCE_VECTOR_CAPACITY == probeState->matchedTuplesSize) {
+            if (DEFAULT_VECTOR_CAPACITY == probeState->matchedTuplesSize) {
                 break;
             }
             memcpy(&nodeIDFromHT, probeState->probedTuple, NUM_BYTES_PER_NODE_ID);
@@ -222,7 +222,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
         updateAppendedUnFlatDataChunks();
         if constexpr (IS_OUT_DATACHUNK_FILTERED) {
             for (uint64_t i = (numProbeSidePrevDataChunks); i < resultSet->dataChunks.size(); i++) {
-                resultSet->dataChunks[i]->state->initializeSelector();
+                resultSet->dataChunks[i]->state->resetSelector();
             }
         }
         metrics->executionTime.stop();
@@ -245,7 +245,7 @@ void HashJoinProbe<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     updateAppendedUnFlatDataChunks();
     if constexpr (IS_OUT_DATACHUNK_FILTERED) {
         for (uint64_t i = (numProbeSidePrevDataChunks); i < resultSet->dataChunks.size(); i++) {
-            resultSet->dataChunks[i]->state->initializeSelector();
+            resultSet->dataChunks[i]->state->resetSelector();
         }
     }
     metrics->executionTime.stop();

@@ -12,10 +12,10 @@ namespace graphflow {
 namespace common {
 
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY = 2048;
-constexpr uint64_t NODE_SEQUENCE_VECTOR_CAPACITY = 1024;
 
 typedef uint32_t label_t;
 typedef uint64_t node_offset_t;
+typedef uint16_t sel_t;
 
 // System representation for nodeID.
 struct nodeID_t {
