@@ -2,10 +2,14 @@
 
 #include "src/storage/include/catalog.h"
 
+static const char* PERSON_LABEL_STR = "person";
 static const label_t PERSON_LABEL_ID = 0;
+static const char* ORGANISATION_LABEL_STR = "organisation";
 static const label_t ORGANISATION_LABEL_ID = 1;
 
+static const char* KNOWS_LABEL_STR = "knows";
 static const label_t KNOWS_LABEL_ID = 0;
+static const char* WORKAT_LABEL_STR = "workAt";
 static const label_t WORKAT_LABEL_ID = 1;
 
 static const char* AGE_PROPERTY_KEY_STR = "age";
@@ -44,8 +48,10 @@ public:
         (const, override));
     MOCK_METHOD(bool, containNodeLabel, (const string& label), (const, override));
     MOCK_METHOD(bool, containRelLabel, (const string& label), (const, override));
-    MOCK_METHOD(label_t, getRelLabelFromString, (const char* label), (const, override));
-    MOCK_METHOD(label_t, getNodeLabelFromString, (const char* label), (const, override));
+    MOCK_METHOD(label_t, getRelLabelFromString, (const string& label), (const, override));
+    MOCK_METHOD(label_t, getNodeLabelFromString, (const string& label), (const, override));
+    MOCK_METHOD(string, getNodeLabelName, (label_t labelId), (const, override));
+    MOCK_METHOD(string, getRelLabelName, (label_t labelId), (const, override));
 };
 
 /**
@@ -72,6 +78,8 @@ public:
         setActionForContainRelLabel();
         setActionForGetNodeLabelFromString();
         setActionForGetRelLabelFromString();
+        setActionForGetNodeLabelName();
+        setActionForGetRelLabelName();
     }
 
 private:
@@ -136,27 +144,39 @@ private:
 
     void setActionForContainNodeLabel() {
         ON_CALL(*this, containNodeLabel(_)).WillByDefault(Return(false));
-        ON_CALL(*this, containNodeLabel(StrEq("person"))).WillByDefault(Return(true));
-        ON_CALL(*this, containNodeLabel(StrEq("organisation"))).WillByDefault(Return(true));
+        ON_CALL(*this, containNodeLabel(StrEq(PERSON_LABEL_STR))).WillByDefault(Return(true));
+        ON_CALL(*this, containNodeLabel(StrEq(ORGANISATION_LABEL_STR))).WillByDefault(Return(true));
     }
 
     void setActionForContainRelLabel() {
         ON_CALL(*this, containRelLabel(_)).WillByDefault(Return(false));
-        ON_CALL(*this, containRelLabel(StrEq("knows"))).WillByDefault(Return(true));
-        ON_CALL(*this, containRelLabel(StrEq("workAt"))).WillByDefault(Return(true));
+        ON_CALL(*this, containRelLabel(StrEq(KNOWS_LABEL_STR))).WillByDefault(Return(true));
+        ON_CALL(*this, containRelLabel(StrEq(WORKAT_LABEL_STR))).WillByDefault(Return(true));
     }
 
     void setActionForGetNodeLabelFromString() {
-        ON_CALL(*this, getNodeLabelFromString(StrEq("person")))
+        ON_CALL(*this, getNodeLabelFromString(StrEq(PERSON_LABEL_STR)))
             .WillByDefault(Return(PERSON_LABEL_ID));
-        ON_CALL(*this, getNodeLabelFromString(StrEq("organisation")))
+        ON_CALL(*this, getNodeLabelFromString(StrEq(ORGANISATION_LABEL_STR)))
             .WillByDefault(Return(ORGANISATION_LABEL_ID));
     }
 
     void setActionForGetRelLabelFromString() {
-        ON_CALL(*this, getRelLabelFromString(StrEq("knows"))).WillByDefault(Return(KNOWS_LABEL_ID));
-        ON_CALL(*this, getRelLabelFromString(StrEq("workAt")))
+        ON_CALL(*this, getRelLabelFromString(StrEq(KNOWS_LABEL_STR)))
+            .WillByDefault(Return(KNOWS_LABEL_ID));
+        ON_CALL(*this, getRelLabelFromString(StrEq(WORKAT_LABEL_STR)))
             .WillByDefault(Return(WORKAT_LABEL_ID));
+    }
+
+    void setActionForGetNodeLabelName() {
+        ON_CALL(*this, getNodeLabelName(PERSON_LABEL_ID)).WillByDefault(Return(PERSON_LABEL_STR));
+        ON_CALL(*this, getNodeLabelName(ORGANISATION_LABEL_ID))
+            .WillByDefault(Return(ORGANISATION_LABEL_STR));
+    }
+
+    void setActionForGetRelLabelName() {
+        ON_CALL(*this, getRelLabelName(KNOWS_LABEL_ID)).WillByDefault(Return(KNOWS_LABEL_STR));
+        ON_CALL(*this, getRelLabelName(WORKAT_LABEL_ID)).WillByDefault(Return(WORKAT_LABEL_STR));
     }
 
     void setSrcNodeLabelToRelLabels() {

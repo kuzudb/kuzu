@@ -11,6 +11,7 @@ Projection::Projection(vector<unique_ptr<ExpressionEvaluator>> expressions,
     : PhysicalOperator(move(prevOperator), PROJECTION, context, id), expressions{move(expressions)},
       expressionPosToDataChunkPos(expressionPosToDataChunkPos),
       discardedDataChunkPos(discardedDataChunkPos) {
+    inResultSet = this->prevOperator->getResultSet();
     resultSet = make_shared<ResultSet>();
     unordered_map<uint64_t, shared_ptr<DataChunk>> posToDataChunkMap;
     for (auto exprPos = 0u; exprPos < expressionPosToDataChunkPos.size(); exprPos++) {
@@ -31,7 +32,6 @@ Projection::Projection(vector<unique_ptr<ExpressionEvaluator>> expressions,
     for (auto& entry : posToDataChunkMap) {
         resultSet->dataChunks[entry.first] = move(entry.second);
     }
-    inResultSet = this->prevOperator->getResultSet();
     discardedResultSet = make_shared<ResultSet>();
     for (auto pos : discardedDataChunkPos) {
         discardedResultSet->append(inResultSet->dataChunks[pos]);
@@ -51,7 +51,8 @@ void Projection::getNextTuples() {
     for (auto& expression : expressions) {
         expression->evaluate();
     }
-    resultSet->multiplicity = discardedResultSet->getNumTuples();
+    resultSet->multiplicity = inResultSet->multiplicity;
+    resultSet->multiplicity *= discardedResultSet->getNumTuples();
     metrics->executionTime.stop();
 }
 

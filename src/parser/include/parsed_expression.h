@@ -25,8 +25,6 @@ public:
         children.push_back(move(right));
     }
 
-    string getName() const { return alias.empty() ? rawExpression : alias; }
-
 public:
     ExpressionType type;
     // variableName, propertyName or functionName

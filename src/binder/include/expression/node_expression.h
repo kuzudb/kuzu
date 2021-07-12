@@ -1,21 +1,19 @@
 #pragma once
 
-#include "src/binder/include/expression/expression.h"
+#include "src/binder/include/expression/variable_expression.h"
 
 namespace graphflow {
 namespace binder {
 
-const string INTERNAL_ID = "_id";
+const string INTERNAL_ID_SUFFIX = "_id";
 
-class NodeExpression : public Expression {
+class NodeExpression : public VariableExpression {
 
 public:
-    NodeExpression(const string& nodeName, label_t label)
-        : Expression{VARIABLE, NODE}, label{label} {
-        variableName = nodeName;
-    }
+    NodeExpression(const string& nodeName, uint32_t id, label_t label)
+        : VariableExpression{VARIABLE, NODE, nodeName, id}, label{label} {}
 
-    string getIDProperty() { return variableName + "." + INTERNAL_ID; }
+    inline string getIDProperty() { return uniqueName + "." + INTERNAL_ID_SUFFIX; }
 
 public:
     label_t label;

@@ -1,5 +1,6 @@
 #include "src/planner/include/enumerator.h"
 
+#include "src/binder/include/expression/function_expression.h"
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
@@ -122,6 +123,8 @@ void Enumerator::updateQueryGraphAndWhereClause(BoundMatchStatement& boundMatchS
         subplansTable->clearUntil(currentLevel);
         matchedQueryRels =
             subplansTable->subgraphPlans[currentLevel].begin()->first.queryRelsSelector;
+        matchedQueryNodes =
+            subplansTable->subgraphPlans[currentLevel].begin()->first.queryNodesSelector;
     }
     mergedQueryGraph->merge(*boundMatchStatement.queryGraph);
     // Restart from level 0 for new query part so that we get hashJoin based plans
@@ -162,6 +165,9 @@ void Enumerator::enumerateSingleQueryNode(
                         subplansTable->getSubgraphPlans(emptySubgraph)[0]->copy() :
                         make_unique<LogicalPlan>();
     for (auto nodePos = 0u; nodePos < mergedQueryGraph->getNumQueryNodes(); ++nodePos) {
+        if (matchedQueryNodes[nodePos]) {
+            continue;
+        }
         auto newSubgraph = SubqueryGraph(*mergedQueryGraph);
         newSubgraph.addQueryNode(nodePos);
         auto plan = prevPlan->copy();
@@ -189,6 +195,9 @@ void Enumerator::enumerateExtend(const vector<shared_ptr<Expression>>& whereClau
         auto connectedQueryRelsWithDirection =
             mergedQueryGraph->getConnectedQueryRelsWithDirection(prevSubgraph);
         for (auto& [relPos, isSrcConnected, isDstConnected] : connectedQueryRelsWithDirection) {
+            if (isSrcConnected && isDstConnected) {
+                throw invalid_argument("Intersect-like operator is not supported.");
+            }
             // Consider query MATCH (a)-[r1]->(b)-[r2]->(c)-[r3]->(d) WITH *
             // MATCH (d)->[r4]->(e)-[r5]->(f) RETURN *
             // First MATCH is enumerated normally. When enumerating second MATCH,
@@ -198,11 +207,13 @@ void Enumerator::enumerateExtend(const vector<shared_ptr<Expression>>& whereClau
             // enumerate query rels in the second MATCH.
             // Note this is different from fully merged, since we don't generate plans like
             // build side QVO : a, b, c,  probe side QVO: f, e, d, c, HashJoin(c).
-            if (matchedQueryRels[relPos]) {
+            auto rel = mergedQueryGraph->queryRels[relPos];
+            auto nbrNodePos = isSrcConnected ?
+                                  mergedQueryGraph->getQueryNodePos(rel->getDstNodeName()) :
+                                  mergedQueryGraph->getQueryNodePos(rel->getSrcNodeName());
+            if (matchedQueryRels[relPos] ||
+                (matchedQueryRels.count() == 0 && matchedQueryNodes[nbrNodePos])) {
                 continue;
-            }
-            if (isSrcConnected && isDstConnected) {
-                throw invalid_argument("Intersect-like operator is not supported.");
             }
             for (auto& prevPlan : prevPlans) {
                 auto newSubgraph = prevSubgraph;
@@ -268,11 +279,11 @@ void Enumerator::enumerateHashJoin(const vector<shared_ptr<Expression>>& whereCl
 void Enumerator::appendLoadCSV(
     const BoundLoadCSVStatement& boundLoadCSVStatement, LogicalPlan& plan) {
     auto loadCSV = make_shared<LogicalLoadCSV>(boundLoadCSVStatement.filePath,
-        boundLoadCSVStatement.tokenSeparator, move(boundLoadCSVStatement.csvColumnVariables));
+        boundLoadCSVStatement.tokenSeparator, boundLoadCSVStatement.csvColumnVariables);
     auto csvColumnNames = unordered_set<string>();
     for (auto& csvColumnVariable : loadCSV->csvColumnVariables) {
-        plan.schema->addMatchedAttribute(csvColumnVariable->variableName);
-        csvColumnNames.insert(csvColumnVariable->variableName);
+        plan.schema->addMatchedAttribute(csvColumnVariable->getInternalName());
+        csvColumnNames.insert(csvColumnVariable->getInternalName());
     }
     plan.schema->addUnFlatFactorizationGroup(csvColumnNames, 1);
     plan.appendOperator(loadCSV);
@@ -289,7 +300,7 @@ void Enumerator::appendLogicalScan(uint32_t queryNodePos, LogicalPlan& plan) {
                     make_shared<LogicalScanNodeID>(nodeID, queryNode.label);
     plan.schema->addMatchedAttribute(nodeID);
     plan.schema->addUnFlatFactorizationGroup(
-        unordered_set<string>{queryNode.variableName}, graph.getNumNodes(queryNode.label));
+        unordered_set<string>{queryNode.getInternalName()}, graph.getNumNodes(queryNode.label));
     plan.appendOperator(scan);
 }
 
@@ -309,15 +320,15 @@ void Enumerator::appendLogicalExtend(uint32_t queryRelPos, Direction direction, 
         nbrNode->label, queryRel.label, direction, isColumnExtend, queryRel.lowerBound,
         queryRel.upperBound, plan.lastOperator);
     plan.schema->addMatchedAttribute(nbrNodeID);
-    plan.schema->addMatchedAttribute(queryRel.variableName);
-    plan.schema->addQueryRelAndLogicalExtend(queryRel.variableName, extend.get());
+    plan.schema->addMatchedAttribute(queryRel.getInternalName());
+    plan.schema->addQueryRelAndLogicalExtend(queryRel.getInternalName(), extend.get());
     if (isColumnExtend) {
-        plan.schema->addToExistingFactorizetionGroup(boundNode->variableName,
-            unordered_set<string>{queryRel.variableName, nbrNode->variableName});
+        plan.schema->addToExistingFactorizetionGroup(boundNode->getInternalName(),
+            unordered_set<string>{queryRel.getInternalName(), nbrNode->getInternalName()});
     } else {
-        plan.schema->flattenFactorizationGroupIfNecessary(boundNode->variableName);
+        plan.schema->flattenFactorizationGroupIfNecessary(boundNode->getInternalName());
         plan.schema->addUnFlatFactorizationGroup(
-            unordered_set<string>{queryRel.variableName, nbrNode->variableName},
+            unordered_set<string>{queryRel.getInternalName(), nbrNode->getInternalName()},
             getExtensionRate(boundNode->label, queryRel.label, direction, graph));
     }
     plan.cost += plan.schema->getCardinality();
@@ -350,15 +361,16 @@ void Enumerator::appendProjection(
     const vector<shared_ptr<Expression>>& returnOrWithClause, LogicalPlan& plan) {
     // Do not append projection in case of RETURN COUNT(*)
     if (1 == returnOrWithClause.size() && FUNCTION == returnOrWithClause[0]->expressionType &&
-        COUNT_STAR_FUNC_NAME == returnOrWithClause[0]->variableName) {
+        COUNT_STAR_FUNC_NAME ==
+            static_pointer_cast<FunctionExpression>(returnOrWithClause[0])->function.name) {
         return;
     }
     auto expressionsToProject = vector<shared_ptr<Expression>>();
     for (auto& expression : returnOrWithClause) {
-        if (VARIABLE == expression->expressionType) {
+        if (NODE == expression->dataType || REL == expression->dataType) {
             for (auto& propertyExpression :
                 rewriteVariableAsAllProperties(expression, graph.getCatalog())) {
-                propertyExpression->childrenExpr.push_back(expression);
+                propertyExpression->children.push_back(expression);
                 appendNecessaryScans(propertyExpression, plan);
                 expressionsToProject.push_back(propertyExpression);
             }
@@ -373,44 +385,45 @@ void Enumerator::appendProjection(
 }
 
 void Enumerator::appendNecessaryScans(shared_ptr<Expression> expression, LogicalPlan& plan) {
-    for (auto& propertyExpression : expression->getIncludedPropertyExpressions()) {
-        if (plan.schema->containsAttributeName(propertyExpression->variableName)) {
+    for (auto& tmp : expression->getIncludedPropertyExpressions()) {
+        auto propertyExpression = (PropertyExpression*)tmp;
+        if (plan.schema->containsAttributeName(propertyExpression->getInternalName())) {
             continue;
         }
-        NODE == propertyExpression->childrenExpr[0]->dataType ?
-            appendScanNodeProperty((PropertyExpression&)*propertyExpression, plan) :
-            appendScanRelProperty((PropertyExpression&)*propertyExpression, plan);
+        NODE == propertyExpression->children[0]->dataType ?
+            appendScanNodeProperty(*propertyExpression, plan) :
+            appendScanRelProperty(*propertyExpression, plan);
     }
 }
 
 void Enumerator::appendScanNodeProperty(
     const PropertyExpression& propertyExpression, LogicalPlan& plan) {
-    auto nodeExpression = static_pointer_cast<NodeExpression>(propertyExpression.childrenExpr[0]);
+    auto nodeExpression = static_pointer_cast<NodeExpression>(propertyExpression.children[0]);
     auto scanProperty = make_shared<LogicalScanNodeProperty>(nodeExpression->getIDProperty(),
-        nodeExpression->label, propertyExpression.variableName, propertyExpression.propertyKey,
+        nodeExpression->label, propertyExpression.getInternalName(), propertyExpression.propertyKey,
         UNSTRUCTURED == propertyExpression.dataType, plan.lastOperator);
-    plan.schema->addMatchedAttribute(propertyExpression.variableName);
+    plan.schema->addMatchedAttribute(propertyExpression.getInternalName());
     plan.appendOperator(scanProperty);
 }
 
 void Enumerator::appendScanRelProperty(
     const PropertyExpression& propertyExpression, LogicalPlan& plan) {
-    auto relExpression = static_pointer_cast<RelExpression>(propertyExpression.childrenExpr[0]);
-    auto extend = plan.schema->getExistingLogicalExtend(relExpression->variableName);
-    auto scanProperty =
-        make_shared<LogicalScanRelProperty>(extend->boundNodeID, extend->boundNodeLabel,
-            extend->nbrNodeID, extend->relLabel, extend->direction, propertyExpression.variableName,
-            propertyExpression.propertyKey, extend->isColumn, plan.lastOperator);
-    plan.schema->addMatchedAttribute(propertyExpression.variableName);
+    auto relExpression = static_pointer_cast<RelExpression>(propertyExpression.children[0]);
+    auto extend = plan.schema->getExistingLogicalExtend(relExpression->getInternalName());
+    auto scanProperty = make_shared<LogicalScanRelProperty>(extend->boundNodeID,
+        extend->boundNodeLabel, extend->nbrNodeID, extend->relLabel, extend->direction,
+        propertyExpression.getInternalName(), propertyExpression.propertyKey, extend->isColumn,
+        plan.lastOperator);
+    plan.schema->addMatchedAttribute(propertyExpression.getInternalName());
     plan.appendOperator(scanProperty);
 }
 
 string getLargestUnflatVariableAndFlattenOthers(const Expression& expression, LogicalPlan& plan) {
     auto unflatVariables = vector<string>();
-    for (auto& leafVariableExpression : expression.getIncludedLeafVariableExpressions()) {
-        auto variableName = leafVariableExpression->expressionType == CSV_LINE_EXTRACT ?
-                                leafVariableExpression->variableName :
-                                leafVariableExpression->childrenExpr[0]->variableName;
+    for (auto& tmp : expression.getIncludedPropertyOrCSVLineExtractExpressions()) {
+        auto variableName = tmp->expressionType == CSV_LINE_EXTRACT ?
+                                ((VariableExpression*)tmp)->getInternalName() :
+                                ((VariableExpression*)tmp->children[0].get())->getInternalName();
         if (!plan.schema->isVariableFlat(variableName)) {
             unflatVariables.push_back(variableName);
         }
@@ -471,7 +484,7 @@ vector<shared_ptr<Expression>> getNewMatchedWhereExpressions(const SubqueryGraph
 vector<shared_ptr<Expression>> splitExpressionOnAND(shared_ptr<Expression> expression) {
     auto result = vector<shared_ptr<Expression>>();
     if (AND == expression->expressionType) {
-        for (auto& child : expression->childrenExpr) {
+        for (auto& child : expression->children) {
             for (auto& exp : splitExpressionOnAND(child)) {
                 result.push_back(exp);
             }
@@ -482,22 +495,24 @@ vector<shared_ptr<Expression>> splitExpressionOnAND(shared_ptr<Expression> expre
     return result;
 }
 
-// all properties are given an alias in order to print
 static vector<shared_ptr<Expression>> rewriteVariableAsAllProperties(
     shared_ptr<Expression> variableExpression, const Catalog& catalog) {
-    if (NODE == variableExpression->dataType) {
-        auto nodeExpression = static_pointer_cast<NodeExpression>(variableExpression);
+    shared_ptr<Expression> expression = variableExpression;
+    while (ALIAS == expression->expressionType) {
+        expression = expression->children[0];
+    }
+    if (NODE == expression->dataType) {
+        auto nodeExpression = static_pointer_cast<NodeExpression>(expression);
         auto propertyExpressions = createLogicalPropertyExpressions(
-            variableExpression, catalog.getNodeProperties(nodeExpression->label));
-        auto internalIDProperty = make_shared<PropertyExpression>(
-            nodeExpression->getIDProperty(), NODE_ID, UINT32_MAX, variableExpression);
-        internalIDProperty->alias = nodeExpression->getIDProperty();
+            expression, catalog.getNodeProperties(nodeExpression->label));
+        auto internalIDProperty =
+            make_shared<PropertyExpression>(NODE_ID, INTERNAL_ID_SUFFIX, UINT32_MAX, expression);
         propertyExpressions.push_back(internalIDProperty);
         return propertyExpressions;
     } else {
-        auto relExpression = static_pointer_cast<RelExpression>(variableExpression);
+        auto relExpression = static_pointer_cast<RelExpression>(expression);
         return createLogicalPropertyExpressions(
-            variableExpression, catalog.getRelProperties(relExpression->label));
+            expression, catalog.getRelProperties(relExpression->label));
     }
 }
 
@@ -505,12 +520,8 @@ vector<shared_ptr<Expression>> createLogicalPropertyExpressions(
     shared_ptr<Expression> variableExpression, const vector<PropertyDefinition>& properties) {
     auto propertyExpressions = vector<shared_ptr<Expression>>();
     for (auto& property : properties) {
-        auto propertyWithVariableName = variableExpression->variableName + "." + property.name;
         auto expression = make_shared<PropertyExpression>(
-            propertyWithVariableName, property.dataType, property.id, variableExpression);
-        // This alias set should be removed if we can print all properties in a single column.
-        // And column name should be variable name
-        expression->alias = propertyWithVariableName;
+            property.dataType, property.name, property.id, variableExpression);
         propertyExpressions.push_back(expression);
     }
     return propertyExpressions;

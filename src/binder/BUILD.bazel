@@ -71,10 +71,12 @@ cc_library(
     ],
     hdrs = [
         "include/expression/expression.h",
+        "include/expression/function_expression.h",
         "include/expression/literal_expression.h",
         "include/expression/node_expression.h",
         "include/expression/property_expression.h",
         "include/expression/rel_expression.h",
+        "include/expression/variable_expression.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

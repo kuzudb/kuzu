@@ -21,6 +21,10 @@ public:
     // Append the given variable as a new vector into the given dataChunkPos
     void appendAsNewValueVector(const string& variableName, uint64_t dataChunkPos);
 
+    inline bool containDataChunk(const string& variableName) {
+        return variableToDataPosMap.contains(variableName);
+    }
+
     inline uint64_t getDataChunkPos(const string& variableName) {
         GF_ASSERT(variableToDataPosMap.contains(variableName));
         return variableToDataPosMap.at(variableName).first;

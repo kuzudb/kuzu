@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/binder/include/bound_queries/bound_single_query.h"
+#include "src/binder/include/expression_binder.h"
 #include "src/binder/include/query_graph/query_graph.h"
 #include "src/parser/include/queries/single_query.h"
 #include "src/parser/include/statements/load_csv_statement.h"
@@ -16,7 +17,9 @@ namespace binder {
 class QueryBinder {
 
 public:
-    explicit QueryBinder(const Catalog& catalog) : catalog{catalog}, lastVariableIdx{0} {}
+    explicit QueryBinder(const Catalog& catalog)
+        : catalog{catalog}, variablesInScope{unordered_map<string, shared_ptr<Expression>>()},
+          lastVariableId{0}, expressionBinder{catalog, variablesInScope} {}
 
     unique_ptr<BoundSingleQuery> bind(const SingleQuery& singleQuery);
 
@@ -44,14 +47,13 @@ private:
     shared_ptr<Expression> bindWhereExpression(const ParsedExpression& parsedExpression);
 
     vector<shared_ptr<Expression>> bindProjectExpressions(
-        const vector<unique_ptr<ParsedExpression>>& parsedExpressions, bool projectStar);
+        const vector<unique_ptr<ParsedExpression>>& parsedExpressions, bool projectStar,
+        bool updateVariablesInScope);
 
     unique_ptr<QueryGraph> bindQueryGraph(const vector<unique_ptr<PatternElement>>& graphPattern);
 
     void bindQueryRel(const RelPattern& relPattern, NodeExpression* leftNode,
         NodeExpression* rightNode, QueryGraph& queryGraph);
-
-    void bindNodeToRel(RelExpression& queryRel, NodeExpression* queryNode, bool isSrcNode);
 
     shared_ptr<NodeExpression> bindQueryNode(
         const NodePattern& nodePattern, QueryGraph& queryGraph);
@@ -60,10 +62,25 @@ private:
 
     label_t bindNodeLabel(const string& parsed_label);
 
+    /******* validations *********/
+
+    // E.g. MATCH (:person)-[:studyAt]->(:person)
+    void validateNodeAndRelLabelIsConnected(
+        label_t relLabel, label_t nodeLabel, Direction direction);
+    // E.g. RETURN a, b AS a
+    void validateProjectionColumnNamesAreUnique(const vector<shared_ptr<Expression>>& expressions);
+    // Current system does not support group by and aggregation. So if COUNT(*) presents, no other
+    // expression is allowed
+    void validateOnlyFunctionIsCountStar(const vector<shared_ptr<Expression>>& expressions);
+    void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
+        unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
+    void validateCSVHeaderColumnNamesAreUnique(const vector<pair<string, DataType>>& headerInfo);
+
 private:
     const Catalog& catalog;
     unordered_map<string, shared_ptr<Expression>> variablesInScope;
-    uint32_t lastVariableIdx;
+    uint32_t lastVariableId;
+    ExpressionBinder expressionBinder;
 };
 
 } // namespace binder

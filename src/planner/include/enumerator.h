@@ -72,8 +72,9 @@ private:
 
     uint32_t currentLevel;
     unique_ptr<QueryGraph> mergedQueryGraph;
-    // query rels matched in previous query graph
+    // query nodes and rels matched in previous query graph
     bitset<MAX_NUM_VARIABLES> matchedQueryRels;
+    bitset<MAX_NUM_VARIABLES> matchedQueryNodes;
 };
 
 } // namespace planner

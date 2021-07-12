@@ -1,5 +1,6 @@
 #include "src/binder/include/expression_binder.h"
 
+#include "src/binder/include/expression/function_expression.h"
 #include "src/binder/include/expression/literal_expression.h"
 #include "src/binder/include/expression/property_expression.h"
 #include "src/binder/include/expression/rel_expression.h"
@@ -8,10 +9,6 @@
 
 namespace graphflow {
 namespace binder {
-
-static void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression);
-static void validateExpectedType(const Expression& expression, DataType expectedType);
-static void validateNumericalType(const Expression& expression);
 
 shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& parsedExpression) {
     shared_ptr<Expression> expression;
@@ -32,7 +29,7 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         expression = bindCSVLineExtractExpression(parsedExpression);
     } else if (isExpressionNullComparison(expressionType)) {
         expression = bindNullComparisonOperatorExpression(parsedExpression);
-    } else if (isExpressionLeafLiteral(expressionType)) {
+    } else if (isExpressionLiteral(expressionType)) {
         expression = bindLiteralExpression(parsedExpression);
     } else if (FUNCTION == expressionType) {
         expression = bindFunctionExpression(parsedExpression);
@@ -46,18 +43,10 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
     }
     expression->rawExpression = parsedExpression.rawExpression;
     if (!parsedExpression.alias.empty()) {
-        expression->alias = parsedExpression.alias;
-    }
-    return expression;
-}
-
-static shared_ptr<Expression> validateAsBoolAndCastIfNecessary(shared_ptr<Expression> expression) {
-    if (expression->dataType != UNSTRUCTURED) {
-        validateExpectedType(*expression, BOOL);
-    } else {
-        assert(expression->dataType == UNSTRUCTURED);
-        expression = make_shared<Expression>(
-            CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR, BOOL, move(expression));
+        auto aliasExpression =
+            make_shared<Expression>(ALIAS, expression->dataType, move(expression));
+        aliasExpression->rawExpression = parsedExpression.alias;
+        return aliasExpression;
     }
     return expression;
 }
@@ -116,14 +105,14 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
     if (parsedExpression.type == ADD) {
         if (left->dataType == STRING || right->dataType == STRING) {
             if (left->dataType != STRING) {
-                if (isExpressionLeafLiteral(left->expressionType)) {
+                if (isExpressionLiteral(left->expressionType)) {
                     static_pointer_cast<LiteralExpression>(left)->castToString();
                 } else {
                     left = make_shared<Expression>(CAST_TO_STRING, STRING, move(left));
                 }
             }
             if (right->dataType != STRING) {
-                if (isExpressionLeafLiteral(right->expressionType)) {
+                if (isExpressionLiteral(right->expressionType)) {
                     static_pointer_cast<LiteralExpression>(right)->castToString();
                 } else {
                     right = make_shared<Expression>(CAST_TO_STRING, STRING, move(right));
@@ -139,11 +128,6 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
         resultType = DOUBLE;
     } else {
         resultType = INT64;
-    }
-    if (!isExpressionArithmetic(parsedExpression.type)) {
-        throw invalid_argument("Should never happen. Cannot bind expression type of " +
-                               expressionTypeToString(parsedExpression.type) +
-                               " as binary arithmetic expression.");
     }
     return make_shared<Expression>(parsedExpression.type, resultType, move(left), move(right));
 }
@@ -192,34 +176,30 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     const ParsedExpression& parsedExpression) {
     validateNoNullLiteralChildren(parsedExpression);
     auto propertyName = parsedExpression.text;
-    auto childExpression = bindExpression(*parsedExpression.children.at(0));
-    if (NODE == childExpression->dataType) {
-        auto node = static_pointer_cast<NodeExpression>(childExpression);
-        auto propertyVariableName = node->variableName + "." + propertyName;
+    auto child = bindExpression(*parsedExpression.children.at(0));
+    if (NODE == child->dataType) {
+        auto node = static_pointer_cast<NodeExpression>(child);
         if (catalog.containNodeProperty(node->label, propertyName)) {
-            auto property = catalog.getNodeProperty(node->label, propertyName);
+            auto& property = catalog.getNodeProperty(node->label, propertyName);
             return make_shared<PropertyExpression>(
-                propertyVariableName, property.dataType, property.id, move(childExpression));
+                property.dataType, propertyName, property.id, move(child));
         } else {
-            throw invalid_argument("Node " + node->getAliasElseRawExpression() +
-                                   " does not have property " + propertyName + ".");
+            throw invalid_argument("Node " + node->getExternalName() + " does not have property " +
+                                   propertyName + ".");
         }
-    }
-    if (REL == childExpression->dataType) {
-        auto rel = static_pointer_cast<RelExpression>(childExpression);
-        auto propertyVariableName = rel->variableName + "." + propertyName;
+    } else if (REL == child->dataType) {
+        auto rel = static_pointer_cast<RelExpression>(child);
         if (catalog.containRelProperty(rel->label, propertyName)) {
-            auto property = catalog.getRelProperty(rel->label, propertyName);
+            auto& property = catalog.getRelProperty(rel->label, propertyName);
             return make_shared<PropertyExpression>(
-                propertyVariableName, property.dataType, property.id, move(childExpression));
+                property.dataType, propertyName, property.id, move(child));
         } else {
-            throw invalid_argument("Rel " + rel->getAliasElseRawExpression() +
-                                   " does not have property " + propertyName + ".");
+            throw invalid_argument(
+                "Rel " + rel->getExternalName() + " does not have property " + propertyName + ".");
         }
     }
-    throw invalid_argument("Type mismatch: expect NODE or REL, but " +
-                           childExpression->rawExpression + " was " +
-                           TypeUtils::dataTypeToString(childExpression->dataType) + ".");
+    throw invalid_argument("Type mismatch: expect NODE or REL, but " + child->getExternalName() +
+                           " was " + TypeUtils::dataTypeToString(child->dataType) + ".");
 }
 
 shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
@@ -245,8 +225,8 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     if (functionName == ID_FUNC_NAME) {
         // Binds ID(a) function as a._id property
         auto node = static_pointer_cast<NodeExpression>(children[0]);
-        return make_shared<PropertyExpression>(
-            node->getIDProperty(), NODE_ID, UINT32_MAX, move(children[0]));
+        return make_shared<PropertyExpression>(NODE_ID, INTERNAL_ID_SUFFIX,
+            UINT32_MAX /* property key for internal id */, move(children[0]));
     } else if (functionName == DATE_FUNC_NAME) {
         // Binds date(2012-10-10) as date literal
         if (children[0]->expressionType == LITERAL_STRING) {
@@ -255,9 +235,8 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
                 Literal(Date::FromCString(dateInString.c_str(), dateInString.length())));
         }
     }
-    auto functionExpression =
-        make_shared<Expression>(FUNCTION, function->returnType, function->name);
-    functionExpression->childrenExpr = move(children);
+    auto functionExpression = make_shared<FunctionExpression>(*function);
+    functionExpression->children = move(children);
     return functionExpression;
 }
 
@@ -292,7 +271,7 @@ shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
     throw invalid_argument("Variable " + parsedExpression.rawExpression + " not defined.");
 }
 
-void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
+void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
     for (auto& child : parsedExpression.children) {
         if (LITERAL_NULL == child->type) {
             throw invalid_argument(
@@ -301,22 +280,31 @@ void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
     }
 }
 
-void validateExpectedType(const Expression& expression, DataType expectedType) {
+void ExpressionBinder::validateExpectedType(const Expression& expression, DataType expectedType) {
     auto dataType = expression.dataType;
     if (expectedType != dataType) {
-        throw invalid_argument(expression.rawExpression + " has data type " +
+        throw invalid_argument(expression.getExternalName() + " has data type " +
                                TypeUtils::dataTypeToString(dataType) + ". " +
                                TypeUtils::dataTypeToString(expectedType) + " was expected.");
     }
 }
 
-void validateNumericalType(const Expression& expression) {
+void ExpressionBinder::validateNumericalType(const Expression& expression) {
     auto dataType = expression.dataType;
     if (!TypeUtils::isNumericalType(dataType)) {
-        throw invalid_argument(expression.rawExpression + " has data type " +
+        throw invalid_argument(expression.getExternalName() + " has data type " +
                                TypeUtils::dataTypeToString(dataType) +
                                ". A numerical data type was expected.");
     }
+}
+
+shared_ptr<Expression> ExpressionBinder::validateAsBoolAndCastIfNecessary(
+    shared_ptr<Expression> expression) {
+    if (expression->dataType != UNSTRUCTURED) {
+        validateExpectedType(*expression, BOOL);
+        return expression;
+    }
+    return make_shared<Expression>(CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR, BOOL, move(expression));
 }
 
 } // namespace binder

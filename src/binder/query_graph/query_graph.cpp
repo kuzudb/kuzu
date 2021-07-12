@@ -1,5 +1,7 @@
 #include "src/binder/include/query_graph/query_graph.h"
 
+#include "src/common/include/assert.h"
+
 namespace graphflow {
 namespace binder {
 
@@ -44,7 +46,7 @@ uint32_t QueryGraph::getNumQueryNodes() const {
 }
 
 bool QueryGraph::containsQueryNode(const string& queryNodeName) const {
-    return end(queryNodeNameToPosMap) != queryNodeNameToPosMap.find(queryNodeName);
+    return queryNodeNameToPosMap.contains(queryNodeName);
 }
 
 NodeExpression* QueryGraph::getQueryNode(const string& queryNodeName) const {
@@ -55,11 +57,10 @@ uint32_t QueryGraph::getQueryNodePos(const string& queryNodeName) const {
     return queryNodeNameToPosMap.at(queryNodeName);
 }
 
-void QueryGraph::addQueryNodeIfNotExist(shared_ptr<NodeExpression> queryNode) {
-    if (!containsQueryNode(queryNode->variableName)) {
-        queryNodeNameToPosMap.insert({queryNode->variableName, queryNodes.size()});
-        queryNodes.push_back(queryNode);
-    }
+void QueryGraph::addQueryNode(shared_ptr<NodeExpression> queryNode) {
+    GF_ASSERT(!containsQueryNode(queryNode->getInternalName()));
+    queryNodeNameToPosMap.insert({queryNode->getInternalName(), queryNodes.size()});
+    queryNodes.push_back(queryNode);
 }
 
 uint32_t QueryGraph::getNumQueryRels() const {
@@ -67,7 +68,7 @@ uint32_t QueryGraph::getNumQueryRels() const {
 }
 
 bool QueryGraph::containsQueryRel(const string& queryRelName) const {
-    return end(queryRelNameToPosMap) != queryRelNameToPosMap.find(queryRelName);
+    return queryRelNameToPosMap.contains(queryRelName);
 }
 
 RelExpression* QueryGraph::getQueryRel(const string& queryRelName) const {
@@ -78,11 +79,10 @@ uint32_t QueryGraph::getQueryRelPos(const string& queryRelName) const {
     return queryRelNameToPosMap.at(queryRelName);
 }
 
-void QueryGraph::addQueryRelIfNotExist(shared_ptr<RelExpression> queryRel) {
-    if (!containsQueryRel(queryRel->variableName)) {
-        queryRelNameToPosMap.insert({queryRel->variableName, queryRels.size()});
-        queryRels.push_back(queryRel);
-    }
+void QueryGraph::addQueryRel(shared_ptr<RelExpression> queryRel) {
+    GF_ASSERT(!containsQueryRel(queryRel->getInternalName()));
+    queryRelNameToPosMap.insert({queryRel->getInternalName(), queryRels.size()});
+    queryRels.push_back(queryRel);
 }
 
 vector<tuple<uint32_t, bool, bool>> QueryGraph::getConnectedQueryRelsWithDirection(
@@ -142,10 +142,10 @@ bool QueryGraph::isEmpty() const {
 
 void QueryGraph::merge(QueryGraph& other) {
     for (auto& otherNode : other.queryNodes) {
-        addQueryNodeIfNotExist(otherNode);
+        addQueryNode(otherNode);
     }
     for (auto& otherRel : other.queryRels) {
-        addQueryRelIfNotExist(otherRel);
+        addQueryRel(otherRel);
     }
 }
 

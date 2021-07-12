@@ -4,6 +4,7 @@
 
 #include "nlohmann/json.hpp"
 
+#include "src/common/include/assert.h"
 #include "src/common/include/file_utils.h"
 #include "src/common/include/function.h"
 #include "src/common/include/ser_deser.h"
@@ -121,7 +122,12 @@ public:
         label_t nodeLabel, Direction direction) const;
     virtual bool isSingleMultiplicityInDirection(label_t relLabel, Direction direction) const;
 
-    inline string getNodeLabelName(label_t labelId) const { return nodeLabels[labelId].labelName; }
+    virtual inline string getNodeLabelName(label_t labelId) const {
+        return nodeLabels[labelId].labelName;
+    }
+    virtual inline string getRelLabelName(label_t labelId) const {
+        return relLabels[labelId].labelName;
+    }
     inline uint64_t getNodeLabelsCount() const { return nodeLabels.size(); }
     inline uint64_t getRelLabelsCount() const { return relLabels.size(); }
     virtual inline bool containNodeLabel(const string& label) const {
@@ -130,10 +136,10 @@ public:
     virtual inline bool containRelLabel(const string& label) const {
         return end(relLabelNameToIdMap) != relLabelNameToIdMap.find(label);
     }
-    virtual inline label_t getNodeLabelFromString(const char* label) const {
+    virtual inline label_t getNodeLabelFromString(const string& label) const {
         return nodeLabelNameToIdMap.at(label);
     }
-    virtual inline label_t getRelLabelFromString(const char* label) const {
+    virtual inline label_t getRelLabelFromString(const string& label) const {
         return relLabelNameToIdMap.at(label);
     }
     inline const vector<PropertyDefinition>& getNodeProperties(label_t nodeLabel) const {

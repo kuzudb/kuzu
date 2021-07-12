@@ -198,12 +198,10 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
     vector<string> expressionName;
     vector<uint64_t> exprResultInDataChunkPos;
     for (const auto& logicalRootExpr : logicalProjection.expressionsToProject) {
-        auto isLeafVariableExpr = isExpressionLeafVariable(logicalRootExpr->expressionType);
-        auto name = isLeafVariableExpr ? logicalRootExpr->variableName :
-                                         logicalRootExpr->getAliasElseRawExpression();
+        auto name = logicalRootExpr->getInternalName();
         expressionName.push_back(name);
         exprResultInDataChunkPos.push_back(
-            isLeafVariableExpr ?
+            prevOperatorInfo.containDataChunk(name) ?
                 prevOperatorInfo.getDataChunkPos(name) :
                 getDependentUnflatDataChunkPos(*logicalRootExpr, prevOperatorInfo));
     }
@@ -247,8 +245,8 @@ unique_ptr<PhysicalOperator> PlanMapper::appendFlattenOperatorsIfNecessary(
     PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context) {
     pair<unique_ptr<PhysicalOperator>, uint64_t> result;
     set<uint64_t> unFlatDataChunkPosSet;
-    for (auto& leafVariableExpression : logicalRootExpr.getIncludedLeafVariableExpressions()) {
-        auto pos = physicalOperatorInfo.getDataChunkPos(leafVariableExpression->variableName);
+    for (auto& expression : logicalRootExpr.getIncludedPropertyOrCSVLineExtractExpressions()) {
+        auto pos = physicalOperatorInfo.getDataChunkPos(expression->getInternalName());
         if (!physicalOperatorInfo.dataChunkPosToIsFlat[pos]) {
             unFlatDataChunkPosSet.insert(pos);
         }
@@ -272,8 +270,8 @@ unique_ptr<PhysicalOperator> PlanMapper::appendFlattenOperatorsIfNecessary(
 // all vectors in the expressions are flat, we return null as UINT64_MAX.
 uint64_t getDependentUnflatDataChunkPos(
     const Expression& logicalRootExpr, PhysicalOperatorsInfo& physicalOperatorInfo) {
-    for (auto& propertyExpression : logicalRootExpr.getIncludedLeafVariableExpressions()) {
-        auto pos = physicalOperatorInfo.getDataChunkPos(propertyExpression->variableName);
+    for (auto& expression : logicalRootExpr.getIncludedPropertyOrCSVLineExtractExpressions()) {
+        auto pos = physicalOperatorInfo.getDataChunkPos(expression->getInternalName());
         if (!physicalOperatorInfo.dataChunkPosToIsFlat[pos]) {
             return pos;
         }
@@ -404,7 +402,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLoadCSVToPhysical(
     vector<DataType> csvColumnDataTypes;
     uint64_t dataChunkPos;
     for (auto i = 0u; i < logicalLoadCSV.csvColumnVariables.size(); i++) {
-        auto csvColumnName = logicalLoadCSV.csvColumnVariables[i]->variableName;
+        auto csvColumnName = logicalLoadCSV.csvColumnVariables[i]->getInternalName();
         if (0u == i) {
             dataChunkPos = physicalOperatorInfo.appendAsNewDataChunk(csvColumnName);
         } else {

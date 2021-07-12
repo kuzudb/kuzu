@@ -13,14 +13,15 @@ enum ArrowDirection : uint8_t { LEFT = 0, RIGHT = 1 };
 class RelPattern {
 
 public:
-    RelPattern(string name, string label, uint8_t lowerBound, uint8_t upperBound)
-        : name{move(name)}, label{move(label)}, lowerBound{lowerBound}, upperBound{upperBound} {}
+    RelPattern(string name, string label, string lowerBound, string upperBound)
+        : name{move(name)}, label{move(label)}, lowerBound{move(lowerBound)}, upperBound{move(
+                                                                                  upperBound)} {}
 
 public:
     string name;
     string label;
-    uint64_t lowerBound;
-    uint64_t upperBound;
+    string lowerBound;
+    string upperBound;
     ArrowDirection arrowDirection;
 };
 

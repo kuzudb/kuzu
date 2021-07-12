@@ -17,9 +17,9 @@ public:
     }
 
     string getExpressionsForPrinting() const override {
-        auto result = expressionsToProject[0]->getAliasElseRawExpression();
+        auto result = expressionsToProject[0]->getInternalName();
         for (auto i = 1u; i < expressionsToProject.size(); ++i) {
-            result += ", " + expressionsToProject[i]->getAliasElseRawExpression();
+            result += ", " + expressionsToProject[i]->getInternalName();
         }
         return result;
     }

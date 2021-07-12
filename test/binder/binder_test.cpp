@@ -25,11 +25,11 @@ TEST_F(BinderTest, LOADCSVBasicTest) {
     auto expectedCSVColumnInfo = vector<pair<string, DataType>>();
     expectedCSVColumnInfo.emplace_back(make_pair("age", INT64));
     expectedCSVColumnInfo.emplace_back(make_pair("name", STRING));
-    auto csvLines = vector<shared_ptr<Expression>>();
-    auto csvLine0 = make_shared<Expression>(CSV_LINE_EXTRACT, INT64, "_gf0_csvLine[0]");
-    csvLine0->alias = "csvLine[0]";
-    auto csvLine1 = make_shared<Expression>(CSV_LINE_EXTRACT, STRING, "_gf0_csvLine[1]");
-    csvLine1->alias = "csvLine[1]";
+    auto csvLines = vector<shared_ptr<VariableExpression>>();
+    auto csvLine0 = make_shared<VariableExpression>(CSV_LINE_EXTRACT, INT64, "csvLine[0]", 0);
+    csvLine0->rawExpression = "csvLine[0]";
+    auto csvLine1 = make_shared<VariableExpression>(CSV_LINE_EXTRACT, STRING, "csvLine[1]", 1);
+    csvLine1->rawExpression = "csvLine[1]";
     csvLines.push_back(csvLine0);
     csvLines.push_back(csvLine1);
     auto expectedLoadCSVStatement =
@@ -46,12 +46,13 @@ TEST_F(BinderTest, LOADCSVBasicTest) {
 }
 
 TEST_F(BinderTest, LOADCSVMATCHTest) {
-    auto a = make_shared<NodeExpression>("_gf1_a", 0);
-    a->alias = "a";
-    auto aName = make_shared<PropertyExpression>("_gf1_a.name", STRING, 1, move(a));
-    auto csvLine1 = make_shared<Expression>(CSV_LINE_EXTRACT, STRING, "_gf0_csvLine[1]");
-    csvLine1->alias = "csvLine[1]";
+    auto a = make_shared<NodeExpression>("a", 2, 0);
+    a->rawExpression = "a";
+    auto aName = make_shared<PropertyExpression>(STRING, "name", 1, move(a));
+    auto csvLine1 = make_shared<VariableExpression>(CSV_LINE_EXTRACT, STRING, "csvLine[1]", 1);
+    csvLine1->rawExpression = "csvLine[1]";
     auto expectedWhere = make_shared<Expression>(EQUALS, BOOL, move(aName), move(csvLine1));
+    expectedWhere->rawExpression = "a.name = csvLine[1]";
 
     NiceMock<TinySnbCatalog> catalog;
     catalog.setUp();
@@ -85,10 +86,10 @@ TEST_F(BinderTest, DateNodePropertyBindingTest) {
     auto boundQuery = BinderTest::getBoundQuery(query, catalog);
     BoundMatchStatement* matchStatement =
         (BoundMatchStatement*)(boundQuery->boundReadingStatements[0].get());
-    auto& leftANDExpr = matchStatement->whereExpression->childrenExpr[0];
-    auto& rightANDExpr = matchStatement->whereExpression->childrenExpr[1];
-    ASSERT_EQ(DATE, leftANDExpr->childrenExpr[0]->dataType);
-    ASSERT_EQ(DATE, leftANDExpr->childrenExpr[1]->dataType);
-    ASSERT_EQ(DATE, rightANDExpr->childrenExpr[0]->dataType);
-    ASSERT_EQ(DATE, rightANDExpr->childrenExpr[1]->dataType);
+    auto& leftANDExpr = matchStatement->whereExpression->children[0];
+    auto& rightANDExpr = matchStatement->whereExpression->children[1];
+    ASSERT_EQ(DATE, leftANDExpr->children[0]->dataType);
+    ASSERT_EQ(DATE, leftANDExpr->children[1]->dataType);
+    ASSERT_EQ(DATE, rightANDExpr->children[0]->dataType);
+    ASSERT_EQ(DATE, rightANDExpr->children[1]->dataType);
 }

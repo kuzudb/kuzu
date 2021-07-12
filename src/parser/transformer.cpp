@@ -178,11 +178,11 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
 
 unique_ptr<RelPattern> Transformer::transformRelationshipDetail(
     CypherParser::OC_RelationshipDetailContext& ctx) {
-    uint64_t lowerBound = 1u;
-    uint64_t upperBound = 1u;
+    string lowerBound = "1";
+    string upperBound = "1";
     if (ctx.oC_RangeLiteral()) {
-        stringstream(ctx.oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText()) >> lowerBound;
-        stringstream(ctx.oC_RangeLiteral()->oC_IntegerLiteral()[1]->getText()) >> upperBound;
+        lowerBound = ctx.oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText();
+        upperBound = ctx.oC_RangeLiteral()->oC_IntegerLiteral()[1]->getText();
     }
     return make_unique<RelPattern>(
         ctx.oC_Variable() ? transformVariable(*ctx.oC_Variable()) : string(),
