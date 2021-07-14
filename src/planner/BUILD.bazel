@@ -41,6 +41,5 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/binder:expression",
-        "//src/common:file_ser_deser_helper",
     ],
 )

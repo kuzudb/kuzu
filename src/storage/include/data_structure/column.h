@@ -17,8 +17,6 @@ namespace storage {
 class BaseColumn : public DataStructure {
 
 public:
-    virtual ~BaseColumn() = default;
-
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
         BufferManagerMetrics& metrics);

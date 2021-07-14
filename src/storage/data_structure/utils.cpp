@@ -4,6 +4,8 @@
 
 #include "src/common/include/file_utils.h"
 
+using namespace graphflow::common;
+
 namespace graphflow {
 namespace storage {
 

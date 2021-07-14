@@ -1,6 +1,7 @@
 #pragma once
 
-#include "src/common/include/file_ser_deser_helper.h"
+#include <memory>
+
 #include "src/common/include/types.h"
 
 using namespace graphflow::common;

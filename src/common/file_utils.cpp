@@ -5,7 +5,7 @@
 using namespace std;
 
 namespace graphflow {
-namespace storage {
+namespace common {
 
 int FileUtils::openFile(const string& path, int flags) {
     int fd = open(path.c_str(), flags, 0644);
@@ -38,5 +38,5 @@ void FileUtils::readFromFile(int fd, void* buffer, int64_t numBytes, uint64_t po
                                " numBytesToRead: " + to_string(numBytes));
     }
 }
-} // namespace storage
+} // namespace common
 } // namespace graphflow

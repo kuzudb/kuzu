@@ -117,8 +117,8 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "@martinus_robin_hood_hashing",
         "@gabime_spdlog",
+        "@martinus_robin_hood_hashing",
     ],
 )
 
@@ -180,14 +180,14 @@ cc_library(
 )
 
 cc_library(
-    name = "file_ser_deser_helper",
-    srcs = [
-        "file_ser_deser_helper.cpp",
-    ],
+    name = "ser_deser",
     hdrs = [
-        "include/file_ser_deser_helper.h",
+        "include/ser_deser.h",
     ],
     visibility = ["//visibility:public"],
+    deps = [
+        "utils",
+    ],
 )
 
 cc_library(

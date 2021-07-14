@@ -10,7 +10,7 @@
 using namespace std;
 
 namespace graphflow {
-namespace storage {
+namespace common {
 
 class FileUtils {
 public:
@@ -34,5 +34,5 @@ public:
         return s.st_size;
     }
 };
-} // namespace storage
+} // namespace common
 } // namespace graphflow

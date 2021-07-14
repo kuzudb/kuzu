@@ -409,14 +409,12 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             break;
         }
         case STRING: {
-            auto strVal =
-                reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
             auto encodedString = reinterpret_cast<gf_string_t*>(
                 unstrPropertyPages.getPtrToMemLoc(pageCursor) +
                 UnstructuredPropertyLists::
                     UNSTR_PROP_HEADER_LEN /*leave space for id and dataType*/);
             stringOverflowPages.setStrInOvfPageAndPtrInEncString(
-                strVal, stringOvfPagesCursor, encodedString);
+                unstrPropertyStringBreaker2 + 1, stringOvfPagesCursor, encodedString);
             // in case of string, we want to set only the property key id and datatype.
             unstrPropertyPages.setUnstrProperty(
                 pageCursor, propertyKeyId, static_cast<uint8_t>(dataType), 0, nullptr);

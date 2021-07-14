@@ -38,15 +38,6 @@ http_archive(
     url = "https://github.com/Taywee/args/archive/6.2.2.zip",
 )
 
-# Serialization/Deserialization
-http_archive(
-    name = "fraillt_bitsery",
-    build_file = "fraillt_bitsery.BUILD.bazel",
-    sha256 = "ddb77597360d1557139599e7c9cf88ff11d9b60ee37833a82b05428de249206a",
-    strip_prefix = "bitsery-5.1.0/include",
-    url = "https://github.com/fraillt/bitsery/archive/v5.1.0.zip",
-)
-
 # Maps and Hashing
 http_archive(
     name = "martinus_robin_hood_hashing",
