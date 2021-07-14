@@ -49,9 +49,9 @@ private:
     uint32_t pageListHead;
 };
 
-void saveListOfIntsToFile(const string& path, unique_ptr<uint32_t[]>& data, uint32_t listSize);
+void saveListOfIntsToFile(const string& fName, unique_ptr<uint32_t[]>& data, uint32_t listSize);
 
-uint32_t readListOfIntsFromFile(unique_ptr<uint32_t[]>& data, const string& path);
+uint32_t readListOfIntsFromFile(unique_ptr<uint32_t[]>& data, const string& fName);
 
 } // namespace storage
 } // namespace graphflow

@@ -34,8 +34,8 @@ void ListsLoaderHelper::calculateListHeadersTask(node_offset_t numNodeOffsets,
     uint32_t numElementsPerPage, listSizes_t* listSizes, ListHeaders* listHeaders,
     const shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: ListHeaders={0:p}", (void*)listHeaders);
-    auto numChunks = numNodeOffsets / BaseLists::LISTS_CHUNK_SIZE;
-    if (0 != numNodeOffsets % BaseLists::LISTS_CHUNK_SIZE) {
+    auto numChunks = numNodeOffsets >> BaseLists::LISTS_CHUNK_SIZE_LOG_2;
+    if (0 != (numNodeOffsets & (BaseLists::LISTS_CHUNK_SIZE - 1))) {
         numChunks++;
     }
     node_offset_t nodeOffset = 0u;
@@ -65,8 +65,8 @@ void ListsLoaderHelper::calculateListsMetadataTask(uint64_t numNodeOffsets, uint
     logger->trace("Start: listsMetadata={0:p} adjListHeaders={1:p}", (void*)listsMetadata,
         (void*)listHeaders);
     auto globalPageId = 0u;
-    auto numChunks = numNodeOffsets / BaseLists::LISTS_CHUNK_SIZE;
-    if (0 != numNodeOffsets % BaseLists::LISTS_CHUNK_SIZE) {
+    auto numChunks = numNodeOffsets >> BaseLists::LISTS_CHUNK_SIZE_LOG_2;
+    if (0 != (numNodeOffsets & (BaseLists::LISTS_CHUNK_SIZE - 1))) {
         numChunks++;
     }
     (*listsMetadata).initChunkPageLists(numChunks);
@@ -133,7 +133,7 @@ void ListsLoaderHelper::calculatePageCursor(const uint32_t& header, const uint64
         cursor.idx =
             metadata.getPageIdxFromALargeListPageList(lAdjListIdx, (pos / numElementsInAPage));
     } else {
-        auto chunkId = nodeOffset / BaseLists::LISTS_CHUNK_SIZE;
+        auto chunkId = nodeOffset >> BaseLists::LISTS_CHUNK_SIZE_LOG_2;
         auto csrOffset = ListHeaders::getSmallListCSROffset(header);
         auto pos = ListHeaders::getSmallListLen(header) - reversePos;
         cursor.idx =

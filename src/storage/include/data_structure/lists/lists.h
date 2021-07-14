@@ -30,16 +30,18 @@ protected:
         : DataStructure{fName, dataType, elementSize, bufferManager}, metadata{fName},
           headers(move(headers)){};
 
-    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
+    virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
         const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead,
         BufferManagerMetrics& metrics);
 
-    void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
+    virtual void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
         uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header,
         BufferManagerMetrics& metrics);
 
 public:
+    // LIST_CHUNK_SIZE should strictly be a power of 2.
     constexpr static uint16_t LISTS_CHUNK_SIZE = 512;
+    constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
 
 protected:
     ListsMetadata metadata;
@@ -53,6 +55,27 @@ class Lists : public BaseLists {
 public:
     Lists(const string& fName, shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
         : BaseLists{fName, D, TypeUtils::getDataTypeSize(D), headers, bufferManager} {};
+};
+
+template<>
+class Lists<STRING> : public BaseLists {
+
+public:
+    Lists(const string& fName, shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
+        : BaseLists{fName, STRING, sizeof(gf_string_t), headers, bufferManager},
+          stringOverflowPages{fName, bufferManager} {};
+
+private:
+    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
+        const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead,
+        BufferManagerMetrics& metrics) override;
+
+    void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
+        uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header,
+        BufferManagerMetrics& metrics) override;
+
+private:
+    StringOverflowPages stringOverflowPages;
 };
 
 // Lists<NODE> is the specialization of Lists<D> for lists of nodeIDs.
@@ -69,6 +92,15 @@ public:
     NodeIDCompressionScheme& getNodeIDCompressionScheme() { return nodeIDCompressionScheme; }
 
     shared_ptr<ListHeaders> getHeaders() { return headers; };
+
+private:
+    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
+        const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead,
+        BufferManagerMetrics& metrics) override;
+
+    void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
+        uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header,
+        BufferManagerMetrics& metrics) override;
 
 private:
     NodeIDCompressionScheme nodeIDCompressionScheme;
