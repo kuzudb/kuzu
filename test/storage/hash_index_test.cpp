@@ -2,10 +2,10 @@
 #include <random>
 
 #include "gtest/gtest.h"
-#include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 #include "test/test_utility/include/test_helper.h"
 
+#include "src/common/include/utils.h"
 #include "src/storage/include/index/hash_index.h"
 
 using namespace std;
@@ -17,7 +17,7 @@ public:
 
     void SetUp() override {
         graphflow::testing::TestHelper::createDirOrError(TEMP_INDEX);
-        spdlog::stdout_logger_mt("storage");
+        LoggerUtils::getOrCreateSpdLogger("storage");
         auto insertionMemoryManager = make_unique<MemoryManager>();
         auto insertionBufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
         OverflowPagesManager ovfPagesManager(TEMP_INDEX, *insertionMemoryManager);

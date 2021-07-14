@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <memory>
 
+#include "src/storage/include/utils.h"
+
 using namespace std;
 
 namespace graphflow {
@@ -37,9 +39,9 @@ public:
 
     uint64_t getPageIdx(uint64_t pageIdx) {
         auto pageListPtr = pageListHead;
-        while (3 <= pageIdx) {
-            pageListPtr = pageLists[pageListPtr + 3];
-            pageIdx -= 3;
+        while (ListsMetadataConstants::PAGE_LIST_GROUP_SIZE <= pageIdx) {
+            pageListPtr = pageLists[pageListPtr + ListsMetadataConstants::PAGE_LIST_GROUP_SIZE];
+            pageIdx -= ListsMetadataConstants::PAGE_LIST_GROUP_SIZE;
         }
         return pageLists[pageListPtr + pageIdx];
     }

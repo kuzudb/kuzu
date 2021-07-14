@@ -155,7 +155,11 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(node_offset_t nodeOffset,
         uint32_t chunkIdx = nodeOffset >> LISTS_CHUNK_SIZE_LOG_2;
         mapper = metadata.getPageMapperForChunkIdx(chunkIdx);
     }
-    auto propertyKeyDataTypeCache = make_unique<uint8_t[]>(UNSTR_PROP_HEADER_LEN);
+    // propertyKeyDataTypeCache holds the unstructured property's KeyIdx and dataType for the case
+    // when the property header is splitted across 2 pages. When such a case exists,
+    // readUnstrPropertyKeyIdxAndDatatype() copies the property header to the cache and
+    // propertyKeyIdxPtr is made to point to the cache instead of pointing to the read buffer frame.
+    uint8_t propertyKeyDataTypeCache[UNSTR_PROP_HEADER_LEN];
     while (listLen) {
         auto physicalPageIdx = mapper->getPageIdx(pageCursor.idx);
         if (pageHandle->getPageIdx() != physicalPageIdx) {
@@ -165,7 +169,7 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(node_offset_t nodeOffset,
         }
         const uint32_t* propertyKeyIdxPtr;
         DataType propertyDataType;
-        readUnstrPropertyKeyIdxAndDatatype(propertyKeyDataTypeCache.get(), physicalPageIdx,
+        readUnstrPropertyKeyIdxAndDatatype(propertyKeyDataTypeCache, physicalPageIdx,
             propertyKeyIdxPtr, propertyDataType, pageHandle, pageCursor, listLen, *mapper, metrics);
         if (propertyKeyIdxToRead == *propertyKeyIdxPtr) {
             readOrSkipUnstrPropertyValue(physicalPageIdx, propertyDataType, pageHandle, pageCursor,
@@ -187,7 +191,7 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKe
     LogicalToPhysicalPageIdxMapper& mapper, BufferManagerMetrics& metrics) {
     auto frame = bufferManager.get(fileHandle, physicalPageIdx, metrics);
     const uint8_t* readFrom;
-    if ((uint64_t)(pageCursor.offset + UNSTR_PROP_HEADER_LEN) < PAGE_SIZE) {
+    if ((uint64_t)(pageCursor.offset + UNSTR_PROP_HEADER_LEN) <= PAGE_SIZE) {
         readFrom = frame + pageCursor.offset;
         pageCursor.offset += UNSTR_PROP_HEADER_LEN;
     } else {
@@ -215,7 +219,7 @@ void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx
     auto frame = bufferManager.get(fileHandle, physicalPageIdx, metrics);
     auto dataTypeSize = TypeUtils::getDataTypeSize(propertyDataType);
     auto& value = ((Value*)valueVector->values)[pos];
-    if (pageCursor.offset + dataTypeSize < PAGE_SIZE) {
+    if (pageCursor.offset + dataTypeSize <= PAGE_SIZE) {
         if (toRead) {
             memcpy(&value.val, frame + pageCursor.offset, dataTypeSize);
         }

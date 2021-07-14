@@ -1,8 +1,6 @@
 #pragma once
 
-#include <memory>
-
-#include "test/storage/include/file_scanner.h"
+#include "test/storage/include/file_scanners/file_scanner.h"
 
 #include "src/common/include/configs.h"
 #include "src/common/include/gf_string.h"
@@ -13,16 +11,17 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
+using namespace std;
+
 class StringOverflowFileFileScanner : FileScanner {
 
 public:
     StringOverflowFileFileScanner(const string& overflowFName) : FileScanner(overflowFName) {}
 
-    string readLargeString(gf_string_t& str) {
-        PageCursor cursor;
-        str.getOverflowPtrInfo(cursor.idx, cursor.offset);
-        return std::string(buffer.get() + cursor.idx * PAGE_SIZE + cursor.offset, str.len);
-    };
+    string readLargeString(const gf_string_t& str) const;
+
+    static string readString(
+        gf_string_t& mainString, const StringOverflowFileFileScanner& stringOverflowFileScanner);
 };
 
 } // namespace storage

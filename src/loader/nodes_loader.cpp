@@ -381,28 +381,29 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
         PageCursor pageCursor;
         ListsLoaderHelper::calculatePageCursor(unstrPropertyListHeaders.headers[nodeOffset],
             reversePos, 1, nodeOffset, pageCursor, unstrPropertyListsMetadata);
+        char* valuePtr = unstrPropertyStringBreaker2 + 1;
         switch (dataType) {
         case INT64: {
-            auto intVal = TypeUtils::convertToInt64(unstrPropertyStringBreaker2 + 1);
+            auto intVal = TypeUtils::convertToInt64(valuePtr);
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&intVal));
             break;
         }
         case DOUBLE: {
-            auto doubleVal = TypeUtils::convertToDouble(unstrPropertyStringBreaker2 + 1);
+            auto doubleVal = TypeUtils::convertToDouble(valuePtr);
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize,
                 reinterpret_cast<uint8_t*>(&doubleVal));
             break;
         }
         case BOOL: {
-            auto boolVal = TypeUtils::convertToBoolean(unstrPropertyStringBreaker2 + 1);
+            auto boolVal = TypeUtils::convertToBoolean(valuePtr);
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&boolVal));
             break;
         }
         case DATE: {
-            char* beginningOfDateStr = unstrPropertyStringBreaker2 + 1;
+            char* beginningOfDateStr = valuePtr;
             date_t dateVal = Date::FromCString(beginningOfDateStr, strlen(beginningOfDateStr));
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&dateVal));
@@ -414,7 +415,7 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
                 UnstructuredPropertyLists::
                     UNSTR_PROP_HEADER_LEN /*leave space for id and dataType*/);
             stringOverflowPages.setStrInOvfPageAndPtrInEncString(
-                unstrPropertyStringBreaker2 + 1, stringOvfPagesCursor, encodedString);
+                valuePtr, stringOvfPagesCursor, encodedString);
             // in case of string, we want to set only the property key id and datatype.
             unstrPropertyPages.setUnstrProperty(
                 pageCursor, propertyKeyId, static_cast<uint8_t>(dataType), 0, nullptr);

@@ -10,7 +10,7 @@ void gf_string_t::setOverflowPtrInfo(const uint64_t& pageIdx, const uint16_t& pa
     memcpy(((uint8_t*)&overflowPtr) + 6, &pageOffset, 2);
 }
 
-void gf_string_t::getOverflowPtrInfo(uint64_t& pageIdx, uint16_t& pageOffset) {
+void gf_string_t::getOverflowPtrInfo(uint64_t& pageIdx, uint16_t& pageOffset) const {
     pageIdx = 0;
     memcpy(&pageIdx, &overflowPtr, 6);
     memcpy(&pageOffset, ((uint8_t*)&overflowPtr) + 6, 2);
@@ -41,9 +41,13 @@ void gf_string_t::set(const gf_string_t& value) {
     }
 }
 
+string gf_string_t::getAsShortString() const {
+    return string((char*)prefix, len);
+}
+
 string gf_string_t::getAsString() const {
     if (len <= SHORT_STR_LENGTH) {
-        return string((char*)prefix, len);
+        return getAsShortString();
     } else {
         return string(reinterpret_cast<char*>(overflowPtr), len);
     }
