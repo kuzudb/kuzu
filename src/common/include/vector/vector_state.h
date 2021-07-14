@@ -12,16 +12,17 @@ namespace graphflow {
 namespace common {
 
 class VectorState {
+
 public:
+    static const sel_t INCREMENTAL_SELECTED_POS[DEFAULT_VECTOR_CAPACITY];
+
     // returns a dataChunkState for vectors holding a single value.
     static shared_ptr<VectorState> getSingleValueDataChunkState();
 
     VectorState(bool initializeSelectedValuesPos, uint64_t capacity);
 
-    void initializeSelector() {
-        for (auto i = 0u; i < size; i++) {
-            valuesPos[i] = i;
-        }
+    inline void resetSelector() {
+        memcpy(selectedValuesPos, INCREMENTAL_SELECTED_POS, sizeof(sel_t) * size);
     }
 
     void initMultiplicity() {
@@ -41,11 +42,11 @@ public:
     // The current position when vectors are flattened.
     int64_t currPos;
     uint64_t size;
-    uint64_t* selectedValuesPos;
+    sel_t* selectedValuesPos;
     uint64_t* multiplicity;
 
 private:
-    unique_ptr<uint64_t[]> valuesPos;
+    unique_ptr<sel_t[]> valuesPos;
     unique_ptr<uint64_t[]> multiplicityBuffer;
 };
 

@@ -23,7 +23,7 @@ void AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     if (listHandle->hasMoreToRead()) {
         readValuesFromList();
         if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-            outDataChunk->state->initializeSelector();
+            outDataChunk->state->resetSelector();
         }
         return;
     }
@@ -33,7 +33,7 @@ void AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
             readValuesFromList();
             if (outDataChunk->state->size > 0) {
                 if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-                    outDataChunk->state->initializeSelector();
+                    outDataChunk->state->resetSelector();
                 }
                 break;
             }

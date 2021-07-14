@@ -42,14 +42,12 @@ void ScanNodeID<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
         } else {
             nodeIDVector->setStartOffset(morsel->currNodeOffset);
             outDataChunk->state->size =
-                min(NODE_SEQUENCE_VECTOR_CAPACITY, morsel->numNodes - morsel->currNodeOffset);
+                min(DEFAULT_VECTOR_CAPACITY, morsel->numNodes - morsel->currNodeOffset);
             morsel->currNodeOffset += outDataChunk->state->size;
         }
     }
     if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-        for (auto i = 0u; i < outDataChunk->state->size; i++) {
-            outDataChunk->state->selectedValuesPos[i] = i;
-        }
+        outDataChunk->state->resetSelector();
     }
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outDataChunk->state->size);
