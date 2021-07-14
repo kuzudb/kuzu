@@ -16,7 +16,7 @@ public:
         : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator), context, id},
           column{column} {};
 
-    ~ScanColumn() { column->reclaim(handle); }
+    ~ScanColumn() { column->reclaim(*pageHandle); }
 
     void getNextTuples() override;
 

@@ -38,16 +38,30 @@ void BenchmarkRunner::registerBenchmark(const string& path) {
     }
 }
 
+double BenchmarkRunner::computeAverageOfLastRuns(
+    double* runTimes, const int& len, const int& lastRunsToAverage) {
+    double sum = 0;
+    for (int i = len - lastRunsToAverage; i < len; ++i) {
+        sum += runTimes[i];
+    }
+    return sum / lastRunsToAverage;
+}
+
 void BenchmarkRunner::runBenchmark(Benchmark* benchmark) {
     spdlog::info("Running benchmark {} with {} thread", benchmark->name, config->numThreads);
     for (auto i = 0u; i < config->numWarmups; ++i) {
         spdlog::info("Warm up");
         benchmark->run();
     }
+    double runTimes[config->numRuns];
     for (auto i = 0u; i < config->numRuns; ++i) {
         benchmark->run();
         benchmark->log();
+        runTimes[i] = benchmark->context->executingTime;
     }
+    spdlog::info("Time Taken (Average of Last 3 runs) (ms): " +
+                 to_string(computeAverageOfLastRuns(
+                     runTimes, config->numRuns, (int)3 /* numRunsToAverage */)));
 }
 
 } // namespace benchmark

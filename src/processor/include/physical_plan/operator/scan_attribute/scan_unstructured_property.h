@@ -15,7 +15,7 @@ public:
         BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context,
         uint32_t id);
 
-    ~ScanUnstructuredProperty() { lists->reclaim(handle); }
+    ~ScanUnstructuredProperty() { lists->reclaim(*pageHandle); }
 
     void getNextTuples() override;
 

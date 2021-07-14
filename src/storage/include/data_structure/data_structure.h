@@ -19,7 +19,7 @@ namespace storage {
 class DataStructure {
 
 public:
-    void reclaim(const unique_ptr<DataStructureHandle>& handle);
+    void reclaim(PageHandle& pageHandle);
 
     DataType getDataType() { return dataType; }
 
@@ -36,14 +36,12 @@ protected:
 
     virtual ~DataStructure() = default;
 
-    void readBySettingFrame(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<DataStructureHandle>& handle, PageCursor& pageCursor,
-        BufferManagerMetrics& metrics);
+    void readBySettingFrame(const shared_ptr<ValueVector>& valueVector, PageHandle& pageHandle,
+        PageCursor& pageCursor, BufferManagerMetrics& metrics);
 
-    void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<DataStructureHandle>& handle, uint64_t sizeLeftToCopy,
-        PageCursor& pageCursor, unique_ptr<LogicalToPhysicalPageIdxMapper> mapper,
-        BufferManagerMetrics& metrics);
+    void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector, PageHandle& pageHandle,
+        uint64_t sizeLeftToCopy, PageCursor& pageCursor,
+        unique_ptr<LogicalToPhysicalPageIdxMapper> mapper, BufferManagerMetrics& metrics);
 
 public:
     DataType dataType;
