@@ -63,7 +63,7 @@ namespace graphflow {
 namespace storage {
 
 Graph::Graph(const string& path, BufferManager& bufferManager)
-    : logger{spdlog::stdout_logger_mt("storage")}, path{path} {
+    : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, path{path} {
     logger->info("Initializing Graph.");
     catalog = make_unique<Catalog>(path);
     readFromFile(path);
@@ -73,7 +73,7 @@ Graph::Graph(const string& path, BufferManager& bufferManager)
 }
 
 Graph::Graph() {
-    logger = spdlog::stdout_logger_st("storage");
+    logger = LoggerUtils::getOrCreateSpdLogger("storage");
 }
 
 Graph::~Graph() {

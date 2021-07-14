@@ -17,8 +17,6 @@ struct gf_string_t {
     static const uint64_t INLINED_SUFFIX_LENGTH = 8;
     static const uint64_t SHORT_STR_LENGTH = PREFIX_LENGTH + INLINED_SUFFIX_LENGTH;
 
-    gf_string_t() : len{0}, overflowPtr{0} {}
-
     uint32_t len;
     uint8_t prefix[PREFIX_LENGTH];
     union {
@@ -26,8 +24,10 @@ struct gf_string_t {
         uint64_t overflowPtr;
     };
 
+    gf_string_t() : len{0}, overflowPtr{0} {}
+
     void setOverflowPtrInfo(const uint64_t& pageIdx, const uint16_t& pageOffset);
-    void getOverflowPtrInfo(uint64_t& pageIdx, uint16_t& pageOffset);
+    void getOverflowPtrInfo(uint64_t& pageIdx, uint16_t& pageOffset) const;
 
     inline const uint8_t* getData() const {
         return len <= SHORT_STR_LENGTH ? prefix : reinterpret_cast<uint8_t*>(overflowPtr);
@@ -39,6 +39,7 @@ struct gf_string_t {
     void set(const char* value, uint64_t length);
     void set(const gf_string_t& value);
 
+    string getAsShortString() const;
     string getAsString() const;
 };
 

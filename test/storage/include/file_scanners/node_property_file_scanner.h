@@ -2,14 +2,15 @@
 
 #include <memory>
 
-#include "test/storage/include/file_scanner.h"
-#include "test/storage/include/string_overflow_file_scanner.h"
+#include "test/storage/include/file_scanners/file_scanner.h"
+#include "test/storage/include/file_scanners/string_overflow_file_scanner.h"
 
 #include "src/common/include/types.h"
 #include "src/storage/include/store/nodes_store.h"
 
 namespace graphflow {
 namespace storage {
+
 class StructuredNodePropertyFileScanner : FileScanner {
 
 public:
@@ -36,11 +37,7 @@ public:
     string readString(int nodeOffset) {
         gf_string_t mainString =
             structuredNodePropertyFileScanner.readProperty<gf_string_t>(nodeOffset);
-        if (mainString.len <= gf_string_t::SHORT_STR_LENGTH) {
-            return string((char*)mainString.prefix, mainString.len);
-        } else {
-            return stringOverflowFileScanner.readLargeString(mainString);
-        }
+        return StringOverflowFileFileScanner::readString(mainString, stringOverflowFileScanner);
     };
 
 private:

@@ -112,6 +112,7 @@ public:
     // (containNodeProperty and containRelProperty).
     virtual const PropertyDefinition& getNodeProperty(
         label_t labelId, const string& propertyName) const;
+    virtual const string getNodePropertyAsString(label_t labelId, const uint32_t propertyID) const;
     virtual const PropertyDefinition& getRelProperty(
         label_t labelId, const string& propertyName) const;
     const unordered_set<label_t>& getNodeLabelsForRelLabelDirection(

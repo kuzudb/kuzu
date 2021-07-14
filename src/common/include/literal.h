@@ -9,6 +9,8 @@ namespace common {
 
 class Literal {
 public:
+    Literal() {}
+
     Literal(const Literal& value) { *this = value; }
 
     explicit Literal(uint8_t value) : dataType(BOOL) { this->val.booleanVal = value; }

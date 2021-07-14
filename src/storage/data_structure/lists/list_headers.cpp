@@ -12,8 +12,8 @@ ListHeaders::ListHeaders() {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
 }
 
-ListHeaders::ListHeaders(string path) : ListHeaders() {
-    readFromDisk(path);
+ListHeaders::ListHeaders(string listBaseFname) : ListHeaders() {
+    readFromDisk(listBaseFname);
     logger->trace("AdjListHeaders: #Headers {}", sizeof(headers.get()));
 };
 

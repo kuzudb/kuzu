@@ -32,7 +32,7 @@ class ListHeaders {
 
 public:
     ListHeaders();
-    ListHeaders(string path);
+    ListHeaders(string listBaseFname);
 
     uint32_t getHeader(node_offset_t offset) { return headers[offset]; };
 

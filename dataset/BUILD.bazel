@@ -2,7 +2,7 @@ filegroup(
     name = "dataset",
     srcs = glob([
         "tinysnb/**",
-        "string_column_test/**",
-        ]),
+        "loader_test/**",
+    ]),
     visibility = ["//visibility:public"],
 )

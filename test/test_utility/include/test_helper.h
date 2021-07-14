@@ -60,6 +60,18 @@ public:
     TestSuiteSystemConfig testSuiteSystemConfig;
 };
 
+class BaseGraphLoadingTestWithCatalog : public BaseGraphLoadingTest {
+
+public:
+    void SetUp() override {
+        BaseGraphLoadingTest::SetUp();
+        catalog = make_unique<Catalog>(TEMP_TEST_DIR);
+    }
+
+public:
+    unique_ptr<Catalog> catalog;
+};
+
 class DBLoadedTest : public BaseGraphLoadingTest {
 public:
     void SetUp() override {

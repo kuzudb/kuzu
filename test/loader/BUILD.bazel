@@ -10,18 +10,18 @@ cc_test(
         "//dataset",
     ],
     deps = [
-        "//test/test_utility:test_helper",
         "//src/common:types",
         "//test/storage:storage_scanners",
+        "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",
     ],
 )
 
 cc_test(
-    name = "load_string_property_test",
+    name = "loader_test",
     srcs = [
-        "load_string_property_test.cpp",
+        "loader_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",
@@ -30,9 +30,9 @@ cc_test(
         "//dataset",
     ],
     deps = [
-        "//test/test_utility:test_helper",
         "//src/common:types",
         "//test/storage:storage_scanners",
+        "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",
     ],

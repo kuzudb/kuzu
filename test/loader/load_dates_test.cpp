@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "test/storage/include/node_property_file_scanner.h"
+#include "test/storage/include/file_scanners/node_property_file_scanner.h"
 #include "test/test_utility/include/test_helper.h"
 
 #include "src/common/include/date.h"
@@ -9,18 +9,10 @@ using namespace graphflow::common;
 using namespace graphflow::storage;
 using namespace graphflow::testing;
 
-class LoadDatesTest : public BaseGraphLoadingTest {
-public:
-    const string DATA_SET_DIR = "dataset/string-property-test/";
-    void SetUp() override {
-        BaseGraphLoadingTest::SetUp();
-        auto bufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
-        graph = make_unique<Graph>(TEMP_TEST_DIR, *bufferManager);
-    }
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+class LoadDatesTest : public BaseGraphLoadingTestWithCatalog {
 
 public:
-    unique_ptr<Graph> graph;
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
 };
 
 // Warning: This test assumes that each line in tinysnb's vPerson.csv gets
@@ -28,7 +20,7 @@ public:
 // ID 1, so on and so forth).
 TEST_F(LoadDatesTest, NodePropertyColumnWithDate) {
     StructuredNodePropertyFileScanner scanner(
-        TEMP_TEST_DIR, graph->getCatalog().getNodeLabelFromString("person"), "birthdate");
+        TEMP_TEST_DIR, catalog->getNodeLabelFromString("person"), "birthdate");
     EXPECT_EQ(Date::FromDate(1900, 1, 1).days, scanner.readProperty<int32_t>(0));
     EXPECT_EQ(Date::FromDate(1900, 1, 1).days, scanner.readProperty<int32_t>(1));
     EXPECT_EQ(Date::FromDate(1940, 6, 22).days, scanner.readProperty<int32_t>(2));

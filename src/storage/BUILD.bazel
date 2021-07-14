@@ -42,6 +42,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "storage_utils",
         "//src/common:utils",
     ],
 )
@@ -137,6 +138,14 @@ cc_library(
     deps = [
         "store",
     ],
+)
+
+cc_library(
+    name = "storage_utils",
+    hdrs = [
+        "include/utils.h",
+    ],
+    visibility = ["//visibility:public"],
 )
 
 cc_library(

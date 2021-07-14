@@ -2,11 +2,16 @@ load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_library(
     name = "storage_scanners",
-    srcs = [],
+    srcs = [
+        "file_scanners/file_scanner.cpp",
+        "file_scanners/string_overflow_file_scanner.cpp",
+        "file_scanners/unstructured_node_property_file_scanner.cpp",
+    ],
     hdrs = [
-        "include/file_scanner.h",
-        "include/node_property_file_scanner.h",
-        "include/string_overflow_file_scanner.h"
+        "include/file_scanners/file_scanner.h",
+        "include/file_scanners/node_property_file_scanner.h",
+        "include/file_scanners/string_overflow_file_scanner.h",
+        "include/file_scanners/unstructured_node_property_file_scanner.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
