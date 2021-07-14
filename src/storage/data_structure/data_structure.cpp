@@ -12,20 +12,19 @@ DataStructure::DataStructure(const string& fName, const DataType& dataType,
       logger{LoggerUtils::getOrCreateSpdLogger("storage")}, fileHandle{fName, O_RDWR},
       bufferManager(bufferManager){};
 
-void DataStructure::reclaim(const unique_ptr<DataStructureHandle>& handle) {
-    if (handle->hasPageIdx()) {
-        bufferManager.unpin(fileHandle, handle->getPageIdx());
-        handle->resetPageIdx();
+void DataStructure::reclaim(PageHandle& pageHandle) {
+    if (pageHandle.hasPageIdx()) {
+        bufferManager.unpin(fileHandle, pageHandle.getPageIdx());
+        pageHandle.resetPageIdx();
     }
 }
 
 void DataStructure::readBySettingFrame(const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<DataStructureHandle>& handle, PageCursor& pageCursor,
-    BufferManagerMetrics& metrics) {
+    PageHandle& pageHandle, PageCursor& pageCursor, BufferManagerMetrics& metrics) {
     const uint8_t* frame;
-    if (handle->getPageIdx() != pageCursor.idx) {
-        reclaim(handle);
-        handle->setPageIdx(pageCursor.idx);
+    if (pageHandle.getPageIdx() != pageCursor.idx) {
+        reclaim(pageHandle);
+        pageHandle.setPageIdx(pageCursor.idx);
         frame = bufferManager.pin(fileHandle, pageCursor.idx, metrics);
     } else {
         frame = bufferManager.get(fileHandle, pageCursor.idx, metrics);
@@ -34,9 +33,9 @@ void DataStructure::readBySettingFrame(const shared_ptr<ValueVector>& valueVecto
 }
 
 void DataStructure::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<DataStructureHandle>& handle, uint64_t sizeLeftToCopy, PageCursor& pageCursor,
+    PageHandle& pageHandle, uint64_t sizeLeftToCopy, PageCursor& pageCursor,
     unique_ptr<LogicalToPhysicalPageIdxMapper> mapper, BufferManagerMetrics& metrics) {
-    reclaim(handle);
+    reclaim(pageHandle);
     valueVector->reset();
     auto values = valueVector->values;
     while (sizeLeftToCopy) {

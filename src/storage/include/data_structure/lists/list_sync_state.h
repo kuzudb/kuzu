@@ -7,11 +7,12 @@ namespace storage {
 
 // ListSyncState holds the data that is required to synchronize reading from multiple Lists that
 // have related data and hence share same AdjListHeaders. The Lists that share a single copy of
-// AdjListHeaders are - a single-directional edges of a rel label and edges' properties. For the
-// case of reading from a large list, we do not / cannot read the entire list in a single
-// operation since it can be very big, hence we read in batches from a definite start point to an
-// end point. List Sync holds this information and helps in co-ordinating all related lists so
-// that all of them read the correct portion of data.
+// AdjListHeaders are - edges, i.e., adjlists of a rel label in a particular direction, e.g.,
+// forward or backward, and the properties of those edges. For the case of reading from a large
+// list, we do not / cannot read the entire list in a single operation since it can be very big,
+// hence we read in batches from a definite start point to an end point. List Sync holds this
+// information and helps in co-ordinating all related lists so that all of them read the correct
+// portion of data.
 class ListSyncState {
 
 public:

@@ -13,7 +13,7 @@ public:
     ReadList(const uint64_t& inDataChunkPos, const uint64_t& inValueVectorPos, BaseLists* lists,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
-    ~ReadList() { lists->reclaim(handle); }
+    ~ReadList() { lists->reclaim(*listHandle); }
 
     void printMetricsToJson(nlohmann::json& json, Profiler& profiler) override;
 
@@ -31,7 +31,7 @@ protected:
     shared_ptr<ValueVector> outValueVector;
 
     BaseLists* lists;
-    unique_ptr<DataStructureHandle> handle;
+    unique_ptr<ListHandle> listHandle;
 };
 
 } // namespace processor

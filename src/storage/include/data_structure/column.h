@@ -18,7 +18,7 @@ class BaseColumn : public DataStructure {
 
 public:
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
         BufferManagerMetrics& metrics);
 
 protected:
@@ -27,7 +27,7 @@ protected:
         : DataStructure{fName, dataType, elementSize, bufferManager} {};
 
     void readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
         BufferManagerMetrics& metrics);
 };
 
@@ -48,7 +48,7 @@ public:
           stringOverflowPages{fName, bufferManager} {};
 
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
         BufferManagerMetrics& metrics) override;
 
 private:

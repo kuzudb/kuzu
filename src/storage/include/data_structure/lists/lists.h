@@ -19,8 +19,8 @@ class BaseLists : public DataStructure {
 
 public:
     void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle,
-        uint32_t maxElementsToRead, BufferManagerMetrics& metrics);
+        uint64_t& listLen, const unique_ptr<ListHandle>& listHandle, uint32_t maxElementsToRead,
+        BufferManagerMetrics& metrics);
 
     uint64_t getNumElementsInList(node_offset_t nodeOffset);
 
@@ -31,11 +31,11 @@ protected:
           headers(move(headers)){};
 
     virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-        const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead,
+        const unique_ptr<ListHandle>& listHandle, uint32_t header, uint32_t maxElementsToRead,
         BufferManagerMetrics& metrics);
 
     virtual void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header,
+        uint64_t& listLen, const unique_ptr<ListHandle>& listHandle, uint32_t header,
         BufferManagerMetrics& metrics);
 
 public:
@@ -67,11 +67,11 @@ public:
 
 private:
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-        const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead,
+        const unique_ptr<ListHandle>& listHandle, uint32_t header, uint32_t maxElementsToRead,
         BufferManagerMetrics& metrics) override;
 
     void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header,
+        uint64_t& listLen, const unique_ptr<ListHandle>& listHandle, uint32_t header,
         BufferManagerMetrics& metrics) override;
 
 private:
@@ -95,11 +95,11 @@ public:
 
 private:
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-        const unique_ptr<DataStructureHandle>& handle, uint32_t header, uint32_t maxElementsToRead,
+        const unique_ptr<ListHandle>& listHandle, uint32_t header, uint32_t maxElementsToRead,
         BufferManagerMetrics& metrics) override;
 
     void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<DataStructureHandle>& handle, uint32_t header,
+        uint64_t& listLen, const unique_ptr<ListHandle>& listHandle, uint32_t header,
         BufferManagerMetrics& metrics) override;
 
 private:
@@ -123,23 +123,22 @@ public:
     // readValues is overloaded. Lists<UNSTRUCTURED> is not supposed to use the one defined in
     // BaseLists.
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
+        const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
         BufferManagerMetrics& metrics);
 
 private:
     void readUnstrPropertyListOfNode(node_offset_t nodeOffset, uint32_t propertyKeyIdxToRead,
         const shared_ptr<ValueVector>& valueVector, uint64_t pos,
-        const unique_ptr<DataStructureHandle>& handle, uint32_t header,
-        BufferManagerMetrics& metrics);
+        const unique_ptr<PageHandle>& pageHandle, uint32_t header, BufferManagerMetrics& metrics);
 
     void readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
         uint64_t& physicalPageIdx, const uint32_t*& propertyKeyIdxPtr,
-        DataType& propertyKeyDataType, const unique_ptr<DataStructureHandle>& handle,
+        DataType& propertyKeyDataType, const unique_ptr<PageHandle>& pageHandle,
         PageCursor& pageCursor, uint64_t& listLen, LogicalToPhysicalPageIdxMapper& mapper,
         BufferManagerMetrics& metrics);
 
     void readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx, DataType& propertyDataType,
-        const unique_ptr<DataStructureHandle>& handle, PageCursor& pageCursor, uint64_t& listLen,
+        const unique_ptr<PageHandle>& pageHandle, PageCursor& pageCursor, uint64_t& listLen,
         LogicalToPhysicalPageIdxMapper& mapper, const shared_ptr<ValueVector>& valueVector,
         uint64_t pos, bool toRead, BufferManagerMetrics& metrics);
 

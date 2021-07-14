@@ -4,7 +4,7 @@ namespace graphflow {
 namespace storage {
 
 void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
+    const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
     BufferManagerMetrics& metrics) {
     if (nodeIDVector->isSequence()) {
         auto nodeOffset = nodeIDVector->readNodeOffset(0);
@@ -12,22 +12,22 @@ void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         auto sizeLeftToCopy = nodeIDVector->state->size * elementSize;
         if (pageCursor.offset + sizeLeftToCopy <= PAGE_SIZE) {
             // Case when all the values are in a single page on disk.
-            readBySettingFrame(valueVector, handle, pageCursor, metrics);
+            readBySettingFrame(valueVector, *pageHandle, pageCursor, metrics);
         } else {
             // Case when the values are consecutive but not in a single page on disk.
-            readBySequentialCopy(valueVector, handle, sizeLeftToCopy, pageCursor,
+            readBySequentialCopy(valueVector, *pageHandle, sizeLeftToCopy, pageCursor,
                 nullptr /*no page mapping is required*/, metrics);
         }
         return;
     }
     // Case when values are at non-sequential locations in a column.
-    readFromNonSequentialLocations(nodeIDVector, valueVector, handle, metrics);
+    readFromNonSequentialLocations(nodeIDVector, valueVector, pageHandle, metrics);
 }
 
 void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
+    const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
     BufferManagerMetrics& metrics) {
-    reclaim(handle);
+    reclaim(*pageHandle);
     valueVector->reset();
     auto values = valueVector->values;
     if (nodeIDVector->state->isFlat()) {
@@ -51,16 +51,16 @@ void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& 
 }
 
 void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& valueVector, const unique_ptr<DataStructureHandle>& handle,
+    const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
     BufferManagerMetrics& metrics) {
     if (nodeIDVector->isSequence()) {
         auto nodeOffset = nodeIDVector->readNodeOffset(0);
         auto pageCursor = getPageCursorForOffset(nodeOffset);
         auto sizeLeftToCopy = nodeIDVector->state->size * elementSize;
-        readBySequentialCopy(valueVector, handle, sizeLeftToCopy, pageCursor,
+        readBySequentialCopy(valueVector, *pageHandle, sizeLeftToCopy, pageCursor,
             nullptr /*no page mapping is required*/, metrics);
     } else {
-        readFromNonSequentialLocations(nodeIDVector, valueVector, handle, metrics);
+        readFromNonSequentialLocations(nodeIDVector, valueVector, pageHandle, metrics);
     }
     stringOverflowPages.readStringsFromOverflowPages(*valueVector, metrics);
 }
