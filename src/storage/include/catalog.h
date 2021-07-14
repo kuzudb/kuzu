@@ -1,13 +1,12 @@
 #pragma once
 
 #include <memory>
-#include <unordered_map>
-#include <unordered_set>
 
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/file_utils.h"
 #include "src/common/include/function.h"
+#include "src/common/include/ser_deser.h"
 #include "src/common/include/types.h"
 #include "src/common/include/utils.h"
 
@@ -19,17 +18,12 @@ class logger;
 }
 
 namespace graphflow {
-namespace loader {
-class GraphLoader;
-} // namespace loader
-} // namespace graphflow
-
-namespace graphflow {
 namespace storage {
 
-// Rel Multiplicity
 enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
+
 const string RelMultiplicityNames[] = {"MANY_MANY", "MANY_ONE", "ONE_MANY", "ONE_ONE"};
+
 RelMultiplicity getRelMultiplicity(const string& relMultiplicityString);
 
 // A PropertyDefinition consists of its name, dataType, id and isPrimaryKey. If the property is
@@ -164,19 +158,6 @@ public:
     void readFromFile(const string& directory);
 
 private:
-    template<typename T>
-    uint64_t serializeValue(const T& value, int fd, uint64_t offset);
-    template<typename T>
-    uint64_t deSerializeValue(T& value, int fd, uint64_t offset);
-    template<typename T>
-    uint64_t serializeVector(const vector<T>& values, int fd, uint64_t offset);
-    template<typename T>
-    uint64_t deSerializeVector(vector<T>& values, int fd, uint64_t offset);
-    template<typename T>
-    uint64_t serializeUnorderedSet(const unordered_set<T>& values, int fd, uint64_t offset);
-    template<typename T>
-    uint64_t deSerializeUnorderedSet(unordered_set<T>& values, int fd, uint64_t offset);
-
     string getNodeLabelsString(const unordered_set<label_t>& nodeLabels) const;
 
     void registerBuiltInFunctions();

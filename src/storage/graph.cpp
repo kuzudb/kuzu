@@ -2,16 +2,62 @@
 
 #include <fstream>
 
-#include "bitsery/adapter/stream.h"
-#include "bitsery/bitsery.h"
-#include "bitsery/brief_syntax.h"
-#include "bitsery/brief_syntax/vector.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
 #include "src/storage/include/buffer_manager.h"
 
-using OutputStreamAdapter = bitsery::Serializer<bitsery::OutputBufferedStreamAdapter>;
+namespace graphflow {
+namespace common {
+
+template<>
+uint64_t SerDeser::serializeVector<vector<uint64_t>>(
+    const vector<vector<uint64_t>>& values, int fd, uint64_t offset) {
+    uint64_t vectorSize = values.size();
+    offset = SerDeser::serializeValue<uint64_t>(vectorSize, fd, offset);
+    for (auto& value : values) {
+        offset = serializeVector<uint64_t>(value, fd, offset);
+    }
+    return offset;
+}
+
+template<>
+uint64_t SerDeser::deserializeVector<vector<uint64_t>>(
+    vector<vector<uint64_t>>& values, int fd, uint64_t offset) {
+    uint64_t vectorSize;
+    offset = deserializeValue<uint64_t>(vectorSize, fd, offset);
+    values.resize(vectorSize);
+    for (auto& value : values) {
+        offset = SerDeser::deserializeVector<uint64_t>(value, fd, offset);
+    }
+    return offset;
+}
+
+template<>
+uint64_t SerDeser::serializeVector<vector<vector<uint64_t>>>(
+    const vector<vector<vector<uint64_t>>>& values, int fd, uint64_t offset) {
+    uint64_t vectorSize = values.size();
+    offset = SerDeser::serializeValue<uint64_t>(vectorSize, fd, offset);
+    for (auto& value : values) {
+        offset = serializeVector<vector<uint64_t>>(value, fd, offset);
+    }
+    return offset;
+}
+
+template<>
+uint64_t SerDeser::deserializeVector<vector<vector<uint64_t>>>(
+    vector<vector<vector<uint64_t>>>& values, int fd, uint64_t offset) {
+    uint64_t vectorSize;
+    offset = deserializeValue<uint64_t>(vectorSize, fd, offset);
+    values.resize(vectorSize);
+    for (auto& value : values) {
+        offset = SerDeser::deserializeVector<vector<uint64_t>>(value, fd, offset);
+    }
+    return offset;
+}
+
+} // namespace common
+} // namespace graphflow
 
 namespace graphflow {
 namespace storage {
@@ -34,41 +80,24 @@ Graph::~Graph() {
     spdlog::drop("storage");
 }
 
-template<typename S>
-void Graph::serialize(S& s) {
-    s(numNodesPerLabel);
-    auto vectorSerFunc = [](S& s, vector<vector<uint64_t>>& v) {
-        s.container(v, UINT32_MAX, [](S& s, vector<uint64_t>& w) {
-            s.container(w, UINT32_MAX, [](S& s, uint64_t& x) { s(x); });
-        });
-    };
-    s.container(numRelsPerDirBoundLabelRelLabel, UINT32_MAX, vectorSerFunc);
-}
-
 void Graph::saveToFile(const string& path) const {
     auto graphPath = path + "/graph.bin";
-    fstream f{graphPath, f.binary | f.trunc | f.out};
-    if (f.fail()) {
-        throw invalid_argument("Cannot open " + graphPath + " for writing.");
-    }
-    OutputStreamAdapter serializer{f};
-    serializer.object(*this);
-    serializer.adapter().flush();
-    f.close();
+    int fd = FileUtils::openFile(graphPath, O_WRONLY | O_CREAT);
+    uint64_t offset = 0;
+    offset = SerDeser::serializeVector(numNodesPerLabel, fd, offset);
+    SerDeser::serializeVector<vector<vector<uint64_t>>>(
+        numRelsPerDirBoundLabelRelLabel, fd, offset);
+    FileUtils::closeFile(fd);
 }
 
 void Graph::readFromFile(const string& path) {
     auto graphPath = path + "/graph.bin";
-    logger->debug("Reading from {}.", graphPath);
-    fstream f{graphPath, f.binary | f.in};
-    if (f.fail()) {
-        throw invalid_argument("Cannot open " + graphPath + " for reading the graph.");
-    }
-    auto state = bitsery::quickDeserialization<bitsery::InputStreamAdapter>(f, *this);
-    f.close();
-    if (!(state.first == bitsery::ReaderError::NoError && state.second)) {
-        throw invalid_argument("Cannot deserialize the graph.");
-    }
+    int fd = FileUtils::openFile(graphPath, O_RDONLY);
+    uint64_t offset = 0;
+    offset = SerDeser::deserializeVector(numNodesPerLabel, fd, offset);
+    SerDeser::deserializeVector<vector<vector<uint64_t>>>(
+        numRelsPerDirBoundLabelRelLabel, fd, offset);
+    FileUtils::closeFile(fd);
 }
 
 unique_ptr<nlohmann::json> Graph::debugInfo() {

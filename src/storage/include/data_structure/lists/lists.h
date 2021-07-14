@@ -119,7 +119,6 @@ public:
     Lists(const string& fName, BufferManager& bufferManager)
         : BaseLists{fName, UNSTRUCTURED, 1, make_shared<ListHeaders>(fName), bufferManager},
           stringOverflowPages{fName, bufferManager} {};
-    ;
 
     // readValues is overloaded. Lists<UNSTRUCTURED> is not supposed to use the one defined in
     // BaseLists.
