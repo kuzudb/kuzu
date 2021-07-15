@@ -8,28 +8,40 @@ namespace graphflow {
 namespace common {
 
 void VectorBooleanOperations::And(ValueVector& left, ValueVector& right, ValueVector& result) {
-    BinaryOperationExecutor::executeBoolOps<operation::And>(left, right, result);
+    BinaryOperationExecutor::executeBooleanOps<operation::And>(left, right, result);
 }
 
 void VectorBooleanOperations::Or(ValueVector& left, ValueVector& right, ValueVector& result) {
-    BinaryOperationExecutor::executeBoolOps<operation::Or>(left, right, result);
+    BinaryOperationExecutor::executeBooleanOps<operation::Or>(left, right, result);
 }
 
 void VectorBooleanOperations::Xor(ValueVector& left, ValueVector& right, ValueVector& result) {
-    BinaryOperationExecutor::executeBoolOps<operation::Xor>(left, right, result);
+    BinaryOperationExecutor::executeBooleanOps<operation::Xor>(left, right, result);
 }
 
 void VectorBooleanOperations::Not(ValueVector& operand, ValueVector& result) {
-    if (operand.state->isFlat()) {
-        auto pos = operand.state->getPositionOfCurrIdx();
-        result.values[pos] = operation::Not::operation(operand.values[pos], operand.isNull(pos));
-    } else {
-        for (auto i = 0ul; i < operand.state->size; i++) {
-            auto pos = operand.state->selectedPositions[i];
-            result.values[pos] =
-                operation::Not::operation(operand.values[pos], operand.isNull(pos));
-        }
-    }
+    UnaryOperationExecutor::executeBooleanOps<operation::Not>(operand, result);
+}
+
+uint64_t VectorBooleanOperations::AndSelect(
+    ValueVector& left, ValueVector& right, sel_t* selectedPositions) {
+    return BinaryOperationExecutor::selectBooleanOps<operation::And>(
+        left, right, selectedPositions);
+}
+
+uint64_t VectorBooleanOperations::OrSelect(
+    ValueVector& left, ValueVector& right, sel_t* selectedPositions) {
+    return BinaryOperationExecutor::selectBooleanOps<operation::Or>(left, right, selectedPositions);
+}
+
+uint64_t VectorBooleanOperations::XorSelect(
+    ValueVector& left, ValueVector& right, sel_t* selectedPositions) {
+    return BinaryOperationExecutor::selectBooleanOps<operation::Xor>(
+        left, right, selectedPositions);
+}
+
+uint64_t VectorBooleanOperations::NotSelect(ValueVector& operand, sel_t* selectedPositions) {
+    return UnaryOperationExecutor::selectBooleanOps<operation::Not>(operand, selectedPositions);
 }
 
 } // namespace common

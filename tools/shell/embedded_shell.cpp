@@ -121,6 +121,8 @@ void EmbeddedShell::printExecutionResult() {
     } else {
         // print query result (numTuples & tuples)
         printf(">> Number of output tuples: %lu\n", context.queryResult->numTuples);
+        printf(">> Compiling time: %.2fms\n", context.compilingTime);
+        printf(">> Executing time: %.2fms\n", context.executingTime);
         if (!context.queryResult->resultSetCollection.empty()) {
             ResultSetIterator resultSetIterator(context.queryResult->resultSetCollection[0].get());
             Tuple tuple(resultSetIterator.dataTypes);

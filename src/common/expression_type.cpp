@@ -109,12 +109,26 @@ string expressionTypeToString(ExpressionType type) {
         return "NEGATE";
     case HASH_NODE_ID:
         return "HASH_NODE_ID";
+    case EQUALS_NODE_ID:
+        return "EQUALS_NODE_ID";
+    case NOT_EQUALS_NODE_ID:
+        return "NOT_EQUALS_NODE_ID";
+    case GREATER_THAN_NODE_ID:
+        return "GREATER_THAN_NODE_ID";
+    case GREATER_THAN_EQUALS_NODE_ID:
+        return "GREATER_THAN_EQUALS_NODE_ID";
+    case LESS_THAN_NODE_ID:
+        return "LESS_THAN_NODE_ID";
+    case LESS_THAN_EQUALS_NODE_ID:
+        return "LESS_THAN_EQUALS_NODE_ID";
     case STARTS_WITH:
         return "STARTS_WITH";
     case ENDS_WITH:
         return "ENDS_WITH";
     case CONTAINS:
         return "CONTAINS";
+    case CSV_LINE_EXTRACT:
+        return "CSV_LINE_EXTRACT";
     case IS_NULL:
         return "IS_NULL";
     case IS_NOT_NULL:
@@ -131,6 +145,8 @@ string expressionTypeToString(ExpressionType type) {
         return "LITERAL_STRING";
     case LITERAL_BOOLEAN:
         return "LITERAL_BOOLEAN";
+    case LITERAL_DATE:
+        return "LITERAL_DATE";
     case LITERAL_NULL:
         return "LITERAL_NULL";
     case VARIABLE:

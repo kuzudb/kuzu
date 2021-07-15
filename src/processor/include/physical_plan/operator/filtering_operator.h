@@ -12,8 +12,8 @@ namespace processor {
 class FilteringOperator {
 
 public:
-    FilteringOperator(shared_ptr<DataChunk> dataChunkToSelect)
-        : dataChunkToSelect(dataChunkToSelect), prevNumSelectedValues{0ul},
+    explicit FilteringOperator(shared_ptr<DataChunk> dataChunkToSelect)
+        : dataChunkToSelect(move(dataChunkToSelect)), prevNumSelectedValues{0ul},
           prevSelectedValues{nullptr}, prevSelectedValuesBuffer{
                                            make_unique<sel_t[]>(DEFAULT_VECTOR_CAPACITY)} {};
 
@@ -23,7 +23,7 @@ protected:
             return;
         }
         dataChunkToSelect->state->size = prevNumSelectedValues;
-        if (prevSelectedValues == (sel_t*)&SharedVectorState::INCREMENTAL_SELECTED_POS) {
+        if (prevSelectedValues == (sel_t*)&DataChunkState::INCREMENTAL_SELECTED_POS) {
             dataChunkToSelect->state->resetSelectorToUnselected();
         } else {
             dataChunkToSelect->state->resetSelectorToValuePosBuffer();
@@ -35,7 +35,7 @@ protected:
     inline void saveDataChunkSelectorState() {
         prevNumSelectedValues = dataChunkToSelect->state->size;
         if (dataChunkToSelect->state->isUnfiltered()) {
-            prevSelectedValues = (sel_t*)&SharedVectorState::INCREMENTAL_SELECTED_POS;
+            prevSelectedValues = (sel_t*)&DataChunkState::INCREMENTAL_SELECTED_POS;
         } else {
             memcpy(prevSelectedValuesBuffer.get(),
                 dataChunkToSelect->state->selectedPositionsBuffer.get(),

@@ -18,17 +18,17 @@ cc_library(
     name = "vector",
     srcs = [
         "compression_scheme.cpp",
+        "data_chunk/data_chunk_state.cpp",
         "vector/node_vector.cpp",
         "vector/string_buffer.cpp",
         "vector/value_vector.cpp",
-        "data_chunk/data_chunk_state.cpp",
     ],
     hdrs = [
         "include/compression_scheme.h",
+        "include/data_chunk/data_chunk_state.h",
         "include/vector/node_vector.h",
         "include/vector/string_buffer.h",
         "include/vector/value_vector.h",
-        "include/data_chunk/data_chunk_state.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -73,7 +73,6 @@ cc_library(
         "include/operations/arithmetic_operations.h",
         "include/operations/boolean_operations.h",
         "include/operations/comparison_operations.h",
-        "include/operations/decompress_operations.h",
         "include/operations/hash_operations.h",
     ],
     visibility = ["//visibility:public"],

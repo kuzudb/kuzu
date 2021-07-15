@@ -105,8 +105,7 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatN
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    /* note rVector and lVector are flipped */
-    VectorArithmeticOperations::Modulo(*rVector, *lVector, *result);
+    VectorArithmeticOperations::Modulo(*lVector, *rVector, *result);
     for (int i = 0; i < dataChunk->state->size; i++) {
         ASSERT_EQ(resultData[i], i % (110 - i));
         ASSERT_FALSE(result->isNull(i));
@@ -294,8 +293,7 @@ TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredInt64Test)
         ASSERT_EQ(resultData[i].val.int64Val, i / (110 - i));
     }
 
-    /* note rVector and lVector are flipped */
-    VectorArithmeticOperations::Modulo(*rVector, *lVector, *result);
+    VectorArithmeticOperations::Modulo(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.int64Val, i % (110 - i));
     }

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cassert>
 #include <functional>
 
 #include "src/common/include/types.h"
@@ -12,43 +11,43 @@ namespace operation {
 
 struct Equals {
     template<class A, class B>
-    static inline uint8_t operation(const A& left, const B& right) {
-        return left == right;
+    static inline void operation(const A& left, const B& right, uint8_t& result) {
+        result = left == right;
     }
 };
 
 struct NotEquals {
     template<class A, class B>
-    static inline uint8_t operation(const A& left, const B& right) {
-        return left != right;
+    static inline void operation(const A& left, const B& right, uint8_t& result) {
+        result = left != right;
     }
 };
 
 struct GreaterThan {
     template<class A, class B>
-    static inline uint8_t operation(const A& left, const B& right) {
-        return left > right;
+    static inline void operation(const A& left, const B& right, uint8_t& result) {
+        result = left > right;
     }
 };
 
 struct GreaterThanEquals {
     template<class A, class B>
-    static inline uint8_t operation(const A& left, const B& right) {
-        return left >= right;
+    static inline void operation(const A& left, const B& right, uint8_t& result) {
+        result = left >= right;
     }
 };
 
 struct LessThan {
     template<class A, class B>
-    static inline uint8_t operation(const A& left, const B& right) {
-        return left < right;
+    static inline void operation(const A& left, const B& right, uint8_t& result) {
+        result = left < right;
     }
 };
 
 struct LessThanEquals {
     template<class A, class B>
-    static inline uint8_t operation(const A& left, const B& right) {
-        return left <= right;
+    static inline void operation(const A& left, const B& right, uint8_t& result) {
+        result = left <= right;
     }
 };
 
@@ -74,85 +73,130 @@ struct IsNotNull {
 
 struct EqualsOrNotEqualsValues {
     template<bool equals>
-    static inline uint8_t operation(const Value& left, const Value& right) {
+    static inline void operation(const Value& left, const Value& right, uint8_t& result) {
         if (left.dataType == right.dataType) {
             switch (left.dataType) {
             case BOOL:
-                return equals ? Equals::operation(left.val.booleanVal, right.val.booleanVal) :
-                                NotEquals::operation(left.val.booleanVal, right.val.booleanVal);
+                if constexpr (equals) {
+                    Equals::operation(left.val.booleanVal, right.val.booleanVal, result);
+                } else {
+                    NotEquals::operation(left.val.booleanVal, right.val.booleanVal, result);
+                }
+                return;
             case INT64:
-                return equals ? Equals::operation(left.val.int64Val, right.val.int64Val) :
-                                NotEquals::operation(left.val.int64Val, right.val.int64Val);
+                if constexpr (equals) {
+                    Equals::operation(left.val.int64Val, right.val.int64Val, result);
+                } else {
+                    NotEquals::operation(left.val.int64Val, right.val.int64Val, result);
+                }
+                return;
             case DOUBLE:
-                return equals ? Equals::operation(left.val.doubleVal, right.val.doubleVal) :
-                                NotEquals::operation(left.val.doubleVal, right.val.doubleVal);
+                if constexpr (equals) {
+                    Equals::operation(left.val.doubleVal, right.val.doubleVal, result);
+                } else {
+                    NotEquals::operation(left.val.doubleVal, right.val.doubleVal, result);
+                }
+                return;
             case STRING:
-                return equals ? Equals::operation(left.val.strVal, right.val.strVal) :
-                                NotEquals::operation(left.val.strVal, right.val.strVal);
+                if constexpr (equals) {
+                    Equals::operation(left.val.strVal, right.val.strVal, result);
+                } else {
+                    NotEquals::operation(left.val.strVal, right.val.strVal, result);
+                }
+                return;
             case DATE:
-                return equals ? Equals::operation(left.val.dateVal, right.val.dateVal) :
-                                NotEquals::operation(left.val.dateVal, right.val.dateVal);
+                if constexpr (equals) {
+                    Equals::operation(left.val.dateVal, right.val.dateVal, result);
+                } else {
+                    NotEquals::operation(left.val.dateVal, right.val.dateVal, result);
+                }
+                return;
             default:
                 assert(false);
             }
         } else if (left.dataType == INT64 && right.dataType == DOUBLE) {
-            return equals ? Equals::operation(left.val.int64Val, right.val.doubleVal) :
-                            NotEquals::operation(left.val.int64Val, right.val.doubleVal);
+            if constexpr (equals) {
+                Equals::operation(left.val.int64Val, right.val.doubleVal, result);
+            } else {
+                NotEquals::operation(left.val.int64Val, right.val.doubleVal, result);
+            }
         } else if (left.dataType == DOUBLE && right.dataType == INT64) {
-            return equals ? Equals::operation(left.val.doubleVal, right.val.int64Val) :
-                            NotEquals::operation(left.val.doubleVal, right.val.int64Val);
+            if constexpr (equals) {
+                Equals::operation(left.val.doubleVal, right.val.int64Val, result);
+            } else {
+                NotEquals::operation(left.val.doubleVal, right.val.int64Val, result);
+            }
         } else {
-            return equals ? FALSE : TRUE;
+            result = equals ? FALSE : TRUE;
         }
     }
 };
 
 // specialized for Value.
 template<>
-inline uint8_t Equals::operation(const Value& left, const Value& right) {
-    return EqualsOrNotEqualsValues::operation<true>(left, right);
+inline void Equals::operation(const Value& left, const Value& right, uint8_t& result) {
+    EqualsOrNotEqualsValues::operation<true>(left, right, result);
 };
 
 template<>
-inline uint8_t NotEquals::operation(const Value& left, const Value& right) {
-    return EqualsOrNotEqualsValues::operation<false>(left, right);
+inline void NotEquals::operation(const Value& left, const Value& right, uint8_t& result) {
+    EqualsOrNotEqualsValues::operation<false>(left, right, result);
 };
 
 // Equals and NotEquals function for gf_string_t.
 struct StringComparisonOperators {
     template<bool equals>
-    static inline bool EqualsOrNot(const gf_string_t& left, const gf_string_t& right) {
+    static inline void EqualsOrNot(
+        const gf_string_t& left, const gf_string_t& right, uint8_t& result) {
         // first compare the length and prefix of the strings.
         if (memcmp(&left, &right, gf_string_t::STR_LENGTH_PLUS_PREFIX_LENGTH) == 0) {
             // length and prefix of a and b are equal.
             if (memcmp(left.getData(), right.getData(), left.len) == 0) {
-                return equals ? TRUE : FALSE;
+                result = equals ? TRUE : FALSE;
+                return;
             }
         }
-        return equals ? FALSE : TRUE;
+        result = equals ? FALSE : TRUE;
     }
+
+    // compare gf_string_t up to shared length. if still the same, Compare lengths.
+    template<class FUNC>
+    static void Compare(const gf_string_t& left, const gf_string_t& right, uint8_t& result) {
+        auto len = left.len < right.len ? left.len : right.len;
+        auto memcmpResult = memcmp(left.prefix, right.prefix,
+            len <= gf_string_t::PREFIX_LENGTH ? len : gf_string_t::PREFIX_LENGTH);
+        if (memcmpResult == 0 && len > gf_string_t::PREFIX_LENGTH) {
+            memcmpResult = memcmp(left.getData(), right.getData(), len);
+        }
+        if (memcmpResult == 0) {
+            FUNC::operation(left.len, right.len, result);
+        } else {
+            FUNC::operation(memcmpResult, 0, result);
+        }
+    };
 };
 
 // specialized for gf_string_t.
 template<>
-inline uint8_t Equals::operation(const gf_string_t& left, const gf_string_t& right) {
-    return StringComparisonOperators::EqualsOrNot<true>(left, right);
+inline void Equals::operation(const gf_string_t& left, const gf_string_t& right, uint8_t& result) {
+    StringComparisonOperators::EqualsOrNot<true>(left, right, result);
 };
 
 template<>
-inline uint8_t NotEquals::operation(const gf_string_t& left, const gf_string_t& right) {
-    return StringComparisonOperators::EqualsOrNot<false>(left, right);
+inline void NotEquals::operation(
+    const gf_string_t& left, const gf_string_t& right, uint8_t& result) {
+    StringComparisonOperators::EqualsOrNot<false>(left, right, result);
 };
 
 // specialized for nodeID_t.
 template<>
-inline uint8_t Equals::operation(const nodeID_t& left, const nodeID_t& right) {
-    return left.label == right.label && left.offset == right.offset;
+inline void Equals::operation(const nodeID_t& left, const nodeID_t& right, uint8_t& result) {
+    result = left.label == right.label && left.offset == right.offset;
 };
 
 template<>
-inline uint8_t NotEquals::operation(const nodeID_t& left, const nodeID_t& right) {
-    return left.label != right.label || left.offset != right.offset;
+inline void NotEquals::operation(const nodeID_t& left, const nodeID_t& right, uint8_t& result) {
+    result = left.label != right.label || left.offset != right.offset;
 };
 
 /*******************************************************
@@ -163,117 +207,116 @@ inline uint8_t NotEquals::operation(const nodeID_t& left, const nodeID_t& right)
 
 struct CompareValues {
     template<class FUNC = function<uint8_t(Value, Value)>>
-    static inline uint8_t operation(const Value& left, const Value& right) {
+    static inline void operation(const Value& left, const Value& right, uint8_t& result) {
         if (left.dataType == right.dataType) {
             switch (left.dataType) {
             case BOOL:
-                return FUNC::operation(left.val.booleanVal, right.val.booleanVal);
+                FUNC::operation(left.val.booleanVal, right.val.booleanVal, result);
+                break;
             case INT64:
-                return FUNC::operation(left.val.int64Val, right.val.int64Val);
+                FUNC::operation(left.val.int64Val, right.val.int64Val, result);
+                break;
             case DOUBLE:
-                return FUNC::operation(left.val.doubleVal, right.val.doubleVal);
+                FUNC::operation(left.val.doubleVal, right.val.doubleVal, result);
+                break;
             case STRING:
-                return FUNC::operation(left.val.strVal, right.val.strVal);
+                FUNC::operation(left.val.strVal, right.val.strVal, result);
+                break;
             case DATE:
-                return FUNC::operation(left.val.dateVal, right.val.dateVal);
+                FUNC::operation(left.val.dateVal, right.val.dateVal, result);
+                break;
             default:
                 assert(false);
             }
         } else if (left.dataType == INT64 && right.dataType == DOUBLE) {
-            return FUNC::operation(left.val.int64Val, right.val.doubleVal);
+            FUNC::operation(left.val.int64Val, right.val.doubleVal, result);
         } else if (left.dataType == DOUBLE && right.dataType == INT64) {
-            return FUNC::operation(left.val.doubleVal, right.val.int64Val);
+            FUNC::operation(left.val.doubleVal, right.val.int64Val, result);
         } else {
-            return NULL_BOOL;
+            result = NULL_BOOL;
         }
     }
 };
 
 // specialized for Value.
 template<>
-inline uint8_t GreaterThan::operation(const Value& left, const Value& right) {
-    return CompareValues::operation<GreaterThan>(left, right);
+inline void GreaterThan::operation(const Value& left, const Value& right, uint8_t& result) {
+    CompareValues::operation<GreaterThan>(left, right, result);
 };
 
 template<>
-inline uint8_t GreaterThanEquals::operation(const Value& left, const Value& right) {
-    return CompareValues::operation<GreaterThanEquals>(left, right);
+inline void GreaterThanEquals::operation(const Value& left, const Value& right, uint8_t& result) {
+    CompareValues::operation<GreaterThanEquals>(left, right, result);
 };
 
 template<>
-inline uint8_t LessThan::operation(const Value& left, const Value& right) {
-    return CompareValues::operation<LessThan>(left, right);
+inline void LessThan::operation(const Value& left, const Value& right, uint8_t& result) {
+    CompareValues::operation<LessThan>(left, right, result);
 };
 
 template<>
-inline uint8_t LessThanEquals::operation(const Value& left, const Value& right) {
-    return CompareValues::operation<LessThanEquals>(left, right);
+inline void LessThanEquals::operation(const Value& left, const Value& right, uint8_t& result) {
+    CompareValues::operation<LessThanEquals>(left, right, result);
 };
 
 // specialized for uint8_t.
 template<>
-inline uint8_t GreaterThan::operation(const uint8_t& left, const uint8_t& right) {
-    return !right && left;
+inline void GreaterThan::operation(const uint8_t& left, const uint8_t& right, uint8_t& result) {
+    result = !right && left;
 };
 
 template<>
-inline uint8_t LessThan::operation(const uint8_t& left, const uint8_t& right) {
-    return !left && right;
-};
-
-// compare gf_string_t up to shared length. if still the same, compare lengths.
-template<class FUNC>
-static uint8_t compare(const gf_string_t& left, const gf_string_t& right) {
-    auto len = left.len < right.len ? left.len : right.len;
-    auto memcmpResult = memcmp(left.prefix, right.prefix,
-        len <= gf_string_t::PREFIX_LENGTH ? len : gf_string_t::PREFIX_LENGTH);
-    if (memcmpResult == 0 && len > gf_string_t::PREFIX_LENGTH) {
-        memcmpResult = memcmp(left.getData(), right.getData(), len);
-    }
-    return memcmpResult == 0 ? FUNC::operation(left.len, right.len) :
-                               FUNC::operation(memcmpResult, 0);
+inline void LessThan::operation(const uint8_t& left, const uint8_t& right, uint8_t& result) {
+    result = !left && right;
 };
 
 // specialized for gf_string_t.
 template<>
-inline uint8_t GreaterThan::operation(const gf_string_t& left, const gf_string_t& right) {
-    return compare<GreaterThan>(left, right);
+inline void GreaterThan::operation(
+    const gf_string_t& left, const gf_string_t& right, uint8_t& result) {
+    StringComparisonOperators::Compare<GreaterThan>(left, right, result);
 };
 
 template<>
-inline uint8_t GreaterThanEquals::operation(const gf_string_t& left, const gf_string_t& right) {
-    return compare<GreaterThanEquals>(left, right);
+inline void GreaterThanEquals::operation(
+    const gf_string_t& left, const gf_string_t& right, uint8_t& result) {
+    StringComparisonOperators::Compare<GreaterThanEquals>(left, right, result);
 };
 
 template<>
-inline uint8_t LessThan::operation(const gf_string_t& left, const gf_string_t& right) {
-    return compare<LessThan>(left, right);
+inline void LessThan::operation(
+    const gf_string_t& left, const gf_string_t& right, uint8_t& result) {
+    StringComparisonOperators::Compare<LessThan>(left, right, result);
 };
 
 template<>
-inline uint8_t LessThanEquals::operation(const gf_string_t& left, const gf_string_t& right) {
-    return compare<LessThanEquals>(left, right);
+inline void LessThanEquals::operation(
+    const gf_string_t& left, const gf_string_t& right, uint8_t& result) {
+    StringComparisonOperators::Compare<LessThanEquals>(left, right, result);
 };
 
 // specialized for nodeID_t.
 template<>
-inline uint8_t GreaterThan::operation(const nodeID_t& left, const nodeID_t& right) {
-    return left.label > right.label || (left.label == right.label && left.offset > right.offset);
+inline void GreaterThan::operation(const nodeID_t& left, const nodeID_t& right, uint8_t& result) {
+    result =
+        (left.label > right.label) || (left.label == right.label && left.offset > right.offset);
 };
 
 template<>
-inline uint8_t GreaterThanEquals::operation(const nodeID_t& left, const nodeID_t& right) {
-    return left.label > right.label || (left.label == right.label && left.offset >= right.offset);
+inline void GreaterThanEquals::operation(
+    const nodeID_t& left, const nodeID_t& right, uint8_t& result) {
+    result = left.label > right.label || (left.label == right.label && left.offset >= right.offset);
 };
 
 template<>
-inline uint8_t LessThan::operation(const nodeID_t& left, const nodeID_t& right) {
-    return left.label < right.label || (left.label == right.label && left.offset < right.offset);
+inline void LessThan::operation(const nodeID_t& left, const nodeID_t& right, uint8_t& result) {
+    result = left.label < right.label || (left.label == right.label && left.offset < right.offset);
 };
 
 template<>
-inline uint8_t LessThanEquals::operation(const nodeID_t& left, const nodeID_t& right) {
-    return left.label < right.label || (left.label == right.label && left.offset <= right.offset);
+inline void LessThanEquals::operation(
+    const nodeID_t& left, const nodeID_t& right, uint8_t& result) {
+    result = left.label < right.label || (left.label == right.label && left.offset <= right.offset);
 };
 
 /********************************************
@@ -321,6 +364,11 @@ template<>
 inline bool IsNotNull::operation(const double_t& value) {
     return value != NULL_DOUBLE;
 };
+
+template<>
+inline bool IsNotNull::operation(const date_t& value) {
+    return value != NULL_DATE ? TRUE : FALSE;
+}
 
 } // namespace operation
 } // namespace common

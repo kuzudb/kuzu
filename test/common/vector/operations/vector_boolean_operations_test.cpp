@@ -6,7 +6,7 @@
 using namespace graphflow::common;
 using namespace std;
 
-TEST(VectorBoolTests, test) {
+TEST(VectorBooleanTests, test) {
     auto VECTOR_SIZE = 4;
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = VECTOR_SIZE;

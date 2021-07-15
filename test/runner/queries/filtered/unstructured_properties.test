@@ -43,3 +43,11 @@
 -NAME PersonUnstrFilteredTest11
 -QUERY MATCH (a:person) WHERE a.unstrDateProp1 + a.fName = '1950-01-01Bob' RETURN COUNT(*)
 ---- 1
+
+-NAME PersonUnstrFilteredTest12
+-QUERY MATCH (a:person) WHERE a.unstrDateProp1 IS NULL RETURN COUNT(*)
+---- 5
+
+-NAME PersonUnstrFilteredTest13
+-QUERY MATCH (a:person) WHERE a.unstrDateProp1 IS NOT NULL RETURN COUNT(*)
+---- 3

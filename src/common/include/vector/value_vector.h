@@ -13,7 +13,7 @@ class NullMask {
     friend class ValueVector;
 
 public:
-    NullMask(uint64_t vectorCapacity)
+    explicit NullMask(uint64_t vectorCapacity)
         : mask(make_unique<bool[]>(DEFAULT_VECTOR_CAPACITY)), mayContainNulls{false} {
         fill_n(mask.get(), vectorCapacity, false /* not null */);
     };
@@ -101,7 +101,7 @@ public:
     DataType dataType;
     uint8_t* values;
     unique_ptr<StringBuffer> stringBuffer;
-    shared_ptr<SharedVectorState> state;
+    shared_ptr<DataChunkState> state;
 
 private:
     // This is a shared pointer because sometimes ValueVectors may share NullMasks, e.g., the result

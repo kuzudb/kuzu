@@ -11,13 +11,13 @@ using namespace std;
 namespace graphflow {
 namespace common {
 
-class SharedVectorState {
+class DataChunkState {
 
 public:
-    SharedVectorState(uint64_t capacity);
+    explicit DataChunkState(uint64_t capacity);
 
     // returns a dataChunkState for vectors holding a single value.
-    static shared_ptr<SharedVectorState> getSingleValueDataChunkState();
+    static shared_ptr<DataChunkState> getSingleValueDataChunkState();
 
     inline bool isUnfiltered() const {
         return selectedPositions == (sel_t*)&INCREMENTAL_SELECTED_POS;
@@ -42,7 +42,7 @@ public:
 
     uint64_t getNumSelectedValues() const;
 
-    shared_ptr<SharedVectorState> clone();
+    shared_ptr<DataChunkState> clone();
 
 public:
     static const sel_t INCREMENTAL_SELECTED_POS[DEFAULT_VECTOR_CAPACITY];

@@ -36,8 +36,8 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
     auto resultSet = ResultSet();
     resultSet.append(dataChunk);
 
-    auto rootExpressionEvaluator = ExpressionMapper::mapToPhysical(
-        *memoryManager, *addLogicalOperator, physicalOperatorInfo, resultSet);
+    auto rootExpressionEvaluator = ExpressionMapper::mapToPhysical(*memoryManager,
+        *addLogicalOperator, physicalOperatorInfo, resultSet, false /*isSelectOperation*/);
     rootExpressionEvaluator->evaluate();
 
     auto results = (int64_t*)rootExpressionEvaluator->result->values;
@@ -75,8 +75,8 @@ TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
     auto resultSet = ResultSet();
     resultSet.append(dataChunk);
 
-    auto rootExpressionEvaluator = ExpressionMapper::mapToPhysical(
-        *memoryManager, *negateLogicalOperator, physicalOperatorInfo, resultSet);
+    auto rootExpressionEvaluator = ExpressionMapper::mapToPhysical(*memoryManager,
+        *negateLogicalOperator, physicalOperatorInfo, resultSet, false /*isSelectOperation*/);
     rootExpressionEvaluator->evaluate();
 
     auto results = (int64_t*)rootExpressionEvaluator->result->values;

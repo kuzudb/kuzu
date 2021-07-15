@@ -31,8 +31,8 @@ cc_test(
 cc_test(
     name = "types_test",
     srcs = [
-        "types_test.cpp",
         "date_test.cpp",
+        "types_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",

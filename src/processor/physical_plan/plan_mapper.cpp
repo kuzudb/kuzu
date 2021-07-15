@@ -78,7 +78,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
         physicalOperator = mapLogicalLoadCSVToPhysical(logicalOperator.get(), info, context);
         break;
     default:
-        GF_ASSERT(false);
+        assert(false);
     }
     // This map is populated regardless of whether PROFILE or EXPLAIN is enabled.
     physicalIDToLogicalOperatorMap.insert({physicalOperator->id, logicalOperator});
@@ -106,7 +106,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     auto valueVectorPos = info.getValueVectorPos(extend.boundNodeID);
     auto& relsStore = graph.getRelsStore();
     if (extend.isColumn) {
-        GF_ASSERT(extend.lowerBound == extend.upperBound && extend.lowerBound == 1);
+        assert(extend.lowerBound == extend.upperBound && extend.lowerBound == 1);
         return make_unique<AdjColumnExtend>(dataChunkPos, valueVectorPos,
             relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
             extend.nbrNodeLabel, move(prevOperator), context, physicalOperatorID++);
@@ -137,8 +137,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     auto& logicalFilter = (const LogicalFilter&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     auto dataChunkToSelectPos = info.getDataChunkPos(logicalFilter.variableToSelect);
-    auto physicalRootExpr = ExpressionMapper::mapToPhysical(
-        *context.memoryManager, *logicalFilter.expression, info, *prevOperator->getResultSet());
+    auto physicalRootExpr = ExpressionMapper::mapToPhysical(*context.memoryManager,
+        *logicalFilter.expression, info, *prevOperator->getResultSet(), true /*isSelectOperation*/);
     return make_unique<Filter>(move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator),
         context, physicalOperatorID++);
 }
@@ -152,8 +152,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
         mapLogicalOperatorToPhysical(logicalOperator->prevOperator, oldInfo, context);
     vector<unique_ptr<ExpressionEvaluator>> expressionEvaluators;
     for (auto& expression : logicalProjection.expressionsToProject) {
-        expressionEvaluators.push_back(ExpressionMapper::mapToPhysical(
-            *context.memoryManager, *expression, oldInfo, *prevOperator->getResultSet()));
+        expressionEvaluators.push_back(ExpressionMapper::mapToPhysical(*context.memoryManager,
+            *expression, oldInfo, *prevOperator->getResultSet(), false /*isSelectOperation*/));
     }
     // TODO: fix uint32 and uint64 mixed usage
     vector<uint64_t> exprResultInDataChunkPos;
@@ -234,7 +234,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLoadCSVToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto& logicalLoadCSV = (const LogicalLoadCSV&)*logicalOperator;
-    GF_ASSERT(!logicalLoadCSV.csvColumnVariables.empty());
+    assert(!logicalLoadCSV.csvColumnVariables.empty());
     vector<DataType> csvColumnDataTypes;
     for (auto& csvColumnVariable : logicalLoadCSV.csvColumnVariables) {
         csvColumnDataTypes.push_back(csvColumnVariable->dataType);
