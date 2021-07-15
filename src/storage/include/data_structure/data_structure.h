@@ -40,7 +40,7 @@ public:
 
 protected:
     DataStructure(const string& fName, const DataType& dataType, const size_t& elementSize,
-        BufferManager& bufferManager);
+        BufferManager& bufferManager, bool isInMemory);
 
     virtual ~DataStructure() = default;
 

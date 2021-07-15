@@ -17,7 +17,7 @@ namespace main {
 class System {
 
 public:
-    explicit System(const string& path);
+    explicit System(const string& path, bool isInMemoryMode);
 
     void executeQuery(SessionContext& context) const;
 

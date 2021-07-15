@@ -20,6 +20,8 @@ struct BenchmarkConfig {
     uint32_t numThreads = 1;
     // output benchmark log to file
     string outputPath;
+    // in-memory mode
+    bool isInMemoryMode = false;
 };
 
 } // namespace benchmark

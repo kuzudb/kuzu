@@ -21,8 +21,8 @@ public:
 
 protected:
     BaseColumn(const string& fName, const DataType& dataType, const size_t& elementSize,
-        const uint64_t& numElements, BufferManager& bufferManager)
-        : DataStructure{fName, dataType, elementSize, bufferManager} {};
+        const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory)
+        : DataStructure{fName, dataType, elementSize, bufferManager, isInMemory} {};
 
     void readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
@@ -36,17 +36,20 @@ template<DataType D>
 class Column : public BaseColumn {
 
 public:
-    Column(const string& fName, const uint64_t& numElements, BufferManager& bufferManager)
-        : BaseColumn{fName, D, TypeUtils::getDataTypeSize(D), numElements, bufferManager} {};
+    Column(const string& fName, const uint64_t& numElements, BufferManager& bufferManager,
+        bool isInMemory)
+        : BaseColumn{
+              fName, D, TypeUtils::getDataTypeSize(D), numElements, bufferManager, isInMemory} {};
 };
 
 template<>
 class Column<STRING> : public BaseColumn {
 
 public:
-    Column(const string& fName, const uint64_t& numElements, BufferManager& bufferManager)
-        : BaseColumn{fName, STRING, sizeof(gf_string_t), numElements, bufferManager},
-          stringOverflowPages{fName, bufferManager} {};
+    Column(const string& fName, const uint64_t& numElements, BufferManager& bufferManager,
+        bool isInMemory)
+        : BaseColumn{fName, STRING, sizeof(gf_string_t), numElements, bufferManager, isInMemory},
+          stringOverflowPages{fName, bufferManager, isInMemory} {};
 
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
@@ -61,9 +64,9 @@ class Column<NODE> : public BaseColumn {
 
 public:
     Column(const string& fName, const uint64_t& numElements, BufferManager& bufferManager,
-        const NodeIDCompressionScheme& nodeIDCompressionScheme)
+        const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isInMemory)
         : BaseColumn{fName, NODE, nodeIDCompressionScheme.getNumTotalBytes(), numElements,
-              bufferManager},
+              bufferManager, isInMemory},
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 
     NodeIDCompressionScheme getCompressionScheme() const { return nodeIDCompressionScheme; }

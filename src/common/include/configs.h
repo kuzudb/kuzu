@@ -18,8 +18,12 @@ constexpr uint64_t PAGE_SIZE_LOG_2 = 12;
 constexpr uint64_t PAGE_SIZE = 1 << PAGE_SIZE_LOG_2;
 
 // The default amount of memory pre-allocated to the buffer pool (= 1GB).
-constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 30;
 constexpr uint64_t DEFAULT_MEMORY_MANAGER_MAX_MEMORY = 1ull << 38;
+
+struct StorageConfig {
+    // The default amount of memory pre-allocated to the buffer pool (= 1GB).
+    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 30;
+};
 
 // Hash Index Configurations
 struct HashIndexConfig {

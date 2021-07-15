@@ -19,7 +19,8 @@ public:
         graphflow::testing::TestHelper::createDirOrError(TEMP_INDEX);
         LoggerUtils::getOrCreateSpdLogger("storage");
         auto insertionMemoryManager = make_unique<MemoryManager>();
-        auto insertionBufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
+        auto insertionBufferManager =
+            make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
         OverflowPagesManager ovfPagesManager(TEMP_INDEX, *insertionMemoryManager);
         HashIndex insertionHashIndex(TEMP_INDEX, 0, *insertionMemoryManager,
             *insertionBufferManager, ovfPagesManager, INT64);
@@ -56,7 +57,7 @@ public:
 
 TEST_F(HashIndexTest, HashIndexInsertExists) {
     auto memoryManager = make_unique<MemoryManager>();
-    auto bufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
+    auto bufferManager = make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
     OverflowPagesManager ovfPagesManager(TEMP_INDEX, *memoryManager);
     HashIndex hashIndex(TEMP_INDEX, 0, *memoryManager, *bufferManager, ovfPagesManager, INT64);
     auto numEntries = 10;
@@ -81,7 +82,7 @@ TEST_F(HashIndexTest, HashIndexInsertExists) {
 
 TEST_F(HashIndexTest, HashIndexSmallLookup) {
     auto memoryManager = make_unique<MemoryManager>();
-    auto bufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
+    auto bufferManager = make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
     OverflowPagesManager ovfPagesManager(TEMP_INDEX, *memoryManager);
     HashIndex hashIndex(TEMP_INDEX, 0, *memoryManager, *bufferManager, ovfPagesManager, INT64);
     auto numEntries = 10;
@@ -104,7 +105,7 @@ TEST_F(HashIndexTest, HashIndexSmallLookup) {
 
 TEST_F(HashIndexTest, HashIndexRandomLookup) {
     auto memoryManager = make_unique<MemoryManager>();
-    auto bufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
+    auto bufferManager = make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
     OverflowPagesManager ovfPagesManager(TEMP_INDEX, *memoryManager);
     HashIndex hashIndex(TEMP_INDEX, 0, *memoryManager, *bufferManager, ovfPagesManager, INT64);
     auto numEntries = 1000;

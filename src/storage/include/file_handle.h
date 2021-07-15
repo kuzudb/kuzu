@@ -22,7 +22,7 @@ class FileHandle {
     friend class BufferManager;
 
 public:
-    explicit FileHandle(const string& path, int flags);
+    explicit FileHandle(const string& path, int flags, bool isInMemory);
     ~FileHandle();
 
     bool inline hasPage(uint64_t pageIdx) const { return pageIdx < numPages; }
@@ -50,8 +50,10 @@ public:
 private:
     shared_ptr<spdlog::logger> logger;
     const int fileDescriptor;
+    bool isInMemory;
     unique_ptr<atomic<uint64_t>>* pageIdxToFrameMap;
     unique_ptr<atomic_flag>* pageLocks;
+    unique_ptr<uint8_t[]> buffer;
 };
 
 } // namespace storage

@@ -26,7 +26,7 @@ class Graph {
     friend class graphflow::loader::RelsLoader;
 
 public:
-    Graph(const string& path, BufferManager& bufferManager);
+    Graph(const string& path, BufferManager& bufferManager, bool isInMemoryMode);
 
     virtual ~Graph();
 

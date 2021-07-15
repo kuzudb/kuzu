@@ -9,28 +9,36 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-FileHandle::FileHandle(const string& path, int flags)
-    : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, fileDescriptor{
-                                                                FileUtils::openFile(path, flags)} {
+FileHandle::FileHandle(const string& path, int flags, bool isInMemory)
+    : logger{LoggerUtils::getOrCreateSpdLogger("storage")},
+      fileDescriptor{FileUtils::openFile(path, flags)}, isInMemory{isInMemory} {
     logger->trace("FileHandle: Path {}", path);
     auto fileLength = FileUtils::getFileSize(fileDescriptor);
     numPages = fileLength >> PAGE_SIZE_LOG_2;
     if (0 != (fileLength & (PAGE_SIZE - 1))) {
         numPages++;
     }
-    logger->trace("FileHandle: Size {}B, #4KB-pages {}", fileLength, numPages);
-    pageIdxToFrameMap = new unique_ptr<atomic<uint64_t>>[numPages];
-    pageLocks = new unique_ptr<atomic_flag>[numPages];
-    for (auto i = 0ull; i < numPages; i++) {
-        pageLocks[i] = make_unique<atomic_flag>();
-        pageIdxToFrameMap[i] = make_unique<atomic<uint64_t>>(UINT64_MAX);
+    if (isInMemory) {
+        logger->trace("FileHandle[in-memory]: Size {}B", fileLength);
+        buffer = make_unique<uint8_t[]>(fileLength);
+        FileUtils::readFromFile(fileDescriptor, buffer.get(), fileLength, 0);
+    } else {
+        logger->trace("FileHandle[disk]: Size {}B, #4KB-pages {}", fileLength, numPages);
+        pageIdxToFrameMap = new unique_ptr<atomic<uint64_t>>[numPages];
+        pageLocks = new unique_ptr<atomic_flag>[numPages];
+        for (auto i = 0ull; i < numPages; i++) {
+            pageLocks[i] = make_unique<atomic_flag>();
+            pageIdxToFrameMap[i] = make_unique<atomic<uint64_t>>(UINT64_MAX);
+        }
     }
 }
 
 FileHandle::~FileHandle() {
     FileUtils::closeFile(fileDescriptor);
-    delete[] pageLocks;
-    delete[] pageIdxToFrameMap;
+    if (!isInMemory) {
+        delete[] pageLocks;
+        delete[] pageIdxToFrameMap;
+    }
 }
 
 bool FileHandle::acquire(uint32_t pageIdx, bool block) {

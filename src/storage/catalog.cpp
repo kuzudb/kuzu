@@ -203,7 +203,7 @@ const PropertyDefinition& Catalog::getNodeProperty(
     assert(false);
 }
 
-const string Catalog::getNodePropertyAsString(label_t labelId, const uint32_t propertyID) const {
+string Catalog::getNodePropertyAsString(label_t labelId, uint32_t propertyID) const {
     for (auto& property : nodeLabels[labelId].properties) {
         if (propertyID == property.id) {
             return property.name;

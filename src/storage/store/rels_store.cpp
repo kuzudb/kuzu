@@ -4,15 +4,16 @@ namespace graphflow {
 namespace storage {
 
 RelsStore::RelsStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
-    const string& directory, BufferManager& bufferManager)
+    const string& directory, BufferManager& bufferManager, bool isInMemoryMode)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")} {
-    initAdjColumns(catalog, numNodesPerLabel, directory, bufferManager);
-    initAdjLists(catalog, numNodesPerLabel, directory, bufferManager);
-    initPropertyListsAndColumns(catalog, numNodesPerLabel, directory, bufferManager);
+    initAdjColumns(catalog, numNodesPerLabel, directory, bufferManager, isInMemoryMode);
+    initAdjLists(catalog, numNodesPerLabel, directory, bufferManager, isInMemoryMode);
+    initPropertyListsAndColumns(
+        catalog, numNodesPerLabel, directory, bufferManager, isInMemoryMode);
 }
 
 void RelsStore::initAdjColumns(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
-    const string& directory, BufferManager& bufferManager) {
+    const string& directory, BufferManager& bufferManager, bool isInMemoryMode) {
     logger->info("Initializing AdjColumns.");
     for (auto direction : DIRECTIONS) {
         auto numNodeLabels = catalog.getNodeLabelsCount();
@@ -30,8 +31,9 @@ void RelsStore::initAdjColumns(const Catalog& catalog, const vector<uint64_t>& n
                         nodeIDCompressionScheme.getNumBytesForLabel(),
                         nodeIDCompressionScheme.getNumBytesForOffset());
                     auto fName = getAdjColumnFName(directory, relLabel, nodeLabel, direction);
-                    adjColumns[direction][nodeLabel][relLabel] = make_unique<AdjColumn>(
-                        fName, numNodesPerLabel[nodeLabel], bufferManager, nodeIDCompressionScheme);
+                    adjColumns[direction][nodeLabel][relLabel] =
+                        make_unique<AdjColumn>(fName, numNodesPerLabel[nodeLabel], bufferManager,
+                            nodeIDCompressionScheme, isInMemoryMode);
                 }
             }
         }
@@ -40,7 +42,7 @@ void RelsStore::initAdjColumns(const Catalog& catalog, const vector<uint64_t>& n
 }
 
 void RelsStore::initAdjLists(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
-    const string& directory, BufferManager& bufferManager) {
+    const string& directory, BufferManager& bufferManager, bool isInMemoryMode) {
     logger->info("Initializing AdjLists.");
     for (auto direction : DIRECTIONS) {
         adjLists[direction].resize(catalog.getNodeLabelsCount());
@@ -55,9 +57,9 @@ void RelsStore::initAdjLists(const Catalog& catalog, const vector<uint64_t>& num
                         direction, nodeLabel, relLabel,
                         nodeIDCompressionScheme.getNumBytesForLabel(),
                         nodeIDCompressionScheme.getNumBytesForOffset());
-                    auto fName = getAdjListsFName(directory, relLabel, nodeLabel, direction);
-                    adjLists[direction][nodeLabel][relLabel] =
-                        make_unique<AdjLists>(fName, bufferManager, nodeIDCompressionScheme);
+                    auto fname = getAdjListsFName(directory, relLabel, nodeLabel, direction);
+                    adjLists[direction][nodeLabel][relLabel] = make_unique<AdjLists>(
+                        fname, bufferManager, nodeIDCompressionScheme, isInMemoryMode);
                 }
             }
         }
@@ -66,8 +68,8 @@ void RelsStore::initAdjLists(const Catalog& catalog, const vector<uint64_t>& num
 }
 
 void RelsStore::initPropertyListsAndColumns(const Catalog& catalog,
-    const vector<uint64_t>& numNodesPerLabel, const string& directory,
-    BufferManager& bufferManager) {
+    const vector<uint64_t>& numNodesPerLabel, const string& directory, BufferManager& bufferManager,
+    bool isInMemoryMode) {
     logger->info("Initializing PropertyLists and PropertyColumns.");
     propertyColumns.resize(catalog.getNodeLabelsCount());
     propertyLists[FWD].resize(catalog.getNodeLabelsCount());
@@ -80,14 +82,14 @@ void RelsStore::initPropertyListsAndColumns(const Catalog& catalog,
     for (auto relLabel = 0u; relLabel < catalog.getRelLabelsCount(); relLabel++) {
         if (!catalog.getRelProperties(relLabel).empty()) {
             if (catalog.isSingleMultiplicityInDirection(relLabel, FWD)) {
-                initPropertyColumnsForRelLabel(
-                    catalog, numNodesPerLabel, directory, bufferManager, relLabel, FWD);
+                initPropertyColumnsForRelLabel(catalog, numNodesPerLabel, directory, bufferManager,
+                    relLabel, FWD, isInMemoryMode);
             } else if (catalog.isSingleMultiplicityInDirection(relLabel, BWD)) {
-                initPropertyColumnsForRelLabel(
-                    catalog, numNodesPerLabel, directory, bufferManager, relLabel, BWD);
+                initPropertyColumnsForRelLabel(catalog, numNodesPerLabel, directory, bufferManager,
+                    relLabel, BWD, isInMemoryMode);
             } else {
                 initPropertyListsForRelLabel(
-                    catalog, numNodesPerLabel, directory, bufferManager, relLabel);
+                    catalog, numNodesPerLabel, directory, bufferManager, relLabel, isInMemoryMode);
             }
         }
     }
@@ -96,7 +98,7 @@ void RelsStore::initPropertyListsAndColumns(const Catalog& catalog,
 
 void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
     const vector<uint64_t>& numNodesPerLabel, const string& directory, BufferManager& bufferManager,
-    const label_t& relLabel, const Direction& dir) {
+    const label_t& relLabel, const Direction& dir, bool isInMemoryMode) {
     logger->debug("Initializing PropertyColumns: relLabel {}", relLabel);
     for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDirection(relLabel, dir)) {
         auto& properties = catalog.getRelProperties(relLabel);
@@ -109,21 +111,21 @@ void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
             case INT64:
                 propertyColumns[nodeLabel][relLabel][property.id] =
                     make_unique<PropertyColumnInt64>(
-                        fName, numNodesPerLabel[nodeLabel], bufferManager);
+                        fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
                 break;
             case DOUBLE:
                 propertyColumns[nodeLabel][relLabel][property.id] =
                     make_unique<PropertyColumnDouble>(
-                        fName, numNodesPerLabel[nodeLabel], bufferManager);
+                        fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
                 break;
             case BOOL:
                 propertyColumns[nodeLabel][relLabel][property.id] = make_unique<PropertyColumnBool>(
-                    fName, numNodesPerLabel[nodeLabel], bufferManager);
+                    fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
                 break;
             case STRING:
                 propertyColumns[nodeLabel][relLabel][property.id] =
                     make_unique<PropertyColumnString>(
-                        fName, numNodesPerLabel[nodeLabel], bufferManager);
+                        fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
                 break;
             default:
                 throw invalid_argument("Invalid type for property column creation.");
@@ -135,7 +137,7 @@ void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
 
 void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
     const vector<uint64_t>& numNodesPerLabel, const string& directory, BufferManager& bufferManager,
-    const label_t& relLabel) {
+    const label_t& relLabel, bool isInMemoryMode) {
     logger->debug("Initializing PropertyLists: relLabel {}", relLabel);
     for (auto& dir : DIRECTIONS) {
         for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDirection(relLabel, dir)) {
@@ -150,23 +152,28 @@ void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
                 switch (property.dataType) {
                 case INT64:
                     propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsInt64>(fName, adjListsHeaders, bufferManager);
+                        make_unique<RelPropertyListsInt64>(
+                            fName, adjListsHeaders, bufferManager, isInMemoryMode);
                     break;
                 case DOUBLE:
                     propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsDouble>(fName, adjListsHeaders, bufferManager);
+                        make_unique<RelPropertyListsDouble>(
+                            fName, adjListsHeaders, bufferManager, isInMemoryMode);
                     break;
                 case BOOL:
                     propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsBool>(fName, adjListsHeaders, bufferManager);
+                        make_unique<RelPropertyListsBool>(
+                            fName, adjListsHeaders, bufferManager, isInMemoryMode);
                     break;
                 case STRING:
                     propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsString>(fName, adjListsHeaders, bufferManager);
+                        make_unique<RelPropertyListsString>(
+                            fName, adjListsHeaders, bufferManager, isInMemoryMode);
                     break;
                 case DATE:
                     propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsDate>(fName, adjListsHeaders, bufferManager);
+                        make_unique<RelPropertyListsDate>(
+                            fName, adjListsHeaders, bufferManager, isInMemoryMode);
                     break;
                 default:
                     throw invalid_argument("Invalid type for property list creation.");

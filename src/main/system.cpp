@@ -12,10 +12,11 @@ using namespace graphflow::planner;
 namespace graphflow {
 namespace main {
 
-System::System(const string& path) {
+System::System(const string& path, bool isInMemoryMode) {
     memManager = make_unique<MemoryManager>();
-    bufferManager = make_unique<BufferManager>(DEFAULT_BUFFER_POOL_SIZE);
-    graph = make_unique<Graph>(path, *bufferManager);
+    bufferManager =
+        make_unique<BufferManager>(isInMemoryMode ? 0 : StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
+    graph = make_unique<Graph>(path, *bufferManager, isInMemoryMode);
     processor = make_unique<QueryProcessor>(thread::hardware_concurrency());
     transactionManager = make_unique<TransactionManager>();
     initialized = true;

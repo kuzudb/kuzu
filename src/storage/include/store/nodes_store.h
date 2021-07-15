@@ -17,7 +17,7 @@ class NodesStore {
 
 public:
     NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
-        const string& directory, BufferManager& bufferManager);
+        const string& directory, BufferManager& bufferManager, bool isInMemoryMode);
 
     BaseColumn* getNodePropertyColumn(const label_t& label, const uint64_t& propertyIdx) const {
         return propertyColumns[label][propertyIdx].get();
@@ -42,7 +42,7 @@ public:
 private:
     void initStructuredPropertyColumnsAndUnstructuredPropertyLists(const Catalog& catalog,
         const vector<uint64_t>& numNodesPerLabel, const string& directory,
-        BufferManager& bufferManager);
+        BufferManager& bufferManager, bool isInMemoryMode);
 
 private:
     shared_ptr<spdlog::logger> logger;

@@ -128,7 +128,7 @@ void TestHelper::loadGraph(TestSuiteSystemConfig& config) {
 
 unique_ptr<System> TestHelper::getInitializedSystem(TestSuiteSystemConfig& config) {
     loadGraph(config);
-    return make_unique<System>(config.graphOutputDir);
+    return make_unique<System>(config.graphOutputDir, false /* isInMemoryMode */);
 }
 
 void TestHelper::createDirOrError(const string& dir) {

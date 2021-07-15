@@ -31,6 +31,8 @@ int main(int argc, char** argv) {
             config->numThreads = stoul(getArgumentValue(arg));
         } else if (arg.starts_with("--out")) { // save benchmark result to file
             config->outputPath = getArgumentValue(arg);
+        } else if (arg.starts_with("--in-memory")) {
+            config->isInMemoryMode = true;
         } else if (arg.starts_with("--profile")) {
             config->enableProfile = true;
         } else {

@@ -37,7 +37,7 @@ void HashIndex::initialize(const string& indexBasePath, uint64_t indexId) {
         flags |= O_CREAT;
         isIndexFileExist = false;
     }
-    fileHandle = make_unique<FileHandle>(filePath, flags);
+    fileHandle = make_unique<FileHandle>(filePath, flags, false /* isInMemory */);
     // Cache the first page of primary index file
     getMemoryBlock(0);
     if (isIndexFileExist) {

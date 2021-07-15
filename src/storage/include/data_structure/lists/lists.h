@@ -37,8 +37,8 @@ public:
 
 protected:
     BaseLists(const string& fName, const DataType& dataType, const size_t& elementSize,
-        shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
-        : DataStructure{fName, dataType, elementSize, bufferManager}, metadata{fName},
+        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory)
+        : DataStructure{fName, dataType, elementSize, bufferManager, isInMemory}, metadata{fName},
           headers(move(headers)){};
 
     virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
@@ -66,17 +66,19 @@ template<DataType D>
 class Lists : public BaseLists {
 
 public:
-    Lists(const string& fName, shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
-        : BaseLists{fName, D, TypeUtils::getDataTypeSize(D), headers, bufferManager} {};
+    Lists(const string& fName, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
+        bool isInMemory)
+        : BaseLists{fName, D, TypeUtils::getDataTypeSize(D), headers, bufferManager, isInMemory} {};
 };
 
 template<>
 class Lists<STRING> : public BaseLists {
 
 public:
-    Lists(const string& fName, shared_ptr<ListHeaders> headers, BufferManager& bufferManager)
-        : BaseLists{fName, STRING, sizeof(gf_string_t), headers, bufferManager},
-          stringOverflowPages{fName, bufferManager} {};
+    Lists(const string& fName, shared_ptr<ListHeaders> headers, BufferManager& bufferManager,
+        bool isInMemory)
+        : BaseLists{fName, STRING, sizeof(gf_string_t), headers, bufferManager, isInMemory},
+          stringOverflowPages{fName, bufferManager, isInMemory} {};
 
 private:
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
@@ -97,9 +99,9 @@ class Lists<NODE> : public BaseLists {
 
 public:
     Lists(const string& fName, BufferManager& bufferManager,
-        NodeIDCompressionScheme nodeIDCompressionScheme)
+        NodeIDCompressionScheme nodeIDCompressionScheme, bool isInMemory)
         : BaseLists{fName, NODE, nodeIDCompressionScheme.getNumTotalBytes(),
-              make_shared<ListHeaders>(fName), bufferManager},
+              make_shared<ListHeaders>(fName), bufferManager, isInMemory},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
     NodeIDCompressionScheme& getNodeIDCompressionScheme() { return nodeIDCompressionScheme; }
@@ -129,9 +131,10 @@ template<>
 class Lists<UNSTRUCTURED> : public BaseLists {
 
 public:
-    Lists(const string& fName, BufferManager& bufferManager)
-        : BaseLists{fName, UNSTRUCTURED, 1, make_shared<ListHeaders>(fName), bufferManager},
-          stringOverflowPages{fName, bufferManager} {};
+    Lists(const string& fName, BufferManager& bufferManager, bool isInMemory)
+        : BaseLists{fName, UNSTRUCTURED, 1, make_shared<ListHeaders>(fName), bufferManager,
+              isInMemory},
+          stringOverflowPages{fName, bufferManager, isInMemory} {};
 
     // readValues is overloaded. Lists<UNSTRUCTURED> is not supposed to use the one defined in
     // BaseLists.
