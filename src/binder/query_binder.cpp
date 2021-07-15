@@ -4,8 +4,9 @@
 
 #include "src/binder/include/bound_statements/bound_load_csv_statement.h"
 #include "src/binder/include/bound_statements/bound_match_statement.h"
+#include "src/binder/include/expression/function_expression.h"
 #include "src/binder/include/expression/literal_expression.h"
-#include "src/binder/include/expression_binder.h"
+#include "src/common/include/assert.h"
 #include "src/common/include/csv_reader/csv_reader.h"
 
 namespace graphflow {
@@ -13,17 +14,10 @@ namespace binder {
 
 const char DEFAULT_LOAD_CSV_TOKEN_SEPARATOR = ',';
 
-static string makeUniqueVariableName(const string& name, uint32_t& idx);
+// TODO: GraphLoader has a similar logic of parsing header. Refactor a function under common.
 static vector<pair<string, DataType>> parseCSVHeader(const string& headerLine, char tokenSeparator);
 static vector<unique_ptr<BoundReadingStatement>> mergeAllMatchStatements(
     vector<unique_ptr<BoundReadingStatement>> boundReadingStatements);
-
-static void validateCSVHeaderColumnNamesAreUnique(const vector<pair<string, DataType>>& headerInfo);
-static void validateProjectionColumnNamesAreUnique(
-    const vector<shared_ptr<Expression>>& expressions);
-static void validateOnlyFunctionIsCountStar(vector<shared_ptr<Expression>>& expressions);
-static void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
-    const unordered_map<string, shared_ptr<Expression>>& variablesInScope);
 
 unique_ptr<BoundSingleQuery> QueryBinder::bind(const SingleQuery& singleQuery) {
     auto boundSingleQuery = bindSingleQuery(singleQuery);
@@ -78,8 +72,7 @@ unique_ptr<BoundReadingStatement> QueryBinder::bindLoadCSVStatement(
         }
         tokenSeparator = loadCSVStatement.fieldTerminator.at(0);
     }
-    auto boundInputExpression = ExpressionBinder(variablesInScope, catalog)
-                                    .bindExpression(*loadCSVStatement.inputExpression);
+    auto boundInputExpression = expressionBinder.bindExpression(*loadCSVStatement.inputExpression);
     if (LITERAL_STRING != boundInputExpression->expressionType) {
         throw invalid_argument("LOAD CSV FROM " +
                                expressionTypeToString(boundInputExpression->expressionType) +
@@ -101,16 +94,14 @@ unique_ptr<BoundReadingStatement> QueryBinder::bindLoadCSVStatement(
      * ... One consequence is we won't allow user to refer csvLine later. Instead, we force user to
      * write csvLine[i]. By doing so, we don't need to implement evaluator for list.
      */
-    auto csvVariableAliasName = loadCSVStatement.lineVariableName;
-    auto csvVariableName = makeUniqueVariableName(csvVariableAliasName, lastVariableIdx);
-    auto csvColumnVariables = vector<shared_ptr<Expression>>();
+    auto lineVariableName = loadCSVStatement.lineVariableName;
+    auto csvColumnVariables = vector<shared_ptr<VariableExpression>>();
     for (auto i = 0u; i < headerInfo.size(); ++i) {
-        auto csvColumnVariableAliasName = csvVariableAliasName + "[" + to_string(i) + "]";
-        auto csvColumnVariableName = csvVariableName + "[" + to_string(i) + "]";
-        auto csvColumnVariable =
-            make_shared<Expression>(CSV_LINE_EXTRACT, headerInfo[i].second, csvColumnVariableName);
-        csvColumnVariable->alias = csvColumnVariableAliasName;
-        variablesInScope.insert({csvColumnVariable->alias, csvColumnVariable});
+        auto csvColumnVariableAliasName = lineVariableName + "[" + to_string(i) + "]";
+        auto csvColumnVariable = make_shared<VariableExpression>(
+            CSV_LINE_EXTRACT, headerInfo[i].second, csvColumnVariableAliasName, lastVariableId++);
+        csvColumnVariable->rawExpression = csvColumnVariableAliasName;
+        variablesInScope.insert({csvColumnVariableAliasName, csvColumnVariable});
         csvColumnVariables.push_back(csvColumnVariable);
     }
     return make_unique<BoundLoadCSVStatement>(filePath, tokenSeparator, move(csvColumnVariables));
@@ -130,14 +121,7 @@ unique_ptr<BoundReadingStatement> QueryBinder::bindMatchStatement(
 
 unique_ptr<BoundWithStatement> QueryBinder::bindWithStatement(const WithStatement& withStatement) {
     auto expressionsToProject =
-        bindProjectExpressions(withStatement.expressions, withStatement.containsStar);
-    variablesInScope.clear();
-    for (auto& expression : expressionsToProject) {
-        if (expression->alias.empty()) {
-            throw invalid_argument("Expression in WITH multi be aliased (use AS).");
-        }
-        variablesInScope.insert({expression->getAliasElseRawExpression(), expression});
-    }
+        bindProjectExpressions(withStatement.expressions, withStatement.containsStar, true);
     auto boundWithStatement = make_unique<BoundWithStatement>(move(expressionsToProject));
     if (withStatement.whereClause) {
         boundWithStatement->whereExpression = bindWhereExpression(*withStatement.whereClause);
@@ -148,12 +132,11 @@ unique_ptr<BoundWithStatement> QueryBinder::bindWithStatement(const WithStatemen
 unique_ptr<BoundReturnStatement> QueryBinder::bindReturnStatement(
     const ReturnStatement& returnStatement) {
     return make_unique<BoundReturnStatement>(
-        bindProjectExpressions(returnStatement.expressions, returnStatement.containsStar));
+        bindProjectExpressions(returnStatement.expressions, returnStatement.containsStar, false));
 }
 
 shared_ptr<Expression> QueryBinder::bindWhereExpression(const ParsedExpression& parsedExpression) {
-    auto expressionBinder = make_unique<ExpressionBinder>(variablesInScope, catalog);
-    auto whereExpression = expressionBinder->bindExpression(parsedExpression);
+    auto whereExpression = expressionBinder.bindExpression(parsedExpression);
     if (BOOL != whereExpression->dataType) {
         throw invalid_argument("Type mismatch: " + whereExpression->rawExpression + " returns " +
                                TypeUtils::dataTypeToString(whereExpression->dataType) +
@@ -163,21 +146,34 @@ shared_ptr<Expression> QueryBinder::bindWhereExpression(const ParsedExpression& 
 }
 
 vector<shared_ptr<Expression>> QueryBinder::bindProjectExpressions(
-    const vector<unique_ptr<ParsedExpression>>& parsedExpressions, bool projectStar) {
-    auto expressionBinder = make_unique<ExpressionBinder>(variablesInScope, catalog);
+    const vector<unique_ptr<ParsedExpression>>& parsedExpressions, bool projectStar,
+    bool updateVariablesInScope) {
     auto expressions = vector<shared_ptr<Expression>>();
+    unordered_map<string, shared_ptr<Expression>> newVariablesInScope;
     if (projectStar) {
         if (variablesInScope.empty()) {
             throw invalid_argument(
                 "RETURN or WITH * is not allowed when there are no variables in scope.");
         }
         for (auto& [name, expression] : variablesInScope) {
+            if (updateVariablesInScope) {
+                newVariablesInScope.insert({name, expression});
+            }
             expressions.push_back(expression);
         }
     }
     for (auto& parsedExpression : parsedExpressions) {
-        expressions.push_back(expressionBinder->bindExpression(*parsedExpression));
+        auto expression = expressionBinder.bindExpression(*parsedExpression);
+        if (updateVariablesInScope) {
+            if (expression->expressionType == ALIAS || expression->expressionType == VARIABLE) {
+                newVariablesInScope.insert({expression->getExternalName(), expression});
+            } else {
+                throw invalid_argument("Expression in WITH multi be aliased (use AS).");
+            }
+        }
+        expressions.push_back(expression);
     }
+    variablesInScope = newVariablesInScope;
     validateProjectionColumnNamesAreUnique(expressions);
     validateOnlyFunctionIsCountStar(expressions);
     return expressions;
@@ -201,10 +197,10 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern, NodeExpression* lef
     NodeExpression* rightNode, QueryGraph& queryGraph) {
     auto parsedName = relPattern.name;
     if (variablesInScope.contains(parsedName)) {
-        auto variableInScope = variablesInScope.at(parsedName);
-        if (REL != variableInScope->dataType) {
+        auto prevVariable = variablesInScope.at(parsedName);
+        if (REL != prevVariable->dataType) {
             throw invalid_argument(parsedName + " defined with conflicting type " +
-                                   TypeUtils::dataTypeToString(variableInScope->dataType) +
+                                   TypeUtils::dataTypeToString(prevVariable->dataType) +
                                    " (expect RELATIONSHIP).");
         } else {
             // Bind to queryRel in scope requires QueryRel takes multiple src & dst nodes
@@ -214,34 +210,30 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern, NodeExpression* lef
                                    " to relationship with same name is not supported.");
         }
     }
-    auto queryRel = make_shared<RelExpression>(makeUniqueVariableName(parsedName, lastVariableIdx),
-        bindRelLabel(relPattern.label), relPattern.lowerBound, relPattern.upperBound);
-    queryRel->alias = parsedName;
+    auto relLabel = bindRelLabel(relPattern.label);
+    if (ANY_LABEL == relLabel) {
+        throw invalid_argument(
+            "Any-label is not supported. " + parsedName + " does not have a label.");
+    }
+    // bind node to rel
     auto isLeftNodeSrc = RIGHT == relPattern.arrowDirection;
-    bindNodeToRel(*queryRel, leftNode, isLeftNodeSrc);
-    bindNodeToRel(*queryRel, rightNode, !isLeftNodeSrc);
-    if (!queryRel->alias.empty()) {
-        variablesInScope.insert({queryRel->alias, queryRel});
+    validateNodeAndRelLabelIsConnected(relLabel, leftNode->label, isLeftNodeSrc ? FWD : BWD);
+    validateNodeAndRelLabelIsConnected(relLabel, rightNode->label, isLeftNodeSrc ? BWD : FWD);
+    auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
+    auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
+    // bind variable length
+    auto lowerBound = TypeUtils::convertToInt64(relPattern.lowerBound.c_str());
+    auto upperBound = TypeUtils::convertToInt64(relPattern.upperBound.c_str());
+    if (lowerBound > upperBound) {
+        throw invalid_argument("Lower bound of rel " + parsedName + " is greater than upperBound.");
     }
-    queryGraph.addQueryRelIfNotExist(queryRel);
-}
-
-void QueryBinder::bindNodeToRel(
-    RelExpression& queryRel, NodeExpression* queryNode, bool isSrcNode) {
-    if (ANY_LABEL != queryNode->label && ANY_LABEL != queryRel.label) {
-        auto relLabels =
-            catalog.getRelLabelsForNodeLabelDirection(queryNode->label, isSrcNode ? FWD : BWD);
-        for (auto& relLabel : relLabels) {
-            if (relLabel == queryRel.label) {
-                isSrcNode ? queryRel.srcNode = queryNode : queryRel.dstNode = queryNode;
-                return;
-            }
-        }
-        throw invalid_argument("Node " + queryNode->getAliasElseRawExpression() +
-                               " doesn't connect to edge with same type as " +
-                               queryRel.getAliasElseRawExpression() + ".");
+    auto queryRel = make_shared<RelExpression>(
+        parsedName, lastVariableId++, relLabel, srcNode, dstNode, lowerBound, upperBound);
+    queryRel->rawExpression = parsedName;
+    if (!parsedName.empty()) {
+        variablesInScope.insert({parsedName, queryRel});
     }
-    isSrcNode ? queryRel.srcNode = queryNode : queryRel.dstNode = queryNode;
+    queryGraph.addQueryRel(queryRel);
 }
 
 shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
@@ -249,29 +241,35 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
     auto parsedName = nodePattern.name;
     shared_ptr<NodeExpression> queryNode;
     if (variablesInScope.contains(parsedName)) { // bind to node in scope
-        auto variableInScope = variablesInScope.at(parsedName);
-        if (NODE != variableInScope->dataType) {
+        auto prevVariable = variablesInScope.at(parsedName);
+        while (ALIAS == prevVariable->expressionType) {
+            prevVariable = prevVariable->children[0];
+        }
+        if (NODE != prevVariable->dataType) {
             throw invalid_argument(parsedName + " defined with conflicting type " +
-                                   TypeUtils::dataTypeToString(variableInScope->dataType) +
+                                   TypeUtils::dataTypeToString(prevVariable->dataType) +
                                    " (expect NODE).");
         }
-        queryNode = static_pointer_cast<NodeExpression>(variableInScope);
+        queryNode = static_pointer_cast<NodeExpression>(prevVariable);
         auto otherLabel = bindNodeLabel(nodePattern.label);
-        if (ANY_LABEL == queryNode->label) {
-            queryNode->label = otherLabel;
-        } else if (ANY_LABEL != otherLabel && queryNode->label != otherLabel) {
+        GF_ASSERT(queryNode->label != ANY_LABEL);
+        if (otherLabel != ANY_LABEL && queryNode->label != otherLabel) {
             throw invalid_argument(
                 "Multi-label is not supported. Node " + parsedName + " is given multiple labels.");
         }
-    } else {
-        queryNode = make_shared<NodeExpression>(
-            makeUniqueVariableName(parsedName, lastVariableIdx), bindNodeLabel(nodePattern.label));
-        queryNode->alias = parsedName;
-        if (!queryNode->alias.empty()) {
-            variablesInScope.insert({queryNode->alias, queryNode});
+    } else { // create new node
+        auto nodeLabel = bindNodeLabel(nodePattern.label);
+        queryNode = make_shared<NodeExpression>(parsedName, lastVariableId++, nodeLabel);
+        queryNode->rawExpression = parsedName;
+        if (ANY_LABEL == nodeLabel) {
+            throw invalid_argument(
+                "Any-label is not supported. " + parsedName + " does not have a label.");
         }
+        if (!parsedName.empty()) {
+            variablesInScope.insert({parsedName, queryNode});
+        }
+        queryGraph.addQueryNode(queryNode);
     }
-    queryGraph.addQueryNodeIfNotExist(queryNode);
     return queryNode;
 }
 
@@ -282,7 +280,7 @@ label_t QueryBinder::bindRelLabel(const string& parsed_label) {
     if (!catalog.containRelLabel(parsed_label)) {
         throw invalid_argument("Rel label " + parsed_label + " does not exist.");
     }
-    return catalog.getRelLabelFromString(parsed_label.c_str());
+    return catalog.getRelLabelFromString(parsed_label);
 }
 
 label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
@@ -292,11 +290,94 @@ label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
     if (!catalog.containNodeLabel(parsed_label)) {
         throw invalid_argument("Node label " + parsed_label + " does not exist.");
     }
-    return catalog.getNodeLabelFromString(parsed_label.c_str());
+    return catalog.getNodeLabelFromString(parsed_label);
 }
 
-string makeUniqueVariableName(const string& name, uint32_t& idx) {
-    return "_gf" + to_string(idx++) + "_" + name;
+void QueryBinder::validateNodeAndRelLabelIsConnected(
+    label_t relLabel, label_t nodeLabel, Direction direction) {
+    GF_ASSERT(relLabel != ANY_LABEL);
+    GF_ASSERT(nodeLabel != ANY_LABEL);
+    auto connectedRelLabels = catalog.getRelLabelsForNodeLabelDirection(nodeLabel, direction);
+    for (auto& connectedRelLabel : connectedRelLabels) {
+        if (relLabel == connectedRelLabel) {
+            return;
+        }
+    }
+    throw invalid_argument("Node label " + catalog.getNodeLabelName(nodeLabel) +
+                           " doesn't connect to rel label " + catalog.getRelLabelName(relLabel) +
+                           ".");
+}
+
+void QueryBinder::validateProjectionColumnNamesAreUnique(
+    const vector<shared_ptr<Expression>>& expressions) {
+    auto existColumnNames = unordered_set<string>();
+    for (auto& expression : expressions) {
+        if (existColumnNames.contains(expression->getExternalName())) {
+            throw invalid_argument("Multiple result column with the same name " +
+                                   expression->getExternalName() + " are not supported.");
+        }
+        existColumnNames.insert(expression->getExternalName());
+    }
+}
+
+void QueryBinder::validateOnlyFunctionIsCountStar(
+    const vector<shared_ptr<Expression>>& expressions) {
+    for (auto& expression : expressions) {
+        if (FUNCTION == expression->expressionType) {
+            auto functionName = static_pointer_cast<FunctionExpression>(expression)->function.name;
+            if (COUNT_STAR_FUNC_NAME == functionName && 1 != expressions.size()) {
+                throw invalid_argument(
+                    "The only function in the return clause should be COUNT(*).");
+            }
+        }
+    }
+}
+
+void QueryBinder::validateQueryGraphIsConnected(const QueryGraph& queryGraph,
+    unordered_map<string, shared_ptr<Expression>> prevVariablesInScope) {
+    auto visited = unordered_set<string>();
+    for (auto& [name, variable] : prevVariablesInScope) {
+        if (NODE == variable->dataType) {
+            visited.insert(variable->getInternalName());
+        }
+    }
+    if (visited.empty()) {
+        visited.insert(queryGraph.queryNodes[0]->getInternalName());
+    }
+    auto target = visited;
+    for (auto& queryNode : queryGraph.queryNodes) {
+        target.insert(queryNode->getInternalName());
+    }
+    auto frontier = visited;
+    while (!frontier.empty()) {
+        auto nextFrontier = unordered_set<string>();
+        for (auto& nodeInFrontier : frontier) {
+            auto nbrs = queryGraph.getNeighbourNodeNames(nodeInFrontier);
+            for (auto& nbr : nbrs) {
+                if (end(visited) == visited.find(nbr)) {
+                    visited.insert(nbr);
+                    nextFrontier.insert(nbr);
+                }
+            }
+        }
+        if (visited.size() == target.size()) {
+            return;
+        }
+        frontier = nextFrontier;
+    }
+    throw invalid_argument("Disconnect query graph is not supported.");
+}
+
+void QueryBinder::validateCSVHeaderColumnNamesAreUnique(
+    const vector<pair<string, DataType>>& headerInfo) {
+    auto propertyNames = unordered_set<string>();
+    for (auto& [propertyName, dataType] : headerInfo) {
+        if (propertyNames.contains(propertyName)) {
+            throw invalid_argument("Multiple property columns with the same name " + propertyName +
+                                   " is not supported.");
+        }
+        propertyNames.insert(propertyName);
+    }
 }
 
 vector<pair<string, DataType>> parseCSVHeader(const string& headerLine, char tokenSeparator) {
@@ -331,74 +412,6 @@ vector<unique_ptr<BoundReadingStatement>> mergeAllMatchStatements(
     }
     result.push_back(move(mergedMatchStatement));
     return result;
-}
-
-void validateCSVHeaderColumnNamesAreUnique(const vector<pair<string, DataType>>& headerInfo) {
-    auto propertyNames = unordered_set<string>();
-    for (auto& [propertyName, dataType] : headerInfo) {
-        if (propertyNames.contains(propertyName)) {
-            throw invalid_argument("Multiple property columns with the same name " + propertyName +
-                                   " is not supported.");
-        }
-        propertyNames.insert(propertyName);
-    }
-}
-
-void validateProjectionColumnNamesAreUnique(const vector<shared_ptr<Expression>>& expressions) {
-    auto existColumnNames = unordered_set<string>();
-    for (auto& expression : expressions) {
-        auto k = *expression;
-        if (end(existColumnNames) !=
-            existColumnNames.find(expression->getAliasElseRawExpression())) {
-            throw invalid_argument("Multiple result column with the same name " +
-                                   expression->getAliasElseRawExpression() + " are not supported.");
-        }
-        existColumnNames.insert(expression->getAliasElseRawExpression());
-    }
-}
-
-void validateOnlyFunctionIsCountStar(vector<shared_ptr<Expression>>& expressions) {
-    for (auto& expression : expressions) {
-        if (FUNCTION == expression->expressionType &&
-            COUNT_STAR_FUNC_NAME == expression->variableName && expressions.size() != 1) {
-            throw invalid_argument("The only function in the return clause should be COUNT(*).");
-        }
-    }
-}
-
-void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
-    const unordered_map<string, shared_ptr<Expression>>& variablesInScope) {
-    auto visited = unordered_set<string>();
-    for (auto& [name, variable] : variablesInScope) {
-        if (NODE == variable->dataType) {
-            visited.insert(variable->variableName);
-        }
-    }
-    if (visited.empty()) {
-        visited.insert(queryGraph.queryNodes[0]->variableName);
-    }
-    auto target = visited;
-    for (auto& queryNode : queryGraph.queryNodes) {
-        target.insert(queryNode->variableName);
-    }
-    auto frontier = visited;
-    while (!frontier.empty()) {
-        auto nextFrontier = unordered_set<string>();
-        for (auto& nodeInFrontier : frontier) {
-            auto nbrs = queryGraph.getNeighbourNodeNames(nodeInFrontier);
-            for (auto& nbr : nbrs) {
-                if (end(visited) == visited.find(nbr)) {
-                    visited.insert(nbr);
-                    nextFrontier.insert(nbr);
-                }
-            }
-        }
-        if (visited.size() == target.size()) {
-            return;
-        }
-        frontier = nextFrontier;
-    }
-    throw invalid_argument("Disconnect query graph is not supported.");
 }
 
 } // namespace binder

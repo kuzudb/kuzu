@@ -58,7 +58,7 @@ public:
 
     uint32_t getQueryNodePos(const string& queryNodeName) const;
 
-    void addQueryNodeIfNotExist(shared_ptr<NodeExpression> queryNode);
+    void addQueryNode(shared_ptr<NodeExpression> queryNode);
 
     uint32_t getNumQueryRels() const;
 
@@ -68,7 +68,7 @@ public:
 
     uint32_t getQueryRelPos(const string& queryRelName) const;
 
-    void addQueryRelIfNotExist(shared_ptr<RelExpression> queryRel);
+    void addQueryRel(shared_ptr<RelExpression> queryRel);
 
     vector<tuple<uint32_t, bool, bool>> getConnectedQueryRelsWithDirection(
         const SubqueryGraph& subqueryGraph) const;

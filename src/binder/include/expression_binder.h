@@ -14,9 +14,9 @@ namespace binder {
 class ExpressionBinder {
 
 public:
-    explicit ExpressionBinder(const unordered_map<string, shared_ptr<Expression>>& variablesInScope,
-        const Catalog& catalog)
-        : variablesInScope{variablesInScope}, catalog{catalog} {}
+    ExpressionBinder(
+        const Catalog& catalog, unordered_map<string, shared_ptr<Expression>>& variablesInScope)
+        : catalog{catalog}, variablesInScope{variablesInScope} {}
 
     shared_ptr<Expression> bindExpression(const ParsedExpression& parsedExpression);
 
@@ -46,9 +46,18 @@ private:
 
     shared_ptr<Expression> bindVariableExpression(const ParsedExpression& parsedExpression);
 
+    /****** validation *****/
+
+    // NOTE: this validation should be removed and front end binds any null operation to null
+    static void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression);
+    static void validateExpectedType(const Expression& expression, DataType expectedType);
+    static void validateNumericalType(const Expression& expression);
+    static shared_ptr<Expression> validateAsBoolAndCastIfNecessary(
+        shared_ptr<Expression> expression);
+
 private:
-    const unordered_map<string, shared_ptr<Expression>>& variablesInScope;
     const Catalog& catalog;
+    unordered_map<string, shared_ptr<Expression>>& variablesInScope;
 };
 
 } // namespace binder

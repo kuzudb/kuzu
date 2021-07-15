@@ -8,13 +8,17 @@ namespace binder {
 class PropertyExpression : public Expression {
 
 public:
-    PropertyExpression(string propertyVariableName, DataType dataType, uint32_t propertyKey,
-        shared_ptr<Expression> child)
-        : Expression{PROPERTY, dataType, move(child)}, propertyKey{propertyKey} {
-        variableName = move(propertyVariableName);
+    PropertyExpression(DataType dataType, string propertyName, uint32_t propertyKey,
+        const shared_ptr<Expression>& child)
+        : Expression{PROPERTY, dataType, child}, propertyName{move(propertyName)},
+          propertyKey{propertyKey} {}
+
+    string getInternalName() const override {
+        return children[0]->getInternalName() + "." + propertyName;
     }
 
 public:
+    string propertyName;
     uint32_t propertyKey;
 };
 

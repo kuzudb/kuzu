@@ -37,17 +37,9 @@ bool isExpressionNullComparison(ExpressionType type) {
     return IS_NULL == type || IS_NOT_NULL == type;
 }
 
-bool isExpressionLeafLiteral(ExpressionType type) {
+bool isExpressionLiteral(ExpressionType type) {
     return LITERAL_INT == type || LITERAL_DOUBLE == type || LITERAL_STRING == type ||
            LITERAL_BOOLEAN == type || LITERAL_DATE == type || LITERAL_NULL == type;
-}
-
-/**
- * Expression being leaf variable means it doesn't require evaluator and directly grabs value
- * vector.
- */
-bool isExpressionLeafVariable(ExpressionType type) {
-    return PROPERTY == type || CSV_LINE_EXTRACT == type;
 }
 
 ExpressionType comparisonToIDComparison(ExpressionType type) {

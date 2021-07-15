@@ -5,17 +5,17 @@
 namespace graphflow {
 namespace binder {
 
-class RelExpression : public Expression {
+class RelExpression : public VariableExpression {
 
 public:
-    RelExpression(const string& relName, label_t label, uint64_t lowerBound, uint64_t upperBound)
-        : Expression{VARIABLE, REL}, label{label}, lowerBound{lowerBound}, upperBound{upperBound} {
-        variableName = relName;
-    }
+    RelExpression(const string& relName, uint32_t id, label_t label, NodeExpression* srcNode,
+        NodeExpression* dstNode, uint64_t lowerBound, uint64_t upperBound)
+        : VariableExpression{VARIABLE, REL, relName, id}, label{label}, srcNode{srcNode},
+          dstNode{dstNode}, lowerBound{lowerBound}, upperBound{upperBound} {}
 
-    inline string getSrcNodeName() const { return srcNode->variableName; }
+    inline string getSrcNodeName() const { return srcNode->getInternalName(); }
 
-    inline string getDstNodeName() const { return dstNode->variableName; }
+    inline string getDstNodeName() const { return dstNode->getInternalName(); }
 
 public:
     label_t label;

@@ -33,10 +33,10 @@ TEST_F(OptimizerTest, OneHopSingleFilter) {
     auto plan = OptimizerTest::getBestPlan(query, graph);
     auto& op1 = *plan->lastOperator;
     ASSERT_EQ(LOGICAL_EXTEND, op1.getLogicalOperatorType());
-    ASSERT_TRUE(containSubstr(((LogicalExtend&)op1).nbrNodeID, "_b." + INTERNAL_ID));
+    ASSERT_TRUE(containSubstr(((LogicalExtend&)op1).nbrNodeID, "_b." + INTERNAL_ID_SUFFIX));
     auto& op2 = *op1.prevOperator->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op2.getLogicalOperatorType());
-    ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op2).nodeID, "_a." + INTERNAL_ID));
+    ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op2).nodeID, "_a." + INTERNAL_ID_SUFFIX));
 }
 
 TEST_F(OptimizerTest, OneHopMultiFilters) {
@@ -48,10 +48,10 @@ TEST_F(OptimizerTest, OneHopMultiFilters) {
     auto plan = OptimizerTest::getBestPlan(query, graph);
     auto& op1 = *plan->lastOperator->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_EXTEND, op1.getLogicalOperatorType());
-    ASSERT_TRUE(containSubstr(((LogicalExtend&)op1).nbrNodeID, "_b." + INTERNAL_ID));
+    ASSERT_TRUE(containSubstr(((LogicalExtend&)op1).nbrNodeID, "_b." + INTERNAL_ID_SUFFIX));
     auto& op2 = *op1.prevOperator->prevOperator->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op2.getLogicalOperatorType());
-    ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op2).nodeID, "_a." + INTERNAL_ID));
+    ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op2).nodeID, "_a." + INTERNAL_ID_SUFFIX));
 }
 
 TEST_F(OptimizerTest, TwoHop) {
@@ -62,7 +62,7 @@ TEST_F(OptimizerTest, TwoHop) {
     auto plan = OptimizerTest::getBestPlan(query, graph);
     auto& op1 = *plan->lastOperator->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op1.getLogicalOperatorType());
-    ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op1).nodeID, "_b." + INTERNAL_ID));
+    ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op1).nodeID, "_b." + INTERNAL_ID_SUFFIX));
 }
 
 TEST_F(OptimizerTest, TwoHopMultiFilters) {
@@ -75,5 +75,5 @@ TEST_F(OptimizerTest, TwoHopMultiFilters) {
     auto& op1 = *plan->lastOperator->prevOperator->prevOperator->prevOperator->prevOperator
                      ->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op1.getLogicalOperatorType());
-    ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op1).nodeID, "_b." + INTERNAL_ID));
+    ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op1).nodeID, "_b." + INTERNAL_ID_SUFFIX));
 }

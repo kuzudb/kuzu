@@ -17,13 +17,13 @@ bool BinderTestUtils::equals(
 
 bool BinderTestUtils::equals(const Expression& left, const Expression& right) {
     auto result = left.expressionType == right.expressionType && left.dataType == right.dataType &&
-                  left.variableName == right.variableName && left.alias == right.alias &&
-                  left.childrenExpr.size() == right.childrenExpr.size();
+                  left.children.size() == right.children.size() &&
+                  left.getInternalName() == right.getInternalName();
     if (!result) {
         return false;
     }
-    for (auto i = 0u; i < left.childrenExpr.size(); ++i) {
-        if (!equals(*left.childrenExpr[i], *right.childrenExpr[i])) {
+    for (auto i = 0u; i < left.children.size(); ++i) {
+        if (!equals(*left.children[i], *right.children[i])) {
             return false;
         }
     }
@@ -37,7 +37,9 @@ bool BinderTestUtils::equals(const Expression& left, const Expression& right) {
         } else {
             return true;
         }
-    } else if (isExpressionLeafLiteral(left.expressionType)) {
+    } else if (FUNCTION == left.expressionType) {
+        return equals((FunctionExpression&)left, (FunctionExpression&)right);
+    } else if (isExpressionLiteral(left.expressionType)) {
         return equals((LiteralExpression&)left, (LiteralExpression&)right);
     }
     return true;
@@ -45,6 +47,10 @@ bool BinderTestUtils::equals(const Expression& left, const Expression& right) {
 
 bool BinderTestUtils::equals(const PropertyExpression& left, const PropertyExpression& right) {
     return left.propertyKey == right.propertyKey;
+}
+
+bool BinderTestUtils::equals(const FunctionExpression& left, const FunctionExpression& right) {
+    return left.function.name == right.function.name;
 }
 
 bool BinderTestUtils::equals(const RelExpression& left, const RelExpression& right) {

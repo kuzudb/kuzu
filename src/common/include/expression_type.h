@@ -92,6 +92,7 @@ enum ExpressionType : uint8_t {
      * Variable Expression
      **/
     VARIABLE = 90,
+    ALIAS = 91,
 
     /**
      * Cast Expressions
@@ -108,8 +109,7 @@ bool isExpressionComparison(ExpressionType type);
 bool isExpressionArithmetic(ExpressionType type);
 bool isExpressionStringOperator(ExpressionType type);
 bool isExpressionNullComparison(ExpressionType type);
-bool isExpressionLeafLiteral(ExpressionType type);
-bool isExpressionLeafVariable(ExpressionType type);
+bool isExpressionLiteral(ExpressionType type);
 
 ExpressionType comparisonToIDComparison(ExpressionType type);
 string expressionTypeToString(ExpressionType type);

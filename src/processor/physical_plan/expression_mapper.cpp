@@ -1,6 +1,7 @@
 #include "src/processor/include/physical_plan/expression_mapper.h"
 
 #include "src/binder/include/expression/literal_expression.h"
+#include "src/common/include/assert.h"
 #include "src/common/include/expression_type.h"
 #include "src/expression_evaluator/include/binary_expression_evaluator.h"
 #include "src/expression_evaluator/include/unary_expression_evaluator.h"
@@ -16,7 +17,7 @@ static unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToStructuredPh
 static unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToUnstructuredPhysical(
     MemoryManager& memoryManager, const Expression& expression);
 
-static unique_ptr<ExpressionEvaluator> mapLogicalPropertyOrCSVLineExtractExpressionToPhysical(
+static unique_ptr<ExpressionEvaluator> mapLogicalLeafExpressionToPhysical(
     MemoryManager& memoryManager, const Expression& expression,
     PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet);
 
@@ -24,20 +25,32 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(MemoryManager& m
     const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
     ResultSet& resultSet) {
     auto expressionType = expression.expressionType;
-    if (isExpressionLeafLiteral(expressionType)) {
+    if (isExpressionLiteral(expressionType)) {
         return mapLogicalLiteralExpressionToStructuredPhysical(memoryManager, expression);
     }
     unique_ptr<ExpressionEvaluator> retVal;
-    if (isExpressionLeafVariable(expressionType)) {
+    if (PROPERTY == expressionType || CSV_LINE_EXTRACT == expressionType) {
         /**
-         *Both CSV_LINE_EXTRACT and PropertyExpression are mapped to the same physical expression
-         *evaluator, because both of them only grab data from a value vector.
+         * Both CSV_LINE_EXTRACT and PropertyExpression are mapped to the same physical expression
+         * evaluator, because both of them only grab data from a value vector.
          */
-        retVal = mapLogicalPropertyOrCSVLineExtractExpressionToPhysical(
+        retVal = mapLogicalLeafExpressionToPhysical(
             memoryManager, expression, physicalOperatorInfo, resultSet);
+    } else if (ALIAS == expressionType) {
+        /**
+         * If an alias expression has been matched before, it should be treated as a leaf
+         * expression. Otherwise map the child of alias expression.
+         */
+        if (physicalOperatorInfo.containDataChunk(expression.getInternalName())) {
+            retVal = mapLogicalLeafExpressionToPhysical(
+                memoryManager, expression, physicalOperatorInfo, resultSet);
+        } else {
+            retVal = mapToPhysical(
+                memoryManager, *expression.children[0], physicalOperatorInfo, resultSet);
+        }
     } else if (isExpressionUnary(expressionType)) {
-        auto child = mapToPhysical(
-            memoryManager, expression.getChildExpr(0), physicalOperatorInfo, resultSet);
+        auto child =
+            mapToPhysical(memoryManager, *expression.children[0], physicalOperatorInfo, resultSet);
         retVal = make_unique<UnaryExpressionEvaluator>(
             memoryManager, move(child), expressionType, expression.dataType);
     } else {
@@ -49,8 +62,8 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(MemoryManager& m
         // structured (i.e., primitive) values. The cast operation ensures that the other child's
         // values are also boxed so we can call expression evaluation functions that expect two
         // boxed values.
-        auto& logicalLExpr = expression.getChildExpr(0);
-        auto& logicalRExpr = expression.getChildExpr(1);
+        auto& logicalLExpr = *expression.children[0];
+        auto& logicalRExpr = *expression.children[1];
         auto castLToUnstructured =
             logicalRExpr.dataType == UNSTRUCTURED && logicalLExpr.dataType != UNSTRUCTURED;
         auto lExpr = mapChildExpressionAndCastToUnstructuredIfNecessary(
@@ -67,10 +80,11 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(MemoryManager& m
 
 unique_ptr<ExpressionEvaluator> ExpressionMapper::clone(
     MemoryManager& memoryManager, const ExpressionEvaluator& expression, ResultSet& resultSet) {
-    if (isExpressionLeafLiteral(expression.expressionType)) {
+    if (isExpressionLiteral(expression.expressionType)) {
         return make_unique<ExpressionEvaluator>(
             memoryManager, expression.result, expression.expressionType);
-    } else if (isExpressionLeafVariable(expression.expressionType)) {
+    } else if (PROPERTY == expression.expressionType ||
+               CSV_LINE_EXTRACT == expression.expressionType) {
         auto dataChunk = resultSet.dataChunks[expression.dataChunkPos];
         auto valueVector = dataChunk->getValueVector(expression.valueVectorPos);
         return make_unique<ExpressionEvaluator>(
@@ -91,7 +105,7 @@ ExpressionMapper::mapChildExpressionAndCastToUnstructuredIfNecessary(MemoryManag
     const Expression& expression, bool castToUnstructured,
     PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet) {
     unique_ptr<ExpressionEvaluator> retVal;
-    if (castToUnstructured && isExpressionLeafLiteral(expression.expressionType)) {
+    if (castToUnstructured && isExpressionLiteral(expression.expressionType)) {
         retVal = mapLogicalLiteralExpressionToUnstructuredPhysical(memoryManager, expression);
     } else {
         retVal = mapToPhysical(memoryManager, expression, physicalOperatorInfo, resultSet);
@@ -166,10 +180,10 @@ unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToStructuredPhysical(
     return make_unique<ExpressionEvaluator>(memoryManager, vector, expression.expressionType);
 }
 
-unique_ptr<ExpressionEvaluator> mapLogicalPropertyOrCSVLineExtractExpressionToPhysical(
-    MemoryManager& memoryManager, const Expression& expression,
-    PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet) {
-    const auto& variableName = expression.variableName;
+unique_ptr<ExpressionEvaluator> mapLogicalLeafExpressionToPhysical(MemoryManager& memoryManager,
+    const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
+    ResultSet& resultSet) {
+    auto variableName = expression.getInternalName();
     auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(variableName);
     auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(variableName);
     auto dataChunk = resultSet.dataChunks[dataChunkPos];

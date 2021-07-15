@@ -16,32 +16,33 @@ namespace binder {
 class Expression {
 
 public:
-    // creates a non-leaf logical binary expression.
+    // Create binary expression.
     Expression(ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& left,
         const shared_ptr<Expression>& right);
 
-    // creates a non-leaf logical unary expression.
+    // Create unary expression.
     Expression(
         ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child);
-
-    Expression(ExpressionType expressionType, DataType dataType, const string& variableName);
-
-    inline const Expression& getChildExpr(uint64_t pos) const { return *childrenExpr[pos]; }
-
-    inline const string getAliasElseRawExpression() const {
-        return alias.empty() ? rawExpression : alias;
-    }
 
     vector<const Expression*> getIncludedPropertyExpressions() const {
         return getIncludedExpressionsWithTypes(unordered_set<ExpressionType>{PROPERTY});
     }
 
-    vector<const Expression*> getIncludedLeafVariableExpressions() const {
+    vector<const Expression*> getIncludedPropertyOrCSVLineExtractExpressions() const {
         return getIncludedExpressionsWithTypes(
             unordered_set<ExpressionType>{PROPERTY, CSV_LINE_EXTRACT});
     }
 
     unordered_set<string> getIncludedVariableNames() const;
+
+    // return named used for parsing user input and printing
+    virtual inline string getExternalName() const { return rawExpression; }
+
+    // return named used in internal processing
+    // alias name should never be used in internal processing
+    virtual inline string getInternalName() const {
+        return ALIAS == expressionType ? children[0]->getInternalName() : rawExpression;
+    }
 
 protected:
     Expression(ExpressionType expressionType, DataType dataType)
@@ -52,13 +53,10 @@ private:
         const unordered_set<ExpressionType>& expressionTypes) const;
 
 public:
-    // variable name for leaf variable expressions.
-    string variableName;
-    vector<shared_ptr<Expression>> childrenExpr;
     ExpressionType expressionType;
     DataType dataType;
-    string alias;
     string rawExpression;
+    vector<shared_ptr<Expression>> children;
 };
 
 } // namespace binder

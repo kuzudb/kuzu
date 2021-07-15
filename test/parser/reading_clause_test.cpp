@@ -9,8 +9,8 @@ class ReadingClauseTest : public ::testing::Test {
 
 public:
     static unique_ptr<RelPattern> makeRelPattern(
-        string name, string type, ArrowDirection direction) {
-        auto rel = make_unique<RelPattern>(name, type, 1 /*lowerBound*/, 1 /*upperBound*/);
+        const string& name, const string& type, ArrowDirection direction) {
+        auto rel = make_unique<RelPattern>(name, type, "1" /*lowerBound*/, "1" /*upperBound*/);
         rel->arrowDirection = direction;
         return rel;
     }

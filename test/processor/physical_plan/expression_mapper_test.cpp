@@ -1,14 +1,17 @@
 #include "gtest/gtest.h"
 
 #include "src/binder/include/expression/literal_expression.h"
+#include "src/binder/include/expression/node_expression.h"
+#include "src/binder/include/expression/property_expression.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
 
 using namespace graphflow::processor;
 using namespace graphflow::binder;
 
 TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
+    auto nodeExpression = make_unique<NodeExpression>("a", 0, 0);
     auto propertyExpression =
-        make_unique<Expression>(ExpressionType::PROPERTY, DataType::INT64, "a.prop");
+        make_unique<PropertyExpression>(DataType::INT64, "prop", 0, move(nodeExpression));
     Literal literal = Literal((int64_t)5);
     auto literalExpression =
         make_unique<LiteralExpression>(ExpressionType::LITERAL_INT, DataType::INT64, literal);
@@ -28,7 +31,7 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
     auto resultSet = ResultSet();
-    physicalOperatorInfo.appendAsNewDataChunk("a.prop");
+    physicalOperatorInfo.appendAsNewDataChunk("_0_a.prop");
     resultSet.append(dataChunk);
 
     auto rootExpressionEvaluator = ExpressionMapper::mapToPhysical(
@@ -42,8 +45,9 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
 }
 
 TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
+    auto nodeExpression = make_unique<NodeExpression>("a", 0, 0);
     auto propertyExpression =
-        make_unique<Expression>(ExpressionType::PROPERTY, DataType::INT64, "a.prop");
+        make_unique<PropertyExpression>(DataType::INT64, "prop", 0, move(nodeExpression));
     auto negateLogicalOperator =
         make_unique<Expression>(ExpressionType::NEGATE, DataType::INT64, move(propertyExpression));
 
@@ -64,7 +68,7 @@ TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
 
     auto physicalOperatorInfo = PhysicalOperatorsInfo();
     auto resultSet = ResultSet();
-    physicalOperatorInfo.appendAsNewDataChunk("a.prop");
+    physicalOperatorInfo.appendAsNewDataChunk("_0_a.prop");
     resultSet.append(dataChunk);
 
     auto rootExpressionEvaluator = ExpressionMapper::mapToPhysical(

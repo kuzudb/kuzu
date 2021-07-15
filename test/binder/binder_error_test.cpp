@@ -46,7 +46,7 @@ TEST_F(BinderErrorTest, NodeLabelNotExist) {
 }
 
 TEST_F(BinderErrorTest, NodeRelNotConnect) {
-    string expectedException = "Node b doesn't connect to edge with same type as e1.";
+    string expectedException = "Node label person doesn't connect to rel label workAt.";
     auto input = "MATCH (a:person)-[e1:workAt]->(b:person) RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -58,13 +58,7 @@ TEST_F(BinderErrorTest, RepeatedRelName) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, RepeatedReturnColumnName1) {
-    string expectedException = "Multiple result column with the same name b are not supported.";
-    auto input = "MATCH (a:person)-[e1:knows]->(b:person) RETURN a.age AS b, b;";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
-TEST_F(BinderErrorTest, RepeatedReturnColumnName2) {
+TEST_F(BinderErrorTest, RepeatedReturnColumnName) {
     string expectedException = "Multiple result column with the same name e1 are not supported.";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) RETURN *, e1;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
