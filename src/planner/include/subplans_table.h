@@ -22,23 +22,26 @@ struct SubqueryGraphHasher {
     }
 };
 
-class SubplansTable {
+typedef unordered_map<SubqueryGraph, vector<unique_ptr<LogicalPlan>>, SubqueryGraphHasher>
+    SubqueryGraphPlansMap;
+
+class SubPlansTable {
 
 public:
-    explicit SubplansTable(uint32_t maxSubqueryGraphSize);
+    explicit SubPlansTable(uint32_t maxSubqueryGraphSize);
 
     bool containSubgraphPlans(const SubqueryGraph& subqueryGraph) const;
 
-    const vector<unique_ptr<LogicalPlan>>& getSubgraphPlans(
-        const SubqueryGraph& subqueryGraph) const;
+    vector<unique_ptr<LogicalPlan>>& getSubgraphPlans(const SubqueryGraph& subqueryGraph);
 
-    void addSubgraphPlan(const SubqueryGraph& subqueryGraph, unique_ptr<LogicalPlan> plan);
+    SubqueryGraphPlansMap& getSubqueryGraphPlansMap(uint32_t level) { return subPlans[level]; }
+
+    void addPlan(const SubqueryGraph& subqueryGraph, unique_ptr<LogicalPlan> plan);
 
     void clearUntil(uint32_t size);
 
-public:
-    vector<unordered_map<SubqueryGraph, vector<unique_ptr<LogicalPlan>>, SubqueryGraphHasher>>
-        subgraphPlans;
+private:
+    vector<SubqueryGraphPlansMap> subPlans;
 };
 
 } // namespace planner

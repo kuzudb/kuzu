@@ -83,6 +83,7 @@ cc_library(
         "//src/common:csv_reader",
         "//src/common:memory_manager",
         "//src/expression_evaluator",
+        "//src/planner:schema",
         "//src/storage:graph",
         "//src/transaction",
     ],

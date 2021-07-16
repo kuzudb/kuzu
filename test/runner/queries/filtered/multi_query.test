@@ -1,5 +1,13 @@
 # description: matching paths
 
+-NAME PersonNodesAgeFilteredTest2
+-QUERY WITH 25 AS foo WITH foo AS age MATCH (a:person) WHERE a.age <= age RETURN COUNT(*)
+---- 3
+
+-NAME PersonNodesGenderFilteredTest3
+-QUERY WITH 3.5 AS threshold MATCH (a:person) WHERE (a.gender*threshold = 7.0) RETURN COUNT(*)
+---- 5
+
 -NAME MultiQueryOneHopKnowsFilteredTest1
 -QUERY MATCH (a:person) WHERE a.gender = 1 WITH a AS k MATCH (k)-[e:knows]->(b:person) WHERE b.gender = 2 RETURN COUNT(*)
 ---- 6

@@ -1,13 +1,12 @@
 #pragma once
 
-#include <memory>
 #include <string>
 #include <unordered_map>
-#include <utility>
-#include <vector>
 
 #include "src/common/include/assert.h"
+#include "src/planner/include/logical_plan/schema.h"
 
+using namespace graphflow::planner;
 using namespace std;
 
 namespace graphflow {
@@ -16,32 +15,19 @@ namespace processor {
 class PhysicalOperatorsInfo {
 
 public:
-    uint64_t appendAsNewDataChunk(const string& variableName);
+    explicit PhysicalOperatorsInfo(const Schema& schema);
 
-    // Append the given variable as a new vector into the given dataChunkPos
-    void appendAsNewValueVector(const string& variableName, uint64_t dataChunkPos);
+    bool containVariable(const string& variable) { return variableToDataPosMap.contains(variable); }
 
-    inline bool containDataChunk(const string& variableName) {
-        return variableToDataPosMap.contains(variableName);
+    uint64_t getDataChunkPos(const string& variable) {
+        GF_ASSERT(variableToDataPosMap.contains(variable));
+        return variableToDataPosMap.at(variable).first;
     }
 
-    inline uint64_t getDataChunkPos(const string& variableName) {
-        GF_ASSERT(variableToDataPosMap.contains(variableName));
-        return variableToDataPosMap.at(variableName).first;
+    uint64_t getValueVectorPos(const string& variable) {
+        GF_ASSERT(variableToDataPosMap.contains(variable));
+        return variableToDataPosMap.at(variable).second;
     }
-
-    inline uint64_t getValueVectorPos(const string& variableName) {
-        GF_ASSERT(variableToDataPosMap.contains(variableName));
-        return variableToDataPosMap.at(variableName).second;
-    }
-
-    void clear();
-
-public:
-    // Record isFlat for each data chunk
-    vector<bool> dataChunkPosToIsFlat;
-    // Record variables for each vector, organized as one vector<string> per data chunk.
-    vector<vector<string>> vectorVariables;
 
 private:
     // Map each variable to its position pair (dataChunkPos, vectorPos)

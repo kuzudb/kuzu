@@ -13,7 +13,7 @@ public:
     NodeExpression(const string& nodeName, uint32_t id, label_t label)
         : VariableExpression{VARIABLE, NODE, nodeName, id}, label{label} {}
 
-    inline string getIDProperty() { return uniqueName + "." + INTERNAL_ID_SUFFIX; }
+    inline string getIDProperty() const { return uniqueName + "." + INTERNAL_ID_SUFFIX; }
 
 public:
     label_t label;

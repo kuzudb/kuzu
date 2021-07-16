@@ -3,27 +3,16 @@
 namespace graphflow {
 namespace processor {
 
-uint64_t PhysicalOperatorsInfo::appendAsNewDataChunk(const string& variableName) {
-    vector<string> newDataChunk;
-    newDataChunk.push_back(variableName);
-    auto newDataChunkPos = vectorVariables.size();
-    variableToDataPosMap.insert({variableName, make_pair(newDataChunkPos, 0)});
-    vectorVariables.push_back(newDataChunk);
-    dataChunkPosToIsFlat.push_back(false /* is not flat */);
-    return newDataChunkPos;
-}
-
-void PhysicalOperatorsInfo::appendAsNewValueVector(
-    const string& variableName, uint64_t dataChunkPos) {
-    auto& dataChunk = vectorVariables[dataChunkPos];
-    variableToDataPosMap.insert({variableName, make_pair(dataChunkPos, dataChunk.size())});
-    dataChunk.push_back(variableName);
-}
-
-void PhysicalOperatorsInfo::clear() {
-    dataChunkPosToIsFlat.clear();
-    vectorVariables.clear();
-    variableToDataPosMap.clear();
+PhysicalOperatorsInfo::PhysicalOperatorsInfo(const Schema& schema) {
+    auto dataChunkPos = 0ul;
+    for (auto& group : schema.groups) {
+        auto vectorPos = 0ul;
+        for (auto& variable : group.variables) {
+            variableToDataPosMap.insert({variable, make_pair(dataChunkPos, vectorPos)});
+            vectorPos++;
+        }
+        dataChunkPos++;
+    }
 }
 
 } // namespace processor
