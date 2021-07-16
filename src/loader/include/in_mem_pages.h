@@ -7,7 +7,7 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/gf_string.h"
 #include "src/common/include/types.h"
-#include "src/storage/include/data_structure/utils.h"
+#include "src/storage/include/data_structure/data_structure.h"
 
 using namespace graphflow::storage;
 using namespace graphflow::common;
@@ -20,7 +20,7 @@ class InMemPages {
 
 public:
     InMemPages(string fName, const uint64_t& numPages) : fName{move(fName)}, numPages{numPages} {
-        auto size = numPages * PAGE_SIZE;
+        auto size = numPages << PAGE_SIZE_LOG_2;
         data = make_unique<uint8_t[]>(size);
         fill(data.get(), data.get() + size, UINT8_MAX);
     };
@@ -61,7 +61,7 @@ public:
     };
 
     inline uint8_t* getPtrToMemLoc(const PageCursor& cursor) {
-        return data.get() + (PAGE_SIZE * cursor.idx) + cursor.offset;
+        return data.get() + (cursor.idx << PAGE_SIZE_LOG_2) + cursor.offset;
     }
 
 private:
@@ -76,7 +76,7 @@ public:
         : InMemPages{fName, numPages} {};
 
     inline uint8_t* getPtrToMemLoc(const PageCursor& cursor) {
-        return data.get() + (PAGE_SIZE * cursor.idx) + cursor.offset;
+        return data.get() + (cursor.idx << PAGE_SIZE_LOG_2) + cursor.offset;
     }
 
     void setUnstrProperty(const PageCursor& cursor, uint32_t propertyKey,
@@ -103,7 +103,7 @@ public:
     void copyOverflowString(PageCursor& cursor, uint8_t* ptrToCopy, gf_string_t* encodedString);
 
     uint8_t* getPtrToMemLoc(PageCursor& cursor) {
-        return data.get() + (PAGE_SIZE * cursor.idx) + cursor.offset;
+        return data.get() + (cursor.idx << PAGE_SIZE_LOG_2) + cursor.offset;
     }
 
 private:

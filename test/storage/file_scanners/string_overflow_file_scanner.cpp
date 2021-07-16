@@ -6,7 +6,7 @@ namespace storage {
 string StringOverflowFileFileScanner::readLargeString(const gf_string_t& str) const {
     PageCursor cursor;
     str.getOverflowPtrInfo(cursor.idx, cursor.offset);
-    return string((char*)(buffer.get() + cursor.idx * PAGE_SIZE + cursor.offset), str.len);
+    return string((char*)(buffer.get() + (cursor.idx << PAGE_SIZE_LOG_2) + cursor.offset), str.len);
 };
 
 string StringOverflowFileFileScanner::readString(

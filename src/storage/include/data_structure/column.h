@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string.h>
-
 #include "src/common/include/gf_string.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/node_vector.h"
@@ -29,6 +27,9 @@ protected:
     void readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
         BufferManagerMetrics& metrics);
+
+public:
+    static constexpr char COLUMN_SUFFIX[] = ".col";
 };
 
 template<DataType D>

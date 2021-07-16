@@ -33,77 +33,58 @@ cc_library(
 )
 
 cc_library(
-    name = "data_structure_utils",
-    srcs = [
-        "data_structure/utils.cpp",
-    ],
-    hdrs = [
-        "include/data_structure/utils.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "storage_utils",
-        "//src/common:utils",
-    ],
-)
-
-cc_library(
-    name = "lists_aux",
-    srcs = [
-        "data_structure/lists/list_headers.cpp",
-        "data_structure/lists/list_sync_state.cpp",
-        "data_structure/lists/lists_metadata.cpp",
-    ],
-    hdrs = [
-        "include/data_structure/lists/list_headers.h",
-        "include/data_structure/lists/list_sync_state.h",
-        "include/data_structure/lists/lists_metadata.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "data_structure_utils",
-        "//src/common:types",
-        "@gabime_spdlog",
-    ],
-)
-
-cc_library(
     name = "data_structure",
     srcs = [
-        "data_structure/column.cpp",
         "data_structure/data_structure.cpp",
-        "data_structure/lists/lists.cpp",
+        "data_structure/lists/utils.cpp",
         "data_structure/string_overflow_pages.cpp",
     ],
     hdrs = [
-        "include/data_structure/column.h",
         "include/data_structure/data_structure.h",
-        "include/data_structure/data_structure_handle.h",
-        "include/data_structure/lists/lists.h",
+        "include/data_structure/lists/utils.h",
+        "include/data_structure/page_handle.h",
         "include/data_structure/string_overflow_pages.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "buffer_manager",
-        "lists_aux",
         "//src/common:profiler",
         "//src/common:vector",
     ],
 )
 
 cc_library(
-    name = "store",
+    name = "lists",
     srcs = [
-        "store/nodes_store.cpp",
-        "store/rels_store.cpp",
+        "data_structure/lists/list_headers.cpp",
+        "data_structure/lists/list_sync_state.cpp",
+        "data_structure/lists/lists.cpp",
+        "data_structure/lists/lists_metadata.cpp",
     ],
     hdrs = [
-        "include/store/nodes_store.h",
-        "include/store/rels_store.h",
+        "include/data_structure/lists/list_headers.h",
+        "include/data_structure/lists/list_sync_state.h",
+        "include/data_structure/lists/lists.h",
+        "include/data_structure/lists/lists_metadata.h",
+        "include/data_structure/lists/lists_page_handle.h",
+        "include/data_structure/lists/utils.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "catalog",
+        "data_structure",
+    ],
+)
+
+cc_library(
+    name = "column",
+    srcs = [
+        "data_structure/column.cpp",
+    ],
+    hdrs = [
+        "include/data_structure/column.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
         "data_structure",
     ],
 )
@@ -127,6 +108,24 @@ cc_library(
 )
 
 cc_library(
+    name = "store",
+    srcs = [
+        "store/nodes_store.cpp",
+        "store/rels_store.cpp",
+    ],
+    hdrs = [
+        "include/store/nodes_store.h",
+        "include/store/rels_store.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "catalog",
+        "column",
+        "lists",
+    ],
+)
+
+cc_library(
     name = "graph",
     srcs = [
         "graph.cpp",
@@ -138,14 +137,6 @@ cc_library(
     deps = [
         "store",
     ],
-)
-
-cc_library(
-    name = "storage_utils",
-    hdrs = [
-        "include/utils.h",
-    ],
-    visibility = ["//visibility:public"],
 )
 
 cc_library(

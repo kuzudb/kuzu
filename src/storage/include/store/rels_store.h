@@ -4,6 +4,7 @@
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/data_structure/column.h"
 #include "src/storage/include/data_structure/lists/lists.h"
+#include "src/storage/include/data_structure/lists/utils.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -40,29 +41,28 @@ public:
 
     inline static string getAdjColumnFName(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
-        return FileUtils::joinPath(directory, "r-" + to_string(relLabel) + "-" +
-                                                  to_string(nodeLabel) + "-" +
-                                                  to_string(direction) + ".col");
+        auto fName = StringUtils::string_format("r-%d-%d-%d", relLabel, nodeLabel, direction);
+        return FileUtils::joinPath(directory, fName + BaseColumn::COLUMN_SUFFIX);
     }
 
     inline static string getAdjListsFName(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
-        return FileUtils::joinPath(directory, "r-" + to_string(relLabel) + "-" +
-                                                  to_string(nodeLabel) + "-" +
-                                                  to_string(direction) + ".lists");
+        auto fName = StringUtils::string_format("r-%d-%d-%d", relLabel, nodeLabel, direction);
+        return FileUtils::joinPath(directory, fName + BaseLists::LISTS_SUFFIX);
     }
 
     inline static string getRelPropertyColumnFName(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const string& propertyName) {
-        return FileUtils::joinPath(directory,
-            "r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" + propertyName + ".col");
+        auto fName =
+            StringUtils::string_format("r-%d-%d-%s", relLabel, nodeLabel, propertyName.data());
+        return FileUtils::joinPath(directory, fName + BaseColumn::COLUMN_SUFFIX);
     }
 
     inline static string getRelPropertyListsFName(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction, const string& propertyName) {
-        return FileUtils::joinPath(
-            directory, "r-" + to_string(relLabel) + "-" + to_string(nodeLabel) + "-" +
-                           to_string(direction) + "-" + propertyName + ".lists");
+        auto fName = StringUtils::string_format(
+            "r-%d-%d-%d-%s", relLabel, nodeLabel, direction, propertyName.data());
+        return FileUtils::joinPath(directory, fName + BaseLists::LISTS_SUFFIX);
     }
 
 private:

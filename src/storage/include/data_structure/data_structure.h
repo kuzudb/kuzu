@@ -3,14 +3,22 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/data_structure/data_structure_handle.h"
-#include "src/storage/include/data_structure/lists/list_sync_state.h"
-#include "src/storage/include/data_structure/utils.h"
+#include "src/storage/include/data_structure/page_handle.h"
 
 using namespace graphflow::common;
 
 namespace graphflow {
 namespace storage {
+
+// Holds the reference to a location in a collection of pages of a Column or Lists.
+struct PageCursor {
+
+    PageCursor(uint64_t idx, uint16_t offset) : idx{idx}, offset{offset} {};
+    PageCursor() : PageCursor{-1ul, (uint16_t)-1} {};
+
+    uint64_t idx;
+    uint16_t offset;
+};
 
 // DataStructure is the parent class of BaseColumn and BaseLists. It abstracts the state and
 // functions that are common in both column and lists, like, 1) layout info (size of a unit of
@@ -41,7 +49,7 @@ protected:
 
     void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector, PageHandle& pageHandle,
         uint64_t sizeLeftToCopy, PageCursor& pageCursor,
-        unique_ptr<LogicalToPhysicalPageIdxMapper> mapper, BufferManagerMetrics& metrics);
+        function<uint32_t(uint32_t)> logicalToPhysicalPageMapper, BufferManagerMetrics& metrics);
 
 public:
     DataType dataType;

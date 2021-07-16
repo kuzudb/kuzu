@@ -15,13 +15,13 @@ void InMemPages::saveToFile() {
         throw invalid_argument("InMemPages: Empty filename");
     }
     int fd = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
-    auto size = numPages * PAGE_SIZE;
+    auto size = numPages << PAGE_SIZE_LOG_2;
     FileUtils::writeToFile(fd, data.get(), size, 0);
     FileUtils::closeFile(fd);
 }
 
 void InMemAdjPages::setNbrNode(const PageCursor& cursor, const nodeID_t& nbrNodeID) {
-    auto writeOffset = data.get() + (PAGE_SIZE * cursor.idx) + cursor.offset;
+    auto writeOffset = data.get() + (cursor.idx << PAGE_SIZE_LOG_2) + cursor.offset;
     memcpy(writeOffset, &nbrNodeID.label, numBytesPerLabel);
     memcpy(writeOffset + numBytesPerLabel, &nbrNodeID.offset, numBytesPerOffset);
 }
@@ -55,7 +55,7 @@ void InMemStringOverflowPages::copyOverflowString(
         cursor.idx = getNewOverflowPageIdx();
     }
     encodedString->setOverflowPtrInfo(cursor.idx, cursor.offset);
-    auto writeOffset = data.get() + (cursor.idx * PAGE_SIZE) + cursor.offset;
+    auto writeOffset = data.get() + (cursor.idx << PAGE_SIZE_LOG_2) + cursor.offset;
     memcpy(writeOffset, ptrToCopy, encodedString->len);
     cursor.offset += encodedString->len;
 }
@@ -67,8 +67,8 @@ uint32_t InMemStringOverflowPages::getNewOverflowPageIdx() {
         return page;
     }
     uint64_t newMaxPages = 1.5 * maxPages;
-    auto newPages = new uint8_t[PAGE_SIZE * newMaxPages];
-    memcpy(newPages, data.get(), PAGE_SIZE * maxPages);
+    auto newPages = new uint8_t[newMaxPages << PAGE_SIZE_LOG_2];
+    memcpy(newPages, data.get(), maxPages << PAGE_SIZE_LOG_2);
     data.reset(newPages);
     maxPages = newMaxPages;
     return page;

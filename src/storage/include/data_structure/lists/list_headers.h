@@ -24,7 +24,25 @@ class NodesLoader;
 namespace graphflow {
 namespace storage {
 
-// ListHeaders holds the headers of all lists in a single Lists structue.
+/**
+ * ListHeaders holds the headers of all lists in a single Lists data structure.
+ *
+ * A header of a list is a unsigned integer values. Each value describes the following
+ * information about the list: 1) type: small or large, 2) location of list in pages.
+ *
+ * If the list is small, the layout of header is:
+ *      1. MSB (31st bit) is reset
+ *      2. 30-22 bits denote the index in the chunkPagesMaps[chunkId] where disk page ID is
+ *      located, where chunkId = idx of the list / LISTS_CHUNK_SIZE.
+ *      3. 21-11 bits denote the offset in the disk page.
+ *      4. 10-0  bits denote the number of elements in the list.
+ *
+ * If list is a large one (during initial data ingest, the criterion for being large is
+ * whether or not a list fits in a single page), the layout of header is:
+ *      1. MSB (31st bit) is set
+ *      2. 30-0  bits denote the idx in the largeListsPagesMaps where the length and the disk
+ *      page IDs are located.
+ * */
 class ListHeaders {
     friend class graphflow::loader::ListsLoaderHelper;
     friend class graphflow::loader::AdjAndPropertyListsBuilder;
@@ -32,7 +50,7 @@ class ListHeaders {
 
 public:
     ListHeaders();
-    ListHeaders(string listBaseFname);
+    ListHeaders(const string& listBaseFName);
 
     uint32_t getHeader(node_offset_t offset) { return headers[offset]; };
 
@@ -50,26 +68,12 @@ public:
 private:
     void init(uint32_t size);
 
-    void saveToDisk(const string& fname);
-    void readFromDisk(const string& fname);
+    void saveToDisk(const string& fName);
+    void readFromDisk(const string& fName);
 
 private:
     shared_ptr<spdlog::logger> logger;
-    // A header of a list is a uint32_t value the describes the following information about the
-    // list: 1) type: small or large, 2) location of list in pages.
 
-    // If the list is small, the layout of header is:
-    //      1. MSB (31st bit) is reset
-    //      2. 30-22 bits denote the index in the chunkPagesMaps[chunkId] where disk page ID is
-    //      located, where chunkId = idx of the list / LISTS_CHUNK_SIZE.
-    //      3. 21-11 bits denote the offset in the disk page.
-    //      4. 10-0  bits denote the number of elements in the list.
-
-    // If list is a large one (during initial data ingest, the criterion for being large is
-    // whether or not a list fits in a single page), the layout of header is:
-    //      1. MSB (31st bit) is set
-    //      2. 30-0  bits denote the idx in the largeListsPagesMaps where the length and the disk
-    //      page IDs are located.
     unique_ptr<uint32_t[]> headers;
     uint32_t size;
 };

@@ -13,14 +13,14 @@ AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::AdjListExtend(uint64_t inDataChunkPos,
     outDataChunk->append(outValueVector);
     auto listSyncState = make_shared<ListSyncState>();
     resultSet->append(outDataChunk, listSyncState);
-    listHandle->setListSyncState(listSyncState);
-    listHandle->setIsAdjListHandle();
+    listsPageHandle->setListSyncState(listSyncState);
+    listsPageHandle->setIsAdjListHandle();
 }
 
 template<bool IS_OUT_DATACHUNK_FILTERED>
 void AdjListExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     metrics->executionTime.start();
-    if (listHandle->hasMoreToRead()) {
+    if (listsPageHandle->hasMoreToRead()) {
         readValuesFromList();
         if constexpr (IS_OUT_DATACHUNK_FILTERED) {
             outDataChunk->state->resetSelector();

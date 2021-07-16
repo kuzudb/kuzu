@@ -32,10 +32,10 @@ private:
     uint64_t endLayer;
     vector<FrontierSet*> frontierPerLayer;
     vector<vector<FrontierBag*>> threadLocalFrontierPerLayer;
-    // We create a vector and listHandle per thread assuming omp_get_max_threads() threads.
-    // Each thread uses their vector and listHandle for uncoordinated extensions.
+    // We create a vector and listsPageHandle per thread assuming omp_get_max_threads() threads.
+    // Each thread uses their vector and listsPageHandle for uncoordinated extensions.
     vector<shared_ptr<NodeIDVector>> vectors;
-    vector<unique_ptr<ListHandle>> listHandles;
+    vector<unique_ptr<ListsPageHandle>> listsPageHandles;
 
     struct CurrentOutputPosition {
         bool hasMoreTuplesToProduce;

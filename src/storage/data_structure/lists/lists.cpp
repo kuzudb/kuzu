@@ -17,56 +17,57 @@ uint64_t BaseLists::getNumElementsInList(node_offset_t nodeOffset) {
 }
 
 void BaseLists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-    uint64_t& listLen, const unique_ptr<ListHandle>& listHandle, uint32_t maxElementsToRead,
-    BufferManagerMetrics& metrics) {
+    uint64_t& listLen, const unique_ptr<ListsPageHandle>& listsPageHandle,
+    uint32_t maxElementsToRead, BufferManagerMetrics& metrics) {
     auto header = headers->getHeader(nodeOffset);
-    if (listHandle->hasMoreToRead() || ListHeaders::isALargeList(header)) {
-        readFromLargeList(valueVector, listLen, listHandle, header, maxElementsToRead, metrics);
+    if (listsPageHandle->hasMoreToRead() || ListHeaders::isALargeList(header)) {
+        readFromLargeList(
+            valueVector, listLen, listsPageHandle, header, maxElementsToRead, metrics);
     } else {
-        readSmallList(nodeOffset, valueVector, listLen, listHandle, header, metrics);
+        readSmallList(nodeOffset, valueVector, listLen, listsPageHandle, header, metrics);
     }
 }
 
 void BaseLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-    const unique_ptr<ListHandle>& listHandle, uint32_t header, uint32_t maxElementsToRead,
+    const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header, uint32_t maxElementsToRead,
     BufferManagerMetrics& metrics) {
     auto largeListIdx = ListHeaders::getLargeListIdx(header);
-    auto pageCursor = getPageCursorForOffset(listHandle->getListSyncState()->getStartIdx());
+    auto pageCursor = getPageCursorForOffset(listsPageHandle->getListSyncState()->getStartIdx());
     auto sizeLeftToCopy = elementSize * listLen;
     if (pageCursor.offset + sizeLeftToCopy > PAGE_SIZE) {
-        readBySequentialCopy(valueVector, *listHandle, sizeLeftToCopy, pageCursor,
+        readBySequentialCopy(valueVector, *listsPageHandle, sizeLeftToCopy, pageCursor,
             metadata.getPageMapperForLargeListIdx(largeListIdx), metrics);
     } else {
         // map logical pageIdx to physical pageIdx
-        pageCursor.idx = metadata.getPageIdxFromALargeListPageList(largeListIdx, pageCursor.idx);
-        readBySettingFrame(valueVector, *listHandle, pageCursor, metrics);
+        pageCursor.idx = metadata.getPageMapperForLargeListIdx(largeListIdx)(pageCursor.idx);
+        readBySettingFrame(valueVector, *listsPageHandle, pageCursor, metrics);
     }
 }
 
 void BaseLists::readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-    uint64_t& listLen, const unique_ptr<ListHandle>& listHandle, uint32_t header,
+    uint64_t& listLen, const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
     BufferManagerMetrics& metrics) {
     auto pageCursor = getPageCursorForOffset(ListHeaders::getSmallListCSROffset(header));
     auto sizeLeftToCopy = listLen * elementSize;
-    auto chunkIdx = nodeOffset >> LISTS_CHUNK_SIZE_LOG_2;
+    auto chunkIdx = nodeOffset >> BaseLists::LISTS_CHUNK_SIZE_LOG_2;
     if (pageCursor.offset + sizeLeftToCopy > PAGE_SIZE) {
-        readBySequentialCopy(valueVector, *listHandle, sizeLeftToCopy, pageCursor,
+        readBySequentialCopy(valueVector, *listsPageHandle, sizeLeftToCopy, pageCursor,
             metadata.getPageMapperForChunkIdx(chunkIdx), metrics);
     } else {
         // map logical pageIdx to physical pageIdx
-        pageCursor.idx = metadata.getPageIdxFromAChunkPageList(chunkIdx, pageCursor.idx);
-        readBySettingFrame(valueVector, *listHandle, pageCursor, metrics);
+        pageCursor.idx = metadata.getPageMapperForChunkIdx(chunkIdx)(pageCursor.idx);
+        readBySettingFrame(valueVector, *listsPageHandle, pageCursor, metrics);
     }
 }
 
 // For the case of reading a list of strings, we always read by sequential copy.
 void Lists<STRING>::readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-    const unique_ptr<ListHandle>& listHandle, uint32_t header, uint32_t maxElementsToRead,
+    const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header, uint32_t maxElementsToRead,
     BufferManagerMetrics& metrics) {
     auto largeListIdx = ListHeaders::getLargeListIdx(header);
-    auto pageCursor = getPageCursorForOffset(listHandle->getListSyncState()->getStartIdx());
+    auto pageCursor = getPageCursorForOffset(listsPageHandle->getListSyncState()->getStartIdx());
     auto sizeLeftToCopy = elementSize * listLen;
-    readBySequentialCopy(valueVector, *listHandle, sizeLeftToCopy, pageCursor,
+    readBySequentialCopy(valueVector, *listsPageHandle, sizeLeftToCopy, pageCursor,
         metadata.getPageMapperForLargeListIdx(largeListIdx), metrics);
     stringOverflowPages.readStringsFromOverflowPages(*valueVector, metrics);
 }
@@ -74,11 +75,12 @@ void Lists<STRING>::readFromLargeList(const shared_ptr<ValueVector>& valueVector
 // For the case of reading a list of strings, we always read by sequential copy.
 void Lists<STRING>::readSmallList(node_offset_t nodeOffset,
     const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-    const unique_ptr<ListHandle>& listHandle, uint32_t header, BufferManagerMetrics& metrics) {
+    const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
+    BufferManagerMetrics& metrics) {
     auto pageCursor = getPageCursorForOffset(ListHeaders::getSmallListCSROffset(header));
     auto sizeLeftToCopy = listLen * elementSize;
-    auto chunkIdx = nodeOffset >> LISTS_CHUNK_SIZE_LOG_2;
-    readBySequentialCopy(valueVector, *listHandle, sizeLeftToCopy, pageCursor,
+    auto chunkIdx = nodeOffset >> BaseLists::LISTS_CHUNK_SIZE_LOG_2;
+    readBySequentialCopy(valueVector, *listsPageHandle, sizeLeftToCopy, pageCursor,
         metadata.getPageMapperForChunkIdx(chunkIdx), metrics);
     stringOverflowPages.readStringsFromOverflowPages(*valueVector, metrics);
 }
@@ -86,13 +88,13 @@ void Lists<STRING>::readSmallList(node_offset_t nodeOffset,
 // In case of adjLists, length of the list to be read is limited to the maximum number of
 // elements that can be read by setting the frame and not doing any copy.
 void Lists<NODE>::readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-    const unique_ptr<ListHandle>& handle, uint32_t header, uint32_t maxElementsToRead,
+    const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header, uint32_t maxElementsToRead,
     BufferManagerMetrics& metrics) {
     auto largeListIdx = ListHeaders::getLargeListIdx(header);
-    auto listSyncState = handle->getListSyncState();
+    auto listSyncState = listsPageHandle->getListSyncState();
     auto numElements = metadata.getNumElementsInLargeLists(largeListIdx);
     uint64_t csrOffset;
-    if (!handle->hasMoreToRead()) {
+    if (!listsPageHandle->hasMoreToRead()) {
         // initialize listSyncState to start tracking a new list.
         listSyncState->init(numElements);
         csrOffset = 0;
@@ -104,17 +106,18 @@ void Lists<NODE>::readFromLargeList(const shared_ptr<ValueVector>& valueVector, 
         min(numElementsPerPage - (uint32_t)(csrOffset % numElementsPerPage), maxElementsToRead));
     listSyncState->set(csrOffset, listLen);
     // map logical pageIdx to physical pageIdx
-    pageCursor.idx = metadata.getPageIdxFromALargeListPageList(largeListIdx, pageCursor.idx);
-    readBySettingFrame(valueVector, *handle, pageCursor, metrics);
+    pageCursor.idx = metadata.getPageMapperForLargeListIdx(largeListIdx)(pageCursor.idx);
+    readBySettingFrame(valueVector, *listsPageHandle, pageCursor, metrics);
 }
 
 // The case of reading a small adjList is similar to that of reading any list except that we set
 // also the listLen variable.
 void Lists<NODE>::readSmallList(node_offset_t nodeOffset,
     const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-    const unique_ptr<ListHandle>& handle, uint32_t header, BufferManagerMetrics& metrics) {
+    const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
+    BufferManagerMetrics& metrics) {
     listLen = ListHeaders::getSmallListLen(header);
-    BaseLists::readSmallList(nodeOffset, valueVector, listLen, handle, header, metrics);
+    BaseLists::readSmallList(nodeOffset, valueVector, listLen, listsPageHandle, header, metrics);
 }
 
 void Lists<UNSTRUCTURED>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
@@ -143,17 +146,17 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(node_offset_t nodeOffset,
     const unique_ptr<PageHandle>& pageHandle, uint32_t header, BufferManagerMetrics& metrics) {
     PageCursor pageCursor;
     uint64_t listLen;
-    unique_ptr<LogicalToPhysicalPageIdxMapper> mapper;
+    function<uint32_t(uint32_t)> logicalToPhysicalPageMapper;
     if (ListHeaders::isALargeList(header)) {
         auto largeListIdx = ListHeaders::getLargeListIdx(header);
         listLen = metadata.getNumElementsInLargeLists(largeListIdx);
         pageCursor = getPageCursorForOffset(0);
-        mapper = metadata.getPageMapperForLargeListIdx(largeListIdx);
+        logicalToPhysicalPageMapper = metadata.getPageMapperForLargeListIdx(largeListIdx);
     } else {
         pageCursor = getPageCursorForOffset(ListHeaders::getSmallListCSROffset(header));
         listLen = ListHeaders::getSmallListLen(header);
-        uint32_t chunkIdx = nodeOffset >> LISTS_CHUNK_SIZE_LOG_2;
-        mapper = metadata.getPageMapperForChunkIdx(chunkIdx);
+        uint32_t chunkIdx = nodeOffset >> BaseLists::LISTS_CHUNK_SIZE_LOG_2;
+        logicalToPhysicalPageMapper = metadata.getPageMapperForChunkIdx(chunkIdx);
     }
     // propertyKeyDataTypeCache holds the unstructured property's KeyIdx and dataType for the case
     // when the property header is splitted across 2 pages. When such a case exists,
@@ -161,7 +164,7 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(node_offset_t nodeOffset,
     // propertyKeyIdxPtr is made to point to the cache instead of pointing to the read buffer frame.
     uint8_t propertyKeyDataTypeCache[UNSTR_PROP_HEADER_LEN];
     while (listLen) {
-        auto physicalPageIdx = mapper->getPageIdx(pageCursor.idx);
+        uint64_t physicalPageIdx = logicalToPhysicalPageMapper(pageCursor.idx);
         if (pageHandle->getPageIdx() != physicalPageIdx) {
             reclaim(*pageHandle);
             bufferManager.pin(fileHandle, physicalPageIdx, metrics);
@@ -170,17 +173,18 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(node_offset_t nodeOffset,
         const uint32_t* propertyKeyIdxPtr;
         DataType propertyDataType;
         readUnstrPropertyKeyIdxAndDatatype(propertyKeyDataTypeCache, physicalPageIdx,
-            propertyKeyIdxPtr, propertyDataType, pageHandle, pageCursor, listLen, *mapper, metrics);
+            propertyKeyIdxPtr, propertyDataType, pageHandle, pageCursor, listLen,
+            logicalToPhysicalPageMapper, metrics);
         if (propertyKeyIdxToRead == *propertyKeyIdxPtr) {
             readOrSkipUnstrPropertyValue(physicalPageIdx, propertyDataType, pageHandle, pageCursor,
-                listLen, *mapper, valueVector, pos, true /*to read*/, metrics);
+                listLen, logicalToPhysicalPageMapper, valueVector, pos, true /*to read*/, metrics);
             valueVector->nullMask[pos] = false;
             // found the property, exiting.
             return;
         }
         // property not found, skipping the current property value.
         readOrSkipUnstrPropertyValue(physicalPageIdx, propertyDataType, pageHandle, pageCursor,
-            listLen, *mapper, valueVector, pos, false /*to read*/, metrics);
+            listLen, logicalToPhysicalPageMapper, valueVector, pos, false /*to read*/, metrics);
     }
     valueVector->nullMask[pos] = true;
 }
@@ -188,7 +192,8 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyListOfNode(node_offset_t nodeOffset,
 void Lists<UNSTRUCTURED>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
     uint64_t& physicalPageIdx, const uint32_t*& propertyKeyIdxPtr, DataType& propertyDataType,
     const unique_ptr<PageHandle>& pageHandle, PageCursor& pageCursor, uint64_t& listLen,
-    LogicalToPhysicalPageIdxMapper& mapper, BufferManagerMetrics& metrics) {
+    const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+    BufferManagerMetrics& metrics) {
     auto frame = bufferManager.get(fileHandle, physicalPageIdx, metrics);
     const uint8_t* readFrom;
     if ((uint64_t)(pageCursor.offset + UNSTR_PROP_HEADER_LEN) <= PAGE_SIZE) {
@@ -198,7 +203,7 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKe
         auto bytesInCurrentFrame = PAGE_SIZE - pageCursor.offset;
         memcpy(propertyKeyDataTypeCache, frame + pageCursor.offset, bytesInCurrentFrame);
         reclaim(*pageHandle);
-        physicalPageIdx = mapper.getPageIdx(++pageCursor.idx);
+        physicalPageIdx = logicalToPhysicalPageMapper(++pageCursor.idx);
         frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
         pageHandle->setPageIdx(physicalPageIdx);
         memcpy(propertyKeyDataTypeCache + bytesInCurrentFrame, frame,
@@ -213,7 +218,7 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKe
 
 void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx,
     DataType& propertyDataType, const unique_ptr<PageHandle>& pageHandle, PageCursor& pageCursor,
-    uint64_t& listLen, LogicalToPhysicalPageIdxMapper& mapper,
+    uint64_t& listLen, const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
     const shared_ptr<ValueVector>& valueVector, uint64_t pos, bool toRead,
     BufferManagerMetrics& metrics) {
     auto frame = bufferManager.get(fileHandle, physicalPageIdx, metrics);
@@ -230,7 +235,7 @@ void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx
             memcpy(&value.val, frame + pageCursor.offset, bytesInCurrentFrame);
         }
         reclaim(*pageHandle);
-        physicalPageIdx = mapper.getPageIdx(++pageCursor.idx);
+        physicalPageIdx = logicalToPhysicalPageMapper(++pageCursor.idx);
         frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
         pageHandle->setPageIdx(physicalPageIdx);
         if (toRead) {

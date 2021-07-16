@@ -130,14 +130,13 @@ void ListsLoaderHelper::calculatePageCursor(const uint32_t& header, const uint64
         auto lAdjListIdx = ListHeaders::getLargeListIdx(header);
         auto pos = metadata.getNumElementsInLargeLists(lAdjListIdx) - reversePos;
         cursor.offset = numBytesPerElement * (pos % numElementsInAPage);
-        cursor.idx =
-            metadata.getPageIdxFromALargeListPageList(lAdjListIdx, (pos / numElementsInAPage));
+        cursor.idx = metadata.getPageMapperForLargeListIdx(lAdjListIdx)((pos / numElementsInAPage));
     } else {
         auto chunkId = nodeOffset >> BaseLists::LISTS_CHUNK_SIZE_LOG_2;
         auto csrOffset = ListHeaders::getSmallListCSROffset(header);
         auto pos = ListHeaders::getSmallListLen(header) - reversePos;
         cursor.idx =
-            metadata.getPageIdxFromAChunkPageList(chunkId, (csrOffset + pos) / numElementsInAPage);
+            metadata.getPageMapperForChunkIdx(chunkId)((csrOffset + pos) / numElementsInAPage);
         cursor.offset = numBytesPerElement * ((csrOffset + pos) % numElementsInAPage);
     }
 }

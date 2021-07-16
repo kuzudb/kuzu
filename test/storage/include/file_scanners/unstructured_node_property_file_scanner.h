@@ -17,26 +17,27 @@ class UnstructuredNodePropertyFileScanner : FileScanner {
 public:
     UnstructuredNodePropertyFileScanner(
         const string& directory, const graphflow::common::label_t& nodeLabel)
-        : FileScanner{NodesStore::getNodeUnstrPropertyListsFname(directory, nodeLabel)},
+        : FileScanner{NodesStore::getNodeUnstrPropertyListsFName(directory, nodeLabel)},
           nodeLabel{nodeLabel}, catalog{directory},
-          listHeaders{NodesStore::getNodeUnstrPropertyListsFname(directory, nodeLabel)},
-          listsMetadata{NodesStore::getNodeUnstrPropertyListsFname(directory, nodeLabel)},
+          listHeaders{NodesStore::getNodeUnstrPropertyListsFName(directory, nodeLabel)},
+          listsMetadata{NodesStore::getNodeUnstrPropertyListsFName(directory, nodeLabel)},
           stringOverflowFileScanner(StringOverflowPages::getStringOverflowPagesFName(
-              NodesStore::getNodeUnstrPropertyListsFname(directory, nodeLabel))) {}
+              NodesStore::getNodeUnstrPropertyListsFName(directory, nodeLabel))) {}
 
     static inline PageCursor getPageCursorForOffset(const uint64_t& offset) {
-        return PageCursor{offset / PAGE_SIZE /* num elements per page */,
-            (uint16_t)(
-                (offset % PAGE_SIZE /* num elements per page */) * 1 /* element size in bytes */)};
+        return PageCursor{offset >> PAGE_SIZE_LOG_2 /* num elements per page */,
+            (uint16_t)((offset & (PAGE_SIZE - 1) /* num elements per page */) *
+                       1 /* element size in bytes */)};
     }
 
     void readUnstrPropertyKeyIdxAndDatatype(uint64_t& physicalPageIdx,
         uint8_t* propertyKeyDataTypeCache, const uint32_t*& propertyKeyIdxPtr,
         DataType& propertyDataType, PageCursor& pageCursor, uint64_t& listLen,
-        LogicalToPhysicalPageIdxMapper& mapper);
+        const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
     Literal readUnstrPropertyValue(uint64_t& physicalPageIdx, DataType& propertyDataType,
-        PageCursor& pageCursor, uint64_t& listLen, LogicalToPhysicalPageIdxMapper& mapper);
+        PageCursor& pageCursor, uint64_t& listLen,
+        const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
     map<string, Literal> readUnstructuredProperties(int nodeOffset);
 

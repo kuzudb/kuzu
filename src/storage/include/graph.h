@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 #include "src/storage/include/store/nodes_store.h"
 #include "src/storage/include/store/rels_store.h"
 

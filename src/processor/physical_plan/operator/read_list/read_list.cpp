@@ -10,7 +10,7 @@ ReadList::ReadList(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos,
     resultSet = this->prevOperator->getResultSet();
     inDataChunk = resultSet->dataChunks[dataChunkPos];
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
-    listHandle = make_unique<ListHandle>();
+    listsPageHandle = make_unique<ListsPageHandle>();
 }
 
 void ReadList::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
@@ -19,10 +19,10 @@ void ReadList::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
 }
 
 void ReadList::readValuesFromList() {
-    lists->reclaim(*listHandle);
+    lists->reclaim(*listsPageHandle);
     auto nodeOffset =
         inNodeIDVector->readNodeOffset(inDataChunk->state->getCurrSelectedValuesPos());
-    lists->readValues(nodeOffset, outValueVector, outDataChunk->state->size, listHandle,
+    lists->readValues(nodeOffset, outValueVector, outDataChunk->state->size, listsPageHandle,
         MAX_TO_READ, *metrics->bufferManagerMetrics);
 }
 

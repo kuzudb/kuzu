@@ -5,7 +5,6 @@
 
 #include "src/common/include/date.h"
 #include "src/common/include/file_utils.h"
-#include "src/storage/include/store/nodes_store.h"
 
 using namespace graphflow::storage;
 
@@ -50,7 +49,7 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
         labelPropertyIdxStringOverflowPages[nodeLabel].resize(properties.size());
         for (const auto& property : properties) {
             labelPropertyColumnFnames[nodeLabel][property.id] =
-                NodesStore::getNodePropertyColumnFname(outputDirectory, nodeLabel, property.name);
+                NodesStore::getNodePropertyColumnFName(outputDirectory, nodeLabel, property.name);
             if (STRING == property.dataType) {
                 labelPropertyIdxStringOverflowPages[nodeLabel][property.id] =
                     make_unique<InMemStringOverflowPages>(
@@ -162,7 +161,7 @@ void NodesLoader::buildInMemUnstrPropertyLists() {
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
         if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
             auto unstrPropertyListsFName =
-                NodesStore::getNodeUnstrPropertyListsFname(outputDirectory, nodeLabel);
+                NodesStore::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel);
             labelUnstrPropertyLists[nodeLabel] = make_unique<InMemUnstrPropertyPages>(
                 unstrPropertyListsFName, labelUnstrPropertyListsMetadata[nodeLabel].numPages);
             labelUnstrPropertyListsStringOverflowPages[nodeLabel] =
@@ -179,7 +178,7 @@ void NodesLoader::saveUnstrPropertyListsToFile() {
                 labelUnstrPropertyLists[nodeLabel].get());
             threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },
                 labelUnstrPropertyListsStringOverflowPages[nodeLabel].get());
-            auto fName = NodesStore::getNodeUnstrPropertyListsFname(outputDirectory, nodeLabel);
+            auto fName = NodesStore::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel);
             threadPool.execute([&](ListsMetadata* x, const string& fName) { x->saveToDisk(fName); },
                 &labelUnstrPropertyListsMetadata[nodeLabel], fName);
             threadPool.execute([&](ListHeaders* x, const string& fName) { x->saveToDisk(fName); },

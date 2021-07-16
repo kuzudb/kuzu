@@ -1,8 +1,5 @@
 #pragma once
 
-#include <memory>
-
-#include "test/storage/include/file_scanners/file_scanner.h"
 #include "test/storage/include/file_scanners/string_overflow_file_scanner.h"
 
 #include "src/common/include/types.h"
@@ -16,7 +13,7 @@ class StructuredNodePropertyFileScanner : FileScanner {
 public:
     StructuredNodePropertyFileScanner(const string& directory,
         const graphflow::common::label_t& nodeLabel, const string& propertyName)
-        : FileScanner(NodesStore::getNodePropertyColumnFname(directory, nodeLabel, propertyName)) {}
+        : FileScanner(NodesStore::getNodePropertyColumnFName(directory, nodeLabel, propertyName)) {}
 
     template<typename T>
     T readProperty(int nodeOffset) {
@@ -32,7 +29,7 @@ public:
         const graphflow::common::label_t& nodeLabel, const string& propertyName)
         : structuredNodePropertyFileScanner(directory, nodeLabel, propertyName),
           stringOverflowFileScanner(StringOverflowPages::getStringOverflowPagesFName(
-              NodesStore::getNodePropertyColumnFname(directory, nodeLabel, propertyName))) {}
+              NodesStore::getNodePropertyColumnFName(directory, nodeLabel, propertyName))) {}
 
     string readString(int nodeOffset) {
         gf_string_t mainString =

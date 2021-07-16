@@ -35,7 +35,6 @@ cc_library(
         "thread_pool",
         "//src/common:csv_reader",
         "//src/common:types",
-        "//src/storage:data_structure_utils",
         "//src/storage:graph",
         "@gabime_spdlog",
         "@martinus_robin_hood_hashing",

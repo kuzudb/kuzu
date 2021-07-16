@@ -14,7 +14,8 @@ constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
 // number of bits for relOffInPage and the maximum number of bytes needed for an edge is 20 bytes
 // so 11 + log_2(20) = 15.xxx, so certainly over 2^16-size pages, we cannot utilize the page for
 // storing adjacency lists.
-constexpr uint64_t PAGE_SIZE = 1 << 12;
+constexpr uint64_t PAGE_SIZE_LOG_2 = 12;
+constexpr uint64_t PAGE_SIZE = 1 << PAGE_SIZE_LOG_2;
 
 // The default amount of memory pre-allocated to the buffer pool (= 1GB).
 constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 30;

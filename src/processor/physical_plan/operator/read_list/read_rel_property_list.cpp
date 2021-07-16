@@ -10,7 +10,7 @@ ReadRelPropertyList::ReadRelPropertyList(uint64_t inDataChunkPos, uint64_t inVal
       outDataChunkPos(outDataChunkPos) {
     outValueVector = make_shared<ValueVector>(context.memoryManager, lists->getDataType());
     outDataChunk = resultSet->dataChunks[outDataChunkPos];
-    listHandle->setListSyncState(resultSet->getListSyncState(outDataChunkPos));
+    listsPageHandle->setListSyncState(resultSet->getListSyncState(outDataChunkPos));
     outDataChunk->append(outValueVector);
 }
 
