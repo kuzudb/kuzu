@@ -3,11 +3,11 @@
 #include <memory>
 #include <vector>
 
-#include "src/common/include/file_utils.h"
 #include "src/common/include/types.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/data_structure/column.h"
 #include "src/storage/include/data_structure/lists/lists.h"
+#include "src/storage/include/data_structure/lists/utils.h"
 
 namespace graphflow {
 namespace storage {
@@ -27,15 +27,16 @@ public:
         return unstrPropertyLists[label].get();
     }
 
-    inline static string getNodePropertyColumnFname(
+    inline static string getNodePropertyColumnFName(
         const string& directory, const label_t& nodeLabel, const string& propertyName) {
-        return FileUtils::joinPath(
-            directory, "n-" + to_string(nodeLabel) + "-" + propertyName + ".col");
+        auto fName = StringUtils::string_format("n-%d-%s", nodeLabel, propertyName.data());
+        return FileUtils::joinPath(directory, fName + BaseColumn::COLUMN_SUFFIX);
     }
 
-    inline static string getNodeUnstrPropertyListsFname(
+    inline static string getNodeUnstrPropertyListsFName(
         const string& directory, const label_t& nodeLabel) {
-        return FileUtils::joinPath(directory, "n-" + to_string(nodeLabel) + ".lists");
+        auto fName = StringUtils::string_format("n-%d", nodeLabel);
+        return FileUtils::joinPath(directory, fName + BaseLists::LISTS_SUFFIX);
     }
 
 private:

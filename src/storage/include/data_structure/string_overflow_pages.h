@@ -4,6 +4,7 @@
 
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
+#include "src/storage/include/data_structure/lists/utils.h"
 #include "src/storage/include/file_handle.h"
 
 using namespace graphflow::common;
@@ -14,8 +15,8 @@ namespace storage {
 class StringOverflowPages {
 
 public:
-    explicit StringOverflowPages(const string& fname, BufferManager& bufferManager)
-        : fileHandle{getStringOverflowPagesFName(fname), O_RDWR}, bufferManager{bufferManager} {}
+    explicit StringOverflowPages(const string& fName, BufferManager& bufferManager)
+        : fileHandle{getStringOverflowPagesFName(fName), O_RDWR}, bufferManager{bufferManager} {}
 
     static string getStringOverflowPagesFName(const string& fName) {
         return fName + OVERFLOW_FILE_SUFFIX;

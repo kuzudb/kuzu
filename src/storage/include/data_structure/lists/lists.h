@@ -5,22 +5,33 @@
 #include "src/common/include/value.h"
 #include "src/common/include/vector/node_vector.h"
 #include "src/storage/include/data_structure/data_structure.h"
-#include "src/storage/include/data_structure/data_structure_handle.h"
 #include "src/storage/include/data_structure/lists/list_headers.h"
 #include "src/storage/include/data_structure/lists/lists_metadata.h"
+#include "src/storage/include/data_structure/lists/lists_page_handle.h"
+#include "src/storage/include/data_structure/lists/utils.h"
 #include "src/storage/include/data_structure/string_overflow_pages.h"
 
 namespace graphflow {
 namespace storage {
 
-// BaseLists is the top-level structure that holds a set of lists {of adjacent edges or rel
-// properties}.
+/**
+ * A lists data structure holds a list of homogeneous values for each offset in it. Lists are used
+ * for storing Adjacency List, Rel Property Lists and unstructured Node Property Lists.
+ *
+ * The offsets in the Lists are partitioned into fixed size. Hence, each offset, and its list,
+ * belongs to a chunk. If the offset's list is small (less than the PAGE_SIZE) it is stored together
+ * along with other lists in that chunk as in a CSR. However, large lists are stored out of their
+ * regular chunks and span multiple pages. The nature, size and logical location of the list is
+ * given by a 32-bit header value (explained in {@class ListHeaders}). Given the logical location of
+ * a list, {@class ListsMetadata} contains information that maps logical location of the list to the
+ * actual physical location in the Lists file on disk.
+ * */
 class BaseLists : public DataStructure {
 
 public:
     void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ListHandle>& listHandle, uint32_t maxElementsToRead,
-        BufferManagerMetrics& metrics);
+        uint64_t& listLen, const unique_ptr<ListsPageHandle>& listsPageHandle,
+        uint32_t maxElementsToRead, BufferManagerMetrics& metrics);
 
     uint64_t getNumElementsInList(node_offset_t nodeOffset);
 
@@ -31,17 +42,19 @@ protected:
           headers(move(headers)){};
 
     virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-        const unique_ptr<ListHandle>& listHandle, uint32_t header, uint32_t maxElementsToRead,
-        BufferManagerMetrics& metrics);
+        const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
+        uint32_t maxElementsToRead, BufferManagerMetrics& metrics);
 
     virtual void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ListHandle>& listHandle, uint32_t header,
+        uint64_t& listLen, const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
         BufferManagerMetrics& metrics);
 
 public:
+    static constexpr char LISTS_SUFFIX[] = ".lists";
+
     // LIST_CHUNK_SIZE should strictly be a power of 2.
-    constexpr static uint16_t LISTS_CHUNK_SIZE = 512;
     constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
+    constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;
 
 protected:
     ListsMetadata metadata;
@@ -67,11 +80,11 @@ public:
 
 private:
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-        const unique_ptr<ListHandle>& listHandle, uint32_t header, uint32_t maxElementsToRead,
-        BufferManagerMetrics& metrics) override;
+        const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
+        uint32_t maxElementsToRead, BufferManagerMetrics& metrics) override;
 
     void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ListHandle>& listHandle, uint32_t header,
+        uint64_t& listLen, const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
         BufferManagerMetrics& metrics) override;
 
 private:
@@ -95,11 +108,11 @@ public:
 
 private:
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-        const unique_ptr<ListHandle>& listHandle, uint32_t header, uint32_t maxElementsToRead,
-        BufferManagerMetrics& metrics) override;
+        const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
+        uint32_t maxElementsToRead, BufferManagerMetrics& metrics) override;
 
     void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ListHandle>& listHandle, uint32_t header,
+        uint64_t& listLen, const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
         BufferManagerMetrics& metrics) override;
 
 private:
@@ -134,13 +147,15 @@ private:
     void readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
         uint64_t& physicalPageIdx, const uint32_t*& propertyKeyIdxPtr,
         DataType& propertyKeyDataType, const unique_ptr<PageHandle>& pageHandle,
-        PageCursor& pageCursor, uint64_t& listLen, LogicalToPhysicalPageIdxMapper& mapper,
+        PageCursor& pageCursor, uint64_t& listLen,
+        const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
         BufferManagerMetrics& metrics);
 
     void readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx, DataType& propertyDataType,
         const unique_ptr<PageHandle>& pageHandle, PageCursor& pageCursor, uint64_t& listLen,
-        LogicalToPhysicalPageIdxMapper& mapper, const shared_ptr<ValueVector>& valueVector,
-        uint64_t pos, bool toRead, BufferManagerMetrics& metrics);
+        const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+        const shared_ptr<ValueVector>& valueVector, uint64_t pos, bool toRead,
+        BufferManagerMetrics& metrics);
 
 public:
     static constexpr uint8_t UNSTR_PROP_IDX_LEN = 4;

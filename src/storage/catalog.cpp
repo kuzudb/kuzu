@@ -8,6 +8,10 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace common {
 
+/**
+ * Specialized serialize and deserialize functions used in Catalog.
+ * */
+
 template<>
 uint64_t SerDeser::serializeValue<string>(const string& value, int fd, uint64_t offset) {
     uint64_t valueLength = value.length();
@@ -19,15 +23,12 @@ uint64_t SerDeser::serializeValue<string>(const string& value, int fd, uint64_t 
 template<>
 uint64_t SerDeser::deserializeValue<string>(string& value, int fd, uint64_t offset) {
     uint64_t valueLength = 0;
-    offset = deserializeValue<uint64_t>(valueLength, fd, offset);
+    offset = SerDeser::deserializeValue<uint64_t>(valueLength, fd, offset);
     value.resize(valueLength);
     FileUtils::readFromFile(fd, (uint8_t*)value.data(), valueLength, offset);
     return offset + valueLength;
 }
 
-/**
- * Serialize and deSerialize functions for Catalog customized data types.
- * */
 template<>
 uint64_t SerDeser::serializeValue<PropertyDefinition>(
     const PropertyDefinition& value, int fd, uint64_t offset) {

@@ -14,8 +14,8 @@ FileHandle::FileHandle(const string& path, int flags)
                                                                 FileUtils::openFile(path, flags)} {
     logger->trace("FileHandle: Path {}", path);
     auto fileLength = FileUtils::getFileSize(fileDescriptor);
-    numPages = fileLength / PAGE_SIZE;
-    if (0 != fileLength % PAGE_SIZE) {
+    numPages = fileLength >> PAGE_SIZE_LOG_2;
+    if (0 != (fileLength & (PAGE_SIZE - 1))) {
         numPages++;
     }
     logger->trace("FileHandle: Size {}B, #4KB-pages {}", fileLength, numPages);
@@ -43,11 +43,11 @@ bool FileHandle::acquire(uint32_t pageIdx, bool block) {
 }
 
 void FileHandle::readPage(uint8_t* frame, uint64_t pageIdx) const {
-    FileUtils::readFromFile(fileDescriptor, frame, PAGE_SIZE, pageIdx * PAGE_SIZE);
+    FileUtils::readFromFile(fileDescriptor, frame, PAGE_SIZE, pageIdx << PAGE_SIZE_LOG_2);
 }
 
 void FileHandle::writePage(uint8_t* buffer, uint64_t pageIdx) const {
-    FileUtils::writeToFile(fileDescriptor, buffer, PAGE_SIZE, pageIdx * PAGE_SIZE);
+    FileUtils::writeToFile(fileDescriptor, buffer, PAGE_SIZE, pageIdx << PAGE_SIZE_LOG_2);
 }
 
 } // namespace storage

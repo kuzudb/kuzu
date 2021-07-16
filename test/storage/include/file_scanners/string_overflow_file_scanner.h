@@ -4,7 +4,7 @@
 
 #include "src/common/include/configs.h"
 #include "src/common/include/gf_string.h"
-#include "src/storage/include/data_structure/utils.h"
+#include "src/storage/include/data_structure/data_structure.h"
 
 using namespace graphflow::common;
 

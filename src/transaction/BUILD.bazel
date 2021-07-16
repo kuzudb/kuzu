@@ -11,7 +11,8 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/common:data_chunk",
-        "//src/storage:data_structure",
+        "//src/storage:column",
+        "//src/storage:lists",
     ],
 )
 
@@ -28,6 +29,5 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "local_storage",
-        "//src/storage:data_structure",
     ],
 )

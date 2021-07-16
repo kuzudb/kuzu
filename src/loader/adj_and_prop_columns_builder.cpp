@@ -2,8 +2,6 @@
 
 #include "spdlog/sinks/stdout_sinks.h"
 
-#include "src/storage/include/store/rels_store.h"
-
 namespace graphflow {
 namespace loader {
 

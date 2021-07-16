@@ -34,13 +34,12 @@ void DataStructure::readBySettingFrame(const shared_ptr<ValueVector>& valueVecto
 
 void DataStructure::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
     PageHandle& pageHandle, uint64_t sizeLeftToCopy, PageCursor& pageCursor,
-    unique_ptr<LogicalToPhysicalPageIdxMapper> mapper, BufferManagerMetrics& metrics) {
+    function<uint32_t(uint32_t)> logicalToPhysicalPageMapper, BufferManagerMetrics& metrics) {
     reclaim(pageHandle);
     valueVector->reset();
     auto values = valueVector->values;
     while (sizeLeftToCopy) {
-        uint64_t physicalPageIdx =
-            nullptr == mapper ? pageCursor.idx : mapper->getPageIdx(pageCursor.idx);
+        auto physicalPageIdx = logicalToPhysicalPageMapper(pageCursor.idx);
         auto sizeToCopyInPage = min(PAGE_SIZE - pageCursor.offset, sizeLeftToCopy);
         auto frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
         memcpy(values, frame + pageCursor.offset, sizeToCopyInPage);

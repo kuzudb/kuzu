@@ -1,7 +1,5 @@
 #include "src/storage/include/store/rels_store.h"
 
-#include "src/common/include/compression_scheme.h"
-
 namespace graphflow {
 namespace storage {
 
@@ -57,9 +55,9 @@ void RelsStore::initAdjLists(const Catalog& catalog, const vector<uint64_t>& num
                         direction, nodeLabel, relLabel,
                         nodeIDCompressionScheme.getNumBytesForLabel(),
                         nodeIDCompressionScheme.getNumBytesForOffset());
-                    auto fname = getAdjListsFName(directory, relLabel, nodeLabel, direction);
+                    auto fName = getAdjListsFName(directory, relLabel, nodeLabel, direction);
                     adjLists[direction][nodeLabel][relLabel] =
-                        make_unique<AdjLists>(fname, bufferManager, nodeIDCompressionScheme);
+                        make_unique<AdjLists>(fName, bufferManager, nodeIDCompressionScheme);
                 }
             }
         }
@@ -104,28 +102,28 @@ void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
         auto& properties = catalog.getRelProperties(relLabel);
         propertyColumns[nodeLabel][relLabel].resize(properties.size());
         for (auto& property : properties) {
-            auto fname = getRelPropertyColumnFName(directory, relLabel, nodeLabel, property.name);
+            auto fName = getRelPropertyColumnFName(directory, relLabel, nodeLabel, property.name);
             logger->debug("DIR {} nodeLabel {} propertyIdx {} type {} name `{}`", dir, nodeLabel,
                 property.id, property.dataType, property.name);
             switch (property.dataType) {
             case INT64:
                 propertyColumns[nodeLabel][relLabel][property.id] =
                     make_unique<PropertyColumnInt64>(
-                        fname, numNodesPerLabel[nodeLabel], bufferManager);
+                        fName, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case DOUBLE:
                 propertyColumns[nodeLabel][relLabel][property.id] =
                     make_unique<PropertyColumnDouble>(
-                        fname, numNodesPerLabel[nodeLabel], bufferManager);
+                        fName, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case BOOL:
                 propertyColumns[nodeLabel][relLabel][property.id] = make_unique<PropertyColumnBool>(
-                    fname, numNodesPerLabel[nodeLabel], bufferManager);
+                    fName, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             case STRING:
                 propertyColumns[nodeLabel][relLabel][property.id] =
                     make_unique<PropertyColumnString>(
-                        fname, numNodesPerLabel[nodeLabel], bufferManager);
+                        fName, numNodesPerLabel[nodeLabel], bufferManager);
                 break;
             default:
                 throw invalid_argument("Invalid type for property column creation.");
@@ -145,30 +143,30 @@ void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
             propertyLists[dir][nodeLabel][relLabel].resize(properties.size());
             auto adjListsHeaders = adjLists[dir][nodeLabel][relLabel]->getHeaders();
             for (auto& property : properties) {
-                auto fname =
+                auto fName =
                     getRelPropertyListsFName(directory, relLabel, nodeLabel, dir, property.name);
                 logger->debug("DIR {} nodeLabel {} propertyIdx {} type {} name `{}`", dir,
                     nodeLabel, property.id, property.dataType, property.name);
                 switch (property.dataType) {
                 case INT64:
                     propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsInt64>(fname, adjListsHeaders, bufferManager);
+                        make_unique<RelPropertyListsInt64>(fName, adjListsHeaders, bufferManager);
                     break;
                 case DOUBLE:
                     propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsDouble>(fname, adjListsHeaders, bufferManager);
+                        make_unique<RelPropertyListsDouble>(fName, adjListsHeaders, bufferManager);
                     break;
                 case BOOL:
                     propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsBool>(fname, adjListsHeaders, bufferManager);
+                        make_unique<RelPropertyListsBool>(fName, adjListsHeaders, bufferManager);
                     break;
                 case STRING:
                     propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsString>(fname, adjListsHeaders, bufferManager);
+                        make_unique<RelPropertyListsString>(fName, adjListsHeaders, bufferManager);
                     break;
                 case DATE:
                     propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsDate>(fname, adjListsHeaders, bufferManager);
+                        make_unique<RelPropertyListsDate>(fName, adjListsHeaders, bufferManager);
                     break;
                 default:
                     throw invalid_argument("Invalid type for property list creation.");

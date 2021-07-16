@@ -84,7 +84,6 @@ cc_library(
         "//src/common:memory_manager",
         "//src/expression_evaluator",
         "//src/storage:graph",
-        "//src/storage:lists_aux",
         "//src/transaction",
     ],
 )
@@ -102,7 +101,7 @@ cc_library(
     ],
     deps = [
         "//src/common:data_chunk",
-        "//src/storage:lists_aux",
+        "//src/storage:lists",
     ],
 )
 

@@ -1,8 +1,5 @@
 #include "src/storage/include/store/nodes_store.h"
 
-#include "src/common/include/utils.h"
-#include "src/storage/include/data_structure/column.h"
-
 namespace graphflow {
 namespace storage {
 
@@ -26,7 +23,7 @@ void NodesStore::initStructuredPropertyColumnsAndUnstructuredPropertyLists(const
         propertyColumns[nodeLabel].resize(properties.size());
         for (auto& property : properties) {
             auto propertyId = property.id;
-            auto fName = getNodePropertyColumnFname(directory, nodeLabel, property.name);
+            auto fName = getNodePropertyColumnFName(directory, nodeLabel, property.name);
             logger->debug("nodeLabel {} propertyId {} type {} name `{}`", nodeLabel, property.id,
                 property.dataType, property.name);
             switch (property.dataType) {
@@ -48,7 +45,7 @@ void NodesStore::initStructuredPropertyColumnsAndUnstructuredPropertyLists(const
                 break;
             case UNSTRUCTURED:
                 unstrPropertyLists[nodeLabel] = make_unique<UnstructuredPropertyLists>(
-                    getNodeUnstrPropertyListsFname(directory, nodeLabel), bufferManager);
+                    getNodeUnstrPropertyListsFName(directory, nodeLabel), bufferManager);
                 break;
             case DATE:
                 propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnDate>(

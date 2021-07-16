@@ -15,8 +15,12 @@ void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
             readBySettingFrame(valueVector, *pageHandle, pageCursor, metrics);
         } else {
             // Case when the values are consecutive but not in a single page on disk.
-            readBySequentialCopy(valueVector, *pageHandle, sizeLeftToCopy, pageCursor,
-                nullptr /*no page mapping is required*/, metrics);
+            readBySequentialCopy(
+                valueVector, *pageHandle, sizeLeftToCopy, pageCursor,
+                [](uint32_t i) {
+                    return i;
+                } /*no logical-physical page mapping is required for columns*/,
+                metrics);
         }
         return;
     }
@@ -57,8 +61,12 @@ void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         auto nodeOffset = nodeIDVector->readNodeOffset(0);
         auto pageCursor = getPageCursorForOffset(nodeOffset);
         auto sizeLeftToCopy = nodeIDVector->state->size * elementSize;
-        readBySequentialCopy(valueVector, *pageHandle, sizeLeftToCopy, pageCursor,
-            nullptr /*no page mapping is required*/, metrics);
+        readBySequentialCopy(
+            valueVector, *pageHandle, sizeLeftToCopy, pageCursor,
+            [](uint32_t i) {
+                return i;
+            } /*no logical-physical page mapping is required for columns*/,
+            metrics);
     } else {
         readFromNonSequentialLocations(nodeIDVector, valueVector, pageHandle, metrics);
     }

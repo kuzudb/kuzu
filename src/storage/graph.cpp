@@ -10,6 +10,10 @@
 namespace graphflow {
 namespace common {
 
+/**
+ * Specialized serialize and deserialize functions used in Catalog.
+ * */
+
 template<>
 uint64_t SerDeser::serializeVector<vector<uint64_t>>(
     const vector<vector<uint64_t>>& values, int fd, uint64_t offset) {
