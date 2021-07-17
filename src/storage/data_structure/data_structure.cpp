@@ -6,10 +6,10 @@ namespace graphflow {
 namespace storage {
 
 DataStructure::DataStructure(const string& fName, const DataType& dataType,
-    const size_t& elementSize, BufferManager& bufferManager)
+    const size_t& elementSize, BufferManager& bufferManager, bool isInMemory)
     : dataType{dataType}, elementSize{elementSize}, numElementsPerPage{(uint32_t)(
                                                         PAGE_SIZE / elementSize)},
-      logger{LoggerUtils::getOrCreateSpdLogger("storage")}, fileHandle{fName, O_RDWR},
+      logger{LoggerUtils::getOrCreateSpdLogger("storage")}, fileHandle{fName, O_RDWR, isInMemory},
       bufferManager(bufferManager){};
 
 void DataStructure::reclaim(PageHandle& pageHandle) {

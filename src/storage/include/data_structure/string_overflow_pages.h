@@ -15,8 +15,9 @@ namespace storage {
 class StringOverflowPages {
 
 public:
-    explicit StringOverflowPages(const string& fName, BufferManager& bufferManager)
-        : fileHandle{getStringOverflowPagesFName(fName), O_RDWR}, bufferManager{bufferManager} {}
+    explicit StringOverflowPages(const string& fname, BufferManager& bufferManager, bool isInMemory)
+        : fileHandle{getStringOverflowPagesFName(fname), O_RDWR, isInMemory}, bufferManager{
+                                                                                  bufferManager} {}
 
     static string getStringOverflowPagesFName(const string& fName) {
         return fName + OVERFLOW_FILE_SUFFIX;

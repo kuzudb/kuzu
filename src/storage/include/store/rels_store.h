@@ -17,7 +17,7 @@ class RelsStore {
 
 public:
     RelsStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
-        const string& directory, BufferManager& bufferManager);
+        const string& directory, BufferManager& bufferManager, bool isInMemoryMode);
 
     inline BaseColumn* getRelPropertyColumn(
         const label_t& relLabel, const label_t& nodeLabel, const uint64_t& propertyIdx) const {
@@ -67,22 +67,23 @@ public:
 
 private:
     void initAdjColumns(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
-        const string& directory, BufferManager& bufferManager);
+        const string& directory, BufferManager& bufferManager, bool isInMemoryMode);
 
     void initAdjLists(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
-        const string& directory, BufferManager& bufferManager);
+        const string& directory, BufferManager& bufferManager, bool isInMemoryMode);
 
     void initPropertyListsAndColumns(const Catalog& catalog,
         const vector<uint64_t>& numNodesPerLabel, const string& directory,
-        BufferManager& bufferManager);
+        BufferManager& bufferManager, bool isInMemoryMode);
 
     void initPropertyColumnsForRelLabel(const Catalog& catalog,
         const vector<uint64_t>& numNodesPerLabel, const string& directory,
-        BufferManager& bufferManager, const label_t& relLabel, const Direction& direction);
+        BufferManager& bufferManager, const label_t& relLabel, const Direction& direction,
+        bool isInMemoryMode);
 
     void initPropertyListsForRelLabel(const Catalog& catalog,
         const vector<uint64_t>& numNodesPerLabel, const string& directory,
-        BufferManager& bufferManager, const label_t& relLabel);
+        BufferManager& bufferManager, const label_t& relLabel, bool isInMemoryMode);
 
 private:
     shared_ptr<spdlog::logger> logger;

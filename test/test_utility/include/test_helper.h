@@ -18,7 +18,6 @@ struct TestSuiteSystemConfig {
     string graphInputDir;
     string graphOutputDir;
     uint64_t maxNumThreads = 1;
-    uint64_t bufferPoolSize = DEFAULT_BUFFER_POOL_SIZE;
 };
 
 struct TestSuiteQueryConfig {

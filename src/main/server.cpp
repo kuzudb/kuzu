@@ -62,7 +62,8 @@ void Server::registerPOSTLoad(router_t& router) {
     router.http_post("/load", [&](request_handle_t req, auto) {
         try {
             auto path = req->body();
-            system = make_unique<System>(path);
+            // Notice: only disk-based storage is supported for the server right now.
+            system = make_unique<System>(path, false /* isInMemoryMode */);
             session = make_unique<Session>(*system);
             nlohmann::json json;
             json["msg"] = "Initialized the Graph at " + path + ".";

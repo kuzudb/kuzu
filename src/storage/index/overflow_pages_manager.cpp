@@ -13,7 +13,7 @@ OverflowPagesManager::OverflowPagesManager(const string& indexPath, MemoryManage
         flags |= O_CREAT;
         isIndexFileExist = false;
     }
-    fileHandle = make_unique<FileHandle>(filePath, flags);
+    fileHandle = make_unique<FileHandle>(filePath, flags, false /* isInMemory */);
     // Cache the first page of overflow index file
     getMemoryBlock(0);
     if (isIndexFileExist) {

@@ -66,13 +66,15 @@ uint64_t SerDeser::deserializeVector<vector<vector<uint64_t>>>(
 namespace graphflow {
 namespace storage {
 
-Graph::Graph(const string& path, BufferManager& bufferManager)
+Graph::Graph(const string& path, BufferManager& bufferManager, bool isInMemoryMode)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, path{path} {
     logger->info("Initializing Graph.");
     catalog = make_unique<Catalog>(path);
     readFromFile(path);
-    nodesStore = make_unique<NodesStore>(*catalog, numNodesPerLabel, path, bufferManager);
-    relsStore = make_unique<RelsStore>(*catalog, numNodesPerLabel, path, bufferManager);
+    nodesStore =
+        make_unique<NodesStore>(*catalog, numNodesPerLabel, path, bufferManager, isInMemoryMode);
+    relsStore =
+        make_unique<RelsStore>(*catalog, numNodesPerLabel, path, bufferManager, isInMemoryMode);
     logger->info("Done.");
 }
 
