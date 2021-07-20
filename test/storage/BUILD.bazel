@@ -1,26 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
-cc_library(
-    name = "storage_scanners",
-    srcs = [
-        "file_scanners/file_scanner.cpp",
-        "file_scanners/string_overflow_file_scanner.cpp",
-        "file_scanners/unstructured_node_property_file_scanner.cpp",
-    ],
-    hdrs = [
-        "include/file_scanners/file_scanner.h",
-        "include/file_scanners/string_overflow_file_scanner.h",
-        "include/file_scanners/unstructured_node_property_file_scanner.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//src/common:configs",
-        "//src/common:types",
-        "//src/common:utils",
-        "//src/storage:store",
-    ],
-)
-
 cc_test(
     name = "hash_index_test",
     srcs = [

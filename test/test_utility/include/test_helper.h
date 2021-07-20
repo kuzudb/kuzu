@@ -75,7 +75,7 @@ class InMemoryDBLoadedTest : public BaseGraphLoadingTest {
 public:
     void SetUp() override {
         graphflow::testing::BaseGraphLoadingTest::SetUp();
-        testSuiteSystemConfig.isInMemory = false;
+        testSuiteSystemConfig.isInMemory = true;
         defaultSystem = TestHelper::getInitializedSystem(testSuiteSystemConfig);
     }
 
