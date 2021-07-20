@@ -31,6 +31,26 @@ void FileUtils::writeToFile(int fd, void* buffer, int64_t numBytes, uint64_t off
     }
 }
 
+unique_ptr<uint8_t[]> FileUtils::readFile(int fd) {
+    auto fileLength = FileUtils::getFileSize(fd);
+    unique_ptr<uint8_t[]> buffer = make_unique<uint8_t[]>(fileLength);
+    // Maximum bytes to read from a file, when reading a large file in pieces. 1ull << 30 = 1G
+    uint64_t maxBytesToReadFromFileAtOnce = 1ull << 30;
+    uint64_t remainingNumBytesToRead = fileLength;
+    uint64_t position = 0;
+    uint64_t bufferOffset = 0;
+    while (remainingNumBytesToRead > 0) {
+        uint64_t numBytesToRead = remainingNumBytesToRead > maxBytesToReadFromFileAtOnce ?
+                                      maxBytesToReadFromFileAtOnce :
+                                      remainingNumBytesToRead;
+        readFromFile(fd, buffer.get() + bufferOffset, numBytesToRead, position);
+        remainingNumBytesToRead -= numBytesToRead;
+        position += numBytesToRead;
+        bufferOffset += numBytesToRead;
+    }
+    return move(buffer);
+}
+
 void FileUtils::readFromFile(int fd, void* buffer, int64_t numBytes, uint64_t position) {
     auto numBytesRead = pread(fd, buffer, numBytes, position);
     if (numBytesRead != numBytes && getFileSize(fd) != position + numBytesRead) {
