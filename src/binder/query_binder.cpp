@@ -4,7 +4,6 @@
 
 #include "src/binder/include/bound_statements/bound_load_csv_statement.h"
 #include "src/binder/include/bound_statements/bound_match_statement.h"
-#include "src/binder/include/expression/function_expression.h"
 #include "src/binder/include/expression/literal_expression.h"
 #include "src/common/include/assert.h"
 #include "src/common/include/csv_reader/csv_reader.h"
@@ -323,12 +322,8 @@ void QueryBinder::validateProjectionColumnNamesAreUnique(
 void QueryBinder::validateOnlyFunctionIsCountStar(
     const vector<shared_ptr<Expression>>& expressions) {
     for (auto& expression : expressions) {
-        if (FUNCTION == expression->expressionType) {
-            auto functionName = static_pointer_cast<FunctionExpression>(expression)->function.name;
-            if (COUNT_STAR_FUNC_NAME == functionName && 1 != expressions.size()) {
-                throw invalid_argument(
-                    "The only function in the return clause should be COUNT(*).");
-            }
+        if (COUNT_STAR_FUNC == expression->expressionType && 1 != expressions.size()) {
+            throw invalid_argument("The only function in the return clause should be COUNT(*).");
         }
     }
 }

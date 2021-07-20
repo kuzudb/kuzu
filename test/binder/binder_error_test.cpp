@@ -127,7 +127,7 @@ TEST_F(BinderErrorTest, BindDateArithmetic) {
 }
 
 TEST_F(BinderErrorTest, BindNonExistingFunction) {
-    string expectedException = "dummy function does not exist.";
+    string expectedException = "DUMMY function does not exist.";
     auto input = "MATCH (a:person) WHERE dummy() < 2 RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

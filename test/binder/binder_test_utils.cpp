@@ -37,8 +37,6 @@ bool BinderTestUtils::equals(const Expression& left, const Expression& right) {
         } else {
             return true;
         }
-    } else if (FUNCTION == left.expressionType) {
-        return equals((FunctionExpression&)left, (FunctionExpression&)right);
     } else if (isExpressionLiteral(left.expressionType)) {
         return equals((LiteralExpression&)left, (LiteralExpression&)right);
     }
@@ -47,10 +45,6 @@ bool BinderTestUtils::equals(const Expression& left, const Expression& right) {
 
 bool BinderTestUtils::equals(const PropertyExpression& left, const PropertyExpression& right) {
     return left.propertyKey == right.propertyKey;
-}
-
-bool BinderTestUtils::equals(const FunctionExpression& left, const FunctionExpression& right) {
-    return left.function.name == right.function.name;
 }
 
 bool BinderTestUtils::equals(const RelExpression& left, const RelExpression& right) {

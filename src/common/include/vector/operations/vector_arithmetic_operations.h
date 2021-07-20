@@ -20,6 +20,8 @@ struct VectorArithmeticOperations {
     static void Power(ValueVector& left, ValueVector& right, ValueVector& result);
     // for pos, element in vector: result[pos] = -element
     static void Negate(ValueVector& operand, ValueVector& result);
+    // result = abs(operand)
+    static void Abs(ValueVector& operand, ValueVector& result);
 };
 
 } // namespace common

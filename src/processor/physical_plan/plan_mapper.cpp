@@ -136,10 +136,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto& logicalFilter = (const LogicalFilter&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
-    auto& rootExpression = *logicalFilter.expression;
     auto dataChunkToSelectPos = info.getDataChunkPos(logicalFilter.variableToSelect);
     auto physicalRootExpr = ExpressionMapper::mapToPhysical(
-        *context.memoryManager, rootExpression, info, *prevOperator->getResultSet());
+        *context.memoryManager, *logicalFilter.expression, info, *prevOperator->getResultSet());
     if (prevOperator->operatorType == FLATTEN) {
         return make_unique<Filter<true /* isAfterFlatten */>>(move(physicalRootExpr),
             dataChunkToSelectPos, move(prevOperator), context, physicalOperatorID++);

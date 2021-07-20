@@ -119,5 +119,9 @@ void VectorArithmeticOperations::Negate(ValueVector& operand, ValueVector& resul
     ArithmeticOperationExecutor::execute<operation::Negate>(operand, result);
 }
 
+void VectorArithmeticOperations::Abs(ValueVector& operand, ValueVector& result) {
+    ArithmeticOperationExecutor::execute<operation::Abs>(operand, result);
+}
+
 } // namespace common
 } // namespace graphflow

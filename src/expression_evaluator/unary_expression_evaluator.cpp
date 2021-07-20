@@ -4,10 +4,9 @@ namespace graphflow {
 namespace evaluator {
 
 UnaryExpressionEvaluator::UnaryExpressionEvaluator(MemoryManager& memoryManager,
-    unique_ptr<ExpressionEvaluator> child, ExpressionType expressionType, DataType dataType) {
+    unique_ptr<ExpressionEvaluator> child, ExpressionType expressionType, DataType dataType)
+    : ExpressionEvaluator{expressionType, dataType} {
     childrenExpr.push_back(move(child));
-    this->expressionType = expressionType;
-    this->dataType = dataType;
     operation = getUnaryOperation(expressionType);
     result = createResultValueVector(memoryManager);
 }

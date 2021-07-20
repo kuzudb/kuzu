@@ -1,7 +1,6 @@
 #include "src/parser/include/transformer.h"
 
 #include "src/common/include/assert.h"
-#include "src/common/include/function.h"
 #include "src/parser/include/statements/load_csv_statement.h"
 #include "src/parser/include/statements/match_statement.h"
 

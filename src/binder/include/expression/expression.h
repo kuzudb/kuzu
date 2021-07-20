@@ -24,6 +24,10 @@ public:
     Expression(
         ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child);
 
+    // Create function expression with no parameter
+    Expression(ExpressionType expressionType, DataType dataType)
+        : expressionType{expressionType}, dataType{dataType} {}
+
     unordered_set<string> getIncludedVariableNames() const;
 
     // get the first occurrence of expression that satisfies given types
@@ -38,10 +42,6 @@ public:
     virtual inline string getInternalName() const {
         return ALIAS == expressionType ? children[0]->getInternalName() : rawExpression;
     }
-
-protected:
-    Expression(ExpressionType expressionType, DataType dataType)
-        : expressionType{expressionType}, dataType{dataType} {}
 
 public:
     ExpressionType expressionType;

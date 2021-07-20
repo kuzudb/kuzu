@@ -6,7 +6,6 @@
 
 #include "src/common/include/assert.h"
 #include "src/common/include/file_utils.h"
-#include "src/common/include/function.h"
 #include "src/common/include/ser_deser.h"
 #include "src/common/include/types.h"
 #include "src/common/include/utils.h"
@@ -156,7 +155,6 @@ public:
     inline const vector<PropertyDefinition>& getRelProperties(label_t relLabel) const {
         return relLabels[relLabel].properties;
     }
-
     inline const unordered_map<string, uint64_t>& getUnstrPropertiesNameToIdMap(
         label_t nodeLabel) const {
         return nodeLabels[nodeLabel].unstrPropertiesNameToIdMap;
@@ -173,14 +171,6 @@ public:
 
     virtual bool isSingleMultiplicityInDirection(label_t relLabel, Direction direction) const;
 
-    // getFunction() should always be called after containFunction()
-    inline bool containFunction(const string& functionName) const {
-        return builtInFunctions.contains(functionName);
-    }
-    inline Function* getFunction(const string& functionName) const {
-        return builtInFunctions.at(functionName).get();
-    }
-
     unique_ptr<nlohmann::json> debugInfo();
     void saveToFile(const string& directory);
     void readFromFile(const string& directory);
@@ -188,18 +178,13 @@ public:
 private:
     string getNodeLabelsString(const unordered_set<label_t>& nodeLabels) const;
 
-    void registerBuiltInFunctions();
-
-private:
     shared_ptr<spdlog::logger> logger;
     vector<NodeLabelDefinition> nodeLabels;
     vector<RelLabelDefinition> relLabels;
-
-    // These three maps are maintained as caches. They are not serialized to the catalog file, but
+    // These two maps are maintained as caches. They are not serialized to the catalog file, but
     // is re-constructed when reading from the catalog file.
     unordered_map<string, label_t> nodeLabelNameToIdMap;
     unordered_map<string, label_t> relLabelNameToIdMap;
-    unordered_map<string, unique_ptr<Function>> builtInFunctions;
 };
 
 } // namespace storage
