@@ -22,33 +22,27 @@ public:
 
 private:
     unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
-        const shared_ptr<LogicalOperator>& logicalOperator,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& executionContext);
+        const shared_ptr<LogicalOperator>& logicalOperator, PhysicalOperatorsInfo& info,
+        ExecutionContext& executionContext);
 
-    unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(LogicalOperator* logicalOperator,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(LogicalOperator* logicalOperator,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(LogicalOperator* logicalOperator,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(LogicalOperator* logicalOperator,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalNodePropertyReaderToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& physicalOperatorInfo,
-        ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalRelPropertyReaderToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& physicalOperatorInfo,
-        ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(LogicalOperator* logicalOperator,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(LogicalOperator* logicalOperator,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalCRUDNodeToPhysical(LogicalOperator* logicalOperator,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
-
-    unique_ptr<PhysicalOperator> appendFlattenOperatorsIfNecessary(
-        const Expression& logicalRootExpr, unique_ptr<PhysicalOperator> prevOperator,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalScanNodePropertyToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalScanRelPropertyToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
 
 public:
     const Graph& graph;

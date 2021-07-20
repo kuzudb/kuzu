@@ -1,107 +1,51 @@
 #include "src/planner/include/logical_plan/schema.h"
 
-#include <cassert>
+#include "src/common/include/assert.h"
 
 namespace graphflow {
 namespace planner {
 
-bool FactorizationGroup::containsVariable(const string& variable) const {
-    return variables.contains(variable);
+uint32_t Schema::createGroup() {
+    auto pos = groups.size();
+    groups.emplace_back(FactorizationGroup());
+    return pos;
 }
 
-void FactorizationGroup::addVariables(unordered_set<string> variablesToAdd) {
-    variables.insert(variablesToAdd.begin(), variablesToAdd.end());
+void Schema::appendToGroup(const string& variable, uint32_t pos) {
+    variableToGroupPos.insert({variable, pos});
+    groups[pos].appendVariable(variable);
 }
 
-Schema::Schema() {
-    flatGroup = make_unique<FactorizationGroup>(unordered_set<string>(), 1);
+void Schema::appendToGroup(FactorizationGroup& otherGroup, uint32_t pos) {
+    for (auto& variable : otherGroup.variables) {
+        appendToGroup(variable, pos);
+    }
 }
 
-void Schema::addMatchedAttribute(const string& attribute) {
-    matchedAttributes.insert(attribute);
+void Schema::flattenGroup(uint32_t pos) {
+    groups[pos].isFlat = true;
 }
 
-void Schema::addQueryRelAndLogicalExtend(const string& queryRel, LogicalExtend* extend) {
+uint32_t Schema::getGroupPos(const string& variable) {
+    GF_ASSERT(variableToGroupPos.contains(variable));
+    return variableToGroupPos.at(variable);
+}
+
+void Schema::addLogicalExtend(const string& queryRel, LogicalExtend* extend) {
     queryRelLogicalExtendMap.insert({queryRel, extend});
 }
 
-bool Schema::containsAttributeName(const string& attribute) const {
-    return matchedAttributes.contains(attribute);
-}
-
-LogicalExtend* Schema::getExistingLogicalExtend(const string& queryRel) const {
+LogicalExtend* Schema::getExistingLogicalExtend(const string& queryRel) {
+    GF_ASSERT(queryRelLogicalExtendMap.contains(queryRel));
     return queryRelLogicalExtendMap.at(queryRel);
 }
 
-bool Schema::isVariableFlat(const string& variable) const {
-    return flatGroup->containsVariable(variable);
-}
-
-FactorizationGroup* Schema::getFactorizationGroup(const string& variable) {
-    if (flatGroup->containsVariable(variable)) {
-        return flatGroup.get();
-    }
-    return unflatGroups[variableUnflatGroupPosMap.at(variable)].get();
-}
-
-void Schema::addToExistingFactorizetionGroup(
-    const string& existingVariable, unordered_set<string> variables) {
-    if (flatGroup->containsVariable(existingVariable)) {
-        flatGroup->addVariables(move(variables));
-    } else {
-        auto unflatGroupPos = variableUnflatGroupPosMap.at(existingVariable);
-        for (auto& variable : variables) {
-            variableUnflatGroupPosMap.insert({variable, unflatGroupPos});
-        }
-        unflatGroups[unflatGroupPos]->addVariables(move(variables));
-    }
-}
-
-void Schema::addUnFlatFactorizationGroup(unordered_set<string> variables, uint64_t extensionRate) {
-    for (auto& variable : variables) {
-        variableUnflatGroupPosMap.insert({variable, unflatGroups.size()});
-    }
-    unflatGroups.emplace_back(make_unique<FactorizationGroup>(move(variables), extensionRate));
-}
-
-void Schema::flattenFactorizationGroupIfNecessary(const string& variable) {
-    if (flatGroup->containsVariable(variable)) {
-        return;
-    }
-    // TODO: Remove the if statement once cost model support is added
-    if (variableUnflatGroupPosMap.contains(variable)) {
-        flattenFactorizationGroup(*unflatGroups[variableUnflatGroupPosMap.at(variable)]);
-    }
-}
-
-uint64_t Schema::getCardinality() const {
-    return flatGroup->cardinalityOrExtensionRate;
-}
-
-void Schema::merge(Schema& other) {
-    matchedAttributes.insert(other.matchedAttributes.begin(), other.matchedAttributes.end());
-    queryRelLogicalExtendMap.insert(
-        other.queryRelLogicalExtendMap.begin(), other.queryRelLogicalExtendMap.end());
-}
-
 unique_ptr<Schema> Schema::copy() {
-    auto schema = make_unique<Schema>();
-    schema->matchedAttributes = matchedAttributes;
-    schema->queryRelLogicalExtendMap = queryRelLogicalExtendMap;
-    schema->flatGroup = make_unique<FactorizationGroup>(*flatGroup);
-    schema->variableUnflatGroupPosMap = variableUnflatGroupPosMap;
-    for (auto& unflatGroup : unflatGroups) {
-        schema->unflatGroups.emplace_back(make_unique<FactorizationGroup>(*unflatGroup));
-    }
-    return schema;
-}
-
-void Schema::flattenFactorizationGroup(const FactorizationGroup& groupToFlatten) {
-    for (auto& variable : groupToFlatten.variables) {
-        variableUnflatGroupPosMap.erase(variable);
-    }
-    flatGroup->cardinalityOrExtensionRate *= groupToFlatten.cardinalityOrExtensionRate;
-    flatGroup->addVariables(groupToFlatten.variables);
+    auto newSchema = make_unique<Schema>();
+    newSchema->queryRelLogicalExtendMap = queryRelLogicalExtendMap;
+    newSchema->variableToGroupPos = variableToGroupPos;
+    newSchema->groups = groups;
+    return newSchema;
 }
 
 } // namespace planner

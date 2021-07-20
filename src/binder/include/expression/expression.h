@@ -24,16 +24,11 @@ public:
     Expression(
         ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child);
 
-    vector<const Expression*> getIncludedPropertyExpressions() const {
-        return getIncludedExpressionsWithTypes(unordered_set<ExpressionType>{PROPERTY});
-    }
-
-    vector<const Expression*> getIncludedPropertyOrCSVLineExtractExpressions() const {
-        return getIncludedExpressionsWithTypes(
-            unordered_set<ExpressionType>{PROPERTY, CSV_LINE_EXTRACT});
-    }
-
     unordered_set<string> getIncludedVariableNames() const;
+
+    // get the first occurrence of expression that satisfies given types
+    vector<const Expression*> getIncludedExpressions(
+        const unordered_set<ExpressionType>& expressionTypes) const;
 
     // return named used for parsing user input and printing
     virtual inline string getExternalName() const { return rawExpression; }
@@ -47,10 +42,6 @@ public:
 protected:
     Expression(ExpressionType expressionType, DataType dataType)
         : expressionType{expressionType}, dataType{dataType} {}
-
-private:
-    vector<const Expression*> getIncludedExpressionsWithTypes(
-        const unordered_set<ExpressionType>& expressionTypes) const;
 
 public:
     ExpressionType expressionType;

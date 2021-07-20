@@ -37,7 +37,7 @@ void System::executeQuery(SessionContext& context) const {
     compilingTimeMetric.start();
     auto boundQuery = QueryBinder(graph->getCatalog()).bind(*parsedQuery);
 
-    auto logicalPlan = Enumerator(*graph, *boundQuery).getBestPlan();
+    auto logicalPlan = Enumerator(*graph).getBestPlan(*boundQuery);
 
     auto executionContext = make_unique<ExecutionContext>(
         *context.profiler, context.activeTransaction, memManager.get());
@@ -69,7 +69,7 @@ vector<unique_ptr<LogicalPlan>> System::enumerateAllPlans(SessionContext& sessio
     }
     auto parsedQuery = Parser::parseQuery(sessionContext.query);
     auto boundQuery = QueryBinder(graph->getCatalog()).bind(*parsedQuery);
-    auto logicalPlans = Enumerator(*graph, *boundQuery).enumeratePlans();
+    auto logicalPlans = Enumerator(*graph).enumeratePlans(*boundQuery);
     return logicalPlans;
 }
 

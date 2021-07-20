@@ -17,58 +17,42 @@ namespace planner {
 class Enumerator {
 
 public:
-    explicit Enumerator(const Graph& graph, const BoundSingleQuery& boundSingleQuery);
+    explicit Enumerator(const Graph& graph);
 
-    unique_ptr<LogicalPlan> getBestPlan();
+    unique_ptr<LogicalPlan> getBestPlan(const BoundSingleQuery& singleQuery);
 
-    vector<unique_ptr<LogicalPlan>> enumeratePlans();
+    vector<unique_ptr<LogicalPlan>> enumeratePlans(const BoundSingleQuery& singleQuery);
 
 private:
-    void enumerateBoundQueryPart(BoundQueryPart& boundQueryPart);
-
-    void enumerateBoundReadingStatement(BoundReadingStatement& boundReadingStatement,
-        vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
-
-    void enumerateBoundLoadCSVStatement(const BoundLoadCSVStatement& boundLoadCSVStatement);
-
-    void updateQueryGraphAndWhereClause(BoundMatchStatement& boundMatchStatement,
-        vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
-
-    void enumerateSubplans(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND,
-        const vector<shared_ptr<Expression>>& returnOrWithClause);
-
-    void enumerateSingleQueryNode(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
-
+    void enumerateQueryPart(BoundQueryPart& queryPart);
+    vector<unique_ptr<LogicalPlan>>& enumerateProjectionStatement(
+        const vector<shared_ptr<Expression>>& expressionsToProject);
+    void enumerateReadingStatement(BoundReadingStatement& readingStatement);
+    void enumerateLoadCSVStatement(const BoundLoadCSVStatement& loadCSVStatement);
+    void updateQueryGraph(QueryGraph& queryGraph);
+    void enumerateSubplans(const vector<shared_ptr<Expression>>& whereClause);
+    void enumerateSingleQueryNode(const vector<shared_ptr<Expression>>& whereClause);
     void enumerateNextLevel(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
-
     void enumerateHashJoin(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
-
     void enumerateExtend(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
 
-    void appendLoadCSV(const BoundLoadCSVStatement& boundLoadCSVStatement, LogicalPlan& plan);
-
-    void appendLogicalScan(uint32_t queryNodePos, LogicalPlan& plan);
-
-    void appendLogicalExtend(uint32_t queryRelPos, Direction direction, LogicalPlan& plan);
-
+    void appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, LogicalPlan& plan);
+    void appendScan(uint32_t queryNodePos, LogicalPlan& plan);
+    void appendExtend(uint32_t queryRelPos, Direction direction, LogicalPlan& plan);
+    string appendNecessaryFlattens(const Expression& expression,
+        const unordered_map<uint32_t, string>& unFlatGroupsPos, LogicalPlan& plan);
+    void appendFlatten(const string& variable, LogicalPlan& plan);
     void appendLogicalHashJoin(
-        uint32_t joinNodePos, const LogicalPlan& planToJoin, LogicalPlan& plan);
-
+        uint32_t joinNodePos, LogicalPlan& buildPlan, LogicalPlan& probePlan);
     void appendFilter(shared_ptr<Expression> expression, LogicalPlan& plan);
-
-    void appendProjection(
-        const vector<shared_ptr<Expression>>& returnOrWithClause, LogicalPlan& plan);
-
-    void appendNecessaryScans(shared_ptr<Expression> expression, LogicalPlan& plan);
-
+    void appendProjection(const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan);
+    void appendNecessaryScans(const Expression& expression, LogicalPlan& plan);
     void appendScanNodeProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
-
     void appendScanRelProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
 
 private:
-    unique_ptr<SubplansTable> subplansTable; // cached subgraph plans
+    unique_ptr<SubPlansTable> subPlansTable;
     const Graph& graph;
-    const BoundSingleQuery& boundSingleQuery;
 
     uint32_t currentLevel;
     unique_ptr<QueryGraph> mergedQueryGraph;

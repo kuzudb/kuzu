@@ -8,10 +8,6 @@
 -QUERY MATCH (a:person) WHERE a.gender * 2.1 = 2.1 * a.gender RETURN COUNT(*)
 ---- 8
 
--NAME PersonNodesAgeFilteredTest2
--QUERY WITH 25 AS foo WITH foo AS age MATCH (a:person) WHERE a.age <= age RETURN COUNT(*)
----- 3
-
 -NAME PersonNodesIsWorkerFilteredTest
 -QUERY MATCH (a:person) WHERE a.isWorker = true RETURN COUNT(*)
 ---- 4
@@ -43,7 +39,3 @@
 -NAME PersonNodesFNameFilteredTest4
 -QUERY MATCH (a:person) WHERE a.fName >= 'Eliz' RETURN COUNT(*)
 ---- 4
-
--NAME PersonNodesGenderFilteredTest3
--QUERY WITH 3.5 AS threshold MATCH (a:person) WHERE (a.gender*threshold = 7.0) RETURN COUNT(*)
----- 5

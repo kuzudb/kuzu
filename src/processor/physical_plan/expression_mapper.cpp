@@ -41,7 +41,7 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(MemoryManager& m
          * If an alias expression has been matched before, it should be treated as a leaf
          * expression. Otherwise map the child of alias expression.
          */
-        if (physicalOperatorInfo.containDataChunk(expression.getInternalName())) {
+        if (physicalOperatorInfo.containVariable(expression.getInternalName())) {
             retVal = mapLogicalLeafExpressionToPhysical(
                 memoryManager, expression, physicalOperatorInfo, resultSet);
         } else {

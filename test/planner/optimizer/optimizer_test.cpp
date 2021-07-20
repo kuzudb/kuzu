@@ -4,6 +4,7 @@
 #include "src/binder/include/query_binder.h"
 #include "src/parser/include/parser.h"
 #include "src/planner/include/enumerator.h"
+#include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 
 using ::testing::NiceMock;
@@ -17,7 +18,7 @@ public:
     static unique_ptr<LogicalPlan> getBestPlan(const string& query, const Graph& graph) {
         auto parsedQuery = Parser::parseQuery(query);
         auto boundQuery = QueryBinder(graph.getCatalog()).bind(*parsedQuery);
-        return Enumerator(graph, *boundQuery).getBestPlan();
+        return Enumerator(graph).getBestPlan(*boundQuery);
     }
 
     static bool containSubstr(const string& str, const string& substr) {
@@ -34,7 +35,7 @@ TEST_F(OptimizerTest, OneHopSingleFilter) {
     auto& op1 = *plan->lastOperator;
     ASSERT_EQ(LOGICAL_EXTEND, op1.getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalExtend&)op1).nbrNodeID, "_b." + INTERNAL_ID_SUFFIX));
-    auto& op2 = *op1.prevOperator->prevOperator->prevOperator;
+    auto& op2 = *op1.prevOperator->prevOperator->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op2.getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op2).nodeID, "_a." + INTERNAL_ID_SUFFIX));
 }
@@ -49,7 +50,7 @@ TEST_F(OptimizerTest, OneHopMultiFilters) {
     auto& op1 = *plan->lastOperator->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_EXTEND, op1.getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalExtend&)op1).nbrNodeID, "_b." + INTERNAL_ID_SUFFIX));
-    auto& op2 = *op1.prevOperator->prevOperator->prevOperator->prevOperator;
+    auto& op2 = *op1.prevOperator->prevOperator->prevOperator->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op2.getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op2).nodeID, "_a." + INTERNAL_ID_SUFFIX));
 }
@@ -60,7 +61,7 @@ TEST_F(OptimizerTest, TwoHop) {
 
     auto query = "MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(*)";
     auto plan = OptimizerTest::getBestPlan(query, graph);
-    auto& op1 = *plan->lastOperator->prevOperator->prevOperator;
+    auto& op1 = *plan->lastOperator->prevOperator->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op1.getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op1).nodeID, "_b." + INTERNAL_ID_SUFFIX));
 }
@@ -73,7 +74,7 @@ TEST_F(OptimizerTest, TwoHopMultiFilters) {
                  "b.age = 35 RETURN COUNT(*)";
     auto plan = OptimizerTest::getBestPlan(query, graph);
     auto& op1 = *plan->lastOperator->prevOperator->prevOperator->prevOperator->prevOperator
-                     ->prevOperator->prevOperator;
+                     ->prevOperator->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op1.getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalScanNodeID&)op1).nodeID, "_b." + INTERNAL_ID_SUFFIX));
 }

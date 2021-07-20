@@ -1,80 +1,62 @@
 #pragma once
 
+#include <memory>
+#include <string>
 #include <unordered_map>
-#include <unordered_set>
+#include <vector>
 
-#include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
+using namespace std;
 
 namespace graphflow {
 namespace planner {
 
-// Represents a group of variables that are logically factorized together
-struct FactorizationGroup {
+class LogicalExtend;
+
+class FactorizationGroup {
 
 public:
-    FactorizationGroup(unordered_set<string> variables, uint32_t cardinalityOrExtensionRate)
-        : variables{move(variables)}, cardinalityOrExtensionRate{cardinalityOrExtensionRate} {}
+    FactorizationGroup() : isFlat{false}, estimatedCardinality{1} {}
 
-    FactorizationGroup(const FactorizationGroup& factorizationGroup)
-        : variables{factorizationGroup.variables},
-          cardinalityOrExtensionRate{factorizationGroup.cardinalityOrExtensionRate} {}
+    FactorizationGroup(const FactorizationGroup& other)
+        : isFlat{other.isFlat},
+          estimatedCardinality{other.estimatedCardinality}, variables{other.variables} {}
 
-    bool containsVariable(const string& variable) const;
-
-    void addVariables(unordered_set<string> variablesToAdd);
+    void appendVariable(const string& variable) { variables.push_back(variable); }
 
 public:
-    unordered_set<string> variables;
-    // For flat factorization group, we store relMultiplicity of the sub-query that contains
-    // variables in flat factorization group. Otherwise, for unflat factorization group, we store
-    // the extension rate per flat prefix.
-    uint64_t cardinalityOrExtensionRate;
+    bool isFlat;
+    uint64_t estimatedCardinality;
+    vector<string> variables;
 };
 
 class Schema {
 
 public:
-    Schema();
+    uint32_t createGroup();
 
-    void addMatchedAttribute(const string& attribute);
+    void appendToGroup(const string& variable, uint32_t pos);
 
-    void addQueryRelAndLogicalExtend(const string& queryRel, LogicalExtend* extend);
+    void appendToGroup(FactorizationGroup& otherGroup, uint32_t pos);
 
-    bool containsAttributeName(const string& attribute) const;
+    uint32_t getGroupPos(const string& variable);
 
-    // Returns the LogicalExtend that matches the queryRel
-    LogicalExtend* getExistingLogicalExtend(const string& queryRel) const;
+    void flattenGroup(uint32_t pos);
 
-    bool isVariableFlat(const string& variable) const;
+    bool containVariable(const string& variable) { return variableToGroupPos.contains(variable); }
 
-    FactorizationGroup* getFactorizationGroup(const string& variable);
+    void addLogicalExtend(const string& queryRel, LogicalExtend* extend);
 
-    // add variables to the same factorization group as existingVariable
-    void addToExistingFactorizetionGroup(
-        const string& existingVariable, unordered_set<string> variables);
-
-    void addUnFlatFactorizationGroup(unordered_set<string> variables, uint64_t extensionRate);
-
-    void flattenFactorizationGroupIfNecessary(const string& variable);
-
-    uint64_t getCardinality() const;
-
-    void merge(Schema& other);
+    LogicalExtend* getExistingLogicalExtend(const string& queryRel);
 
     unique_ptr<Schema> copy();
 
-private:
-    void flattenFactorizationGroup(const FactorizationGroup& groupToFlatten);
-
 public:
-    unordered_set<string> matchedAttributes;
+    vector<FactorizationGroup> groups;
     // Maps a queryRel to the LogicalExtend that matches it. This is needed because ScanRelProperty
     // requires direction information which only available in the LogicalExtend.
     unordered_map<string, LogicalExtend*> queryRelLogicalExtendMap;
     // All flat variables are considered as in the same factorization group
-    unique_ptr<FactorizationGroup> flatGroup;
-    unordered_map<string, uint32_t> variableUnflatGroupPosMap;
-    vector<unique_ptr<FactorizationGroup>> unflatGroups;
+    unordered_map<string, uint32_t> variableToGroupPos;
 };
 
 } // namespace planner

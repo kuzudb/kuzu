@@ -29,9 +29,11 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
     dataChunk->state->size = 100;
     dataChunk->append(valueVector);
 
-    auto physicalOperatorInfo = PhysicalOperatorsInfo();
+    auto schema = Schema();
+    auto groupPos = schema.createGroup();
+    schema.appendToGroup("_0_a.prop", groupPos);
+    auto physicalOperatorInfo = PhysicalOperatorsInfo(schema);
     auto resultSet = ResultSet();
-    physicalOperatorInfo.appendAsNewDataChunk("_0_a.prop");
     resultSet.append(dataChunk);
 
     auto rootExpressionEvaluator = ExpressionMapper::mapToPhysical(
@@ -66,9 +68,11 @@ TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
     dataChunk->state->size = 100;
     dataChunk->append(valueVector);
 
-    auto physicalOperatorInfo = PhysicalOperatorsInfo();
+    auto schema = Schema();
+    auto groupPos = schema.createGroup();
+    schema.appendToGroup("_0_a.prop", groupPos);
+    auto physicalOperatorInfo = PhysicalOperatorsInfo(schema);
     auto resultSet = ResultSet();
-    physicalOperatorInfo.appendAsNewDataChunk("_0_a.prop");
     resultSet.append(dataChunk);
 
     auto rootExpressionEvaluator = ExpressionMapper::mapToPhysical(

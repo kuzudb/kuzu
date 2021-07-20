@@ -20,25 +20,26 @@ unordered_set<string> Expression::getIncludedVariableNames() const {
     auto result = unordered_set<string>();
     if (isExpressionLiteral(expressionType)) {
         return result;
-    }
-    if (VARIABLE == expressionType) {
+    } else if (VARIABLE == expressionType) {
         result.insert({getInternalName()});
-    }
-    for (auto& child : children) {
-        auto tmp = child->getIncludedVariableNames();
-        result.insert(begin(tmp), end(tmp));
+    } else {
+        for (auto& child : children) {
+            auto tmp = child->getIncludedVariableNames();
+            result.insert(begin(tmp), end(tmp));
+        }
     }
     return result;
 }
 
-vector<const Expression*> Expression::getIncludedExpressionsWithTypes(
+vector<const Expression*> Expression::getIncludedExpressions(
     const unordered_set<ExpressionType>& expressionTypes) const {
     auto result = vector<const Expression*>();
     if (expressionTypes.contains(expressionType)) {
         result.push_back(this);
+        return result;
     }
     for (auto& child : children) {
-        auto tmp = child->getIncludedExpressionsWithTypes(expressionTypes);
+        auto tmp = child->getIncludedExpressions(expressionTypes);
         result.insert(end(result), begin(tmp), end(tmp));
     }
     return result;

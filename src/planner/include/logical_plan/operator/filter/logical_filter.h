@@ -11,19 +11,20 @@ namespace planner {
 class LogicalFilter : public LogicalOperator {
 
 public:
-    LogicalFilter(shared_ptr<Expression> rootExpr, shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{prevOperator}, rootExpr{rootExpr} {}
+    LogicalFilter(shared_ptr<Expression> expression, string variableToSelect,
+        shared_ptr<LogicalOperator> prevOperator)
+        : LogicalOperator{prevOperator}, expression{expression}, variableToSelect{
+                                                                     move(variableToSelect)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_FILTER;
     }
 
-    const Expression& getRootExpression() const { return *rootExpr; }
-
-    string getExpressionsForPrinting() const override { return rootExpr->rawExpression; }
+    string getExpressionsForPrinting() const override { return expression->rawExpression; }
 
 public:
-    shared_ptr<Expression> rootExpr;
+    shared_ptr<Expression> expression;
+    string variableToSelect;
 };
 
 } // namespace planner

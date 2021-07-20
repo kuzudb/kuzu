@@ -97,13 +97,21 @@ False
 1905-12-12
 1905-12-12
 
--NAME KnowsOneHopTest
+-NAME KnowsOneHopTest1
 -COMPARE_RESULT 1
 -QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE b.age=20 RETURN b.age
 ---- 3
 20
 20
 20
+
+-NAME KnowsOneHopTest2
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE b.age=20 RETURN b.age * 2
+---- 3
+40
+40
+40
 
 -NAME KnowsTwoHopTest1
 -COMPARE_RESULT 1
