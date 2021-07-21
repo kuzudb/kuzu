@@ -13,8 +13,8 @@ class PageHandle {
 public:
     PageHandle() : pageIdx{-1u} {};
 
-    inline bool hasPageIdx() { return -1u != pageIdx; }
-    inline uint32_t getPageIdx() { return pageIdx; }
+    inline bool hasPageIdx() const { return -1u != pageIdx; }
+    inline uint32_t getPageIdx() const { return pageIdx; }
     inline void setPageIdx(uint32_t pageIdx) { this->pageIdx = pageIdx; }
     inline void resetPageIdx() { pageIdx = -1u; }
 

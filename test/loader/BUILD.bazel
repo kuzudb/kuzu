@@ -11,7 +11,6 @@ cc_test(
     ],
     deps = [
         "//src/common:types",
-        "//test/storage:storage_scanners",
         "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",
@@ -31,7 +30,6 @@ cc_test(
     ],
     deps = [
         "//src/common:types",
-        "//test/storage:storage_scanners",
         "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",

@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "src/common/include/literal.h"
 #include "src/common/include/value.h"
 #include "src/common/include/vector/node_vector.h"
 #include "src/storage/include/data_structure/data_structure.h"
@@ -13,6 +14,13 @@
 
 namespace graphflow {
 namespace storage {
+
+struct ListInfo {
+    bool isLargeList{false};
+    uint64_t listLen{-1u};
+    function<uint32_t(uint32_t)> mapper;
+    PageCursor cursor;
+};
 
 /**
  * A lists data structure holds a list of homogeneous values for each offset in it. Lists are used
@@ -33,7 +41,11 @@ public:
         uint64_t& listLen, const unique_ptr<ListsPageHandle>& listsPageHandle,
         uint32_t maxElementsToRead, BufferManagerMetrics& metrics);
 
-    uint64_t getNumElementsInList(node_offset_t nodeOffset);
+    inline uint64_t getNumElementsInList(node_offset_t nodeOffset) {
+        return getListInfo(nodeOffset).listLen;
+    }
+
+    ListInfo getListInfo(node_offset_t nodeOffset);
 
 protected:
     BaseLists(const string& fName, const DataType& dataType, const size_t& elementSize,
@@ -41,12 +53,12 @@ protected:
         : DataStructure{fName, dataType, elementSize, bufferManager, isInMemory}, metadata{fName},
           headers(move(headers)){};
 
-    virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-        const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
+    virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& lenToRead,
+        const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
         uint32_t maxElementsToRead, BufferManagerMetrics& metrics);
 
     virtual void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
+        uint64_t& lenToRead, const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
         BufferManagerMetrics& metrics);
 
 public:
@@ -81,12 +93,12 @@ public:
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
 private:
-    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-        const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
+    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& lenToRead,
+        const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
         uint32_t maxElementsToRead, BufferManagerMetrics& metrics) override;
 
     void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
+        uint64_t& lenToRead, const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
         BufferManagerMetrics& metrics) override;
 
 private:
@@ -109,12 +121,12 @@ public:
     shared_ptr<ListHeaders> getHeaders() { return headers; };
 
 private:
-    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& listLen,
-        const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
+    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& lenToRead,
+        const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
         uint32_t maxElementsToRead, BufferManagerMetrics& metrics) override;
 
     void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t header,
+        uint64_t& lenToRead, const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
         BufferManagerMetrics& metrics) override;
 
 private:
@@ -142,10 +154,13 @@ public:
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
         BufferManagerMetrics& metrics);
 
+    unique_ptr<map<uint32_t, Literal>> readList(node_offset_t nodeOffset,
+        const unique_ptr<PageHandle>& pageHandle, BufferManagerMetrics& metrics);
+
 private:
-    void readUnstrPropertyListOfNode(node_offset_t nodeOffset, uint32_t propertyKeyIdxToRead,
+    void readUnstrPropertyFromAList(uint32_t propertyKeyIdxToRead,
         const shared_ptr<ValueVector>& valueVector, uint64_t pos,
-        const unique_ptr<PageHandle>& pageHandle, uint32_t header, BufferManagerMetrics& metrics);
+        const unique_ptr<PageHandle>& pageHandle, ListInfo& info, BufferManagerMetrics& metrics);
 
     void readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
         uint64_t& physicalPageIdx, const uint32_t*& propertyKeyIdxPtr,
@@ -156,8 +171,7 @@ private:
 
     void readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx, DataType& propertyDataType,
         const unique_ptr<PageHandle>& pageHandle, PageCursor& pageCursor, uint64_t& listLen,
-        const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
-        const shared_ptr<ValueVector>& valueVector, uint64_t pos, bool toRead,
+        const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper, Value* value, bool toRead,
         BufferManagerMetrics& metrics);
 
 public:
