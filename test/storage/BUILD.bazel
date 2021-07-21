@@ -9,7 +9,6 @@ cc_library(
     ],
     hdrs = [
         "include/file_scanners/file_scanner.h",
-        "include/file_scanners/node_property_file_scanner.h",
         "include/file_scanners/string_overflow_file_scanner.h",
         "include/file_scanners/unstructured_node_property_file_scanner.h",
     ],

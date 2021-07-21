@@ -6,7 +6,10 @@
 using ::testing::Test;
 using namespace graphflow::testing;
 
-class TinySnbProcessorTest : public DBLoadedTest {};
+class TinySnbProcessorTest : public DBLoadedTest {
+public:
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+};
 
 TEST_F(TinySnbProcessorTest, StructuralQueries) {
     unique_ptr<TestSuiteQueryConfig> queryConfig;

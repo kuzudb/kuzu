@@ -7,7 +7,7 @@ string StringOverflowFileFileScanner::readLargeString(const gf_string_t& str) co
     PageCursor cursor;
     str.getOverflowPtrInfo(cursor.idx, cursor.offset);
     return string((char*)(buffer.get() + (cursor.idx << PAGE_SIZE_LOG_2) + cursor.offset), str.len);
-};
+}
 
 string StringOverflowFileFileScanner::readString(
     gf_string_t& mainString, const StringOverflowFileFileScanner& stringOverflowFileScanner) {

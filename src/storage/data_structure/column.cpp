@@ -28,6 +28,13 @@ void BaseColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     readFromNonSequentialLocations(nodeIDVector, valueVector, pageHandle, metrics);
 }
 
+Literal BaseColumn::readValue(node_offset_t offset, BufferManagerMetrics& metrics) {
+    auto cursor = getPageCursorForOffset(offset);
+    Literal retVal;
+    copyFromAPage((uint8_t*)&retVal.val, cursor.idx, elementSize, cursor.offset, metrics);
+    return retVal;
+}
+
 void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
     BufferManagerMetrics& metrics) {
@@ -70,7 +77,16 @@ void Column<STRING>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     } else {
         readFromNonSequentialLocations(nodeIDVector, valueVector, pageHandle, metrics);
     }
-    stringOverflowPages.readStringsFromOverflowPages(*valueVector, metrics);
+    stringOverflowPages.readStringsToVector(*valueVector, metrics);
+}
+
+Literal Column<STRING>::readValue(node_offset_t offset, BufferManagerMetrics& metrics) {
+    auto cursor = getPageCursorForOffset(offset);
+    gf_string_t gfString;
+    copyFromAPage((uint8_t*)&gfString, cursor.idx, sizeof(gf_string_t), cursor.offset, metrics);
+    Literal retVal;
+    retVal.strVal = stringOverflowPages.readString(gfString, metrics);
+    return retVal;
 }
 
 } // namespace storage

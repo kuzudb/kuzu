@@ -40,8 +40,11 @@ public:
     }
 
 private:
-    void initStructuredPropertyColumnsAndUnstructuredPropertyLists(const Catalog& catalog,
+    void initStructuredPropertyColumns(const Catalog& catalog,
         const vector<uint64_t>& numNodesPerLabel, const string& directory,
+        BufferManager& bufferManager, bool isInMemoryMode);
+
+    void initUnstructuredPropertyLists(const Catalog& catalog, const string& directory,
         BufferManager& bufferManager, bool isInMemoryMode);
 
 private:

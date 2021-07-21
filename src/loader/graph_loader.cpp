@@ -25,7 +25,7 @@ GraphLoader::GraphLoader(string inputDirectory, string outputDirectory, uint32_t
 
 GraphLoader::~GraphLoader() {
     spdlog::drop("loader");
-};
+}
 
 void GraphLoader::loadGraph() {
     try {
