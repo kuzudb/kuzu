@@ -621,7 +621,7 @@ vector<shared_ptr<Expression>> rewriteVariableExpression(
             make_shared<PropertyExpression>(NODE_ID, INTERNAL_ID_SUFFIX, UINT32_MAX, expression));
         if (isRewritingAllProperties) {
             for (auto& propertyExpression : createLogicalPropertyExpressions(
-                     expression, catalog.getNodeProperties(nodeExpression->label))) {
+                     expression, catalog.getAllNodeProperties(nodeExpression->label))) {
                 result.push_back(propertyExpression);
             }
         }

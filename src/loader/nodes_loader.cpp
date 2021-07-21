@@ -22,7 +22,7 @@ void NodesLoader::load(const vector<string>& filePaths, const vector<uint64_t>& 
     const vector<vector<uint64_t>>& numLinesPerBlock, vector<unique_ptr<NodeIDMap>>& nodeIDMaps) {
     labelUnstrPropertyListsSizes.resize(graph.getCatalog().getNodeLabelsCount());
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
+        if (graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).size() > 0) {
             labelUnstrPropertyListsSizes[nodeLabel] =
                 make_unique<vector<atomic<uint64_t>>>(graph.getNumNodesPerLabel()[nodeLabel]);
         }
@@ -44,7 +44,7 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
         numNodeLabels);
     vector<vector<string>> labelPropertyColumnFNames(numNodeLabels);
     for (label_t nodeLabel = 0u; nodeLabel < numNodeLabels; nodeLabel++) {
-        auto properties = graph.getCatalog().getNodeProperties(nodeLabel);
+        auto properties = graph.getCatalog().getStructuredNodeProperties(nodeLabel);
         labelPropertyColumnFNames[nodeLabel].resize(properties.size());
         labelPropertyIdxStringOverflowPages[nodeLabel].resize(properties.size());
         for (const auto& property : properties) {
@@ -60,7 +60,7 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
     }
     logger->debug("Populating PropertyColumns and Counting unstructured properties.");
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        auto properties = graph.getCatalog().getNodeProperties(nodeLabel);
+        auto properties = graph.getCatalog().getStructuredNodeProperties(nodeLabel);
         node_offset_t offsetStart = 0;
         for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
             threadPool.execute(populatePropertyColumnsAndCountUnstrPropertyListSizesTask,
@@ -74,7 +74,7 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
     }
     threadPool.wait();
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        auto& properties = graph.getCatalog().getNodeProperties(nodeLabel);
+        auto& properties = graph.getCatalog().getStructuredNodeProperties(nodeLabel);
         for (const auto& property : properties) {
             if (STRING == property.dataType) {
                 threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },
@@ -97,8 +97,6 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
         auto unstrPropertiesNameToIdMap =
             graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel);
-        auto numStructuredProperties = graph.getCatalog().getNodeProperties(nodeLabel).size() -
-                                       unstrPropertiesNameToIdMap.size();
         if (!unstrPropertiesNameToIdMap.empty()) {
             node_offset_t offsetStart = 0;
             auto listSizes = labelUnstrPropertyListsSizes[nodeLabel].get();
@@ -107,7 +105,8 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
             auto unstrPropertyLists = labelUnstrPropertyLists[nodeLabel].get();
             for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
                 threadPool.execute(populateUnstrPropertyListsTask, filePaths[nodeLabel], blockIdx,
-                    tokenSeparator, numStructuredProperties, offsetStart,
+                    tokenSeparator,
+                    graph.getCatalog().getStructuredNodeProperties(nodeLabel).size(), offsetStart,
                     unstrPropertiesNameToIdMap, listSizes, &listsHeaders, &listsMetadata,
                     unstrPropertyLists, labelUnstrPropertyListsStringOverflowPages[nodeLabel].get(),
                     logger);
@@ -125,14 +124,14 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
 void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
     labelUnstrPropertyListHeaders.resize(graph.getCatalog().getNodeLabelsCount());
     for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
-        if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
+        if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
             labelUnstrPropertyListHeaders[nodeLabel].init(graph.getNumNodesPerLabel()[nodeLabel]);
         }
     }
     labelUnstrPropertyListsMetadata.resize(graph.getCatalog().getNodeLabelsCount());
     logger->debug("Initializing UnstructuredPropertyListHeaders.");
     for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
-        if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
+        if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
             threadPool.execute(ListsLoaderHelper::calculateListHeadersTask,
                 graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE,
                 labelUnstrPropertyListsSizes[nodeLabel].get(),
@@ -143,7 +142,7 @@ void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
     logger->debug("Done initializing UnstructuredPropertyListHeaders.");
     logger->debug("Initializing UnstructuredPropertyListsMetadata.");
     for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
-        if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
+        if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
             threadPool.execute(ListsLoaderHelper::calculateListsMetadataTask,
                 graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE,
                 labelUnstrPropertyListsSizes[nodeLabel].get(),
@@ -159,7 +158,7 @@ void NodesLoader::buildInMemUnstrPropertyLists() {
     labelUnstrPropertyLists.resize(graph.getCatalog().getNodeLabelsCount());
     labelUnstrPropertyListsStringOverflowPages.resize(graph.getCatalog().getNodeLabelsCount());
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
+        if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
             auto unstrPropertyListsFName =
                 NodesStore::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel);
             labelUnstrPropertyLists[nodeLabel] = make_unique<InMemUnstrPropertyPages>(

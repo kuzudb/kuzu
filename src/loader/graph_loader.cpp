@@ -228,7 +228,7 @@ void GraphLoader::countLinesAndAddUnstrPropertiesInCatalog(
         numLinesPerBlock[labelId].resize(numBlocksPerLabel[labelId]);
         for (uint64_t blockId = 0; blockId < numBlocksPerLabel[labelId]; blockId++) {
             threadPool.execute(countLinesAndScanUnstrPropertiesInBlockTask, filePaths[labelId],
-                tokenSeparator, graph.catalog->getNodeProperties(labelId).size(),
+                tokenSeparator, graph.catalog->getStructuredNodeProperties(labelId).size(),
                 &labelUnstrProperties[blockId], &numLinesPerBlock, labelId, blockId, logger);
         }
     }
