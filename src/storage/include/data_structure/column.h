@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/common/include/gf_string.h"
+#include "src/common/include/literal.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/node_vector.h"
 #include "src/storage/include/data_structure/data_structure.h"
@@ -18,6 +19,9 @@ public:
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
         BufferManagerMetrics& metrics);
+
+    // Currently, used only in Loader tests.
+    virtual Literal readValue(node_offset_t offset, BufferManagerMetrics& metrics);
 
 protected:
     BaseColumn(const string& fName, const DataType& dataType, const size_t& elementSize,
@@ -54,6 +58,9 @@ public:
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
         BufferManagerMetrics& metrics) override;
+
+    // Currently, used only in Loader tests.
+    Literal readValue(node_offset_t offset, BufferManagerMetrics& metrics) override;
 
 private:
     StringOverflowPages stringOverflowPages;

@@ -15,18 +15,19 @@ namespace storage {
 class StringOverflowPages {
 
 public:
-    explicit StringOverflowPages(const string& fname, BufferManager& bufferManager, bool isInMemory)
-        : fileHandle{getStringOverflowPagesFName(fname), O_RDWR, isInMemory}, bufferManager{
+    explicit StringOverflowPages(const string& fName, BufferManager& bufferManager, bool isInMemory)
+        : fileHandle{getStringOverflowPagesFName(fName), O_RDWR, isInMemory}, bufferManager{
                                                                                   bufferManager} {}
 
     static string getStringOverflowPagesFName(const string& fName) {
         return fName + OVERFLOW_FILE_SUFFIX;
     }
 
-    void readStringsFromOverflowPages(ValueVector& valueVector, BufferManagerMetrics& metrics);
+    void readStringsToVector(ValueVector& valueVector, BufferManagerMetrics& metrics);
 
-    void readAStringFromOverflowPages(
-        ValueVector& valueVector, uint32_t pos, BufferManagerMetrics& metrics);
+    void readStringToVector(ValueVector& valueVector, uint32_t pos, BufferManagerMetrics& metrics);
+
+    string readString(const gf_string_t& str, BufferManagerMetrics& metrics);
 
 private:
     static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";

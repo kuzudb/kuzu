@@ -7,12 +7,13 @@ NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesP
     const string& directory, BufferManager& bufferManager, bool isInMemoryMode)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")} {
     logger->info("Initializing NodesStore.");
-    initStructuredPropertyColumnsAndUnstructuredPropertyLists(
+    initStructuredPropertyColumns(
         catalog, numNodesPerLabel, directory, bufferManager, isInMemoryMode);
+    initUnstructuredPropertyLists(catalog, directory, bufferManager, isInMemoryMode);
     logger->info("Done NodesStore.");
 }
 
-void NodesStore::initStructuredPropertyColumnsAndUnstructuredPropertyLists(const Catalog& catalog,
+void NodesStore::initStructuredPropertyColumns(const Catalog& catalog,
     const vector<uint64_t>& numNodesPerLabel, const string& directory, BufferManager& bufferManager,
     bool isInMemoryMode) {
     auto numNodeLabels = catalog.getNodeLabelsCount();
@@ -43,18 +44,28 @@ void NodesStore::initStructuredPropertyColumnsAndUnstructuredPropertyLists(const
                 propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnString>(
                     fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
                 break;
-            case UNSTRUCTURED:
-                unstrPropertyLists[nodeLabel] = make_unique<UnstructuredPropertyLists>(
-                    getNodeUnstrPropertyListsFName(directory, nodeLabel), bufferManager,
-                    isInMemoryMode);
-                break;
             case DATE:
                 propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnDate>(
                     fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
                 break;
+            case UNSTRUCTURED:
+                // Property column is not created for an unstructured property.
+                break;
             default:
-                throw invalid_argument("invalid type for property column and lists creation.");
+                throw invalid_argument("invalid type for property column creation.");
             }
+        }
+    }
+}
+
+void NodesStore::initUnstructuredPropertyLists(const Catalog& catalog, const string& directory,
+    BufferManager& bufferManager, bool isInMemoryMode) {
+    unstrPropertyLists.resize(catalog.getNodeLabelsCount());
+    for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
+        if (!catalog.getUnstrPropertiesNameToIdMap(nodeLabel).empty()) {
+            auto fName = getNodeUnstrPropertyListsFName(directory, nodeLabel);
+            unstrPropertyLists[nodeLabel] =
+                make_unique<UnstructuredPropertyLists>(fName, bufferManager, isInMemoryMode);
         }
     }
 }

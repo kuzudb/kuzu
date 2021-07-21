@@ -42,19 +42,19 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
     auto numNodeLabels = graph.getCatalog().getNodeLabelsCount();
     vector<vector<unique_ptr<InMemStringOverflowPages>>> labelPropertyIdxStringOverflowPages(
         numNodeLabels);
-    vector<vector<string>> labelPropertyColumnFnames(numNodeLabels);
+    vector<vector<string>> labelPropertyColumnFNames(numNodeLabels);
     for (label_t nodeLabel = 0u; nodeLabel < numNodeLabels; nodeLabel++) {
         auto properties = graph.getCatalog().getNodeProperties(nodeLabel);
-        labelPropertyColumnFnames[nodeLabel].resize(properties.size());
+        labelPropertyColumnFNames[nodeLabel].resize(properties.size());
         labelPropertyIdxStringOverflowPages[nodeLabel].resize(properties.size());
         for (const auto& property : properties) {
-            labelPropertyColumnFnames[nodeLabel][property.id] =
+            labelPropertyColumnFNames[nodeLabel][property.id] =
                 NodesStore::getNodePropertyColumnFName(outputDirectory, nodeLabel, property.name);
             if (STRING == property.dataType) {
                 labelPropertyIdxStringOverflowPages[nodeLabel][property.id] =
                     make_unique<InMemStringOverflowPages>(
                         StringOverflowPages::getStringOverflowPagesFName(
-                            labelPropertyColumnFnames[nodeLabel][property.id]));
+                            labelPropertyColumnFNames[nodeLabel][property.id]));
             }
         }
     }
@@ -66,7 +66,7 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
             threadPool.execute(populatePropertyColumnsAndCountUnstrPropertyListSizesTask,
                 filePaths[nodeLabel], blockIdx, tokenSeparator, properties,
                 numLinesPerBlock[nodeLabel][blockIdx], offsetStart, nodeIDMaps[nodeLabel].get(),
-                labelPropertyColumnFnames[nodeLabel],
+                labelPropertyColumnFNames[nodeLabel],
                 &labelPropertyIdxStringOverflowPages[nodeLabel],
                 labelUnstrPropertyListsSizes[nodeLabel].get(), logger);
             offsetStart += numLinesPerBlock[nodeLabel][blockIdx];

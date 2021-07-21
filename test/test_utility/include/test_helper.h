@@ -18,6 +18,7 @@ struct TestSuiteSystemConfig {
     string graphInputDir;
     string graphOutputDir;
     uint64_t maxNumThreads = 1;
+    bool isInMemory = false;
 };
 
 struct TestSuiteQueryConfig {
@@ -59,18 +60,6 @@ public:
     TestSuiteSystemConfig testSuiteSystemConfig;
 };
 
-class BaseGraphLoadingTestWithCatalog : public BaseGraphLoadingTest {
-
-public:
-    void SetUp() override {
-        BaseGraphLoadingTest::SetUp();
-        catalog = make_unique<Catalog>(TEMP_TEST_DIR);
-    }
-
-public:
-    unique_ptr<Catalog> catalog;
-};
-
 class DBLoadedTest : public BaseGraphLoadingTest {
 public:
     void SetUp() override {
@@ -78,7 +67,17 @@ public:
         defaultSystem = TestHelper::getInitializedSystem(testSuiteSystemConfig);
     }
 
-    string getInputCSVDir() override { return "dataset/tinysnb/"; }
+public:
+    unique_ptr<System> defaultSystem;
+};
+
+class InMemoryDBLoadedTest : public BaseGraphLoadingTest {
+public:
+    void SetUp() override {
+        graphflow::testing::BaseGraphLoadingTest::SetUp();
+        testSuiteSystemConfig.isInMemory = false;
+        defaultSystem = TestHelper::getInitializedSystem(testSuiteSystemConfig);
+    }
 
 public:
     unique_ptr<System> defaultSystem;

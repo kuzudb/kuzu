@@ -69,7 +69,7 @@ void Lists<STRING>::readFromLargeList(const shared_ptr<ValueVector>& valueVector
     auto sizeLeftToCopy = elementSize * listLen;
     readBySequentialCopy(valueVector, *listsPageHandle, sizeLeftToCopy, pageCursor,
         metadata.getPageMapperForLargeListIdx(largeListIdx), metrics);
-    stringOverflowPages.readStringsFromOverflowPages(*valueVector, metrics);
+    stringOverflowPages.readStringsToVector(*valueVector, metrics);
 }
 
 // For the case of reading a list of strings, we always read by sequential copy.
@@ -82,7 +82,7 @@ void Lists<STRING>::readSmallList(node_offset_t nodeOffset,
     auto chunkIdx = nodeOffset >> BaseLists::LISTS_CHUNK_SIZE_LOG_2;
     readBySequentialCopy(valueVector, *listsPageHandle, sizeLeftToCopy, pageCursor,
         metadata.getPageMapperForChunkIdx(chunkIdx), metrics);
-    stringOverflowPages.readStringsFromOverflowPages(*valueVector, metrics);
+    stringOverflowPages.readStringsToVector(*valueVector, metrics);
 }
 
 // In case of adjLists, length of the list to be read is limited to the maximum number of
@@ -246,7 +246,7 @@ void Lists<UNSTRUCTURED>::readOrSkipUnstrPropertyValue(uint64_t& physicalPageIdx
     listLen -= dataTypeSize;
     value.dataType = propertyDataType;
     if (toRead && STRING == propertyDataType) {
-        stringOverflowPages.readAStringFromOverflowPages(*valueVector, pos, metrics);
+        stringOverflowPages.readStringToVector(*valueVector, pos, metrics);
     }
 }
 

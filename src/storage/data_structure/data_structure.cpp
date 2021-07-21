@@ -34,21 +34,27 @@ void DataStructure::readBySettingFrame(const shared_ptr<ValueVector>& valueVecto
 
 void DataStructure::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
     PageHandle& pageHandle, uint64_t sizeLeftToCopy, PageCursor& pageCursor,
-    function<uint32_t(uint32_t)> logicalToPhysicalPageMapper, BufferManagerMetrics& metrics) {
+    const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+    BufferManagerMetrics& metrics) {
     reclaim(pageHandle);
     valueVector->reset();
     auto values = valueVector->values;
     while (sizeLeftToCopy) {
         auto physicalPageIdx = logicalToPhysicalPageMapper(pageCursor.idx);
         auto sizeToCopyInPage = min(PAGE_SIZE - pageCursor.offset, sizeLeftToCopy);
-        auto frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
-        memcpy(values, frame + pageCursor.offset, sizeToCopyInPage);
-        bufferManager.unpin(fileHandle, physicalPageIdx);
+        copyFromAPage(values, physicalPageIdx, sizeToCopyInPage, pageCursor.offset, metrics);
         values += sizeToCopyInPage;
         sizeLeftToCopy -= sizeToCopyInPage;
         pageCursor.offset = 0;
         pageCursor.idx++;
     }
+}
+
+void DataStructure::copyFromAPage(uint8_t* values, uint32_t physicalPageIdx, uint64_t sizeToCopy,
+    uint32_t pageOffset, BufferManagerMetrics& metrics) {
+    auto frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
+    memcpy(values, frame + pageOffset, sizeToCopy);
+    bufferManager.unpin(fileHandle, physicalPageIdx);
 }
 
 } // namespace storage

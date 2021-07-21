@@ -49,7 +49,11 @@ protected:
 
     void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector, PageHandle& pageHandle,
         uint64_t sizeLeftToCopy, PageCursor& pageCursor,
-        function<uint32_t(uint32_t)> logicalToPhysicalPageMapper, BufferManagerMetrics& metrics);
+        const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+        BufferManagerMetrics& metrics);
+
+    void copyFromAPage(uint8_t* values, uint32_t physicalPageIdx, uint64_t sizeToCopy,
+        uint32_t pageOffset, BufferManagerMetrics& metrics);
 
 public:
     DataType dataType;

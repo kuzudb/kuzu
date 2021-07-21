@@ -109,17 +109,21 @@ public:
 
     virtual bool containNodeProperty(label_t labelId, const string& propertyName) const;
     virtual bool containRelProperty(label_t relLabel, const string& propertyName) const;
+
     // getNodeProperty and getRelProperty should be called after checking if property exists
     // (containNodeProperty and containRelProperty).
     virtual const PropertyDefinition& getNodeProperty(
         label_t labelId, const string& propertyName) const;
-    virtual string getNodePropertyAsString(label_t labelId, uint32_t propertyID) const;
     virtual const PropertyDefinition& getRelProperty(
         label_t labelId, const string& propertyName) const;
+
+    virtual string getNodePropertyAsString(label_t labelId, uint32_t propertyID) const;
+
     const unordered_set<label_t>& getNodeLabelsForRelLabelDirection(
         label_t relLabel, Direction direction) const;
     virtual const unordered_set<label_t>& getRelLabelsForNodeLabelDirection(
         label_t nodeLabel, Direction direction) const;
+
     virtual bool isSingleMultiplicityInDirection(label_t relLabel, Direction direction) const;
 
     virtual inline string getNodeLabelName(label_t labelId) const {
@@ -128,30 +132,36 @@ public:
     virtual inline string getRelLabelName(label_t labelId) const {
         return relLabels[labelId].labelName;
     }
+
     inline uint64_t getNodeLabelsCount() const { return nodeLabels.size(); }
     inline uint64_t getRelLabelsCount() const { return relLabels.size(); }
+
     virtual inline bool containNodeLabel(const string& label) const {
         return end(nodeLabelNameToIdMap) != nodeLabelNameToIdMap.find(label);
     }
     virtual inline bool containRelLabel(const string& label) const {
         return end(relLabelNameToIdMap) != relLabelNameToIdMap.find(label);
     }
+
     virtual inline label_t getNodeLabelFromString(const string& label) const {
         return nodeLabelNameToIdMap.at(label);
     }
     virtual inline label_t getRelLabelFromString(const string& label) const {
         return relLabelNameToIdMap.at(label);
     }
+
     inline const vector<PropertyDefinition>& getNodeProperties(label_t nodeLabel) const {
         return nodeLabels[nodeLabel].properties;
     }
     inline const vector<PropertyDefinition>& getRelProperties(label_t relLabel) const {
         return relLabels[relLabel].properties;
     }
+
     inline const unordered_map<string, uint64_t>& getUnstrPropertiesNameToIdMap(
         label_t nodeLabel) const {
         return nodeLabels[nodeLabel].unstrPropertiesNameToIdMap;
     }
+
     // getFunction() should always be called after containFunction()
     inline bool containFunction(const string& functionName) const {
         return builtInFunctions.contains(functionName);
@@ -169,9 +179,11 @@ private:
 
     void registerBuiltInFunctions();
 
+private:
     shared_ptr<spdlog::logger> logger;
     vector<NodeLabelDefinition> nodeLabels;
     vector<RelLabelDefinition> relLabels;
+
     // These three maps are maintained as caches. They are not serialized to the catalog file, but
     // is re-constructed when reading from the catalog file.
     unordered_map<string, label_t> nodeLabelNameToIdMap;
