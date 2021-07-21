@@ -20,8 +20,7 @@ FileHandle::FileHandle(const string& path, int flags, bool isInMemory)
     }
     if (isInMemory) {
         logger->trace("FileHandle[in-memory]: Size {}B", fileLength);
-        buffer = make_unique<uint8_t[]>(fileLength);
-        FileUtils::readFromFile(fileDescriptor, buffer.get(), fileLength, 0);
+        buffer = FileUtils::readFile(fileDescriptor);
     } else {
         logger->trace("FileHandle[disk]: Size {}B, #4KB-pages {}", fileLength, numPages);
         pageIdxToFrameMap = new unique_ptr<atomic<uint64_t>>[numPages];

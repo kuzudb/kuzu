@@ -17,6 +17,7 @@ public:
     static int openFile(const string& path, int flags);
     static void closeFile(int fd);
 
+    static unique_ptr<uint8_t[]> readFile(int fd);
     static void readFromFile(int fd, void* buffer, int64_t numBytes, uint64_t position);
     static void writeToFile(int fd, void* buffer, int64_t numBytes, uint64_t offset);
 
