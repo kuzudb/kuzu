@@ -20,7 +20,6 @@ public:
 
     void TearDown() override {
         graphflow::testing::TestHelper::removeDirOrError(CATALOG_TEMP_DIRECTORY);
-        spdlog::drop("storage");
     }
 
     void setupCatalog() const {
@@ -58,11 +57,15 @@ TEST_F(CatalogTest, AddLabelsTest) {
     // Test rel single relMultiplicity
     ASSERT_FALSE(catalog->isSingleMultiplicityInDirection(0, FWD));
     // Test property definition
-    ASSERT_TRUE(catalog->getNodeProperties(0)[0].isPrimaryKey);
+    ASSERT_TRUE(catalog->getStructuredNodeProperties(0)[0].isPrimaryKey);
     ASSERT_EQ(catalog->getNodeProperty(0, "age").id, 5);
     ASSERT_EQ(catalog->getNodeProperty(0, "age").dataType, INT64);
-    ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrIntProp"), 7);
-    ASSERT_EQ(catalog->getNodeProperties(0)[7].dataType, UNSTRUCTURED);
+    ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrIntProp"), 0);
+    auto a = catalog->getAllNodeProperties(0);
+    for (auto& property : a) {
+        cout << property.name << " " << property.id << property.dataType << endl;
+    }
+    ASSERT_EQ(catalog->getAllNodeProperties(0)[7].dataType, UNSTRUCTURED);
     ASSERT_EQ(catalog->getRelProperty(0, "date").dataType, INT64);
 }
 
@@ -70,11 +73,11 @@ TEST_F(CatalogTest, SaveAndReadTest) {
     catalog->saveToFile(CATALOG_TEMP_DIRECTORY);
     auto newCatalog = make_unique<Catalog>();
     newCatalog->readFromFile(CATALOG_TEMP_DIRECTORY);
-    ASSERT_TRUE(newCatalog->getNodeProperties(0)[0].isPrimaryKey);
+    ASSERT_TRUE(newCatalog->getStructuredNodeProperties(0)[0].isPrimaryKey);
     // Test getting label id from string
     ASSERT_TRUE(catalog->containNodeLabel("person"));
     ASSERT_FALSE(catalog->containNodeLabel("organisation"));
     ASSERT_TRUE(catalog->containRelLabel("knows"));
     ASSERT_FALSE(catalog->containRelLabel("likes"));
-    ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrIntProp"), 7);
+    ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrIntProp"), 0);
 }

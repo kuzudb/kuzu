@@ -58,18 +58,12 @@ public:
 struct NodeLabelDefinition : LabelDefinition {
     NodeLabelDefinition() : LabelDefinition{"", 0}, primaryPropertyId{0} {}
     NodeLabelDefinition(string labelName, label_t labelId, uint64_t primaryPropertyId,
-        vector<PropertyDefinition> properties)
+        vector<PropertyDefinition> structuredProperties)
         : LabelDefinition{move(labelName), labelId}, primaryPropertyId{primaryPropertyId},
-          properties{move(properties)} {
-        for (auto& property : this->properties) {
-            if (property.dataType == UNSTRUCTURED) {
-                unstrPropertiesNameToIdMap[property.name] = property.id;
-            }
-        }
-    }
+          structuredProperties{move(structuredProperties)} {}
 
     uint64_t primaryPropertyId;
-    vector<PropertyDefinition> properties;
+    vector<PropertyDefinition> structuredProperties, unstructuredProperties;
     unordered_set<label_t> fwdRelLabelIdSet; // srcNode->rel
     unordered_set<label_t> bwdRelLabelIdSet; // dstNode->rel
     // This map is maintained as a cache for unstructured properties. It is not serialized to the
@@ -100,31 +94,16 @@ public:
 
     virtual ~Catalog() = default;
 
-    void addNodeLabel(string labelName, vector<PropertyDefinition> properties,
+    /**
+     * Node and Rel label functions.
+     */
+
+    void addNodeLabel(string labelName, vector<PropertyDefinition> structuredProperties,
         const string& primaryKeyPropertyName);
+
     void addRelLabel(string labelName, RelMultiplicity relMultiplicity,
         vector<PropertyDefinition> properties, const vector<string>& srcNodeLabelNames,
         const vector<string>& dstNodeLabelNames);
-    void addNodeUnstrProperty(uint64_t labelId, const string& propertyName);
-
-    virtual bool containNodeProperty(label_t labelId, const string& propertyName) const;
-    virtual bool containRelProperty(label_t relLabel, const string& propertyName) const;
-
-    // getNodeProperty and getRelProperty should be called after checking if property exists
-    // (containNodeProperty and containRelProperty).
-    virtual const PropertyDefinition& getNodeProperty(
-        label_t labelId, const string& propertyName) const;
-    virtual const PropertyDefinition& getRelProperty(
-        label_t labelId, const string& propertyName) const;
-
-    virtual string getNodePropertyAsString(label_t labelId, uint32_t propertyID) const;
-
-    const unordered_set<label_t>& getNodeLabelsForRelLabelDirection(
-        label_t relLabel, Direction direction) const;
-    virtual const unordered_set<label_t>& getRelLabelsForNodeLabelDirection(
-        label_t nodeLabel, Direction direction) const;
-
-    virtual bool isSingleMultiplicityInDirection(label_t relLabel, Direction direction) const;
 
     virtual inline string getNodeLabelName(label_t labelId) const {
         return nodeLabels[labelId].labelName;
@@ -150,8 +129,29 @@ public:
         return relLabelNameToIdMap.at(label);
     }
 
-    inline const vector<PropertyDefinition>& getNodeProperties(label_t nodeLabel) const {
-        return nodeLabels[nodeLabel].properties;
+    /**
+     * Node and Rel property functions.
+     */
+
+    void addNodeUnstrProperty(uint64_t labelId, const string& propertyName);
+
+    virtual bool containNodeProperty(label_t labelId, const string& propertyName) const;
+    virtual bool containRelProperty(label_t relLabel, const string& propertyName) const;
+
+    // getNodeProperty and getRelProperty should be called after checking if property exists
+    // (containNodeProperty and containRelProperty).
+    virtual const PropertyDefinition& getNodeProperty(
+        label_t labelId, const string& propertyName) const;
+    virtual const PropertyDefinition& getRelProperty(
+        label_t labelId, const string& propertyName) const;
+
+    const vector<PropertyDefinition> getAllNodeProperties(label_t nodeLabel) const;
+    inline const vector<PropertyDefinition>& getStructuredNodeProperties(label_t nodeLabel) const {
+        return nodeLabels[nodeLabel].structuredProperties;
+    }
+    inline const vector<PropertyDefinition>& getUnstructuredNodeProperties(
+        label_t nodeLabel) const {
+        return nodeLabels[nodeLabel].unstructuredProperties;
     }
     inline const vector<PropertyDefinition>& getRelProperties(label_t relLabel) const {
         return relLabels[relLabel].properties;
@@ -161,6 +161,17 @@ public:
         label_t nodeLabel) const {
         return nodeLabels[nodeLabel].unstrPropertiesNameToIdMap;
     }
+
+    /**
+     * Graph topology functions.
+     */
+
+    const unordered_set<label_t>& getNodeLabelsForRelLabelDirection(
+        label_t relLabel, Direction direction) const;
+    virtual const unordered_set<label_t>& getRelLabelsForNodeLabelDirection(
+        label_t nodeLabel, Direction direction) const;
+
+    virtual bool isSingleMultiplicityInDirection(label_t relLabel, Direction direction) const;
 
     // getFunction() should always be called after containFunction()
     inline bool containFunction(const string& functionName) const {

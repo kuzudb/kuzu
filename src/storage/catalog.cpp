@@ -53,7 +53,9 @@ uint64_t SerDeser::serializeValue<NodeLabelDefinition>(
     offset = SerDeser::serializeValue<string>(value.labelName, fd, offset);
     offset = SerDeser::serializeValue<label_t>(value.labelId, fd, offset);
     offset = SerDeser::serializeValue<uint64_t>(value.primaryPropertyId, fd, offset);
-    offset = SerDeser::serializeVector<PropertyDefinition>(value.properties, fd, offset);
+    offset = SerDeser::serializeVector<PropertyDefinition>(value.structuredProperties, fd, offset);
+    offset =
+        SerDeser::serializeVector<PropertyDefinition>(value.unstructuredProperties, fd, offset);
     offset = SerDeser::serializeUnorderedSet<label_t>(value.fwdRelLabelIdSet, fd, offset);
     return SerDeser::serializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fd, offset);
 }
@@ -64,7 +66,10 @@ uint64_t SerDeser::deserializeValue<NodeLabelDefinition>(
     offset = SerDeser::deserializeValue<string>(value.labelName, fd, offset);
     offset = SerDeser::deserializeValue<label_t>(value.labelId, fd, offset);
     offset = SerDeser::deserializeValue<uint64_t>(value.primaryPropertyId, fd, offset);
-    offset = SerDeser::deserializeVector<PropertyDefinition>(value.properties, fd, offset);
+    offset =
+        SerDeser::deserializeVector<PropertyDefinition>(value.structuredProperties, fd, offset);
+    offset =
+        SerDeser::deserializeVector<PropertyDefinition>(value.unstructuredProperties, fd, offset);
     offset = SerDeser::deserializeUnorderedSet<label_t>(value.fwdRelLabelIdSet, fd, offset);
     return SerDeser::deserializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fd, offset);
 }
@@ -122,15 +127,15 @@ Catalog::Catalog(const string& directory) : Catalog() {
     logger->info("Initializing catalog done.");
 }
 
-void Catalog::addNodeLabel(
-    string labelName, vector<PropertyDefinition> properties, const string& primaryKeyPropertyName) {
+void Catalog::addNodeLabel(string labelName, vector<PropertyDefinition> structuredProperties,
+    const string& primaryKeyPropertyName) {
     label_t labelId = nodeLabels.size();
     bool hasFoundPrimaryKey = false;
     uint64_t primaryKeyPropertyId;
-    for (auto i = 0u; i < properties.size(); i++) {
-        if (properties[i].name == primaryKeyPropertyName) {
+    for (auto i = 0u; i < structuredProperties.size(); i++) {
+        if (structuredProperties[i].name == primaryKeyPropertyName) {
             hasFoundPrimaryKey = true;
-            properties[i].isPrimaryKey = true;
+            structuredProperties[i].isPrimaryKey = true;
             primaryKeyPropertyId = i;
             break;
         }
@@ -140,7 +145,8 @@ void Catalog::addNodeLabel(
             "Specified primary key property" + primaryKeyPropertyName + " is not found.");
     }
     nodeLabelNameToIdMap[labelName] = labelId;
-    nodeLabels.emplace_back(move(labelName), labelId, primaryKeyPropertyId, move(properties));
+    nodeLabels.emplace_back(
+        move(labelName), labelId, primaryKeyPropertyId, move(structuredProperties));
 }
 
 void Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
@@ -179,36 +185,29 @@ void Catalog::addNodeUnstrProperty(uint64_t labelId, const string& propertyName)
         // Unstructured property with the same name already exists, skip it.
         return;
     }
-    auto propertyId = nodeLabel.properties.size();
-    nodeLabel.properties.emplace_back(propertyName, propertyId, UNSTRUCTURED);
+    auto propertyId = nodeLabel.unstructuredProperties.size();
+    nodeLabel.unstructuredProperties.emplace_back(propertyName, propertyId, UNSTRUCTURED);
     nodeLabel.unstrPropertiesNameToIdMap[propertyName] = propertyId;
 }
 
 bool Catalog::containNodeProperty(label_t labelId, const string& propertyName) const {
-    for (auto& property : nodeLabels[labelId].properties) {
+    for (auto& property : nodeLabels[labelId].structuredProperties) {
         if (propertyName == property.name) {
             return true;
         }
     }
-    return false;
+    return nodeLabels[labelId].unstrPropertiesNameToIdMap.contains(propertyName);
 }
 
 const PropertyDefinition& Catalog::getNodeProperty(
     label_t labelId, const string& propertyName) const {
-    for (auto& property : nodeLabels[labelId].properties) {
+    for (auto& property : nodeLabels[labelId].structuredProperties) {
         if (propertyName == property.name) {
             return property;
         }
     }
-    assert(false);
-}
-
-string Catalog::getNodePropertyAsString(label_t labelId, uint32_t propertyID) const {
-    for (auto& property : nodeLabels[labelId].properties) {
-        if (propertyID == property.id) {
-            return property.name;
-        }
-    }
+    auto unstrPropertyIdx = getUnstrPropertiesNameToIdMap(labelId).at(propertyName);
+    return getUnstructuredNodeProperties(labelId)[unstrPropertyIdx];
 }
 
 bool Catalog::containRelProperty(label_t labelId, const string& propertyName) const {
@@ -228,6 +227,13 @@ const PropertyDefinition& Catalog::getRelProperty(
         }
     }
     assert(false);
+}
+
+const vector<PropertyDefinition> Catalog::getAllNodeProperties(label_t nodeLabel) const {
+    auto allProperties = nodeLabels[nodeLabel].structuredProperties;
+    allProperties.insert(allProperties.end(), nodeLabels[nodeLabel].unstructuredProperties.begin(),
+        nodeLabels[nodeLabel].unstructuredProperties.end());
+    return allProperties;
 }
 
 const unordered_set<label_t>& Catalog::getRelLabelsForNodeLabelDirection(
@@ -297,8 +303,8 @@ void Catalog::readFromFile(const string& directory) {
     // construct the labelNameToIdMap and label's unstrPropertiesNameToIdMap
     for (auto& label : nodeLabels) {
         nodeLabelNameToIdMap[label.labelName] = label.labelId;
-        for (auto i = 0u; i < label.properties.size(); i++) {
-            auto& property = label.properties[i];
+        for (auto i = 0u; i < label.unstructuredProperties.size(); i++) {
+            auto& property = label.unstructuredProperties[i];
             if (property.dataType == UNSTRUCTURED) {
                 label.unstrPropertiesNameToIdMap[property.name] = property.id;
             }
@@ -327,8 +333,10 @@ unique_ptr<nlohmann::json> Catalog::debugInfo() {
     for (auto& label : nodeLabels) {
         string labelName = label.labelName;
         (*json)["Catalog"]["NodeLabels"][labelName]["id"] = to_string(label.labelId);
-        (*json)["Catalog"]["NodeLabels"][labelName]["properties"] =
-            *getPropertiesJson(label.properties);
+        (*json)["Catalog"]["NodeLabels"][labelName]["structured properties"] =
+            *getPropertiesJson(label.structuredProperties);
+        (*json)["Catalog"]["NodeLabels"][labelName]["unstructured properties"] =
+            *getPropertiesJson(label.unstructuredProperties);
     }
 
     for (auto& label : relLabels) {

@@ -20,7 +20,7 @@ void NodesStore::initStructuredPropertyColumns(const Catalog& catalog,
     propertyColumns.resize(numNodeLabels);
     unstrPropertyLists.resize(numNodeLabels);
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        auto& properties = catalog.getNodeProperties(nodeLabel);
+        auto& properties = catalog.getStructuredNodeProperties(nodeLabel);
         propertyColumns[nodeLabel].resize(properties.size());
         for (auto& property : properties) {
             auto propertyId = property.id;
@@ -48,9 +48,6 @@ void NodesStore::initStructuredPropertyColumns(const Catalog& catalog,
                 propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnDate>(
                     fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
                 break;
-            case UNSTRUCTURED:
-                // Property column is not created for an unstructured property.
-                break;
             default:
                 throw invalid_argument("invalid type for property column creation.");
             }
@@ -62,7 +59,7 @@ void NodesStore::initUnstructuredPropertyLists(const Catalog& catalog, const str
     BufferManager& bufferManager, bool isInMemoryMode) {
     unstrPropertyLists.resize(catalog.getNodeLabelsCount());
     for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        if (!catalog.getUnstrPropertiesNameToIdMap(nodeLabel).empty()) {
+        if (!catalog.getUnstructuredNodeProperties(nodeLabel).empty()) {
             auto fName = getNodeUnstrPropertyListsFName(directory, nodeLabel);
             unstrPropertyLists[nodeLabel] =
                 make_unique<UnstructuredPropertyLists>(fName, bufferManager, isInMemoryMode);
