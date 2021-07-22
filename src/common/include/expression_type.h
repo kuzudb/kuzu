@@ -8,6 +8,15 @@ using namespace std;
 namespace graphflow {
 namespace common {
 
+/**
+ * Function name is a temporary identifier used for binder because grammar does not parse built in
+ * functions. After binding, expression type should replace function name and used as identifier.
+ */
+const string ABS_FUNC_NAME = "ABS";
+const string COUNT_STAR_FUNC_NAME = "COUNT_STAR";
+const string ID_FUNC_NAME = "ID";
+const string DATE_FUNC_NAME = "DATE";
+
 enum ExpressionType : uint8_t {
 
     /**
@@ -74,11 +83,6 @@ enum ExpressionType : uint8_t {
     PROPERTY = 60,
 
     /**
-     * Function Expression
-     **/
-    FUNCTION = 70,
-
-    /**
      * Literal Expressions
      **/
     LITERAL_INT = 80,
@@ -96,16 +100,39 @@ enum ExpressionType : uint8_t {
 
     /**
      * Cast Expressions
-     ***/
+     **/
     CAST_TO_STRING = 100,
     CAST_TO_UNSTRUCTURED_VECTOR = 101,
     CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR = 102,
+
+    FUNCTION = 110,
+
+    /**
+     * Arithmetic Function Expression
+     **/
+    ABS_FUNC = 111,
+
+    /**
+     * Aggregation Function Expression
+     */
+    COUNT_STAR_FUNC = 130,
+
+    /**
+     * Scalar Function Expression
+     */
+    ID_FUNC = 150,
+
+    /**
+     * Temporal Function Expression
+     */
+    DATE_FUNC = 170,
 };
 
 bool isExpressionUnary(ExpressionType type);
 bool isExpressionBinary(ExpressionType type);
 bool isExpressionBoolConnection(ExpressionType type);
 bool isExpressionComparison(ExpressionType type);
+bool isExpressionIDComparison(ExpressionType type);
 bool isExpressionArithmetic(ExpressionType type);
 bool isExpressionStringOperator(ExpressionType type);
 bool isExpressionNullComparison(ExpressionType type);

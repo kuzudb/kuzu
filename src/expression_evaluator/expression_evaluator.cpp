@@ -28,6 +28,8 @@ std::function<void(ValueVector&, ValueVector&)> ExpressionEvaluator::getUnaryOpe
         return VectorCastOperations::castStructuredToUnstructuredValue;
     case CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR:
         return VectorCastOperations::castUnstructuredToBoolValue;
+    case ABS_FUNC:
+        return VectorArithmeticOperations::Abs;
     default:
         assert(false);
     }

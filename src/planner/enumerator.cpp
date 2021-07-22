@@ -1,6 +1,5 @@
 #include "src/planner/include/enumerator.h"
 
-#include "src/binder/include/expression/function_expression.h"
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
@@ -419,9 +418,7 @@ void Enumerator::appendFilter(shared_ptr<Expression> expression, LogicalPlan& pl
 void Enumerator::appendProjection(
     const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan) {
     // Do not append projection in case of RETURN COUNT(*)
-    if (1 == expressions.size() && FUNCTION == expressions[0]->expressionType &&
-        COUNT_STAR_FUNC_NAME ==
-            static_pointer_cast<FunctionExpression>(expressions[0])->function.name) {
+    if (1 == expressions.size() && COUNT_STAR_FUNC == expressions[0]->expressionType) {
         return;
     }
     auto expressionsToProject = rewriteExpressionToProject(expressions, graph.getCatalog(), true);

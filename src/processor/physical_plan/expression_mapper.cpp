@@ -1,7 +1,6 @@
 #include "src/processor/include/physical_plan/expression_mapper.h"
 
 #include "src/binder/include/expression/literal_expression.h"
-#include "src/common/include/assert.h"
 #include "src/common/include/expression_type.h"
 #include "src/expression_evaluator/include/binary_expression_evaluator.h"
 #include "src/expression_evaluator/include/unary_expression_evaluator.h"
@@ -83,23 +82,24 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::clone(
     if (isExpressionLiteral(expression.expressionType)) {
         return make_unique<ExpressionEvaluator>(
             memoryManager, expression.result, expression.expressionType);
-    } else if (PROPERTY == expression.expressionType ||
-               CSV_LINE_EXTRACT == expression.expressionType) {
+    } else if (expression.getNumChildrenExpr() == 0) { // leaf
         auto dataChunk = resultSet.dataChunks[expression.dataChunkPos];
         auto valueVector = dataChunk->getValueVector(expression.valueVectorPos);
-        return make_unique<ExpressionEvaluator>(
-            memoryManager, valueVector, expression.dataChunkPos, expression.valueVectorPos);
+        return make_unique<ExpressionEvaluator>(memoryManager, valueVector, expression.dataChunkPos,
+            expression.valueVectorPos, expression.expressionType);
     } else if (expression.getNumChildrenExpr() == 1) { // unary expression.
         return make_unique<UnaryExpressionEvaluator>(memoryManager,
             clone(memoryManager, expression.getChildExpr(0), resultSet), expression.expressionType,
             expression.dataType);
     } else { // binary expression.
+        GF_ASSERT(expression.getNumChildrenExpr() == 2);
         return make_unique<BinaryExpressionEvaluator>(memoryManager,
             clone(memoryManager, expression.getChildExpr(0), resultSet),
             clone(memoryManager, expression.getChildExpr(1), resultSet), expression.expressionType,
             expression.dataType);
     }
 }
+
 unique_ptr<ExpressionEvaluator>
 ExpressionMapper::mapChildExpressionAndCastToUnstructuredIfNecessary(MemoryManager& memoryManager,
     const Expression& expression, bool castToUnstructured,
@@ -189,7 +189,7 @@ unique_ptr<ExpressionEvaluator> mapLogicalLeafExpressionToPhysical(MemoryManager
     auto dataChunk = resultSet.dataChunks[dataChunkPos];
     auto valueVector = dataChunk->getValueVector(valueVectorPos);
     return make_unique<ExpressionEvaluator>(
-        memoryManager, valueVector, dataChunkPos, valueVectorPos);
+        memoryManager, valueVector, dataChunkPos, valueVectorPos, expression.expressionType);
 }
 
 } // namespace processor

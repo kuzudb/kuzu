@@ -20,7 +20,7 @@ cc_library(
     deps = [
         "queries",
         "//src/antlr4:cypher_grammar_lib",
-        "//src/common:functions",
+        "//src/common:expression_type",
         "//src/common:utils",
     ],
 )

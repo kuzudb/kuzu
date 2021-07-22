@@ -1,6 +1,5 @@
 #include "src/binder/include/expression_binder.h"
 
-#include "src/binder/include/expression/function_expression.h"
 #include "src/binder/include/expression/literal_expression.h"
 #include "src/binder/include/expression/property_expression.h"
 #include "src/binder/include/expression/rel_expression.h"
@@ -206,38 +205,54 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     const ParsedExpression& parsedExpression) {
     auto functionName = parsedExpression.text;
     StringUtils::toUpper(functionName);
-    if (!catalog.containFunction(functionName)) {
-        throw invalid_argument(parsedExpression.text + " function does not exist.");
-    }
-    auto function = catalog.getFunction(functionName);
-    if (parsedExpression.children.size() != function->getNumParameters()) {
-        throw invalid_argument("Expected " + to_string(function->getNumParameters()) +
-                               " parameters for " + parsedExpression.text + " function but get " +
-                               to_string(parsedExpression.children.size()) + ".");
-    }
-    vector<shared_ptr<Expression>> children;
-    for (auto i = 0u; i < function->getNumParameters(); ++i) {
-        auto child = bindExpression(*parsedExpression.children[i]);
-        validateExpectedType(*child, function->parameterTypes[i]);
-        children.push_back(move(child));
-    }
-    // Check for special bindings
-    if (functionName == ID_FUNC_NAME) {
-        // Binds ID(a) function as a._id property
-        auto node = static_pointer_cast<NodeExpression>(children[0]);
-        return make_shared<PropertyExpression>(NODE_ID, INTERNAL_ID_SUFFIX,
-            UINT32_MAX /* property key for internal id */, move(children[0]));
+    if (functionName == ABS_FUNC_NAME) {
+        return bindAbsFunctionExpression(parsedExpression);
+    } else if (functionName == COUNT_STAR_FUNC_NAME) {
+        return bindCountStarFunctionExpression(parsedExpression);
+    } else if (functionName == ID_FUNC_NAME) {
+        return bindIDFunctionExpression(parsedExpression);
     } else if (functionName == DATE_FUNC_NAME) {
-        // Binds date(2012-10-10) as date literal
-        if (children[0]->expressionType == LITERAL_STRING) {
-            auto dateInString = static_pointer_cast<LiteralExpression>(children[0])->literal.strVal;
-            return make_shared<LiteralExpression>(LITERAL_DATE, DATE,
-                Literal(Date::FromCString(dateInString.c_str(), dateInString.length())));
-        }
+        return bindDateFunctionExpression(parsedExpression);
     }
-    auto functionExpression = make_shared<FunctionExpression>(*function);
-    functionExpression->children = move(children);
-    return functionExpression;
+    throw invalid_argument(functionName + " function does not exist.");
+}
+
+shared_ptr<Expression> ExpressionBinder::bindAbsFunctionExpression(
+    const ParsedExpression& parsedExpression) {
+    validateNumberOfChildren(parsedExpression, 1);
+    auto child = bindExpression(*parsedExpression.children[0]);
+    if (child->dataType == UNSTRUCTURED) {
+        return make_shared<Expression>(ABS_FUNC, child->dataType, move(child));
+    }
+    validateNumericalType(*child);
+    return make_shared<Expression>(ABS_FUNC, child->dataType, move(child));
+}
+
+shared_ptr<Expression> ExpressionBinder::bindCountStarFunctionExpression(
+    const ParsedExpression& parsedExpression) {
+    validateNumberOfChildren(parsedExpression, 0);
+    return make_shared<Expression>(COUNT_STAR_FUNC, INT64);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindIDFunctionExpression(
+    const ParsedExpression& parsedExpression) {
+    validateNumberOfChildren(parsedExpression, 1);
+    auto child = bindExpression(*parsedExpression.children[0]);
+    validateExpectedType(*child, NODE);
+    return make_shared<PropertyExpression>(
+        NODE_ID, INTERNAL_ID_SUFFIX, UINT32_MAX /* property key for internal id */, move(child));
+}
+
+shared_ptr<Expression> ExpressionBinder::bindDateFunctionExpression(
+    const ParsedExpression& parsedExpression) {
+    validateNumberOfChildren(parsedExpression, 1);
+    auto child = bindExpression(*parsedExpression.children[0]);
+    validateExpectedType(*child, STRING);
+    // Currently only support bind date(string) as date literal
+    GF_ASSERT(child->expressionType == LITERAL_STRING);
+    auto dateInString = static_pointer_cast<LiteralExpression>(child)->literal.strVal;
+    return make_shared<LiteralExpression>(LITERAL_DATE, DATE,
+        Literal(Date::FromCString(dateInString.c_str(), dateInString.length())));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
@@ -277,6 +292,16 @@ void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& par
             throw invalid_argument(
                 "Expression " + child->rawExpression + " cannot have null literal children.");
         }
+    }
+}
+
+void ExpressionBinder::validateNumberOfChildren(
+    const ParsedExpression& parsedExpression, uint32_t expectedNumChildren) {
+    GF_ASSERT(parsedExpression.type == FUNCTION);
+    if (parsedExpression.children.size() != expectedNumChildren) {
+        throw invalid_argument("Expected " + to_string(expectedNumChildren) + " parameters for " +
+                               parsedExpression.text + " function but get " +
+                               to_string(parsedExpression.children.size()) + ".");
     }
 }
 

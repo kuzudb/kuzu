@@ -1,5 +1,21 @@
 # description: projections
 
+-NAME AbsFunctionTest1
+-COMPARE_RESULT 1
+-QUERY MATCH (a:organisation) RETURN abs(a.score)
+---- 3
+100
+2
+7
+
+-NAME AbsFunctionTest2
+-COMPARE_RESULT 1
+-QUERY MATCH (a:organisation) RETURN abs(a.unstrNumericProp)
+---- 3
+
+12.500000
+3.100000
+
 -NAME PersonNodesTestUnstructuredProperty
 -COMPARE_RESULT 1
 -QUERY MATCH (a:person) RETURN a.id,a.unstrDateProp1

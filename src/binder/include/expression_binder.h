@@ -42,6 +42,12 @@ private:
 
     shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
 
+    shared_ptr<Expression> bindAbsFunctionExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindCountStarFunctionExpression(
+        const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindIDFunctionExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindDateFunctionExpression(const ParsedExpression& parsedExpression);
+
     shared_ptr<Expression> bindLiteralExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindVariableExpression(const ParsedExpression& parsedExpression);
@@ -50,6 +56,10 @@ private:
 
     // NOTE: this validation should be removed and front end binds any null operation to null
     static void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression);
+    // Parser cannot check expected number of children for built in functions. So number of children
+    // validation is needed for function.
+    static void validateNumberOfChildren(
+        const ParsedExpression& parsedExpression, uint32_t expectedNumChildren);
     static void validateExpectedType(const Expression& expression, DataType expectedType);
     static void validateNumericalType(const Expression& expression);
     static shared_ptr<Expression> validateAsBoolAndCastIfNecessary(

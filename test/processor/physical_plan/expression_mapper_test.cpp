@@ -16,7 +16,7 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
     auto literalExpression =
         make_unique<LiteralExpression>(ExpressionType::LITERAL_INT, DataType::INT64, literal);
 
-    auto addLogicalOperator = make_unique<Expression>(
+    auto addLogicalOperator = make_shared<Expression>(
         ExpressionType::ADD, DataType::INT64, move(propertyExpression), move(literalExpression));
 
     auto memoryManager = make_unique<MemoryManager>();
@@ -49,9 +49,9 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
 TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
     auto nodeExpression = make_unique<NodeExpression>("a", 0, 0);
     auto propertyExpression =
-        make_unique<PropertyExpression>(DataType::INT64, "prop", 0, move(nodeExpression));
+        make_shared<PropertyExpression>(DataType::INT64, "prop", 0, move(nodeExpression));
     auto negateLogicalOperator =
-        make_unique<Expression>(ExpressionType::NEGATE, DataType::INT64, move(propertyExpression));
+        make_shared<Expression>(ExpressionType::NEGATE, DataType::INT64, move(propertyExpression));
 
     auto memoryManager = make_unique<MemoryManager>();
     auto valueVector = make_shared<ValueVector>(memoryManager.get(), INT64);

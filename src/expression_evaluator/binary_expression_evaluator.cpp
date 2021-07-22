@@ -5,11 +5,10 @@ namespace evaluator {
 
 BinaryExpressionEvaluator::BinaryExpressionEvaluator(MemoryManager& memoryManager,
     unique_ptr<ExpressionEvaluator> leftExpr, unique_ptr<ExpressionEvaluator> rightExpr,
-    ExpressionType expressionType, DataType dataType) {
+    ExpressionType expressionType, DataType dataType)
+    : ExpressionEvaluator{expressionType, dataType} {
     childrenExpr.push_back(move(leftExpr));
     childrenExpr.push_back(move(rightExpr));
-    this->expressionType = expressionType;
-    this->dataType = dataType;
     operation = getBinaryOperation(expressionType);
     result = createResultValueVector(memoryManager);
 }

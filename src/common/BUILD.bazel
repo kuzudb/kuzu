@@ -213,14 +213,3 @@ cc_library(
         "timer",
     ],
 )
-
-cc_library(
-    name = "functions",
-    hdrs = [
-        "include/function.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "types",
-    ],
-)

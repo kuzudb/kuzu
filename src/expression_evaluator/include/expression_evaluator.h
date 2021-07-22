@@ -24,14 +24,14 @@ public:
     // Creates a leaf literal as value vector expression_evaluator expression.
     ExpressionEvaluator(MemoryManager& memoryManager, const shared_ptr<ValueVector>& result,
         ExpressionType expressionType)
-        : result{result}, dataChunkPos{0}, valueVectorPos{UINT64_MAX},
+        : result{result}, dataChunkPos{UINT64_MAX}, valueVectorPos{UINT64_MAX},
           expressionType{expressionType}, dataType(result->dataType) {}
 
     // Creates a leaf variable value vector expression_evaluator expression.
     ExpressionEvaluator(MemoryManager& memoryManager, const shared_ptr<ValueVector>& result,
-        uint64_t dataChunkPos, uint64_t valueVectorPos)
+        uint64_t dataChunkPos, uint64_t valueVectorPos, ExpressionType expressionType)
         : result{result}, dataChunkPos{dataChunkPos}, valueVectorPos{valueVectorPos},
-          expressionType{PROPERTY}, dataType(result->dataType) {}
+          expressionType{expressionType}, dataType(result->dataType) {}
 
     virtual void evaluate() {}
 
@@ -52,7 +52,9 @@ public:
     DataType dataType;
 
 protected:
-    explicit ExpressionEvaluator() = default;
+    ExpressionEvaluator(ExpressionType expressionType, DataType dataType)
+        : dataChunkPos{UINT64_MAX}, valueVectorPos{UINT64_MAX},
+          expressionType{expressionType}, dataType{dataType} {}
 
     vector<unique_ptr<ExpressionEvaluator>> childrenExpr;
 };

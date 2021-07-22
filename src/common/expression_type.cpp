@@ -8,11 +8,15 @@ namespace common {
 bool isExpressionUnary(ExpressionType type) {
     return NOT == type || NEGATE == type || IS_NULL == type || IS_NOT_NULL == type ||
            CAST_TO_STRING == type || CAST_TO_UNSTRUCTURED_VECTOR == type ||
-           CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR == type;
+           CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR == type || ABS_FUNC == type || ID_FUNC == type ||
+           DATE_FUNC == type;
 }
 
 bool isExpressionBinary(ExpressionType type) {
-    return !isExpressionUnary(type);
+    return isExpressionComparison(type) || isExpressionIDComparison(type) ||
+           isExpressionStringOperator(type) || OR == type || XOR == type || AND == type ||
+           ADD == type || SUBTRACT == type || MULTIPLY == type || DIVIDE == type ||
+           MODULO == type || POWER == type;
 }
 
 bool isExpressionBoolConnection(ExpressionType type) {
@@ -22,6 +26,12 @@ bool isExpressionBoolConnection(ExpressionType type) {
 bool isExpressionComparison(ExpressionType type) {
     return EQUALS == type || NOT_EQUALS == type || GREATER_THAN == type ||
            GREATER_THAN_EQUALS == type || LESS_THAN == type || LESS_THAN_EQUALS == type;
+}
+
+bool isExpressionIDComparison(ExpressionType type) {
+    return EQUALS_NODE_ID == type || NOT_EQUALS_NODE_ID == type || GREATER_THAN_NODE_ID == type ||
+           GREATER_THAN_EQUALS_NODE_ID == type || LESS_THAN_NODE_ID == type ||
+           LESS_THAN_EQUALS_NODE_ID == type;
 }
 
 bool isExpressionArithmetic(ExpressionType type) {
@@ -125,6 +135,22 @@ string expressionTypeToString(ExpressionType type) {
         return "LITERAL_NULL";
     case VARIABLE:
         return "VARIABLE";
+    case ALIAS:
+        return "ALIAS";
+    case CAST_TO_STRING:
+        return "CAST_TO_STRING";
+    case CAST_TO_UNSTRUCTURED_VECTOR:
+        return "CAST_TO_UNSTRUCTURED_VECTOR";
+    case CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR:
+        return "CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR";
+    case ABS_FUNC:
+        return "ABS_FUNC";
+    case COUNT_STAR_FUNC:
+        return "COUNT_STAR_FUNC";
+    case ID_FUNC:
+        return "ID_FUNC";
+    case DATE_FUNC:
+        return "DATE_FUNC";
     default:
         throw invalid_argument("Should never happen. Cannot convert expression type to string");
     }

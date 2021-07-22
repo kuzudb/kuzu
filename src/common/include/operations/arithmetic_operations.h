@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cassert"
 #include <cmath>
+#include <cstdlib>
 
 #include "src/common/include/value.h"
 
@@ -55,6 +55,13 @@ struct Negate {
     template<class T>
     static inline void operation(T& input, T& result) {
         result = -input;
+    }
+};
+
+struct Abs {
+    template<class T>
+    static inline void operation(T& input, T& result) {
+        result = abs(input);
     }
 };
 
@@ -151,6 +158,23 @@ struct ArithmeticOnValues {
                                    TypeUtils::dataTypeToString(right.dataType) + "`");
         }
     }
+
+    template<class FUNC, const char* arithmeticOpStr>
+    static void operation(Value& input, Value& result) {
+        switch (input.dataType) {
+        case INT64:
+            result.dataType = INT64;
+            FUNC::operation(input.val.int64Val, result.val.int64Val);
+            break;
+        case DOUBLE:
+            result.dataType = DOUBLE;
+            FUNC::operation(input.val.doubleVal, result.val.doubleVal);
+            break;
+        default:
+            throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
+                                   TypeUtils::dataTypeToString(input.dataType) + "`");
+        }
+    }
 };
 
 static const char addStr[] = "add";
@@ -160,6 +184,7 @@ static const char divideStr[] = "divide";
 static const char moduloStr[] = "modulo";
 static const char powerStr[] = "power";
 static const char negateStr[] = "negate";
+static const char absStr[] = "abs";
 
 template<>
 inline void Add::operation(Value& left, Value& right, Value& result) {
@@ -199,18 +224,12 @@ inline void Power::operation(Value& left, Value& right, Value& result) {
 
 template<>
 inline void Negate::operation(Value& operand, Value& result) {
-    switch (operand.dataType) {
-    case INT64:
-        result.dataType = INT64;
-        result.val.int64Val = -operand.val.int64Val;
-        break;
-    case DOUBLE:
-        result.dataType = DOUBLE;
-        result.val.doubleVal = -operand.val.doubleVal;
-        break;
-    default:
-        throw invalid_argument("Cannot negate `" + DataTypeNames[operand.dataType] + "`.");
-    }
+    ArithmeticOnValues::operation<Negate, negateStr>(operand, result);
+};
+
+template<>
+inline void Abs::operation(Value& operand, Value& result) {
+    ArithmeticOnValues::operation<Abs, absStr>(operand, result);
 };
 
 } // namespace operation
