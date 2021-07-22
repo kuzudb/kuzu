@@ -9,14 +9,12 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
-LoadCSV<IS_OUT_DATACHUNK_FILTERED>::LoadCSV(const string& fname, char tokenSeparator,
-    vector<DataType> csvColumnDataTypes, ExecutionContext& context, uint32_t id)
+LoadCSV::LoadCSV(const string& fname, char tokenSeparator, vector<DataType> csvColumnDataTypes,
+    ExecutionContext& context, uint32_t id)
     : PhysicalOperator{LOAD_CSV, context, id}, fname{fname}, tokenSeparator{tokenSeparator},
       reader{fname, tokenSeparator}, csvColumnDataTypes{csvColumnDataTypes} {
     resultSet = make_shared<ResultSet>();
-    outDataChunk =
-        make_shared<DataChunk>(!IS_OUT_DATACHUNK_FILTERED /* initializeSelectedValuesPos */);
+    outDataChunk = make_shared<DataChunk>();
     for (auto tokenIdx = 0u; tokenIdx < csvColumnDataTypes.size(); tokenIdx++) {
         outValueVectors.emplace_back(
             new ValueVector(context.memoryManager, csvColumnDataTypes[tokenIdx]));
@@ -31,8 +29,7 @@ LoadCSV<IS_OUT_DATACHUNK_FILTERED>::LoadCSV(const string& fname, char tokenSepar
     }
 }
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
-void LoadCSV<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
+void LoadCSV::getNextTuples() {
     metrics->executionTime.start();
     auto lineIdx = 0ul;
     while (lineIdx < DEFAULT_VECTOR_CAPACITY && reader.hasNextLine()) {
@@ -73,15 +70,9 @@ void LoadCSV<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
         lineIdx++;
     }
     outDataChunk->state->size = lineIdx;
-    if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-        for (auto i = 0u; i < outDataChunk->state->size; i++) {
-            outDataChunk->state->selectedValuesPos[i] = i;
-        }
-    }
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outDataChunk->state->size);
 }
-template class LoadCSV<true>;
-template class LoadCSV<false>;
+
 } // namespace processor
 } // namespace graphflow

@@ -93,9 +93,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
         prevOperator = mapLogicalOperatorToPhysical(scan.prevOperator, info, context);
     }
     auto morsel = make_shared<MorselsDesc>(scan.label, graph.getNumNodes(scan.label));
-    return prevOperator ? make_unique<ScanNodeID<true>>(
-                              morsel, move(prevOperator), context, physicalOperatorID++) :
-                          make_unique<ScanNodeID<true>>(morsel, context, physicalOperatorID++);
+    return prevOperator ?
+               make_unique<ScanNodeID>(morsel, move(prevOperator), context, physicalOperatorID++) :
+               make_unique<ScanNodeID>(morsel, context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
@@ -114,10 +114,10 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
         auto adjLists =
             relsStore.getAdjLists(extend.direction, extend.boundNodeLabel, extend.relLabel);
         if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
-            return make_unique<AdjListExtend<true>>(dataChunkPos, valueVectorPos, adjLists,
+            return make_unique<AdjListExtend>(dataChunkPos, valueVectorPos, adjLists,
                 move(prevOperator), context, physicalOperatorID++);
         } else {
-            return make_unique<FrontierExtend<true>>(dataChunkPos, valueVectorPos, adjLists,
+            return make_unique<FrontierExtend>(dataChunkPos, valueVectorPos, adjLists,
                 extend.lowerBound, extend.upperBound, move(prevOperator), context,
                 physicalOperatorID++);
         }
@@ -139,13 +139,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     auto dataChunkToSelectPos = info.getDataChunkPos(logicalFilter.variableToSelect);
     auto physicalRootExpr = ExpressionMapper::mapToPhysical(
         *context.memoryManager, *logicalFilter.expression, info, *prevOperator->getResultSet());
-    if (prevOperator->operatorType == FLATTEN) {
-        return make_unique<Filter<true /* isAfterFlatten */>>(move(physicalRootExpr),
-            dataChunkToSelectPos, move(prevOperator), context, physicalOperatorID++);
-    } else {
-        return make_unique<Filter<false /* isAfterFlatten */>>(move(physicalRootExpr),
-            dataChunkToSelectPos, move(prevOperator), context, physicalOperatorID++);
-    }
+    return make_unique<Filter>(move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator),
+        context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
@@ -229,10 +224,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto hashJoinSharedState =
         make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
     hashJoinBuild->sharedState = hashJoinSharedState;
-    auto hashJoinProbe =
-        make_unique<HashJoinProbe<true>>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
-            dataChunkPosToIsFlat, probeSideKeyDataChunkPos, probeSideKeyVectorPos,
-            move(hashJoinBuild), move(probeSidePrevOperator), context, physicalOperatorID++);
+    auto hashJoinProbe = make_unique<HashJoinProbe>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
+        dataChunkPosToIsFlat, probeSideKeyDataChunkPos, probeSideKeyVectorPos, move(hashJoinBuild),
+        move(probeSidePrevOperator), context, physicalOperatorID++);
     hashJoinProbe->sharedState = hashJoinSharedState;
     return hashJoinProbe;
 }
@@ -245,7 +239,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLoadCSVToPhysical(
     for (auto& csvColumnVariable : logicalLoadCSV.csvColumnVariables) {
         csvColumnDataTypes.push_back(csvColumnVariable->dataType);
     }
-    return make_unique<LoadCSV<true>>(logicalLoadCSV.path, logicalLoadCSV.tokenSeparator,
+    return make_unique<LoadCSV>(logicalLoadCSV.path, logicalLoadCSV.tokenSeparator,
         csvColumnDataTypes, context, physicalOperatorID++);
 }
 

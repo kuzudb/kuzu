@@ -21,14 +21,14 @@ cc_library(
         "vector/node_vector.cpp",
         "vector/string_buffer.cpp",
         "vector/value_vector.cpp",
-        "vector/vector_state.cpp",
+        "data_chunk/data_chunk_state.cpp",
     ],
     hdrs = [
         "include/compression_scheme.h",
         "include/vector/node_vector.h",
         "include/vector/string_buffer.h",
         "include/vector/value_vector.h",
-        "include/vector/vector_state.h",
+        "include/data_chunk/data_chunk_state.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

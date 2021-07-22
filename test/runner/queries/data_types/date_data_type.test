@@ -61,3 +61,4 @@
 -NAME UnstructuredDateLiteralComparison
 -QUERY MATCH (a:person) WHERE a.unstrDateProp1 <= date('1990-02-02') RETURN COUNT(*)
 ---- 3
+

@@ -1,11 +1,12 @@
 #pragma once
 
+#include "src/processor/include/physical_plan/operator/filtering_operator.h"
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_column.h"
 
 namespace graphflow {
 namespace processor {
 
-class AdjColumnExtend : public ScanColumn {
+class AdjColumnExtend : public ScanColumn, public FilteringOperator {
 
 public:
     AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
@@ -17,9 +18,6 @@ public:
         return make_unique<AdjColumnExtend>(
             dataChunkPos, valueVectorPos, column, prevOperator->clone(), context, id);
     }
-
-private:
-    uint64_t prevInNumSelectedValues;
 };
 
 } // namespace processor

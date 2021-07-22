@@ -2,9 +2,9 @@
 
 #include <cassert>
 
+#include "src/common/include/data_chunk/data_chunk_state.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/string_buffer.h"
-#include "src/common/include/vector/vector_state.h"
 
 namespace graphflow {
 namespace common {
@@ -64,7 +64,7 @@ public:
     uint8_t* values;
     bool* nullMask;
     unique_ptr<StringBuffer> stringBuffer;
-    shared_ptr<VectorState> state;
+    shared_ptr<SharedVectorState> state;
 };
 
 } // namespace common

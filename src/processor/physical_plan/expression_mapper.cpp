@@ -122,7 +122,7 @@ static unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToUnstructured
     auto& literalExpression = (LiteralExpression&)expression;
     // We create an owner dataChunk which is flat and of size 1 to contain the literal.
     auto vector = make_shared<ValueVector>(&memoryManager, UNSTRUCTURED, true /* isSingleValue */);
-    vector->state = VectorState::getSingleValueDataChunkState();
+    vector->state = SharedVectorState::getSingleValueDataChunkState();
     auto& val = ((Value*)vector->values)[0];
     val.dataType = literalExpression.literal.dataType;
     switch (val.dataType) {
@@ -155,7 +155,7 @@ unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToStructuredPhysical(
     // We create an owner dataChunk which is flat and of size 1 to contain the literal.
     auto vector = make_shared<ValueVector>(
         &memoryManager, literalExpression.dataType, true /* isSingleValue */);
-    vector->state = VectorState::getSingleValueDataChunkState();
+    vector->state = SharedVectorState::getSingleValueDataChunkState();
     switch (expression.dataType) {
     case INT64: {
         ((int64_t*)vector->values)[0] = literalExpression.literal.val.int64Val;

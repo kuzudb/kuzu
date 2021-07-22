@@ -47,9 +47,9 @@ struct BinaryOperationExecutor {
         auto rValues = (B*)right.values;
         auto resultValues = (R*)result.values;
         if (left.state->isFlat() && right.state->isFlat()) {
-            auto lPos = left.state->getCurrSelectedValuesPos();
-            auto rPos = right.state->getCurrSelectedValuesPos();
-            auto resPos = result.state->getCurrSelectedValuesPos();
+            auto lPos = left.state->getPositionOfCurrIdx();
+            auto rPos = right.state->getPositionOfCurrIdx();
+            auto resPos = result.state->getPositionOfCurrIdx();
             result.nullMask[resPos] = left.nullMask[lPos] || right.nullMask[rPos];
             if (!result.nullMask[resPos]) {
                 if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
@@ -59,12 +59,12 @@ struct BinaryOperationExecutor {
                 FUNC::operation(lValues[lPos], rValues[rPos], resultValues[resPos]);
             }
         } else if (left.state->isFlat()) {
-            auto lPos = left.state->getCurrSelectedValuesPos();
+            auto lPos = left.state->getPositionOfCurrIdx();
             auto& lValue = lValues[lPos];
             auto isLeftNull = left.nullMask[lPos];
-            // right and result vectors share the same selectedValuesPos.
+            // right and result vectors share the same selectedPositions.
             for (uint64_t i = 0; i < right.state->size; i++) {
-                auto pos = right.state->selectedValuesPos[i];
+                auto pos = right.state->getSelectedPositionAtIdx(i);
                 result.nullMask[pos] = isLeftNull || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
                     if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
@@ -75,12 +75,12 @@ struct BinaryOperationExecutor {
                 }
             }
         } else if (right.state->isFlat()) {
-            auto rPos = right.state->getCurrSelectedValuesPos();
+            auto rPos = right.state->getPositionOfCurrIdx();
             auto& rValue = rValues[rPos];
             auto isRightNull = right.nullMask[rPos];
-            // left and result vectors share the same selectedValuesPos.
+            // left and result vectors share the same selectedPositions.
             for (uint64_t i = 0; i < left.state->size; i++) {
-                auto pos = left.state->selectedValuesPos[i];
+                auto pos = left.state->getSelectedPositionAtIdx(i);
                 result.nullMask[pos] = left.nullMask[pos] || isRightNull;
                 if (!result.nullMask[i]) {
                     if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
@@ -91,9 +91,9 @@ struct BinaryOperationExecutor {
                 }
             }
         } else {
-            // right, left, and result vectors share the same selectedValuesPos.
+            // right, left, and result vectors share the same selectedPositions.
             for (uint64_t i = 0; i < result.state->size; i++) {
-                auto pos = result.state->selectedValuesPos[i];
+                auto pos = result.state->getSelectedPositionAtIdx(i);
                 result.nullMask[pos] = left.nullMask[pos] || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
                     if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
@@ -111,41 +111,41 @@ struct BinaryOperationExecutor {
         auto lValues = (A*)left.values;
         auto rValues = (B*)right.values;
         if (left.state->isFlat() && right.state->isFlat()) {
-            auto lPos = left.state->getCurrSelectedValuesPos();
-            auto rPos = right.state->getCurrSelectedValuesPos();
-            auto resPos = result.state->getCurrSelectedValuesPos();
+            auto lPos = left.state->getPositionOfCurrIdx();
+            auto rPos = right.state->getPositionOfCurrIdx();
+            auto resPos = result.state->getPositionOfCurrIdx();
             result.nullMask[resPos] = left.nullMask[lPos] || right.nullMask[rPos];
             if (!result.nullMask[resPos]) {
                 result.values[resPos] = FUNC::operation(lValues[lPos], rValues[rPos]);
             }
         } else if (left.state->isFlat()) {
-            auto lPos = left.state->getCurrSelectedValuesPos();
+            auto lPos = left.state->getPositionOfCurrIdx();
             auto& lValue = lValues[lPos];
             auto isLeftNull = left.nullMask[lPos];
-            // right and result vectors share the same selectedValuesPos.
+            // right and result vectors share the same selectedPositions.
             for (uint64_t i = 0; i < right.state->size; i++) {
-                auto pos = right.state->selectedValuesPos[i];
+                auto pos = right.state->getSelectedPositionAtIdx(i);
                 result.nullMask[pos] = isLeftNull || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
                     result.values[pos] = FUNC::operation(lValue, rValues[pos]);
                 }
             }
         } else if (right.state->isFlat()) {
-            auto rPos = right.state->getCurrSelectedValuesPos();
+            auto rPos = right.state->getPositionOfCurrIdx();
             auto& rValue = rValues[rPos];
             auto isRightNull = right.nullMask[rPos];
-            // left and result vectors share the same selectedValuesPos.
+            // left and result vectors share the same selectedPositions.
             for (uint64_t i = 0; i < left.state->size; i++) {
-                auto pos = left.state->selectedValuesPos[i];
+                auto pos = left.state->getSelectedPositionAtIdx(i);
                 result.nullMask[pos] = left.nullMask[pos] || isRightNull;
                 if (!result.nullMask[pos]) {
                     result.values[pos] = FUNC::operation(lValues[pos], rValue);
                 }
             }
         } else {
-            // right, left, and result vectors share the same selectedValuesPos.
+            // right, left, and result vectors share the same selectedPositions.
             for (uint64_t i = 0; i < left.state->size; i++) {
-                auto pos = left.state->selectedValuesPos[i];
+                auto pos = left.state->getSelectedPositionAtIdx(i);
                 result.nullMask[pos] = left.nullMask[pos] || right.nullMask[pos];
                 if (!result.nullMask[pos]) {
                     result.values[pos] = FUNC::operation(lValues[pos], rValues[pos]);
@@ -157,29 +157,29 @@ struct BinaryOperationExecutor {
     template<class FUNC = function<uint8_t(uint8_t, uint8_t, bool, bool)>>
     static void executeBoolOps(ValueVector& left, ValueVector& right, ValueVector& result) {
         if (left.state->isFlat() && right.state->isFlat()) {
-            auto lPos = left.state->getCurrSelectedValuesPos();
-            auto rPos = right.state->getCurrSelectedValuesPos();
-            auto resPos = result.state->getCurrSelectedValuesPos();
+            auto lPos = left.state->getPositionOfCurrIdx();
+            auto rPos = right.state->getPositionOfCurrIdx();
+            auto resPos = result.state->getPositionOfCurrIdx();
             result.values[resPos] = FUNC::operation(
                 left.values[lPos], right.values[rPos], left.nullMask[lPos], right.nullMask[rPos]);
             result.nullMask[resPos] = result.values[resPos] == NULL_BOOL;
         } else if (left.state->isFlat() || right.state->isFlat()) {
             auto& flatVector = left.state->isFlat() ? left : right;
             auto& unflatVector = !left.state->isFlat() ? left : right;
-            auto pos = flatVector.state->getCurrSelectedValuesPos();
+            auto pos = flatVector.state->getPositionOfCurrIdx();
             auto& flatValue = flatVector.values[pos];
-            auto isFlatNull = flatVector.nullMask[flatVector.state->getCurrSelectedValuesPos()];
-            // unflat and result vectors share the same selectedValuesPos.
+            auto isFlatNull = flatVector.nullMask[flatVector.state->getPositionOfCurrIdx()];
+            // unflat and result vectors share the same selectedPositions.
             for (uint64_t i = 0; i < unflatVector.state->size; i++) {
-                pos = right.state->selectedValuesPos[i];
+                pos = right.state->getSelectedPositionAtIdx(i);
                 result.values[pos] = FUNC::operation(
                     flatValue, unflatVector.values[pos], isFlatNull, unflatVector.nullMask[pos]);
                 result.nullMask[pos] = result.values[pos] == NULL_BOOL;
             }
         } else {
-            // right, left, and result vectors share the same selectedValuesPos.
+            // right, left, and result vectors share the same selectedPositions.
             for (uint64_t i = 0; i < result.state->size; i++) {
-                auto pos = result.state->selectedValuesPos[i];
+                auto pos = result.state->getSelectedPositionAtIdx(i);
                 result.values[pos] = FUNC::operation(
                     left.values[pos], right.values[pos], left.nullMask[pos], right.nullMask[pos]);
                 result.nullMask[pos] = result.values[pos] == NULL_BOOL;
@@ -191,11 +191,11 @@ struct BinaryOperationExecutor {
     static void executeOnNodeIDs(ValueVector& left, ValueVector& right, ValueVector& result) {
         nodeID_t nodeID, otherNodeID;
         if (left.state->isFlat() && right.state->isFlat()) {
-            auto lPos = left.state->getCurrSelectedValuesPos();
+            auto lPos = left.state->getPositionOfCurrIdx();
             left.readNodeID(lPos, nodeID);
-            auto rPos = right.state->getCurrSelectedValuesPos();
+            auto rPos = right.state->getPositionOfCurrIdx();
             right.readNodeID(rPos, otherNodeID);
-            auto resPos = result.state->getCurrSelectedValuesPos();
+            auto resPos = result.state->getPositionOfCurrIdx();
             result.nullMask[resPos] = left.nullMask[lPos] || right.nullMask[rPos];
             if (!result.nullMask[resPos]) {
                 result.values[resPos] = FUNC::operation(nodeID, otherNodeID);
@@ -204,12 +204,12 @@ struct BinaryOperationExecutor {
             auto isLeftFlat = left.state->isFlat();
             auto& flatVector = isLeftFlat ? left : right;
             auto& unflatVector = !isLeftFlat ? left : right;
-            auto pos = flatVector.state->getCurrSelectedValuesPos();
+            auto pos = flatVector.state->getPositionOfCurrIdx();
             auto isFlatNull = flatVector.nullMask[pos];
             flatVector.readNodeID(pos, nodeID);
-            // unflat and result vectors share the same selectedValuesPos.
+            // unflat and result vectors share the same selectedPositions.
             for (uint64_t i = 0; i < unflatVector.state->size; i++) {
-                pos = unflatVector.state->selectedValuesPos[i];
+                pos = unflatVector.state->getSelectedPositionAtIdx(i);
                 unflatVector.readNodeID(pos, otherNodeID);
                 result.nullMask[pos] = isFlatNull || unflatVector.nullMask[pos];
                 if (!result.nullMask[pos]) {
@@ -218,9 +218,9 @@ struct BinaryOperationExecutor {
                 }
             }
         } else {
-            // right, left, and result vectors share the same selectedValuesPos.
+            // right, left, and result vectors share the same selectedPositions.
             for (uint64_t i = 0; i < left.state->size; i++) {
-                auto pos = left.state->selectedValuesPos[i];
+                auto pos = left.state->getSelectedPositionAtIdx(i);
                 left.readNodeID(pos, nodeID);
                 right.readNodeID(pos, otherNodeID);
                 result.nullMask[pos] = left.nullMask[pos] || right.nullMask[pos];

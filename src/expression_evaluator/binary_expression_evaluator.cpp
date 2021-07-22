@@ -25,7 +25,7 @@ shared_ptr<ValueVector> BinaryExpressionEvaluator::createResultValueVector(
     auto isLeftResultFlat = childrenExpr[0]->isResultFlat();
     auto isRightResultFlat = childrenExpr[1]->isResultFlat();
     if (isLeftResultFlat && isRightResultFlat) {
-        valueVector->state = VectorState::getSingleValueDataChunkState();
+        valueVector->state = SharedVectorState::getSingleValueDataChunkState();
     } else {
         auto& unflatVector = !isLeftResultFlat ? childrenExpr[0]->result : childrenExpr[1]->result;
         valueVector->state = unflatVector->state;

@@ -14,7 +14,7 @@ void ResultSetIterator::reset() {
     for (uint64_t i = 0; i < resultSet->dataChunks.size(); i++) {
         auto dataChunk = resultSet->dataChunks[i];
         if (dataChunk->state->isFlat()) {
-            tuplePositions.push_back(dataChunk->state->currPos);
+            tuplePositions.push_back(dataChunk->state->currIdx);
         } else {
             tuplePositions.push_back(0);
         }
@@ -61,7 +61,7 @@ void ResultSetIterator::getNextTuple(Tuple& tuple) {
         auto dataChunk = resultSet->dataChunks[i];
         auto tuplePosition = tuplePositions[i];
         for (auto& vector : dataChunk->valueVectors) {
-            auto selectedTuplePos = vector->state->selectedValuesPos[tuplePosition];
+            auto selectedTuplePos = vector->state->getSelectedPositionAtIdx(tuplePosition);
             tuple.nullMask[valueInTupleIdx] = vector->nullMask[selectedTuplePos];
             if (vector->nullMask[selectedTuplePos]) {
                 continue;

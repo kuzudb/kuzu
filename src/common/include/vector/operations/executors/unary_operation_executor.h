@@ -14,13 +14,13 @@ struct UnaryOperationExecutor {
         auto inputValues = (T*)operand.values;
         auto resultValues = (R*)result.values;
         if (operand.state->isFlat()) {
-            auto pos = operand.state->getCurrSelectedValuesPos();
+            auto pos = operand.state->getPositionOfCurrIdx();
             if (!operand.nullMask[pos]) {
                 FUNC::operation(inputValues[pos], resultValues[0]);
             }
         } else {
             for (auto i = 0ul; i < operand.state->size; i++) {
-                auto pos = operand.state->selectedValuesPos[i];
+                auto pos = operand.state->getSelectedPositionAtIdx(i);
                 if (!operand.nullMask[pos]) {
                     FUNC::operation(inputValues[pos], resultValues[pos]);
                 }
@@ -33,13 +33,13 @@ struct UnaryOperationExecutor {
         auto inputValues = (T*)operand.values;
         auto resultValues = (uint64_t*)result.values;
         if (operand.state->isFlat()) {
-            auto pos = operand.state->getCurrSelectedValuesPos();
+            auto pos = operand.state->getPositionOfCurrIdx();
             if (!operand.nullMask[pos]) {
                 resultValues[pos] = FUNC::operation(inputValues[pos]);
             }
         } else {
             for (auto i = 0ul; i < operand.state->size; i++) {
-                auto pos = operand.state->selectedValuesPos[i];
+                auto pos = operand.state->getSelectedPositionAtIdx(i);
                 if (!operand.nullMask[pos]) {
                     resultValues[pos] = FUNC::operation(inputValues[pos]);
                 }
@@ -52,14 +52,14 @@ struct UnaryOperationExecutor {
         auto resultValues = (R*)result.values;
         nodeID_t nodeID;
         if (operand.state->isFlat()) {
-            auto pos = operand.state->getCurrSelectedValuesPos();
+            auto pos = operand.state->getPositionOfCurrIdx();
             operand.readNodeID(pos, nodeID);
             if (!operand.nullMask[pos]) {
                 resultValues[pos] = FUNC::operation(nodeID);
             }
         } else {
             for (auto i = 0ul; i < operand.state->size; i++) {
-                auto pos = operand.state->selectedValuesPos[i];
+                auto pos = operand.state->getSelectedPositionAtIdx(i);
                 operand.readNodeID(pos, nodeID);
                 if (!operand.nullMask[pos]) {
                     resultValues[pos] = FUNC::operation(nodeID);
@@ -71,11 +71,11 @@ struct UnaryOperationExecutor {
     template<bool value>
     static void nullMaskCmp(ValueVector& operand, ValueVector& result) {
         if (operand.state->isFlat()) {
-            auto pos = operand.state->getCurrSelectedValuesPos();
+            auto pos = operand.state->getPositionOfCurrIdx();
             result.values[pos] = operand.nullMask[pos] == value;
         } else {
             for (auto i = 0ul; i < operand.state->size; i++) {
-                auto pos = operand.state->selectedValuesPos[i];
+                auto pos = operand.state->getSelectedPositionAtIdx(i);
                 result.values[pos] = operand.nullMask[pos] == value;
             }
         }

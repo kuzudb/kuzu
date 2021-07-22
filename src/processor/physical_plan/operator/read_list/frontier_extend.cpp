@@ -7,15 +7,14 @@ namespace processor {
 
 static uint64_t getNextPowerOfTwo(uint64_t value);
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
-FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::FrontierExtend(uint64_t inDataChunkPos,
-    uint64_t inValueVectorPos, AdjLists* lists, uint64_t lowerBound, uint64_t upperBound,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+FrontierExtend::FrontierExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, AdjLists* lists,
+    uint64_t lowerBound, uint64_t upperBound, unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t id)
     : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id},
       startLayer{lowerBound}, endLayer{upperBound} {
     operatorType = FRONTIER_EXTEND;
     outValueVector = make_shared<NodeIDVector>(0, NodeIDCompressionScheme(), false);
-    outDataChunk = make_shared<DataChunk>(!IS_OUT_DATACHUNK_FILTERED);
+    outDataChunk = make_shared<DataChunk>();
     outDataChunk->append(outValueVector);
     outValueVector->state->initMultiplicity();
     resultSet->append(outDataChunk, make_shared<ListSyncState>());
@@ -24,8 +23,7 @@ FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::FrontierExtend(uint64_t inDataChunkPo
     listsPageHandles.reserve(maxNumThreads);
     for (auto i = 0u; i < maxNumThreads; i++) {
         vectors.push_back(make_shared<NodeIDVector>(0, lists->getNodeIDCompressionScheme(), false));
-        vectors[i]->state =
-            make_shared<VectorState>(false /* initSelectedValuesPos */, DEFAULT_VECTOR_CAPACITY);
+        vectors[i]->state = make_shared<SharedVectorState>(DEFAULT_VECTOR_CAPACITY);
         listsPageHandles.push_back(make_unique<ListsPageHandle>());
         listsPageHandles[i]->setListSyncState(make_shared<ListSyncState>());
         listsPageHandles[i]->setIsAdjListHandle();
@@ -43,8 +41,7 @@ FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::FrontierExtend(uint64_t inDataChunkPo
     currOutputPos.hasMoreTuplesToProduce = false;
 }
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
-void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
+void FrontierExtend::getNextTuples() {
     metrics->executionTime.start();
     if (currOutputPos.hasMoreTuplesToProduce) {
         produceOutputTuples();
@@ -64,8 +61,7 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::getNextTuples() {
     metrics->executionTime.stop();
 }
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
-bool FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::computeFrontiers() {
+bool FrontierExtend::computeFrontiers() {
     frontierPerLayer[0] = createInitialFrontierSet();
     for (auto layer = 0u; layer < endLayer; layer++) {
         if (frontierPerLayer[layer] == nullptr) {
@@ -77,8 +73,7 @@ bool FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::computeFrontiers() {
     return frontierPerLayer[startLayer - 1] == nullptr;
 }
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
-void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::extendToThreadLocalFrontiers(uint64_t layer) {
+void FrontierExtend::extendToThreadLocalFrontiers(uint64_t layer) {
     if (frontierPerLayer[layer] == nullptr) {
         frontierPerLayer[layer + 1] = nullptr;
         return;
@@ -118,9 +113,7 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::extendToThreadLocalFrontiers(uin
     }
 }
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
-void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::createGlobalFrontierFromThreadLocalFrontiers(
-    uint64_t layer) {
+void FrontierExtend::createGlobalFrontierFromThreadLocalFrontiers(uint64_t layer) {
     frontierPerLayer[layer + 1] = makeFrontierSet(layer);
     for (auto threadId = 0; threadId < omp_get_max_threads(); threadId++) {
         // ensure the omp thread with given Id created a local frontier.
@@ -148,8 +141,7 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::createGlobalFrontierFromThreadLo
     }
 }
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
-void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
+void FrontierExtend::produceOutputTuples() {
     auto outNodeIDs = (node_offset_t*)outValueVector->values;
     outValueVector->state->size = 0;
     while (currOutputPos.layer < endLayer) {
@@ -171,9 +163,6 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
                         slot = slot->next;
                         if (outValueVector->state->size == DEFAULT_VECTOR_CAPACITY) {
                             currOutputPos.hasMoreTuplesToProduce = true;
-                            if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-                                outDataChunk->state->resetSelector();
-                            }
                             return;
                         }
                     }
@@ -186,9 +175,6 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
         currOutputPos.blockIdx = 0u;
         currOutputPos.layer++;
     }
-    if constexpr (IS_OUT_DATACHUNK_FILTERED) {
-        outDataChunk->state->resetSelector();
-    }
     for (auto& frontier : frontierPerLayer) {
         delete frontier;
         frontier = nullptr;
@@ -196,10 +182,9 @@ void FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::produceOutputTuples() {
     metrics->numOutputTuple.increase(outDataChunk->state->size);
 }
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
-FrontierSet* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::createInitialFrontierSet() {
+FrontierSet* FrontierExtend::createInitialFrontierSet() {
     // We assume the inNodeIDVector to be flat similar to AdjListExtend's assumption.
-    auto pos = inNodeIDVector->state->getCurrSelectedValuesPos();
+    auto pos = inNodeIDVector->state->getPositionOfCurrIdx();
     auto nodeOffset = inNodeIDVector->readNodeOffset(pos);
     auto numSlots = getNextPowerOfTwo(lists->getNumElementsInList(nodeOffset));
     if (numSlots == 0) {
@@ -217,8 +202,7 @@ FrontierSet* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::createInitialFrontierSet
     return frontier;
 }
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
-FrontierSet* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::makeFrontierSet(uint64_t layer) {
+FrontierSet* FrontierExtend::makeFrontierSet(uint64_t layer) {
     auto numNodeOffsets = 0u;
     for (auto& localFrontier : threadLocalFrontierPerLayer[layer]) {
         if (localFrontier == nullptr) {
@@ -236,19 +220,16 @@ FrontierSet* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::makeFrontierSet(uint64_t
     return frontier;
 }
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
-FrontierBag* FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::createFrontierBag() {
+FrontierBag* FrontierExtend::createFrontierBag() {
     auto frontierBag = new FrontierBag();
     frontierBag->setMemoryManager(context.memoryManager);
     frontierBag->initHashTable();
     return frontierBag;
 }
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
-unique_ptr<PhysicalOperator> FrontierExtend<IS_OUT_DATACHUNK_FILTERED>::clone() {
-    auto cloneOp =
-        make_unique<FrontierExtend<IS_OUT_DATACHUNK_FILTERED>>(inDataChunkPos, inValueVectorPos,
-            (AdjLists*)lists, startLayer, endLayer, prevOperator->clone(), context, id);
+unique_ptr<PhysicalOperator> FrontierExtend::clone() {
+    auto cloneOp = make_unique<FrontierExtend>(inDataChunkPos, inValueVectorPos, (AdjLists*)lists,
+        startLayer, endLayer, prevOperator->clone(), context, id);
     return cloneOp;
 }
 
@@ -263,7 +244,5 @@ static uint64_t getNextPowerOfTwo(uint64_t value) {
     return value;
 }
 
-template class FrontierExtend<true>;
-template class FrontierExtend<false>;
 } // namespace processor
 } // namespace graphflow

@@ -37,20 +37,29 @@ void NodeIDVector::readNodeID(uint64_t pos, nodeID_t& nodeID) const {
 bool NodeIDVector::discardNulls() {
     auto nullOffset = representation.compressionScheme.getNodeOffsetNullValue();
     node_offset_t nodeOffset;
-    if (state->currPos == -1) {
-        auto selectedValuesPos = state->selectedValuesPos;
+    if (state->isFlat()) {
+        nodeOffset = readNodeOffset(state->getPositionOfCurrIdx());
+        return nodeOffset != nullOffset;
+    } else {
         auto selectedPos = 0u;
-        for (auto j = 0u; j < state->size; j++) {
-            nodeOffset = readNodeOffset(state->selectedValuesPos[j]);
-            if (nodeOffset != nullOffset) {
-                selectedValuesPos[selectedPos++] = j;
+        if (state->isUnfiltered()) {
+            state->resetSelectorToValuePosBuffer();
+            for (auto i = 0u; i < state->size; i++) {
+                nodeOffset = readNodeOffset(i);
+                if (nodeOffset != nullOffset) {
+                    state->selectedPositions[selectedPos++] = i;
+                }
+            }
+        } else {
+            for (auto j = 0u; j < state->size; j++) {
+                nodeOffset = readNodeOffset(state->getSelectedPositionAtIdx(j));
+                if (nodeOffset != nullOffset) {
+                    state->selectedPositions[selectedPos++] = j;
+                }
             }
         }
         state->size = selectedPos;
         return state->size > 0;
-    } else {
-        nodeOffset = readNodeOffset(state->getCurrSelectedValuesPos());
-        return nodeOffset != nullOffset;
     }
 }
 
