@@ -4,15 +4,16 @@
 #include <string>
 
 using namespace std;
+
 namespace graphflow {
 namespace common {
 
 class Exception : public exception {
 public:
-    explicit Exception(const string& msg);
+    explicit Exception(const string& msg) : exception(), exception_message_(msg){};
 
 public:
-    const char* what() const noexcept override;
+    const char* what() const noexcept override { return exception_message_.c_str(); }
 
 private:
     std::string exception_message_;
@@ -20,12 +21,17 @@ private:
 
 class ConversionException : public Exception {
 public:
-    explicit ConversionException(const string& msg);
+    explicit ConversionException(const string& msg) : Exception(msg){};
+};
+
+class LoaderException : public Exception {
+public:
+    explicit LoaderException(const string& msg) : Exception(msg){};
 };
 
 class InternalException : public Exception {
 public:
-    explicit InternalException(const string& msg);
+    explicit InternalException(const string& msg) : Exception(msg){};
 };
 } // namespace common
 } // namespace graphflow

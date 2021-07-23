@@ -58,5 +58,24 @@ void FileUtils::readFromFile(int fd, void* buffer, int64_t numBytes, uint64_t po
                                " numBytesToRead: " + to_string(numBytes));
     }
 }
+
+void FileUtils::createDir(const string& dir) {
+    if (filesystem::exists(dir)) {
+        throw runtime_error("Directory already exists.");
+    }
+    if (!filesystem::create_directory(dir)) {
+        throw runtime_error("Directory cannot be created. Check if it exists and remove it.");
+    }
+}
+
+void FileUtils::removeDir(const string& dir) {
+    error_code removeErrorCode;
+    if (!fileExists(dir))
+        return;
+    if (!filesystem::remove_all(dir, removeErrorCode)) {
+        throw runtime_error("Remove directory error: " + removeErrorCode.message());
+    }
+}
+
 } // namespace common
 } // namespace graphflow

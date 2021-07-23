@@ -21,6 +21,9 @@ public:
     static void readFromFile(int fd, void* buffer, int64_t numBytes, uint64_t position);
     static void writeToFile(int fd, void* buffer, int64_t numBytes, uint64_t offset);
 
+    static void createDir(const string& dir);
+    static void removeDir(const string& dir);
+
     static inline string joinPath(const string& base, const string& part) {
         return filesystem::path(base) / part;
     }

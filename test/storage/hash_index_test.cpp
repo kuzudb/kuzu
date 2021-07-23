@@ -10,13 +10,14 @@
 
 using namespace std;
 using namespace graphflow::storage;
+using namespace graphflow::testing;
 
 class HashIndexTest : public testing::Test {
 public:
     const string TEMP_INDEX = "test/temp_index/";
 
     void SetUp() override {
-        graphflow::testing::TestHelper::createDirOrError(TEMP_INDEX);
+        FileUtils::createDir(TEMP_INDEX);
         LoggerUtils::getOrCreateSpdLogger("storage");
         auto insertionMemoryManager = make_unique<MemoryManager>();
         auto insertionBufferManager =
@@ -46,7 +47,7 @@ public:
     }
 
     void TearDown() override {
-        graphflow::testing::TestHelper::removeDirOrError(TEMP_INDEX);
+        FileUtils::removeDir(TEMP_INDEX);
         spdlog::drop("storage");
     }
 

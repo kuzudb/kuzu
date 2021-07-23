@@ -1,0 +1,11 @@
+{
+  "tokenSeparator": ",",
+  "nodeFileDescriptions": [
+    {
+      "filename": "vPerson.csv",
+      "label": "person",
+      "primaryKey": "id"
+    }
+  ],
+  "relFileDescriptions": []
+}

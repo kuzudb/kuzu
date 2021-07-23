@@ -105,7 +105,6 @@ cc_library(
     name = "utils",
     srcs = [
         "assert.cpp",
-        "exception.cpp",
         "file_utils.cpp",
         "utils.cpp",
     ],

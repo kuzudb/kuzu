@@ -7,20 +7,19 @@
 
 using namespace std;
 using namespace graphflow::storage;
+using namespace graphflow::testing;
 
 class CatalogTest : public testing::Test {
 public:
     const string CATALOG_TEMP_DIRECTORY = "test/catalog_temp";
 
     void SetUp() override {
-        graphflow::testing::TestHelper::createDirOrError(CATALOG_TEMP_DIRECTORY);
+        FileUtils::createDir(CATALOG_TEMP_DIRECTORY);
         catalog = make_unique<Catalog>();
         setupCatalog();
     }
 
-    void TearDown() override {
-        graphflow::testing::TestHelper::removeDirOrError(CATALOG_TEMP_DIRECTORY);
-    }
+    void TearDown() override { FileUtils::removeDir(CATALOG_TEMP_DIRECTORY); }
 
     void setupCatalog() const {
         vector<PropertyDefinition> personProperties;

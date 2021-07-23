@@ -1,7 +1,5 @@
 #include "src/storage/include/catalog.h"
 
-#include "spdlog/spdlog.h"
-
 using namespace std;
 using namespace graphflow::storage;
 

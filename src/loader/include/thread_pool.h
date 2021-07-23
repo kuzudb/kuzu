@@ -3,7 +3,6 @@
 #include <condition_variable>
 #include <functional>
 #include <future>
-#include <iostream>
 #include <memory>
 #include <mutex>
 #include <queue>
@@ -31,9 +30,10 @@ public:
     void wait();
 
 private:
-    static void threadInstance(atomic<uint32_t>& numThreadsRunning,
+    static void threadInstance(exception_ptr* exceptionPtrLoc, atomic<uint32_t>& numThreadsRunning,
         queue<unique_ptr<TaskContainerBase>>& tasks, mutex& tasksQueueMutex,
         condition_variable& tasksQueueCV, bool& stopThreads);
+
     template<typename F>
     inline static unique_ptr<TaskContainerBase> CreateNewTaskContainer(F&& f) {
         return std::unique_ptr<TaskContainerBase>(new TaskContainer<F>(std::forward<F>(f)));
@@ -50,14 +50,16 @@ private:
     template<typename F>
     class TaskContainer : public TaskContainerBase {
     public:
-        TaskContainer(F&& func) : f(forward<F>(func)){};
+        TaskContainer(F&& func) : f(func){};
         void operator()() override { f(); };
 
     private:
         F f;
     };
 
+private:
     vector<thread> threads;
+    vector<exception_ptr> exceptionPtrs;
     atomic<uint32_t> numThreadsRunning = 0;
     queue<unique_ptr<TaskContainerBase>> tasks;
     mutex tasksQueueMutex;
@@ -68,10 +70,8 @@ private:
 template<typename F, typename... Args>
 void ThreadPool::execute(F function, Args&&... args) {
     unique_lock<mutex> lock(tasksQueueMutex, defer_lock);
-    packaged_task<invoke_result_t<F, Args...>()> taskPackage(bind(function, args...));
-    future<invoke_result_t<F, Args...>> future = taskPackage.get_future();
     lock.lock();
-    tasks.emplace(CreateNewTaskContainer(std::move(taskPackage)));
+    tasks.emplace(CreateNewTaskContainer(move(bind(function, args...))));
     lock.unlock();
     tasksQueueCV.notify_one();
 };

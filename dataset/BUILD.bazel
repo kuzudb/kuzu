@@ -3,6 +3,7 @@ filegroup(
     srcs = glob([
         "tinysnb/**",
         "loader_test/**",
+        "long-string-error/**",
     ]),
     visibility = ["//visibility:public"],
 )
