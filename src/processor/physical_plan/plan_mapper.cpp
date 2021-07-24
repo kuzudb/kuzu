@@ -222,7 +222,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto buildSideKeyVectorPos = buildSideInfo.getValueVectorPos(hashJoin.joinNodeID);
     vector<bool> dataChunkPosToIsFlat;
     for (auto& buildSideGroup : hashJoin.buildSideSchema->groups) {
-        dataChunkPosToIsFlat.push_back(buildSideGroup.isFlat);
+        dataChunkPosToIsFlat.push_back(buildSideGroup->isFlat);
     }
     auto hashJoinBuild = make_unique<HashJoinBuild>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
         dataChunkPosToIsFlat, move(buildSidePrevOperator), context, physicalOperatorID++);

@@ -36,7 +36,7 @@ public:
 
     void appendToGroup(const string& variable, uint32_t pos);
 
-    void appendToGroup(FactorizationGroup& otherGroup, uint32_t pos);
+    void appendToGroup(const FactorizationGroup& otherGroup, uint32_t pos);
 
     uint32_t getGroupPos(const string& variable);
 
@@ -51,7 +51,7 @@ public:
     unique_ptr<Schema> copy();
 
 public:
-    vector<FactorizationGroup> groups;
+    vector<unique_ptr<FactorizationGroup>> groups;
     // Maps a queryRel to the LogicalExtend that matches it. This is needed because ScanRelProperty
     // requires direction information which only available in the LogicalExtend.
     unordered_map<string, LogicalExtend*> queryRelLogicalExtendMap;
