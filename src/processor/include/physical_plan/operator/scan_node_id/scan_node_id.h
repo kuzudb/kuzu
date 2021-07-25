@@ -7,7 +7,6 @@
 namespace graphflow {
 namespace processor {
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
 class ScanNodeID : public PhysicalOperator {
 
 public:
@@ -20,10 +19,8 @@ public:
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return prevOperator ?
-                   make_unique<ScanNodeID<IS_OUT_DATACHUNK_FILTERED>>(
-                       morsel, prevOperator->clone(), context, id) :
-                   make_unique<ScanNodeID<IS_OUT_DATACHUNK_FILTERED>>(morsel, context, id);
+        return prevOperator ? make_unique<ScanNodeID>(morsel, prevOperator->clone(), context, id) :
+                              make_unique<ScanNodeID>(morsel, context, id);
     }
 
 protected:

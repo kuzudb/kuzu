@@ -6,7 +6,6 @@
 namespace graphflow {
 namespace processor {
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
 class FrontierExtend : public ReadList {
 
 public:

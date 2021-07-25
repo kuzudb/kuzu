@@ -50,6 +50,7 @@ cc_library(
         "include/physical_plan/operator/crud/delete_node.h",
         "include/physical_plan/operator/crud/update_node.h",
         "include/physical_plan/operator/filter/filter.h",
+        "include/physical_plan/operator/filtering_operator.h",
         "include/physical_plan/operator/flatten/flatten.h",
         "include/physical_plan/operator/hash_join/hash_join_build.h",
         "include/physical_plan/operator/hash_join/hash_join_probe.h",
@@ -100,6 +101,7 @@ cc_library(
         "include/physical_plan/operator/result/result_set_iterator.h",
         "include/physical_plan/operator/result/tuple.h",
     ],
+    visibility = ["//visibility:public"],
     deps = [
         "//src/common:data_chunk",
         "//src/storage:lists",

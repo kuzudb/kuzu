@@ -34,7 +34,6 @@ struct BuildSideVectorInfo {
     uint32_t vectorPtrsPos;
 };
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
 class HashJoinProbe : public PhysicalOperator {
 public:
     HashJoinProbe(uint64_t buildSideKeyDataChunkPos, uint64_t buildSideKeyVectorPos,
@@ -93,7 +92,7 @@ private:
     // 3) populates vectorPtrs with pointers to vectors from build side unFlat non-key data chunks.
     void populateResultFlatDataChunksAndVectorPtrs();
     // This function updates appended unFlat output data chunks based on vectorPtrs and
-    // buildSideFlatResultDataChunk.currPos.
+    // buildSideFlatResultDataChunk.currIdx.
     void updateAppendedUnFlatDataChunks();
 };
 } // namespace processor

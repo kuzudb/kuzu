@@ -25,7 +25,7 @@ public:
         HashIndex insertionHashIndex(TEMP_INDEX, 0, *insertionMemoryManager,
             *insertionBufferManager, ovfPagesManager, INT64);
         auto numEntries = 1000;
-        auto state = make_shared<VectorState>(true, numEntries);
+        auto state = make_shared<SharedVectorState>(numEntries);
         state->size = numEntries;
         ValueVector keys(insertionMemoryManager.get(), INT64);
         keys.state = state;
@@ -61,7 +61,7 @@ TEST_F(HashIndexTest, HashIndexInsertExists) {
     OverflowPagesManager ovfPagesManager(TEMP_INDEX, *memoryManager);
     HashIndex hashIndex(TEMP_INDEX, 0, *memoryManager, *bufferManager, ovfPagesManager, INT64);
     auto numEntries = 10;
-    auto state = make_shared<VectorState>(true, numEntries);
+    auto state = make_shared<SharedVectorState>(numEntries);
     state->size = numEntries;
     ValueVector keys(memoryManager.get(), INT64);
     keys.state = state;
@@ -86,7 +86,7 @@ TEST_F(HashIndexTest, HashIndexSmallLookup) {
     OverflowPagesManager ovfPagesManager(TEMP_INDEX, *memoryManager);
     HashIndex hashIndex(TEMP_INDEX, 0, *memoryManager, *bufferManager, ovfPagesManager, INT64);
     auto numEntries = 10;
-    auto state = make_shared<VectorState>(true, numEntries);
+    auto state = make_shared<SharedVectorState>(numEntries);
     state->size = numEntries;
     ValueVector result(memoryManager.get(), INT64);
     result.state = state;
@@ -109,7 +109,7 @@ TEST_F(HashIndexTest, HashIndexRandomLookup) {
     OverflowPagesManager ovfPagesManager(TEMP_INDEX, *memoryManager);
     HashIndex hashIndex(TEMP_INDEX, 0, *memoryManager, *bufferManager, ovfPagesManager, INT64);
     auto numEntries = 1000;
-    auto state = make_shared<VectorState>(true, numEntries);
+    auto state = make_shared<SharedVectorState>(numEntries);
     state->size = numEntries;
     ValueVector keys(memoryManager.get(), INT64);
     keys.state = state;

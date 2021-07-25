@@ -3,9 +3,9 @@
 #include <memory>
 #include <vector>
 
+#include "src/common/include/data_chunk/data_chunk_state.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/value_vector.h"
-#include "src/common/include/vector/vector_state.h"
 
 using namespace std;
 
@@ -17,15 +17,16 @@ namespace common {
 // lists of the same length. It is appended into DataChunks and passed as intermediate
 // representations between operators.
 // A data chunk further contains a DataChunkState, which keeps the data chunk's size, selector, and
-// currPos (used when flattening and implies the value vector only contains the elements at currPos
+// currIdx (used when flattening and implies the value vector only contains the elements at currIdx
 // of each value vector).
 class DataChunk {
 
 public:
-    DataChunk() : DataChunk(true){};
+    DataChunk()
+        : DataChunk(
+              shared_ptr<SharedVectorState>(new SharedVectorState(DEFAULT_VECTOR_CAPACITY))){};
 
-    DataChunk(bool initializeSelectedValuesPos)
-        : state{new VectorState(initializeSelectedValuesPos, DEFAULT_VECTOR_CAPACITY)} {};
+    DataChunk(shared_ptr<SharedVectorState> _state) : state{_state} {};
 
     void append(shared_ptr<ValueVector> valueVector) {
         valueVector->state = this->state;
@@ -40,7 +41,7 @@ public:
 
 public:
     vector<shared_ptr<ValueVector>> valueVectors;
-    shared_ptr<VectorState> state;
+    shared_ptr<SharedVectorState> state;
 };
 
 } // namespace common

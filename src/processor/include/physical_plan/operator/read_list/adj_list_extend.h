@@ -5,7 +5,6 @@
 namespace graphflow {
 namespace processor {
 
-template<bool IS_OUT_DATACHUNK_FILTERED>
 class AdjListExtend : public ReadList {
 
 public:
@@ -15,7 +14,7 @@ public:
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<AdjListExtend<IS_OUT_DATACHUNK_FILTERED>>(
+        return make_unique<AdjListExtend>(
             inDataChunkPos, inValueVectorPos, (AdjLists*)lists, prevOperator->clone(), context, id);
     }
 };

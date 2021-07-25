@@ -22,7 +22,7 @@ nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler&
     json["name"] = operatorName;
     if (operatorType == HASH_JOIN_PROBE) {
         json["prevBuild"] =
-            toJson(((HashJoinProbe<true>*)physicalOperator)->buildSidePrevOp.get(), profiler);
+            toJson(((HashJoinProbe*)physicalOperator)->buildSidePrevOp.get(), profiler);
     }
     if (physicalOperator->prevOperator) {
         json["prev"] = toJson(physicalOperator->prevOperator.get(), profiler);

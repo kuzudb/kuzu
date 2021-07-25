@@ -11,12 +11,13 @@ template<class T, class FUNC = std::function<uint8_t(T)>>
 static void fillOperandNullMask(ValueVector& operand) {
     auto values = (T*)operand.values;
     if (operand.state->isFlat()) {
-        operand.nullMask[operand.state->getCurrSelectedValuesPos()] =
-            IsNull::operation(values[operand.state->getCurrSelectedValuesPos()]);
+        operand.nullMask[operand.state->getPositionOfCurrIdx()] =
+            IsNull::operation(values[operand.state->getPositionOfCurrIdx()]);
     } else {
         auto size = operand.state->size;
         for (uint64_t i = 0; i < size; i++) {
-            operand.nullMask[i] = IsNull::operation(values[operand.state->selectedValuesPos[i]]);
+            operand.nullMask[i] =
+                IsNull::operation(values[operand.state->getSelectedPositionAtIdx(i)]);
         }
     }
 }

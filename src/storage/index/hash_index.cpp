@@ -69,7 +69,7 @@ void HashIndex::lookup(ValueVector& keys, ValueVector& result, BufferManagerMetr
     auto hashes = make_shared<ValueVector>(&memoryManager, INT64);
     hashes->state = keys.state;
     VectorHashOperations::Hash(keys, *hashes);
-    auto offset = keys.state->isFlat() ? keys.state->getCurrSelectedValuesPos() : 0;
+    auto offset = keys.state->isFlat() ? keys.state->getPositionOfCurrIdx() : 0;
     auto numKeys = keys.state->isFlat() ? 1 : keys.state->size;
     auto slotIds = calculateSlotIdsForHashes(*hashes, offset, numKeys);
     auto numBytesPerKey = keys.getNumBytesPerValue();
@@ -77,7 +77,7 @@ void HashIndex::lookup(ValueVector& keys, ValueVector& result, BufferManagerMetr
         auto blockId = getPrimaryBlockIdForSlot(slotIds[keyPos]);
         auto slotIdInBlock = slotIds[keyPos] % numSlotsPerPrimaryBlock;
         uint8_t* expectedKey =
-            keyData + (keys.state->selectedValuesPos[keyPos + offset] * numBytesPerKey);
+            keyData + (keys.state->getSelectedPositionAtIdx(keyPos + offset) * numBytesPerKey);
         auto resultValue =
             lookupKeyInSlot(expectedKey, numBytesPerKey, blockId, slotIdInBlock, metrics);
         resultData[keyPos] = resultValue;
@@ -146,7 +146,7 @@ void HashIndex::flush() {
 
 vector<bool> HashIndex::notExists(ValueVector& keys, ValueVector& hashes) {
     uint8_t* keyData = keys.values;
-    auto offset = keys.state->isFlat() ? keys.state->getCurrSelectedValuesPos() : 0;
+    auto offset = keys.state->isFlat() ? keys.state->getPositionOfCurrIdx() : 0;
     auto numKeys = keys.state->isFlat() ? 1 : keys.state->size;
     if (indexHeader.currentNumEntries == 0) {
         // The index is empty, all keys not exist in the current index.
@@ -160,7 +160,7 @@ vector<bool> HashIndex::notExists(ValueVector& keys, ValueVector& hashes) {
         auto blockId = getPrimaryBlockIdForSlot(slotIds[keyPos]);
         auto slotIdInBlock = slotIds[keyPos] % numSlotsPerPrimaryBlock;
         auto expectedKey =
-            keyData + (keys.state->selectedValuesPos[keyPos + offset] * numBytesPerKey);
+            keyData + (keys.state->getSelectedPositionAtIdx(keyPos + offset) * numBytesPerKey);
         keyNotExists[keyPos] =
             keyNotExistInSlot(expectedKey, numBytesPerKey, blockId, slotIdInBlock);
     }
@@ -195,12 +195,12 @@ void HashIndex::insertInternal(
     ValueVector& keys, ValueVector& hashes, ValueVector& values, vector<bool>& keyNotExists) {
     auto numBytesPerKey = keys.getNumBytesPerValue();
     auto hashesData = (uint64_t*)hashes.values;
-    auto offset = keys.state->isFlat() ? keys.state->getCurrSelectedValuesPos() : 0;
+    auto offset = keys.state->isFlat() ? keys.state->getPositionOfCurrIdx() : 0;
     auto numKeys = keys.state->isFlat() ? 1 : keys.state->size;
     vector<uint64_t> keyPositions(numKeys);
     uint64_t numEntriesToInsert = 0;
     for (auto pos = 0u; pos < numKeys; pos++) {
-        keyPositions[numEntriesToInsert] = keys.state->selectedValuesPos[pos + offset];
+        keyPositions[numEntriesToInsert] = keys.state->getSelectedPositionAtIdx(pos + offset);
         // numEntriesToInsert is only incremented when key exists. otherwise keyNotExists[pos] is 0.
         numEntriesToInsert += keyNotExists[pos];
     }
@@ -258,7 +258,7 @@ vector<uint64_t> HashIndex::calculateSlotIdsForHashes(
     auto hashMask = (1 << indexHeader.currentLevel) - 1;
     auto splitHashMask = (1 << (indexHeader.currentLevel + 1)) - 1;
     for (auto i = 0u; i < numValues; i++) {
-        auto pos = hashes.state->selectedValuesPos[i + offset];
+        auto pos = hashes.state->getSelectedPositionAtIdx(i + offset);
         auto slotId = hashesData[pos] & hashMask;
         slotIds[i] =
             slotId >= indexHeader.nextSplitSlotId ? slotId : (hashesData[pos] & splitHashMask);

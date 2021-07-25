@@ -74,19 +74,19 @@ void HashJoinBuild::finalize() {
 void HashJoinBuild::appendPayloadVectorAsFixSizedValues(ValueVector& vector, uint8_t* appendBuffer,
     uint64_t valueOffsetInVector, uint64_t appendCount, bool isSingleValue) const {
     auto typeSize = vector.getNumBytesPerValue();
-    auto selectedValuesPos = vector.state->selectedValuesPos;
     if (vector.dataType == NODE && dynamic_cast<NodeIDVector&>(vector).isSequence()) {
         auto startNodeOffset = ((node_offset_t*)vector.values)[0];
         for (auto i = 0u; i < appendCount; i++) {
             auto valuePos = valueOffsetInVector + (i * (1 - isSingleValue));
-            auto nodeOffset = startNodeOffset + selectedValuesPos[valuePos];
+            auto nodeOffset = startNodeOffset + vector.state->getSelectedPositionAtIdx(valuePos);
             memcpy(appendBuffer + (i * numBytesForFixedTuplePart), &nodeOffset, typeSize);
         }
     } else {
         for (auto i = 0u; i < appendCount; i++) {
             auto valuePos = valueOffsetInVector + (i * (1 - isSingleValue));
             memcpy(appendBuffer + (i * numBytesForFixedTuplePart),
-                vector.values + (selectedValuesPos[valuePos] * typeSize), typeSize);
+                vector.values + (vector.state->getSelectedPositionAtIdx(valuePos) * typeSize),
+                typeSize);
         }
     }
 }
@@ -95,7 +95,6 @@ overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
     auto numBytesPerValue = vector.getNumBytesPerValue();
     auto valuesLength = vector.getNumBytesPerValue() * vector.state->size;
     auto vectorValues = vector.values;
-    auto vectorSelectedValuesPos = vector.state->selectedValuesPos;
     if (valuesLength > DEFAULT_OVERFLOW_BLOCK_SIZE) {
         throw invalid_argument("Value length is larger than a overflow block.");
     }
@@ -118,13 +117,14 @@ overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
     if (vector.dataType == NODE && dynamic_cast<NodeIDVector&>(vector).isSequence()) {
         auto startNodeOffset = ((node_offset_t*)vector.values)[0];
         for (auto i = 0u; i < vector.state->size; i++) {
-            auto nodeOffset = startNodeOffset + vector.state->selectedValuesPos[i];
+            auto nodeOffset = startNodeOffset + vector.state->getSelectedPositionAtIdx(i);
             memcpy(blockAppendPos + (i * numBytesPerValue), &nodeOffset, numBytesPerValue);
         }
     } else {
         for (auto i = 0u; i < vector.state->size; i++) {
             memcpy(blockAppendPos + (i * numBytesPerValue),
-                vectorValues + (vectorSelectedValuesPos[i] * numBytesPerValue), numBytesPerValue);
+                vectorValues + (vector.state->getSelectedPositionAtIdx(i) * numBytesPerValue),
+                numBytesPerValue);
         }
     }
     return overflow_value_t{valuesLength, blockAppendPos};
@@ -149,10 +149,10 @@ void HashJoinBuild::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
     auto labelSize = isLabelCommon ? sizeof(label_t) :
                                      vector.representation.compressionScheme.getNumBytesForLabel();
     auto startNodeOffset = ((node_offset_t*)vector.values)[0];
-    auto selectedValuesPos = vector.state->selectedValuesPos;
     if (vector.isSequence()) {
         for (auto i = 0u; i < appendCount; i++) {
-            auto nodeOffset = startNodeOffset + selectedValuesPos[valueOffsetInVector + i];
+            auto nodeOffset =
+                startNodeOffset + vector.state->getSelectedPositionAtIdx(valueOffsetInVector + i);
             memcpy(appendBuffer, &nodeOffset, nodeOffsetSize);
             memcpy(appendBuffer + sizeof(node_offset_t),
                 (uint8_t*)&vector.representation.commonLabel, labelSize);
@@ -161,7 +161,7 @@ void HashJoinBuild::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
         return;
     }
     for (auto i = 0u; i < appendCount; i++) {
-        auto valuePos = selectedValuesPos[valueOffsetInVector + i];
+        auto valuePos = vector.state->getSelectedPositionAtIdx(valueOffsetInVector + i);
         memcpy(appendBuffer, vector.values + (valuePos * nodeIDSize), nodeOffsetSize);
         memcpy(appendBuffer + sizeof(node_offset_t),
             (isLabelCommon ? (uint8_t*)&vector.representation.commonLabel :
@@ -208,7 +208,7 @@ void HashJoinBuild::appendKeyDataChunk(
     const vector<BlockAppendInfo>& blockAppendInfos, uint64_t& tupleAppendOffset) {
     // Append key vector, which must be node ids
     auto keyVector = static_pointer_cast<NodeIDVector>(keyDataChunk->getValueVector(keyVectorPos));
-    auto keyValOffsetInVec = keyDataChunk->state->isFlat() ? keyDataChunk->state->currPos : 0;
+    auto keyValOffsetInVec = keyDataChunk->state->isFlat() ? keyDataChunk->state->currIdx : 0;
     for (auto& blockAppendInfo : blockAppendInfos) {
         appendKeyVector(*keyVector, blockAppendInfo.buffer + tupleAppendOffset, keyValOffsetInVec,
             blockAppendInfo.numEntries);
@@ -222,7 +222,7 @@ void HashJoinBuild::appendKeyDataChunk(
         }
         // Append payload vectors in the keyDataChunk
         auto payloadVector = keyDataChunk->getValueVector(i);
-        auto valOffsetInVec = keyDataChunk->state->isFlat() ? keyDataChunk->state->currPos : 0;
+        auto valOffsetInVec = keyDataChunk->state->isFlat() ? keyDataChunk->state->currIdx : 0;
         for (auto& blockAppendInfo : blockAppendInfos) {
             appendPayloadVectorAsFixSizedValues(*payloadVector,
                 blockAppendInfo.buffer + tupleAppendOffset, valOffsetInVec,
@@ -243,8 +243,8 @@ void HashJoinBuild::appendPayloadDataChunks(
                 for (auto& blockAppendInfo : blockAppendInfos) {
                     appendPayloadVectorAsFixSizedValues(*payloadVector,
                         blockAppendInfo.buffer + tupleAppendOffset,
-                        payloadVector->state->getCurrSelectedValuesPos(),
-                        blockAppendInfo.numEntries, true);
+                        payloadVector->state->getPositionOfCurrIdx(), blockAppendInfo.numEntries,
+                        true);
                 }
                 tupleAppendOffset += payloadVector->getNumBytesPerValue();
             }

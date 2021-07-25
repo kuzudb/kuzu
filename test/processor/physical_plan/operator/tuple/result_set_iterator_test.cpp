@@ -72,9 +72,9 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest1) {
     auto dataChunkA = resultSet.dataChunks[0];
     auto dataChunkB = resultSet.dataChunks[1];
     auto dataChunkC = resultSet.dataChunks[2];
-    dataChunkA->state->currPos = 1;
-    dataChunkB->state->currPos = -1;
-    dataChunkC->state->currPos = 10;
+    dataChunkA->state->currIdx = 1;
+    dataChunkB->state->currIdx = -1;
+    dataChunkC->state->currIdx = 10;
 
     ResultSetIterator resultSetIterator(&resultSet);
     auto tupleIndex = 0;
@@ -93,9 +93,9 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest1) {
     }
     ASSERT_EQ(tupleIndex, 100);
 
-    dataChunkA->state->currPos = 1;
-    dataChunkB->state->currPos = 9;
-    dataChunkC->state->currPos = 99;
+    dataChunkA->state->currIdx = 1;
+    dataChunkB->state->currIdx = 9;
+    dataChunkC->state->currIdx = 99;
     resultSetIterator.setResultSet(&resultSet);
     tupleIndex = 0;
     while (resultSetIterator.hasNextTuple()) {
@@ -123,9 +123,9 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest2) {
     auto dataChunkC = resultSet.dataChunks[2];
 
     auto tupleIndex = 0;
-    dataChunkA->state->currPos = 1;
-    dataChunkB->state->currPos = -1;
-    dataChunkC->state->currPos = -1;
+    dataChunkA->state->currIdx = 1;
+    dataChunkB->state->currIdx = -1;
+    dataChunkC->state->currIdx = -1;
     ResultSetIterator resultSetIterator(&resultSet);
     while (resultSetIterator.hasNextTuple()) {
         auto bid = tupleIndex / 100;
@@ -154,9 +154,9 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest3) {
     auto dataChunkC = resultSet.dataChunks[2];
 
     auto tupleIndex = 0;
-    dataChunkA->state->currPos = -1;
-    dataChunkB->state->currPos = 10;
-    dataChunkC->state->currPos = -1;
+    dataChunkA->state->currIdx = -1;
+    dataChunkB->state->currIdx = 10;
+    dataChunkC->state->currIdx = -1;
     ResultSetIterator resultSetIterator(&resultSet);
     while (resultSetIterator.hasNextTuple()) {
         auto aid = tupleIndex / 100;
@@ -183,9 +183,9 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest4) {
     auto dataChunkA = resultSet.dataChunks[0];
     auto dataChunkB = resultSet.dataChunks[1];
     auto dataChunkC = resultSet.dataChunks[2];
-    dataChunkA->state->currPos = 1;
-    dataChunkB->state->currPos = 10;
-    dataChunkC->state->currPos = 20;
+    dataChunkA->state->currIdx = 1;
+    dataChunkB->state->currIdx = 10;
+    dataChunkC->state->currIdx = 20;
 
     auto tupleIndex = 0;
     ResultSetIterator resultSetIterator(&resultSet);
@@ -204,14 +204,17 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTestWithSelector) {
     Tuple tuple(vectorTypes);
 
     auto dataChunkA = resultSet.dataChunks[0];
+    dataChunkA->state->resetSelectorToValuePosBuffer();
     auto dataChunkB = resultSet.dataChunks[1];
+    dataChunkB->state->resetSelectorToValuePosBuffer();
     auto dataChunkC = resultSet.dataChunks[2];
-    dataChunkA->state->selectedValuesPos[1] = 5;
-    dataChunkA->state->currPos = 1;
-    dataChunkB->state->selectedValuesPos[10] = 15;
-    dataChunkB->state->currPos = 10;
-    dataChunkC->state->selectedValuesPos[20] = 25;
-    dataChunkC->state->currPos = 20;
+    dataChunkC->state->resetSelectorToValuePosBuffer();
+    dataChunkA->state->selectedPositions[1] = 5;
+    dataChunkA->state->currIdx = 1;
+    dataChunkB->state->selectedPositions[10] = 15;
+    dataChunkB->state->currIdx = 10;
+    dataChunkC->state->selectedPositions[20] = 25;
+    dataChunkC->state->currIdx = 20;
 
     auto tupleIndex = 0;
     ResultSetIterator resultSetIterator(&resultSet);

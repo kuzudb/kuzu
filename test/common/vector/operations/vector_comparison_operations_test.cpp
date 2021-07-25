@@ -68,7 +68,7 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
 
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = numTuples;
-    dataChunk->state->currPos = 0;
+    dataChunk->state->currIdx = 0;
     auto memoryManager = make_unique<MemoryManager>();
 
     auto lVector = make_shared<ValueVector>(memoryManager.get(), STRING);
@@ -134,7 +134,7 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
 
     auto dataChunk = make_shared<DataChunk>();
     dataChunk->state->size = VECTOR_SIZE;
-    dataChunk->state->currPos = 0;
+    dataChunk->state->currIdx = 0;
     auto memoryManager = make_unique<MemoryManager>();
 
     auto lVector = make_shared<ValueVector>(memoryManager.get(), STRING);

@@ -45,7 +45,6 @@ TEST_F(VectorArithmeticOperationsTest, Int64Test) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i], -i);
     }
-
     VectorArithmeticOperations::Add(*lVector, *rVector, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i], 110);

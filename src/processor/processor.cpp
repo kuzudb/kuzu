@@ -58,12 +58,12 @@ void QueryProcessor::decomposePlanIntoTasks(
     switch (op->operatorType) {
     case HASH_JOIN_PROBE: {
         if (op->isOutDataChunkFiltered) {
-            auto hashJoinProbe = reinterpret_cast<HashJoinProbe<true>*>(op);
+            auto hashJoinProbe = reinterpret_cast<HashJoinProbe*>(op);
             auto hashJoinBuild =
                 reinterpret_cast<HashJoinBuild*>(hashJoinProbe->buildSidePrevOp.get());
             decomposePlanIntoTasks(hashJoinBuild, parentTask, numThreads);
         } else {
-            auto hashJoinProbe = reinterpret_cast<HashJoinProbe<false>*>(op);
+            auto hashJoinProbe = reinterpret_cast<HashJoinProbe*>(op);
             auto hashJoinBuild =
                 reinterpret_cast<HashJoinBuild*>(hashJoinProbe->buildSidePrevOp.get());
             decomposePlanIntoTasks(hashJoinBuild, parentTask, numThreads);

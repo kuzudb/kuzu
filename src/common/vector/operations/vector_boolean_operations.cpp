@@ -21,11 +21,11 @@ void VectorBooleanOperations::Xor(ValueVector& left, ValueVector& right, ValueVe
 
 void VectorBooleanOperations::Not(ValueVector& operand, ValueVector& result) {
     if (operand.state->isFlat()) {
-        auto pos = operand.state->getCurrSelectedValuesPos();
+        auto pos = operand.state->getPositionOfCurrIdx();
         result.values[pos] = operation::Not::operation(operand.values[pos], operand.nullMask[pos]);
     } else {
         for (auto i = 0ul; i < operand.state->size; i++) {
-            auto pos = operand.state->selectedValuesPos[i];
+            auto pos = operand.state->getSelectedPositionAtIdx(i);
             result.values[pos] =
                 operation::Not::operation(operand.values[pos], operand.nullMask[pos]);
         }

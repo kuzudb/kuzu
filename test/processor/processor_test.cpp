@@ -28,7 +28,7 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto memoryManager = make_unique<MemoryManager>();
     auto executionContext = ExecutionContext(*profiler, nullptr, memoryManager.get());
     auto plan = make_unique<PhysicalPlan>(
-        make_unique<ResultCollector>(make_unique<ScanNodeID<true>>(morsel, executionContext, 0),
+        make_unique<ResultCollector>(make_unique<ScanNodeID>(morsel, executionContext, 0),
             RESULT_COLLECTOR, executionContext, 1, false));
     auto processor = make_unique<QueryProcessor>(10);
     auto result = processor->execute(plan.get(), 1);
