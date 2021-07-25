@@ -5,7 +5,6 @@ cc_library(
     srcs = ["thread_pool.cpp"],
     hdrs = ["include/thread_pool.h"],
     visibility = ["//visibility:public"],
-    deps = [],
 )
 
 cc_library(

@@ -39,18 +39,16 @@ public:
 
     static void loadGraph(TestSuiteSystemConfig& config);
 
-    static unique_ptr<System> getInitializedSystem(TestSuiteSystemConfig& config);
-
-    static void createDirOrError(const string& dir);
-
-    static void removeDirOrError(const string& dir);
+    static unique_ptr<System> getInitializedSystem(TestSuiteSystemConfig& config) {
+        return make_unique<System>(config.graphOutputDir, config.isInMemory);
+    }
 };
 
 class BaseGraphLoadingTest : public Test {
 public:
     void SetUp() override;
 
-    void TearDown() override { TestHelper::removeDirOrError(TEMP_TEST_DIR); }
+    void TearDown() override { FileUtils::removeDir(TEMP_TEST_DIR); }
 
     virtual string getInputCSVDir() = 0;
 

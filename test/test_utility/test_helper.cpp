@@ -126,27 +126,7 @@ void TestHelper::loadGraph(TestSuiteSystemConfig& config) {
     graphLoader.loadGraph();
 }
 
-unique_ptr<System> TestHelper::getInitializedSystem(TestSuiteSystemConfig& config) {
-    loadGraph(config);
-    return make_unique<System>(config.graphOutputDir, config.isInMemory);
-}
-
-void TestHelper::createDirOrError(const string& dir) {
-    if (!filesystem::exists(dir) && !filesystem::create_directory(dir)) {
-        throw runtime_error(
-            "Graph output directory cannot be created. Check if it exists and remove it.");
-    }
-}
-
-void TestHelper::removeDirOrError(const string& dir) {
-    error_code removeErrorCode;
-    if (!filesystem::remove_all(dir, removeErrorCode)) {
-        throw runtime_error("Remove graph output directory error: " + removeErrorCode.message());
-    }
-}
-
 void BaseGraphLoadingTest::SetUp() {
-    TestHelper::createDirOrError(TEMP_TEST_DIR);
     testSuiteSystemConfig.graphInputDir = getInputCSVDir();
     testSuiteSystemConfig.graphOutputDir = TEMP_TEST_DIR;
     TestHelper::loadGraph(testSuiteSystemConfig);

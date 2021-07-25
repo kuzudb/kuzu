@@ -1,7 +1,5 @@
 #include "src/loader/include/adj_and_prop_structures_builder.h"
 
-#include "spdlog/spdlog.h"
-
 namespace graphflow {
 namespace loader {
 

@@ -42,7 +42,7 @@ void InMemStringOverflowPages::setStrInOvfPageAndPtrInEncString(
         return;
     }
     if (encodedString->len > 4 && encodedString->len <= 12) {
-        memcpy(&encodedString->overflowPtr, originalString + 4, encodedString->len - 4);
+        memcpy(&encodedString->data, originalString + 4, encodedString->len - 4);
         return;
     }
     copyOverflowString(cursor, (uint8_t*)originalString, encodedString);

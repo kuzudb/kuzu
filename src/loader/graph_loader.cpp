@@ -1,15 +1,12 @@
 #include "src/loader/include/graph_loader.h"
 
-#include <exception>
 #include <iostream>
 #include <memory>
 #include <unordered_set>
 
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
-
 #include "src/common/include/configs.h"
 #include "src/common/include/csv_reader/csv_reader.h"
+#include "src/common/include/exception.h"
 #include "src/loader/include/nodes_loader.h"
 #include "src/loader/include/rels_loader.h"
 
@@ -19,7 +16,7 @@ namespace graphflow {
 namespace loader {
 
 GraphLoader::GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads)
-    : logger{spdlog::stdout_logger_mt("loader")}, threadPool{ThreadPool(numThreads)},
+    : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, threadPool{ThreadPool(numThreads)},
       inputDirectory(std::move(inputDirectory)),
       outputDirectory(std::move(outputDirectory)), tokenSeparator{DEFAULT_TOKEN_SEPARATOR} {}
 
@@ -28,6 +25,7 @@ GraphLoader::~GraphLoader() {
 }
 
 void GraphLoader::loadGraph() {
+    FileUtils::createDir(outputDirectory);
     try {
         logger->info("Starting GraphLoader.");
         vector<NodeFileDescription> nodeFileDescriptions;
@@ -56,13 +54,18 @@ void GraphLoader::loadGraph() {
         graph.catalog->saveToFile(outputDirectory);
         logger->info("Writing Graph object.");
         graph.saveToFile(outputDirectory);
-
         logger->info("Done GraphLoader.");
     } catch (exception& e) {
-        logger->info("Inside GraphLoader::loadGraph()");
-        logger->error(e.what());
-        throw e;
+        logger->error("Encountered an error while loading graph: {}", e.what());
+        logger->info("Stopping GraphLoader.");
+        cleanup();
+        throw LoaderException(e.what());
     }
+}
+
+void GraphLoader::cleanup() {
+    logger->info("Cleaning up.");
+    FileUtils::removeDir(outputDirectory);
 }
 
 void GraphLoader::readAndParseMetadata(vector<NodeFileDescription>& nodeFileDescriptions,
@@ -193,7 +196,6 @@ unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes(
     }
     NodesLoader nodesLoader{threadPool, graph, outputDirectory, tokenSeparator};
     nodesLoader.load(filePaths, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
-
     logger->info("Done loading nodes.");
     return nodeIDMaps;
 }

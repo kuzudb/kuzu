@@ -1,9 +1,7 @@
 #include "src/storage/include/buffer_manager.h"
 
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
-
 #include "src/common/include/configs.h"
+#include "src/common/include/utils.h"
 
 using namespace graphflow::common;
 
@@ -33,8 +31,9 @@ bool Frame::acquire(bool block) {
 }
 
 BufferManager::BufferManager(uint64_t maxSize)
-    : logger{spdlog::stdout_logger_mt("buffer_manager")}, bufferCache{maxSize >> PAGE_SIZE_LOG_2},
-      clockHand{0}, numFrames{(uint32_t)(maxSize >> PAGE_SIZE_LOG_2)} {
+    : logger{LoggerUtils::getOrCreateSpdLogger("buffer_manager")},
+      bufferCache{maxSize >> PAGE_SIZE_LOG_2}, clockHand{0},
+      numFrames((uint32_t)(maxSize >> PAGE_SIZE_LOG_2)) {
     logger->info("Initializing Buffer Manager.");
     logger->info("BufferPool Size {}B, #4KB-pages {}.", maxSize, maxSize >> PAGE_SIZE_LOG_2);
     logger->info("Done Initializing Buffer Manager.");

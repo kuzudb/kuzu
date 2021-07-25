@@ -1,9 +1,7 @@
 #include "src/loader/include/nodes_loader.h"
 
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
-
 #include "src/common/include/date.h"
+#include "src/common/include/exception.h"
 #include "src/common/include/file_utils.h"
 
 using namespace graphflow::storage;
@@ -197,32 +195,25 @@ void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(cons
     const vector<string>& propertyColumnFNames,
     vector<unique_ptr<InMemStringOverflowPages>>* propertyIdxStringOverflowPages,
     listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger>& logger) {
-    try {
-        logger->trace("Start: path={0} blkIdx={1}", fName, blockId);
-        vector<PageCursor> stringOverflowPagesCursors{properties.size()};
-        auto buffers = createBuffersForProperties(properties, numElements, logger);
-        CSVReader reader(fName, tokenSeparator, blockId);
-        if (0 == blockId) {
-            if (reader.hasNextLine()) {}
-        }
-        auto bufferOffset = 0u;
-        while (reader.hasNextLine()) {
-            if (!properties.empty()) {
-                putPropsOfLineIntoBuffers(properties, reader, *buffers, bufferOffset,
-                    *propertyIdxStringOverflowPages, stringOverflowPagesCursors, nodeIDMap,
-                    offsetStart + bufferOffset);
-            }
-            calcLengthOfUnstrPropertyLists(
-                reader, offsetStart + bufferOffset, *unstrPropertyListSizes);
-            bufferOffset++;
-        }
-        writeBuffersToFiles(*buffers, offsetStart, numElements, propertyColumnFNames, properties);
-        logger->trace("End: path={0} blkIdx={1}", fName, blockId);
-    } catch (exception& e) {
-        logger->error("Caught an exception during loading!!");
-        logger->error(e.what());
-        exit(1);
+    logger->trace("Start: path={0} blkIdx={1}", fName, blockId);
+    vector<PageCursor> stringOverflowPagesCursors{properties.size()};
+    auto buffers = createBuffersForProperties(properties, numElements, logger);
+    CSVReader reader(fName, tokenSeparator, blockId);
+    if (0 == blockId) {
+        if (reader.hasNextLine()) {}
     }
+    auto bufferOffset = 0u;
+    while (reader.hasNextLine()) {
+        if (!properties.empty()) {
+            putPropsOfLineIntoBuffers(properties, reader, *buffers, bufferOffset,
+                *propertyIdxStringOverflowPages, stringOverflowPagesCursors, nodeIDMap,
+                offsetStart + bufferOffset);
+        }
+        calcLengthOfUnstrPropertyLists(reader, offsetStart + bufferOffset, *unstrPropertyListSizes);
+        bufferOffset++;
+    }
+    writeBuffersToFiles(*buffers, offsetStart, numElements, propertyColumnFNames, properties);
+    logger->trace("End: path={0} blkIdx={1}", fName, blockId);
 }
 
 // Iterate over each line in a block of CSV file. For each line, infer the node offset, skip
@@ -324,6 +315,11 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<PropertyDefinition>& pr
         case STRING: {
             auto strVal =
                 reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
+            if (strlen(strVal) > PAGE_SIZE) {
+                throw LoaderException(StringUtils::string_format(
+                    "Maximum length of strings is %d. Input string's length is %d.", PAGE_SIZE,
+                    strlen(strVal), strVal));
+            }
             auto encodedString = reinterpret_cast<gf_string_t*>(
                 buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(STRING)));
             propertyIdxStringOverflowPages[propertyId]->setStrInOvfPageAndPtrInEncString(

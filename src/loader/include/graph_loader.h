@@ -51,6 +51,8 @@ private:
         vector<vector<unordered_set<string>>>& labelBlockUnstrProperties,
         vector<uint64_t>& numBlocksPerLabel, const vector<string>& filePaths);
 
+    void cleanup();
+
     // Concurrent Tasks
 
     static void countLinesAndScanUnstrPropertiesInBlockTask(const string& fName,

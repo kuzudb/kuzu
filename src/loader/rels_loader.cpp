@@ -1,7 +1,5 @@
 #include "src/loader/include/rels_loader.h"
 
-#include "spdlog/sinks/stdout_sinks.h"
-
 namespace graphflow {
 namespace loader {
 
