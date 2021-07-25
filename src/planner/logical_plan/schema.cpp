@@ -7,23 +7,23 @@ namespace planner {
 
 uint32_t Schema::createGroup() {
     auto pos = groups.size();
-    groups.emplace_back(FactorizationGroup());
+    groups.push_back(make_unique<FactorizationGroup>());
     return pos;
 }
 
 void Schema::appendToGroup(const string& variable, uint32_t pos) {
     variableToGroupPos.insert({variable, pos});
-    groups[pos].appendVariable(variable);
+    groups[pos]->appendVariable(variable);
 }
 
-void Schema::appendToGroup(FactorizationGroup& otherGroup, uint32_t pos) {
+void Schema::appendToGroup(const FactorizationGroup& otherGroup, uint32_t pos) {
     for (auto& variable : otherGroup.variables) {
         appendToGroup(variable, pos);
     }
 }
 
 void Schema::flattenGroup(uint32_t pos) {
-    groups[pos].isFlat = true;
+    groups[pos]->isFlat = true;
 }
 
 uint32_t Schema::getGroupPos(const string& variable) {
@@ -44,7 +44,10 @@ unique_ptr<Schema> Schema::copy() {
     auto newSchema = make_unique<Schema>();
     newSchema->queryRelLogicalExtendMap = queryRelLogicalExtendMap;
     newSchema->variableToGroupPos = variableToGroupPos;
-    newSchema->groups = groups;
+    for (auto& group : groups) {
+        auto newGroup = make_unique<FactorizationGroup>(*group);
+        newSchema->groups.push_back(move(newGroup));
+    }
     return newSchema;
 }
 

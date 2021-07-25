@@ -290,7 +290,7 @@ void Enumerator::appendScan(uint32_t queryNodePos, LogicalPlan& plan) {
                     make_shared<LogicalScanNodeID>(nodeID, queryNode.label);
     auto groupPos = plan.schema->createGroup();
     plan.schema->appendToGroup(nodeID, groupPos);
-    plan.schema->groups[groupPos].estimatedCardinality = graph.getNumNodes(queryNode.label);
+    plan.schema->groups[groupPos]->estimatedCardinality = graph.getNumNodes(queryNode.label);
     plan.appendOperator(scan);
 }
 
@@ -308,8 +308,8 @@ void Enumerator::appendExtend(uint32_t queryRelPos, Direction direction, Logical
     } else {
         appendFlatten(boundNodeID, plan);
         groupPos = plan.schema->createGroup();
-        plan.schema->groups[groupPos].estimatedCardinality =
-            plan.schema->groups[plan.schema->getGroupPos(boundNodeID)].estimatedCardinality *
+        plan.schema->groups[groupPos]->estimatedCardinality =
+            plan.schema->groups[plan.schema->getGroupPos(boundNodeID)]->estimatedCardinality *
             getExtensionRate(boundNode->label, queryRel.label, direction, graph);
     }
     auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->label, nbrNodeID,
@@ -343,11 +343,11 @@ string Enumerator::appendNecessaryFlattens(const Expression& expression,
 
 void Enumerator::appendFlatten(const string& variable, LogicalPlan& plan) {
     auto groupPos = plan.schema->getGroupPos(variable);
-    if (plan.schema->groups[groupPos].isFlat) {
+    if (plan.schema->groups[groupPos]->isFlat) {
         return;
     }
     plan.schema->flattenGroup(groupPos);
-    plan.cost += plan.schema->groups[groupPos].estimatedCardinality;
+    plan.cost += plan.schema->groups[groupPos]->estimatedCardinality;
     auto flatten = make_shared<LogicalFlatten>(variable, plan.lastOperator);
     plan.appendOperator(flatten);
 }
@@ -357,14 +357,16 @@ void Enumerator::appendLogicalHashJoin(
     auto joinNodeID = mergedQueryGraph->queryNodes[joinNodePos]->getIDProperty();
     // Flat probe side key group if necessary
     auto probeSideKeyGroupPos = probePlan.schema->getGroupPos(joinNodeID);
-    auto& probeSideKeyGroup = probePlan.schema->groups[probeSideKeyGroupPos];
-    if (!probeSideKeyGroup.isFlat) {
+    auto probeSideKeyGroup = probePlan.schema->groups[probeSideKeyGroupPos].get();
+    if (!probeSideKeyGroup->isFlat) {
         appendFlatten(joinNodeID, probePlan);
     }
     // Build side: 1) append non-key vectors in the key data chunk into probe side key data chunk.
     auto buildSideKeyGroupPos = buildPlan.schema->getGroupPos(joinNodeID);
-    auto& buildSideKeyGroup = buildPlan.schema->groups[buildSideKeyGroupPos];
-    for (auto& variable : buildSideKeyGroup.variables) {
+    auto buildSideKeyGroup = buildPlan.schema->groups[buildSideKeyGroupPos].get();
+    probeSideKeyGroup->estimatedCardinality =
+        max(probeSideKeyGroup->estimatedCardinality, buildSideKeyGroup->estimatedCardinality);
+    for (auto& variable : buildSideKeyGroup->variables) {
         if (variable == joinNodeID) {
             continue; // skip the key vector because it exists on probe side
         }
@@ -379,19 +381,19 @@ void Enumerator::appendLogicalHashJoin(
             continue;
         }
         auto& buildSideGroup = buildPlan.schema->groups[i];
-        if (buildSideGroup.isFlat) {
+        if (buildSideGroup->isFlat) {
             // 2) append flat non-key data chunks into buildSideNonKeyFlatDataChunk.
             if (probeSideAppendedFlatGroupPos == UINT32_MAX) {
                 probeSideAppendedFlatGroupPos = probePlan.schema->createGroup();
             }
-            probePlan.schema->appendToGroup(buildSideGroup, probeSideAppendedFlatGroupPos);
+            probePlan.schema->appendToGroup(*buildSideGroup, probeSideAppendedFlatGroupPos);
         } else {
             // 3) append unflat non-key data chunks as new data chunks into dataChunks.
             allGroupsOnBuildSideIsFlat = false;
             auto groupPos = probePlan.schema->createGroup();
-            probePlan.schema->appendToGroup(buildSideGroup, groupPos);
-            probePlan.schema->groups[groupPos].estimatedCardinality =
-                buildSideGroup.estimatedCardinality;
+            probePlan.schema->appendToGroup(*buildSideGroup, groupPos);
+            probePlan.schema->groups[groupPos]->estimatedCardinality =
+                buildSideGroup->estimatedCardinality;
         }
     }
 
@@ -400,8 +402,6 @@ void Enumerator::appendLogicalHashJoin(
     }
     auto hashJoin = make_shared<LogicalHashJoin>(
         joinNodeID, buildPlan.lastOperator, buildPlan.schema->copy(), probePlan.lastOperator);
-    probeSideKeyGroup.estimatedCardinality =
-        max(probeSideKeyGroup.estimatedCardinality, buildSideKeyGroup.estimatedCardinality);
     probePlan.appendOperator(hashJoin);
 }
 
@@ -410,7 +410,7 @@ void Enumerator::appendFilter(shared_ptr<Expression> expression, LogicalPlan& pl
     auto unFlatGroupsPos = getUnFlatGroupsPos(expression, *plan.schema);
     auto variableToSelect = appendNecessaryFlattens(*expression, unFlatGroupsPos, plan);
     auto filter = make_shared<LogicalFilter>(expression, variableToSelect, plan.lastOperator);
-    plan.schema->groups[plan.schema->getGroupPos(variableToSelect)].estimatedCardinality *=
+    plan.schema->groups[plan.schema->getGroupPos(variableToSelect)]->estimatedCardinality *=
         PREDICATE_SELECTIVITY;
     plan.appendOperator(filter);
 }
@@ -448,10 +448,10 @@ void Enumerator::appendProjection(
             inToOutGroupPosMap.insert({exprResultInGroupPos[i], groupPos});
             newSchema->appendToGroup(expressionsToProject[i]->getInternalName(), groupPos);
             // copy other information
-            newSchema->groups[groupPos].isFlat =
-                plan.schema->groups[exprResultInGroupPos[i]].isFlat;
-            newSchema->groups[groupPos].estimatedCardinality =
-                plan.schema->groups[exprResultInGroupPos[i]].estimatedCardinality;
+            newSchema->groups[groupPos]->isFlat =
+                plan.schema->groups[exprResultInGroupPos[i]]->isFlat;
+            newSchema->groups[groupPos]->estimatedCardinality =
+                plan.schema->groups[exprResultInGroupPos[i]]->estimatedCardinality;
         }
     }
 
@@ -574,7 +574,7 @@ unordered_map<uint32_t, string> getUnFlatGroupsPos(
     for (auto& subExpression : subExpressions) {
         if (schema.containVariable(subExpression->getInternalName())) {
             auto groupPos = schema.getGroupPos(subExpression->getInternalName());
-            if (!schema.groups[groupPos].isFlat) {
+            if (!schema.groups[groupPos]->isFlat) {
                 unFlatGroupsPos.insert({groupPos, subExpression->getInternalName()});
             }
         } else {
