@@ -9,6 +9,9 @@ namespace parser {
 
 class ReadingStatement {
 
+public:
+    virtual ~ReadingStatement() = default;
+
 protected:
     explicit ReadingStatement(StatementType statementType) : statementType{statementType} {}
 

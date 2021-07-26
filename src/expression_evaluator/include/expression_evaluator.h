@@ -33,6 +33,8 @@ public:
         : result{result}, dataChunkPos{dataChunkPos}, valueVectorPos{valueVectorPos},
           expressionType{expressionType}, dataType(result->dataType) {}
 
+    virtual ~ExpressionEvaluator() = default;
+
     virtual void evaluate() {}
 
     bool isResultFlat();

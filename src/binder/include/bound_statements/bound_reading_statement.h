@@ -9,6 +9,9 @@ namespace binder {
 
 class BoundReadingStatement {
 
+public:
+    virtual ~BoundReadingStatement() = default;
+
 protected:
     explicit BoundReadingStatement(StatementType statementType) : statementType{statementType} {}
 

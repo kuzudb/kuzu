@@ -17,6 +17,8 @@ class Metric {
 public:
     explicit Metric(bool enabled) : enabled{enabled} {}
 
+    virtual ~Metric() = default;
+
 public:
     bool enabled;
 };

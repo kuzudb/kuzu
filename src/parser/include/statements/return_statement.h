@@ -11,6 +11,8 @@ public:
     ReturnStatement(vector<unique_ptr<ParsedExpression>> expressions, bool containsStar)
         : containsStar{containsStar}, expressions{move(expressions)} {}
 
+    virtual ~ReturnStatement() = default;
+
 public:
     bool containsStar;
     vector<unique_ptr<ParsedExpression>> expressions;
