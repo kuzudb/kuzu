@@ -10,8 +10,8 @@ const string INTERNAL_ID_SUFFIX = "_id";
 class NodeExpression : public VariableExpression {
 
 public:
-    NodeExpression(const string& nodeName, uint32_t id, label_t label)
-        : VariableExpression{VARIABLE, NODE, nodeName, id}, label{label} {}
+    NodeExpression(const string& uniqueName, label_t label)
+        : VariableExpression{VARIABLE, NODE, uniqueName}, label{label} {}
 
     inline string getIDProperty() const { return uniqueName + "." + INTERNAL_ID_SUFFIX; }
 

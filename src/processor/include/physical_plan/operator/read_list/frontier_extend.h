@@ -10,8 +10,8 @@ class FrontierExtend : public ReadList {
 
 public:
     FrontierExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, AdjLists* lists,
-        uint64_t lowerBound, uint64_t upperBound, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id);
+        label_t outNodeIDVectorLabel, uint64_t lowerBound, uint64_t upperBound,
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;
 
@@ -48,6 +48,8 @@ private:
             blockIdx = slot = 0u;
         }
     } currOutputPos;
+
+    label_t outNodeIDVectorLabel;
 };
 
 } // namespace processor

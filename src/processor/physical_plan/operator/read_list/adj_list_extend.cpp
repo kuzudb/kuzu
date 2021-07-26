@@ -4,9 +4,12 @@ namespace graphflow {
 namespace processor {
 
 AdjListExtend::AdjListExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, AdjLists* lists,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id} {
-    outValueVector = make_shared<NodeIDVector>(0, lists->getNodeIDCompressionScheme(), false);
+    label_t outNodeIDVectorLabel, unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t id)
+    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id},
+      outNodeIDVectorLabel{outNodeIDVectorLabel} {
+    outValueVector =
+        make_shared<NodeIDVector>(outNodeIDVectorLabel, lists->getNodeIDCompressionScheme(), false);
     outDataChunk = make_shared<DataChunk>();
     outDataChunk->append(outValueVector);
     auto listSyncState = make_shared<ListSyncState>();

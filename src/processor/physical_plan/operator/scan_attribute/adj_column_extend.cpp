@@ -4,11 +4,12 @@ namespace graphflow {
 namespace processor {
 
 AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+    label_t outNodeIDVectorLabel, unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t id)
     : ScanColumn{dataChunkPos, valueVectorPos, column, move(prevOperator), context, id},
-      FilteringOperator(this->inDataChunk) {
-    auto outNodeIDVector = make_shared<NodeIDVector>(
-        0, ((AdjColumn*)column)->getCompressionScheme(), false /*inNodeIDVector->isSequence()*/);
+      FilteringOperator(this->inDataChunk), outNodeIDVectorLabel{outNodeIDVectorLabel} {
+    auto outNodeIDVector = make_shared<NodeIDVector>(outNodeIDVectorLabel,
+        ((AdjColumn*)column)->getCompressionScheme(), false /*inNodeIDVector->isSequence()*/);
     outValueVector = static_pointer_cast<ValueVector>(outNodeIDVector);
     inDataChunk->append(outValueVector);
 }

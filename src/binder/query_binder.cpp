@@ -17,6 +17,7 @@ const char DEFAULT_LOAD_CSV_TOKEN_SEPARATOR = ',';
 static vector<pair<string, DataType>> parseCSVHeader(const string& headerLine, char tokenSeparator);
 static vector<unique_ptr<BoundReadingStatement>> mergeAllMatchStatements(
     vector<unique_ptr<BoundReadingStatement>> boundReadingStatements);
+static string makeUniqueName(const string& name, uint32_t id);
 
 unique_ptr<BoundSingleQuery> QueryBinder::bind(const SingleQuery& singleQuery) {
     auto boundSingleQuery = bindSingleQuery(singleQuery);
@@ -97,8 +98,8 @@ unique_ptr<BoundReadingStatement> QueryBinder::bindLoadCSVStatement(
     auto csvColumnVariables = vector<shared_ptr<VariableExpression>>();
     for (auto i = 0u; i < headerInfo.size(); ++i) {
         auto csvColumnVariableAliasName = lineVariableName + "[" + to_string(i) + "]";
-        auto csvColumnVariable = make_shared<VariableExpression>(
-            CSV_LINE_EXTRACT, headerInfo[i].second, csvColumnVariableAliasName, lastVariableId++);
+        auto csvColumnVariable = make_shared<VariableExpression>(CSV_LINE_EXTRACT,
+            headerInfo[i].second, makeUniqueName(csvColumnVariableAliasName, lastVariableId++));
         csvColumnVariable->rawExpression = csvColumnVariableAliasName;
         variablesInScope.insert({csvColumnVariableAliasName, csvColumnVariable});
         csvColumnVariables.push_back(csvColumnVariable);
@@ -182,9 +183,9 @@ unique_ptr<QueryGraph> QueryBinder::bindQueryGraph(
     const vector<unique_ptr<PatternElement>>& graphPattern) {
     auto queryGraph = make_unique<QueryGraph>();
     for (auto& patternElement : graphPattern) {
-        auto leftNode = bindQueryNode(*patternElement->nodePattern, *queryGraph).get();
+        auto leftNode = bindQueryNode(*patternElement->nodePattern, *queryGraph);
         for (auto& patternElementChain : patternElement->patternElementChains) {
-            auto rightNode = bindQueryNode(*patternElementChain->nodePattern, *queryGraph).get();
+            auto rightNode = bindQueryNode(*patternElementChain->nodePattern, *queryGraph);
             bindQueryRel(*patternElementChain->relPattern, leftNode, rightNode, *queryGraph);
             leftNode = rightNode;
         }
@@ -192,8 +193,9 @@ unique_ptr<QueryGraph> QueryBinder::bindQueryGraph(
     return queryGraph;
 }
 
-void QueryBinder::bindQueryRel(const RelPattern& relPattern, NodeExpression* leftNode,
-    NodeExpression* rightNode, QueryGraph& queryGraph) {
+void QueryBinder::bindQueryRel(const RelPattern& relPattern,
+    const shared_ptr<NodeExpression>& leftNode, const shared_ptr<NodeExpression>& rightNode,
+    QueryGraph& queryGraph) {
     auto parsedName = relPattern.name;
     if (variablesInScope.contains(parsedName)) {
         auto prevVariable = variablesInScope.at(parsedName);
@@ -226,8 +228,8 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern, NodeExpression* lef
     if (lowerBound > upperBound) {
         throw invalid_argument("Lower bound of rel " + parsedName + " is greater than upperBound.");
     }
-    auto queryRel = make_shared<RelExpression>(
-        parsedName, lastVariableId++, relLabel, srcNode, dstNode, lowerBound, upperBound);
+    auto queryRel = make_shared<RelExpression>(makeUniqueName(parsedName, lastVariableId++),
+        relLabel, srcNode, dstNode, lowerBound, upperBound);
     queryRel->rawExpression = parsedName;
     if (!parsedName.empty()) {
         variablesInScope.insert({parsedName, queryRel});
@@ -258,7 +260,8 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
         }
     } else { // create new node
         auto nodeLabel = bindNodeLabel(nodePattern.label);
-        queryNode = make_shared<NodeExpression>(parsedName, lastVariableId++, nodeLabel);
+        queryNode =
+            make_shared<NodeExpression>(makeUniqueName(parsedName, lastVariableId++), nodeLabel);
         queryNode->rawExpression = parsedName;
         if (ANY_LABEL == nodeLabel) {
             throw invalid_argument(
@@ -407,6 +410,10 @@ vector<unique_ptr<BoundReadingStatement>> mergeAllMatchStatements(
     }
     result.push_back(move(mergedMatchStatement));
     return result;
+}
+
+string makeUniqueName(const string& name, uint32_t id) {
+    return "_" + to_string(id) + "_" + name;
 }
 
 } // namespace binder

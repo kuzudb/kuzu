@@ -30,15 +30,17 @@ private:
     void enumerateReadingStatement(BoundReadingStatement& readingStatement);
     void enumerateLoadCSVStatement(const BoundLoadCSVStatement& loadCSVStatement);
     void updateQueryGraph(QueryGraph& queryGraph);
-    void enumerateSubplans(const vector<shared_ptr<Expression>>& whereClause);
-    void enumerateSingleQueryNode(const vector<shared_ptr<Expression>>& whereClause);
-    void enumerateNextLevel(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
-    void enumerateHashJoin(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
-    void enumerateExtend(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND);
+    void enumerateSubplans(const vector<shared_ptr<Expression>>& whereExpressions);
+    void enumerateSingleQueryNode(const vector<shared_ptr<Expression>>& whereExpressions);
+    void enumerateNextLevel(const vector<shared_ptr<Expression>>& whereExpressions);
+    void enumerateHashJoin(const vector<shared_ptr<Expression>>& whereExpressions);
+    void enumerateExtend(const vector<shared_ptr<Expression>>& whereExpressions);
 
     void appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, LogicalPlan& plan);
     void appendScan(uint32_t queryNodePos, LogicalPlan& plan);
-    void appendExtend(uint32_t queryRelPos, Direction direction, LogicalPlan& plan);
+    void appendExtendAndNecessaryFilters(const RelExpression& queryRel, Direction direction,
+        const vector<shared_ptr<Expression>>& expressionsToFilter, LogicalPlan& plan);
+    void appendExtend(const RelExpression& queryRel, Direction direction, LogicalPlan& plan);
     string appendNecessaryFlattens(const Expression& expression,
         const unordered_map<uint32_t, string>& unFlatGroupsPos, LogicalPlan& plan);
     void appendFlatten(const string& variable, LogicalPlan& plan);

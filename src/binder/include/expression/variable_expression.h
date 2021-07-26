@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "src/binder/include/expression/expression.h"
 
 namespace graphflow {
@@ -12,18 +14,10 @@ namespace binder {
 class VariableExpression : public Expression {
 
 public:
-    VariableExpression(
-        ExpressionType expressionType, DataType dataType, const string& name, uint32_t id)
-        : Expression{expressionType, dataType} {
-        makeUniqueName(name, id);
-    }
+    VariableExpression(ExpressionType expressionType, DataType dataType, string uniqueName)
+        : Expression{expressionType, dataType}, uniqueName{move(uniqueName)} {}
 
     string getInternalName() const override { return uniqueName; }
-
-private:
-    void makeUniqueName(const string& name, uint32_t id) {
-        uniqueName = "_" + to_string(id) + "_" + name;
-    }
 
 protected:
     string uniqueName;

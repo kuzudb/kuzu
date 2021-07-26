@@ -23,6 +23,7 @@ filegroup(
     name = "testfiles",
     srcs = [
         "queries/data_types/date_data_type.test",
+        "queries/filtered/cyclic.test",
         "queries/filtered/id_comparison.test",
         "queries/filtered/load_csv.test",
         "queries/filtered/multi_query.test",
@@ -32,6 +33,7 @@ filegroup(
         "queries/filtered/str_operations.test",
         "queries/filtered/unstructured_properties.test",
         "queries/projection/projection.test",
+        "queries/structural/cyclic.test",
         "queries/structural/frontier.test",
         "queries/structural/multi_query.test",
         "queries/structural/nodes.test",

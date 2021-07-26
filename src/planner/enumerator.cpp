@@ -10,10 +10,10 @@
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
 
-const double PREDICATE_SELECTIVITY = 0.2;
-
 namespace graphflow {
 namespace planner {
+
+const double PREDICATE_SELECTIVITY = 0.2;
 
 static uint64_t getExtensionRate(
     label_t boundNodeLabel, label_t relLabel, Direction direction, const Graph& graph);
@@ -30,13 +30,22 @@ static vector<shared_ptr<Expression>> splitExpressionOnAND(shared_ptr<Expression
 static unordered_map<uint32_t, string> getUnFlatGroupsPos(
     shared_ptr<Expression> expression, Schema& schema);
 
+// check for all variable expressions and rewrite
 static vector<shared_ptr<Expression>> rewriteExpressionToProject(
     vector<shared_ptr<Expression>> expressions, const Catalog& catalog,
     bool isRewritingAllProperties);
+// rewrite variable as all of its property
 static vector<shared_ptr<Expression>> rewriteVariableExpression(
     shared_ptr<Expression> expression, const Catalog& catalog, bool isRewritingAllProperties);
 static vector<shared_ptr<Expression>> createLogicalPropertyExpressions(
     shared_ptr<Expression> expression, const vector<PropertyDefinition>& properties);
+
+// Rewrite a query rel that closes a cycle as a regular query rel for extend. This requires giving a
+// different identifier to the node that will close the cycle. This identifier is created as rel
+// name + node name.
+static shared_ptr<RelExpression> rewriteQueryRel(const RelExpression& queryRel, bool isRewriteDst);
+static shared_ptr<Expression> createNodeIDEqualComparison(
+    const shared_ptr<NodeExpression>& left, const shared_ptr<NodeExpression>& right);
 
 Enumerator::Enumerator(const Graph& graph) : graph{graph} {
     mergedQueryGraph = make_unique<QueryGraph>();
@@ -142,19 +151,19 @@ void Enumerator::updateQueryGraph(QueryGraph& queryGraph) {
     currentLevel = 0;
 }
 
-void Enumerator::enumerateSubplans(const vector<shared_ptr<Expression>>& whereClause) {
+void Enumerator::enumerateSubplans(const vector<shared_ptr<Expression>>& whereExpressions) {
     // first query part may not have query graph
     // E.g. WITH 1 AS one MATCH (a) ...
     if (mergedQueryGraph->isEmpty()) {
         return;
     }
-    enumerateSingleQueryNode(whereClause);
+    enumerateSingleQueryNode(whereExpressions);
     while (currentLevel < mergedQueryGraph->getNumQueryRels()) {
-        enumerateNextLevel(whereClause);
+        enumerateNextLevel(whereExpressions);
     }
 }
 
-void Enumerator::enumerateSingleQueryNode(const vector<shared_ptr<Expression>>& whereClause) {
+void Enumerator::enumerateSingleQueryNode(const vector<shared_ptr<Expression>>& whereExpressions) {
     auto emptySubgraph = SubqueryGraph(*mergedQueryGraph);
     unique_ptr<LogicalPlan> prevPlan;
     if (subPlansTable->containSubgraphPlans(emptySubgraph)) {
@@ -174,31 +183,29 @@ void Enumerator::enumerateSingleQueryNode(const vector<shared_ptr<Expression>>& 
         newSubgraph.addQueryNode(nodePos);
         auto plan = prevPlan->copy();
         appendScan(nodePos, *plan);
-        for (auto& expression : getNewMatchedExpressions(emptySubgraph, newSubgraph, whereClause)) {
+        for (auto& expression :
+            getNewMatchedExpressions(emptySubgraph, newSubgraph, whereExpressions)) {
             appendFilter(expression, *plan);
         }
         subPlansTable->addPlan(newSubgraph, move(plan));
     }
 }
 
-void Enumerator::enumerateNextLevel(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND) {
+void Enumerator::enumerateNextLevel(const vector<shared_ptr<Expression>>& whereExpressions) {
     currentLevel++;
-    enumerateExtend(whereClauseSplitOnAND);
+    enumerateExtend(whereExpressions);
     // TODO: remove currentLevel constraint for Hash Join enumeration
     if (currentLevel >= 4) {
-        enumerateHashJoin(whereClauseSplitOnAND);
+        enumerateHashJoin(whereExpressions);
     }
 }
 
-void Enumerator::enumerateExtend(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND) {
+void Enumerator::enumerateExtend(const vector<shared_ptr<Expression>>& whereExpressions) {
     auto& subgraphPlansMap = subPlansTable->getSubqueryGraphPlansMap(currentLevel - 1);
     for (auto& [prevSubgraph, prevPlans] : subgraphPlansMap) {
         auto connectedQueryRelsWithDirection =
             mergedQueryGraph->getConnectedQueryRelsWithDirection(prevSubgraph);
         for (auto& [relPos, isSrcConnected, isDstConnected] : connectedQueryRelsWithDirection) {
-            if (isSrcConnected && isDstConnected) {
-                throw invalid_argument("Intersect-like operator is not supported.");
-            }
             // Consider query MATCH (a)-[r1]->(b)-[r2]->(c)-[r3]->(d) WITH *
             // MATCH (d)->[r4]->(e)-[r5]->(f) RETURN *
             // First MATCH is enumerated normally. When enumerating second MATCH,
@@ -211,22 +218,44 @@ void Enumerator::enumerateExtend(const vector<shared_ptr<Expression>>& whereClau
             if (matchedQueryRels[relPos]) {
                 continue;
             }
-            for (auto& prevPlan : prevPlans) {
-                auto newSubgraph = prevSubgraph;
-                newSubgraph.addQueryRel(relPos);
-                auto plan = prevPlan->copy();
-                appendExtend(relPos, isSrcConnected ? FWD : BWD, *plan);
-                for (auto& expression :
-                    getNewMatchedExpressions(prevSubgraph, newSubgraph, whereClauseSplitOnAND)) {
-                    appendFilter(expression, *plan);
+            auto newSubgraph = prevSubgraph;
+            newSubgraph.addQueryRel(relPos);
+            auto expressionsToFilter =
+                getNewMatchedExpressions(prevSubgraph, newSubgraph, whereExpressions);
+            auto& queryRel = *mergedQueryGraph->queryRels[relPos];
+            if (isSrcConnected && isDstConnected) {
+                // Cyclic query is handled as an extend followed by an ID filter. E.g. Consider
+                // (a)-[e1]->(b)-[e2]->(c), (a)-[e3]->(c) triangle query, we do regular
+                // S(a)->E(e1,b)->E(e2,c) and close the cycle with e3. In order to close, we do a
+                // further Extend(e3,c). Note that this c needs a different identifier other than c.
+                // We name it as e3_c. Then we apply a filter on c.id=e3_c.id to close the cycle.
+                for (auto& prevPlan : prevPlans) {
+                    for (auto direction : DIRECTIONS) {
+                        auto isRewriteDst = direction == FWD;
+                        auto plan = prevPlan->copy();
+                        auto tmpRel = rewriteQueryRel(queryRel, isRewriteDst);
+                        auto idFilter = createNodeIDEqualComparison(
+                            isRewriteDst ? queryRel.dstNode : queryRel.srcNode,
+                            isRewriteDst ? tmpRel->dstNode : tmpRel->srcNode);
+                        appendExtendAndNecessaryFilters(
+                            *tmpRel, direction, expressionsToFilter, *plan);
+                        appendFilter(idFilter, *plan);
+                        subPlansTable->addPlan(newSubgraph, move(plan));
+                    }
                 }
-                subPlansTable->addPlan(newSubgraph, move(plan));
+            } else {
+                for (auto& prevPlan : prevPlans) {
+                    auto plan = prevPlan->copy();
+                    appendExtendAndNecessaryFilters(
+                        queryRel, isSrcConnected ? FWD : BWD, expressionsToFilter, *plan);
+                    subPlansTable->addPlan(newSubgraph, move(plan));
+                }
             }
         }
     }
 }
 
-void Enumerator::enumerateHashJoin(const vector<shared_ptr<Expression>>& whereClauseSplitOnAND) {
+void Enumerator::enumerateHashJoin(const vector<shared_ptr<Expression>>& whereExpressions) {
     for (auto leftSize = currentLevel - 2; leftSize >= ceil(currentLevel / 2.0); --leftSize) {
         auto& subgraphPlansMap = subPlansTable->getSubqueryGraphPlansMap(leftSize);
         for (auto& [leftSubgraph, leftPlans] : subgraphPlansMap) {
@@ -247,7 +276,7 @@ void Enumerator::enumerateHashJoin(const vector<shared_ptr<Expression>>& whereCl
                 auto newSubgraph = leftSubgraph;
                 newSubgraph.addSubqueryGraph(rightSubgraph);
                 auto expressionsToFilter = getNewMatchedExpressions(
-                    leftSubgraph, rightSubgraph, newSubgraph, whereClauseSplitOnAND);
+                    leftSubgraph, rightSubgraph, newSubgraph, whereExpressions);
                 for (auto& leftPlan : leftPlans) {
                     for (auto& rightPlan : rightPlans) {
                         auto plan = leftPlan->copy();
@@ -294,8 +323,16 @@ void Enumerator::appendScan(uint32_t queryNodePos, LogicalPlan& plan) {
     plan.appendOperator(scan);
 }
 
-void Enumerator::appendExtend(uint32_t queryRelPos, Direction direction, LogicalPlan& plan) {
-    auto& queryRel = *mergedQueryGraph->queryRels[queryRelPos];
+void Enumerator::appendExtendAndNecessaryFilters(const RelExpression& queryRel, Direction direction,
+    const vector<shared_ptr<Expression>>& expressionsToFilter, LogicalPlan& plan) {
+    appendExtend(queryRel, direction, plan);
+    for (auto& expression : expressionsToFilter) {
+        appendFilter(expression, plan);
+    }
+}
+
+void Enumerator::appendExtend(
+    const RelExpression& queryRel, Direction direction, LogicalPlan& plan) {
     auto boundNode = FWD == direction ? queryRel.srcNode : queryRel.dstNode;
     auto nbrNode = FWD == direction ? queryRel.dstNode : queryRel.srcNode;
     auto boundNodeID = boundNode->getIDProperty();
@@ -642,6 +679,27 @@ vector<shared_ptr<Expression>> createLogicalPropertyExpressions(
             property.dataType, property.name, property.id, expression));
     }
     return propertyExpressions;
+}
+
+shared_ptr<RelExpression> rewriteQueryRel(const RelExpression& queryRel, bool isRewriteDst) {
+    auto& nodeToRewrite = isRewriteDst ? *queryRel.dstNode : *queryRel.srcNode;
+    auto tmpNode = make_shared<NodeExpression>(
+        nodeToRewrite.getInternalName() + "_" + queryRel.getInternalName(), nodeToRewrite.label);
+    return make_shared<RelExpression>(queryRel.getInternalName(), queryRel.label,
+        isRewriteDst ? queryRel.srcNode : tmpNode, isRewriteDst ? tmpNode : queryRel.dstNode,
+        queryRel.lowerBound, queryRel.upperBound);
+}
+
+shared_ptr<Expression> createNodeIDEqualComparison(
+    const shared_ptr<NodeExpression>& left, const shared_ptr<NodeExpression>& right) {
+    auto srcNodeID = make_shared<PropertyExpression>(
+        NODE_ID, INTERNAL_ID_SUFFIX, UINT32_MAX /* property key for internal id */, left);
+    auto dstNodeID = make_shared<PropertyExpression>(
+        NODE_ID, INTERNAL_ID_SUFFIX, UINT32_MAX /* property key for internal id  */, right);
+    auto result = make_shared<Expression>(EQUALS_NODE_ID, BOOL, move(srcNodeID), move(dstNodeID));
+    result->rawExpression =
+        result->children[0]->getInternalName() + " = " + result->children[1]->getInternalName();
+    return result;
 }
 
 } // namespace planner

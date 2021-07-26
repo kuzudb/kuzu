@@ -52,8 +52,8 @@ private:
 
     unique_ptr<QueryGraph> bindQueryGraph(const vector<unique_ptr<PatternElement>>& graphPattern);
 
-    void bindQueryRel(const RelPattern& relPattern, NodeExpression* leftNode,
-        NodeExpression* rightNode, QueryGraph& queryGraph);
+    void bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
+        const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph);
 
     shared_ptr<NodeExpression> bindQueryNode(
         const NodePattern& nodePattern, QueryGraph& queryGraph);
