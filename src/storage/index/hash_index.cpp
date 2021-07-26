@@ -77,7 +77,7 @@ void HashIndex::lookup(ValueVector& keys, ValueVector& result, BufferManagerMetr
         auto blockId = getPrimaryBlockIdForSlot(slotIds[keyPos]);
         auto slotIdInBlock = slotIds[keyPos] % numSlotsPerPrimaryBlock;
         uint8_t* expectedKey =
-            keyData + (keys.state->getSelectedPositionAtIdx(keyPos + offset) * numBytesPerKey);
+            keyData + (keys.state->selectedPositions[keyPos + offset] * numBytesPerKey);
         auto resultValue =
             lookupKeyInSlot(expectedKey, numBytesPerKey, blockId, slotIdInBlock, metrics);
         resultData[keyPos] = resultValue;
@@ -160,7 +160,7 @@ vector<bool> HashIndex::notExists(ValueVector& keys, ValueVector& hashes) {
         auto blockId = getPrimaryBlockIdForSlot(slotIds[keyPos]);
         auto slotIdInBlock = slotIds[keyPos] % numSlotsPerPrimaryBlock;
         auto expectedKey =
-            keyData + (keys.state->getSelectedPositionAtIdx(keyPos + offset) * numBytesPerKey);
+            keyData + (keys.state->selectedPositions[keyPos + offset] * numBytesPerKey);
         keyNotExists[keyPos] =
             keyNotExistInSlot(expectedKey, numBytesPerKey, blockId, slotIdInBlock);
     }
@@ -200,7 +200,7 @@ void HashIndex::insertInternal(
     vector<uint64_t> keyPositions(numKeys);
     uint64_t numEntriesToInsert = 0;
     for (auto pos = 0u; pos < numKeys; pos++) {
-        keyPositions[numEntriesToInsert] = keys.state->getSelectedPositionAtIdx(pos + offset);
+        keyPositions[numEntriesToInsert] = keys.state->selectedPositions[pos + offset];
         // numEntriesToInsert is only incremented when key exists. otherwise keyNotExists[pos] is 0.
         numEntriesToInsert += keyNotExists[pos];
     }
@@ -258,7 +258,7 @@ vector<uint64_t> HashIndex::calculateSlotIdsForHashes(
     auto hashMask = (1 << indexHeader.currentLevel) - 1;
     auto splitHashMask = (1 << (indexHeader.currentLevel + 1)) - 1;
     for (auto i = 0u; i < numValues; i++) {
-        auto pos = hashes.state->getSelectedPositionAtIdx(i + offset);
+        auto pos = hashes.state->selectedPositions[i + offset];
         auto slotId = hashesData[pos] & hashMask;
         slotIds[i] =
             slotId >= indexHeader.nextSplitSlotId ? slotId : (hashesData[pos] & splitHashMask);

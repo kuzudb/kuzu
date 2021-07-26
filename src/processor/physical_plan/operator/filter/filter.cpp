@@ -20,7 +20,6 @@ void Filter::getNextTuples() {
     bool hasAtLeastOneSelectedValue;
     do {
         restoreDataChunkSelectorState();
-        dataChunkToSelect->state->selectedPositions = nullptr;
         prevOperator->getNextTuples();
         if (dataChunkToSelect->state->size == 0) {
             break;

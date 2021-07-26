@@ -40,34 +40,34 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
         switch (operand.dataType) {
         case BOOL: {
             for (auto i = 0u; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 outValues[pos].val.booleanVal = operand.values[pos];
             }
         } break;
         case INT64: {
             auto intValues = (int64_t*)operand.values;
             for (auto i = 0u; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 outValues[pos].val.int64Val = intValues[pos];
             }
         } break;
         case DOUBLE: {
             auto doubleValues = (double_t*)operand.values;
             for (auto i = 0u; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 outValues[pos].val.doubleVal = doubleValues[pos];
             }
         } break;
         case DATE: {
             auto dateValues = (date_t*)operand.values;
             for (auto i = 0u; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 outValues[pos].val.dateVal = dateValues[pos];
             }
         } break;
         case STRING: {
             for (auto i = 0u; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 auto& operandVal = ((gf_string_t*)operand.values)[pos];
                 result.allocateStringOverflowSpace(outValues[pos].val.strVal, operandVal.len);
                 outValues[pos].val.strVal.set(operandVal);
@@ -108,27 +108,27 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
         switch (operand.dataType) {
         case BOOL: {
             for (auto i = 0u; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 result.addString(pos, TypeUtils::toString(operand.values[pos]));
             }
         } break;
         case INT64: {
             auto intValues = (int64_t*)operand.values;
             for (auto i = 0u; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 result.addString(pos, TypeUtils::toString(intValues[pos]));
             }
         } break;
         case DOUBLE: {
             auto doubleValues = (double_t*)operand.values;
             for (auto i = 0u; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 result.addString(pos, TypeUtils::toString(doubleValues[pos]));
             }
         } break;
         case DATE: {
             for (auto i = 0u; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 result.addString(pos, Date::toString(((date_t*)operand.values)[pos]));
             }
         } break;
@@ -143,7 +143,7 @@ void VectorCastOperations::castUnstructuredToBoolValue(ValueVector& operand, Val
     auto inValues = (Value*)operand.values;
     if (!operand.state->isFlat()) {
         for (auto i = 0u; i < operand.state->size; i++) {
-            auto pos = operand.state->getSelectedPositionAtIdx(i);
+            auto pos = operand.state->selectedPositions[i];
             if (inValues[pos].dataType != BOOL) {
                 throw std::invalid_argument("Don’t know how to treat that as a predicate: “" +
                                             DataTypeNames[inValues[pos].dataType] + "(" +

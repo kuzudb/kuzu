@@ -78,15 +78,14 @@ void HashJoinBuild::appendPayloadVectorAsFixSizedValues(ValueVector& vector, uin
         auto startNodeOffset = ((node_offset_t*)vector.values)[0];
         for (auto i = 0u; i < appendCount; i++) {
             auto valuePos = valueOffsetInVector + (i * (1 - isSingleValue));
-            auto nodeOffset = startNodeOffset + vector.state->getSelectedPositionAtIdx(valuePos);
+            auto nodeOffset = startNodeOffset + vector.state->selectedPositions[valuePos];
             memcpy(appendBuffer + (i * numBytesForFixedTuplePart), &nodeOffset, typeSize);
         }
     } else {
         for (auto i = 0u; i < appendCount; i++) {
             auto valuePos = valueOffsetInVector + (i * (1 - isSingleValue));
             memcpy(appendBuffer + (i * numBytesForFixedTuplePart),
-                vector.values + (vector.state->getSelectedPositionAtIdx(valuePos) * typeSize),
-                typeSize);
+                vector.values + (vector.state->selectedPositions[valuePos] * typeSize), typeSize);
         }
     }
 }
@@ -117,13 +116,13 @@ overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
     if (vector.dataType == NODE && dynamic_cast<NodeIDVector&>(vector).isSequence()) {
         auto startNodeOffset = ((node_offset_t*)vector.values)[0];
         for (auto i = 0u; i < vector.state->size; i++) {
-            auto nodeOffset = startNodeOffset + vector.state->getSelectedPositionAtIdx(i);
+            auto nodeOffset = startNodeOffset + vector.state->selectedPositions[i];
             memcpy(blockAppendPos + (i * numBytesPerValue), &nodeOffset, numBytesPerValue);
         }
     } else {
         for (auto i = 0u; i < vector.state->size; i++) {
             memcpy(blockAppendPos + (i * numBytesPerValue),
-                vectorValues + (vector.state->getSelectedPositionAtIdx(i) * numBytesPerValue),
+                vectorValues + (vector.state->selectedPositions[i] * numBytesPerValue),
                 numBytesPerValue);
         }
     }
@@ -152,7 +151,7 @@ void HashJoinBuild::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
     if (vector.isSequence()) {
         for (auto i = 0u; i < appendCount; i++) {
             auto nodeOffset =
-                startNodeOffset + vector.state->getSelectedPositionAtIdx(valueOffsetInVector + i);
+                startNodeOffset + vector.state->selectedPositions[valueOffsetInVector + i];
             memcpy(appendBuffer, &nodeOffset, nodeOffsetSize);
             memcpy(appendBuffer + sizeof(node_offset_t),
                 (uint8_t*)&vector.representation.commonLabel, labelSize);
@@ -161,7 +160,7 @@ void HashJoinBuild::appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer,
         return;
     }
     for (auto i = 0u; i < appendCount; i++) {
-        auto valuePos = vector.state->getSelectedPositionAtIdx(valueOffsetInVector + i);
+        auto valuePos = vector.state->selectedPositions[valueOffsetInVector + i];
         memcpy(appendBuffer, vector.values + (valuePos * nodeIDSize), nodeOffsetSize);
         memcpy(appendBuffer + sizeof(node_offset_t),
             (isLabelCommon ? (uint8_t*)&vector.representation.commonLabel :

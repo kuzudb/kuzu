@@ -19,9 +19,13 @@ public:
     // returns a dataChunkState for vectors holding a single value.
     static shared_ptr<SharedVectorState> getSingleValueDataChunkState();
 
-    inline bool isUnfiltered() const { return selectedPositions == nullptr; }
+    inline bool isUnfiltered() const {
+        return selectedPositions == (sel_t*)&INCREMENTAL_SELECTED_POS;
+    }
 
-    inline void resetSelectorToUnselected() { selectedPositions = nullptr; }
+    inline void resetSelectorToUnselected() {
+        selectedPositions = (sel_t*)&INCREMENTAL_SELECTED_POS;
+    }
 
     inline void resetSelectorToValuePosBuffer() {
         selectedPositions = selectedPositionsBuffer.get();
@@ -34,19 +38,15 @@ public:
 
     inline bool isFlat() const { return currIdx != -1; }
 
-    inline uint64_t getPositionOfCurrIdx() const {
-        return isUnfiltered() ? currIdx : selectedPositions[currIdx];
-    }
-
-    inline sel_t getSelectedPositionAtIdx(int i) const {
-        return isUnfiltered() ? i : selectedPositions[i];
-    }
+    inline uint64_t getPositionOfCurrIdx() const { return selectedPositions[currIdx]; }
 
     uint64_t getNumSelectedValues() const;
 
     shared_ptr<SharedVectorState> clone();
 
 public:
+    static const sel_t INCREMENTAL_SELECTED_POS[DEFAULT_VECTOR_CAPACITY];
+
     // The currIdx is >= 0 when vectors are flattened and -1 if the vectors are unflat.
     int64_t currIdx;
     uint64_t size;

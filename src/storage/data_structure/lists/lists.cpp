@@ -135,7 +135,7 @@ void Lists<UNSTRUCTURED>::readValues(const shared_ptr<NodeIDVector>& nodeIDVecto
             propertyKeyIdxToRead, valueVector, pos, pageHandle, info, metrics);
     } else {
         for (auto i = 0ul; i < valueVector->state->size; i++) {
-            auto pos = valueVector->state->getSelectedPositionAtIdx(i);
+            auto pos = valueVector->state->selectedPositions[i];
             nodeOffset = nodeIDVector->readNodeOffset(pos);
             auto info = getListInfo(nodeOffset);
             readUnstrPropertyFromAList(
