@@ -20,7 +20,7 @@ struct UnaryOperationExecutor {
             }
         } else {
             for (auto i = 0ul; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 if (!operand.nullMask[pos]) {
                     FUNC::operation(inputValues[pos], resultValues[pos]);
                 }
@@ -39,7 +39,7 @@ struct UnaryOperationExecutor {
             }
         } else {
             for (auto i = 0ul; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 if (!operand.nullMask[pos]) {
                     resultValues[pos] = FUNC::operation(inputValues[pos]);
                 }
@@ -59,7 +59,7 @@ struct UnaryOperationExecutor {
             }
         } else {
             for (auto i = 0ul; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 operand.readNodeID(pos, nodeID);
                 if (!operand.nullMask[pos]) {
                     resultValues[pos] = FUNC::operation(nodeID);
@@ -75,7 +75,7 @@ struct UnaryOperationExecutor {
             result.values[pos] = operand.nullMask[pos] == value;
         } else {
             for (auto i = 0ul; i < operand.state->size; i++) {
-                auto pos = operand.state->getSelectedPositionAtIdx(i);
+                auto pos = operand.state->selectedPositions[i];
                 result.values[pos] = operand.nullMask[pos] == value;
             }
         }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/common/include/data_chunk/data_chunk.h"
+#include "src/common/include/data_chunk/data_chunk_state.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -18,8 +19,11 @@ public:
 
 protected:
     inline void restoreDataChunkSelectorState() {
-        dataChunkToSelect->state->size = prevNumSelectedValues;
         if (prevSelectedValues == nullptr) {
+            return;
+        }
+        dataChunkToSelect->state->size = prevNumSelectedValues;
+        if (prevSelectedValues == (sel_t*)&SharedVectorState::INCREMENTAL_SELECTED_POS) {
             dataChunkToSelect->state->resetSelectorToUnselected();
         } else {
             dataChunkToSelect->state->resetSelectorToValuePosBuffer();
@@ -31,7 +35,7 @@ protected:
     inline void saveDataChunkSelectorState() {
         prevNumSelectedValues = dataChunkToSelect->state->size;
         if (dataChunkToSelect->state->isUnfiltered()) {
-            prevSelectedValues = nullptr;
+            prevSelectedValues = (sel_t*)&SharedVectorState::INCREMENTAL_SELECTED_POS;
         } else {
             memcpy(prevSelectedValuesBuffer.get(),
                 dataChunkToSelect->state->selectedPositionsBuffer.get(),

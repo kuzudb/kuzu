@@ -52,7 +52,7 @@ bool NodeIDVector::discardNulls() {
             }
         } else {
             for (auto j = 0u; j < state->size; j++) {
-                nodeOffset = readNodeOffset(state->getSelectedPositionAtIdx(j));
+                nodeOffset = readNodeOffset(state->selectedPositions[j]);
                 if (nodeOffset != nullOffset) {
                     state->selectedPositions[selectedPos++] = j;
                 }

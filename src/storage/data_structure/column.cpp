@@ -51,10 +51,10 @@ void BaseColumn::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& 
     } else {
         for (auto i = 0ul; i < nodeIDVector->state->size; i++) {
             auto nodeOffset =
-                nodeIDVector->readNodeOffset(nodeIDVector->state->getSelectedPositionAtIdx(i));
+                nodeIDVector->readNodeOffset(nodeIDVector->state->selectedPositions[i]);
             auto pageCursor = getPageCursorForOffset(nodeOffset);
             auto frame = bufferManager.pin(fileHandle, pageCursor.idx, metrics);
-            memcpy(values + valueVector->state->getSelectedPositionAtIdx(i) * elementSize,
+            memcpy(values + valueVector->state->selectedPositions[i] * elementSize,
                 frame + pageCursor.offset, elementSize);
             bufferManager.unpin(fileHandle, pageCursor.idx);
         }

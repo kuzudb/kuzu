@@ -16,8 +16,7 @@ static void fillOperandNullMask(ValueVector& operand) {
     } else {
         auto size = operand.state->size;
         for (uint64_t i = 0; i < size; i++) {
-            operand.nullMask[i] =
-                IsNull::operation(values[operand.state->getSelectedPositionAtIdx(i)]);
+            operand.nullMask[i] = IsNull::operation(values[operand.state->selectedPositions[i]]);
         }
     }
 }
