@@ -384,9 +384,9 @@ void HashIndex::serIndexHeaderAndOverflowPageSet() {
     auto numSpilledBlocks = 0;
     auto overflowPagesFreeMapItr = overflowPagesFreeMap.begin();
     auto numBytesPerBlockHeader = INDEX_HEADER_SIZE;
-    do {
+    while (leftOverflowPagesSize > 0) {
         auto block = getMemoryBlock(blockIdForOverflowPageSet);
-        uint32_t overflowPagesList[overflowPageSetSize];
+        vector<uint32_t> overflowPagesList(overflowPageSetSize);
         for (auto i = 0u; i < overflowPageSetSize; i++) {
             auto overflowPageId = overflowPagesFreeMapItr->first;
             overflowPagesList[i] = overflowPagesFreeMapItr->second ?
@@ -394,7 +394,7 @@ void HashIndex::serIndexHeaderAndOverflowPageSet() {
                                        overflowPageId;
             overflowPagesFreeMapItr++;
         }
-        memcpy(block + numBytesPerBlockHeader, &overflowPagesList,
+        memcpy(block + numBytesPerBlockHeader, overflowPagesList.data(),
             overflowPageSetSize * sizeof(uint32_t));
         numBytesPerBlockHeader = sizeof(uint64_t);
         leftOverflowPagesSize -= overflowPageSetSize;
@@ -409,7 +409,7 @@ void HashIndex::serIndexHeaderAndOverflowPageSet() {
             indexHeader.nextBlockIdForOverflowPageSet =
                 leftOverflowPagesSize > 0 ? blockIdForOverflowPageSet : 0;
         }
-    } while (leftOverflowPagesSize > 0);
+    }
     memcpy(getMemoryBlock(0), &indexHeader, INDEX_HEADER_SIZE);
 }
 

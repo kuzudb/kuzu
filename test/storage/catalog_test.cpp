@@ -1,13 +1,9 @@
 #include "gtest/gtest.h"
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
-#include "test/test_utility/include/test_helper.h"
 
 #include "src/storage/include/catalog.h"
 
 using namespace std;
 using namespace graphflow::storage;
-using namespace graphflow::testing;
 
 class CatalogTest : public testing::Test {
 public:
@@ -60,10 +56,6 @@ TEST_F(CatalogTest, AddLabelsTest) {
     ASSERT_EQ(catalog->getNodeProperty(0, "age").id, 5);
     ASSERT_EQ(catalog->getNodeProperty(0, "age").dataType, INT64);
     ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrIntProp"), 0);
-    auto a = catalog->getAllNodeProperties(0);
-    for (auto& property : a) {
-        cout << property.name << " " << property.id << property.dataType << endl;
-    }
     ASSERT_EQ(catalog->getAllNodeProperties(0)[7].dataType, UNSTRUCTURED);
     ASSERT_EQ(catalog->getRelProperty(0, "date").dataType, INT64);
 }
