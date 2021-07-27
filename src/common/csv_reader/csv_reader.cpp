@@ -7,7 +7,7 @@ namespace graphflow {
 namespace common {
 
 CSVReader::CSVReader(const string& fName, const char tokenSeparator, uint64_t blockId)
-    : fd{nullptr}, tokenSeparator{tokenSeparator}, line{new char[1 << 10]},
+    : fd{nullptr}, tokenSeparator{tokenSeparator}, line{(char*)malloc(sizeof(char) * 1024)},
       readingBlockIdx{CSV_READING_BLOCK_SIZE * blockId}, readingBlockEndIdx{CSV_READING_BLOCK_SIZE *
                                                                             (blockId + 1)} {
     openFile(fName);
@@ -26,7 +26,7 @@ CSVReader::CSVReader(const string& fName, const char tokenSeparator, uint64_t bl
 }
 
 CSVReader::CSVReader(const string& fname, const char tokenSeparator)
-    : tokenSeparator(tokenSeparator), line{new char[1 << 10]} {
+    : tokenSeparator(tokenSeparator), line{(char*)malloc(sizeof(char) * 1024)} {
     openFile(fname);
     readingBlockIdx = 0;
     readingBlockEndIdx = UINT64_MAX;
@@ -34,7 +34,7 @@ CSVReader::CSVReader(const string& fname, const char tokenSeparator)
 
 CSVReader::~CSVReader() {
     fclose(fd);
-    delete[](line);
+    free(line);
 }
 
 bool CSVReader::hasNextLine() {

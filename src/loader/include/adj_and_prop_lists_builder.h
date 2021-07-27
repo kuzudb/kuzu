@@ -59,12 +59,12 @@ public:
 
     // Sets a neighbour nodeID in the adjList of the given nodeID in a particular adjLists
     // structure.
-    void setRel(const uint64_t& pos, const Direction& direction, const vector<nodeID_t>& nodeIDs);
+    void setRel(uint64_t pos, Direction direction, const vector<nodeID_t>& nodeIDs);
 
     // Sets a proeprty in the propertyList of the given nodeID in a particular RelPropertyLists
     // structure.
     void setProperty(const vector<uint64_t>& pos, const vector<nodeID_t>& nodeIDs,
-        const uint32_t& propertyIdx, const uint8_t* val, const DataType& type);
+        uint32_t propertyIdx, const uint8_t* val, DataType type);
 
     // Sets a string proeprty in the propertyList of the given nodeID in a particular
     // RelPropertyLists structure.

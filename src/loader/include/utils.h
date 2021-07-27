@@ -133,8 +133,8 @@ public:
 
     // Calculates the page id and offset in page where the data of a particular list has to be put
     // in the in-mem pages.
-    static void calculatePageCursor(const uint32_t& header, const uint64_t& reversePos,
-        const uint8_t& numBytesPerElement, const node_offset_t& nodeOffset, PageCursor& cursor,
+    static void calculatePageCursor(uint32_t header, uint64_t reversePos,
+        uint8_t numBytesPerElement, node_offset_t nodeOffset, PageCursor& cursor,
         ListsMetadata& metadata);
 };
 
