@@ -13,16 +13,25 @@ struct UnaryOperationExecutor {
     static void executeArithmeticOps(ValueVector& operand, ValueVector& result) {
         auto inputValues = (T*)operand.values;
         auto resultValues = (R*)result.values;
+
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
-            if (!operand.nullMask[pos]) {
+            if (!operand.isNull(pos)) {
                 FUNC::operation(inputValues[pos], resultValues[0]);
             }
         } else {
-            for (auto i = 0ul; i < operand.state->size; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                if (!operand.nullMask[pos]) {
+            // The operand and result share the same nullMasks
+            if (operand.hasNoNullsGuarantee()) {
+                for (auto i = 0ul; i < operand.state->size; i++) {
+                    auto pos = operand.state->selectedPositions[i];
                     FUNC::operation(inputValues[pos], resultValues[pos]);
+                }
+            } else {
+                for (auto i = 0ul; i < operand.state->size; i++) {
+                    auto pos = operand.state->selectedPositions[i];
+                    if (!operand.isNull(pos)) {
+                        FUNC::operation(inputValues[pos], resultValues[pos]);
+                    }
                 }
             }
         }
@@ -34,14 +43,21 @@ struct UnaryOperationExecutor {
         auto resultValues = (uint64_t*)result.values;
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
-            if (!operand.nullMask[pos]) {
+            if (!operand.isNull(pos)) {
                 resultValues[pos] = FUNC::operation(inputValues[pos]);
             }
         } else {
-            for (auto i = 0ul; i < operand.state->size; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                if (!operand.nullMask[pos]) {
+            if (operand.hasNoNullsGuarantee()) {
+                for (auto i = 0ul; i < operand.state->size; i++) {
+                    auto pos = operand.state->selectedPositions[i];
                     resultValues[pos] = FUNC::operation(inputValues[pos]);
+                }
+            } else {
+                for (auto i = 0ul; i < operand.state->size; i++) {
+                    auto pos = operand.state->selectedPositions[i];
+                    if (!operand.isNull(pos)) {
+                        resultValues[pos] = FUNC::operation(inputValues[pos]);
+                    }
                 }
             }
         }
@@ -54,15 +70,23 @@ struct UnaryOperationExecutor {
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
             operand.readNodeID(pos, nodeID);
-            if (!operand.nullMask[pos]) {
+            if (!operand.isNull(pos)) {
                 resultValues[pos] = FUNC::operation(nodeID);
             }
         } else {
-            for (auto i = 0ul; i < operand.state->size; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                operand.readNodeID(pos, nodeID);
-                if (!operand.nullMask[pos]) {
+            if (operand.hasNoNullsGuarantee()) {
+                for (auto i = 0ul; i < operand.state->size; i++) {
+                    auto pos = operand.state->selectedPositions[i];
+                    operand.readNodeID(pos, nodeID);
                     resultValues[pos] = FUNC::operation(nodeID);
+                }
+            } else {
+                for (auto i = 0ul; i < operand.state->size; i++) {
+                    auto pos = operand.state->selectedPositions[i];
+                    operand.readNodeID(pos, nodeID);
+                    if (!operand.isNull(pos)) {
+                        resultValues[pos] = FUNC::operation(nodeID);
+                    }
                 }
             }
         }
@@ -72,11 +96,11 @@ struct UnaryOperationExecutor {
     static void nullMaskCmp(ValueVector& operand, ValueVector& result) {
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
-            result.values[pos] = operand.nullMask[pos] == value;
+            result.values[pos] = operand.isNull(pos) == value;
         } else {
             for (auto i = 0ul; i < operand.state->size; i++) {
                 auto pos = operand.state->selectedPositions[i];
-                result.values[pos] = operand.nullMask[pos] == value;
+                result.values[pos] = operand.isNull(pos) == value;
             }
         }
     }

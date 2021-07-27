@@ -62,8 +62,8 @@ void ResultSetIterator::getNextTuple(Tuple& tuple) {
         auto tuplePosition = tuplePositions[i];
         for (auto& vector : dataChunk->valueVectors) {
             auto selectedTuplePos = vector->state->selectedPositions[tuplePosition];
-            tuple.nullMask[valueInTupleIdx] = vector->nullMask[selectedTuplePos];
-            if (vector->nullMask[selectedTuplePos]) {
+            tuple.nullMask[valueInTupleIdx] = vector->isNull(selectedTuplePos);
+            if (vector->isNull(selectedTuplePos)) {
                 continue;
             }
             switch (vector->dataType) {

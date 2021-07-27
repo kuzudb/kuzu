@@ -1,66 +1,198 @@
 #include "gtest/gtest.h"
+#include "test/common/include/vector/operations/vector_operations_test_helper.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
 #include "src/common/include/gf_string.h"
 #include "src/common/include/vector/operations/vector_comparison_operations.h"
 
 using namespace graphflow::common;
+using namespace graphflow::testing;
 using namespace std;
 
-TEST(VectorCmpTests, cmpInt) {
-    auto numTuples = 100;
+// Creates two vectors: vector1: [0, 1, ..., 100] and vector2: [90, 89, ...., -8, -9].
+class Int64ComparisonOperandsInSameDataChunkTest : public OperandsInSameDataChunk, public Test {
 
-    auto dataChunk = make_shared<DataChunk>();
-    dataChunk->state->size = numTuples;
-    auto memoryManager = make_unique<MemoryManager>();
+public:
+    DataType getDataTypeOfOperands() override { return INT64; }
+    DataType getDataTypeOfResultVector() override { return BOOL; }
 
-    auto lVector = make_shared<ValueVector>(memoryManager.get(), INT64);
-    dataChunk->append(lVector);
-    auto lData = (int64_t*)lVector->values;
+    void SetUp() override {
+        initDataChunk();
+        auto vector1Data = (int64_t*)vector1->values;
+        auto vector2Data = (int64_t*)vector2->values;
 
-    auto rVector = make_shared<ValueVector>(memoryManager.get(), INT64);
-    dataChunk->append(rVector);
-    auto rData = (int64_t*)rVector->values;
+        for (int i = 0; i < NUM_TUPLES; i++) {
+            vector1Data[i] = i;
+            vector2Data[i] = 90 - i;
+        }
+    }
+};
 
-    auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
-    dataChunk->append(result);
+// Creates two vectors: vector1: [0, 1, ..., 100] and vector2: [90, 89, ...., -8, -9].
+class Int64ComparisonOperandsInDifferentDataChunksTest : public OperandsInDifferentDataChunks,
+                                                         public Test {
+
+public:
+    DataType getDataTypeOfOperands() override { return INT64; }
+    DataType getDataTypeOfResultVector() override { return BOOL; }
+
+    void SetUp() override {
+        initDataChunk();
+        auto vector1Data = (int64_t*)vector1->values;
+        auto vector2Data = (int64_t*)vector2->values;
+
+        for (int i = 0; i < NUM_TUPLES; i++) {
+            vector1Data[i] = i;
+            vector2Data[i] = 90 - i;
+        }
+    }
+};
+
+TEST_F(Int64ComparisonOperandsInSameDataChunkTest, Int64TwoUnflatNoNulls) {
+    auto lVector = vector1;
+    auto rVector = vector2;
     auto resultData = result->values;
 
-    // Fill values before the comparison.
-    for (int32_t i = 0; i < numTuples; i++) {
-        lData[i] = i;
-        rData[i] = 90 - i;
-    }
-
     VectorComparisonOperations::Equals(*lVector, *rVector, *result);
-    for (int32_t i = 0; i < numTuples; i++) {
+    for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], i == 45 ? TRUE : FALSE);
+        ASSERT_FALSE(result->isNull(i));
     }
+    ASSERT_TRUE(result->hasNoNullsGuarantee());
 
     VectorComparisonOperations::NotEquals(*lVector, *rVector, *result);
-    for (int32_t i = 0; i < numTuples; i++) {
+    for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], i == 45 ? FALSE : TRUE);
+        ASSERT_FALSE(result->isNull(i));
+    }
+    ASSERT_TRUE(result->hasNoNullsGuarantee());
+
+    VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
+    for (int i = 0; i < NUM_TUPLES; i++) {
+        ASSERT_EQ(resultData[i], i < 45 ? TRUE : FALSE);
+        ASSERT_FALSE(result->isNull(i));
+    }
+    ASSERT_TRUE(result->hasNoNullsGuarantee());
+
+    VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
+    for (int i = 0; i < NUM_TUPLES; i++) {
+        ASSERT_EQ(resultData[i], i < 46 ? TRUE : FALSE);
+        ASSERT_FALSE(result->isNull(i));
+    }
+    ASSERT_TRUE(result->hasNoNullsGuarantee());
+
+    VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
+    for (int i = 0; i < NUM_TUPLES; i++) {
+        ASSERT_EQ(resultData[i], i < 46 ? FALSE : TRUE);
+        ASSERT_FALSE(result->isNull(i));
+    }
+    ASSERT_TRUE(result->hasNoNullsGuarantee());
+
+    VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
+    for (int i = 0; i < NUM_TUPLES; i++) {
+        ASSERT_EQ(resultData[i], i < 45 ? FALSE : TRUE);
+        ASSERT_FALSE(result->isNull(i));
+    }
+    ASSERT_TRUE(result->hasNoNullsGuarantee());
+}
+
+// We use LessThan as an example comparison operator.
+TEST_F(Int64ComparisonOperandsInSameDataChunkTest, Int64TwoUnflatWithNulls) {
+    auto lVector = vector1;
+    auto rVector = vector2;
+    auto resultData = result->values;
+    // We set every odd value in vector 2 to NULL.
+    for (int i = 0; i < NUM_TUPLES; ++i) {
+        vector2->setNull(i, (i % 2) == 1 ? true : false);
     }
 
     VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
-    for (int32_t i = 0; i < numTuples; i++) {
-        ASSERT_EQ(resultData[i], i < 45 ? TRUE : FALSE);
+    for (int i = 0; i < NUM_TUPLES; i++) {
+        if (i % 2 == 0) {
+            ASSERT_EQ(resultData[i], i < 45 ? TRUE : FALSE);
+            ASSERT_FALSE(result->isNull(i));
+        } else {
+            ASSERT_TRUE(result->isNull(i));
+        }
     }
+    ASSERT_FALSE(result->hasNoNullsGuarantee());
+}
 
-    VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
-    for (int32_t i = 0; i < numTuples; i++) {
-        ASSERT_EQ(resultData[i], i < 46 ? TRUE : FALSE);
-    }
+// We use LessThan as an example comparison operator.
+TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatNoNulls) {
+    // Flatten dataChunkWithVector1, which holds vector1
+    dataChunkWithVector1->state->currIdx = 80;
+    // Recall vector2 and result are in the same data chunk
+    auto resultData = result->values;
 
-    VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
-    for (int32_t i = 0; i < numTuples; i++) {
-        ASSERT_EQ(resultData[i], i < 46 ? FALSE : TRUE);
+    // Test 1: Left flat and right is unflat.
+    // The comparison ins 80 < [90, 89, ...., -9]. The first 10 (90, ..., 81) the result is true,
+    // the rest should be false. Before running the operation we set the nullmask of result to be
+    // the same as vector2, which is what we assume in binary expressions, i.e., that the unflat and
+    // result share the nullmask.
+    result->setNullMask(vector2->getNullMask());
+    VectorComparisonOperations::LessThan(*vector1, *vector2, *result);
+    for (int i = 0; i < NUM_TUPLES; i++) {
+        ASSERT_EQ(resultData[i], i < 10 ? TRUE : FALSE);
+        ASSERT_FALSE(result->isNull(i));
     }
+    ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
-    for (int32_t i = 0; i < numTuples; i++) {
-        ASSERT_EQ(resultData[i], i < 45 ? FALSE : TRUE);
+    // Test 2: Left unflat and right is flat.
+    // Now the comparison is [90, 89, ...., -9] < 80. So now the first 11 (90, ..., 81) the result
+    // is false and the rest is true.
+    VectorComparisonOperations::LessThan(*vector2, *vector1, *result);
+    for (int i = 0; i < NUM_TUPLES; i++) {
+        ASSERT_EQ(resultData[i], i < 11 ? FALSE : TRUE);
+        ASSERT_FALSE(result->isNull(i));
     }
+    ASSERT_TRUE(result->hasNoNullsGuarantee());
+}
+
+// We use LessThan as an example comparison operator.
+TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatWithNulls) {
+    // Flatten dataChunkWithVector1, which holds vector1
+    dataChunkWithVector1->state->currIdx = 80;
+    // We set every odd value in vector 2 to NULL.
+    for (int i = 0; i < NUM_TUPLES; ++i) {
+        vector2->setNull(i, (i % 2) == 1 ? true : false);
+    }
+    // Recall vector2 and result are in the same data chunk
+    auto resultData = result->values;
+
+    // Test 1: Left flat and right is unflat.
+    // The comparison ins 80 < [90, NULL, 88, NULL ...., -8, NULL]. The first 10 (90, ..., 81) the
+    // result is true for even and NULL for odd indices. For the rest, the result is false for even
+    // and NULL for odd indices.
+    VectorComparisonOperations::LessThan(*vector1, *vector2, *result);
+    for (int i = 0; i < NUM_TUPLES; i++) {
+        if ((i % 2) == 0) {
+            ASSERT_EQ(resultData[i], i < 10 ? TRUE : FALSE);
+            ASSERT_FALSE(result->isNull(i));
+        } else {
+            ASSERT_TRUE(result->isNull(i));
+        }
+    }
+    ASSERT_FALSE(result->hasNoNullsGuarantee());
+
+    // We first need to reset the result value's nullmask to be all non-NULL.
+    for (int i = 0; i < NUM_TUPLES; ++i) {
+        result->setNull(i, false);
+    }
+    // Test 2: Left unflat and right is flat.
+    // Now the comparison is [90, 89, ...., -9] < 80. So now for the first 11 (90, ..., 81) the
+    // result is false for even and NULL for odd indices. For the rest, the result is true for even
+    // and NULL for odd indices.
+    VectorComparisonOperations::LessThan(*vector2, *vector1, *result);
+    for (int i = 0; i < NUM_TUPLES; i++) {
+        if ((i % 2) == 0) {
+            ASSERT_EQ(resultData[i], i < 11 ? FALSE : TRUE);
+            ASSERT_FALSE(result->isNull(i));
+        } else {
+            ASSERT_TRUE(result->isNull(i));
+        }
+    }
+    ASSERT_FALSE(result->hasNoNullsGuarantee());
 }
 
 TEST(VectorCmpTests, cmpTwoShortStrings) {
