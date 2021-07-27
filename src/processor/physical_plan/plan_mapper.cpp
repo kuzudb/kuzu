@@ -109,17 +109,17 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
         GF_ASSERT(extend.lowerBound == extend.upperBound && extend.lowerBound == 1);
         return make_unique<AdjColumnExtend>(dataChunkPos, valueVectorPos,
             relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
-            move(prevOperator), context, physicalOperatorID++);
+            extend.nbrNodeLabel, move(prevOperator), context, physicalOperatorID++);
     } else {
         auto adjLists =
             relsStore.getAdjLists(extend.direction, extend.boundNodeLabel, extend.relLabel);
         if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
             return make_unique<AdjListExtend>(dataChunkPos, valueVectorPos, adjLists,
-                move(prevOperator), context, physicalOperatorID++);
+                extend.nbrNodeLabel, move(prevOperator), context, physicalOperatorID++);
         } else {
             return make_unique<FrontierExtend>(dataChunkPos, valueVectorPos, adjLists,
-                extend.lowerBound, extend.upperBound, move(prevOperator), context,
-                physicalOperatorID++);
+                extend.nbrNodeLabel, extend.lowerBound, extend.upperBound, move(prevOperator),
+                context, physicalOperatorID++);
         }
     }
 }

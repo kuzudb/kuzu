@@ -8,12 +8,13 @@ namespace processor {
 static uint64_t getNextPowerOfTwo(uint64_t value);
 
 FrontierExtend::FrontierExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, AdjLists* lists,
-    uint64_t lowerBound, uint64_t upperBound, unique_ptr<PhysicalOperator> prevOperator,
-    ExecutionContext& context, uint32_t id)
+    label_t outNodeIDVectorLabel, uint64_t lowerBound, uint64_t upperBound,
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
     : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id},
-      startLayer{lowerBound}, endLayer{upperBound} {
+      startLayer{lowerBound}, endLayer{upperBound}, outNodeIDVectorLabel{outNodeIDVectorLabel} {
     operatorType = FRONTIER_EXTEND;
-    outValueVector = make_shared<NodeIDVector>(0, NodeIDCompressionScheme(), false);
+    outValueVector =
+        make_shared<NodeIDVector>(outNodeIDVectorLabel, NodeIDCompressionScheme(), false);
     outDataChunk = make_shared<DataChunk>();
     outDataChunk->append(outValueVector);
     outValueVector->state->initMultiplicity();
@@ -229,7 +230,7 @@ FrontierBag* FrontierExtend::createFrontierBag() {
 
 unique_ptr<PhysicalOperator> FrontierExtend::clone() {
     auto cloneOp = make_unique<FrontierExtend>(inDataChunkPos, inValueVectorPos, (AdjLists*)lists,
-        startLayer, endLayer, prevOperator->clone(), context, id);
+        outNodeIDVectorLabel, startLayer, endLayer, prevOperator->clone(), context, id);
     return cloneOp;
 }
 

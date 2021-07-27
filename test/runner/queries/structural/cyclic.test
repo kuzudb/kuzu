@@ -1,0 +1,14 @@
+# description: matching cycles
+
+-NAME TriangleTest
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(c) RETURN COUNT(*)
+---- 24
+
+-NAME TriangleTest2
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[:studyAt]->(c) RETURN COUNT(*)
+---- 2
+
+-NAME SquareTest
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[:knows]->(d) RETURN COUNT(*)
+---- 84
+

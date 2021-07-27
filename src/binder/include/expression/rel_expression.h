@@ -8,10 +8,10 @@ namespace binder {
 class RelExpression : public VariableExpression {
 
 public:
-    RelExpression(const string& relName, uint32_t id, label_t label, NodeExpression* srcNode,
-        NodeExpression* dstNode, uint64_t lowerBound, uint64_t upperBound)
-        : VariableExpression{VARIABLE, REL, relName, id}, label{label}, srcNode{srcNode},
-          dstNode{dstNode}, lowerBound{lowerBound}, upperBound{upperBound} {}
+    RelExpression(const string& uniqueName, label_t label, shared_ptr<NodeExpression> srcNode,
+        shared_ptr<NodeExpression> dstNode, uint64_t lowerBound, uint64_t upperBound)
+        : VariableExpression{VARIABLE, REL, uniqueName}, label{label}, srcNode{move(srcNode)},
+          dstNode{move(dstNode)}, lowerBound{lowerBound}, upperBound{upperBound} {}
 
     inline string getSrcNodeName() const { return srcNode->getInternalName(); }
 
@@ -19,8 +19,8 @@ public:
 
 public:
     label_t label;
-    NodeExpression* srcNode;
-    NodeExpression* dstNode;
+    shared_ptr<NodeExpression> srcNode;
+    shared_ptr<NodeExpression> dstNode;
     uint64_t lowerBound;
     uint64_t upperBound;
 };

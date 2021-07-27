@@ -1,0 +1,13 @@
+# description: filter cycles
+
+-NAME TriangleFilterTest
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[e:knows]->(c) WHERE e.date=date('2000-01-01') RETURN COUNT(*)
+---- 4
+
+-NAME TriangleFilterTest2
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[e:studyAt]->(c) WHERE a.fName='Alice' RETURN COUNT(*)
+---- 1
+
+-NAME SquareFilterTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[e2:knows]->(d) WHERE e1.date=e2.date AND e1.date=date('2000-01-01') RETURN COUNT(*)
+---- 6

@@ -9,7 +9,7 @@ using namespace graphflow::processor;
 using namespace graphflow::binder;
 
 TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
-    auto nodeExpression = make_unique<NodeExpression>("a", 0, 0);
+    auto nodeExpression = make_unique<NodeExpression>("_0_a", 0);
     auto propertyExpression =
         make_unique<PropertyExpression>(DataType::INT64, "prop", 0, move(nodeExpression));
     Literal literal = Literal((int64_t)5);
@@ -47,7 +47,7 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
 }
 
 TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
-    auto nodeExpression = make_unique<NodeExpression>("a", 0, 0);
+    auto nodeExpression = make_unique<NodeExpression>("_0_a", 0);
     auto propertyExpression =
         make_shared<PropertyExpression>(DataType::INT64, "prop", 0, move(nodeExpression));
     auto negateLogicalOperator =
