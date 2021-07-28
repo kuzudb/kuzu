@@ -13,14 +13,16 @@ class BinaryExpressionEvaluator : public ExpressionEvaluator {
 public:
     BinaryExpressionEvaluator(MemoryManager& memoryManager,
         unique_ptr<ExpressionEvaluator> leftExpr, unique_ptr<ExpressionEvaluator> rightExpr,
-        ExpressionType expressionType, DataType dataType);
+        ExpressionType expressionType, DataType dataType, bool isSelectOperation);
 
     void evaluate() override;
+    uint64_t select(sel_t* selectedPositions) override;
 
     shared_ptr<ValueVector> createResultValueVector(MemoryManager& memoryManager);
 
 private:
-    function<void(ValueVector&, ValueVector&, ValueVector&)> operation;
+    function<void(ValueVector&, ValueVector&, ValueVector&)> executeOperation;
+    function<uint64_t(ValueVector&, ValueVector&, sel_t*)> selectOperation;
 };
 
 } // namespace evaluator

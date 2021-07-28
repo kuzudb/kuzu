@@ -4,15 +4,63 @@
 -QUERY MATCH (a:person) WHERE a.age <= 25 RETURN COUNT(*)
 ---- 3
 
+-NAME PersonNodesAgeFilteredTest2
+-QUERY MATCH (a:person) WHERE a.age < 25 RETURN COUNT(*)
+---- 2
+
+-NAME PersonNodesAgeFilteredTest3
+-QUERY MATCH (a:person) WHERE a.age >= 25 RETURN COUNT(*)
+---- 6
+
+-NAME PersonNodesAgeFilteredTest4
+-QUERY MATCH (a:person) WHERE a.age > 25 RETURN COUNT(*)
+---- 5
+
+-NAME PersonNodesAgeFilteredTest5
+-QUERY MATCH (a:person) WHERE a.age = 25 RETURN COUNT(*)
+---- 1
+
+-NAME PersonNodesAgeFilteredTest6
+-QUERY MATCH (a:person) WHERE a.age <> 25 RETURN COUNT(*)
+---- 7
+
+-NAME PersonNodesAgeFilteredTest7
+-QUERY MATCH (a:person) WHERE a.age IS NULL RETURN COUNT(*)
+---- 0
+
+-NAME PersonNodesAgeFilteredTest8
+-QUERY MATCH (a:person) WHERE a.age IS NOT NULL RETURN COUNT(*)
+---- 8
+
 -NAME OneHopKnowsFilteredTest
 -QUERY MATCH (a:person) WHERE a.gender * 2.1 = 2.1 * a.gender RETURN COUNT(*)
 ---- 8
+
+-NAME PersonNodesIsStudentFilteredTest
+-QUERY MATCH (a:person) WHERE a.isStudent RETURN COUNT(*)
+---- 3
 
 -NAME PersonNodesIsWorkerFilteredTest
 -QUERY MATCH (a:person) WHERE a.isWorker = true RETURN COUNT(*)
 ---- 4
 
--NAME OrganisationNodesIsWorkerFilteredTest
+-NAME PersonNodesIsWorkerFilteredTest1
+-QUERY MATCH (a:person) WHERE a.isWorker AND a.isStudent RETURN COUNT(*)
+---- 0
+
+-NAME PersonNodesIsWorkerFilteredTest2
+-QUERY MATCH (a:person) WHERE a.isWorker OR a.isStudent RETURN COUNT(*)
+---- 7
+
+-NAME PersonNodesIsWorkerFilteredTest3
+-QUERY MATCH (a:person) WHERE a.isWorker XOR a.isStudent RETURN COUNT(*)
+---- 7
+
+-NAME PersonNodesIsWorkerFilteredTest4
+-QUERY MATCH (a:person) WHERE NOT a.isWorker RETURN COUNT(*)
+---- 4
+
+-NAME OrganisationNodesMarkFilteredTest
 -QUERY MATCH (a:organisation) WHERE a.mark >= 3.7 RETURN COUNT(*)
 ---- 3
 

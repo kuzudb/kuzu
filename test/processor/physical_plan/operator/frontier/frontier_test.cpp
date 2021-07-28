@@ -11,7 +11,7 @@ TEST(FrontierTests, frontierCreationTest) {
 
     NodeIDCompressionScheme compressionScheme;
     NodeIDVector vector = NodeIDVector(0, compressionScheme, false);
-    vector.state = make_shared<SharedVectorState>(DEFAULT_VECTOR_CAPACITY);
+    vector.state = make_shared<DataChunkState>(DEFAULT_VECTOR_CAPACITY);
     vector.state->size = DEFAULT_VECTOR_CAPACITY;
     for (auto i = 0u; i < vector.state->size; i++) {
         ((node_offset_t*)vector.values)[i] = i;

@@ -24,7 +24,7 @@ FrontierExtend::FrontierExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPo
     listsPageHandles.reserve(maxNumThreads);
     for (auto i = 0u; i < maxNumThreads; i++) {
         vectors.push_back(make_shared<NodeIDVector>(0, lists->getNodeIDCompressionScheme(), false));
-        vectors[i]->state = make_shared<SharedVectorState>(DEFAULT_VECTOR_CAPACITY);
+        vectors[i]->state = make_shared<DataChunkState>(DEFAULT_VECTOR_CAPACITY);
         listsPageHandles.push_back(make_unique<ListsPageHandle>());
         listsPageHandles[i]->setListSyncState(make_shared<ListSyncState>());
         listsPageHandles[i]->setIsAdjListHandle();

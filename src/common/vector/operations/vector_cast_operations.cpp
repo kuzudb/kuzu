@@ -1,7 +1,5 @@
 #include "src/common/include/vector/operations/vector_cast_operations.h"
 
-#include <cassert>
-
 #include "src/common/include/date.h"
 #include "src/common/include/value.h"
 

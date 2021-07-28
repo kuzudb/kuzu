@@ -23,10 +23,9 @@ class DataChunk {
 
 public:
     DataChunk()
-        : DataChunk(
-              shared_ptr<SharedVectorState>(new SharedVectorState(DEFAULT_VECTOR_CAPACITY))){};
+        : DataChunk(shared_ptr<DataChunkState>(new DataChunkState(DEFAULT_VECTOR_CAPACITY))){};
 
-    DataChunk(shared_ptr<SharedVectorState> _state) : state{_state} {};
+    DataChunk(shared_ptr<DataChunkState> _state) : state{_state} {};
 
     void append(shared_ptr<ValueVector> valueVector) {
         valueVector->state = this->state;
@@ -41,7 +40,7 @@ public:
 
 public:
     vector<shared_ptr<ValueVector>> valueVectors;
-    shared_ptr<SharedVectorState> state;
+    shared_ptr<DataChunkState> state;
 };
 
 } // namespace common

@@ -9,7 +9,7 @@
 namespace graphflow {
 namespace evaluator {
 
-std::function<void(ValueVector&, ValueVector&)> ExpressionEvaluator::getUnaryOperation(
+std::function<void(ValueVector&, ValueVector&)> ExpressionEvaluator::getUnaryVectorExecuteOperation(
     ExpressionType type) {
     switch (type) {
     case NOT:
@@ -31,12 +31,26 @@ std::function<void(ValueVector&, ValueVector&)> ExpressionEvaluator::getUnaryOpe
     case ABS_FUNC:
         return VectorArithmeticOperations::Abs;
     default:
-        assert(false);
+        throw invalid_argument("Unsupported expression type: " + expressionTypeToString(type));
+    }
+}
+
+function<uint64_t(ValueVector&, sel_t*)> ExpressionEvaluator::getUnaryVectorSelectOperation(
+    ExpressionType type) {
+    switch (type) {
+    case NOT:
+        return VectorBooleanOperations::NotSelect;
+    case IS_NULL:
+        return VectorComparisonOperations::IsNullSelect;
+    case IS_NOT_NULL:
+        return VectorComparisonOperations::IsNotNullSelect;
+    default:
+        throw invalid_argument("Unsupported expression type: " + expressionTypeToString(type));
     }
 }
 
 std::function<void(ValueVector&, ValueVector&, ValueVector&)>
-ExpressionEvaluator::getBinaryOperation(ExpressionType type) {
+ExpressionEvaluator::getBinaryVectorExecuteOperation(ExpressionType type) {
     switch (type) {
     case AND:
         return VectorBooleanOperations::And;
@@ -57,17 +71,17 @@ ExpressionEvaluator::getBinaryOperation(ExpressionType type) {
     case LESS_THAN_EQUALS:
         return VectorComparisonOperations::LessThanEquals;
     case EQUALS_NODE_ID:
-        return VectorNodeIDCompareOperations::Equals;
+        return VectorNodeIDOperations::Equals;
     case NOT_EQUALS_NODE_ID:
-        return VectorNodeIDCompareOperations::NotEquals;
+        return VectorNodeIDOperations::NotEquals;
     case GREATER_THAN_NODE_ID:
-        return VectorNodeIDCompareOperations::GreaterThan;
+        return VectorNodeIDOperations::GreaterThan;
     case GREATER_THAN_EQUALS_NODE_ID:
-        return VectorNodeIDCompareOperations::GreaterThanEquals;
+        return VectorNodeIDOperations::GreaterThanEquals;
     case LESS_THAN_NODE_ID:
-        return VectorNodeIDCompareOperations::LessThan;
+        return VectorNodeIDOperations::LessThan;
     case LESS_THAN_EQUALS_NODE_ID:
-        return VectorNodeIDCompareOperations::LessThanEquals;
+        return VectorNodeIDOperations::LessThanEquals;
     case ADD:
         return VectorArithmeticOperations::Add;
     case SUBTRACT:
@@ -81,8 +95,63 @@ ExpressionEvaluator::getBinaryOperation(ExpressionType type) {
     case POWER:
         return VectorArithmeticOperations::Power;
     default:
-        assert(false);
+        throw invalid_argument("Unsupported expression type: " + expressionTypeToString(type));
     }
+}
+
+std::function<uint64_t(ValueVector&, ValueVector&, sel_t*)>
+ExpressionEvaluator::getBinaryVectorSelectOperation(ExpressionType type) {
+    switch (type) {
+    case AND:
+        return VectorBooleanOperations::AndSelect;
+    case OR:
+        return VectorBooleanOperations::OrSelect;
+    case XOR:
+        return VectorBooleanOperations::XorSelect;
+    case EQUALS:
+        return VectorComparisonOperations::EqualsSelect;
+    case NOT_EQUALS:
+        return VectorComparisonOperations::NotEqualsSelect;
+    case GREATER_THAN:
+        return VectorComparisonOperations::GreaterThanSelect;
+    case GREATER_THAN_EQUALS:
+        return VectorComparisonOperations::GreaterThanEqualsSelect;
+    case LESS_THAN:
+        return VectorComparisonOperations::LessThanSelect;
+    case LESS_THAN_EQUALS:
+        return VectorComparisonOperations::LessThanEqualsSelect;
+    case EQUALS_NODE_ID:
+        return VectorNodeIDOperations::EqualsSelect;
+    case NOT_EQUALS_NODE_ID:
+        return VectorNodeIDOperations::NotEqualsSelect;
+    case GREATER_THAN_NODE_ID:
+        return VectorNodeIDOperations::GreaterThanSelect;
+    case GREATER_THAN_EQUALS_NODE_ID:
+        return VectorNodeIDOperations::GreaterThanEqualsSelect;
+    case LESS_THAN_NODE_ID:
+        return VectorNodeIDOperations::LessThanSelect;
+    case LESS_THAN_EQUALS_NODE_ID:
+        return VectorNodeIDOperations::LessThanEqualsSelect;
+    default:
+        throw invalid_argument("Unsupported expression type: " + expressionTypeToString(type));
+    }
+}
+
+// Select function for leaf expressions, for the expression's return data type is boolean.
+uint64_t ExpressionEvaluator::select(sel_t* selectedPositions) {
+    assert(dataType == BOOL);
+    uint64_t numSelectedValues = 0;
+    if (result->state->isFlat()) {
+        auto pos = result->state->getPositionOfCurrIdx();
+        numSelectedValues += (result->values[pos] == TRUE) && (!result->isNull(pos));
+    } else {
+        for (auto i = 0u; i < result->state->size; i++) {
+            auto pos = result->state->selectedPositions[i];
+            selectedPositions[numSelectedValues] = pos;
+            numSelectedValues += (result->values[pos] == TRUE) && (!result->isNull(pos));
+        }
+    }
+    return numSelectedValues;
 }
 
 bool ExpressionEvaluator::isResultFlat() {

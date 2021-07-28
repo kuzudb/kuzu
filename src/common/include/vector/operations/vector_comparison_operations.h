@@ -22,6 +22,19 @@ struct VectorComparisonOperations {
     static void IsNull(ValueVector& operand, ValueVector& result);
     // result = left != NULL
     static void IsNotNull(ValueVector& operand, ValueVector& result);
+
+    static uint64_t EqualsSelect(ValueVector& left, ValueVector& right, sel_t* selectedPositions);
+    static uint64_t NotEqualsSelect(
+        ValueVector& left, ValueVector& right, sel_t* selectedPositions);
+    static uint64_t GreaterThanSelect(
+        ValueVector& left, ValueVector& right, sel_t* selectedPositions);
+    static uint64_t GreaterThanEqualsSelect(
+        ValueVector& left, ValueVector& right, sel_t* selectedPositions);
+    static uint64_t LessThanSelect(ValueVector& left, ValueVector& right, sel_t* selectedPositions);
+    static uint64_t LessThanEqualsSelect(
+        ValueVector& left, ValueVector& right, sel_t* selectedPositions);
+    static uint64_t IsNullSelect(ValueVector& operand, sel_t* selectedPositions);
+    static uint64_t IsNotNullSelect(ValueVector& operand, sel_t* selectedPositions);
 };
 
 } // namespace common

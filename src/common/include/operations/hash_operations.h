@@ -16,44 +16,42 @@ inline uint64_t murmurhash64(uint64_t x) {
 
 struct Hash {
     template<class T>
-    static inline uint64_t operation(const T& key) {
+    static inline void operation(const T& key, uint64_t& result) {
         throw invalid_argument(
             StringUtils::string_format("Hash type: %s is not supported.", typeid(T).name()));
     }
 };
 
 template<>
-inline uint64_t Hash::operation(const uint32_t& key) {
-    return murmurhash64(key);
+inline void Hash::operation(const uint32_t& key, uint64_t& result) {
+    result = murmurhash64(key);
 }
 
 template<>
-inline uint64_t Hash::operation(const uint64_t& key) {
-    return murmurhash64(key);
+inline void Hash::operation(const uint64_t& key, uint64_t& result) {
+    result = murmurhash64(key);
 }
 
 template<>
-inline uint64_t Hash::operation(const int64_t& key) {
-    return murmurhash64(key);
+inline void Hash::operation(const int64_t& key, uint64_t& result) {
+    result = murmurhash64(key);
 }
 
 template<>
-inline uint64_t Hash::operation(const string& key) {
-    return std::hash<string>()(key);
+inline void Hash::operation(const string& key, uint64_t& result) {
+    result = std::hash<string>()(key);
 }
 
 template<>
-inline uint64_t Hash::operation(const nodeID_t& nodeID) {
-    return murmurhash64(nodeID.offset) ^ murmurhash64(nodeID.label);
+inline void Hash::operation(const nodeID_t& nodeID, uint64_t& result) {
+    result = murmurhash64(nodeID.offset) ^ murmurhash64(nodeID.label);
 }
 
 template<>
-inline uint64_t Hash::operation(const unordered_set<string>& key) {
-    auto result = 0ul;
+inline void Hash::operation(const unordered_set<string>& key, uint64_t& result) {
     for (auto&& s : key) {
         result ^= std::hash<string>()(s);
     }
-    return result;
 }
 
 } // namespace operation

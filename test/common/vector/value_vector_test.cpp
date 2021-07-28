@@ -10,8 +10,8 @@ using namespace std;
 TEST(ValueVectorTests, TestDefaultHasNull) {
     auto memoryManager = make_unique<MemoryManager>();
     ValueVector valueVector(memoryManager.get(), DataType::INT64);
-    shared_ptr<SharedVectorState> dataChunkState =
-        make_shared<SharedVectorState>(DEFAULT_VECTOR_CAPACITY);
+    shared_ptr<DataChunkState> dataChunkState =
+        make_shared<DataChunkState>(DEFAULT_VECTOR_CAPACITY);
     valueVector.state = dataChunkState;
     valueVector.state->size = 3;
     for (int i = 0; i < 3; ++i) {

@@ -20,8 +20,8 @@ public:
     unique_ptr<PhysicalOperator> clone() override;
 
 protected:
+    shared_ptr<DataChunk> dataChunkToSelect;
     unique_ptr<ExpressionEvaluator> rootExpr;
-    uint8_t* exprResultValues;
 
 private:
     uint64_t dataChunkToSelectPos;

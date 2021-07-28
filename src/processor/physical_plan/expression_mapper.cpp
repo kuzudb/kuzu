@@ -21,8 +21,8 @@ static unique_ptr<ExpressionEvaluator> mapLogicalLeafExpressionToPhysical(
     PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet);
 
 unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(MemoryManager& memoryManager,
-    const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
-    ResultSet& resultSet) {
+    const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet,
+    bool isSelectOperation) {
     auto expressionType = expression.expressionType;
     if (isExpressionLiteral(expressionType)) {
         return mapLogicalLiteralExpressionToStructuredPhysical(memoryManager, expression);
@@ -44,14 +44,14 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(MemoryManager& m
             retVal = mapLogicalLeafExpressionToPhysical(
                 memoryManager, expression, physicalOperatorInfo, resultSet);
         } else {
-            retVal = mapToPhysical(
-                memoryManager, *expression.children[0], physicalOperatorInfo, resultSet);
+            retVal = mapToPhysical(memoryManager, *expression.children[0], physicalOperatorInfo,
+                resultSet, isSelectOperation);
         }
     } else if (isExpressionUnary(expressionType)) {
-        auto child =
-            mapToPhysical(memoryManager, *expression.children[0], physicalOperatorInfo, resultSet);
+        auto child = mapToPhysical(memoryManager, *expression.children[0], physicalOperatorInfo,
+            resultSet, false /* isSelectOperation */);
         retVal = make_unique<UnaryExpressionEvaluator>(
-            memoryManager, move(child), expressionType, expression.dataType);
+            memoryManager, move(child), expressionType, expression.dataType, isSelectOperation);
     } else {
         assert(isExpressionBinary(expressionType));
         // If one of the children expressions has UNSTRUCTURED data type, i.e. the type of the data
@@ -65,20 +65,20 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(MemoryManager& m
         auto& logicalRExpr = *expression.children[1];
         auto castLToUnstructured =
             logicalRExpr.dataType == UNSTRUCTURED && logicalLExpr.dataType != UNSTRUCTURED;
-        auto lExpr = mapChildExpressionAndCastToUnstructuredIfNecessary(
-            memoryManager, logicalLExpr, castLToUnstructured, physicalOperatorInfo, resultSet);
+        auto lExpr = mapChildExpressionAndCastToUnstructuredIfNecessary(memoryManager, logicalLExpr,
+            castLToUnstructured, physicalOperatorInfo, resultSet, false /* isSelectOperation */);
         auto castRToUnstructured =
             logicalLExpr.dataType == UNSTRUCTURED && logicalRExpr.dataType != UNSTRUCTURED;
-        auto rExpr = mapChildExpressionAndCastToUnstructuredIfNecessary(
-            memoryManager, logicalRExpr, castRToUnstructured, physicalOperatorInfo, resultSet);
-        retVal = make_unique<BinaryExpressionEvaluator>(
-            memoryManager, move(lExpr), move(rExpr), expressionType, expression.dataType);
+        auto rExpr = mapChildExpressionAndCastToUnstructuredIfNecessary(memoryManager, logicalRExpr,
+            castRToUnstructured, physicalOperatorInfo, resultSet, false /* isSelectOperation */);
+        retVal = make_unique<BinaryExpressionEvaluator>(memoryManager, move(lExpr), move(rExpr),
+            expressionType, expression.dataType, isSelectOperation);
     }
     return retVal;
 }
 
-unique_ptr<ExpressionEvaluator> ExpressionMapper::clone(
-    MemoryManager& memoryManager, const ExpressionEvaluator& expression, ResultSet& resultSet) {
+unique_ptr<ExpressionEvaluator> ExpressionMapper::clone(MemoryManager& memoryManager,
+    const ExpressionEvaluator& expression, ResultSet& resultSet, bool isSelectOperation) {
     if (isExpressionLiteral(expression.expressionType)) {
         return make_unique<ExpressionEvaluator>(
             memoryManager, expression.result, expression.expressionType);
@@ -89,29 +89,33 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::clone(
             expression.valueVectorPos, expression.expressionType);
     } else if (expression.getNumChildrenExpr() == 1) { // unary expression.
         return make_unique<UnaryExpressionEvaluator>(memoryManager,
-            clone(memoryManager, expression.getChildExpr(0), resultSet), expression.expressionType,
-            expression.dataType);
+            clone(memoryManager, expression.getChildExpr(0), resultSet,
+                false /* isSelectOperation */),
+            expression.expressionType, expression.dataType, isSelectOperation);
     } else { // binary expression.
-        GF_ASSERT(expression.getNumChildrenExpr() == 2);
+        assert(expression.getNumChildrenExpr() == 2);
         return make_unique<BinaryExpressionEvaluator>(memoryManager,
-            clone(memoryManager, expression.getChildExpr(0), resultSet),
-            clone(memoryManager, expression.getChildExpr(1), resultSet), expression.expressionType,
-            expression.dataType);
+            clone(memoryManager, expression.getChildExpr(0), resultSet,
+                false /* isSelectOperation */),
+            clone(memoryManager, expression.getChildExpr(1), resultSet,
+                false /* isSelectOperation */),
+            expression.expressionType, expression.dataType, isSelectOperation);
     }
 }
 
 unique_ptr<ExpressionEvaluator>
 ExpressionMapper::mapChildExpressionAndCastToUnstructuredIfNecessary(MemoryManager& memoryManager,
     const Expression& expression, bool castToUnstructured,
-    PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet) {
+    PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet, bool isSelectOperation) {
     unique_ptr<ExpressionEvaluator> retVal;
     if (castToUnstructured && isExpressionLiteral(expression.expressionType)) {
         retVal = mapLogicalLiteralExpressionToUnstructuredPhysical(memoryManager, expression);
     } else {
-        retVal = mapToPhysical(memoryManager, expression, physicalOperatorInfo, resultSet);
+        retVal = mapToPhysical(
+            memoryManager, expression, physicalOperatorInfo, resultSet, isSelectOperation);
         if (castToUnstructured) {
-            retVal = make_unique<UnaryExpressionEvaluator>(
-                memoryManager, move(retVal), CAST_TO_UNSTRUCTURED_VECTOR, UNSTRUCTURED);
+            retVal = make_unique<UnaryExpressionEvaluator>(memoryManager, move(retVal),
+                CAST_TO_UNSTRUCTURED_VECTOR, UNSTRUCTURED, false /* isSelectOperation */);
         }
     }
     return retVal;
@@ -122,7 +126,7 @@ static unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToUnstructured
     auto& literalExpression = (LiteralExpression&)expression;
     // We create an owner dataChunk which is flat and of size 1 to contain the literal.
     auto vector = make_shared<ValueVector>(&memoryManager, UNSTRUCTURED, true /* isSingleValue */);
-    vector->state = SharedVectorState::getSingleValueDataChunkState();
+    vector->state = DataChunkState::getSingleValueDataChunkState();
     auto& val = ((Value*)vector->values)[0];
     val.dataType = literalExpression.literal.dataType;
     switch (val.dataType) {
@@ -155,7 +159,7 @@ unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToStructuredPhysical(
     // We create an owner dataChunk which is flat and of size 1 to contain the literal.
     auto vector = make_shared<ValueVector>(
         &memoryManager, literalExpression.dataType, true /* isSingleValue */);
-    vector->state = SharedVectorState::getSingleValueDataChunkState();
+    vector->state = DataChunkState::getSingleValueDataChunkState();
     switch (expression.dataType) {
     case INT64: {
         ((int64_t*)vector->values)[0] = literalExpression.literal.val.int64Val;

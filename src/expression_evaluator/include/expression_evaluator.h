@@ -16,9 +16,14 @@ namespace evaluator {
 class ExpressionEvaluator {
 
 public:
-    static function<void(ValueVector&, ValueVector&)> getUnaryOperation(ExpressionType type);
+    static function<void(ValueVector&, ValueVector&)> getUnaryVectorExecuteOperation(
+        ExpressionType type);
+    static function<uint64_t(ValueVector&, sel_t*)> getUnaryVectorSelectOperation(
+        ExpressionType type);
 
-    static function<void(ValueVector&, ValueVector&, ValueVector&)> getBinaryOperation(
+    static function<void(ValueVector&, ValueVector&, ValueVector&)> getBinaryVectorExecuteOperation(
+        ExpressionType type);
+    static function<uint64_t(ValueVector&, ValueVector&, sel_t*)> getBinaryVectorSelectOperation(
         ExpressionType type);
 
     // Creates a leaf literal as value vector expression_evaluator expression.
@@ -35,7 +40,11 @@ public:
 
     virtual ~ExpressionEvaluator() = default;
 
-    virtual void evaluate() {}
+    virtual void evaluate() {
+        // For leaf expressions, evaluate function performs no op.
+    }
+
+    virtual uint64_t select(sel_t* selectedPositions);
 
     bool isResultFlat();
 

@@ -73,23 +73,23 @@ struct Abs {
 
 template<>
 inline void Modulo::operation(int64_t& left, int64_t& right, int64_t& result) {
-    result = right % left;
-};
+    result = left % right;
+}
 
 template<>
 inline void Modulo::operation(int64_t& left, double_t& right, double_t& result) {
     result = fmod(left, right);
-};
+}
 
 template<>
 inline void Modulo::operation(double_t& left, int64_t& right, double_t& result) {
     result = fmod(left, right);
-};
+}
 
 template<>
 inline void Modulo::operation(double_t& left, double_t& right, double_t& result) {
     result = fmod(left, right);
-};
+}
 
 /*******************************************
  **                                       **
@@ -110,7 +110,7 @@ inline void Add::operation(gf_string_t& left, gf_string_t& right, gf_string_t& r
         memcpy(result.prefix, buffer, gf_string_t::PREFIX_LENGTH);
     }
     result.len = len;
-};
+}
 
 /**********************************************
  **                                          **
@@ -195,42 +195,42 @@ inline void Add::operation(Value& left, Value& right, Value& result) {
         return;
     }
     ArithmeticOnValues::operation<Add, addStr>(left, right, result);
-};
+}
 
 template<>
 inline void Subtract::operation(Value& left, Value& right, Value& result) {
     ArithmeticOnValues::operation<Subtract, subtractStr>(left, right, result);
-};
+}
 
 template<>
 inline void Multiply::operation(Value& left, Value& right, Value& result) {
     ArithmeticOnValues::operation<Multiply, multiplyStr>(left, right, result);
-};
+}
 
 template<>
 inline void Divide::operation(Value& left, Value& right, Value& result) {
     ArithmeticOnValues::operation<Divide, divideStr>(left, right, result);
-};
+}
 
 template<>
 inline void Modulo::operation(Value& left, Value& right, Value& result) {
     ArithmeticOnValues::operation<Modulo, moduloStr>(left, right, result);
-};
+}
 
 template<>
 inline void Power::operation(Value& left, Value& right, Value& result) {
     ArithmeticOnValues::operation<Power, powerStr>(left, right, result);
-};
+}
 
 template<>
 inline void Negate::operation(Value& operand, Value& result) {
     ArithmeticOnValues::operation<Negate, negateStr>(operand, result);
-};
+}
 
 template<>
 inline void Abs::operation(Value& operand, Value& result) {
     ArithmeticOnValues::operation<Abs, absStr>(operand, result);
-};
+}
 
 } // namespace operation
 } // namespace common

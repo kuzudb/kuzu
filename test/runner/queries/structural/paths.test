@@ -44,7 +44,6 @@
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)-[e4:studyAt]->(e:organisation) RETURN COUNT(*)
 ---- 54
 
-#-NAME FiveHopKnowsTest
-#-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)-[e4:knows]->(e:person)-[e5:knows]->(f:person) RETURN COUNT(*)
-#---- 972
-#FiveHopKnowsTest
+-NAME FiveHopKnowsTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)-[e4:knows]->(e:person)-[e5:knows]->(f:person) RETURN COUNT(*)
+---- 972
