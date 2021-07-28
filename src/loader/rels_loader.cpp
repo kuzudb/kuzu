@@ -171,8 +171,10 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
         }
     }
     vector<bool> requireToReadLabels{true, true};
-    vector<nodeID_t> nodeIDs{2};
-    vector<uint64_t> reversePos{2};
+    vector<nodeID_t> nodeIDs;
+    nodeIDs.reserve(2);
+    vector<uint64_t> reversePos;
+    reversePos.reserve(2);
     vector<PageCursor> stringOverflowPagesCursors{description->properties.size()};
     for (auto& direction : DIRECTIONS) {
         requireToReadLabels[direction] = 1 != description->nodeLabelsPerDirection[direction].size();

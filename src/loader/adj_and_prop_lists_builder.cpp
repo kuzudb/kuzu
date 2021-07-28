@@ -52,7 +52,7 @@ void AdjAndPropertyListsBuilder::buildInMemStructures() {
 }
 
 void AdjAndPropertyListsBuilder::setRel(
-    const uint64_t& pos, const Direction& direction, const vector<nodeID_t>& nodeIDs) {
+    uint64_t pos, Direction direction, const vector<nodeID_t>& nodeIDs) {
     PageCursor cursor;
     auto header = directionLabelAdjListHeaders[direction][nodeIDs[direction].label]
                       .headers[nodeIDs[direction].offset];
@@ -65,8 +65,7 @@ void AdjAndPropertyListsBuilder::setRel(
 }
 
 void AdjAndPropertyListsBuilder::setProperty(const vector<uint64_t>& pos,
-    const vector<nodeID_t>& nodeIDs, const uint32_t& propertyIdx, const uint8_t* val,
-    const DataType& type) {
+    const vector<nodeID_t>& nodeIDs, uint32_t propertyIdx, const uint8_t* val, DataType type) {
     PageCursor cursor;
     for (auto& direction : DIRECTIONS) {
         auto header = directionLabelAdjListHeaders[direction][nodeIDs[direction].label]

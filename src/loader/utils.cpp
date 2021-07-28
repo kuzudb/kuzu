@@ -13,8 +13,8 @@ namespace graphflow {
 namespace loader {
 
 NodeIDMap::~NodeIDMap() {
-    for (auto& charArray : nodeIDToOffsetMap) {
-        delete[] charArray.first;
+    for (auto i = 0u; i < size; ++i) {
+        delete[] offsetToNodeIDMap[i];
     }
 }
 
@@ -122,8 +122,8 @@ void ListsLoaderHelper::calculateListsMetadataTask(uint64_t numNodeOffsets, uint
         "End: listsMetadata={0:p} listHeaders={1:p}", (void*)listsMetadata, (void*)listHeaders);
 }
 
-void ListsLoaderHelper::calculatePageCursor(const uint32_t& header, const uint64_t& reversePos,
-    const uint8_t& numBytesPerElement, const node_offset_t& nodeOffset, PageCursor& cursor,
+void ListsLoaderHelper::calculatePageCursor(uint32_t header, uint64_t reversePos,
+    uint8_t numBytesPerElement, node_offset_t nodeOffset, PageCursor& cursor,
     ListsMetadata& metadata) {
     auto numElementsInAPage = PAGE_SIZE / numBytesPerElement;
     if (ListHeaders::isALargeList(header)) {
