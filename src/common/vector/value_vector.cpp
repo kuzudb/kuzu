@@ -7,16 +7,22 @@ using namespace graphflow::common::operation;
 namespace graphflow {
 namespace common {
 
+shared_ptr<NullMask> NullMask::clone(uint64_t vectorCapacity) {
+    auto newNullMask = make_shared<NullMask>(vectorCapacity);
+    memcpy(newNullMask->mask.get(), mask.get(), vectorCapacity);
+    return newNullMask;
+}
+
 template<class T, class FUNC = std::function<uint8_t(T)>>
 static void fillOperandNullMask(ValueVector& operand) {
     auto values = (T*)operand.values;
     if (operand.state->isFlat()) {
-        operand.nullMask[operand.state->getPositionOfCurrIdx()] =
-            IsNull::operation(values[operand.state->getPositionOfCurrIdx()]);
+        operand.setNull(operand.state->getPositionOfCurrIdx(),
+            IsNull::operation(values[operand.state->getPositionOfCurrIdx()]));
     } else {
         auto size = operand.state->size;
         for (uint64_t i = 0; i < size; i++) {
-            operand.nullMask[i] = IsNull::operation(values[operand.state->selectedPositions[i]]);
+            operand.setNull(i, IsNull::operation(values[operand.state->selectedPositions[i]]));
         }
     }
 }
@@ -45,10 +51,13 @@ void ValueVector::fillNullMask() {
     }
 }
 
-// Notice that this clone function only copies values and nullMask without copying string buffers.
+// Notice that this clone function only copies values and mask without copying string buffers.
 shared_ptr<ValueVector> ValueVector::clone() {
     auto newVector = make_shared<ValueVector>(memoryManager, dataType, vectorCapacity == 1);
-    memcpy(newVector->nullMask, nullMask, vectorCapacity);
+    // Warning: This is a potential bug because sometimes nullMasks of ValueVectors point to
+    // null masks of other ValueVectors, e.g., the result ValueVectors of unary expressions, point
+    // to the nullMasks of operands. In which case these should not be copied over.
+    newVector->nullMask = nullMask->clone(vectorCapacity);
     memcpy(newVector->values, values, vectorCapacity * getNumBytesPerValue());
     return newVector;
 }

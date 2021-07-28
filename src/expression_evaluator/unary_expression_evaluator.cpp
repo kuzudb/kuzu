@@ -26,7 +26,7 @@ shared_ptr<ValueVector> UnaryExpressionEvaluator::createResultValueVector(
         }
     }
     valueVector->state = childrenExpr[0]->result->state;
-    valueVector->nullMask = childrenExpr[0]->result->nullMask;
+    valueVector->setNullMask(childrenExpr[0]->result->getNullMask());
     return valueVector;
 }
 

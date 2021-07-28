@@ -21,8 +21,8 @@ void ReadList::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
 void ReadList::readValuesFromList() {
     lists->reclaim(*listsPageHandle);
     auto nodeOffset = inNodeIDVector->readNodeOffset(inDataChunk->state->getPositionOfCurrIdx());
-    lists->readValues(nodeOffset, outValueVector, outDataChunk->state->size, listsPageHandle,
-        MAX_TO_READ, *metrics->bufferManagerMetrics);
+    lists->readValues(
+        nodeOffset, outValueVector, listsPageHandle, MAX_TO_READ, *metrics->bufferManagerMetrics);
 }
 
 } // namespace processor

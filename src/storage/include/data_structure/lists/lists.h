@@ -38,8 +38,8 @@ class BaseLists : public DataStructure {
 
 public:
     void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& listLen, const unique_ptr<ListsPageHandle>& listsPageHandle,
-        uint32_t maxElementsToRead, BufferManagerMetrics& metrics);
+        const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t maxElementsToRead,
+        BufferManagerMetrics& metrics);
 
     inline uint64_t getNumElementsInList(node_offset_t nodeOffset) {
         return getListInfo(nodeOffset).listLen;
@@ -53,12 +53,12 @@ protected:
         : DataStructure{fName, dataType, elementSize, bufferManager, isInMemory}, metadata{fName},
           headers(move(headers)){};
 
-    virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& lenToRead,
+    virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
         uint32_t maxElementsToRead, BufferManagerMetrics& metrics);
 
     virtual void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& lenToRead, const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
+        const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
         BufferManagerMetrics& metrics);
 
 public:
@@ -93,12 +93,12 @@ public:
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
 private:
-    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& lenToRead,
+    void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
         uint32_t maxElementsToRead, BufferManagerMetrics& metrics) override;
 
     void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& lenToRead, const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
+        const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
         BufferManagerMetrics& metrics) override;
 
 private:
@@ -121,12 +121,12 @@ public:
     shared_ptr<ListHeaders> getHeaders() { return headers; };
 
 private:
-    void readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& lenToRead,
+    void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
         uint32_t maxElementsToRead, BufferManagerMetrics& metrics) override;
 
     void readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        uint64_t& lenToRead, const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
+        const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
         BufferManagerMetrics& metrics) override;
 
 private:

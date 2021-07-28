@@ -22,7 +22,6 @@ public:
 protected:
     unique_ptr<ExpressionEvaluator> rootExpr;
     uint8_t* exprResultValues;
-    bool* exprResultNullMask;
 
 private:
     uint64_t dataChunkToSelectPos;

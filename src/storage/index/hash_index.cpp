@@ -81,7 +81,7 @@ void HashIndex::lookup(ValueVector& keys, ValueVector& result, BufferManagerMetr
         auto resultValue =
             lookupKeyInSlot(expectedKey, numBytesPerKey, blockId, slotIdInBlock, metrics);
         resultData[keyPos] = resultValue;
-        result.nullMask[keyPos] = resultValue == UINT64_MAX;
+        result.setNull(keyPos, resultValue == UINT64_MAX);
     }
 }
 

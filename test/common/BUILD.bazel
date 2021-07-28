@@ -1,5 +1,18 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
+cc_library(
+    name = "vector_operations_test_helper",
+    srcs = [
+    ],
+    hdrs = [
+        "include/vector/operations/vector_operations_test_helper.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@gtest",
+    ],
+)
+
 cc_test(
     name = "memory_manager_test",
     srcs = [
@@ -32,6 +45,22 @@ cc_test(
 )
 
 cc_test(
+    name = "value_vector_tests",
+    srcs = [
+        "vector/value_vector_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/common:data_chunk",
+        "//src/common:memory_manager",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "vector_operations_tests",
     srcs = [
         "vector/operations/vector_arithmetic_operations_test.cpp",
@@ -44,6 +73,7 @@ cc_test(
         "-Iexternal/gtest/include",
     ],
     deps = [
+        "//test/common:vector_operations_test_helper",
         "//src/common:data_chunk",
         "//src/common:vector_operations",
         "@gtest",

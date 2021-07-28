@@ -165,7 +165,7 @@ unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToStructuredPhysical(
     } break;
     case BOOL: {
         auto val = literalExpression.literal.val.booleanVal;
-        vector->nullMask[0] = val == NULL_BOOL;
+        vector->setNull(0, val == NULL_BOOL);
         vector->values[0] = val;
     } break;
     case STRING: {

@@ -12,7 +12,6 @@ Filter::Filter(unique_ptr<ExpressionEvaluator> rootExpr, uint64_t dataChunkToSel
       dataChunkToSelectPos(dataChunkToSelectPos) {
     resultSet = this->prevOperator->getResultSet();
     exprResultValues = this->rootExpr->result->values;
-    exprResultNullMask = this->rootExpr->result->nullMask;
 }
 
 void Filter::getNextTuples() {
@@ -29,20 +28,20 @@ void Filter::getNextTuples() {
         if (dataChunkToSelect->state->isFlat()) {
             auto pos = dataChunkToSelect->state->getPositionOfCurrIdx();
             hasAtLeastOneSelectedValue =
-                (exprResultValues[pos] == TRUE) & (!exprResultNullMask[pos]);
+                (exprResultValues[pos] == TRUE) & (!rootExpr->result->isNull(pos));
         } else {
             auto resultPos = 0;
             if (dataChunkToSelect->state->isUnfiltered()) {
                 dataChunkToSelect->state->resetSelectorToValuePosBuffer();
                 for (auto i = 0ul; i < dataChunkToSelect->state->size; i++) {
                     dataChunkToSelect->state->selectedPositions[resultPos] = i;
-                    resultPos += (exprResultValues[i] == TRUE) & (!exprResultNullMask[i]);
+                    resultPos += (exprResultValues[i] == TRUE) & (!rootExpr->result->isNull(i));
                 }
             } else {
                 for (auto i = 0ul; i < dataChunkToSelect->state->size; i++) {
                     auto pos = dataChunkToSelect->state->selectedPositions[i];
                     dataChunkToSelect->state->selectedPositions[resultPos] = pos;
-                    resultPos += (exprResultValues[pos] == TRUE) & (!exprResultNullMask[pos]);
+                    resultPos += (exprResultValues[pos] == TRUE) & (!rootExpr->result->isNull(pos));
                 }
             }
             dataChunkToSelect->state->size = resultPos;

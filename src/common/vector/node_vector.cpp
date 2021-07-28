@@ -66,7 +66,7 @@ bool NodeIDVector::discardNulls() {
 shared_ptr<ValueVector> NodeIDVector::clone() {
     auto newVector = make_shared<NodeIDVector>(
         representation.commonLabel, representation.compressionScheme, representation.isSequence);
-    memcpy(newVector->nullMask, nullMask, vectorCapacity);
+    newVector->setNullMask(getNullMask()->clone(vectorCapacity));
     memcpy(newVector->values, values, vectorCapacity * getNumBytesPerValue());
     return newVector;
 }

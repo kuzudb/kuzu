@@ -54,14 +54,14 @@ struct LessThanEquals {
 
 struct IsNull {
     template<class T>
-    static inline uint8_t operation(const T& value) {
+    static inline bool operation(const T& value) {
         throw std::invalid_argument("Unsupported type for IsNull.");
     }
 };
 
 struct IsNotNull {
     template<class T>
-    static inline uint8_t operation(const T& value) {
+    static inline bool operation(const T& value) {
         throw std::invalid_argument("Unsupported type for IsNotNull.");
     }
 };
@@ -283,23 +283,23 @@ inline uint8_t LessThanEquals::operation(const nodeID_t& left, const nodeID_t& r
  ********************************************/
 
 template<>
-inline uint8_t IsNull::operation(const uint8_t& value) {
-    return value == NULL_BOOL ? TRUE : FALSE;
+inline bool IsNull::operation(const uint8_t& value) {
+    return value == NULL_BOOL;
 };
 
 template<>
-inline uint8_t IsNull::operation(const int64_t& value) {
-    return value == NULL_INT64 ? TRUE : FALSE;
+inline bool IsNull::operation(const int64_t& value) {
+    return value == NULL_INT64;
 };
 
 template<>
-inline uint8_t IsNull::operation(const double_t& value) {
-    return value == NULL_DOUBLE ? TRUE : FALSE;
+inline bool IsNull::operation(const double_t& value) {
+    return value == NULL_DOUBLE;
 };
 
 template<>
-inline uint8_t IsNull::operation(const date_t& value) {
-    return value == NULL_DATE ? TRUE : FALSE;
+inline bool IsNull::operation(const date_t& value) {
+    return value == NULL_DATE;
 };
 
 /***********************************************
@@ -308,18 +308,18 @@ inline uint8_t IsNull::operation(const date_t& value) {
  **                                           **
  ***********************************************/
 template<>
-inline uint8_t IsNotNull::operation(const uint8_t& value) {
-    return value != NULL_BOOL ? TRUE : FALSE;
+inline bool IsNotNull::operation(const uint8_t& value) {
+    return value != NULL_BOOL;
 };
 
 template<>
-inline uint8_t IsNotNull::operation(const int64_t& value) {
-    return value != NULL_INT64 ? TRUE : FALSE;
+inline bool IsNotNull::operation(const int64_t& value) {
+    return value != NULL_INT64;
 };
 
 template<>
-inline uint8_t IsNotNull::operation(const double_t& value) {
-    return value != NULL_DOUBLE ? TRUE : FALSE;
+inline bool IsNotNull::operation(const double_t& value) {
+    return value != NULL_DOUBLE;
 };
 
 } // namespace operation

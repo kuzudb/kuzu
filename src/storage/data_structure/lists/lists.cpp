@@ -27,22 +27,22 @@ ListInfo BaseLists::getListInfo(node_offset_t nodeOffset) {
 }
 
 void BaseLists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-    uint64_t& listLen, const unique_ptr<ListsPageHandle>& listsPageHandle,
-    uint32_t maxElementsToRead, BufferManagerMetrics& metrics) {
+    const unique_ptr<ListsPageHandle>& listsPageHandle, uint32_t maxElementsToRead,
+    BufferManagerMetrics& metrics) {
     auto info = getListInfo(nodeOffset);
     if (listsPageHandle->hasMoreToRead() || info.isLargeList) {
-        readFromLargeList(valueVector, listLen, listsPageHandle, info, maxElementsToRead, metrics);
+        readFromLargeList(valueVector, listsPageHandle, info, maxElementsToRead, metrics);
     } else {
-        readSmallList(nodeOffset, valueVector, listLen, listsPageHandle, info, metrics);
+        readSmallList(nodeOffset, valueVector, listsPageHandle, info, metrics);
     }
 }
 
-void BaseLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& lenToRead,
+void BaseLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info, uint32_t maxElementsToRead,
     BufferManagerMetrics& metrics) {
     // assumes that the associated adjList has already updated the syncState.
     auto pageCursor = getPageCursorForOffset(listsPageHandle->getListSyncState()->getStartIdx());
-    auto sizeLeftToCopy = elementSize * lenToRead;
+    auto sizeLeftToCopy = elementSize * valueVector->state->size;
     if (pageCursor.offset + sizeLeftToCopy > PAGE_SIZE) {
         readBySequentialCopy(
             valueVector, *listsPageHandle, sizeLeftToCopy, pageCursor, info.mapper, metrics);
@@ -54,9 +54,9 @@ void BaseLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector, ui
 }
 
 void BaseLists::readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-    uint64_t& lenToRead, const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
+    const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
     BufferManagerMetrics& metrics) {
-    auto sizeLeftToCopy = lenToRead * elementSize;
+    auto sizeLeftToCopy = valueVector->state->size * elementSize;
     if (info.cursor.offset + sizeLeftToCopy > PAGE_SIZE) {
         readBySequentialCopy(
             valueVector, *listsPageHandle, sizeLeftToCopy, info.cursor, info.mapper, metrics);
@@ -69,10 +69,10 @@ void BaseLists::readSmallList(node_offset_t nodeOffset, const shared_ptr<ValueVe
 
 // For the case of reading a list of strings, we always read by sequential copy.
 void Lists<STRING>::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-    uint64_t& lenToRead, const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
-    uint32_t maxElementsToRead, BufferManagerMetrics& metrics) {
+    const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info, uint32_t maxElementsToRead,
+    BufferManagerMetrics& metrics) {
     auto pageCursor = getPageCursorForOffset(listsPageHandle->getListSyncState()->getStartIdx());
-    auto sizeLeftToCopy = elementSize * lenToRead;
+    auto sizeLeftToCopy = elementSize * valueVector->state->size;
     readBySequentialCopy(
         valueVector, *listsPageHandle, sizeLeftToCopy, pageCursor, info.mapper, metrics);
     stringOverflowPages.readStringsToVector(*valueVector, metrics);
@@ -80,10 +80,9 @@ void Lists<STRING>::readFromLargeList(const shared_ptr<ValueVector>& valueVector
 
 // For the case of reading a list of strings, we always read by sequential copy.
 void Lists<STRING>::readSmallList(node_offset_t nodeOffset,
-    const shared_ptr<ValueVector>& valueVector, uint64_t& lenToRead,
-    const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
-    BufferManagerMetrics& metrics) {
-    auto sizeLeftToCopy = lenToRead * elementSize;
+    const shared_ptr<ValueVector>& valueVector, const unique_ptr<ListsPageHandle>& listsPageHandle,
+    ListInfo& info, BufferManagerMetrics& metrics) {
+    auto sizeLeftToCopy = valueVector->state->size * elementSize;
     readBySequentialCopy(
         valueVector, *listsPageHandle, sizeLeftToCopy, info.cursor, info.mapper, metrics);
     stringOverflowPages.readStringsToVector(*valueVector, metrics);
@@ -91,7 +90,7 @@ void Lists<STRING>::readSmallList(node_offset_t nodeOffset,
 
 // In case of adjLists, length of the list to be read is limited to the maximum number of
 // elements that can be read by setting the frame and not doing any copy.
-void Lists<NODE>::readFromLargeList(const shared_ptr<ValueVector>& valueVector, uint64_t& lenToRead,
+void Lists<NODE>::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info, uint32_t maxElementsToRead,
     BufferManagerMetrics& metrics) {
     auto listSyncState = listsPageHandle->getListSyncState();
@@ -104,22 +103,19 @@ void Lists<NODE>::readFromLargeList(const shared_ptr<ValueVector>& valueVector, 
         csrOffset = listSyncState->getEndIdx();
         info.cursor = getPageCursorForOffset(csrOffset);
     }
-    lenToRead = min((uint32_t)(info.listLen - csrOffset),
+    valueVector->state->size = min((uint32_t)(info.listLen - csrOffset),
         min(numElementsPerPage - (uint32_t)(csrOffset % numElementsPerPage), maxElementsToRead));
-    listSyncState->set(csrOffset, lenToRead);
+    listSyncState->set(csrOffset, valueVector->state->size);
     // map logical pageIdx to physical pageIdx
     info.cursor.idx = info.mapper(info.cursor.idx);
     readBySettingFrame(valueVector, *listsPageHandle, info.cursor, metrics);
 }
 
-// The case of reading a small adjList is similar to that of reading any list except that we set
-// also the lenToRead variable.
 void Lists<NODE>::readSmallList(node_offset_t nodeOffset,
-    const shared_ptr<ValueVector>& valueVector, uint64_t& lenToRead,
-    const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
-    BufferManagerMetrics& metrics) {
-    lenToRead = info.listLen;
-    BaseLists::readSmallList(nodeOffset, valueVector, lenToRead, listsPageHandle, info, metrics);
+    const shared_ptr<ValueVector>& valueVector, const unique_ptr<ListsPageHandle>& listsPageHandle,
+    ListInfo& info, BufferManagerMetrics& metrics) {
+    valueVector->state->size = info.listLen;
+    BaseLists::readSmallList(nodeOffset, valueVector, listsPageHandle, info, metrics);
 }
 
 void Lists<UNSTRUCTURED>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
@@ -203,7 +199,7 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyFromAList(uint32_t propertyKeyIdxToRe
         if (propertyKeyIdxToRead == *propertyKeyIdxPtr) {
             readOrSkipUnstrPropertyValue(physicalPageIdx, propertyDataType, pageHandle, info.cursor,
                 info.listLen, info.mapper, value, true /*to read*/, metrics);
-            valueVector->nullMask[pos] = false;
+            valueVector->setNull(pos, false);
             value->dataType = propertyDataType;
             if (STRING == propertyDataType) {
                 stringOverflowPages.readStringToVector(*valueVector, pos, metrics);
@@ -215,7 +211,7 @@ void Lists<UNSTRUCTURED>::readUnstrPropertyFromAList(uint32_t propertyKeyIdxToRe
         readOrSkipUnstrPropertyValue(physicalPageIdx, propertyDataType, pageHandle, info.cursor,
             info.listLen, info.mapper, value, false /*to read*/, metrics);
     }
-    valueVector->nullMask[pos] = true;
+    valueVector->setNull(pos, true);
 }
 
 void Lists<UNSTRUCTURED>::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataTypeCache,
