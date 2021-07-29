@@ -44,6 +44,9 @@ private:
 
     unique_ptr<BoundReturnStatement> bindReturnStatement(const ReturnStatement& returnStatement);
 
+    unique_ptr<BoundProjectionBody> bindProjectionBody(
+        const ProjectionBody& projectionBody, bool updateVariablesInScope);
+
     shared_ptr<Expression> bindWhereExpression(const ParsedExpression& parsedExpression);
 
     vector<shared_ptr<Expression>> bindProjectExpressions(

@@ -25,8 +25,8 @@ public:
 
 private:
     void enumerateQueryPart(BoundQueryPart& queryPart);
-    vector<unique_ptr<LogicalPlan>>& enumerateProjectionStatement(
-        const vector<shared_ptr<Expression>>& expressionsToProject);
+    vector<unique_ptr<LogicalPlan>>& enumerateProjectionBody(
+        const BoundProjectionBody& projectionBody);
     void enumerateReadingStatement(BoundReadingStatement& readingStatement);
     void enumerateLoadCSVStatement(const BoundLoadCSVStatement& loadCSVStatement);
     void updateQueryGraph(QueryGraph& queryGraph);
@@ -51,6 +51,7 @@ private:
     void appendNecessaryScans(const Expression& expression, LogicalPlan& plan);
     void appendScanNodeProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
     void appendScanRelProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
+    void appendLimit(uint64_t limitNumber, LogicalPlan& plan);
 
 private:
     unique_ptr<SubPlansTable> subPlansTable;

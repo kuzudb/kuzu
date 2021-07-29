@@ -40,6 +40,7 @@ cc_library(
     hdrs = [
         "include/bound_statements/bound_load_csv_statement.h",
         "include/bound_statements/bound_match_statement.h",
+        "include/bound_statements/bound_projection_body.h",
         "include/bound_statements/bound_reading_statement.h",
         "include/bound_statements/bound_return_statement.h",
         "include/bound_statements/bound_with_statement.h",

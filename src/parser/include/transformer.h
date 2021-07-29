@@ -36,6 +36,11 @@ private:
 
     unique_ptr<ReturnStatement> transformReturn(CypherParser::OC_ReturnContext& ctx);
 
+    unique_ptr<ProjectionBody> transformProjectionBody(CypherParser::OC_ProjectionBodyContext& ctx);
+
+    vector<unique_ptr<ParsedExpression>> transformProjectionItems(
+        CypherParser::OC_ProjectionItemsContext& ctx);
+
     unique_ptr<ParsedExpression> transformProjectionItem(
         CypherParser::OC_ProjectionItemContext& ctx);
 

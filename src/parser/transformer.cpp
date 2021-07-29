@@ -84,26 +84,35 @@ unique_ptr<ReadingStatement> Transformer::transformMatch(CypherParser::OC_MatchC
 }
 
 unique_ptr<WithStatement> Transformer::transformWith(CypherParser::OC_WithContext& ctx) {
-    auto projectionItems = ctx.oC_ProjectionBody()->oC_ProjectionItems();
-    auto expressions = vector<unique_ptr<ParsedExpression>>();
-    for (auto& projectionItem : projectionItems->oC_ProjectionItem()) {
-        expressions.push_back(transformProjectionItem(*projectionItem));
-    }
     auto withStatement =
-        make_unique<WithStatement>(move(expressions), nullptr != projectionItems->STAR());
+        make_unique<WithStatement>(transformProjectionBody(*ctx.oC_ProjectionBody()));
     if (ctx.oC_Where()) {
-        withStatement->whereClause = transformWhere(*ctx.oC_Where());
+        withStatement->setWhereExpression(transformWhere(*ctx.oC_Where()));
     }
     return withStatement;
 }
 
 unique_ptr<ReturnStatement> Transformer::transformReturn(CypherParser::OC_ReturnContext& ctx) {
-    auto projectionItems = ctx.oC_ProjectionBody()->oC_ProjectionItems();
-    auto expressions = vector<unique_ptr<ParsedExpression>>();
-    for (auto& projectionItem : projectionItems->oC_ProjectionItem()) {
-        expressions.push_back(transformProjectionItem(*projectionItem));
+    return make_unique<ReturnStatement>(transformProjectionBody(*ctx.oC_ProjectionBody()));
+}
+
+unique_ptr<ProjectionBody> Transformer::transformProjectionBody(
+    CypherParser::OC_ProjectionBodyContext& ctx) {
+    auto projectionBody = make_unique<ProjectionBody>(nullptr != ctx.oC_ProjectionItems()->STAR(),
+        transformProjectionItems(*ctx.oC_ProjectionItems()));
+    if (ctx.oC_LIMIT()) {
+        projectionBody->setLimitExpression(transformExpression(*ctx.oC_LIMIT()->oC_Expression()));
     }
-    return make_unique<ReturnStatement>(move(expressions), nullptr != projectionItems->STAR());
+    return projectionBody;
+}
+
+vector<unique_ptr<ParsedExpression>> Transformer::transformProjectionItems(
+    CypherParser::OC_ProjectionItemsContext& ctx) {
+    vector<unique_ptr<ParsedExpression>> projectionExpressions;
+    for (auto& projectionItem : ctx.oC_ProjectionItem()) {
+        projectionExpressions.push_back(transformProjectionItem(*projectionItem));
+    }
+    return projectionExpressions;
 }
 
 unique_ptr<ParsedExpression> Transformer::transformProjectionItem(

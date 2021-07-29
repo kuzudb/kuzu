@@ -92,7 +92,7 @@ oC_Return
 RETURN : ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'T' | 't' ) ( 'U' | 'u' ) ( 'R' | 'r' ) ( 'N' | 'n' ) ;
 
 oC_ProjectionBody
-    : SP oC_ProjectionItems ;
+    : SP oC_ProjectionItems (SP oC_LIMIT)? ;
 
 oC_ProjectionItems
     : ( STAR ( SP? ',' SP? oC_ProjectionItem )* )
@@ -105,6 +105,11 @@ oC_ProjectionItem
     : ( oC_Expression SP AS SP oC_Variable )
         | oC_Expression
         ;
+
+oC_LIMIT
+    : LIMIT SP oC_Expression ;
+
+LIMIT : ( 'L' | 'l' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'I' | 'i' ) ( 'T' | 't' ) ;
 
 oC_Where
     : WHERE SP oC_Expression ;
