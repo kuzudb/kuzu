@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
 
 #include "src/common/include/configs.h"
 #include "src/common/include/gf_string.h"
@@ -110,7 +110,7 @@ private:
     uint32_t getNewOverflowPageIdx();
 
 private:
-    mutex lock;
+    shared_mutex lock;
     uint64_t maxPages;
 };
 

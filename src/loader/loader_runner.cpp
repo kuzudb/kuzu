@@ -9,15 +9,6 @@
 using namespace graphflow::loader;
 using namespace std;
 
-void createDirectory(const string& directory) {
-    struct stat st;
-    if (stat(directory.c_str(), &st) != 0) {
-        if (mkdir(directory.c_str(), 0755) != 0 && errno != EEXIST) {
-            throw invalid_argument("Failed to create directory" + directory);
-        }
-    }
-}
-
 unordered_map<string, spdlog::level::level_enum> verbosityMap{
     {"trace", spdlog::level::trace},
     {"debug", spdlog::level::debug},
@@ -55,7 +46,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     spdlog::set_level(verbosity ? args::get(verbosity) : verbosityMap["info"]);
-    createDirectory(args::get(outputDir));
     auto numThreads = threads ? args::get(threads) : thread::hardware_concurrency();
     try {
         GraphLoader graphLoader(args::get(inputDir), args::get(outputDir), numThreads);
