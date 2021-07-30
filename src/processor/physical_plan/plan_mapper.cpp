@@ -6,6 +6,7 @@
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
+#include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
 #include "src/planner/include/logical_plan/operator/load_csv/logical_load_csv.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
@@ -16,6 +17,7 @@
 #include "src/processor/include/physical_plan/operator/flatten/flatten.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
+#include "src/processor/include/physical_plan/operator/limit/limit.h"
 #include "src/processor/include/physical_plan/operator/load_csv/load_csv.h"
 #include "src/processor/include/physical_plan/operator/projection/projection.h"
 #include "src/processor/include/physical_plan/operator/read_list/adj_list_extend.h"
@@ -37,8 +39,7 @@ unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
     auto info = PhysicalOperatorsInfo(*logicalPlan->schema);
     auto prevOperator = mapLogicalOperatorToPhysical(logicalPlan->lastOperator, info, context);
     auto resultCollector = make_unique<ResultCollector>(move(prevOperator), RESULT_COLLECTOR,
-        context, physicalOperatorID++,
-        logicalPlan->lastOperator->getLogicalOperatorType() == LOGICAL_PROJECTION);
+        context, physicalOperatorID++, !logicalPlan->isCountOnly);
     return make_unique<PhysicalPlan>(move(resultCollector));
 }
 
@@ -76,6 +77,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
         break;
     case LOGICAL_LOAD_CSV:
         physicalOperator = mapLogicalLoadCSVToPhysical(logicalOperator.get(), info, context);
+        break;
+    case LOGICAL_LIMIT:
+        physicalOperator = mapLogicalLimitToPhysical(logicalOperator.get(), info, context);
         break;
     default:
         assert(false);
@@ -241,6 +245,14 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLoadCSVToPhysical(
     }
     return make_unique<LoadCSV>(logicalLoadCSV.path, logicalLoadCSV.tokenSeparator,
         csvColumnDataTypes, context, physicalOperatorID++);
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(
+    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    auto& logicalLimit = (const LogicalLimit&)*logicalOperator;
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
+    return make_unique<Limit>(logicalLimit.getLimitNumber(), make_shared<atomic_uint64_t>(0),
+        move(prevOperator), context, physicalOperatorID++);
 }
 
 } // namespace processor

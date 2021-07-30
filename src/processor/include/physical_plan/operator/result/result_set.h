@@ -12,7 +12,7 @@ namespace processor {
 class ResultSet {
 
 public:
-    ResultSet() : multiplicity(1) {}
+    ResultSet() : multiplicity(1), numTuplesToIterate{UINT64_MAX} {}
 
     void append(shared_ptr<DataChunk> dataChunk, shared_ptr<ListSyncState> listSyncer) {
         dataChunks.push_back(dataChunk);
@@ -29,12 +29,17 @@ public:
         return listSyncStatesPerDataChunk[dataChunkPos];
     }
 
+    inline void setNumTuplesToIterate(uint64_t number) { numTuplesToIterate = number; }
+
 public:
     uint64_t multiplicity;
     vector<shared_ptr<DataChunk>> dataChunks;
 
 private:
     vector<shared_ptr<ListSyncState>> listSyncStatesPerDataChunk;
+    // Due to LIMIT, we may not iterate all tuples in a result set. If this field is UINT64_MAX, we
+    // iterate all tuples.
+    uint64_t numTuplesToIterate;
 };
 
 } // namespace processor

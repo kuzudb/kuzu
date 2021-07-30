@@ -42,7 +42,6 @@ void Projection::getNextTuples() {
     metrics->executionTime.start();
     prevOperator->getNextTuples();
     if (inResultSet->getNumTuples() == 0) {
-        resultSet->multiplicity = 0;
         for (auto& dataChunk : resultSet->dataChunks) {
             dataChunk->state->size = 0;
         }
@@ -51,8 +50,8 @@ void Projection::getNextTuples() {
     for (auto& expression : expressions) {
         expression->evaluate();
     }
-    resultSet->multiplicity = inResultSet->multiplicity;
-    resultSet->multiplicity *= discardedResultSet->getNumTuples();
+    discardedResultSet->multiplicity = inResultSet->multiplicity;
+    resultSet->multiplicity = discardedResultSet->getNumTuples();
     metrics->executionTime.stop();
 }
 

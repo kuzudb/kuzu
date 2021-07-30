@@ -47,9 +47,7 @@ bool TestHelper::runTest(const TestSuiteQueryConfig& testConfig, const System& s
                         resultSetIterator->setResultSet(resultSet.get());
                         while (resultSetIterator->hasNextTuple()) {
                             resultSetIterator->getNextTuple(tuple);
-                            for (auto k = 0u; k < resultSet->multiplicity; k++) {
-                                resultTuples.push_back(tuple.toString());
-                            }
+                            resultTuples.push_back(tuple.toString());
                         }
                     }
                     sort(resultTuples.begin(), resultTuples.end());

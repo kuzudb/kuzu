@@ -129,6 +129,20 @@ False
 40
 40
 
+-NAME KnowsOneHopTest2
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE a.age>20 RETURN b.fName
+---- 9
+Alice
+Alice
+Bob
+Bob
+Carol
+Carol
+Dan
+Dan
+Dan
+
 -NAME KnowsTwoHopTest1
 -COMPARE_RESULT 1
 -QUERY MATCH (a:person)-[:knows]->(:person)-[:knows]->(b:person) WHERE b.age>40 RETURN b.age
@@ -164,3 +178,44 @@ False
 45|Bob|20
 45|Dan|30
 45|Alice|30
+
+-NAME KnowsTwoHopTest4
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.fName, b.fName
+---- 36
+Alice|Bob
+Alice|Bob
+Alice|Bob
+Alice|Carol
+Alice|Carol
+Alice|Carol
+Alice|Dan
+Alice|Dan
+Alice|Dan
+Bob|Alice
+Bob|Alice
+Bob|Alice
+Bob|Carol
+Bob|Carol
+Bob|Carol
+Bob|Dan
+Bob|Dan
+Bob|Dan
+Carol|Alice
+Carol|Alice
+Carol|Alice
+Carol|Bob
+Carol|Bob
+Carol|Bob
+Carol|Dan
+Carol|Dan
+Carol|Dan
+Dan|Alice
+Dan|Alice
+Dan|Alice
+Dan|Bob
+Dan|Bob
+Dan|Bob
+Dan|Carol
+Dan|Carol
+Dan|Carol

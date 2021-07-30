@@ -32,6 +32,7 @@ filegroup(
         "queries/filtered/stars.test",
         "queries/filtered/str_operations.test",
         "queries/filtered/unstructured_properties.test",
+        "queries/projection/limit.test",
         "queries/projection/projection.test",
         "queries/structural/cyclic.test",
         "queries/structural/frontier.test",
