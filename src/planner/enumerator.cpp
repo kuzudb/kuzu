@@ -4,6 +4,7 @@
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
+#include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
 #include "src/planner/include/logical_plan/operator/load_csv/logical_load_csv.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
@@ -76,7 +77,8 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(const BoundSingleQuer
         enumerateReadingStatement(*readingStatement);
     }
     enumerateSubplans(whereClauses);
-    auto& finalPlans = enumerateProjectionStatement(singleQuery.boundReturnStatement->expressions);
+    auto& finalPlans =
+        enumerateProjectionBody(*singleQuery.boundReturnStatement->getBoundProjectionBody());
     return move(finalPlans);
 }
 
@@ -88,21 +90,21 @@ void Enumerator::enumerateQueryPart(BoundQueryPart& queryPart) {
         }
         enumerateReadingStatement(*readingStatement);
     }
-    if (queryPart.boundWithStatement->whereExpression) {
+    if (queryPart.boundWithStatement->hasWhereExpression()) {
         for (auto& expression :
-            splitExpressionOnAND(queryPart.boundWithStatement->whereExpression)) {
+            splitExpressionOnAND(queryPart.boundWithStatement->getWhereExpression())) {
             whereClauses.push_back(move(expression));
         }
     }
     enumerateSubplans(whereClauses);
     // e.g. WITH 1 AS one MATCH ...
     if (!subPlansTable->getSubqueryGraphPlansMap(currentLevel).empty()) {
-        enumerateProjectionStatement(queryPart.boundWithStatement->expressions);
+        enumerateProjectionBody(*queryPart.boundWithStatement->getBoundProjectionBody());
     }
 }
 
-vector<unique_ptr<LogicalPlan>>& Enumerator::enumerateProjectionStatement(
-    const vector<shared_ptr<Expression>>& expressionsToProject) {
+vector<unique_ptr<LogicalPlan>>& Enumerator::enumerateProjectionBody(
+    const BoundProjectionBody& projectionBody) {
     auto matchedSubgraph = SubqueryGraph(*mergedQueryGraph);
     for (auto i = 0u; i < mergedQueryGraph->getNumQueryNodes(); ++i) {
         matchedSubgraph.addQueryNode(i);
@@ -112,7 +114,10 @@ vector<unique_ptr<LogicalPlan>>& Enumerator::enumerateProjectionStatement(
     }
     auto& plans = subPlansTable->getSubgraphPlans(matchedSubgraph);
     for (auto& plan : plans) {
-        appendProjection(expressionsToProject, *plan);
+        appendProjection(projectionBody.getProjectionExpressions(), *plan);
+        if (projectionBody.getLimitNumber() != UINT64_MAX) {
+            appendLimit(projectionBody.getLimitNumber(), *plan);
+        }
     }
     return plans;
 }
@@ -541,6 +546,14 @@ void Enumerator::appendScanRelProperty(
     auto groupPos = plan.schema->getGroupPos(extend->nbrNodeID);
     plan.schema->appendToGroup(propertyExpression.getInternalName(), groupPos);
     plan.appendOperator(scanProperty);
+}
+
+void Enumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
+    auto limit = make_shared<LogicalLimit>(limitNumber, plan.lastOperator);
+    for (auto& group : plan.schema->groups) {
+        group->estimatedCardinality = limitNumber;
+    }
+    plan.appendOperator(limit);
 }
 
 uint64_t getExtensionRate(

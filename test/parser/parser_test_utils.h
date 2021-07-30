@@ -16,6 +16,9 @@ public:
     static bool equals(const ParsedExpression& left, const ParsedExpression& right);
 
 private:
+    static bool equals(const ProjectionBody& left, const ProjectionBody& right);
+    static bool equals(const vector<unique_ptr<ParsedExpression>>& left,
+        const vector<unique_ptr<ParsedExpression>>& right);
     static bool equals(const PatternElement& left, const PatternElement& right);
     static bool equals(const PatternElementChain& left, const PatternElementChain& right);
     static bool equals(const RelPattern& left, const RelPattern& right);

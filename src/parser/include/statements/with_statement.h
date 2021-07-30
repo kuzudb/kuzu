@@ -5,14 +5,24 @@
 namespace graphflow {
 namespace parser {
 
+/**
+ * WIth statement may have where expression
+ */
 class WithStatement : public ReturnStatement {
 
 public:
-    WithStatement(vector<unique_ptr<ParsedExpression>> expressions, bool containsStar)
-        : ReturnStatement{move(expressions), containsStar} {}
+    WithStatement(unique_ptr<ProjectionBody> projectionBody)
+        : ReturnStatement{move(projectionBody)} {}
 
-public:
-    unique_ptr<ParsedExpression> whereClause;
+    inline void setWhereExpression(unique_ptr<ParsedExpression> expression) {
+        whereExpression = move(expression);
+    }
+
+    inline bool hasWhereExpression() const { return whereExpression != nullptr; }
+    inline ParsedExpression* getWhereExpression() const { return whereExpression.get(); }
+
+private:
+    unique_ptr<ParsedExpression> whereExpression;
 };
 
 } // namespace parser

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/binder/include/expression/expression.h"
+#include "src/binder/include/bound_statements/bound_projection_body.h"
 
 namespace graphflow {
 namespace binder {
@@ -8,11 +8,13 @@ namespace binder {
 class BoundReturnStatement {
 
 public:
-    explicit BoundReturnStatement(vector<shared_ptr<Expression>> expressions)
-        : expressions{move(expressions)} {}
+    explicit BoundReturnStatement(unique_ptr<BoundProjectionBody> projectionBody)
+        : projectionBody{move(projectionBody)} {}
 
-public:
-    vector<shared_ptr<Expression>> expressions;
+    inline BoundProjectionBody* getBoundProjectionBody() const { return projectionBody.get(); }
+
+private:
+    unique_ptr<BoundProjectionBody> projectionBody;
 };
 
 } // namespace binder

@@ -30,6 +30,7 @@ cc_library(
         "include/logical_plan/operator/filter/logical_filter.h",
         "include/logical_plan/operator/flatten/logical_flatten.h",
         "include/logical_plan/operator/hash_join/logical_hash_join.h",
+        "include/logical_plan/operator/limit/logical_limit.h",
         "include/logical_plan/operator/load_csv/logical_load_csv.h",
         "include/logical_plan/operator/logical_operator.h",
         "include/logical_plan/operator/projection/logical_projection.h",

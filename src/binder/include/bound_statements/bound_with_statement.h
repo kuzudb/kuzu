@@ -11,10 +11,17 @@ namespace binder {
 class BoundWithStatement : public BoundReturnStatement {
 
 public:
-    explicit BoundWithStatement(vector<shared_ptr<Expression>> expressions)
-        : BoundReturnStatement{move(expressions)} {}
+    explicit BoundWithStatement(unique_ptr<BoundProjectionBody> projectionBody)
+        : BoundReturnStatement{move(projectionBody)} {}
 
-public:
+    inline void setWhereExpression(shared_ptr<Expression> expression) {
+        whereExpression = move(expression);
+    }
+
+    inline bool hasWhereExpression() const { return whereExpression != nullptr; }
+    inline shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
+
+private:
     shared_ptr<Expression> whereExpression;
 };
 

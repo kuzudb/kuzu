@@ -24,32 +24,16 @@ bool ParserTestUtils::equals(const MatchStatement& left, const MatchStatement& r
 }
 
 bool ParserTestUtils::equals(const WithStatement& left, const WithStatement& right) {
-    auto result = left.containsStar == right.containsStar &&
-                  left.expressions.size() == right.expressions.size();
-    if (left.whereClause) {
-        result &= right.whereClause && equals(*left.whereClause, *right.whereClause);
+    auto result = equals(*left.getProjectionBody(), *right.getProjectionBody());
+    if (left.hasWhereExpression()) {
+        result &= right.hasWhereExpression() &&
+                  equals(*left.getWhereExpression(), *right.getWhereExpression());
     }
-    if (!result)
-        return false;
-    for (auto i = 0u; i < left.expressions.size(); ++i) {
-        if (!equals(*left.expressions[i], *right.expressions[i])) {
-            return false;
-        }
-    }
-    return true;
+    return result;
 }
 
 bool ParserTestUtils::equals(const ReturnStatement& left, const ReturnStatement& right) {
-    auto result = left.containsStar == right.containsStar &&
-                  left.expressions.size() == right.expressions.size();
-    if (!result)
-        return false;
-    for (auto i = 0u; i < left.expressions.size(); ++i) {
-        if (!equals(*left.expressions[i], *right.expressions[i])) {
-            return false;
-        }
-    }
-    return true;
+    return equals(*left.getProjectionBody(), *right.getProjectionBody());
 }
 
 bool ParserTestUtils::equals(const ParsedExpression& left, const ParsedExpression& right) {
@@ -59,6 +43,29 @@ bool ParserTestUtils::equals(const ParsedExpression& left, const ParsedExpressio
         return false;
     for (auto i = 0u; i < left.children.size(); ++i) {
         if (!equals(*left.children[i], *right.children[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ParserTestUtils::equals(const ProjectionBody& left, const ProjectionBody& right) {
+    auto result = left.isProjectStar() == right.isProjectStar() &&
+                  equals(left.getProjectionExpressions(), right.getProjectionExpressions());
+    if (left.hasLimitExpression()) {
+        result &= right.hasLimitExpression() &&
+                  equals(*left.getLimitExpression(), *right.getLimitExpression());
+    }
+    return result;
+}
+
+bool ParserTestUtils::equals(const vector<unique_ptr<ParsedExpression>>& left,
+    const vector<unique_ptr<ParsedExpression>>& right) {
+    auto result = left.size() == right.size();
+    if (!result)
+        return false;
+    for (auto i = 0u; i < left.size(); ++i) {
+        if (!equals(*left[i], *right[i])) {
             return false;
         }
     }

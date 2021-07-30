@@ -120,19 +120,37 @@ unique_ptr<BoundReadingStatement> QueryBinder::bindMatchStatement(
 }
 
 unique_ptr<BoundWithStatement> QueryBinder::bindWithStatement(const WithStatement& withStatement) {
-    auto expressionsToProject =
-        bindProjectExpressions(withStatement.expressions, withStatement.containsStar, true);
-    auto boundWithStatement = make_unique<BoundWithStatement>(move(expressionsToProject));
-    if (withStatement.whereClause) {
-        boundWithStatement->whereExpression = bindWhereExpression(*withStatement.whereClause);
+    auto boundWithStatement = make_unique<BoundWithStatement>(
+        bindProjectionBody(*withStatement.getProjectionBody(), true));
+    if (withStatement.hasWhereExpression()) {
+        boundWithStatement->setWhereExpression(
+            bindWhereExpression(*withStatement.getWhereExpression()));
     }
     return boundWithStatement;
 }
 
 unique_ptr<BoundReturnStatement> QueryBinder::bindReturnStatement(
     const ReturnStatement& returnStatement) {
-    return make_unique<BoundReturnStatement>(
-        bindProjectExpressions(returnStatement.expressions, returnStatement.containsStar, false));
+    auto boundReturnStatement = make_unique<BoundReturnStatement>(
+        bindProjectionBody(*returnStatement.getProjectionBody(), false));
+    return boundReturnStatement;
+}
+
+unique_ptr<BoundProjectionBody> QueryBinder::bindProjectionBody(
+    const ProjectionBody& projectionBody, bool updateVariablesInScope) {
+    auto boundProjectionBody = make_unique<BoundProjectionBody>(
+        bindProjectExpressions(projectionBody.getProjectionExpressions(),
+            projectionBody.isProjectStar(), updateVariablesInScope));
+    if (projectionBody.hasLimitExpression()) {
+        auto limitExpression =
+            expressionBinder.bindExpression(*projectionBody.getLimitExpression());
+        GF_ASSERT(limitExpression->expressionType == LITERAL_INT);
+        auto limitNumber =
+            static_pointer_cast<LiteralExpression>(limitExpression)->literal.val.int64Val;
+        GF_ASSERT(limitNumber >= 0);
+        boundProjectionBody->setLimitNumber(limitNumber);
+    }
+    return boundProjectionBody;
 }
 
 shared_ptr<Expression> QueryBinder::bindWhereExpression(const ParsedExpression& parsedExpression) {
