@@ -12,6 +12,7 @@
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
+#include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/filter/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten/flatten.h"
@@ -28,6 +29,7 @@
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_unstructured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
+#include "src/processor/include/physical_plan/operator/skip/skip.h"
 
 using namespace graphflow::planner;
 
@@ -80,6 +82,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
         break;
     case LOGICAL_LIMIT:
         physicalOperator = mapLogicalLimitToPhysical(logicalOperator.get(), info, context);
+        break;
+    case LOGICAL_SKIP:
+        physicalOperator = mapLogicalSkipToPhysical(logicalOperator.get(), info, context);
         break;
     default:
         assert(false);
@@ -252,6 +257,14 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(
     auto& logicalLimit = (const LogicalLimit&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     return make_unique<Limit>(logicalLimit.getLimitNumber(), make_shared<atomic_uint64_t>(0),
+        move(prevOperator), context, physicalOperatorID++);
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(
+    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    auto& logicalSkip = (const LogicalSkip&)*logicalOperator;
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
+    return make_unique<Skip>(logicalSkip.getSkipNumber(), make_shared<atomic_uint64_t>(0),
         move(prevOperator), context, physicalOperatorID++);
 }
 

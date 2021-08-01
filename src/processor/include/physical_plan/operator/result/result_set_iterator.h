@@ -17,6 +17,7 @@ public:
     void setResultSet(ResultSet* resultSet) {
         this->resultSet = resultSet;
         reset();
+        skipUntilStartOffset();
     }
 
     bool hasNextTuple();
@@ -27,6 +28,7 @@ public:
 
 private:
     void reset();
+    void skipUntilStartOffset();
     bool updateTuplePositions(int64_t chunkIdx);
     void updateTuplePositions();
     void setDataChunksTypes();

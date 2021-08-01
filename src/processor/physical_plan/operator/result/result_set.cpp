@@ -4,14 +4,14 @@ namespace graphflow {
 namespace processor {
 
 uint64_t ResultSet::getNumTuples() {
-    if (numTuplesToIterate != UINT64_MAX) {
-        return numTuplesToIterate;
+    if (endOffset != UINT64_MAX) {
+        return endOffset - startOffset;
     }
     uint64_t numTuples = 1;
     for (auto& dataChunk : dataChunks) {
         numTuples *= dataChunk->state->getNumSelectedValues();
     }
-    return numTuples * multiplicity;
+    return numTuples * multiplicity - startOffset;
 }
 
 unique_ptr<ResultSet> ResultSet::clone() {
@@ -20,7 +20,8 @@ unique_ptr<ResultSet> ResultSet::clone() {
         clonedResultSet->dataChunks.push_back(dataChunk->clone());
     }
     clonedResultSet->multiplicity = multiplicity;
-    clonedResultSet->numTuplesToIterate = numTuplesToIterate;
+    clonedResultSet->startOffset = startOffset;
+    clonedResultSet->endOffset = endOffset;
     return clonedResultSet;
 }
 

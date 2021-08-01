@@ -24,6 +24,14 @@ void ResultSetIterator::reset() {
     setDataChunksTypes();
 }
 
+void ResultSetIterator::skipUntilStartOffset() {
+    auto tuple = Tuple(dataTypes);
+    for (auto i = 0; i < resultSet->getStartOffset(); ++i) {
+        getNextTuple(tuple);
+    }
+    numIteratedTuples = 0;
+}
+
 bool ResultSetIterator::updateTuplePositions(int64_t chunkIdx) {
     if (resultSet->dataChunks[chunkIdx]->state->isFlat()) {
         return false;

@@ -64,6 +64,6 @@ TEST_F(TinySnbProcessorTest, ProjectionTests) {
     unique_ptr<TestSuiteQueryConfig> queryConfig;
     queryConfig = TestHelper::parseTestFile("test/runner/queries/projection/projection.test");
     ASSERT_TRUE(TestHelper::runTest(*queryConfig, *defaultSystem));
-    queryConfig = TestHelper::parseTestFile("test/runner/queries/projection/limit.test");
+    queryConfig = TestHelper::parseTestFile("test/runner/queries/projection/skip_limit.test");
     ASSERT_TRUE(TestHelper::runTest(*queryConfig, *defaultSystem));
 }

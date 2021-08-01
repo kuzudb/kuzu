@@ -1,0 +1,40 @@
+# description: limit
+
+-NAME LimitTest1
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.fName LIMIT 2
+---- 2
+Alice
+Bob
+
+-NAME LimitTest2
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.fName LIMIT 10
+---- 8
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME SkipTest1
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.fName SKIP 5
+---- 3
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME SkipTest2
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.fName SKIP 10
+---- 0
+
+-NAME SkipAndLimitTest
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.fName SKIP 5 LIMIT 1
+---- 1
+Farooq

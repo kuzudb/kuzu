@@ -10,6 +10,7 @@
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
+#include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
 
 namespace graphflow {
 namespace planner {
@@ -115,6 +116,9 @@ vector<unique_ptr<LogicalPlan>>& Enumerator::enumerateProjectionBody(
     auto& plans = subPlansTable->getSubgraphPlans(matchedSubgraph);
     for (auto& plan : plans) {
         appendProjection(projectionBody.getProjectionExpressions(), *plan);
+        if (projectionBody.getSkipNumber() != UINT64_MAX) {
+            appendSkip(projectionBody.getSkipNumber(), *plan);
+        }
         if (projectionBody.getLimitNumber() != UINT64_MAX) {
             appendLimit(projectionBody.getLimitNumber(), *plan);
         }
@@ -555,6 +559,14 @@ void Enumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
         group->estimatedCardinality = limitNumber;
     }
     plan.appendOperator(limit);
+}
+
+void Enumerator::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
+    auto skip = make_shared<LogicalSkip>(skipNumber, plan.lastOperator);
+    for (auto& group : plan.schema->groups) {
+        group->estimatedCardinality -= skipNumber;
+    }
+    plan.appendOperator(skip);
 }
 
 uint64_t getExtensionRate(

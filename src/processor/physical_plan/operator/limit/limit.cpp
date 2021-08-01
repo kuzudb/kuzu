@@ -12,7 +12,7 @@ Limit::Limit(uint64_t limitNumber, shared_ptr<atomic_uint64_t> counter,
 
 void Limit::getNextTuples() {
     metrics->executionTime.start();
-    resultSet->setNumTuplesToIterate(UINT64_MAX);
+    resultSet->resetEndOffset();
     prevOperator->getNextTuples();
     auto numTuplesInResultSet = resultSet->getNumTuples();
     // end of execution due to no more input
@@ -29,8 +29,13 @@ void Limit::getNextTuples() {
             }
             return;
         } else {
-            resultSet->setNumTuplesToIterate(numTupleToProcessInCurrentResultSet);
+            // process part of tuples in current result set
+            resultSet->setNumTupleToLimit(numTupleToProcessInCurrentResultSet);
+            metrics->numOutputTuple.increase(numTupleToProcessInCurrentResultSet);
         }
+    } else {
+        // process all tuples in current result set
+        metrics->numOutputTuple.increase(numTuplesInResultSet);
     }
     metrics->executionTime.stop();
 }

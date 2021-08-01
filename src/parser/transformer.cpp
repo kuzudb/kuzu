@@ -100,8 +100,11 @@ unique_ptr<ProjectionBody> Transformer::transformProjectionBody(
     CypherParser::OC_ProjectionBodyContext& ctx) {
     auto projectionBody = make_unique<ProjectionBody>(nullptr != ctx.oC_ProjectionItems()->STAR(),
         transformProjectionItems(*ctx.oC_ProjectionItems()));
-    if (ctx.oC_LIMIT()) {
-        projectionBody->setLimitExpression(transformExpression(*ctx.oC_LIMIT()->oC_Expression()));
+    if (ctx.oC_Limit()) {
+        projectionBody->setLimitExpression(transformExpression(*ctx.oC_Limit()->oC_Expression()));
+    }
+    if (ctx.oC_Skip()) {
+        projectionBody->setSkipExpression(transformExpression(*ctx.oC_Skip()->oC_Expression()));
     }
     return projectionBody;
 }

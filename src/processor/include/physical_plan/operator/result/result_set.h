@@ -12,7 +12,7 @@ namespace processor {
 class ResultSet {
 
 public:
-    ResultSet() : multiplicity(1), numTuplesToIterate{UINT64_MAX} {}
+    ResultSet() : multiplicity(1), startOffset{0}, endOffset{UINT64_MAX} {}
 
     void append(shared_ptr<DataChunk> dataChunk, shared_ptr<ListSyncState> listSyncer) {
         dataChunks.push_back(dataChunk);
@@ -29,7 +29,12 @@ public:
         return listSyncStatesPerDataChunk[dataChunkPos];
     }
 
-    inline void setNumTuplesToIterate(uint64_t number) { numTuplesToIterate = number; }
+    inline void setNumTupleToSkip(uint64_t number) { startOffset = number; }
+    inline void setNumTupleToLimit(uint64_t number) { endOffset = startOffset + number; }
+    inline void resetStartOffSet() { startOffset = 0; }
+    inline void resetEndOffset() { endOffset = UINT64_MAX; }
+    inline uint64_t getStartOffset() const { return startOffset; }
+    inline uint64_t getEndOffset() const { return endOffset; }
 
 public:
     uint64_t multiplicity;
@@ -37,9 +42,9 @@ public:
 
 private:
     vector<shared_ptr<ListSyncState>> listSyncStatesPerDataChunk;
-    // Due to LIMIT, we may not iterate all tuples in a result set. If this field is UINT64_MAX, we
-    // iterate all tuples.
-    uint64_t numTuplesToIterate;
+    // Due to SKIP and LIMIT, we might not need to iterate all tuples in result set
+    uint64_t startOffset;
+    uint64_t endOffset;
 };
 
 } // namespace processor
