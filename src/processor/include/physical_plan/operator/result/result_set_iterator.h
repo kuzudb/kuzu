@@ -33,6 +33,7 @@ private:
 
     ResultSet* resultSet;
 
+    uint64_t numRepeatOfCurrentTuple;
     uint64_t numIteratedTuples;
     vector<uint64_t> tuplePositions;
 };

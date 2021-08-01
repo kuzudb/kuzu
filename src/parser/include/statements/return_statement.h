@@ -5,10 +5,6 @@
 namespace graphflow {
 namespace parser {
 
-/**
- * Return statement must have a vector of expressions to project.
- * Return statement may have limit expression.
- */
 class ReturnStatement {
 
 public:

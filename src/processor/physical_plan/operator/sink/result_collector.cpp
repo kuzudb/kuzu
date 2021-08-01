@@ -7,7 +7,7 @@ void ResultCollector::getNextTuples() {
     metrics->executionTime.start();
     prevOperator->getNextTuples();
     auto resultSet = prevOperator->getResultSet();
-    queryResult->numTuples += resultSet->getNumTuples() * resultSet->multiplicity;
+    queryResult->numTuples += resultSet->getNumTuples();
     if (enableProjection) {
         auto clonedResultSet = resultSet->clone();
         queryResult->resultSetCollection.push_back(move(clonedResultSet));

@@ -20,6 +20,7 @@ void ResultSetIterator::reset() {
         }
     }
     numIteratedTuples = 0;
+    numRepeatOfCurrentTuple = 0;
     setDataChunksTypes();
 }
 
@@ -43,6 +44,7 @@ void ResultSetIterator::updateTuplePositions() {
             return;
         }
     }
+    numRepeatOfCurrentTuple = 0;
 }
 
 void ResultSetIterator::setDataChunksTypes() {
@@ -101,7 +103,10 @@ void ResultSetIterator::getNextTuple(Tuple& tuple) {
         }
     }
     numIteratedTuples++;
-    updateTuplePositions();
+    numRepeatOfCurrentTuple++;
+    if (numRepeatOfCurrentTuple == resultSet->multiplicity) {
+        updateTuplePositions();
+    }
 }
 
 } // namespace processor

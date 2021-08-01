@@ -24,12 +24,13 @@ enum PhysicalOperatorType : uint8_t {
     LOAD_CSV,
     CREATE_NODE,
     UPDATE_NODE,
-    DELETE_NODE
+    DELETE_NODE,
+    LIMIT
 };
 
 const string PhysicalOperatorTypeNames[] = {"SCAN", "FILTER", "FLATTEN", "READ_LIST",
     "SCAN_ATTRIBUTE", "PROJECTION", "FRONTIER_EXTEND", "HASH_JOIN_BUILD", "HASH_JOIN_PROBE",
-    "RESULT_COLLECTOR", "LOAD_CSV", "CREATE_NODE", "UPDATE_NODE", "DELETE_NODE"};
+    "RESULT_COLLECTOR", "LOAD_CSV", "CREATE_NODE", "UPDATE_NODE", "DELETE_NODE", "LIMIT"};
 
 struct OperatorMetrics {
 

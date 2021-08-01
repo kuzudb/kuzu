@@ -461,6 +461,7 @@ void Enumerator::appendProjection(
     const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan) {
     // Do not append projection in case of RETURN COUNT(*)
     if (1 == expressions.size() && COUNT_STAR_FUNC == expressions[0]->expressionType) {
+        plan.isCountOnly = true;
         return;
     }
     auto expressionsToProject = rewriteExpressionToProject(expressions, graph.getCatalog(), true);

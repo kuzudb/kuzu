@@ -15,6 +15,8 @@ public:
 
     string getExpressionsForPrinting() const override { return to_string(limitNumber); }
 
+    inline uint64_t getLimitNumber() const { return limitNumber; }
+
 private:
     uint64_t limitNumber;
 };

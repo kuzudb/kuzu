@@ -9,7 +9,7 @@ namespace planner {
 class LogicalPlan {
 
 public:
-    LogicalPlan() : cost{0} { schema = make_unique<Schema>(); }
+    LogicalPlan() : cost{0}, isCountOnly{false} { schema = make_unique<Schema>(); }
 
     explicit LogicalPlan(unique_ptr<Schema> schema) : schema{move(schema)}, cost{0} {}
 
@@ -21,6 +21,7 @@ public:
     shared_ptr<LogicalOperator> lastOperator;
     unique_ptr<Schema> schema;
     uint64_t cost;
+    bool isCountOnly;
 };
 
 } // namespace planner
