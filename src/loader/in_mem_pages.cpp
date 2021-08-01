@@ -54,6 +54,7 @@ void InMemStringOverflowPages::copyOverflowString(
         cursor.offset = 0;
         cursor.idx = getNewOverflowPageIdx();
     }
+    shared_lock lck(lock);
     encodedString->setOverflowPtrInfo(cursor.idx, cursor.offset);
     auto writeOffset = data.get() + (cursor.idx << PAGE_SIZE_LOG_2) + cursor.offset;
     memcpy(writeOffset, ptrToCopy, encodedString->len);
@@ -61,7 +62,7 @@ void InMemStringOverflowPages::copyOverflowString(
 }
 
 uint32_t InMemStringOverflowPages::getNewOverflowPageIdx() {
-    lock_guard lck(lock);
+    unique_lock lck(lock);
     auto page = numPages++;
     if (numPages != maxPages) {
         return page;
