@@ -55,6 +55,7 @@ filegroup(
         "queries/filtered/unstructured_properties.test",
         "queries/projection/limit.test",
         "queries/projection/projection.test",
+        "queries/projection/with.test",
         "queries/structural/cyclic.test",
         "queries/structural/frontier.test",
         "queries/structural/multi_query.test",

@@ -6,6 +6,7 @@
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
 #include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
 #include "src/planner/include/logical_plan/operator/load_csv/logical_load_csv.h"
+#include "src/planner/include/logical_plan/operator/multiplicity_reducer/logical_multiplcity_reducer.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
@@ -18,6 +19,7 @@ const double PREDICATE_SELECTIVITY = 0.2;
 
 static uint64_t getExtensionRate(
     label_t boundNodeLabel, label_t relLabel, Direction direction, const Graph& graph);
+static SubqueryGraph getFullyMatchedSubqueryGraph(const QueryGraph& queryGraph);
 
 static vector<shared_ptr<Expression>> getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,
     const SubqueryGraph& newSubgraph, const vector<shared_ptr<Expression>>& expressions);
@@ -28,8 +30,10 @@ static vector<shared_ptr<Expression>> getNewMatchedExpressions(
 static vector<shared_ptr<Expression>> extractWhereClause(
     const BoundReadingStatement& readingStatement);
 static vector<shared_ptr<Expression>> splitExpressionOnAND(shared_ptr<Expression> expression);
-static unordered_map<uint32_t, string> getUnFlatGroupsPos(
-    shared_ptr<Expression> expression, Schema& schema);
+static unordered_set<string> getUnFlatGroups(const Expression& expression, const Schema& schema);
+static unordered_set<string> getUnFlatGroups(const Schema& schema);
+static string getAnyGroup(const Expression& expression, const Schema& schema);
+static string getAnyGroup(const Schema& schema);
 
 // check for all variable expressions and rewrite
 static vector<shared_ptr<Expression>> rewriteExpressionToProject(
@@ -77,8 +81,9 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(const BoundSingleQuer
         enumerateReadingStatement(*readingStatement);
     }
     enumerateSubplans(whereClauses);
+    enumerateProjectionBody(*singleQuery.boundReturnStatement->getBoundProjectionBody(), true);
     auto& finalPlans =
-        enumerateProjectionBody(*singleQuery.boundReturnStatement->getBoundProjectionBody());
+        subPlansTable->getSubgraphPlans(getFullyMatchedSubqueryGraph(*mergedQueryGraph));
     return move(finalPlans);
 }
 
@@ -99,27 +104,21 @@ void Enumerator::enumerateQueryPart(BoundQueryPart& queryPart) {
     enumerateSubplans(whereClauses);
     // e.g. WITH 1 AS one MATCH ...
     if (!subPlansTable->getSubqueryGraphPlansMap(currentLevel).empty()) {
-        enumerateProjectionBody(*queryPart.boundWithStatement->getBoundProjectionBody());
+        enumerateProjectionBody(*queryPart.boundWithStatement->getBoundProjectionBody(), false);
     }
 }
 
-vector<unique_ptr<LogicalPlan>>& Enumerator::enumerateProjectionBody(
-    const BoundProjectionBody& projectionBody) {
-    auto matchedSubgraph = SubqueryGraph(*mergedQueryGraph);
-    for (auto i = 0u; i < mergedQueryGraph->getNumQueryNodes(); ++i) {
-        matchedSubgraph.addQueryNode(i);
-    }
-    for (auto i = 0u; i < mergedQueryGraph->getNumQueryRels(); ++i) {
-        matchedSubgraph.addQueryRel(i);
-    }
-    auto& plans = subPlansTable->getSubgraphPlans(matchedSubgraph);
+void Enumerator::enumerateProjectionBody(
+    const BoundProjectionBody& projectionBody, bool isRewritingAllProperties) {
+    auto& plans = subPlansTable->getSubgraphPlans(getFullyMatchedSubqueryGraph(*mergedQueryGraph));
     for (auto& plan : plans) {
-        appendProjection(projectionBody.getProjectionExpressions(), *plan);
+        appendProjection(
+            projectionBody.getProjectionExpressions(), *plan, isRewritingAllProperties);
         if (projectionBody.getLimitNumber() != UINT64_MAX) {
+            appendMultiplicityReducer(*plan);
             appendLimit(projectionBody.getLimitNumber(), *plan);
         }
     }
-    return plans;
 }
 
 void Enumerator::enumerateReadingStatement(BoundReadingStatement& readingStatement) {
@@ -362,22 +361,13 @@ void Enumerator::appendExtend(
     plan.appendOperator(extend);
 }
 
-string Enumerator::appendNecessaryFlattens(const Expression& expression,
-    const unordered_map<uint32_t, string>& unFlatGroupsPos, LogicalPlan& plan) {
-    string variableToSelect;
-    if (unFlatGroupsPos.empty()) {
-        // randomly pick a flat group
-        auto subExpressions = expression.getIncludedExpressions(
-            unordered_set<ExpressionType>{PROPERTY, CSV_LINE_EXTRACT, ALIAS});
-        GF_ASSERT(!subExpressions.empty());
-        variableToSelect = subExpressions[0]->getInternalName();
-    } else {
-        // randomly pick the first unFlat group to select and flatten the rest
-        variableToSelect = unFlatGroupsPos.begin()->second;
-        for (auto& [groupPos, variable] : unFlatGroupsPos) {
-            if (variableToSelect != variable) {
-                appendFlatten(variable, plan);
-            }
+string Enumerator::appendNecessaryFlattens(
+    const unordered_set<string>& unFlatGroups, LogicalPlan& plan) {
+    // randomly pick the first unFlat group to select and flatten the rest
+    auto variableToSelect = *unFlatGroups.begin();
+    for (auto& variable : unFlatGroups) {
+        if (variableToSelect != variable) {
+            appendFlatten(variable, plan);
         }
     }
     return variableToSelect;
@@ -449,28 +439,32 @@ void Enumerator::appendLogicalHashJoin(
 
 void Enumerator::appendFilter(shared_ptr<Expression> expression, LogicalPlan& plan) {
     appendNecessaryScans(*expression, plan);
-    auto unFlatGroupsPos = getUnFlatGroupsPos(expression, *plan.schema);
-    auto variableToSelect = appendNecessaryFlattens(*expression, unFlatGroupsPos, plan);
+    auto unFlatGroups = getUnFlatGroups(*expression, *plan.schema);
+    string variableToSelect = !unFlatGroups.empty() ? appendNecessaryFlattens(unFlatGroups, plan) :
+                                                      getAnyGroup(*expression, *plan.schema);
     auto filter = make_shared<LogicalFilter>(expression, variableToSelect, plan.lastOperator);
     plan.schema->groups[plan.schema->getGroupPos(variableToSelect)]->estimatedCardinality *=
         PREDICATE_SELECTIVITY;
     plan.appendOperator(filter);
 }
 
-void Enumerator::appendProjection(
-    const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan) {
+void Enumerator::appendProjection(const vector<shared_ptr<Expression>>& expressions,
+    LogicalPlan& plan, bool isRewritingAllProperties) {
     // Do not append projection in case of RETURN COUNT(*)
     if (1 == expressions.size() && COUNT_STAR_FUNC == expressions[0]->expressionType) {
         plan.isCountOnly = true;
         return;
     }
-    auto expressionsToProject = rewriteExpressionToProject(expressions, graph.getCatalog(), true);
+    auto expressionsToProject =
+        rewriteExpressionToProject(expressions, graph.getCatalog(), isRewritingAllProperties);
 
     vector<uint32_t> exprResultInGroupPos;
     for (auto& expression : expressionsToProject) {
         appendNecessaryScans(*expression, plan);
-        auto unFlatGroupsPos = getUnFlatGroupsPos(expression, *plan.schema);
-        auto variableToWrite = appendNecessaryFlattens(*expression, unFlatGroupsPos, plan);
+        auto unFlatGroups = getUnFlatGroups(*expression, *plan.schema);
+        string variableToWrite = !unFlatGroups.empty() ?
+                                     appendNecessaryFlattens(unFlatGroups, plan) :
+                                     getAnyGroup(*expression, *plan.schema);
         exprResultInGroupPos.push_back(plan.schema->getGroupPos(variableToWrite));
     }
 
@@ -549,8 +543,23 @@ void Enumerator::appendScanRelProperty(
     plan.appendOperator(scanProperty);
 }
 
+void Enumerator::appendMultiplicityReducer(LogicalPlan& plan) {
+    plan.appendOperator(make_shared<LogicalMultiplicityReducer>(plan.lastOperator));
+}
+
 void Enumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
-    auto limit = make_shared<LogicalLimit>(limitNumber, plan.lastOperator);
+    auto unFlatGroups = getUnFlatGroups(*plan.schema);
+    auto variableToSelect = !unFlatGroups.empty() ? appendNecessaryFlattens(unFlatGroups, plan) :
+                                                    getAnyGroup(*plan.schema);
+    // Because our resultSet is shared through the plan and limit might not appear at the end (due
+    // to WITH clause), limit needs to know how many tuples are available under it. So it requires a
+    // subset of dataChunks that may different from shared resultSet.
+    vector<string> groupsToLimit;
+    for (auto& group : plan.schema->groups) {
+        groupsToLimit.push_back(group->getAnyVariable());
+    }
+    auto limit = make_shared<LogicalLimit>(
+        limitNumber, variableToSelect, move(groupsToLimit), plan.lastOperator);
     for (auto& group : plan.schema->groups) {
         group->estimatedCardinality = limitNumber;
     }
@@ -561,6 +570,17 @@ uint64_t getExtensionRate(
     label_t boundNodeLabel, label_t relLabel, Direction direction, const Graph& graph) {
     auto numRels = graph.getNumRelsForDirBoundLabelRelLabel(direction, boundNodeLabel, relLabel);
     return ceil((double)numRels / graph.getNumNodes(boundNodeLabel));
+}
+
+SubqueryGraph getFullyMatchedSubqueryGraph(const QueryGraph& queryGraph) {
+    auto matchedSubgraph = SubqueryGraph(queryGraph);
+    for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
+        matchedSubgraph.addQueryNode(i);
+    }
+    for (auto i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
+        matchedSubgraph.addQueryRel(i);
+    }
+    return matchedSubgraph;
 }
 
 vector<shared_ptr<Expression>> getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,
@@ -617,26 +637,46 @@ vector<shared_ptr<Expression>> splitExpressionOnAND(shared_ptr<Expression> expre
     return result;
 }
 
-unordered_map<uint32_t, string> getUnFlatGroupsPos(
-    shared_ptr<Expression> expression, Schema& schema) {
-    auto subExpressions = expression->getIncludedExpressions(
+unordered_set<string> getUnFlatGroups(const Expression& expression, const Schema& schema) {
+    auto subExpressions = expression.getIncludedExpressions(
         unordered_set<ExpressionType>{PROPERTY, CSV_LINE_EXTRACT, ALIAS});
-    unordered_map<uint32_t, string> unFlatGroupsPos;
+    unordered_set<string> unFlatGroups;
     for (auto& subExpression : subExpressions) {
         if (schema.containVariable(subExpression->getInternalName())) {
             auto groupPos = schema.getGroupPos(subExpression->getInternalName());
             if (!schema.groups[groupPos]->isFlat) {
-                unFlatGroupsPos.insert({groupPos, subExpression->getInternalName()});
+                unFlatGroups.insert(subExpression->getInternalName());
             }
         } else {
             GF_ASSERT(ALIAS == subExpression->expressionType);
-            for (auto& [groupPos, variable] :
-                getUnFlatGroupsPos(subExpression->children[0], schema)) {
-                unFlatGroupsPos.insert({groupPos, variable});
+            for (auto& variable : getUnFlatGroups(*subExpression->children[0], schema)) {
+                unFlatGroups.insert(variable);
             }
         }
     }
-    return unFlatGroupsPos;
+    return unFlatGroups;
+}
+
+unordered_set<string> getUnFlatGroups(const Schema& schema) {
+    unordered_set<string> unFlatGroups;
+    for (auto& group : schema.groups) {
+        if (!group->isFlat) {
+            unFlatGroups.insert(group->getAnyVariable());
+        }
+    }
+    return unFlatGroups;
+}
+
+string getAnyGroup(const Expression& expression, const Schema& schema) {
+    auto subExpressions = expression.getIncludedExpressions(
+        unordered_set<ExpressionType>{PROPERTY, CSV_LINE_EXTRACT, ALIAS});
+    GF_ASSERT(!subExpressions.empty());
+    return subExpressions[0]->getInternalName();
+}
+
+string getAnyGroup(const Schema& schema) {
+    GF_ASSERT(!schema.groups.empty());
+    return schema.groups[0]->getAnyVariable();
 }
 
 vector<shared_ptr<Expression>> rewriteExpressionToProject(

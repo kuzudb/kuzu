@@ -1,7 +1,5 @@
 #include "src/planner/include/logical_plan/schema.h"
 
-#include "src/common/include/assert.h"
-
 namespace graphflow {
 namespace planner {
 
@@ -26,7 +24,7 @@ void Schema::flattenGroup(uint32_t pos) {
     groups[pos]->isFlat = true;
 }
 
-uint32_t Schema::getGroupPos(const string& variable) {
+uint32_t Schema::getGroupPos(const string& variable) const {
     GF_ASSERT(variableToGroupPos.contains(variable));
     return variableToGroupPos.at(variable);
 }
