@@ -21,6 +21,18 @@ typedef uint16_t sel_t;
 struct nodeID_t {
     node_offset_t offset;
     label_t label;
+
+    nodeID_t() = default;
+    explicit inline nodeID_t(node_offset_t _offset, label_t _label)
+        : offset(_offset), label(_label) {}
+
+    // comparison operators
+    inline bool operator==(const nodeID_t& rhs) const {
+        return offset == rhs.offset && label == rhs.label;
+    };
+    inline bool operator!=(const nodeID_t& rhs) const {
+        return offset != rhs.offset || label != rhs.label;
+    };
 };
 
 // System representation for a variable-sized overflow value.

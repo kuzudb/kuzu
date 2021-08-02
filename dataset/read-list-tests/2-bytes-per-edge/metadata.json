@@ -1,0 +1,23 @@
+{
+  "tokenSeparator": ",",
+  "nodeFileDescriptions": [
+    {
+      "filename": "vPerson.csv",
+      "label": "person",
+      "primaryKey": "id"
+    }
+  ],
+  "relFileDescriptions": [
+    {
+      "filename": "eKnows.csv",
+      "label": "knows",
+      "multiplicity": "MANY_MANY",
+      "srcNodeLabels": [
+        "person"
+      ],
+      "dstNodeLabels": [
+        "person"
+      ]
+    }
+  ]
+}

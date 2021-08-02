@@ -21,21 +21,21 @@ struct TestSuiteSystemConfig {
     bool isInMemory = false;
 };
 
-struct TestSuiteQueryConfig {
+struct TestQueryConfig {
     uint64_t numThreads = 1;
     bool compareResult = false;
-    vector<string> name;
-    vector<string> query;
-    vector<uint64_t> expectedNumTuples;
-    vector<vector<string>> expectedTuples;
+    string name;
+    string query;
+    uint64_t expectedNumTuples;
+    vector<string> expectedTuples;
 };
 
 class TestHelper {
 
 public:
-    static bool runTest(const TestSuiteQueryConfig& testConfig, const System& system);
+    static bool runTest(const vector<TestQueryConfig>& testConfigs, const System& system);
 
-    static unique_ptr<TestSuiteQueryConfig> parseTestFile(const string& path);
+    static vector<TestQueryConfig> parseTestFile(const string& path);
 
     static void loadGraph(TestSuiteSystemConfig& config);
 
@@ -75,10 +75,13 @@ public:
         graphflow::testing::BaseGraphLoadingTest::SetUp();
         testSuiteSystemConfig.isInMemory = true;
         defaultSystem = TestHelper::getInitializedSystem(testSuiteSystemConfig);
+        NumericMetric numBufferHits(true), numBufferMisses(true), numIO(true);
+        metrics = make_unique<BufferManagerMetrics>(numBufferHits, numBufferMisses, numIO);
     }
 
 public:
     unique_ptr<System> defaultSystem;
+    unique_ptr<BufferManagerMetrics> metrics;
 };
 
 } // namespace testing

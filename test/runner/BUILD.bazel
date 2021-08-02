@@ -19,9 +19,30 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "read_adjlist_end_to_end_test",
+    srcs = [
+        "read_adjlist_end_to_end_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "testfiles",
+        "//dataset",
+    ],
+    deps = [
+        "//test/test_utility:test_helper",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
 filegroup(
     name = "testfiles",
     srcs = [
+        "queries/adj-list-reading/2-bytes-per-edge.test",
+        "queries/adj-list-reading/4-bytes-per-edge.test",
         "queries/data_types/date_data_type.test",
         "queries/filtered/cyclic.test",
         "queries/filtered/id_comparison.test",
