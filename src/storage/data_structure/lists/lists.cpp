@@ -37,6 +37,11 @@ void BaseLists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVecto
     }
 }
 
+/**
+ * Note: This function is called for property lists other than STRINGS. This is called by
+ * readValues, which is the main function for reading all lists except UNSTRUCTURED. NODE
+ *
+ */
 void BaseLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info, uint32_t maxElementsToRead,
     BufferManagerMetrics& metrics) {
@@ -118,6 +123,44 @@ void Lists<NODE>::readSmallList(node_offset_t nodeOffset,
     BaseLists::readSmallList(nodeOffset, valueVector, listsPageHandle, info, metrics);
 }
 
+unique_ptr<vector<nodeID_t>> Lists<NODE>::readList(
+    // We read the adjacency list of a node in 2 steps: i) we read all of the bytes from the pages
+    // that hold the list into a buffer; and (ii) we interpret the bytes in the buffer based on the
+    // ID compression scheme into a vectdor of nodeID_t.
+    node_offset_t nodeOffset, BufferManagerMetrics& metrics) {
+    // Step 1
+    auto info = getListInfo(nodeOffset);
+    auto listLenInBytes = info.listLen * elementSize;
+    auto buffer = make_unique<uint8_t[]>(listLenInBytes);
+    auto sizeLeftToCopy = listLenInBytes;
+    auto bufferPtr = buffer.get();
+    while (sizeLeftToCopy) {
+        auto physicalPageIdx = info.mapper(info.cursor.idx);
+        auto sizeToCopyInPage =
+            min(((uint64_t)numElementsPerPage * elementSize) - info.cursor.offset, sizeLeftToCopy);
+        copyFromAPage(bufferPtr, physicalPageIdx, sizeToCopyInPage, info.cursor.offset, metrics);
+        bufferPtr += sizeToCopyInPage;
+        sizeLeftToCopy -= sizeToCopyInPage;
+        info.cursor.offset = 0;
+        info.cursor.idx++;
+    }
+
+    // Step 2
+    unique_ptr<vector<nodeID_t>> retVal = make_unique<vector<nodeID_t>>();
+    auto sizeLeftToDecompress = listLenInBytes;
+    bufferPtr = buffer.get();
+    while (sizeLeftToDecompress) {
+        nodeID_t nodeID(0, 0);
+        memcpy(&nodeID.label, bufferPtr, nodeIDCompressionScheme.getNumBytesForLabel());
+        bufferPtr += nodeIDCompressionScheme.getNumBytesForLabel();
+        memcpy(&nodeID.offset, bufferPtr, nodeIDCompressionScheme.getNumBytesForOffset());
+        bufferPtr += nodeIDCompressionScheme.getNumBytesForOffset();
+        retVal->emplace_back(nodeID);
+        sizeLeftToDecompress -= nodeIDCompressionScheme.getNumTotalBytes();
+    }
+    return move(retVal);
+}
+
 void Lists<UNSTRUCTURED>::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
     uint32_t propertyKeyIdxToRead, const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<PageHandle>& pageHandle, BufferManagerMetrics& metrics) {
@@ -148,6 +191,7 @@ unique_ptr<map<uint32_t, Literal>> Lists<UNSTRUCTURED>::readList(node_offset_t n
     uint8_t propertyKeyDataTypeCache[UNSTR_PROP_HEADER_LEN];
     while (info.listLen) {
         uint64_t physicalPageIdx = info.mapper(info.cursor.idx);
+        // TODO(Semih, Pranjal): Write this in a way that we pin/copy/unpin as in column.cpp
         if (pageHandle->getPageIdx() != physicalPageIdx) {
             reclaim(*pageHandle);
             bufferManager.pin(fileHandle, physicalPageIdx, metrics);
@@ -178,10 +222,11 @@ unique_ptr<map<uint32_t, Literal>> Lists<UNSTRUCTURED>::readList(node_offset_t n
 void Lists<UNSTRUCTURED>::readUnstrPropertyFromAList(uint32_t propertyKeyIdxToRead,
     const shared_ptr<ValueVector>& valueVector, uint64_t pos,
     const unique_ptr<PageHandle>& pageHandle, ListInfo& info, BufferManagerMetrics& metrics) {
-    // propertyKeyDataTypeCache holds the unstructured property's KeyIdx and dataType for the case
-    // when the property header is split across 2 pages. When such a case exists,
+    // propertyKeyDataTypeCache holds the unstructured property's KeyIdx and dataType for the
+    // case when the property header is split across 2 pages. When such a case exists,
     // readUnstrPropertyKeyIdxAndDatatype() copies the property header to the cache and
-    // propertyKeyIdxPtr is made to point to the cache instead of pointing to the read buffer frame.
+    // propertyKeyIdxPtr is made to point to the cache instead of pointing to the read buffer
+    // frame.
     uint8_t propertyKeyDataTypeCache[UNSTR_PROP_HEADER_LEN];
     while (info.listLen) {
         uint64_t physicalPageIdx = info.mapper(info.cursor.idx);

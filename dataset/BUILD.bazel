@@ -2,8 +2,9 @@ filegroup(
     name = "dataset",
     srcs = glob([
         "tinysnb/**",
-        "loader_test/**",
         "long-string-error/**",
+        "loader-node-property-test/**",
+        "read-list-tests/**",
     ]),
     visibility = ["//visibility:public"],
 )

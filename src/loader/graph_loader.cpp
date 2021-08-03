@@ -212,8 +212,8 @@ void GraphLoader::loadRels(const vector<RelFileDescription>& relFileDescriptions
     }
     readCSVHeaderAndCalcNumBlocks(filePaths, numBlocksPerLabel, fileHeaderPerLabel);
     addRelLabelsIntoGraphCatalog(relFileDescriptions, fileHeaderPerLabel);
-
     RelsLoader relsLoader{threadPool, graph, outputDirectory, tokenSeparator, nodeIDMaps};
+
     relsLoader.load(filePaths, numBlocksPerLabel);
     logger->info("Done loading rels.");
 }

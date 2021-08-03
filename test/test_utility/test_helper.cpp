@@ -15,16 +15,17 @@ using namespace graphflow::loader;
 namespace graphflow {
 namespace testing {
 
-bool TestHelper::runTest(const TestSuiteQueryConfig& testConfig, const System& system) {
+bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const System& system) {
     SessionContext context;
-    auto numQueries = testConfig.query.size();
+    auto numQueries = testConfigs.size();
     uint64_t numPassedQueries = 0;
     vector<uint64_t> numPlansOfEachQuery(numQueries);
     vector<uint64_t> numPassedPlansOfEachQuery(numQueries);
     for (uint64_t i = 0; i < numQueries; i++) {
-        spdlog::info("TEST: {}", testConfig.name[i]);
-        spdlog::info("QUERY: {}", testConfig.query[i]);
-        context.query = testConfig.query[i];
+        auto testConfig = testConfigs[i];
+        spdlog::info("TEST: {}", testConfig.name);
+        spdlog::info("QUERY: {}", testConfig.query);
+        context.query = testConfig.query;
         auto plans = system.enumerateAllPlans(context);
         auto numPlans = plans.size();
         assert(numPlans > 0);
@@ -33,9 +34,9 @@ bool TestHelper::runTest(const TestSuiteQueryConfig& testConfig, const System& s
         for (uint64_t j = 0; j < numPlans; j++) {
             auto planStr = plans[j]->lastOperator->toString();
             auto result = system.executePlan(move(plans[j]), context);
-            if (result->numTuples != testConfig.expectedNumTuples[i]) {
+            if (result->numTuples != testConfig.expectedNumTuples) {
                 spdlog::error("PLAN{} NOT PASSED. Result num tuples: {}, Expected num tuples: {}",
-                    j, result->numTuples, testConfig.expectedNumTuples[i]);
+                    j, result->numTuples, testConfig.expectedNumTuples);
                 spdlog::info("PLAN: \n{}", planStr);
             } else {
                 if (testConfig.compareResult) {
@@ -51,7 +52,7 @@ bool TestHelper::runTest(const TestSuiteQueryConfig& testConfig, const System& s
                         }
                     }
                     sort(resultTuples.begin(), resultTuples.end());
-                    if (resultTuples == testConfig.expectedTuples[i]) {
+                    if (resultTuples == testConfig.expectedTuples) {
                         spdlog::info("PLAN{} PASSED", j);
                         spdlog::debug("PLAN: \n{}", planStr);
                         numPassedPlans++;
@@ -75,45 +76,48 @@ bool TestHelper::runTest(const TestSuiteQueryConfig& testConfig, const System& s
     }
     spdlog::info("SUMMARY:");
     for (uint64_t i = 0; i < numQueries; i++) {
-        spdlog::info("{}: {}/{} PLANS PASSED", testConfig.name[i], numPassedPlansOfEachQuery[i],
+        spdlog::info("{}: {}/{} PLANS PASSED", testConfigs[i].name, numPassedPlansOfEachQuery[i],
             numPlansOfEachQuery[i]);
         numPassedQueries += (numPlansOfEachQuery[i] == numPassedPlansOfEachQuery[i]);
     }
     return numPassedQueries == numQueries;
 }
 
-unique_ptr<TestSuiteQueryConfig> TestHelper::parseTestFile(const string& path) {
+vector<TestQueryConfig> TestHelper::parseTestFile(const string& path) {
+    vector<TestQueryConfig> retVal;
     if (access(path.c_str(), 0) == 0) {
         struct stat status;
         stat(path.c_str(), &status);
         if (!(status.st_mode & S_IFDIR)) {
             ifstream ifs(path);
             string line;
-            auto config = make_unique<TestSuiteQueryConfig>();
             while (getline(ifs, line)) {
-                if (line.starts_with("-PARALLELISM")) {
-                    config->numThreads = stoi(line.substr(13, line.length()));
+                if (line.starts_with("-NAME")) {
+                    // We create a new TestConfig when we see the line with -NAME. Following lines
+                    // until the next -NAME configure this new test.
+                    TestQueryConfig newConfig;
+                    retVal.push_back(newConfig);
+                    retVal.back().name = line.substr(6, line.length());
+                } else if (line.starts_with("-PARALLELISM")) {
+                    retVal.back().numThreads = stoi(line.substr(13, line.length()));
                 } else if (line.starts_with("-COMPARE_RESULT")) {
-                    config->compareResult = (line.substr(16, line.length()) == "1");
-                } else if (line.starts_with("-NAME")) {
-                    config->name.push_back(line.substr(6, line.length()));
+                    retVal.back().compareResult = (line.substr(16, line.length()) == "1");
                 } else if (line.starts_with("-QUERY")) {
-                    config->query.push_back(line.substr(7, line.length()));
+                    retVal.back().query = line.substr(7, line.length());
                 } else if (line.starts_with("----")) {
                     uint64_t numTuples = stoi(line.substr(5, line.length()));
-                    config->expectedNumTuples.push_back(numTuples);
-                    vector<string> queryExpectedTuples;
-                    if (config->compareResult) {
+                    retVal.back().expectedNumTuples = numTuples;
+                    if (retVal.back().compareResult) {
                         for (auto i = 0u; i < numTuples; i++) {
                             getline(ifs, line);
-                            queryExpectedTuples.push_back(line);
+                            retVal.back().expectedTuples.push_back(line);
                         }
+                        sort(retVal.back().expectedTuples.begin(),
+                            retVal.back().expectedTuples.end());
                     }
-                    sort(queryExpectedTuples.begin(), queryExpectedTuples.end());
-                    config->expectedTuples.push_back(queryExpectedTuples);
                 }
             }
-            return config;
+            return retVal;
         }
     }
     throw invalid_argument("Test file not exists! [" + path + "].");

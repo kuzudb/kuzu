@@ -120,6 +120,9 @@ public:
 
     shared_ptr<ListHeaders> getHeaders() { return headers; };
 
+    // Currently, used only in Loader tests.
+    unique_ptr<vector<nodeID_t>> readList(node_offset_t nodeOffset, BufferManagerMetrics& metrics);
+
 private:
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<ListsPageHandle>& listsPageHandle, ListInfo& info,
@@ -154,6 +157,7 @@ public:
         const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
         BufferManagerMetrics& metrics);
 
+    // Currently, used only in Loader tests.
     unique_ptr<map<uint32_t, Literal>> readList(node_offset_t nodeOffset,
         const unique_ptr<PageHandle>& pageHandle, BufferManagerMetrics& metrics);
 

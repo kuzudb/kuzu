@@ -1,5 +1,7 @@
 #include "src/loader/include/rels_loader.h"
 
+#include "src/common/include/exception.h"
+
 namespace graphflow {
 namespace loader {
 
@@ -119,7 +121,7 @@ void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescriptio
     AdjAndPropertyColumnsBuilder* adjAndPropertyColumnsBuilder,
     vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
     shared_ptr<spdlog::logger>& logger) {
-    logger->trace("Start: path=`{0}` blkIdx={1}", description->fName, blockId);
+    logger->debug("Start: path=`{0}` blkIdx={1}", description->fName, blockId);
     CSVReader reader(description->fName, tokenSeparator, blockId);
     if (0 == blockId) {
         if (reader.hasNextLine()) {
@@ -153,12 +155,12 @@ void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescriptio
             }
         }
     }
-    logger->trace("End: path=`{0}` blkIdx={1}", description->fName, blockId);
+    logger->debug("End: path=`{0}` blkIdx={1}", description->fName, blockId);
 }
 
 // Iterate over each line in a block of CSV file. For each line, infer the src/dest node labels and
 // offsets of the rel and puts in AdjLists. Also calls the parser that reads properties in a line
-// and puts in appropraite PropertyLists.
+// and puts in appropriate PropertyLists.
 void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
     char tokenSeparator, AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
     vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
@@ -209,8 +211,12 @@ void RelsLoader::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& node
             reader.skipToken();
         }
         reader.hasNextToken();
-        nodeIDs[direction].offset =
-            (*(*nodeIDMaps)[nodeIDs[direction].label]).get(reader.getString());
+        auto offsetStr = reader.getString();
+        try {
+            nodeIDs[direction].offset = (*(*nodeIDMaps)[nodeIDs[direction].label]).get(offsetStr);
+        } catch (const std::out_of_range& e) {
+            throw LoaderException(string(e.what()) + " nodeOffset: " + offsetStr);
+        }
     }
 }
 
