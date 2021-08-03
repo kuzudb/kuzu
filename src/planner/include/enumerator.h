@@ -25,8 +25,8 @@ public:
 
 private:
     void enumerateQueryPart(BoundQueryPart& queryPart);
-    vector<unique_ptr<LogicalPlan>>& enumerateProjectionBody(
-        const BoundProjectionBody& projectionBody);
+    void enumerateProjectionBody(
+        const BoundProjectionBody& projectionBody, bool isRewritingAllProperties);
     void enumerateReadingStatement(BoundReadingStatement& readingStatement);
     void enumerateLoadCSVStatement(const BoundLoadCSVStatement& loadCSVStatement);
     void updateQueryGraph(QueryGraph& queryGraph);
@@ -41,16 +41,17 @@ private:
     void appendExtendAndNecessaryFilters(const RelExpression& queryRel, Direction direction,
         const vector<shared_ptr<Expression>>& expressionsToFilter, LogicalPlan& plan);
     void appendExtend(const RelExpression& queryRel, Direction direction, LogicalPlan& plan);
-    string appendNecessaryFlattens(const Expression& expression,
-        const unordered_map<uint32_t, string>& unFlatGroupsPos, LogicalPlan& plan);
+    string appendNecessaryFlattens(const unordered_set<string>& unFlatGroups, LogicalPlan& plan);
     void appendFlatten(const string& variable, LogicalPlan& plan);
     void appendLogicalHashJoin(
         uint32_t joinNodePos, LogicalPlan& buildPlan, LogicalPlan& probePlan);
     void appendFilter(shared_ptr<Expression> expression, LogicalPlan& plan);
-    void appendProjection(const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan);
+    void appendProjection(const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan,
+        bool isRewritingAllProperties);
     void appendNecessaryScans(const Expression& expression, LogicalPlan& plan);
     void appendScanNodeProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
     void appendScanRelProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
+    void appendMultiplicityReducer(LogicalPlan& plan);
     void appendLimit(uint64_t limitNumber, LogicalPlan& plan);
 
 private:

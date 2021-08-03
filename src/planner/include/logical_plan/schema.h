@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "src/common/include/assert.h"
+
 using namespace std;
 
 namespace graphflow {
@@ -23,6 +25,11 @@ public:
 
     void appendVariable(const string& variable) { variables.push_back(variable); }
 
+    inline string getAnyVariable() {
+        GF_ASSERT(!variables.empty());
+        return variables[0];
+    }
+
 public:
     bool isFlat;
     uint64_t estimatedCardinality;
@@ -38,11 +45,13 @@ public:
 
     void appendToGroup(const FactorizationGroup& otherGroup, uint32_t pos);
 
-    uint32_t getGroupPos(const string& variable);
+    uint32_t getGroupPos(const string& variable) const;
 
     void flattenGroup(uint32_t pos);
 
-    bool containVariable(const string& variable) { return variableToGroupPos.contains(variable); }
+    bool containVariable(const string& variable) const {
+        return variableToGroupPos.contains(variable);
+    }
 
     void addLogicalExtend(const string& queryRel, LogicalExtend* extend);
 

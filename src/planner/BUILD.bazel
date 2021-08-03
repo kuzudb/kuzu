@@ -33,6 +33,7 @@ cc_library(
         "include/logical_plan/operator/limit/logical_limit.h",
         "include/logical_plan/operator/load_csv/logical_load_csv.h",
         "include/logical_plan/operator/logical_operator.h",
+        "include/logical_plan/operator/multiplicity_reducer/logical_multiplcity_reducer.h",
         "include/logical_plan/operator/projection/logical_projection.h",
         "include/logical_plan/operator/scan_node_id/logical_scan_node_id.h",
         "include/logical_plan/operator/scan_property/logical_scan_node_property.h",

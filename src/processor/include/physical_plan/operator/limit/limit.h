@@ -8,18 +8,22 @@ namespace processor {
 class Limit : public PhysicalOperator {
 
 public:
-    Limit(uint64_t limitNumber, shared_ptr<atomic_uint64_t> counter,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
+    Limit(uint64_t limitNumber, shared_ptr<atomic_uint64_t> counter, uint64_t dataChunkToSelectPos,
+        vector<uint64_t> dataChunksToLimitPos, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Limit>(limitNumber, counter, prevOperator->clone(), context, id);
+        return make_unique<Limit>(limitNumber, counter, dataChunkToSelectPos, dataChunksToLimitPos,
+            prevOperator->clone(), context, id);
     }
 
 private:
     uint64_t limitNumber;
     shared_ptr<atomic_uint64_t> counter;
+    uint64_t dataChunkToSelectPos;
+    vector<uint64_t> dataChunksToLimitPos;
 };
 
 } // namespace processor
