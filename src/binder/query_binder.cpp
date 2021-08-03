@@ -141,14 +141,13 @@ unique_ptr<BoundProjectionBody> QueryBinder::bindProjectionBody(
     auto boundProjectionBody = make_unique<BoundProjectionBody>(
         bindProjectExpressions(projectionBody.getProjectionExpressions(),
             projectionBody.isProjectStar(), updateVariablesInScope));
+    if (projectionBody.hasSkipExpression()) {
+        boundProjectionBody->setSkipNumber(
+            validateAndExtractSkipLimitNumber(*projectionBody.getSkipExpression()));
+    }
     if (projectionBody.hasLimitExpression()) {
-        auto limitExpression =
-            expressionBinder.bindExpression(*projectionBody.getLimitExpression());
-        GF_ASSERT(limitExpression->expressionType == LITERAL_INT);
-        auto limitNumber =
-            static_pointer_cast<LiteralExpression>(limitExpression)->literal.val.int64Val;
-        GF_ASSERT(limitNumber >= 0);
-        boundProjectionBody->setLimitNumber(limitNumber);
+        boundProjectionBody->setLimitNumber(
+            validateAndExtractSkipLimitNumber(*projectionBody.getLimitExpression()));
     }
     return boundProjectionBody;
 }
@@ -394,6 +393,16 @@ void QueryBinder::validateCSVHeaderColumnNamesAreUnique(
         }
         propertyNames.insert(propertyName);
     }
+}
+
+uint64_t QueryBinder::validateAndExtractSkipLimitNumber(
+    const ParsedExpression& skipOrLimitExpression) {
+    auto boundExpression = expressionBinder.bindExpression(skipOrLimitExpression);
+    GF_ASSERT(boundExpression->expressionType == LITERAL_INT);
+    auto skipOrLimitNumber =
+        static_pointer_cast<LiteralExpression>(boundExpression)->literal.val.int64Val;
+    GF_ASSERT(skipOrLimitNumber >= 0);
+    return skipOrLimitNumber;
 }
 
 vector<pair<string, DataType>> parseCSVHeader(const string& headerLine, char tokenSeparator) {

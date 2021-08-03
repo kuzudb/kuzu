@@ -38,6 +38,7 @@ cc_library(
         "include/logical_plan/operator/scan_node_id/logical_scan_node_id.h",
         "include/logical_plan/operator/scan_property/logical_scan_node_property.h",
         "include/logical_plan/operator/scan_property/logical_scan_rel_property.h",
+        "include/logical_plan/operator/skip/logical_skip.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
