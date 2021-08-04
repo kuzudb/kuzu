@@ -92,7 +92,7 @@ oC_Return
 RETURN : ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'T' | 't' ) ( 'U' | 'u' ) ( 'R' | 'r' ) ( 'N' | 'n' ) ;
 
 oC_ProjectionBody
-    : SP oC_ProjectionItems (SP oC_LIMIT)? ;
+    : SP oC_ProjectionItems ( SP oC_Skip )? ( SP oC_Limit )? ;
 
 oC_ProjectionItems
     : ( STAR ( SP? ',' SP? oC_ProjectionItem )* )
@@ -106,7 +106,12 @@ oC_ProjectionItem
         | oC_Expression
         ;
 
-oC_LIMIT
+oC_Skip
+    :  L_SKIP SP oC_Expression ;
+
+L_SKIP : ( 'S' | 's' ) ( 'K' | 'k' ) ( 'I' | 'i' ) ( 'P' | 'p' ) ;
+
+oC_Limit
     : LIMIT SP oC_Expression ;
 
 LIMIT : ( 'L' | 'l' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'I' | 'i' ) ( 'T' | 't' ) ;

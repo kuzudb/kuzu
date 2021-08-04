@@ -11,6 +11,7 @@
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
+#include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
 
 namespace graphflow {
 namespace planner {
@@ -114,9 +115,14 @@ void Enumerator::enumerateProjectionBody(
     for (auto& plan : plans) {
         appendProjection(
             projectionBody.getProjectionExpressions(), *plan, isRewritingAllProperties);
-        if (projectionBody.getLimitNumber() != UINT64_MAX) {
+        if (projectionBody.hasSkip() || projectionBody.hasLimit()) {
             appendMultiplicityReducer(*plan);
-            appendLimit(projectionBody.getLimitNumber(), *plan);
+            if (projectionBody.hasSkip()) {
+                appendSkip(projectionBody.getSkipNumber(), *plan);
+            }
+            if (projectionBody.hasLimit()) {
+                appendLimit(projectionBody.getLimitNumber(), *plan);
+            }
         }
     }
 }
@@ -312,7 +318,7 @@ void Enumerator::appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, Lo
     for (auto& expression : loadCSVStatement.csvColumnVariables) {
         plan.schema->appendToGroup(expression->getInternalName(), groupPos);
     }
-    plan.appendOperator(loadCSV);
+    plan.appendOperator(move(loadCSV));
 }
 
 void Enumerator::appendScan(uint32_t queryNodePos, LogicalPlan& plan) {
@@ -324,7 +330,7 @@ void Enumerator::appendScan(uint32_t queryNodePos, LogicalPlan& plan) {
     auto groupPos = plan.schema->createGroup();
     plan.schema->appendToGroup(nodeID, groupPos);
     plan.schema->groups[groupPos]->estimatedCardinality = graph.getNumNodes(queryNode.label);
-    plan.appendOperator(scan);
+    plan.appendOperator(move(scan));
 }
 
 void Enumerator::appendExtendAndNecessaryFilters(const RelExpression& queryRel, Direction direction,
@@ -358,7 +364,7 @@ void Enumerator::appendExtend(
         queryRel.upperBound, plan.lastOperator);
     plan.schema->addLogicalExtend(queryRel.getInternalName(), extend.get());
     plan.schema->appendToGroup(nbrNodeID, groupPos);
-    plan.appendOperator(extend);
+    plan.appendOperator(move(extend));
 }
 
 string Enumerator::appendNecessaryFlattens(
@@ -381,7 +387,7 @@ void Enumerator::appendFlatten(const string& variable, LogicalPlan& plan) {
     plan.schema->flattenGroup(groupPos);
     plan.cost += plan.schema->groups[groupPos]->estimatedCardinality;
     auto flatten = make_shared<LogicalFlatten>(variable, plan.lastOperator);
-    plan.appendOperator(flatten);
+    plan.appendOperator(move(flatten));
 }
 
 void Enumerator::appendLogicalHashJoin(
@@ -434,7 +440,7 @@ void Enumerator::appendLogicalHashJoin(
     }
     auto hashJoin = make_shared<LogicalHashJoin>(
         joinNodeID, buildPlan.lastOperator, buildPlan.schema->copy(), probePlan.lastOperator);
-    probePlan.appendOperator(hashJoin);
+    probePlan.appendOperator(move(hashJoin));
 }
 
 void Enumerator::appendFilter(shared_ptr<Expression> expression, LogicalPlan& plan) {
@@ -445,7 +451,7 @@ void Enumerator::appendFilter(shared_ptr<Expression> expression, LogicalPlan& pl
     auto filter = make_shared<LogicalFilter>(expression, variableToSelect, plan.lastOperator);
     plan.schema->groups[plan.schema->getGroupPos(variableToSelect)]->estimatedCardinality *=
         PREDICATE_SELECTIVITY;
-    plan.appendOperator(filter);
+    plan.appendOperator(move(filter));
 }
 
 void Enumerator::appendProjection(const vector<shared_ptr<Expression>>& expressions,
@@ -504,7 +510,7 @@ void Enumerator::appendProjection(const vector<shared_ptr<Expression>>& expressi
     auto projection = make_shared<LogicalProjection>(move(expressionsToProject), move(plan.schema),
         move(exprResultOutGroupPos), move(discardedGroupPos), plan.lastOperator);
     plan.schema = move(newSchema);
-    plan.appendOperator(projection);
+    plan.appendOperator(move(projection));
 }
 
 void Enumerator::appendNecessaryScans(const Expression& expression, LogicalPlan& plan) {
@@ -527,7 +533,7 @@ void Enumerator::appendScanNodeProperty(
         UNSTRUCTURED == propertyExpression.dataType, plan.lastOperator);
     auto groupPos = plan.schema->getGroupPos(nodeExpression.getIDProperty());
     plan.schema->appendToGroup(propertyExpression.getInternalName(), groupPos);
-    plan.appendOperator(scanProperty);
+    plan.appendOperator(move(scanProperty));
 }
 
 void Enumerator::appendScanRelProperty(
@@ -540,7 +546,7 @@ void Enumerator::appendScanRelProperty(
         plan.lastOperator);
     auto groupPos = plan.schema->getGroupPos(extend->nbrNodeID);
     plan.schema->appendToGroup(propertyExpression.getInternalName(), groupPos);
-    plan.appendOperator(scanProperty);
+    plan.appendOperator(move(scanProperty));
 }
 
 void Enumerator::appendMultiplicityReducer(LogicalPlan& plan) {
@@ -563,7 +569,23 @@ void Enumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
     for (auto& group : plan.schema->groups) {
         group->estimatedCardinality = limitNumber;
     }
-    plan.appendOperator(limit);
+    plan.appendOperator(move(limit));
+}
+
+void Enumerator::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
+    auto unFlatGroups = getUnFlatGroups(*plan.schema);
+    auto variableToSelect = !unFlatGroups.empty() ? appendNecessaryFlattens(unFlatGroups, plan) :
+                                                    getAnyGroup(*plan.schema);
+    vector<string> groupsToSkip;
+    for (auto& group : plan.schema->groups) {
+        groupsToSkip.push_back(group->getAnyVariable());
+    }
+    auto skip = make_shared<LogicalSkip>(
+        skipNumber, variableToSelect, move(groupsToSkip), plan.lastOperator);
+    for (auto& group : plan.schema->groups) {
+        group->estimatedCardinality -= skipNumber;
+    }
+    plan.appendOperator(move(skip));
 }
 
 uint64_t getExtensionRate(

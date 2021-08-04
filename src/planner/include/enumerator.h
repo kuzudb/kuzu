@@ -53,6 +53,7 @@ private:
     void appendScanRelProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
     void appendMultiplicityReducer(LogicalPlan& plan);
     void appendLimit(uint64_t limitNumber, LogicalPlan& plan);
+    void appendSkip(uint64_t skipNumber, LogicalPlan& plan);
 
 private:
     unique_ptr<SubPlansTable> subPlansTable;

@@ -1,4 +1,17 @@
-# description: limit
+# description: skip and limit tests
+
+-NAME BasicSkipTest1
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.fName Skip 5
+---- 3
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME BasicSkipTest2
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.fName Skip 10
+---- 0
 
 -NAME BasicLimitTest1
 -COMPARE_RESULT 1
@@ -20,6 +33,13 @@ Farooq
 Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
+-NAME BasicSkipLimitTest
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) RETURN a.fName SKIP 1 LIMIT 2
+---- 2
+Bob
+Carol
+
 -NAME KnowsTwoHopLimitTest
 -COMPARE_RESULT 1
 -QUERY MATCH (a:person)-[:knows]->(:person)-[:knows]->(b:person) WHERE a.age=35 RETURN b.fName LIMIT 1
@@ -31,6 +51,21 @@ Alice
 -QUERY MATCH (a:person) WHERE a.age>20 WITH a LIMIT 1 MATCH (a)-[e:knows]->(b:person) RETURN b.fName
 ---- 3
 Bob
+Carol
+Dan
+
+-NAME KnowsOneHopWithSkipLimitTest1
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) WHERE a.age>20 WITH a SKIP 2 MATCH (a)-[e:knows]->(b:person) RETURN b.fName LIMIT 2
+---- 2
+Alice
+Bob
+
+-NAME KnowsOneHopWithSkipLimitTest1
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person) WHERE a.age>20 WITH a SKIP 1 LIMIT 1 MATCH (a)-[e:knows]->(b:person) RETURN b.fName
+---- 3
+Alice
 Carol
 Dan
 

@@ -66,6 +66,6 @@ TEST_F(TinySnbProcessorTest, ProjectionTests) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/projection/with.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
-    queryConfigs = TestHelper::parseTestFile("test/runner/queries/projection/limit.test");
+    queryConfigs = TestHelper::parseTestFile("test/runner/queries/projection/skip_limit.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }

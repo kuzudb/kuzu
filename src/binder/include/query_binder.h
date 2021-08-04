@@ -78,6 +78,7 @@ private:
     void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
         unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
     void validateCSVHeaderColumnNamesAreUnique(const vector<pair<string, DataType>>& headerInfo);
+    uint64_t validateAndExtractSkipLimitNumber(const ParsedExpression& skipOrLimitExpression);
 
 private:
     const Catalog& catalog;

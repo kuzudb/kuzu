@@ -15,17 +15,17 @@ Limit::Limit(uint64_t limitNumber, shared_ptr<atomic_uint64_t> counter,
 void Limit::getNextTuples() {
     metrics->executionTime.start();
     prevOperator->getNextTuples();
-    auto numTuplesAvailable = 1;
+    auto numTupleAvailable = 1u;
     for (auto& dataChunkToLimitPos : dataChunksToLimitPos) {
-        numTuplesAvailable *=
+        numTupleAvailable *=
             resultSet->dataChunks[dataChunkToLimitPos]->state->getNumSelectedValues();
     }
     // end of execution due to no more input
-    if (numTuplesAvailable == 0) {
+    if (numTupleAvailable == 0) {
         return;
     }
-    auto numTupleProcessedBefore = counter->fetch_add(numTuplesAvailable);
-    if (numTupleProcessedBefore + numTuplesAvailable > limitNumber) {
+    auto numTupleProcessedBefore = counter->fetch_add(numTupleAvailable);
+    if (numTupleProcessedBefore + numTupleAvailable > limitNumber) {
         int64_t numTupleToProcessInCurrentResultSet = limitNumber - numTupleProcessedBefore;
         // end of execution due to limit has reached
         if (numTupleToProcessInCurrentResultSet <= 0) {
@@ -35,12 +35,15 @@ void Limit::getNextTuples() {
             }
             return;
         } else {
-            // If dataChunk is flat, numTuplesInResultSet = 1 which means numTupleProcessedBefore =
-            // limitNumber. So execution is terminated in above if statement.
+            // If all dataChunks are flat, numTupleAvailable = 1 which means numTupleProcessedBefore
+            // = limitNumber. So execution is terminated in above if statement.
             auto& dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
             assert(!dataChunkToSelect->state->isFlat());
             dataChunkToSelect->state->size = numTupleToProcessInCurrentResultSet;
+            metrics->numOutputTuple.increase(dataChunkToSelect->state->size);
         }
+    } else {
+        metrics->numOutputTuple.increase(numTupleAvailable);
     }
     metrics->executionTime.stop();
 }

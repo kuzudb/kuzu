@@ -13,6 +13,7 @@
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
+#include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/filter/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten/flatten.h"
@@ -30,6 +31,7 @@
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_unstructured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
+#include "src/processor/include/physical_plan/operator/skip/skip.h"
 
 using namespace graphflow::planner;
 
@@ -83,6 +85,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_MULTIPLICITY_REDUCER:
         physicalOperator =
             mapLogicalMultiplicityReducerToPhysical(logicalOperator.get(), info, context);
+        break;
+    case LOGICAL_SKIP:
+        physicalOperator = mapLogicalSkipToPhysical(logicalOperator.get(), info, context);
         break;
     case LOGICAL_LIMIT:
         physicalOperator = mapLogicalLimitToPhysical(logicalOperator.get(), info, context);
@@ -257,6 +262,20 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     return make_unique<MultiplicityReducer>(move(prevOperator), context, physicalOperatorID++);
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(
+    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    auto& logicalSkip = (const LogicalSkip&)*logicalOperator;
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
+    auto dataChunkToSelectPos = info.getDataChunkPos(logicalSkip.getVariableToSelect());
+    vector<uint64_t> dataChunksToLimit;
+    for (auto& groupToLimit : logicalSkip.getGroupsToSkip()) {
+        dataChunksToLimit.push_back(info.getDataChunkPos(groupToLimit));
+    }
+    return make_unique<Skip>(logicalSkip.getSkipNumber(), make_shared<atomic_uint64_t>(0),
+        dataChunkToSelectPos, move(dataChunksToLimit), move(prevOperator), context,
+        physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(
