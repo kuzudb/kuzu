@@ -6,6 +6,7 @@
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
+#include "src/planner/include/logical_plan/operator/intersect/logical_intersect.h"
 #include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
 #include "src/planner/include/logical_plan/operator/load_csv/logical_load_csv.h"
 #include "src/planner/include/logical_plan/operator/multiplicity_reducer/logical_multiplcity_reducer.h"
@@ -19,6 +20,7 @@
 #include "src/processor/include/physical_plan/operator/flatten/flatten.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
+#include "src/processor/include/physical_plan/operator/intersect/intersect.h"
 #include "src/processor/include/physical_plan/operator/limit/limit.h"
 #include "src/processor/include/physical_plan/operator/load_csv/load_csv.h"
 #include "src/processor/include/physical_plan/operator/multiplicity_reducer/multiplicity_reducer.h"
@@ -64,6 +66,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
         break;
     case LOGICAL_FILTER:
         physicalOperator = mapLogicalFilterToPhysical(logicalOperator.get(), info, context);
+        break;
+    case LOGICAL_INTERSECT:
+        physicalOperator = mapLogicalIntersectToPhysical(logicalOperator.get(), info, context);
         break;
     case LOGICAL_PROJECTION:
         physicalOperator = mapLogicalProjectionToPhysical(logicalOperator.get(), info, context);
@@ -156,6 +161,18 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
         *logicalFilter.expression, info, *prevOperator->getResultSet(), true /*isSelectOperation*/);
     return make_unique<Filter>(move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator),
         context, physicalOperatorID++);
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
+    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    auto& logicalIntersect = (const LogicalIntersect&)*logicalOperator;
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
+    auto leftDataChunkPos = info.getDataChunkPos(logicalIntersect.getLeftNodeID());
+    auto leftValueVectorPos = info.getValueVectorPos(logicalIntersect.getLeftNodeID());
+    auto rightDataChunkPos = info.getDataChunkPos(logicalIntersect.getRightNodeID());
+    auto rightValueVectorPos = info.getValueVectorPos(logicalIntersect.getRightNodeID());
+    return make_unique<Intersect>(leftDataChunkPos, leftValueVectorPos, rightDataChunkPos,
+        rightValueVectorPos, move(prevOperator), context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(

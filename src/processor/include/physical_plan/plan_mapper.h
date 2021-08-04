@@ -31,6 +31,8 @@ private:
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalIntersectToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalScanNodePropertyToPhysical(

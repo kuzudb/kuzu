@@ -4,6 +4,7 @@
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
+#include "src/planner/include/logical_plan/operator/intersect/logical_intersect.h"
 #include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
 #include "src/planner/include/logical_plan/operator/load_csv/logical_load_csv.h"
 #include "src/planner/include/logical_plan/operator/multiplicity_reducer/logical_multiplcity_reducer.h"
@@ -168,13 +169,13 @@ void Enumerator::enumerateSubplans(const vector<shared_ptr<Expression>>& whereEx
     if (mergedQueryGraph->isEmpty()) {
         return;
     }
-    enumerateSingleQueryNode(whereExpressions);
+    enumerateSingleNode(whereExpressions);
     while (currentLevel < mergedQueryGraph->getNumQueryRels()) {
         enumerateNextLevel(whereExpressions);
     }
 }
 
-void Enumerator::enumerateSingleQueryNode(const vector<shared_ptr<Expression>>& whereExpressions) {
+void Enumerator::enumerateSingleNode(const vector<shared_ptr<Expression>>& whereExpressions) {
     auto emptySubgraph = SubqueryGraph(*mergedQueryGraph);
     unique_ptr<LogicalPlan> prevPlan;
     if (subPlansTable->containSubgraphPlans(emptySubgraph)) {
@@ -204,18 +205,19 @@ void Enumerator::enumerateSingleQueryNode(const vector<shared_ptr<Expression>>& 
 
 void Enumerator::enumerateNextLevel(const vector<shared_ptr<Expression>>& whereExpressions) {
     currentLevel++;
-    enumerateExtend(whereExpressions);
+    enumerateSingleRel(whereExpressions);
+    // TODO: remove currentLevel constraint for Hash Join enumeration
     if (currentLevel >= 4) {
         enumerateHashJoin(whereExpressions);
     }
 }
 
-void Enumerator::enumerateExtend(const vector<shared_ptr<Expression>>& whereExpressions) {
+void Enumerator::enumerateSingleRel(const vector<shared_ptr<Expression>>& whereExpressions) {
     auto& subgraphPlansMap = subPlansTable->getSubqueryGraphPlansMap(currentLevel - 1);
     for (auto& [prevSubgraph, prevPlans] : subgraphPlansMap) {
         auto connectedQueryRelsWithDirection =
             mergedQueryGraph->getConnectedQueryRelsWithDirection(prevSubgraph);
-        for (auto& [relPos, isSrcConnected, isDstConnected] : connectedQueryRelsWithDirection) {
+        for (auto& [relPos, isSrcMatched, isDstMatched] : connectedQueryRelsWithDirection) {
             // Consider query MATCH (a)-[r1]->(b)-[r2]->(c)-[r3]->(d) WITH *
             // MATCH (d)->[r4]->(e)-[r5]->(f) RETURN *
             // First MATCH is enumerated normally. When enumerating second MATCH,
@@ -233,31 +235,37 @@ void Enumerator::enumerateExtend(const vector<shared_ptr<Expression>>& whereExpr
             auto expressionsToFilter =
                 getNewMatchedExpressions(prevSubgraph, newSubgraph, whereExpressions);
             auto& queryRel = *mergedQueryGraph->queryRels[relPos];
-            if (isSrcConnected && isDstConnected) {
-                // Cyclic query is handled as an extend followed by an ID filter. E.g. Consider
-                // (a)-[e1]->(b)-[e2]->(c), (a)-[e3]->(c) triangle query, we do regular
-                // S(a)->E(e1,b)->E(e2,c) and close the cycle with e3. In order to close, we do a
-                // further Extend(e3,c). Note that this c needs a different identifier other than c.
-                // We name it as e3_c. Then we apply a filter on c.id=e3_c.id to close the cycle.
+            if (isSrcMatched && isDstMatched) {
                 for (auto& prevPlan : prevPlans) {
                     for (auto direction : DIRECTIONS) {
-                        auto isRewriteDst = direction == FWD;
-                        auto plan = prevPlan->copy();
-                        auto tmpRel = rewriteQueryRel(queryRel, isRewriteDst);
-                        auto idFilter = createNodeIDEqualComparison(
-                            isRewriteDst ? queryRel.dstNode : queryRel.srcNode,
-                            isRewriteDst ? tmpRel->dstNode : tmpRel->srcNode);
+                        auto isCloseOnDst = direction == FWD;
+                        // Break cycle by creating a temporary rel with a different name (concat rel
+                        // and node name) on closing node.
+                        auto tmpRel = rewriteQueryRel(queryRel, isCloseOnDst);
+                        auto nodeToIntersect = isCloseOnDst ? queryRel.dstNode : queryRel.srcNode;
+                        auto tmpNode = isCloseOnDst ? tmpRel->dstNode : tmpRel->srcNode;
+
+                        auto planWithFilter = prevPlan->copy();
                         appendExtendAndNecessaryFilters(
-                            *tmpRel, direction, expressionsToFilter, *plan);
-                        appendFilter(idFilter, *plan);
-                        subPlansTable->addPlan(newSubgraph, move(plan));
+                            *tmpRel, direction, expressionsToFilter, *planWithFilter);
+                        auto nodeIDFilter = createNodeIDEqualComparison(nodeToIntersect, tmpNode);
+                        appendFilter(move(nodeIDFilter), *planWithFilter);
+                        subPlansTable->addPlan(newSubgraph, move(planWithFilter));
+
+                        auto planWithIntersect = prevPlan->copy();
+                        appendExtendAndNecessaryFilters(
+                            *tmpRel, direction, expressionsToFilter, *planWithIntersect);
+                        if (appendIntersect(nodeToIntersect->getIDProperty(),
+                                tmpNode->getIDProperty(), *planWithIntersect)) {
+                            subPlansTable->addPlan(newSubgraph, move(planWithIntersect));
+                        }
                     }
                 }
             } else {
                 for (auto& prevPlan : prevPlans) {
                     auto plan = prevPlan->copy();
                     appendExtendAndNecessaryFilters(
-                        queryRel, isSrcConnected ? FWD : BWD, expressionsToFilter, *plan);
+                        queryRel, isSrcMatched ? FWD : BWD, expressionsToFilter, *plan);
                     subPlansTable->addPlan(newSubgraph, move(plan));
                 }
             }
@@ -453,6 +461,24 @@ void Enumerator::appendFilter(shared_ptr<Expression> expression, LogicalPlan& pl
     auto filter = make_shared<LogicalFilter>(expression, groupPosToSelect, plan.lastOperator);
     plan.schema->groups[groupPosToSelect]->estimatedCardinality *= PREDICATE_SELECTIVITY;
     plan.appendOperator(move(filter));
+}
+
+bool Enumerator::appendIntersect(
+    const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan) {
+    auto leftGroupPos = plan.schema->getGroupPos(leftNodeID);
+    auto rightGroupPos = plan.schema->getGroupPos(rightNodeID);
+    auto& leftGroup = *plan.schema->groups[leftGroupPos];
+    auto& rightGroup = *plan.schema->groups[rightGroupPos];
+    if (leftGroup.isFlat || rightGroup.isFlat) {
+        // We should use filter close cycle if any group is flat.
+        return false;
+    }
+    auto intersect = make_shared<LogicalIntersect>(leftNodeID, rightNodeID, plan.lastOperator);
+    plan.cost += max(leftGroup.estimatedCardinality, rightGroup.estimatedCardinality);
+    leftGroup.estimatedCardinality *= PREDICATE_SELECTIVITY;
+    rightGroup.estimatedCardinality *= PREDICATE_SELECTIVITY;
+    plan.appendOperator(move(intersect));
+    return true;
 }
 
 void Enumerator::appendProjection(const vector<shared_ptr<Expression>>& expressions,

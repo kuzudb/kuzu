@@ -2,6 +2,7 @@ filegroup(
     name = "dataset",
     srcs = glob([
         "tinysnb/**",
+        "tinysnb-variant/**",
         "long-string-error/**",
         "loader-node-property-test/**",
         "read-list-tests/**",

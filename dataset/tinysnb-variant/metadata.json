@@ -1,0 +1,39 @@
+{
+  "tokenSeparator": ",",
+  "nodeFileDescriptions": [
+    {
+      "filename": "vPerson.csv",
+      "label": "person",
+      "primaryKey": "id"
+    },
+    {
+      "filename": "vOrganisation.csv",
+      "label": "organisation",
+      "primaryKey": "id"
+    }
+  ],
+  "relFileDescriptions": [
+    {
+      "filename": "eKnows.csv",
+      "label": "knows",
+      "multiplicity": "MANY_MANY",
+      "srcNodeLabels": [
+        "person"
+      ],
+      "dstNodeLabels": [
+        "person"
+      ]
+    },
+    {
+      "filename": "eStudyAt.csv",
+      "label": "studyAt",
+      "multiplicity": "MANY_ONE",
+      "srcNodeLabels": [
+        "person"
+      ],
+      "dstNodeLabels": [
+        "organisation"
+      ]
+    }
+  ]
+}

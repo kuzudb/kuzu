@@ -21,8 +21,6 @@ TEST_F(TinySnbProcessorTest, StructuralQueries) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/structural/multi_query.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
-    queryConfigs = TestHelper::parseTestFile("test/runner/queries/structural/cyclic.test");
-    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }
 
 TEST_F(TinySnbProcessorTest, FilteredQueries) {
@@ -43,8 +41,6 @@ TEST_F(TinySnbProcessorTest, FilteredQueries) {
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/filtered/load_csv.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/filtered/multi_query.test");
-    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
-    queryConfigs = TestHelper::parseTestFile("test/runner/queries/filtered/cyclic.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }
 
