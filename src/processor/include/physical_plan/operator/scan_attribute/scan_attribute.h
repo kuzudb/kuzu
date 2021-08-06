@@ -22,7 +22,6 @@ protected:
     shared_ptr<DataChunk> inDataChunk;
     shared_ptr<NodeIDVector> inNodeIDVector;
     shared_ptr<ValueVector> outValueVector;
-    unique_ptr<PageHandle> pageHandle;
 };
 
 } // namespace processor

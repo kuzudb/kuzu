@@ -22,7 +22,7 @@ protected:
         if (prevSelectedValues == nullptr) {
             return;
         }
-        dataChunkToSelect->state->size = prevNumSelectedValues;
+        dataChunkToSelect->state->selectedSize = prevNumSelectedValues;
         if (prevSelectedValues == (sel_t*)&DataChunkState::INCREMENTAL_SELECTED_POS) {
             dataChunkToSelect->state->resetSelectorToUnselected();
         } else {
@@ -33,7 +33,7 @@ protected:
     };
 
     inline void saveDataChunkSelectorState() {
-        prevNumSelectedValues = dataChunkToSelect->state->size;
+        prevNumSelectedValues = dataChunkToSelect->state->selectedSize;
         if (dataChunkToSelect->state->isUnfiltered()) {
             prevSelectedValues = (sel_t*)&DataChunkState::INCREMENTAL_SELECTED_POS;
         } else {

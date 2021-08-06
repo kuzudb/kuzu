@@ -24,7 +24,7 @@ public:
 private:
     void run();
     void decomposePlanIntoTasks(PhysicalOperator* op, Task* parentTask, uint64_t numThreads);
-    void scheduleTask(Task* task);
+    void scheduleTask(shared_ptr<Task> task);
 
 private:
     TaskQueue queue;

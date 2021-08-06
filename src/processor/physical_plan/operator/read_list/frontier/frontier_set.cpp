@@ -90,7 +90,7 @@ void FrontierSet::insert(node_offset_t nodeOffset, uint64_t multiplicity) {
 }
 
 void FrontierSet::insert(const NodeIDVector& vector) {
-    for (auto pos = 0u; pos < vector.state->size; pos++) {
+    for (auto pos = 0u; pos < vector.state->selectedSize; pos++) {
         auto nodeOffset = vector.readNodeOffset(pos);
         insert(nodeOffset, 1 /* multiplicity */);
     }

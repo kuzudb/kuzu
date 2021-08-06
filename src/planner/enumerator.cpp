@@ -204,7 +204,6 @@ void Enumerator::enumerateSingleQueryNode(const vector<shared_ptr<Expression>>& 
 void Enumerator::enumerateNextLevel(const vector<shared_ptr<Expression>>& whereExpressions) {
     currentLevel++;
     enumerateExtend(whereExpressions);
-    // TODO: remove currentLevel constraint for Hash Join enumeration
     if (currentLevel >= 4) {
         enumerateHashJoin(whereExpressions);
     }

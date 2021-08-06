@@ -27,30 +27,8 @@ void NodesStore::initStructuredPropertyColumns(const Catalog& catalog,
             auto fName = getNodePropertyColumnFName(directory, nodeLabel, property.name);
             logger->debug("nodeLabel {} propertyId {} type {} name `{}`", nodeLabel, property.id,
                 property.dataType, property.name);
-            switch (property.dataType) {
-            case INT64:
-                propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnInt64>(
-                    fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
-                break;
-            case DOUBLE:
-                propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnDouble>(
-                    fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
-                break;
-            case BOOL:
-                propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnBool>(
-                    fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
-                break;
-            case STRING:
-                propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnString>(
-                    fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
-                break;
-            case DATE:
-                propertyColumns[nodeLabel][propertyId] = make_unique<PropertyColumnDate>(
-                    fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
-                break;
-            default:
-                throw invalid_argument("invalid type for property column creation.");
-            }
+            propertyColumns[nodeLabel][propertyId] = ColumnFactory::getColumn(fName,
+                property.dataType, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
         }
     }
 }

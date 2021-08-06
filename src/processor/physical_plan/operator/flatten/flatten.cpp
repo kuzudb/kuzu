@@ -13,11 +13,11 @@ Flatten::Flatten(uint64_t dataChunkPos, unique_ptr<PhysicalOperator> prevOperato
 
 void Flatten::getNextTuples() {
     metrics->executionTime.start();
-    if (dataChunkToFlatten->state->size == 0ul ||
-        dataChunkToFlatten->state->size == dataChunkToFlatten->state->currIdx + 1ul) {
+    if (dataChunkToFlatten->state->selectedSize == 0ul ||
+        dataChunkToFlatten->state->selectedSize == dataChunkToFlatten->state->currIdx + 1ul) {
         dataChunkToFlatten->state->currIdx = -1;
         prevOperator->getNextTuples();
-        if (dataChunkToFlatten->state->size == 0) {
+        if (dataChunkToFlatten->state->selectedSize == 0) {
             metrics->executionTime.stop();
             return;
         }

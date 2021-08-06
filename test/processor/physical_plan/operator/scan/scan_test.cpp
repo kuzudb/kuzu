@@ -20,8 +20,8 @@ TEST(ScanTests, ScanTest) {
         if (morsel->currNodeOffset >= 1025013) {
             size = 1025013 % DEFAULT_VECTOR_CAPACITY;
         }
-        ASSERT_EQ(dataChunk->state->size, size);
-        for (uint64_t i = 0; i < dataChunk->state->size; i++) {
+        ASSERT_EQ(dataChunk->state->selectedSize, size);
+        for (uint64_t i = 0; i < dataChunk->state->selectedSize; i++) {
             auto nodeOffset = nodeVector->readNodeOffset(i);
             ASSERT_EQ(nodeOffset, currNodeOffset + i);
         }

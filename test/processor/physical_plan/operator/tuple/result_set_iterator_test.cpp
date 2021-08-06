@@ -43,9 +43,9 @@ public:
         dataChunkC->append(vectorC1);
         dataChunkC->append(vectorC2);
 
-        dataChunkA->state->size = 100;
-        dataChunkB->state->size = 100;
-        dataChunkC->state->size = 100;
+        dataChunkA->state->selectedSize = 100;
+        dataChunkB->state->selectedSize = 100;
+        dataChunkC->state->selectedSize = 100;
         resultSet.append(dataChunkA);
         resultSet.append(dataChunkB);
         resultSet.append(dataChunkC);

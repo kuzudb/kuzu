@@ -99,14 +99,14 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatN
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
     VectorArithmeticOperations::Divide(*lVector, *rVector, *result);
-    for (int i = 0; i < dataChunk->state->size; i++) {
+    for (int i = 0; i < dataChunk->state->selectedSize; i++) {
         ASSERT_EQ(resultData[i], i / (110 - i));
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
     VectorArithmeticOperations::Modulo(*lVector, *rVector, *result);
-    for (int i = 0; i < dataChunk->state->size; i++) {
+    for (int i = 0; i < dataChunk->state->selectedSize; i++) {
         ASSERT_EQ(resultData[i], i % (110 - i));
         ASSERT_FALSE(result->isNull(i));
     }

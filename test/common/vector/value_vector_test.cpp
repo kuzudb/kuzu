@@ -13,7 +13,7 @@ TEST(ValueVectorTests, TestDefaultHasNull) {
     shared_ptr<DataChunkState> dataChunkState =
         make_shared<DataChunkState>(DEFAULT_VECTOR_CAPACITY);
     valueVector.state = dataChunkState;
-    valueVector.state->size = 3;
+    valueVector.state->selectedSize = 3;
     for (int i = 0; i < 3; ++i) {
         ((uint64_t*)valueVector.values)[i] = i;
     }

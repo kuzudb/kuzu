@@ -3,7 +3,6 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/data_structure/page_handle.h"
 
 using namespace graphflow::common;
 
@@ -27,15 +26,13 @@ struct PageCursor {
 class DataStructure {
 
 public:
-    void reclaim(PageHandle& pageHandle);
-
     DataType getDataType() { return dataType; }
 
     FileHandle* getFileHandle() { return &fileHandle; }
 
-    inline PageCursor getPageCursorForOffset(const uint64_t& offset) {
-        return PageCursor{
-            offset / numElementsPerPage, (uint16_t)((offset % numElementsPerPage) * elementSize)};
+    inline PageCursor getPageCursorForOffset(const uint64_t& elementOffset) {
+        return PageCursor{elementOffset / numElementsPerPage,
+            (uint16_t)((elementOffset % numElementsPerPage) * elementSize)};
     }
 
 protected:
@@ -44,12 +41,8 @@ protected:
 
     virtual ~DataStructure() = default;
 
-    void readBySettingFrame(const shared_ptr<ValueVector>& valueVector, PageHandle& pageHandle,
-        PageCursor& pageCursor, BufferManagerMetrics& metrics);
-
-    void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector, PageHandle& pageHandle,
-        uint64_t sizeLeftToCopy, PageCursor& pageCursor,
-        const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+    void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector, uint64_t sizeLeftToCopy,
+        PageCursor& pageCursor, const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
         BufferManagerMetrics& metrics);
 
     void copyFromAPage(uint8_t* values, uint32_t physicalPageIdx, uint64_t sizeToCopy,

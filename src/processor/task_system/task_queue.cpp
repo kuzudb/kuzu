@@ -3,7 +3,7 @@
 namespace graphflow {
 namespace processor {
 
-Task* TaskQueue::getTask() {
+shared_ptr<Task> TaskQueue::getTask() {
     lock_t lck{mtx};
     if (taskQueue.empty()) {
         return nullptr;
@@ -15,8 +15,8 @@ Task* TaskQueue::getTask() {
     return taskQueue[0];
 }
 
-void TaskQueue::push(Task* task) {
-    lock_t lock{mtx};
+void TaskQueue::push(shared_ptr<Task> task) {
+    lock_t lck{mtx};
     taskQueue.push_back(task);
 }
 

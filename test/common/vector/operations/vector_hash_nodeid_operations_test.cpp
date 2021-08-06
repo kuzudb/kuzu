@@ -10,7 +10,7 @@ using namespace std;
 
 TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->state->size = 1000;
+    dataChunk->state->selectedSize = 1000;
 
     NodeIDCompressionScheme compressionScheme;
     auto nodeVector = make_shared<NodeIDVector>(100, compressionScheme, false);
@@ -43,7 +43,7 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
 
 TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->state->size = 1000;
+    dataChunk->state->selectedSize = 1000;
 
     label_t commonLabel = 100;
     NodeIDCompressionScheme compressionScheme;

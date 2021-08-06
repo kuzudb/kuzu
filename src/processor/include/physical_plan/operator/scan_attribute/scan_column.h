@@ -11,17 +11,15 @@ namespace processor {
 class ScanColumn : public ScanAttribute {
 
 public:
-    ScanColumn(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+    ScanColumn(uint64_t dataChunkPos, uint64_t valueVectorPos, Column* column,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
         : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator), context, id},
           column{column} {};
-
-    ~ScanColumn() { column->reclaim(*pageHandle); }
-
+    ~ScanColumn(){};
     void getNextTuples() override;
 
 protected:
-    BaseColumn* column;
+    Column* column;
 };
 
 } // namespace processor

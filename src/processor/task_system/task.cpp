@@ -25,7 +25,7 @@ void Task::run() {
 
 unique_ptr<PhysicalOperator> Task::registerThread() {
     lock_t lck{mtx};
-    if (canRegister()) {
+    if (canRegisterInternal()) {
         numThreadsRegistered++;
         return sinkOp->clone();
     }
@@ -37,7 +37,7 @@ void Task::deregisterThread(unique_ptr<PhysicalOperator> taskSinkOp) {
     if (numThreadsFinished == numThreadsRegistered - 1) {
         sinkOp->finalize();
         if (parent) {
-            parent->numDependenciesFinished++;
+            parent->incrementNumDependenciesFinished();
         }
     }
     if (parent == nullptr) {

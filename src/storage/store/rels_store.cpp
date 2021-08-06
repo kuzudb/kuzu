@@ -107,29 +107,8 @@ void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
             auto fName = getRelPropertyColumnFName(directory, relLabel, nodeLabel, property.name);
             logger->debug("DIR {} nodeLabel {} propertyIdx {} type {} name `{}`", dir, nodeLabel,
                 property.id, property.dataType, property.name);
-            switch (property.dataType) {
-            case INT64:
-                propertyColumns[nodeLabel][relLabel][property.id] =
-                    make_unique<PropertyColumnInt64>(
-                        fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
-                break;
-            case DOUBLE:
-                propertyColumns[nodeLabel][relLabel][property.id] =
-                    make_unique<PropertyColumnDouble>(
-                        fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
-                break;
-            case BOOL:
-                propertyColumns[nodeLabel][relLabel][property.id] = make_unique<PropertyColumnBool>(
-                    fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
-                break;
-            case STRING:
-                propertyColumns[nodeLabel][relLabel][property.id] =
-                    make_unique<PropertyColumnString>(
-                        fName, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
-                break;
-            default:
-                throw invalid_argument("Invalid type for property column creation.");
-            }
+            propertyColumns[nodeLabel][relLabel][property.id] = ColumnFactory::getColumn(fName,
+                property.dataType, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
         }
     }
     logger->debug("Initializing PropertyColumns done.");
@@ -149,35 +128,8 @@ void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
                     getRelPropertyListsFName(directory, relLabel, nodeLabel, dir, property.name);
                 logger->debug("DIR {} nodeLabel {} propertyIdx {} type {} name `{}`", dir,
                     nodeLabel, property.id, property.dataType, property.name);
-                switch (property.dataType) {
-                case INT64:
-                    propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsInt64>(
-                            fName, adjListsHeaders, bufferManager, isInMemoryMode);
-                    break;
-                case DOUBLE:
-                    propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsDouble>(
-                            fName, adjListsHeaders, bufferManager, isInMemoryMode);
-                    break;
-                case BOOL:
-                    propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsBool>(
-                            fName, adjListsHeaders, bufferManager, isInMemoryMode);
-                    break;
-                case STRING:
-                    propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsString>(
-                            fName, adjListsHeaders, bufferManager, isInMemoryMode);
-                    break;
-                case DATE:
-                    propertyLists[dir][nodeLabel][relLabel][property.id] =
-                        make_unique<RelPropertyListsDate>(
-                            fName, adjListsHeaders, bufferManager, isInMemoryMode);
-                    break;
-                default:
-                    throw invalid_argument("Invalid type for property list creation.");
-                }
+                propertyLists[dir][nodeLabel][relLabel][property.id] = ListsFactory::getLists(
+                    fName, property.dataType, adjListsHeaders, bufferManager, isInMemoryMode);
             }
         }
     }

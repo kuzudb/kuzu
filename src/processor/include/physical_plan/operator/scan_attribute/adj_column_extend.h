@@ -9,7 +9,7 @@ namespace processor {
 class AdjColumnExtend : public ScanColumn, public FilteringOperator {
 
 public:
-    AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+    AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos, Column* column,
         label_t outNodeIDVectorLabel, unique_ptr<PhysicalOperator> prevOperator,
         ExecutionContext& context, uint32_t id);
 

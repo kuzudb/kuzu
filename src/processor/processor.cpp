@@ -2,7 +2,6 @@
 
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
-#include "src/processor/include/physical_plan/operator/read_list/frontier_extend.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
 #include "src/processor/include/physical_plan/operator/sink/sink.h"
 #include "src/processor/include/physical_plan/query_result.h"
@@ -31,9 +30,9 @@ unique_ptr<QueryResult> QueryProcessor::execute(PhysicalPlan* physicalPlan, uint
     // The root pipeline(task) consists of operators and its prevOperator only, because by default,
     // our plan is a linear one. For binary operators, e.g., HashJoin, we always keep probe and its
     // prevOperator in the same pipeline, and decompose build and its prevOperator into another one.
-    auto task = make_unique<Task>(resultCollector, numThreads);
+    auto task = make_shared<Task>(resultCollector, numThreads);
     decomposePlanIntoTasks(lastOperator, task.get(), numThreads);
-    scheduleTask(task.get());
+    scheduleTask(task);
     while (!task->isCompleted()) {
         /*busy wait*/
         this_thread::sleep_for(chrono::microseconds(100));
@@ -41,16 +40,12 @@ unique_ptr<QueryResult> QueryProcessor::execute(PhysicalPlan* physicalPlan, uint
     return move(resultCollector->queryResult);
 }
 
-void QueryProcessor::scheduleTask(Task* task) {
-    if (task->children.empty()) {
-        queue.push(task);
-    } else {
-        for (auto& dependency : task->children) {
-            scheduleTask(dependency.get());
-        }
-        while (task->numDependenciesFinished.load() < task->children.size()) {}
-        queue.push(task);
+void QueryProcessor::scheduleTask(shared_ptr<Task> task) {
+    for (auto& dependency : task->children) {
+        scheduleTask(dependency);
     }
+    while (task->getNumDependenciesFinished() < task->children.size()) {}
+    queue.push(task);
 }
 
 void QueryProcessor::decomposePlanIntoTasks(

@@ -32,16 +32,16 @@ void ScanNodeID::getNextTuples() {
         if (morsel->currNodeOffset >= morsel->numNodes) {
             // no more tuples to scan_node_id.
             nodeIDVector->setStartOffset(0u);
-            outDataChunk->state->size = 0u;
+            outDataChunk->state->initOriginalAndSelectedSize(0u);
         } else {
             nodeIDVector->setStartOffset(morsel->currNodeOffset);
-            outDataChunk->state->size =
-                min(DEFAULT_VECTOR_CAPACITY, morsel->numNodes - morsel->currNodeOffset);
-            morsel->currNodeOffset += outDataChunk->state->size;
+            outDataChunk->state->initOriginalAndSelectedSize(
+                min(DEFAULT_VECTOR_CAPACITY, morsel->numNodes - morsel->currNodeOffset));
+            morsel->currNodeOffset += outDataChunk->state->selectedSize;
         }
     }
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(outDataChunk->state->size);
+    metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
 }
 
 } // namespace processor

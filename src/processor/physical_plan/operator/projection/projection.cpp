@@ -43,7 +43,7 @@ void Projection::getNextTuples() {
     prevOperator->getNextTuples();
     if (inResultSet->getNumTuples() == 0) {
         for (auto& dataChunk : resultSet->dataChunks) {
-            dataChunk->state->size = 0;
+            dataChunk->state->selectedSize = 0;
         }
         return;
     }

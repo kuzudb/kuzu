@@ -13,51 +13,37 @@ using namespace std;
 namespace graphflow {
 namespace storage {
 
-class BaseColumn : public DataStructure {
+class Column : public DataStructure {
 
 public:
+    Column(const string& fName, const DataType& dataType, const size_t& elementSize,
+        const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory)
+        : DataStructure{fName, dataType, elementSize, bufferManager, isInMemory} {};
+
     virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
-        BufferManagerMetrics& metrics);
+        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
 
     // Currently, used only in Loader tests.
     virtual Literal readValue(node_offset_t offset, BufferManagerMetrics& metrics);
 
 protected:
-    BaseColumn(const string& fName, const DataType& dataType, const size_t& elementSize,
-        const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory)
-        : DataStructure{fName, dataType, elementSize, bufferManager, isInMemory} {};
-
     void readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
-        BufferManagerMetrics& metrics);
+        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
 
 public:
     static constexpr char COLUMN_SUFFIX[] = ".col";
 };
 
-template<DataType D>
-class Column : public BaseColumn {
+class StringPropertyColumn : public Column {
 
 public:
-    Column(const string& fName, const uint64_t& numElements, BufferManager& bufferManager,
-        bool isInMemory)
-        : BaseColumn{
-              fName, D, TypeUtils::getDataTypeSize(D), numElements, bufferManager, isInMemory} {};
-};
-
-template<>
-class Column<STRING> : public BaseColumn {
-
-public:
-    Column(const string& fName, const uint64_t& numElements, BufferManager& bufferManager,
-        bool isInMemory)
-        : BaseColumn{fName, STRING, sizeof(gf_string_t), numElements, bufferManager, isInMemory},
+    StringPropertyColumn(const string& fName, const uint64_t& numElements,
+        BufferManager& bufferManager, bool isInMemory)
+        : Column{fName, STRING, sizeof(gf_string_t), numElements, bufferManager, isInMemory},
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
     void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, const unique_ptr<PageHandle>& pageHandle,
-        BufferManagerMetrics& metrics) override;
+        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) override;
 
     // Currently, used only in Loader tests.
     Literal readValue(node_offset_t offset, BufferManagerMetrics& metrics) override;
@@ -66,13 +52,12 @@ private:
     StringOverflowPages stringOverflowPages;
 };
 
-template<>
-class Column<NODE> : public BaseColumn {
+class AdjColumn : public Column {
 
 public:
-    Column(const string& fName, const uint64_t& numElements, BufferManager& bufferManager,
+    AdjColumn(const string& fName, const uint64_t& numElements, BufferManager& bufferManager,
         const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isInMemory)
-        : BaseColumn{fName, NODE, nodeIDCompressionScheme.getNumTotalBytes(), numElements,
+        : Column{fName, NODE, nodeIDCompressionScheme.getNumTotalBytes(), numElements,
               bufferManager, isInMemory},
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 
@@ -82,12 +67,25 @@ private:
     NodeIDCompressionScheme nodeIDCompressionScheme;
 };
 
-typedef Column<INT64> PropertyColumnInt64;
-typedef Column<DOUBLE> PropertyColumnDouble;
-typedef Column<BOOL> PropertyColumnBool;
-typedef Column<STRING> PropertyColumnString;
-typedef Column<NODE> AdjColumn;
-typedef Column<DATE> PropertyColumnDate;
+class ColumnFactory {
+
+public:
+    static unique_ptr<Column> getColumn(const string& fName, const DataType& dataType,
+        const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory) {
+        switch (dataType) {
+        case INT64:
+        case DOUBLE:
+        case BOOL:
+        case DATE:
+            return make_unique<Column>(fName, dataType, TypeUtils::getDataTypeSize(dataType),
+                numElements, bufferManager, isInMemory);
+        case STRING:
+            return make_unique<StringPropertyColumn>(fName, numElements, bufferManager, isInMemory);
+        default:
+            throw invalid_argument("Invalid type for property column creation.");
+        }
+    }
+};
 
 } // namespace storage
 } // namespace graphflow

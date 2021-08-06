@@ -20,24 +20,40 @@ public:
     void run();
 
     inline bool isCompleted() {
+        lock_t lck{mtx};
         return numThreadsRegistered > 0 && numThreadsFinished == numThreadsRegistered;
     }
 
     inline bool canRegister() {
-        return 0 == numThreadsFinished && maxNumThreads > numThreadsRegistered;
+        lock_t lck{mtx};
+        return canRegisterInternal();
+    }
+
+    inline int64_t getNumDependenciesFinished() {
+        lock_t lck{mtx};
+        return numDependenciesFinished;
+    }
+
+    inline void incrementNumDependenciesFinished() {
+        lock_t lck{mtx};
+        numDependenciesFinished++;
     }
 
 private:
     unique_ptr<PhysicalOperator> registerThread();
     void deregisterThread(unique_ptr<PhysicalOperator> taskSinkOp);
+    bool canRegisterInternal() {
+        return 0 == numThreadsFinished && maxNumThreads > numThreadsRegistered;
+    }
 
 public:
     mutex mtx;
     Sink* sinkOp;
-    atomic_uint64_t maxNumThreads, numThreadsFinished, numThreadsRegistered,
-        numDependenciesFinished;
     Task* parent;
-    vector<unique_ptr<Task>> children; // Dependency tasks that needs to be executed first.
+    vector<shared_ptr<Task>> children; // Dependency tasks that needs to be executed first.
+
+private:
+    uint64_t maxNumThreads, numThreadsFinished, numThreadsRegistered, numDependenciesFinished;
 };
 
 } // namespace processor

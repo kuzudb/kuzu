@@ -199,7 +199,7 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     auto numTuples = 1;
 
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->state->size = numTuples;
+    dataChunk->state->selectedSize = numTuples;
     dataChunk->state->currIdx = 0;
     auto memoryManager = make_unique<MemoryManager>();
 
@@ -265,7 +265,7 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     auto VECTOR_SIZE = 1;
 
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->state->size = VECTOR_SIZE;
+    dataChunk->state->selectedSize = VECTOR_SIZE;
     dataChunk->state->currIdx = 0;
     auto memoryManager = make_unique<MemoryManager>();
 

@@ -7,42 +7,58 @@ namespace common {
 
 ThreadPool::ThreadPool(uint32_t threadCount) {
     for (size_t i = 0; i < threadCount; ++i) {
-        exceptionPtrs.emplace_back(std::exception_ptr());
-        threads.emplace_back(thread(threadInstance, &exceptionPtrs[i], ref(numThreadsRunning),
-            ref(tasks), ref(tasksQueueMutex), ref(tasksQueueCV), ref(stopThreads)));
+        threads.emplace_back(thread(threadInstance, ref(exceptionsQueue), ref(numThreadsRunning),
+            ref(tasks), ref(tasksQueueMutex), ref(stopThreads)));
     }
 }
 
 ThreadPool::~ThreadPool() {
     stopThreads = true;
-    tasksQueueCV.notify_all();
     for (std::thread& thread : threads) {
         thread.join();
     }
 }
 
-void ThreadPool::threadInstance(exception_ptr* exceptionPtrLoc, atomic<uint32_t>& numThreadsRunning,
-    queue<unique_ptr<TaskContainerBase>>& tasks, mutex& tasksQueueMutex,
-    condition_variable& tasksQueueCV, bool& stopThreads) {
-    unique_lock<mutex> tasksQueueLock(tasksQueueMutex, defer_lock);
+unique_ptr<TaskContainerBase> ThreadPool::getTask(queue<unique_ptr<TaskContainerBase>>& tasks,
+    mutex& tasksQueueMutex, uint32_t& numThreadsRunning) {
+    unique_lock<mutex> tasksQueueLock(tasksQueueMutex);
+    if (tasks.empty()) {
+        return nullptr;
+    }
+    auto retVal = move(tasks.front());
+    tasks.pop();
+    numThreadsRunning++;
+    return retVal;
+}
+
+// condition_variable& tasksQueueCV,
+void ThreadPool::threadInstance(queue<exception_ptr>& exceptionsQueue, uint32_t& numThreadsRunning,
+    queue<unique_ptr<TaskContainerBase>>& tasks, mutex& tasksQueueMutex, bool& stopThreads) {
     bool exceptionRaised = false;
+    unique_ptr<TaskContainerBase> task;
     while (true) {
-        tasksQueueLock.lock();
-        tasksQueueCV.wait(tasksQueueLock, [&]() -> bool { return !tasks.empty() || stopThreads; });
-        if (stopThreads && tasks.empty()) {
-            return;
+        if (stopThreads) {
+            break;
         }
-        auto toExecute = move(tasks.front());
-        tasks.pop();
-        tasksQueueLock.unlock();
-        numThreadsRunning.fetch_add(1);
+        task = getTask(tasks, tasksQueueMutex, numThreadsRunning);
+        if (!task) {
+            //            cout << "Thread " << std::this_thread::get_id()
+            //                 << " is sleeping for 10000 micros in ThreadPool::threadInstance." <<
+            //                 endl;
+            this_thread::sleep_for(chrono::microseconds(10000));
+            continue;
+        }
         try {
-            (*toExecute)();
+            (*task)();
         } catch (exception& e) {
-            *exceptionPtrLoc = current_exception();
+            unique_lock<mutex> tasksQueueLock(tasksQueueMutex);
+            exceptionsQueue.push(current_exception());
             exceptionRaised = true;
+            tasksQueueLock.unlock();
         }
-        numThreadsRunning.fetch_sub(1);
+        unique_lock<mutex> tasksQueueLock(tasksQueueMutex);
+        numThreadsRunning--;
+        tasksQueueLock.unlock();
         if (exceptionRaised) {
             break;
         }
@@ -50,13 +66,26 @@ void ThreadPool::threadInstance(exception_ptr* exceptionPtrLoc, atomic<uint32_t>
 }
 
 void ThreadPool::wait() {
-    while (!tasks.empty() || 0 != numThreadsRunning.load()) {
-        this_thread::sleep_for(chrono::milliseconds(10));
-    }
-    for (auto& exceptionPtr : exceptionPtrs) {
-        if (exceptionPtr) {
-            std::rethrow_exception(exceptionPtr);
+    unique_lock<mutex> lock(tasksQueueMutex, defer_lock);
+    while (true) {
+        lock.lock();
+        if (!tasks.empty() || 0 != numThreadsRunning) {
+            lock.unlock();
+            this_thread::sleep_for(chrono::milliseconds(10));
+        } else {
+            lock.unlock();
+            break;
         }
+    }
+
+    lock.lock();
+    if (!exceptionsQueue.empty()) {
+        auto exceptionPtr = exceptionsQueue.front();
+        exceptionsQueue.pop();
+        lock.unlock();
+        std::rethrow_exception(exceptionPtr);
+    } else {
+        lock.unlock();
     }
 }
 

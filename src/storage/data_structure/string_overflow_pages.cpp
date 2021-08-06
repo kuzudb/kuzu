@@ -7,7 +7,7 @@ namespace storage {
 
 void StringOverflowPages::readStringsToVector(
     ValueVector& valueVector, BufferManagerMetrics& metrics) {
-    for (auto i = 0u; i < valueVector.state->size; i++) {
+    for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
         auto pos = valueVector.state->selectedPositions[i];
         readStringToVector(valueVector, pos, metrics);
     }

@@ -13,7 +13,7 @@ class CRUDNode : public CRUDOperator {
 public:
     CRUDNode(PhysicalOperatorType type, uint64_t dataChunkPos,
         vector<uint32_t> propertyKeyVectorPos, label_t nodeLabel,
-        vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes,
+        vector<Column*> nodePropertyColumns, uint64_t numNodes,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
         : CRUDOperator{dataChunkPos, type, move(prevOperator), context, id},
           propertyKeyVectorPos{move(propertyKeyVectorPos)}, nodeLabel{nodeLabel},
@@ -24,7 +24,7 @@ protected:
 
     // current state of the graph that will be updated.
     label_t nodeLabel;
-    vector<BaseColumn*> nodePropertyColumns;
+    vector<Column*> nodePropertyColumns;
     uint64_t numNodes;
 };
 

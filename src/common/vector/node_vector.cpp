@@ -44,22 +44,22 @@ bool NodeIDVector::discardNulls() {
         auto selectedPos = 0u;
         if (state->isUnfiltered()) {
             state->resetSelectorToValuePosBuffer();
-            for (auto i = 0u; i < state->size; i++) {
+            for (auto i = 0u; i < state->selectedSize; i++) {
                 nodeOffset = readNodeOffset(i);
                 if (nodeOffset != nullOffset) {
                     state->selectedPositions[selectedPos++] = i;
                 }
             }
         } else {
-            for (auto j = 0u; j < state->size; j++) {
+            for (auto j = 0u; j < state->selectedSize; j++) {
                 nodeOffset = readNodeOffset(state->selectedPositions[j]);
                 if (nodeOffset != nullOffset) {
                     state->selectedPositions[selectedPos++] = j;
                 }
             }
         }
-        state->size = selectedPos;
-        return state->size > 0;
+        state->selectedSize = selectedPos;
+        return state->selectedSize > 0;
     }
 }
 

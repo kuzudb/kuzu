@@ -42,19 +42,19 @@ void Skip::getNextTuples() {
         auto& dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
         auto selectedPosBuffer = dataChunkToSelect->state->selectedPositionsBuffer.get();
         if (dataChunkToSelect->state->isUnfiltered()) {
-            for (uint64_t i = numTupleToSkipInCurrentResultSet; i < dataChunkToSelect->state->size;
-                 ++i) {
+            for (uint64_t i = numTupleToSkipInCurrentResultSet;
+                 i < dataChunkToSelect->state->selectedSize; ++i) {
                 selectedPosBuffer[i - numTupleToSkipInCurrentResultSet] = i;
             }
             dataChunkToSelect->state->resetSelectorToValuePosBuffer();
         } else {
-            for (uint64_t i = numTupleToSkipInCurrentResultSet; i < dataChunkToSelect->state->size;
-                 ++i) {
+            for (uint64_t i = numTupleToSkipInCurrentResultSet;
+                 i < dataChunkToSelect->state->selectedSize; ++i) {
                 selectedPosBuffer[i - numTupleToSkipInCurrentResultSet] = selectedPosBuffer[i];
             }
         }
-        dataChunkToSelect->state->size -= numTupleToSkipInCurrentResultSet;
-        metrics->numOutputTuple.increase(dataChunkToSelect->state->size);
+        dataChunkToSelect->state->selectedSize -= numTupleToSkipInCurrentResultSet;
+        metrics->numOutputTuple.increase(dataChunkToSelect->state->selectedSize);
     }
     metrics->executionTime.stop();
 }

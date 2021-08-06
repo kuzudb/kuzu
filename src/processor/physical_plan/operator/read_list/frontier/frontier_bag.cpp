@@ -24,7 +24,7 @@ NodeIDOverflow* FrontierBag::getOverflowPtr() {
 }
 
 void FrontierBag::append(const NodeIDVector& vector, uint64_t multiplicity) {
-    for (auto i = 0u; i < vector.state->size; i++) {
+    for (auto i = 0u; i < vector.state->selectedSize; i++) {
         auto nodeOffset = vector.readNodeOffset(i);
         auto slot = nodeOffset & moduloSlotBitMask;
         if (hashTable[slot].size < NODE_IDS_PER_SLOT_FOR_BAG) {
@@ -43,7 +43,7 @@ void FrontierBag::append(const NodeIDVector& vector, uint64_t multiplicity) {
             hashTable[slot].size++;
         }
     }
-    size += vector.state->size;
+    size += vector.state->selectedSize;
 }
 
 } // namespace processor

@@ -6,14 +6,13 @@ namespace graphflow {
 namespace processor {
 
 ScanUnstructuredProperty::ScanUnstructuredProperty(uint64_t dataChunkPos, uint64_t valueVectorPos,
-    uint32_t propertyKey, BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator,
-    ExecutionContext& context, uint32_t id)
+    uint32_t propertyKey, UnstructuredPropertyLists* lists,
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
     : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator), context, id},
-      propertyKey{propertyKey}, lists{(Lists<UNSTRUCTURED>*)lists} {
+      propertyKey{propertyKey}, lists{lists} {
     resultSet = this->prevOperator->getResultSet();
     inDataChunk = resultSet->dataChunks[dataChunkPos];
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
-    pageHandle = make_unique<PageHandle>();
     outValueVector = make_shared<ValueVector>(context.memoryManager, lists->getDataType());
     inDataChunk->append(outValueVector);
 }
@@ -21,10 +20,9 @@ ScanUnstructuredProperty::ScanUnstructuredProperty(uint64_t dataChunkPos, uint64
 void ScanUnstructuredProperty::getNextTuples() {
     metrics->executionTime.start();
     prevOperator->getNextTuples();
-    if (inDataChunk->state->size > 0) {
-        lists->reclaim(*pageHandle);
-        lists->readValues(inNodeIDVector, propertyKey, outValueVector, pageHandle,
-            *metrics->bufferManagerMetrics);
+    if (inDataChunk->state->selectedSize > 0) {
+        lists->readUnstructuredProperties(
+            inNodeIDVector, propertyKey, outValueVector, *metrics->bufferManagerMetrics);
     }
     metrics->executionTime.stop();
 }

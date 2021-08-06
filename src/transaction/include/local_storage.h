@@ -17,7 +17,7 @@ class LocalStorage {
 public:
     void addDataChunk(DataChunk* dataChunk) {
         dataChunks.emplace_back(dataChunk->clone());
-        numTuples += dataChunk->state->size;
+        numTuples += dataChunk->state->selectedSize;
     }
 
     void assignNodeIDs(label_t nodeLabel);
@@ -27,21 +27,21 @@ public:
     void deleteNodeIDs(label_t nodeLabel);
 
     void computeCreateNode(vector<uint32_t> propertyKeyIdxToVectorPosMap, label_t nodeLabel,
-        vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes);
+        vector<Column*> nodePropertyColumns, uint64_t numNodes);
 
     void computeUpdateNode(vector<uint32_t> propertyKeyIdxToVectorPosMap, label_t nodeLabel,
-        vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes);
+        vector<Column*> nodePropertyColumns, uint64_t numNodes);
 
     void computeDeleteNode(vector<uint32_t> propertyKeyIdxToVectorPosMap, label_t nodeLabel,
-        vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes);
+        vector<Column*> nodePropertyColumns, uint64_t numNodes);
 
 private:
     void updateNodePropertyColumn(uint32_t currPosInDataChunk, uint64_t numUpdatesInDataChunk,
-        BaseColumn& column, uint8_t* nullValue, page_idx_to_dirty_page_map& dirtyPagesMap,
+        Column& column, uint8_t* nullValue, page_idx_to_dirty_page_map& dirtyPagesMap,
         ValueVector* propertyValueVector, NodeIDVector* nodeIDVector);
 
     void appendToNodePropertyColumn(uint32_t& dataChunkIdx, uint32_t& currPosInDataChunk,
-        BaseColumn& column, uint8_t* nullValue, page_idx_to_dirty_page_map& dirtyPagesMap,
+        Column& column, uint8_t* nullValue, page_idx_to_dirty_page_map& dirtyPagesMap,
         uint32_t dataChunkSize, ValueVector* propertyValueVector, NodeIDVector* nodeIDVector);
 
     // helper functions

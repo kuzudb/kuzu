@@ -36,7 +36,9 @@ public:
     inline void createNodeIDToOffsetMap() {
         nodeIDToOffsetMap.reserve(1.5 * size);
         for (auto i = 0u; i < size; i++) {
-            nodeIDToOffsetMap.emplace(offsetToNodeIDMap[i], i);
+            try {
+                nodeIDToOffsetMap.emplace(offsetToNodeIDMap[i], i);
+            } catch (exception& e) { std::rethrow_exception(current_exception()); }
         }
     }
 

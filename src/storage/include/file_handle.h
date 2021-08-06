@@ -3,7 +3,10 @@
 #include <atomic>
 #include <memory>
 
+#include "src/common/include/file_utils.h"
+
 using namespace std;
+using namespace graphflow::common;
 
 namespace spdlog {
 class logger;
@@ -49,7 +52,7 @@ public:
 
 private:
     shared_ptr<spdlog::logger> logger;
-    const int fileDescriptor;
+    unique_ptr<FileInfo> fileInfo;
     bool isInMemory;
     unique_ptr<atomic<uint64_t>>* pageIdxToFrameMap;
     unique_ptr<atomic_flag>* pageLocks;

@@ -12,36 +12,15 @@ DataStructure::DataStructure(const string& fName, const DataType& dataType,
       logger{LoggerUtils::getOrCreateSpdLogger("storage")}, fileHandle{fName, O_RDWR, isInMemory},
       bufferManager(bufferManager){};
 
-void DataStructure::reclaim(PageHandle& pageHandle) {
-    if (pageHandle.hasPageIdx()) {
-        bufferManager.unpin(fileHandle, pageHandle.getPageIdx());
-        pageHandle.resetPageIdx();
-    }
-}
-
-void DataStructure::readBySettingFrame(const shared_ptr<ValueVector>& valueVector,
-    PageHandle& pageHandle, PageCursor& pageCursor, BufferManagerMetrics& metrics) {
-    const uint8_t* frame;
-    if (pageHandle.getPageIdx() != pageCursor.idx) {
-        reclaim(pageHandle);
-        pageHandle.setPageIdx(pageCursor.idx);
-        frame = bufferManager.pin(fileHandle, pageCursor.idx, metrics);
-    } else {
-        frame = bufferManager.get(fileHandle, pageCursor.idx, metrics);
-    }
-    valueVector->values = ((uint8_t*)frame + pageCursor.offset);
-}
-
 void DataStructure::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-    PageHandle& pageHandle, uint64_t sizeLeftToCopy, PageCursor& pageCursor,
+    uint64_t sizeLeftToCopy, PageCursor& pageCursor,
     const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
     BufferManagerMetrics& metrics) {
-    reclaim(pageHandle);
-    valueVector->reset();
     auto values = valueVector->values;
     while (sizeLeftToCopy) {
         auto physicalPageIdx = logicalToPhysicalPageMapper(pageCursor.idx);
-        auto sizeToCopyInPage = min(PAGE_SIZE - pageCursor.offset, sizeLeftToCopy);
+        auto sizeToCopyInPage =
+            min(((uint64_t)numElementsPerPage * elementSize) - pageCursor.offset, sizeLeftToCopy);
         copyFromAPage(values, physicalPageIdx, sizeToCopyInPage, pageCursor.offset, metrics);
         values += sizeToCopyInPage;
         sizeLeftToCopy -= sizeToCopyInPage;

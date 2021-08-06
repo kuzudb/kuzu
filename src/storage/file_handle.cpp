@@ -11,16 +11,16 @@ namespace storage {
 
 FileHandle::FileHandle(const string& path, int flags, bool isInMemory)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")},
-      fileDescriptor{FileUtils::openFile(path, flags)}, isInMemory{isInMemory} {
+      fileInfo{FileUtils::openFile(path, flags)}, isInMemory{isInMemory} {
     logger->trace("FileHandle: Path {}", path);
-    auto fileLength = FileUtils::getFileSize(fileDescriptor);
+    auto fileLength = FileUtils::getFileSize(fileInfo->fd);
     numPages = fileLength >> PAGE_SIZE_LOG_2;
     if (0 != (fileLength & (PAGE_SIZE - 1))) {
         numPages++;
     }
     if (isInMemory) {
         logger->trace("FileHandle[in-memory]: Size {}B", fileLength);
-        buffer = FileUtils::readFile(fileDescriptor);
+        buffer = FileUtils::readFile(fileInfo.get());
     } else {
         logger->trace("FileHandle[disk]: Size {}B, #4KB-pages {}", fileLength, numPages);
         pageIdxToFrameMap = new unique_ptr<atomic<uint64_t>>[numPages];
@@ -33,7 +33,7 @@ FileHandle::FileHandle(const string& path, int flags, bool isInMemory)
 }
 
 FileHandle::~FileHandle() {
-    FileUtils::closeFile(fileDescriptor);
+    FileUtils::closeFile(fileInfo->fd);
     if (!isInMemory) {
         delete[] pageLocks;
         delete[] pageIdxToFrameMap;
@@ -50,11 +50,11 @@ bool FileHandle::acquire(uint32_t pageIdx, bool block) {
 }
 
 void FileHandle::readPage(uint8_t* frame, uint64_t pageIdx) const {
-    FileUtils::readFromFile(fileDescriptor, frame, PAGE_SIZE, pageIdx << PAGE_SIZE_LOG_2);
+    FileUtils::readFromFile(fileInfo.get(), frame, PAGE_SIZE, pageIdx << PAGE_SIZE_LOG_2);
 }
 
 void FileHandle::writePage(uint8_t* buffer, uint64_t pageIdx) const {
-    FileUtils::writeToFile(fileDescriptor, buffer, PAGE_SIZE, pageIdx << PAGE_SIZE_LOG_2);
+    FileUtils::writeToFile(fileInfo.get(), buffer, PAGE_SIZE, pageIdx << PAGE_SIZE_LOG_2);
 }
 
 } // namespace storage

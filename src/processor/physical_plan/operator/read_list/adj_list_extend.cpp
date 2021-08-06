@@ -6,7 +6,8 @@ namespace processor {
 AdjListExtend::AdjListExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, AdjLists* lists,
     label_t outNodeIDVectorLabel, unique_ptr<PhysicalOperator> prevOperator,
     ExecutionContext& context, uint32_t id)
-    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id},
+    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id,
+          true /* is adj list */},
       outNodeIDVectorLabel{outNodeIDVectorLabel} {
     outValueVector =
         make_shared<NodeIDVector>(outNodeIDVectorLabel, lists->getNodeIDCompressionScheme(), false);
@@ -14,30 +15,29 @@ AdjListExtend::AdjListExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos,
     outDataChunk->append(outValueVector);
     auto listSyncState = make_shared<ListSyncState>();
     resultSet->append(outDataChunk, listSyncState);
-    listsPageHandle->setListSyncState(listSyncState);
-    listsPageHandle->setIsAdjListHandle();
+    largeListHandle->setListSyncState(listSyncState);
 }
 
 void AdjListExtend::getNextTuples() {
     metrics->executionTime.start();
-    if (listsPageHandle->hasMoreToRead()) {
+    if (largeListHandle->hasMoreToRead()) {
         readValuesFromList();
         return;
     }
     while (true) {
         prevOperator->getNextTuples();
-        if (inDataChunk->state->size > 0) {
+        if (inDataChunk->state->selectedSize > 0) {
             readValuesFromList();
-            if (outDataChunk->state->size > 0) {
+            if (outDataChunk->state->selectedSize > 0) {
                 break;
             }
         } else {
-            outDataChunk->state->size = 0;
+            outDataChunk->state->selectedSize = 0;
             break;
         }
     }
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(outDataChunk->state->size);
+    metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
 }
 
 } // namespace processor
