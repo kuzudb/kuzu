@@ -3,68 +3,67 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "parser",
     srcs = [
-        "antlr_parser/graphflow_cypher_parser.cpp",
-        "antlr_parser/parser_error_listener.cpp",
-        "antlr_parser/parser_error_strategy.cpp",
         "parser.cpp",
         "transformer.cpp",
     ],
     hdrs = [
-        "include/antlr_parser/graphflow_cypher_parser.h",
-        "include/antlr_parser/parser_error_listener.h",
-        "include/antlr_parser/parser_error_strategy.h",
         "include/parser.h",
         "include/transformer.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "queries",
+        "antlr_parser",
+        "parsed_queries",
+    ],
+)
+
+cc_library(
+    name = "antlr_parser",
+    srcs = glob([
+        "antlr_parser/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/antlr_parser/*.h",
+    ]),
+    deps = [
         "//src/antlr4:cypher_grammar_lib",
-        "//src/common:expression_type",
         "//src/common:utils",
     ],
 )
 
 cc_library(
-    name = "queries",
-    hdrs = [
-        "include/queries/query_part.h",
-        "include/queries/single_query.h",
-    ],
+    name = "parsed_queries",
+    hdrs = glob([
+        "include/queries/*.h",
+    ]),
+    # Parsed queries is exposed to binder
+    visibility = ["//visibility:public"],
     deps = [
-        "statements",
+        "parsed_statements",
     ],
 )
 
 cc_library(
-    name = "statements",
-    hdrs = [
-        "include/statements/load_csv_statement.h",
-        "include/statements/match_statement.h",
-        "include/statements/projection_body.h",
-        "include/statements/reading_statement.h",
-        "include/statements/return_statement.h",
-        "include/statements/with_statement.h",
-    ],
+    name = "parsed_statements",
+    hdrs = glob([
+        "include/statements/*.h",
+    ]),
     deps = [
-        "expressions",
-        "patterns",
+        "graph_patterns",
+        "parsed_expression",
         "//src/common:statement_type",
     ],
 )
 
 cc_library(
-    name = "patterns",
-    hdrs = [
-        "include/patterns/node_pattern.h",
-        "include/patterns/pattern_element.h",
-        "include/patterns/pattern_element_chain.h",
-        "include/patterns/rel_pattern.h",
-    ],
+    name = "graph_patterns",
+    hdrs = glob([
+        "include/patterns/*.h",
+    ]),
 )
 
 cc_library(
-    name = "expressions",
+    name = "parsed_expression",
     hdrs = [
         "include/parsed_expression.h",
     ],

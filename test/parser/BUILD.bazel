@@ -14,13 +14,10 @@ cc_library(
 )
 
 cc_test(
-    name = "parser_tests",
-    srcs = [
-        "expression_test.cpp",
-        "reading_clause_test.cpp",
-        "return_with_test.cpp",
-        "syntax_error_test.cpp",
-    ],
+    name = "parser_test",
+    srcs = glob([
+        "*_test.cpp",
+    ]),
     linkstatic = 1,
     deps = [
         "parser_test_utils",

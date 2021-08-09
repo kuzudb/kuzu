@@ -9,10 +9,10 @@ using namespace graphflow::processor;
 namespace graphflow {
 namespace evaluator {
 
-class ExistSubqueryEvaluator : public ExpressionEvaluator {
+class ExistentialSubqueryEvaluator : public ExpressionEvaluator {
 
 public:
-    ExistSubqueryEvaluator(
+    ExistentialSubqueryEvaluator(
         MemoryManager& memoryManager, unique_ptr<ResultCollector> subPlanResultCollector);
 
     void executeSubplan();

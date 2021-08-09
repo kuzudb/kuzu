@@ -13,7 +13,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "logical_plan",
-        "//src/binder:bound_query",
+        "//src/binder:bound_queries",
         "//src/storage:graph",
     ],
 )

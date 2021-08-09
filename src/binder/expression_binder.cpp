@@ -1,8 +1,10 @@
 #include "src/binder/include/expression_binder.h"
 
+#include "src/binder/include/expression/existential_subquery_expression.h"
 #include "src/binder/include/expression/literal_expression.h"
 #include "src/binder/include/expression/property_expression.h"
 #include "src/binder/include/expression/rel_expression.h"
+#include "src/binder/include/query_binder.h"
 #include "src/common/include/date.h"
 #include "src/common/include/types.h"
 
@@ -36,6 +38,8 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         expression = bindPropertyExpression(parsedExpression);
     } else if (VARIABLE == expressionType) {
         expression = bindVariableExpression(parsedExpression);
+    } else if (EXISTENTIAL_SUBQUERY == expressionType) {
+        expression = bindExistentialSubqueryExpression(parsedExpression);
     } else if (!expression) {
         throw invalid_argument(
             "Bind " + expressionTypeToString(expressionType) + " expression is not implemented.");
@@ -158,10 +162,10 @@ shared_ptr<Expression> ExpressionBinder::bindCSVLineExtractExpression(
     auto csvVariableName = parsedExpression.children[0]->text;
     auto csvLineExtractExpressionName =
         csvVariableName + "[" + ((LiteralExpression&)*idxExpression).literal.toString() + "]";
-    if (!variablesInScope.contains(csvLineExtractExpressionName)) {
+    if (!context.containsVariable(csvLineExtractExpressionName)) {
         throw invalid_argument("Variable " + csvVariableName + " not defined or idx out of bound.");
     }
-    return variablesInScope.at(csvLineExtractExpressionName);
+    return context.getVariable(csvLineExtractExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNullComparisonOperatorExpression(
@@ -280,10 +284,18 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
 shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
     const ParsedExpression& parsedExpression) {
     auto variableName = parsedExpression.text;
-    if (variablesInScope.contains(variableName)) {
-        return variablesInScope.at(variableName);
+    if (context.containsVariable(variableName)) {
+        return context.getVariable(variableName);
     }
     throw invalid_argument("Variable " + parsedExpression.rawExpression + " not defined.");
+}
+
+shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
+    const ParsedExpression& parsedExpression) {
+    // Create new QueryBinder by copying the context
+    auto newQueryBinder = QueryBinder(catalog, context);
+    auto boundSingleQuery = newQueryBinder.bind(*parsedExpression.subquery);
+    return make_shared<ExistentialSubqueryExpression>(move(boundSingleQuery));
 }
 
 void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {

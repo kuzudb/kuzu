@@ -15,10 +15,9 @@ cc_library(
 
 cc_test(
     name = "binder_test",
-    srcs = [
-        "binder_error_test.cpp",
-        "binder_test.cpp",
-    ],
+    srcs = glob([
+        "*_test.cpp",
+    ]),
     data = [
         "//dataset",
     ],

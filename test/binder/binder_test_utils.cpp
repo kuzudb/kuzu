@@ -27,7 +27,10 @@ bool BinderTestUtils::equals(const Expression& left, const Expression& right) {
             return false;
         }
     }
-    if (PROPERTY == left.expressionType) {
+    if (EXISTENTIAL_SUBQUERY == left.expressionType) {
+        throw invalid_argument(
+            "Equal comparison of ExistentialSubqueryExpression is not implemented.");
+    } else if (PROPERTY == left.expressionType) {
         return equals((PropertyExpression&)left, (PropertyExpression&)right);
     } else if (VARIABLE == left.expressionType) {
         if (NODE == left.dataType) {

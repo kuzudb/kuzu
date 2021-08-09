@@ -5,9 +5,6 @@ cc_test(
     srcs = [
         "optimizer_test.cpp",
     ],
-    data = [
-        "//dataset",
-    ],
     deps = [
         "//src/binder",
         "//src/parser",

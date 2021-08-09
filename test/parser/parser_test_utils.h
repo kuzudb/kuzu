@@ -16,6 +16,9 @@ public:
     static bool equals(const ParsedExpression& left, const ParsedExpression& right);
 
 private:
+    static bool equals(const SingleQuery& left, const SingleQuery& right);
+    static bool equals(const QueryPart& left, const QueryPart& right);
+    static bool equals(const ReadingStatement& left, const ReadingStatement& right);
     static bool equals(const ProjectionBody& left, const ProjectionBody& right);
     static bool equals(const vector<unique_ptr<ParsedExpression>>& left,
         const vector<unique_ptr<ParsedExpression>>& right);

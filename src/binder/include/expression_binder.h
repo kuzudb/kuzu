@@ -1,11 +1,10 @@
 #pragma once
 
-#include "src/binder/include/expression/expression.h"
+#include "src/binder/include/binder_context.h"
 #include "src/parser/include/parsed_expression.h"
 #include "src/storage/include/catalog.h"
 
 using namespace graphflow::parser;
-using namespace graphflow::binder;
 using namespace graphflow::storage;
 
 namespace graphflow {
@@ -14,9 +13,8 @@ namespace binder {
 class ExpressionBinder {
 
 public:
-    ExpressionBinder(
-        const Catalog& catalog, unordered_map<string, shared_ptr<Expression>>& variablesInScope)
-        : catalog{catalog}, variablesInScope{variablesInScope} {}
+    ExpressionBinder(const Catalog& catalog, const BinderContext& context)
+        : catalog{catalog}, context{context} {}
 
     shared_ptr<Expression> bindExpression(const ParsedExpression& parsedExpression);
 
@@ -52,6 +50,9 @@ private:
 
     shared_ptr<Expression> bindVariableExpression(const ParsedExpression& parsedExpression);
 
+    shared_ptr<Expression> bindExistentialSubqueryExpression(
+        const ParsedExpression& parsedExpression);
+
     /****** validation *****/
 
     // NOTE: this validation should be removed and front end binds any null operation to null
@@ -67,7 +68,7 @@ private:
 
 private:
     const Catalog& catalog;
-    unordered_map<string, shared_ptr<Expression>>& variablesInScope;
+    const BinderContext& context;
 };
 
 } // namespace binder

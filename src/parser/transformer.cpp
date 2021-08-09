@@ -474,6 +474,8 @@ unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_AtomCon
         return transformParenthesizedExpression(*ctx.oC_ParenthesizedExpression());
     } else if (ctx.oC_FunctionInvocation()) {
         return transformFunctionInvocation(*ctx.oC_FunctionInvocation());
+    } else if (ctx.oC_ExistentialSubquery()) {
+        return transformExistentialSubquery(*ctx.oC_ExistentialSubquery());
     } else if (ctx.oC_Variable()) {
         return make_unique<ParsedExpression>(
             VARIABLE, transformVariable(*ctx.oC_Variable()), ctx.getText());
@@ -525,6 +527,12 @@ unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
 
 string Transformer::transformFunctionName(CypherParser::OC_FunctionNameContext& ctx) {
     return transformSymbolicName(*ctx.oC_SymbolicName());
+}
+
+unique_ptr<ParsedExpression> Transformer::transformExistentialSubquery(
+    CypherParser::OC_ExistentialSubqueryContext& ctx) {
+    return make_unique<ParsedExpression>(
+        EXISTENTIAL_SUBQUERY, transformRegularQuery(*ctx.oC_RegularQuery()), ctx.getText());
 }
 
 string Transformer::transformPropertyLookup(CypherParser::OC_PropertyLookupContext& ctx) {
