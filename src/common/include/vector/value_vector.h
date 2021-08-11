@@ -46,7 +46,6 @@ public:
     void addString(uint64_t pos, string value) const;
     void addString(uint64_t pos, char* value, uint64_t len) const;
     void allocateStringOverflowSpace(gf_string_t& gfString, uint64_t len) const;
-    inline void reset() { values = bufferValues.get(); }
 
     void fillNullMask();
 
@@ -54,7 +53,7 @@ public:
     inline void setNullMask(shared_ptr<NullMask> otherMask) { nullMask = otherMask; }
 
     inline void setAllNull() {
-        std::fill(nullMask->mask.get(), nullMask->mask.get() + state->size, true);
+        std::fill(nullMask->mask.get(), nullMask->mask.get() + state->originalSize, true);
         nullMask->mayContainNulls = true;
     }
 

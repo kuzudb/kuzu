@@ -9,7 +9,7 @@ class ReadRelPropertyList : public ReadList {
 
 public:
     ReadRelPropertyList(uint64_t inDataChunkPos, uint64_t inValueVectorPos,
-        uint64_t outDataChunkPos, BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator,
+        uint64_t outDataChunkPos, Lists* lists, unique_ptr<PhysicalOperator> prevOperator,
         ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;

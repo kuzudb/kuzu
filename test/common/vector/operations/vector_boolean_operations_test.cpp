@@ -9,7 +9,7 @@ using namespace std;
 TEST(VectorBooleanTests, test) {
     auto VECTOR_SIZE = 4;
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->state->size = VECTOR_SIZE;
+    dataChunk->state->selectedSize = VECTOR_SIZE;
     auto memoryManager = make_unique<MemoryManager>();
 
     auto lVector = make_shared<ValueVector>(memoryManager.get(), BOOL);

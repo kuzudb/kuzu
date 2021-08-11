@@ -3,7 +3,6 @@
 #include <fcntl.h>
 
 #include <cstring>
-#include <iostream>
 
 #include "src/common/include/file_utils.h"
 
@@ -14,10 +13,10 @@ void InMemPages::saveToFile() {
     if (0 == fName.length()) {
         throw invalid_argument("InMemPages: Empty filename");
     }
-    int fd = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
+    auto fileInfo = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
     auto size = numPages << PAGE_SIZE_LOG_2;
-    FileUtils::writeToFile(fd, data.get(), size, 0);
-    FileUtils::closeFile(fd);
+    FileUtils::writeToFile(fileInfo.get(), data.get(), size, 0);
+    FileUtils::closeFile(fileInfo->fd);
 }
 
 void InMemAdjPages::setNbrNode(const PageCursor& cursor, const nodeID_t& nbrNodeID) {

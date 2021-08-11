@@ -16,46 +16,46 @@ namespace common {
 
 template<>
 uint64_t SerDeser::serializeVector<vector<uint64_t>>(
-    const vector<vector<uint64_t>>& values, int fd, uint64_t offset) {
+    const vector<vector<uint64_t>>& values, FileInfo* fileInfo, uint64_t offset) {
     uint64_t vectorSize = values.size();
-    offset = SerDeser::serializeValue<uint64_t>(vectorSize, fd, offset);
+    offset = SerDeser::serializeValue<uint64_t>(vectorSize, fileInfo, offset);
     for (auto& value : values) {
-        offset = serializeVector<uint64_t>(value, fd, offset);
+        offset = serializeVector<uint64_t>(value, fileInfo, offset);
     }
     return offset;
 }
 
 template<>
 uint64_t SerDeser::deserializeVector<vector<uint64_t>>(
-    vector<vector<uint64_t>>& values, int fd, uint64_t offset) {
+    vector<vector<uint64_t>>& values, FileInfo* fileInfo, uint64_t offset) {
     uint64_t vectorSize;
-    offset = deserializeValue<uint64_t>(vectorSize, fd, offset);
+    offset = deserializeValue<uint64_t>(vectorSize, fileInfo, offset);
     values.resize(vectorSize);
     for (auto& value : values) {
-        offset = SerDeser::deserializeVector<uint64_t>(value, fd, offset);
+        offset = SerDeser::deserializeVector<uint64_t>(value, fileInfo, offset);
     }
     return offset;
 }
 
 template<>
 uint64_t SerDeser::serializeVector<vector<vector<uint64_t>>>(
-    const vector<vector<vector<uint64_t>>>& values, int fd, uint64_t offset) {
+    const vector<vector<vector<uint64_t>>>& values, FileInfo* fileInfo, uint64_t offset) {
     uint64_t vectorSize = values.size();
-    offset = SerDeser::serializeValue<uint64_t>(vectorSize, fd, offset);
+    offset = SerDeser::serializeValue<uint64_t>(vectorSize, fileInfo, offset);
     for (auto& value : values) {
-        offset = serializeVector<vector<uint64_t>>(value, fd, offset);
+        offset = serializeVector<vector<uint64_t>>(value, fileInfo, offset);
     }
     return offset;
 }
 
 template<>
 uint64_t SerDeser::deserializeVector<vector<vector<uint64_t>>>(
-    vector<vector<vector<uint64_t>>>& values, int fd, uint64_t offset) {
+    vector<vector<vector<uint64_t>>>& values, FileInfo* fileInfo, uint64_t offset) {
     uint64_t vectorSize;
-    offset = deserializeValue<uint64_t>(vectorSize, fd, offset);
+    offset = deserializeValue<uint64_t>(vectorSize, fileInfo, offset);
     values.resize(vectorSize);
     for (auto& value : values) {
-        offset = SerDeser::deserializeVector<vector<uint64_t>>(value, fd, offset);
+        offset = SerDeser::deserializeVector<vector<uint64_t>>(value, fileInfo, offset);
     }
     return offset;
 }
@@ -88,22 +88,22 @@ Graph::~Graph() {
 
 void Graph::saveToFile(const string& path) const {
     auto graphPath = path + "/graph.bin";
-    int fd = FileUtils::openFile(graphPath, O_WRONLY | O_CREAT);
+    auto fileInfo = FileUtils::openFile(graphPath, O_WRONLY | O_CREAT);
     uint64_t offset = 0;
-    offset = SerDeser::serializeVector(numNodesPerLabel, fd, offset);
+    offset = SerDeser::serializeVector(numNodesPerLabel, fileInfo.get(), offset);
     SerDeser::serializeVector<vector<vector<uint64_t>>>(
-        numRelsPerDirBoundLabelRelLabel, fd, offset);
-    FileUtils::closeFile(fd);
+        numRelsPerDirBoundLabelRelLabel, fileInfo.get(), offset);
+    FileUtils::closeFile(fileInfo->fd);
 }
 
 void Graph::readFromFile(const string& path) {
     auto graphPath = path + "/graph.bin";
-    int fd = FileUtils::openFile(graphPath, O_RDONLY);
+    auto fileInfo = FileUtils::openFile(graphPath, O_RDONLY);
     uint64_t offset = 0;
-    offset = SerDeser::deserializeVector(numNodesPerLabel, fd, offset);
+    offset = SerDeser::deserializeVector(numNodesPerLabel, fileInfo.get(), offset);
     SerDeser::deserializeVector<vector<vector<uint64_t>>>(
-        numRelsPerDirBoundLabelRelLabel, fd, offset);
-    FileUtils::closeFile(fd);
+        numRelsPerDirBoundLabelRelLabel, fileInfo.get(), offset);
+    FileUtils::closeFile(fileInfo->fd);
 }
 
 unique_ptr<nlohmann::json> Graph::debugInfo() {

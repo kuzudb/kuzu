@@ -69,9 +69,9 @@ void LoadCSV::getNextTuples() {
         }
         lineIdx++;
     }
-    outDataChunk->state->size = lineIdx;
+    outDataChunk->state->selectedSize = lineIdx;
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(outDataChunk->state->size);
+    metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
 }
 
 } // namespace processor

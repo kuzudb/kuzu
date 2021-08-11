@@ -26,7 +26,7 @@ TEST(ExpressionTests, BinaryExpressionEvaluatorTest) {
         values[i] = i;
     }
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->state->size = 100;
+    dataChunk->state->selectedSize = 100;
     dataChunk->append(valueVector);
 
     auto schema = Schema();
@@ -65,7 +65,7 @@ TEST(ExpressionTests, UnaryExpressionEvaluatorTest) {
         }
     }
     auto dataChunk = make_shared<DataChunk>();
-    dataChunk->state->size = 100;
+    dataChunk->state->selectedSize = 100;
     dataChunk->append(valueVector);
 
     auto schema = Schema();

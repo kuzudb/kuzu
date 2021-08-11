@@ -11,87 +11,90 @@ namespace common {
  * */
 
 template<>
-uint64_t SerDeser::serializeValue<string>(const string& value, int fd, uint64_t offset) {
+uint64_t SerDeser::serializeValue<string>(
+    const string& value, FileInfo* fileInfo, uint64_t offset) {
     uint64_t valueLength = value.length();
-    FileUtils::writeToFile(fd, &valueLength, sizeof(uint64_t), offset);
-    FileUtils::writeToFile(fd, (uint8_t*)value.data(), valueLength, offset + sizeof(uint64_t));
+    FileUtils::writeToFile(fileInfo, &valueLength, sizeof(uint64_t), offset);
+    FileUtils::writeToFile(
+        fileInfo, (uint8_t*)value.data(), valueLength, offset + sizeof(uint64_t));
     return offset + sizeof(uint64_t) + valueLength;
 }
 
 template<>
-uint64_t SerDeser::deserializeValue<string>(string& value, int fd, uint64_t offset) {
+uint64_t SerDeser::deserializeValue<string>(string& value, FileInfo* fileInfo, uint64_t offset) {
     uint64_t valueLength = 0;
-    offset = SerDeser::deserializeValue<uint64_t>(valueLength, fd, offset);
+    offset = SerDeser::deserializeValue<uint64_t>(valueLength, fileInfo, offset);
     value.resize(valueLength);
-    FileUtils::readFromFile(fd, (uint8_t*)value.data(), valueLength, offset);
+    FileUtils::readFromFile(fileInfo, (uint8_t*)value.data(), valueLength, offset);
     return offset + valueLength;
 }
 
 template<>
 uint64_t SerDeser::serializeValue<PropertyDefinition>(
-    const PropertyDefinition& value, int fd, uint64_t offset) {
-    offset = SerDeser::serializeValue<string>(value.name, fd, offset);
-    offset = SerDeser::serializeValue<uint32_t>(value.id, fd, offset);
-    offset = SerDeser::serializeValue<DataType>(value.dataType, fd, offset);
-    return SerDeser::serializeValue<bool>(value.isPrimaryKey, fd, offset);
+    const PropertyDefinition& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::serializeValue<string>(value.name, fileInfo, offset);
+    offset = SerDeser::serializeValue<uint32_t>(value.id, fileInfo, offset);
+    offset = SerDeser::serializeValue<DataType>(value.dataType, fileInfo, offset);
+    return SerDeser::serializeValue<bool>(value.isPrimaryKey, fileInfo, offset);
 }
 
 template<>
 uint64_t SerDeser::deserializeValue<PropertyDefinition>(
-    PropertyDefinition& value, int fd, uint64_t offset) {
-    offset = SerDeser::deserializeValue<string>(value.name, fd, offset);
-    offset = SerDeser::deserializeValue<uint32_t>(value.id, fd, offset);
-    offset = SerDeser::deserializeValue<DataType>(value.dataType, fd, offset);
-    return SerDeser::deserializeValue<bool>(value.isPrimaryKey, fd, offset);
+    PropertyDefinition& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::deserializeValue<string>(value.name, fileInfo, offset);
+    offset = SerDeser::deserializeValue<uint32_t>(value.id, fileInfo, offset);
+    offset = SerDeser::deserializeValue<DataType>(value.dataType, fileInfo, offset);
+    return SerDeser::deserializeValue<bool>(value.isPrimaryKey, fileInfo, offset);
 }
 
 template<>
 uint64_t SerDeser::serializeValue<NodeLabelDefinition>(
-    const NodeLabelDefinition& value, int fd, uint64_t offset) {
-    offset = SerDeser::serializeValue<string>(value.labelName, fd, offset);
-    offset = SerDeser::serializeValue<label_t>(value.labelId, fd, offset);
-    offset = SerDeser::serializeValue<uint64_t>(value.primaryPropertyId, fd, offset);
-    offset = SerDeser::serializeVector<PropertyDefinition>(value.structuredProperties, fd, offset);
+    const NodeLabelDefinition& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::serializeValue<string>(value.labelName, fileInfo, offset);
+    offset = SerDeser::serializeValue<label_t>(value.labelId, fileInfo, offset);
+    offset = SerDeser::serializeValue<uint64_t>(value.primaryPropertyId, fileInfo, offset);
     offset =
-        SerDeser::serializeVector<PropertyDefinition>(value.unstructuredProperties, fd, offset);
-    offset = SerDeser::serializeUnorderedSet<label_t>(value.fwdRelLabelIdSet, fd, offset);
-    return SerDeser::serializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fd, offset);
+        SerDeser::serializeVector<PropertyDefinition>(value.structuredProperties, fileInfo, offset);
+    offset = SerDeser::serializeVector<PropertyDefinition>(
+        value.unstructuredProperties, fileInfo, offset);
+    offset = SerDeser::serializeUnorderedSet<label_t>(value.fwdRelLabelIdSet, fileInfo, offset);
+    return SerDeser::serializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fileInfo, offset);
 }
 
 template<>
 uint64_t SerDeser::deserializeValue<NodeLabelDefinition>(
-    NodeLabelDefinition& value, int fd, uint64_t offset) {
-    offset = SerDeser::deserializeValue<string>(value.labelName, fd, offset);
-    offset = SerDeser::deserializeValue<label_t>(value.labelId, fd, offset);
-    offset = SerDeser::deserializeValue<uint64_t>(value.primaryPropertyId, fd, offset);
-    offset =
-        SerDeser::deserializeVector<PropertyDefinition>(value.structuredProperties, fd, offset);
-    offset =
-        SerDeser::deserializeVector<PropertyDefinition>(value.unstructuredProperties, fd, offset);
-    offset = SerDeser::deserializeUnorderedSet<label_t>(value.fwdRelLabelIdSet, fd, offset);
-    return SerDeser::deserializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fd, offset);
+    NodeLabelDefinition& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::deserializeValue<string>(value.labelName, fileInfo, offset);
+    offset = SerDeser::deserializeValue<label_t>(value.labelId, fileInfo, offset);
+    offset = SerDeser::deserializeValue<uint64_t>(value.primaryPropertyId, fileInfo, offset);
+    offset = SerDeser::deserializeVector<PropertyDefinition>(
+        value.structuredProperties, fileInfo, offset);
+    offset = SerDeser::deserializeVector<PropertyDefinition>(
+        value.unstructuredProperties, fileInfo, offset);
+    offset = SerDeser::deserializeUnorderedSet<label_t>(value.fwdRelLabelIdSet, fileInfo, offset);
+    return SerDeser::deserializeUnorderedSet<label_t>(value.bwdRelLabelIdSet, fileInfo, offset);
 }
 
 template<>
 uint64_t SerDeser::serializeValue<RelLabelDefinition>(
-    const RelLabelDefinition& value, int fd, uint64_t offset) {
-    offset = SerDeser::serializeValue<string>(value.labelName, fd, offset);
-    offset = SerDeser::serializeValue<label_t>(value.labelId, fd, offset);
-    offset = SerDeser::serializeValue<RelMultiplicity>(value.relMultiplicity, fd, offset);
-    offset = SerDeser::serializeVector<PropertyDefinition>(value.properties, fd, offset);
-    offset = SerDeser::serializeUnorderedSet<label_t>(value.srcNodeLabelIdSet, fd, offset);
-    return SerDeser::serializeUnorderedSet<label_t>(value.dstNodeLabelIdSet, fd, offset);
+    const RelLabelDefinition& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::serializeValue<string>(value.labelName, fileInfo, offset);
+    offset = SerDeser::serializeValue<label_t>(value.labelId, fileInfo, offset);
+    offset = SerDeser::serializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
+    offset = SerDeser::serializeVector<PropertyDefinition>(value.properties, fileInfo, offset);
+    offset = SerDeser::serializeUnorderedSet<label_t>(value.srcNodeLabelIdSet, fileInfo, offset);
+    return SerDeser::serializeUnorderedSet<label_t>(value.dstNodeLabelIdSet, fileInfo, offset);
 }
 
 template<>
 uint64_t SerDeser::deserializeValue<RelLabelDefinition>(
-    RelLabelDefinition& value, int fd, uint64_t offset) {
-    offset = SerDeser::deserializeValue<string>(value.labelName, fd, offset);
-    offset = SerDeser::deserializeValue<label_t>(value.labelId, fd, offset);
-    offset = SerDeser::deserializeValue<RelMultiplicity>(value.relMultiplicity, fd, offset);
-    offset = SerDeser::deserializeVector<PropertyDefinition>(value.properties, fd, offset);
-    offset = SerDeser::deserializeUnorderedSet<label_t>(value.srcNodeLabelIdSet, fd, offset);
-    return SerDeser::deserializeUnorderedSet<label_t>(value.dstNodeLabelIdSet, fd, offset);
+    RelLabelDefinition& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::deserializeValue<string>(value.labelName, fileInfo, offset);
+    offset = SerDeser::deserializeValue<label_t>(value.labelId, fileInfo, offset);
+    offset = SerDeser::deserializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
+    offset = SerDeser::deserializeVector<PropertyDefinition>(value.properties, fileInfo, offset);
+    offset = SerDeser::deserializeUnorderedSet<label_t>(value.srcNodeLabelIdSet, fileInfo, offset);
+    return SerDeser::deserializeUnorderedSet<label_t>(value.dstNodeLabelIdSet, fileInfo, offset);
 }
 
 } // namespace common
@@ -265,36 +268,38 @@ bool Catalog::isSingleMultiplicityInDirection(label_t relLabel, Direction direct
 
 void Catalog::saveToFile(const string& directory) {
     auto catalogPath = FileUtils::joinPath(directory, "catalog.bin");
-    int fd = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
+    auto fileInfo = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
     uint64_t offset = 0;
     uint64_t numNodeLabels = nodeLabels.size();
     uint64_t numRelLabels = relLabels.size();
-    offset = SerDeser::serializeValue<uint64_t>(numNodeLabels, fd, offset);
-    offset = SerDeser::serializeValue<uint64_t>(numRelLabels, fd, offset);
+    offset = SerDeser::serializeValue<uint64_t>(numNodeLabels, fileInfo.get(), offset);
+    offset = SerDeser::serializeValue<uint64_t>(numRelLabels, fileInfo.get(), offset);
     for (auto& nodeLabel : nodeLabels) {
-        offset = SerDeser::serializeValue<NodeLabelDefinition>(nodeLabel, fd, offset);
+        offset = SerDeser::serializeValue<NodeLabelDefinition>(nodeLabel, fileInfo.get(), offset);
     }
     for (auto& relLabel : relLabels) {
-        offset = SerDeser::serializeValue<RelLabelDefinition>(relLabel, fd, offset);
+        offset = SerDeser::serializeValue<RelLabelDefinition>(relLabel, fileInfo.get(), offset);
     }
-    FileUtils::closeFile(fd);
+    FileUtils::closeFile(fileInfo->fd);
 }
 
 void Catalog::readFromFile(const string& directory) {
     auto catalogPath = FileUtils::joinPath(directory, "catalog.bin");
     logger->debug("Reading from {}.", catalogPath);
-    int fd = FileUtils::openFile(catalogPath, O_RDONLY);
+    auto fileInfo = FileUtils::openFile(catalogPath, O_RDONLY);
     uint64_t offset = 0;
     uint64_t numNodeLabels, numRelLabels;
-    offset = SerDeser::deserializeValue<uint64_t>(numNodeLabels, fd, offset);
-    offset = SerDeser::deserializeValue<uint64_t>(numRelLabels, fd, offset);
+    offset = SerDeser::deserializeValue<uint64_t>(numNodeLabels, fileInfo.get(), offset);
+    offset = SerDeser::deserializeValue<uint64_t>(numRelLabels, fileInfo.get(), offset);
     nodeLabels.resize(numNodeLabels);
     relLabels.resize(numRelLabels);
     for (auto labelId = 0u; labelId < numNodeLabels; labelId++) {
-        offset = SerDeser::deserializeValue<NodeLabelDefinition>(nodeLabels[labelId], fd, offset);
+        offset = SerDeser::deserializeValue<NodeLabelDefinition>(
+            nodeLabels[labelId], fileInfo.get(), offset);
     }
     for (auto labelId = 0u; labelId < numRelLabels; labelId++) {
-        offset = SerDeser::deserializeValue<RelLabelDefinition>(relLabels[labelId], fd, offset);
+        offset = SerDeser::deserializeValue<RelLabelDefinition>(
+            relLabels[labelId], fileInfo.get(), offset);
     }
     // construct the labelNameToIdMap and label's unstrPropertiesNameToIdMap
     for (auto& label : nodeLabels) {
@@ -309,7 +314,7 @@ void Catalog::readFromFile(const string& directory) {
     for (auto& label : relLabels) {
         relLabelNameToIdMap[label.labelName] = label.labelId;
     }
-    FileUtils::closeFile(fd);
+    FileUtils::closeFile(fileInfo->fd);
 }
 
 static unique_ptr<nlohmann::json> getPropertiesJson(const vector<PropertyDefinition>& properties) {

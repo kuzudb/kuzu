@@ -20,9 +20,9 @@ cc_test(
 )
 
 cc_test(
-    name = "read_adjlist_end_to_end_test",
+    name = "read_lists_end_to_end_test",
     srcs = [
-        "read_adjlist_end_to_end_test.cpp",
+        "read_lists_end_to_end_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",
@@ -40,27 +40,5 @@ cc_test(
 
 filegroup(
     name = "testfiles",
-    srcs = [
-        "queries/adj-list-reading/2-bytes-per-edge.test",
-        "queries/adj-list-reading/4-bytes-per-edge.test",
-        "queries/data_types/date_data_type.test",
-        "queries/filtered/cyclic.test",
-        "queries/filtered/id_comparison.test",
-        "queries/filtered/load_csv.test",
-        "queries/filtered/multi_query.test",
-        "queries/filtered/nodes.test",
-        "queries/filtered/paths.test",
-        "queries/filtered/stars.test",
-        "queries/filtered/str_operations.test",
-        "queries/filtered/unstructured_properties.test",
-        "queries/projection/projection.test",
-        "queries/projection/skip_limit.test",
-        "queries/projection/with.test",
-        "queries/structural/cyclic.test",
-        "queries/structural/frontier.test",
-        "queries/structural/multi_query.test",
-        "queries/structural/nodes.test",
-        "queries/structural/paths.test",
-        "queries/structural/stars.test",
-    ],
+    srcs = glob(["queries/**"]),
 )

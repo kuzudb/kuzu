@@ -92,7 +92,7 @@ void HashJoinBuild::appendPayloadVectorAsFixSizedValues(ValueVector& vector, uin
 
 overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
     auto numBytesPerValue = vector.getNumBytesPerValue();
-    auto valuesLength = vector.getNumBytesPerValue() * vector.state->size;
+    auto valuesLength = vector.getNumBytesPerValue() * vector.state->selectedSize;
     auto vectorValues = vector.values;
     if (valuesLength > DEFAULT_OVERFLOW_BLOCK_SIZE) {
         throw invalid_argument("Value length is larger than a overflow block.");
@@ -115,12 +115,12 @@ overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
     }
     if (vector.dataType == NODE && dynamic_cast<NodeIDVector&>(vector).isSequence()) {
         auto startNodeOffset = ((node_offset_t*)vector.values)[0];
-        for (auto i = 0u; i < vector.state->size; i++) {
+        for (auto i = 0u; i < vector.state->selectedSize; i++) {
             auto nodeOffset = startNodeOffset + vector.state->selectedPositions[i];
             memcpy(blockAppendPos + (i * numBytesPerValue), &nodeOffset, numBytesPerValue);
         }
     } else {
-        for (auto i = 0u; i < vector.state->size; i++) {
+        for (auto i = 0u; i < vector.state->selectedSize; i++) {
             memcpy(blockAppendPos + (i * numBytesPerValue),
                 vectorValues + (vector.state->selectedPositions[i] * numBytesPerValue),
                 numBytesPerValue);
@@ -261,11 +261,11 @@ void HashJoinBuild::appendPayloadDataChunks(
 }
 
 void HashJoinBuild::appendResultSet() {
-    if (keyDataChunk->state->size == 0) {
+    if (keyDataChunk->state->selectedSize == 0) {
         return;
     }
     // Allocate htBlocks for tuples
-    auto numTuplesToAppend = keyDataChunk->state->isFlat() ? 1 : keyDataChunk->state->size;
+    auto numTuplesToAppend = keyDataChunk->state->isFlat() ? 1 : keyDataChunk->state->selectedSize;
     auto blockAppendInfos = allocateHTBlocks(numTuplesToAppend);
     // Append tuples
     uint64_t tupleAppendOffset = 0; // The start offset of each field inside the tuple.
@@ -280,7 +280,7 @@ void HashJoinBuild::getNextTuples() {
     do {
         prevOperator->getNextTuples();
         appendResultSet();
-    } while (keyDataChunk->state->size > 0);
+    } while (keyDataChunk->state->selectedSize > 0);
 
     // Merge thread-local state (numEntries, htBlocks, overflowBlocks) with the shared one
     {
@@ -291,7 +291,7 @@ void HashJoinBuild::getNextTuples() {
             begin(overflowBlocks), end(overflowBlocks), back_inserter(sharedState->overflowBlocks));
     }
 
-    keyDataChunk->state->size = 0;
+    keyDataChunk->state->selectedSize = 0;
     metrics->executionTime.stop();
 }
 } // namespace processor

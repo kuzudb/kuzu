@@ -191,9 +191,12 @@ unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes(
     // create NodeIDMaps and call NodesLoader.
     auto nodeIDMaps =
         make_unique<vector<unique_ptr<NodeIDMap>>>(graph.catalog->getNodeLabelsCount());
+    logger->info("Begin constructing nodeIDMaps. Number of nodeLabelsCount to add: {}",
+        graph.catalog->getNodeLabelsCount());
     for (auto nodeLabel = 0u; nodeLabel < graph.catalog->getNodeLabelsCount(); nodeLabel++) {
         (*nodeIDMaps)[nodeLabel] = make_unique<NodeIDMap>(graph.numNodesPerLabel[nodeLabel]);
     }
+    logger->info("End constructing nodeIDMaps.");
     NodesLoader nodesLoader{threadPool, graph, outputDirectory, tokenSeparator};
     nodesLoader.load(filePaths, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
     logger->info("Done loading nodes.");

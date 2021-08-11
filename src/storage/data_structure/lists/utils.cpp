@@ -10,18 +10,18 @@ namespace graphflow {
 namespace storage {
 
 void saveListOfIntsToFile(const string& fName, unique_ptr<uint32_t[]>& data, uint32_t listSize) {
-    auto fd = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
-    FileUtils::writeToFile(fd, data.get(), sizeof(uint32_t) * listSize, 0 /*offset*/);
-    FileUtils::closeFile(fd);
+    auto fileInfo = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
+    FileUtils::writeToFile(fileInfo.get(), data.get(), sizeof(uint32_t) * listSize, 0 /*offset*/);
+    FileUtils::closeFile(fileInfo->fd);
 }
 
 uint32_t readListOfIntsFromFile(unique_ptr<uint32_t[]>& data, const string& fName) {
-    auto fd = FileUtils::openFile(fName, O_RDONLY);
-    auto bytesToRead = FileUtils::getFileSize(fd);
+    auto fileInfo = FileUtils::openFile(fName, O_RDONLY);
+    auto bytesToRead = FileUtils::getFileSize(fileInfo->fd);
     auto listSize = bytesToRead / sizeof(uint32_t);
     data.reset(new uint32_t[listSize]);
-    FileUtils::readFromFile(fd, data.get(), bytesToRead, 0 /*offset*/);
-    FileUtils::closeFile(fd);
+    FileUtils::readFromFile(fileInfo.get(), data.get(), bytesToRead, 0 /*offset*/);
+    FileUtils::closeFile(fileInfo->fd);
     return listSize;
 }
 

@@ -11,7 +11,7 @@ class CreateNode : public CRUDNode {
 
 public:
     CreateNode(uint64_t dataChunkPos, vector<uint32_t> propertyKeyVectorPos, label_t nodeLabel,
-        vector<BaseColumn*> nodePropertyColumns, uint64_t numNodes,
+        vector<Column*> nodePropertyColumns, uint64_t numNodes,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
         : CRUDNode{CREATE_NODE, dataChunkPos, move(propertyKeyVectorPos), nodeLabel,
               move(nodePropertyColumns), numNodes, move(prevOperator), context, id} {};

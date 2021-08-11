@@ -20,7 +20,7 @@ void Filter::getNextTuples() {
     do {
         restoreDataChunkSelectorState();
         prevOperator->getNextTuples();
-        if (dataChunkToSelect->state->size == 0) {
+        if (dataChunkToSelect->state->selectedSize == 0) {
             break;
         }
         saveDataChunkSelectorState();
@@ -28,16 +28,16 @@ void Filter::getNextTuples() {
             hasAtLeastOneSelectedValue =
                 rootExpr->select(dataChunkToSelect->state->selectedPositions) > 0;
         } else {
-            dataChunkToSelect->state->size =
+            dataChunkToSelect->state->selectedSize =
                 rootExpr->select(dataChunkToSelect->state->selectedPositionsBuffer.get());
             if (dataChunkToSelect->state->isUnfiltered()) {
                 dataChunkToSelect->state->resetSelectorToValuePosBuffer();
             }
-            hasAtLeastOneSelectedValue = dataChunkToSelect->state->size > 0;
+            hasAtLeastOneSelectedValue = dataChunkToSelect->state->selectedSize > 0;
         }
     } while (!hasAtLeastOneSelectedValue);
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(dataChunkToSelect->state->size);
+    metrics->numOutputTuple.increase(dataChunkToSelect->state->selectedSize);
 }
 
 unique_ptr<PhysicalOperator> Filter::clone() {

@@ -22,12 +22,12 @@ struct UnaryOperationExecutor {
         } else {
             // The operand and result share the same nullMasks
             if (operand.hasNoNullsGuarantee()) {
-                for (auto i = 0ul; i < operand.state->size; i++) {
+                for (auto i = 0ul; i < operand.state->selectedSize; i++) {
                     auto pos = operand.state->selectedPositions[i];
                     FUNC::operation(inputValues[pos], resultValues[pos]);
                 }
             } else {
-                for (auto i = 0ul; i < operand.state->size; i++) {
+                for (auto i = 0ul; i < operand.state->selectedSize; i++) {
                     auto pos = operand.state->selectedPositions[i];
                     if (!operand.isNull(pos)) {
                         FUNC::operation(inputValues[pos], resultValues[pos]);
@@ -47,7 +47,7 @@ struct UnaryOperationExecutor {
                 FUNC::operation(operand.values[operandPos], operand.isNull(operandPos));
         } else {
             // result and operand share the same selectedPositions.
-            for (auto i = 0ul; i < operand.state->size; i++) {
+            for (auto i = 0ul; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 result.values[pos] = FUNC::operation(operand.values[pos], operand.isNull(pos));
             }
@@ -63,7 +63,7 @@ struct UnaryOperationExecutor {
             result.values[resultPos] = operand.isNull(operandPos) == value;
         } else {
             // result and operand share the same selectedPositions.
-            for (auto i = 0ul; i < operand.state->size; i++) {
+            for (auto i = 0ul; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 result.values[pos] = operand.isNull(pos) == value;
             }
@@ -84,13 +84,13 @@ struct UnaryOperationExecutor {
             }
         } else {
             if (operand.hasNoNullsGuarantee()) {
-                for (auto i = 0ul; i < operand.state->size; i++) {
+                for (auto i = 0ul; i < operand.state->selectedSize; i++) {
                     auto pos = operand.state->selectedPositions[i];
                     operand.readNodeID(pos, nodeID);
                     FUNC::operation(nodeID, resultValues[pos]);
                 }
             } else {
-                for (auto i = 0ul; i < operand.state->size; i++) {
+                for (auto i = 0ul; i < operand.state->selectedSize; i++) {
                     auto pos = operand.state->selectedPositions[i];
                     operand.readNodeID(pos, nodeID);
                     if (!operand.isNull(pos)) {
@@ -110,7 +110,7 @@ struct UnaryOperationExecutor {
             return resultValue == TRUE;
         } else {
             uint64_t numSelectedValues = 0;
-            for (auto i = 0ul; i < operand.state->size; i++) {
+            for (auto i = 0ul; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 uint8_t resultValue = FUNC::operation(operand.values[pos], operand.isNull(pos));
                 selectedPositions[numSelectedValues] = pos;
@@ -129,7 +129,7 @@ struct UnaryOperationExecutor {
             return result == TRUE;
         } else {
             uint64_t numSelectedValues = 0;
-            for (auto i = 0ul; i < operand.state->size; i++) {
+            for (auto i = 0ul; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 auto result = operand.isNull(pos) == value;
                 selectedPositions[numSelectedValues] = pos;

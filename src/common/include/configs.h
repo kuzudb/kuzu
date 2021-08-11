@@ -22,7 +22,7 @@ constexpr uint64_t DEFAULT_MEMORY_MANAGER_MAX_MEMORY = 1ull << 38;
 
 struct StorageConfig {
     // The default amount of memory pre-allocated to the buffer pool (= 1GB).
-    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 30;
+    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 22;
 };
 
 // Hash Index Configurations

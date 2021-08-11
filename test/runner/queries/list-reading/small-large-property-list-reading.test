@@ -1,0 +1,12 @@
+-NAME ReadingLargeListOneHop
+-COMPARE_RESULT 1
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.id = 0 AND e1.int64Prop < 4  RETURN e1.int64Prop
+---- 4
+0
+1
+2
+3
+
+-NAME ReadingLargeListSymmetricTwoHop
+-QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) WHERE a.id = 0 AND e1.int64Prop = e2.int64Prop  RETURN COUNT(*)
+---- 5001

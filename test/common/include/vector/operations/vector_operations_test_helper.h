@@ -35,7 +35,7 @@ public:
     void initDataChunk() {
         initVectors();
         dataChunk = make_shared<DataChunk>();
-        dataChunk->state->size = NUM_TUPLES;
+        dataChunk->state->selectedSize = NUM_TUPLES;
         dataChunk->append(vector1);
         dataChunk->append(vector2);
         dataChunk->append(result);
@@ -51,11 +51,11 @@ public:
     void initDataChunk() {
         initVectors();
         dataChunkWithVector1 = make_shared<DataChunk>();
-        dataChunkWithVector1->state->size = NUM_TUPLES;
+        dataChunkWithVector1->state->selectedSize = NUM_TUPLES;
         dataChunkWithVector1->append(vector1);
 
         dataChunkWithVector2AndResult = make_shared<DataChunk>();
-        dataChunkWithVector2AndResult->state->size = NUM_TUPLES;
+        dataChunkWithVector2AndResult->state->selectedSize = NUM_TUPLES;
         dataChunkWithVector2AndResult->append(vector2);
         dataChunkWithVector2AndResult->append(result);
     }

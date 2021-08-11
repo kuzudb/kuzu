@@ -5,10 +5,8 @@ namespace processor {
 
 void ScanColumn::getNextTuples() {
     prevOperator->getNextTuples();
-    if (inDataChunk->state->size > 0) {
-        column->reclaim(*pageHandle);
-        column->readValues(
-            inNodeIDVector, outValueVector, pageHandle, *metrics->bufferManagerMetrics);
+    if (inDataChunk->state->selectedSize > 0) {
+        column->readValues(inNodeIDVector, outValueVector, *metrics->bufferManagerMetrics);
     }
 }
 

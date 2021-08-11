@@ -31,7 +31,7 @@ void Limit::getNextTuples() {
         if (numTupleToProcessInCurrentResultSet <= 0) {
             for (auto& dataChunk : resultSet->dataChunks) {
                 dataChunk->state->currIdx = -1;
-                dataChunk->state->size = 0;
+                dataChunk->state->selectedSize = 0;
             }
             return;
         } else {
@@ -39,8 +39,8 @@ void Limit::getNextTuples() {
             // = limitNumber. So execution is terminated in above if statement.
             auto& dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
             assert(!dataChunkToSelect->state->isFlat());
-            dataChunkToSelect->state->size = numTupleToProcessInCurrentResultSet;
-            metrics->numOutputTuple.increase(dataChunkToSelect->state->size);
+            dataChunkToSelect->state->selectedSize = numTupleToProcessInCurrentResultSet;
+            metrics->numOutputTuple.increase(dataChunkToSelect->state->selectedSize);
         }
     } else {
         metrics->numOutputTuple.increase(numTupleAvailable);

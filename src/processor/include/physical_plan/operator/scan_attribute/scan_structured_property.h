@@ -8,7 +8,7 @@ namespace processor {
 class ScanStructuredProperty : public ScanColumn {
 
 public:
-    ScanStructuredProperty(uint64_t dataChunkPos, uint64_t valueVectorPos, BaseColumn* column,
+    ScanStructuredProperty(uint64_t dataChunkPos, uint64_t valueVectorPos, Column* column,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;

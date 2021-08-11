@@ -15,7 +15,7 @@ public:
 
     void SetUp() override {
         dataChunk = make_shared<DataChunk>();
-        dataChunk->state->size = VECTOR_SIZE;
+        dataChunk->state->selectedSize = VECTOR_SIZE;
         memoryManager = make_unique<MemoryManager>();
     }
 

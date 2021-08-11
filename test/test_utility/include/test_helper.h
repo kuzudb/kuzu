@@ -17,12 +17,12 @@ namespace testing {
 struct TestSuiteSystemConfig {
     string graphInputDir;
     string graphOutputDir;
-    uint64_t maxNumThreads = 1;
+    uint64_t maxNumThreads = 4;
     bool isInMemory = false;
 };
 
 struct TestQueryConfig {
-    uint64_t numThreads = 1;
+    uint64_t numThreads = 4;
     bool compareResult = false;
     string name;
     string query;
@@ -48,13 +48,12 @@ class BaseGraphLoadingTest : public Test {
 public:
     void SetUp() override;
 
-    void TearDown() override { FileUtils::removeDir(TEMP_TEST_DIR); }
+    void TearDown() override { FileUtils::removeDir(testSuiteSystemConfig.graphOutputDir); }
 
     virtual string getInputCSVDir() = 0;
 
 public:
     const string TEMP_TEST_DIR = "test/unittest_temp/";
-
     TestSuiteSystemConfig testSuiteSystemConfig;
 };
 

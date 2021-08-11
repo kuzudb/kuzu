@@ -10,7 +10,8 @@ static uint64_t getNextPowerOfTwo(uint64_t value);
 FrontierExtend::FrontierExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, AdjLists* lists,
     label_t outNodeIDVectorLabel, uint64_t lowerBound, uint64_t upperBound,
     unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id},
+    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id,
+          true /* is adj list */},
       startLayer{lowerBound}, endLayer{upperBound}, outNodeIDVectorLabel{outNodeIDVectorLabel} {
     operatorType = FRONTIER_EXTEND;
     outValueVector =
@@ -21,13 +22,12 @@ FrontierExtend::FrontierExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPo
     resultSet->append(outDataChunk, make_shared<ListSyncState>());
     uint64_t maxNumThreads = omp_get_max_threads();
     vectors.reserve(maxNumThreads);
-    listsPageHandles.reserve(maxNumThreads);
+    largeListHandles.reserve(maxNumThreads);
     for (auto i = 0u; i < maxNumThreads; i++) {
         vectors.push_back(make_shared<NodeIDVector>(0, lists->getNodeIDCompressionScheme(), false));
         vectors[i]->state = make_shared<DataChunkState>(DEFAULT_VECTOR_CAPACITY);
-        listsPageHandles.push_back(make_unique<ListsPageHandle>());
-        listsPageHandles[i]->setListSyncState(make_shared<ListSyncState>());
-        listsPageHandles[i]->setIsAdjListHandle();
+        largeListHandles.push_back(make_unique<LargeListHandle>(true /* is adj list handle */));
+        largeListHandles[i]->setListSyncState(make_shared<ListSyncState>());
     }
     frontierPerLayer.reserve(upperBound + 1);
     threadLocalFrontierPerLayer.reserve(upperBound);
@@ -51,8 +51,8 @@ void FrontierExtend::getNextTuples() {
     }
     do {
         prevOperator->getNextTuples();
-        if (inNodeIDVector->state->size == 0) {
-            outDataChunk->state->size = 0;
+        if (inNodeIDVector->state->selectedSize == 0) {
+            outDataChunk->state->selectedSize = 0;
             metrics->executionTime.stop();
             return;
         }
@@ -100,12 +100,10 @@ void FrontierExtend::extendToThreadLocalFrontiers(uint64_t layer) {
                             // Warning: we use non-thread-safe metric inside openmp parallelization
                             // metrics won't be exactly but hopefully good enough.
                             lists->readValues(slot->nodeOffset, vectors[threadId],
-                                listsPageHandles[threadId], MAX_TO_READ,
-                                *metrics->bufferManagerMetrics);
+                                largeListHandles[threadId], *metrics->bufferManagerMetrics);
                             threadLocalFrontierPerLayer[layer][threadId]->append(
                                 *(NodeIDVector*)(vectors[threadId].get()), slot->multiplicity);
-                        } while (listsPageHandles[threadId]->hasMoreToRead());
-                        lists->reclaim(*listsPageHandles[threadId]);
+                        } while (largeListHandles[threadId]->hasMoreToRead());
                         slot = slot->next;
                     }
                 }
@@ -144,7 +142,7 @@ void FrontierExtend::createGlobalFrontierFromThreadLocalFrontiers(uint64_t layer
 
 void FrontierExtend::produceOutputTuples() {
     auto outNodeIDs = (node_offset_t*)outValueVector->values;
-    outValueVector->state->size = 0;
+    outValueVector->state->selectedSize = 0;
     while (currOutputPos.layer < endLayer) {
         auto frontier = frontierPerLayer[currOutputPos.layer];
         if (frontier == nullptr) {
@@ -153,16 +151,16 @@ void FrontierExtend::produceOutputTuples() {
         while (currOutputPos.blockIdx < frontier->hashTableBlocks.size()) {
             auto mainBlock = frontier->hashTableBlocks[currOutputPos.blockIdx];
             auto maxSlot = NUM_SLOTS_PER_BLOCK_SET;
-            while (outValueVector->state->size < DEFAULT_VECTOR_CAPACITY &&
+            while (outValueVector->state->selectedSize < DEFAULT_VECTOR_CAPACITY &&
                    currOutputPos.slot < maxSlot) {
                 if (mainBlock[currOutputPos.slot].hasValue) {
                     auto slot = &mainBlock[currOutputPos.slot];
                     while (slot) {
-                        outNodeIDs[outValueVector->state->size] = slot->nodeOffset;
-                        outValueVector->state->multiplicity[outValueVector->state->size++] =
+                        outNodeIDs[outValueVector->state->selectedSize] = slot->nodeOffset;
+                        outValueVector->state->multiplicity[outValueVector->state->selectedSize++] =
                             slot->multiplicity;
                         slot = slot->next;
-                        if (outValueVector->state->size == DEFAULT_VECTOR_CAPACITY) {
+                        if (outValueVector->state->selectedSize == DEFAULT_VECTOR_CAPACITY) {
                             currOutputPos.hasMoreTuplesToProduce = true;
                             return;
                         }
@@ -180,7 +178,7 @@ void FrontierExtend::produceOutputTuples() {
         delete frontier;
         frontier = nullptr;
     }
-    metrics->numOutputTuple.increase(outDataChunk->state->size);
+    metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
 }
 
 FrontierSet* FrontierExtend::createInitialFrontierSet() {
@@ -195,11 +193,10 @@ FrontierSet* FrontierExtend::createInitialFrontierSet() {
     frontier->setMemoryManager(context.memoryManager);
     frontier->initHashTable(numSlots);
     do {
-        lists->readValues(nodeOffset, vectors[0], listsPageHandles[0], MAX_TO_READ,
-            *metrics->bufferManagerMetrics);
+        lists->readValues(
+            nodeOffset, vectors[0], largeListHandles[0], *metrics->bufferManagerMetrics);
         frontier->insert(*vectors[0]);
-    } while (listsPageHandles[0]->hasMoreToRead());
-    lists->reclaim(*listsPageHandles[0]);
+    } while (largeListHandles[0]->hasMoreToRead());
     return frontier;
 }
 

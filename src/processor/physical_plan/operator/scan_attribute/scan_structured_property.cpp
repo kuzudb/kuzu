@@ -6,7 +6,7 @@ namespace graphflow {
 namespace processor {
 
 ScanStructuredProperty::ScanStructuredProperty(uint64_t dataChunkPos, uint64_t valueVectorPos,
-    BaseColumn* column, unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context,
+    Column* column, unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context,
     uint32_t id)
     : ScanColumn{dataChunkPos, valueVectorPos, column, move(prevOperator), context, id} {
     outValueVector = make_shared<ValueVector>(context.memoryManager, column->getDataType());

@@ -106,7 +106,7 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
     do {
         if (probeState->matchedTuplesSize == 0) {
             prevOperator->getNextTuples();
-            if (probeSideKeyDataChunk->state->size == 0) {
+            if (probeSideKeyDataChunk->state->selectedSize == 0) {
                 return;
             }
             probeSideKeyVector->readNodeID(
@@ -179,7 +179,7 @@ void HashJoinProbe::populateResultFlatDataChunksAndVectorPtrs() {
             }
         }
     }
-    buildSideFlatResultDataChunk->state->size = probeState->matchedTuplesSize;
+    buildSideFlatResultDataChunk->state->selectedSize = probeState->matchedTuplesSize;
     probeState->matchedTuplesSize = 0;
 }
 
@@ -191,7 +191,7 @@ void HashJoinProbe::updateAppendedUnFlatDataChunks() {
         auto overflowVal = buildSideVectorPtrs[buildVectorInfo.vectorPtrsPos].operator[](
             buildSideFlatResultDataChunk->state->currIdx);
         memcpy(appendVectorData, overflowVal.value, overflowVal.len);
-        outDataChunk->state->size = overflowVal.len / buildVectorInfo.numBytesPerValue;
+        outDataChunk->state->selectedSize = overflowVal.len / buildVectorInfo.numBytesPerValue;
     }
 }
 
@@ -207,7 +207,7 @@ void HashJoinProbe::getNextTuples() {
     metrics->executionTime.start();
     if (!buildSideVectorPtrs.empty() &&
         buildSideFlatResultDataChunk->state->currIdx <
-            (int64_t)(buildSideFlatResultDataChunk->state->size - 1)) {
+            (int64_t)(buildSideFlatResultDataChunk->state->selectedSize - 1)) {
         buildSideFlatResultDataChunk->state->currIdx += 1;
         updateAppendedUnFlatDataChunks();
         metrics->executionTime.stop();
@@ -217,10 +217,10 @@ void HashJoinProbe::getNextTuples() {
     getNextBatchOfMatchedTuples();
     if (probeState->matchedTuplesSize == 0) {
         // No matching tuples, set size of appended data chunks to 0.
-        buildSideFlatResultDataChunk->state->size = 0;
+        buildSideFlatResultDataChunk->state->selectedSize = 0;
         for (auto& buildVectorInfo : buildSideVectorInfos) {
             auto resultDataChunk = resultSet->dataChunks[buildVectorInfo.resultDataChunkPos];
-            resultDataChunk->state->size = 0;
+            resultDataChunk->state->selectedSize = 0;
         }
         return;
     }

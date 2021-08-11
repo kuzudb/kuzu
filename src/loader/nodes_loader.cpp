@@ -344,13 +344,14 @@ void NodesLoader::writeBuffersToFiles(const vector<unique_ptr<uint8_t[]>>& buffe
         if (properties[propertyId].dataType == UNSTRUCTURED) {
             continue;
         }
-        auto fd = FileUtils::openFile(propertyColumnFnames[propertyId], O_WRONLY | O_CREAT);
+        auto fileInfo = FileUtils::openFile(propertyColumnFnames[propertyId], O_WRONLY | O_CREAT);
         auto offsetInFile =
             offsetStart * TypeUtils::getDataTypeSize(properties[propertyId].dataType);
         auto bytesToWrite =
             numElementsToWrite * TypeUtils::getDataTypeSize(properties[propertyId].dataType);
-        FileUtils::writeToFile(fd, buffers[propertyId].get(), bytesToWrite, offsetInFile);
-        FileUtils::closeFile(fd);
+        FileUtils::writeToFile(
+            fileInfo.get(), buffers[propertyId].get(), bytesToWrite, offsetInFile);
+        FileUtils::closeFile(fileInfo->fd);
     }
 }
 

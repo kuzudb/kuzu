@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_attribute.h"
-#include "src/storage/include/data_structure/lists/lists.h"
+#include "src/storage/include/data_structure/lists/unstructured_property_lists.h"
 
 using namespace graphflow::storage;
 
@@ -12,11 +12,9 @@ class ScanUnstructuredProperty : public ScanAttribute {
 
 public:
     ScanUnstructuredProperty(uint64_t dataChunkPos, uint64_t valueVectorPos, uint32_t propertyKey,
-        BaseLists* lists, unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context,
-        uint32_t id);
-
-    ~ScanUnstructuredProperty() { lists->reclaim(*pageHandle); }
-
+        UnstructuredPropertyLists* lists, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id);
+    ~ScanUnstructuredProperty(){};
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
@@ -26,7 +24,7 @@ public:
 
 protected:
     uint32_t propertyKey;
-    Lists<UNSTRUCTURED>* lists;
+    UnstructuredPropertyLists* lists;
 };
 
 } // namespace processor

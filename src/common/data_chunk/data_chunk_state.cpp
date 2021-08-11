@@ -3,7 +3,7 @@
 namespace graphflow {
 namespace common {
 
-DataChunkState::DataChunkState(uint64_t capacity) : currIdx{-1}, size{0} {
+DataChunkState::DataChunkState(uint64_t capacity) : currIdx{-1}, originalSize{0}, selectedSize{0} {
     selectedPositionsBuffer = make_unique<sel_t[]>(capacity);
     resetSelectorToUnselected();
     multiplicity = nullptr;
@@ -13,10 +13,10 @@ uint64_t DataChunkState::getNumSelectedValues() const {
     if (isFlat()) {
         return multiplicity == nullptr ? 1 : multiplicity[getPositionOfCurrIdx()];
     } else if (multiplicity == nullptr) {
-        return size;
+        return selectedSize;
     } else {
         auto numSelectedValuesSum = 0u;
-        for (auto i = 0u; i < size; i++) {
+        for (auto i = 0u; i < selectedSize; i++) {
             numSelectedValuesSum += multiplicity[selectedPositions[i]];
         }
         return numSelectedValuesSum;
@@ -25,17 +25,17 @@ uint64_t DataChunkState::getNumSelectedValues() const {
 
 shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
     auto state = make_shared<DataChunkState>(1);
-    state->size = 1;
+    state->selectedSize = 1;
     state->currIdx = 0;
     return state;
 }
 
 shared_ptr<DataChunkState> DataChunkState::clone() {
-    auto newState = make_shared<DataChunkState>(size);
+    auto newState = make_shared<DataChunkState>(selectedSize);
     newState->currIdx = currIdx;
-    newState->size = size;
+    newState->selectedSize = selectedSize;
     memcpy(newState->selectedPositionsBuffer.get(), selectedPositionsBuffer.get(),
-        size * sizeof(sel_t));
+        selectedSize * sizeof(sel_t));
     isUnfiltered() ? newState->resetSelectorToUnselected() :
                      newState->resetSelectorToValuePosBuffer();
     return newState;

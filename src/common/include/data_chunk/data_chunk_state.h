@@ -30,6 +30,10 @@ public:
     inline void resetSelectorToValuePosBuffer() {
         selectedPositions = selectedPositionsBuffer.get();
     }
+    void initOriginalAndSelectedSize(uint64_t size) {
+        originalSize = size;
+        selectedSize = size;
+    }
 
     void initMultiplicity() {
         multiplicityBuffer = make_unique<uint64_t[]>(DEFAULT_VECTOR_CAPACITY);
@@ -49,7 +53,13 @@ public:
 
     // The currIdx is >= 0 when vectors are flattened and -1 if the vectors are unflat.
     int64_t currIdx;
-    uint64_t size;
+    // We need to keep track of originalSize of DataChunks to perform consistent scans of vectors
+    // or lists. This is because all of the vectors in a datachunk has to be the same length as they
+    // share the same selectedPositions array.Therefore if there is a scan after a filter on the
+    // datachunk, the selectedSize might decrease, so the scan cannot know how much it has to
+    // scan to generate a vector that is consistent with the rest of the vectors in the datachunk.
+    uint64_t originalSize;
+    uint64_t selectedSize;
     sel_t* selectedPositions;
     uint64_t* multiplicity;
     unique_ptr<sel_t[]> selectedPositionsBuffer;

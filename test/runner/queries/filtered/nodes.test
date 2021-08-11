@@ -32,7 +32,7 @@
 -QUERY MATCH (a:person) WHERE a.age IS NOT NULL RETURN COUNT(*)
 ---- 8
 
--NAME OneHopKnowsFilteredTest
+-NAME SingletonKnowsFilteredTest
 -QUERY MATCH (a:person) WHERE a.gender * 2.1 = 2.1 * a.gender RETURN COUNT(*)
 ---- 8
 

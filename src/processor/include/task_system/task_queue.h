@@ -12,13 +12,13 @@ namespace processor {
 class TaskQueue {
 
 public:
-    Task* getTask();
+    shared_ptr<Task> getTask();
 
-    void push(Task* task);
+    void push(shared_ptr<Task> task);
 
 private:
     mutex mtx;
-    deque<Task*> taskQueue;
+    deque<shared_ptr<Task>> taskQueue;
 };
 
 } // namespace processor

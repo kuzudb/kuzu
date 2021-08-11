@@ -1,4 +1,3 @@
-#include <iostream>
 #include <random>
 
 #include "gtest/gtest.h"
@@ -27,7 +26,7 @@ public:
             *insertionBufferManager, ovfPagesManager, INT64);
         auto numEntries = 1000;
         auto state = make_shared<DataChunkState>(numEntries);
-        state->size = numEntries;
+        state->selectedSize = numEntries;
         ValueVector keys(insertionMemoryManager.get(), INT64);
         keys.state = state;
         ValueVector values(insertionMemoryManager.get(), INT64);
@@ -63,7 +62,7 @@ TEST_F(HashIndexTest, HashIndexInsertExists) {
     HashIndex hashIndex(TEMP_INDEX, 0, *memoryManager, *bufferManager, ovfPagesManager, INT64);
     auto numEntries = 10;
     auto state = make_shared<DataChunkState>(numEntries);
-    state->size = numEntries;
+    state->selectedSize = numEntries;
     ValueVector keys(memoryManager.get(), INT64);
     keys.state = state;
     ValueVector values(memoryManager.get(), INT64);
@@ -88,7 +87,7 @@ TEST_F(HashIndexTest, HashIndexSmallLookup) {
     HashIndex hashIndex(TEMP_INDEX, 0, *memoryManager, *bufferManager, ovfPagesManager, INT64);
     auto numEntries = 10;
     auto state = make_shared<DataChunkState>(numEntries);
-    state->size = numEntries;
+    state->selectedSize = numEntries;
     ValueVector result(memoryManager.get(), INT64);
     result.state = state;
     ValueVector keys(memoryManager.get(), INT64);
@@ -111,7 +110,7 @@ TEST_F(HashIndexTest, HashIndexRandomLookup) {
     HashIndex hashIndex(TEMP_INDEX, 0, *memoryManager, *bufferManager, ovfPagesManager, INT64);
     auto numEntries = 1000;
     auto state = make_shared<DataChunkState>(numEntries);
-    state->size = numEntries;
+    state->selectedSize = numEntries;
     ValueVector keys(memoryManager.get(), INT64);
     keys.state = state;
     auto keysData = (uint64_t*)keys.values;

@@ -3,14 +3,15 @@
 namespace graphflow {
 namespace processor {
 
-ReadList::ReadList(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos, BaseLists* lists,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+ReadList::ReadList(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos, Lists* lists,
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id,
+    bool isAdjList)
     : PhysicalOperator{move(prevOperator), READ_LIST, context, id}, inDataChunkPos{dataChunkPos},
       inValueVectorPos{valueVectorPos}, lists{lists} {
     resultSet = this->prevOperator->getResultSet();
     inDataChunk = resultSet->dataChunks[dataChunkPos];
     inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
-    listsPageHandle = make_unique<ListsPageHandle>();
+    largeListHandle = make_unique<LargeListHandle>(isAdjList);
 }
 
 void ReadList::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
@@ -19,10 +20,8 @@ void ReadList::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
 }
 
 void ReadList::readValuesFromList() {
-    lists->reclaim(*listsPageHandle);
     auto nodeOffset = inNodeIDVector->readNodeOffset(inDataChunk->state->getPositionOfCurrIdx());
-    lists->readValues(
-        nodeOffset, outValueVector, listsPageHandle, MAX_TO_READ, *metrics->bufferManagerMetrics);
+    lists->readValues(nodeOffset, outValueVector, largeListHandle, *metrics->bufferManagerMetrics);
 }
 
 } // namespace processor

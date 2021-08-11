@@ -5,19 +5,15 @@
 namespace graphflow {
 namespace storage {
 
-// ListsPageHandle stores the state of reading from a list cross multiple calls to the readValues()
-// function. It extends PageHandle, so stores a pinned pageIdx. In addition it holds two other
-// pieces information:
+// LargeListHandle stores the state of reading from a large list cross multiple calls to the
+// readValues() function. It holds two pieces of information:
 // 1. listSyncer: to synchronize reading of values between multiple lists that have related data so
 // that they end up reading the correct portion of the list.
-// 2. isAdjListsHandle: true, if the listsPageHandle stores the state of anAdjLists, else false.
-class ListsPageHandle : public PageHandle {
+// 2. isAdjListsHandle: true, if the largeListHandle stores the state of an AdjLists, else false.
+class LargeListHandle {
 
 public:
-    ListsPageHandle() : PageHandle(), isAdjListsHandle{false} {};
-
-    inline void setIsAdjListHandle() { isAdjListsHandle = true; }
-    inline bool getIsAdjListsHandle() { return isAdjListsHandle; }
+    LargeListHandle(bool _isAdjListsHandle) : isAdjListsHandle{_isAdjListsHandle} {};
 
     inline void setListSyncState(shared_ptr<ListSyncState> listSyncState) {
         this->listSyncState = listSyncState;

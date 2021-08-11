@@ -13,14 +13,14 @@ shared_ptr<NullMask> NullMask::clone(uint64_t vectorCapacity) {
     return newNullMask;
 }
 
-template<class T, class FUNC = std::function<uint8_t(T)>>
+template<class T>
 static void fillOperandNullMask(ValueVector& operand) {
     auto values = (T*)operand.values;
     if (operand.state->isFlat()) {
         operand.setNull(operand.state->getPositionOfCurrIdx(),
             IsNull::operation(values[operand.state->getPositionOfCurrIdx()]));
     } else {
-        auto size = operand.state->size;
+        auto size = operand.state->selectedSize;
         for (uint64_t i = 0; i < size; i++) {
             operand.setNull(i, IsNull::operation(values[operand.state->selectedPositions[i]]));
         }
