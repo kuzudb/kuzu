@@ -11,10 +11,10 @@ namespace planner {
 class LogicalFilter : public LogicalOperator {
 
 public:
-    LogicalFilter(shared_ptr<Expression> expression, string variableToSelect,
+    LogicalFilter(shared_ptr<Expression> expression, uint32_t groupPosToSelect,
         shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{prevOperator}, expression{expression}, variableToSelect{
-                                                                     move(variableToSelect)} {}
+        : LogicalOperator{prevOperator}, expression{expression}, groupPosToSelect{
+                                                                     groupPosToSelect} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_FILTER;
@@ -24,7 +24,7 @@ public:
 
 public:
     shared_ptr<Expression> expression;
-    string variableToSelect;
+    uint32_t groupPosToSelect;
 };
 
 } // namespace planner
