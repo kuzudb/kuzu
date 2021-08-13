@@ -14,6 +14,7 @@ cc_test(
     ],
     deps = [
         "//src/processor",
+        "//src/storage:graph",
         "@gtest",
         "@gtest//:gtest_main",
     ],

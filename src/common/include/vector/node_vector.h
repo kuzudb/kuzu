@@ -30,6 +30,12 @@ public:
         : NodeIDVector{
               commonLabel, nodeIDCompressionScheme, isSequence, DEFAULT_VECTOR_CAPACITY} {};
 
+    NodeIDVector(
+        const NodeIDCompressionScheme& nodeIdCompressionScheme, bool isSequence, bool isSingleValue)
+        : ValueVector{nullptr, isSingleValue ? 1 : DEFAULT_VECTOR_CAPACITY,
+              nodeIdCompressionScheme.getNumTotalBytes(), NODE},
+          representation{NodeIDRepresentation{isSequence, UINT32_MAX, nodeIdCompressionScheme}} {};
+
     node_offset_t readNodeOffset(uint64_t pos) const override;
     void readNodeID(uint64_t pos, nodeID_t& nodeID) const override;
 

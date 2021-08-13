@@ -10,6 +10,12 @@ MultiplicityReducer::MultiplicityReducer(
     resultSet = this->prevOperator->getResultSet();
 }
 
+void MultiplicityReducer::reInitialize() {
+    PhysicalOperator::reInitialize();
+    prevMultiplicity = 1;
+    numRepeat = 0;
+}
+
 void MultiplicityReducer::getNextTuples() {
     metrics->executionTime.start();
     if (numRepeat == 0) {

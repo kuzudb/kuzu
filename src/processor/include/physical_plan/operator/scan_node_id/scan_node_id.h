@@ -16,6 +16,8 @@ public:
     ScanNodeID(shared_ptr<MorselsDesc>& morselsDesc, unique_ptr<PhysicalOperator> prevOperator,
         ExecutionContext& context, uint32_t id);
 
+    void reInitialize() override;
+
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {

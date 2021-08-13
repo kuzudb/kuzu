@@ -14,6 +14,11 @@ AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos,
     inDataChunk->append(outValueVector);
 }
 
+void AdjColumnExtend::reInitialize() {
+    PhysicalOperator::reInitialize();
+    FilteringOperator::reInitialize();
+}
+
 void AdjColumnExtend::getNextTuples() {
     metrics->executionTime.start();
     bool hasAtLeastOneNonNullValue;

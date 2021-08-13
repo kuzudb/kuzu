@@ -18,7 +18,9 @@ public:
         queryResult = make_unique<QueryResult>();
     };
 
-    void getNextTuples() override;
+    void reInitialize() override;
+
+    void execute() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ResultCollector>(

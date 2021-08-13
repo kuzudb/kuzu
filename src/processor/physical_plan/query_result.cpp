@@ -10,5 +10,12 @@ void QueryResult::appendQueryResult(unique_ptr<QueryResult> queryResult) {
     move(begin(queryResult->bufferBlocks), end(queryResult->bufferBlocks),
         back_inserter(bufferBlocks));
 }
+
+void QueryResult::clear() {
+    numTuples = 0;
+    resultSetCollection.clear();
+    bufferBlocks.clear();
+}
+
 } // namespace processor
 } // namespace graphflow

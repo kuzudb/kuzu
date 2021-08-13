@@ -3,24 +3,31 @@
 namespace graphflow {
 namespace processor {
 
-void ResultCollector::getNextTuples() {
+void ResultCollector::reInitialize() {
+    prevOperator->reInitialize();
+    queryResult->clear();
+}
+
+void ResultCollector::execute() {
     metrics->executionTime.start();
-    prevOperator->getNextTuples();
-    auto resultSet = prevOperator->getResultSet();
-    queryResult->numTuples += resultSet->getNumTuples();
-    if (enableProjection) {
-        auto clonedResultSet = resultSet->clone();
-        queryResult->resultSetCollection.push_back(move(clonedResultSet));
-        for (auto& dataChunk : resultSet->dataChunks) {
-            for (auto& vector : dataChunk->valueVectors) {
-                if (vector->stringBuffer != nullptr) {
-                    move(begin(vector->stringBuffer->blocks), end(vector->stringBuffer->blocks),
-                        back_inserter(queryResult->bufferBlocks));
+    do {
+        prevOperator->getNextTuples();
+        auto resultSet = prevOperator->getResultSet();
+        queryResult->numTuples += resultSet->getNumTuples();
+        if (enableProjection) {
+            auto clonedResultSet = resultSet->clone();
+            queryResult->resultSetCollection.push_back(move(clonedResultSet));
+            for (auto& dataChunk : resultSet->dataChunks) {
+                for (auto& vector : dataChunk->valueVectors) {
+                    if (vector->stringBuffer != nullptr) {
+                        move(begin(vector->stringBuffer->blocks), end(vector->stringBuffer->blocks),
+                            back_inserter(queryResult->bufferBlocks));
+                    }
                 }
             }
         }
-    }
-    resetStringBuffer();
+        resetStringBuffer();
+    } while (resultSet->getNumTuples() > 0);
     metrics->executionTime.stop();
 }
 

@@ -65,6 +65,10 @@ public:
 
     virtual ~PhysicalOperator() = default;
 
+    // For subquery, we rerun a plan multiple times. ReInitialize() should be called before each run
+    // to ensure
+    virtual void reInitialize() { prevOperator->reInitialize(); }
+
     virtual void getNextTuples() = 0;
 
     shared_ptr<ResultSet> getResultSet() { return resultSet; };

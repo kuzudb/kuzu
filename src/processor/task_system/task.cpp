@@ -17,9 +17,7 @@ void Task::run() {
     if (pipelineSinkCopy == nullptr) {
         return;
     }
-    do {
-        pipelineSinkCopy->getNextTuples();
-    } while (pipelineSinkCopy->getResultSet()->getNumTuples() > 0);
+    ((Sink&)*pipelineSinkCopy).execute();
     deregisterThread(move(pipelineSinkCopy));
 }
 

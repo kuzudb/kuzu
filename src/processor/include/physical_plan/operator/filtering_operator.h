@@ -18,6 +18,11 @@ public:
                                            make_unique<sel_t[]>(DEFAULT_VECTOR_CAPACITY)} {};
 
 protected:
+    inline void reInitialize() {
+        prevNumSelectedValues = 0ul;
+        prevSelectedValues = nullptr;
+    }
+
     inline void restoreDataChunkSelectorState() {
         if (prevSelectedValues == nullptr) {
             return;

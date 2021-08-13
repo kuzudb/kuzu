@@ -13,6 +13,8 @@ public:
         vector<uint64_t> dataChunksToSkipPos, unique_ptr<PhysicalOperator> prevOperator,
         ExecutionContext& context, uint32_t id);
 
+    void reInitialize() override;
+
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {

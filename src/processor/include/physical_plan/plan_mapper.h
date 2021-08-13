@@ -1,12 +1,10 @@
 #pragma once
 
-#include "src/binder/include/expression/expression.h"
 #include "src/planner/include/logical_plan/logical_plan.h"
 #include "src/processor/include/physical_plan/operator/physical_operator_info.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
 #include "src/storage/include/graph.h"
 
-using namespace graphflow::binder;
 using namespace graphflow::planner;
 
 namespace graphflow {

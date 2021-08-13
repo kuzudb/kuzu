@@ -14,6 +14,8 @@ public:
     LoadCSV(const string& fname, char tokenSeparator, vector<DataType> csvColumnDataTypes,
         ExecutionContext& context, uint32_t id);
 
+    void reInitialize() override {}
+
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
