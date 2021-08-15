@@ -151,7 +151,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto& logicalFilter = (const LogicalFilter&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
-    auto dataChunkToSelectPos = info.getDataChunkPos(logicalFilter.variableToSelect);
+    auto dataChunkToSelectPos = logicalFilter.groupPosToSelect;
     auto physicalRootExpr = ExpressionMapper::mapToPhysical(*context.memoryManager,
         *logicalFilter.expression, info, *prevOperator->getResultSet(), true /*isSelectOperation*/);
     return make_unique<Filter>(move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator),
@@ -268,10 +268,10 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto& logicalSkip = (const LogicalSkip&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
-    auto dataChunkToSelectPos = info.getDataChunkPos(logicalSkip.getVariableToSelect());
+    auto dataChunkToSelectPos = logicalSkip.getGroupPosToSelect();
     vector<uint64_t> dataChunksToLimit;
-    for (auto& groupToLimit : logicalSkip.getGroupsToSkip()) {
-        dataChunksToLimit.push_back(info.getDataChunkPos(groupToLimit));
+    for (auto& groupPosToSkip : logicalSkip.getGroupsPosToSkip()) {
+        dataChunksToLimit.push_back(groupPosToSkip);
     }
     return make_unique<Skip>(logicalSkip.getSkipNumber(), make_shared<atomic_uint64_t>(0),
         dataChunkToSelectPos, move(dataChunksToLimit), move(prevOperator), context,
@@ -282,10 +282,10 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto& logicalLimit = (const LogicalLimit&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
-    auto dataChunkToSelectPos = info.getDataChunkPos(logicalLimit.getVariableToSelect());
+    auto dataChunkToSelectPos = logicalLimit.getGroupPosToSelect();
     vector<uint64_t> dataChunksToLimit;
-    for (auto& groupToLimit : logicalLimit.getGroupsToLimit()) {
-        dataChunksToLimit.push_back(info.getDataChunkPos(groupToLimit));
+    for (auto& groupPosToLimit : logicalLimit.getGroupsPosToLimit()) {
+        dataChunksToLimit.push_back(groupPosToLimit);
     }
     return make_unique<Limit>(logicalLimit.getLimitNumber(), make_shared<atomic_uint64_t>(0),
         dataChunkToSelectPos, move(dataChunksToLimit), move(prevOperator), context,

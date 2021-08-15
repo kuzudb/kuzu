@@ -41,8 +41,9 @@ private:
     void appendExtendAndNecessaryFilters(const RelExpression& queryRel, Direction direction,
         const vector<shared_ptr<Expression>>& expressionsToFilter, LogicalPlan& plan);
     void appendExtend(const RelExpression& queryRel, Direction direction, LogicalPlan& plan);
-    string appendNecessaryFlattens(const unordered_set<string>& unFlatGroups, LogicalPlan& plan);
-    void appendFlatten(const string& variable, LogicalPlan& plan);
+    uint32_t appendNecessaryFlattens(
+        const unordered_set<uint32_t>& unFlatGroupsPos, LogicalPlan& plan);
+    void appendFlatten(uint32_t groupPos, LogicalPlan& plan);
     void appendLogicalHashJoin(
         uint32_t joinNodePos, LogicalPlan& buildPlan, LogicalPlan& probePlan);
     void appendFilter(shared_ptr<Expression> expression, LogicalPlan& plan);

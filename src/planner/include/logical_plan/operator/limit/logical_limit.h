@@ -8,23 +8,23 @@ namespace planner {
 class LogicalLimit : public LogicalOperator {
 
 public:
-    LogicalLimit(uint64_t limitNumber, string variableToSelect, vector<string> groupsToLimit,
+    LogicalLimit(uint64_t limitNumber, uint32_t groupPosToSelect, vector<uint32_t> groupsPosToLimit,
         shared_ptr<LogicalOperator> prevOperator)
         : LogicalOperator{move(prevOperator)}, limitNumber{limitNumber},
-          variableToSelect{move(variableToSelect)}, groupsToLimit{move(groupsToLimit)} {}
+          groupPosToSelect{groupPosToSelect}, groupsPosToLimit{move(groupsPosToLimit)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override { return LOGICAL_LIMIT; }
 
     string getExpressionsForPrinting() const override { return to_string(limitNumber); }
 
     inline uint64_t getLimitNumber() const { return limitNumber; }
-    inline string getVariableToSelect() const { return variableToSelect; }
-    inline const vector<string>& getGroupsToLimit() const { return groupsToLimit; };
+    inline uint32_t getGroupPosToSelect() const { return groupPosToSelect; }
+    inline const vector<uint32_t>& getGroupsPosToLimit() const { return groupsPosToLimit; };
 
 private:
     uint64_t limitNumber;
-    string variableToSelect;
-    vector<string> groupsToLimit;
+    uint32_t groupPosToSelect;
+    vector<uint32_t> groupsPosToLimit;
 };
 
 } // namespace planner
