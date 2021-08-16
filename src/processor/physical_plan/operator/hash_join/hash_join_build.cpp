@@ -274,7 +274,7 @@ void HashJoinBuild::appendResultSet() {
     numEntries += numTuplesToAppend;
 }
 
-void HashJoinBuild::getNextTuples() {
+void HashJoinBuild::execute() {
     metrics->executionTime.start();
     // Append thread-local tuples
     do {

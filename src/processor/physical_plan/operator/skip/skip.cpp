@@ -13,6 +13,11 @@ Skip::Skip(uint64_t skipNumber, shared_ptr<atomic_uint64_t> counter, uint64_t da
     resultSet = this->prevOperator->getResultSet();
 }
 
+void Skip::reInitialize() {
+    PhysicalOperator::reInitialize();
+    FilteringOperator::reInitialize();
+}
+
 void Skip::getNextTuples() {
     metrics->executionTime.start();
     auto numTupleSkippedBefore = 0u;

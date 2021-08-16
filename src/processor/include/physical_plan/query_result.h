@@ -17,6 +17,8 @@ public:
 
     void appendQueryResult(unique_ptr<QueryResult> queryResult);
 
+    void clear();
+
 public:
     uint64_t numTuples;
     vector<unique_ptr<ResultSet>> resultSetCollection;

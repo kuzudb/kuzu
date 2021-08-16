@@ -14,6 +14,11 @@ Filter::Filter(unique_ptr<ExpressionEvaluator> rootExpr, uint64_t dataChunkToSel
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
 }
 
+void Filter::reInitialize() {
+    PhysicalOperator::reInitialize();
+    FilteringOperator::reInitialize();
+}
+
 void Filter::getNextTuples() {
     metrics->executionTime.start();
     bool hasAtLeastOneSelectedValue;

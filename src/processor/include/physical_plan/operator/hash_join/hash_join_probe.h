@@ -41,6 +41,8 @@ public:
         uint64_t probeSideKeyVectorPos, unique_ptr<PhysicalOperator> buildSidePrevOp,
         unique_ptr<PhysicalOperator> probeSidePrevOp, ExecutionContext& context, uint32_t id);
 
+    void reInitialize() override;
+
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {

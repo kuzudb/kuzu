@@ -70,7 +70,7 @@ public:
         const vector<bool>& dataChunkPosToIsFlat, unique_ptr<PhysicalOperator> prevOperator,
         ExecutionContext& context, uint32_t id);
 
-    void getNextTuples() override;
+    void execute() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         auto cloneOp = make_unique<HashJoinBuild>(keyDataChunkPos, keyVectorPos,

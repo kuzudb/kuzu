@@ -22,6 +22,12 @@ ScanNodeID::ScanNodeID(shared_ptr<MorselsDesc>& morsel, unique_ptr<PhysicalOpera
     resultSet->append(outDataChunk);
 }
 
+void ScanNodeID::reInitialize() {
+    if (prevOperator) {
+        prevOperator->reInitialize();
+    }
+}
+
 void ScanNodeID::getNextTuples() {
     metrics->executionTime.start();
     if (prevOperator) {

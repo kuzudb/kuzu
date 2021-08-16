@@ -2,19 +2,16 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "expression_evaluator",
-    srcs = [
-        "binary_expression_evaluator.cpp",
-        "expression_evaluator.cpp",
-        "unary_expression_evaluator.cpp",
-    ],
-    hdrs = [
-        "include/binary_expression_evaluator.h",
-        "include/expression_evaluator.h",
-        "include/unary_expression_evaluator.h",
-    ],
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
     visibility = ["//visibility:public"],
     deps = [
         "//src/common:data_chunk",
         "//src/common:vector_operations",
+        "//src/processor:result_collector",
     ],
 )

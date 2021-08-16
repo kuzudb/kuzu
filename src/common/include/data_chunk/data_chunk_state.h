@@ -30,6 +30,9 @@ public:
     inline void resetSelectorToValuePosBuffer() {
         selectedPositions = selectedPositionsBuffer.get();
     }
+
+    inline void setSelectedSize(uint64_t size) { selectedSize = size; }
+
     void initOriginalAndSelectedSize(uint64_t size) {
         originalSize = size;
         selectedSize = size;
