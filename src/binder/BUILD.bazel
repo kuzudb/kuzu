@@ -2,49 +2,41 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "binder",
-    srcs = [
-        "expression_binder.cpp",
-        "query_binder.cpp",
-    ],
-    hdrs = [
-        "include/expression_binder.h",
-        "include/query_binder.h",
-    ],
+    srcs = glob([
+        "*_binder.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
     visibility = ["//visibility:public"],
     deps = [
-        "bound_query",
+        "bound_queries",
         "//src/common:csv_reader",
-        "//src/parser",
+        "//src/parser:parsed_queries",
         "//src/storage:catalog",
     ],
 )
 
 cc_library(
-    name = "bound_query",
-    srcs = [
-        "bound_queries/bound_query_part.cpp",
-        "bound_queries/bound_single_query.cpp",
-    ],
-    hdrs = [
-        "include/bound_queries/bound_query_part.h",
-        "include/bound_queries/bound_single_query.h",
-    ],
+    name = "bound_queries",
+    srcs = glob([
+        "bound_queries/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/bound_queries/*.h",
+    ]),
+    # Bound query is exposed to enumerator
     visibility = ["//visibility:public"],
     deps = [
-        "bound_statement",
+        "bound_statements",
     ],
 )
 
 cc_library(
-    name = "bound_statement",
-    hdrs = [
-        "include/bound_statements/bound_load_csv_statement.h",
-        "include/bound_statements/bound_match_statement.h",
-        "include/bound_statements/bound_projection_body.h",
-        "include/bound_statements/bound_reading_statement.h",
-        "include/bound_statements/bound_return_statement.h",
-        "include/bound_statements/bound_with_statement.h",
-    ],
+    name = "bound_statements",
+    hdrs = glob([
+        "include/bound_statements/*.h",
+    ]),
     deps = [
         "query_graph",
         "//src/common:statement_type",
@@ -53,12 +45,12 @@ cc_library(
 
 cc_library(
     name = "query_graph",
-    srcs = [
-        "query_graph/query_graph.cpp",
-    ],
-    hdrs = [
-        "include/query_graph/query_graph.h",
-    ],
+    srcs = glob([
+        "query_graph/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/query_graph/*.h",
+    ]),
     deps = [
         "expression",
     ],
@@ -66,18 +58,13 @@ cc_library(
 
 cc_library(
     name = "expression",
-    srcs = [
-        "expression/expression.cpp",
-        "expression/literal_expression.cpp",
-    ],
-    hdrs = [
-        "include/expression/expression.h",
-        "include/expression/literal_expression.h",
-        "include/expression/node_expression.h",
-        "include/expression/property_expression.h",
-        "include/expression/rel_expression.h",
-        "include/expression/variable_expression.h",
-    ],
+    srcs = glob([
+        "expression/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/expression/*.h",
+    ]),
+    # Expression is exposed to ExpressionMapper
     visibility = ["//visibility:public"],
     deps = [
         "//src/common:expression_type",

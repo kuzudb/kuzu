@@ -2,7 +2,7 @@
 #include "test/test_utility/include/test_helper.h"
 
 #include "src/expression_evaluator/include/binary_expression_evaluator.h"
-#include "src/expression_evaluator/include/exist_subquery_evaluator.h"
+#include "src/expression_evaluator/include/existential_subquery_evaluator.h"
 #include "src/expression_evaluator/include/unary_expression_evaluator.h"
 #include "src/processor/include/physical_plan/operator/filter/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten/flatten.h"
@@ -63,7 +63,8 @@ public:
 
     static unique_ptr<ExpressionEvaluator> getNotExistEvaluator(
         MemoryManager& memoryManager, unique_ptr<ResultCollector> sink) {
-        auto subqueryEvaluator = make_unique<ExistSubqueryEvaluator>(memoryManager, move(sink));
+        auto subqueryEvaluator =
+            make_unique<ExistentialSubqueryEvaluator>(memoryManager, move(sink));
         return make_unique<UnaryExpressionEvaluator>(
             memoryManager, move(subqueryEvaluator), NOT, BOOL, true);
     }
@@ -96,7 +97,7 @@ TEST_F(TinySnbHardCodePlanTest, SubqueryExistListTest) {
         *flatten->getResultSet(), move(vectorsToSelect), graph, *context, operatorId);
     //--- end inner subquery
     auto subqueryEvaluator =
-        make_unique<ExistSubqueryEvaluator>(*memoryManager, move(innerResultCollector));
+        make_unique<ExistentialSubqueryEvaluator>(*memoryManager, move(innerResultCollector));
     auto filter =
         make_unique<Filter>(move(subqueryEvaluator), 0, move(flatten), *context, operatorId++);
     auto resultCollector =
@@ -187,9 +188,9 @@ TEST_F(TinySnbHardCodePlanTest, SubqueryExistColumnORTest) {
         *flatten->getResultSet(), move(rightVectorsToSelect), graph, *context, operatorId, 2);
     //--- end right inner subquery
     auto leftSubqueryEvaluator =
-        make_unique<ExistSubqueryEvaluator>(*memoryManager, move(leftInnerResultCollector));
+        make_unique<ExistentialSubqueryEvaluator>(*memoryManager, move(leftInnerResultCollector));
     auto rightSubqueryEvaluator =
-        make_unique<ExistSubqueryEvaluator>(*memoryManager, move(rightInnerResultCollector));
+        make_unique<ExistentialSubqueryEvaluator>(*memoryManager, move(rightInnerResultCollector));
     auto orEvaluator = make_unique<BinaryExpressionEvaluator>(
         *memoryManager, move(leftSubqueryEvaluator), move(rightSubqueryEvaluator), OR, BOOL, true);
     auto filter = make_unique<Filter>(move(orEvaluator), 0, move(flatten), *context, operatorId++);
@@ -231,14 +232,14 @@ TEST_F(TinySnbHardCodePlanTest, NestedSubqueryTest) {
             move(innerInnerVectorsToSelect), graph, *context, operatorId, 2);
     //------ end inner inner subquery
     auto innerSubqueryEvaluator =
-        make_unique<ExistSubqueryEvaluator>(*memoryManager, move(innerInnerResultCollector));
+        make_unique<ExistentialSubqueryEvaluator>(*memoryManager, move(innerInnerResultCollector));
     auto innerFilter = make_unique<Filter>(
         move(innerSubqueryEvaluator), 1, move(innerFlatten), *context, operatorId++);
     auto innerResultCollector = make_unique<ResultCollector>(
         move(innerFilter), RESULT_COLLECTOR, *context, operatorId++, false);
     //--- end inner subquery
     auto subqueryEvaluator =
-        make_unique<ExistSubqueryEvaluator>(*memoryManager, move(innerResultCollector));
+        make_unique<ExistentialSubqueryEvaluator>(*memoryManager, move(innerResultCollector));
     auto filter =
         make_unique<Filter>(move(subqueryEvaluator), 0, move(flatten), *context, operatorId++);
     auto resultCollector =

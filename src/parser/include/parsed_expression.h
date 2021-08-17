@@ -12,11 +12,16 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace parser {
 
+class SingleQuery;
+
 class ParsedExpression {
 
 public:
     ParsedExpression(ExpressionType type, string text, string rawExpression)
         : type{type}, text{move(text)}, rawExpression{move(rawExpression)} {}
+
+    ParsedExpression(ExpressionType type, unique_ptr<SingleQuery> subquery, string rawExpression)
+        : type{type}, subquery{move(subquery)}, rawExpression{move(rawExpression)} {};
 
     ParsedExpression(ExpressionType type, string text, string rawExpression,
         unique_ptr<ParsedExpression> left, unique_ptr<ParsedExpression> right)
@@ -29,6 +34,8 @@ public:
     ExpressionType type;
     // variableName, propertyName or functionName
     string text;
+    // existential subquery
+    unique_ptr<SingleQuery> subquery;
     string alias;
     string rawExpression;
     vector<unique_ptr<ParsedExpression>> children;

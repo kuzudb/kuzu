@@ -3,6 +3,7 @@
 #include "test/mock/mock_catalog.h"
 
 #include "src/binder/include/bound_statements/bound_match_statement.h"
+#include "src/binder/include/expression/existential_subquery_expression.h"
 #include "src/binder/include/query_binder.h"
 #include "src/parser/include/parser.h"
 
@@ -10,7 +11,8 @@ using ::testing::NiceMock;
 using ::testing::Test;
 
 /**
- * Remove this test once LIST data type is supported.
+ * Remove Load csv related test once LIST data type is supported.
+ * Remove subquery related test once end-to-end subquery test is supported.
  */
 class BinderTest : public Test {
 
@@ -92,4 +94,49 @@ TEST_F(BinderTest, DateNodePropertyBindingTest) {
     ASSERT_EQ(DATE, leftANDExpr->children[1]->dataType);
     ASSERT_EQ(DATE, rightANDExpr->children[0]->dataType);
     ASSERT_EQ(DATE, rightANDExpr->children[1]->dataType);
+}
+
+TEST_F(BinderTest, BasicSubqueryTest) {
+    NiceMock<TinySnbCatalog> catalog;
+    catalog.setUp();
+
+    auto query =
+        "MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(:person) RETURN * } RETURN COUNT(*)";
+    auto boundQuery = getBoundQuery(query, catalog);
+    GF_ASSERT(boundQuery->boundReadingStatements.size() == 1 &&
+              boundQuery->boundReadingStatements[0]->statementType == MATCH_STATEMENT);
+    auto& match = (BoundMatchStatement&)*boundQuery->boundReadingStatements[0];
+    GF_ASSERT(match.whereExpression->expressionType == EXISTENTIAL_SUBQUERY);
+    auto& subquery =
+        *static_pointer_cast<ExistentialSubqueryExpression>(match.whereExpression)->getSubquery();
+    GF_ASSERT(subquery.boundReadingStatements.size() == 1 &&
+              subquery.boundReadingStatements[0]->statementType == MATCH_STATEMENT);
+    auto& innerMatch = (BoundMatchStatement&)*subquery.boundReadingStatements[0];
+    GF_ASSERT(innerMatch.queryGraph->getNumQueryNodes() == 1);
+    GF_ASSERT(innerMatch.queryGraph->getNumQueryRels() == 1);
+}
+
+TEST_F(BinderTest, NestedSubqueryTest) {
+    NiceMock<TinySnbCatalog> catalog;
+    catalog.setUp();
+
+    auto query = "MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE NOT EXISTS "
+                 "{ MATCH (b)-[:workAt]->(c:organisation), (b)-[:knows]->(d:person) RETURN * } "
+                 "RETURN * } OR a.age > 5 RETURN COUNT(*)";
+    auto boundQuery = getBoundQuery(query, catalog);
+    auto& match = (BoundMatchStatement&)*boundQuery->boundReadingStatements[0];
+    GF_ASSERT(match.whereExpression->expressionType == OR);
+    auto leftExpr = match.whereExpression->children[0];
+    GF_ASSERT(leftExpr->expressionType == EXISTENTIAL_SUBQUERY);
+    auto& subquery = *static_pointer_cast<ExistentialSubqueryExpression>(leftExpr)->getSubquery();
+    auto& innerMatch = (BoundMatchStatement&)*subquery.boundReadingStatements[0];
+    GF_ASSERT(innerMatch.whereExpression->children[0]->expressionType == EXISTENTIAL_SUBQUERY);
+    auto& innerSubquery =
+        *static_pointer_cast<ExistentialSubqueryExpression>(innerMatch.whereExpression->children[0])
+             ->getSubquery();
+    GF_ASSERT(innerSubquery.boundReadingStatements.size() == 1 &&
+              innerSubquery.boundReadingStatements[0]->statementType == MATCH_STATEMENT);
+    auto& innerInnerMatch = (BoundMatchStatement&)*innerSubquery.boundReadingStatements[0];
+    GF_ASSERT(innerInnerMatch.queryGraph->getNumQueryNodes() == 2);
+    GF_ASSERT(innerInnerMatch.queryGraph->getNumQueryRels() == 2);
 }

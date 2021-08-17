@@ -245,6 +245,7 @@ oC_Atom
         | oC_ParenthesizedExpression
         | ( COUNT SP? '(' SP? '*' SP? ')' )
         | oC_FunctionInvocation
+        | oC_ExistentialSubquery
         | oC_Variable
         ;
 
@@ -274,6 +275,11 @@ oC_FunctionInvocation
 
 oC_FunctionName
     : oC_SymbolicName ;
+
+oC_ExistentialSubquery
+    :  EXISTS SP? '{' SP? oC_RegularQuery SP? '}' ;
+
+EXISTS : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'I' | 'i' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'S' | 's' ) ;
 
 oC_PropertyLookup
     : '.' SP? ( oC_PropertyKeyName ) ;

@@ -130,6 +130,9 @@ private:
 
     string transformFunctionName(CypherParser::OC_FunctionNameContext& ctx);
 
+    unique_ptr<ParsedExpression> transformExistentialSubquery(
+        CypherParser::OC_ExistentialSubqueryContext& ctx);
+
     string transformPropertyLookup(CypherParser::OC_PropertyLookupContext& ctx);
 
     string transformVariable(CypherParser::OC_VariableContext& ctx);

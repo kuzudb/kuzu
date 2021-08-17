@@ -49,6 +49,47 @@ bool ParserTestUtils::equals(const ParsedExpression& left, const ParsedExpressio
     return true;
 }
 
+bool ParserTestUtils::equals(const SingleQuery& left, const SingleQuery& right) {
+    auto result = left.queryParts.size() == right.queryParts.size() &&
+                  left.readingStatements.size() == right.readingStatements.size() &&
+                  equals(*left.returnStatement, *right.returnStatement);
+    if (!result)
+        return false;
+    for (auto i = 0u; i < left.queryParts.size(); ++i) {
+        if (!equals(*left.queryParts[i], *right.queryParts[i])) {
+            return false;
+        }
+    }
+    for (auto i = 0u; i < left.readingStatements.size(); ++i) {
+        if (!equals(*left.readingStatements[i], *right.readingStatements[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ParserTestUtils::equals(const QueryPart& left, const QueryPart& right) {
+    auto result = left.readingStatements.size() == right.readingStatements.size() &&
+                  equals(*left.withStatement, *right.withStatement);
+    if (!result)
+        return false;
+    for (auto i = 0u; i < left.readingStatements.size(); ++i) {
+        if (!equals(*left.readingStatements[i], *right.readingStatements[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ParserTestUtils::equals(const ReadingStatement& left, const ReadingStatement& right) {
+    auto result = left.statementType == right.statementType;
+    if (!result)
+        return false;
+    return left.statementType == MATCH_STATEMENT ?
+               equals((MatchStatement&)left, (MatchStatement&)right) :
+               equals((LoadCSVStatement&)left, (LoadCSVStatement&)right);
+}
+
 bool ParserTestUtils::equals(const ProjectionBody& left, const ProjectionBody& right) {
     auto result = left.isProjectStar() == right.isProjectStar() &&
                   equals(left.getProjectionExpressions(), right.getProjectionExpressions());

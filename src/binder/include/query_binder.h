@@ -6,10 +6,8 @@
 #include "src/parser/include/queries/single_query.h"
 #include "src/parser/include/statements/load_csv_statement.h"
 #include "src/parser/include/statements/match_statement.h"
-#include "src/storage/include/catalog.h"
 
 using namespace graphflow::parser;
-using namespace graphflow::storage;
 
 namespace graphflow {
 namespace binder {
@@ -17,9 +15,15 @@ namespace binder {
 class QueryBinder {
 
 public:
+    // Create QueryBinder from initial state
     explicit QueryBinder(const Catalog& catalog)
-        : catalog{catalog}, variablesInScope{unordered_map<string, shared_ptr<Expression>>()},
-          lastVariableId{0}, expressionBinder{catalog, variablesInScope} {}
+        : catalog{catalog}, lastVariableId{0}, context{lastVariableId}, expressionBinder{catalog,
+                                                                            this->context} {}
+
+    // Create QueryBinder from existing state. Used in binding subquery where subquery binder should
+    // copy the state of outer query.
+    explicit QueryBinder(const Catalog& catalog, const BinderContext& context)
+        : catalog{catalog}, context{context}, expressionBinder{catalog, this->context} {}
 
     unique_ptr<BoundSingleQuery> bind(const SingleQuery& singleQuery);
 
@@ -82,8 +86,8 @@ private:
 
 private:
     const Catalog& catalog;
-    unordered_map<string, shared_ptr<Expression>> variablesInScope;
     uint32_t lastVariableId;
+    BinderContext context;
     ExpressionBinder expressionBinder;
 };
 

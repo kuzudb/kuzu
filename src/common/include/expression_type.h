@@ -127,7 +127,7 @@ enum ExpressionType : uint8_t {
      */
     DATE_FUNC = 170,
 
-    EXIST_SUBQUERY = 190,
+    EXISTENTIAL_SUBQUERY = 190,
 };
 
 bool isExpressionUnary(ExpressionType type);
