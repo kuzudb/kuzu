@@ -5,15 +5,14 @@ namespace evaluator {
 
 BinaryExpressionEvaluator::BinaryExpressionEvaluator(MemoryManager& memoryManager,
     unique_ptr<ExpressionEvaluator> leftExpr, unique_ptr<ExpressionEvaluator> rightExpr,
-    ExpressionType expressionType, DataType dataType, bool isSelectOperation)
+    ExpressionType expressionType, DataType dataType)
     : ExpressionEvaluator{expressionType, dataType} {
     childrenExpr.push_back(move(leftExpr));
     childrenExpr.push_back(move(rightExpr));
-    if (isSelectOperation) {
+    executeOperation = getBinaryVectorExecuteOperation(expressionType);
+    result = createResultValueVector(memoryManager);
+    if (dataType == BOOL) {
         selectOperation = getBinaryVectorSelectOperation(expressionType);
-    } else {
-        executeOperation = getBinaryVectorExecuteOperation(expressionType);
-        result = createResultValueVector(memoryManager);
     }
 }
 
@@ -45,6 +44,13 @@ shared_ptr<ValueVector> BinaryExpressionEvaluator::createResultValueVector(
         resultVector->state = unFlatVector->state;
     }
     return resultVector;
+}
+
+unique_ptr<ExpressionEvaluator> BinaryExpressionEvaluator::clone(
+    MemoryManager& memoryManager, const ResultSet& resultSet) {
+    return make_unique<BinaryExpressionEvaluator>(memoryManager,
+        childrenExpr[0]->clone(memoryManager, resultSet),
+        childrenExpr[1]->clone(memoryManager, resultSet), expressionType, dataType);
 }
 
 } // namespace evaluator

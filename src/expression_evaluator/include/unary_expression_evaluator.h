@@ -10,13 +10,16 @@ class UnaryExpressionEvaluator : public ExpressionEvaluator {
 
 public:
     UnaryExpressionEvaluator(MemoryManager& memoryManager, unique_ptr<ExpressionEvaluator> child,
-        ExpressionType expressionType, DataType dataType, bool isSelectOperation);
+        ExpressionType expressionType, DataType dataType);
 
     void evaluate() override;
 
     uint64_t select(sel_t* selectedPositions) override;
 
     shared_ptr<ValueVector> createResultValueVector(MemoryManager& memoryManager);
+
+    unique_ptr<ExpressionEvaluator> clone(
+        MemoryManager& memoryManager, const ResultSet& resultSet) override;
 
 protected:
     function<void(ValueVector&, ValueVector&)> executeOperation;

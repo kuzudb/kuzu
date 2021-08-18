@@ -1,7 +1,5 @@
 #include "src/processor/include/physical_plan/operator/projection/projection.h"
 
-#include "src/processor/include/physical_plan/expression_mapper.h"
-
 namespace graphflow {
 namespace processor {
 
@@ -58,9 +56,9 @@ void Projection::getNextTuples() {
 unique_ptr<PhysicalOperator> Projection::clone() {
     auto prevOperatorClone = prevOperator->clone();
     vector<unique_ptr<ExpressionEvaluator>> rootExpressionsCloned;
-    for (auto& expr : expressions) {
-        rootExpressionsCloned.push_back(ExpressionMapper::clone(*context.memoryManager, *expr,
-            *prevOperatorClone->getResultSet(), false /*isSelectOperation*/));
+    for (auto& expression : expressions) {
+        rootExpressionsCloned.push_back(
+            expression->clone(*context.memoryManager, *prevOperatorClone->getResultSet()));
     }
     return make_unique<Projection>(move(rootExpressionsCloned), expressionPosToDataChunkPos,
         discardedDataChunkPos, move(prevOperatorClone), context, id);

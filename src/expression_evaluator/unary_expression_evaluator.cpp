@@ -4,17 +4,13 @@ namespace graphflow {
 namespace evaluator {
 
 UnaryExpressionEvaluator::UnaryExpressionEvaluator(MemoryManager& memoryManager,
-    unique_ptr<ExpressionEvaluator> child, ExpressionType expressionType, DataType dataType,
-    bool isSelectOperation)
+    unique_ptr<ExpressionEvaluator> child, ExpressionType expressionType, DataType dataType)
     : ExpressionEvaluator{expressionType, dataType} {
     childrenExpr.push_back(move(child));
-    this->expressionType = expressionType;
-    this->dataType = dataType;
-    if (isSelectOperation) {
+    executeOperation = getUnaryVectorExecuteOperation(expressionType);
+    result = createResultValueVector(memoryManager);
+    if (dataType == BOOL) {
         selectOperation = getUnaryVectorSelectOperation(expressionType);
-    } else {
-        executeOperation = getUnaryVectorExecuteOperation(expressionType);
-        result = createResultValueVector(memoryManager);
     }
 }
 
@@ -50,6 +46,12 @@ shared_ptr<ValueVector> UnaryExpressionEvaluator::createResultValueVector(
     }
     resultVector->setNullMask(childrenExpr[0]->result->getNullMask());
     return resultVector;
+}
+
+unique_ptr<ExpressionEvaluator> UnaryExpressionEvaluator::clone(
+    MemoryManager& memoryManager, const ResultSet& resultSet) {
+    return make_unique<UnaryExpressionEvaluator>(
+        memoryManager, childrenExpr[0]->clone(memoryManager, resultSet), expressionType, dataType);
 }
 
 } // namespace evaluator

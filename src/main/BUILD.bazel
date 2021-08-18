@@ -6,14 +6,15 @@ cc_library(
         "plan_printer.cpp",
     ],
     hdrs = [
+        "include/plan_printer.h",
         "include/session_context.h",
-        "include/plan_printer.h"
     ],
     deps = [
-        "//src/transaction:transaction",
         "//src/common:profiler",
         "//src/planner:logical_plan",
-        "//src/processor:physical_plan"
+        "//src/processor:operator_impls",
+        "//src/processor:physical_plan",
+        "//src/transaction",
     ],
 )
 
@@ -27,18 +28,19 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "session_context",
         "//src/binder",
         "//src/parser",
         "//src/planner:enumerator",
         "//src/processor",
-        "session_context",
+        "//src/processor:mapper",
     ],
 )
 
 cc_library(
     name = "session",
     srcs = [
-        "session.cpp"
+        "session.cpp",
     ],
     hdrs = [
         "include/session.h",

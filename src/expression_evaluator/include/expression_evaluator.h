@@ -7,7 +7,9 @@
 #include "src/common/include/expression_type.h"
 #include "src/common/include/value.h"
 #include "src/common/include/vector/value_vector.h"
+#include "src/processor/include/physical_plan/operator/result/result_set.h"
 
+using namespace graphflow::processor;
 using namespace graphflow::common;
 
 namespace graphflow {
@@ -27,16 +29,15 @@ public:
         ExpressionType type);
 
     // Creates a leaf literal as value vector expression_evaluator expression.
-    ExpressionEvaluator(MemoryManager& memoryManager, const shared_ptr<ValueVector>& result,
-        ExpressionType expressionType)
+    ExpressionEvaluator(const shared_ptr<ValueVector>& result, ExpressionType expressionType)
         : result{result}, dataChunkPos{UINT64_MAX}, valueVectorPos{UINT64_MAX},
-          expressionType{expressionType}, dataType(result->dataType) {}
+          expressionType{expressionType}, dataType{result->dataType} {}
 
     // Creates a leaf variable value vector expression_evaluator expression.
-    ExpressionEvaluator(MemoryManager& memoryManager, const shared_ptr<ValueVector>& result,
-        uint64_t dataChunkPos, uint64_t valueVectorPos, ExpressionType expressionType)
+    ExpressionEvaluator(const shared_ptr<ValueVector>& result, uint64_t dataChunkPos,
+        uint64_t valueVectorPos, ExpressionType expressionType)
         : result{result}, dataChunkPos{dataChunkPos}, valueVectorPos{valueVectorPos},
-          expressionType{expressionType}, dataType(result->dataType) {}
+          expressionType{expressionType}, dataType{result->dataType} {}
 
     virtual ~ExpressionEvaluator() = default;
 
@@ -48,17 +49,14 @@ public:
 
     bool isResultFlat();
 
-    inline uint32_t getNumChildrenExpr() const { return childrenExpr.size(); }
-
-    inline const ExpressionEvaluator& getChildExpr(uint64_t pos) const {
-        return *childrenExpr[pos];
-    }
+    virtual unique_ptr<ExpressionEvaluator> clone(
+        MemoryManager& memoryManager, const ResultSet& resultSet);
 
 public:
     shared_ptr<ValueVector> result;
     uint64_t dataChunkPos;
     uint64_t valueVectorPos;
-    // expression type is needed to clone unary and binary expressions.
+    // Fields below are needed to clone expressions.
     ExpressionType expressionType;
     DataType dataType;
 
