@@ -31,10 +31,10 @@ private:
     void enumerateLoadCSVStatement(const BoundLoadCSVStatement& loadCSVStatement);
     void updateQueryGraph(QueryGraph& queryGraph);
     void enumerateSubplans(const vector<shared_ptr<Expression>>& whereExpressions);
-    void enumerateSingleQueryNode(const vector<shared_ptr<Expression>>& whereExpressions);
+    void enumerateSingleNode(const vector<shared_ptr<Expression>>& whereExpressions);
     void enumerateNextLevel(const vector<shared_ptr<Expression>>& whereExpressions);
     void enumerateHashJoin(const vector<shared_ptr<Expression>>& whereExpressions);
-    void enumerateExtend(const vector<shared_ptr<Expression>>& whereExpressions);
+    void enumerateSingleRel(const vector<shared_ptr<Expression>>& whereExpressions);
 
     void appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, LogicalPlan& plan);
     void appendScan(uint32_t queryNodePos, LogicalPlan& plan);
@@ -47,6 +47,7 @@ private:
     void appendLogicalHashJoin(
         uint32_t joinNodePos, LogicalPlan& buildPlan, LogicalPlan& probePlan);
     void appendFilter(shared_ptr<Expression> expression, LogicalPlan& plan);
+    bool appendIntersect(const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan);
     void appendProjection(const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan,
         bool isRewritingAllProperties);
     void appendNecessaryScans(const Expression& expression, LogicalPlan& plan);

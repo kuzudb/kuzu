@@ -11,3 +11,7 @@
 -NAME SquareFilterTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[e2:knows]->(d) WHERE e1.date=e2.date AND e1.date=date('2000-01-01') RETURN COUNT(*)
 ---- 6
+
+-NAME SquareFilterTest2
+-QUERY MATCH (a:person)<-[:knows]-(b:person)-[:knows]->(c:person)-[:studyAt]->(d:organisation), (a)-[:studyAt]->(d) WHERE d.orgCode=934 RETURN COUNT(*)
+---- 3

@@ -13,6 +13,7 @@ namespace processor {
 enum PhysicalOperatorType : uint8_t {
     SCAN,
     FILTER,
+    INTERSECT,
     FLATTEN,
     READ_LIST,
     SCAN_ATTRIBUTE,
@@ -30,7 +31,7 @@ enum PhysicalOperatorType : uint8_t {
     SKIP
 };
 
-const string PhysicalOperatorTypeNames[] = {"SCAN", "FILTER", "FLATTEN", "READ_LIST",
+const string PhysicalOperatorTypeNames[] = {"SCAN", "FILTER", "INTERSECT", "FLATTEN", "READ_LIST",
     "SCAN_ATTRIBUTE", "PROJECTION", "FRONTIER_EXTEND", "HASH_JOIN_BUILD", "HASH_JOIN_PROBE",
     "RESULT_COLLECTOR", "LOAD_CSV", "CREATE_NODE", "UPDATE_NODE", "DELETE_NODE",
     "MULTIPLICITY_REDUCER", "LIMIT", "SKIP"};
