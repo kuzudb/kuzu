@@ -50,6 +50,7 @@ cc_test(
         "//dataset",
     ],
     deps = [
+        "//src/expression_evaluator:evaluator_impls",
         "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",

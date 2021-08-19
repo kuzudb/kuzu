@@ -2,64 +2,54 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "enumerator",
-    srcs = [
-        "enumerator.cpp",
-        "subplans_table.cpp",
-    ],
-    hdrs = [
-        "include/enumerator.h",
-        "include/subplans_table.h",
-    ],
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
     visibility = ["//visibility:public"],
     deps = [
+        "logical_operator_impls",
         "logical_plan",
         "//src/binder:bound_queries",
+        "//src/binder:subquery_expression_impl",
         "//src/storage:graph",
     ],
 )
 
 cc_library(
     name = "logical_plan",
-    srcs = [
-        "logical_plan/logical_plan.cpp",
-    ],
-    hdrs = [
-        "include/logical_plan/logical_plan.h",
-        "include/logical_plan/operator/crud/logical_crud_node.h",
-        "include/logical_plan/operator/extend/logical_extend.h",
-        "include/logical_plan/operator/filter/logical_filter.h",
-        "include/logical_plan/operator/flatten/logical_flatten.h",
-        "include/logical_plan/operator/hash_join/logical_hash_join.h",
-        "include/logical_plan/operator/intersect/logical_intersect.h",
-        "include/logical_plan/operator/limit/logical_limit.h",
-        "include/logical_plan/operator/load_csv/logical_load_csv.h",
-        "include/logical_plan/operator/logical_operator.h",
-        "include/logical_plan/operator/multiplicity_reducer/logical_multiplcity_reducer.h",
-        "include/logical_plan/operator/projection/logical_projection.h",
-        "include/logical_plan/operator/scan_node_id/logical_scan_node_id.h",
-        "include/logical_plan/operator/scan_property/logical_scan_node_property.h",
-        "include/logical_plan/operator/scan_property/logical_scan_rel_property.h",
-        "include/logical_plan/operator/skip/logical_skip.h",
-    ],
+    srcs = glob([
+        "logical_plan/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/logical_plan/*.h",
+    ]),
     visibility = ["//visibility:public"],
     deps = [
-        "schema",
-        "//src/binder:expression",
+        "base_logical_operator",
     ],
 )
 
 cc_library(
-    name = "schema",
-    srcs = [
-        "logical_plan/schema.cpp",
-    ],
+    name = "base_logical_operator",
     hdrs = [
-        "include/logical_plan/schema.h",
-    ],
-    visibility = [
-        "//visibility:public",
+        "include/logical_plan/operator/logical_operator.h",
     ],
     deps = [
-        "//src/common:utils",
+        "//src/common:types",
+    ],
+)
+
+cc_library(
+    name = "logical_operator_impls",
+    hdrs = glob([
+        "include/logical_plan/operator/**/logical_*.h",
+    ]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "base_logical_operator",
+        "//src/binder:base_expression",
     ],
 )

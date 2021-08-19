@@ -1,11 +1,11 @@
 #pragma once
 
+#include "src/binder/include/bound_queries/bound_single_query.h"
 #include "src/binder/include/expression/expression.h"
+#include "src/planner/include/logical_plan/logical_plan.h"
 
 namespace graphflow {
 namespace binder {
-
-class BoundSingleQuery;
 
 class ExistentialSubqueryExpression : public Expression {
 

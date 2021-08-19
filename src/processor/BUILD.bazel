@@ -12,9 +12,58 @@ cc_library(
 )
 
 cc_library(
-    name = "operators",
+    name = "mapper",
     srcs = [
         "physical_plan/expression_mapper.cpp",
+        "physical_plan/operator/physical_operator_info.cpp",
+        "physical_plan/plan_mapper.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/expression_mapper.h",
+        "include/physical_plan/operator/physical_operator_info.h",
+        "include/physical_plan/plan_mapper.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "operator_impls",
+        "physical_plan",
+        "//src/binder:subquery_expression_impl",
+        "//src/expression_evaluator:evaluator_impls",
+        "//src/planner:logical_operator_impls",
+        "//src/planner:logical_plan",
+        "//src/storage:graph",
+    ],
+)
+
+cc_library(
+    name = "physical_plan",
+    hdrs = [
+        "include/physical_plan/physical_plan.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "base_operator",
+    ],
+)
+
+cc_library(
+    name = "base_operator",
+    srcs = [
+        "physical_plan/operator/physical_operator.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/operator/physical_operator.h",
+    ],
+    deps = [
+        "execution_context",
+        "result_set",
+    ],
+)
+
+# TODO: compile sink impls separately so that evaluator_impls & processor only depends on sink impls
+cc_library(
+    name = "operator_impls",
+    srcs = [
         "physical_plan/operator/crud/create_node.cpp",
         "physical_plan/operator/crud/crud.cpp",
         "physical_plan/operator/crud/delete_node.cpp",
@@ -27,8 +76,6 @@ cc_library(
         "physical_plan/operator/limit/limit.cpp",
         "physical_plan/operator/load_csv/load_csv.cpp",
         "physical_plan/operator/multiplicity_reducer/multiplicity_reducer.cpp",
-        "physical_plan/operator/physical_operator.cpp",
-        "physical_plan/operator/physical_operator_info.cpp",
         "physical_plan/operator/projection/projection.cpp",
         "physical_plan/operator/read_list/adj_list_extend.cpp",
         "physical_plan/operator/read_list/frontier/frontier_bag.cpp",
@@ -42,11 +89,12 @@ cc_library(
         "physical_plan/operator/scan_attribute/scan_structured_property.cpp",
         "physical_plan/operator/scan_attribute/scan_unstructured_property.cpp",
         "physical_plan/operator/scan_node_id/scan_node_id.cpp",
+        "physical_plan/operator/scan_node_id/select_scan.cpp",
+        "physical_plan/operator/sink/result_collector.cpp",
         "physical_plan/operator/skip/skip.cpp",
         "physical_plan/query_result.cpp",
     ],
     hdrs = [
-        "include/physical_plan/expression_mapper.h",
         "include/physical_plan/operator/crud/create_node.h",
         "include/physical_plan/operator/crud/crud.h",
         "include/physical_plan/operator/crud/crud_node.h",
@@ -61,8 +109,6 @@ cc_library(
         "include/physical_plan/operator/limit/limit.h",
         "include/physical_plan/operator/load_csv/load_csv.h",
         "include/physical_plan/operator/multiplicity_reducer/multiplicity_reducer.h",
-        "include/physical_plan/operator/physical_operator.h",
-        "include/physical_plan/operator/physical_operator_info.h",
         "include/physical_plan/operator/projection/projection.h",
         "include/physical_plan/operator/read_list/adj_list_extend.h",
         "include/physical_plan/operator/read_list/frontier/frontier.h",
@@ -78,6 +124,7 @@ cc_library(
         "include/physical_plan/operator/scan_attribute/scan_unstructured_property.h",
         "include/physical_plan/operator/scan_node_id/scan_node_id.h",
         "include/physical_plan/operator/scan_node_id/select_scan.h",
+        "include/physical_plan/operator/sink/result_collector.h",
         "include/physical_plan/operator/sink/sink.h",
         "include/physical_plan/operator/skip/skip.h",
         "include/physical_plan/query_result.h",
@@ -85,36 +132,9 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "execution_context",
-        "result_set",
-        "//src/binder:expression",
+        "base_operator",
         "//src/common:csv_reader",
-        "//src/common:memory_manager",
-        "//src/expression_evaluator",
-        "//src/planner:schema",
-        "//src/storage:graph",
-        "//src/transaction",
-    ],
-)
-
-cc_library(
-    name = "result_collector",
-    srcs = [
-        "physical_plan/operator/scan_node_id/select_scan.cpp",
-        "physical_plan/operator/sink/result_collector.cpp",
-        "physical_plan/query_result.cpp",
-    ],
-    hdrs = [
-        "include/physical_plan/operator/physical_operator.h",
-        "include/physical_plan/operator/scan_node_id/select_scan.h",
-        "include/physical_plan/operator/sink/result_collector.h",
-        "include/physical_plan/operator/sink/sink.h",
-        "include/physical_plan/query_result.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "execution_context",
-        "result_set",
+        "//src/expression_evaluator:base_evaluator",
     ],
 )
 
@@ -137,23 +157,6 @@ cc_library(
 )
 
 cc_library(
-    name = "physical_plan",
-    srcs = [
-        "physical_plan/plan_mapper.cpp",
-    ],
-    hdrs = [
-        "include/physical_plan/physical_plan.h",
-        "include/physical_plan/plan_mapper.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "operators",
-        "result_collector",
-        "//src/planner:logical_plan",
-    ],
-)
-
-cc_library(
     name = "processor",
     srcs = [
         "processor.cpp",
@@ -167,6 +170,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "operator_impls",
         "physical_plan",
     ],
 )

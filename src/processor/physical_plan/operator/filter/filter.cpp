@@ -1,7 +1,5 @@
 #include "src/processor/include/physical_plan/operator/filter/filter.h"
 
-#include "src/processor/include/physical_plan/expression_mapper.h"
-
 namespace graphflow {
 namespace processor {
 
@@ -47,10 +45,9 @@ void Filter::getNextTuples() {
 
 unique_ptr<PhysicalOperator> Filter::clone() {
     auto prevOperatorClone = prevOperator->clone();
-    auto rootExprClone = ExpressionMapper::clone(*context.memoryManager, *rootExpr,
-        *prevOperatorClone->getResultSet(), true /* isSelectOperation */);
     return make_unique<Filter>(
-        move(rootExprClone), dataChunkToSelectPos, move(prevOperatorClone), context, id);
+        rootExpr->clone(*context.memoryManager, *prevOperatorClone->getResultSet()),
+        dataChunkToSelectPos, move(prevOperatorClone), context, id);
 }
 
 } // namespace processor

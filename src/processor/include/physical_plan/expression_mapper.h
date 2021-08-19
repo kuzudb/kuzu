@@ -16,15 +16,12 @@ class ExpressionMapper {
 public:
     static unique_ptr<ExpressionEvaluator> mapToPhysical(MemoryManager& memoryManager,
         const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
-        ResultSet& resultSet, bool isSelectOperation);
-
-    static unique_ptr<ExpressionEvaluator> clone(MemoryManager& memoryManager,
-        const ExpressionEvaluator& expression, ResultSet& resultSet, bool isSelectOperation);
+        ResultSet& resultSet);
 
 private:
     static unique_ptr<ExpressionEvaluator> mapChildExpressionAndCastToUnstructuredIfNecessary(
         MemoryManager& memoryManager, const Expression& expression, bool castToUnstructured,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet, bool isSelectOperation);
+        PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet);
 };
 
 } // namespace processor

@@ -166,5 +166,18 @@ bool ExpressionEvaluator::isResultFlat() {
     return true;
 }
 
+unique_ptr<ExpressionEvaluator> ExpressionEvaluator::clone(
+    MemoryManager& memoryManager, const ResultSet& resultSet) {
+    if (isExpressionLiteral(expressionType)) {
+        return make_unique<ExpressionEvaluator>(result, expressionType);
+    } else {
+        // property expression evaluator clone
+        assert(childrenExpr.empty());
+        return make_unique<ExpressionEvaluator>(
+            resultSet.dataChunks[dataChunkPos]->getValueVector(valueVectorPos), dataChunkPos,
+            valueVectorPos, expressionType);
+    }
+}
+
 } // namespace evaluator
 } // namespace graphflow

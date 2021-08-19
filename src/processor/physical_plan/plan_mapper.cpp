@@ -157,8 +157,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     auto& logicalFilter = (const LogicalFilter&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     auto dataChunkToSelectPos = logicalFilter.groupPosToSelect;
-    auto physicalRootExpr = ExpressionMapper::mapToPhysical(*context.memoryManager,
-        *logicalFilter.expression, info, *prevOperator->getResultSet(), true /*isSelectOperation*/);
+    auto physicalRootExpr = ExpressionMapper::mapToPhysical(
+        *context.memoryManager, *logicalFilter.expression, info, *prevOperator->getResultSet());
     return make_unique<Filter>(move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator),
         context, physicalOperatorID++);
 }
@@ -184,8 +184,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
         mapLogicalOperatorToPhysical(logicalOperator->prevOperator, oldInfo, context);
     vector<unique_ptr<ExpressionEvaluator>> expressionEvaluators;
     for (auto& expression : logicalProjection.expressionsToProject) {
-        expressionEvaluators.push_back(ExpressionMapper::mapToPhysical(*context.memoryManager,
-            *expression, oldInfo, *prevOperator->getResultSet(), false /*isSelectOperation*/));
+        expressionEvaluators.push_back(ExpressionMapper::mapToPhysical(
+            *context.memoryManager, *expression, oldInfo, *prevOperator->getResultSet()));
     }
     // TODO: fix uint32 and uint64 mixed usage
     vector<uint64_t> exprResultInDataChunkPos;

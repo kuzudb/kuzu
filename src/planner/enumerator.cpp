@@ -1,5 +1,6 @@
 #include "src/planner/include/enumerator.h"
 
+#include "src/binder/include/expression/existential_subquery_expression.h"
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"

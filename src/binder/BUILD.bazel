@@ -11,6 +11,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "bound_queries",
+        "subquery_expression_impl",
         "//src/common:csv_reader",
         "//src/parser:parsed_queries",
         "//src/storage:catalog",
@@ -52,22 +53,51 @@ cc_library(
         "include/query_graph/*.h",
     ]),
     deps = [
-        "expression",
+        "expression_impls",
     ],
 )
 
 cc_library(
-    name = "expression",
-    srcs = glob([
-        "expression/*.cpp",
-    ]),
-    hdrs = glob([
-        "include/expression/*.h",
-    ]),
-    # Expression is exposed to ExpressionMapper
+    name = "base_expression",
+    srcs = [
+        "expression/expression.cpp",
+    ],
+    hdrs = [
+        "include/expression/expression.h",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "//src/common:expression_type",
         "//src/common:types",
+    ],
+)
+
+cc_library(
+    name = "expression_impls",
+    srcs = [
+        "expression/literal_expression.cpp",
+    ],
+    hdrs = [
+        "include/expression/literal_expression.h",
+        "include/expression/node_expression.h",
+        "include/expression/property_expression.h",
+        "include/expression/rel_expression.h",
+        "include/expression/variable_expression.h",
+    ],
+    deps = [
+        "base_expression",
+    ],
+)
+
+cc_library(
+    name = "subquery_expression_impl",
+    hdrs = [
+        "include/expression/existential_subquery_expression.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "base_expression",
+        "bound_queries",
+        "//src/planner:logical_plan",
     ],
 )

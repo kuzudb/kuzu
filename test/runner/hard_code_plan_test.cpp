@@ -66,7 +66,7 @@ public:
         auto subqueryEvaluator =
             make_unique<ExistentialSubqueryEvaluator>(memoryManager, move(sink));
         return make_unique<UnaryExpressionEvaluator>(
-            memoryManager, move(subqueryEvaluator), NOT, BOOL, true);
+            memoryManager, move(subqueryEvaluator), NOT, BOOL);
     }
 
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
@@ -192,7 +192,7 @@ TEST_F(TinySnbHardCodePlanTest, SubqueryExistColumnORTest) {
     auto rightSubqueryEvaluator =
         make_unique<ExistentialSubqueryEvaluator>(*memoryManager, move(rightInnerResultCollector));
     auto orEvaluator = make_unique<BinaryExpressionEvaluator>(
-        *memoryManager, move(leftSubqueryEvaluator), move(rightSubqueryEvaluator), OR, BOOL, true);
+        *memoryManager, move(leftSubqueryEvaluator), move(rightSubqueryEvaluator), OR, BOOL);
     auto filter = make_unique<Filter>(move(orEvaluator), 0, move(flatten), *context, operatorId++);
     auto resultCollector =
         make_unique<ResultCollector>(move(filter), RESULT_COLLECTOR, *context, operatorId++, false);
