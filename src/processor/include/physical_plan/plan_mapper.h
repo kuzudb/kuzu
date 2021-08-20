@@ -1,10 +1,11 @@
 #pragma once
 
 #include "src/planner/include/logical_plan/logical_plan.h"
-#include "src/processor/include/physical_plan/operator/physical_operator_info.h"
+#include "src/processor/include/physical_plan/expression_mapper.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
 #include "src/storage/include/graph.h"
 
+using namespace graphflow::storage;
 using namespace graphflow::planner;
 
 namespace graphflow {
@@ -13,10 +14,18 @@ namespace processor {
 class PlanMapper {
 
 public:
-    explicit PlanMapper(const Graph& graph) : graph{graph}, physicalOperatorID{0u} {};
+    // Create plan mapper with default mapper context.
+    explicit PlanMapper(const Graph& graph)
+        : graph{graph}, outerQueryResultSet{nullptr}, physicalOperatorID{0},
+          physicalIDToLogicalOperatorMap{}, expressionMapper{this} {}
 
     unique_ptr<PhysicalPlan> mapToPhysical(
         unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext);
+
+    // Returns currentOuterQueryResultSet. Whoever calls enterSubquery is responsible to save the
+    // return resultSet and pass it back when calling exitSubquery()
+    ResultSet* enterSubquery(ResultSet* newOuterQueryResultSet);
+    void exitSubquery(ResultSet* prevOuterQueryResultSet);
 
 private:
     unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
@@ -24,6 +33,8 @@ private:
         ExecutionContext& executionContext);
 
     unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalSelectScanToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
@@ -52,10 +63,14 @@ private:
 
 public:
     const Graph& graph;
+
+    ResultSet* outerQueryResultSet;
     uint32_t physicalOperatorID;
     // used for EXPLAIN & PROFILE which require print physical operator and logical information.
     // e.g. SCAN_NODE_ID (a), SCAN_NODE_ID is physical operator name and "a" is logical information.
     unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalIDToLogicalOperatorMap;
+
+    ExpressionMapper expressionMapper;
 };
 
 } // namespace processor

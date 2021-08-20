@@ -12,50 +12,37 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-static unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToStructuredPhysical(
-    MemoryManager& memoryManager, const Expression& expression);
-
-static unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToUnstructuredPhysical(
-    MemoryManager& memoryManager, const Expression& expression);
-
-static unique_ptr<ExpressionEvaluator> mapLogicalLeafExpressionToPhysical(
-    MemoryManager& memoryManager, const Expression& expression,
-    PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet);
-
-unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(MemoryManager& memoryManager,
-    const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
-    ResultSet& resultSet) {
+unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(const Expression& expression,
+    PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet* resultSet, ExecutionContext& context) {
     auto expressionType = expression.expressionType;
-    if (isExpressionLiteral(expressionType)) {
-        return mapLogicalLiteralExpressionToStructuredPhysical(memoryManager, expression);
-    }
     unique_ptr<ExpressionEvaluator> retVal;
-    if (PROPERTY == expressionType || CSV_LINE_EXTRACT == expressionType) {
+    if (isExpressionLiteral(expressionType)) {
+        retVal = mapLogicalLiteralExpressionToStructuredPhysical(expression, context);
+    } else if (PROPERTY == expressionType || CSV_LINE_EXTRACT == expressionType) {
         /**
          * Both CSV_LINE_EXTRACT and PropertyExpression are mapped to the same physical expression
          * evaluator, because both of them only grab data from a value vector.
          */
-        retVal = mapLogicalLeafExpressionToPhysical(
-            memoryManager, expression, physicalOperatorInfo, resultSet);
+        retVal = mapLogicalLeafExpressionToPhysical(expression, physicalOperatorInfo, resultSet);
+    } else if (EXISTENTIAL_SUBQUERY == expressionType) {
+        retVal = mapLogicalExistentialSubqueryExpressionToPhysical(expression, resultSet, context);
     } else if (ALIAS == expressionType) {
         /**
          * If an alias expression has been matched before, it should be treated as a leaf
          * expression. Otherwise map the child of alias expression.
          */
         if (physicalOperatorInfo.containVariable(expression.getInternalName())) {
-            retVal = mapLogicalLeafExpressionToPhysical(
-                memoryManager, expression, physicalOperatorInfo, resultSet);
+            retVal =
+                mapLogicalLeafExpressionToPhysical(expression, physicalOperatorInfo, resultSet);
         } else {
-            retVal = mapToPhysical(
-                memoryManager, *expression.children[0], physicalOperatorInfo, resultSet);
+            retVal =
+                mapToPhysical(*expression.children[0], physicalOperatorInfo, resultSet, context);
         }
-    } else if (EXISTENTIAL_SUBQUERY == expressionType) {
-        throw invalid_argument("Map ExistentialSubqueryExpression is not yet implemented.");
     } else if (isExpressionUnary(expressionType)) {
         auto child =
-            mapToPhysical(memoryManager, *expression.children[0], physicalOperatorInfo, resultSet);
+            mapToPhysical(*expression.children[0], physicalOperatorInfo, resultSet, context);
         retVal = make_unique<UnaryExpressionEvaluator>(
-            memoryManager, move(child), expressionType, expression.dataType);
+            *context.memoryManager, move(child), expressionType, expression.dataType);
     } else {
         assert(isExpressionBinary(expressionType));
         // If one of the children expressions has UNSTRUCTURED data type, i.e. the type of the data
@@ -70,39 +57,40 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(MemoryManager& m
         auto castLToUnstructured =
             logicalRExpr.dataType == UNSTRUCTURED && logicalLExpr.dataType != UNSTRUCTURED;
         auto lExpr = mapChildExpressionAndCastToUnstructuredIfNecessary(
-            memoryManager, logicalLExpr, castLToUnstructured, physicalOperatorInfo, resultSet);
+            logicalLExpr, castLToUnstructured, physicalOperatorInfo, resultSet, context);
         auto castRToUnstructured =
             logicalLExpr.dataType == UNSTRUCTURED && logicalRExpr.dataType != UNSTRUCTURED;
         auto rExpr = mapChildExpressionAndCastToUnstructuredIfNecessary(
-            memoryManager, logicalRExpr, castRToUnstructured, physicalOperatorInfo, resultSet);
+            logicalRExpr, castRToUnstructured, physicalOperatorInfo, resultSet, context);
         retVal = make_unique<BinaryExpressionEvaluator>(
-            memoryManager, move(lExpr), move(rExpr), expressionType, expression.dataType);
+            *context.memoryManager, move(lExpr), move(rExpr), expressionType, expression.dataType);
     }
     return retVal;
 }
 
 unique_ptr<ExpressionEvaluator>
-ExpressionMapper::mapChildExpressionAndCastToUnstructuredIfNecessary(MemoryManager& memoryManager,
-    const Expression& expression, bool castToUnstructured,
-    PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet& resultSet) {
+ExpressionMapper::mapChildExpressionAndCastToUnstructuredIfNecessary(const Expression& expression,
+    bool castToUnstructured, PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet* resultSet,
+    ExecutionContext& context) {
     unique_ptr<ExpressionEvaluator> retVal;
     if (castToUnstructured && isExpressionLiteral(expression.expressionType)) {
-        retVal = mapLogicalLiteralExpressionToUnstructuredPhysical(memoryManager, expression);
+        retVal = mapLogicalLiteralExpressionToUnstructuredPhysical(expression, context);
     } else {
-        retVal = mapToPhysical(memoryManager, expression, physicalOperatorInfo, resultSet);
+        retVal = mapToPhysical(expression, physicalOperatorInfo, resultSet, context);
         if (castToUnstructured) {
             retVal = make_unique<UnaryExpressionEvaluator>(
-                memoryManager, move(retVal), CAST_TO_UNSTRUCTURED_VECTOR, UNSTRUCTURED);
+                *context.memoryManager, move(retVal), CAST_TO_UNSTRUCTURED_VECTOR, UNSTRUCTURED);
         }
     }
     return retVal;
 }
 
-static unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToUnstructuredPhysical(
-    MemoryManager& memoryManager, const Expression& expression) {
+unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToUnstructuredPhysical(
+    const Expression& expression, ExecutionContext& context) {
     auto& literalExpression = (LiteralExpression&)expression;
     // We create an owner dataChunk which is flat and of size 1 to contain the literal.
-    auto vector = make_shared<ValueVector>(&memoryManager, UNSTRUCTURED, true /* isSingleValue */);
+    auto vector =
+        make_shared<ValueVector>(context.memoryManager, UNSTRUCTURED, true /* isSingleValue */);
     vector->state = DataChunkState::getSingleValueDataChunkState();
     auto& val = ((Value*)vector->values)[0];
     val.dataType = literalExpression.literal.dataType;
@@ -130,12 +118,12 @@ static unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToUnstructured
     return make_unique<ExpressionEvaluator>(vector, expression.expressionType);
 }
 
-unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToStructuredPhysical(
-    MemoryManager& memoryManager, const Expression& expression) {
+unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToStructuredPhysical(
+    const Expression& expression, ExecutionContext& context) {
     auto& literalExpression = (LiteralExpression&)expression;
     // We create an owner dataChunk which is flat and of size 1 to contain the literal.
     auto vector = make_shared<ValueVector>(
-        &memoryManager, literalExpression.dataType, true /* isSingleValue */);
+        context.memoryManager, literalExpression.dataType, true /* isSingleValue */);
     vector->state = DataChunkState::getSingleValueDataChunkState();
     switch (expression.dataType) {
     case INT64: {
@@ -161,16 +149,25 @@ unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToStructuredPhysical(
     return make_unique<ExpressionEvaluator>(vector, expression.expressionType);
 }
 
-unique_ptr<ExpressionEvaluator> mapLogicalLeafExpressionToPhysical(MemoryManager& memoryManager,
+unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLeafExpressionToPhysical(
     const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
-    ResultSet& resultSet) {
-    auto variableName = expression.getInternalName();
-    auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(variableName);
-    auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(variableName);
-    auto dataChunk = resultSet.dataChunks[dataChunkPos];
-    auto valueVector = dataChunk->getValueVector(valueVectorPos);
+    ResultSet* resultSet) {
+    auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(expression.getInternalName());
+    auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(expression.getInternalName());
     return make_unique<ExpressionEvaluator>(
-        valueVector, dataChunkPos, valueVectorPos, expression.expressionType);
+        resultSet->dataChunks[dataChunkPos]->getValueVector(valueVectorPos), dataChunkPos,
+        valueVectorPos, expression.expressionType);
+}
+
+unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalExistentialSubqueryExpressionToPhysical(
+    const Expression& expression, ResultSet* resultSet, ExecutionContext& context) {
+    auto& subqueryExpression = (ExistentialSubqueryExpression&)expression;
+    auto prevOuterQueryResultSet = planMapper->enterSubquery(resultSet);
+    auto subPlan = planMapper->mapToPhysical(subqueryExpression.moveSubPlan(), context);
+    planMapper->exitSubquery(prevOuterQueryResultSet);
+    return make_unique<ExistentialSubqueryEvaluator>(*context.memoryManager,
+        unique_ptr<ResultCollector>{
+            dynamic_cast<ResultCollector*>(subPlan->lastOperator.release())});
 }
 
 } // namespace processor

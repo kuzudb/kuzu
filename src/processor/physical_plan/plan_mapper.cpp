@@ -14,6 +14,7 @@
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
+#include "src/planner/include/logical_plan/operator/select_scan/logical_select_scan.h"
 #include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/filter/filter.h"
@@ -32,6 +33,7 @@
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_structured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_unstructured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id/scan_node_id.h"
+#include "src/processor/include/physical_plan/operator/select_scan/select_scan.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
 #include "src/processor/include/physical_plan/operator/skip/skip.h"
 
@@ -49,6 +51,16 @@ unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
     return make_unique<PhysicalPlan>(move(resultCollector));
 }
 
+ResultSet* PlanMapper::enterSubquery(ResultSet* newOuterQueryResultSet) {
+    auto prevOuterQueryResultSet = outerQueryResultSet;
+    outerQueryResultSet = newOuterQueryResultSet;
+    return prevOuterQueryResultSet;
+}
+
+void PlanMapper::exitSubquery(ResultSet* prevOuterQueryResultSet) {
+    outerQueryResultSet = prevOuterQueryResultSet;
+}
+
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     const shared_ptr<LogicalOperator>& logicalOperator, PhysicalOperatorsInfo& info,
     ExecutionContext& context) {
@@ -57,6 +69,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     switch (operatorType) {
     case LOGICAL_SCAN_NODE_ID:
         physicalOperator = mapLogicalScanNodeIDToPhysical(logicalOperator.get(), info, context);
+        break;
+    case LOGICAL_SELECT_SCAN:
+        physicalOperator = mapLogicalSelectScanToPhysical(logicalOperator.get(), info, context);
         break;
     case LOGICAL_EXTEND:
         physicalOperator = mapLogicalExtendToPhysical(logicalOperator.get(), info, context);
@@ -118,6 +133,19 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
                make_unique<ScanNodeID>(morsel, context, physicalOperatorID++);
 }
 
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSelectScanToPhysical(
+    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    auto& selectScan = (const LogicalSelectScan&)*logicalOperator;
+    auto outerInfo = PhysicalOperatorsInfo(*selectScan.getOuterSchema());
+    vector<pair<uint64_t, uint64_t>> valueVectorsPosToSelect;
+    for (auto& variable : selectScan.getVariablesToSelect()) {
+        valueVectorsPosToSelect.emplace_back(
+            outerInfo.getDataChunkPos(variable), outerInfo.getValueVectorPos(variable));
+    }
+    return make_unique<SelectScan>(
+        *outerQueryResultSet, move(valueVectorsPosToSelect), context, physicalOperatorID++);
+}
+
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto& extend = (const LogicalExtend&)*logicalOperator;
@@ -157,8 +185,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     auto& logicalFilter = (const LogicalFilter&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     auto dataChunkToSelectPos = logicalFilter.groupPosToSelect;
-    auto physicalRootExpr = ExpressionMapper::mapToPhysical(
-        *context.memoryManager, *logicalFilter.expression, info, *prevOperator->getResultSet());
+    auto physicalRootExpr = expressionMapper.mapToPhysical(
+        *logicalFilter.expression, info, prevOperator->getResultSet().get(), context);
     return make_unique<Filter>(move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator),
         context, physicalOperatorID++);
 }
@@ -184,8 +212,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
         mapLogicalOperatorToPhysical(logicalOperator->prevOperator, oldInfo, context);
     vector<unique_ptr<ExpressionEvaluator>> expressionEvaluators;
     for (auto& expression : logicalProjection.expressionsToProject) {
-        expressionEvaluators.push_back(ExpressionMapper::mapToPhysical(
-            *context.memoryManager, *expression, oldInfo, *prevOperator->getResultSet()));
+        expressionEvaluators.push_back(expressionMapper.mapToPhysical(
+            *expression, oldInfo, prevOperator->getResultSet().get(), context));
     }
     // TODO: fix uint32 and uint64 mixed usage
     vector<uint64_t> exprResultInDataChunkPos;
@@ -206,13 +234,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     auto dataChunkPos = info.getDataChunkPos(scanProperty.nodeID);
     auto valueVectorPos = info.getValueVectorPos(scanProperty.nodeID);
+    auto& nodeStore = graph.getNodesStore();
     if (scanProperty.isUnstructuredProperty) {
-        auto lists = graph.getNodesStore().getNodeUnstrPropertyLists(scanProperty.nodeLabel);
+        auto lists = nodeStore.getNodeUnstrPropertyLists(scanProperty.nodeLabel);
         return make_unique<ScanUnstructuredProperty>(dataChunkPos, valueVectorPos,
             scanProperty.propertyKey, lists, move(prevOperator), context, physicalOperatorID++);
     }
-    auto column = graph.getNodesStore().getNodePropertyColumn(
-        scanProperty.nodeLabel, scanProperty.propertyKey);
+    auto column = nodeStore.getNodePropertyColumn(scanProperty.nodeLabel, scanProperty.propertyKey);
     return make_unique<ScanStructuredProperty>(
         dataChunkPos, valueVectorPos, column, move(prevOperator), context, physicalOperatorID++);
 }
@@ -224,14 +252,15 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
     auto inDataChunkPos = info.getDataChunkPos(scanProperty.boundNodeID);
     auto inValueVectorPos = info.getValueVectorPos(scanProperty.boundNodeID);
     auto outDataChunkPos = info.getDataChunkPos(scanProperty.nbrNodeID);
+    auto& relStore = graph.getRelsStore();
     if (scanProperty.isColumn) {
-        auto column = graph.getRelsStore().getRelPropertyColumn(
+        auto column = relStore.getRelPropertyColumn(
             scanProperty.relLabel, scanProperty.boundNodeLabel, scanProperty.propertyKey);
         return make_unique<ScanStructuredProperty>(inDataChunkPos, inValueVectorPos, column,
             move(prevOperator), context, physicalOperatorID++);
     }
-    auto lists = graph.getRelsStore().getRelPropertyLists(scanProperty.direction,
-        scanProperty.boundNodeLabel, scanProperty.relLabel, scanProperty.propertyKey);
+    auto lists = relStore.getRelPropertyLists(scanProperty.direction, scanProperty.boundNodeLabel,
+        scanProperty.relLabel, scanProperty.propertyKey);
     return make_unique<ReadRelPropertyList>(inDataChunkPos, inValueVectorPos, outDataChunkPos,
         lists, move(prevOperator), context, physicalOperatorID++);
 }
