@@ -98,9 +98,9 @@ unique_ptr<BoundReadingStatement> QueryBinder::bindLoadCSVStatement(
     for (auto i = 0u; i < headerInfo.size(); ++i) {
         auto csvColumnVariableAliasName = lineVariableName + "[" + to_string(i) + "]";
         auto csvColumnVariable = make_shared<VariableExpression>(CSV_LINE_EXTRACT,
-            headerInfo[i].second, context.getUniqueVariableName(csvColumnVariableAliasName));
+            headerInfo[i].second, getUniqueVariableName(csvColumnVariableAliasName));
         csvColumnVariable->rawExpression = csvColumnVariableAliasName;
-        context.addVariable(csvColumnVariableAliasName, csvColumnVariable);
+        variablesInScope.insert({csvColumnVariableAliasName, csvColumnVariable});
         csvColumnVariables.push_back(csvColumnVariable);
     }
     return make_unique<BoundLoadCSVStatement>(filePath, tokenSeparator, move(csvColumnVariables));
@@ -108,7 +108,7 @@ unique_ptr<BoundReadingStatement> QueryBinder::bindLoadCSVStatement(
 
 unique_ptr<BoundReadingStatement> QueryBinder::bindMatchStatement(
     const MatchStatement& matchStatement) {
-    auto prevVariablesInScope = context.getVariablesInScope();
+    auto prevVariablesInScope = variablesInScope;
     auto queryGraph = bindQueryGraph(matchStatement.graphPattern);
     validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
     auto boundMatchStatement = make_unique<BoundMatchStatement>(move(queryGraph));
@@ -167,11 +167,11 @@ vector<shared_ptr<Expression>> QueryBinder::bindProjectExpressions(
     auto expressions = vector<shared_ptr<Expression>>();
     unordered_map<string, shared_ptr<Expression>> newVariablesInScope;
     if (projectStar) {
-        if (!context.hasVariableInScope()) {
+        if (variablesInScope.empty()) {
             throw invalid_argument(
                 "RETURN or WITH * is not allowed when there are no variables in scope.");
         }
-        for (auto& [name, expression] : context.getVariablesInScope()) {
+        for (auto& [name, expression] : variablesInScope) {
             if (updateVariablesInScope) {
                 newVariablesInScope.insert({name, expression});
             }
@@ -189,7 +189,7 @@ vector<shared_ptr<Expression>> QueryBinder::bindProjectExpressions(
         }
         expressions.push_back(expression);
     }
-    context.setVariablesInScope(move(newVariablesInScope));
+    variablesInScope = newVariablesInScope;
     validateProjectionColumnNamesAreUnique(expressions);
     validateOnlyFunctionIsCountStar(expressions);
     return expressions;
@@ -213,8 +213,8 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
     const shared_ptr<NodeExpression>& leftNode, const shared_ptr<NodeExpression>& rightNode,
     QueryGraph& queryGraph) {
     auto parsedName = relPattern.name;
-    if (context.containsVariable(parsedName)) {
-        auto prevVariable = context.getVariable(parsedName);
+    if (variablesInScope.contains(parsedName)) {
+        auto prevVariable = variablesInScope.at(parsedName);
         if (REL != prevVariable->dataType) {
             throw invalid_argument(parsedName + " defined with conflicting type " +
                                    TypeUtils::dataTypeToString(prevVariable->dataType) +
@@ -244,11 +244,11 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
     if (lowerBound > upperBound) {
         throw invalid_argument("Lower bound of rel " + parsedName + " is greater than upperBound.");
     }
-    auto queryRel = make_shared<RelExpression>(context.getUniqueVariableName(parsedName), relLabel,
-        srcNode, dstNode, lowerBound, upperBound);
+    auto queryRel = make_shared<RelExpression>(
+        getUniqueVariableName(parsedName), relLabel, srcNode, dstNode, lowerBound, upperBound);
     queryRel->rawExpression = parsedName;
     if (!parsedName.empty()) {
-        context.addVariable(parsedName, queryRel);
+        variablesInScope.insert({parsedName, queryRel});
     }
     queryGraph.addQueryRel(queryRel);
 }
@@ -257,8 +257,8 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
     const NodePattern& nodePattern, QueryGraph& queryGraph) {
     auto parsedName = nodePattern.name;
     shared_ptr<NodeExpression> queryNode;
-    if (context.containsVariable(parsedName)) { // bind to node in scope
-        auto prevVariable = context.getVariable(parsedName);
+    if (variablesInScope.contains(parsedName)) { // bind to node in scope
+        auto prevVariable = variablesInScope.at(parsedName);
         while (ALIAS == prevVariable->expressionType) {
             prevVariable = prevVariable->children[0];
         }
@@ -276,15 +276,14 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
         }
     } else { // create new node
         auto nodeLabel = bindNodeLabel(nodePattern.label);
-        queryNode =
-            make_shared<NodeExpression>(context.getUniqueVariableName(parsedName), nodeLabel);
+        queryNode = make_shared<NodeExpression>(getUniqueVariableName(parsedName), nodeLabel);
         queryNode->rawExpression = parsedName;
         if (ANY_LABEL == nodeLabel) {
             throw invalid_argument(
                 "Any-label is not supported. " + parsedName + " does not have a label.");
         }
         if (!parsedName.empty()) {
-            context.addVariable(parsedName, queryNode);
+            variablesInScope.insert({parsedName, queryNode});
         }
         queryGraph.addQueryNode(queryNode);
     }
@@ -402,6 +401,18 @@ uint64_t QueryBinder::validateAndExtractSkipLimitNumber(
         static_pointer_cast<LiteralExpression>(boundExpression)->literal.val.int64Val;
     GF_ASSERT(skipOrLimitNumber >= 0);
     return skipOrLimitNumber;
+}
+
+string QueryBinder::getUniqueVariableName(const string& name) {
+    return "_" + to_string(lastVariableId++) + "_" + name;
+}
+
+unordered_map<string, shared_ptr<Expression>> QueryBinder::enterSubquery() {
+    return variablesInScope;
+}
+
+void QueryBinder::exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope) {
+    variablesInScope = move(prevVariablesInScope);
 }
 
 vector<pair<string, DataType>> parseCSVHeader(const string& headerLine, char tokenSeparator) {

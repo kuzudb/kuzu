@@ -162,10 +162,10 @@ shared_ptr<Expression> ExpressionBinder::bindCSVLineExtractExpression(
     auto csvVariableName = parsedExpression.children[0]->text;
     auto csvLineExtractExpressionName =
         csvVariableName + "[" + ((LiteralExpression&)*idxExpression).literal.toString() + "]";
-    if (!context.containsVariable(csvLineExtractExpressionName)) {
+    if (!queryBinder->variablesInScope.contains(csvLineExtractExpressionName)) {
         throw invalid_argument("Variable " + csvVariableName + " not defined or idx out of bound.");
     }
-    return context.getVariable(csvLineExtractExpressionName);
+    return queryBinder->variablesInScope.at(csvLineExtractExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNullComparisonOperatorExpression(
@@ -180,6 +180,7 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     validateNoNullLiteralChildren(parsedExpression);
     auto propertyName = parsedExpression.text;
     auto child = bindExpression(*parsedExpression.children.at(0));
+    auto& catalog = queryBinder->catalog;
     if (NODE == child->dataType) {
         auto node = static_pointer_cast<NodeExpression>(child);
         if (catalog.containNodeProperty(node->label, propertyName)) {
@@ -284,17 +285,17 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
 shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
     const ParsedExpression& parsedExpression) {
     auto variableName = parsedExpression.text;
-    if (context.containsVariable(variableName)) {
-        return context.getVariable(variableName);
+    if (queryBinder->variablesInScope.contains(variableName)) {
+        return queryBinder->variablesInScope.at(variableName);
     }
     throw invalid_argument("Variable " + parsedExpression.rawExpression + " not defined.");
 }
 
 shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     const ParsedExpression& parsedExpression) {
-    // Create new QueryBinder by copying the context
-    auto newQueryBinder = QueryBinder(catalog, context);
-    auto boundSingleQuery = newQueryBinder.bind(*parsedExpression.subquery);
+    auto prevVariablesInScope = queryBinder->enterSubquery();
+    auto boundSingleQuery = queryBinder->bind(*parsedExpression.subquery);
+    queryBinder->exitSubquery(move(prevVariablesInScope));
     return make_shared<ExistentialSubqueryExpression>(move(boundSingleQuery));
 }
 
