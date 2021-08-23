@@ -13,17 +13,11 @@ namespace graphflow {
 namespace binder {
 
 class QueryBinder {
+    friend class ExpressionBinder;
 
 public:
-    // Create QueryBinder from initial state
     explicit QueryBinder(const Catalog& catalog)
-        : catalog{catalog}, lastVariableId{0}, context{lastVariableId}, expressionBinder{catalog,
-                                                                            this->context} {}
-
-    // Create QueryBinder from existing state. Used in binding subquery where subquery binder should
-    // copy the state of outer query.
-    explicit QueryBinder(const Catalog& catalog, const BinderContext& context)
-        : catalog{catalog}, context{context}, expressionBinder{catalog, this->context} {}
+        : catalog{catalog}, lastVariableId{0}, variablesInScope{}, expressionBinder{this} {}
 
     unique_ptr<BoundSingleQuery> bind(const SingleQuery& singleQuery);
 
@@ -84,10 +78,16 @@ private:
     void validateCSVHeaderColumnNamesAreUnique(const vector<pair<string, DataType>>& headerInfo);
     uint64_t validateAndExtractSkipLimitNumber(const ParsedExpression& skipOrLimitExpression);
 
+    /******* helpers *********/
+    string getUniqueVariableName(const string& name);
+
+    unordered_map<string, shared_ptr<Expression>> enterSubquery();
+    void exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
+
 private:
     const Catalog& catalog;
     uint32_t lastVariableId;
-    BinderContext context;
+    unordered_map<string, shared_ptr<Expression>> variablesInScope;
     ExpressionBinder expressionBinder;
 };
 

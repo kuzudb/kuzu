@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/binder/include/binder_context.h"
+#include "src/binder/include/expression/expression.h"
 #include "src/parser/include/parsed_expression.h"
 #include "src/storage/include/catalog.h"
 
@@ -10,11 +10,12 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace binder {
 
+class QueryBinder;
+
 class ExpressionBinder {
 
 public:
-    ExpressionBinder(const Catalog& catalog, const BinderContext& context)
-        : catalog{catalog}, context{context} {}
+    ExpressionBinder(QueryBinder* queryBinder) : queryBinder{queryBinder} {}
 
     shared_ptr<Expression> bindExpression(const ParsedExpression& parsedExpression);
 
@@ -67,8 +68,7 @@ private:
         shared_ptr<Expression> expression);
 
 private:
-    const Catalog& catalog;
-    const BinderContext& context;
+    QueryBinder* queryBinder;
 };
 
 } // namespace binder
