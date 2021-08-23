@@ -28,7 +28,7 @@ typedef unordered_map<SubqueryGraph, vector<unique_ptr<LogicalPlan>>, SubqueryGr
 class SubPlansTable {
 
 public:
-    explicit SubPlansTable(uint32_t maxSubqueryGraphSize);
+    void init(uint32_t maxSubqueryGraphSize);
 
     bool containSubgraphPlans(const SubqueryGraph& subqueryGraph) const;
 

@@ -43,11 +43,16 @@ public:
         return ALIAS == expressionType ? children[0]->getInternalName() : rawExpression;
     }
 
+    inline bool hasSubquery() const { return containsSubquery; }
+
 public:
     ExpressionType expressionType;
     DataType dataType;
     string rawExpression;
     vector<shared_ptr<Expression>> children;
+
+private:
+    bool containsSubquery;
 };
 
 } // namespace binder

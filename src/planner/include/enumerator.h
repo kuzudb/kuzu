@@ -5,8 +5,8 @@
 #include "src/binder/include/bound_statements/bound_match_statement.h"
 #include "src/binder/include/expression/property_expression.h"
 #include "src/planner/include/logical_plan/logical_plan.h"
-#include "src/planner/include/subplans_table.h"
 #include "src/storage/include/graph.h"
+#include "src/planner/include/enumerator_context.h"
 
 using namespace graphflow::binder;
 using namespace graphflow::storage;
@@ -17,13 +17,16 @@ namespace planner {
 class Enumerator {
 
 public:
-    explicit Enumerator(const Graph& graph);
+    explicit Enumerator(const Graph& graph) : graph{graph} {}
 
     unique_ptr<LogicalPlan> getBestPlan(const BoundSingleQuery& singleQuery);
 
     vector<unique_ptr<LogicalPlan>> enumeratePlans(const BoundSingleQuery& singleQuery);
 
 private:
+    unique_ptr<EnumeratorContext> enterSubquery();
+    void existSubquery();
+
     void enumerateQueryPart(BoundQueryPart& queryPart);
     void enumerateProjectionBody(
         const BoundProjectionBody& projectionBody, bool isRewritingAllProperties);
@@ -38,6 +41,7 @@ private:
 
     void appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, LogicalPlan& plan);
     void appendScan(uint32_t queryNodePos, LogicalPlan& plan);
+    void appendSelectScan(LogicalPlan& plan);
     void appendExtendAndNecessaryFilters(const RelExpression& queryRel, Direction direction,
         const vector<shared_ptr<Expression>>& expressionsToFilter, LogicalPlan& plan);
     void appendExtend(const RelExpression& queryRel, Direction direction, LogicalPlan& plan);
@@ -50,6 +54,7 @@ private:
     bool appendIntersect(const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan);
     void appendProjection(const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan,
         bool isRewritingAllProperties);
+    void appendNecessaryScansAndFlattens(const Expression& expression, LogicalPlan& plan);
     void appendNecessaryScans(const Expression& expression, LogicalPlan& plan);
     void appendScanNodeProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
     void appendScanRelProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
@@ -58,14 +63,8 @@ private:
     void appendSkip(uint64_t skipNumber, LogicalPlan& plan);
 
 private:
-    unique_ptr<SubPlansTable> subPlansTable;
     const Graph& graph;
-
-    uint32_t currentLevel;
-    unique_ptr<QueryGraph> mergedQueryGraph;
-    // query nodes and rels matched in previous query graph
-    bitset<MAX_NUM_VARIABLES> matchedQueryRels;
-    bitset<MAX_NUM_VARIABLES> matchedQueryNodes;
+    unique_ptr<EnumeratorContext> context;
 };
 
 } // namespace planner

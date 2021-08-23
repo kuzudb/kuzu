@@ -5,7 +5,7 @@
 namespace graphflow {
 namespace planner {
 
-SubPlansTable::SubPlansTable(uint32_t maxSubqueryGraphSize) {
+void SubPlansTable::init(uint32_t maxSubqueryGraphSize) {
     subPlans.resize(maxSubqueryGraphSize + 1);
 }
 

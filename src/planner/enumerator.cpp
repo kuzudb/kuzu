@@ -56,10 +56,6 @@ static shared_ptr<RelExpression> rewriteQueryRel(const RelExpression& queryRel, 
 static shared_ptr<Expression> createNodeIDEqualComparison(
     const shared_ptr<NodeExpression>& left, const shared_ptr<NodeExpression>& right);
 
-Enumerator::Enumerator(const Graph& graph) : graph{graph} {
-    mergedQueryGraph = make_unique<QueryGraph>();
-}
-
 unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundSingleQuery& singleQuery) {
     auto plans = enumeratePlans(singleQuery);
     unique_ptr<LogicalPlan> bestPlan = move(plans[0]);
@@ -73,7 +69,7 @@ unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundSingleQuery& singleQu
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(const BoundSingleQuery& singleQuery) {
     // initialize subgraphPlan table to max size (number of query rels)
-    subPlansTable = make_unique<SubPlansTable>(singleQuery.getNumQueryRels());
+    context->initSubPlansTable(singleQuery.getNumQueryRels());
     for (auto& boundQueryPart : singleQuery.boundQueryParts) {
         enumerateQueryPart(*boundQueryPart);
     }
@@ -170,6 +166,7 @@ void Enumerator::enumerateSubplans(const vector<shared_ptr<Expression>>& whereEx
     if (mergedQueryGraph->isEmpty()) {
         return;
     }
+    if ()
     enumerateSingleNode(whereExpressions);
     while (currentLevel < mergedQueryGraph->getNumQueryRels()) {
         enumerateNextLevel(whereExpressions);
@@ -539,6 +536,13 @@ void Enumerator::appendProjection(const vector<shared_ptr<Expression>>& expressi
         move(exprResultOutGroupPos), move(discardedGroupPos), plan.lastOperator);
     plan.schema = move(newSchema);
     plan.appendOperator(move(projection));
+}
+
+void Enumerator::appendNecessaryScansAndFlattens(const Expression& expression, LogicalPlan& plan) {
+    appendNecessaryScans(expression, plan);
+    if (expression.hasSubquery()) {
+        // grab subquery
+    }
 }
 
 void Enumerator::appendNecessaryScans(const Expression& expression, LogicalPlan& plan) {
