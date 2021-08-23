@@ -1,4 +1,4 @@
-#include "src/processor/include/physical_plan/operator/scan_node_id/select_scan.h"
+#include "src/processor/include/physical_plan/operator/select_scan/select_scan.h"
 
 #include <cstring>
 
@@ -8,7 +8,7 @@ namespace processor {
 SelectScan::SelectScan(const ResultSet& inResultSet,
     vector<pair<uint64_t, uint64_t>> valueVectorsPosToSelect, ExecutionContext& context,
     uint32_t id)
-    : PhysicalOperator{SCAN, context, id}, inResultSet{inResultSet},
+    : PhysicalOperator{SELECT_SCAN, context, id}, inResultSet{inResultSet},
       valueVectorsPosToSelect{move(valueVectorsPosToSelect)}, isFirstExecution{true} {
     resultSet = make_shared<ResultSet>();
     outDataChunk = make_shared<DataChunk>(DataChunkState::getSingleValueDataChunkState());

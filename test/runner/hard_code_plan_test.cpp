@@ -1,20 +1,20 @@
 #include "gtest/gtest.h"
 #include "test/test_utility/include/test_helper.h"
 
+#include "src/binder/include/expression/existential_subquery_expression.h"
 #include "src/expression_evaluator/include/binary_expression_evaluator.h"
-#include "src/expression_evaluator/include/existential_subquery_evaluator.h"
-#include "src/expression_evaluator/include/unary_expression_evaluator.h"
-#include "src/processor/include/physical_plan/operator/filter/filter.h"
+#include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
+#include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
+#include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
+#include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
+#include "src/planner/include/logical_plan/operator/select_scan/logical_select_scan.h"
 #include "src/processor/include/physical_plan/operator/flatten/flatten.h"
-#include "src/processor/include/physical_plan/operator/read_list/adj_list_extend.h"
-#include "src/processor/include/physical_plan/operator/scan_attribute/adj_column_extend.h"
-#include "src/processor/include/physical_plan/operator/scan_node_id/scan_node_id.h"
-#include "src/processor/include/physical_plan/operator/scan_node_id/select_scan.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
+#include "src/processor/include/physical_plan/plan_mapper.h"
 
 using ::testing::Test;
 using namespace graphflow::testing;
-using namespace graphflow::evaluator;
+using namespace graphflow::binder;
 
 class TinySnbHardCodePlanTest : public DBLoadedTest {
 public:
@@ -24,49 +24,47 @@ public:
         memoryManager = make_unique<MemoryManager>();
         context =
             make_unique<ExecutionContext>(*profiler, nullptr /*transaction*/, memoryManager.get());
-        operatorId = 0;
     }
 
-    static unique_ptr<Flatten> getSimpleScanAndFlatten(
-        ExecutionContext& context, uint32_t& operatorId) {
-        auto morselDesc = make_shared<MorselsDesc>(0, 8);
-        auto scan = make_unique<ScanNodeID>(morselDesc, context, operatorId++);
-        return make_unique<Flatten>(0, move(scan), context, operatorId++);
+    unique_ptr<Schema> createANodeSchema() {
+        auto schema = make_unique<Schema>();
+        schema->appendToGroup("a._id", schema->createGroup());
+        return schema;
     }
 
-    // person - knows -> person
-    static unique_ptr<ResultCollector> getSimpleKnowsExtendInnerQuery(
-        const ResultSet& outerResultSet, vector<pair<uint64_t, uint64_t>> vectorsToSelect,
-        const Graph& graph, ExecutionContext& context, uint32_t& operatorId) {
-        auto selectScan =
-            make_unique<SelectScan>(outerResultSet, move(vectorsToSelect), context, operatorId++);
-        auto extend = make_unique<AdjListExtend>(0, 0, graph.getRelsStore().getAdjLists(FWD, 0, 0),
-            0, move(selectScan), context, operatorId++);
-        auto innerResultCollector = make_unique<ResultCollector>(
-            move(extend), RESULT_COLLECTOR, context, operatorId++, false);
-        return innerResultCollector;
+    unique_ptr<Schema> createListExtendSchema(const string& var1, const string& var2) {
+        auto schema = make_unique<Schema>();
+        schema->appendToGroup(var1, schema->createGroup());
+        schema->appendToGroup(var2, schema->createGroup());
+        return schema;
     }
 
-    // person - studyAt/workAt -> org
-    static unique_ptr<ResultCollector> getSimpleStudyAtExtendInnerQuery(
-        const ResultSet& outerResultSet, vector<pair<uint64_t, uint64_t>> vectorsToSelect,
-        const Graph& graph, ExecutionContext& context, uint32_t& operatorId, label_t relLabel) {
-        auto selectScan =
-            make_unique<SelectScan>(outerResultSet, move(vectorsToSelect), context, operatorId++);
-        auto extend =
-            make_unique<AdjColumnExtend>(0, 0, graph.getRelsStore().getAdjColumn(FWD, 0, relLabel),
-                1, move(selectScan), context, operatorId++);
-        auto innerResultCollector = make_unique<ResultCollector>(
-            move(extend), RESULT_COLLECTOR, context, operatorId++, false);
-        return innerResultCollector;
+    unique_ptr<Schema> createColExtendSchema(const string& var1, const string& var2) {
+        auto schema = make_unique<Schema>();
+        auto pos = schema->createGroup();
+        schema->appendToGroup(var1, pos);
+        schema->appendToGroup(var2, pos);
+        return schema;
     }
 
-    static unique_ptr<ExpressionEvaluator> getNotExistEvaluator(
-        MemoryManager& memoryManager, unique_ptr<ResultCollector> sink) {
-        auto subqueryEvaluator =
-            make_unique<ExistentialSubqueryEvaluator>(memoryManager, move(sink));
-        return make_unique<UnaryExpressionEvaluator>(
-            memoryManager, move(subqueryEvaluator), NOT, BOOL);
+    shared_ptr<LogicalOperator> createBasicScanAndFlattenA() {
+        auto logicalScan = make_shared<LogicalScanNodeID>("a._id", 0 /* label */);
+        return make_shared<LogicalFlatten>("a._id", logicalScan);
+    }
+
+    unique_ptr<LogicalPlan> createLogicalPlan(
+        shared_ptr<LogicalOperator> op, unique_ptr<Schema> schema) {
+        auto plan = make_unique<LogicalPlan>(move(schema));
+        plan->appendOperator(move(op));
+        return plan;
+    }
+
+    uint64_t mapAndExecuteLogicalPlan(unique_ptr<LogicalPlan> logicalPlan) {
+        auto mapper = PlanMapper(*defaultSystem->graph);
+        auto physicalPlan = mapper.mapToPhysical(move(logicalPlan), *context);
+        auto& resultCollector = (ResultCollector&)*physicalPlan->lastOperator;
+        resultCollector.execute();
+        return resultCollector.queryResult->numTuples;
     }
 
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
@@ -75,7 +73,6 @@ public:
     unique_ptr<Profiler> profiler;
     unique_ptr<MemoryManager> memoryManager;
     unique_ptr<ExecutionContext> context;
-    uint32_t operatorId;
 };
 
 /**
@@ -87,52 +84,50 @@ public:
  * Plan: SCAN(a)->Flatten(a)->Filter(subPlan)->ResultCollector
  * SubPlan: SelectScan()->ListExtend(b)->ResultCollector
  */
-TEST_F(TinySnbHardCodePlanTest, SubqueryExistListTest) {
-    auto& graph = *defaultSystem->graph;
+TEST_F(TinySnbHardCodePlanTest, LogicalSubqueryExistListTest) {
+    auto schema = createANodeSchema();
+    auto logicalFlatten = createBasicScanAndFlattenA();
+    // start inner plan
+    auto logicalSelectScan =
+        make_shared<LogicalSelectScan>(vector<string>{"a._id"}, schema->copy());
+    auto logicalExtend =
+        make_shared<LogicalExtend>("a._id", 0, "b._id", 0, 0, FWD, false, 1, 1, logicalSelectScan);
+    auto logicalSubPlan =
+        createLogicalPlan(logicalExtend, createListExtendSchema("a._id", "b._id"));
+    // end inner plan
+    auto subqueryExpr = make_shared<ExistentialSubqueryExpression>(move(logicalSubPlan));
+    auto logicalFilter = make_shared<LogicalFilter>(move(subqueryExpr), 0, logicalFlatten);
+    auto logicalPlan = createLogicalPlan(logicalFilter, move(schema));
 
-    auto flatten = TinySnbHardCodePlanTest::getSimpleScanAndFlatten(*context, operatorId);
-    //--- start inner subquery
-    auto vectorsToSelect = vector<pair<uint64_t, uint64_t>>{{0, 0}};
-    auto innerResultCollector = TinySnbHardCodePlanTest::getSimpleKnowsExtendInnerQuery(
-        *flatten->getResultSet(), move(vectorsToSelect), graph, *context, operatorId);
-    //--- end inner subquery
-    auto subqueryEvaluator =
-        make_unique<ExistentialSubqueryEvaluator>(*memoryManager, move(innerResultCollector));
-    auto filter =
-        make_unique<Filter>(move(subqueryEvaluator), 0, move(flatten), *context, operatorId++);
-    auto resultCollector =
-        make_unique<ResultCollector>(move(filter), RESULT_COLLECTOR, *context, operatorId++, false);
-
-    resultCollector->execute();
-    ASSERT_TRUE(resultCollector->queryResult->numTuples == 5);
+    ASSERT_TRUE(mapAndExecuteLogicalPlan(move(logicalPlan)) == 5);
 }
 
 /**
  * MATCH (a:person) WHERE NOT EXISTS {
- *          MATCH (a)-[:knows]->(:Person)
+ *          MATCH (a)-[:knows]->(b:Person)
  *          RETURN *
  *      }
  * RETURN COUNT(*)
  * Plan: SCAN(a)->Flatten(a)->Filter(subPlan)->ResultCollector
  * SubPlan: SelectScan()->ListExtend(b)->ResultCollector
  */
-TEST_F(TinySnbHardCodePlanTest, SubqueryNotExistListTest) {
-    auto& graph = *defaultSystem->graph;
+TEST_F(TinySnbHardCodePlanTest, LogicalSubqueryNotExistListTest) {
+    auto schema = createANodeSchema();
+    auto logicalFlatten = createBasicScanAndFlattenA();
+    // start inner plan
+    auto logicalSelectScan =
+        make_shared<LogicalSelectScan>(vector<string>{"a._id"}, schema->copy());
+    auto logicalExtend =
+        make_shared<LogicalExtend>("a._id", 0, "b._id", 0, 0, FWD, false, 1, 1, logicalSelectScan);
+    auto logicalSubPlan =
+        createLogicalPlan(logicalExtend, createListExtendSchema("a._id", "b._id"));
+    // end inner plan
+    auto subqueryExpr = make_shared<ExistentialSubqueryExpression>(move(logicalSubPlan));
+    auto notExpr = make_shared<Expression>(NOT, BOOL, move(subqueryExpr));
+    auto logicalFilter = make_shared<LogicalFilter>(move(notExpr), 0, logicalFlatten);
+    auto logicalPlan = createLogicalPlan(logicalFilter, move(schema));
 
-    auto flatten = TinySnbHardCodePlanTest::getSimpleScanAndFlatten(*context, operatorId);
-    //--- start inner subquery
-    auto vectorsToSelect = vector<pair<uint64_t, uint64_t>>{{0, 0}};
-    auto innerResultCollector = TinySnbHardCodePlanTest::getSimpleKnowsExtendInnerQuery(
-        *flatten->getResultSet(), move(vectorsToSelect), graph, *context, operatorId);
-    //--- end inner subquery
-    auto notEvaluator =
-        TinySnbHardCodePlanTest::getNotExistEvaluator(*memoryManager, move(innerResultCollector));
-    auto filter = make_unique<Filter>(move(notEvaluator), 0, move(flatten), *context, operatorId++);
-    auto resultCollector =
-        make_unique<ResultCollector>(move(filter), RESULT_COLLECTOR, *context, operatorId++, false);
-
-    resultCollector->execute();
-    ASSERT_TRUE(resultCollector->queryResult->numTuples == 3);
+    ASSERT_TRUE(mapAndExecuteLogicalPlan(move(logicalPlan)) == 3);
 }
 
 /**
@@ -144,61 +139,61 @@ TEST_F(TinySnbHardCodePlanTest, SubqueryNotExistListTest) {
  * Plan: SCAN(a)->Flatten(a)->Filter(subPlan)->ResultCollector
  * SubPlan: SelectScan()->ColExtend(b)->ResultCollector
  */
-TEST_F(TinySnbHardCodePlanTest, SubqueryExistColumnTest) {
-    auto& graph = *defaultSystem->graph;
+TEST_F(TinySnbHardCodePlanTest, LogicalSubqueryExistColumnTest) {
+    auto schema = createANodeSchema();
+    auto logicalFlatten = createBasicScanAndFlattenA();
+    // start inner plan
+    auto logicalSelectScan =
+        make_shared<LogicalSelectScan>(vector<string>{"a._id"}, schema->copy());
+    auto logicalExtend =
+        make_shared<LogicalExtend>("a._id", 0, "b._id", 1, 1, FWD, true, 1, 1, logicalSelectScan);
+    auto logicalSubPlan = createLogicalPlan(logicalExtend, createColExtendSchema("a._id", "b._id"));
+    // end inner plan
+    auto subqueryExpr = make_shared<ExistentialSubqueryExpression>(move(logicalSubPlan));
+    auto notExpr = make_shared<Expression>(NOT, BOOL, move(subqueryExpr));
+    auto logicalFilter = make_shared<LogicalFilter>(move(notExpr), 0, logicalFlatten);
+    auto logicalPlan = createLogicalPlan(logicalFilter, move(schema));
 
-    auto flatten = TinySnbHardCodePlanTest::getSimpleScanAndFlatten(*context, operatorId);
-    //--- start inner subquery
-    auto vectorsToSelect = vector<pair<uint64_t, uint64_t>>{{0, 0}};
-    auto innerResultCollector = TinySnbHardCodePlanTest::getSimpleStudyAtExtendInnerQuery(
-        *flatten->getResultSet(), move(vectorsToSelect), graph, *context, operatorId, 1);
-    //--- end inner subquery
-    auto notEvaluator =
-        TinySnbHardCodePlanTest::getNotExistEvaluator(*memoryManager, move(innerResultCollector));
-    auto filter = make_unique<Filter>(move(notEvaluator), 0, move(flatten), *context, operatorId++);
-    auto resultCollector =
-        make_unique<ResultCollector>(move(filter), RESULT_COLLECTOR, *context, operatorId++, false);
-
-    resultCollector->execute();
-    ASSERT_TRUE(resultCollector->queryResult->numTuples == 5);
+    ASSERT_TRUE(mapAndExecuteLogicalPlan(move(logicalPlan)) == 5);
 }
 
 /**
  * MATCH (a:person) WHERE EXISTS {
- *          MATCH (a)-[:studyAt]->(:Organisation)
+ *          MATCH (a)-[:studyAt]->(b:Organisation)
  *      } OR EXISTS {
- *          MATCH (a)-[:workAt]->(:Organisation)
+ *          MATCH (a)-[:workAt]->(c:Organisation)
  *      }
  * Plan: SCAN(a)->Flatten(a)->Filter(leftSubPlan OR rightSubPlan)->ResultCollector
  * LeftSubPlan: SelectScan()->ColExtend(b)->ResultCollector
  * RightSubPlan: SelectScan()->ColExtend(b)->ResultCollector
  */
-TEST_F(TinySnbHardCodePlanTest, SubqueryExistColumnORTest) {
-    auto& graph = *defaultSystem->graph;
+TEST_F(TinySnbHardCodePlanTest, LogicalSubqueryExistColumnORTest) {
+    auto schema = createANodeSchema();
+    auto logicalFlatten = createBasicScanAndFlattenA();
+    // start left inner plan
+    auto leftLogicalSelectScan =
+        make_shared<LogicalSelectScan>(vector<string>{"a._id"}, schema->copy());
+    auto leftLogicalExtend = make_shared<LogicalExtend>(
+        "a._id", 0, "b._id", 1, 1, FWD, true, 1, 1, leftLogicalSelectScan);
+    auto leftLogicalSubPlan =
+        createLogicalPlan(leftLogicalExtend, createColExtendSchema("a._id", "b._id"));
+    // end left inner plan
+    // start right inner plan
+    auto rightLogicalSelectScan =
+        make_shared<LogicalSelectScan>(vector<string>{"a._id"}, schema->copy());
+    auto rightLogicalExtend = make_shared<LogicalExtend>(
+        "a._id", 0, "c._id", 1, 2, FWD, true, 1, 1, rightLogicalSelectScan);
+    auto rightLogicalSubPlan =
+        createLogicalPlan(rightLogicalExtend, createColExtendSchema("a._id", "c._id"));
+    // end right inner plan
+    auto leftSubqueryExpr = make_shared<ExistentialSubqueryExpression>(move(leftLogicalSubPlan));
+    auto rightSubqueryExpr = make_shared<ExistentialSubqueryExpression>(move(rightLogicalSubPlan));
+    auto orExpr =
+        make_shared<Expression>(OR, BOOL, move(leftSubqueryExpr), move(rightSubqueryExpr));
+    auto logicalFilter = make_shared<LogicalFilter>(move(orExpr), 0, logicalFlatten);
+    auto logicalPlan = createLogicalPlan(logicalFilter, move(schema));
 
-    auto flatten = TinySnbHardCodePlanTest::getSimpleScanAndFlatten(*context, operatorId);
-    //--- start left inner subquery
-    auto leftVectorsToSelect = vector<pair<uint64_t, uint64_t>>{{0, 0}};
-    auto leftInnerResultCollector = TinySnbHardCodePlanTest::getSimpleStudyAtExtendInnerQuery(
-        *flatten->getResultSet(), move(leftVectorsToSelect), graph, *context, operatorId, 1);
-    //--- end left inner subquery
-    //--- start right inner subquery
-    auto rightVectorsToSelect = vector<pair<uint64_t, uint64_t>>{{0, 0}};
-    auto rightInnerResultCollector = TinySnbHardCodePlanTest::getSimpleStudyAtExtendInnerQuery(
-        *flatten->getResultSet(), move(rightVectorsToSelect), graph, *context, operatorId, 2);
-    //--- end right inner subquery
-    auto leftSubqueryEvaluator =
-        make_unique<ExistentialSubqueryEvaluator>(*memoryManager, move(leftInnerResultCollector));
-    auto rightSubqueryEvaluator =
-        make_unique<ExistentialSubqueryEvaluator>(*memoryManager, move(rightInnerResultCollector));
-    auto orEvaluator = make_unique<BinaryExpressionEvaluator>(
-        *memoryManager, move(leftSubqueryEvaluator), move(rightSubqueryEvaluator), OR, BOOL);
-    auto filter = make_unique<Filter>(move(orEvaluator), 0, move(flatten), *context, operatorId++);
-    auto resultCollector =
-        make_unique<ResultCollector>(move(filter), RESULT_COLLECTOR, *context, operatorId++, false);
-
-    resultCollector->execute();
-    ASSERT_TRUE(resultCollector->queryResult->numTuples == 6);
+    ASSERT_TRUE(mapAndExecuteLogicalPlan(move(logicalPlan)) == 6);
 }
 
 /**
@@ -210,41 +205,36 @@ TEST_F(TinySnbHardCodePlanTest, SubqueryExistColumnORTest) {
  *          RETURN *
  *      }
  * RETURN COUNT(*)
- * Plan: SCAN(a)->Flatten(a)->Filter(leftSubPlan OR rightSubPlan)->ResultCollector
+ * Plan: SCAN(a)->Flatten(a)->Filter(subPlan)->ResultCollector
  * SubPlan: SelectScan(a)->ListExtend(b)->ResultCollector
  * InnerSubPlan: SelectScan(b)->ColExtend(c)->ResultCollector
  */
-TEST_F(TinySnbHardCodePlanTest, NestedSubqueryTest) {
-    auto& graph = *defaultSystem->graph;
+TEST_F(TinySnbHardCodePlanTest, LogicalNestedSubqueryTest) {
+    auto schema = createANodeSchema();
+    auto logicalFlatten = createBasicScanAndFlattenA();
+    // start inner plan
+    auto innerSchema = createListExtendSchema("a._id", "b._id");
+    auto innerLogicalSelectScan =
+        make_shared<LogicalSelectScan>(vector<string>{"a._id"}, schema->copy());
+    auto innerLogicalExtend = make_unique<LogicalExtend>(
+        "a._id", 0, "b._id", 0, 0, FWD, false, 1, 1, move(innerLogicalSelectScan));
+    auto innerLogicalFlatten = make_shared<LogicalFlatten>("b._id", move(innerLogicalExtend));
+    // start inner inner plan
+    auto innerInnerLogicalSelectScan =
+        make_shared<LogicalSelectScan>(vector<string>{"b._id"}, innerSchema->copy());
+    auto innerInnerLogicalExtend = make_shared<LogicalExtend>(
+        "b._id", 0, "c._id", 1, 2, FWD, true, 1, 1, move(innerInnerLogicalSelectScan));
+    auto innerInnerLogicalSubPlan =
+        createLogicalPlan(innerInnerLogicalExtend, createColExtendSchema("b._id", "c._id"));
+    // end inner inner plan
+    auto innerExpr = make_shared<ExistentialSubqueryExpression>(move(innerInnerLogicalSubPlan));
+    auto innerLogicalFilter =
+        make_shared<LogicalFilter>(move(innerExpr), 1, move(innerLogicalFlatten));
+    auto innerLogicalSubPlan = createLogicalPlan(innerLogicalFilter, move(innerSchema));
+    // end inner plan
+    auto expr = make_shared<ExistentialSubqueryExpression>(move(innerLogicalSubPlan));
+    auto logicalFilter = make_shared<LogicalFilter>(move(expr), 0, move(logicalFlatten));
+    auto logicalPlan = createLogicalPlan(logicalFilter, move(schema));
 
-    auto flatten = TinySnbHardCodePlanTest::getSimpleScanAndFlatten(*context, operatorId);
-    //--- start inner subquery
-    auto innerVectorsToSelect = vector<pair<uint64_t, uint64_t>>{{0, 0}};
-    auto innerScan = make_unique<SelectScan>(
-        *flatten->getResultSet(), move(innerVectorsToSelect), *context, operatorId++);
-    auto innerExtend = make_unique<AdjListExtend>(0, 0, graph.getRelsStore().getAdjLists(FWD, 0, 0),
-        0, move(innerScan), *context, operatorId++);
-    auto innerFlatten = make_unique<Flatten>(1, move(innerExtend), *context, operatorId++);
-    //------ start inner inner subquery
-    auto innerInnerVectorsToSelect = vector<pair<uint64_t, uint64_t>>{{1, 0}};
-    auto innerInnerResultCollector =
-        TinySnbHardCodePlanTest::getSimpleStudyAtExtendInnerQuery(*innerFlatten->getResultSet(),
-            move(innerInnerVectorsToSelect), graph, *context, operatorId, 2);
-    //------ end inner inner subquery
-    auto innerSubqueryEvaluator =
-        make_unique<ExistentialSubqueryEvaluator>(*memoryManager, move(innerInnerResultCollector));
-    auto innerFilter = make_unique<Filter>(
-        move(innerSubqueryEvaluator), 1, move(innerFlatten), *context, operatorId++);
-    auto innerResultCollector = make_unique<ResultCollector>(
-        move(innerFilter), RESULT_COLLECTOR, *context, operatorId++, false);
-    //--- end inner subquery
-    auto subqueryEvaluator =
-        make_unique<ExistentialSubqueryEvaluator>(*memoryManager, move(innerResultCollector));
-    auto filter =
-        make_unique<Filter>(move(subqueryEvaluator), 0, move(flatten), *context, operatorId++);
-    auto resultCollector =
-        make_unique<ResultCollector>(move(filter), RESULT_COLLECTOR, *context, operatorId++, false);
-
-    resultCollector->execute();
-    ASSERT_TRUE(resultCollector->queryResult->numTuples == 4);
+    ASSERT_TRUE(mapAndExecuteLogicalPlan(move(logicalPlan)) == 4);
 }

@@ -15,7 +15,7 @@ cc_test(
     deps = [
         "//src/processor",
         "//src/processor:mapper",
-        "//src/storage:graph",
+        "//test/mock:mock_objects",
         "@gtest",
         "@gtest//:gtest_main",
     ],

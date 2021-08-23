@@ -4,6 +4,8 @@
 #include "src/binder/include/expression/expression.h"
 #include "src/planner/include/logical_plan/logical_plan.h"
 
+using namespace graphflow::planner;
+
 namespace graphflow {
 namespace binder {
 
@@ -13,10 +15,16 @@ public:
     ExistentialSubqueryExpression(unique_ptr<BoundSingleQuery> subquery)
         : Expression{EXISTENTIAL_SUBQUERY, BOOL}, subquery{move(subquery)} {}
 
-    inline BoundSingleQuery* getSubquery() { return subquery.get(); };
+    // NOTE: remove once subquery enumeration is added
+    ExistentialSubqueryExpression(unique_ptr<LogicalPlan> subPlan)
+        : Expression{EXISTENTIAL_SUBQUERY, BOOL}, subPlan{move(subPlan)} {}
+
+    inline BoundSingleQuery* getSubquery() { return subquery.get(); }
+    inline unique_ptr<LogicalPlan> moveSubPlan() { return move(subPlan); }
 
 private:
     unique_ptr<BoundSingleQuery> subquery;
+    unique_ptr<LogicalPlan> subPlan;
 };
 
 } // namespace binder

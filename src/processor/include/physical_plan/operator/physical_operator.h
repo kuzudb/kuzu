@@ -12,6 +12,7 @@ namespace processor {
 // Physical operator type
 enum PhysicalOperatorType : uint8_t {
     SCAN,
+    SELECT_SCAN,
     FILTER,
     INTERSECT,
     FLATTEN,
@@ -31,9 +32,9 @@ enum PhysicalOperatorType : uint8_t {
     SKIP
 };
 
-const string PhysicalOperatorTypeNames[] = {"SCAN", "FILTER", "INTERSECT", "FLATTEN", "READ_LIST",
-    "SCAN_ATTRIBUTE", "PROJECTION", "FRONTIER_EXTEND", "HASH_JOIN_BUILD", "HASH_JOIN_PROBE",
-    "RESULT_COLLECTOR", "LOAD_CSV", "CREATE_NODE", "UPDATE_NODE", "DELETE_NODE",
+const string PhysicalOperatorTypeNames[] = {"SCAN", "SELECT_SCAN", "FILTER", "INTERSECT", "FLATTEN",
+    "READ_LIST", "SCAN_ATTRIBUTE", "PROJECTION", "FRONTIER_EXTEND", "HASH_JOIN_BUILD",
+    "HASH_JOIN_PROBE", "RESULT_COLLECTOR", "LOAD_CSV", "CREATE_NODE", "UPDATE_NODE", "DELETE_NODE",
     "MULTIPLICITY_REDUCER", "LIMIT", "SKIP"};
 
 struct OperatorMetrics {
