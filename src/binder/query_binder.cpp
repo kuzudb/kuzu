@@ -206,6 +206,7 @@ unique_ptr<QueryGraph> QueryBinder::bindQueryGraph(
             leftNode = rightNode;
         }
     }
+    queryGraph->finalize();
     return queryGraph;
 }
 

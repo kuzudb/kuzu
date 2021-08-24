@@ -29,10 +29,18 @@ public:
         : expressionType{expressionType}, dataType{dataType} {}
 
     unordered_set<string> getIncludedVariableNames() const;
-
-    // get the first occurrence of expression that satisfies given types
-    vector<const Expression*> getIncludedExpressions(
-        const unordered_set<ExpressionType>& expressionTypes) const;
+    vector<const Expression*> getIncludedVariableExpressions() const;
+    vector<const Expression*> getIncludedPropertyExpressions() const;
+    /**
+     * Leaf expression means the value vector of this expression MIGHT exists in result set. Out
+     * leaf expression includes:
+     *    PROPERTY
+     *    CSV_LINE_EXTRACT (should be removed eventually)
+     *    ALIAS (alias expression becomes leaf only if it has been evaluated before)
+     * Note that variable expression is either node or rel whose evaluation is not defined in our
+     * system
+     */
+    vector<const Expression*> getIncludedLeafExpressions() const;
 
     // return named used for parsing user input and printing
     virtual inline string getExternalName() const { return rawExpression; }
@@ -43,16 +51,15 @@ public:
         return ALIAS == expressionType ? children[0]->getInternalName() : rawExpression;
     }
 
-    inline bool hasSubquery() const { return containsSubquery; }
+private:
+    virtual vector<const Expression*> getIncludedExpressionsWithTypes(
+        const unordered_set<ExpressionType>& expressionTypes) const;
 
 public:
     ExpressionType expressionType;
     DataType dataType;
     string rawExpression;
     vector<shared_ptr<Expression>> children;
-
-private:
-    bool containsSubquery;
 };
 
 } // namespace binder

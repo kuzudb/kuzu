@@ -16,6 +16,8 @@ class BoundSingleQuery {
 public:
     uint32_t getNumQueryRels() const;
 
+    vector<const Expression*> getIncludedVariables() const;
+
 public:
     // WITH query parts
     vector<unique_ptr<BoundQueryPart>> boundQueryParts;

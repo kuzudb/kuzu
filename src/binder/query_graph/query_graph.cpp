@@ -58,7 +58,9 @@ uint32_t QueryGraph::getQueryNodePos(const string& queryNodeName) const {
 }
 
 void QueryGraph::addQueryNode(shared_ptr<NodeExpression> queryNode) {
-    GF_ASSERT(!containsQueryNode(queryNode->getInternalName()));
+    if(containsQueryNode(queryNode->getInternalName())) {
+        return;
+    }
     queryNodeNameToPosMap.insert({queryNode->getInternalName(), queryNodes.size()});
     queryNodes.push_back(queryNode);
 }
@@ -146,6 +148,17 @@ void QueryGraph::merge(QueryGraph& other) {
     }
     for (auto& otherRel : other.queryRels) {
         addQueryRel(otherRel);
+    }
+}
+
+void QueryGraph::finalize() {
+    for (auto& queryRel : queryRels) {
+        if (!containsQueryNode(queryRel->getSrcNodeName())) {
+            addQueryNode(queryRel->srcNode);
+        }
+        if (!containsQueryNode(queryRel->getDstNodeName())) {
+            addQueryNode(queryRel->dstNode);
+        }
     }
 }
 

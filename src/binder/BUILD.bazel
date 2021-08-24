@@ -91,6 +91,9 @@ cc_library(
 
 cc_library(
     name = "subquery_expression_impl",
+    srcs = [
+        "expression/existential_subquery_expression.cpp",
+    ],
     hdrs = [
         "include/expression/existential_subquery_expression.h",
     ],

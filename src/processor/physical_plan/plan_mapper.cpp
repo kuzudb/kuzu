@@ -143,7 +143,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSelectScanToPhysical(
             outerInfo.getDataChunkPos(variable), outerInfo.getValueVectorPos(variable));
     }
     return make_unique<SelectScan>(
-        *outerQueryResultSet, move(valueVectorsPosToSelect), context, physicalOperatorID++);
+        outerQueryResultSet, move(valueVectorsPosToSelect), context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(

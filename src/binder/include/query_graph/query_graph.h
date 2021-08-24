@@ -83,6 +83,8 @@ public:
 
     void merge(QueryGraph& other);
 
+    void finalize();
+
 private:
     unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
     initSubgraphWithSingleJoinNode(const SubqueryGraph& matchedSubgraph) const;

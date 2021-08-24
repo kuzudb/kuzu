@@ -19,5 +19,23 @@ uint32_t BoundSingleQuery::getNumQueryRels() const {
     return numQueryRels;
 }
 
+vector<const Expression*> BoundSingleQuery::getIncludedVariables() const {
+    vector<const Expression*> result;
+    for (auto& queryPart : boundQueryParts) {
+        for (auto& variable : queryPart->getIncludedVariables()) {
+            result.push_back(variable);
+        }
+    }
+    for (auto& readingStatement : boundReadingStatements) {
+        for (auto& variable : readingStatement->getIncludedVariables()) {
+            result.push_back(variable);
+        }
+    }
+    for (auto& variable : boundReturnStatement->getIncludedVariables()) {
+        result.push_back(variable);
+    }
+    return result;
+}
+
 } // namespace binder
 } // namespace graphflow

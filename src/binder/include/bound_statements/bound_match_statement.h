@@ -25,6 +25,22 @@ public:
         }
     }
 
+    vector<const Expression *> getIncludedVariables() const override {
+        vector<const Expression*> result;
+        for (auto& queryNode : queryGraph->queryNodes) {
+            result.push_back(queryNode.get());
+        }
+        for (auto& queryRel : queryGraph->queryRels) {
+            result.push_back(queryRel.get());
+        }
+        if (whereExpression) {
+            for (auto& expression : whereExpression->getIncludedVariableExpressions()) {
+                result.push_back(expression);
+            }
+        }
+        return result;
+    }
+
 public:
     unique_ptr<QueryGraph> queryGraph;
     shared_ptr<Expression> whereExpression;

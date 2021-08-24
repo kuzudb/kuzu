@@ -20,6 +20,10 @@ public:
         : BoundReadingStatement{LOAD_CSV_STATEMENT}, filePath{move(filePath)},
           tokenSeparator(tokenSeparator), csvColumnVariables{move(csvColumnVariables)} {}
 
+    vector<const Expression*> getIncludedVariables() const override {
+        return vector<const Expression*>();
+    }
+
 public:
     string filePath;
     char tokenSeparator;

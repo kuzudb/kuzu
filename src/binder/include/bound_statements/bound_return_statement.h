@@ -13,6 +13,10 @@ public:
 
     inline BoundProjectionBody* getBoundProjectionBody() const { return projectionBody.get(); }
 
+    virtual vector<const Expression*> getIncludedVariables() const {
+        return projectionBody->getIncludedVariables();
+    }
+
 private:
     unique_ptr<BoundProjectionBody> projectionBody;
 };
