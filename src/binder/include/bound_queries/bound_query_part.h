@@ -17,7 +17,7 @@ class BoundQueryPart {
 public:
     uint32_t getNumQueryRels() const;
 
-    vector<const Expression*> getIncludedVariables() const;
+    vector<shared_ptr<Expression>> getIncludedVariables() const;
 
 public:
     vector<unique_ptr<BoundReadingStatement>> boundReadingStatements;

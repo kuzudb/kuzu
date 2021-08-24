@@ -13,7 +13,7 @@ class BoundReadingStatement {
 public:
     virtual ~BoundReadingStatement() = default;
 
-    virtual vector<const Expression*> getIncludedVariables() const = 0;
+    virtual vector<shared_ptr<Expression>> getIncludedVariables() const = 0;
 
 protected:
     explicit BoundReadingStatement(StatementType statementType) : statementType{statementType} {}

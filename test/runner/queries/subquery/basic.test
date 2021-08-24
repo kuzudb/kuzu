@@ -1,13 +1,37 @@
 # description: subquery test
 
--NAME Test1
+-NAME ExistSubqueryTest
 -QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) RETURN COUNT(*) } RETURN COUNT(*)
 ---- 5
 
--NAME Test2
+-NAME ExistSubqueryTest2
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE b.fName='Farooq' RETURN COUNT(*) } RETURN COUNT(*)
+---- 1
+
+-NAME ExistSubqueryTest3
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(c:organisation) RETURN COUNT(*) } OR b.fName='Greg'  RETURN COUNT(*)
+---- 7
+
+-NAME NotExistSubqueryTest
+-QUERY MATCH (a:person) WHERE NOT EXISTS { MATCH (a)-[:knows]->(b:person) RETURN COUNT(*) } RETURN COUNT(*)
+---- 3
+
+-NAME NotExistSubqueryCyclicTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE NOT EXISTS { MATCH (a)<-[:knows]-(b) RETURN COUNT(*) } RETURN COUNT(*)
+---- 2
+
+-NAME ExistsSubqueryColExtendTest
 -QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(b:organisation) RETURN COUNT(*) } RETURN COUNT(*)
 ---- 3
 
--NAME Test3
+-NAME ExistSubqueryMultiPartCyclicTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WITH a, b AS c MATCH (c)-[:knows]->(a) RETURN COUNT(*) } RETURN COUNT(*)
+---- 4
+
+-NAME ExistsSubqueryORTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(b:organisation) RETURN COUNT(*) } OR EXISTS { MATCH (a)-[:workAt]->(c:organisation) RETURN COUNT(*) } RETURN COUNT(*)
+---- 6
+
+-NAME NestedSubqueryTest
 -QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE EXISTS { MATCH (b)-[:workAt]->(c:organisation) RETURN COUNT(*) } RETURN COUNT(*) } RETURN COUNT(*)
 ---- 4

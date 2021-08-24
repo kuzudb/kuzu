@@ -19,6 +19,10 @@ public:
 
     string getInternalName() const override { return uniqueName; }
 
+    unique_ptr<Expression> copy() override {
+        return make_unique<VariableExpression>(expressionType, dataType, uniqueName);
+    }
+
 protected:
     string uniqueName;
 };

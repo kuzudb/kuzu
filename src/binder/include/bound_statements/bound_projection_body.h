@@ -23,8 +23,8 @@ public:
     inline uint64_t getSkipNumber() const { return skipNumber; }
     inline uint64_t getLimitNumber() const { return limitNumber; }
 
-    vector<const Expression*> getIncludedVariables() const {
-        vector<const Expression*> result;
+    vector<shared_ptr<Expression>> getIncludedVariables() const {
+        vector<shared_ptr<Expression>> result;
         for (auto& projectionExpression : projectionExpressions) {
             for (auto& variable : projectionExpression->getIncludedVariableExpressions()) {
                 result.push_back(variable);

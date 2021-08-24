@@ -94,6 +94,7 @@ struct BinaryOperationExecutor {
         } else if (right.state->isFlat()) {
             auto rPos = right.state->getPositionOfCurrIdx();
             auto& rValue = rValues[rPos];
+            auto k = ((gf_string_t&)rValue).getAsShortString();
             auto isRightNull = right.isNull(rPos);
             // left and result vectors share the same selectedPositions.
             if (!isRightNull && left.hasNoNullsGuarantee()) {

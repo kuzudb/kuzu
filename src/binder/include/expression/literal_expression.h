@@ -13,6 +13,10 @@ public:
 
     void castToString();
 
+    unique_ptr<Expression> copy() override {
+        return make_unique<LiteralExpression>(expressionType, dataType, Literal(literal));
+    }
+
 public:
     Literal literal;
 };

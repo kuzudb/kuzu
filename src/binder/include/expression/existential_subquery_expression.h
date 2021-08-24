@@ -12,7 +12,7 @@ namespace binder {
 class ExistentialSubqueryExpression : public Expression {
 
 public:
-    ExistentialSubqueryExpression(unique_ptr<BoundSingleQuery> subquery)
+    ExistentialSubqueryExpression(shared_ptr<BoundSingleQuery> subquery)
         : Expression{EXISTENTIAL_SUBQUERY, BOOL}, subquery{move(subquery)} {
 
     }
@@ -25,11 +25,19 @@ public:
     inline void setSubPlan(unique_ptr<LogicalPlan> plan) { subPlan = move(plan); }
     inline unique_ptr<LogicalPlan> moveSubPlan() { return move(subPlan); }
 
-    vector<const Expression*> getIncludedExpressionsWithTypes(
-        const unordered_set<ExpressionType>& expressionTypes) const override;
+    vector<shared_ptr<Expression>> getIncludedExpressionsWithTypes(
+        const unordered_set<ExpressionType>& expressionTypes) override;
+
+    unique_ptr<Expression> copy() override {
+        auto expression = make_unique<ExistentialSubqueryExpression>(subquery);
+        if (subPlan) {
+            expression->setSubPlan(subPlan->copy());
+        }
+        return expression;
+    }
 
 private:
-    unique_ptr<BoundSingleQuery> subquery;
+    shared_ptr<BoundSingleQuery> subquery;
     unique_ptr<LogicalPlan> subPlan;
 };
 

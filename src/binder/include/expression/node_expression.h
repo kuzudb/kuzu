@@ -15,6 +15,10 @@ public:
 
     inline string getIDProperty() const { return uniqueName + "." + INTERNAL_ID_SUFFIX; }
 
+    unique_ptr<Expression> copy() override {
+        return make_unique<NodeExpression>(uniqueName, label);
+    }
+
 public:
     label_t label;
 };

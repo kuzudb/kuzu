@@ -1,7 +1,6 @@
 #include "src/planner/include/enumerator.h"
 
 #include "src/binder/include/bound_statements/bound_match_statement.h"
-#include "src/binder/include/expression/existential_subquery_expression.h"
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
@@ -34,10 +33,9 @@ static vector<shared_ptr<Expression>> getNewMatchedExpressions(
 static vector<shared_ptr<Expression>> extractWhereClause(
     const BoundReadingStatement& readingStatement);
 static vector<shared_ptr<Expression>> splitExpressionOnAND(shared_ptr<Expression> expression);
-static unordered_set<uint32_t> getUnFlatGroupsPos(
-    const Expression& expression, const Schema& schema);
+static unordered_set<uint32_t> getUnFlatGroupsPos(Expression& expression, const Schema& schema);
 static unordered_set<uint32_t> getUnFlatGroupsPos(const Schema& schema);
-static uint32_t getAnyGroupPos(const Expression& expression, const Schema& schema);
+static uint32_t getAnyGroupPos(Expression& expression, const Schema& schema);
 static uint32_t getAnyGroupPos(const Schema& schema);
 
 // check for all variable expressions and rewrite
@@ -167,7 +165,8 @@ void Enumerator::enumerateSingleNode(const vector<shared_ptr<Expression>>& where
         appendSelectScan(*plan);
         auto newSubgraph = context->getEmptySubqueryGraph();
         for (auto& node : context->outerQueryNodesToSelect) {
-            newSubgraph.addQueryNode(context->mergedQueryGraph->getQueryNodePos(node->getInternalName()));
+            newSubgraph.addQueryNode(
+                context->mergedQueryGraph->getQueryNodePos(node->getInternalName()));
         }
         context->addPlan(newSubgraph, move(plan));
         return;
@@ -310,6 +309,28 @@ void Enumerator::enumerateHashJoin(const vector<shared_ptr<Expression>>& whereEx
     }
 }
 
+uint32_t Enumerator::planSubquery(
+    ExistentialSubqueryExpression& subqueryExpression, LogicalPlan& outerPlan) {
+    auto groupPos = UINT32_MAX;
+    vector<shared_ptr<NodeExpression>> tmp;
+    for (auto& variable : subqueryExpression.getIncludedVariableExpressions()) {
+        if (!context->getQueryGraph()->containsQueryNode(variable->getInternalName())) {
+            continue;
+        }
+        assert(variable->dataType != REL);
+        auto node = static_pointer_cast<NodeExpression>(variable);
+        groupPos = outerPlan.schema->getGroupPos(node->getIDProperty());
+        appendFlatten(groupPos, outerPlan);
+        tmp.push_back(node);
+    }
+    auto prevContext = enterSubquery();
+    context->setOuterQuerySchema(outerPlan.schema->copy());
+    context->outerQueryNodesToSelect = move(tmp);
+    subqueryExpression.setSubPlan(getBestPlan(*subqueryExpression.getSubquery()));
+    exitSubquery(move(prevContext));
+    return groupPos;
+}
+
 unique_ptr<EnumeratorContext> Enumerator::enterSubquery() {
     auto prevContext = move(context);
     context = make_unique<EnumeratorContext>();
@@ -349,7 +370,8 @@ void Enumerator::appendSelectScan(LogicalPlan& plan) {
         variablesToSelect.push_back(node->getIDProperty());
         plan.schema->appendToGroup(node->getIDProperty(), groupPos);
     }
-    auto selectScan = make_shared<LogicalSelectScan>(move(variablesToSelect), context->getOuterQuerySchema()->copy());
+    auto selectScan = make_shared<LogicalSelectScan>(
+        move(variablesToSelect), context->getOuterQuerySchema()->copy());
     plan.appendOperator(move(selectScan));
 }
 
@@ -465,8 +487,9 @@ void Enumerator::appendLogicalHashJoin(
 }
 
 void Enumerator::appendFilter(shared_ptr<Expression> expression, LogicalPlan& plan) {
-    uint32_t groupPosToSelect = appendNecessaryScansAndFlattens(*expression, plan);
-    auto filter = make_shared<LogicalFilter>(expression, groupPosToSelect, plan.lastOperator);
+    shared_ptr<Expression> expressionCopy = expression->copy();
+    uint32_t groupPosToSelect = appendNecessaryOperatorForExpression(*expressionCopy, plan);
+    auto filter = make_shared<LogicalFilter>(expressionCopy, groupPosToSelect, plan.lastOperator);
     plan.schema->groups[groupPosToSelect]->estimatedCardinality *= PREDICATE_SELECTIVITY;
     plan.appendOperator(move(filter));
 }
@@ -496,12 +519,15 @@ void Enumerator::appendProjection(const vector<shared_ptr<Expression>>& expressi
         plan.isCountOnly = true;
         return;
     }
-    auto expressionsToProject =
-        rewriteExpressionToProject(expressions, graph.getCatalog(), isRewritingAllProperties);
+    vector<shared_ptr<Expression>> expressionsToProject;
+    for (auto& expression :
+        rewriteExpressionToProject(expressions, graph.getCatalog(), isRewritingAllProperties)) {
+        expressionsToProject.push_back(expression->copy());
+    }
 
     vector<uint32_t> exprResultInGroupPos;
     for (auto& expression : expressionsToProject) {
-        uint32_t groupPosToWrite = appendNecessaryScansAndFlattens(*expression, plan);
+        uint32_t groupPosToWrite = appendNecessaryOperatorForExpression(*expression, plan);
         exprResultInGroupPos.push_back(groupPosToWrite);
     }
 
@@ -544,40 +570,27 @@ void Enumerator::appendProjection(const vector<shared_ptr<Expression>>& expressi
     plan.appendOperator(move(projection));
 }
 
-uint32_t Enumerator::appendNecessaryScansAndFlattens(
-    const Expression& expression, LogicalPlan& plan) {
+uint32_t Enumerator::appendNecessaryOperatorForExpression(
+    Expression& expression, LogicalPlan& plan) {
     appendNecessaryScans(expression, plan);
     uint32_t groupPosToSelect = UINT32_MAX;
-    if (expression.expressionType == EXISTENTIAL_SUBQUERY) {
-        vector<shared_ptr<NodeExpression>> tmp;
-        for (auto& variable : expression.getIncludedVariableExpressions()) {
-            if (!context->getQueryGraph()->containsQueryNode(variable->getInternalName())) {
-                continue;
-            }
-            assert(variable->dataType != REL);
-            auto node = (NodeExpression*)variable;
-            auto groupPos = plan.schema->getGroupPos(node->getIDProperty());
-            if (!plan.schema->groups[groupPos]->isFlat) {
-                appendFlatten(groupPos, plan);
-            }
-            groupPosToSelect = groupPos;
-            tmp.push_back(make_shared<NodeExpression>(node->getInternalName(), node->label));
+    if (expression.hasSubqueryExpression()) {
+        auto expressions = expression.getIncludedSubqueryExpressions();
+        for (auto& expr : expressions) {
+            groupPosToSelect = planSubquery((ExistentialSubqueryExpression&)*expr, plan);
         }
-        auto prevContext = enterSubquery();
-        context->setOuterQuerySchema(plan.schema->copy());
-        context->outerQueryNodesToSelect = move(tmp);
-        auto& subqueryExpression = (ExistentialSubqueryExpression&) expression;
-        subqueryExpression.setSubPlan(getBestPlan(*subqueryExpression.getSubquery()));
-        exitSubquery(move(prevContext));
-    } else {
-        auto unFlatGroupsPos = getUnFlatGroupsPos(expression, *plan.schema);
-        groupPosToSelect = unFlatGroupsPos.empty() ? getAnyGroupPos(expression, *plan.schema) :
-                                                     appendNecessaryFlattens(unFlatGroupsPos, plan);
+        auto k = 1;
+    }
+    auto unFlatGroupsPos = getUnFlatGroupsPos(expression, *plan.schema);
+    if (!unFlatGroupsPos.empty()) {
+        return appendNecessaryFlattens(unFlatGroupsPos, plan);
+    } else if (groupPosToSelect == UINT32_MAX) {
+        return getAnyGroupPos(expression, *plan.schema);
     }
     return groupPosToSelect;
 }
 
-void Enumerator::appendNecessaryScans(const Expression& expression, LogicalPlan& plan) {
+void Enumerator::appendNecessaryScans(Expression& expression, LogicalPlan& plan) {
     for (auto& tmp : expression.getIncludedPropertyExpressions()) {
         auto& propertyExpression = (const PropertyExpression&)*tmp;
         if (plan.schema->containVariable(propertyExpression.getInternalName())) {
@@ -714,7 +727,7 @@ vector<shared_ptr<Expression>> splitExpressionOnAND(shared_ptr<Expression> expre
     return result;
 }
 
-unordered_set<uint32_t> getUnFlatGroupsPos(const Expression& expression, const Schema& schema) {
+unordered_set<uint32_t> getUnFlatGroupsPos(Expression& expression, const Schema& schema) {
     auto subExpressions = expression.getIncludedLeafExpressions();
     unordered_set<uint32_t> unFlatGroupsPos;
     for (auto& subExpression : subExpressions) {
@@ -743,7 +756,7 @@ unordered_set<uint32_t> getUnFlatGroupsPos(const Schema& schema) {
     return unFlatGroupsPos;
 }
 
-uint32_t getAnyGroupPos(const Expression& expression, const Schema& schema) {
+uint32_t getAnyGroupPos(Expression& expression, const Schema& schema) {
     auto subExpressions = expression.getIncludedLeafExpressions();
     GF_ASSERT(!subExpressions.empty());
     return schema.getGroupPos(subExpressions[0]->getInternalName());

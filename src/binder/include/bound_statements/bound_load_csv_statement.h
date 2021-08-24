@@ -20,8 +20,8 @@ public:
         : BoundReadingStatement{LOAD_CSV_STATEMENT}, filePath{move(filePath)},
           tokenSeparator(tokenSeparator), csvColumnVariables{move(csvColumnVariables)} {}
 
-    vector<const Expression*> getIncludedVariables() const override {
-        return vector<const Expression*>();
+    vector<shared_ptr<Expression>> getIncludedVariables() const override {
+        return vector<shared_ptr<Expression>>();
     }
 
 public:

@@ -11,7 +11,7 @@ class Literal {
 public:
     Literal() {}
 
-    Literal(const Literal& value) { *this = value; }
+    Literal(const Literal& other);
 
     explicit Literal(uint8_t value) : dataType(BOOL) { this->val.booleanVal = value; }
 

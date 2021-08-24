@@ -25,13 +25,13 @@ public:
         }
     }
 
-    vector<const Expression *> getIncludedVariables() const override {
-        vector<const Expression*> result;
+    vector<shared_ptr<Expression>> getIncludedVariables() const override {
+        vector<shared_ptr<Expression>> result;
         for (auto& queryNode : queryGraph->queryNodes) {
-            result.push_back(queryNode.get());
+            result.push_back(queryNode);
         }
         for (auto& queryRel : queryGraph->queryRels) {
-            result.push_back(queryRel.get());
+            result.push_back(queryRel);
         }
         if (whereExpression) {
             for (auto& expression : whereExpression->getIncludedVariableExpressions()) {

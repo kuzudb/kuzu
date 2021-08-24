@@ -2,6 +2,7 @@
 
 #include "src/binder/include/bound_queries/bound_single_query.h"
 #include "src/binder/include/bound_statements/bound_load_csv_statement.h"
+#include "src/binder/include/expression/existential_subquery_expression.h"
 #include "src/binder/include/expression/property_expression.h"
 #include "src/planner/include/enumerator_context.h"
 #include "src/planner/include/logical_plan/logical_plan.h"
@@ -35,6 +36,11 @@ private:
     void enumerateHashJoin(const vector<shared_ptr<Expression>>& whereExpressions);
     void enumerateSingleRel(const vector<shared_ptr<Expression>>& whereExpressions);
 
+    /**
+     *
+     */
+    uint32_t planSubquery(
+        ExistentialSubqueryExpression& subqueryExpression, LogicalPlan& outerPlan);
     unique_ptr<EnumeratorContext> enterSubquery();
     void exitSubquery(unique_ptr<EnumeratorContext> prevContext);
 
@@ -44,6 +50,9 @@ private:
     void appendExtendAndNecessaryFilters(const RelExpression& queryRel, Direction direction,
         const vector<shared_ptr<Expression>>& expressionsToFilter, LogicalPlan& plan);
     void appendExtend(const RelExpression& queryRel, Direction direction, LogicalPlan& plan);
+   /**
+    * Flatten all but one. Return the unFlat groupPos
+    */
     uint32_t appendNecessaryFlattens(
         const unordered_set<uint32_t>& unFlatGroupsPos, LogicalPlan& plan);
     void appendFlatten(uint32_t groupPos, LogicalPlan& plan);
@@ -53,8 +62,11 @@ private:
     bool appendIntersect(const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan);
     void appendProjection(const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan,
         bool isRewritingAllProperties);
-    uint32_t appendNecessaryScansAndFlattens(const Expression& expression, LogicalPlan& plan);
-    void appendNecessaryScans(const Expression& expression, LogicalPlan& plan);
+    /**
+     *
+     */
+    uint32_t appendNecessaryOperatorForExpression(Expression& expression, LogicalPlan& plan);
+    void appendNecessaryScans(Expression& expression, LogicalPlan& plan);
     void appendScanNodeProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
     void appendScanRelProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);
     void appendMultiplicityReducer(LogicalPlan& plan);

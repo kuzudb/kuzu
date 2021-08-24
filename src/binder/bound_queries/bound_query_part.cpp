@@ -16,8 +16,8 @@ uint32_t BoundQueryPart::getNumQueryRels() const {
     return 0;
 }
 
-vector<const Expression*> BoundQueryPart::getIncludedVariables() const {
-    vector<const Expression*> result;
+vector<shared_ptr<Expression>> BoundQueryPart::getIncludedVariables() const {
+    vector<shared_ptr<Expression>> result;
     for (auto& readingStatement : boundReadingStatements) {
         for (auto& variable : readingStatement->getIncludedVariables()) {
             result.push_back(variable);

@@ -17,6 +17,11 @@ public:
 
     inline string getDstNodeName() const { return dstNode->getInternalName(); }
 
+    unique_ptr<Expression> copy() override {
+        return make_unique<RelExpression>(
+            uniqueName, label, srcNode, dstNode, lowerBound, upperBound);
+    }
+
 public:
     label_t label;
     shared_ptr<NodeExpression> srcNode;

@@ -21,10 +21,12 @@ public:
     inline bool hasWhereExpression() const { return whereExpression != nullptr; }
     inline shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
 
-    vector<const Expression *> getIncludedVariables() const override {
+    vector<shared_ptr<Expression>> getIncludedVariables() const override {
         auto result = BoundReturnStatement::getIncludedVariables();
-        for (auto& expression : whereExpression->getIncludedVariableExpressions()) {
-            result.push_back(expression);
+        if (whereExpression) {
+            for (auto& expression : whereExpression->getIncludedVariableExpressions()) {
+                result.push_back(expression);
+            }
         }
         return result;
     }

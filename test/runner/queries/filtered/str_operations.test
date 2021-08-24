@@ -1,5 +1,9 @@
 # description: matching nodes
 
+-NAME StrVarAndIntLiteralConcat
+-QUERY MATCH (a:person) WHERE a.fName + 10 = 'Farooq10' RETURN COUNT(*)
+---- 1
+
 -NAME StrVarAndStrLiteralConcat
 -QUERY MATCH (a:person) WHERE a.fName + 'xyz' = 'Farooqxyz' RETURN COUNT(*)
 ---- 1

@@ -6,6 +6,29 @@
 namespace graphflow {
 namespace common {
 
+Literal::Literal(const Literal& other) : dataType{other.dataType} {
+    switch (dataType) {
+    case BOOL: {
+        val.booleanVal = other.val.booleanVal;
+    } break;
+    case INT64: {
+        val.int64Val = other.val.int64Val;
+    } break;
+    case DOUBLE: {
+        val.doubleVal = other.val.doubleVal;
+    } break;
+    case DATE: {
+        val.dateVal = other.val.dateVal;
+    } break;
+    case STRING: {
+        strVal = other.strVal;
+    } break;
+    default:
+        GF_ASSERT(false);
+    }
+
+}
+
 Literal& Literal::operator=(const Literal& other) {
     dataType = other.dataType;
     switch (dataType) {

@@ -16,7 +16,19 @@ Expression::Expression(
     children.push_back(child);
 }
 
-unordered_set<string> Expression::getIncludedVariableNames() const {
+bool Expression::hasSubqueryExpression() const {
+    auto result = false;
+    if (expressionType == EXISTENTIAL_SUBQUERY) {
+        result = true;
+    } else {
+        for (auto& child : children) {
+            result |= child->hasSubqueryExpression();
+        }
+    }
+    return result;
+}
+
+unordered_set<string> Expression::getIncludedVariableNames() {
     unordered_set<string> result;
     for (auto& variableExpression : getIncludedVariableExpressions()) {
         result.insert(variableExpression->getInternalName());
@@ -24,24 +36,39 @@ unordered_set<string> Expression::getIncludedVariableNames() const {
     return result;
 }
 
-vector<const Expression*> Expression::getIncludedVariableExpressions() const {
+vector<shared_ptr<Expression>> Expression::getIncludedVariableExpressions() {
     return getIncludedExpressionsWithTypes(unordered_set<ExpressionType>{VARIABLE});
 }
 
-vector<const Expression*> Expression::getIncludedPropertyExpressions() const {
+vector<shared_ptr<Expression>> Expression::getIncludedPropertyExpressions() {
     return getIncludedExpressionsWithTypes(unordered_set<ExpressionType>{PROPERTY});
 }
 
-vector<const Expression*> Expression::getIncludedLeafExpressions() const {
+vector<shared_ptr<Expression>> Expression::getIncludedLeafExpressions() {
     return getIncludedExpressionsWithTypes(
         unordered_set<ExpressionType>{PROPERTY, CSV_LINE_EXTRACT, ALIAS});
 }
 
-vector<const Expression*> Expression::getIncludedExpressionsWithTypes(
-    const unordered_set<ExpressionType>& expressionTypes) const {
-    auto result = vector<const Expression*>();
+vector<shared_ptr<Expression>> Expression::getIncludedSubqueryExpressions() {
+    return getIncludedExpressionsWithTypes(unordered_set<ExpressionType>{EXISTENTIAL_SUBQUERY});
+}
+
+unique_ptr<Expression> Expression::copy() {
+    if (children.size() == 2) {
+        return make_unique<Expression>(expressionType, dataType, children[0]->copy(), children[1]->copy());
+    } else if (children.size() == 1) {
+        return make_unique<Expression>(expressionType, dataType, children[0]->copy());
+    } else {
+        assert(children.empty());
+        return make_unique<Expression>(expressionType, dataType);
+    }
+}
+
+vector<shared_ptr<Expression>> Expression::getIncludedExpressionsWithTypes(
+    const unordered_set<ExpressionType>& expressionTypes) {
+    auto result = vector<shared_ptr<Expression>>();
     if (expressionTypes.contains(expressionType)) {
-        result.push_back(this);
+        result.push_back(shared_from_this());
         return result;
     }
     if (expressionType == EXISTENTIAL_SUBQUERY) {

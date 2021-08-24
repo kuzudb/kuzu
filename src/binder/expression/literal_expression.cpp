@@ -31,6 +31,7 @@ void LiteralExpression::castToString() {
         assert(false);
     }
     literal.strVal = valAsString;
+    literal.dataType = STRING;
     dataType = STRING;
 }
 

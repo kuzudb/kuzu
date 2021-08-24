@@ -17,6 +17,10 @@ public:
         return children[0]->getInternalName() + "." + propertyName;
     }
 
+    unique_ptr<Expression> copy() override {
+        return make_unique<PropertyExpression>(dataType, propertyName, propertyKey, children[0]->copy());
+    }
+
 public:
     string propertyName;
     uint32_t propertyKey;
