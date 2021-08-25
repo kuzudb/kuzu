@@ -58,7 +58,10 @@ uint32_t QueryGraph::getQueryNodePos(const string& queryNodeName) const {
 }
 
 void QueryGraph::addQueryNode(shared_ptr<NodeExpression> queryNode) {
-    if(containsQueryNode(queryNode->getInternalName())) {
+    // Note that a note may be added multiple times. We should only keep one of it.
+    // E.g. MATCH (a:person)-[:knows]->(b:person), (a)-[:knows]->(c:person)
+    // a will be added twice during binding
+    if (containsQueryNode(queryNode->getInternalName())) {
         return;
     }
     queryNodeNameToPosMap.insert({queryNode->getInternalName(), queryNodes.size()});
@@ -148,17 +151,6 @@ void QueryGraph::merge(QueryGraph& other) {
     }
     for (auto& otherRel : other.queryRels) {
         addQueryRel(otherRel);
-    }
-}
-
-void QueryGraph::finalize() {
-    for (auto& queryRel : queryRels) {
-        if (!containsQueryNode(queryRel->getSrcNodeName())) {
-            addQueryNode(queryRel->srcNode);
-        }
-        if (!containsQueryNode(queryRel->getDstNodeName())) {
-            addQueryNode(queryRel->dstNode);
-        }
     }
 }
 

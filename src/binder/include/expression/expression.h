@@ -44,7 +44,6 @@ public:
     vector<shared_ptr<Expression>> getIncludedLeafExpressions();
     vector<shared_ptr<Expression>> getIncludedSubqueryExpressions();
 
-
     // return named used for parsing user input and printing
     virtual inline string getExternalName() const { return rawExpression; }
 

@@ -47,9 +47,7 @@ public:
 
     inline bool isSubqueryEnumeration() const { return outerQuerySchema != nullptr; }
     inline Schema* getOuterQuerySchema() const { return outerQuerySchema.get(); }
-    inline void setOuterQuerySchema(unique_ptr<Schema> schema) {
-        outerQuerySchema = move(schema);
-    }
+    inline void setOuterQuerySchema(unique_ptr<Schema> schema) { outerQuerySchema = move(schema); }
 
 public:
     uint32_t currentLevel;

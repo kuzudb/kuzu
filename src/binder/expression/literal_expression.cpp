@@ -13,25 +13,7 @@ LiteralExpression::LiteralExpression(
 }
 
 void LiteralExpression::castToString() {
-    string valAsString;
-    switch (dataType) {
-    case BOOL:
-        valAsString = TypeUtils::toString(literal.val.booleanVal);
-        break;
-    case INT64:
-        valAsString = TypeUtils::toString(literal.val.int64Val);
-        break;
-    case DOUBLE:
-        valAsString = TypeUtils::toString(literal.val.doubleVal);
-        break;
-    case DATE:
-        valAsString = Date::toString(literal.val.dateVal);
-        break;
-    default:
-        assert(false);
-    }
-    literal.strVal = valAsString;
-    literal.dataType = STRING;
+    literal.castToString();
     dataType = STRING;
 }
 

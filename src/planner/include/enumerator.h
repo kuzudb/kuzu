@@ -31,14 +31,12 @@ private:
     void enumerateReadingStatement(BoundReadingStatement& readingStatement);
     void enumerateLoadCSVStatement(const BoundLoadCSVStatement& loadCSVStatement);
     void enumerateSubplans(const vector<shared_ptr<Expression>>& whereExpressions);
-    void enumerateSingleNode(const vector<shared_ptr<Expression>>& whereExpressions);
+    void enumerateInitialScan(const vector<shared_ptr<Expression>>& whereExpressions);
     void enumerateNextLevel(const vector<shared_ptr<Expression>>& whereExpressions);
     void enumerateHashJoin(const vector<shared_ptr<Expression>>& whereExpressions);
     void enumerateSingleRel(const vector<shared_ptr<Expression>>& whereExpressions);
 
-    /**
-     *
-     */
+    // Flatten all. Return any flat groupPos.
     uint32_t planSubquery(
         ExistentialSubqueryExpression& subqueryExpression, LogicalPlan& outerPlan);
     unique_ptr<EnumeratorContext> enterSubquery();
@@ -50,9 +48,7 @@ private:
     void appendExtendAndNecessaryFilters(const RelExpression& queryRel, Direction direction,
         const vector<shared_ptr<Expression>>& expressionsToFilter, LogicalPlan& plan);
     void appendExtend(const RelExpression& queryRel, Direction direction, LogicalPlan& plan);
-   /**
-    * Flatten all but one. Return the unFlat groupPos
-    */
+    // Flatten all but one. Return the unFlat groupPos
     uint32_t appendNecessaryFlattens(
         const unordered_set<uint32_t>& unFlatGroupsPos, LogicalPlan& plan);
     void appendFlatten(uint32_t groupPos, LogicalPlan& plan);
@@ -62,9 +58,7 @@ private:
     bool appendIntersect(const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan);
     void appendProjection(const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan,
         bool isRewritingAllProperties);
-    /**
-     *
-     */
+    // Return groupPos to select/write
     uint32_t appendNecessaryOperatorForExpression(Expression& expression, LogicalPlan& plan);
     void appendNecessaryScans(Expression& expression, LogicalPlan& plan);
     void appendScanNodeProperty(const PropertyExpression& propertyExpression, LogicalPlan& plan);

@@ -18,7 +18,8 @@ public:
     }
 
     unique_ptr<Expression> copy() override {
-        return make_unique<PropertyExpression>(dataType, propertyName, propertyKey, children[0]->copy());
+        return make_unique<PropertyExpression>(
+            dataType, propertyName, propertyKey, children[0]->copy());
     }
 
 public:

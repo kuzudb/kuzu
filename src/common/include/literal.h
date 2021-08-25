@@ -23,9 +23,9 @@ public:
 
     explicit Literal(const string& value) : dataType(STRING) { this->strVal = value; }
 
-    Literal& operator=(const Literal& other);
-
     string toString() const;
+
+    void castToString();
 
 public:
     union Val {

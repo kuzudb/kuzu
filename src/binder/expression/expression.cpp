@@ -55,7 +55,8 @@ vector<shared_ptr<Expression>> Expression::getIncludedSubqueryExpressions() {
 
 unique_ptr<Expression> Expression::copy() {
     if (children.size() == 2) {
-        return make_unique<Expression>(expressionType, dataType, children[0]->copy(), children[1]->copy());
+        return make_unique<Expression>(
+            expressionType, dataType, children[0]->copy(), children[1]->copy());
     } else if (children.size() == 1) {
         return make_unique<Expression>(expressionType, dataType, children[0]->copy());
     } else {

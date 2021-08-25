@@ -3,7 +3,11 @@
 namespace graphflow {
 namespace binder {
 
-// NOTE:
+/**
+ * ExistentialSubqueryExpression has to overwrite getIncludedExpressionsWithTypes() because its
+ * child is not an expression but a boundSingleQuery.
+ * Currently we only support getting VARIABLE or EXISTENTIAL_SUBQUERY type.
+ */
 vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getIncludedExpressionsWithTypes(
     const unordered_set<ExpressionType>& expressionTypes) {
     vector<shared_ptr<Expression>> expressions;

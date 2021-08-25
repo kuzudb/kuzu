@@ -21,7 +21,11 @@ public:
           tokenSeparator(tokenSeparator), csvColumnVariables{move(csvColumnVariables)} {}
 
     vector<shared_ptr<Expression>> getIncludedVariables() const override {
-        return vector<shared_ptr<Expression>>();
+        vector<shared_ptr<Expression>> result;
+        for (auto& variable : csvColumnVariables) {
+            result.push_back(variable);
+        }
+        return result;
     }
 
 public:

@@ -206,7 +206,6 @@ unique_ptr<QueryGraph> QueryBinder::bindQueryGraph(
             leftNode = rightNode;
         }
     }
-    queryGraph->finalize();
     return queryGraph;
 }
 
@@ -286,8 +285,8 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
         if (!parsedName.empty()) {
             variablesInScope.insert({parsedName, queryNode});
         }
-        queryGraph.addQueryNode(queryNode);
     }
+    queryGraph.addQueryNode(queryNode);
     return queryNode;
 }
 

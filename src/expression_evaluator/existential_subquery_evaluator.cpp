@@ -1,7 +1,7 @@
 #include "src/expression_evaluator/include/existential_subquery_evaluator.h"
 
-#include "src/processor/include/physical_plan/operator/sink/result_collector.h"
 #include "src/processor/include/physical_plan/operator/select_scan/select_scan.h"
+#include "src/processor/include/physical_plan/operator/sink/result_collector.h"
 
 namespace graphflow {
 namespace evaluator {
@@ -28,7 +28,9 @@ uint64_t ExistentialSubqueryEvaluator::select(sel_t* selectedPositions) {
     return executeSubplan() != 0;
 }
 
-// TODO: figure out what's the right way to clone subPlan (with selectScan)
+// NOTE: this is a hack. Similar to expression_evaluator clone which requires an input result.
+// Select Scan also requires new inResultSet. Instead of changing the interface of operator clone,
+// we traverse subPlan and directly update inResult for selectScan.
 unique_ptr<ExpressionEvaluator> ExistentialSubqueryEvaluator::clone(
     MemoryManager& memoryManager, const ResultSet& resultSet) {
     auto subPlanResultCollectorClone = unique_ptr<ResultCollector>{
@@ -39,7 +41,8 @@ unique_ptr<ExpressionEvaluator> ExistentialSubqueryEvaluator::clone(
     }
     assert(op->operatorType == SELECT_SCAN);
     ((SelectScan*)op)->setInResultSet(&resultSet);
-    return make_unique<ExistentialSubqueryEvaluator>(memoryManager, move(subPlanResultCollectorClone));
+    return make_unique<ExistentialSubqueryEvaluator>(
+        memoryManager, move(subPlanResultCollectorClone));
 }
 
 } // namespace evaluator

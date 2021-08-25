@@ -143,13 +143,13 @@ void Enumerator::enumerateLoadCSVStatement(const BoundLoadCSVStatement& loadCSVS
 }
 
 void Enumerator::enumerateSubplans(const vector<shared_ptr<Expression>>& whereExpressions) {
-    enumerateSingleNode(whereExpressions);
+    enumerateInitialScan(whereExpressions);
     while (context->hasNextLevel()) {
         enumerateNextLevel(whereExpressions);
     }
 }
 
-void Enumerator::enumerateSingleNode(const vector<shared_ptr<Expression>>& whereExpressions) {
+void Enumerator::enumerateInitialScan(const vector<shared_ptr<Expression>>& whereExpressions) {
     auto emptySubgraph = context->getEmptySubqueryGraph();
     unique_ptr<LogicalPlan> prevPlan;
     if (context->containPlans(emptySubgraph)) {
@@ -312,8 +312,9 @@ void Enumerator::enumerateHashJoin(const vector<shared_ptr<Expression>>& whereEx
 uint32_t Enumerator::planSubquery(
     ExistentialSubqueryExpression& subqueryExpression, LogicalPlan& outerPlan) {
     auto groupPos = UINT32_MAX;
-    vector<shared_ptr<NodeExpression>> tmp;
+    vector<shared_ptr<NodeExpression>> nodesToSelect;
     for (auto& variable : subqueryExpression.getIncludedVariableExpressions()) {
+        // project on current graph
         if (!context->getQueryGraph()->containsQueryNode(variable->getInternalName())) {
             continue;
         }
@@ -321,11 +322,11 @@ uint32_t Enumerator::planSubquery(
         auto node = static_pointer_cast<NodeExpression>(variable);
         groupPos = outerPlan.schema->getGroupPos(node->getIDProperty());
         appendFlatten(groupPos, outerPlan);
-        tmp.push_back(node);
+        nodesToSelect.push_back(node);
     }
     auto prevContext = enterSubquery();
     context->setOuterQuerySchema(outerPlan.schema->copy());
-    context->outerQueryNodesToSelect = move(tmp);
+    context->outerQueryNodesToSelect = move(nodesToSelect);
     subqueryExpression.setSubPlan(getBestPlan(*subqueryExpression.getSubquery()));
     exitSubquery(move(prevContext));
     return groupPos;
@@ -579,7 +580,6 @@ uint32_t Enumerator::appendNecessaryOperatorForExpression(
         for (auto& expr : expressions) {
             groupPosToSelect = planSubquery((ExistentialSubqueryExpression&)*expr, plan);
         }
-        auto k = 1;
     }
     auto unFlatGroupsPos = getUnFlatGroupsPos(expression, *plan.schema);
     if (!unFlatGroupsPos.empty()) {
