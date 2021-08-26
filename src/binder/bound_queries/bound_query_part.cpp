@@ -16,5 +16,15 @@ uint32_t BoundQueryPart::getNumQueryRels() const {
     return 0;
 }
 
+vector<shared_ptr<Expression>> BoundQueryPart::getDependentProperties() const {
+    auto result = boundWithStatement->getDependentProperties();
+    for (auto& readingStatement : boundReadingStatements) {
+        for (auto& propertyExpression : readingStatement->getDependentProperties()) {
+            result.push_back(propertyExpression);
+        }
+    }
+    return result;
+}
+
 } // namespace binder
 } // namespace graphflow

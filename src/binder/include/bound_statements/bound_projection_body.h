@@ -23,6 +23,8 @@ public:
     inline uint64_t getSkipNumber() const { return skipNumber; }
     inline uint64_t getLimitNumber() const { return limitNumber; }
 
+    vector<shared_ptr<Expression>> getDependentProperties() const;
+
 private:
     vector<shared_ptr<Expression>> projectionExpressions;
     uint64_t skipNumber;
