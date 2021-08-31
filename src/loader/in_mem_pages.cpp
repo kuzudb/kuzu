@@ -14,7 +14,7 @@ void InMemPages::saveToFile() {
         throw invalid_argument("InMemPages: Empty filename");
     }
     auto fileInfo = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
-    auto size = numPages << PAGE_SIZE_LOG_2;
+    uint64_t size = numPages << PAGE_SIZE_LOG_2;
     FileUtils::writeToFile(fileInfo.get(), data.get(), size, 0);
     FileUtils::closeFile(fileInfo->fd);
 }

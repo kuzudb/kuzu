@@ -24,8 +24,9 @@ public:
     static void closeFile(int fd);
 
     static unique_ptr<uint8_t[]> readFile(FileInfo* fileInfo);
-    static void readFromFile(FileInfo* fileInfo, void* buffer, int64_t numBytes, uint64_t position);
-    static void writeToFile(FileInfo* fileInfo, void* buffer, int64_t numBytes, uint64_t offset);
+    static void readFromFile(
+        FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position);
+    static void writeToFile(FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t offset);
 
     static void createDir(const string& dir);
     static void removeDir(const string& dir);
