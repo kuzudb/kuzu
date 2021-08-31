@@ -16,31 +16,25 @@ Expression::Expression(
     children.push_back(child);
 }
 
-unordered_set<string> Expression::getIncludedVariableNames() const {
-    auto result = unordered_set<string>();
-    if (isExpressionLiteral(expressionType)) {
-        return result;
-    } else if (VARIABLE == expressionType) {
-        result.insert({getInternalName()});
-    } else {
-        for (auto& child : children) {
-            auto tmp = child->getIncludedVariableNames();
-            result.insert(begin(tmp), end(tmp));
-        }
+unordered_set<string> Expression::getDependentVariableNames() {
+    unordered_set<string> result;
+    for (auto& variableExpression : getDependentVariables()) {
+        result.insert(variableExpression->getInternalName());
     }
     return result;
 }
 
-vector<const Expression*> Expression::getIncludedExpressions(
-    const unordered_set<ExpressionType>& expressionTypes) const {
-    auto result = vector<const Expression*>();
+vector<shared_ptr<Expression>> Expression::getDependentExpressionsWithTypes(
+    const unordered_set<ExpressionType>& expressionTypes) {
+    vector<shared_ptr<Expression>> result;
     if (expressionTypes.contains(expressionType)) {
-        result.push_back(this);
+        result.push_back(shared_from_this());
         return result;
     }
     for (auto& child : children) {
-        auto tmp = child->getIncludedExpressions(expressionTypes);
-        result.insert(end(result), begin(tmp), end(tmp));
+        for (auto& expression : child->getDependentExpressionsWithTypes(expressionTypes)) {
+            result.push_back(expression);
+        }
     }
     return result;
 }

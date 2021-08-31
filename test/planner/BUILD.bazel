@@ -1,0 +1,25 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_library(
+    name = "test_helper",
+    hdrs = [
+        "planner_test_helper.h",
+    ],
+    deps = [
+        "//src/binder",
+        "//src/parser",
+        "//src/planner:enumerator",
+        "//test/mock:mock_objects",
+    ],
+)
+
+cc_test(
+    name = "planner_test",
+    srcs = [
+        "cost_model_test.cpp",
+        "property_scan_push_down_test.cpp",
+    ],
+    deps = [
+        "test_helper",
+    ],
+)

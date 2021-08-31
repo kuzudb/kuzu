@@ -35,6 +35,9 @@ cc_library(
 
 cc_library(
     name = "bound_statements",
+    srcs = glob([
+        "bound_statements/*.cpp",
+    ]),
     hdrs = glob([
         "include/bound_statements/*.h",
     ]),

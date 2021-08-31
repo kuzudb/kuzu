@@ -17,6 +17,8 @@ class BoundQueryPart {
 public:
     uint32_t getNumQueryRels() const;
 
+    vector<shared_ptr<Expression>> getDependentProperties() const;
+
 public:
     vector<unique_ptr<BoundReadingStatement>> boundReadingStatements;
     unique_ptr<BoundWithStatement> boundWithStatement;
