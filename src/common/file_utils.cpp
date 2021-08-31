@@ -3,7 +3,6 @@
 #include <stdexcept>
 
 #include "src/common/include/utils.h"
-
 using namespace std;
 
 namespace graphflow {
@@ -23,18 +22,29 @@ void FileUtils::closeFile(int fd) {
     }
 }
 
-void FileUtils::writeToFile(FileInfo* fileInfo, void* buffer, int64_t numBytes, uint64_t offset) {
+void FileUtils::writeToFile(FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t offset) {
     auto fileSize = getFileSize(fileInfo->fd);
     if (fileSize == -1) {
         throw invalid_argument(
             StringUtils::string_format("File %s not open.", fileInfo->path.c_str()));
     }
-    auto numBytesWritten = pwrite(fileInfo->fd, buffer, numBytes, offset);
-    if (numBytesWritten != numBytes) {
-        throw invalid_argument(StringUtils::string_format(
-            "Cannot write to file. path: %s fileDescriptor: %d offsetToWrite: %d "
-            "numBytesToWrite: %d numBytesWritten: %d ",
-            fileInfo->path.c_str(), fileInfo->fd, offset, numBytes, numBytesWritten));
+    uint64_t remainingNumBytesToWrite = numBytes;
+    uint64_t bufferOffset = 0;
+    // Split large writes to 1GB at a time
+    uint64_t maxBytesToWriteAtOnce = 1ull << 30; // 1ull << 30 = 1G
+    while (remainingNumBytesToWrite > 0) {
+        uint64_t numBytesToWrite = min(remainingNumBytesToWrite, maxBytesToWriteAtOnce);
+        uint64_t numBytesWritten =
+            pwrite(fileInfo->fd, (uint8_t*)buffer + bufferOffset, numBytesToWrite, offset);
+        if (numBytesWritten != numBytesToWrite) {
+            throw invalid_argument(StringUtils::string_format(
+                "Cannot write to file. path: %s fileDescriptor: %d offsetToWrite: %llu "
+                "numBytesToWrite: %llu numBytesWritten: %llu",
+                fileInfo->path.c_str(), fileInfo->fd, offset, numBytesToWrite, numBytesWritten));
+        }
+        remainingNumBytesToWrite -= numBytesWritten;
+        offset += numBytesWritten;
+        bufferOffset += numBytesWritten;
     }
 }
 
@@ -59,12 +69,12 @@ unique_ptr<uint8_t[]> FileUtils::readFile(FileInfo* fileInfo) {
 }
 
 void FileUtils::readFromFile(
-    FileInfo* fileInfo, void* buffer, int64_t numBytes, uint64_t position) {
+    FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
     auto numBytesRead = pread(fileInfo->fd, buffer, numBytes, position);
     if (numBytesRead != numBytes && getFileSize(fileInfo->fd) != position + numBytesRead) {
         throw invalid_argument(
             StringUtils::string_format("Cannot read from file: %s fileDescriptor: %d "
-                                       "numBytesRead: %d numBytesToRead: %d",
+                                       "numBytesRead: %llu numBytesToRead: %llu",
                 fileInfo->path.c_str(), fileInfo->fd, numBytesRead, numBytes));
     }
 }
