@@ -13,9 +13,7 @@ class BoundReadingStatement {
 public:
     virtual ~BoundReadingStatement() = default;
 
-    virtual vector<shared_ptr<Expression>> getDependentProperties() const {
-        return vector<shared_ptr<Expression>>();
-    }
+    virtual unique_ptr<BoundReadingStatement> copy() const = 0;
 
 protected:
     explicit BoundReadingStatement(StatementType statementType) : statementType{statementType} {}

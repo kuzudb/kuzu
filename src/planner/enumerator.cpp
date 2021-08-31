@@ -30,9 +30,6 @@ static vector<shared_ptr<Expression>> getNewMatchedExpressions(
     const SubqueryGraph& prevLeftSubgraph, const SubqueryGraph& prevRightSubgraph,
     const SubqueryGraph& newSubgraph, const vector<shared_ptr<Expression>>& expressions);
 
-static vector<shared_ptr<Expression>> extractWhereClause(
-    const BoundReadingStatement& readingStatement);
-static vector<shared_ptr<Expression>> splitExpressionOnAND(shared_ptr<Expression> expression);
 static unordered_set<uint32_t> getUnFlatGroupsPos(Expression& expression, const Schema& schema);
 static unordered_set<uint32_t> getUnFlatGroupsPos(const Schema& schema);
 static uint32_t getAnyGroupPos(Expression& expression, const Schema& schema);
@@ -67,42 +64,22 @@ unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundSingleQuery& singleQu
 }
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(const BoundSingleQuery& singleQuery) {
-    // initialize subgraphPlan table to max size (number of query rels)
-    subPlansTable->init(singleQuery.getNumQueryRels());
-    for (auto& boundQueryPart : singleQuery.boundQueryParts) {
-        enumerateQueryPart(*boundQueryPart);
+    auto normalizedQuery = QueryNormalizer::normalizeQuery(singleQuery);
+    for (auto& queryPart : normalizedQuery->getQueryParts()) {
+        enumerateQueryPart(*queryPart);
     }
-    populatePropertiesMapAndAppendPropertyScansIfNecessary(
-        singleQuery.getDependentPropertiesIgnoringQueryParts());
-    auto whereClauses = vector<shared_ptr<Expression>>();
-    for (auto& readingStatement : singleQuery.boundReadingStatements) {
-        for (auto& expression : extractWhereClause(*readingStatement)) {
-            whereClauses.push_back(move(expression));
-        }
-        enumerateReadingStatement(*readingStatement);
-    }
-    enumerateSubplans(whereClauses);
-    enumerateProjectionBody(*singleQuery.boundReturnStatement->getBoundProjectionBody(), true);
     return move(subPlansTable->getSubgraphPlans(getFullyMatchedSubqueryGraph(*mergedQueryGraph)));
 }
 
-void Enumerator::enumerateQueryPart(BoundQueryPart& queryPart) {
-    populatePropertiesMapAndAppendPropertyScansIfNecessary(queryPart.getDependentProperties());
-    auto whereClauses = vector<shared_ptr<Expression>>();
-    for (auto& readingStatement : queryPart.boundReadingStatements) {
-        for (auto expression : extractWhereClause(*readingStatement)) {
-            whereClauses.push_back(move(expression));
-        }
-        enumerateReadingStatement(*readingStatement);
+void Enumerator::enumerateQueryPart(const NormalizedQueryPart& queryPart) {
+    if (queryPart.hasLoadCSVStatement()) {
+        staticPlan = make_unique<LogicalPlan>();
+        appendLoadCSV(*queryPart.getLoadCSVStatement(), *staticPlan);
     }
-    if (queryPart.boundWithStatement->hasWhereExpression()) {
-        for (auto& expression :
-            splitExpressionOnAND(queryPart.boundWithStatement->getWhereExpression())) {
-            whereClauses.push_back(move(expression));
-        }
+    if (queryPart.hasQueryGraph()) {
+        enumerateJoinOrder(queryPart);
     }
-    enumerateSubplans(whereClauses);
-    enumerateProjectionBody(*queryPart.boundWithStatement->getBoundProjectionBody(), false);
+    enumerateProjectionBody(*queryPart.getProjectionBody(), queryPart.isLastQueryPart());
 }
 
 void Enumerator::enumerateProjectionBody(
@@ -127,23 +104,24 @@ void Enumerator::enumerateProjectionBody(
     }
 }
 
-void Enumerator::enumerateReadingStatement(BoundReadingStatement& readingStatement) {
-    if (LOAD_CSV_STATEMENT == readingStatement.statementType) {
-        enumerateLoadCSVStatement((BoundLoadCSVStatement&)readingStatement);
-    } else {
-        updateQueryGraph(*((BoundMatchStatement&)readingStatement).queryGraph);
+void Enumerator::enumerateJoinOrder(const NormalizedQueryPart& queryPart) {
+    updateStatusForQueryGraph(*queryPart.getQueryGraph());
+    populatePropertiesMapAndAppendPropertyScansIfNecessary(queryPart.getDependentProperties());
+    auto whereExpressionsSplitOnAND = queryPart.hasWhereExpression() ?
+                                          queryPart.getWhereExpression()->splitOnAND() :
+                                          vector<shared_ptr<Expression>>();
+    enumerateSingleNode(whereExpressionsSplitOnAND);
+    while (currentLevel < mergedQueryGraph->getNumQueryRels()) {
+        currentLevel++;
+        enumerateSingleRel(whereExpressionsSplitOnAND);
+        // TODO: remove currentLevel constraint for Hash Join enumeration
+        if (currentLevel >= 4) {
+            enumerateHashJoin(whereExpressionsSplitOnAND);
+        }
     }
 }
 
-void Enumerator::enumerateLoadCSVStatement(const BoundLoadCSVStatement& loadCSVStatement) {
-    // LOAD CSV must be the first operator in current implementation
-    GF_ASSERT(mergedQueryGraph->isEmpty());
-    auto plan = make_unique<LogicalPlan>();
-    appendLoadCSV(loadCSVStatement, *plan);
-    subPlansTable->addPlan(SubqueryGraph(*mergedQueryGraph), move(plan));
-}
-
-void Enumerator::updateQueryGraph(QueryGraph& queryGraph) {
+void Enumerator::updateStatusForQueryGraph(const QueryGraph& queryGraph) {
     auto fullyMatchedSubqueryGraph = getFullyMatchedSubqueryGraph(*mergedQueryGraph);
     matchedQueryRels = fullyMatchedSubqueryGraph.queryRelsSelector;
     matchedQueryNodes = fullyMatchedSubqueryGraph.queryNodesSelector;
@@ -153,26 +131,11 @@ void Enumerator::updateQueryGraph(QueryGraph& queryGraph) {
     // Restart from level 0 for new query part so that we get hashJoin based plans
     // that uses subplans coming from previous query part.See example in enumerateExtend().
     currentLevel = 0;
-}
-
-void Enumerator::enumerateSubplans(const vector<shared_ptr<Expression>>& whereExpressions) {
-    enumerateSingleNode(whereExpressions);
-    while (currentLevel < mergedQueryGraph->getNumQueryRels()) {
-        enumerateNextLevel(whereExpressions);
-    }
+    subPlansTable->resize(mergedQueryGraph->getNumQueryRels());
 }
 
 void Enumerator::enumerateSingleNode(const vector<shared_ptr<Expression>>& whereExpressions) {
-    auto emptySubgraph = SubqueryGraph(*mergedQueryGraph);
-    unique_ptr<LogicalPlan> prevPlan;
-    if (subPlansTable->containSubgraphPlans(emptySubgraph)) {
-        // Load csv has been previously enumerated and put under emptySubgraph
-        auto& prevPlans = subPlansTable->getSubgraphPlans(emptySubgraph);
-        GF_ASSERT(1 == prevPlans.size());
-        prevPlan = prevPlans[0]->copy();
-    } else {
-        prevPlan = make_unique<LogicalPlan>();
-    }
+    auto prevPlan = staticPlan != nullptr ? staticPlan->copy() : make_unique<LogicalPlan>();
     if (matchedQueryNodes.count() == 1) {
         // If only single node has been previously enumerated, then join order is decided
         return;
@@ -184,20 +147,12 @@ void Enumerator::enumerateSingleNode(const vector<shared_ptr<Expression>>& where
         auto& node = *mergedQueryGraph->queryNodes[nodePos];
         appendScanNodeID(node, *plan);
         for (auto& expression :
-            getNewMatchedExpressions(emptySubgraph, newSubgraph, whereExpressions)) {
+            getNewMatchedExpressions(SubqueryGraph(*mergedQueryGraph) /* emptySubgraph */,
+                newSubgraph, whereExpressions)) {
             appendFilter(expression, *plan);
         }
         appendScanPropertiesIfNecessary(node.getInternalName(), true /* isNode */, *plan);
         subPlansTable->addPlan(newSubgraph, move(plan));
-    }
-}
-
-void Enumerator::enumerateNextLevel(const vector<shared_ptr<Expression>>& whereExpressions) {
-    currentLevel++;
-    enumerateSingleRel(whereExpressions);
-    // TODO: remove currentLevel constraint for Hash Join enumeration
-    if (currentLevel >= 4) {
-        enumerateHashJoin(whereExpressions);
     }
 }
 
@@ -698,32 +653,6 @@ vector<shared_ptr<Expression>> getNewMatchedExpressions(const SubqueryGraph& pre
         }
     }
     return newMatchedExpressions;
-}
-
-vector<shared_ptr<Expression>> extractWhereClause(const BoundReadingStatement& readingStatement) {
-    if (readingStatement.statementType == LOAD_CSV_STATEMENT) {
-        return vector<shared_ptr<Expression>>();
-    } else {
-        GF_ASSERT(readingStatement.statementType == MATCH_STATEMENT);
-        auto& matchStatement = (const BoundMatchStatement&)readingStatement;
-        return matchStatement.whereExpression ?
-                   splitExpressionOnAND(matchStatement.whereExpression) :
-                   vector<shared_ptr<Expression>>();
-    }
-}
-
-vector<shared_ptr<Expression>> splitExpressionOnAND(shared_ptr<Expression> expression) {
-    auto result = vector<shared_ptr<Expression>>();
-    if (AND == expression->expressionType) {
-        for (auto& child : expression->children) {
-            for (auto& exp : splitExpressionOnAND(child)) {
-                result.push_back(exp);
-            }
-        }
-    } else {
-        result.push_back(expression);
-    }
-    return result;
 }
 
 unordered_set<uint32_t> getUnFlatGroupsPos(Expression& expression, const Schema& schema) {

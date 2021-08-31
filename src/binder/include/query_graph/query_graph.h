@@ -50,6 +50,13 @@ struct SubqueryGraphJoinNodePairHasher {
 class QueryGraph {
 
 public:
+    QueryGraph() = default;
+
+    QueryGraph(const QueryGraph& other)
+        : queryNodeNameToPosMap{other.queryNodeNameToPosMap},
+          queryRelNameToPosMap{other.queryRelNameToPosMap},
+          queryNodes{other.queryNodes}, queryRels{other.queryRels} {}
+
     uint32_t getNumQueryNodes() const;
 
     bool containsQueryNode(const string& queryNodeName) const;
@@ -81,7 +88,7 @@ public:
 
     bool isEmpty() const;
 
-    void merge(QueryGraph& other);
+    void merge(const QueryGraph& other);
 
 private:
     unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>

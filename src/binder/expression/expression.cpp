@@ -24,6 +24,20 @@ unordered_set<string> Expression::getDependentVariableNames() {
     return result;
 }
 
+vector<shared_ptr<Expression>> Expression::splitOnAND() {
+    auto result = vector<shared_ptr<Expression>>();
+    if (AND == expressionType) {
+        for (auto& child : children) {
+            for (auto& exp : child->splitOnAND()) {
+                result.push_back(exp);
+            }
+        }
+    } else {
+        result.push_back(shared_from_this());
+    }
+    return result;
+}
+
 vector<shared_ptr<Expression>> Expression::getDependentExpressionsWithTypes(
     const unordered_set<ExpressionType>& expressionTypes) {
     vector<shared_ptr<Expression>> result;

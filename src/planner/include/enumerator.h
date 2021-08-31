@@ -1,10 +1,8 @@
 #pragma once
 
-#include "src/binder/include/bound_queries/bound_single_query.h"
-#include "src/binder/include/bound_statements/bound_load_csv_statement.h"
-#include "src/binder/include/bound_statements/bound_match_statement.h"
 #include "src/binder/include/expression/property_expression.h"
 #include "src/planner/include/logical_plan/logical_plan.h"
+#include "src/planner/include/query_normalizer.h"
 #include "src/planner/include/subplans_table.h"
 #include "src/storage/include/graph.h"
 
@@ -22,18 +20,15 @@ public:
           mergedQueryGraph{make_unique<QueryGraph>()} {}
 
     unique_ptr<LogicalPlan> getBestPlan(const BoundSingleQuery& singleQuery);
-
     vector<unique_ptr<LogicalPlan>> enumeratePlans(const BoundSingleQuery& singleQuery);
 
 private:
-    void enumerateQueryPart(BoundQueryPart& queryPart);
+    void enumerateQueryPart(const NormalizedQueryPart& queryPart);
     void enumerateProjectionBody(const BoundProjectionBody& projectionBody, bool isFinalReturn);
-    void enumerateReadingStatement(BoundReadingStatement& readingStatement);
-    void enumerateLoadCSVStatement(const BoundLoadCSVStatement& loadCSVStatement);
-    void updateQueryGraph(QueryGraph& queryGraph);
-    void enumerateSubplans(const vector<shared_ptr<Expression>>& whereExpressions);
+
+    void enumerateJoinOrder(const NormalizedQueryPart& queryPart);
+    void updateStatusForQueryGraph(const QueryGraph& queryGraph);
     void enumerateSingleNode(const vector<shared_ptr<Expression>>& whereExpressions);
-    void enumerateNextLevel(const vector<shared_ptr<Expression>>& whereExpressions);
     void enumerateHashJoin(const vector<shared_ptr<Expression>>& whereExpressions);
     void enumerateSingleRel(const vector<shared_ptr<Expression>>& whereExpressions);
 
@@ -65,6 +60,10 @@ private:
 
 private:
     const Graph& graph;
+    // staticPlan is a subPlan that is independent from join order enumeration.
+    // Currently our staticPlan can only contain loadCSV
+    unique_ptr<LogicalPlan> staticPlan;
+
     unordered_map<string, vector<shared_ptr<Expression>>>
         variableToPropertiesMapForCurrentQueryPart;
 

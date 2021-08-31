@@ -140,7 +140,7 @@ bool QueryGraph::isEmpty() const {
     return queryNodes.empty();
 }
 
-void QueryGraph::merge(QueryGraph& other) {
+void QueryGraph::merge(const QueryGraph& other) {
     for (auto& otherNode : other.queryNodes) {
         addQueryNode(otherNode);
     }

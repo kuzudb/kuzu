@@ -8,15 +8,8 @@ namespace binder {
 
 /**
  * Represents (QueryPart)* (Reading)* RETURN
- * Similar to BoundQueryPart, all match statements in the reading statements are merged as single
- * match statement and appended at the end. See bound_query_part.h for more.
  */
 class BoundSingleQuery {
-
-public:
-    uint32_t getNumQueryRels() const;
-
-    vector<shared_ptr<Expression>> getDependentPropertiesIgnoringQueryParts() const;
 
 public:
     // WITH query parts
