@@ -20,6 +20,13 @@ public:
         : BoundReadingStatement{LOAD_CSV_STATEMENT}, filePath{move(filePath)},
           tokenSeparator(tokenSeparator), csvColumnVariables{move(csvColumnVariables)} {}
 
+    BoundLoadCSVStatement(const BoundLoadCSVStatement& other)
+        : BoundLoadCSVStatement(other.filePath, other.tokenSeparator, other.csvColumnVariables) {}
+
+    unique_ptr<BoundReadingStatement> copy() const {
+        return make_unique<BoundLoadCSVStatement>(*this);
+    }
+
 public:
     string filePath;
     char tokenSeparator;

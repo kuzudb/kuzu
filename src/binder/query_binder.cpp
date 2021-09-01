@@ -15,22 +15,9 @@ const char DEFAULT_LOAD_CSV_TOKEN_SEPARATOR = ',';
 
 // TODO: GraphLoader has a similar logic of parsing header. Refactor a function under common.
 static vector<pair<string, DataType>> parseCSVHeader(const string& headerLine, char tokenSeparator);
-static vector<unique_ptr<BoundReadingStatement>> mergeAllMatchStatements(
-    vector<unique_ptr<BoundReadingStatement>> boundReadingStatements);
 
 unique_ptr<BoundSingleQuery> QueryBinder::bind(const SingleQuery& singleQuery) {
-    auto boundSingleQuery = bindSingleQuery(singleQuery);
-    optimizeReadingStatements(*boundSingleQuery);
-    return boundSingleQuery;
-}
-
-void QueryBinder::optimizeReadingStatements(BoundSingleQuery& boundSingleQuery) {
-    for (auto& boundQueryPart : boundSingleQuery.boundQueryParts) {
-        boundQueryPart->boundReadingStatements =
-            mergeAllMatchStatements(move(boundQueryPart->boundReadingStatements));
-    }
-    boundSingleQuery.boundReadingStatements =
-        mergeAllMatchStatements(move(boundSingleQuery.boundReadingStatements));
+    return bindSingleQuery(singleQuery);
 }
 
 unique_ptr<BoundSingleQuery> QueryBinder::bindSingleQuery(const SingleQuery& singleQuery) {
@@ -428,25 +415,6 @@ vector<pair<string, DataType>> parseCSVHeader(const string& headerLine, char tok
             make_pair(propertyDataType[0], TypeUtils::getDataType(propertyDataType[1])));
     }
     return headerInfo;
-}
-
-// Merge all match statements as one given a list of reading statement.
-// This is still valid in the case of MATCH LOAD CSV MATCH. Because our LOAD CSV reads header during
-// binding, it cannot depend on runtime output of previous match. So the order of MATCH and LOAD CSV
-// doesn't matter (similar to Cartesian Product).
-vector<unique_ptr<BoundReadingStatement>> mergeAllMatchStatements(
-    vector<unique_ptr<BoundReadingStatement>> boundReadingStatements) {
-    auto result = vector<unique_ptr<BoundReadingStatement>>();
-    auto mergedMatchStatement = make_unique<BoundMatchStatement>(make_unique<QueryGraph>());
-    for (auto& boundReadingStatement : boundReadingStatements) {
-        if (LOAD_CSV_STATEMENT == boundReadingStatement->statementType) {
-            result.push_back(move(boundReadingStatement));
-        } else {
-            mergedMatchStatement->merge((BoundMatchStatement&)*boundReadingStatement);
-        }
-    }
-    result.push_back(move(mergedMatchStatement));
-    return result;
 }
 
 } // namespace binder

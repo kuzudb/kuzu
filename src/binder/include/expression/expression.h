@@ -47,6 +47,8 @@ public:
             unordered_set<ExpressionType>{PROPERTY, CSV_LINE_EXTRACT, ALIAS});
     }
 
+    vector<shared_ptr<Expression>> splitOnAND();
+
 private:
     vector<shared_ptr<Expression>> getDependentVariables() {
         return getDependentExpressionsWithTypes(unordered_set<ExpressionType>{VARIABLE});

@@ -16,11 +16,17 @@ public:
     explicit BoundMatchStatement(unique_ptr<QueryGraph> queryGraph)
         : BoundReadingStatement(MATCH_STATEMENT), queryGraph{move(queryGraph)} {}
 
+    BoundMatchStatement(const BoundMatchStatement& other)
+        : BoundReadingStatement(MATCH_STATEMENT),
+          queryGraph{make_unique<QueryGraph>(*other.queryGraph)}, whereExpression{
+                                                                      other.whereExpression} {}
+
     inline bool hasWhereExpression() const { return whereExpression != nullptr; }
+    inline shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
 
-    void merge(BoundMatchStatement& other);
-
-    vector<shared_ptr<Expression>> getDependentProperties() const override;
+    unique_ptr<BoundReadingStatement> copy() const override {
+        return make_unique<BoundMatchStatement>(*this);
+    }
 
 public:
     unique_ptr<QueryGraph> queryGraph;

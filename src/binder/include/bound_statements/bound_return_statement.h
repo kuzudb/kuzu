@@ -13,10 +13,6 @@ public:
 
     inline BoundProjectionBody* getBoundProjectionBody() const { return projectionBody.get(); }
 
-    virtual vector<shared_ptr<Expression>> getDependentProperties() const {
-        return projectionBody->getDependentProperties();
-    }
-
 private:
     unique_ptr<BoundProjectionBody> projectionBody;
 };

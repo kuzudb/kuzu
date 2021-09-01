@@ -12,6 +12,10 @@ public:
         : projectionExpressions{move(projectionExpressions)}, skipNumber{UINT64_MAX},
           limitNumber{UINT64_MAX} {}
 
+    BoundProjectionBody(const BoundProjectionBody& other)
+        : projectionExpressions{other.projectionExpressions}, skipNumber{other.skipNumber},
+          limitNumber{other.limitNumber} {}
+
     inline void setSkipNumber(uint64_t number) { skipNumber = number; }
     inline void setLimitNumber(uint64_t number) { limitNumber = number; }
 

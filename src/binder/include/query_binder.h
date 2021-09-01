@@ -22,10 +22,6 @@ public:
     unique_ptr<BoundSingleQuery> bind(const SingleQuery& singleQuery);
 
 private:
-    /* optimizing functions */
-    void optimizeReadingStatements(BoundSingleQuery& boundSingleQuery);
-
-    /* binding functions */
     unique_ptr<BoundSingleQuery> bindSingleQuery(const SingleQuery& singleQuery);
 
     unique_ptr<BoundQueryPart> bindQueryPart(const QueryPart& queryPart);

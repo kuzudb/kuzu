@@ -20,9 +20,6 @@ cc_library(
 
 cc_library(
     name = "bound_queries",
-    srcs = glob([
-        "bound_queries/*.cpp",
-    ]),
     hdrs = glob([
         "include/bound_queries/*.h",
     ]),

@@ -21,8 +21,6 @@ public:
     inline bool hasWhereExpression() const { return whereExpression != nullptr; }
     inline shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
 
-    vector<shared_ptr<Expression>> getDependentProperties() const override;
-
 private:
     shared_ptr<Expression> whereExpression;
 };
