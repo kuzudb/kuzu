@@ -37,6 +37,11 @@ public:
         return ALIAS == expressionType ? children[0]->getInternalName() : rawExpression;
     }
 
+    inline shared_ptr<Expression> removeAlias() const {
+        assert(expressionType == ALIAS);
+        return children[0]->expressionType == ALIAS ? children[0]->removeAlias() : children[0];
+    }
+
     unordered_set<string> getDependentVariableNames();
 
     vector<shared_ptr<Expression>> getDependentProperties() {
