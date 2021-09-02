@@ -15,6 +15,8 @@ public:
 
     void appendOperator(shared_ptr<LogicalOperator> op);
 
+    bool isEmpty() { return lastOperator == nullptr; }
+
     unique_ptr<LogicalPlan> copy() const;
 
 public:

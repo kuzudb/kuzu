@@ -35,7 +35,7 @@ public:
         loadCSVStatement = move(statement);
     }
 
-    inline bool hasQueryGraph() const { return queryGraph != nullptr; }
+    inline bool hasQueryGraph() const { return !queryGraph->isEmpty(); }
     inline QueryGraph* getQueryGraph() const { return queryGraph.get(); }
     inline void addQueryGraph(const QueryGraph& otherGraph) { queryGraph->merge(otherGraph); }
 

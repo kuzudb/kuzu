@@ -28,9 +28,9 @@ void SubPlansTable::addPlan(const SubqueryGraph& subqueryGraph, unique_ptr<Logic
     subgraphPlansMap.at(subqueryGraph).push_back(move(plan));
 }
 
-void SubPlansTable::clearUntil(uint32_t size) {
-    for (auto i = 0u; i < size; ++i) {
-        subPlans[i].clear();
+void SubPlansTable::clear() {
+    for (auto& subPlan : subPlans) {
+        subPlan.clear();
     }
 }
 
