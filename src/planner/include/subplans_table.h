@@ -38,7 +38,7 @@ public:
 
     void addPlan(const SubqueryGraph& subqueryGraph, unique_ptr<LogicalPlan> plan);
 
-    void clearUntil(uint32_t size);
+    void clear();
 
 private:
     vector<SubqueryGraphPlansMap> subPlans;
