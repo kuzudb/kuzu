@@ -29,6 +29,21 @@ uint32_t Schema::getGroupPos(const string& variable) const {
     return variableToGroupPos.at(variable);
 }
 
+unordered_set<uint32_t> Schema::getUnFlatGroupsPos() const {
+    unordered_set<uint32_t> result;
+    for (auto i = 0u; i < groups.size(); ++i) {
+        if (!groups[i]->isFlat) {
+            result.insert(i);
+        }
+    }
+    return result;
+}
+
+uint32_t Schema::getAnyGroupPos() const {
+    GF_ASSERT(!groups.empty());
+    return 0;
+}
+
 void Schema::addLogicalExtend(const string& queryRel, LogicalExtend* extend) {
     queryRelLogicalExtendMap.insert({queryRel, extend});
 }

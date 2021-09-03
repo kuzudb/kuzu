@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "src/common/include/assert.h"
@@ -46,6 +47,10 @@ public:
     void appendToGroup(const FactorizationGroup& otherGroup, uint32_t pos);
 
     uint32_t getGroupPos(const string& variable) const;
+
+    unordered_set<uint32_t> getUnFlatGroupsPos() const;
+
+    uint32_t getAnyGroupPos() const;
 
     void flattenGroup(uint32_t pos);
 
