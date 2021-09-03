@@ -11,7 +11,10 @@ namespace planner {
 class NormalizedQuery {
 
 public:
-    inline const vector<unique_ptr<NormalizedQueryPart>>& getQueryParts() { return queryParts; }
+    inline NormalizedQueryPart* getQueryPart(uint32_t idx) const { return queryParts[idx].get(); }
+    inline const vector<unique_ptr<NormalizedQueryPart>>& getQueryParts() const {
+        return queryParts;
+    }
     inline void appendQueryPart(unique_ptr<NormalizedQueryPart> queryPart) {
         queryParts.push_back(move(queryPart));
     }

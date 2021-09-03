@@ -39,7 +39,8 @@ private:
         PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet* resultSet);
 
     unique_ptr<ExpressionEvaluator> mapLogicalExistentialSubqueryExpressionToPhysical(
-        const Expression& expression, ResultSet* resultSet, ExecutionContext& context);
+        const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
+        ResultSet* resultSet, ExecutionContext& context);
 
 private:
     PlanMapper* planMapper;

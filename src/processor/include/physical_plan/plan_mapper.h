@@ -22,10 +22,13 @@ public:
     unique_ptr<PhysicalPlan> mapToPhysical(
         unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext);
 
-    // Returns currentOuterQueryResultSet. Whoever calls enterSubquery is responsible to save the
-    // return resultSet and pass it back when calling exitSubquery()
-    ResultSet* enterSubquery(ResultSet* newOuterQueryResultSet);
-    void exitSubquery(ResultSet* prevOuterQueryResultSet);
+    // Returns currentOuterQueryResultSet and current physicalOperatorsInfo Whoever calls
+    // enterSubquery is responsible to save the return resultSet and physicalOperatorsInfo and pass
+    // it back when calling exitSubquery()
+    pair<ResultSet*, PhysicalOperatorsInfo*> enterSubquery(
+        ResultSet* newOuterQueryResultSet, PhysicalOperatorsInfo* newPhysicalOperatorsInfo);
+    void exitSubquery(
+        ResultSet* prevOuterQueryResultSet, PhysicalOperatorsInfo* prevPhysicalOperatorsInfo);
 
 private:
     unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
@@ -65,6 +68,8 @@ public:
     const Graph& graph;
 
     ResultSet* outerQueryResultSet;
+    PhysicalOperatorsInfo* outerPhysicalOperatorsInfo;
+
     uint32_t physicalOperatorID;
     // used for EXPLAIN & PROFILE which require print physical operator and logical information.
     // e.g. SCAN_NODE_ID (a), SCAN_NODE_ID is physical operator name and "a" is logical information.

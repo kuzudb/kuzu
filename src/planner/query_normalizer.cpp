@@ -2,6 +2,7 @@
 
 #include "src/binder/include/bound_statements/bound_load_csv_statement.h"
 #include "src/binder/include/bound_statements/bound_match_statement.h"
+#include "src/binder/include/expression/existential_subquery_expression.h"
 
 namespace graphflow {
 namespace planner {
@@ -38,6 +39,7 @@ unique_ptr<NormalizedQueryPart> QueryNormalizer::normalizeQueryPart(
     normalizeLoadCSVStatement(*normalizedQueryPart, boundQueryPart);
     normalizeQueryGraph(*normalizedQueryPart, boundQueryPart);
     normalizeWhereExpression(*normalizedQueryPart, boundQueryPart);
+    normalizeSubqueryExpression(*normalizedQueryPart, boundQueryPart);
     return normalizedQueryPart;
 }
 
@@ -68,12 +70,39 @@ void QueryNormalizer::normalizeWhereExpression(
     for (auto& boundReadingStatement : boundQueryPart.boundReadingStatements) {
         if (boundReadingStatement->statementType == MATCH_STATEMENT) {
             auto& matchStatement = (BoundMatchStatement&)*boundReadingStatement;
-            normalizedQueryPart.addWhereExpression(matchStatement.getWhereExpression());
+            if (matchStatement.hasWhereExpression()) {
+                normalizedQueryPart.addWhereExpression(matchStatement.getWhereExpression());
+            }
         }
     }
     if (boundQueryPart.boundWithStatement->hasWhereExpression()) {
         normalizedQueryPart.addWhereExpression(
             boundQueryPart.boundWithStatement->getWhereExpression());
+    }
+}
+
+void QueryNormalizer::normalizeSubqueryExpression(
+    NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart) {
+    for (auto& boundReadingStatement : boundQueryPart.boundReadingStatements) {
+        if (boundReadingStatement->statementType == MATCH_STATEMENT) {
+            auto& matchStatement = (BoundMatchStatement&)*boundReadingStatement;
+            if (matchStatement.hasWhereExpression()) {
+                for (auto& expression :
+                    matchStatement.getWhereExpression()->getDependentSubqueryExpressions()) {
+                    auto& subqueryExpression = (ExistentialSubqueryExpression&)*expression;
+                    subqueryExpression.setNormalizedSubquery(
+                        normalizeQuery(*subqueryExpression.getBoundSubquery()));
+                }
+            }
+        }
+    }
+    if (boundQueryPart.boundWithStatement->hasWhereExpression()) {
+        for (auto& expression : boundQueryPart.boundWithStatement->getWhereExpression()
+                                    ->getDependentSubqueryExpressions()) {
+            auto& subqueryExpression = (ExistentialSubqueryExpression&)*expression;
+            subqueryExpression.setNormalizedSubquery(
+                normalizeQuery(*subqueryExpression.getBoundSubquery()));
+        }
     }
 }
 

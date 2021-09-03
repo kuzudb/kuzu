@@ -49,10 +49,8 @@ void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>
 
     vector<uint32_t> exprResultInGroupPos;
     for (auto& expression : expressionsToProject) {
-        auto unFlatGroupsPos = Enumerator::getUnFlatGroupsPos(*expression, *plan.schema);
-        uint32_t groupPosToWrite = unFlatGroupsPos.empty() ?
-                                       Enumerator::getAnyGroupPos(*expression, *plan.schema) :
-                                       Enumerator::appendFlattensIfNecessary(unFlatGroupsPos, plan);
+        uint32_t groupPosToWrite =
+            enumerator->appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(*expression, plan);
         exprResultInGroupPos.push_back(groupPosToWrite);
     }
 
@@ -103,7 +101,7 @@ void ProjectionEnumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) 
     auto unFlatGroupsPos = plan.schema->getUnFlatGroupsPos();
     auto groupPosToSelect = unFlatGroupsPos.empty() ?
                                 plan.schema->getAnyGroupPos() :
-                                Enumerator::appendFlattensIfNecessary(unFlatGroupsPos, plan);
+                                enumerator->appendFlattensButOne(unFlatGroupsPos, plan);
     // Because our resultSet is shared through the plan and limit might not appear at the end (due
     // to WITH clause), limit needs to know how many tuples are available under it. So it requires a
     // subset of dataChunks that may different from shared resultSet.
@@ -123,7 +121,7 @@ void ProjectionEnumerator::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
     auto unFlatGroupsPos = plan.schema->getUnFlatGroupsPos();
     auto groupPosToSelect = unFlatGroupsPos.empty() ?
                                 plan.schema->getAnyGroupPos() :
-                                Enumerator::appendFlattensIfNecessary(unFlatGroupsPos, plan);
+                                enumerator->appendFlattensButOne(unFlatGroupsPos, plan);
     vector<uint32_t> groupsPosToSkip;
     for (auto i = 0u; i < plan.schema->groups.size(); ++i) {
         groupsPosToSkip.push_back(i);

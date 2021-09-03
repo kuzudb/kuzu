@@ -12,10 +12,13 @@ using namespace graphflow::binder;
 namespace graphflow {
 namespace planner {
 
+class Enumerator;
+
 class ProjectionEnumerator {
 
 public:
-    explicit ProjectionEnumerator(const Catalog& catalog) : catalog{catalog} {}
+    explicit ProjectionEnumerator(const Catalog& catalog, Enumerator* enumerator)
+        : catalog{catalog}, enumerator{enumerator} {}
 
     void enumerateProjectionBody(const BoundProjectionBody& projectionBody,
         const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn);
@@ -37,6 +40,7 @@ private:
 
 private:
     const Catalog& catalog;
+    Enumerator* enumerator;
 };
 
 } // namespace planner

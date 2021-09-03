@@ -25,7 +25,8 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(const Expression
          */
         retVal = mapLogicalLeafExpressionToPhysical(expression, physicalOperatorInfo, resultSet);
     } else if (EXISTENTIAL_SUBQUERY == expressionType) {
-        retVal = mapLogicalExistentialSubqueryExpressionToPhysical(expression, resultSet, context);
+        retVal = mapLogicalExistentialSubqueryExpressionToPhysical(
+            expression, physicalOperatorInfo, resultSet, context);
     } else if (ALIAS == expressionType) {
         /**
          * If an alias expression has been matched before, it should be treated as a leaf
@@ -160,11 +161,13 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLeafExpressionToPhys
 }
 
 unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalExistentialSubqueryExpressionToPhysical(
-    const Expression& expression, ResultSet* resultSet, ExecutionContext& context) {
+    const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet* resultSet,
+    ExecutionContext& context) {
     auto& subqueryExpression = (ExistentialSubqueryExpression&)expression;
-    auto prevOuterQueryResultSet = planMapper->enterSubquery(resultSet);
-    auto subPlan = planMapper->mapToPhysical(subqueryExpression.moveSubPlan(), context);
-    planMapper->exitSubquery(prevOuterQueryResultSet);
+    auto [prevOuterQueryResultSet, prevPhysicalOperatorsInfo] =
+        planMapper->enterSubquery(resultSet, &physicalOperatorInfo);
+    auto subPlan = planMapper->mapToPhysical(subqueryExpression.getSubPlan(), context);
+    planMapper->exitSubquery(prevOuterQueryResultSet, prevPhysicalOperatorsInfo);
     return make_unique<ExistentialSubqueryEvaluator>(*context.memoryManager,
         unique_ptr<ResultCollector>{
             dynamic_cast<ResultCollector*>(subPlan->lastOperator.release())});

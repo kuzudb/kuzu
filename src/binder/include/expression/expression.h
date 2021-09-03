@@ -42,30 +42,16 @@ public:
         return children[0]->expressionType == ALIAS ? children[0]->removeAlias() : children[0];
     }
 
+    bool hasSubqueryExpression() const;
+
     unordered_set<string> getDependentVariableNames();
 
-    vector<shared_ptr<Expression>> getDependentProperties() {
-        return getDependentExpressionsWithTypes(unordered_set<ExpressionType>{PROPERTY});
-    }
-    vector<shared_ptr<Expression>> getDependentLeafExpressions() {
-        return getDependentExpressionsWithTypes(
-            unordered_set<ExpressionType>{PROPERTY, CSV_LINE_EXTRACT, ALIAS});
-    }
+    virtual vector<shared_ptr<Expression>> getDependentVariables();
+    virtual vector<shared_ptr<Expression>> getDependentProperties();
+    virtual vector<shared_ptr<Expression>> getDependentLeafExpressions();
+    vector<shared_ptr<Expression>> getDependentSubqueryExpressions();
 
     vector<shared_ptr<Expression>> splitOnAND();
-
-private:
-    vector<shared_ptr<Expression>> getDependentVariables() {
-        return getDependentExpressionsWithTypes(unordered_set<ExpressionType>{VARIABLE});
-    }
-
-    /**
-     * This function collects top-level subexpression which satisfies input expression types.
-     * E.g. getDependentExpressionsWithTypes({PROPERTY, VARIABLE}) will only return property
-     * expression "a.age" but not variable expression "a".
-     */
-    vector<shared_ptr<Expression>> getDependentExpressionsWithTypes(
-        const unordered_set<ExpressionType>& expressionTypes);
 
 public:
     ExpressionType expressionType;

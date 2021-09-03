@@ -39,26 +39,6 @@ cc_test(
 )
 
 cc_test(
-    name = "hard_code_plan_test",
-    srcs = [
-        "hard_code_plan_test.cpp",
-    ],
-    copts = [
-        "-Iexternal/gtest/include",
-    ],
-    data = [
-        "//dataset",
-    ],
-    deps = [
-        "//src/expression_evaluator:evaluator_impls",
-        "//src/processor:mapper",
-        "//test/test_utility:test_helper",
-        "@gtest",
-        "@gtest//:gtest_main",
-    ],
-)
-
-cc_test(
     name = "read_lists_end_to_end_test",
     srcs = [
         "read_lists_end_to_end_test.cpp",

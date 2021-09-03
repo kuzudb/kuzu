@@ -49,18 +49,8 @@ public:
 
     inline BoundProjectionBody* getProjectionBody() const { return projectionBody.get(); }
 
-    vector<shared_ptr<Expression>> getDependentProperties() const {
-        vector<shared_ptr<Expression>> result;
-        if (hasWhereExpression()) {
-            for (auto& property : whereExpression->getDependentProperties()) {
-                result.push_back(property);
-            }
-        }
-        for (auto& property : projectionBody->getDependentProperties()) {
-            result.push_back(property);
-        }
-        return result;
-    }
+    vector<shared_ptr<Expression>> getDependentNodeID() const;
+    vector<shared_ptr<Expression>> getDependentPropertiesFromWhereAndProjection() const;
 
 private:
     unique_ptr<BoundLoadCSVStatement> loadCSVStatement;

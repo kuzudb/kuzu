@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/binder/include/expression/existential_subquery_expression.h"
 #include "src/binder/include/expression/property_expression.h"
 #include "src/planner/include/join_order_enumerator.h"
 #include "src/planner/include/projection_enumerator.h"
@@ -15,26 +16,36 @@ class Enumerator {
 
 public:
     explicit Enumerator(const Graph& graph)
-        : joinOrderEnumerator{graph}, projectionEnumerator{graph.getCatalog()} {}
+        : joinOrderEnumerator{graph, this}, projectionEnumerator{graph.getCatalog(), this} {}
 
-    unique_ptr<LogicalPlan> getBestPlan(const BoundSingleQuery& singleQuery);
+    unique_ptr<LogicalPlan> getBestPlan(const BoundSingleQuery& singleQuery) {
+        return getBestPlan(enumeratePlans(singleQuery));
+    }
     vector<unique_ptr<LogicalPlan>> enumeratePlans(const BoundSingleQuery& singleQuery);
 
 private:
+    unique_ptr<LogicalPlan> getBestPlan(vector<unique_ptr<LogicalPlan>> plans);
+
     vector<unique_ptr<LogicalPlan>> enumerateQueryPart(
         const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
 
+    void planSubquery(ExistentialSubqueryExpression& subqueryExpression, LogicalPlan& plan);
+
     void appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, LogicalPlan& plan);
-    static uint32_t appendFlattensIfNecessary(
+    // return position of the only unFlat group
+    uint32_t appendFlattensButOne(
         const unordered_set<uint32_t>& unFlatGroupsPos, LogicalPlan& plan);
-    static void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan);
-    static void appendFilter(shared_ptr<Expression> expression, LogicalPlan& plan);
-    static void appendScanPropertiesIfNecessary(Expression& expression, LogicalPlan& plan);
-    static void appendScanNodeProperty(
+    void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan);
+    void appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan);
+    uint32_t appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(
+        Expression& expression, LogicalPlan& plan);
+    void appendScanPropertiesIfNecessary(Expression& expression, LogicalPlan& plan);
+    void appendScanNodePropertyIfNecessary(
         const PropertyExpression& propertyExpression, LogicalPlan& plan);
-    static void appendScanRelProperty(
+    void appendScanRelPropertyIfNecessary(
         const PropertyExpression& propertyExpression, LogicalPlan& plan);
 
+    static vector<unique_ptr<LogicalPlan>> getInitialEmptyPlans();
     static unordered_set<uint32_t> getUnFlatGroupsPos(Expression& expression, const Schema& schema);
     static uint32_t getAnyGroupPos(Expression& expression, const Schema& schema);
 
