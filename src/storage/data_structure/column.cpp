@@ -3,10 +3,11 @@
 namespace graphflow {
 namespace storage {
 
-void Column::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
+void Column::readValues(const shared_ptr<ValueVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
-    if (nodeIDVector->isSequence()) {
-        auto nodeOffset = nodeIDVector->readNodeOffset(0);
+    assert(nodeIDVector->dataType == NODE);
+    if (nodeIDVector->isSequence) {
+        auto nodeOffset = ((nodeID_t*)nodeIDVector->values)[0].offset;
         auto pageCursor = getPageCursorForOffset(nodeOffset);
         auto sizeLeftToCopy = nodeIDVector->state->originalSize * elementSize;
         readBySequentialCopy(
@@ -28,20 +29,20 @@ Literal Column::readValue(node_offset_t offset, BufferManagerMetrics& metrics) {
     return retVal;
 }
 
-void Column::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
+void Column::readFromNonSequentialLocations(const shared_ptr<ValueVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
     auto values = valueVector->values;
+    auto nodeIDValues = (nodeID_t*)nodeIDVector->values;
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
-        auto nodeOffset = nodeIDVector->readNodeOffset(pos);
+        auto nodeOffset = nodeIDValues[pos].offset;
         auto pageCursor = getPageCursorForOffset(nodeOffset);
         auto frame = bufferManager.pin(fileHandle, pageCursor.idx, metrics);
         memcpy(values + pos * elementSize, frame + pageCursor.offset, elementSize);
         bufferManager.unpin(fileHandle, pageCursor.idx);
     } else {
         for (auto i = 0ul; i < nodeIDVector->state->selectedSize; i++) {
-            auto nodeOffset =
-                nodeIDVector->readNodeOffset(nodeIDVector->state->selectedPositions[i]);
+            auto nodeOffset = nodeIDValues[nodeIDVector->state->selectedPositions[i]].offset;
             auto pageCursor = getPageCursorForOffset(nodeOffset);
             auto frame = bufferManager.pin(fileHandle, pageCursor.idx, metrics);
             memcpy(values + valueVector->state->selectedPositions[i] * elementSize,
@@ -51,10 +52,12 @@ void Column::readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& node
     }
 }
 
-void StringPropertyColumn::readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
+void StringPropertyColumn::readValues(const shared_ptr<ValueVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
-    if (nodeIDVector->isSequence()) {
-        auto nodeOffset = nodeIDVector->readNodeOffset(0);
+    assert(nodeIDVector->dataType == NODE);
+    auto nodeIDValues = (nodeID_t*)nodeIDVector->values;
+    if (nodeIDVector->isSequence) {
+        auto nodeOffset = nodeIDValues[0].offset;
         auto pageCursor = getPageCursorForOffset(nodeOffset);
         auto sizeLeftToCopy = nodeIDVector->state->selectedSize * elementSize;
         readBySequentialCopy(
@@ -76,6 +79,37 @@ Literal StringPropertyColumn::readValue(node_offset_t offset, BufferManagerMetri
     Literal retVal;
     retVal.strVal = stringOverflowPages.readString(gfString, metrics);
     return retVal;
+}
+
+void AdjColumn::readValues(const shared_ptr<ValueVector>& nodeIDVector,
+    const shared_ptr<ValueVector>& resultVector, BufferManagerMetrics& metrics) {
+    assert(nodeIDVector->dataType == NODE && nodeIDVector->state == resultVector->state);
+    auto nodeIDValues = (nodeID_t*)nodeIDVector->values;
+    auto resultVectorValues = (nodeID_t*)resultVector->values;
+    if (nodeIDVector->isSequence) {
+        auto pageCursor = getPageCursorForOffset(nodeIDValues[0].offset);
+        auto numValuesLeftToCopy = nodeIDVector->state->originalSize;
+        while (numValuesLeftToCopy > 0) {
+            auto numValuesToCopyInPage =
+                min((numElementsPerPage - pageCursor.offset / elementSize), numValuesLeftToCopy);
+            readNodeIDsFromAPage(resultVectorValues, pageCursor.idx, pageCursor.offset,
+                numValuesToCopyInPage, nodeIDCompressionScheme, metrics);
+            numValuesLeftToCopy -= numValuesToCopyInPage;
+            pageCursor.offset = 0;
+            pageCursor.idx++;
+        }
+    } else {
+        auto numValuesToCopy =
+            nodeIDVector->state->isFlat() ? 1 : nodeIDVector->state->selectedSize;
+        for (auto i = 0u; i < numValuesToCopy; i++) {
+            auto pos = nodeIDVector->state->isFlat() ? nodeIDVector->state->getPositionOfCurrIdx() :
+                                                       nodeIDVector->state->selectedPositions[i];
+            auto nodeOffset = nodeIDValues[pos].offset;
+            auto pageCursor = getPageCursorForOffset(nodeOffset);
+            readNodeIDsFromAPage(&resultVectorValues[i], pageCursor.idx, pageCursor.offset,
+                1 /* numValuesToCopy */, nodeIDCompressionScheme, metrics);
+        }
+    }
 }
 
 } // namespace storage

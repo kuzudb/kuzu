@@ -9,7 +9,6 @@
 #include "src/planner/include/logical_plan/operator/intersect/logical_intersect.h"
 #include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
 #include "src/planner/include/logical_plan/operator/load_csv/logical_load_csv.h"
-#include "src/planner/include/logical_plan/operator/multiplicity_reducer/logical_multiplcity_reducer.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
@@ -161,13 +160,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
         assert(extend.lowerBound == extend.upperBound && extend.lowerBound == 1);
         return make_unique<AdjColumnExtend>(dataChunkPos, valueVectorPos,
             relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
-            extend.nbrNodeLabel, move(prevOperator), context, physicalOperatorID++);
+            move(prevOperator), context, physicalOperatorID++);
     } else {
         auto adjLists =
             relsStore.getAdjLists(extend.direction, extend.boundNodeLabel, extend.relLabel);
         if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
             return make_unique<AdjListExtend>(dataChunkPos, valueVectorPos, adjLists,
-                extend.nbrNodeLabel, move(prevOperator), context, physicalOperatorID++);
+                move(prevOperator), context, physicalOperatorID++);
         } else {
             return make_unique<FrontierExtend>(dataChunkPos, valueVectorPos, adjLists,
                 extend.nbrNodeLabel, extend.lowerBound, extend.upperBound, move(prevOperator),

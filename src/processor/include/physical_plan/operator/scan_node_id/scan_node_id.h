@@ -1,6 +1,5 @@
 #pragma once
 
-#include "src/common/include/vector/node_vector.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/task_system/morsel.h"
 
@@ -27,7 +26,7 @@ public:
 
 protected:
     shared_ptr<DataChunk> outDataChunk;
-    shared_ptr<NodeIDVector> nodeIDVector;
+    shared_ptr<ValueVector> nodeIDVector;
     shared_ptr<MorselsDesc> morsel;
 };
 

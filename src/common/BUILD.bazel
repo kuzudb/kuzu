@@ -19,14 +19,12 @@ cc_library(
     srcs = [
         "compression_scheme.cpp",
         "data_chunk/data_chunk_state.cpp",
-        "vector/node_vector.cpp",
         "vector/string_buffer.cpp",
         "vector/value_vector.cpp",
     ],
     hdrs = [
         "include/compression_scheme.h",
         "include/data_chunk/data_chunk_state.h",
-        "include/vector/node_vector.h",
         "include/vector/string_buffer.h",
         "include/vector/value_vector.h",
     ],
@@ -47,7 +45,6 @@ cc_library(
         "vector/operations/vector_cast_operations.cpp",
         "vector/operations/vector_comparison_operations.cpp",
         "vector/operations/vector_hash_operations.cpp",
-        "vector/operations/vector_node_id_operations.cpp",
     ],
     hdrs = [
         "include/vector/operations/executors/binary_operation_executor.h",
@@ -57,7 +54,6 @@ cc_library(
         "include/vector/operations/vector_cast_operations.h",
         "include/vector/operations/vector_comparison_operations.h",
         "include/vector/operations/vector_hash_operations.h",
-        "include/vector/operations/vector_node_id_operations.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

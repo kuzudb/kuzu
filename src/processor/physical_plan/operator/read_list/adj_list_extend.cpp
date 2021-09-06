@@ -4,13 +4,10 @@ namespace graphflow {
 namespace processor {
 
 AdjListExtend::AdjListExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, AdjLists* lists,
-    label_t outNodeIDVectorLabel, unique_ptr<PhysicalOperator> prevOperator,
-    ExecutionContext& context, uint32_t id)
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
     : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id,
-          true /* is adj list */},
-      outNodeIDVectorLabel{outNodeIDVectorLabel} {
-    outValueVector =
-        make_shared<NodeIDVector>(outNodeIDVectorLabel, lists->getNodeIDCompressionScheme(), false);
+          true /* is adj list */} {
+    outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
     outDataChunk = make_shared<DataChunk>();
     outDataChunk->append(outValueVector);
     auto listSyncState = make_shared<ListSyncState>();

@@ -9,7 +9,8 @@ ScanAttribute::ScanAttribute(uint64_t dataChunkPos, uint64_t valueVectorPos,
       valueVectorPos{valueVectorPos} {
     resultSet = this->prevOperator->getResultSet();
     inDataChunk = resultSet->dataChunks[dataChunkPos];
-    inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
+    inValueVector = inDataChunk->getValueVector(valueVectorPos);
+    assert(inValueVector->dataType == NODE);
 }
 
 void ScanAttribute::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {

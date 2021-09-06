@@ -93,13 +93,15 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     // being read (csrOffset above should be set to the beginning of the next page. Note that
     // because of case (ii), this computation guarantees that what we read fits into a single page.
     // That's why we can call copyFromAPage.
-    valueVector->state->initOriginalAndSelectedSize(min((uint32_t)(info.listLen - csrOffset),
-        numElementsPerPage - (uint32_t)(csrOffset % numElementsPerPage)));
+    auto numValuesToCopy = min((uint32_t)(info.listLen - csrOffset),
+        numElementsPerPage - (uint32_t)(csrOffset % numElementsPerPage));
+    valueVector->state->initOriginalAndSelectedSize(numValuesToCopy);
     listSyncState->set(csrOffset, valueVector->state->selectedSize);
     // map logical pageIdx to physical pageIdx
-    info.cursor.idx = info.mapper(info.cursor.idx);
-    copyFromAPage(valueVector->values, info.cursor.idx,
-        valueVector->state->originalSize * elementSize, info.cursor.offset, metrics);
+    auto physicalPageId = info.mapper(info.cursor.idx);
+    auto values = (nodeID_t*)valueVector->values;
+    readNodeIDsFromAPage(values, physicalPageId, info.cursor.offset, numValuesToCopy,
+        nodeIDCompressionScheme, metrics);
 }
 
 // Note: This function sets the original and selected size of the DataChunk into which it will
@@ -107,7 +109,11 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
 void AdjLists::readSmallList(
     const shared_ptr<ValueVector>& valueVector, ListInfo& info, BufferManagerMetrics& metrics) {
     valueVector->state->initOriginalAndSelectedSize(info.listLen);
-    Lists::readSmallList(valueVector, info, metrics);
+    auto values = (nodeID_t*)valueVector->values;
+    auto numValuesLeftToCopy = valueVector->state->originalSize;
+    auto physicalPageId = info.mapper(info.cursor.idx);
+    readNodeIDsFromAPage(values, physicalPageId, info.cursor.offset, numValuesLeftToCopy,
+        nodeIDCompressionScheme, metrics);
 }
 
 unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
@@ -145,7 +151,7 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
         retVal->emplace_back(nodeID);
         sizeLeftToDecompress -= nodeIDCompressionScheme.getNumTotalBytes();
     }
-    return move(retVal);
+    return retVal;
 }
 
 } // namespace storage

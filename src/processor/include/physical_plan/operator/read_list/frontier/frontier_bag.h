@@ -42,7 +42,7 @@ public:
     explicit FrontierBag();
 
     void initHashTable();
-    void append(const NodeIDVector& vector, uint64_t multiplicity);
+    void append(const ValueVector& vector, uint64_t multiplicity);
 
 private:
     NodeIDOverflow* getOverflowPtr();

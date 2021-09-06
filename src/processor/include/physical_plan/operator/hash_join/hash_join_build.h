@@ -2,7 +2,6 @@
 
 #include "src/common/include/operations/hash_operations.h"
 #include "src/common/include/types.h"
-#include "src/common/include/vector/operations/vector_node_id_operations.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/operator/result/result_set.h"
 #include "src/processor/include/physical_plan/operator/sink/sink.h"
@@ -103,7 +102,7 @@ private:
         uint64_t valueOffsetInVector, uint64_t appendCount, bool isSingleValue) const;
     void appendPayloadVectorAsOverflowValue(
         ValueVector& vector, uint8_t* appendBuffer, uint64_t appendCount);
-    void appendKeyVector(NodeIDVector& vector, uint8_t* appendBuffer, uint64_t valueOffsetInVector,
+    void appendKeyVector(ValueVector& vector, uint8_t* appendBuffer, uint64_t valueOffsetInVector,
         uint64_t appendCount) const;
     overflow_value_t addVectorInOverflowBlocks(ValueVector& vector);
     void appendKeyDataChunk(

@@ -4,7 +4,7 @@
 #include "src/common/include/vector/operations/vector_boolean_operations.h"
 #include "src/common/include/vector/operations/vector_cast_operations.h"
 #include "src/common/include/vector/operations/vector_comparison_operations.h"
-#include "src/common/include/vector/operations/vector_node_id_operations.h"
+#include "src/common/include/vector/operations/vector_hash_operations.h"
 
 namespace graphflow {
 namespace evaluator {
@@ -21,7 +21,7 @@ std::function<void(ValueVector&, ValueVector&)> ExpressionEvaluator::getUnaryVec
     case IS_NOT_NULL:
         return VectorComparisonOperations::IsNotNull;
     case HASH_NODE_ID:
-        return VectorNodeIDOperations::Hash;
+        return VectorHashOperations::Hash;
     case CAST_TO_STRING:
         return VectorCastOperations::castStructuredToStringValue;
     case CAST_TO_UNSTRUCTURED_VECTOR:
@@ -71,17 +71,17 @@ ExpressionEvaluator::getBinaryVectorExecuteOperation(ExpressionType type) {
     case LESS_THAN_EQUALS:
         return VectorComparisonOperations::LessThanEquals;
     case EQUALS_NODE_ID:
-        return VectorNodeIDOperations::Equals;
+        return VectorComparisonOperations::Equals;
     case NOT_EQUALS_NODE_ID:
-        return VectorNodeIDOperations::NotEquals;
+        return VectorComparisonOperations::NotEquals;
     case GREATER_THAN_NODE_ID:
-        return VectorNodeIDOperations::GreaterThan;
+        return VectorComparisonOperations::GreaterThan;
     case GREATER_THAN_EQUALS_NODE_ID:
-        return VectorNodeIDOperations::GreaterThanEquals;
+        return VectorComparisonOperations::GreaterThanEquals;
     case LESS_THAN_NODE_ID:
-        return VectorNodeIDOperations::LessThan;
+        return VectorComparisonOperations::LessThan;
     case LESS_THAN_EQUALS_NODE_ID:
-        return VectorNodeIDOperations::LessThanEquals;
+        return VectorComparisonOperations::LessThanEquals;
     case ADD:
         return VectorArithmeticOperations::Add;
     case SUBTRACT:
@@ -121,17 +121,17 @@ ExpressionEvaluator::getBinaryVectorSelectOperation(ExpressionType type) {
     case LESS_THAN_EQUALS:
         return VectorComparisonOperations::LessThanEqualsSelect;
     case EQUALS_NODE_ID:
-        return VectorNodeIDOperations::EqualsSelect;
+        return VectorComparisonOperations::EqualsSelect;
     case NOT_EQUALS_NODE_ID:
-        return VectorNodeIDOperations::NotEqualsSelect;
+        return VectorComparisonOperations::NotEqualsSelect;
     case GREATER_THAN_NODE_ID:
-        return VectorNodeIDOperations::GreaterThanSelect;
+        return VectorComparisonOperations::GreaterThanSelect;
     case GREATER_THAN_EQUALS_NODE_ID:
-        return VectorNodeIDOperations::GreaterThanEqualsSelect;
+        return VectorComparisonOperations::GreaterThanEqualsSelect;
     case LESS_THAN_NODE_ID:
-        return VectorNodeIDOperations::LessThanSelect;
+        return VectorComparisonOperations::LessThanSelect;
     case LESS_THAN_EQUALS_NODE_ID:
-        return VectorNodeIDOperations::LessThanEqualsSelect;
+        return VectorComparisonOperations::LessThanEqualsSelect;
     default:
         throw invalid_argument("Unsupported expression type: " + expressionTypeToString(type));
     }

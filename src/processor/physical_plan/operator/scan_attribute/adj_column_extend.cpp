@@ -4,13 +4,10 @@ namespace graphflow {
 namespace processor {
 
 AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos, Column* column,
-    label_t outNodeIDVectorLabel, unique_ptr<PhysicalOperator> prevOperator,
-    ExecutionContext& context, uint32_t id)
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
     : ScanColumn{dataChunkPos, valueVectorPos, column, move(prevOperator), context, id},
-      FilteringOperator(this->inDataChunk), outNodeIDVectorLabel{outNodeIDVectorLabel} {
-    auto outNodeIDVector = make_shared<NodeIDVector>(outNodeIDVectorLabel,
-        ((AdjColumn*)column)->getCompressionScheme(), false /*inNodeIDVector->isSequence()*/);
-    outValueVector = static_pointer_cast<ValueVector>(outNodeIDVector);
+      FilteringOperator(this->inDataChunk) {
+    outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
     inDataChunk->append(outValueVector);
 }
 
@@ -26,8 +23,7 @@ void AdjColumnExtend::getNextTuples() {
         restoreDataChunkSelectorState();
         ScanColumn::getNextTuples();
         saveDataChunkSelectorState();
-        hasAtLeastOneNonNullValue =
-            static_pointer_cast<NodeIDVector>(outValueVector)->discardNulls();
+        hasAtLeastOneNonNullValue = outValueVector->discardNullNodes();
     } while (inDataChunk->state->selectedSize > 0 && !hasAtLeastOneNonNullValue);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(inDataChunk->state->selectedSize);

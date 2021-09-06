@@ -30,18 +30,12 @@ private:
 class ValueVector {
 
 public:
-    ValueVector(MemoryManager* memoryManager, DataType dataType, bool isSingleValue = false)
+    ValueVector(MemoryManager* memoryManager, DataType dataType, bool isSingleValue = false,
+        bool isSequence = false)
         : ValueVector(memoryManager, isSingleValue ? 1 : DEFAULT_VECTOR_CAPACITY,
-              TypeUtils::getDataTypeSize(dataType), dataType) {}
+              TypeUtils::getDataTypeSize(dataType), dataType, isSequence) {}
 
-    virtual ~ValueVector() = default;
-
-    virtual node_offset_t readNodeOffset(uint64_t pos) const {
-        throw invalid_argument("readNodeOffset unsupported.");
-    }
-    virtual void readNodeID(uint64_t pos, nodeID_t& nodeID) const {
-        throw invalid_argument("readNodeID unsupported.");
-    }
+    ~ValueVector() = default;
 
     void addString(uint64_t pos, string value) const;
     void addString(uint64_t pos, char* value, uint64_t len) const;
@@ -50,7 +44,7 @@ public:
     void fillNullMask();
 
     // Sets the null mask of this ValueVector to the null mask of
-    inline void setNullMask(shared_ptr<NullMask> otherMask) { nullMask = otherMask; }
+    inline void setNullMask(const shared_ptr<NullMask>& otherMask) { nullMask = otherMask; }
 
     inline void setAllNull() {
         std::fill(nullMask->mask.get(), nullMask->mask.get() + state->originalSize, true);
@@ -74,17 +68,26 @@ public:
     inline uint8_t isNull(uint64_t pos) { return nullMask->mask[pos]; }
 
     inline shared_ptr<NullMask> getNullMask() { return nullMask; }
-    virtual inline int64_t getNumBytesPerValue() { return TypeUtils::getDataTypeSize(dataType); }
+    inline int64_t getNumBytesPerValue() const { return TypeUtils::getDataTypeSize(dataType); }
 
-    virtual shared_ptr<ValueVector> clone();
+    // Node specific functions.
+    bool discardNullNodes();
+    void readNodeID(uint64_t pos, nodeID_t& nodeID) const;
+    inline node_offset_t readNodeOffset(uint64_t pos) const {
+        assert(dataType == NODE);
+        return isSequence ? ((nodeID_t*)values)[0].offset + pos : ((nodeID_t*)values)[pos].offset;
+    }
+
+    shared_ptr<ValueVector> clone();
 
 protected:
     ValueVector(MemoryManager* memoryManager, uint64_t vectorCapacity, uint64_t numBytesPerValue,
-        DataType dataType)
+        DataType dataType, bool isSequence)
         : vectorCapacity{vectorCapacity},
           bufferValues(make_unique<uint8_t[]>(numBytesPerValue * vectorCapacity)),
           memoryManager{memoryManager}, dataType{dataType}, values{bufferValues.get()},
-          stringBuffer{nullptr}, nullMask{make_shared<NullMask>(vectorCapacity)} {
+          stringBuffer{nullptr}, isSequence{isSequence}, nullMask{make_shared<NullMask>(
+                                                             vectorCapacity)} {
         if (dataType == STRING || dataType == UNSTRUCTURED) {
             assert(memoryManager);
             stringBuffer = make_unique<StringBuffer>(*memoryManager);
@@ -101,6 +104,8 @@ public:
     uint8_t* values;
     unique_ptr<StringBuffer> stringBuffer;
     shared_ptr<DataChunkState> state;
+    // Node specific field.
+    bool isSequence;
 
 private:
     // This is a shared pointer because sometimes ValueVectors may share NullMasks, e.g., the result

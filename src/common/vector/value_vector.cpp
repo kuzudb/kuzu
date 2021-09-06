@@ -51,6 +51,43 @@ void ValueVector::fillNullMask() {
     }
 }
 
+void ValueVector::readNodeID(uint64_t pos, nodeID_t& nodeID) const {
+    assert(dataType == NODE);
+    if (isSequence) {
+        nodeID = ((nodeID_t*)values)[0];
+        nodeID.offset += pos;
+    } else {
+        nodeID = ((nodeID_t*)values)[pos];
+    }
+}
+
+bool ValueVector::discardNullNodes() {
+    assert(dataType == NODE);
+    node_offset_t nodeOffset;
+    if (state->isFlat()) {
+        nodeOffset = ((nodeID_t*)values)[state->getPositionOfCurrIdx()].offset;
+        return nodeOffset != UINT64_MAX;
+    } else {
+        auto selectedPos = 0u;
+        if (state->isUnfiltered()) {
+            state->resetSelectorToValuePosBuffer();
+            for (auto i = 0u; i < state->selectedSize; i++) {
+                nodeOffset = ((nodeID_t*)values)[i].offset;
+                state->selectedPositions[selectedPos] = i;
+                selectedPos += (nodeOffset != UINT64_MAX);
+            }
+        } else {
+            for (auto i = 0u; i < state->selectedSize; i++) {
+                nodeOffset = ((nodeID_t*)values)[state->selectedPositions[i]].offset;
+                state->selectedPositions[selectedPos] = i;
+                selectedPos += (nodeOffset != UINT64_MAX);
+            }
+        }
+        state->selectedSize = selectedPos;
+        return state->selectedSize > 0;
+    }
+}
+
 // Notice that this clone function only copies values and mask without copying string buffers.
 shared_ptr<ValueVector> ValueVector::clone() {
     auto newVector = make_shared<ValueVector>(memoryManager, dataType, vectorCapacity == 1);

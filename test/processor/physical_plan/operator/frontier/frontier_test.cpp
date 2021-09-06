@@ -7,12 +7,12 @@ using namespace graphflow::processor;
 TEST(FrontierTests, frontierCreationTest) {
     MemoryManager memMan;
 
-    NodeIDCompressionScheme compressionScheme;
-    NodeIDVector vector = NodeIDVector(0, compressionScheme, false);
+    ValueVector vector = ValueVector(&memMan, NODE);
     vector.state = make_shared<DataChunkState>(DEFAULT_VECTOR_CAPACITY);
     vector.state->selectedSize = DEFAULT_VECTOR_CAPACITY;
     for (auto i = 0u; i < vector.state->selectedSize; i++) {
-        ((node_offset_t*)vector.values)[i] = i;
+        ((nodeID_t*)vector.values)[i].label = 0;
+        ((nodeID_t*)vector.values)[i].offset = i;
     }
 
     auto FIXED_MULTIPLICITY_VALUE = 12u;
@@ -22,8 +22,8 @@ TEST(FrontierTests, frontierCreationTest) {
     frontierBag.append(vector, FIXED_MULTIPLICITY_VALUE);
     for (auto i = 0u; i < 10; i++) {
         for (auto j = 0u; j < vector.state->selectedSize; j++) {
-            ((node_offset_t*)vector.values)[j] =
-                ((node_offset_t*)vector.values)[j] + DEFAULT_VECTOR_CAPACITY;
+            ((nodeID_t*)vector.values)[j].offset =
+                ((nodeID_t*)vector.values)[j].offset + DEFAULT_VECTOR_CAPACITY;
         }
         frontierBag.append(vector, FIXED_MULTIPLICITY_VALUE);
     }

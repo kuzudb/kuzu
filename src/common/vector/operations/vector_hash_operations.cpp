@@ -14,6 +14,9 @@ void VectorHashOperations::Hash(ValueVector& operand, ValueVector& result) {
     case DOUBLE:
         UnaryOperationExecutor::execute<double_t, uint64_t, operation::Hash>(operand, result);
         break;
+    case NODE:
+        UnaryOperationExecutor::executeNodeIDOps<uint64_t, operation::Hash>(operand, result);
+        break;
     default:
         assert(false);
     }

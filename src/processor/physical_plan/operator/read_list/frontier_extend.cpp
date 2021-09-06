@@ -14,8 +14,7 @@ FrontierExtend::FrontierExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPo
           true /* is adj list */},
       startLayer{lowerBound}, endLayer{upperBound}, outNodeIDVectorLabel{outNodeIDVectorLabel} {
     operatorType = FRONTIER_EXTEND;
-    outValueVector =
-        make_shared<NodeIDVector>(outNodeIDVectorLabel, NodeIDCompressionScheme(), false);
+    outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
     outDataChunk = make_shared<DataChunk>();
     outDataChunk->append(outValueVector);
     outValueVector->state->initMultiplicity();
@@ -24,7 +23,7 @@ FrontierExtend::FrontierExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPo
     vectors.reserve(maxNumThreads);
     largeListHandles.reserve(maxNumThreads);
     for (auto i = 0u; i < maxNumThreads; i++) {
-        vectors.push_back(make_shared<NodeIDVector>(0, lists->getNodeIDCompressionScheme(), false));
+        vectors.push_back(make_shared<ValueVector>(context.memoryManager, NODE));
         vectors[i]->state = make_shared<DataChunkState>(DEFAULT_VECTOR_CAPACITY);
         largeListHandles.push_back(make_unique<LargeListHandle>(true /* is adj list handle */));
         largeListHandles[i]->setListSyncState(make_shared<ListSyncState>());
@@ -51,7 +50,7 @@ void FrontierExtend::getNextTuples() {
     }
     do {
         prevOperator->getNextTuples();
-        if (inNodeIDVector->state->selectedSize == 0) {
+        if (inValueVector->state->selectedSize == 0) {
             outDataChunk->state->selectedSize = 0;
             metrics->executionTime.stop();
             return;
@@ -102,7 +101,7 @@ void FrontierExtend::extendToThreadLocalFrontiers(uint64_t layer) {
                             lists->readValues(slot->nodeOffset, vectors[threadId],
                                 largeListHandles[threadId], *metrics->bufferManagerMetrics);
                             threadLocalFrontierPerLayer[layer][threadId]->append(
-                                *(NodeIDVector*)(vectors[threadId].get()), slot->multiplicity);
+                                *(vectors[threadId].get()), slot->multiplicity);
                         } while (largeListHandles[threadId]->hasMoreToRead());
                         slot = slot->next;
                     }
@@ -182,9 +181,9 @@ void FrontierExtend::produceOutputTuples() {
 }
 
 FrontierSet* FrontierExtend::createInitialFrontierSet() {
-    // We assume the inNodeIDVector to be flat similar to AdjListExtend's assumption.
-    auto pos = inNodeIDVector->state->getPositionOfCurrIdx();
-    auto nodeOffset = inNodeIDVector->readNodeOffset(pos);
+    // We assume the inValueVector to be flat similar to AdjListExtend's assumption.
+    auto pos = inValueVector->state->getPositionOfCurrIdx();
+    auto nodeOffset = inValueVector->readNodeOffset(pos);
     auto numSlots = getNextPowerOfTwo(lists->getNumElementsInList(nodeOffset));
     if (numSlots == 0) {
         return nullptr;

@@ -33,7 +33,7 @@ public:
 
     void initHashTable(uint64_t numSlots);
 
-    void insert(const NodeIDVector& vector);
+    void insert(const ValueVector& vector);
     void insert(const FrontierBag& frontier, uint64_t slot);
     void insert(node_offset_t nodeOffset, uint64_t multiplicity);
 

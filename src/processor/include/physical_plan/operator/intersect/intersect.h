@@ -27,9 +27,9 @@ private:
     uint64_t rightValueVectorPos;
 
     shared_ptr<DataChunk> leftDataChunk;
-    shared_ptr<NodeIDVector> leftNodeIDVector;
+    shared_ptr<ValueVector> leftNodeIDVector;
     shared_ptr<DataChunk> rightDataChunk;
-    shared_ptr<NodeIDVector> rightNodeIDVector;
+    shared_ptr<ValueVector> rightNodeIDVector;
 
     uint64_t leftIdx;
 };
