@@ -68,7 +68,7 @@ void Enumerator::appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, Lo
         loadCSVStatement.tokenSeparator, loadCSVStatement.csvColumnVariables);
     auto groupPos = plan.schema->createGroup();
     for (auto& expression : loadCSVStatement.csvColumnVariables) {
-        plan.schema->appendToGroup(expression->getInternalName(), groupPos);
+        plan.schema->insertToGroup(expression->getInternalName(), groupPos);
     }
     plan.appendOperator(move(loadCSV));
 }
@@ -144,7 +144,7 @@ void Enumerator::appendScanNodePropertyIfNecessary(
         nodeExpression.label, propertyExpression.getInternalName(), propertyExpression.propertyKey,
         UNSTRUCTURED == propertyExpression.dataType, plan.lastOperator);
     auto groupPos = plan.schema->getGroupPos(nodeExpression.getIDProperty());
-    plan.schema->appendToGroup(propertyExpression.getInternalName(), groupPos);
+    plan.schema->insertToGroup(propertyExpression.getInternalName(), groupPos);
     plan.appendOperator(move(scanProperty));
 }
 
@@ -160,7 +160,7 @@ void Enumerator::appendScanRelPropertyIfNecessary(
         propertyExpression.getInternalName(), propertyExpression.propertyKey, extend->isColumn,
         plan.lastOperator);
     auto groupPos = plan.schema->getGroupPos(extend->nbrNodeID);
-    plan.schema->appendToGroup(propertyExpression.getInternalName(), groupPos);
+    plan.schema->insertToGroup(propertyExpression.getInternalName(), groupPos);
     plan.appendOperator(move(scanProperty));
 }
 

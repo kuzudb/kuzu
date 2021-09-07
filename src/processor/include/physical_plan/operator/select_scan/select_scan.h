@@ -12,8 +12,9 @@ namespace processor {
 class SelectScan : public PhysicalOperator {
 
 public:
-    SelectScan(const ResultSet* inResultSet,
-        vector<pair<uint64_t, uint64_t>> valueVectorsPosToSelect, ExecutionContext& context,
+    SelectScan(uint32_t totalNumDataChunks, const ResultSet* inResultSet,
+        vector<pair<uint32_t, uint32_t>> inDataChunkAndValueVectorsPos, uint32_t outDataChunkSize,
+        uint32_t outDataChunkPos, vector<uint32_t> outValueVectorsPos, ExecutionContext& context,
         uint32_t id);
 
     inline void setInResultSet(const ResultSet* resultSet) { inResultSet = resultSet; }
@@ -23,12 +24,18 @@ public:
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<SelectScan>(inResultSet, valueVectorsPosToSelect, context, id);
+        return make_unique<SelectScan>(totalNumDataChunks, inResultSet,
+            inDataChunkAndValueVectorsPos, outDataChunkSize, outDataChunkPos, outValueVectorsPos,
+            context, id);
     }
 
 private:
+    uint32_t totalNumDataChunks;
     const ResultSet* inResultSet;
-    vector<pair<uint64_t, uint64_t>> valueVectorsPosToSelect;
+    vector<pair<uint32_t, uint32_t>> inDataChunkAndValueVectorsPos;
+    uint32_t outDataChunkSize;
+    uint32_t outDataChunkPos;
+    vector<uint32_t> outValueVectorsPos;
 
     bool isFirstExecution;
     shared_ptr<DataChunk> outDataChunk;

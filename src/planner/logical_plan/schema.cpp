@@ -9,14 +9,14 @@ uint32_t Schema::createGroup() {
     return pos;
 }
 
-void Schema::appendToGroup(const string& variable, uint32_t pos) {
-    variableToGroupPos.insert({variable, pos});
-    groups[pos]->appendVariable(variable);
+void Schema::insertToGroup(const string& variable, uint32_t groupPos) {
+    variableToGroupPos.insert({variable, groupPos});
+    groups[groupPos]->insertVariable(variable);
 }
 
-void Schema::appendToGroup(const FactorizationGroup& otherGroup, uint32_t pos) {
+void Schema::insertToGroup(const FactorizationGroup& otherGroup, uint32_t groupPos) {
     for (auto& variable : otherGroup.variables) {
-        appendToGroup(variable, pos);
+        insertToGroup(variable, groupPos);
     }
 }
 

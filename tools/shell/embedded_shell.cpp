@@ -97,7 +97,7 @@ void EmbeddedShell::run() {
         } else if (lineStr.rfind(BUFFER_MANAGER_SIZE) == 0) {
             try {
                 system.bufferManager->resize(
-                        stoull(lineStr.substr(string(BUFFER_MANAGER_SIZE).length())));
+                    stoull(lineStr.substr(string(BUFFER_MANAGER_SIZE).length())));
             } catch (exception& e) { printf("%s\n", e.what()); }
 
         } else {
@@ -133,12 +133,35 @@ void EmbeddedShell::printExecutionResult() {
         if (!context.queryResult->resultSetCollection.empty()) {
             ResultSetIterator resultSetIterator(context.queryResult->resultSetCollection[0].get());
             Tuple tuple(resultSetIterator.dataTypes);
+            vector<uint32_t> colsWidth(tuple.len(), 2);
+            uint32_t lineSeparatorLen = 1u + colsWidth.size();
+            string lineSeparator;
+            //  first loop: calculate column width of the table
             for (auto& resultSet : context.queryResult->resultSetCollection) {
                 resultSetIterator.setResultSet(resultSet.get());
                 while (resultSetIterator.hasNextTuple()) {
                     resultSetIterator.getNextTuple(tuple);
-                    for (uint64_t k = 0; k < resultSet->multiplicity; k++) {
-                        printf("%s\n", tuple.toString().c_str());
+                    for (auto i = 0u; i < colsWidth.size(); i++) {
+                        if (tuple.nullMask[i]) {
+                            continue;
+                        }
+                        uint32_t fieldLen = tuple.getValue(i)->toString().length() + 2;
+                        colsWidth[i] = (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i];
+                    }
+                }
+            }
+            for (auto width : colsWidth) {
+                lineSeparatorLen += width;
+            }
+            lineSeparator = string(lineSeparatorLen, '-');
+            printf("%s\n", lineSeparator.c_str());
+            for (auto& resultSet : context.queryResult->resultSetCollection) {
+                resultSetIterator.setResultSet(resultSet.get());
+                while (resultSetIterator.hasNextTuple()) {
+                    resultSetIterator.getNextTuple(tuple);
+                    for (uint32_t k = 0; k < resultSet->multiplicity; k++) {
+                        printf("|%s|\n", tuple.toString(colsWidth, "|").c_str());
+                        printf("%s\n", lineSeparator.c_str());
                     }
                 }
             }

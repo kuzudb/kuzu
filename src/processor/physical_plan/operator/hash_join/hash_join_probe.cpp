@@ -5,90 +5,64 @@
 namespace graphflow {
 namespace processor {
 
-HashJoinProbe::HashJoinProbe(uint64_t buildSideKeyDataChunkPos, uint64_t buildSideKeyVectorPos,
-    const vector<bool>& buildSideDataChunkPosToIsFlat, uint64_t probeSideKeyDataChunkPos,
-    uint64_t probeSideKeyVectorPos, unique_ptr<PhysicalOperator> buildSidePrevOp,
-    unique_ptr<PhysicalOperator> probeSidePrevOp, ExecutionContext& context, uint32_t id)
+HashJoinProbe::HashJoinProbe(const BuildDataChunksInfo& buildDataChunksInfo,
+    const ProbeDataChunksInfo& probeDataChunksInfo,
+    vector<unordered_map<uint32_t, pair<uint32_t, uint32_t>>> buildSideValueVectorsOutputPos,
+    unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp,
+    ExecutionContext& context, uint32_t id)
     : PhysicalOperator{move(probeSidePrevOp), HASH_JOIN_PROBE, context, id},
-      buildSidePrevOp{move(buildSidePrevOp)}, buildSideKeyDataChunkPos{buildSideKeyDataChunkPos},
-      buildSideKeyVectorPos{buildSideKeyVectorPos},
-      buildSideDataChunkPosToIsFlat{buildSideDataChunkPosToIsFlat},
-      probeSideKeyDataChunkPos{probeSideKeyDataChunkPos}, probeSideKeyVectorPos{
-                                                              probeSideKeyVectorPos} {
+      buildSidePrevOp{move(buildSidePrevOp)}, buildDataChunksInfo{buildDataChunksInfo},
+      probeDataChunksInfo{probeDataChunksInfo}, buildSideValueVectorsOutputPos{
+                                                    move(buildSideValueVectorsOutputPos)} {
     // The buildSidePrevOp (HashJoinBuild) yields no actual resultSet, we get it from it's prevOp.
     buildSideResultSet = this->buildSidePrevOp->prevOperator->getResultSet();
     // The prevOperator is the probe side prev operator passed in to the PhysicalOperator
     resultSet = prevOperator->getResultSet();
-    probeSideKeyDataChunk = resultSet->dataChunks[probeSideKeyDataChunkPos];
+    probeSideKeyDataChunk = resultSet->dataChunks[probeDataChunksInfo.keyDataChunkPos];
     // The probe side key data chunk is also the output keyDataChunk in the resultSet. Non-key
     // vectors from the build side key data chunk are appended into the the probeSideKeyDataChunk.
     resultKeyDataChunk = probeSideKeyDataChunk;
     numProbeSidePrevKeyValueVectors = probeSideKeyDataChunk->valueVectors.size();
-    probeSideKeyVector = probeSideKeyDataChunk->getValueVector(probeSideKeyVectorPos);
+    probeSideKeyVector =
+        probeSideKeyDataChunk->getValueVector(probeDataChunksInfo.keyValueVectorPos);
     probeState = make_unique<ProbeState>(DEFAULT_VECTOR_CAPACITY);
     initializeResultSetAndVectorPtrs();
 }
 
-void HashJoinProbe::createVectorsFromExistingOnesAndAppend(
-    DataChunk& inDataChunk, DataChunk& resultDataChunk, vector<uint64_t>& vectorPositions) {
-    for (auto pos : vectorPositions) {
-        auto resultVector = make_shared<ValueVector>(
-            context.memoryManager, inDataChunk.valueVectors[pos]->dataType);
-        resultDataChunk.append(resultVector);
-    }
-}
-
-void HashJoinProbe::createVectorPtrs(DataChunk& buildSideDataChunk) {
+void HashJoinProbe::createVectorPtrs(DataChunk& buildSideDataChunk, uint32_t resultPos) {
     for (auto j = 0u; j < buildSideDataChunk.valueVectors.size(); j++) {
         auto vectorPtrs = make_unique<overflow_value_t[]>(DEFAULT_VECTOR_CAPACITY);
         BuildSideVectorInfo vectorInfo(buildSideDataChunk.valueVectors[j]->getNumBytesPerValue(),
-            resultSet->dataChunks.size(), j, buildSideVectorPtrs.size());
+            resultPos, j, buildSideVectorPtrs.size());
         buildSideVectorInfos.push_back(vectorInfo);
         buildSideVectorPtrs.push_back(move(vectorPtrs));
     }
 }
 
 void HashJoinProbe::initializeResultSetAndVectorPtrs() {
-    // Initialize vectors for build side key data chunk (except for the key vector, which is already
-    // included in the probe side key data chunk) and append them into the resultKeyDataChunk.
-    auto buildSideKeyDataChunk = buildSideResultSet->dataChunks[buildSideKeyDataChunkPos];
-    vector<uint64_t> buildSideKeyVectorPositions;
-    for (auto i = 0u; i < buildSideKeyDataChunk->valueVectors.size(); i++) {
-        if (i == buildSideKeyVectorPos) {
-            continue;
-        }
-        buildSideKeyVectorPositions.push_back(i);
+    // insert dataChunks into resultSet
+    buildSideFlatResultDataChunk = make_shared<DataChunk>(probeDataChunksInfo.newFlatDataChunkSize);
+    if (probeDataChunksInfo.newFlatDataChunkPos != UINT32_MAX) {
+        resultSet->insert(probeDataChunksInfo.newFlatDataChunkPos, buildSideFlatResultDataChunk);
     }
-    createVectorsFromExistingOnesAndAppend(
-        *buildSideKeyDataChunk, *resultKeyDataChunk, buildSideKeyVectorPositions);
-    // Create vectors for build side non-key data chunks and append them into the resultSet:
-    // 1. Merge all (if any) flat non-key data chunks into buildSideFlatResultDataChunk. Notice that
-    // if build side has no flat data chunks, the buildSideFlatResultDataChunk can be empty, and not
-    // appended into the resultSet.
-    // 2. For each unFlat data chunk, create a new one, and allocate vectorPtrs.
-    buildSideFlatResultDataChunk = make_shared<DataChunk>();
+    for (auto i = 0u; i < probeDataChunksInfo.newUnFlatDataChunksPos.size(); ++i) {
+        resultSet->insert(probeDataChunksInfo.newUnFlatDataChunksPos[i],
+            make_shared<DataChunk>(probeDataChunksInfo.newUnFlatDataChunksSize[i]));
+    }
+
     for (auto i = 0u; i < buildSideResultSet->dataChunks.size(); i++) {
-        if (i == buildSideKeyDataChunkPos) {
-            continue;
+        auto buildSideDataChunk = buildSideResultSet->dataChunks[i];
+        if (!buildDataChunksInfo.dataChunkPosToIsFlat[i] &&
+            i != buildDataChunksInfo.keyDataChunkPos) {
+            createVectorPtrs(*buildSideDataChunk,
+                probeDataChunksInfo.newUnFlatDataChunksPos[buildSideVectorPtrs.size()]);
         }
-        auto& dataChunk = buildSideResultSet->dataChunks[i];
-        vector<uint64_t> dataChunkVectorPositions;
-        for (auto j = 0u; j < dataChunk->valueVectors.size(); j++) {
-            dataChunkVectorPositions.push_back(j);
-        }
-        if (buildSideDataChunkPosToIsFlat[i]) {
-            if (buildSideFlatResultDataChunk->valueVectors.empty()) {
-                buildSideFlatResultDataChunk = make_shared<DataChunk>();
-                resultSet->append(buildSideFlatResultDataChunk);
-            }
-            createVectorsFromExistingOnesAndAppend(
-                *dataChunk, *buildSideFlatResultDataChunk, dataChunkVectorPositions);
-        } else {
-            auto unFlatOutDataChunk = make_shared<DataChunk>();
-            createVectorsFromExistingOnesAndAppend(
-                *dataChunk, *unFlatOutDataChunk, dataChunkVectorPositions);
-            createVectorPtrs(*dataChunk);
-            resultSet->append(unFlatOutDataChunk);
+        for (auto [buildSideValueVectorPos, outputPos] : buildSideValueVectorsOutputPos[i]) {
+            auto buildSideValueVector = buildSideDataChunk->valueVectors[buildSideValueVectorPos];
+            auto probeSideValueVector =
+                make_shared<ValueVector>(context.memoryManager, buildSideValueVector->dataType);
+            auto [outDataChunkPos, outValueVectorPos] = outputPos;
+            resultSet->dataChunks[outDataChunkPos]->insert(outValueVectorPos, probeSideValueVector);
         }
     }
 }
@@ -144,18 +118,19 @@ void HashJoinProbe::populateResultFlatDataChunksAndVectorPtrs() {
     // Copy the matched value from the build side key data chunk into the resultKeyDataChunk.
     auto tupleReadOffset = NUM_BYTES_PER_NODE_ID;
     copyTuplesFromHT(*resultKeyDataChunk,
-        buildSideResultSet->dataChunks[buildSideKeyDataChunkPos]->valueVectors.size() - 1,
+        buildSideResultSet->dataChunks[buildDataChunksInfo.keyDataChunkPos]->valueVectors.size() -
+            1,
         numProbeSidePrevKeyValueVectors, tupleReadOffset,
         resultKeyDataChunk->state->getPositionOfCurrIdx(), 1);
     // Copy the matched values from the build side non-key data chunks.
     auto buildSideVectorPtrsPos = 0;
     auto mergedFlatDataChunkVectorPos = 0;
     for (auto i = 0u; i < buildSideResultSet->dataChunks.size(); i++) {
-        if (i == buildSideKeyDataChunkPos) {
+        if (i == buildDataChunksInfo.keyDataChunkPos) {
             continue;
         }
         auto dataChunk = buildSideResultSet->dataChunks[i];
-        if (buildSideDataChunkPosToIsFlat[i]) {
+        if (buildDataChunksInfo.dataChunkPosToIsFlat[i]) {
             copyTuplesFromHT(*buildSideFlatResultDataChunk, dataChunk->valueVectors.size(),
                 mergedFlatDataChunkVectorPos, tupleReadOffset, 0, probeState->matchedTuplesSize);
             mergedFlatDataChunkVectorPos += dataChunk->valueVectors.size();

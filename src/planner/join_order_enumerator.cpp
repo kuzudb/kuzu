@@ -232,7 +232,7 @@ void JoinOrderEnumerator::appendSelectScan(
     auto selectScan = make_shared<LogicalSelectScan>(expressionNamesToSelect);
     auto groupPos = plan.schema->createGroup();
     for (auto& expressionToSelect : expressionNamesToSelect) {
-        plan.schema->appendToGroup(expressionToSelect, groupPos);
+        plan.schema->insertToGroup(expressionToSelect, groupPos);
     }
     plan.schema->groups[groupPos]->estimatedCardinality = 1;
     plan.schema->groups[groupPos]->isFlat = true;
@@ -241,11 +241,11 @@ void JoinOrderEnumerator::appendSelectScan(
 
 void JoinOrderEnumerator::appendScanNodeID(const NodeExpression& queryNode, LogicalPlan& plan) {
     auto nodeID = queryNode.getIDProperty();
-    auto scan = plan.lastOperator ?
-                    make_shared<LogicalScanNodeID>(nodeID, queryNode.label, plan.lastOperator) :
-                    make_shared<LogicalScanNodeID>(nodeID, queryNode.label);
+    auto scan = plan.isEmpty() ?
+                    make_shared<LogicalScanNodeID>(nodeID, queryNode.label) :
+                    make_shared<LogicalScanNodeID>(nodeID, queryNode.label, plan.lastOperator);
     auto groupPos = plan.schema->createGroup();
-    plan.schema->appendToGroup(nodeID, groupPos);
+    plan.schema->insertToGroup(nodeID, groupPos);
     plan.schema->groups[groupPos]->estimatedCardinality = graph.getNumNodes(queryNode.label);
     plan.appendOperator(move(scan));
 }
@@ -285,7 +285,7 @@ void JoinOrderEnumerator::appendExtend(
         nbrNode->label, queryRel.label, direction, isColumnExtend, queryRel.lowerBound,
         queryRel.upperBound, plan.lastOperator);
     plan.schema->addLogicalExtend(queryRel.getInternalName(), extend.get());
-    plan.schema->appendToGroup(nbrNodeID, groupPos);
+    plan.schema->insertToGroup(nbrNodeID, groupPos);
     plan.appendOperator(move(extend));
 }
 
@@ -295,24 +295,18 @@ void JoinOrderEnumerator::appendLogicalHashJoin(
     // Flat probe side key group if necessary
     auto probeSideKeyGroupPos = probePlan.schema->getGroupPos(joinNodeID);
     auto probeSideKeyGroup = probePlan.schema->groups[probeSideKeyGroupPos].get();
-    if (!probeSideKeyGroup->isFlat) {
-        enumerator->appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
-    }
+    enumerator->appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
     // Build side: 1) append non-key vectors in the key data chunk into probe side key data chunk.
     auto buildSideKeyGroupPos = buildPlan.schema->getGroupPos(joinNodeID);
     auto buildSideKeyGroup = buildPlan.schema->groups[buildSideKeyGroupPos].get();
     probeSideKeyGroup->estimatedCardinality =
         max(probeSideKeyGroup->estimatedCardinality, buildSideKeyGroup->estimatedCardinality);
-    for (auto& variable : buildSideKeyGroup->variables) {
-        if (variable == joinNodeID) {
-            continue; // skip the key vector because it exists on probe side
-        }
-        probePlan.schema->appendToGroup(variable, probeSideKeyGroupPos);
-    }
+    probePlan.schema->insertToGroup(*buildSideKeyGroup, probeSideKeyGroupPos);
 
     auto allGroupsOnBuildSideIsFlat = true;
     // the appended probe side group that holds all flat groups on build side
-    auto probeSideAppendedFlatGroupPos = UINT32_MAX;
+    auto probeSideNewFlatGroupPos = UINT32_MAX;
+    vector<uint32_t> probeSideNewUnFlatGroupsPos;
     for (auto i = 0u; i < buildPlan.schema->groups.size(); ++i) {
         if (i == buildSideKeyGroupPos) {
             continue;
@@ -320,25 +314,27 @@ void JoinOrderEnumerator::appendLogicalHashJoin(
         auto& buildSideGroup = buildPlan.schema->groups[i];
         if (buildSideGroup->isFlat) {
             // 2) append flat non-key data chunks into buildSideNonKeyFlatDataChunk.
-            if (probeSideAppendedFlatGroupPos == UINT32_MAX) {
-                probeSideAppendedFlatGroupPos = probePlan.schema->createGroup();
+            if (probeSideNewFlatGroupPos == UINT32_MAX) {
+                probeSideNewFlatGroupPos = probePlan.schema->createGroup();
             }
-            probePlan.schema->appendToGroup(*buildSideGroup, probeSideAppendedFlatGroupPos);
+            probePlan.schema->insertToGroup(*buildSideGroup, probeSideNewFlatGroupPos);
         } else {
             // 3) append unflat non-key data chunks as new data chunks into dataChunks.
             allGroupsOnBuildSideIsFlat = false;
             auto groupPos = probePlan.schema->createGroup();
-            probePlan.schema->appendToGroup(*buildSideGroup, groupPos);
+            probePlan.schema->insertToGroup(*buildSideGroup, groupPos);
             probePlan.schema->groups[groupPos]->estimatedCardinality =
                 buildSideGroup->estimatedCardinality;
+            probeSideNewUnFlatGroupsPos.push_back(groupPos);
         }
     }
 
-    if (!allGroupsOnBuildSideIsFlat && probeSideAppendedFlatGroupPos != UINT32_MAX) {
-        probePlan.schema->flattenGroup(probeSideAppendedFlatGroupPos);
+    if (!allGroupsOnBuildSideIsFlat && probeSideNewFlatGroupPos != UINT32_MAX) {
+        probePlan.schema->flattenGroup(probeSideNewFlatGroupPos);
     }
-    auto hashJoin = make_shared<LogicalHashJoin>(
-        joinNodeID, buildPlan.lastOperator, buildPlan.schema->copy(), probePlan.lastOperator);
+    auto hashJoin =
+        make_shared<LogicalHashJoin>(joinNodeID, buildPlan.lastOperator, buildPlan.schema->copy(),
+            probeSideNewFlatGroupPos, probeSideNewUnFlatGroupsPos, probePlan.lastOperator);
     probePlan.appendOperator(move(hashJoin));
 }
 

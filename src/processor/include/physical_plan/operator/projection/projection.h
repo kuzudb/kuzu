@@ -13,18 +13,24 @@ namespace processor {
 class Projection : public PhysicalOperator {
 
 public:
-    Projection(vector<unique_ptr<ExpressionEvaluator>> expressions,
-        vector<uint64_t> expressionPosToDataChunkPos, const vector<uint64_t>& discardedDataChunkPos,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
+    Projection(uint32_t totalNumDataChunks, vector<uint32_t> outDataChunksSize,
+        vector<unique_ptr<ExpressionEvaluator>> expressions,
+        vector<pair<uint32_t, uint32_t>> expressionsOutputPos,
+        vector<uint32_t> discardedDataChunksPos, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override;
 
 private:
+    uint32_t totalNumDataChunks;
+    vector<uint32_t> outDataChunksSize;
+
     vector<unique_ptr<ExpressionEvaluator>> expressions;
-    vector<uint64_t> expressionPosToDataChunkPos;
-    vector<uint64_t> discardedDataChunkPos;
+    vector<pair<uint32_t, uint32_t>> expressionsOutputPos;
+    vector<uint32_t> discardedDataChunksPos;
+
     shared_ptr<ResultSet> discardedResultSet;
     shared_ptr<ResultSet> inResultSet;
 };

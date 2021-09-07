@@ -153,8 +153,8 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToS
 unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLeafExpressionToPhysical(
     const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
     ResultSet* resultSet) {
-    auto dataChunkPos = physicalOperatorInfo.getDataChunkPos(expression.getInternalName());
-    auto valueVectorPos = physicalOperatorInfo.getValueVectorPos(expression.getInternalName());
+    auto [dataChunkPos, valueVectorPos] =
+        physicalOperatorInfo.getDataChunkAndValueVectorPos(expression.getInternalName());
     return make_unique<ExpressionEvaluator>(
         resultSet->dataChunks[dataChunkPos]->getValueVector(valueVectorPos), dataChunkPos,
         valueVectorPos, expression.expressionType);

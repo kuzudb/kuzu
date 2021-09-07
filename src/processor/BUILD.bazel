@@ -143,6 +143,7 @@ cc_library(
     srcs = [
         "physical_plan/operator/result/result_set.cpp",
         "physical_plan/operator/result/result_set_iterator.cpp",
+        "physical_plan/operator/result/tuple.cpp",
     ],
     hdrs = [
         "include/physical_plan/operator/result/result_set.h",

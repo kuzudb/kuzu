@@ -5,16 +5,18 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-ScanUnstructuredProperty::ScanUnstructuredProperty(uint64_t dataChunkPos, uint64_t valueVectorPos,
-    uint32_t propertyKey, UnstructuredPropertyLists* lists,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator), context, id},
+ScanUnstructuredProperty::ScanUnstructuredProperty(uint32_t inAndOutDataChunkPos,
+    uint32_t inValueVectorPos, uint32_t outValueVectorPos, uint32_t propertyKey,
+    UnstructuredPropertyLists* lists, unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t id)
+    : ScanAttribute{inAndOutDataChunkPos, inValueVectorPos, outValueVectorPos, move(prevOperator),
+          context, id},
       propertyKey{propertyKey}, lists{lists} {
     resultSet = this->prevOperator->getResultSet();
-    inDataChunk = resultSet->dataChunks[dataChunkPos];
-    inValueVector = inDataChunk->getValueVector(valueVectorPos);
+    inDataChunk = resultSet->dataChunks[inAndOutDataChunkPos];
+    inValueVector = inDataChunk->getValueVector(inValueVectorPos);
     outValueVector = make_shared<ValueVector>(context.memoryManager, lists->getDataType());
-    inDataChunk->append(outValueVector);
+    inDataChunk->insert(outValueVectorPos, outValueVector);
 }
 
 void ScanUnstructuredProperty::getNextTuples() {

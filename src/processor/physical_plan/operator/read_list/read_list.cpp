@@ -3,14 +3,15 @@
 namespace graphflow {
 namespace processor {
 
-ReadList::ReadList(const uint64_t& dataChunkPos, const uint64_t& valueVectorPos, Lists* lists,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id,
-    bool isAdjList)
-    : PhysicalOperator{move(prevOperator), READ_LIST, context, id}, inDataChunkPos{dataChunkPos},
-      inValueVectorPos{valueVectorPos}, lists{lists} {
+ReadList::ReadList(uint32_t inDataChunkPos, uint32_t inValueVectorPos, uint32_t outDataChunkPos,
+    uint32_t outValueVectorPos, Lists* lists, unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t id, bool isAdjList)
+    : PhysicalOperator{move(prevOperator), READ_LIST, context, id}, inDataChunkPos{inDataChunkPos},
+      inValueVectorPos{inValueVectorPos}, outDataChunkPos{outDataChunkPos},
+      outValueVectorPos{outValueVectorPos}, lists{lists} {
     resultSet = this->prevOperator->getResultSet();
-    inDataChunk = resultSet->dataChunks[dataChunkPos];
-    inValueVector = inDataChunk->getValueVector(valueVectorPos);
+    inDataChunk = resultSet->dataChunks[inDataChunkPos];
+    inValueVector = inDataChunk->getValueVector(inValueVectorPos);
     assert(inValueVector->dataType == NODE);
     largeListHandle = make_unique<LargeListHandle>(isAdjList);
 }

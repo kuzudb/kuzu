@@ -27,9 +27,9 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto profiler = make_unique<Profiler>();
     auto memoryManager = make_unique<MemoryManager>();
     auto executionContext = ExecutionContext(*profiler, nullptr, memoryManager.get());
-    auto plan = make_unique<PhysicalPlan>(
-        make_unique<ResultCollector>(make_unique<ScanNodeID>(morsel, executionContext, 0),
-            RESULT_COLLECTOR, executionContext, 1, false));
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(
+        make_unique<ScanNodeID>(1, 1, 0, 0, morsel, executionContext, 0), RESULT_COLLECTOR,
+        executionContext, 1, false));
     auto processor = make_unique<QueryProcessor>(10);
     auto result = processor->execute(plan.get(), 1);
     ASSERT_EQ(result->numTuples, 1025013);

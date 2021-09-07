@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "src/common/include/value.h"
 
 using namespace graphflow::common;
@@ -19,21 +21,11 @@ public:
         }
     }
 
-    inline Value* getValue(uint64_t valIdx) { return values[valIdx].get(); }
+    inline Value* getValue(uint32_t valIdx) { return values[valIdx].get(); }
 
-    string toString(const string& delimiter = "|") {
-        string result;
-        for (auto i = 0u; i < values.size() - 1; i++) {
-            if (!nullMask[i]) {
-                result += values[i]->toString();
-            }
-            result += delimiter;
-        }
-        if (!nullMask[values.size() - 1]) {
-            result += values[values.size() - 1]->toString();
-        }
-        return result;
-    }
+    inline uint32_t len() { return values.size(); }
+
+    string toString(const vector<uint32_t>& colsWidth, const string& delimiter = "|");
 
 public:
     vector<bool> nullMask;

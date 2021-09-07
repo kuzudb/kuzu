@@ -8,20 +8,20 @@ using namespace std;
 
 TEST(VectorBooleanTests, test) {
     auto VECTOR_SIZE = 4;
-    auto dataChunk = make_shared<DataChunk>();
+    auto dataChunk = make_shared<DataChunk>(3);
     dataChunk->state->selectedSize = VECTOR_SIZE;
     auto memoryManager = make_unique<MemoryManager>();
 
     auto lVector = make_shared<ValueVector>(memoryManager.get(), BOOL);
-    dataChunk->append(lVector);
+    dataChunk->insert(0, lVector);
     auto lData = (uint8_t*)lVector->values;
 
     auto rVector = make_shared<ValueVector>(memoryManager.get(), BOOL);
-    dataChunk->append(rVector);
+    dataChunk->insert(1, rVector);
     auto rData = (uint8_t*)rVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
-    dataChunk->append(result);
+    dataChunk->insert(2, result);
     auto resultData = (uint8_t*)result->values;
 
     // Fill values before the comparison.
