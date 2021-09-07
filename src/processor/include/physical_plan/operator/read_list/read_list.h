@@ -1,6 +1,5 @@
 #pragma once
 
-#include "src/common/include/vector/node_vector.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/storage/include/data_structure/lists/lists.h"
 
@@ -13,7 +12,7 @@ public:
     ReadList(const uint64_t& inDataChunkPos, const uint64_t& inValueVectorPos, Lists* lists,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id,
         bool isAdjList);
-    ~ReadList(){};
+    ~ReadList() override{};
     void printMetricsToJson(nlohmann::json& json, Profiler& profiler) override;
 
 protected:
@@ -23,7 +22,7 @@ protected:
     uint64_t inDataChunkPos;
     uint64_t inValueVectorPos;
     shared_ptr<DataChunk> inDataChunk;
-    shared_ptr<NodeIDVector> inNodeIDVector;
+    shared_ptr<ValueVector> inValueVector;
     shared_ptr<DataChunk> outDataChunk;
     shared_ptr<ValueVector> outValueVector;
 

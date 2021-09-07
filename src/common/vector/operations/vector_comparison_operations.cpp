@@ -60,6 +60,9 @@ public:
             BinaryOperationExecutor::execute<date_t, date_t, uint8_t, OP,
                 false /*IS_STRUCTURED_STRING*/, false /*IS_UNSTRUCTURED*/>(left, right, result);
             break;
+        case NODE:
+            assert(right.dataType == NODE);
+            BinaryOperationExecutor::executeNodeIDOps<OP>(left, right, result);
         default:
             assert(false);
         }
@@ -108,6 +111,9 @@ public:
             assert(right.dataType == DATE);
             return BinaryOperationExecutor::select<date_t, date_t, uint8_t, OP>(
                 left, right, selectedPositions);
+        case NODE:
+            assert(right.dataType == NODE);
+            return BinaryOperationExecutor::selectNodeIDOps<OP>(left, right, selectedPositions);
         default:
             assert(false);
         }

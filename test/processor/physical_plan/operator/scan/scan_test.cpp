@@ -12,7 +12,7 @@ TEST(ScanTests, ScanTest) {
     auto scan = make_unique<ScanNodeID>(morsel, executionContext, 0);
     auto resultSet = scan->getResultSet();
     auto dataChunk = resultSet->dataChunks[0];
-    auto nodeVector = static_pointer_cast<NodeIDVector>(dataChunk->getValueVector(0));
+    auto nodeVector = dataChunk->getValueVector(0);
     node_offset_t currNodeOffset = 0;
     auto size = DEFAULT_VECTOR_CAPACITY;
     while (morsel->currNodeOffset < 1025013) {
@@ -21,9 +21,9 @@ TEST(ScanTests, ScanTest) {
             size = 1025013 % DEFAULT_VECTOR_CAPACITY;
         }
         ASSERT_EQ(dataChunk->state->selectedSize, size);
+        auto startNodeOffset = ((nodeID_t*)nodeVector->values)[0].offset;
         for (uint64_t i = 0; i < dataChunk->state->selectedSize; i++) {
-            auto nodeOffset = nodeVector->readNodeOffset(i);
-            ASSERT_EQ(nodeOffset, currNodeOffset + i);
+            ASSERT_EQ(startNodeOffset + i, currNodeOffset + i);
         }
         currNodeOffset += DEFAULT_VECTOR_CAPACITY;
     }

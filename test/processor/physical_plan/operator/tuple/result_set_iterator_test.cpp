@@ -1,6 +1,5 @@
 #include "gtest/gtest.h"
 
-#include "src/common/include/vector/node_vector.h"
 #include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
 
 using namespace graphflow::processor;
@@ -14,26 +13,28 @@ public:
         auto dataChunkC = make_shared<DataChunk>();
 
         auto memoryManager = make_unique<MemoryManager>();
-        NodeIDCompressionScheme compressionScheme;
-        auto vectorA1 = make_shared<NodeIDVector>(18, compressionScheme, false);
+        auto vectorA1 = make_shared<ValueVector>(memoryManager.get(), NODE);
         auto vectorA2 = make_shared<ValueVector>(memoryManager.get(), INT64);
-        auto vectorB1 = make_shared<NodeIDVector>(28, compressionScheme, false);
+        auto vectorB1 = make_shared<ValueVector>(memoryManager.get(), NODE);
         auto vectorB2 = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
-        auto vectorC1 = make_shared<NodeIDVector>(38, compressionScheme, false);
+        auto vectorC1 = make_shared<ValueVector>(memoryManager.get(), NODE);
         auto vectorC2 = make_shared<ValueVector>(memoryManager.get(), BOOL);
-        auto vectorA1Data = (uint64_t*)vectorA1->values;
+        auto vectorA1Data = (nodeID_t*)vectorA1->values;
         auto vectorA2Data = (int64_t*)vectorA2->values;
-        auto vectorB1Data = (uint64_t*)vectorB1->values;
+        auto vectorB1Data = (nodeID_t*)vectorB1->values;
         auto vectorB2Data = (double*)vectorB2->values;
-        auto vectorC1Data = (uint64_t*)vectorC1->values;
+        auto vectorC1Data = (nodeID_t*)vectorC1->values;
         auto vectorC2Data = (bool*)vectorC2->values;
 
         for (int32_t i = 0; i < 100; i++) {
-            vectorA1Data[i] = (uint64_t)i;
+            vectorA1Data[i].label = 18;
+            vectorA1Data[i].offset = (uint64_t)i;
             vectorA2Data[i] = (int64_t)(i * 2);
-            vectorB1Data[i] = (uint64_t)(i);
+            vectorB1Data[i].label = 28;
+            vectorB1Data[i].offset = (uint64_t)(i);
             vectorB2Data[i] = (double)(i / 2);
-            vectorC1Data[i] = (uint64_t)i;
+            vectorC1Data[i].label = 38;
+            vectorC1Data[i].offset = (uint64_t)i;
             vectorC2Data[i] = (bool)((i / 2) == 1);
         }
         dataChunkA->append(vectorA1);

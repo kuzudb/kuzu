@@ -65,18 +65,18 @@ size_t TypeUtils::getDataTypeSize(DataType dataType) {
     }
 }
 
-string TypeUtils::prefixConversionEexceptionMessage(const char* data, const DataType dataType) {
+string TypeUtils::prefixConversionExceptionMessage(const char* data, DataType dataType) {
     return "Cannot convert string " + string(data) + " to " + dataTypeToString(dataType) + ".";
 }
 
 void TypeUtils::throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(
     const char* data, const char* eptr, const DataType dataType) {
     if (data == eptr) {
-        throw ConversionException(prefixConversionEexceptionMessage(data, dataType) +
+        throw ConversionException(prefixConversionExceptionMessage(data, dataType) +
                                   ". Invalid input. No characters consumed.");
     }
     if (*eptr != '\0') {
-        throw ConversionException(prefixConversionEexceptionMessage(data, dataType) +
+        throw ConversionException(prefixConversionExceptionMessage(data, dataType) +
                                   " Not all characters were read. read from character " + *data +
                                   " up to character: " + *eptr + ".");
     }
@@ -84,7 +84,7 @@ void TypeUtils::throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(
 
 void TypeUtils::throwConversionExceptionOutOfRange(const char* data, const DataType dataType) {
     throw ConversionException(
-        prefixConversionEexceptionMessage(data, dataType) + " Input out of range.");
+        prefixConversionExceptionMessage(data, dataType) + " Input out of range.");
 }
 
 int64_t TypeUtils::convertToInt64(const char* data) {
@@ -94,7 +94,7 @@ int64_t TypeUtils::convertToInt64(const char* data) {
     throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, INT64);
     if ((LLONG_MAX == retVal || LLONG_MIN == retVal) && errno == ERANGE) {
         throw ConversionException(
-            prefixConversionEexceptionMessage(data, INT64) + " Input out of range.");
+            prefixConversionExceptionMessage(data, INT64) + " Input out of range.");
     }
     return retVal;
 }
@@ -122,7 +122,7 @@ uint8_t TypeUtils::convertToBoolean(const char* data) {
         return FALSE;
     }
     throw ConversionException(
-        prefixConversionEexceptionMessage(data, BOOL) +
+        prefixConversionExceptionMessage(data, BOOL) +
         ". Input is not equal to True or False (in a case-insensitive manner)");
 }
 

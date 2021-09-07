@@ -23,13 +23,19 @@ void RelsStore::initAdjColumns(const Catalog& catalog, const vector<uint64_t>& n
             adjColumns[direction][nodeLabel].resize(numRelLabels);
             for (auto relLabel : catalog.getRelLabelsForNodeLabelDirection(nodeLabel, direction)) {
                 if (catalog.isSingleMultiplicityInDirection(relLabel, direction)) {
-                    NodeIDCompressionScheme nodeIDCompressionScheme{
-                        catalog.getNodeLabelsForRelLabelDirection(relLabel, !direction),
-                        numNodesPerLabel, numNodeLabels};
-                    logger->debug("DIRECTION {} nodeLabel {} relLabel {} compressionScheme {},{}",
+                    const auto& nodeLabels =
+                        catalog.getNodeLabelsForRelLabelDirection(relLabel, !direction);
+                    NodeIDCompressionScheme nodeIDCompressionScheme(
+                        nodeLabels, numNodesPerLabel, numNodeLabels);
+                    if (nodeLabels.size() == 1) {
+                        nodeIDCompressionScheme.setCommonLabel(*nodeLabels.begin());
+                    }
+                    logger->debug(
+                        "DIRECTION {} nodeLabel {} relLabel {} compressionScheme {},{},{}",
                         direction, nodeLabel, relLabel,
                         nodeIDCompressionScheme.getNumBytesForLabel(),
-                        nodeIDCompressionScheme.getNumBytesForOffset());
+                        nodeIDCompressionScheme.getNumBytesForOffset(),
+                        nodeIDCompressionScheme.getCommonLabel());
                     auto fName = getAdjColumnFName(directory, relLabel, nodeLabel, direction);
                     adjColumns[direction][nodeLabel][relLabel] =
                         make_unique<AdjColumn>(fName, numNodesPerLabel[nodeLabel], bufferManager,
@@ -50,16 +56,22 @@ void RelsStore::initAdjLists(const Catalog& catalog, const vector<uint64_t>& num
             adjLists[direction][nodeLabel].resize(catalog.getRelLabelsCount());
             for (auto relLabel : catalog.getRelLabelsForNodeLabelDirection(nodeLabel, direction)) {
                 if (!catalog.isSingleMultiplicityInDirection(relLabel, direction)) {
-                    NodeIDCompressionScheme nodeIDCompressionScheme{
-                        catalog.getNodeLabelsForRelLabelDirection(relLabel, !direction),
-                        numNodesPerLabel, catalog.getNodeLabelsCount()};
-                    logger->debug("DIRECTION {} nodeLabel {} relLabel {} compressionScheme {},{}",
+                    const auto& nodeLabels =
+                        catalog.getNodeLabelsForRelLabelDirection(relLabel, !direction);
+                    NodeIDCompressionScheme nodeIDCompressionScheme(
+                        nodeLabels, numNodesPerLabel, catalog.getNodeLabelsCount());
+                    if (nodeLabels.size() == 1) {
+                        nodeIDCompressionScheme.setCommonLabel(*nodeLabels.begin());
+                    };
+                    logger->debug(
+                        "DIRECTION {} nodeLabel {} relLabel {} compressionScheme {},{},{}",
                         direction, nodeLabel, relLabel,
                         nodeIDCompressionScheme.getNumBytesForLabel(),
-                        nodeIDCompressionScheme.getNumBytesForOffset());
-                    auto fname = getAdjListsFName(directory, relLabel, nodeLabel, direction);
+                        nodeIDCompressionScheme.getNumBytesForOffset(),
+                        nodeIDCompressionScheme.getCommonLabel());
+                    auto fName = getAdjListsFName(directory, relLabel, nodeLabel, direction);
                     adjLists[direction][nodeLabel][relLabel] = make_unique<AdjLists>(
-                        fname, bufferManager, nodeIDCompressionScheme, isInMemoryMode);
+                        fName, bufferManager, nodeIDCompressionScheme, isInMemoryMode);
                 }
             }
         }

@@ -14,14 +14,12 @@ Intersect::Intersect(uint64_t leftDataChunkPos, uint64_t leftValueVectorPos,
       rightDataChunkPos{rightDataChunkPos}, rightValueVectorPos{rightValueVectorPos} {
     resultSet = this->prevOperator->getResultSet();
     leftDataChunk = resultSet->dataChunks[leftDataChunkPos];
-    leftNodeIDVector =
-        static_pointer_cast<NodeIDVector>(leftDataChunk->getValueVector(leftValueVectorPos));
+    leftNodeIDVector = leftDataChunk->getValueVector(leftValueVectorPos);
     rightDataChunk = resultSet->dataChunks[rightDataChunkPos];
-    rightNodeIDVector =
-        static_pointer_cast<NodeIDVector>(rightDataChunk->getValueVector(rightValueVectorPos));
+    rightNodeIDVector = rightDataChunk->getValueVector(rightValueVectorPos);
 }
 
-static void sortSelectedPos(const shared_ptr<NodeIDVector>& nodeIDVector) {
+static void sortSelectedPos(const shared_ptr<ValueVector>& nodeIDVector) {
     auto selectedPos = nodeIDVector->state->selectedPositionsBuffer.get();
     auto size = nodeIDVector->state->selectedSize;
     sort(selectedPos, selectedPos + size, [nodeIDVector](sel_t left, sel_t right) {
@@ -47,14 +45,14 @@ void Intersect::getNextTuples() {
         rightDataChunk->state->currIdx++;
         saveDataChunkSelectorState();
         auto rightPos = rightDataChunk->state->getPositionOfCurrIdx();
-        auto rightNodeID = rightNodeIDVector->readNodeOffset(rightPos);
+        auto rightNodeOffset = rightNodeIDVector->readNodeOffset(rightPos);
         numSelectedValues = 0u;
         while (leftIdx < leftDataChunk->state->selectedSize) {
             auto leftPos = leftDataChunk->state->selectedPositions[leftIdx];
-            auto leftNodeID = leftNodeIDVector->readNodeOffset(leftPos);
-            if (leftNodeID > rightNodeID) {
+            auto leftNodeOffset = leftNodeIDVector->readNodeOffset(leftPos);
+            if (leftNodeOffset > rightNodeOffset) {
                 break;
-            } else if (leftNodeID == rightNodeID) {
+            } else if (leftNodeOffset == rightNodeOffset) {
                 leftDataChunk->state->selectedPositionsBuffer[numSelectedValues++] = leftPos;
             }
             leftIdx++;

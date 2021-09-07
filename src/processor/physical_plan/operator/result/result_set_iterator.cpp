@@ -85,7 +85,7 @@ void ResultSetIterator::getNextTuple(Tuple& tuple) {
                     ((gf_string_t*)vector->values)[selectedTuplePos];
             } break;
             case NODE: {
-                nodeID_t nodeID;
+                nodeID_t nodeID{UINT64_MAX, UINT64_MAX};
                 vector->readNodeID(selectedTuplePos, nodeID);
                 tuple.getValue(valueInTupleIdx)->val.nodeID = nodeID;
             } break;

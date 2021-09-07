@@ -19,14 +19,12 @@ HashJoinProbe::HashJoinProbe(uint64_t buildSideKeyDataChunkPos, uint64_t buildSi
     buildSideResultSet = this->buildSidePrevOp->prevOperator->getResultSet();
     // The prevOperator is the probe side prev operator passed in to the PhysicalOperator
     resultSet = prevOperator->getResultSet();
-    numProbeSidePrevDataChunks = resultSet->dataChunks.size();
     probeSideKeyDataChunk = resultSet->dataChunks[probeSideKeyDataChunkPos];
     // The probe side key data chunk is also the output keyDataChunk in the resultSet. Non-key
     // vectors from the build side key data chunk are appended into the the probeSideKeyDataChunk.
     resultKeyDataChunk = probeSideKeyDataChunk;
     numProbeSidePrevKeyValueVectors = probeSideKeyDataChunk->valueVectors.size();
-    probeSideKeyVector = static_pointer_cast<NodeIDVector>(
-        probeSideKeyDataChunk->getValueVector(probeSideKeyVectorPos));
+    probeSideKeyVector = probeSideKeyDataChunk->getValueVector(probeSideKeyVectorPos);
     probeState = make_unique<ProbeState>(DEFAULT_VECTOR_CAPACITY);
     initializeResultSetAndVectorPtrs();
 }
@@ -34,15 +32,8 @@ HashJoinProbe::HashJoinProbe(uint64_t buildSideKeyDataChunkPos, uint64_t buildSi
 void HashJoinProbe::createVectorsFromExistingOnesAndAppend(
     DataChunk& inDataChunk, DataChunk& resultDataChunk, vector<uint64_t>& vectorPositions) {
     for (auto pos : vectorPositions) {
-        auto inVector = inDataChunk.valueVectors[pos];
-        shared_ptr<ValueVector> resultVector;
-        if (inVector->dataType == NODE) {
-            auto nodeIDVector = static_pointer_cast<NodeIDVector>(inVector);
-            resultVector = make_shared<NodeIDVector>(nodeIDVector->representation.commonLabel,
-                nodeIDVector->representation.compressionScheme, false);
-        } else {
-            resultVector = make_shared<ValueVector>(context.memoryManager, inVector->dataType);
-        }
+        auto resultVector = make_shared<ValueVector>(
+            context.memoryManager, inDataChunk.valueVectors[pos]->dataType);
         resultDataChunk.append(resultVector);
     }
 }

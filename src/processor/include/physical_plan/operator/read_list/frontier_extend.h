@@ -33,7 +33,7 @@ private:
     vector<vector<FrontierBag*>> threadLocalFrontierPerLayer;
     // We create a vector and largeListHandle per thread assuming omp_get_max_threads() threads.
     // Each thread uses their vector and LargeListHandle for uncoordinated extensions.
-    vector<shared_ptr<NodeIDVector>> vectors;
+    vector<shared_ptr<ValueVector>> vectors;
     vector<unique_ptr<LargeListHandle>> largeListHandles;
 
     struct CurrentOutputPosition {

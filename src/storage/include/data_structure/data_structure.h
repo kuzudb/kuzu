@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/common/include/compression_scheme.h"
 #include "src/common/include/configs.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
@@ -26,11 +27,11 @@ struct PageCursor {
 class DataStructure {
 
 public:
-    DataType getDataType() { return dataType; }
+    DataType getDataType() const { return dataType; }
 
     FileHandle* getFileHandle() { return &fileHandle; }
 
-    inline PageCursor getPageCursorForOffset(const uint64_t& elementOffset) {
+    inline PageCursor getPageCursorForOffset(const uint64_t& elementOffset) const {
         return PageCursor{elementOffset / numElementsPerPage,
             (uint16_t)((elementOffset % numElementsPerPage) * elementSize)};
     }
@@ -47,6 +48,10 @@ protected:
 
     void copyFromAPage(uint8_t* values, uint32_t physicalPageIdx, uint64_t sizeToCopy,
         uint32_t pageOffset, BufferManagerMetrics& metrics);
+
+    void readNodeIDsFromAPage(nodeID_t* resultVectorValues, uint32_t physicalPageId,
+        uint32_t pageOffset, uint64_t numValuesToCopy, NodeIDCompressionScheme& compressionScheme,
+        BufferManagerMetrics& metrics);
 
 public:
     DataType dataType;

@@ -38,11 +38,11 @@ public:
 private:
     void updateNodePropertyColumn(uint32_t currPosInDataChunk, uint64_t numUpdatesInDataChunk,
         Column& column, uint8_t* nullValue, page_idx_to_dirty_page_map& dirtyPagesMap,
-        ValueVector* propertyValueVector, NodeIDVector* nodeIDVector);
+        ValueVector* propertyValueVector, ValueVector* nodeIDVector);
 
     void appendToNodePropertyColumn(uint32_t& dataChunkIdx, uint32_t& currPosInDataChunk,
         Column& column, uint8_t* nullValue, page_idx_to_dirty_page_map& dirtyPagesMap,
-        uint32_t dataChunkSize, ValueVector* propertyValueVector, NodeIDVector* nodeIDVector);
+        uint32_t dataChunkSize, ValueVector* propertyValueVector, ValueVector* nodeIDVector);
 
     // helper functions
     uint8_t* putPageInDirtyPagesMap(page_idx_to_dirty_page_map& dirtyPagesMap, uint32_t pageIdx,

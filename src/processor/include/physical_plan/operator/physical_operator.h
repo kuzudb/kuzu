@@ -80,11 +80,11 @@ public:
     virtual void printMetricsToJson(nlohmann::json& json, Profiler& profiler);
 
 protected:
-    string getTimeMetricKey() { return "time-" + to_string(id); }
-    string getNumTupleMetricKey() { return "numTuple-" + to_string(id); }
-    string getNumBufferHitMetricKey() { return "numBufferHit-" + to_string(id); }
-    string getNumBufferMissMetricKey() { return "numBufferMiss-" + to_string(id); }
-    string getNumIOMetricKey() { return "numIO-" + to_string(id); }
+    string getTimeMetricKey() const { return "time-" + to_string(id); }
+    string getNumTupleMetricKey() const { return "numTuple-" + to_string(id); }
+    string getNumBufferHitMetricKey() const { return "numBufferHit-" + to_string(id); }
+    string getNumBufferMissMetricKey() const { return "numBufferMiss-" + to_string(id); }
+    string getNumIOMetricKey() const { return "numIO-" + to_string(id); }
 
     void registerProfilingMetrics();
 

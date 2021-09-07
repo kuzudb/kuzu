@@ -6,7 +6,7 @@ namespace graphflow {
 namespace storage {
 
 void UnstructuredPropertyLists::readUnstructuredProperties(
-    const shared_ptr<NodeIDVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
+    const shared_ptr<ValueVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
     const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
     node_offset_t nodeOffset;
     if (nodeIDVector->state->isFlat()) {

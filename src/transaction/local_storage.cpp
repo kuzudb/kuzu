@@ -40,8 +40,8 @@ void LocalStorage::assignNodeIDs(label_t nodeLabel) {
     auto numRecycledIds = 0u;
     for (auto& dataChunk : dataChunks) {
         // The last vector in the dataChunk is the nodeIDVector containing newly assigned nodeIDs.
-        auto nodeIDVector = make_shared<NodeIDVector>(nodeLabel, NodeIDCompressionScheme(), false);
-        dataChunk->append(nodeIDVector);
+        // auto nodeIDVector = make_shared<ValueVector>();
+        // dataChunk->append(nodeIDVector);
         // TODO: Insert property keys in the hash index.
         // We first use the recycled nodeIDs and then assign from after `numNodes`, sequentially.
         // while (there is more nodeIDs to recycles, recycle) {
@@ -54,8 +54,8 @@ void LocalStorage::assignNodeIDs(label_t nodeLabel) {
 void LocalStorage::mapNodeIDs(label_t nodeLabel) {
     for (auto& dataChunk : dataChunks) {
         // The last vector in the dataChunk is the nodeIDVector containing newly assigned nodeIDs.
-        auto nodeIDVector = make_shared<NodeIDVector>(nodeLabel, NodeIDCompressionScheme(), false);
-        dataChunk->append(nodeIDVector);
+        // auto nodeIDVector = make_shared<ValueVector>(nodeLabel, NodeIDCompressionScheme(),
+        // false); dataChunk->append(nodeIDVector);
         // TODO: Map property keys to nodeIDs using hash index.
     }
     uncommittedNumRecycledNodeIDs = 0;
@@ -88,7 +88,7 @@ void LocalStorage::computeCreateNode(vector<uint32_t> propertyKeyIdxToVectorPosM
         auto nullValue = getNullValuePtrForDataType(column.dataType);
         while (dataChunkIdx < dataChunks.size()) {
             auto& dataChunk = *dataChunks[dataChunkIdx];
-            auto nodeIDVector = (NodeIDVector*)dataChunk.valueVectors.back().get();
+            auto nodeIDVector = dataChunk.valueVectors.back().get();
             if (-1u != propertyKeyIdxToVectorPosMap[i]) {
                 propertyValueVector = dataChunk.valueVectors[propertyKeyIdxToVectorPosMap[i]].get();
             }
@@ -135,7 +135,7 @@ void LocalStorage::computeUpdateNode(vector<uint32_t> propertyKeyIdxToVectorPosM
         auto dataChunkIdx = 0u;
         while (dataChunkIdx < dataChunks.size()) {
             auto& dataChunk = *dataChunks[dataChunkIdx];
-            auto nodeIDVector = (NodeIDVector*)dataChunk.valueVectors.back().get();
+            auto nodeIDVector = dataChunk.valueVectors.back().get();
             auto propertyValueVector =
                 dataChunk.valueVectors[propertyKeyIdxToVectorPosMap[i]].get();
             updateNodePropertyColumn(0 /*currIdx*/, dataChunk.state->selectedSize, column,
@@ -161,7 +161,7 @@ void LocalStorage::computeDeleteNode(vector<uint32_t> propertyKeyIdxToVectorPosM
         auto dataChunkIdx = 0u;
         while (dataChunkIdx < dataChunks.size()) {
             auto& dataChunk = *dataChunks[dataChunkIdx];
-            auto nodeIDVector = (NodeIDVector*)dataChunk.valueVectors.back().get();
+            auto nodeIDVector = dataChunk.valueVectors.back().get();
             updateNodePropertyColumn(0 /*currIdx*/, dataChunk.state->selectedSize, column,
                 nullValue.get(), dirtyPagesMap, nullptr /*property value vector*/, nodeIDVector);
             dataChunkIdx++;
@@ -177,9 +177,9 @@ void LocalStorage::computeDeleteNode(vector<uint32_t> propertyKeyIdxToVectorPosM
 void LocalStorage::updateNodePropertyColumn(uint32_t currPosInDataChunk,
     uint64_t numUpdatesInDataChunk, Column& column, uint8_t* nullValue,
     page_idx_to_dirty_page_map& dirtyPagesMap, ValueVector* propertyValueVector,
-    NodeIDVector* nodeIDVector) {
+    ValueVector* nodeIDVector) {
     for (auto i = currPosInDataChunk; i < numUpdatesInDataChunk + currPosInDataChunk; i++) {
-        auto nodeOffset = nodeIDVector->readNodeOffset(i);
+        auto nodeOffset = ((nodeID_t*)nodeIDVector->values)[i].offset;
         auto pageCursor = column.getPageCursorForOffset(nodeOffset);
         auto page =
             putPageInDirtyPagesMap(dirtyPagesMap, pageCursor.idx, column.getFileHandle(), true);
@@ -193,8 +193,8 @@ void LocalStorage::updateNodePropertyColumn(uint32_t currPosInDataChunk,
 
 void LocalStorage::appendToNodePropertyColumn(uint32_t& dataChunkIdx, uint32_t& currPosInDataChunk,
     Column& column, uint8_t* nullValue, page_idx_to_dirty_page_map& dirtyPagesMap,
-    uint32_t dataChunkSize, ValueVector* propertyValueVector, NodeIDVector* nodeIDVector) {
-    auto nodeOffset = nodeIDVector->readNodeOffset(currPosInDataChunk);
+    uint32_t dataChunkSize, ValueVector* propertyValueVector, ValueVector* nodeIDVector) {
+    auto nodeOffset = ((nodeID_t*)nodeIDVector->values)[currPosInDataChunk].offset;
     auto pageCursor = column.getPageCursorForOffset(nodeOffset);
     auto page = putPageInDirtyPagesMap(dirtyPagesMap, pageCursor.idx, column.getFileHandle(), true);
     auto freePosInPage = (PAGE_SIZE - pageCursor.offset) / column.elementSize;

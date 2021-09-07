@@ -63,11 +63,10 @@ private:
     vector<bool> buildSideDataChunkPosToIsFlat;
     uint64_t probeSideKeyDataChunkPos;
     uint64_t probeSideKeyVectorPos;
-    uint64_t numProbeSidePrevDataChunks;
     uint64_t numProbeSidePrevKeyValueVectors;
 
     shared_ptr<ResultSet> buildSideResultSet;
-    shared_ptr<NodeIDVector> probeSideKeyVector;
+    shared_ptr<ValueVector> probeSideKeyVector;
     shared_ptr<DataChunk> probeSideKeyDataChunk;
     shared_ptr<DataChunk> buildSideFlatResultDataChunk;
 

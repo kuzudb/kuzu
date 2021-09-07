@@ -3,7 +3,6 @@
 #include "src/common/include/gf_string.h"
 #include "src/common/include/literal.h"
 #include "src/common/include/types.h"
-#include "src/common/include/vector/node_vector.h"
 #include "src/storage/include/data_structure/data_structure.h"
 #include "src/storage/include/data_structure/string_overflow_pages.h"
 
@@ -20,14 +19,14 @@ public:
         const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory)
         : DataStructure{fName, dataType, elementSize, bufferManager, isInMemory} {};
 
-    virtual void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
+    virtual void readValues(const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
 
     // Currently, used only in Loader tests.
     virtual Literal readValue(node_offset_t offset, BufferManagerMetrics& metrics);
 
 protected:
-    void readFromNonSequentialLocations(const shared_ptr<NodeIDVector>& nodeIDVector,
+    void readFromNonSequentialLocations(const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
 
 public:
@@ -42,7 +41,7 @@ public:
         : Column{fName, STRING, sizeof(gf_string_t), numElements, bufferManager, isInMemory},
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
-    void readValues(const shared_ptr<NodeIDVector>& nodeIDVector,
+    void readValues(const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) override;
 
     // Currently, used only in Loader tests.
@@ -61,7 +60,8 @@ public:
               bufferManager, isInMemory},
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 
-    NodeIDCompressionScheme getCompressionScheme() const { return nodeIDCompressionScheme; }
+    void readValues(const shared_ptr<ValueVector>& nodeIDVector,
+        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) override;
 
 private:
     NodeIDCompressionScheme nodeIDCompressionScheme;

@@ -22,7 +22,7 @@ public:
         : Lists{fName, UNSTRUCTURED, 1, make_shared<ListHeaders>(fName), bufferManager, isInMemory},
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
-    void readUnstructuredProperties(const shared_ptr<NodeIDVector>& nodeIDVector,
+    void readUnstructuredProperties(const shared_ptr<ValueVector>& nodeIDVector,
         uint32_t propertyKeyIdxToRead, const shared_ptr<ValueVector>& valueVector,
         BufferManagerMetrics& metrics);
 

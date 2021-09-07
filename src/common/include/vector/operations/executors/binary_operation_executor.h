@@ -3,7 +3,6 @@
 #include <functional>
 
 #include "src/common/include/value.h"
-#include "src/common/include/vector/node_vector.h"
 
 namespace graphflow {
 namespace common {

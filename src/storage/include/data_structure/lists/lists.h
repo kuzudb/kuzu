@@ -4,7 +4,6 @@
 
 #include "src/common/include/literal.h"
 #include "src/common/include/value.h"
-#include "src/common/include/vector/node_vector.h"
 #include "src/storage/include/data_structure/data_structure.h"
 #include "src/storage/include/data_structure/lists/large_list_handle.h"
 #include "src/storage/include/data_structure/lists/list_headers.h"
@@ -100,8 +99,6 @@ public:
               make_shared<ListHeaders>(fName), bufferManager, isInMemory},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
-    NodeIDCompressionScheme& getNodeIDCompressionScheme() { return nodeIDCompressionScheme; }
-
     shared_ptr<ListHeaders> getHeaders() { return headers; };
 
     //    // Currently, used only in Loader tests.
@@ -132,11 +129,9 @@ public:
         case DATE:
             return make_unique<Lists>(fName, dataType, TypeUtils::getDataTypeSize(dataType),
                 adjListsHeaders, bufferManager, isInMemory);
-            break;
         case STRING:
             return make_unique<StringPropertyLists>(
                 fName, adjListsHeaders, bufferManager, isInMemory);
-            break;
         default:
             throw invalid_argument("Invalid type for property list creation.");
         }

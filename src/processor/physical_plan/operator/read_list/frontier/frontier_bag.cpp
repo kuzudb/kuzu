@@ -23,7 +23,7 @@ NodeIDOverflow* FrontierBag::getOverflowPtr() {
     return (NodeIDOverflow*)(overflowBlocks[pos]->data + currOverflowOffset);
 }
 
-void FrontierBag::append(const NodeIDVector& vector, uint64_t multiplicity) {
+void FrontierBag::append(const ValueVector& vector, uint64_t multiplicity) {
     for (auto i = 0u; i < vector.state->selectedSize; i++) {
         auto nodeOffset = vector.readNodeOffset(i);
         auto slot = nodeOffset & moduloSlotBitMask;

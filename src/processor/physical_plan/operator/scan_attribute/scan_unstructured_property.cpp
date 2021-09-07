@@ -12,7 +12,7 @@ ScanUnstructuredProperty::ScanUnstructuredProperty(uint64_t dataChunkPos, uint64
       propertyKey{propertyKey}, lists{lists} {
     resultSet = this->prevOperator->getResultSet();
     inDataChunk = resultSet->dataChunks[dataChunkPos];
-    inNodeIDVector = static_pointer_cast<NodeIDVector>(inDataChunk->getValueVector(valueVectorPos));
+    inValueVector = inDataChunk->getValueVector(valueVectorPos);
     outValueVector = make_shared<ValueVector>(context.memoryManager, lists->getDataType());
     inDataChunk->append(outValueVector);
 }
@@ -22,7 +22,7 @@ void ScanUnstructuredProperty::getNextTuples() {
     prevOperator->getNextTuples();
     if (inDataChunk->state->selectedSize > 0) {
         lists->readUnstructuredProperties(
-            inNodeIDVector, propertyKey, outValueVector, *metrics->bufferManagerMetrics);
+            inValueVector, propertyKey, outValueVector, *metrics->bufferManagerMetrics);
     }
     metrics->executionTime.stop();
 }

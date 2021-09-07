@@ -13,7 +13,7 @@ namespace common {
 
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY = 2048;
 
-typedef uint32_t label_t;
+typedef uint64_t label_t;
 typedef uint64_t node_offset_t;
 typedef uint16_t sel_t;
 
@@ -119,10 +119,10 @@ public:
     }
 
 private:
-    static void throwConversionExceptionOutOfRange(const char* data, const DataType dataType);
+    static void throwConversionExceptionOutOfRange(const char* data, DataType dataType);
     static void throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(
-        const char* data, const char* eptr, const DataType dataType);
-    static string prefixConversionEexceptionMessage(const char* data, const DataType dataType);
+        const char* data, const char* eptr, DataType dataType);
+    static string prefixConversionExceptionMessage(const char* data, DataType dataType);
 };
 
 } // namespace common

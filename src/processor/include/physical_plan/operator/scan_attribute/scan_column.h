@@ -15,7 +15,7 @@ public:
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
         : ScanAttribute{dataChunkPos, valueVectorPos, move(prevOperator), context, id},
           column{column} {};
-    ~ScanColumn(){};
+    ~ScanColumn() override{};
     void getNextTuples() override;
 
 protected:
