@@ -29,8 +29,9 @@ uint64_t ExistentialSubqueryEvaluator::select(sel_t* selectedPositions) {
 }
 
 // NOTE: this is a hack. Similar to expression_evaluator clone which requires an input result.
-// Select Scan also requires new inResultSet. Instead of changing the interface of operator clone,
-// we traverse subPlan and directly update inResult for selectScan. #issue317 should remove clone.
+// Select Scan also requires new outerResultSet. Instead of changing the interface of operator
+// clone, we traverse subPlan and directly update inResult for selectScan. #issue317 should remove
+// clone.
 unique_ptr<ExpressionEvaluator> ExistentialSubqueryEvaluator::clone(
     MemoryManager& memoryManager, const ResultSet& resultSet) {
     auto subPlanResultCollectorClone = unique_ptr<ResultCollector>{

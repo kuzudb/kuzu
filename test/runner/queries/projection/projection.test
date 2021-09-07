@@ -20,14 +20,14 @@
 -COMPARE_RESULT 1
 -QUERY MATCH (a:person) RETURN a.id,a.unstrDateProp1
 ---- 8
-0|1900-01-01
-2|1950-01-01
-3|1950-01-01
-5|
-7|
-8|
-9|
-10|
+1900-01-01|0
+1950-01-01|2
+1950-01-01|3
+|10
+|5
+|7
+|8
+|9
 
 -NAME PersonNodesTestString
 -COMPARE_RESULT 1
@@ -161,23 +161,23 @@ Dan
 -COMPARE_RESULT 1
 -QUERY MATCH (a:person)-[:knows]->(:person)-[:knows]->(b:person) WHERE a.age>b.age+10 RETURN a.age, b.age
 ---- 6
-35|20
-35|20
-45|20
-45|20
-45|30
-45|30
+20|35
+20|35
+20|45
+20|45
+30|45
+30|45
 
 -NAME KnowsTwoHopTest3
 -COMPARE_RESULT 1
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.age>c.age+10 RETURN a.age, b.fName, c.age
 ---- 6
-35|Bob|20
-35|Carol|20
-45|Alice|20
-45|Bob|20
-45|Dan|30
-45|Alice|30
+20|Alice|45
+20|Bob|35
+20|Bob|45
+20|Carol|35
+30|Alice|45
+30|Dan|45
 
 -NAME KnowsTwoHopTest4
 -COMPARE_RESULT 1

@@ -15,29 +15,27 @@ static uint64_t nextPowerOfTwo(uint64_t v) {
     return v;
 }
 
-HashJoinBuild::HashJoinBuild(uint64_t keyDataChunkPos, uint64_t keyVectorPos,
-    const vector<bool>& dataChunkPosToIsFlat, unique_ptr<PhysicalOperator> prevOperator,
-    ExecutionContext& context, uint32_t id)
-    : Sink{move(prevOperator), HASH_JOIN_BUILD, context, id}, keyDataChunkPos{keyDataChunkPos},
-      keyVectorPos{keyVectorPos}, dataChunkPosToIsFlat{dataChunkPosToIsFlat}, numEntries{0} {
+HashJoinBuild::HashJoinBuild(const BuildDataChunksInfo& buildDataChunksInfo,
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+    : Sink{move(prevOperator), HASH_JOIN_BUILD, context, id}, dataChunksInfo{buildDataChunksInfo},
+      numEntries{0} {
     auto prevResultSet = this->prevOperator->getResultSet();
-    keyDataChunk = prevResultSet->dataChunks[keyDataChunkPos];
-    resultSetWithoutKeyDataChunk = make_shared<ResultSet>();
+    keyDataChunk = prevResultSet->dataChunks[dataChunksInfo.keyDataChunkPos];
     // key field (node_offset_t + label_t) + prev field (uint8_t*)
     numBytesForFixedTuplePart = sizeof(node_offset_t) + sizeof(label_t) + sizeof(uint8_t*);
     for (auto vectorPos = 0u; vectorPos < keyDataChunk->valueVectors.size(); vectorPos++) {
-        if (vectorPos == keyVectorPos) {
+        if (vectorPos == dataChunksInfo.keyValueVectorPos) {
             continue;
         }
         numBytesForFixedTuplePart += keyDataChunk->getValueVector(vectorPos)->getNumBytesPerValue();
     }
     for (auto dataChunkPos = 0u; dataChunkPos < prevResultSet->dataChunks.size(); dataChunkPos++) {
-        if (dataChunkPos == keyDataChunkPos) {
+        if (dataChunkPos == dataChunksInfo.keyDataChunkPos) {
             continue;
         }
-        resultSetWithoutKeyDataChunk->append(prevResultSet->dataChunks[dataChunkPos]);
+        nonKeyDataChunks.push_back(prevResultSet->dataChunks[dataChunkPos]);
         for (auto& vector : prevResultSet->dataChunks[dataChunkPos]->valueVectors) {
-            numBytesForFixedTuplePart += this->dataChunkPosToIsFlat[dataChunkPos] ?
+            numBytesForFixedTuplePart += dataChunksInfo.dataChunkPosToIsFlat[dataChunkPos] ?
                                              vector->getNumBytesPerValue() :
                                              sizeof(overflow_value_t);
         }
@@ -186,7 +184,7 @@ vector<BlockAppendInfo> HashJoinBuild::allocateHTBlocks(uint64_t numTuplesToAppe
 void HashJoinBuild::appendKeyDataChunk(
     const vector<BlockAppendInfo>& blockAppendInfos, uint64_t& tupleAppendOffset) {
     // Append key vector, which must be node ids
-    auto keyVector = keyDataChunk->getValueVector(keyVectorPos);
+    auto keyVector = keyDataChunk->getValueVector(dataChunksInfo.keyValueVectorPos);
     auto keyValOffsetInVec = keyDataChunk->state->isFlat() ? keyDataChunk->state->currIdx : 0;
     for (auto& blockAppendInfo : blockAppendInfos) {
         appendKeyVector(*keyVector, blockAppendInfo.buffer + tupleAppendOffset, keyValOffsetInVec,
@@ -196,7 +194,7 @@ void HashJoinBuild::appendKeyDataChunk(
     tupleAppendOffset += NUM_BYTES_PER_NODE_ID;
     // Append payloads in key data chunk
     for (auto i = 0u; i < keyDataChunk->valueVectors.size(); i++) {
-        if (i == keyVectorPos) {
+        if (i == dataChunksInfo.keyValueVectorPos) {
             continue;
         }
         // Append payload vectors in the keyDataChunk
@@ -215,7 +213,7 @@ void HashJoinBuild::appendKeyDataChunk(
 // Append payload in non-key data chunks
 void HashJoinBuild::appendPayloadDataChunks(
     const vector<BlockAppendInfo>& blockAppendInfos, uint64_t& tupleAppendOffset) {
-    for (auto& payloadDataChunk : resultSetWithoutKeyDataChunk->dataChunks) {
+    for (auto& payloadDataChunk : nonKeyDataChunks) {
         if (payloadDataChunk->state->isFlat()) {
             for (auto i = 0u; i < payloadDataChunk->valueVectors.size(); i++) {
                 auto payloadVector = payloadDataChunk->getValueVector(i);

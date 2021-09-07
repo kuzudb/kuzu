@@ -8,14 +8,15 @@ namespace processor {
 class ScanStructuredProperty : public ScanColumn {
 
 public:
-    ScanStructuredProperty(uint64_t dataChunkPos, uint64_t valueVectorPos, Column* column,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
+    ScanStructuredProperty(uint32_t inAndOutDataChunkPos, uint32_t inValueVectorPos,
+        uint32_t outValueVectorPos, Column* column, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id);
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanStructuredProperty>(
-            dataChunkPos, valueVectorPos, column, prevOperator->clone(), context, id);
+        return make_unique<ScanStructuredProperty>(inAndOutDataChunkPos, inValueVectorPos,
+            outValueVectorPos, column, prevOperator->clone(), context, id);
     }
 };
 

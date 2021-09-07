@@ -3,25 +3,31 @@
 namespace graphflow {
 namespace processor {
 
-ScanNodeID::ScanNodeID(shared_ptr<MorselsDesc>& morsel, ExecutionContext& context, uint32_t id)
-    : PhysicalOperator(SCAN, context, id), morsel{morsel} {
-    resultSet = make_shared<ResultSet>();
-    nodeIDVector = make_shared<ValueVector>(
-        context.memoryManager, NODE, true /* isSingleValue */, true /* isSequence */);
-    outDataChunk = make_shared<DataChunk>();
-    outDataChunk->append(nodeIDVector);
-    resultSet->append(outDataChunk);
+ScanNodeID::ScanNodeID(uint32_t totalNumDataChunks, uint32_t outDataChunkSize,
+    uint32_t outDataChunkPos, uint32_t outValueVectorPos, shared_ptr<MorselsDesc>& morsel,
+    ExecutionContext& context, uint32_t id)
+    : PhysicalOperator(SCAN, context, id), totalNumDataChunks{totalNumDataChunks},
+      outDataChunkSize{outDataChunkSize}, outDataChunkPos{outDataChunkPos},
+      outValueVectorPos{outValueVectorPos}, morsel{morsel} {
+    resultSet = make_shared<ResultSet>(totalNumDataChunks);
+    initResultSet(outDataChunkSize);
 }
 
-ScanNodeID::ScanNodeID(shared_ptr<MorselsDesc>& morsel, unique_ptr<PhysicalOperator> prevOperator,
-    ExecutionContext& context, uint32_t id)
-    : PhysicalOperator{move(prevOperator), SCAN, context, id}, morsel{morsel} {
+ScanNodeID::ScanNodeID(uint32_t outDataChunkSize, uint32_t outDataChunkPos,
+    uint32_t outValueVectorPos, shared_ptr<MorselsDesc>& morsel,
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+    : PhysicalOperator{move(prevOperator), SCAN, context, id}, outDataChunkSize{outDataChunkSize},
+      outDataChunkPos{outDataChunkPos}, outValueVectorPos{outValueVectorPos}, morsel{morsel} {
     resultSet = this->prevOperator->getResultSet();
-    nodeIDVector = make_shared<ValueVector>(
+    initResultSet(outDataChunkSize);
+}
+
+void ScanNodeID::initResultSet(uint32_t outDataChunkSize) {
+    outValueVector = make_shared<ValueVector>(
         context.memoryManager, NODE, true /* isSingleValue */, true /* isSequence */);
-    outDataChunk = make_shared<DataChunk>();
-    outDataChunk->append(nodeIDVector);
-    resultSet->append(outDataChunk);
+    outDataChunk = make_shared<DataChunk>(outDataChunkSize);
+    outDataChunk->insert(outValueVectorPos, outValueVector);
+    resultSet->insert(outDataChunkPos, outDataChunk);
 }
 
 void ScanNodeID::reInitialize() {
@@ -37,7 +43,7 @@ void ScanNodeID::getNextTuples() {
     }
     {
         unique_lock<mutex> lock{morsel->mtx};
-        auto nodeIDValues = (nodeID_t*)(nodeIDVector->values);
+        auto nodeIDValues = (nodeID_t*)(outValueVector->values);
         // Fill the first nodeID in the sequence.
         if (morsel->currNodeOffset >= morsel->numNodes) {
             // no more tuples to scan_node_id.

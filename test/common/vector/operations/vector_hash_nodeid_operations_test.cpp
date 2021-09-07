@@ -8,16 +8,16 @@ using namespace graphflow::common;
 using namespace std;
 
 TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
-    auto dataChunk = make_shared<DataChunk>();
+    auto dataChunk = make_shared<DataChunk>(2);
     dataChunk->state->selectedSize = 1000;
     auto memoryManager = make_unique<MemoryManager>();
 
     auto nodeVector = make_shared<ValueVector>(memoryManager.get(), NODE);
-    dataChunk->append(nodeVector);
+    dataChunk->insert(0, nodeVector);
     auto nodeData = (nodeID_t*)nodeVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), INT64);
-    dataChunk->append(result);
+    dataChunk->insert(1, result);
     auto resultData = (uint64_t*)result->values;
 
     // Fill values before the comparison.
@@ -41,7 +41,7 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
 }
 
 TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
-    auto dataChunk = make_shared<DataChunk>();
+    auto dataChunk = make_shared<DataChunk>(2);
     dataChunk->state->selectedSize = 1000;
     auto memoryManager = make_unique<MemoryManager>();
 
@@ -50,10 +50,10 @@ TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
         ((nodeID_t*)nodeVector->values)[i].label = 100;
         ((nodeID_t*)nodeVector->values)[i].offset = 10 + i;
     }
-    dataChunk->append(nodeVector);
+    dataChunk->insert(0, nodeVector);
 
     auto result = make_shared<ValueVector>(memoryManager.get(), INT64);
-    dataChunk->append(result);
+    dataChunk->insert(1, result);
     auto resultData = (uint64_t*)result->values;
 
     VectorHashOperations::Hash(*nodeVector, *result);

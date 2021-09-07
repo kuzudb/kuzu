@@ -63,17 +63,34 @@ public:
     uint64_t hashBitMask;
 };
 
+struct BuildDataChunksInfo {
+
+public:
+    BuildDataChunksInfo(
+        uint32_t keyDataChunkPos, uint32_t keyValueVectorPos, vector<bool> dataChunkPosToIsFlat)
+        : keyDataChunkPos{keyDataChunkPos}, keyValueVectorPos{keyValueVectorPos},
+          dataChunkPosToIsFlat{move(dataChunkPosToIsFlat)} {}
+
+    BuildDataChunksInfo(const BuildDataChunksInfo& other)
+        : BuildDataChunksInfo(
+              other.keyDataChunkPos, other.keyValueVectorPos, other.dataChunkPosToIsFlat) {}
+
+public:
+    uint32_t keyDataChunkPos;
+    uint32_t keyValueVectorPos;
+    vector<bool> dataChunkPosToIsFlat;
+};
+
 class HashJoinBuild : public Sink {
 public:
-    HashJoinBuild(uint64_t keyDataChunkPos, uint64_t keyVectorPos,
-        const vector<bool>& dataChunkPosToIsFlat, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id);
+    HashJoinBuild(const BuildDataChunksInfo& buildDataChunksInfo,
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
     void execute() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        auto cloneOp = make_unique<HashJoinBuild>(keyDataChunkPos, keyVectorPos,
-            dataChunkPosToIsFlat, prevOperator->clone(), context, id);
+        auto cloneOp =
+            make_unique<HashJoinBuild>(dataChunksInfo, prevOperator->clone(), context, id);
         cloneOp->sharedState = this->sharedState;
         return cloneOp;
     }
@@ -85,11 +102,10 @@ public:
     uint64_t numBytesForFixedTuplePart;
 
 private:
-    uint64_t keyDataChunkPos;
-    uint64_t keyVectorPos;
-    vector<bool> dataChunkPosToIsFlat;
+    BuildDataChunksInfo dataChunksInfo;
+
     shared_ptr<DataChunk> keyDataChunk;
-    shared_ptr<ResultSet> resultSetWithoutKeyDataChunk;
+    vector<shared_ptr<DataChunk>> nonKeyDataChunks;
     uint64_t htBlockCapacity;
     uint64_t numEntries; // Thread-local num entries in htBlocks
     // Thread local main memory blocks holding |key|payload|prev| fields

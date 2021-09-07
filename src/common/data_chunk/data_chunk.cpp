@@ -4,9 +4,9 @@ namespace graphflow {
 namespace common {
 
 unique_ptr<DataChunk> DataChunk::clone() {
-    auto newChunk = make_unique<DataChunk>(state->clone());
-    for (auto& valueVector : valueVectors) {
-        newChunk->append(valueVector->clone());
+    auto newChunk = make_unique<DataChunk>(valueVectors.size(), state->clone());
+    for (auto i = 0; i < valueVectors.size(); ++i) {
+        newChunk->insert(i, valueVectors[i]->clone());
     }
     return newChunk;
 }

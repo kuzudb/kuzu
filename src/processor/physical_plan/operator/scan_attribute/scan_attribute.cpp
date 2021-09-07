@@ -3,13 +3,15 @@
 namespace graphflow {
 namespace processor {
 
-ScanAttribute::ScanAttribute(uint64_t dataChunkPos, uint64_t valueVectorPos,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : PhysicalOperator{move(prevOperator), SCAN_ATTRIBUTE, context, id}, dataChunkPos{dataChunkPos},
-      valueVectorPos{valueVectorPos} {
+ScanAttribute::ScanAttribute(uint32_t inAndOutDataChunkPos, uint32_t inValueVectorPos,
+    uint32_t outValueVectorPos, unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t id)
+    : PhysicalOperator{move(prevOperator), SCAN_ATTRIBUTE, context, id},
+      inAndOutDataChunkPos{inAndOutDataChunkPos}, inValueVectorPos{inValueVectorPos},
+      outValueVectorPos{outValueVectorPos} {
     resultSet = this->prevOperator->getResultSet();
-    inDataChunk = resultSet->dataChunks[dataChunkPos];
-    inValueVector = inDataChunk->getValueVector(valueVectorPos);
+    inDataChunk = resultSet->dataChunks[inAndOutDataChunkPos];
+    inValueVector = inDataChunk->getValueVector(inValueVectorPos);
     assert(inValueVector->dataType == NODE);
 }
 

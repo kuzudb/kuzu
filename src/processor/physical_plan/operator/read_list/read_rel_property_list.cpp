@@ -5,16 +5,15 @@
 namespace graphflow {
 namespace processor {
 
-ReadRelPropertyList::ReadRelPropertyList(uint64_t inDataChunkPos, uint64_t inValueVectorPos,
-    uint64_t outDataChunkPos, Lists* lists, unique_ptr<PhysicalOperator> prevOperator,
-    ExecutionContext& context, uint32_t id)
-    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id,
-          false /* is not adj list */},
-      outDataChunkPos(outDataChunkPos) {
+ReadRelPropertyList::ReadRelPropertyList(uint32_t inDataChunkPos, uint32_t inValueVectorPos,
+    uint32_t outDataChunkPos, uint32_t outValueVectorPos, Lists* lists,
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+    : ReadList{inDataChunkPos, inValueVectorPos, outDataChunkPos, outValueVectorPos, lists,
+          move(prevOperator), context, id, false /* is not adj list */} {
     outValueVector = make_shared<ValueVector>(context.memoryManager, lists->getDataType());
     outDataChunk = resultSet->dataChunks[outDataChunkPos];
     largeListHandle->setListSyncState(resultSet->getListSyncState(outDataChunkPos));
-    outDataChunk->append(outValueVector);
+    outDataChunk->insert(outValueVectorPos, outValueVector);
 }
 
 void ReadRelPropertyList::getNextTuples() {

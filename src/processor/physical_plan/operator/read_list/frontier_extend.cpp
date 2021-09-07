@@ -7,18 +7,20 @@ namespace processor {
 
 static uint64_t getNextPowerOfTwo(uint64_t value);
 
-FrontierExtend::FrontierExtend(uint64_t inDataChunkPos, uint64_t inValueVectorPos, AdjLists* lists,
-    label_t outNodeIDVectorLabel, uint64_t lowerBound, uint64_t upperBound,
+FrontierExtend::FrontierExtend(uint32_t inDataChunkPos, uint32_t inValueVectorPos,
+    uint32_t outDataChunkSize, uint32_t outDataChunkPos, uint32_t outValueVectorPos,
+    AdjLists* lists, label_t outNodeIDVectorLabel, uint64_t lowerBound, uint64_t upperBound,
     unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : ReadList{inDataChunkPos, inValueVectorPos, lists, move(prevOperator), context, id,
-          true /* is adj list */},
-      startLayer{lowerBound}, endLayer{upperBound}, outNodeIDVectorLabel{outNodeIDVectorLabel} {
+    : ReadList{inDataChunkPos, inValueVectorPos, outDataChunkPos, outValueVectorPos, lists,
+          move(prevOperator), context, id, true /* is adj list */},
+      startLayer{lowerBound}, endLayer{upperBound}, outNodeIDVectorLabel{outNodeIDVectorLabel},
+      outDataChunkSize{outDataChunkSize} {
     operatorType = FRONTIER_EXTEND;
     outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
-    outDataChunk = make_shared<DataChunk>();
-    outDataChunk->append(outValueVector);
+    outDataChunk = make_shared<DataChunk>(outDataChunkSize);
+    outDataChunk->insert(outValueVectorPos, outValueVector);
     outValueVector->state->initMultiplicity();
-    resultSet->append(outDataChunk, make_shared<ListSyncState>());
+    resultSet->insert(outDataChunkPos, outDataChunk, make_shared<ListSyncState>());
     uint64_t maxNumThreads = omp_get_max_threads();
     vectors.reserve(maxNumThreads);
     largeListHandles.reserve(maxNumThreads);
@@ -225,8 +227,9 @@ FrontierBag* FrontierExtend::createFrontierBag() {
 }
 
 unique_ptr<PhysicalOperator> FrontierExtend::clone() {
-    auto cloneOp = make_unique<FrontierExtend>(inDataChunkPos, inValueVectorPos, (AdjLists*)lists,
-        outNodeIDVectorLabel, startLayer, endLayer, prevOperator->clone(), context, id);
+    auto cloneOp = make_unique<FrontierExtend>(inDataChunkPos, inValueVectorPos, outDataChunkSize,
+        outDataChunkPos, outValueVectorPos, (AdjLists*)lists, outNodeIDVectorLabel, startLayer,
+        endLayer, prevOperator->clone(), context, id);
     return cloneOp;
 }
 

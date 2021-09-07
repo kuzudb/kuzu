@@ -32,7 +32,7 @@ public:
     static PhysicalOperatorsInfo makeSimplePhysicalOperatorInfo() {
         auto schema = Schema();
         auto groupPos = schema.createGroup();
-        schema.appendToGroup("_0_a.prop", groupPos);
+        schema.insertToGroup("_0_a.prop", groupPos);
         return PhysicalOperatorsInfo(schema);
     }
 
@@ -56,11 +56,11 @@ TEST_F(ExpressionMapperTest, BinaryExpressionEvaluatorTest) {
     for (auto i = 0u; i < 100; i++) {
         values[i] = i;
     }
-    auto dataChunk = make_shared<DataChunk>();
+    auto dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selectedSize = 100;
-    dataChunk->append(valueVector);
-    auto resultSet = ResultSet();
-    resultSet.append(dataChunk);
+    dataChunk->insert(0, valueVector);
+    auto resultSet = ResultSet(1);
+    resultSet.insert(0, dataChunk);
 
     auto physicalOperatorInfo = makeSimplePhysicalOperatorInfo();
     auto rootExpressionEvaluator =
@@ -88,11 +88,11 @@ TEST_F(ExpressionMapperTest, UnaryExpressionEvaluatorTest) {
             values[i] = -value;
         }
     }
-    auto dataChunk = make_shared<DataChunk>();
+    auto dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selectedSize = 100;
-    dataChunk->append(valueVector);
-    auto resultSet = ResultSet();
-    resultSet.append(dataChunk);
+    dataChunk->insert(0, valueVector);
+    auto resultSet = ResultSet(1);
+    resultSet.insert(0, dataChunk);
 
     auto physicalOperatorInfo = makeSimplePhysicalOperatorInfo();
     auto rootExpressionEvaluator =
