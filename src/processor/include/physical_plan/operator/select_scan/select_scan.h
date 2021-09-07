@@ -12,9 +12,11 @@ namespace processor {
 class SelectScan : public PhysicalOperator {
 
 public:
-    SelectScan(const ResultSet& inResultSet,
+    SelectScan(const ResultSet* inResultSet,
         vector<pair<uint64_t, uint64_t>> valueVectorsPosToSelect, ExecutionContext& context,
         uint32_t id);
+
+    inline void setInResultSet(const ResultSet* resultSet) { inResultSet = resultSet; }
 
     void reInitialize() override;
 
@@ -25,7 +27,7 @@ public:
     }
 
 private:
-    const ResultSet& inResultSet;
+    const ResultSet* inResultSet;
     vector<pair<uint64_t, uint64_t>> valueVectorsPosToSelect;
 
     bool isFirstExecution;

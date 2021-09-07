@@ -56,10 +56,13 @@ cc_library(
 
 cc_library(
     name = "normalized_query",
-    srcs = [],
+    srcs = glob([
+        "norm_query/*.cpp",
+    ]),
     hdrs = glob([
         "include/norm_query/*.h",
     ]),
+    visibility = ["//visibility:public"],
     deps = [
         "//src/binder:bound_queries",
     ],

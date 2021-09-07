@@ -60,9 +60,12 @@ public:
 
     void addLogicalExtend(const string& queryRel, LogicalExtend* extend);
 
+    inline bool containLogicalExtend(const string& queryRel) {
+        return queryRelLogicalExtendMap.contains(queryRel);
+    }
     LogicalExtend* getExistingLogicalExtend(const string& queryRel);
 
-    unique_ptr<Schema> copy();
+    unique_ptr<Schema> copy() const;
 
 public:
     vector<unique_ptr<FactorizationGroup>> groups;

@@ -1,6 +1,5 @@
 #include "src/planner/include/enumerator.h"
 
-#include "src/binder/include/expression/existential_subquery_expression.h"
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
@@ -11,9 +10,8 @@
 namespace graphflow {
 namespace planner {
 
-unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundSingleQuery& singleQuery) {
-    auto plans = enumeratePlans(singleQuery);
-    unique_ptr<LogicalPlan> bestPlan = move(plans[0]);
+unique_ptr<LogicalPlan> Enumerator::getBestPlan(vector<unique_ptr<LogicalPlan>> plans) {
+    auto bestPlan = move(plans[0]);
     for (auto i = 1u; i < plans.size(); ++i) {
         if (plans[i]->cost < bestPlan->cost) {
             bestPlan = move(plans[i]);
@@ -24,8 +22,7 @@ unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundSingleQuery& singleQu
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(const BoundSingleQuery& singleQuery) {
     auto normalizedQuery = QueryNormalizer::normalizeQuery(singleQuery);
-    vector<unique_ptr<LogicalPlan>> plans;
-    plans.push_back(make_unique<LogicalPlan>());
+    auto plans = getInitialEmptyPlans();
     for (auto& queryPart : normalizedQuery->getQueryParts()) {
         plans = enumerateQueryPart(*queryPart, move(plans));
     }
@@ -34,15 +31,36 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(const BoundSingleQuer
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
     const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans) {
-    auto plans = move(prevPlans);
     if (queryPart.hasLoadCSVStatement()) {
-        assert(plans.size() == 1); // load csv must be the first clause
-        appendLoadCSV(*queryPart.getLoadCSVStatement(), *plans[0]);
+        assert(prevPlans.size() == 1); // load csv must be the first clause
+        appendLoadCSV(*queryPart.getLoadCSVStatement(), *prevPlans[0]);
     }
-    plans = joinOrderEnumerator.enumerateJoinOrder(queryPart, move(plans));
+    auto plans = joinOrderEnumerator.enumerateJoinOrder(queryPart, move(prevPlans));
     projectionEnumerator.enumerateProjectionBody(
         *queryPart.getProjectionBody(), plans, queryPart.isLastQueryPart());
     return plans;
+}
+
+void Enumerator::planSubquery(
+    ExistentialSubqueryExpression& subqueryExpression, LogicalPlan& outerPlan) {
+    vector<shared_ptr<Expression>> expressionsToSelect;
+    for (auto& expression : subqueryExpression.getDependentLeafExpressions()) {
+        if (!outerPlan.schema->containVariable(expression->getInternalName())) {
+            continue;
+        }
+        expressionsToSelect.push_back(expression);
+        appendFlattenIfNecessary(
+            outerPlan.schema->getGroupPos(expression->getInternalName()), outerPlan);
+    }
+    auto& normalizedQuery = *subqueryExpression.getNormalizedSubquery();
+    auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToSelect));
+    auto plans = enumerateQueryPart(*normalizedQuery.getQueryPart(0), getInitialEmptyPlans());
+    joinOrderEnumerator.context->clearExpressionsToSelectFromOuter();
+    for (auto i = 1u; i < normalizedQuery.getQueryParts().size(); ++i) {
+        plans = enumerateQueryPart(*normalizedQuery.getQueryPart(i), move(plans));
+    }
+    joinOrderEnumerator.exitSubquery(move(prevContext));
+    subqueryExpression.setSubPlan(getBestPlan(move(plans)));
 }
 
 void Enumerator::appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, LogicalPlan& plan) {
@@ -55,16 +73,16 @@ void Enumerator::appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, Lo
     plan.appendOperator(move(loadCSV));
 }
 
-uint32_t Enumerator::appendFlattensIfNecessary(
+uint32_t Enumerator::appendFlattensButOne(
     const unordered_set<uint32_t>& unFlatGroupsPos, LogicalPlan& plan) {
     // randomly pick the first unFlat group to select and flatten the rest
-    auto groupPosToSelect = *unFlatGroupsPos.begin();
+    auto finalUnFlatGroupPos = *unFlatGroupsPos.begin();
     for (auto& unFlatGroupPos : unFlatGroupsPos) {
-        if (unFlatGroupPos != groupPosToSelect) {
+        if (unFlatGroupPos != finalUnFlatGroupPos) {
             appendFlattenIfNecessary(unFlatGroupPos, plan);
         }
     }
-    return groupPosToSelect;
+    return finalUnFlatGroupPos;
 }
 
 void Enumerator::appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan) {
@@ -78,32 +96,50 @@ void Enumerator::appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan) 
     plan.appendOperator(move(flatten));
 }
 
-void Enumerator::appendFilter(shared_ptr<Expression> expression, LogicalPlan& plan) {
-    appendScanPropertiesIfNecessary(*expression, plan);
-    auto unFlatGroupsPos = getUnFlatGroupsPos(*expression, *plan.schema);
-    uint32_t groupPosToSelect = unFlatGroupsPos.empty() ?
-                                    getAnyGroupPos(*expression, *plan.schema) :
-                                    appendFlattensIfNecessary(unFlatGroupsPos, plan);
+void Enumerator::appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan) {
+    uint32_t groupPosToSelect =
+        appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(*expression, plan);
     auto filter = make_shared<LogicalFilter>(expression, groupPosToSelect, plan.lastOperator);
     plan.schema->groups[groupPosToSelect]->estimatedCardinality *= PREDICATE_SELECTIVITY;
     plan.appendOperator(move(filter));
 }
 
+uint32_t Enumerator::appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(
+    Expression& expression, LogicalPlan& plan) {
+    appendScanPropertiesIfNecessary(expression, plan);
+    if (expression.hasSubqueryExpression()) {
+        auto expressions = expression.getDependentSubqueryExpressions();
+        for (auto& expr : expressions) {
+            auto& subqueryExpression = (ExistentialSubqueryExpression&)*expr;
+            if (!subqueryExpression.hasSubPlan()) {
+                planSubquery(subqueryExpression, plan);
+            }
+        }
+    }
+    auto unFlatGroupPos = getUnFlatGroupsPos(expression, *plan.schema);
+    return !unFlatGroupPos.empty() ? appendFlattensButOne(unFlatGroupPos, plan) :
+                                     getAnyGroupPos(expression, *plan.schema);
+}
+
 void Enumerator::appendScanPropertiesIfNecessary(Expression& expression, LogicalPlan& plan) {
     for (auto& expr : expression.getDependentProperties()) {
         auto& propertyExpression = (PropertyExpression&)*expr;
+        // skip properties that has been matched
         if (plan.schema->containVariable(propertyExpression.getInternalName())) {
             continue;
         }
         NODE == propertyExpression.children[0]->dataType ?
-            appendScanNodeProperty(propertyExpression, plan) :
-            appendScanRelProperty(propertyExpression, plan);
+            appendScanNodePropertyIfNecessary(propertyExpression, plan) :
+            appendScanRelPropertyIfNecessary(propertyExpression, plan);
     }
 }
 
-void Enumerator::appendScanNodeProperty(
+void Enumerator::appendScanNodePropertyIfNecessary(
     const PropertyExpression& propertyExpression, LogicalPlan& plan) {
     auto& nodeExpression = (const NodeExpression&)*propertyExpression.children[0];
+    if (!plan.schema->containVariable(nodeExpression.getIDProperty())) {
+        return;
+    }
     auto scanProperty = make_shared<LogicalScanNodeProperty>(nodeExpression.getIDProperty(),
         nodeExpression.label, propertyExpression.getInternalName(), propertyExpression.propertyKey,
         UNSTRUCTURED == propertyExpression.dataType, plan.lastOperator);
@@ -112,9 +148,12 @@ void Enumerator::appendScanNodeProperty(
     plan.appendOperator(move(scanProperty));
 }
 
-void Enumerator::appendScanRelProperty(
+void Enumerator::appendScanRelPropertyIfNecessary(
     const PropertyExpression& propertyExpression, LogicalPlan& plan) {
     auto& relExpression = (const RelExpression&)*propertyExpression.children[0];
+    if (!plan.schema->containLogicalExtend(relExpression.getInternalName())) {
+        return;
+    }
     auto extend = plan.schema->getExistingLogicalExtend(relExpression.getInternalName());
     auto scanProperty = make_shared<LogicalScanRelProperty>(extend->boundNodeID,
         extend->boundNodeLabel, extend->nbrNodeID, extend->relLabel, extend->direction,
@@ -123,6 +162,12 @@ void Enumerator::appendScanRelProperty(
     auto groupPos = plan.schema->getGroupPos(extend->nbrNodeID);
     plan.schema->appendToGroup(propertyExpression.getInternalName(), groupPos);
     plan.appendOperator(move(scanProperty));
+}
+
+vector<unique_ptr<LogicalPlan>> Enumerator::getInitialEmptyPlans() {
+    vector<unique_ptr<LogicalPlan>> plans;
+    plans.push_back(make_unique<LogicalPlan>());
+    return plans;
 }
 
 unordered_set<uint32_t> Enumerator::getUnFlatGroupsPos(
@@ -135,8 +180,7 @@ unordered_set<uint32_t> Enumerator::getUnFlatGroupsPos(
             if (!schema.groups[groupPos]->isFlat) {
                 unFlatGroupsPos.insert(groupPos);
             }
-        } else {
-            GF_ASSERT(ALIAS == subExpression->expressionType);
+        } else if (subExpression->expressionType == ALIAS) {
             for (auto& unFlatGroupPos : getUnFlatGroupsPos(*subExpression->children[0], schema)) {
                 unFlatGroupsPos.insert(unFlatGroupPos);
             }

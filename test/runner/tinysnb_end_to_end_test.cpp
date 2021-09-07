@@ -65,3 +65,9 @@ TEST_F(TinySnbProcessorTest, ProjectionTests) {
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/projection/skip_limit.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }
+
+TEST_F(TinySnbProcessorTest, SubqueryTests) {
+    vector<TestQueryConfig> queryConfigs;
+    queryConfigs = TestHelper::parseTestFile("test/runner/queries/subquery/subquery.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
+}

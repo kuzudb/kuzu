@@ -5,7 +5,7 @@
 namespace graphflow {
 namespace processor {
 
-SelectScan::SelectScan(const ResultSet& inResultSet,
+SelectScan::SelectScan(const ResultSet* inResultSet,
     vector<pair<uint64_t, uint64_t>> valueVectorsPosToSelect, ExecutionContext& context,
     uint32_t id)
     : PhysicalOperator{SELECT_SCAN, context, id}, inResultSet{inResultSet},
@@ -14,7 +14,7 @@ SelectScan::SelectScan(const ResultSet& inResultSet,
     outDataChunk = make_shared<DataChunk>(DataChunkState::getSingleValueDataChunkState());
     for (auto& [dataChunkPos, valueVectorPos] : this->valueVectorsPosToSelect) {
         auto& inValueVector =
-            *this->inResultSet.dataChunks[dataChunkPos]->getValueVector(valueVectorPos);
+            *this->inResultSet->dataChunks[dataChunkPos]->getValueVector(valueVectorPos);
         shared_ptr<ValueVector> outValueVector;
         if (inValueVector.dataType == NODE) {
             // force decompression given single value;
@@ -47,7 +47,7 @@ void SelectScan::getNextTuples() {
             auto dataChunkPos = valueVectorsPosToSelect[i].first;
             auto valueVectorPos = valueVectorsPosToSelect[i].second;
             auto& inValueVector =
-                *this->inResultSet.dataChunks[dataChunkPos]->getValueVector(valueVectorPos);
+                *this->inResultSet->dataChunks[dataChunkPos]->getValueVector(valueVectorPos);
             assert(inValueVector.state->isFlat());
             auto pos = inValueVector.state->getPositionOfCurrIdx();
             if (inValueVector.dataType == NODE) {

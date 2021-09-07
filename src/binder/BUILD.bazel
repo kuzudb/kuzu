@@ -32,9 +32,6 @@ cc_library(
 
 cc_library(
     name = "bound_statements",
-    srcs = glob([
-        "bound_statements/*.cpp",
-    ]),
     hdrs = glob([
         "include/bound_statements/*.h",
     ]),
@@ -91,6 +88,9 @@ cc_library(
 
 cc_library(
     name = "subquery_expression_impl",
+    srcs = [
+        "expression/existential_subquery_expression.cpp",
+    ],
     hdrs = [
         "include/expression/existential_subquery_expression.h",
     ],
@@ -99,5 +99,6 @@ cc_library(
         "base_expression",
         "bound_queries",
         "//src/planner:logical_plan",
+        "//src/planner:normalized_query",
     ],
 )

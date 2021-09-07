@@ -51,14 +51,19 @@ unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
     return make_unique<PhysicalPlan>(move(resultCollector));
 }
 
-ResultSet* PlanMapper::enterSubquery(ResultSet* newOuterQueryResultSet) {
+pair<ResultSet*, PhysicalOperatorsInfo*> PlanMapper::enterSubquery(
+    ResultSet* newOuterQueryResultSet, PhysicalOperatorsInfo* newPhysicalOperatorsInfo) {
     auto prevOuterQueryResultSet = outerQueryResultSet;
+    auto prevPhysicalOperatorInfo = outerPhysicalOperatorsInfo;
     outerQueryResultSet = newOuterQueryResultSet;
-    return prevOuterQueryResultSet;
+    outerPhysicalOperatorsInfo = newPhysicalOperatorsInfo;
+    return make_pair(prevOuterQueryResultSet, prevPhysicalOperatorInfo);
 }
 
-void PlanMapper::exitSubquery(ResultSet* prevOuterQueryResultSet) {
+void PlanMapper::exitSubquery(
+    ResultSet* prevOuterQueryResultSet, PhysicalOperatorsInfo* prevPhysicalOperatorsInfo) {
     outerQueryResultSet = prevOuterQueryResultSet;
+    outerPhysicalOperatorsInfo = prevPhysicalOperatorsInfo;
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
@@ -136,14 +141,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSelectScanToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto& selectScan = (const LogicalSelectScan&)*logicalOperator;
-    auto outerInfo = PhysicalOperatorsInfo(*selectScan.getOuterSchema());
     vector<pair<uint64_t, uint64_t>> valueVectorsPosToSelect;
     for (auto& variable : selectScan.getVariablesToSelect()) {
-        valueVectorsPosToSelect.emplace_back(
-            outerInfo.getDataChunkPos(variable), outerInfo.getValueVectorPos(variable));
+        valueVectorsPosToSelect.emplace_back(outerPhysicalOperatorsInfo->getDataChunkPos(variable),
+            outerPhysicalOperatorsInfo->getValueVectorPos(variable));
     }
     return make_unique<SelectScan>(
-        *outerQueryResultSet, move(valueVectorsPosToSelect), context, physicalOperatorID++);
+        outerQueryResultSet, move(valueVectorsPosToSelect), context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(

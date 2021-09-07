@@ -35,6 +35,9 @@ private:
      */
     static void normalizeWhereExpression(
         NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart);
+
+    static void normalizeSubqueryExpression(
+        NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart);
 };
 
 } // namespace planner

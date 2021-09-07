@@ -53,7 +53,7 @@ LogicalExtend* Schema::getExistingLogicalExtend(const string& queryRel) {
     return queryRelLogicalExtendMap.at(queryRel);
 }
 
-unique_ptr<Schema> Schema::copy() {
+unique_ptr<Schema> Schema::copy() const {
     auto newSchema = make_unique<Schema>();
     newSchema->queryRelLogicalExtendMap = queryRelLogicalExtendMap;
     newSchema->variableToGroupPos = variableToGroupPos;

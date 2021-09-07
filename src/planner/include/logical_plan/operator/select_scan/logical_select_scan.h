@@ -9,27 +9,25 @@ namespace planner {
 class LogicalSelectScan : public LogicalOperator {
 
 public:
-    LogicalSelectScan(vector<string> variablesToSelect, unique_ptr<Schema> outerSchema)
-        : variablesToSelect{move(variablesToSelect)}, outerSchema{move(outerSchema)} {}
+    LogicalSelectScan(unordered_set<string> variablesToSelect)
+        : variablesToSelect{move(variablesToSelect)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_SELECT_SCAN;
     }
 
     string getExpressionsForPrinting() const override {
-        auto result = variablesToSelect[0];
-        for (auto i = 1u; i < variablesToSelect.size(); ++i) {
-            result += ", " + variablesToSelect[i];
+        string result;
+        for (auto& variable : variablesToSelect) {
+            result += variable + ", ";
         }
         return result;
     }
 
-    inline const vector<string>& getVariablesToSelect() const { return variablesToSelect; }
-    inline Schema* getOuterSchema() const { return outerSchema.get(); }
+    inline const unordered_set<string>& getVariablesToSelect() const { return variablesToSelect; }
 
 private:
-    vector<string> variablesToSelect;
-    unique_ptr<Schema> outerSchema;
+    unordered_set<string> variablesToSelect;
 };
 
 } // namespace planner

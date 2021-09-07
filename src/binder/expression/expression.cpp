@@ -16,10 +16,75 @@ Expression::Expression(
     children.push_back(child);
 }
 
+bool Expression::hasSubqueryExpression() const {
+    if (expressionType == EXISTENTIAL_SUBQUERY) {
+        return true;
+    }
+    for (auto& child : children) {
+        if (child->hasSubqueryExpression()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 unordered_set<string> Expression::getDependentVariableNames() {
     unordered_set<string> result;
     for (auto& variableExpression : getDependentVariables()) {
         result.insert(variableExpression->getInternalName());
+    }
+    return result;
+}
+
+vector<shared_ptr<Expression>> Expression::getDependentVariables() {
+    if (expressionType == VARIABLE) {
+        return vector<shared_ptr<Expression>>{shared_from_this()};
+    }
+    vector<shared_ptr<Expression>> result;
+    for (auto& child : children) {
+        for (auto& expression : child->getDependentVariables()) {
+            result.push_back(expression);
+        }
+    }
+    return result;
+}
+
+vector<shared_ptr<Expression>> Expression::getDependentProperties() {
+    if (expressionType == PROPERTY) {
+        return vector<shared_ptr<Expression>>{shared_from_this()};
+    }
+    vector<shared_ptr<Expression>> result;
+    for (auto& child : children) {
+        for (auto& expression : child->getDependentProperties()) {
+            result.push_back(expression);
+        }
+    }
+    return result;
+}
+
+vector<shared_ptr<Expression>> Expression::getDependentLeafExpressions() {
+    if (expressionType == PROPERTY || expressionType == CSV_LINE_EXTRACT ||
+        expressionType == ALIAS) {
+        return vector<shared_ptr<Expression>>{shared_from_this()};
+    }
+    vector<shared_ptr<Expression>> result;
+    for (auto& child : children) {
+        for (auto& expression : child->getDependentLeafExpressions()) {
+            result.push_back(expression);
+        }
+    }
+    return result;
+}
+
+vector<shared_ptr<Expression>> Expression::getDependentSubqueryExpressions() {
+    if (expressionType == EXISTENTIAL_SUBQUERY) {
+        return vector<shared_ptr<Expression>>{shared_from_this()};
+    }
+    vector<shared_ptr<Expression>> result;
+    for (auto& child : children) {
+        for (auto& expression : child->getDependentSubqueryExpressions()) {
+            result.push_back(expression);
+        }
     }
     return result;
 }
@@ -34,21 +99,6 @@ vector<shared_ptr<Expression>> Expression::splitOnAND() {
         }
     } else {
         result.push_back(shared_from_this());
-    }
-    return result;
-}
-
-vector<shared_ptr<Expression>> Expression::getDependentExpressionsWithTypes(
-    const unordered_set<ExpressionType>& expressionTypes) {
-    vector<shared_ptr<Expression>> result;
-    if (expressionTypes.contains(expressionType)) {
-        result.push_back(shared_from_this());
-        return result;
-    }
-    for (auto& child : children) {
-        for (auto& expression : child->getDependentExpressionsWithTypes(expressionTypes)) {
-            result.push_back(expression);
-        }
     }
     return result;
 }

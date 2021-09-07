@@ -6,8 +6,7 @@
 namespace graphflow {
 namespace common {
 
-Literal& Literal::operator=(const Literal& other) {
-    dataType = other.dataType;
+Literal::Literal(const Literal& other) : dataType{other.dataType} {
     switch (dataType) {
     case BOOL: {
         val.booleanVal = other.val.booleanVal;
@@ -27,8 +26,6 @@ Literal& Literal::operator=(const Literal& other) {
     default:
         GF_ASSERT(false);
     }
-
-    return *this;
 }
 
 string Literal::toString() const {
@@ -51,5 +48,26 @@ string Literal::toString() const {
     // Should never happen. Add empty return to remove compilation warning.
     return string();
 }
+
+void Literal::castToString() {
+    switch (dataType) {
+    case BOOL: {
+        strVal = TypeUtils::toString(val.booleanVal);
+    } break;
+    case INT64: {
+        strVal = TypeUtils::toString(val.int64Val);
+    } break;
+    case DOUBLE: {
+        strVal = TypeUtils::toString(val.doubleVal);
+    } break;
+    case DATE: {
+        strVal = Date::toString(val.dateVal);
+    } break;
+    default:
+        GF_ASSERT(false);
+    }
+    dataType = STRING;
+}
+
 } // namespace common
 } // namespace graphflow
