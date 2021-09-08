@@ -15,8 +15,7 @@ namespace main {
 System::System(const string& path, bool isInMemoryMode) {
     setDataPath(path);
     memManager = make_unique<MemoryManager>();
-    bufferManager =
-        make_unique<BufferManager>(isInMemoryMode ? 0 : BUFFER_POOL_SIZE);
+    bufferManager = make_unique<BufferManager>(isInMemoryMode ? 0 : BUFFER_POOL_SIZE);
     graph = make_unique<Graph>(path, *bufferManager, isInMemoryMode);
     processor = make_unique<QueryProcessor>(thread::hardware_concurrency());
     transactionManager = make_unique<TransactionManager>();
@@ -28,7 +27,7 @@ System::System(const string& path, bool isInMemoryMode) {
  * For now, it just creates a new bufferManager and graph.
  */
 void System::resizeBuffer(uint64_t newBufferSize) {
-    try{
+    try {
         BUFFER_POOL_SIZE = newBufferSize;
         bufferManager = make_unique<BufferManager>(BUFFER_POOL_SIZE);
         graph = make_unique<Graph>(dataPath, *bufferManager, false);
