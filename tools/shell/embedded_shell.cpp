@@ -14,7 +14,7 @@ const char* HELP = ":help";
 const char* CLEAR = ":clear";
 const char* QUIT = ":quit";
 const char* THREAD = ":thread";
-
+const char* BUFFERSIZE = ":buffer_size";
 const char* TAB = "    ";
 
 // cypher keyword (LOAD CSV related keyword are not added yet)
@@ -93,6 +93,10 @@ void EmbeddedShell::run() {
                 printf("numThreads set as %lu\n", context.numThreads);
             } catch (exception& e) { printf("%s\n", e.what()); }
 
+        } else if (lineStr.rfind(BUFFERSIZE) == 0) {
+            try {
+                system.resizeBuffer(stoull(lineStr.substr(string(BUFFERSIZE).length())));
+            } catch (exception& e) { printf("%s\n", e.what()); }
         } else {
             context.query = lineStr;
             try {

@@ -12,7 +12,7 @@ using namespace graphflow::main;
 class EmbeddedShell {
 
 public:
-    explicit EmbeddedShell(const System& system) : system{system}, context{SessionContext()} {};
+    explicit EmbeddedShell(System& system) : system{system}, context{SessionContext()} {};
 
     void initialize();
 
@@ -24,6 +24,6 @@ private:
     void printExecutionResult();
 
 private:
-    const System& system;
+    System& system;
     SessionContext context;
 };
