@@ -16,7 +16,7 @@ System::System(const string& path, bool isInMemoryMode) {
     setDataPath(path);
     memManager = make_unique<MemoryManager>();
     bufferManager =
-        make_unique<BufferManager>(isInMemoryMode ? 0 : BUFFER_POOL_SIZE));
+        make_unique<BufferManager>(isInMemoryMode ? 0 : BUFFER_POOL_SIZE);
     graph = make_unique<Graph>(path, *bufferManager, isInMemoryMode);
     processor = make_unique<QueryProcessor>(thread::hardware_concurrency());
     transactionManager = make_unique<TransactionManager>();
