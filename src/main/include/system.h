@@ -34,7 +34,15 @@ public:
     unique_ptr<TransactionManager> transactionManager;
     unique_ptr<MemoryManager> memManager;
     unique_ptr<BufferManager> bufferManager;
+    uint64_t BUFFER_POOL_SIZE = StorageConfig::DEFAULT_BUFFER_POOL_SIZE;
     bool initialized = false;
+
+    void resizeBuffer(uint64_t bufferSize);
+    string getDataPath();
+    void setDataPath(const string path);
+
+private:
+    string dataPath;
 };
 
 } // namespace main

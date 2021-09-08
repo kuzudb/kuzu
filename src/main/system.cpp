@@ -13,6 +13,7 @@ namespace graphflow {
 namespace main {
 
 System::System(const string& path, bool isInMemoryMode) {
+    setDataPath(path);
     memManager = make_unique<MemoryManager>();
     bufferManager =
         make_unique<BufferManager>(isInMemoryMode ? 0 : StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
@@ -20,6 +21,26 @@ System::System(const string& path, bool isInMemoryMode) {
     processor = make_unique<QueryProcessor>(thread::hardware_concurrency());
     transactionManager = make_unique<TransactionManager>();
     initialized = true;
+}
+
+/**
+ * Resize the buffer manager
+ * For now, it just creates a new bufferManager and graph.
+ */
+void System::resizeBuffer(uint64_t newBufferSize) {
+    try{
+        BUFFER_POOL_SIZE = newBufferSize;
+        bufferManager = make_unique<BufferManager>(BUFFER_POOL_SIZE);
+        graph = make_unique<Graph>(dataPath, *bufferManager, false);
+    } catch (exception& e) { printf("%s\n", e.what()); }
+}
+
+string System::getDataPath() {
+    return dataPath;
+}
+
+void System::setDataPath(const string path) {
+    dataPath = path;
 }
 
 void System::executeQuery(SessionContext& context) const {
