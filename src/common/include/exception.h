@@ -29,6 +29,12 @@ public:
     explicit LoaderException(const string& msg) : Exception(msg){};
 };
 
+class BufferManagerException : public Exception {
+public:
+    explicit BufferManagerException(const string& msg)
+        : Exception("Buffer manager exception: " + msg){};
+};
+
 class InternalException : public Exception {
 public:
     explicit InternalException(const string& msg) : Exception(msg){};

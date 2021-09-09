@@ -14,6 +14,7 @@ const char* HELP = ":help";
 const char* CLEAR = ":clear";
 const char* QUIT = ":quit";
 const char* THREAD = ":thread";
+const char* BUFFER_MANAGER_SIZE = ":buffer_manager_size";
 
 const char* TAB = "    ";
 
@@ -91,6 +92,12 @@ void EmbeddedShell::run() {
             try {
                 context.numThreads = stoi(lineStr.substr(string(THREAD).length()));
                 printf("numThreads set as %lu\n", context.numThreads);
+            } catch (exception& e) { printf("%s\n", e.what()); }
+
+        } else if (lineStr.rfind(BUFFER_MANAGER_SIZE) == 0) {
+            try {
+                system.bufferManager->resize(
+                        stoull(lineStr.substr(string(BUFFER_MANAGER_SIZE).length())));
             } catch (exception& e) { printf("%s\n", e.what()); }
 
         } else {

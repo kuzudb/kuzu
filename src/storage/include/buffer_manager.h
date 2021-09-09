@@ -78,6 +78,8 @@ public:
 
     unique_ptr<nlohmann::json> debugInfo();
 
+    void resize(uint64_t newSize);
+
 private:
     uint32_t claimAFrame(FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
 
@@ -96,7 +98,7 @@ private:
 
 private:
     shared_ptr<spdlog::logger> logger;
-    vector<Frame> bufferCache;
+    vector<unique_ptr<Frame>> bufferCache;
     atomic<uint64_t> clockHand;
     uint32_t numFrames;
 
