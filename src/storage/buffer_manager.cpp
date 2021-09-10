@@ -1,6 +1,7 @@
 #include "src/storage/include/buffer_manager.h"
 
 #include "src/common/include/configs.h"
+#include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
 
 using namespace graphflow::common;
@@ -31,9 +32,11 @@ bool Frame::acquire(bool block) {
 }
 
 BufferManager::BufferManager(uint64_t maxSize)
-    : logger{LoggerUtils::getOrCreateSpdLogger("buffer_manager")},
-      bufferCache{maxSize >> PAGE_SIZE_LOG_2}, clockHand{0},
+    : logger{LoggerUtils::getOrCreateSpdLogger("buffer_manager")}, clockHand{0},
       numFrames((uint32_t)(maxSize >> PAGE_SIZE_LOG_2)) {
+    for (auto i = 0u; i < numFrames; ++i) {
+        bufferCache.emplace_back(make_unique<Frame>());
+    }
     logger->info("Initializing Buffer Manager.");
     logger->info("BufferPool Size {}B, #4KB-pages {}.", maxSize, maxSize >> PAGE_SIZE_LOG_2);
     logger->info("Done Initializing Buffer Manager.");
@@ -43,6 +46,20 @@ BufferManager::~BufferManager() {
     spdlog::drop("buffer_manager");
 }
 
+void BufferManager::resize(uint64_t newSize) {
+    if ((numFrames << PAGE_SIZE_LOG_2) > newSize) {
+        throw BufferManagerException("Resizing to a smaller Buffer Manager Size is unsupported!");
+    }
+    auto newNumFrames = (uint32_t)(newSize >> PAGE_SIZE_LOG_2);
+    for (auto i = 0u; i < newNumFrames - numFrames; ++i) {
+        bufferCache.emplace_back(make_unique<Frame>());
+    }
+    numFrames = newNumFrames;
+    logger->info("Resizing buffer manager.");
+    logger->info("New buffer pool size {}B, #4KB-pages {}.", newSize, newNumFrames);
+    logger->info("Done resizing buffer manager.");
+}
+
 const uint8_t* BufferManager::get(
     FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics) {
     if (fileHandle.isInMemory) {
@@ -50,7 +67,7 @@ const uint8_t* BufferManager::get(
     }
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);
     metrics.numBufferHit.incrementByOne();
-    return bufferCache[frameIdx].buffer.get();
+    return bufferCache[frameIdx]->buffer.get();
 }
 
 const uint8_t* BufferManager::pin(
@@ -62,8 +79,8 @@ const uint8_t* BufferManager::pin(
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);
     if (isAFrame(frameIdx)) {
         auto& frame = bufferCache[frameIdx];
-        frame.pinCount.fetch_add(1);
-        frame.recentlyAccessed = true;
+        frame->pinCount.fetch_add(1);
+        frame->recentlyAccessed = true;
         metrics.numBufferHit.incrementByOne();
     } else {
         frameIdx = claimAFrame(fileHandle, pageIdx, metrics);
@@ -72,7 +89,7 @@ const uint8_t* BufferManager::pin(
     }
     fileHandle.release(pageIdx);
     numPins.fetch_add(1, memory_order_relaxed);
-    return bufferCache[frameIdx].buffer.get();
+    return bufferCache[frameIdx]->buffer.get();
 }
 
 uint32_t BufferManager::claimAFrame(
@@ -81,7 +98,7 @@ uint32_t BufferManager::claimAFrame(
     auto startFrame = localClockHand % numFrames;
     for (auto i = 0u; i < 2 * numFrames; ++i) {
         auto frameIdx = (startFrame + i) % numFrames;
-        auto pinCount = bufferCache[frameIdx].pinCount.load();
+        auto pinCount = bufferCache[frameIdx]->pinCount.load();
         if (-1u == pinCount && fillEmptyFrame(frameIdx, fileHandle, pageIdx, metrics)) {
             moveClockHand(localClockHand + i + 1);
             return frameIdx;
@@ -96,50 +113,50 @@ uint32_t BufferManager::claimAFrame(
 bool BufferManager::fillEmptyFrame(
     uint32_t frameIdx, FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics) {
     auto& frame = bufferCache[frameIdx];
-    if (!frame.acquire(false)) {
+    if (!frame->acquire(false)) {
         return false;
     }
-    if (-1u == frame.pinCount.load()) {
-        readNewPageIntoFrame(frame, fileHandle, pageIdx, metrics);
-        frame.release();
+    if (-1u == frame->pinCount.load()) {
+        readNewPageIntoFrame(*frame, fileHandle, pageIdx, metrics);
+        frame->release();
         return true;
     }
-    frame.release();
+    frame->release();
     return false;
 }
 
 bool BufferManager::tryEvict(
     uint32_t frameIdx, FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics) {
     auto& frame = bufferCache[frameIdx];
-    if (frame.recentlyAccessed) {
-        frame.recentlyAccessed = false;
+    if (frame->recentlyAccessed) {
+        frame->recentlyAccessed = false;
         numRecentlyAccessedWalkover.fetch_add(1, memory_order_relaxed);
         return false;
     }
-    if (!frame.acquire(false)) {
+    if (!frame->acquire(false)) {
         return false;
     }
-    auto pageIdxInFrame = frame.pageIdx.load();
-    auto fileHandleInFrame = reinterpret_cast<FileHandle*>(frame.fileHandle.load());
+    auto pageIdxInFrame = frame->pageIdx.load();
+    auto fileHandleInFrame = reinterpret_cast<FileHandle*>(frame->fileHandle.load());
     if (!fileHandleInFrame->acquire(pageIdxInFrame, false)) {
         numEvictFails.fetch_add(1, memory_order_relaxed);
-        frame.release();
+        frame->release();
         return false;
     }
     // We check pinCount again after acquiring the lock on page currently residing in the frame. At
     // this point in time, no other thread can change the pinCount.
-    if (0u != frame.pinCount.load()) {
+    if (0u != frame->pinCount.load()) {
         numEvictFails.fetch_add(1, memory_order_relaxed);
         fileHandleInFrame->release(pageIdxInFrame);
-        frame.release();
+        frame->release();
         return false;
     }
     // Else, remove the page from the frame and release the lock on it.
     fileHandleInFrame->unswizzle(pageIdxInFrame);
     fileHandleInFrame->release(pageIdxInFrame);
     // Update the frame information and release the lock on frame.
-    readNewPageIntoFrame(frame, fileHandle, pageIdx, metrics);
-    frame.release();
+    readNewPageIntoFrame(*frame, fileHandle, pageIdx, metrics);
+    frame->release();
     numEvicts.fetch_add(1, memory_order_relaxed);
     return true;
 }
@@ -171,7 +188,7 @@ void BufferManager::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
     }
     fileHandle.acquire(pageIdx, true /*block*/);
     auto& frame = bufferCache[fileHandle.getFrameIdx(pageIdx)];
-    frame.pinCount.fetch_sub(1);
+    frame->pinCount.fetch_sub(1);
     fileHandle.release(pageIdx);
 }
 
