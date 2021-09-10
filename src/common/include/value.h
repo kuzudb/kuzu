@@ -13,6 +13,8 @@ namespace common {
 
 class Value {
 public:
+    Value() = default;
+
     Value(const Value& value) { *this = value; }
 
     explicit Value(DataType dataType) : dataType(dataType) {}

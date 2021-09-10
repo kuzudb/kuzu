@@ -52,6 +52,11 @@ bool isExpressionLiteral(ExpressionType type) {
            LITERAL_BOOLEAN == type || LITERAL_DATE == type || LITERAL_NULL == type;
 }
 
+bool isExpressionAggregate(ExpressionType type) {
+    return COUNT_STAR_FUNC == type || COUNT_FUNC == type || SUM_FUNC == type || AVG_FUNC == type ||
+           MIN_FUNC == type || MAX_FUNC == type;
+}
+
 ExpressionType comparisonToIDComparison(ExpressionType type) {
     switch (type) {
     case EQUALS:

@@ -24,8 +24,8 @@ public:
         MemoryManager& memoryManager, const ResultSet& resultSet) override;
 
 private:
-    function<void(ValueVector&, ValueVector&, ValueVector&)> executeOperation;
-    function<uint64_t(ValueVector&, ValueVector&, sel_t*)> selectOperation;
+    std::function<void(ValueVector&, ValueVector&, ValueVector&)> executeOperation;
+    std::function<uint64_t(ValueVector&, ValueVector&, sel_t*)> selectOperation;
 };
 
 } // namespace evaluator

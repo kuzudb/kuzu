@@ -116,6 +116,11 @@ enum ExpressionType : uint8_t {
      * Aggregation Function Expression
      */
     COUNT_STAR_FUNC = 130,
+    COUNT_FUNC = 131,
+    SUM_FUNC = 132,
+    AVG_FUNC = 133,
+    MIN_FUNC = 134,
+    MAX_FUNC = 135,
 
     /**
      * Scalar Function Expression
@@ -139,6 +144,7 @@ bool isExpressionArithmetic(ExpressionType type);
 bool isExpressionStringOperator(ExpressionType type);
 bool isExpressionNullComparison(ExpressionType type);
 bool isExpressionLiteral(ExpressionType type);
+bool isExpressionAggregate(ExpressionType type);
 
 ExpressionType comparisonToIDComparison(ExpressionType type);
 string expressionTypeToString(ExpressionType type);

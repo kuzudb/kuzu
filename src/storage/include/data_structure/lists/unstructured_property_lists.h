@@ -36,11 +36,11 @@ private:
         BufferManagerMetrics& metrics);
 
     void readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataType, PageCursor& pageCursor,
-        uint64_t& listLen, const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+        uint64_t& listLen, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
         BufferManagerMetrics& metrics);
 
     void readOrSkipUnstrPropertyValue(DataType& propertyDataType, PageCursor& pageCursor,
-        uint64_t& listLen, const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+        uint64_t& listLen, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
         Value* value, bool toRead, BufferManagerMetrics& metrics);
 
 public:

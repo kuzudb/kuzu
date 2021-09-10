@@ -17,7 +17,7 @@ namespace storage {
 struct ListInfo {
     bool isLargeList{false};
     uint64_t listLen{-1u};
-    function<uint32_t(uint32_t)> mapper;
+    std::function<uint32_t(uint32_t)> mapper;
     PageCursor cursor;
 };
 
