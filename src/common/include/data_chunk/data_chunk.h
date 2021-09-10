@@ -22,14 +22,16 @@ namespace common {
 class DataChunk {
 
 public:
-    DataChunk()
-        : DataChunk(shared_ptr<DataChunkState>(new DataChunkState(DEFAULT_VECTOR_CAPACITY))){};
+    DataChunk(uint32_t numValueVectors)
+        : DataChunk(numValueVectors, make_shared<DataChunkState>()){};
 
-    DataChunk(shared_ptr<DataChunkState> _state) : state{_state} {};
+    DataChunk(uint32_t numValueVectors, const shared_ptr<DataChunkState>& state)
+        : valueVectors{numValueVectors}, state{state} {};
 
-    void append(shared_ptr<ValueVector> valueVector) {
+    void insert(uint32_t pos, const shared_ptr<ValueVector>& valueVector) {
         valueVector->state = this->state;
-        valueVectors.push_back(valueVector);
+        assert(valueVectors.size() > pos);
+        valueVectors[pos] = valueVector;
     }
 
     inline shared_ptr<ValueVector> getValueVector(uint64_t valueVectorPos) {

@@ -11,8 +11,10 @@ PhysicalOperatorsInfo::PhysicalOperatorsInfo(const Schema& schema) {
             variableToDataPosMap.insert({variable, make_pair(dataChunkPos, vectorPos)});
             vectorPos++;
         }
+        dataChunkPosToNumValueVectors.insert({dataChunkPos, vectorPos});
         dataChunkPos++;
     }
+    totalNumDataChunks = dataChunkPos;
 }
 
 } // namespace processor

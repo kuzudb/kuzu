@@ -198,21 +198,21 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatWi
 TEST(VectorCmpTests, cmpTwoShortStrings) {
     auto numTuples = 1;
 
-    auto dataChunk = make_shared<DataChunk>();
+    auto dataChunk = make_shared<DataChunk>(3);
     dataChunk->state->selectedSize = numTuples;
     dataChunk->state->currIdx = 0;
     auto memoryManager = make_unique<MemoryManager>();
 
     auto lVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-    dataChunk->append(lVector);
+    dataChunk->insert(0, lVector);
     auto lData = ((gf_string_t*)lVector->values);
 
     auto rVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-    dataChunk->append(rVector);
+    dataChunk->insert(1, rVector);
     auto rData = ((gf_string_t*)rVector->values);
 
     auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
-    dataChunk->append(result);
+    dataChunk->insert(2, result);
     auto resultData = result->values;
 
     string value = "abcdefgh";
@@ -264,21 +264,21 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
 TEST(VectorCmpTests, cmpTwoLongStrings) {
     auto VECTOR_SIZE = 1;
 
-    auto dataChunk = make_shared<DataChunk>();
+    auto dataChunk = make_shared<DataChunk>(3);
     dataChunk->state->selectedSize = VECTOR_SIZE;
     dataChunk->state->currIdx = 0;
     auto memoryManager = make_unique<MemoryManager>();
 
     auto lVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-    dataChunk->append(lVector);
+    dataChunk->insert(0, lVector);
     auto lData = ((gf_string_t*)lVector->values);
 
     auto rVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-    dataChunk->append(rVector);
+    dataChunk->insert(1, rVector);
     auto rData = ((gf_string_t*)rVector->values);
 
     auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
-    dataChunk->append(result);
+    dataChunk->insert(2, result);
     auto resultData = result->values;
 
     string value = "abcdefghijklmnopqrstuvwxy"; // 25.

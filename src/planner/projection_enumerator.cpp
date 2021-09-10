@@ -33,6 +33,7 @@ void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>
         return;
     }
 
+    // extract and rewrite expressions to project
     vector<shared_ptr<Expression>> expressionsToProject;
     for (auto& expression : expressions) {
         auto expressionRemovingAlias =
@@ -47,48 +48,43 @@ void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>
         }
     }
 
-    vector<uint32_t> exprResultInGroupPos;
+    // every expression is write to a factorization group
+    unordered_map<uint32_t, vector<shared_ptr<Expression>>> groupPosToExpressionsMap;
     for (auto& expression : expressionsToProject) {
         uint32_t groupPosToWrite =
             enumerator->appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(*expression, plan);
-        exprResultInGroupPos.push_back(groupPosToWrite);
+        if (!groupPosToExpressionsMap.contains(groupPosToWrite)) {
+            groupPosToExpressionsMap.insert({groupPosToWrite, vector<shared_ptr<Expression>>()});
+        }
+        groupPosToExpressionsMap.at(groupPosToWrite).push_back(expression);
+    }
+
+    // We collect the discarded group positions in the input data chunks to obtain their
+    // multiplicity in the projection operation.
+    vector<uint32_t> discardedGroupsPos;
+    for (auto i = 0u; i < plan.schema->groups.size(); ++i) {
+        if (!groupPosToExpressionsMap.contains(i)) {
+            discardedGroupsPos.push_back(i);
+        }
     }
 
     // reconstruct schema
     auto newSchema = make_unique<Schema>();
     newSchema->queryRelLogicalExtendMap = plan.schema->queryRelLogicalExtendMap;
-    vector<uint32_t> exprResultOutGroupPos;
-    exprResultOutGroupPos.resize(expressionsToProject.size());
-    unordered_map<uint32_t, uint32_t> inToOutGroupPosMap;
-    for (auto i = 0u; i < expressionsToProject.size(); ++i) {
-        if (inToOutGroupPosMap.contains(exprResultInGroupPos[i])) {
-            auto groupPos = inToOutGroupPosMap.at(exprResultInGroupPos[i]);
-            exprResultOutGroupPos[i] = groupPos;
-            newSchema->appendToGroup(expressionsToProject[i]->getInternalName(), groupPos);
-        } else {
-            auto groupPos = newSchema->createGroup();
-            exprResultOutGroupPos[i] = groupPos;
-            inToOutGroupPosMap.insert({exprResultInGroupPos[i], groupPos});
-            newSchema->appendToGroup(expressionsToProject[i]->getInternalName(), groupPos);
-            // copy other information
-            newSchema->groups[groupPos]->isFlat =
-                plan.schema->groups[exprResultInGroupPos[i]]->isFlat;
-            newSchema->groups[groupPos]->estimatedCardinality =
-                plan.schema->groups[exprResultInGroupPos[i]]->estimatedCardinality;
+    for (auto& [groupPosBeforeProjection, expressionsToProject] : groupPosToExpressionsMap) {
+        auto newGroupPos = newSchema->createGroup();
+        for (auto& expressionToProject : expressionsToProject) {
+            newSchema->insertToGroup(expressionToProject->getInternalName(), newGroupPos);
         }
+        // copy other information
+        auto newGroup = newSchema->groups[newGroupPos].get();
+        newGroup->isFlat = plan.schema->groups[groupPosBeforeProjection]->isFlat;
+        newGroup->estimatedCardinality =
+            plan.schema->groups[groupPosBeforeProjection]->estimatedCardinality;
     }
 
-    // We collect the discarded group positions in the input data chunks to obtain their
-    // multiplicity in the projection operation.
-    vector<uint32_t> discardedGroupPos;
-    for (auto i = 0u; i < plan.schema->groups.size(); ++i) {
-        if (!inToOutGroupPosMap.contains(i)) {
-            discardedGroupPos.push_back(i);
-        }
-    }
-
-    auto projection = make_shared<LogicalProjection>(move(expressionsToProject), move(plan.schema),
-        move(exprResultOutGroupPos), move(discardedGroupPos), plan.lastOperator);
+    auto projection = make_shared<LogicalProjection>(
+        move(expressionsToProject), move(plan.schema), move(discardedGroupsPos), plan.lastOperator);
     plan.schema = move(newSchema);
     plan.appendOperator(move(projection));
 }

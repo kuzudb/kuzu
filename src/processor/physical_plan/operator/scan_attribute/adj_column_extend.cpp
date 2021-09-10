@@ -3,12 +3,14 @@
 namespace graphflow {
 namespace processor {
 
-AdjColumnExtend::AdjColumnExtend(uint64_t dataChunkPos, uint64_t valueVectorPos, Column* column,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : ScanColumn{dataChunkPos, valueVectorPos, column, move(prevOperator), context, id},
+AdjColumnExtend::AdjColumnExtend(uint32_t inAndOutDataChunkPos, uint32_t inValueVectorPos,
+    uint32_t outValueVectorPos, Column* column, unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t id)
+    : ScanColumn{inAndOutDataChunkPos, inValueVectorPos, outValueVectorPos, column,
+          move(prevOperator), context, id},
       FilteringOperator(this->inDataChunk) {
     outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
-    inDataChunk->append(outValueVector);
+    inDataChunk->insert(outValueVectorPos, outValueVector);
 }
 
 void AdjColumnExtend::reInitialize() {

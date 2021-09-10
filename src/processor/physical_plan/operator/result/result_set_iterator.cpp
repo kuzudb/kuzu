@@ -66,6 +66,7 @@ void ResultSetIterator::getNextTuple(Tuple& tuple) {
             auto selectedTuplePos = vector->state->selectedPositions[tuplePosition];
             tuple.nullMask[valueInTupleIdx] = vector->isNull(selectedTuplePos);
             if (vector->isNull(selectedTuplePos)) {
+                valueInTupleIdx++;
                 continue;
             }
             switch (vector->dataType) {

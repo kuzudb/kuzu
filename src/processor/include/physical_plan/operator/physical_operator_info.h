@@ -17,21 +17,32 @@ class PhysicalOperatorsInfo {
 public:
     explicit PhysicalOperatorsInfo(const Schema& schema);
 
-    bool containVariable(const string& variable) { return variableToDataPosMap.contains(variable); }
-
-    uint64_t getDataChunkPos(const string& variable) {
-        GF_ASSERT(variableToDataPosMap.contains(variable));
-        return variableToDataPosMap.at(variable).first;
+    inline bool containVariable(const string& variable) {
+        return variableToDataPosMap.contains(variable);
     }
 
-    uint64_t getValueVectorPos(const string& variable) {
+    inline pair<uint32_t, uint32_t> getDataChunkAndValueVectorPos(const string& variable) {
         GF_ASSERT(variableToDataPosMap.contains(variable));
-        return variableToDataPosMap.at(variable).second;
+        return variableToDataPosMap.at(variable);
+    }
+
+    inline uint32_t getDataChunkPos(const string& variable) {
+        return getDataChunkAndValueVectorPos(variable).first;
+    }
+
+    inline uint32_t getTotalNumDataChunks() { return totalNumDataChunks; }
+
+    inline uint32_t getDataChunkSize(uint32_t dataChunkPos) {
+        GF_ASSERT(dataChunkPosToNumValueVectors.contains(dataChunkPos));
+        return dataChunkPosToNumValueVectors.at(dataChunkPos);
     }
 
 private:
     // Map each variable to its position pair (dataChunkPos, vectorPos)
-    unordered_map<string, pair<uint64_t, uint64_t>> variableToDataPosMap;
+    unordered_map<string, pair<uint32_t, uint32_t>> variableToDataPosMap;
+
+    uint32_t totalNumDataChunks;
+    unordered_map<uint32_t, uint32_t> dataChunkPosToNumValueVectors;
 };
 
 } // namespace processor

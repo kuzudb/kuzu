@@ -12,14 +12,14 @@ namespace processor {
 class ResultSet {
 
 public:
-    ResultSet() : multiplicity(1) {}
+    explicit ResultSet(uint32_t numDataChunks)
+        : multiplicity{1}, dataChunks(numDataChunks), listSyncStatesPerDataChunk(numDataChunks) {}
 
-    void append(shared_ptr<DataChunk> dataChunk, shared_ptr<ListSyncState> listSyncer) {
-        dataChunks.push_back(dataChunk);
-        listSyncStatesPerDataChunk.push_back(listSyncer);
+    void insert(uint32_t pos, const shared_ptr<DataChunk>& dataChunk,
+        const shared_ptr<ListSyncState>& listSyncState);
+    inline void insert(uint32_t pos, const shared_ptr<DataChunk>& dataChunk) {
+        insert(pos, dataChunk, nullptr);
     }
-
-    void append(shared_ptr<DataChunk> dataChunk) { append(dataChunk, nullptr); }
 
     uint64_t getNumTuples();
 

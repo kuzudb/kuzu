@@ -11,6 +11,7 @@ using namespace graphflow::common::operation;
 
 namespace graphflow {
 namespace processor {
+
 struct ProbeState {
     explicit ProbeState(uint64_t pointersSize) : probedTuple{nullptr}, matchedTuplesSize{0} {
         matchedTuples = make_unique<uint8_t*[]>(pointersSize);
@@ -34,21 +35,49 @@ struct BuildSideVectorInfo {
     uint32_t vectorPtrsPos;
 };
 
+struct ProbeDataChunksInfo {
+
+public:
+    ProbeDataChunksInfo(uint32_t keyDataChunkPos, uint32_t keyValueVectorPos,
+        uint32_t newFlatDataChunkPos, uint32_t newFlatDataChunkSize,
+        vector<uint32_t> newUnFlatDataChunksPos, vector<uint32_t> newUnFlatDataChunksSize)
+        : keyDataChunkPos{keyDataChunkPos}, keyValueVectorPos{keyValueVectorPos},
+          newFlatDataChunkPos{newFlatDataChunkPos}, newFlatDataChunkSize{newFlatDataChunkSize},
+          newUnFlatDataChunksPos{move(newUnFlatDataChunksPos)}, newUnFlatDataChunksSize{move(
+                                                                    newUnFlatDataChunksSize)} {}
+
+    ProbeDataChunksInfo(const ProbeDataChunksInfo& other)
+        : ProbeDataChunksInfo(other.keyDataChunkPos, other.keyValueVectorPos,
+              other.newFlatDataChunkPos, other.newFlatDataChunkSize, other.newUnFlatDataChunksPos,
+              other.newUnFlatDataChunksSize){};
+
+public:
+    uint32_t keyDataChunkPos;
+    uint32_t keyValueVectorPos;
+    uint32_t newFlatDataChunkPos;
+    uint32_t newFlatDataChunkSize;
+    vector<uint32_t> newUnFlatDataChunksPos;
+    vector<uint32_t> newUnFlatDataChunksSize;
+};
+
 class HashJoinProbe : public PhysicalOperator {
 public:
-    HashJoinProbe(uint64_t buildSideKeyDataChunkPos, uint64_t buildSideKeyVectorPos,
-        const vector<bool>& buildSideDataChunkPosToIsFlat, uint64_t probeSideKeyDataChunkPos,
-        uint64_t probeSideKeyVectorPos, unique_ptr<PhysicalOperator> buildSidePrevOp,
-        unique_ptr<PhysicalOperator> probeSidePrevOp, ExecutionContext& context, uint32_t id);
+    HashJoinProbe(const BuildDataChunksInfo& buildDataChunksInfo,
+        const ProbeDataChunksInfo& probeDataChunksInfo,
+        vector<unordered_map<uint32_t, pair<uint32_t, uint32_t>>> buildSideValueVectorsOutputPos,
+        unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp,
+        ExecutionContext& context, uint32_t id);
+
+    HashJoinProbe();
 
     void reInitialize() override;
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        auto cloneOp = make_unique<HashJoinProbe>(buildSideKeyDataChunkPos, buildSideKeyVectorPos,
-            buildSideDataChunkPosToIsFlat, probeSideKeyDataChunkPos, probeSideKeyVectorPos,
-            buildSidePrevOp->clone(), prevOperator->clone(), context, id);
+        auto cloneOp = make_unique<HashJoinProbe>(buildDataChunksInfo, probeDataChunksInfo,
+            buildSideValueVectorsOutputPos, buildSidePrevOp->clone(), prevOperator->clone(),
+            context, id);
         cloneOp->sharedState = this->sharedState;
         return cloneOp;
     }
@@ -58,11 +87,10 @@ public:
     shared_ptr<HashJoinSharedState> sharedState;
 
 private:
-    uint64_t buildSideKeyDataChunkPos;
-    uint64_t buildSideKeyVectorPos;
-    vector<bool> buildSideDataChunkPosToIsFlat;
-    uint64_t probeSideKeyDataChunkPos;
-    uint64_t probeSideKeyVectorPos;
+    BuildDataChunksInfo buildDataChunksInfo;
+    ProbeDataChunksInfo probeDataChunksInfo;
+    vector<unordered_map<uint32_t, pair<uint32_t, uint32_t>>> buildSideValueVectorsOutputPos;
+
     uint64_t numProbeSidePrevKeyValueVectors;
 
     shared_ptr<ResultSet> buildSideResultSet;
@@ -75,9 +103,7 @@ private:
     shared_ptr<DataChunk> resultKeyDataChunk;
     vector<unique_ptr<overflow_value_t[]>> buildSideVectorPtrs;
 
-    void createVectorsFromExistingOnesAndAppend(
-        DataChunk& inDataChunk, DataChunk& resultDataChunk, vector<uint64_t>& vectorPositions);
-    void createVectorPtrs(DataChunk& buildSideDataChunk);
+    void createVectorPtrs(DataChunk& buildSideDataChunk, uint32_t resultPos);
     void copyTuplesFromHT(DataChunk& resultDataChunk, uint64_t numResultVectors,
         uint64_t resultVectorStartPosition, uint64_t& tupleReadOffset,
         uint64_t startOffsetInResultVector, uint64_t numTuples);

@@ -24,17 +24,17 @@ public:
         : isFlat{other.isFlat},
           estimatedCardinality{other.estimatedCardinality}, variables{other.variables} {}
 
-    void appendVariable(const string& variable) { variables.push_back(variable); }
+    void insertVariable(const string& variable) { variables.insert(variable); }
 
     inline string getAnyVariable() {
         GF_ASSERT(!variables.empty());
-        return variables[0];
+        return *variables.begin();
     }
 
 public:
     bool isFlat;
     uint64_t estimatedCardinality;
-    vector<string> variables;
+    unordered_set<string> variables;
 };
 
 class Schema {
@@ -42,9 +42,9 @@ class Schema {
 public:
     uint32_t createGroup();
 
-    void appendToGroup(const string& variable, uint32_t pos);
+    void insertToGroup(const string& variable, uint32_t groupPos);
 
-    void appendToGroup(const FactorizationGroup& otherGroup, uint32_t pos);
+    void insertToGroup(const FactorizationGroup& otherGroup, uint32_t groupPos);
 
     uint32_t getGroupPos(const string& variable) const;
 

@@ -9,9 +9,9 @@ namespace processor {
 class ReadList : public PhysicalOperator {
 
 public:
-    ReadList(const uint64_t& inDataChunkPos, const uint64_t& inValueVectorPos, Lists* lists,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id,
-        bool isAdjList);
+    ReadList(uint32_t inDataChunkPos, uint32_t inValueVectorPos, uint32_t outDataChunkPos,
+        uint32_t outValueVectorPos, Lists* lists, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id, bool isAdjList);
     ~ReadList() override{};
     void printMetricsToJson(nlohmann::json& json, Profiler& profiler) override;
 
@@ -19,8 +19,11 @@ protected:
     void readValuesFromList();
 
 protected:
-    uint64_t inDataChunkPos;
-    uint64_t inValueVectorPos;
+    uint32_t inDataChunkPos;
+    uint32_t inValueVectorPos;
+    uint32_t outDataChunkPos;
+    uint32_t outValueVectorPos;
+
     shared_ptr<DataChunk> inDataChunk;
     shared_ptr<ValueVector> inValueVector;
     shared_ptr<DataChunk> outDataChunk;

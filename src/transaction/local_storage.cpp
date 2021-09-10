@@ -39,9 +39,9 @@ void LocalStorage::assignNodeIDs(label_t nodeLabel) {
     // tuples, rest of the tuples' data is insereted sequentially in appropriate columns.
     auto numRecycledIds = 0u;
     for (auto& dataChunk : dataChunks) {
-        // The last vector in the dataChunk is the nodeIDVector containing newly assigned nodeIDs.
-        // auto nodeIDVector = make_shared<ValueVector>();
-        // dataChunk->append(nodeIDVector);
+        // The last vector in the dataChunk is the outValueVector containing newly assigned nodeIDs.
+        // auto outValueVector = make_shared<ValueVector>();
+        // dataChunk->append(outValueVector);
         // TODO: Insert property keys in the hash index.
         // We first use the recycled nodeIDs and then assign from after `numNodes`, sequentially.
         // while (there is more nodeIDs to recycles, recycle) {
@@ -53,9 +53,9 @@ void LocalStorage::assignNodeIDs(label_t nodeLabel) {
 
 void LocalStorage::mapNodeIDs(label_t nodeLabel) {
     for (auto& dataChunk : dataChunks) {
-        // The last vector in the dataChunk is the nodeIDVector containing newly assigned nodeIDs.
-        // auto nodeIDVector = make_shared<ValueVector>(nodeLabel, NodeIDCompressionScheme(),
-        // false); dataChunk->append(nodeIDVector);
+        // The last vector in the dataChunk is the outValueVector containing newly assigned nodeIDs.
+        // auto outValueVector = make_shared<ValueVector>(nodeLabel, NodeIDCompressionScheme(),
+        // false); dataChunk->append(outValueVector);
         // TODO: Map property keys to nodeIDs using hash index.
     }
     uncommittedNumRecycledNodeIDs = 0;
@@ -171,7 +171,7 @@ void LocalStorage::computeDeleteNode(vector<uint32_t> propertyKeyIdxToVectorPosM
 }
 
 // This function perform updates to specific pages of the column for `numUpdatesInDataChunk` number
-// of tuples in the current dataChunk. For each nodeID in the `nodeIDVector`, its corresponding
+// of tuples in the current dataChunk. For each nodeID in the `outValueVector`, its corresponding
 // property value is read from the `propertyValueVector` and put in the appropriate page. If the
 // `propertyValueVector` is a nullptr, `nullValue` is put in the page.
 void LocalStorage::updateNodePropertyColumn(uint32_t currPosInDataChunk,

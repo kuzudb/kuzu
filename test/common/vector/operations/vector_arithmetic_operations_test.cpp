@@ -113,7 +113,7 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatN
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
     result = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
-    dataChunk->append(result);
+    dataChunk->insert(0, result);
     auto resultDataAsDoubleArr = (double_t*)result->values;
     VectorArithmeticOperations::Power(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
