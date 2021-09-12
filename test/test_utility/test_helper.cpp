@@ -48,7 +48,8 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const Syste
                         resultSetIterator->setResultSet(resultSet.get());
                         while (resultSetIterator->hasNextTuple()) {
                             resultSetIterator->getNextTuple(tuple);
-                            resultTuples.push_back(tuple.toString());
+                            resultTuples.push_back(
+                                tuple.toString(vector<uint32_t>(tuple.len(), 0)));
                         }
                     }
                     sort(resultTuples.begin(), resultTuples.end());

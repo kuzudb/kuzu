@@ -194,7 +194,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest4) {
     ResultSetIterator resultSetIterator(resultSet.get());
     while (resultSetIterator.hasNextTuple()) {
         resultSetIterator.getNextTuple(tuple);
-        string tupleStr = tuple.toString();
+        string tupleStr = tuple.toString(vector<uint32_t>(tuple.len(), 0));
         string expected = "18:1|2|28:10|5.000000|38:20|False";
         ASSERT_EQ(tupleStr, expected);
         tupleIndex++;
@@ -223,7 +223,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTestWithSelector) {
     ResultSetIterator resultSetIterator(resultSet.get());
     while (resultSetIterator.hasNextTuple()) {
         resultSetIterator.getNextTuple(tuple);
-        string tupleStr = tuple.toString();
+        string tupleStr = tuple.toString(vector<uint32_t>(tuple.len(), 0));
         string expected = "18:5|10|28:15|7.000000|38:25|False";
         ASSERT_EQ(tupleStr, expected);
         tupleIndex++;
