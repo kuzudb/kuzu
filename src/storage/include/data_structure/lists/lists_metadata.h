@@ -46,14 +46,14 @@ public:
 
     // Returns a function that can map the logical pageIdx of a chunk ito its corresponding physical
     // pageIdx in a disk file.
-    inline function<uint32_t(uint32_t)> getPageMapperForChunkIdx(uint32_t chunkIdx) {
+    inline std::function<uint32_t(uint32_t)> getPageMapperForChunkIdx(uint32_t chunkIdx) {
         return getLogicalToPhysicalPageMapper(
             chunkPageLists.get(), chunkToPageListHeadIdxMap[chunkIdx], chunkIdx);
     }
 
     // Returns a function that can map the logical pageIdx of a largeList to its corresponding
     // physical pageIdx in a disk file.
-    inline function<uint32_t(uint32_t)> getPageMapperForLargeListIdx(uint32_t largeListIdx) {
+    inline std::function<uint32_t(uint32_t)> getPageMapperForLargeListIdx(uint32_t largeListIdx) {
         return getLogicalToPhysicalPageMapper(largeListPageLists.get(),
             largeListIdxToPageListHeadIdxMap[2 * largeListIdx], largeListIdx);
     }
@@ -62,7 +62,7 @@ private:
     void saveToDisk(const string& fName);
     void readFromDisk(const string& fName);
 
-    inline static function<uint32_t(uint32_t)> getLogicalToPhysicalPageMapper(
+    inline static std::function<uint32_t(uint32_t)> getLogicalToPhysicalPageMapper(
         uint32_t* pageLists, uint32_t pageListsHead, uint32_t pageIdx) {
         return bind(getPageIdxFromAPageList, pageLists, pageListsHead, placeholders::_1);
     }

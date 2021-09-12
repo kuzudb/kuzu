@@ -1,0 +1,14 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "aggregation_function",
+    srcs = [
+    ],
+    hdrs = glob(["include/aggregation/*.h"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common:expression_type",
+        "//src/common:types",
+        "//src/common:vector",
+    ],
+)

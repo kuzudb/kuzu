@@ -1,0 +1,17 @@
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+cc_test(
+    name = "aggregation_expression_evaluator_test",
+    srcs = [
+        "aggregate_expression_evaluation_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/expression_evaluator:evaluator_impls",
+        "//src/processor:mapper",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)

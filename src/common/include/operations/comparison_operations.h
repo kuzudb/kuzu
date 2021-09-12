@@ -206,7 +206,7 @@ inline void NotEquals::operation(const nodeID_t& left, const nodeID_t& right, ui
  *******************************************************/
 
 struct CompareValues {
-    template<class FUNC = function<uint8_t(Value, Value)>>
+    template<class FUNC = std::function<uint8_t(Value, Value)>>
     static inline void operation(const Value& left, const Value& right, uint8_t& result) {
         if (left.dataType == right.dataType) {
             switch (left.dataType) {

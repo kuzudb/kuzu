@@ -2,6 +2,7 @@
 
 #include "src/binder/include/expression/existential_subquery_expression.h"
 #include "src/binder/include/expression/literal_expression.h"
+#include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
 #include "src/expression_evaluator/include/binary_expression_evaluator.h"
 #include "src/expression_evaluator/include/existential_subquery_evaluator.h"
 #include "src/expression_evaluator/include/unary_expression_evaluator.h"
@@ -38,6 +39,21 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(const Expression
         } else {
             retVal =
                 mapToPhysical(*expression.children[0], physicalOperatorInfo, resultSet, context);
+        }
+    } else if (isExpressionAggregate(expressionType)) {
+        if (expressionType == COUNT_STAR_FUNC) {
+            // COUNT_STAR has no child expression
+            assert(expression.children.empty());
+            retVal = make_unique<AggregateExpressionEvaluator>(expressionType, expression.dataType,
+                AggregateExpressionEvaluator::getAggregationFunction(
+                    expressionType, expression.dataType));
+        } else {
+            auto child =
+                mapToPhysical(*expression.children[0], physicalOperatorInfo, resultSet, context);
+            retVal = make_unique<AggregateExpressionEvaluator>(expressionType, expression.dataType,
+                move(child),
+                AggregateExpressionEvaluator::getAggregationFunction(
+                    expressionType, child->dataType));
         }
     } else if (isExpressionUnary(expressionType)) {
         auto child =
