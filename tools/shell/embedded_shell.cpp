@@ -1,6 +1,9 @@
 #include "tools/shell/include/embedded_shell.h"
 
+#include <algorithm>
+#include <cctype>
 #include <iostream>
+#include <regex>
 
 #include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
 
@@ -10,64 +13,52 @@ const char* PROMPT = "graphflowdb> ";
 const char* HISTORY_PATH = "history.txt";
 
 // build-in shell command
-const char* HELP = ":help";
-const char* CLEAR = ":clear";
-const char* QUIT = ":quit";
-const char* THREAD = ":thread";
-const char* BUFFER_MANAGER_SIZE = ":buffer_manager_size";
+struct ShellCommand {
+    const string HELP = ":help";
+    const string CLEAR = ":clear";
+    const string QUIT = ":quit";
+    const string THREAD = ":thread";
+    const string BUFFER_MANAGER_SIZE = ":buffer_manager_size";
+    const vector<string> commandList = {HELP, CLEAR, QUIT, THREAD, BUFFER_MANAGER_SIZE};
+} shellCommand;
 
 const char* TAB = "    ";
 
-// cypher keyword (LOAD CSV related keyword are not added yet)
-const char* EXPLAIN = "EXPLAIN";
-const char* PROFILE = "PROFILE";
-const char* WITH = "WITH";
-const char* AS = "AS";
-const char* MATCH = "MATCH";
-const char* RETURN = "RETURN";
-const char* WHERE = "WHERE";
-const char* OR = "OR";
-const char* AND = "AND";
-const char* NOT = "NOT";
-const char* STARTS = "STARTS";
-const char* ENDS = "ENDS";
-const char* CONTAINS = "CONTAINS";
-const char* IS = "IS";
-const char* NULL_ = "NULL";
-const char* COUNT = "COUNT";
-const char* TRUE = "TRUE";
-const char* FALSE = "FALSE";
+const vector<string> keywordList = {"CALL", "CREATE", "DELETE", "DETACH", "EXISTS", "FOREACH",
+    "LOAD", "MATCH", "MERGE", "OPTIONAL", "REMOVE", "RETURN", "SET", "START", "UNION", "UNWIND",
+    "WITH", "LIMIT", "ORDER", "SKIP", "WHERE", "YIELD", "ASC", "ASCENDING", "ASSERT", "BY", "CSV",
+    "DESC", "DESCENDING", "ON", "ALL", "CASE", "ELSE", "END", "THEN", "WHEN", "AND", "AS",
+    "CONTAINS", "DISTINCT", "ENDS", "IN", "IS", "NOT", "OR", "STARTS", "XOR", "CONSTRAINT",
+    "CREATE", "DROP", "EXISTS", "INDEX", "NODE", "KEY", "UNIQUE", "INDEX", "JOIN", "PERIODIC",
+    "COMMIT", "SCAN", "USING", "FALSE", "NULL", "TRUE", "ADD", "DO", "FOR", "MANDATORY", "OF",
+    "REQUIRE", "SCALAR", "EXPLAIN", "PROFILE", "HEADERS", "FROM", "FIELDTERMINATOR", "STAR",
+    "MINUS", "COUNT"};
 
-void completion(const char* buf, linenoiseCompletions* lc) {
-    if (buf[0] == 'E' || buf[0] == 'e') {
-        if (strlen(buf) < 2 || buf[1] == 'X' || buf[1] == 'x') {
-            linenoiseAddCompletion(lc, EXPLAIN);
-        } else {
-            linenoiseAddCompletion(lc, ENDS);
+void completion(const char* buffer, linenoiseCompletions* lc) {
+    string buf = string(buffer);
+    if (buf[0] == ':') {
+        for (string shellCommand : shellCommand.commandList) {
+            if (regex_search(shellCommand, regex("^" + buf))) {
+                linenoiseAddCompletion(lc, shellCommand.c_str());
+            }
         }
-    } else if (buf[0] == 'P' || buf[0] == 'p') {
-        linenoiseAddCompletion(lc, PROFILE);
-    } else if (buf[0] == 'W' || buf[0] == 'w') {
-        if (strlen(buf) < 2 || buf[1] == 'I' || buf[1] == 'i') {
-            linenoiseAddCompletion(lc, WITH);
-        } else {
-            linenoiseAddCompletion(lc, WHERE);
-        }
-    } else if (buf[0] == 'A' || buf[0] == 'a') {
-        linenoiseAddCompletion(lc, AND);
-    } else if (buf[0] == 'M' || buf[0] == 'm') {
-        linenoiseAddCompletion(lc, MATCH);
-    } else if (buf[0] == 'R' || buf[0] == 'r') {
-        linenoiseAddCompletion(lc, RETURN);
-    } else if (buf[0] == 'N' || buf[0] == 'n') {
-        linenoiseAddCompletion(lc, NOT);
-    } else if (buf[0] == 'S' || buf[0] == 's') {
-        linenoiseAddCompletion(lc, STARTS);
-    } else if (buf[0] == 'C' || buf[0] == 'c') {
-        if (strlen(buf) < 3 || buf[2] == 'U' || buf[2] == 'u') {
-            linenoiseAddCompletion(lc, COUNT);
-        } else {
-            linenoiseAddCompletion(lc, CONTAINS);
+        return;
+    }
+    string prefix("");
+    auto lastKeywordPos = buf.rfind(' ') + 1;
+    if (lastKeywordPos != string::npos) {
+        prefix = buf.substr(0, lastKeywordPos);
+        buf = buf.substr(lastKeywordPos);
+    }
+    if (buf == "") {
+        return;
+    }
+    for (string keyword : keywordList) {
+        if (regex_search(keyword, regex("^" + buf, regex_constants::icase))) {
+            if (islower(buf[0])) {
+                transform(keyword.begin(), keyword.end(), keyword.begin(), ::tolower);
+            }
+            linenoiseAddCompletion(lc, (prefix + keyword).c_str());
         }
     }
 }
@@ -81,23 +72,23 @@ void EmbeddedShell::run() {
     char* line;
     while ((line = linenoise(PROMPT)) != nullptr) {
         auto lineStr = string(line);
-        if (strcmp(line, HELP) == 0) {
+        if (line == shellCommand.HELP) {
             printHelp();
-        } else if (strcmp(line, CLEAR) == 0) {
+        } else if (line == shellCommand.CLEAR) {
             linenoiseClearScreen();
-        } else if (strcmp(line, QUIT) == 0) {
+        } else if (line == shellCommand.QUIT) {
             free(line);
             break;
-        } else if (lineStr.rfind(THREAD) == 0) {
+        } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
             try {
-                context.numThreads = stoi(lineStr.substr(string(THREAD).length()));
+                context.numThreads = stoi(lineStr.substr(shellCommand.THREAD.length()));
                 printf("numThreads set as %lu\n", context.numThreads);
             } catch (exception& e) { printf("%s\n", e.what()); }
 
-        } else if (lineStr.rfind(BUFFER_MANAGER_SIZE) == 0) {
+        } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_SIZE) == 0) {
             try {
                 system.bufferManager->resize(
-                    stoull(lineStr.substr(string(BUFFER_MANAGER_SIZE).length())));
+                    stoull(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length())));
             } catch (exception& e) { printf("%s\n", e.what()); }
 
         } else {
