@@ -12,10 +12,9 @@ namespace processor {
 class FilteringOperator {
 
 public:
-    explicit FilteringOperator(shared_ptr<DataChunk> dataChunkToSelect)
-        : dataChunkToSelect(move(dataChunkToSelect)), prevNumSelectedValues{0ul},
-          prevSelectedValues{nullptr}, prevSelectedValuesBuffer{
-                                           make_unique<sel_t[]>(DEFAULT_VECTOR_CAPACITY)} {};
+    FilteringOperator()
+        : prevNumSelectedValues{0ul}, prevSelectedValues{nullptr},
+          prevSelectedValuesBuffer{make_unique<sel_t[]>(DEFAULT_VECTOR_CAPACITY)} {};
 
 protected:
     inline void reInitialize() {
@@ -23,7 +22,7 @@ protected:
         prevSelectedValues = nullptr;
     }
 
-    inline void restoreDataChunkSelectorState() {
+    inline void restoreDataChunkSelectorState(const shared_ptr<DataChunk>& dataChunkToSelect) {
         if (prevSelectedValues == nullptr) {
             return;
         }
@@ -37,7 +36,7 @@ protected:
         }
     };
 
-    inline void saveDataChunkSelectorState() {
+    inline void saveDataChunkSelectorState(const shared_ptr<DataChunk>& dataChunkToSelect) {
         prevNumSelectedValues = dataChunkToSelect->state->selectedSize;
         if (dataChunkToSelect->state->isUnfiltered()) {
             prevSelectedValues = (sel_t*)&DataChunkState::INCREMENTAL_SELECTED_POS;
@@ -50,7 +49,6 @@ protected:
     };
 
 protected:
-    shared_ptr<DataChunk> dataChunkToSelect;
     uint64_t prevNumSelectedValues;
     sel_t* prevSelectedValues;
     unique_ptr<sel_t[]> prevSelectedValuesBuffer;

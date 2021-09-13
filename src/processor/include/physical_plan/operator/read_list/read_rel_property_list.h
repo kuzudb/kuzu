@@ -8,15 +8,18 @@ namespace processor {
 class ReadRelPropertyList : public ReadList {
 
 public:
-    ReadRelPropertyList(uint32_t inDataChunkPos, uint32_t inValueVectorPos,
-        uint32_t outDataChunkPos, uint32_t outValueVectorPos, Lists* lists,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
+    ReadRelPropertyList(const DataPos& inDataPos, const DataPos& outDataPos, Lists* lists,
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+        : ReadList{inDataPos, outDataPos, lists, move(prevOperator), context, id,
+              false /* is not adj list */} {}
+
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ReadRelPropertyList>(inDataChunkPos, inValueVectorPos, outDataChunkPos,
-            outValueVectorPos, lists, prevOperator->clone(), context, id);
+        return make_unique<ReadRelPropertyList>(
+            inDataPos, outDataPos, lists, prevOperator->clone(), context, id);
     }
 };
 

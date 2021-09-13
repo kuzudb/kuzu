@@ -16,59 +16,59 @@ class PlanMapper {
 public:
     // Create plan mapper with default mapper context.
     explicit PlanMapper(const Graph& graph)
-        : graph{graph}, outerQueryResultSet{nullptr}, physicalOperatorID{0},
+        : graph{graph}, outerPhysicalOperatorsInfo{nullptr}, physicalOperatorID{0},
           physicalIDToLogicalOperatorMap{}, expressionMapper{this} {}
 
     unique_ptr<PhysicalPlan> mapToPhysical(
         unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext);
 
-    // Returns currentOuterQueryResultSet and current physicalOperatorsInfo Whoever calls
-    // enterSubquery is responsible to save the return resultSet and physicalOperatorsInfo and pass
-    // it back when calling exitSubquery()
-    pair<ResultSet*, PhysicalOperatorsInfo*> enterSubquery(
-        ResultSet* newOuterQueryResultSet, PhysicalOperatorsInfo* newPhysicalOperatorsInfo);
-    void exitSubquery(
-        ResultSet* prevOuterQueryResultSet, PhysicalOperatorsInfo* prevPhysicalOperatorsInfo);
+    // Returns current physicalOperatorsInfo whoever calls enterSubquery is responsible to save the
+    // return physicalOperatorsInfo and pass it back when calling exitSubquery()
+    const PhysicalOperatorsInfo* enterSubquery(
+        const PhysicalOperatorsInfo* newPhysicalOperatorsInfo);
+    void exitSubquery(const PhysicalOperatorsInfo* prevPhysicalOperatorsInfo);
 
 private:
     unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
-        const shared_ptr<LogicalOperator>& logicalOperator, PhysicalOperatorsInfo& info,
+        const shared_ptr<LogicalOperator>& logicalOperator, const PhysicalOperatorsInfo& info,
         ExecutionContext& executionContext);
 
-    unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalSelectScanToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalIntersectToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(LogicalOperator* logicalOperator,
+        const PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalSelectScanToPhysical(LogicalOperator* logicalOperator,
+        const PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(LogicalOperator* logicalOperator,
+        const PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(LogicalOperator* logicalOperator,
+        const PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(LogicalOperator* logicalOperator,
+        const PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalIntersectToPhysical(LogicalOperator* logicalOperator,
+        const PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(LogicalOperator* logicalOperator,
+        const PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalScanNodePropertyToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+        LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+        ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalScanRelPropertyToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+        LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+        ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(LogicalOperator* logicalOperator,
+        const PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(LogicalOperator* logicalOperator,
+        const PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalMultiplicityReducerToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalSkipToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalLimitToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+        LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+        ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalSkipToPhysical(LogicalOperator* logicalOperator,
+        const PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalLimitToPhysical(LogicalOperator* logicalOperator,
+        const PhysicalOperatorsInfo& info, ExecutionContext& context);
 
 public:
     const Graph& graph;
 
-    ResultSet* outerQueryResultSet;
-    PhysicalOperatorsInfo* outerPhysicalOperatorsInfo;
+    const PhysicalOperatorsInfo* outerPhysicalOperatorsInfo;
 
     uint32_t physicalOperatorID;
     // used for EXPLAIN & PROFILE which require print physical operator and logical information.

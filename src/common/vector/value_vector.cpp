@@ -7,9 +7,9 @@ using namespace graphflow::common::operation;
 namespace graphflow {
 namespace common {
 
-shared_ptr<NullMask> NullMask::clone(uint64_t vectorCapacity) {
-    auto newNullMask = make_shared<NullMask>(vectorCapacity);
-    memcpy(newNullMask->mask.get(), mask.get(), vectorCapacity);
+shared_ptr<NullMask> NullMask::clone() {
+    auto newNullMask = make_shared<NullMask>();
+    memcpy(newNullMask->mask.get(), mask.get(), DEFAULT_VECTOR_CAPACITY);
     return newNullMask;
 }
 
@@ -90,12 +90,12 @@ bool ValueVector::discardNullNodes() {
 
 // Notice that this clone function only copies values and mask without copying string buffers.
 shared_ptr<ValueVector> ValueVector::clone() {
-    auto newVector = make_shared<ValueVector>(memoryManager, dataType, vectorCapacity == 1);
+    auto newVector = make_shared<ValueVector>(memoryManager, dataType);
     // Warning: This is a potential bug because sometimes nullMasks of ValueVectors point to
     // null masks of other ValueVectors, e.g., the result ValueVectors of unary expressions, point
     // to the nullMasks of operands. In which case these should not be copied over.
-    newVector->nullMask = nullMask->clone(vectorCapacity);
-    memcpy(newVector->values, values, vectorCapacity * getNumBytesPerValue());
+    newVector->nullMask = nullMask->clone();
+    memcpy(newVector->values, values, DEFAULT_VECTOR_CAPACITY * getNumBytesPerValue());
     return newVector;
 }
 

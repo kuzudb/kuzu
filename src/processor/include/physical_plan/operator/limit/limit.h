@@ -8,9 +8,12 @@ namespace processor {
 class Limit : public PhysicalOperator {
 
 public:
-    Limit(uint64_t limitNumber, shared_ptr<atomic_uint64_t> counter, uint64_t dataChunkToSelectPos,
-        vector<uint64_t> dataChunksToLimitPos, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id);
+    Limit(uint64_t limitNumber, shared_ptr<atomic_uint64_t> counter, uint32_t dataChunkToSelectPos,
+        vector<uint32_t> dataChunksToLimitPos, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{move(prevOperator), LIMIT, context, id}, limitNumber{limitNumber},
+          counter{move(counter)}, dataChunkToSelectPos{dataChunkToSelectPos},
+          dataChunksToLimitPos(move(dataChunksToLimitPos)) {}
 
     void getNextTuples() override;
 
@@ -22,8 +25,8 @@ public:
 private:
     uint64_t limitNumber;
     shared_ptr<atomic_uint64_t> counter;
-    uint64_t dataChunkToSelectPos;
-    vector<uint64_t> dataChunksToLimitPos;
+    uint32_t dataChunkToSelectPos;
+    vector<uint32_t> dataChunksToLimitPos;
 };
 
 } // namespace processor

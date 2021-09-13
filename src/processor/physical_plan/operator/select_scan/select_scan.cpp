@@ -5,26 +5,18 @@
 namespace graphflow {
 namespace processor {
 
-SelectScan::SelectScan(uint32_t totalNumDataChunks, const ResultSet* inResultSet,
-    vector<pair<uint32_t, uint32_t>> inDataChunkAndValueVectorsPos, uint32_t outDataChunkSize,
-    uint32_t outDataChunkPos, vector<uint32_t> outValueVectorsPos, ExecutionContext& context,
-    uint32_t id)
-    : PhysicalOperator{SELECT_SCAN, context, id}, totalNumDataChunks{totalNumDataChunks},
-      inResultSet{inResultSet}, inDataChunkAndValueVectorsPos{move(inDataChunkAndValueVectorsPos)},
-      outDataChunkSize{outDataChunkSize}, outDataChunkPos{outDataChunkPos},
-      outValueVectorsPos{move(outValueVectorsPos)}, isFirstExecution{true} {
-    resultSet = make_shared<ResultSet>(totalNumDataChunks);
-    outDataChunk =
-        make_shared<DataChunk>(outDataChunkSize, DataChunkState::getSingleValueDataChunkState());
-    for (auto i = 0u; i < this->inDataChunkAndValueVectorsPos.size(); ++i) {
-        auto [inDataChunkPos, inValueVectorPos] = this->inDataChunkAndValueVectorsPos[i];
+void SelectScan::initResultSet(const shared_ptr<ResultSet>& resultSet) {
+    PhysicalOperator::initResultSet(resultSet);
+    outDataChunk = this->resultSet->dataChunks[outDataChunkPos];
+    outDataChunk->state = DataChunkState::getSingleValueDataChunkState();
+    for (auto i = 0u; i < inDataPoses.size(); ++i) {
+        auto [inDataChunkPos, inValueVectorPos] = inDataPoses[i];
         auto& inValueVector =
-            *this->inResultSet->dataChunks[inDataChunkPos]->getValueVector(inValueVectorPos);
-        auto outValueVector = make_shared<ValueVector>(
-            context.memoryManager, inValueVector.dataType, true /*isSingleValue*/);
-        outDataChunk->insert(this->outValueVectorsPos[i], outValueVector);
+            *inResultSet->dataChunks[inDataChunkPos]->valueVectors[inValueVectorPos];
+        auto outValueVector =
+            make_shared<ValueVector>(context.memoryManager, inValueVector.dataType);
+        outDataChunk->insert(outValueVectorsPos[i], outValueVector);
     }
-    resultSet->insert(outDataChunkPos, outDataChunk);
 }
 
 void SelectScan::reInitialize() {
@@ -39,8 +31,8 @@ void SelectScan::reInitialize() {
 void SelectScan::getNextTuples() {
     if (isFirstExecution) {
         isFirstExecution = false;
-        for (auto i = 0u; i < inDataChunkAndValueVectorsPos.size(); ++i) {
-            auto [inDataChunkPos, inValueVectorPos] = inDataChunkAndValueVectorsPos[i];
+        for (auto i = 0u; i < inDataPoses.size(); ++i) {
+            auto [inDataChunkPos, inValueVectorPos] = inDataPoses[i];
             auto& inValueVector =
                 *this->inResultSet->dataChunks[inDataChunkPos]->getValueVector(inValueVectorPos);
             assert(inValueVector.state->isFlat());

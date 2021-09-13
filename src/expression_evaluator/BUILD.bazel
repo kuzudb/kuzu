@@ -12,6 +12,7 @@ cc_library(
     deps = [
         "//src/common:data_chunk",
         "//src/common:vector_operations",
+        "//src/processor:data_pos",
         "//src/processor:result_set",
     ],
 )

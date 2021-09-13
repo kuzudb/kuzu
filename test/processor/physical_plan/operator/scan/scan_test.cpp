@@ -9,8 +9,10 @@ TEST(ScanTests, ScanTest) {
     auto profiler = make_unique<Profiler>();
     auto memoryManager = make_unique<MemoryManager>();
     auto executionContext = ExecutionContext(*profiler, nullptr, memoryManager.get());
-    auto scan = make_unique<ScanNodeID>(1, 1, 0, 0, morsel, executionContext, 0);
-    auto resultSet = scan->getResultSet();
+    auto scan = make_unique<ScanNodeID>(DataPos{0, 0}, morsel, executionContext, 0);
+    auto resultSet = make_shared<ResultSet>(1);
+    resultSet->dataChunks[0] = make_shared<DataChunk>(1);
+    scan->initResultSet(resultSet);
     auto dataChunk = resultSet->dataChunks[0];
     auto nodeVector = dataChunk->getValueVector(0);
     node_offset_t currNodeOffset = 0;

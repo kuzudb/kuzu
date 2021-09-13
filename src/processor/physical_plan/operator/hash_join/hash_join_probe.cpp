@@ -7,24 +7,25 @@ namespace processor {
 
 HashJoinProbe::HashJoinProbe(const BuildDataChunksInfo& buildDataChunksInfo,
     const ProbeDataChunksInfo& probeDataChunksInfo,
-    vector<unordered_map<uint32_t, pair<uint32_t, uint32_t>>> buildSideValueVectorsOutputPos,
+    vector<unordered_map<uint32_t, DataPos>> buildSideValueVectorsOutputPos,
     unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp,
     ExecutionContext& context, uint32_t id)
     : PhysicalOperator{move(probeSidePrevOp), HASH_JOIN_PROBE, context, id},
       buildSidePrevOp{move(buildSidePrevOp)}, buildDataChunksInfo{buildDataChunksInfo},
       probeDataChunksInfo{probeDataChunksInfo}, buildSideValueVectorsOutputPos{
-                                                    move(buildSideValueVectorsOutputPos)} {
-    // The buildSidePrevOp (HashJoinBuild) yields no actual resultSet, we get it from it's prevOp.
-    buildSideResultSet = this->buildSidePrevOp->prevOperator->getResultSet();
-    // The prevOperator is the probe side prev operator passed in to the PhysicalOperator
-    resultSet = prevOperator->getResultSet();
-    probeSideKeyDataChunk = resultSet->dataChunks[probeDataChunksInfo.keyDataChunkPos];
+                                                    move(buildSideValueVectorsOutputPos)} {}
+
+void HashJoinProbe::initResultSet(const shared_ptr<ResultSet>& resultSet) {
+    PhysicalOperator::initResultSet(resultSet);
+    ((HashJoinBuild&)*buildSidePrevOp).init();
+    probeSideKeyDataChunk =
+        this->resultSet->dataChunks[probeDataChunksInfo.keyDataPos.dataChunkPos];
     // The probe side key data chunk is also the output keyDataChunk in the resultSet. Non-key
     // vectors from the build side key data chunk are appended into the the probeSideKeyDataChunk.
     resultKeyDataChunk = probeSideKeyDataChunk;
     numProbeSidePrevKeyValueVectors = probeSideKeyDataChunk->valueVectors.size();
     probeSideKeyVector =
-        probeSideKeyDataChunk->getValueVector(probeDataChunksInfo.keyValueVectorPos);
+        probeSideKeyDataChunk->getValueVector(probeDataChunksInfo.keyDataPos.valueVectorPos);
     probeState = make_unique<ProbeState>(DEFAULT_VECTOR_CAPACITY);
     initializeResultSetAndVectorPtrs();
 }
@@ -40,20 +41,16 @@ void HashJoinProbe::createVectorPtrs(DataChunk& buildSideDataChunk, uint32_t res
 }
 
 void HashJoinProbe::initializeResultSetAndVectorPtrs() {
-    // insert dataChunks into resultSet
-    buildSideFlatResultDataChunk = make_shared<DataChunk>(probeDataChunksInfo.newFlatDataChunkSize);
-    if (probeDataChunksInfo.newFlatDataChunkPos != UINT32_MAX) {
-        resultSet->insert(probeDataChunksInfo.newFlatDataChunkPos, buildSideFlatResultDataChunk);
-    }
-    for (auto i = 0u; i < probeDataChunksInfo.newUnFlatDataChunksPos.size(); ++i) {
-        resultSet->insert(probeDataChunksInfo.newUnFlatDataChunksPos[i],
-            make_shared<DataChunk>(probeDataChunksInfo.newUnFlatDataChunksSize[i]));
-    }
-
+    // The buildSidePrevOp (HashJoinBuild) yields no actual resultSet, we get it from it's prevOp.
+    buildSideResultSet = this->buildSidePrevOp->prevOperator->getResultSet();
+    buildSideFlatResultDataChunk =
+        probeDataChunksInfo.newFlatDataChunkPos == UINT32_MAX ?
+            make_shared<DataChunk>(0) :
+            resultSet->dataChunks[probeDataChunksInfo.newFlatDataChunkPos];
     for (auto i = 0u; i < buildSideResultSet->dataChunks.size(); i++) {
         auto buildSideDataChunk = buildSideResultSet->dataChunks[i];
         if (!buildDataChunksInfo.dataChunkPosToIsFlat[i] &&
-            i != buildDataChunksInfo.keyDataChunkPos) {
+            i != buildDataChunksInfo.keyDataPos.dataChunkPos) {
             createVectorPtrs(*buildSideDataChunk,
                 probeDataChunksInfo.newUnFlatDataChunksPos[buildSideVectorPtrs.size()]);
         }
@@ -118,7 +115,8 @@ void HashJoinProbe::populateResultFlatDataChunksAndVectorPtrs() {
     // Copy the matched value from the build side key data chunk into the resultKeyDataChunk.
     auto tupleReadOffset = NUM_BYTES_PER_NODE_ID;
     copyTuplesFromHT(*resultKeyDataChunk,
-        buildSideResultSet->dataChunks[buildDataChunksInfo.keyDataChunkPos]->valueVectors.size() -
+        buildSideResultSet->dataChunks[buildDataChunksInfo.keyDataPos.dataChunkPos]
+                ->valueVectors.size() -
             1,
         numProbeSidePrevKeyValueVectors, tupleReadOffset,
         resultKeyDataChunk->state->getPositionOfCurrIdx(), 1);
@@ -126,7 +124,7 @@ void HashJoinProbe::populateResultFlatDataChunksAndVectorPtrs() {
     auto buildSideVectorPtrsPos = 0;
     auto mergedFlatDataChunkVectorPos = 0;
     for (auto i = 0u; i < buildSideResultSet->dataChunks.size(); i++) {
-        if (i == buildDataChunksInfo.keyDataChunkPos) {
+        if (i == buildDataChunksInfo.keyDataPos.dataChunkPos) {
             continue;
         }
         auto dataChunk = buildSideResultSet->dataChunks[i];

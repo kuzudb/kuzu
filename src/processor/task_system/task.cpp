@@ -13,12 +13,14 @@ Task::Task(Sink* sinkOp, uint64_t numThreads) : sinkOp{sinkOp}, maxNumThreads{nu
 }
 
 void Task::run() {
-    auto pipelineSinkCopy = registerThread();
-    if (pipelineSinkCopy == nullptr) {
+    auto lastOp = registerThread();
+    if (lastOp == nullptr) {
         return;
     }
-    ((Sink&)*pipelineSinkCopy).execute();
-    deregisterThread(move(pipelineSinkCopy));
+    auto& sink = (Sink&)*lastOp;
+    sink.init();
+    sink.execute();
+    deregisterThread(move(lastOp));
 }
 
 unique_ptr<PhysicalOperator> Task::registerThread() {
@@ -33,7 +35,7 @@ unique_ptr<PhysicalOperator> Task::registerThread() {
 void Task::deregisterThread(unique_ptr<PhysicalOperator> taskSinkOp) {
     lock_t lck{mtx};
     if (numThreadsFinished == numThreadsRegistered - 1) {
-        sinkOp->finalize();
+        ((Sink&)*taskSinkOp).finalize();
         if (parent) {
             parent->incrementNumDependenciesFinished();
         }

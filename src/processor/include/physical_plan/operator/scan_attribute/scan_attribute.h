@@ -10,16 +10,18 @@ namespace processor {
 class ScanAttribute : public PhysicalOperator {
 
 public:
-    ScanAttribute(uint32_t inAndOutDataChunkPos, uint32_t inValueVectorPos,
-        uint32_t outValueVectorPos, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id);
+    ScanAttribute(const DataPos& inDataPos, const DataPos& outDataPos,
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{move(prevOperator), SCAN_ATTRIBUTE, context, id}, inDataPos{inDataPos},
+          outDataPos{outDataPos} {}
+
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
     void printMetricsToJson(nlohmann::json& json, Profiler& profiler) override;
 
 protected:
-    uint32_t inAndOutDataChunkPos;
-    uint32_t inValueVectorPos;
-    uint32_t outValueVectorPos;
+    DataPos inDataPos;
+    DataPos outDataPos;
 
     shared_ptr<DataChunk> inDataChunk;
     shared_ptr<ValueVector> inValueVector;

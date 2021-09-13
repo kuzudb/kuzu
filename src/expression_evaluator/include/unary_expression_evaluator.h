@@ -9,8 +9,10 @@ namespace evaluator {
 class UnaryExpressionEvaluator : public ExpressionEvaluator {
 
 public:
-    UnaryExpressionEvaluator(MemoryManager& memoryManager, unique_ptr<ExpressionEvaluator> child,
-        ExpressionType expressionType, DataType dataType);
+    UnaryExpressionEvaluator(
+        unique_ptr<ExpressionEvaluator> child, ExpressionType expressionType, DataType dataType);
+
+    void initResultSet(const ResultSet& resultSet, MemoryManager& memoryManager) override;
 
     void evaluate() override;
 
@@ -18,8 +20,7 @@ public:
 
     shared_ptr<ValueVector> createResultValueVector(MemoryManager& memoryManager);
 
-    unique_ptr<ExpressionEvaluator> clone(
-        MemoryManager& memoryManager, const ResultSet& resultSet) override;
+    unique_ptr<ExpressionEvaluator> clone() override;
 
 protected:
     std::function<void(ValueVector&, ValueVector&)> executeOperation;

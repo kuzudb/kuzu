@@ -9,20 +9,25 @@ namespace processor {
 class ReadList : public PhysicalOperator {
 
 public:
-    ReadList(uint32_t inDataChunkPos, uint32_t inValueVectorPos, uint32_t outDataChunkPos,
-        uint32_t outValueVectorPos, Lists* lists, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id, bool isAdjList);
+    ReadList(const DataPos& inDataPos, const DataPos& outDataPos, Lists* lists,
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id,
+        bool isAdjList)
+        : PhysicalOperator{move(prevOperator), READ_LIST, context, id}, inDataPos{inDataPos},
+          outDataPos{outDataPos}, lists{lists}, largeListHandle{
+                                                    make_unique<LargeListHandle>(isAdjList)} {}
+
     ~ReadList() override{};
+
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+
     void printMetricsToJson(nlohmann::json& json, Profiler& profiler) override;
 
 protected:
     void readValuesFromList();
 
 protected:
-    uint32_t inDataChunkPos;
-    uint32_t inValueVectorPos;
-    uint32_t outDataChunkPos;
-    uint32_t outValueVectorPos;
+    DataPos inDataPos;
+    DataPos outDataPos;
 
     shared_ptr<DataChunk> inDataChunk;
     shared_ptr<ValueVector> inValueVector;

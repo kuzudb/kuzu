@@ -9,9 +9,13 @@ namespace processor {
 class Skip : public PhysicalOperator, public FilteringOperator {
 
 public:
-    Skip(uint64_t skipNumber, shared_ptr<atomic_uint64_t> counter, uint64_t dataChunkToSelectPos,
-        vector<uint64_t> dataChunksToSkipPos, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id);
+    Skip(uint64_t skipNumber, shared_ptr<atomic_uint64_t> counter, uint32_t dataChunkToSelectPos,
+        vector<uint32_t> dataChunksToSkipPos, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{move(prevOperator), SKIP, context, id},
+          FilteringOperator(), skipNumber{skipNumber}, counter{move(counter)},
+          dataChunkToSelectPos{dataChunkToSelectPos}, dataChunksToSkipPos{
+                                                          move(dataChunksToSkipPos)} {}
 
     void reInitialize() override;
 
@@ -25,8 +29,8 @@ public:
 private:
     uint64_t skipNumber;
     shared_ptr<atomic_uint64_t> counter;
-    uint64_t dataChunkToSelectPos;
-    vector<uint64_t> dataChunksToSkipPos;
+    uint32_t dataChunkToSelectPos;
+    vector<uint32_t> dataChunksToSkipPos;
 };
 
 } // namespace processor

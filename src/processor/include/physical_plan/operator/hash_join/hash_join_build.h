@@ -49,9 +49,8 @@ private:
 // hash join build side task/pipeline, and probed by the HashJoinProbe operators.
 class HashJoinSharedState {
 public:
-    explicit HashJoinSharedState(uint64_t numBytesForFixedTuplePart)
-        : htDirectory{nullptr}, numBytesForFixedTuplePart{numBytesForFixedTuplePart}, numEntries{0},
-          hashBitMask{0} {};
+    explicit HashJoinSharedState()
+        : htDirectory{nullptr}, numBytesForFixedTuplePart{0}, numEntries{0}, hashBitMask{0} {};
 
     mutex hashJoinSharedStateLock;
 
@@ -66,31 +65,34 @@ public:
 struct BuildDataChunksInfo {
 
 public:
-    BuildDataChunksInfo(
-        uint32_t keyDataChunkPos, uint32_t keyValueVectorPos, vector<bool> dataChunkPosToIsFlat)
-        : keyDataChunkPos{keyDataChunkPos}, keyValueVectorPos{keyValueVectorPos},
-          dataChunkPosToIsFlat{move(dataChunkPosToIsFlat)} {}
+    BuildDataChunksInfo(const DataPos& keyDataPos, vector<bool> dataChunkPosToIsFlat)
+        : keyDataPos{keyDataPos}, dataChunkPosToIsFlat{move(dataChunkPosToIsFlat)} {}
 
     BuildDataChunksInfo(const BuildDataChunksInfo& other)
-        : BuildDataChunksInfo(
-              other.keyDataChunkPos, other.keyValueVectorPos, other.dataChunkPosToIsFlat) {}
+        : BuildDataChunksInfo(other.keyDataPos, other.dataChunkPosToIsFlat) {}
 
 public:
-    uint32_t keyDataChunkPos;
-    uint32_t keyValueVectorPos;
+    DataPos keyDataPos;
     vector<bool> dataChunkPosToIsFlat;
 };
 
 class HashJoinBuild : public Sink {
 public:
-    HashJoinBuild(const BuildDataChunksInfo& buildDataChunksInfo,
+    HashJoinBuild(const BuildDataChunksInfo& buildDataChunksInfo, shared_ptr<ResultSet> resultSet,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
+
+    void init() override;
 
     void execute() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        auto cloneOp =
-            make_unique<HashJoinBuild>(dataChunksInfo, prevOperator->clone(), context, id);
+        auto clonedResultSet = make_shared<ResultSet>(resultSet->dataChunks.size());
+        for (auto i = 0u; i < resultSet->dataChunks.size(); ++i) {
+            clonedResultSet->insert(
+                i, make_shared<DataChunk>(resultSet->dataChunks[i]->valueVectors.size()));
+        }
+        auto cloneOp = make_unique<HashJoinBuild>(
+            dataChunksInfo, move(clonedResultSet), prevOperator->clone(), context, id);
         cloneOp->sharedState = this->sharedState;
         return cloneOp;
     }

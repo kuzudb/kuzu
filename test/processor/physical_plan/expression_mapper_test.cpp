@@ -70,7 +70,8 @@ TEST_F(ExpressionMapperTest, BinaryExpressionEvaluatorTest) {
     auto physicalOperatorInfo = makeSimplePhysicalOperatorInfo();
     auto rootExpressionEvaluator =
         ExpressionMapper(planMapper.get())
-            .mapToPhysical(*addLogicalOperator, physicalOperatorInfo, &resultSet, *context);
+            .mapToPhysical(*addLogicalOperator, physicalOperatorInfo, *context);
+    rootExpressionEvaluator->initResultSet(resultSet, *memoryManager);
     rootExpressionEvaluator->evaluate();
 
     auto results = (int64_t*)rootExpressionEvaluator->result->values;
@@ -102,7 +103,8 @@ TEST_F(ExpressionMapperTest, UnaryExpressionEvaluatorTest) {
     auto physicalOperatorInfo = makeSimplePhysicalOperatorInfo();
     auto rootExpressionEvaluator =
         ExpressionMapper(planMapper.get())
-            .mapToPhysical(*negateLogicalOperator, physicalOperatorInfo, &resultSet, *context);
+            .mapToPhysical(*negateLogicalOperator, physicalOperatorInfo, *context);
+    rootExpressionEvaluator->initResultSet(resultSet, *memoryManager);
     rootExpressionEvaluator->evaluate();
 
     auto results = (int64_t*)rootExpressionEvaluator->result->values;
@@ -135,9 +137,11 @@ TEST_F(ExpressionMapperTest, AggrExpressionEvaluatorTest) {
     auto countStarExpr = make_unique<Expression>(ExpressionType::COUNT_STAR_FUNC, DataType::INT64);
     auto countStarExprEvaluator =
         ExpressionMapper(planMapper.get())
-            .mapToPhysical(*countStarExpr, physicalOperatorInfo, &resultSet, *context);
+            .mapToPhysical(*countStarExpr, physicalOperatorInfo, *context);
     auto countStarAggrEvaluator =
         reinterpret_cast<AggregateExpressionEvaluator*>(countStarExprEvaluator.get());
+    countStarAggrEvaluator->initResultSet(resultSet, *memoryManager);
+
     auto countStarState = make_unique<CountFunction<true>::CountState>();
     countStarAggrEvaluator->getFunction()->initialize((uint8_t*)countStarState.get());
     countStarAggrEvaluator->getFunction()->update(
@@ -153,11 +157,12 @@ TEST_F(ExpressionMapperTest, AggrExpressionEvaluatorTest) {
 
     auto countExpr =
         make_unique<Expression>(ExpressionType::COUNT_FUNC, DataType::INT64, makeAPropExpression());
-    auto countExprEvaluator =
-        ExpressionMapper(planMapper.get())
-            .mapToPhysical(*countExpr, physicalOperatorInfo, &resultSet, *context);
+    auto countExprEvaluator = ExpressionMapper(planMapper.get())
+                                  .mapToPhysical(*countExpr, physicalOperatorInfo, *context);
     auto countAggrEvaluator =
         reinterpret_cast<AggregateExpressionEvaluator*>(countExprEvaluator.get());
+    countStarAggrEvaluator->initResultSet(resultSet, *memoryManager);
+
     auto countState = make_unique<CountFunction<false>::CountState>();
     countAggrEvaluator->getFunction()->initialize((uint8_t*)countState.get());
     countAggrEvaluator->getFunction()->update(
@@ -174,9 +179,10 @@ TEST_F(ExpressionMapperTest, AggrExpressionEvaluatorTest) {
     auto sumExpr =
         make_unique<Expression>(ExpressionType::SUM_FUNC, DataType::INT64, makeAPropExpression());
     auto sumExprEvaluator =
-        ExpressionMapper(planMapper.get())
-            .mapToPhysical(*sumExpr, physicalOperatorInfo, &resultSet, *context);
+        ExpressionMapper(planMapper.get()).mapToPhysical(*sumExpr, physicalOperatorInfo, *context);
     auto sumAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(sumExprEvaluator.get());
+    sumAggrEvaluator->initResultSet(resultSet, *memoryManager);
+
     auto sumState = make_unique<SumFunction<int64_t>::SumState>();
     sumAggrEvaluator->getFunction()->initialize((uint8_t*)sumState.get());
     sumAggrEvaluator->getFunction()->update(
@@ -199,9 +205,10 @@ TEST_F(ExpressionMapperTest, AggrExpressionEvaluatorTest) {
     auto avgExpr =
         make_unique<Expression>(ExpressionType::AVG_FUNC, DataType::INT64, makeAPropExpression());
     auto avgExprEvaluator =
-        ExpressionMapper(planMapper.get())
-            .mapToPhysical(*avgExpr, physicalOperatorInfo, &resultSet, *context);
+        ExpressionMapper(planMapper.get()).mapToPhysical(*avgExpr, physicalOperatorInfo, *context);
     auto avgAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(avgExprEvaluator.get());
+    avgAggrEvaluator->initResultSet(resultSet, *memoryManager);
+
     auto avgState = make_unique<AvgFunction<int64_t>::AvgState>();
     avgAggrEvaluator->getFunction()->initialize((uint8_t*)avgState.get());
     avgAggrEvaluator->getFunction()->update(
@@ -219,9 +226,10 @@ TEST_F(ExpressionMapperTest, AggrExpressionEvaluatorTest) {
     auto maxExpr =
         make_unique<Expression>(ExpressionType::MAX_FUNC, DataType::INT64, makeAPropExpression());
     auto maxExprEvaluator =
-        ExpressionMapper(planMapper.get())
-            .mapToPhysical(*maxExpr, physicalOperatorInfo, &resultSet, *context);
+        ExpressionMapper(planMapper.get()).mapToPhysical(*maxExpr, physicalOperatorInfo, *context);
     auto maxAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(maxExprEvaluator.get());
+    maxAggrEvaluator->initResultSet(resultSet, *memoryManager);
+
     auto maxState = make_unique<MinMaxFunction<int64_t>::MinMaxState>();
     maxAggrEvaluator->getFunction()->initialize((uint8_t*)maxState.get());
     maxAggrEvaluator->getFunction()->update(

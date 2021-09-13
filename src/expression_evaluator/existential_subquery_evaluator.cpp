@@ -7,11 +7,22 @@ namespace graphflow {
 namespace evaluator {
 
 ExistentialSubqueryEvaluator::ExistentialSubqueryEvaluator(
-    MemoryManager& memoryManager, unique_ptr<ResultCollector> subPlanResultCollector)
+    unique_ptr<ResultCollector> subPlanResultCollector)
     : ExpressionEvaluator{EXISTENTIAL_SUBQUERY, BOOL}, subPlanResultCollector{
-                                                           move(subPlanResultCollector)} {
+                                                           move(subPlanResultCollector)} {}
+
+void ExistentialSubqueryEvaluator::initResultSet(
+    const ResultSet& resultSet, MemoryManager& memoryManager) {
     result = make_shared<ValueVector>(&memoryManager, BOOL, true /* isSingleValue */);
     result->state = DataChunkState::getSingleValueDataChunkState();
+
+    PhysicalOperator* op = subPlanResultCollector.get();
+    while (op->prevOperator != nullptr) {
+        op = op->prevOperator.get();
+    }
+    assert(op->operatorType == SELECT_SCAN);
+    ((SelectScan*)op)->setInResultSet(&resultSet);
+    subPlanResultCollector->init();
 }
 
 uint64_t ExistentialSubqueryEvaluator::executeSubplan() {
@@ -28,22 +39,10 @@ uint64_t ExistentialSubqueryEvaluator::select(sel_t* selectedPositions) {
     return executeSubplan() != 0;
 }
 
-// NOTE: this is a hack. Similar to expression_evaluator clone which requires an input result.
-// Select Scan also requires new outerResultSet. Instead of changing the interface of operator
-// clone, we traverse subPlan and directly update inResult for selectScan. #issue317 should remove
-// clone.
-unique_ptr<ExpressionEvaluator> ExistentialSubqueryEvaluator::clone(
-    MemoryManager& memoryManager, const ResultSet& resultSet) {
+unique_ptr<ExpressionEvaluator> ExistentialSubqueryEvaluator::clone() {
     auto subPlanResultCollectorClone = unique_ptr<ResultCollector>{
         dynamic_cast<ResultCollector*>(subPlanResultCollector->clone().release())};
-    PhysicalOperator* op = subPlanResultCollectorClone.get();
-    while (op->prevOperator != nullptr) {
-        op = op->prevOperator.get();
-    }
-    assert(op->operatorType == SELECT_SCAN);
-    ((SelectScan*)op)->setInResultSet(&resultSet);
-    return make_unique<ExistentialSubqueryEvaluator>(
-        memoryManager, move(subPlanResultCollectorClone));
+    return make_unique<ExistentialSubqueryEvaluator>(move(subPlanResultCollectorClone));
 }
 
 } // namespace evaluator

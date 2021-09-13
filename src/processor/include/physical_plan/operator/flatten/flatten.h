@@ -8,8 +8,12 @@ namespace processor {
 class Flatten : public PhysicalOperator {
 
 public:
-    Flatten(uint64_t dataChunkToFlattenPos, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id);
+    Flatten(uint32_t dataChunkToFlattenPos, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{move(prevOperator), FLATTEN, context, id}, dataChunkToFlattenPos{
+                                                                          dataChunkToFlattenPos} {}
+
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
     void getNextTuples() override;
 
@@ -18,7 +22,7 @@ public:
     }
 
 private:
-    uint64_t dataChunkToFlattenPos;
+    uint32_t dataChunkToFlattenPos;
     shared_ptr<DataChunk> dataChunkToFlatten;
 };
 

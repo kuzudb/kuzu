@@ -33,6 +33,7 @@ shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
 shared_ptr<DataChunkState> DataChunkState::clone() {
     auto newState = make_shared<DataChunkState>(selectedSize);
     newState->currIdx = currIdx;
+    newState->originalSize = originalSize;
     newState->selectedSize = selectedSize;
     memcpy(newState->selectedPositionsBuffer.get(), selectedPositionsBuffer.get(),
         selectedSize * sizeof(sel_t));

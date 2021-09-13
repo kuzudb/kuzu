@@ -11,15 +11,21 @@ namespace processor {
 class ScanUnstructuredProperty : public ScanAttribute {
 
 public:
-    ScanUnstructuredProperty(uint32_t inAndOutDataChunkPos, uint32_t inValueVectorPos,
-        uint32_t outValueVectorPos, uint32_t propertyKey, UnstructuredPropertyLists* lists,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
+    ScanUnstructuredProperty(const DataPos& inDataPos, const DataPos& outDataPos,
+        uint32_t propertyKey, UnstructuredPropertyLists* lists,
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+        : ScanAttribute{inDataPos, outDataPos, move(prevOperator), context, id},
+          propertyKey{propertyKey}, lists{lists} {}
+
     ~ScanUnstructuredProperty(){};
+
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanUnstructuredProperty>(inAndOutDataChunkPos, inValueVectorPos,
-            outValueVectorPos, propertyKey, lists, prevOperator->clone(), context, id);
+        return make_unique<ScanUnstructuredProperty>(
+            inDataPos, outDataPos, propertyKey, lists, prevOperator->clone(), context, id);
     }
 
 protected:

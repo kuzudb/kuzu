@@ -7,6 +7,7 @@
 #include "src/common/include/expression_type.h"
 #include "src/common/include/value.h"
 #include "src/common/include/vector/value_vector.h"
+#include "src/processor/include/physical_plan/data_pos.h"
 #include "src/processor/include/physical_plan/operator/result/result_set.h"
 
 using namespace graphflow::processor;
@@ -30,16 +31,16 @@ public:
 
     // Creates a leaf literal as value vector expression_evaluator expression.
     ExpressionEvaluator(const shared_ptr<ValueVector>& result, ExpressionType expressionType)
-        : result{result}, dataChunkPos{UINT64_MAX}, valueVectorPos{UINT64_MAX},
+        : dataPos{UINT32_MAX, UINT32_MAX}, result{result},
           expressionType{expressionType}, dataType{result->dataType} {}
 
     // Creates a leaf variable value vector expression_evaluator expression.
-    ExpressionEvaluator(const shared_ptr<ValueVector>& result, uint64_t dataChunkPos,
-        uint64_t valueVectorPos, ExpressionType expressionType)
-        : result{result}, dataChunkPos{dataChunkPos}, valueVectorPos{valueVectorPos},
-          expressionType{expressionType}, dataType{result->dataType} {}
+    ExpressionEvaluator(const DataPos& dataPos, ExpressionType expressionType, DataType dataType)
+        : dataPos{dataPos}, expressionType{expressionType}, dataType{dataType} {}
 
     virtual ~ExpressionEvaluator() = default;
+
+    virtual void initResultSet(const ResultSet& resultSet, MemoryManager& memoryManager);
 
     virtual void evaluate() {
         // For leaf expressions, evaluate function performs no op.
@@ -49,21 +50,19 @@ public:
 
     bool isResultFlat();
 
-    virtual unique_ptr<ExpressionEvaluator> clone(
-        MemoryManager& memoryManager, const ResultSet& resultSet);
+    virtual unique_ptr<ExpressionEvaluator> clone();
 
 public:
+    DataPos dataPos;
     shared_ptr<ValueVector> result;
-    uint64_t dataChunkPos;
-    uint64_t valueVectorPos;
+
     // Fields below are needed to clone expressions.
     ExpressionType expressionType;
     DataType dataType;
 
 protected:
     ExpressionEvaluator(ExpressionType expressionType, DataType dataType)
-        : dataChunkPos{UINT64_MAX}, valueVectorPos{UINT64_MAX},
-          expressionType{expressionType}, dataType{dataType} {}
+        : dataPos{UINT32_MAX, UINT32_MAX}, expressionType{expressionType}, dataType{dataType} {}
 
     vector<unique_ptr<ExpressionEvaluator>> childrenExpr;
 };

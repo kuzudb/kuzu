@@ -3,13 +3,6 @@
 namespace graphflow {
 namespace processor {
 
-void ResultSet::insert(uint32_t pos, const shared_ptr<DataChunk>& dataChunk,
-    const shared_ptr<ListSyncState>& listSyncState) {
-    assert(dataChunks.size() > pos);
-    dataChunks[pos] = dataChunk;
-    listSyncStatesPerDataChunk[pos] = listSyncState;
-}
-
 uint64_t ResultSet::getNumTuples() {
     uint64_t numTuples = 1;
     for (auto& dataChunk : dataChunks) {

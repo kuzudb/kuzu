@@ -11,16 +11,16 @@ namespace evaluator {
 class ExistentialSubqueryEvaluator : public ExpressionEvaluator {
 
 public:
-    ExistentialSubqueryEvaluator(
-        MemoryManager& memoryManager, unique_ptr<ResultCollector> subPlanResultCollector);
+    ExistentialSubqueryEvaluator(unique_ptr<ResultCollector> subPlanResultCollector);
+
+    void initResultSet(const ResultSet& resultSet, MemoryManager& memoryManager) override;
 
     uint64_t executeSubplan();
 
     void evaluate() override;
     uint64_t select(sel_t* selectedPositions) override;
 
-    unique_ptr<ExpressionEvaluator> clone(
-        MemoryManager& memoryManager, const ResultSet& resultSet) override;
+    unique_ptr<ExpressionEvaluator> clone() override;
 
 private:
     unique_ptr<ResultCollector> subPlanResultCollector;

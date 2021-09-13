@@ -3,17 +3,22 @@
 namespace graphflow {
 namespace evaluator {
 
-BinaryExpressionEvaluator::BinaryExpressionEvaluator(MemoryManager& memoryManager,
-    unique_ptr<ExpressionEvaluator> leftExpr, unique_ptr<ExpressionEvaluator> rightExpr,
-    ExpressionType expressionType, DataType dataType)
+BinaryExpressionEvaluator::BinaryExpressionEvaluator(unique_ptr<ExpressionEvaluator> leftExpr,
+    unique_ptr<ExpressionEvaluator> rightExpr, ExpressionType expressionType, DataType dataType)
     : ExpressionEvaluator{expressionType, dataType} {
     childrenExpr.push_back(move(leftExpr));
     childrenExpr.push_back(move(rightExpr));
     executeOperation = getBinaryVectorExecuteOperation(expressionType);
-    result = createResultValueVector(memoryManager);
     if (dataType == BOOL) {
         selectOperation = getBinaryVectorSelectOperation(expressionType);
     }
+}
+
+void BinaryExpressionEvaluator::initResultSet(
+    const ResultSet& resultSet, MemoryManager& memoryManager) {
+    childrenExpr[0]->initResultSet(resultSet, memoryManager);
+    childrenExpr[1]->initResultSet(resultSet, memoryManager);
+    result = createResultValueVector(memoryManager);
 }
 
 void BinaryExpressionEvaluator::evaluate() {
@@ -35,22 +40,19 @@ shared_ptr<ValueVector> BinaryExpressionEvaluator::createResultValueVector(
     auto isRightResultFlat = childrenExpr[1]->isResultFlat();
     // The binary expression result is flat only when both left and right are flat.
     if (isLeftResultFlat && isRightResultFlat) {
-        resultVector = make_shared<ValueVector>(&memoryManager, dataType, true /* isSingleValue */);
+        resultVector = make_shared<ValueVector>(&memoryManager, dataType);
         resultVector->state = DataChunkState::getSingleValueDataChunkState();
     } else {
-        resultVector =
-            make_shared<ValueVector>(&memoryManager, dataType, false /* isSingleValue */);
+        resultVector = make_shared<ValueVector>(&memoryManager, dataType);
         auto& unFlatVector = !isLeftResultFlat ? childrenExpr[0]->result : childrenExpr[1]->result;
         resultVector->state = unFlatVector->state;
     }
     return resultVector;
 }
 
-unique_ptr<ExpressionEvaluator> BinaryExpressionEvaluator::clone(
-    MemoryManager& memoryManager, const ResultSet& resultSet) {
-    return make_unique<BinaryExpressionEvaluator>(memoryManager,
-        childrenExpr[0]->clone(memoryManager, resultSet),
-        childrenExpr[1]->clone(memoryManager, resultSet), expressionType, dataType);
+unique_ptr<ExpressionEvaluator> BinaryExpressionEvaluator::clone() {
+    return make_unique<BinaryExpressionEvaluator>(
+        childrenExpr[0]->clone(), childrenExpr[1]->clone(), expressionType, dataType);
 }
 
 } // namespace evaluator

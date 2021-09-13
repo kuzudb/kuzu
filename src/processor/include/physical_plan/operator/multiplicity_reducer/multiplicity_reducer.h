@@ -9,7 +9,9 @@ class MultiplicityReducer : public PhysicalOperator {
 
 public:
     MultiplicityReducer(
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{move(prevOperator), MULTIPLICITY_REDUCER, context, id},
+          prevMultiplicity{1}, numRepeat{0} {}
 
     void reInitialize() override;
 

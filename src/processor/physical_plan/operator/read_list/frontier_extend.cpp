@@ -7,20 +7,13 @@ namespace processor {
 
 static uint64_t getNextPowerOfTwo(uint64_t value);
 
-FrontierExtend::FrontierExtend(uint32_t inDataChunkPos, uint32_t inValueVectorPos,
-    uint32_t outDataChunkSize, uint32_t outDataChunkPos, uint32_t outValueVectorPos,
-    AdjLists* lists, label_t outNodeIDVectorLabel, uint64_t lowerBound, uint64_t upperBound,
+FrontierExtend::FrontierExtend(const DataPos& inDataPos, const DataPos& outDataPos, AdjLists* lists,
+    label_t outNodeIDVectorLabel, uint64_t lowerBound, uint64_t upperBound,
     unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : ReadList{inDataChunkPos, inValueVectorPos, outDataChunkPos, outValueVectorPos, lists,
-          move(prevOperator), context, id, true /* is adj list */},
-      startLayer{lowerBound}, endLayer{upperBound}, outNodeIDVectorLabel{outNodeIDVectorLabel},
-      outDataChunkSize{outDataChunkSize} {
+    : ReadList{inDataPos, outDataPos, lists, move(prevOperator), context, id,
+          true /* is adj list */},
+      startLayer{lowerBound}, endLayer{upperBound}, outNodeIDVectorLabel{outNodeIDVectorLabel} {
     operatorType = FRONTIER_EXTEND;
-    outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
-    outDataChunk = make_shared<DataChunk>(outDataChunkSize);
-    outDataChunk->insert(outValueVectorPos, outValueVector);
-    outValueVector->state->initMultiplicity();
-    resultSet->insert(outDataChunkPos, outDataChunk, make_shared<ListSyncState>());
     uint64_t maxNumThreads = omp_get_max_threads();
     vectors.reserve(maxNumThreads);
     largeListHandles.reserve(maxNumThreads);
@@ -41,6 +34,14 @@ FrontierExtend::FrontierExtend(uint32_t inDataChunkPos, uint32_t inValueVectorPo
     }
     frontierPerLayer.push_back(nullptr);
     currOutputPos.hasMoreTuplesToProduce = false;
+}
+
+void FrontierExtend::initResultSet(const shared_ptr<ResultSet>& resultSet) {
+    ReadList::initResultSet(resultSet);
+    outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
+    outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
+    outValueVector->state->initMultiplicity();
+    this->resultSet->insert(outDataPos.dataChunkPos, make_shared<ListSyncState>());
 }
 
 void FrontierExtend::getNextTuples() {
@@ -227,10 +228,8 @@ FrontierBag* FrontierExtend::createFrontierBag() {
 }
 
 unique_ptr<PhysicalOperator> FrontierExtend::clone() {
-    auto cloneOp = make_unique<FrontierExtend>(inDataChunkPos, inValueVectorPos, outDataChunkSize,
-        outDataChunkPos, outValueVectorPos, (AdjLists*)lists, outNodeIDVectorLabel, startLayer,
-        endLayer, prevOperator->clone(), context, id);
-    return cloneOp;
+    return make_unique<FrontierExtend>(inDataPos, outDataPos, (AdjLists*)lists,
+        outNodeIDVectorLabel, startLayer, endLayer, prevOperator->clone(), context, id);
 }
 
 static uint64_t getNextPowerOfTwo(uint64_t value) {

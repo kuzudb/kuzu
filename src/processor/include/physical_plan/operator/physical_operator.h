@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/processor/include/execution_context.h"
+#include "src/processor/include/physical_plan/data_pos.h"
 #include "src/processor/include/physical_plan/operator/result/result_set.h"
 
 using namespace graphflow::transaction;
@@ -66,6 +67,8 @@ public:
         bool isOutDataChunkFiltered, ExecutionContext& context, uint32_t id);
 
     virtual ~PhysicalOperator() = default;
+
+    virtual void initResultSet(const shared_ptr<ResultSet>& resultSet);
 
     // For subquery, we rerun a plan multiple times. ReInitialize() should be called before each run
     // to ensure

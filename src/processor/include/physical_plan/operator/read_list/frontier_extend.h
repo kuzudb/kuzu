@@ -9,10 +9,11 @@ namespace processor {
 class FrontierExtend : public ReadList {
 
 public:
-    FrontierExtend(uint32_t inDataChunkPos, uint32_t inValueVectorPos, uint32_t outDataChunkSize,
-        uint32_t outDataChunkPos, uint32_t outValueVectorPos, AdjLists* lists,
+    FrontierExtend(const DataPos& inDataPos, const DataPos& outDataPos, AdjLists* lists,
         label_t outNodeIDVectorLabel, uint64_t lowerBound, uint64_t upperBound,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
+
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
     void getNextTuples() override;
 
@@ -51,8 +52,6 @@ private:
     } currOutputPos;
 
     label_t outNodeIDVectorLabel;
-
-    uint32_t outDataChunkSize;
 };
 
 } // namespace processor

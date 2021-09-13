@@ -137,6 +137,12 @@ ExpressionEvaluator::getBinaryVectorSelectOperation(ExpressionType type) {
     }
 }
 
+void ExpressionEvaluator::initResultSet(const ResultSet& resultSet, MemoryManager& memoryManager) {
+    if (dataPos.dataChunkPos != UINT32_MAX && dataPos.valueVectorPos != UINT32_MAX) {
+        result = resultSet.dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
+    }
+}
+
 // Select function for leaf expressions, for the expression's return data type is boolean.
 uint64_t ExpressionEvaluator::select(sel_t* selectedPositions) {
     assert(dataType == BOOL);
@@ -166,16 +172,13 @@ bool ExpressionEvaluator::isResultFlat() {
     return true;
 }
 
-unique_ptr<ExpressionEvaluator> ExpressionEvaluator::clone(
-    MemoryManager& memoryManager, const ResultSet& resultSet) {
+unique_ptr<ExpressionEvaluator> ExpressionEvaluator::clone() {
     if (isExpressionLiteral(expressionType)) {
         return make_unique<ExpressionEvaluator>(result, expressionType);
     } else {
         // property expression evaluator clone
         assert(childrenExpr.empty());
-        return make_unique<ExpressionEvaluator>(
-            resultSet.dataChunks[dataChunkPos]->getValueVector(valueVectorPos), dataChunkPos,
-            valueVectorPos, expressionType);
+        return make_unique<ExpressionEvaluator>(dataPos, expressionType, dataType);
     }
 }
 

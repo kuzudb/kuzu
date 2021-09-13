@@ -3,29 +3,20 @@
 namespace graphflow {
 namespace processor {
 
-Projection::Projection(uint32_t totalNumDataChunks, vector<uint32_t> outDataChunksSize,
-    vector<unique_ptr<ExpressionEvaluator>> expressions,
-    vector<pair<uint32_t, uint32_t>> expressionsOutputPos, vector<uint32_t> discardedDataChunksPos,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : PhysicalOperator(move(prevOperator), PROJECTION, context, id),
-      totalNumDataChunks{totalNumDataChunks}, outDataChunksSize{move(outDataChunksSize)},
-      expressions(move(expressions)), expressionsOutputPos{move(expressionsOutputPos)},
-      discardedDataChunksPos{move(discardedDataChunksPos)} {
-    inResultSet = this->prevOperator->getResultSet();
-    resultSet = make_shared<ResultSet>(totalNumDataChunks);
-    for (auto i = 0u; i < this->outDataChunksSize.size(); ++i) {
-        resultSet->insert(i, make_shared<DataChunk>(this->outDataChunksSize[i]));
-    }
-    for (auto i = 0u; i < this->expressions.size(); ++i) {
-        auto& expression = *this->expressions[i];
-        auto [outDataChunkPos, outValueVectorPos] = this->expressionsOutputPos[i];
-        auto dataChunk = resultSet->dataChunks[outDataChunkPos];
+void Projection::initResultSet(const shared_ptr<ResultSet>& resultSet) {
+    prevOperator->initResultSet(inResultSet);
+    this->resultSet = resultSet;
+    for (auto i = 0u; i < expressions.size(); ++i) {
+        auto& expression = *expressions[i];
+        expression.initResultSet(*inResultSet, *context.memoryManager);
+        auto [outDataChunkPos, outValueVectorPos] = expressionsOutputPos[i];
+        auto dataChunk = this->resultSet->dataChunks[outDataChunkPos];
         dataChunk->state = expression.result->state;
         dataChunk->insert(outValueVectorPos, expression.result);
     }
-    discardedResultSet = make_shared<ResultSet>(this->discardedDataChunksPos.size());
-    for (auto i = 0u; i < this->discardedDataChunksPos.size(); ++i) {
-        discardedResultSet->insert(i, inResultSet->dataChunks[this->discardedDataChunksPos[i]]);
+    discardedResultSet = make_shared<ResultSet>(discardedDataChunksPos.size());
+    for (auto i = 0u; i < discardedDataChunksPos.size(); ++i) {
+        discardedResultSet->insert(i, inResultSet->dataChunks[discardedDataChunksPos[i]]);
     }
 }
 
@@ -47,15 +38,17 @@ void Projection::getNextTuples() {
 }
 
 unique_ptr<PhysicalOperator> Projection::clone() {
-    auto prevOperatorClone = prevOperator->clone();
     vector<unique_ptr<ExpressionEvaluator>> rootExpressionsCloned;
     for (auto& expression : expressions) {
-        rootExpressionsCloned.push_back(
-            expression->clone(*context.memoryManager, *prevOperatorClone->getResultSet()));
+        rootExpressionsCloned.push_back(expression->clone());
     }
-    return make_unique<Projection>(totalNumDataChunks, outDataChunksSize,
-        move(rootExpressionsCloned), expressionsOutputPos, discardedDataChunksPos,
-        move(prevOperatorClone), context, id);
+    auto clonedInResultSet = make_shared<ResultSet>(inResultSet->dataChunks.size());
+    for (auto i = 0u; i < inResultSet->dataChunks.size(); ++i) {
+        clonedInResultSet->insert(
+            i, make_shared<DataChunk>(inResultSet->dataChunks[i]->valueVectors.size()));
+    }
+    return make_unique<Projection>(move(rootExpressionsCloned), expressionsOutputPos,
+        discardedDataChunksPos, clonedInResultSet, prevOperator->clone(), context, id);
 }
 
 } // namespace processor
