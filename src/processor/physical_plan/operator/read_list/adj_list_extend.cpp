@@ -3,18 +3,12 @@
 namespace graphflow {
 namespace processor {
 
-AdjListExtend::AdjListExtend(uint32_t inDataChunkPos, uint32_t inValueVectorPos,
-    uint32_t outDataChunkSize, uint32_t outDataChunkPos, uint32_t outValueVectorPos,
-    AdjLists* lists, unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context,
-    uint32_t id)
-    : ReadList{inDataChunkPos, inValueVectorPos, outDataChunkPos, outValueVectorPos, lists,
-          move(prevOperator), context, id, true /* is adj list */},
-      outDataChunkSize{outDataChunkSize} {
+void AdjListExtend::initResultSet(const shared_ptr<ResultSet>& resultSet) {
+    ReadList::initResultSet(resultSet);
     outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
-    outDataChunk = make_shared<DataChunk>(outDataChunkSize);
-    outDataChunk->insert(outValueVectorPos, outValueVector);
+    outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
     auto listSyncState = make_shared<ListSyncState>();
-    resultSet->insert(outDataChunkPos, outDataChunk, listSyncState);
+    resultSet->insert(outDataPos.dataChunkPos, listSyncState);
     largeListHandle->setListSyncState(listSyncState);
 }
 

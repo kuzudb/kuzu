@@ -13,26 +13,27 @@ namespace processor {
 class Projection : public PhysicalOperator {
 
 public:
-    Projection(uint32_t totalNumDataChunks, vector<uint32_t> outDataChunksSize,
-        vector<unique_ptr<ExpressionEvaluator>> expressions,
-        vector<pair<uint32_t, uint32_t>> expressionsOutputPos,
-        vector<uint32_t> discardedDataChunksPos, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id);
+    Projection(vector<unique_ptr<ExpressionEvaluator>> expressions,
+        vector<DataPos> expressionsOutputPos, vector<uint32_t> discardedDataChunksPos,
+        shared_ptr<ResultSet> inResultSet, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id)
+        : PhysicalOperator(move(prevOperator), PROJECTION, context, id),
+          expressions(move(expressions)), expressionsOutputPos{move(expressionsOutputPos)},
+          discardedDataChunksPos{move(discardedDataChunksPos)}, inResultSet{move(inResultSet)} {}
+
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override;
 
 private:
-    uint32_t totalNumDataChunks;
-    vector<uint32_t> outDataChunksSize;
-
     vector<unique_ptr<ExpressionEvaluator>> expressions;
-    vector<pair<uint32_t, uint32_t>> expressionsOutputPos;
+    vector<DataPos> expressionsOutputPos;
     vector<uint32_t> discardedDataChunksPos;
+    shared_ptr<ResultSet> inResultSet;
 
     shared_ptr<ResultSet> discardedResultSet;
-    shared_ptr<ResultSet> inResultSet;
 };
 
 } // namespace processor

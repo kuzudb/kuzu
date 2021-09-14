@@ -15,10 +15,14 @@ public:
     explicit ResultSet(uint32_t numDataChunks)
         : multiplicity{1}, dataChunks(numDataChunks), listSyncStatesPerDataChunk(numDataChunks) {}
 
-    void insert(uint32_t pos, const shared_ptr<DataChunk>& dataChunk,
-        const shared_ptr<ListSyncState>& listSyncState);
     inline void insert(uint32_t pos, const shared_ptr<DataChunk>& dataChunk) {
-        insert(pos, dataChunk, nullptr);
+        assert(dataChunks.size() > pos);
+        dataChunks[pos] = dataChunk;
+    }
+
+    inline void insert(uint32_t pos, const shared_ptr<ListSyncState>& listSyncState) {
+        assert(listSyncStatesPerDataChunk.size() > pos);
+        listSyncStatesPerDataChunk[pos] = listSyncState;
     }
 
     uint64_t getNumTuples();

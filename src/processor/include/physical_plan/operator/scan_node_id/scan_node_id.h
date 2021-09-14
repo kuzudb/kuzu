@@ -9,38 +9,33 @@ namespace processor {
 class ScanNodeID : public PhysicalOperator {
 
 public:
-    explicit ScanNodeID(uint32_t totalNumDataChunks, uint32_t outDataChunkSize,
-        uint32_t outDataChunkPos, uint32_t outValueVectorPos, shared_ptr<MorselsDesc>& morselDesc,
-        ExecutionContext& context, uint32_t id);
+    ScanNodeID(const DataPos& outDataPos, const shared_ptr<MorselsDesc>& morsel,
+        ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{SCAN, context, id}, outDataPos{outDataPos}, morsel{morsel} {}
 
-    ScanNodeID(uint32_t outDataChunkSize, uint32_t outDataChunkPos, uint32_t outValueVectorPos,
-        shared_ptr<MorselsDesc>& morselsDesc, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id);
+    ScanNodeID(const DataPos& outDataPos, const shared_ptr<MorselsDesc>& morsel,
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{move(prevOperator), SCAN, context, id},
+          outDataPos{outDataPos}, morsel{morsel} {}
+
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
     void reInitialize() override;
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return prevOperator ? make_unique<ScanNodeID>(outDataChunkSize, outDataChunkPos,
-                                  outValueVectorPos, morsel, prevOperator->clone(), context, id) :
-                              make_unique<ScanNodeID>(totalNumDataChunks, outDataChunkSize,
-                                  outDataChunkPos, outValueVectorPos, morsel, context, id);
+        return prevOperator ?
+                   make_unique<ScanNodeID>(outDataPos, morsel, prevOperator->clone(), context, id) :
+                   make_unique<ScanNodeID>(outDataPos, morsel, context, id);
     }
 
 private:
-    void initResultSet(uint32_t outDataChunkSize);
-
-private:
-    uint32_t totalNumDataChunks;
-    uint32_t outDataChunkSize;
-
-    uint32_t outDataChunkPos;
-    uint32_t outValueVectorPos;
+    DataPos outDataPos;
+    shared_ptr<MorselsDesc> morsel;
 
     shared_ptr<DataChunk> outDataChunk;
     shared_ptr<ValueVector> outValueVector;
-    shared_ptr<MorselsDesc> morsel;
 };
 
 } // namespace processor

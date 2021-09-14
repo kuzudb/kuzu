@@ -8,11 +8,13 @@ namespace processor {
 class Sink : public PhysicalOperator {
 
 public:
-    Sink(unique_ptr<PhysicalOperator> prevOperator, PhysicalOperatorType operatorType,
-        ExecutionContext& context, uint32_t id)
+    Sink(shared_ptr<ResultSet> resultSet, unique_ptr<PhysicalOperator> prevOperator,
+        PhysicalOperatorType operatorType, ExecutionContext& context, uint32_t id)
         : PhysicalOperator{move(prevOperator), operatorType, context, id} {
-        resultSet = this->prevOperator->getResultSet();
-    };
+        this->resultSet = move(resultSet);
+    }
+
+    virtual void init() { prevOperator->initResultSet(resultSet); }
 
     virtual void execute() = 0;
 

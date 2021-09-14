@@ -20,14 +20,12 @@ public:
     explicit ExpressionMapper(PlanMapper* planMapper) : planMapper{planMapper} {};
 
     unique_ptr<ExpressionEvaluator> mapToPhysical(const Expression& expression,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet* resultSet,
-        ExecutionContext& context);
+        const PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
 
 private:
     unique_ptr<ExpressionEvaluator> mapChildExpressionAndCastToUnstructuredIfNecessary(
         const Expression& expression, bool castToUnstructured,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet* resultSet,
-        ExecutionContext& context);
+        const PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
 
     unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToUnstructuredPhysical(
         const Expression& expression, ExecutionContext& context);
@@ -35,12 +33,12 @@ private:
     unique_ptr<ExpressionEvaluator> mapLogicalLiteralExpressionToStructuredPhysical(
         const Expression& expression, ExecutionContext& context);
 
-    unique_ptr<ExpressionEvaluator> mapLogicalLeafExpressionToPhysical(const Expression& expression,
-        PhysicalOperatorsInfo& physicalOperatorInfo, ResultSet* resultSet);
+    unique_ptr<ExpressionEvaluator> mapLogicalLeafExpressionToPhysical(
+        const Expression& expression, const PhysicalOperatorsInfo& physicalOperatorInfo);
 
     unique_ptr<ExpressionEvaluator> mapLogicalExistentialSubqueryExpressionToPhysical(
-        const Expression& expression, PhysicalOperatorsInfo& physicalOperatorInfo,
-        ResultSet* resultSet, ExecutionContext& context);
+        const Expression& expression, const PhysicalOperatorsInfo& physicalOperatorInfo,
+        ExecutionContext& context);
 
 private:
     PlanMapper* planMapper;

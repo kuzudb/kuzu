@@ -5,18 +5,12 @@
 namespace graphflow {
 namespace processor {
 
-Intersect::Intersect(uint64_t leftDataChunkPos, uint64_t leftValueVectorPos,
-    uint64_t rightDataChunkPos, uint64_t rightValueVectorPos,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : PhysicalOperator{move(prevOperator), INTERSECT, context, id},
-      FilteringOperator(this->prevOperator->getResultSet()->dataChunks[leftDataChunkPos]),
-      leftDataChunkPos{leftDataChunkPos}, leftValueVectorPos{leftValueVectorPos},
-      rightDataChunkPos{rightDataChunkPos}, rightValueVectorPos{rightValueVectorPos} {
-    resultSet = this->prevOperator->getResultSet();
-    leftDataChunk = resultSet->dataChunks[leftDataChunkPos];
-    leftNodeIDVector = leftDataChunk->getValueVector(leftValueVectorPos);
-    rightDataChunk = resultSet->dataChunks[rightDataChunkPos];
-    rightNodeIDVector = rightDataChunk->getValueVector(rightValueVectorPos);
+void Intersect::initResultSet(const shared_ptr<ResultSet>& resultSet) {
+    PhysicalOperator::initResultSet(resultSet);
+    leftDataChunk = this->resultSet->dataChunks[leftDataPos.dataChunkPos];
+    leftValueVector = leftDataChunk->valueVectors[leftDataPos.valueVectorPos];
+    rightDataChunk = this->resultSet->dataChunks[rightDataPos.dataChunkPos];
+    rightValueVector = rightDataChunk->valueVectors[rightDataPos.valueVectorPos];
 }
 
 static void sortSelectedPos(const shared_ptr<ValueVector>& nodeIDVector) {
@@ -30,12 +24,12 @@ static void sortSelectedPos(const shared_ptr<ValueVector>& nodeIDVector) {
 void Intersect::getNextTuples() {
     auto numSelectedValues = 0u;
     do {
-        restoreDataChunkSelectorState();
+        restoreDataChunkSelectorState(leftDataChunk);
         if (rightDataChunk->state->selectedSize == rightDataChunk->state->currIdx + 1ul) {
             rightDataChunk->state->currIdx = -1;
             prevOperator->getNextTuples();
-            sortSelectedPos(leftNodeIDVector);
-            sortSelectedPos(rightNodeIDVector);
+            sortSelectedPos(leftValueVector);
+            sortSelectedPos(rightValueVector);
             leftIdx = 0;
             if (leftDataChunk->state->selectedSize == 0) {
                 break;
@@ -43,13 +37,13 @@ void Intersect::getNextTuples() {
         }
         // Flatten right dataChunk
         rightDataChunk->state->currIdx++;
-        saveDataChunkSelectorState();
+        saveDataChunkSelectorState(leftDataChunk);
         auto rightPos = rightDataChunk->state->getPositionOfCurrIdx();
-        auto rightNodeOffset = rightNodeIDVector->readNodeOffset(rightPos);
+        auto rightNodeOffset = rightValueVector->readNodeOffset(rightPos);
         numSelectedValues = 0u;
         while (leftIdx < leftDataChunk->state->selectedSize) {
             auto leftPos = leftDataChunk->state->selectedPositions[leftIdx];
-            auto leftNodeOffset = leftNodeIDVector->readNodeOffset(leftPos);
+            auto leftNodeOffset = leftValueVector->readNodeOffset(leftPos);
             if (leftNodeOffset > rightNodeOffset) {
                 break;
             } else if (leftNodeOffset == rightNodeOffset) {

@@ -8,20 +8,19 @@ namespace processor {
 class AdjListExtend : public ReadList {
 
 public:
-    AdjListExtend(uint32_t inDataChunkPos, uint32_t inValueVectorPos, uint32_t outDataChunkSize,
-        uint32_t outDataChunkPos, uint32_t outValueVectorPos, AdjLists* lists,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
+    AdjListExtend(const DataPos& inDataPos, const DataPos& outDataPos, AdjLists* lists,
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+        : ReadList{inDataPos, outDataPos, lists, move(prevOperator), context, id,
+              true /* isAdjList */} {}
+
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<AdjListExtend>(inDataChunkPos, inValueVectorPos, outDataChunkSize,
-            outDataChunkPos, outValueVectorPos, (AdjLists*)lists, prevOperator->clone(), context,
-            id);
+        return make_unique<AdjListExtend>(
+            inDataPos, outDataPos, (AdjLists*)lists, prevOperator->clone(), context, id);
     }
-
-private:
-    uint32_t outDataChunkSize;
 };
 
 } // namespace processor

@@ -41,32 +41,39 @@ using namespace graphflow::planner;
 namespace graphflow {
 namespace processor {
 
+static shared_ptr<ResultSet> populateResultSet(
+    const Schema& schema, const PhysicalOperatorsInfo& info) {
+    auto resultSet = make_shared<ResultSet>(schema.getNumGroups());
+    for (auto i = 0u; i < schema.getNumGroups(); ++i) {
+        resultSet->insert(i, make_shared<DataChunk>(schema.getGroup(i)->getNumVariables()));
+    }
+    return resultSet;
+}
+
 unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
     unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& context) {
-    auto info = PhysicalOperatorsInfo(*logicalPlan->schema);
+    auto& schema = *logicalPlan->getSchema();
+    auto info = PhysicalOperatorsInfo(schema);
     auto prevOperator = mapLogicalOperatorToPhysical(logicalPlan->lastOperator, info, context);
-    auto resultCollector = make_unique<ResultCollector>(move(prevOperator), RESULT_COLLECTOR,
-        context, physicalOperatorID++, !logicalPlan->isCountOnly);
+    auto resultCollector =
+        make_unique<ResultCollector>(populateResultSet(schema, info), move(prevOperator),
+            RESULT_COLLECTOR, context, physicalOperatorID++, !logicalPlan->isCountOnly);
     return make_unique<PhysicalPlan>(move(resultCollector));
 }
 
-pair<ResultSet*, PhysicalOperatorsInfo*> PlanMapper::enterSubquery(
-    ResultSet* newOuterQueryResultSet, PhysicalOperatorsInfo* newPhysicalOperatorsInfo) {
-    auto prevOuterQueryResultSet = outerQueryResultSet;
+const PhysicalOperatorsInfo* PlanMapper::enterSubquery(
+    const PhysicalOperatorsInfo* newPhysicalOperatorsInfo) {
     auto prevPhysicalOperatorInfo = outerPhysicalOperatorsInfo;
-    outerQueryResultSet = newOuterQueryResultSet;
     outerPhysicalOperatorsInfo = newPhysicalOperatorsInfo;
-    return make_pair(prevOuterQueryResultSet, prevPhysicalOperatorInfo);
+    return prevPhysicalOperatorInfo;
 }
 
-void PlanMapper::exitSubquery(
-    ResultSet* prevOuterQueryResultSet, PhysicalOperatorsInfo* prevPhysicalOperatorsInfo) {
-    outerQueryResultSet = prevOuterQueryResultSet;
+void PlanMapper::exitSubquery(const PhysicalOperatorsInfo* prevPhysicalOperatorsInfo) {
     outerPhysicalOperatorsInfo = prevPhysicalOperatorsInfo;
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
-    const shared_ptr<LogicalOperator>& logicalOperator, PhysicalOperatorsInfo& info,
+    const shared_ptr<LogicalOperator>& logicalOperator, const PhysicalOperatorsInfo& info,
     ExecutionContext& context) {
     unique_ptr<PhysicalOperator> physicalOperator;
     auto operatorType = logicalOperator->getLogicalOperatorType();
@@ -125,220 +132,195 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
-    auto& scan = (const LogicalScanNodeID&)*logicalOperator;
-    auto morsel = make_shared<MorselsDesc>(scan.label, graph.getNumNodes(scan.label));
-    auto [outDataChunkPos, outValueVectorPos] = info.getDataChunkAndValueVectorPos(scan.nodeID);
-    if (scan.prevOperator) {
-        return make_unique<ScanNodeID>(info.getDataChunkSize(outDataChunkPos), outDataChunkPos,
-            outValueVectorPos, morsel,
-            mapLogicalOperatorToPhysical(scan.prevOperator, info, context), context,
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
+    auto& logicalScan = (const LogicalScanNodeID&)*logicalOperator;
+    auto morsel = make_shared<MorselsDesc>(logicalScan.label, graph.getNumNodes(logicalScan.label));
+    auto dataPos = info.getDataPos(logicalScan.nodeID);
+    if (logicalScan.prevOperator) {
+        return make_unique<ScanNodeID>(dataPos, morsel,
+            mapLogicalOperatorToPhysical(logicalScan.prevOperator, info, context), context,
             physicalOperatorID++);
     }
-    return make_unique<ScanNodeID>(info.getTotalNumDataChunks(),
-        info.getDataChunkSize(outDataChunkPos), outDataChunkPos, outValueVectorPos, morsel, context,
-        physicalOperatorID++);
+    return make_unique<ScanNodeID>(dataPos, morsel, context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSelectScanToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
     auto& selectScan = (const LogicalSelectScan&)*logicalOperator;
-    vector<pair<uint32_t, uint32_t>> inDataChunkAndValueVectorsPos;
+    vector<DataPos> inDataPoses;
     uint32_t outDataChunkPos =
-        info.getDataChunkAndValueVectorPos(*selectScan.getVariablesToSelect().begin()).first;
-    vector<uint32_t> outValueVectorPos;
+        info.getDataPos(*selectScan.getVariablesToSelect().begin()).dataChunkPos;
+    vector<uint32_t> outValueVectorsPos;
     for (auto& variable : selectScan.getVariablesToSelect()) {
-        inDataChunkAndValueVectorsPos.push_back(
-            outerPhysicalOperatorsInfo->getDataChunkAndValueVectorPos(variable));
+        inDataPoses.push_back(outerPhysicalOperatorsInfo->getDataPos(variable));
         // all variables should be appended to the same datachunk
-        assert(outDataChunkPos == info.getDataChunkAndValueVectorPos(variable).first);
-        outValueVectorPos.push_back(info.getDataChunkAndValueVectorPos(variable).second);
+        assert(outDataChunkPos == info.getDataPos(variable).dataChunkPos);
+        outValueVectorsPos.push_back(info.getDataPos(variable).valueVectorPos);
     }
-    return make_unique<SelectScan>(info.getTotalNumDataChunks(), outerQueryResultSet,
-        move(inDataChunkAndValueVectorsPos), info.getDataChunkSize(outDataChunkPos),
-        outDataChunkPos, move(outValueVectorPos), context, physicalOperatorID++);
+    return make_unique<SelectScan>(move(inDataPoses), outDataChunkPos, move(outValueVectorsPos),
+        context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
     auto& extend = (const LogicalExtend&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
-    auto [inDataChunkPos, inValueVectorPos] =
-        info.getDataChunkAndValueVectorPos(extend.boundNodeID);
-    auto [outDataChunkPos, outValueVectorPos] =
-        info.getDataChunkAndValueVectorPos(extend.nbrNodeID);
+    auto inDataPos = info.getDataPos(extend.boundNodeID);
+    auto outDataPos = info.getDataPos(extend.nbrNodeID);
     auto& relsStore = graph.getRelsStore();
     if (extend.isColumn) {
-        assert(inDataChunkPos == outDataChunkPos);
         assert(extend.lowerBound == extend.upperBound && extend.lowerBound == 1);
-        return make_unique<AdjColumnExtend>(inDataChunkPos, inValueVectorPos, outValueVectorPos,
+        return make_unique<AdjColumnExtend>(inDataPos, outDataPos,
             relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
             move(prevOperator), context, physicalOperatorID++);
     } else {
         auto adjLists =
             relsStore.getAdjLists(extend.direction, extend.boundNodeLabel, extend.relLabel);
         if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
-            return make_unique<AdjListExtend>(inDataChunkPos, inValueVectorPos,
-                info.getDataChunkSize(outDataChunkPos), outDataChunkPos, outValueVectorPos,
-                adjLists, move(prevOperator), context, physicalOperatorID++);
+            return make_unique<AdjListExtend>(
+                inDataPos, outDataPos, adjLists, move(prevOperator), context, physicalOperatorID++);
         } else {
-            return make_unique<FrontierExtend>(inDataChunkPos, inValueVectorPos,
-                info.getDataChunkSize(outDataChunkPos), outDataChunkPos, outValueVectorPos,
-                adjLists, extend.nbrNodeLabel, extend.lowerBound, extend.upperBound,
-                move(prevOperator), context, physicalOperatorID++);
+            return make_unique<FrontierExtend>(inDataPos, outDataPos, adjLists, extend.nbrNodeLabel,
+                extend.lowerBound, extend.upperBound, move(prevOperator), context,
+                physicalOperatorID++);
         }
     }
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
     auto& flatten = (const LogicalFlatten&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
-    auto dataChunkPos = info.getDataChunkPos(flatten.variable);
-    return make_unique<Flatten>(dataChunkPos, move(prevOperator), context, physicalOperatorID++);
+    return make_unique<Flatten>(info.getDataPos(flatten.variable).dataChunkPos, move(prevOperator),
+        context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
     auto& logicalFilter = (const LogicalFilter&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     auto dataChunkToSelectPos = logicalFilter.groupPosToSelect;
-    auto physicalRootExpr = expressionMapper.mapToPhysical(
-        *logicalFilter.expression, info, prevOperator->getResultSet().get(), context);
+    auto physicalRootExpr =
+        expressionMapper.mapToPhysical(*logicalFilter.expression, info, context);
     return make_unique<Filter>(move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator),
         context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
     auto& logicalIntersect = (const LogicalIntersect&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
-    auto [leftDataChunkPos, leftValueVectorPos] =
-        info.getDataChunkAndValueVectorPos(logicalIntersect.getLeftNodeID());
-    auto [rightDataChunkPos, rightValueVectorPos] =
-        info.getDataChunkAndValueVectorPos(logicalIntersect.getRightNodeID());
-    return make_unique<Intersect>(leftDataChunkPos, leftValueVectorPos, rightDataChunkPos,
-        rightValueVectorPos, move(prevOperator), context, physicalOperatorID++);
+    auto leftDataPos = info.getDataPos(logicalIntersect.getLeftNodeID());
+    auto rightDataPos = info.getDataPos(logicalIntersect.getRightNodeID());
+    return make_unique<Intersect>(
+        leftDataPos, rightDataPos, move(prevOperator), context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
     auto& logicalProjection = (const LogicalProjection&)*logicalOperator;
-    auto oldInfo = PhysicalOperatorsInfo(*logicalProjection.schemaBeforeProjection);
+    auto& schemaBeforeProjection = *logicalProjection.schemaBeforeProjection;
+    auto infoBeforeProjection = PhysicalOperatorsInfo(*logicalProjection.schemaBeforeProjection);
     auto prevOperator =
-        mapLogicalOperatorToPhysical(logicalOperator->prevOperator, oldInfo, context);
+        mapLogicalOperatorToPhysical(logicalOperator->prevOperator, infoBeforeProjection, context);
     vector<unique_ptr<ExpressionEvaluator>> expressionEvaluators;
-    vector<pair<uint32_t, uint32_t>> expressionsOutputPos;
+    vector<DataPos> expressionsOutputPos;
     for (auto& expression : logicalProjection.expressionsToProject) {
-        expressionEvaluators.push_back(expressionMapper.mapToPhysical(
-            *expression, oldInfo, prevOperator->getResultSet().get(), context));
-        expressionsOutputPos.push_back(
-            info.getDataChunkAndValueVectorPos(expression->getInternalName()));
+        expressionEvaluators.push_back(
+            expressionMapper.mapToPhysical(*expression, infoBeforeProjection, context));
+        expressionsOutputPos.push_back(info.getDataPos(expression->getInternalName()));
     }
-    vector<uint32_t> outDataChunksSize;
-    for (auto i = 0u; i < info.getTotalNumDataChunks(); ++i) {
-        outDataChunksSize.push_back(info.getDataChunkSize(i));
-    }
-    return make_unique<Projection>(info.getTotalNumDataChunks(), move(outDataChunksSize),
-        move(expressionEvaluators), move(expressionsOutputPos), logicalProjection.discardedGroupPos,
-        move(prevOperator), context, physicalOperatorID++);
+    return make_unique<Projection>(move(expressionEvaluators), move(expressionsOutputPos),
+        logicalProjection.discardedGroupPos,
+        populateResultSet(schemaBeforeProjection, infoBeforeProjection), move(prevOperator),
+        context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
     auto& scanProperty = (const LogicalScanNodeProperty&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
-    auto [inDataChunkPos, inValueVectorPos] =
-        info.getDataChunkAndValueVectorPos(scanProperty.nodeID);
-    auto [outDataChunkPos, outValueVectorPos] =
-        info.getDataChunkAndValueVectorPos(scanProperty.propertyVariableName);
+    auto inDataPos = info.getDataPos(scanProperty.nodeID);
+    auto outDataPos = info.getDataPos(scanProperty.propertyVariableName);
     auto& nodeStore = graph.getNodesStore();
-    assert(inDataChunkPos == outDataChunkPos);
     if (scanProperty.isUnstructuredProperty) {
         auto lists = nodeStore.getNodeUnstrPropertyLists(scanProperty.nodeLabel);
-        return make_unique<ScanUnstructuredProperty>(inDataChunkPos, inValueVectorPos,
-            outValueVectorPos, scanProperty.propertyKey, lists, move(prevOperator), context,
-            physicalOperatorID++);
+        return make_unique<ScanUnstructuredProperty>(inDataPos, outDataPos,
+            scanProperty.propertyKey, lists, move(prevOperator), context, physicalOperatorID++);
     }
     auto column = nodeStore.getNodePropertyColumn(scanProperty.nodeLabel, scanProperty.propertyKey);
-    return make_unique<ScanStructuredProperty>(inDataChunkPos, inValueVectorPos, outValueVectorPos,
-        column, move(prevOperator), context, physicalOperatorID++);
+    return make_unique<ScanStructuredProperty>(
+        inDataPos, outDataPos, column, move(prevOperator), context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
     auto& scanProperty = (const LogicalScanRelProperty&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
-    auto [inDataChunkPos, inValueVectorPos] =
-        info.getDataChunkAndValueVectorPos(scanProperty.boundNodeID);
-    auto [outDataChunkPos, outValueVectorPos] =
-        info.getDataChunkAndValueVectorPos(scanProperty.propertyVariableName);
+    auto inDataPos = info.getDataPos(scanProperty.boundNodeID);
+    auto outDataPos = info.getDataPos(scanProperty.propertyVariableName);
     auto& relStore = graph.getRelsStore();
     if (scanProperty.isColumn) {
-        assert(inDataChunkPos == outDataChunkPos);
         auto column = relStore.getRelPropertyColumn(
             scanProperty.relLabel, scanProperty.boundNodeLabel, scanProperty.propertyKey);
-        return make_unique<ScanStructuredProperty>(inDataChunkPos, inValueVectorPos,
-            outValueVectorPos, column, move(prevOperator), context, physicalOperatorID++);
+        return make_unique<ScanStructuredProperty>(
+            inDataPos, outDataPos, column, move(prevOperator), context, physicalOperatorID++);
     }
     auto lists = relStore.getRelPropertyLists(scanProperty.direction, scanProperty.boundNodeLabel,
         scanProperty.relLabel, scanProperty.propertyKey);
-    return make_unique<ReadRelPropertyList>(inDataChunkPos, inValueVectorPos, outDataChunkPos,
-        outValueVectorPos, lists, move(prevOperator), context, physicalOperatorID++);
+    return make_unique<ReadRelPropertyList>(
+        inDataPos, outDataPos, lists, move(prevOperator), context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
     auto& hashJoin = (const LogicalHashJoin&)*logicalOperator;
     // create hashJoin build
     auto buildSideInfo = PhysicalOperatorsInfo(*hashJoin.buildSideSchema);
     auto buildSidePrevOperator =
         mapLogicalOperatorToPhysical(hashJoin.buildSidePrevOperator, buildSideInfo, context);
-    auto [buildSideKeyDataChunkPos, buildSideKeyVectorPos] =
-        buildSideInfo.getDataChunkAndValueVectorPos(hashJoin.joinNodeID);
     vector<bool> dataChunkPosToIsFlat;
     for (auto& buildSideGroup : hashJoin.buildSideSchema->groups) {
         dataChunkPosToIsFlat.push_back(buildSideGroup->isFlat);
     }
     auto buildDataChunksInfo = BuildDataChunksInfo(
-        buildSideKeyDataChunkPos, buildSideKeyVectorPos, move(dataChunkPosToIsFlat));
-    auto hashJoinBuild = make_unique<HashJoinBuild>(
-        buildDataChunksInfo, move(buildSidePrevOperator), context, physicalOperatorID++);
-    auto hashJoinSharedState =
-        make_shared<HashJoinSharedState>(hashJoinBuild->numBytesForFixedTuplePart);
+        buildSideInfo.getDataPos(hashJoin.joinNodeID), move(dataChunkPosToIsFlat));
+    auto hashJoinBuild = make_unique<HashJoinBuild>(buildDataChunksInfo,
+        populateResultSet(*hashJoin.buildSideSchema, buildSideInfo), move(buildSidePrevOperator),
+        context, physicalOperatorID++);
+    auto hashJoinSharedState = make_shared<HashJoinSharedState>();
     hashJoinBuild->sharedState = hashJoinSharedState;
 
     // create hashJoin probe
     auto probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin.prevOperator, info, context);
-    auto [probeSideKeyDataChunkPos, probeSideKeyVectorPos] =
-        info.getDataChunkAndValueVectorPos(hashJoin.joinNodeID);
-    auto flatDataChunkSize = hashJoin.probeSideFlatGroupPos == UINT32_MAX ?
-                                 0 :
-                                 info.getDataChunkSize(hashJoin.probeSideFlatGroupPos);
-    vector<uint32_t> unFlatDataChunksSize;
-    for (auto& unFlatDataChunkPos : hashJoin.probeSideUnFlatGroupsPos) {
-        unFlatDataChunksSize.push_back(info.getDataChunkSize(unFlatDataChunkPos));
-    }
-    auto probeDataChunksInfo = ProbeDataChunksInfo(probeSideKeyDataChunkPos, probeSideKeyVectorPos,
-        hashJoin.probeSideFlatGroupPos, flatDataChunkSize, hashJoin.probeSideUnFlatGroupsPos,
-        unFlatDataChunksSize);
-
+    auto probeDataChunksInfo = ProbeDataChunksInfo(info.getDataPos(hashJoin.joinNodeID),
+        hashJoin.probeSideFlatGroupPos, hashJoin.probeSideUnFlatGroupsPos);
     // for each dataChunk on build side, we maintain a map from value vector position to its output
     // position of probe side.
-    vector<unordered_map<uint32_t, pair<uint32_t, uint32_t>>> buildSideValueVectorsOutputPos;
+    vector<unordered_map<uint32_t, DataPos>> buildSideValueVectorsOutputPos;
     for (auto i = 0u; i < hashJoin.buildSideSchema->groups.size(); ++i) {
-        buildSideValueVectorsOutputPos.emplace_back(
-            unordered_map<uint32_t, pair<uint32_t, uint32_t>>());
+        buildSideValueVectorsOutputPos.emplace_back(unordered_map<uint32_t, DataPos>());
         auto& buildSideGroup = *hashJoin.buildSideSchema->groups[i];
         for (auto& variable : buildSideGroup.variables) {
-            if (i == buildSideKeyDataChunkPos && variable == hashJoin.joinNodeID) {
+            if (i == buildDataChunksInfo.keyDataPos.dataChunkPos &&
+                variable == hashJoin.joinNodeID) {
                 continue;
             }
             auto [buildSideDataChunkPos, buildSideValueVectorPos] =
-                buildSideInfo.getDataChunkAndValueVectorPos(variable);
+                buildSideInfo.getDataPos(variable);
             assert(buildSideDataChunkPos == i);
             buildSideValueVectorsOutputPos[i].insert(
-                {buildSideValueVectorPos, info.getDataChunkAndValueVectorPos(variable)});
+                {buildSideValueVectorPos, info.getDataPos(variable)});
         }
     }
 
@@ -350,56 +332,50 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLoadCSVToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
     auto& logicalLoadCSV = (const LogicalLoadCSV&)*logicalOperator;
     assert(!logicalLoadCSV.csvColumnVariables.empty());
     vector<DataType> csvColumnDataTypes;
     uint32_t outDataChunkPos =
-        info.getDataChunkPos(logicalLoadCSV.csvColumnVariables[0]->getInternalName());
+        info.getDataPos(logicalLoadCSV.csvColumnVariables[0]->getInternalName()).dataChunkPos;
     vector<uint32_t> outValueVectorsPos;
     for (auto& csvColumnVariable : logicalLoadCSV.csvColumnVariables) {
         csvColumnDataTypes.push_back(csvColumnVariable->dataType);
         auto [dataChunkPos, outValueVectorPos] =
-            info.getDataChunkAndValueVectorPos(csvColumnVariable->getInternalName());
+            info.getDataPos(csvColumnVariable->getInternalName());
         assert(outDataChunkPos == dataChunkPos);
         outValueVectorsPos.push_back(outValueVectorPos);
     }
     return make_unique<LoadCSV>(logicalLoadCSV.path, logicalLoadCSV.tokenSeparator,
-        csvColumnDataTypes, info.getTotalNumDataChunks(), info.getDataChunkSize(outDataChunkPos),
-        outDataChunkPos, move(outValueVectorsPos), context, physicalOperatorID++);
+        csvColumnDataTypes, outDataChunkPos, move(outValueVectorsPos), context,
+        physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     return make_unique<MultiplicityReducer>(move(prevOperator), context, physicalOperatorID++);
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(LogicalOperator* logicalOperator,
+    const PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto& logicalSkip = (const LogicalSkip&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     auto dataChunkToSelectPos = logicalSkip.getGroupPosToSelect();
-    vector<uint64_t> dataChunksToLimit;
-    for (auto& groupPosToSkip : logicalSkip.getGroupsPosToSkip()) {
-        dataChunksToLimit.push_back(groupPosToSkip);
-    }
     return make_unique<Skip>(logicalSkip.getSkipNumber(), make_shared<atomic_uint64_t>(0),
-        dataChunkToSelectPos, move(dataChunksToLimit), move(prevOperator), context,
+        dataChunkToSelectPos, logicalSkip.getGroupsPosToSkip(), move(prevOperator), context,
         physicalOperatorID++);
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(LogicalOperator* logicalOperator,
+    const PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto& logicalLimit = (const LogicalLimit&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     auto dataChunkToSelectPos = logicalLimit.getGroupPosToSelect();
-    vector<uint64_t> dataChunksToLimit;
-    for (auto& groupPosToLimit : logicalLimit.getGroupsPosToLimit()) {
-        dataChunksToLimit.push_back(groupPosToLimit);
-    }
     return make_unique<Limit>(logicalLimit.getLimitNumber(), make_shared<atomic_uint64_t>(0),
-        dataChunkToSelectPos, move(dataChunksToLimit), move(prevOperator), context,
+        dataChunkToSelectPos, logicalLimit.getGroupsPosToLimit(), move(prevOperator), context,
         physicalOperatorID++);
 }
 

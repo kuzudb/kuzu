@@ -142,5 +142,12 @@ unique_ptr<AggregationFunction> AggregateExpressionEvaluator::getMinMaxFunction(
     }
 }
 
+void AggregateExpressionEvaluator::initResultSet(
+    const ResultSet& resultSet, MemoryManager& memoryManager) {
+    for (auto& child : childrenExpr) {
+        child->initResultSet(resultSet, memoryManager);
+    }
+}
+
 } // namespace evaluator
 } // namespace graphflow

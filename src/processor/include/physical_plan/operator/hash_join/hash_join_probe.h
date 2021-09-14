@@ -38,37 +38,30 @@ struct BuildSideVectorInfo {
 struct ProbeDataChunksInfo {
 
 public:
-    ProbeDataChunksInfo(uint32_t keyDataChunkPos, uint32_t keyValueVectorPos,
-        uint32_t newFlatDataChunkPos, uint32_t newFlatDataChunkSize,
-        vector<uint32_t> newUnFlatDataChunksPos, vector<uint32_t> newUnFlatDataChunksSize)
-        : keyDataChunkPos{keyDataChunkPos}, keyValueVectorPos{keyValueVectorPos},
-          newFlatDataChunkPos{newFlatDataChunkPos}, newFlatDataChunkSize{newFlatDataChunkSize},
-          newUnFlatDataChunksPos{move(newUnFlatDataChunksPos)}, newUnFlatDataChunksSize{move(
-                                                                    newUnFlatDataChunksSize)} {}
+    ProbeDataChunksInfo(const DataPos& keyDataPos, uint32_t newFlatDataChunkPos,
+        vector<uint32_t> newUnFlatDataChunksPos)
+        : keyDataPos{keyDataPos}, newFlatDataChunkPos{newFlatDataChunkPos},
+          newUnFlatDataChunksPos{move(newUnFlatDataChunksPos)} {}
 
     ProbeDataChunksInfo(const ProbeDataChunksInfo& other)
-        : ProbeDataChunksInfo(other.keyDataChunkPos, other.keyValueVectorPos,
-              other.newFlatDataChunkPos, other.newFlatDataChunkSize, other.newUnFlatDataChunksPos,
-              other.newUnFlatDataChunksSize){};
+        : ProbeDataChunksInfo(
+              other.keyDataPos, other.newFlatDataChunkPos, other.newUnFlatDataChunksPos){};
 
 public:
-    uint32_t keyDataChunkPos;
-    uint32_t keyValueVectorPos;
+    DataPos keyDataPos;
     uint32_t newFlatDataChunkPos;
-    uint32_t newFlatDataChunkSize;
     vector<uint32_t> newUnFlatDataChunksPos;
-    vector<uint32_t> newUnFlatDataChunksSize;
 };
 
 class HashJoinProbe : public PhysicalOperator {
 public:
     HashJoinProbe(const BuildDataChunksInfo& buildDataChunksInfo,
         const ProbeDataChunksInfo& probeDataChunksInfo,
-        vector<unordered_map<uint32_t, pair<uint32_t, uint32_t>>> buildSideValueVectorsOutputPos,
+        vector<unordered_map<uint32_t, DataPos>> buildSideValueVectorsOutputPos,
         unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp,
         ExecutionContext& context, uint32_t id);
 
-    HashJoinProbe();
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
     void reInitialize() override;
 
@@ -89,7 +82,7 @@ public:
 private:
     BuildDataChunksInfo buildDataChunksInfo;
     ProbeDataChunksInfo probeDataChunksInfo;
-    vector<unordered_map<uint32_t, pair<uint32_t, uint32_t>>> buildSideValueVectorsOutputPos;
+    vector<unordered_map<uint32_t, DataPos>> buildSideValueVectorsOutputPos;
 
     uint64_t numProbeSidePrevKeyValueVectors;
 

@@ -3,17 +3,11 @@
 namespace graphflow {
 namespace processor {
 
-ReadList::ReadList(uint32_t inDataChunkPos, uint32_t inValueVectorPos, uint32_t outDataChunkPos,
-    uint32_t outValueVectorPos, Lists* lists, unique_ptr<PhysicalOperator> prevOperator,
-    ExecutionContext& context, uint32_t id, bool isAdjList)
-    : PhysicalOperator{move(prevOperator), READ_LIST, context, id}, inDataChunkPos{inDataChunkPos},
-      inValueVectorPos{inValueVectorPos}, outDataChunkPos{outDataChunkPos},
-      outValueVectorPos{outValueVectorPos}, lists{lists} {
-    resultSet = this->prevOperator->getResultSet();
-    inDataChunk = resultSet->dataChunks[inDataChunkPos];
-    inValueVector = inDataChunk->getValueVector(inValueVectorPos);
-    assert(inValueVector->dataType == NODE);
-    largeListHandle = make_unique<LargeListHandle>(isAdjList);
+void ReadList::initResultSet(const shared_ptr<ResultSet>& resultSet) {
+    PhysicalOperator::initResultSet(resultSet);
+    inDataChunk = this->resultSet->dataChunks[inDataPos.dataChunkPos];
+    inValueVector = inDataChunk->valueVectors[inDataPos.valueVectorPos];
+    outDataChunk = this->resultSet->dataChunks[outDataPos.dataChunkPos];
 }
 
 void ReadList::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {

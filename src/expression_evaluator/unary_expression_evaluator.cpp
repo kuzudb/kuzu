@@ -3,15 +3,20 @@
 namespace graphflow {
 namespace evaluator {
 
-UnaryExpressionEvaluator::UnaryExpressionEvaluator(MemoryManager& memoryManager,
+UnaryExpressionEvaluator::UnaryExpressionEvaluator(
     unique_ptr<ExpressionEvaluator> child, ExpressionType expressionType, DataType dataType)
     : ExpressionEvaluator{expressionType, dataType} {
     childrenExpr.push_back(move(child));
     executeOperation = getUnaryVectorExecuteOperation(expressionType);
-    result = createResultValueVector(memoryManager);
     if (dataType == BOOL) {
         selectOperation = getUnaryVectorSelectOperation(expressionType);
     }
+}
+
+void UnaryExpressionEvaluator::initResultSet(
+    const ResultSet& resultSet, MemoryManager& memoryManager) {
+    childrenExpr[0]->initResultSet(resultSet, memoryManager);
+    result = createResultValueVector(memoryManager);
 }
 
 void UnaryExpressionEvaluator::evaluate() {
@@ -48,10 +53,9 @@ shared_ptr<ValueVector> UnaryExpressionEvaluator::createResultValueVector(
     return resultVector;
 }
 
-unique_ptr<ExpressionEvaluator> UnaryExpressionEvaluator::clone(
-    MemoryManager& memoryManager, const ResultSet& resultSet) {
+unique_ptr<ExpressionEvaluator> UnaryExpressionEvaluator::clone() {
     return make_unique<UnaryExpressionEvaluator>(
-        memoryManager, childrenExpr[0]->clone(memoryManager, resultSet), expressionType, dataType);
+        childrenExpr[0]->clone(), expressionType, dataType);
 }
 
 } // namespace evaluator

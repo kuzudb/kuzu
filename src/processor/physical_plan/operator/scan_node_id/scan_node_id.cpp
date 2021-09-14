@@ -3,31 +3,11 @@
 namespace graphflow {
 namespace processor {
 
-ScanNodeID::ScanNodeID(uint32_t totalNumDataChunks, uint32_t outDataChunkSize,
-    uint32_t outDataChunkPos, uint32_t outValueVectorPos, shared_ptr<MorselsDesc>& morsel,
-    ExecutionContext& context, uint32_t id)
-    : PhysicalOperator(SCAN, context, id), totalNumDataChunks{totalNumDataChunks},
-      outDataChunkSize{outDataChunkSize}, outDataChunkPos{outDataChunkPos},
-      outValueVectorPos{outValueVectorPos}, morsel{morsel} {
-    resultSet = make_shared<ResultSet>(totalNumDataChunks);
-    initResultSet(outDataChunkSize);
-}
-
-ScanNodeID::ScanNodeID(uint32_t outDataChunkSize, uint32_t outDataChunkPos,
-    uint32_t outValueVectorPos, shared_ptr<MorselsDesc>& morsel,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : PhysicalOperator{move(prevOperator), SCAN, context, id}, outDataChunkSize{outDataChunkSize},
-      outDataChunkPos{outDataChunkPos}, outValueVectorPos{outValueVectorPos}, morsel{morsel} {
-    resultSet = this->prevOperator->getResultSet();
-    initResultSet(outDataChunkSize);
-}
-
-void ScanNodeID::initResultSet(uint32_t outDataChunkSize) {
-    outValueVector = make_shared<ValueVector>(
-        context.memoryManager, NODE, true /* isSingleValue */, true /* isSequence */);
-    outDataChunk = make_shared<DataChunk>(outDataChunkSize);
-    outDataChunk->insert(outValueVectorPos, outValueVector);
-    resultSet->insert(outDataChunkPos, outDataChunk);
+void ScanNodeID::initResultSet(const shared_ptr<ResultSet>& resultSet) {
+    PhysicalOperator::initResultSet(resultSet);
+    outDataChunk = this->resultSet->dataChunks[outDataPos.dataChunkPos];
+    outValueVector = make_shared<ValueVector>(context.memoryManager, NODE, true /* isSequence */);
+    outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
 }
 
 void ScanNodeID::reInitialize() {

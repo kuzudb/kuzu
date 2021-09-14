@@ -15,7 +15,8 @@ public:
 
     void appendOperator(shared_ptr<LogicalOperator> op);
 
-    bool isEmpty() { return lastOperator == nullptr; }
+    inline bool isEmpty() { return lastOperator == nullptr; }
+    inline Schema* getSchema() { return schema.get(); }
 
     unique_ptr<LogicalPlan> copy() const;
 

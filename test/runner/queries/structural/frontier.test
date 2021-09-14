@@ -1,9 +1,5 @@
 # description: extending frontiers.
 
--NAME FourHopThreeKnowsOneStudyAtTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)-[e4:studyAt]->(e:organisation) RETURN COUNT(*)
----- 54
-
 -NAME KnowsOneToTwoHopTest
 -QUERY MATCH (a:person)-[:knows*1..2]->(b:person) RETURN COUNT(*)
 ---- 50

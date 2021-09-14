@@ -25,10 +25,9 @@ public:
         childrenExpr.push_back(move(child));
     }
 
-    unique_ptr<ExpressionEvaluator> clone(
-        MemoryManager& memoryManager, const ResultSet& resultSet) override {
-        return nullptr;
-    }
+    void initResultSet(const ResultSet& resultSet, MemoryManager& memoryManager) override;
+
+    unique_ptr<ExpressionEvaluator> clone() override { return nullptr; }
 
     uint64_t select(sel_t* selectedPositions) override { return 0; }
 

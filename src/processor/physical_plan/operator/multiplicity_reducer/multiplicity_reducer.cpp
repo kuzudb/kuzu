@@ -3,13 +3,6 @@
 namespace graphflow {
 namespace processor {
 
-MultiplicityReducer::MultiplicityReducer(
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : PhysicalOperator{move(prevOperator), MULTIPLICITY_REDUCER, context, id},
-      prevMultiplicity{1}, numRepeat{0} {
-    resultSet = this->prevOperator->getResultSet();
-}
-
 void MultiplicityReducer::reInitialize() {
     PhysicalOperator::reInitialize();
     prevMultiplicity = 1;

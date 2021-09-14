@@ -13,12 +13,12 @@ class NullMask {
     friend class ValueVector;
 
 public:
-    explicit NullMask(uint64_t vectorCapacity)
+    explicit NullMask()
         : mask(make_unique<bool[]>(DEFAULT_VECTOR_CAPACITY)), mayContainNulls{false} {
-        fill_n(mask.get(), vectorCapacity, false /* not null */);
+        fill_n(mask.get(), DEFAULT_VECTOR_CAPACITY, false /* not null */);
     };
 
-    shared_ptr<NullMask> clone(uint64_t vectorCapacity);
+    shared_ptr<NullMask> clone();
 
 private:
     unique_ptr<bool[]> mask;
@@ -30,10 +30,8 @@ private:
 class ValueVector {
 
 public:
-    ValueVector(MemoryManager* memoryManager, DataType dataType, bool isSingleValue = false,
-        bool isSequence = false)
-        : ValueVector(memoryManager, isSingleValue ? 1 : DEFAULT_VECTOR_CAPACITY,
-              TypeUtils::getDataTypeSize(dataType), dataType, isSequence) {}
+    ValueVector(MemoryManager* memoryManager, DataType dataType, bool isSequence = false)
+        : ValueVector(memoryManager, TypeUtils::getDataTypeSize(dataType), dataType, isSequence) {}
 
     ~ValueVector() = default;
 
@@ -81,13 +79,11 @@ public:
     shared_ptr<ValueVector> clone();
 
 protected:
-    ValueVector(MemoryManager* memoryManager, uint64_t vectorCapacity, uint64_t numBytesPerValue,
-        DataType dataType, bool isSequence)
-        : vectorCapacity{vectorCapacity},
-          bufferValues(make_unique<uint8_t[]>(numBytesPerValue * vectorCapacity)),
+    ValueVector(
+        MemoryManager* memoryManager, uint64_t numBytesPerValue, DataType dataType, bool isSequence)
+        : bufferValues(make_unique<uint8_t[]>(numBytesPerValue * DEFAULT_VECTOR_CAPACITY)),
           memoryManager{memoryManager}, dataType{dataType}, values{bufferValues.get()},
-          stringBuffer{nullptr}, isSequence{isSequence}, nullMask{make_shared<NullMask>(
-                                                             vectorCapacity)} {
+          stringBuffer{nullptr}, isSequence{isSequence}, nullMask{make_shared<NullMask>()} {
         if (dataType == STRING || dataType == UNSTRUCTURED) {
             assert(memoryManager);
             stringBuffer = make_unique<StringBuffer>(*memoryManager);
@@ -95,7 +91,6 @@ protected:
     }
 
 protected:
-    uint64_t vectorCapacity;
     unique_ptr<uint8_t[]> bufferValues;
     MemoryManager* memoryManager;
 

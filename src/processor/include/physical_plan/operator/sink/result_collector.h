@@ -10,21 +10,24 @@ namespace processor {
 class ResultCollector : public Sink {
 
 public:
-    explicit ResultCollector(unique_ptr<PhysicalOperator> prevOperator,
-        PhysicalOperatorType operatorType, ExecutionContext& context, uint32_t id,
-        bool enableProjection)
-        : Sink{move(prevOperator), operatorType, context, id}, enableProjection{enableProjection} {
-        resultSet = this->prevOperator->getResultSet();
-        queryResult = make_unique<QueryResult>();
-    };
+    explicit ResultCollector(shared_ptr<ResultSet> resultSet,
+        unique_ptr<PhysicalOperator> prevOperator, PhysicalOperatorType operatorType,
+        ExecutionContext& context, uint32_t id, bool enableProjection)
+        : Sink{move(resultSet), move(prevOperator), operatorType, context, id},
+          queryResult{make_unique<QueryResult>()}, enableProjection{enableProjection} {}
 
     void reInitialize() override;
 
     void execute() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ResultCollector>(
-            prevOperator->clone(), operatorType, context, id, enableProjection);
+        auto clonedResultSet = make_shared<ResultSet>(resultSet->dataChunks.size());
+        for (auto i = 0u; i < resultSet->dataChunks.size(); ++i) {
+            clonedResultSet->insert(
+                i, make_shared<DataChunk>(resultSet->dataChunks[i]->valueVectors.size()));
+        }
+        return make_unique<ResultCollector>(move(clonedResultSet), prevOperator->clone(),
+            operatorType, context, id, enableProjection);
     }
 
 public:

@@ -13,6 +13,13 @@ PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> prevOperator,
     registerProfilingMetrics();
 }
 
+void PhysicalOperator::initResultSet(const shared_ptr<ResultSet>& resultSet) {
+    if (prevOperator != nullptr) {
+        prevOperator->initResultSet(resultSet);
+    }
+    this->resultSet = resultSet;
+}
+
 void PhysicalOperator::registerProfilingMetrics() {
     auto executionTime = context.profiler.registerTimeMetric(getTimeMetricKey());
     auto numOutputTuple = context.profiler.registerNumericMetric(getNumTupleMetricKey());

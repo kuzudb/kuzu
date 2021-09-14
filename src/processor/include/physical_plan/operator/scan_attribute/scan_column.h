@@ -11,13 +11,16 @@ namespace processor {
 class ScanColumn : public ScanAttribute {
 
 public:
-    ScanColumn(uint32_t inAndOutDataChunkPos, uint32_t inValueVectorPos, uint32_t outValueVectorPos,
-        Column* column, unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context,
-        uint32_t id)
-        : ScanAttribute{inAndOutDataChunkPos, inValueVectorPos, outValueVectorPos,
-              move(prevOperator), context, id},
-          column{column} {};
+    ScanColumn(const DataPos& inDataPos, const DataPos& outDataPos, Column* column,
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+        : ScanAttribute{inDataPos, outDataPos, move(prevOperator), context, id}, column{column} {};
+
     ~ScanColumn() override{};
+
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override {
+        ScanAttribute::initResultSet(resultSet);
+    }
+
     void getNextTuples() override;
 
 protected:

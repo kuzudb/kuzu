@@ -10,24 +10,24 @@ namespace graphflow {
 namespace processor {
 
 LoadCSV::LoadCSV(const string& fname, char tokenSeparator, vector<DataType> csvColumnDataTypes,
-    uint32_t totalNumDataChunks, uint32_t outDataChunkSize, uint32_t outDataChunkPos,
-    vector<uint32_t> outValueVectorsPos, ExecutionContext& context, uint32_t id)
+    uint32_t outDataChunkPos, vector<uint32_t> outValueVectorsPos, ExecutionContext& context,
+    uint32_t id)
     : PhysicalOperator{LOAD_CSV, context, id}, fname{fname}, tokenSeparator{tokenSeparator},
-      csvColumnDataTypes{csvColumnDataTypes}, reader{fname, tokenSeparator},
-      totalNumDataChunks{totalNumDataChunks}, outDataChunkSize{outDataChunkSize},
+      csvColumnDataTypes{move(csvColumnDataTypes)}, reader{fname, tokenSeparator},
       outDataChunkPos{outDataChunkPos}, outValueVectorsPos{move(outValueVectorsPos)} {
-    resultSet = make_shared<ResultSet>(totalNumDataChunks);
-    outDataChunk = make_shared<DataChunk>(outDataChunkSize);
-    for (auto& csvColumnDataType : csvColumnDataTypes) {
-        outValueVectors.emplace_back(new ValueVector(context.memoryManager, csvColumnDataType));
-    }
-    for (auto i = 0u; i < outValueVectors.size(); ++i) {
-        outDataChunk->insert(this->outValueVectorsPos[i], outValueVectors[i]);
-    }
-    resultSet->insert(outDataChunkPos, outDataChunk);
     // skip the file header.
     if (reader.hasNextLine()) {
         reader.skipLine();
+    }
+}
+
+void LoadCSV::initResultSet(const shared_ptr<ResultSet>& resultSet) {
+    PhysicalOperator::initResultSet(resultSet);
+    outDataChunk = this->resultSet->dataChunks[outDataChunkPos];
+    for (auto i = 0u; i < outValueVectorsPos.size(); ++i) {
+        auto valueVector = make_shared<ValueVector>(context.memoryManager, csvColumnDataTypes[i]);
+        outValueVectors.push_back(valueVector);
+        outDataChunk->insert(outValueVectorsPos[i], valueVector);
     }
 }
 

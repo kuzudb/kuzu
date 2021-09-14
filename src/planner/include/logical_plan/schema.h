@@ -8,6 +8,7 @@
 
 #include "src/common/include/assert.h"
 
+using namespace graphflow::common;
 using namespace std;
 
 namespace graphflow {
@@ -24,12 +25,14 @@ public:
         : isFlat{other.isFlat},
           estimatedCardinality{other.estimatedCardinality}, variables{other.variables} {}
 
-    void insertVariable(const string& variable) { variables.insert(variable); }
+    inline void insertVariable(const string& variable) { variables.insert(variable); }
 
     inline string getAnyVariable() {
         GF_ASSERT(!variables.empty());
         return *variables.begin();
     }
+
+    inline uint32_t getNumVariables() const { return variables.size(); }
 
 public:
     bool isFlat;
@@ -40,6 +43,9 @@ public:
 class Schema {
 
 public:
+    inline uint32_t getNumGroups() const { return groups.size(); }
+    inline FactorizationGroup* getGroup(uint32_t pos) const { return groups[pos].get(); }
+
     uint32_t createGroup();
 
     void insertToGroup(const string& variable, uint32_t groupPos);

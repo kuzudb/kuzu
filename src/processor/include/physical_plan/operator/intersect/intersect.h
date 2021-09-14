@@ -9,27 +9,28 @@ namespace processor {
 class Intersect : public PhysicalOperator, public FilteringOperator {
 
 public:
-    Intersect(uint64_t leftDataChunkPos, uint64_t leftValueVectorPos, uint64_t rightDataChunkPos,
-        uint64_t rightValueVectorPos, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id);
+    Intersect(const DataPos& leftDataPos, const DataPos& rightDataPos,
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{move(prevOperator), INTERSECT, context, id}, FilteringOperator{},
+          leftDataPos{leftDataPos}, rightDataPos{rightDataPos}, leftIdx{0} {}
+
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Intersect>(leftDataChunkPos, leftValueVectorPos, rightDataChunkPos,
-            rightValueVectorPos, prevOperator->clone(), context, id);
+        return make_unique<Intersect>(
+            leftDataPos, rightDataPos, prevOperator->clone(), context, id);
     }
 
 private:
-    uint64_t leftDataChunkPos;
-    uint64_t leftValueVectorPos;
-    uint64_t rightDataChunkPos;
-    uint64_t rightValueVectorPos;
+    DataPos leftDataPos;
+    DataPos rightDataPos;
 
     shared_ptr<DataChunk> leftDataChunk;
-    shared_ptr<ValueVector> leftNodeIDVector;
+    shared_ptr<ValueVector> leftValueVector;
     shared_ptr<DataChunk> rightDataChunk;
-    shared_ptr<ValueVector> rightNodeIDVector;
+    shared_ptr<ValueVector> rightValueVector;
 
     uint64_t leftIdx;
 };

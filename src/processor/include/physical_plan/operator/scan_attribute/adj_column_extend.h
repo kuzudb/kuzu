@@ -9,17 +9,20 @@ namespace processor {
 class AdjColumnExtend : public ScanColumn, public FilteringOperator {
 
 public:
-    AdjColumnExtend(uint32_t inAndOutDataChunkPos, uint32_t inValueVectorPos,
-        uint32_t outValueVectorPos, Column* column, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id);
+    AdjColumnExtend(const DataPos& inDataPos, const DataPos& outDataPos, Column* column,
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+        : ScanColumn{inDataPos, outDataPos, column, move(prevOperator), context, id},
+          FilteringOperator() {}
+
+    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
     void reInitialize() override;
 
     void getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<AdjColumnExtend>(inAndOutDataChunkPos, inValueVectorPos,
-            outValueVectorPos, column, prevOperator->clone(), context, id);
+        return make_unique<AdjColumnExtend>(
+            inDataPos, outDataPos, column, prevOperator->clone(), context, id);
     }
 };
 
