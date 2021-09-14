@@ -14,15 +14,13 @@ void ResultCollector::execute() {
         prevOperator->getNextTuples();
         auto resultSet = prevOperator->getResultSet();
         queryResult->numTuples += resultSet->getNumTuples();
-        if (enableProjection) {
-            auto clonedResultSet = resultSet->clone();
-            queryResult->resultSetCollection.push_back(move(clonedResultSet));
-            for (auto& dataChunk : resultSet->dataChunks) {
-                for (auto& vector : dataChunk->valueVectors) {
-                    if (vector->stringBuffer != nullptr) {
-                        move(begin(vector->stringBuffer->blocks), end(vector->stringBuffer->blocks),
-                            back_inserter(queryResult->bufferBlocks));
-                    }
+        auto clonedResultSet = resultSet->clone();
+        queryResult->resultSetCollection.push_back(move(clonedResultSet));
+        for (auto& dataChunk : resultSet->dataChunks) {
+            for (auto& vector : dataChunk->valueVectors) {
+                if (vector->stringBuffer != nullptr) {
+                    move(begin(vector->stringBuffer->blocks), end(vector->stringBuffer->blocks),
+                        back_inserter(queryResult->bufferBlocks));
                 }
             }
         }

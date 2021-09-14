@@ -43,7 +43,8 @@ protected:
     virtual ~DataStructure() = default;
 
     void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector, uint64_t sizeLeftToCopy,
-        PageCursor& pageCursor, const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+        PageCursor& pageCursor,
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
         BufferManagerMetrics& metrics);
 
     void copyFromAPage(uint8_t* values, uint32_t physicalPageIdx, uint64_t sizeToCopy,

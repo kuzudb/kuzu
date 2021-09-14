@@ -27,11 +27,34 @@ public:
 
     void initResultSet(const ResultSet& resultSet, MemoryManager& memoryManager) override;
 
-    unique_ptr<ExpressionEvaluator> clone() override { return nullptr; }
+    unique_ptr<ExpressionEvaluator> clone() override {
+        if (childrenExpr.empty()) {
+            return make_unique<AggregateExpressionEvaluator>(
+                expressionType, dataType, aggrFunction->clone());
+        } else {
+            assert(childrenExpr.size() == 1);
+            auto clonedChild = childrenExpr[0]->clone();
+            return make_unique<AggregateExpressionEvaluator>(
+                expressionType, dataType, move(clonedChild), aggrFunction->clone());
+        }
+    }
 
-    uint64_t select(sel_t* selectedPositions) override { return 0; }
+    void evaluate() override {
+        if (childrenExpr.empty()) {
+            return;
+        }
+        childrenExpr[0]->evaluate();
+    }
+
+    uint64_t select(sel_t* selectedPositions) override {
+        throw invalid_argument("AggregationExpressionEvaluator doesn't support select.");
+    }
 
     inline AggregationFunction* getFunction() { return aggrFunction.get(); }
+
+    inline ValueVector* getChildResult() {
+        return childResult == nullptr ? nullptr : childResult.get();
+    }
 
 private:
     static unique_ptr<AggregationFunction> getCountStarFunction();
@@ -42,6 +65,7 @@ private:
     static unique_ptr<AggregationFunction> getMinMaxFunction(DataType dataType);
 
     unique_ptr<AggregationFunction> aggrFunction;
+    shared_ptr<ValueVector> childResult;
 };
 } // namespace evaluator
 } // namespace graphflow

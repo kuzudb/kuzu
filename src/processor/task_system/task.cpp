@@ -20,7 +20,7 @@ void Task::run() {
     auto& sink = (Sink&)*lastOp;
     sink.init();
     sink.execute();
-    deregisterThread(move(lastOp));
+    deRegisterThread(move(lastOp));
 }
 
 unique_ptr<PhysicalOperator> Task::registerThread() {
@@ -32,7 +32,7 @@ unique_ptr<PhysicalOperator> Task::registerThread() {
     return nullptr;
 }
 
-void Task::deregisterThread(unique_ptr<PhysicalOperator> taskSinkOp) {
+void Task::deRegisterThread(unique_ptr<PhysicalOperator> taskSinkOp) {
     lock_t lck{mtx};
     if (numThreadsFinished == numThreadsRegistered - 1) {
         ((Sink&)*taskSinkOp).finalize();

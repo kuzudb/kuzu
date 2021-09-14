@@ -12,15 +12,6 @@ namespace planner {
 
 void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& projectionBody,
     const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn) {
-    // TODO: Guodong should remove this with proper support of COUNT(*)
-    if (projectionBody.getProjectionExpressions().size() == 1 &&
-        projectionBody.getProjectionExpressions()[0]->expressionType == COUNT_STAR_FUNC) {
-        // Do not append projection in case of RETURN COUNT(*)
-        for (auto& plan : plans) {
-            plan->isCountOnly = true;
-        }
-        return;
-    }
     for (auto& plan : plans) {
         if (projectionBody.hasAggregationExpressions()) {
             appendAggregate(projectionBody.getAggregationExpressions(), *plan);

@@ -1,6 +1,7 @@
 -NAME NodeP0
 -QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.id = 0 RETURN COUNT(*)
----- 5001
+---- 1
+5001
 
 -NAME NodeP1
 -COMPARE_RESULT 1
@@ -15,4 +16,5 @@
 
 -NAME NodeP43500
 -QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.id = 5500 RETURN COUNT(*)
----- 0
+---- 1
+0

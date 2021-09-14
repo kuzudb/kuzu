@@ -2,28 +2,35 @@
 
 -NAME TwoHopKnowsIDEqualTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) = id(c) RETURN COUNT(*)
----- 12
+---- 1
+12
 
 -NAME TwoHopKnowsIDNotEqualTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) <> id(c) RETURN COUNT(*)
----- 24
+---- 1
+24
 
 -NAME TwoHopKnowsIDGreaterThanTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) > id(b) RETURN COUNT(*)
----- 6
+---- 1
+6
 
 -NAME TwoHopKnowsIDGreaterThanEqualsTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) >= id(c) RETURN COUNT(*)
----- 24
+---- 1
+24
 
 -NAME TwoHopKnowsIDLessThanTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) < id(b) RETURN COUNT(*)
----- 8
+---- 1
+8
 
 -NAME TwoHopKnowsIDLessThanEqualsTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) <= id(c) RETURN COUNT(*)
----- 24
+---- 1
+24
 
 -NAME SymmetricTwoHop
 -QUERY MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE b.fName = 'Bob' AND e1.date = e2.date AND id(a) <> id(c) RETURN COUNT(*)
----- 2
+---- 1
+2

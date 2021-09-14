@@ -12,9 +12,9 @@ class ResultCollector : public Sink {
 public:
     explicit ResultCollector(shared_ptr<ResultSet> resultSet,
         unique_ptr<PhysicalOperator> prevOperator, PhysicalOperatorType operatorType,
-        ExecutionContext& context, uint32_t id, bool enableProjection)
+        ExecutionContext& context, uint32_t id)
         : Sink{move(resultSet), move(prevOperator), operatorType, context, id},
-          queryResult{make_unique<QueryResult>()}, enableProjection{enableProjection} {}
+          queryResult{make_unique<QueryResult>()} {}
 
     void reInitialize() override;
 
@@ -26,8 +26,8 @@ public:
             clonedResultSet->insert(
                 i, make_shared<DataChunk>(resultSet->dataChunks[i]->valueVectors.size()));
         }
-        return make_unique<ResultCollector>(move(clonedResultSet), prevOperator->clone(),
-            operatorType, context, id, enableProjection);
+        return make_unique<ResultCollector>(
+            move(clonedResultSet), prevOperator->clone(), operatorType, context, id);
     }
 
 public:
@@ -35,8 +35,6 @@ public:
 
 private:
     void resetStringBuffer();
-
-    bool enableProjection;
 };
 
 } // namespace processor

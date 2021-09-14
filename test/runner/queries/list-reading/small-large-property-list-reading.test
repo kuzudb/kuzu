@@ -9,4 +9,5 @@
 
 -NAME ReadingLargeListSymmetricTwoHop
 -QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) WHERE a.id = 0 AND e1.int64Prop = e2.int64Prop  RETURN COUNT(*)
----- 5001
+---- 1
+5001

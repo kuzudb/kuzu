@@ -7,25 +7,29 @@ namespace function {
 template<bool IS_COUNT_STAR>
 struct CountFunction {
 
-    struct CountState : public AggregationState<uint64_t> {};
+    struct CountState : public AggregationState {};
 
-    static void initialize(uint8_t* state_) {
-        auto state = reinterpret_cast<CountState*>(state_);
-        state->val = 0;
+    static unique_ptr<AggregationState> initialize() {
+        auto state = make_unique<AggregationState>();
+        state->val = make_unique<uint8_t[]>(sizeof(uint64_t));
+        *((uint64_t*)state->val.get()) = 0;
+        state->isNull = false;
+        return state;
     }
 
     static void update(uint8_t* state_, ValueVector* input, uint64_t count) {
         auto state = reinterpret_cast<CountState*>(state_);
+        auto stateValue = (uint64_t*)state->val.get();
         if constexpr (IS_COUNT_STAR) {
             assert(input == nullptr);
-            state->val += count;
+            *stateValue += count;
         } else {
             assert(input && count == input->state->selectedSize);
             if (input->hasNoNullsGuarantee()) {
-                state->val += count;
+                *stateValue += count;
             } else {
                 for (auto i = 0u; i < count; i++) {
-                    state->val += (1 - input->isNull(input->state->selectedPositions[i]));
+                    *stateValue += (1 - input->isNull(input->state->selectedPositions[i]));
                 }
             }
         }
@@ -33,15 +37,13 @@ struct CountFunction {
 
     static void combine(uint8_t* state_, uint8_t* otherState_) {
         auto state = reinterpret_cast<CountState*>(state_);
+        auto stateValue = (uint64_t*)state->val.get();
         auto otherState = reinterpret_cast<CountState*>(otherState_);
-        state->val += otherState->val;
+        auto otherStateValue = (uint64_t*)otherState->val.get();
+        *stateValue += *otherStateValue;
     }
 
-    static void finalize(uint8_t* inputState_, uint8_t* finalState_) {
-        auto inputState = reinterpret_cast<CountState*>(inputState_);
-        auto finalState = reinterpret_cast<CountState*>(finalState_);
-        finalState->val = inputState->val;
-    }
+    static void finalize(uint8_t* state_) {}
 };
 
 } // namespace function

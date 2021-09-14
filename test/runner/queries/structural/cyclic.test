@@ -2,20 +2,25 @@
 
 -NAME TriangleTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(c) RETURN COUNT(*)
----- 24
+---- 1
+24
 
 -NAME TriangleTest2
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[:studyAt]->(c) RETURN COUNT(*)
----- 2
+---- 1
+2
 
 -NAME SquareTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[:knows]->(d) RETURN COUNT(*)
----- 84
+---- 1
+84
 
 -NAME SquareTest2
 -QUERY MATCH (a:person)<-[:knows]-(b:person)-[:knows]->(c:person)-[:studyAt]->(d:organisation), (a)-[:studyAt]->(d) RETURN COUNT(*)
----- 17
+---- 1
+17
 
 -NAME FiveHopKnowsCyclicTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[:knows]->(d), (b)-[:knows]->(d) RETURN COUNT(*)
----- 48
+---- 1
+48

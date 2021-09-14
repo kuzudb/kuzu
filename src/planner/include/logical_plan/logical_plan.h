@@ -9,14 +9,14 @@ namespace planner {
 class LogicalPlan {
 
 public:
-    LogicalPlan() : cost{0}, isCountOnly{false} { schema = make_unique<Schema>(); }
+    LogicalPlan() : cost{0} { schema = make_unique<Schema>(); }
 
     explicit LogicalPlan(unique_ptr<Schema> schema) : schema{move(schema)}, cost{0} {}
 
     void appendOperator(shared_ptr<LogicalOperator> op);
 
-    inline bool isEmpty() { return lastOperator == nullptr; }
-    inline Schema* getSchema() { return schema.get(); }
+    inline bool isEmpty() const { return lastOperator == nullptr; }
+    inline Schema* getSchema() const { return schema.get(); }
 
     unique_ptr<LogicalPlan> copy() const;
 
@@ -24,7 +24,6 @@ public:
     shared_ptr<LogicalOperator> lastOperator;
     unique_ptr<Schema> schema;
     uint64_t cost;
-    bool isCountOnly;
 };
 
 } // namespace planner

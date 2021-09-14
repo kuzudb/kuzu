@@ -3,15 +3,32 @@
 -NAME MultiQueryOneHopKnowsTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH b.age AS m RETURN m
 ---- 14
+20
+20
+20
+25
+30
+30
+30
+35
+35
+35
+40
+45
+45
+45
 
 -NAME MultiQueryTwoHopKnowsTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) WITH b AS m WITH m AS n MATCH (n)-[e2:knows]->(c:person) RETURN COUNT(*)
----- 36
+---- 1
+36
 
 -NAME MultiQueryThreeHopTwoKnowsOneWorkAtTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH * MATCH (b)-[e2:knows]->(c:person)-[e3:workAt]->(d:organisation) RETURN COUNT(*)
----- 18
+---- 1
+18
 
 -NAME OpenWedgeKnowsTest3
 -QUERY MATCH (b:person)<-[e1:knows]-(a:person) WITH a AS k MATCH (k)-[e2:knows]->(c:person),(k)-[e3:knows]->(d:person) RETURN COUNT(*)
----- 116
+---- 1
+116

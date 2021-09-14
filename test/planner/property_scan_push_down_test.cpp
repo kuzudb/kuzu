@@ -1,7 +1,6 @@
 #include "test/planner/planner_test_helper.h"
 
 #include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
-#include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 
 class PropertyScanPushDownTest : public PlannerTest {};
@@ -12,7 +11,8 @@ class PropertyScanPushDownTest : public PlannerTest {};
 TEST_F(PropertyScanPushDownTest, FilterPropertyPushDownTest) {
     auto query = "MATCH (a:person)-[:knows]->(b:person) WHERE a.age = b.age RETURN COUNT(*)";
     auto plan = getBestPlan(query);
-    auto& op = *plan->lastOperator->prevOperator->prevOperator->prevOperator->prevOperator;
+    auto& op =
+        *plan->lastOperator->prevOperator->prevOperator->prevOperator->prevOperator->prevOperator;
     ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op.getLogicalOperatorType());
     auto& scanNodeProperty = (LogicalScanNodeProperty&)op;
     ASSERT_TRUE(containSubstr(scanNodeProperty.nodeID, "_b." + INTERNAL_ID_SUFFIX));

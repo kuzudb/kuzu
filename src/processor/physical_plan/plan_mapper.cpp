@@ -2,6 +2,8 @@
 
 #include <set>
 
+#include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
+#include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
@@ -16,6 +18,8 @@
 #include "src/planner/include/logical_plan/operator/select_scan/logical_select_scan.h"
 #include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
+#include "src/processor/include/physical_plan/operator/aggregate/aggregate.h"
+#include "src/processor/include/physical_plan/operator/aggregate/aggregation_scan.h"
 #include "src/processor/include/physical_plan/operator/filter/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten/flatten.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
@@ -41,8 +45,7 @@ using namespace graphflow::planner;
 namespace graphflow {
 namespace processor {
 
-static shared_ptr<ResultSet> populateResultSet(
-    const Schema& schema, const PhysicalOperatorsInfo& info) {
+static shared_ptr<ResultSet> populateResultSet(const Schema& schema) {
     auto resultSet = make_shared<ResultSet>(schema.getNumGroups());
     for (auto i = 0u; i < schema.getNumGroups(); ++i) {
         resultSet->insert(i, make_shared<DataChunk>(schema.getGroup(i)->getNumVariables()));
@@ -55,9 +58,8 @@ unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
     auto& schema = *logicalPlan->getSchema();
     auto info = PhysicalOperatorsInfo(schema);
     auto prevOperator = mapLogicalOperatorToPhysical(logicalPlan->lastOperator, info, context);
-    auto resultCollector =
-        make_unique<ResultCollector>(populateResultSet(schema, info), move(prevOperator),
-            RESULT_COLLECTOR, context, physicalOperatorID++, !logicalPlan->isCountOnly);
+    auto resultCollector = make_unique<ResultCollector>(populateResultSet(schema),
+        move(prevOperator), RESULT_COLLECTOR, context, physicalOperatorID++);
     return make_unique<PhysicalPlan>(move(resultCollector));
 }
 
@@ -122,6 +124,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
         break;
     case LOGICAL_LIMIT:
         physicalOperator = mapLogicalLimitToPhysical(logicalOperator.get(), info, context);
+        break;
+    case LOGICAL_AGGREGATE:
+        physicalOperator = mapLogicalAggregateToPhysical(logicalOperator.get(), info, context);
         break;
     default:
         assert(false);
@@ -238,9 +243,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
         expressionsOutputPos.push_back(info.getDataPos(expression->getInternalName()));
     }
     return make_unique<Projection>(move(expressionEvaluators), move(expressionsOutputPos),
-        logicalProjection.discardedGroupPos,
-        populateResultSet(schemaBeforeProjection, infoBeforeProjection), move(prevOperator),
-        context, physicalOperatorID++);
+        logicalProjection.discardedGroupPos, populateResultSet(schemaBeforeProjection),
+        move(prevOperator), context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
@@ -296,8 +300,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto buildDataChunksInfo = BuildDataChunksInfo(
         buildSideInfo.getDataPos(hashJoin.joinNodeID), move(dataChunkPosToIsFlat));
     auto hashJoinBuild = make_unique<HashJoinBuild>(buildDataChunksInfo,
-        populateResultSet(*hashJoin.buildSideSchema, buildSideInfo), move(buildSidePrevOperator),
-        context, physicalOperatorID++);
+        populateResultSet(*hashJoin.buildSideSchema), move(buildSidePrevOperator), context,
+        physicalOperatorID++);
     auto hashJoinSharedState = make_shared<HashJoinSharedState>();
     hashJoinBuild->sharedState = hashJoinSharedState;
 
@@ -377,6 +381,46 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(LogicalOperat
     return make_unique<Limit>(logicalLimit.getLimitNumber(), make_shared<atomic_uint64_t>(0),
         dataChunkToSelectPos, logicalLimit.getGroupsPosToLimit(), move(prevOperator), context,
         physicalOperatorID++);
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
+    LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
+    ExecutionContext& context) {
+    auto& logicalAggregate = (const LogicalAggregate&)*logicalOperator;
+    auto infoBeforeAggregate = PhysicalOperatorsInfo(*logicalAggregate.getSchemaBeforeAggregate());
+    auto resultSetBeforeAggregate = populateResultSet(*logicalAggregate.getSchemaBeforeAggregate());
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->prevOperator, infoBeforeAggregate, context);
+    // Map aggregate expressions.
+    vector<unique_ptr<AggregateExpressionEvaluator>> expressionEvaluators;
+    vector<DataPos> expressionsOutputPos;
+    for (auto& expression : logicalAggregate.getExpressionsToAggregate()) {
+        expressionEvaluators.push_back(
+            static_unique_pointer_cast<ExpressionEvaluator, AggregateExpressionEvaluator>(
+                expressionMapper.mapToPhysical(*expression, infoBeforeAggregate, context)));
+        expressionsOutputPos.push_back(info.getDataPos(expression->getInternalName()));
+    }
+    assert(!expressionsOutputPos.empty());
+    auto outDataChunkPos = expressionsOutputPos[0].dataChunkPos;
+    for (auto& dataPos : expressionsOutputPos) {
+        // All expressions have the same out dataChunkPos;
+        assert(dataPos.dataChunkPos == outDataChunkPos);
+    }
+    // Create the shared state.
+    vector<unique_ptr<AggregationState>> aggregationStates;
+    vector<DataType> aggregationDataTypes;
+    for (auto& expressionEvaluator : expressionEvaluators) {
+        aggregationStates.push_back(expressionEvaluator->getFunction()->initialize());
+        aggregationDataTypes.push_back(expressionEvaluator->dataType);
+    }
+    auto sharedState =
+        make_shared<AggregationSharedState>(move(aggregationStates), aggregationDataTypes);
+
+    auto aggregate = make_unique<Aggregate>(move(resultSetBeforeAggregate), move(prevOperator),
+        context, physicalOperatorID++, sharedState, move(expressionEvaluators));
+    auto aggregationScan = make_unique<AggregationScan>(
+        expressionsOutputPos, move(aggregate), sharedState, context, physicalOperatorID++);
+    return aggregationScan;
 }
 
 } // namespace processor

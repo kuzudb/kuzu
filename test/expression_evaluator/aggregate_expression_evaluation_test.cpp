@@ -3,8 +3,6 @@
 #include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
 #include "src/function/include/aggregation/avg.h"
 #include "src/function/include/aggregation/count.h"
-#include "src/function/include/aggregation/min_max.h"
-#include "src/function/include/aggregation/sum.h"
 
 using ::testing::Test;
 
@@ -27,7 +25,7 @@ public:
         auto unStrValues = (Value*)unStrValueVector->values;
         for (auto i = 0u; i < 100; i++) {
             int64Values[i] = i;
-            doubleValues[i] = i * 1.5;
+            doubleValues[i] = (double)i * 1.5;
             stringValueVector->addString(i, to_string(i));
             unStrValues[i] = Value((int64_t)i);
             if (i % 2 == 0) {
@@ -61,248 +59,222 @@ TEST_F(AggrExpressionEvaluatorTest, CountStarTest) {
         AggregateExpressionEvaluator::getAggregationFunction(COUNT_STAR_FUNC, INT64));
     auto countStarAggrEvaluator =
         reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
-    auto countStarState = make_unique<CountFunction<true>::CountState>();
-    countStarAggrEvaluator->getFunction()->initialize((uint8_t*)countStarState.get());
+    auto countStarState = countStarAggrEvaluator->getFunction()->initialize();
     countStarAggrEvaluator->getFunction()->update(
         (uint8_t*)countStarState.get(), nullptr, resultSet->getNumTuples());
-    auto otherCountStarState = make_unique<CountFunction<true>::CountState>();
-    otherCountStarState->val = 10;
+    auto otherCountStarState = countStarAggrEvaluator->getFunction()->initialize();
+    *((uint64_t*)otherCountStarState->val.get()) = 10;
     countStarAggrEvaluator->getFunction()->combine(
         (uint8_t*)countStarState.get(), (uint8_t*)otherCountStarState.get());
-    auto countStarFinalState = make_unique<CountFunction<true>::CountState>();
-    countStarAggrEvaluator->getFunction()->finalize(
-        (uint8_t*)countStarState.get(), (uint8_t*)countStarFinalState.get());
-    ASSERT_EQ(countStarFinalState->val, 110);
+    countStarAggrEvaluator->getFunction()->finalize((uint8_t*)countStarState.get());
+    ASSERT_EQ(*((uint64_t*)countStarState->val.get()), 110);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, CountTest) {
     auto exprEvaluator = make_unique<AggregateExpressionEvaluator>(
         COUNT_FUNC, INT64, AggregateExpressionEvaluator::getAggregationFunction(COUNT_FUNC, INT64));
     auto countAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
-    auto countState = make_unique<CountFunction<false>::CountState>();
-    countAggrEvaluator->getFunction()->initialize((uint8_t*)countState.get());
+    auto countState = countAggrEvaluator->getFunction()->initialize();
     countAggrEvaluator->getFunction()->update(
         (uint8_t*)countState.get(), int64ValueVector.get(), int64ValueVector->state->selectedSize);
-    auto otherCountState = make_unique<CountFunction<false>::CountState>();
-    otherCountState->val = 10;
+    auto otherCountState = countAggrEvaluator->getFunction()->initialize();
+    *((uint64_t*)otherCountState->val.get()) = 10;
     countAggrEvaluator->getFunction()->combine(
         (uint8_t*)countState.get(), (uint8_t*)otherCountState.get());
-    auto countFinalState = make_unique<CountFunction<false>::CountState>();
-    countAggrEvaluator->getFunction()->finalize(
-        (uint8_t*)countState.get(), (uint8_t*)countFinalState.get());
-    ASSERT_EQ(countFinalState->val, 60);
+    countAggrEvaluator->getFunction()->finalize((uint8_t*)countState.get());
+    ASSERT_EQ(*((uint64_t*)countState->val.get()), 60);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64SumTest) {
     auto exprEvaluator = make_unique<AggregateExpressionEvaluator>(
         SUM_FUNC, INT64, AggregateExpressionEvaluator::getAggregationFunction(SUM_FUNC, INT64));
     auto sumAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
-    auto sumState = make_unique<SumFunction<int64_t>::SumState>();
-    sumAggrEvaluator->getFunction()->initialize((uint8_t*)sumState.get());
+    auto sumState = sumAggrEvaluator->getFunction()->initialize();
     sumAggrEvaluator->getFunction()->update(
         (uint8_t*)sumState.get(), int64ValueVector.get(), int64ValueVector->state->selectedSize);
-    auto otherSumState = make_unique<SumFunction<int64_t>::SumState>();
-    otherSumState->val = 10;
+    auto otherSumState = sumAggrEvaluator->getFunction()->initialize();
+    *((uint64_t*)otherSumState->val.get()) = 10;
+    otherSumState->isNull = false;
     sumAggrEvaluator->getFunction()->combine(
         (uint8_t*)sumState.get(), (uint8_t*)otherSumState.get());
-    auto sumFinalState = make_unique<SumFunction<int64_t>::SumState>();
-    sumAggrEvaluator->getFunction()->finalize(
-        (uint8_t*)sumState.get(), (uint8_t*)sumFinalState.get());
-    auto sumValue = otherSumState->val;
+    sumAggrEvaluator->getFunction()->finalize((uint8_t*)sumState.get());
+    auto sumValue = *(uint64_t*)otherSumState->val.get();
     for (auto i = 0u; i < 100; i++) {
         if (i % 2 != 0) {
             sumValue += i;
         }
     }
-    ASSERT_EQ(sumFinalState->val, sumValue);
+    ASSERT_EQ(*(uint64_t*)sumState->val.get(), sumValue);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, DOUBLESumTest) {
     auto exprEvaluator = make_unique<AggregateExpressionEvaluator>(
         SUM_FUNC, DOUBLE, AggregateExpressionEvaluator::getAggregationFunction(SUM_FUNC, DOUBLE));
     auto sumAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
-    auto sumState = make_unique<SumFunction<double_t>::SumState>();
-    sumAggrEvaluator->getFunction()->initialize((uint8_t*)sumState.get());
+    auto sumState = sumAggrEvaluator->getFunction()->initialize();
     sumAggrEvaluator->getFunction()->update(
         (uint8_t*)sumState.get(), doubleValueVector.get(), doubleValueVector->state->selectedSize);
-    auto otherSumState = make_unique<SumFunction<double_t>::SumState>();
-    otherSumState->val = 10.0;
+    auto otherSumState = sumAggrEvaluator->getFunction()->initialize();
+    *((double_t*)otherSumState->val.get()) = 10.0;
+    otherSumState->isNull = false;
     sumAggrEvaluator->getFunction()->combine(
         (uint8_t*)sumState.get(), (uint8_t*)otherSumState.get());
-    auto sumFinalState = make_unique<SumFunction<double_t>::SumState>();
-    sumAggrEvaluator->getFunction()->finalize(
-        (uint8_t*)sumState.get(), (uint8_t*)sumFinalState.get());
-    auto sumValue = otherSumState->val;
+    sumAggrEvaluator->getFunction()->finalize((uint8_t*)sumState.get());
+    auto sumValue = *((double_t*)otherSumState->val.get());
     for (auto i = 0u; i < 100; i++) {
         if (i % 2 != 0) {
             sumValue += i * 1.5;
         }
     }
-    ASSERT_EQ(sumFinalState->val, sumValue);
+    ASSERT_EQ(*((double_t*)sumState->val.get()), sumValue);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, UNSTRSumTest) {
     auto exprEvaluator = make_unique<AggregateExpressionEvaluator>(SUM_FUNC, UNSTRUCTURED,
         AggregateExpressionEvaluator::getAggregationFunction(SUM_FUNC, UNSTRUCTURED));
     auto sumAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
-    auto sumState = make_unique<SumFunction<Value>::SumState>();
-    sumAggrEvaluator->getFunction()->initialize((uint8_t*)sumState.get());
+    auto sumState = sumAggrEvaluator->getFunction()->initialize();
     sumAggrEvaluator->getFunction()->update(
         (uint8_t*)sumState.get(), unStrValueVector.get(), unStrValueVector->state->selectedSize);
-    auto otherSumState = make_unique<SumFunction<Value>::SumState>();
-    otherSumState->val = Value((int64_t)10);
+    auto otherSumState = sumAggrEvaluator->getFunction()->initialize();
+    *((Value*)otherSumState->val.get()) = Value((int64_t)10);
+    otherSumState->isNull = false;
     sumAggrEvaluator->getFunction()->combine(
         (uint8_t*)sumState.get(), (uint8_t*)otherSumState.get());
-    auto sumFinalState = make_unique<SumFunction<Value>::SumState>();
-    sumAggrEvaluator->getFunction()->finalize(
-        (uint8_t*)sumState.get(), (uint8_t*)sumFinalState.get());
-    auto sumValue = otherSumState->val.val.int64Val;
+    sumAggrEvaluator->getFunction()->finalize((uint8_t*)sumState.get());
+    auto sumValue = ((Value*)otherSumState->val.get())->val.int64Val;
     for (auto i = 0u; i < 100; i++) {
         if (i % 2 != 0) {
             sumValue += i;
         }
     }
-    ASSERT_EQ(sumFinalState->val.val.int64Val, sumValue);
+    ASSERT_EQ(((Value*)sumState->val.get())->val.int64Val, sumValue);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64AvgTest) {
     auto exprEvaluator = make_unique<AggregateExpressionEvaluator>(
         AVG_FUNC, DOUBLE, AggregateExpressionEvaluator::getAggregationFunction(AVG_FUNC, INT64));
     auto avgAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
-    auto avgState = make_unique<AvgFunction<int64_t>::AvgState>();
-    avgAggrEvaluator->getFunction()->initialize((uint8_t*)avgState.get());
+    auto avgState = avgAggrEvaluator->getFunction()->initialize();
     avgAggrEvaluator->getFunction()->update(
         (uint8_t*)avgState.get(), int64ValueVector.get(), int64ValueVector->state->selectedSize);
-    auto otherAvgState = make_unique<AvgFunction<int64_t>::AvgState>();
-    otherAvgState->val = 10;
-    otherAvgState->numValues = 1;
+    auto otherAvgState = avgAggrEvaluator->getFunction()->initialize();
+    *((double_t*)otherAvgState->val.get()) = 10;
+    ((AvgFunction<int64_t>::AvgState&)otherAvgState).numValues = 1;
+    otherAvgState->isNull = false;
     avgAggrEvaluator->getFunction()->combine(
         (uint8_t*)avgState.get(), (uint8_t*)otherAvgState.get());
-    auto avgFinalState = make_unique<AvgFunction<double_t>::AvgState>();
-    avgAggrEvaluator->getFunction()->finalize(
-        (uint8_t*)avgState.get(), (uint8_t*)avgFinalState.get());
-    auto sumValue = otherAvgState->val;
+    avgAggrEvaluator->getFunction()->finalize((uint8_t*)avgState.get());
+    auto sumValue = 10;
     for (auto i = 0u; i < 100; i++) {
         if (i % 2 != 0) {
             sumValue += i;
         }
     }
-    ASSERT_EQ(avgFinalState->val, (double_t)(sumValue) / (double_t)51);
+    ASSERT_EQ(*((double_t*)avgState->val.get()), (double_t)(sumValue) / (double_t)50);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, DOUBLEAvgTest) {
     auto exprEvaluator = make_unique<AggregateExpressionEvaluator>(
         AVG_FUNC, DOUBLE, AggregateExpressionEvaluator::getAggregationFunction(AVG_FUNC, DOUBLE));
     auto avgAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
-    auto avgState = make_unique<AvgFunction<double_t>::AvgState>();
-    avgAggrEvaluator->getFunction()->initialize((uint8_t*)avgState.get());
+    auto avgState = avgAggrEvaluator->getFunction()->initialize();
     avgAggrEvaluator->getFunction()->update(
         (uint8_t*)avgState.get(), doubleValueVector.get(), doubleValueVector->state->selectedSize);
-    auto otherAvgState = make_unique<AvgFunction<double_t>::AvgState>();
-    otherAvgState->val = 10.0;
-    otherAvgState->numValues = 1;
+    auto otherAvgState = avgAggrEvaluator->getFunction()->initialize();
+    *((double_t*)otherAvgState->val.get()) = 10.0;
+    ((AvgFunction<double_t>::AvgState&)otherAvgState).numValues = 1;
+    otherAvgState->isNull = false;
     avgAggrEvaluator->getFunction()->combine(
         (uint8_t*)avgState.get(), (uint8_t*)otherAvgState.get());
-    auto avgFinalState = make_unique<AvgFunction<double_t>::AvgState>();
-    avgAggrEvaluator->getFunction()->finalize(
-        (uint8_t*)avgState.get(), (uint8_t*)avgFinalState.get());
-    auto sumValue = otherAvgState->val;
+    avgAggrEvaluator->getFunction()->finalize((uint8_t*)avgState.get());
+    auto sumValue = 10.0;
     for (auto i = 0u; i < 100; i++) {
         if (i % 2 != 0) {
             sumValue += i * 1.5;
         }
     }
-    ASSERT_EQ(avgFinalState->val, (double_t)(sumValue) / (double_t)51);
+    ASSERT_EQ(*((double_t*)avgState->val.get()), (double_t)(sumValue) / (double_t)50);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64MaxTest) {
     auto exprEvaluator = make_unique<AggregateExpressionEvaluator>(
         MAX_FUNC, INT64, AggregateExpressionEvaluator::getAggregationFunction(MAX_FUNC, INT64));
     auto maxAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
-    auto maxState = make_unique<MinMaxFunction<int64_t>::MinMaxState>();
-    maxAggrEvaluator->getFunction()->initialize((uint8_t*)maxState.get());
+    auto maxState = maxAggrEvaluator->getFunction()->initialize();
     maxAggrEvaluator->getFunction()->update(
         (uint8_t*)maxState.get(), int64ValueVector.get(), int64ValueVector->state->selectedSize);
-    auto otherMaxState = make_unique<MinMaxFunction<int64_t>::MinMaxState>();
-    otherMaxState->val = 101;
+    auto otherMaxState = maxAggrEvaluator->getFunction()->initialize();
+    *((int64_t*)otherMaxState->val.get()) = 101;
+    otherMaxState->isNull = false;
     maxAggrEvaluator->getFunction()->combine(
         (uint8_t*)maxState.get(), (uint8_t*)otherMaxState.get());
-    auto maxFinalState = make_unique<MinMaxFunction<int64_t>::MinMaxState>();
-    maxAggrEvaluator->getFunction()->finalize(
-        (uint8_t*)maxState.get(), (uint8_t*)maxFinalState.get());
-    ASSERT_EQ(maxFinalState->val, 101);
+    maxAggrEvaluator->getFunction()->finalize((uint8_t*)maxState.get());
+    ASSERT_EQ(*((int64_t*)maxState->val.get()), 101);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, DOUBLEMaxTest) {
     auto exprEvaluator = make_unique<AggregateExpressionEvaluator>(
         MAX_FUNC, DOUBLE, AggregateExpressionEvaluator::getAggregationFunction(MAX_FUNC, DOUBLE));
     auto maxAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
-    auto maxState = make_unique<MinMaxFunction<double_t>::MinMaxState>();
-    maxAggrEvaluator->getFunction()->initialize((uint8_t*)maxState.get());
+    auto maxState = maxAggrEvaluator->getFunction()->initialize();
     maxAggrEvaluator->getFunction()->update(
         (uint8_t*)maxState.get(), doubleValueVector.get(), doubleValueVector->state->selectedSize);
-    auto otherMaxState = make_unique<MinMaxFunction<double_t>::MinMaxState>();
-    otherMaxState->val = 101.0;
+    auto otherMaxState = maxAggrEvaluator->getFunction()->initialize();
+    *((double_t*)otherMaxState->val.get()) = 101.0;
+    otherMaxState->isNull = false;
     maxAggrEvaluator->getFunction()->combine(
         (uint8_t*)maxState.get(), (uint8_t*)otherMaxState.get());
-    auto maxFinalState = make_unique<MinMaxFunction<double_t>::MinMaxState>();
-    maxAggrEvaluator->getFunction()->finalize(
-        (uint8_t*)maxState.get(), (uint8_t*)maxFinalState.get());
-    ASSERT_EQ(maxFinalState->val, 148.5);
+    maxAggrEvaluator->getFunction()->finalize((uint8_t*)maxState.get());
+    ASSERT_EQ(*((double_t*)maxState->val.get()), 148.5);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, STRINGMaxTest) {
     auto exprEvaluator = make_unique<AggregateExpressionEvaluator>(
         MAX_FUNC, STRING, AggregateExpressionEvaluator::getAggregationFunction(MAX_FUNC, STRING));
     auto maxAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
-    auto maxState = make_unique<MinMaxFunction<gf_string_t>::MinMaxState>();
-    maxAggrEvaluator->getFunction()->initialize((uint8_t*)maxState.get());
+    auto maxState = maxAggrEvaluator->getFunction()->initialize();
     maxAggrEvaluator->getFunction()->update(
         (uint8_t*)maxState.get(), stringValueVector.get(), stringValueVector->state->selectedSize);
-    auto otherMaxState = make_unique<MinMaxFunction<gf_string_t>::MinMaxState>();
+    auto otherMaxState = maxAggrEvaluator->getFunction()->initialize();
     gf_string_t otherStr;
     otherStr.set("0");
-    otherMaxState->val = otherStr;
+    *((gf_string_t*)otherMaxState->val.get()) = otherStr;
+    otherMaxState->isNull = false;
     maxAggrEvaluator->getFunction()->combine(
         (uint8_t*)maxState.get(), (uint8_t*)otherMaxState.get());
-    auto maxFinalState = make_unique<MinMaxFunction<gf_string_t>::MinMaxState>();
-    maxAggrEvaluator->getFunction()->finalize(
-        (uint8_t*)maxState.get(), (uint8_t*)maxFinalState.get());
-    ASSERT_EQ(maxFinalState->val.getAsString(), "99");
+    maxAggrEvaluator->getFunction()->finalize((uint8_t*)maxState.get());
+    ASSERT_EQ(((gf_string_t*)maxState->val.get())->getAsString(), "99");
 }
 
 TEST_F(AggrExpressionEvaluatorTest, UNSTRMaxTest) {
     auto exprEvaluator = make_unique<AggregateExpressionEvaluator>(MAX_FUNC, UNSTRUCTURED,
         AggregateExpressionEvaluator::getAggregationFunction(MAX_FUNC, UNSTRUCTURED));
     auto maxAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
-    auto maxState = make_unique<MinMaxFunction<Value>::MinMaxState>();
-    maxAggrEvaluator->getFunction()->initialize((uint8_t*)maxState.get());
+    auto maxState = maxAggrEvaluator->getFunction()->initialize();
     maxAggrEvaluator->getFunction()->update(
         (uint8_t*)maxState.get(), unStrValueVector.get(), unStrValueVector->state->selectedSize);
-    auto otherMaxState = make_unique<MinMaxFunction<Value>::MinMaxState>();
-    otherMaxState->val = Value((int64_t)101);
+    auto otherMaxState = maxAggrEvaluator->getFunction()->initialize();
+    *((Value*)otherMaxState->val.get()) = Value((int64_t)101);
+    otherMaxState->isNull = false;
     maxAggrEvaluator->getFunction()->combine(
         (uint8_t*)maxState.get(), (uint8_t*)otherMaxState.get());
-    auto maxFinalState = make_unique<MinMaxFunction<Value>::MinMaxState>();
-    maxAggrEvaluator->getFunction()->finalize(
-        (uint8_t*)maxState.get(), (uint8_t*)maxFinalState.get());
-    ASSERT_EQ(maxFinalState->val.val.int64Val, 101);
+    maxAggrEvaluator->getFunction()->finalize((uint8_t*)maxState.get());
+    ASSERT_EQ(((Value*)maxState->val.get())->val.int64Val, 101);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64MinTest) {
     auto exprEvaluator = make_unique<AggregateExpressionEvaluator>(
         MIN_FUNC, INT64, AggregateExpressionEvaluator::getAggregationFunction(MIN_FUNC, INT64));
-    auto maxAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
-    auto maxState = make_unique<MinMaxFunction<int64_t>::MinMaxState>();
-    maxAggrEvaluator->getFunction()->initialize((uint8_t*)maxState.get());
-    maxAggrEvaluator->getFunction()->update(
-        (uint8_t*)maxState.get(), int64ValueVector.get(), int64ValueVector->state->selectedSize);
-    auto otherMaxState = make_unique<MinMaxFunction<int64_t>::MinMaxState>();
-    otherMaxState->val = -10;
-    maxAggrEvaluator->getFunction()->combine(
-        (uint8_t*)maxState.get(), (uint8_t*)otherMaxState.get());
-    auto maxFinalState = make_unique<MinMaxFunction<int64_t>::MinMaxState>();
-    maxAggrEvaluator->getFunction()->finalize(
-        (uint8_t*)maxState.get(), (uint8_t*)maxFinalState.get());
-    ASSERT_EQ(maxFinalState->val, -10);
+    auto minAggrEvaluator = reinterpret_cast<AggregateExpressionEvaluator*>(exprEvaluator.get());
+    auto minState = minAggrEvaluator->getFunction()->initialize();
+    minAggrEvaluator->getFunction()->update(
+        (uint8_t*)minState.get(), int64ValueVector.get(), int64ValueVector->state->selectedSize);
+    auto otherMinState = minAggrEvaluator->getFunction()->initialize();
+    *((int64_t*)otherMinState->val.get()) = -10;
+    otherMinState->isNull = false;
+    minAggrEvaluator->getFunction()->combine(
+        (uint8_t*)minState.get(), (uint8_t*)otherMinState.get());
+    minAggrEvaluator->getFunction()->finalize((uint8_t*)minState.get());
+    ASSERT_EQ(*((int64_t*)minState->val.get()), -10);
 }

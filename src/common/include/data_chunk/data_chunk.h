@@ -22,7 +22,7 @@ namespace common {
 class DataChunk {
 
 public:
-    DataChunk(uint32_t numValueVectors)
+    explicit DataChunk(uint32_t numValueVectors)
         : DataChunk(numValueVectors, make_shared<DataChunkState>()){};
 
     DataChunk(uint32_t numValueVectors, const shared_ptr<DataChunkState>& state)
