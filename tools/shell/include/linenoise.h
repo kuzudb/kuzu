@@ -39,6 +39,8 @@
 #ifndef __LINENOISE_H
 #define __LINENOISE_H
 
+#include <string>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,9 +55,11 @@ typedef struct linenoiseCompletions {
 typedef void(linenoiseCompletionCallback)(const char*, linenoiseCompletions*);
 typedef char*(linenoiseHintsCallback)(const char*, int* color, int* bold);
 typedef void(linenoiseFreeHintsCallback)(void*);
+typedef void(linenoiseHighlightCallback)(char*, char*, uint32_t, uint32_t);
 void linenoiseSetCompletionCallback(linenoiseCompletionCallback*);
 void linenoiseSetHintsCallback(linenoiseHintsCallback*);
 void linenoiseSetFreeHintsCallback(linenoiseFreeHintsCallback*);
+void linenoiseSetHighlightCallback(linenoiseHighlightCallback*);
 void linenoiseAddCompletion(linenoiseCompletions*, const char*);
 
 char* linenoise(const char* prompt);

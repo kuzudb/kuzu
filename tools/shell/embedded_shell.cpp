@@ -34,6 +34,11 @@ const vector<string> keywordList = {"CALL", "CREATE", "DELETE", "DETACH", "EXIST
     "REQUIRE", "SCALAR", "EXPLAIN", "PROFILE", "HEADERS", "FROM", "FIELDTERMINATOR", "STAR",
     "MINUS", "COUNT"};
 
+const string keywordColorPrefix = "\033[32m\033[1m";
+const string keywordResetPostfix = "\033[00m";
+
+const regex specialChars{R"([-[\]{}()*+?.,\^$|#\s])"};
+
 void completion(const char* buffer, linenoiseCompletions* lc) {
     string buf = string(buffer);
     if (buf[0] == ':') {
@@ -54,7 +59,8 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
         return;
     }
     for (string keyword : keywordList) {
-        if (regex_search(keyword, regex("^" + buf, regex_constants::icase))) {
+        string bufEscaped = regex_replace(buf, specialChars, R"(\$&)");
+        if (regex_search(keyword, regex("^" + bufEscaped, regex_constants::icase))) {
             if (islower(buf[0])) {
                 transform(keyword.begin(), keyword.end(), keyword.begin(), ::tolower);
             }
@@ -63,9 +69,46 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
     }
 }
 
+void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPos) {
+    string buf(buffer);
+    ostringstream highlightBuffer;
+    string word = "";
+    vector<string> tokenList;
+    if (cursorPos > maxLen) {
+        buf = buf.substr(cursorPos - maxLen, maxLen);
+    } else if (buf.length() > maxLen) {
+        buf = buf.substr(0, maxLen);
+    }
+    for (auto i = 0u; i < buf.length(); i++) {
+        if ((buf[i] != ' ' && !word.empty() && word[0] == ' ') ||
+            (buf[i] == ' ' && !word.empty() && word[0] != ' ')) {
+            tokenList.emplace_back(word);
+            word = "";
+        }
+        word += buf[i];
+    }
+    tokenList.emplace_back(word);
+    for (string& token : tokenList) {
+        if (token.find(' ') == std::string::npos) {
+            for (string keyword : keywordList) {
+                if (regex_search(token, regex("^" + keyword + "$", regex_constants::icase)) ||
+                    regex_search(token, regex("^" + keyword + "\\(", regex_constants::icase))) {
+                    token =
+                        regex_replace(token, regex("^(" + keyword + ")", regex_constants::icase),
+                            keywordColorPrefix + "$1" + keywordResetPostfix);
+                    break;
+                }
+            }
+        }
+        highlightBuffer << token;
+    }
+    strcpy(resultBuf, highlightBuffer.str().c_str());
+}
+
 void EmbeddedShell::initialize() {
     linenoiseHistoryLoad(HISTORY_PATH);
     linenoiseSetCompletionCallback(completion);
+    linenoiseSetHighlightCallback(highlight);
 }
 
 void EmbeddedShell::run() {

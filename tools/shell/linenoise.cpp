@@ -125,6 +125,7 @@ static const char* unsupported_term[] = {"dumb", "cons25", "emacs", NULL};
 static linenoiseCompletionCallback* completionCallback = NULL;
 static linenoiseHintsCallback* hintsCallback = NULL;
 static linenoiseFreeHintsCallback* freeHintsCallback = NULL;
+static linenoiseHighlightCallback* highlightCallback = NULL;
 
 static struct termios orig_termios; /* In order to restore at exit.*/
 static int maskmode = 0;            /* Show "***" instead of input. For passwords. */
@@ -359,6 +360,10 @@ static void linenoiseBeep(void) {
     fflush(stderr);
 }
 
+void linenoiseSetHighlightCallback(linenoiseHighlightCallback* fn) {
+    highlightCallback = fn;
+}
+
 /* ============================== Completion ================================ */
 
 /* Free a list of completion option populated by linenoiseAddCompletion(). */
@@ -541,19 +546,13 @@ static void refreshSingleLine(struct linenoiseState* l) {
     char seq[64];
     size_t plen = strlen(l->prompt);
     int fd = l->ofd;
-    char* buf = l->buf;
+    char buf[LINENOISE_MAX_LINE];
     size_t len = l->len;
     size_t pos = l->pos;
     struct abuf ab;
 
-    while ((plen + pos) >= l->cols) {
-        buf++;
-        len--;
-        pos--;
-    }
-    while (plen + len > l->cols) {
-        len--;
-    }
+    highlightCallback(l->buf, buf, l->cols - l->plen - 1, l->pos);
+    len = strlen(buf);
 
     abInit(&ab);
     /* Cursor to left edge */
@@ -1005,6 +1004,7 @@ static int linenoiseEdit(
             linenoiseEditDeletePrevWord(&l);
             break;
         }
+        refreshLine(&l);
     }
     return l.len;
 }
