@@ -23,6 +23,12 @@ private:
 
     void printExecutionResult();
 
+    void prettyPrintOperator(nlohmann::json&, ostringstream&, uint32_t&);
+
+    void prettyPrintPlan();
+
+    void prettyPrintPlanTitle(uint32_t& planBoxWidth);
+
 private:
     const System& system;
     SessionContext context;
