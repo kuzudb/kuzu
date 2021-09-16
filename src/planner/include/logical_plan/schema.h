@@ -73,6 +73,8 @@ public:
 
     unique_ptr<Schema> copy() const;
 
+    void clearGroups();
+
 public:
     vector<unique_ptr<FactorizationGroup>> groups;
     // Maps a queryRel to the LogicalExtend that matches it. This is needed because ScanRelProperty

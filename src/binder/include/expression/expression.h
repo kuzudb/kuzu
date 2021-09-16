@@ -42,6 +42,7 @@ public:
         return children[0]->expressionType == ALIAS ? children[0]->removeAlias() : children[0];
     }
 
+    bool hasAggregationExpression() const;
     bool hasSubqueryExpression() const;
 
     unordered_set<string> getDependentVariableNames();

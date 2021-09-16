@@ -8,8 +8,7 @@ namespace common {
 bool isExpressionUnary(ExpressionType type) {
     return NOT == type || NEGATE == type || IS_NULL == type || IS_NOT_NULL == type ||
            CAST_TO_STRING == type || CAST_TO_UNSTRUCTURED_VECTOR == type ||
-           CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR == type || ABS_FUNC == type || ID_FUNC == type ||
-           DATE_FUNC == type;
+           CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR == type || ABS_FUNC == type;
 }
 
 bool isExpressionBinary(ExpressionType type) {
@@ -165,13 +164,19 @@ string expressionTypeToString(ExpressionType type) {
     case CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR:
         return "CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR";
     case ABS_FUNC:
-        return "ABS_FUNC";
+        return ABS_FUNC_NAME;
     case COUNT_STAR_FUNC:
-        return "COUNT_STAR_FUNC";
-    case ID_FUNC:
-        return "ID_FUNC";
-    case DATE_FUNC:
-        return "DATE_FUNC";
+        return COUNT_STAR_FUNC_NAME;
+    case COUNT_FUNC:
+        return COUNT_FUNC_NAME;
+    case SUM_FUNC:
+        return SUM_FUNC_NAME;
+    case AVG_FUNC:
+        return AVG_FUNC_NAME;
+    case MIN_FUNC:
+        return MIN_FUNC_NAME;
+    case MAX_FUNC:
+        return MAX_FUNC_NAME;
     default:
         throw invalid_argument("Should never happen. Cannot convert expression type to string");
     }

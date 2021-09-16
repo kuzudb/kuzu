@@ -64,5 +64,10 @@ unique_ptr<Schema> Schema::copy() const {
     return newSchema;
 }
 
+void Schema::clearGroups() {
+    groups.clear();
+    variableToGroupPos.clear();
+}
+
 } // namespace planner
 } // namespace graphflow

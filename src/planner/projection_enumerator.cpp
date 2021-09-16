@@ -1,6 +1,7 @@
 #include "src/planner/include/projection_enumerator.h"
 
 #include "src/planner/include/enumerator.h"
+#include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
 #include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
 #include "src/planner/include/logical_plan/operator/multiplicity_reducer/logical_multiplcity_reducer.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
@@ -11,8 +12,21 @@ namespace planner {
 
 void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& projectionBody,
     const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn) {
+    // TODO: Guodong should remove this with proper support of COUNT(*)
+    if (projectionBody.getProjectionExpressions().size() == 1 &&
+        projectionBody.getProjectionExpressions()[0]->expressionType == COUNT_STAR_FUNC) {
+        // Do not append projection in case of RETURN COUNT(*)
+        for (auto& plan : plans) {
+            plan->isCountOnly = true;
+        }
+        return;
+    }
     for (auto& plan : plans) {
-        appendProjection(projectionBody.getProjectionExpressions(), *plan, isFinalReturn);
+        if (projectionBody.hasAggregationExpressions()) {
+            appendAggregate(projectionBody.getAggregationExpressions(), *plan);
+        } else {
+            appendProjection(projectionBody.getProjectionExpressions(), *plan, isFinalReturn);
+        }
         if (projectionBody.hasSkip() || projectionBody.hasLimit()) {
             appendMultiplicityReducer(*plan);
             if (projectionBody.hasSkip()) {
@@ -27,12 +41,6 @@ void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& pr
 
 void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>& expressions,
     LogicalPlan& plan, bool isRewritingAllProperties) {
-    // Do not append projection in case of RETURN COUNT(*)
-    if (1 == expressions.size() && COUNT_STAR_FUNC == expressions[0]->expressionType) {
-        plan.isCountOnly = true;
-        return;
-    }
-
     // extract and rewrite expressions to project
     vector<shared_ptr<Expression>> expressionsToProject;
     for (auto& expression : expressions) {
@@ -48,7 +56,7 @@ void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>
         }
     }
 
-    // every expression is write to a factorization group
+    // every expression is written to a factorization group
     unordered_map<uint32_t, vector<shared_ptr<Expression>>> groupPosToExpressionsMap;
     for (auto& expression : expressionsToProject) {
         uint32_t groupPosToWrite =
@@ -69,24 +77,35 @@ void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>
     }
 
     // reconstruct schema
-    auto newSchema = make_unique<Schema>();
-    newSchema->queryRelLogicalExtendMap = plan.schema->queryRelLogicalExtendMap;
+    auto schemaBeforeProjection = plan.schema->copy();
+    plan.schema->clearGroups();
     for (auto& [groupPosBeforeProjection, expressionsToProject] : groupPosToExpressionsMap) {
-        auto newGroupPos = newSchema->createGroup();
+        auto newGroupPos = plan.schema->createGroup();
         for (auto& expressionToProject : expressionsToProject) {
-            newSchema->insertToGroup(expressionToProject->getInternalName(), newGroupPos);
+            plan.schema->insertToGroup(expressionToProject->getInternalName(), newGroupPos);
         }
         // copy other information
-        auto newGroup = newSchema->groups[newGroupPos].get();
-        newGroup->isFlat = plan.schema->groups[groupPosBeforeProjection]->isFlat;
+        auto newGroup = plan.schema->groups[newGroupPos].get();
+        newGroup->isFlat = schemaBeforeProjection->groups[groupPosBeforeProjection]->isFlat;
         newGroup->estimatedCardinality =
-            plan.schema->groups[groupPosBeforeProjection]->estimatedCardinality;
+            schemaBeforeProjection->groups[groupPosBeforeProjection]->estimatedCardinality;
     }
 
-    auto projection = make_shared<LogicalProjection>(
-        move(expressionsToProject), move(plan.schema), move(discardedGroupsPos), plan.lastOperator);
-    plan.schema = move(newSchema);
+    auto projection = make_shared<LogicalProjection>(move(expressionsToProject),
+        move(schemaBeforeProjection), move(discardedGroupsPos), plan.lastOperator);
     plan.appendOperator(move(projection));
+}
+
+void ProjectionEnumerator::appendAggregate(
+    const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan) {
+    auto aggregate =
+        make_shared<LogicalAggregate>(expressions, plan.schema->copy(), plan.lastOperator);
+    plan.schema->clearGroups();
+    auto groupPos = plan.schema->createGroup();
+    for (auto& expression : expressions) {
+        plan.schema->insertToGroup(expression->getInternalName(), groupPos);
+    }
+    plan.appendOperator(move(aggregate));
 }
 
 void ProjectionEnumerator::appendMultiplicityReducer(LogicalPlan& plan) {

@@ -16,6 +16,18 @@ Expression::Expression(
     children.push_back(child);
 }
 
+bool Expression::hasAggregationExpression() const {
+    if (isExpressionAggregate(expressionType)) {
+        return true;
+    }
+    for (auto& child : children) {
+        if (child->hasAggregationExpression()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool Expression::hasSubqueryExpression() const {
     if (expressionType == EXISTENTIAL_SUBQUERY) {
         return true;

@@ -14,6 +14,11 @@ namespace common {
  */
 const string ABS_FUNC_NAME = "ABS";
 const string COUNT_STAR_FUNC_NAME = "COUNT_STAR";
+const string COUNT_FUNC_NAME = "COUNT";
+const string SUM_FUNC_NAME = "SUM";
+const string AVG_FUNC_NAME = "AVG";
+const string MIN_FUNC_NAME = "MIN";
+const string MAX_FUNC_NAME = "MAX";
 const string ID_FUNC_NAME = "ID";
 const string DATE_FUNC_NAME = "DATE";
 
@@ -121,16 +126,6 @@ enum ExpressionType : uint8_t {
     AVG_FUNC = 133,
     MIN_FUNC = 134,
     MAX_FUNC = 135,
-
-    /**
-     * Scalar Function Expression
-     */
-    ID_FUNC = 150,
-
-    /**
-     * Temporal Function Expression
-     */
-    DATE_FUNC = 170,
 
     EXISTENTIAL_SUBQUERY = 190,
 };

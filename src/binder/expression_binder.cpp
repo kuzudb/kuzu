@@ -45,6 +45,7 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
             "Bind " + expressionTypeToString(expressionType) + " expression is not implemented.");
     }
     expression->rawExpression = parsedExpression.rawExpression;
+    validateAggregationIsRoot(*expression);
     if (!parsedExpression.alias.empty()) {
         auto aliasExpression =
             make_shared<Expression>(ALIAS, expression->dataType, move(expression));
@@ -124,8 +125,8 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
             return make_shared<Expression>(parsedExpression.type, STRING, move(left), move(right));
         }
     }
-    validateNumericalType(*left);
-    validateNumericalType(*right);
+    validateNumericalTypeOrUnstructured(*left);
+    validateNumericalTypeOrUnstructured(*right);
     DataType resultType;
     if (left->dataType == DOUBLE || right->dataType == DOUBLE) {
         resultType = DOUBLE;
@@ -139,7 +140,7 @@ shared_ptr<Expression> ExpressionBinder::bindUnaryArithmeticExpression(
     const ParsedExpression& parsedExpression) {
     validateNoNullLiteralChildren(parsedExpression);
     auto child = bindExpression(*parsedExpression.children.at(0));
-    validateNumericalType(*child);
+    validateNumericalTypeOrUnstructured(*child);
     return make_shared<Expression>(parsedExpression.type, child->dataType, move(child));
 }
 
@@ -214,6 +215,16 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
         return bindAbsFunctionExpression(parsedExpression);
     } else if (functionName == COUNT_STAR_FUNC_NAME) {
         return bindCountStarFunctionExpression(parsedExpression);
+    } else if (functionName == COUNT_FUNC_NAME) {
+        return bindCountFunctionExpression(parsedExpression);
+    } else if (functionName == SUM_FUNC_NAME) {
+        return bindSumMinMaxFunctionExpression(parsedExpression, SUM_FUNC);
+    } else if (functionName == AVG_FUNC_NAME) {
+        return bindAvgFunctionExpression(parsedExpression);
+    } else if (functionName == MIN_FUNC_NAME) {
+        return bindSumMinMaxFunctionExpression(parsedExpression, MIN_FUNC);
+    } else if (functionName == MAX_FUNC_NAME) {
+        return bindSumMinMaxFunctionExpression(parsedExpression, MAX_FUNC);
     } else if (functionName == ID_FUNC_NAME) {
         return bindIDFunctionExpression(parsedExpression);
     } else if (functionName == DATE_FUNC_NAME) {
@@ -226,10 +237,7 @@ shared_ptr<Expression> ExpressionBinder::bindAbsFunctionExpression(
     const ParsedExpression& parsedExpression) {
     validateNumberOfChildren(parsedExpression, 1);
     auto child = bindExpression(*parsedExpression.children[0]);
-    if (child->dataType == UNSTRUCTURED) {
-        return make_shared<Expression>(ABS_FUNC, child->dataType, move(child));
-    }
-    validateNumericalType(*child);
+    validateNumericalTypeOrUnstructured(*child);
     return make_shared<Expression>(ABS_FUNC, child->dataType, move(child));
 }
 
@@ -237,6 +245,28 @@ shared_ptr<Expression> ExpressionBinder::bindCountStarFunctionExpression(
     const ParsedExpression& parsedExpression) {
     validateNumberOfChildren(parsedExpression, 0);
     return make_shared<Expression>(COUNT_STAR_FUNC, INT64);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindCountFunctionExpression(
+    const ParsedExpression& parsedExpression) {
+    validateNumberOfChildren(parsedExpression, 1);
+    auto child = bindExpression(*parsedExpression.children[0]);
+    return make_shared<Expression>(COUNT_FUNC, INT64, move(child));
+}
+
+shared_ptr<Expression> ExpressionBinder::bindAvgFunctionExpression(
+    const ParsedExpression& parsedExpression) {
+    validateNumberOfChildren(parsedExpression, 1);
+    auto child = bindExpression(*parsedExpression.children[0]);
+    validateNumericalTypeOrUnstructured(*child);
+    return make_shared<Expression>(AVG_FUNC, DOUBLE, move(child));
+}
+
+shared_ptr<Expression> ExpressionBinder::bindSumMinMaxFunctionExpression(
+    const ParsedExpression& parsedExpression, ExpressionType expressionType) {
+    validateNumberOfChildren(parsedExpression, 1);
+    auto child = bindExpression(*parsedExpression.children[0]);
+    return make_shared<Expression>(expressionType, child->dataType, move(child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindIDFunctionExpression(
@@ -327,8 +357,11 @@ void ExpressionBinder::validateExpectedType(const Expression& expression, DataTy
     }
 }
 
-void ExpressionBinder::validateNumericalType(const Expression& expression) {
+void ExpressionBinder::validateNumericalTypeOrUnstructured(const Expression& expression) {
     auto dataType = expression.dataType;
+    if (dataType == UNSTRUCTURED) {
+        return;
+    }
     if (!TypeUtils::isNumericalType(dataType)) {
         throw invalid_argument(expression.getExternalName() + " has data type " +
                                TypeUtils::dataTypeToString(dataType) +
@@ -343,6 +376,13 @@ shared_ptr<Expression> ExpressionBinder::validateAsBoolAndCastIfNecessary(
         return expression;
     }
     return make_shared<Expression>(CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR, BOOL, move(expression));
+}
+
+void ExpressionBinder::validateAggregationIsRoot(const Expression& expression) {
+    if (!isExpressionAggregate(expression.expressionType) &&
+        expression.hasAggregationExpression()) {
+        throw invalid_argument("Aggregation function must be the root of expression tree.");
+    }
 }
 
 } // namespace binder

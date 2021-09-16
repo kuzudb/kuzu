@@ -66,9 +66,8 @@ private:
         label_t relLabel, label_t nodeLabel, Direction direction);
     // E.g. RETURN a, b AS a
     void validateProjectionColumnNamesAreUnique(const vector<shared_ptr<Expression>>& expressions);
-    // Current system does not support group by and aggregation. So if COUNT(*) presents, no other
-    // expression is allowed
-    void validateOnlyFunctionIsCountStar(const vector<shared_ptr<Expression>>& expressions);
+    // Current system does not support aggregations with group by.
+    void validateAggregationsHaveNoGroupBy(const vector<shared_ptr<Expression>>& expressions);
     void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
         unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
     void validateCSVHeaderColumnNamesAreUnique(const vector<pair<string, DataType>>& headerInfo);
