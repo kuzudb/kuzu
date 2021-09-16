@@ -44,6 +44,10 @@ private:
     shared_ptr<Expression> bindAbsFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindCountStarFunctionExpression(
         const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindCountFunctionExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindAvgFunctionExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindSumMinMaxFunctionExpression(
+        const ParsedExpression& parsedExpression, ExpressionType expressionType);
     shared_ptr<Expression> bindIDFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindDateFunctionExpression(const ParsedExpression& parsedExpression);
 
@@ -63,9 +67,11 @@ private:
     static void validateNumberOfChildren(
         const ParsedExpression& parsedExpression, uint32_t expectedNumChildren);
     static void validateExpectedType(const Expression& expression, DataType expectedType);
-    static void validateNumericalType(const Expression& expression);
+    static void validateNumericalTypeOrUnstructured(const Expression& expression);
     static shared_ptr<Expression> validateAsBoolAndCastIfNecessary(
         shared_ptr<Expression> expression);
+    // NOTE: this validation should be removed once we rewrite aggregation as an alias.
+    static void validateAggregationIsRoot(const Expression& expression);
 
 private:
     QueryBinder* queryBinder;

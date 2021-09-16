@@ -178,7 +178,7 @@ vector<shared_ptr<Expression>> QueryBinder::bindProjectExpressions(
     }
     variablesInScope = newVariablesInScope;
     validateProjectionColumnNamesAreUnique(expressions);
-    validateOnlyFunctionIsCountStar(expressions);
+    validateAggregationsHaveNoGroupBy(expressions);
     return expressions;
 }
 
@@ -324,12 +324,16 @@ void QueryBinder::validateProjectionColumnNamesAreUnique(
     }
 }
 
-void QueryBinder::validateOnlyFunctionIsCountStar(
+void QueryBinder::validateAggregationsHaveNoGroupBy(
     const vector<shared_ptr<Expression>>& expressions) {
+    auto numAggregationExpressions = 0u;
+    auto numNonAggregationExpressions = 0u;
     for (auto& expression : expressions) {
-        if (COUNT_STAR_FUNC == expression->expressionType && 1 != expressions.size()) {
-            throw invalid_argument("The only function in the return clause should be COUNT(*).");
-        }
+        isExpressionAggregate(expression->expressionType) ? numAggregationExpressions++ :
+                                                            numNonAggregationExpressions++;
+    }
+    if (numAggregationExpressions != 0 && numNonAggregationExpressions != 0) {
+        throw invalid_argument("Aggregations with group by is not supported.");
     }
 }
 

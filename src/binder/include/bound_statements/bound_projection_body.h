@@ -19,7 +19,9 @@ public:
     inline void setSkipNumber(uint64_t number) { skipNumber = number; }
     inline void setLimitNumber(uint64_t number) { limitNumber = number; }
 
-    inline const vector<shared_ptr<Expression>>& getProjectionExpressions() const {
+    bool hasAggregationExpressions() const;
+    vector<shared_ptr<Expression>> getAggregationExpressions() const;
+    inline vector<shared_ptr<Expression>> getProjectionExpressions() const {
         return projectionExpressions;
     }
     inline bool hasSkip() const { return skipNumber != UINT64_MAX; }
