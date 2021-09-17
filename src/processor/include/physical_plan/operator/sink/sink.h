@@ -18,8 +18,8 @@ public:
 
     virtual void execute() = 0;
 
-    void getNextTuples() override {
-        throw invalid_argument("Sink operator should implement execute instead of ");
+    void getNextTuples() final {
+        throw invalid_argument("Sink operator should implement execute instead of getNextTuples");
     }
 
     virtual void finalize() {}

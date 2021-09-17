@@ -30,7 +30,9 @@ enum PhysicalOperatorType : uint8_t {
     DELETE_NODE,
     MULTIPLICITY_REDUCER,
     LIMIT,
-    SKIP
+    SKIP,
+    AGGREGATE,
+    AGGREGATION_SCAN,
 };
 
 const string PhysicalOperatorTypeNames[] = {"SCAN", "SELECT_SCAN", "FILTER", "INTERSECT", "FLATTEN",
@@ -57,14 +59,10 @@ class PhysicalOperator {
 
 public:
     PhysicalOperator(PhysicalOperatorType operatorType, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator(nullptr, operatorType, false, context, id) {}
+        : PhysicalOperator(nullptr, operatorType, context, id) {}
 
     PhysicalOperator(unique_ptr<PhysicalOperator> prevOperator, PhysicalOperatorType operatorType,
-        ExecutionContext& context, uint32_t id)
-        : PhysicalOperator(move(prevOperator), operatorType, false, context, id) {}
-
-    PhysicalOperator(unique_ptr<PhysicalOperator> prevOperator, PhysicalOperatorType operatorType,
-        bool isOutDataChunkFiltered, ExecutionContext& context, uint32_t id);
+        ExecutionContext& context, uint32_t id);
 
     virtual ~PhysicalOperator() = default;
 
@@ -97,7 +95,6 @@ protected:
 public:
     unique_ptr<PhysicalOperator> prevOperator;
     PhysicalOperatorType operatorType;
-    bool isOutDataChunkFiltered;
     ExecutionContext& context;
     uint32_t id;
     unique_ptr<OperatorMetrics> metrics;

@@ -2,12 +2,15 @@
 
 -NAME KnowsOneToTwoHopTest
 -QUERY MATCH (a:person)-[:knows*1..2]->(b:person) RETURN COUNT(*)
----- 50
+---- 1
+50
 
 -NAME KnowsTwoToFourHopTest
 -QUERY MATCH (a:person)-[:knows*2..4]->(b:person) RETURN COUNT(*)
----- 468
+---- 1
+468
 
 -NAME KnowsKnows2To4HopTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows*2..4]->(c:person) RETURN COUNT(*)
----- 1404
+---- 1
+1404

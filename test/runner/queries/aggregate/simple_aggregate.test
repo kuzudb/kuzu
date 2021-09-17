@@ -1,0 +1,31 @@
+# description: aggregation without groups and distinct
+
+-NAME SimpleSumTest
+-QUERY MATCH (a:person) RETURN SUM(a.age), SUM(a.eyeSight), SUM(a.unstrNumericProp)
+---- 1
+298|38.900000|167.000000
+
+-NAME SimpleSumWithterTest
+-QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age), SUM(a.eyeSight)
+---- 1
+85|14.100000
+
+-NAME SimpleSumWithFilterTest2
+-QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10), SUM(a.age*2)
+---- 1
+115|170
+
+-NAME SimpleAvgTest
+-QUERY MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
+---- 1
+37.250000|4.862500
+
+-NAME SimpleAvgWithFilterTest
+-QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN AVG(a.age), AVG(a.eyeSight)
+---- 1
+28.333333|4.700000
+
+-NAME SimpleMinMaxTest
+-QUERY MATCH (a:person) RETURN MIN(a.age), MAX(a.age), MIN(a.isStudent), MAX(a.isStudent), MIN(a.eyeSight), MAX(a.eyeSight), MIN(a.birthdate), MAX(a.birthdate)
+---- 1
+20|83|False|True|4.500000|5.100000|1900-01-01|1990-11-27

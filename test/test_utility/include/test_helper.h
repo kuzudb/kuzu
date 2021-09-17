@@ -23,7 +23,6 @@ struct TestSuiteSystemConfig {
 
 struct TestQueryConfig {
     uint64_t numThreads = 4;
-    bool compareResult = false;
     string name;
     string query;
     uint64_t expectedNumTuples;

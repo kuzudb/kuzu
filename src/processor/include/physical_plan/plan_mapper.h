@@ -64,6 +64,8 @@ private:
         const PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalLimitToPhysical(LogicalOperator* logicalOperator,
         const PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalAggregateToPhysical(LogicalOperator* logicalOperator,
+        const PhysicalOperatorsInfo& info, ExecutionContext& context);
 
 public:
     const Graph& graph;

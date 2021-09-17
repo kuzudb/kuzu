@@ -62,5 +62,10 @@ public:
     }
 };
 
+template<typename FROM, typename TO>
+unique_ptr<TO> static_unique_pointer_cast(unique_ptr<FROM>&& old) {
+    return unique_ptr<TO>{static_cast<TO*>(old.release())};
+}
+
 } // namespace common
 } // namespace graphflow

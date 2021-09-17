@@ -18,15 +18,28 @@ cc_library(
 )
 
 cc_library(
-    name = "evaluator_impls",
+    name = "aggregate_evaluator_impls",
     srcs = [
         "aggregate_expression_evaluator.cpp",
+    ],
+    hdrs = [
+        "include/aggregate_expression_evaluator.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "base_evaluator",
+        "//src/function:aggregation_function",
+    ],
+)
+
+cc_library(
+    name = "evaluator_impls",
+    srcs = [
         "binary_expression_evaluator.cpp",
         "existential_subquery_evaluator.cpp",
         "unary_expression_evaluator.cpp",
     ],
     hdrs = [
-        "include/aggregate_expression_evaluator.h",
         "include/binary_expression_evaluator.h",
         "include/existential_subquery_evaluator.h",
         "include/unary_expression_evaluator.h",
@@ -34,7 +47,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "base_evaluator",
-        "//src/function:aggregation_function",
         "//src/processor:operator_impls",
     ],
 )

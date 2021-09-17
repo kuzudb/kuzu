@@ -39,36 +39,29 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const Syste
                     j, result->numTuples, testConfig.expectedNumTuples);
                 spdlog::info("PLAN: \n{}", planStr);
             } else {
-                if (testConfig.compareResult) {
-                    vector<string> resultTuples;
-                    auto resultSetIterator =
-                        make_unique<ResultSetIterator>(result->resultSetCollection[0].get());
-                    Tuple tuple(resultSetIterator->dataTypes);
-                    for (auto& resultSet : result->resultSetCollection) {
-                        resultSetIterator->setResultSet(resultSet.get());
-                        while (resultSetIterator->hasNextTuple()) {
-                            resultSetIterator->getNextTuple(tuple);
-                            resultTuples.push_back(
-                                tuple.toString(vector<uint32_t>(tuple.len(), 0)));
-                        }
+                vector<string> resultTuples;
+                auto resultSetIterator =
+                    make_unique<ResultSetIterator>(result->resultSetCollection[0].get());
+                Tuple tuple(resultSetIterator->dataTypes);
+                for (auto& resultSet : result->resultSetCollection) {
+                    resultSetIterator->setResultSet(resultSet.get());
+                    while (resultSetIterator->hasNextTuple()) {
+                        resultSetIterator->getNextTuple(tuple);
+                        resultTuples.push_back(tuple.toString(vector<uint32_t>(tuple.len(), 0)));
                     }
-                    sort(resultTuples.begin(), resultTuples.end());
-                    if (resultTuples == testConfig.expectedTuples) {
-                        spdlog::info("PLAN{} PASSED", j);
-                        spdlog::debug("PLAN: \n{}", planStr);
-                        numPassedPlans++;
-                    } else {
-                        spdlog::error("PLAN{} NOT PASSED. Result tuples are not matched", j);
-                        spdlog::info("PLAN: \n{}", planStr);
-                        spdlog::info("RESULT: \n");
-                        for (auto& tuple : resultTuples) {
-                            spdlog::info(tuple);
-                        }
-                    }
-                } else {
+                }
+                sort(resultTuples.begin(), resultTuples.end());
+                if (resultTuples == testConfig.expectedTuples) {
                     spdlog::info("PLAN{} PASSED", j);
                     spdlog::debug("PLAN: \n{}", planStr);
                     numPassedPlans++;
+                } else {
+                    spdlog::error("PLAN{} NOT PASSED. Result tuples are not matched", j);
+                    spdlog::info("PLAN: \n{}", planStr);
+                    spdlog::info("RESULT: \n");
+                    for (auto& tuple : resultTuples) {
+                        spdlog::info(tuple);
+                    }
                 }
             }
         }
@@ -101,21 +94,16 @@ vector<TestQueryConfig> TestHelper::parseTestFile(const string& path) {
                     retVal.back().name = line.substr(6, line.length());
                 } else if (line.starts_with("-PARALLELISM")) {
                     retVal.back().numThreads = stoi(line.substr(13, line.length()));
-                } else if (line.starts_with("-COMPARE_RESULT")) {
-                    retVal.back().compareResult = (line.substr(16, line.length()) == "1");
                 } else if (line.starts_with("-QUERY")) {
                     retVal.back().query = line.substr(7, line.length());
                 } else if (line.starts_with("----")) {
                     uint64_t numTuples = stoi(line.substr(5, line.length()));
                     retVal.back().expectedNumTuples = numTuples;
-                    if (retVal.back().compareResult) {
-                        for (auto i = 0u; i < numTuples; i++) {
-                            getline(ifs, line);
-                            retVal.back().expectedTuples.push_back(line);
-                        }
-                        sort(retVal.back().expectedTuples.begin(),
-                            retVal.back().expectedTuples.end());
+                    for (auto i = 0u; i < numTuples; i++) {
+                        getline(ifs, line);
+                        retVal.back().expectedTuples.push_back(line);
                     }
+                    sort(retVal.back().expectedTuples.begin(), retVal.back().expectedTuples.end());
                 }
             }
             return retVal;

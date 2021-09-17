@@ -45,9 +45,9 @@ unique_ptr<AggregationFunction> AggregateExpressionEvaluator::getCountFunction()
 unique_ptr<AggregationFunction> AggregateExpressionEvaluator::getAvgFunction(DataType dataType) {
     switch (dataType) {
     case INT64:
-        return make_unique<AggregationFunction>(AvgFunction<uint64_t>::initialize,
-            AvgFunction<uint64_t>::update, AvgFunction<uint64_t>::combine,
-            AvgFunction<uint64_t>::finalize);
+        return make_unique<AggregationFunction>(AvgFunction<int64_t>::initialize,
+            AvgFunction<int64_t>::update, AvgFunction<int64_t>::combine,
+            AvgFunction<int64_t>::finalize);
     case DOUBLE:
         return make_unique<AggregationFunction>(AvgFunction<double_t>::initialize,
             AvgFunction<double_t>::update, AvgFunction<double_t>::combine,
@@ -60,9 +60,9 @@ unique_ptr<AggregationFunction> AggregateExpressionEvaluator::getAvgFunction(Dat
 unique_ptr<AggregationFunction> AggregateExpressionEvaluator::getSumFunction(DataType dataType) {
     switch (dataType) {
     case INT64:
-        return make_unique<AggregationFunction>(SumFunction<uint64_t>::initialize,
-            SumFunction<uint64_t>::update, SumFunction<uint64_t>::combine,
-            SumFunction<uint64_t>::finalize);
+        return make_unique<AggregationFunction>(SumFunction<int64_t>::initialize,
+            SumFunction<int64_t>::update, SumFunction<int64_t>::combine,
+            SumFunction<int64_t>::finalize);
     case DOUBLE:
         return make_unique<AggregationFunction>(SumFunction<double_t>::initialize,
             SumFunction<double_t>::update, SumFunction<double_t>::combine,
@@ -79,6 +79,10 @@ template<bool IS_MIN>
 unique_ptr<AggregationFunction> AggregateExpressionEvaluator::getMinMaxFunction(DataType dataType) {
     if constexpr (IS_MIN) {
         switch (dataType) {
+        case BOOL:
+            return make_unique<AggregationFunction>(MinMaxFunction<bool>::initialize,
+                MinMaxFunction<bool>::update<LessThan>, MinMaxFunction<bool>::combine<LessThan>,
+                MinMaxFunction<bool>::finalize);
         case INT64:
             return make_unique<AggregationFunction>(MinMaxFunction<int64_t>::initialize,
                 MinMaxFunction<int64_t>::update<LessThan>,
@@ -110,6 +114,10 @@ unique_ptr<AggregationFunction> AggregateExpressionEvaluator::getMinMaxFunction(
         }
     } else {
         switch (dataType) {
+        case BOOL:
+            return make_unique<AggregationFunction>(MinMaxFunction<bool>::initialize,
+                MinMaxFunction<bool>::update<GreaterThan>,
+                MinMaxFunction<bool>::combine<GreaterThan>, MinMaxFunction<bool>::finalize);
         case INT64:
             return make_unique<AggregationFunction>(MinMaxFunction<int64_t>::initialize,
                 MinMaxFunction<int64_t>::update<GreaterThan>,
@@ -144,9 +152,12 @@ unique_ptr<AggregationFunction> AggregateExpressionEvaluator::getMinMaxFunction(
 
 void AggregateExpressionEvaluator::initResultSet(
     const ResultSet& resultSet, MemoryManager& memoryManager) {
-    for (auto& child : childrenExpr) {
-        child->initResultSet(resultSet, memoryManager);
+    assert(childrenExpr.size() <= 1);
+    if (childrenExpr.empty()) {
+        return;
     }
+    childrenExpr[0]->initResultSet(resultSet, memoryManager);
+    childResult = childrenExpr[0]->result;
 }
 
 } // namespace evaluator

@@ -19,6 +19,11 @@ public:
 
     void run();
 
+    void addChildTask(unique_ptr<Task> child) {
+        child->parent = this;
+        children.push_back(move(child));
+    }
+
     inline bool isCompleted() {
         lock_t lck{mtx};
         return numThreadsRegistered > 0 && numThreadsFinished == numThreadsRegistered;
@@ -41,8 +46,8 @@ public:
 
 private:
     unique_ptr<PhysicalOperator> registerThread();
-    void deregisterThread(unique_ptr<PhysicalOperator> taskSinkOp);
-    bool canRegisterInternal() {
+    void deRegisterThread(unique_ptr<PhysicalOperator> taskSinkOp);
+    bool canRegisterInternal() const {
         return 0 == numThreadsFinished && maxNumThreads > numThreadsRegistered;
     }
 

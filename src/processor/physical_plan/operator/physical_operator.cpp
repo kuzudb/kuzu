@@ -6,10 +6,8 @@ namespace graphflow {
 namespace processor {
 
 PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> prevOperator,
-    PhysicalOperatorType operatorType, bool isOutDataChunkFiltered, ExecutionContext& context,
-    uint32_t id)
-    : prevOperator{move(prevOperator)}, operatorType{operatorType},
-      isOutDataChunkFiltered{isOutDataChunkFiltered}, context{context}, id{id} {
+    PhysicalOperatorType operatorType, ExecutionContext& context, uint32_t id)
+    : prevOperator{move(prevOperator)}, operatorType{operatorType}, context{context}, id{id} {
     registerProfilingMetrics();
 }
 

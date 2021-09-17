@@ -12,15 +12,16 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace function {
 
-typedef void (*aggr_initialize_function_t)(uint8_t* state);
-typedef void (*aggr_update_function_t)(uint8_t* state, ValueVector* input, uint64_t count);
-typedef void (*aggr_combine_function_t)(uint8_t* state, uint8_t* otherState);
-typedef void (*aggr_finalize_function_t)(uint8_t* inputState, uint8_t* finalState);
-
-template<typename T>
 struct AggregationState {
-    T val;
+    unique_ptr<uint8_t[]> val;
+    bool isNull = true;
 };
+
+using aggr_initialize_function_t = std::function<unique_ptr<AggregationState>()>;
+using aggr_update_function_t =
+    std::function<void(uint8_t* state, ValueVector* input, uint64_t count)>;
+using aggr_combine_function_t = std::function<void(uint8_t* state, uint8_t* otherState)>;
+using aggr_finalize_function_t = std::function<void(uint8_t* state)>;
 
 class AggregationFunction {
 
@@ -28,16 +29,19 @@ public:
     AggregationFunction(aggr_initialize_function_t initializeFunc,
         aggr_update_function_t updateFunc, aggr_combine_function_t combineFunc,
         aggr_finalize_function_t finalizeFunc)
-        : initializeFunc{initializeFunc}, updateFunc{updateFunc}, combineFunc{combineFunc},
-          finalizeFunc{finalizeFunc} {}
+        : initializeFunc{move(initializeFunc)}, updateFunc{move(updateFunc)},
+          combineFunc{move(combineFunc)}, finalizeFunc{move(finalizeFunc)} {}
 
-    inline void initialize(uint8_t* state) { initializeFunc(state); }
+    inline unique_ptr<AggregationState> initialize() { return initializeFunc(); }
     inline void update(uint8_t* state, ValueVector* input, uint64_t count) {
         updateFunc(state, input, count);
     }
     inline void combine(uint8_t* state, uint8_t* otherState) { combineFunc(state, otherState); }
-    inline void finalize(uint8_t* inputState, uint8_t* finalState) {
-        finalizeFunc(inputState, finalState);
+    inline void finalize(uint8_t* state) { finalizeFunc(state); }
+
+    unique_ptr<AggregationFunction> clone() {
+        return make_unique<AggregationFunction>(
+            initializeFunc, updateFunc, combineFunc, finalizeFunc);
     }
 
 private:
