@@ -40,17 +40,20 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const Syste
                 spdlog::info("PLAN: \n{}", planStr);
             } else {
                 vector<string> resultTuples;
-                auto resultSetIterator =
-                    make_unique<ResultSetIterator>(result->resultSetCollection[0].get());
-                Tuple tuple(resultSetIterator->dataTypes);
-                for (auto& resultSet : result->resultSetCollection) {
-                    resultSetIterator->setResultSet(resultSet.get());
-                    while (resultSetIterator->hasNextTuple()) {
-                        resultSetIterator->getNextTuple(tuple);
-                        resultTuples.push_back(tuple.toString(vector<uint32_t>(tuple.len(), 0)));
+                if (result->numTuples != 0) {
+                    auto resultSetIterator =
+                        make_unique<ResultSetIterator>(result->resultSetCollection[0].get());
+                    Tuple tuple(resultSetIterator->dataTypes);
+                    for (auto& resultSet : result->resultSetCollection) {
+                        resultSetIterator->setResultSet(resultSet.get());
+                        while (resultSetIterator->hasNextTuple()) {
+                            resultSetIterator->getNextTuple(tuple);
+                            resultTuples.push_back(
+                                tuple.toString(vector<uint32_t>(tuple.len(), 0)));
+                        }
                     }
+                    sort(resultTuples.begin(), resultTuples.end());
                 }
-                sort(resultTuples.begin(), resultTuples.end());
                 if (resultTuples == testConfig.expectedTuples) {
                     spdlog::info("PLAN{} PASSED", j);
                     spdlog::debug("PLAN: \n{}", planStr);

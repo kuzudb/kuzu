@@ -10,8 +10,7 @@ void ResultCollector::reInitialize() {
 
 void ResultCollector::execute() {
     metrics->executionTime.start();
-    do {
-        prevOperator->getNextTuples();
+    while (prevOperator->getNextTuples()) {
         auto resultSet = prevOperator->getResultSet();
         queryResult->numTuples += resultSet->getNumTuples();
         auto clonedResultSet = resultSet->clone();
@@ -25,7 +24,7 @@ void ResultCollector::execute() {
             }
         }
         resetStringBuffer();
-    } while (resultSet->getNumTuples() > 0);
+    }
     metrics->executionTime.stop();
 }
 

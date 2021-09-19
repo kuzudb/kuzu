@@ -14,14 +14,14 @@ void Filter::reInitialize() {
     FilteringOperator::reInitialize();
 }
 
-void Filter::getNextTuples() {
+bool Filter::getNextTuples() {
     metrics->executionTime.start();
     bool hasAtLeastOneSelectedValue;
     do {
         restoreDataChunkSelectorState(dataChunkToSelect);
-        prevOperator->getNextTuples();
-        if (dataChunkToSelect->state->selectedSize == 0) {
-            break;
+        if (!prevOperator->getNextTuples()) {
+            metrics->executionTime.stop();
+            return false;
         }
         saveDataChunkSelectorState(dataChunkToSelect);
         if (dataChunkToSelect->state->isFlat()) {
@@ -38,6 +38,7 @@ void Filter::getNextTuples() {
     } while (!hasAtLeastOneSelectedValue);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(dataChunkToSelect->state->selectedSize);
+    return true;
 }
 
 unique_ptr<PhysicalOperator> Filter::clone() {

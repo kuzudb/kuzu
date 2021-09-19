@@ -8,23 +8,23 @@ void Skip::reInitialize() {
     FilteringOperator::reInitialize();
 }
 
-void Skip::getNextTuples() {
+bool Skip::getNextTuples() {
     metrics->executionTime.start();
     auto& dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
     auto numTupleSkippedBefore = 0u;
     auto numTuplesAvailable = 1u;
     do {
         restoreDataChunkSelectorState(dataChunkToSelect);
-        prevOperator->getNextTuples();
+        // end of execution due to no more input
+        if (!prevOperator->getNextTuples()) {
+            metrics->executionTime.stop();
+            return false;
+        }
+        saveDataChunkSelectorState(dataChunkToSelect);
         for (auto& dataChunkToSkipPos : dataChunksToSkipPos) {
             numTuplesAvailable *=
                 resultSet->dataChunks[dataChunkToSkipPos]->state->getNumSelectedValues();
         }
-        // end of execution due to no more input
-        if (numTuplesAvailable == 0) {
-            return;
-        }
-        saveDataChunkSelectorState(dataChunkToSelect);
         numTupleSkippedBefore = counter->fetch_add(numTuplesAvailable);
     } while (numTupleSkippedBefore + numTuplesAvailable <= skipNumber);
     int64_t numTupleToSkipInCurrentResultSet = skipNumber - numTupleSkippedBefore;
@@ -52,6 +52,7 @@ void Skip::getNextTuples() {
         metrics->numOutputTuple.increase(dataChunkToSelect->state->selectedSize);
     }
     metrics->executionTime.stop();
+    return true;
 }
 
 } // namespace processor

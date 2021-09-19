@@ -3,12 +3,13 @@
 namespace graphflow {
 namespace processor {
 
-void DeleteNode::getNextTuples() {
+bool DeleteNode::getNextTuples() {
     CRUDOperator::getNextTuples();
     context.transaction->localStorage.mapNodeIDs(nodeLabel);
     context.transaction->localStorage.deleteNodeIDs(nodeLabel);
     context.transaction->localStorage.computeDeleteNode(
         move(propertyKeyVectorPos), nodeLabel, nodePropertyColumns, numNodes);
+    return false;
 }
 
 } // namespace processor

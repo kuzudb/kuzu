@@ -3,11 +3,12 @@
 namespace graphflow {
 namespace processor {
 
-void UpdateNode::getNextTuples() {
+bool UpdateNode::getNextTuples() {
     CRUDOperator::getNextTuples();
     context.transaction->localStorage.mapNodeIDs(nodeLabel);
     context.transaction->localStorage.computeUpdateNode(
         move(propertyKeyVectorPos), nodeLabel, nodePropertyColumns, numNodes);
+    return false;
 }
 
 } // namespace processor

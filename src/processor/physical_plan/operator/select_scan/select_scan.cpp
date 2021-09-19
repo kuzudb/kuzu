@@ -28,7 +28,8 @@ void SelectScan::reInitialize() {
  * the first call SelectScan copies in the flat input tuple. On the second call SelectScan
  * terminates the execution.
  */
-void SelectScan::getNextTuples() {
+bool SelectScan::getNextTuples() {
+    metrics->executionTime.start();
     if (isFirstExecution) {
         isFirstExecution = false;
         for (auto i = 0u; i < inDataPoses.size(); ++i) {
@@ -49,13 +50,12 @@ void SelectScan::getNextTuples() {
                     inValueVector.values + pos * elementSize, elementSize);
             }
         }
-        // We don't need to initialize original size because it is set to 1 in the constructor and
-        // never gets updated
-        outDataChunk->state->setSelectedSize(1);
-        outDataChunk->state->currIdx = 0;
+        metrics->executionTime.stop();
+        metrics->numOutputTuple.incrementByOne();
+        return true;
     } else {
-        outDataChunk->state->setSelectedSize(0);
-        outDataChunk->state->currIdx = -1;
+        metrics->executionTime.stop();
+        return false;
     }
 }
 

@@ -44,24 +44,23 @@ void FrontierExtend::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     this->resultSet->insert(outDataPos.dataChunkPos, make_shared<ListSyncState>());
 }
 
-void FrontierExtend::getNextTuples() {
+bool FrontierExtend::getNextTuples() {
     metrics->executionTime.start();
     if (currOutputPos.hasMoreTuplesToProduce) {
         produceOutputTuples();
         metrics->executionTime.stop();
-        return;
+        return true;
     }
     do {
-        prevOperator->getNextTuples();
-        if (inValueVector->state->selectedSize == 0) {
-            outDataChunk->state->selectedSize = 0;
+        if (!prevOperator->getNextTuples()) {
             metrics->executionTime.stop();
-            return;
+            return false;
         }
     } while (computeFrontiers());
     currOutputPos.reset(startLayer - 1);
     produceOutputTuples();
     metrics->executionTime.stop();
+    return true;
 }
 
 bool FrontierExtend::computeFrontiers() {

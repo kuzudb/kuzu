@@ -67,8 +67,8 @@ void HashJoinProbe::initializeResultSetAndVectorPtrs() {
 void HashJoinProbe::getNextBatchOfMatchedTuples() {
     do {
         if (probeState->matchedTuplesSize == 0) {
-            prevOperator->getNextTuples();
-            if (probeSideKeyDataChunk->state->selectedSize == 0) {
+            if (!prevOperator->getNextTuples()) {
+                probeState->matchedTuplesSize = 0;
                 return;
             }
             probeSideKeyVector->readNodeID(
@@ -172,7 +172,7 @@ void HashJoinProbe::reInitialize() {
 // 3) flat buildSideFlatResultDataChunk, updating its currIdx, and also populates appended unFlat
 // data chunks. If there is no appended unFlat data chunks, which means buildSideVectorPtrs is
 // empty, directly unFlat buildSideFlatResultDataChunk (if it exists).
-void HashJoinProbe::getNextTuples() {
+bool HashJoinProbe::getNextTuples() {
     metrics->executionTime.start();
     if (!buildSideVectorPtrs.empty() &&
         buildSideFlatResultDataChunk->state->currIdx <
@@ -181,17 +181,12 @@ void HashJoinProbe::getNextTuples() {
         updateAppendedUnFlatDataChunks();
         metrics->executionTime.stop();
         metrics->numOutputTuple.increase(resultSet->getNumTuples());
-        return;
+        return true;
     }
     getNextBatchOfMatchedTuples();
     if (probeState->matchedTuplesSize == 0) {
-        // No matching tuples, set size of appended data chunks to 0.
-        buildSideFlatResultDataChunk->state->selectedSize = 0;
-        for (auto& buildVectorInfo : buildSideVectorInfos) {
-            auto resultDataChunk = resultSet->dataChunks[buildVectorInfo.resultDataChunkPos];
-            resultDataChunk->state->selectedSize = 0;
-        }
-        return;
+        metrics->executionTime.stop();
+        return false;
     }
     populateResultFlatDataChunksAndVectorPtrs();
     // UnFlat the buildSideFlatResultDataChunk if there is no build side unFlat non-key data chunks.
@@ -199,6 +194,7 @@ void HashJoinProbe::getNextTuples() {
     updateAppendedUnFlatDataChunks();
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(resultSet->getNumTuples());
+    return true;
 }
 } // namespace processor
 } // namespace graphflow

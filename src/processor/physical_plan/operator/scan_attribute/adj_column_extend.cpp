@@ -4,7 +4,7 @@ namespace graphflow {
 namespace processor {
 
 void AdjColumnExtend::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    ScanColumn::initResultSet(resultSet);
+    ScanAttribute::initResultSet(resultSet);
     outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
     inDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
 }
@@ -14,17 +14,22 @@ void AdjColumnExtend::reInitialize() {
     FilteringOperator::reInitialize();
 }
 
-void AdjColumnExtend::getNextTuples() {
+bool AdjColumnExtend::getNextTuples() {
     metrics->executionTime.start();
     bool hasAtLeastOneNonNullValue;
     do {
         restoreDataChunkSelectorState(inDataChunk);
-        ScanColumn::getNextTuples();
+        if (!prevOperator->getNextTuples()) {
+            metrics->executionTime.stop();
+            return false;
+        }
+        column->readValues(inValueVector, outValueVector, *metrics->bufferManagerMetrics);
         saveDataChunkSelectorState(inDataChunk);
         hasAtLeastOneNonNullValue = outValueVector->discardNullNodes();
-    } while (inDataChunk->state->selectedSize > 0 && !hasAtLeastOneNonNullValue);
+    } while (!hasAtLeastOneNonNullValue);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(inDataChunk->state->selectedSize);
+    return true;
 }
 
 } // namespace processor

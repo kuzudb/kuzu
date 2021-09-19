@@ -15,7 +15,7 @@ public:
           counter{move(counter)}, dataChunkToSelectPos{dataChunkToSelectPos},
           dataChunksToLimitPos(move(dataChunksToLimitPos)) {}
 
-    void getNextTuples() override;
+    bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<Limit>(limitNumber, counter, dataChunkToSelectPos, dataChunksToLimitPos,

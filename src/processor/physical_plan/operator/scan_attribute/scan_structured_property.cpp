@@ -6,16 +6,21 @@ namespace graphflow {
 namespace processor {
 
 void ScanStructuredProperty::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    ScanColumn::initResultSet(resultSet);
+    ScanAttribute::initResultSet(resultSet);
     outValueVector = make_shared<ValueVector>(context.memoryManager, column->getDataType());
     inDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
 }
 
-void ScanStructuredProperty::getNextTuples() {
+bool ScanStructuredProperty::getNextTuples() {
     metrics->executionTime.start();
-    ScanColumn::getNextTuples();
+    if (!prevOperator->getNextTuples()) {
+        metrics->executionTime.stop();
+        return false;
+    }
+    column->readValues(inValueVector, outValueVector, *metrics->bufferManagerMetrics);
     outValueVector->fillNullMask();
     metrics->executionTime.stop();
+    return true;
 }
 
 } // namespace processor

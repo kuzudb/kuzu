@@ -72,7 +72,8 @@ public:
     // to ensure
     virtual void reInitialize() { prevOperator->reInitialize(); }
 
-    virtual void getNextTuples() = 0;
+    // Return false if no more tuples to pull, otherwise return true
+    virtual bool getNextTuples() = 0;
 
     shared_ptr<ResultSet> getResultSet() { return resultSet; };
 

@@ -8,20 +8,21 @@ void Flatten::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     dataChunkToFlatten = resultSet->dataChunks[dataChunkToFlattenPos];
 }
 
-void Flatten::getNextTuples() {
+bool Flatten::getNextTuples() {
     metrics->executionTime.start();
-    if (dataChunkToFlatten->state->selectedSize == 0ul ||
+    // currentIdx == -1 is the check for initial case
+    if (dataChunkToFlatten->state->currIdx == -1 ||
         dataChunkToFlatten->state->selectedSize == dataChunkToFlatten->state->currIdx + 1ul) {
         dataChunkToFlatten->state->currIdx = -1;
-        prevOperator->getNextTuples();
-        if (dataChunkToFlatten->state->selectedSize == 0) {
+        if (!prevOperator->getNextTuples()) {
             metrics->executionTime.stop();
-            return;
+            return false;
         }
     }
     dataChunkToFlatten->state->currIdx++;
     metrics->executionTime.stop();
     metrics->numOutputTuple.incrementByOne();
+    return true;
 }
 
 } // namespace processor

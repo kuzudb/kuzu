@@ -18,7 +18,7 @@ public:
 
     virtual void execute() = 0;
 
-    void getNextTuples() final {
+    bool getNextTuples() final {
         throw invalid_argument("Sink operator should implement execute instead of getNextTuples");
     }
 

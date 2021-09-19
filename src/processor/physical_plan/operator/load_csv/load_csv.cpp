@@ -31,7 +31,7 @@ void LoadCSV::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     }
 }
 
-void LoadCSV::getNextTuples() {
+bool LoadCSV::getNextTuples() {
     metrics->executionTime.start();
     auto lineIdx = 0ul;
     while (lineIdx < DEFAULT_VECTOR_CAPACITY && reader.hasNextLine()) {
@@ -74,6 +74,7 @@ void LoadCSV::getNextTuples() {
     outDataChunk->state->selectedSize = lineIdx;
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
+    return lineIdx != 0ul;
 }
 
 } // namespace processor

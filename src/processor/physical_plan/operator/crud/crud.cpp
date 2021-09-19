@@ -9,11 +9,10 @@ CRUDOperator::CRUDOperator(uint64_t dataChunkPos, PhysicalOperatorType type,
     inDataChunk = resultSet->dataChunks[dataChunkPos];
 }
 
-void CRUDOperator::getNextTuples() {
+bool CRUDOperator::getNextTuples() {
     while (true) {
-        prevOperator->getNextTuples();
-        if (inDataChunk->state->selectedSize == 0) {
-            break;
+        if (!prevOperator->getNextTuples()) {
+            return false;
         }
         context.transaction->localStorage.addDataChunk(inDataChunk.get());
     }

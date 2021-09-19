@@ -262,10 +262,9 @@ void HashJoinBuild::appendResultSet() {
 void HashJoinBuild::execute() {
     metrics->executionTime.start();
     // Append thread-local tuples
-    do {
-        prevOperator->getNextTuples();
+    while (prevOperator->getNextTuples()) {
         appendResultSet();
-    } while (keyDataChunk->state->selectedSize > 0);
+    }
 
     // Merge thread-local state (numEntries, htBlocks, overflowBlocks) with the shared one
     {
@@ -276,7 +275,6 @@ void HashJoinBuild::execute() {
             begin(overflowBlocks), end(overflowBlocks), back_inserter(sharedState->overflowBlocks));
     }
 
-    keyDataChunk->state->selectedSize = 0;
     metrics->executionTime.stop();
 }
 } // namespace processor
