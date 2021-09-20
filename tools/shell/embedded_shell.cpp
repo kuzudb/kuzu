@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
-#include <iostream>
 #include <regex>
+#include <sstream>
 
 #include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
 

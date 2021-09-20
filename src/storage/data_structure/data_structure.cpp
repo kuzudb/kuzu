@@ -29,6 +29,24 @@ void DataStructure::readBySequentialCopy(const shared_ptr<ValueVector>& valueVec
     }
 }
 
+void DataStructure::readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>& valueVector,
+    PageCursor& pageCursor, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+    NodeIDCompressionScheme compressionScheme, BufferManagerMetrics& metrics) {
+    auto values = (nodeID_t*)valueVector->values;
+    auto numValuesToCopy = valueVector->state->originalSize;
+    while (numValuesToCopy > 0) {
+        auto numValuesToCopyInPage =
+            min(numValuesToCopy, (uint64_t)numElementsPerPage - pageCursor.offset / elementSize);
+        auto physicalPageId = logicalToPhysicalPageMapper(pageCursor.idx);
+        readNodeIDsFromAPage(values, physicalPageId, pageCursor.offset, numValuesToCopyInPage,
+            compressionScheme, metrics);
+        values += numValuesToCopyInPage;
+        pageCursor.idx++;
+        pageCursor.offset = 0;
+        numValuesToCopy -= numValuesToCopyInPage;
+    }
+}
+
 void DataStructure::copyFromAPage(uint8_t* values, uint32_t physicalPageIdx, uint64_t sizeToCopy,
     uint32_t pageOffset, BufferManagerMetrics& metrics) {
     auto frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);

@@ -1,7 +1,7 @@
 #include "src/processor/include/physical_plan/operator/result/tuple.h"
 
 #include <iomanip>
-#include <iostream>
+#include <sstream>
 #include <string>
 
 namespace graphflow {

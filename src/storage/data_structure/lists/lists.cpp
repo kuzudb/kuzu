@@ -109,11 +109,8 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
 void AdjLists::readSmallList(
     const shared_ptr<ValueVector>& valueVector, ListInfo& info, BufferManagerMetrics& metrics) {
     valueVector->state->initOriginalAndSelectedSize(info.listLen);
-    auto values = (nodeID_t*)valueVector->values;
-    auto numValuesLeftToCopy = valueVector->state->originalSize;
-    auto physicalPageId = info.mapper(info.cursor.idx);
-    readNodeIDsFromAPage(values, physicalPageId, info.cursor.offset, numValuesLeftToCopy,
-        nodeIDCompressionScheme, metrics);
+    readNodeIDsFromSequentialPages(
+        valueVector, info.cursor, info.mapper, nodeIDCompressionScheme, metrics);
 }
 
 unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
