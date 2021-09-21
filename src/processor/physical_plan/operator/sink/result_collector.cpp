@@ -11,18 +11,28 @@ void ResultCollector::reInitialize() {
 void ResultCollector::execute() {
     metrics->executionTime.start();
     while (prevOperator->getNextTuples()) {
-        auto resultSet = prevOperator->getResultSet();
         queryResult->numTuples += resultSet->getNumTuples();
-        auto clonedResultSet = resultSet->clone();
-        queryResult->resultSetCollection.push_back(move(clonedResultSet));
-        for (auto& dataChunk : resultSet->dataChunks) {
-            for (auto& vector : dataChunk->valueVectors) {
-                if (vector->stringBuffer != nullptr) {
-                    move(begin(vector->stringBuffer->blocks), end(vector->stringBuffer->blocks),
-                        back_inserter(queryResult->bufferBlocks));
-                }
+        auto clonedResultSet = make_unique<ResultSet>(resultSet->getNumDataChunks());
+        for (auto i = 0u; i < resultSet->getNumDataChunks(); ++i) {
+            if (!resultSet->dataChunksMask[i]) {
+                continue;
+            }
+            auto dataChunk = resultSet->dataChunks[i];
+            clonedResultSet->insert(i,
+                make_shared<DataChunk>(dataChunk->getNumValueVectors(), dataChunk->state->clone()));
+        }
+        for (auto& dataPos : vectorsToCollectPos) {
+            auto vector = resultSet->getValueVector(dataPos);
+            clonedResultSet->dataChunks[dataPos.dataChunkPos]->insert(
+                dataPos.valueVectorPos, vector->clone());
+            if (vector->stringBuffer != nullptr) {
+                move(begin(vector->stringBuffer->blocks), end(vector->stringBuffer->blocks),
+                    back_inserter(queryResult->bufferBlocks));
             }
         }
+        clonedResultSet->multiplicity = resultSet->multiplicity;
+        clonedResultSet->dataChunksMask = resultSet->dataChunksMask;
+        queryResult->resultSetCollection.push_back(move(clonedResultSet));
         resetStringBuffer();
     }
     metrics->executionTime.stop();

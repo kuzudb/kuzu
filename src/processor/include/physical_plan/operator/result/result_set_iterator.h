@@ -10,7 +10,9 @@ namespace processor {
 
 class ResultSetIterator {
 public:
-    explicit ResultSetIterator(ResultSet* resultSet) : resultSet(resultSet), numIteratedTuples(0) {
+    explicit ResultSetIterator(ResultSet* resultSet, vector<DataPos> vectorsToCollectPos)
+        : resultSet{resultSet}, vectorsToCollectPos{move(vectorsToCollectPos)}, numIteratedTuples{
+                                                                                    0} {
         reset();
     }
 
@@ -32,6 +34,7 @@ private:
     void setDataChunksTypes();
 
     ResultSet* resultSet;
+    vector<DataPos> vectorsToCollectPos;
 
     uint64_t numRepeatOfCurrentTuple;
     uint64_t numIteratedTuples;

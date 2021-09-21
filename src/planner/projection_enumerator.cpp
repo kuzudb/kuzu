@@ -15,8 +15,12 @@ void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& pr
     for (auto& plan : plans) {
         if (projectionBody.hasAggregationExpressions()) {
             appendAggregate(projectionBody.getAggregationExpressions(), *plan);
+            plan->schema->expressionsToCollect = projectionBody.getAggregationExpressions();
         } else {
             appendProjection(projectionBody.getProjectionExpressions(), *plan, isFinalReturn);
+            if (isFinalReturn) {
+                plan->schema->expressionsToCollect = projectionBody.getProjectionExpressions();
+            }
         }
         if (projectionBody.hasSkip() || projectionBody.hasLimit()) {
             appendMultiplicityReducer(*plan);
@@ -47,43 +51,25 @@ void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>
         }
     }
 
-    // every expression is written to a factorization group
-    unordered_map<uint32_t, vector<shared_ptr<Expression>>> groupPosToExpressionsMap;
+    unordered_set<uint32_t> nonDiscardGroupsPos;
     for (auto& expression : expressionsToProject) {
         uint32_t groupPosToWrite =
             enumerator->appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(*expression, plan);
-        if (!groupPosToExpressionsMap.contains(groupPosToWrite)) {
-            groupPosToExpressionsMap.insert({groupPosToWrite, vector<shared_ptr<Expression>>()});
-        }
-        groupPosToExpressionsMap.at(groupPosToWrite).push_back(expression);
+        nonDiscardGroupsPos.insert(groupPosToWrite);
+        plan.schema->getGroup(groupPosToWrite)->insertVariable(expression->getInternalName());
     }
 
     // We collect the discarded group positions in the input data chunks to obtain their
     // multiplicity in the projection operation.
     vector<uint32_t> discardedGroupsPos;
     for (auto i = 0u; i < plan.schema->groups.size(); ++i) {
-        if (!groupPosToExpressionsMap.contains(i)) {
+        if (!nonDiscardGroupsPos.contains(i)) {
             discardedGroupsPos.push_back(i);
         }
     }
 
-    // reconstruct schema
-    auto schemaBeforeProjection = plan.schema->copy();
-    plan.schema->clearGroups();
-    for (auto& [groupPosBeforeProjection, expressionsToProject] : groupPosToExpressionsMap) {
-        auto newGroupPos = plan.schema->createGroup();
-        for (auto& expressionToProject : expressionsToProject) {
-            plan.schema->insertToGroup(expressionToProject->getInternalName(), newGroupPos);
-        }
-        // copy other information
-        auto newGroup = plan.schema->groups[newGroupPos].get();
-        newGroup->isFlat = schemaBeforeProjection->groups[groupPosBeforeProjection]->isFlat;
-        newGroup->estimatedCardinality =
-            schemaBeforeProjection->groups[groupPosBeforeProjection]->estimatedCardinality;
-    }
-
-    auto projection = make_shared<LogicalProjection>(move(expressionsToProject),
-        move(schemaBeforeProjection), move(discardedGroupsPos), plan.lastOperator);
+    auto projection = make_shared<LogicalProjection>(
+        move(expressionsToProject), move(discardedGroupsPos), plan.lastOperator);
     plan.appendOperator(move(projection));
 }
 

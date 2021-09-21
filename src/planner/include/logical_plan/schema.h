@@ -6,8 +6,10 @@
 #include <unordered_set>
 #include <vector>
 
+#include "src/binder/include/expression/expression.h"
 #include "src/common/include/assert.h"
 
+using namespace graphflow::binder;
 using namespace graphflow::common;
 using namespace std;
 
@@ -82,6 +84,7 @@ public:
     unordered_map<string, LogicalExtend*> queryRelLogicalExtendMap;
     // All flat variables are considered as in the same factorization group
     unordered_map<string, uint32_t> variableToGroupPos;
+    vector<shared_ptr<Expression>> expressionsToCollect;
 };
 
 } // namespace planner

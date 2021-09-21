@@ -10,11 +10,12 @@ namespace processor {
 class ResultCollector : public Sink {
 
 public:
-    explicit ResultCollector(shared_ptr<ResultSet> resultSet,
+    explicit ResultCollector(shared_ptr<ResultSet> resultSet, vector<DataPos> vectorsToCollectPos,
         unique_ptr<PhysicalOperator> prevOperator, PhysicalOperatorType operatorType,
         ExecutionContext& context, uint32_t id)
         : Sink{move(resultSet), move(prevOperator), operatorType, context, id},
-          queryResult{make_unique<QueryResult>()} {}
+          queryResult{make_unique<QueryResult>(vectorsToCollectPos)}, vectorsToCollectPos{move(
+                                                                          vectorsToCollectPos)} {}
 
     void reInitialize() override;
 
@@ -26,8 +27,8 @@ public:
             clonedResultSet->insert(
                 i, make_shared<DataChunk>(resultSet->dataChunks[i]->valueVectors.size()));
         }
-        return make_unique<ResultCollector>(
-            move(clonedResultSet), prevOperator->clone(), operatorType, context, id);
+        return make_unique<ResultCollector>(move(clonedResultSet), vectorsToCollectPos,
+            prevOperator->clone(), operatorType, context, id);
     }
 
 public:
@@ -35,6 +36,9 @@ public:
 
 private:
     void resetStringBuffer();
+
+private:
+    vector<DataPos> vectorsToCollectPos;
 };
 
 } // namespace processor
