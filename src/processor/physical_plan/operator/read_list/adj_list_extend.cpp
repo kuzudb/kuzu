@@ -12,26 +12,24 @@ void AdjListExtend::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     largeListHandle->setListSyncState(listSyncState);
 }
 
-void AdjListExtend::getNextTuples() {
+bool AdjListExtend::getNextTuples() {
     metrics->executionTime.start();
     if (largeListHandle->hasMoreToRead()) {
         readValuesFromList();
-        return;
+        metrics->executionTime.stop();
+        metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
+        return true;
     }
-    while (true) {
-        prevOperator->getNextTuples();
-        if (inDataChunk->state->selectedSize > 0) {
-            readValuesFromList();
-            if (outDataChunk->state->selectedSize > 0) {
-                break;
-            }
-        } else {
-            outDataChunk->state->selectedSize = 0;
-            break;
+    do {
+        if (!prevOperator->getNextTuples()) {
+            metrics->executionTime.stop();
+            return false;
         }
-    }
+        readValuesFromList();
+    } while (outDataChunk->state->selectedSize == 0);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
+    return true;
 }
 
 } // namespace processor

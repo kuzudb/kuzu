@@ -16,7 +16,7 @@ public:
         : CRUDNode{DELETE_NODE, dataChunkPos, move(propertyKeyVectorPos), nodeLabel,
               move(nodePropertyColumns), numNodes, move(prevOperator), context, id} {};
 
-    void getNextTuples() override;
+    bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<DeleteNode>(dataChunkPos, propertyKeyVectorPos, nodeLabel,

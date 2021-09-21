@@ -13,7 +13,7 @@ public:
     CRUDOperator(uint64_t dataChunkPos, PhysicalOperatorType type,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
-    void getNextTuples() override;
+    bool getNextTuples() override;
 
 protected:
     uint64_t dataChunkPos;

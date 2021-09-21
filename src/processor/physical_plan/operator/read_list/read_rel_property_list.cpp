@@ -12,14 +12,16 @@ void ReadRelPropertyList::initResultSet(const shared_ptr<ResultSet>& resultSet) 
     largeListHandle->setListSyncState(resultSet->getListSyncState(outDataPos.dataChunkPos));
 }
 
-void ReadRelPropertyList::getNextTuples() {
+bool ReadRelPropertyList::getNextTuples() {
     metrics->executionTime.start();
-    prevOperator->getNextTuples();
-    if (inDataChunk->state->selectedSize > 0) {
-        readValuesFromList();
+    if (!prevOperator->getNextTuples()) {
+        metrics->executionTime.stop();
+        return false;
     }
+    readValuesFromList();
     outValueVector->fillNullMask();
     metrics->executionTime.stop();
+    return true;
 }
 
 } // namespace processor

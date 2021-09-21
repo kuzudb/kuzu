@@ -20,14 +20,11 @@ void Projection::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     }
 }
 
-void Projection::getNextTuples() {
+bool Projection::getNextTuples() {
     metrics->executionTime.start();
-    prevOperator->getNextTuples();
-    if (inResultSet->getNumTuples() == 0) {
-        for (auto& dataChunk : resultSet->dataChunks) {
-            dataChunk->state->selectedSize = 0;
-        }
-        return;
+    if (!prevOperator->getNextTuples()) {
+        metrics->executionTime.stop();
+        return false;
     }
     for (auto& expression : expressions) {
         expression->evaluate();
@@ -35,6 +32,7 @@ void Projection::getNextTuples() {
     discardedResultSet->multiplicity = inResultSet->multiplicity;
     resultSet->multiplicity = discardedResultSet->getNumTuples();
     metrics->executionTime.stop();
+    return true;
 }
 
 unique_ptr<PhysicalOperator> Projection::clone() {

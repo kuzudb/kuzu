@@ -11,14 +11,16 @@ void ScanUnstructuredProperty::initResultSet(const shared_ptr<ResultSet>& result
     inDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
 }
 
-void ScanUnstructuredProperty::getNextTuples() {
+bool ScanUnstructuredProperty::getNextTuples() {
     metrics->executionTime.start();
-    prevOperator->getNextTuples();
-    if (inDataChunk->state->selectedSize > 0) {
-        lists->readUnstructuredProperties(
-            inValueVector, propertyKey, outValueVector, *metrics->bufferManagerMetrics);
+    if (!prevOperator->getNextTuples()) {
+        metrics->executionTime.stop();
+        return false;
     }
+    lists->readUnstructuredProperties(
+        inValueVector, propertyKey, outValueVector, *metrics->bufferManagerMetrics);
     metrics->executionTime.stop();
+    return true;
 }
 
 } // namespace processor

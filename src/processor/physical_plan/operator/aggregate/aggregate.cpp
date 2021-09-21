@@ -26,18 +26,13 @@ void Aggregate::init() {
 
 void Aggregate::execute() {
     metrics->executionTime.start();
-    auto inResultSet = this->prevOperator->getResultSet();
     // Exhaust source to update local state for each aggregation expression by its evaluator.
-    while (true) {
-        prevOperator->getNextTuples();
-        if (inResultSet->getNumTuples() == 0) {
-            break;
-        }
+    while (prevOperator->getNextTuples()) {
         for (auto i = 0u; i < aggregationEvaluators.size(); i++) {
             aggregationEvaluators[i]->evaluate();
             aggregationEvaluators[i].get()->getFunction()->update(
                 (uint8_t*)aggregationStates[i].get(), aggregationEvaluators[i]->getChildResult(),
-                inResultSet->getNumTuples());
+                prevOperator->getResultSet()->getNumTuples());
         }
     }
     // Combine global shared state with local states.

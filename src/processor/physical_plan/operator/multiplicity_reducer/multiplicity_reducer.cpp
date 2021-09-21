@@ -9,13 +9,13 @@ void MultiplicityReducer::reInitialize() {
     numRepeat = 0;
 }
 
-void MultiplicityReducer::getNextTuples() {
+bool MultiplicityReducer::getNextTuples() {
     metrics->executionTime.start();
     if (numRepeat == 0) {
         restoreMultiplicity();
-        prevOperator->getNextTuples();
-        if (resultSet->getNumTuples() == 0) {
-            return;
+        if (!prevOperator->getNextTuples()) {
+            metrics->executionTime.stop();
+            return false;
         }
         saveMultiplicity();
         resultSet->multiplicity = 1;
@@ -25,6 +25,7 @@ void MultiplicityReducer::getNextTuples() {
         numRepeat = 0;
     }
     metrics->executionTime.stop();
+    return true;
 }
 
 } // namespace processor

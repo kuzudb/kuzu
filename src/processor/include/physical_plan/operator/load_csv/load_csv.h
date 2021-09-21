@@ -19,7 +19,7 @@ public:
 
     void reInitialize() override {}
 
-    void getNextTuples() override;
+    bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<LoadCSV>(fname, tokenSeparator, csvColumnDataTypes, outDataChunkPos,

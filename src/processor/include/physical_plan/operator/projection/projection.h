@@ -23,7 +23,7 @@ public:
 
     void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
-    void getNextTuples() override;
+    bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override;
 

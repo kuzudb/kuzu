@@ -16,7 +16,7 @@ void ScanNodeID::reInitialize() {
     }
 }
 
-void ScanNodeID::getNextTuples() {
+bool ScanNodeID::getNextTuples() {
     metrics->executionTime.start();
     if (prevOperator) {
         prevOperator->getNextTuples();
@@ -27,19 +27,19 @@ void ScanNodeID::getNextTuples() {
         // Fill the first nodeID in the sequence.
         if (morsel->currNodeOffset >= morsel->numNodes) {
             // no more tuples to scan_node_id.
-            nodeIDValues[0].label = morsel->label;
-            nodeIDValues[0].offset = 0;
-            outDataChunk->state->initOriginalAndSelectedSize(0u);
+            metrics->executionTime.stop();
+            return false;
         } else {
             nodeIDValues[0].label = morsel->label;
             nodeIDValues[0].offset = morsel->currNodeOffset;
             outDataChunk->state->initOriginalAndSelectedSize(
                 min(DEFAULT_VECTOR_CAPACITY, morsel->numNodes - morsel->currNodeOffset));
             morsel->currNodeOffset += outDataChunk->state->selectedSize;
+            metrics->executionTime.stop();
+            metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
+            return true;
         }
     }
-    metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
 }
 
 } // namespace processor

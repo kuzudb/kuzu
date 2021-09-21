@@ -16,13 +16,14 @@ void AggregationScan::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     }
 }
 
-void AggregationScan::getNextTuples() {
+bool AggregationScan::getNextTuples() {
     metrics->executionTime.start();
     auto outDataChunk = this->resultSet->dataChunks[outDataChunkPos];
     {
         lock_guard<mutex> lock{sharedState->aggregationSharedStateLock};
         if (sharedState->currentGroupOffset >= sharedState->numGroups) {
-            outDataChunk->state->initOriginalAndSelectedSize(0);
+            metrics->executionTime.stop();
+            return false;
         } else {
             // Currently, we assume the aggregation only has one group.
             assert(sharedState->numGroups == 1);
@@ -38,10 +39,11 @@ void AggregationScan::getNextTuples() {
             outDataChunk->state->initOriginalAndSelectedSize(
                 min(DEFAULT_VECTOR_CAPACITY, sharedState->numGroups));
             sharedState->currentGroupOffset += outDataChunk->state->selectedSize;
+            metrics->executionTime.stop();
+            metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
+            return true;
         }
     }
-    metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
 }
 
 } // namespace processor

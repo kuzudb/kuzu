@@ -21,19 +21,21 @@ static void sortSelectedPos(const shared_ptr<ValueVector>& nodeIDVector) {
     });
 }
 
-void Intersect::getNextTuples() {
+bool Intersect::getNextTuples() {
+    metrics->executionTime.start();
     auto numSelectedValues = 0u;
     do {
         restoreDataChunkSelectorState(leftDataChunk);
-        if (rightDataChunk->state->selectedSize == rightDataChunk->state->currIdx + 1ul) {
+        if (rightDataChunk->state->currIdx == -1 ||
+            rightDataChunk->state->selectedSize == rightDataChunk->state->currIdx + 1ul) {
             rightDataChunk->state->currIdx = -1;
-            prevOperator->getNextTuples();
+            if (!prevOperator->getNextTuples()) {
+                metrics->executionTime.stop();
+                return false;
+            }
             sortSelectedPos(leftValueVector);
             sortSelectedPos(rightValueVector);
             leftIdx = 0;
-            if (leftDataChunk->state->selectedSize == 0) {
-                break;
-            }
         }
         // Flatten right dataChunk
         rightDataChunk->state->currIdx++;
@@ -57,6 +59,9 @@ void Intersect::getNextTuples() {
             leftDataChunk->state->resetSelectorToValuePosBuffer();
         }
     } while (numSelectedValues == 0u);
+    metrics->executionTime.stop();
+    metrics->numOutputTuple.increase(numSelectedValues);
+    return true;
 }
 
 } // namespace processor
