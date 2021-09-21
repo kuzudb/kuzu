@@ -88,16 +88,9 @@ void AdjColumn::readValues(const shared_ptr<ValueVector>& nodeIDVector,
     auto resultVectorValues = (nodeID_t*)resultVector->values;
     if (nodeIDVector->isSequence) {
         auto pageCursor = getPageCursorForOffset(nodeIDValues[0].offset);
-        auto numValuesLeftToCopy = nodeIDVector->state->originalSize;
-        while (numValuesLeftToCopy > 0) {
-            auto numValuesToCopyInPage =
-                min((numElementsPerPage - pageCursor.offset / elementSize), numValuesLeftToCopy);
-            readNodeIDsFromAPage(resultVectorValues, pageCursor.idx, pageCursor.offset,
-                numValuesToCopyInPage, nodeIDCompressionScheme, metrics);
-            numValuesLeftToCopy -= numValuesToCopyInPage;
-            pageCursor.offset = 0;
-            pageCursor.idx++;
-        }
+        readNodeIDsFromSequentialPages(
+            resultVector, pageCursor, [](uint64_t i) { return i; }, nodeIDCompressionScheme,
+            metrics);
     } else {
         auto numValuesToCopy =
             nodeIDVector->state->isFlat() ? 1 : nodeIDVector->state->selectedSize;

@@ -19,11 +19,11 @@ public:
     Benchmark(const string& benchmarkPath, System& system, BenchmarkConfig& config);
 
     void run();
-    void log();
+    void log() const;
 
 private:
     void loadBenchmark(const string& benchmarkPath);
-    void verify();
+    void verify() const;
 
 public:
     System& system;

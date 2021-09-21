@@ -6,6 +6,7 @@
 #include "spdlog/spdlog.h"
 
 #include "src/common/include/utils.h"
+#include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
 
 using namespace graphflow::common;
 
@@ -61,7 +62,7 @@ void Benchmark::run() {
     verify();
 }
 
-void Benchmark::log() {
+void Benchmark::log() const {
     auto numOutput = context->queryResult->numTuples;
     string plan = "Plan: \n" + context->planPrinter->printPlanToJson(*context->profiler).dump(4);
     spdlog::info("Number of output {}", numOutput);
@@ -72,7 +73,7 @@ void Benchmark::log() {
     }
     if (!config.outputPath.empty()) {
         ofstream f(config.outputPath + "/" + name + ".result", ios_base::app);
-        f << "Number of ouput " << numOutput << endl;
+        f << "Number of output " << numOutput << endl;
         f << "Compiling time " << context->compilingTime << endl;
         f << "Execution time " << context->executingTime << endl;
         if (config.enableProfile) {
@@ -83,11 +84,21 @@ void Benchmark::log() {
     }
 }
 
-void Benchmark::verify() {
-    if (context->queryResult->numTuples != expectedNumOutput) {
-        spdlog::error("Query: {}", context->query);
-        spdlog::error("Expected number of output equals {} but get {}", expectedNumOutput,
-            context->queryResult->numTuples);
+void Benchmark::verify() const {
+    if (context->queryResult->numTuples == 1) {
+        uint64_t numTuples = 0;
+        ResultSetIterator resultSetIterator(context->queryResult->resultSetCollection[0].get());
+        Tuple tuple(resultSetIterator.dataTypes);
+        resultSetIterator.setResultSet(context->queryResult->resultSetCollection[0].get());
+        resultSetIterator.getNextTuple(tuple);
+        numTuples = tuple.getValue(0)->val.int64Val;
+        if (numTuples != expectedNumOutput) {
+            spdlog::error("Query: {}", context->query);
+            spdlog::error(
+                "Expected number of output equals {} but get {}", expectedNumOutput, numTuples);
+        }
+    } else {
+        spdlog::error("Expected number of tuples is 1.");
     }
 }
 

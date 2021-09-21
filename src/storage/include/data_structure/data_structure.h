@@ -47,6 +47,11 @@ protected:
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
         BufferManagerMetrics& metrics);
 
+    void readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>& valueVector,
+        PageCursor& pageCursor,
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+        NodeIDCompressionScheme compressionScheme, BufferManagerMetrics& metrics);
+
     void copyFromAPage(uint8_t* values, uint32_t physicalPageIdx, uint64_t sizeToCopy,
         uint32_t pageOffset, BufferManagerMetrics& metrics);
 
