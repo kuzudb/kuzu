@@ -22,6 +22,10 @@ public:
 
     string getExpressionsForPrinting() const override { return expression->rawExpression; }
 
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalFilter>(expression, groupPosToSelect, prevOperator->copy());
+    }
+
 public:
     shared_ptr<Expression> expression;
     uint32_t groupPosToSelect;

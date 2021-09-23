@@ -26,6 +26,11 @@ public:
         return result;
     }
 
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalProjection>(
+            expressionsToProject, discardedGroupsPos, prevOperator->copy());
+    }
+
 public:
     vector<shared_ptr<Expression>> expressionsToProject;
     vector<uint32_t> discardedGroupsPos;

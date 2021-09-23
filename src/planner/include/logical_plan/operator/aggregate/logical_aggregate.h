@@ -33,6 +33,11 @@ public:
     }
     inline Schema* getSchemaBeforeAggregate() const { return schemaBeforeAggregate.get(); }
 
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalAggregate>(
+            expressionsToAggregate, schemaBeforeAggregate->copy(), prevOperator->copy());
+    }
+
 private:
     vector<shared_ptr<Expression>> expressionsToAggregate;
     unique_ptr<Schema> schemaBeforeAggregate;

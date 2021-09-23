@@ -18,12 +18,24 @@ public:
     explicit Enumerator(const Graph& graph)
         : joinOrderEnumerator{graph, this}, projectionEnumerator{graph.getCatalog(), this} {}
 
-    unique_ptr<LogicalPlan> getBestPlan(const BoundSingleQuery& singleQuery) {
+    unique_ptr<LogicalPlan> getBestJoinOrderPlan(const BoundSingleQuery& singleQuery) {
         return getBestPlan(enumeratePlans(singleQuery));
     }
-    vector<unique_ptr<LogicalPlan>> enumeratePlans(const BoundSingleQuery& singleQuery);
+    // This interface is for testing framework
+    vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundSingleQuery& singleQuery) {
+        vector<unique_ptr<LogicalPlan>> result;
+        for (auto& plan : enumeratePlans(singleQuery)) {
+            // This is copy is to avoid sharing operator across plans. Later optimization requires
+            // each plan to be independent.
+            plan->lastOperator = plan->lastOperator->copy();
+            result.push_back(move(plan));
+        }
+        return result;
+    }
 
 private:
+    vector<unique_ptr<LogicalPlan>> enumeratePlans(const BoundSingleQuery& singleQuery);
+
     unique_ptr<LogicalPlan> getBestPlan(vector<unique_ptr<LogicalPlan>> plans);
 
     vector<unique_ptr<LogicalPlan>> enumerateQueryPart(

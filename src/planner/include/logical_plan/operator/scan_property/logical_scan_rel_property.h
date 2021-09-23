@@ -22,6 +22,11 @@ public:
 
     string getExpressionsForPrinting() const override { return propertyVariableName; }
 
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalScanRelProperty>(boundNodeID, boundNodeLabel, nbrNodeID, relLabel,
+            direction, propertyVariableName, propertyKey, isColumn, prevOperator->copy());
+    }
+
 public:
     string boundNodeID;
     label_t boundNodeLabel;

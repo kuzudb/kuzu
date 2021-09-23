@@ -20,6 +20,10 @@ public:
 
     string getExpressionsForPrinting() const override { return path; }
 
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalLoadCSV>(path, tokenSeparator, csvColumnVariables);
+    }
+
 public:
     string path;
     char tokenSeparator;

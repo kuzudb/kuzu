@@ -26,17 +26,6 @@ void JoinOrderEnumeratorContext::init(
     currentLevel = 0;
 }
 
-void JoinOrderEnumeratorContext::populatePropertiesMap(const NormalizedQueryPart& queryPart) {
-    variableToPropertiesMap.clear();
-    for (auto& propertyExpression : queryPart.getDependentPropertiesFromWhereAndProjection()) {
-        auto variableName = propertyExpression->children[0]->getInternalName();
-        if (!variableToPropertiesMap.contains(variableName)) {
-            variableToPropertiesMap.insert({variableName, vector<shared_ptr<Expression>>()});
-        }
-        variableToPropertiesMap.at(variableName).push_back(propertyExpression);
-    }
-}
-
 SubqueryGraph JoinOrderEnumeratorContext::getFullyMatchedSubqueryGraph() const {
     auto matchedSubgraph = SubqueryGraph(*mergedQueryGraph);
     for (auto i = 0u; i < mergedQueryGraph->getNumQueryNodes(); ++i) {

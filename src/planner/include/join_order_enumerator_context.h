@@ -15,12 +15,7 @@ public:
           mergedQueryGraph{make_unique<QueryGraph>()} {}
 
     void init(const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
-    void populatePropertiesMap(const NormalizedQueryPart& queryPart);
 
-    inline const unordered_map<string, vector<shared_ptr<Expression>>>&
-    getVariableToPropertiesMap() {
-        return variableToPropertiesMap;
-    }
     inline vector<shared_ptr<Expression>> getWhereExpressions() {
         return whereExpressionsSplitOnAND;
     }
@@ -64,7 +59,6 @@ public:
     }
 
 private:
-    unordered_map<string, vector<shared_ptr<Expression>>> variableToPropertiesMap;
     vector<shared_ptr<Expression>> whereExpressionsSplitOnAND;
 
     uint32_t currentLevel;

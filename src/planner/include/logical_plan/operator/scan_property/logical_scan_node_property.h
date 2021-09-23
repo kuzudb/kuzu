@@ -20,6 +20,11 @@ public:
 
     string getExpressionsForPrinting() const override { return propertyVariableName; }
 
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalScanNodeProperty>(nodeID, nodeLabel, propertyVariableName,
+            propertyKey, isUnstructuredProperty, prevOperator->copy());
+    }
+
 public:
     const string nodeID;
     const label_t nodeLabel;

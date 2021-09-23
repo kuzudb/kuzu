@@ -5,9 +5,7 @@
 
 class PropertyScanPushDownTest : public PlannerTest {};
 
-/**
- * Assume optimizer picks QVO: b, a
- */
+// Assume optimizer picks QVO: b, a
 TEST_F(PropertyScanPushDownTest, FilterPropertyPushDownTest) {
     auto query = "MATCH (a:person)-[:knows]->(b:person) WHERE a.age = b.age RETURN COUNT(*)";
     auto plan = getBestPlan(query);
@@ -18,9 +16,7 @@ TEST_F(PropertyScanPushDownTest, FilterPropertyPushDownTest) {
     ASSERT_TRUE(containSubstr(scanNodeProperty.nodeID, "_b." + INTERNAL_ID_SUFFIX));
 }
 
-/**
- * Assume optimizer picks QVO: b, a
- */
+// Assume optimizer picks QVO: b, a
 TEST_F(PropertyScanPushDownTest, ProjectionPropertyPushDownTest) {
     auto query = "MATCH (a:person)-[:knows]->(b:person) RETURN a.age, b.age";
     auto plan = getBestPlan(query);
@@ -30,26 +26,16 @@ TEST_F(PropertyScanPushDownTest, ProjectionPropertyPushDownTest) {
     ASSERT_TRUE(containSubstr(scanNodeProperty.nodeID, "_b." + INTERNAL_ID_SUFFIX));
 }
 
-TEST_F(PropertyScanPushDownTest, FilterAndProjectionPropertyPushDownTest) {
-    auto query = "MATCH (a:person) WHERE a.age = 2 RETURN a.name";
-    auto plan = getBestPlan(query);
-    auto& op1 = *plan->lastOperator->prevOperator;
-    ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op1.getLogicalOperatorType());
-    auto& op2 = *op1.prevOperator->prevOperator;
-    ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op2.getLogicalOperatorType());
-}
-
-// TODO: remove tests below once end to end test for aggregation is added
-TEST_F(PropertyScanPushDownTest, AggregationTest) {
-    auto query = "MATCH (a:person) RETURN SUM(a.age)";
-    auto plan = getBestPlan(query);
-    auto& op1 = *plan->lastOperator;
-    ASSERT_EQ(LOGICAL_AGGREGATE, op1.getLogicalOperatorType());
-    auto& aggregate = (LogicalAggregate&)op1;
-    auto aggExpr = aggregate.getExpressionsToAggregate()[0];
-    ASSERT_EQ(aggExpr->expressionType, SUM_FUNC);
-    ASSERT_EQ(plan->schema->getGroupPos(aggExpr->getInternalName()), 0);
-    ASSERT_EQ(
-        aggregate.getSchemaBeforeAggregate()->getGroupPos(aggExpr->children[0]->getInternalName()),
-        0);
+// This test is to capture the bug where operator is not cloned (might lead to a bug where change of
+// prevOperator of a plan affects other plan) before property push down optimization
+TEST_F(PropertyScanPushDownTest, LogicalPlanCloneTest) {
+    auto query = "MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person) "
+                 "Return b.age";
+    // if logical plan is not cloned before optimization, plan1 will have repeated scanNodeProperty
+    auto plan = move(getAllPlans(query)[1]);
+    auto op = plan->lastOperator.get();
+    while (op->getLogicalOperatorType() != LOGICAL_SCAN_NODE_PROPERTY) {
+        op = op->prevOperator.get();
+    }
+    ASSERT_TRUE(op->prevOperator->getLogicalOperatorType() != LOGICAL_SCAN_NODE_PROPERTY);
 }

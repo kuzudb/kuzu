@@ -63,6 +63,9 @@ public:
 
     virtual string getExpressionsForPrinting() const = 0;
 
+    // TODO: remove this function once planner do not share operator across plans
+    virtual unique_ptr<LogicalOperator> copy() = 0;
+
 public:
     shared_ptr<LogicalOperator> prevOperator;
 };
