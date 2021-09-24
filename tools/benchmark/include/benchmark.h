@@ -19,10 +19,11 @@ public:
     Benchmark(const string& benchmarkPath, System& system, BenchmarkConfig& config);
 
     void run();
-    void log() const;
+    void log(uint32_t runNum) const;
 
 private:
     void loadBenchmark(const string& benchmarkPath);
+    void logQueryInfo(ofstream& log, uint64_t numTuples, uint32_t runNum) const;
     void verify() const;
 
 public:

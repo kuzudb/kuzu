@@ -56,7 +56,7 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) {
     double runTimes[config->numRuns];
     for (auto i = 0u; i < config->numRuns; ++i) {
         benchmark->run();
-        benchmark->log();
+        benchmark->log(i + 1);
         runTimes[i] = benchmark->context->executingTime;
     }
     spdlog::info("Time Taken (Average of Last 3 runs) (ms): " +

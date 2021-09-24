@@ -62,25 +62,43 @@ void Benchmark::run() {
     verify();
 }
 
-void Benchmark::log() const {
-    auto numOutput = context->queryResult->numTuples;
+void Benchmark::logQueryInfo(ofstream& log, uint64_t numTuples, uint32_t runNum) const {
+    log << "Run Num: " << runNum << endl;
+    log << "Status: " << (expectedNumOutput == numTuples ? "pass" : "error") << endl;
+    log << "Query: " << context->query << endl;
+    log << "Expected Number of output: " << expectedNumOutput << endl;
+    log << "Number of output: " << numTuples << endl;
+}
+
+void Benchmark::log(uint32_t runNum) const {
+    ResultSetIterator resultSetIterator(context->queryResult->resultSetCollection[0].get(),
+        context->queryResult->vectorsToCollectPos);
+    Tuple tuple(resultSetIterator.dataTypes);
+    resultSetIterator.setResultSet(context->queryResult->resultSetCollection[0].get());
+    resultSetIterator.getNextTuple(tuple);
+    auto numTuples = tuple.getValue(0)->val.int64Val;
+
     string plan = "Plan: \n" + context->planPrinter->printPlanToJson(*context->profiler).dump(4);
-    spdlog::info("Number of output {}", numOutput);
+    spdlog::info("Number of tuples {}", numTuples);
     spdlog::info("Compiling time {}", context->compilingTime);
     spdlog::info("Execution time {}", context->executingTime);
     if (config.enableProfile) {
         spdlog::info("{}", plan);
     }
     if (!config.outputPath.empty()) {
-        ofstream f(config.outputPath + "/" + name + ".result", ios_base::app);
-        f << "Number of output " << numOutput << endl;
-        f << "Compiling time " << context->compilingTime << endl;
-        f << "Execution time " << context->executingTime << endl;
+        ofstream logFile(config.outputPath + "/" + name + "_log.txt", ios_base::app);
+        logQueryInfo(logFile, numTuples, runNum);
+        logFile << "Compiling time: " << context->compilingTime << endl;
+        logFile << "Execution time: " << context->executingTime << endl << endl;
+        logFile.flush();
+        logFile.close();
         if (config.enableProfile) {
-            f << plan << endl;
+            ofstream profileFile(config.outputPath + "/" + name + "_profile.txt", ios_base::app);
+            logQueryInfo(profileFile, numTuples, runNum);
+            profileFile << plan << endl << endl;
+            profileFile.flush();
+            profileFile.close();
         }
-        f.flush();
-        f.close();
     }
 }
 
