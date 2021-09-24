@@ -12,6 +12,10 @@ bool ResultSetIterator::hasNextTuple() {
 void ResultSetIterator::reset() {
     tuplePositions.clear();
     for (uint64_t i = 0; i < resultSet->dataChunks.size(); i++) {
+        if (!resultSet->dataChunksMask[i]) {
+            tuplePositions.push_back(UINT64_MAX);
+            continue;
+        }
         auto dataChunk = resultSet->dataChunks[i];
         if (dataChunk->state->isFlat()) {
             tuplePositions.push_back(dataChunk->state->currIdx);
@@ -25,7 +29,7 @@ void ResultSetIterator::reset() {
 }
 
 bool ResultSetIterator::updateTuplePositions(int64_t chunkIdx) {
-    if (resultSet->dataChunks[chunkIdx]->state->isFlat()) {
+    if (!resultSet->dataChunksMask[chunkIdx] || resultSet->dataChunks[chunkIdx]->state->isFlat()) {
         return false;
     }
     tuplePositions[chunkIdx] = tuplePositions[chunkIdx] + 1;
@@ -49,59 +53,56 @@ void ResultSetIterator::updateTuplePositions() {
 
 void ResultSetIterator::setDataChunksTypes() {
     dataTypes.clear();
-    for (uint64_t i = 0; i < resultSet->dataChunks.size(); i++) {
-        auto dataChunk = resultSet->dataChunks[i];
-        for (auto& vector : dataChunk->valueVectors) {
-            dataTypes.push_back(vector->dataType);
-        }
+    for (auto& dataPos : vectorsToCollectPos) {
+        auto dataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
+        dataTypes.push_back(dataChunk->valueVectors[dataPos.valueVectorPos]->dataType);
     }
 }
 
 void ResultSetIterator::getNextTuple(Tuple& tuple) {
     auto valueInTupleIdx = 0;
-    for (uint64_t i = 0; i < resultSet->dataChunks.size(); i++) {
-        auto dataChunk = resultSet->dataChunks[i];
-        auto tuplePosition = tuplePositions[i];
-        for (auto& vector : dataChunk->valueVectors) {
-            auto selectedTuplePos = vector->state->selectedPositions[tuplePosition];
-            tuple.nullMask[valueInTupleIdx] = vector->isNull(selectedTuplePos);
-            if (vector->isNull(selectedTuplePos)) {
-                valueInTupleIdx++;
-                continue;
-            }
-            switch (vector->dataType) {
-            case INT64: {
-                tuple.getValue(valueInTupleIdx)->val.int64Val =
-                    (((int64_t*)vector->values)[selectedTuplePos]);
-            } break;
-            case BOOL: {
-                tuple.getValue(valueInTupleIdx)->val.booleanVal = vector->values[selectedTuplePos];
-            } break;
-            case DOUBLE: {
-                tuple.getValue(valueInTupleIdx)->val.doubleVal =
-                    ((double_t*)vector->values)[selectedTuplePos];
-            } break;
-            case STRING: {
-                tuple.getValue(valueInTupleIdx)->val.strVal =
-                    ((gf_string_t*)vector->values)[selectedTuplePos];
-            } break;
-            case NODE: {
-                nodeID_t nodeID{UINT64_MAX, UINT64_MAX};
-                vector->readNodeID(selectedTuplePos, nodeID);
-                tuple.getValue(valueInTupleIdx)->val.nodeID = nodeID;
-            } break;
-            case UNSTRUCTURED: {
-                *(tuple.getValue(valueInTupleIdx)) = ((Value*)vector->values)[selectedTuplePos];
-            } break;
-            case DATE: {
-                tuple.getValue(valueInTupleIdx)->val.dateVal =
-                    ((date_t*)vector->values)[selectedTuplePos];
-            } break;
-            default:
-                assert(false);
-            }
+    for (auto& dataPos : vectorsToCollectPos) {
+        auto tuplePosition = tuplePositions[dataPos.dataChunkPos];
+        auto dataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
+        auto vector = dataChunk->valueVectors[dataPos.valueVectorPos];
+        auto selectedTuplePos = vector->state->selectedPositions[tuplePosition];
+        tuple.nullMask[valueInTupleIdx] = vector->isNull(selectedTuplePos);
+        if (vector->isNull(selectedTuplePos)) {
             valueInTupleIdx++;
+            continue;
         }
+        switch (vector->dataType) {
+        case INT64: {
+            tuple.getValue(valueInTupleIdx)->val.int64Val =
+                (((int64_t*)vector->values)[selectedTuplePos]);
+        } break;
+        case BOOL: {
+            tuple.getValue(valueInTupleIdx)->val.booleanVal = vector->values[selectedTuplePos];
+        } break;
+        case DOUBLE: {
+            tuple.getValue(valueInTupleIdx)->val.doubleVal =
+                ((double_t*)vector->values)[selectedTuplePos];
+        } break;
+        case STRING: {
+            tuple.getValue(valueInTupleIdx)->val.strVal =
+                ((gf_string_t*)vector->values)[selectedTuplePos];
+        } break;
+        case NODE: {
+            nodeID_t nodeID{UINT64_MAX, UINT64_MAX};
+            vector->readNodeID(selectedTuplePos, nodeID);
+            tuple.getValue(valueInTupleIdx)->val.nodeID = nodeID;
+        } break;
+        case UNSTRUCTURED: {
+            *(tuple.getValue(valueInTupleIdx)) = ((Value*)vector->values)[selectedTuplePos];
+        } break;
+        case DATE: {
+            tuple.getValue(valueInTupleIdx)->val.dateVal =
+                ((date_t*)vector->values)[selectedTuplePos];
+        } break;
+        default:
+            assert(false);
+        }
+        valueInTupleIdx++;
     }
     numIteratedTuples++;
     numRepeatOfCurrentTuple++;

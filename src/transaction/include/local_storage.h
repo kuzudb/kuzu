@@ -16,7 +16,7 @@ class LocalStorage {
 
 public:
     void addDataChunk(DataChunk* dataChunk) {
-        dataChunks.emplace_back(dataChunk->clone());
+        //        dataChunks.emplace_back(dataChunk->clone());
         numTuples += dataChunk->state->selectedSize;
     }
 

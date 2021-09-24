@@ -263,7 +263,8 @@ void EmbeddedShell::printExecutionResult() {
         printf(">> Compiling time: %.2fms\n", context.compilingTime);
         printf(">> Executing time: %.2fms\n", context.executingTime);
         if (!context.queryResult->resultSetCollection.empty()) {
-            ResultSetIterator resultSetIterator(context.queryResult->resultSetCollection[0].get());
+            ResultSetIterator resultSetIterator(context.queryResult->resultSetCollection[0].get(),
+                context.queryResult->vectorsToCollectPos);
             Tuple tuple(resultSetIterator.dataTypes);
             vector<uint32_t> colsWidth(tuple.len(), 2);
             uint32_t lineSeparatorLen = 1u + colsWidth.size();

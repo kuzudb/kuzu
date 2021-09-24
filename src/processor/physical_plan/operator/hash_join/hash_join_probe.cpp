@@ -180,7 +180,7 @@ bool HashJoinProbe::getNextTuples() {
         buildSideFlatResultDataChunk->state->currIdx += 1;
         updateAppendedUnFlatDataChunks();
         metrics->executionTime.stop();
-        metrics->numOutputTuple.increase(resultSet->getNumTuples());
+        // TODO: Guodong fill in how many tuples increased in metrics
         return true;
     }
     getNextBatchOfMatchedTuples();
@@ -193,7 +193,7 @@ bool HashJoinProbe::getNextTuples() {
     buildSideFlatResultDataChunk->state->currIdx = buildSideVectorPtrs.empty() ? -1 : 0;
     updateAppendedUnFlatDataChunks();
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(resultSet->getNumTuples());
+    metrics->numOutputTuple.increase(probeState->matchedTuplesSize);
     return true;
 }
 } // namespace processor

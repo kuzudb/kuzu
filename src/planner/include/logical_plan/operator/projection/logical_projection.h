@@ -10,11 +10,9 @@ class LogicalProjection : public LogicalOperator {
 
 public:
     explicit LogicalProjection(vector<shared_ptr<Expression>> expressions,
-        unique_ptr<Schema> schemaBeforeProjection, vector<uint32_t> discardedGroupPos,
-        shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{prevOperator}, expressionsToProject{move(expressions)},
-          schemaBeforeProjection{move(schemaBeforeProjection)},
-          discardedGroupPos(move(discardedGroupPos)) {}
+        vector<uint32_t> discardedGroupsPos, shared_ptr<LogicalOperator> prevOperator)
+        : LogicalOperator{move(prevOperator)}, expressionsToProject{move(expressions)},
+          discardedGroupsPos{move(discardedGroupsPos)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_PROJECTION;
@@ -30,8 +28,7 @@ public:
 
 public:
     vector<shared_ptr<Expression>> expressionsToProject;
-    unique_ptr<Schema> schemaBeforeProjection;
-    vector<uint32_t> discardedGroupPos;
+    vector<uint32_t> discardedGroupsPos;
 };
 
 } // namespace planner

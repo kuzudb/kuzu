@@ -29,9 +29,11 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto executionContext = ExecutionContext(*profiler, nullptr, memoryManager.get());
     auto resultSet = make_shared<ResultSet>(1);
     resultSet->dataChunks[0] = make_shared<DataChunk>(1);
+    auto aIDPos = DataPos{0, 0};
+    auto vectorsToCollect = vector<DataPos>{aIDPos};
     auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(resultSet),
-        make_unique<ScanNodeID>(DataPos{0, 0}, morsel, executionContext, 0), RESULT_COLLECTOR,
-        executionContext, 1));
+        vectorsToCollect, make_unique<ScanNodeID>(aIDPos, morsel, executionContext, 0),
+        RESULT_COLLECTOR, executionContext, 1));
     auto processor = make_unique<QueryProcessor>(10);
     auto result = processor->execute(plan.get(), 1);
     ASSERT_EQ(result->numTuples, 1025013);

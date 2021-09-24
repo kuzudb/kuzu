@@ -3,12 +3,10 @@
 namespace graphflow {
 namespace common {
 
-unique_ptr<DataChunk> DataChunk::clone() {
-    auto newChunk = make_unique<DataChunk>(valueVectors.size(), state->clone());
-    for (auto i = 0; i < valueVectors.size(); ++i) {
-        newChunk->insert(i, valueVectors[i]->clone());
-    }
-    return newChunk;
+void DataChunk::insert(uint32_t pos, const shared_ptr<ValueVector>& valueVector) {
+    valueVector->state = this->state;
+    assert(valueVectors.size() > pos);
+    valueVectors[pos] = valueVector;
 }
 
 } // namespace common

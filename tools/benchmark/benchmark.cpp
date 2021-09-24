@@ -87,7 +87,8 @@ void Benchmark::log() const {
 void Benchmark::verify() const {
     if (context->queryResult->numTuples == 1) {
         uint64_t numTuples = 0;
-        ResultSetIterator resultSetIterator(context->queryResult->resultSetCollection[0].get());
+        ResultSetIterator resultSetIterator(context->queryResult->resultSetCollection[0].get(),
+            context->queryResult->vectorsToCollectPos);
         Tuple tuple(resultSetIterator.dataTypes);
         resultSetIterator.setResultSet(context->queryResult->resultSetCollection[0].get());
         resultSetIterator.getNextTuple(tuple);

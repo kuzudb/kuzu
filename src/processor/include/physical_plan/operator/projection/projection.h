@@ -15,11 +15,10 @@ class Projection : public PhysicalOperator {
 public:
     Projection(vector<unique_ptr<ExpressionEvaluator>> expressions,
         vector<DataPos> expressionsOutputPos, vector<uint32_t> discardedDataChunksPos,
-        shared_ptr<ResultSet> inResultSet, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id)
+        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
         : PhysicalOperator(move(prevOperator), PROJECTION, context, id),
           expressions(move(expressions)), expressionsOutputPos{move(expressionsOutputPos)},
-          discardedDataChunksPos{move(discardedDataChunksPos)}, inResultSet{move(inResultSet)} {}
+          discardedDataChunksPos{move(discardedDataChunksPos)}, prevMultiplicity{0} {}
 
     void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
@@ -28,12 +27,17 @@ public:
     unique_ptr<PhysicalOperator> clone() override;
 
 private:
+    inline void saveMultiplicity() { prevMultiplicity = resultSet->multiplicity; }
+
+    inline void restoreMultiplicity() { resultSet->multiplicity = prevMultiplicity; }
+
+private:
     vector<unique_ptr<ExpressionEvaluator>> expressions;
     vector<DataPos> expressionsOutputPos;
     vector<uint32_t> discardedDataChunksPos;
-    shared_ptr<ResultSet> inResultSet;
 
-    shared_ptr<ResultSet> discardedResultSet;
+    uint64_t prevMultiplicity;
+    unique_ptr<ResultSet> discardedResultSet;
 };
 
 } // namespace processor

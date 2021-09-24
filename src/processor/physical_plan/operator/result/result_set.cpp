@@ -5,19 +5,13 @@ namespace processor {
 
 uint64_t ResultSet::getNumTuples() {
     uint64_t numTuples = 1;
-    for (auto& dataChunk : dataChunks) {
-        numTuples *= dataChunk->state->getNumSelectedValues();
+    for (auto i = 0u; i < dataChunks.size(); ++i) {
+        if (!dataChunksMask[i]) {
+            continue;
+        }
+        numTuples *= dataChunks[i]->state->getNumSelectedValues();
     }
     return numTuples * multiplicity;
-}
-
-unique_ptr<ResultSet> ResultSet::clone() {
-    auto clonedResultSet = make_unique<ResultSet>(dataChunks.size());
-    for (auto i = 0u; i < dataChunks.size(); ++i) {
-        clonedResultSet->insert(i, dataChunks[i]->clone());
-    }
-    clonedResultSet->multiplicity = multiplicity;
-    return clonedResultSet;
 }
 
 } // namespace processor

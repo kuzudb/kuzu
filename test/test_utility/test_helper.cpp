@@ -41,8 +41,8 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const Syste
             } else {
                 vector<string> resultTuples;
                 if (result->numTuples != 0) {
-                    auto resultSetIterator =
-                        make_unique<ResultSetIterator>(result->resultSetCollection[0].get());
+                    auto resultSetIterator = make_unique<ResultSetIterator>(
+                        result->resultSetCollection[0].get(), result->vectorsToCollectPos);
                     Tuple tuple(resultSetIterator->dataTypes);
                     for (auto& resultSet : result->resultSetCollection) {
                         resultSetIterator->setResultSet(resultSet.get());

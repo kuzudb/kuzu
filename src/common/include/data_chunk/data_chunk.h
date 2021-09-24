@@ -26,19 +26,15 @@ public:
         : DataChunk(numValueVectors, make_shared<DataChunkState>()){};
 
     DataChunk(uint32_t numValueVectors, const shared_ptr<DataChunkState>& state)
-        : valueVectors{numValueVectors}, state{state} {};
+        : valueVectors(numValueVectors), state{state} {};
 
-    void insert(uint32_t pos, const shared_ptr<ValueVector>& valueVector) {
-        valueVector->state = this->state;
-        assert(valueVectors.size() > pos);
-        valueVectors[pos] = valueVector;
-    }
+    void insert(uint32_t pos, const shared_ptr<ValueVector>& valueVector);
+
+    inline uint32_t getNumValueVectors() { return valueVectors.size(); }
 
     inline shared_ptr<ValueVector> getValueVector(uint64_t valueVectorPos) {
         return valueVectors[valueVectorPos];
     }
-
-    unique_ptr<DataChunk> clone();
 
 public:
     vector<shared_ptr<ValueVector>> valueVectors;

@@ -57,9 +57,14 @@ unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
     unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& context) {
     auto& schema = *logicalPlan->getSchema();
     auto info = PhysicalOperatorsInfo(schema);
+    vector<DataPos> valueVectorsToCollectPos;
+    for (auto& expression : schema.expressionsToCollect) {
+        valueVectorsToCollectPos.push_back(info.getDataPos(expression->getInternalName()));
+    }
     auto prevOperator = mapLogicalOperatorToPhysical(logicalPlan->lastOperator, info, context);
-    auto resultCollector = make_unique<ResultCollector>(populateResultSet(schema),
-        move(prevOperator), RESULT_COLLECTOR, context, physicalOperatorID++);
+    auto resultCollector =
+        make_unique<ResultCollector>(populateResultSet(schema), move(valueVectorsToCollectPos),
+            move(prevOperator), RESULT_COLLECTOR, context, physicalOperatorID++);
     return make_unique<PhysicalPlan>(move(resultCollector));
 }
 
@@ -231,20 +236,15 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
     LogicalOperator* logicalOperator, const PhysicalOperatorsInfo& info,
     ExecutionContext& context) {
     auto& logicalProjection = (const LogicalProjection&)*logicalOperator;
-    auto& schemaBeforeProjection = *logicalProjection.schemaBeforeProjection;
-    auto infoBeforeProjection = PhysicalOperatorsInfo(*logicalProjection.schemaBeforeProjection);
-    auto prevOperator =
-        mapLogicalOperatorToPhysical(logicalOperator->prevOperator, infoBeforeProjection, context);
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     vector<unique_ptr<ExpressionEvaluator>> expressionEvaluators;
     vector<DataPos> expressionsOutputPos;
     for (auto& expression : logicalProjection.expressionsToProject) {
-        expressionEvaluators.push_back(
-            expressionMapper.mapToPhysical(*expression, infoBeforeProjection, context));
+        expressionEvaluators.push_back(expressionMapper.mapToPhysical(*expression, info, context));
         expressionsOutputPos.push_back(info.getDataPos(expression->getInternalName()));
     }
     return make_unique<Projection>(move(expressionEvaluators), move(expressionsOutputPos),
-        logicalProjection.discardedGroupPos, populateResultSet(schemaBeforeProjection),
-        move(prevOperator), context, physicalOperatorID++);
+        logicalProjection.discardedGroupsPos, move(prevOperator), context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
