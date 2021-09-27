@@ -16,6 +16,10 @@ public:
     }
 
     string getExpressionsForPrinting() const override { return string(); }
+
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalMultiplicityReducer>(prevOperator->copy());
+    }
 };
 
 } // namespace planner

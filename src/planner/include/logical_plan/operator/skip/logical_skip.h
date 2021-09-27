@@ -21,6 +21,11 @@ public:
     inline uint32_t getGroupPosToSelect() const { return groupPosToSelect; }
     inline const vector<uint32_t>& getGroupsPosToSkip() const { return groupsPosToSkip; };
 
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalSkip>(
+            skipNumber, groupPosToSelect, groupsPosToSkip, prevOperator->copy());
+    }
+
 private:
     uint64_t skipNumber;
     uint32_t groupPosToSelect;

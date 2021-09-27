@@ -2,7 +2,7 @@
 
 #include "src/binder/include/query_binder.h"
 #include "src/parser/include/parser.h"
-#include "src/planner/include/enumerator.h"
+#include "src/planner/include/planner.h"
 #include "src/processor/include/physical_plan/plan_mapper.h"
 
 using namespace graphflow::parser;
@@ -37,7 +37,7 @@ void System::executeQuery(SessionContext& context) const {
     compilingTimeMetric.start();
     auto boundQuery = QueryBinder(graph->getCatalog()).bind(*parsedQuery);
 
-    auto logicalPlan = Enumerator(*graph).getBestPlan(*boundQuery);
+    auto logicalPlan = Planner::getBestPlan(*graph, *boundQuery);
 
     auto executionContext = make_unique<ExecutionContext>(
         *context.profiler, context.activeTransaction, memManager.get());
@@ -69,8 +69,7 @@ vector<unique_ptr<LogicalPlan>> System::enumerateAllPlans(SessionContext& sessio
     }
     auto parsedQuery = Parser::parseQuery(sessionContext.query);
     auto boundQuery = QueryBinder(graph->getCatalog()).bind(*parsedQuery);
-    auto logicalPlans = Enumerator(*graph).enumeratePlans(*boundQuery);
-    return logicalPlans;
+    return Planner::getAllPlans(*graph, *boundQuery);
 }
 
 unique_ptr<QueryResult> System::executePlan(

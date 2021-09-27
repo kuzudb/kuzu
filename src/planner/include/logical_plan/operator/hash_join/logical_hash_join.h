@@ -34,6 +34,12 @@ public:
 
     string getExpressionsForPrinting() const override { return joinNodeID; }
 
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalHashJoin>(joinNodeID, buildSidePrevOperator->copy(),
+            buildSideSchema->copy(), probeSideFlatGroupPos, probeSideUnFlatGroupsPos,
+            prevOperator->copy());
+    }
+
 public:
     const string joinNodeID;
     shared_ptr<LogicalOperator> buildSidePrevOperator;

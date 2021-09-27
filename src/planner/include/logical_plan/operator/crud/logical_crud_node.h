@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 
+#include "src/common/include/exception.h"
 #include "src/planner/include/logical_plan/operator/logical_operator.h"
 
 namespace graphflow {
@@ -19,6 +20,11 @@ public:
 
     string getExpressionsForPrinting() const override {
         return LogicalOperatorTypeNames[CRUDType] + ": " + to_string(nodeLabel);
+    }
+
+    unique_ptr<LogicalOperator> copy() override {
+        return NotImplementedException(
+            "Copy function is not implemented for logical crud operator.");
     }
 
 public:

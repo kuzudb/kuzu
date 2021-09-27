@@ -3,7 +3,7 @@
 
 #include "src/binder/include/query_binder.h"
 #include "src/parser/include/parser.h"
-#include "src/planner/include/enumerator.h"
+#include "src/planner/include/planner.h"
 
 using ::testing::NiceMock;
 using ::testing::Test;
@@ -18,7 +18,13 @@ public:
     unique_ptr<LogicalPlan> getBestPlan(const string& query) {
         auto parsedQuery = Parser::parseQuery(query);
         auto boundQuery = QueryBinder(graph.getCatalog()).bind(*parsedQuery);
-        return Enumerator(graph).getBestPlan(*boundQuery);
+        return Planner::getBestPlan(graph, *boundQuery);
+    }
+
+    vector<unique_ptr<LogicalPlan>> getAllPlans(const string& query) {
+        auto parsedQuery = Parser::parseQuery(query);
+        auto boundQuery = QueryBinder(graph.getCatalog()).bind(*parsedQuery);
+        return Planner::getAllPlans(graph, *boundQuery);
     }
 
     bool containSubstr(const string& str, const string& substr) {

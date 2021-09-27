@@ -19,7 +19,12 @@ public:
 
     inline uint64_t getLimitNumber() const { return limitNumber; }
     inline uint32_t getGroupPosToSelect() const { return groupPosToSelect; }
-    inline const vector<uint32_t>& getGroupsPosToLimit() const { return groupsPosToLimit; };
+    inline const vector<uint32_t>& getGroupsPosToLimit() const { return groupsPosToLimit; }
+
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalLimit>(
+            limitNumber, groupPosToSelect, groupsPosToLimit, prevOperator->copy());
+    }
 
 private:
     uint64_t limitNumber;

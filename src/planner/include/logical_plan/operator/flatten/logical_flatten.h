@@ -19,6 +19,10 @@ public:
 
     string getExpressionsForPrinting() const override { return variable; }
 
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalFlatten>(variable, prevOperator->copy());
+    }
+
 public:
     string variable;
 };

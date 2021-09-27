@@ -26,6 +26,10 @@ public:
 
     inline const unordered_set<string>& getVariablesToSelect() const { return variablesToSelect; }
 
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalSelectScan>(variablesToSelect);
+    }
+
 private:
     unordered_set<string> variablesToSelect;
 };

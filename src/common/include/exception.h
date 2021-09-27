@@ -39,5 +39,10 @@ class InternalException : public Exception {
 public:
     explicit InternalException(const string& msg) : Exception(msg){};
 };
+
+class NotImplementedException : public Exception {
+public:
+    explicit NotImplementedException(const string& msg) : Exception(msg){};
+};
 } // namespace common
 } // namespace graphflow

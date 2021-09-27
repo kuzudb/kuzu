@@ -25,8 +25,6 @@ static shared_ptr<Expression> createNodeIDEqualComparison(
 
 vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
     const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans) {
-    context->populatePropertiesMap(queryPart);
-    appendMissingPropertyScans(prevPlans);
     context->init(queryPart, move(prevPlans));
     context->hasExpressionsToSelectFromOuter() ? enumerateSelectScan() : enumerateSingleNode();
     while (context->hasNextLevel()) {
@@ -50,22 +48,6 @@ unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(
 
 void JoinOrderEnumerator::exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext) {
     context = move(prevContext);
-}
-
-void JoinOrderEnumerator::appendMissingPropertyScans(const vector<unique_ptr<LogicalPlan>>& plans) {
-    // E.g. MATCH (a) WITH a MATCH (a)->(b) RETRUN a.age
-    // a.age is not available in the scope of first query part. So append the missing properties
-    // before starting join order enumeration of the second part.
-    auto queryGraph = context->getQueryGraph();
-    for (auto& plan : plans) {
-        for (auto& [variableName, properties] : context->getVariableToPropertiesMap()) {
-            if (queryGraph->containsQueryNode(variableName)) {
-                appendScanPropertiesIfNecessary(variableName, true, *plan);
-            } else if (queryGraph->containsQueryRel(variableName)) {
-                appendScanPropertiesIfNecessary(variableName, false, *plan);
-            }
-        }
-    }
 }
 
 void JoinOrderEnumerator::enumerateSelectScan() {
@@ -110,7 +92,6 @@ void JoinOrderEnumerator::enumerateSingleNode() {
             getNewMatchedExpressions(emptySubgraph, newSubgraph, context->getWhereExpressions())) {
             enumerator->appendFilter(expression, *plan);
         }
-        appendScanPropertiesIfNecessary(node.getInternalName(), true /* isNode */, *plan);
         context->addPlan(newSubgraph, move(plan));
     }
 }
@@ -258,8 +239,6 @@ void JoinOrderEnumerator::appendExtendFiltersAndScanPropertiesIfNecessary(
         enumerator->appendFilter(expression, plan);
     }
     auto nbrNode = FWD == direction ? queryRel.dstNode : queryRel.srcNode;
-    appendScanPropertiesIfNecessary(nbrNode->getInternalName(), true /* isNode */, plan);
-    appendScanPropertiesIfNecessary(queryRel.getInternalName(), false /* isNode */, plan);
 }
 
 void JoinOrderEnumerator::appendExtend(
@@ -354,21 +333,6 @@ bool JoinOrderEnumerator::appendIntersect(
     rightGroup.estimatedCardinality *= PREDICATE_SELECTIVITY;
     plan.appendOperator(move(intersect));
     return true;
-}
-
-void JoinOrderEnumerator::appendScanPropertiesIfNecessary(
-    const string& variableName, bool isNode, LogicalPlan& plan) {
-    if (!context->getVariableToPropertiesMap().contains(variableName)) {
-        return;
-    }
-    for (auto& expression : context->getVariableToPropertiesMap().at(variableName)) {
-        auto& propertyExpression = (PropertyExpression&)*expression;
-        if (plan.schema->containVariable(propertyExpression.getInternalName())) {
-            continue;
-        }
-        isNode ? enumerator->appendScanNodePropertyIfNecessary(propertyExpression, plan) :
-                 enumerator->appendScanRelPropertyIfNecessary(propertyExpression, plan);
-    }
 }
 
 uint64_t JoinOrderEnumerator::getExtensionRate(

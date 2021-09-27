@@ -24,6 +24,11 @@ public:
         return boundNodeID + (direction == Direction::FWD ? "->" : "<-") + nbrNodeID;
     }
 
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalExtend>(boundNodeID, boundNodeLabel, nbrNodeID, nbrNodeLabel,
+            relLabel, direction, isColumn, lowerBound, upperBound, prevOperator->copy());
+    }
+
 public:
     string boundNodeID;
     label_t boundNodeLabel;

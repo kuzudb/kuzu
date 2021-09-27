@@ -17,7 +17,6 @@ const double PREDICATE_SELECTIVITY = 0.2;
  * JoinOrderEnumerator is currently responsible for
  *      join order enumeration
  *      filter push down
- *      property scanner push down
  */
 class JoinOrderEnumerator {
     friend class Enumerator;
@@ -34,7 +33,6 @@ private:
     unique_ptr<JoinOrderEnumeratorContext> enterSubquery(
         vector<shared_ptr<Expression>> expressionsToSelect);
     void exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext);
-    void appendMissingPropertyScans(const vector<unique_ptr<LogicalPlan>>& plans);
 
     // join order enumeration functions
     void enumerateSelectScan();
@@ -53,8 +51,6 @@ private:
         const NodeExpression& joinNode, LogicalPlan& buildPlan, LogicalPlan& probePlan);
     // appendIntersect return false if a nodeID is flat in which case we should use filter
     bool appendIntersect(const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan);
-    void appendScanPropertiesIfNecessary(
-        const string& variableName, bool isNode, LogicalPlan& plan);
 
     // helper functions
     uint64_t getExtensionRate(label_t boundNodeLabel, label_t relLabel, Direction direction);

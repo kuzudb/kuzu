@@ -75,6 +75,12 @@ void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>
 
 void ProjectionEnumerator::appendAggregate(
     const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan) {
+    for (auto& expression : expressions) {
+        if (expression->expressionType == COUNT_STAR_FUNC) {
+            continue;
+        }
+        enumerator->appendScanPropertiesIfNecessary(*expression->children[0], plan);
+    }
     auto aggregate =
         make_shared<LogicalAggregate>(expressions, plan.schema->copy(), plan.lastOperator);
     plan.schema->clearGroups();

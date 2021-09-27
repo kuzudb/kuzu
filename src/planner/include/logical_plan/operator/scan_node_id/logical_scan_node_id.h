@@ -19,6 +19,11 @@ public:
 
     string getExpressionsForPrinting() const override { return nodeID; }
 
+    unique_ptr<LogicalOperator> copy() override {
+        return prevOperator ? make_unique<LogicalScanNodeID>(nodeID, label, prevOperator->copy()) :
+                              make_unique<LogicalScanNodeID>(nodeID, label);
+    }
+
 public:
     const string nodeID;
     const label_t label;

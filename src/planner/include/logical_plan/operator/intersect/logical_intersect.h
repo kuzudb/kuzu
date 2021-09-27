@@ -27,6 +27,10 @@ public:
     inline string getLeftNodeID() const { return leftNodeID; }
     inline string getRightNodeID() const { return rightNodeID; }
 
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalIntersect>(leftNodeID, rightNodeID, prevOperator->copy());
+    }
+
 private:
     string leftNodeID;
     // Right node ID should be the temporary node ID
