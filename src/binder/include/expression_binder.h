@@ -42,6 +42,8 @@ private:
     shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindAbsFunctionExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindFloorFunctionExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindCeilFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindCountStarFunctionExpression(
         const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindCountFunctionExpression(const ParsedExpression& parsedExpression);

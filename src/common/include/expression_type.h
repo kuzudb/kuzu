@@ -21,6 +21,8 @@ const string MIN_FUNC_NAME = "MIN";
 const string MAX_FUNC_NAME = "MAX";
 const string ID_FUNC_NAME = "ID";
 const string DATE_FUNC_NAME = "DATE";
+const string FLOOR_FUNC_NAME = "FLOOR";
+const string CEIL_FUNC_NAME = "CEIL";
 
 enum ExpressionType : uint8_t {
 
@@ -116,6 +118,8 @@ enum ExpressionType : uint8_t {
      * Arithmetic Function Expression
      **/
     ABS_FUNC = 111,
+    FLOOR_FUNC = 112,
+    CEIL_FUNC = 113,
 
     /**
      * Aggregation Function Expression

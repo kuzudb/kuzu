@@ -229,8 +229,28 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
         return bindIDFunctionExpression(parsedExpression);
     } else if (functionName == DATE_FUNC_NAME) {
         return bindDateFunctionExpression(parsedExpression);
+    } else if (functionName == FLOOR_FUNC_NAME) {
+        return bindFloorFunctionExpression(parsedExpression);
+    } else if (functionName == CEIL_FUNC_NAME) {
+        return bindCeilFunctionExpression(parsedExpression);
     }
     throw invalid_argument(functionName + " function does not exist.");
+}
+
+shared_ptr<Expression> ExpressionBinder::bindFloorFunctionExpression(
+    const ParsedExpression& parsedExpression) {
+    validateNumberOfChildren(parsedExpression, 1);
+    auto child = bindExpression(*parsedExpression.children[0]);
+    validateNumericalTypeOrUnstructured(*child);
+    return make_shared<Expression>(FLOOR_FUNC, child->dataType, move(child));
+}
+
+shared_ptr<Expression> ExpressionBinder::bindCeilFunctionExpression(
+    const ParsedExpression& parsedExpression) {
+    validateNumberOfChildren(parsedExpression, 1);
+    auto child = bindExpression(*parsedExpression.children[0]);
+    validateNumericalTypeOrUnstructured(*child);
+    return make_shared<Expression>(CEIL_FUNC, child->dataType, move(child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindAbsFunctionExpression(
