@@ -8,7 +8,8 @@ namespace common {
 bool isExpressionUnary(ExpressionType type) {
     return NOT == type || NEGATE == type || IS_NULL == type || IS_NOT_NULL == type ||
            CAST_TO_STRING == type || CAST_TO_UNSTRUCTURED_VECTOR == type ||
-           CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR == type || ABS_FUNC == type;
+           CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR == type || ABS_FUNC == type ||
+           FLOOR_FUNC == type || CEIL_FUNC == type;
 }
 
 bool isExpressionBinary(ExpressionType type) {
@@ -165,6 +166,10 @@ string expressionTypeToString(ExpressionType type) {
         return "CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR";
     case ABS_FUNC:
         return ABS_FUNC_NAME;
+    case FLOOR_FUNC:
+        return FLOOR_FUNC_NAME;
+    case CEIL_FUNC:
+        return CEIL_FUNC_NAME;
     case COUNT_STAR_FUNC:
         return COUNT_STAR_FUNC_NAME;
     case COUNT_FUNC:

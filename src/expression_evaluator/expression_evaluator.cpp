@@ -30,6 +30,10 @@ std::function<void(ValueVector&, ValueVector&)> ExpressionEvaluator::getUnaryVec
         return VectorCastOperations::castUnstructuredToBoolValue;
     case ABS_FUNC:
         return VectorArithmeticOperations::Abs;
+    case FLOOR_FUNC:
+        return VectorArithmeticOperations::Floor;
+    case CEIL_FUNC:
+        return VectorArithmeticOperations::Ceil;
     default:
         throw invalid_argument("Unsupported expression type: " + expressionTypeToString(type));
     }

@@ -65,6 +65,20 @@ struct Abs {
     }
 };
 
+struct Floor {
+    template<class T>
+    static inline void operation(T& input, T& result) {
+        result = floor(input);
+    }
+};
+
+struct Ceil {
+    template<class T>
+    static inline void operation(T& input, T& result) {
+        result = ceil(input);
+    }
+};
+
 /********************************************
  **                                        **
  **   Specialized Modulo implementations   **
@@ -185,6 +199,8 @@ static const char moduloStr[] = "modulo";
 static const char powerStr[] = "power";
 static const char negateStr[] = "negate";
 static const char absStr[] = "abs";
+static const char floorStr[] = "floor";
+static const char ceilStr[] = "ceil";
 
 template<>
 inline void Add::operation(Value& left, Value& right, Value& result) {
@@ -231,6 +247,16 @@ template<>
 inline void Abs::operation(Value& operand, Value& result) {
     ArithmeticOnValues::operation<Abs, absStr>(operand, result);
 }
+
+template<>
+inline void Floor::operation(Value& operand, Value& result) {
+    ArithmeticOnValues::operation<Floor, floorStr>(operand, result);
+};
+
+template<>
+inline void Ceil::operation(Value& operand, Value& result) {
+    ArithmeticOnValues::operation<Ceil, ceilStr>(operand, result);
+};
 
 } // namespace operation
 } // namespace common

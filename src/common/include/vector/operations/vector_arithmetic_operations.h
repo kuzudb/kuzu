@@ -22,6 +22,10 @@ struct VectorArithmeticOperations {
     static void Negate(ValueVector& operand, ValueVector& result);
     // result = abs(operand)
     static void Abs(ValueVector& operand, ValueVector& result);
+    // result = floor(operand)
+    static void Floor(ValueVector& operand, ValueVector& result);
+    // result = ceil(operand)
+    static void Ceil(ValueVector& operand, ValueVector& result);
 };
 
 } // namespace common

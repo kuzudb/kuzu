@@ -121,5 +121,13 @@ void VectorArithmeticOperations::Abs(ValueVector& operand, ValueVector& result) 
     VectorArithmeticOperationExecutor::execute<operation::Abs>(operand, result);
 }
 
+void VectorArithmeticOperations::Floor(ValueVector& operand, ValueVector& result) {
+    VectorArithmeticOperationExecutor::execute<operation::Floor>(operand, result);
+}
+
+void VectorArithmeticOperations::Ceil(ValueVector& operand, ValueVector& result) {
+    VectorArithmeticOperationExecutor::execute<operation::Ceil>(operand, result);
+}
+
 } // namespace common
 } // namespace graphflow
