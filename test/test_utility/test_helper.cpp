@@ -39,21 +39,7 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const Syste
                     j, result->numTuples, testConfig.expectedNumTuples);
                 spdlog::info("PLAN: \n{}", planStr);
             } else {
-                vector<string> resultTuples;
-                if (result->numTuples != 0) {
-                    auto resultSetIterator = make_unique<ResultSetIterator>(
-                        result->resultSetCollection[0].get(), result->vectorsToCollectPos);
-                    Tuple tuple(resultSetIterator->dataTypes);
-                    for (auto& resultSet : result->resultSetCollection) {
-                        resultSetIterator->setResultSet(resultSet.get());
-                        while (resultSetIterator->hasNextTuple()) {
-                            resultSetIterator->getNextTuple(tuple);
-                            resultTuples.push_back(
-                                tuple.toString(vector<uint32_t>(tuple.len(), 0)));
-                        }
-                    }
-                    sort(resultTuples.begin(), resultTuples.end());
-                }
+                vector<string> resultTuples = getActualOutput(*result);
                 if (resultTuples == testConfig.expectedTuples) {
                     spdlog::info("PLAN{} PASSED", j);
                     spdlog::debug("PLAN: \n{}", planStr);
@@ -124,6 +110,24 @@ void BaseGraphLoadingTest::SetUp() {
     testSuiteSystemConfig.graphInputDir = getInputCSVDir();
     testSuiteSystemConfig.graphOutputDir = TEMP_TEST_DIR;
     TestHelper::loadGraph(testSuiteSystemConfig);
+}
+
+vector<string> TestHelper::getActualOutput(QueryResult& queryResult) {
+    vector<string> actualOutput;
+    if (queryResult.numTuples != 0) {
+        auto resultSetIterator = make_unique<ResultSetIterator>(
+            queryResult.resultSetCollection[0].get(), queryResult.vectorsToCollectPos);
+        Tuple tuple(resultSetIterator->dataTypes);
+        for (auto& resultSet : queryResult.resultSetCollection) {
+            resultSetIterator->setResultSet(resultSet.get());
+            while (resultSetIterator->hasNextTuple()) {
+                resultSetIterator->getNextTuple(tuple);
+                actualOutput.push_back(tuple.toString(vector<uint32_t>(tuple.len(), 0)));
+            }
+        }
+        sort(actualOutput.begin(), actualOutput.end());
+    }
+    return actualOutput;
 }
 
 } // namespace testing

@@ -23,16 +23,14 @@ public:
 
 private:
     void loadBenchmark(const string& benchmarkPath);
-    void logQueryInfo(ofstream& log, uint64_t numTuples, uint32_t runNum) const;
+    void logQueryInfo(ofstream& log, uint32_t runNum) const;
     void verify() const;
 
 public:
     System& system;
     BenchmarkConfig& config;
-
     string name;
-    uint64_t expectedNumOutput;
-
+    vector<string> expectedOutput;
     unique_ptr<SessionContext> context;
 };
 

@@ -13,6 +13,7 @@ cc_library(
     ],
     deps = [
         "//src/main:system",
+        "//test/test_utility:test_helper",
     ],
 )
 

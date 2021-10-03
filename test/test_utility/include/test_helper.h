@@ -41,6 +41,8 @@ public:
     static unique_ptr<System> getInitializedSystem(TestSuiteSystemConfig& config) {
         return make_unique<System>(config.graphOutputDir, config.isInMemory);
     }
+
+    static vector<string> getActualOutput(QueryResult& queryResult);
 };
 
 class BaseGraphLoadingTest : public Test {

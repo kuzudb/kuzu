@@ -4,10 +4,10 @@
 #include <fstream>
 
 #include "spdlog/spdlog.h"
+#include "test/test_utility/include/test_helper.h"
 
 #include "src/common/include/utils.h"
 #include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
-
 using namespace graphflow::common;
 
 namespace graphflow {
@@ -21,80 +21,57 @@ Benchmark::Benchmark(const string& benchmarkPath, System& system, BenchmarkConfi
 }
 
 void Benchmark::loadBenchmark(const string& benchmarkPath) {
-    if (!filesystem::exists(benchmarkPath)) {
-        throw invalid_argument(benchmarkPath + " does not exist.");
+    vector<testing::TestQueryConfig> queryConfigs =
+        testing::TestHelper::parseTestFile(benchmarkPath);
+    assert(queryConfigs.size() == 1);
+    testing::TestQueryConfig queryConfig = queryConfigs[0];
+    if (config.enableProfile) {
+        context->query += "PROFILE ";
     }
-    string line;
-    ifstream ifs(benchmarkPath);
-    while (getline(ifs, line)) {
-        if (line.empty() || line[0] == '#') {
-            continue;
-        }
-        auto splits = StringUtils::split(line, " ");
-        if (splits[0] == "name") { // load benchmark name
-            if (splits.size() != 2) {
-                throw invalid_argument("Empty benchmark name.");
-            }
-            name = splits[1];
-        } else if (splits[0] == "query") { // load benchmark query
-            if (config.enableProfile) {
-                context->query += "PROFILE ";
-            }
-            while (getline(ifs, line)) {
-                if (line.empty()) {
-                    break;
-                }
-                context->query += line + " ";
-            }
-        } else if (splits[0] == "expectedNumOutput") { // load benchmark number of output tuples
-            if (splits.size() != 2) {
-                throw invalid_argument("Empty number of output tuples.");
-            }
-            expectedNumOutput = stoul(splits[1]);
-        } else {
-            throw invalid_argument("Unrecognized line " + line);
-        }
-    }
+    context->query = queryConfig.query;
+    name = queryConfig.name;
+    expectedOutput = queryConfig.expectedTuples;
 }
 
 void Benchmark::run() {
     system.executeQuery(*context);
-    verify();
 }
 
-void Benchmark::logQueryInfo(ofstream& log, uint64_t numTuples, uint32_t runNum) const {
+void Benchmark::logQueryInfo(ofstream& log, uint32_t runNum) const {
+    vector<string> actualOutput = testing::TestHelper::getActualOutput(*context->queryResult);
     log << "Run Num: " << runNum << endl;
-    log << "Status: " << (expectedNumOutput == numTuples ? "pass" : "error") << endl;
+    log << "Status: " << (actualOutput == expectedOutput ? "pass" : "error") << endl;
     log << "Query: " << context->query << endl;
-    log << "Expected Number of output: " << expectedNumOutput << endl;
-    log << "Number of output: " << numTuples << endl;
+    log << "Expected output: " << endl;
+    for (auto result : expectedOutput) {
+        log << result << endl;
+    }
+    log << "Actual output: " << endl;
+    for (auto result : actualOutput) {
+        log << result << endl;
+    }
 }
 
 void Benchmark::log(uint32_t runNum) const {
-    ResultSetIterator resultSetIterator(context->queryResult->resultSetCollection[0].get(),
-        context->queryResult->vectorsToCollectPos);
-    Tuple tuple(resultSetIterator.dataTypes);
-    resultSetIterator.setResultSet(context->queryResult->resultSetCollection[0].get());
-    resultSetIterator.getNextTuple(tuple);
-    auto numTuples = tuple.getValue(0)->val.int64Val;
-
     string plan = "Plan: \n" + context->planPrinter->printPlanToJson(*context->profiler).dump(4);
-    spdlog::info("Number of tuples {}", numTuples);
+    spdlog::info("Run number: {}", runNum);
     spdlog::info("Compiling time {}", context->compilingTime);
     spdlog::info("Execution time {}", context->executingTime);
+    verify();
+    spdlog::info("");
     if (config.enableProfile) {
         spdlog::info("{}", plan);
     }
     if (!config.outputPath.empty()) {
         ofstream logFile(config.outputPath + "/" + name + "_log.txt", ios_base::app);
-        logQueryInfo(logFile, numTuples, runNum);
+        logQueryInfo(logFile, runNum);
         logFile << "Compiling time: " << context->compilingTime << endl;
         logFile << "Execution time: " << context->executingTime << endl << endl;
         logFile.flush();
         logFile.close();
         if (config.enableProfile) {
             ofstream profileFile(config.outputPath + "/" + name + "_profile.txt", ios_base::app);
-            logQueryInfo(profileFile, numTuples, runNum);
+            logQueryInfo(profileFile, runNum);
             profileFile << plan << endl << endl;
             profileFile.flush();
             profileFile.close();
@@ -103,21 +80,18 @@ void Benchmark::log(uint32_t runNum) const {
 }
 
 void Benchmark::verify() const {
-    if (context->queryResult->numTuples == 1) {
-        uint64_t numTuples = 0;
-        ResultSetIterator resultSetIterator(context->queryResult->resultSetCollection[0].get(),
-            context->queryResult->vectorsToCollectPos);
-        Tuple tuple(resultSetIterator.dataTypes);
-        resultSetIterator.setResultSet(context->queryResult->resultSetCollection[0].get());
-        resultSetIterator.getNextTuple(tuple);
-        numTuples = tuple.getValue(0)->val.int64Val;
-        if (numTuples != expectedNumOutput) {
-            spdlog::error("Query: {}", context->query);
-            spdlog::error(
-                "Expected number of output equals {} but get {}", expectedNumOutput, numTuples);
+    vector<string> actualOutput = testing::TestHelper::getActualOutput(*context->queryResult);
+    if (actualOutput != expectedOutput) {
+        spdlog::error("Query: {}", context->query);
+        spdlog::error("Result tuples are not matched");
+        spdlog::error("RESULT:");
+        for (auto& tuple : actualOutput) {
+            spdlog::error(tuple);
         }
-    } else {
-        spdlog::error("Expected number of tuples is 1.");
+        spdlog::error("EXPECTED:");
+        for (auto& tuple : expectedOutput) {
+            spdlog::error(tuple);
+        }
     }
 }
 
