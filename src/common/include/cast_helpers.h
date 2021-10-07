@@ -87,5 +87,71 @@ struct DateToStringCast {
     }
 };
 
+struct TimeToStringCast {
+    // Format microseconds to a buffer of length 6. Returns the number of trailing zeros
+    static int32_t FormatMicros(uint32_t microseconds, char micro_buffer[]) {
+        char* endptr = micro_buffer + 6;
+        endptr = NumericHelper::FormatUnsigned<uint32_t>(microseconds, endptr);
+        while (endptr > micro_buffer) {
+            *--endptr = '0';
+        }
+        uint64_t trailing_zeros = 0;
+        for (uint64_t i = 5; i > 0; i--) {
+            if (micro_buffer[i] != '0') {
+                break;
+            }
+            trailing_zeros++;
+        }
+        return trailing_zeros;
+    }
+
+    static uint64_t Length(int32_t time[], char micro_buffer[]) {
+        // format is HH:MM:DD.MS
+        // microseconds come after the time with a period separator
+        uint64_t length;
+        if (time[3] == 0) {
+            // no microseconds
+            // format is HH:MM:DD
+            length = 8;
+        } else {
+            length = 15;
+            // for microseconds, we truncate any trailing zeros (i.e. "90000" becomes ".9")
+            // first write the microseconds to the microsecond buffer
+            // we write backwards and pad with zeros to the left
+            // now we figure out how many digits we need to include by looking backwards
+            // and checking how many zeros we encounter
+            length -= FormatMicros(time[3], micro_buffer);
+        }
+        return length;
+    }
+
+    static void FormatTwoDigits(char* ptr, int32_t value) {
+        if (value < 10) {
+            ptr[0] = '0';
+            ptr[1] = '0' + value;
+        } else {
+            auto index = static_cast<unsigned>(value * 2);
+            ptr[0] = digits[index];
+            ptr[1] = digits[index + 1];
+        }
+    }
+
+    static void Format(char* data, uint64_t length, int32_t time[], char micro_buffer[]) {
+        // first write hour, month and day
+        auto ptr = data;
+        ptr[2] = ':';
+        ptr[5] = ':';
+        for (int i = 0; i <= 2; i++) {
+            FormatTwoDigits(ptr, time[i]);
+            ptr += 3;
+        }
+        if (length > 8) {
+            // write the micro seconds at the end
+            data[8] = '.';
+            memcpy(data + 9, micro_buffer, length - 9);
+        }
+    }
+};
+
 } // namespace common
 } // namespace graphflow

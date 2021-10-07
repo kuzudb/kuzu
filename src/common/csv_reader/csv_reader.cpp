@@ -2,6 +2,7 @@
 
 #include "src/common/include/configs.h"
 #include "src/common/include/date.h"
+#include "src/common/include/timestamp.h"
 
 namespace graphflow {
 namespace common {
@@ -122,6 +123,12 @@ char* CSVReader::getString() {
 
 date_t CSVReader::getDate() {
     date_t retVal = Date::FromCString(line + linePtrStart, nextTokenLen);
+    setNextTokenIsNotProcessed();
+    return retVal;
+}
+
+timestamp_t CSVReader::getTimestamp() {
+    timestamp_t retVal = Timestamp::FromCString(line + linePtrStart, nextTokenLen);
     setNextTokenIsNotProcessed();
     return retVal;
 }

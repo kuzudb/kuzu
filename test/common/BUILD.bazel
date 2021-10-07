@@ -32,6 +32,8 @@ cc_test(
     name = "types_test",
     srcs = [
         "date_test.cpp",
+        "time_test.cpp",
+        "timestamp_test.cpp",
         "types_test.cpp",
     ],
     copts = [
@@ -73,9 +75,9 @@ cc_test(
         "-Iexternal/gtest/include",
     ],
     deps = [
-        "//test/common:vector_operations_test_helper",
         "//src/common:data_chunk",
         "//src/common:vector_operations",
+        "//test/common:vector_operations_test_helper",
         "@gtest",
         "@gtest//:gtest_main",
     ],

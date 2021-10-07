@@ -44,6 +44,7 @@ public:
     uint8_t getBoolean();
     char* getString();
     date_t getDate();
+    timestamp_t getTimestamp();
 
 private:
     void openFile(const string& fName);

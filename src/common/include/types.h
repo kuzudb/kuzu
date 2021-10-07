@@ -57,6 +57,53 @@ struct date_t {
     inline bool operator>=(const date_t& rhs) const { return days >= rhs.days; };
 };
 
+// Type used to represent time (microseconds)
+struct dtime_t {
+    int64_t micros;
+
+    dtime_t() = default;
+    explicit inline dtime_t(int64_t micros_p) : micros(micros_p) {}
+    inline dtime_t& operator=(int64_t micros_p) {
+        micros = micros_p;
+        return *this;
+    }
+
+    // explicit conversion
+    explicit inline operator int64_t() const { return micros; }
+    explicit inline operator double() const { return micros; }
+
+    // comparison operators
+    inline bool operator==(const dtime_t& rhs) const { return micros == rhs.micros; };
+    inline bool operator!=(const dtime_t& rhs) const { return micros != rhs.micros; };
+    inline bool operator<=(const dtime_t& rhs) const { return micros <= rhs.micros; };
+    inline bool operator<(const dtime_t& rhs) const { return micros < rhs.micros; };
+    inline bool operator>(const dtime_t& rhs) const { return micros > rhs.micros; };
+    inline bool operator>=(const dtime_t& rhs) const { return micros >= rhs.micros; };
+};
+
+// Type used to represent timestamps (value is in microseconds since 1970-01-01)
+struct timestamp_t {
+    int64_t value;
+
+    timestamp_t() = default;
+    explicit inline timestamp_t(int64_t value_p) : value(value_p) {}
+    inline timestamp_t& operator=(int64_t value_p) {
+        value = value_p;
+        return *this;
+    }
+
+    // explicit conversion
+    explicit inline operator int64_t() const { return value; }
+
+    // comparison operators
+    inline bool operator==(const timestamp_t& rhs) const { return value == rhs.value; };
+    inline bool operator!=(const timestamp_t& rhs) const { return value != rhs.value; };
+    inline bool operator<=(const timestamp_t& rhs) const { return value <= rhs.value; };
+    inline bool operator<(const timestamp_t& rhs) const { return value < rhs.value; };
+    inline bool operator>(const timestamp_t& rhs) const { return value > rhs.value; };
+    inline bool operator>=(const timestamp_t& rhs) const { return value >= rhs.value; };
+};
+
 const uint8_t FALSE = 0;
 const uint8_t TRUE = 1;
 
@@ -64,6 +111,7 @@ const uint8_t NULL_BOOL = 2;
 const int64_t NULL_INT64 = INT64_MIN;
 const double_t NULL_DOUBLE = DBL_MIN;
 const date_t NULL_DATE = date_t(INT32_MIN);
+const timestamp_t NULL_TIMESTAMP = timestamp_t(INT64_MIN);
 const uint64_t NUM_BYTES_PER_NODE_ID = sizeof(node_offset_t) + sizeof(label_t);
 
 enum DataType : uint8_t {
@@ -77,10 +125,11 @@ enum DataType : uint8_t {
     NODE_ID = 7,
     UNSTRUCTURED = 8,
     DATE = 9,
+    TIMESTAMP = 10,
 };
 
-const string DataTypeNames[] = {
-    "REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE", "STRING", "NODE_ID", "UNSTRUCTURED", "DATE"};
+const string DataTypeNames[] = {"REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE", "STRING",
+    "NODE_ID", "UNSTRUCTURED", "DATE", "TIMESTAMP"};
 
 // Direction
 enum Direction : uint8_t { FWD = 0, BWD = 1 };

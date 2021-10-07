@@ -26,6 +26,8 @@ public:
         personProperties.emplace_back("isWorker", 4, BOOL);
         personProperties.emplace_back("age", 5, INT64);
         personProperties.emplace_back("eyeSight", 6, DOUBLE);
+        personProperties.emplace_back("birthdate", 7, DATE);
+        personProperties.emplace_back("registerTime", 8, TIMESTAMP);
         catalog->addNodeLabel("person", move(personProperties), "id");
         catalog->addNodeUnstrProperty(0, "unstrIntProp");
 
@@ -55,8 +57,10 @@ TEST_F(CatalogTest, AddLabelsTest) {
     ASSERT_TRUE(catalog->getStructuredNodeProperties(0)[0].isPrimaryKey);
     ASSERT_EQ(catalog->getNodeProperty(0, "age").id, 5);
     ASSERT_EQ(catalog->getNodeProperty(0, "age").dataType, INT64);
+    ASSERT_EQ(catalog->getNodeProperty(0, "birthdate").dataType, DATE);
+    ASSERT_EQ(catalog->getNodeProperty(0, "registerTime").dataType, TIMESTAMP);
     ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrIntProp"), 0);
-    ASSERT_EQ(catalog->getAllNodeProperties(0)[7].dataType, UNSTRUCTURED);
+    ASSERT_EQ(catalog->getAllNodeProperties(0)[9].dataType, UNSTRUCTURED);
     ASSERT_EQ(catalog->getRelProperty(0, "date").dataType, INT64);
 }
 
