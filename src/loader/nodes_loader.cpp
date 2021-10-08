@@ -3,6 +3,7 @@
 #include "src/common/include/date.h"
 #include "src/common/include/exception.h"
 #include "src/common/include/file_utils.h"
+#include "src/common/include/timestamp.h"
 
 using namespace graphflow::storage;
 
@@ -312,6 +313,13 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<PropertyDefinition>& pr
                 &dateVal, TypeUtils::getDataTypeSize(DATE));
             break;
         }
+        case TIMESTAMP: {
+            auto timestampVal = reader.skipTokenIfNull() ? NULL_TIMESTAMP : reader.getTimestamp();
+            memcpy(
+                buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(TIMESTAMP)),
+                &timestampVal, TypeUtils::getDataTypeSize(TIMESTAMP));
+            break;
+        }
         case STRING: {
             auto strVal =
                 reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
@@ -402,6 +410,15 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             date_t dateVal = Date::FromCString(beginningOfDateStr, strlen(beginningOfDateStr));
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&dateVal));
+            break;
+        }
+        case TIMESTAMP: {
+            char* beginningOfTimestampStr = valuePtr;
+            timestamp_t timestampVal =
+                Timestamp::FromCString(beginningOfTimestampStr, strlen(beginningOfTimestampStr));
+            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
+                static_cast<uint8_t>(dataType), dataTypeSize,
+                reinterpret_cast<uint8_t*>(&timestampVal));
             break;
         }
         case STRING: {

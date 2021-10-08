@@ -77,6 +77,7 @@ public:
         case DOUBLE:
         case BOOL:
         case DATE:
+        case TIMESTAMP:
             return make_unique<Column>(fName, dataType, TypeUtils::getDataTypeSize(dataType),
                 numElements, bufferManager, isInMemory);
         case STRING:

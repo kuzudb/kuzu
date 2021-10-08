@@ -36,6 +36,7 @@ public:
         double doubleVal;
         nodeID_t nodeID;
         date_t dateVal;
+        timestamp_t timestampVal;
     } val{};
 
     string strVal;

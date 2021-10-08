@@ -127,6 +127,7 @@ public:
         case DOUBLE:
         case BOOL:
         case DATE:
+        case TIMESTAMP:
             return make_unique<Lists>(fName, dataType, TypeUtils::getDataTypeSize(dataType),
                 adjListsHeaders, bufferManager, isInMemory);
         case STRING:

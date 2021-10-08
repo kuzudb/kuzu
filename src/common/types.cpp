@@ -29,6 +29,8 @@ DataType TypeUtils::getDataType(const std::string& dataTypeString) {
         return STRING;
     } else if ("DATE" == dataTypeString) {
         return DATE;
+    } else if ("TIMESTAMP" == dataTypeString) {
+        return TIMESTAMP;
     }
     throw invalid_argument("Cannot parse dataType: " + dataTypeString);
 }
@@ -59,6 +61,8 @@ size_t TypeUtils::getDataTypeSize(DataType dataType) {
         return sizeof(Value);
     case DATE:
         return sizeof(date_t);
+    case TIMESTAMP:
+        return sizeof(timestamp_t);
     default:
         throw invalid_argument(
             "Cannot infer the size of dataType: " + dataTypeToString(dataType) + ".");

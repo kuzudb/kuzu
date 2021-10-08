@@ -2,6 +2,7 @@ cc_test(
     name = "loader_test",
     srcs = [
         "load_dates_test.cpp",
+        "load_timestamp_test.cpp",
         "loader_fault_test.cpp",
         "loader_test.cpp",
     ],
