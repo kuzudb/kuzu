@@ -90,7 +90,17 @@
 ---- 1
 1
 
--NAME DateVarAndStrVarConcatUnstructured
--QUERY MATCH (a:person) WHERE '47Bob' = a.unstrNumericProp + a.fName RETURN COUNT(*)
+-NAME UnstrDateVarAndStrVarConcatUnstructured
+-QUERY MATCH (a:person) WHERE '1950-01-01Carol' = a.unstrDateProp1 + a.fName RETURN COUNT(*)
+---- 1
+1
+
+-NAME TimestampVarAndStrVarConcatStructured
+-QUERY MATCH (a:person) WHERE '2011-08-20 11:25:30Alice' = a.registerTime + a.fName RETURN COUNT(*)
+---- 1
+1
+
+-NAME UnstrTimestampVarAndStrVarConcatUnstructured
+-QUERY MATCH (a:person) WHERE '1962-05-22 13:11:22.562Greg' = a.unstrTimestampProp1 + a.fName RETURN COUNT(*)
 ---- 1
 1

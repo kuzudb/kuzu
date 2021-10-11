@@ -1,15 +1,15 @@
-fromLabel:LABEL,from:NODE,toLabel:LABEL,to:NODE,date:DATE
-person,0,person,2,2021-06-30
-person,0,person,3,2021-06-30
-person,0,person,5,2021-06-30
-person,2,person,0,2021-06-30
-person,2,person,3,1950-05-14
-person,2,person,5,1950-05-14
-person,3,person,0,2021-06-30
-person,3,person,2,1950-05-14
-person,3,person,5,2000-01-01
-person,5,person,0,2021-06-30
-person,5,person,2,1950-05-14
-person,5,person,3,2000-01-01
-person,7,person,8,1905-12-12
-person,7,person,9,1905-12-12
+fromLabel:LABEL,from:NODE,toLabel:LABEL,to:NODE,date:DATE,meetTime:TIMESTAMP
+person,0,person,2,2021-06-30,1986-10-21 21:08:31.521
+person,0,person,3,2021-06-30,1946-08-25 19:07:22
+person,0,person,5,2021-06-30,2012-12-11 20:07:22
+person,2,person,0,2021-06-30,1946-08-25 19:07:22
+person,2,person,3,1950-05-14,1946-08-25 19:07:22
+person,2,person,5,1950-05-14,2012-12-11 20:07:22
+person,3,person,0,2021-06-30,2002-07-31 11:42:53.12342
+person,3,person,2,1950-05-14,2007-02-12 12:11:42.123
+person,3,person,5,2000-01-01,1998-10-02 13:09:22.423
+person,5,person,0,2021-06-30,1936-11-02 11:02:01
+person,5,person,2,1950-05-14,1982-11-11 13:12:05.123
+person,5,person,3,2000-01-01,1999-04-21 15:12:11.42
+person,7,person,8,1905-12-12,2025-01-01 11:22:33.52
+person,7,person,9,1905-12-12,2020-03-01 12:11:41.6552

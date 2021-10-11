@@ -99,6 +99,10 @@ void ResultSetIterator::getNextTuple(Tuple& tuple) {
             tuple.getValue(valueInTupleIdx)->val.dateVal =
                 ((date_t*)vector->values)[selectedTuplePos];
         } break;
+        case TIMESTAMP: {
+            tuple.getValue(valueInTupleIdx)->val.timestampVal =
+                ((timestamp_t*)vector->values)[selectedTuplePos];
+        } break;
         default:
             assert(false);
         }

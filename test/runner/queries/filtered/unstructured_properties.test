@@ -64,3 +64,13 @@
 -QUERY MATCH (a:person) WHERE a.unstrDateProp1 IS NOT NULL RETURN COUNT(*)
 ---- 1
 3
+
+-NAME PersonUnstrFilteredTest14
+-QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 IS NULL RETURN COUNT(*)
+---- 1
+4
+
+-NAME PersonUnstrFilteredTest15
+-QUERY MATCH (a:person) WHERE a.unstrTimestampProp2  IS NOT NULL RETURN COUNT(*)
+---- 1
+2

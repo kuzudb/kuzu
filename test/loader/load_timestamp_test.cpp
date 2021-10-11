@@ -40,7 +40,7 @@ TEST_F(TinySnbTimestampTest, NodePropertyColumnWithTimestamp) {
     EXPECT_EQ(
         Timestamp::FromDatetime(Date::FromDate(1972, 7, 31), Time::FromTime(13, 22, 30, 678559)),
         col->readValue(5, metrics).val.timestampVal);
-    EXPECT_EQ(Timestamp::FromDatetime(Date::FromDate(1987, 12, 1), Time::FromTime(11, 25, 21)),
+    EXPECT_EQ(Timestamp::FromDatetime(Date::FromDate(1976, 12, 23), Time::FromTime(11, 21, 42)),
         col->readValue(6, metrics).val.timestampVal);
     EXPECT_EQ(Timestamp::FromDatetime(Date::FromDate(2023, 2, 21), Time::FromTime(13, 25, 30)),
         col->readValue(7, metrics).val.timestampVal);
