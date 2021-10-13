@@ -1,6 +1,7 @@
 #include "src/common/include/vector/operations/vector_cast_operations.h"
 
 #include "src/common/include/date.h"
+#include "src/common/include/timestamp.h"
 #include "src/common/include/value.h"
 
 namespace graphflow {
@@ -25,6 +26,9 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
         } break;
         case DATE: {
             outValues[resPos].val.dateVal = ((date_t*)operand.values)[pos];
+        } break;
+        case TIMESTAMP: {
+            outValues[resPos].val.timestampVal = ((timestamp_t*)operand.values)[pos];
         } break;
         case STRING: {
             auto& operandVal = ((gf_string_t*)operand.values)[pos];
@@ -63,6 +67,13 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
                 outValues[pos].val.dateVal = dateValues[pos];
             }
         } break;
+        case TIMESTAMP: {
+            auto timestampValues = (timestamp_t*)operand.values;
+            for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                auto pos = operand.state->selectedPositions[i];
+                outValues[pos].val.timestampVal = timestampValues[pos];
+            }
+        } break;
         case STRING: {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
@@ -79,7 +90,7 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
 
 void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, ValueVector& result) {
     assert((operand.dataType == INT64 || operand.dataType == DOUBLE || operand.dataType == BOOL ||
-               operand.dataType == DATE) &&
+               operand.dataType == DATE || operand.dataType == TIMESTAMP) &&
            result.dataType == STRING);
     if (operand.state->isFlat()) {
         auto pos = operand.state->getPositionOfCurrIdx();
@@ -97,6 +108,9 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
         } break;
         case DATE: {
             val = Date::toString(((date_t*)operand.values)[pos]);
+        } break;
+        case TIMESTAMP: {
+            val = Timestamp::toString(((timestamp_t*)operand.values)[pos]);
         } break;
         default:
             assert(false);
@@ -128,6 +142,12 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 result.addString(pos, Date::toString(((date_t*)operand.values)[pos]));
+            }
+        } break;
+        case TIMESTAMP: {
+            for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                auto pos = operand.state->selectedPositions[i];
+                result.addString(pos, Timestamp::toString(((timestamp_t*)operand.values)[pos]));
             }
         } break;
         default:

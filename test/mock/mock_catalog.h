@@ -18,6 +18,8 @@ static const char* NAME_PROPERTY_KEY_STR = "name";
 static const uint32_t NAME_PROPERTY_KEY_ID = 1;
 static const char* BIRTHDATE_PROPERTY_KEY_STR = "birthdate";
 static const uint32_t BIRTHDATE_PROPERTY_KEY_ID = 2;
+static const char* REGISTERTIME_PROPERTY_KEY_STR = "registerTime";
+static const uint32_t REGISTERTIME_PROPERTY_KEY_ID = 3;
 static const char* DESCRIPTION_PROPERTY_KEY_STR = "description";
 static const uint32_t DESCRIPTION_PROPERTY_KEY_ID = 0;
 static const char* KNOWSDATE_PROPERTY_KEY_STR = "knowsdate";
@@ -93,6 +95,8 @@ private:
             .WillByDefault(Return(true));
         ON_CALL(*this, containNodeProperty(PERSON_LABEL_ID, BIRTHDATE_PROPERTY_KEY_STR))
             .WillByDefault(Return(true));
+        ON_CALL(*this, containNodeProperty(PERSON_LABEL_ID, REGISTERTIME_PROPERTY_KEY_STR))
+            .WillByDefault(Return(true));
         ON_CALL(*this, containNodeProperty(ORGANISATION_LABEL_ID, _)).WillByDefault(Return(false));
     }
 
@@ -114,6 +118,8 @@ private:
             .WillByDefault(ReturnRef(*nameProperty));
         ON_CALL(*this, getNodeProperty(PERSON_LABEL_ID, BIRTHDATE_PROPERTY_KEY_STR))
             .WillByDefault(ReturnRef(*birthDateProperty));
+        ON_CALL(*this, getNodeProperty(PERSON_LABEL_ID, REGISTERTIME_PROPERTY_KEY_STR))
+            .WillByDefault(ReturnRef(*registerTimeProperty));
     }
 
     void secActionForGetRelProperty() {
@@ -200,6 +206,8 @@ private:
             make_unique<PropertyDefinition>(NAME_PROPERTY_KEY_STR, NAME_PROPERTY_KEY_ID, STRING);
         birthDateProperty = make_unique<PropertyDefinition>(
             BIRTHDATE_PROPERTY_KEY_STR, BIRTHDATE_PROPERTY_KEY_ID, DATE);
+        registerTimeProperty = make_unique<PropertyDefinition>(
+            REGISTERTIME_PROPERTY_KEY_STR, REGISTERTIME_PROPERTY_KEY_ID, TIMESTAMP);
         descriptionProperty = make_unique<PropertyDefinition>(
             DESCRIPTION_PROPERTY_KEY_STR, DESCRIPTION_PROPERTY_KEY_ID, STRING);
         knowsDateProperty = make_unique<PropertyDefinition>(
@@ -208,5 +216,5 @@ private:
 
     vector<unordered_set<label_t>> srcNodeLabelToRelLabels, dstNodeLabelToRelLabels;
     unique_ptr<PropertyDefinition> ageProperty, nameProperty, descriptionProperty,
-        birthDateProperty, knowsDateProperty;
+        birthDateProperty, registerTimeProperty, knowsDateProperty;
 };

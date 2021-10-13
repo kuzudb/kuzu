@@ -1,0 +1,54 @@
+-NAME StructuredTimestampComparisonAcrossNodesEquality
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime = b.registerTime RETURN COUNT(*)
+---- 1
+1
+
+-NAME StructuredTimestampComparisonAcrossNodesNonEquality
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime <> b.registerTime RETURN COUNT(*)
+---- 1
+13
+
+-NAME StructuredTimestampComparisonAcrossNodesLessThan
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime < b.registerTime RETURN COUNT(*)
+---- 1
+6
+
+-NAME StructuredTimestampComparisonAcrossNodesLessThanOrEqualTo
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime <= b.registerTime RETURN COUNT(*)
+---- 1
+7
+
+-NAME StructuredTimestampComparisonAcrossNodesGreaterThan
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime > b.registerTime RETURN COUNT(*)
+---- 1
+7
+
+-NAME StructuredTimestampComparisonAcrossNodesGreaterThanOrEqualTo
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime >= b.registerTime RETURN COUNT(*)
+---- 1
+8
+
+-NAME StructuredTimestampComparisonAcrossEdges
+-QUERY MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE e1.meetTime = e2.meetTime AND id(a) <> id(c) RETURN COUNT(*)
+---- 1
+2
+
+-NAME StructuredTimestampComparisonAcrossEdgeAndNode
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime > e1.meetTime  RETURN COUNT(*)
+---- 1
+7
+
+-NAME UnstructuredStructuredTimestampComparison
+-QUERY MATCH (a:person) WHERE a.registerTime = a.unstrTimestampProp1 RETURN COUNT(*)
+---- 1
+2
+
+-NAME TwoUnstructuredTimestampComparison
+-QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 <> a.unstrTimestampProp2 RETURN COUNT(*)
+---- 1
+2
+
+-NAME TwoUnstructuredTimestampComparison
+-QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 <= a.unstrTimestampProp2 RETURN COUNT(*)
+---- 1
+2

@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "src/common/include/date.h"
+#include "src/common/include/timestamp.h"
 #include "src/common/include/types.h"
 
 using namespace std;
@@ -28,6 +29,9 @@ Value& Value::operator=(const Value& other) {
     case DATE: {
         val.dateVal = other.val.dateVal;
     } break;
+    case TIMESTAMP: {
+        val.timestampVal = other.val.timestampVal;
+    } break;
     default:
         assert(false);
     }
@@ -49,6 +53,8 @@ string Value::toString() const {
         return TypeUtils::toString(val.nodeID);
     case DATE:
         return Date::toString(val.dateVal);
+    case TIMESTAMP:
+        return Timestamp::toString(val.timestampVal);
     default:
         assert(false);
     }

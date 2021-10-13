@@ -126,6 +126,13 @@ TEST_F(BinderErrorTest, BindDateArithmetic) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
+TEST_F(BinderErrorTest, BindTimestampArithmetic) {
+    string expectedException =
+        "a.registerTime has data type TIMESTAMP. A numerical data type was expected.";
+    auto input = "MATCH (a:person) WHERE a.registerTime + 1 < 5 RETURN *;";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
 TEST_F(BinderErrorTest, BindNonExistingFunction) {
     string expectedException = "DUMMY function does not exist.";
     auto input = "MATCH (a:person) WHERE dummy() < 2 RETURN COUNT(*);";

@@ -41,6 +41,9 @@ void ValueVector::fillNullMask() {
     case DATE:
         fillOperandNullMask<date_t>(*this);
         break;
+    case TIMESTAMP:
+        fillOperandNullMask<timestamp_t>(*this);
+        break;
     case STRING:
         // TODO: fillOperandNullMask<gf_string_t>(*this);
         //  Currently we do not distinguish empty and NULL gf_string_t.

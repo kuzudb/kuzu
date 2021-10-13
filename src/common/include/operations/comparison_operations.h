@@ -111,6 +111,13 @@ struct EqualsOrNotEqualsValues {
                     NotEquals::operation(left.val.dateVal, right.val.dateVal, result);
                 }
                 return;
+            case TIMESTAMP:
+                if constexpr (equals) {
+                    Equals::operation(left.val.timestampVal, right.val.timestampVal, result);
+                } else {
+                    NotEquals::operation(left.val.timestampVal, right.val.timestampVal, result);
+                }
+                return;
             default:
                 assert(false);
             }
@@ -224,6 +231,9 @@ struct CompareValues {
                 break;
             case DATE:
                 FUNC::operation(left.val.dateVal, right.val.dateVal, result);
+                break;
+            case TIMESTAMP:
+                FUNC::operation(left.val.timestampVal, right.val.timestampVal, result);
                 break;
             default:
                 assert(false);
@@ -345,6 +355,11 @@ inline bool IsNull::operation(const date_t& value) {
     return value == NULL_DATE;
 };
 
+template<>
+inline bool IsNull::operation(const timestamp_t& value) {
+    return value == NULL_TIMESTAMP;
+};
+
 /***********************************************
  **                                           **
  **   Specialized IsNotNull implementations   **
@@ -367,7 +382,12 @@ inline bool IsNotNull::operation(const double_t& value) {
 
 template<>
 inline bool IsNotNull::operation(const date_t& value) {
-    return value != NULL_DATE ? TRUE : FALSE;
+    return value != NULL_DATE;
+}
+
+template<>
+inline bool IsNotNull::operation(const timestamp_t& value) {
+    return value != NULL_TIMESTAMP;
 }
 
 } // namespace operation
