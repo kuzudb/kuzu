@@ -52,6 +52,8 @@ private:
         const ParsedExpression& parsedExpression, ExpressionType expressionType);
     shared_ptr<Expression> bindIDFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindDateFunctionExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindTimestampFunctionExpression(
+        const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindLiteralExpression(const ParsedExpression& parsedExpression);
 

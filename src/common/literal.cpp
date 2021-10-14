@@ -2,6 +2,7 @@
 
 #include "src/common/include/assert.h"
 #include "src/common/include/date.h"
+#include "src/common/include/timestamp.h"
 
 namespace graphflow {
 namespace common {
@@ -19,6 +20,9 @@ Literal::Literal(const Literal& other) : dataType{other.dataType} {
     } break;
     case DATE: {
         val.dateVal = other.val.dateVal;
+    } break;
+    case TIMESTAMP: {
+        val.timestampVal = other.val.timestampVal;
     } break;
     case STRING: {
         strVal = other.strVal;
@@ -40,6 +44,8 @@ string Literal::toString() const {
         return TypeUtils::toString(val.nodeID);
     case DATE:
         return Date::toString(val.dateVal);
+    case TIMESTAMP:
+        return Timestamp::toString(val.timestampVal);
     case STRING:
         return strVal;
     default:
@@ -62,6 +68,9 @@ void Literal::castToString() {
     } break;
     case DATE: {
         strVal = Date::toString(val.dateVal);
+    } break;
+    case TIMESTAMP: {
+        strVal = Timestamp::toString(val.timestampVal);
     } break;
     default:
         GF_ASSERT(false);

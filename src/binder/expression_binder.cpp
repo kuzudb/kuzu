@@ -6,6 +6,7 @@
 #include "src/binder/include/expression/rel_expression.h"
 #include "src/binder/include/query_binder.h"
 #include "src/common/include/date.h"
+#include "src/common/include/timestamp.h"
 #include "src/common/include/types.h"
 
 namespace graphflow {
@@ -229,6 +230,8 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
         return bindIDFunctionExpression(parsedExpression);
     } else if (functionName == DATE_FUNC_NAME) {
         return bindDateFunctionExpression(parsedExpression);
+    } else if (functionName == TIMESTAMP_FUNC_NAME) {
+        return bindTimestampFunctionExpression(parsedExpression);
     } else if (functionName == FLOOR_FUNC_NAME) {
         return bindFloorFunctionExpression(parsedExpression);
     } else if (functionName == CEIL_FUNC_NAME) {
@@ -308,6 +311,18 @@ shared_ptr<Expression> ExpressionBinder::bindDateFunctionExpression(
     auto dateInString = static_pointer_cast<LiteralExpression>(child)->literal.strVal;
     return make_shared<LiteralExpression>(LITERAL_DATE, DATE,
         Literal(Date::FromCString(dateInString.c_str(), dateInString.length())));
+}
+
+shared_ptr<Expression> ExpressionBinder::bindTimestampFunctionExpression(
+    const ParsedExpression& parsedExpression) {
+    validateNumberOfChildren(parsedExpression, 1);
+    auto child = bindExpression(*parsedExpression.children[0]);
+    validateExpectedType(*child, STRING);
+    // Currently only support bind timestamp(string) as timestamp literal
+    GF_ASSERT(child->expressionType == LITERAL_STRING);
+    auto timestampInString = static_pointer_cast<LiteralExpression>(child)->literal.strVal;
+    return make_shared<LiteralExpression>(LITERAL_TIMESTAMP, TIMESTAMP,
+        Literal(Timestamp::FromCString(timestampInString.c_str(), timestampInString.length())));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(

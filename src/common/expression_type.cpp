@@ -49,7 +49,8 @@ bool isExpressionNullComparison(ExpressionType type) {
 
 bool isExpressionLiteral(ExpressionType type) {
     return LITERAL_INT == type || LITERAL_DOUBLE == type || LITERAL_STRING == type ||
-           LITERAL_BOOLEAN == type || LITERAL_DATE == type || LITERAL_NULL == type;
+           LITERAL_BOOLEAN == type || LITERAL_DATE == type || LITERAL_TIMESTAMP == type ||
+           LITERAL_NULL == type;
 }
 
 bool isExpressionAggregate(ExpressionType type) {
@@ -152,6 +153,8 @@ string expressionTypeToString(ExpressionType type) {
         return "LITERAL_BOOLEAN";
     case LITERAL_DATE:
         return "LITERAL_DATE";
+    case LITERAL_TIMESTAMP:
+        return "LITERAL_TIMESTAMP";
     case LITERAL_NULL:
         return "LITERAL_NULL";
     case VARIABLE:

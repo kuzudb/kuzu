@@ -1,3 +1,20 @@
+# description: handling of timestamp properties
+
+-NAME TimestampLiteralEqualityComparison
+-QUERY MATCH (a:person) WHERE a.registerTime = timestamp('1976-12-23 11:21:42') RETURN COUNT(*)
+---- 1
+2
+
+-NAME TimestampLiteralGreaterThanComparison
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE b.registerTime > timestamp('2005-11-03 13:25:30.000526') RETURN COUNT(*)
+---- 1
+9
+
+-NAME TimestampLiteralLessThanComparison
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.meetTime < timestamp('1979-08-25 19:07:22') RETURN COUNT(*)
+---- 1
+4
+
 -NAME StructuredTimestampComparisonAcrossNodesEquality
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime = b.registerTime RETURN COUNT(*)
 ---- 1
@@ -50,5 +67,10 @@
 
 -NAME TwoUnstructuredTimestampComparison
 -QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 <= a.unstrTimestampProp2 RETURN COUNT(*)
+---- 1
+2
+
+-NAME UnstructuredTimestampLiteralComparison
+-QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 <= timestamp('1985-11-22 13:12:22.562') RETURN COUNT(*)
 ---- 1
 2

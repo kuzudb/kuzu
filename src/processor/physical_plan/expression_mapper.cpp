@@ -120,6 +120,9 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToU
     case DATE: {
         val.val.dateVal = literalExpression.literal.val.dateVal;
     } break;
+    case TIMESTAMP: {
+        val.val.timestampVal = literalExpression.literal.val.timestampVal;
+    } break;
     case STRING: {
         vector->allocateStringOverflowSpace(
             val.val.strVal, literalExpression.literal.strVal.length());
@@ -155,6 +158,9 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToS
     } break;
     case DATE: {
         ((date_t*)vector->values)[0] = literalExpression.literal.val.dateVal;
+    } break;
+    case TIMESTAMP: {
+        ((timestamp_t*)vector->values)[0] = literalExpression.literal.val.timestampVal;
     } break;
     default:
         assert(false);
