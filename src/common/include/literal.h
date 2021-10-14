@@ -21,6 +21,8 @@ public:
 
     explicit Literal(date_t value) : dataType(DATE) { this->val.dateVal = value; }
 
+    explicit Literal(timestamp_t value) : dataType(TIMESTAMP) { this->val.timestampVal = value; }
+
     explicit Literal(const string& value) : dataType(STRING) { this->strVal = value; }
 
     Literal& operator=(const Literal& other);

@@ -21,6 +21,7 @@ const string MIN_FUNC_NAME = "MIN";
 const string MAX_FUNC_NAME = "MAX";
 const string ID_FUNC_NAME = "ID";
 const string DATE_FUNC_NAME = "DATE";
+const string TIMESTAMP_FUNC_NAME = "TIMESTAMP";
 const string FLOOR_FUNC_NAME = "FLOOR";
 const string CEIL_FUNC_NAME = "CEIL";
 
@@ -97,7 +98,8 @@ enum ExpressionType : uint8_t {
     LITERAL_STRING = 82,
     LITERAL_BOOLEAN = 83,
     LITERAL_DATE = 84,
-    LITERAL_NULL = 85,
+    LITERAL_TIMESTAMP = 85,
+    LITERAL_NULL = 86,
 
     /**
      * Variable Expression
