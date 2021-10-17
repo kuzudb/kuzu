@@ -1,3 +1,6 @@
+#pragma once
+
+#include "src/common/include/interval.h"
 namespace graphflow {
 namespace common {
 
@@ -10,7 +13,6 @@ static const char digits[] = "0001020304050607080910111213141516171819"
 
 //! NumericHelper is a static class that holds helper functions for integers/doubles
 class NumericHelper {
-
 public:
     // Formats value in reverse and returns a pointer to the beginning.
     template<class T>
@@ -32,6 +34,41 @@ public:
         *--ptr = digits[index + 1];
         *--ptr = digits[index];
         return ptr;
+    }
+    static int getUnsignedInt64Length(uint64_t value) {
+        if (value >= 10000000000ULL) {
+            if (value >= 1000000000000000ULL) {
+                int length = 16;
+                length += value >= 10000000000000000ULL;
+                length += value >= 100000000000000000ULL;
+                length += value >= 1000000000000000000ULL;
+                length += value >= 10000000000000000000ULL;
+                return length;
+            } else {
+                int length = 11;
+                length += value >= 100000000000ULL;
+                length += value >= 1000000000000ULL;
+                length += value >= 10000000000000ULL;
+                length += value >= 100000000000000ULL;
+                return length;
+            }
+        } else {
+            if (value >= 100000ULL) {
+                int length = 6;
+                length += value >= 1000000ULL;
+                length += value >= 10000000ULL;
+                length += value >= 100000000ULL;
+                length += value >= 1000000000ULL;
+                return length;
+            } else {
+                int length = 1;
+                length += value >= 10ULL;
+                length += value >= 100ULL;
+                length += value >= 1000ULL;
+                length += value >= 10000ULL;
+                return length;
+            }
+        }
     }
 };
 
@@ -150,6 +187,102 @@ struct TimeToStringCast {
             data[8] = '.';
             memcpy(data + 9, micro_buffer, length - 9);
         }
+    }
+};
+
+struct IntervalToStringCast {
+    static void FormatSignedNumber(int64_t value, char buffer[], uint64_t& length) {
+        int sign = -(value < 0);
+        uint64_t unsigned_value = (value ^ sign) - sign;
+        length += NumericHelper::getUnsignedInt64Length(unsigned_value) - sign;
+        auto endptr = buffer + length;
+        endptr = NumericHelper::FormatUnsigned<uint64_t>(unsigned_value, endptr);
+        if (sign) {
+            *--endptr = '-';
+        }
+    }
+
+    static void FormatTwoDigits(int64_t value, char buffer[], uint64_t& length) {
+        TimeToStringCast::FormatTwoDigits(buffer + length, value);
+        length += 2;
+    }
+
+    static void FormatIntervalValue(
+        int32_t value, char buffer[], uint64_t& length, const char* name, uint64_t name_len) {
+        if (value == 0) {
+            return;
+        }
+        if (length != 0) {
+            // space if there is already something in the buffer
+            buffer[length++] = ' ';
+        }
+        FormatSignedNumber(value, buffer, length);
+        // append the name together with a potential "s" (for plurals)
+        memcpy(buffer + length, name, name_len);
+        length += name_len;
+        if (value != 1) {
+            buffer[length++] = 's';
+        }
+    }
+
+    //! Formats an interval to a buffer, the buffer should be >=70 characters
+    //! years: 17 characters (max value: "-2147483647 years")
+    //! months: 9 (max value: "12 months")
+    //! days: 16 characters (max value: "-2147483647 days")
+    //! time: 24 characters (max value: -2562047788:00:00.123456)
+    //! spaces between all characters (+3 characters)
+    //! Total: 70 characters
+    //! Returns the length of the interval
+    static uint64_t Format(interval_t interval, char buffer[]) {
+        uint64_t length = 0;
+        if (interval.months != 0) {
+            int32_t years = interval.months / 12;
+            int32_t months = interval.months - years * 12;
+            // format the years and months
+            FormatIntervalValue(years, buffer, length, " year", 5);
+            FormatIntervalValue(months, buffer, length, " month", 6);
+        }
+        if (interval.days != 0) {
+            // format the days
+            FormatIntervalValue(interval.days, buffer, length, " day", 4);
+        }
+        if (interval.micros != 0) {
+            if (length != 0) {
+                // space if there is already something in the buffer
+                buffer[length++] = ' ';
+            }
+            int64_t micros = interval.micros;
+            if (micros < 0) {
+                // negative time: append negative sign
+                buffer[length++] = '-';
+                micros = -micros;
+            }
+            int64_t hour = micros / Interval::MICROS_PER_HOUR;
+            micros -= hour * Interval::MICROS_PER_HOUR;
+            int64_t min = micros / Interval::MICROS_PER_MINUTE;
+            micros -= min * Interval::MICROS_PER_MINUTE;
+            int64_t sec = micros / Interval::MICROS_PER_SEC;
+            micros -= sec * Interval::MICROS_PER_SEC;
+
+            if (hour < 10) {
+                buffer[length++] = '0';
+            }
+            FormatSignedNumber(hour, buffer, length);
+            buffer[length++] = ':';
+            FormatTwoDigits(min, buffer, length);
+            buffer[length++] = ':';
+            FormatTwoDigits(sec, buffer, length);
+            if (micros != 0) {
+                buffer[length++] = '.';
+                auto trailing_zeros = TimeToStringCast::FormatMicros(micros, buffer + length);
+                length += 6 - trailing_zeros;
+            }
+        } else if (length == 0) {
+            // empty interval: default to 00:00:00
+            memcpy(buffer, "00:00:00", 8);
+            return 8;
+        }
+        return length;
     }
 };
 

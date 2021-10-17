@@ -77,3 +77,150 @@
 ---- 1
 3
 
+-NAME StructuredDateArithmeticAddInt
+-QUERY MATCH (a:person) RETURN a.birthdate + 32
+---- 8
+1900-02-02
+1900-02-02
+1940-07-24
+1950-08-24
+1980-11-27
+1980-11-27
+1980-11-27
+1990-12-29
+
+-NAME UnstructuredDateArithmeticAddInt
+-QUERY MATCH (a:person) RETURN a.unstrDateProp1 + 41
+---- 8
+
+
+
+
+
+1900-02-11
+1950-02-11
+1950-02-11
+
+-NAME StructuredDateArithmeticAddInterval1
+-QUERY MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN a.birthdate + interval('2 years 3 months 4 days')
+---- 6
+1942-09-26
+1952-10-27
+1983-01-30
+1983-01-30
+1983-01-30
+1993-03-03
+
+-NAME StructuredDateArithmeticAddInterval2
+-QUERY MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN a.birthdate + interval('47 hours 60 minutes')
+---- 6
+1940-06-24
+1950-07-25
+1980-10-28
+1980-10-28
+1980-10-28
+1990-11-29
+
+-NAME UnstructuredDateArithmeticAddInterval
+-QUERY MATCH (a:person) RETURN a.unstrDateProp2 + interval('20 years 3 days 32 minutes 10512 ms')
+---- 8
+
+
+
+
+
+1940-01-04
+1970-01-04
+1990-01-04
+
+-NAME structuredDateArithmeticSubtractInt
+-QUERY MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN a.birthdate - 25
+---- 6
+1940-05-28
+1950-06-28
+1980-10-01
+1980-10-01
+1980-10-01
+1990-11-02
+
+-NAME UnstructuredDateArithmeticSubtractInt
+-QUERY MATCH (a:person) RETURN a.unstrDateProp1 - 25
+---- 8
+
+
+
+
+
+1899-12-07
+1949-12-07
+1949-12-07
+
+-NAME StructuredDateArithmeticSubtractInterval
+-QUERY MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN a.birthdate - interval('4 years 11 months 31 days 100 seconds')
+---- 6
+1935-06-21
+1945-07-23
+1975-10-26
+1975-10-26
+1975-10-26
+1985-11-26
+
+-NAME UnstructuredDateArithmeticSubtractInterval
+-QUERY MATCH (a:person) RETURN a.unstrDateProp1 - interval('15 month 32 days 30 minutes 40 minute')
+---- 8
+
+
+
+
+
+1898-08-30
+1948-08-30
+1948-08-30
+
+-NAME StructuredDateArithmeticSubtractDate
+-QUERY MATCH (a:person) RETURN a.birthdate - date('1920-03-21')
+---- 8
+-7384
+-7384
+11081
+22134
+22134
+22134
+25818
+7398
+
+-NAME UnstructuredDateArithmeticSubtractDate
+-QUERY MATCH (a:person) RETURN a.unstrDateProp1 - date('1921-05-04')
+---- 8
+
+
+
+
+
+-7793
+10469
+10469
+
+-NAME StructuredDateMixedArithmeticOperations
+-QUERY MATCH (a:person) RETURN a.birthdate + 10 - interval('4 years 2 months 3 days') - 20 - date('1912-04-12');
+---- 8
+-6019
+-6019
+8763
+12446
+23499
+23499
+23499
+27183
+
+-NAME UnstructuredDateMixedArithmeticOperations
+-QUERY MATCH (a:person) RETURN a.unstrDateProp1 + 100 - interval('11 months 12 days') - 10 - date('1945-04-12');
+---- 8
+
+
+
+
+
+-16794
+1468
+1468

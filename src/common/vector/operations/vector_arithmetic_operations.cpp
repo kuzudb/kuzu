@@ -84,6 +84,15 @@ void VectorArithmeticOperations::Add(ValueVector& left, ValueVector& right, Valu
         assert(right.dataType == STRING);
         BinaryOperationExecutor::execute<gf_string_t, gf_string_t, gf_string_t, operation::Add,
             true /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
+    } else if (left.dataType == DATE && right.dataType == INT64) {
+        BinaryOperationExecutor::execute<date_t, int64_t, date_t, operation::Add,
+            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
+    } else if (left.dataType == DATE && right.dataType == INTERVAL) {
+        BinaryOperationExecutor::execute<date_t, interval_t, date_t, operation::Add,
+            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
+    } else if (left.dataType == TIMESTAMP) {
+        BinaryOperationExecutor::execute<timestamp_t, interval_t, timestamp_t, operation::Add,
+            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
     } else {
         VectorArithmeticOperationExecutor::execute<operation::Add>(left, right, result);
     }
@@ -91,7 +100,24 @@ void VectorArithmeticOperations::Add(ValueVector& left, ValueVector& right, Valu
 
 void VectorArithmeticOperations::Subtract(
     ValueVector& left, ValueVector& right, ValueVector& result) {
-    VectorArithmeticOperationExecutor::execute<operation::Subtract>(left, right, result);
+    if (left.dataType == DATE && right.dataType == INTERVAL) {
+        BinaryOperationExecutor::execute<date_t, interval_t, date_t, operation::Subtract,
+            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
+    } else if (left.dataType == DATE && right.dataType == INT64) {
+        BinaryOperationExecutor::execute<date_t, int64_t, date_t, operation::Subtract,
+            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
+    } else if (left.dataType == DATE && right.dataType == DATE) {
+        BinaryOperationExecutor::execute<date_t, date_t, int64_t, operation::Subtract,
+            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
+    } else if (left.dataType == TIMESTAMP && right.dataType == INTERVAL) {
+        BinaryOperationExecutor::execute<timestamp_t, interval_t, timestamp_t, operation::Subtract,
+            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
+    } else if (left.dataType == TIMESTAMP && right.dataType == TIMESTAMP) {
+        BinaryOperationExecutor::execute<timestamp_t, timestamp_t, interval_t, operation::Subtract,
+            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
+    } else {
+        VectorArithmeticOperationExecutor::execute<operation::Subtract>(left, right, result);
+    }
 }
 
 void VectorArithmeticOperations::Multiply(
@@ -127,6 +153,11 @@ void VectorArithmeticOperations::Floor(ValueVector& operand, ValueVector& result
 
 void VectorArithmeticOperations::Ceil(ValueVector& operand, ValueVector& result) {
     VectorArithmeticOperationExecutor::execute<operation::Ceil>(operand, result);
+}
+
+void VectorArithmeticOperations::Interval(ValueVector& operand, ValueVector& result) {
+    UnaryOperationExecutor::execute<gf_string_t, interval_t, operation::IntervalFunc>(
+        operand, result);
 }
 
 } // namespace common

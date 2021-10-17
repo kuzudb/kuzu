@@ -49,6 +49,8 @@ public:
     // Helper function to parse two digits from a string (e.g. "30" -> 30, "03" -> 3, "3" -> 3)
     static bool ParseDoubleDigit(const char* buf, uint64_t len, uint64_t& pos, int32_t& result);
 
+    static int32_t MonthDays(int32_t year, int32_t month);
+
 private:
     static void ExtractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset);
 };

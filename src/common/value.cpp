@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "src/common/include/date.h"
+#include "src/common/include/interval.h"
 #include "src/common/include/timestamp.h"
 #include "src/common/include/types.h"
 
@@ -32,6 +33,9 @@ Value& Value::operator=(const Value& other) {
     case TIMESTAMP: {
         val.timestampVal = other.val.timestampVal;
     } break;
+    case INTERVAL: {
+        val.intervalVal = other.val.intervalVal;
+    } break;
     default:
         assert(false);
     }
@@ -55,6 +59,8 @@ string Value::toString() const {
         return Date::toString(val.dateVal);
     case TIMESTAMP:
         return Timestamp::toString(val.timestampVal);
+    case INTERVAL:
+        return Interval::toString(val.intervalVal);
     default:
         assert(false);
     }

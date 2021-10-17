@@ -106,25 +106,31 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
     if (left->dataType == UNSTRUCTURED || right->dataType == UNSTRUCTURED) {
         return make_shared<Expression>(
             parsedExpression.type, UNSTRUCTURED, move(left), move(right));
-    }
-    if (parsedExpression.type == ADD) {
-        if (left->dataType == STRING || right->dataType == STRING) {
-            if (left->dataType != STRING) {
-                if (isExpressionLiteral(left->expressionType)) {
-                    static_pointer_cast<LiteralExpression>(left)->castToString();
-                } else {
-                    left = make_shared<Expression>(CAST_TO_STRING, STRING, move(left));
-                }
+    } else if (parsedExpression.type == ADD &&
+               (left->dataType == STRING || right->dataType == STRING)) {
+        if (left->dataType != STRING) {
+            if (isExpressionLiteral(left->expressionType)) {
+                static_pointer_cast<LiteralExpression>(left)->castToString();
+            } else {
+                left = make_shared<Expression>(CAST_TO_STRING, STRING, move(left));
             }
-            if (right->dataType != STRING) {
-                if (isExpressionLiteral(right->expressionType)) {
-                    static_pointer_cast<LiteralExpression>(right)->castToString();
-                } else {
-                    right = make_shared<Expression>(CAST_TO_STRING, STRING, move(right));
-                }
-            }
-            return make_shared<Expression>(parsedExpression.type, STRING, move(left), move(right));
         }
+        if (right->dataType != STRING) {
+            if (isExpressionLiteral(right->expressionType)) {
+                static_pointer_cast<LiteralExpression>(right)->castToString();
+            } else {
+                right = make_shared<Expression>(CAST_TO_STRING, STRING, move(right));
+            }
+        }
+        return make_shared<Expression>(parsedExpression.type, STRING, move(left), move(right));
+    } else if (left->dataType == DATE) {
+        validateDateArithmeticType(parsedExpression, right);
+        return make_shared<Expression>(
+            parsedExpression.type, right->dataType == DATE ? INT64 : DATE, move(left), move(right));
+    } else if (left->dataType == TIMESTAMP) {
+        validateTimestampArithmeticType(parsedExpression, right);
+        return make_shared<Expression>(parsedExpression.type,
+            right->dataType == TIMESTAMP ? INTERVAL : TIMESTAMP, move(left), move(right));
     }
     validateNumericalTypeOrUnstructured(*left);
     validateNumericalTypeOrUnstructured(*right);
@@ -236,8 +242,17 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
         return bindFloorFunctionExpression(parsedExpression);
     } else if (functionName == CEIL_FUNC_NAME) {
         return bindCeilFunctionExpression(parsedExpression);
+    } else if (functionName == INTERVAL_FUNC_NAME) {
+        return bindIntervalFunctionExpression(parsedExpression);
     }
     throw invalid_argument(functionName + " function does not exist.");
+}
+
+shared_ptr<Expression> ExpressionBinder::bindIntervalFunctionExpression(
+    const ParsedExpression& parsedExpression) {
+    validateNumberOfChildren(parsedExpression, 1);
+    auto child = bindExpression(*parsedExpression.children[0]);
+    return make_shared<Expression>(INTERVAL_FUNC, INTERVAL, move(child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindFloorFunctionExpression(
@@ -401,6 +416,30 @@ void ExpressionBinder::validateNumericalTypeOrUnstructured(const Expression& exp
         throw invalid_argument(expression.getExternalName() + " has data type " +
                                TypeUtils::dataTypeToString(dataType) +
                                ". A numerical data type was expected.");
+    }
+}
+
+void ExpressionBinder::validateDateArithmeticType(
+    const ParsedExpression& parsedExpression, shared_ptr<Expression>& right) {
+    if ((parsedExpression.type == ADD && right->dataType != INTERVAL && right->dataType != INT64) ||
+        (parsedExpression.type == SUBTRACT && right->dataType != INTERVAL &&
+            right->dataType != INT64 && right->dataType != DATE)) {
+        throw invalid_argument(
+            right->getExternalName() + " has data type " +
+            TypeUtils::dataTypeToString(right->dataType) +
+            "! DATE can only add an interval/int or subtract an interval/int/date");
+    }
+}
+
+void ExpressionBinder::validateTimestampArithmeticType(
+    const ParsedExpression& parsedExpression, shared_ptr<Expression>& right) {
+    if ((parsedExpression.type == ADD && right->dataType != INTERVAL) ||
+        (parsedExpression.type == SUBTRACT && right->dataType != INTERVAL &&
+            right->dataType != TIMESTAMP)) {
+        throw invalid_argument(
+            right->getExternalName() + " has data type " +
+            TypeUtils::dataTypeToString(right->dataType) +
+            "! TIMESTAMP can only add an interval or subtract an interval/timestamp");
     }
 }
 

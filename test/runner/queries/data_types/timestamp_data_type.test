@@ -74,3 +74,112 @@
 -QUERY MATCH (a:person) WHERE a.unstrTimestampProp1 <= timestamp('1985-11-22 13:12:22.562') RETURN COUNT(*)
 ---- 1
 2
+
+-NAME StructuredTimestampArithmeticAddInterval1
+-QUERY MATCH (a:person) RETURN a.registerTime + interval('47 hours 30 minutes 30 seconds')
+---- 8
+1911-08-22 02:02:51
+1972-08-02 12:53:00.678559
+1976-12-25 10:52:12
+1976-12-25 10:52:12
+2008-11-05 12:56:00.000526
+2011-08-22 10:56:00
+2023-02-23 12:56:00
+2031-12-02 11:56:00
+
+
+-NAME StructuredTimestampArithmeticAddInterval2
+-QUERY MATCH (a:person) RETURN a.registerTime + interval('2 years 3 days 34 h 28 minutes 300 milliseconds 20 us')
+---- 8
+1913-08-24 13:00:21.30002
+1974-08-04 23:50:30.978579
+1978-12-27 21:49:42.30002
+1978-12-27 21:49:42.30002
+2010-11-07 23:53:30.300546
+2013-08-24 21:53:30.30002
+2025-02-25 23:53:30.30002
+2033-12-04 22:53:30.30002
+
+-NAME UnstructuredTimestampArithmeticAddInterval
+-QUERY MATCH (a:person) RETURN a.unstrTimestampProp1 + interval('10 years 20 days 42 h 32 minutes 312 milliseconds')
+---- 8
+
+
+
+
+1956-09-16 13:39:22.312
+1972-06-13 07:43:22.874
+2033-03-15 07:57:30.312
+2041-12-22 06:57:30.312
+
+-NAME StructuredTimestampArithmeticSubtractInterval
+-QUERY MATCH (a:person) RETURN a.registerTime - interval('12 years 7 months 10 days 20 h 30 m 100 us')
+---- 8
+1899-01-09 06:02:20.9999
+1959-12-20 16:52:30.678459
+1964-05-12 14:51:41.9999
+1964-05-12 14:51:41.9999
+1996-03-23 16:55:30.000426
+1999-01-09 14:55:29.9999
+2010-07-10 16:55:29.9999
+2019-04-19 15:55:29.9999
+
+-NAME UnstructuredTimestampArithmeticSubtractInterval
+-QUERY MATCH (a:person) RETURN a.unstrTimestampProp1 - interval('40 months 200 days 420 hour 320 minutes 312 seconds')
+---- 8
+
+
+
+
+1942-09-20 01:42:10
+1958-06-18 19:46:10.562
+2019-03-17 20:00:18
+2027-12-25 19:00:18
+
+-NAME StructuredTimestampArithmeticSubtractTimestamp
+-QUERY MATCH (a:person) RETURN a.registerTime - timestamp('2013-01-02 14:22:31.45612')
+---- 8
+-37026 days -11:50:10.45612
+-14765 days -01:00:00.777561
+-13159 days -03:00:49.45612
+-13159 days -03:00:49.45612
+-1521 days -00:57:01.455594
+-501 days -02:57:01.45612
+3701 days 23:02:58.54388
+6905 days 22:02:58.54388
+
+-NAME UnstructuredTimestampArithmeticSubtractTimestamp
+-QUERY MATCH (a:person) RETURN a.unstrTimestampProp1 - timestamp('1976-01-02 13:44:12')
+---- 8
+
+
+
+
+-10721 days -18:36:50
+-4973 days -00:32:49.438
+17216 days 23:41:18
+20420 days 22:41:18
+
+-NAME StructuredTimestampMixedArithmeticOperations
+-QUERY MATCH (a:person) RETURN a.registerTime + interval('2 hours 48 minutes 1000 seconds') - interval('188 days 48 hours') - timestamp('1976-01-02 13:44:12')
+---- 8
+-23701 days -08:07:11
+-1439 days -21:17:01.321441
+166 days 00:42:10
+166 days 00:42:10
+11804 days 02:45:58.000526
+12824 days 00:45:58
+17027 days 02:45:58
+20231 days 01:45:58
+
+-NAME UnstructuredTimestampMixedArithmeticOperations
+-QUERY MATCH (a:person) RETURN a.unstrTimestampProp1 - interval('2 years 18 days 24 minutes')  + interval('12 hours 100 seconds') - timestamp('1976-01-02 13:44:12')
+---- 8
+
+
+
+
+-11469 days -06:59:10
+-5720 days -12:55:09.438
+16469 days 11:18:58
+19673 days 10:18:58

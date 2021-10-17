@@ -3,6 +3,9 @@
 #include <cmath>
 #include <cstdlib>
 
+#include "src/common/include/date.h"
+#include "src/common/include/interval.h"
+#include "src/common/include/timestamp.h"
 #include "src/common/include/value.h"
 
 namespace graphflow {
@@ -79,6 +82,13 @@ struct Ceil {
     }
 };
 
+struct IntervalFunc {
+    template<class A, class B>
+    static inline void operation(A& input, B& result) {
+        result = Interval::FromCString((const char*)input.getData(), input.len);
+    }
+};
+
 /********************************************
  **                                        **
  **   Specialized Modulo implementations   **
@@ -124,6 +134,93 @@ inline void Add::operation(gf_string_t& left, gf_string_t& right, gf_string_t& r
         memcpy(result.prefix, buffer, gf_string_t::PREFIX_LENGTH);
     }
     result.len = len;
+}
+
+template<>
+inline void Add::operation(date_t& left, interval_t& right, date_t& result) {
+    if (right.months != 0) {
+        int32_t year, month, day, maxDayInMonth;
+        Date::Convert(left, year, month, day);
+        int32_t year_diff = right.months / Interval::MONTHS_PER_YEAR;
+        year += year_diff;
+        month += right.months - year_diff * Interval::MONTHS_PER_YEAR;
+        if (month > Interval::MONTHS_PER_YEAR) {
+            year++;
+            month -= Interval::MONTHS_PER_YEAR;
+        } else if (month <= 0) {
+            year--;
+            month += Interval::MONTHS_PER_YEAR;
+        }
+        // handle date overflow
+        // example: 2020-01-31 + "1 months"
+        maxDayInMonth = Date::MonthDays(year, month);
+        day = day > maxDayInMonth ? maxDayInMonth : day;
+        result = Date::FromDate(year, month, day);
+    } else {
+        result = left;
+    }
+    if (right.days != 0) {
+        result.days += right.days;
+    }
+    if (right.micros != 0) {
+        result.days += int32_t(right.micros / Interval::MICROS_PER_DAY);
+    }
+}
+
+template<>
+inline void Add::operation(timestamp_t& left, interval_t& right, timestamp_t& result) {
+    date_t date;
+    date_t result_date;
+    dtime_t time;
+    Timestamp::Convert(left, date, time);
+    Add::operation<date_t, interval_t, date_t>(date, right, result_date);
+    date = result_date;
+    int64_t diff =
+        right.micros - ((right.micros / Interval::MICROS_PER_DAY) * Interval::MICROS_PER_DAY);
+    time.micros += diff;
+    if (time.micros >= Interval::MICROS_PER_DAY) {
+        time.micros -= Interval::MICROS_PER_DAY;
+        date.days++;
+    } else if (time.micros < 0) {
+        time.micros += Interval::MICROS_PER_DAY;
+        date.days--;
+    }
+    result = Timestamp::FromDatetime(date, time);
+}
+
+template<>
+inline void Subtract::operation(date_t& left, interval_t& right, date_t& result) {
+    interval_t inverseRight;
+    inverseRight.months = -right.months;
+    inverseRight.days = -right.days;
+    inverseRight.micros = -right.micros;
+    Add::operation<date_t, interval_t, date_t>(left, inverseRight, result);
+}
+
+template<>
+inline void Subtract::operation(date_t& left, date_t& right, int64_t& result) {
+    result = left.days - right.days;
+}
+
+template<>
+inline void Subtract::operation(timestamp_t& left, timestamp_t& right, interval_t& result) {
+    uint64_t diff = abs(left.value - right.value);
+    result.months = 0;
+    result.days = diff / Interval::MICROS_PER_DAY;
+    result.micros = diff % Interval::MICROS_PER_DAY;
+    if (left.value < right.value) {
+        result.days = -result.days;
+        result.micros = -result.micros;
+    }
+}
+
+template<>
+inline void Subtract::operation(timestamp_t& left, interval_t& right, timestamp_t& result) {
+    interval_t inverseRight;
+    inverseRight.months = -right.months;
+    inverseRight.days = -right.days;
+    inverseRight.micros = -right.micros;
+    Add::operation<timestamp_t, interval_t, timestamp_t>(left, inverseRight, result);
 }
 
 /**********************************************
@@ -201,6 +298,7 @@ static const char negateStr[] = "negate";
 static const char absStr[] = "abs";
 static const char floorStr[] = "floor";
 static const char ceilStr[] = "ceil";
+static const char intervalStr[] = "interval";
 
 template<>
 inline void Add::operation(Value& left, Value& right, Value& result) {
@@ -209,12 +307,46 @@ inline void Add::operation(Value& left, Value& right, Value& result) {
         result.dataType = STRING;
         Add::operation(left.val.strVal, right.val.strVal, result.val.strVal);
         return;
+    } else if (left.dataType == DATE && right.dataType == INTERVAL) {
+        result.dataType = DATE;
+        Add::operation(left.val.dateVal, right.val.intervalVal, result.val.dateVal);
+        return;
+    } else if (left.dataType == DATE && right.dataType == INT64) {
+        result.dataType = DATE;
+        Add::operation(left.val.dateVal, right.val.int64Val, result.val.dateVal);
+        return;
+    } else if (left.dataType == TIMESTAMP) {
+        assert(right.dataType == INTERVAL);
+        result.dataType = TIMESTAMP;
+        Add::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal);
+        return;
     }
     ArithmeticOnValues::operation<Add, addStr>(left, right, result);
 }
 
 template<>
 inline void Subtract::operation(Value& left, Value& right, Value& result) {
+    if (left.dataType == DATE && right.dataType == INTERVAL) {
+        result.dataType = DATE;
+        Subtract::operation(left.val.dateVal, right.val.intervalVal, result.val.dateVal);
+        return;
+    } else if (left.dataType == DATE && right.dataType == INT64) {
+        result.dataType = DATE;
+        Subtract::operation(left.val.dateVal, right.val.int64Val, result.val.dateVal);
+        return;
+    } else if (left.dataType == DATE && right.dataType == DATE) {
+        result.dataType = INT64;
+        Subtract::operation(left.val.dateVal, right.val.dateVal, result.val.int64Val);
+        return;
+    } else if (left.dataType == TIMESTAMP && right.dataType == INTERVAL) {
+        result.dataType = TIMESTAMP;
+        Subtract::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal);
+        return;
+    } else if (left.dataType == TIMESTAMP && right.dataType == TIMESTAMP) {
+        result.dataType = INTERVAL;
+        Subtract::operation(left.val.timestampVal, right.val.timestampVal, result.val.intervalVal);
+        return;
+    }
     ArithmeticOnValues::operation<Subtract, subtractStr>(left, right, result);
 }
 
@@ -257,6 +389,11 @@ template<>
 inline void Ceil::operation(Value& operand, Value& result) {
     ArithmeticOnValues::operation<Ceil, ceilStr>(operand, result);
 };
+
+template<>
+inline void IntervalFunc::operation(gf_string_t& input, interval_t& result) {
+    result = Interval::FromCString((const char*)input.getData(), input.len);
+}
 
 } // namespace operation
 } // namespace common

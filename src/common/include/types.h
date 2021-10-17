@@ -55,6 +55,10 @@ struct date_t {
     inline bool operator<(const date_t& rhs) const { return days < rhs.days; };
     inline bool operator>(const date_t& rhs) const { return days > rhs.days; };
     inline bool operator>=(const date_t& rhs) const { return days >= rhs.days; };
+
+    // arithmetic operators
+    inline date_t operator+(const int32_t& day) const { return date_t(this->days + day); };
+    inline date_t operator-(const int32_t& day) const { return date_t(this->days - day); };
 };
 
 // Type used to represent time (microseconds)
@@ -104,6 +108,15 @@ struct timestamp_t {
     inline bool operator>=(const timestamp_t& rhs) const { return value >= rhs.value; };
 };
 
+struct interval_t {
+    int32_t months;
+    int32_t days;
+    int64_t micros;
+    inline bool operator==(const interval_t& rhs) const {
+        return this->days == rhs.days && this->months == rhs.months && this->micros == rhs.micros;
+    }
+};
+
 const uint8_t FALSE = 0;
 const uint8_t TRUE = 1;
 
@@ -126,6 +139,7 @@ enum DataType : uint8_t {
     UNSTRUCTURED = 8,
     DATE = 9,
     TIMESTAMP = 10,
+    INTERVAL = 11,
 };
 
 const string DataTypeNames[] = {"REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE", "STRING",

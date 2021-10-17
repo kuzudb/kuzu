@@ -121,6 +121,7 @@ cc_library(
     srcs = [
         "date.cpp",
         "gf_string.cpp",
+        "interval.cpp",
         "literal.cpp",
         "time.cpp",
         "timestamp.cpp",

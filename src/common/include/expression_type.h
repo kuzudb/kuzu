@@ -24,6 +24,7 @@ const string DATE_FUNC_NAME = "DATE";
 const string TIMESTAMP_FUNC_NAME = "TIMESTAMP";
 const string FLOOR_FUNC_NAME = "FLOOR";
 const string CEIL_FUNC_NAME = "CEIL";
+const string INTERVAL_FUNC_NAME = "INTERVAL";
 
 enum ExpressionType : uint8_t {
 
@@ -113,7 +114,6 @@ enum ExpressionType : uint8_t {
     CAST_TO_STRING = 100,
     CAST_TO_UNSTRUCTURED_VECTOR = 101,
     CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR = 102,
-
     FUNCTION = 110,
 
     /**
@@ -122,6 +122,7 @@ enum ExpressionType : uint8_t {
     ABS_FUNC = 111,
     FLOOR_FUNC = 112,
     CEIL_FUNC = 113,
+    INTERVAL_FUNC = 114,
 
     /**
      * Aggregation Function Expression

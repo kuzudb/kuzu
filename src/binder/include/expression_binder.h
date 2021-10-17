@@ -54,6 +54,7 @@ private:
     shared_ptr<Expression> bindDateFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindTimestampFunctionExpression(
         const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindIntervalFunctionExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindLiteralExpression(const ParsedExpression& parsedExpression);
 
@@ -76,6 +77,10 @@ private:
         shared_ptr<Expression> expression);
     // NOTE: this validation should be removed once we rewrite aggregation as an alias.
     static void validateAggregationIsRoot(const Expression& expression);
+    static void validateTimestampArithmeticType(
+        const ParsedExpression& parsedExpression, shared_ptr<Expression>& right);
+    static void validateDateArithmeticType(
+        const ParsedExpression& parsedExpression, shared_ptr<Expression>& right);
 
 private:
     QueryBinder* queryBinder;

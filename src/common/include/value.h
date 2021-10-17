@@ -40,6 +40,7 @@ public:
         nodeID_t nodeID;
         date_t dateVal;
         timestamp_t timestampVal;
+        interval_t intervalVal;
     } val;
     // Note: dataType cannot be UNSTRUCTURED. Any Value has a fixed known data type.
     DataType dataType;
