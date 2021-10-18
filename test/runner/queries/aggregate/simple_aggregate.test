@@ -1,5 +1,10 @@
 # description: aggregation without groups and distinct
 
+-NAME SimpleCountTest
+-QUERY MATCH (a:person) RETURN COUNT(a.age), COUNT(a.unstrNumericProp)
+---- 1
+3|8
+
 -NAME SimpleSumTest
 -QUERY MATCH (a:person) RETURN SUM(a.age), SUM(a.eyeSight), SUM(a.unstrNumericProp)
 ---- 1
