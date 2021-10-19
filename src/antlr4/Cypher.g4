@@ -243,13 +243,10 @@ oC_PropertyOrLabelsExpression
 oC_Atom
     : oC_Literal
         | oC_ParenthesizedExpression
-        | ( COUNT SP? '(' SP? '*' SP? ')' )
         | oC_FunctionInvocation
         | oC_ExistentialSubquery
         | oC_Variable
         ;
-
-COUNT : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'T' | 't' )  ;
 
 oC_Literal
     : oC_NumberLiteral
@@ -271,7 +268,8 @@ oC_ParenthesizedExpression
     : '(' SP? oC_Expression SP? ')' ;
 
 oC_FunctionInvocation
-    : oC_FunctionName SP? '(' SP? ( oC_Expression SP? ( ',' SP? oC_Expression SP? )* )? ')' ;
+    : oC_FunctionName SP? '(' SP? '*' SP? ')'
+        | oC_FunctionName SP? '(' SP? ( oC_Expression SP? ( ',' SP? oC_Expression SP? )* )? ')' ;
 
 oC_FunctionName
     : oC_SymbolicName ;

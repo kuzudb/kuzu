@@ -468,8 +468,6 @@ unique_ptr<ParsedExpression> Transformer::transformPropertyOrLabelsExpression(
 unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_AtomContext& ctx) {
     if (ctx.oC_Literal()) {
         return transformLiteral(*ctx.oC_Literal());
-    } else if (ctx.STAR()) {
-        return make_unique<ParsedExpression>(FUNCTION, COUNT_STAR_FUNC_NAME, ctx.getText());
     } else if (ctx.oC_ParenthesizedExpression()) {
         return transformParenthesizedExpression(*ctx.oC_ParenthesizedExpression());
     } else if (ctx.oC_FunctionInvocation()) {
@@ -517,8 +515,12 @@ unique_ptr<ParsedExpression> Transformer::transformParenthesizedExpression(
 
 unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     CypherParser::OC_FunctionInvocationContext& ctx) {
-    auto expression = make_unique<ParsedExpression>(
-        FUNCTION, transformFunctionName(*ctx.oC_FunctionName()), ctx.getText());
+    auto functionName = transformFunctionName(*ctx.oC_FunctionName());
+    if (ctx.STAR()) {
+        assert(functionName == "COUNT");
+        return make_unique<ParsedExpression>(FUNCTION, COUNT_STAR_FUNC_NAME, ctx.getText());
+    }
+    auto expression = make_unique<ParsedExpression>(FUNCTION, functionName, ctx.getText());
     for (auto& childExpr : ctx.oC_Expression()) {
         expression->children.push_back(transformExpression(*childExpr));
     }
