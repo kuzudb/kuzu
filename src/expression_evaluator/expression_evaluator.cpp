@@ -34,6 +34,8 @@ std::function<void(ValueVector&, ValueVector&)> ExpressionEvaluator::getUnaryVec
         return VectorArithmeticOperations::Floor;
     case CEIL_FUNC:
         return VectorArithmeticOperations::Ceil;
+    case INTERVAL_FUNC:
+        return VectorArithmeticOperations::Interval;
     default:
         throw invalid_argument("Unsupported expression type: " + expressionTypeToString(type));
     }

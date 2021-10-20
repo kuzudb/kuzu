@@ -1,6 +1,7 @@
 #include "src/common/include/vector/operations/vector_cast_operations.h"
 
 #include "src/common/include/date.h"
+#include "src/common/include/interval.h"
 #include "src/common/include/timestamp.h"
 #include "src/common/include/value.h"
 
@@ -29,6 +30,9 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
         } break;
         case TIMESTAMP: {
             outValues[resPos].val.timestampVal = ((timestamp_t*)operand.values)[pos];
+        } break;
+        case INTERVAL: {
+            outValues[resPos].val.intervalVal = ((interval_t*)operand.values)[pos];
         } break;
         case STRING: {
             auto& operandVal = ((gf_string_t*)operand.values)[pos];
@@ -111,6 +115,9 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
         } break;
         case TIMESTAMP: {
             val = Timestamp::toString(((timestamp_t*)operand.values)[pos]);
+        } break;
+        case INTERVAL: {
+            val = Interval::toString(((interval_t*)operand.values)[pos]);
         } break;
         default:
             assert(false);

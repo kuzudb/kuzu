@@ -119,17 +119,25 @@ TEST_F(BinderErrorTest, BindIDArithmetic) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, BindDateArithmetic) {
-    string expectedException =
-        "a.birthdate has data type DATE. A numerical data type was expected.";
-    auto input = "MATCH (a:person) WHERE a.birthdate + 1 < 5 RETURN *;";
+TEST_F(BinderErrorTest, BindDateAddDate) {
+    string expectedException = "date('2031-02-01') has data type DATE! DATE can only add an "
+                               "interval/int or subtract an interval/int/date";
+    auto input = "MATCH (a:person) RETURN a.birthdate + date('2031-02-01');";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, BindTimestampArithmetic) {
-    string expectedException =
-        "a.registerTime has data type TIMESTAMP. A numerical data type was expected.";
+    string expectedException = "1 has data type INT64! TIMESTAMP can only add an interval or "
+                               "subtract an interval/timestamp";
     auto input = "MATCH (a:person) WHERE a.registerTime + 1 < 5 RETURN *;";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, BindTimestampAddTimestamp) {
+    string expectedException =
+        "timestamp('2031-02-11 01:02:03') has data type TIMESTAMP! TIMESTAMP can only add an "
+        "interval or subtract an interval/timestamp";
+    auto input = "MATCH (a:person) RETURN a.registerTime + timestamp('2031-02-11 01:02:03');";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 

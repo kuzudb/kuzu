@@ -26,6 +26,8 @@ struct VectorArithmeticOperations {
     static void Floor(ValueVector& operand, ValueVector& result);
     // result = ceil(operand)
     static void Ceil(ValueVector& operand, ValueVector& result);
+    // result = interval(operand)
+    static void Interval(ValueVector& operand, ValueVector& result);
 };
 
 } // namespace common

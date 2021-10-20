@@ -103,6 +103,10 @@ void ResultSetIterator::getNextTuple(Tuple& tuple) {
             tuple.getValue(valueInTupleIdx)->val.timestampVal =
                 ((timestamp_t*)vector->values)[selectedTuplePos];
         } break;
+        case INTERVAL: {
+            tuple.getValue(valueInTupleIdx)->val.intervalVal =
+                ((interval_t*)vector->values)[selectedTuplePos];
+        } break;
         default:
             assert(false);
         }
