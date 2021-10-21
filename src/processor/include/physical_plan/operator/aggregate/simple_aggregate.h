@@ -26,10 +26,10 @@ struct AggregationSharedState {
     uint64_t currentGroupOffset;
 };
 
-class Aggregate : public Sink {
+class SimpleAggregate : public Sink {
 
 public:
-    Aggregate(shared_ptr<ResultSet> resultSet, unique_ptr<PhysicalOperator> prevOperator,
+    SimpleAggregate(shared_ptr<ResultSet> resultSet, unique_ptr<PhysicalOperator> prevOperator,
         ExecutionContext& context, uint32_t id,
         shared_ptr<AggregationSharedState> aggregationSharedState,
         vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators);

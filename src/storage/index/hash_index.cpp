@@ -12,8 +12,7 @@ HashIndex::HashIndex(const string& indexPath, uint64_t indexId, MemoryManager& m
     : memoryManager{memoryManager}, bufferManager{bufferManager}, overflowPagesManager{
                                                                       overflowPagesManager} {
     // Entry in slot: hash + key (fixed sized part) + node_offset
-    numBytesPerEntry =
-        sizeof(uint64_t) + TypeUtils::getDataTypeSize(keyType) + sizeof(node_offset_t);
+    numBytesPerEntry = sizeof(hash_t) + TypeUtils::getDataTypeSize(keyType) + sizeof(node_offset_t);
     numBytesPerSlot = (numBytesPerEntry * indexHeader.slotCapacity) + NUM_BYTES_PER_SLOT_HEADER;
     numSlotsPerPrimaryBlock = PAGE_SIZE / numBytesPerSlot;
     numSlotsPerOverflowBlock = numSlotsPerPrimaryBlock;
@@ -194,7 +193,7 @@ bool HashIndex::keyNotExistInSlot(
 void HashIndex::insertInternal(
     ValueVector& keys, ValueVector& hashes, ValueVector& values, vector<bool>& keyNotExists) {
     auto numBytesPerKey = keys.getNumBytesPerValue();
-    auto hashesData = (uint64_t*)hashes.values;
+    auto hashesData = (hash_t*)hashes.values;
     auto offset = keys.state->isFlat() ? keys.state->getPositionOfCurrIdx() : 0;
     auto numKeys = keys.state->isFlat() ? 1 : keys.state->selectedSize;
     vector<uint64_t> keyPositions(numKeys);
@@ -209,10 +208,10 @@ void HashIndex::insertInternal(
     for (auto i = 0u; i < numEntriesToInsert; i++) {
         uint8_t* slot = getPrimarySlot(slotIds[i]);
         uint8_t* entryInSlot = findEntryToAppendAndUpdateSlotHeader(slot);
-        memcpy(entryInSlot, &hashesData[i], sizeof(uint64_t));
-        memcpy(entryInSlot + sizeof(uint64_t), keys.values + keyPositions[i] * numBytesPerKey,
+        memcpy(entryInSlot, &hashesData[i], sizeof(hash_t));
+        memcpy(entryInSlot + sizeof(hash_t), keys.values + keyPositions[i] * numBytesPerKey,
             numBytesPerKey);
-        memcpy(entryInSlot + sizeof(uint64_t) + numBytesPerKey,
+        memcpy(entryInSlot + sizeof(hash_t) + numBytesPerKey,
             values.values + keyPositions[i] * numBytesPerKey, sizeof(uint64_t));
     }
     indexHeader.currentNumEntries += numEntriesToInsert;
@@ -244,16 +243,15 @@ uint8_t* HashIndex::getPrimarySlot(uint64_t slotId) {
 }
 
 void HashIndex::reserve(uint64_t numEntries) {
-    while (
-        (double)(numEntries) / (double)(indexHeader.slotCapacity * indexHeader.currentNumSlots) >=
-        indexHeader.maxLoadFactor) {
+    while (numEntries > (double)(indexHeader.slotCapacity * indexHeader.currentNumSlots) /
+                            DEFAULT_HT_LOAD_FACTOR) {
         split();
     }
 }
 
 vector<uint64_t> HashIndex::calculateSlotIdsForHashes(
     ValueVector& hashes, uint64_t offset, uint64_t numValues) const {
-    auto hashesData = (uint64_t*)hashes.values;
+    auto hashesData = (hash_t*)hashes.values;
     vector<uint64_t> slotIds(numValues);
     auto hashMask = (1 << indexHeader.currentLevel) - 1;
     auto splitHashMask = (1 << (indexHeader.currentLevel + 1)) - 1;

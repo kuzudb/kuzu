@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/processor/include/physical_plan/operator/aggregate/aggregate.h"
+#include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 
 using namespace graphflow::function;
@@ -8,11 +8,12 @@ using namespace graphflow::function;
 namespace graphflow {
 namespace processor {
 
-class AggregationScan : public PhysicalOperator {
+class SimpleAggregationScan : public PhysicalOperator {
 
 public:
-    AggregationScan(const vector<DataPos>& outDataPos, unique_ptr<PhysicalOperator> prevOperator,
-        shared_ptr<AggregationSharedState> sharedState, ExecutionContext& context, uint32_t id)
+    SimpleAggregationScan(const vector<DataPos>& outDataPos,
+        unique_ptr<PhysicalOperator> prevOperator, shared_ptr<AggregationSharedState> sharedState,
+        ExecutionContext& context, uint32_t id)
         : PhysicalOperator{move(prevOperator), AGGREGATION_SCAN, context, id}, outDataChunkPos{0},
           outDataPos{outDataPos}, sharedState{move(sharedState)} {}
 
@@ -21,7 +22,7 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<AggregationScan>(
+        return make_unique<SimpleAggregationScan>(
             outDataPos, prevOperator->clone(), move(sharedState), context, id);
     }
 

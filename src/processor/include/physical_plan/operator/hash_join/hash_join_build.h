@@ -13,8 +13,6 @@ using namespace graphflow::common::operation;
 namespace graphflow {
 namespace processor {
 
-// By default, ht block size is 256KB
-constexpr const uint64_t DEFAULT_HT_BLOCK_SIZE = 1 << 18;
 // By default, overflow block size is 2MB
 constexpr const int64_t DEFAULT_OVERFLOW_BLOCK_SIZE = 1 << 21;
 

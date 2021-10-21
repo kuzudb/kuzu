@@ -7,6 +7,7 @@ namespace common {
 
 struct VectorHashOperations {
     static void Hash(ValueVector& operand, ValueVector& result);
+    static void CombineHash(ValueVector& operand, ValueVector& result);
 };
 
 } // namespace common

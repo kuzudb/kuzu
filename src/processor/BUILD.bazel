@@ -74,8 +74,9 @@ cc_library(
 cc_library(
     name = "operator_impls",
     srcs = [
-        "physical_plan/operator/aggregate/aggregate.cpp",
-        "physical_plan/operator/aggregate/aggregation_scan.cpp",
+        "physical_plan/operator/aggregate/simple_aggregate.cpp",
+        "physical_plan/operator/aggregate/simple_aggregation_scan.cpp",
+        "physical_plan/operator/aggregate/aggregate_hash_table.cpp",
         "physical_plan/operator/crud/create_node.cpp",
         "physical_plan/operator/crud/crud.cpp",
         "physical_plan/operator/crud/delete_node.cpp",
@@ -106,8 +107,9 @@ cc_library(
         "physical_plan/query_result.cpp",
     ],
     hdrs = [
-        "include/physical_plan/operator/aggregate/aggregate.h",
-        "include/physical_plan/operator/aggregate/aggregation_scan.h",
+        "include/physical_plan/operator/aggregate/simple_aggregate.h",
+        "include/physical_plan/operator/aggregate/simple_aggregation_scan.h",
+        "include/physical_plan/operator/aggregate/aggregate_hash_table.h",
         "include/physical_plan/operator/crud/create_node.h",
         "include/physical_plan/operator/crud/crud.h",
         "include/physical_plan/operator/crud/crud_node.h",

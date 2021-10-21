@@ -70,7 +70,7 @@ public:
 
     // For subquery, we rerun a plan multiple times. ReInitialize() should be called before each run
     // to ensure
-    virtual void reInitialize() { prevOperator->reInitialize(); }
+    virtual void reInitialize();
 
     // Return false if no more tuples to pull, otherwise return true
     virtual bool getNextTuples() = 0;

@@ -1,6 +1,6 @@
 #include "src/processor/include/processor.h"
 
-#include "src/processor/include/physical_plan/operator/aggregate/aggregate.h"
+#include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
 #include "src/processor/include/physical_plan/operator/sink/result_collector.h"
@@ -66,7 +66,7 @@ void QueryProcessor::decomposePlanIntoTasks(
         break;
     }
     case AGGREGATE: {
-        auto aggregate = reinterpret_cast<Aggregate*>(op);
+        auto aggregate = reinterpret_cast<SimpleAggregate*>(op);
         auto childTask = make_unique<Task>(reinterpret_cast<Sink*>(aggregate), numThreads);
         decomposePlanIntoTasks(aggregate->prevOperator.get(), childTask.get(), numThreads);
         parentTask->addChildTask(move(childTask));

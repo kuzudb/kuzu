@@ -13,6 +13,7 @@ using ::testing::Test;
 
 using namespace graphflow::processor;
 using namespace graphflow::binder;
+using namespace graphflow::function;
 
 class ExpressionMapperTest : public Test {
 
@@ -140,14 +141,18 @@ TEST_F(ExpressionMapperTest, AggrExpressionEvaluatorTest) {
     countStarAggrEvaluator->initResultSet(resultSet, *memoryManager);
     countStarAggrEvaluator->evaluate();
 
-    auto countStarState = countStarAggrEvaluator->getFunction()->initialize();
+    auto countStarState =
+        static_unique_pointer_cast<AggregationState, CountFunction<true>::CountState>(
+            countStarAggrEvaluator->getFunction()->initialize());
     countStarAggrEvaluator->getFunction()->update(
         (uint8_t*)countStarState.get(), nullptr, resultSet.getNumTuples());
-    auto otherCountStarState = countStarAggrEvaluator->getFunction()->initialize();
-    *((uint64_t*)otherCountStarState->val.get()) = 10;
+    auto otherCountStarState =
+        static_unique_pointer_cast<AggregationState, CountFunction<true>::CountState>(
+            countStarAggrEvaluator->getFunction()->initialize());
+    otherCountStarState->val = 10;
     otherCountStarState->isNull = false;
     countStarAggrEvaluator->getFunction()->combine(
         (uint8_t*)countStarState.get(), (uint8_t*)otherCountStarState.get());
     countStarAggrEvaluator->getFunction()->finalize((uint8_t*)countStarState.get());
-    ASSERT_EQ(*((uint64_t*)countStarState->val.get()), 110);
+    ASSERT_EQ(countStarState->val, 110);
 }

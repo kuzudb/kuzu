@@ -58,7 +58,7 @@ void HashJoinBuild::finalize() {
         directory_capacity * sizeof(uint8_t*), true /* initialize */);
 
     nodeID_t nodeId;
-    uint64_t hash;
+    hash_t hash;
     auto directory = (uint8_t**)sharedState->htDirectory->data;
     for (auto& block : sharedState->htBlocks) {
         uint8_t* basePtr = block.data;

@@ -29,14 +29,12 @@ struct HashIndexHeader {
 public:
     explicit HashIndexHeader()
         : slotCapacity{HashIndexConfig::SLOT_CAPACITY}, currentNumSlots{2}, currentNumEntries{0},
-          maxLoadFactor{HashIndexConfig::MAX_LOAD_FACTOR}, currentLevel{1}, nextSplitSlotId{0},
-          nextBlockIdForOverflowPageSet{0} {}
+          currentLevel{1}, nextSplitSlotId{0}, nextBlockIdForOverflowPageSet{0} {}
 
 public:
     uint64_t slotCapacity;
     uint64_t currentNumSlots;
     uint64_t currentNumEntries;
-    double maxLoadFactor;
     uint64_t currentLevel;
     uint64_t nextSplitSlotId;
     uint64_t nextBlockIdForOverflowPageSet;

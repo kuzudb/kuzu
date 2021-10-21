@@ -19,15 +19,15 @@ namespace evaluator {
 class ExpressionEvaluator {
 
 public:
-    static function<void(ValueVector&, ValueVector&)> getUnaryVectorExecuteOperation(
+    static std::function<void(ValueVector&, ValueVector&)> getUnaryVectorExecuteOperation(
         ExpressionType type);
-    static function<uint64_t(ValueVector&, sel_t*)> getUnaryVectorSelectOperation(
+    static std::function<uint64_t(ValueVector&, sel_t*)> getUnaryVectorSelectOperation(
         ExpressionType type);
 
-    static function<void(ValueVector&, ValueVector&, ValueVector&)> getBinaryVectorExecuteOperation(
-        ExpressionType type);
-    static function<uint64_t(ValueVector&, ValueVector&, sel_t*)> getBinaryVectorSelectOperation(
-        ExpressionType type);
+    static std::function<void(ValueVector&, ValueVector&, ValueVector&)>
+    getBinaryVectorExecuteOperation(ExpressionType type);
+    static std::function<uint64_t(ValueVector&, ValueVector&, sel_t*)>
+    getBinaryVectorSelectOperation(ExpressionType type);
 
     // Creates a leaf literal as value vector expression_evaluator expression.
     ExpressionEvaluator(const shared_ptr<ValueVector>& result, ExpressionType expressionType)

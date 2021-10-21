@@ -18,8 +18,8 @@
 #include "src/planner/include/logical_plan/operator/select_scan/logical_select_scan.h"
 #include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
 #include "src/processor/include/physical_plan/expression_mapper.h"
-#include "src/processor/include/physical_plan/operator/aggregate/aggregate.h"
-#include "src/processor/include/physical_plan/operator/aggregate/aggregation_scan.h"
+#include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
+#include "src/processor/include/physical_plan/operator/aggregate/simple_aggregation_scan.h"
 #include "src/processor/include/physical_plan/operator/filter/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten/flatten.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
@@ -416,9 +416,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
     auto sharedState =
         make_shared<AggregationSharedState>(move(aggregationStates), aggregationDataTypes);
 
-    auto aggregate = make_unique<Aggregate>(move(resultSetBeforeAggregate), move(prevOperator),
-        context, physicalOperatorID++, sharedState, move(expressionEvaluators));
-    auto aggregationScan = make_unique<AggregationScan>(
+    auto aggregate = make_unique<SimpleAggregate>(move(resultSetBeforeAggregate),
+        move(prevOperator), context, physicalOperatorID++, sharedState, move(expressionEvaluators));
+    auto aggregationScan = make_unique<SimpleAggregationScan>(
         expressionsOutputPos, move(aggregate), sharedState, context, physicalOperatorID++);
     return aggregationScan;
 }

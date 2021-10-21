@@ -1,9 +1,11 @@
-#include "src/processor/include/physical_plan/operator/aggregate/aggregation_scan.h"
+#include "src/processor/include/physical_plan/operator/aggregate/simple_aggregation_scan.h"
+
+#include <iostream>
 
 namespace graphflow {
 namespace processor {
 
-void AggregationScan::initResultSet(const shared_ptr<ResultSet>& resultSet) {
+void SimpleAggregationScan::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     this->resultSet = resultSet;
     // All aggregation results are materialized in the same dataChunk.
     outDataChunkPos = outDataPos[0].dataChunkPos;
@@ -16,7 +18,7 @@ void AggregationScan::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     }
 }
 
-bool AggregationScan::getNextTuples() {
+bool SimpleAggregationScan::getNextTuples() {
     metrics->executionTime.start();
     auto outDataChunk = this->resultSet->dataChunks[outDataChunkPos];
     {
@@ -32,7 +34,7 @@ bool AggregationScan::getNextTuples() {
                     outDataChunk->valueVectors[i]->setNull(0, true);
                 } else {
                     auto outValues = outDataChunk->valueVectors[i]->values;
-                    memcpy(outValues, sharedState->aggregationStates[i]->val.get(),
+                    memcpy(outValues, sharedState->aggregationStates[i]->getFinalVal(),
                         TypeUtils::getDataTypeSize(sharedState->dataTypes[i]));
                 }
             }
