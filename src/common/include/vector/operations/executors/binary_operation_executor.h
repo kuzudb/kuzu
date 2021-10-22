@@ -25,12 +25,14 @@ struct BinaryOperationExecutor {
         ValueVector& lVec, ValueVector& rVec, ValueVector& resVec) {
         assert(lValue.dataType == STRING || rValue.dataType == STRING);
         if (lValue.dataType != STRING) {
-            lVec.allocateStringOverflowSpace(lValue.val.strVal, lValue.toString().length());
-            lValue.val.strVal.set(lValue.toString());
+            string lStringVal = lValue.toString();
+            lVec.allocateStringOverflowSpace(lValue.val.strVal, lStringVal.length());
+            lValue.val.strVal.set(lStringVal);
             lValue.dataType = STRING;
         } else {
-            rVec.allocateStringOverflowSpace(rValue.val.strVal, rValue.toString().length());
-            rValue.val.strVal.set(rValue.toString());
+            string rStringVal = rValue.toString();
+            rVec.allocateStringOverflowSpace(rValue.val.strVal, rStringVal.length());
+            rValue.val.strVal.set(rStringVal);
             rValue.dataType = STRING;
         }
         resVec.allocateStringOverflowSpace(

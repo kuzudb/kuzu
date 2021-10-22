@@ -78,6 +78,13 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
                 outValues[pos].val.timestampVal = timestampValues[pos];
             }
         } break;
+        case INTERVAL: {
+            auto intervalValues = (interval_t*)operand.values;
+            for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                auto pos = operand.state->selectedPositions[i];
+                outValues[pos].val.intervalVal = intervalValues[pos];
+            }
+        } break;
         case STRING: {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
@@ -94,7 +101,8 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
 
 void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, ValueVector& result) {
     assert((operand.dataType == INT64 || operand.dataType == DOUBLE || operand.dataType == BOOL ||
-               operand.dataType == DATE || operand.dataType == TIMESTAMP) &&
+               operand.dataType == DATE || operand.dataType == TIMESTAMP ||
+               operand.dataType == INTERVAL) &&
            result.dataType == STRING);
     if (operand.state->isFlat()) {
         auto pos = operand.state->getPositionOfCurrIdx();
@@ -155,6 +163,12 @@ void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, Val
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 result.addString(pos, Timestamp::toString(((timestamp_t*)operand.values)[pos]));
+            }
+        } break;
+        case INTERVAL: {
+            for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                auto pos = operand.state->selectedPositions[i];
+                result.addString(pos, Interval::toString(((interval_t*)operand.values)[pos]));
             }
         } break;
         default:

@@ -63,6 +63,13 @@ TEST_F(TinySnbProcessorTest, TimestampDataTypeTests) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }
 
+TEST_F(TinySnbProcessorTest, IntervalDataTypeTests) {
+    vector<TestQueryConfig> queryConfigs;
+    queryConfigs =
+        TestHelper::parseTestFile("test/runner/queries/data_types/interval_data_type.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
+}
+
 TEST_F(TinySnbProcessorTest, AggregateTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/aggregate/simple_aggregate.test");

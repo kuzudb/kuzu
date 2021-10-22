@@ -16,18 +16,23 @@ public:
     static constexpr const int32_t SECS_PER_MINUTE = 60;
     static constexpr const int32_t MINS_PER_HOUR = 60;
     static constexpr const int32_t HOURS_PER_DAY = 24;
+    static constexpr const int64_t DAYS_PER_MONTH =
+        30; // only used for interval comparison/ordering purposes, in which case a month counts as
+            // 30 days
 
     static constexpr const int64_t MICROS_PER_MSEC = 1000;
     static constexpr const int64_t MICROS_PER_SEC = MICROS_PER_MSEC * MSECS_PER_SEC;
     static constexpr const int64_t MICROS_PER_MINUTE = MICROS_PER_SEC * SECS_PER_MINUTE;
     static constexpr const int64_t MICROS_PER_HOUR = MICROS_PER_MINUTE * MINS_PER_HOUR;
     static constexpr const int64_t MICROS_PER_DAY = MICROS_PER_HOUR * HOURS_PER_DAY;
+    static constexpr const int64_t MICROS_PER_MONTH = MICROS_PER_DAY * DAYS_PER_MONTH;
 
     static void addition(interval_t& result, uint64_t number, string specifierStr);
-    static void parseIntervalField(
-        const char* buf, uint64_t& pos, uint64_t len, interval_t& result);
+    static void parseIntervalField(string buf, uint64_t& pos, uint64_t len, interval_t& result);
     static interval_t FromCString(const char* str, uint64_t len);
     static string toString(interval_t interval);
+    static bool GreaterThanEquals(const interval_t& left, const interval_t& right);
+    static bool GreaterThan(const interval_t& left, const interval_t& right);
 };
 
 } // namespace common

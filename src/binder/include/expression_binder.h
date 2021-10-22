@@ -81,6 +81,8 @@ private:
         const ParsedExpression& parsedExpression, shared_ptr<Expression>& right);
     static void validateDateArithmeticType(
         const ParsedExpression& parsedExpression, shared_ptr<Expression>& right);
+    static void validateIntervalArithmeticType(
+        const ParsedExpression& parsedExpression, shared_ptr<Expression>& right);
 
 private:
     QueryBinder* queryBinder;

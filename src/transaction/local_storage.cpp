@@ -21,6 +21,9 @@ static unique_ptr<uint8_t[]> getNullValuePtrForDataType(DataType dataType) {
     case TIMESTAMP:
         memcpy(nullValue.get(), &NULL_TIMESTAMP, TypeUtils::getDataTypeSize(dataType));
         break;
+    case INTERVAL:
+        memcpy(nullValue.get(), &NULL_INTERVAL, TypeUtils::getDataTypeSize(dataType));
+        break;
     case STRING: {
         gf_string_t nullStr;
         nullStr.set(string(&gf_string_t::EMPTY_STRING));

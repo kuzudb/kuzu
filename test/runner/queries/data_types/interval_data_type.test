@@ -1,0 +1,154 @@
+# description: handling of interval properties
+
+-NAME IntervalFunctionOnCol
+-QUERY MATCH (o:organisation) RETURN interval(o.history) + interval('31 months 20 days 10 hours 100us')
+---- 3
+13 years 20 days 23:00:00.000124
+4 years 7 months 20 days 14:34:00.000122
+4 years 7 months 24 days 20:00:00.0001
+
+-NAME IntervalFunctionEqualityComparison
+-QUERY MATCH (a:person) WHERE a.lastJobDuration = interval('3 years 2 days 13 hours 2 minutes') RETURN COUNT(*)
+---- 1
+2
+
+-NAME IntervalGreaterThanComparison
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE b.lastJobDuration > interval('2 years 18 months 3 days') RETURN COUNT(*)
+---- 1
+7
+
+-NAME IntervalLessThanComparison
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.validInterval < interval('3 years 5 months') RETURN COUNT(*)
+---- 1
+10
+
+-NAME StructuredIntervalComparisonAcrossNodesEquality
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration = b.lastJobDuration RETURN COUNT(*)
+---- 1
+2
+
+-NAME StructuredIntervalComparisonAcrossNodesNonEquality
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration <> b.lastJobDuration RETURN COUNT(*)
+---- 1
+12
+
+-NAME StructuredIntervalComparisonAcrossNodesLessThan
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration < b.lastJobDuration RETURN COUNT(*)
+---- 1
+6
+
+-NAME StructuredIntervalComparisonAcrossNodesLessThanOrEqualTo
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration <= b.lastJobDuration RETURN COUNT(*)
+---- 1
+8
+#
+-NAME StructuredIntervalComparisonAcrossNodesGreaterThan
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration > b.lastJobDuration RETURN COUNT(*)
+---- 1
+6
+
+-NAME StructuredIntervalComparisonAcrossNodesGreaterThanOrEqualTo
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration >= b.lastJobDuration RETURN COUNT(*)
+---- 1
+8
+
+-NAME StructuredIntervalComparisonAcrossEdges
+-QUERY MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE e1.validInterval = e2.validInterval AND id(a) <> id(c) RETURN COUNT(*)
+---- 1
+2
+
+-NAME StructuredIntervalComparisonAcrossEdgeAndNode
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration > e1.validInterval  RETURN COUNT(*)
+---- 1
+9
+
+-NAME UnstructuredStructuredIntervalComparison
+-QUERY MATCH (o:organisation) WHERE o.licenseValidInterval = o.unstrIntervalProp1 RETURN COUNT(*)
+---- 1
+1
+
+-NAME TwoUnstructuredIntervalComparison1
+-QUERY MATCH (o:organisation) WHERE o.unstrIntervalProp1 <> o.unstrIntervalProp2 RETURN COUNT(*)
+---- 1
+1
+
+-NAME TwoUnstructuredIntervalComparison2
+-QUERY MATCH (o:organisation) WHERE o.unstrIntervalProp1 <= o.unstrIntervalProp2 RETURN COUNT(*)
+---- 1
+2
+
+-NAME UnstructuredIntervalFunctionComparison
+-QUERY MATCH (o:organisation) WHERE o.unstrIntervalProp1 <= Interval('8 years 42 days 3 hours') RETURN COUNT(*)
+---- 1
+1
+
+-NAME StructuredIntervalAdd
+-QUERY MATCH (a:person) RETURN a.lastJobDuration + interval('47 hours 30 minutes 30 seconds')
+---- 8
+10 years 5 months 60:30:30.000024
+10 years 5 months 60:30:30.000024
+10 years 5 months 60:30:30.000024
+3 years 2 days 60:32:30
+3 years 2 days 60:32:30
+47:48:30.024
+95:54:41
+95:54:41
+
+-NAME UnstructuredIntervalAdd
+-QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 + interval('10 years 20 days 42 h 32 minutes 312 milliseconds')
+---- 3
+
+10 years 68 days 65:32:00.312
+36 years 72 days 90:32:00.312
+
+-NAME StructuredIntervalSubtract
+-QUERY MATCH (a:person) RETURN a.lastJobDuration - interval('52 days 42 hours 31 seconds 22 milliseconds')
+---- 8
+-52 days -41:42:30.998
+-52 days 06:23:39.978
+-52 days 06:23:39.978
+10 years 5 months -52 days -29:00:31.021976
+10 years 5 months -52 days -29:00:31.021976
+10 years 5 months -52 days -29:00:31.021976
+3 years -50 days -28:58:31.022
+3 years -50 days -28:58:31.022
+
+-NAME UnstructuredIntervalSubtract
+-QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 - interval('40 months 200 days 420 hour 320 minutes 312 seconds')
+---- 3
+
+-3 years -4 months -152 days -402:25:12
+22 years 8 months -148 days -377:25:12
+
+-NAME StructuredIntervalMixedArithmeticOperations
+-QUERY MATCH (a:person) RETURN a.lastJobDuration + interval('2 hours 48 minutes 1000 seconds') - interval('188 days 48 hours') + interval('5 years 100 microseconds')
+---- 8
+15 years 5 months -188 days -31:55:19.999876
+15 years 5 months -188 days -31:55:19.999876
+15 years 5 months -188 days -31:55:19.999876
+5 years -188 days -44:37:19.9759
+5 years -188 days 03:28:51.0001
+5 years -188 days 03:28:51.0001
+8 years -186 days -31:53:19.9999
+8 years -186 days -31:53:19.9999
+
+-NAME UnstructuredIntervalMixedArithmeticOperations
+-QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 - interval('2 years 18 days 24 minutes')  + interval('12 hours 100 seconds') - interval('100 days 32 hours 32 minutes')
+---- 3
+
+-2 years -70 days 02:05:40
+24 years -66 days 27:05:40
+
+-NAME StructuredIntervalConcatenateString
+-QUERY MATCH (o:organisation) RETURN 'The license is valid until ' + o.licenseValidInterval + ' test'
+---- 3
+The license is valid until 26 years 52 days 48:00:00 test
+The license is valid until 3 years 5 days test
+The license is valid until 82:00:00.1 test
+
+-NAME UnstructuredIntervalConcatenateString
+-QUERY MATCH (o:organisation) RETURN 'unstrIntervalProp1: ' + o.unstrIntervalProp1 + ' test'
+---- 3
+
+unstrIntervalProp1: 26 years 52 days 48:00:00 test
+unstrIntervalProp1: 48 days 23:00:00 test

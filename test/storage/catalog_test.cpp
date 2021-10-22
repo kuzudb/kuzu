@@ -28,12 +28,14 @@ public:
         personProperties.emplace_back("eyeSight", 6, DOUBLE);
         personProperties.emplace_back("birthdate", 7, DATE);
         personProperties.emplace_back("registerTime", 8, TIMESTAMP);
+        personProperties.emplace_back("lastJobDuration", 9, INTERVAL);
         catalog->addNodeLabel("person", move(personProperties), "id");
         catalog->addNodeUnstrProperty(0, "unstrIntProp");
 
         vector<PropertyDefinition> knowsProperties;
         knowsProperties.emplace_back("date", 0, DATE);
         knowsProperties.emplace_back("meetTime", 1, TIMESTAMP);
+        knowsProperties.emplace_back("validInterval", 2, INTERVAL);
         vector<string> knowsSrcNodeLabelNames = {"person"};
         vector<string> knowsDstNodeLabelNames = {"person"};
         catalog->addRelLabel("knows", MANY_MANY, move(knowsProperties), knowsSrcNodeLabelNames,
@@ -60,10 +62,12 @@ TEST_F(CatalogTest, AddLabelsTest) {
     ASSERT_EQ(catalog->getNodeProperty(0, "age").dataType, INT64);
     ASSERT_EQ(catalog->getNodeProperty(0, "birthdate").dataType, DATE);
     ASSERT_EQ(catalog->getNodeProperty(0, "registerTime").dataType, TIMESTAMP);
+    ASSERT_EQ(catalog->getNodeProperty(0, "lastJobDuration").dataType, INTERVAL);
     ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrIntProp"), 0);
-    ASSERT_EQ(catalog->getAllNodeProperties(0)[9].dataType, UNSTRUCTURED);
+    ASSERT_EQ(catalog->getAllNodeProperties(0)[10].dataType, UNSTRUCTURED);
     ASSERT_EQ(catalog->getRelProperty(0, "date").dataType, DATE);
     ASSERT_EQ(catalog->getRelProperty(0, "meetTime").dataType, TIMESTAMP);
+    ASSERT_EQ(catalog->getRelProperty(0, "validInterval").dataType, INTERVAL);
 }
 
 TEST_F(CatalogTest, SaveAndReadTest) {

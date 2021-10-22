@@ -224,3 +224,27 @@
 -16794
 1468
 1468
+
+-NAME StructuredDateConcatenateString
+-QUERY MATCH (a:person) RETURN 'Birthdate: ' + a.birthdate + ' test'
+---- 8
+Birthdate: 1900-01-01 test
+Birthdate: 1900-01-01 test
+Birthdate: 1940-06-22 test
+Birthdate: 1950-07-23 test
+Birthdate: 1980-10-26 test
+Birthdate: 1980-10-26 test
+Birthdate: 1980-10-26 test
+Birthdate: 1990-11-27 test
+
+-NAME UnstructuredDateConcatenateString
+-QUERY MATCH (a:person) RETURN 'unstrDate: ' + a.unstrDateProp1 + ' test'
+---- 8
+
+
+
+
+
+unstrDate: 1900-01-01 test
+unstrDate: 1950-01-01 test
+unstrDate: 1950-01-01 test

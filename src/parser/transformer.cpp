@@ -1,6 +1,7 @@
 #include "src/parser/include/transformer.h"
 
 #include "src/common/include/assert.h"
+#include "src/common/include/utils.h"
 #include "src/parser/include/statements/load_csv_statement.h"
 #include "src/parser/include/statements/match_statement.h"
 
@@ -517,6 +518,7 @@ unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     CypherParser::OC_FunctionInvocationContext& ctx) {
     auto functionName = transformFunctionName(*ctx.oC_FunctionName());
     if (ctx.STAR()) {
+        StringUtils::toUpper(functionName);
         assert(functionName == "COUNT");
         return make_unique<ParsedExpression>(FUNCTION, COUNT_STAR_FUNC_NAME, ctx.getText());
     }
