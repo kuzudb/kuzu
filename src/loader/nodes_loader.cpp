@@ -3,6 +3,7 @@
 #include "src/common/include/date.h"
 #include "src/common/include/exception.h"
 #include "src/common/include/file_utils.h"
+#include "src/common/include/interval.h"
 #include "src/common/include/timestamp.h"
 
 using namespace graphflow::storage;
@@ -320,6 +321,13 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<PropertyDefinition>& pr
                 &timestampVal, TypeUtils::getDataTypeSize(TIMESTAMP));
             break;
         }
+        case INTERVAL: {
+            auto intervalVal = reader.skipTokenIfNull() ? NULL_INTERVAL : reader.getInterval();
+            memcpy(
+                buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(INTERVAL)),
+                &intervalVal, TypeUtils::getDataTypeSize(INTERVAL));
+            break;
+        }
         case STRING: {
             auto strVal =
                 reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
@@ -419,6 +427,15 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize,
                 reinterpret_cast<uint8_t*>(&timestampVal));
+            break;
+        }
+        case INTERVAL: {
+            char* beginningOfIntervalStr = valuePtr;
+            interval_t intervalVal =
+                Interval::FromCString(beginningOfIntervalStr, strlen(beginningOfIntervalStr));
+            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
+                static_cast<uint8_t>(dataType), dataTypeSize,
+                reinterpret_cast<uint8_t*>(&intervalVal));
             break;
         }
         case STRING: {

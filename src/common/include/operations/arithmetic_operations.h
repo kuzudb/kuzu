@@ -189,6 +189,13 @@ inline void Add::operation(timestamp_t& left, interval_t& right, timestamp_t& re
 }
 
 template<>
+inline void Add::operation(interval_t& left, interval_t& right, interval_t& result) {
+    result.months = left.months + right.months;
+    result.days = left.days + right.days;
+    result.micros = left.micros + right.micros;
+}
+
+template<>
 inline void Subtract::operation(date_t& left, interval_t& right, date_t& result) {
     interval_t inverseRight;
     inverseRight.months = -right.months;
@@ -221,6 +228,13 @@ inline void Subtract::operation(timestamp_t& left, interval_t& right, timestamp_
     inverseRight.days = -right.days;
     inverseRight.micros = -right.micros;
     Add::operation<timestamp_t, interval_t, timestamp_t>(left, inverseRight, result);
+}
+
+template<>
+inline void Subtract::operation(interval_t& left, interval_t& right, interval_t& result) {
+    result.months = left.months - right.months;
+    result.days = left.days - right.days;
+    result.micros = left.micros - right.micros;
 }
 
 /**********************************************
@@ -320,6 +334,11 @@ inline void Add::operation(Value& left, Value& right, Value& result) {
         result.dataType = TIMESTAMP;
         Add::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal);
         return;
+    } else if (left.dataType == INTERVAL) {
+        assert(right.dataType == INTERVAL);
+        result.dataType = INTERVAL;
+        Add::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal);
+        return;
     }
     ArithmeticOnValues::operation<Add, addStr>(left, right, result);
 }
@@ -345,6 +364,10 @@ inline void Subtract::operation(Value& left, Value& right, Value& result) {
     } else if (left.dataType == TIMESTAMP && right.dataType == TIMESTAMP) {
         result.dataType = INTERVAL;
         Subtract::operation(left.val.timestampVal, right.val.timestampVal, result.val.intervalVal);
+        return;
+    } else if (left.dataType == INTERVAL && right.dataType == INTERVAL) {
+        result.dataType = INTERVAL;
+        Subtract::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal);
         return;
     }
     ArithmeticOnValues::operation<Subtract, subtractStr>(left, right, result);

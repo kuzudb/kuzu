@@ -131,6 +131,9 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
         validateTimestampArithmeticType(parsedExpression, right);
         return make_shared<Expression>(parsedExpression.type,
             right->dataType == TIMESTAMP ? INTERVAL : TIMESTAMP, move(left), move(right));
+    } else if (left->dataType == INTERVAL) {
+        validateIntervalArithmeticType(parsedExpression, right);
+        return make_shared<Expression>(parsedExpression.type, INTERVAL, move(left), move(right));
     }
     validateNumericalTypeOrUnstructured(*left);
     validateNumericalTypeOrUnstructured(*right);
@@ -440,6 +443,15 @@ void ExpressionBinder::validateTimestampArithmeticType(
             right->getExternalName() + " has data type " +
             TypeUtils::dataTypeToString(right->dataType) +
             "! TIMESTAMP can only add an interval or subtract an interval/timestamp");
+    }
+}
+
+void ExpressionBinder::validateIntervalArithmeticType(
+    const ParsedExpression& parsedExpression, shared_ptr<Expression>& right) {
+    if (right->dataType != INTERVAL) {
+        throw invalid_argument(right->getExternalName() + " has data type " +
+                               TypeUtils::dataTypeToString(right->dataType) +
+                               "! INTERVAL can only add/subtract an interval");
     }
 }
 

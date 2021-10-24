@@ -34,31 +34,31 @@ void Interval::addition(interval_t& result, uint64_t number, string specifierStr
     }
 }
 
-void Interval::parseIntervalField(
-    const char* buf, uint64_t& pos, uint64_t len, interval_t& result) {
+void Interval::parseIntervalField(string buf, uint64_t& pos, uint64_t len, interval_t& result) {
     uint64_t number;
     uint64_t offset = 0;
     // parse digits
-    number = stoi(buf + pos, &offset);
+    number = stoi(buf.c_str() + pos, &offset);
     pos += offset;
     // skip spaces
     while (pos < len && isspace(buf[pos])) {
         pos++;
     }
     if (pos == len) {
-        throw ConversionException(string(buf, len) + " is not in a correct format");
+        throw ConversionException(buf + " is not in a correct format");
     }
     // Parse intervalPartSpecifier (eg. hours, dates, minutes)
     uint64_t spacePos = string(buf).find(' ', pos);
     if (spacePos == string::npos) {
         spacePos = len;
     }
-    string specifierStr = string(buf).substr(pos, spacePos - pos);
+    string specifierStr = buf.substr(pos, spacePos - pos);
     pos = spacePos;
     addition(result, number, specifierStr);
 }
 
-interval_t Interval::FromCString(const char* str, uint64_t len) {
+interval_t Interval::FromCString(const char* gf_str, uint64_t len) {
+    string str = string(gf_str, len);
     interval_t result;
     uint64_t pos = 0;
     result.days = 0;
@@ -73,7 +73,7 @@ interval_t Interval::FromCString(const char* str, uint64_t len) {
         if (isdigit(str[pos])) {
             parseIntervalField(str, pos, len, result);
         } else if (!isspace(str[pos])) {
-            throw ConversionException(string(str, len) + " is not in a correct format");
+            throw ConversionException(str + " is not in a correct format");
         }
         pos++;
     }
@@ -84,6 +84,45 @@ string Interval::toString(interval_t interval) {
     char buffer[70];
     uint64_t length = IntervalToStringCast::Format(interval, buffer);
     return string(buffer, length);
+}
+
+// helper function of interval comparison
+static void NormalizeIntervalEntries(
+    interval_t input, int64_t& months, int64_t& days, int64_t& micros) {
+    int64_t extra_months_d = input.days / Interval::DAYS_PER_MONTH;
+    int64_t extra_months_micros = input.micros / Interval::MICROS_PER_MONTH;
+    input.days -= extra_months_d * Interval::DAYS_PER_MONTH;
+    input.micros -= extra_months_micros * Interval::MICROS_PER_MONTH;
+
+    int64_t extra_days_micros = input.micros / Interval::MICROS_PER_DAY;
+    input.micros -= extra_days_micros * Interval::MICROS_PER_DAY;
+
+    months = input.months + extra_months_d + extra_months_micros;
+    days = input.days + extra_days_micros;
+    micros = input.micros;
+}
+
+bool Interval::GreaterThan(const interval_t& left, const interval_t& right) {
+    int64_t lmonths, ldays, lmicros;
+    int64_t rmonths, rdays, rmicros;
+    NormalizeIntervalEntries(left, lmonths, ldays, lmicros);
+    NormalizeIntervalEntries(right, rmonths, rdays, rmicros);
+
+    if (lmonths > rmonths) {
+        return true;
+    } else if (lmonths < rmonths) {
+        return false;
+    }
+    if (ldays > rdays) {
+        return true;
+    } else if (ldays < rdays) {
+        return false;
+    }
+    return lmicros > rmicros;
+}
+
+bool Interval::GreaterThanEquals(const interval_t& left, const interval_t& right) {
+    return GreaterThan(left, right) || left == right;
 }
 
 } // namespace common

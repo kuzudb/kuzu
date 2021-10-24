@@ -183,3 +183,27 @@
 -5720 days -12:55:09.438
 16469 days 11:18:58
 19673 days 10:18:58
+
+-NAME StructuredTimestampConcatenateString
+-QUERY MATCH (a:person) RETURN 'Register Time: ' + a.registerTime + ' test'
+---- 8
+Register Time: 1911-08-20 02:32:21 test
+Register Time: 1972-07-31 13:22:30.678559 test
+Register Time: 1976-12-23 11:21:42 test
+Register Time: 1976-12-23 11:21:42 test
+Register Time: 2008-11-03 13:25:30.000526 test
+Register Time: 2011-08-20 11:25:30 test
+Register Time: 2023-02-21 13:25:30 test
+Register Time: 2031-11-30 12:25:30 test
+
+-NAME UnstructuredTimestampConcatenateString
+-QUERY MATCH (a:person) RETURN 'unstrTimestampProp1: ' + a.unstrTimestampProp1 + ' test'
+---- 8
+
+
+
+
+unstrTimestampProp1: 1946-08-25 19:07:22 test
+unstrTimestampProp1: 1962-05-22 13:11:22.562 test
+unstrTimestampProp1: 2023-02-21 13:25:30 test
+unstrTimestampProp1: 2031-11-30 12:25:30 test

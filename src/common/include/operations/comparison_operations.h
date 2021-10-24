@@ -118,6 +118,13 @@ struct EqualsOrNotEqualsValues {
                     NotEquals::operation(left.val.timestampVal, right.val.timestampVal, result);
                 }
                 return;
+            case INTERVAL:
+                if constexpr (equals) {
+                    Equals::operation(left.val.intervalVal, right.val.intervalVal, result);
+                } else {
+                    NotEquals::operation(left.val.intervalVal, right.val.intervalVal, result);
+                }
+                return;
             default:
                 assert(false);
             }
@@ -234,6 +241,9 @@ struct CompareValues {
                 break;
             case TIMESTAMP:
                 FUNC::operation(left.val.timestampVal, right.val.timestampVal, result);
+                break;
+            case INTERVAL:
+                FUNC::operation(left.val.intervalVal, right.val.intervalVal, result);
                 break;
             default:
                 assert(false);
@@ -360,6 +370,10 @@ inline bool IsNull::operation(const timestamp_t& value) {
     return value == NULL_TIMESTAMP;
 };
 
+template<>
+inline bool IsNull::operation(const interval_t& value) {
+    return value == NULL_INTERVAL;
+};
 /***********************************************
  **                                           **
  **   Specialized IsNotNull implementations   **
@@ -388,6 +402,11 @@ inline bool IsNotNull::operation(const date_t& value) {
 template<>
 inline bool IsNotNull::operation(const timestamp_t& value) {
     return value != NULL_TIMESTAMP;
+}
+
+template<>
+inline bool IsNotNull::operation(const interval_t& value) {
+    return value != NULL_INTERVAL;
 }
 
 } // namespace operation

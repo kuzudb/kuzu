@@ -32,6 +32,7 @@ cc_test(
     name = "types_test",
     srcs = [
         "date_test.cpp",
+        "interval_test.cpp",
         "time_test.cpp",
         "timestamp_test.cpp",
         "types_test.cpp",

@@ -128,6 +128,7 @@ public:
         case BOOL:
         case DATE:
         case TIMESTAMP:
+        case INTERVAL:
             return make_unique<Lists>(fName, dataType, TypeUtils::getDataTypeSize(dataType),
                 adjListsHeaders, bufferManager, isInMemory);
         case STRING:

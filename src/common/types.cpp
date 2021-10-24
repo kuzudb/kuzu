@@ -7,6 +7,7 @@
 
 #include "src/common/include/exception.h"
 #include "src/common/include/gf_string.h"
+#include "src/common/include/interval.h"
 #include "src/common/include/value.h"
 
 namespace graphflow {
@@ -31,6 +32,8 @@ DataType TypeUtils::getDataType(const std::string& dataTypeString) {
         return DATE;
     } else if ("TIMESTAMP" == dataTypeString) {
         return TIMESTAMP;
+    } else if ("INTERVAL" == dataTypeString) {
+        return INTERVAL;
     }
     throw invalid_argument("Cannot parse dataType: " + dataTypeString);
 }
@@ -134,6 +137,22 @@ uint8_t TypeUtils::convertToBoolean(const char* data) {
 
 Direction operator!(Direction& direction) {
     return (FWD == direction) ? BWD : FWD;
+}
+
+bool interval_t::operator<=(const interval_t& rhs) const {
+    return !Interval::GreaterThan(*this, rhs);
+}
+
+bool interval_t::operator<(const interval_t& rhs) const {
+    return !Interval::GreaterThanEquals(*this, rhs);
+}
+
+bool interval_t::operator>(const interval_t& rhs) const {
+    return Interval::GreaterThan(*this, rhs);
+}
+
+bool interval_t::operator>=(const interval_t& rhs) const {
+    return Interval::GreaterThanEquals(*this, rhs);
 }
 
 } // namespace common

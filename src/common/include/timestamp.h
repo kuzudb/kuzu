@@ -11,15 +11,6 @@ namespace common {
 // For example, instead of using their idx_t type to refer to indices, we directly use uint64_t,
 // which is the actual type of idx_t (so we say uint64_t len instead of idx_t len). When more
 // functionality is needed, we should first consult these DuckDB links.
-struct timestamp_struct {
-    int32_t year;
-    int8_t month;
-    int8_t day;
-    int8_t hour;
-    int8_t min;
-    int8_t sec;
-    int16_t msec;
-};
 
 // The Timestamp class is a static class that holds helper functions for the Timestamp type.
 // timestamp/datetime uses 64 bits, high 32 bits for date and low 32 bits for time

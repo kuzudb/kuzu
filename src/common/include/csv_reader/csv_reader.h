@@ -45,6 +45,7 @@ public:
     char* getString();
     date_t getDate();
     timestamp_t getTimestamp();
+    interval_t getInterval();
 
 private:
     void openFile(const string& fName);

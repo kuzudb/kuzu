@@ -39,6 +39,7 @@ public:
         nodeID_t nodeID;
         date_t dateVal;
         timestamp_t timestampVal;
+        interval_t intervalVal;
     } val{};
 
     string strVal;

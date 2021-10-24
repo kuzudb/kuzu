@@ -112,9 +112,19 @@ struct interval_t {
     int32_t months;
     int32_t days;
     int64_t micros;
+
+    interval_t() = default;
+    explicit inline interval_t(int32_t months_p, int32_t days_p, int64_t micros_p)
+        : months(months_p), days(days_p), micros(micros_p) {}
+
     inline bool operator==(const interval_t& rhs) const {
         return this->days == rhs.days && this->months == rhs.months && this->micros == rhs.micros;
-    }
+    };
+    inline bool operator!=(const interval_t& rhs) const { return !(*this == rhs); };
+    bool operator<=(const interval_t& rhs) const;
+    bool operator<(const interval_t& rhs) const;
+    bool operator>(const interval_t& rhs) const;
+    bool operator>=(const interval_t& rhs) const;
 };
 
 const uint8_t FALSE = 0;
@@ -125,6 +135,7 @@ const int64_t NULL_INT64 = INT64_MIN;
 const double_t NULL_DOUBLE = DBL_MIN;
 const date_t NULL_DATE = date_t(INT32_MIN);
 const timestamp_t NULL_TIMESTAMP = timestamp_t(INT64_MIN);
+const interval_t NULL_INTERVAL = interval_t(INT32_MIN, INT32_MIN, INT64_MIN);
 const uint64_t NUM_BYTES_PER_NODE_ID = sizeof(node_offset_t) + sizeof(label_t);
 
 enum DataType : uint8_t {
