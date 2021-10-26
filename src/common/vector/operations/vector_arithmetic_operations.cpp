@@ -133,7 +133,12 @@ void VectorArithmeticOperations::Multiply(
 
 void VectorArithmeticOperations::Divide(
     ValueVector& left, ValueVector& right, ValueVector& result) {
-    VectorArithmeticOperationExecutor::execute<operation::Divide>(left, right, result);
+    if (left.dataType == INTERVAL && right.dataType == INT64) {
+        BinaryOperationExecutor::execute<interval_t, int64_t, interval_t, operation::Divide,
+            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
+    } else {
+        VectorArithmeticOperationExecutor::execute<operation::Divide>(left, right, result);
+    }
 }
 
 void VectorArithmeticOperations::Modulo(

@@ -448,10 +448,11 @@ void ExpressionBinder::validateTimestampArithmeticType(
 
 void ExpressionBinder::validateIntervalArithmeticType(
     const ParsedExpression& parsedExpression, shared_ptr<Expression>& right) {
-    if (right->dataType != INTERVAL) {
+    if (((parsedExpression.type == DIVIDE) && (right->dataType != INT64)) ||
+        ((parsedExpression.type != DIVIDE) && (right->dataType != INTERVAL))) {
         throw invalid_argument(right->getExternalName() + " has data type " +
                                TypeUtils::dataTypeToString(right->dataType) +
-                               "! INTERVAL can only add/subtract an interval");
+                               "! INTERVAL can only add/subtract an interval or divide an integer");
     }
 }
 
