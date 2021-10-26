@@ -237,6 +237,15 @@ inline void Subtract::operation(interval_t& left, interval_t& right, interval_t&
     result.micros = left.micros - right.micros;
 }
 
+template<>
+inline void Divide::operation(interval_t& left, int64_t& right, interval_t& result) {
+    int32_t monthsRemainder = left.months % right;
+    int32_t daysRemainder = (left.days + monthsRemainder * Interval::DAYS_PER_MONTH) % right;
+    result.months = left.months / right;
+    result.days = (left.days + monthsRemainder * Interval::DAYS_PER_MONTH) / right;
+    result.micros = (left.micros + daysRemainder * Interval::MICROS_PER_DAY) / right;
+}
+
 /**********************************************
  **                                          **
  **   Specialized Value(s) implementations   **
@@ -380,6 +389,11 @@ inline void Multiply::operation(Value& left, Value& right, Value& result) {
 
 template<>
 inline void Divide::operation(Value& left, Value& right, Value& result) {
+    if (left.dataType == INTERVAL && right.dataType == INT64) {
+        result.dataType = INTERVAL;
+        Divide::operation(left.val.intervalVal, right.val.int64Val, result.val.intervalVal);
+        return;
+    }
     ArithmeticOnValues::operation<Divide, divideStr>(left, right, result);
 }
 

@@ -152,3 +152,52 @@ The license is valid until 82:00:00.1 test
 
 unstrIntervalProp1: 26 years 52 days 48:00:00 test
 unstrIntervalProp1: 48 days 23:00:00 test
+
+-NAME StructuredIntervalDivideInt
+-QUERY MATCH (p:person) RETURN p.lastJobDuration / 3
+---- 8
+00:06:00.008
+1 year 20:20:40
+1 year 20:20:40
+16:08:03.666666
+16:08:03.666666
+3 years 5 months 20 days 04:20:00.000008
+3 years 5 months 20 days 04:20:00.000008
+3 years 5 months 20 days 04:20:00.000008
+
+-NAME StructuredIntervalDivideTwoInts
+-QUERY MATCH (p:person) RETURN p.lastJobDuration / 3 / 6
+---- 8
+00:01:00.001333
+02:41:20.611111
+02:41:20.611111
+2 months 03:23:26.666666
+2 months 03:23:26.666666
+6 months 28 days 08:43:20.000001
+6 months 28 days 08:43:20.000001
+6 months 28 days 08:43:20.000001
+
+-NAME EdgeIntervalDivideInt
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN e1.validInterval / 5
+---- 14
+00:00:00.000096
+00:00:00.06
+00:04:36
+00:04:36
+00:05:36.006
+00:09:35.6
+00:09:35.6
+09:36:00.0104
+2 days
+2 years 1 month 02:36:00.000004
+2 years 1 month 02:36:00.000004
+4 years 6 days 09:36:00
+4 years 6 days 09:36:00
+8 days 06:00:00
+
+-NAME UnstructuredIntervalDivideInt
+-QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 / 8
+---- 3
+
+3 years 3 months 6 days 18:00:00
+6 days 02:52:30
