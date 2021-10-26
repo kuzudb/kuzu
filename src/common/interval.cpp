@@ -38,7 +38,7 @@ void Interval::parseIntervalField(string buf, uint64_t& pos, uint64_t len, inter
     uint64_t number;
     uint64_t offset = 0;
     // parse digits
-    number = stoi(buf.c_str() + pos, &offset);
+    number = stoi(buf.c_str() + pos, reinterpret_cast<size_t*>(&offset));
     pos += offset;
     // skip spaces
     while (pos < len && isspace(buf[pos])) {

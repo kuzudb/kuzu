@@ -74,7 +74,7 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
             probeSideKeyVector->readNodeID(
                 probeSideKeyVector->state->getPositionOfCurrIdx(), probeState->probeSideKeyNodeID);
             auto directory = (uint8_t**)sharedState->htDirectory->data;
-            uint64_t hash;
+            hash_t hash;
             Hash::operation<nodeID_t>(probeState->probeSideKeyNodeID, hash);
             hash = hash & sharedState->hashBitMask;
             probeState->probedTuple = (uint8_t*)(directory[hash]);

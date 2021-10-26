@@ -10,12 +10,6 @@ void ScanNodeID::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
 }
 
-void ScanNodeID::reInitialize() {
-    if (prevOperator) {
-        prevOperator->reInitialize();
-    }
-}
-
 bool ScanNodeID::getNextTuples() {
     metrics->executionTime.start();
     if (prevOperator) {

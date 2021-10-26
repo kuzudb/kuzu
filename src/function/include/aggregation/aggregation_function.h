@@ -13,7 +13,9 @@ namespace graphflow {
 namespace function {
 
 struct AggregationState {
-    unique_ptr<uint8_t[]> val;
+    virtual inline uint64_t getValSize() const = 0;
+    virtual uint8_t* getFinalVal() const = 0;
+
     bool isNull = true;
 };
 

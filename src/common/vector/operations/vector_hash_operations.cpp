@@ -9,13 +9,29 @@ namespace common {
 void VectorHashOperations::Hash(ValueVector& operand, ValueVector& result) {
     switch (operand.dataType) {
     case INT64:
-        UnaryOperationExecutor::execute<int64_t, uint64_t, operation::Hash>(operand, result);
+        UnaryOperationExecutor::execute<int64_t, hash_t, operation::Hash>(operand, result);
         break;
     case DOUBLE:
-        UnaryOperationExecutor::execute<double_t, uint64_t, operation::Hash>(operand, result);
+        UnaryOperationExecutor::execute<double_t, hash_t, operation::Hash>(operand, result);
         break;
     case NODE:
-        UnaryOperationExecutor::executeNodeIDOps<uint64_t, operation::Hash>(operand, result);
+        UnaryOperationExecutor::executeNodeIDOps<hash_t, operation::Hash>(operand, result);
+        break;
+    default:
+        assert(false);
+    }
+}
+
+void VectorHashOperations::CombineHash(ValueVector& operand, ValueVector& result) {
+    switch (operand.dataType) {
+    case INT64:
+        UnaryOperationExecutor::execute<int64_t, hash_t, operation::CombineHash>(operand, result);
+        break;
+    case DOUBLE:
+        UnaryOperationExecutor::execute<double_t, hash_t, operation::CombineHash>(operand, result);
+        break;
+    case NODE:
+        UnaryOperationExecutor::executeNodeIDOps<hash_t, operation::CombineHash>(operand, result);
         break;
     default:
         assert(false);

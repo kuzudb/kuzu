@@ -8,28 +8,28 @@ namespace function {
 template<typename T>
 struct SumFunction {
 
-    struct SumState : public AggregationState {};
+    struct SumState : public AggregationState {
+        T val;
 
-    static unique_ptr<AggregationState> initialize() {
-        auto state = make_unique<SumState>();
-        state->val = make_unique<uint8_t[]>(sizeof(T));
-        return state;
-    }
+        inline uint64_t getValSize() const override { return sizeof(*this); }
+        inline uint8_t* getFinalVal() const override { return (uint8_t*)&val; }
+    };
+
+    static unique_ptr<AggregationState> initialize() { return make_unique<SumState>(); }
 
     static void update(uint8_t* state_, ValueVector* input, uint64_t count) {
         assert(input && !input->state->isFlat());
         count = input->state->selectedSize;
         auto state = reinterpret_cast<SumState*>(state_);
-        auto stateValue = (T*)state->val.get();
         auto inputValues = (T*)input->values;
         if (input->hasNoNullsGuarantee()) {
             for (auto i = 0u; i < count; i++) {
                 if (state->isNull) {
-                    *stateValue = inputValues[input->state->selectedPositions[i]];
+                    state->val = inputValues[input->state->selectedPositions[i]];
                     state->isNull = false;
                 } else {
                     Add::operation(
-                        *stateValue, inputValues[input->state->selectedPositions[i]], *stateValue);
+                        state->val, inputValues[input->state->selectedPositions[i]], state->val);
                 }
             }
         } else {
@@ -37,11 +37,11 @@ struct SumFunction {
                 auto pos = input->state->selectedPositions[i];
                 if (!input->isNull(pos)) {
                     if (state->isNull) {
-                        *stateValue = inputValues[input->state->selectedPositions[i]];
+                        state->val = inputValues[input->state->selectedPositions[i]];
                         state->isNull = false;
                     } else {
-                        Add::operation(*stateValue, inputValues[input->state->selectedPositions[i]],
-                            *stateValue);
+                        Add::operation(state->val, inputValues[input->state->selectedPositions[i]],
+                            state->val);
                     }
                 }
             }
@@ -54,13 +54,11 @@ struct SumFunction {
             return;
         }
         auto state = reinterpret_cast<SumState*>(state_);
-        auto stateValue = (T*)state->val.get();
-        auto otherStateValue = (T*)otherState->val.get();
         if (state->isNull) {
-            *stateValue = *otherStateValue;
+            state->val = otherState->val;
             state->isNull = false;
         } else {
-            Add::operation(*stateValue, *otherStateValue, *stateValue);
+            Add::operation(state->val, otherState->val, state->val);
         }
     }
 

@@ -1,12 +1,12 @@
-#include "src/processor/include/physical_plan/operator/aggregate/aggregate.h"
+#include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 
 #include "src/common/include/utils.h"
 
 namespace graphflow {
 namespace processor {
 
-Aggregate::Aggregate(shared_ptr<ResultSet> resultSet, unique_ptr<PhysicalOperator> prevOperator,
-    ExecutionContext& context, uint32_t id,
+SimpleAggregate::SimpleAggregate(shared_ptr<ResultSet> resultSet,
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id,
     shared_ptr<AggregationSharedState> aggregationSharedState,
     vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators)
     : Sink{move(resultSet), move(prevOperator), PhysicalOperatorType::AGGREGATE, context, id},
@@ -17,14 +17,14 @@ Aggregate::Aggregate(shared_ptr<ResultSet> resultSet, unique_ptr<PhysicalOperato
     }
 }
 
-void Aggregate::init() {
+void SimpleAggregate::init() {
     Sink::init();
     for (auto& aggregationEvaluator : aggregationEvaluators) {
         aggregationEvaluator->initResultSet(*resultSet, *context.memoryManager);
     }
 }
 
-void Aggregate::execute() {
+void SimpleAggregate::execute() {
     metrics->executionTime.start();
     // Exhaust source to update local state for each aggregation expression by its evaluator.
     while (prevOperator->getNextTuples()) {
@@ -47,7 +47,7 @@ void Aggregate::execute() {
     metrics->executionTime.stop();
 }
 
-void Aggregate::finalize() {
+void SimpleAggregate::finalize() {
     {
         lock_guard<mutex> sharedStateLock(sharedState->aggregationSharedStateLock);
         for (auto i = 0u; i < aggregationEvaluators.size(); i++) {
@@ -57,7 +57,7 @@ void Aggregate::finalize() {
     }
 }
 
-unique_ptr<PhysicalOperator> Aggregate::clone() {
+unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
     auto prevOperatorClone = prevOperator->clone();
     vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluatorsCloned;
     for (auto& aggregationEvaluator : aggregationEvaluators) {
@@ -70,7 +70,7 @@ unique_ptr<PhysicalOperator> Aggregate::clone() {
         clonedResultSet->insert(
             i, make_shared<DataChunk>(resultSet->dataChunks[i]->valueVectors.size()));
     }
-    return make_unique<Aggregate>(move(clonedResultSet), move(prevOperatorClone), context, id,
+    return make_unique<SimpleAggregate>(move(clonedResultSet), move(prevOperatorClone), context, id,
         move(sharedState), move(aggregationEvaluatorsCloned));
 }
 

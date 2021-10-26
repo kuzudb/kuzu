@@ -16,6 +16,7 @@ constexpr uint64_t DEFAULT_VECTOR_CAPACITY = 2048;
 typedef uint64_t label_t;
 typedef uint64_t node_offset_t;
 typedef uint16_t sel_t;
+typedef uint64_t hash_t;
 
 // System representation for nodeID.
 struct nodeID_t {

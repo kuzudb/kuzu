@@ -18,6 +18,12 @@ void PhysicalOperator::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     this->resultSet = resultSet;
 }
 
+void PhysicalOperator::reInitialize() {
+    if (prevOperator) {
+        prevOperator->reInitialize();
+    }
+}
+
 void PhysicalOperator::registerProfilingMetrics() {
     auto executionTime = context.profiler.registerTimeMetric(getTimeMetricKey());
     auto numOutputTuple = context.profiler.registerNumericMetric(getNumTupleMetricKey());

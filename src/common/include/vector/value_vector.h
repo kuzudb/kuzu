@@ -26,7 +26,7 @@ private:
 };
 
 //! A Vector represents values of the same data type.
-//! The capacity of a ValueVector is either 1 (single value) or DEFAULT_VECTOR_CAPACITY.
+//! The capacity of a ValueVector is either 1 (sequence) or DEFAULT_VECTOR_CAPACITY.
 class ValueVector {
 
 public:
