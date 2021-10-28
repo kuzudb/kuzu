@@ -20,7 +20,8 @@ void VectorBooleanOperations::Xor(ValueVector& left, ValueVector& right, ValueVe
 }
 
 void VectorBooleanOperations::Not(ValueVector& operand, ValueVector& result) {
-    UnaryOperationExecutor::executeBooleanOps<operation::Not>(operand, result);
+    UnaryOperationExecutor::execute<uint8_t, uint8_t, operation::Not, false /* IS_NODE_ID */,
+        false /* SKIP_NULL */>(operand, result);
 }
 
 uint64_t VectorBooleanOperations::AndSelect(

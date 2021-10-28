@@ -8,6 +8,24 @@ namespace graphflow {
 namespace common {
 
 struct BinaryOperationExecutor {
+    static void setUnstructuredString(Value& value, const string& str, ValueVector& vec) {
+        vec.allocateStringOverflowSpace(value.val.strVal, str.length());
+        value.val.strVal.set(str);
+        value.dataType = STRING;
+    }
+
+    static void allocateUnstructuredString(Value& lValue, Value& rValue, Value& resVal,
+        ValueVector& lVec, ValueVector& rVec, ValueVector& resVec) {
+        assert(lValue.dataType == STRING || rValue.dataType == STRING);
+        if (lValue.dataType != STRING) {
+            setUnstructuredString(lValue, lValue.toString(), lVec);
+        }
+        if (rValue.dataType != STRING) {
+            setUnstructuredString(rValue, rValue.toString(), rVec);
+        }
+        resVec.allocateStringOverflowSpace(
+            resVal.val.strVal, lValue.val.strVal.len + rValue.val.strVal.len);
+    }
 
     template<class A, class B, class R, bool IS_STRUCTURED_STRING, bool IS_UNSTRUCTURED>
     static void allocateStringIfNecessary(A& lValue, B& rValue, R& resultVal, ValueVector& lVec,
@@ -16,30 +34,12 @@ struct BinaryOperationExecutor {
             resultVec.allocateStringOverflowSpace(resultVal, lValue.len + rValue.len);
         } else if constexpr (IS_UNSTRUCTURED) {
             if (lValue.dataType == STRING || rValue.dataType == STRING) {
-                prepareUnstructuredString(lValue, rValue, resultVal, lVec, rVec, resultVec);
+                allocateUnstructuredString(lValue, rValue, resultVal, lVec, rVec, resultVec);
             }
         }
     }
 
-    static void prepareUnstructuredString(Value& lValue, Value& rValue, Value& resVal,
-        ValueVector& lVec, ValueVector& rVec, ValueVector& resVec) {
-        assert(lValue.dataType == STRING || rValue.dataType == STRING);
-        if (lValue.dataType != STRING) {
-            string lStringVal = lValue.toString();
-            lVec.allocateStringOverflowSpace(lValue.val.strVal, lStringVal.length());
-            lValue.val.strVal.set(lStringVal);
-            lValue.dataType = STRING;
-        } else {
-            string rStringVal = rValue.toString();
-            rVec.allocateStringOverflowSpace(rValue.val.strVal, rStringVal.length());
-            rValue.val.strVal.set(rStringVal);
-            rValue.dataType = STRING;
-        }
-        resVec.allocateStringOverflowSpace(
-            resVal.val.strVal, lValue.val.strVal.len + rValue.val.strVal.len);
-    }
-
-    // ARITHMETIC (ADD, SUBSTRACT, MULTIPLY, DIVIDE, MODULO, POWER), COMPARISON (GT, GTE, LT, LTE,
+    // ARITHMETIC (ADD, SUBTRACT, MULTIPLY, DIVIDE, MODULO, POWER), COMPARISON (GT, GTE, LT, LTE,
     // EQ, NEQ), CONJUNCTION (AND, OR, XOR)
     template<class A, class B, class R, class FUNC = function<void(A&, B&, R&)>,
         bool IS_STRUCTURED_STRING, bool IS_UNSTRUCTURED>
@@ -53,7 +53,6 @@ struct BinaryOperationExecutor {
             auto lPos = left.state->getPositionOfCurrIdx();
             auto rPos = right.state->getPositionOfCurrIdx();
             auto resPos = result.state->getPositionOfCurrIdx();
-
             result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
             if (!result.isNull(resPos)) {
                 if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {

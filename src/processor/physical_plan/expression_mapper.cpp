@@ -92,7 +92,7 @@ ExpressionMapper::mapChildExpressionAndCastToUnstructuredIfNecessary(const Expre
         retVal = mapToPhysical(expression, physicalOperatorInfo, context);
         if (castToUnstructured) {
             retVal = make_unique<UnaryExpressionEvaluator>(
-                move(retVal), CAST_TO_UNSTRUCTURED_VECTOR, UNSTRUCTURED);
+                move(retVal), CAST_TO_UNSTRUCTURED_VALUE, UNSTRUCTURED);
         }
     }
     return retVal;
@@ -122,6 +122,9 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToU
     } break;
     case TIMESTAMP: {
         val.val.timestampVal = literalExpression.literal.val.timestampVal;
+    } break;
+    case INTERVAL: {
+        val.val.intervalVal = literalExpression.literal.val.intervalVal;
     } break;
     case STRING: {
         vector->allocateStringOverflowSpace(
@@ -161,6 +164,9 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToS
     } break;
     case TIMESTAMP: {
         ((timestamp_t*)vector->values)[0] = literalExpression.literal.val.timestampVal;
+    } break;
+    case INTERVAL: {
+        ((interval_t*)vector->values)[0] = literalExpression.literal.val.intervalVal;
     } break;
     default:
         assert(false);

@@ -294,40 +294,34 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<PropertyDefinition>& pr
             if (property.isPrimaryKey) {
                 nodeIDMap->set(to_string(int64Val).c_str(), nodeOffset);
             }
-            break;
-        }
+        } break;
         case DOUBLE: {
             auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
             memcpy(buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(DOUBLE)),
                 &doubleVal, TypeUtils::getDataTypeSize(DOUBLE));
-            break;
-        }
+        } break;
         case BOOL: {
             auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
             memcpy(buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(BOOL)),
                 &boolVal, TypeUtils::getDataTypeSize(BOOL));
-            break;
-        }
+        } break;
         case DATE: {
             auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
             memcpy(buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(DATE)),
                 &dateVal, TypeUtils::getDataTypeSize(DATE));
-            break;
-        }
+        } break;
         case TIMESTAMP: {
             auto timestampVal = reader.skipTokenIfNull() ? NULL_TIMESTAMP : reader.getTimestamp();
             memcpy(
                 buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(TIMESTAMP)),
                 &timestampVal, TypeUtils::getDataTypeSize(TIMESTAMP));
-            break;
-        }
+        } break;
         case INTERVAL: {
             auto intervalVal = reader.skipTokenIfNull() ? NULL_INTERVAL : reader.getInterval();
             memcpy(
                 buffers[propertyId].get() + (bufferOffset * TypeUtils::getDataTypeSize(INTERVAL)),
                 &intervalVal, TypeUtils::getDataTypeSize(INTERVAL));
-            break;
-        }
+        } break;
         case STRING: {
             auto strVal =
                 reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
@@ -343,8 +337,7 @@ void NodesLoader::putPropsOfLineIntoBuffers(const vector<PropertyDefinition>& pr
             if (property.isPrimaryKey) {
                 nodeIDMap->set(strVal, nodeOffset);
             }
-            break;
-        }
+        } break;
         default:
             if (!reader.skipTokenIfNull()) {
                 reader.skipToken();
@@ -398,28 +391,24 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             auto intVal = TypeUtils::convertToInt64(valuePtr);
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&intVal));
-            break;
-        }
+        } break;
         case DOUBLE: {
             auto doubleVal = TypeUtils::convertToDouble(valuePtr);
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize,
                 reinterpret_cast<uint8_t*>(&doubleVal));
-            break;
-        }
+        } break;
         case BOOL: {
             auto boolVal = TypeUtils::convertToBoolean(valuePtr);
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&boolVal));
-            break;
-        }
+        } break;
         case DATE: {
             char* beginningOfDateStr = valuePtr;
             date_t dateVal = Date::FromCString(beginningOfDateStr, strlen(beginningOfDateStr));
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&dateVal));
-            break;
-        }
+        } break;
         case TIMESTAMP: {
             char* beginningOfTimestampStr = valuePtr;
             timestamp_t timestampVal =
@@ -427,8 +416,7 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize,
                 reinterpret_cast<uint8_t*>(&timestampVal));
-            break;
-        }
+        } break;
         case INTERVAL: {
             char* beginningOfIntervalStr = valuePtr;
             interval_t intervalVal =
@@ -436,8 +424,7 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
                 static_cast<uint8_t>(dataType), dataTypeSize,
                 reinterpret_cast<uint8_t*>(&intervalVal));
-            break;
-        }
+        } break;
         case STRING: {
             auto encodedString = reinterpret_cast<gf_string_t*>(
                 unstrPropertyPages.getPtrToMemLoc(pageCursor) +
@@ -448,8 +435,7 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             // in case of string, we want to set only the property key id and datatype.
             unstrPropertyPages.setUnstrProperty(
                 pageCursor, propertyKeyId, static_cast<uint8_t>(dataType), 0, nullptr);
-            break;
-        }
+        } break;
         default:
             throw invalid_argument("unsupported dataType while parsing unstructured property");
         }

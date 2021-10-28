@@ -85,54 +85,54 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     unique_ptr<PhysicalOperator> physicalOperator;
     auto operatorType = logicalOperator->getLogicalOperatorType();
     switch (operatorType) {
-    case LOGICAL_SCAN_NODE_ID:
+    case LOGICAL_SCAN_NODE_ID: {
         physicalOperator = mapLogicalScanNodeIDToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_SELECT_SCAN:
+    } break;
+    case LOGICAL_SELECT_SCAN: {
         physicalOperator = mapLogicalSelectScanToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_EXTEND:
+    } break;
+    case LOGICAL_EXTEND: {
         physicalOperator = mapLogicalExtendToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_FLATTEN:
+    } break;
+    case LOGICAL_FLATTEN: {
         physicalOperator = mapLogicalFlattenToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_FILTER:
+    } break;
+    case LOGICAL_FILTER: {
         physicalOperator = mapLogicalFilterToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_INTERSECT:
+    } break;
+    case LOGICAL_INTERSECT: {
         physicalOperator = mapLogicalIntersectToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_PROJECTION:
+    } break;
+    case LOGICAL_PROJECTION: {
         physicalOperator = mapLogicalProjectionToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_HASH_JOIN:
+    } break;
+    case LOGICAL_HASH_JOIN: {
         physicalOperator = mapLogicalHashJoinToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_SCAN_NODE_PROPERTY:
+    } break;
+    case LOGICAL_SCAN_NODE_PROPERTY: {
         physicalOperator =
             mapLogicalScanNodePropertyToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_SCAN_REL_PROPERTY:
+    } break;
+    case LOGICAL_SCAN_REL_PROPERTY: {
         physicalOperator =
             mapLogicalScanRelPropertyToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_LOAD_CSV:
+    } break;
+    case LOGICAL_LOAD_CSV: {
         physicalOperator = mapLogicalLoadCSVToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_MULTIPLICITY_REDUCER:
+    } break;
+    case LOGICAL_MULTIPLICITY_REDUCER: {
         physicalOperator =
             mapLogicalMultiplicityReducerToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_SKIP:
+    } break;
+    case LOGICAL_SKIP: {
         physicalOperator = mapLogicalSkipToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_LIMIT:
+    } break;
+    case LOGICAL_LIMIT: {
         physicalOperator = mapLogicalLimitToPhysical(logicalOperator.get(), info, context);
-        break;
-    case LOGICAL_AGGREGATE:
+    } break;
+    case LOGICAL_AGGREGATE: {
         physicalOperator = mapLogicalAggregateToPhysical(logicalOperator.get(), info, context);
-        break;
+    } break;
     default:
         assert(false);
     }

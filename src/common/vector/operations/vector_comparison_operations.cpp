@@ -12,67 +12,68 @@ public:
     template<class OP>
     static inline void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
         switch (left.dataType) {
-        case BOOL:
+        case BOOL: {
             assert(right.dataType == BOOL);
             BinaryOperationExecutor::execute<uint8_t, uint8_t, uint8_t, OP,
                 false /*IS_STRUCTURED_STRING*/, false /*IS_UNSTRUCTURED*/>(left, right, result);
-            break;
-        case INT64:
+        } break;
+        case INT64: {
             switch (right.dataType) {
-            case INT64:
+            case INT64: {
                 BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, OP,
                     false /*IS_STRUCTURED_STRING*/, false /*IS_UNSTRUCTURED*/>(left, right, result);
-                break;
-            case DOUBLE:
+            } break;
+            case DOUBLE: {
                 BinaryOperationExecutor::execute<int64_t, double_t, uint8_t, OP,
                     false /*IS_STRUCTURED_STRING*/, false /*IS_UNSTRUCTURED*/>(left, right, result);
-                break;
+            } break;
             default:
                 assert(false);
             }
-            break;
-        case DOUBLE:
+        } break;
+        case DOUBLE: {
             switch (right.dataType) {
-            case INT64:
+            case INT64: {
                 BinaryOperationExecutor::execute<double_t, int64_t, uint8_t, OP,
                     false /*IS_STRUCTURED_STRING*/, false /*IS_UNSTRUCTURED*/>(left, right, result);
-                break;
-            case DOUBLE:
+            } break;
+            case DOUBLE: {
                 BinaryOperationExecutor::execute<double_t, double_t, uint8_t, OP,
                     false /*IS_STRUCTURED_STRING*/, false /*IS_UNSTRUCTURED*/>(left, right, result);
-                break;
+            } break;
             default:
                 assert(false);
             }
-            break;
-        case STRING:
+        } break;
+        case STRING: {
             assert(right.dataType == STRING);
             BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, OP,
                 false /*IS_STRUCTURED_STRING*/, false /*IS_UNSTRUCTURED*/>(left, right, result);
-            break;
-        case UNSTRUCTURED:
+        } break;
+        case UNSTRUCTURED: {
             assert(right.dataType == UNSTRUCTURED);
             BinaryOperationExecutor::execute<Value, Value, uint8_t, OP,
                 false /*IS_STRUCTURED_STRING*/, false /*IS_UNSTRUCTURED*/>(left, right, result);
-            break;
-        case DATE:
+        } break;
+        case DATE: {
             assert(right.dataType == DATE);
             BinaryOperationExecutor::execute<date_t, date_t, uint8_t, OP,
                 false /*IS_STRUCTURED_STRING*/, false /*IS_UNSTRUCTURED*/>(left, right, result);
-            break;
-        case TIMESTAMP:
+        } break;
+        case TIMESTAMP: {
             assert(right.dataType == TIMESTAMP);
             BinaryOperationExecutor::execute<timestamp_t, timestamp_t, uint8_t, OP,
                 false /*IS_STRUCTURED_STRING*/, false /*IS_UNSTRUCTURED*/>(left, right, result);
-            break;
-        case INTERVAL:
+        } break;
+        case INTERVAL: {
             assert(right.dataType == INTERVAL);
             BinaryOperationExecutor::execute<interval_t, interval_t, uint8_t, OP,
                 false /*IS_STRUCTURED_STRING*/, false /*IS_UNSTRUCTURED*/>(left, right, result);
-            break;
-        case NODE:
+        } break;
+        case NODE: {
             assert(right.dataType == NODE);
             BinaryOperationExecutor::executeNodeIDOps<OP>(left, right, result);
+        } break;
         default:
             assert(false);
         }
@@ -81,11 +82,12 @@ public:
     template<class OP>
     static inline uint64_t select(ValueVector& left, ValueVector& right, sel_t* selectedPositions) {
         switch (left.dataType) {
-        case BOOL:
+        case BOOL: {
             assert(right.dataType == BOOL);
             return BinaryOperationExecutor::select<uint8_t, uint8_t, uint8_t, OP>(
                 left, right, selectedPositions);
-        case INT64:
+        }
+        case INT64: {
             switch (right.dataType) {
             case INT64:
                 return BinaryOperationExecutor::select<int64_t, int64_t, uint8_t, OP>(
@@ -96,8 +98,8 @@ public:
             default:
                 assert(false);
             }
-            break;
-        case DOUBLE:
+        } break;
+        case DOUBLE: {
             switch (right.dataType) {
             case INT64:
                 return BinaryOperationExecutor::select<double_t, int64_t, uint8_t, OP>(
@@ -108,30 +110,36 @@ public:
             default:
                 assert(false);
             }
-            break;
-        case STRING:
+        } break;
+        case STRING: {
             assert(right.dataType == STRING);
             return BinaryOperationExecutor::select<gf_string_t, gf_string_t, uint8_t, OP>(
                 left, right, selectedPositions);
-        case UNSTRUCTURED:
+        }
+        case UNSTRUCTURED: {
             assert(right.dataType == UNSTRUCTURED);
             return BinaryOperationExecutor::select<Value, Value, uint8_t, OP>(
                 left, right, selectedPositions);
-        case DATE:
+        }
+        case DATE: {
             assert(right.dataType == DATE);
             return BinaryOperationExecutor::select<date_t, date_t, uint8_t, OP>(
                 left, right, selectedPositions);
-        case TIMESTAMP:
+        }
+        case TIMESTAMP: {
             assert(right.dataType == TIMESTAMP);
             return BinaryOperationExecutor::select<timestamp_t, timestamp_t, uint8_t, OP>(
                 left, right, selectedPositions);
-        case INTERVAL:
+        }
+        case INTERVAL: {
             assert(right.dataType == INTERVAL);
             return BinaryOperationExecutor::select<interval_t, interval_t, uint8_t, OP>(
                 left, right, selectedPositions);
-        case NODE:
+        }
+        case NODE: {
             assert(right.dataType == NODE);
             return BinaryOperationExecutor::selectNodeIDOps<OP>(left, right, selectedPositions);
+        }
         default:
             assert(false);
         }
@@ -169,11 +177,13 @@ void VectorComparisonOperations::LessThanEquals(
 }
 
 void VectorComparisonOperations::IsNull(ValueVector& operand, ValueVector& result) {
-    UnaryOperationExecutor::executeOnNullMask<true /* NULL */>(operand, result);
+    UnaryOperationExecutor::execute<uint8_t, uint8_t, operation::IsNull, false, true>(
+        operand, result);
 }
 
 void VectorComparisonOperations::IsNotNull(ValueVector& operand, ValueVector& result) {
-    UnaryOperationExecutor::executeOnNullMask<false /* NULL */>(operand, result);
+    UnaryOperationExecutor::execute<uint8_t, uint8_t, operation::IsNotNull, false, true>(
+        operand, result);
 }
 
 uint64_t VectorComparisonOperations::EqualsSelect(

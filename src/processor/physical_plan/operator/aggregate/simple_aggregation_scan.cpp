@@ -1,7 +1,5 @@
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregation_scan.h"
 
-#include <iostream>
-
 namespace graphflow {
 namespace processor {
 

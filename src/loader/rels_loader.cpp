@@ -233,45 +233,38 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(
             auto intVal = reader.skipTokenIfNull() ? NULL_INT64 : reader.getInt64();
             adjAndPropertyColumnsBuilder->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT64);
-            break;
-        }
+        } break;
         case DOUBLE: {
             auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
             adjAndPropertyColumnsBuilder->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&doubleVal), DOUBLE);
-            break;
-        }
+        } break;
         case BOOL: {
             auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
             adjAndPropertyColumnsBuilder->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
-            break;
-        }
+        } break;
         case DATE: {
             auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
             adjAndPropertyColumnsBuilder->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&dateVal), DATE);
-            break;
-        }
+        } break;
         case TIMESTAMP: {
             auto timestampVal = reader.skipTokenIfNull() ? NULL_TIMESTAMP : reader.getTimestamp();
             adjAndPropertyColumnsBuilder->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&timestampVal), TIMESTAMP);
-            break;
-        }
+        } break;
         case INTERVAL: {
             auto intervalVal = reader.skipTokenIfNull() ? NULL_INTERVAL : reader.getInterval();
             adjAndPropertyColumnsBuilder->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&intervalVal), INTERVAL);
-            break;
-        }
+        } break;
         case STRING: {
             auto strVal =
                 reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
             adjAndPropertyColumnsBuilder->setStringProperty(
                 nodeID, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
-            break;
-        }
+        } break;
         default:
             if (!reader.skipTokenIfNull()) {
                 reader.skipToken();
@@ -294,45 +287,38 @@ void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<PropertyDefini
             auto intVal = reader.skipTokenIfNull() ? NULL_INT64 : reader.getInt64();
             adjAndPropertyListsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT64);
-            break;
-        }
+        } break;
         case DOUBLE: {
             auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
             adjAndPropertyListsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&doubleVal), DOUBLE);
-            break;
-        }
+        } break;
         case BOOL: {
             auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
             adjAndPropertyListsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
-            break;
-        }
+        } break;
         case DATE: {
             auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
             adjAndPropertyListsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&dateVal), DATE);
-            break;
-        }
+        } break;
         case TIMESTAMP: {
             auto timestampVal = reader.skipTokenIfNull() ? NULL_TIMESTAMP : reader.getTimestamp();
             adjAndPropertyListsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&timestampVal), TIMESTAMP);
-            break;
-        }
+        } break;
         case INTERVAL: {
             auto intervalVal = reader.skipTokenIfNull() ? NULL_INTERVAL : reader.getInterval();
             adjAndPropertyListsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&intervalVal), INTERVAL);
-            break;
-        }
+        } break;
         case STRING: {
             auto strVal =
                 reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
             adjAndPropertyListsBuilder->setStringProperty(
                 pos, nodeIDs, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
-            break;
-        }
+        } break;
         default:
             if (!reader.skipTokenIfNull()) {
                 reader.skipToken();

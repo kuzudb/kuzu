@@ -56,36 +56,33 @@ struct Power {
 
 struct Negate {
     template<class T>
-    static inline void operation(T& input, T& result) {
+    static inline void operation(T& input, bool isNull, T& result) {
+        assert(!isNull);
         result = -input;
     }
 };
 
 struct Abs {
     template<class T>
-    static inline void operation(T& input, T& result) {
+    static inline void operation(T& input, bool isNull, T& result) {
+        assert(!isNull);
         result = abs(input);
     }
 };
 
 struct Floor {
     template<class T>
-    static inline void operation(T& input, T& result) {
+    static inline void operation(T& input, bool isNull, T& result) {
+        assert(!isNull);
         result = floor(input);
     }
 };
 
 struct Ceil {
     template<class T>
-    static inline void operation(T& input, T& result) {
+    static inline void operation(T& input, bool isNull, T& result) {
+        assert(!isNull);
         result = ceil(input);
-    }
-};
-
-struct IntervalFunc {
-    template<class A, class B>
-    static inline void operation(A& input, B& result) {
-        result = Interval::FromCString((const char*)input.getData(), input.len);
     }
 };
 
@@ -115,11 +112,11 @@ inline void Modulo::operation(double_t& left, double_t& right, double_t& result)
     result = fmod(left, right);
 }
 
-/*******************************************
- **                                       **
- **   Specialized Concat implementation   **
- **                                       **
- *******************************************/
+/***************************************************
+ **                                               **
+ **   Specialized Concat and Add implementation   **
+ **                                               **
+ **************************************************/
 
 template<>
 inline void Add::operation(gf_string_t& left, gf_string_t& right, gf_string_t& result) {
@@ -195,6 +192,12 @@ inline void Add::operation(interval_t& left, interval_t& right, interval_t& resu
     result.micros = left.micros + right.micros;
 }
 
+/*********************************************
+ **                                         **
+ **   Specialized Subtract implementation   **
+ **                                         **
+ *********************************************/
+
 template<>
 inline void Subtract::operation(date_t& left, interval_t& right, date_t& result) {
     interval_t inverseRight;
@@ -258,14 +261,14 @@ struct ArithmeticOnValues {
         switch (left.dataType) {
         case INT64:
             switch (right.dataType) {
-            case INT64:
+            case INT64: {
                 result.dataType = INT64;
                 FUNC::operation(left.val.int64Val, right.val.int64Val, result.val.int64Val);
-                break;
-            case DOUBLE:
+            } break;
+            case DOUBLE: {
                 result.dataType = DOUBLE;
                 FUNC::operation(left.val.int64Val, right.val.doubleVal, result.val.doubleVal);
-                break;
+            } break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `INT64` and `" +
                                        TypeUtils::dataTypeToString(right.dataType) + "`");
@@ -273,14 +276,14 @@ struct ArithmeticOnValues {
             break;
         case DOUBLE:
             switch (right.dataType) {
-            case INT64:
+            case INT64: {
                 result.dataType = DOUBLE;
                 FUNC::operation(left.val.doubleVal, right.val.int64Val, result.val.doubleVal);
-                break;
-            case DOUBLE:
+            } break;
+            case DOUBLE: {
                 result.dataType = DOUBLE;
                 FUNC::operation(left.val.doubleVal, right.val.doubleVal, result.val.doubleVal);
-                break;
+            } break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
                                        TypeUtils::dataTypeToString(right.dataType) + "`");
@@ -294,16 +297,17 @@ struct ArithmeticOnValues {
     }
 
     template<class FUNC, const char* arithmeticOpStr>
-    static void operation(Value& input, Value& result) {
+    static void operation(Value& input, bool isNull, Value& result) {
+        assert(!isNull);
         switch (input.dataType) {
-        case INT64:
+        case INT64: {
             result.dataType = INT64;
-            FUNC::operation(input.val.int64Val, result.val.int64Val);
-            break;
-        case DOUBLE:
+            FUNC::operation(input.val.int64Val, isNull, result.val.int64Val);
+        } break;
+        case DOUBLE: {
             result.dataType = DOUBLE;
-            FUNC::operation(input.val.doubleVal, result.val.doubleVal);
-            break;
+            FUNC::operation(input.val.doubleVal, isNull, result.val.doubleVal);
+        } break;
         default:
             throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
                                    TypeUtils::dataTypeToString(input.dataType) + "`");
@@ -321,7 +325,6 @@ static const char negateStr[] = "negate";
 static const char absStr[] = "abs";
 static const char floorStr[] = "floor";
 static const char ceilStr[] = "ceil";
-static const char intervalStr[] = "interval";
 
 template<>
 inline void Add::operation(Value& left, Value& right, Value& result) {
@@ -408,29 +411,24 @@ inline void Power::operation(Value& left, Value& right, Value& result) {
 }
 
 template<>
-inline void Negate::operation(Value& operand, Value& result) {
-    ArithmeticOnValues::operation<Negate, negateStr>(operand, result);
+inline void Negate::operation(Value& operand, bool isNull, Value& result) {
+    ArithmeticOnValues::operation<Negate, negateStr>(operand, isNull, result);
 }
 
 template<>
-inline void Abs::operation(Value& operand, Value& result) {
-    ArithmeticOnValues::operation<Abs, absStr>(operand, result);
+inline void Abs::operation(Value& operand, bool isNull, Value& result) {
+    ArithmeticOnValues::operation<Abs, absStr>(operand, isNull, result);
 }
 
 template<>
-inline void Floor::operation(Value& operand, Value& result) {
-    ArithmeticOnValues::operation<Floor, floorStr>(operand, result);
+inline void Floor::operation(Value& operand, bool isNull, Value& result) {
+    ArithmeticOnValues::operation<Floor, floorStr>(operand, isNull, result);
 };
 
 template<>
-inline void Ceil::operation(Value& operand, Value& result) {
-    ArithmeticOnValues::operation<Ceil, ceilStr>(operand, result);
+inline void Ceil::operation(Value& operand, bool isNull, Value& result) {
+    ArithmeticOnValues::operation<Ceil, ceilStr>(operand, isNull, result);
 };
-
-template<>
-inline void IntervalFunc::operation(gf_string_t& input, interval_t& result) {
-    result = Interval::FromCString((const char*)input.getData(), input.len);
-}
 
 } // namespace operation
 } // namespace common

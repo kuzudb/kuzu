@@ -6,6 +6,7 @@
 #include "src/binder/include/expression/rel_expression.h"
 #include "src/binder/include/query_binder.h"
 #include "src/common/include/date.h"
+#include "src/common/include/interval.h"
 #include "src/common/include/timestamp.h"
 #include "src/common/include/types.h"
 
@@ -251,13 +252,6 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     throw invalid_argument(functionName + " function does not exist.");
 }
 
-shared_ptr<Expression> ExpressionBinder::bindIntervalFunctionExpression(
-    const ParsedExpression& parsedExpression) {
-    validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.children[0]);
-    return make_shared<Expression>(INTERVAL_FUNC, INTERVAL, move(child));
-}
-
 shared_ptr<Expression> ExpressionBinder::bindFloorFunctionExpression(
     const ParsedExpression& parsedExpression) {
     validateNumberOfChildren(parsedExpression, 1);
@@ -321,26 +315,36 @@ shared_ptr<Expression> ExpressionBinder::bindIDFunctionExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindDateFunctionExpression(
     const ParsedExpression& parsedExpression) {
-    validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.children[0]);
-    validateExpectedType(*child, STRING);
-    // Currently only support bind date(string) as date literal
-    GF_ASSERT(child->expressionType == LITERAL_STRING);
-    auto dateInString = static_pointer_cast<LiteralExpression>(child)->literal.strVal;
-    return make_shared<LiteralExpression>(LITERAL_DATE, DATE,
-        Literal(Date::FromCString(dateInString.c_str(), dateInString.length())));
+    return bindStringCastingFunctionExpression<date_t>(
+        parsedExpression, CAST_STRING_TO_DATE, LITERAL_DATE, DATE, Date::FromCString);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindTimestampFunctionExpression(
     const ParsedExpression& parsedExpression) {
+    return bindStringCastingFunctionExpression<timestamp_t>(parsedExpression,
+        CAST_STRING_TO_TIMESTAMP, LITERAL_TIMESTAMP, TIMESTAMP, Timestamp::FromCString);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindIntervalFunctionExpression(
+    const ParsedExpression& parsedExpression) {
+    return bindStringCastingFunctionExpression<interval_t>(parsedExpression,
+        CAST_STRING_TO_INTERVAL, LITERAL_INTERVAL, INTERVAL, Interval::FromCString);
+}
+
+template<typename T>
+shared_ptr<Expression> ExpressionBinder::bindStringCastingFunctionExpression(
+    const ParsedExpression& parsedExpression, ExpressionType castExpressionType,
+    ExpressionType literalExpressionType, DataType resultDataType,
+    std::function<T(const char*, uint64_t)> castFunction) {
     validateNumberOfChildren(parsedExpression, 1);
     auto child = bindExpression(*parsedExpression.children[0]);
     validateExpectedType(*child, STRING);
-    // Currently only support bind timestamp(string) as timestamp literal
-    GF_ASSERT(child->expressionType == LITERAL_STRING);
-    auto timestampInString = static_pointer_cast<LiteralExpression>(child)->literal.strVal;
-    return make_shared<LiteralExpression>(LITERAL_TIMESTAMP, TIMESTAMP,
-        Literal(Timestamp::FromCString(timestampInString.c_str(), timestampInString.length())));
+    if (child->expressionType == LITERAL_STRING) {
+        auto literalVal = static_pointer_cast<LiteralExpression>(child)->literal.strVal;
+        return make_shared<LiteralExpression>(literalExpressionType, resultDataType,
+            Literal(castFunction(literalVal.c_str(), literalVal.length())));
+    }
+    return make_shared<Expression>(castExpressionType, resultDataType, move(child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
@@ -462,7 +466,7 @@ shared_ptr<Expression> ExpressionBinder::validateAsBoolAndCastIfNecessary(
         validateExpectedType(*expression, BOOL);
         return expression;
     }
-    return make_shared<Expression>(CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR, BOOL, move(expression));
+    return make_shared<Expression>(CAST_UNSTRUCTURED_TO_BOOL_VALUE, BOOL, move(expression));
 }
 
 void ExpressionBinder::validateAggregationIsRoot(const Expression& expression) {

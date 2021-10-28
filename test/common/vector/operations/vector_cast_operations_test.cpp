@@ -134,7 +134,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredBooleanToStringTest) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = i % 2 == 0;
     }
-    VectorCastOperations::castStructuredToStringValue(*lVector, *result);
+    VectorCastOperations::castStructuredToString(*lVector, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].getAsString(), (i % 2 == 0 ? "True" : "False"));
     }
@@ -153,7 +153,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredInt32ToStringTest) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = i * 2;
     }
-    VectorCastOperations::castStructuredToStringValue(*lVector, *result);
+    VectorCastOperations::castStructuredToString(*lVector, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].getAsString(), to_string(i * 2));
     }
@@ -172,7 +172,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredDoubleToStringTest) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = (double)(i * 2);
     }
-    VectorCastOperations::castStructuredToStringValue(*lVector, *result);
+    VectorCastOperations::castStructuredToString(*lVector, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].getAsString(), to_string((double)(i * 2)));
     }
@@ -191,7 +191,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredDateToStringTest) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = date_t(1000 + i);
     }
-    VectorCastOperations::castStructuredToStringValue(*lVector, *result);
+    VectorCastOperations::castStructuredToString(*lVector, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].getAsString(), Date::toString(date_t(1000 + i)));
     }

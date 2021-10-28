@@ -15,7 +15,7 @@ class QueryBinder;
 class ExpressionBinder {
 
 public:
-    ExpressionBinder(QueryBinder* queryBinder) : queryBinder{queryBinder} {}
+    explicit ExpressionBinder(QueryBinder* queryBinder) : queryBinder{queryBinder} {}
 
     shared_ptr<Expression> bindExpression(const ParsedExpression& parsedExpression);
 
@@ -85,6 +85,12 @@ private:
         const ParsedExpression& parsedExpression, shared_ptr<Expression>& right);
 
 private:
+    template<typename T>
+    shared_ptr<Expression> bindStringCastingFunctionExpression(
+        const ParsedExpression& parsedExpression, ExpressionType castType,
+        ExpressionType literalExpressionType, DataType resultDataType,
+        std::function<T(const char*, uint64_t)> castFunction);
+
     QueryBinder* queryBinder;
 };
 

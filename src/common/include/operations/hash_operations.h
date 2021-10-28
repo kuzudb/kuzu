@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <unordered_set>
 
+#include "src/common/include/gf_string.h"
 #include "src/common/include/types.h"
 #include "src/common/include/utils.h"
 
@@ -20,7 +21,8 @@ inline hash_t combineHashScalar(hash_t a, hash_t b) {
 
 struct Hash {
     template<class T>
-    static inline void operation(const T& key, hash_t& result) {
+    static inline void operation(const T& key, bool isNull, hash_t& result) {
+        assert(!isNull);
         throw invalid_argument(
             StringUtils::string_format("Hash type: %s is not supported.", typeid(T).name()));
     }
@@ -28,40 +30,66 @@ struct Hash {
 
 struct CombineHash {
     template<class T>
-    static inline void operation(const T& key, hash_t& result) {
+    static inline void operation(const T& key, bool isNull, hash_t& result) {
+        assert(!isNull);
         uint64_t otherHash;
-        Hash::operation(key, otherHash);
+        Hash::operation(key, isNull, otherHash);
         result = combineHashScalar(result, otherHash);
     }
 };
 
 template<>
-inline void Hash::operation(const uint32_t& key, hash_t& result) {
+inline void Hash::operation(const uint32_t& key, bool isNull, hash_t& result) {
+    assert(!isNull);
     result = murmurhash64(key);
 }
 
 template<>
-inline void Hash::operation(const uint64_t& key, hash_t& result) {
+inline void Hash::operation(const uint64_t& key, bool isNull, hash_t& result) {
+    assert(!isNull);
     result = murmurhash64(key);
 }
 
 template<>
-inline void Hash::operation(const int64_t& key, hash_t& result) {
+inline void Hash::operation(const int64_t& key, bool isNull, hash_t& result) {
+    assert(!isNull);
     result = murmurhash64(key);
 }
 
 template<>
-inline void Hash::operation(const string& key, hash_t& result) {
-    result = std::hash<string>()(key);
+inline void Hash::operation(const gf_string_t& key, bool isNull, hash_t& result) {
+    assert(!isNull);
+    result = std::hash<string>()(key.getAsString());
 }
 
 template<>
-inline void Hash::operation(const nodeID_t& nodeID, hash_t& result) {
-    result = murmurhash64(nodeID.offset) ^ murmurhash64(nodeID.label);
+inline void Hash::operation(const date_t& key, bool isNull, hash_t& result) {
+    assert(!isNull);
+    result = murmurhash64(key.days);
 }
 
 template<>
-inline void Hash::operation(const unordered_set<string>& key, hash_t& result) {
+inline void Hash::operation(const timestamp_t& key, bool isNull, hash_t& result) {
+    assert(!isNull);
+    result = murmurhash64(key.value);
+}
+
+template<>
+inline void Hash::operation(const interval_t& key, bool isNull, hash_t& result) {
+    assert(!isNull);
+    result = combineHashScalar(murmurhash64(key.months),
+        combineHashScalar(murmurhash64(key.days), murmurhash64(key.micros)));
+}
+
+template<>
+inline void Hash::operation(const nodeID_t& key, bool isNull, hash_t& result) {
+    assert(!isNull);
+    result = murmurhash64(key.offset) ^ murmurhash64(key.label);
+}
+
+template<>
+inline void Hash::operation(const unordered_set<string>& key, bool isNull, hash_t& result) {
+    assert(!isNull);
     for (auto&& s : key) {
         result ^= std::hash<string>()(s);
     }

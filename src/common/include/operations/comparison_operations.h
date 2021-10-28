@@ -51,17 +51,25 @@ struct LessThanEquals {
     }
 };
 
-struct IsNull {
+//! This function is ONLY used by ValueVector::fillOperandNullMask.
+struct IsNullValue {
     template<class T>
     static inline bool operation(const T& value) {
-        throw std::invalid_argument("Unsupported type for IsNull.");
+        throw std::invalid_argument("Unsupported type for IsNullValue.");
+    }
+};
+
+struct IsNull {
+    template<class T>
+    static inline void operation(T value, bool isNull, uint8_t& result) {
+        result = isNull;
     }
 };
 
 struct IsNotNull {
     template<class T>
-    static inline bool operation(const T& value) {
-        throw std::invalid_argument("Unsupported type for IsNotNull.");
+    static inline bool operation(T value, bool isNull, uint8_t& result) {
+        result = !isNull;
     }
 };
 
@@ -76,55 +84,55 @@ struct EqualsOrNotEqualsValues {
     static inline void operation(const Value& left, const Value& right, uint8_t& result) {
         if (left.dataType == right.dataType) {
             switch (left.dataType) {
-            case BOOL:
+            case BOOL: {
                 if constexpr (equals) {
                     Equals::operation(left.val.booleanVal, right.val.booleanVal, result);
                 } else {
                     NotEquals::operation(left.val.booleanVal, right.val.booleanVal, result);
                 }
-                return;
-            case INT64:
+            } break;
+            case INT64: {
                 if constexpr (equals) {
                     Equals::operation(left.val.int64Val, right.val.int64Val, result);
                 } else {
                     NotEquals::operation(left.val.int64Val, right.val.int64Val, result);
                 }
-                return;
-            case DOUBLE:
+            } break;
+            case DOUBLE: {
                 if constexpr (equals) {
                     Equals::operation(left.val.doubleVal, right.val.doubleVal, result);
                 } else {
                     NotEquals::operation(left.val.doubleVal, right.val.doubleVal, result);
                 }
-                return;
-            case STRING:
+            } break;
+            case STRING: {
                 if constexpr (equals) {
                     Equals::operation(left.val.strVal, right.val.strVal, result);
                 } else {
                     NotEquals::operation(left.val.strVal, right.val.strVal, result);
                 }
-                return;
-            case DATE:
+            } break;
+            case DATE: {
                 if constexpr (equals) {
                     Equals::operation(left.val.dateVal, right.val.dateVal, result);
                 } else {
                     NotEquals::operation(left.val.dateVal, right.val.dateVal, result);
                 }
-                return;
-            case TIMESTAMP:
+            } break;
+            case TIMESTAMP: {
                 if constexpr (equals) {
                     Equals::operation(left.val.timestampVal, right.val.timestampVal, result);
                 } else {
                     NotEquals::operation(left.val.timestampVal, right.val.timestampVal, result);
                 }
-                return;
-            case INTERVAL:
+            } break;
+            case INTERVAL: {
                 if constexpr (equals) {
                     Equals::operation(left.val.intervalVal, right.val.intervalVal, result);
                 } else {
                     NotEquals::operation(left.val.intervalVal, right.val.intervalVal, result);
                 }
-                return;
+            } break;
             default:
                 assert(false);
             }
@@ -224,27 +232,27 @@ struct CompareValues {
     static inline void operation(const Value& left, const Value& right, uint8_t& result) {
         if (left.dataType == right.dataType) {
             switch (left.dataType) {
-            case BOOL:
+            case BOOL: {
                 FUNC::operation(left.val.booleanVal, right.val.booleanVal, result);
-                break;
-            case INT64:
+            } break;
+            case INT64: {
                 FUNC::operation(left.val.int64Val, right.val.int64Val, result);
-                break;
-            case DOUBLE:
+            } break;
+            case DOUBLE: {
                 FUNC::operation(left.val.doubleVal, right.val.doubleVal, result);
-                break;
-            case STRING:
+            } break;
+            case STRING: {
                 FUNC::operation(left.val.strVal, right.val.strVal, result);
-                break;
-            case DATE:
+            } break;
+            case DATE: {
                 FUNC::operation(left.val.dateVal, right.val.dateVal, result);
-                break;
-            case TIMESTAMP:
+            } break;
+            case TIMESTAMP: {
                 FUNC::operation(left.val.timestampVal, right.val.timestampVal, result);
-                break;
-            case INTERVAL:
+            } break;
+            case INTERVAL: {
                 FUNC::operation(left.val.intervalVal, right.val.intervalVal, result);
-                break;
+            } break;
             default:
                 assert(false);
             }
@@ -339,75 +347,41 @@ inline void LessThanEquals::operation(
     result = left.label < right.label || (left.label == right.label && left.offset <= right.offset);
 };
 
-/********************************************
- **                                        **
- **   Specialized IsNull implementations   **
- **                                        **
- ********************************************/
+/*************************************************
+ **                                             **
+ **   Specialized IsNullValue implementations   **
+ **                                             **
+ ************************************************/
 
 template<>
-inline bool IsNull::operation(const uint8_t& value) {
+inline bool IsNullValue::operation(const uint8_t& value) {
     return value == NULL_BOOL;
 };
 
 template<>
-inline bool IsNull::operation(const int64_t& value) {
+inline bool IsNullValue::operation(const int64_t& value) {
     return value == NULL_INT64;
 };
 
 template<>
-inline bool IsNull::operation(const double_t& value) {
+inline bool IsNullValue::operation(const double_t& value) {
     return value == NULL_DOUBLE;
 };
 
 template<>
-inline bool IsNull::operation(const date_t& value) {
+inline bool IsNullValue::operation(const date_t& value) {
     return value == NULL_DATE;
 };
 
 template<>
-inline bool IsNull::operation(const timestamp_t& value) {
+inline bool IsNullValue::operation(const timestamp_t& value) {
     return value == NULL_TIMESTAMP;
 };
 
 template<>
-inline bool IsNull::operation(const interval_t& value) {
+inline bool IsNullValue::operation(const interval_t& value) {
     return value == NULL_INTERVAL;
 };
-/***********************************************
- **                                           **
- **   Specialized IsNotNull implementations   **
- **                                           **
- ***********************************************/
-template<>
-inline bool IsNotNull::operation(const uint8_t& value) {
-    return value != NULL_BOOL;
-};
-
-template<>
-inline bool IsNotNull::operation(const int64_t& value) {
-    return value != NULL_INT64;
-};
-
-template<>
-inline bool IsNotNull::operation(const double_t& value) {
-    return value != NULL_DOUBLE;
-};
-
-template<>
-inline bool IsNotNull::operation(const date_t& value) {
-    return value != NULL_DATE;
-}
-
-template<>
-inline bool IsNotNull::operation(const timestamp_t& value) {
-    return value != NULL_TIMESTAMP;
-}
-
-template<>
-inline bool IsNotNull::operation(const interval_t& value) {
-    return value != NULL_INTERVAL;
-}
 
 } // namespace operation
 } // namespace common
