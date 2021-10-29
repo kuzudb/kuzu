@@ -8,10 +8,11 @@
 namespace graphflow {
 namespace common {
 
-CSVReader::CSVReader(const string& fName, const char tokenSeparator, uint64_t blockId)
-    : fd{nullptr}, tokenSeparator{tokenSeparator}, line{(char*)malloc(sizeof(char) * 1024)},
-      readingBlockIdx{CSV_READING_BLOCK_SIZE * blockId}, readingBlockEndIdx{CSV_READING_BLOCK_SIZE *
-                                                                            (blockId + 1)} {
+CSVReader::CSVReader(const string& fName, const char tokenSeparator, const char quoteChar,
+    const char escapeChar, uint64_t blockId)
+    : fd{nullptr}, tokenSeparator{tokenSeparator}, quoteChar{quoteChar}, escapeChar{escapeChar},
+      line{(char*)malloc(sizeof(char) * 1024)}, readingBlockIdx{CSV_READING_BLOCK_SIZE * blockId},
+      readingBlockEndIdx{CSV_READING_BLOCK_SIZE * (blockId + 1)} {
     openFile(fName);
     auto isBeginningOfLine = false;
     if (0 == readingBlockIdx) {
@@ -27,8 +28,10 @@ CSVReader::CSVReader(const string& fName, const char tokenSeparator, uint64_t bl
     }
 }
 
-CSVReader::CSVReader(const string& fname, const char tokenSeparator)
-    : tokenSeparator(tokenSeparator), line{(char*)malloc(sizeof(char) * 1024)} {
+CSVReader::CSVReader(
+    const string& fname, const char tokenSeparator, const char quoteChar, const char escapeChar)
+    : tokenSeparator(tokenSeparator), quoteChar{quoteChar},
+      escapeChar{escapeChar}, line{(char*)malloc(sizeof(char) * 1024)} {
     openFile(fname);
     readingBlockIdx = 0;
     readingBlockEndIdx = UINT64_MAX;
@@ -94,11 +97,36 @@ bool CSVReader::hasNextToken() {
         return false;
     }
     nextTokenLen = 0;
-    while (tokenSeparator != line[linePtrEnd] && '\n' != line[linePtrEnd]) {
+    bool isQuotedString = false;
+
+    if (quoteChar == line[linePtrEnd]) {
+        linePtrStart++;
+        linePtrEnd++;
+        isQuotedString = true;
+    }
+    string lineStr;
+    while (true) {
+        if (isQuotedString) {
+            // ignore tokenSeparator and new line character here
+            if (quoteChar == line[linePtrEnd]) {
+                break;
+            } else if (escapeChar == line[linePtrEnd]) {
+                // escape next special character
+                linePtrEnd++;
+            }
+        } else if (tokenSeparator == line[linePtrEnd] || '\n' == line[linePtrEnd]) {
+            break;
+        }
+        lineStr += line[linePtrEnd];
         nextTokenLen++;
         linePtrEnd++;
     }
     line[linePtrEnd] = 0;
+    if (isQuotedString) {
+        strncpy(line + linePtrStart, lineStr.c_str(), lineStr.length() + 1);
+        // if this is a string literal, skip the next comma as well
+        linePtrEnd++;
+    }
     return true;
 }
 

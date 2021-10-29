@@ -18,9 +18,11 @@ class CSVReader {
 public:
     constexpr static char COMMENT_LINE_CHAR = '#';
     // Initializes to read a block in file.
-    CSVReader(const string& fname, const char tokenSeparator, uint64_t blockId);
+    CSVReader(const string& fname, const char tokenSeparator, const char quoteChar,
+        const char escapeChar, uint64_t blockId);
     // Intializes to read the complete file.
-    CSVReader(const string& fname, const char tokenSeparator);
+    CSVReader(const string& fname, const char tokenSeparator, const char quoteChar,
+        const char escapeChar);
 
     ~CSVReader();
 
@@ -54,6 +56,8 @@ private:
 private:
     FILE* fd;
     const char tokenSeparator;
+    const char quoteChar;
+    const char escapeChar;
     bool nextLineIsNotProcessed = false, isEndOfBlock = false, nextTokenIsNotProcessed = false;
     char* line;
     size_t lineCapacity = 1 << 10, lineLen = 0;

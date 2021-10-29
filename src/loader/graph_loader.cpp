@@ -17,8 +17,7 @@ namespace loader {
 
 GraphLoader::GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads)
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, threadPool{ThreadPool(numThreads)},
-      inputDirectory(std::move(inputDirectory)),
-      outputDirectory(std::move(outputDirectory)), tokenSeparator{DEFAULT_TOKEN_SEPARATOR} {}
+      inputDirectory(std::move(inputDirectory)), outputDirectory(std::move(outputDirectory)) {}
 
 GraphLoader::~GraphLoader() {
     spdlog::drop("loader");
@@ -75,16 +74,20 @@ void GraphLoader::readAndParseMetadata(vector<NodeFileDescription>& nodeFileDesc
     ifstream jsonFile(metadataJSONPath);
     auto parsedJson = make_unique<nlohmann::json>();
     jsonFile >> *parsedJson;
-    this->tokenSeparator = parsedJson->at("tokenSeparator").get<string>()[0];
+    this->csvFormat.parseCsvFormat(parsedJson);
     auto parsedNodeFileDescriptions = parsedJson->at("nodeFileDescriptions");
-    for (auto& parsedNodeFileDescription : parsedNodeFileDescriptions) {
+    for (auto i = 0u; i < parsedNodeFileDescriptions.size(); i++) {
+        auto parsedNodeFileDescription = parsedNodeFileDescriptions[i];
+        this->csvFormat.updateNodeFormat(parsedNodeFileDescription, i);
         auto filename = parsedNodeFileDescription.at("filename").get<string>();
         nodeFileDescriptions.emplace_back(FileUtils::joinPath(inputDirectory, filename),
             parsedNodeFileDescription.at("label").get<string>(),
             parsedNodeFileDescription.at("primaryKey").get<string>());
     }
     auto parsedRelFileDescriptions = parsedJson->at("relFileDescriptions");
-    for (auto& parsedRelFileDescription : parsedRelFileDescriptions) {
+    for (auto i = 0u; i < parsedRelFileDescriptions.size(); i++) {
+        auto parsedRelFileDescription = parsedRelFileDescriptions[i];
+        this->csvFormat.updateRelFormat(parsedRelFileDescription, i);
         vector<string> srcNodeLabelNames, dstNodeLabelNames;
         for (auto& parsedSrcNodeLabel : parsedRelFileDescription.at("srcNodeLabels")) {
             srcNodeLabelNames.push_back(parsedSrcNodeLabel.get<string>());
@@ -125,7 +128,8 @@ void GraphLoader::readCSVHeaderAndCalcNumBlocks(const vector<string>& filePaths,
 void GraphLoader::addNodeLabelsIntoGraphCatalog(
     const vector<NodeFileDescription>& fileDescriptions, vector<string>& fileHeaders) {
     for (auto i = 0u; i < fileDescriptions.size(); i++) {
-        auto propertyDefinitions = parseHeader(fileHeaders[i]);
+        auto propertyDefinitions =
+            parseHeader(fileHeaders[i], csvFormat.nodeFileTokenSeparators[i]);
         graph.catalog->addNodeLabel(fileDescriptions[i].labelName, move(propertyDefinitions),
             fileDescriptions[i].primaryKeyPropertyName);
     }
@@ -134,7 +138,7 @@ void GraphLoader::addNodeLabelsIntoGraphCatalog(
 void GraphLoader::addRelLabelsIntoGraphCatalog(
     const vector<RelFileDescription>& fileDescriptions, vector<string>& fileHeaders) {
     for (auto i = 0u; i < fileDescriptions.size(); i++) {
-        auto propertyDefinitions = parseHeader(fileHeaders[i]);
+        auto propertyDefinitions = parseHeader(fileHeaders[i], csvFormat.relFileTokenSeparators[i]);
         graph.catalog->addRelLabel(fileDescriptions[i].labelName,
             getRelMultiplicity(fileDescriptions[i].relMultiplicity), move(propertyDefinitions),
             fileDescriptions[i].srcNodeLabelNames, fileDescriptions[i].dstNodeLabelNames);
@@ -143,7 +147,7 @@ void GraphLoader::addRelLabelsIntoGraphCatalog(
 
 // Parses the header of a CSV file. The header contains the name and dataType of each structured
 // property separated by a given `tokenSeparator`.
-vector<PropertyDefinition> GraphLoader::parseHeader(string& header) const {
+vector<PropertyDefinition> GraphLoader::parseHeader(string& header, char tokenSeparator) const {
     auto propertyHeaders = StringUtils::split(header, string(1, tokenSeparator));
     unordered_set<string> propertyNameSet;
     vector<PropertyDefinition> propertyDefinitions;
@@ -197,7 +201,7 @@ unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes(
         (*nodeIDMaps)[nodeLabel] = make_unique<NodeIDMap>(graph.numNodesPerLabel[nodeLabel]);
     }
     logger->info("End constructing nodeIDMaps.");
-    NodesLoader nodesLoader{threadPool, graph, outputDirectory, tokenSeparator};
+    NodesLoader nodesLoader{threadPool, graph, outputDirectory, csvFormat};
     nodesLoader.load(filePaths, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
     logger->info("Done loading nodes.");
     return nodeIDMaps;
@@ -215,7 +219,7 @@ void GraphLoader::loadRels(const vector<RelFileDescription>& relFileDescriptions
     }
     readCSVHeaderAndCalcNumBlocks(filePaths, numBlocksPerLabel, fileHeaderPerLabel);
     addRelLabelsIntoGraphCatalog(relFileDescriptions, fileHeaderPerLabel);
-    RelsLoader relsLoader{threadPool, graph, outputDirectory, tokenSeparator, nodeIDMaps};
+    RelsLoader relsLoader{threadPool, graph, outputDirectory, csvFormat, nodeIDMaps};
 
     relsLoader.load(filePaths, numBlocksPerLabel);
     logger->info("Done loading rels.");
@@ -233,7 +237,9 @@ void GraphLoader::countLinesAndAddUnstrPropertiesInCatalog(
         numLinesPerBlock[labelId].resize(numBlocksPerLabel[labelId]);
         for (uint64_t blockId = 0; blockId < numBlocksPerLabel[labelId]; blockId++) {
             threadPool.execute(countLinesAndScanUnstrPropertiesInBlockTask, filePaths[labelId],
-                tokenSeparator, graph.catalog->getStructuredNodeProperties(labelId).size(),
+                csvFormat.nodeFileTokenSeparators[labelId], csvFormat.nodeFileQuoteChars[labelId],
+                csvFormat.nodeFileEscapeChars[labelId],
+                graph.catalog->getStructuredNodeProperties(labelId).size(),
                 &labelUnstrProperties[blockId], &numLinesPerBlock, labelId, blockId, logger);
         }
     }
@@ -258,11 +264,11 @@ void GraphLoader::countLinesAndAddUnstrPropertiesInCatalog(
 }
 
 void GraphLoader::countLinesAndScanUnstrPropertiesInBlockTask(const string& fName,
-    char tokenSeparator, uint32_t numStructuredProperties,
+    char tokenSeparator, char quoteChar, char escapeChar, uint32_t numStructuredProperties,
     unordered_set<string>* unstrPropertyNameSet, vector<vector<uint64_t>>* numLinesPerBlock,
     label_t label, uint32_t blockId, const shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: path=`{0}` blkIdx={1}", fName, blockId);
-    CSVReader reader(fName, tokenSeparator, blockId);
+    CSVReader reader(fName, tokenSeparator, quoteChar, escapeChar, blockId);
     (*numLinesPerBlock)[label][blockId] = 0ull;
     while (reader.hasNextLine()) {
         (*numLinesPerBlock)[label][blockId]++;

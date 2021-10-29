@@ -13,7 +13,7 @@ LoadCSV::LoadCSV(const string& fname, char tokenSeparator, vector<DataType> csvC
     uint32_t outDataChunkPos, vector<uint32_t> outValueVectorsPos, ExecutionContext& context,
     uint32_t id)
     : PhysicalOperator{LOAD_CSV, context, id}, fname{fname}, tokenSeparator{tokenSeparator},
-      csvColumnDataTypes{move(csvColumnDataTypes)}, reader{fname, tokenSeparator},
+      csvColumnDataTypes{move(csvColumnDataTypes)}, reader{fname, tokenSeparator, '"', '\\'},
       outDataChunkPos{outDataChunkPos}, outValueVectorsPos{move(outValueVectorsPos)} {
     // skip the file header.
     if (reader.hasNextLine()) {

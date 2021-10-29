@@ -1,0 +1,4 @@
+id:INT64,name:STRING,orgCode:INT64,mark:DOUBLE,score:INT64,history:STRING,licenseValidInterval:INTERVAL
+1,ABFsUni,325,3.7,-2,10 years 5 months 13 hours 24 us,3 years 5 days,unstrNumericProp:DOUBLE:-12.5,unstrIntervalProp1:INTERVAL:23 hours 48 days,unstrIntervalProp2:INTERVAL:23 hours 48 days
+4,=CsW,ork=,934,4.1,-100,2 years 4 days 10 hours,26 years 52 days 48 hours,unstrIntervalProp1:INTERVAL:26 years 52 days 48 hours,unstrIntervalProp2:INTERVAL:32 years 123 days 48 hours
+6,=DEsW##ork=,824,4.1,7,2 years 4 hours 22 us 34 minutes,82 hours 100 milliseconds,unstrNumericProp:DOUBLE:-3.1

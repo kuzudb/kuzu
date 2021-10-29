@@ -1,0 +1,32 @@
+{
+  "tokenSeparator": "|",
+  "quoteCharacter":  "=",
+  "escapeCharacter": "#",
+  "nodeFileDescriptions": [
+    {
+      "quoteCharacter":  "-",
+      "filename": "vPerson.csv",
+      "label": "person",
+      "primaryKey": "id"
+    },
+    {
+      "tokenSeparator": ",",
+      "filename": "vOrganisation.csv",
+      "label": "organisation",
+      "primaryKey": "id"
+    }
+  ],
+  "relFileDescriptions": [
+    {
+      "filename": "eWorkAt.csv",
+      "label": "workAt",
+      "multiplicity": "MANY_ONE",
+      "srcNodeLabels": [
+        "person"
+      ],
+      "dstNodeLabels": [
+        "organisation"
+      ]
+    }
+  ]
+}
