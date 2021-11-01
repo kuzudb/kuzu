@@ -53,7 +53,7 @@ http_archive(
     build_file = "asio.BUILD.bazel",
     sha256 = "9c3f9508a5ced658eaf16321ac2bad39ed1702bb09e00079f43aa74414e5d3ce",
     strip_prefix = "asio-1.18.1/include",
-    url = "https://managedway.dl.sourceforge.net/project/asio/asio/1.18.1%20%28Stable%29/asio-1.18.1.zip",
+    url = "https://sourceforge.net/projects/asio/files/asio/1.18.1%20%28Stable%29/asio-1.18.1.zip",
 )
 
 # nodjs HTTP Parser

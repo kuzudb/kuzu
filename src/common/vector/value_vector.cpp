@@ -18,35 +18,35 @@ static void fillOperandNullMask(ValueVector& operand) {
     auto values = (T*)operand.values;
     if (operand.state->isFlat()) {
         operand.setNull(operand.state->getPositionOfCurrIdx(),
-            IsNull::operation(values[operand.state->getPositionOfCurrIdx()]));
+            IsNullValue::operation(values[operand.state->getPositionOfCurrIdx()]));
     } else {
         auto size = operand.state->selectedSize;
         for (uint64_t i = 0; i < size; i++) {
-            operand.setNull(i, IsNull::operation(values[operand.state->selectedPositions[i]]));
+            operand.setNull(i, IsNullValue::operation(values[operand.state->selectedPositions[i]]));
         }
     }
 }
 
 void ValueVector::fillNullMask() {
     switch (dataType) {
-    case BOOL:
+    case BOOL: {
         fillOperandNullMask<uint8_t>(*this);
-        break;
-    case INT64:
+    } break;
+    case INT64: {
         fillOperandNullMask<int64_t>(*this);
-        break;
-    case DOUBLE:
+    } break;
+    case DOUBLE: {
         fillOperandNullMask<double_t>(*this);
-        break;
-    case DATE:
+    } break;
+    case DATE: {
         fillOperandNullMask<date_t>(*this);
-        break;
-    case TIMESTAMP:
+    } break;
+    case TIMESTAMP: {
         fillOperandNullMask<timestamp_t>(*this);
-        break;
-    case INTERVAL:
+    } break;
+    case INTERVAL: {
         fillOperandNullMask<interval_t>(*this);
-        break;
+    } break;
     case STRING:
         // TODO: fillOperandNullMask<gf_string_t>(*this);
         //  Currently we do not distinguish empty and NULL gf_string_t.

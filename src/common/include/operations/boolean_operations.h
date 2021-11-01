@@ -45,11 +45,8 @@ struct Xor {
 };
 
 struct Not {
-    static inline uint8_t operation(uint8_t operand, bool isNull) {
-        if (isNull) {
-            return NULL_BOOL;
-        }
-        return !operand;
+    static inline void operation(uint8_t operand, bool isNull, uint8_t& result) {
+        result = isNull ? NULL_BOOL : !operand;
     }
 };
 

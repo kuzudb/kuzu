@@ -100,7 +100,8 @@ enum ExpressionType : uint8_t {
     LITERAL_BOOLEAN = 83,
     LITERAL_DATE = 84,
     LITERAL_TIMESTAMP = 85,
-    LITERAL_NULL = 86,
+    LITERAL_INTERVAL = 86,
+    LITERAL_NULL = 87,
 
     /**
      * Variable Expression
@@ -112,8 +113,11 @@ enum ExpressionType : uint8_t {
      * Cast Expressions
      **/
     CAST_TO_STRING = 100,
-    CAST_TO_UNSTRUCTURED_VECTOR = 101,
-    CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR = 102,
+    CAST_TO_UNSTRUCTURED_VALUE = 101,
+    CAST_UNSTRUCTURED_TO_BOOL_VALUE = 102,
+    CAST_STRING_TO_DATE = 103,
+    CAST_STRING_TO_TIMESTAMP = 104,
+    CAST_STRING_TO_INTERVAL = 105,
     FUNCTION = 110,
 
     /**
@@ -122,7 +126,6 @@ enum ExpressionType : uint8_t {
     ABS_FUNC = 111,
     FLOOR_FUNC = 112,
     CEIL_FUNC = 113,
-    INTERVAL_FUNC = 114,
 
     /**
      * Aggregation Function Expression

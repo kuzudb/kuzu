@@ -12,9 +12,9 @@ public:
     template<class OP>
     static inline void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
         switch (left.dataType) {
-        case INT64:
+        case INT64: {
             switch (right.dataType) {
-            case INT64:
+            case INT64: {
                 if (std::is_same<OP, operation::Power>::value) {
                     assert(result.dataType == DOUBLE);
                     BinaryOperationExecutor::execute<int64_t, int64_t, double_t, OP,
@@ -25,7 +25,7 @@ public:
                         false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
                         left, right, result);
                 }
-                break;
+            } break;
             case DOUBLE:
                 BinaryOperationExecutor::execute<int64_t, double_t, double_t, OP,
                     false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
@@ -34,8 +34,8 @@ public:
             default:
                 assert(false);
             }
-            break;
-        case DOUBLE:
+        } break;
+        case DOUBLE: {
             switch (right.dataType) {
             case INT64:
                 BinaryOperationExecutor::execute<double_t, int64_t, double_t, OP,
@@ -50,12 +50,93 @@ public:
             default:
                 assert(false);
             }
-            break;
-        case UNSTRUCTURED:
+        } break;
+        case STRING: {
+            assert(right.dataType == STRING && (is_same<OP, operation::Add>::value));
+            BinaryOperationExecutor::execute<gf_string_t, gf_string_t, gf_string_t, operation::Add,
+                true /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
+        } break;
+        case DATE: {
+            switch (right.dataType) {
+            case INT64: {
+                if constexpr (is_same<OP, operation::Add>::value ||
+                              is_same<OP, operation::Subtract>::value) {
+                    BinaryOperationExecutor::execute<date_t, int64_t, date_t, OP,
+                        false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                        left, right, result);
+                } else {
+                    assert(false);
+                }
+            } break;
+            case INTERVAL: {
+                if constexpr (is_same<OP, operation::Add>::value ||
+                              is_same<OP, operation::Subtract>::value) {
+                    BinaryOperationExecutor::execute<date_t, interval_t, date_t, OP,
+                        false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                        left, right, result);
+                } else {
+                    assert(false);
+                }
+            } break;
+            case DATE: {
+                assert((is_same<OP, operation::Subtract>::value));
+                BinaryOperationExecutor::execute<date_t, date_t, int64_t, operation::Subtract,
+                    false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                    left, right, result);
+            } break;
+            default:
+                assert(false);
+            }
+        } break;
+        case TIMESTAMP: {
+            switch (right.dataType) {
+            case TIMESTAMP: {
+                assert((is_same<OP, operation::Subtract>::value));
+                BinaryOperationExecutor::execute<timestamp_t, timestamp_t, interval_t,
+                    operation::Subtract, false /* IS_STRUCTURED_STRING */,
+                    false /* IS_UNSTRUCTURED */>(left, right, result);
+            } break;
+            case INTERVAL: {
+                if constexpr (is_same<OP, operation::Add>::value ||
+                              is_same<OP, operation::Subtract>::value) {
+                    BinaryOperationExecutor::execute<timestamp_t, interval_t, timestamp_t, OP,
+                        false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                        left, right, result);
+                } else {
+                    assert(false);
+                }
+            } break;
+            default:
+                assert(false);
+            }
+        } break;
+        case INTERVAL: {
+            switch (right.dataType) {
+            case INTERVAL: {
+                if constexpr (is_same<OP, operation::Add>::value ||
+                              is_same<OP, operation::Subtract>::value) {
+                    BinaryOperationExecutor::execute<interval_t, interval_t, interval_t, OP,
+                        false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                        left, right, result);
+                } else {
+                    assert(false);
+                }
+            } break;
+            case INT64: {
+                assert((is_same<OP, operation::Divide>::value));
+                BinaryOperationExecutor::execute<interval_t, int64_t, interval_t, operation::Divide,
+                    false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                    left, right, result);
+            } break;
+            default:
+                assert(false);
+            }
+        } break;
+        case UNSTRUCTURED: {
             assert(right.dataType == UNSTRUCTURED);
             BinaryOperationExecutor::execute<Value, Value, Value, OP,
                 false /* IS_STRUCTURED_STRING */, true /* IS_UNSTRUCTURED */>(left, right, result);
-            break;
+        } break;
         default:
             assert(false);
         }
@@ -64,15 +145,18 @@ public:
     template<class OP>
     static inline void execute(ValueVector& operand, ValueVector& result) {
         switch (operand.dataType) {
-        case INT64:
-            UnaryOperationExecutor::execute<int64_t, int64_t, OP>(operand, result);
-            break;
-        case DOUBLE:
-            UnaryOperationExecutor::execute<double_t, double_t, OP>(operand, result);
-            break;
-        case UNSTRUCTURED:
-            UnaryOperationExecutor::execute<Value, Value, OP>(operand, result);
-            break;
+        case INT64: {
+            UnaryOperationExecutor::execute<int64_t, int64_t, OP, false /* IS_NODE_ID */,
+                true /* SKIP_NULL */>(operand, result);
+        } break;
+        case DOUBLE: {
+            UnaryOperationExecutor::execute<double_t, double_t, OP, false /* IS_NODE_ID */,
+                true /* SKIP_NULL */>(operand, result);
+        } break;
+        case UNSTRUCTURED: {
+            UnaryOperationExecutor::execute<Value, Value, OP, false /* IS_NODE_ID */,
+                true /* SKIP_NULL */>(operand, result);
+        } break;
         default:
             assert(false);
         }
@@ -80,50 +164,12 @@ public:
 };
 
 void VectorArithmeticOperations::Add(ValueVector& left, ValueVector& right, ValueVector& result) {
-    if (left.dataType == STRING) {
-        assert(right.dataType == STRING);
-        BinaryOperationExecutor::execute<gf_string_t, gf_string_t, gf_string_t, operation::Add,
-            true /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
-    } else if (left.dataType == DATE && right.dataType == INT64) {
-        BinaryOperationExecutor::execute<date_t, int64_t, date_t, operation::Add,
-            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
-    } else if (left.dataType == DATE && right.dataType == INTERVAL) {
-        BinaryOperationExecutor::execute<date_t, interval_t, date_t, operation::Add,
-            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
-    } else if (left.dataType == TIMESTAMP) {
-        BinaryOperationExecutor::execute<timestamp_t, interval_t, timestamp_t, operation::Add,
-            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
-    } else if (left.dataType == INTERVAL) {
-        BinaryOperationExecutor::execute<interval_t, interval_t, interval_t, operation::Add,
-            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
-    } else {
-        VectorArithmeticOperationExecutor::execute<operation::Add>(left, right, result);
-    }
+    VectorArithmeticOperationExecutor::execute<operation::Add>(left, right, result);
 }
 
 void VectorArithmeticOperations::Subtract(
     ValueVector& left, ValueVector& right, ValueVector& result) {
-    if (left.dataType == DATE && right.dataType == INTERVAL) {
-        BinaryOperationExecutor::execute<date_t, interval_t, date_t, operation::Subtract,
-            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
-    } else if (left.dataType == DATE && right.dataType == INT64) {
-        BinaryOperationExecutor::execute<date_t, int64_t, date_t, operation::Subtract,
-            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
-    } else if (left.dataType == DATE && right.dataType == DATE) {
-        BinaryOperationExecutor::execute<date_t, date_t, int64_t, operation::Subtract,
-            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
-    } else if (left.dataType == TIMESTAMP && right.dataType == INTERVAL) {
-        BinaryOperationExecutor::execute<timestamp_t, interval_t, timestamp_t, operation::Subtract,
-            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
-    } else if (left.dataType == TIMESTAMP && right.dataType == TIMESTAMP) {
-        BinaryOperationExecutor::execute<timestamp_t, timestamp_t, interval_t, operation::Subtract,
-            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
-    } else if (left.dataType == INTERVAL && right.dataType == INTERVAL) {
-        BinaryOperationExecutor::execute<interval_t, interval_t, interval_t, operation::Subtract,
-            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
-    } else {
-        VectorArithmeticOperationExecutor::execute<operation::Subtract>(left, right, result);
-    }
+    VectorArithmeticOperationExecutor::execute<operation::Subtract>(left, right, result);
 }
 
 void VectorArithmeticOperations::Multiply(
@@ -133,12 +179,7 @@ void VectorArithmeticOperations::Multiply(
 
 void VectorArithmeticOperations::Divide(
     ValueVector& left, ValueVector& right, ValueVector& result) {
-    if (left.dataType == INTERVAL && right.dataType == INT64) {
-        BinaryOperationExecutor::execute<interval_t, int64_t, interval_t, operation::Divide,
-            false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
-    } else {
-        VectorArithmeticOperationExecutor::execute<operation::Divide>(left, right, result);
-    }
+    VectorArithmeticOperationExecutor::execute<operation::Divide>(left, right, result);
 }
 
 void VectorArithmeticOperations::Modulo(
@@ -164,11 +205,6 @@ void VectorArithmeticOperations::Floor(ValueVector& operand, ValueVector& result
 
 void VectorArithmeticOperations::Ceil(ValueVector& operand, ValueVector& result) {
     VectorArithmeticOperationExecutor::execute<operation::Ceil>(operand, result);
-}
-
-void VectorArithmeticOperations::Interval(ValueVector& operand, ValueVector& result) {
-    UnaryOperationExecutor::execute<gf_string_t, interval_t, operation::IntervalFunc>(
-        operand, result);
 }
 
 } // namespace common

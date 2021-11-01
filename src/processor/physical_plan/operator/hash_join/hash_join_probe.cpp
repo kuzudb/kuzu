@@ -21,7 +21,7 @@ void HashJoinProbe::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     probeSideKeyDataChunk =
         this->resultSet->dataChunks[probeDataChunksInfo.keyDataPos.dataChunkPos];
     // The probe side key data chunk is also the output keyDataChunk in the resultSet. Non-key
-    // vectors from the build side key data chunk are appended into the the probeSideKeyDataChunk.
+    // vectors from the build side key data chunk are appended into the probeSideKeyDataChunk.
     resultKeyDataChunk = probeSideKeyDataChunk;
     numProbeSidePrevKeyValueVectors = probeSideKeyDataChunk->valueVectors.size();
     probeSideKeyVector =
@@ -75,7 +75,7 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
                 probeSideKeyVector->state->getPositionOfCurrIdx(), probeState->probeSideKeyNodeID);
             auto directory = (uint8_t**)sharedState->htDirectory->data;
             hash_t hash;
-            Hash::operation<nodeID_t>(probeState->probeSideKeyNodeID, hash);
+            Hash::operation<nodeID_t>(probeState->probeSideKeyNodeID, false /* isNull */, hash);
             hash = hash & sharedState->hashBitMask;
             probeState->probedTuple = (uint8_t*)(directory[hash]);
         }
@@ -119,7 +119,7 @@ void HashJoinProbe::populateResultFlatDataChunksAndVectorPtrs() {
                 ->valueVectors.size() -
             1,
         numProbeSidePrevKeyValueVectors, tupleReadOffset,
-        resultKeyDataChunk->state->getPositionOfCurrIdx(), 1);
+        resultKeyDataChunk->state->getPositionOfCurrIdx(), 1 /* numTuples */);
     // Copy the matched values from the build side non-key data chunks.
     auto buildSideVectorPtrsPos = 0;
     auto mergedFlatDataChunkVectorPos = 0;
@@ -130,7 +130,8 @@ void HashJoinProbe::populateResultFlatDataChunksAndVectorPtrs() {
         auto dataChunk = buildSideResultSet->dataChunks[i];
         if (buildDataChunksInfo.dataChunkPosToIsFlat[i]) {
             copyTuplesFromHT(*buildSideFlatResultDataChunk, dataChunk->valueVectors.size(),
-                mergedFlatDataChunkVectorPos, tupleReadOffset, 0, probeState->matchedTuplesSize);
+                mergedFlatDataChunkVectorPos, tupleReadOffset, 0 /* startOffsetInResultVector */,
+                probeState->matchedTuplesSize);
             mergedFlatDataChunkVectorPos += dataChunk->valueVectors.size();
         } else {
             for (auto& vector : dataChunk->valueVectors) {

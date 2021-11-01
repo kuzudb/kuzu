@@ -23,9 +23,9 @@ public:
 
     explicit Literal(timestamp_t value) : dataType(TIMESTAMP) { this->val.timestampVal = value; }
 
-    explicit Literal(const string& value) : dataType(STRING) { this->strVal = value; }
+    explicit Literal(interval_t value) : dataType(INTERVAL) { this->val.intervalVal = value; }
 
-    Literal& operator=(const Literal& other);
+    explicit Literal(const string& value) : dataType(STRING) { this->strVal = value; }
 
     string toString() const;
 

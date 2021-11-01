@@ -56,22 +56,19 @@ void QueryProcessor::decomposePlanIntoTasks(
         auto hashJoinProbe = reinterpret_cast<HashJoinProbe*>(op);
         decomposePlanIntoTasks(hashJoinProbe->buildSidePrevOp.get(), parentTask, numThreads);
         decomposePlanIntoTasks(hashJoinProbe->prevOperator.get(), parentTask, numThreads);
-        break;
-    }
+    } break;
     case HASH_JOIN_BUILD: {
         auto hashJoinBuild = reinterpret_cast<HashJoinBuild*>(op);
         auto childTask = make_unique<Task>(reinterpret_cast<Sink*>(hashJoinBuild), numThreads);
         decomposePlanIntoTasks(hashJoinBuild->prevOperator.get(), childTask.get(), numThreads);
         parentTask->addChildTask(move(childTask));
-        break;
-    }
+    } break;
     case AGGREGATE: {
         auto aggregate = reinterpret_cast<SimpleAggregate*>(op);
         auto childTask = make_unique<Task>(reinterpret_cast<Sink*>(aggregate), numThreads);
         decomposePlanIntoTasks(aggregate->prevOperator.get(), childTask.get(), numThreads);
         parentTask->addChildTask(move(childTask));
-        break;
-    }
+    } break;
     case SCAN:
     case LOAD_CSV:
         break;

@@ -24,6 +24,9 @@ Literal::Literal(const Literal& other) : dataType{other.dataType} {
     case TIMESTAMP: {
         val.timestampVal = other.val.timestampVal;
     } break;
+    case INTERVAL: {
+        val.intervalVal = other.val.intervalVal;
+    } break;
     case STRING: {
         strVal = other.strVal;
     } break;

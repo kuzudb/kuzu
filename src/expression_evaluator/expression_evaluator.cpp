@@ -1,5 +1,6 @@
 #include "src/expression_evaluator/include/expression_evaluator.h"
 
+#include "src/common/include/interval.h"
 #include "src/common/include/vector/operations/vector_arithmetic_operations.h"
 #include "src/common/include/vector/operations/vector_boolean_operations.h"
 #include "src/common/include/vector/operations/vector_cast_operations.h"
@@ -23,19 +24,23 @@ std::function<void(ValueVector&, ValueVector&)> ExpressionEvaluator::getUnaryVec
     case HASH_NODE_ID:
         return VectorHashOperations::Hash;
     case CAST_TO_STRING:
-        return VectorCastOperations::castStructuredToStringValue;
-    case CAST_TO_UNSTRUCTURED_VECTOR:
+        return VectorCastOperations::castStructuredToString;
+    case CAST_TO_UNSTRUCTURED_VALUE:
         return VectorCastOperations::castStructuredToUnstructuredValue;
-    case CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR:
+    case CAST_UNSTRUCTURED_TO_BOOL_VALUE:
         return VectorCastOperations::castUnstructuredToBoolValue;
+    case CAST_STRING_TO_DATE:
+        return VectorCastOperations::castStringToDate;
+    case CAST_STRING_TO_TIMESTAMP:
+        return VectorCastOperations::castStringToTimestamp;
+    case CAST_STRING_TO_INTERVAL:
+        return VectorCastOperations::castStringToInterval;
     case ABS_FUNC:
         return VectorArithmeticOperations::Abs;
     case FLOOR_FUNC:
         return VectorArithmeticOperations::Floor;
     case CEIL_FUNC:
         return VectorArithmeticOperations::Ceil;
-    case INTERVAL_FUNC:
-        return VectorArithmeticOperations::Interval;
     default:
         throw invalid_argument("Unsupported expression type: " + expressionTypeToString(type));
     }

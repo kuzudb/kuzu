@@ -27,6 +27,14 @@ public:
 
     explicit Value(const string& value) : dataType(STRING) { this->val.strVal.set(value); }
 
+    explicit Value(nodeID_t value) : dataType(NODE) { this->val.nodeID = value; }
+
+    explicit Value(date_t value) : dataType(DATE) { this->val.dateVal = value; }
+
+    explicit Value(timestamp_t value) : dataType(TIMESTAMP) { this->val.timestampVal = value; }
+
+    explicit Value(interval_t value) : dataType(INTERVAL) { this->val.intervalVal = value; }
+
     Value& operator=(const Value& other);
 
     string toString() const;

@@ -99,7 +99,7 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
     }
 }
 
-void VectorCastOperations::castStructuredToStringValue(ValueVector& operand, ValueVector& result) {
+void VectorCastOperations::castStructuredToString(ValueVector& operand, ValueVector& result) {
     assert((operand.dataType == INT64 || operand.dataType == DOUBLE || operand.dataType == BOOL ||
                operand.dataType == DATE || operand.dataType == TIMESTAMP ||
                operand.dataType == INTERVAL) &&
@@ -199,6 +199,60 @@ void VectorCastOperations::castUnstructuredToBoolValue(ValueVector& operand, Val
                                         inValues[pos].toString() + ")”.");
         }
         result.values[resPos] = inValues[pos].val.booleanVal;
+    }
+}
+
+void VectorCastOperations::castStringToDate(ValueVector& operand, ValueVector& result) {
+    assert(operand.dataType == STRING && result.dataType == INTERVAL);
+    auto inValues = (gf_string_t*)operand.values;
+    auto resultValues = (date_t*)result.values;
+    if (!operand.state->isFlat()) {
+        for (auto i = 0u; i < operand.state->selectedSize; i++) {
+            auto pos = operand.state->selectedPositions[i];
+            resultValues[pos] =
+                Date::FromCString((const char*)inValues[pos].getData(), inValues[pos].len);
+        }
+    } else {
+        auto pos = operand.state->getPositionOfCurrIdx();
+        auto resPos = result.state->getPositionOfCurrIdx();
+        resultValues[resPos] =
+            Date::FromCString((const char*)inValues[pos].getData(), inValues[pos].len);
+    }
+}
+
+void VectorCastOperations::castStringToTimestamp(ValueVector& operand, ValueVector& result) {
+    assert(operand.dataType == STRING && result.dataType == INTERVAL);
+    auto inValues = (gf_string_t*)operand.values;
+    auto resultValues = (timestamp_t*)result.values;
+    if (!operand.state->isFlat()) {
+        for (auto i = 0u; i < operand.state->selectedSize; i++) {
+            auto pos = operand.state->selectedPositions[i];
+            resultValues[pos] =
+                Timestamp::FromCString((const char*)inValues[pos].getData(), inValues[pos].len);
+        }
+    } else {
+        auto pos = operand.state->getPositionOfCurrIdx();
+        auto resPos = result.state->getPositionOfCurrIdx();
+        resultValues[resPos] =
+            Timestamp::FromCString((const char*)inValues[pos].getData(), inValues[pos].len);
+    }
+}
+
+void VectorCastOperations::castStringToInterval(ValueVector& operand, ValueVector& result) {
+    assert(operand.dataType == STRING && result.dataType == INTERVAL);
+    auto inValues = (gf_string_t*)operand.values;
+    auto resultValues = (interval_t*)result.values;
+    if (!operand.state->isFlat()) {
+        for (auto i = 0u; i < operand.state->selectedSize; i++) {
+            auto pos = operand.state->selectedPositions[i];
+            resultValues[pos] =
+                Interval::FromCString((const char*)inValues[pos].getData(), inValues[pos].len);
+        }
+    } else {
+        auto pos = operand.state->getPositionOfCurrIdx();
+        auto resPos = result.state->getPositionOfCurrIdx();
+        resultValues[resPos] =
+            Interval::FromCString((const char*)inValues[pos].getData(), inValues[pos].len);
     }
 }
 

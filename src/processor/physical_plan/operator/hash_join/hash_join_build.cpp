@@ -55,7 +55,7 @@ void HashJoinBuild::finalize() {
         max(sharedState->numEntries * 2, (DEFAULT_HT_BLOCK_SIZE / sizeof(uint8_t*)) + 1));
     sharedState->hashBitMask = directory_capacity - 1;
     sharedState->htDirectory = context.memoryManager->allocateBlock(
-        directory_capacity * sizeof(uint8_t*), true /* initialize */);
+        directory_capacity * sizeof(uint8_t*), true /* initializeToZero */);
 
     nodeID_t nodeId;
     hash_t hash;
@@ -65,7 +65,7 @@ void HashJoinBuild::finalize() {
         uint64_t entryPos = 0;
         while (entryPos < block.numEntries) {
             memcpy(&nodeId, basePtr, NUM_BYTES_PER_NODE_ID);
-            Hash::operation<nodeID_t>(nodeId, hash);
+            Hash::operation<nodeID_t>(nodeId, false /* isNull */, hash);
             auto slotId = hash & sharedState->hashBitMask;
             auto prevPtr = (uint8_t**)(basePtr + numBytesForFixedTuplePart - sizeof(uint8_t*));
             memcpy((uint8_t*)prevPtr, (void*)&(directory[slotId]), sizeof(uint8_t*));
@@ -112,8 +112,9 @@ overflow_value_t HashJoinBuild::addVectorInOverflowBlocks(ValueVector& vector) {
     }
     if (blockAppendPos == nullptr) {
         // If no free space found in existing memory blocks, allocate a new one
-        BlockHandle blockHandle(
-            context.memoryManager->allocateBlock(DEFAULT_OVERFLOW_BLOCK_SIZE, true), 0);
+        BlockHandle blockHandle(context.memoryManager->allocateBlock(
+                                    DEFAULT_OVERFLOW_BLOCK_SIZE, true /* initializeToZero */),
+            0 /* numEntries */);
         blockAppendPos = blockHandle.data;
         blockHandle.freeSize -= valuesLength;
         overflowBlocks.push_back(move(blockHandle));
@@ -178,8 +179,8 @@ vector<BlockAppendInfo> HashJoinBuild::allocateHTBlocks(uint64_t numTuplesToAppe
     while (remaining > 0) {
         // Need allocate new blocks for tuples
         auto appendCount = min(remaining, htBlockCapacity);
-        auto newBlock =
-            context.memoryManager->allocateBlock(DEFAULT_HT_BLOCK_SIZE, true /* initialize */);
+        auto newBlock = context.memoryManager->allocateBlock(
+            DEFAULT_HT_BLOCK_SIZE, true /* initializeToZero */);
         blockAppendInfos.emplace_back(newBlock->data, appendCount);
         BlockHandle blockHandle(move(newBlock), appendCount);
         htBlocks.push_back(move(blockHandle));

@@ -7,9 +7,9 @@ namespace common {
 
 bool isExpressionUnary(ExpressionType type) {
     return NOT == type || NEGATE == type || IS_NULL == type || IS_NOT_NULL == type ||
-           CAST_TO_STRING == type || CAST_TO_UNSTRUCTURED_VECTOR == type ||
-           CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR == type || ABS_FUNC == type ||
-           FLOOR_FUNC == type || CEIL_FUNC == type || INTERVAL_FUNC == type;
+           CAST_TO_STRING == type || CAST_TO_UNSTRUCTURED_VALUE == type ||
+           CAST_UNSTRUCTURED_TO_BOOL_VALUE == type || CAST_STRING_TO_INTERVAL == type ||
+           ABS_FUNC == type || FLOOR_FUNC == type || CEIL_FUNC == type;
 }
 
 bool isExpressionBinary(ExpressionType type) {
@@ -50,7 +50,7 @@ bool isExpressionNullComparison(ExpressionType type) {
 bool isExpressionLiteral(ExpressionType type) {
     return LITERAL_INT == type || LITERAL_DOUBLE == type || LITERAL_STRING == type ||
            LITERAL_BOOLEAN == type || LITERAL_DATE == type || LITERAL_TIMESTAMP == type ||
-           LITERAL_NULL == type;
+           LITERAL_INTERVAL == type || LITERAL_NULL == type;
 }
 
 bool isExpressionAggregate(ExpressionType type) {
@@ -163,18 +163,18 @@ string expressionTypeToString(ExpressionType type) {
         return "ALIAS";
     case CAST_TO_STRING:
         return "CAST_TO_STRING";
-    case CAST_TO_UNSTRUCTURED_VECTOR:
-        return "CAST_TO_UNSTRUCTURED_VECTOR";
-    case CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR:
-        return "CAST_UNSTRUCTURED_VECTOR_TO_BOOL_VECTOR";
+    case CAST_TO_UNSTRUCTURED_VALUE:
+        return "CAST_TO_UNSTRUCTURED_VALUE";
+    case CAST_UNSTRUCTURED_TO_BOOL_VALUE:
+        return "CAST_UNSTRUCTURED_TO_BOOL_VALUE";
+    case CAST_STRING_TO_INTERVAL:
+        return "CAST_STRING_TO_INTERVAL";
     case ABS_FUNC:
         return ABS_FUNC_NAME;
     case FLOOR_FUNC:
         return FLOOR_FUNC_NAME;
     case CEIL_FUNC:
         return CEIL_FUNC_NAME;
-    case INTERVAL_FUNC:
-        return INTERVAL_FUNC_NAME;
     case COUNT_STAR_FUNC:
         return COUNT_STAR_FUNC_NAME;
     case COUNT_FUNC:

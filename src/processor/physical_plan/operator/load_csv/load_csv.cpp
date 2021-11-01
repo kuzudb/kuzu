@@ -43,23 +43,19 @@ bool LoadCSV::getNextTuples() {
             case INT64: {
                 ((int64_t*)vector.values)[lineIdx] =
                     reader.skipTokenIfNull() ? NULL_INT64 : reader.getInt64();
-                break;
-            }
+            } break;
             case DOUBLE: {
                 ((double*)vector.values)[lineIdx] =
                     reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
-                break;
-            }
+            } break;
             case BOOL: {
                 ((uint8_t*)vector.values)[lineIdx] =
                     reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
-                break;
-            }
+            } break;
             case STRING: {
                 auto strToken = reader.skipTokenIfNull() ? string() : string(reader.getString());
                 vector.addString(lineIdx, strToken);
-                break;
-            }
+            } break;
             default:
                 assert(false);
             }

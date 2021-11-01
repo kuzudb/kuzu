@@ -42,7 +42,7 @@ shared_ptr<ValueVector> UnaryExpressionEvaluator::createResultValueVector(
         resultVector->state = childrenExpr[0]->result->state;
         resultVectorCapacity = DEFAULT_VECTOR_CAPACITY;
     }
-    if (expressionType == CAST_TO_UNSTRUCTURED_VECTOR) {
+    if (expressionType == CAST_TO_UNSTRUCTURED_VALUE) {
         auto unstructuredValues = (Value*)resultVector->values;
         for (auto i = 0u; i < resultVectorCapacity; i++) {
             unstructuredValues[i].dataType = childrenExpr[0]->dataType;
