@@ -29,23 +29,24 @@ void VectorBooleanOperations::Not(ValueVector& operand, ValueVector& result) {
 
 uint64_t VectorBooleanOperations::AndSelect(
     ValueVector& left, ValueVector& right, sel_t* selectedPositions) {
-    return BinaryOperationExecutor::selectBooleanOps<operation::And>(
-        left, right, selectedPositions);
+    return BinaryOperationExecutor::select<uint8_t, uint8_t, uint8_t, operation::And,
+        false /* SKIP_NULL */>(left, right, selectedPositions);
 }
 
 uint64_t VectorBooleanOperations::OrSelect(
     ValueVector& left, ValueVector& right, sel_t* selectedPositions) {
-    return BinaryOperationExecutor::selectBooleanOps<operation::Or>(left, right, selectedPositions);
+    return BinaryOperationExecutor::select<uint8_t, uint8_t, uint8_t, operation::Or,
+        false /* SKIP_NULL */>(left, right, selectedPositions);
 }
 
 uint64_t VectorBooleanOperations::XorSelect(
     ValueVector& left, ValueVector& right, sel_t* selectedPositions) {
-    return BinaryOperationExecutor::selectBooleanOps<operation::Xor>(
-        left, right, selectedPositions);
+    return BinaryOperationExecutor::select<uint8_t, uint8_t, uint8_t, operation::Xor,
+        false /* SKIP_NULL */>(left, right, selectedPositions);
 }
 
 uint64_t VectorBooleanOperations::NotSelect(ValueVector& operand, sel_t* selectedPositions) {
-    return UnaryOperationExecutor::selectBooleanOps<operation::Not>(operand, selectedPositions);
+    return UnaryOperationExecutor::select<operation::Not>(operand, selectedPositions);
 }
 
 } // namespace common
