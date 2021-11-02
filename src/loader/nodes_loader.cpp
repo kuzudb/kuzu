@@ -12,9 +12,9 @@ namespace graphflow {
 namespace loader {
 
 NodesLoader::NodesLoader(
-    ThreadPool& threadPool, const Graph& graph, string outputDirectory, char tokenSeparator)
+    ThreadPool& threadPool, const Graph& graph, string outputDirectory, CSVFormat csvFormat)
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, threadPool{threadPool}, graph{graph},
-      outputDirectory{std::move(outputDirectory)}, tokenSeparator{tokenSeparator} {
+      outputDirectory{std::move(outputDirectory)}, csvFormat{csvFormat} {
     logger->debug("Initializing NodesLoader.");
 };
 
@@ -64,9 +64,10 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
         node_offset_t offsetStart = 0;
         for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
             threadPool.execute(populatePropertyColumnsAndCountUnstrPropertyListSizesTask,
-                filePaths[nodeLabel], blockIdx, tokenSeparator, properties,
-                numLinesPerBlock[nodeLabel][blockIdx], offsetStart, nodeIDMaps[nodeLabel].get(),
-                labelPropertyColumnFNames[nodeLabel],
+                filePaths[nodeLabel], blockIdx, csvFormat.nodeFileTokenSeparators[nodeLabel],
+                csvFormat.nodeFileQuoteChars[nodeLabel], csvFormat.nodeFileEscapeChars[nodeLabel],
+                properties, numLinesPerBlock[nodeLabel][blockIdx], offsetStart,
+                nodeIDMaps[nodeLabel].get(), labelPropertyColumnFNames[nodeLabel],
                 &labelPropertyIdxStringOverflowPages[nodeLabel],
                 labelUnstrPropertyListsSizes[nodeLabel].get(), logger);
             offsetStart += numLinesPerBlock[nodeLabel][blockIdx];
@@ -105,7 +106,9 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
             auto unstrPropertyLists = labelUnstrPropertyLists[nodeLabel].get();
             for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
                 threadPool.execute(populateUnstrPropertyListsTask, filePaths[nodeLabel], blockIdx,
-                    tokenSeparator,
+                    csvFormat.nodeFileTokenSeparators[nodeLabel],
+                    csvFormat.nodeFileQuoteChars[nodeLabel],
+                    csvFormat.nodeFileEscapeChars[nodeLabel],
                     graph.getCatalog().getStructuredNodeProperties(nodeLabel).size(), offsetStart,
                     unstrPropertiesNameToIdMap, listSizes, &listsHeaders, &listsMetadata,
                     unstrPropertyLists, labelUnstrPropertyListsStringOverflowPages[nodeLabel].get(),
@@ -192,15 +195,15 @@ void NodesLoader::saveUnstrPropertyListsToFile() {
 // the size of list needed to store unstructured properties of the current node. Finally, dump the
 // buffers to appropriate locations in files on disk.
 void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(const string& fName,
-    uint64_t blockId, char tokenSeparator, const vector<PropertyDefinition>& properties,
-    uint64_t numElements, node_offset_t offsetStart, NodeIDMap* nodeIDMap,
-    const vector<string>& propertyColumnFNames,
+    uint64_t blockId, char tokenSeparator, char quoteChar, char escapeChar,
+    const vector<PropertyDefinition>& properties, uint64_t numElements, node_offset_t offsetStart,
+    NodeIDMap* nodeIDMap, const vector<string>& propertyColumnFNames,
     vector<unique_ptr<InMemStringOverflowPages>>* propertyIdxStringOverflowPages,
     listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: path={0} blkIdx={1}", fName, blockId);
     vector<PageCursor> stringOverflowPagesCursors{properties.size()};
     auto buffers = createBuffersForProperties(properties, numElements, logger);
-    CSVReader reader(fName, tokenSeparator, blockId);
+    CSVReader reader(fName, tokenSeparator, quoteChar, escapeChar, blockId);
     if (0 == blockId) {
         if (reader.hasNextLine()) {}
     }
@@ -222,13 +225,13 @@ void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(cons
 // structured properties and calls the parser that reads unstructured properties of that line
 // and puts in unstrPropertyLists.
 void NodesLoader::populateUnstrPropertyListsTask(const string& fName, uint64_t blockId,
-    char tokenSeparator, uint32_t numStructuredProperties, node_offset_t offsetStart,
-    const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
+    char tokenSeparator, char quoteChar, char escapeChar, uint32_t numStructuredProperties,
+    node_offset_t offsetStart, const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
     listSizes_t* unstrPropertyListSizes, ListHeaders* unstrPropertyListHeaders,
     ListsMetadata* unstrPropertyListsMetadata, InMemUnstrPropertyPages* unstrPropertyPages,
     InMemStringOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: path={0} blkIdx={1}", fName, blockId);
-    CSVReader reader(fName, tokenSeparator, blockId);
+    CSVReader reader(fName, tokenSeparator, quoteChar, escapeChar, blockId);
     PageCursor stringOvfPagesCursor;
     if (0 == blockId) {
         if (reader.hasNextLine()) {}

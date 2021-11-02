@@ -13,6 +13,11 @@ public:
     string getInputCSVDir() override { return "dataset/loader-node-property-test/"; }
 };
 
+class LoaderSpecialCharTest : public InMemoryDBLoadedTest {
+public:
+    string getInputCSVDir() override { return "dataset/loader-special-char-test/"; }
+};
+
 class LoaderReadLists2BytesPerEdgeTest : public InMemoryDBLoadedTest {
 public:
     string getInputCSVDir() override { return "dataset/read-list-tests/2-bytes-per-edge/"; }
@@ -77,7 +82,7 @@ TEST_F(LoaderNodePropertyTest, NodeStructuredStringPropertyTest) {
     auto column = reinterpret_cast<StringPropertyColumn*>(
         defaultSystem->graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id));
     string fName = getInputCSVDir() + "vPerson.csv";
-    CSVReader csvReader(fName, ',');
+    CSVReader csvReader(fName, ',', '"', '\\');
     int lineIdx = 0;
     csvReader.hasNextLine();
     csvReader.skipLine();
@@ -231,4 +236,28 @@ TEST_F(LoaderReadLists5BytesPerEdgeTest, ReadLists5BytesPerEdgeTest) {
     verifyP0ToP5999(knowsLabelPLabelPKnowsLists, *metrics.get());
     verifya0Andp6000(knowsLabelPLabelPKnowsLists, defaultSystem.get(), *metrics.get());
     verifyP6001ToP65999(knowsLabelPLabelPKnowsLists, *metrics.get());
+}
+
+TEST_F(LoaderSpecialCharTest, LoaderSpecialCharsCsv) {
+    auto& catalog = defaultSystem->graph->getCatalog();
+    auto label = catalog.getNodeLabelFromString("person");
+    auto propertyIdx = catalog.getNodeProperty(label, "randomString");
+    auto col = defaultSystem->graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
+
+    NumericMetric numBufferHits(true), numBufferMisses(true), numIO(true);
+    BufferManagerMetrics metrics(numBufferHits, numBufferMisses, numIO);
+    EXPECT_EQ("this is |the first line", col->readValue(0, metrics).strVal);
+    EXPECT_EQ("the \" should be ignored", col->readValue(1, metrics).strVal);
+    EXPECT_EQ("the - should be escaped", col->readValue(2, metrics).strVal);
+    EXPECT_EQ("this -is #a mixed test", col->readValue(3, metrics).strVal);
+    EXPECT_EQ("only one # should be recognized", col->readValue(4, metrics).strVal);
+    EXPECT_EQ("this is a ##plain## #string", col->readValue(5, metrics).strVal);
+    EXPECT_EQ("this is another ##plain## #string with \\", col->readValue(6, metrics).strVal);
+
+    label = catalog.getNodeLabelFromString("organisation");
+    propertyIdx = catalog.getNodeProperty(label, "name");
+    col = defaultSystem->graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
+    EXPECT_EQ("ABFsUni", col->readValue(0, metrics).strVal);
+    EXPECT_EQ("CsW,ork", col->readValue(1, metrics).strVal);
+    EXPECT_EQ("DEsW#ork", col->readValue(2, metrics).strVal);
 }

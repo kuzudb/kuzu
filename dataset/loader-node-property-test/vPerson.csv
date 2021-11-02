@@ -10,15 +10,15 @@
 # At least 1 unstructured property of the following nodes spans 2 pages: 77, 154, 231, 300, 310, 387, 400, 465, 500,
 # 589, 666, 743, 821, 898, 975.
 id:INT64,randomString:STRING
-0,mrtlrwthhu,strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
-1,ozwhvnetnq,strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
-2,kukqgrspmk,strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
-3,wmzlamooex,strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
+0,"mrtl,rwthhu",strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
+1,"ozwhvnetnq",strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
+2,"kuk,qg\\nrspmk",strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
+3,"wmz,1234\"lamo,oex",strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
 4,tudoojdduf,strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
 5,qifidjufri,strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
 6,gqpnpbdmrb,strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
 7,dgzbiqjkaz,strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
-8,ebfuqbuqma,strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
+8,"ebf,,uq\"buqma",strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
 9,rwhnybogfy,strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
 10,enqpnymvdb,strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
 11,axgwwhhohf,strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True

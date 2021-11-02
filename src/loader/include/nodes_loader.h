@@ -3,6 +3,7 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/csv_reader/csv_reader.h"
+#include "src/loader/include/csv_format.h"
 #include "src/loader/include/in_mem_pages.h"
 #include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
@@ -26,7 +27,7 @@ class NodesLoader {
 
 private:
     NodesLoader(
-        ThreadPool& threadPool, const Graph& graph, string outputDirectory, char tokenSeparator);
+        ThreadPool& threadPool, const Graph& graph, string outputDirectory, CSVFormat csvFormat);
 
     void load(const vector<string>& filePaths, const vector<uint64_t>& numBlocksPerLabel,
         const vector<vector<uint64_t>>& numLinesPerBlock,
@@ -49,14 +50,15 @@ private:
     // Concurrent Tasks
 
     static void populatePropertyColumnsAndCountUnstrPropertyListSizesTask(const string& fName,
-        uint64_t blockId, char tokenSeparator, const vector<PropertyDefinition>& properties,
-        uint64_t numElements, node_offset_t offsetStart, NodeIDMap* nodeIDMap,
-        const vector<string>& propertyColumnFNames,
+        uint64_t blockId, char tokenSeparator, char quoteChar, char escapeChar,
+        const vector<PropertyDefinition>& properties, uint64_t numElements,
+        node_offset_t offsetStart, NodeIDMap* nodeIDMap, const vector<string>& propertyColumnFNames,
         vector<unique_ptr<InMemStringOverflowPages>>* stringOverflowPages,
         listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger>& logger);
 
     static void populateUnstrPropertyListsTask(const string& fName, uint64_t blockId,
-        char tokenSeparator, uint32_t numStructuredProperties, node_offset_t offsetStart,
+        char tokenSeparator, char quoteChar, char escapeChar, uint32_t numStructuredProperties,
+        node_offset_t offsetStart,
         const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
         listSizes_t* unstrPropertyListSizes, ListHeaders* unstrPropertyListHeaders,
         ListsMetadata* unstrPropertyListsMetadata, InMemUnstrPropertyPages* unstrPropertyPages,
@@ -91,8 +93,8 @@ private:
     ThreadPool& threadPool;
     const Graph& graph;
     const string outputDirectory;
-    const char tokenSeparator;
 
+    CSVFormat csvFormat;
     labelUnstrPropertyListSizes_t labelUnstrPropertyListsSizes;
     vector<ListHeaders> labelUnstrPropertyListHeaders;
     vector<ListsMetadata> labelUnstrPropertyListsMetadata;

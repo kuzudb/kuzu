@@ -6,10 +6,9 @@ namespace graphflow {
 namespace loader {
 
 RelsLoader::RelsLoader(ThreadPool& threadPool, Graph& graph, string outputDirectory,
-    char tokenSeparator, vector<unique_ptr<NodeIDMap>>& nodeIDMaps)
+    CSVFormat csvFormat, vector<unique_ptr<NodeIDMap>>& nodeIDMaps)
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, threadPool{threadPool}, graph{graph},
-      outputDirectory(std::move(outputDirectory)), tokenSeparator{tokenSeparator},
-      nodeIDMaps{nodeIDMaps} {}
+      outputDirectory(std::move(outputDirectory)), csvFormat{csvFormat}, nodeIDMaps{nodeIDMaps} {}
 
 // For each rel label, constructs the RelLabelDescription object with relevant meta info and
 // calls the loadRelsForLabel.
@@ -30,21 +29,25 @@ void RelsLoader::load(const vector<string>& filePaths, vector<uint64_t>& numBloc
                 NodeIDCompressionScheme(description.nodeLabelsPerDirection[!direction],
                     graph.getNumNodesPerLabel(), graph.getCatalog().getNodeLabelsCount());
         }
-        loadRelsForLabel(description);
+        loadRelsForLabel(description, csvFormat.relFileTokenSeparators[relLabel],
+            csvFormat.relFileQuoteChars[relLabel], csvFormat.relFileEscapeChars[relLabel]);
     }
 }
 
 // Does 2 (1 mandatory, other optional) passes over the rel label's CSV file, one in each:
 // 1. constructAdjColumnsAndCountRelsInAdjLists(...)
 // 2. constructAdjLists(...), only if Lists are needed, i.e., rel label relMultiplicity is not 1.
-void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
+void RelsLoader::loadRelsForLabel(
+    RelLabelDescription& description, char tokenSeparator, char quoteChar, char escapeChar) {
     logger->debug("Processing relLabel {}.", description.label);
     AdjAndPropertyListsBuilder adjAndPropertyListsBuilder{
         description, threadPool, graph, outputDirectory};
-    constructAdjColumnsAndCountRelsInAdjLists(description, adjAndPropertyListsBuilder);
+    constructAdjColumnsAndCountRelsInAdjLists(
+        description, adjAndPropertyListsBuilder, tokenSeparator, quoteChar, escapeChar);
     if (!description.isSingleMultiplicityPerDirection[FWD] ||
         !description.isSingleMultiplicityPerDirection[BWD]) {
-        constructAdjLists(description, adjAndPropertyListsBuilder);
+        constructAdjLists(
+            description, adjAndPropertyListsBuilder, tokenSeparator, quoteChar, escapeChar);
     }
     logger->debug("Done processing relLabel {}.", description.label);
 }
@@ -54,16 +57,17 @@ void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
 // each list in src/dst nodes. Uses AdjAndPropertyColumnsBuilder object to populate data in the
 // in-memory pages. The task is executed in parallel by calling
 // populateAdjColumnsAndCountRelsInAdjListsTask(...) on each block of the CSV file.
-void RelsLoader::constructAdjColumnsAndCountRelsInAdjLists(
-    RelLabelDescription& description, AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder) {
+void RelsLoader::constructAdjColumnsAndCountRelsInAdjLists(RelLabelDescription& description,
+    AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder, char tokenSeparator, char quoteChar,
+    char escapeChar) {
     AdjAndPropertyColumnsBuilder adjAndPropertyColumnsBuilder{
         description, threadPool, graph, outputDirectory};
     logger->debug("Populating AdjColumns and Rel Property Columns.");
     auto& catalog = graph.getCatalog();
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         threadPool.execute(populateAdjColumnsAndCountRelsInAdjListsTask, &description, blockId,
-            tokenSeparator, &adjAndPropertyListsBuilder, &adjAndPropertyColumnsBuilder, &nodeIDMaps,
-            &catalog, logger);
+            tokenSeparator, quoteChar, escapeChar, &adjAndPropertyListsBuilder,
+            &adjAndPropertyColumnsBuilder, &nodeIDMaps, &catalog, logger);
     }
     threadPool.wait();
     populateNumRels(adjAndPropertyColumnsBuilder, adjAndPropertyListsBuilder);
@@ -93,15 +97,16 @@ void RelsLoader::populateNumRels(AdjAndPropertyColumnsBuilder& adjAndPropertyCol
 // each Lists, the function uses AdjAndPropertyListsBuilder object to build corresponding
 // listHeaders and metadata and populate data in the in-memory pages. Executes in parallel by
 // calling populateAdjListsTask(...) on each block of the CSV file.
-void RelsLoader::constructAdjLists(
-    RelLabelDescription& description, AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder) {
+void RelsLoader::constructAdjLists(RelLabelDescription& description,
+    AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder, char tokenSeparator, char quoteChar,
+    char escapeChar) {
     adjAndPropertyListsBuilder.buildAdjListsHeadersAndListsMetadata();
     adjAndPropertyListsBuilder.buildInMemStructures();
     logger->debug("Populating AdjLists and Rel Property Lists.");
     auto& catalog = graph.getCatalog();
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
-        threadPool.execute(populateAdjListsTask, &description, blockId, tokenSeparator,
-            &adjAndPropertyListsBuilder, &nodeIDMaps, &catalog, logger);
+        threadPool.execute(populateAdjListsTask, &description, blockId, tokenSeparator, quoteChar,
+            escapeChar, &adjAndPropertyListsBuilder, &nodeIDMaps, &catalog, logger);
     }
     threadPool.wait();
     logger->debug("Done populating AdjLists and Rel Property Lists.");
@@ -117,12 +122,13 @@ void RelsLoader::constructAdjLists(
 // nbr nodeIDs to appropriate AdjColumns, else increment the size of the appropraite list. Also
 // calls the parser that reads properties in a line and puts in appropraite PropertyColumns.
 void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescription* description,
-    uint64_t blockId, char tokenSeparator, AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
+    uint64_t blockId, char tokenSeparator, char quoteChar, char escapeChar,
+    AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
     AdjAndPropertyColumnsBuilder* adjAndPropertyColumnsBuilder,
     vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
     shared_ptr<spdlog::logger>& logger) {
     logger->debug("Start: path=`{0}` blkIdx={1}", description->fName, blockId);
-    CSVReader reader(description->fName, tokenSeparator, blockId);
+    CSVReader reader(description->fName, tokenSeparator, quoteChar, escapeChar, blockId);
     if (0 == blockId) {
         if (reader.hasNextLine()) {
             reader.skipLine(); // skip header line
@@ -162,11 +168,12 @@ void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescriptio
 // offsets of the rel and puts in AdjLists. Also calls the parser that reads properties in a line
 // and puts in appropriate PropertyLists.
 void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
-    char tokenSeparator, AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
+    char tokenSeparator, char quoteChar, char escapeChar,
+    AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
     vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
     shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: path=`{0}` blkIdx={1}", description->fName, blockId);
-    CSVReader reader(description->fName, tokenSeparator, blockId);
+    CSVReader reader(description->fName, tokenSeparator, quoteChar, escapeChar, blockId);
     if (0 == blockId) {
         if (reader.hasNextLine()) {
             reader.skipLine(); // skip header line

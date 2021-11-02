@@ -7,6 +7,7 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/types.h"
+#include "src/loader/include/csv_format.h"
 #include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
@@ -20,7 +21,6 @@ namespace loader {
 
 const string UNSTR_PROPERTY_SEPARATOR = ":";
 const string DEFAULT_METADATA_JSON_FILENAME = "metadata.json";
-const char DEFAULT_TOKEN_SEPARATOR = ',';
 
 class GraphLoader {
 
@@ -39,7 +39,7 @@ private:
         const vector<NodeFileDescription>& fileDescriptions, vector<string>& fileHeaders);
     void addRelLabelsIntoGraphCatalog(
         const vector<RelFileDescription>& fileDescriptions, vector<string>& fileHeaders);
-    vector<PropertyDefinition> parseHeader(string& header) const;
+    vector<PropertyDefinition> parseHeader(string& header, char tokenSeparator) const;
 
     unique_ptr<vector<unique_ptr<NodeIDMap>>> loadNodes(
         const vector<NodeFileDescription>& nodeFileDescriptions);
@@ -56,7 +56,7 @@ private:
     // Concurrent Tasks
 
     static void countLinesAndScanUnstrPropertiesInBlockTask(const string& fName,
-        char tokenSeparator, uint32_t numStructuredProperties,
+        char tokenSeparator, char quoteChar, char escapeChar, uint32_t numStructuredProperties,
         unordered_set<string>* unstrPropertyNameSet, vector<vector<uint64_t>>* numLinesPerBlock,
         label_t label, uint32_t blockId, const shared_ptr<spdlog::logger>& logger);
 
@@ -65,8 +65,7 @@ private:
     ThreadPool threadPool;
     const string inputDirectory;
     const string outputDirectory;
-    char tokenSeparator;
-
+    CSVFormat csvFormat;
     Graph graph;
 };
 
