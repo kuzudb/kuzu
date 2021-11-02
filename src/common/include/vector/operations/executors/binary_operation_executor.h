@@ -27,252 +27,190 @@ struct BinaryOperationExecutor {
             resVal.val.strVal, lValue.val.strVal.len + rValue.val.strVal.len);
     }
 
-    template<class A, class B, class R, bool IS_STRUCTURED_STRING, bool IS_UNSTRUCTURED>
+    template<typename A, typename B, typename R>
     static void allocateStringIfNecessary(A& lValue, B& rValue, R& resultVal, ValueVector& lVec,
         ValueVector& rVec, ValueVector& resultVec) {
-        if constexpr (IS_STRUCTURED_STRING) {
-            resultVec.allocateStringOverflowSpace(resultVal, lValue.len + rValue.len);
-        } else if constexpr (IS_UNSTRUCTURED) {
+        assert((is_same<R, Value>::value) || (is_same<R, gf_string_t>::value));
+        if constexpr ((is_same<R, Value>::value)) {
             if (lValue.dataType == STRING || rValue.dataType == STRING) {
                 allocateUnstructuredString(lValue, rValue, resultVal, lVec, rVec, resultVec);
             }
+        } else {
+            resultVec.allocateStringOverflowSpace(resultVal, lValue.len + rValue.len);
         }
     }
 
-    // ARITHMETIC (ADD, SUBTRACT, MULTIPLY, DIVIDE, MODULO, POWER), COMPARISON (GT, GTE, LT, LTE,
-    // EQ, NEQ), CONJUNCTION (AND, OR, XOR)
-    template<class A, class B, class R, class FUNC = function<void(A&, B&, R&)>,
-        bool IS_STRUCTURED_STRING, bool IS_UNSTRUCTURED>
-    static void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
-        // Operands can't be structured string and unstructured value at the same time
-        assert((IS_STRUCTURED_STRING && IS_UNSTRUCTURED) == false);
+    template<typename A, typename B, typename R, typename FUNC = function<void(A&, B&, R&)>>
+    static void executeOnTuple(ValueVector& left, ValueVector& right, ValueVector& result,
+        uint64_t lPos, uint64_t rPos, uint64_t resPos) {
         auto lValues = (A*)left.values;
         auto rValues = (B*)right.values;
-        auto resultValues = (R*)result.values;
-        if (left.state->isFlat() && right.state->isFlat()) {
-            auto lPos = left.state->getPositionOfCurrIdx();
-            auto rPos = right.state->getPositionOfCurrIdx();
-            auto resPos = result.state->getPositionOfCurrIdx();
-            result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
-            if (!result.isNull(resPos)) {
-                if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
-                    allocateStringIfNecessary<A, B, R, IS_STRUCTURED_STRING, IS_UNSTRUCTURED>(
-                        lValues[lPos], rValues[rPos], resultValues[resPos], left, right, result);
-                }
-                FUNC::operation(lValues[lPos], rValues[rPos], resultValues[resPos]);
-            }
-        } else if (left.state->isFlat()) {
-            auto lPos = left.state->getPositionOfCurrIdx();
-            auto& lValue = lValues[lPos];
-            auto isLeftNull = left.isNull(lPos);
-            // right and result vectors share the same selectedPositions.
-            if (!isLeftNull && right.hasNoNullsGuarantee()) {
-                for (uint64_t i = 0; i < right.state->selectedSize; i++) {
-                    auto rPos = right.state->selectedPositions[i];
-                    if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
-                        allocateStringIfNecessary<A, B, R, IS_STRUCTURED_STRING, IS_UNSTRUCTURED>(
-                            lValue, rValues[rPos], resultValues[rPos], left, right, result);
-                    }
-                    FUNC::operation(lValue, rValues[rPos], resultValues[rPos]);
-                }
-            } else if (isLeftNull) {
-                right.setAllNull();
-            } else {
-                for (uint64_t i = 0; i < right.state->selectedSize; i++) {
-                    auto rPos = right.state->selectedPositions[i];
-                    result.setNull(rPos, isLeftNull || right.isNull(rPos));
-                    if (!result.isNull(rPos)) {
-                        if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
-                            allocateStringIfNecessary<A, B, R, IS_STRUCTURED_STRING,
-                                IS_UNSTRUCTURED>(
-                                lValue, rValues[rPos], resultValues[rPos], left, right, result);
-                        }
-                        FUNC::operation(lValue, rValues[rPos], resultValues[rPos]);
-                    }
-                }
-            }
-        } else if (right.state->isFlat()) {
-            auto rPos = right.state->getPositionOfCurrIdx();
-            auto& rValue = rValues[rPos];
-            auto isRightNull = right.isNull(rPos);
-            // left and result vectors share the same selectedPositions.
-            if (!isRightNull && left.hasNoNullsGuarantee()) {
-                for (uint64_t i = 0; i < left.state->selectedSize; i++) {
-                    auto lPos = left.state->selectedPositions[i];
-                    if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
-                        allocateStringIfNecessary<A, B, R, IS_STRUCTURED_STRING, IS_UNSTRUCTURED>(
-                            lValues[lPos], rValue, resultValues[lPos], left, right, result);
-                    }
-                    FUNC::operation(lValues[lPos], rValue, resultValues[lPos]);
-                }
-            } else if (isRightNull) {
-                left.setAllNull();
-            } else {
-                for (uint64_t i = 0; i < left.state->selectedSize; i++) {
-                    auto pos = left.state->selectedPositions[i];
-                    result.setNull(pos, left.isNull(pos) || isRightNull);
-                    if (!result.isNull(i)) {
-                        if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
-                            allocateStringIfNecessary<A, B, R, IS_STRUCTURED_STRING,
-                                IS_UNSTRUCTURED>(
-                                lValues[pos], rValue, resultValues[pos], left, right, result);
-                        }
-                        FUNC::operation(lValues[pos], rValue, resultValues[pos]);
-                    }
-                }
-            }
+        auto resValues = (R*)result.values;
+        if constexpr ((is_same<A, nodeID_t>::value) && (is_same<B, nodeID_t>::value)) {
+            nodeID_t lNodeID, rNodeID;
+            left.readNodeID(lPos, lNodeID);
+            right.readNodeID(rPos, rNodeID);
+            FUNC::operation(lNodeID, rNodeID, resValues[resPos], (bool)left.isNull(lPos),
+                (bool)right.isNull(rPos));
         } else {
-            // right, left, and result vectors share the same selectedPositions.
-            if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
-                for (uint64_t i = 0; i < result.state->selectedSize; i++) {
-                    auto pos = result.state->selectedPositions[i];
-                    if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
-                        allocateStringIfNecessary<A, B, R, IS_STRUCTURED_STRING, IS_UNSTRUCTURED>(
-                            lValues[pos], rValues[pos], resultValues[pos], left, right, result);
-                    }
-                    FUNC::operation(lValues[pos], rValues[pos], resultValues[pos]);
-                }
-            } else {
-                for (uint64_t i = 0; i < result.state->selectedSize; i++) {
-                    auto pos = result.state->selectedPositions[i];
-                    result.setNull(pos, left.isNull(pos) || right.isNull(pos));
-                    if (!result.isNull(pos)) {
-                        if constexpr (IS_STRUCTURED_STRING || IS_UNSTRUCTURED) {
-                            allocateStringIfNecessary<A, B, R, IS_STRUCTURED_STRING,
-                                IS_UNSTRUCTURED>(
-                                lValues[pos], rValues[pos], resultValues[pos], left, right, result);
-                        }
-                        FUNC::operation(lValues[pos], rValues[pos], resultValues[pos]);
-                    }
-                }
+            if constexpr ((is_same<R, gf_string_t>::value) || (is_same<R, Value>::value)) {
+                allocateStringIfNecessary<A, B, R>(
+                    lValues[lPos], rValues[rPos], resValues[resPos], left, right, result);
             }
+            FUNC::operation(lValues[lPos], rValues[rPos], resValues[resPos],
+                (bool)left.isNull(lPos), (bool)right.isNull(rPos));
         }
     }
 
-    // AND, OR, XOR
-    template<class FUNC = function<uint8_t(uint8_t, uint8_t, bool, bool)>>
-    static void executeBooleanOps(ValueVector& left, ValueVector& right, ValueVector& result) {
-        if (left.state->isFlat() && right.state->isFlat()) {
-            auto lPos = left.state->getPositionOfCurrIdx();
-            auto rPos = right.state->getPositionOfCurrIdx();
-            auto resPos = result.state->getPositionOfCurrIdx();
-            result.values[resPos] = FUNC::operation(
-                left.values[lPos], right.values[rPos], left.isNull(lPos), right.isNull(rPos));
+    template<typename A, typename B, typename R, typename FUNC = function<void(A&, B&, R&)>,
+        bool SKIP_NULL>
+    static void executeForLeftAndRightAreFlat(
+        ValueVector& left, ValueVector& right, ValueVector& result) {
+        auto lPos = left.state->getPositionOfCurrIdx();
+        auto rPos = right.state->getPositionOfCurrIdx();
+        auto resPos = result.state->getPositionOfCurrIdx();
+        if constexpr (SKIP_NULL) {
+            if (!result.isNull(resPos)) {
+                executeOnTuple<A, B, R, FUNC>(left, right, result, lPos, rPos, resPos);
+            }
+            result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
+        } else {
+            executeOnTuple<A, B, R, FUNC>(left, right, result, lPos, rPos, resPos);
             result.setNull(resPos, result.values[resPos] == NULL_BOOL);
-        } else if (left.state->isFlat()) {
-            auto lPos = left.state->getPositionOfCurrIdx();
-            auto& leftValue = left.values[lPos];
-            auto isLeftNull = left.isNull(lPos);
-            // right and result vectors share the same selectedPositions.
-            for (auto i = 0u; i < right.state->selectedSize; i++) {
-                auto rPos = right.state->selectedPositions[i];
-                result.values[rPos] =
-                    FUNC::operation(leftValue, right.values[rPos], isLeftNull, right.isNull(rPos));
-                result.setNull(rPos, result.values[rPos] == NULL_BOOL);
-            }
-        } else if (right.state->isFlat()) {
-            auto rPos = right.state->getPositionOfCurrIdx();
-            auto& rightValue = right.values[rPos];
-            auto isRightNull = right.isNull(rPos);
-            // left and result vectors share the same selectedPositions.
-            for (auto i = 0u; i < left.state->selectedSize; i++) {
-                auto lPos = left.state->selectedPositions[i];
-                result.values[lPos] =
-                    FUNC::operation(left.values[lPos], rightValue, left.isNull(lPos), isRightNull);
-                result.setNull(lPos, result.values[lPos] == NULL_BOOL);
+        }
+    }
+
+    template<typename A, typename B, typename R, typename FUNC = function<void(A&, B&, R&)>,
+        bool SKIP_NULL>
+    static void executeForLeftOrRightIsFlat(
+        ValueVector& left, ValueVector& right, ValueVector& result) {
+        auto& flatVec = left.state->isFlat() ? left : right;
+        auto& unFlatVec = left.state->isFlat() ? right : left;
+        auto flatPos = flatVec.state->getPositionOfCurrIdx();
+        auto isFlatNull = flatVec.isNull(flatPos);
+        auto isLeftFlat = left.state->isFlat();
+        if constexpr (SKIP_NULL) {
+            if (isFlatNull) {
+                unFlatVec.setAllNull();
+            } else if (unFlatVec.hasNoNullsGuarantee()) {
+                if (unFlatVec.state->isUnfiltered()) {
+                    for (auto i = 0u; i < unFlatVec.state->selectedSize; i++) {
+                        executeOnTuple<A, B, R, FUNC>(left, right, result, isLeftFlat ? flatPos : i,
+                            isLeftFlat ? i : flatPos, i);
+                    }
+                } else {
+                    for (auto i = 0u; i < unFlatVec.state->selectedSize; i++) {
+                        auto unFlatPos = unFlatVec.state->selectedPositions[i];
+                        executeOnTuple<A, B, R, FUNC>(left, right, result,
+                            isLeftFlat ? flatPos : unFlatPos, isLeftFlat ? unFlatPos : flatPos,
+                            unFlatPos);
+                    }
+                }
+            } else {
+                if (unFlatVec.state->isUnfiltered()) {
+                    for (auto i = 0u; i < unFlatVec.state->selectedSize; i++) {
+                        result.setNull(i, unFlatVec.isNull(i)); // isFlatNull is always false.
+                        if (!result.isNull(i)) {
+                            executeOnTuple<A, B, R, FUNC>(left, right, result,
+                                isLeftFlat ? flatPos : i, isLeftFlat ? i : flatPos, i);
+                        }
+                    }
+                } else {
+                    for (auto i = 0u; i < unFlatVec.state->selectedSize; i++) {
+                        auto unFlatPos = unFlatVec.state->selectedPositions[i];
+                        result.setNull(
+                            unFlatPos, unFlatVec.isNull(unFlatPos)); // isFlatNull is always false.
+                        if (!result.isNull(unFlatPos)) {
+                            executeOnTuple<A, B, R, FUNC>(left, right, result,
+                                isLeftFlat ? flatPos : unFlatPos, isLeftFlat ? unFlatPos : flatPos,
+                                unFlatPos);
+                        }
+                    }
+                }
             }
         } else {
-            // right, left, and result vectors share the same selectedPositions.
-            for (auto i = 0u; i < result.state->selectedSize; i++) {
-                auto pos = result.state->selectedPositions[i];
-                result.values[pos] = FUNC::operation(
-                    left.values[pos], right.values[pos], left.isNull(pos), right.isNull(pos));
-                result.setNull(pos, result.values[pos] == NULL_BOOL);
+            if (unFlatVec.state->isUnfiltered()) {
+                for (auto i = 0u; i < unFlatVec.state->selectedSize; i++) {
+                    result.setNull(i, unFlatVec.isNull(i)); // isFlatNull is always false.
+                    executeOnTuple<A, B, R, FUNC>(
+                        left, right, result, isLeftFlat ? flatPos : i, isLeftFlat ? i : flatPos, i);
+                }
+            } else {
+                for (auto i = 0u; i < unFlatVec.state->selectedSize; i++) {
+                    auto unFlatPos = unFlatVec.state->selectedPositions[i];
+                    result.setNull(
+                        unFlatPos, unFlatVec.isNull(unFlatPos)); // isFlatNull is always false.
+                    executeOnTuple<A, B, R, FUNC>(left, right, result,
+                        isLeftFlat ? flatPos : unFlatPos, isLeftFlat ? unFlatPos : flatPos,
+                        unFlatPos);
+                }
             }
         }
     }
 
-    // Specialized for nodeID_t data type: EQ, NE, GT, GTE, LT, LTE
-    template<class FUNC = std::function<uint8_t(nodeID_t, nodeID_t)>>
-    static void executeNodeIDOps(ValueVector& left, ValueVector& right, ValueVector& result) {
-        nodeID_t leftNodeID, rightNodeID;
-        if (left.state->isFlat() && right.state->isFlat()) {
-            auto lPos = left.state->getPositionOfCurrIdx();
-            left.readNodeID(lPos, leftNodeID);
-            auto rPos = right.state->getPositionOfCurrIdx();
-            right.readNodeID(rPos, rightNodeID);
-            auto resPos = result.state->getPositionOfCurrIdx();
-            result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
-            if (!result.isNull(resPos)) {
-                FUNC::operation(leftNodeID, rightNodeID, result.values[resPos]);
-            }
-        } else if (left.state->isFlat()) {
-            auto lPos = left.state->getPositionOfCurrIdx();
-            auto isLeftNull = left.isNull(lPos);
-            left.readNodeID(lPos, leftNodeID);
-            // unFlat and result vectors share the same selectedPositions.
-            if (!isLeftNull && right.hasNoNullsGuarantee()) {
-                for (auto i = 0u; i < right.state->selectedSize; i++) {
-                    auto rPos = right.state->selectedPositions[i];
-                    right.readNodeID(rPos, rightNodeID);
-                    FUNC::operation(leftNodeID, rightNodeID, result.values[rPos]);
-                }
-            } else if (isLeftNull) {
-                right.setAllNull();
-            } else {
-                for (auto i = 0u; i < right.state->selectedSize; i++) {
-                    auto rPos = right.state->selectedPositions[i];
-                    right.readNodeID(rPos, rightNodeID);
-                    result.setNull(rPos, isLeftNull || right.isNull(rPos));
-                    if (!result.isNull(rPos)) {
-                        FUNC::operation(leftNodeID, rightNodeID, result.values[rPos]);
+    template<typename A, typename B, typename R, typename FUNC = function<void(A&, B&, R&)>,
+        bool SKIP_NULL>
+    static void executeForLeftAndRightAreUnFlat(
+        ValueVector& left, ValueVector& right, ValueVector& result) {
+        // right, left, and result vectors share the same selectedPositions.
+        if constexpr (SKIP_NULL) {
+            if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
+                if (result.state->isUnfiltered()) {
+                    for (uint64_t i = 0; i < result.state->selectedSize; i++) {
+                        executeOnTuple<A, B, R, FUNC>(left, right, result, i, i, i);
+                    }
+                } else {
+                    for (uint64_t i = 0; i < result.state->selectedSize; i++) {
+                        auto pos = result.state->selectedPositions[i];
+                        executeOnTuple<A, B, R, FUNC>(left, right, result, pos, pos, pos);
                     }
                 }
-            }
-        } else if (right.state->isFlat()) {
-            auto rPos = right.state->getPositionOfCurrIdx();
-            auto isRightNull = right.isNull(rPos);
-            right.readNodeID(rPos, rightNodeID);
-            // unFlat and result vectors share the same selectedPositions.
-            if (!isRightNull && left.hasNoNullsGuarantee()) {
-                for (auto i = 0u; i < left.state->selectedSize; i++) {
-                    auto lPos = left.state->selectedPositions[i];
-                    left.readNodeID(lPos, leftNodeID);
-                    FUNC::operation(leftNodeID, rightNodeID, result.values[lPos]);
-                }
-            } else if (isRightNull) {
-                left.setAllNull();
             } else {
-                for (auto i = 0u; i < left.state->selectedSize; i++) {
-                    auto lPos = left.state->selectedPositions[i];
-                    left.readNodeID(lPos, leftNodeID);
-                    result.setNull(lPos, isRightNull || left.isNull(lPos));
-                    if (!result.isNull(lPos)) {
-                        FUNC::operation(leftNodeID, rightNodeID, result.values[lPos]);
+                if (result.state->isUnfiltered()) {
+                    for (uint64_t i = 0; i < result.state->selectedSize; i++) {
+                        result.setNull(i, left.isNull(i) || right.isNull(i));
+                        if (!result.isNull(i)) {
+                            executeOnTuple<A, B, R, FUNC>(left, right, result, i, i, i);
+                        }
+                    }
+                } else {
+                    for (uint64_t i = 0; i < result.state->selectedSize; i++) {
+                        auto pos = result.state->selectedPositions[i];
+                        result.setNull(pos, left.isNull(pos) || right.isNull(pos));
+                        if (!result.isNull(pos)) {
+                            executeOnTuple<A, B, R, FUNC>(left, right, result, pos, pos, pos);
+                        }
                     }
                 }
             }
         } else {
-            // right, left, and result vectors share the same selectedPositions.
-            if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
-                for (auto i = 0u; i < left.state->selectedSize; i++) {
-                    auto pos = left.state->selectedPositions[i];
-                    left.readNodeID(pos, leftNodeID);
-                    right.readNodeID(pos, rightNodeID);
-                    result.setNull(pos, left.isNull(pos) || right.isNull(pos));
-                    FUNC::operation(leftNodeID, rightNodeID, result.values[pos]);
+            if (result.state->isUnfiltered()) {
+                for (uint64_t i = 0; i < result.state->selectedSize; i++) {
+                    result.setNull(i, result.values[i] == NULL_BOOL);
+                    executeOnTuple<A, B, R, FUNC>(left, right, result, i, i, i);
                 }
             } else {
-                for (auto i = 0u; i < left.state->selectedSize; i++) {
-                    auto pos = left.state->selectedPositions[i];
-                    left.readNodeID(pos, leftNodeID);
-                    right.readNodeID(pos, rightNodeID);
-                    result.setNull(pos, left.isNull(pos) || right.isNull(pos));
-                    if (!result.isNull(pos)) {
-                        FUNC::operation(leftNodeID, rightNodeID, result.values[pos]);
-                    }
+                for (uint64_t i = 0; i < result.state->selectedSize; i++) {
+                    auto pos = result.state->selectedPositions[i];
+                    result.setNull(pos, result.values[pos] == NULL_BOOL);
+                    executeOnTuple<A, B, R, FUNC>(left, right, result, pos, pos, pos);
                 }
             }
+        }
+    }
+
+    template<typename A, typename B, typename R, typename FUNC = function<void(A&, B&, R&)>,
+        bool SKIP_NULL = true>
+    static void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
+        // SKIP_NULL is set to false ONLY when the FUNC is boolean operations.
+        assert(SKIP_NULL || (!SKIP_NULL && (is_same<A, uint8_t>::value) &&
+                                (is_same<B, uint8_t>::value) && (is_same<R, uint8_t>::value)));
+        if (left.state->isFlat() && right.state->isFlat()) {
+            executeForLeftAndRightAreFlat<A, B, R, FUNC, SKIP_NULL>(left, right, result);
+        } else if (left.state->isFlat() || right.state->isFlat()) {
+            executeForLeftOrRightIsFlat<A, B, R, FUNC, SKIP_NULL>(left, right, result);
+        } else {
+            executeForLeftAndRightAreUnFlat<A, B, R, FUNC, SKIP_NULL>(left, right, result);
         }
     }
 
@@ -289,7 +227,8 @@ struct BinaryOperationExecutor {
             auto isNull = left.isNull(lPos) || right.isNull(rPos);
             if (!isNull) {
                 uint8_t resultValue;
-                FUNC::operation(lValues[lPos], rValues[rPos], resultValue);
+                FUNC::operation(lValues[lPos], rValues[rPos], resultValue, (bool)left.isNull(lPos),
+                    (bool)right.isNull(rPos));
                 numSelectedValues += resultValue == TRUE;
             }
             return numSelectedValues;
@@ -303,7 +242,8 @@ struct BinaryOperationExecutor {
             if (!isLeftNull && right.hasNoNullsGuarantee()) {
                 for (auto i = 0u; i < right.state->selectedSize; i++) {
                     auto rPos = right.state->selectedPositions[i];
-                    FUNC::operation(lValue, rValues[rPos], resultValue);
+                    FUNC::operation(lValue, rValues[rPos], resultValue, (bool)isLeftNull,
+                        (bool)right.isNull(rPos));
                     selectedPositions[numSelectedValues] = rPos;
                     numSelectedValues += resultValue;
                 }
@@ -314,7 +254,8 @@ struct BinaryOperationExecutor {
                     auto rPos = right.state->selectedPositions[i];
                     auto isNull = isLeftNull || right.isNull(rPos);
                     if (!isNull) {
-                        FUNC::operation(lValue, rValues[rPos], resultValue);
+                        FUNC::operation(lValue, rValues[rPos], resultValue, (bool)isLeftNull,
+                            (bool)right.isNull(rPos));
                         selectedPositions[numSelectedValues] = rPos;
                         numSelectedValues += resultValue;
                     }
@@ -331,7 +272,8 @@ struct BinaryOperationExecutor {
             if (!isRightNull && left.hasNoNullsGuarantee()) {
                 for (auto i = 0u; i < left.state->selectedSize; i++) {
                     auto lPos = left.state->selectedPositions[i];
-                    FUNC::operation(lValues[lPos], rValue, resultValue);
+                    FUNC::operation(lValues[lPos], rValue, resultValue, (bool)left.isNull(lPos),
+                        (bool)isRightNull);
                     selectedPositions[numSelectedValues] = lPos;
                     numSelectedValues += resultValue;
                 }
@@ -343,7 +285,8 @@ struct BinaryOperationExecutor {
                     auto lPos = left.state->selectedPositions[i];
                     bool isNull = left.isNull(lPos) || isRightNull;
                     if (!isNull) {
-                        FUNC::operation(lValues[lPos], rValue, resultValue);
+                        FUNC::operation(lValues[lPos], rValue, resultValue, (bool)left.isNull(lPos),
+                            (bool)isRightNull);
                         selectedPositions[numSelectedValues] = lPos;
                         numSelectedValues += resultValue;
                     }
@@ -357,7 +300,8 @@ struct BinaryOperationExecutor {
             if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
                 for (auto i = 0u; i < left.state->selectedSize; i++) {
                     auto pos = left.state->selectedPositions[i];
-                    FUNC::operation(lValues[pos], rValues[pos], resultValue);
+                    FUNC::operation(lValues[pos], rValues[pos], resultValue, (bool)left.isNull(pos),
+                        (bool)right.isNull(pos));
                     selectedPositions[numSelectedValues] = pos;
                     numSelectedValues += resultValue;
                 }
@@ -366,7 +310,8 @@ struct BinaryOperationExecutor {
                     auto pos = left.state->selectedPositions[i];
                     auto isNull = left.isNull(pos) || right.isNull(pos);
                     if (!isNull) {
-                        FUNC::operation(lValues[pos], rValues[pos], resultValue);
+                        FUNC::operation(lValues[pos], rValues[pos], resultValue,
+                            (bool)left.isNull(pos), (bool)right.isNull(pos));
                         selectedPositions[numSelectedValues] = pos;
                         numSelectedValues += resultValue;
                     }
@@ -383,8 +328,9 @@ struct BinaryOperationExecutor {
         if (left.state->isFlat() && right.state->isFlat()) {
             auto lPos = left.state->getPositionOfCurrIdx();
             auto rPos = right.state->getPositionOfCurrIdx();
-            auto resultValue = FUNC::operation(
-                left.values[lPos], right.values[rPos], left.isNull(lPos), right.isNull(rPos));
+            uint8_t resultValue;
+            FUNC::operation(left.values[lPos], right.values[rPos], resultValue,
+                (bool)left.isNull(lPos), (bool)right.isNull(rPos));
             return resultValue == TRUE;
         } else if (left.state->isFlat()) {
             auto lPos = left.state->getPositionOfCurrIdx();
@@ -395,8 +341,8 @@ struct BinaryOperationExecutor {
             uint8_t resultValue;
             for (auto i = 0u; i < right.state->selectedSize; i++) {
                 auto rPos = right.state->selectedPositions[i];
-                resultValue =
-                    FUNC::operation(lValue, right.values[rPos], isLeftNull, right.isNull(rPos));
+                FUNC::operation(lValue, right.values[rPos], resultValue, (bool)isLeftNull,
+                    (bool)right.isNull(rPos));
                 selectedPositions[numSelectedValues] = rPos;
                 numSelectedValues += (resultValue == TRUE);
             }
@@ -410,8 +356,8 @@ struct BinaryOperationExecutor {
             uint8_t resultValue;
             for (auto i = 0u; i < left.state->selectedSize; i++) {
                 auto lPos = right.state->selectedPositions[i];
-                resultValue =
-                    FUNC::operation(left.values[lPos], rValue, left.isNull(lPos), isRightNull);
+                FUNC::operation(left.values[lPos], rValue, resultValue, (bool)left.isNull(lPos),
+                    (bool)isRightNull);
                 selectedPositions[numSelectedValues] = lPos;
                 numSelectedValues += (resultValue == TRUE);
             }
@@ -422,8 +368,8 @@ struct BinaryOperationExecutor {
             uint8_t resultValue;
             for (auto i = 0u; i < left.state->selectedSize; i++) {
                 auto pos = left.state->selectedPositions[i];
-                resultValue = FUNC::operation(
-                    left.values[pos], right.values[pos], left.isNull(pos), right.isNull(pos));
+                FUNC::operation(left.values[pos], right.values[pos], resultValue,
+                    (bool)left.isNull(pos), (bool)right.isNull(pos));
                 selectedPositions[numSelectedValues] = pos;
                 numSelectedValues += (resultValue == TRUE);
             }
@@ -445,7 +391,8 @@ struct BinaryOperationExecutor {
             uint64_t numSelectedValues = 0;
             uint8_t resultValue = 0;
             if (!isNull) {
-                FUNC::operation(leftNodeID, rightNodeID, resultValue);
+                FUNC::operation(leftNodeID, rightNodeID, resultValue, (bool)left.isNull(lPos),
+                    (bool)right.isNull(rPos));
                 numSelectedValues += resultValue == TRUE;
             }
             return numSelectedValues;
@@ -460,7 +407,8 @@ struct BinaryOperationExecutor {
                 for (auto i = 0u; i < right.state->selectedSize; i++) {
                     auto rPos = right.state->selectedPositions[i];
                     right.readNodeID(rPos, rightNodeID);
-                    FUNC::operation(leftNodeID, rightNodeID, resultValue);
+                    FUNC::operation(leftNodeID, rightNodeID, resultValue, (bool)isLeftNull,
+                        (bool)right.isNull(rPos));
                     selectedPositions[numSelectedValues] = rPos;
                     numSelectedValues += resultValue;
                 }
@@ -472,7 +420,8 @@ struct BinaryOperationExecutor {
                     right.readNodeID(rPos, rightNodeID);
                     auto isNull = isLeftNull || right.isNull(rPos);
                     if (!isNull) {
-                        FUNC::operation(leftNodeID, rightNodeID, resultValue);
+                        FUNC::operation(leftNodeID, rightNodeID, resultValue, (bool)isLeftNull,
+                            (bool)right.isNull(rPos));
                         selectedPositions[numSelectedValues] = rPos;
                         numSelectedValues += resultValue;
                     }
@@ -490,7 +439,8 @@ struct BinaryOperationExecutor {
                 for (auto i = 0u; i < left.state->selectedSize; i++) {
                     auto lPos = left.state->selectedPositions[i];
                     left.readNodeID(lPos, leftNodeID);
-                    FUNC::operation(leftNodeID, rightNodeID, resultValue);
+                    FUNC::operation(leftNodeID, rightNodeID, resultValue, (bool)left.isNull(lPos),
+                        (bool)isRightNull);
                     selectedPositions[numSelectedValues] = lPos;
                     numSelectedValues += resultValue;
                 }
@@ -502,7 +452,8 @@ struct BinaryOperationExecutor {
                     left.readNodeID(lPos, leftNodeID);
                     auto isNull = isRightNull || left.isNull(lPos);
                     if (!isNull) {
-                        FUNC::operation(leftNodeID, rightNodeID, resultValue);
+                        FUNC::operation(leftNodeID, rightNodeID, resultValue,
+                            (bool)left.isNull(lPos), (bool)isRightNull);
                         selectedPositions[numSelectedValues] = lPos;
                         numSelectedValues += resultValue;
                     }
@@ -518,7 +469,8 @@ struct BinaryOperationExecutor {
                     auto pos = left.state->selectedPositions[i];
                     left.readNodeID(pos, leftNodeID);
                     right.readNodeID(pos, rightNodeID);
-                    FUNC::operation(leftNodeID, rightNodeID, resultValue);
+                    FUNC::operation(leftNodeID, rightNodeID, resultValue, (bool)left.isNull(pos),
+                        (bool)right.isNull(pos));
                     selectedPositions[numSelectedValues] = pos;
                     numSelectedValues += resultValue;
                 }
@@ -529,7 +481,8 @@ struct BinaryOperationExecutor {
                     right.readNodeID(pos, rightNodeID);
                     auto isNull = left.isNull(pos) || right.isNull(pos);
                     if (!isNull) {
-                        FUNC::operation(leftNodeID, rightNodeID, resultValue);
+                        FUNC::operation(leftNodeID, rightNodeID, resultValue,
+                            (bool)left.isNull(pos), (bool)right.isNull(pos));
                         selectedPositions[numSelectedValues] = pos;
                         numSelectedValues += resultValue;
                     }
@@ -538,7 +491,7 @@ struct BinaryOperationExecutor {
             return numSelectedValues;
         }
     }
-};
+}; // namespace common
 
 } // namespace common
 } // namespace graphflow

@@ -8,20 +8,23 @@ namespace graphflow {
 namespace common {
 
 void VectorBooleanOperations::And(ValueVector& left, ValueVector& right, ValueVector& result) {
-    BinaryOperationExecutor::executeBooleanOps<operation::And>(left, right, result);
+    BinaryOperationExecutor::execute<uint8_t, uint8_t, uint8_t, operation::And,
+        false /* SKIP_NULL */>(left, right, result);
 }
 
 void VectorBooleanOperations::Or(ValueVector& left, ValueVector& right, ValueVector& result) {
-    BinaryOperationExecutor::executeBooleanOps<operation::Or>(left, right, result);
+    BinaryOperationExecutor::execute<uint8_t, uint8_t, uint8_t, operation::Or,
+        false /* SKIP_NULL */>(left, right, result);
 }
 
 void VectorBooleanOperations::Xor(ValueVector& left, ValueVector& right, ValueVector& result) {
-    BinaryOperationExecutor::executeBooleanOps<operation::Xor>(left, right, result);
+    BinaryOperationExecutor::execute<uint8_t, uint8_t, uint8_t, operation::Xor,
+        false /* SKIP_NULL */>(left, right, result);
 }
 
 void VectorBooleanOperations::Not(ValueVector& operand, ValueVector& result) {
-    UnaryOperationExecutor::execute<uint8_t, uint8_t, operation::Not, false /* IS_NODE_ID */,
-        false /* SKIP_NULL */>(operand, result);
+    UnaryOperationExecutor::execute<uint8_t, uint8_t, operation::Not, false /* SKIP_NULL */>(
+        operand, result);
 }
 
 uint64_t VectorBooleanOperations::AndSelect(

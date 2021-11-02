@@ -6,10 +6,10 @@ namespace graphflow {
 namespace common {
 
 struct UnaryOperationExecutor {
-    template<typename T, typename R, class FUNC = std::function<R(T)>, bool IS_NODE_ID>
+    template<typename T, typename R, typename FUNC = std::function<R(T)>>
     static void executeOnTuple(ValueVector& operand, T* operandValues, R* resultValues,
         uint64_t operandPos, uint64_t resultPos) {
-        if constexpr (IS_NODE_ID) {
+        if constexpr ((is_same<T, nodeID_t>::value)) {
             nodeID_t nodeID;
             operand.readNodeID(operandPos, nodeID);
             FUNC::operation(nodeID, (bool)operand.isNull(operandPos), resultValues[resultPos]);
@@ -19,8 +19,11 @@ struct UnaryOperationExecutor {
         }
     }
 
-    template<class T, class R, class FUNC = std::function<R(T)>, bool IS_NODE_ID, bool SKIP_NULL>
+    template<typename T, typename R, typename FUNC = std::function<R(T)>, bool SKIP_NULL = true>
     static void execute(ValueVector& operand, ValueVector& result) {
+        // SKIP_NULL is set to false ONLY when the FUNC is boolean operations.
+        assert(SKIP_NULL ||
+               (!SKIP_NULL && (is_same<T, uint8_t>::value) && (is_same<R, uint8_t>::value)));
         auto operandValues = (T*)operand.values;
         auto resultValues = (R*)result.values;
         if (operand.state->isFlat()) {
@@ -28,11 +31,11 @@ struct UnaryOperationExecutor {
             auto resultPos = result.state->getPositionOfCurrIdx();
             if constexpr (SKIP_NULL) {
                 if (!operand.isNull(operandPos)) {
-                    executeOnTuple<T, R, FUNC, IS_NODE_ID>(
+                    executeOnTuple<T, R, FUNC>(
                         operand, operandValues, resultValues, operandPos, resultPos);
                 }
             } else {
-                executeOnTuple<T, R, FUNC, IS_NODE_ID>(
+                executeOnTuple<T, R, FUNC>(
                     operand, operandValues, resultValues, operandPos, resultPos);
             }
         } else {
@@ -40,13 +43,12 @@ struct UnaryOperationExecutor {
                 if (operand.hasNoNullsGuarantee()) {
                     if (operand.state->isUnfiltered()) {
                         for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                            executeOnTuple<T, R, FUNC, IS_NODE_ID>(
-                                operand, operandValues, resultValues, i, i);
+                            executeOnTuple<T, R, FUNC>(operand, operandValues, resultValues, i, i);
                         }
                     } else {
                         for (auto i = 0u; i < operand.state->selectedSize; i++) {
                             auto pos = operand.state->selectedPositions[i];
-                            executeOnTuple<T, R, FUNC, IS_NODE_ID>(
+                            executeOnTuple<T, R, FUNC>(
                                 operand, operandValues, resultValues, pos, pos);
                         }
                     }
@@ -54,7 +56,7 @@ struct UnaryOperationExecutor {
                     if (operand.state->isUnfiltered()) {
                         for (auto i = 0u; i < operand.state->selectedSize; i++) {
                             if (!operand.isNull(i)) {
-                                executeOnTuple<T, R, FUNC, IS_NODE_ID>(
+                                executeOnTuple<T, R, FUNC>(
                                     operand, operandValues, resultValues, i, i);
                             }
                         }
@@ -62,7 +64,7 @@ struct UnaryOperationExecutor {
                         for (auto i = 0u; i < operand.state->selectedSize; i++) {
                             auto pos = operand.state->selectedPositions[i];
                             if (!operand.isNull(pos)) {
-                                executeOnTuple<T, R, FUNC, IS_NODE_ID>(
+                                executeOnTuple<T, R, FUNC>(
                                     operand, operandValues, resultValues, pos, pos);
                             }
                         }
@@ -71,14 +73,12 @@ struct UnaryOperationExecutor {
             } else {
                 if (operand.state->isUnfiltered()) {
                     for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                        executeOnTuple<T, R, FUNC, IS_NODE_ID>(
-                            operand, operandValues, resultValues, i, i);
+                        executeOnTuple<T, R, FUNC>(operand, operandValues, resultValues, i, i);
                     }
                 } else {
                     for (auto i = 0u; i < operand.state->selectedSize; i++) {
                         auto pos = operand.state->selectedPositions[i];
-                        executeOnTuple<T, R, FUNC, IS_NODE_ID>(
-                            operand, operandValues, resultValues, pos, pos);
+                        executeOnTuple<T, R, FUNC>(operand, operandValues, resultValues, pos, pos);
                     }
                 }
             }
@@ -86,7 +86,7 @@ struct UnaryOperationExecutor {
     }
 
     // NOT
-    template<class FUNC = function<uint8_t(uint8_t, bool)>>
+    template<typename FUNC = function<uint8_t(uint8_t, bool)>>
     static uint64_t selectBooleanOps(ValueVector& operand, sel_t* selectedPositions) {
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();

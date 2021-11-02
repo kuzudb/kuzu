@@ -28,8 +28,8 @@ struct SumFunction {
                     state->val = inputValues[input->state->selectedPositions[i]];
                     state->isNull = false;
                 } else {
-                    Add::operation(
-                        state->val, inputValues[input->state->selectedPositions[i]], state->val);
+                    Add::operation(state->val, inputValues[input->state->selectedPositions[i]],
+                        state->val, false /* isLeftNull */, false /* isRightNull */);
                 }
             }
         } else {
@@ -41,7 +41,7 @@ struct SumFunction {
                         state->isNull = false;
                     } else {
                         Add::operation(state->val, inputValues[input->state->selectedPositions[i]],
-                            state->val);
+                            state->val, false /* isLeftNull */, false /* isRightNull */);
                     }
                 }
             }
@@ -58,7 +58,8 @@ struct SumFunction {
             state->val = otherState->val;
             state->isNull = false;
         } else {
-            Add::operation(state->val, otherState->val, state->val);
+            Add::operation(state->val, otherState->val, state->val, false /* isLeftNull */,
+                false /* isRightNull */);
         }
     }
 
