@@ -9,32 +9,25 @@ namespace common {
 void VectorHashOperations::Hash(ValueVector& operand, ValueVector& result) {
     switch (operand.dataType) {
     case NODE: {
-        UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::Hash, true /* IS_NODE_ID */,
-            true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::Hash>(operand, result);
     } break;
     case INT64: {
-        UnaryOperationExecutor::execute<int64_t, hash_t, operation::Hash, false /* IS_NODE_ID */,
-            true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<int64_t, hash_t, operation::Hash>(operand, result);
     } break;
     case DOUBLE: {
-        UnaryOperationExecutor::execute<double_t, hash_t, operation::Hash, false /* IS_NODE_ID */,
-            true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<double_t, hash_t, operation::Hash>(operand, result);
     } break;
     case STRING: {
-        UnaryOperationExecutor::execute<gf_string_t, hash_t, operation::Hash,
-            false /* IS_NODE_ID */, true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<gf_string_t, hash_t, operation::Hash>(operand, result);
     } break;
     case DATE: {
-        UnaryOperationExecutor::execute<date_t, hash_t, operation::Hash, false /* IS_NODE_ID */,
-            true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<date_t, hash_t, operation::Hash>(operand, result);
     } break;
     case TIMESTAMP: {
-        UnaryOperationExecutor::execute<timestamp_t, hash_t, operation::Hash,
-            false /* IS_NODE_ID */, true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<timestamp_t, hash_t, operation::Hash>(operand, result);
     } break;
     case INTERVAL: {
-        UnaryOperationExecutor::execute<interval_t, hash_t, operation::Hash, false /* IS_NODE_ID */,
-            true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<interval_t, hash_t, operation::Hash>(operand, result);
     } break;
     default:
         assert(false);
@@ -44,32 +37,28 @@ void VectorHashOperations::Hash(ValueVector& operand, ValueVector& result) {
 void VectorHashOperations::CombineHash(ValueVector& operand, ValueVector& result) {
     switch (operand.dataType) {
     case NODE: {
-        UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::CombineHash,
-            true /* IS_NODE_ID */, true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::CombineHash>(operand, result);
     } break;
     case INT64: {
-        UnaryOperationExecutor::execute<int64_t, hash_t, operation::CombineHash,
-            false /* IS_NODE_ID */, true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<int64_t, hash_t, operation::CombineHash>(operand, result);
     } break;
     case DOUBLE: {
-        UnaryOperationExecutor::execute<double_t, hash_t, operation::CombineHash,
-            false /* IS_NODE_ID */, true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<double_t, hash_t, operation::CombineHash>(operand, result);
     } break;
     case STRING: {
-        UnaryOperationExecutor::execute<gf_string_t, hash_t, operation::CombineHash,
-            false /* IS_NODE_ID */, true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<gf_string_t, hash_t, operation::CombineHash>(
+            operand, result);
     } break;
     case DATE: {
-        UnaryOperationExecutor::execute<date_t, hash_t, operation::CombineHash,
-            false /* IS_NODE_ID */, true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<date_t, hash_t, operation::CombineHash>(operand, result);
     } break;
     case TIMESTAMP: {
-        UnaryOperationExecutor::execute<timestamp_t, hash_t, operation::CombineHash,
-            false /* IS_NODE_ID */, true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<timestamp_t, hash_t, operation::CombineHash>(
+            operand, result);
     } break;
     case INTERVAL: {
-        UnaryOperationExecutor::execute<interval_t, hash_t, operation::CombineHash,
-            false /* IS_NODE_ID */, true /* SKIP_NULL */>(operand, result);
+        UnaryOperationExecutor::execute<interval_t, hash_t, operation::CombineHash>(
+            operand, result);
     } break;
     default:
         assert(false);

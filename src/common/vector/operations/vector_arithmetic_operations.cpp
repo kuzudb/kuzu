@@ -17,18 +17,15 @@ public:
             case INT64: {
                 if (std::is_same<OP, operation::Power>::value) {
                     assert(result.dataType == DOUBLE);
-                    BinaryOperationExecutor::execute<int64_t, int64_t, double_t, OP,
-                        false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                    BinaryOperationExecutor::execute<int64_t, int64_t, double_t, OP>(
                         left, right, result);
                 } else {
-                    BinaryOperationExecutor::execute<int64_t, int64_t, int64_t, OP,
-                        false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                    BinaryOperationExecutor::execute<int64_t, int64_t, int64_t, OP>(
                         left, right, result);
                 }
             } break;
             case DOUBLE:
-                BinaryOperationExecutor::execute<int64_t, double_t, double_t, OP,
-                    false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                BinaryOperationExecutor::execute<int64_t, double_t, double_t, OP>(
                     left, right, result);
                 break;
             default:
@@ -38,13 +35,11 @@ public:
         case DOUBLE: {
             switch (right.dataType) {
             case INT64:
-                BinaryOperationExecutor::execute<double_t, int64_t, double_t, OP,
-                    false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                BinaryOperationExecutor::execute<double_t, int64_t, double_t, OP>(
                     left, right, result);
                 break;
             case DOUBLE:
-                BinaryOperationExecutor::execute<double_t, double_t, double_t, OP,
-                    false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                BinaryOperationExecutor::execute<double_t, double_t, double_t, OP>(
                     left, right, result);
                 break;
             default:
@@ -53,16 +48,20 @@ public:
         } break;
         case STRING: {
             assert(right.dataType == STRING && (is_same<OP, operation::Add>::value));
-            BinaryOperationExecutor::execute<gf_string_t, gf_string_t, gf_string_t, operation::Add,
-                true /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(left, right, result);
+            if constexpr ((is_same<OP, operation::Add>::value)) {
+                assert(right.dataType == STRING);
+                BinaryOperationExecutor::execute<gf_string_t, gf_string_t, gf_string_t, OP>(
+                    left, right, result);
+            } else {
+                assert(false);
+            }
         } break;
         case DATE: {
             switch (right.dataType) {
             case INT64: {
                 if constexpr (is_same<OP, operation::Add>::value ||
                               is_same<OP, operation::Subtract>::value) {
-                    BinaryOperationExecutor::execute<date_t, int64_t, date_t, OP,
-                        false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                    BinaryOperationExecutor::execute<date_t, int64_t, date_t, OP>(
                         left, right, result);
                 } else {
                     assert(false);
@@ -71,18 +70,19 @@ public:
             case INTERVAL: {
                 if constexpr (is_same<OP, operation::Add>::value ||
                               is_same<OP, operation::Subtract>::value) {
-                    BinaryOperationExecutor::execute<date_t, interval_t, date_t, OP,
-                        false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                    BinaryOperationExecutor::execute<date_t, interval_t, date_t, OP>(
                         left, right, result);
                 } else {
                     assert(false);
                 }
             } break;
             case DATE: {
-                assert((is_same<OP, operation::Subtract>::value));
-                BinaryOperationExecutor::execute<date_t, date_t, int64_t, operation::Subtract,
-                    false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
-                    left, right, result);
+                if constexpr ((is_same<OP, operation::Subtract>::value)) {
+                    BinaryOperationExecutor::execute<date_t, date_t, int64_t, OP>(
+                        left, right, result);
+                } else {
+                    assert(false);
+                }
             } break;
             default:
                 assert(false);
@@ -91,16 +91,17 @@ public:
         case TIMESTAMP: {
             switch (right.dataType) {
             case TIMESTAMP: {
-                assert((is_same<OP, operation::Subtract>::value));
-                BinaryOperationExecutor::execute<timestamp_t, timestamp_t, interval_t,
-                    operation::Subtract, false /* IS_STRUCTURED_STRING */,
-                    false /* IS_UNSTRUCTURED */>(left, right, result);
+                if constexpr ((is_same<OP, operation::Subtract>::value)) {
+                    BinaryOperationExecutor::execute<timestamp_t, timestamp_t, interval_t, OP>(
+                        left, right, result);
+                } else {
+                    assert(false);
+                }
             } break;
             case INTERVAL: {
                 if constexpr (is_same<OP, operation::Add>::value ||
                               is_same<OP, operation::Subtract>::value) {
-                    BinaryOperationExecutor::execute<timestamp_t, interval_t, timestamp_t, OP,
-                        false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                    BinaryOperationExecutor::execute<timestamp_t, interval_t, timestamp_t, OP>(
                         left, right, result);
                 } else {
                     assert(false);
@@ -115,18 +116,19 @@ public:
             case INTERVAL: {
                 if constexpr (is_same<OP, operation::Add>::value ||
                               is_same<OP, operation::Subtract>::value) {
-                    BinaryOperationExecutor::execute<interval_t, interval_t, interval_t, OP,
-                        false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
+                    BinaryOperationExecutor::execute<interval_t, interval_t, interval_t, OP>(
                         left, right, result);
                 } else {
                     assert(false);
                 }
             } break;
             case INT64: {
-                assert((is_same<OP, operation::Divide>::value));
-                BinaryOperationExecutor::execute<interval_t, int64_t, interval_t, operation::Divide,
-                    false /* IS_STRUCTURED_STRING */, false /* IS_UNSTRUCTURED */>(
-                    left, right, result);
+                if constexpr ((is_same<OP, operation::Divide>::value)) {
+                    BinaryOperationExecutor::execute<interval_t, int64_t, interval_t, OP>(
+                        left, right, result);
+                } else {
+                    assert(false);
+                }
             } break;
             default:
                 assert(false);
@@ -134,8 +136,7 @@ public:
         } break;
         case UNSTRUCTURED: {
             assert(right.dataType == UNSTRUCTURED);
-            BinaryOperationExecutor::execute<Value, Value, Value, OP,
-                false /* IS_STRUCTURED_STRING */, true /* IS_UNSTRUCTURED */>(left, right, result);
+            BinaryOperationExecutor::execute<Value, Value, Value, OP>(left, right, result);
         } break;
         default:
             assert(false);
@@ -146,16 +147,13 @@ public:
     static inline void execute(ValueVector& operand, ValueVector& result) {
         switch (operand.dataType) {
         case INT64: {
-            UnaryOperationExecutor::execute<int64_t, int64_t, OP, false /* IS_NODE_ID */,
-                true /* SKIP_NULL */>(operand, result);
+            UnaryOperationExecutor::execute<int64_t, int64_t, OP>(operand, result);
         } break;
         case DOUBLE: {
-            UnaryOperationExecutor::execute<double_t, double_t, OP, false /* IS_NODE_ID */,
-                true /* SKIP_NULL */>(operand, result);
+            UnaryOperationExecutor::execute<double_t, double_t, OP>(operand, result);
         } break;
         case UNSTRUCTURED: {
-            UnaryOperationExecutor::execute<Value, Value, OP, false /* IS_NODE_ID */,
-                true /* SKIP_NULL */>(operand, result);
+            UnaryOperationExecutor::execute<Value, Value, OP>(operand, result);
         } break;
         default:
             assert(false);

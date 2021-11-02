@@ -33,8 +33,9 @@ struct AvgFunction {
                     state->val = (double_t)inputValues[input->state->selectedPositions[i]];
                     state->isNull = false;
                 } else {
-                    Add::template operation<double_t, T, double_t>(
-                        state->val, inputValues[input->state->selectedPositions[i]], state->val);
+                    Add::template operation<double_t, T, double_t>(state->val,
+                        inputValues[input->state->selectedPositions[i]], state->val,
+                        false /* isLeftNull */, false /* isRightNull */);
                 }
             }
             state->numValues = state->numValues + count;
@@ -47,7 +48,8 @@ struct AvgFunction {
                         state->isNull = false;
                     } else {
                         Add::template operation<double_t, T, double_t>(state->val,
-                            inputValues[input->state->selectedPositions[i]], state->val);
+                            inputValues[input->state->selectedPositions[i]], state->val,
+                            false /* isLeftNull */, false /* isRightNull */);
                     }
                     state->numValues = state->numValues + 1;
                 }
@@ -65,8 +67,8 @@ struct AvgFunction {
             state->val = otherState->val;
             state->isNull = false;
         } else {
-            Add::template operation<double_t, double_t, double_t>(
-                state->val, otherState->val, state->val);
+            Add::template operation<double_t, double_t, double_t>(state->val, otherState->val,
+                state->val, false /* isLeftNull */, false /* isRightNull */);
         }
         state->numValues = state->numValues + otherState->numValues;
     }

@@ -9,38 +9,31 @@ namespace common {
 namespace operation {
 
 struct And {
-    static inline uint8_t operation(
-        uint8_t left, uint8_t right, bool isLeftNull, bool isRightNull) {
+    static inline void operation(
+        uint8_t left, uint8_t right, uint8_t& result, bool isLeftNull, bool isRightNull) {
         if (left == FALSE || right == FALSE) {
-            return FALSE;
+            result = FALSE;
+        } else {
+            result = isLeftNull || isRightNull ? NULL_BOOL : TRUE;
         }
-        if (isLeftNull || isRightNull) {
-            return NULL_BOOL;
-        }
-        return TRUE;
     }
 };
 
 struct Or {
-    static inline uint8_t operation(
-        uint8_t left, uint8_t right, bool isLeftNull, bool isRightNull) {
+    static inline void operation(
+        uint8_t left, uint8_t right, uint8_t& result, bool isLeftNull, bool isRightNull) {
         if (left == TRUE || right == TRUE) {
-            return TRUE;
+            result = TRUE;
+        } else {
+            result = isLeftNull || isRightNull ? NULL_BOOL : FALSE;
         }
-        if (isLeftNull || isRightNull) {
-            return NULL_BOOL;
-        }
-        return FALSE;
     }
 };
 
 struct Xor {
-    static inline uint8_t operation(
-        uint8_t left, uint8_t right, bool isLeftNull, bool isRightNull) {
-        if (isLeftNull || isRightNull) {
-            return NULL_BOOL;
-        }
-        return left ^ right;
+    static inline void operation(
+        uint8_t left, uint8_t right, uint8_t& result, bool isLeftNull, bool isRightNull) {
+        result = (isLeftNull || isRightNull) ? NULL_BOOL : left ^ right;
     }
 };
 

@@ -14,42 +14,48 @@ namespace operation {
 
 struct Add {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result) {
+    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
+        assert(!isLeftNull && !isRightNull);
         result = left + right;
     }
 };
 
 struct Subtract {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result) {
+    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
+        assert(!isLeftNull && !isRightNull);
         result = left - right;
     }
 };
 
 struct Multiply {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result) {
+    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
+        assert(!isLeftNull && !isRightNull);
         result = left * right;
     }
 };
 
 struct Divide {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result) {
+    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
+        assert(!isLeftNull && !isRightNull);
         result = left / right;
     }
 };
 
 struct Modulo {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result) {
+    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
+        assert(!isLeftNull && !isRightNull);
         assert(false);
     }
 };
 
 struct Power {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result) {
+    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
+        assert(!isLeftNull && !isRightNull);
         result = pow(left, right);
     }
 };
@@ -93,22 +99,30 @@ struct Ceil {
  ********************************************/
 
 template<>
-inline void Modulo::operation(int64_t& left, int64_t& right, int64_t& result) {
+inline void Modulo::operation(
+    int64_t& left, int64_t& right, int64_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
     result = left % right;
 }
 
 template<>
-inline void Modulo::operation(int64_t& left, double_t& right, double_t& result) {
+inline void Modulo::operation(
+    int64_t& left, double_t& right, double_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
     result = fmod(left, right);
 }
 
 template<>
-inline void Modulo::operation(double_t& left, int64_t& right, double_t& result) {
+inline void Modulo::operation(
+    double_t& left, int64_t& right, double_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
     result = fmod(left, right);
 }
 
 template<>
-inline void Modulo::operation(double_t& left, double_t& right, double_t& result) {
+inline void Modulo::operation(
+    double_t& left, double_t& right, double_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
     result = fmod(left, right);
 }
 
@@ -119,7 +133,9 @@ inline void Modulo::operation(double_t& left, double_t& right, double_t& result)
  **************************************************/
 
 template<>
-inline void Add::operation(gf_string_t& left, gf_string_t& right, gf_string_t& result) {
+inline void Add::operation(
+    gf_string_t& left, gf_string_t& right, gf_string_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
     auto len = left.len + right.len;
     if (len <= gf_string_t::SHORT_STR_LENGTH /* concat's result is short */) {
         memcpy(result.prefix, left.prefix, left.len);
@@ -134,7 +150,9 @@ inline void Add::operation(gf_string_t& left, gf_string_t& right, gf_string_t& r
 }
 
 template<>
-inline void Add::operation(date_t& left, interval_t& right, date_t& result) {
+inline void Add::operation(
+    date_t& left, interval_t& right, date_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
     if (right.months != 0) {
         int32_t year, month, day, maxDayInMonth;
         Date::Convert(left, year, month, day);
@@ -165,12 +183,13 @@ inline void Add::operation(date_t& left, interval_t& right, date_t& result) {
 }
 
 template<>
-inline void Add::operation(timestamp_t& left, interval_t& right, timestamp_t& result) {
+inline void Add::operation(
+    timestamp_t& left, interval_t& right, timestamp_t& result, bool isLeftNull, bool isRightNull) {
     date_t date;
     date_t result_date;
     dtime_t time;
     Timestamp::Convert(left, date, time);
-    Add::operation<date_t, interval_t, date_t>(date, right, result_date);
+    Add::operation<date_t, interval_t, date_t>(date, right, result_date, isLeftNull, isRightNull);
     date = result_date;
     int64_t diff =
         right.micros - ((right.micros / Interval::MICROS_PER_DAY) * Interval::MICROS_PER_DAY);
@@ -186,7 +205,9 @@ inline void Add::operation(timestamp_t& left, interval_t& right, timestamp_t& re
 }
 
 template<>
-inline void Add::operation(interval_t& left, interval_t& right, interval_t& result) {
+inline void Add::operation(
+    interval_t& left, interval_t& right, interval_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
     result.months = left.months + right.months;
     result.days = left.days + right.days;
     result.micros = left.micros + right.micros;
@@ -199,21 +220,26 @@ inline void Add::operation(interval_t& left, interval_t& right, interval_t& resu
  *********************************************/
 
 template<>
-inline void Subtract::operation(date_t& left, interval_t& right, date_t& result) {
+inline void Subtract::operation(
+    date_t& left, interval_t& right, date_t& result, bool isLeftNull, bool isRightNull) {
     interval_t inverseRight;
     inverseRight.months = -right.months;
     inverseRight.days = -right.days;
     inverseRight.micros = -right.micros;
-    Add::operation<date_t, interval_t, date_t>(left, inverseRight, result);
+    Add::operation<date_t, interval_t, date_t>(left, inverseRight, result, isLeftNull, isRightNull);
 }
 
 template<>
-inline void Subtract::operation(date_t& left, date_t& right, int64_t& result) {
+inline void Subtract::operation(
+    date_t& left, date_t& right, int64_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
     result = left.days - right.days;
 }
 
 template<>
-inline void Subtract::operation(timestamp_t& left, timestamp_t& right, interval_t& result) {
+inline void Subtract::operation(
+    timestamp_t& left, timestamp_t& right, interval_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
     uint64_t diff = abs(left.value - right.value);
     result.months = 0;
     result.days = diff / Interval::MICROS_PER_DAY;
@@ -225,23 +251,29 @@ inline void Subtract::operation(timestamp_t& left, timestamp_t& right, interval_
 }
 
 template<>
-inline void Subtract::operation(timestamp_t& left, interval_t& right, timestamp_t& result) {
+inline void Subtract::operation(
+    timestamp_t& left, interval_t& right, timestamp_t& result, bool isLeftNull, bool isRightNull) {
     interval_t inverseRight;
     inverseRight.months = -right.months;
     inverseRight.days = -right.days;
     inverseRight.micros = -right.micros;
-    Add::operation<timestamp_t, interval_t, timestamp_t>(left, inverseRight, result);
+    Add::operation<timestamp_t, interval_t, timestamp_t>(
+        left, inverseRight, result, isLeftNull, isRightNull);
 }
 
 template<>
-inline void Subtract::operation(interval_t& left, interval_t& right, interval_t& result) {
+inline void Subtract::operation(
+    interval_t& left, interval_t& right, interval_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
     result.months = left.months - right.months;
     result.days = left.days - right.days;
     result.micros = left.micros - right.micros;
 }
 
 template<>
-inline void Divide::operation(interval_t& left, int64_t& right, interval_t& result) {
+inline void Divide::operation(
+    interval_t& left, int64_t& right, interval_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
     int32_t monthsRemainder = left.months % right;
     int32_t daysRemainder = (left.days + monthsRemainder * Interval::DAYS_PER_MONTH) % right;
     result.months = left.months / right;
@@ -257,17 +289,20 @@ inline void Divide::operation(interval_t& left, int64_t& right, interval_t& resu
 
 struct ArithmeticOnValues {
     template<class FUNC, const char* arithmeticOpStr>
-    static void operation(Value& left, Value& right, Value& result) {
+    static void operation(
+        Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
         switch (left.dataType) {
         case INT64:
             switch (right.dataType) {
             case INT64: {
                 result.dataType = INT64;
-                FUNC::operation(left.val.int64Val, right.val.int64Val, result.val.int64Val);
+                FUNC::operation(left.val.int64Val, right.val.int64Val, result.val.int64Val,
+                    isLeftNull, isRightNull);
             } break;
             case DOUBLE: {
                 result.dataType = DOUBLE;
-                FUNC::operation(left.val.int64Val, right.val.doubleVal, result.val.doubleVal);
+                FUNC::operation(left.val.int64Val, right.val.doubleVal, result.val.doubleVal,
+                    isLeftNull, isRightNull);
             } break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `INT64` and `" +
@@ -278,11 +313,13 @@ struct ArithmeticOnValues {
             switch (right.dataType) {
             case INT64: {
                 result.dataType = DOUBLE;
-                FUNC::operation(left.val.doubleVal, right.val.int64Val, result.val.doubleVal);
+                FUNC::operation(left.val.doubleVal, right.val.int64Val, result.val.doubleVal,
+                    isLeftNull, isRightNull);
             } break;
             case DOUBLE: {
                 result.dataType = DOUBLE;
-                FUNC::operation(left.val.doubleVal, right.val.doubleVal, result.val.doubleVal);
+                FUNC::operation(left.val.doubleVal, right.val.doubleVal, result.val.doubleVal,
+                    isLeftNull, isRightNull);
             } break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
@@ -327,87 +364,107 @@ static const char floorStr[] = "floor";
 static const char ceilStr[] = "ceil";
 
 template<>
-inline void Add::operation(Value& left, Value& right, Value& result) {
+inline void Add::operation(
+    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
     if (left.dataType == STRING) {
         assert(right.dataType == STRING);
         result.dataType = STRING;
-        Add::operation(left.val.strVal, right.val.strVal, result.val.strVal);
+        Add::operation(
+            left.val.strVal, right.val.strVal, result.val.strVal, isLeftNull, isRightNull);
         return;
     } else if (left.dataType == DATE && right.dataType == INTERVAL) {
         result.dataType = DATE;
-        Add::operation(left.val.dateVal, right.val.intervalVal, result.val.dateVal);
+        Add::operation(
+            left.val.dateVal, right.val.intervalVal, result.val.dateVal, isLeftNull, isRightNull);
         return;
     } else if (left.dataType == DATE && right.dataType == INT64) {
         result.dataType = DATE;
-        Add::operation(left.val.dateVal, right.val.int64Val, result.val.dateVal);
+        Add::operation(
+            left.val.dateVal, right.val.int64Val, result.val.dateVal, isLeftNull, isRightNull);
         return;
     } else if (left.dataType == TIMESTAMP) {
         assert(right.dataType == INTERVAL);
         result.dataType = TIMESTAMP;
-        Add::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal);
+        Add::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal,
+            isLeftNull, isRightNull);
         return;
     } else if (left.dataType == INTERVAL) {
         assert(right.dataType == INTERVAL);
         result.dataType = INTERVAL;
-        Add::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal);
+        Add::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal,
+            isLeftNull, isRightNull);
         return;
     }
-    ArithmeticOnValues::operation<Add, addStr>(left, right, result);
+    ArithmeticOnValues::operation<Add, addStr>(left, right, result, isLeftNull, isRightNull);
 }
 
 template<>
-inline void Subtract::operation(Value& left, Value& right, Value& result) {
+inline void Subtract::operation(
+    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
     if (left.dataType == DATE && right.dataType == INTERVAL) {
         result.dataType = DATE;
-        Subtract::operation(left.val.dateVal, right.val.intervalVal, result.val.dateVal);
+        Subtract::operation(
+            left.val.dateVal, right.val.intervalVal, result.val.dateVal, isLeftNull, isRightNull);
         return;
     } else if (left.dataType == DATE && right.dataType == INT64) {
         result.dataType = DATE;
-        Subtract::operation(left.val.dateVal, right.val.int64Val, result.val.dateVal);
+        Subtract::operation(
+            left.val.dateVal, right.val.int64Val, result.val.dateVal, isLeftNull, isRightNull);
         return;
     } else if (left.dataType == DATE && right.dataType == DATE) {
         result.dataType = INT64;
-        Subtract::operation(left.val.dateVal, right.val.dateVal, result.val.int64Val);
+        Subtract::operation(
+            left.val.dateVal, right.val.dateVal, result.val.int64Val, isLeftNull, isRightNull);
         return;
     } else if (left.dataType == TIMESTAMP && right.dataType == INTERVAL) {
         result.dataType = TIMESTAMP;
-        Subtract::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal);
+        Subtract::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal,
+            isLeftNull, isRightNull);
         return;
     } else if (left.dataType == TIMESTAMP && right.dataType == TIMESTAMP) {
         result.dataType = INTERVAL;
-        Subtract::operation(left.val.timestampVal, right.val.timestampVal, result.val.intervalVal);
+        Subtract::operation(left.val.timestampVal, right.val.timestampVal, result.val.intervalVal,
+            isLeftNull, isRightNull);
         return;
     } else if (left.dataType == INTERVAL && right.dataType == INTERVAL) {
         result.dataType = INTERVAL;
-        Subtract::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal);
+        Subtract::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal,
+            isLeftNull, isRightNull);
         return;
     }
-    ArithmeticOnValues::operation<Subtract, subtractStr>(left, right, result);
+    ArithmeticOnValues::operation<Subtract, subtractStr>(
+        left, right, result, isLeftNull, isRightNull);
 }
 
 template<>
-inline void Multiply::operation(Value& left, Value& right, Value& result) {
-    ArithmeticOnValues::operation<Multiply, multiplyStr>(left, right, result);
+inline void Multiply::operation(
+    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
+    ArithmeticOnValues::operation<Multiply, multiplyStr>(
+        left, right, result, isLeftNull, isRightNull);
 }
 
 template<>
-inline void Divide::operation(Value& left, Value& right, Value& result) {
+inline void Divide::operation(
+    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
     if (left.dataType == INTERVAL && right.dataType == INT64) {
         result.dataType = INTERVAL;
-        Divide::operation(left.val.intervalVal, right.val.int64Val, result.val.intervalVal);
+        Divide::operation(left.val.intervalVal, right.val.int64Val, result.val.intervalVal,
+            isLeftNull, isRightNull);
         return;
     }
-    ArithmeticOnValues::operation<Divide, divideStr>(left, right, result);
+    ArithmeticOnValues::operation<Divide, divideStr>(left, right, result, isLeftNull, isRightNull);
 }
 
 template<>
-inline void Modulo::operation(Value& left, Value& right, Value& result) {
-    ArithmeticOnValues::operation<Modulo, moduloStr>(left, right, result);
+inline void Modulo::operation(
+    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
+    ArithmeticOnValues::operation<Modulo, moduloStr>(left, right, result, isLeftNull, isRightNull);
 }
 
 template<>
-inline void Power::operation(Value& left, Value& right, Value& result) {
-    ArithmeticOnValues::operation<Power, powerStr>(left, right, result);
+inline void Power::operation(
+    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
+    ArithmeticOnValues::operation<Power, powerStr>(left, right, result, isLeftNull, isRightNull);
 }
 
 template<>
