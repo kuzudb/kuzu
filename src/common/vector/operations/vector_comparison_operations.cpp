@@ -135,7 +135,8 @@ public:
         }
         case NODE: {
             assert(right.dataType == NODE);
-            return BinaryOperationExecutor::selectNodeIDOps<OP>(left, right, selectedPositions);
+            return BinaryOperationExecutor::select<nodeID_t, nodeID_t, uint8_t, OP>(
+                left, right, selectedPositions);
         }
         default:
             assert(false);
@@ -216,12 +217,12 @@ uint64_t VectorComparisonOperations::LessThanEqualsSelect(
 }
 
 uint64_t VectorComparisonOperations::IsNullSelect(ValueVector& operand, sel_t* selectedPositions) {
-    return UnaryOperationExecutor::selectOnNullMask<true /* NULL */>(operand, selectedPositions);
+    return UnaryOperationExecutor::select<operation::IsNull>(operand, selectedPositions);
 }
 
 uint64_t VectorComparisonOperations::IsNotNullSelect(
     ValueVector& operand, sel_t* selectedPositions) {
-    return UnaryOperationExecutor::selectOnNullMask<false /* NULL */>(operand, selectedPositions);
+    return UnaryOperationExecutor::select<operation::IsNotNull>(operand, selectedPositions);
 }
 
 } // namespace common

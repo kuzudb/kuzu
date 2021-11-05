@@ -80,7 +80,7 @@ struct IsNull {
 
 struct IsNotNull {
     template<class T>
-    static inline bool operation(T value, bool isNull, uint8_t& result) {
+    static inline void operation(T value, bool isNull, uint8_t& result) {
         result = !isNull;
     }
 };
