@@ -92,7 +92,7 @@ oC_Return
 RETURN : ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'T' | 't' ) ( 'U' | 'u' ) ( 'R' | 'r' ) ( 'N' | 'n' ) ;
 
 oC_ProjectionBody
-    : SP oC_ProjectionItems ( SP oC_Skip )? ( SP oC_Limit )? ;
+    : SP oC_ProjectionItems (SP oC_Order )? ( SP oC_Skip )? ( SP oC_Limit )? ;
 
 oC_ProjectionItems
     : ( STAR ( SP? ',' SP? oC_ProjectionItem )* )
@@ -106,6 +106,13 @@ oC_ProjectionItem
         | oC_Expression
         ;
 
+oC_Order
+    : ORDER SP BY SP oC_SortItem ( ',' SP? oC_SortItem )* ;
+
+ORDER : ( 'O' | 'o' ) ( 'R' | 'r' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ;
+
+BY : ( 'B' | 'b' ) ( 'Y' | 'y' ) ;
+
 oC_Skip
     :  L_SKIP SP oC_Expression ;
 
@@ -115,6 +122,17 @@ oC_Limit
     : LIMIT SP oC_Expression ;
 
 LIMIT : ( 'L' | 'l' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'I' | 'i' ) ( 'T' | 't' ) ;
+
+oC_SortItem
+    : oC_Expression ( SP? ( ASCENDING | ASC | DESCENDING | DESC ) )? ;
+
+ASCENDING : ( 'A' | 'a' ) ( 'S' | 's' ) ( 'C' | 'c' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'G' | 'g' ) ;
+
+ASC : ( 'A' | 'a' ) ( 'S' | 's' ) ( 'C' | 'c' ) ;
+
+DESCENDING : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'S' | 's' ) ( 'C' | 'c' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'G' | 'g' ) ;
+
+DESC : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'S' | 's' ) ( 'C' | 'c' ) ;
 
 oC_Where
     : WHERE SP oC_Expression ;

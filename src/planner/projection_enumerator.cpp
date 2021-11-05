@@ -4,6 +4,7 @@
 #include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
 #include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
 #include "src/planner/include/logical_plan/operator/multiplicity_reducer/logical_multiplcity_reducer.h"
+#include "src/planner/include/logical_plan/operator/orderBy/logical_order_by.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
 
@@ -13,15 +14,25 @@ namespace planner {
 void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& projectionBody,
     const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn) {
     for (auto& plan : plans) {
+        // Note: we should append a projection after aggregation so that this if else can be removed
         if (projectionBody.hasAggregationExpressions()) {
             appendAggregate(projectionBody.getAggregationExpressions(), *plan);
             plan->schema->expressionsToCollect = projectionBody.getAggregationExpressions();
+            if (projectionBody.hasOrderByExpressions()) {
+                appendOrderBy(projectionBody.getOrderByExpressions(),
+                    projectionBody.getSortingOrders(), *plan);
+            }
         } else {
+            if (projectionBody.hasOrderByExpressions()) {
+                appendOrderBy(projectionBody.getOrderByExpressions(),
+                    projectionBody.getSortingOrders(), *plan);
+            }
             appendProjection(projectionBody.getProjectionExpressions(), *plan, isFinalReturn);
             if (isFinalReturn) {
                 plan->schema->expressionsToCollect = projectionBody.getProjectionExpressions();
             }
         }
+
         if (projectionBody.hasSkip() || projectionBody.hasLimit()) {
             appendMultiplicityReducer(*plan);
             if (projectionBody.hasSkip()) {
@@ -89,6 +100,19 @@ void ProjectionEnumerator::appendAggregate(
         plan.schema->insertToGroup(expression->getInternalName(), groupPos);
     }
     plan.appendOperator(move(aggregate));
+}
+
+void ProjectionEnumerator::appendOrderBy(const vector<shared_ptr<Expression>>& expressions,
+    const vector<bool>& isAscOrders, LogicalPlan& plan) {
+    for (auto& expression : expressions) {
+        enumerator->appendScanPropertiesIfNecessary(*expression, plan);
+        auto unFlatGroupsPos = Enumerator::getUnFlatGroupsPos(*expression, *plan.schema);
+        for (auto unFlatGroupPos : unFlatGroupsPos) {
+            enumerator->appendFlattenIfNecessary(unFlatGroupPos, plan);
+        }
+    }
+    auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders, plan.lastOperator);
+    plan.appendOperator(move(orderBy));
 }
 
 void ProjectionEnumerator::appendMultiplicityReducer(LogicalPlan& plan) {

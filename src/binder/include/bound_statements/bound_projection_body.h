@@ -13,9 +13,15 @@ public:
           limitNumber{UINT64_MAX} {}
 
     BoundProjectionBody(const BoundProjectionBody& other)
-        : projectionExpressions{other.projectionExpressions}, skipNumber{other.skipNumber},
-          limitNumber{other.limitNumber} {}
+        : projectionExpressions{other.projectionExpressions},
+          orderByExpressions{other.orderByExpressions}, isAscOrders{other.isAscOrders},
+          skipNumber{other.skipNumber}, limitNumber{other.limitNumber} {}
 
+    inline void setOrderByExpressions(
+        vector<shared_ptr<Expression>> expressions, vector<bool> sortOrders) {
+        orderByExpressions = move(expressions);
+        isAscOrders = move(sortOrders);
+    }
     inline void setSkipNumber(uint64_t number) { skipNumber = number; }
     inline void setLimitNumber(uint64_t number) { limitNumber = number; }
 
@@ -24,6 +30,11 @@ public:
     inline vector<shared_ptr<Expression>> getProjectionExpressions() const {
         return projectionExpressions;
     }
+    inline bool hasOrderByExpressions() const { return !orderByExpressions.empty(); }
+    inline const vector<shared_ptr<Expression>>& getOrderByExpressions() const {
+        return orderByExpressions;
+    }
+    inline const vector<bool>& getSortingOrders() const { return isAscOrders; }
     inline bool hasSkip() const { return skipNumber != UINT64_MAX; }
     inline bool hasLimit() const { return limitNumber != UINT64_MAX; }
     inline uint64_t getSkipNumber() const { return skipNumber; }
@@ -31,6 +42,8 @@ public:
 
 private:
     vector<shared_ptr<Expression>> projectionExpressions;
+    vector<shared_ptr<Expression>> orderByExpressions;
+    vector<bool> isAscOrders;
     uint64_t skipNumber;
     uint64_t limitNumber;
 };

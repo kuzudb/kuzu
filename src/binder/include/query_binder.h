@@ -39,13 +39,20 @@ private:
     unique_ptr<BoundReturnStatement> bindReturnStatement(const ReturnStatement& returnStatement);
 
     unique_ptr<BoundProjectionBody> bindProjectionBody(
-        const ProjectionBody& projectionBody, bool updateVariablesInScope);
+        const ProjectionBody& projectionBody, bool isWithClause);
+
+    vector<shared_ptr<Expression>> bindProjectionExpressions(
+        const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool isStar);
+
+    vector<shared_ptr<Expression>> bindOrderByExpressions(
+        const vector<unique_ptr<ParsedExpression>>& orderByExpressions,
+        const unordered_map<string, shared_ptr<Expression>>& prevVariablesInScope,
+        bool projectionHasAggregation);
+
+    unordered_map<string, shared_ptr<Expression>> computeVariablesInScope(
+        const vector<shared_ptr<Expression>>& expressions, bool isWithClause);
 
     shared_ptr<Expression> bindWhereExpression(const ParsedExpression& parsedExpression);
-
-    vector<shared_ptr<Expression>> bindProjectExpressions(
-        const vector<unique_ptr<ParsedExpression>>& parsedExpressions, bool projectStar,
-        bool updateVariablesInScope);
 
     unique_ptr<QueryGraph> bindQueryGraph(const vector<unique_ptr<PatternElement>>& graphPattern);
 
