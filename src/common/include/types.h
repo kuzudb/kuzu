@@ -155,7 +155,7 @@ enum DataType : uint8_t {
 };
 
 const string DataTypeNames[] = {"REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE", "STRING",
-    "NODE_ID", "UNSTRUCTURED", "DATE", "TIMESTAMP"};
+    "NODE_ID", "UNSTRUCTURED", "DATE", "TIMESTAMP", "INTERVAL"};
 
 // Direction
 enum Direction : uint8_t { FWD = 0, BWD = 1 };

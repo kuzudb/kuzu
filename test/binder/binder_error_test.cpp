@@ -102,7 +102,7 @@ TEST_F(BinderErrorTest, BindVariableNotInScope2) {
 }
 
 TEST_F(BinderErrorTest, BindPropertyLookUpOnExpression) {
-    string expectedException = "Type mismatch: expect NODE or REL, but a.age + 2 was INT64.";
+    string expectedException = "a.age + 2 has data type INT64. REL, NODE was expected.";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) RETURN (a.age + 2).age;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -114,29 +114,27 @@ TEST_F(BinderErrorTest, BindPropertyNotExist) {
 }
 
 TEST_F(BinderErrorTest, BindIDArithmetic) {
-    string expectedException = "id(a) has data type NODE_ID. A numerical data type was expected.";
+    string expectedException = "id(a) has data type NODE_ID. DOUBLE, INT64 was expected.";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, BindDateAddDate) {
-    string expectedException = "date('2031-02-01') has data type DATE! DATE can only add an "
-                               "interval/int or subtract an interval/int/date";
+    string expectedException =
+        "date('2031-02-01') has data type DATE. INTERVAL, INT64 was expected.";
     auto input = "MATCH (a:person) RETURN a.birthdate + date('2031-02-01');";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, BindTimestampArithmetic) {
-    string expectedException = "1 has data type INT64! TIMESTAMP can only add an interval or "
-                               "subtract an interval/timestamp";
+    string expectedException = "1 has data type INT64. INTERVAL was expected.";
     auto input = "MATCH (a:person) WHERE a.registerTime + 1 < 5 RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, BindTimestampAddTimestamp) {
     string expectedException =
-        "timestamp('2031-02-11 01:02:03') has data type TIMESTAMP! TIMESTAMP can only add an "
-        "interval or subtract an interval/timestamp";
+        "timestamp('2031-02-11 01:02:03') has data type TIMESTAMP. INTERVAL was expected.";
     auto input = "MATCH (a:person) RETURN a.registerTime + timestamp('2031-02-11 01:02:03');";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -154,7 +152,7 @@ TEST_F(BinderErrorTest, BindFunctionWithWrongNumParams) {
 }
 
 TEST_F(BinderErrorTest, BindFunctionWithWrongParamType) {
-    string expectedException = "2012 has data type INT64. STRING was expected.";
+    string expectedException = "2012 has data type INT64. UNSTRUCTURED, STRING was expected.";
     auto input = "MATCH (a:person) WHERE date(2012) < 2 RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
