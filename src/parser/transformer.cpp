@@ -101,6 +101,15 @@ unique_ptr<ProjectionBody> Transformer::transformProjectionBody(
     CypherParser::OC_ProjectionBodyContext& ctx) {
     auto projectionBody = make_unique<ProjectionBody>(nullptr != ctx.oC_ProjectionItems()->STAR(),
         transformProjectionItems(*ctx.oC_ProjectionItems()));
+    if (ctx.oC_Order()) {
+        vector<unique_ptr<ParsedExpression>> orderByExpressions;
+        vector<bool> isAscOrders;
+        for (auto& sortItem : ctx.oC_Order()->oC_SortItem()) {
+            orderByExpressions.push_back(transformExpression(*sortItem->oC_Expression()));
+            isAscOrders.push_back(!(sortItem->DESC() || sortItem->DESCENDING()));
+        }
+        projectionBody->setOrderByExpressions(move(orderByExpressions), move(isAscOrders));
+    }
     if (ctx.oC_Skip()) {
         projectionBody->setSkipExpression(transformExpression(*ctx.oC_Skip()->oC_Expression()));
     }

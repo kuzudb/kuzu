@@ -107,7 +107,7 @@ unique_ptr<BoundReadingStatement> QueryBinder::bindMatchStatement(
 
 unique_ptr<BoundWithStatement> QueryBinder::bindWithStatement(const WithStatement& withStatement) {
     auto boundWithStatement = make_unique<BoundWithStatement>(
-        bindProjectionBody(*withStatement.getProjectionBody(), true));
+        bindProjectionBody(*withStatement.getProjectionBody(), true /* isWithClause */));
     if (withStatement.hasWhereExpression()) {
         boundWithStatement->setWhereExpression(
             bindWhereExpression(*withStatement.getWhereExpression()));
@@ -118,15 +118,23 @@ unique_ptr<BoundWithStatement> QueryBinder::bindWithStatement(const WithStatemen
 unique_ptr<BoundReturnStatement> QueryBinder::bindReturnStatement(
     const ReturnStatement& returnStatement) {
     auto boundReturnStatement = make_unique<BoundReturnStatement>(
-        bindProjectionBody(*returnStatement.getProjectionBody(), false));
+        bindProjectionBody(*returnStatement.getProjectionBody(), false /* isWithClause */));
     return boundReturnStatement;
 }
 
 unique_ptr<BoundProjectionBody> QueryBinder::bindProjectionBody(
-    const ProjectionBody& projectionBody, bool updateVariablesInScope) {
-    auto boundProjectionBody = make_unique<BoundProjectionBody>(
-        bindProjectExpressions(projectionBody.getProjectionExpressions(),
-            projectionBody.isProjectStar(), updateVariablesInScope));
+    const ProjectionBody& projectionBody, bool isWithClause) {
+    auto boundProjectionBody = make_unique<BoundProjectionBody>(bindProjectionExpressions(
+        projectionBody.getProjectionExpressions(), projectionBody.isProjectStar()));
+    auto prevVariablesInScope = variablesInScope;
+    variablesInScope =
+        computeVariablesInScope(boundProjectionBody->getProjectionExpressions(), isWithClause);
+    if (projectionBody.hasOrderByExpressions()) {
+        boundProjectionBody->setOrderByExpressions(
+            bindOrderByExpressions(projectionBody.getOrderByExpressions(), prevVariablesInScope,
+                boundProjectionBody->hasAggregationExpressions()),
+            projectionBody.getSortOrders());
+    }
     if (projectionBody.hasSkipExpression()) {
         boundProjectionBody->setSkipNumber(
             validateAndExtractSkipLimitNumber(*projectionBody.getSkipExpression()));
@@ -138,6 +146,63 @@ unique_ptr<BoundProjectionBody> QueryBinder::bindProjectionBody(
     return boundProjectionBody;
 }
 
+vector<shared_ptr<Expression>> QueryBinder::bindProjectionExpressions(
+    const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool isStar) {
+    vector<shared_ptr<Expression>> boundProjectionExpressions;
+    for (auto& expression : projectionExpressions) {
+        boundProjectionExpressions.push_back(expressionBinder.bindExpression(*expression));
+    }
+    if (isStar) {
+        if (variablesInScope.empty()) {
+            throw invalid_argument(
+                "RETURN or WITH * is not allowed when there are no variables in scope.");
+        }
+        for (auto& [name, expression] : variablesInScope) {
+            boundProjectionExpressions.push_back(expression);
+        }
+    }
+    validateProjectionColumnNamesAreUnique(boundProjectionExpressions);
+    validateAggregationsHaveNoGroupBy(boundProjectionExpressions);
+    return boundProjectionExpressions;
+}
+
+// Cypher rule of ORDER BY expression scope: if projection contains aggregation, only expressions in
+// projection are available. Otherwise, expressions before projection are also available
+vector<shared_ptr<Expression>> QueryBinder::bindOrderByExpressions(
+    const vector<unique_ptr<ParsedExpression>>& orderByExpressions,
+    const unordered_map<string, shared_ptr<Expression>>& prevVariablesInScope,
+    bool projectionHasAggregation) {
+    auto variablesInScopeBeforeModification = variablesInScope;
+    if (!projectionHasAggregation) {
+        // restore expressions before projection
+        for (auto& [name, variable] : prevVariablesInScope) {
+            if (!variablesInScope.contains(name)) {
+                variablesInScope.insert({name, variable});
+            }
+        }
+    }
+    vector<shared_ptr<Expression>> boundOrderByExpressions;
+    for (auto& orderByExpression : orderByExpressions) {
+        boundOrderByExpressions.push_back(expressionBinder.bindExpression(*orderByExpression));
+    }
+    variablesInScope = variablesInScopeBeforeModification;
+    return boundOrderByExpressions;
+}
+
+unordered_map<string, shared_ptr<Expression>> QueryBinder::computeVariablesInScope(
+    const vector<shared_ptr<Expression>>& expressions, bool isWithClause) {
+    unordered_map<string, shared_ptr<Expression>> newVariablesInScope;
+    for (auto& expression : expressions) {
+        auto type = expression->expressionType;
+        // Cypher WITH clause special rule: expression except for variable must be aliased
+        if (isWithClause && type != ALIAS && type != VARIABLE) {
+            throw invalid_argument("Expression in WITH must be aliased (use AS).");
+        }
+        newVariablesInScope.insert({expression->getExternalName(), expression});
+    }
+    return newVariablesInScope;
+}
+
 shared_ptr<Expression> QueryBinder::bindWhereExpression(const ParsedExpression& parsedExpression) {
     auto whereExpression = expressionBinder.bindExpression(parsedExpression);
     if (BOOL != whereExpression->dataType) {
@@ -146,40 +211,6 @@ shared_ptr<Expression> QueryBinder::bindWhereExpression(const ParsedExpression& 
                                " expected Boolean.");
     }
     return whereExpression;
-}
-
-vector<shared_ptr<Expression>> QueryBinder::bindProjectExpressions(
-    const vector<unique_ptr<ParsedExpression>>& parsedExpressions, bool projectStar,
-    bool updateVariablesInScope) {
-    auto expressions = vector<shared_ptr<Expression>>();
-    unordered_map<string, shared_ptr<Expression>> newVariablesInScope;
-    if (projectStar) {
-        if (variablesInScope.empty()) {
-            throw invalid_argument(
-                "RETURN or WITH * is not allowed when there are no variables in scope.");
-        }
-        for (auto& [name, expression] : variablesInScope) {
-            if (updateVariablesInScope) {
-                newVariablesInScope.insert({name, expression});
-            }
-            expressions.push_back(expression);
-        }
-    }
-    for (auto& parsedExpression : parsedExpressions) {
-        auto expression = expressionBinder.bindExpression(*parsedExpression);
-        if (updateVariablesInScope) {
-            if (expression->expressionType == ALIAS || expression->expressionType == VARIABLE) {
-                newVariablesInScope.insert({expression->getExternalName(), expression});
-            } else {
-                throw invalid_argument("Expression in WITH multi be aliased (use AS).");
-            }
-        }
-        expressions.push_back(expression);
-    }
-    variablesInScope = newVariablesInScope;
-    validateProjectionColumnNamesAreUnique(expressions);
-    validateAggregationsHaveNoGroupBy(expressions);
-    return expressions;
 }
 
 unique_ptr<QueryGraph> QueryBinder::bindQueryGraph(

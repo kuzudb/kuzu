@@ -65,7 +65,7 @@ TEST_F(BinderErrorTest, RepeatedReturnColumnName) {
 }
 
 TEST_F(BinderErrorTest, WITHExpressionAliased) {
-    string expectedException = "Expression in WITH multi be aliased (use AS).";
+    string expectedException = "Expression in WITH must be aliased (use AS).";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) WITH a.age RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -168,5 +168,11 @@ TEST_F(BinderErrorTest, AggregationFunctionNotAtRoot) {
 TEST_F(BinderErrorTest, AggregationWithGroupBy) {
     string expectedException = "Aggregations with group by is not supported.";
     auto input = "MATCH (a:person) RETURN a.name, SUM(a.age);";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, OrderByVariableNotInScope) {
+    string expectedException = "Variable a not defined.";
+    auto input = "MATCH (a:person)-[e1:knows]->(b:person) RETURN SUM(a.age) ORDER BY a;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
