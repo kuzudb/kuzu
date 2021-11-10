@@ -4,7 +4,7 @@
 #include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
 #include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
 #include "src/planner/include/logical_plan/operator/multiplicity_reducer/logical_multiplcity_reducer.h"
-#include "src/planner/include/logical_plan/operator/orderBy/logical_order_by.h"
+#include "src/planner/include/logical_plan/operator/order_by/logical_order_by.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
 

@@ -27,6 +27,13 @@ private:
     shared_ptr<Expression> bindComparisonExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindBinaryArithmeticExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> castExpressionToString(shared_ptr<Expression> expression);
+    shared_ptr<Expression> bindBinaryDateArithmeticExpression(
+        ExpressionType expressionType, shared_ptr<Expression> left, shared_ptr<Expression> right);
+    shared_ptr<Expression> bindBinaryTimestampArithmeticExpression(
+        ExpressionType expressionType, shared_ptr<Expression> left, shared_ptr<Expression> right);
+    shared_ptr<Expression> bindBinaryIntervalArithmeticExpression(
+        ExpressionType expressionType, shared_ptr<Expression> left, shared_ptr<Expression> right);
 
     shared_ptr<Expression> bindUnaryArithmeticExpression(const ParsedExpression& parsedExpression);
 
@@ -67,22 +74,31 @@ private:
 
     // NOTE: this validation should be removed and front end binds any null operation to null
     static void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression);
+
     // Parser cannot check expected number of children for built in functions. So number of children
     // validation is needed for function.
     static void validateNumberOfChildren(
         const ParsedExpression& parsedExpression, uint32_t expectedNumChildren);
-    static void validateExpectedType(const Expression& expression, DataType expectedType);
-    static void validateNumericalTypeOrUnstructured(const Expression& expression);
-    static shared_ptr<Expression> validateAsBoolAndCastIfNecessary(
-        shared_ptr<Expression> expression);
+
+    static void validateExpectedDataType(
+        const Expression& expression, const unordered_set<DataType>& expectedTypes);
+    static void validateNumeric(const Expression& expression) {
+        validateExpectedDataType(expression, unordered_set<DataType>{INT64, DOUBLE});
+    }
+    static void validateNumericOrUnstructured(const Expression& expression) {
+        validateExpectedDataType(expression, unordered_set<DataType>{INT64, DOUBLE, UNSTRUCTURED});
+    }
+    static void validateBoolOrUnstructured(const Expression& expression) {
+        validateExpectedDataType(expression, unordered_set<DataType>{BOOL, UNSTRUCTURED});
+    }
+    static void validateStringOrUnstructured(const Expression& expression) {
+        validateExpectedDataType(expression, unordered_set<DataType>{STRING, UNSTRUCTURED});
+    }
+
+    static void validateExpectedBinaryOperation(const Expression& left, const Expression& right,
+        ExpressionType type, const unordered_set<ExpressionType>& expectedTypes);
     // NOTE: this validation should be removed once we rewrite aggregation as an alias.
     static void validateAggregationIsRoot(const Expression& expression);
-    static void validateTimestampArithmeticType(
-        const ParsedExpression& parsedExpression, shared_ptr<Expression>& right);
-    static void validateDateArithmeticType(
-        const ParsedExpression& parsedExpression, shared_ptr<Expression>& right);
-    static void validateIntervalArithmeticType(
-        const ParsedExpression& parsedExpression, shared_ptr<Expression>& right);
 
 private:
     template<typename T>
