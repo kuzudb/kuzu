@@ -2,6 +2,7 @@
 
 #include "src/common/include/assert.h"
 #include "src/common/include/date.h"
+#include "src/common/include/interval.h"
 #include "src/common/include/timestamp.h"
 
 namespace graphflow {
@@ -49,6 +50,8 @@ string Literal::toString() const {
         return Date::toString(val.dateVal);
     case TIMESTAMP:
         return Timestamp::toString(val.timestampVal);
+    case INTERVAL:
+        return Interval::toString(val.intervalVal);
     case STRING:
         return strVal;
     default:

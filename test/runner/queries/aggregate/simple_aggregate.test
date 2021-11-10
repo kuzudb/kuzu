@@ -1,5 +1,17 @@
 # description: aggregation without groups and distinct
 
+-NAME StructuredDateArithmeticAddInt
+-QUERY MATCH (a:person) RETURN a.birthdate + 32
+---- 8
+1900-02-02
+1900-02-02
+1940-07-24
+1950-08-24
+1980-11-27
+1980-11-27
+1980-11-27
+1990-12-29
+
 -NAME SimpleCountTest
 -QUERY MATCH (a:person) RETURN COUNT(a.age), COUNT(a.unstrNumericProp)
 ---- 1
@@ -30,7 +42,7 @@
 ---- 1
 4.700000|28.333333
 
--NAME SimpleMinMaxTest
--QUERY MATCH (a:person) RETURN MIN(a.age), MAX(a.age), MIN(a.isStudent), MAX(a.isStudent), MIN(a.eyeSight), MAX(a.eyeSight), MIN(a.birthdate), MAX(a.birthdate)
----- 1
-1990-11-27|1900-01-01|5.100000|False|4.500000|83|20|True
+#-NAME SimpleMinMaxTest
+#-QUERY MATCH (a:person) RETURN MIN(a.age), MAX(a.age), MIN(a.isStudent), MAX(a.isStudent), MIN(a.eyeSight), MAX(a.eyeSight), MIN(a.birthdate), MAX(a.birthdate)
+#---- 1
+#1990-11-27|1900-01-01|5.100000|False|4.500000|83|20|True

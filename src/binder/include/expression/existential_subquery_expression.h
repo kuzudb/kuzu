@@ -13,8 +13,8 @@ namespace binder {
 class ExistentialSubqueryExpression : public Expression {
 
 public:
-    ExistentialSubqueryExpression(unique_ptr<BoundSingleQuery> boundSubquery)
-        : Expression{EXISTENTIAL_SUBQUERY, BOOL}, boundSubquery{move(boundSubquery)} {}
+    ExistentialSubqueryExpression(unique_ptr<BoundSingleQuery> boundSubquery, const string& name)
+        : Expression{EXISTENTIAL_SUBQUERY, BOOL, name}, boundSubquery{move(boundSubquery)} {}
 
     inline BoundSingleQuery* getBoundSubquery() { return boundSubquery.get(); }
 

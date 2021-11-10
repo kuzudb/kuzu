@@ -21,9 +21,9 @@ public:
     }
 
     string getExpressionsForPrinting() const override {
-        auto result = orderByExpressions[0]->getInternalName();
+        auto result = orderByExpressions[0]->getUniqueName();
         for (auto i = 1u; i < orderByExpressions.size(); ++i) {
-            result += ", " + orderByExpressions[i]->getInternalName();
+            result += ", " + orderByExpressions[i]->getUniqueName();
         }
         return result;
     }

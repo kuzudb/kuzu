@@ -5,15 +5,23 @@ namespace binder {
 
 Expression::Expression(ExpressionType expressionType, DataType dataType,
     const shared_ptr<Expression>& left, const shared_ptr<Expression>& right)
-    : Expression(expressionType, dataType) {
+    : Expression{expressionType, dataType} {
+    uniqueName = expressionTypeToString(expressionType) + "(" + left->getUniqueName() + "," +
+                 right->getUniqueName() + ")";
     children.push_back(left);
     children.push_back(right);
 }
 
 Expression::Expression(
     ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child)
-    : Expression(expressionType, dataType) {
+    : Expression{expressionType, dataType} {
+    uniqueName = expressionTypeToString(expressionType) + "(" + child->getUniqueName() + ")";
     children.push_back(child);
+}
+
+Expression::Expression(ExpressionType expressionType, DataType dataType, const string& name)
+    : Expression{expressionType, dataType} {
+    uniqueName = name;
 }
 
 bool Expression::hasAggregationExpression() const {
@@ -43,7 +51,7 @@ bool Expression::hasSubqueryExpression() const {
 unordered_set<string> Expression::getDependentVariableNames() {
     unordered_set<string> result;
     for (auto& variableExpression : getDependentVariables()) {
-        result.insert(variableExpression->getInternalName());
+        result.insert(variableExpression->getUniqueName());
     }
     return result;
 }
@@ -75,8 +83,7 @@ vector<shared_ptr<Expression>> Expression::getDependentProperties() {
 }
 
 vector<shared_ptr<Expression>> Expression::getDependentLeafExpressions() {
-    if (expressionType == PROPERTY || expressionType == CSV_LINE_EXTRACT ||
-        expressionType == ALIAS) {
+    if (expressionType == PROPERTY || expressionType == CSV_LINE_EXTRACT) {
         return vector<shared_ptr<Expression>>{shared_from_this()};
     }
     vector<shared_ptr<Expression>> result;

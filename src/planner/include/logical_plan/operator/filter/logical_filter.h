@@ -20,7 +20,7 @@ public:
         return LogicalOperatorType::LOGICAL_FILTER;
     }
 
-    string getExpressionsForPrinting() const override { return expression->rawExpression; }
+    string getExpressionsForPrinting() const override { return expression->getUniqueName(); }
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalFilter>(expression, groupPosToSelect, prevOperator->copy());

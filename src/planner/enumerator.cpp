@@ -45,12 +45,12 @@ void Enumerator::planSubquery(
     ExistentialSubqueryExpression& subqueryExpression, LogicalPlan& outerPlan) {
     vector<shared_ptr<Expression>> expressionsToSelect;
     for (auto& expression : subqueryExpression.getDependentLeafExpressions()) {
-        if (!outerPlan.schema->containVariable(expression->getInternalName())) {
+        if (!outerPlan.schema->containVariable(expression->getUniqueName())) {
             continue;
         }
         expressionsToSelect.push_back(expression);
         appendFlattenIfNecessary(
-            outerPlan.schema->getGroupPos(expression->getInternalName()), outerPlan);
+            outerPlan.schema->getGroupPos(expression->getUniqueName()), outerPlan);
     }
     auto& normalizedQuery = *subqueryExpression.getNormalizedSubquery();
     auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToSelect));
@@ -68,7 +68,7 @@ void Enumerator::appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, Lo
         loadCSVStatement.tokenSeparator, loadCSVStatement.csvColumnVariables);
     auto groupPos = plan.schema->createGroup();
     for (auto& expression : loadCSVStatement.csvColumnVariables) {
-        plan.schema->insertToGroup(expression->getInternalName(), groupPos);
+        plan.schema->insertToGroup(expression->getUniqueName(), groupPos);
     }
     plan.appendOperator(move(loadCSV));
 }
@@ -125,7 +125,7 @@ void Enumerator::appendScanPropertiesIfNecessary(Expression& expression, Logical
     for (auto& expr : expression.getDependentProperties()) {
         auto& propertyExpression = (PropertyExpression&)*expr;
         // skip properties that has been matched
-        if (plan.schema->containVariable(propertyExpression.getInternalName())) {
+        if (plan.schema->containVariable(propertyExpression.getUniqueName())) {
             continue;
         }
         NODE == propertyExpression.children[0]->dataType ?
@@ -141,26 +141,26 @@ void Enumerator::appendScanNodePropertyIfNecessary(
         return;
     }
     auto scanProperty = make_shared<LogicalScanNodeProperty>(nodeExpression.getIDProperty(),
-        nodeExpression.label, propertyExpression.getInternalName(), propertyExpression.propertyKey,
+        nodeExpression.label, propertyExpression.getUniqueName(), propertyExpression.propertyKey,
         UNSTRUCTURED == propertyExpression.dataType, plan.lastOperator);
     auto groupPos = plan.schema->getGroupPos(nodeExpression.getIDProperty());
-    plan.schema->insertToGroup(propertyExpression.getInternalName(), groupPos);
+    plan.schema->insertToGroup(propertyExpression.getUniqueName(), groupPos);
     plan.appendOperator(move(scanProperty));
 }
 
 void Enumerator::appendScanRelPropertyIfNecessary(
     const PropertyExpression& propertyExpression, LogicalPlan& plan) {
     auto& relExpression = (const RelExpression&)*propertyExpression.children[0];
-    if (!plan.schema->containLogicalExtend(relExpression.getInternalName())) {
+    if (!plan.schema->containLogicalExtend(relExpression.getUniqueName())) {
         return;
     }
-    auto extend = plan.schema->getExistingLogicalExtend(relExpression.getInternalName());
+    auto extend = plan.schema->getExistingLogicalExtend(relExpression.getUniqueName());
     auto scanProperty = make_shared<LogicalScanRelProperty>(extend->boundNodeID,
         extend->boundNodeLabel, extend->nbrNodeID, extend->relLabel, extend->direction,
-        propertyExpression.getInternalName(), propertyExpression.propertyKey, extend->isColumn,
+        propertyExpression.getUniqueName(), propertyExpression.propertyKey, extend->isColumn,
         plan.lastOperator);
     auto groupPos = plan.schema->getGroupPos(extend->nbrNodeID);
-    plan.schema->insertToGroup(propertyExpression.getInternalName(), groupPos);
+    plan.schema->insertToGroup(propertyExpression.getUniqueName(), groupPos);
     plan.appendOperator(move(scanProperty));
 }
 
@@ -175,14 +175,10 @@ unordered_set<uint32_t> Enumerator::getUnFlatGroupsPos(
     auto subExpressions = expression.getDependentLeafExpressions();
     unordered_set<uint32_t> unFlatGroupsPos;
     for (auto& subExpression : subExpressions) {
-        if (schema.containVariable(subExpression->getInternalName())) {
-            auto groupPos = schema.getGroupPos(subExpression->getInternalName());
+        if (schema.containVariable(subExpression->getUniqueName())) {
+            auto groupPos = schema.getGroupPos(subExpression->getUniqueName());
             if (!schema.groups[groupPos]->isFlat) {
                 unFlatGroupsPos.insert(groupPos);
-            }
-        } else if (subExpression->expressionType == ALIAS) {
-            for (auto& unFlatGroupPos : getUnFlatGroupsPos(*subExpression->children[0], schema)) {
-                unFlatGroupsPos.insert(unFlatGroupPos);
             }
         }
     }
@@ -192,7 +188,7 @@ unordered_set<uint32_t> Enumerator::getUnFlatGroupsPos(
 uint32_t Enumerator::getAnyGroupPos(Expression& expression, const Schema& schema) {
     auto subExpressions = expression.getDependentLeafExpressions();
     GF_ASSERT(!subExpressions.empty());
-    return schema.getGroupPos(subExpressions[0]->getInternalName());
+    return schema.getGroupPos(subExpressions[0]->getUniqueName());
 }
 
 } // namespace planner

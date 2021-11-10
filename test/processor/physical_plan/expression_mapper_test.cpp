@@ -36,7 +36,9 @@ public:
         auto schema = Schema();
         auto groupPos = schema.createGroup();
         schema.insertToGroup("_0_a.prop", groupPos);
-        return PhysicalOperatorsInfo(schema);
+        auto info = PhysicalOperatorsInfo(schema);
+        info.addComputedExpressions("_0_a.prop");
+        return info;
     }
 
 public:
@@ -132,7 +134,8 @@ TEST_F(ExpressionMapperTest, AggrExpressionEvaluatorTest) {
     auto resultSet = ResultSet(1);
     resultSet.insert(0, dataChunk);
 
-    auto countStarExpr = make_unique<Expression>(ExpressionType::COUNT_STAR_FUNC, DataType::INT64);
+    auto countStarExpr = make_unique<Expression>(
+        ExpressionType::COUNT_STAR_FUNC, DataType::INT64, "COUNT(*)_0" /* uniqueName */);
     auto countStarExprEvaluator =
         ExpressionMapper(planMapper.get())
             .mapToPhysical(*countStarExpr, physicalOperatorInfo, *context);

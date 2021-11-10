@@ -18,18 +18,21 @@ class PhysicalOperatorsInfo {
 public:
     explicit PhysicalOperatorsInfo(const Schema& schema);
 
-    inline bool containVariable(const string& variable) const {
-        return variableToDataPosMap.contains(variable);
+    inline DataPos getDataPos(const string& name) const {
+        GF_ASSERT(expressionNameToDataPosMap.contains(name));
+        return expressionNameToDataPosMap.at(name);
     }
 
-    inline DataPos getDataPos(const string& variable) const {
-        GF_ASSERT(variableToDataPosMap.contains(variable));
-        return variableToDataPosMap.at(variable);
+    inline void addComputedExpressions(const string& name) { computedExpressionNames.insert(name); }
+
+    inline bool expressionHasComputed(const string& name) const {
+        return computedExpressionNames.contains(name);
     }
 
 private:
     // Map each variable to its position pair (dataChunkPos, vectorPos)
-    unordered_map<string, DataPos> variableToDataPosMap;
+    unordered_map<string, DataPos> expressionNameToDataPosMap;
+    unordered_set<string> computedExpressionNames;
 };
 
 } // namespace processor

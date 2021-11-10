@@ -159,8 +159,6 @@ string expressionTypeToString(ExpressionType type) {
         return "LITERAL_NULL";
     case VARIABLE:
         return "VARIABLE";
-    case ALIAS:
-        return "ALIAS";
     case CAST_TO_STRING:
         return "CAST_TO_STRING";
     case CAST_TO_UNSTRUCTURED_VALUE:

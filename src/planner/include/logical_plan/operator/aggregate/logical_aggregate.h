@@ -21,9 +21,9 @@ public:
     }
 
     string getExpressionsForPrinting() const override {
-        auto result = expressionsToAggregate[0]->getInternalName();
+        auto result = expressionsToAggregate[0]->getUniqueName();
         for (auto i = 1u; i < expressionsToAggregate.size(); ++i) {
-            result += ", " + expressionsToAggregate[i]->getInternalName();
+            result += ", " + expressionsToAggregate[i]->getUniqueName();
         }
         return result;
     }

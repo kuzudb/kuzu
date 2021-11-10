@@ -17,18 +17,20 @@ class SingleQuery;
 class ParsedExpression {
 
 public:
-    ParsedExpression(ExpressionType type, string text, string rawExpression)
-        : type{type}, text{move(text)}, rawExpression{move(rawExpression)} {}
+    ParsedExpression(ExpressionType type, string text, string rawName)
+        : type{type}, text{move(text)}, rawName{move(rawName)} {}
 
-    ParsedExpression(ExpressionType type, unique_ptr<SingleQuery> subquery, string rawExpression)
-        : type{type}, subquery{move(subquery)}, rawExpression{move(rawExpression)} {};
+    ParsedExpression(ExpressionType type, unique_ptr<SingleQuery> subquery, string rawName)
+        : type{type}, subquery{move(subquery)}, rawName{move(rawName)} {};
 
-    ParsedExpression(ExpressionType type, string text, string rawExpression,
+    ParsedExpression(ExpressionType type, string text, string rawName,
         unique_ptr<ParsedExpression> left, unique_ptr<ParsedExpression> right)
-        : type{type}, text{move(text)}, rawExpression{move(rawExpression)} {
+        : type{type}, text{move(text)}, rawName{move(rawName)} {
         children.push_back(move(left));
         children.push_back(move(right));
     }
+
+    inline string getRawName() const { return rawName; }
 
 public:
     ExpressionType type;
@@ -37,7 +39,7 @@ public:
     // existential subquery
     unique_ptr<SingleQuery> subquery;
     string alias;
-    string rawExpression;
+    string rawName;
     vector<unique_ptr<ParsedExpression>> children;
 };
 

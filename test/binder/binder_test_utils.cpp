@@ -18,7 +18,7 @@ bool BinderTestUtils::equals(
 bool BinderTestUtils::equals(const Expression& left, const Expression& right) {
     auto result = left.expressionType == right.expressionType && left.dataType == right.dataType &&
                   left.children.size() == right.children.size() &&
-                  left.getInternalName() == right.getInternalName();
+                  left.getUniqueName() == right.getUniqueName();
     if (!result) {
         return false;
     }

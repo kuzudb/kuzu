@@ -27,11 +27,11 @@ TEST_F(BinderTest, LOADCSVBasicTest) {
     auto expectedCSVColumnInfo = vector<pair<string, DataType>>();
     expectedCSVColumnInfo.emplace_back(make_pair("age", INT64));
     expectedCSVColumnInfo.emplace_back(make_pair("name", STRING));
-    auto csvLines = vector<shared_ptr<VariableExpression>>();
-    auto csvLine0 = make_shared<VariableExpression>(CSV_LINE_EXTRACT, INT64, "_0_csvLine[0]");
-    csvLine0->rawExpression = "csvLine[0]";
-    auto csvLine1 = make_shared<VariableExpression>(CSV_LINE_EXTRACT, STRING, "_1_csvLine[1]");
-    csvLine1->rawExpression = "csvLine[1]";
+    auto csvLines = vector<shared_ptr<Expression>>();
+    auto csvLine0 = make_shared<Expression>(CSV_LINE_EXTRACT, INT64, "_0_csvLine[0]");
+    csvLine0->setRawName("csvLine[0]");
+    auto csvLine1 = make_shared<Expression>(CSV_LINE_EXTRACT, STRING, "_1_csvLine[1]");
+    csvLine1->setRawName("csvLine[1]");
     csvLines.push_back(csvLine0);
     csvLines.push_back(csvLine1);
     auto expectedLoadCSVStatement =
@@ -49,12 +49,12 @@ TEST_F(BinderTest, LOADCSVBasicTest) {
 
 TEST_F(BinderTest, LOADCSVMATCHTest) {
     auto a = make_shared<NodeExpression>("_2_a", 0);
-    a->rawExpression = "a";
+    a->setRawName("a");
     auto aName = make_shared<PropertyExpression>(STRING, "name", 1, move(a));
-    auto csvLine1 = make_shared<VariableExpression>(CSV_LINE_EXTRACT, STRING, "_1_csvLine[1]");
-    csvLine1->rawExpression = "csvLine[1]";
+    auto csvLine1 = make_shared<Expression>(CSV_LINE_EXTRACT, STRING, "_1_csvLine[1]");
+    csvLine1->setRawName("csvLine[1]");
     auto expectedWhere = make_shared<Expression>(EQUALS, BOOL, move(aName), move(csvLine1));
-    expectedWhere->rawExpression = "a.name = csvLine[1]";
+    expectedWhere->setRawName("a.name = csvLine[1]");
 
     NiceMock<TinySnbCatalog> catalog;
     catalog.setUp();
