@@ -17,7 +17,7 @@ class QueryBinder {
 
 public:
     explicit QueryBinder(const Catalog& catalog)
-        : catalog{catalog}, lastVariableId{0}, variablesInScope{}, expressionBinder{this} {}
+        : catalog{catalog}, lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
 
     unique_ptr<BoundSingleQuery> bind(const SingleQuery& singleQuery);
 
@@ -81,14 +81,14 @@ private:
     uint64_t validateAndExtractSkipLimitNumber(const ParsedExpression& skipOrLimitExpression);
 
     /******* helpers *********/
-    string getUniqueVariableName(const string& name);
+    string getUniqueExpressionName(const string& name);
 
     unordered_map<string, shared_ptr<Expression>> enterSubquery();
     void exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
 
 private:
     const Catalog& catalog;
-    uint32_t lastVariableId;
+    uint32_t lastExpressionId;
     unordered_map<string, shared_ptr<Expression>> variablesInScope;
     ExpressionBinder expressionBinder;
 };

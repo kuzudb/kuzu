@@ -24,23 +24,18 @@ public:
     Expression(
         ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child);
 
-    // Create function expression with no parameter
-    Expression(ExpressionType expressionType, DataType dataType)
-        : expressionType{expressionType}, dataType{dataType} {}
+    // Create leaf expression
+    Expression(ExpressionType expressionType, DataType dataType, const string& name);
 
-    // return named used for parsing user input and printing
-    virtual inline string getExternalName() const { return rawExpression; }
+    inline void setAlias(const string& name) { alias = name; }
+    inline void setRawName(const string& name) { rawName = name; }
 
-    // return named used in internal processing
-    // alias name should never be used in internal processing
-    virtual inline string getInternalName() const {
-        return ALIAS == expressionType ? children[0]->getInternalName() : rawExpression;
+    inline string getUniqueName() const {
+        assert(!uniqueName.empty());
+        return uniqueName;
     }
-
-    inline shared_ptr<Expression> removeAlias() const {
-        assert(expressionType == ALIAS);
-        return children[0]->expressionType == ALIAS ? children[0]->removeAlias() : children[0];
-    }
+    inline string getAlias() const { return alias; }
+    inline string getRawName() const { return rawName; }
 
     bool hasAggregationExpression() const;
     bool hasSubqueryExpression() const;
@@ -54,10 +49,20 @@ public:
 
     vector<shared_ptr<Expression>> splitOnAND();
 
+protected:
+    Expression(ExpressionType expressionType, DataType dataType)
+        : expressionType{expressionType}, dataType{dataType} {}
+
 public:
     ExpressionType expressionType;
     DataType dataType;
-    string rawExpression;
+    // Name that serves as the unique identifier.
+    // NOTE: an expression must have an unique name
+    string uniqueName;
+    string alias;
+    // Name that matches user input.
+    // NOTE: an expression may not have a rawName since it is generated internally e.g. casting
+    string rawName;
     vector<shared_ptr<Expression>> children;
 };
 

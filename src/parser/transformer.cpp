@@ -236,7 +236,7 @@ unique_ptr<ParsedExpression> Transformer::transformOrExpression(
         if (!expression) {
             expression = move(next);
         } else {
-            auto rawExpression = expression->rawExpression + " OR " + next->rawExpression;
+            auto rawExpression = expression->rawName + " OR " + next->rawName;
             expression = make_unique<ParsedExpression>(
                 OR, string(), rawExpression, move(expression), move(next));
         }
@@ -252,7 +252,7 @@ unique_ptr<ParsedExpression> Transformer::transformXorExpression(
         if (!expression) {
             expression = move(next);
         } else {
-            auto rawExpression = expression->rawExpression + " XOR " + next->rawExpression;
+            auto rawExpression = expression->rawName + " XOR " + next->rawName;
             expression = make_unique<ParsedExpression>(
                 XOR, string(), rawExpression, move(expression), move(next));
         }
@@ -268,7 +268,7 @@ unique_ptr<ParsedExpression> Transformer::transformAndExpression(
         if (!expression) {
             expression = move(next);
         } else {
-            auto rawExpression = expression->rawExpression + " AND " + next->rawExpression;
+            auto rawExpression = expression->rawName + " AND " + next->rawName;
             expression = make_unique<ParsedExpression>(
                 AND, string(), rawExpression, move(expression), move(next));
         }
@@ -330,7 +330,7 @@ unique_ptr<ParsedExpression> Transformer::transformAddOrSubtractExpression(
         } else {
             auto arithmeticOperator = ctx.gF_AddOrSubtractOperator(i - 1)->getText();
             auto rawExpression =
-                expression->rawExpression + " " + arithmeticOperator + " " + next->rawExpression;
+                expression->rawName + " " + arithmeticOperator + " " + next->rawName;
             if (arithmeticOperator == "+") {
                 expression = make_unique<ParsedExpression>(
                     ADD, string(), rawExpression, move(expression), move(next));
@@ -355,7 +355,7 @@ unique_ptr<ParsedExpression> Transformer::transformMultiplyDivideModuloExpressio
         } else {
             auto arithmeticOperator = ctx.gF_MultiplyDivideModuloOperator(i - 1)->getText();
             auto rawExpression =
-                expression->rawExpression + " " + arithmeticOperator + " " + next->rawExpression;
+                expression->rawName + " " + arithmeticOperator + " " + next->rawName;
             if (arithmeticOperator == "*") {
                 expression = make_unique<ParsedExpression>(
                     MULTIPLY, string(), rawExpression, move(expression), move(next));
@@ -381,7 +381,7 @@ unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
         if (!expression) {
             expression = move(next);
         } else {
-            auto rawExpression = expression->rawExpression + " ^ " + next->rawExpression;
+            auto rawExpression = expression->rawName + " ^ " + next->rawName;
             expression = make_unique<ParsedExpression>(
                 POWER, string(), rawExpression, move(expression), move(next));
         }
@@ -423,7 +423,7 @@ unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression(
     CypherParser::OC_StringOperatorExpressionContext& ctx,
     unique_ptr<ParsedExpression> propertyExpression) {
     unique_ptr<ParsedExpression> expression;
-    auto rawExpression = propertyExpression->rawExpression + " " + ctx.getText();
+    auto rawExpression = propertyExpression->rawName + " " + ctx.getText();
     if (ctx.STARTS()) {
         expression = make_unique<ParsedExpression>(STARTS_WITH, string(), rawExpression);
     } else if (ctx.ENDS()) {
@@ -442,7 +442,7 @@ unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression(
 unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     CypherParser::OC_ListOperatorExpressionContext& ctx,
     unique_ptr<ParsedExpression> propertyExpression) {
-    auto rawExpression = propertyExpression->rawExpression + " " + ctx.getText();
+    auto rawExpression = propertyExpression->rawName + " " + ctx.getText();
     auto expression = make_unique<ParsedExpression>(CSV_LINE_EXTRACT, string(), rawExpression);
     expression->children.push_back(move(propertyExpression));
     expression->children.push_back(transformExpression(*ctx.oC_Expression()));
@@ -452,7 +452,7 @@ unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
 unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
     CypherParser::OC_NullOperatorExpressionContext& ctx,
     unique_ptr<ParsedExpression> propertyExpression) {
-    auto rawExpression = propertyExpression->rawExpression + " " + ctx.getText();
+    auto rawExpression = propertyExpression->rawName + " " + ctx.getText();
     if (ctx.IS() && ctx.NULL_()) {
         auto expression = ctx.NOT() ?
                               make_unique<ParsedExpression>(IS_NOT_NULL, string(), rawExpression) :

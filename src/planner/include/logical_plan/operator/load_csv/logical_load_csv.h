@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/binder/include/expression/variable_expression.h"
+#include "src/binder/include/expression/expression.h"
 #include "src/planner/include/logical_plan/operator/logical_operator.h"
 
 namespace graphflow {
@@ -10,7 +10,7 @@ class LogicalLoadCSV : public LogicalOperator {
 
 public:
     LogicalLoadCSV(
-        string path, char tokenSeparator, vector<shared_ptr<VariableExpression>> csvColumnVariables)
+        string path, char tokenSeparator, vector<shared_ptr<Expression>> csvColumnVariables)
         : path{move(path)}, tokenSeparator{tokenSeparator}, csvColumnVariables{
                                                                 move(csvColumnVariables)} {}
 
@@ -27,7 +27,7 @@ public:
 public:
     string path;
     char tokenSeparator;
-    vector<shared_ptr<VariableExpression>> csvColumnVariables;
+    vector<shared_ptr<Expression>> csvColumnVariables;
 };
 
 } // namespace planner

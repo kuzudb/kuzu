@@ -7,7 +7,7 @@ namespace binder {
 
 LiteralExpression::LiteralExpression(
     ExpressionType expressionType, DataType dataType, const Literal& literal)
-    : Expression(expressionType, dataType), literal{literal} {
+    : Expression(expressionType, dataType, literal.toString()), literal{literal} {
     assert(dataType == BOOL || dataType == INT64 || dataType == DOUBLE || dataType == STRING ||
            dataType == DATE || dataType == TIMESTAMP || dataType == INTERVAL);
 }

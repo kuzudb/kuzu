@@ -107,7 +107,6 @@ enum ExpressionType : uint8_t {
      * Variable Expression
      **/
     VARIABLE = 90,
-    ALIAS = 91,
 
     /**
      * Cast Expressions

@@ -27,7 +27,6 @@ private:
     shared_ptr<Expression> bindComparisonExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindBinaryArithmeticExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> castExpressionToString(shared_ptr<Expression> expression);
     shared_ptr<Expression> bindBinaryDateArithmeticExpression(
         ExpressionType expressionType, shared_ptr<Expression> left, shared_ptr<Expression> right);
     shared_ptr<Expression> bindBinaryTimestampArithmeticExpression(
@@ -69,6 +68,11 @@ private:
 
     shared_ptr<Expression> bindExistentialSubqueryExpression(
         const ParsedExpression& parsedExpression);
+
+    /****** cast *****/
+    static shared_ptr<Expression> castUnstructuredToBool(shared_ptr<Expression> expression);
+
+    static shared_ptr<Expression> castExpressionToString(shared_ptr<Expression> expression);
 
     /****** validation *****/
 

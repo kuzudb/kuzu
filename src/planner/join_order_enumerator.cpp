@@ -57,11 +57,11 @@ void JoinOrderEnumerator::enumerateSelectScan() {
     auto newSubgraph = emptySubgraph;
     unordered_set<string> expressionNamesToSelect;
     for (auto& expression : context->getExpressionsToSelectFromOuter()) {
-        expressionNamesToSelect.insert(expression->getInternalName());
+        expressionNamesToSelect.insert(expression->getUniqueName());
         if (expression->dataType == NODE_ID) {
             assert(expression->expressionType == PROPERTY);
             newSubgraph.addQueryNode(context->getQueryGraph()->getQueryNodePos(
-                expression->children[0]->getInternalName()));
+                expression->children[0]->getUniqueName()));
         }
     }
     appendSelectScan(expressionNamesToSelect, *plan);
@@ -263,7 +263,7 @@ void JoinOrderEnumerator::appendExtend(
     auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->label, nbrNodeID,
         nbrNode->label, queryRel.label, direction, isColumnExtend, queryRel.lowerBound,
         queryRel.upperBound, plan.lastOperator);
-    plan.schema->addLogicalExtend(queryRel.getInternalName(), extend.get());
+    plan.schema->addLogicalExtend(queryRel.getUniqueName(), extend.get());
     plan.schema->insertToGroup(nbrNodeID, groupPos);
     plan.appendOperator(move(extend));
 }
@@ -372,8 +372,8 @@ vector<shared_ptr<Expression>> getNewMatchedExpressions(const SubqueryGraph& pre
 shared_ptr<RelExpression> rewriteQueryRel(const RelExpression& queryRel, bool isRewriteDst) {
     auto& nodeToRewrite = isRewriteDst ? *queryRel.dstNode : *queryRel.srcNode;
     auto tmpNode = make_shared<NodeExpression>(
-        nodeToRewrite.getInternalName() + "_" + queryRel.getInternalName(), nodeToRewrite.label);
-    return make_shared<RelExpression>(queryRel.getInternalName(), queryRel.label,
+        nodeToRewrite.getUniqueName() + "_" + queryRel.getUniqueName(), nodeToRewrite.label);
+    return make_shared<RelExpression>(queryRel.getUniqueName(), queryRel.label,
         isRewriteDst ? queryRel.srcNode : tmpNode, isRewriteDst ? tmpNode : queryRel.dstNode,
         queryRel.lowerBound, queryRel.upperBound);
 }
@@ -384,10 +384,7 @@ shared_ptr<Expression> createNodeIDEqualComparison(
         NODE_ID, INTERNAL_ID_SUFFIX, UINT32_MAX /* property key for internal id */, left);
     auto dstNodeID = make_shared<PropertyExpression>(
         NODE_ID, INTERNAL_ID_SUFFIX, UINT32_MAX /* property key for internal id  */, right);
-    auto result = make_shared<Expression>(EQUALS_NODE_ID, BOOL, move(srcNodeID), move(dstNodeID));
-    result->rawExpression =
-        result->children[0]->getInternalName() + " = " + result->children[1]->getInternalName();
-    return result;
+    return make_shared<Expression>(EQUALS_NODE_ID, BOOL, move(srcNodeID), move(dstNodeID));
 }
 
 } // namespace planner

@@ -19,9 +19,9 @@ public:
     }
 
     string getExpressionsForPrinting() const override {
-        auto result = expressionsToProject[0]->getInternalName();
+        auto result = expressionsToProject[0]->getUniqueName();
         for (auto i = 1u; i < expressionsToProject.size(); ++i) {
-            result += ", " + expressionsToProject[i]->getInternalName();
+            result += ", " + expressionsToProject[i]->getUniqueName();
         }
         return result;
     }

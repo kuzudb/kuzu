@@ -19,25 +19,14 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(const Expression
     unique_ptr<ExpressionEvaluator> retVal;
     if (isExpressionLiteral(expressionType)) {
         retVal = mapLogicalLiteralExpressionToStructuredPhysical(expression, context);
-    } else if (PROPERTY == expressionType || CSV_LINE_EXTRACT == expressionType) {
+    } else if (physicalOperatorInfo.expressionHasComputed(expression.getUniqueName())) {
         /**
-         * Both CSV_LINE_EXTRACT and PropertyExpression are mapped to the same physical expression
-         * evaluator, because both of them only grab data from a value vector.
+         * A leaf expression is a non-literal expression that has been previously computed
          */
         retVal = mapLogicalLeafExpressionToPhysical(expression, physicalOperatorInfo);
     } else if (EXISTENTIAL_SUBQUERY == expressionType) {
         retVal = mapLogicalExistentialSubqueryExpressionToPhysical(
             expression, physicalOperatorInfo, context);
-    } else if (ALIAS == expressionType) {
-        /**
-         * If an alias expression has been matched before, it should be treated as a leaf
-         * expression. Otherwise map the child of alias expression.
-         */
-        if (physicalOperatorInfo.containVariable(expression.getInternalName())) {
-            retVal = mapLogicalLeafExpressionToPhysical(expression, physicalOperatorInfo);
-        } else {
-            retVal = mapToPhysical(*expression.children[0], physicalOperatorInfo, context);
-        }
     } else if (isExpressionAggregate(expressionType)) {
         if (expressionType == COUNT_STAR_FUNC) {
             // COUNT_STAR has no child expression
@@ -177,7 +166,7 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToS
 unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLeafExpressionToPhysical(
     const Expression& expression, const PhysicalOperatorsInfo& physicalOperatorInfo) {
     return make_unique<ExpressionEvaluator>(
-        physicalOperatorInfo.getDataPos(expression.getInternalName()), expression.expressionType,
+        physicalOperatorInfo.getDataPos(expression.getUniqueName()), expression.expressionType,
         expression.dataType);
 }
 

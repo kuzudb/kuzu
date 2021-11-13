@@ -47,14 +47,11 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         throw invalid_argument(
             "Bind " + expressionTypeToString(expressionType) + " expression is not implemented.");
     }
-    expression->rawExpression = parsedExpression.rawExpression;
-    validateAggregationIsRoot(*expression);
     if (!parsedExpression.alias.empty()) {
-        auto aliasExpression =
-            make_shared<Expression>(ALIAS, expression->dataType, move(expression));
-        aliasExpression->rawExpression = parsedExpression.alias;
-        return aliasExpression;
+        expression->setAlias(parsedExpression.alias);
     }
+    expression->setRawName(parsedExpression.getRawName());
+    validateAggregationIsRoot(*expression);
     return expression;
 }
 
@@ -65,10 +62,10 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryBooleanExpression(
     validateBoolOrUnstructured(*left);
     validateBoolOrUnstructured(*right);
     if (left->dataType == UNSTRUCTURED) {
-        left = make_shared<Expression>(CAST_UNSTRUCTURED_TO_BOOL_VALUE, BOOL, move(left));
+        left = castUnstructuredToBool(move(left));
     }
     if (right->dataType == UNSTRUCTURED) {
-        right = make_shared<Expression>(CAST_UNSTRUCTURED_TO_BOOL_VALUE, BOOL, move(right));
+        right = castUnstructuredToBool(move(right));
     }
     return make_shared<Expression>(parsedExpression.type, BOOL, left, right);
 }
@@ -78,9 +75,9 @@ shared_ptr<Expression> ExpressionBinder::bindUnaryBooleanExpression(
     auto child = bindExpression(*parsedExpression.children.at(0));
     validateBoolOrUnstructured(*child);
     if (child->dataType == UNSTRUCTURED) {
-        child = make_shared<Expression>(CAST_UNSTRUCTURED_TO_BOOL_VALUE, BOOL, move(child));
+        child = castUnstructuredToBool(child);
     }
-    return make_shared<Expression>(NOT, BOOL, (child));
+    return make_shared<Expression>(parsedExpression.type, BOOL, (child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
@@ -90,15 +87,13 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     if (left->dataType == UNSTRUCTURED || right->dataType == UNSTRUCTURED) {
         return make_shared<Expression>(parsedExpression.type, BOOL, move(left), move(right));
     }
-    if (TypeUtils::isNumericalType(left->dataType)) {
-        validateNumeric(*right);
-    } else {
+    TypeUtils::isNumericalType(left->dataType) ?
+        validateNumeric(*right) :
         validateExpectedDataType(*right, unordered_set<DataType>{left->dataType});
-    }
-    return make_shared<Expression>(NODE_ID == left->dataType ?
-                                       comparisonToIDComparison(parsedExpression.type) :
-                                       parsedExpression.type,
-        BOOL, move(left), move(right));
+    auto expressionType = NODE_ID == left->dataType ?
+                              comparisonToIDComparison(parsedExpression.type) :
+                              parsedExpression.type;
+    return make_shared<Expression>(expressionType, BOOL, move(left), move(right));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
@@ -130,21 +125,8 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
     }
     validateNumeric(*left);
     validateNumeric(*right);
-    DataType resultType;
-    if (left->dataType == DOUBLE || right->dataType == DOUBLE) {
-        resultType = DOUBLE;
-    } else {
-        resultType = INT64;
-    }
+    DataType resultType = left->dataType == DOUBLE || right->dataType == DOUBLE ? DOUBLE : INT64;
     return make_shared<Expression>(parsedExpression.type, resultType, move(left), move(right));
-}
-
-shared_ptr<Expression> ExpressionBinder::castExpressionToString(shared_ptr<Expression> expression) {
-    if (isExpressionLiteral(expression->expressionType)) {
-        static_pointer_cast<LiteralExpression>(expression)->castToString();
-        return expression;
-    }
-    return make_shared<Expression>(CAST_TO_STRING, STRING, move(expression));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindBinaryDateArithmeticExpression(
@@ -243,8 +225,8 @@ shared_ptr<Expression> ExpressionBinder::bindCSVLineExtractExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindNullComparisonOperatorExpression(
     const ParsedExpression& parsedExpression) {
-    auto childExpression = bindExpression(*parsedExpression.children.at(0));
-    return make_shared<Expression>(parsedExpression.type, BOOL, move(childExpression));
+    auto child = bindExpression(*parsedExpression.children.at(0));
+    return make_shared<Expression>(parsedExpression.type, BOOL, move(child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
@@ -260,8 +242,8 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
             return make_shared<PropertyExpression>(
                 property.dataType, propertyName, property.id, move(child));
         } else {
-            throw invalid_argument("Node " + node->getExternalName() + " does not have property " +
-                                   propertyName + ".");
+            throw invalid_argument(
+                "Node " + node->getRawName() + " does not have property " + propertyName + ".");
         }
     } else if (REL == child->dataType) {
         auto rel = static_pointer_cast<RelExpression>(child);
@@ -271,7 +253,7 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
                 property.dataType, propertyName, property.id, move(child));
         } else {
             throw invalid_argument(
-                "Rel " + rel->getExternalName() + " does not have property " + propertyName + ".");
+                "Rel " + rel->getRawName() + " does not have property " + propertyName + ".");
         }
     }
     assert(false);
@@ -338,7 +320,8 @@ shared_ptr<Expression> ExpressionBinder::bindAbsFunctionExpression(
 shared_ptr<Expression> ExpressionBinder::bindCountStarFunctionExpression(
     const ParsedExpression& parsedExpression) {
     validateNumberOfChildren(parsedExpression, 0);
-    return make_shared<Expression>(COUNT_STAR_FUNC, INT64);
+    return make_shared<Expression>(COUNT_STAR_FUNC, INT64,
+        queryBinder->getUniqueExpressionName(parsedExpression.getRawName()));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindCountFunctionExpression(
@@ -400,8 +383,8 @@ shared_ptr<Expression> ExpressionBinder::bindStringCastingFunctionExpression(
     validateStringOrUnstructured(*child);
     if (child->expressionType == LITERAL_STRING) {
         auto literalVal = static_pointer_cast<LiteralExpression>(child)->literal.strVal;
-        return make_shared<LiteralExpression>(literalExpressionType, resultDataType,
-            Literal(castFunction(literalVal.c_str(), literalVal.length())));
+        auto literal = Literal(castFunction(literalVal.c_str(), literalVal.length()));
+        return make_shared<LiteralExpression>(literalExpressionType, resultDataType, literal);
     }
     return make_shared<Expression>(castExpressionType, resultDataType, move(child));
 }
@@ -424,7 +407,7 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
         return make_shared<LiteralExpression>(
             LITERAL_STRING, STRING, Literal(literalVal.substr(1, literalVal.size() - 2)));
     default:
-        throw invalid_argument("Literal " + parsedExpression.rawExpression + "is not defined.");
+        throw invalid_argument("Literal " + parsedExpression.getRawName() + "is not defined.");
     }
 }
 
@@ -434,7 +417,7 @@ shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
     if (queryBinder->variablesInScope.contains(variableName)) {
         return queryBinder->variablesInScope.at(variableName);
     }
-    throw invalid_argument("Variable " + parsedExpression.rawExpression + " not defined.");
+    throw invalid_argument("Variable " + parsedExpression.getRawName() + " not defined.");
 }
 
 shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
@@ -442,14 +425,28 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     auto prevVariablesInScope = queryBinder->enterSubquery();
     auto boundSingleQuery = queryBinder->bind(*parsedExpression.subquery);
     queryBinder->exitSubquery(move(prevVariablesInScope));
-    return make_shared<ExistentialSubqueryExpression>(move(boundSingleQuery));
+    return make_shared<ExistentialSubqueryExpression>(move(boundSingleQuery),
+        queryBinder->getUniqueExpressionName(parsedExpression.getRawName()));
+}
+
+shared_ptr<Expression> ExpressionBinder::castUnstructuredToBool(shared_ptr<Expression> expression) {
+    assert(expression->dataType == UNSTRUCTURED);
+    return make_shared<Expression>(CAST_UNSTRUCTURED_TO_BOOL_VALUE, BOOL, move(expression));
+}
+
+shared_ptr<Expression> ExpressionBinder::castExpressionToString(shared_ptr<Expression> expression) {
+    if (isExpressionLiteral(expression->expressionType)) {
+        static_pointer_cast<LiteralExpression>(expression)->castToString();
+        return expression;
+    }
+    return make_shared<Expression>(CAST_TO_STRING, STRING, move(expression));
 }
 
 void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
     for (auto& child : parsedExpression.children) {
         if (LITERAL_NULL == child->type) {
-            throw invalid_argument(
-                "Expression " + child->rawExpression + " cannot have null literal children.");
+            throw invalid_argument("Expression " + parsedExpression.getRawName() +
+                                   " cannot have null literal children.");
         }
     }
 }
@@ -475,7 +472,7 @@ void ExpressionBinder::validateExpectedDataType(
             expectedTypesStr += TypeUtils::dataTypeToString(expectedTypesVec[i]) + ", ";
         }
         expectedTypesStr += TypeUtils::dataTypeToString(expectedTypesVec[numExpectedTypes - 1]);
-        throw invalid_argument(expression.getExternalName() + " has data type " +
+        throw invalid_argument(expression.getRawName() + " has data type " +
                                TypeUtils::dataTypeToString(dataType) + ". " + expectedTypesStr +
                                " was expected.");
     }
@@ -486,7 +483,7 @@ void ExpressionBinder::validateExpectedBinaryOperation(const Expression& left,
     const unordered_set<ExpressionType>& expectedTypes) {
     if (!expectedTypes.contains(type)) {
         throw invalid_argument("Operation " + expressionTypeToString(type) + " between " +
-                               left.getExternalName() + " and " + right.getExternalName() +
+                               left.getRawName() + " and " + right.getRawName() +
                                " is not supported.");
     }
 }

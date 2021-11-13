@@ -81,12 +81,13 @@ unique_ptr<BoundReadingStatement> QueryBinder::bindLoadCSVStatement(
      * write csvLine[i]. By doing so, we don't need to implement evaluator for list.
      */
     auto lineVariableName = loadCSVStatement.lineVariableName;
-    auto csvColumnVariables = vector<shared_ptr<VariableExpression>>();
+    auto csvColumnVariables = vector<shared_ptr<Expression>>();
     for (auto i = 0u; i < headerInfo.size(); ++i) {
         auto csvColumnVariableAliasName = lineVariableName + "[" + to_string(i) + "]";
-        auto csvColumnVariable = make_shared<VariableExpression>(CSV_LINE_EXTRACT,
-            headerInfo[i].second, getUniqueVariableName(csvColumnVariableAliasName));
-        csvColumnVariable->rawExpression = csvColumnVariableAliasName;
+        auto csvColumnVariable = make_shared<Expression>(CSV_LINE_EXTRACT, headerInfo[i].second,
+            getUniqueExpressionName(csvColumnVariableAliasName));
+        csvColumnVariable->setAlias(csvColumnVariableAliasName);
+        csvColumnVariable->setRawName(csvColumnVariableAliasName);
         variablesInScope.insert({csvColumnVariableAliasName, csvColumnVariable});
         csvColumnVariables.push_back(csvColumnVariable);
     }
@@ -195,10 +196,10 @@ unordered_map<string, shared_ptr<Expression>> QueryBinder::computeVariablesInSco
     for (auto& expression : expressions) {
         auto type = expression->expressionType;
         // Cypher WITH clause special rule: expression except for variable must be aliased
-        if (isWithClause && type != ALIAS && type != VARIABLE) {
+        if (isWithClause && expression->getAlias().empty()) {
             throw invalid_argument("Expression in WITH must be aliased (use AS).");
         }
-        newVariablesInScope.insert({expression->getExternalName(), expression});
+        newVariablesInScope.insert({expression->getAlias(), expression});
     }
     return newVariablesInScope;
 }
@@ -206,7 +207,7 @@ unordered_map<string, shared_ptr<Expression>> QueryBinder::computeVariablesInSco
 shared_ptr<Expression> QueryBinder::bindWhereExpression(const ParsedExpression& parsedExpression) {
     auto whereExpression = expressionBinder.bindExpression(parsedExpression);
     if (BOOL != whereExpression->dataType) {
-        throw invalid_argument("Type mismatch: " + whereExpression->rawExpression + " returns " +
+        throw invalid_argument("Type mismatch: " + whereExpression->getRawName() + " returns " +
                                TypeUtils::dataTypeToString(whereExpression->dataType) +
                                " expected Boolean.");
     }
@@ -263,8 +264,9 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
         throw invalid_argument("Lower bound of rel " + parsedName + " is greater than upperBound.");
     }
     auto queryRel = make_shared<RelExpression>(
-        getUniqueVariableName(parsedName), relLabel, srcNode, dstNode, lowerBound, upperBound);
-    queryRel->rawExpression = parsedName;
+        getUniqueExpressionName(parsedName), relLabel, srcNode, dstNode, lowerBound, upperBound);
+    queryRel->setAlias(parsedName);
+    queryRel->setRawName(parsedName);
     if (!parsedName.empty()) {
         variablesInScope.insert({parsedName, queryRel});
     }
@@ -277,9 +279,6 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
     shared_ptr<NodeExpression> queryNode;
     if (variablesInScope.contains(parsedName)) { // bind to node in scope
         auto prevVariable = variablesInScope.at(parsedName);
-        while (ALIAS == prevVariable->expressionType) {
-            prevVariable = prevVariable->children[0];
-        }
         if (NODE != prevVariable->dataType) {
             throw invalid_argument(parsedName + " defined with conflicting type " +
                                    TypeUtils::dataTypeToString(prevVariable->dataType) +
@@ -294,8 +293,9 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
         }
     } else { // create new node
         auto nodeLabel = bindNodeLabel(nodePattern.label);
-        queryNode = make_shared<NodeExpression>(getUniqueVariableName(parsedName), nodeLabel);
-        queryNode->rawExpression = parsedName;
+        queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), nodeLabel);
+        queryNode->setAlias(parsedName);
+        queryNode->setRawName(parsedName);
         if (ANY_LABEL == nodeLabel) {
             throw invalid_argument(
                 "Any-label is not supported. " + parsedName + " does not have a label.");
@@ -347,11 +347,11 @@ void QueryBinder::validateProjectionColumnNamesAreUnique(
     const vector<shared_ptr<Expression>>& expressions) {
     auto existColumnNames = unordered_set<string>();
     for (auto& expression : expressions) {
-        if (existColumnNames.contains(expression->getExternalName())) {
+        if (existColumnNames.contains(expression->getRawName())) {
             throw invalid_argument("Multiple result column with the same name " +
-                                   expression->getExternalName() + " are not supported.");
+                                   expression->getRawName() + " are not supported.");
         }
-        existColumnNames.insert(expression->getExternalName());
+        existColumnNames.insert(expression->getRawName());
     }
 }
 
@@ -373,15 +373,15 @@ void QueryBinder::validateQueryGraphIsConnected(const QueryGraph& queryGraph,
     auto visited = unordered_set<string>();
     for (auto& [name, variable] : prevVariablesInScope) {
         if (NODE == variable->dataType) {
-            visited.insert(variable->getInternalName());
+            visited.insert(variable->getUniqueName());
         }
     }
     if (visited.empty()) {
-        visited.insert(queryGraph.queryNodes[0]->getInternalName());
+        visited.insert(queryGraph.queryNodes[0]->getUniqueName());
     }
     auto target = visited;
     for (auto& queryNode : queryGraph.queryNodes) {
-        target.insert(queryNode->getInternalName());
+        target.insert(queryNode->getUniqueName());
     }
     auto frontier = visited;
     while (!frontier.empty()) {
@@ -425,8 +425,8 @@ uint64_t QueryBinder::validateAndExtractSkipLimitNumber(
     return skipOrLimitNumber;
 }
 
-string QueryBinder::getUniqueVariableName(const string& name) {
-    return "_" + to_string(lastVariableId++) + "_" + name;
+string QueryBinder::getUniqueExpressionName(const string& name) {
+    return "_" + to_string(lastExpressionId++) + "_" + name;
 }
 
 unordered_map<string, shared_ptr<Expression>> QueryBinder::enterSubquery() {

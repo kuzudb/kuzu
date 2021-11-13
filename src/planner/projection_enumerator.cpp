@@ -50,11 +50,8 @@ void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>
     // extract and rewrite expressions to project
     vector<shared_ptr<Expression>> expressionsToProject;
     for (auto& expression : expressions) {
-        auto expressionRemovingAlias =
-            expression->expressionType == ALIAS ? expression->removeAlias() : expression;
-        if (expressionRemovingAlias->expressionType == VARIABLE) {
-            for (auto& property :
-                rewriteVariableExpression(expressionRemovingAlias, isRewritingAllProperties)) {
+        if (expression->expressionType == VARIABLE) {
+            for (auto& property : rewriteVariableExpression(expression, isRewritingAllProperties)) {
                 expressionsToProject.push_back(property);
             }
         } else {
@@ -67,7 +64,7 @@ void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>
         uint32_t groupPosToWrite =
             enumerator->appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(*expression, plan);
         nonDiscardGroupsPos.insert(groupPosToWrite);
-        plan.schema->getGroup(groupPosToWrite)->insertVariable(expression->getInternalName());
+        plan.schema->getGroup(groupPosToWrite)->insertVariable(expression->getUniqueName());
     }
 
     // We collect the discarded group positions in the input data chunks to obtain their
@@ -97,7 +94,7 @@ void ProjectionEnumerator::appendAggregate(
     plan.schema->clearGroups();
     auto groupPos = plan.schema->createGroup();
     for (auto& expression : expressions) {
-        plan.schema->insertToGroup(expression->getInternalName(), groupPos);
+        plan.schema->insertToGroup(expression->getUniqueName(), groupPos);
     }
     plan.appendOperator(move(aggregate));
 }

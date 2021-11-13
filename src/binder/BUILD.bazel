@@ -6,7 +6,7 @@ cc_library(
         "*_binder.cpp",
     ]),
     hdrs = glob([
-        "include/*.h",
+        "include/*_binder.h",
     ]),
     visibility = ["//visibility:public"],
     deps = [
@@ -82,7 +82,6 @@ cc_library(
         "include/expression/node_expression.h",
         "include/expression/property_expression.h",
         "include/expression/rel_expression.h",
-        "include/expression/variable_expression.h",
     ],
     deps = [
         "base_expression",
