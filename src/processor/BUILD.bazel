@@ -74,9 +74,9 @@ cc_library(
 cc_library(
     name = "operator_impls",
     srcs = [
+        "physical_plan/operator/aggregate/aggregate_hash_table.cpp",
         "physical_plan/operator/aggregate/simple_aggregate.cpp",
         "physical_plan/operator/aggregate/simple_aggregation_scan.cpp",
-        "physical_plan/operator/aggregate/aggregate_hash_table.cpp",
         "physical_plan/operator/crud/create_node.cpp",
         "physical_plan/operator/crud/crud.cpp",
         "physical_plan/operator/crud/delete_node.cpp",
@@ -89,6 +89,7 @@ cc_library(
         "physical_plan/operator/limit/limit.cpp",
         "physical_plan/operator/load_csv/load_csv.cpp",
         "physical_plan/operator/multiplicity_reducer/multiplicity_reducer.cpp",
+        "physical_plan/operator/order_by/order_by_key_encoder.cpp",
         "physical_plan/operator/projection/projection.cpp",
         "physical_plan/operator/read_list/adj_list_extend.cpp",
         "physical_plan/operator/read_list/frontier/frontier_bag.cpp",
@@ -107,9 +108,9 @@ cc_library(
         "physical_plan/query_result.cpp",
     ],
     hdrs = [
+        "include/physical_plan/operator/aggregate/aggregate_hash_table.h",
         "include/physical_plan/operator/aggregate/simple_aggregate.h",
         "include/physical_plan/operator/aggregate/simple_aggregation_scan.h",
-        "include/physical_plan/operator/aggregate/aggregate_hash_table.h",
         "include/physical_plan/operator/crud/create_node.h",
         "include/physical_plan/operator/crud/crud.h",
         "include/physical_plan/operator/crud/crud_node.h",
@@ -124,6 +125,7 @@ cc_library(
         "include/physical_plan/operator/limit/limit.h",
         "include/physical_plan/operator/load_csv/load_csv.h",
         "include/physical_plan/operator/multiplicity_reducer/multiplicity_reducer.h",
+        "include/physical_plan/operator/order_by/order_by_key_encoder.h",
         "include/physical_plan/operator/projection/projection.h",
         "include/physical_plan/operator/read_list/adj_list_extend.h",
         "include/physical_plan/operator/read_list/frontier/frontier.h",
@@ -149,6 +151,7 @@ cc_library(
         "base_operator",
         "data_pos",
         "//src/common:csv_reader",
+        "//src/common:types",
         "//src/expression_evaluator:aggregate_evaluator_impls",
     ],
 )
