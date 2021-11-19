@@ -44,5 +44,12 @@ class NotImplementedException : public Exception {
 public:
     explicit NotImplementedException(const string& msg) : Exception(msg){};
 };
+
+class EncodingException : public Exception {
+public:
+    explicit EncodingException(const string& msg)
+        : Exception("OrderBy encoder exception: " + msg){};
+};
+
 } // namespace common
 } // namespace graphflow

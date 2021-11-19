@@ -6,6 +6,7 @@ cc_test(
         "physical_plan/expression_mapper_test.cpp",
         "physical_plan/operator/aggregate/aggregate_hash_table_test.cpp",
         "physical_plan/operator/frontier/frontier_test.cpp",
+        "physical_plan/operator/orderBy/order_by_key_encoder_test.cpp",
         "physical_plan/operator/scan/scan_test.cpp",
         "physical_plan/operator/tuple/result_set_iterator_test.cpp",
         "processor_test.cpp",

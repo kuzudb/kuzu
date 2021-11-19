@@ -24,6 +24,9 @@ constexpr uint64_t DEFAULT_MEMORY_MANAGER_MAX_MEMORY = 1ull << 38;
 constexpr const uint64_t DEFAULT_HT_BLOCK_SIZE = 1 << 18;
 constexpr const double DEFAULT_HT_LOAD_FACTOR = 1.5;
 
+// The number of bytes in a block of memory to store the keys of tuples
+constexpr const uint64_t SORT_BLOCK_SIZE = 4096;
+
 struct StorageConfig {
     // The default amount of memory pre-allocated to the buffer pool (= 1GB).
     static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 22;
