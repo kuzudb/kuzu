@@ -118,8 +118,8 @@ struct BinaryOperationExecutor {
                 } else {
                     for (auto i = 0u; i < unFlatVec.state->selectedSize; i++) {
                         auto unFlatPos = unFlatVec.state->selectedPositions[i];
-                        result.setNull(
-                            unFlatPos, unFlatVec.isNull(unFlatPos)); // isFlatNull is always false.
+                        result.setNull(unFlatPos,
+                            unFlatVec.isNull(unFlatPos)); // isFlatNull is always false.
                         if (!result.isNull(unFlatPos)) {
                             executeOnTuple<A, B, R, FUNC>(left, right, result,
                                 isLeftFlat ? flatPos : unFlatPos, isLeftFlat ? unFlatPos : flatPos,
@@ -138,8 +138,8 @@ struct BinaryOperationExecutor {
             } else {
                 for (auto i = 0u; i < unFlatVec.state->selectedSize; i++) {
                     auto unFlatPos = unFlatVec.state->selectedPositions[i];
-                    result.setNull(
-                        unFlatPos, unFlatVec.isNull(unFlatPos)); // isFlatNull is always false.
+                    result.setNull(unFlatPos,
+                        unFlatVec.isNull(unFlatPos)); // isFlatNull is always false.
                     executeOnTuple<A, B, R, FUNC>(left, right, result,
                         isLeftFlat ? flatPos : unFlatPos, isLeftFlat ? unFlatPos : flatPos,
                         unFlatPos);

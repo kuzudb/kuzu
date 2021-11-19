@@ -69,24 +69,21 @@ void ValueVector::readNodeID(uint64_t pos, nodeID_t& nodeID) const {
 
 bool ValueVector::discardNullNodes() {
     assert(dataType == NODE);
-    node_offset_t nodeOffset;
     if (state->isFlat()) {
-        nodeOffset = ((nodeID_t*)values)[state->getPositionOfCurrIdx()].offset;
-        return nodeOffset != UINT64_MAX;
+        return !nullMask->mask[state->getPositionOfCurrIdx()];
     } else {
         auto selectedPos = 0u;
         if (state->isUnfiltered()) {
             state->resetSelectorToValuePosBuffer();
             for (auto i = 0u; i < state->selectedSize; i++) {
-                nodeOffset = ((nodeID_t*)values)[i].offset;
                 state->selectedPositions[selectedPos] = i;
-                selectedPos += (nodeOffset != UINT64_MAX);
+                selectedPos += !nullMask->mask[i];
             }
         } else {
             for (auto i = 0u; i < state->selectedSize; i++) {
-                nodeOffset = ((nodeID_t*)values)[state->selectedPositions[i]].offset;
+                auto pos = state->selectedPositions[i];
                 state->selectedPositions[selectedPos] = i;
-                selectedPos += (nodeOffset != UINT64_MAX);
+                selectedPos += !nullMask->mask[pos];
             }
         }
         state->selectedSize = selectedPos;

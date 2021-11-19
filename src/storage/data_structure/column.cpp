@@ -1,5 +1,7 @@
 #include "src/storage/include/data_structure/column.h"
 
+#include <iostream>
+
 namespace graphflow {
 namespace storage {
 
@@ -85,7 +87,6 @@ void AdjColumn::readValues(const shared_ptr<ValueVector>& nodeIDVector,
     const shared_ptr<ValueVector>& resultVector, BufferManagerMetrics& metrics) {
     assert(nodeIDVector->dataType == NODE && nodeIDVector->state == resultVector->state);
     auto nodeIDValues = (nodeID_t*)nodeIDVector->values;
-    auto resultVectorValues = (nodeID_t*)resultVector->values;
     if (nodeIDVector->isSequence) {
         auto pageCursor = getPageCursorForOffset(nodeIDValues[0].offset);
         readNodeIDsFromSequentialPages(
@@ -99,7 +100,7 @@ void AdjColumn::readValues(const shared_ptr<ValueVector>& nodeIDVector,
                                                        nodeIDVector->state->selectedPositions[i];
             auto nodeOffset = nodeIDValues[pos].offset;
             auto pageCursor = getPageCursorForOffset(nodeOffset);
-            readNodeIDsFromAPage(&resultVectorValues[i], pageCursor.idx, pageCursor.offset,
+            readNodeIDsFromAPage(resultVector, pos, pageCursor.idx, pageCursor.offset,
                 1 /* numValuesToCopy */, nodeIDCompressionScheme, metrics);
         }
     }
