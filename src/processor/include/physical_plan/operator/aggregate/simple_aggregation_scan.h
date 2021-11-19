@@ -14,7 +14,7 @@ public:
     SimpleAggregationScan(const vector<DataPos>& outDataPos,
         unique_ptr<PhysicalOperator> prevOperator, shared_ptr<AggregationSharedState> sharedState,
         ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(prevOperator), AGGREGATION_SCAN, context, id}, outDataChunkPos{0},
+        : PhysicalOperator{move(prevOperator), AGGREGATION_SCAN, context, id},
           outDataPos{outDataPos}, sharedState{move(sharedState)} {}
 
     void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
@@ -27,8 +27,8 @@ public:
     }
 
 private:
-    uint32_t outDataChunkPos;
     vector<DataPos> outDataPos;
+    shared_ptr<DataChunk> outDataChunk;
     shared_ptr<AggregationSharedState> sharedState;
 };
 } // namespace processor
