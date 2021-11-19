@@ -6,19 +6,16 @@ namespace processor {
 void SimpleAggregationScan::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     this->resultSet = resultSet;
     // All aggregation results are materialized in the same dataChunk.
-    outDataChunkPos = outDataPos[0].dataChunkPos;
-    auto outDataChunk = this->resultSet->dataChunks[outDataChunkPos];
+    outDataChunk = this->resultSet->dataChunks[outDataPos[0].dataChunkPos];
     assert(outDataPos.size() == sharedState->dataTypes.size());
     for (auto i = 0u; i < outDataPos.size(); i++) {
         outDataChunk->insert(outDataPos[i].valueVectorPos,
-            make_shared<ValueVector>(
-                context.memoryManager, sharedState->dataTypes[outDataPos[i].valueVectorPos]));
+            make_shared<ValueVector>(context.memoryManager, sharedState->dataTypes[i]));
     }
 }
 
 bool SimpleAggregationScan::getNextTuples() {
     metrics->executionTime.start();
-    auto outDataChunk = this->resultSet->dataChunks[outDataChunkPos];
     {
         lock_guard<mutex> lock{sharedState->aggregationSharedStateLock};
         if (sharedState->currentGroupOffset >= sharedState->numGroups) {
@@ -28,10 +25,11 @@ bool SimpleAggregationScan::getNextTuples() {
             // Currently, we assume the aggregation only has one group.
             assert(sharedState->numGroups == 1);
             for (auto i = 0u; i < sharedState->aggregationStates.size(); i++) {
+                auto outValueVectorPos = outDataPos[i].valueVectorPos;
                 if (sharedState->aggregationStates[i]->isNull) {
-                    outDataChunk->valueVectors[i]->setNull(0, true);
+                    outDataChunk->valueVectors[outValueVectorPos]->setNull(0, true);
                 } else {
-                    auto outValues = outDataChunk->valueVectors[i]->values;
+                    auto outValues = outDataChunk->valueVectors[outValueVectorPos]->values;
                     memcpy(outValues, sharedState->aggregationStates[i]->getFinalVal(),
                         TypeUtils::getDataTypeSize(sharedState->dataTypes[i]));
                 }
