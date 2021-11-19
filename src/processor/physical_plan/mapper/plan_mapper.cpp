@@ -48,7 +48,7 @@ namespace processor {
 static shared_ptr<ResultSet> populateResultSet(const Schema& schema) {
     auto resultSet = make_shared<ResultSet>(schema.getNumGroups());
     for (auto i = 0u; i < schema.getNumGroups(); ++i) {
-        resultSet->insert(i, make_shared<DataChunk>(schema.getGroup(i)->getNumVariables()));
+        resultSet->insert(i, make_shared<DataChunk>(schema.getGroup(i)->getNumExpressions()));
     }
     return resultSet;
 }
@@ -311,16 +311,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     for (auto i = 0u; i < hashJoin.buildSideSchema->groups.size(); ++i) {
         buildSideValueVectorsOutputPos.emplace_back(unordered_map<uint32_t, DataPos>());
         auto& buildSideGroup = *hashJoin.buildSideSchema->groups[i];
-        for (auto& variable : buildSideGroup.variables) {
+        for (auto& expressionName : buildSideGroup.expressionNames) {
             if (i == buildDataChunksInfo.keyDataPos.dataChunkPos &&
-                variable == hashJoin.joinNodeID) {
+                expressionName == hashJoin.joinNodeID) {
                 continue;
             }
             auto [buildSideDataChunkPos, buildSideValueVectorPos] =
-                buildSideInfo.getDataPos(variable);
+                buildSideInfo.getDataPos(expressionName);
             assert(buildSideDataChunkPos == i);
             buildSideValueVectorsOutputPos[i].insert(
-                {buildSideValueVectorPos, info.getDataPos(variable)});
+                {buildSideValueVectorPos, info.getDataPos(expressionName)});
         }
     }
 

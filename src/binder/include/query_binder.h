@@ -79,7 +79,6 @@ private:
         unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
     void validateCSVHeaderColumnNamesAreUnique(const vector<pair<string, DataType>>& headerInfo);
     uint64_t validateAndExtractSkipLimitNumber(const ParsedExpression& skipOrLimitExpression);
-
     /******* helpers *********/
     string getUniqueExpressionName(const string& name);
 
