@@ -6,7 +6,7 @@
 #include <regex>
 #include <sstream>
 
-#include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
+#include "src/processor/include/physical_plan/result/result_set_iterator.h"
 
 // prompt for user input
 const char* PROMPT = "graphflowdb> ";

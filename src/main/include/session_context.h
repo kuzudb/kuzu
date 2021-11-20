@@ -2,7 +2,7 @@
 
 #include "src/common/include/profiler.h"
 #include "src/main/include/plan_printer.h"
-#include "src/processor/include/physical_plan/query_result.h"
+#include "src/processor/include/physical_plan/result/query_result.h"
 #include "src/transaction/include/transaction.h"
 
 using namespace graphflow::common;

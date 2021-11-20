@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/expression_evaluator/include/expression_evaluator.h"
-#include "src/processor/include/physical_plan/operator/sink/result_collector.h"
+#include "src/processor/include/physical_plan/operator/result_collector.h"
 
 using namespace graphflow::processor;
 
@@ -11,7 +11,7 @@ namespace evaluator {
 class ExistentialSubqueryEvaluator : public ExpressionEvaluator {
 
 public:
-    ExistentialSubqueryEvaluator(unique_ptr<ResultCollector> subPlanResultCollector);
+    explicit ExistentialSubqueryEvaluator(unique_ptr<ResultCollector> subPlanResultCollector);
 
     void initResultSet(const ResultSet& resultSet, MemoryManager& memoryManager) override;
 

@@ -3,9 +3,9 @@
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
-#include "src/processor/include/physical_plan/operator/sink/result_collector.h"
-#include "src/processor/include/physical_plan/operator/sink/sink.h"
-#include "src/processor/include/physical_plan/query_result.h"
+#include "src/processor/include/physical_plan/operator/result_collector.h"
+#include "src/processor/include/physical_plan/operator/sink.h"
+#include "src/processor/include/physical_plan/result/query_result.h"
 
 using namespace graphflow::common;
 

@@ -3,7 +3,7 @@
 #include "src/common/include/memory_manager.h"
 #include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
 #include "src/processor/include/physical_plan/data_pos.h"
-#include "src/processor/include/physical_plan/operator/result/result_set.h"
+#include "src/processor/include/physical_plan/result/result_set.h"
 
 using namespace graphflow::evaluator;
 

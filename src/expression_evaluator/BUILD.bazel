@@ -13,7 +13,7 @@ cc_library(
         "//src/common:data_chunk",
         "//src/common:vector_operations",
         "//src/processor:data_pos",
-        "//src/processor:result_set",
+        "//src/processor:result",
     ],
 )
 
@@ -47,6 +47,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "base_evaluator",
-        "//src/processor:operator_impls",
+        "//src/processor:result_collector",
+        "//src/processor:select_scan",
     ],
 )

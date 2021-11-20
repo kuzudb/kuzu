@@ -3,7 +3,7 @@
 #include <mutex>
 
 #include "src/processor/include/execution_context.h"
-#include "src/processor/include/physical_plan/operator/sink/sink.h"
+#include "src/processor/include/physical_plan/operator/sink.h"
 
 using namespace std;
 

@@ -3,9 +3,8 @@
 #include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
 #include "src/expression_evaluator/include/expression_evaluator.h"
 #include "src/function/include/aggregation/aggregation_function.h"
-#include "src/processor/include/physical_plan/operator/filtering_operator.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
-#include "src/processor/include/physical_plan/operator/sink/sink.h"
+#include "src/processor/include/physical_plan/operator/sink.h"
 
 using namespace graphflow::evaluator;
 using namespace graphflow::function;
