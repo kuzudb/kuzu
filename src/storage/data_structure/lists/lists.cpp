@@ -99,8 +99,7 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     listSyncState->set(csrOffset, valueVector->state->selectedSize);
     // map logical pageIdx to physical pageIdx
     auto physicalPageId = info.mapper(info.cursor.idx);
-    auto values = (nodeID_t*)valueVector->values;
-    readNodeIDsFromAPage(values, physicalPageId, info.cursor.offset, numValuesToCopy,
+    readNodeIDsFromAPage(valueVector, 0, physicalPageId, info.cursor.offset, numValuesToCopy,
         nodeIDCompressionScheme, metrics);
 }
 

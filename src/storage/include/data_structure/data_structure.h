@@ -55,9 +55,9 @@ protected:
     void copyFromAPage(uint8_t* values, uint32_t physicalPageIdx, uint64_t sizeToCopy,
         uint32_t pageOffset, BufferManagerMetrics& metrics);
 
-    void readNodeIDsFromAPage(nodeID_t* resultVectorValues, uint32_t physicalPageId,
-        uint32_t pageOffset, uint64_t numValuesToCopy, NodeIDCompressionScheme& compressionScheme,
-        BufferManagerMetrics& metrics);
+    void readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector, uint32_t posInVector,
+        uint32_t physicalPageId, uint32_t pageOffset, uint64_t numValuesToCopy,
+        NodeIDCompressionScheme& compressionScheme, BufferManagerMetrics& metrics);
 
 public:
     DataType dataType;

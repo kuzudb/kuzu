@@ -23,6 +23,7 @@ bool AdjColumnExtend::getNextTuples() {
             metrics->executionTime.stop();
             return false;
         }
+        outValueVector->setAllNull();
         column->readValues(inValueVector, outValueVector, *metrics->bufferManagerMetrics);
         saveDataChunkSelectorState(inDataChunk);
         hasAtLeastOneNonNullValue = outValueVector->discardNullNodes();
