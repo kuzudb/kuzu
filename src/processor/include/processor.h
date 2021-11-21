@@ -4,7 +4,7 @@
 
 #include "src/common/include/memory_manager.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
-#include "src/processor/include/physical_plan/query_result.h"
+#include "src/processor/include/physical_plan/result/query_result.h"
 #include "src/processor/include/task_system/task_queue.h"
 
 using namespace graphflow::storage;

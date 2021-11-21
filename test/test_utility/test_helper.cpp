@@ -6,7 +6,7 @@
 #include "spdlog/spdlog.h"
 
 #include "src/loader/include/graph_loader.h"
-#include "src/processor/include/physical_plan/operator/result/result_set_iterator.h"
+#include "src/processor/include/physical_plan/result/result_set_iterator.h"
 
 using namespace std;
 using namespace graphflow::planner;

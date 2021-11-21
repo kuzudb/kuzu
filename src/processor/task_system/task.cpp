@@ -1,6 +1,6 @@
 #include "src/processor/include/task_system/task.h"
 
-#include "src/processor/include/physical_plan/operator/sink/result_collector.h"
+#include "src/processor/include/physical_plan/operator/result_collector.h"
 
 namespace graphflow {
 namespace processor {

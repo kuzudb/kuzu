@@ -1,7 +1,7 @@
 #include "src/expression_evaluator/include/existential_subquery_evaluator.h"
 
-#include "src/processor/include/physical_plan/operator/select_scan/select_scan.h"
-#include "src/processor/include/physical_plan/operator/sink/result_collector.h"
+#include "src/processor/include/physical_plan/operator/result_collector.h"
+#include "src/processor/include/physical_plan/operator/select_scan.h"
 
 namespace graphflow {
 namespace evaluator {

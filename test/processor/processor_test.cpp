@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
-#include "src/processor/include/physical_plan/operator/scan_node_id/scan_node_id.h"
-#include "src/processor/include/physical_plan/operator/sink/result_collector.h"
+#include "src/processor/include/physical_plan/operator/result_collector.h"
+#include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/processor.h"
 #include "src/storage/include/graph.h"
 

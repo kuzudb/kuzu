@@ -8,7 +8,7 @@
 #include "src/common/include/value.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/processor/include/physical_plan/data_pos.h"
-#include "src/processor/include/physical_plan/operator/result/result_set.h"
+#include "src/processor/include/physical_plan/result/result_set.h"
 
 using namespace graphflow::processor;
 using namespace graphflow::common;

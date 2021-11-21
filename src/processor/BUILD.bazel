@@ -9,6 +9,32 @@ cc_library(
 )
 
 cc_library(
+    name = "result",
+    hdrs = glob([
+        "include/physical_plan/result/*.h",
+    ]),
+    srcs = glob([
+        "physical_plan/result/*.cpp",
+    ]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "data_pos",
+        "//src/common:data_chunk",
+        "//src/storage:lists",
+    ],
+)
+
+cc_library(
+    name = "filtering_operator",
+    hdrs = [
+        "include/physical_plan/operator/filtering_operator.h",
+    ],
+    deps = [
+        "//src/common:data_chunk",
+    ],
+)
+
+cc_library(
     name = "execution_context",
     hdrs = [
         "include/execution_context.h",
@@ -20,20 +46,179 @@ cc_library(
 )
 
 cc_library(
-    name = "mapper",
-    srcs = [
-        "physical_plan/expression_mapper.cpp",
-        "physical_plan/operator/physical_operator_info.cpp",
-        "physical_plan/plan_mapper.cpp",
-    ],
+    name = "base_operator",
     hdrs = [
-        "include/physical_plan/expression_mapper.h",
-        "include/physical_plan/operator/physical_operator_info.h",
-        "include/physical_plan/plan_mapper.h",
+        "include/physical_plan/operator/physical_operator.h",
+    ],
+    srcs = [
+        "physical_plan/operator/physical_operator.cpp",
+    ],
+    deps = [
+        "data_pos",
+        "execution_context",
+        "result",
+    ],
+)
+
+cc_library(
+    name = "sink_operator",
+    hdrs = [
+        "include/physical_plan/operator/sink.h",
+    ],
+    deps = [
+        "base_operator",
+    ],
+)
+
+cc_library(
+    name = "aggregate",
+    hdrs = glob([
+        "include/physical_plan/operator/aggregate/*.h",
+    ]),
+    srcs = glob([
+        "physical_plan/operator/aggregate/*.cpp",
+    ]),
+    deps = [
+        "sink_operator",
+        "//src/expression_evaluator:aggregate_evaluator_impls",
+    ],
+)
+
+cc_library(
+    name = "crud",
+    hdrs = glob([
+        "include/physical_plan/operator/crud/*.h",
+    ]),
+    srcs = glob([
+        "physical_plan/operator/crud/*.cpp",
+    ]),
+    deps = [
+        "base_operator",
+    ],
+)
+
+cc_library(
+    name = "hash_join",
+    hdrs = glob([
+        "include/physical_plan/operator/hash_join/*.h",
+    ]),
+    srcs = glob([
+        "physical_plan/operator/hash_join/*.cpp",
+    ]),
+    deps = [
+        "sink_operator",
+    ],
+)
+
+cc_library(
+    name = "order_by",
+    hdrs = glob([
+        "include/physical_plan/operator/order_by/*.h",
+    ]),
+    srcs = glob([
+        "physical_plan/operator/order_by/*.cpp",
+    ]),
+    deps = [
+        "sink_operator",
+    ],
+)
+
+cc_library(
+    name = "read_list",
+    hdrs = glob([
+        "include/physical_plan/operator/read_list/**/*.h",
+    ]),
+    srcs = glob([
+        "physical_plan/operator/read_list/**/*.cpp",
+    ]),
+    deps = [
+        "base_operator",
+    ],
+)
+
+cc_library(
+    name = "scan_attribute",
+    hdrs = glob([
+        "include/physical_plan/operator/scan_attribute/*.h",
+    ]),
+    srcs = glob([
+        "physical_plan/operator/scan_attribute/*.cpp",
+    ]),
+    deps = [
+        "base_operator",
+        "filtering_operator",
+    ],
+)
+
+cc_library(
+    name = "result_collector",
+    hdrs = [
+        "include/physical_plan/operator/result_collector.h",
+    ],
+    srcs = [
+        "physical_plan/operator/result_collector.cpp",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "sink_operator",
+    ],
+)
+
+cc_library(
+    name = "select_scan",
+    hdrs = [
+        "include/physical_plan/operator/select_scan.h",
+    ],
+    srcs = [
+        "physical_plan/operator/select_scan.cpp",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "base_operator",
+    ],
+)
+
+cc_library(
+    name = "operator_impls",
+    hdrs = glob([
+        "include/physical_plan/operator/*.h",
+    ]),
+    srcs = glob([
+        "physical_plan/operator/*.cpp",
+    ]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "aggregate",
+        "crud",
+        "hash_join",
+        "order_by",
+        "read_list",
+        "scan_attribute",
+        "//src/common:csv_reader",
+    ],
+)
+
+cc_library(
+    name = "physical_plan",
+    hdrs = [
+        "include/physical_plan/physical_plan.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "operator_impls",
+    ],
+)
+
+cc_library(
+    name = "mapper",
+    hdrs = glob([
+        "include/physical_plan/mapper/*.h",
+    ]),
+    srcs = glob([
+        "physical_plan/mapper/*.cpp",
+    ]),
+    visibility = ["//visibility:public"],
+    deps = [
         "physical_plan",
         "//src/binder:subquery_expression_impl",
         "//src/expression_evaluator:evaluator_impls",
@@ -45,152 +230,32 @@ cc_library(
 )
 
 cc_library(
-    name = "physical_plan",
+    name = "task_system",
     hdrs = [
-        "include/physical_plan/physical_plan.h",
+        "include/task_system/task.h",
+        "include/task_system/task_queue.h",
     ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "base_operator",
-    ],
-)
-
-cc_library(
-    name = "base_operator",
     srcs = [
-        "physical_plan/operator/physical_operator.cpp",
-    ],
-    hdrs = [
-        "include/physical_plan/operator/physical_operator.h",
+        "task_system/task.cpp",
+        "task_system/task_queue.cpp",
     ],
     deps = [
-        "data_pos",
         "execution_context",
-        "result_set",
-    ],
-)
-
-# TODO: compile sink impls separately so that evaluator_impls & processor only depends on sink impls
-cc_library(
-    name = "operator_impls",
-    srcs = [
-        "physical_plan/operator/aggregate/aggregate_hash_table.cpp",
-        "physical_plan/operator/aggregate/simple_aggregate.cpp",
-        "physical_plan/operator/aggregate/simple_aggregation_scan.cpp",
-        "physical_plan/operator/crud/create_node.cpp",
-        "physical_plan/operator/crud/crud.cpp",
-        "physical_plan/operator/crud/delete_node.cpp",
-        "physical_plan/operator/crud/update_node.cpp",
-        "physical_plan/operator/filter/filter.cpp",
-        "physical_plan/operator/flatten/flatten.cpp",
-        "physical_plan/operator/hash_join/hash_join_build.cpp",
-        "physical_plan/operator/hash_join/hash_join_probe.cpp",
-        "physical_plan/operator/intersect/intersect.cpp",
-        "physical_plan/operator/limit/limit.cpp",
-        "physical_plan/operator/load_csv/load_csv.cpp",
-        "physical_plan/operator/multiplicity_reducer/multiplicity_reducer.cpp",
-        "physical_plan/operator/order_by/order_by_key_encoder.cpp",
-        "physical_plan/operator/projection/projection.cpp",
-        "physical_plan/operator/read_list/adj_list_extend.cpp",
-        "physical_plan/operator/read_list/frontier/frontier_bag.cpp",
-        "physical_plan/operator/read_list/frontier/frontier_set.cpp",
-        "physical_plan/operator/read_list/frontier_extend.cpp",
-        "physical_plan/operator/read_list/read_list.cpp",
-        "physical_plan/operator/read_list/read_rel_property_list.cpp",
-        "physical_plan/operator/scan_attribute/adj_column_extend.cpp",
-        "physical_plan/operator/scan_attribute/scan_attribute.cpp",
-        "physical_plan/operator/scan_attribute/scan_structured_property.cpp",
-        "physical_plan/operator/scan_attribute/scan_unstructured_property.cpp",
-        "physical_plan/operator/scan_node_id/scan_node_id.cpp",
-        "physical_plan/operator/select_scan/select_scan.cpp",
-        "physical_plan/operator/sink/result_collector.cpp",
-        "physical_plan/operator/skip/skip.cpp",
-        "physical_plan/query_result.cpp",
-    ],
-    hdrs = [
-        "include/physical_plan/operator/aggregate/aggregate_hash_table.h",
-        "include/physical_plan/operator/aggregate/simple_aggregate.h",
-        "include/physical_plan/operator/aggregate/simple_aggregation_scan.h",
-        "include/physical_plan/operator/crud/create_node.h",
-        "include/physical_plan/operator/crud/crud.h",
-        "include/physical_plan/operator/crud/crud_node.h",
-        "include/physical_plan/operator/crud/delete_node.h",
-        "include/physical_plan/operator/crud/update_node.h",
-        "include/physical_plan/operator/filter/filter.h",
-        "include/physical_plan/operator/filtering_operator.h",
-        "include/physical_plan/operator/flatten/flatten.h",
-        "include/physical_plan/operator/hash_join/hash_join_build.h",
-        "include/physical_plan/operator/hash_join/hash_join_probe.h",
-        "include/physical_plan/operator/intersect/intersect.h",
-        "include/physical_plan/operator/limit/limit.h",
-        "include/physical_plan/operator/load_csv/load_csv.h",
-        "include/physical_plan/operator/multiplicity_reducer/multiplicity_reducer.h",
-        "include/physical_plan/operator/order_by/order_by_key_encoder.h",
-        "include/physical_plan/operator/projection/projection.h",
-        "include/physical_plan/operator/read_list/adj_list_extend.h",
-        "include/physical_plan/operator/read_list/frontier/frontier.h",
-        "include/physical_plan/operator/read_list/frontier/frontier_bag.h",
-        "include/physical_plan/operator/read_list/frontier/frontier_set.h",
-        "include/physical_plan/operator/read_list/frontier_extend.h",
-        "include/physical_plan/operator/read_list/read_list.h",
-        "include/physical_plan/operator/read_list/read_rel_property_list.h",
-        "include/physical_plan/operator/scan_attribute/adj_column_extend.h",
-        "include/physical_plan/operator/scan_attribute/scan_attribute.h",
-        "include/physical_plan/operator/scan_attribute/scan_structured_property.h",
-        "include/physical_plan/operator/scan_attribute/scan_unstructured_property.h",
-        "include/physical_plan/operator/scan_node_id/scan_node_id.h",
-        "include/physical_plan/operator/select_scan/select_scan.h",
-        "include/physical_plan/operator/sink/result_collector.h",
-        "include/physical_plan/operator/sink/sink.h",
-        "include/physical_plan/operator/skip/skip.h",
-        "include/physical_plan/query_result.h",
-        "include/task_system/morsel.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "base_operator",
-        "data_pos",
-        "//src/common:csv_reader",
-        "//src/common:types",
-        "//src/expression_evaluator:aggregate_evaluator_impls",
-    ],
-)
-
-cc_library(
-    name = "result_set",
-    srcs = [
-        "physical_plan/operator/result/result_set.cpp",
-        "physical_plan/operator/result/result_set_iterator.cpp",
-        "physical_plan/operator/result/tuple.cpp",
-    ],
-    hdrs = [
-        "include/physical_plan/operator/result/result_set.h",
-        "include/physical_plan/operator/result/result_set_iterator.h",
-        "include/physical_plan/operator/result/tuple.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "data_pos",
-        "//src/common:data_chunk",
-        "//src/storage:lists",
+        "result_collector",
     ],
 )
 
 cc_library(
     name = "processor",
-    srcs = [
-        "processor.cpp",
-        "task_system/task.cpp",
-        "task_system/task_queue.cpp",
-    ],
     hdrs = [
         "include/processor.h",
-        "include/task_system/task.h",
-        "include/task_system/task_queue.h",
+    ],
+    srcs = [
+        "processor.cpp",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "operator_impls",
         "physical_plan",
+        "task_system",
     ],
 )

@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "src/processor/include/physical_plan/operator/scan_node_id/scan_node_id.h"
+#include "src/processor/include/physical_plan/operator/scan_node_id.h"
 
 using namespace graphflow::processor;
 

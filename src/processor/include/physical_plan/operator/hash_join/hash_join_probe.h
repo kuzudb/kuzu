@@ -3,7 +3,7 @@
 #include "src/common/include/types.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
-#include "src/processor/include/physical_plan/operator/result/result_set.h"
+#include "src/processor/include/physical_plan/result/result_set.h"
 
 using namespace std;
 using namespace graphflow::common;

@@ -6,7 +6,7 @@
 #include "src/binder/include/expression/property_expression.h"
 #include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
 #include "src/function/include/aggregation/count.h"
-#include "src/processor/include/physical_plan/plan_mapper.h"
+#include "src/processor/include/physical_plan/mapper/plan_mapper.h"
 
 using ::testing::NiceMock;
 using ::testing::Test;
