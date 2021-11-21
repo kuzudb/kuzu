@@ -24,22 +24,24 @@ public:
     FactorizationGroup() : isFlat{false}, estimatedCardinality{1} {}
 
     FactorizationGroup(const FactorizationGroup& other)
-        : isFlat{other.isFlat},
-          estimatedCardinality{other.estimatedCardinality}, variables{other.variables} {}
+        : isFlat{other.isFlat}, estimatedCardinality{other.estimatedCardinality},
+          expressionNames{other.expressionNames} {}
 
-    inline void insertVariable(const string& variable) { variables.insert(variable); }
-
-    inline string getAnyVariable() {
-        GF_ASSERT(!variables.empty());
-        return *variables.begin();
+    inline void insertExpression(const string& expressionName) {
+        expressionNames.insert(expressionName);
     }
 
-    inline uint32_t getNumVariables() const { return variables.size(); }
+    inline string getAnyExpressionName() {
+        GF_ASSERT(!expressionNames.empty());
+        return *expressionNames.begin();
+    }
+
+    inline uint32_t getNumExpressions() const { return expressionNames.size(); }
 
 public:
     bool isFlat;
     uint64_t estimatedCardinality;
-    unordered_set<string> variables;
+    unordered_set<string> expressionNames;
 };
 
 class Schema {
@@ -50,20 +52,18 @@ public:
 
     uint32_t createGroup();
 
-    void insertToGroup(const string& variable, uint32_t groupPos);
+    void insertToGroup(const string& expressionName, uint32_t groupPos);
 
     void insertToGroup(const FactorizationGroup& otherGroup, uint32_t groupPos);
 
-    uint32_t getGroupPos(const string& variable) const;
+    uint32_t getGroupPos(const string& expressionName) const;
 
-    unordered_set<uint32_t> getUnFlatGroupsPos() const;
-
-    uint32_t getAnyGroupPos() const;
+    unordered_set<uint32_t> getGroupsPos() const;
 
     void flattenGroup(uint32_t pos);
 
-    bool containVariable(const string& variable) const {
-        return variableToGroupPos.contains(variable);
+    bool containExpression(const string& expressionName) const {
+        return expressionNameToGroupPos.contains(expressionName);
     }
 
     void addLogicalExtend(const string& queryRel, LogicalExtend* extend);
@@ -82,8 +82,7 @@ public:
     // Maps a queryRel to the LogicalExtend that matches it. This is needed because ScanRelProperty
     // requires direction information which only available in the LogicalExtend.
     unordered_map<string, LogicalExtend*> queryRelLogicalExtendMap;
-    // All flat variables are considered as in the same factorization group
-    unordered_map<string, uint32_t> variableToGroupPos;
+    unordered_map<string, uint32_t> expressionNameToGroupPos;
     vector<shared_ptr<Expression>> expressionsToCollect;
 };
 

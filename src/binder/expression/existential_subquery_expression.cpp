@@ -25,34 +25,14 @@ vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getDependentVariab
     return result;
 }
 
-vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getDependentProperties() {
-    auto& firstQueryPart = *normalizedSubquery->getQueryPart(0);
-    vector<shared_ptr<Expression>> result;
-    if (firstQueryPart.hasWhereExpression()) {
-        for (auto& variable : firstQueryPart.getWhereExpression()->getDependentProperties()) {
-            result.push_back(variable);
-        }
-    }
-    for (auto& projectExpression : firstQueryPart.getProjectionBody()->getProjectionExpressions()) {
-        for (auto& variable : projectExpression->getDependentProperties()) {
-            result.push_back(variable);
-        }
-    }
-    return result;
-}
-
-vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getDependentLeafExpressions() {
+vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getDependentExpressions() {
     auto& firstQueryPart = *normalizedSubquery->getQueryPart(0);
     auto result = firstQueryPart.getDependentNodeID();
     if (firstQueryPart.hasWhereExpression()) {
-        for (auto& variable : firstQueryPart.getWhereExpression()->getDependentLeafExpressions()) {
-            result.push_back(variable);
-        }
+        result.push_back(firstQueryPart.getWhereExpression());
     }
     for (auto& projectExpression : firstQueryPart.getProjectionBody()->getProjectionExpressions()) {
-        for (auto& variable : projectExpression->getDependentLeafExpressions()) {
-            result.push_back(variable);
-        }
+        result.push_back(projectExpression);
     }
     return result;
 }

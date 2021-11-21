@@ -50,7 +50,6 @@ public:
     inline BoundProjectionBody* getProjectionBody() const { return projectionBody.get(); }
 
     vector<shared_ptr<Expression>> getDependentNodeID() const;
-    vector<shared_ptr<Expression>> getDependentPropertiesFromWhereAndProjection() const;
 
 private:
     unique_ptr<BoundLoadCSVStatement> loadCSVStatement;

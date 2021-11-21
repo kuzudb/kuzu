@@ -7,8 +7,8 @@ PhysicalOperatorsInfo::PhysicalOperatorsInfo(const Schema& schema) {
     auto dataChunkPos = 0ul;
     for (auto& group : schema.groups) {
         auto vectorPos = 0ul;
-        for (auto& variable : group->variables) {
-            expressionNameToDataPosMap.insert({variable, DataPos(dataChunkPos, vectorPos)});
+        for (auto& expressionName : group->expressionNames) {
+            expressionNameToDataPosMap.insert({expressionName, DataPos(dataChunkPos, vectorPos)});
             vectorPos++;
         }
         dataChunkPos++;

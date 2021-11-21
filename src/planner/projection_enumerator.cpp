@@ -14,23 +14,16 @@ namespace planner {
 void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& projectionBody,
     const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn) {
     for (auto& plan : plans) {
-        // Note: we should append a projection after aggregation so that this if else can be removed
         if (projectionBody.hasAggregationExpressions()) {
             appendAggregate(projectionBody.getAggregationExpressions(), *plan);
-            plan->schema->expressionsToCollect = projectionBody.getAggregationExpressions();
-            if (projectionBody.hasOrderByExpressions()) {
-                appendOrderBy(projectionBody.getOrderByExpressions(),
-                    projectionBody.getSortingOrders(), *plan);
-            }
-        } else {
-            if (projectionBody.hasOrderByExpressions()) {
-                appendOrderBy(projectionBody.getOrderByExpressions(),
-                    projectionBody.getSortingOrders(), *plan);
-            }
-            appendProjection(projectionBody.getProjectionExpressions(), *plan, isFinalReturn);
-            if (isFinalReturn) {
-                plan->schema->expressionsToCollect = projectionBody.getProjectionExpressions();
-            }
+        }
+        if (projectionBody.hasOrderByExpressions()) {
+            appendOrderBy(
+                projectionBody.getOrderByExpressions(), projectionBody.getSortingOrders(), *plan);
+        }
+        appendProjection(projectionBody.getProjectionExpressions(), *plan, isFinalReturn);
+        if (isFinalReturn) {
+            plan->schema->expressionsToCollect = projectionBody.getProjectionExpressions();
         }
 
         if (projectionBody.hasSkip() || projectionBody.hasLimit()) {
@@ -62,9 +55,9 @@ void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>
     unordered_set<uint32_t> nonDiscardGroupsPos;
     for (auto& expression : expressionsToProject) {
         uint32_t groupPosToWrite =
-            enumerator->appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(*expression, plan);
+            enumerator->appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(expression, plan);
         nonDiscardGroupsPos.insert(groupPosToWrite);
-        plan.schema->getGroup(groupPosToWrite)->insertVariable(expression->getUniqueName());
+        plan.schema->getGroup(groupPosToWrite)->insertExpression(expression->getUniqueName());
     }
 
     // We collect the discarded group positions in the input data chunks to obtain their
@@ -87,7 +80,7 @@ void ProjectionEnumerator::appendAggregate(
         if (expression->expressionType == COUNT_STAR_FUNC) {
             continue;
         }
-        enumerator->appendScanPropertiesIfNecessary(*expression->children[0], plan);
+        enumerator->appendScanPropertiesIfNecessary(expression->children[0], plan);
     }
     auto aggregate =
         make_shared<LogicalAggregate>(expressions, plan.schema->copy(), plan.lastOperator);
@@ -102,11 +95,12 @@ void ProjectionEnumerator::appendAggregate(
 void ProjectionEnumerator::appendOrderBy(const vector<shared_ptr<Expression>>& expressions,
     const vector<bool>& isAscOrders, LogicalPlan& plan) {
     for (auto& expression : expressions) {
-        enumerator->appendScanPropertiesIfNecessary(*expression, plan);
-        auto unFlatGroupsPos = Enumerator::getUnFlatGroupsPos(*expression, *plan.schema);
-        for (auto unFlatGroupPos : unFlatGroupsPos) {
-            enumerator->appendFlattenIfNecessary(unFlatGroupPos, plan);
+        enumerator->appendScanPropertiesIfNecessary(expression, plan);
+        unordered_set<uint32_t> groupsPos;
+        for (auto& expr : Enumerator::getExpressionsInSchema(expression, *plan.schema)) {
+            groupsPos.insert(plan.schema->getGroupPos(expr->getUniqueName()));
         }
+        enumerator->appendFlattens(groupsPos, plan);
     }
     auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders, plan.lastOperator);
     plan.appendOperator(move(orderBy));
@@ -117,10 +111,7 @@ void ProjectionEnumerator::appendMultiplicityReducer(LogicalPlan& plan) {
 }
 
 void ProjectionEnumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
-    auto unFlatGroupsPos = plan.schema->getUnFlatGroupsPos();
-    auto groupPosToSelect = unFlatGroupsPos.empty() ?
-                                plan.schema->getAnyGroupPos() :
-                                enumerator->appendFlattensButOne(unFlatGroupsPos, plan);
+    auto groupPosToSelect = enumerator->appendFlattensButOne(plan.schema->getGroupsPos(), plan);
     // Because our resultSet is shared through the plan and limit might not appear at the end (due
     // to WITH clause), limit needs to know how many tuples are available under it. So it requires a
     // subset of dataChunks that may different from shared resultSet.
@@ -137,10 +128,7 @@ void ProjectionEnumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) 
 }
 
 void ProjectionEnumerator::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
-    auto unFlatGroupsPos = plan.schema->getUnFlatGroupsPos();
-    auto groupPosToSelect = unFlatGroupsPos.empty() ?
-                                plan.schema->getAnyGroupPos() :
-                                enumerator->appendFlattensButOne(unFlatGroupsPos, plan);
+    auto groupPosToSelect = enumerator->appendFlattensButOne(plan.schema->getGroupsPos(), plan);
     vector<uint32_t> groupsPosToSkip;
     for (auto i = 0u; i < plan.schema->groups.size(); ++i) {
         groupsPosToSkip.push_back(i);

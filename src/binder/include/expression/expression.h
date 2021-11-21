@@ -43,8 +43,6 @@ public:
     unordered_set<string> getDependentVariableNames();
 
     virtual vector<shared_ptr<Expression>> getDependentVariables();
-    virtual vector<shared_ptr<Expression>> getDependentProperties();
-    virtual vector<shared_ptr<Expression>> getDependentLeafExpressions();
     vector<shared_ptr<Expression>> getDependentSubqueryExpressions();
 
     vector<shared_ptr<Expression>> splitOnAND();

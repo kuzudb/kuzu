@@ -9,14 +9,14 @@ uint32_t Schema::createGroup() {
     return pos;
 }
 
-void Schema::insertToGroup(const string& variable, uint32_t groupPos) {
-    variableToGroupPos.insert({variable, groupPos});
-    groups[groupPos]->insertVariable(variable);
+void Schema::insertToGroup(const string& expressionName, uint32_t groupPos) {
+    expressionNameToGroupPos.insert({expressionName, groupPos});
+    groups[groupPos]->insertExpression(expressionName);
 }
 
 void Schema::insertToGroup(const FactorizationGroup& otherGroup, uint32_t groupPos) {
-    for (auto& variable : otherGroup.variables) {
-        insertToGroup(variable, groupPos);
+    for (auto& expressionName : otherGroup.expressionNames) {
+        insertToGroup(expressionName, groupPos);
     }
 }
 
@@ -24,24 +24,17 @@ void Schema::flattenGroup(uint32_t pos) {
     groups[pos]->isFlat = true;
 }
 
-uint32_t Schema::getGroupPos(const string& variable) const {
-    GF_ASSERT(variableToGroupPos.contains(variable));
-    return variableToGroupPos.at(variable);
+uint32_t Schema::getGroupPos(const string& expressionName) const {
+    GF_ASSERT(expressionNameToGroupPos.contains(expressionName));
+    return expressionNameToGroupPos.at(expressionName);
 }
 
-unordered_set<uint32_t> Schema::getUnFlatGroupsPos() const {
-    unordered_set<uint32_t> result;
+unordered_set<uint32_t> Schema::getGroupsPos() const {
+    unordered_set<uint32_t> groupsPos;
     for (auto i = 0u; i < groups.size(); ++i) {
-        if (!groups[i]->isFlat) {
-            result.insert(i);
-        }
+        groupsPos.insert(i);
     }
-    return result;
-}
-
-uint32_t Schema::getAnyGroupPos() const {
-    GF_ASSERT(!groups.empty());
-    return 0;
+    return groupsPos;
 }
 
 void Schema::addLogicalExtend(const string& queryRel, LogicalExtend* extend) {
@@ -56,7 +49,7 @@ LogicalExtend* Schema::getExistingLogicalExtend(const string& queryRel) {
 unique_ptr<Schema> Schema::copy() const {
     auto newSchema = make_unique<Schema>();
     newSchema->queryRelLogicalExtendMap = queryRelLogicalExtendMap;
-    newSchema->variableToGroupPos = variableToGroupPos;
+    newSchema->expressionNameToGroupPos = expressionNameToGroupPos;
     for (auto& group : groups) {
         auto newGroup = make_unique<FactorizationGroup>(*group);
         newSchema->groups.push_back(move(newGroup));
@@ -66,7 +59,7 @@ unique_ptr<Schema> Schema::copy() const {
 
 void Schema::clearGroups() {
     groups.clear();
-    variableToGroupPos.clear();
+    expressionNameToGroupPos.clear();
 }
 
 } // namespace planner
