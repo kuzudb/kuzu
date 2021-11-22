@@ -314,19 +314,19 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->data;
 
     // check encoding for: NULL FLAG(0x00) +  "18 hours 55 days 13 years 8 milliseconds 3 months"
-    // = NULL FLAG(0x00) + 159 months(0x8000009F) + 55 days(0x80000037)
+    // = NULL FLAG(0x00) + 160 months(0x800000A0) + 25 days(0x80000019)
     // + 64800008000 micros(0x8000000F1661A740)
     checkNonNullFlag(keyBlockPtr, isAscOrder[0]);
-    // check for months: 159 (0x8000009F in big endian)
+    // check for months: 160 (0x800000A0 in big endian)
     ASSERT_EQ(*(keyBlockPtr++), 0x80);
     ASSERT_EQ(*(keyBlockPtr++), 0x00);
     ASSERT_EQ(*(keyBlockPtr++), 0x00);
-    ASSERT_EQ(*(keyBlockPtr++), 0x9F);
-    // check for days: 55 (0x80000037 in big endian)
+    ASSERT_EQ(*(keyBlockPtr++), 0xA0);
+    // check for days: 25 (0x80000019 in big endian)
     ASSERT_EQ(*(keyBlockPtr++), 0x80);
     ASSERT_EQ(*(keyBlockPtr++), 0x00);
     ASSERT_EQ(*(keyBlockPtr++), 0x00);
-    ASSERT_EQ(*(keyBlockPtr++), 0x37);
+    ASSERT_EQ(*(keyBlockPtr++), 0x19);
     // check for micros: 64800008000 (0x8000000F1661A740 in big endian)
     ASSERT_EQ(*(keyBlockPtr++), 0x80);
     ASSERT_EQ(*(keyBlockPtr++), 0x00);
@@ -572,7 +572,6 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager);
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->data;
 
-    // first row
     intValues[0] = 73;
     intValues[1] = -132;
     intValues[2] = -412414;

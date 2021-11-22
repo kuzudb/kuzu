@@ -6,6 +6,7 @@
 #include <cstdint>
 
 #include "src/common/include/assert.h"
+#include "src/common/include/interval.h"
 #include "src/common/include/time.h"
 
 #define BSWAP64(x)                                                                                 \
@@ -81,11 +82,13 @@ void OrderByKeyEncoder::encodeTimestamp(timestamp_t data, uint8_t* resultPtr) {
 }
 
 void OrderByKeyEncoder::encodeInterval(interval_t data, uint8_t* resultPtr) {
-    encodeInt32(data.months, resultPtr);
+    int64_t months, days, micros;
+    Interval::NormalizeIntervalEntries(data, months, days, micros);
+    encodeInt32(months, resultPtr);
     resultPtr += sizeof(data.months);
-    encodeInt32(data.days, resultPtr);
+    encodeInt32(days, resultPtr);
     resultPtr += sizeof(data.days);
-    encodeInt64(data.micros, resultPtr);
+    encodeInt64(micros, resultPtr);
 }
 
 void OrderByKeyEncoder::encodeString(gf_string_t data, uint8_t* resultPtr) {

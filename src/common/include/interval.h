@@ -33,6 +33,8 @@ public:
     static string toString(interval_t interval);
     static bool GreaterThanEquals(const interval_t& left, const interval_t& right);
     static bool GreaterThan(const interval_t& left, const interval_t& right);
+    static void NormalizeIntervalEntries(
+        interval_t input, int64_t& months, int64_t& days, int64_t& micros);
 };
 
 } // namespace common

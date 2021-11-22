@@ -81,10 +81,10 @@ private:
 
 public:
     uint64_t curBlockUsedEntries;
-    vector<unique_ptr<MemoryBlock>> keyBlocks;
     MemoryManager& memoryManager;
 
 private:
+    vector<unique_ptr<MemoryBlock>> keyBlocks;
     vector<shared_ptr<ValueVector>> orderByVectors;
     vector<bool> isAscOrder;
     uint64_t entrySize;
