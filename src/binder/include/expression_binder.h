@@ -101,8 +101,6 @@ private:
 
     static void validateExpectedBinaryOperation(const Expression& left, const Expression& right,
         ExpressionType type, const unordered_set<ExpressionType>& expectedTypes);
-    // NOTE: this validation should be removed once we rewrite aggregation as an alias.
-    static void validateAggregationIsRoot(const Expression& expression);
 
 private:
     template<typename T>

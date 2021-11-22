@@ -24,58 +24,21 @@ Expression::Expression(ExpressionType expressionType, DataType dataType, const s
     uniqueName = name;
 }
 
-bool Expression::hasAggregationExpression() const {
-    if (isExpressionAggregate(expressionType)) {
-        return true;
-    }
-    for (auto& child : children) {
-        if (child->hasAggregationExpression()) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool Expression::hasSubqueryExpression() const {
-    if (expressionType == EXISTENTIAL_SUBQUERY) {
-        return true;
-    }
-    for (auto& child : children) {
-        if (child->hasSubqueryExpression()) {
-            return true;
-        }
-    }
-    return false;
-}
-
 unordered_set<string> Expression::getDependentVariableNames() {
     unordered_set<string> result;
-    for (auto& variableExpression : getDependentVariables()) {
+    for (auto& variableExpression : getSubVariableExpressions()) {
         result.insert(variableExpression->getUniqueName());
     }
     return result;
 }
 
-vector<shared_ptr<Expression>> Expression::getDependentVariables() {
+vector<shared_ptr<Expression>> Expression::getSubVariableExpressions() {
     if (expressionType == VARIABLE) {
         return vector<shared_ptr<Expression>>{shared_from_this()};
     }
     vector<shared_ptr<Expression>> result;
     for (auto& child : children) {
-        for (auto& expression : child->getDependentVariables()) {
-            result.push_back(expression);
-        }
-    }
-    return result;
-}
-
-vector<shared_ptr<Expression>> Expression::getDependentSubqueryExpressions() {
-    if (expressionType == EXISTENTIAL_SUBQUERY) {
-        return vector<shared_ptr<Expression>>{shared_from_this()};
-    }
-    vector<shared_ptr<Expression>> result;
-    for (auto& child : children) {
-        for (auto& expression : child->getDependentSubqueryExpressions()) {
+        for (auto& expression : child->getSubVariableExpressions()) {
             result.push_back(expression);
         }
     }
@@ -94,6 +57,34 @@ vector<shared_ptr<Expression>> Expression::splitOnAND() {
         result.push_back(shared_from_this());
     }
     return result;
+}
+
+vector<shared_ptr<Expression>> Expression::getTopLevelSubExpressionsOfType(
+    const std::function<bool(ExpressionType)>& typeCheckFunc) {
+    vector<shared_ptr<Expression>> result;
+    if (typeCheckFunc(expressionType)) {
+        result.push_back(shared_from_this());
+        return result;
+    }
+    for (auto& child : children) {
+        for (auto& expression : child->getTopLevelSubExpressionsOfType(typeCheckFunc)) {
+            result.push_back(expression);
+        }
+    }
+    return result;
+}
+
+bool Expression::hasSubExpressionOfType(
+    const std::function<bool(ExpressionType)>& typeCheckFunc) const {
+    if (typeCheckFunc(expressionType)) {
+        return true;
+    }
+    for (auto& child : children) {
+        if (child->hasSubExpressionOfType(typeCheckFunc)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace binder

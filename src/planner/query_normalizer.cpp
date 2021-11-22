@@ -88,7 +88,7 @@ void QueryNormalizer::normalizeSubqueryExpression(
             auto& matchStatement = (BoundMatchStatement&)*boundReadingStatement;
             if (matchStatement.hasWhereExpression()) {
                 for (auto& expression :
-                    matchStatement.getWhereExpression()->getDependentSubqueryExpressions()) {
+                    matchStatement.getWhereExpression()->getTopLevelSubSubqueryExpressions()) {
                     auto& subqueryExpression = (ExistentialSubqueryExpression&)*expression;
                     subqueryExpression.setNormalizedSubquery(
                         normalizeQuery(*subqueryExpression.getBoundSubquery()));
@@ -98,7 +98,7 @@ void QueryNormalizer::normalizeSubqueryExpression(
     }
     if (boundQueryPart.boundWithStatement->hasWhereExpression()) {
         for (auto& expression : boundQueryPart.boundWithStatement->getWhereExpression()
-                                    ->getDependentSubqueryExpressions()) {
+                                    ->getTopLevelSubSubqueryExpressions()) {
             auto& subqueryExpression = (ExistentialSubqueryExpression&)*expression;
             subqueryExpression.setNormalizedSubquery(
                 normalizeQuery(*subqueryExpression.getBoundSubquery()));

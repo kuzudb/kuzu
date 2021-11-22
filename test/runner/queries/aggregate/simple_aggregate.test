@@ -5,6 +5,11 @@
 ---- 1
 8|3
 
+-NAME SimpleCountEvaluationTest
+-QUERY MATCH (a:person) RETURN COUNT(a.age) + 1, COUNT(a.unstrNumericProp) * 2.0
+---- 1
+9|6.000000
+
 -NAME SimpleSumTest
 -QUERY MATCH (a:person) RETURN SUM(a.age), SUM(a.eyeSight), SUM(a.unstrNumericProp)
 ---- 1
@@ -19,6 +24,11 @@
 -QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10), SUM(a.age*2)
 ---- 1
 115|170
+
+-NAME SimpleSumWithFilterEvaluationTest
+-QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10) > SUM(a.age*2)
+---- 1
+False
 
 -NAME SimpleAvgTest
 -QUERY MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)

@@ -3,7 +3,7 @@
 namespace graphflow {
 namespace binder {
 
-vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getDependentVariables() {
+vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getSubVariableExpressions() {
     auto& firstQueryPart = *normalizedSubquery->getQueryPart(0);
     vector<shared_ptr<Expression>> result;
     for (auto& node : firstQueryPart.getQueryGraph()->queryNodes) {
@@ -12,22 +12,17 @@ vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getDependentVariab
     for (auto& rel : firstQueryPart.getQueryGraph()->queryRels) {
         result.push_back(rel);
     }
-    if (firstQueryPart.hasWhereExpression()) {
-        for (auto& variable : firstQueryPart.getWhereExpression()->getDependentVariables()) {
-            result.push_back(variable);
-        }
-    }
-    for (auto& projectExpression : firstQueryPart.getProjectionBody()->getProjectionExpressions()) {
-        for (auto& variable : projectExpression->getDependentVariables()) {
+    for (auto& expression : getSubExpressions()) {
+        for (auto& variable : expression->getSubVariableExpressions()) {
             result.push_back(variable);
         }
     }
     return result;
 }
 
-vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getDependentExpressions() {
+vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getSubExpressions() {
     auto& firstQueryPart = *normalizedSubquery->getQueryPart(0);
-    auto result = firstQueryPart.getDependentNodeID();
+    auto result = firstQueryPart.getNodeIDExpressions();
     if (firstQueryPart.hasWhereExpression()) {
         result.push_back(firstQueryPart.getWhereExpression());
     }

@@ -58,6 +58,10 @@ bool isExpressionAggregate(ExpressionType type) {
            MIN_FUNC == type || MAX_FUNC == type;
 }
 
+bool isExpressionSubquery(ExpressionType type) {
+    return EXISTENTIAL_SUBQUERY == type;
+}
+
 ExpressionType comparisonToIDComparison(ExpressionType type) {
     switch (type) {
     case EQUALS:

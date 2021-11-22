@@ -5,7 +5,7 @@
 namespace graphflow {
 namespace planner {
 
-vector<shared_ptr<Expression>> NormalizedQueryPart::getDependentNodeID() const {
+vector<shared_ptr<Expression>> NormalizedQueryPart::getNodeIDExpressions() const {
     vector<shared_ptr<Expression>> result;
     for (auto& node : queryGraph->queryNodes) {
         result.push_back(node->getNodeIDPropertyExpression());

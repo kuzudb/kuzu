@@ -5,7 +5,7 @@ namespace binder {
 
 bool BoundProjectionBody::hasAggregationExpressions() const {
     for (auto& projectionExpression : projectionExpressions) {
-        if (isExpressionAggregate(projectionExpression->expressionType)) {
+        if (projectionExpression->hasAggregationExpression()) {
             return true;
         }
     }
@@ -15,8 +15,9 @@ bool BoundProjectionBody::hasAggregationExpressions() const {
 vector<shared_ptr<Expression>> BoundProjectionBody::getAggregationExpressions() const {
     vector<shared_ptr<Expression>> aggregationExpressions;
     for (auto& projectionExpression : projectionExpressions) {
-        if (isExpressionAggregate(projectionExpression->expressionType)) {
-            aggregationExpressions.push_back(projectionExpression);
+        for (auto& aggregationExpression :
+            projectionExpression->getTopLevelSubAggregationExpressions()) {
+            aggregationExpressions.push_back(aggregationExpression);
         }
     }
     return aggregationExpressions;

@@ -74,6 +74,8 @@ TEST_F(TinySnbProcessorTest, AggregateTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/aggregate/simple_aggregate.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
+    queryConfigs = TestHelper::parseTestFile("test/runner/queries/aggregate/multi_query.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }
 
 TEST_F(TinySnbProcessorTest, ProjectionTests) {
