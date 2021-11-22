@@ -51,7 +51,7 @@ private:
     uint32_t appendFlattensButOne(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
     void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan);
     void appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan);
-    uint32_t appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(
+    void appendScanPropertiesAndPlanSubqueryIfNecessary(
         const shared_ptr<Expression>& expression, LogicalPlan& plan);
     void appendScanPropertiesIfNecessary(
         const shared_ptr<Expression>& expression, LogicalPlan& plan);
@@ -61,10 +61,26 @@ private:
         const PropertyExpression& propertyExpression, LogicalPlan& plan);
 
     static vector<unique_ptr<LogicalPlan>> getInitialEmptyPlans();
-    static vector<shared_ptr<Expression>> getExpressionsInSchema(
+    static unordered_set<uint32_t> getDependentGroupsPos(
         const shared_ptr<Expression>& expression, const Schema& schema);
-    static vector<shared_ptr<Expression>> getPropertyExpressionsNotInSchema(
+    // Recursively walk through expression until the root of current expression tree exists in the
+    // schema or expression is a leaf. Collect all such roots.
+    static vector<shared_ptr<Expression>> getSubExpressionsInSchema(
         const shared_ptr<Expression>& expression, const Schema& schema);
+    // Recursively walk through expression, ignoring expression tree whose root exits in the schema,
+    // until expression is a leaf. Collect all expressions of given type.
+    static vector<shared_ptr<Expression>> getSubExpressionsNotInSchemaOfType(
+        const shared_ptr<Expression>& expression, const Schema& schema,
+        const std::function<bool(ExpressionType type)>& typeCheckFunc);
+    static inline vector<shared_ptr<Expression>> getPropertyExpressionsNotInSchema(
+        const shared_ptr<Expression>& expression, const Schema& schema) {
+        return getSubExpressionsNotInSchemaOfType(expression, schema,
+            [](ExpressionType expressionType) { return expressionType == PROPERTY; });
+    }
+    static inline vector<shared_ptr<Expression>> getAggregationExpressionsNotInSchema(
+        const shared_ptr<Expression>& expression, const Schema& schema) {
+        return getSubExpressionsNotInSchemaOfType(expression, schema, isExpressionAggregate);
+    }
 
 private:
     JoinOrderEnumerator joinOrderEnumerator;

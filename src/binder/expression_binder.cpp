@@ -51,6 +51,9 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         expression->setAlias(parsedExpression.alias);
     }
     expression->setRawName(parsedExpression.getRawName());
+    if (isExpressionAggregate(expression->expressionType)) {
+        validateAggregationExpressionIsNotNested(*expression);
+    }
     return expression;
 }
 
@@ -484,6 +487,16 @@ void ExpressionBinder::validateExpectedBinaryOperation(const Expression& left,
         throw invalid_argument("Operation " + expressionTypeToString(type) + " between " +
                                left.getRawName() + " and " + right.getRawName() +
                                " is not supported.");
+    }
+}
+
+void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression& expression) {
+    if (expression.expressionType == COUNT_STAR_FUNC) {
+        return;
+    }
+    if (expression.children[0]->hasAggregationExpression()) {
+        throw invalid_argument(
+            "Expression " + expression.getRawName() + " contains nested aggregation.");
     }
 }
 

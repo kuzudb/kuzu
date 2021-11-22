@@ -41,12 +41,8 @@ public:
     bool hasAggregationExpression() const { return hasSubExpressionOfType(isExpressionAggregate); }
     bool hasSubqueryExpression() const { return hasSubExpressionOfType(isExpressionSubquery); }
 
-    unordered_set<string> getDependentVariableNames();
+    virtual unordered_set<string> getDependentVariableNames();
 
-    virtual vector<shared_ptr<Expression>> getSubVariableExpressions();
-    vector<shared_ptr<Expression>> getTopLevelSubAggregationExpressions() {
-        return getTopLevelSubExpressionsOfType(isExpressionAggregate);
-    }
     vector<shared_ptr<Expression>> getTopLevelSubSubqueryExpressions() {
         return getTopLevelSubExpressionsOfType(isExpressionSubquery);
     }
