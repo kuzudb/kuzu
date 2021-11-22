@@ -157,12 +157,6 @@ TEST_F(BinderErrorTest, BindFunctionWithWrongParamType) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, AggregationFunctionNotAtRoot) {
-    string expectedException = "Aggregation function must be the root of expression tree.";
-    auto input = "MATCH (a:person) WITH SUM(a.age) > a.age RETURN a.age;";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
 TEST_F(BinderErrorTest, AggregationWithGroupBy) {
     string expectedException = "Aggregations with group by is not supported.";
     auto input = "MATCH (a:person) RETURN a.name, SUM(a.age);";

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <functional>
 #include <memory>
 #include <unordered_set>
 
@@ -37,19 +38,30 @@ public:
     inline string getAlias() const { return alias; }
     inline string getRawName() const { return rawName; }
 
-    bool hasAggregationExpression() const;
-    bool hasSubqueryExpression() const;
+    bool hasAggregationExpression() const { return hasSubExpressionOfType(isExpressionAggregate); }
+    bool hasSubqueryExpression() const { return hasSubExpressionOfType(isExpressionSubquery); }
 
     unordered_set<string> getDependentVariableNames();
 
-    virtual vector<shared_ptr<Expression>> getDependentVariables();
-    vector<shared_ptr<Expression>> getDependentSubqueryExpressions();
+    virtual vector<shared_ptr<Expression>> getSubVariableExpressions();
+    vector<shared_ptr<Expression>> getTopLevelSubAggregationExpressions() {
+        return getTopLevelSubExpressionsOfType(isExpressionAggregate);
+    }
+    vector<shared_ptr<Expression>> getTopLevelSubSubqueryExpressions() {
+        return getTopLevelSubExpressionsOfType(isExpressionSubquery);
+    }
 
     vector<shared_ptr<Expression>> splitOnAND();
 
 protected:
     Expression(ExpressionType expressionType, DataType dataType)
         : expressionType{expressionType}, dataType{dataType} {}
+
+    vector<shared_ptr<Expression>> getTopLevelSubExpressionsOfType(
+        const std::function<bool(ExpressionType type)>& typeCheckFunc);
+
+    bool hasSubExpressionOfType(
+        const std::function<bool(ExpressionType type)>& typeCheckFunc) const;
 
 public:
     ExpressionType expressionType;

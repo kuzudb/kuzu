@@ -15,7 +15,7 @@ void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& pr
     const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn) {
     for (auto& plan : plans) {
         if (projectionBody.hasAggregationExpressions()) {
-            appendAggregate(projectionBody.getAggregationExpressions(), *plan);
+            appendAggregateIfNecessary(projectionBody.getAggregationExpressions(), *plan);
         }
         if (projectionBody.hasOrderByExpressions()) {
             appendOrderBy(
@@ -74,19 +74,24 @@ void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>
     plan.appendOperator(move(projection));
 }
 
-void ProjectionEnumerator::appendAggregate(
+void ProjectionEnumerator::appendAggregateIfNecessary(
     const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan) {
+    vector<shared_ptr<Expression>> aggregationExpressionsToEvaluate;
     for (auto& expression : expressions) {
-        if (expression->expressionType == COUNT_STAR_FUNC) {
+        if (plan.schema->containExpression(expression->getUniqueName())) {
             continue;
         }
-        enumerator->appendScanPropertiesIfNecessary(expression->children[0], plan);
+        enumerator->appendScanPropertiesIfNecessary(expression, plan);
+        aggregationExpressionsToEvaluate.push_back(expression);
     }
-    auto aggregate =
-        make_shared<LogicalAggregate>(expressions, plan.schema->copy(), plan.lastOperator);
+    if (aggregationExpressionsToEvaluate.empty()) {
+        return;
+    }
+    auto aggregate = make_shared<LogicalAggregate>(
+        aggregationExpressionsToEvaluate, plan.schema->copy(), plan.lastOperator);
     plan.schema->clearGroups();
     auto groupPos = plan.schema->createGroup();
-    for (auto& expression : expressions) {
+    for (auto& expression : aggregationExpressionsToEvaluate) {
         plan.schema->insertToGroup(expression->getUniqueName(), groupPos);
     }
     plan.appendOperator(move(aggregate));

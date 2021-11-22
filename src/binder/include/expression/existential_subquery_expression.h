@@ -27,8 +27,8 @@ public:
     inline bool hasSubPlan() { return subPlan != nullptr; }
     inline unique_ptr<LogicalPlan> getSubPlan() { return subPlan->copy(); }
 
-    vector<shared_ptr<Expression>> getDependentVariables() override;
-    vector<shared_ptr<Expression>> getDependentExpressions();
+    vector<shared_ptr<Expression>> getSubVariableExpressions() override;
+    vector<shared_ptr<Expression>> getSubExpressions();
 
 private:
     unique_ptr<BoundSingleQuery> boundSubquery;

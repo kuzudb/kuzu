@@ -51,7 +51,6 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         expression->setAlias(parsedExpression.alias);
     }
     expression->setRawName(parsedExpression.getRawName());
-    validateAggregationIsRoot(*expression);
     return expression;
 }
 
@@ -485,13 +484,6 @@ void ExpressionBinder::validateExpectedBinaryOperation(const Expression& left,
         throw invalid_argument("Operation " + expressionTypeToString(type) + " between " +
                                left.getRawName() + " and " + right.getRawName() +
                                " is not supported.");
-    }
-}
-
-void ExpressionBinder::validateAggregationIsRoot(const Expression& expression) {
-    if (!isExpressionAggregate(expression.expressionType) &&
-        expression.hasAggregationExpression()) {
-        throw invalid_argument("Aggregation function must be the root of expression tree.");
     }
 }
 

@@ -26,7 +26,8 @@ public:
 private:
     void appendProjection(const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan,
         bool isRewritingAllProperties);
-    void appendAggregate(const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan);
+    void appendAggregateIfNecessary(
+        const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan);
     void appendOrderBy(const vector<shared_ptr<Expression>>& expressions,
         const vector<bool>& isAscOrders, LogicalPlan& plan);
     void appendMultiplicityReducer(LogicalPlan& plan);

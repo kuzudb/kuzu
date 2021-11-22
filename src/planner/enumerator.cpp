@@ -117,7 +117,7 @@ uint32_t Enumerator::appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(
     const shared_ptr<Expression>& expression, LogicalPlan& plan) {
     appendScanPropertiesIfNecessary(expression, plan);
     if (expression->hasSubqueryExpression()) {
-        auto expressions = expression->getDependentSubqueryExpressions();
+        auto expressions = expression->getTopLevelSubSubqueryExpressions();
         for (auto& expr : expressions) {
             auto subqueryExpression = static_pointer_cast<ExistentialSubqueryExpression>(expr);
             if (!subqueryExpression->hasSubPlan()) {
@@ -191,7 +191,7 @@ vector<shared_ptr<Expression>> Enumerator::getExpressionsInSchema(
     }
     if (EXISTENTIAL_SUBQUERY == expression->expressionType) {
         auto& subqueryExpression = (ExistentialSubqueryExpression&)*expression;
-        for (auto& child : subqueryExpression.getDependentExpressions()) {
+        for (auto& child : subqueryExpression.getSubExpressions()) {
             for (auto& subExpression : getExpressionsInSchema(child, schema)) {
                 results.push_back(subExpression);
             }
@@ -218,7 +218,7 @@ vector<shared_ptr<Expression>> Enumerator::getPropertyExpressionsNotInSchema(
     }
     if (EXISTENTIAL_SUBQUERY == expression->expressionType) {
         auto& subqueryExpression = (ExistentialSubqueryExpression&)*expression;
-        for (auto& child : subqueryExpression.getDependentExpressions()) {
+        for (auto& child : subqueryExpression.getSubExpressions()) {
             for (auto& subExpression : getPropertyExpressionsNotInSchema(child, schema)) {
                 results.push_back(subExpression);
             }

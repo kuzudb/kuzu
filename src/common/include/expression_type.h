@@ -149,6 +149,7 @@ bool isExpressionStringOperator(ExpressionType type);
 bool isExpressionNullComparison(ExpressionType type);
 bool isExpressionLiteral(ExpressionType type);
 bool isExpressionAggregate(ExpressionType type);
+bool isExpressionSubquery(ExpressionType type);
 
 ExpressionType comparisonToIDComparison(ExpressionType type);
 string expressionTypeToString(ExpressionType type);
