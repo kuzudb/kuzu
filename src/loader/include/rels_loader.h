@@ -5,7 +5,7 @@
 #include "src/common/include/csv_reader/csv_reader.h"
 #include "src/loader/include/adj_and_prop_columns_builder.h"
 #include "src/loader/include/adj_and_prop_lists_builder.h"
-#include "src/loader/include/csv_format.h"
+#include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/thread_pool.h"
 
 namespace graphflow {
@@ -15,30 +15,27 @@ class RelsLoader {
     friend class GraphLoader;
 
 private:
-    RelsLoader(ThreadPool& threadPool, Graph& graph, string outputDirectory, CSVFormat csvFormat,
-        vector<unique_ptr<NodeIDMap>>& nodeIDMaps);
+    RelsLoader(ThreadPool& threadPool, Graph& graph, string outputDirectory,
+        vector<unique_ptr<NodeIDMap>>& nodeIDMaps,
+        const vector<RelFileDescription>& fileDescriptions);
 
-    void load(const vector<string>& filePaths, vector<uint64_t>& numBlocksPerLabel);
+    void load(vector<uint64_t>& numBlocksPerLabel);
 
-    void loadRelsForLabel(RelLabelDescription& relLabelMetadata, char tokenSeparator,
-        char quoteChar, char escapeChar);
+    void loadRelsForLabel(RelLabelDescription& relLabelMetadata);
 
     void constructAdjColumnsAndCountRelsInAdjLists(RelLabelDescription& relLabelMetadata,
-        AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder, char tokenSeparator, char quoteChar,
-        char escapeChar);
+        AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder);
 
     void populateNumRels(AdjAndPropertyColumnsBuilder& adjAndPropertyColumnsBuilder,
         AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder);
 
-    void constructAdjLists(RelLabelDescription& description,
-        AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder, char tokenSeparator, char quoteChar,
-        char escapeChar);
+    void constructAdjLists(
+        RelLabelDescription& description, AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder);
 
     // Concurrent Tasks
 
     static void populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescription* description,
-        uint64_t blockId, char tokenSeparator, char quoteChar, char escapeChar,
-        AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
+        uint64_t blockId, AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
         AdjAndPropertyColumnsBuilder* adjAndPropertyColumnsBuilder,
         vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
         shared_ptr<spdlog::logger>& logger);
@@ -69,8 +66,8 @@ private:
     ThreadPool& threadPool;
     Graph& graph;
     const string outputDirectory;
-    CSVFormat csvFormat;
     vector<unique_ptr<NodeIDMap>>& nodeIDMaps;
+    const vector<RelFileDescription>& fileDescriptions;
 };
 
 } // namespace loader

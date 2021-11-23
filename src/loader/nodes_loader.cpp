@@ -11,10 +11,10 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace loader {
 
-NodesLoader::NodesLoader(
-    ThreadPool& threadPool, const Graph& graph, string outputDirectory, CSVFormat csvFormat)
+NodesLoader::NodesLoader(ThreadPool& threadPool, const Graph& graph, string outputDirectory,
+    vector<NodeFileDescription>& nodeFileDescriptions)
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, threadPool{threadPool}, graph{graph},
-      outputDirectory{std::move(outputDirectory)}, csvFormat{csvFormat} {
+      outputDirectory{std::move(outputDirectory)}, fileDescriptions{nodeFileDescriptions} {
     logger->debug("Initializing NodesLoader.");
 };
 
@@ -64,10 +64,12 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(const vector<s
         node_offset_t offsetStart = 0;
         for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
             threadPool.execute(populatePropertyColumnsAndCountUnstrPropertyListSizesTask,
-                filePaths[nodeLabel], blockIdx, csvFormat.nodeFileTokenSeparators[nodeLabel],
-                csvFormat.nodeFileQuoteChars[nodeLabel], csvFormat.nodeFileEscapeChars[nodeLabel],
-                properties, numLinesPerBlock[nodeLabel][blockIdx], offsetStart,
-                nodeIDMaps[nodeLabel].get(), labelPropertyColumnFNames[nodeLabel],
+                filePaths[nodeLabel], blockIdx,
+                fileDescriptions[nodeLabel].csvSpecialChars.tokenSeparator,
+                fileDescriptions[nodeLabel].csvSpecialChars.quoteChar,
+                fileDescriptions[nodeLabel].csvSpecialChars.escapeChar, properties,
+                numLinesPerBlock[nodeLabel][blockIdx], offsetStart, nodeIDMaps[nodeLabel].get(),
+                labelPropertyColumnFNames[nodeLabel],
                 &labelPropertyIdxStringOverflowPages[nodeLabel],
                 labelUnstrPropertyListsSizes[nodeLabel].get(), logger);
             offsetStart += numLinesPerBlock[nodeLabel][blockIdx];
@@ -106,9 +108,9 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
             auto unstrPropertyLists = labelUnstrPropertyLists[nodeLabel].get();
             for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
                 threadPool.execute(populateUnstrPropertyListsTask, filePaths[nodeLabel], blockIdx,
-                    csvFormat.nodeFileTokenSeparators[nodeLabel],
-                    csvFormat.nodeFileQuoteChars[nodeLabel],
-                    csvFormat.nodeFileEscapeChars[nodeLabel],
+                    fileDescriptions[nodeLabel].csvSpecialChars.tokenSeparator,
+                    fileDescriptions[nodeLabel].csvSpecialChars.quoteChar,
+                    fileDescriptions[nodeLabel].csvSpecialChars.escapeChar,
                     graph.getCatalog().getStructuredNodeProperties(nodeLabel).size(), offsetStart,
                     unstrPropertiesNameToIdMap, listSizes, &listsHeaders, &listsMetadata,
                     unstrPropertyLists, labelUnstrPropertyListsStringOverflowPages[nodeLabel].get(),

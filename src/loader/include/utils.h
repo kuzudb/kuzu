@@ -10,6 +10,7 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/types.h"
 #include "src/common/include/utils.h"
+#include "src/loader/include/dataset_metadata.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/data_structure/lists/list_headers.h"
 #include "src/storage/include/data_structure/lists/lists_metadata.h"
@@ -49,35 +50,6 @@ private:
     unique_ptr<char*[]> offsetToNodeIDMap;
 };
 
-struct LabelFileDescription {
-protected:
-    LabelFileDescription(string filePath, string labelName)
-        : filePath{move(filePath)}, labelName{move(labelName)} {}
-
-public:
-    string filePath;
-    string labelName;
-};
-
-struct NodeFileDescription : public LabelFileDescription {
-    NodeFileDescription(string filePath, string labelName, string primaryKeyPropertyName)
-        : LabelFileDescription{move(filePath), move(labelName)}, primaryKeyPropertyName{move(
-                                                                     primaryKeyPropertyName)} {}
-
-    string primaryKeyPropertyName;
-};
-
-struct RelFileDescription : public LabelFileDescription {
-    RelFileDescription(string filePath, string labelName, string relMultiplicity,
-        vector<string> srcNodeLabelNames, vector<string> dstNodeLabelNames)
-        : LabelFileDescription{move(filePath), move(labelName)}, relMultiplicity{relMultiplicity},
-          srcNodeLabelNames{srcNodeLabelNames}, dstNodeLabelNames{dstNodeLabelNames} {}
-
-    string relMultiplicity;
-    vector<string> srcNodeLabelNames;
-    vector<string> dstNodeLabelNames;
-};
-
 // Holds information about a rel label that is needed to construct adjRels and adjLists
 // indexes, property columns, and property lists.
 class RelLabelDescription {
@@ -101,6 +73,7 @@ public:
     vector<bool> isSingleMultiplicityPerDirection{false, false};
     vector<NodeIDCompressionScheme> nodeIDCompressionSchemePerDirection{2};
     const vector<PropertyDefinition>& properties;
+    CSVSpecialChars csvSpecialChars;
 };
 
 // listSizes_t is the type of structure that is used to count the size of each list in the
