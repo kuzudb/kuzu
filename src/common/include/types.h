@@ -137,7 +137,6 @@ const double_t NULL_DOUBLE = DBL_MIN;
 const date_t NULL_DATE = date_t(INT32_MIN);
 const timestamp_t NULL_TIMESTAMP = timestamp_t(INT64_MIN);
 const interval_t NULL_INTERVAL = interval_t(INT32_MIN, INT32_MIN, INT64_MIN);
-const uint64_t NUM_BYTES_PER_NODE_ID = sizeof(node_offset_t) + sizeof(label_t);
 
 enum DataType : uint8_t {
     REL = 0,

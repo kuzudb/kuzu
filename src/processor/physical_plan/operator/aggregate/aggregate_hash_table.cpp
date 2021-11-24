@@ -13,11 +13,11 @@ AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
     : memoryManager{memoryManager}, aggregates{move(aggregates)},
       numBytesPerEntry{numBytesPerEntry}, numBytesForGroupKeys{groupsSizeInEntry}, numGroups{0},
       offsetInCurrentBlock{0} {
-    numEntriesPerBlock = DEFAULT_HT_BLOCK_SIZE / numBytesPerEntry;
+    numEntriesPerBlock = DEFAULT_MEMORY_BLOCK_SIZE / numBytesPerEntry;
     for (auto& aggregate : this->aggregates) {
         initializedStates.push_back(aggregate->getFunction()->initialize());
     }
-    hashSlotsBlock = memoryManager.allocateBlock(DEFAULT_HT_BLOCK_SIZE, true);
+    hashSlotsBlock = memoryManager.allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE, true);
     hashSlots = (HashSlot*)hashSlotsBlock->data;
     groupHashes = make_unique<ValueVector>(nullptr, INT64, true);
     groupHashes->state = DataChunkState::getSingleValueDataChunkState();
@@ -120,7 +120,7 @@ uint8_t* AggregateHashTable::createNewGroup(const vector<shared_ptr<ValueVector>
 }
 
 void AggregateHashTable::addNewBlock() {
-    blocks.push_back(memoryManager.allocateBlock(DEFAULT_HT_BLOCK_SIZE, true));
+    blocks.push_back(memoryManager.allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE, true));
     offsetInCurrentBlock = 0;
 }
 

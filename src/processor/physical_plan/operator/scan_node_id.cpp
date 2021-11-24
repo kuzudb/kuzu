@@ -19,16 +19,16 @@ bool ScanNodeID::getNextTuples() {
         unique_lock<mutex> lock{morsel->mtx};
         auto nodeIDValues = (nodeID_t*)(outValueVector->values);
         // Fill the first nodeID in the sequence.
-        if (morsel->currNodeOffset >= morsel->numNodes) {
+        if (morsel->currentOffset >= morsel->maxOffset) {
             // no more tuples to scan_node_id.
             metrics->executionTime.stop();
             return false;
         } else {
-            nodeIDValues[0].label = morsel->label;
-            nodeIDValues[0].offset = morsel->currNodeOffset;
+            nodeIDValues[0].label = nodeLabel;
+            nodeIDValues[0].offset = morsel->currentOffset;
             outDataChunk->state->initOriginalAndSelectedSize(
-                min(DEFAULT_VECTOR_CAPACITY, morsel->numNodes - morsel->currNodeOffset));
-            morsel->currNodeOffset += outDataChunk->state->selectedSize;
+                min(DEFAULT_VECTOR_CAPACITY, morsel->maxOffset - morsel->currentOffset));
+            morsel->currentOffset += outDataChunk->state->selectedSize;
             metrics->executionTime.stop();
             metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
             return true;

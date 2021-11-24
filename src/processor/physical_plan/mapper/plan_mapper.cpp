@@ -144,15 +144,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto& logicalScan = (const LogicalScanNodeID&)*logicalOperator;
-    auto morsel = make_shared<MorselsDesc>(logicalScan.label, graph.getNumNodes(logicalScan.label));
+    auto morsel = make_shared<MorselsDesc>(graph.getNumNodes(logicalScan.label));
     auto dataPos = info.getDataPos(logicalScan.nodeID);
     info.addComputedExpressions(logicalScan.nodeID);
     if (logicalScan.prevOperator) {
-        return make_unique<ScanNodeID>(dataPos, morsel,
+        return make_unique<ScanNodeID>(logicalScan.label, dataPos, morsel,
             mapLogicalOperatorToPhysical(logicalScan.prevOperator, info, context), context,
             physicalOperatorID++);
     }
-    return make_unique<ScanNodeID>(dataPos, morsel, context, physicalOperatorID++);
+    return make_unique<ScanNodeID>(
+        logicalScan.label, dataPos, morsel, context, physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSelectScanToPhysical(

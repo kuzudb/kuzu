@@ -5,11 +5,11 @@
 using namespace graphflow::processor;
 
 TEST(ScanTests, ScanTest) {
-    auto morsel = make_shared<MorselsDesc>(0, 1025013 /*numNodes*/);
+    auto morsel = make_shared<MorselsDesc>(1025013 /*numNodes*/);
     auto profiler = make_unique<Profiler>();
     auto memoryManager = make_unique<MemoryManager>();
     auto executionContext = ExecutionContext(*profiler, memoryManager.get());
-    auto scan = make_unique<ScanNodeID>(DataPos{0, 0}, morsel, executionContext, 0);
+    auto scan = make_unique<ScanNodeID>(0, DataPos{0, 0}, morsel, executionContext, 0);
     auto resultSet = make_shared<ResultSet>(1);
     resultSet->dataChunks[0] = make_shared<DataChunk>(1);
     scan->initResultSet(resultSet);
@@ -17,9 +17,9 @@ TEST(ScanTests, ScanTest) {
     auto nodeVector = dataChunk->getValueVector(0);
     node_offset_t currNodeOffset = 0;
     auto size = DEFAULT_VECTOR_CAPACITY;
-    while (morsel->currNodeOffset < 1025013) {
+    while (morsel->currentOffset < 1025013) {
         scan->getNextTuples();
-        if (morsel->currNodeOffset >= 1025013) {
+        if (morsel->currentOffset >= 1025013) {
             size = 1025013 % DEFAULT_VECTOR_CAPACITY;
         }
         ASSERT_EQ(dataChunk->state->selectedSize, size);
@@ -29,5 +29,5 @@ TEST(ScanTests, ScanTest) {
         }
         currNodeOffset += DEFAULT_VECTOR_CAPACITY;
     }
-    ASSERT_EQ(morsel->currNodeOffset, 1025013);
+    ASSERT_EQ(morsel->currentOffset, 1025013);
 }

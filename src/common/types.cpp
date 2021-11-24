@@ -51,7 +51,7 @@ size_t TypeUtils::getDataTypeSize(DataType dataType) {
     case LABEL:
         return sizeof(label_t);
     case NODE:
-        return NUM_BYTES_PER_NODE_ID;
+        return sizeof(nodeID_t);
     case INT64:
         return sizeof(int64_t);
     case DOUBLE:
