@@ -23,8 +23,7 @@ public:
         planMapper = make_unique<PlanMapper>(graph);
         profiler = make_unique<Profiler>();
         memoryManager = make_unique<MemoryManager>();
-        context =
-            make_unique<ExecutionContext>(*profiler, nullptr /*transaction*/, memoryManager.get());
+        context = make_unique<ExecutionContext>(*profiler, memoryManager.get());
     }
 
     static unique_ptr<PropertyExpression> makeAPropExpression() {

@@ -49,7 +49,6 @@ void Server::registerGETHelp(router_t& router) {
 
 /**
  * Create a system (database instance) by loading serialized dataset.
- * Start a session.
  */
 void Server::registerPOSTLoad(router_t& router) {
     nlohmann::json json;
@@ -64,7 +63,6 @@ void Server::registerPOSTLoad(router_t& router) {
             auto path = req->body();
             // Notice: only disk-based storage is supported for the server right now.
             system = make_unique<System>(path, false /* isInMemoryMode */);
-            session = make_unique<Session>(*system);
             nlohmann::json json;
             json["msg"] = "Initialized the Graph at " + path + ".";
             req->create_response()
@@ -91,13 +89,14 @@ void Server::registerPOSTExecute(router_t& router) {
 
     router.http_post("/execute", [&](request_handle_t req, auto) {
         try {
+            auto sessionContext = make_unique<SessionContext>();
             auto input = StringUtils::split(req->body(), "|");
-            session->sessionContext->query = input[0];
+            sessionContext->query = input[0];
             if (input.size() > 1) {
                 assert(input.size() == 2);
-                session->sessionContext->numThreads = stoul(input[1]);
+                sessionContext->numThreads = stoul(input[1]);
             }
-            auto result = session->executeQuery();
+            auto result = executeQuery(*sessionContext);
             req->create_response()
                 .append_header(
                     restinio::http_field::content_type, "application/json; charset=utf-8")
@@ -117,10 +116,35 @@ void Server::registerGETDebugInfo(router_t& router) {
     router.http_get("/graphDebugInfo", [&](request_handle_t req, auto) {
         req->create_response()
             .append_header(restinio::http_field::content_type, "text/plain; charset=utf-8")
-            .set_body(session->debugInfo().dump())
+            .set_body(system->debugInfo()->dump())
             .done();
         return restinio::request_accepted();
     });
+}
+
+nlohmann::json Server::executeQuery(SessionContext& sessionContext) {
+    auto json = nlohmann::json();
+    try {
+        json["result"] = {};
+        system->executeQuery(sessionContext);
+        if (sessionContext.enable_explain) {
+            json["result"]["plan"] =
+                sessionContext.planPrinter->printPlanToJson(*sessionContext.profiler);
+        } else {
+            json["result"]["numTuples"] = sessionContext.queryResult->numTuples;
+            json["result"]["compilingTime"] = sessionContext.compilingTime;
+            json["result"]["executingTime"] = sessionContext.executingTime;
+            if (sessionContext.profiler->enabled) {
+                json["result"]["plan"] =
+                    sessionContext.planPrinter->printPlanToJson(*sessionContext.profiler);
+            }
+        }
+    } catch (exception& e) {
+        // query failed to execute
+        json["result"] = {};
+        json["result"]["error"] = "Query failed: " + string(e.what());
+    }
+    return json;
 }
 
 } // namespace main

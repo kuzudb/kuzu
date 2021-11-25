@@ -8,7 +8,6 @@
 #include "src/processor/include/task_system/task_queue.h"
 
 using namespace graphflow::storage;
-using namespace graphflow::transaction;
 
 namespace graphflow {
 namespace processor {
