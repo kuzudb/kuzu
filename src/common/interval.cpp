@@ -87,7 +87,7 @@ string Interval::toString(interval_t interval) {
 }
 
 // helper function of interval comparison
-static void NormalizeIntervalEntries(
+void Interval::NormalizeIntervalEntries(
     interval_t input, int64_t& months, int64_t& days, int64_t& micros) {
     int64_t extra_months_d = input.days / Interval::DAYS_PER_MONTH;
     int64_t extra_months_micros = input.micros / Interval::MICROS_PER_MONTH;
