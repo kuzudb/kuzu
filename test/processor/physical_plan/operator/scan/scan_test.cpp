@@ -8,7 +8,7 @@ TEST(ScanTests, ScanTest) {
     auto morsel = make_shared<MorselsDesc>(0, 1025013 /*numNodes*/);
     auto profiler = make_unique<Profiler>();
     auto memoryManager = make_unique<MemoryManager>();
-    auto executionContext = ExecutionContext(*profiler, nullptr, memoryManager.get());
+    auto executionContext = ExecutionContext(*profiler, memoryManager.get());
     auto scan = make_unique<ScanNodeID>(DataPos{0, 0}, morsel, executionContext, 0);
     auto resultSet = make_shared<ResultSet>(1);
     resultSet->dataChunks[0] = make_shared<DataChunk>(1);

@@ -14,7 +14,6 @@ cc_library(
         "//src/planner:logical_plan",
         "//src/processor:operator_impls",
         "//src/processor:physical_plan",
-        "//src/transaction",
     ],
 )
 
@@ -38,19 +37,6 @@ cc_library(
 )
 
 cc_library(
-    name = "session",
-    srcs = [
-        "session.cpp",
-    ],
-    hdrs = [
-        "include/session.h",
-    ],
-    deps = [
-        "system",
-    ],
-)
-
-cc_library(
     name = "server",
     srcs = [
         "server.cpp",
@@ -65,7 +51,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "session",
+        "system",
         "@Stiffstream_restinio",
     ],
 )

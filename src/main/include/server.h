@@ -3,7 +3,7 @@
 #include "nlohmann/json.hpp"
 #include "restinio/all.hpp"
 
-#include "src/main/include/session.h"
+#include "src/main/include/system.h"
 
 namespace graphflow {
 namespace main {
@@ -35,10 +35,11 @@ private:
     // endpoint: [GET] .../graphDebugInfo
     void registerGETDebugInfo(router_t& router);
 
+    nlohmann::json executeQuery(SessionContext& sessionContext);
+
 private:
     unique_ptr<System> system;
     // At present, the server runs on a single thread and supports only one session.
-    unique_ptr<Session> session;
     nlohmann::json helpCatalog;
 };
 

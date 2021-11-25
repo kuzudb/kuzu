@@ -4,10 +4,8 @@
 #include "src/planner/include/logical_plan/logical_plan.h"
 #include "src/processor/include/processor.h"
 #include "src/storage/include/graph.h"
-#include "src/transaction/include/transaction_manager.h"
 
 using namespace graphflow::storage;
-using namespace graphflow::transaction;
 using namespace graphflow::processor;
 using namespace graphflow::planner;
 
@@ -31,7 +29,6 @@ public:
 public:
     unique_ptr<Graph> graph;
     unique_ptr<QueryProcessor> processor;
-    unique_ptr<TransactionManager> transactionManager;
     unique_ptr<MemoryManager> memManager;
     unique_ptr<BufferManager> bufferManager;
     bool initialized = false;

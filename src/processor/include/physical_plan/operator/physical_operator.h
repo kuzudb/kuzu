@@ -3,8 +3,8 @@
 #include "src/processor/include/execution_context.h"
 #include "src/processor/include/physical_plan/data_pos.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
+#include "src/storage/include/buffer_manager.h"
 
-using namespace graphflow::transaction;
 using namespace std;
 
 namespace graphflow {
@@ -25,9 +25,6 @@ enum PhysicalOperatorType : uint8_t {
     HASH_JOIN_PROBE,
     RESULT_COLLECTOR,
     LOAD_CSV,
-    CREATE_NODE,
-    UPDATE_NODE,
-    DELETE_NODE,
     MULTIPLICITY_REDUCER,
     LIMIT,
     SKIP,

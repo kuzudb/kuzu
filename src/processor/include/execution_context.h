@@ -1,9 +1,9 @@
 #pragma once
 
+#include "src/common/include/memory_manager.h"
 #include "src/common/include/profiler.h"
-#include "src/transaction/include/transaction.h"
 
-using namespace graphflow::transaction;
+using namespace graphflow::common;
 
 namespace graphflow {
 namespace processor {
@@ -11,12 +11,11 @@ namespace processor {
 struct ExecutionContext {
 
 public:
-    ExecutionContext(Profiler& profiler, Transaction* transaction, MemoryManager* memoryManager)
-        : profiler{profiler}, transaction{transaction}, memoryManager{memoryManager} {}
+    ExecutionContext(Profiler& profiler, MemoryManager* memoryManager)
+        : profiler{profiler}, memoryManager{memoryManager} {}
 
 public:
     Profiler& profiler;
-    Transaction* transaction;
     MemoryManager* memoryManager;
 };
 
