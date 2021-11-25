@@ -3,18 +3,11 @@
 namespace graphflow {
 namespace binder {
 
-vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getSubVariableExpressions() {
-    auto& firstQueryPart = *normalizedSubquery->getQueryPart(0);
-    vector<shared_ptr<Expression>> result;
-    for (auto& node : firstQueryPart.getQueryGraph()->queryNodes) {
-        result.push_back(node);
-    }
-    for (auto& rel : firstQueryPart.getQueryGraph()->queryRels) {
-        result.push_back(rel);
-    }
+unordered_set<string> ExistentialSubqueryExpression::getDependentVariableNames() {
+    unordered_set<string> result;
     for (auto& expression : getSubExpressions()) {
-        for (auto& variable : expression->getSubVariableExpressions()) {
-            result.push_back(variable);
+        for (auto& variableName : expression->getDependentVariableNames()) {
+            result.insert(variableName);
         }
     }
     return result;

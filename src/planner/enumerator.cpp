@@ -44,11 +44,11 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
 void Enumerator::planSubquery(
     const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression, LogicalPlan& outerPlan) {
     vector<shared_ptr<Expression>> expressionsToSelect;
-    auto expressions = getExpressionsInSchema(subqueryExpression, *outerPlan.schema);
-    for (auto& expression : expressions) {
-        expressionsToSelect.push_back(expression);
+    auto subExpressions = getSubExpressionsInSchema(subqueryExpression, *outerPlan.schema);
+    for (auto& subExpression : subExpressions) {
+        expressionsToSelect.push_back(subExpression);
         appendFlattenIfNecessary(
-            outerPlan.schema->getGroupPos(expression->getUniqueName()), outerPlan);
+            outerPlan.schema->getGroupPos(subExpression->getUniqueName()), outerPlan);
     }
     auto& normalizedQuery = *subqueryExpression->getNormalizedSubquery();
     auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToSelect));
@@ -79,6 +79,10 @@ void Enumerator::appendFlattens(const unordered_set<uint32_t>& groupsPos, Logica
 
 uint32_t Enumerator::appendFlattensButOne(
     const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan) {
+    if (groupsPos.empty()) {
+        // an expression may not depend on any group. E.g. COUNT(*).
+        return UINT32_MAX;
+    }
     vector<uint32_t> unFlatGroupsPos;
     for (auto& groupPos : groupsPos) {
         if (!plan.schema->getGroup(groupPos)->isFlat) {
@@ -106,14 +110,15 @@ void Enumerator::appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan) 
 }
 
 void Enumerator::appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan) {
-    uint32_t groupPosToSelect =
-        appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(expression, plan);
+    appendScanPropertiesAndPlanSubqueryIfNecessary(expression, plan);
+    auto dependentGroupsPos = getDependentGroupsPos(expression, *plan.schema);
+    auto groupPosToSelect = appendFlattensButOne(dependentGroupsPos, plan);
     auto filter = make_shared<LogicalFilter>(expression, groupPosToSelect, plan.lastOperator);
     plan.schema->groups[groupPosToSelect]->estimatedCardinality *= PREDICATE_SELECTIVITY;
     plan.appendOperator(move(filter));
 }
 
-uint32_t Enumerator::appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(
+void Enumerator::appendScanPropertiesAndPlanSubqueryIfNecessary(
     const shared_ptr<Expression>& expression, LogicalPlan& plan) {
     appendScanPropertiesIfNecessary(expression, plan);
     if (expression->hasSubqueryExpression()) {
@@ -125,11 +130,6 @@ uint32_t Enumerator::appendScanPropertiesFlattensAndPlanSubqueryIfNecessary(
             }
         }
     }
-    unordered_set<uint32_t> groupsPos;
-    for (auto& expr : getExpressionsInSchema(expression, *plan.schema)) {
-        groupsPos.insert(plan.schema->getGroupPos(expr->getUniqueName()));
-    }
-    return appendFlattensButOne(groupsPos, plan);
 }
 
 void Enumerator::appendScanPropertiesIfNecessary(
@@ -182,7 +182,16 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getInitialEmptyPlans() {
     return plans;
 }
 
-vector<shared_ptr<Expression>> Enumerator::getExpressionsInSchema(
+unordered_set<uint32_t> Enumerator::getDependentGroupsPos(
+    const shared_ptr<Expression>& expression, const Schema& schema) {
+    unordered_set<uint32_t> dependentGroupsPos;
+    for (auto& subExpression : getSubExpressionsInSchema(expression, schema)) {
+        dependentGroupsPos.insert(schema.getGroupPos(subExpression->getUniqueName()));
+    }
+    return dependentGroupsPos;
+}
+
+vector<shared_ptr<Expression>> Enumerator::getSubExpressionsInSchema(
     const shared_ptr<Expression>& expression, const Schema& schema) {
     vector<shared_ptr<Expression>> results;
     if (schema.containExpression(expression->getUniqueName())) {
@@ -192,13 +201,13 @@ vector<shared_ptr<Expression>> Enumerator::getExpressionsInSchema(
     if (EXISTENTIAL_SUBQUERY == expression->expressionType) {
         auto& subqueryExpression = (ExistentialSubqueryExpression&)*expression;
         for (auto& child : subqueryExpression.getSubExpressions()) {
-            for (auto& subExpression : getExpressionsInSchema(child, schema)) {
+            for (auto& subExpression : getSubExpressionsInSchema(child, schema)) {
                 results.push_back(subExpression);
             }
         }
     } else {
         for (auto& child : expression->children) {
-            for (auto& subExpression : getExpressionsInSchema(child, schema)) {
+            for (auto& subExpression : getSubExpressionsInSchema(child, schema)) {
                 results.push_back(subExpression);
             }
         }
@@ -206,26 +215,29 @@ vector<shared_ptr<Expression>> Enumerator::getExpressionsInSchema(
     return results;
 }
 
-vector<shared_ptr<Expression>> Enumerator::getPropertyExpressionsNotInSchema(
-    const shared_ptr<Expression>& expression, const Schema& schema) {
+vector<shared_ptr<Expression>> Enumerator::getSubExpressionsNotInSchemaOfType(
+    const shared_ptr<Expression>& expression, const Schema& schema,
+    const std::function<bool(ExpressionType)>& typeCheckFunc) {
     vector<shared_ptr<Expression>> results;
     if (schema.containExpression(expression->getUniqueName())) {
         return results;
     }
-    if (PROPERTY == expression->expressionType) {
+    if (typeCheckFunc(expression->expressionType)) {
         results.push_back(expression);
         return results;
     }
     if (EXISTENTIAL_SUBQUERY == expression->expressionType) {
         auto& subqueryExpression = (ExistentialSubqueryExpression&)*expression;
         for (auto& child : subqueryExpression.getSubExpressions()) {
-            for (auto& subExpression : getPropertyExpressionsNotInSchema(child, schema)) {
+            for (auto& subExpression :
+                getSubExpressionsNotInSchemaOfType(child, schema, typeCheckFunc)) {
                 results.push_back(subExpression);
             }
         }
     } else {
         for (auto& child : expression->children) {
-            for (auto& subExpression : getPropertyExpressionsNotInSchema(child, schema)) {
+            for (auto& subExpression :
+                getSubExpressionsNotInSchemaOfType(child, schema, typeCheckFunc)) {
                 results.push_back(subExpression);
             }
         }

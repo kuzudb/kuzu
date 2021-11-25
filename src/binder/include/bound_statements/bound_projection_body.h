@@ -26,7 +26,6 @@ public:
     inline void setLimitNumber(uint64_t number) { limitNumber = number; }
 
     bool hasAggregationExpressions() const;
-    vector<shared_ptr<Expression>> getAggregationExpressions() const;
     inline vector<shared_ptr<Expression>> getProjectionExpressions() const {
         return projectionExpressions;
     }

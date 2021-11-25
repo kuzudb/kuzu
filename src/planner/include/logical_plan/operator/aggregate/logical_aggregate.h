@@ -11,20 +11,27 @@ namespace planner {
 class LogicalAggregate : public LogicalOperator {
 
 public:
-    LogicalAggregate(vector<shared_ptr<Expression>> expressions,
+    LogicalAggregate(vector<shared_ptr<Expression>> expressionsToGroupBy,
+        vector<shared_ptr<Expression>> expressionsToAggregate,
         unique_ptr<Schema> schemaBeforeAggregate, shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, expressionsToAggregate{move(expressions)},
-          schemaBeforeAggregate{move(schemaBeforeAggregate)} {}
+        : LogicalOperator{move(prevOperator)}, expressionsToGroupBy{move(expressionsToGroupBy)},
+          expressionsToAggregate{move(expressionsToAggregate)}, schemaBeforeAggregate{
+                                                                    move(schemaBeforeAggregate)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_AGGREGATE;
     }
 
     string getExpressionsForPrinting() const override {
-        auto result = expressionsToAggregate[0]->getUniqueName();
-        for (auto i = 1u; i < expressionsToAggregate.size(); ++i) {
-            result += ", " + expressionsToAggregate[i]->getUniqueName();
+        string result = "Group By [";
+        for (auto& expression : expressionsToGroupBy) {
+            result += expression->getUniqueName() + ", ";
         }
+        result += "], Aggregate [";
+        for (auto& expression : expressionsToAggregate) {
+            result += expression->getUniqueName() + ", ";
+        }
+        result += "]";
         return result;
     }
 
@@ -34,11 +41,12 @@ public:
     inline Schema* getSchemaBeforeAggregate() const { return schemaBeforeAggregate.get(); }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalAggregate>(
-            expressionsToAggregate, schemaBeforeAggregate->copy(), prevOperator->copy());
+        return make_unique<LogicalAggregate>(expressionsToGroupBy, expressionsToAggregate,
+            schemaBeforeAggregate->copy(), prevOperator->copy());
     }
 
 private:
+    vector<shared_ptr<Expression>> expressionsToGroupBy;
     vector<shared_ptr<Expression>> expressionsToAggregate;
     unique_ptr<Schema> schemaBeforeAggregate;
 };

@@ -26,20 +26,13 @@ Expression::Expression(ExpressionType expressionType, DataType dataType, const s
 
 unordered_set<string> Expression::getDependentVariableNames() {
     unordered_set<string> result;
-    for (auto& variableExpression : getSubVariableExpressions()) {
-        result.insert(variableExpression->getUniqueName());
-    }
-    return result;
-}
-
-vector<shared_ptr<Expression>> Expression::getSubVariableExpressions() {
     if (expressionType == VARIABLE) {
-        return vector<shared_ptr<Expression>>{shared_from_this()};
+        result.insert(getUniqueName());
+        return result;
     }
-    vector<shared_ptr<Expression>> result;
     for (auto& child : children) {
-        for (auto& expression : child->getSubVariableExpressions()) {
-            result.push_back(expression);
+        for (auto& variableName : child->getDependentVariableNames()) {
+            result.insert(variableName);
         }
     }
     return result;
