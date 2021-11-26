@@ -23,7 +23,7 @@ public:
 
 TEST(ProcessorTests, MultiThreadedScanTest) {
     unique_ptr<Graph> graph = make_unique<GraphStub>();
-    auto morsel = make_shared<MorselsDesc>(0, 1025013 /*numNodes*/);
+    auto morsel = make_shared<MorselsDesc>(1025013 /*numNodes*/);
     auto profiler = make_unique<Profiler>();
     auto memoryManager = make_unique<MemoryManager>();
     auto executionContext = ExecutionContext(*profiler, memoryManager.get());
@@ -32,7 +32,7 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto aIDPos = DataPos{0, 0};
     auto vectorsToCollect = vector<DataPos>{aIDPos};
     auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(resultSet),
-        vectorsToCollect, make_unique<ScanNodeID>(aIDPos, morsel, executionContext, 0),
+        vectorsToCollect, make_unique<ScanNodeID>(0, aIDPos, morsel, executionContext, 0),
         RESULT_COLLECTOR, executionContext, 1));
     auto processor = make_unique<QueryProcessor>(10);
     auto result = processor->execute(plan.get(), 1);

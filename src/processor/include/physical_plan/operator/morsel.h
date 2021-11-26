@@ -13,12 +13,10 @@ namespace processor {
 
 struct MorselsDesc {
     mutex mtx;
-    const label_t label;
-    const uint64_t numNodes;
-    node_offset_t currNodeOffset;
+    const uint64_t maxOffset;
+    uint64_t currentOffset;
 
-    MorselsDesc(label_t label, uint64_t numNodes)
-        : label{label}, numNodes{numNodes}, currNodeOffset{0} {}
+    explicit MorselsDesc(uint64_t maxOffset) : maxOffset{maxOffset}, currentOffset{0} {}
 };
 
 } // namespace processor

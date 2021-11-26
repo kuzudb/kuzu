@@ -13,26 +13,16 @@ namespace graphflow {
 namespace processor {
 
 struct ProbeState {
-    explicit ProbeState(uint64_t pointersSize) : probedTuple{nullptr}, matchedTuplesSize{0} {
+    explicit ProbeState(uint64_t pointersSize)
+        : probedTuple{nullptr}, numMatchedTuples{0}, probeSideKeyNodeID{
+                                                         nodeID_t(UINT64_MAX, UINT64_MAX)} {
         matchedTuples = make_unique<uint8_t*[]>(pointersSize);
     }
     uint8_t* probedTuple;
     // Pointers to tuples in ht that actually matched.
     unique_ptr<uint8_t*[]> matchedTuples;
-    uint64_t matchedTuplesSize;
+    uint64_t numMatchedTuples;
     nodeID_t probeSideKeyNodeID;
-};
-
-struct BuildSideVectorInfo {
-    BuildSideVectorInfo(uint32_t numBytesPerValue, uint32_t outDataChunkIdx, uint32_t outVectorIdx,
-        uint32_t vectorPtrsIdx)
-        : numBytesPerValue{numBytesPerValue}, resultDataChunkPos{outDataChunkIdx},
-          resultVectorPos{outVectorIdx}, vectorPtrsPos{vectorPtrsIdx} {}
-
-    uint32_t numBytesPerValue;
-    uint32_t resultDataChunkPos;
-    uint32_t resultVectorPos;
-    uint32_t vectorPtrsPos;
 };
 
 struct ProbeDataChunksInfo {
@@ -62,9 +52,7 @@ public:
         ExecutionContext& context, uint32_t id);
 
     void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
-
     void reInitialize() override;
-
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
@@ -83,37 +71,17 @@ private:
     BuildDataChunksInfo buildDataChunksInfo;
     ProbeDataChunksInfo probeDataChunksInfo;
     vector<unordered_map<uint32_t, DataPos>> buildSideValueVectorsOutputPos;
-
-    uint64_t numProbeSidePrevKeyValueVectors;
-
+    uint64_t tuplePosToReadInProbedState;
+    vector<DataPos> resultVectorsPos;
+    vector<uint64_t> fieldsToRead;
     shared_ptr<ResultSet> buildSideResultSet;
     shared_ptr<ValueVector> probeSideKeyVector;
-    shared_ptr<DataChunk> probeSideKeyDataChunk;
-    shared_ptr<DataChunk> buildSideFlatResultDataChunk;
-
-    vector<BuildSideVectorInfo> buildSideVectorInfos;
     unique_ptr<ProbeState> probeState;
-    shared_ptr<DataChunk> resultKeyDataChunk;
-    vector<unique_ptr<overflow_value_t[]>> buildSideVectorPtrs;
 
-    void createVectorPtrs(DataChunk& buildSideDataChunk, uint32_t resultPos);
-    void copyTuplesFromHT(DataChunk& resultDataChunk, uint64_t numResultVectors,
-        uint64_t resultVectorStartPosition, uint64_t& tupleReadOffset,
-        uint64_t startOffsetInResultVector, uint64_t numTuples);
-    // This function performs essential initialization to the resultSet and buildSideVectorPtrs.
-    void initializeResultSetAndVectorPtrs();
-    // For each pointer in probedTuples that points to a collision chain, this function finds all
-    // matched tuples along the chain one batch at a time.
+    void constructResultVectorsPosAndFieldsToRead();
+    void initializeResultSet();
     void getNextBatchOfMatchedTuples();
-    // This function reads matched tuples from ht and populates:
-    // 1) resultKeyDataChunk with values from build side key data chunk (except for build side
-    // keys).
-    // 2) build side flat non-key data chunks.
-    // 3) populates vectorPtrs with pointers to vectors from build side unFlat non-key data chunks.
-    void populateResultFlatDataChunksAndVectorPtrs();
-    // This function updates appended unFlat output data chunks based on vectorPtrs and
-    // buildSideFlatResultDataChunk.currIdx.
-    void updateAppendedUnFlatDataChunks();
+    void populateResultSet();
 };
 } // namespace processor
 } // namespace graphflow

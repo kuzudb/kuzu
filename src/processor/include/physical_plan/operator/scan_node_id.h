@@ -9,26 +9,28 @@ namespace processor {
 class ScanNodeID : public PhysicalOperator {
 
 public:
-    ScanNodeID(const DataPos& outDataPos, const shared_ptr<MorselsDesc>& morsel,
+    ScanNodeID(label_t nodeLabel, const DataPos& outDataPos, shared_ptr<MorselsDesc> morsel,
         ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{SCAN, context, id}, outDataPos{outDataPos}, morsel{morsel} {}
+        : PhysicalOperator{SCAN, context, id}, nodeLabel{nodeLabel},
+          outDataPos{outDataPos}, morsel{std::move(morsel)} {}
 
-    ScanNodeID(const DataPos& outDataPos, const shared_ptr<MorselsDesc>& morsel,
+    ScanNodeID(label_t nodeLabel, const DataPos& outDataPos, shared_ptr<MorselsDesc> morsel,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(prevOperator), SCAN, context, id},
-          outDataPos{outDataPos}, morsel{morsel} {}
+        : PhysicalOperator{move(prevOperator), SCAN, context, id}, nodeLabel{nodeLabel},
+          outDataPos{outDataPos}, morsel{std::move(morsel)} {}
 
     void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return prevOperator ?
-                   make_unique<ScanNodeID>(outDataPos, morsel, prevOperator->clone(), context, id) :
-                   make_unique<ScanNodeID>(outDataPos, morsel, context, id);
+        return prevOperator ? make_unique<ScanNodeID>(nodeLabel, outDataPos, morsel,
+                                  prevOperator->clone(), context, id) :
+                              make_unique<ScanNodeID>(nodeLabel, outDataPos, morsel, context, id);
     }
 
 private:
+    label_t nodeLabel;
     DataPos outDataPos;
     shared_ptr<MorselsDesc> morsel;
 

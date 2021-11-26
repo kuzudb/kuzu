@@ -66,7 +66,7 @@ public:
     inline uint8_t isNull(uint64_t pos) { return nullMask->mask[pos]; }
 
     inline shared_ptr<NullMask> getNullMask() { return nullMask; }
-    inline int64_t getNumBytesPerValue() const { return TypeUtils::getDataTypeSize(dataType); }
+    inline uint64_t getNumBytesPerValue() const { return TypeUtils::getDataTypeSize(dataType); }
 
     // Node specific functions.
     bool discardNullNodes();

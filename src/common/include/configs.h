@@ -20,8 +20,8 @@ constexpr uint64_t PAGE_SIZE = 1 << PAGE_SIZE_LOG_2;
 // The default amount of memory pre-allocated to the buffer pool (= 1GB).
 constexpr uint64_t DEFAULT_MEMORY_MANAGER_MAX_MEMORY = 1ull << 38;
 
-// By default, ht block size is 256KB
-constexpr const uint64_t DEFAULT_HT_BLOCK_SIZE = 1 << 18;
+// By default, memory block size is 256KB
+constexpr const uint64_t DEFAULT_MEMORY_BLOCK_SIZE = 1 << 18;
 constexpr const double DEFAULT_HT_LOAD_FACTOR = 1.5;
 
 // The number of bytes in a block of memory to store the keys of tuples
