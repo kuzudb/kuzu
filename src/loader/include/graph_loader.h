@@ -7,7 +7,7 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/types.h"
-#include "src/loader/include/csv_format.h"
+#include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
@@ -31,9 +31,8 @@ public:
     void loadGraph();
 
 private:
-    void readAndParseMetadata(vector<NodeFileDescription>& nodeFileDescriptions,
-        vector<RelFileDescription>& relFileDescriptions);
-    void readCSVHeaderAndCalcNumBlocks(const vector<string>& fileNames,
+    void readAndParseMetadata(DatasetMetadata& metadata);
+    void readCSVHeaderAndCalcNumBlocks(const vector<string>& filePaths,
         vector<uint64_t>& numBlocksPerFile, vector<string>& fileHeaders);
     void addNodeLabelsIntoGraphCatalog(
         const vector<NodeFileDescription>& fileDescriptions, vector<string>& fileHeaders);
@@ -41,11 +40,9 @@ private:
         const vector<RelFileDescription>& fileDescriptions, vector<string>& fileHeaders);
     vector<PropertyDefinition> parseHeader(string& header, char tokenSeparator) const;
 
-    unique_ptr<vector<unique_ptr<NodeIDMap>>> loadNodes(
-        const vector<NodeFileDescription>& nodeFileDescriptions);
+    unique_ptr<vector<unique_ptr<NodeIDMap>>> loadNodes();
 
-    void loadRels(const vector<RelFileDescription>& relFileDescriptions,
-        vector<unique_ptr<NodeIDMap>>& nodeIDMaps);
+    void loadRels(vector<unique_ptr<NodeIDMap>>& nodeIDMaps);
 
     void countLinesAndAddUnstrPropertiesInCatalog(vector<vector<uint64_t>>& numLinesPerBlock,
         vector<vector<unordered_set<string>>>& labelBlockUnstrProperties,
@@ -56,7 +53,7 @@ private:
     // Concurrent Tasks
 
     static void countLinesAndScanUnstrPropertiesInBlockTask(const string& fName,
-        char tokenSeparator, char quoteChar, char escapeChar, uint32_t numStructuredProperties,
+        const CSVSpecialChars& csvSpecialChars, uint32_t numStructuredProperties,
         unordered_set<string>* unstrPropertyNameSet, vector<vector<uint64_t>>* numLinesPerBlock,
         label_t label, uint32_t blockId, const shared_ptr<spdlog::logger>& logger);
 
@@ -65,7 +62,7 @@ private:
     ThreadPool threadPool;
     const string inputDirectory;
     const string outputDirectory;
-    CSVFormat csvFormat;
+    DatasetMetadata datasetMetadata;
     Graph graph;
 };
 

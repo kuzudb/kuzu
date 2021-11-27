@@ -3,7 +3,7 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/csv_reader/csv_reader.h"
-#include "src/loader/include/csv_format.h"
+#include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/in_mem_pages.h"
 #include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
@@ -26,8 +26,8 @@ class NodesLoader {
     typedef vector<unique_ptr<listSizes_t>> labelUnstrPropertyListSizes_t;
 
 private:
-    NodesLoader(
-        ThreadPool& threadPool, const Graph& graph, string outputDirectory, CSVFormat csvFormat);
+    NodesLoader(ThreadPool& threadPool, const Graph& graph, string outputDirectory,
+        vector<NodeFileDescription>& nodeFileDescriptions);
 
     void load(const vector<string>& filePaths, const vector<uint64_t>& numBlocksPerLabel,
         const vector<vector<uint64_t>>& numLinesPerBlock,
@@ -93,8 +93,8 @@ private:
     ThreadPool& threadPool;
     const Graph& graph;
     const string outputDirectory;
+    vector<NodeFileDescription>& fileDescriptions;
 
-    CSVFormat csvFormat;
     labelUnstrPropertyListSizes_t labelUnstrPropertyListsSizes;
     vector<ListHeaders> labelUnstrPropertyListHeaders;
     vector<ListsMetadata> labelUnstrPropertyListsMetadata;
