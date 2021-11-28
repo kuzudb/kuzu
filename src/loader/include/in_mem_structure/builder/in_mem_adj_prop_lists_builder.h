@@ -1,9 +1,9 @@
 #pragma once
 
-#include "src/loader/include/adj_and_prop_structures_builder.h"
-#include "src/loader/include/in_mem_pages.h"
+#include "src/loader/include/in_mem_structure/builder/in_mem_structures_builder.h"
+#include "src/loader/include/in_mem_structure/in_mem_pages.h"
+#include "src/loader/include/label_description.h"
 #include "src/loader/include/thread_pool.h"
-#include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
 
@@ -18,7 +18,7 @@ namespace loader {
 // AdjAndPropertyColsBuilderAndListSizeCounter, this also exposes functions to construct Lists
 // step-by-step and populate in-memory pages and finally save the in-mem data structures to the
 // disk.
-class AdjAndPropertyListsBuilder : public AdjAndPropertyStructuresBuilder {
+class InMemAdjAndPropertyListsBuilder : public InMemStructuresBuilderForRels, public ListsUtils {
 
     typedef vector<vector<unique_ptr<listSizes_t>>> directionLabelListSizes_t;
 
@@ -35,17 +35,17 @@ class AdjAndPropertyListsBuilder : public AdjAndPropertyStructuresBuilder {
         directionLabelPropertyIdxStringOverflowPages_t;
 
 public:
-    AdjAndPropertyListsBuilder(RelLabelDescription& description, ThreadPool& threadPool,
+    InMemAdjAndPropertyListsBuilder(RelLabelDescription& description, ThreadPool& threadPool,
         const Graph& graph, const string& outputDirectory);
 
     inline void incrementListSize(const Direction& direction, const nodeID_t& nodeID) {
-        ListsLoaderHelper::incrementListSize(
+        ListsUtils::incrementListSize(
             *directionLabelListSizes[direction][nodeID.label], nodeID.offset, 1);
         (*directionLabelNumRels[direction])[nodeID.label]++;
     }
 
     inline uint64_t decrementListSize(const Direction& direction, const nodeID_t& nodeID) {
-        return ListsLoaderHelper::decrementListSize(
+        return ListsUtils::decrementListSize(
             *directionLabelListSizes[direction][nodeID.label], nodeID.offset, 1);
     }
 

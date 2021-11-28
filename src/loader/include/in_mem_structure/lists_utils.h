@@ -23,66 +23,13 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace loader {
 
-// Maps the primary key of a node to the in-system used node offset.
-class NodeIDMap {
-
-public:
-    NodeIDMap(const uint64_t& size) : size{size}, offsetToNodeIDMap(make_unique<char*[]>(size)){};
-    ~NodeIDMap();
-
-    void set(const char* nodeID, node_offset_t nodeOffset);
-
-    node_offset_t get(const char* nodeID);
-
-    inline void createNodeIDToOffsetMap() {
-        nodeIDToOffsetMap.reserve(1.5 * size);
-        for (auto i = 0u; i < size; i++) {
-            try {
-                nodeIDToOffsetMap.emplace(offsetToNodeIDMap[i], i);
-            } catch (exception& e) { std::rethrow_exception(current_exception()); }
-        }
-    }
-
-private:
-    uint64_t size;
-    robin_hood::unordered_flat_map<const char*, node_offset_t, charArrayHasher, charArrayEqualTo>
-        nodeIDToOffsetMap;
-    unique_ptr<char*[]> offsetToNodeIDMap;
-};
-
-// Holds information about a rel label that is needed to construct adjRels and adjLists
-// indexes, property columns, and property lists.
-class RelLabelDescription {
-
-public:
-    explicit RelLabelDescription(const vector<PropertyDefinition>& properties)
-        : properties{properties} {}
-
-    bool hasProperties() { return !properties.empty(); }
-
-    bool requirePropertyLists() {
-        return hasProperties() && !isSingleMultiplicityPerDirection[FWD] &&
-               !isSingleMultiplicityPerDirection[BWD];
-    };
-
-public:
-    label_t label;
-    string fName;
-    uint64_t numBlocks;
-    vector<unordered_set<label_t>> nodeLabelsPerDirection{2};
-    vector<bool> isSingleMultiplicityPerDirection{false, false};
-    vector<NodeIDCompressionScheme> nodeIDCompressionSchemePerDirection{2};
-    const vector<PropertyDefinition>& properties;
-    CSVSpecialChars csvSpecialChars;
-};
-
 // listSizes_t is the type of structure that is used to count the size of each list in the
 // particular Lists data structure.
 typedef vector<atomic<uint64_t>> listSizes_t;
 
 // Helper functions to assist populating ListHeaders, ListsMetadata and in-memory representation of
 // Lists.
-class ListsLoaderHelper {
+class ListsUtils {
 
 public:
     static inline void incrementListSize(listSizes_t& listSizes, uint32_t offset, uint32_t val) {

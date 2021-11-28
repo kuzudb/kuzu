@@ -3,9 +3,9 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/csv_reader/csv_reader.h"
-#include "src/loader/include/adj_and_prop_columns_builder.h"
-#include "src/loader/include/adj_and_prop_lists_builder.h"
 #include "src/loader/include/dataset_metadata.h"
+#include "src/loader/include/in_mem_structure/builder/in_mem_adj_prop_cols_builder.h"
+#include "src/loader/include/in_mem_structure/builder/in_mem_adj_prop_lists_builder.h"
 #include "src/loader/include/thread_pool.h"
 
 namespace graphflow {
@@ -23,28 +23,27 @@ private:
 
     void loadRelsForLabel(RelLabelDescription& relLabelMetadata);
 
-    void constructAdjColumnsAndCountRelsInAdjLists(RelLabelDescription& relLabelMetadata,
-        AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder);
+    void constructAdjColumnsAndCountRelsInAdjLists(
+        RelLabelDescription& relLabelMetadata, InMemAdjAndPropertyListsBuilder& listsBuilder);
 
-    void populateNumRels(AdjAndPropertyColumnsBuilder& adjAndPropertyColumnsBuilder,
-        AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder);
+    void populateNumRels(InMemAdjAndPropertyColumnsBuilder& columnsBuilder,
+        InMemAdjAndPropertyListsBuilder& listsBuilder);
 
     void constructAdjLists(
-        RelLabelDescription& description, AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder);
+        RelLabelDescription& description, InMemAdjAndPropertyListsBuilder& listsBuilder);
 
     // Concurrent Tasks
 
     static void populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescription* description,
-        uint64_t blockId, AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
-        AdjAndPropertyColumnsBuilder* adjAndPropertyColumnsBuilder,
+        uint64_t blockId, InMemAdjAndPropertyListsBuilder* listsBuilder,
+        InMemAdjAndPropertyColumnsBuilder* columnsBuilder,
         vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
         shared_ptr<spdlog::logger>& logger);
 
     static void populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
         char tokenSeparator, char quoteChar, char escapeChar,
-        AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
-        vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
-        shared_ptr<spdlog::logger>& logger);
+        InMemAdjAndPropertyListsBuilder* listsBuilder, vector<unique_ptr<NodeIDMap>>* nodeIDMaps,
+        const Catalog* catalog, shared_ptr<spdlog::logger>& logger);
 
     // Task Helpers
 
@@ -53,12 +52,12 @@ private:
         vector<bool>& requireToReadLabels);
 
     static void putPropsOfLineIntoInMemPropertyColumns(const vector<PropertyDefinition>& properties,
-        CSVReader& reader, AdjAndPropertyColumnsBuilder* adjAndPropertyColumnsBuilder,
+        CSVReader& reader, InMemAdjAndPropertyColumnsBuilder* columnsBuilder,
         const nodeID_t& nodeID, vector<PageCursor>& stringOverflowPagesCursors);
 
     static void putPropsOfLineIntoInMemRelPropLists(const vector<PropertyDefinition>& properties,
         CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& pos,
-        AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
+        InMemAdjAndPropertyListsBuilder* listsBuilder,
         vector<PageCursor>& stringOverflowPagesCursors);
 
 private:

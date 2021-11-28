@@ -8,8 +8,8 @@
 
 #include "src/common/include/types.h"
 #include "src/loader/include/dataset_metadata.h"
+#include "src/loader/include/label_description.h"
 #include "src/loader/include/thread_pool.h"
-#include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
 

@@ -14,8 +14,8 @@ class logger;
 namespace graphflow {
 namespace loader {
 
-class ListsLoaderHelper;
-class AdjAndPropertyListsBuilder;
+class ListsUtils;
+class InMemAdjAndPropertyListsBuilder;
 class NodesLoader;
 
 } // namespace loader
@@ -44,8 +44,8 @@ namespace storage {
  *      page IDs are located.
  * */
 class ListHeaders {
-    friend class graphflow::loader::ListsLoaderHelper;
-    friend class graphflow::loader::AdjAndPropertyListsBuilder;
+    friend class graphflow::loader::ListsUtils;
+    friend class graphflow::loader::InMemAdjAndPropertyListsBuilder;
     friend class graphflow::loader::NodesLoader;
 
 public:

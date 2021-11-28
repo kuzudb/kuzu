@@ -13,8 +13,8 @@ class logger;
 namespace graphflow {
 namespace loader {
 
-class ListsLoaderHelper;
-class AdjAndPropertyListsBuilder;
+class ListsUtils;
+class InMemAdjAndPropertyListsBuilder;
 class NodesLoader;
 
 } // namespace loader
@@ -32,8 +32,8 @@ namespace storage {
  * location of the list to the actual physical location in disk pages.
  */
 class ListsMetadata {
-    friend class graphflow::loader::ListsLoaderHelper;
-    friend class graphflow::loader::AdjAndPropertyListsBuilder;
+    friend class graphflow::loader::ListsUtils;
+    friend class graphflow::loader::InMemAdjAndPropertyListsBuilder;
     friend class graphflow::loader::NodesLoader;
 
 public:
