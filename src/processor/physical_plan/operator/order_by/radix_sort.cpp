@@ -2,7 +2,10 @@
 
 #include <algorithm>
 
-using namespace graphflow::common;
+#include "src/common/include/operations/comparison_operations.h"
+
+using namespace graphflow::common::operation;
+
 namespace graphflow {
 namespace processor {
 
@@ -88,12 +91,13 @@ void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, que
                 leftPtr + orderByKeyEncoder.getKeyBlockEntrySizeInBytes() - sizeof(uint64_t));
             const auto rightStrRowID = OrderByKeyEncoder::getEncodedRowID(
                 rightPtr + orderByKeyEncoder.getKeyBlockEntrySizeInBytes() - sizeof(uint64_t));
-            const auto leftStrVal = (gf_string_t*)(this->rowCollection.getRow(leftStrRowID) +
-                                                   fieldOffsetInRowCollection);
-            const auto rightStrVal = (gf_string_t*)(this->rowCollection.getRow(rightStrRowID) +
-                                                    fieldOffsetInRowCollection);
-            return isAscOrder ? leftStrVal->getAsString() < rightStrVal->getAsString() :
-                                leftStrVal->getAsString() > rightStrVal->getAsString();
+            const auto leftStr = *((gf_string_t*)(this->rowCollection.getRow(leftStrRowID) +
+                                                  fieldOffsetInRowCollection));
+            const auto rightStr = *((gf_string_t*)(this->rowCollection.getRow(rightStrRowID) +
+                                                   fieldOffsetInRowCollection));
+            uint8_t result;
+            LessThan::operation<gf_string_t, gf_string_t>(leftStr, rightStr, result, false, false);
+            return isAscOrder == result;
         });
 
     // Reorder the keyBlock based on the quick sort result.
@@ -124,7 +128,11 @@ void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, que
                                                    sizeof(uint64_t));
             auto strAtIndexJ =
                 *((gf_string_t*)(rowCollection.getRow(rowIDAtIndexJ) + fieldOffsetInRowCollection));
-            if (strAtIndexI.getAsString() != strAtIndexJ.getAsString()) {
+
+            uint8_t result;
+            NotEquals::operation<gf_string_t, gf_string_t>(
+                strAtIndexI, strAtIndexJ, result, false, false);
+            if (result) {
                 break;
             }
         }
