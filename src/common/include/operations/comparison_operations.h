@@ -63,14 +63,6 @@ struct LessThanEquals {
     }
 };
 
-//! This function is ONLY used by ValueVector::fillOperandNullMask.
-struct IsNullValue {
-    template<class T>
-    static inline bool operation(const T& value) {
-        throw std::invalid_argument("Unsupported type for IsNullValue.");
-    }
-};
-
 struct IsNull {
     template<class T>
     static inline void operation(T value, bool isNull, uint8_t& result) {
@@ -408,42 +400,6 @@ inline void LessThanEquals::operation(const nodeID_t& left, const nodeID_t& righ
     bool isLeftNull, bool isRightNull) {
     assert(!isLeftNull && !isRightNull);
     result = left.label < right.label || (left.label == right.label && left.offset <= right.offset);
-};
-
-/*************************************************
- **                                             **
- **   Specialized IsNullValue implementations   **
- **                                             **
- ************************************************/
-
-template<>
-inline bool IsNullValue::operation(const uint8_t& value) {
-    return value == NULL_BOOL;
-};
-
-template<>
-inline bool IsNullValue::operation(const int64_t& value) {
-    return value == NULL_INT64;
-};
-
-template<>
-inline bool IsNullValue::operation(const double_t& value) {
-    return value == NULL_DOUBLE;
-};
-
-template<>
-inline bool IsNullValue::operation(const date_t& value) {
-    return value == NULL_DATE;
-};
-
-template<>
-inline bool IsNullValue::operation(const timestamp_t& value) {
-    return value == NULL_TIMESTAMP;
-};
-
-template<>
-inline bool IsNullValue::operation(const interval_t& value) {
-    return value == NULL_INTERVAL;
 };
 
 } // namespace operation

@@ -21,7 +21,7 @@ public:
         const DataType& type);
 
     void setStringProperty(node_offset_t nodeOffset, const uint32_t& propertyIdx,
-        const char* originalString, PageCursor& cursor);
+        const char* originalString, PageByteCursor& cursor);
 
     void saveToFile() override;
 

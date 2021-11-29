@@ -39,8 +39,6 @@ public:
     void addString(uint64_t pos, char* value, uint64_t len) const;
     void allocateStringOverflowSpace(gf_string_t& gfString, uint64_t len) const;
 
-    void fillNullMask();
-
     // Sets the null mask of this ValueVector to the null mask of
     inline void setNullMask(const shared_ptr<NullMask>& otherMask) { nullMask = otherMask; }
 

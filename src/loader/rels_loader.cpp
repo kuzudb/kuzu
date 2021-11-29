@@ -6,10 +6,10 @@ namespace graphflow {
 namespace loader {
 
 RelsLoader::RelsLoader(ThreadPool& threadPool, Graph& graph, string outputDirectory,
-    vector<unique_ptr<NodeIDMap>>& nodeIDMaps, const vector<RelFileDescription>& fileDescriptions)
+    vector<unique_ptr<NodeIDMap>>& nodeIDMaps, const vector<RelFileDescription>& fileMetadata)
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, threadPool{threadPool}, graph{graph},
       outputDirectory(std::move(outputDirectory)), nodeIDMaps{nodeIDMaps},
-      fileDescriptions(fileDescriptions) {}
+      fileDescriptions(fileMetadata) {}
 
 // For each rel label, constructs the RelLabelDescription object with relevant meta info and
 // calls the loadRelsForLabel.
@@ -36,12 +36,11 @@ void RelsLoader::load(vector<uint64_t>& numBlocksPerFile) {
 // 2. constructAdjLists(...), only if Lists are needed, i.e., rel label relMultiplicity is not 1.
 void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
     logger->debug("Processing relLabel {}.", description.label);
-    InMemAdjAndPropertyListsBuilder adjAndPropertyListsBuilder{
-        description, threadPool, graph, outputDirectory};
-    constructAdjColumnsAndCountRelsInAdjLists(description, adjAndPropertyListsBuilder);
+    InMemAdjAndPropertyListsBuilder listsBuilder{description, threadPool, graph, outputDirectory};
+    constructAdjColumnsAndCountRelsInAdjLists(description, listsBuilder);
     if (!description.isSingleMultiplicityPerDirection[FWD] ||
         !description.isSingleMultiplicityPerDirection[BWD]) {
-        constructAdjLists(description, adjAndPropertyListsBuilder);
+        constructAdjLists(description, listsBuilder);
     }
     logger->debug("Done processing relLabel {}.", description.label);
 }
@@ -127,7 +126,7 @@ void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescriptio
     }
     vector<bool> requireToReadLabels{true, true};
     vector<nodeID_t> nodeIDs{2};
-    vector<PageCursor> stringOverflowPagesCursors{description->properties.size()};
+    vector<PageByteCursor> stringOverflowPagesCursors{description->properties.size()};
     for (auto& direction : DIRECTIONS) {
         requireToReadLabels[direction] = 1 != description->nodeLabelsPerDirection[direction].size();
         nodeIDs[direction].label =
@@ -174,7 +173,7 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
     nodeIDs.reserve(2);
     vector<uint64_t> reversePos;
     reversePos.reserve(2);
-    vector<PageCursor> stringOverflowPagesCursors{description->properties.size()};
+    vector<PageByteCursor> stringOverflowPagesCursors{description->properties.size()};
     for (auto& direction : DIRECTIONS) {
         requireToReadLabels[direction] = 1 != description->nodeLabelsPerDirection[direction].size();
         nodeIDs[direction].label =
@@ -222,45 +221,58 @@ void RelsLoader::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& node
 void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(
     const vector<PropertyDefinition>& properties, CSVReader& reader,
     InMemAdjAndPropertyColumnsBuilder* columnsBuilder, const nodeID_t& nodeID,
-    vector<PageCursor>& stringOverflowPagesCursors) {
+    vector<PageByteCursor>& stringOverflowPagesCursors) {
     auto propertyIdx = 0u;
     while (reader.hasNextToken()) {
         switch (properties[propertyIdx].dataType) {
         case INT64: {
-            auto intVal = reader.skipTokenIfNull() ? NULL_INT64 : reader.getInt64();
-            columnsBuilder->setProperty(
-                nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT64);
+            if (!reader.skipTokenIfNull()) {
+                auto intVal = reader.getInt64();
+                columnsBuilder->setProperty(
+                    nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT64);
+            }
         } break;
         case DOUBLE: {
-            auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
-            columnsBuilder->setProperty(
-                nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&doubleVal), DOUBLE);
+            if (!reader.skipTokenIfNull()) {
+                auto doubleVal = reader.getDouble();
+                columnsBuilder->setProperty(
+                    nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&doubleVal), DOUBLE);
+            }
         } break;
         case BOOL: {
-            auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
-            columnsBuilder->setProperty(
-                nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
+            if (!reader.skipTokenIfNull()) {
+                auto boolVal = reader.getBoolean();
+                columnsBuilder->setProperty(
+                    nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
+            }
         } break;
         case DATE: {
-            auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
-            columnsBuilder->setProperty(
-                nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&dateVal), DATE);
+            if (!reader.skipTokenIfNull()) {
+                auto dateVal = reader.getDate();
+                columnsBuilder->setProperty(
+                    nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&dateVal), DATE);
+            }
         } break;
         case TIMESTAMP: {
-            auto timestampVal = reader.skipTokenIfNull() ? NULL_TIMESTAMP : reader.getTimestamp();
-            columnsBuilder->setProperty(
-                nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&timestampVal), TIMESTAMP);
+            if (!reader.skipTokenIfNull()) {
+                auto timestampVal = reader.getTimestamp();
+                columnsBuilder->setProperty(
+                    nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&timestampVal), TIMESTAMP);
+            }
         } break;
         case INTERVAL: {
-            auto intervalVal = reader.skipTokenIfNull() ? NULL_INTERVAL : reader.getInterval();
-            columnsBuilder->setProperty(
-                nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&intervalVal), INTERVAL);
+            if (!reader.skipTokenIfNull()) {
+                auto intervalVal = reader.getInterval();
+                columnsBuilder->setProperty(
+                    nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&intervalVal), INTERVAL);
+            }
         } break;
         case STRING: {
-            auto strVal =
-                reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
-            columnsBuilder->setStringProperty(
-                nodeID, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
+            if (!reader.skipTokenIfNull()) {
+                auto strVal = reader.getString();
+                columnsBuilder->setStringProperty(
+                    nodeID, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
+            }
         } break;
         default:
             if (!reader.skipTokenIfNull()) {
@@ -275,45 +287,60 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(
 // propertyDataTypes array and puts the value in appropriate propertyLists.
 void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<PropertyDefinition>& properties,
     CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& pos,
-    InMemAdjAndPropertyListsBuilder* listsBuilder, vector<PageCursor>& stringOverflowPagesCursors) {
+    InMemAdjAndPropertyListsBuilder* listsBuilder,
+    vector<PageByteCursor>& stringOverflowPagesCursors) {
     auto propertyIdx = 0;
     while (reader.hasNextToken()) {
         switch (properties[propertyIdx].dataType) {
         case INT64: {
-            auto intVal = reader.skipTokenIfNull() ? NULL_INT64 : reader.getInt64();
-            listsBuilder->setProperty(
-                pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT64);
+            if (!reader.skipTokenIfNull()) {
+                auto intVal = reader.getInt64();
+                listsBuilder->setProperty(
+                    pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT64);
+            }
         } break;
         case DOUBLE: {
-            auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
-            listsBuilder->setProperty(
-                pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&doubleVal), DOUBLE);
+            if (!reader.skipTokenIfNull()) {
+
+                auto doubleVal = reader.getDouble();
+                listsBuilder->setProperty(
+                    pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&doubleVal), DOUBLE);
+            }
         } break;
         case BOOL: {
-            auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
-            listsBuilder->setProperty(
-                pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
+            if (!reader.skipTokenIfNull()) {
+                auto boolVal = reader.getBoolean();
+                listsBuilder->setProperty(
+                    pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
+            }
         } break;
         case DATE: {
-            auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
-            listsBuilder->setProperty(
-                pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&dateVal), DATE);
+            if (!reader.skipTokenIfNull()) {
+                auto dateVal = reader.getDate();
+                listsBuilder->setProperty(
+                    pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&dateVal), DATE);
+            }
         } break;
         case TIMESTAMP: {
-            auto timestampVal = reader.skipTokenIfNull() ? NULL_TIMESTAMP : reader.getTimestamp();
-            listsBuilder->setProperty(
-                pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&timestampVal), TIMESTAMP);
+            if (!reader.skipTokenIfNull()) {
+                auto timestampVal = reader.getTimestamp();
+                listsBuilder->setProperty(pos, nodeIDs, propertyIdx,
+                    reinterpret_cast<uint8_t*>(&timestampVal), TIMESTAMP);
+            }
         } break;
         case INTERVAL: {
-            auto intervalVal = reader.skipTokenIfNull() ? NULL_INTERVAL : reader.getInterval();
-            listsBuilder->setProperty(
-                pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&intervalVal), INTERVAL);
+            if (!reader.skipTokenIfNull()) {
+                auto intervalVal = reader.getInterval();
+                listsBuilder->setProperty(
+                    pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&intervalVal), INTERVAL);
+            }
         } break;
         case STRING: {
-            auto strVal =
-                reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
-            listsBuilder->setStringProperty(
-                pos, nodeIDs, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
+            if (!reader.skipTokenIfNull()) {
+                auto strVal = reader.getString();
+                listsBuilder->setStringProperty(
+                    pos, nodeIDs, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
+            }
         } break;
         default:
             if (!reader.skipTokenIfNull()) {

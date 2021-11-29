@@ -37,8 +37,8 @@ public:
         const DataType& type);
 
     // Sets a string property of a rel in RelPropertyColumn at a given nodeID.
-    void setStringProperty(
-        const nodeID_t& nodeID, const uint32_t& propertyIdx, const char* val, PageCursor& cursor);
+    void setStringProperty(const nodeID_t& nodeID, const uint32_t& propertyIdx, const char* val,
+        PageByteCursor& cursor);
 
     void sortOverflowStrings() override;
 
@@ -50,7 +50,7 @@ private:
 
     // concurrent task
 
-    static void sortOverflowStringsofPropertyColumnTask(node_offset_t offsetStart,
+    static void sortOverflowStringsOfPropertyColumnTask(node_offset_t offsetStart,
         node_offset_t offsetEnd, InMemPropertyPages* propertyColumn,
         InMemStringOverflowPages* unorderedStringOverflow,
         InMemStringOverflowPages* orderedStringOverflow);

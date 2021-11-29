@@ -10,9 +10,12 @@
 namespace graphflow {
 namespace loader {
 
-void ListsUtils::calculateListHeadersTask(node_offset_t numNodeOffsets, uint32_t numElementsPerPage,
+// Lists headers are created for only AdjLists and UnstrPropertyLists, both of which store data
+// in the page without NULL bits.
+void ListsUtils::calculateListHeadersTask(node_offset_t numNodeOffsets, uint32_t elementSize,
     listSizes_t* listSizes, ListHeaders* listHeaders, const shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: ListHeaders={0:p}", (void*)listHeaders);
+    auto numElementsPerPage = PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);
     auto numChunks = numNodeOffsets >> Lists::LISTS_CHUNK_SIZE_LOG_2;
     if (0 != (numNodeOffsets & (Lists::LISTS_CHUNK_SIZE - 1))) {
         numChunks++;
@@ -38,9 +41,9 @@ void ListsUtils::calculateListHeadersTask(node_offset_t numNodeOffsets, uint32_t
     logger->trace("End: adjListHeaders={0:p}", (void*)listHeaders);
 }
 
-void ListsUtils::calculateListsMetadataTask(uint64_t numNodeOffsets, uint32_t numPerPage,
+void ListsUtils::calculateListsMetadataTask(uint64_t numNodeOffsets, uint32_t elementSize,
     listSizes_t* listSizes, ListHeaders* listHeaders, ListsMetadata* listsMetadata,
-    const shared_ptr<spdlog::logger>& logger) {
+    bool hasNULLBytes, const shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: listsMetadata={0:p} adjListHeaders={1:p}", (void*)listsMetadata,
         (void*)listHeaders);
     auto globalPageId = 0u;
@@ -63,10 +66,12 @@ void ListsUtils::calculateListsMetadataTask(uint64_t numNodeOffsets, uint32_t nu
     (*listsMetadata).initLargeListPageLists(largeListIdx);
     nodeOffset = 0u;
     largeListIdx = 0u;
+    auto numPerPage = hasNULLBytes ? PageUtils::getNumElementsInAPageWithNULLBytes(elementSize) :
+                                     PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto numPages = 0u, offsetInPage = 0u;
         auto lastNodeOffsetInChunk = min(nodeOffset + Lists::LISTS_CHUNK_SIZE, numNodeOffsets);
-        for (auto i = nodeOffset; i < lastNodeOffsetInChunk; i++) {
+        while (nodeOffset < lastNodeOffsetInChunk) {
             auto numElementsInList = (*listSizes)[nodeOffset].load(memory_order_relaxed);
             if (ListHeaders::isALargeList(listHeaders->headers[nodeOffset])) {
                 auto numPagesForLargeList = numElementsInList / numPerPage;
@@ -101,22 +106,24 @@ void ListsUtils::calculateListsMetadataTask(uint64_t numNodeOffsets, uint32_t nu
         "End: listsMetadata={0:p} listHeaders={1:p}", (void*)listsMetadata, (void*)listHeaders);
 }
 
-void ListsUtils::calculatePageCursor(uint32_t header, uint64_t reversePos,
-    uint8_t numBytesPerElement, node_offset_t nodeOffset, PageCursor& cursor,
-    ListsMetadata& metadata) {
-    auto numElementsInAPage = PAGE_SIZE / numBytesPerElement;
+void ListsUtils::calcPageElementCursor(uint32_t header, uint64_t reversePos,
+    uint8_t numBytesPerElement, node_offset_t nodeOffset, PageElementCursor& cursor,
+    ListsMetadata& metadata, bool hasNULLBytes) {
+    auto numElementsInAPage =
+        hasNULLBytes ? PageUtils::getNumElementsInAPageWithNULLBytes(numBytesPerElement) :
+                       PageUtils::getNumElementsInAPageWithoutNULLBytes(numBytesPerElement);
     if (ListHeaders::isALargeList(header)) {
         auto lAdjListIdx = ListHeaders::getLargeListIdx(header);
         auto pos = metadata.getNumElementsInLargeLists(lAdjListIdx) - reversePos;
-        cursor.offset = numBytesPerElement * (pos % numElementsInAPage);
-        cursor.idx = metadata.getPageMapperForLargeListIdx(lAdjListIdx)((pos / numElementsInAPage));
+        cursor = PageUtils::getPageElementCursorForOffset(pos, numElementsInAPage);
+        cursor.idx = metadata.getPageMapperForLargeListIdx(lAdjListIdx)(cursor.idx);
     } else {
         auto chunkId = nodeOffset >> Lists::LISTS_CHUNK_SIZE_LOG_2;
         auto csrOffset = ListHeaders::getSmallListCSROffset(header);
         auto pos = ListHeaders::getSmallListLen(header) - reversePos;
+        cursor = PageUtils::getPageElementCursorForOffset(csrOffset + pos, numElementsInAPage);
         cursor.idx =
             metadata.getPageMapperForChunkIdx(chunkId)((csrOffset + pos) / numElementsInAPage);
-        cursor.offset = numBytesPerElement * ((csrOffset + pos) % numElementsInAPage);
     }
 }
 

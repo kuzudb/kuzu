@@ -42,6 +42,7 @@ cc_library(
     hdrs = [
         "include/data_structure/data_structure.h",
         "include/data_structure/lists/utils.h",
+        "include/data_structure/page_utils.h",
         "include/data_structure/string_overflow_pages.h",
     ],
     visibility = ["//visibility:public"],
@@ -62,11 +63,11 @@ cc_library(
         "data_structure/lists/unstructured_property_lists.cpp",
     ],
     hdrs = [
+        "include/data_structure/lists/large_list_handle.h",
         "include/data_structure/lists/list_headers.h",
         "include/data_structure/lists/list_sync_state.h",
         "include/data_structure/lists/lists.h",
         "include/data_structure/lists/lists_metadata.h",
-        "include/data_structure/lists/large_list_handle.h",
         "include/data_structure/lists/unstructured_property_lists.h",
         "include/data_structure/lists/utils.h",
     ],

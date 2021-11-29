@@ -3,14 +3,14 @@
 # nodes p1-p5000 have edges to p5000.
 # p5001-p6000: have no incoming or outgoing edges
 # This structures ensures the following:
-# p0 has a large forward list and an empty backward list.
-# p5000 has: large backward list and empty forward list.
-# p1-p5000: have small forward, small backward lists.
-# p5001-p6000: are singletons.
+# p0 has a large forward list and 1-edge backward list.
+# p5000 has: a large backward list and 1-edge forward list.
+# p1-p4999: have small forward, small backward lists.
+# p5001-p6000: are singletons (empty forward and backward lists).
 # This is a MANY-TO-MANY relationship. Because there are < 65536 person nodes,
 # knows edges should use 2 bytes/edge: 0 byte for label and 2 bytes for offset.
-# Finally: There the edges have an INT64 property with key int64Prop. For any edge
-# whose sourse is p0, the value is the ID of the destination node, e.g., e=0->5 has
+# Finally: The edges have an INT64 property with key int64Prop. For any edge
+# whose source is p0, the value is the ID of the destination node, e.g., e=0->5 has
 # int64Prop:5. For others the property is null. This property is intended to
 # test small and large property list reading.
 fromLabel:LABEL,from:NODE,toLabel:LABEL,to:NODE,int64Prop:INT64

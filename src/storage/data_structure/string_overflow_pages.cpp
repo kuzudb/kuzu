@@ -15,7 +15,7 @@ void StringOverflowPages::readStringsToVector(
 
 void StringOverflowPages::readStringToVector(
     ValueVector& valueVector, uint32_t pos, BufferManagerMetrics& metrics) {
-    PageCursor cursor;
+    PageByteCursor cursor;
     auto& value = ((gf_string_t*)valueVector.values)[pos];
     if (value.len > gf_string_t::SHORT_STR_LENGTH) {
         value.getOverflowPtrInfo(cursor.idx, cursor.offset);
@@ -29,7 +29,7 @@ string StringOverflowPages::readString(const gf_string_t& str, BufferManagerMetr
     if (str.len <= gf_string_t::SHORT_STR_LENGTH) {
         return str.getAsShortString();
     } else {
-        PageCursor cursor;
+        PageByteCursor cursor;
         str.getOverflowPtrInfo(cursor.idx, cursor.offset);
         auto frame = bufferManager.pin(fileHandle, cursor.idx, metrics);
         auto retVal = string((char*)(frame + cursor.offset), str.len);

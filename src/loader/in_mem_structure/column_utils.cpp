@@ -3,11 +3,19 @@
 namespace graphflow {
 namespace loader {
 
-void ColumnUtils::calculatePageCursor(
-    const uint8_t& numBytesPerElement, const node_offset_t& nodeOffset, PageCursor& cursor) {
-    auto numElementsPerPage = PAGE_SIZE / numBytesPerElement;
-    cursor.idx = nodeOffset / numElementsPerPage;
-    cursor.offset = numBytesPerElement * (nodeOffset % numElementsPerPage);
+void ColumnUtils::calcPageElementCursor(
+    const uint8_t& numBytesPerElement, const node_offset_t& nodeOffset, PageElementCursor& cursor) {
+    cursor = PageUtils::getPageElementCursorForOffset(
+        nodeOffset, PageUtils::getNumElementsInAPageWithNULLBytes(numBytesPerElement));
+}
+
+uint64_t ColumnUtils::calcNumPagesInColumn(uint8_t numBytesPerElement, uint64_t maxElements) {
+    auto numElementsPerPage = PageUtils::getNumElementsInAPageWithNULLBytes(numBytesPerElement);
+    auto numPages = maxElements / numElementsPerPage;
+    if (0 != maxElements % numElementsPerPage) {
+        numPages++;
+    }
+    return numPages;
 }
 
 } // namespace loader

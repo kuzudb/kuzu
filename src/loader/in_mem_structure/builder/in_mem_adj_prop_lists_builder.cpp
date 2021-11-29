@@ -53,53 +53,40 @@ void InMemAdjAndPropertyListsBuilder::buildInMemStructures() {
 
 void InMemAdjAndPropertyListsBuilder::setRel(
     uint64_t pos, Direction direction, const vector<nodeID_t>& nodeIDs) {
-    PageCursor cursor;
+    PageElementCursor cursor;
     auto header = directionLabelAdjListHeaders[direction][nodeIDs[direction].label]
                       .headers[nodeIDs[direction].offset];
-    calculatePageCursor(header, pos,
+    calcPageElementCursor(header, pos,
         description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes(),
         nodeIDs[direction].offset, cursor,
-        directionLabelAdjListsMetadata[direction][nodeIDs[direction].label]);
-    directionLabelAdjLists[direction][nodeIDs[direction].label]->setNbrNode(
-        cursor, nodeIDs[!direction]);
+        directionLabelAdjListsMetadata[direction][nodeIDs[direction].label],
+        false /*hasNULLBytes*/);
+    directionLabelAdjLists[direction][nodeIDs[direction].label]->set(cursor, nodeIDs[!direction]);
 }
 
 void InMemAdjAndPropertyListsBuilder::setProperty(const vector<uint64_t>& pos,
     const vector<nodeID_t>& nodeIDs, uint32_t propertyIdx, const uint8_t* val, DataType type) {
-    PageCursor cursor;
+    PageElementCursor cursor;
     for (auto& direction : DIRECTIONS) {
         auto header = directionLabelAdjListHeaders[direction][nodeIDs[direction].label]
                           .headers[nodeIDs[direction].offset];
-        calculatePageCursor(header, pos[direction], TypeUtils::getDataTypeSize(type),
+        calcPageElementCursor(header, pos[direction], TypeUtils::getDataTypeSize(type),
             nodeIDs[direction].offset, cursor,
             directionLabelPropertyIdxPropertyListsMetadata[direction][nodeIDs[direction].label]
-                                                          [propertyIdx]);
+                                                          [propertyIdx],
+            true /*hasNULLBytes*/);
         directionLabelPropertyIdxPropertyLists[direction][nodeIDs[direction].label][propertyIdx]
-            ->setPorperty(cursor, val);
+            ->set(cursor, val);
     }
 }
 
 void InMemAdjAndPropertyListsBuilder::setStringProperty(const vector<uint64_t>& pos,
     const vector<nodeID_t>& nodeIDs, const uint32_t& propertyIdx, const char* strVal,
-    PageCursor& stringOverflowCursor) {
-    PageCursor propertyListCursor;
-    calculatePageCursor(
-        directionLabelAdjListHeaders[FWD][nodeIDs[FWD].label].headers[nodeIDs[FWD].offset],
-        pos[FWD], TypeUtils::getDataTypeSize(STRING), nodeIDs[FWD].offset, propertyListCursor,
-        directionLabelPropertyIdxPropertyListsMetadata[FWD][nodeIDs[FWD].label][propertyIdx]);
-    auto encodedStrFwd = reinterpret_cast<gf_string_t*>(
-        directionLabelPropertyIdxPropertyLists[FWD][nodeIDs[FWD].label][propertyIdx]
-            ->getPtrToMemLoc(propertyListCursor));
+    PageByteCursor& stringOverflowCursor) {
+    gf_string_t gfString;
     (*propertyIdxUnordStringOverflowPages)[propertyIdx]->setStrInOvfPageAndPtrInEncString(
-        strVal, stringOverflowCursor, encodedStrFwd);
-    calculatePageCursor(
-        directionLabelAdjListHeaders[BWD][nodeIDs[BWD].label].headers[nodeIDs[BWD].offset],
-        pos[BWD], TypeUtils::getDataTypeSize(STRING), nodeIDs[BWD].offset, propertyListCursor,
-        directionLabelPropertyIdxPropertyListsMetadata[BWD][nodeIDs[BWD].label][propertyIdx]);
-    auto encodedStrBwd = reinterpret_cast<gf_string_t*>(
-        directionLabelPropertyIdxPropertyLists[BWD][nodeIDs[BWD].label][propertyIdx]
-            ->getPtrToMemLoc(propertyListCursor));
-    memcpy((void*)encodedStrBwd, (void*)encodedStrFwd, TypeUtils::getDataTypeSize(STRING));
+        strVal, stringOverflowCursor, &gfString);
+    setProperty(pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&gfString), STRING);
 }
 
 void InMemAdjAndPropertyListsBuilder::sortOverflowStrings() {
@@ -208,7 +195,7 @@ void InMemAdjAndPropertyListsBuilder::initAdjListHeaders() {
                 description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes();
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 threadPool.execute(calculateListHeadersTask, graph.getNumNodesPerLabel()[nodeLabel],
-                    PAGE_SIZE / relSize, directionLabelListSizes[direction][nodeLabel].get(),
+                    relSize, directionLabelListSizes[direction][nodeLabel].get(),
                     &directionLabelAdjListHeaders[direction][nodeLabel], logger);
             }
         }
@@ -221,15 +208,14 @@ void InMemAdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata() {
     logger->debug("Initializing AdjLists and PropertyLists Metadata.");
     for (auto direction : DIRECTIONS) {
         if (!description.isSingleMultiplicityPerDirection[direction]) {
-            auto numPerPage =
-                PAGE_SIZE /
-                description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes();
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 threadPool.execute(calculateListsMetadataTask,
-                    graph.getNumNodesPerLabel()[nodeLabel], numPerPage,
+                    graph.getNumNodesPerLabel()[nodeLabel],
+                    description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes(),
                     directionLabelListSizes[direction][nodeLabel].get(),
                     &directionLabelAdjListHeaders[direction][nodeLabel],
-                    &directionLabelAdjListsMetadata[direction][nodeLabel], logger);
+                    &directionLabelAdjListsMetadata[direction][nodeLabel], false /*hasNULLBytes*/,
+                    logger);
             }
         }
     }
@@ -240,11 +226,11 @@ void InMemAdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata() {
                 auto numNodeOffsets = graph.getNumNodesPerLabel()[nodeLabel];
                 for (auto& property : description.properties) {
                     auto idx = property.id;
-                    auto numPerPage = PAGE_SIZE / TypeUtils::getDataTypeSize(property.dataType);
-                    threadPool.execute(calculateListsMetadataTask, numNodeOffsets, numPerPage,
-                        listsSizes, &directionLabelAdjListHeaders[direction][nodeLabel],
+                    threadPool.execute(calculateListsMetadataTask, numNodeOffsets,
+                        TypeUtils::getDataTypeSize(property.dataType), listsSizes,
+                        &directionLabelAdjListHeaders[direction][nodeLabel],
                         &directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel][idx],
-                        logger);
+                        true /*hasNULLBytes*/, logger);
                 }
             }
         }
@@ -261,12 +247,14 @@ void InMemAdjAndPropertyListsBuilder::buildInMemAdjLists() {
             for (auto boundNodeLabel : description.nodeLabelsPerDirection[direction]) {
                 auto fName = RelsStore::getAdjListsFName(
                     outputDirectory, description.label, boundNodeLabel, direction);
-                directionLabelAdjLists[direction][boundNodeLabel] = make_unique<InMemAdjPages>(
-                    fName, directionLabelAdjListsMetadata[direction][boundNodeLabel].numPages,
-                    description.nodeIDCompressionSchemePerDirection[direction]
-                        .getNumBytesForLabel(),
-                    description.nodeIDCompressionSchemePerDirection[direction]
-                        .getNumBytesForOffset());
+                directionLabelAdjLists[direction][boundNodeLabel] =
+                    make_unique<InMemAdjPages>(fName,
+                        description.nodeIDCompressionSchemePerDirection[direction]
+                            .getNumBytesForLabel(),
+                        description.nodeIDCompressionSchemePerDirection[direction]
+                            .getNumBytesForOffset(),
+                        directionLabelAdjListsMetadata[direction][boundNodeLabel].numPages,
+                        false /*hasNULLBytes*/);
             }
         }
     }
@@ -287,9 +275,9 @@ void InMemAdjAndPropertyListsBuilder::buildInMemPropertyLists() {
                     outputDirectory, description.label, nodeLabel, direction, property.name);
                 directionLabelPropertyIdxPropertyLists[direction][nodeLabel][idx] =
                     make_unique<InMemPropertyPages>(fName,
+                        TypeUtils::getDataTypeSize(property.dataType),
                         directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel][idx]
-                            .numPages,
-                        TypeUtils::getDataTypeSize(property.dataType));
+                            .numPages);
             }
         }
     }
@@ -307,9 +295,10 @@ void InMemAdjAndPropertyListsBuilder::buildInMemPropertyLists() {
 void InMemAdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemPropertyPages* propertyLists,
     ListHeaders* adjListsHeaders, ListsMetadata* listsMetadata,
-    InMemStringOverflowPages* unorderedStringOverflow,
+    InMemStringOverflowPages* unorderedStringOverflowPages,
     InMemStringOverflowPages* orderedStringOverflow) {
-    PageCursor unorderedStringOverflowCursor, orderedStringOverflowCursor, propertyListCursor;
+    PageByteCursor unorderedStringOverflowCursor, orderedStringOverflowCursor;
+    PageElementCursor propertyListCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
         auto header = adjListsHeaders->headers[offsetStart];
         uint32_t len = 0;
@@ -319,8 +308,8 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(
             len = ListHeaders::getSmallListLen(header);
         }
         for (auto pos = len; pos > 0; pos--) {
-            calculatePageCursor(header, pos, TypeUtils::getDataTypeSize(STRING), offsetStart,
-                propertyListCursor, *listsMetadata);
+            calcPageElementCursor(header, pos, TypeUtils::getDataTypeSize(STRING), offsetStart,
+                propertyListCursor, *listsMetadata, true /*hasNULLBytes*/);
             auto valPtr =
                 reinterpret_cast<gf_string_t*>(propertyLists->getPtrToMemLoc(propertyListCursor));
             if (gf_string_t::SHORT_STR_LENGTH < valPtr->len && 0xffffffff != valPtr->len) {
@@ -328,7 +317,8 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(
                 valPtr->getOverflowPtrInfo(
                     unorderedStringOverflowCursor.idx, unorderedStringOverflowCursor.offset);
                 orderedStringOverflow->copyOverflowString(orderedStringOverflowCursor,
-                    unorderedStringOverflow->getPtrToMemLoc(unorderedStringOverflowCursor), valPtr);
+                    unorderedStringOverflowPages->getPtrToMemLoc(unorderedStringOverflowCursor),
+                    valPtr);
             }
         }
     }

@@ -4,21 +4,12 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
+#include "src/storage/include/data_structure/page_utils.h"
 
 using namespace graphflow::common;
 
 namespace graphflow {
 namespace storage {
-
-// Holds the reference to a location in a collection of pages of a Column or Lists.
-struct PageCursor {
-
-    PageCursor(uint64_t idx, uint16_t offset) : idx{idx}, offset{offset} {};
-    PageCursor() : PageCursor{-1ul, (uint16_t)-1} {};
-
-    uint64_t idx;
-    uint16_t offset;
-};
 
 // DataStructure is the parent class of BaseColumn and BaseLists. It abstracts the state and
 // functions that are common in both column and lists, like, 1) layout info (size of a unit of
@@ -29,35 +20,40 @@ class DataStructure {
 public:
     DataType getDataType() const { return dataType; }
 
-    FileHandle* getFileHandle() { return &fileHandle; }
-
-    inline PageCursor getPageCursorForOffset(const uint64_t& elementOffset) const {
-        return PageCursor{elementOffset / numElementsPerPage,
-            (uint16_t)((elementOffset % numElementsPerPage) * elementSize)};
+    // Maps the position of element in page to its byte offset in page.
+    inline uint16_t mapElementPosToByteOffset(uint16_t pageElementPos) const {
+        return pageElementPos * elementSize;
     }
 
 protected:
     DataStructure(const string& fName, const DataType& dataType, const size_t& elementSize,
-        BufferManager& bufferManager, bool isInMemory);
+        BufferManager& bufferManager, bool hasNULLBytes, bool isInMemory);
 
     virtual ~DataStructure() = default;
 
     void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector, uint64_t sizeLeftToCopy,
-        PageCursor& pageCursor,
+        PageElementCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
         BufferManagerMetrics& metrics);
 
     void readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>& valueVector,
-        PageCursor& pageCursor,
+        PageElementCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
-        NodeIDCompressionScheme compressionScheme, BufferManagerMetrics& metrics);
-
-    void copyFromAPage(uint8_t* values, uint32_t physicalPageIdx, uint64_t sizeToCopy,
-        uint32_t pageOffset, BufferManagerMetrics& metrics);
+        NodeIDCompressionScheme compressionScheme, BufferManagerMetrics& metrics, bool isAdjLists);
 
     void readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector, uint32_t posInVector,
-        uint32_t physicalPageId, uint32_t pageOffset, uint64_t numValuesToCopy,
-        NodeIDCompressionScheme& compressionScheme, BufferManagerMetrics& metrics);
+        uint32_t physicalPageId, uint32_t posInPage, uint64_t numValuesToCopy,
+        NodeIDCompressionScheme& compressionScheme, BufferManagerMetrics& metrics, bool isAdjLists);
+
+    static void setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector,
+        const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector, uint64_t num);
+
+    static void setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector, const uint8_t* frame,
+        uint64_t elementPos, uint64_t offsetInVector);
+
+private:
+    static void setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& valueVector,
+        uint8_t NULLByte, uint8_t num, uint64_t startPos, uint64_t offsetInVector);
 
 public:
     DataType dataType;
