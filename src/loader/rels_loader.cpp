@@ -15,20 +15,16 @@ RelsLoader::RelsLoader(ThreadPool& threadPool, Graph& graph, string outputDirect
 // calls the loadRelsForLabel.
 void RelsLoader::load(vector<uint64_t>& numBlocksPerFile) {
     for (auto relLabel = 0u; relLabel < graph.catalog->getRelLabelsCount(); relLabel++) {
-        RelLabelDescription description(graph.getCatalog().getRelProperties(relLabel));
-        description.label = relLabel;
-        description.fName = fileDescriptions[relLabel].filePath;
-        description.numBlocks = numBlocksPerFile[relLabel];
-        description.csvSpecialChars = fileDescriptions[relLabel].csvSpecialChars;
+        RelLabelDescription description(relLabel, fileDescriptions[relLabel].filePath,
+            numBlocksPerFile[relLabel], graph.getCatalog().getRelProperties(relLabel),
+            fileDescriptions[relLabel].csvSpecialChars);
         for (auto direction : DIRECTIONS) {
             description.isSingleMultiplicityPerDirection[direction] =
                 graph.catalog->isSingleMultiplicityInDirection(description.label, direction);
             description.nodeLabelsPerDirection[direction] =
                 graph.catalog->getNodeLabelsForRelLabelDirection(description.label, direction);
-        }
-        for (auto direction : DIRECTIONS) {
-            description.nodeIDCompressionSchemePerDirection[direction] =
-                NodeIDCompressionScheme(description.nodeLabelsPerDirection[!direction],
+            description.nodeIDCompressionSchemePerDirection[!direction] =
+                NodeIDCompressionScheme(description.nodeLabelsPerDirection[direction],
                     graph.getNumNodesPerLabel(), graph.getCatalog().getNodeLabelsCount());
         }
         loadRelsForLabel(description);
@@ -40,7 +36,7 @@ void RelsLoader::load(vector<uint64_t>& numBlocksPerFile) {
 // 2. constructAdjLists(...), only if Lists are needed, i.e., rel label relMultiplicity is not 1.
 void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
     logger->debug("Processing relLabel {}.", description.label);
-    AdjAndPropertyListsBuilder adjAndPropertyListsBuilder{
+    InMemAdjAndPropertyListsBuilder adjAndPropertyListsBuilder{
         description, threadPool, graph, outputDirectory};
     constructAdjColumnsAndCountRelsInAdjLists(description, adjAndPropertyListsBuilder);
     if (!description.isSingleMultiplicityPerDirection[FWD] ||
@@ -52,31 +48,30 @@ void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
 
 // Constructs AdjColumns and RelPropertyColumns if rel label have single relMultiplicity either in
 // the FWD or BWD direction. Else if the relMultiplicity is not 1, counts the number of edges in
-// each list in src/dst nodes. Uses AdjAndPropertyColumnsBuilder object to populate data in the
+// each list in src/dst nodes. Uses InMemAdjAndPropertyColumnsBuilder object to populate data in the
 // in-memory pages. The task is executed in parallel by calling
 // populateAdjColumnsAndCountRelsInAdjListsTask(...) on each block of the CSV file.
 void RelsLoader::constructAdjColumnsAndCountRelsInAdjLists(
-    RelLabelDescription& description, AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder) {
-    AdjAndPropertyColumnsBuilder adjAndPropertyColumnsBuilder{
+    RelLabelDescription& description, InMemAdjAndPropertyListsBuilder& listsBuilder) {
+    InMemAdjAndPropertyColumnsBuilder columnsBuilder{
         description, threadPool, graph, outputDirectory};
     logger->debug("Populating AdjColumns and Rel Property Columns.");
     auto& catalog = graph.getCatalog();
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         threadPool.execute(populateAdjColumnsAndCountRelsInAdjListsTask, &description, blockId,
-            &adjAndPropertyListsBuilder, &adjAndPropertyColumnsBuilder, &nodeIDMaps, &catalog,
-            logger);
+            &listsBuilder, &columnsBuilder, &nodeIDMaps, &catalog, logger);
     }
     threadPool.wait();
-    populateNumRels(adjAndPropertyColumnsBuilder, adjAndPropertyListsBuilder);
+    populateNumRels(columnsBuilder, listsBuilder);
     logger->debug("Done populating AdjColumns and Rel Property Columns.");
     if (description.hasProperties() && !description.requirePropertyLists()) {
-        adjAndPropertyColumnsBuilder.sortOverflowStrings();
+        columnsBuilder.sortOverflowStrings();
     }
-    adjAndPropertyColumnsBuilder.saveToFile();
+    columnsBuilder.saveToFile();
 }
 
-void RelsLoader::populateNumRels(AdjAndPropertyColumnsBuilder& adjAndPropertyColumnsBuilder,
-    AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder) {
+void RelsLoader::populateNumRels(InMemAdjAndPropertyColumnsBuilder& columnsBuilder,
+    InMemAdjAndPropertyListsBuilder& listsBuilder) {
     graph.numRelsPerDirBoundLabelRelLabel.resize(2);
     for (auto direction : DIRECTIONS) {
         graph.numRelsPerDirBoundLabelRelLabel[direction].resize(
@@ -86,35 +81,32 @@ void RelsLoader::populateNumRels(AdjAndPropertyColumnsBuilder& adjAndPropertyCol
                 graph.getCatalog().getRelLabelsCount(), 0);
         }
     }
-    adjAndPropertyColumnsBuilder.populateNumRelsInfo(
-        graph.numRelsPerDirBoundLabelRelLabel, true /*for columns*/);
-    adjAndPropertyListsBuilder.populateNumRelsInfo(
-        graph.numRelsPerDirBoundLabelRelLabel, false /*for columns*/);
+    columnsBuilder.populateNumRelsInfo(graph.numRelsPerDirBoundLabelRelLabel, true /*for columns*/);
+    listsBuilder.populateNumRelsInfo(graph.numRelsPerDirBoundLabelRelLabel, false /*for columns*/);
 }
 
 // Constructs AdjLists and RelPropertyLists if rel label does not have single relMultiplicity. For
-// each Lists, the function uses AdjAndPropertyListsBuilder object to build corresponding
+// each Lists, the function uses InMemAdjAndPropertyListsBuilder object to build corresponding
 // listHeaders and metadata and populate data in the in-memory pages. Executes in parallel by
 // calling populateAdjListsTask(...) on each block of the CSV file.
 void RelsLoader::constructAdjLists(
-    RelLabelDescription& description, AdjAndPropertyListsBuilder& adjAndPropertyListsBuilder) {
-    adjAndPropertyListsBuilder.buildAdjListsHeadersAndListsMetadata();
-    adjAndPropertyListsBuilder.buildInMemStructures();
+    RelLabelDescription& description, InMemAdjAndPropertyListsBuilder& listsBuilder) {
+    listsBuilder.buildAdjListsHeadersAndListsMetadata();
+    listsBuilder.buildInMemStructures();
     logger->debug("Populating AdjLists and Rel Property Lists.");
     auto& catalog = graph.getCatalog();
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         threadPool.execute(populateAdjListsTask, &description, blockId,
             description.csvSpecialChars.tokenSeparator, description.csvSpecialChars.quoteChar,
-            description.csvSpecialChars.escapeChar, &adjAndPropertyListsBuilder, &nodeIDMaps,
-            &catalog, logger);
+            description.csvSpecialChars.escapeChar, &listsBuilder, &nodeIDMaps, &catalog, logger);
     }
     threadPool.wait();
     logger->debug("Done populating AdjLists and Rel Property Lists.");
 
     if (description.requirePropertyLists()) {
-        adjAndPropertyListsBuilder.sortOverflowStrings();
+        listsBuilder.sortOverflowStrings();
     }
-    adjAndPropertyListsBuilder.saveToFile();
+    listsBuilder.saveToFile();
 }
 
 // Iterate over each line in a block of CSV file. For each line, infer the src/dest node labels and
@@ -122,10 +114,9 @@ void RelsLoader::constructAdjLists(
 // nbr nodeIDs to appropriate AdjColumns, else increment the size of the appropriate list. Also
 // calls the parser that reads properties in a line and puts in appropriate PropertyColumns.
 void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescription* description,
-    uint64_t blockId, AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
-    AdjAndPropertyColumnsBuilder* adjAndPropertyColumnsBuilder,
-    vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
-    shared_ptr<spdlog::logger>& logger) {
+    uint64_t blockId, InMemAdjAndPropertyListsBuilder* listsBuilder,
+    InMemAdjAndPropertyColumnsBuilder* columnsBuilder, vector<unique_ptr<NodeIDMap>>* nodeIDMaps,
+    const Catalog* catalog, shared_ptr<spdlog::logger>& logger) {
     logger->debug("Start: path=`{0}` blkIdx={1}", description->fName, blockId);
     CSVReader reader(description->fName, description->csvSpecialChars.tokenSeparator,
         description->csvSpecialChars.quoteChar, description->csvSpecialChars.escapeChar, blockId);
@@ -146,18 +137,18 @@ void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescriptio
         inferLabelsAndOffsets(reader, nodeIDs, nodeIDMaps, catalog, requireToReadLabels);
         for (auto& direction : DIRECTIONS) {
             if (description->isSingleMultiplicityPerDirection[direction]) {
-                adjAndPropertyColumnsBuilder->setRel(direction, nodeIDs);
+                columnsBuilder->setRel(direction, nodeIDs);
             } else {
-                adjAndPropertyListsBuilder->incrementListSize(direction, nodeIDs[direction]);
+                listsBuilder->incrementListSize(direction, nodeIDs[direction]);
             }
         }
         if (description->hasProperties() && !description->requirePropertyLists()) {
             if (description->isSingleMultiplicityPerDirection[FWD]) {
                 putPropsOfLineIntoInMemPropertyColumns(description->properties, reader,
-                    adjAndPropertyColumnsBuilder, nodeIDs[FWD], stringOverflowPagesCursors);
+                    columnsBuilder, nodeIDs[FWD], stringOverflowPagesCursors);
             } else if (description->isSingleMultiplicityPerDirection[BWD]) {
                 putPropsOfLineIntoInMemPropertyColumns(description->properties, reader,
-                    adjAndPropertyColumnsBuilder, nodeIDs[BWD], stringOverflowPagesCursors);
+                    columnsBuilder, nodeIDs[BWD], stringOverflowPagesCursors);
             }
         }
     }
@@ -169,9 +160,8 @@ void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescriptio
 // and puts in appropriate PropertyLists.
 void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
     char tokenSeparator, char quoteChar, char escapeChar,
-    AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
-    vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
-    shared_ptr<spdlog::logger>& logger) {
+    InMemAdjAndPropertyListsBuilder* listsBuilder, vector<unique_ptr<NodeIDMap>>* nodeIDMaps,
+    const Catalog* catalog, shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: path=`{0}` blkIdx={1}", description->fName, blockId);
     CSVReader reader(description->fName, tokenSeparator, quoteChar, escapeChar, blockId);
     if (0 == blockId) {
@@ -195,13 +185,13 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
         for (auto& direction : DIRECTIONS) {
             if (!description->isSingleMultiplicityPerDirection[direction]) {
                 reversePos[direction] =
-                    adjAndPropertyListsBuilder->decrementListSize(direction, nodeIDs[direction]);
-                adjAndPropertyListsBuilder->setRel(reversePos[direction], direction, nodeIDs);
+                    listsBuilder->decrementListSize(direction, nodeIDs[direction]);
+                listsBuilder->setRel(reversePos[direction], direction, nodeIDs);
             }
         }
         if (description->requirePropertyLists()) {
             putPropsOfLineIntoInMemRelPropLists(description->properties, reader, nodeIDs,
-                reversePos, adjAndPropertyListsBuilder, stringOverflowPagesCursors);
+                reversePos, listsBuilder, stringOverflowPagesCursors);
         }
     }
     logger->trace("End: path=`{0}` blkIdx={1}", description->fName, blockId);
@@ -231,45 +221,45 @@ void RelsLoader::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& node
 // propertyDataTypes array and puts the value in appropriate propertyColumns.
 void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(
     const vector<PropertyDefinition>& properties, CSVReader& reader,
-    AdjAndPropertyColumnsBuilder* adjAndPropertyColumnsBuilder, const nodeID_t& nodeID,
+    InMemAdjAndPropertyColumnsBuilder* columnsBuilder, const nodeID_t& nodeID,
     vector<PageCursor>& stringOverflowPagesCursors) {
     auto propertyIdx = 0u;
     while (reader.hasNextToken()) {
         switch (properties[propertyIdx].dataType) {
         case INT64: {
             auto intVal = reader.skipTokenIfNull() ? NULL_INT64 : reader.getInt64();
-            adjAndPropertyColumnsBuilder->setProperty(
+            columnsBuilder->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT64);
         } break;
         case DOUBLE: {
             auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
-            adjAndPropertyColumnsBuilder->setProperty(
+            columnsBuilder->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&doubleVal), DOUBLE);
         } break;
         case BOOL: {
             auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
-            adjAndPropertyColumnsBuilder->setProperty(
+            columnsBuilder->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
         } break;
         case DATE: {
             auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
-            adjAndPropertyColumnsBuilder->setProperty(
+            columnsBuilder->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&dateVal), DATE);
         } break;
         case TIMESTAMP: {
             auto timestampVal = reader.skipTokenIfNull() ? NULL_TIMESTAMP : reader.getTimestamp();
-            adjAndPropertyColumnsBuilder->setProperty(
+            columnsBuilder->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&timestampVal), TIMESTAMP);
         } break;
         case INTERVAL: {
             auto intervalVal = reader.skipTokenIfNull() ? NULL_INTERVAL : reader.getInterval();
-            adjAndPropertyColumnsBuilder->setProperty(
+            columnsBuilder->setProperty(
                 nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&intervalVal), INTERVAL);
         } break;
         case STRING: {
             auto strVal =
                 reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
-            adjAndPropertyColumnsBuilder->setStringProperty(
+            columnsBuilder->setStringProperty(
                 nodeID, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
         } break;
         default:
@@ -285,45 +275,44 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(
 // propertyDataTypes array and puts the value in appropriate propertyLists.
 void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<PropertyDefinition>& properties,
     CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& pos,
-    AdjAndPropertyListsBuilder* adjAndPropertyListsBuilder,
-    vector<PageCursor>& stringOverflowPagesCursors) {
+    InMemAdjAndPropertyListsBuilder* listsBuilder, vector<PageCursor>& stringOverflowPagesCursors) {
     auto propertyIdx = 0;
     while (reader.hasNextToken()) {
         switch (properties[propertyIdx].dataType) {
         case INT64: {
             auto intVal = reader.skipTokenIfNull() ? NULL_INT64 : reader.getInt64();
-            adjAndPropertyListsBuilder->setProperty(
+            listsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&intVal), INT64);
         } break;
         case DOUBLE: {
             auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
-            adjAndPropertyListsBuilder->setProperty(
+            listsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&doubleVal), DOUBLE);
         } break;
         case BOOL: {
             auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
-            adjAndPropertyListsBuilder->setProperty(
+            listsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
         } break;
         case DATE: {
             auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
-            adjAndPropertyListsBuilder->setProperty(
+            listsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&dateVal), DATE);
         } break;
         case TIMESTAMP: {
             auto timestampVal = reader.skipTokenIfNull() ? NULL_TIMESTAMP : reader.getTimestamp();
-            adjAndPropertyListsBuilder->setProperty(
+            listsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&timestampVal), TIMESTAMP);
         } break;
         case INTERVAL: {
             auto intervalVal = reader.skipTokenIfNull() ? NULL_INTERVAL : reader.getInterval();
-            adjAndPropertyListsBuilder->setProperty(
+            listsBuilder->setProperty(
                 pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&intervalVal), INTERVAL);
         } break;
         case STRING: {
             auto strVal =
                 reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
-            adjAndPropertyListsBuilder->setStringProperty(
+            listsBuilder->setStringProperty(
                 pos, nodeIDs, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
         } break;
         default:

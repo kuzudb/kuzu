@@ -1,13 +1,14 @@
-#include "src/loader/include/adj_and_prop_columns_builder.h"
+#include "src/loader/include/in_mem_structure/builder/in_mem_adj_prop_cols_builder.h"
 
 #include "spdlog/sinks/stdout_sinks.h"
 
 namespace graphflow {
 namespace loader {
 
-AdjAndPropertyColumnsBuilder::AdjAndPropertyColumnsBuilder(RelLabelDescription& description,
-    ThreadPool& threadPool, const Graph& graph, const string& outputDirectory)
-    : AdjAndPropertyStructuresBuilder(description, threadPool, graph, outputDirectory) {
+InMemAdjAndPropertyColumnsBuilder::InMemAdjAndPropertyColumnsBuilder(
+    RelLabelDescription& description, ThreadPool& threadPool, const Graph& graph,
+    const string& outputDirectory)
+    : InMemStructuresBuilderForRels(description, threadPool, graph, outputDirectory) {
     if (description.hasProperties()) {
         if (description.isSingleMultiplicityPerDirection[FWD]) {
             buildInMemPropertyColumns(FWD);
@@ -18,7 +19,8 @@ AdjAndPropertyColumnsBuilder::AdjAndPropertyColumnsBuilder(RelLabelDescription& 
     buildInMemAdjColumns();
 }
 
-void AdjAndPropertyColumnsBuilder::setRel(Direction direction, const vector<nodeID_t>& nodeIDs) {
+void InMemAdjAndPropertyColumnsBuilder::setRel(
+    Direction direction, const vector<nodeID_t>& nodeIDs) {
     PageCursor cursor;
     calculatePageCursor(
         description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes(),
@@ -28,14 +30,14 @@ void AdjAndPropertyColumnsBuilder::setRel(Direction direction, const vector<node
     (*directionLabelNumRels[direction])[nodeIDs[direction].label]++;
 }
 
-void AdjAndPropertyColumnsBuilder::setProperty(
+void InMemAdjAndPropertyColumnsBuilder::setProperty(
     const nodeID_t& nodeID, const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
     PageCursor cursor;
     calculatePageCursor(TypeUtils::getDataTypeSize(type), nodeID.offset, cursor);
     labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->setPorperty(cursor, val);
 }
 
-void AdjAndPropertyColumnsBuilder::setStringProperty(const nodeID_t& nodeID,
+void InMemAdjAndPropertyColumnsBuilder::setStringProperty(const nodeID_t& nodeID,
     const uint32_t& propertyIdx, const char* originalString, PageCursor& cursor) {
     PageCursor propertyListCursor;
 
@@ -47,7 +49,7 @@ void AdjAndPropertyColumnsBuilder::setStringProperty(const nodeID_t& nodeID,
         ->setStrInOvfPageAndPtrInEncString(originalString, cursor, encodedString);
 }
 
-void AdjAndPropertyColumnsBuilder::sortOverflowStrings() {
+void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings() {
     logger->debug("Ordering String Rel Property Columns.");
     auto direction = description.isSingleMultiplicityPerDirection[FWD] ? FWD : BWD;
     for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
@@ -80,7 +82,7 @@ void AdjAndPropertyColumnsBuilder::sortOverflowStrings() {
     logger->debug("Done ordering String Rel Property Columns.");
 }
 
-void AdjAndPropertyColumnsBuilder::saveToFile() {
+void InMemAdjAndPropertyColumnsBuilder::saveToFile() {
     logger->debug("Writing AdjColumns and Rel Property Columns to disk.");
     for (auto direction : DIRECTIONS) {
         if (description.isSingleMultiplicityPerDirection[direction]) {
@@ -108,7 +110,7 @@ void AdjAndPropertyColumnsBuilder::saveToFile() {
     logger->debug("Done writing AdjColumns and Rel Property Columns to disk.");
 }
 
-void AdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction direction) {
+void InMemAdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction direction) {
     logger->debug("Creating InMemProperty Columns.");
     labelPropertyIdxPropertyColumn.resize(graph.getCatalog().getNodeLabelsCount());
     labelPropertyIdxStringOverflowPages.resize(graph.getCatalog().getNodeLabelsCount());
@@ -137,7 +139,7 @@ void AdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction direction
     logger->debug("Done creating InMemProperty Columns.");
 }
 
-void AdjAndPropertyColumnsBuilder::buildInMemAdjColumns() {
+void InMemAdjAndPropertyColumnsBuilder::buildInMemAdjColumns() {
     logger->debug("Creating InMemAdjColumns.");
     for (auto& direction : DIRECTIONS) {
         if (description.isSingleMultiplicityPerDirection[direction]) {
@@ -167,14 +169,7 @@ void AdjAndPropertyColumnsBuilder::buildInMemAdjColumns() {
     logger->debug("Done creating InMemAdjColumns.");
 }
 
-void AdjAndPropertyColumnsBuilder::calculatePageCursor(
-    const uint8_t& numBytesPerElement, const node_offset_t& nodeOffset, PageCursor& cursor) {
-    auto numElementsPerPage = PAGE_SIZE / numBytesPerElement;
-    cursor.idx = nodeOffset / numElementsPerPage;
-    cursor.offset = numBytesPerElement * (nodeOffset % numElementsPerPage);
-}
-
-void AdjAndPropertyColumnsBuilder::sortOverflowStringsofPropertyColumnTask(
+void InMemAdjAndPropertyColumnsBuilder::sortOverflowStringsofPropertyColumnTask(
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemPropertyPages* propertyColumn,
     InMemStringOverflowPages* unorderedStringOverflow,
     InMemStringOverflowPages* orderedStringOverflow) {
