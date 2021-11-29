@@ -14,9 +14,19 @@ public:
         this->resultSet = move(resultSet);
     }
 
+    PhysicalOperator* getPipelineLeafOperator() {
+        PhysicalOperator* op = this;
+        while (op->prevOperator != nullptr) {
+            op = op->prevOperator.get();
+        }
+        return op;
+    }
+
     virtual void init() { prevOperator->initResultSet(resultSet); }
 
-    virtual void execute() = 0;
+    // In case there is a sub-plan, the pipeline under sink might be executed repeatedly and thus
+    // require a re-initialization after each execution.
+    virtual void execute() { reInitialize(); };
 
     bool getNextTuples() final {
         throw invalid_argument("Sink operator should implement execute instead of getNextTuples");

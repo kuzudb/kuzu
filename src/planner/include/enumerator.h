@@ -41,7 +41,7 @@ private:
     vector<unique_ptr<LogicalPlan>> enumerateQueryPart(
         const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
 
-    void planSubquery(
+    void planExistsSubquery(
         const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression, LogicalPlan& plan);
 
     void appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, LogicalPlan& plan);

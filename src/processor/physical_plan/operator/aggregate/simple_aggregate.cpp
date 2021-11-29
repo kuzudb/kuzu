@@ -26,6 +26,7 @@ void SimpleAggregate::init() {
 
 void SimpleAggregate::execute() {
     metrics->executionTime.start();
+    Sink::execute();
     // Exhaust source to update local state for each aggregation expression by its evaluator.
     while (prevOperator->getNextTuples()) {
         for (auto i = 0u; i < aggregationEvaluators.size(); i++) {

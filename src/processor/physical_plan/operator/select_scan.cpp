@@ -12,7 +12,7 @@ void SelectScan::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     for (auto i = 0u; i < inDataPoses.size(); ++i) {
         auto [inDataChunkPos, inValueVectorPos] = inDataPoses[i];
         auto& inValueVector =
-            *inResultSet->dataChunks[inDataChunkPos]->valueVectors[inValueVectorPos];
+            *resultSetToCopyFrom->dataChunks[inDataChunkPos]->valueVectors[inValueVectorPos];
         auto outValueVector =
             make_shared<ValueVector>(context.memoryManager, inValueVector.dataType);
         outDataChunk->insert(outValueVectorsPos[i], outValueVector);
@@ -35,7 +35,8 @@ bool SelectScan::getNextTuples() {
         for (auto i = 0u; i < inDataPoses.size(); ++i) {
             auto [inDataChunkPos, inValueVectorPos] = inDataPoses[i];
             auto& inValueVector =
-                *this->inResultSet->dataChunks[inDataChunkPos]->getValueVector(inValueVectorPos);
+                *this->resultSetToCopyFrom->dataChunks[inDataChunkPos]->getValueVector(
+                    inValueVectorPos);
             assert(inValueVector.state->isFlat());
             auto pos = inValueVector.state->getPositionOfCurrIdx();
             auto elementSize = TypeUtils::getDataTypeSize(inValueVector.dataType);

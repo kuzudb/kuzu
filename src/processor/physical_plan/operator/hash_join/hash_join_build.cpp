@@ -86,6 +86,7 @@ void HashJoinBuild::appendResultSet() {
 
 void HashJoinBuild::execute() {
     metrics->executionTime.start();
+    Sink::execute();
     // Append thread-local tuples
     while (prevOperator->getNextTuples()) {
         appendResultSet();

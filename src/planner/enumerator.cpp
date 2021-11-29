@@ -1,5 +1,6 @@
 #include "src/planner/include/enumerator.h"
 
+#include "src/planner/include/logical_plan/operator/exists/logical_exist.h"
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
@@ -41,15 +42,20 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
     return plans;
 }
 
-void Enumerator::planSubquery(
+void Enumerator::planExistsSubquery(
     const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression, LogicalPlan& outerPlan) {
     vector<shared_ptr<Expression>> expressionsToSelect;
     auto subExpressions = getSubExpressionsInSchema(subqueryExpression, *outerPlan.schema);
+    // We flatten all dependent groups for subquery and the result of subquery evaluation can be
+    // appended to any flat dependent group.
+    auto groupPosToWrite = UINT32_MAX;
     for (auto& subExpression : subExpressions) {
         expressionsToSelect.push_back(subExpression);
-        appendFlattenIfNecessary(
-            outerPlan.schema->getGroupPos(subExpression->getUniqueName()), outerPlan);
+        groupPosToWrite = outerPlan.schema->getGroupPos(subExpression->getUniqueName());
+        appendFlattenIfNecessary(groupPosToWrite, outerPlan);
     }
+    outerPlan.schema->getGroup(groupPosToWrite)
+        ->insertExpression(subqueryExpression->getUniqueName());
     auto& normalizedQuery = *subqueryExpression->getNormalizedSubquery();
     auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToSelect));
     auto plans = enumerateQueryPart(*normalizedQuery.getQueryPart(0), getInitialEmptyPlans());
@@ -58,7 +64,9 @@ void Enumerator::planSubquery(
         plans = enumerateQueryPart(*normalizedQuery.getQueryPart(i), move(plans));
     }
     joinOrderEnumerator.exitSubquery(move(prevContext));
-    subqueryExpression->setSubPlan(getBestPlan(move(plans)));
+    auto logicalExists = make_shared<LogicalExists>(
+        subqueryExpression, getBestPlan(move(plans)), outerPlan.lastOperator);
+    outerPlan.appendOperator(logicalExists);
 }
 
 void Enumerator::appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, LogicalPlan& plan) {
@@ -125,9 +133,7 @@ void Enumerator::appendScanPropertiesAndPlanSubqueryIfNecessary(
         auto expressions = expression->getTopLevelSubSubqueryExpressions();
         for (auto& expr : expressions) {
             auto subqueryExpression = static_pointer_cast<ExistentialSubqueryExpression>(expr);
-            if (!subqueryExpression->hasSubPlan()) {
-                planSubquery(subqueryExpression, plan);
-            }
+            planExistsSubquery(subqueryExpression, plan);
         }
     }
 }

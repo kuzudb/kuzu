@@ -54,3 +54,12 @@
 -QUERY MATCH (a:person) WITH a AS k MATCH (k)-[:knows]->(b:person) WHERE EXISTS { MATCH (k)-[:studyAt]->(c:organisation) RETURN c.id } OR b.fName='Greg'  RETURN COUNT(*)
 ---- 1
 7
+
+-NAME ExistSubqueryReturnTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) RETURN a.id } RETURN a.fName
+---- 5
+Alice
+Bob
+Carol
+Dan
+Elizabeth

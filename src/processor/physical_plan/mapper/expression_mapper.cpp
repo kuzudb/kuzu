@@ -1,12 +1,9 @@
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 
-#include "src/binder/include/expression/existential_subquery_expression.h"
 #include "src/binder/include/expression/literal_expression.h"
 #include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
 #include "src/expression_evaluator/include/binary_expression_evaluator.h"
-#include "src/expression_evaluator/include/existential_subquery_evaluator.h"
 #include "src/expression_evaluator/include/unary_expression_evaluator.h"
-#include "src/processor/include/physical_plan/mapper/plan_mapper.h"
 
 using namespace graphflow::common;
 
@@ -24,9 +21,6 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(const Expression
          * A leaf expression is a non-literal expression that has been previously computed
          */
         retVal = mapLogicalLeafExpressionToPhysical(expression, physicalOperatorInfo);
-    } else if (EXISTENTIAL_SUBQUERY == expressionType) {
-        retVal = mapLogicalExistentialSubqueryExpressionToPhysical(
-            expression, physicalOperatorInfo, context);
     } else if (isExpressionAggregate(expressionType)) {
         if (expressionType == COUNT_STAR_FUNC) {
             // COUNT_STAR has no child expression
@@ -168,17 +162,6 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLeafExpressionToPhys
     return make_unique<ExpressionEvaluator>(
         physicalOperatorInfo.getDataPos(expression.getUniqueName()), expression.expressionType,
         expression.dataType);
-}
-
-unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalExistentialSubqueryExpressionToPhysical(
-    const Expression& expression, const PhysicalOperatorsInfo& physicalOperatorInfo,
-    ExecutionContext& context) {
-    auto& subqueryExpression = (ExistentialSubqueryExpression&)expression;
-    auto prevPhysicalOperatorsInfo = planMapper->enterSubquery(&physicalOperatorInfo);
-    auto subPlan = planMapper->mapToPhysical(subqueryExpression.getSubPlan(), context);
-    planMapper->exitSubquery(prevPhysicalOperatorsInfo);
-    return make_unique<ExistentialSubqueryEvaluator>(unique_ptr<ResultCollector>{
-        dynamic_cast<ResultCollector*>(subPlan->lastOperator.release())});
 }
 
 } // namespace processor

@@ -18,7 +18,9 @@ public:
           outDataChunkPos{outDataChunkPos}, outValueVectorsPos{move(outValueVectorsPos)},
           isFirstExecution{true} {}
 
-    inline void setInResultSet(const ResultSet* resultSet) { inResultSet = resultSet; }
+    inline void setResultSetToCopyFrom(const ResultSet* resultSet) {
+        resultSetToCopyFrom = resultSet;
+    }
 
     void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
 
@@ -32,7 +34,7 @@ public:
     }
 
 private:
-    const ResultSet* inResultSet;
+    const ResultSet* resultSetToCopyFrom;
     vector<DataPos> inDataPoses;
     uint32_t outDataChunkPos;
     vector<uint32_t> outValueVectorsPos;

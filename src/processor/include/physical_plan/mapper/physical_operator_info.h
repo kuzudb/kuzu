@@ -23,6 +23,8 @@ public:
         return expressionNameToDataPosMap.at(name);
     }
 
+    // We keep track of computed expressions during a bottom-up mapping of logical plan so that we
+    // can differentiate if an expression is leaf or not.
     inline void addComputedExpressions(const string& name) { computedExpressionNames.insert(name); }
 
     inline bool expressionHasComputed(const string& name) const {
