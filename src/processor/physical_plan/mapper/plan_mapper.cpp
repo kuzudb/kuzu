@@ -11,11 +11,12 @@
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
 #include "src/planner/include/logical_plan/operator/intersect/logical_intersect.h"
 #include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
+#include "src/planner/include/logical_plan/operator/nested_loop_join/logical_left_nested_loop_join.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
-#include "src/planner/include/logical_plan/operator/select_scan/logical_select_scan.h"
+#include "src/planner/include/logical_plan/operator/select_scan/logical_result_scan.h"
 #include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
@@ -26,6 +27,7 @@
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
 #include "src/processor/include/physical_plan/operator/intersect.h"
+#include "src/processor/include/physical_plan/operator/left_nested_loop_join.h"
 #include "src/processor/include/physical_plan/operator/limit.h"
 #include "src/processor/include/physical_plan/operator/multiplicity_reducer.h"
 #include "src/processor/include/physical_plan/operator/projection.h"
@@ -33,11 +35,11 @@
 #include "src/processor/include/physical_plan/operator/read_list/frontier_extend.h"
 #include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
 #include "src/processor/include/physical_plan/operator/result_collector.h"
+#include "src/processor/include/physical_plan/operator/result_scan.h"
 #include "src/processor/include/physical_plan/operator/scan_attribute/adj_column_extend.h"
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_structured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_unstructured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id.h"
-#include "src/processor/include/physical_plan/operator/select_scan.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
 
 using namespace graphflow::planner;
@@ -53,7 +55,7 @@ static shared_ptr<ResultSet> populateResultSet(const Schema& schema) {
     return resultSet;
 }
 
-unique_ptr<PhysicalPlan> PlanMapper::mapToPhysical(
+unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
     unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& context) {
     auto& schema = *logicalPlan->getSchema();
     auto info = PhysicalOperatorsInfo(schema);
@@ -89,7 +91,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
         physicalOperator = mapLogicalScanNodeIDToPhysical(logicalOperator.get(), info, context);
     } break;
     case LOGICAL_SELECT_SCAN: {
-        physicalOperator = mapLogicalSelectScanToPhysical(logicalOperator.get(), info, context);
+        physicalOperator = mapLogicalResultScanToPhysical(logicalOperator.get(), info, context);
     } break;
     case LOGICAL_EXTEND: {
         physicalOperator = mapLogicalExtendToPhysical(logicalOperator.get(), info, context);
@@ -133,6 +135,10 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_EXISTS: {
         physicalOperator = mapLogicalExistsToPhysical(logicalOperator.get(), info, context);
     } break;
+    case LOGICAL_LEFT_NESTED_LOOP_JOIN: {
+        physicalOperator =
+            mapLogicalLeftNestedLoopJoinToPhysical(logicalOperator.get(), info, context);
+    } break;
     default:
         assert(false);
     }
@@ -156,21 +162,21 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
         logicalScan.label, dataPos, morsel, context, physicalOperatorID++);
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSelectScanToPhysical(
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalResultScanToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
-    auto& selectScan = (const LogicalSelectScan&)*logicalOperator;
+    auto& resultScan = (const LogicalResultScan&)*logicalOperator;
     vector<DataPos> inDataPoses;
     uint32_t outDataChunkPos =
-        info.getDataPos(*selectScan.getVariablesToSelect().begin()).dataChunkPos;
+        info.getDataPos(*resultScan.getVariablesToSelect().begin()).dataChunkPos;
     vector<uint32_t> outValueVectorsPos;
-    for (auto& variable : selectScan.getVariablesToSelect()) {
+    for (auto& variable : resultScan.getVariablesToSelect()) {
         inDataPoses.push_back(outerPhysicalOperatorsInfo->getDataPos(variable));
         // all variables should be appended to the same datachunk
         assert(outDataChunkPos == info.getDataPos(variable).dataChunkPos);
         outValueVectorsPos.push_back(info.getDataPos(variable).valueVectorPos);
         info.addComputedExpressions(variable);
     }
-    return make_unique<SelectScan>(move(inDataPoses), outDataChunkPos, move(outValueVectorsPos),
+    return make_unique<ResultScan>(move(inDataPoses), outDataChunkPos, move(outValueVectorsPos),
         context, physicalOperatorID++);
 }
 
@@ -215,7 +221,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     auto dataChunkToSelectPos = logicalFilter.groupPosToSelect;
     auto physicalRootExpr =
-        expressionMapper.mapToPhysical(*logicalFilter.expression, info, context);
+        expressionMapper.mapLogicalExpressionToPhysical(*logicalFilter.expression, info, context);
     return make_unique<Filter>(move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator),
         context, physicalOperatorID++);
 }
@@ -237,7 +243,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
     vector<unique_ptr<ExpressionEvaluator>> expressionEvaluators;
     vector<DataPos> expressionsOutputPos;
     for (auto& expression : logicalProjection.expressionsToProject) {
-        expressionEvaluators.push_back(expressionMapper.mapToPhysical(*expression, info, context));
+        expressionEvaluators.push_back(
+            expressionMapper.mapLogicalExpressionToPhysical(*expression, info, context));
         expressionsOutputPos.push_back(info.getDataPos(expression->getUniqueName()));
         info.addComputedExpressions(expression->getUniqueName());
     }
@@ -290,9 +297,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto buildSideInfo = PhysicalOperatorsInfo(*hashJoin.buildSideSchema);
     auto buildSideKeyIDDataPos = buildSideInfo.getDataPos(hashJoin.joinNodeID);
     auto probeSideKeyIDDataPos = info.getDataPos(hashJoin.joinNodeID);
-    vector<DataPos> probeSideNonKeyDataPoses;
     vector<DataPos> buildSideNonKeyDataPoses;
     vector<bool> isBuildSideNonKeyDataFlat;
+    vector<pair<DataPos, DataPos>> nonKeyDataPosMapping;
     auto& buildSideKeyGroup = *hashJoin.buildSideSchema->groups[buildSideKeyIDDataPos.dataChunkPos];
     for (auto i = 0u; i < hashJoin.buildSideSchema->getNumGroups(); ++i) {
         auto& buildSideGroup = *hashJoin.buildSideSchema->groups[i];
@@ -300,11 +307,12 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
             if (i == buildSideKeyIDDataPos.dataChunkPos && expressionName == hashJoin.joinNodeID) {
                 continue;
             }
-            probeSideNonKeyDataPoses.push_back(info.getDataPos(expressionName));
             auto buildSideDataPos = buildSideInfo.getDataPos(expressionName);
             buildSideNonKeyDataPoses.push_back(buildSideDataPos);
             isBuildSideNonKeyDataFlat.push_back(
                 hashJoin.buildSideSchema->getGroup(buildSideDataPos.dataChunkPos)->isFlat);
+            auto probeSideDataPos = info.getDataPos(expressionName);
+            nonKeyDataPosMapping.emplace_back(buildSideDataPos, probeSideDataPos);
         }
     }
 
@@ -321,9 +329,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
 
     // create hashJoin probe
     auto probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin.prevOperator, info, context);
-    auto probeDataInfo = ProbeDataInfo(probeSideKeyIDDataPos, probeSideNonKeyDataPoses);
-    auto hashJoinProbe = make_unique<HashJoinProbe>(buildDataInfo, probeDataInfo,
-        move(hashJoinBuild), move(probeSidePrevOperator), context, physicalOperatorID++);
+    auto probeDataInfo = ProbeDataInfo(probeSideKeyIDDataPos, nonKeyDataPosMapping);
+    auto hashJoinProbe = make_unique<HashJoinProbe>(probeDataInfo, move(hashJoinBuild),
+        move(probeSidePrevOperator), context, physicalOperatorID++);
     hashJoinProbe->sharedState = hashJoinSharedState;
     return hashJoinProbe;
 }
@@ -367,7 +375,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
     for (auto& expression : logicalAggregate.getExpressionsToAggregate()) {
         expressionEvaluators.push_back(
             static_unique_pointer_cast<ExpressionEvaluator, AggregateExpressionEvaluator>(
-                expressionMapper.mapToPhysical(*expression, infoBeforeAggregate, context)));
+                expressionMapper.mapLogicalExpressionToPhysical(
+                    *expression, infoBeforeAggregate, context)));
         expressionsOutputPos.push_back(info.getDataPos(expression->getUniqueName()));
         info.addComputedExpressions(expression->getUniqueName());
     }
@@ -399,12 +408,40 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExistsToPhysical(
     auto& logicalExists = (LogicalExists&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     auto prevInfo = enterSubquery(&info);
-    auto subPlan = mapToPhysical(logicalExists.getSubPlan()->copy(), context);
+    auto subPlan = mapLogicalPlanToPhysical(logicalExists.getSubPlan()->copy(), context);
     exitSubquery(prevInfo);
     info.addComputedExpressions(logicalExists.getSubqueryExpression()->getUniqueName());
     auto outDataPos = info.getDataPos(logicalExists.getSubqueryExpression()->getUniqueName());
     return make_unique<Exists>(
         outDataPos, move(subPlan), move(prevOperator), context, physicalOperatorID++);
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLeftNestedLoopJoinToPhysical(
+    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    auto& logicalLeftNestedLoopJoin = (LogicalLeftNestedLoopJoin&)*logicalOperator;
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
+    auto prevInfo = enterSubquery(&info);
+    auto subPlan =
+        mapLogicalPlanToPhysical(logicalLeftNestedLoopJoin.getSubPlan()->copy(), context);
+    exitSubquery(prevInfo);
+    vector<pair<DataPos, DataPos>> subPlanVectorsToRefPosMapping;
+    auto& subPlanSchema = *logicalLeftNestedLoopJoin.getSubPlan()->schema;
+    auto subPlanInfo = PhysicalOperatorsInfo(subPlanSchema);
+    // Populate data position mapping for merging sub-plan result set
+    for (auto i = 0u; i < subPlanSchema.getNumGroups(); ++i) {
+        auto& group = *subPlanSchema.getGroup(i);
+        for (auto& expressionName : group.expressionNames) {
+            if (info.expressionHasComputed(expressionName)) {
+                continue;
+            }
+            auto innerPos = subPlanInfo.getDataPos(expressionName);
+            auto outerPos = info.getDataPos(expressionName);
+            subPlanVectorsToRefPosMapping.emplace_back(innerPos, outerPos);
+            info.addComputedExpressions(expressionName);
+        }
+    }
+    return make_unique<LeftNestedLoopJoin>(move(subPlanVectorsToRefPosMapping), move(subPlan),
+        move(prevOperator), context, physicalOperatorID++);
 }
 
 } // namespace processor

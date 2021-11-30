@@ -28,11 +28,11 @@ struct ProbeState {
 struct ProbeDataInfo {
 
 public:
-    ProbeDataInfo(const DataPos& keyIDDataPos, vector<DataPos> nonKeyDataPoses)
-        : keyIDDataPos{keyIDDataPos}, nonKeyDataPoses{move(nonKeyDataPoses)} {}
+    ProbeDataInfo(const DataPos& keyIDDataPos, vector<pair<DataPos, DataPos>> nonKeyDataPosMapping)
+        : keyIDDataPos{keyIDDataPos}, nonKeyDataPosMapping{move(nonKeyDataPosMapping)} {}
 
     ProbeDataInfo(const ProbeDataInfo& other)
-        : ProbeDataInfo{other.keyIDDataPos, other.nonKeyDataPoses} {}
+        : ProbeDataInfo{other.keyIDDataPos, other.nonKeyDataPosMapping} {}
 
     inline uint32_t getKeyIDDataChunkPos() const { return keyIDDataPos.dataChunkPos; }
 
@@ -40,22 +40,22 @@ public:
 
 public:
     DataPos keyIDDataPos;
-    vector<DataPos> nonKeyDataPoses;
+    // position mapping of non-key vectors from build side to probe side
+    vector<pair<DataPos, DataPos>> nonKeyDataPosMapping;
 };
 
 class HashJoinProbe : public PhysicalOperator {
 public:
-    HashJoinProbe(const BuildDataInfo& buildDataInfo, const ProbeDataInfo& probeDataInfo,
-        unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp,
-        ExecutionContext& context, uint32_t id);
+    HashJoinProbe(const ProbeDataInfo& probeDataInfo, unique_ptr<PhysicalOperator> buildSidePrevOp,
+        unique_ptr<PhysicalOperator> probeSidePrevOp, ExecutionContext& context, uint32_t id);
 
     void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
     void reInitialize() override;
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        auto cloneOp = make_unique<HashJoinProbe>(buildDataInfo, probeDataInfo,
-            buildSidePrevOp->clone(), prevOperator->clone(), context, id);
+        auto cloneOp = make_unique<HashJoinProbe>(
+            probeDataInfo, buildSidePrevOp->clone(), prevOperator->clone(), context, id);
         cloneOp->sharedState = this->sharedState;
         return cloneOp;
     }
@@ -65,7 +65,6 @@ public:
     shared_ptr<HashJoinSharedState> sharedState;
 
 private:
-    BuildDataInfo buildDataInfo;
     ProbeDataInfo probeDataInfo;
     uint64_t tuplePosToReadInProbedState;
     vector<DataPos> resultVectorsPos;

@@ -1,7 +1,7 @@
 #include "src/processor/include/physical_plan/operator/exists.h"
 
 #include "src/processor/include/physical_plan/operator/result_collector.h"
-#include "src/processor/include/physical_plan/operator/select_scan.h"
+#include "src/processor/include/physical_plan/operator/result_scan.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
 
 namespace graphflow {
@@ -16,7 +16,7 @@ void Exists::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     auto subPlanResultCollector = (ResultCollector*)subPlan->lastOperator.get();
     auto op = subPlanResultCollector->getPipelineLeafOperator();
     assert(op->operatorType == SELECT_SCAN);
-    ((SelectScan*)op)->setResultSetToCopyFrom(this->resultSet.get());
+    ((ResultScan*)op)->setResultSetToCopyFrom(this->resultSet.get());
     subPlanResultCollector->init();
 }
 

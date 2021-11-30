@@ -5,7 +5,7 @@
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
 #include "src/planner/include/logical_plan/operator/intersect/logical_intersect.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
-#include "src/planner/include/logical_plan/operator/select_scan/logical_select_scan.h"
+#include "src/planner/include/logical_plan/operator/select_scan/logical_result_scan.h"
 
 namespace graphflow {
 namespace planner {
@@ -26,7 +26,7 @@ static shared_ptr<Expression> createNodeIDEqualComparison(
 vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
     const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans) {
     context->init(queryPart, move(prevPlans));
-    context->hasExpressionsToSelectFromOuter() ? enumerateSelectScan() : enumerateSingleNode();
+    context->hasExpressionsToSelectFromOuter() ? enumerateResultScan() : enumerateSingleNode();
     while (context->hasNextLevel()) {
         context->incrementCurrentLevel();
         enumerateSingleRel();
@@ -50,7 +50,7 @@ void JoinOrderEnumerator::exitSubquery(unique_ptr<JoinOrderEnumeratorContext> pr
     context = move(prevContext);
 }
 
-void JoinOrderEnumerator::enumerateSelectScan() {
+void JoinOrderEnumerator::enumerateResultScan() {
     auto emptySubgraph = context->getEmptySubqueryGraph();
     auto plan = context->containPlans(emptySubgraph) ? context->getPlans(emptySubgraph)[0]->copy() :
                                                        make_unique<LogicalPlan>();
@@ -64,7 +64,7 @@ void JoinOrderEnumerator::enumerateSelectScan() {
                 expression->children[0]->getUniqueName()));
         }
     }
-    appendSelectScan(expressionNamesToSelect, *plan);
+    appendResultScan(expressionNamesToSelect, *plan);
     for (auto& expression :
         getNewMatchedExpressions(emptySubgraph, newSubgraph, context->getWhereExpressions())) {
         enumerator->appendFilter(expression, *plan);
@@ -208,16 +208,16 @@ void JoinOrderEnumerator::enumerateHashJoin() {
     }
 }
 
-void JoinOrderEnumerator::appendSelectScan(
+void JoinOrderEnumerator::appendResultScan(
     const unordered_set<string>& expressionNamesToSelect, LogicalPlan& plan) {
-    auto selectScan = make_shared<LogicalSelectScan>(expressionNamesToSelect);
+    auto resultScan = make_shared<LogicalResultScan>(expressionNamesToSelect);
     auto groupPos = plan.schema->createGroup();
     for (auto& expressionToSelect : expressionNamesToSelect) {
         plan.schema->insertToGroup(expressionToSelect, groupPos);
     }
     plan.schema->groups[groupPos]->estimatedCardinality = 1;
     plan.schema->groups[groupPos]->isFlat = true;
-    plan.appendOperator(move(selectScan));
+    plan.appendOperator(move(resultScan));
 }
 
 void JoinOrderEnumerator::appendScanNodeID(const NodeExpression& queryNode, LogicalPlan& plan) {

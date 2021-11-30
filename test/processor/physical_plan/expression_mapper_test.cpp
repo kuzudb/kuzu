@@ -65,8 +65,8 @@ TEST_F(ExpressionMapperTest, BinaryExpressionEvaluatorTest) {
     resultSet.insert(0, dataChunk);
 
     auto physicalOperatorInfo = makeSimplePhysicalOperatorInfo();
-    auto rootExpressionEvaluator =
-        ExpressionMapper().mapToPhysical(*addLogicalOperator, physicalOperatorInfo, *context);
+    auto rootExpressionEvaluator = ExpressionMapper().mapLogicalExpressionToPhysical(
+        *addLogicalOperator, physicalOperatorInfo, *context);
     rootExpressionEvaluator->initResultSet(resultSet, *memoryManager);
     rootExpressionEvaluator->evaluate();
 
@@ -97,8 +97,8 @@ TEST_F(ExpressionMapperTest, UnaryExpressionEvaluatorTest) {
     resultSet.insert(0, dataChunk);
 
     auto physicalOperatorInfo = makeSimplePhysicalOperatorInfo();
-    auto rootExpressionEvaluator =
-        ExpressionMapper().mapToPhysical(*negateLogicalOperator, physicalOperatorInfo, *context);
+    auto rootExpressionEvaluator = ExpressionMapper().mapLogicalExpressionToPhysical(
+        *negateLogicalOperator, physicalOperatorInfo, *context);
     rootExpressionEvaluator->initResultSet(resultSet, *memoryManager);
     rootExpressionEvaluator->evaluate();
 
@@ -131,8 +131,8 @@ TEST_F(ExpressionMapperTest, AggrExpressionEvaluatorTest) {
 
     auto countStarExpr = make_unique<Expression>(
         ExpressionType::COUNT_STAR_FUNC, DataType::INT64, "COUNT(*)_0" /* uniqueName */);
-    auto countStarExprEvaluator =
-        ExpressionMapper().mapToPhysical(*countStarExpr, physicalOperatorInfo, *context);
+    auto countStarExprEvaluator = ExpressionMapper().mapLogicalExpressionToPhysical(
+        *countStarExpr, physicalOperatorInfo, *context);
     auto countStarAggrEvaluator =
         reinterpret_cast<AggregateExpressionEvaluator*>(countStarExprEvaluator.get());
     countStarAggrEvaluator->initResultSet(resultSet, *memoryManager);

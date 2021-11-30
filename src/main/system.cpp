@@ -40,7 +40,7 @@ void System::executeQuery(SessionContext& context) const {
 
     auto executionContext = make_unique<ExecutionContext>(*context.profiler, memManager.get());
     auto mapper = PlanMapper(*graph);
-    auto physicalPlan = mapper.mapToPhysical(move(logicalPlan), *executionContext);
+    auto physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan), *executionContext);
     compilingTimeMetric.stop();
     context.compilingTime = compilingTimeMetric.getElapsedTimeMS();
 
@@ -74,7 +74,8 @@ unique_ptr<QueryResult> System::executePlan(
     unique_ptr<LogicalPlan> logicalPlan, SessionContext& sessionContext) const {
     sessionContext.profiler->resetMetrics();
     auto executionContext = ExecutionContext(*sessionContext.profiler, memManager.get());
-    auto physicalPlan = PlanMapper(*graph).mapToPhysical(move(logicalPlan), executionContext);
+    auto physicalPlan =
+        PlanMapper(*graph).mapLogicalPlanToPhysical(move(logicalPlan), executionContext);
     return processor->execute(physicalPlan.get(), sessionContext.numThreads);
 }
 

@@ -57,6 +57,24 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "hard_code_optional_match_test",
+    srcs = [
+        "hard_code_optional_match_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "//dataset",
+    ],
+    deps = [
+        "//test/test_utility:test_helper",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
 filegroup(
     name = "testfiles",
     srcs = glob(["queries/**"]),

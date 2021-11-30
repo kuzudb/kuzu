@@ -1,11 +1,11 @@
-#include "src/processor/include/physical_plan/operator/select_scan.h"
+#include "src/processor/include/physical_plan/operator/result_scan.h"
 
 #include <cstring>
 
 namespace graphflow {
 namespace processor {
 
-void SelectScan::initResultSet(const shared_ptr<ResultSet>& resultSet) {
+void ResultScan::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     PhysicalOperator::initResultSet(resultSet);
     outDataChunk = this->resultSet->dataChunks[outDataChunkPos];
     outDataChunk->state = DataChunkState::getSingleValueDataChunkState();
@@ -19,16 +19,16 @@ void SelectScan::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     }
 }
 
-void SelectScan::reInitialize() {
+void ResultScan::reInitialize() {
     isFirstExecution = true;
 }
 
 /**
- * SelectScan assumes all input is flat. Thus, getNextTuples() should be called exactly twice. On
- * the first call SelectScan copies in the flat input tuple. On the second call SelectScan
+ * ResultScan assumes all input is flat. Thus, getNextTuples() should be called exactly twice. On
+ * the first call ResultScan copies in the flat input tuple. On the second call ResultScan
  * terminates the execution.
  */
-bool SelectScan::getNextTuples() {
+bool ResultScan::getNextTuples() {
     metrics->executionTime.start();
     if (isFirstExecution) {
         isFirstExecution = false;
