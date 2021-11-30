@@ -25,29 +25,27 @@ struct ProbeState {
     nodeID_t probeSideKeyNodeID;
 };
 
-struct ProbeDataChunksInfo {
+struct ProbeDataInfo {
 
 public:
-    ProbeDataChunksInfo(const DataPos& keyDataPos, uint32_t newFlatDataChunkPos,
-        vector<uint32_t> newUnFlatDataChunksPos)
-        : keyDataPos{keyDataPos}, newFlatDataChunkPos{newFlatDataChunkPos},
-          newUnFlatDataChunksPos{move(newUnFlatDataChunksPos)} {}
+    ProbeDataInfo(const DataPos& keyIDDataPos, vector<DataPos> nonKeyDataPoses)
+        : keyIDDataPos{keyIDDataPos}, nonKeyDataPoses{move(nonKeyDataPoses)} {}
 
-    ProbeDataChunksInfo(const ProbeDataChunksInfo& other)
-        : ProbeDataChunksInfo(
-              other.keyDataPos, other.newFlatDataChunkPos, other.newUnFlatDataChunksPos){};
+    ProbeDataInfo(const ProbeDataInfo& other)
+        : ProbeDataInfo{other.keyIDDataPos, other.nonKeyDataPoses} {}
+
+    inline uint32_t getKeyIDDataChunkPos() const { return keyIDDataPos.dataChunkPos; }
+
+    inline uint32_t getKeyIDVectorPos() const { return keyIDDataPos.valueVectorPos; }
 
 public:
-    DataPos keyDataPos;
-    uint32_t newFlatDataChunkPos;
-    vector<uint32_t> newUnFlatDataChunksPos;
+    DataPos keyIDDataPos;
+    vector<DataPos> nonKeyDataPoses;
 };
 
 class HashJoinProbe : public PhysicalOperator {
 public:
-    HashJoinProbe(const BuildDataChunksInfo& buildDataChunksInfo,
-        const ProbeDataChunksInfo& probeDataChunksInfo,
-        vector<unordered_map<uint32_t, DataPos>> buildSideValueVectorsOutputPos,
+    HashJoinProbe(const BuildDataInfo& buildDataInfo, const ProbeDataInfo& probeDataInfo,
         unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp,
         ExecutionContext& context, uint32_t id);
 
@@ -56,9 +54,8 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        auto cloneOp = make_unique<HashJoinProbe>(buildDataChunksInfo, probeDataChunksInfo,
-            buildSideValueVectorsOutputPos, buildSidePrevOp->clone(), prevOperator->clone(),
-            context, id);
+        auto cloneOp = make_unique<HashJoinProbe>(buildDataInfo, probeDataInfo,
+            buildSidePrevOp->clone(), prevOperator->clone(), context, id);
         cloneOp->sharedState = this->sharedState;
         return cloneOp;
     }
@@ -68,9 +65,8 @@ public:
     shared_ptr<HashJoinSharedState> sharedState;
 
 private:
-    BuildDataChunksInfo buildDataChunksInfo;
-    ProbeDataChunksInfo probeDataChunksInfo;
-    vector<unordered_map<uint32_t, DataPos>> buildSideValueVectorsOutputPos;
+    BuildDataInfo buildDataInfo;
+    ProbeDataInfo probeDataInfo;
     uint64_t tuplePosToReadInProbedState;
     vector<DataPos> resultVectorsPos;
     vector<uint64_t> fieldsToRead;

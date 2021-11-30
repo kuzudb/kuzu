@@ -15,41 +15,28 @@ static uint64_t nextPowerOfTwo(uint64_t v) {
     return v;
 }
 
-HashJoinBuild::HashJoinBuild(const BuildDataChunksInfo& buildDataChunksInfo,
-    shared_ptr<ResultSet> resultSet, unique_ptr<PhysicalOperator> prevOperator,
-    ExecutionContext& context, uint32_t id)
-    : Sink{move(resultSet), move(prevOperator), HASH_JOIN_BUILD, context, id},
-      dataChunksInfo{buildDataChunksInfo} {}
+HashJoinBuild::HashJoinBuild(const BuildDataInfo& buildDataInfo, shared_ptr<ResultSet> resultSet,
+    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+    : Sink{move(resultSet), move(prevOperator), HASH_JOIN_BUILD, context, id}, buildDataInfo{
+                                                                                   buildDataInfo} {}
 
 void HashJoinBuild::init() {
     Sink::init();
-    keyDataChunk = resultSet->dataChunks[dataChunksInfo.keyDataPos.dataChunkPos];
-    // The key Vector field.
-    auto keyVectorPos = dataChunksInfo.keyDataPos.valueVectorPos;
     RowLayout rowLayout;
-    rowLayout.appendField({keyDataChunk->valueVectors[keyVectorPos]->getNumBytesPerValue(),
-        false /* isVectorOverflow */});
-    vectorsToAppend.push_back(keyDataChunk->valueVectors[keyVectorPos]);
-    for (auto vectorPos = 0u; vectorPos < keyDataChunk->valueVectors.size(); vectorPos++) {
-        if (vectorPos == dataChunksInfo.keyDataPos.valueVectorPos) {
-            continue;
-        }
-        rowLayout.appendField({keyDataChunk->valueVectors[vectorPos]->getNumBytesPerValue(),
-            false /* isVectorOverflow */});
-        vectorsToAppend.push_back(keyDataChunk->valueVectors[vectorPos]);
-    }
-    for (auto dataChunkPos = 0u; dataChunkPos < resultSet->dataChunks.size(); dataChunkPos++) {
-        if (dataChunkPos == dataChunksInfo.keyDataPos.dataChunkPos) {
-            continue;
-        }
-        for (auto& vector : resultSet->dataChunks[dataChunkPos]->valueVectors) {
-            auto numBytesForField = dataChunksInfo.dataChunkPosToIsFlat[dataChunkPos] ?
-                                        vector->getNumBytesPerValue() :
-                                        sizeof(overflow_value_t);
-            rowLayout.appendField(
-                {numBytesForField, !dataChunksInfo.dataChunkPosToIsFlat[dataChunkPos]});
-            vectorsToAppend.push_back(vector);
-        }
+    keyDataChunk = this->resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
+    auto keyVector = keyDataChunk->valueVectors[buildDataInfo.getKeyIDVectorPos()];
+    rowLayout.appendField({keyVector->getNumBytesPerValue(), false /* isVectorOverflow */});
+    vectorsToAppend.push_back(keyVector);
+    for (auto i = 0u; i < buildDataInfo.nonKeyDataPoses.size(); ++i) {
+        auto dataChunkPos = buildDataInfo.nonKeyDataPoses[i].dataChunkPos;
+        auto dataChunk = this->resultSet->dataChunks[dataChunkPos];
+        auto vectorPos = buildDataInfo.nonKeyDataPoses[i].valueVectorPos;
+        auto vector = dataChunk->valueVectors[vectorPos];
+        auto isVectorFlat = buildDataInfo.isNonKeyDataFlat[i];
+        auto numBytesForField =
+            isVectorFlat ? vector->getNumBytesPerValue() : sizeof(overflow_value_t);
+        rowLayout.appendField({numBytesForField, !isVectorFlat});
+        vectorsToAppend.push_back(vector);
     }
     // The prev pointer field.
     rowLayout.appendField({sizeof(uint8_t*), false /* isVectorOverflow */});
