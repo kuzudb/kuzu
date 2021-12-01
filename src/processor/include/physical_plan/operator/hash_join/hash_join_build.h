@@ -31,23 +31,30 @@ public:
     uint64_t hashBitMask;
 };
 
-struct BuildDataChunksInfo {
+struct BuildDataInfo {
 
 public:
-    BuildDataChunksInfo(const DataPos& keyDataPos, vector<bool> dataChunkPosToIsFlat)
-        : keyDataPos{keyDataPos}, dataChunkPosToIsFlat{move(dataChunkPosToIsFlat)} {}
+    BuildDataInfo(
+        const DataPos& keyIDDataPos, vector<DataPos> nonKeyDataPoses, vector<bool> isNonKeyDataFlat)
+        : keyIDDataPos{keyIDDataPos}, nonKeyDataPoses{move(nonKeyDataPoses)},
+          isNonKeyDataFlat{move(isNonKeyDataFlat)} {}
 
-    BuildDataChunksInfo(const BuildDataChunksInfo& other)
-        : BuildDataChunksInfo(other.keyDataPos, other.dataChunkPosToIsFlat) {}
+    BuildDataInfo(const BuildDataInfo& other)
+        : BuildDataInfo{other.keyIDDataPos, other.nonKeyDataPoses, other.isNonKeyDataFlat} {}
+
+    inline uint32_t getKeyIDDataChunkPos() const { return keyIDDataPos.dataChunkPos; }
+
+    inline uint32_t getKeyIDVectorPos() const { return keyIDDataPos.valueVectorPos; }
 
 public:
-    DataPos keyDataPos;
-    vector<bool> dataChunkPosToIsFlat;
+    DataPos keyIDDataPos;
+    vector<DataPos> nonKeyDataPoses;
+    vector<bool> isNonKeyDataFlat;
 };
 
 class HashJoinBuild : public Sink {
 public:
-    HashJoinBuild(const BuildDataChunksInfo& buildDataChunksInfo, shared_ptr<ResultSet> resultSet,
+    HashJoinBuild(const BuildDataInfo& buildDataInfo, shared_ptr<ResultSet> resultSet,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
     void init() override;
@@ -61,7 +68,7 @@ public:
                 i, make_shared<DataChunk>(resultSet->dataChunks[i]->valueVectors.size()));
         }
         auto cloneOp = make_unique<HashJoinBuild>(
-            dataChunksInfo, move(clonedResultSet), prevOperator->clone(), context, id);
+            buildDataInfo, move(clonedResultSet), prevOperator->clone(), context, id);
         cloneOp->sharedState = this->sharedState;
         return cloneOp;
     }
@@ -69,7 +76,7 @@ public:
     shared_ptr<HashJoinSharedState> sharedState;
 
 private:
-    BuildDataChunksInfo dataChunksInfo;
+    BuildDataInfo buildDataInfo;
     shared_ptr<DataChunk> keyDataChunk;
     vector<shared_ptr<ValueVector>> vectorsToAppend;
     unique_ptr<RowCollection> rowCollection;

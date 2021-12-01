@@ -285,49 +285,45 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    // Populate build side and probe side vector positions
     auto& hashJoin = (const LogicalHashJoin&)*logicalOperator;
-    // create hashJoin build
     auto buildSideInfo = PhysicalOperatorsInfo(*hashJoin.buildSideSchema);
+    auto buildSideKeyIDDataPos = buildSideInfo.getDataPos(hashJoin.joinNodeID);
+    auto probeSideKeyIDDataPos = info.getDataPos(hashJoin.joinNodeID);
+    vector<DataPos> probeSideNonKeyDataPoses;
+    vector<DataPos> buildSideNonKeyDataPoses;
+    vector<bool> isBuildSideNonKeyDataFlat;
+    auto& buildSideKeyGroup = *hashJoin.buildSideSchema->groups[buildSideKeyIDDataPos.dataChunkPos];
+    for (auto i = 0u; i < hashJoin.buildSideSchema->getNumGroups(); ++i) {
+        auto& buildSideGroup = *hashJoin.buildSideSchema->groups[i];
+        for (auto& expressionName : buildSideGroup.expressionNames) {
+            if (i == buildSideKeyIDDataPos.dataChunkPos && expressionName == hashJoin.joinNodeID) {
+                continue;
+            }
+            probeSideNonKeyDataPoses.push_back(info.getDataPos(expressionName));
+            auto buildSideDataPos = buildSideInfo.getDataPos(expressionName);
+            buildSideNonKeyDataPoses.push_back(buildSideDataPos);
+            isBuildSideNonKeyDataFlat.push_back(
+                hashJoin.buildSideSchema->getGroup(buildSideDataPos.dataChunkPos)->isFlat);
+        }
+    }
+
+    // create hashJoin build
     auto buildSidePrevOperator =
         mapLogicalOperatorToPhysical(hashJoin.buildSidePrevOperator, buildSideInfo, context);
-    vector<bool> dataChunkPosToIsFlat;
-    for (auto& buildSideGroup : hashJoin.buildSideSchema->groups) {
-        dataChunkPosToIsFlat.push_back(buildSideGroup->isFlat);
-    }
-    auto buildDataChunksInfo = BuildDataChunksInfo(
-        buildSideInfo.getDataPos(hashJoin.joinNodeID), move(dataChunkPosToIsFlat));
-    auto hashJoinBuild = make_unique<HashJoinBuild>(buildDataChunksInfo,
-        populateResultSet(*hashJoin.buildSideSchema), move(buildSidePrevOperator), context,
-        physicalOperatorID++);
+    auto buildDataInfo =
+        BuildDataInfo(buildSideKeyIDDataPos, buildSideNonKeyDataPoses, isBuildSideNonKeyDataFlat);
+    auto hashJoinBuild =
+        make_unique<HashJoinBuild>(buildDataInfo, populateResultSet(*hashJoin.buildSideSchema),
+            move(buildSidePrevOperator), context, physicalOperatorID++);
     auto hashJoinSharedState = make_shared<HashJoinSharedState>();
     hashJoinBuild->sharedState = hashJoinSharedState;
 
     // create hashJoin probe
     auto probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin.prevOperator, info, context);
-    auto probeDataChunksInfo = ProbeDataChunksInfo(info.getDataPos(hashJoin.joinNodeID),
-        hashJoin.probeSideFlatGroupPos, hashJoin.probeSideUnFlatGroupsPos);
-    // for each dataChunk on build side, we maintain a map from value vector position to its output
-    // position of probe side.
-    vector<unordered_map<uint32_t, DataPos>> buildSideValueVectorsOutputPos;
-    for (auto i = 0u; i < hashJoin.buildSideSchema->groups.size(); ++i) {
-        buildSideValueVectorsOutputPos.emplace_back(unordered_map<uint32_t, DataPos>());
-        auto& buildSideGroup = *hashJoin.buildSideSchema->groups[i];
-        for (auto& expressionName : buildSideGroup.expressionNames) {
-            if (i == buildDataChunksInfo.keyDataPos.dataChunkPos &&
-                expressionName == hashJoin.joinNodeID) {
-                continue;
-            }
-            auto [buildSideDataChunkPos, buildSideValueVectorPos] =
-                buildSideInfo.getDataPos(expressionName);
-            assert(buildSideDataChunkPos == i);
-            buildSideValueVectorsOutputPos[i].insert(
-                {buildSideValueVectorPos, info.getDataPos(expressionName)});
-        }
-    }
-
-    auto hashJoinProbe = make_unique<HashJoinProbe>(buildDataChunksInfo, probeDataChunksInfo,
-        move(buildSideValueVectorsOutputPos), move(hashJoinBuild), move(probeSidePrevOperator),
-        context, physicalOperatorID++);
+    auto probeDataInfo = ProbeDataInfo(probeSideKeyIDDataPos, probeSideNonKeyDataPoses);
+    auto hashJoinProbe = make_unique<HashJoinProbe>(buildDataInfo, probeDataInfo,
+        move(hashJoinBuild), move(probeSidePrevOperator), context, physicalOperatorID++);
     hashJoinProbe->sharedState = hashJoinSharedState;
     return hashJoinProbe;
 }

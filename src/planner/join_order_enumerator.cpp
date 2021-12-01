@@ -285,7 +285,6 @@ void JoinOrderEnumerator::appendLogicalHashJoin(
     auto allGroupsOnBuildSideIsFlat = true;
     // the appended probe side group that holds all flat groups on build side
     auto probeSideNewFlatGroupPos = UINT32_MAX;
-    vector<uint32_t> probeSideNewUnFlatGroupsPos;
     for (auto i = 0u; i < buildPlan.schema->groups.size(); ++i) {
         if (i == buildSideKeyGroupPos) {
             continue;
@@ -304,16 +303,14 @@ void JoinOrderEnumerator::appendLogicalHashJoin(
             probePlan.schema->insertToGroup(*buildSideGroup, groupPos);
             probePlan.schema->groups[groupPos]->estimatedCardinality =
                 buildSideGroup->estimatedCardinality;
-            probeSideNewUnFlatGroupsPos.push_back(groupPos);
         }
     }
 
     if (!allGroupsOnBuildSideIsFlat && probeSideNewFlatGroupPos != UINT32_MAX) {
         probePlan.schema->flattenGroup(probeSideNewFlatGroupPos);
     }
-    auto hashJoin =
-        make_shared<LogicalHashJoin>(joinNodeID, buildPlan.lastOperator, buildPlan.schema->copy(),
-            probeSideNewFlatGroupPos, probeSideNewUnFlatGroupsPos, probePlan.lastOperator);
+    auto hashJoin = make_shared<LogicalHashJoin>(
+        joinNodeID, buildPlan.lastOperator, buildPlan.schema->copy(), probePlan.lastOperator);
     probePlan.appendOperator(move(hashJoin));
 }
 

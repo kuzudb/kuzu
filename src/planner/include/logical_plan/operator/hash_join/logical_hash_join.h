@@ -10,13 +10,10 @@ class LogicalHashJoin : public LogicalOperator {
 
 public:
     LogicalHashJoin(string joinNodeID, shared_ptr<LogicalOperator> buildSidePrevOperator,
-        unique_ptr<Schema> buildSideSchema, uint32_t probeSideFlatGroupPos,
-        vector<uint32_t> probeSideUnFlatGroupsPos,
-        shared_ptr<LogicalOperator> probeSidePrevOperator)
+        unique_ptr<Schema> buildSideSchema, shared_ptr<LogicalOperator> probeSidePrevOperator)
         : LogicalOperator(move(probeSidePrevOperator)),
           joinNodeID(move(joinNodeID)), buildSidePrevOperator{move(buildSidePrevOperator)},
-          buildSideSchema(move(buildSideSchema)), probeSideFlatGroupPos{probeSideFlatGroupPos},
-          probeSideUnFlatGroupsPos{move(probeSideUnFlatGroupsPos)} {}
+          buildSideSchema(move(buildSideSchema)) {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_HASH_JOIN;
@@ -36,16 +33,13 @@ public:
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalHashJoin>(joinNodeID, buildSidePrevOperator->copy(),
-            buildSideSchema->copy(), probeSideFlatGroupPos, probeSideUnFlatGroupsPos,
-            prevOperator->copy());
+            buildSideSchema->copy(), prevOperator->copy());
     }
 
 public:
     const string joinNodeID;
     shared_ptr<LogicalOperator> buildSidePrevOperator;
     unique_ptr<Schema> buildSideSchema;
-    uint32_t probeSideFlatGroupPos;
-    vector<uint32_t> probeSideUnFlatGroupsPos;
 };
 } // namespace planner
 } // namespace graphflow
