@@ -25,7 +25,8 @@ void HashJoinBuild::init() {
     RowLayout rowLayout;
     keyDataChunk = this->resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
     auto keyVector = keyDataChunk->valueVectors[buildDataInfo.getKeyIDVectorPos()];
-    rowLayout.appendField({keyVector->getNumBytesPerValue(), false /* isVectorOverflow */});
+    rowLayout.appendField(
+        {keyVector->dataType, keyVector->getNumBytesPerValue(), false /* isVectorOverflow */});
     vectorsToAppend.push_back(keyVector);
     for (auto i = 0u; i < buildDataInfo.nonKeyDataPoses.size(); ++i) {
         auto dataChunkPos = buildDataInfo.nonKeyDataPoses[i].dataChunkPos;
@@ -35,13 +36,13 @@ void HashJoinBuild::init() {
         auto isVectorFlat = buildDataInfo.isNonKeyDataFlat[i];
         auto numBytesForField =
             isVectorFlat ? vector->getNumBytesPerValue() : sizeof(overflow_value_t);
-        rowLayout.appendField({numBytesForField, !isVectorFlat});
+        rowLayout.appendField({vector->dataType, numBytesForField, !isVectorFlat});
         vectorsToAppend.push_back(vector);
     }
     // The prev pointer field.
-    rowLayout.appendField({sizeof(uint8_t*), false /* isVectorOverflow */});
+    rowLayout.appendField({INT64, sizeof(uint8_t*), false /* isVectorOverflow */});
+    rowLayout.initialize();
     rowCollection = make_unique<RowCollection>(*context.memoryManager, rowLayout);
-
     {
         lock_guard<mutex> sharedStateLock(sharedState->hashJoinSharedStateLock);
         if (sharedState->rowCollection == nullptr) {

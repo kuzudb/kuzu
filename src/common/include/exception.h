@@ -51,5 +51,11 @@ public:
         : Exception("OrderBy encoder exception: " + msg){};
 };
 
+class RowCollectionException : public Exception {
+public:
+    explicit RowCollectionException(const string& msg)
+        : Exception("RowCollection exception: " + msg){};
+};
+
 } // namespace common
 } // namespace graphflow
