@@ -17,7 +17,7 @@ public:
     // Create plan mapper with default mapper context.
     explicit PlanMapper(const Graph& graph)
         : graph{graph}, outerPhysicalOperatorsInfo{nullptr}, physicalOperatorID{0},
-          physicalIDToLogicalOperatorMap{}, expressionMapper{this} {}
+          physicalIDToLogicalOperatorMap{}, expressionMapper{} {}
 
     unique_ptr<PhysicalPlan> mapToPhysical(
         unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext);
@@ -62,6 +62,8 @@ private:
     unique_ptr<PhysicalOperator> mapLogicalLimitToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalAggregateToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalExistsToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
 
 public:

@@ -36,12 +36,10 @@ cc_library(
     name = "evaluator_impls",
     srcs = [
         "binary_expression_evaluator.cpp",
-        "existential_subquery_evaluator.cpp",
         "unary_expression_evaluator.cpp",
     ],
     hdrs = [
         "include/binary_expression_evaluator.h",
-        "include/existential_subquery_evaluator.h",
         "include/unary_expression_evaluator.h",
     ],
     visibility = ["//visibility:public"],

@@ -4,6 +4,7 @@
 
 #include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
 #include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
+#include "src/planner/include/logical_plan/operator/exists/logical_exist.h"
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
@@ -20,6 +21,7 @@
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregation_scan.h"
+#include "src/processor/include/physical_plan/operator/exists.h"
 #include "src/processor/include/physical_plan/operator/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten.h"
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
@@ -132,6 +134,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     } break;
     case LOGICAL_AGGREGATE: {
         physicalOperator = mapLogicalAggregateToPhysical(logicalOperator.get(), info, context);
+    } break;
+    case LOGICAL_EXISTS: {
+        physicalOperator = mapLogicalExistsToPhysical(logicalOperator.get(), info, context);
     } break;
     default:
         assert(false);
@@ -413,6 +418,19 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
     auto aggregationScan = make_unique<SimpleAggregationScan>(
         expressionsOutputPos, move(aggregate), sharedState, context, physicalOperatorID++);
     return aggregationScan;
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExistsToPhysical(
+    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
+    auto& logicalExists = (LogicalExists&)*logicalOperator;
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
+    auto prevInfo = enterSubquery(&info);
+    auto subPlan = mapToPhysical(logicalExists.getSubPlan()->copy(), context);
+    exitSubquery(prevInfo);
+    info.addComputedExpressions(logicalExists.getSubqueryExpression()->getUniqueName());
+    auto outDataPos = info.getDataPos(logicalExists.getSubqueryExpression()->getUniqueName());
+    return make_unique<Exists>(
+        outDataPos, move(subPlan), move(prevOperator), context, physicalOperatorID++);
 }
 
 } // namespace processor

@@ -178,6 +178,7 @@ cc_library(
         "aggregate",
         "hash_join",
         "order_by",
+        "physical_plan",
         "read_list",
         "scan_attribute",
         "//src/common:csv_reader",
@@ -191,7 +192,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "operator_impls",
+        "base_operator",
     ],
 )
 
@@ -205,6 +206,7 @@ cc_library(
     ]),
     visibility = ["//visibility:public"],
     deps = [
+        "operator_impls",
         "physical_plan",
         "//src/binder:subquery_expression_impl",
         "//src/expression_evaluator:evaluator_impls",
@@ -241,6 +243,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "operator_impls",
         "physical_plan",
         "task_system",
     ],

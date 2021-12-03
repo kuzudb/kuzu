@@ -17,8 +17,6 @@ class PlanMapper;
 class ExpressionMapper {
 
 public:
-    explicit ExpressionMapper(PlanMapper* planMapper) : planMapper{planMapper} {};
-
     unique_ptr<ExpressionEvaluator> mapToPhysical(const Expression& expression,
         const PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
 
@@ -35,13 +33,6 @@ private:
 
     unique_ptr<ExpressionEvaluator> mapLogicalLeafExpressionToPhysical(
         const Expression& expression, const PhysicalOperatorsInfo& physicalOperatorInfo);
-
-    unique_ptr<ExpressionEvaluator> mapLogicalExistentialSubqueryExpressionToPhysical(
-        const Expression& expression, const PhysicalOperatorsInfo& physicalOperatorInfo,
-        ExecutionContext& context);
-
-private:
-    PlanMapper* planMapper;
 };
 
 } // namespace processor

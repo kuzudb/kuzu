@@ -10,6 +10,7 @@ void ResultCollector::reInitialize() {
 
 void ResultCollector::execute() {
     metrics->executionTime.start();
+    Sink::execute();
     while (prevOperator->getNextTuples()) {
         queryResult->numTuples += resultSet->getNumTuples();
         auto clonedResultSet = make_unique<ResultSet>(resultSet->getNumDataChunks());

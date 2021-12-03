@@ -6,7 +6,7 @@
 #include "src/binder/include/expression/property_expression.h"
 #include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
 #include "src/function/include/aggregation/count.h"
-#include "src/processor/include/physical_plan/mapper/plan_mapper.h"
+#include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 
 using ::testing::NiceMock;
 using ::testing::Test;
@@ -20,7 +20,6 @@ class ExpressionMapperTest : public Test {
 public:
     void SetUp() override {
         graph.setUp();
-        planMapper = make_unique<PlanMapper>(graph);
         profiler = make_unique<Profiler>();
         memoryManager = make_unique<MemoryManager>();
         context = make_unique<ExecutionContext>(*profiler, memoryManager.get());
@@ -42,7 +41,6 @@ public:
 
 public:
     NiceMock<TinySnbGraph> graph;
-    unique_ptr<PlanMapper> planMapper;
     unique_ptr<Profiler> profiler;
     unique_ptr<MemoryManager> memoryManager;
     unique_ptr<ExecutionContext> context;
@@ -68,8 +66,7 @@ TEST_F(ExpressionMapperTest, BinaryExpressionEvaluatorTest) {
 
     auto physicalOperatorInfo = makeSimplePhysicalOperatorInfo();
     auto rootExpressionEvaluator =
-        ExpressionMapper(planMapper.get())
-            .mapToPhysical(*addLogicalOperator, physicalOperatorInfo, *context);
+        ExpressionMapper().mapToPhysical(*addLogicalOperator, physicalOperatorInfo, *context);
     rootExpressionEvaluator->initResultSet(resultSet, *memoryManager);
     rootExpressionEvaluator->evaluate();
 
@@ -101,8 +98,7 @@ TEST_F(ExpressionMapperTest, UnaryExpressionEvaluatorTest) {
 
     auto physicalOperatorInfo = makeSimplePhysicalOperatorInfo();
     auto rootExpressionEvaluator =
-        ExpressionMapper(planMapper.get())
-            .mapToPhysical(*negateLogicalOperator, physicalOperatorInfo, *context);
+        ExpressionMapper().mapToPhysical(*negateLogicalOperator, physicalOperatorInfo, *context);
     rootExpressionEvaluator->initResultSet(resultSet, *memoryManager);
     rootExpressionEvaluator->evaluate();
 
@@ -136,8 +132,7 @@ TEST_F(ExpressionMapperTest, AggrExpressionEvaluatorTest) {
     auto countStarExpr = make_unique<Expression>(
         ExpressionType::COUNT_STAR_FUNC, DataType::INT64, "COUNT(*)_0" /* uniqueName */);
     auto countStarExprEvaluator =
-        ExpressionMapper(planMapper.get())
-            .mapToPhysical(*countStarExpr, physicalOperatorInfo, *context);
+        ExpressionMapper().mapToPhysical(*countStarExpr, physicalOperatorInfo, *context);
     auto countStarAggrEvaluator =
         reinterpret_cast<AggregateExpressionEvaluator*>(countStarExprEvaluator.get());
     countStarAggrEvaluator->initResultSet(resultSet, *memoryManager);
