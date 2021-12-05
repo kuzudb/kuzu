@@ -18,7 +18,6 @@ bool ScanStructuredProperty::getNextTuples() {
         return false;
     }
     column->readValues(inValueVector, outValueVector, *metrics->bufferManagerMetrics);
-    outValueVector->fillNullMask();
     metrics->executionTime.stop();
     return true;
 }

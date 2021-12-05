@@ -64,7 +64,8 @@ private:
 
     static void putPropsOfLineIntoInMemPropertyColumns(const vector<PropertyDefinition>& properties,
         CSVReader& reader, InMemNodePropertyColumnsBuilder& builder,
-        vector<PageCursor>& stringOverflowPagesCursors, NodeIDMap* nodeIDMap, uint64_t nodeOffset);
+        vector<PageByteCursor>& stringOverflowPagesCursors, NodeIDMap* nodeIDMap,
+        uint64_t nodeOffset);
 
     static void calcLengthOfUnstrPropertyLists(
         CSVReader& reader, node_offset_t nodeOffset, listSizes_t& unstrPropertyListSizes);
@@ -73,7 +74,7 @@ private:
         const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
         listSizes_t& unstrPropertyListSizes, ListHeaders& unstrPropertyListHeaders,
         ListsMetadata& unstrPropertyListsMetadata, InMemUnstrPropertyPages& unstrPropertyPages,
-        InMemStringOverflowPages& stringOverflowPages, PageCursor& stringOvfPagesCursor);
+        InMemStringOverflowPages& stringOverflowPages, PageByteCursor& stringOvfPagesCursor);
 
 private:
     shared_ptr<spdlog::logger> logger;

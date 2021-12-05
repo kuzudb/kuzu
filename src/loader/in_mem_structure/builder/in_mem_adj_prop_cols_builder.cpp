@@ -21,32 +21,27 @@ InMemAdjAndPropertyColumnsBuilder::InMemAdjAndPropertyColumnsBuilder(
 
 void InMemAdjAndPropertyColumnsBuilder::setRel(
     Direction direction, const vector<nodeID_t>& nodeIDs) {
-    PageCursor cursor;
-    calculatePageCursor(
+    PageElementCursor cursor;
+    calcPageElementCursor(
         description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes(),
         nodeIDs[direction].offset, cursor);
-    dirLabelAdjColumns[direction][nodeIDs[direction].label]->setNbrNode(
-        cursor, nodeIDs[!direction]);
+    dirLabelAdjColumns[direction][nodeIDs[direction].label]->set(cursor, nodeIDs[!direction]);
     (*directionLabelNumRels[direction])[nodeIDs[direction].label]++;
 }
 
 void InMemAdjAndPropertyColumnsBuilder::setProperty(
     const nodeID_t& nodeID, const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
-    PageCursor cursor;
-    calculatePageCursor(TypeUtils::getDataTypeSize(type), nodeID.offset, cursor);
-    labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->setPorperty(cursor, val);
+    PageElementCursor cursor;
+    calcPageElementCursor(TypeUtils::getDataTypeSize(type), nodeID.offset, cursor);
+    labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->set(cursor, val);
 }
 
 void InMemAdjAndPropertyColumnsBuilder::setStringProperty(const nodeID_t& nodeID,
-    const uint32_t& propertyIdx, const char* originalString, PageCursor& cursor) {
-    PageCursor propertyListCursor;
-
-    calculatePageCursor(TypeUtils::getDataTypeSize(STRING), nodeID.offset, propertyListCursor);
-    auto* encodedString = reinterpret_cast<gf_string_t*>(
-        labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->getPtrToMemLoc(
-            propertyListCursor));
+    const uint32_t& propertyIdx, const char* originalString, PageByteCursor& cursor) {
+    gf_string_t gfString;
     labelPropertyIdxStringOverflowPages[nodeID.label][propertyIdx]
-        ->setStrInOvfPageAndPtrInEncString(originalString, cursor, encodedString);
+        ->setStrInOvfPageAndPtrInEncString(originalString, cursor, &gfString);
+    setProperty(nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&gfString), STRING);
 }
 
 void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings() {
@@ -70,7 +65,7 @@ void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings() {
                 for (auto i = 0u; i < numBuckets; i++) {
                     offsetStart = offsetEnd;
                     offsetEnd = min(offsetStart + 256, numNodes);
-                    threadPool.execute(sortOverflowStringsofPropertyColumnTask, offsetStart,
+                    threadPool.execute(sortOverflowStringsOfPropertyColumnTask, offsetStart,
                         offsetEnd, labelPropertyIdxPropertyColumn[nodeLabel][property.id].get(),
                         labelPropertyIdxStringOverflowPages[nodeLabel][property.id].get(),
                         labelPropertyIdxStringOverflowPages[nodeLabel][property.id].get());
@@ -117,18 +112,14 @@ void InMemAdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction dire
     for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
         labelPropertyIdxPropertyColumn[nodeLabel].resize((description.properties).size());
         labelPropertyIdxStringOverflowPages[nodeLabel].resize((description.properties).size());
-        auto numElements = graph.getNumNodesPerLabel()[nodeLabel];
         for (auto& property : description.properties) {
             auto fName = RelsStore::getRelPropertyColumnFName(
                 outputDirectory, description.label, nodeLabel, property.name);
-            uint32_t numElementsPerPage = PAGE_SIZE / TypeUtils::getDataTypeSize(property.dataType);
-            uint64_t numPages = numElements / numElementsPerPage;
-            if (0 != numElements % numElementsPerPage) {
-                numPages++;
-            }
+            auto numPages = calcNumPagesInColumn(TypeUtils::getDataTypeSize(property.dataType),
+                graph.getNumNodesPerLabel()[nodeLabel]);
             labelPropertyIdxPropertyColumn[nodeLabel][property.id] =
                 make_unique<InMemPropertyPages>(
-                    fName, numPages, TypeUtils::getDataTypeSize(property.dataType));
+                    fName, TypeUtils::getDataTypeSize(property.dataType), numPages);
             if (STRING == property.dataType) {
                 labelPropertyIdxStringOverflowPages[nodeLabel][property.id] =
                     make_unique<InMemStringOverflowPages>(
@@ -149,35 +140,31 @@ void InMemAdjAndPropertyColumnsBuilder::buildInMemAdjColumns() {
             for (auto boundNodeLabel : description.nodeLabelsPerDirection[direction]) {
                 auto fName = RelsStore::getAdjColumnFName(
                     outputDirectory, description.label, boundNodeLabel, direction);
-                uint32_t numElementsPerPage =
-                    PAGE_SIZE /
-                    description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes();
-                auto numNodes = graph.getNumNodesPerLabel()[boundNodeLabel];
-                uint64_t numPages = numNodes / numElementsPerPage;
-                if (0 != numNodes % numElementsPerPage) {
-                    numPages++;
-                }
-                dirLabelAdjColumns[direction][boundNodeLabel] =
-                    make_unique<InMemAdjPages>(fName, numPages,
-                        description.nodeIDCompressionSchemePerDirection[direction]
-                            .getNumBytesForLabel(),
-                        description.nodeIDCompressionSchemePerDirection[direction]
-                            .getNumBytesForOffset());
+                auto numPages = calcNumPagesInColumn(
+                    description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes(),
+                    graph.getNumNodesPerLabel()[boundNodeLabel]);
+                dirLabelAdjColumns[direction][boundNodeLabel] = make_unique<InMemAdjPages>(fName,
+                    description.nodeIDCompressionSchemePerDirection[direction]
+                        .getNumBytesForLabel(),
+                    description.nodeIDCompressionSchemePerDirection[direction]
+                        .getNumBytesForOffset(),
+                    numPages, true /*hasNULLBytes*/);
             }
         }
     }
     logger->debug("Done creating InMemAdjColumns.");
 }
 
-void InMemAdjAndPropertyColumnsBuilder::sortOverflowStringsofPropertyColumnTask(
+void InMemAdjAndPropertyColumnsBuilder::sortOverflowStringsOfPropertyColumnTask(
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemPropertyPages* propertyColumn,
     InMemStringOverflowPages* unorderedStringOverflow,
     InMemStringOverflowPages* orderedStringOverflow) {
-    PageCursor unorderedStringOverflowCursor, orderedStringOverflowCursor, propertyListCursor;
+    PageByteCursor unorderedStringOverflowCursor, orderedStringOverflowCursor;
+    PageElementCursor propertyListCursor;
     unorderedStringOverflowCursor.idx = 0;
     unorderedStringOverflowCursor.offset = 0;
     for (; offsetStart < offsetEnd; offsetStart++) {
-        calculatePageCursor(TypeUtils::getDataTypeSize(STRING), offsetStart, propertyListCursor);
+        calcPageElementCursor(TypeUtils::getDataTypeSize(STRING), offsetStart, propertyListCursor);
         auto valPtr =
             reinterpret_cast<gf_string_t*>(propertyColumn->getPtrToMemLoc(propertyListCursor));
         auto len = ((uint32_t*)valPtr)[0];

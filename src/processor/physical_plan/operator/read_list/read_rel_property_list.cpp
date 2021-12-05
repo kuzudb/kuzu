@@ -19,7 +19,6 @@ bool ReadRelPropertyList::getNextTuples() {
         return false;
     }
     readValuesFromList();
-    outValueVector->fillNullMask();
     metrics->executionTime.stop();
     return true;
 }

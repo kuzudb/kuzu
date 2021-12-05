@@ -15,17 +15,13 @@ void InMemNodePropertyColumnsBuilder::buildInMemPropertyColumns() {
     logger->debug("Creating InMemProperty Columns.");
     propertyIdxPropertyColumn.resize(description.properties.size());
     propertyIdxStringOverflowPages.resize(description.properties.size());
-    auto numElements = graph.getNumNodesPerLabel()[description.label];
     for (auto& property : description.properties) {
         auto fName = NodesStore::getNodePropertyColumnFName(
             outputDirectory, description.label, property.name);
-        uint32_t numElementsPerPage = PAGE_SIZE / TypeUtils::getDataTypeSize(property.dataType);
-        uint64_t numPages = numElements / numElementsPerPage;
-        if (0 != numElements % numElementsPerPage) {
-            numPages++;
-        }
+        auto numPages = calcNumPagesInColumn(TypeUtils::getDataTypeSize(property.dataType),
+            graph.getNumNodesPerLabel()[description.label]);
         propertyIdxPropertyColumn[property.id] = make_unique<InMemPropertyPages>(
-            fName, numPages, TypeUtils::getDataTypeSize(property.dataType));
+            fName, TypeUtils::getDataTypeSize(property.dataType), numPages);
         if (STRING == property.dataType) {
             propertyIdxStringOverflowPages[property.id] = make_unique<InMemStringOverflowPages>(
                 StringOverflowPages::getStringOverflowPagesFName(fName));
@@ -36,13 +32,13 @@ void InMemNodePropertyColumnsBuilder::buildInMemPropertyColumns() {
 
 void InMemNodePropertyColumnsBuilder::setProperty(node_offset_t nodeOffset,
     const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
-    PageCursor cursor;
-    calculatePageCursor(TypeUtils::getDataTypeSize(type), nodeOffset, cursor);
-    propertyIdxPropertyColumn[propertyIdx]->setPorperty(cursor, val);
+    PageElementCursor cursor;
+    calcPageElementCursor(TypeUtils::getDataTypeSize(type), nodeOffset, cursor);
+    propertyIdxPropertyColumn[propertyIdx]->set(cursor, val);
 }
 
 void InMemNodePropertyColumnsBuilder::setStringProperty(node_offset_t nodeOffset,
-    const uint32_t& propertyIdx, const char* originalString, PageCursor& cursor) {
+    const uint32_t& propertyIdx, const char* originalString, PageByteCursor& cursor) {
     gf_string_t gfString;
     propertyIdxStringOverflowPages[propertyIdx]->setStrInOvfPageAndPtrInEncString(
         originalString, cursor, &gfString);

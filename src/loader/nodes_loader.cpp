@@ -22,7 +22,7 @@ void NodesLoader::load(const vector<string>& filePaths, const vector<uint64_t>& 
     const vector<vector<uint64_t>>& numLinesPerBlock, vector<unique_ptr<NodeIDMap>>& nodeIDMaps) {
     labelUnstrPropertyListsSizes.resize(graph.getCatalog().getNodeLabelsCount());
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        if (graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).size() > 0) {
+        if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
             labelUnstrPropertyListsSizes[nodeLabel] =
                 make_unique<vector<atomic<uint64_t>>>(graph.getNumNodesPerLabel()[nodeLabel]);
         }
@@ -109,7 +109,7 @@ void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
     for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
         if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
             threadPool.execute(ListsUtils::calculateListHeadersTask,
-                graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE,
+                graph.getNumNodesPerLabel()[nodeLabel], 1,
                 labelUnstrPropertyListsSizes[nodeLabel].get(),
                 &labelUnstrPropertyListHeaders[nodeLabel], logger);
         }
@@ -120,10 +120,10 @@ void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
     for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
         if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
             threadPool.execute(ListsUtils::calculateListsMetadataTask,
-                graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE,
+                graph.getNumNodesPerLabel()[nodeLabel], 1,
                 labelUnstrPropertyListsSizes[nodeLabel].get(),
                 &labelUnstrPropertyListHeaders[nodeLabel],
-                &labelUnstrPropertyListsMetadata[nodeLabel], logger);
+                &labelUnstrPropertyListsMetadata[nodeLabel], false /*hasNULLBytes*/, logger);
         }
     }
     threadPool.wait();
@@ -172,7 +172,7 @@ void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(
     NodeIDMap* nodeIDMap, InMemNodePropertyColumnsBuilder* builder,
     listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: path={0} blkIdx={1}", description->fName, blockId);
-    vector<PageCursor> stringOverflowPagesCursors{description->properties.size()};
+    vector<PageByteCursor> stringOverflowPagesCursors{description->properties.size()};
     CSVReader reader(description->fName, description->csvSpecialChars.tokenSeparator,
         description->csvSpecialChars.quoteChar, description->csvSpecialChars.escapeChar, blockId);
     if (0 == blockId) {
@@ -201,7 +201,7 @@ void NodesLoader::populateUnstrPropertyListsTask(const string& fName, uint64_t b
     InMemStringOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: path={0} blkIdx={1}", fName, blockId);
     CSVReader reader(fName, tokenSeparator, quoteChar, escapeChar, blockId);
-    PageCursor stringOvfPagesCursor;
+    PageByteCursor stringOvfPagesCursor;
     if (0 == blockId) {
         if (reader.hasNextLine()) {}
     }
@@ -236,7 +236,7 @@ void NodesLoader::calcLengthOfUnstrPropertyLists(
 // propertyDataTypes array and puts the value into appropriate buffer.
 void NodesLoader::putPropsOfLineIntoInMemPropertyColumns(
     const vector<PropertyDefinition>& properties, CSVReader& reader,
-    InMemNodePropertyColumnsBuilder& builder, vector<PageCursor>& stringOverflowPagesCursors,
+    InMemNodePropertyColumnsBuilder& builder, vector<PageByteCursor>& stringOverflowPagesCursors,
     NodeIDMap* nodeIDMap, uint64_t nodeOffset) {
     for (const auto& property : properties) {
         if (property.dataType == UNSTRUCTURED) {
@@ -245,67 +245,81 @@ void NodesLoader::putPropsOfLineIntoInMemPropertyColumns(
         reader.hasNextToken();
         switch (property.dataType) {
         case INT64: {
-            auto int64Val = reader.skipTokenIfNull() ? NULL_INT64 : reader.getInt64();
-            builder.setProperty(
-                nodeOffset, property.id, reinterpret_cast<uint8_t*>(&int64Val), INT64);
-            if (property.isPrimaryKey) {
-                nodeIDMap->set(to_string(int64Val).c_str(), nodeOffset);
+            if (!reader.skipTokenIfNull()) {
+                auto int64Val = reader.getInt64();
+                builder.setProperty(
+                    nodeOffset, property.id, reinterpret_cast<uint8_t*>(&int64Val), INT64);
+                if (property.isPrimaryKey) {
+                    nodeIDMap->set(to_string(int64Val).c_str(), nodeOffset);
+                }
             }
         } break;
         case DOUBLE: {
-            auto doubleVal = reader.skipTokenIfNull() ? NULL_DOUBLE : reader.getDouble();
-            builder.setProperty(
-                nodeOffset, property.id, reinterpret_cast<uint8_t*>(&doubleVal), DOUBLE);
+            if (!reader.skipTokenIfNull()) {
+                auto doubleVal = reader.getDouble();
+                builder.setProperty(
+                    nodeOffset, property.id, reinterpret_cast<uint8_t*>(&doubleVal), DOUBLE);
+            }
         } break;
         case BOOL: {
-            auto boolVal = reader.skipTokenIfNull() ? NULL_BOOL : reader.getBoolean();
-            builder.setProperty(
-                nodeOffset, property.id, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
+            if (!reader.skipTokenIfNull()) {
+                auto boolVal = reader.getBoolean();
+                builder.setProperty(
+                    nodeOffset, property.id, reinterpret_cast<uint8_t*>(&boolVal), BOOL);
+            }
         } break;
         case DATE: {
-            auto dateVal = reader.skipTokenIfNull() ? NULL_DATE : reader.getDate();
-            builder.setProperty(
-                nodeOffset, property.id, reinterpret_cast<uint8_t*>(&dateVal), DATE);
+            if (!reader.skipTokenIfNull()) {
+                auto dateVal = reader.getDate();
+                builder.setProperty(
+                    nodeOffset, property.id, reinterpret_cast<uint8_t*>(&dateVal), DATE);
+            }
         } break;
         case TIMESTAMP: {
-            auto timestampVal = reader.skipTokenIfNull() ? NULL_TIMESTAMP : reader.getTimestamp();
-            builder.setProperty(
-                nodeOffset, property.id, reinterpret_cast<uint8_t*>(&timestampVal), TIMESTAMP);
+            if (!reader.skipTokenIfNull()) {
+                auto timestampVal = reader.getTimestamp();
+                builder.setProperty(
+                    nodeOffset, property.id, reinterpret_cast<uint8_t*>(&timestampVal), TIMESTAMP);
+            }
         } break;
         case INTERVAL: {
-            auto intervalVal = reader.skipTokenIfNull() ? NULL_INTERVAL : reader.getInterval();
-            builder.setProperty(
-                nodeOffset, property.id, reinterpret_cast<uint8_t*>(&intervalVal), INTERVAL);
+            if (!reader.skipTokenIfNull()) {
+                auto intervalVal = reader.getInterval();
+                builder.setProperty(
+                    nodeOffset, property.id, reinterpret_cast<uint8_t*>(&intervalVal), INTERVAL);
+            }
         } break;
         case STRING: {
-            auto strVal =
-                reader.skipTokenIfNull() ? &gf_string_t::EMPTY_STRING : reader.getString();
-            if (strlen(strVal) > PAGE_SIZE) {
-                throw LoaderException(StringUtils::string_format(
-                    "Maximum length of strings is %d. Input string's length is %d.", PAGE_SIZE,
-                    strlen(strVal), strVal));
+            if (!reader.skipTokenIfNull()) {
+                auto strVal = reader.getString();
+                if (strlen(strVal) > PAGE_SIZE) {
+                    throw LoaderException(StringUtils::string_format(
+                        "Maximum length of strings is %d. Input string's length is %d.", PAGE_SIZE,
+                        strlen(strVal), strVal));
+                }
+                builder.setStringProperty(
+                    nodeOffset, property.id, strVal, stringOverflowPagesCursors[property.id]);
+                if (property.isPrimaryKey) {
+                    nodeIDMap->set(strVal, nodeOffset);
+                }
             }
-            builder.setStringProperty(
-                nodeOffset, property.id, strVal, stringOverflowPagesCursors[property.id]);
-            if (property.isPrimaryKey) {
-                nodeIDMap->set(strVal, nodeOffset);
-            }
-        } break;
+            break;
         default:
             if (!reader.skipTokenIfNull()) {
                 reader.skipToken();
             }
         }
+        }
     }
 }
 
 // Parses the line by converting each unstructured property value to the dataType that is
-// specified with that property puts the value at appropiate location in unstrPropertyPages.
+// specified with that property puts the value at appropriate location in unstrPropertyPages.
 void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t nodeOffset,
     const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
     listSizes_t& unstrPropertyListSizes, ListHeaders& unstrPropertyListHeaders,
     ListsMetadata& unstrPropertyListsMetadata, InMemUnstrPropertyPages& unstrPropertyPages,
-    InMemStringOverflowPages& stringOverflowPages, PageCursor& stringOvfPagesCursor) {
+    InMemStringOverflowPages& stringOverflowPages, PageByteCursor& stringOvfPagesCursor) {
     while (reader.hasNextToken()) {
         auto unstrPropertyString = reader.getString();
         auto unstrPropertyStringBreaker1 = strchr(unstrPropertyString, ':');
@@ -317,59 +331,53 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
         auto dataTypeSize = TypeUtils::getDataTypeSize(dataType);
         auto reversePos = ListsUtils::decrementListSize(unstrPropertyListSizes, nodeOffset,
             UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN + dataTypeSize);
-        PageCursor pageCursor;
-        ListsUtils::calculatePageCursor(unstrPropertyListHeaders.headers[nodeOffset], reversePos, 1,
-            nodeOffset, pageCursor, unstrPropertyListsMetadata);
+        PageElementCursor pageElementCursor;
+        ListsUtils::calcPageElementCursor(unstrPropertyListHeaders.headers[nodeOffset], reversePos,
+            1, nodeOffset, pageElementCursor, unstrPropertyListsMetadata, false /*hasNULLBytes*/);
+        PageByteCursor pageCursor{pageElementCursor.idx, pageElementCursor.pos};
         char* valuePtr = unstrPropertyStringBreaker2 + 1;
         switch (dataType) {
         case INT64: {
             auto intVal = TypeUtils::convertToInt64(valuePtr);
-            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
-                static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&intVal));
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+                dataTypeSize, reinterpret_cast<uint8_t*>(&intVal));
         } break;
         case DOUBLE: {
             auto doubleVal = TypeUtils::convertToDouble(valuePtr);
-            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
-                static_cast<uint8_t>(dataType), dataTypeSize,
-                reinterpret_cast<uint8_t*>(&doubleVal));
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+                dataTypeSize, reinterpret_cast<uint8_t*>(&doubleVal));
         } break;
         case BOOL: {
             auto boolVal = TypeUtils::convertToBoolean(valuePtr);
-            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
-                static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&boolVal));
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+                dataTypeSize, reinterpret_cast<uint8_t*>(&boolVal));
         } break;
         case DATE: {
             char* beginningOfDateStr = valuePtr;
             date_t dateVal = Date::FromCString(beginningOfDateStr, strlen(beginningOfDateStr));
-            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
-                static_cast<uint8_t>(dataType), dataTypeSize, reinterpret_cast<uint8_t*>(&dateVal));
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+                dataTypeSize, reinterpret_cast<uint8_t*>(&dateVal));
         } break;
         case TIMESTAMP: {
             char* beginningOfTimestampStr = valuePtr;
             timestamp_t timestampVal =
                 Timestamp::FromCString(beginningOfTimestampStr, strlen(beginningOfTimestampStr));
-            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
-                static_cast<uint8_t>(dataType), dataTypeSize,
-                reinterpret_cast<uint8_t*>(&timestampVal));
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+                dataTypeSize, reinterpret_cast<uint8_t*>(&timestampVal));
         } break;
         case INTERVAL: {
             char* beginningOfIntervalStr = valuePtr;
             interval_t intervalVal =
                 Interval::FromCString(beginningOfIntervalStr, strlen(beginningOfIntervalStr));
-            unstrPropertyPages.setUnstrProperty(pageCursor, propertyKeyId,
-                static_cast<uint8_t>(dataType), dataTypeSize,
-                reinterpret_cast<uint8_t*>(&intervalVal));
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+                dataTypeSize, reinterpret_cast<uint8_t*>(&intervalVal));
         } break;
         case STRING: {
-            auto encodedString = reinterpret_cast<gf_string_t*>(
-                unstrPropertyPages.getPtrToMemLoc(pageCursor) +
-                UnstructuredPropertyLists::
-                    UNSTR_PROP_HEADER_LEN /*leave space for id and dataType*/);
+            gf_string_t encodedString;
             stringOverflowPages.setStrInOvfPageAndPtrInEncString(
-                valuePtr, stringOvfPagesCursor, encodedString);
-            // in case of string, we want to set only the property key id and datatype.
-            unstrPropertyPages.setUnstrProperty(
-                pageCursor, propertyKeyId, static_cast<uint8_t>(dataType), 0, nullptr);
+                valuePtr, stringOvfPagesCursor, &encodedString);
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+                dataTypeSize, reinterpret_cast<uint8_t*>(&encodedString));
         } break;
         default:
             throw invalid_argument("unsupported dataType while parsing unstructured property");

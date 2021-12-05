@@ -13,13 +13,14 @@ ListInfo Lists::getListInfo(node_offset_t nodeOffset) {
     if (ListHeaders::isALargeList(header)) {
         info.isLargeList = true;
         auto largeListIdx = ListHeaders::getLargeListIdx(header);
-        info.cursor = getPageCursorForOffset(0);
+        info.cursor = PageUtils::getPageElementCursorForOffset(0, numElementsPerPage);
         info.mapper = metadata.getPageMapperForLargeListIdx(largeListIdx);
         info.listLen = metadata.getNumElementsInLargeLists(largeListIdx);
     } else {
         info.isLargeList = false;
         auto chunkIdx = nodeOffset >> Lists::LISTS_CHUNK_SIZE_LOG_2;
-        info.cursor = getPageCursorForOffset(ListHeaders::getSmallListCSROffset(header));
+        info.cursor = PageUtils::getPageElementCursorForOffset(
+            ListHeaders::getSmallListCSROffset(header), numElementsPerPage);
         info.mapper = metadata.getPageMapperForChunkIdx(chunkIdx);
         info.listLen = ListHeaders::getSmallListLen(header);
     }
@@ -29,7 +30,7 @@ ListInfo Lists::getListInfo(node_offset_t nodeOffset) {
 // Note: The given nodeOffset and largeListHandle may not be connected. For example if we
 // are about to read a new nodeOffset, say v5, after having read a previous nodeOffset, say v7, with
 // a largeList, then the input to this function can be nodeOffset: 5 and largeListHandle containing
-// information about the last portion of v7's large list. Similarly if nodeOffset is v3 and v3
+// information about the last portion of v7's large list. Similarly, if nodeOffset is v3 and v3
 // has a small list then largeListHandle does not contain anything specific to v3 (it would likely
 // be containing information about the last portion of the last large list that was read.
 void Lists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
@@ -51,7 +52,8 @@ void Lists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info,
     BufferManagerMetrics& metrics) {
     // assumes that the associated adjList has already updated the syncState.
-    auto pageCursor = getPageCursorForOffset(largeListHandle->getListSyncState()->getStartIdx());
+    auto pageCursor = PageUtils::getPageElementCursorForOffset(
+        largeListHandle->getListSyncState()->getStartIdx(), numElementsPerPage);
     auto sizeLeftToCopy = elementSize * valueVector->state->originalSize;
     readBySequentialCopy(valueVector, sizeLeftToCopy, pageCursor, info.mapper, metrics);
 }
@@ -86,7 +88,7 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
         csrOffset = 0;
     } else {
         csrOffset = listSyncState->getEndIdx();
-        info.cursor = getPageCursorForOffset(csrOffset);
+        info.cursor = PageUtils::getPageElementCursorForOffset(csrOffset, numElementsPerPage);
     }
     // The number of edges to read is the minimum of: (i) how may edges are left to read
     // (info.listLen - csrOffset); and (ii) how many elements are left in the current page that's
@@ -99,8 +101,8 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     listSyncState->set(csrOffset, valueVector->state->selectedSize);
     // map logical pageIdx to physical pageIdx
     auto physicalPageId = info.mapper(info.cursor.idx);
-    readNodeIDsFromAPage(valueVector, 0, physicalPageId, info.cursor.offset, numValuesToCopy,
-        nodeIDCompressionScheme, metrics);
+    readNodeIDsFromAPage(valueVector, 0, physicalPageId, info.cursor.pos, numValuesToCopy,
+        nodeIDCompressionScheme, metrics, true /*isAdjLists*/);
 }
 
 // Note: This function sets the original and selected size of the DataChunk into which it will
@@ -108,12 +110,12 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
 void AdjLists::readSmallList(
     const shared_ptr<ValueVector>& valueVector, ListInfo& info, BufferManagerMetrics& metrics) {
     valueVector->state->initOriginalAndSelectedSize(info.listLen);
-    readNodeIDsFromSequentialPages(
-        valueVector, info.cursor, info.mapper, nodeIDCompressionScheme, metrics);
+    readNodeIDsFromSequentialPages(valueVector, info.cursor, info.mapper, nodeIDCompressionScheme,
+        metrics, true /*isAdjLists*/);
 }
 
 unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
-    // We read the adjacency list of a node in 2 steps: i) we read all of the bytes from the pages
+    // We read the adjacency list of a node in 2 steps: i) we read all the bytes from the pages
     // that hold the list into a buffer; and (ii) we interpret the bytes in the buffer based on the
     // ID compression scheme into a vector of nodeID_t.
     node_offset_t nodeOffset, BufferManagerMetrics& metrics) {
@@ -126,11 +128,13 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     while (sizeLeftToCopy) {
         auto physicalPageIdx = info.mapper(info.cursor.idx);
         auto sizeToCopyInPage =
-            min(((uint64_t)numElementsPerPage * elementSize) - info.cursor.offset, sizeLeftToCopy);
-        copyFromAPage(bufferPtr, physicalPageIdx, sizeToCopyInPage, info.cursor.offset, metrics);
+            min(((uint64_t)(numElementsPerPage - info.cursor.pos) * elementSize), sizeLeftToCopy);
+        auto frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
+        memcpy(bufferPtr, frame + mapElementPosToByteOffset(info.cursor.pos), sizeToCopyInPage);
+        bufferManager.unpin(fileHandle, physicalPageIdx);
         bufferPtr += sizeToCopyInPage;
         sizeLeftToCopy -= sizeToCopyInPage;
-        info.cursor.offset = 0;
+        info.cursor.pos = 0;
         info.cursor.idx++;
     }
 

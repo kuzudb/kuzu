@@ -53,12 +53,12 @@ private:
 
     static void putPropsOfLineIntoInMemPropertyColumns(const vector<PropertyDefinition>& properties,
         CSVReader& reader, InMemAdjAndPropertyColumnsBuilder* columnsBuilder,
-        const nodeID_t& nodeID, vector<PageCursor>& stringOverflowPagesCursors);
+        const nodeID_t& nodeID, vector<PageByteCursor>& stringOverflowPagesCursors);
 
     static void putPropsOfLineIntoInMemRelPropLists(const vector<PropertyDefinition>& properties,
         CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& pos,
         InMemAdjAndPropertyListsBuilder* listsBuilder,
-        vector<PageCursor>& stringOverflowPagesCursors);
+        vector<PageByteCursor>& stringOverflowPagesCursors);
 
 private:
     shared_ptr<spdlog::logger> logger;

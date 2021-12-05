@@ -1,81 +1,134 @@
 #include "src/storage/include/data_structure/data_structure.h"
 
-#include <iostream>
-
 #include "src/common/include/utils.h"
 
 namespace graphflow {
 namespace storage {
 
 DataStructure::DataStructure(const string& fName, const DataType& dataType,
-    const size_t& elementSize, BufferManager& bufferManager, bool isInMemory)
+    const size_t& elementSize, BufferManager& bufferManager, bool hasNULLBytes, bool isInMemory)
     : dataType{dataType}, elementSize{elementSize},
-      numElementsPerPage((uint32_t)(PAGE_SIZE / elementSize)),
       logger{LoggerUtils::getOrCreateSpdLogger("storage")}, fileHandle{fName, O_RDWR, isInMemory},
-      bufferManager(bufferManager){};
+      bufferManager(bufferManager) {
+    numElementsPerPage = hasNULLBytes ?
+                             PageUtils::getNumElementsInAPageWithNULLBytes(elementSize) :
+                             PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);
+}
 
 void DataStructure::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
-    uint64_t sizeLeftToCopy, PageCursor& pageCursor,
+    uint64_t sizeLeftToCopy, PageElementCursor& cursor,
     const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
     BufferManagerMetrics& metrics) {
     auto values = valueVector->values;
+    auto offsetInVector = 0;
     while (sizeLeftToCopy) {
-        auto physicalPageIdx = logicalToPhysicalPageMapper(pageCursor.idx);
+        auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.idx);
         auto sizeToCopyInPage =
-            min(((uint64_t)numElementsPerPage * elementSize) - pageCursor.offset, sizeLeftToCopy);
-        copyFromAPage(values, physicalPageIdx, sizeToCopyInPage, pageCursor.offset, metrics);
+            min((uint64_t)(numElementsPerPage - cursor.pos) * elementSize, sizeLeftToCopy);
+        auto numValuesToCopyInPage = sizeToCopyInPage / elementSize;
+        auto frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
+        memcpy(values, frame + mapElementPosToByteOffset(cursor.pos), sizeToCopyInPage);
+        setNULLBitsForRange(valueVector, frame, cursor.pos, offsetInVector, numValuesToCopyInPage);
+        bufferManager.unpin(fileHandle, physicalPageIdx);
         values += sizeToCopyInPage;
         sizeLeftToCopy -= sizeToCopyInPage;
-        pageCursor.offset = 0;
-        pageCursor.idx++;
+        offsetInVector += numValuesToCopyInPage;
+        cursor.pos = 0;
+        cursor.idx++;
     }
 }
 
 void DataStructure::readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>& valueVector,
-    PageCursor& pageCursor, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
-    NodeIDCompressionScheme compressionScheme, BufferManagerMetrics& metrics) {
-    auto posInVector = 0;
+    PageElementCursor& cursor, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+    NodeIDCompressionScheme compressionScheme, BufferManagerMetrics& metrics, bool isAdjLists) {
     auto numValuesToCopy = valueVector->state->originalSize;
+    auto posInVector = 0;
     while (numValuesToCopy > 0) {
         auto numValuesToCopyInPage =
-            min(numValuesToCopy, (uint64_t)numElementsPerPage - pageCursor.offset / elementSize);
-        auto physicalPageId = logicalToPhysicalPageMapper(pageCursor.idx);
-        readNodeIDsFromAPage(valueVector, posInVector, physicalPageId, pageCursor.offset,
-            numValuesToCopyInPage, compressionScheme, metrics);
-        posInVector += numValuesToCopyInPage;
-        pageCursor.idx++;
-        pageCursor.offset = 0;
+            min(numValuesToCopy, (uint64_t)(numElementsPerPage - cursor.pos));
+        auto physicalPageId = logicalToPhysicalPageMapper(cursor.idx);
+        readNodeIDsFromAPage(valueVector, posInVector, physicalPageId, cursor.pos,
+            numValuesToCopyInPage, compressionScheme, metrics, isAdjLists);
+        cursor.idx++;
+        cursor.pos = 0;
         numValuesToCopy -= numValuesToCopyInPage;
+        posInVector += numValuesToCopyInPage;
     }
 }
 
-void DataStructure::copyFromAPage(uint8_t* values, uint32_t physicalPageIdx, uint64_t sizeToCopy,
-    uint32_t pageOffset, BufferManagerMetrics& metrics) {
-    auto frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
-    memcpy(values, frame + pageOffset, sizeToCopy);
-    bufferManager.unpin(fileHandle, physicalPageIdx);
-}
-
 void DataStructure::readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector,
-    uint32_t posInVector, uint32_t physicalPageId, uint32_t pageOffset, uint64_t numValuesToCopy,
-    NodeIDCompressionScheme& compressionScheme, BufferManagerMetrics& metrics) {
-    auto nullOffset = compressionScheme.getNodeOffsetNullValue();
+    uint32_t posInVector, uint32_t physicalPageId, uint32_t posInPage, uint64_t numValuesToCopy,
+    NodeIDCompressionScheme& compressionScheme, BufferManagerMetrics& metrics, bool isAdjLists) {
+    auto nodeValues = (nodeID_t*)valueVector->values;
     auto labelSize = compressionScheme.getNumBytesForLabel();
     auto offsetSize = compressionScheme.getNumBytesForOffset();
-    auto values = (nodeID_t*)valueVector->values;
     auto frame = bufferManager.pin(fileHandle, physicalPageId, metrics);
-    frame += pageOffset;
+    if (!isAdjLists) {
+        setNULLBitsForRange(valueVector, frame, posInPage, posInVector, numValuesToCopy);
+    }
+    frame += mapElementPosToByteOffset(posInPage);
     for (auto i = 0u; i < numValuesToCopy; i++) {
         nodeID_t nodeID{0, 0};
         memcpy(&nodeID.label, frame, labelSize);
         memcpy(&nodeID.offset, frame + labelSize, offsetSize);
-        // Set common label if label size is 0
         nodeID.label = labelSize == 0 ? compressionScheme.getCommonLabel() : nodeID.label;
-        valueVector->setNull(posInVector, nodeID.offset == nullOffset);
-        values[posInVector++] = nodeID;
+        nodeValues[posInVector + i] = nodeID;
         frame += (labelSize + offsetSize);
     }
     bufferManager.unpin(fileHandle, physicalPageId);
+}
+
+void DataStructure::setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector,
+    const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector, uint64_t num) {
+    while (num) {
+        auto numInCurrentByte = min(num, 8 - (elementPos % 8));
+        auto NULLByte = PageUtils::getNULLByteForOffset(frame, elementPos);
+        setNULLBitsFromANULLByte(
+            valueVector, NULLByte, numInCurrentByte, elementPos, offsetInVector);
+        elementPos += numInCurrentByte;
+        offsetInVector += numInCurrentByte;
+        num -= numInCurrentByte;
+    }
+}
+
+void DataStructure::setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector,
+    const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector) {
+    auto NULLByte = PageUtils::getNULLByteForOffset(frame, elementPos);
+    setNULLBitsFromANULLByte(valueVector, NULLByte, 1, elementPos, offsetInVector);
+}
+
+void DataStructure::setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& valueVector,
+    uint8_t NULLByte, uint8_t num, uint64_t startPos, uint64_t offsetInVector) {
+    while (num--) {
+        auto maskedNULLByte = 0;
+        switch (startPos++) {
+        case 0:
+            maskedNULLByte = NULLByte & 0b10000000;
+            break;
+        case 1:
+            maskedNULLByte = NULLByte & 0b01000000;
+            break;
+        case 2:
+            maskedNULLByte = NULLByte & 0b00100000;
+            break;
+        case 3:
+            maskedNULLByte = NULLByte & 0b00010000;
+            break;
+        case 4:
+            maskedNULLByte = NULLByte & 0b00001000;
+            break;
+        case 5:
+            maskedNULLByte = NULLByte & 0b00000100;
+            break;
+        case 6:
+            maskedNULLByte = NULLByte & 0b00000010;
+            break;
+        case 7:
+            maskedNULLByte = NULLByte & 0b00000001;
+            break;
+        }
+        valueVector->setNull(offsetInVector++, maskedNULLByte > 0);
+    }
 }
 
 } // namespace storage

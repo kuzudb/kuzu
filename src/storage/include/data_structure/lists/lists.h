@@ -18,7 +18,7 @@ struct ListInfo {
     bool isLargeList{false};
     uint64_t listLen{-1u};
     std::function<uint32_t(uint32_t)> mapper;
-    PageCursor cursor;
+    PageElementCursor cursor;
 };
 
 /**
@@ -38,8 +38,8 @@ class Lists : public DataStructure {
 public:
     Lists(const string& fName, const DataType& dataType, const size_t& elementSize,
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory)
-        : DataStructure{fName, dataType, elementSize, bufferManager, isInMemory}, metadata{fName},
-          headers(move(headers)){};
+        : Lists{fName, dataType, elementSize, headers, bufferManager, true /*hasNULLBytes*/,
+              isInMemory} {};
 
     void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<LargeListHandle>& largeListHandle, BufferManagerMetrics& metrics);
@@ -51,6 +51,12 @@ public:
     ListInfo getListInfo(node_offset_t nodeOffset);
 
 protected:
+    Lists(const string& fName, const DataType& dataType, const size_t& elementSize,
+        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool hasNULLBytes,
+        bool isInMemory)
+        : DataStructure{fName, dataType, elementSize, bufferManager, hasNULLBytes, isInMemory},
+          metadata{fName}, headers(move(headers)){};
+
     virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info,
         BufferManagerMetrics& metrics);
@@ -96,7 +102,7 @@ public:
     AdjLists(const string& fName, BufferManager& bufferManager,
         NodeIDCompressionScheme nodeIDCompressionScheme, bool isInMemory)
         : Lists{fName, NODE, nodeIDCompressionScheme.getNumTotalBytes(),
-              make_shared<ListHeaders>(fName), bufferManager, isInMemory},
+              make_shared<ListHeaders>(fName), bufferManager, false, isInMemory},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
     shared_ptr<ListHeaders> getHeaders() { return headers; };

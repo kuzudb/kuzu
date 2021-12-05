@@ -54,22 +54,22 @@ public:
     void buildAdjListsHeadersAndListsMetadata();
 
     // should be called after ListHeaders have been created. Calculates the metadata info of each
-    // Lists structure (AdjLists / RelPropertyLists) besed on its relevant headers info.
+    // Lists structure (AdjLists / RelPropertyLists) based on its relevant headers info.
     void buildInMemStructures();
 
     // Sets a neighbour nodeID in the adjList of the given nodeID in a particular adjLists
     // structure.
     void setRel(uint64_t pos, Direction direction, const vector<nodeID_t>& nodeIDs);
 
-    // Sets a proeprty in the propertyList of the given nodeID in a particular RelPropertyLists
+    // Sets a property in the propertyList of the given nodeID in a particular RelPropertyLists
     // structure.
     void setProperty(const vector<uint64_t>& pos, const vector<nodeID_t>& nodeIDs,
         uint32_t propertyIdx, const uint8_t* val, DataType type);
 
-    // Sets a string proeprty in the propertyList of the given nodeID in a particular
+    // Sets a string property in the propertyList of the given nodeID in a particular
     // RelPropertyLists structure.
     void setStringProperty(const vector<uint64_t>& pos, const vector<nodeID_t>& nodeIDs,
-        const uint32_t& propertyIdx, const char* strVal, PageCursor& stringOverflowCursor);
+        const uint32_t& propertyIdx, const char* strVal, PageByteCursor& stringOverflowCursor);
 
     void sortOverflowStrings() override;
 
@@ -86,7 +86,7 @@ private:
 
     static void sortOverflowStringsOfPropertyListsTask(node_offset_t offsetStart,
         node_offset_t offsetEnd, InMemPropertyPages* propertyLists, ListHeaders* adjListsHeaders,
-        ListsMetadata* listsMetadata, InMemStringOverflowPages* unorederedStringOverflowPages,
+        ListsMetadata* listsMetadata, InMemStringOverflowPages* unorderedStringOverflowPages,
         InMemStringOverflowPages* orderedStringOverflowPages);
 
 private:

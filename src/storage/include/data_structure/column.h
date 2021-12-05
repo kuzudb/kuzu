@@ -17,7 +17,8 @@ class Column : public DataStructure {
 public:
     Column(const string& fName, const DataType& dataType, const size_t& elementSize,
         const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory)
-        : DataStructure{fName, dataType, elementSize, bufferManager, isInMemory} {};
+        : DataStructure{
+              fName, dataType, elementSize, bufferManager, true /*hasNULLBytes*/, isInMemory} {};
 
     virtual void readValues(const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);

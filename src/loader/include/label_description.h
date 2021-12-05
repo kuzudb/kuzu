@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 #include "src/common/include/compression_scheme.h"
 #include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/node_id_map.h"

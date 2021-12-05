@@ -34,8 +34,6 @@ public:
         commonLabel = label;
     };
 
-    uint64_t getNodeOffsetNullValue() const;
-
 private:
     uint32_t numBytesForLabel;
     uint32_t numBytesForOffset;

@@ -19,7 +19,8 @@ class UnstructuredPropertyLists : public Lists {
 
 public:
     UnstructuredPropertyLists(const string& fName, BufferManager& bufferManager, bool isInMemory)
-        : Lists{fName, UNSTRUCTURED, 1, make_shared<ListHeaders>(fName), bufferManager, isInMemory},
+        : Lists{fName, UNSTRUCTURED, 1, make_shared<ListHeaders>(fName), bufferManager,
+              false /*hasNULLBytes*/, isInMemory},
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
     void readUnstructuredProperties(const shared_ptr<ValueVector>& nodeIDVector,
@@ -35,11 +36,11 @@ private:
         const shared_ptr<ValueVector>& valueVector, uint64_t pos, ListInfo& info,
         BufferManagerMetrics& metrics);
 
-    void readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataType, PageCursor& pageCursor,
+    void readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataType, PageByteCursor& cursor,
         uint64_t& listLen, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
         BufferManagerMetrics& metrics);
 
-    void readOrSkipUnstrPropertyValue(DataType& propertyDataType, PageCursor& pageCursor,
+    void readOrSkipUnstrPropertyValue(DataType& propertyDataType, PageByteCursor& cursor,
         uint64_t& listLen, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
         Value* value, bool toRead, BufferManagerMetrics& metrics);
 

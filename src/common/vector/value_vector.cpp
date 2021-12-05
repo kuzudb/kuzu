@@ -13,50 +13,6 @@ shared_ptr<NullMask> NullMask::clone() {
     return newNullMask;
 }
 
-template<class T>
-static void fillOperandNullMask(ValueVector& operand) {
-    auto values = (T*)operand.values;
-    if (operand.state->isFlat()) {
-        operand.setNull(operand.state->getPositionOfCurrIdx(),
-            IsNullValue::operation(values[operand.state->getPositionOfCurrIdx()]));
-    } else {
-        auto size = operand.state->selectedSize;
-        for (uint64_t i = 0; i < size; i++) {
-            operand.setNull(i, IsNullValue::operation(values[operand.state->selectedPositions[i]]));
-        }
-    }
-}
-
-void ValueVector::fillNullMask() {
-    switch (dataType) {
-    case BOOL: {
-        fillOperandNullMask<uint8_t>(*this);
-    } break;
-    case INT64: {
-        fillOperandNullMask<int64_t>(*this);
-    } break;
-    case DOUBLE: {
-        fillOperandNullMask<double_t>(*this);
-    } break;
-    case DATE: {
-        fillOperandNullMask<date_t>(*this);
-    } break;
-    case TIMESTAMP: {
-        fillOperandNullMask<timestamp_t>(*this);
-    } break;
-    case INTERVAL: {
-        fillOperandNullMask<interval_t>(*this);
-    } break;
-    case STRING:
-        // TODO: fillOperandNullMask<gf_string_t>(*this);
-        //  Currently we do not distinguish empty and NULL gf_string_t.
-        break;
-    default:
-        throw std::invalid_argument("Invalid or unsupported type for comparison: " +
-                                    TypeUtils::dataTypeToString(dataType) + ".");
-    }
-}
-
 void ValueVector::readNodeID(uint64_t pos, nodeID_t& nodeID) const {
     assert(dataType == NODE);
     if (isSequence) {
@@ -70,20 +26,20 @@ void ValueVector::readNodeID(uint64_t pos, nodeID_t& nodeID) const {
 bool ValueVector::discardNullNodes() {
     assert(dataType == NODE);
     if (state->isFlat()) {
-        return !nullMask->mask[state->getPositionOfCurrIdx()];
+        return !isNull(state->getPositionOfCurrIdx());
     } else {
         auto selectedPos = 0u;
         if (state->isUnfiltered()) {
             state->resetSelectorToValuePosBuffer();
             for (auto i = 0u; i < state->selectedSize; i++) {
                 state->selectedPositions[selectedPos] = i;
-                selectedPos += !nullMask->mask[i];
+                selectedPos += !isNull(i);
             }
         } else {
             for (auto i = 0u; i < state->selectedSize; i++) {
                 auto pos = state->selectedPositions[i];
                 state->selectedPositions[selectedPos] = i;
-                selectedPos += !nullMask->mask[pos];
+                selectedPos += !isNull(pos);
             }
         }
         state->selectedSize = selectedPos;

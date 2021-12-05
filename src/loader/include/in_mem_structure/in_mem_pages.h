@@ -1,12 +1,13 @@
 #pragma once
 
-#include <iostream>
 #include <memory>
 #include <shared_mutex>
+#include <utility>
 
 #include "src/common/include/configs.h"
 #include "src/common/include/gf_string.h"
 #include "src/common/include/types.h"
+#include "src/loader/include/in_mem_structure/in_mem_page.h"
 #include "src/storage/include/data_structure/data_structure.h"
 
 using namespace graphflow::storage;
@@ -15,34 +16,31 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace loader {
 
-// InMemPages holds a collection of pages in memory for storing a column or lists.
+// InMemPages holds a collection of in-memory page in the memory.
 class InMemPages {
 
 public:
-    InMemPages(string fName, const uint64_t& numPages) : fName{move(fName)}, numPages{numPages} {
-        auto size = numPages << PAGE_SIZE_LOG_2;
-        data = make_unique<uint8_t[]>(size);
-        fill(data.get(), data.get() + size, UINT8_MAX);
-    };
+    InMemPages(string fName, uint16_t numBytesForElement, bool hasNULLBytes, uint64_t numPages);
 
-    void saveToFile();
+    virtual void saveToFile();
 
 protected:
-    unique_ptr<uint8_t[]> data;
     const string fName;
-    uint64_t numPages;
+    unique_ptr<uint8_t[]> data;
+    vector<unique_ptr<InMemPage>> pages;
+    uint16_t numBytesForElement;
 };
 
 // InMemPages for storing AdjColumns or AdjLists.
 class InMemAdjPages : public InMemPages {
 
 public:
-    InMemAdjPages(const string& fName, const uint64_t& numPages, const uint8_t& numBytesPerLabel,
-        const uint8_t& numBytesPerOffset)
-        : InMemPages{fName, numPages}, numBytesPerLabel{numBytesPerLabel},
-          numBytesPerOffset(numBytesPerOffset){};
+    InMemAdjPages(const string& fName, uint8_t numBytesPerLabel, uint8_t numBytesPerOffset,
+        uint64_t numPages, bool hasNULLBytes)
+        : InMemPages{fName, uint16_t(numBytesPerLabel + numBytesPerOffset), hasNULLBytes, numPages},
+          numBytesPerLabel{numBytesPerLabel}, numBytesPerOffset{numBytesPerOffset} {};
 
-    void setNbrNode(const PageCursor& cursor, const nodeID_t& nbrNodeID);
+    void set(const PageElementCursor& cursor, const nodeID_t& nbrNodeID);
 
 protected:
     const uint8_t numBytesPerLabel;
@@ -53,19 +51,18 @@ protected:
 class InMemPropertyPages : public InMemPages {
 
 public:
-    InMemPropertyPages(const string& fName, uint64_t numPages, const uint8_t& numBytesPerElement)
-        : InMemPages{fName, numPages}, numBytesPerElement{numBytesPerElement} {};
+    InMemPropertyPages(const string& fName, uint16_t numBytesPerElement, uint64_t numPages)
+        : InMemPages{fName, numBytesPerElement, true, numPages},
+          numBytesPerElement(numBytesPerElement){};
 
-    inline void setPorperty(const PageCursor& cursor, const uint8_t* val) {
-        memcpy(getPtrToMemLoc(cursor), val, numBytesPerElement);
-    };
-
-    inline uint8_t* getPtrToMemLoc(const PageCursor& cursor) {
-        return data.get() + (cursor.idx << PAGE_SIZE_LOG_2) + cursor.offset;
+    uint8_t* getPtrToMemLoc(const PageElementCursor& cursor) {
+        return pages[cursor.idx]->getPtrToMemLoc(cursor.pos * numBytesForElement);
     }
 
-private:
-    const uint8_t numBytesPerElement;
+    void set(const PageElementCursor& cursor, const uint8_t* val);
+
+protected:
+    uint32_t numBytesPerElement;
 };
 
 // InMemPages for storing Nodes' unstructured PropertyLists.
@@ -73,45 +70,49 @@ class InMemUnstrPropertyPages : public InMemPages {
 
 public:
     InMemUnstrPropertyPages(const string& fName, uint64_t numPages)
-        : InMemPages{fName, numPages} {};
+        : InMemPages(fName, 1 /*element size*/, false, numPages) {}
 
-    inline uint8_t* getPtrToMemLoc(const PageCursor& cursor) {
-        return data.get() + (cursor.idx << PAGE_SIZE_LOG_2) + cursor.offset;
+    void set(const PageByteCursor& cursor, uint32_t propertyKey, uint8_t dataTypeIdentifier,
+        uint32_t valLen, const uint8_t* val);
+
+private:
+    uint8_t* getPtrToMemLoc(const PageByteCursor& cursor) {
+        return pages[cursor.idx]->getPtrToMemLoc(cursor.offset);
     }
 
-    void setUnstrProperty(const PageCursor& cursor, uint32_t propertyKey,
-        uint8_t dataTypeIdentifier, uint32_t valLen, const uint8_t* val);
+    void setComponentOfUnstrProperty(PageByteCursor& localCursor, uint8_t len, const uint8_t* val);
 };
 
 //  InMemPages for storing string overflow of PropertyColumn or PropertyLists.
 class InMemStringOverflowPages : public InMemPages {
 
 public:
-    explicit InMemStringOverflowPages(const string& fName) : InMemPages{fName, 8} {
-        maxPages = numPages;
-        numPages = 0;
+    explicit InMemStringOverflowPages(const string& fName) : InMemPages(fName, 1, false, 8) {
+        numUsedPages = 0;
+        numPagesPerDataBlock.emplace_back(8 /*num pages in data blocks*/);
     };
 
-    InMemStringOverflowPages() : InMemPages{"", 8} {
-        maxPages = numPages;
-        numPages = 0;
-    };
+    InMemStringOverflowPages() : InMemStringOverflowPages(""){};
+
+    uint8_t* getPtrToMemLoc(const PageByteCursor& cursor) {
+        return pages[cursor.idx]->getPtrToMemLoc(cursor.offset);
+    }
 
     void setStrInOvfPageAndPtrInEncString(
-        const char* originalString, PageCursor& cursor, gf_string_t* encodedString);
+        const char* originalString, PageByteCursor& cursor, gf_string_t* encodedString);
 
-    void copyOverflowString(PageCursor& cursor, uint8_t* ptrToCopy, gf_string_t* encodedString);
+    void copyOverflowString(PageByteCursor& cursor, uint8_t* ptrToCopy, gf_string_t* encodedString);
 
-    uint8_t* getPtrToMemLoc(PageCursor& cursor) {
-        return data.get() + (cursor.idx << PAGE_SIZE_LOG_2) + cursor.offset;
-    }
+    void saveToFile() override;
 
 private:
     uint32_t getNewOverflowPageIdx();
 
 private:
     shared_mutex lock;
-    uint64_t maxPages;
+    uint64_t numUsedPages;
+    vector<unique_ptr<uint8_t[]>> additionalDataBlocks{};
+    vector<uint64_t> numPagesPerDataBlock{};
 };
 
 } // namespace loader
