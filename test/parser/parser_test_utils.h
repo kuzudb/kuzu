@@ -1,5 +1,4 @@
 #include "src/parser/include/queries/single_query.h"
-#include "src/parser/include/statements/load_csv_statement.h"
 #include "src/parser/include/statements/match_statement.h"
 
 using namespace graphflow::parser;
@@ -9,7 +8,6 @@ const string EMPTY = string();
 class ParserTestUtils {
 
 public:
-    static bool equals(const LoadCSVStatement& left, const LoadCSVStatement& right);
     static bool equals(const MatchStatement& left, const MatchStatement& right);
     static bool equals(const WithStatement& left, const WithStatement& right);
     static bool equals(const ReturnStatement& left, const ReturnStatement& right);
@@ -18,7 +16,6 @@ public:
 private:
     static bool equals(const SingleQuery& left, const SingleQuery& right);
     static bool equals(const QueryPart& left, const QueryPart& right);
-    static bool equals(const ReadingStatement& left, const ReadingStatement& right);
     static bool equals(const ProjectionBody& left, const ProjectionBody& right);
     static bool equals(const vector<unique_ptr<ParsedExpression>>& left,
         const vector<unique_ptr<ParsedExpression>>& right);

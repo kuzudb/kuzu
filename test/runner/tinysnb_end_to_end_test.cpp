@@ -38,8 +38,6 @@ TEST_F(TinySnbProcessorTest, FilteredQueries) {
     queryConfigs =
         TestHelper::parseTestFile("test/runner/queries/filtered/unstructured_properties.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
-    queryConfigs = TestHelper::parseTestFile("test/runner/queries/filtered/load_csv.test");
-    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/filtered/multi_query.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }

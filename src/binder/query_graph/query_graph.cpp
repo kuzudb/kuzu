@@ -58,7 +58,7 @@ uint32_t QueryGraph::getQueryNodePos(const string& queryNodeName) const {
 }
 
 void QueryGraph::addQueryNode(shared_ptr<NodeExpression> queryNode) {
-    // Note that a note may be added multiple times. We should only keep one of it.
+    // Note that a node may be added multiple times. We should only keep one of it.
     // E.g. MATCH (a:person)-[:knows]->(b:person), (a)-[:knows]->(c:person)
     // a will be added twice during binding
     if (containsQueryNode(queryNode->getUniqueName())) {

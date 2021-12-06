@@ -44,7 +44,7 @@ TEST_F(ExpressionTest, FilterIDComparisonTest) {
 
     string input = "MATCH () WHERE id(a) = id(b) RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->readingStatements[0];
+    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
@@ -59,7 +59,7 @@ TEST_F(ExpressionTest, FilterBooleanConnectionTest) {
 
     string input = "MATCH () WHERE a.isStudent AND NOT b.isMale RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->readingStatements[0];
+    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
@@ -75,7 +75,7 @@ TEST_F(ExpressionTest, FilterNullOperatorTest) {
 
     string input = "MATCH () WHERE a.isStudent AND b.isMale AND a.name IS NULL RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->readingStatements[0];
+    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
@@ -94,22 +94,7 @@ TEST_F(ExpressionTest, FilterStringOperatorTest) {
     string input =
         "MATCH () WHERE (a.isStudent AND b.isMale) OR a.name CONTAINS \"Xiyang\" RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->readingStatements[0];
-    ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
-}
-
-TEST_F(ExpressionTest, FilterLtOperatorTest) {
-    auto aAge = makeAAgeExpression();
-    auto csvLine0 = make_unique<ParsedExpression>(CSV_LINE_EXTRACT, EMPTY, EMPTY);
-    csvLine0->children.emplace_back(make_unique<ParsedExpression>(VARIABLE, "csvLine", EMPTY));
-    csvLine0->children.emplace_back(make_unique<ParsedExpression>(LITERAL_INT, "0", EMPTY));
-    auto where = make_unique<ParsedExpression>(EQUALS, EMPTY, EMPTY, move(aAge), move(csvLine0));
-
-    string input = "LOAD CSV WITH HEADERS FROM \"file\" AS csvLine MATCH () WHERE a.age = "
-                   "csvLine[0] RETURN COUNT(*)";
-    auto singleQuery = Parser::parseQuery(input);
-    ASSERT_EQ(2, singleQuery->readingStatements.size());
-    auto& matchStatement = (MatchStatement&)*singleQuery->readingStatements[1];
+    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
@@ -124,7 +109,7 @@ TEST_F(ExpressionTest, FilterArithmeticComparisonTest) {
 
     string input = "MATCH () WHERE 2 + a * 0.1 = a.age RETURN *";
     auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->readingStatements[0];
+    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
@@ -140,7 +125,7 @@ TEST_F(ExpressionTest, FilterParenthesizeTest) {
 
     string input = "MATCH () WHERE ((2 - a) % 0.1) <= a.age RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->readingStatements[0];
+    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
@@ -155,6 +140,6 @@ TEST_F(ExpressionTest, FilterFunctionMultiParamsTest) {
 
     string input = "MATCH () WHERE MIN(a, b^2) RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->readingStatements[0];
+    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }

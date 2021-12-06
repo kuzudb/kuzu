@@ -53,8 +53,6 @@ private:
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalLoadCSVToPhysical(
-        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalMultiplicityReducerToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalSkipToPhysical(

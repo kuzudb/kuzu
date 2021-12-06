@@ -23,7 +23,7 @@ public:
 
 TEST_F(SubqueryTest, ExistsTest) {
     auto innerQuery = make_unique<SingleQuery>();
-    innerQuery->readingStatements.push_back(makeEmptyMatchStatement());
+    innerQuery->matchStatements.push_back(makeEmptyMatchStatement());
     innerQuery->returnStatement = makeReturnStarStatement();
 
     auto existentialExpression =
@@ -33,20 +33,20 @@ TEST_F(SubqueryTest, ExistsTest) {
 
     string input = "MATCH () WHERE NOT EXISTS { MATCH () RETURN * } RETURN COUNT(*);";
     auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->readingStatements[0];
+    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*expectedExpression, *matchStatement.whereClause));
 }
 
 TEST_F(SubqueryTest, NestedExistsTest) {
     auto secondInnerQuery = make_unique<SingleQuery>();
-    secondInnerQuery->readingStatements.push_back(makeEmptyMatchStatement());
+    secondInnerQuery->matchStatements.push_back(makeEmptyMatchStatement());
     secondInnerQuery->returnStatement = makeReturnStarStatement();
 
     auto innerQuery = make_unique<SingleQuery>();
     auto match = makeEmptyMatchStatement();
     match->whereClause =
         make_unique<ParsedExpression>(EXISTENTIAL_SUBQUERY, move(secondInnerQuery), EMPTY);
-    innerQuery->readingStatements.push_back(move(match));
+    innerQuery->matchStatements.push_back(move(match));
     innerQuery->returnStatement = makeReturnStarStatement();
 
     auto expectedExpression =
@@ -55,6 +55,6 @@ TEST_F(SubqueryTest, NestedExistsTest) {
     string input = "MATCH () WHERE EXISTS { MATCH () WHERE EXISTS { MATCH () RETURN * } RETURN "
                    "* } RETURN COUNT(*);";
     auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->readingStatements[0];
+    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*expectedExpression, *matchStatement.whereClause));
 }

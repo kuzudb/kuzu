@@ -11,7 +11,6 @@
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
 #include "src/planner/include/logical_plan/operator/intersect/logical_intersect.h"
 #include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
-#include "src/planner/include/logical_plan/operator/load_csv/logical_load_csv.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
@@ -28,7 +27,6 @@
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
 #include "src/processor/include/physical_plan/operator/intersect.h"
 #include "src/processor/include/physical_plan/operator/limit.h"
-#include "src/processor/include/physical_plan/operator/load_csv.h"
 #include "src/processor/include/physical_plan/operator/multiplicity_reducer.h"
 #include "src/processor/include/physical_plan/operator/projection.h"
 #include "src/processor/include/physical_plan/operator/read_list/adj_list_extend.h"
@@ -118,9 +116,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_SCAN_REL_PROPERTY: {
         physicalOperator =
             mapLogicalScanRelPropertyToPhysical(logicalOperator.get(), info, context);
-    } break;
-    case LOGICAL_LOAD_CSV: {
-        physicalOperator = mapLogicalLoadCSVToPhysical(logicalOperator.get(), info, context);
     } break;
     case LOGICAL_MULTIPLICITY_REDUCER: {
         physicalOperator =
@@ -331,27 +326,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         move(hashJoinBuild), move(probeSidePrevOperator), context, physicalOperatorID++);
     hashJoinProbe->sharedState = hashJoinSharedState;
     return hashJoinProbe;
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLoadCSVToPhysical(
-    LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
-    auto& logicalLoadCSV = (const LogicalLoadCSV&)*logicalOperator;
-    assert(!logicalLoadCSV.csvColumnVariables.empty());
-    vector<DataType> csvColumnDataTypes;
-    uint32_t outDataChunkPos =
-        info.getDataPos(logicalLoadCSV.csvColumnVariables[0]->getUniqueName()).dataChunkPos;
-    vector<uint32_t> outValueVectorsPos;
-    for (auto& csvColumnVariable : logicalLoadCSV.csvColumnVariables) {
-        csvColumnDataTypes.push_back(csvColumnVariable->dataType);
-        auto [dataChunkPos, outValueVectorPos] =
-            info.getDataPos(csvColumnVariable->getUniqueName());
-        assert(outDataChunkPos == dataChunkPos);
-        outValueVectorsPos.push_back(outValueVectorPos);
-        info.addComputedExpressions(csvColumnVariable->getUniqueName());
-    }
-    return make_unique<LoadCSV>(logicalLoadCSV.path, logicalLoadCSV.tokenSeparator,
-        csvColumnDataTypes, outDataChunkPos, move(outValueVectorsPos), context,
-        physicalOperatorID++);
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical(

@@ -40,7 +40,6 @@ cc_library(
     ]),
     deps = [
         "query_graph",
-        "//src/common:statement_type",
     ],
 )
 

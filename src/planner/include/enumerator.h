@@ -44,7 +44,6 @@ private:
     void planExistsSubquery(
         const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression, LogicalPlan& plan);
 
-    void appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, LogicalPlan& plan);
     void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
     // return position of the only unFlat group
     // or position of any flat group if there is no unFlat group.

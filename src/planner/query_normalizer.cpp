@@ -1,6 +1,5 @@
 #include "src/planner/include/query_normalizer.h"
 
-#include "src/binder/include/bound_statements/bound_load_csv_statement.h"
 #include "src/binder/include/bound_statements/bound_match_statement.h"
 #include "src/binder/include/expression/existential_subquery_expression.h"
 
@@ -21,8 +20,8 @@ unique_ptr<NormalizedQuery> QueryNormalizer::normalizeQuery(
 unique_ptr<BoundQueryPart> QueryNormalizer::normalizeFinalReadsAndReturnAsQueryPart(
     const BoundSingleQuery& boundSingleQuery) {
     auto queryPart = make_unique<BoundQueryPart>();
-    for (auto& readingStatement : boundSingleQuery.boundReadingStatements) {
-        queryPart->boundReadingStatements.push_back(readingStatement->copy());
+    for (auto& matchStatement : boundSingleQuery.boundMatchStatements) {
+        queryPart->boundMatchStatements.push_back(matchStatement->copy());
     }
     queryPart->boundWithStatement =
         make_unique<BoundWithStatement>(make_unique<BoundProjectionBody>(
@@ -36,43 +35,24 @@ unique_ptr<NormalizedQueryPart> QueryNormalizer::normalizeQueryPart(
         make_unique<BoundProjectionBody>(
             *boundQueryPart.boundWithStatement->getBoundProjectionBody()),
         isFinalQueryPart);
-    normalizeLoadCSVStatement(*normalizedQueryPart, boundQueryPart);
     normalizeQueryGraph(*normalizedQueryPart, boundQueryPart);
     normalizeWhereExpression(*normalizedQueryPart, boundQueryPart);
     normalizeSubqueryExpression(*normalizedQueryPart, boundQueryPart);
     return normalizedQueryPart;
 }
 
-void QueryNormalizer::normalizeLoadCSVStatement(
-    NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart) {
-    for (auto& boundReadingStatement : boundQueryPart.boundReadingStatements) {
-        if (boundReadingStatement->statementType == LOAD_CSV_STATEMENT) {
-            auto& loadCSVStatement = (BoundLoadCSVStatement&)*boundReadingStatement;
-            assert(!normalizedQueryPart.hasLoadCSVStatement());
-            normalizedQueryPart.setLoadCSVStatement(
-                make_unique<BoundLoadCSVStatement>(loadCSVStatement));
-        }
-    }
-}
-
 void QueryNormalizer::normalizeQueryGraph(
     NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart) {
-    for (auto& boundReadingStatement : boundQueryPart.boundReadingStatements) {
-        if (boundReadingStatement->statementType == MATCH_STATEMENT) {
-            auto& matchStatement = (BoundMatchStatement&)*boundReadingStatement;
-            normalizedQueryPart.addQueryGraph(*matchStatement.queryGraph);
-        }
+    for (auto& boundMatchStatement : boundQueryPart.boundMatchStatements) {
+        normalizedQueryPart.addQueryGraph(*boundMatchStatement->queryGraph);
     }
 }
 
 void QueryNormalizer::normalizeWhereExpression(
     NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart) {
-    for (auto& boundReadingStatement : boundQueryPart.boundReadingStatements) {
-        if (boundReadingStatement->statementType == MATCH_STATEMENT) {
-            auto& matchStatement = (BoundMatchStatement&)*boundReadingStatement;
-            if (matchStatement.hasWhereExpression()) {
-                normalizedQueryPart.addWhereExpression(matchStatement.getWhereExpression());
-            }
+    for (auto& boundMatchStatement : boundQueryPart.boundMatchStatements) {
+        if (boundMatchStatement->hasWhereExpression()) {
+            normalizedQueryPart.addWhereExpression(boundMatchStatement->getWhereExpression());
         }
     }
     if (boundQueryPart.boundWithStatement->hasWhereExpression()) {
@@ -83,16 +63,13 @@ void QueryNormalizer::normalizeWhereExpression(
 
 void QueryNormalizer::normalizeSubqueryExpression(
     NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart) {
-    for (auto& boundReadingStatement : boundQueryPart.boundReadingStatements) {
-        if (boundReadingStatement->statementType == MATCH_STATEMENT) {
-            auto& matchStatement = (BoundMatchStatement&)*boundReadingStatement;
-            if (matchStatement.hasWhereExpression()) {
-                for (auto& expression :
-                    matchStatement.getWhereExpression()->getTopLevelSubSubqueryExpressions()) {
-                    auto& subqueryExpression = (ExistentialSubqueryExpression&)*expression;
-                    subqueryExpression.setNormalizedSubquery(
-                        normalizeQuery(*subqueryExpression.getBoundSubquery()));
-                }
+    for (auto& boundMatchStatement : boundQueryPart.boundMatchStatements) {
+        if (boundMatchStatement->hasWhereExpression()) {
+            for (auto& expression :
+                boundMatchStatement->getWhereExpression()->getTopLevelSubSubqueryExpressions()) {
+                auto& subqueryExpression = (ExistentialSubqueryExpression&)*expression;
+                subqueryExpression.setNormalizedSubquery(
+                    normalizeQuery(*subqueryExpression.getBoundSubquery()));
             }
         }
     }

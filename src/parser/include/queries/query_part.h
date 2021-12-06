@@ -1,13 +1,13 @@
 #pragma once
 
-#include "src/parser/include/statements/reading_statement.h"
+#include "src/parser/include/statements/match_statement.h"
 #include "src/parser/include/statements/with_statement.h"
 
 namespace graphflow {
 namespace parser {
 
 /**
- * Represents (Reading)* WITH WHERE?
+ * Represents (MATCH WHERE?)* WITH WHERE?
  */
 class QueryPart {
 
@@ -16,7 +16,7 @@ public:
         : withStatement{move(withStatement)} {}
 
 public:
-    vector<unique_ptr<ReadingStatement>> readingStatements;
+    vector<unique_ptr<MatchStatement>> matchStatements;
     unique_ptr<WithStatement> withStatement;
 };
 

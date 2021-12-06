@@ -1,4 +1,3 @@
-#include "src/binder/include/bound_statements/bound_load_csv_statement.h"
 #include "src/binder/include/expression/literal_expression.h"
 #include "src/binder/include/expression/node_expression.h"
 #include "src/binder/include/expression/property_expression.h"
@@ -9,8 +8,6 @@ using namespace graphflow::binder;
 class BinderTestUtils {
 
 public:
-    static bool equals(const BoundLoadCSVStatement& left, const BoundLoadCSVStatement& right);
-
     static bool equals(const Expression& left, const Expression& right);
 
 private:
