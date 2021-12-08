@@ -5,14 +5,21 @@
 
 #include "nlohmann/json.hpp"
 
+#include "src/common/include/configs.h"
+#include "src/common/include/types.h"
+
 using namespace std;
+using namespace graphflow::common;
 
 namespace graphflow {
 namespace loader {
 
 struct CSVSpecialChars {
 
-    CSVSpecialChars() : escapeChar{'\\'}, tokenSeparator{','}, quoteChar{'"'} {};
+    CSVSpecialChars()
+        : escapeChar{LoaderConfig::DEFAULT_ESCAPE_CHAR},
+          tokenSeparator{LoaderConfig::DEFAULT_TOKEN_SEPARATOR},
+          quoteChar{LoaderConfig::DEFAULT_QUOTE_CHAR} {};
 
     char escapeChar;
     char tokenSeparator;
@@ -31,12 +38,11 @@ public:
 };
 
 struct NodeFileDescription : public LabelFileDescription {
-    NodeFileDescription(string filePath, string labelName, string primaryKeyPropertyName,
-        CSVSpecialChars& csvSpecialChars)
-        : LabelFileDescription{move(filePath), move(labelName), csvSpecialChars},
-          primaryKeyPropertyName{move(primaryKeyPropertyName)} {}
+    NodeFileDescription(
+        string filePath, string labelName, DataType IDType, CSVSpecialChars& csvSpecialChars)
+        : LabelFileDescription{move(filePath), move(labelName), csvSpecialChars}, IDType{IDType} {}
 
-    string primaryKeyPropertyName;
+    DataType IDType;
 };
 
 struct RelFileDescription : public LabelFileDescription {

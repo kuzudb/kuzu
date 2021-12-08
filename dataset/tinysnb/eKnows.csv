@@ -1,4 +1,4 @@
-fromLabel:LABEL,from:NODE,toLabel:LABEL,to:NODE,date:DATE,meetTime:TIMESTAMP,validInterval:INTERVAL
+:START_ID_LABEL,:START_ID,:END_ID_LABEL,:END_ID,date:DATE,meetTime:TIMESTAMP,validInterval:INTERVAL
 person,0,person,2,2021-06-30,1986-10-21 21:08:31.521,10 years 5 months 13 hours 24 us
 person,0,person,3,2021-06-30,1946-08-25 19:07:22,20 years 30 days 48 hours
 person,0,person,5,2021-06-30,2012-12-11 20:07:22,10 days

@@ -126,44 +126,38 @@ Catalog::Catalog(const string& directory) : Catalog() {
     logger->info("Initializing catalog done.");
 }
 
-void Catalog::addNodeLabel(string labelName, vector<PropertyDefinition> structuredProperties,
-    const string& primaryKeyPropertyName) {
+void Catalog::addNodeLabel(string labelName, vector<PropertyDefinition> colHeaderDefinitions) {
     label_t labelId = nodeLabels.size();
-    bool hasFoundPrimaryKey = false;
     uint64_t primaryKeyPropertyId;
-    for (auto i = 0u; i < structuredProperties.size(); i++) {
-        if (structuredProperties[i].name == primaryKeyPropertyName) {
-            hasFoundPrimaryKey = true;
-            structuredProperties[i].isPrimaryKey = true;
+    for (auto i = 0u; i < colHeaderDefinitions.size(); i++) {
+        colHeaderDefinitions[i].id = i;
+        if (colHeaderDefinitions[i].name == LoaderConfig::ID_FIELD) {
             primaryKeyPropertyId = i;
-            break;
         }
-    }
-    if (!hasFoundPrimaryKey) {
-        throw invalid_argument(
-            "Specified primary key property" + primaryKeyPropertyName + " is not found.");
     }
     nodeLabelNameToIdMap[labelName] = labelId;
     nodeLabels.emplace_back(
-        move(labelName), labelId, primaryKeyPropertyId, move(structuredProperties));
+        move(labelName), labelId, primaryKeyPropertyId, move(colHeaderDefinitions));
 }
 
 void Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
-    vector<PropertyDefinition> properties, const vector<string>& srcNodeLabelNames,
+    vector<PropertyDefinition> colHeaderDefinitions, const vector<string>& srcNodeLabelNames,
     const vector<string>& dstNodeLabelNames) {
     label_t labelId = relLabels.size();
     unordered_set<label_t> srcNodeLabelIdSet, dstNodeLabelIdSet;
     for (auto& nodeLabelName : srcNodeLabelNames) {
         if (nodeLabelNameToIdMap.find(nodeLabelName) == nodeLabelNameToIdMap.end()) {
-            throw invalid_argument(
-                "Specified src node " + nodeLabelName + " is not found in the catalog.");
+            throw invalid_argument("Specified src node label `" + nodeLabelName +
+                                   "` of rel label `" + labelName +
+                                   "` is not found in the catalog.");
         }
         srcNodeLabelIdSet.insert(nodeLabelNameToIdMap[nodeLabelName]);
     }
     for (auto& nodeLabelName : dstNodeLabelNames) {
         if (nodeLabelNameToIdMap.find(nodeLabelName) == nodeLabelNameToIdMap.end()) {
-            throw invalid_argument(
-                "Specified dst node " + nodeLabelName + " is not found in the catalog.");
+            throw invalid_argument("Specified dst node node `" + nodeLabelName +
+                                   "` of rel label `" + labelName +
+                                   "` is not found in the catalog.");
         }
         dstNodeLabelIdSet.insert(nodeLabelNameToIdMap[nodeLabelName]);
     }
@@ -174,7 +168,21 @@ void Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
         nodeLabels[nodeLabelId].bwdRelLabelIdSet.insert(labelId);
     }
     relLabelNameToIdMap[labelName] = labelId;
-    relLabels.emplace_back(move(labelName), labelId, relMultiplicity, move(properties),
+    // filter out mandatory fields from column header definitions and give propertyId only to the
+    // structured property definitions.
+    vector<PropertyDefinition> propertyDefinitions;
+    auto propertyId = 0;
+    for (auto& colHeaderDefinition : colHeaderDefinitions) {
+        auto name = colHeaderDefinition.name;
+        if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::END_ID_FIELD ||
+            name == LoaderConfig::START_ID_LABEL_FIELD ||
+            name == LoaderConfig::END_ID_LABEL_FIELD) {
+            continue;
+        }
+        colHeaderDefinition.id = propertyId++;
+        propertyDefinitions.emplace_back(colHeaderDefinition);
+    }
+    relLabels.emplace_back(move(labelName), labelId, relMultiplicity, move(propertyDefinitions),
         move(srcNodeLabelIdSet), move(dstNodeLabelIdSet));
 }
 

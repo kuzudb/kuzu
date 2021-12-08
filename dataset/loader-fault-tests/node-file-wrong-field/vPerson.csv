@@ -1,0 +1,4 @@
+# The header of the file contains the `:START_ID` field which should not be in the node file
+:START_ID,fName:STRING,gender:INT64
+0,Berlin,1
+1,Professor,1

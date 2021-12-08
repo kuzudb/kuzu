@@ -1,4 +1,4 @@
-fromLabel:LABEL|from:NODE|toLabel:LABEL|to:NODE|length:STRING
+:START_ID_LABEL|:START_ID|:END_ID_LABEL|:END_ID|length:STRING
 person|3|organisation|4|5 years
 person|5|organisation|6|4 years
 person|6|organisation|6|3 years 2 months

@@ -67,7 +67,8 @@ void GraphLoader::cleanup() {
 
 void GraphLoader::readAndParseMetadata(DatasetMetadata& metadata) {
     logger->info("Reading and parsing metadata from metadata.json.");
-    auto metadataJSONPath = FileUtils::joinPath(inputDirectory, DEFAULT_METADATA_JSON_FILENAME);
+    auto metadataJSONPath =
+        FileUtils::joinPath(inputDirectory, LoaderConfig::DEFAULT_METADATA_JSON_FILENAME);
     ifstream jsonFile(metadataJSONPath);
     auto parsedJson = make_unique<nlohmann::json>();
     jsonFile >> *parsedJson;
@@ -93,54 +94,120 @@ void GraphLoader::readCSVHeaderAndCalcNumBlocks(const vector<string>& filePaths,
     }
 }
 
+void GraphLoader::verifyColHeaderDefinitionsForNodeFile(
+    vector<PropertyDefinition>& colHeaderDefinitions, const NodeFileDescription& fileDescription) {
+    bool hasID_FIELD = false;
+    for (auto& colHeaderDefinition : colHeaderDefinitions) {
+        auto name = colHeaderDefinition.name;
+        if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::START_ID_LABEL_FIELD ||
+            name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::END_ID_LABEL_FIELD) {
+            throw invalid_argument(
+                "Column headers definitions of a node file contains a mandatory field `" + name +
+                "` that is not allowed.");
+        }
+        if (name == LoaderConfig::ID_FIELD) {
+            colHeaderDefinition.dataType = fileDescription.IDType;
+            colHeaderDefinition.isPrimaryKey = true;
+            hasID_FIELD = true;
+        }
+    }
+    if (!hasID_FIELD) {
+        throw invalid_argument(
+            "Column header definitions of a node file does not contains the mandatory field `" +
+            string(LoaderConfig::ID_FIELD) + "`.");
+    }
+}
+
 // Add node and rel labels into graph catalog.
 // Note that inside this function, only structured properties of node labels are parsed and added
 // into the catalog.
 void GraphLoader::addNodeLabelsIntoGraphCatalog(
     const vector<NodeFileDescription>& fileDescriptions, vector<string>& fileHeaders) {
     for (auto i = 0u; i < fileDescriptions.size(); i++) {
-        auto propertyDefinitions =
-            parseHeader(fileHeaders[i], fileDescriptions[i].csvSpecialChars.tokenSeparator);
-        graph.catalog->addNodeLabel(fileDescriptions[i].labelName, move(propertyDefinitions),
-            fileDescriptions[i].primaryKeyPropertyName);
+        auto colHeaderDefinitions =
+            parseCSVFileHeader(fileHeaders[i], fileDescriptions[i].csvSpecialChars.tokenSeparator);
+        verifyColHeaderDefinitionsForNodeFile(colHeaderDefinitions, fileDescriptions[i]);
+        // register the node label and its structured properties in the catalog.
+        graph.catalog->addNodeLabel(fileDescriptions[i].labelName, move(colHeaderDefinitions));
+    }
+}
+
+void GraphLoader::verifyColHeaderDefinitionsForRelFile(
+    vector<PropertyDefinition>& colHeaderDefinitions) {
+    auto numMandatoryFields = 0;
+    for (auto& colHeaderDefinition : colHeaderDefinitions) {
+        auto name = colHeaderDefinition.name;
+        if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::START_ID_LABEL_FIELD ||
+            name == LoaderConfig::END_ID_FIELD || name == LoaderConfig::END_ID_LABEL_FIELD) {
+            numMandatoryFields++;
+        }
+        if (name == LoaderConfig::ID_FIELD) {
+            throw invalid_argument("Column header definitions of a rel file cannot contain "
+                                   "the mandatory field `ID`.");
+        }
+    }
+    if (numMandatoryFields != 4) {
+        throw invalid_argument("Column header definitions of a rel file does not contains all "
+                               "the mandatory field.");
     }
 }
 
 void GraphLoader::addRelLabelsIntoGraphCatalog(
     const vector<RelFileDescription>& fileDescriptions, vector<string>& fileHeaders) {
     for (auto i = 0u; i < fileDescriptions.size(); i++) {
-        auto propertyDefinitions = parseHeader(
+        auto colHeaderDefinitions = parseCSVFileHeader(
             fileHeaders[i], datasetMetadata.relFileDescriptions[i].csvSpecialChars.tokenSeparator);
+        verifyColHeaderDefinitionsForRelFile(colHeaderDefinitions);
         graph.catalog->addRelLabel(fileDescriptions[i].labelName,
-            getRelMultiplicity(fileDescriptions[i].relMultiplicity), move(propertyDefinitions),
+            getRelMultiplicity(fileDescriptions[i].relMultiplicity), move(colHeaderDefinitions),
             fileDescriptions[i].srcNodeLabelNames, fileDescriptions[i].dstNodeLabelNames);
     }
 }
 
-// Parses the header of a CSV file. The header contains the name and dataType of each structured
-// property separated by a given `tokenSeparator`.
-vector<PropertyDefinition> GraphLoader::parseHeader(string& header, char tokenSeparator) const {
-    auto propertyHeaders = StringUtils::split(header, string(1, tokenSeparator));
-    unordered_set<string> propertyNameSet;
-    vector<PropertyDefinition> propertyDefinitions;
-    uint64_t propertyId = 0;
-    for (auto& propertyHeader : propertyHeaders) {
-        auto propertyDescriptors = StringUtils::split(propertyHeader, PROPERTY_DATATYPE_SEPARATOR);
-        if (propertyDescriptors.size() < 2) {
-            throw invalid_argument("Cannot find dataType in column head `" + propertyHeader + "`.");
+// Parses CSV file header. This header contains 1) column headers for mandatory fields that is
+// required in the file and 2) column headers for structured properties in the file.
+vector<PropertyDefinition> GraphLoader::parseCSVFileHeader(string& header, char tokenSeparator) {
+    auto colHeaders = StringUtils::split(header, string(1, tokenSeparator));
+    unordered_set<string> columnNameSet;
+    vector<PropertyDefinition> colHeaderDefinitions;
+    for (auto& colHeader : colHeaders) {
+        auto colHeaderComponents = StringUtils::split(colHeader, PROPERTY_DATATYPE_SEPARATOR);
+        PropertyDefinition colHeaderDefinition;
+        if (colHeaderComponents.size() < 2) {
+            throw invalid_argument("Incomplete column header `" + colHeader + "`.");
         }
-        auto propertyName = propertyDescriptors[0];
-        if (propertyNameSet.find(propertyName) != propertyNameSet.end()) {
-            throw invalid_argument(
-                "Property name " + propertyName + " already exists in the node label.");
+        // Check if one of the mandatory field column header.
+        if (colHeaderComponents[0].empty()) {
+            colHeaderDefinition.name = colHeaderComponents[1];
+            if (colHeaderDefinition.name == LoaderConfig::ID_FIELD) {
+                colHeaderDefinition.dataType = NODE;
+                colHeaderDefinition.isPrimaryKey = true;
+            } else if (colHeaderDefinition.name == LoaderConfig::START_ID_FIELD ||
+                       colHeaderDefinition.name == LoaderConfig::END_ID_FIELD) {
+                colHeaderDefinition.dataType = NODE;
+            } else if (colHeaderDefinition.name == LoaderConfig::START_ID_LABEL_FIELD ||
+                       colHeaderDefinition.name == LoaderConfig::END_ID_LABEL_FIELD) {
+                colHeaderDefinition.dataType = LABEL;
+            } else {
+                throw invalid_argument(
+                    "Invalid mandatory field column header `" + colHeaderDefinition.name + "`.");
+            }
+        } else {
+            colHeaderDefinition.name = colHeaderComponents[0];
+            colHeaderDefinition.dataType = TypeUtils::getDataType(colHeaderComponents[1]);
+            if (colHeaderDefinition.dataType == NODE || colHeaderDefinition.dataType == LABEL) {
+                throw invalid_argument(
+                    "Property column header cannot be of system types NODE or LABEL.");
+            }
         }
-        propertyNameSet.insert(propertyName);
-        auto dataType = TypeUtils::getDataType(propertyDescriptors[1]);
-        if (NODE != dataType && LABEL != dataType) {
-            propertyDefinitions.emplace_back(propertyName, propertyId++, dataType);
+        if (columnNameSet.find(colHeaderDefinition.name) != columnNameSet.end()) {
+            throw invalid_argument("Column " + colHeaderDefinition.name +
+                                   " already appears previously in the column headers.");
         }
+        columnNameSet.insert(colHeaderDefinition.name);
+        colHeaderDefinitions.emplace_back(colHeaderDefinition);
     }
-    return propertyDefinitions;
+    return colHeaderDefinitions;
 }
 
 unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes() {
@@ -250,7 +317,7 @@ void GraphLoader::countLinesAndScanUnstrPropertiesInBlockTask(const string& fNam
         while (reader.hasNextToken()) {
             auto unstrPropertyStr = reader.getString();
             auto unstrPropertyName =
-                StringUtils::split(unstrPropertyStr, UNSTR_PROPERTY_SEPARATOR)[0];
+                StringUtils::split(unstrPropertyStr, LoaderConfig::UNSTR_PROPERTY_SEPARATOR)[0];
             if (unstrPropertyNameSet->find(unstrPropertyName) == unstrPropertyNameSet->end()) {
                 unstrPropertyNameSet->insert(unstrPropertyName);
             }

@@ -5,6 +5,7 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/assert.h"
+#include "src/common/include/configs.h"
 #include "src/common/include/file_utils.h"
 #include "src/common/include/ser_deser.h"
 #include "src/common/include/types.h"
@@ -32,7 +33,7 @@ RelMultiplicity getRelMultiplicity(const string& relMultiplicityString);
 struct PropertyDefinition {
 
 public:
-    PropertyDefinition() : id{0}, dataType{0}, isPrimaryKey{false} {};
+    PropertyDefinition() : id{-1u}, dataType{UNSTRUCTURED}, isPrimaryKey{false} {};
 
     PropertyDefinition(string name, uint32_t id, DataType dataType)
         : name{move(name)}, id{id}, dataType{dataType}, isPrimaryKey{false} {};
@@ -97,11 +98,10 @@ public:
      * Node and Rel label functions.
      */
 
-    void addNodeLabel(string labelName, vector<PropertyDefinition> structuredProperties,
-        const string& primaryKeyPropertyName);
+    void addNodeLabel(string labelName, vector<PropertyDefinition> colHeaderDefinitions);
 
     void addRelLabel(string labelName, RelMultiplicity relMultiplicity,
-        vector<PropertyDefinition> properties, const vector<string>& srcNodeLabelNames,
+        vector<PropertyDefinition> colHeaderDefinitions, const vector<string>& srcNodeLabelNames,
         const vector<string>& dstNodeLabelNames);
 
     virtual inline string getNodeLabelName(label_t labelId) const {

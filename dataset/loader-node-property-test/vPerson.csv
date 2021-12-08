@@ -9,7 +9,7 @@
 # (boolPropKey1, False) (note that the exception vertices are False this time and the key indices start from 0 not 1).
 # At least 1 unstructured property of the following nodes spans 2 pages: 77, 154, 231, 300, 310, 387, 400, 465, 500,
 # 589, 666, 743, 821, 898, 975.
-id:INT64,randomString:STRING
+:ID,randomString:STRING
 0,"mrtl,rwthhu",strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
 1,"ozwhvnetnq",strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True
 2,"kuk,qg\\nrspmk",strPropKey1:STRING:strPropVal1,int64PropKey1:INT64:1,doublePropKey1:DOUBLE:1.0,boolPropKey1:BOOLEAN:True

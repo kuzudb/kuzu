@@ -19,9 +19,6 @@ using namespace std;
 namespace graphflow {
 namespace loader {
 
-const string UNSTR_PROPERTY_SEPARATOR = ":";
-const string DEFAULT_METADATA_JSON_FILENAME = "metadata.json";
-
 class GraphLoader {
 
 public:
@@ -32,13 +29,20 @@ public:
 
 private:
     void readAndParseMetadata(DatasetMetadata& metadata);
+
     void readCSVHeaderAndCalcNumBlocks(const vector<string>& filePaths,
         vector<uint64_t>& numBlocksPerFile, vector<string>& fileHeaders);
+
+    void verifyColHeaderDefinitionsForNodeFile(vector<PropertyDefinition>& colHeaderDefinitions,
+        const NodeFileDescription& fileDescription);
     void addNodeLabelsIntoGraphCatalog(
         const vector<NodeFileDescription>& fileDescriptions, vector<string>& fileHeaders);
+
+    void verifyColHeaderDefinitionsForRelFile(vector<PropertyDefinition>& colHeaderDefinitions);
     void addRelLabelsIntoGraphCatalog(
         const vector<RelFileDescription>& fileDescriptions, vector<string>& fileHeaders);
-    vector<PropertyDefinition> parseHeader(string& header, char tokenSeparator) const;
+
+    static vector<PropertyDefinition> parseCSVFileHeader(string& header, char tokenSeparator);
 
     unique_ptr<vector<unique_ptr<NodeIDMap>>> loadNodes();
 

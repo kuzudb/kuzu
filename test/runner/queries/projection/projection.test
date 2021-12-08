@@ -58,7 +58,7 @@
 
 -NAME PersonNodesTestUnstructuredProperty
 -COMPARE_RESULT 1
--QUERY MATCH (a:person) RETURN a.id,a.unstrDateProp1
+-QUERY MATCH (a:person) RETURN a.ID,a.unstrDateProp1
 ---- 8
 0|1900-01-01
 10|

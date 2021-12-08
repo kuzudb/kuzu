@@ -1,4 +1,4 @@
-id:INT64|randomString:STRING|date:DATE
+:ID|randomString:STRING|date:DATE
 0|-this is |the first line-|2020-02-18|strPropKey1:STRING:strPropVal1
 1|-the " should be ignored-|2003-01-02
 2|-the #- should be escaped-|2017-09-12|doublePropKey1:DOUBLE:1.0|boolPropKey1:BOOLEAN:True

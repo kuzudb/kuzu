@@ -1,4 +1,4 @@
-fromLabel:LABEL,from:NODE,toLabel:LABEL,to:NODE,year:INT64
+:START_ID_LABEL,:START_ID,:END_ID_LABEL,:END_ID,year:INT64
 person,0,organisation,1,2021
 person,2,organisation,1,2020
 person,8,organisation,1,2020
