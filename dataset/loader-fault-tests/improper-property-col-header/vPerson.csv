@@ -1,0 +1,4 @@
+# The header of the file contain an improper property column header (without datatype), which should raise error
+:ID,fName,gender:INT64
+0,Professor,0
+1,Bogota,0

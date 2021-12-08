@@ -1,0 +1,4 @@
+# The header of the file contain improper field `:IDS` field which should raise error
+:IDS,fName:STRING,gender:INT64
+0,Helsinki,0
+1,Stockholm,0

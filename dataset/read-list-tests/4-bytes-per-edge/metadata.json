@@ -4,7 +4,7 @@
     {
       "filename": "vPerson.csv",
       "label": "person",
-      "primaryKey": "id"
+      "IDType": "INT64"
     }
   ],
   "relFileDescriptions": [

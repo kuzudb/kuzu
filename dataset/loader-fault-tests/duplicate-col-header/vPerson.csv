@@ -1,0 +1,4 @@
+# The header of the file contain duplicate property name which is not allowed.
+:ID,fName:STRING,fName:INT64
+0,Moscow,0
+1,Oslo,0

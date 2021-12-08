@@ -4,12 +4,12 @@
     {
       "filename": "vAnimal.csv",
       "label": "animal",
-      "primaryKey": "id"
+      "IDType": "INT64"
     },
     {
       "filename": "vPerson.csv",
       "label": "person",
-      "primaryKey": "id"
+      "IDType": "INT64"
     }
   ],
   "relFileDescriptions": [

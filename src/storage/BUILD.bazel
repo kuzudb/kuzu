@@ -101,6 +101,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//src/common:configs",
         "//src/common:ser_deser",
         "//src/common:types",
         "@gabime_spdlog",

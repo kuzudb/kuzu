@@ -3,7 +3,7 @@ filegroup(
     srcs = glob([
         "tinysnb/**",
         "tinysnb-variant/**",
-        "long-string-error/**",
+        "loader-fault-tests/**",
         "loader-node-property-test/**",
         "loader-special-char-test/**",
         "read-list-tests/**",

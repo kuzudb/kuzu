@@ -19,7 +19,8 @@ public:
 
     void setupCatalog() const {
         vector<PropertyDefinition> personProperties;
-        personProperties.emplace_back("id", 0, INT64);
+        personProperties.emplace_back("ID", 0, INT64);
+        personProperties.back().isPrimaryKey = true;
         personProperties.emplace_back("fName", 1, STRING);
         personProperties.emplace_back("gender", 2, INT64);
         personProperties.emplace_back("isStudent", 3, BOOL);
@@ -29,7 +30,7 @@ public:
         personProperties.emplace_back("birthdate", 7, DATE);
         personProperties.emplace_back("registerTime", 8, TIMESTAMP);
         personProperties.emplace_back("lastJobDuration", 9, INTERVAL);
-        catalog->addNodeLabel("person", move(personProperties), "id");
+        catalog->addNodeLabel("person", move(personProperties));
         catalog->addNodeUnstrProperty(0, "unstrIntProp");
 
         vector<PropertyDefinition> knowsProperties;

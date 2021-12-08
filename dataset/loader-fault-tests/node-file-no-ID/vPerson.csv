@@ -1,0 +1,4 @@
+# The header of the file do not contain mandatory `:ID` field which should raise error
+fName:STRING,gender:INT64
+0,Nairobi,0
+1,Tokyo,0

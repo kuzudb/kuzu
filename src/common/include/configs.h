@@ -37,5 +37,22 @@ struct HashIndexConfig {
     static constexpr uint64_t SLOT_CAPACITY = 4;
 };
 
+struct LoaderConfig {
+    static constexpr char UNSTR_PROPERTY_SEPARATOR[] = ":";
+    static constexpr char DEFAULT_METADATA_JSON_FILENAME[] = "metadata.json";
+
+    // mandatory fields in input CSV files
+    static constexpr char ID_FIELD[] = "ID";
+    static constexpr char START_ID_FIELD[] = "START_ID";
+    static constexpr char END_ID_FIELD[] = "END_ID";
+    static constexpr char START_ID_LABEL_FIELD[] = "START_ID_LABEL";
+    static constexpr char END_ID_LABEL_FIELD[] = "END_ID_LABEL";
+
+    // Default special characters
+    static constexpr char DEFAULT_ESCAPE_CHAR = '\\';
+    static constexpr char DEFAULT_TOKEN_SEPARATOR = ',';
+    static constexpr char DEFAULT_QUOTE_CHAR = '"';
+};
+
 } // namespace common
 } // namespace graphflow

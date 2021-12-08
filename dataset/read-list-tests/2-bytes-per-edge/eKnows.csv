@@ -13,7 +13,7 @@
 # whose source is p0, the value is the ID of the destination node, e.g., e=0->5 has
 # int64Prop:5. For others the property is null. This property is intended to
 # test small and large property list reading.
-fromLabel:LABEL,from:NODE,toLabel:LABEL,to:NODE,int64Prop:INT64
+:START_ID_LABEL,:START_ID,:END_ID_LABEL,:END_ID,int64Prop:INT64
 person,0,person,0,0
 person,0,person,1,1
 person,0,person,2,2
