@@ -7,7 +7,6 @@
 
 #include "src/common/include/assert.h"
 #include "src/common/include/interval.h"
-#include "src/common/include/time.h"
 
 #define BSWAP64(x)                                                                                 \
     ((uint64_t)((((uint64_t)(x)&0xff00000000000000ull) >> 56) |                                    \
@@ -92,7 +91,7 @@ void OrderByKeyEncoder::encodeInterval(interval_t data, uint8_t* resultPtr) {
 }
 
 void OrderByKeyEncoder::encodeString(gf_string_t data, uint8_t* resultPtr) {
-    // only encode the prefix of gf_string
+    // Only encode the prefix of gf_string.
     memcpy(resultPtr, (void*)data.getAsString().c_str(),
         min((uint32_t)gf_string_t::SHORT_STR_LENGTH, data.len));
     if (data.len < (uint32_t)gf_string_t::SHORT_STR_LENGTH) {
@@ -101,19 +100,9 @@ void OrderByKeyEncoder::encodeString(gf_string_t data, uint8_t* resultPtr) {
 }
 
 uint64_t OrderByKeyEncoder::getEncodingSize(DataType dataType) {
-    // add one more byte for null flag
+    // Add one more byte for null flag.
     return 1 + (dataType == STRING ? gf_string_t::SHORT_STR_LENGTH :
                                      TypeUtils::getDataTypeSize(dataType));
-}
-
-uint64_t OrderByKeyEncoder::getEntrySize(vector<shared_ptr<ValueVector>>& keys) {
-    uint64_t entrySize = 0;
-    for (auto& key : keys) {
-        entrySize += getEncodingSize(key->dataType);
-    }
-    // 8 bytes for global rowID
-    entrySize += sizeof(uint64_t);
-    return entrySize;
 }
 
 void OrderByKeyEncoder::allocateMemoryIfFull() {
@@ -126,12 +115,12 @@ void OrderByKeyEncoder::allocateMemoryIfFull() {
 void OrderByKeyEncoder::encodeData(shared_ptr<ValueVector>& orderByVector,
     uint64_t idxInOrderByVector, uint8_t* keyBlockPtr, const uint64_t keyColIdx) {
     if (orderByVector->isNull(idxInOrderByVector)) {
-        // set all bits to 1 if this is a null value
+        // Set all bits to 1 if this is a null value.
         for (uint64_t i = 0; i < getEncodingSize(orderByVector->dataType); i++) {
             *(keyBlockPtr + i) = UINT8_MAX;
         }
     } else {
-        *keyBlockPtr = 0; // set the null flag to 0
+        *keyBlockPtr = 0; // Set the null flag to 0.
         auto keyBlockPtrAfterNullByte = keyBlockPtr + 1;
         switch (orderByVector->dataType) {
         case INT64:
@@ -168,7 +157,7 @@ void OrderByKeyEncoder::encodeData(shared_ptr<ValueVector>& orderByVector,
         }
     }
     if (!isAscOrder[keyColIdx]) {
-        // if the current column is in desc order, flip all bits
+        // If the current column is in desc order, flip all bits.
         for (uint64_t byte = 0; byte < getEncodingSize(orderByVector->dataType); ++byte) {
             *(keyBlockPtr + byte) = ~*(keyBlockPtr + byte);
         }
@@ -180,9 +169,14 @@ void OrderByKeyEncoder::encodeKeys() {
     if (orderByVectors[0]->state->isFlat()) {
         numEntries = 1;
     } else {
-        // we only allow an input key vector to be unflat if there is a single order by column.
+        // We only allow an input key vector to be unflat if there is a single order by column.
         GF_ASSERT(orderByVectors.size() == 1);
         numEntries = orderByVectors[0]->state->selectedSize;
+    }
+    // Check whether the nextLocalRowID overflows.
+    if (nextLocalRowID + numEntries - 1 > MAX_LOCAL_ROW_ID) {
+        throw EncodingException("Attempting to order too many rows. The orderByKeyEncoder has "
+                                "achieved its maximum number of rows!");
     }
     uint64_t encodedRows = 0;
     while (numEntries > 0) {
@@ -190,7 +184,8 @@ void OrderByKeyEncoder::encodeKeys() {
         uint64_t numEntriesToEncode = min(numEntries, entriesPerBlock - curBlockUsedEntries);
         for (uint64_t i = 0; i < numEntriesToEncode; i++) {
             uint64_t keyBlockPtrOffset = 0;
-            const auto basePtr = keyBlocks.back()->data + curBlockUsedEntries * entrySize;
+            const auto basePtr =
+                keyBlocks.back()->data + curBlockUsedEntries * keyBlockEntrySizeInBytes;
             for (uint64_t keyColIdx = 0; keyColIdx < orderByVectors.size(); keyColIdx++) {
                 auto const keyBlockPtr = basePtr + keyBlockPtrOffset;
                 uint64_t idxInOrderByVector =
@@ -200,10 +195,15 @@ void OrderByKeyEncoder::encodeKeys() {
                 encodeData(orderByVectors[keyColIdx], idxInOrderByVector, keyBlockPtr, keyColIdx);
                 keyBlockPtrOffset += getEncodingSize(orderByVectors[keyColIdx]->dataType);
             }
-            memcpy(basePtr + keyBlockPtrOffset, &nextGlobalRowID, sizeof(nextGlobalRowID));
+            // Since only the lower 6 bytes of nextLocalRowID is actually used, we only need to
+            // encode the lower 6 bytes.
+            memcpy(basePtr + keyBlockPtrOffset, &nextLocalRowID, getEncodedRowIDSizeInBytes());
+            // 2 bytes encoding for threadID
+            memcpy(basePtr + keyBlockPtrOffset + getEncodedRowIDSizeInBytes(), &threadID,
+                sizeof(threadID));
             encodedRows++;
             curBlockUsedEntries++;
-            nextGlobalRowID++;
+            nextLocalRowID++;
         }
         numEntries -= numEntriesToEncode;
     }

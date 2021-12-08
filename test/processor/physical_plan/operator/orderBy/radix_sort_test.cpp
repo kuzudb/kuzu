@@ -23,17 +23,22 @@ public:
 
 public:
     unique_ptr<MemoryManager> memoryManager;
+    const uint16_t threadID = 9;
 
-    void checkRowIDs(uint8_t* keyBlockPtr, const uint64_t entrySize,
+    void checkRowIDsAndThreadIDs(uint8_t* keyBlockPtr, const uint64_t entrySize,
         const vector<uint64_t>& expectedRowIDOrder) {
         for (auto expectedRowID : expectedRowIDOrder) {
-            auto rowID = *((uint64_t*)(keyBlockPtr + entrySize - sizeof(uint64_t)));
+            ASSERT_EQ(
+                OrderByKeyEncoder::getEncodedThreadID(keyBlockPtr + entrySize - sizeof(uint64_t)),
+                threadID);
+            auto encodedRowID =
+                OrderByKeyEncoder::getEncodedRowID(keyBlockPtr + entrySize - sizeof(uint64_t));
             if (expectedRowID != -1) {
-                ASSERT_EQ(rowID, expectedRowID);
+                ASSERT_EQ(encodedRowID, expectedRowID);
             } else {
-                // for rows with the same value, we just need to check the row id is valid and
-                // in the range of [0, expectedRowIDOrder.size())
-                ASSERT_EQ((0 <= rowID) && (rowID < expectedRowIDOrder.size()), true);
+                // For rows with the same value, we just need to check the row id is valid and
+                // in the range of [0, expectedRowIDOrder.size()).
+                ASSERT_EQ((0 <= encodedRowID) && (encodedRowID < expectedRowIDOrder.size()), true);
             }
             keyBlockPtr += entrySize;
         }
@@ -41,10 +46,11 @@ public:
 
     template<typename T>
     void singleOrderByColTest(const vector<T>& sortingData, const vector<bool>& nullMasks,
-        const vector<uint64_t>& expectedRowIDOrder, const DataType dataType, const bool isAsc) {
+        const vector<uint64_t>& expectedRowIDOrder, const DataType dataType, const bool isAsc,
+        bool hasPayLoadCol) {
         GF_ASSERT(sortingData.size() == nullMasks.size());
         GF_ASSERT(sortingData.size() == expectedRowIDOrder.size());
-        auto dataChunk = make_shared<DataChunk>(1);
+        auto dataChunk = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         dataChunk->state->selectedSize = sortingData.size();
         auto valueVector = make_shared<ValueVector>(memoryManager.get(), dataType);
         auto values = (T*)valueVector->values;
@@ -58,16 +64,49 @@ public:
             }
         }
         dataChunk->insert(0, valueVector);
-        vector<shared_ptr<ValueVector>> orderByVectors{valueVector};
+        vector<shared_ptr<ValueVector>> orderByVectors{
+            valueVector}; // only contains orderBy columns
+        vector<shared_ptr<ValueVector>> allVectors{
+            valueVector}; // all columns including orderBy and payload columns
         vector<bool> isAscOrder{isAsc};
-        auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager);
+
+        RowLayout rowLayout;
+        rowLayout.appendField({dataType, TypeUtils::getDataTypeSize(dataType), false});
+        vector<uint64_t> orderByColOffsetInRowCollection;
+
+        if (hasPayLoadCol) {
+            // Create a new payloadValueVector for the payload column.
+            auto payloadValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+            for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
+                payloadValueVector->addString(i, to_string(i));
+            }
+            dataChunk->insert(1, payloadValueVector);
+            // To test whether the orderByCol -> rowCollectionColOffset works properly, we put the
+            // payload column at index 0, and the orderByCol at index 1. Then the
+            // rowCollectionOffset for the key string column = sizeof(gf_string_t).
+            allVectors.insert(allVectors.begin(), payloadValueVector);
+            rowLayout.appendField({dataType, TypeUtils::getDataTypeSize(STRING), false});
+            orderByColOffsetInRowCollection.emplace_back(TypeUtils::getDataTypeSize(STRING));
+        } else if constexpr (is_same<T, string>::value) {
+            // If this is a string column and has no payload column, then the rowCollection offset
+            // is just 0.
+            orderByColOffsetInRowCollection.emplace_back(0);
+        }
+
+        rowLayout.initialize();
+        RowCollection rowCollection(*memoryManager, rowLayout);
+        rowCollection.append(allVectors, sortingData.size());
+
+        auto orderByKeyEncoder =
+            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, threadID);
         orderByKeyEncoder.encodeKeys();
-        auto& keyBlocks = orderByKeyEncoder.getKeyBlocks();
-        auto& keyBlockToSort = keyBlocks[0];
-        RadixSort radixSort = RadixSort(orderByVectors, *memoryManager, isAscOrder);
-        radixSort.sortKeyBlock(*keyBlockToSort, dataChunk->state->selectedSize);
-        checkRowIDs(keyBlockToSort->data, OrderByKeyEncoder::getEntrySize(orderByVectors),
-            expectedRowIDOrder);
+
+        RadixSort radixSort = RadixSort(
+            *memoryManager, rowCollection, orderByKeyEncoder, orderByColOffsetInRowCollection);
+        radixSort.sortAllKeyBlocks();
+
+        checkRowIDsAndThreadIDs(orderByKeyEncoder.getKeyBlocks()[0]->data,
+            orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedRowIDOrder);
     }
 
     void multipleOrderByColSolveTieTest(vector<bool>& isAscOrder,
@@ -75,8 +114,13 @@ public:
         vector<shared_ptr<ValueVector>> orderByVectors;
         auto mockDataChunk = make_shared<DataChunk>(stringValues.size());
         mockDataChunk->state->currIdx = 0;
+        RowLayout rowLayout;
+        vector<uint64_t> orderByColOffsetInRowCollection;
         for (auto i = 0; i < stringValues.size(); i++) {
             auto stringValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+            orderByColOffsetInRowCollection.emplace_back(
+                orderByColOffsetInRowCollection.size() * TypeUtils::getDataTypeSize(STRING));
+            rowLayout.appendField(FieldInLayout(STRING, TypeUtils::getDataTypeSize(STRING), false));
             mockDataChunk->insert(i, stringValueVector);
             for (auto j = 0u; j < stringValues[i].size(); j++) {
                 stringValueVector->addString(j, stringValues[i][j]);
@@ -84,41 +128,49 @@ public:
             orderByVectors.emplace_back(stringValueVector);
         }
 
-        auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager);
+        rowLayout.initialize();
+        RowCollection rowCollection(*memoryManager, rowLayout);
+
+        auto orderByKeyEncoder =
+            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, threadID);
         for (auto i = 0u; i < expectedRowIDOrder.size(); i++) {
+            rowCollection.append(orderByVectors, 1);
             orderByKeyEncoder.encodeKeys();
             mockDataChunk->state->currIdx++;
         }
-        auto& keyBlocks = orderByKeyEncoder.getKeyBlocks();
-        auto& keyBlockToSort = keyBlocks[0];
-        RadixSort radixSort = RadixSort(orderByVectors, *memoryManager, isAscOrder);
-        radixSort.sortKeyBlock(*keyBlockToSort, expectedRowIDOrder.size());
-        checkRowIDs(keyBlocks[0]->data, OrderByKeyEncoder::getEntrySize(orderByVectors),
-            expectedRowIDOrder);
+
+        auto radixSort = RadixSort(
+            *memoryManager, rowCollection, orderByKeyEncoder, orderByColOffsetInRowCollection);
+        radixSort.sortAllKeyBlocks();
+
+        checkRowIDsAndThreadIDs(orderByKeyEncoder.getKeyBlocks()[0]->data,
+            orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedRowIDOrder);
     }
 };
 
 TEST_F(RadixSortTest, singleOrderByColInt64Test) {
-    vector<int64_t> sortingData = {73 /*positive 1 byte number*/, 0 /*NULL*/,
-        -132 /*negative 1 byte number*/, -5242 /*negative 2 bytes number*/, INT64_MAX, INT64_MIN,
-        210042 /*positive 2 bytes number*/};
+    vector<int64_t> sortingData = {73 /* positive 1 byte number */, 0 /* NULL */,
+        -132 /* negative 1 byte number */, -5242 /* negative 2 bytes number */, INT64_MAX,
+        INT64_MIN, 210042 /* positive 2 bytes number */};
     vector<bool> nullMasks = {false, true, false, false, false, false, false};
     vector<uint64_t> expectedRowIDOrder = {5, 3, 2, 0, 6, 4, 1};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, INT64, true);
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, INT64, true /* isAsc */,
+        false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColNoNullInt64Test) {
-    vector<int64_t> sortingData = {48 /*positive 1 byte number*/, 39842 /*positive 2 bytes number*/,
-        -1 /*negative 1 byte number*/, -819321 /*negative 2 bytes number*/, INT64_MAX, INT64_MIN};
-
+    vector<int64_t> sortingData = {48 /* positive 1 byte number */,
+        39842 /* positive 2 bytes number */, -1 /* negative 1 byte number */,
+        -819321 /* negative 2 bytes number */, INT64_MAX, INT64_MIN};
     vector<bool> nullMasks(6, false);
     vector<uint64_t> expectedRowIDOrder = {4, 1, 0, 2, 3, 5};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, INT64, false);
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, INT64, false /* isAsc */,
+        false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColLargeInputInt64Test) {
     // 240 is the maximum number of rows we can put into a memory block
-    // since: 4096 / (9 + 8) = 240
+    // since: 4096 / (9 + 8) = 240.
     vector<int64_t> sortingData(240);
     iota(sortingData.begin(), sortingData.end(), 0);
     reverse(sortingData.begin(), sortingData.end());
@@ -126,101 +178,125 @@ TEST_F(RadixSortTest, singleOrderByColLargeInputInt64Test) {
     vector<uint64_t> expectedRowIDOrder(240);
     iota(expectedRowIDOrder.begin(), expectedRowIDOrder.end(), 0);
     reverse(expectedRowIDOrder.begin(), expectedRowIDOrder.end());
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, INT64, true);
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, INT64, true /* isAsc */,
+        false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColBoolTest) {
-    vector<int64_t> sortingData = {true, false, false /*NULL*/};
+    vector<int64_t> sortingData = {true, false, false /* NULL */};
     vector<bool> nullMasks = {false, false, true};
     vector<uint64_t> expectedRowIDOrder = {2, 0, 1};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, BOOL, false);
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, BOOL, false /* isAsc */,
+        false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColDateTest) {
-    vector<date_t> sortingData = {Date::FromCString("1970-01-01", strlen("1970-01-01")) /*days=0*/,
-        Date::FromCString("1970-01-02", strlen("1970-01-02")) /*positive days*/,
-        Date::FromCString("2003-10-12", strlen("2003-10-12")) /*large positive days*/,
-        Date::FromCString("1968-12-21", strlen("1968-12-21")) /*negative days*/,
+    vector<date_t> sortingData = {
+        Date::FromCString("1970-01-01", strlen("1970-01-01")) /* days=0 */,
+        Date::FromCString("1970-01-02", strlen("1970-01-02")) /* positive days */,
+        Date::FromCString("2003-10-12", strlen("2003-10-12")) /* large positive days */,
+        Date::FromCString("1968-12-21", strlen("1968-12-21")) /* negative days */,
         date_t(0) /*NULL*/};
     vector<bool> nullMasks = {false, false, false, false, true};
     vector<uint64_t> expectedRowIDOrder = {3, 0, 1, 2, 4};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, DATE, true);
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, DATE, true /* isAsc */,
+        false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColTimestampTest) {
     vector<timestamp_t> sortingData = {
-        Timestamp::FromCString("1970-01-01 00:00:00", strlen("1970-01-01 00:00:00")) /*micros=0*/,
+        Timestamp::FromCString("1970-01-01 00:00:00", strlen("1970-01-01 00:00:00")) /* micros=0 */,
         Timestamp::FromCString(
-            "1970-01-02 14:21:11", strlen("1970-01-02 14:21:11")) /*positive micros*/,
+            "1970-01-02 14:21:11", strlen("1970-01-02 14:21:11")) /* positive micros */,
         timestamp_t(0) /*NULL*/,
         Timestamp::FromCString(
-            "2003-10-12 08:21:10", strlen("2003-10-12 08:21:10")) /*large positive micros*/,
+            "2003-10-12 08:21:10", strlen("2003-10-12 08:21:10")) /* large positive micros */,
         Timestamp::FromCString(
-            "1959-03-20 11:12:13.500", strlen("1959-03-20 11:12:13.500")) /*negative micros*/
+            "1959-03-20 11:12:13.500", strlen("1959-03-20 11:12:13.500")) /* negative micros */
     };
 
     vector<bool> nullMasks = {false, false, true, false, false};
     vector<uint64_t> expectedRowIDOrder = {2, 3, 1, 0, 4};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, TIMESTAMP, false);
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, TIMESTAMP, false /* isAsc */,
+        false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColIntervalTest) {
-    // we need to normalize days and micros in intervals.
+    // We need to normalize days and micros in intervals.
     vector<interval_t> sortingData = {
-        interval_t(0, 0, 0) /*NULL*/,
+        interval_t(0, 0, 0) /* NULL */,
         Interval::FromCString(
             "100 days 3 years 2 hours 178 minutes", strlen("100 days 3 years 2 hours 178 minutes")),
         Interval::FromCString("2 years 466 days 20 minutes",
-            strlen("2 years 466 days 20 minutes")) /*=3 years 106 days 20 minutes*/,
+            strlen("2 years 466 days 20 minutes")) /* =3 years 106 days 20 minutes */,
         Interval::FromCString("3 years 99 days 200 hours 100 minutes",
-            strlen(
-                "3 years 99 days 100 hours 100 minutes")) /*=3 years 107 days 8 hours 100 minutes*/,
+            strlen("3 years 99 days 100 hours 100 minutes")) /* =3 years 107 days 8 hours 100
+                                                                minutes */
+        ,
     };
 
     vector<bool> nullMasks = {true, false, false, false};
     vector<uint64_t> expectedRowIDOrder = {0, 3, 2, 1};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, INTERVAL, false);
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, INTERVAL, false /* isAsc */,
+        false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColDoubleTest) {
-    vector<double> sortingData = {0.0123 /*small positive number*/,
-        -0.90123 /*small negative number */, 95152 /*large positive number*/,
-        -76123 /*large negative number*/, 0, 0 /*NULL*/};
+    vector<double> sortingData = {0.0123 /* small positive number */,
+        -0.90123 /* small negative number */, 95152 /* large positive number */,
+        -76123 /* large negative number */, 0, 0 /* NULL */};
     vector<bool> nullMasks = {false, false, false, false, false, true};
     vector<uint64_t> expectedRowIDOrder = {5, 2, 0, 4, 1, 3};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, DOUBLE, false);
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, DOUBLE, false /* isAsc */,
+        false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColStringTest) {
-    // multiple groups of string with the same prefix generates multiple groups of ties during radix
-    // sort
+    // Multiple groups of string with the same prefix generates multiple groups of ties during radix
+    // sort.
     vector<string> sortingData = {"abcdef", "other common prefix test1", "another common prefix2",
         "common prefix rank1", "common prefix rank3", "common prefix rank2",
         "another common prefix1", "another short string", "" /*NULL*/};
     vector<bool> nullMasks = {false, false, false, false, false, false, false, false, true};
     vector<uint64_t> expectedRowIDOrder = {0, 6, 2, 7, 3, 5, 4, 1, 8};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, STRING, true);
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, STRING, true /* isAsc */,
+        false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColNoNullStringTest) {
-    // multiple groups of string with the same prefix generates multiple groups of ties during radix
-    // sort
+    // Multiple groups of string with the same prefix generates multiple groups of ties during radix
+    // sort.
     vector<string> sortingData = {"simple short", "other common prefix test2",
         "another common prefix2", "common prefix rank1", "common prefix rank3",
         "common prefix rank2", "other common prefix test3", "another short string"};
     vector<bool> nullMasks(8, false);
     vector<uint64_t> expectedRowIDOrder = {0, 6, 1, 4, 5, 3, 7, 2};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, STRING, false);
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, STRING, false /* isAsc */,
+        false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColAllTiesStringTest) {
-    // all the strings are the same, so there is a tie across all rows and the tie can't be solved
+    // All the strings are the same, so there is a tie across all rows and the tie can't be solved
     // the row ordering depends on the c++ std::sort, so we just need to check that the row id is
-    // valid and is in the range of [0~19)
+    // valid and is in the range of [0~19).
     vector<string> sortingData(20, "same string for all rows");
     vector<bool> nullMasks(20, false);
     vector<uint64_t> expectedRowIDOrder(20, -1);
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, STRING, true);
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, STRING, true /* isAsc */,
+        false /* hasPayLoadCol */);
+}
+
+TEST_F(RadixSortTest, singleOrderByColWithPayloadTest) {
+    // The first column is a payload column and the second column is an orderBy column. The radix
+    // sort needs to use orderByColOffsetInRowCollection map to correctly read values from the
+    // rowCollection.
+    vector<string> sortingData = {"string column with payload col test5",
+        "string column with payload col test3", "string 1",
+        "string column with payload col long long", "very long long long string"};
+    vector<bool> nullMasks(5, false);
+    vector<uint64_t> expectedRowIDOrder = {2, 3, 1, 0, 4};
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIDOrder, STRING, true /* isAsc */,
+        true /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
@@ -281,19 +357,29 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     dateValues[3] = Date::FromCString("1964-01-21", strlen("1964-01-21"));
     dateValues[4] = Date::FromCString("2000-11-13", strlen("2000-11-13"));
 
-    auto orderByKeyEncoder = OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager);
+    RowLayout rowLayout({{INT64, TypeUtils::getDataTypeSize(INT64), false /* isVectorOverflow */},
+        {DOUBLE, TypeUtils::getDataTypeSize(DOUBLE), false /* isVectorOverflow */},
+        {STRING, TypeUtils::getDataTypeSize(STRING), false /* isVectorOverflow */},
+        {TIMESTAMP, TypeUtils::getDataTypeSize(TIMESTAMP), false /* isVectorOverflow */},
+        {DATE, TypeUtils::getDataTypeSize(DATE), false /* isVectorOverflow */}});
+    RowCollection rowCollection(*memoryManager, rowLayout);
+    vector<uint64_t> orderByColOffsetInRowCollection = {rowCollection.getFieldOffsetInRow(2)};
+
+    auto orderByKeyEncoder =
+        OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, threadID);
     for (auto i = 0u; i < 5; i++) {
         orderByKeyEncoder.encodeKeys();
+        rowCollection.append(orderByVectors, 1);
         mockDataChunk->state->currIdx++;
     }
 
-    auto& keyBlocks = orderByKeyEncoder.getKeyBlocks();
-    auto& keyBlockToSort = keyBlocks[0];
-    RadixSort radixSort = RadixSort(orderByVectors, *memoryManager, isAscOrder);
-    radixSort.sortKeyBlock(*keyBlockToSort, 5);
+    RadixSort radixSort = RadixSort(
+        *memoryManager, rowCollection, orderByKeyEncoder, orderByColOffsetInRowCollection);
+    radixSort.sortAllKeyBlocks();
+
     vector<uint64_t> expectedRowIDOrder = {1, 4, 0, 2, 3};
-    checkRowIDs(
-        keyBlocks[0]->data, OrderByKeyEncoder::getEntrySize(orderByVectors), expectedRowIDOrder);
+    checkRowIDsAndThreadIDs(orderByKeyEncoder.getKeyBlocks()[0]->data,
+        orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedRowIDOrder);
 }
 
 TEST_F(RadixSortTest, multipleOrderByColSolvableTieTest) {
@@ -306,7 +392,7 @@ TEST_F(RadixSortTest, multipleOrderByColSolvableTieTest) {
         2,
     };
     // The first column has ties, need to compare the second column to solve the tie. However there
-    // are still some ties that are not solvable
+    // are still some ties that are not solvable.
     vector<vector<string>> stringValues = {
         {"same common prefix different1", "same common prefix different",
             "same common prefix different", "same common prefix different",
@@ -320,7 +406,7 @@ TEST_F(RadixSortTest, multipleOrderByColUnSolvableTieTest) {
     vector<bool> isAscOrder = {true, true};
     vector<uint64_t> expectedRowIDOrder = {1, 3, 2, 0, 4};
     // The first column has ties, need to compare the second column to solve the tie. However there
-    // are still some ties that are not solvable
+    // are still some ties that are not solvable.
     vector<vector<string>> stringValues = {
         {"same common prefix different1", "same common prefix different",
             "same common prefix different", "same common prefix different",
