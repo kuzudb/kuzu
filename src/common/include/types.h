@@ -38,7 +38,9 @@ struct nodeID_t {
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {
-    uint64_t len;
+    // the size of the overflow buffer can be calculated as:
+    // numElements * sizeof(Element) + nullMap(4 bytes alignment)
+    uint64_t numElements;
     uint8_t* value;
 };
 
