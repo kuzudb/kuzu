@@ -5,16 +5,13 @@
 namespace graphflow {
 namespace planner {
 
-class LogicalPlan;
-
 class LogicalLeftNestedLoopJoin : public LogicalOperator {
 
 public:
-    LogicalLeftNestedLoopJoin(
-        unique_ptr<LogicalPlan> subPlan, shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, subPlan{move(subPlan)} {}
-
-    inline LogicalPlan* getSubPlan() { return subPlan.get(); }
+    LogicalLeftNestedLoopJoin(shared_ptr<LogicalOperator> subPlanLastOperator,
+        unique_ptr<Schema> subPlanSchema, shared_ptr<LogicalOperator> prevOperator)
+        : LogicalOperator{move(prevOperator)}, subPlanLastOperator{move(subPlanLastOperator)},
+          subPlanSchema{move(subPlanSchema)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LOGICAL_LEFT_NESTED_LOOP_JOIN;
@@ -25,20 +22,20 @@ public:
                         getExpressionsForPrinting() + "]";
         result += prevOperator->toString(depth + 1);
         result += "\nSUBPLAN: \n";
-        result += subPlan->lastOperator->toString(depth + 1);
+        result += subPlanLastOperator->toString(depth + 1);
         return result;
     }
 
     string getExpressionsForPrinting() const override { return string(); }
 
     unique_ptr<LogicalOperator> copy() override {
-        auto subPlanCopy = subPlan->copy();
-        subPlanCopy->lastOperator = subPlan->lastOperator->copy();
-        return make_unique<LogicalLeftNestedLoopJoin>(move(subPlanCopy), prevOperator->copy());
+        return make_unique<LogicalLeftNestedLoopJoin>(
+            subPlanLastOperator->copy(), subPlanSchema->copy(), prevOperator->copy());
     }
 
-private:
-    unique_ptr<LogicalPlan> subPlan;
+public:
+    shared_ptr<LogicalOperator> subPlanLastOperator;
+    unique_ptr<Schema> subPlanSchema;
 };
 
 } // namespace planner

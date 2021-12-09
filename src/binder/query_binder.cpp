@@ -40,7 +40,8 @@ unique_ptr<BoundMatchStatement> QueryBinder::bindMatchStatement(
     auto prevVariablesInScope = variablesInScope;
     auto queryGraph = bindQueryGraph(matchStatement.graphPattern);
     validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
-    auto boundMatchStatement = make_unique<BoundMatchStatement>(move(queryGraph));
+    auto boundMatchStatement =
+        make_unique<BoundMatchStatement>(move(queryGraph), matchStatement.isOptional);
     if (matchStatement.whereClause) {
         boundMatchStatement->whereExpression = bindWhereExpression(*matchStatement.whereClause);
     }

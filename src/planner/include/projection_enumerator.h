@@ -21,6 +21,7 @@ public:
         : catalog{catalog}, enumerator{enumerator} {}
 
     void enumerateProjectionBody(const BoundProjectionBody& projectionBody,
+        const shared_ptr<Expression>& projectionBodyPredicate,
         const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn);
 
 private:

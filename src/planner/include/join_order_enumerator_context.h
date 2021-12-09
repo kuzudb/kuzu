@@ -14,7 +14,8 @@ public:
         : currentLevel{0}, subPlansTable{make_unique<SubPlansTable>()},
           mergedQueryGraph{make_unique<QueryGraph>()} {}
 
-    void init(const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
+    void init(const QueryGraph& queryGraph, const shared_ptr<Expression>& queryGraphPredicate,
+        vector<unique_ptr<LogicalPlan>> prevPlans);
 
     inline vector<shared_ptr<Expression>> getWhereExpressions() {
         return whereExpressionsSplitOnAND;
@@ -49,13 +50,13 @@ public:
         return matchedQueryNodes;
     }
 
-    inline void setExpressionsToSelectFromOuter(vector<shared_ptr<Expression>> expressions) {
-        expressionsToSelectFromOuter = move(expressions);
+    inline void setExpressionsToScanFromOuter(vector<shared_ptr<Expression>> expressions) {
+        expressionsToScanFromOuter = move(expressions);
     }
-    inline void clearExpressionsToSelectFromOuter() { expressionsToSelectFromOuter.clear(); }
-    inline bool hasExpressionsToSelectFromOuter() { return !expressionsToSelectFromOuter.empty(); }
-    inline const vector<shared_ptr<Expression>>& getExpressionsToSelectFromOuter() {
-        return expressionsToSelectFromOuter;
+    inline void clearExpressionsToScanFromOuter() { expressionsToScanFromOuter.clear(); }
+    inline bool hasExpressionsToScanFromOuter() { return !expressionsToScanFromOuter.empty(); }
+    inline const vector<shared_ptr<Expression>>& getExpressionsToScanFromOuter() {
+        return expressionsToScanFromOuter;
     }
 
 private:
@@ -69,7 +70,7 @@ private:
     bitset<MAX_NUM_VARIABLES> matchedQueryRels;
     bitset<MAX_NUM_VARIABLES> matchedQueryNodes;
 
-    vector<shared_ptr<Expression>> expressionsToSelectFromOuter;
+    vector<shared_ptr<Expression>> expressionsToScanFromOuter;
 };
 
 } // namespace planner

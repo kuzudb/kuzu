@@ -494,7 +494,7 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
     if (expression.expressionType == COUNT_STAR_FUNC) {
         return;
     }
-    if (expression.children[0]->hasAggregationExpression()) {
+    if (expression.getChild(0)->hasAggregationExpression()) {
         throw invalid_argument(
             "Expression " + expression.getRawName() + " contains nested aggregation.");
     }

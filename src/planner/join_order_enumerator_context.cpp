@@ -3,17 +3,16 @@
 namespace graphflow {
 namespace planner {
 
-void JoinOrderEnumeratorContext::init(
-    const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans) {
+void JoinOrderEnumeratorContext::init(const QueryGraph& queryGraph,
+    const shared_ptr<Expression>& queryGraphPredicate, vector<unique_ptr<LogicalPlan>> prevPlans) {
     // split where expression
-    whereExpressionsSplitOnAND = queryPart.hasWhereExpression() ?
-                                     queryPart.getWhereExpression()->splitOnAND() :
-                                     vector<shared_ptr<Expression>>();
+    whereExpressionsSplitOnAND =
+        queryGraphPredicate ? queryGraphPredicate->splitOnAND() : vector<shared_ptr<Expression>>();
     // merge new query graph
     auto fullyMatchedSubqueryGraph = getFullyMatchedSubqueryGraph();
     matchedQueryRels = fullyMatchedSubqueryGraph.queryRelsSelector;
     matchedQueryNodes = fullyMatchedSubqueryGraph.queryNodesSelector;
-    mergedQueryGraph->merge(*queryPart.getQueryGraph());
+    mergedQueryGraph->merge(queryGraph);
     // clear and resize subPlansTable
     subPlansTable->clear();
     subPlansTable->resize(mergedQueryGraph->getNumQueryRels());

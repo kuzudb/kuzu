@@ -56,14 +56,13 @@ static shared_ptr<ResultSet> populateResultSet(const Schema& schema) {
 }
 
 unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
-    unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& context) {
-    auto& schema = *logicalPlan->getSchema();
+    const shared_ptr<LogicalOperator>& lastOperator, Schema& schema, ExecutionContext& context) {
     auto info = PhysicalOperatorsInfo(schema);
     vector<DataPos> valueVectorsToCollectPos;
     for (auto& expression : schema.expressionsToCollect) {
         valueVectorsToCollectPos.push_back(info.getDataPos(expression->getUniqueName()));
     }
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalPlan->lastOperator, info, context);
+    auto prevOperator = mapLogicalOperatorToPhysical(lastOperator, info, context);
     auto resultCollector =
         make_unique<ResultCollector>(populateResultSet(schema), move(valueVectorsToCollectPos),
             move(prevOperator), RESULT_COLLECTOR, context, physicalOperatorID++);
@@ -408,10 +407,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExistsToPhysical(
     auto& logicalExists = (LogicalExists&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     auto prevInfo = enterSubquery(&info);
-    auto subPlan = mapLogicalPlanToPhysical(logicalExists.getSubPlan()->copy(), context);
+    auto subPlan = mapLogicalPlanToPhysical(
+        logicalExists.subPlanLastOperator, *logicalExists.subPlanSchema, context);
     exitSubquery(prevInfo);
-    info.addComputedExpressions(logicalExists.getSubqueryExpression()->getUniqueName());
-    auto outDataPos = info.getDataPos(logicalExists.getSubqueryExpression()->getUniqueName());
+    info.addComputedExpressions(logicalExists.subqueryExpression->getUniqueName());
+    auto outDataPos = info.getDataPos(logicalExists.subqueryExpression->getUniqueName());
     return make_unique<Exists>(
         outDataPos, move(subPlan), move(prevOperator), context, physicalOperatorID++);
 }
@@ -419,13 +419,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExistsToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLeftNestedLoopJoinToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto& logicalLeftNestedLoopJoin = (LogicalLeftNestedLoopJoin&)*logicalOperator;
+    auto& subPlanSchema = *logicalLeftNestedLoopJoin.subPlanSchema;
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     auto prevInfo = enterSubquery(&info);
-    auto subPlan =
-        mapLogicalPlanToPhysical(logicalLeftNestedLoopJoin.getSubPlan()->copy(), context);
+    auto subPlan = mapLogicalPlanToPhysical(
+        logicalLeftNestedLoopJoin.subPlanLastOperator, subPlanSchema, context);
     exitSubquery(prevInfo);
     vector<pair<DataPos, DataPos>> subPlanVectorsToRefPosMapping;
-    auto& subPlanSchema = *logicalLeftNestedLoopJoin.getSubPlan()->schema;
     auto subPlanInfo = PhysicalOperatorsInfo(subPlanSchema);
     // Populate data position mapping for merging sub-plan result set
     for (auto i = 0u; i < subPlanSchema.getNumGroups(); ++i) {

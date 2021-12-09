@@ -91,3 +91,9 @@ TEST_F(TinySnbProcessorTest, SubqueryTests) {
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/subquery/subquery.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }
+
+TEST_F(TinySnbProcessorTest, OptionalMatchTests) {
+    vector<TestQueryConfig> queryConfigs;
+    queryConfigs = TestHelper::parseTestFile("test/runner/queries/optional/optional_match.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
+}

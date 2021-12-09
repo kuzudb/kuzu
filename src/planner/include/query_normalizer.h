@@ -15,23 +15,10 @@ private:
     static unique_ptr<BoundQueryPart> normalizeFinalReadsAndReturnAsQueryPart(
         const BoundSingleQuery& boundSingleQuery);
 
-    static unique_ptr<NormalizedQueryPart> normalizeQueryPart(
-        const BoundQueryPart& boundQueryPart, bool isFinalQueryPart);
+    static unique_ptr<NormalizedQueryPart> normalizeQueryPart(const BoundQueryPart& boundQueryPart);
 
-    /**
-     * Merge multiple match clause as one query graph
-     */
-    static void normalizeQueryGraph(
-        NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart);
-
-    /**
-     * Merge where expression that exists in both match and with clause
-     */
-    static void normalizeWhereExpression(
-        NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart);
-
-    static void normalizeSubqueryExpression(
-        NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart);
+    // Recursively normalize bound query within subquery expression
+    static void normalizeSubqueryExpression(const BoundQueryPart& boundQueryPart);
 };
 
 } // namespace planner

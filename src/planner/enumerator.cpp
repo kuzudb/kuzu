@@ -4,6 +4,7 @@
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
+#include "src/planner/include/logical_plan/operator/nested_loop_join/logical_left_nested_loop_join.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
 
@@ -31,36 +32,103 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(const BoundSingleQuer
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
     const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans) {
-    auto plans = joinOrderEnumerator.enumerateJoinOrder(queryPart, move(prevPlans));
-    projectionEnumerator.enumerateProjectionBody(
-        *queryPart.getProjectionBody(), plans, queryPart.isLastQueryPart());
+    vector<unique_ptr<LogicalPlan>> plans = move(prevPlans);
+    for (auto i = 0u; i < queryPart.getNumQueryGraph(); ++i) {
+        if (queryPart.isQueryGraphOptional(i)) {
+            for (auto& plan : plans) {
+                planOptionalMatch(
+                    *queryPart.getQueryGraph(i), queryPart.getQueryGraphPredicate(i), *plan);
+            }
+        } else {
+            plans = joinOrderEnumerator.enumerateJoinOrder(
+                *queryPart.getQueryGraph(i), queryPart.getQueryGraphPredicate(i), move(plans));
+        }
+    }
+    projectionEnumerator.enumerateProjectionBody(*queryPart.getProjectionBody(),
+        queryPart.hasProjectionBodyPredicate() ? queryPart.getProjectionBodyPredicate() : nullptr,
+        plans, queryPart.isLastQueryPart());
     return plans;
+}
+
+void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
+    const shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan) {
+    vector<shared_ptr<Expression>> expressionsToScanFromOuter;
+    if (queryGraphPredicate) {
+        expressionsToScanFromOuter =
+            getSubExpressionsInSchema(queryGraphPredicate, *outerPlan.schema);
+    }
+    for (auto& nodeIDExpression : queryGraph.getNodeIDExpressions()) {
+        if (outerPlan.schema->containExpression(nodeIDExpression->getUniqueName())) {
+            expressionsToScanFromOuter.push_back(nodeIDExpression);
+        }
+    }
+    for (auto& expression : expressionsToScanFromOuter) {
+        appendFlattenIfNecessary(
+            outerPlan.schema->getGroupPos(expression->getUniqueName()), outerPlan);
+    }
+    auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToScanFromOuter));
+    auto bestPlan = getBestPlan(joinOrderEnumerator.enumerateJoinOrder(
+        queryGraph, queryGraphPredicate, getInitialEmptyPlans()));
+    joinOrderEnumerator.exitSubquery(move(prevContext));
+    // Schema merging logic for optional match:
+    //    Consider example MATCH (a:Person) OPTIONAL MATCH (a)-[:studyAt]->(b:Organisation)
+    //    where (a)-[:studyAt]->(b:Organisation) is a column extend. The inner resultSet
+    //    contains 1 dataChunk DCInner with 2 vectors. In the outer query, we shallow copy the
+    //    vector b from the inner query. However we put b's vector not to a's datachunk DCOuterA but
+    //    to a different datachunk DCOuterB. This is because the b's vector contains DCInner's
+    //    state, which might be different than DCOuterA. To make sure that when vector b is copied
+    //    to the outer query, we can keep DCInner's state, we copy B to a new datachunk.
+    auto subPlanSchema = bestPlan->schema->copy();
+    assert(subPlanSchema->getNumGroups() > 0);
+    auto firstInnerGroup = subPlanSchema->getGroup(0);
+    auto firstInnerGroupMapToOuterPos = UINT32_MAX;
+    // Merge first inner group into outer. This merging handles the logic above.
+    for (auto& expressionName : firstInnerGroup->expressionNames) {
+        if (outerPlan.schema->containExpression(expressionName)) {
+            continue;
+        }
+        if (firstInnerGroupMapToOuterPos == UINT32_MAX) {
+            firstInnerGroupMapToOuterPos = outerPlan.schema->createGroup();
+        }
+        outerPlan.schema->insertToGroup(expressionName, firstInnerGroupMapToOuterPos);
+    }
+    // Merge rest inner groups into outer
+    for (auto i = 1u; i < subPlanSchema->getNumGroups(); ++i) {
+        auto outerPos = outerPlan.schema->createGroup();
+        auto group = subPlanSchema->getGroup(i);
+        for (auto& expressionName : group->expressionNames) {
+            outerPlan.schema->insertToGroup(expressionName, outerPos);
+        }
+    }
+    auto logicalLeftNestedLoopJoin = make_shared<LogicalLeftNestedLoopJoin>(
+        bestPlan->lastOperator, move(subPlanSchema), outerPlan.lastOperator);
+    outerPlan.appendOperator(move(logicalLeftNestedLoopJoin));
 }
 
 void Enumerator::planExistsSubquery(
     const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression, LogicalPlan& outerPlan) {
-    vector<shared_ptr<Expression>> expressionsToSelect;
-    auto subExpressions = getSubExpressionsInSchema(subqueryExpression, *outerPlan.schema);
+    auto expressionsToScanFromOuter =
+        getSubExpressionsInSchema(subqueryExpression, *outerPlan.schema);
     // We flatten all dependent groups for subquery and the result of subquery evaluation can be
     // appended to any flat dependent group.
     auto groupPosToWrite = UINT32_MAX;
-    for (auto& subExpression : subExpressions) {
-        expressionsToSelect.push_back(subExpression);
-        groupPosToWrite = outerPlan.schema->getGroupPos(subExpression->getUniqueName());
+    for (auto& expression : expressionsToScanFromOuter) {
+        groupPosToWrite = outerPlan.schema->getGroupPos(expression->getUniqueName());
         appendFlattenIfNecessary(groupPosToWrite, outerPlan);
     }
     outerPlan.schema->getGroup(groupPosToWrite)
         ->insertExpression(subqueryExpression->getUniqueName());
     auto& normalizedQuery = *subqueryExpression->getNormalizedSubquery();
-    auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToSelect));
+    auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToScanFromOuter));
     auto plans = enumerateQueryPart(*normalizedQuery.getQueryPart(0), getInitialEmptyPlans());
-    joinOrderEnumerator.context->clearExpressionsToSelectFromOuter();
+    joinOrderEnumerator.context->clearExpressionsToScanFromOuter();
     for (auto i = 1u; i < normalizedQuery.getQueryParts().size(); ++i) {
         plans = enumerateQueryPart(*normalizedQuery.getQueryPart(i), move(plans));
     }
     joinOrderEnumerator.exitSubquery(move(prevContext));
-    auto logicalExists = make_shared<LogicalExists>(
-        subqueryExpression, getBestPlan(move(plans)), outerPlan.lastOperator);
+    auto bestPlan = getBestPlan(move(plans));
+    auto logicalExists = make_shared<LogicalExists>(subqueryExpression, bestPlan->lastOperator,
+        bestPlan->schema->copy(), outerPlan.lastOperator);
     outerPlan.appendOperator(logicalExists);
 }
 
@@ -131,7 +199,7 @@ void Enumerator::appendScanPropertiesIfNecessary(
         if (plan.schema->containExpression(propertyExpression.getUniqueName())) {
             continue;
         }
-        NODE == propertyExpression.children[0]->dataType ?
+        NODE == propertyExpression.getChild(0)->dataType ?
             appendScanNodePropertyIfNecessary(propertyExpression, plan) :
             appendScanRelPropertyIfNecessary(propertyExpression, plan);
     }
@@ -139,7 +207,7 @@ void Enumerator::appendScanPropertiesIfNecessary(
 
 void Enumerator::appendScanNodePropertyIfNecessary(
     const PropertyExpression& propertyExpression, LogicalPlan& plan) {
-    auto& nodeExpression = (const NodeExpression&)*propertyExpression.children[0];
+    auto& nodeExpression = (const NodeExpression&)*propertyExpression.getChild(0);
     if (!plan.schema->containExpression(nodeExpression.getIDProperty())) {
         return;
     }
@@ -153,7 +221,7 @@ void Enumerator::appendScanNodePropertyIfNecessary(
 
 void Enumerator::appendScanRelPropertyIfNecessary(
     const PropertyExpression& propertyExpression, LogicalPlan& plan) {
-    auto& relExpression = (const RelExpression&)*propertyExpression.children[0];
+    auto& relExpression = (const RelExpression&)*propertyExpression.getChild(0);
     if (!plan.schema->containLogicalExtend(relExpression.getUniqueName())) {
         return;
     }
@@ -189,18 +257,10 @@ vector<shared_ptr<Expression>> Enumerator::getSubExpressionsInSchema(
         results.push_back(expression);
         return results;
     }
-    if (EXISTENTIAL_SUBQUERY == expression->expressionType) {
-        auto& subqueryExpression = (ExistentialSubqueryExpression&)*expression;
-        for (auto& child : subqueryExpression.getSubExpressions()) {
-            for (auto& subExpression : getSubExpressionsInSchema(child, schema)) {
-                results.push_back(subExpression);
-            }
-        }
-    } else {
-        for (auto& child : expression->children) {
-            for (auto& subExpression : getSubExpressionsInSchema(child, schema)) {
-                results.push_back(subExpression);
-            }
+
+    for (auto& child : expression->getChildren()) {
+        for (auto& subExpression : getSubExpressionsInSchema(child, schema)) {
+            results.push_back(subExpression);
         }
     }
     return results;
@@ -217,20 +277,10 @@ vector<shared_ptr<Expression>> Enumerator::getSubExpressionsNotInSchemaOfType(
         results.push_back(expression);
         return results;
     }
-    if (EXISTENTIAL_SUBQUERY == expression->expressionType) {
-        auto& subqueryExpression = (ExistentialSubqueryExpression&)*expression;
-        for (auto& child : subqueryExpression.getSubExpressions()) {
-            for (auto& subExpression :
-                getSubExpressionsNotInSchemaOfType(child, schema, typeCheckFunc)) {
-                results.push_back(subExpression);
-            }
-        }
-    } else {
-        for (auto& child : expression->children) {
-            for (auto& subExpression :
-                getSubExpressionsNotInSchemaOfType(child, schema, typeCheckFunc)) {
-                results.push_back(subExpression);
-            }
+    for (auto& child : expression->getChildren()) {
+        for (auto& subExpression :
+            getSubExpressionsNotInSchemaOfType(child, schema, typeCheckFunc)) {
+            results.push_back(subExpression);
         }
     }
     return results;

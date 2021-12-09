@@ -90,6 +90,10 @@ public:
 
     void merge(const QueryGraph& other);
 
+    vector<shared_ptr<Expression>> getNodeIDExpressions() const;
+
+    inline unique_ptr<QueryGraph> copy() const { return make_unique<QueryGraph>(*this); }
+
 private:
     unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
     initSubgraphWithSingleJoinNode(const SubqueryGraph& matchedSubgraph) const;

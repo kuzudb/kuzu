@@ -38,6 +38,9 @@ public:
     inline string getAlias() const { return alias; }
     inline string getRawName() const { return rawName; }
 
+    inline shared_ptr<Expression> getChild(uint32_t idx) const { return children[idx]; }
+    inline virtual vector<shared_ptr<Expression>> getChildren() const { return children; }
+
     bool hasAggregationExpression() const { return hasSubExpressionOfType(isExpressionAggregate); }
     bool hasSubqueryExpression() const { return hasSubExpressionOfType(isExpressionSubquery); }
 
@@ -69,6 +72,8 @@ public:
     // Name that matches user input.
     // NOTE: an expression may not have a rawName since it is generated internally e.g. casting
     string rawName;
+
+protected:
     vector<shared_ptr<Expression>> children;
 };
 

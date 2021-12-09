@@ -154,6 +154,14 @@ void QueryGraph::merge(const QueryGraph& other) {
     }
 }
 
+vector<shared_ptr<Expression>> QueryGraph::getNodeIDExpressions() const {
+    vector<shared_ptr<Expression>> result;
+    for (auto& queryNode : queryNodes) {
+        result.push_back(queryNode->getNodeIDPropertyExpression());
+    }
+    return result;
+}
+
 unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>
 QueryGraph::initSubgraphWithSingleJoinNode(const SubqueryGraph& matchedSubgraph) const {
     auto result = unordered_set<pair<SubqueryGraph, uint32_t>, SubqueryGraphJoinNodePairHasher>();

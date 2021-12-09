@@ -12,6 +12,7 @@ namespace graphflow {
 namespace planner {
 
 void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& projectionBody,
+    const shared_ptr<Expression>& projectionBodyPredicate,
     const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn) {
     for (auto& plan : plans) {
         auto expressionsToAggregate = getExpressionsToAggregate(projectionBody, *plan->schema);
@@ -24,6 +25,9 @@ void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& pr
                 projectionBody.getOrderByExpressions(), projectionBody.getSortingOrders(), *plan);
         }
         appendProjection(projectionBody.getProjectionExpressions(), *plan, isFinalReturn);
+        if (projectionBodyPredicate) {
+            enumerator->appendFilter(projectionBodyPredicate, *plan);
+        }
         if (isFinalReturn) {
             plan->schema->expressionsToCollect = projectionBody.getProjectionExpressions();
         }

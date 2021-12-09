@@ -8,45 +8,52 @@ using namespace graphflow::binder;
 namespace graphflow {
 namespace planner {
 
-/**
- * NormalizedQueryPart
- * may have any combination of the following
- *      queryGraph
- *      whereExpression (If both MATCH and WITH has where clause,
- *          whereExpression = matchWhere AND withWhere)
- *
- * must have
- *      projectionBody
- */
 class NormalizedQueryPart {
 
 public:
-    NormalizedQueryPart(unique_ptr<BoundProjectionBody> projectionBody, bool lastQueryPart)
-        : queryGraph{make_unique<QueryGraph>()}, projectionBody{move(projectionBody)},
-          lastQueryPart{lastQueryPart} {}
+    NormalizedQueryPart() : lastQueryPart{false} {}
 
     inline bool isLastQueryPart() const { return lastQueryPart; }
+    inline void setLastQueryPart(bool islastQueryPart) { lastQueryPart = islastQueryPart; }
 
-    inline bool hasQueryGraph() const { return !queryGraph->isEmpty(); }
-    inline QueryGraph* getQueryGraph() const { return queryGraph.get(); }
-    inline void addQueryGraph(const QueryGraph& otherGraph) { queryGraph->merge(otherGraph); }
+    inline uint32_t getNumQueryGraph() const { return queryGraphs.size(); }
+    inline QueryGraph* getQueryGraph(uint32_t idx) const { return queryGraphs[idx].get(); }
+    inline void addQueryGraph(unique_ptr<QueryGraph> queryGraph) {
+        queryGraphs.push_back(move(queryGraph));
+    }
 
-    inline bool hasWhereExpression() const { return whereExpression != nullptr; }
-    inline shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
-    inline void addWhereExpression(const shared_ptr<Expression>& expression) {
-        whereExpression = hasWhereExpression() ?
-                              make_shared<Expression>(AND, BOOL, whereExpression, expression) :
-                              expression;
+    inline shared_ptr<Expression> getQueryGraphPredicate(uint32_t idx) const {
+        return queryGraphPredicates[idx];
+    }
+    inline void addQueryGraphPredicate(const shared_ptr<Expression>& predicate) {
+        queryGraphPredicates.push_back(predicate);
+    }
+
+    inline bool isQueryGraphOptional(uint32_t idx) const { return isOptional[idx]; }
+    inline void addIsQueryGraphOptional(bool isQueryGraphOptional) {
+        isOptional.push_back(isQueryGraphOptional);
     }
 
     inline BoundProjectionBody* getProjectionBody() const { return projectionBody.get(); }
+    inline void setProjectionBody(unique_ptr<BoundProjectionBody> projectionBody) {
+        this->projectionBody = move(projectionBody);
+    }
 
-    vector<shared_ptr<Expression>> getNodeIDExpressions() const;
+    inline bool hasProjectionBodyPredicate() const { return projectionBodyPredicate != nullptr; }
+    inline shared_ptr<Expression> getProjectionBodyPredicate() const {
+        return projectionBodyPredicate;
+    }
+    inline void setProjectionBodyPredicate(const shared_ptr<Expression>& predicate) {
+        projectionBodyPredicate = predicate;
+    }
 
 private:
-    unique_ptr<QueryGraph> queryGraph;
-    shared_ptr<Expression> whereExpression;
+    vector<unique_ptr<QueryGraph>> queryGraphs;
+    vector<shared_ptr<Expression>> queryGraphPredicates;
+    vector<bool> isOptional;
+
     unique_ptr<BoundProjectionBody> projectionBody;
+    shared_ptr<Expression> projectionBodyPredicate;
 
     bool lastQueryPart;
 };
