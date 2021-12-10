@@ -19,12 +19,6 @@ private:
         const BoundQueryPart& boundQueryPart, bool isFinalQueryPart);
 
     /**
-     * Simply copy loadCSV clause to normalizedQueryPart
-     */
-    static void normalizeLoadCSVStatement(
-        NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart);
-
-    /**
      * Merge multiple match clause as one query graph
      */
     static void normalizeQueryGraph(

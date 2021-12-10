@@ -1,20 +1,5 @@
 #include "test/binder/binder_test_utils.h"
 
-bool BinderTestUtils::equals(
-    const BoundLoadCSVStatement& left, const BoundLoadCSVStatement& right) {
-    auto result = left.filePath == right.filePath && left.tokenSeparator == right.tokenSeparator &&
-                  left.csvColumnVariables.size() == right.csvColumnVariables.size();
-    if (!result) {
-        return false;
-    }
-    for (auto i = 0u; i < left.csvColumnVariables.size(); ++i) {
-        if (!equals(*left.csvColumnVariables[i], *right.csvColumnVariables[i])) {
-            return false;
-        }
-    }
-    return true;
-}
-
 bool BinderTestUtils::equals(const Expression& left, const Expression& right) {
     auto result = left.expressionType == right.expressionType && left.dataType == right.dataType &&
                   left.children.size() == right.children.size() &&

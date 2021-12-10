@@ -82,7 +82,7 @@ TEST_F(ReturnWithTest, SingleWithTest) {
     string input = "WITH 1 AS one, \"Xiyang\" AS name MATCH () RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
     ASSERT_TRUE(1u == singleQuery->queryParts.size());
-    ASSERT_TRUE(singleQuery->queryParts[0]->readingStatements.empty());
+    ASSERT_TRUE(singleQuery->queryParts[0]->matchStatements.empty());
     ASSERT_TRUE(
         ParserTestUtils::equals(*withStatement, *singleQuery->queryParts[0]->withStatement));
 }
@@ -98,7 +98,7 @@ TEST_F(ReturnWithTest, MultiMatchWithStarTest) {
     string input = "MATCH () MATCH () WITH *, 1 AS one MATCH () RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
     ASSERT_TRUE(1u == singleQuery->queryParts.size());
-    ASSERT_TRUE(2u == singleQuery->queryParts[0]->readingStatements.size());
+    ASSERT_TRUE(2u == singleQuery->queryParts[0]->matchStatements.size());
     ASSERT_TRUE(
         ParserTestUtils::equals(*withStatement, *singleQuery->queryParts[0]->withStatement));
 }
@@ -127,10 +127,10 @@ TEST_F(ReturnWithTest, MultiWithWhereTest) {
         "MATCH () WITH * WHERE a.age < 1 WITH a.age AS newAge WHERE newAge = 10 MATCH () RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
     ASSERT_TRUE(2u == singleQuery->queryParts.size());
-    ASSERT_TRUE(1u == singleQuery->queryParts[0]->readingStatements.size());
+    ASSERT_TRUE(1u == singleQuery->queryParts[0]->matchStatements.size());
     ASSERT_TRUE(
         ParserTestUtils::equals(*withStatement1, *singleQuery->queryParts[0]->withStatement));
-    ASSERT_TRUE(singleQuery->queryParts[1]->readingStatements.empty());
+    ASSERT_TRUE(singleQuery->queryParts[1]->matchStatements.empty());
     ASSERT_TRUE(
         ParserTestUtils::equals(*withStatement2, *singleQuery->queryParts[1]->withStatement));
 }

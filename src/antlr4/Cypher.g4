@@ -58,25 +58,7 @@ gF_QueryPart
     : (oC_ReadingClause SP? )* oC_With ;
 
 oC_ReadingClause 
-    : oC_LoadCSV
-        | oC_Match ;
-
-oC_LoadCSV
-    : LOAD SP CSV SP WITH SP HEADERS SP FROM SP oC_Expression SP AS SP oC_Variable ( FIELDTERMINATOR SP StringLiteral )? ;
-
-LOAD : ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'A' | 'a' ) ( 'D' | 'd' ) ;
-
-CSV : ( 'C' | 'c' ) ( 'S' | 's' ) ( 'V' | 'v' ) ;
-
-WITH : ( 'W' | 'w' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'H' | 'h' ) ;
-
-HEADERS : ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'S' | 's' ) ;
-
-FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ;
-
-AS : ( 'A' | 'a' ) ( 'S' | 's' ) ;
-
-FIELDTERMINATOR : ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ( 'D' | 'd' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'M' | 'm' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ;
+    : oC_Match ;
 
 oC_Match 
     : MATCH SP? oC_Pattern (SP? oC_Where)? ;
@@ -85,6 +67,8 @@ MATCH : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'C' | 'c' ) ( 'H' | 'h' ) ;
 
 oC_With
     : WITH oC_ProjectionBody ( SP? oC_Where )? ;
+
+WITH : ( 'W' | 'w' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'H' | 'h' ) ;
 
 oC_Return
     : RETURN oC_ProjectionBody ;
@@ -105,6 +89,8 @@ oC_ProjectionItem
     : ( oC_Expression SP AS SP oC_Variable )
         | oC_Expression
         ;
+
+AS : ( 'A' | 'a' ) ( 'S' | 's' ) ;
 
 oC_Order
     : ORDER SP BY SP oC_SortItem ( ',' SP? oC_SortItem )* ;

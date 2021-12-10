@@ -112,19 +112,24 @@ TEST(TypesTests, StringToBoolConversion) {
     EXPECT_EQ(FALSE, TypeUtils::TypeUtils::convertToBoolean("FALSE"));
     EXPECT_EQ(FALSE, TypeUtils::TypeUtils::convertToBoolean("False"));
     EXPECT_EQ(FALSE, TypeUtils::TypeUtils::convertToBoolean("fALse"));
-
-    EXPECT_EQ(NULL_BOOL, TypeUtils::TypeUtils::convertToBoolean(""));
 }
 
 TEST(TypesTests, StringToBoolConversionErrors) {
     try {
-        uint8_t result = TypeUtils::TypeUtils::convertToDouble("TREE");
+        uint8_t result = TypeUtils::TypeUtils::convertToBoolean("TREE");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     try {
-        uint8_t result = TypeUtils::TypeUtils::convertToDouble("falst ");
+        uint8_t result = TypeUtils::TypeUtils::convertToBoolean("falst ");
+        FAIL();
+    } catch (ConversionException& e) {
+    } catch (exception& e) { FAIL(); }
+
+    // empty
+    try {
+        uint8_t result = TypeUtils::TypeUtils::convertToDouble("");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }

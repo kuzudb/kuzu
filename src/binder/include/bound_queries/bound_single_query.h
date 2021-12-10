@@ -14,7 +14,7 @@ class BoundSingleQuery {
 public:
     // WITH query parts
     vector<unique_ptr<BoundQueryPart>> boundQueryParts;
-    vector<unique_ptr<BoundReadingStatement>> boundReadingStatements;
+    vector<unique_ptr<BoundMatchStatement>> boundMatchStatements;
     unique_ptr<BoundReturnStatement> boundReturnStatement;
 };
 

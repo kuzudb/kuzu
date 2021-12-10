@@ -4,7 +4,6 @@
 #include "src/binder/include/expression_binder.h"
 #include "src/binder/include/query_graph/query_graph.h"
 #include "src/parser/include/queries/single_query.h"
-#include "src/parser/include/statements/load_csv_statement.h"
 #include "src/parser/include/statements/match_statement.h"
 
 using namespace graphflow::parser;
@@ -26,13 +25,7 @@ private:
 
     unique_ptr<BoundQueryPart> bindQueryPart(const QueryPart& queryPart);
 
-    unique_ptr<BoundReadingStatement> bindReadingStatement(
-        const ReadingStatement& readingStatement);
-
-    unique_ptr<BoundReadingStatement> bindLoadCSVStatement(
-        const LoadCSVStatement& loadCSVStatement);
-
-    unique_ptr<BoundReadingStatement> bindMatchStatement(const MatchStatement& matchStatement);
+    unique_ptr<BoundMatchStatement> bindMatchStatement(const MatchStatement& matchStatement);
 
     unique_ptr<BoundWithStatement> bindWithStatement(const WithStatement& withStatement);
 
@@ -75,9 +68,10 @@ private:
     void validateProjectionColumnNamesAreUnique(const vector<shared_ptr<Expression>>& expressions);
     void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
         unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
-    void validateCSVHeaderColumnNamesAreUnique(const vector<pair<string, DataType>>& headerInfo);
     uint64_t validateAndExtractSkipLimitNumber(const ParsedExpression& skipOrLimitExpression);
+
     /******* helpers *********/
+
     string getUniqueExpressionName(const string& name);
 
     unordered_map<string, shared_ptr<Expression>> enterSubquery();

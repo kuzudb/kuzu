@@ -16,17 +16,6 @@ public:
     }
 };
 
-TEST_F(ReadingClauseTest, LoadCSVBasicTest) {
-    auto file = make_unique<ParsedExpression>(LITERAL_STRING, "\"file\"", string());
-    auto loadCSV = make_unique<LoadCSVStatement>(move(file), "csvLine");
-
-    string input = "LOAD CSV WITH HEADERS FROM \"file\" AS csvLine RETURN COUNT(*);";
-    auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == singleQuery->readingStatements.size());
-    ASSERT_TRUE(
-        ParserTestUtils::equals(*loadCSV, (LoadCSVStatement&)*singleQuery->readingStatements[0]));
-}
-
 TEST_F(ReadingClauseTest, EmptyMatchTest) {
     auto expectNode = make_unique<NodePattern>(string(), string());
     auto expectPElements = vector<unique_ptr<PatternElement>>();
@@ -35,9 +24,9 @@ TEST_F(ReadingClauseTest, EmptyMatchTest) {
 
     string input = "MATCH () RETURN COUNT(*);";
     auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == singleQuery->readingStatements.size());
+    ASSERT_TRUE(1u == singleQuery->matchStatements.size());
     ASSERT_TRUE(ParserTestUtils::equals(
-        *expectedMatch, (MatchStatement&)(*singleQuery->readingStatements[0])));
+        *expectedMatch, (MatchStatement&)(*singleQuery->matchStatements[0])));
 }
 
 TEST_F(ReadingClauseTest, MATCHSingleEdgeTest) {
@@ -53,9 +42,9 @@ TEST_F(ReadingClauseTest, MATCHSingleEdgeTest) {
 
     string input = "MATCH (a:Person)-[e1:knows]->(b:Student) RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == singleQuery->readingStatements.size());
+    ASSERT_TRUE(1u == singleQuery->matchStatements.size());
     ASSERT_TRUE(ParserTestUtils::equals(
-        *expectedMatch, (MatchStatement&)(*singleQuery->readingStatements[0])));
+        *expectedMatch, (MatchStatement&)(*singleQuery->matchStatements[0])));
 }
 
 TEST_F(ReadingClauseTest, MATCHMultiEdgesTest) {
@@ -77,9 +66,9 @@ TEST_F(ReadingClauseTest, MATCHMultiEdgesTest) {
 
     string input = "MATCH (a:Person)-[:knows]->(b:Student)<-[e2:likes]-(c:Student) RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == singleQuery->readingStatements.size());
+    ASSERT_TRUE(1u == singleQuery->matchStatements.size());
     ASSERT_TRUE(ParserTestUtils::equals(
-        *expectedMatch, (MatchStatement&)(*singleQuery->readingStatements[0])));
+        *expectedMatch, (MatchStatement&)(*singleQuery->matchStatements[0])));
 }
 
 TEST_F(ReadingClauseTest, MATCHMultiElementsTest) {
@@ -106,9 +95,9 @@ TEST_F(ReadingClauseTest, MATCHMultiElementsTest) {
 
     string input = "MATCH (a:Person)-[:knows]->(b:Student), (b)<-[e2:likes]-(c:Student) RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == singleQuery->readingStatements.size());
+    ASSERT_TRUE(1u == singleQuery->matchStatements.size());
     ASSERT_TRUE(ParserTestUtils::equals(
-        *expectedMatch, (MatchStatement&)(*singleQuery->readingStatements[0])));
+        *expectedMatch, (MatchStatement&)(*singleQuery->matchStatements[0])));
 }
 
 TEST_F(ReadingClauseTest, MultiMatchTest) {
@@ -137,9 +126,9 @@ TEST_F(ReadingClauseTest, MultiMatchTest) {
     string input =
         "MATCH (a:Person)-[:knows]->(b:Student) MATCH (b)<-[e2:likes]-(c:Student) RETURN *;";
     auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(2u == singleQuery->readingStatements.size());
+    ASSERT_TRUE(2u == singleQuery->matchStatements.size());
     ASSERT_TRUE(ParserTestUtils::equals(
-        *expectedMatch1, (MatchStatement&)(*singleQuery->readingStatements[0])));
+        *expectedMatch1, (MatchStatement&)(*singleQuery->matchStatements[0])));
     ASSERT_TRUE(ParserTestUtils::equals(
-        *expectedMatch2, (MatchStatement&)(*singleQuery->readingStatements[1])));
+        *expectedMatch2, (MatchStatement&)(*singleQuery->matchStatements[1])));
 }

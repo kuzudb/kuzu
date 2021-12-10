@@ -51,7 +51,6 @@ cc_library(
     deps = [
         "graph_patterns",
         "parsed_expression",
-        "//src/common:statement_type",
     ],
 )
 

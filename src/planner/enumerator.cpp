@@ -4,7 +4,6 @@
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
 #include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
-#include "src/planner/include/logical_plan/operator/load_csv/logical_load_csv.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
 
@@ -32,10 +31,6 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(const BoundSingleQuer
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
     const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans) {
-    if (queryPart.hasLoadCSVStatement()) {
-        assert(prevPlans.size() == 1); // load csv must be the first clause
-        appendLoadCSV(*queryPart.getLoadCSVStatement(), *prevPlans[0]);
-    }
     auto plans = joinOrderEnumerator.enumerateJoinOrder(queryPart, move(prevPlans));
     projectionEnumerator.enumerateProjectionBody(
         *queryPart.getProjectionBody(), plans, queryPart.isLastQueryPart());
@@ -67,16 +62,6 @@ void Enumerator::planExistsSubquery(
     auto logicalExists = make_shared<LogicalExists>(
         subqueryExpression, getBestPlan(move(plans)), outerPlan.lastOperator);
     outerPlan.appendOperator(logicalExists);
-}
-
-void Enumerator::appendLoadCSV(const BoundLoadCSVStatement& loadCSVStatement, LogicalPlan& plan) {
-    auto loadCSV = make_shared<LogicalLoadCSV>(loadCSVStatement.filePath,
-        loadCSVStatement.tokenSeparator, loadCSVStatement.csvColumnVariables);
-    auto groupPos = plan.schema->createGroup();
-    for (auto& expression : loadCSVStatement.csvColumnVariables) {
-        plan.schema->insertToGroup(expression->getUniqueName(), groupPos);
-    }
-    plan.appendOperator(move(loadCSV));
 }
 
 void Enumerator::appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan) {

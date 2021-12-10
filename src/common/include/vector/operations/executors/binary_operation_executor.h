@@ -222,7 +222,7 @@ struct BinaryOperationExecutor {
         uint64_t resPos, uint64_t& numSelectedValues, sel_t* selectedPositions) {
         uint8_t resultValue = 0;
         if constexpr ((is_same<A, nodeID_t>::value) && (is_same<B, nodeID_t>::value)) {
-            nodeID_t lNodeID, rNodeID;
+            nodeID_t lNodeID{}, rNodeID{};
             left.readNodeID(lPos, lNodeID);
             right.readNodeID(rPos, rNodeID);
             FUNC::operation(

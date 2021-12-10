@@ -134,11 +134,6 @@ const uint8_t FALSE = 0;
 const uint8_t TRUE = 1;
 
 const uint8_t NULL_BOOL = 2;
-const int64_t NULL_INT64 = INT64_MIN;
-const double_t NULL_DOUBLE = DBL_MIN;
-const date_t NULL_DATE = date_t(INT32_MIN);
-const timestamp_t NULL_TIMESTAMP = timestamp_t(INT64_MIN);
-const interval_t NULL_INTERVAL = interval_t(INT32_MIN, INT32_MIN, INT64_MIN);
 
 enum DataType : uint8_t {
     REL = 0,

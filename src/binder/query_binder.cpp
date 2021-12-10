@@ -2,7 +2,6 @@
 
 #include <fstream>
 
-#include "src/binder/include/bound_statements/bound_load_csv_statement.h"
 #include "src/binder/include/bound_statements/bound_match_statement.h"
 #include "src/binder/include/expression/literal_expression.h"
 #include "src/common/include/assert.h"
@@ -10,11 +9,6 @@
 
 namespace graphflow {
 namespace binder {
-
-const char DEFAULT_LOAD_CSV_TOKEN_SEPARATOR = ',';
-
-// TODO: GraphLoader has a similar logic of parsing header. Refactor a function under common.
-static vector<pair<string, DataType>> parseCSVHeader(const string& headerLine, char tokenSeparator);
 
 unique_ptr<BoundSingleQuery> QueryBinder::bind(const SingleQuery& singleQuery) {
     return bindSingleQuery(singleQuery);
@@ -25,8 +19,8 @@ unique_ptr<BoundSingleQuery> QueryBinder::bindSingleQuery(const SingleQuery& sin
     for (auto& queryPart : singleQuery.queryParts) {
         boundSingleQuery->boundQueryParts.push_back(bindQueryPart(*queryPart));
     }
-    for (auto& readingStatement : singleQuery.readingStatements) {
-        boundSingleQuery->boundReadingStatements.push_back(bindReadingStatement(*readingStatement));
+    for (auto& matchStatement : singleQuery.matchStatements) {
+        boundSingleQuery->boundMatchStatements.push_back(bindMatchStatement(*matchStatement));
     }
     boundSingleQuery->boundReturnStatement = bindReturnStatement(*singleQuery.returnStatement);
     return boundSingleQuery;
@@ -34,67 +28,14 @@ unique_ptr<BoundSingleQuery> QueryBinder::bindSingleQuery(const SingleQuery& sin
 
 unique_ptr<BoundQueryPart> QueryBinder::bindQueryPart(const QueryPart& queryPart) {
     auto boundQueryPart = make_unique<BoundQueryPart>();
-    for (auto& readingStatement : queryPart.readingStatements) {
-        boundQueryPart->boundReadingStatements.push_back(bindReadingStatement(*readingStatement));
+    for (auto& matchStatement : queryPart.matchStatements) {
+        boundQueryPart->boundMatchStatements.push_back(bindMatchStatement(*matchStatement));
     }
     boundQueryPart->boundWithStatement = bindWithStatement(*queryPart.withStatement);
     return boundQueryPart;
 }
 
-unique_ptr<BoundReadingStatement> QueryBinder::bindReadingStatement(
-    const ReadingStatement& readingStatement) {
-    if (MATCH_STATEMENT == readingStatement.statementType) {
-        return bindMatchStatement((MatchStatement&)readingStatement);
-    }
-    return bindLoadCSVStatement((LoadCSVStatement&)readingStatement);
-}
-
-unique_ptr<BoundReadingStatement> QueryBinder::bindLoadCSVStatement(
-    const LoadCSVStatement& loadCSVStatement) {
-    auto tokenSeparator = DEFAULT_LOAD_CSV_TOKEN_SEPARATOR;
-    if (!loadCSVStatement.fieldTerminator.empty()) {
-        if (loadCSVStatement.fieldTerminator.size() > 1) {
-            throw invalid_argument("FIELDTERMINATOR has data type STRING. CHAR was expected.");
-        }
-        tokenSeparator = loadCSVStatement.fieldTerminator.at(0);
-    }
-    auto boundInputExpression = expressionBinder.bindExpression(*loadCSVStatement.inputExpression);
-    if (LITERAL_STRING != boundInputExpression->expressionType) {
-        throw invalid_argument("LOAD CSV FROM " +
-                               expressionTypeToString(boundInputExpression->expressionType) +
-                               " is not supported. STRING was expected.");
-    }
-    auto filePath = static_pointer_cast<LiteralExpression>(boundInputExpression)->literal.strVal;
-    auto fileStream = ifstream(filePath, ios_base::in);
-    if (!fileStream.is_open()) {
-        throw invalid_argument("Cannot open file at " + filePath + ".");
-    }
-    string headerLine;
-    getline(fileStream, headerLine);
-    auto headerInfo = parseCSVHeader(headerLine, tokenSeparator);
-    validateCSVHeaderColumnNamesAreUnique(headerInfo);
-    fileStream.seekg(0, ios_base::end);
-    /**
-     * In order to avoid creating LIST datatype or expression, we directly create
-     * csvColumnExpression with type CSV_LINE_EXTRACT for each column e.g. csvLine[0], csvLine[1]
-     * ... One consequence is we won't allow user to refer csvLine later. Instead, we force user to
-     * write csvLine[i]. By doing so, we don't need to implement evaluator for list.
-     */
-    auto lineVariableName = loadCSVStatement.lineVariableName;
-    auto csvColumnVariables = vector<shared_ptr<Expression>>();
-    for (auto i = 0u; i < headerInfo.size(); ++i) {
-        auto csvColumnVariableAliasName = lineVariableName + "[" + to_string(i) + "]";
-        auto csvColumnVariable = make_shared<Expression>(CSV_LINE_EXTRACT, headerInfo[i].second,
-            getUniqueExpressionName(csvColumnVariableAliasName));
-        csvColumnVariable->setAlias(csvColumnVariableAliasName);
-        csvColumnVariable->setRawName(csvColumnVariableAliasName);
-        variablesInScope.insert({csvColumnVariableAliasName, csvColumnVariable});
-        csvColumnVariables.push_back(csvColumnVariable);
-    }
-    return make_unique<BoundLoadCSVStatement>(filePath, tokenSeparator, move(csvColumnVariables));
-}
-
-unique_ptr<BoundReadingStatement> QueryBinder::bindMatchStatement(
+unique_ptr<BoundMatchStatement> QueryBinder::bindMatchStatement(
     const MatchStatement& matchStatement) {
     auto prevVariablesInScope = variablesInScope;
     auto queryGraph = bindQueryGraph(matchStatement.graphPattern);
@@ -389,18 +330,6 @@ void QueryBinder::validateQueryGraphIsConnected(const QueryGraph& queryGraph,
     throw invalid_argument("Disconnect query graph is not supported.");
 }
 
-void QueryBinder::validateCSVHeaderColumnNamesAreUnique(
-    const vector<pair<string, DataType>>& headerInfo) {
-    auto propertyNames = unordered_set<string>();
-    for (auto& [propertyName, dataType] : headerInfo) {
-        if (propertyNames.contains(propertyName)) {
-            throw invalid_argument("Multiple property columns with the same name " + propertyName +
-                                   " is not supported.");
-        }
-        propertyNames.insert(propertyName);
-    }
-}
-
 uint64_t QueryBinder::validateAndExtractSkipLimitNumber(
     const ParsedExpression& skipOrLimitExpression) {
     auto boundExpression = expressionBinder.bindExpression(skipOrLimitExpression);
@@ -421,21 +350,6 @@ unordered_map<string, shared_ptr<Expression>> QueryBinder::enterSubquery() {
 
 void QueryBinder::exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope) {
     variablesInScope = move(prevVariablesInScope);
-}
-
-vector<pair<string, DataType>> parseCSVHeader(const string& headerLine, char tokenSeparator) {
-    auto headerInfo = vector<pair<string, DataType>>();
-    for (auto& entry : StringUtils::split(headerLine, string(1, tokenSeparator))) {
-        auto propertyDataType = StringUtils::split(entry, PROPERTY_DATATYPE_SEPARATOR);
-        if (propertyDataType.size() == 1) {
-            throw invalid_argument("Missing colon separated dataType in " + entry + ".");
-        } else if (propertyDataType.size() > 2) {
-            throw invalid_argument("Multiple dataType in " + entry + " is not supported.");
-        }
-        headerInfo.emplace_back(
-            make_pair(propertyDataType[0], TypeUtils::getDataType(propertyDataType[1])));
-    }
-    return headerInfo;
 }
 
 } // namespace binder
