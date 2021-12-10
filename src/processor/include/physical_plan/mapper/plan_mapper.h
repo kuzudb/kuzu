@@ -19,7 +19,7 @@ public:
         : graph{graph}, outerPhysicalOperatorsInfo{nullptr}, physicalOperatorID{0},
           physicalIDToLogicalOperatorMap{}, expressionMapper{} {}
 
-    unique_ptr<PhysicalPlan> mapToPhysical(
+    unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(
         unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext);
 
     // Returns current physicalOperatorsInfo whoever calls enterSubquery is responsible to save the
@@ -35,7 +35,7 @@ private:
 
     unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
-    unique_ptr<PhysicalOperator> mapLogicalSelectScanToPhysical(
+    unique_ptr<PhysicalOperator> mapLogicalResultScanToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
@@ -62,6 +62,8 @@ private:
     unique_ptr<PhysicalOperator> mapLogicalAggregateToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
     unique_ptr<PhysicalOperator> mapLogicalExistsToPhysical(
+        LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
+    unique_ptr<PhysicalOperator> mapLogicalLeftNestedLoopJoinToPhysical(
         LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context);
 
 public:

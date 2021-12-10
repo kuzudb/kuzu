@@ -154,10 +154,10 @@ cc_library(
 cc_library(
     name = "select_scan",
     srcs = [
-        "physical_plan/operator/select_scan.cpp",
+        "physical_plan/operator/result_scan.cpp",
     ],
     hdrs = [
-        "include/physical_plan/operator/select_scan.h",
+        "include/physical_plan/operator/result_scan.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

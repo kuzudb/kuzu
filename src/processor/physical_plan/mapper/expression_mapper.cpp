@@ -10,8 +10,9 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(const Expression& expression,
-    const PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context) {
+unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalExpressionToPhysical(
+    const Expression& expression, const PhysicalOperatorsInfo& physicalOperatorInfo,
+    ExecutionContext& context) {
     auto expressionType = expression.expressionType;
     unique_ptr<ExpressionEvaluator> retVal;
     if (isExpressionLiteral(expressionType)) {
@@ -29,14 +30,16 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapToPhysical(const Expression
                 AggregateExpressionEvaluator::getAggregationFunction(
                     expressionType, expression.dataType));
         } else {
-            auto child = mapToPhysical(*expression.children[0], physicalOperatorInfo, context);
+            auto child = mapLogicalExpressionToPhysical(
+                *expression.children[0], physicalOperatorInfo, context);
             retVal = make_unique<AggregateExpressionEvaluator>(expressionType, expression.dataType,
                 move(child),
                 AggregateExpressionEvaluator::getAggregationFunction(
                     expressionType, child->dataType));
         }
     } else if (isExpressionUnary(expressionType)) {
-        auto child = mapToPhysical(*expression.children[0], physicalOperatorInfo, context);
+        auto child =
+            mapLogicalExpressionToPhysical(*expression.children[0], physicalOperatorInfo, context);
         retVal =
             make_unique<UnaryExpressionEvaluator>(move(child), expressionType, expression.dataType);
     } else {
@@ -72,7 +75,7 @@ ExpressionMapper::mapChildExpressionAndCastToUnstructuredIfNecessary(const Expre
     if (castToUnstructured && isExpressionLiteral(expression.expressionType)) {
         retVal = mapLogicalLiteralExpressionToUnstructuredPhysical(expression, context);
     } else {
-        retVal = mapToPhysical(expression, physicalOperatorInfo, context);
+        retVal = mapLogicalExpressionToPhysical(expression, physicalOperatorInfo, context);
         if (castToUnstructured) {
             retVal = make_unique<UnaryExpressionEvaluator>(
                 move(retVal), CAST_TO_UNSTRUCTURED_VALUE, UNSTRUCTURED);

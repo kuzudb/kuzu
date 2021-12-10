@@ -17,7 +17,7 @@ class PlanMapper;
 class ExpressionMapper {
 
 public:
-    unique_ptr<ExpressionEvaluator> mapToPhysical(const Expression& expression,
+    unique_ptr<ExpressionEvaluator> mapLogicalExpressionToPhysical(const Expression& expression,
         const PhysicalOperatorsInfo& physicalOperatorInfo, ExecutionContext& context);
 
 private:

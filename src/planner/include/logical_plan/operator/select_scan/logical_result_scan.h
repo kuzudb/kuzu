@@ -6,10 +6,10 @@
 namespace graphflow {
 namespace planner {
 
-class LogicalSelectScan : public LogicalOperator {
+class LogicalResultScan : public LogicalOperator {
 
 public:
-    LogicalSelectScan(unordered_set<string> variablesToSelect)
+    LogicalResultScan(unordered_set<string> variablesToSelect)
         : variablesToSelect{move(variablesToSelect)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
@@ -27,7 +27,7 @@ public:
     inline const unordered_set<string>& getVariablesToSelect() const { return variablesToSelect; }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalSelectScan>(variablesToSelect);
+        return make_unique<LogicalResultScan>(variablesToSelect);
     }
 
 private:

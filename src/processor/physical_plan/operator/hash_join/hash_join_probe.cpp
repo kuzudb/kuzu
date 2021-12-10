@@ -5,12 +5,12 @@
 namespace graphflow {
 namespace processor {
 
-HashJoinProbe::HashJoinProbe(const BuildDataInfo& buildDataInfo, const ProbeDataInfo& probeDataInfo,
+HashJoinProbe::HashJoinProbe(const ProbeDataInfo& probeDataInfo,
     unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp,
     ExecutionContext& context, uint32_t id)
     : PhysicalOperator{move(probeSidePrevOp), HASH_JOIN_PROBE, context, id}, buildSidePrevOp{move(
                                                                                  buildSidePrevOp)},
-      buildDataInfo{buildDataInfo}, probeDataInfo{probeDataInfo}, tuplePosToReadInProbedState{0} {}
+      probeDataInfo{probeDataInfo}, tuplePosToReadInProbedState{0} {}
 
 void HashJoinProbe::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     PhysicalOperator::initResultSet(resultSet);
@@ -23,8 +23,8 @@ void HashJoinProbe::initResultSet(const shared_ptr<ResultSet>& resultSet) {
 void HashJoinProbe::constructResultVectorsPosAndFieldsToRead() {
     // Skip the first key field.
     auto fieldId = 1;
-    for (auto& nonKeyDataPos : probeDataInfo.nonKeyDataPoses) {
-        resultVectorsPos.push_back(nonKeyDataPos);
+    for (auto& dataPosMapping : probeDataInfo.nonKeyDataPosMapping) {
+        resultVectorsPos.push_back(dataPosMapping.second);
         fieldsToRead.push_back(fieldId++);
     }
 }
@@ -34,12 +34,11 @@ void HashJoinProbe::initializeResultSet() {
     buildSideResultSet = this->buildSidePrevOp->prevOperator->getResultSet();
     probeSideKeyVector = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()]
                              ->valueVectors[probeDataInfo.getKeyIDVectorPos()];
-    assert(buildDataInfo.nonKeyDataPoses.size() == probeDataInfo.nonKeyDataPoses.size());
-    for (auto i = 0u; i < buildDataInfo.nonKeyDataPoses.size(); ++i) {
-        auto [buildSideDataChunkPos, buildSideVectorPos] = buildDataInfo.nonKeyDataPoses[i];
+    for (auto& dataPosMapping : probeDataInfo.nonKeyDataPosMapping) {
+        auto [buildSideDataChunkPos, buildSideVectorPos] = dataPosMapping.first;
         auto buildSideDataChunk = buildSideResultSet->dataChunks[buildSideDataChunkPos];
         auto buildSideVector = buildSideDataChunk->valueVectors[buildSideVectorPos];
-        auto [probeSideDataChunkPos, probeSideVectorPos] = probeDataInfo.nonKeyDataPoses[i];
+        auto [probeSideDataChunkPos, probeSideVectorPos] = dataPosMapping.second;
         auto probeSideVector =
             make_shared<ValueVector>(context.memoryManager, buildSideVector->dataType);
         this->resultSet->dataChunks[probeSideDataChunkPos]->insert(

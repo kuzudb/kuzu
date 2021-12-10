@@ -35,13 +35,13 @@ private:
     void exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
     // join order enumeration functions
-    void enumerateSelectScan();
+    void enumerateResultScan();
     void enumerateSingleNode();
     void enumerateHashJoin();
     void enumerateSingleRel();
 
     // append logical operator functions
-    void appendSelectScan(const unordered_set<string>& expressionNamesToSelect, LogicalPlan& plan);
+    void appendResultScan(const unordered_set<string>& expressionNamesToSelect, LogicalPlan& plan);
     void appendScanNodeID(const NodeExpression& queryNode, LogicalPlan& plan);
     void appendExtendFiltersAndScanPropertiesIfNecessary(const RelExpression& queryRel,
         Direction direction, const vector<shared_ptr<Expression>>& expressionsToFilter,
