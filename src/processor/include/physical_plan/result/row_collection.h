@@ -125,7 +125,7 @@ public:
         return rowDataBlocks[blockId].data + rowIdInBlock * layout.numBytesPerRow;
     }
     inline vector<DataBlock>& getRowDataBlocks() { return rowDataBlocks; }
-    inline const RowLayout& getLayout() { return layout; }
+    inline const RowLayout& getLayout() const { return layout; }
     inline bool isNull(uint8_t* nullMapBuffer, uint64_t colIdx) const {
         uint32_t nullMapIdx = colIdx >> 3;
         uint8_t nullMapMask = 0x1 << (colIdx & 7); // note: &7 is the same as %8
