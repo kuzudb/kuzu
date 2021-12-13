@@ -9,9 +9,9 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-FileHandle::FileHandle(const string& path, int flags, bool isInMemory)
+FileHandle::FileHandle(const string& path, bool isInMemory)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")},
-      fileInfo{FileUtils::openFile(path, flags)}, isInMemory{isInMemory} {
+      fileInfo{FileUtils::openFile(path, O_RDONLY)}, isInMemory{isInMemory} {
     logger->trace("FileHandle: Path {}", path);
     auto fileLength = FileUtils::getFileSize(fileInfo->fd);
     numPages = fileLength >> PAGE_SIZE_LOG_2;
