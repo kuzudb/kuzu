@@ -12,7 +12,7 @@ void JoinOrderEnumeratorContext::init(const QueryGraph& queryGraph,
     auto fullyMatchedSubqueryGraph = getFullyMatchedSubqueryGraph();
     matchedQueryRels = fullyMatchedSubqueryGraph.queryRelsSelector;
     matchedQueryNodes = fullyMatchedSubqueryGraph.queryNodesSelector;
-    mergedQueryGraph->merge(queryGraph);
+    mergeQueryGraph(queryGraph);
     // clear and resize subPlansTable
     subPlansTable->clear();
     subPlansTable->resize(mergedQueryGraph->getNumQueryRels());

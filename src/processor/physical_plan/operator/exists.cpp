@@ -14,7 +14,7 @@ void Exists::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     dataChunkToWrite->insert(outDataPos.valueVectorPos, valueVectorToWrite);
     // side way information passing: give resultSet reference to subPlan
     auto subPlanResultCollector = (ResultCollector*)subPlan->lastOperator.get();
-    auto op = subPlanResultCollector->getPipelineLeafOperator();
+    auto op = subPlanResultCollector->getLeafOperator();
     assert(op->operatorType == SELECT_SCAN);
     ((ResultScan*)op)->setResultSetToCopyFrom(this->resultSet.get());
     subPlanResultCollector->init();

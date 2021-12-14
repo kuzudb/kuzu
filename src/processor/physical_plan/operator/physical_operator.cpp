@@ -11,6 +11,14 @@ PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> prevOperator,
     registerProfilingMetrics();
 }
 
+PhysicalOperator* PhysicalOperator::getLeafOperator() {
+    PhysicalOperator* op = this;
+    while (op->prevOperator != nullptr) {
+        op = op->prevOperator.get();
+    }
+    return op;
+}
+
 void PhysicalOperator::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     if (prevOperator != nullptr) {
         prevOperator->initResultSet(resultSet);

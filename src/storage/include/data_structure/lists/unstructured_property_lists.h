@@ -32,9 +32,9 @@ public:
         node_offset_t nodeOffset, BufferManagerMetrics& metrics);
 
 private:
-    void readUnstrPropertyFromAList(uint32_t propertyKeyIdxToRead,
-        const shared_ptr<ValueVector>& valueVector, uint64_t pos, ListInfo& info,
-        BufferManagerMetrics& metrics);
+    void readUnstructuredPropertyForSingleNodeIDPosition(uint32_t pos,
+        const shared_ptr<ValueVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
+        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
 
     void readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataType, PageByteCursor& cursor,
         uint64_t& listLen, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,

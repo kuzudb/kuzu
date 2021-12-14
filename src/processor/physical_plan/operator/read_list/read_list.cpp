@@ -16,8 +16,14 @@ void ReadList::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
 }
 
 void ReadList::readValuesFromList() {
+    auto currentIdx = inDataChunk->state->getPositionOfCurrIdx();
+    if (inValueVector->isNull(currentIdx)) {
+        outValueVector->state->setSelectedSize(0);
+        return;
+    }
     auto nodeOffset = inValueVector->readNodeOffset(inDataChunk->state->getPositionOfCurrIdx());
     lists->readValues(nodeOffset, outValueVector, largeListHandle, *metrics->bufferManagerMetrics);
+    outValueVector->setAllNonNull();
 }
 
 } // namespace processor

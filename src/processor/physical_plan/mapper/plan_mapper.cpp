@@ -56,7 +56,8 @@ static shared_ptr<ResultSet> populateResultSet(const Schema& schema) {
 }
 
 unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
-    const shared_ptr<LogicalOperator>& lastOperator, Schema& schema, ExecutionContext& context) {
+    const shared_ptr<LogicalOperator>& lastOperator, const Schema& schema,
+    ExecutionContext& context) {
     auto info = PhysicalOperatorsInfo(schema);
     vector<DataPos> valueVectorsToCollectPos;
     for (auto& expression : schema.expressionsToCollect) {
@@ -420,13 +421,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLeftNestedLoopJoinToPhysical(
     LogicalOperator* logicalOperator, PhysicalOperatorsInfo& info, ExecutionContext& context) {
     auto& logicalLeftNestedLoopJoin = (LogicalLeftNestedLoopJoin&)*logicalOperator;
     auto& subPlanSchema = *logicalLeftNestedLoopJoin.subPlanSchema;
+    auto subPlanInfo = PhysicalOperatorsInfo(subPlanSchema);
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->prevOperator, info, context);
     auto prevInfo = enterSubquery(&info);
-    auto subPlan = mapLogicalPlanToPhysical(
-        logicalLeftNestedLoopJoin.subPlanLastOperator, subPlanSchema, context);
+    auto subPlanLastOperator = mapLogicalOperatorToPhysical(
+        logicalLeftNestedLoopJoin.subPlanLastOperator, subPlanInfo, context);
     exitSubquery(prevInfo);
     vector<pair<DataPos, DataPos>> subPlanVectorsToRefPosMapping;
-    auto subPlanInfo = PhysicalOperatorsInfo(subPlanSchema);
     // Populate data position mapping for merging sub-plan result set
     for (auto i = 0u; i < subPlanSchema.getNumGroups(); ++i) {
         auto& group = *subPlanSchema.getGroup(i);
@@ -440,8 +441,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLeftNestedLoopJoinToPhysical(
             info.addComputedExpressions(expressionName);
         }
     }
-    return make_unique<LeftNestedLoopJoin>(move(subPlanVectorsToRefPosMapping), move(subPlan),
-        move(prevOperator), context, physicalOperatorID++);
+    return make_unique<LeftNestedLoopJoin>(move(subPlanVectorsToRefPosMapping),
+        move(subPlanLastOperator), populateResultSet(subPlanSchema), move(prevOperator), context,
+        physicalOperatorID++);
 }
 
 } // namespace processor

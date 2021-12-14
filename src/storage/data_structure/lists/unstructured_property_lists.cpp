@@ -8,20 +8,52 @@ namespace storage {
 void UnstructuredPropertyLists::readUnstructuredProperties(
     const shared_ptr<ValueVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
     const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
-    node_offset_t nodeOffset;
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
-        nodeOffset = nodeIDVector->readNodeOffset(pos);
-        auto info = getListInfo(nodeOffset);
-        readUnstrPropertyFromAList(propertyKeyIdxToRead, valueVector, pos, info, metrics);
+        readUnstructuredPropertyForSingleNodeIDPosition(
+            pos, nodeIDVector, propertyKeyIdxToRead, valueVector, metrics);
     } else {
         for (auto i = 0ul; i < nodeIDVector->state->selectedSize; i++) {
             auto pos = nodeIDVector->state->selectedPositions[i];
-            nodeOffset = nodeIDVector->readNodeOffset(pos);
-            auto info = getListInfo(nodeOffset);
-            readUnstrPropertyFromAList(propertyKeyIdxToRead, valueVector, pos, info, metrics);
+            readUnstructuredPropertyForSingleNodeIDPosition(
+                pos, nodeIDVector, propertyKeyIdxToRead, valueVector, metrics);
         }
     }
+}
+
+void UnstructuredPropertyLists::readUnstructuredPropertyForSingleNodeIDPosition(uint32_t pos,
+    const shared_ptr<ValueVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
+    const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
+    if (nodeIDVector->isNull(pos)) {
+        valueVector->setNull(pos, true);
+        return;
+    }
+    node_offset_t nodeOffset;
+    nodeOffset = nodeIDVector->readNodeOffset(pos);
+    auto info = getListInfo(nodeOffset);
+    PageByteCursor byteCursor{info.cursor.idx, info.cursor.pos};
+    while (info.listLen) {
+        UnstructuredPropertyKeyDataType propertyKeyDataType;
+        readUnstrPropertyKeyIdxAndDatatype(reinterpret_cast<uint8_t*>(&propertyKeyDataType),
+            byteCursor, info.listLen, info.mapper, metrics);
+        Value* value = &((Value*)valueVector->values)[pos];
+        readOrSkipUnstrPropertyValue(propertyKeyDataType.dataType, byteCursor, info.listLen,
+            info.mapper, value,
+            propertyKeyIdxToRead ==
+                propertyKeyDataType.keyIdx /* read if we found the key. skip otherwise. */,
+            metrics);
+        if (propertyKeyIdxToRead == propertyKeyDataType.keyIdx) {
+            valueVector->setNull(pos, false);
+            value->dataType = propertyKeyDataType.dataType;
+            if (STRING == propertyKeyDataType.dataType) {
+                stringOverflowPages.readStringToVector(*valueVector, pos, metrics);
+            }
+            // found the property, exiting.
+            return;
+        }
+    }
+    // We did not find the key. We set the value to null.
+    valueVector->setNull(pos, true);
 }
 
 unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPropertiesOfNode(
@@ -48,34 +80,6 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
         retVal->insert(pair<uint32_t, Literal>(propertyKeyDataType.keyIdx, propertyValueAsLiteral));
     }
     return retVal;
-}
-
-void UnstructuredPropertyLists::readUnstrPropertyFromAList(uint32_t propertyKeyIdxToRead,
-    const shared_ptr<ValueVector>& valueVector, uint64_t pos, ListInfo& info,
-    BufferManagerMetrics& metrics) {
-    PageByteCursor byteCursor{info.cursor.idx, info.cursor.pos};
-    while (info.listLen) {
-        UnstructuredPropertyKeyDataType propertyKeyDataType;
-        readUnstrPropertyKeyIdxAndDatatype(reinterpret_cast<uint8_t*>(&propertyKeyDataType),
-            byteCursor, info.listLen, info.mapper, metrics);
-        Value* value = &((Value*)valueVector->values)[pos];
-        readOrSkipUnstrPropertyValue(propertyKeyDataType.dataType, byteCursor, info.listLen,
-            info.mapper, value,
-            propertyKeyIdxToRead ==
-                propertyKeyDataType.keyIdx /* read if we found the key. skip otherwise. */,
-            metrics);
-        if (propertyKeyIdxToRead == propertyKeyDataType.keyIdx) {
-            valueVector->setNull(pos, false);
-            value->dataType = propertyKeyDataType.dataType;
-            if (STRING == propertyKeyDataType.dataType) {
-                stringOverflowPages.readStringToVector(*valueVector, pos, metrics);
-            }
-            // found the property, exiting.
-            return;
-        }
-    }
-    // We did not find the key. We set the value to null.
-    valueVector->setNull(pos, true);
 }
 
 void UnstructuredPropertyLists::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataType,

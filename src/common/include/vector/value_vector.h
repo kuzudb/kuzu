@@ -47,6 +47,11 @@ public:
         nullMask->mayContainNulls = true;
     }
 
+    inline void setAllNonNull() {
+        std::fill(nullMask->mask.get(), nullMask->mask.get() + state->originalSize, false);
+        nullMask->mayContainNulls = false;
+    }
+
     // Note that if this function returns true, there are no null. However if it returns false, it
     // doesn't mean there are nulls, i.e., there may or may not be nulls.
     inline bool hasNoNullsGuarantee() {

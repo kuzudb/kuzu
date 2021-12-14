@@ -26,7 +26,8 @@ public:
 
 private:
     unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(
-        const shared_ptr<LogicalOperator>& lastOperator, Schema& schema, ExecutionContext& context);
+        const shared_ptr<LogicalOperator>& lastOperator, const Schema& schema,
+        ExecutionContext& context);
 
     // Returns current physicalOperatorsInfo whoever calls enterSubquery is responsible to save the
     // return physicalOperatorsInfo and pass it back when calling exitSubquery()
