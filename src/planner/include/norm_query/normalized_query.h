@@ -18,6 +18,7 @@ public:
     inline void appendQueryPart(unique_ptr<NormalizedQueryPart> queryPart) {
         queryParts.push_back(move(queryPart));
     }
+    inline void markLastQueryPart() { queryParts.back()->setLastQueryPart(true); }
 
 private:
     vector<unique_ptr<NormalizedQueryPart>> queryParts;

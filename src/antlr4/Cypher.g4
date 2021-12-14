@@ -61,7 +61,9 @@ oC_ReadingClause
     : oC_Match ;
 
 oC_Match 
-    : MATCH SP? oC_Pattern (SP? oC_Where)? ;
+    : ( OPTIONAL SP )? MATCH SP? oC_Pattern (SP? oC_Where)? ;
+
+OPTIONAL : ( 'O' | 'o' ) ( 'P' | 'p' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
 
 MATCH : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'C' | 'c' ) ( 'H' | 'h' ) ;
 

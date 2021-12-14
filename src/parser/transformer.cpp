@@ -66,7 +66,8 @@ unique_ptr<MatchStatement> Transformer::transformReadingClause(
 }
 
 unique_ptr<MatchStatement> Transformer::transformMatch(CypherParser::OC_MatchContext& ctx) {
-    auto matchStatement = make_unique<MatchStatement>(transformPattern(*ctx.oC_Pattern()));
+    auto matchStatement =
+        make_unique<MatchStatement>(transformPattern(*ctx.oC_Pattern()), ctx.OPTIONAL());
     if (ctx.oC_Where()) {
         matchStatement->whereClause = transformWhere(*ctx.oC_Where());
     }

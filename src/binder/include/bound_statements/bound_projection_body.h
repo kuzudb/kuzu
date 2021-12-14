@@ -39,6 +39,10 @@ public:
     inline uint64_t getSkipNumber() const { return skipNumber; }
     inline uint64_t getLimitNumber() const { return limitNumber; }
 
+    inline unique_ptr<BoundProjectionBody> copy() const {
+        return make_unique<BoundProjectionBody>(*this);
+    }
+
 private:
     vector<shared_ptr<Expression>> projectionExpressions;
     vector<shared_ptr<Expression>> orderByExpressions;

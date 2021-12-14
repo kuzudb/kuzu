@@ -10,10 +10,11 @@ unique_ptr<NormalizedQuery> QueryNormalizer::normalizeQuery(
     const BoundSingleQuery& boundSingleQuery) {
     auto normalizedQuery = make_unique<NormalizedQuery>();
     for (auto& boundQueryPart : boundSingleQuery.boundQueryParts) {
-        normalizedQuery->appendQueryPart(normalizeQueryPart(*boundQueryPart, false));
+        normalizedQuery->appendQueryPart(normalizeQueryPart(*boundQueryPart));
     }
     auto finalQueryPart = normalizeFinalReadsAndReturnAsQueryPart(boundSingleQuery);
-    normalizedQuery->appendQueryPart(normalizeQueryPart(*finalQueryPart, true));
+    normalizedQuery->appendQueryPart(normalizeQueryPart(*finalQueryPart));
+    normalizedQuery->markLastQueryPart();
     return normalizedQuery;
 }
 
@@ -30,39 +31,25 @@ unique_ptr<BoundQueryPart> QueryNormalizer::normalizeFinalReadsAndReturnAsQueryP
 }
 
 unique_ptr<NormalizedQueryPart> QueryNormalizer::normalizeQueryPart(
-    const BoundQueryPart& boundQueryPart, bool isFinalQueryPart) {
-    auto normalizedQueryPart = make_unique<NormalizedQueryPart>(
-        make_unique<BoundProjectionBody>(
-            *boundQueryPart.boundWithStatement->getBoundProjectionBody()),
-        isFinalQueryPart);
-    normalizeQueryGraph(*normalizedQueryPart, boundQueryPart);
-    normalizeWhereExpression(*normalizedQueryPart, boundQueryPart);
-    normalizeSubqueryExpression(*normalizedQueryPart, boundQueryPart);
+    const BoundQueryPart& boundQueryPart) {
+    normalizeSubqueryExpression(boundQueryPart);
+    auto normalizedQueryPart = make_unique<NormalizedQueryPart>();
+    for (auto& matchStatement : boundQueryPart.boundMatchStatements) {
+        normalizedQueryPart->addQueryGraph(matchStatement->queryGraph->copy());
+        normalizedQueryPart->addQueryGraphPredicate(
+            matchStatement->hasWhereExpression() ? matchStatement->getWhereExpression() : nullptr);
+        normalizedQueryPart->addIsQueryGraphOptional(matchStatement->isOptional);
+    }
+    normalizedQueryPart->setProjectionBody(
+        boundQueryPart.boundWithStatement->getBoundProjectionBody()->copy());
+    if (boundQueryPart.boundWithStatement->hasWhereExpression()) {
+        normalizedQueryPart->setProjectionBodyPredicate(
+            boundQueryPart.boundWithStatement->getWhereExpression());
+    }
     return normalizedQueryPart;
 }
 
-void QueryNormalizer::normalizeQueryGraph(
-    NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart) {
-    for (auto& boundMatchStatement : boundQueryPart.boundMatchStatements) {
-        normalizedQueryPart.addQueryGraph(*boundMatchStatement->queryGraph);
-    }
-}
-
-void QueryNormalizer::normalizeWhereExpression(
-    NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart) {
-    for (auto& boundMatchStatement : boundQueryPart.boundMatchStatements) {
-        if (boundMatchStatement->hasWhereExpression()) {
-            normalizedQueryPart.addWhereExpression(boundMatchStatement->getWhereExpression());
-        }
-    }
-    if (boundQueryPart.boundWithStatement->hasWhereExpression()) {
-        normalizedQueryPart.addWhereExpression(
-            boundQueryPart.boundWithStatement->getWhereExpression());
-    }
-}
-
-void QueryNormalizer::normalizeSubqueryExpression(
-    NormalizedQueryPart& normalizedQueryPart, const BoundQueryPart& boundQueryPart) {
+void QueryNormalizer::normalizeSubqueryExpression(const BoundQueryPart& boundQueryPart) {
     for (auto& boundMatchStatement : boundQueryPart.boundMatchStatements) {
         if (boundMatchStatement->hasWhereExpression()) {
             for (auto& expression :

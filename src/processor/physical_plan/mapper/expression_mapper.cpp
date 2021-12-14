@@ -25,13 +25,13 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalExpressionToPhysical
     } else if (isExpressionAggregate(expressionType)) {
         if (expressionType == COUNT_STAR_FUNC) {
             // COUNT_STAR has no child expression
-            assert(expression.children.empty());
+            assert(expression.getChildren().empty());
             retVal = make_unique<AggregateExpressionEvaluator>(expressionType, expression.dataType,
                 AggregateExpressionEvaluator::getAggregationFunction(
                     expressionType, expression.dataType));
         } else {
             auto child = mapLogicalExpressionToPhysical(
-                *expression.children[0], physicalOperatorInfo, context);
+                *expression.getChild(0), physicalOperatorInfo, context);
             retVal = make_unique<AggregateExpressionEvaluator>(expressionType, expression.dataType,
                 move(child),
                 AggregateExpressionEvaluator::getAggregationFunction(
@@ -39,7 +39,7 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalExpressionToPhysical
         }
     } else if (isExpressionUnary(expressionType)) {
         auto child =
-            mapLogicalExpressionToPhysical(*expression.children[0], physicalOperatorInfo, context);
+            mapLogicalExpressionToPhysical(*expression.getChild(0), physicalOperatorInfo, context);
         retVal =
             make_unique<UnaryExpressionEvaluator>(move(child), expressionType, expression.dataType);
     } else {
@@ -51,8 +51,8 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalExpressionToPhysical
         // structured (i.e., primitive) values. The cast operation ensures that the other child's
         // values are also boxed so we can call expression evaluation functions that expect two
         // boxed values.
-        auto& logicalLExpr = *expression.children[0];
-        auto& logicalRExpr = *expression.children[1];
+        auto& logicalLExpr = *expression.getChild(0);
+        auto& logicalRExpr = *expression.getChild(1);
         auto castLToUnstructured =
             logicalRExpr.dataType == UNSTRUCTURED && logicalLExpr.dataType != UNSTRUCTURED;
         auto lExpr = mapChildExpressionAndCastToUnstructuredIfNecessary(

@@ -2,13 +2,13 @@
 
 bool BinderTestUtils::equals(const Expression& left, const Expression& right) {
     auto result = left.expressionType == right.expressionType && left.dataType == right.dataType &&
-                  left.children.size() == right.children.size() &&
+                  left.getChildren().size() == right.getChildren().size() &&
                   left.getUniqueName() == right.getUniqueName();
     if (!result) {
         return false;
     }
-    for (auto i = 0u; i < left.children.size(); ++i) {
-        if (!equals(*left.children[i], *right.children[i])) {
+    for (auto i = 0u; i < left.getChildren().size(); ++i) {
+        if (!equals(*left.getChild(i), *right.getChild(i))) {
             return false;
         }
     }

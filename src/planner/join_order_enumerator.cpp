@@ -24,9 +24,10 @@ static shared_ptr<Expression> createNodeIDEqualComparison(
     const shared_ptr<NodeExpression>& left, const shared_ptr<NodeExpression>& right);
 
 vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
-    const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans) {
-    context->init(queryPart, move(prevPlans));
-    context->hasExpressionsToSelectFromOuter() ? enumerateResultScan() : enumerateSingleNode();
+    const QueryGraph& queryGraph, const shared_ptr<Expression>& queryGraphPredicate,
+    vector<unique_ptr<LogicalPlan>> prevPlans) {
+    context->init(queryGraph, queryGraphPredicate, move(prevPlans));
+    context->hasExpressionsToScanFromOuter() ? enumerateResultScan() : enumerateSingleNode();
     while (context->hasNextLevel()) {
         context->incrementCurrentLevel();
         enumerateSingleRel();
@@ -39,10 +40,10 @@ vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
 }
 
 unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(
-    vector<shared_ptr<Expression>> expressionsToSelect) {
+    vector<shared_ptr<Expression>> expressionsToScan) {
     auto prevContext = move(context);
     context = make_unique<JoinOrderEnumeratorContext>();
-    context->setExpressionsToSelectFromOuter(move(expressionsToSelect));
+    context->setExpressionsToScanFromOuter(move(expressionsToScan));
     return prevContext;
 }
 
@@ -56,12 +57,12 @@ void JoinOrderEnumerator::enumerateResultScan() {
                                                        make_unique<LogicalPlan>();
     auto newSubgraph = emptySubgraph;
     unordered_set<string> expressionNamesToSelect;
-    for (auto& expression : context->getExpressionsToSelectFromOuter()) {
+    for (auto& expression : context->getExpressionsToScanFromOuter()) {
         expressionNamesToSelect.insert(expression->getUniqueName());
         if (expression->dataType == NODE_ID) {
             assert(expression->expressionType == PROPERTY);
             newSubgraph.addQueryNode(context->getQueryGraph()->getQueryNodePos(
-                expression->children[0]->getUniqueName()));
+                expression->getChild(0)->getUniqueName()));
         }
     }
     appendResultScan(expressionNamesToSelect, *plan);

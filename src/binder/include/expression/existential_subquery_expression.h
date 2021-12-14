@@ -23,7 +23,8 @@ public:
     inline NormalizedQuery* getNormalizedSubquery() { return normalizedSubquery.get(); }
 
     unordered_set<string> getDependentVariableNames() override;
-    vector<shared_ptr<Expression>> getSubExpressions();
+
+    vector<shared_ptr<Expression>> getChildren() const override;
 
 private:
     unique_ptr<BoundSingleQuery> boundSubquery;

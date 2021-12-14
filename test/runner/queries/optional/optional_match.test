@@ -1,0 +1,21 @@
+# description: optional match test
+
+-NAME OptionalMatchTest1
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) RETURN COUNT(*)
+---- 1
+17
+
+-NAME OptionalMatchTest2
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:studyAt]->(b:organisation) RETURN COUNT(*)
+---- 1
+8
+
+-NAME OptionalMatchTest3
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) OPTIONAL MATCH (b)-[:knows]->(c:person) RETURN COUNT(*)
+---- 1
+41
+
+-NAME OptionalMatchTest2
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.fName='Alice' OPTIONAL MATCH (b)-[:studyAt]->(c:organisation) RETURN COUNT(*)
+---- 1
+3

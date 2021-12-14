@@ -20,7 +20,13 @@ public:
           physicalIDToLogicalOperatorMap{}, expressionMapper{} {}
 
     unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(
-        unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext);
+        unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& context) {
+        return mapLogicalPlanToPhysical(logicalPlan->lastOperator, *logicalPlan->schema, context);
+    }
+
+private:
+    unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(
+        const shared_ptr<LogicalOperator>& lastOperator, Schema& schema, ExecutionContext& context);
 
     // Returns current physicalOperatorsInfo whoever calls enterSubquery is responsible to save the
     // return physicalOperatorsInfo and pass it back when calling exitSubquery()
@@ -28,7 +34,6 @@ public:
         const PhysicalOperatorsInfo* newPhysicalOperatorsInfo);
     void exitSubquery(const PhysicalOperatorsInfo* prevPhysicalOperatorsInfo);
 
-private:
     unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
         const shared_ptr<LogicalOperator>& logicalOperator, PhysicalOperatorsInfo& info,
         ExecutionContext& executionContext);

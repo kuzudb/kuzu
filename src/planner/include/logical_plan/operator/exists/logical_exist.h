@@ -6,19 +6,14 @@
 namespace graphflow {
 namespace planner {
 
-class LogicalPlan;
-
 class LogicalExists : public LogicalOperator {
 
 public:
-    LogicalExists(shared_ptr<Expression> subqueryExpression, unique_ptr<LogicalPlan> subPlan,
+    LogicalExists(shared_ptr<Expression> subqueryExpression,
+        shared_ptr<LogicalOperator> subPlanLastOperator, unique_ptr<Schema> subPlanSchema,
         shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)},
-          subqueryExpression{move(subqueryExpression)}, subPlan{move(subPlan)} {}
-
-    inline LogicalPlan* getSubPlan() { return subPlan.get(); }
-
-    inline shared_ptr<Expression> getSubqueryExpression() { return subqueryExpression; }
+        : LogicalOperator{move(prevOperator)}, subqueryExpression{move(subqueryExpression)},
+          subPlanLastOperator{move(subPlanLastOperator)}, subPlanSchema{move(subPlanSchema)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override { return LOGICAL_EXISTS; }
 
@@ -27,22 +22,21 @@ public:
                         getExpressionsForPrinting() + "]";
         result += prevOperator->toString(depth + 1);
         result += "\nSUBPLAN: \n";
-        result += subPlan->lastOperator->toString(depth + 1);
+        result += subPlanLastOperator->toString(depth + 1);
         return result;
     }
 
     string getExpressionsForPrinting() const override { return string(); }
 
     unique_ptr<LogicalOperator> copy() override {
-        auto subPlanCopy = subPlan->copy();
-        subPlanCopy->lastOperator = subPlan->lastOperator->copy();
-        return make_unique<LogicalExists>(
-            subqueryExpression, move(subPlanCopy), prevOperator->copy());
+        return make_unique<LogicalExists>(subqueryExpression, subPlanLastOperator->copy(),
+            subPlanSchema->copy(), prevOperator->copy());
     }
 
-private:
+public:
     shared_ptr<Expression> subqueryExpression;
-    unique_ptr<LogicalPlan> subPlan;
+    shared_ptr<LogicalOperator> subPlanLastOperator;
+    unique_ptr<Schema> subPlanSchema;
 };
 
 } // namespace planner

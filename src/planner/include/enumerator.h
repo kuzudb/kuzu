@@ -41,8 +41,11 @@ private:
     vector<unique_ptr<LogicalPlan>> enumerateQueryPart(
         const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
 
-    void planExistsSubquery(
-        const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression, LogicalPlan& plan);
+    void planOptionalMatch(const QueryGraph& queryGraph,
+        const shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan);
+
+    void planExistsSubquery(const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression,
+        LogicalPlan& outerPlan);
 
     void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
     // return position of the only unFlat group

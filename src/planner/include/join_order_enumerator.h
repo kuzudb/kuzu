@@ -26,12 +26,13 @@ public:
         : graph{graph}, enumerator{enumerator}, context{
                                                     make_unique<JoinOrderEnumeratorContext>()} {};
 
-    vector<unique_ptr<LogicalPlan>> enumerateJoinOrder(
-        const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
+    vector<unique_ptr<LogicalPlan>> enumerateJoinOrder(const QueryGraph& queryGraph,
+        const shared_ptr<Expression>& queryGraphPredicate,
+        vector<unique_ptr<LogicalPlan>> prevPlans);
 
 private:
     unique_ptr<JoinOrderEnumeratorContext> enterSubquery(
-        vector<shared_ptr<Expression>> expressionsToSelect);
+        vector<shared_ptr<Expression>> expressionsToScan);
     void exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
     // join order enumeration functions
