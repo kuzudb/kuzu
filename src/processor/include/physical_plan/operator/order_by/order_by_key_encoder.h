@@ -119,7 +119,7 @@ private:
     vector<unique_ptr<MemoryBlock>> keyBlocks;
     uint64_t curBlockUsedEntries;
     vector<shared_ptr<ValueVector>>& orderByVectors;
-    vector<bool>& isAscOrder;
+    vector<bool> isAscOrder;
     uint64_t keyBlockEntrySizeInBytes;
     uint64_t entriesPerBlock;
     // We only use 6 bytes to represent the nextLocalRowID, and 2 bytes to represent the threadID.
