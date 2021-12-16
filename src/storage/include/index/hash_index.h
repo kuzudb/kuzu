@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bitset>
+#include <climits>
 
 #include "src/common/include/configs.h"
 #include "src/common/include/file_utils.h"
@@ -8,7 +9,6 @@
 #include "src/common/include/types.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/index/overflow_pages_manager.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -16,178 +16,183 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-constexpr uint64_t NUM_BYTES_PER_SLOT_HEADER = 8;
-// Masks used in overflow page set to get/set if the overflow page has free slots or not.
-constexpr uint32_t OVERFLOW_PAGE_FREE_MASK = 1u << 31;
-constexpr uint32_t OVERFLOW_PAGE_FULL_MASK = (1u << 31) - 1;
-// Masks used in slotHeader to get/set the overflow page id and the overflow slot id in page.
-constexpr uint64_t OVERFLOW_PAGE_ID_MASK = (1ul << 32) - 1;
-constexpr uint32_t OVERFLOW_SLOT_ID_MASK = (1u << 24) - 1;
-const string INDEX_FILE_POSTFIX = ".index";
+/**
+ * Each index is stored in a single file that has 3 components in it.
+ *
+ * 1. HashIndexHeader is stored in the first page (pageId 0) of the file. It contains the current
+ * state of the hash tables along with certain metrics like the number of pages used etc. Remaining
+ * bytes of the pageId 0 are left unused as of now.
+ *
+ * 2. Primary pages are set of pages that contains all primary slots in the hashIndex. A queried
+ * key is mapped to one of the slots based on its hash value and is either stored or looked up
+ * just in that slot and any chained overflow slots chained to the primary slot.
+ *
+ * Slot:
+ * Each slot consists of a slot header and several entries. The max number of entries in slot is
+ * given by HashIndexConfig::SLOT_CAPACITY. The size of the slot is given by (sizeof(SlotHeader) +
+ * (SLOT_CAPACITY * sizeof(Entry)).
+ *
+ * Entry: [key (fixed sized part), node_offset]
+ *
+ * 3. Overflow pages are set of pages that holds overflow slots. Overflow slots are used to store
+ * entries that comes to the designated primary slot that has already been filled to the capacity.
+ * Several overflow slots can be chained after the single primary slot as a singly linked link-list.
+ * Each slot's SlotHeader has information about the next overflow slot in the chain and also the
+ * number of filled entries in that slot.
+ *
+ * Layout of the file:
+ *
+ *       -----------------------
+ *  0    | PAGE 0 (HEADER)     |
+ *       -----------------------
+ *  1    | PAGE 0 (HEADER)     |  <-|
+ *       -----------------------    |
+ *  2    | PAGE 0 (HEADER)     |    |
+ *       -----------------------    |  PRIMARY PAGES
+ *               ...                |
+ *       -----------------------    |
+ *  n    | PAGE 0 (HEADER)     |  <-|
+ *       -----------------------
+ *  n+1  | PAGE 0 (HEADER)     |  <-|
+ *       -----------------------    |
+ *  n+2  | PAGE 0 (HEADER)     |    |
+ *       -----------------------    |  OVERFLOW PAGES
+ *               ...                |
+ *       -----------------------    |
+ *  n+m  | PAGE 0 (HEADER)     |  <-|
+ *       -----------------------
+ *
+ *  Information about the number of primary pages, primary slots, overflow pages and overflow
+ *  slots are stored in the HashIndexHeader.
+ *
+ *  Mode Of Operations:
+ *
+ *  WRITE MODE: The hashIndex is initially opened in the write mode in which only the insertions
+ *  are supported. In here, all the page allocations are happen in memory which needs to be saved
+ *  to disk to persist. Also for performance reasons and based on our use case, we support
+ *  `bulkReserve` operation to fix the hashIndex capacity in the beginning before any insertions
+ *  are made. This is done by means of calculating the number of primary slots and pages are needed
+ *  and pre-allocating them.  In lieu of this, we do not support changing the capacity dynamically
+ *  by rehashing and splitting of slots. With this scenario, the hashIndex can still insert entries
+ *  more than its capacity but these entries will land in chained overflow slots leading to
+ *  degraded performance in insertions as well as in look ups.
+ *
+ *  READ MODE: The hashIndex can be opened in the read mode by supplying it with the name of already
+ *  existing file that was previously flushed in the write mode. Lookups happen by reading
+ *  arbitrary number of required pages to reach the required slot and iterating it to find the
+ *  required value. In this mode, all pages are not kept in memory but rather are made accessible
+ *  by our Buffer manager.
+ *
+ *  */
 
-struct HashIndexHeader {
-public:
-    explicit HashIndexHeader()
-        : slotCapacity{HashIndexConfig::SLOT_CAPACITY}, currentNumSlots{2}, currentNumEntries{0},
-          currentLevel{1}, nextSplitSlotId{0}, nextBlockIdForOverflowPageSet{0} {}
-
-public:
-    uint64_t slotCapacity;
-    uint64_t currentNumSlots;
-    uint64_t currentNumEntries;
-    uint64_t currentLevel;
-    uint64_t nextSplitSlotId;
-    uint64_t nextBlockIdForOverflowPageSet;
-};
-
-constexpr uint64_t INDEX_HEADER_SIZE = sizeof(HashIndexHeader);
+class HashIndex;
 
 struct SlotHeader {
 public:
-    SlotHeader() : numEntries{0}, overflowPageId{0}, overflowSlotIdInPage{0} {}
+    SlotHeader() : numEntries{0}, nextOvfSlotId{-1u} {}
 
     void reset() {
         numEntries = 0;
-        overflowPageId = 0;
-        overflowSlotIdInPage = 0;
+        nextOvfSlotId = 0;
     }
 
 public:
-    uint8_t numEntries;
-    uint32_t overflowPageId;
-    uint32_t overflowSlotIdInPage;
+    uint16_t numEntries;
+    uint64_t nextOvfSlotId;
 };
 
-// Each index has: 1) its own primary index file; and 2) an overflow index file that is shared with
-// all indexes.
-// The primary index file contains all primary slots and header information.
-// Primary index header is the first page, PAGE-0, of the primary index file:
-// HashIndexHeader is stored at the beginning of the header page.
-// Remaining bytes in the page are used to store overflow page set, which records a set of ids of
-// overflow pages allocated to this index. Inside which, each item is a uint32_t value, in which the
-// first bit indicates if the page has free slots or not, other bits constitute the page id in
-// overflow index file. If the overflow page set is too large to be stored in the first page, we add
-// new spill pages at the bottom of the primary index file.
-// `nextBlockIdForOverflowPageSet` field in the `HashIndexHeader` stores the page id of the first
-// spill page, which also contains a `nextBlockIdForOverflowPageSet` value at the beginning of the
-// page. See methods: `serIndexHeaderAndOverflowPageSet`, `deSerIndexHeaderAndOverflowPageSet`.
-//
-// Slot and entry:
-// Each slot consists of a slot header and several entries.
-// SLOT_HEADER(numEntries, overflowSlotId) [1 byte: numEntries, 3 bytes: overflowSlotIdInPage, 4
-// bytes: overflowSlotId]
-// See methods: `serSlotHeader`, `deSerSlotHeader`
-// ENTRY: [hash, key (fixed sized part), node_offset]
+struct HashIndexHeader {
+    friend class HashIndex;
 
-// -----------------------
-// | PAGE 0 (HEADER)     |
-// -----------------------  <-|
-// | PAGE 1 (slots)      |    |
-// -----------------------    |
-// | ... (slots) ...     |    | HASH SLOTS
-// -----------------------    |
-// | PAGE n (slots)      |    |
-// -----------------------  <-|
-// | OVF_SET SPILL PAGE 1|    |
-// -----------------------    |
-// | ... ...             |    |
-// -----------------------    |
-//
-// The overflow index file is shared by all indexes.
-// It is divided into page groups. Each group contains as many pages as there are bits in 1 page,
-// i.e., NUM_BYTES_PER_PAGE*8. This is because that inside each page group, the first page is the
-// bitset page, which uses one bit to record if each page in the group is available for allocation
-// to an index or not. (cached in `overflowPagesAllocationBitsets`). A page is unavailable in the
-// following cases: (1) the first page is the bitset page, so it is always unavailable; (2) the page
-// is already allocated to an index.
-//
-// -------------------  <-|
-// | PAGE 0 (BITSET) |    |
-// -------------------    |
-// | PAGE 1          |    |
-// -------------------    |
-// | ...         ... |    | PAGE GROUP 0
-// -------------------    |
-// | PAGE n          |    |
-// -------------------  <-|
-// | PAGE n+1        |  <-|
-// --------------------   | PAGE GROUP 1
-// | ... ...         |    |
-// --------------------   |
-// | ... ...         |    |
+private:
+    HashIndexHeader() = default;
+
+    explicit HashIndexHeader(DataType keyDataType);
+
+    inline void incrementLevel();
+
+    // Constants
+    uint64_t numBytesPerEntry{};
+    uint64_t numBytesPerSlot{};
+    uint64_t numSlotsPerPage{};
+    uint64_t slotCapacity{HashIndexConfig::SLOT_CAPACITY};
+
+    uint64_t numEntries{0};
+    uint64_t numPrimarySlots{2};
+    uint64_t numPrimaryPages{1};
+    uint64_t numOvfSlots{1};
+    uint64_t numOvfPages{1};
+
+    uint64_t currentLevel{1};
+    uint64_t levelHashMask{1};
+    uint64_t higherLevelHashMask{3};
+    uint64_t nextSplitSlotId{0};
+
+    DataType keyDataType = INT64;
+};
 
 class HashIndex {
 
 public:
-    HashIndex(const string& indexPath, uint64_t indexId, MemoryManager& memoryManager,
-        BufferManager& bufferManager, OverflowPagesManager& overflowPagesManager, DataType keyType);
+    explicit HashIndex(DataType keyDataType);
+
+    HashIndex(const string& fName, BufferManager& bufferManager, bool isInMemory);
 
 public:
-    vector<bool> insert(ValueVector& keys, ValueVector& values);
-    void lookup(ValueVector& keys, ValueVector& result, BufferManagerMetrics& metrics);
     // Reserves space for at least the specified number of elements.
-    void reserve(uint64_t numEntries);
-    void flush();
+    void bulkReserve(uint32_t numEntries);
+
+    bool insert(uint8_t* key, node_offset_t value);
+
+    bool lookup(uint8_t* key, node_offset_t& result, BufferManagerMetrics& metrics);
+
+    void saveToDisk(const string& fName);
 
 private:
-    void initialize(const string& indexDir, uint64_t indexId);
-    vector<bool> notExists(ValueVector& keys, ValueVector& hashes);
-    void insertInternal(
-        ValueVector& keys, ValueVector& hashes, ValueVector& values, vector<bool>& keyNotExists);
-    uint8_t* getMemoryBlock(uint64_t blockId);
-    uint8_t* getPrimarySlot(uint64_t slotId);
-    vector<uint64_t> calculateSlotIdsForHashes(
-        ValueVector& hashes, uint64_t offset, uint64_t numValues) const;
-    void split();
-    SlotHeader splitASlot(uint8_t* slotToSplit);
+    bool notExistsInSlot(uint8_t* slot, uint8_t* key);
+    void putNewEntryInSlotAndUpdateHeader(uint8_t* slot, uint8_t* key, node_offset_t value);
+    uint64_t reserveOvfSlot();
 
-    uint8_t* findFreeOverflowSlot(SlotHeader& prevSlotHeader);
+    bool lookupInSlot(const uint8_t* slot, uint8_t* key, node_offset_t& result) const;
 
-    uint64_t lookupKeyInSlot(uint8_t* key, uint64_t numBytesPerKey, uint64_t pageId,
-        uint64_t slotIdInPage, BufferManagerMetrics& metrics) const;
-    bool keyNotExistInSlot(
-        uint8_t* key, uint64_t numBytesPerKey, uint64_t blockId, uint64_t slotIdInBlock);
+    inline uint64_t calculateSlotIdForHash(hash_t hash) const;
 
-    uint8_t* findEntryToAppendAndUpdateSlotHeader(uint8_t* slot);
-
-    static uint64_t serSlotHeader(SlotHeader& slotHeader);
-    static SlotHeader deSerSlotHeader(uint64_t slotHeader);
-    void serIndexHeaderAndOverflowPageSet();
-    void deSerIndexHeaderAndOverflowPageSet();
-
-    void updateOverflowPageFreeStatus(uint64_t overflowPageId, vector<bool>& isOverflowSlotsUsed);
-
-    inline uint64_t getPrimaryBlockIdForSlot(uint64_t slotId) const {
-        return (slotId / numSlotsPerPrimaryBlock) + 1;
+    inline uint64_t getPageIdForSlot(uint64_t slotId) const {
+        return slotId / indexHeader.numSlotsPerPage;
     }
 
-    inline void updateIndexHeaderAfterSlotSplit() {
-        if (indexHeader.nextSplitSlotId < (uint64_t)((1 << indexHeader.currentLevel) - 1)) {
-            indexHeader.nextSplitSlotId++;
-        } else {
-            indexHeader.nextSplitSlotId = 0;
-            indexHeader.currentLevel++;
-        }
-        indexHeader.currentNumSlots++;
-    };
+    inline uint64_t getSlotIdInPageForSlot(uint64_t slotId) const {
+        return slotId % indexHeader.numSlotsPerPage;
+    }
+
+    uint8_t* getSlotFromPrimaryPages(uint64_t slotId) const;
+
+    uint8_t* getOvfSlotFromOvfPages(uint64_t slotId) const;
+
+    const uint8_t* getSlotInAPage(const uint8_t* page, uint32_t slotIdInPage) const {
+        return page + (slotIdInPage * indexHeader.numBytesPerSlot);
+    }
+
+    inline uint8_t* getEntryInSlot(uint8_t* slot, uint32_t entryId) const {
+        return slot + sizeof(SlotHeader) + (entryId * indexHeader.numBytesPerEntry);
+    }
+
+    static uint8_t* getNewPage();
+
+    hash_t getHashOfKey(uint8_t* key);
 
 private:
     HashIndexHeader indexHeader;
-    MemoryManager& memoryManager;
-    BufferManager& bufferManager;
-    OverflowPagesManager& overflowPagesManager;
+    shared_ptr<spdlog::logger> logger;
 
-    uint64_t numBytesPerEntry;
-    uint64_t numBytesPerSlot;
-    uint64_t numSlotsPerPrimaryBlock;
-    uint64_t numSlotsPerOverflowBlock;
-    uint64_t numBytesPerOverflowSlotsBitset;
+    // used only when the hash index is instantiated in the write mode
+    vector<unique_ptr<uint8_t[]>> primaryPages{};
+    vector<unique_ptr<uint8_t[]>> ovfPages{};
 
-    // Map: pageId(blockId) -> hasFreeSlot?
-    // The map caches all overflow pages allocated for this index.
-    unordered_map<uint32_t, bool> overflowPagesFreeMap;
+    // used only when the hash index is instantiated in the read mode.
     unique_ptr<FileHandle> fileHandle;
-    unordered_map<uint64_t, unique_ptr<MemoryBlock>> memoryBlocks;
+    BufferManager* bufferManager{};
 };
+
 } // namespace storage
 } // namespace graphflow

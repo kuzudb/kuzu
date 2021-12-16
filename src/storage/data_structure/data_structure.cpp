@@ -8,7 +8,7 @@ namespace storage {
 DataStructure::DataStructure(const string& fName, const DataType& dataType,
     const size_t& elementSize, BufferManager& bufferManager, bool hasNULLBytes, bool isInMemory)
     : dataType{dataType}, elementSize{elementSize},
-      logger{LoggerUtils::getOrCreateSpdLogger("storage")}, fileHandle{fName, O_RDWR, isInMemory},
+      logger{LoggerUtils::getOrCreateSpdLogger("storage")}, fileHandle{fName, isInMemory},
       bufferManager(bufferManager) {
     numElementsPerPage = hasNULLBytes ?
                              PageUtils::getNumElementsInAPageWithNULLBytes(elementSize) :

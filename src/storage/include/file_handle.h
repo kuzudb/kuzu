@@ -25,7 +25,7 @@ class FileHandle {
     friend class BufferManager;
 
 public:
-    explicit FileHandle(const string& path, int flags, bool isInMemory);
+    explicit FileHandle(const string& path, bool isInMemory);
     ~FileHandle();
 
     bool inline hasPage(uint64_t pageIdx) const { return pageIdx < numPages; }

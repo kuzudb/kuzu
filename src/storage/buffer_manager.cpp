@@ -63,7 +63,7 @@ void BufferManager::resize(uint64_t newSize) {
 const uint8_t* BufferManager::get(
     FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics) {
     if (fileHandle.isInMemory) {
-        return fileHandle.buffer.get() + (pageIdx * PAGE_SIZE);
+        return fileHandle.buffer.get() + (pageIdx << PAGE_SIZE_LOG_2);
     }
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);
     metrics.numBufferHit.incrementByOne();
@@ -73,7 +73,7 @@ const uint8_t* BufferManager::get(
 const uint8_t* BufferManager::pin(
     FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics) {
     if (fileHandle.isInMemory) {
-        return fileHandle.buffer.get() + (pageIdx * PAGE_SIZE);
+        return fileHandle.buffer.get() + (pageIdx << PAGE_SIZE_LOG_2);
     }
     fileHandle.acquire(pageIdx, true /*block*/);
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);

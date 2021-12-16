@@ -16,8 +16,8 @@ class StringOverflowPages {
 
 public:
     explicit StringOverflowPages(const string& fName, BufferManager& bufferManager, bool isInMemory)
-        : fileHandle{getStringOverflowPagesFName(fName), O_RDWR, isInMemory}, bufferManager{
-                                                                                  bufferManager} {}
+        : fileHandle{getStringOverflowPagesFName(fName), isInMemory},
+          bufferManager(bufferManager){};
 
     static string getStringOverflowPagesFName(const string& fName) {
         return fName + OVERFLOW_FILE_SUFFIX;
