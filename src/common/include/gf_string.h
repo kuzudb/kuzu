@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include <string>
 
 using namespace std;
@@ -32,6 +33,18 @@ struct gf_string_t {
     inline const uint8_t* getData() const {
         return len <= SHORT_STR_LENGTH ? prefix : reinterpret_cast<uint8_t*>(overflowPtr);
     }
+
+    bool operator==(const gf_string_t& rhs) const;
+
+    inline bool operator!=(const gf_string_t& rhs) const { return !(*this == rhs); }
+
+    bool operator>(const gf_string_t& rhs) const;
+
+    inline bool operator>=(const gf_string_t& rhs) const { return (*this > rhs) || (*this == rhs); }
+
+    inline bool operator<(const gf_string_t& rhs) const { return !(*this >= rhs); }
+
+    inline bool operator<=(const gf_string_t& rhs) const { return !(*this > rhs); }
 
     // This function does *NOT* allocate/resize the overflow buffer, it only copies the content and
     // set the length.

@@ -190,55 +190,6 @@ inline void NotEquals::operation(
     EqualsOrNotEqualsValues::operation<false>(left, right, result, isLeftNull, isRightNul);
 };
 
-// Equals and NotEquals function for gf_string_t.
-struct StringComparisonOperators {
-    template<bool equals>
-    static inline void EqualsOrNot(
-        const gf_string_t& left, const gf_string_t& right, uint8_t& result) {
-        // first compare the length and prefix of the strings.
-        if (memcmp(&left, &right, gf_string_t::STR_LENGTH_PLUS_PREFIX_LENGTH) == 0) {
-            // length and prefix of a and b are equal.
-            if (memcmp(left.getData(), right.getData(), left.len) == 0) {
-                result = equals ? TRUE : FALSE;
-                return;
-            }
-        }
-        result = equals ? FALSE : TRUE;
-    }
-
-    // compare gf_string_t up to shared length. if still the same, Compare lengths.
-    template<class FUNC>
-    static void Compare(const gf_string_t& left, const gf_string_t& right, uint8_t& result,
-        bool isLeftNull, bool isRightNul) {
-        auto len = left.len < right.len ? left.len : right.len;
-        auto memcmpResult = memcmp(left.prefix, right.prefix,
-            len <= gf_string_t::PREFIX_LENGTH ? len : gf_string_t::PREFIX_LENGTH);
-        if (memcmpResult == 0 && len > gf_string_t::PREFIX_LENGTH) {
-            memcmpResult = memcmp(left.getData(), right.getData(), len);
-        }
-        if (memcmpResult == 0) {
-            FUNC::operation(left.len, right.len, result, isLeftNull, isRightNul);
-        } else {
-            FUNC::operation(memcmpResult, 0, result, isLeftNull, isRightNul);
-        }
-    };
-};
-
-// specialized for gf_string_t.
-template<>
-inline void Equals::operation(const gf_string_t& left, const gf_string_t& right, uint8_t& result,
-    bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    StringComparisonOperators::EqualsOrNot<true>(left, right, result);
-};
-
-template<>
-inline void NotEquals::operation(const gf_string_t& left, const gf_string_t& right, uint8_t& result,
-    bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    StringComparisonOperators::EqualsOrNot<false>(left, right, result);
-};
-
 // specialized for nodeID_t.
 template<>
 inline void Equals::operation(const nodeID_t& left, const nodeID_t& right, uint8_t& result,
@@ -344,32 +295,6 @@ inline void LessThan::operation(
     const uint8_t& left, const uint8_t& right, uint8_t& result, bool isLeftNull, bool isRightNull) {
     assert(!isLeftNull && !isRightNull);
     result = !left && right;
-};
-
-// specialized for gf_string_t.
-template<>
-inline void GreaterThan::operation(const gf_string_t& left, const gf_string_t& right,
-    uint8_t& result, bool isLeftNull, bool isRightNul) {
-    StringComparisonOperators::Compare<GreaterThan>(left, right, result, isLeftNull, isRightNul);
-};
-
-template<>
-inline void GreaterThanEquals::operation(const gf_string_t& left, const gf_string_t& right,
-    uint8_t& result, bool isLeftNull, bool isRightNul) {
-    StringComparisonOperators::Compare<GreaterThanEquals>(
-        left, right, result, isLeftNull, isRightNul);
-};
-
-template<>
-inline void LessThan::operation(const gf_string_t& left, const gf_string_t& right, uint8_t& result,
-    bool isLeftNull, bool isRightNul) {
-    StringComparisonOperators::Compare<LessThan>(left, right, result, isLeftNull, isRightNul);
-};
-
-template<>
-inline void LessThanEquals::operation(const gf_string_t& left, const gf_string_t& right,
-    uint8_t& result, bool isLeftNull, bool isRightNul) {
-    StringComparisonOperators::Compare<LessThanEquals>(left, right, result, isLeftNull, isRightNul);
 };
 
 // specialized for nodeID_t.
