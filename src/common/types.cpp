@@ -5,9 +5,11 @@
 #include <cstdlib>
 #include <stdexcept>
 
+#include "src/common/include/date.h"
 #include "src/common/include/exception.h"
 #include "src/common/include/gf_string.h"
 #include "src/common/include/interval.h"
+#include "src/common/include/timestamp.h"
 #include "src/common/include/value.h"
 
 namespace graphflow {
@@ -137,20 +139,119 @@ Direction operator!(Direction& direction) {
     return (FWD == direction) ? BWD : FWD;
 }
 
-bool interval_t::operator<=(const interval_t& rhs) const {
-    return !Interval::GreaterThan(*this, rhs);
-}
-
-bool interval_t::operator<(const interval_t& rhs) const {
-    return !Interval::GreaterThanEquals(*this, rhs);
-}
-
 bool interval_t::operator>(const interval_t& rhs) const {
     return Interval::GreaterThan(*this, rhs);
 }
 
-bool interval_t::operator>=(const interval_t& rhs) const {
-    return Interval::GreaterThanEquals(*this, rhs);
+interval_t interval_t::operator+(const interval_t& rhs) const {
+    interval_t result{};
+    result.months = months + rhs.months;
+    result.days = days + rhs.days;
+    result.micros = micros + rhs.micros;
+    return result;
+}
+
+interval_t interval_t::operator-(const interval_t& rhs) const {
+    interval_t result{};
+    result.months = months - rhs.months;
+    result.days = days - rhs.days;
+    result.micros = micros - rhs.micros;
+    return result;
+}
+
+interval_t interval_t::operator/(const uint64_t& rhs) const {
+    interval_t result{};
+    int32_t monthsRemainder = months % rhs;
+    int32_t daysRemainder = (days + monthsRemainder * Interval::DAYS_PER_MONTH) % rhs;
+    result.months = months / rhs;
+    result.days = (days + monthsRemainder * Interval::DAYS_PER_MONTH) / rhs;
+    result.micros = (micros + daysRemainder * Interval::MICROS_PER_DAY) / rhs;
+    return result;
+}
+
+date_t date_t::operator+(const interval_t& interval) const {
+    date_t result{};
+    if (interval.months != 0) {
+        int32_t year, month, day, maxDayInMonth;
+        Date::Convert(*this, year, month, day);
+        int32_t year_diff = interval.months / Interval::MONTHS_PER_YEAR;
+        year += year_diff;
+        month += interval.months - year_diff * Interval::MONTHS_PER_YEAR;
+        if (month > Interval::MONTHS_PER_YEAR) {
+            year++;
+            month -= Interval::MONTHS_PER_YEAR;
+        } else if (month <= 0) {
+            year--;
+            month += Interval::MONTHS_PER_YEAR;
+        }
+        // handle date overflow
+        // example: 2020-01-31 + "1 months"
+        maxDayInMonth = Date::MonthDays(year, month);
+        day = day > maxDayInMonth ? maxDayInMonth : day;
+        result = Date::FromDate(year, month, day);
+    } else {
+        result = *this;
+    }
+    if (interval.days != 0) {
+        result.days += interval.days;
+    }
+    if (interval.micros != 0) {
+        result.days += int32_t(interval.micros / Interval::MICROS_PER_DAY);
+    }
+    return result;
+}
+
+date_t date_t::operator-(const interval_t& interval) const {
+    interval_t inverseRight{};
+    inverseRight.months = -interval.months;
+    inverseRight.days = -interval.days;
+    inverseRight.micros = -interval.micros;
+    return *this + inverseRight;
+}
+
+int64_t date_t::operator-(const date_t& rhs) const {
+    return (*this).days - rhs.days;
+}
+
+timestamp_t timestamp_t::operator+(const interval_t& interval) const {
+    date_t date{};
+    date_t result_date{};
+    dtime_t time{};
+    Timestamp::Convert(*this, date, time);
+    result_date = date + interval;
+    date = result_date;
+    int64_t diff =
+        interval.micros - ((interval.micros / Interval::MICROS_PER_DAY) * Interval::MICROS_PER_DAY);
+    time.micros += diff;
+    if (time.micros >= Interval::MICROS_PER_DAY) {
+        time.micros -= Interval::MICROS_PER_DAY;
+        date.days++;
+    } else if (time.micros < 0) {
+        time.micros += Interval::MICROS_PER_DAY;
+        date.days--;
+    }
+    return Timestamp::FromDatetime(date, time);
+}
+
+timestamp_t timestamp_t::operator-(const interval_t& interval) const {
+    interval_t inverseRight{};
+    inverseRight.months = -interval.months;
+    inverseRight.days = -interval.days;
+    inverseRight.micros = -interval.micros;
+    return (*this) + inverseRight;
+}
+
+interval_t timestamp_t::operator-(const timestamp_t& rhs) const {
+    interval_t result{};
+    uint64_t diff = abs(value - rhs.value);
+    result.months = 0;
+    result.days = diff / Interval::MICROS_PER_DAY;
+    result.micros = diff % Interval::MICROS_PER_DAY;
+    if (value < rhs.value) {
+        result.days = -result.days;
+        result.micros = -result.micros;
+    }
+    return result;
 }
 
 } // namespace common

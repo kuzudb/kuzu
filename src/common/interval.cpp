@@ -103,26 +103,21 @@ void Interval::NormalizeIntervalEntries(
 }
 
 bool Interval::GreaterThan(const interval_t& left, const interval_t& right) {
-    int64_t lmonths, ldays, lmicros;
-    int64_t rmonths, rdays, rmicros;
-    NormalizeIntervalEntries(left, lmonths, ldays, lmicros);
-    NormalizeIntervalEntries(right, rmonths, rdays, rmicros);
-
-    if (lmonths > rmonths) {
+    int64_t lMonths, lDays, lMicros;
+    int64_t rMonths, rDays, rMicros;
+    NormalizeIntervalEntries(left, lMonths, lDays, lMicros);
+    NormalizeIntervalEntries(right, rMonths, rDays, rMicros);
+    if (lMonths > rMonths) {
         return true;
-    } else if (lmonths < rmonths) {
+    } else if (lMonths < rMonths) {
         return false;
     }
-    if (ldays > rdays) {
+    if (lDays > rDays) {
         return true;
-    } else if (ldays < rdays) {
+    } else if (lDays < rDays) {
         return false;
     }
-    return lmicros > rmicros;
-}
-
-bool Interval::GreaterThanEquals(const interval_t& left, const interval_t& right) {
-    return GreaterThan(left, right) || left == right;
+    return lMicros > rMicros;
 }
 
 } // namespace common
