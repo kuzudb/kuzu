@@ -14,14 +14,6 @@ public:
         this->resultSet = move(resultSet);
     }
 
-    PhysicalOperator* getPipelineLeafOperator() {
-        PhysicalOperator* op = this;
-        while (op->prevOperator != nullptr) {
-            op = op->prevOperator.get();
-        }
-        return op;
-    }
-
     virtual void init() { prevOperator->initResultSet(resultSet); }
 
     // In case there is a sub-plan, the pipeline under sink might be executed repeatedly and thus

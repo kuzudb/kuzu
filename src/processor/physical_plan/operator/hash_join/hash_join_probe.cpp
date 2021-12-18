@@ -55,8 +55,11 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
                 probeState->numMatchedTuples = 0;
                 return;
             }
-            probeSideKeyVector->readNodeID(
-                probeSideKeyVector->state->getPositionOfCurrIdx(), probeState->probeSideKeyNodeID);
+            auto currentIdx = probeSideKeyVector->state->getPositionOfCurrIdx();
+            if (probeSideKeyVector->isNull(currentIdx)) {
+                continue;
+            }
+            probeSideKeyVector->readNodeID(currentIdx, probeState->probeSideKeyNodeID);
             auto directory = (uint8_t**)sharedState->htDirectory->data;
             hash_t hash;
             Hash::operation<nodeID_t>(probeState->probeSideKeyNodeID, false /* isNull */, hash);
@@ -72,7 +75,7 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
             probeState->numMatchedTuples += nodeID == probeState->probeSideKeyNodeID;
             probeState->probedTuple =
                 *(uint8_t**)(probeState->probedTuple +
-                             sharedState->rowCollection->getLayout().numBytesPerRow -
+                             sharedState->rowCollection->getLayout().getNullMapOffset() -
                              sizeof(uint8_t*));
         }
     } while (probeState->numMatchedTuples == 0);

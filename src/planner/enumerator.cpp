@@ -35,10 +35,14 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
     vector<unique_ptr<LogicalPlan>> plans = move(prevPlans);
     for (auto i = 0u; i < queryPart.getNumQueryGraph(); ++i) {
         if (queryPart.isQueryGraphOptional(i)) {
+            auto& queryGraph = *queryPart.getQueryGraph(i);
+            auto queryGraphPredicate = queryPart.getQueryGraphPredicate(i);
             for (auto& plan : plans) {
-                planOptionalMatch(
-                    *queryPart.getQueryGraph(i), queryPart.getQueryGraphPredicate(i), *plan);
+                planOptionalMatch(queryGraph, queryGraphPredicate, *plan);
             }
+            // Although optional match is planned as a subquery, we still need to merge query graph
+            // as we merge sub query schema into outer query.
+            joinOrderEnumerator.context->mergeQueryGraph(queryGraph);
         } else {
             plans = joinOrderEnumerator.enumerateJoinOrder(
                 *queryPart.getQueryGraph(i), queryPart.getQueryGraphPredicate(i), move(plans));
@@ -57,9 +61,13 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
         expressionsToScanFromOuter =
             getSubExpressionsInSchema(queryGraphPredicate, *outerPlan.schema);
     }
+    // See Logical_left_nested_loop_join.h for the usage of matchedNodeIDsInSubPlan.
+    vector<string> matchedNodeIDsInSubPlan;
     for (auto& nodeIDExpression : queryGraph.getNodeIDExpressions()) {
         if (outerPlan.schema->containExpression(nodeIDExpression->getUniqueName())) {
             expressionsToScanFromOuter.push_back(nodeIDExpression);
+        } else {
+            matchedNodeIDsInSubPlan.push_back(nodeIDExpression->getUniqueName());
         }
     }
     for (auto& expression : expressionsToScanFromOuter) {
@@ -100,8 +108,8 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
             outerPlan.schema->insertToGroup(expressionName, outerPos);
         }
     }
-    auto logicalLeftNestedLoopJoin = make_shared<LogicalLeftNestedLoopJoin>(
-        bestPlan->lastOperator, move(subPlanSchema), outerPlan.lastOperator);
+    auto logicalLeftNestedLoopJoin = make_shared<LogicalLeftNestedLoopJoin>(bestPlan->lastOperator,
+        bestPlan->schema->copy(), move(matchedNodeIDsInSubPlan), outerPlan.lastOperator);
     outerPlan.appendOperator(move(logicalLeftNestedLoopJoin));
 }
 

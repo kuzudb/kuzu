@@ -64,6 +64,11 @@ public:
 
     virtual ~PhysicalOperator() = default;
 
+    // This function grab leaf operator by traversing prevOperator pointer. For binary operators,
+    // f.g. hash join probe, left nested loop join, caller should determine which branch's leaf to
+    // get.
+    PhysicalOperator* getLeafOperator();
+
     virtual void initResultSet(const shared_ptr<ResultSet>& resultSet);
 
     // For subquery, we rerun a plan multiple times. ReInitialize() should be called before each run

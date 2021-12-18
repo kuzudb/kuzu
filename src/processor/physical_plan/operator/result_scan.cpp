@@ -27,6 +27,9 @@ void ResultScan::reInitialize() {
  * ResultScan assumes all input is flat. Thus, getNextTuples() should be called exactly twice. On
  * the first call ResultScan copies in the flat input tuple. On the second call ResultScan
  * terminates the execution.
+ *
+ * NOTE: resultScan's dateChunk state always have size = 1 and currentIdx = 0. So in the following
+ * code we directly write on currentIdx = 0.
  */
 bool ResultScan::getNextTuples() {
     metrics->executionTime.start();
@@ -38,18 +41,22 @@ bool ResultScan::getNextTuples() {
                 *this->resultSetToCopyFrom->dataChunks[inDataChunkPos]->getValueVector(
                     inValueVectorPos);
             assert(inValueVector.state->isFlat());
+            auto outValueVector = outDataChunk->valueVectors[outValueVectorsPos[i]];
             auto pos = inValueVector.state->getPositionOfCurrIdx();
+            if (inValueVector.isNull(pos)) {
+                outValueVector->setNull(0, true /* isNull */);
+                continue;
+            }
             auto elementSize = TypeUtils::getDataTypeSize(inValueVector.dataType);
-            auto outValueVectorPos = outValueVectorsPos[i];
             if (inValueVector.dataType == NODE && inValueVector.isSequence) {
                 auto nodeID = ((nodeID_t*)inValueVector.values)[0];
                 nodeID.offset = nodeID.offset + pos;
-                memcpy(&outDataChunk->valueVectors[outValueVectorPos]->values[0], &nodeID,
-                    elementSize);
+                memcpy(&outValueVector->values[0], &nodeID, elementSize);
             } else {
-                memcpy(&outDataChunk->valueVectors[outValueVectorPos]->values[0],
-                    inValueVector.values + pos * elementSize, elementSize);
+                memcpy(&outValueVector->values[0], inValueVector.values + pos * elementSize,
+                    elementSize);
             }
+            outValueVector->setNull(0, false /* isNull */);
         }
         metrics->executionTime.stop();
         metrics->numOutputTuple.incrementByOne();

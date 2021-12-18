@@ -44,6 +44,9 @@ public:
      * the MergedQueryGraph when all of its nodes and rels are matched
      */
     SubqueryGraph getFullyMatchedSubqueryGraph() const;
+    inline void mergeQueryGraph(const QueryGraph& queryGraph) {
+        mergedQueryGraph->merge(queryGraph);
+    }
     inline QueryGraph* getQueryGraph() { return mergedQueryGraph.get(); }
     inline const bitset<MAX_NUM_VARIABLES>& getMatchedQueryRels() const { return matchedQueryRels; }
     inline const bitset<MAX_NUM_VARIABLES>& getMatchedQueryNodes() const {

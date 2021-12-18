@@ -30,6 +30,9 @@ protected:
     void readFromNonSequentialLocations(const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
 
+    void readForSingleNodeIDPosition(uint32_t pos, const shared_ptr<ValueVector>& nodeIDVector,
+        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
+
 public:
     static constexpr char COLUMN_SUFFIX[] = ".col";
 };

@@ -68,7 +68,7 @@ void HashJoinBuild::finalize() {
             auto nodeId = *(nodeID_t*)row;
             Hash::operation<nodeID_t>(nodeId, false /* isNull */, hash);
             auto slotId = hash & sharedState->hashBitMask;
-            auto prevPtr = (uint8_t**)(row + layout.numBytesPerRow - sizeof(uint8_t*));
+            auto prevPtr = (uint8_t**)(row + layout.getNullMapOffset() - sizeof(uint8_t*));
             memcpy((uint8_t*)prevPtr, (void*)&(directory[slotId]), sizeof(uint8_t*));
             directory[slotId] = row;
             row += layout.numBytesPerRow;
@@ -80,9 +80,29 @@ void HashJoinBuild::appendResultSet() {
     if (keyDataChunk->state->selectedSize == 0) {
         return;
     }
-    // Allocate htBlocks for tuples
-    auto numTuplesToAppend = keyDataChunk->state->isFlat() ? 1 : keyDataChunk->state->selectedSize;
-    rowCollection->append(vectorsToAppend, numTuplesToAppend);
+    // TODO: Guodong should double check the following logic.
+    auto& keyVector = vectorsToAppend[0];
+    if (keyVector->state->isFlat()) {
+        if (keyVector->isNull(keyVector->state->getPositionOfCurrIdx())) {
+            return;
+        }
+        rowCollection->append(vectorsToAppend, 1 /* numTuplesToAppend */);
+    } else {
+        if (keyVector->hasNoNullsGuarantee()) {
+            rowCollection->append(vectorsToAppend, keyVector->state->selectedSize);
+            return;
+        }
+        // If key vector may contain null value, we have to flatten the key and for each flat key
+        // checking whether its null or not.
+        for (auto i = 0u; i < keyVector->state->selectedSize; ++i) {
+            if (keyVector->isNull(i)) {
+                continue;
+            }
+            keyVector->state->currIdx = i;
+            rowCollection->append(vectorsToAppend, 1 /* numTuplesToAppend */);
+        }
+        keyVector->state->currIdx = -1;
+    }
 }
 
 void HashJoinBuild::execute() {

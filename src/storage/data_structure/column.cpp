@@ -35,30 +35,30 @@ Literal Column::readValue(node_offset_t offset, BufferManagerMetrics& metrics) {
 
 void Column::readFromNonSequentialLocations(const shared_ptr<ValueVector>& nodeIDVector,
     const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
-    auto values = valueVector->values;
-    auto nodeIDValues = (nodeID_t*)nodeIDVector->values;
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
-        auto nodeOffset = nodeIDValues[pos].offset;
-        auto pageCursor = PageUtils::getPageElementCursorForOffset(nodeOffset, numElementsPerPage);
-        auto frame = bufferManager.pin(fileHandle, pageCursor.idx, metrics);
-        memcpy(values + pos * elementSize, frame + mapElementPosToByteOffset(pageCursor.pos),
-            elementSize);
-        setNULLBitsForAPos(valueVector, frame, pageCursor.pos, pos);
-        bufferManager.unpin(fileHandle, pageCursor.idx);
+        readForSingleNodeIDPosition(pos, nodeIDVector, valueVector, metrics);
     } else {
         for (auto i = 0ul; i < nodeIDVector->state->selectedSize; i++) {
             auto pos = nodeIDVector->state->selectedPositions[i];
-            auto nodeOffset = nodeIDValues[pos].offset;
-            auto pageCursor =
-                PageUtils::getPageElementCursorForOffset(nodeOffset, numElementsPerPage);
-            auto frame = bufferManager.pin(fileHandle, pageCursor.idx, metrics);
-            memcpy(values + pos * elementSize, frame + mapElementPosToByteOffset(pageCursor.pos),
-                elementSize);
-            setNULLBitsForAPos(valueVector, frame, pageCursor.pos, pos);
-            bufferManager.unpin(fileHandle, pageCursor.idx);
+            readForSingleNodeIDPosition(pos, nodeIDVector, valueVector, metrics);
         }
     }
+}
+
+void Column::readForSingleNodeIDPosition(uint32_t pos, const shared_ptr<ValueVector>& nodeIDVector,
+    const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
+    if (nodeIDVector->isNull(pos)) {
+        valueVector->setNull(pos, true);
+        return;
+    }
+    auto nodeOffset = ((nodeID_t*)nodeIDVector->values)[pos].offset;
+    auto pageCursor = PageUtils::getPageElementCursorForOffset(nodeOffset, numElementsPerPage);
+    auto frame = bufferManager.pin(fileHandle, pageCursor.idx, metrics);
+    memcpy(valueVector->values + pos * elementSize,
+        frame + mapElementPosToByteOffset(pageCursor.pos), elementSize);
+    setNULLBitsForAPos(valueVector, frame, pageCursor.pos, pos);
+    bufferManager.unpin(fileHandle, pageCursor.idx);
 }
 
 void StringPropertyColumn::readValues(const shared_ptr<ValueVector>& nodeIDVector,
@@ -97,6 +97,10 @@ void AdjColumn::readValues(const shared_ptr<ValueVector>& nodeIDVector,
         for (auto i = 0u; i < numValuesToCopy; i++) {
             auto pos = nodeIDVector->state->isFlat() ? nodeIDVector->state->getPositionOfCurrIdx() :
                                                        nodeIDVector->state->selectedPositions[i];
+            if (nodeIDVector->isNull(pos)) {
+                resultVector->setNull(pos, true);
+                continue;
+            }
             auto nodeOffset = nodeIDValues[pos].offset;
             auto pageCursor =
                 PageUtils::getPageElementCursorForOffset(nodeOffset, numElementsPerPage);

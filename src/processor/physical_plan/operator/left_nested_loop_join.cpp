@@ -10,13 +10,11 @@ namespace processor {
 void LeftNestedLoopJoin::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     PhysicalOperator::initResultSet(resultSet);
     // side way information passing: give resultSet reference to subPlan.
-    auto subPlanResultCollector = (ResultCollector*)subPlan->lastOperator.get();
-    auto op = subPlanResultCollector->getPipelineLeafOperator();
+    PhysicalOperator* op = subPlanLastOperator->getLeafOperator();
     assert(op->operatorType == SELECT_SCAN);
     ((ResultScan*)op)->setResultSetToCopyFrom(this->resultSet.get());
-    subPlanResultCollector->init();
+    subPlanLastOperator->initResultSet(subPlanResultSet);
     // mering sub-plan result set into current result set.
-    auto subPlanResultSet = subPlan->lastOperator->getResultSet();
     for (auto& posMapping : subPlanVectorsToRefPosMapping) {
         auto [dataChunkToRefPos, vectorToRefPos] = posMapping.first;
         auto dataChunkToRef = subPlanResultSet->dataChunks[dataChunkToRefPos];
@@ -30,13 +28,23 @@ void LeftNestedLoopJoin::initResultSet(const shared_ptr<ResultSet>& resultSet) {
 }
 
 bool LeftNestedLoopJoin::getNextTuples() {
-    auto subPlanResultCollector = (ResultCollector*)subPlan->lastOperator.get();
+    if (isFirstExecution) {
+        isFirstExecution = false;
+        return pullOnceFromLeftAndRight();
+    }
+    if (subPlanLastOperator->getNextTuples()) { // More to pull from subPlan.
+        return true;
+    }
+    // No more to pull from subPlan, so we pull once from outer plan and once from sub plan.
+    return pullOnceFromLeftAndRight();
+}
+
+bool LeftNestedLoopJoin::pullOnceFromLeftAndRight() {
     if (!prevOperator->getNextTuples()) {
         return false;
     }
-    subPlanResultCollector->execute();
-    auto hasAtLeastOneTuple = subPlanResultCollector->queryResult->numTuples != 0;
-    if (!hasAtLeastOneTuple) {
+    subPlanLastOperator->reInitialize();
+    if (!subPlanLastOperator->getNextTuples()) { // Nothing is pulled from sub plan.
         for (auto& vector : vectorsToRef) {
             vector->state->initOriginalAndSelectedSize(1);
             vector->setAllNull();
@@ -46,9 +54,14 @@ bool LeftNestedLoopJoin::getNextTuples() {
 }
 
 unique_ptr<PhysicalOperator> LeftNestedLoopJoin::clone() {
-    auto subPlanClone = make_unique<PhysicalPlan>(subPlan->lastOperator->clone());
-    return make_unique<LeftNestedLoopJoin>(
-        subPlanVectorsToRefPosMapping, move(subPlanClone), prevOperator->clone(), context, id);
+    auto clonedSubPlanResultSet = make_shared<ResultSet>(subPlanResultSet->dataChunks.size());
+    for (auto i = 0u; i < subPlanResultSet->dataChunks.size(); ++i) {
+        clonedSubPlanResultSet->insert(
+            i, make_shared<DataChunk>(subPlanResultSet->dataChunks[i]->valueVectors.size()));
+    }
+    return make_unique<LeftNestedLoopJoin>(subPlanVectorsToRefPosMapping,
+        subPlanLastOperator->clone(), move(clonedSubPlanResultSet), prevOperator->clone(), context,
+        id);
 }
 
 } // namespace processor

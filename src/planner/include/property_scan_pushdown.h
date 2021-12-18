@@ -18,6 +18,8 @@ private:
 
     shared_ptr<LogicalOperator> rewriteExtend(const shared_ptr<LogicalOperator>& op);
 
+    shared_ptr<LogicalOperator> rewriteLeftNestedLoopJoin(const shared_ptr<LogicalOperator>& op);
+
     shared_ptr<LogicalOperator> rewriteScanNodeProperty(const shared_ptr<LogicalOperator>& op);
 
     shared_ptr<LogicalOperator> rewriteScanRelProperty(const shared_ptr<LogicalOperator>& op);
@@ -25,7 +27,7 @@ private:
     shared_ptr<LogicalOperator> applyPropertyScansIfNecessary(
         const string& nodeID, const shared_ptr<LogicalOperator>& op);
 
-    void rewriteChildrenOperators(LogicalOperator& op);
+    void rewriteChildrenOperators(const shared_ptr<LogicalOperator>& op);
 
     void addPropertyScan(const string& nodeID, const shared_ptr<LogicalOperator>& op);
 

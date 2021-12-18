@@ -2,6 +2,7 @@
 
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
+#include "src/planner/include/logical_plan/operator/nested_loop_join/logical_left_nested_loop_join.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
@@ -19,8 +20,10 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewrite(shared_ptr<LogicalOper
         return rewriteScanNodeProperty(op);
     case LOGICAL_SCAN_REL_PROPERTY:
         return rewriteScanRelProperty(op);
+    case LOGICAL_LEFT_NESTED_LOOP_JOIN:
+        return rewriteLeftNestedLoopJoin(op);
     default:
-        rewriteChildrenOperators(*op);
+        rewriteChildrenOperators(op);
         return op;
     }
 }
@@ -35,6 +38,18 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteExtend(
     const shared_ptr<LogicalOperator>& op) {
     auto& extend = (LogicalExtend&)*op;
     return applyPropertyScansIfNecessary(extend.nbrNodeID, op);
+}
+
+// Push down all property scanners on node IDs computed in subquery on top on the left nested loop
+// join operator.
+shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteLeftNestedLoopJoin(
+    const shared_ptr<LogicalOperator>& op) {
+    auto& leftNLJ = (LogicalLeftNestedLoopJoin&)*op;
+    shared_ptr<LogicalOperator> result;
+    for (auto& nodeID : leftNLJ.matchedNodeIDsInSubPlan) {
+        result = applyPropertyScansIfNecessary(nodeID, op);
+    }
+    return result;
 }
 
 shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteScanNodeProperty(
@@ -55,7 +70,7 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::applyPropertyScansIfNecessary(
     const string& nodeID, const shared_ptr<LogicalOperator>& op) {
     if (!nodeIDToPropertyScansMap.contains(nodeID)) {
         // nothing needs to be applied
-        rewriteChildrenOperators(*op);
+        rewriteChildrenOperators(op);
         return op;
     }
     auto& propertyScans = nodeIDToPropertyScansMap.at(nodeID);
@@ -64,18 +79,18 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::applyPropertyScansIfNecessary(
         propertyScans[i]->prevOperator = propertyScans[i + 1];
     }
     propertyScans.back()->prevOperator = op;
-    rewriteChildrenOperators(*op);
+    rewriteChildrenOperators(op);
     return propertyScans[0];
 }
 
-void PropertyScanPushDown::rewriteChildrenOperators(LogicalOperator& op) {
-    if (op.prevOperator) {
-        op.prevOperator = rewrite(op.prevOperator);
+void PropertyScanPushDown::rewriteChildrenOperators(const shared_ptr<LogicalOperator>& op) {
+    if (op->prevOperator) {
+        op->prevOperator = rewrite(op->prevOperator);
     }
     // TODO: We should consider move to prevOperators instead of prevOperator if there is more than
     // one binary operator.
-    if (op.getLogicalOperatorType() == LOGICAL_HASH_JOIN) {
-        auto& hashJoin = (LogicalHashJoin&)op;
+    if (op->getLogicalOperatorType() == LOGICAL_HASH_JOIN) {
+        auto& hashJoin = (LogicalHashJoin&)*op;
         hashJoin.buildSidePrevOperator = rewrite(hashJoin.buildSidePrevOperator);
     }
 }
