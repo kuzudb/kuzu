@@ -31,7 +31,6 @@ public:
     static void parseIntervalField(string buf, uint64_t& pos, uint64_t len, interval_t& result);
     static interval_t FromCString(const char* str, uint64_t len);
     static string toString(interval_t interval);
-    static bool GreaterThanEquals(const interval_t& left, const interval_t& right);
     static bool GreaterThan(const interval_t& left, const interval_t& right);
     static void NormalizeIntervalEntries(
         interval_t input, int64_t& months, int64_t& days, int64_t& micros);

@@ -34,6 +34,18 @@ struct nodeID_t {
     inline bool operator!=(const nodeID_t& rhs) const {
         return offset != rhs.offset || label != rhs.label;
     };
+    inline bool operator>(const nodeID_t& rhs) const {
+        return (label > rhs.label) || (label == rhs.label && offset > rhs.offset);
+    };
+    inline bool operator>=(const nodeID_t& rhs) const {
+        return (label > rhs.label) || (label == rhs.label && offset >= rhs.offset);
+    };
+    inline bool operator<(const nodeID_t& rhs) const {
+        return (label < rhs.label) || (label == rhs.label && offset < rhs.offset);
+    };
+    inline bool operator<=(const nodeID_t& rhs) const {
+        return (label < rhs.label) || (label == rhs.label && offset <= rhs.offset);
+    };
 };
 
 // System representation for a variable-sized overflow value.
@@ -44,7 +56,34 @@ struct overflow_value_t {
     uint8_t* value;
 };
 
-// Represents dates as days since 1970-01-01.
+struct interval_t {
+    int32_t months;
+    int32_t days;
+    int64_t micros;
+
+    interval_t() = default;
+    explicit inline interval_t(int32_t months_p, int32_t days_p, int64_t micros_p)
+        : months(months_p), days(days_p), micros(micros_p) {}
+
+    // comparator operators
+    inline bool operator==(const interval_t& rhs) const {
+        return this->days == rhs.days && this->months == rhs.months && this->micros == rhs.micros;
+    };
+    inline bool operator!=(const interval_t& rhs) const { return !(*this == rhs); }
+
+    bool operator>(const interval_t& rhs) const;
+    inline bool operator<=(const interval_t& rhs) const { return !(*this > rhs); }
+    inline bool operator<(const interval_t& rhs) const { return !(*this >= rhs); }
+    inline bool operator>=(const interval_t& rhs) const { return *this > rhs || *this == rhs; }
+
+    // arithmetic operators
+    interval_t operator+(const interval_t& rhs) const;
+    interval_t operator-(const interval_t& rhs) const;
+
+    interval_t operator/(const uint64_t& rhs) const;
+};
+
+// System representation of dates as the number of days since 1970-01-01.
 struct date_t {
     int32_t days;
 
@@ -62,6 +101,11 @@ struct date_t {
     // arithmetic operators
     inline date_t operator+(const int32_t& day) const { return date_t(this->days + day); };
     inline date_t operator-(const int32_t& day) const { return date_t(this->days - day); };
+
+    date_t operator+(const interval_t& interval) const;
+    date_t operator-(const interval_t& interval) const;
+
+    int64_t operator-(const date_t& rhs) const;
 };
 
 // Type used to represent time (microseconds)
@@ -109,25 +153,12 @@ struct timestamp_t {
     inline bool operator<(const timestamp_t& rhs) const { return value < rhs.value; };
     inline bool operator>(const timestamp_t& rhs) const { return value > rhs.value; };
     inline bool operator>=(const timestamp_t& rhs) const { return value >= rhs.value; };
-};
 
-struct interval_t {
-    int32_t months;
-    int32_t days;
-    int64_t micros;
+    // arithmetic operator
+    timestamp_t operator+(const interval_t& interval) const;
+    timestamp_t operator-(const interval_t& interval) const;
 
-    interval_t() = default;
-    explicit inline interval_t(int32_t months_p, int32_t days_p, int64_t micros_p)
-        : months(months_p), days(days_p), micros(micros_p) {}
-
-    inline bool operator==(const interval_t& rhs) const {
-        return this->days == rhs.days && this->months == rhs.months && this->micros == rhs.micros;
-    };
-    inline bool operator!=(const interval_t& rhs) const { return !(*this == rhs); };
-    bool operator<=(const interval_t& rhs) const;
-    bool operator<(const interval_t& rhs) const;
-    bool operator>(const interval_t& rhs) const;
-    bool operator>=(const interval_t& rhs) const;
+    interval_t operator-(const timestamp_t& rhs) const;
 };
 
 const uint8_t FALSE = 0;

@@ -182,28 +182,13 @@ template<>
 inline void Equals::operation(
     const Value& left, const Value& right, uint8_t& result, bool isLeftNull, bool isRightNul) {
     EqualsOrNotEqualsValues::operation<true>(left, right, result, isLeftNull, isRightNul);
-};
+}
 
 template<>
 inline void NotEquals::operation(
     const Value& left, const Value& right, uint8_t& result, bool isLeftNull, bool isRightNul) {
     EqualsOrNotEqualsValues::operation<false>(left, right, result, isLeftNull, isRightNul);
-};
-
-// specialized for nodeID_t.
-template<>
-inline void Equals::operation(const nodeID_t& left, const nodeID_t& right, uint8_t& result,
-    bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    result = left.label == right.label && left.offset == right.offset;
-};
-
-template<>
-inline void NotEquals::operation(const nodeID_t& left, const nodeID_t& right, uint8_t& result,
-    bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    result = left.label != right.label || left.offset != right.offset;
-};
+}
 
 /*******************************************************
  **                                                   **
@@ -295,36 +280,6 @@ inline void LessThan::operation(
     const uint8_t& left, const uint8_t& right, uint8_t& result, bool isLeftNull, bool isRightNull) {
     assert(!isLeftNull && !isRightNull);
     result = !left && right;
-};
-
-// specialized for nodeID_t.
-template<>
-inline void GreaterThan::operation(const nodeID_t& left, const nodeID_t& right, uint8_t& result,
-    bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    result =
-        (left.label > right.label) || (left.label == right.label && left.offset > right.offset);
-};
-
-template<>
-inline void GreaterThanEquals::operation(const nodeID_t& left, const nodeID_t& right,
-    uint8_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    result = left.label > right.label || (left.label == right.label && left.offset >= right.offset);
-};
-
-template<>
-inline void LessThan::operation(const nodeID_t& left, const nodeID_t& right, uint8_t& result,
-    bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    result = left.label < right.label || (left.label == right.label && left.offset < right.offset);
-};
-
-template<>
-inline void LessThanEquals::operation(const nodeID_t& left, const nodeID_t& right, uint8_t& result,
-    bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    result = left.label < right.label || (left.label == right.label && left.offset <= right.offset);
 };
 
 } // namespace operation
