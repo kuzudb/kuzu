@@ -12,7 +12,8 @@ using namespace graphflow::planner;
 namespace graphflow {
 namespace main {
 
-System::System(const string& path, bool isInMemoryMode) {
+System::System(const string& path, bool isInMemoryMode)
+    : logger{LoggerUtils::getOrCreateSpdLogger("System")} {
     memManager = make_unique<MemoryManager>();
     bufferManager =
         make_unique<BufferManager>(isInMemoryMode ? 0 : StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
@@ -26,6 +27,11 @@ void System::executeQuery(SessionContext& context) const {
         throw invalid_argument("System is not initialized");
     }
     context.clear();
+
+    if (context.query.empty()) {
+        logger->warn("Empty query input.");
+        return;
+    }
 
     auto parsedQuery = Parser::parseQuery(context.query);
     context.enable_explain = parsedQuery->enable_explain;

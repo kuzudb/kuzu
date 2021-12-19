@@ -22,7 +22,7 @@ struct charArrayHasher {
 class LoggerUtils {
 
 public:
-    static shared_ptr<spdlog::logger> getOrCreateSpdLogger(string loggerName) {
+    static shared_ptr<spdlog::logger> getOrCreateSpdLogger(const string& loggerName) {
         shared_ptr<spdlog::logger> logger = spdlog::get(loggerName);
         if (!logger) {
             logger = spdlog::stdout_logger_mt(loggerName);

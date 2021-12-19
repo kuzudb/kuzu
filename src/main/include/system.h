@@ -27,6 +27,7 @@ public:
     unique_ptr<nlohmann::json> debugInfo() const;
 
 public:
+    shared_ptr<spdlog::logger> logger;
     unique_ptr<Graph> graph;
     unique_ptr<QueryProcessor> processor;
     unique_ptr<MemoryManager> memManager;

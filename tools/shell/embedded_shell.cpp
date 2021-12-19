@@ -255,6 +255,9 @@ void EmbeddedShell::prettyPrintPlan() {
 }
 
 void EmbeddedShell::printExecutionResult() {
+    if (!context.queryResult) { // empty query result
+        return;
+    }
     if (context.enable_explain) {
         prettyPrintPlan();
     } else {

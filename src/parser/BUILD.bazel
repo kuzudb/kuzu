@@ -33,6 +33,9 @@ cc_library(
 
 cc_library(
     name = "parsed_queries",
+    srcs = glob([
+        "queries/*.cpp",
+    ]),
     hdrs = glob([
         "include/queries/*.h",
     ]),

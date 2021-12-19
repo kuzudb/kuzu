@@ -15,6 +15,7 @@ unique_ptr<BoundSingleQuery> QueryBinder::bind(const SingleQuery& singleQuery) {
 }
 
 unique_ptr<BoundSingleQuery> QueryBinder::bindSingleQuery(const SingleQuery& singleQuery) {
+    validateFirstMatchIsNotOptional(singleQuery);
     auto boundSingleQuery = make_unique<BoundSingleQuery>();
     for (auto& queryPart : singleQuery.queryParts) {
         boundSingleQuery->boundQueryParts.push_back(bindQueryPart(*queryPart));
@@ -105,6 +106,7 @@ vector<shared_ptr<Expression>> QueryBinder::bindProjectionExpressions(
         }
     }
     validateProjectionColumnNamesAreUnique(boundProjectionExpressions);
+    validateAggregationsHaveNoGroupBy(boundProjectionExpressions);
     return boundProjectionExpressions;
 }
 
@@ -269,6 +271,12 @@ label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
     return catalog.getNodeLabelFromString(parsed_label);
 }
 
+void QueryBinder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
+    if (singleQuery.hasMatchStatement() && singleQuery.getFirstMatchStatement()->isOptional) {
+        throw invalid_argument("First match statement cannot be optional match.");
+    }
+}
+
 void QueryBinder::validateNodeAndRelLabelIsConnected(
     label_t relLabel, label_t nodeLabel, Direction direction) {
     GF_ASSERT(relLabel != ANY_LABEL);
@@ -293,6 +301,19 @@ void QueryBinder::validateProjectionColumnNamesAreUnique(
                                    expression->getRawName() + " are not supported.");
         }
         existColumnNames.insert(expression->getRawName());
+    }
+}
+
+void QueryBinder::validateAggregationsHaveNoGroupBy(
+    const vector<shared_ptr<Expression>>& expressions) {
+    auto numAggregationExpressions = 0u;
+    auto numNonAggregationExpressions = 0u;
+    for (auto& expression : expressions) {
+        isExpressionAggregate(expression->expressionType) ? numAggregationExpressions++ :
+                                                            numNonAggregationExpressions++;
+    }
+    if (numAggregationExpressions != 0 && numNonAggregationExpressions != 0) {
+        throw invalid_argument("Aggregations with group by is not supported.");
     }
 }
 
