@@ -25,8 +25,8 @@ public:
         const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn);
 
 private:
-    void appendProjection(const vector<shared_ptr<Expression>>& expressions, LogicalPlan& plan,
-        bool isRewritingAllProperties);
+    void appendProjection(
+        const vector<shared_ptr<Expression>>& expressionsToProject, LogicalPlan& plan);
     void appendAggregate(const vector<shared_ptr<Expression>>& expressionsToGroupBy,
         const vector<shared_ptr<Expression>>& expressionsToAggregate, LogicalPlan& plan);
     void appendOrderBy(const vector<shared_ptr<Expression>>& expressions,
@@ -39,10 +39,11 @@ private:
         const BoundProjectionBody& projectionBody, const Schema& schema);
     vector<shared_ptr<Expression>> getExpressionsToAggregate(
         const BoundProjectionBody& projectionBody, const Schema& schema);
+    vector<shared_ptr<Expression>> getExpressionsToProject(
+        const BoundProjectionBody& projectionBody, bool isRewritingAllProperties);
     vector<shared_ptr<Expression>> rewriteVariableExpression(
         const shared_ptr<Expression>& variable, bool isRewritingAllProperties);
-    vector<shared_ptr<Expression>> rewriteNodeExpression(
-        const shared_ptr<NodeExpression>& node, bool isRewritingAllProperties);
+    vector<shared_ptr<Expression>> rewriteNodeExpression(const shared_ptr<NodeExpression>& node);
     vector<shared_ptr<Expression>> rewriteRelExpression(const shared_ptr<RelExpression>& rel);
     vector<shared_ptr<Expression>> createPropertyExpressions(
         const shared_ptr<Expression>& variable, const vector<PropertyDefinition>& properties);
