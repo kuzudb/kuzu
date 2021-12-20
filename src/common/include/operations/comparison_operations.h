@@ -153,7 +153,15 @@ struct EqualsOrNotEqualsValues {
                 }
             } break;
             default:
-                assert(false);
+                if constexpr (equals) {
+                    throw invalid_argument("Cannot equals `" +
+                                           TypeUtils::dataTypeToString(left.dataType) + "` and `" +
+                                           TypeUtils::dataTypeToString(right.dataType) + "`");
+                } else {
+                    throw invalid_argument("Cannot not equals `" +
+                                           TypeUtils::dataTypeToString(left.dataType) + "` and `" +
+                                           TypeUtils::dataTypeToString(right.dataType) + "`");
+                }
             }
         } else if (left.dataType == INT64 && right.dataType == DOUBLE) {
             if constexpr (equals) {
@@ -172,7 +180,15 @@ struct EqualsOrNotEqualsValues {
                     left.val.doubleVal, right.val.int64Val, result, isLeftNull, isRightNul);
             }
         } else {
-            result = equals ? FALSE : TRUE;
+            if constexpr (equals) {
+                throw invalid_argument("Cannot equals `" +
+                                       TypeUtils::dataTypeToString(left.dataType) + "` and `" +
+                                       TypeUtils::dataTypeToString(right.dataType) + "`");
+            } else {
+                throw invalid_argument("Cannot not equals `" +
+                                       TypeUtils::dataTypeToString(left.dataType) + "` and `" +
+                                       TypeUtils::dataTypeToString(right.dataType) + "`");
+            }
         }
     }
 };
@@ -197,7 +213,7 @@ inline void NotEquals::operation(
  *******************************************************/
 
 struct CompareValues {
-    template<class FUNC = std::function<uint8_t(Value, Value)>>
+    template<class FUNC, const char* comparisonOpStr>
     static inline void operation(
         const Value& left, const Value& right, uint8_t& result, bool isLeftNull, bool isRightNul) {
         if (left.dataType == right.dataType) {
@@ -237,50 +253,45 @@ struct CompareValues {
         } else if (left.dataType == DOUBLE && right.dataType == INT64) {
             FUNC::operation(left.val.doubleVal, right.val.int64Val, result, isLeftNull, isRightNul);
         } else {
-            result = NULL_BOOL;
+            throw invalid_argument("Cannot " + string(comparisonOpStr) + " `" +
+                                   TypeUtils::dataTypeToString(left.dataType) + "` and `" +
+                                   TypeUtils::dataTypeToString(right.dataType) + "`");
         }
     }
 };
+
+static const char greaterThanStr[] = "greater_than";
+static const char greaterThanEqualsStr[] = "greater_than_equals";
+static const char lessThanStr[] = "less_than";
+static const char lessThanEqualsStr[] = "less_than_equals";
 
 // specialized for Value.
 template<>
 inline void GreaterThan::operation(
     const Value& left, const Value& right, uint8_t& result, bool isLeftNull, bool isRightNul) {
-    CompareValues::operation<GreaterThan>(left, right, result, isLeftNull, isRightNul);
-};
+    CompareValues::operation<GreaterThan, greaterThanStr>(
+        left, right, result, isLeftNull, isRightNul);
+}
 
 template<>
 inline void GreaterThanEquals::operation(
     const Value& left, const Value& right, uint8_t& result, bool isLeftNull, bool isRightNul) {
-    CompareValues::operation<GreaterThanEquals>(left, right, result, isLeftNull, isRightNul);
-};
+    CompareValues::operation<GreaterThanEquals, greaterThanEqualsStr>(
+        left, right, result, isLeftNull, isRightNul);
+}
 
 template<>
 inline void LessThan::operation(
     const Value& left, const Value& right, uint8_t& result, bool isLeftNull, bool isRightNul) {
-    CompareValues::operation<LessThan>(left, right, result, isLeftNull, isRightNul);
-};
+    CompareValues::operation<LessThan, lessThanStr>(left, right, result, isLeftNull, isRightNul);
+}
 
 template<>
 inline void LessThanEquals::operation(
     const Value& left, const Value& right, uint8_t& result, bool isLeftNull, bool isRightNul) {
-    CompareValues::operation<LessThanEquals>(left, right, result, isLeftNull, isRightNul);
-};
-
-// specialized for uint8_t.
-template<>
-inline void GreaterThan::operation(
-    const uint8_t& left, const uint8_t& right, uint8_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    result = !right && left;
-};
-
-template<>
-inline void LessThan::operation(
-    const uint8_t& left, const uint8_t& right, uint8_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    result = !left && right;
-};
+    CompareValues::operation<LessThanEquals, lessThanEqualsStr>(
+        left, right, result, isLeftNull, isRightNul);
+}
 
 } // namespace operation
 } // namespace common

@@ -103,15 +103,15 @@ TEST(TypesTests, StringToDoubleConversionErrors) {
 }
 
 TEST(TypesTests, StringToBoolConversion) {
-    EXPECT_EQ(TRUE, TypeUtils::TypeUtils::convertToBoolean("true"));
-    EXPECT_EQ(TRUE, TypeUtils::TypeUtils::convertToBoolean("TRUE"));
-    EXPECT_EQ(TRUE, TypeUtils::TypeUtils::convertToBoolean("True"));
-    EXPECT_EQ(TRUE, TypeUtils::TypeUtils::convertToBoolean("TRUe"));
+    EXPECT_EQ(true, TypeUtils::TypeUtils::convertToBoolean("true"));
+    EXPECT_EQ(true, TypeUtils::TypeUtils::convertToBoolean("TRUE"));
+    EXPECT_EQ(true, TypeUtils::TypeUtils::convertToBoolean("True"));
+    EXPECT_EQ(true, TypeUtils::TypeUtils::convertToBoolean("TRUe"));
 
-    EXPECT_EQ(FALSE, TypeUtils::TypeUtils::convertToBoolean("false"));
-    EXPECT_EQ(FALSE, TypeUtils::TypeUtils::convertToBoolean("FALSE"));
-    EXPECT_EQ(FALSE, TypeUtils::TypeUtils::convertToBoolean("False"));
-    EXPECT_EQ(FALSE, TypeUtils::TypeUtils::convertToBoolean("fALse"));
+    EXPECT_EQ(false, TypeUtils::TypeUtils::convertToBoolean("false"));
+    EXPECT_EQ(false, TypeUtils::TypeUtils::convertToBoolean("FALSE"));
+    EXPECT_EQ(false, TypeUtils::TypeUtils::convertToBoolean("False"));
+    EXPECT_EQ(false, TypeUtils::TypeUtils::convertToBoolean("fALse"));
 }
 
 TEST(TypesTests, StringToBoolConversionErrors) {

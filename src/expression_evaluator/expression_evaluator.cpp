@@ -160,12 +160,12 @@ uint64_t ExpressionEvaluator::select(sel_t* selectedPositions) {
     uint64_t numSelectedValues = 0;
     if (result->state->isFlat()) {
         auto pos = result->state->getPositionOfCurrIdx();
-        numSelectedValues += (result->values[pos] == TRUE) && (!result->isNull(pos));
+        numSelectedValues += result->values[pos] == true && (!result->isNull(pos));
     } else {
         for (auto i = 0u; i < result->state->selectedSize; i++) {
             auto pos = result->state->selectedPositions[i];
             selectedPositions[numSelectedValues] = pos;
-            numSelectedValues += (result->values[pos] == TRUE) && (!result->isNull(pos));
+            numSelectedValues += result->values[pos] == true && (!result->isNull(pos));
         }
     }
     return numSelectedValues;

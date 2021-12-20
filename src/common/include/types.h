@@ -161,11 +161,6 @@ struct timestamp_t {
     interval_t operator-(const timestamp_t& rhs) const;
 };
 
-const uint8_t FALSE = 0;
-const uint8_t TRUE = 1;
-
-const uint8_t NULL_BOOL = 2;
-
 enum DataType : uint8_t {
     REL = 0,
     NODE = 1,
@@ -198,7 +193,7 @@ public:
 
     static double_t convertToDouble(const char* data);
 
-    static uint8_t convertToBoolean(const char* data);
+    static bool convertToBoolean(const char* data);
 
     static size_t getDataTypeSize(DataType dataType);
 
@@ -208,9 +203,7 @@ public:
 
     static bool isNumericalType(DataType dataType);
 
-    static string toString(uint8_t boolVal) {
-        return boolVal == TRUE ? "True" : (boolVal == FALSE ? "False" : "");
-    }
+    static string toString(bool boolVal) { return boolVal ? "True" : "False"; }
 
     static string toString(int64_t val) { return to_string(val); }
 

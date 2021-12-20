@@ -138,9 +138,7 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToS
         ((double_t*)vector->values)[0] = literalExpression.literal.val.doubleVal;
     } break;
     case BOOL: {
-        auto val = literalExpression.literal.val.booleanVal;
-        vector->setNull(0, val == NULL_BOOL);
-        vector->values[0] = val;
+        ((bool*)vector->values)[0] = literalExpression.literal.val.booleanVal;
     } break;
     case STRING: {
         vector->addString(0 /* pos */, literalExpression.literal.strVal);

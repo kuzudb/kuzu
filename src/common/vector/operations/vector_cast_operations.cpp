@@ -110,7 +110,7 @@ void VectorCastOperations::castStructuredToString(ValueVector& operand, ValueVec
         string val;
         switch (operand.dataType) {
         case BOOL: {
-            val = TypeUtils::toString(operand.values[pos]);
+            val = TypeUtils::toString(((bool*)operand.values)[pos]);
         } break;
         case INT64: {
             val = TypeUtils::toString(((int64_t*)operand.values)[pos]);
@@ -136,7 +136,7 @@ void VectorCastOperations::castStructuredToString(ValueVector& operand, ValueVec
         case BOOL: {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
-                result.addString(pos, TypeUtils::toString(operand.values[pos]));
+                result.addString(pos, TypeUtils::toString(((bool*)operand.values)[pos]));
             }
         } break;
         case INT64: {

@@ -21,15 +21,15 @@ TEST(ValueVectorTests, TestDefaultHasNull) {
     EXPECT_TRUE(valueVector.hasNoNullsGuarantee());
 
     // Test that after an update of a value to non-NULL the vector still does not contain any NULLs.
-    valueVector.setNull(2, FALSE);
+    valueVector.setNull(2, false);
     EXPECT_TRUE(valueVector.hasNoNullsGuarantee());
 
     // Test that after an update of a value to NULL the vector may now contain NULLs.
-    valueVector.setNull(4, TRUE);
+    valueVector.setNull(4, true);
     EXPECT_FALSE(valueVector.hasNoNullsGuarantee());
 
     // Test that even if we revert the previous update of non-NULL the vector may still
     // contain  NULLs.
-    valueVector.setNull(4, FALSE);
+    valueVector.setNull(4, false);
     EXPECT_FALSE(valueVector.hasNoNullsGuarantee());
 }

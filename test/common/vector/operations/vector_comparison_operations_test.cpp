@@ -55,42 +55,42 @@ TEST_F(Int64ComparisonOperandsInSameDataChunkTest, Int64TwoUnflatNoNulls) {
 
     VectorComparisonOperations::Equals(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i], i == 45 ? TRUE : FALSE);
+        ASSERT_EQ(resultData[i], i == 45 ? true : false);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
     VectorComparisonOperations::NotEquals(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i], i == 45 ? FALSE : TRUE);
+        ASSERT_EQ(resultData[i], i == 45 ? false : true);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
     VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i], i < 45 ? TRUE : FALSE);
+        ASSERT_EQ(resultData[i], i < 45 ? true : false);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
     VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i], i < 46 ? TRUE : FALSE);
+        ASSERT_EQ(resultData[i], i < 46 ? true : false);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
     VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i], i < 46 ? FALSE : TRUE);
+        ASSERT_EQ(resultData[i], i < 46 ? false : true);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
     VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i], i < 45 ? FALSE : TRUE);
+        ASSERT_EQ(resultData[i], i < 45 ? false : true);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
@@ -103,13 +103,13 @@ TEST_F(Int64ComparisonOperandsInSameDataChunkTest, Int64TwoUnflatWithNulls) {
     auto resultData = result->values;
     // We set every odd value in vector 2 to NULL.
     for (int i = 0; i < NUM_TUPLES; ++i) {
-        vector2->setNull(i, (i % 2) == 1 ? true : false);
+        vector2->setNull(i, (i % 2) == 1);
     }
 
     VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         if (i % 2 == 0) {
-            ASSERT_EQ(resultData[i], i < 45 ? TRUE : FALSE);
+            ASSERT_EQ(resultData[i], i < 45 ? true : false);
             ASSERT_FALSE(result->isNull(i));
         } else {
             ASSERT_TRUE(result->isNull(i));
@@ -133,7 +133,7 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatNo
     result->setNullMask(vector2->getNullMask());
     VectorComparisonOperations::LessThan(*vector1, *vector2, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i], i < 10 ? TRUE : FALSE);
+        ASSERT_EQ(resultData[i], i < 10 ? true : false);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
@@ -143,7 +143,7 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatNo
     // is false and the rest is true.
     VectorComparisonOperations::LessThan(*vector2, *vector1, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i], i < 11 ? FALSE : TRUE);
+        ASSERT_EQ(resultData[i], i < 11 ? false : true);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
@@ -155,7 +155,7 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatWi
     dataChunkWithVector1->state->currIdx = 80;
     // We set every odd value in vector 2 to NULL.
     for (int i = 0; i < NUM_TUPLES; ++i) {
-        vector2->setNull(i, (i % 2) == 1 ? true : false);
+        vector2->setNull(i, (i % 2) == 1);
     }
     // Recall vector2 and result are in the same data chunk
     auto resultData = result->values;
@@ -167,7 +167,7 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatWi
     VectorComparisonOperations::LessThan(*vector1, *vector2, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         if ((i % 2) == 0) {
-            ASSERT_EQ(resultData[i], i < 10 ? TRUE : FALSE);
+            ASSERT_EQ(resultData[i], i < 10 ? true : false);
             ASSERT_FALSE(result->isNull(i));
         } else {
             ASSERT_TRUE(result->isNull(i));
@@ -186,7 +186,7 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatWi
     VectorComparisonOperations::LessThan(*vector2, *vector1, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         if ((i % 2) == 0) {
-            ASSERT_EQ(resultData[i], i < 11 ? FALSE : TRUE);
+            ASSERT_EQ(resultData[i], i < 11 ? false : true);
             ASSERT_FALSE(result->isNull(i));
         } else {
             ASSERT_TRUE(result->isNull(i));
@@ -226,39 +226,39 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
         rData[0].data, value.data() + gf_string_t::PREFIX_LENGTH, 8 - gf_string_t::PREFIX_LENGTH);
 
     VectorComparisonOperations::Equals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], TRUE);
+    ASSERT_EQ(resultData[0], true);
 
     rData[0].data[3] = 'i';
     VectorComparisonOperations::Equals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], FALSE);
+    ASSERT_EQ(resultData[0], false);
 
     VectorComparisonOperations::NotEquals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], TRUE);
+    ASSERT_EQ(resultData[0], true);
 
     VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], TRUE);
+    ASSERT_EQ(resultData[0], true);
 
     VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], TRUE);
+    ASSERT_EQ(resultData[0], true);
 
     VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], FALSE);
+    ASSERT_EQ(resultData[0], false);
 
     VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], FALSE);
+    ASSERT_EQ(resultData[0], false);
 
     rData[0].data[3] = 'a';
     VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], FALSE);
+    ASSERT_EQ(resultData[0], false);
 
     VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], FALSE);
+    ASSERT_EQ(resultData[0], false);
 
     VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], TRUE);
+    ASSERT_EQ(resultData[0], true);
 
     VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], TRUE);
+    ASSERT_EQ(resultData[0], true);
 }
 
 TEST(VectorCmpTests, cmpTwoLongStrings) {
@@ -295,37 +295,37 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     rData->overflowPtr = reinterpret_cast<uintptr_t>(rOverflow);
 
     VectorComparisonOperations::Equals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], TRUE);
+    ASSERT_EQ(resultData[0], true);
 
     rOverflow[overflowLen - 1] = 'z';
     VectorComparisonOperations::Equals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], FALSE);
+    ASSERT_EQ(resultData[0], false);
 
     VectorComparisonOperations::NotEquals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], TRUE);
+    ASSERT_EQ(resultData[0], true);
 
     VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], TRUE);
+    ASSERT_EQ(resultData[0], true);
 
     VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], TRUE);
+    ASSERT_EQ(resultData[0], true);
 
     VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], FALSE);
+    ASSERT_EQ(resultData[0], false);
 
     VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], FALSE);
+    ASSERT_EQ(resultData[0], false);
 
     rOverflow[overflowLen - 1] = 'a';
     VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], FALSE);
+    ASSERT_EQ(resultData[0], false);
 
     VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], FALSE);
+    ASSERT_EQ(resultData[0], false);
 
     VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], TRUE);
+    ASSERT_EQ(resultData[0], true);
 
     VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
-    ASSERT_EQ(resultData[0], TRUE);
+    ASSERT_EQ(resultData[0], true);
 }

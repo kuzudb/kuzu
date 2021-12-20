@@ -121,14 +121,14 @@ double_t TypeUtils::convertToDouble(const char* data) {
     return retVal;
 };
 
-uint8_t TypeUtils::convertToBoolean(const char* data) {
+bool TypeUtils::convertToBoolean(const char* data) {
     auto len = strlen(data);
     if (len == 4 && 't' == tolower(data[0]) && 'r' == tolower(data[1]) && 'u' == tolower(data[2]) &&
         'e' == tolower(data[3])) {
-        return TRUE;
+        return true;
     } else if (len == 5 && 'f' == tolower(data[0]) && 'a' == tolower(data[1]) &&
                'l' == tolower(data[2]) && 's' == tolower(data[3]) && 'e' == tolower(data[4])) {
-        return FALSE;
+        return false;
     }
     throw ConversionException(
         prefixConversionExceptionMessage(data, BOOL) +
