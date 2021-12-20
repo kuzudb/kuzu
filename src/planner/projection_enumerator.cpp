@@ -19,17 +19,18 @@ void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& pr
         if (!expressionsToAggregate.empty()) {
             appendAggregate(getExpressionToGroupBy(projectionBody, *plan->schema),
                 expressionsToAggregate, *plan);
+            // See logical_plan.h for explanation.
+            plan->containAggregation = true;
         }
         if (projectionBody.hasOrderByExpressions()) {
             appendOrderBy(
                 projectionBody.getOrderByExpressions(), projectionBody.getSortingOrders(), *plan);
         }
-        appendProjection(projectionBody.getProjectionExpressions(), *plan, isFinalReturn);
+        auto expressionsToProject = getExpressionsToProject(projectionBody, isFinalReturn);
+        appendProjection(expressionsToProject, *plan);
+        plan->schema->expressionsToCollect = expressionsToProject;
         if (projectionBodyPredicate) {
             enumerator->appendFilter(projectionBodyPredicate, *plan);
-        }
-        if (isFinalReturn) {
-            plan->schema->expressionsToCollect = projectionBody.getProjectionExpressions();
         }
         if (projectionBody.hasSkip() || projectionBody.hasLimit()) {
             appendMultiplicityReducer(*plan);
@@ -43,20 +44,8 @@ void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& pr
     }
 }
 
-void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>& expressions,
-    LogicalPlan& plan, bool isRewritingAllProperties) {
-    // extract and rewrite expressions to project
-    vector<shared_ptr<Expression>> expressionsToProject;
-    for (auto& expression : expressions) {
-        if (expression->expressionType == VARIABLE) {
-            for (auto& property : rewriteVariableExpression(expression, isRewritingAllProperties)) {
-                expressionsToProject.push_back(property);
-            }
-        } else {
-            expressionsToProject.push_back(expression);
-        }
-    }
-
+void ProjectionEnumerator::appendProjection(
+    const vector<shared_ptr<Expression>>& expressionsToProject, LogicalPlan& plan) {
     unordered_set<uint32_t> nonDiscardGroupsPos;
     for (auto& expression : expressionsToProject) {
         enumerator->appendScanPropertiesAndPlanSubqueryIfNecessary(expression, plan);
@@ -76,7 +65,7 @@ void ProjectionEnumerator::appendProjection(const vector<shared_ptr<Expression>>
     }
 
     auto projection = make_shared<LogicalProjection>(
-        move(expressionsToProject), move(discardedGroupsPos), plan.lastOperator);
+        expressionsToProject, move(discardedGroupsPos), plan.lastOperator);
     plan.appendOperator(move(projection));
 }
 
@@ -175,30 +164,53 @@ vector<shared_ptr<Expression>> ProjectionEnumerator::getExpressionsToAggregate(
     return expressionsToAggregate;
 }
 
+vector<shared_ptr<Expression>> ProjectionEnumerator::getExpressionsToProject(
+    const BoundProjectionBody& projectionBody, bool isRewritingAllProperties) {
+    vector<shared_ptr<Expression>> expressionsToProject;
+    for (auto& expression : projectionBody.getProjectionExpressions()) {
+        if (expression->expressionType == VARIABLE) {
+            for (auto& property : rewriteVariableExpression(expression, isRewritingAllProperties)) {
+                expressionsToProject.push_back(property);
+            }
+        } else {
+            expressionsToProject.push_back(expression);
+        }
+    }
+    return expressionsToProject;
+}
+
 vector<shared_ptr<Expression>> ProjectionEnumerator::rewriteVariableExpression(
     const shared_ptr<Expression>& variable, bool isRewritingAllProperties) {
     GF_ASSERT(VARIABLE == variable->expressionType);
+    vector<shared_ptr<Expression>> result;
     if (NODE == variable->dataType) {
-        return rewriteNodeExpression(
-            static_pointer_cast<NodeExpression>(variable), isRewritingAllProperties);
-    } else {
-        assert(REL == variable->dataType);
-        return isRewritingAllProperties ?
-                   rewriteRelExpression(static_pointer_cast<RelExpression>(variable)) :
-                   vector<shared_ptr<Expression>>();
+        auto node = static_pointer_cast<NodeExpression>(variable);
+        if (isRewritingAllProperties) {
+            for (auto& expression : rewriteNodeExpression(node)) {
+                result.push_back(expression);
+            }
+        } else {
+            result.push_back(node->getNodeIDPropertyExpression());
+        }
+        return result;
+    } else if (REL == variable->dataType) {
+        auto rel = static_pointer_cast<RelExpression>(variable);
+        if (isRewritingAllProperties) {
+            for (auto& expression : rewriteRelExpression(rel)) {
+                result.push_back(expression);
+            }
+        }
+        return result;
     }
+    assert(false);
 }
 
 vector<shared_ptr<Expression>> ProjectionEnumerator::rewriteNodeExpression(
-    const shared_ptr<NodeExpression>& node, bool isRewritingAllProperties) {
+    const shared_ptr<NodeExpression>& node) {
     vector<shared_ptr<Expression>> result;
-    result.emplace_back(
-        make_shared<PropertyExpression>(NODE_ID, INTERNAL_ID_SUFFIX, UINT32_MAX, node));
-    if (isRewritingAllProperties) {
-        for (auto& property :
-            createPropertyExpressions(node, catalog.getAllNodeProperties(node->label))) {
-            result.push_back(property);
-        }
+    for (auto& property :
+        createPropertyExpressions(node, catalog.getAllNodeProperties(node->label))) {
+        result.push_back(property);
     }
     return result;
 }

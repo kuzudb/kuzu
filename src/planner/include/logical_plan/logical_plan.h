@@ -9,7 +9,7 @@ namespace planner {
 class LogicalPlan {
 
 public:
-    LogicalPlan() : cost{0} { schema = make_unique<Schema>(); }
+    LogicalPlan() : schema{make_unique<Schema>()}, cost{0}, containAggregation{false} {}
 
     explicit LogicalPlan(unique_ptr<Schema> schema) : schema{move(schema)}, cost{0} {}
 
@@ -24,6 +24,10 @@ public:
     shared_ptr<LogicalOperator> lastOperator;
     unique_ptr<Schema> schema;
     uint64_t cost;
+
+    // Note: this is a protection to avoid executing plan contain aggregation with multi-threading.
+    // We should remove this field when we support aggregation with multi-threading.
+    bool containAggregation;
 };
 
 } // namespace planner
