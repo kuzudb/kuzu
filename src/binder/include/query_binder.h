@@ -60,12 +60,18 @@ private:
     label_t bindNodeLabel(const string& parsed_label);
 
     /******* validations *********/
-
+    // E.g. Optional MATCH (a) RETURN a.age
+    // Although this is doable in Neo4j, I don't think the semantic make a lot of sense because
+    // there is nothing to left join on.
+    void validateFirstMatchIsNotOptional(const SingleQuery& singleQuery);
     // E.g. MATCH (:person)-[:studyAt]->(:person)
     void validateNodeAndRelLabelIsConnected(
         label_t relLabel, label_t nodeLabel, Direction direction);
     // E.g. RETURN a, b AS a
     void validateProjectionColumnNamesAreUnique(const vector<shared_ptr<Expression>>& expressions);
+    // E.g. RETURN a, b, COUNT(*)
+    // Note: this validation should be removed once we have group by implemented.
+    void validateAggregationsHaveNoGroupBy(const vector<shared_ptr<Expression>>& expressions);
     void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
         unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
     uint64_t validateAndExtractSkipLimitNumber(const ParsedExpression& skipOrLimitExpression);

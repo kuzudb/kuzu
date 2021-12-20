@@ -16,11 +16,13 @@ unique_ptr<SingleQuery> Parser::parseQuery(const string& query) {
     auto parserErrorListener = ParserErrorListener();
 
     auto cypherLexer = CypherLexer(&inputStream);
+    cypherLexer.removeErrorListeners();
     cypherLexer.addErrorListener(&parserErrorListener);
     auto tokens = CommonTokenStream(&cypherLexer);
     tokens.fill();
 
     auto graphflowCypherParser = GraphflowCypherParser(&tokens);
+    graphflowCypherParser.removeErrorListeners();
     graphflowCypherParser.addErrorListener(&parserErrorListener);
     graphflowCypherParser.setErrorHandler(make_shared<ParserErrorStrategy>());
 

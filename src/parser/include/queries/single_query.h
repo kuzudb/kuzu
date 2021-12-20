@@ -11,6 +11,11 @@ namespace parser {
 class SingleQuery {
 
 public:
+    bool hasMatchStatement() const;
+
+    MatchStatement* getFirstMatchStatement() const;
+
+public:
     vector<unique_ptr<QueryPart>> queryParts;
     vector<unique_ptr<MatchStatement>> matchStatements;
     unique_ptr<ReturnStatement> returnStatement;
