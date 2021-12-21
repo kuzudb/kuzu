@@ -1,9 +1,10 @@
 #pragma once
 
+#include <iostream>
+
 #include "src/processor/include/physical_plan/operator/sink.h"
 #include "src/processor/include/physical_plan/result/query_result.h"
 #include "src/processor/include/physical_plan/result/result_set_iterator.h"
-
 namespace graphflow {
 namespace processor {
 
@@ -16,7 +17,7 @@ public:
         : Sink{move(resultSet), move(prevOperator), operatorType, context, id},
           queryResult{make_unique<QueryResult>(vectorsToCollectPos)}, vectorsToCollectPos{move(
                                                                           vectorsToCollectPos)} {}
-
+    ~ResultCollector() { cout << "ResultCollector is being deconstructed." << endl; }
     void reInitialize() override;
 
     void execute() override;

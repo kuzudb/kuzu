@@ -4,6 +4,7 @@
 #include "src/parser/include/parser.h"
 #include "src/planner/include/planner.h"
 #include "src/processor/include/physical_plan/mapper/plan_mapper.h"
+#include "src/processor/include/physical_plan/operator/result_collector.h"
 
 using namespace graphflow::parser;
 using namespace graphflow::binder;

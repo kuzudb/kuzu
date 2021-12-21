@@ -23,7 +23,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<SimpleAggregationScan>(
-            outDataPos, prevOperator->clone(), move(sharedState), context, id);
+            outDataPos, prevOperator->clone(), sharedState, context, id);
     }
 
 private:

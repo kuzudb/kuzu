@@ -8,33 +8,33 @@ on:
     branches:
       - master
 env:
-        USE_BAZEL_VERSION: 3.5.0
+  USE_BAZEL_VERSION: 3.5.0
 
 jobs:
   checks:
     name: build & test
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: bazel-info
-      run: bazel info
+      - name: bazel-info
+        run: bazel info
 
-    - name: build
-      run: CC=gcc-9 bazel build --cxxopt='-std=c++2a' --cxxopt='-fopenmp' --linkopt='-lgomp' //...:all
+      - name: build
+        run: CC=gcc-9 bazel build --cxxopt='-std=c++2a' --cxxopt='-fopenmp' --linkopt='-lgomp' //...:all
 
-    - name: test
-      run: CC=gcc-9 bazel test --test_output=errors --cxxopt='-std=c++2a' --cxxopt='-fopenmp' --linkopt='-lgomp' //...:all
+      - name: test
+        run: CC=gcc-9 bazel test --test_output=errors --cxxopt='-std=c++2a' --cxxopt='-fopenmp' --linkopt='-lgomp' //...:all
 
   clang-formatting-check:
     name: clang-formatting-check
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/checkout@v2
-      with:
-        repository: Sarcasm/run-clang-format
-        path: run-clang-format
-    - run: sudo apt update && sudo apt install -y clang-format-10
-    - run: python3 run-clang-format/run-clang-format.py --clang-format-executable /usr/bin/clang-format-10 -r src/
-    - run: python3 run-clang-format/run-clang-format.py --clang-format-executable /usr/bin/clang-format-10 -r test/
+      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          repository: Sarcasm/runWorkerThread-clang-format
+          path: runWorkerThread-clang-format
+      - run: sudo apt update && sudo apt install -y clang-format-10
+      - run: python3 run-clang-format/runWorkerThread-clang-format.py --clang-format-executable /usr/bin/clang-format-10 -r src/
+      - run: python3 run-clang-format/runWorkerThread-clang-format.py --clang-format-executable /usr/bin/clang-format-10 -r test/

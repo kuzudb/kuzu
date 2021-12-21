@@ -3,9 +3,10 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/csv_reader/csv_reader.h"
+#include "src/common/include/task_system/task_scheduler.h"
 #include "src/loader/include/csv_format.h"
 #include "src/loader/include/in_mem_pages.h"
-#include "src/loader/include/thread_pool.h"
+#include "src/loader/include/loader_task.h"
 #include "src/loader/include/utils.h"
 #include "src/storage/include/graph.h"
 
@@ -26,8 +27,8 @@ class NodesLoader {
     typedef vector<unique_ptr<listSizes_t>> labelUnstrPropertyListSizes_t;
 
 private:
-    NodesLoader(
-        ThreadPool& threadPool, const Graph& graph, string outputDirectory, CSVFormat csvFormat);
+    NodesLoader(TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory,
+        CSVFormat csvFormat);
 
     void load(const vector<string>& filePaths, const vector<uint64_t>& numBlocksPerLabel,
         const vector<vector<uint64_t>>& numLinesPerBlock,
@@ -90,7 +91,8 @@ private:
 
 private:
     shared_ptr<spdlog::logger> logger;
-    ThreadPool& threadPool;
+    TaskScheduler& taskScheduler;
+
     const Graph& graph;
     const string outputDirectory;
 

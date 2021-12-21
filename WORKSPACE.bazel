@@ -98,3 +98,9 @@ http_archive(
     strip_prefix = "antlr4-4.9.1",
     url = "https://github.com/antlr/antlr4/archive/4.9.1.tar.gz",
 )
+
+new_local_repository(
+    name = "openmp",
+    path = "third_party/openmp",
+    build_file = "third_party/openmp/BUILD.bazel",
+)

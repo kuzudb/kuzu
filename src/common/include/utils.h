@@ -1,5 +1,8 @@
 #pragma once
 
+#include <sstream>
+#include <thread>
+
 #include "robin_hood.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
@@ -59,6 +62,12 @@ public:
         auto buf = make_unique<char[]>(size);
         snprintf(buf.get(), size, format.c_str(), args...);
         return string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+    }
+
+    static string getThreadIDString() {
+        std::ostringstream oss;
+        oss << std::this_thread::get_id();
+        return oss.str();
     }
 };
 

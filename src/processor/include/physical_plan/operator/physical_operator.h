@@ -78,6 +78,8 @@ public:
 
     virtual void printMetricsToJson(nlohmann::json& json, Profiler& profiler);
 
+    string name() { return PhysicalOperatorTypeNames[operatorType]; }
+
 protected:
     string getTimeMetricKey() const { return "time-" + to_string(id); }
     string getNumTupleMetricKey() const { return "numTuple-" + to_string(id); }

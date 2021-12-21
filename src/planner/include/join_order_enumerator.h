@@ -16,7 +16,7 @@ const double PREDICATE_SELECTIVITY = 0.2;
 /**
  * JoinOrderEnumerator is currently responsible for
  *      join order enumeration
- *      filter push down
+ *      filter pushTask down
  */
 class JoinOrderEnumerator {
     friend class Enumerator;

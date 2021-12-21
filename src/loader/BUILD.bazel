@@ -1,13 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
-    name = "thread_pool",
-    srcs = ["thread_pool.cpp"],
-    hdrs = ["include/thread_pool.h"],
-    visibility = ["//visibility:public"],
-)
-
-cc_library(
     name = "graph_loader",
     srcs = [
         "adj_and_prop_columns_builder.cpp",
@@ -27,14 +20,15 @@ cc_library(
         "include/csv_format.h",
         "include/graph_loader.h",
         "include/in_mem_pages.h",
+        "include/loader_task.h",
         "include/nodes_loader.h",
         "include/rels_loader.h",
         "include/utils.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "thread_pool",
         "//src/common:csv_reader",
+        "//src/common:task_system",
         "//src/common:types",
         "//src/storage:graph",
         "@gabime_spdlog",

@@ -6,9 +6,9 @@
 
 #include "nlohmann/json.hpp"
 
+#include "src/common/include/task_system/task_scheduler.h"
 #include "src/common/include/types.h"
 #include "src/loader/include/csv_format.h"
-#include "src/loader/include/thread_pool.h"
 #include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
@@ -62,7 +62,7 @@ private:
 
 private:
     shared_ptr<spdlog::logger> logger;
-    ThreadPool threadPool;
+    unique_ptr<TaskScheduler> taskScheduler;
     const string inputDirectory;
     const string outputDirectory;
     CSVFormat csvFormat;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/loader/include/thread_pool.h"
+#include "src/common/include/task_system/task_scheduler.h"
 #include "src/loader/include/utils.h"
 #include "src/storage/include/graph.h"
 
@@ -26,13 +26,13 @@ public:
     virtual void saveToFile() = 0;
 
 protected:
-    AdjAndPropertyStructuresBuilder(RelLabelDescription& description, ThreadPool& threadPool,
+    AdjAndPropertyStructuresBuilder(RelLabelDescription& description, TaskScheduler& taskScheduler,
         const Graph& graph, string outputDirectory);
 
 protected:
     shared_ptr<spdlog::logger> logger;
     RelLabelDescription& description;
-    ThreadPool& threadPool;
+    TaskScheduler& taskScheduler;
     const Graph& graph;
     const string outputDirectory;
 
