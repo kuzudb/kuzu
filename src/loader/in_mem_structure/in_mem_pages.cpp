@@ -103,17 +103,19 @@ uint32_t InMemStringOverflowPages::getNewOverflowPageIdx() {
     if (numUsedPages != pages.size()) {
         return page;
     }
-    auto oldNumPages = pages.size();
     auto newNumPages = (size_t)(1.5 * pages.size());
-    auto deltaPages = newNumPages - oldNumPages;
-    auto newData = new uint8_t[deltaPages << PAGE_SIZE_LOG_2];
-    additionalDataBlocks.emplace_back(newData);
-    numPagesPerDataBlock.emplace_back(deltaPages);
+    auto newData = new uint8_t[newNumPages << PAGE_SIZE_LOG_2];
+    memcpy(newData, data.get(), pages.size() << PAGE_SIZE_LOG_2);
+    data.reset(newData);
+    auto oldNumPages = pages.size();
     pages.resize(newNumPages);
+    for (auto i = 0; i < oldNumPages; i++) {
+        pages[i]->data = data.get() + (i << PAGE_SIZE_LOG_2);
+    }
     auto numElementsInPage = PageUtils::getNumElementsInAPageWithoutNULLBytes(1);
-    for (auto i = 0; i < deltaPages; i++) {
-        pages[oldNumPages + i] = make_unique<InMemPage>(
-            numElementsInPage, newData + (i << PAGE_SIZE_LOG_2), false /*hasNULLBytes*/);
+    for (auto i = oldNumPages; i < newNumPages; i++) {
+        pages[i] = make_unique<InMemPage>(
+            numElementsInPage, data.get() + (i << PAGE_SIZE_LOG_2), false /*hasNULLBytes*/);
     }
     return page;
 }
@@ -126,22 +128,8 @@ void InMemStringOverflowPages::saveToFile() {
         page->encodeNULLBytes();
     }
     auto fileInfo = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
-    auto blockId = 0u;
-    auto totalWrittenPages = 0u;
-    while (numUsedPages) {
-        auto numPagesToWrite = min(numUsedPages, numPagesPerDataBlock[blockId]);
-        uint64_t sizeToWrite = numPagesToWrite << PAGE_SIZE_LOG_2;
-        if (blockId == 0) {
-            // write the primary block
-            FileUtils::writeToFile(fileInfo.get(), data.get(), sizeToWrite, 0);
-        } else {
-            FileUtils::writeToFile(fileInfo.get(), additionalDataBlocks[blockId - 1].get(),
-                sizeToWrite, totalWrittenPages << PAGE_SIZE_LOG_2);
-        }
-        numUsedPages -= numPagesToWrite;
-        totalWrittenPages += numPagesToWrite;
-        blockId++;
-    }
+    auto bytesToWrite = numUsedPages << PAGE_SIZE_LOG_2;
+    FileUtils::writeToFile(fileInfo.get(), data.get(), bytesToWrite, 0);
     FileUtils::closeFile(fileInfo->fd);
 }
 
