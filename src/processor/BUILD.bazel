@@ -20,6 +20,7 @@ cc_library(
     deps = [
         "data_pos",
         "//src/common:data_chunk",
+        "//src/planner:logical_plan",
         "//src/storage:lists",
     ],
 )
@@ -60,6 +61,16 @@ cc_library(
 )
 
 cc_library(
+    name = "source_operator",
+    hdrs = [
+        "include/physical_plan/operator/source_operator.h",
+    ],
+    deps = [
+        "result",
+    ],
+)
+
+cc_library(
     name = "sink_operator",
     hdrs = [
         "include/physical_plan/operator/sink.h",
@@ -79,6 +90,7 @@ cc_library(
     ]),
     deps = [
         "sink_operator",
+        "source_operator",
         "//src/expression_evaluator:aggregate_evaluator_impls",
     ],
 )
@@ -152,20 +164,6 @@ cc_library(
 )
 
 cc_library(
-    name = "select_scan",
-    srcs = [
-        "physical_plan/operator/result_scan.cpp",
-    ],
-    hdrs = [
-        "include/physical_plan/operator/result_scan.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "base_operator",
-    ],
-)
-
-cc_library(
     name = "operator_impls",
     srcs = glob([
         "physical_plan/operator/*.cpp",
@@ -212,7 +210,6 @@ cc_library(
         "//src/expression_evaluator:evaluator_impls",
         "//src/function:aggregation_function",
         "//src/planner:logical_operator_impls",
-        "//src/planner:logical_plan",
         "//src/storage:graph",
     ],
 )

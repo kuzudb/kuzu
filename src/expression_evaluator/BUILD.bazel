@@ -46,6 +46,5 @@ cc_library(
     deps = [
         "base_evaluator",
         "//src/processor:result_collector",
-        "//src/processor:select_scan",
     ],
 )

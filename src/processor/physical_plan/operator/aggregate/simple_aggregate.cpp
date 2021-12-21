@@ -5,11 +5,11 @@
 namespace graphflow {
 namespace processor {
 
-SimpleAggregate::SimpleAggregate(shared_ptr<ResultSet> resultSet,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id,
+SimpleAggregate::SimpleAggregate(unique_ptr<PhysicalOperator> prevOperator,
+    ExecutionContext& context, uint32_t id,
     shared_ptr<AggregationSharedState> aggregationSharedState,
     vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators)
-    : Sink{move(resultSet), move(prevOperator), PhysicalOperatorType::AGGREGATE, context, id},
+    : Sink{move(prevOperator), PhysicalOperatorType::AGGREGATE, context, id},
       sharedState{move(aggregationSharedState)}, aggregationEvaluators{
                                                      move(aggregationEvaluators)} {
     for (auto& expressionEvaluator : this->aggregationEvaluators) {
@@ -17,11 +17,12 @@ SimpleAggregate::SimpleAggregate(shared_ptr<ResultSet> resultSet,
     }
 }
 
-void SimpleAggregate::init() {
-    Sink::init();
+shared_ptr<ResultSet> SimpleAggregate::initResultSet() {
+    resultSet = prevOperator->initResultSet();
     for (auto& aggregationEvaluator : aggregationEvaluators) {
         aggregationEvaluator->initResultSet(*resultSet, *context.memoryManager);
     }
+    return resultSet;
 }
 
 void SimpleAggregate::execute() {
@@ -66,13 +67,8 @@ unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
             static_unique_pointer_cast<ExpressionEvaluator, AggregateExpressionEvaluator>(
                 aggregationEvaluator->clone()));
     }
-    auto clonedResultSet = make_shared<ResultSet>(resultSet->dataChunks.size());
-    for (auto i = 0u; i < resultSet->dataChunks.size(); ++i) {
-        clonedResultSet->insert(
-            i, make_shared<DataChunk>(resultSet->dataChunks[i]->valueVectors.size()));
-    }
-    return make_unique<SimpleAggregate>(move(clonedResultSet), move(prevOperatorClone), context, id,
-        sharedState, move(aggregationEvaluatorsCloned));
+    return make_unique<SimpleAggregate>(
+        move(prevOperatorClone), context, id, sharedState, move(aggregationEvaluatorsCloned));
 }
 
 } // namespace processor

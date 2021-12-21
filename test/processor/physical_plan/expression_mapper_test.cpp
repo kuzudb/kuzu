@@ -30,13 +30,13 @@ public:
         return make_unique<PropertyExpression>(DataType::INT64, "prop", 0, move(nodeExpression));
     }
 
-    static PhysicalOperatorsInfo makeSimplePhysicalOperatorInfo() {
+    static MapperContext makeSimpleMapperContext() {
         auto schema = Schema();
         auto groupPos = schema.createGroup();
         schema.insertToGroup("_0_a.prop", groupPos);
-        auto info = PhysicalOperatorsInfo(schema);
-        info.addComputedExpressions("_0_a.prop");
-        return info;
+        auto context = MapperContext(make_unique<ResultSetDescriptor>(schema));
+        context.addComputedExpressions("_0_a.prop");
+        return context;
     }
 
 public:
@@ -64,9 +64,9 @@ TEST_F(ExpressionMapperTest, BinaryExpressionEvaluatorTest) {
     auto resultSet = ResultSet(1);
     resultSet.insert(0, dataChunk);
 
-    auto physicalOperatorInfo = makeSimplePhysicalOperatorInfo();
+    auto mapperContext = makeSimpleMapperContext();
     auto rootExpressionEvaluator = ExpressionMapper().mapLogicalExpressionToPhysical(
-        *addLogicalOperator, physicalOperatorInfo, *context);
+        *addLogicalOperator, mapperContext, *context);
     rootExpressionEvaluator->initResultSet(resultSet, *memoryManager);
     rootExpressionEvaluator->evaluate();
 
@@ -96,9 +96,9 @@ TEST_F(ExpressionMapperTest, UnaryExpressionEvaluatorTest) {
     auto resultSet = ResultSet(1);
     resultSet.insert(0, dataChunk);
 
-    auto physicalOperatorInfo = makeSimplePhysicalOperatorInfo();
+    auto mapperContext = makeSimpleMapperContext();
     auto rootExpressionEvaluator = ExpressionMapper().mapLogicalExpressionToPhysical(
-        *negateLogicalOperator, physicalOperatorInfo, *context);
+        *negateLogicalOperator, mapperContext, *context);
     rootExpressionEvaluator->initResultSet(resultSet, *memoryManager);
     rootExpressionEvaluator->evaluate();
 
@@ -114,7 +114,7 @@ TEST_F(ExpressionMapperTest, UnaryExpressionEvaluatorTest) {
 }
 
 TEST_F(ExpressionMapperTest, AggrExpressionEvaluatorTest) {
-    auto physicalOperatorInfo = makeSimplePhysicalOperatorInfo();
+    auto mapperContext = makeSimpleMapperContext();
     auto valueVector = make_shared<ValueVector>(context->memoryManager, INT64);
     auto dataChunk = make_shared<DataChunk>(1);
     auto values = (int64_t*)valueVector->values;
@@ -131,8 +131,8 @@ TEST_F(ExpressionMapperTest, AggrExpressionEvaluatorTest) {
 
     auto countStarExpr = make_unique<Expression>(
         ExpressionType::COUNT_STAR_FUNC, DataType::INT64, "COUNT(*)_0" /* uniqueName */);
-    auto countStarExprEvaluator = ExpressionMapper().mapLogicalExpressionToPhysical(
-        *countStarExpr, physicalOperatorInfo, *context);
+    auto countStarExprEvaluator =
+        ExpressionMapper().mapLogicalExpressionToPhysical(*countStarExpr, mapperContext, *context);
     auto countStarAggrEvaluator =
         reinterpret_cast<AggregateExpressionEvaluator*>(countStarExprEvaluator.get());
     countStarAggrEvaluator->initResultSet(resultSet, *memoryManager);

@@ -3,10 +3,11 @@
 namespace graphflow {
 namespace processor {
 
-void Filter::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    PhysicalOperator::initResultSet(resultSet);
-    rootExpr->initResultSet(*this->resultSet, *context.memoryManager);
-    dataChunkToSelect = this->resultSet->dataChunks[dataChunkToSelectPos];
+shared_ptr<ResultSet> Filter::initResultSet() {
+    resultSet = prevOperator->initResultSet();
+    rootExpr->initResultSet(*resultSet, *context.memoryManager);
+    dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
+    return resultSet;
 }
 
 void Filter::reInitialize() {

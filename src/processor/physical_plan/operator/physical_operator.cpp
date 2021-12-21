@@ -19,13 +19,6 @@ PhysicalOperator* PhysicalOperator::getLeafOperator() {
     return op;
 }
 
-void PhysicalOperator::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    if (prevOperator != nullptr) {
-        prevOperator->initResultSet(resultSet);
-    }
-    this->resultSet = resultSet;
-}
-
 void PhysicalOperator::reInitialize() {
     if (prevOperator) {
         prevOperator->reInitialize();

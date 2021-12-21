@@ -9,14 +9,13 @@ class LeftNestedLoopJoin : public PhysicalOperator {
 
 public:
     LeftNestedLoopJoin(vector<pair<DataPos, DataPos>> subPlanVectorsToRefPosMapping,
-        unique_ptr<PhysicalOperator> subPlanLastOperator, shared_ptr<ResultSet> subPlanResultSet,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
+        unique_ptr<PhysicalOperator> subPlanLastOperator, unique_ptr<PhysicalOperator> prevOperator,
+        ExecutionContext& context, uint32_t id)
         : PhysicalOperator{move(prevOperator), LEFT_NESTED_LOOP_JOIN, context, id},
           subPlanVectorsToRefPosMapping{move(subPlanVectorsToRefPosMapping)},
-          subPlanLastOperator{move(subPlanLastOperator)}, subPlanResultSet{move(subPlanResultSet)},
-          isFirstExecution{true} {}
+          subPlanLastOperator{move(subPlanLastOperator)}, isFirstExecution{true} {}
 
-    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+    shared_ptr<ResultSet> initResultSet() override;
 
     bool getNextTuples() override;
 
@@ -28,7 +27,6 @@ private:
     vector<pair<DataPos, DataPos>> subPlanVectorsToRefPosMapping;
     // NOTE: subPlan last operator is not a sink.
     unique_ptr<PhysicalOperator> subPlanLastOperator;
-    shared_ptr<ResultSet> subPlanResultSet;
 
     vector<shared_ptr<ValueVector>> vectorsToRef;
     bool isFirstExecution;

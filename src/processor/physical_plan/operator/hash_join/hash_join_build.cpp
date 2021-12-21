@@ -15,22 +15,21 @@ static uint64_t nextPowerOfTwo(uint64_t v) {
     return v;
 }
 
-HashJoinBuild::HashJoinBuild(const BuildDataInfo& buildDataInfo, shared_ptr<ResultSet> resultSet,
+HashJoinBuild::HashJoinBuild(const BuildDataInfo& buildDataInfo,
     unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : Sink{move(resultSet), move(prevOperator), HASH_JOIN_BUILD, context, id}, buildDataInfo{
-                                                                                   buildDataInfo} {}
+    : Sink{move(prevOperator), HASH_JOIN_BUILD, context, id}, buildDataInfo{buildDataInfo} {}
 
-void HashJoinBuild::init() {
-    Sink::init();
+shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
+    resultSet = prevOperator->initResultSet();
     RowLayout rowLayout;
-    keyDataChunk = this->resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
+    keyDataChunk = resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
     auto keyVector = keyDataChunk->valueVectors[buildDataInfo.getKeyIDVectorPos()];
     rowLayout.appendField(
         {keyVector->dataType, keyVector->getNumBytesPerValue(), false /* isVectorOverflow */});
     vectorsToAppend.push_back(keyVector);
     for (auto i = 0u; i < buildDataInfo.nonKeyDataPoses.size(); ++i) {
         auto dataChunkPos = buildDataInfo.nonKeyDataPoses[i].dataChunkPos;
-        auto dataChunk = this->resultSet->dataChunks[dataChunkPos];
+        auto dataChunk = resultSet->dataChunks[dataChunkPos];
         auto vectorPos = buildDataInfo.nonKeyDataPoses[i].valueVectorPos;
         auto vector = dataChunk->valueVectors[vectorPos];
         auto isVectorFlat = buildDataInfo.isNonKeyDataFlat[i];
@@ -50,6 +49,7 @@ void HashJoinBuild::init() {
                 make_unique<RowCollection>(*context.memoryManager, rowLayout);
         }
     }
+    return resultSet;
 }
 
 void HashJoinBuild::finalize() {

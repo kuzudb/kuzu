@@ -3,10 +3,11 @@
 namespace graphflow {
 namespace processor {
 
-void AdjColumnExtend::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    ScanAttribute::initResultSet(resultSet);
+shared_ptr<ResultSet> AdjColumnExtend::initResultSet() {
+    ScanAttribute::initResultSet();
     outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
     inDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
+    return resultSet;
 }
 
 void AdjColumnExtend::reInitialize() {

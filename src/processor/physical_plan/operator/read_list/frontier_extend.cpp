@@ -36,12 +36,13 @@ FrontierExtend::FrontierExtend(const DataPos& inDataPos, const DataPos& outDataP
     currOutputPos.hasMoreTuplesToProduce = false;
 }
 
-void FrontierExtend::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    ReadList::initResultSet(resultSet);
+shared_ptr<ResultSet> FrontierExtend::initResultSet() {
+    ReadList::initResultSet();
     outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
     outValueVector->state->initMultiplicity();
-    this->resultSet->insert(outDataPos.dataChunkPos, make_shared<ListSyncState>());
+    resultSet->insert(outDataPos.dataChunkPos, make_shared<ListSyncState>());
+    return resultSet;
 }
 
 bool FrontierExtend::getNextTuples() {

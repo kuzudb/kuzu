@@ -3,21 +3,22 @@
 namespace graphflow {
 namespace processor {
 
-void Projection::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    PhysicalOperator::initResultSet(resultSet);
+shared_ptr<ResultSet> Projection::initResultSet() {
+    resultSet = prevOperator->initResultSet();
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto& expression = *expressions[i];
-        expression.initResultSet(*this->resultSet, *context.memoryManager);
+        expression.initResultSet(*resultSet, *context.memoryManager);
         auto [outDataChunkPos, outValueVectorPos] = expressionsOutputPos[i];
-        auto dataChunk = this->resultSet->dataChunks[outDataChunkPos];
+        auto dataChunk = resultSet->dataChunks[outDataChunkPos];
         dataChunk->state = expression.result->state;
         dataChunk->insert(outValueVectorPos, expression.result);
     }
     discardedResultSet = make_unique<ResultSet>(discardedDataChunksPos.size());
     for (auto i = 0u; i < discardedDataChunksPos.size(); ++i) {
         this->resultSet->dataChunksMask[discardedDataChunksPos[i]] = false;
-        discardedResultSet->insert(i, this->resultSet->dataChunks[discardedDataChunksPos[i]]);
+        discardedResultSet->insert(i, resultSet->dataChunks[discardedDataChunksPos[i]]);
     }
+    return resultSet;
 }
 
 bool Projection::getNextTuples() {

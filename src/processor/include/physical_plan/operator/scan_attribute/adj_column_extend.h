@@ -15,7 +15,7 @@ public:
         : ScanAttribute{inDataPos, outDataPos, move(prevOperator), context, id},
           FilteringOperator(), column{column} {}
 
-    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+    shared_ptr<ResultSet> initResultSet() override;
 
     void reInitialize() override;
 

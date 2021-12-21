@@ -5,11 +5,12 @@
 namespace graphflow {
 namespace processor {
 
-void ReadRelPropertyList::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    ReadList::initResultSet(resultSet);
+shared_ptr<ResultSet> ReadRelPropertyList::initResultSet() {
+    ReadList::initResultSet();
     outValueVector = make_shared<ValueVector>(context.memoryManager, lists->getDataType());
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
     largeListHandle->setListSyncState(resultSet->getListSyncState(outDataPos.dataChunkPos));
+    return resultSet;
 }
 
 bool ReadRelPropertyList::getNextTuples() {

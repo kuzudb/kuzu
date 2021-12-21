@@ -3,11 +3,12 @@
 namespace graphflow {
 namespace processor {
 
-void ReadList::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    PhysicalOperator::initResultSet(resultSet);
-    inDataChunk = this->resultSet->dataChunks[inDataPos.dataChunkPos];
+shared_ptr<ResultSet> ReadList::initResultSet() {
+    resultSet = prevOperator->initResultSet();
+    inDataChunk = resultSet->dataChunks[inDataPos.dataChunkPos];
     inValueVector = inDataChunk->valueVectors[inDataPos.valueVectorPos];
-    outDataChunk = this->resultSet->dataChunks[outDataPos.dataChunkPos];
+    outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
+    return resultSet;
 }
 
 void ReadList::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {

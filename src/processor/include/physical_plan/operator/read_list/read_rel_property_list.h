@@ -13,7 +13,7 @@ public:
         : ReadList{inDataPos, outDataPos, lists, move(prevOperator), context, id,
               false /* is not adj list */} {}
 
-    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+    shared_ptr<ResultSet> initResultSet() override;
 
     bool getNextTuples() override;
 
