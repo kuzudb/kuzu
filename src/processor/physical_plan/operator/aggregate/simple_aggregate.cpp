@@ -72,7 +72,7 @@ unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
             i, make_shared<DataChunk>(resultSet->dataChunks[i]->valueVectors.size()));
     }
     return make_unique<SimpleAggregate>(move(clonedResultSet), move(prevOperatorClone), context, id,
-        move(sharedState), move(aggregationEvaluatorsCloned));
+        sharedState, move(aggregationEvaluatorsCloned));
 }
 
 } // namespace processor

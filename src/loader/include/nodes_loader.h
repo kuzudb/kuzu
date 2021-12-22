@@ -3,10 +3,11 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/csv_reader/csv_reader.h"
+#include "src/common/include/task_system/task_scheduler.h"
 #include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/in_mem_structure/builder/in_mem_node_prop_cols_builder.h"
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
-#include "src/loader/include/thread_pool.h"
+#include "src/loader/include/loader_task.h"
 #include "src/storage/include/graph.h"
 
 using namespace graphflow::storage;
@@ -25,7 +26,7 @@ class NodesLoader {
     typedef vector<unique_ptr<listSizes_t>> labelUnstrPropertyListSizes_t;
 
 private:
-    NodesLoader(ThreadPool& threadPool, const Graph& graph, string outputDirectory,
+    NodesLoader(TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory,
         vector<NodeFileDescription>& nodeFileDescriptions);
 
     void load(const vector<string>& filePaths, const vector<uint64_t>& numBlocksPerLabel,
@@ -78,7 +79,8 @@ private:
 
 private:
     shared_ptr<spdlog::logger> logger;
-    ThreadPool& threadPool;
+    TaskScheduler& taskScheduler;
+
     const Graph& graph;
     const string outputDirectory;
     vector<NodeFileDescription>& fileDescriptions;

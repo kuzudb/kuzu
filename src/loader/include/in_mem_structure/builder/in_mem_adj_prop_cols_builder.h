@@ -4,7 +4,7 @@
 #include "src/loader/include/in_mem_structure/column_utils.h"
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/loader/include/label_description.h"
-#include "src/loader/include/thread_pool.h"
+#include "src/loader/include/loader_task.h"
 #include "src/storage/include/graph.h"
 
 using namespace graphflow::common;
@@ -25,8 +25,8 @@ class InMemAdjAndPropertyColumnsBuilder : public InMemStructuresBuilderForRels, 
 
 public:
     // Initialize the builder and construct relevant propertyColumns and adjColumns.
-    InMemAdjAndPropertyColumnsBuilder(RelLabelDescription& description, ThreadPool& threadPool,
-        const Graph& graph, const string& outputDirectory);
+    InMemAdjAndPropertyColumnsBuilder(RelLabelDescription& description,
+        TaskScheduler& taskScheduler, const Graph& graph, const string& outputDirectory);
 
     // Sets a neighbour nodeID of the given nodeID in a corresponding adjColumn. If direction=FWD,
     // adjCol[nodeIDs[FWD]] = nodeIDs[BWD], and vice-versa.

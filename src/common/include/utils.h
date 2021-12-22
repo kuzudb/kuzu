@@ -1,5 +1,8 @@
 #pragma once
 
+#include <sstream>
+#include <thread>
+
 #include "robin_hood.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
@@ -65,6 +68,12 @@ public:
 template<typename FROM, typename TO>
 unique_ptr<TO> static_unique_pointer_cast(unique_ptr<FROM>&& old) {
     return unique_ptr<TO>{static_cast<TO*>(old.release())};
+}
+
+static string getThreadIDString() {
+    std::ostringstream oss;
+    oss << std::this_thread::get_id();
+    return oss.str();
 }
 
 } // namespace common

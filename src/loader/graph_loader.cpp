@@ -10,14 +10,17 @@
 #include "src/loader/include/nodes_loader.h"
 #include "src/loader/include/rels_loader.h"
 
+using namespace std::chrono;
 using namespace graphflow::storage;
 
 namespace graphflow {
 namespace loader {
 
 GraphLoader::GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads)
-    : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, threadPool{ThreadPool(numThreads)},
-      inputDirectory(std::move(inputDirectory)), outputDirectory(std::move(outputDirectory)) {}
+    : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
+      inputDirectory(std::move(inputDirectory)), outputDirectory(std::move(outputDirectory)) {
+    taskScheduler = make_unique<TaskScheduler>(numThreads);
+}
 
 GraphLoader::~GraphLoader() {
     spdlog::drop("loader");
@@ -25,6 +28,8 @@ GraphLoader::~GraphLoader() {
 
 void GraphLoader::loadGraph() {
     FileUtils::createDir(outputDirectory);
+    TimeMetric timer(true);
+    timer.start();
     try {
         logger->info("Starting GraphLoader.");
         try {
@@ -38,10 +43,10 @@ void GraphLoader::loadGraph() {
 
         logger->info("Creating reverse NodeIDMaps.");
         for (auto& nodeIDMap : *nodeIDMaps) {
-            threadPool.execute(
-                [&](NodeIDMap* x) { x->createNodeIDToOffsetMap(); }, nodeIDMap.get());
+            taskScheduler->scheduleTask(LoaderTaskFactory::createLoaderTask(
+                [&](NodeIDMap* x) { x->createNodeIDToOffsetMap(); }, nodeIDMap.get()));
         }
-        threadPool.wait();
+        taskScheduler->waitAllTasksToCompleteOrError();
         logger->info("Done creating reverse NodeIDMaps.");
 
         loadRels(*nodeIDMaps);
@@ -51,7 +56,10 @@ void GraphLoader::loadGraph() {
         graph.catalog->saveToFile(outputDirectory);
         logger->info("Writing Graph object.");
         graph.saveToFile(outputDirectory);
+        timer.stop();
+        auto stop = high_resolution_clock::now();
         logger->info("Done GraphLoader.");
+        logger->info("Time taken: . " + to_string(timer.getElapsedTimeMS() / 1000.0) + " seconds.");
     } catch (exception& e) {
         logger->error("Encountered an error while loading graph: {}", e.what());
         logger->info("Stopping GraphLoader.");
@@ -240,7 +248,7 @@ unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes() {
     }
     logger->info("End constructing nodeIDMaps.");
     NodesLoader nodesLoader{
-        threadPool, graph, outputDirectory, datasetMetadata.nodeFileDescriptions};
+        *taskScheduler, graph, outputDirectory, datasetMetadata.nodeFileDescriptions};
     nodesLoader.load(filePaths, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
     logger->info("Done loading nodes.");
     return nodeIDMaps;
@@ -258,8 +266,7 @@ void GraphLoader::loadRels(vector<unique_ptr<NodeIDMap>>& nodeIDMaps) {
     readCSVHeaderAndCalcNumBlocks(filePaths, numBlocksPerLabel, fileHeaderPerLabel);
     addRelLabelsIntoGraphCatalog(relFileDescriptions, fileHeaderPerLabel);
     RelsLoader relsLoader{
-        threadPool, graph, outputDirectory, nodeIDMaps, datasetMetadata.relFileDescriptions};
-
+        *taskScheduler, graph, outputDirectory, nodeIDMaps, datasetMetadata.relFileDescriptions};
     relsLoader.load(numBlocksPerLabel);
     logger->info("Done loading rels.");
 }
@@ -275,13 +282,14 @@ void GraphLoader::countLinesAndAddUnstrPropertiesInCatalog(
         labelUnstrProperties.resize(numBlocksPerLabel[labelId]);
         numLinesPerBlock[labelId].resize(numBlocksPerLabel[labelId]);
         for (uint64_t blockId = 0; blockId < numBlocksPerLabel[labelId]; blockId++) {
-            threadPool.execute(countLinesAndScanUnstrPropertiesInBlockTask, filePaths[labelId],
+            taskScheduler->scheduleTask(LoaderTaskFactory::createLoaderTask(
+                countLinesAndScanUnstrPropertiesInBlockTask, filePaths[labelId],
                 datasetMetadata.nodeFileDescriptions[labelId].csvSpecialChars,
                 graph.catalog->getStructuredNodeProperties(labelId).size(),
-                &labelUnstrProperties[blockId], &numLinesPerBlock, labelId, blockId, logger);
+                &labelUnstrProperties[blockId], &numLinesPerBlock, labelId, blockId, logger));
         }
     }
-    threadPool.wait();
+    taskScheduler->waitAllTasksToCompleteOrError();
     graph.numNodesPerLabel.resize(numLabels);
     for (label_t label = 0; label < numLabels; label++) {
         graph.numNodesPerLabel[label] = 0;

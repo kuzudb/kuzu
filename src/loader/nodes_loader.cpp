@@ -2,7 +2,6 @@
 
 #include "src/common/include/date.h"
 #include "src/common/include/exception.h"
-#include "src/common/include/file_utils.h"
 #include "src/common/include/interval.h"
 #include "src/common/include/timestamp.h"
 
@@ -11,10 +10,11 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace loader {
 
-NodesLoader::NodesLoader(ThreadPool& threadPool, const Graph& graph, string outputDirectory,
+NodesLoader::NodesLoader(TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory,
     vector<NodeFileDescription>& nodeFileDescriptions)
-    : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, threadPool{threadPool}, graph{graph},
-      outputDirectory{std::move(outputDirectory)}, fileDescriptions{nodeFileDescriptions} {
+    : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, taskScheduler{taskScheduler},
+      graph{graph}, outputDirectory{std::move(outputDirectory)}, fileDescriptions{
+                                                                     nodeFileDescriptions} {
     logger->debug("Initializing NodesLoader.");
 };
 
@@ -31,7 +31,7 @@ void NodesLoader::load(const vector<string>& filePaths, const vector<uint64_t>& 
         NodeLabelDescription description(nodeLabel, fileDescriptions[nodeLabel].filePath,
             numBlocksPerLabel[nodeLabel], graph.getCatalog().getStructuredNodeProperties(nodeLabel),
             fileDescriptions[nodeLabel].csvSpecialChars, nodeIDMaps[nodeLabel].get());
-        InMemNodePropertyColumnsBuilder builder{description, threadPool, graph, outputDirectory};
+        InMemNodePropertyColumnsBuilder builder{description, taskScheduler, graph, outputDirectory};
         constructPropertyColumnsAndCountUnstrProperties(
             description, numLinesPerBlock[nodeLabel], builder);
     }
@@ -50,12 +50,13 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(NodeLabelDescr
     logger->debug("Populating PropertyColumns and Counting unstructured properties.");
     node_offset_t offsetStart = 0;
     for (auto blockIdx = 0u; blockIdx < description.numBlocks; blockIdx++) {
-        threadPool.execute(populatePropertyColumnsAndCountUnstrPropertyListSizesTask, &description,
-            blockIdx, offsetStart, description.nodeIDMap, &builder,
-            labelUnstrPropertyListsSizes[description.label].get(), logger);
+        taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+            populatePropertyColumnsAndCountUnstrPropertyListSizesTask, &description, blockIdx,
+            offsetStart, description.nodeIDMap, &builder,
+            labelUnstrPropertyListsSizes[description.label].get(), logger));
         offsetStart += numLinesPerBlock[blockIdx];
     }
-    threadPool.wait();
+    taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done populating PropertyColumns and Counting unstructured properties.");
     builder.saveToFile();
 }
@@ -78,19 +79,20 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
             auto& listsMetadata = labelUnstrPropertyListsMetadata[nodeLabel];
             auto unstrPropertyLists = labelUnstrPropertyLists[nodeLabel].get();
             for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
-                threadPool.execute(populateUnstrPropertyListsTask, filePaths[nodeLabel], blockIdx,
+                taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                    populateUnstrPropertyListsTask, filePaths[nodeLabel], blockIdx,
                     fileDescriptions[nodeLabel].csvSpecialChars.tokenSeparator,
                     fileDescriptions[nodeLabel].csvSpecialChars.quoteChar,
                     fileDescriptions[nodeLabel].csvSpecialChars.escapeChar,
                     graph.getCatalog().getStructuredNodeProperties(nodeLabel).size(), offsetStart,
                     unstrPropertiesNameToIdMap, listSizes, &listsHeaders, &listsMetadata,
                     unstrPropertyLists, labelUnstrPropertyListsStringOverflowPages[nodeLabel].get(),
-                    logger);
+                    logger));
                 offsetStart += numLinesPerBlock[nodeLabel][blockIdx];
             }
         }
     }
-    threadPool.wait();
+    taskScheduler.waitAllTasksToCompleteOrError();
     saveUnstrPropertyListsToFile();
     logger->debug("Done populating Unstructured Property Lists.");
 }
@@ -108,25 +110,25 @@ void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
     logger->debug("Initializing UnstructuredPropertyListHeaders.");
     for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
         if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
-            threadPool.execute(ListsUtils::calculateListHeadersTask,
-                graph.getNumNodesPerLabel()[nodeLabel], 1,
+            taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                ListsUtils::calculateListHeadersTask, graph.getNumNodesPerLabel()[nodeLabel], 1,
                 labelUnstrPropertyListsSizes[nodeLabel].get(),
-                &labelUnstrPropertyListHeaders[nodeLabel], logger);
+                &labelUnstrPropertyListHeaders[nodeLabel], logger));
         }
     }
-    threadPool.wait();
+    taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done initializing UnstructuredPropertyListHeaders.");
     logger->debug("Initializing UnstructuredPropertyListsMetadata.");
     for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
         if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
-            threadPool.execute(ListsUtils::calculateListsMetadataTask,
-                graph.getNumNodesPerLabel()[nodeLabel], 1,
+            taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                ListsUtils::calculateListsMetadataTask, graph.getNumNodesPerLabel()[nodeLabel], 1,
                 labelUnstrPropertyListsSizes[nodeLabel].get(),
                 &labelUnstrPropertyListHeaders[nodeLabel],
-                &labelUnstrPropertyListsMetadata[nodeLabel], false /*hasNULLBytes*/, logger);
+                &labelUnstrPropertyListsMetadata[nodeLabel], false /*hasNULLBytes*/, logger));
         }
     }
-    threadPool.wait();
+    taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done initializing UnstructuredPropertyListsMetadata.");
 }
 
@@ -149,18 +151,22 @@ void NodesLoader::buildInMemUnstrPropertyLists() {
 void NodesLoader::saveUnstrPropertyListsToFile() {
     for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
         if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
-            threadPool.execute([&](InMemUnstrPropertyPages* x) { x->saveToFile(); },
-                labelUnstrPropertyLists[nodeLabel].get());
-            threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },
-                labelUnstrPropertyListsStringOverflowPages[nodeLabel].get());
+            taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                [&](InMemUnstrPropertyPages* x) { x->saveToFile(); },
+                labelUnstrPropertyLists[nodeLabel].get()));
+            taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                [&](InMemStringOverflowPages* x) { x->saveToFile(); },
+                labelUnstrPropertyListsStringOverflowPages[nodeLabel].get()));
             auto fName = NodesStore::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel);
-            threadPool.execute([&](ListsMetadata* x, const string& fName) { x->saveToDisk(fName); },
-                &labelUnstrPropertyListsMetadata[nodeLabel], fName);
-            threadPool.execute([&](ListHeaders* x, const string& fName) { x->saveToDisk(fName); },
-                &labelUnstrPropertyListHeaders[nodeLabel], fName);
+            taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                [&](ListsMetadata* x, const string& fName) { x->saveToDisk(fName); },
+                &labelUnstrPropertyListsMetadata[nodeLabel], fName));
+            taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                [&](ListHeaders* x, const string& fName) { x->saveToDisk(fName); },
+                &labelUnstrPropertyListHeaders[nodeLabel], fName));
         }
     }
-    threadPool.wait();
+    taskScheduler.waitAllTasksToCompleteOrError();
 }
 
 // Iterate over each line in a block of CSV file. For each line, infer the node offset and call the
