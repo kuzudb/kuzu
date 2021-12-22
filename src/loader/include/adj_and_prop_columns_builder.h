@@ -2,7 +2,7 @@
 
 #include "src/loader/include/adj_and_prop_structures_builder.h"
 #include "src/loader/include/in_mem_pages.h"
-#include "src/loader/include/thread_pool.h"
+#include "src/loader/include/loader_task.h"
 #include "src/loader/include/utils.h"
 #include "src/storage/include/graph.h"
 
@@ -24,7 +24,7 @@ class AdjAndPropertyColumnsBuilder : public AdjAndPropertyStructuresBuilder {
 
 public:
     // Initialize the builder and construct relevant propertyColumns and adjColumns.
-    AdjAndPropertyColumnsBuilder(RelLabelDescription& description, ThreadPool& threadPool,
+    AdjAndPropertyColumnsBuilder(RelLabelDescription& description, TaskScheduler& taskScheduler,
         const Graph& graph, const string& outputDirectory);
 
     // Sets a neighbour nodeID of the given nodeID in a corresponding adjColumn. If direction=FWD,

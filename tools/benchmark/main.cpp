@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
             benchmarkPath = getArgumentValue(arg);
         } else if (arg.starts_with("--warmup")) {
             config->numWarmups = stoul(getArgumentValue(arg));
-        } else if (arg.starts_with("--run")) {
+        } else if (arg.starts_with("--runWorkerThread")) {
             config->numRuns = stoul(getArgumentValue(arg));
         } else if (arg.starts_with("--thread")) {
             config->numThreads = stoul(getArgumentValue(arg));

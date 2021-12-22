@@ -119,6 +119,7 @@ cc_library(
     ]),
     deps = [
         "base_operator",
+         "@openmp",
     ],
 )
 
@@ -215,33 +216,34 @@ cc_library(
     ],
 )
 
-cc_library(
-    name = "task_system",
-    srcs = [
-        "task_system/task.cpp",
-        "task_system/task_queue.cpp",
-    ],
-    hdrs = [
-        "include/task_system/task.h",
-        "include/task_system/task_queue.h",
-    ],
-    deps = [
-        "execution_context",
-        "result_collector",
-    ],
-)
+#cc_library(
+#    name = "processor_task",
+#    srcs = glob([
+#        "task/*.cpp",
+#    ]),
+#    hdrs = glob([
+#        "include/task/*.h",
+#    ]),
+#    deps = [
+#        "execution_context",
+#        "result_collector",
+#        "//src/common:task_system"
+#    ],
+#)
 
 cc_library(
     name = "processor",
     srcs = [
         "processor.cpp",
+        "processor_task.cpp",
     ],
     hdrs = [
         "include/processor.h",
+        "include/processor_task.h"
     ],
     visibility = ["//visibility:public"],
     deps = [
         "physical_plan",
-        "task_system",
+        "//src/common:task_system"
     ],
 )

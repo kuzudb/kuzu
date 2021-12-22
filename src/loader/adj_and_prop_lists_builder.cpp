@@ -6,8 +6,8 @@ namespace graphflow {
 namespace loader {
 
 AdjAndPropertyListsBuilder::AdjAndPropertyListsBuilder(RelLabelDescription& description,
-    ThreadPool& threadPool, const Graph& graph, const string& outputDirectory)
-    : AdjAndPropertyStructuresBuilder(description, threadPool, graph, outputDirectory) {
+    TaskScheduler& taskScheduler, const Graph& graph, const string& outputDirectory)
+    : AdjAndPropertyStructuresBuilder(description, taskScheduler, graph, outputDirectory) {
     for (auto& direction : DIRECTIONS) {
         if (!description.isSingleMultiplicityPerDirection[direction]) {
             directionLabelListSizes[direction].resize(graph.getCatalog().getNodeLabelsCount());
@@ -130,8 +130,8 @@ void AdjAndPropertyListsBuilder::sortOverflowStrings() {
                     for (auto bucketIdx = 0u; bucketIdx < numBuckets; bucketIdx++) {
                         offsetStart = offsetEnd;
                         offsetEnd = min(offsetStart + 256, numNodes);
-                        threadPool.execute(sortOverflowStringsOfPropertyListsTask, offsetStart,
-                            offsetEnd,
+                        taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                            sortOverflowStringsOfPropertyListsTask, offsetStart, offsetEnd,
                             directionLabelPropertyIdxPropertyLists[direction][nodeLabel][idx].get(),
                             &directionLabelAdjListHeaders[direction][nodeLabel],
                             &directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel]
@@ -139,13 +139,13 @@ void AdjAndPropertyListsBuilder::sortOverflowStrings() {
                             (*propertyIdxUnordStringOverflowPages)[idx].get(),
                             (*directionLabelPropertyIdxStringOverflowPages)[direction][nodeLabel]
                                                                            [idx]
-                                                                               .get());
+                                                                               .get()));
                     }
                 }
             }
         }
     }
-    threadPool.wait();
+    taskScheduler.waitAllTasksToCompleteOrError();
     propertyIdxUnordStringOverflowPages.reset();
     logger->debug("Done ordering String Rel PropertyList.");
 }
@@ -155,16 +155,17 @@ void AdjAndPropertyListsBuilder::saveToFile() {
     for (auto& direction : DIRECTIONS) {
         if (!description.isSingleMultiplicityPerDirection[direction]) {
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
-                threadPool.execute([&](InMemAdjPages* x) { x->saveToFile(); },
-                    directionLabelAdjLists[direction][nodeLabel].get());
+                taskScheduler.scheduleTask(
+                    LoaderTaskFactory::createLoaderTask([&](InMemAdjPages* x) { x->saveToFile(); },
+                        directionLabelAdjLists[direction][nodeLabel].get()));
                 auto fName = RelsStore::getAdjListsFName(
                     outputDirectory, description.label, nodeLabel, direction);
-                threadPool.execute(
+                taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                     [&](ListsMetadata* x, const string& fName) { x->saveToDisk(fName); },
-                    &directionLabelAdjListsMetadata[direction][nodeLabel], fName);
-                threadPool.execute(
+                    &directionLabelAdjListsMetadata[direction][nodeLabel], fName));
+                taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                     [&](ListHeaders* x, const string& fName) { x->saveToDisk(fName); },
-                    &directionLabelAdjListHeaders[direction][nodeLabel], fName);
+                    &directionLabelAdjListHeaders[direction][nodeLabel], fName));
             }
         }
     }
@@ -174,29 +175,30 @@ void AdjAndPropertyListsBuilder::saveToFile() {
                 for (auto& property : description.properties) {
                     auto idx = property.id;
                     if (directionLabelPropertyIdxPropertyLists[direction][nodeLabel][idx]) {
-                        threadPool.execute([&](InMemPropertyPages* x) { x->saveToFile(); },
+                        taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                            [&](InMemPropertyPages* x) { x->saveToFile(); },
                             directionLabelPropertyIdxPropertyLists[direction][nodeLabel][idx]
-                                .get());
+                                .get()));
                         if (STRING == property.dataType) {
-                            threadPool.execute(
+                            taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                                 [&](InMemStringOverflowPages* x) { x->saveToFile(); },
                                 (*directionLabelPropertyIdxStringOverflowPages)[direction]
                                                                                [nodeLabel][idx]
-                                                                                   .get());
+                                                                                   .get()));
                         }
                         auto fName = RelsStore::getRelPropertyListsFName(outputDirectory,
                             description.label, nodeLabel, direction, property.name);
-                        threadPool.execute(
+                        taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                             [&](ListsMetadata* x, const string& fName) { x->saveToDisk(fName); },
                             &directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel]
                                                                            [idx],
-                            fName);
+                            fName));
                     }
                 }
             }
         }
     }
-    threadPool.wait();
+    taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done writing AdjLists and Rel Property Lists to disk.");
 }
 
@@ -207,14 +209,15 @@ void AdjAndPropertyListsBuilder::initAdjListHeaders() {
             auto relSize =
                 description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes();
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
-                threadPool.execute(ListsLoaderHelper::calculateListHeadersTask,
-                    graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE / relSize,
-                    directionLabelListSizes[direction][nodeLabel].get(),
-                    &directionLabelAdjListHeaders[direction][nodeLabel], logger);
+                taskScheduler.scheduleTask(
+                    LoaderTaskFactory::createLoaderTask(ListsLoaderHelper::calculateListHeadersTask,
+                        graph.getNumNodesPerLabel()[nodeLabel], PAGE_SIZE / relSize,
+                        directionLabelListSizes[direction][nodeLabel].get(),
+                        &directionLabelAdjListHeaders[direction][nodeLabel], logger));
             }
         }
     }
-    threadPool.wait();
+    taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done initializing AdjListHeaders.");
 }
 
@@ -226,11 +229,12 @@ void AdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata() {
                 PAGE_SIZE /
                 description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes();
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
-                threadPool.execute(ListsLoaderHelper::calculateListsMetadataTask,
+                taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                    ListsLoaderHelper::calculateListsMetadataTask,
                     graph.getNumNodesPerLabel()[nodeLabel], numPerPage,
                     directionLabelListSizes[direction][nodeLabel].get(),
                     &directionLabelAdjListHeaders[direction][nodeLabel],
-                    &directionLabelAdjListsMetadata[direction][nodeLabel], logger);
+                    &directionLabelAdjListsMetadata[direction][nodeLabel], logger));
             }
         }
     }
@@ -242,16 +246,16 @@ void AdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata() {
                 for (auto& property : description.properties) {
                     auto idx = property.id;
                     auto numPerPage = PAGE_SIZE / TypeUtils::getDataTypeSize(property.dataType);
-                    threadPool.execute(ListsLoaderHelper::calculateListsMetadataTask,
-                        numNodeOffsets, numPerPage, listsSizes,
-                        &directionLabelAdjListHeaders[direction][nodeLabel],
+                    taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                        ListsLoaderHelper::calculateListsMetadataTask, numNodeOffsets, numPerPage,
+                        listsSizes, &directionLabelAdjListHeaders[direction][nodeLabel],
                         &directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel][idx],
-                        logger);
+                        logger));
                 }
             }
         }
     }
-    threadPool.wait();
+    taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done initializing AdjLists and PropertyLists Metadata.");
 }
 

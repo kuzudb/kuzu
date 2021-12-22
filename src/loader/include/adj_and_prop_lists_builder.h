@@ -2,7 +2,7 @@
 
 #include "src/loader/include/adj_and_prop_structures_builder.h"
 #include "src/loader/include/in_mem_pages.h"
-#include "src/loader/include/thread_pool.h"
+#include "src/loader/include/loader_task.h"
 #include "src/loader/include/utils.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
@@ -35,7 +35,7 @@ class AdjAndPropertyListsBuilder : public AdjAndPropertyStructuresBuilder {
         directionLabelPropertyIdxStringOverflowPages_t;
 
 public:
-    AdjAndPropertyListsBuilder(RelLabelDescription& description, ThreadPool& threadPool,
+    AdjAndPropertyListsBuilder(RelLabelDescription& description, TaskScheduler& taskScheduler,
         const Graph& graph, const string& outputDirectory);
 
     inline void incrementListSize(const Direction& direction, const nodeID_t& nodeID) {

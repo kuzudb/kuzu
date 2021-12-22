@@ -1,5 +1,7 @@
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 
+#include <iostream>
+
 #include "src/common/include/utils.h"
 
 namespace graphflow {
@@ -71,7 +73,7 @@ unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
             i, make_shared<DataChunk>(resultSet->dataChunks[i]->valueVectors.size()));
     }
     return make_unique<SimpleAggregate>(move(clonedResultSet), move(prevOperatorClone), context, id,
-        move(sharedState), move(aggregationEvaluatorsCloned));
+        sharedState, move(aggregationEvaluatorsCloned));
 }
 
 } // namespace processor
