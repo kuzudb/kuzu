@@ -25,9 +25,10 @@ public:
 
     void encodeNULLBytes();
 
-private:
+public:
     uint8_t* data;
 
+private:
     // Following fields are needed for accommodating storage of NULLs in the page.
     unique_ptr<bool[]> uncompressedNULLs;
     uint32_t numElementsInPage;

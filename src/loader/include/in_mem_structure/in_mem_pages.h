@@ -89,7 +89,6 @@ class InMemStringOverflowPages : public InMemPages {
 public:
     explicit InMemStringOverflowPages(const string& fName) : InMemPages(fName, 1, false, 8) {
         numUsedPages = 0;
-        numPagesPerDataBlock.emplace_back(8 /*num pages in data blocks*/);
     };
 
     InMemStringOverflowPages() : InMemStringOverflowPages(""){};
@@ -111,8 +110,6 @@ private:
 private:
     shared_mutex lock;
     uint64_t numUsedPages;
-    vector<unique_ptr<uint8_t[]>> additionalDataBlocks{};
-    vector<uint64_t> numPagesPerDataBlock{};
 };
 
 } // namespace loader
