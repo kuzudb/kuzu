@@ -434,14 +434,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExistsToPhysical(
     auto& logicalExists = (LogicalExists&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(
         logicalOperator->prevOperator, mapperContext, executionContext);
+    auto subPlanMapperContext =
+        MapperContext(make_unique<ResultSetDescriptor>(*logicalExists.subPlanSchema));
     auto prevContext = enterSubquery(&mapperContext);
-    auto subPlan = mapLogicalPlanToPhysical(
-        logicalExists.subPlanLastOperator, *logicalExists.subPlanSchema, executionContext);
+    auto subPlanLastOperator = mapLogicalOperatorToPhysical(
+        logicalExists.subPlanLastOperator, subPlanMapperContext, executionContext);
     exitSubquery(prevContext);
     mapperContext.addComputedExpressions(logicalExists.subqueryExpression->getUniqueName());
     auto outDataPos = mapperContext.getDataPos(logicalExists.subqueryExpression->getUniqueName());
-    return make_unique<Exists>(outDataPos, move(subPlan), move(prevOperator), executionContext,
-        mapperContext.getOperatorID());
+    return make_unique<Exists>(outDataPos, move(subPlanLastOperator), move(prevOperator),
+        executionContext, mapperContext.getOperatorID());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLeftNestedLoopJoinToPhysical(

@@ -8,7 +8,6 @@ namespace processor {
 shared_ptr<ResultSet> ResultScan::initResultSet() {
     resultSet = populateResultSet();
     outDataChunk = resultSet->dataChunks[outDataChunkPos];
-    outDataChunk->state = DataChunkState::getSingleValueDataChunkState();
     for (auto i = 0u; i < inDataPoses.size(); ++i) {
         auto [inDataChunkPos, inValueVectorPos] = inDataPoses[i];
         auto& inValueVector =
@@ -20,7 +19,8 @@ shared_ptr<ResultSet> ResultScan::initResultSet() {
     return resultSet;
 }
 
-void ResultScan::reInitialize() {
+void ResultScan::reInitToRerunSubPlan() {
+    SourceOperator::reInitToRerunSubPlan(*resultSet);
     isFirstExecution = true;
 }
 
@@ -59,6 +59,8 @@ bool ResultScan::getNextTuples() {
             }
             outValueVector->setNull(0, false /* isNull */);
         }
+        outDataChunk->state->initOriginalAndSelectedSize(1);
+        outDataChunk->state->currIdx = 0;
         metrics->executionTime.stop();
         metrics->numOutputTuple.incrementByOne();
         return true;

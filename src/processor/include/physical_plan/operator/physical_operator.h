@@ -71,9 +71,13 @@ public:
 
     virtual shared_ptr<ResultSet> initResultSet() = 0;
 
-    // For subquery, we rerun a plan multiple times. ReInitialize() should be called before each run
-    // to ensure
-    virtual void reInitialize();
+    // Only operators that can appear in a subPlan need to overwrite this function. Currently, we
+    // allow the following operators in subPlan: resultSetScan, extend, scanProperty, flatten,
+    // filter, intersect, projection, exists, leftNestedLoopJoin.
+    virtual void reInitToRerunSubPlan() {
+        throw invalid_argument("Operator " + PhysicalOperatorTypeNames[operatorType] +
+                               "  does not implement reInitToRerunSubPlan().");
+    }
 
     // Return false if no more tuples to pull, otherwise return true
     virtual bool getNextTuples() = 0;

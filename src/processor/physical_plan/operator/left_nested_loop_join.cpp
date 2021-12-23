@@ -26,6 +26,11 @@ shared_ptr<ResultSet> LeftNestedLoopJoin::initResultSet() {
     return resultSet;
 }
 
+void LeftNestedLoopJoin::reInitToRerunSubPlan() {
+    prevOperator->reInitToRerunSubPlan();
+    isFirstExecution = true;
+}
+
 bool LeftNestedLoopJoin::getNextTuples() {
     if (isFirstExecution) {
         isFirstExecution = false;
@@ -42,7 +47,7 @@ bool LeftNestedLoopJoin::pullOnceFromLeftAndRight() {
     if (!prevOperator->getNextTuples()) {
         return false;
     }
-    subPlanLastOperator->reInitialize();
+    subPlanLastOperator->reInitToRerunSubPlan();
     if (!subPlanLastOperator->getNextTuples()) { // Nothing is pulled from sub plan.
         for (auto& vector : vectorsToRef) {
             vector->state->initOriginalAndSelectedSize(1);

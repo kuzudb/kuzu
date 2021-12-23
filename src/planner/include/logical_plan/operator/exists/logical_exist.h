@@ -19,7 +19,7 @@ public:
 
     string toString(uint64_t depth = 0) const override {
         string result = LogicalOperatorTypeNames[getLogicalOperatorType()] + "[" +
-                        getExpressionsForPrinting() + "]";
+                        getExpressionsForPrinting() + "]\n";
         result += prevOperator->toString(depth + 1);
         result += "\nSUBPLAN: \n";
         result += subPlanLastOperator->toString(depth + 1);

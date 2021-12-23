@@ -11,6 +11,10 @@ shared_ptr<ResultSet> ScanAttribute::initResultSet() {
     return resultSet;
 }
 
+void ScanAttribute::reInitToRerunSubPlan() {
+    prevOperator->reInitToRerunSubPlan();
+}
+
 void ScanAttribute::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
     PhysicalOperator::printMetricsToJson(json, profiler);
     printBufferManagerMetrics(json, profiler);

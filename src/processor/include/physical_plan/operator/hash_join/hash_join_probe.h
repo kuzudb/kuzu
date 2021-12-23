@@ -50,7 +50,6 @@ public:
         unique_ptr<PhysicalOperator> probeSidePrevOp, ExecutionContext& context, uint32_t id);
 
     shared_ptr<ResultSet> initResultSet() override;
-    void reInitialize() override;
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {

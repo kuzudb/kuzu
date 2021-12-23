@@ -8,8 +8,8 @@ shared_ptr<ResultSet> MultiplicityReducer::initResultSet() {
     return resultSet;
 }
 
-void MultiplicityReducer::reInitialize() {
-    PhysicalOperator::reInitialize();
+void MultiplicityReducer::reInitToRerunSubPlan() {
+    prevOperator->reInitToRerunSubPlan();
     prevMultiplicity = 1;
     numRepeat = 0;
 }

@@ -8,11 +8,6 @@ shared_ptr<ResultSet> ResultCollector::initResultSet() {
     return resultSet;
 }
 
-void ResultCollector::reInitialize() {
-    prevOperator->reInitialize();
-    queryResult->clear();
-}
-
 void ResultCollector::execute() {
     metrics->executionTime.start();
     Sink::execute();

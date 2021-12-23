@@ -10,9 +10,9 @@ shared_ptr<ResultSet> AdjColumnExtend::initResultSet() {
     return resultSet;
 }
 
-void AdjColumnExtend::reInitialize() {
-    PhysicalOperator::reInitialize();
-    FilteringOperator::reInitialize();
+void AdjColumnExtend::reInitToRerunSubPlan() {
+    ScanAttribute::reInitToRerunSubPlan();
+    FilteringOperator::reInitToRerunSubPlan();
 }
 
 bool AdjColumnExtend::getNextTuples() {

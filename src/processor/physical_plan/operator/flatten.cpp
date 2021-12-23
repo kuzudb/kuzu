@@ -9,6 +9,10 @@ shared_ptr<ResultSet> Flatten::initResultSet() {
     return resultSet;
 }
 
+void Flatten::reInitToRerunSubPlan() {
+    prevOperator->reInitToRerunSubPlan();
+}
+
 bool Flatten::getNextTuples() {
     metrics->executionTime.start();
     // currentIdx == -1 is the check for initial case

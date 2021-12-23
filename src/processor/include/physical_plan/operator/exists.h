@@ -5,17 +5,17 @@
 namespace graphflow {
 namespace processor {
 
-class PhysicalPlan;
-
 class Exists : public PhysicalOperator {
 
 public:
-    Exists(const DataPos& outDataPos, unique_ptr<PhysicalPlan> subPlan,
+    Exists(const DataPos& outDataPos, unique_ptr<PhysicalOperator> subPlanLastOperator,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(prevOperator), EXISTS, context, id},
-          outDataPos{outDataPos}, subPlan{move(subPlan)} {}
+        : PhysicalOperator{move(prevOperator), EXISTS, context, id}, outDataPos{outDataPos},
+          subPlanLastOperator{move(subPlanLastOperator)} {}
 
     shared_ptr<ResultSet> initResultSet() override;
+
+    void reInitToRerunSubPlan() override;
 
     bool getNextTuples() override;
 
@@ -23,7 +23,7 @@ public:
 
 private:
     DataPos outDataPos;
-    unique_ptr<PhysicalPlan> subPlan;
+    unique_ptr<PhysicalOperator> subPlanLastOperator;
     shared_ptr<ValueVector> valueVectorToWrite;
 };
 
