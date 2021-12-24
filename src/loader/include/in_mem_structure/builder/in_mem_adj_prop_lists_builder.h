@@ -3,7 +3,7 @@
 #include "src/loader/include/in_mem_structure/builder/in_mem_structures_builder.h"
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/loader/include/label_description.h"
-#include "src/loader/include/thread_pool.h"
+#include "src/loader/include/loader_task.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
 
@@ -35,7 +35,7 @@ class InMemAdjAndPropertyListsBuilder : public InMemStructuresBuilderForRels, pu
         directionLabelPropertyIdxStringOverflowPages_t;
 
 public:
-    InMemAdjAndPropertyListsBuilder(RelLabelDescription& description, ThreadPool& threadPool,
+    InMemAdjAndPropertyListsBuilder(RelLabelDescription& description, TaskScheduler& taskScheduler,
         const Graph& graph, const string& outputDirectory);
 
     inline void incrementListSize(const Direction& direction, const nodeID_t& nodeID) {

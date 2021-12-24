@@ -5,9 +5,10 @@
 namespace graphflow {
 namespace loader {
 
-RelsLoader::RelsLoader(ThreadPool& threadPool, Graph& graph, string outputDirectory,
+RelsLoader::RelsLoader(TaskScheduler& taskScheduler, Graph& graph, string outputDirectory,
     vector<unique_ptr<NodeIDMap>>& nodeIDMaps, const vector<RelFileDescription>& fileMetadata)
-    : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, threadPool{threadPool}, graph{graph},
+    : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
+      taskScheduler{taskScheduler}, graph{graph},
       outputDirectory(std::move(outputDirectory)), nodeIDMaps{nodeIDMaps},
       fileDescriptions(fileMetadata) {}
 
@@ -36,7 +37,8 @@ void RelsLoader::load(vector<uint64_t>& numBlocksPerFile) {
 // 2. constructAdjLists(...), only if Lists are needed, i.e., rel label relMultiplicity is not 1.
 void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
     logger->debug("Processing relLabel {}.", description.label);
-    InMemAdjAndPropertyListsBuilder listsBuilder{description, threadPool, graph, outputDirectory};
+    InMemAdjAndPropertyListsBuilder listsBuilder{
+        description, taskScheduler, graph, outputDirectory};
     constructAdjColumnsAndCountRelsInAdjLists(description, listsBuilder);
     if (!description.isSingleMultiplicityPerDirection[FWD] ||
         !description.isSingleMultiplicityPerDirection[BWD]) {
@@ -53,14 +55,15 @@ void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
 void RelsLoader::constructAdjColumnsAndCountRelsInAdjLists(
     RelLabelDescription& description, InMemAdjAndPropertyListsBuilder& listsBuilder) {
     InMemAdjAndPropertyColumnsBuilder columnsBuilder{
-        description, threadPool, graph, outputDirectory};
+        description, taskScheduler, graph, outputDirectory};
     logger->debug("Populating AdjColumns and Rel Property Columns.");
     auto& catalog = graph.getCatalog();
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
-        threadPool.execute(populateAdjColumnsAndCountRelsInAdjListsTask, &description, blockId,
-            &listsBuilder, &columnsBuilder, &nodeIDMaps, &catalog, logger);
+        taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+            populateAdjColumnsAndCountRelsInAdjListsTask, &description, blockId, &listsBuilder,
+            &columnsBuilder, &nodeIDMaps, &catalog, logger));
     }
-    threadPool.wait();
+    taskScheduler.waitAllTasksToCompleteOrError();
     populateNumRels(columnsBuilder, listsBuilder);
     logger->debug("Done populating AdjColumns and Rel Property Columns.");
     if (description.hasProperties() && !description.requirePropertyLists()) {
@@ -95,11 +98,12 @@ void RelsLoader::constructAdjLists(
     logger->debug("Populating AdjLists and Rel Property Lists.");
     auto& catalog = graph.getCatalog();
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
-        threadPool.execute(populateAdjListsTask, &description, blockId,
-            description.csvSpecialChars.tokenSeparator, description.csvSpecialChars.quoteChar,
-            description.csvSpecialChars.escapeChar, &listsBuilder, &nodeIDMaps, &catalog, logger);
+        taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(populateAdjListsTask,
+            &description, blockId, description.csvSpecialChars.tokenSeparator,
+            description.csvSpecialChars.quoteChar, description.csvSpecialChars.escapeChar,
+            &listsBuilder, &nodeIDMaps, &catalog, logger));
     }
-    threadPool.wait();
+    taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done populating AdjLists and Rel Property Lists.");
 
     if (description.requirePropertyLists()) {

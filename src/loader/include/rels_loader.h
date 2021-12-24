@@ -3,10 +3,11 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/csv_reader/csv_reader.h"
+#include "src/common/include/task_system/task_scheduler.h"
 #include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/in_mem_structure/builder/in_mem_adj_prop_cols_builder.h"
 #include "src/loader/include/in_mem_structure/builder/in_mem_adj_prop_lists_builder.h"
-#include "src/loader/include/thread_pool.h"
+#include "src/loader/include/loader_task.h"
 
 namespace graphflow {
 namespace loader {
@@ -15,7 +16,7 @@ class RelsLoader {
     friend class GraphLoader;
 
 private:
-    RelsLoader(ThreadPool& threadPool, Graph& graph, string outputDirectory,
+    RelsLoader(TaskScheduler& taskScheduler, Graph& graph, string outputDirectory,
         vector<unique_ptr<NodeIDMap>>& nodeIDMaps,
         const vector<RelFileDescription>& fileDescriptions);
 
@@ -62,7 +63,7 @@ private:
 
 private:
     shared_ptr<spdlog::logger> logger;
-    ThreadPool& threadPool;
+    TaskScheduler& taskScheduler;
     Graph& graph;
     const string outputDirectory;
     vector<unique_ptr<NodeIDMap>>& nodeIDMaps;

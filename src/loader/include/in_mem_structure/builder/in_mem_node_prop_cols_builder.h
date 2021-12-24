@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/common/include/task_system/task_scheduler.h"
 #include "src/loader/include/in_mem_structure/builder/in_mem_structures_builder.h"
 #include "src/loader/include/in_mem_structure/column_utils.h"
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
@@ -14,7 +15,7 @@ class InMemNodePropertyColumnsBuilder : public InMemStructuresBuilder, public Co
 
 public:
     // Initialize the builder and construct relevant propertyColumns.
-    InMemNodePropertyColumnsBuilder(NodeLabelDescription& description, ThreadPool& threadPool,
+    InMemNodePropertyColumnsBuilder(NodeLabelDescription& description, TaskScheduler& taskScheduler,
         const Graph& graph, string outputDirectory);
 
     void setProperty(node_offset_t nodeOffset, const uint32_t& propertyIdx, const uint8_t* val,

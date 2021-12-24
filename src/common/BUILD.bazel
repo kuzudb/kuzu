@@ -205,3 +205,17 @@ cc_library(
         "timer",
     ],
 )
+
+cc_library(
+    name = "task_system",
+    srcs = glob([
+        "task_system/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/task_system/*.h",
+    ]),
+    visibility = ["//visibility:public"],
+        deps = [
+            "utils",
+        ],
+)

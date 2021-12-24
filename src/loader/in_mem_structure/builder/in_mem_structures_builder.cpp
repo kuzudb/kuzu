@@ -4,9 +4,9 @@ namespace graphflow {
 namespace loader {
 
 InMemStructuresBuilder::InMemStructuresBuilder(
-    ThreadPool& threadPool, const Graph& graph, string outputDirectory)
-    : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, threadPool{threadPool}, graph{graph},
-      outputDirectory{move(outputDirectory)} {}
+    TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory)
+    : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
+      taskScheduler{taskScheduler}, graph{graph}, outputDirectory{move(outputDirectory)} {}
 
 void InMemStructuresBuilderForRels::populateNumRelsInfo(
     vector<vector<vector<uint64_t>>>& numRelsPerDirBoundLabelRelLabel, bool forColumns) {

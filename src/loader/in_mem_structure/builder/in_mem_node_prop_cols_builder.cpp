@@ -1,13 +1,15 @@
 #include "src/loader/include/in_mem_structure/builder/in_mem_node_prop_cols_builder.h"
 
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
+#include "src/loader/include/loader_task.h"
 
 namespace graphflow {
 namespace loader {
 
 InMemNodePropertyColumnsBuilder::InMemNodePropertyColumnsBuilder(NodeLabelDescription& description,
-    ThreadPool& threadPool, const Graph& graph, string outputDirectory)
-    : InMemStructuresBuilder(threadPool, graph, move(outputDirectory)), description(description) {
+    TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory)
+    : InMemStructuresBuilder(taskScheduler, graph, move(outputDirectory)),
+      description(description) {
     buildInMemPropertyColumns();
 }
 
@@ -48,14 +50,16 @@ void InMemNodePropertyColumnsBuilder::setStringProperty(node_offset_t nodeOffset
 void InMemNodePropertyColumnsBuilder::saveToFile() {
     logger->debug("Writing Node Property Columns to disk.");
     for (auto& property : description.properties) {
-        threadPool.execute([&](InMemPropertyPages* x) { x->saveToFile(); },
-            reinterpret_cast<InMemPropertyPages*>(propertyIdxPropertyColumn[property.id].get()));
+        taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+            [&](InMemPropertyPages* x) { x->saveToFile(); },
+            reinterpret_cast<InMemPropertyPages*>(propertyIdxPropertyColumn[property.id].get())));
         if (STRING == property.dataType) {
-            threadPool.execute([&](InMemStringOverflowPages* x) { x->saveToFile(); },
-                (propertyIdxStringOverflowPages)[property.id].get());
+            taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
+                [&](InMemStringOverflowPages* x) { x->saveToFile(); },
+                (propertyIdxStringOverflowPages)[property.id].get()));
         }
     }
-    threadPool.wait();
+    taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done writing Node Property Columns to disk.");
 }
 

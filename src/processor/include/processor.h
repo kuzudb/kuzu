@@ -3,9 +3,9 @@
 #include <thread>
 
 #include "src/common/include/memory_manager.h"
+#include "src/common/include/task_system/task_scheduler.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
 #include "src/processor/include/physical_plan/result/query_result.h"
-#include "src/processor/include/task_system/task_queue.h"
 
 using namespace graphflow::storage;
 
@@ -16,19 +16,16 @@ class QueryProcessor {
 
 public:
     explicit QueryProcessor(uint64_t numThreads);
-    ~QueryProcessor();
 
     unique_ptr<QueryResult> execute(PhysicalPlan* physicalPlan, uint64_t numThreads);
 
 private:
     void run();
     void decomposePlanIntoTasks(PhysicalOperator* op, Task* parentTask, uint64_t numThreads);
-    void scheduleTask(const shared_ptr<Task>& task);
+    void scheduleTaskAndWaitUntilExecution(const shared_ptr<Task>& task);
 
 private:
-    TaskQueue queue;
-    bool stopThreads{false};
-    vector<thread> threads;
+    unique_ptr<TaskScheduler> taskScheduler;
 };
 
 } // namespace processor
