@@ -3,6 +3,11 @@
 namespace graphflow {
 namespace processor {
 
+shared_ptr<ResultSet> MultiplicityReducer::initResultSet() {
+    resultSet = prevOperator->initResultSet();
+    return resultSet;
+}
+
 void MultiplicityReducer::reInitialize() {
     PhysicalOperator::reInitialize();
     prevMultiplicity = 1;

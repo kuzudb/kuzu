@@ -1,26 +1,20 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
-
-#include "src/common/include/assert.h"
-#include "src/planner/include/logical_plan/schema.h"
-#include "src/processor/include/physical_plan/data_pos.h"
-
-using namespace graphflow::planner;
-using namespace std;
+#include "src/processor/include/physical_plan/result/result_set_descriptor.h"
 
 namespace graphflow {
 namespace processor {
 
-class PhysicalOperatorsInfo {
+class MapperContext {
 
 public:
-    explicit PhysicalOperatorsInfo(const Schema& schema);
+    explicit MapperContext(unique_ptr<ResultSetDescriptor> resultSetDescriptor)
+        : resultSetDescriptor{move(resultSetDescriptor)}, physicalOperatorID{0} {}
+
+    inline ResultSetDescriptor* getResultSetDescriptor() { return resultSetDescriptor.get(); }
 
     inline DataPos getDataPos(const string& name) const {
-        GF_ASSERT(expressionNameToDataPosMap.contains(name));
-        return expressionNameToDataPosMap.at(name);
+        return resultSetDescriptor->getDataPos(name);
     }
 
     // We keep track of computed expressions during a bottom-up mapping of logical plan so that we
@@ -31,10 +25,13 @@ public:
         return computedExpressionNames.contains(name);
     }
 
+    inline uint32_t getOperatorID() { return physicalOperatorID++; }
+
 private:
-    // Map each variable to its position pair (dataChunkPos, vectorPos)
-    unordered_map<string, DataPos> expressionNameToDataPosMap;
+    unique_ptr<ResultSetDescriptor> resultSetDescriptor;
     unordered_set<string> computedExpressionNames;
+
+    uint32_t physicalOperatorID;
 };
 
 } // namespace processor

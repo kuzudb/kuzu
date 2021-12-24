@@ -49,7 +49,7 @@ public:
     HashJoinProbe(const ProbeDataInfo& probeDataInfo, unique_ptr<PhysicalOperator> buildSidePrevOp,
         unique_ptr<PhysicalOperator> probeSidePrevOp, ExecutionContext& context, uint32_t id);
 
-    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+    shared_ptr<ResultSet> initResultSet() override;
     void reInitialize() override;
     bool getNextTuples() override;
 

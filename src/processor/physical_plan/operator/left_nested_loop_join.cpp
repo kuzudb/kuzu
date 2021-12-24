@@ -1,19 +1,17 @@
 #include "src/processor/include/physical_plan/operator/left_nested_loop_join.h"
 
-#include "src/processor/include/physical_plan/operator/result_collector.h"
 #include "src/processor/include/physical_plan/operator/result_scan.h"
-#include "src/processor/include/physical_plan/physical_plan.h"
 
 namespace graphflow {
 namespace processor {
 
-void LeftNestedLoopJoin::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    PhysicalOperator::initResultSet(resultSet);
+shared_ptr<ResultSet> LeftNestedLoopJoin::initResultSet() {
+    resultSet = prevOperator->initResultSet();
     // side way information passing: give resultSet reference to subPlan.
     PhysicalOperator* op = subPlanLastOperator->getLeafOperator();
     assert(op->operatorType == SELECT_SCAN);
-    ((ResultScan*)op)->setResultSetToCopyFrom(this->resultSet.get());
-    subPlanLastOperator->initResultSet(subPlanResultSet);
+    ((ResultScan*)op)->setResultSetToCopyFrom(resultSet.get());
+    auto subPlanResultSet = subPlanLastOperator->initResultSet();
     // mering sub-plan result set into current result set.
     for (auto& posMapping : subPlanVectorsToRefPosMapping) {
         auto [dataChunkToRefPos, vectorToRefPos] = posMapping.first;
@@ -25,6 +23,7 @@ void LeftNestedLoopJoin::initResultSet(const shared_ptr<ResultSet>& resultSet) {
         outDataChunk->referState(*dataChunkToRef);
         outDataChunk->insert(outVectorPos, vectorToRef);
     }
+    return resultSet;
 }
 
 bool LeftNestedLoopJoin::getNextTuples() {
@@ -54,14 +53,8 @@ bool LeftNestedLoopJoin::pullOnceFromLeftAndRight() {
 }
 
 unique_ptr<PhysicalOperator> LeftNestedLoopJoin::clone() {
-    auto clonedSubPlanResultSet = make_shared<ResultSet>(subPlanResultSet->dataChunks.size());
-    for (auto i = 0u; i < subPlanResultSet->dataChunks.size(); ++i) {
-        clonedSubPlanResultSet->insert(
-            i, make_shared<DataChunk>(subPlanResultSet->dataChunks[i]->valueVectors.size()));
-    }
     return make_unique<LeftNestedLoopJoin>(subPlanVectorsToRefPosMapping,
-        subPlanLastOperator->clone(), move(clonedSubPlanResultSet), prevOperator->clone(), context,
-        id);
+        subPlanLastOperator->clone(), prevOperator->clone(), context, id);
 }
 
 } // namespace processor

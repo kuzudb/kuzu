@@ -5,12 +5,13 @@
 namespace graphflow {
 namespace processor {
 
-void Intersect::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    PhysicalOperator::initResultSet(resultSet);
-    leftDataChunk = this->resultSet->dataChunks[leftDataPos.dataChunkPos];
+shared_ptr<ResultSet> Intersect::initResultSet() {
+    resultSet = prevOperator->initResultSet();
+    leftDataChunk = resultSet->dataChunks[leftDataPos.dataChunkPos];
     leftValueVector = leftDataChunk->valueVectors[leftDataPos.valueVectorPos];
-    rightDataChunk = this->resultSet->dataChunks[rightDataPos.dataChunkPos];
+    rightDataChunk = resultSet->dataChunks[rightDataPos.dataChunkPos];
     rightValueVector = rightDataChunk->valueVectors[rightDataPos.valueVectorPos];
+    return resultSet;
 }
 
 static void sortSelectedPos(const shared_ptr<ValueVector>& nodeIDVector) {

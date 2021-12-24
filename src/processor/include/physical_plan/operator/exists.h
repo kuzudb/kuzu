@@ -15,7 +15,7 @@ public:
         : PhysicalOperator{move(prevOperator), EXISTS, context, id},
           outDataPos{outDataPos}, subPlan{move(subPlan)} {}
 
-    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+    shared_ptr<ResultSet> initResultSet() override;
 
     bool getNextTuples() override;
 

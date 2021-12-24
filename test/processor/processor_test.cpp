@@ -27,12 +27,14 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto profiler = make_unique<Profiler>();
     auto memoryManager = make_unique<MemoryManager>();
     auto executionContext = ExecutionContext(*profiler, memoryManager.get());
-    auto resultSet = make_shared<ResultSet>(1);
-    resultSet->dataChunks[0] = make_shared<DataChunk>(1);
+    auto schema = Schema();
+    auto group1Pos = schema.createGroup();
+    schema.getGroup(group1Pos)->insertExpression("a._id");
     auto aIDPos = DataPos{0, 0};
     auto vectorsToCollect = vector<DataPos>{aIDPos};
-    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(move(resultSet),
-        vectorsToCollect, make_unique<ScanNodeID>(0, aIDPos, morsel, executionContext, 0),
+    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(vectorsToCollect,
+        make_unique<ScanNodeID>(
+            make_unique<ResultSetDescriptor>(schema), 0, aIDPos, morsel, executionContext, 0),
         RESULT_COLLECTOR, executionContext, 1));
     auto processor = make_unique<QueryProcessor>(10);
     auto result = processor->execute(plan.get(), 1);

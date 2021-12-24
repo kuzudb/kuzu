@@ -18,7 +18,7 @@ public:
 
     ~ReadList() override{};
 
-    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+    shared_ptr<ResultSet> initResultSet() override;
 
     void printMetricsToJson(nlohmann::json& json, Profiler& profiler) override;
 

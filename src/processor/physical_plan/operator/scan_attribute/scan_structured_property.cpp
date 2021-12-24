@@ -5,10 +5,11 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-void ScanStructuredProperty::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    ScanAttribute::initResultSet(resultSet);
+shared_ptr<ResultSet> ScanStructuredProperty::initResultSet() {
+    ScanAttribute::initResultSet();
     outValueVector = make_shared<ValueVector>(context.memoryManager, column->getDataType());
     inDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
+    return resultSet;
 }
 
 bool ScanStructuredProperty::getNextTuples() {

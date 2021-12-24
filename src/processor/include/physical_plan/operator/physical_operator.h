@@ -69,7 +69,7 @@ public:
     // get.
     PhysicalOperator* getLeafOperator();
 
-    virtual void initResultSet(const shared_ptr<ResultSet>& resultSet);
+    virtual shared_ptr<ResultSet> initResultSet() = 0;
 
     // For subquery, we rerun a plan multiple times. ReInitialize() should be called before each run
     // to ensure

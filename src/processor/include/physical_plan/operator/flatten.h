@@ -13,7 +13,7 @@ public:
         : PhysicalOperator{move(prevOperator), FLATTEN, context, id}, dataChunkToFlattenPos{
                                                                           dataChunkToFlattenPos} {}
 
-    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+    shared_ptr<ResultSet> initResultSet() override;
 
     bool getNextTuples() override;
 

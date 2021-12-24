@@ -17,6 +17,8 @@ public:
           dataChunkToSelectPos{dataChunkToSelectPos}, dataChunksToSkipPos{
                                                           move(dataChunksToSkipPos)} {}
 
+    shared_ptr<ResultSet> initResultSet() override;
+
     void reInitialize() override;
 
     bool getNextTuples() override;

@@ -3,6 +3,11 @@
 namespace graphflow {
 namespace processor {
 
+shared_ptr<ResultSet> Skip::initResultSet() {
+    resultSet = prevOperator->initResultSet();
+    return resultSet;
+}
+
 void Skip::reInitialize() {
     PhysicalOperator::reInitialize();
     FilteringOperator::reInitialize();

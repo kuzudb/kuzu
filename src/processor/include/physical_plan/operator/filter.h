@@ -18,7 +18,7 @@ public:
           FilteringOperator(), rootExpr{move(rootExpr)},
           dataChunkToSelectPos(dataChunkToSelectPos) {}
 
-    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+    shared_ptr<ResultSet> initResultSet() override;
 
     void reInitialize() override;
 

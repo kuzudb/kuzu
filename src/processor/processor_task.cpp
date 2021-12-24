@@ -17,7 +17,6 @@ void ProcessorTask::run() {
     unique_ptr<PhysicalOperator> lastOp = sinkOp->clone();
     lck.unlock();
     auto& sink = (Sink&)*lastOp;
-    sink.init();
     sink.execute();
 
     // Finalization part. If this task has no parent, it means it is a ResultCollector. So

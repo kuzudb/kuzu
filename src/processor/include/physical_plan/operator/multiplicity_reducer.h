@@ -13,6 +13,8 @@ public:
         : PhysicalOperator{move(prevOperator), MULTIPLICITY_REDUCER, context, id},
           prevMultiplicity{1}, numRepeat{0} {}
 
+    shared_ptr<ResultSet> initResultSet() override;
+
     void reInitialize() override;
 
     bool getNextTuples() override;

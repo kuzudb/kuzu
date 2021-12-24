@@ -3,6 +3,11 @@
 namespace graphflow {
 namespace processor {
 
+shared_ptr<ResultSet> ResultCollector::initResultSet() {
+    resultSet = prevOperator->initResultSet();
+    return resultSet;
+}
+
 void ResultCollector::reInitialize() {
     prevOperator->reInitialize();
     queryResult->clear();

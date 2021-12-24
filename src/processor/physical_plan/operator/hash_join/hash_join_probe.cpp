@@ -12,12 +12,13 @@ HashJoinProbe::HashJoinProbe(const ProbeDataInfo& probeDataInfo,
                                                                                  buildSidePrevOp)},
       probeDataInfo{probeDataInfo}, tuplePosToReadInProbedState{0} {}
 
-void HashJoinProbe::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    PhysicalOperator::initResultSet(resultSet);
-    ((HashJoinBuild&)*buildSidePrevOp).init();
+shared_ptr<ResultSet> HashJoinProbe::initResultSet() {
+    resultSet = prevOperator->initResultSet();
+    buildSideResultSet = buildSidePrevOp->initResultSet();
     probeState = make_unique<ProbeState>(DEFAULT_VECTOR_CAPACITY);
     constructResultVectorsPosAndFieldsToRead();
     initializeResultSet();
+    return resultSet;
 }
 
 void HashJoinProbe::constructResultVectorsPosAndFieldsToRead() {
@@ -30,8 +31,6 @@ void HashJoinProbe::constructResultVectorsPosAndFieldsToRead() {
 }
 
 void HashJoinProbe::initializeResultSet() {
-    // The buildSidePrevOp (HashJoinBuild) yields no actual resultSet, we get it from it's prevOp.
-    buildSideResultSet = this->buildSidePrevOp->prevOperator->getResultSet();
     probeSideKeyVector = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()]
                              ->valueVectors[probeDataInfo.getKeyIDVectorPos()];
     for (auto& dataPosMapping : probeDataInfo.nonKeyDataPosMapping) {
@@ -41,8 +40,7 @@ void HashJoinProbe::initializeResultSet() {
         auto [probeSideDataChunkPos, probeSideVectorPos] = dataPosMapping.second;
         auto probeSideVector =
             make_shared<ValueVector>(context.memoryManager, buildSideVector->dataType);
-        this->resultSet->dataChunks[probeSideDataChunkPos]->insert(
-            probeSideVectorPos, probeSideVector);
+        resultSet->dataChunks[probeSideDataChunkPos]->insert(probeSideVectorPos, probeSideVector);
     }
 }
 

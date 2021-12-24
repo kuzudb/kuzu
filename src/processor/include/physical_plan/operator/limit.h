@@ -15,6 +15,8 @@ public:
           counter{move(counter)}, dataChunkToSelectPos{dataChunkToSelectPos},
           dataChunksToLimitPos(move(dataChunksToLimitPos)) {}
 
+    shared_ptr<ResultSet> initResultSet() override;
+
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {

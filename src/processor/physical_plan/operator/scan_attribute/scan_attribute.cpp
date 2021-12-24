@@ -3,11 +3,12 @@
 namespace graphflow {
 namespace processor {
 
-void ScanAttribute::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    PhysicalOperator::initResultSet(resultSet);
+shared_ptr<ResultSet> ScanAttribute::initResultSet() {
+    resultSet = prevOperator->initResultSet();
     assert(inDataPos.dataChunkPos == outDataPos.dataChunkPos);
-    inDataChunk = this->resultSet->dataChunks[inDataPos.dataChunkPos];
+    inDataChunk = resultSet->dataChunks[inDataPos.dataChunkPos];
     inValueVector = inDataChunk->valueVectors[inDataPos.valueVectorPos];
+    return resultSet;
 }
 
 void ScanAttribute::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {

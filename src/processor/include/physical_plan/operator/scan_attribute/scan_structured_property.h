@@ -13,7 +13,7 @@ public:
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
         : ScanAttribute{inDataPos, outDataPos, move(prevOperator), context, id}, column{column} {}
 
-    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+    shared_ptr<ResultSet> initResultSet() override;
 
     bool getNextTuples() override;
 

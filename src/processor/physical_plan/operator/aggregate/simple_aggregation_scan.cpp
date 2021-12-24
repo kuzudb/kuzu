@@ -3,15 +3,16 @@
 namespace graphflow {
 namespace processor {
 
-void SimpleAggregationScan::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    this->resultSet = resultSet;
+shared_ptr<ResultSet> SimpleAggregationScan::initResultSet() {
+    resultSet = populateResultSet();
     // All aggregation results are materialized in the same dataChunk.
-    outDataChunk = this->resultSet->dataChunks[outDataPos[0].dataChunkPos];
+    outDataChunk = resultSet->dataChunks[outDataPos[0].dataChunkPos];
     assert(outDataPos.size() == sharedState->dataTypes.size());
     for (auto i = 0u; i < outDataPos.size(); i++) {
         outDataChunk->insert(outDataPos[i].valueVectorPos,
             make_shared<ValueVector>(context.memoryManager, sharedState->dataTypes[i]));
     }
+    return resultSet;
 }
 
 bool SimpleAggregationScan::getNextTuples() {

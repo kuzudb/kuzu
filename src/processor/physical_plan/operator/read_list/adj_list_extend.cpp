@@ -3,13 +3,14 @@
 namespace graphflow {
 namespace processor {
 
-void AdjListExtend::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    ReadList::initResultSet(resultSet);
+shared_ptr<ResultSet> AdjListExtend::initResultSet() {
+    ReadList::initResultSet();
     outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
     auto listSyncState = make_shared<ListSyncState>();
     resultSet->insert(outDataPos.dataChunkPos, listSyncState);
     largeListHandle->setListSyncState(listSyncState);
+    return resultSet;
 }
 
 bool AdjListExtend::getNextTuples() {

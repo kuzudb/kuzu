@@ -3,18 +3,16 @@
 namespace graphflow {
 namespace processor {
 
-void ScanNodeID::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    PhysicalOperator::initResultSet(resultSet);
-    outDataChunk = this->resultSet->dataChunks[outDataPos.dataChunkPos];
+shared_ptr<ResultSet> ScanNodeID::initResultSet() {
+    resultSet = populateResultSet();
+    outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
     outValueVector = make_shared<ValueVector>(context.memoryManager, NODE, true /* isSequence */);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
+    return resultSet;
 }
 
 bool ScanNodeID::getNextTuples() {
     metrics->executionTime.start();
-    if (prevOperator) {
-        prevOperator->getNextTuples();
-    }
     {
         unique_lock<mutex> lock{morsel->mtx};
         auto nodeIDValues = (nodeID_t*)(outValueVector->values);

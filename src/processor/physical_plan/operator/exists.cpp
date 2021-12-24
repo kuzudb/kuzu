@@ -7,8 +7,8 @@
 namespace graphflow {
 namespace processor {
 
-void Exists::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    PhysicalOperator::initResultSet(resultSet);
+shared_ptr<ResultSet> Exists::initResultSet() {
+    resultSet = prevOperator->initResultSet();
     auto dataChunkToWrite = resultSet->dataChunks[outDataPos.dataChunkPos].get();
     valueVectorToWrite = make_shared<ValueVector>(context.memoryManager, BOOL);
     dataChunkToWrite->insert(outDataPos.valueVectorPos, valueVectorToWrite);
@@ -16,8 +16,8 @@ void Exists::initResultSet(const shared_ptr<ResultSet>& resultSet) {
     auto subPlanResultCollector = (ResultCollector*)subPlan->lastOperator.get();
     auto op = subPlanResultCollector->getLeafOperator();
     assert(op->operatorType == SELECT_SCAN);
-    ((ResultScan*)op)->setResultSetToCopyFrom(this->resultSet.get());
-    subPlanResultCollector->init();
+    ((ResultScan*)op)->setResultSetToCopyFrom(resultSet.get());
+    return resultSet;
 }
 
 bool Exists::getNextTuples() {
@@ -25,6 +25,7 @@ bool Exists::getNextTuples() {
     if (!prevOperator->getNextTuples()) {
         return false;
     }
+    subPlanResultCollector->reInitialize();
     subPlanResultCollector->execute();
     assert(valueVectorToWrite->state->currIdx != -1);
     auto hasAtLeastOneTuple = subPlanResultCollector->queryResult->numTuples != 0;

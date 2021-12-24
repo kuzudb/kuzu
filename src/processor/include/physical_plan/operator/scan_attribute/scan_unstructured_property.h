@@ -19,7 +19,7 @@ public:
 
     ~ScanUnstructuredProperty(){};
 
-    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+    shared_ptr<ResultSet> initResultSet() override;
 
     bool getNextTuples() override;
 

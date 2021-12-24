@@ -3,9 +3,10 @@
 namespace graphflow {
 namespace processor {
 
-void Flatten::initResultSet(const shared_ptr<ResultSet>& resultSet) {
-    PhysicalOperator::initResultSet(resultSet);
+shared_ptr<ResultSet> Flatten::initResultSet() {
+    resultSet = prevOperator->initResultSet();
     dataChunkToFlatten = resultSet->dataChunks[dataChunkToFlattenPos];
+    return resultSet;
 }
 
 bool Flatten::getNextTuples() {

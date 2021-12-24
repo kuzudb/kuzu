@@ -13,7 +13,7 @@ public:
         label_t outNodeIDVectorLabel, uint64_t lowerBound, uint64_t upperBound,
         unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
 
-    void initResultSet(const shared_ptr<ResultSet>& resultSet) override;
+    shared_ptr<ResultSet> initResultSet() override;
 
     bool getNextTuples() override;
 
