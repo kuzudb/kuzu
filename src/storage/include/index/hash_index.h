@@ -8,10 +8,13 @@
 #include "src/common/include/memory_manager.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/value_vector.h"
+#include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/storage/include/buffer_manager.h"
+#include "src/storage/include/data_structure/string_overflow_pages.h"
 
 using namespace std;
 using namespace graphflow::common;
+using namespace graphflow::loader;
 
 namespace graphflow {
 namespace storage {
@@ -134,7 +137,7 @@ private:
 class HashIndex {
 
 public:
-    explicit HashIndex(DataType keyDataType);
+    explicit HashIndex(const string& fName, DataType keyDataType);
 
     HashIndex(const string& fName, BufferManager& bufferManager, bool isInMemory);
 
@@ -146,14 +149,16 @@ public:
 
     bool lookup(uint8_t* key, node_offset_t& result, BufferManagerMetrics& metrics);
 
-    void saveToDisk(const string& fName);
+    void saveToDisk();
 
 private:
     bool notExistsInSlot(uint8_t* slot, uint8_t* key);
     void putNewEntryInSlotAndUpdateHeader(uint8_t* slot, uint8_t* key, node_offset_t value);
     uint64_t reserveOvfSlot();
+    void insertKey(uint8_t* key, uint8_t* entry);
 
-    bool lookupInSlot(const uint8_t* slot, uint8_t* key, node_offset_t& result) const;
+    bool lookupInSlot(const uint8_t* slot, uint8_t* key, node_offset_t& result,
+        BufferManagerMetrics& metrics) const;
 
     inline uint64_t calculateSlotIdForHash(hash_t hash) const;
 
@@ -179,19 +184,28 @@ private:
 
     static uint8_t* getNewPage();
 
-    hash_t getHashOfKey(uint8_t* key);
+    hash_t hashFunc(uint8_t* key);
+
+    static bool equalsInt64(uint8_t* key, uint8_t* entryKey);
+    static bool likelyEqualsString(uint8_t* key, gf_string_t* entryKey);
 
 private:
+    const string& fName;
     HashIndexHeader indexHeader;
     shared_ptr<spdlog::logger> logger;
+
+    function<bool(uint8_t*, gf_string_t*)> strEqualityCheckerFunc;
 
     // used only when the hash index is instantiated in the write mode
     vector<unique_ptr<uint8_t[]>> primaryPages{};
     vector<unique_ptr<uint8_t[]>> ovfPages{};
+    unique_ptr<InMemStringOverflowPages> inMemStringOvfPages;
+    PageByteCursor stringOvfPageCursor;
 
     // used only when the hash index is instantiated in the read mode.
     unique_ptr<FileHandle> fileHandle;
     BufferManager* bufferManager{};
+    unique_ptr<StringOverflowPages> stringOvfPages;
 };
 
 } // namespace storage

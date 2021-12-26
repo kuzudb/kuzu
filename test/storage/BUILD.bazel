@@ -8,7 +8,11 @@ cc_test(
     copts = [
         "-Iexternal/gtest/include",
     ],
+    data = [
+        "//dataset",
+    ],
     deps = [
+        "//src/common:csv_reader",
         "//src/storage:hash_index",
         "//test/test_utility:test_helper",
         "@gtest",

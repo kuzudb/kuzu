@@ -10,8 +10,6 @@ cc_library(
         "in_mem_structure/builder/in_mem_node_prop_cols_builder.cpp",
         "in_mem_structure/builder/in_mem_structures_builder.cpp",
         "in_mem_structure/column_utils.cpp",
-        "in_mem_structure/in_mem_page.cpp",
-        "in_mem_structure/in_mem_pages.cpp",
         "in_mem_structure/lists_utils.cpp",
         "node_id_map.cpp",
         "nodes_loader.cpp",
@@ -25,17 +23,16 @@ cc_library(
         "include/in_mem_structure/builder/in_mem_node_prop_cols_builder.h",
         "include/in_mem_structure/builder/in_mem_structures_builder.h",
         "include/in_mem_structure/column_utils.h",
-        "include/in_mem_structure/in_mem_page.h",
-        "include/in_mem_structure/in_mem_pages.h",
         "include/in_mem_structure/lists_utils.h",
         "include/label_description.h",
-        "include/node_id_map.h",
         "include/loader_task.h",
+        "include/node_id_map.h",
         "include/nodes_loader.h",
         "include/rels_loader.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "in_mem_pages",
         "//src/common:csv_reader",
         "//src/common:task_system",
         "//src/common:types",
@@ -43,6 +40,23 @@ cc_library(
         "@gabime_spdlog",
         "@martinus_robin_hood_hashing",
         "@nlohmann_json",
+    ],
+)
+
+cc_library(
+    name = "in_mem_pages",
+    srcs = [
+        "in_mem_structure/in_mem_page.cpp",
+        "in_mem_structure/in_mem_pages.cpp",
+    ],
+    hdrs = [
+        "include/in_mem_structure/in_mem_page.h",
+        "include/in_mem_structure/in_mem_pages.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common:configs",
+        "//src/storage:data_structure",
     ],
 )
 

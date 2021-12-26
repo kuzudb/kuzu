@@ -156,5 +156,6 @@ cc_library(
         "//src/common:types",
         "//src/common:vector",
         "//src/common:vector_operations",
+        "//src/loader:in_mem_pages",
     ],
 )
