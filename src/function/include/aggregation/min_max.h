@@ -36,7 +36,7 @@ struct MinMaxFunction {
                 } else {
                     OP::template operation<T, T>(inputValues[pos], state->val, compare_result,
                         false /* isLeftNull */, false /* isRightNull */);
-                    state->val = compare_result == TRUE ? inputValues[pos] : state->val;
+                    state->val = compare_result ? inputValues[pos] : state->val;
                 }
             }
         } else {
@@ -49,7 +49,7 @@ struct MinMaxFunction {
                     } else {
                         OP::template operation<T, T>(inputValues[pos], state->val, compare_result,
                             false /* isLeftNull */, false /* isRightNull */);
-                        state->val = compare_result == TRUE ? inputValues[pos] : state->val;
+                        state->val = compare_result ? inputValues[pos] : state->val;
                     }
                 }
             }

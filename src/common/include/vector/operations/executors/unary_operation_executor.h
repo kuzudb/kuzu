@@ -2,14 +2,16 @@
 
 #include <functional>
 
+#include "src/common/include/operations/boolean_operations.h"
+
 namespace graphflow {
 namespace common {
 
 struct UnaryOperationExecutor {
-    template<typename T, typename R, typename FUNC = std::function<R(T)>>
+    template<typename T, typename R, typename FUNC>
     static void executeOnTuple(ValueVector& operand, R& resultValue, uint64_t operandPos) {
         if constexpr ((is_same<T, nodeID_t>::value)) {
-            nodeID_t nodeID;
+            nodeID_t nodeID{};
             operand.readNodeID(operandPos, nodeID);
             FUNC::operation(nodeID, (bool)operand.isNull(operandPos), resultValue);
         } else {
@@ -19,16 +21,15 @@ struct UnaryOperationExecutor {
         }
     }
 
-    template<typename T, typename R, typename FUNC = std::function<R(T)>, bool SKIP_NULL = true>
+    template<typename T, typename R, typename FUNC, bool IS_BOOL_OP = false>
     static void execute(ValueVector& operand, ValueVector& result) {
-        // SKIP_NULL is set to false ONLY when the FUNC is boolean operations.
-        assert(SKIP_NULL ||
-               (!SKIP_NULL && (is_same<T, uint8_t>::value) && (is_same<R, uint8_t>::value)));
+        assert(!IS_BOOL_OP ||
+               (IS_BOOL_OP && (is_same<T, bool>::value) && (is_same<R, uint8_t>::value)));
         auto resultValues = (R*)result.values;
         if (operand.state->isFlat()) {
             auto operandPos = operand.state->getPositionOfCurrIdx();
             auto resultPos = result.state->getPositionOfCurrIdx();
-            if constexpr (SKIP_NULL) {
+            if constexpr (!IS_BOOL_OP) {
                 if (!operand.isNull(operandPos)) {
                     executeOnTuple<T, R, FUNC>(operand, resultValues[resultPos], operandPos);
                 }
@@ -36,7 +37,7 @@ struct UnaryOperationExecutor {
                 executeOnTuple<T, R, FUNC>(operand, resultValues[resultPos], operandPos);
             }
         } else {
-            if constexpr (SKIP_NULL) {
+            if constexpr (!IS_BOOL_OP) {
                 if (operand.hasNoNullsGuarantee()) {
                     if (operand.state->isUnfiltered()) {
                         for (auto i = 0u; i < operand.state->selectedSize; i++) {
@@ -80,13 +81,13 @@ struct UnaryOperationExecutor {
     }
 
     // IS_NULL, IS_NOT_NULL, NOT
-    template<typename FUNC = function<uint8_t(uint8_t, bool)>>
+    template<typename FUNC>
     static uint64_t select(ValueVector& operand, sel_t* selectedPositions) {
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
             uint8_t resultValue;
             FUNC::operation(operand.values[pos], operand.isNull(pos), resultValue);
-            return resultValue == TRUE;
+            return resultValue != operation::NULL_BOOL && resultValue != false ? 1 : 0;
         } else {
             uint64_t numSelectedValues = 0;
             for (auto i = 0ul; i < operand.state->selectedSize; i++) {
@@ -94,7 +95,8 @@ struct UnaryOperationExecutor {
                 uint8_t resultValue;
                 FUNC::operation(operand.values[pos], operand.isNull(pos), resultValue);
                 selectedPositions[numSelectedValues] = pos;
-                numSelectedValues += resultValue;
+                numSelectedValues +=
+                    resultValue != operation::NULL_BOOL && resultValue != false ? 1 : 0;
             }
             return numSelectedValues;
         }

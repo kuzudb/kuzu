@@ -19,7 +19,7 @@ public:
 
     explicit Value(DataType dataType) : dataType(dataType) {}
 
-    explicit Value(uint8_t value) : dataType(BOOL) { this->val.booleanVal = value; }
+    explicit Value(bool value) : dataType(BOOL) { this->val.booleanVal = value; }
 
     explicit Value(int64_t value) : dataType(INT64) { this->val.int64Val = value; }
 
@@ -41,7 +41,7 @@ public:
 
 public:
     union Val {
-        uint8_t booleanVal;
+        bool booleanVal;
         int64_t int64Val;
         double doubleVal;
         gf_string_t strVal{};

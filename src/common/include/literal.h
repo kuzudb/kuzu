@@ -13,7 +13,7 @@ public:
 
     Literal(const Literal& other);
 
-    explicit Literal(uint8_t value) : dataType(BOOL) { this->val.booleanVal = value; }
+    explicit Literal(bool value) : dataType(BOOL) { this->val.booleanVal = value; }
 
     explicit Literal(int64_t value) : dataType(INT64) { this->val.int64Val = value; }
 
@@ -33,7 +33,7 @@ public:
 
 public:
     union Val {
-        uint8_t booleanVal;
+        bool booleanVal;
         int64_t int64Val;
         double doubleVal;
         nodeID_t nodeID;

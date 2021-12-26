@@ -130,7 +130,7 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatW
     auto resultData = (int64_t*)result->values;
     // We set every odd value in vector 2 to NULL.
     for (int i = 0; i < NUM_TUPLES; ++i) {
-        rVector->setNull(i, (i % 2) == 1 ? true : false);
+        rVector->setNull(i, (i % 2) == 1);
     }
 
     // Unary UnaryOperationExecutor::executeArithmeticOps assumes that when the operand is unflat
@@ -191,7 +191,7 @@ TEST_F(Int64ArithmeticOperandsInDifferentDataChunksTest, Int64BinaryOneFlatOneUn
     auto resultData = (int64_t*)result->values;
     // We set every odd value in vector 2 to NULL.
     for (int i = 0; i < NUM_TUPLES; ++i) {
-        rVector->setNull(i, (i % 2) == 1 ? true : false);
+        rVector->setNull(i, (i % 2) == 1);
     }
     // Flatten dataChunkWithVector1, which holds vector1
     dataChunkWithVector1->state->currIdx = 80;
