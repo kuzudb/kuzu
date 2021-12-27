@@ -20,6 +20,12 @@
 ---- 1
 1
 
+# test our sub-plan should not contain hash join
+-NAME ExistSubqueryTest5
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(d:person)-[:knows]->(e:person) RETURN a.ID } RETURN COUNT(*)
+---- 1
+4
+
 -NAME NotExistSubqueryTest
 -QUERY MATCH (a:person) WHERE NOT EXISTS { MATCH (a)-[:knows]->(b:person) RETURN a.ID } RETURN COUNT(*)
 ---- 1

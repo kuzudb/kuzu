@@ -11,6 +11,18 @@
 namespace graphflow {
 namespace planner {
 
+vector<unique_ptr<LogicalPlan>> Enumerator::getValidSubPlans(
+    vector<unique_ptr<LogicalPlan>> plans) {
+    vector<unique_ptr<LogicalPlan>> results;
+    for (auto& plan : plans) {
+        if (plan->containOperatorsNotAllowedInSubPlan()) {
+            continue;
+        }
+        results.push_back(move(plan));
+    }
+    return results;
+}
+
 unique_ptr<LogicalPlan> Enumerator::getBestPlan(vector<unique_ptr<LogicalPlan>> plans) {
     auto bestPlan = move(plans[0]);
     for (auto i = 1u; i < plans.size(); ++i) {
@@ -75,8 +87,8 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
             outerPlan.schema->getGroupPos(expression->getUniqueName()), outerPlan);
     }
     auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToScanFromOuter));
-    auto bestPlan = getBestPlan(joinOrderEnumerator.enumerateJoinOrder(
-        queryGraph, queryGraphPredicate, getInitialEmptyPlans()));
+    auto bestPlan = getBestPlan(getValidSubPlans(joinOrderEnumerator.enumerateJoinOrder(
+        queryGraph, queryGraphPredicate, getInitialEmptyPlans())));
     joinOrderEnumerator.exitSubquery(move(prevContext));
     // Schema merging logic for optional match:
     //    Consider example MATCH (a:Person) OPTIONAL MATCH (a)-[:studyAt]->(b:Organisation)
@@ -108,8 +120,9 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
             outerPlan.schema->insertToGroup(expressionName, outerPos);
         }
     }
-    auto logicalLeftNestedLoopJoin = make_shared<LogicalLeftNestedLoopJoin>(bestPlan->lastOperator,
-        bestPlan->schema->copy(), move(matchedNodeIDsInSubPlan), outerPlan.lastOperator);
+    auto logicalLeftNestedLoopJoin =
+        make_shared<LogicalLeftNestedLoopJoin>(bestPlan->schema->copy(),
+            move(matchedNodeIDsInSubPlan), outerPlan.lastOperator, bestPlan->lastOperator);
     outerPlan.appendOperator(move(logicalLeftNestedLoopJoin));
 }
 
@@ -134,9 +147,9 @@ void Enumerator::planExistsSubquery(
         plans = enumerateQueryPart(*normalizedQuery.getQueryPart(i), move(plans));
     }
     joinOrderEnumerator.exitSubquery(move(prevContext));
-    auto bestPlan = getBestPlan(move(plans));
-    auto logicalExists = make_shared<LogicalExists>(subqueryExpression, bestPlan->lastOperator,
-        bestPlan->schema->copy(), outerPlan.lastOperator);
+    auto bestPlan = getBestPlan(getValidSubPlans(move(plans)));
+    auto logicalExists = make_shared<LogicalExists>(subqueryExpression, bestPlan->schema->copy(),
+        outerPlan.lastOperator, bestPlan->lastOperator);
     outerPlan.appendOperator(logicalExists);
 }
 

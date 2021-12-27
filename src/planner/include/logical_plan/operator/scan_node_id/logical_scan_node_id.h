@@ -10,9 +10,6 @@ class LogicalScanNodeID : public LogicalOperator {
 public:
     LogicalScanNodeID(string nodeID, label_t label) : nodeID{move(nodeID)}, label{label} {}
 
-    LogicalScanNodeID(string nodeID, label_t label, shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{prevOperator}, nodeID{move(nodeID)}, label{label} {}
-
     LogicalOperatorType getLogicalOperatorType() const {
         return LogicalOperatorType::LOGICAL_SCAN_NODE_ID;
     }
@@ -20,8 +17,7 @@ public:
     string getExpressionsForPrinting() const override { return nodeID; }
 
     unique_ptr<LogicalOperator> copy() override {
-        return prevOperator ? make_unique<LogicalScanNodeID>(nodeID, label, prevOperator->copy()) :
-                              make_unique<LogicalScanNodeID>(nodeID, label);
+        return make_unique<LogicalScanNodeID>(nodeID, label);
     }
 
 public:

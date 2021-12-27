@@ -9,9 +9,9 @@ class LogicalSkip : public LogicalOperator {
 
 public:
     LogicalSkip(uint64_t skipNumber, uint32_t groupPosToSelect, vector<uint32_t> groupsPosToSkip,
-        shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator(move(prevOperator)), skipNumber{skipNumber},
-          groupPosToSelect{groupPosToSelect}, groupsPosToSkip{move(groupsPosToSkip)} {}
+        shared_ptr<LogicalOperator> child)
+        : LogicalOperator(move(child)), skipNumber{skipNumber}, groupPosToSelect{groupPosToSelect},
+          groupsPosToSkip{move(groupsPosToSkip)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override { return LOGICAL_SKIP; }
 
@@ -23,7 +23,7 @@ public:
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalSkip>(
-            skipNumber, groupPosToSelect, groupsPosToSkip, prevOperator->copy());
+            skipNumber, groupPosToSelect, groupsPosToSkip, children[0]->copy());
     }
 
 private:

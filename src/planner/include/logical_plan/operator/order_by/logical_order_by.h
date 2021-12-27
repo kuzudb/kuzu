@@ -12,9 +12,9 @@ class LogicalOrderBy : public LogicalOperator {
 
 public:
     LogicalOrderBy(vector<shared_ptr<Expression>> expressions, vector<bool> sortOrders,
-        shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, orderByExpressions{move(expressions)},
-          isAscOrders{move(sortOrders)} {}
+        shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, orderByExpressions{move(expressions)}, isAscOrders{move(
+                                                                                   sortOrders)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_ORDER_BY;
@@ -29,7 +29,7 @@ public:
     }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalOrderBy>(orderByExpressions, isAscOrders, prevOperator->copy());
+        return make_unique<LogicalOrderBy>(orderByExpressions, isAscOrders, children[0]->copy());
     }
 
 private:

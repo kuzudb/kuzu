@@ -8,8 +8,8 @@ namespace planner {
 class LogicalMultiplicityReducer : public LogicalOperator {
 
 public:
-    explicit LogicalMultiplicityReducer(shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator(move(prevOperator)) {}
+    explicit LogicalMultiplicityReducer(shared_ptr<LogicalOperator> child)
+        : LogicalOperator(move(child)) {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_MULTIPLICITY_REDUCER;
@@ -18,7 +18,7 @@ public:
     string getExpressionsForPrinting() const override { return string(); }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalMultiplicityReducer>(prevOperator->copy());
+        return make_unique<LogicalMultiplicityReducer>(children[0]->copy());
     }
 };
 

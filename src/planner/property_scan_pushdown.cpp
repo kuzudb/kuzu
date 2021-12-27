@@ -1,7 +1,6 @@
 #include "src/planner/include/property_scan_pushdown.h"
 
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
-#include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
 #include "src/planner/include/logical_plan/operator/nested_loop_join/logical_left_nested_loop_join.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
@@ -56,14 +55,14 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteScanNodeProperty(
     const shared_ptr<LogicalOperator>& op) {
     auto& scanNodeProperty = (LogicalScanNodeProperty&)*op;
     addPropertyScan(scanNodeProperty.nodeID, op);
-    return rewrite(scanNodeProperty.prevOperator);
+    return rewrite(scanNodeProperty.getFirstChild());
 }
 
 shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteScanRelProperty(
     const shared_ptr<LogicalOperator>& op) {
     auto& scanRelProperty = (LogicalScanRelProperty&)*op;
     addPropertyScan(scanRelProperty.nbrNodeID, op);
-    return rewrite(scanRelProperty.prevOperator);
+    return rewrite(scanRelProperty.getFirstChild());
 }
 
 shared_ptr<LogicalOperator> PropertyScanPushDown::applyPropertyScansIfNecessary(
@@ -76,22 +75,22 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::applyPropertyScansIfNecessary(
     auto& propertyScans = nodeIDToPropertyScansMap.at(nodeID);
     // chain property scans
     for (auto i = 0u; i < propertyScans.size() - 1; ++i) {
-        propertyScans[i]->prevOperator = propertyScans[i + 1];
+        propertyScans[i]->setFirstChild(propertyScans[i + 1]);
     }
-    propertyScans.back()->prevOperator = op;
+    propertyScans.back()->setFirstChild(op);
+    auto result = propertyScans[0];
+    nodeIDToPropertyScansMap.erase(nodeID);
     rewriteChildrenOperators(op);
-    return propertyScans[0];
+    return result;
 }
 
 void PropertyScanPushDown::rewriteChildrenOperators(const shared_ptr<LogicalOperator>& op) {
-    if (op->prevOperator) {
-        op->prevOperator = rewrite(op->prevOperator);
+    if (op->getNumChildren() == 0) {
+        return;
     }
-    // TODO: We should consider move to prevOperators instead of prevOperator if there is more than
-    // one binary operator.
-    if (op->getLogicalOperatorType() == LOGICAL_HASH_JOIN) {
-        auto& hashJoin = (LogicalHashJoin&)*op;
-        hashJoin.buildSidePrevOperator = rewrite(hashJoin.buildSidePrevOperator);
+    op->setFirstChild(rewrite(op->getFirstChild()));
+    if (op->getNumChildren() == 2) {
+        op->setSecondChild(rewrite(op->getSecondChild()));
     }
 }
 

@@ -43,7 +43,7 @@ void System::executeQuery(SessionContext& context) const {
     auto boundQuery = QueryBinder(graph->getCatalog()).bind(*parsedQuery);
 
     auto logicalPlan = Planner::getBestPlan(*graph, *boundQuery);
-    if (logicalPlan->containAggregation && context.numThreads > 1) {
+    if (logicalPlan->containAggregation() && context.numThreads > 1) {
         throw invalid_argument("Aggregation with multi-threading is not implemented.");
     }
 

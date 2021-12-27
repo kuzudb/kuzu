@@ -10,8 +10,8 @@ class LogicalScanRelProperty : public LogicalOperator {
 public:
     LogicalScanRelProperty(string boundNodeID, label_t boundNodeLabel, string nbrNodeID,
         label_t relLabel, Direction direction, string propertyVariableName, uint32_t propertyKey,
-        bool isColumn, shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{prevOperator}, boundNodeID{move(boundNodeID)},
+        bool isColumn, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, boundNodeID{move(boundNodeID)},
           boundNodeLabel{boundNodeLabel}, nbrNodeID{move(nbrNodeID)}, relLabel{relLabel},
           direction{direction}, propertyVariableName(move(propertyVariableName)),
           propertyKey{propertyKey}, isColumn{isColumn} {}
@@ -24,7 +24,7 @@ public:
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalScanRelProperty>(boundNodeID, boundNodeLabel, nbrNodeID, relLabel,
-            direction, propertyVariableName, propertyKey, isColumn, prevOperator->copy());
+            direction, propertyVariableName, propertyKey, isColumn, children[0]->copy());
     }
 
 public:
