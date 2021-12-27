@@ -105,6 +105,8 @@ private:
     // E.g. SUM(SUM(a.age)) is not allowed
     static void validateAggregationExpressionIsNotNested(const Expression& expression);
 
+    static void validateExistsSubqueryHasNoAggregationOrOrderBy(const Expression& expression);
+
 private:
     template<typename T>
     shared_ptr<Expression> bindStringCastingFunctionExpression(

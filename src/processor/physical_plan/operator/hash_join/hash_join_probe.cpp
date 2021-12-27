@@ -87,11 +87,6 @@ void HashJoinProbe::populateResultSet() {
         probeState->numMatchedTuples - tuplePosToReadInProbedState);
 }
 
-void HashJoinProbe::reInitialize() {
-    PhysicalOperator::reInitialize();
-    buildSidePrevOp->reInitialize();
-}
-
 // The general flow of a hash join probe:
 // 1) find matched tuples of probe side key from ht.
 // 2) populate values from matched tuples into resultKeyDataChunk , buildSideFlatResultDataChunk

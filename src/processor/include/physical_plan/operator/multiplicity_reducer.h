@@ -15,7 +15,7 @@ public:
 
     shared_ptr<ResultSet> initResultSet() override;
 
-    void reInitialize() override;
+    void reInitToRerunSubPlan() override;
 
     bool getNextTuples() override;
 

@@ -17,7 +17,7 @@ public:
           prevSelectedValuesBuffer{make_unique<sel_t[]>(DEFAULT_VECTOR_CAPACITY)} {};
 
 protected:
-    inline void reInitialize() {
+    inline void reInitToRerunSubPlan() {
         prevNumSelectedValues = 0ul;
         prevSelectedValues = nullptr;
     }

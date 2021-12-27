@@ -21,6 +21,10 @@ shared_ptr<ResultSet> Projection::initResultSet() {
     return resultSet;
 }
 
+void Projection::reInitToRerunSubPlan() {
+    prevOperator->reInitToRerunSubPlan();
+}
+
 bool Projection::getNextTuples() {
     metrics->executionTime.start();
     restoreMultiplicity();

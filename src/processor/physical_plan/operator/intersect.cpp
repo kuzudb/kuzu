@@ -14,6 +14,12 @@ shared_ptr<ResultSet> Intersect::initResultSet() {
     return resultSet;
 }
 
+void Intersect::reInitToRerunSubPlan() {
+    prevOperator->reInitToRerunSubPlan();
+    FilteringOperator::reInitToRerunSubPlan();
+    leftIdx = 0;
+}
+
 static void sortSelectedPos(const shared_ptr<ValueVector>& nodeIDVector) {
     auto selectedPos = nodeIDVector->state->selectedPositionsBuffer.get();
     auto size = nodeIDVector->state->selectedSize;

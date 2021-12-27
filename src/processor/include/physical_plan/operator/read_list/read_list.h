@@ -20,6 +20,8 @@ public:
 
     shared_ptr<ResultSet> initResultSet() override;
 
+    void reInitToRerunSubPlan() override;
+
     void printMetricsToJson(nlohmann::json& json, Profiler& profiler) override;
 
 protected:

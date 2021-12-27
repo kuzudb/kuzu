@@ -19,12 +19,6 @@ PhysicalOperator* PhysicalOperator::getLeafOperator() {
     return op;
 }
 
-void PhysicalOperator::reInitialize() {
-    if (prevOperator) {
-        prevOperator->reInitialize();
-    }
-}
-
 void PhysicalOperator::registerProfilingMetrics() {
     auto executionTime = context.profiler.registerTimeMetric(getTimeMetricKey());
     auto numOutputTuple = context.profiler.registerNumericMetric(getNumTupleMetricKey());

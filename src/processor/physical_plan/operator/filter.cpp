@@ -10,9 +10,9 @@ shared_ptr<ResultSet> Filter::initResultSet() {
     return resultSet;
 }
 
-void Filter::reInitialize() {
-    PhysicalOperator::reInitialize();
-    FilteringOperator::reInitialize();
+void Filter::reInitToRerunSubPlan() {
+    prevOperator->reInitToRerunSubPlan();
+    FilteringOperator::reInitToRerunSubPlan();
 }
 
 bool Filter::getNextTuples() {

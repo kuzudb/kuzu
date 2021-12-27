@@ -53,6 +53,8 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
     expression->setRawName(parsedExpression.getRawName());
     if (isExpressionAggregate(expression->expressionType)) {
         validateAggregationExpressionIsNotNested(*expression);
+    } else if (expression->expressionType == EXISTENTIAL_SUBQUERY) {
+        validateExistsSubqueryHasNoAggregationOrOrderBy(*expression);
     }
     return expression;
 }
@@ -497,6 +499,26 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
     if (expression.getChild(0)->hasAggregationExpression()) {
         throw invalid_argument(
             "Expression " + expression.getRawName() + " contains nested aggregation.");
+    }
+}
+
+void ExpressionBinder::validateExistsSubqueryHasNoAggregationOrOrderBy(
+    const Expression& expression) {
+    assert(expression.expressionType == EXISTENTIAL_SUBQUERY);
+    auto subquery = ((ExistentialSubqueryExpression&)expression).getBoundSubquery();
+    vector<BoundProjectionBody*> projectionBodies;
+    for (auto& queryPart : subquery->boundQueryParts) {
+        projectionBodies.push_back(queryPart->boundWithStatement->getBoundProjectionBody());
+    }
+    projectionBodies.push_back(subquery->boundReturnStatement->getBoundProjectionBody());
+    for (auto& projectionBody : projectionBodies) {
+        if (projectionBody->hasAggregationExpressions() ||
+            projectionBody->hasOrderByExpressions()) {
+            throw invalid_argument(
+                "Expression " + expression.getRawName() +
+                " is an existential subquery expression and should not contains any "
+                "aggregation or order by in subquery RETURN or WITH clause.");
+        }
     }
 }
 

@@ -8,11 +8,6 @@ shared_ptr<ResultSet> Skip::initResultSet() {
     return resultSet;
 }
 
-void Skip::reInitialize() {
-    PhysicalOperator::reInitialize();
-    FilteringOperator::reInitialize();
-}
-
 bool Skip::getNextTuples() {
     metrics->executionTime.start();
     auto& dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];

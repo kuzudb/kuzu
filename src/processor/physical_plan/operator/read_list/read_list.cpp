@@ -11,6 +11,10 @@ shared_ptr<ResultSet> ReadList::initResultSet() {
     return resultSet;
 }
 
+void ReadList::reInitToRerunSubPlan() {
+    prevOperator->reInitToRerunSubPlan();
+}
+
 void ReadList::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
     PhysicalOperator::printTimeAndNumOutputMetrics(json, profiler);
     printBufferManagerMetrics(json, profiler);

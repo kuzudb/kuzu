@@ -15,6 +15,8 @@ public:
 
     shared_ptr<ResultSet> initResultSet() override;
 
+    void reInitToRerunSubPlan() override;
+
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
