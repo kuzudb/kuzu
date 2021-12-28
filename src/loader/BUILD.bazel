@@ -5,6 +5,7 @@ cc_library(
     srcs = [
         "dataset_metadata.cpp",
         "graph_loader.cpp",
+        "in_mem_structure/builder/hash_index_builder.cpp",
         "in_mem_structure/builder/in_mem_adj_prop_cols_builder.cpp",
         "in_mem_structure/builder/in_mem_adj_prop_lists_builder.cpp",
         "in_mem_structure/builder/in_mem_node_prop_cols_builder.cpp",
@@ -18,6 +19,7 @@ cc_library(
     hdrs = [
         "include/dataset_metadata.h",
         "include/graph_loader.h",
+        "include/in_mem_structure/builder/hash_index_builder.h",
         "include/in_mem_structure/builder/in_mem_adj_prop_cols_builder.h",
         "include/in_mem_structure/builder/in_mem_adj_prop_lists_builder.h",
         "include/in_mem_structure/builder/in_mem_node_prop_cols_builder.h",
@@ -37,6 +39,7 @@ cc_library(
         "//src/common:task_system",
         "//src/common:types",
         "//src/storage:graph",
+        "//src/storage:hash_index",
         "@gabime_spdlog",
         "@martinus_robin_hood_hashing",
         "@nlohmann_json",

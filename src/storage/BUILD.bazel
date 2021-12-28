@@ -144,10 +144,12 @@ cc_library(
 cc_library(
     name = "hash_index",
     srcs = [
-        "index/hash_index.cpp",
+        "index/hash_index_reader.cpp",
+        "index/utils.cpp",
     ],
     hdrs = [
-        "include/index/hash_index.h",
+        "include/index/hash_index_reader.h",
+        "include/index/utils.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

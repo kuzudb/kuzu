@@ -11,6 +11,7 @@
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/data_structure/string_overflow_pages.h"
+#include "src/storage/include/index/utils.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -87,67 +88,16 @@ namespace storage {
  *  by our Buffer manager.
  *
  *  */
-
-class HashIndex;
-
-struct SlotHeader {
-public:
-    SlotHeader() : numEntries{0}, nextOvfSlotId{-1u} {}
-
-    void reset() {
-        numEntries = 0;
-        nextOvfSlotId = 0;
-    }
+class HashIndexBuilder {
 
 public:
-    uint16_t numEntries;
-    uint64_t nextOvfSlotId;
-};
-
-struct HashIndexHeader {
-    friend class HashIndex;
-
-private:
-    HashIndexHeader() = default;
-
-    explicit HashIndexHeader(DataType keyDataType);
-
-    inline void incrementLevel();
-
-    // Constants
-    uint64_t numBytesPerEntry{};
-    uint64_t numBytesPerSlot{};
-    uint64_t numSlotsPerPage{};
-    uint64_t slotCapacity{HashIndexConfig::SLOT_CAPACITY};
-
-    uint64_t numEntries{0};
-    uint64_t numPrimarySlots{2};
-    uint64_t numPrimaryPages{1};
-    uint64_t numOvfSlots{1};
-    uint64_t numOvfPages{1};
-
-    uint64_t currentLevel{1};
-    uint64_t levelHashMask{1};
-    uint64_t higherLevelHashMask{3};
-    uint64_t nextSplitSlotId{0};
-
-    DataType keyDataType = INT64;
-};
-
-class HashIndex {
-
-public:
-    explicit HashIndex(const string& fName, DataType keyDataType);
-
-    HashIndex(const string& fName, BufferManager& bufferManager, bool isInMemory);
+    explicit HashIndexBuilder(const string& fName, DataType keyDataType);
 
 public:
     // Reserves space for at least the specified number of elements.
     void bulkReserve(uint32_t numEntries);
 
     bool insert(uint8_t* key, node_offset_t value);
-
-    bool lookup(uint8_t* key, node_offset_t& result, BufferManagerMetrics& metrics);
 
     void saveToDisk();
 
@@ -157,55 +107,19 @@ private:
     uint64_t reserveOvfSlot();
     void insertKey(uint8_t* key, uint8_t* entry);
 
-    bool lookupInSlot(const uint8_t* slot, uint8_t* key, node_offset_t& result,
-        BufferManagerMetrics& metrics) const;
-
-    inline uint64_t calculateSlotIdForHash(hash_t hash) const;
-
-    inline uint64_t getPageIdForSlot(uint64_t slotId) const {
-        return slotId / indexHeader.numSlotsPerPage;
-    }
-
-    inline uint64_t getSlotIdInPageForSlot(uint64_t slotId) const {
-        return slotId % indexHeader.numSlotsPerPage;
-    }
-
     uint8_t* getSlotFromPrimaryPages(uint64_t slotId) const;
 
     uint8_t* getOvfSlotFromOvfPages(uint64_t slotId) const;
-
-    const uint8_t* getSlotInAPage(const uint8_t* page, uint32_t slotIdInPage) const {
-        return page + (slotIdInPage * indexHeader.numBytesPerSlot);
-    }
-
-    inline uint8_t* getEntryInSlot(uint8_t* slot, uint32_t entryId) const {
-        return slot + sizeof(SlotHeader) + (entryId * indexHeader.numBytesPerEntry);
-    }
-
-    static uint8_t* getNewPage();
-
-    hash_t hashFunc(uint8_t* key);
-
-    static bool equalsInt64(uint8_t* key, uint8_t* entryKey);
-    static bool likelyEqualsString(uint8_t* key, gf_string_t* entryKey);
 
 private:
     const string& fName;
     HashIndexHeader indexHeader;
     shared_ptr<spdlog::logger> logger;
 
-    function<bool(uint8_t*, gf_string_t*)> strEqualityCheckerFunc;
-
-    // used only when the hash index is instantiated in the write mode
     vector<unique_ptr<uint8_t[]>> primaryPages{};
     vector<unique_ptr<uint8_t[]>> ovfPages{};
     unique_ptr<InMemStringOverflowPages> inMemStringOvfPages;
     PageByteCursor stringOvfPageCursor;
-
-    // used only when the hash index is instantiated in the read mode.
-    unique_ptr<FileHandle> fileHandle;
-    BufferManager* bufferManager{};
-    unique_ptr<StringOverflowPages> stringOvfPages;
 };
 
 } // namespace storage

@@ -6,7 +6,8 @@
 
 #include "src/common/include/csv_reader/csv_reader.h"
 #include "src/common/include/utils.h"
-#include "src/storage/include/index/hash_index.h"
+#include "src/loader/include/in_mem_structure/builder/hash_index_builder.h"
+#include "src/storage/include/index/hash_index_reader.h"
 
 using namespace std;
 using namespace graphflow::storage;
@@ -37,13 +38,13 @@ class LoadedHashIndexInt64KeyTest : public LoadedHashIndexTest {
 
 public:
     void SetUp() override {
-        HashIndex insertionHashIndex(fName, INT64);
-        insertionHashIndex.bulkReserve(numKeysToInsert);
+        HashIndexBuilder hashIndexBuilder(fName, INT64);
+        hashIndexBuilder.bulkReserve(numKeysToInsert);
         // Inserting (key=i, value=i*2) pairs
         for (uint64_t k = 0; k < numKeysToInsert; k++) {
-            insertionHashIndex.insert(reinterpret_cast<uint8_t*>(&k), k << 1);
+            hashIndexBuilder.insert(reinterpret_cast<uint8_t*>(&k), k << 1);
         }
-        insertionHashIndex.saveToDisk();
+        hashIndexBuilder.saveToDisk();
     }
 };
 
@@ -71,13 +72,13 @@ public:
     }
 
     void SetUp() override {
-        HashIndex insertionHashIndex(fName, STRING);
-        insertionHashIndex.bulkReserve(numKeysToInsert);
+        HashIndexBuilder hashIndexBuilder(fName, STRING);
+        hashIndexBuilder.bulkReserve(numKeysToInsert);
         for (auto& entry : map) {
             auto key = reinterpret_cast<uint8_t*>(const_cast<char*>(entry.first.c_str()));
-            insertionHashIndex.insert(key, entry.second);
+            hashIndexBuilder.insert(key, entry.second);
         }
-        insertionHashIndex.saveToDisk();
+        hashIndexBuilder.saveToDisk();
     }
 
 public:
@@ -86,32 +87,32 @@ public:
 };
 
 TEST(HashIndexTest, HashIndexInt64KeyInsertExists) {
-    HashIndex hashIndex("dummy_name", INT64);
+    HashIndexBuilder hashIndexBuilder("dummy_name", INT64);
     auto numEntries = 10;
     for (uint64_t i = 0; i < numEntries; i++) {
-        ASSERT_TRUE(hashIndex.insert(reinterpret_cast<uint8_t*>(&i), i << 1));
+        ASSERT_TRUE(hashIndexBuilder.insert(reinterpret_cast<uint8_t*>(&i), i << 1));
     }
     for (auto i = 0; i < numEntries; i++) {
-        ASSERT_FALSE(hashIndex.insert(reinterpret_cast<uint8_t*>(&i), i << 1));
+        ASSERT_FALSE(hashIndexBuilder.insert(reinterpret_cast<uint8_t*>(&i), i << 1));
     }
 }
 
 TEST(HashIndexTest, HashIndexStringKeyInsertExists) {
-    HashIndex hashIndex("dummy_name", STRING);
+    HashIndexBuilder hashIndexBuilder("dummy_name", STRING);
     char const* strKeys[] = {"abc", "def", "ghi", "jkl", "mno"};
     for (uint64_t i = 0; i < 5; i++) {
         auto key = reinterpret_cast<uint8_t*>(const_cast<char*>(strKeys[i]));
-        ASSERT_TRUE(hashIndex.insert(key, i));
+        ASSERT_TRUE(hashIndexBuilder.insert(key, i));
     }
     for (auto i = 0; i < 5; i++) {
         auto key = reinterpret_cast<uint8_t*>(const_cast<char*>(strKeys[i]));
-        ASSERT_FALSE(hashIndex.insert(key, i));
+        ASSERT_FALSE(hashIndexBuilder.insert(key, i));
     }
 }
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64SequentialLookupInMem) {
     auto bufferManager = make_unique<BufferManager>(0);
-    HashIndex hashIndex(fName, *bufferManager, true /*isInMemory*/);
+    HashIndexReader hashIndex(fName, *bufferManager, true /*isInMemory*/);
     node_offset_t result;
     for (uint64_t i = 0; i < numKeysToInsert; i++) {
         auto found =
@@ -123,7 +124,7 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64SequentialLookupInMem) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookupThroughBufferManager) {
     auto bufferManager = make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
-    HashIndex hashIndex(fName, *bufferManager, false /*isInMemory*/);
+    HashIndexReader hashIndex(fName, *bufferManager, false /*isInMemory*/);
     random_device rd;
     mt19937::result_type seed =
         rd() ^ ((mt19937::result_type)chrono::duration_cast<chrono::seconds>(
@@ -144,7 +145,7 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookupThroughBufferManag
 
 TEST_F(LoadedHashIndexStringKeyTest, HashIndexInt64SequentialLookupInMem) {
     auto bufferManager = make_unique<BufferManager>(0);
-    HashIndex hashIndex(fName, *bufferManager, true /*isInMemory*/);
+    HashIndexReader hashIndex(fName, *bufferManager, true /*isInMemory*/);
     node_offset_t result;
     for (auto& entry : map) {
         auto key = reinterpret_cast<uint8_t*>(const_cast<char*>(entry.first.c_str()));
