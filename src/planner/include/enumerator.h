@@ -36,6 +36,8 @@ public:
 private:
     vector<unique_ptr<LogicalPlan>> enumeratePlans(const BoundSingleQuery& singleQuery);
 
+    // See logical_plan.h for detailed description of our sub-plan limitation.
+    vector<unique_ptr<LogicalPlan>> getValidSubPlans(vector<unique_ptr<LogicalPlan>> plans);
     unique_ptr<LogicalPlan> getBestPlan(vector<unique_ptr<LogicalPlan>> plans);
 
     vector<unique_ptr<LogicalPlan>> enumerateQueryPart(

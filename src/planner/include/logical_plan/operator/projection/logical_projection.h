@@ -10,8 +10,8 @@ class LogicalProjection : public LogicalOperator {
 
 public:
     explicit LogicalProjection(vector<shared_ptr<Expression>> expressions,
-        vector<uint32_t> discardedGroupsPos, shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, expressionsToProject{move(expressions)},
+        vector<uint32_t> discardedGroupsPos, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, expressionsToProject{move(expressions)},
           discardedGroupsPos{move(discardedGroupsPos)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
@@ -28,7 +28,7 @@ public:
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalProjection>(
-            expressionsToProject, discardedGroupsPos, prevOperator->copy());
+            expressionsToProject, discardedGroupsPos, children[0]->copy());
     }
 
 public:

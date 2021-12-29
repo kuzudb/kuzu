@@ -9,8 +9,8 @@ class LogicalLimit : public LogicalOperator {
 
 public:
     LogicalLimit(uint64_t limitNumber, uint32_t groupPosToSelect, vector<uint32_t> groupsPosToLimit,
-        shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, limitNumber{limitNumber},
+        shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, limitNumber{limitNumber},
           groupPosToSelect{groupPosToSelect}, groupsPosToLimit{move(groupsPosToLimit)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override { return LOGICAL_LIMIT; }
@@ -23,7 +23,7 @@ public:
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalLimit>(
-            limitNumber, groupPosToSelect, groupsPosToLimit, prevOperator->copy());
+            limitNumber, groupPosToSelect, groupsPosToLimit, children[0]->copy());
     }
 
 private:

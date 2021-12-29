@@ -9,8 +9,8 @@ class LogicalScanNodeProperty : public LogicalOperator {
 
 public:
     LogicalScanNodeProperty(string nodeID, label_t nodeLabel, string propertyVariableName,
-        uint32_t propertyKey, bool isUnstructuredProperty, shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{prevOperator}, nodeID{move(nodeID)}, nodeLabel{nodeLabel},
+        uint32_t propertyKey, bool isUnstructuredProperty, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, nodeID{move(nodeID)}, nodeLabel{nodeLabel},
           propertyVariableName{move(propertyVariableName)}, propertyKey{propertyKey},
           isUnstructuredProperty{isUnstructuredProperty} {}
 
@@ -22,7 +22,7 @@ public:
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalScanNodeProperty>(nodeID, nodeLabel, propertyVariableName,
-            propertyKey, isUnstructuredProperty, prevOperator->copy());
+            propertyKey, isUnstructuredProperty, children[0]->copy());
     }
 
 public:

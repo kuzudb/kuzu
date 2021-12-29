@@ -35,6 +35,9 @@ cc_library(
 
 cc_library(
     name = "base_logical_operator",
+    srcs = [
+        "logical_plan/operator/logical_operator.cpp",
+    ],
     hdrs = [
         "include/logical_plan/operator/logical_operator.h",
     ],

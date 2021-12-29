@@ -13,10 +13,9 @@ namespace planner {
 class LogicalIntersect : public LogicalOperator {
 
 public:
-    LogicalIntersect(
-        string leftNodeID, string rightNodeID, shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, leftNodeID{move(leftNodeID)}, rightNodeID{move(
-                                                                                 rightNodeID)} {}
+    LogicalIntersect(string leftNodeID, string rightNodeID, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, leftNodeID{move(leftNodeID)}, rightNodeID{
+                                                                          move(rightNodeID)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_INTERSECT;
@@ -28,7 +27,7 @@ public:
     inline string getRightNodeID() const { return rightNodeID; }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalIntersect>(leftNodeID, rightNodeID, prevOperator->copy());
+        return make_unique<LogicalIntersect>(leftNodeID, rightNodeID, children[0]->copy());
     }
 
 private:

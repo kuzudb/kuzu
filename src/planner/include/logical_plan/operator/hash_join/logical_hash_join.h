@@ -9,36 +9,25 @@ namespace planner {
 class LogicalHashJoin : public LogicalOperator {
 
 public:
-    LogicalHashJoin(string joinNodeID, shared_ptr<LogicalOperator> buildSidePrevOperator,
-        unique_ptr<Schema> buildSideSchema, shared_ptr<LogicalOperator> probeSidePrevOperator)
-        : LogicalOperator(move(probeSidePrevOperator)),
-          joinNodeID(move(joinNodeID)), buildSidePrevOperator{move(buildSidePrevOperator)},
+    // Probe side on left, i.e. children[0]. Build side on right, i.e. children[1].
+    LogicalHashJoin(string joinNodeID, unique_ptr<Schema> buildSideSchema,
+        shared_ptr<LogicalOperator> probeSideChild, shared_ptr<LogicalOperator> buildSideChild)
+        : LogicalOperator{move(probeSideChild), move(buildSideChild)}, joinNodeID(move(joinNodeID)),
           buildSideSchema(move(buildSideSchema)) {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_HASH_JOIN;
     }
 
-    string toString(uint64_t depth = 0) const {
-        string result = LogicalOperatorTypeNames[getLogicalOperatorType()] + "[" +
-                        getExpressionsForPrinting() + "]";
-        result += "\nBUILD SIDE: \n";
-        result += buildSidePrevOperator->toString(depth + 1);
-        result += "\nPROBE SIDE: \n";
-        result += prevOperator->toString(depth + 1);
-        return result;
-    }
-
     string getExpressionsForPrinting() const override { return joinNodeID; }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalHashJoin>(joinNodeID, buildSidePrevOperator->copy(),
-            buildSideSchema->copy(), prevOperator->copy());
+        return make_unique<LogicalHashJoin>(
+            joinNodeID, buildSideSchema->copy(), children[0]->copy(), children[1]->copy());
     }
 
 public:
     const string joinNodeID;
-    shared_ptr<LogicalOperator> buildSidePrevOperator;
     unique_ptr<Schema> buildSideSchema;
 };
 } // namespace planner

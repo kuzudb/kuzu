@@ -13,7 +13,6 @@ unique_ptr<LogicalPlan> LogicalPlan::copy() const {
     auto plan = make_unique<LogicalPlan>(schema->copy());
     plan->lastOperator = lastOperator;
     plan->cost = cost;
-    plan->containAggregation = containAggregation;
     return plan;
 }
 

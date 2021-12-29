@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <unordered_set>
 
 #include "src/common/include/types.h"
 
@@ -37,39 +38,37 @@ const string LogicalOperatorTypeNames[] = {"LOGICAL_SCAN_NODE_ID", "LOGICAL_SELE
     "LOGICAL_AGGREGATE", "LOGICAL_ORDER_BY", "LOGICAL_EXISTS", "LOGICAL_LEFT_NESTED_LOOP_JOIN"};
 
 class LogicalOperator {
-public:
-    LogicalOperator() = default;
 
-    LogicalOperator(shared_ptr<LogicalOperator> prevOperator) {
-        setPrevOperator(move(prevOperator));
-    }
+public:
+    // Leaf operator.
+    LogicalOperator() = default;
+    // Unary operator.
+    LogicalOperator(shared_ptr<LogicalOperator> child);
+    // Binary operator.
+    LogicalOperator(shared_ptr<LogicalOperator> left, shared_ptr<LogicalOperator> right);
 
     virtual ~LogicalOperator() = default;
 
+    inline uint32_t getNumChildren() const { return children.size(); }
+    inline shared_ptr<LogicalOperator> getFirstChild() const { return children[0]; }
+    inline shared_ptr<LogicalOperator> getSecondChild() const { return children[1]; }
+    inline void setFirstChild(shared_ptr<LogicalOperator> op) { children[0] = move(op); }
+    inline void setSecondChild(shared_ptr<LogicalOperator> op) { children[1] = move(op); }
+
     virtual LogicalOperatorType getLogicalOperatorType() const = 0;
 
-    void setPrevOperator(shared_ptr<LogicalOperator> prevOperator) {
-        this->prevOperator = prevOperator;
-    }
-
-    virtual string toString(uint64_t depth = 0) const {
-        string result = string(depth * 4, ' ');
-        result += LogicalOperatorTypeNames[getLogicalOperatorType()] + "[" +
-                  getExpressionsForPrinting() + "]";
-        if (prevOperator) {
-            result += "\n";
-            result += prevOperator->toString(depth);
-        }
-        return result;
-    }
-
     virtual string getExpressionsForPrinting() const = 0;
+
+    bool descendantsContainType(const unordered_set<LogicalOperatorType>& types) const;
 
     // TODO: remove this function once planner do not share operator across plans
     virtual unique_ptr<LogicalOperator> copy() = 0;
 
-public:
-    shared_ptr<LogicalOperator> prevOperator;
+    // Print the sub-plan rooted at this operator.
+    virtual string toString(uint64_t depth = 0) const;
+
+protected:
+    vector<shared_ptr<LogicalOperator>> children;
 };
 
 } // namespace planner

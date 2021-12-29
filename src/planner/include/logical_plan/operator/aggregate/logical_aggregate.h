@@ -13,8 +13,8 @@ class LogicalAggregate : public LogicalOperator {
 public:
     LogicalAggregate(vector<shared_ptr<Expression>> expressionsToGroupBy,
         vector<shared_ptr<Expression>> expressionsToAggregate,
-        unique_ptr<Schema> schemaBeforeAggregate, shared_ptr<LogicalOperator> prevOperator)
-        : LogicalOperator{move(prevOperator)}, expressionsToGroupBy{move(expressionsToGroupBy)},
+        unique_ptr<Schema> schemaBeforeAggregate, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, expressionsToGroupBy{move(expressionsToGroupBy)},
           expressionsToAggregate{move(expressionsToAggregate)}, schemaBeforeAggregate{
                                                                     move(schemaBeforeAggregate)} {}
 
@@ -42,7 +42,7 @@ public:
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalAggregate>(expressionsToGroupBy, expressionsToAggregate,
-            schemaBeforeAggregate->copy(), prevOperator->copy());
+            schemaBeforeAggregate->copy(), children[0]->copy());
     }
 
 private:

@@ -19,8 +19,6 @@ void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& pr
         if (!expressionsToAggregate.empty()) {
             appendAggregate(getExpressionToGroupBy(projectionBody, *plan->schema),
                 expressionsToAggregate, *plan);
-            // See logical_plan.h for explanation.
-            plan->containAggregation = true;
         }
         if (projectionBody.hasOrderByExpressions()) {
             appendOrderBy(

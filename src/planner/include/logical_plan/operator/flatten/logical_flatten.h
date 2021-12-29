@@ -10,8 +10,8 @@ namespace planner {
 class LogicalFlatten : public LogicalOperator {
 
 public:
-    LogicalFlatten(string variable, const shared_ptr<LogicalOperator>& prevOperator)
-        : LogicalOperator{prevOperator}, variable{move(variable)} {}
+    LogicalFlatten(string variable, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, variable{move(variable)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_FLATTEN;
@@ -20,7 +20,7 @@ public:
     string getExpressionsForPrinting() const override { return variable; }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalFlatten>(variable, prevOperator->copy());
+        return make_unique<LogicalFlatten>(variable, children[0]->copy());
     }
 
 public:

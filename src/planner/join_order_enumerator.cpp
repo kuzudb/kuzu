@@ -136,7 +136,7 @@ void JoinOrderEnumerator::enumerateSingleRel() {
                         appendExtendFiltersAndScanPropertiesIfNecessary(
                             *tmpRel, direction, expressionsToFilter, *planWithFilter);
                         auto nodeIDFilter = createNodeIDEqualComparison(nodeToIntersect, tmpNode);
-                        enumerator->appendFilter(move(nodeIDFilter), *planWithFilter);
+                        enumerator->appendFilter(nodeIDFilter, *planWithFilter);
                         context->addPlan(newSubgraph, move(planWithFilter));
 
                         auto planWithIntersect = prevPlan->copy();
@@ -187,20 +187,20 @@ void JoinOrderEnumerator::enumerateHashJoin() {
                     leftSubgraph, rightSubgraph, newSubgraph, context->getWhereExpressions());
                 for (auto& leftPlan : leftPlans) {
                     for (auto& rightPlan : rightPlans) {
-                        auto plan = leftPlan->copy();
-                        appendLogicalHashJoin(joinNode, *rightPlan, *plan);
+                        auto probePlan = leftPlan->copy();
+                        appendLogicalHashJoin(joinNode, *probePlan, *rightPlan);
                         for (auto& expression : expressionsToFilter) {
-                            enumerator->appendFilter(expression, *plan);
+                            enumerator->appendFilter(expression, *probePlan);
                         }
-                        context->addPlan(newSubgraph, move(plan));
+                        context->addPlan(newSubgraph, move(probePlan));
                         // flip build and probe side to get another HashJoin plan
                         if (leftSize != currentLevel - leftSize) {
-                            auto planFlipped = rightPlan->copy();
-                            appendLogicalHashJoin(joinNode, *leftPlan, *planFlipped);
+                            probePlan = rightPlan->copy();
+                            appendLogicalHashJoin(joinNode, *probePlan, *leftPlan);
                             for (auto& expression : expressionsToFilter) {
-                                enumerator->appendFilter(expression, *planFlipped);
+                                enumerator->appendFilter(expression, *probePlan);
                             }
-                            context->addPlan(newSubgraph, move(planFlipped));
+                            context->addPlan(newSubgraph, move(probePlan));
                         }
                     }
                 }
@@ -223,9 +223,8 @@ void JoinOrderEnumerator::appendResultScan(
 
 void JoinOrderEnumerator::appendScanNodeID(const NodeExpression& queryNode, LogicalPlan& plan) {
     auto nodeID = queryNode.getIDProperty();
-    auto scan = plan.isEmpty() ?
-                    make_shared<LogicalScanNodeID>(nodeID, queryNode.label) :
-                    make_shared<LogicalScanNodeID>(nodeID, queryNode.label, plan.lastOperator);
+    assert(plan.isEmpty());
+    auto scan = make_shared<LogicalScanNodeID>(nodeID, queryNode.label);
     auto groupPos = plan.schema->createGroup();
     plan.schema->insertToGroup(nodeID, groupPos);
     plan.schema->groups[groupPos]->estimatedCardinality = graph.getNumNodes(queryNode.label);
@@ -270,7 +269,7 @@ void JoinOrderEnumerator::appendExtend(
 }
 
 void JoinOrderEnumerator::appendLogicalHashJoin(
-    const NodeExpression& joinNode, LogicalPlan& buildPlan, LogicalPlan& probePlan) {
+    const NodeExpression& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     auto joinNodeID = joinNode.getIDProperty();
     // Flat probe side key group if necessary
     auto probeSideKeyGroupPos = probePlan.schema->getGroupPos(joinNodeID);
@@ -311,7 +310,7 @@ void JoinOrderEnumerator::appendLogicalHashJoin(
         probePlan.schema->flattenGroup(probeSideNewFlatGroupPos);
     }
     auto hashJoin = make_shared<LogicalHashJoin>(
-        joinNodeID, buildPlan.lastOperator, buildPlan.schema->copy(), probePlan.lastOperator);
+        joinNodeID, buildPlan.schema->copy(), probePlan.lastOperator, buildPlan.lastOperator);
     probePlan.appendOperator(move(hashJoin));
 }
 
