@@ -1,0 +1,13 @@
+{
+  "tokenSeparator": "|",
+  "quoteCharacter": "=",
+  "escapeCharacter": "#",
+  "nodeFileDescriptions": [{
+    "tokenSeparator": ",",
+    "filename": "vPerson.csv",
+    "label": "person",
+    "IDType": "INT64"
+  }],
+  "relFileDescriptions": [
+  ]
+}

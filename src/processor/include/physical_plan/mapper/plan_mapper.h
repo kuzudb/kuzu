@@ -75,6 +75,8 @@ private:
     unique_ptr<PhysicalOperator> mapLogicalLeftNestedLoopJoinToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext,
         ExecutionContext& executionContext);
+    unique_ptr<PhysicalOperator> mapLogicalOrderByToPhysical(LogicalOperator* logicalOperator,
+        MapperContext& mapperContext, ExecutionContext& executionContext);
 
 public:
     const Graph& graph;

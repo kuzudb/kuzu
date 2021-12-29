@@ -212,10 +212,11 @@ cc_library(
         "task_system/*.cpp",
     ]),
     hdrs = glob([
+        "include/*.h",
         "include/task_system/*.h",
     ]),
     visibility = ["//visibility:public"],
-        deps = [
-            "utils",
-        ],
+    deps = [
+        "utils",
+    ],
 )

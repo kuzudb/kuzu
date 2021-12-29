@@ -22,11 +22,12 @@ struct TestSuiteSystemConfig {
 };
 
 struct TestQueryConfig {
-    uint64_t numThreads = 4;
+    uint64_t numThreads = 1;
     string name;
     string query;
     uint64_t expectedNumTuples;
     vector<string> expectedTuples;
+    bool checkOutputOrder = false;
 };
 
 class TestHelper {
@@ -34,7 +35,7 @@ class TestHelper {
 public:
     static bool runTest(const vector<TestQueryConfig>& testConfigs, const System& system);
 
-    static vector<TestQueryConfig> parseTestFile(const string& path);
+    static vector<TestQueryConfig> parseTestFile(const string& path, bool checkOutputOrder = false);
 
     static void loadGraph(TestSuiteSystemConfig& config);
 
@@ -42,7 +43,7 @@ public:
         return make_unique<System>(config.graphOutputDir, config.isInMemory);
     }
 
-    static vector<string> getActualOutput(QueryResult& queryResult);
+    static vector<string> getActualOutput(QueryResult& queryResult, bool checkOutputOrder = false);
 };
 
 class BaseGraphLoadingTest : public Test {

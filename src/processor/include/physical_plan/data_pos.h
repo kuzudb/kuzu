@@ -11,6 +11,10 @@ public:
 
     DataPos(const DataPos& other) : DataPos(other.dataChunkPos, other.valueVectorPos) {}
 
+    inline bool operator==(const DataPos& rhs) {
+        return (dataChunkPos == rhs.dataChunkPos) && (valueVectorPos == rhs.valueVectorPos);
+    }
+
 public:
     uint32_t dataChunkPos;
     uint32_t valueVectorPos;

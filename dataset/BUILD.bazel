@@ -8,6 +8,7 @@ filegroup(
         "loader-special-char-test/**",
         "read-list-tests/**",
         "hash-index-test/**",
+        "order-by-tests/**",
     ]),
     visibility = ["//visibility:public"],
 )

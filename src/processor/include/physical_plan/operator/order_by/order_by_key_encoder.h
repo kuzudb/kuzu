@@ -18,6 +18,18 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
+struct KeyBlock {
+    inline uint8_t* getMemBlockData() const { return memBlock->data; }
+
+    explicit KeyBlock(unique_ptr<MemoryBlock> memBlock)
+        : memBlock{move(memBlock)}, numEntriesInMemBlock{0} {}
+
+    inline uint64_t getKeyBlockSize() { return memBlock->size; }
+
+    unique_ptr<MemoryBlock> memBlock;
+    uint64_t numEntriesInMemBlock;
+};
+
 // The OrderByKeyEncoder encodes all columns in the ORDER BY clause into a single binary sequence
 // that, when compared using memcmp will yield the correct overall sorting order. On little-endian
 // hardware, the least-significant byte is stored at the smallest address. To encode the sorting
@@ -34,18 +46,18 @@ class OrderByKeyEncoder {
 
 public:
     explicit OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors,
-        vector<bool>& isAscOrder, MemoryManager& memoryManager, uint16_t threadID)
-        : curBlockUsedEntries{0}, memoryManager{memoryManager}, orderByVectors{orderByVectors},
-          isAscOrder{isAscOrder}, nextLocalRowID{0}, threadID{threadID} {
-        keyBlocks.emplace_back(memoryManager.allocateBlock(SORT_BLOCK_SIZE));
+        vector<bool>& isAscOrder, MemoryManager& memoryManager, uint16_t rowCollectionIdx)
+        : memoryManager{memoryManager}, orderByVectors{orderByVectors}, isAscOrder{isAscOrder},
+          nextLocalRowIdx{0}, rowCollectionIdx{rowCollectionIdx} {
+        keyBlocks.emplace_back(make_unique<KeyBlock>(memoryManager.allocateBlock(SORT_BLOCK_SIZE)));
         keyBlockEntrySizeInBytes = 0;
         for (auto& orderByVector : orderByVectors) {
             keyBlockEntrySizeInBytes += getEncodingSize(orderByVector->dataType);
         }
-        // 6 bytes for rowID and 2 bytes for threadID
+        // 6 bytes for rowIdx and 2 bytes for rowCollectionIdx
         keyBlockEntrySizeInBytes += 8;
-        entriesPerBlock = SORT_BLOCK_SIZE / keyBlockEntrySizeInBytes;
-        if (entriesPerBlock <= 0) {
+        maxEntriesPerBlock = SORT_BLOCK_SIZE / keyBlockEntrySizeInBytes;
+        if (maxEntriesPerBlock <= 0) {
             throw EncodingException(StringUtils::string_format(
                 "EntrySize(%d bytes) is larger than the SORT_BLOCK_SIZE(%d bytes)",
                 keyBlockEntrySizeInBytes, SORT_BLOCK_SIZE));
@@ -54,7 +66,7 @@ public:
 
     void encodeKeys();
 
-    inline vector<unique_ptr<MemoryBlock>>& getKeyBlocks() { return keyBlocks; }
+    inline vector<shared_ptr<KeyBlock>>& getKeyBlocks() { return keyBlocks; }
 
     inline vector<bool>& getIsAscOrder() { return isAscOrder; }
 
@@ -62,28 +74,30 @@ public:
 
     inline uint64_t getKeyBlockEntrySizeInBytes() const { return keyBlockEntrySizeInBytes; }
 
-    inline uint64_t getEntriesPerBlock() const { return entriesPerBlock; }
+    inline uint64_t getMaxEntriesPerBlock() const { return maxEntriesPerBlock; }
 
-    inline uint64_t getCurBlockUsedEntries() const { return curBlockUsedEntries; }
-
-    static inline uint64_t getEncodedRowIDSizeInBytes() {
-        return sizeof(nextLocalRowID) - sizeof(threadID);
+    inline uint64_t getCurBlockUsedEntries() const {
+        return keyBlocks.back()->numEntriesInMemBlock;
     }
 
-    static inline uint64_t getEncodedRowID(const uint8_t* rowInfoBuffer) {
-        uint64_t encodedRowID = 0;
-        // Only the lower 6 bytes are used for localRowID.
-        memcpy(&encodedRowID, rowInfoBuffer, getEncodedRowIDSizeInBytes());
-        return encodedRowID;
+    static inline uint64_t getEncodedRowIdxSizeInBytes() {
+        return sizeof(nextLocalRowIdx) - sizeof(rowCollectionIdx);
     }
 
-    static inline uint64_t getEncodedThreadID(const uint8_t* rowInfoBuffer) {
-        uint16_t encodedThreadID = 0;
-        // The lower 6 bytes are used for localRowID, only the higher two bytes are used for
-        // threadID.
-        memcpy(&encodedThreadID, rowInfoBuffer + getEncodedRowIDSizeInBytes(),
-            sizeof(encodedThreadID));
-        return encodedThreadID;
+    static inline uint64_t getEncodedRowIdx(const uint8_t* rowInfoBuffer) {
+        uint64_t encodedRowIdx = 0;
+        // Only the lower 6 bytes are used for localRowIdx.
+        memcpy(&encodedRowIdx, rowInfoBuffer, getEncodedRowIdxSizeInBytes());
+        return encodedRowIdx;
+    }
+
+    static inline uint64_t getEncodedRowCollectionIdx(const uint8_t* rowInfoBuffer) {
+        uint16_t encodedRowCollectionIdx = 0;
+        // The lower 6 bytes are used for localRowIdx, only the higher two bytes are used for
+        // rowCollectionIdx.
+        memcpy(&encodedRowCollectionIdx, rowInfoBuffer + getEncodedRowIdxSizeInBytes(),
+            sizeof(encodedRowCollectionIdx));
+        return encodedRowCollectionIdx;
     }
 
     static uint64_t getEncodingSize(DataType dataType);
@@ -116,18 +130,17 @@ private:
 
 private:
     MemoryManager& memoryManager;
-    vector<unique_ptr<MemoryBlock>> keyBlocks;
-    uint64_t curBlockUsedEntries;
+    vector<shared_ptr<KeyBlock>> keyBlocks;
     vector<shared_ptr<ValueVector>>& orderByVectors;
     vector<bool> isAscOrder;
     uint64_t keyBlockEntrySizeInBytes;
-    uint64_t entriesPerBlock;
-    // We only use 6 bytes to represent the nextLocalRowID, and 2 bytes to represent the threadID.
-    // Only the lower 6 bytes of nextLocalRowID are actually used, so the MAX_LOCAL_ROW_ID is
-    // 2^48-1.
-    const uint64_t MAX_LOCAL_ROW_ID = (1ull << 48) - 1;
-    uint64_t nextLocalRowID;
-    uint16_t threadID;
+    uint64_t maxEntriesPerBlock;
+    // We only use 6 bytes to represent the nextLocalRowIdx, and 2 bytes to represent the
+    // rowCollectionIdx. Only the lower 6 bytes of nextLocalRowIdx are actually used, so the
+    // MAX_LOCAL_ROW_ID is 2^48-1.
+    const uint64_t MAX_LOCAL_ROW_IDX = (1ull << 48) - 1;
+    uint64_t nextLocalRowIdx;
+    uint16_t rowCollectionIdx;
 };
 
 } // namespace processor

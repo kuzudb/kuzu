@@ -106,9 +106,8 @@ uint64_t OrderByKeyEncoder::getEncodingSize(DataType dataType) {
 }
 
 void OrderByKeyEncoder::allocateMemoryIfFull() {
-    if (curBlockUsedEntries == entriesPerBlock) {
-        keyBlocks.emplace_back(memoryManager.allocateBlock(SORT_BLOCK_SIZE));
-        curBlockUsedEntries = 0;
+    if (getCurBlockUsedEntries() == maxEntriesPerBlock) {
+        keyBlocks.emplace_back(make_shared<KeyBlock>(memoryManager.allocateBlock(SORT_BLOCK_SIZE)));
     }
 }
 
@@ -173,19 +172,20 @@ void OrderByKeyEncoder::encodeKeys() {
         GF_ASSERT(orderByVectors.size() == 1);
         numEntries = orderByVectors[0]->state->selectedSize;
     }
-    // Check whether the nextLocalRowID overflows.
-    if (nextLocalRowID + numEntries - 1 > MAX_LOCAL_ROW_ID) {
+    // Check whether the nextLocalRowIdx overflows.
+    if (nextLocalRowIdx + numEntries - 1 > MAX_LOCAL_ROW_IDX) {
         throw EncodingException("Attempting to order too many rows. The orderByKeyEncoder has "
                                 "achieved its maximum number of rows!");
     }
     uint64_t encodedRows = 0;
     while (numEntries > 0) {
         allocateMemoryIfFull();
-        uint64_t numEntriesToEncode = min(numEntries, entriesPerBlock - curBlockUsedEntries);
+        uint64_t numEntriesToEncode =
+            min(numEntries, maxEntriesPerBlock - getCurBlockUsedEntries());
         for (uint64_t i = 0; i < numEntriesToEncode; i++) {
             uint64_t keyBlockPtrOffset = 0;
-            const auto basePtr =
-                keyBlocks.back()->data + curBlockUsedEntries * keyBlockEntrySizeInBytes;
+            const auto basePtr = keyBlocks.back()->getMemBlockData() +
+                                 keyBlocks.back()->numEntriesInMemBlock * keyBlockEntrySizeInBytes;
             for (uint64_t keyColIdx = 0; keyColIdx < orderByVectors.size(); keyColIdx++) {
                 auto const keyBlockPtr = basePtr + keyBlockPtrOffset;
                 uint64_t idxInOrderByVector =
@@ -195,15 +195,15 @@ void OrderByKeyEncoder::encodeKeys() {
                 encodeData(orderByVectors[keyColIdx], idxInOrderByVector, keyBlockPtr, keyColIdx);
                 keyBlockPtrOffset += getEncodingSize(orderByVectors[keyColIdx]->dataType);
             }
-            // Since only the lower 6 bytes of nextLocalRowID is actually used, we only need to
+            // Since only the lower 6 bytes of nextLocalRowIdx is actually used, we only need to
             // encode the lower 6 bytes.
-            memcpy(basePtr + keyBlockPtrOffset, &nextLocalRowID, getEncodedRowIDSizeInBytes());
-            // 2 bytes encoding for threadID
-            memcpy(basePtr + keyBlockPtrOffset + getEncodedRowIDSizeInBytes(), &threadID,
-                sizeof(threadID));
+            memcpy(basePtr + keyBlockPtrOffset, &nextLocalRowIdx, getEncodedRowIdxSizeInBytes());
+            // 2 bytes encoding for rowCollectionIdx
+            memcpy(basePtr + keyBlockPtrOffset + getEncodedRowIdxSizeInBytes(), &rowCollectionIdx,
+                sizeof(rowCollectionIdx));
             encodedRows++;
-            curBlockUsedEntries++;
-            nextLocalRowID++;
+            keyBlocks.back()->numEntriesInMemBlock++;
+            nextLocalRowIdx++;
         }
         numEntries -= numEntriesToEncode;
     }

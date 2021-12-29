@@ -87,13 +87,13 @@ void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, que
     sort(tmpRowPtrSortingBlockPtr, tmpRowPtrSortingBlockPtr + keyBlockTie.getNumRows(),
         [this, isAscOrder, fieldOffsetInRowCollection](
             const uint8_t* leftPtr, const uint8_t* rightPtr) -> bool {
-            const auto leftStrRowID = OrderByKeyEncoder::getEncodedRowID(
+            const auto leftStrRowIdx = OrderByKeyEncoder::getEncodedRowIdx(
                 leftPtr + orderByKeyEncoder.getKeyBlockEntrySizeInBytes() - sizeof(uint64_t));
-            const auto rightStrRowID = OrderByKeyEncoder::getEncodedRowID(
+            const auto rightStrRowIdx = OrderByKeyEncoder::getEncodedRowIdx(
                 rightPtr + orderByKeyEncoder.getKeyBlockEntrySizeInBytes() - sizeof(uint64_t));
-            const auto leftStr = *((gf_string_t*)(this->rowCollection.getRow(leftStrRowID) +
+            const auto leftStr = *((gf_string_t*)(this->rowCollection.getRow(leftStrRowIdx) +
                                                   fieldOffsetInRowCollection));
-            const auto rightStr = *((gf_string_t*)(this->rowCollection.getRow(rightStrRowID) +
+            const auto rightStr = *((gf_string_t*)(this->rowCollection.getRow(rightStrRowIdx) +
                                                    fieldOffsetInRowCollection));
             uint8_t result;
             LessThan::operation<gf_string_t, gf_string_t>(leftStr, rightStr, result, false, false);
@@ -112,26 +112,26 @@ void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, que
 
     // Some ties can't be solved in quicksort, just add them to ties.
     for (auto i = keyBlockTie.startingRowIdx; i < keyBlockTie.endingRowIdx; i++) {
-        auto rowIDAtIndexI = OrderByKeyEncoder::getEncodedRowID(
+        auto rowIdxAtIdxI = OrderByKeyEncoder::getEncodedRowIdx(
             keyBlockPtr +
             orderByKeyEncoder.getKeyBlockEntrySizeInBytes() * (i + 1 - keyBlockTie.startingRowIdx) -
             sizeof(uint64_t));
-        auto strAtIndexI =
-            *((gf_string_t*)(rowCollection.getRow(rowIDAtIndexI) + fieldOffsetInRowCollection));
+        auto strAtIdxI =
+            *((gf_string_t*)(rowCollection.getRow(rowIdxAtIdxI) + fieldOffsetInRowCollection));
 
         auto j = i + 1;
         for (; j <= keyBlockTie.endingRowIdx; j++) {
-            auto rowIDAtIndexJ =
-                OrderByKeyEncoder::getEncodedRowID(keyBlockPtr +
-                                                   orderByKeyEncoder.getKeyBlockEntrySizeInBytes() *
-                                                       (j + 1 - keyBlockTie.startingRowIdx) -
-                                                   sizeof(uint64_t));
-            auto strAtIndexJ =
-                *((gf_string_t*)(rowCollection.getRow(rowIDAtIndexJ) + fieldOffsetInRowCollection));
+            auto rowIdxAtIndexJ = OrderByKeyEncoder::getEncodedRowIdx(
+                keyBlockPtr +
+                orderByKeyEncoder.getKeyBlockEntrySizeInBytes() *
+                    (j + 1 - keyBlockTie.startingRowIdx) -
+                sizeof(uint64_t));
+            auto strAtIdxJ = *(
+                (gf_string_t*)(rowCollection.getRow(rowIdxAtIndexJ) + fieldOffsetInRowCollection));
 
             uint8_t result;
             NotEquals::operation<gf_string_t, gf_string_t>(
-                strAtIndexI, strAtIndexJ, result, false, false);
+                strAtIdxI, strAtIdxJ, result, false, false);
             if (result) {
                 break;
             }
@@ -144,67 +144,61 @@ void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, que
     }
 }
 
-void RadixSort::sortSingleKeyBlock(const MemoryBlock& keyBlock, uint64_t numRowsInKeyBlock) {
-    auto numBytesToSort = 0ul;
+void RadixSort::sortSingleKeyBlock(const KeyBlock& keyBlock) {
     auto numBytesSorted = 0ul;
-    auto numStrColSorted = 0ul; // used to index the orderByColOffsetInRowCollection map
+    auto numRowsInKeyBlock = keyBlock.numEntriesInMemBlock;
     queue<TieRange> ties;
     // We need to sort the whole keyBlock for the first radix sort, so just mark all rows as a tie.
     ties.push(TieRange{0, numRowsInKeyBlock - 1});
-    for (auto i = 0u; i < orderByKeyEncoder.getOrderByVectors().size(); i++) {
-        numBytesToSort +=
-            OrderByKeyEncoder::getEncodingSize(orderByKeyEncoder.getOrderByVectors()[i]->dataType);
-        // Only do radix sort until we meet a column with variable length datatype(STRING)
-        // or this is the last column.
-        if (orderByKeyEncoder.getOrderByVectors()[i]->dataType != STRING &&
-            i < orderByKeyEncoder.getOrderByVectors().size() - 1) {
-            continue;
-        }
+    for (auto i = 0u; i < strKeyColInfo.size(); i++) {
+        const auto numBytesToSort = strKeyColInfo[i].colOffsetInEncodedKeyBlock - numBytesSorted +
+                                    OrderByKeyEncoder::getEncodingSize(STRING);
         const auto numOfTies = ties.size();
         for (auto j = 0u; j < numOfTies; j++) {
             auto keyBlockTie = ties.front();
             ties.pop();
-            radixSort(keyBlock.data + keyBlockTie.startingRowIdx *
-                                          orderByKeyEncoder.getKeyBlockEntrySizeInBytes(),
+            radixSort(
+                keyBlock.getMemBlockData() +
+                    keyBlockTie.startingRowIdx * orderByKeyEncoder.getKeyBlockEntrySizeInBytes(),
                 keyBlockTie.getNumRows(), numBytesSorted, numBytesToSort);
-            // If the current column is a string column, we can try to solve the tie by comparing
-            // the overflow ptr.
-            if (orderByKeyEncoder.getOrderByVectors()[i]->dataType == STRING) {
-                auto newTiesInKeyBlock =
-                    findTies(keyBlock.data +
-                                 keyBlockTie.startingRowIdx *
-                                     orderByKeyEncoder.getKeyBlockEntrySizeInBytes() +
-                                 numBytesSorted,
-                        keyBlockTie.getNumRows(), numBytesToSort, keyBlockTie.startingRowIdx);
-                for (auto& newTieInKeyBlock : newTiesInKeyBlock) {
-                    solveStringTies(newTieInKeyBlock,
-                        keyBlock.data + newTieInKeyBlock.startingRowIdx *
-                                            orderByKeyEncoder.getKeyBlockEntrySizeInBytes(),
-                        ties, orderByKeyEncoder.getIsAscOrder()[i],
-                        orderByColOffsetInRowCollection[numStrColSorted]);
-                }
+
+            auto newTiesInKeyBlock = findTies(
+                keyBlock.getMemBlockData() +
+                    keyBlockTie.startingRowIdx * orderByKeyEncoder.getKeyBlockEntrySizeInBytes() +
+                    numBytesSorted,
+                keyBlockTie.getNumRows(), numBytesToSort, keyBlockTie.startingRowIdx);
+            for (auto& newTieInKeyBlock : newTiesInKeyBlock) {
+                solveStringTies(newTieInKeyBlock,
+                    keyBlock.getMemBlockData() +
+                        newTieInKeyBlock.startingRowIdx *
+                            orderByKeyEncoder.getKeyBlockEntrySizeInBytes(),
+                    ties, strKeyColInfo[i].isAscOrder, strKeyColInfo[i].colOffsetInRowCollection);
             }
         }
         if (ties.empty()) {
             return;
         }
-        if (orderByKeyEncoder.getOrderByVectors()[i]->dataType == STRING) {
-            numStrColSorted++;
-        }
         numBytesSorted += numBytesToSort;
-        numBytesToSort = 0;
+    }
+
+    if (numBytesSorted < orderByKeyEncoder.getKeyBlockEntrySizeInBytes()) {
+        while (!ties.empty()) {
+            auto tie = ties.front();
+            ties.pop();
+            radixSort(keyBlock.getMemBlockData() +
+                          tie.startingRowIdx * orderByKeyEncoder.getKeyBlockEntrySizeInBytes(),
+                tie.getNumRows(), numBytesSorted,
+                orderByKeyEncoder.getKeyBlockEntrySizeInBytes() - numBytesSorted);
+        }
     }
 }
 
 void RadixSort::sortAllKeyBlocks() {
-    for (auto i = 0u; i < orderByKeyEncoder.getKeyBlocks().size(); i++) {
+    for (auto& keyBlock : orderByKeyEncoder.getKeyBlocks()) {
         // The orderByKeyEncoder only creates a new memory block if all current memory blocks are
         // full. If we have N memoryBlocks, the first N-1 memory blocks should be full and the Nth
         // memory block can be either full or partially full.
-        sortSingleKeyBlock(
-            *orderByKeyEncoder.getKeyBlocks()[i], i == orderByKeyEncoder.getKeyBlocks().size() - 1 ?
-                                                      orderByKeyEncoder.getCurBlockUsedEntries() :
-                                                      orderByKeyEncoder.getEntriesPerBlock());
+        sortSingleKeyBlock(*keyBlock);
     }
 }
 

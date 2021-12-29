@@ -68,9 +68,6 @@ private:
     void runWorkerThread();
     shared_ptr<ScheduledTask> getTaskAndRegister();
 
-public:
-    const uint64_t THREAD_WAIT_TIME_IN_MICROS = 100;
-
 private:
     shared_ptr<spdlog::logger> logger;
     mutex mtx;
