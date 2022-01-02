@@ -54,24 +54,23 @@ public:
 
 class HashJoinBuild : public Sink {
 public:
-    HashJoinBuild(const BuildDataInfo& buildDataInfo, unique_ptr<PhysicalOperator> prevOperator,
-        ExecutionContext& context, uint32_t id);
+    HashJoinBuild(shared_ptr<HashJoinSharedState> sharedState, const BuildDataInfo& buildDataInfo,
+        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id);
+
+    PhysicalOperatorType getOperatorType() override { return HASH_JOIN_BUILD; }
 
     shared_ptr<ResultSet> initResultSet() override;
     void execute() override;
     void finalize() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-
-        auto cloneOp =
-            make_unique<HashJoinBuild>(buildDataInfo, prevOperator->clone(), context, id);
-        cloneOp->sharedState = this->sharedState;
-        return cloneOp;
+        return make_unique<HashJoinBuild>(
+            sharedState, buildDataInfo, children[0]->clone(), context, id);
     }
 
+private:
     shared_ptr<HashJoinSharedState> sharedState;
 
-private:
     BuildDataInfo buildDataInfo;
     shared_ptr<DataChunk> keyDataChunk;
     vector<shared_ptr<ValueVector>> vectorsToAppend;

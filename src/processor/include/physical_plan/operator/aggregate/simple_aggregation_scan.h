@@ -13,19 +13,28 @@ class SimpleAggregationScan : public PhysicalOperator, public SourceOperator {
 
 public:
     SimpleAggregationScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        const vector<DataPos>& outDataPos, unique_ptr<PhysicalOperator> prevOperator,
+        vector<DataPos> outDataPos, unique_ptr<PhysicalOperator> child,
         shared_ptr<AggregationSharedState> sharedState, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(prevOperator), AGGREGATION_SCAN, context, id},
-          SourceOperator{move(resultSetDescriptor)}, outDataPos{outDataPos}, sharedState{move(
-                                                                                 sharedState)} {}
+        : PhysicalOperator{move(child), context, id}, SourceOperator{move(resultSetDescriptor)},
+          outDataPos{move(outDataPos)}, sharedState{move(sharedState)} {}
+
+    // This constructor is used for cloning only.
+    SimpleAggregationScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        vector<DataPos> outDataPos, shared_ptr<AggregationSharedState> sharedState,
+        ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{context, id}, SourceOperator{move(resultSetDescriptor)},
+          outDataPos{move(outDataPos)}, sharedState{move(sharedState)} {}
+
+    PhysicalOperatorType getOperatorType() override { return AGGREGATION_SCAN; }
 
     shared_ptr<ResultSet> initResultSet() override;
 
     bool getNextTuples() override;
 
+    // SimpleAggregationScan is the source operator of a pipeline, so it should not clone its child.
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<SimpleAggregationScan>(resultSetDescriptor->copy(), outDataPos,
-            prevOperator->clone(), sharedState, context, id);
+        return make_unique<SimpleAggregationScan>(
+            resultSetDescriptor->copy(), outDataPos, sharedState, context, id);
     }
 
 private:

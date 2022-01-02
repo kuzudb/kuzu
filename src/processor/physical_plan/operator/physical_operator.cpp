@@ -5,16 +5,28 @@
 namespace graphflow {
 namespace processor {
 
-PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> prevOperator,
-    PhysicalOperatorType operatorType, ExecutionContext& context, uint32_t id)
-    : prevOperator{move(prevOperator)}, operatorType{operatorType}, context{context}, id{id} {
+PhysicalOperator::PhysicalOperator(ExecutionContext& context, uint32_t id)
+    : context{context}, id{id} {
     registerProfilingMetrics();
+}
+
+PhysicalOperator::PhysicalOperator(
+    unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
+    : PhysicalOperator{context, id} {
+    children.push_back(move(child));
+}
+
+PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> left,
+    unique_ptr<PhysicalOperator> right, ExecutionContext& context, uint32_t id)
+    : PhysicalOperator{context, id} {
+    children.push_back(move(left));
+    children.push_back(move(right));
 }
 
 PhysicalOperator* PhysicalOperator::getLeafOperator() {
     PhysicalOperator* op = this;
-    while (op->prevOperator != nullptr) {
-        op = op->prevOperator.get();
+    while (op->hasFirstChild()) {
+        op = op->getFirstChild();
     }
     return op;
 }
@@ -37,8 +49,8 @@ void PhysicalOperator::printMetricsToJson(nlohmann::json& json, Profiler& profil
 
 void PhysicalOperator::printTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler) {
     double prevExecutionTime = 0.0;
-    if (prevOperator) {
-        prevExecutionTime = profiler.sumAllTimeMetricsWithKey(prevOperator->getTimeMetricKey());
+    if (hasFirstChild()) {
+        prevExecutionTime = profiler.sumAllTimeMetricsWithKey(getFirstChild()->getTimeMetricKey());
     }
     // Time metric measures execution time of the subplan under current operator (like a CDF).
     // By subtracting prevOperator runtime, we get the runtime of current operator

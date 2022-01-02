@@ -11,9 +11,11 @@ class AdjColumnExtend : public ScanAttribute, public FilteringOperator {
 
 public:
     AdjColumnExtend(const DataPos& inDataPos, const DataPos& outDataPos, Column* column,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-        : ScanAttribute{inDataPos, outDataPos, move(prevOperator), context, id},
+        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
+        : ScanAttribute{inDataPos, outDataPos, move(child), context, id},
           FilteringOperator(), column{column} {}
+
+    PhysicalOperatorType getOperatorType() override { return COLUMN_EXTEND; }
 
     shared_ptr<ResultSet> initResultSet() override;
 
@@ -23,7 +25,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<AdjColumnExtend>(
-            inDataPos, outDataPos, column, prevOperator->clone(), context, id);
+            inDataPos, outDataPos, column, children[0]->clone(), context, id);
     }
 
 private:

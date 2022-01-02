@@ -4,12 +4,12 @@ namespace graphflow {
 namespace processor {
 
 shared_ptr<ResultSet> MultiplicityReducer::initResultSet() {
-    resultSet = prevOperator->initResultSet();
+    resultSet = children[0]->initResultSet();
     return resultSet;
 }
 
 void MultiplicityReducer::reInitToRerunSubPlan() {
-    prevOperator->reInitToRerunSubPlan();
+    children[0]->reInitToRerunSubPlan();
     prevMultiplicity = 1;
     numRepeat = 0;
 }
@@ -18,7 +18,7 @@ bool MultiplicityReducer::getNextTuples() {
     metrics->executionTime.start();
     if (numRepeat == 0) {
         restoreMultiplicity();
-        if (!prevOperator->getNextTuples()) {
+        if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();
             return false;
         }

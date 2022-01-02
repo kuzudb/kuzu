@@ -28,9 +28,11 @@ struct AggregationSharedState {
 class SimpleAggregate : public Sink {
 
 public:
-    SimpleAggregate(unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context,
-        uint32_t id, shared_ptr<AggregationSharedState> aggregationSharedState,
+    SimpleAggregate(unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id,
+        shared_ptr<AggregationSharedState> aggregationSharedState,
         vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators);
+
+    PhysicalOperatorType getOperatorType() override { return AGGREGATION; }
 
     shared_ptr<ResultSet> initResultSet() override;
 

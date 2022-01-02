@@ -5,20 +5,18 @@
 namespace graphflow {
 namespace processor {
 
-SimpleAggregate::SimpleAggregate(unique_ptr<PhysicalOperator> prevOperator,
-    ExecutionContext& context, uint32_t id,
-    shared_ptr<AggregationSharedState> aggregationSharedState,
+SimpleAggregate::SimpleAggregate(unique_ptr<PhysicalOperator> child, ExecutionContext& context,
+    uint32_t id, shared_ptr<AggregationSharedState> aggregationSharedState,
     vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators)
-    : Sink{move(prevOperator), PhysicalOperatorType::AGGREGATE, context, id},
-      sharedState{move(aggregationSharedState)}, aggregationEvaluators{
-                                                     move(aggregationEvaluators)} {
+    : Sink{move(child), context, id}, sharedState{move(aggregationSharedState)},
+      aggregationEvaluators{move(aggregationEvaluators)} {
     for (auto& expressionEvaluator : this->aggregationEvaluators) {
         aggregationStates.push_back(expressionEvaluator->getFunction()->initialize());
     }
 }
 
 shared_ptr<ResultSet> SimpleAggregate::initResultSet() {
-    resultSet = prevOperator->initResultSet();
+    resultSet = children[0]->initResultSet();
     for (auto& aggregationEvaluator : aggregationEvaluators) {
         aggregationEvaluator->initResultSet(*resultSet, *context.memoryManager);
     }
@@ -29,12 +27,12 @@ void SimpleAggregate::execute() {
     metrics->executionTime.start();
     Sink::execute();
     // Exhaust source to update local state for each aggregation expression by its evaluator.
-    while (prevOperator->getNextTuples()) {
+    while (children[0]->getNextTuples()) {
         for (auto i = 0u; i < aggregationEvaluators.size(); i++) {
             aggregationEvaluators[i]->evaluate();
             aggregationEvaluators[i].get()->getFunction()->update(
                 (uint8_t*)aggregationStates[i].get(), aggregationEvaluators[i]->getChildResult(),
-                prevOperator->getResultSet()->getNumTuples());
+                children[0]->getResultSet()->getNumTuples());
         }
     }
     // Combine global shared state with local states.
@@ -60,7 +58,6 @@ void SimpleAggregate::finalize() {
 }
 
 unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
-    auto prevOperatorClone = prevOperator->clone();
     vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluatorsCloned;
     for (auto& aggregationEvaluator : aggregationEvaluators) {
         aggregationEvaluatorsCloned.push_back(
@@ -68,7 +65,7 @@ unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
                 aggregationEvaluator->clone()));
     }
     return make_unique<SimpleAggregate>(
-        move(prevOperatorClone), context, id, sharedState, move(aggregationEvaluatorsCloned));
+        children[0]->clone(), context, id, sharedState, move(aggregationEvaluatorsCloned));
 }
 
 } // namespace processor

@@ -15,10 +15,12 @@ class Projection : public PhysicalOperator {
 public:
     Projection(vector<unique_ptr<ExpressionEvaluator>> expressions,
         vector<DataPos> expressionsOutputPos, vector<uint32_t> discardedDataChunksPos,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator(move(prevOperator), PROJECTION, context, id),
+        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
+        : PhysicalOperator(move(child), context, id),
           expressions(move(expressions)), expressionsOutputPos{move(expressionsOutputPos)},
           discardedDataChunksPos{move(discardedDataChunksPos)}, prevMultiplicity{0} {}
+
+    PhysicalOperatorType getOperatorType() override { return PROJECTION; }
 
     shared_ptr<ResultSet> initResultSet() override;
 

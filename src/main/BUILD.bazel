@@ -12,7 +12,6 @@ cc_library(
     deps = [
         "//src/common:profiler",
         "//src/planner:logical_plan",
-        "//src/processor:operator_impls",
         "//src/processor:physical_plan",
     ],
 )

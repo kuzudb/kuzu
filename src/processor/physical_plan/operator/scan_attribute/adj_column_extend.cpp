@@ -20,7 +20,7 @@ bool AdjColumnExtend::getNextTuples() {
     bool hasAtLeastOneNonNullValue;
     do {
         restoreDataChunkSelectorState(inDataChunk);
-        if (!prevOperator->getNextTuples()) {
+        if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();
             return false;
         }

@@ -10,9 +10,11 @@ class Intersect : public PhysicalOperator, public FilteringOperator {
 
 public:
     Intersect(const DataPos& leftDataPos, const DataPos& rightDataPos,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(prevOperator), INTERSECT, context, id}, FilteringOperator{},
-          leftDataPos{leftDataPos}, rightDataPos{rightDataPos}, leftIdx{0} {}
+        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{move(child), context, id}, FilteringOperator{}, leftDataPos{leftDataPos},
+          rightDataPos{rightDataPos}, leftIdx{0} {}
+
+    PhysicalOperatorType getOperatorType() override { return INTERSECT; }
 
     shared_ptr<ResultSet> initResultSet() override;
 
@@ -21,8 +23,7 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Intersect>(
-            leftDataPos, rightDataPos, prevOperator->clone(), context, id);
+        return make_unique<Intersect>(leftDataPos, rightDataPos, children[0]->clone(), context, id);
     }
 
 private:

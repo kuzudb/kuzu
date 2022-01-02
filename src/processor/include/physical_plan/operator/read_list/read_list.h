@@ -10,13 +10,13 @@ class ReadList : public PhysicalOperator {
 
 public:
     ReadList(const DataPos& inDataPos, const DataPos& outDataPos, Lists* lists,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id,
-        bool isAdjList)
-        : PhysicalOperator{move(prevOperator), READ_LIST, context, id}, inDataPos{inDataPos},
-          outDataPos{outDataPos}, lists{lists}, largeListHandle{
-                                                    make_unique<LargeListHandle>(isAdjList)} {}
+        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id, bool isAdjList)
+        : PhysicalOperator{move(child), context, id}, inDataPos{inDataPos}, outDataPos{outDataPos},
+          lists{lists}, largeListHandle{make_unique<LargeListHandle>(isAdjList)} {}
 
     ~ReadList() override{};
+
+    PhysicalOperatorType getOperatorType() override = 0;
 
     shared_ptr<ResultSet> initResultSet() override;
 

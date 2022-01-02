@@ -4,14 +4,14 @@ namespace graphflow {
 namespace processor {
 
 shared_ptr<ResultSet> ResultCollector::initResultSet() {
-    resultSet = prevOperator->initResultSet();
+    resultSet = children[0]->initResultSet();
     return resultSet;
 }
 
 void ResultCollector::execute() {
     metrics->executionTime.start();
     Sink::execute();
-    while (prevOperator->getNextTuples()) {
+    while (children[0]->getNextTuples()) {
         queryResult->numTuples += resultSet->getNumTuples();
         auto clonedResultSet = make_unique<ResultSet>(resultSet->getNumDataChunks());
         for (auto i = 0u; i < resultSet->getNumDataChunks(); ++i) {

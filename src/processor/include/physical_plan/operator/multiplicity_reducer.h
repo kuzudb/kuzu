@@ -8,10 +8,10 @@ namespace processor {
 class MultiplicityReducer : public PhysicalOperator {
 
 public:
-    MultiplicityReducer(
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(prevOperator), MULTIPLICITY_REDUCER, context, id},
-          prevMultiplicity{1}, numRepeat{0} {}
+    MultiplicityReducer(unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{move(child), context, id}, prevMultiplicity{1}, numRepeat{0} {}
+
+    PhysicalOperatorType getOperatorType() override { return MULTIPLICITY_REDUCER; }
 
     shared_ptr<ResultSet> initResultSet() override;
 
@@ -20,7 +20,7 @@ public:
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<MultiplicityReducer>(prevOperator->clone(), context, id);
+        return make_unique<MultiplicityReducer>(children[0]->clone(), context, id);
     }
 
 private:

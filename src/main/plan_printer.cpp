@@ -1,7 +1,5 @@
 #include "src/main/include/plan_printer.h"
 
-#include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
-
 namespace graphflow {
 namespace main {
 
@@ -11,8 +9,8 @@ nlohmann::json PlanPrinter::printPlanToJson(Profiler& profiler) {
 
 nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler& profiler) {
     auto json = nlohmann::json();
-    auto operatorType = physicalOperator->operatorType;
-    auto operatorID = physicalOperator->id;
+    auto operatorType = physicalOperator->getOperatorType();
+    auto operatorID = physicalOperator->getOperatorID();
     // flatten, result collector do not have corresponding logical operator
     auto operatorName = PhysicalOperatorTypeNames[operatorType];
     if (physicalToLogicalOperatorMap.contains(operatorID)) {
@@ -20,12 +18,11 @@ nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler&
             "(" + physicalToLogicalOperatorMap.at(operatorID)->getExpressionsForPrinting() + ")";
     }
     json["name"] = operatorName;
-    if (operatorType == HASH_JOIN_PROBE) {
-        json["prevBuild"] =
-            toJson(((HashJoinProbe*)physicalOperator)->buildSidePrevOp.get(), profiler);
+    if (physicalOperator->hasFirstChild()) {
+        json["prev"] = toJson(physicalOperator->getFirstChild(), profiler);
     }
-    if (physicalOperator->prevOperator) {
-        json["prev"] = toJson(physicalOperator->prevOperator.get(), profiler);
+    if (physicalOperator->hasSecondChild()) {
+        json["right"] = toJson(physicalOperator->getSecondChild(), profiler);
     }
     if (profiler.enabled) {
         physicalOperator->printMetricsToJson(json, profiler);

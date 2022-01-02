@@ -4,7 +4,7 @@ namespace graphflow {
 namespace processor {
 
 shared_ptr<ResultSet> ScanAttribute::initResultSet() {
-    resultSet = prevOperator->initResultSet();
+    resultSet = children[0]->initResultSet();
     assert(inDataPos.dataChunkPos == outDataPos.dataChunkPos);
     inDataChunk = resultSet->dataChunks[inDataPos.dataChunkPos];
     inValueVector = inDataChunk->valueVectors[inDataPos.valueVectorPos];
@@ -12,7 +12,7 @@ shared_ptr<ResultSet> ScanAttribute::initResultSet() {
 }
 
 void ScanAttribute::reInitToRerunSubPlan() {
-    prevOperator->reInitToRerunSubPlan();
+    children[0]->reInitToRerunSubPlan();
 }
 
 void ScanAttribute::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {

@@ -13,8 +13,10 @@ public:
     ScanNodeID(unique_ptr<ResultSetDescriptor> resultSetDescriptor, label_t nodeLabel,
         const DataPos& outDataPos, shared_ptr<MorselsDesc> morsel, ExecutionContext& context,
         uint32_t id)
-        : PhysicalOperator{SCAN, context, id}, SourceOperator{move(resultSetDescriptor)},
+        : PhysicalOperator{context, id}, SourceOperator{move(resultSetDescriptor)},
           nodeLabel{nodeLabel}, outDataPos{outDataPos}, morsel{move(morsel)} {}
+
+    PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
 
     shared_ptr<ResultSet> initResultSet() override;
 

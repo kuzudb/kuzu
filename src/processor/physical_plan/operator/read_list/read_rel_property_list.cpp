@@ -1,7 +1,5 @@
 #include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
 
-#include "src/common/include/date.h"
-
 namespace graphflow {
 namespace processor {
 
@@ -15,7 +13,7 @@ shared_ptr<ResultSet> ReadRelPropertyList::initResultSet() {
 
 bool ReadRelPropertyList::getNextTuples() {
     metrics->executionTime.start();
-    if (!prevOperator->getNextTuples()) {
+    if (!children[0]->getNextTuples()) {
         metrics->executionTime.stop();
         return false;
     }
