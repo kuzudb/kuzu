@@ -270,16 +270,17 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(
         logicalOperator->getFirstChild(), mapperContext, executionContext);
     auto inDataPos = mapperContext.getDataPos(scanProperty.nodeID);
-    auto outDataPos = mapperContext.getDataPos(scanProperty.propertyVariableName);
-    mapperContext.addComputedExpressions(scanProperty.propertyVariableName);
+    auto outDataPos = mapperContext.getDataPos(scanProperty.getPropertyExpressionName());
+    mapperContext.addComputedExpressions(scanProperty.getPropertyExpressionName());
     auto& nodeStore = graph.getNodesStore();
     if (scanProperty.isUnstructuredProperty) {
         auto lists = nodeStore.getNodeUnstrPropertyLists(scanProperty.nodeLabel);
         return make_unique<ScanUnstructuredProperty>(inDataPos, outDataPos,
-            scanProperty.propertyKey, lists, move(prevOperator), executionContext,
+            scanProperty.getPropertyKey(), lists, move(prevOperator), executionContext,
             mapperContext.getOperatorID());
     }
-    auto column = nodeStore.getNodePropertyColumn(scanProperty.nodeLabel, scanProperty.propertyKey);
+    auto column =
+        nodeStore.getNodePropertyColumn(scanProperty.nodeLabel, scanProperty.getPropertyKey());
     return make_unique<ScanStructuredProperty>(inDataPos, outDataPos, column, move(prevOperator),
         executionContext, mapperContext.getOperatorID());
 }
@@ -291,17 +292,17 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(
         logicalOperator->getFirstChild(), mapperContext, executionContext);
     auto inDataPos = mapperContext.getDataPos(scanProperty.boundNodeID);
-    auto outDataPos = mapperContext.getDataPos(scanProperty.propertyVariableName);
-    mapperContext.addComputedExpressions(scanProperty.propertyVariableName);
+    auto outDataPos = mapperContext.getDataPos(scanProperty.getPropertyExpressionName());
+    mapperContext.addComputedExpressions(scanProperty.getPropertyExpressionName());
     auto& relStore = graph.getRelsStore();
     if (scanProperty.isColumn) {
         auto column = relStore.getRelPropertyColumn(
-            scanProperty.relLabel, scanProperty.boundNodeLabel, scanProperty.propertyKey);
+            scanProperty.relLabel, scanProperty.boundNodeLabel, scanProperty.getPropertyKey());
         return make_unique<ScanStructuredProperty>(inDataPos, outDataPos, column,
             move(prevOperator), executionContext, mapperContext.getOperatorID());
     }
     auto lists = relStore.getRelPropertyLists(scanProperty.direction, scanProperty.boundNodeLabel,
-        scanProperty.relLabel, scanProperty.propertyKey);
+        scanProperty.relLabel, scanProperty.getPropertyKey());
     return make_unique<ReadRelPropertyList>(inDataPos, outDataPos, lists, move(prevOperator),
         executionContext, mapperContext.getOperatorID());
 }
@@ -325,6 +326,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
             if (i == buildSideKeyIDDataPos.dataChunkPos && expressionName == hashJoin.joinNodeID) {
                 continue;
             }
+            mapperContext.addComputedExpressions(expressionName);
             buildSideNonKeyDataPoses.push_back(buildSideMapperContext.getDataPos(expressionName));
             isBuildSideNonKeyDataFlat.push_back(buildSideGroup.isFlat);
             probeSideNonKeyDataPoses.push_back(mapperContext.getDataPos(expressionName));

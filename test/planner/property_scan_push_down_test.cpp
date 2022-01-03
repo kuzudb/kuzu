@@ -1,5 +1,6 @@
 #include "test/planner/planner_test_helper.h"
 
+#include "src/planner/include/logical_plan/operator/nested_loop_join/logical_left_nested_loop_join.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 
 class PropertyScanPushDownTest : public PlannerTest {};
@@ -46,4 +47,14 @@ TEST_F(PropertyScanPushDownTest, LogicalPlanCloneTest) {
         op = op->getFirstChild().get();
     }
     ASSERT_TRUE(op->getFirstChild()->getLogicalOperatorType() != LOGICAL_SCAN_NODE_PROPERTY);
+}
+
+TEST_F(PropertyScanPushDownTest, SubPlanPropertyPushDownTest) {
+    auto query = "MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) RETURN a.age, b.age";
+    auto plan = getBestPlan(query);
+    auto leftNLJ = (LogicalLeftNestedLoopJoin*)plan->lastOperator->getFirstChild().get();
+    auto op = leftNLJ->getSecondChild().get();
+    ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op->getLogicalOperatorType());
+    auto scanNodeProperty = (LogicalScanNodeProperty*)op;
+    ASSERT_TRUE(containSubstr(scanNodeProperty->nodeID, "_b." + INTERNAL_ID_SUFFIX));
 }

@@ -31,6 +31,10 @@ public:
         expressionNames.insert(expressionName);
     }
 
+    inline void removeExpression(const string& expressionName) {
+        expressionNames.erase(expressionName);
+    }
+
     inline string getAnyExpressionName() {
         GF_ASSERT(!expressionNames.empty());
         return *expressionNames.begin();
@@ -64,6 +68,12 @@ public:
 
     bool containExpression(const string& expressionName) const {
         return expressionNameToGroupPos.contains(expressionName);
+    }
+
+    void removeExpression(const string& expressionName) {
+        auto groupPos = getGroupPos(expressionName);
+        groups[groupPos]->removeExpression(expressionName);
+        expressionNameToGroupPos.erase(expressionName);
     }
 
     void addLogicalExtend(const string& queryRel, LogicalExtend* extend);

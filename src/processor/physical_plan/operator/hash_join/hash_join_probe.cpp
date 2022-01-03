@@ -26,9 +26,11 @@ void HashJoinProbe::initializeResultSet() {
     probeSideKeyVector = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()]
                              ->valueVectors[probeDataInfo.getKeyIDVectorPos()];
     auto rowCollectionLayout = sharedState->rowCollection->getLayout();
+    // Skip the first key field.
+    auto fieldIdx = 1;
     for (auto i = 0u; i < probeDataInfo.nonKeyOutputDataPos.size(); ++i) {
-        auto probeSideVector =
-            make_shared<ValueVector>(context.memoryManager, rowCollectionLayout.fields[i].dataType);
+        auto probeSideVector = make_shared<ValueVector>(
+            context.memoryManager, rowCollectionLayout.fields[fieldIdx + i].dataType);
         auto [dataChunkPos, valueVectorPos] = probeDataInfo.nonKeyOutputDataPos[i];
         resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probeSideVector);
     }

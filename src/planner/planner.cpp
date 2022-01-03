@@ -23,7 +23,7 @@ vector<unique_ptr<LogicalPlan>> Planner::getAllPlans(
 
 unique_ptr<LogicalPlan> Planner::optimize(unique_ptr<LogicalPlan> plan) {
     auto propertyScanPushDown = PropertyScanPushDown();
-    plan->lastOperator = propertyScanPushDown.rewrite(plan->lastOperator);
+    propertyScanPushDown.rewrite(*plan);
     return plan;
 }
 

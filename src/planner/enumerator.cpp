@@ -73,13 +73,9 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
         expressionsToScanFromOuter =
             getSubExpressionsInSchema(queryGraphPredicate, *outerPlan.schema);
     }
-    // See Logical_left_nested_loop_join.h for the usage of matchedNodeIDsInSubPlan.
-    vector<string> matchedNodeIDsInSubPlan;
     for (auto& nodeIDExpression : queryGraph.getNodeIDExpressions()) {
         if (outerPlan.schema->containExpression(nodeIDExpression->getUniqueName())) {
             expressionsToScanFromOuter.push_back(nodeIDExpression);
-        } else {
-            matchedNodeIDsInSubPlan.push_back(nodeIDExpression->getUniqueName());
         }
     }
     for (auto& expression : expressionsToScanFromOuter) {
@@ -120,9 +116,8 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
             outerPlan.schema->insertToGroup(expressionName, outerPos);
         }
     }
-    auto logicalLeftNestedLoopJoin =
-        make_shared<LogicalLeftNestedLoopJoin>(bestPlan->schema->copy(),
-            move(matchedNodeIDsInSubPlan), outerPlan.lastOperator, bestPlan->lastOperator);
+    auto logicalLeftNestedLoopJoin = make_shared<LogicalLeftNestedLoopJoin>(
+        bestPlan->schema->copy(), outerPlan.lastOperator, bestPlan->lastOperator);
     outerPlan.appendOperator(move(logicalLeftNestedLoopJoin));
 }
 
