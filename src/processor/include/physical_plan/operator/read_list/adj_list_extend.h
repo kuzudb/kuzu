@@ -9,9 +9,10 @@ class AdjListExtend : public ReadList {
 
 public:
     AdjListExtend(const DataPos& inDataPos, const DataPos& outDataPos, AdjLists* lists,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-        : ReadList{inDataPos, outDataPos, lists, move(prevOperator), context, id,
-              true /* isAdjList */} {}
+        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
+        : ReadList{inDataPos, outDataPos, lists, move(child), context, id, true /* isAdjList */} {}
+
+    PhysicalOperatorType getOperatorType() override { return LIST_EXTEND; }
 
     shared_ptr<ResultSet> initResultSet() override;
 
@@ -19,7 +20,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<AdjListExtend>(
-            inDataPos, outDataPos, (AdjLists*)lists, prevOperator->clone(), context, id);
+            inDataPos, outDataPos, (AdjLists*)lists, children[0]->clone(), context, id);
     }
 };
 

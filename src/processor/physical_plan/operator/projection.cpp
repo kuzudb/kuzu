@@ -4,7 +4,7 @@ namespace graphflow {
 namespace processor {
 
 shared_ptr<ResultSet> Projection::initResultSet() {
-    resultSet = prevOperator->initResultSet();
+    resultSet = children[0]->initResultSet();
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto& expression = *expressions[i];
         expression.initResultSet(*resultSet, *context.memoryManager);
@@ -22,13 +22,13 @@ shared_ptr<ResultSet> Projection::initResultSet() {
 }
 
 void Projection::reInitToRerunSubPlan() {
-    prevOperator->reInitToRerunSubPlan();
+    children[0]->reInitToRerunSubPlan();
 }
 
 bool Projection::getNextTuples() {
     metrics->executionTime.start();
     restoreMultiplicity();
-    if (!prevOperator->getNextTuples()) {
+    if (!children[0]->getNextTuples()) {
         metrics->executionTime.stop();
         return false;
     }
@@ -47,7 +47,7 @@ unique_ptr<PhysicalOperator> Projection::clone() {
         rootExpressionsCloned.push_back(expression->clone());
     }
     return make_unique<Projection>(move(rootExpressionsCloned), expressionsOutputPos,
-        discardedDataChunksPos, prevOperator->clone(), context, id);
+        discardedDataChunksPos, children[0]->clone(), context, id);
 }
 
 } // namespace processor

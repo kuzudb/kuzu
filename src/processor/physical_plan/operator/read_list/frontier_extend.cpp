@@ -9,11 +9,9 @@ static uint64_t getNextPowerOfTwo(uint64_t value);
 
 FrontierExtend::FrontierExtend(const DataPos& inDataPos, const DataPos& outDataPos, AdjLists* lists,
     label_t outNodeIDVectorLabel, uint64_t lowerBound, uint64_t upperBound,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : ReadList{inDataPos, outDataPos, lists, move(prevOperator), context, id,
-          true /* is adj list */},
+    unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
+    : ReadList{inDataPos, outDataPos, lists, move(child), context, id, true /* is adj list */},
       startLayer{lowerBound}, endLayer{upperBound}, outNodeIDVectorLabel{outNodeIDVectorLabel} {
-    operatorType = FRONTIER_EXTEND;
     uint64_t maxNumThreads = omp_get_max_threads();
     vectors.reserve(maxNumThreads);
     largeListHandles.reserve(maxNumThreads);
@@ -53,7 +51,7 @@ bool FrontierExtend::getNextTuples() {
         return true;
     }
     do {
-        if (!prevOperator->getNextTuples()) {
+        if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();
             return false;
         }
@@ -225,11 +223,6 @@ FrontierBag* FrontierExtend::createFrontierBag() {
     frontierBag->setMemoryManager(context.memoryManager);
     frontierBag->initHashTable();
     return frontierBag;
-}
-
-unique_ptr<PhysicalOperator> FrontierExtend::clone() {
-    return make_unique<FrontierExtend>(inDataPos, outDataPos, (AdjLists*)lists,
-        outNodeIDVectorLabel, startLayer, endLayer, prevOperator->clone(), context, id);
 }
 
 static uint64_t getNextPowerOfTwo(uint64_t value) {

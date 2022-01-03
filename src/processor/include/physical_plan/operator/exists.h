@@ -5,13 +5,16 @@
 namespace graphflow {
 namespace processor {
 
+// Sub-plan last operator is the right child, i.e. children[1]
 class Exists : public PhysicalOperator {
 
 public:
-    Exists(const DataPos& outDataPos, unique_ptr<PhysicalOperator> subPlanLastOperator,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(prevOperator), EXISTS, context, id}, outDataPos{outDataPos},
-          subPlanLastOperator{move(subPlanLastOperator)} {}
+    Exists(const DataPos& outDataPos, unique_ptr<PhysicalOperator> child,
+        unique_ptr<PhysicalOperator> subPlanLastOperator, ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{move(child), move(subPlanLastOperator), context, id}, outDataPos{
+                                                                                     outDataPos} {}
+
+    PhysicalOperatorType getOperatorType() override { return EXISTS; }
 
     shared_ptr<ResultSet> initResultSet() override;
 
@@ -19,11 +22,13 @@ public:
 
     bool getNextTuples() override;
 
-    unique_ptr<PhysicalOperator> clone() override;
+    unique_ptr<PhysicalOperator> clone() override {
+        return make_unique<Exists>(
+            outDataPos, children[0]->clone(), children[1]->clone(), context, id);
+    }
 
 private:
     DataPos outDataPos;
-    unique_ptr<PhysicalOperator> subPlanLastOperator;
     shared_ptr<ValueVector> valueVectorToWrite;
 };
 

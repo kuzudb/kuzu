@@ -14,7 +14,7 @@ shared_ptr<ResultSet> ScanUnstructuredProperty::initResultSet() {
 
 bool ScanUnstructuredProperty::getNextTuples() {
     metrics->executionTime.start();
-    if (!prevOperator->getNextTuples()) {
+    if (!children[0]->getNextTuples()) {
         metrics->executionTime.stop();
         return false;
     }

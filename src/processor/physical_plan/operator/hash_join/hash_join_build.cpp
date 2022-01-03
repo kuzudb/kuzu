@@ -15,12 +15,14 @@ static uint64_t nextPowerOfTwo(uint64_t v) {
     return v;
 }
 
-HashJoinBuild::HashJoinBuild(const BuildDataInfo& buildDataInfo,
-    unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id)
-    : Sink{move(prevOperator), HASH_JOIN_BUILD, context, id}, buildDataInfo{buildDataInfo} {}
+HashJoinBuild::HashJoinBuild(shared_ptr<HashJoinSharedState> sharedState,
+    const BuildDataInfo& buildDataInfo, unique_ptr<PhysicalOperator> child,
+    ExecutionContext& context, uint32_t id)
+    : Sink{move(child), context, id}, sharedState{move(sharedState)}, buildDataInfo{buildDataInfo} {
+}
 
 shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
-    resultSet = prevOperator->initResultSet();
+    resultSet = children[0]->initResultSet();
     RowLayout rowLayout;
     keyDataChunk = resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
     auto keyVector = keyDataChunk->valueVectors[buildDataInfo.getKeyIDVectorPos()];
@@ -80,7 +82,6 @@ void HashJoinBuild::appendResultSet() {
     if (keyDataChunk->state->selectedSize == 0) {
         return;
     }
-    // TODO: Guodong should double check the following logic.
     auto& keyVector = vectorsToAppend[0];
     if (keyVector->state->isFlat()) {
         if (keyVector->isNull(keyVector->state->getPositionOfCurrIdx())) {
@@ -109,7 +110,7 @@ void HashJoinBuild::execute() {
     metrics->executionTime.start();
     Sink::execute();
     // Append thread-local tuples
-    while (prevOperator->getNextTuples()) {
+    while (children[0]->getNextTuples()) {
         appendResultSet();
     }
     // Merge thread-local state (numEntries, htBlocks, overflowBlocks) with the shared one

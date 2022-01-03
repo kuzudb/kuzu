@@ -11,13 +11,18 @@ class FrontierExtend : public ReadList {
 public:
     FrontierExtend(const DataPos& inDataPos, const DataPos& outDataPos, AdjLists* lists,
         label_t outNodeIDVectorLabel, uint64_t lowerBound, uint64_t upperBound,
-        unique_ptr<PhysicalOperator> prevOperator, ExecutionContext& context, uint32_t id);
+        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id);
+
+    PhysicalOperatorType getOperatorType() override { return FRONTIER_EXTEND; }
 
     shared_ptr<ResultSet> initResultSet() override;
 
     bool getNextTuples() override;
 
-    unique_ptr<PhysicalOperator> clone() override;
+    unique_ptr<PhysicalOperator> clone() override {
+        return make_unique<FrontierExtend>(inDataPos, outDataPos, (AdjLists*)lists,
+            outNodeIDVectorLabel, startLayer, endLayer, children[0]->clone(), context, id);
+    }
 
 private:
     bool computeFrontiers();

@@ -22,7 +22,7 @@ bool AdjListExtend::getNextTuples() {
         return true;
     }
     do {
-        if (!prevOperator->getNextTuples()) {
+        if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();
             return false;
         }

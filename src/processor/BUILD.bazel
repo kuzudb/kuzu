@@ -222,12 +222,12 @@ cc_library(
     ],
     hdrs = [
         "include/processor.h",
-        "include/processor_task.h"
+        "include/processor_task.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "operator_impls",
         "physical_plan",
-        "//src/common:task_system"
+        "result_collector",
+        "//src/common:task_system",
     ],
 )

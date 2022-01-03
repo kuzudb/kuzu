@@ -35,7 +35,7 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(vectorsToCollect,
         make_unique<ScanNodeID>(
             make_unique<ResultSetDescriptor>(schema), 0, aIDPos, morsel, executionContext, 0),
-        RESULT_COLLECTOR, executionContext, 1));
+        executionContext, 1));
     auto processor = make_unique<QueryProcessor>(10);
     auto result = processor->execute(plan.get(), 1);
     ASSERT_EQ(result->numTuples, 1025013);

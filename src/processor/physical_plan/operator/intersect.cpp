@@ -6,7 +6,7 @@ namespace graphflow {
 namespace processor {
 
 shared_ptr<ResultSet> Intersect::initResultSet() {
-    resultSet = prevOperator->initResultSet();
+    resultSet = children[0]->initResultSet();
     leftDataChunk = resultSet->dataChunks[leftDataPos.dataChunkPos];
     leftValueVector = leftDataChunk->valueVectors[leftDataPos.valueVectorPos];
     rightDataChunk = resultSet->dataChunks[rightDataPos.dataChunkPos];
@@ -15,7 +15,7 @@ shared_ptr<ResultSet> Intersect::initResultSet() {
 }
 
 void Intersect::reInitToRerunSubPlan() {
-    prevOperator->reInitToRerunSubPlan();
+    children[0]->reInitToRerunSubPlan();
     FilteringOperator::reInitToRerunSubPlan();
     leftIdx = 0;
 }
@@ -36,7 +36,7 @@ bool Intersect::getNextTuples() {
         if (rightDataChunk->state->currIdx == -1 ||
             rightDataChunk->state->selectedSize == rightDataChunk->state->currIdx + 1ul) {
             rightDataChunk->state->currIdx = -1;
-            if (!prevOperator->getNextTuples()) {
+            if (!children[0]->getNextTuples()) {
                 metrics->executionTime.stop();
                 return false;
             }

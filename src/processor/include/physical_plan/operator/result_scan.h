@@ -16,13 +16,15 @@ public:
     ResultScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> inDataPoses,
         uint32_t outDataChunkPos, vector<uint32_t> outValueVectorsPos, ExecutionContext& context,
         uint32_t id)
-        : PhysicalOperator{SELECT_SCAN, context, id}, SourceOperator{move(resultSetDescriptor)},
+        : PhysicalOperator{context, id}, SourceOperator{move(resultSetDescriptor)},
           inDataPoses{move(inDataPoses)}, outDataChunkPos{outDataChunkPos},
           outValueVectorsPos{move(outValueVectorsPos)}, isFirstExecution{true} {}
 
     inline void setResultSetToCopyFrom(const ResultSet* resultSet) {
         resultSetToCopyFrom = resultSet;
     }
+
+    PhysicalOperatorType getOperatorType() override { return RESULT_SCAN; }
 
     shared_ptr<ResultSet> initResultSet() override;
 

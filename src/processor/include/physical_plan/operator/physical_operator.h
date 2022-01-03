@@ -10,33 +10,37 @@ using namespace std;
 namespace graphflow {
 namespace processor {
 
-// Physical operator type
+// Sort in alphabetical order
 enum PhysicalOperatorType : uint8_t {
-    SCAN,
-    SELECT_SCAN,
+    AGGREGATION,
+    AGGREGATION_SCAN,
+    COLUMN_EXTEND,
+    EXISTS,
     FILTER,
-    INTERSECT,
     FLATTEN,
-    READ_LIST,
-    SCAN_ATTRIBUTE,
-    PROJECTION,
     FRONTIER_EXTEND,
     HASH_JOIN_BUILD,
     HASH_JOIN_PROBE,
-    RESULT_COLLECTOR,
-    MULTIPLICITY_REDUCER,
-    LIMIT,
-    SKIP,
-    AGGREGATE,
-    AGGREGATION_SCAN,
-    EXISTS,
+    INTERSECT,
     LEFT_NESTED_LOOP_JOIN,
+    LIMIT,
+    LIST_EXTEND,
+    MULTIPLICITY_REDUCER,
+    PROJECTION,
+    READ_REL_PROPERTY,
+    RESULT_COLLECTOR,
+    RESULT_SCAN,
+    SCAN_NODE_ID,
+    SCAN_STRUCTURED_PROPERTY,
+    SCAN_UNSTRUCTURED_PROPERTY,
+    SKIP,
 };
 
-const string PhysicalOperatorTypeNames[] = {"SCAN", "SELECT_SCAN", "FILTER", "INTERSECT", "FLATTEN",
-    "READ_LIST", "SCAN_ATTRIBUTE", "PROJECTION", "FRONTIER_EXTEND", "HASH_JOIN_BUILD",
-    "HASH_JOIN_PROBE", "RESULT_COLLECTOR", "MULTIPLICITY_REDUCER", "LIMIT", "SKIP", "AGGREGATE",
-    "AGGREGATE_SCAN", "EXISTS", "LEFT_NESTED_LOOP_JOIN"};
+const string PhysicalOperatorTypeNames[] = {"AGGREGATION", "AGGREGATION_SCAN", "COLUMN_EXTEND",
+    "EXISTS", "FILTER", "FLATTEN", "FRONTIER_EXTEND", "HASH_JOIN_BUILD", "HASH_JOIN_PROBE",
+    "INTERSECT", "LEFT_NESTED_LOOP_JOIN", "LIMIT", "LIST_EXTEND", "MULTIPLICITY_REDUCER",
+    "PROJECTION", "READ_REL_PROPERTY", "RESULT_COLLECTOR", "RESULT_SCAN", "SCAN_NODE_ID",
+    "SCAN_STRUCTURED_PROPERTY", "SCAN_UNSTRUCTURED_PROPERTY", "SKIP"};
 
 struct OperatorMetrics {
 
@@ -56,18 +60,29 @@ public:
 class PhysicalOperator {
 
 public:
-    PhysicalOperator(PhysicalOperatorType operatorType, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator(nullptr, operatorType, context, id) {}
-
-    PhysicalOperator(unique_ptr<PhysicalOperator> prevOperator, PhysicalOperatorType operatorType,
+    // Leaf operator
+    PhysicalOperator(ExecutionContext& context, uint32_t id);
+    // Unary operator
+    PhysicalOperator(unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id);
+    // Binary opeartor
+    PhysicalOperator(unique_ptr<PhysicalOperator> left, unique_ptr<PhysicalOperator> right,
         ExecutionContext& context, uint32_t id);
 
     virtual ~PhysicalOperator() = default;
+
+    inline uint32_t getOperatorID() const { return id; }
+
+    inline bool hasFirstChild() const { return !children.empty(); }
+    inline bool hasSecondChild() const { return children.size() == 2; }
+    inline PhysicalOperator* getFirstChild() const { return children[0].get(); }
+    inline PhysicalOperator* getSecondChild() const { return children[1].get(); }
 
     // This function grab leaf operator by traversing prevOperator pointer. For binary operators,
     // f.g. hash join probe, left nested loop join, caller should determine which branch's leaf to
     // get.
     PhysicalOperator* getLeafOperator();
+
+    virtual PhysicalOperatorType getOperatorType() = 0;
 
     virtual shared_ptr<ResultSet> initResultSet() = 0;
 
@@ -75,7 +90,7 @@ public:
     // allow the following operators in subPlan: resultSetScan, extend, scanProperty, flatten,
     // filter, intersect, projection, exists, leftNestedLoopJoin.
     virtual void reInitToRerunSubPlan() {
-        throw invalid_argument("Operator " + PhysicalOperatorTypeNames[operatorType] +
+        throw invalid_argument("Operator " + PhysicalOperatorTypeNames[getOperatorType()] +
                                "  does not implement reInitToRerunSubPlan().");
     }
 
@@ -89,25 +104,23 @@ public:
     virtual void printMetricsToJson(nlohmann::json& json, Profiler& profiler);
 
 protected:
-    string getTimeMetricKey() const { return "time-" + to_string(id); }
-    string getNumTupleMetricKey() const { return "numTuple-" + to_string(id); }
-    string getNumBufferHitMetricKey() const { return "numBufferHit-" + to_string(id); }
-    string getNumBufferMissMetricKey() const { return "numBufferMiss-" + to_string(id); }
-    string getNumIOMetricKey() const { return "numIO-" + to_string(id); }
+    inline string getTimeMetricKey() const { return "time-" + to_string(id); }
+    inline string getNumTupleMetricKey() const { return "numTuple-" + to_string(id); }
+    inline string getNumBufferHitMetricKey() const { return "numBufferHit-" + to_string(id); }
+    inline string getNumBufferMissMetricKey() const { return "numBufferMiss-" + to_string(id); }
+    inline string getNumIOMetricKey() const { return "numIO-" + to_string(id); }
 
     void registerProfilingMetrics();
 
     void printTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler);
     void printBufferManagerMetrics(nlohmann::json& json, Profiler& profiler);
 
-public:
-    unique_ptr<PhysicalOperator> prevOperator;
-    PhysicalOperatorType operatorType;
+protected:
     ExecutionContext& context;
     uint32_t id;
     unique_ptr<OperatorMetrics> metrics;
 
-protected:
+    vector<unique_ptr<PhysicalOperator>> children;
     shared_ptr<ResultSet> resultSet;
 };
 

@@ -5,16 +5,8 @@
 namespace graphflow {
 namespace processor {
 
-HashJoinProbe::HashJoinProbe(const ProbeDataInfo& probeDataInfo,
-    unique_ptr<PhysicalOperator> buildSidePrevOp, unique_ptr<PhysicalOperator> probeSidePrevOp,
-    ExecutionContext& context, uint32_t id)
-    : PhysicalOperator{move(probeSidePrevOp), HASH_JOIN_PROBE, context, id}, buildSidePrevOp{move(
-                                                                                 buildSidePrevOp)},
-      probeDataInfo{probeDataInfo}, tuplePosToReadInProbedState{0} {}
-
 shared_ptr<ResultSet> HashJoinProbe::initResultSet() {
-    resultSet = prevOperator->initResultSet();
-    buildSideResultSet = buildSidePrevOp->initResultSet();
+    resultSet = children[0]->initResultSet();
     probeState = make_unique<ProbeState>(DEFAULT_VECTOR_CAPACITY);
     constructResultVectorsPosAndFieldsToRead();
     initializeResultSet();
@@ -24,8 +16,8 @@ shared_ptr<ResultSet> HashJoinProbe::initResultSet() {
 void HashJoinProbe::constructResultVectorsPosAndFieldsToRead() {
     // Skip the first key field.
     auto fieldId = 1;
-    for (auto& dataPosMapping : probeDataInfo.nonKeyDataPosMapping) {
-        resultVectorsPos.push_back(dataPosMapping.second);
+    for (auto& dataPos : probeDataInfo.nonKeyOutputDataPos) {
+        resultVectorsPos.push_back(dataPos);
         fieldsToRead.push_back(fieldId++);
     }
 }
@@ -33,14 +25,12 @@ void HashJoinProbe::constructResultVectorsPosAndFieldsToRead() {
 void HashJoinProbe::initializeResultSet() {
     probeSideKeyVector = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()]
                              ->valueVectors[probeDataInfo.getKeyIDVectorPos()];
-    for (auto& dataPosMapping : probeDataInfo.nonKeyDataPosMapping) {
-        auto [buildSideDataChunkPos, buildSideVectorPos] = dataPosMapping.first;
-        auto buildSideDataChunk = buildSideResultSet->dataChunks[buildSideDataChunkPos];
-        auto buildSideVector = buildSideDataChunk->valueVectors[buildSideVectorPos];
-        auto [probeSideDataChunkPos, probeSideVectorPos] = dataPosMapping.second;
+    auto rowCollectionLayout = sharedState->rowCollection->getLayout();
+    for (auto i = 0u; i < probeDataInfo.nonKeyOutputDataPos.size(); ++i) {
         auto probeSideVector =
-            make_shared<ValueVector>(context.memoryManager, buildSideVector->dataType);
-        resultSet->dataChunks[probeSideDataChunkPos]->insert(probeSideVectorPos, probeSideVector);
+            make_shared<ValueVector>(context.memoryManager, rowCollectionLayout.fields[i].dataType);
+        auto [dataChunkPos, valueVectorPos] = probeDataInfo.nonKeyOutputDataPos[i];
+        resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probeSideVector);
     }
 }
 
@@ -49,7 +39,7 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
     tuplePosToReadInProbedState = 0;
     do {
         if (probeState->numMatchedTuples == 0) {
-            if (!prevOperator->getNextTuples()) {
+            if (!children[0]->getNextTuples()) {
                 probeState->numMatchedTuples = 0;
                 return;
             }

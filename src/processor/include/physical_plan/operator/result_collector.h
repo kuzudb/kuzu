@@ -11,19 +11,19 @@ class ResultCollector : public Sink {
 
 public:
     explicit ResultCollector(vector<DataPos> vectorsToCollectPos,
-        unique_ptr<PhysicalOperator> prevOperator, PhysicalOperatorType operatorType,
-        ExecutionContext& context, uint32_t id)
-        : Sink{move(prevOperator), operatorType, context, id},
+        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
+        : Sink{move(child), context, id},
           queryResult{make_unique<QueryResult>(vectorsToCollectPos)}, vectorsToCollectPos{move(
                                                                           vectorsToCollectPos)} {}
+
+    PhysicalOperatorType getOperatorType() override { return RESULT_COLLECTOR; }
 
     shared_ptr<ResultSet> initResultSet() override;
 
     void execute() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ResultCollector>(
-            vectorsToCollectPos, prevOperator->clone(), operatorType, context, id);
+        return make_unique<ResultCollector>(vectorsToCollectPos, children[0]->clone(), context, id);
     }
 
 public:

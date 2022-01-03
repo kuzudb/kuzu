@@ -4,13 +4,13 @@ namespace graphflow {
 namespace processor {
 
 shared_ptr<ResultSet> Flatten::initResultSet() {
-    resultSet = prevOperator->initResultSet();
+    resultSet = children[0]->initResultSet();
     dataChunkToFlatten = resultSet->dataChunks[dataChunkToFlattenPos];
     return resultSet;
 }
 
 void Flatten::reInitToRerunSubPlan() {
-    prevOperator->reInitToRerunSubPlan();
+    children[0]->reInitToRerunSubPlan();
 }
 
 bool Flatten::getNextTuples() {
@@ -19,7 +19,7 @@ bool Flatten::getNextTuples() {
     if (dataChunkToFlatten->state->currIdx == -1 ||
         dataChunkToFlatten->state->selectedSize == dataChunkToFlatten->state->currIdx + 1ul) {
         dataChunkToFlatten->state->currIdx = -1;
-        if (!prevOperator->getNextTuples()) {
+        if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();
             return false;
         }

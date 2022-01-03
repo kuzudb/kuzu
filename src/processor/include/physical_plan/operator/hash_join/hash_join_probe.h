@@ -28,11 +28,11 @@ struct ProbeState {
 struct ProbeDataInfo {
 
 public:
-    ProbeDataInfo(const DataPos& keyIDDataPos, vector<pair<DataPos, DataPos>> nonKeyDataPosMapping)
-        : keyIDDataPos{keyIDDataPos}, nonKeyDataPosMapping{move(nonKeyDataPosMapping)} {}
+    ProbeDataInfo(const DataPos& keyIDDataPos, vector<DataPos> nonKeyOutputDataPos)
+        : keyIDDataPos{keyIDDataPos}, nonKeyOutputDataPos{move(nonKeyOutputDataPos)} {}
 
     ProbeDataInfo(const ProbeDataInfo& other)
-        : ProbeDataInfo{other.keyIDDataPos, other.nonKeyDataPosMapping} {}
+        : ProbeDataInfo{other.keyIDDataPos, other.nonKeyOutputDataPos} {}
 
     inline uint32_t getKeyIDDataChunkPos() const { return keyIDDataPos.dataChunkPos; }
 
@@ -40,35 +40,43 @@ public:
 
 public:
     DataPos keyIDDataPos;
-    // position mapping of non-key vectors from build side to probe side
-    vector<pair<DataPos, DataPos>> nonKeyDataPosMapping;
+    vector<DataPos> nonKeyOutputDataPos;
 };
 
+// Probe side on left, i.e. children[0] and build side on right, i.e. children[1]
 class HashJoinProbe : public PhysicalOperator {
 public:
-    HashJoinProbe(const ProbeDataInfo& probeDataInfo, unique_ptr<PhysicalOperator> buildSidePrevOp,
-        unique_ptr<PhysicalOperator> probeSidePrevOp, ExecutionContext& context, uint32_t id);
+    HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, const ProbeDataInfo& probeDataInfo,
+        unique_ptr<PhysicalOperator> probeChild, unique_ptr<PhysicalOperator> buildChild,
+        ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{move(probeChild), move(buildChild), context, id},
+          sharedState{move(sharedState)}, probeDataInfo{probeDataInfo}, tuplePosToReadInProbedState{
+                                                                            0} {}
+
+    // This constructor is used for cloning only.
+    HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, const ProbeDataInfo& probeDataInfo,
+        unique_ptr<PhysicalOperator> probeChild, ExecutionContext& context, uint32_t id)
+        : PhysicalOperator{move(probeChild), context, id}, sharedState{move(sharedState)},
+          probeDataInfo{probeDataInfo}, tuplePosToReadInProbedState{0} {}
+
+    PhysicalOperatorType getOperatorType() override { return HASH_JOIN_PROBE; }
 
     shared_ptr<ResultSet> initResultSet() override;
     bool getNextTuples() override;
 
+    // HashJoinProbe do not need to clone hashJoinBuild which is on a different pipeline.
     unique_ptr<PhysicalOperator> clone() override {
-        auto cloneOp = make_unique<HashJoinProbe>(
-            probeDataInfo, buildSidePrevOp->clone(), prevOperator->clone(), context, id);
-        cloneOp->sharedState = this->sharedState;
-        return cloneOp;
+        return make_unique<HashJoinProbe>(
+            sharedState, probeDataInfo, children[0]->clone(), context, id);
     }
 
-public:
-    unique_ptr<PhysicalOperator> buildSidePrevOp;
+private:
     shared_ptr<HashJoinSharedState> sharedState;
 
-private:
     ProbeDataInfo probeDataInfo;
     uint64_t tuplePosToReadInProbedState;
     vector<DataPos> resultVectorsPos;
     vector<uint64_t> fieldsToRead;
-    shared_ptr<ResultSet> buildSideResultSet;
     shared_ptr<ValueVector> probeSideKeyVector;
     unique_ptr<ProbeState> probeState;
 

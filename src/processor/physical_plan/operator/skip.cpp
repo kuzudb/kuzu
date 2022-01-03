@@ -4,7 +4,7 @@ namespace graphflow {
 namespace processor {
 
 shared_ptr<ResultSet> Skip::initResultSet() {
-    resultSet = prevOperator->initResultSet();
+    resultSet = children[0]->initResultSet();
     return resultSet;
 }
 
@@ -16,7 +16,7 @@ bool Skip::getNextTuples() {
     do {
         restoreDataChunkSelectorState(dataChunkToSelect);
         // end of execution due to no more input
-        if (!prevOperator->getNextTuples()) {
+        if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();
             return false;
         }

@@ -4,14 +4,14 @@ namespace graphflow {
 namespace processor {
 
 shared_ptr<ResultSet> Filter::initResultSet() {
-    resultSet = prevOperator->initResultSet();
+    resultSet = children[0]->initResultSet();
     rootExpr->initResultSet(*resultSet, *context.memoryManager);
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
     return resultSet;
 }
 
 void Filter::reInitToRerunSubPlan() {
-    prevOperator->reInitToRerunSubPlan();
+    children[0]->reInitToRerunSubPlan();
     FilteringOperator::reInitToRerunSubPlan();
 }
 
@@ -20,7 +20,7 @@ bool Filter::getNextTuples() {
     bool hasAtLeastOneSelectedValue;
     do {
         restoreDataChunkSelectorState(dataChunkToSelect);
-        if (!prevOperator->getNextTuples()) {
+        if (!children[0]->getNextTuples()) {
             metrics->executionTime.stop();
             return false;
         }
@@ -40,12 +40,6 @@ bool Filter::getNextTuples() {
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(dataChunkToSelect->state->selectedSize);
     return true;
-}
-
-unique_ptr<PhysicalOperator> Filter::clone() {
-    auto prevOperatorClone = prevOperator->clone();
-    return make_unique<Filter>(
-        rootExpr->clone(), dataChunkToSelectPos, move(prevOperatorClone), context, id);
 }
 
 } // namespace processor
