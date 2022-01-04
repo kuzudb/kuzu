@@ -10,6 +10,7 @@ uint32_t Schema::createGroup() {
 }
 
 void Schema::insertToGroup(const string& expressionName, uint32_t groupPos) {
+    auto k = 1;
     expressionNameToGroupPos.insert({expressionName, groupPos});
     groups[groupPos]->insertExpression(expressionName);
 }

@@ -10,11 +10,9 @@ namespace planner {
 class LogicalLeftNestedLoopJoin : public LogicalOperator {
 
 public:
-    LogicalLeftNestedLoopJoin(unique_ptr<Schema> subPlanSchema,
-        vector<string> matchedNodeIDsInSubPlan, shared_ptr<LogicalOperator> child,
+    LogicalLeftNestedLoopJoin(unique_ptr<Schema> subPlanSchema, shared_ptr<LogicalOperator> child,
         shared_ptr<LogicalOperator> subPlanChild)
-        : LogicalOperator{move(child), move(subPlanChild)}, subPlanSchema{move(subPlanSchema)},
-          matchedNodeIDsInSubPlan{move(matchedNodeIDsInSubPlan)} {}
+        : LogicalOperator{move(child), move(subPlanChild)}, subPlanSchema{move(subPlanSchema)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LOGICAL_LEFT_NESTED_LOOP_JOIN;
@@ -23,15 +21,12 @@ public:
     string getExpressionsForPrinting() const override { return string(); }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalLeftNestedLoopJoin>(subPlanSchema->copy(),
-            matchedNodeIDsInSubPlan, children[0]->copy(), children[1]->copy());
+        return make_unique<LogicalLeftNestedLoopJoin>(
+            subPlanSchema->copy(), children[0]->copy(), children[1]->copy());
     }
 
 public:
     unique_ptr<Schema> subPlanSchema;
-
-    // This field is used to push property scanners on top of left nested loop join.
-    vector<string> matchedNodeIDsInSubPlan;
 };
 
 } // namespace planner
