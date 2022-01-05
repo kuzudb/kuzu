@@ -21,10 +21,7 @@ bool Skip::getNextTuples() {
             return false;
         }
         saveDataChunkSelectorState(dataChunkToSelect);
-        for (auto& dataChunkToSkipPos : dataChunksToSkipPos) {
-            numTuplesAvailable *=
-                resultSet->dataChunks[dataChunkToSkipPos]->state->getNumSelectedValues();
-        }
+        numTuplesAvailable = resultSet->getNumTuples(dataChunksPosInScope);
         numTupleSkippedBefore = counter->fetch_add(numTuplesAvailable);
     } while (numTupleSkippedBefore + numTuplesAvailable <= skipNumber);
     int64_t numTupleToSkipInCurrentResultSet = skipNumber - numTupleSkippedBefore;

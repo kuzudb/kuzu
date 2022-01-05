@@ -11,11 +11,10 @@ namespace processor {
 class QueryResult {
 
 public:
-    QueryResult(uint64_t numTuples, vector<DataPos> vectorsToCollectPos)
-        : numTuples{numTuples}, vectorsToCollectPos{move(vectorsToCollectPos)} {}
-
-    explicit QueryResult(vector<DataPos> vectorsToCollectPos)
-        : QueryResult(0, move(vectorsToCollectPos)) {}
+    QueryResult(vector<DataPos> vectorsToCollectPos, unordered_set<uint32_t> dataChunksPosInScope)
+        : numTuples{0}, vectorsToCollectPos{move(vectorsToCollectPos)}, dataChunksPosInScope{move(
+                                                                            dataChunksPosInScope)} {
+    }
 
     void appendQueryResult(unique_ptr<QueryResult> queryResult);
 
@@ -24,6 +23,7 @@ public:
 public:
     uint64_t numTuples;
     vector<DataPos> vectorsToCollectPos;
+    unordered_set<uint32_t> dataChunksPosInScope;
     vector<unique_ptr<ResultSet>> resultSetCollection;
     vector<unique_ptr<BufferBlock>> bufferBlocks;
 };

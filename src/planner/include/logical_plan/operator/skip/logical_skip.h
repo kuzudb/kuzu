@@ -8,10 +8,10 @@ namespace planner {
 class LogicalSkip : public LogicalOperator {
 
 public:
-    LogicalSkip(uint64_t skipNumber, uint32_t groupPosToSelect, vector<uint32_t> groupsPosToSkip,
-        shared_ptr<LogicalOperator> child)
+    LogicalSkip(uint64_t skipNumber, uint32_t groupPosToSelect,
+        unordered_set<uint32_t> groupsPosInScope, shared_ptr<LogicalOperator> child)
         : LogicalOperator(move(child)), skipNumber{skipNumber}, groupPosToSelect{groupPosToSelect},
-          groupsPosToSkip{move(groupsPosToSkip)} {}
+          groupsPosInScope{move(groupsPosInScope)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override { return LOGICAL_SKIP; }
 
@@ -19,17 +19,17 @@ public:
 
     inline uint64_t getSkipNumber() const { return skipNumber; }
     inline uint32_t getGroupPosToSelect() const { return groupPosToSelect; }
-    inline const vector<uint32_t>& getGroupsPosToSkip() const { return groupsPosToSkip; };
+    inline unordered_set<uint32_t> getGroupsPosToSkip() const { return groupsPosInScope; };
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalSkip>(
-            skipNumber, groupPosToSelect, groupsPosToSkip, children[0]->copy());
+            skipNumber, groupPosToSelect, groupsPosInScope, children[0]->copy());
     }
 
 private:
     uint64_t skipNumber;
     uint32_t groupPosToSelect;
-    vector<uint32_t> groupsPosToSkip;
+    unordered_set<uint32_t> groupsPosInScope;
 };
 
 } // namespace planner

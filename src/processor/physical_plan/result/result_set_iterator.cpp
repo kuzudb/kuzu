@@ -6,13 +6,13 @@ namespace graphflow {
 namespace processor {
 
 bool ResultSetIterator::hasNextTuple() {
-    return numIteratedTuples < resultSet->getNumTuples();
+    return numIteratedTuples < resultSet->getNumTuples(dataChunksPosInScope);
 }
 
 void ResultSetIterator::reset() {
     tuplePositions.clear();
     for (uint64_t i = 0; i < resultSet->dataChunks.size(); i++) {
-        if (!resultSet->dataChunksMask[i]) {
+        if (!dataChunksPosInScope.contains(i)) {
             tuplePositions.push_back(UINT64_MAX);
             continue;
         }
@@ -29,7 +29,8 @@ void ResultSetIterator::reset() {
 }
 
 bool ResultSetIterator::updateTuplePositions(int64_t chunkIdx) {
-    if (!resultSet->dataChunksMask[chunkIdx] || resultSet->dataChunks[chunkIdx]->state->isFlat()) {
+    if (!dataChunksPosInScope.contains(chunkIdx) ||
+        resultSet->dataChunks[chunkIdx]->state->isFlat()) {
         return false;
     }
     tuplePositions[chunkIdx] = tuplePositions[chunkIdx] + 1;

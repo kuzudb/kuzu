@@ -29,12 +29,21 @@ public:
             LOGICAL_HASH_JOIN, LOGICAL_AGGREGATE, LOGICAL_ORDER_BY});
     }
 
+    inline void setExpressionsToCollect(vector<shared_ptr<Expression>> expressions) {
+        expressionsToCollect = move(expressions);
+    }
+    inline vector<shared_ptr<Expression>> getExpressionsToCollect() { return expressionsToCollect; }
+
     unique_ptr<LogicalPlan> copy() const;
 
 public:
     shared_ptr<LogicalOperator> lastOperator;
     unique_ptr<Schema> schema;
     uint64_t cost;
+
+private:
+    // This fields represents return columns in the same order as user input.
+    vector<shared_ptr<Expression>> expressionsToCollect;
 };
 
 } // namespace planner

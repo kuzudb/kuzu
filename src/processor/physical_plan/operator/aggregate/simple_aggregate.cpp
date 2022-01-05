@@ -7,9 +7,11 @@ namespace processor {
 
 SimpleAggregate::SimpleAggregate(unique_ptr<PhysicalOperator> child, ExecutionContext& context,
     uint32_t id, shared_ptr<AggregationSharedState> aggregationSharedState,
-    vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators)
+    vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators,
+    unordered_set<uint32_t> dataChunksPosInScope)
     : Sink{move(child), context, id}, sharedState{move(aggregationSharedState)},
-      aggregationEvaluators{move(aggregationEvaluators)} {
+      aggregationEvaluators{move(aggregationEvaluators)}, dataChunksPosInScope{
+                                                              move(dataChunksPosInScope)} {
     for (auto& expressionEvaluator : this->aggregationEvaluators) {
         aggregationStates.push_back(expressionEvaluator->getFunction()->initialize());
     }
@@ -32,7 +34,7 @@ void SimpleAggregate::execute() {
             aggregationEvaluators[i]->evaluate();
             aggregationEvaluators[i].get()->getFunction()->update(
                 (uint8_t*)aggregationStates[i].get(), aggregationEvaluators[i]->getChildResult(),
-                children[0]->getResultSet()->getNumTuples());
+                children[0]->getResultSet()->getNumTuples(dataChunksPosInScope));
         }
     }
     // Combine global shared state with local states.
@@ -64,8 +66,8 @@ unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
             static_unique_pointer_cast<ExpressionEvaluator, AggregateExpressionEvaluator>(
                 aggregationEvaluator->clone()));
     }
-    return make_unique<SimpleAggregate>(
-        children[0]->clone(), context, id, sharedState, move(aggregationEvaluatorsCloned));
+    return make_unique<SimpleAggregate>(children[0]->clone(), context, id, sharedState,
+        move(aggregationEvaluatorsCloned), dataChunksPosInScope);
 }
 
 } // namespace processor

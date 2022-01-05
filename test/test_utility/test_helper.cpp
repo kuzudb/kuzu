@@ -119,8 +119,9 @@ void BaseGraphLoadingTest::SetUp() {
 vector<string> TestHelper::getActualOutput(QueryResult& queryResult, bool checkOutputOrder) {
     vector<string> actualOutput;
     if (queryResult.numTuples != 0) {
-        auto resultSetIterator = make_unique<ResultSetIterator>(
-            queryResult.resultSetCollection[0].get(), queryResult.vectorsToCollectPos);
+        auto resultSetIterator =
+            make_unique<ResultSetIterator>(queryResult.resultSetCollection[0].get(),
+                queryResult.vectorsToCollectPos, queryResult.dataChunksPosInScope);
         Tuple tuple(resultSetIterator->dataTypes);
         for (auto& resultSet : queryResult.resultSetCollection) {
             resultSetIterator->setResultSet(resultSet.get());

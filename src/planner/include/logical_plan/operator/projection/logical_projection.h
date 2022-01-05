@@ -10,7 +10,7 @@ class LogicalProjection : public LogicalOperator {
 
 public:
     explicit LogicalProjection(vector<shared_ptr<Expression>> expressions,
-        vector<uint32_t> discardedGroupsPos, shared_ptr<LogicalOperator> child)
+        unordered_set<uint32_t> discardedGroupsPos, shared_ptr<LogicalOperator> child)
         : LogicalOperator{move(child)}, expressionsToProject{move(expressions)},
           discardedGroupsPos{move(discardedGroupsPos)} {}
 
@@ -33,7 +33,7 @@ public:
 
 public:
     vector<shared_ptr<Expression>> expressionsToProject;
-    vector<uint32_t> discardedGroupsPos;
+    unordered_set<uint32_t> discardedGroupsPos;
 };
 
 } // namespace planner

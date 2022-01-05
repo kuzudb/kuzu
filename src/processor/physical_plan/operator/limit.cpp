@@ -15,11 +15,7 @@ bool Limit::getNextTuples() {
         metrics->executionTime.stop();
         return false;
     }
-    auto numTupleAvailable = 1u;
-    for (auto& dataChunkToLimitPos : dataChunksToLimitPos) {
-        numTupleAvailable *=
-            resultSet->dataChunks[dataChunkToLimitPos]->state->getNumSelectedValues();
-    }
+    auto numTupleAvailable = resultSet->getNumTuples(dataChunksPosInScope);
     auto numTupleProcessedBefore = counter->fetch_add(numTupleAvailable);
     if (numTupleProcessedBefore + numTupleAvailable > limitNumber) {
         int64_t numTupleToProcessInCurrentResultSet = limitNumber - numTupleProcessedBefore;

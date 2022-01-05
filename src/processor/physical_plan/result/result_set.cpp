@@ -3,13 +3,11 @@
 namespace graphflow {
 namespace processor {
 
-uint64_t ResultSet::getNumTuples() {
+uint64_t ResultSet::getNumTuples(const unordered_set<uint32_t>& dataChunksPosInScope) {
+    assert(!dataChunksPosInScope.empty());
     uint64_t numTuples = 1;
-    for (auto i = 0u; i < dataChunks.size(); ++i) {
-        if (!dataChunksMask[i]) {
-            continue;
-        }
-        numTuples *= dataChunks[i]->state->getNumSelectedValues();
+    for (auto& dataChunkPos : dataChunksPosInScope) {
+        numTuples *= dataChunks[dataChunkPos]->state->getNumSelectedValues();
     }
     return numTuples * multiplicity;
 }

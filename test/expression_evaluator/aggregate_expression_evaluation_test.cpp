@@ -63,8 +63,8 @@ TEST_F(AggrExpressionEvaluatorTest, CountStarTest) {
     auto countStarState =
         static_unique_pointer_cast<AggregationState, CountFunction<true>::CountState>(
             exprEvaluator->getFunction()->initialize());
-    exprEvaluator->getFunction()->update(
-        (uint8_t*)countStarState.get(), nullptr, resultSet->getNumTuples());
+    exprEvaluator->getFunction()->update((uint8_t*)countStarState.get(), nullptr,
+        resultSet->getNumTuples(unordered_set<uint32_t>{0}));
     auto otherCountStarState =
         static_unique_pointer_cast<AggregationState, CountFunction<true>::CountState>(
             exprEvaluator->getFunction()->initialize());

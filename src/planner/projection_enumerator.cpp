@@ -26,7 +26,9 @@ void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& pr
         }
         auto expressionsToProject = getExpressionsToProject(projectionBody, isFinalReturn);
         appendProjection(expressionsToProject, *plan);
-        plan->schema->expressionsToCollect = expressionsToProject;
+        if (isFinalReturn) {
+            plan->setExpressionsToCollect(expressionsToProject);
+        }
         if (projectionBodyPredicate) {
             enumerator->appendFilter(projectionBodyPredicate, *plan);
         }
@@ -44,26 +46,24 @@ void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& pr
 
 void ProjectionEnumerator::appendProjection(
     const vector<shared_ptr<Expression>>& expressionsToProject, LogicalPlan& plan) {
-    unordered_set<uint32_t> nonDiscardGroupsPos;
+    auto groupsPosInScopeBeforeProjection = plan.schema->getGroupsPosInScope();
+    plan.schema->clearExpressionsInScope();
     for (auto& expression : expressionsToProject) {
         enumerator->appendScanPropertiesAndPlanSubqueryIfNecessary(expression, plan);
         auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *plan.schema);
         uint32_t groupPosToWrite = enumerator->appendFlattensButOne(dependentGroupsPos, plan);
-        nonDiscardGroupsPos.insert(groupPosToWrite);
-        plan.schema->getGroup(groupPosToWrite)->insertExpression(expression->getUniqueName());
+        plan.schema->insertToGroupAndScope(expression->getUniqueName(), groupPosToWrite);
     }
-
-    // We collect the discarded group positions in the input data chunks to obtain their
-    // multiplicity in the projection operation.
-    vector<uint32_t> discardedGroupsPos;
-    for (auto i = 0u; i < plan.schema->groups.size(); ++i) {
-        if (!nonDiscardGroupsPos.contains(i)) {
-            discardedGroupsPos.push_back(i);
+    auto groupsPosInScopeAfterProjection = plan.schema->getGroupsPosInScope();
+    unordered_set<uint32_t> discardGroupsPos;
+    for (auto i = 0; i < plan.schema->getNumGroups(); ++i) {
+        if (groupsPosInScopeBeforeProjection.contains(i) &&
+            !groupsPosInScopeAfterProjection.contains(i)) {
+            discardGroupsPos.insert(i);
         }
     }
-
     auto projection = make_shared<LogicalProjection>(
-        expressionsToProject, move(discardedGroupsPos), plan.lastOperator);
+        expressionsToProject, move(discardGroupsPos), plan.lastOperator);
     plan.appendOperator(move(projection));
 }
 
@@ -82,13 +82,13 @@ void ProjectionEnumerator::appendAggregate(
     }
     auto aggregate = make_shared<LogicalAggregate>(
         expressionsToGroupBy, expressionsToAggregate, plan.schema->copy(), plan.lastOperator);
-    plan.schema->clearGroups();
+    plan.schema->clear();
     auto groupPos = plan.schema->createGroup();
     for (auto& expression : expressionsToGroupBy) {
-        plan.schema->insertToGroup(expression->getUniqueName(), groupPos);
+        plan.schema->insertToGroupAndScope(expression->getUniqueName(), groupPos);
     }
     for (auto& expression : expressionsToAggregate) {
-        plan.schema->insertToGroup(expression->getUniqueName(), groupPos);
+        plan.schema->insertToGroupAndScope(expression->getUniqueName(), groupPos);
     }
     plan.appendOperator(move(aggregate));
 }
@@ -110,16 +110,10 @@ void ProjectionEnumerator::appendMultiplicityReducer(LogicalPlan& plan) {
 }
 
 void ProjectionEnumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
-    auto groupPosToSelect = enumerator->appendFlattensButOne(plan.schema->getGroupsPos(), plan);
-    // Because our resultSet is shared through the plan and limit might not appear at the end (due
-    // to WITH clause), limit needs to know how many tuples are available under it. So it requires a
-    // subset of dataChunks that may different from shared resultSet.
-    vector<uint32_t> groupsPosToLimit;
-    for (auto i = 0u; i < plan.schema->groups.size(); ++i) {
-        groupsPosToLimit.push_back(i);
-    }
+    auto groupPosToSelect =
+        enumerator->appendFlattensButOne(plan.schema->getGroupsPosInScope(), plan);
     auto limit = make_shared<LogicalLimit>(
-        limitNumber, groupPosToSelect, move(groupsPosToLimit), plan.lastOperator);
+        limitNumber, groupPosToSelect, plan.schema->getGroupsPosInScope(), plan.lastOperator);
     for (auto& group : plan.schema->groups) {
         group->estimatedCardinality = limitNumber;
     }
@@ -127,13 +121,10 @@ void ProjectionEnumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) 
 }
 
 void ProjectionEnumerator::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
-    auto groupPosToSelect = enumerator->appendFlattensButOne(plan.schema->getGroupsPos(), plan);
-    vector<uint32_t> groupsPosToSkip;
-    for (auto i = 0u; i < plan.schema->groups.size(); ++i) {
-        groupsPosToSkip.push_back(i);
-    }
+    auto groupPosToSelect =
+        enumerator->appendFlattensButOne(plan.schema->getGroupsPosInScope(), plan);
     auto skip = make_shared<LogicalSkip>(
-        skipNumber, groupPosToSelect, move(groupsPosToSkip), plan.lastOperator);
+        skipNumber, groupPosToSelect, plan.schema->getGroupsPosInScope(), plan.lastOperator);
     for (auto& group : plan.schema->groups) {
         group->estimatedCardinality -= skipNumber;
     }
