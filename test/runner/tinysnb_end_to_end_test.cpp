@@ -97,3 +97,13 @@ TEST_F(TinySnbProcessorTest, OptionalMatchTests) {
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/optional/optional_match.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }
+
+TEST_F(TinySnbProcessorTest, OrderByTests) {
+    vector<TestQueryConfig> queryConfigs;
+    queryConfigs = TestHelper::parseTestFile(
+        "test/runner/queries/order_by/order_by_tiny_snb.test", true /* checkOutputOrder */);
+    for (auto& queryConfig : queryConfigs) {
+        queryConfig.checkOutputOrder = true;
+    }
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
+}

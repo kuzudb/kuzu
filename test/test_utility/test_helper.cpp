@@ -26,6 +26,7 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const Syste
         spdlog::info("TEST: {}", testConfig.name);
         spdlog::info("QUERY: {}", testConfig.query);
         context.query = testConfig.query;
+        context.numThreads = testConfig.numThreads;
         auto plans = system.enumerateAllPlans(context);
         auto numPlans = plans.size();
         assert(numPlans > 0);
@@ -39,7 +40,7 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const Syste
                     j, result->numTuples, testConfig.expectedNumTuples);
                 spdlog::info("PLAN: \n{}", planStr);
             } else {
-                vector<string> resultTuples = getActualOutput(*result);
+                vector<string> resultTuples = getActualOutput(*result, testConfig.checkOutputOrder);
                 if (resultTuples == testConfig.expectedTuples) {
                     spdlog::info("PLAN{} PASSED", j);
                     spdlog::debug("PLAN: \n{}", planStr);
@@ -66,7 +67,7 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const Syste
     return numPassedQueries == numQueries;
 }
 
-vector<TestQueryConfig> TestHelper::parseTestFile(const string& path) {
+vector<TestQueryConfig> TestHelper::parseTestFile(const string& path, bool checkOutputOrder) {
     vector<TestQueryConfig> retVal;
     if (access(path.c_str(), 0) == 0) {
         struct stat status;
@@ -92,7 +93,10 @@ vector<TestQueryConfig> TestHelper::parseTestFile(const string& path) {
                         getline(ifs, line);
                         retVal.back().expectedTuples.push_back(line);
                     }
-                    sort(retVal.back().expectedTuples.begin(), retVal.back().expectedTuples.end());
+                    if (!checkOutputOrder) {
+                        sort(retVal.back().expectedTuples.begin(),
+                            retVal.back().expectedTuples.end());
+                    }
                 }
             }
             return retVal;
@@ -112,7 +116,7 @@ void BaseGraphLoadingTest::SetUp() {
     TestHelper::loadGraph(testSuiteSystemConfig);
 }
 
-vector<string> TestHelper::getActualOutput(QueryResult& queryResult) {
+vector<string> TestHelper::getActualOutput(QueryResult& queryResult, bool checkOutputOrder) {
     vector<string> actualOutput;
     if (queryResult.numTuples != 0) {
         auto resultSetIterator = make_unique<ResultSetIterator>(
@@ -125,7 +129,9 @@ vector<string> TestHelper::getActualOutput(QueryResult& queryResult) {
                 actualOutput.push_back(tuple.toString(vector<uint32_t>(tuple.len(), 0)));
             }
         }
-        sort(actualOutput.begin(), actualOutput.end());
+        if (!checkOutputOrder) {
+            sort(actualOutput.begin(), actualOutput.end());
+        }
     }
     return actualOutput;
 }

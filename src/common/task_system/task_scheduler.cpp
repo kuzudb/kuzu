@@ -1,5 +1,7 @@
 #include "src/common/include/task_system/task_scheduler.h"
 
+#include "src/common/include/configs.h"
+
 using namespace graphflow::common;
 
 namespace graphflow {
@@ -48,7 +50,7 @@ void TaskScheduler::waitAllTasksToCompleteOrError() {
             // yet registered to them, so they cannot have errored.
         }
         lck.unlock();
-        this_thread::sleep_for(chrono::microseconds(THREAD_WAIT_TIME_IN_MICROS));
+        this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
     }
 }
 
@@ -60,7 +62,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const shared_ptr<Task>& task) {
     }
     auto scheduledTask = scheduleTask(task);
     while (!task->isCompletedOrHasException()) {
-        this_thread::sleep_for(chrono::microseconds(THREAD_WAIT_TIME_IN_MICROS));
+        this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
     }
     if (task->hasException()) {
         logger->debug("Thread {} found a task with exception. Will call removeErroringTask.",
@@ -127,7 +129,7 @@ void TaskScheduler::runWorkerThread() {
         }
         auto scheduledTask = getTaskAndRegister();
         if (!scheduledTask) {
-            this_thread::sleep_for(chrono::microseconds(THREAD_WAIT_TIME_IN_MICROS));
+            this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
             continue;
         }
         try {

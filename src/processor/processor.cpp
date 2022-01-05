@@ -29,6 +29,17 @@ unique_ptr<QueryResult> QueryProcessor::execute(PhysicalPlan* physicalPlan, uint
 void QueryProcessor::decomposePlanIntoTasks(
     PhysicalOperator* op, Task* parentTask, uint64_t numThreads) {
     switch (op->getOperatorType()) {
+    case ORDER_BY_MERGE: {
+        auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), numThreads);
+        decomposePlanIntoTasks(op->getFirstChild(), childTask.get(), numThreads);
+        parentTask->addChildTask(move(childTask));
+        parentTask->setSingleThreadedTask();
+    } break;
+    case ORDER_BY: {
+        auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), numThreads);
+        decomposePlanIntoTasks(op->getFirstChild(), childTask.get(), numThreads);
+        parentTask->addChildTask(move(childTask));
+    } break;
     case HASH_JOIN_BUILD: {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), numThreads);
         decomposePlanIntoTasks(op->getFirstChild(), childTask.get(), numThreads);

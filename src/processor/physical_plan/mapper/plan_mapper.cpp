@@ -12,6 +12,7 @@
 #include "src/planner/include/logical_plan/operator/intersect/logical_intersect.h"
 #include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
 #include "src/planner/include/logical_plan/operator/nested_loop_join/logical_left_nested_loop_join.h"
+#include "src/planner/include/logical_plan/operator/order_by/logical_order_by.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
@@ -30,6 +31,9 @@
 #include "src/processor/include/physical_plan/operator/left_nested_loop_join.h"
 #include "src/processor/include/physical_plan/operator/limit.h"
 #include "src/processor/include/physical_plan/operator/multiplicity_reducer.h"
+#include "src/processor/include/physical_plan/operator/order_by/order_by.h"
+#include "src/processor/include/physical_plan/operator/order_by/order_by_merge.h"
+#include "src/processor/include/physical_plan/operator/order_by/order_by_scan.h"
 #include "src/processor/include/physical_plan/operator/projection.h"
 #include "src/processor/include/physical_plan/operator/read_list/adj_list_extend.h"
 #include "src/processor/include/physical_plan/operator/read_list/frontier_extend.h"
@@ -140,6 +144,10 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_LEFT_NESTED_LOOP_JOIN: {
         physicalOperator = mapLogicalLeftNestedLoopJoinToPhysical(
             logicalOperator.get(), mapperContext, executionContext);
+    } break;
+    case LOGICAL_ORDER_BY: {
+        physicalOperator =
+            mapLogicalOrderByToPhysical(logicalOperator.get(), mapperContext, executionContext);
     } break;
     default:
         assert(false);
@@ -472,6 +480,41 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLeftNestedLoopJoinToPhysical(
     }
     return make_unique<LeftNestedLoopJoin>(move(subPlanVectorsToRefPosMapping), move(prevOperator),
         move(subPlanLastOperator), executionContext, mapperContext.getOperatorID());
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext,
+    ExecutionContext& executionContext) {
+    auto& logicalOrderBy = (LogicalOrderBy&)*logicalOperator;
+    auto orderByPrevOperator = mapLogicalOperatorToPhysical(
+        logicalOrderBy.getFirstChild(), mapperContext, executionContext);
+    vector<DataPos> keyDataPoses;
+    vector<DataPos> allDataPoses;
+    vector<bool> isVectorFlat;
+
+    for (auto& expression : logicalOrderBy.getOrderByExpressions()) {
+        keyDataPoses.emplace_back(mapperContext.getDataPos(expression->getUniqueName()));
+    }
+
+    for (auto& group : logicalOrderBy.getSchemaBeforeOrderBy()->groups) {
+        for (auto& expressionName : group->expressionNames) {
+            allDataPoses.emplace_back(mapperContext.getDataPos(expressionName));
+            isVectorFlat.emplace_back(group->isFlat);
+        }
+    }
+
+    auto orderByDataInfo =
+        OrderByDataInfo(keyDataPoses, allDataPoses, isVectorFlat, logicalOrderBy.getIsAscOrders());
+    auto orderBySharedState = make_shared<SharedRowCollectionsAndSortedKeyBlocks>();
+
+    auto orderBy = make_unique<OrderBy>(orderByDataInfo, orderBySharedState,
+        move(orderByPrevOperator), executionContext, mapperContext.getOperatorID());
+    auto orderByMerge = make_unique<OrderByMerge>(
+        orderBySharedState, move(orderBy), executionContext, mapperContext.getOperatorID());
+    auto orderByScan = make_unique<OrderByScan>(mapperContext.getResultSetDescriptor()->copy(),
+        allDataPoses, orderBySharedState, move(orderByMerge), executionContext,
+        mapperContext.getOperatorID());
+    return orderByScan;
 }
 
 } // namespace processor

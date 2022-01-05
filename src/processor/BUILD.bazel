@@ -114,6 +114,7 @@ cc_library(
         "physical_plan/operator/order_by/*.cpp",
     ]),
     hdrs = glob([
+        "include/physical_plan/operator/*.h",
         "include/physical_plan/operator/order_by/*.h",
     ]),
     deps = [

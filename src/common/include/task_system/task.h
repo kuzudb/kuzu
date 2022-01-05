@@ -55,6 +55,8 @@ public:
         return (numThreadsRegistered > 0 && numThreadsFinished == numThreadsRegistered);
     }
 
+    inline void setSingleThreadedTask() { maxNumThreads = 1; }
+
     bool registerThread();
 
     void deRegisterThreadAndFinalizeTaskIfNecessary();

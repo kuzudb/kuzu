@@ -3,6 +3,7 @@
 
 #include "src/common/include/configs.h"
 #include "src/common/include/vector/value_vector.h"
+#include "src/processor/include/physical_plan/operator/order_by/key_block_merger.h"
 #include "src/processor/include/physical_plan/operator/order_by/order_by_key_encoder.h"
 #include "src/processor/include/physical_plan/result/row_collection.h"
 
@@ -28,10 +29,9 @@ public:
 class RadixSort {
 public:
     explicit RadixSort(MemoryManager& memoryManager, RowCollection& rowCollection,
-        OrderByKeyEncoder& orderByKeyEncoder, vector<uint64_t>& orderByColOffsetInRowCollection)
+        OrderByKeyEncoder& orderByKeyEncoder, vector<StrKeyColInfo> strKeyColInfo)
         : rowCollection{rowCollection}, tmpKeyBlock{memoryManager.allocateBlock(SORT_BLOCK_SIZE)},
-          orderByKeyEncoder{orderByKeyEncoder}, orderByColOffsetInRowCollection{
-                                                    orderByColOffsetInRowCollection} {
+          orderByKeyEncoder{orderByKeyEncoder}, strKeyColInfo{strKeyColInfo} {
         tmpRowPtrSortingBlock = memoryManager.allocateBlock(
             sizeof(uint8_t*) * (SORT_BLOCK_SIZE / orderByKeyEncoder.getKeyBlockEntrySizeInBytes()));
     }
@@ -39,7 +39,7 @@ public:
     void sortAllKeyBlocks();
 
 private:
-    void sortSingleKeyBlock(const MemoryBlock& keyBlock, uint64_t numRowsInKeyBlock);
+    void sortSingleKeyBlock(const KeyBlock& keyBlock);
 
     void solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, queue<TieRange>& ties,
         bool isAscOrder, uint64_t fieldOffsetInRowCollection);
@@ -58,9 +58,7 @@ private:
     // columns. RadixSort uses rowCollection to access the full contents of the string key columns
     // when resolving ties.
     RowCollection& rowCollection;
-    // orderByColOffsetInRowCollection contains the offsets of the string key columns in
-    // rowCollection.
-    vector<uint64_t>& orderByColOffsetInRowCollection;
+    vector<StrKeyColInfo> strKeyColInfo;
 };
 
 } // namespace processor

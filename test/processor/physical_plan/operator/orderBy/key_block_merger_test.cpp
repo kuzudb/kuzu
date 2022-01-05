@@ -23,24 +23,25 @@ public:
 public:
     unique_ptr<MemoryManager> memoryManager;
 
-    void checkRowIDsAndThreadIDs(uint8_t* keyBlockPtr, const uint64_t keyBlockEntrySizeInBytes,
-        const vector<uint64_t>& expectedRowIDOrder, const vector<uint64_t>& expectedThreadIDOrder) {
-        assert(expectedRowIDOrder.size() == expectedThreadIDOrder.size());
-        for (auto i = 0u; i < expectedRowIDOrder.size(); i++) {
-            auto encodedRowID = OrderByKeyEncoder::getEncodedRowID(
+    void checkRowIdxesAndRowCollectionIdxes(uint8_t* keyBlockPtr,
+        const uint64_t keyBlockEntrySizeInBytes, const vector<uint64_t>& expectedRowIdxOrder,
+        const vector<uint64_t>& expectedRowCollectionIdxOrder) {
+        assert(expectedRowIdxOrder.size() == expectedRowCollectionIdxOrder.size());
+        for (auto i = 0u; i < expectedRowIdxOrder.size(); i++) {
+            auto encodedRowIdx = OrderByKeyEncoder::getEncodedRowIdx(
                 keyBlockPtr + keyBlockEntrySizeInBytes - sizeof(uint64_t));
-            ASSERT_EQ(encodedRowID, expectedRowIDOrder[i]);
-            ASSERT_EQ(OrderByKeyEncoder::getEncodedThreadID(
+            ASSERT_EQ(encodedRowIdx, expectedRowIdxOrder[i]);
+            ASSERT_EQ(OrderByKeyEncoder::getEncodedRowCollectionIdx(
                           keyBlockPtr + keyBlockEntrySizeInBytes - sizeof(uint64_t)),
-                expectedThreadIDOrder[i]);
+                expectedRowCollectionIdxOrder[i]);
             keyBlockPtr += keyBlockEntrySizeInBytes;
         }
     }
 
     template<typename T>
     OrderByKeyEncoder prepareSingleOrderByColEncoder(const vector<T>& sortingData,
-        const vector<bool>& nullMasks, DataType dataType, bool isAsc, uint16_t threadID,
-        bool hasPayLoadCol, vector<unique_ptr<RowCollection>>& rowCollections,
+        const vector<bool>& nullMasks, DataType dataType, bool isAsc, uint16_t rowCollectionIdx,
+        bool hasPayLoadCol, vector<shared_ptr<RowCollection>>& rowCollections,
         shared_ptr<DataChunk>& dataChunk) {
         GF_ASSERT(sortingData.size() == nullMasks.size());
         dataChunk->state->selectedSize = sortingData.size();
@@ -85,7 +86,7 @@ public:
 
         vector<bool> isAscOrder = {isAsc};
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, threadID);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, rowCollectionIdx);
         orderByKeyEncoder.encodeKeys();
 
         rowCollections.emplace_back(move(rowCollection));
@@ -95,16 +96,16 @@ public:
     template<typename T>
     void singleOrderByColMergeTest(const vector<T>& leftSortingData,
         const vector<bool>& leftNullMasks, const vector<T>& rightSortingData,
-        const vector<bool>& rightNullMasks, const vector<uint64_t>& expectedRowIDOrder,
-        const vector<uint64_t>& expectedThreadIDOrder, const DataType dataType, const bool isAsc,
-        bool hasPayLoadCol) {
-        vector<unique_ptr<RowCollection>> rowCollections;
+        const vector<bool>& rightNullMasks, const vector<uint64_t>& expectedRowIdxOrder,
+        const vector<uint64_t>& expectedRowCollectionIdxOrder, const DataType dataType,
+        const bool isAsc, bool hasPayLoadCol) {
+        vector<shared_ptr<RowCollection>> rowCollections;
         auto dataChunk0 = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         auto dataChunk1 = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         auto orderByKeyEncoder1 = prepareSingleOrderByColEncoder(leftSortingData, leftNullMasks,
-            dataType, isAsc, 0 /* threadID */, hasPayLoadCol, rowCollections, dataChunk0);
+            dataType, isAsc, 0 /* rowCollectionIdx */, hasPayLoadCol, rowCollections, dataChunk0);
         auto orderByKeyEncoder2 = prepareSingleOrderByColEncoder(rightSortingData, rightNullMasks,
-            dataType, isAsc, 1 /* threadID */, hasPayLoadCol, rowCollections, dataChunk1);
+            dataType, isAsc, 1 /* rowCollectionIdx */, hasPayLoadCol, rowCollections, dataChunk1);
 
         vector<StrKeyColInfo> strKeyInfo;
         if (hasPayLoadCol) {
@@ -113,27 +114,28 @@ public:
             strKeyInfo.emplace_back(StrKeyColInfo(0, 0, isAsc));
         }
 
-        KeyBlockMerger keyBlockMerger =
-            KeyBlockMerger(*memoryManager, orderByKeyEncoder1, rowCollections, strKeyInfo);
-        KeyBlockMergeInfo leftKeyBlockMergeInfo(
-            *orderByKeyEncoder1.getKeyBlocks()[0], 0, leftSortingData.size());
-        KeyBlockMergeInfo rightKeyBlockMergeInfo(
-            *orderByKeyEncoder2.getKeyBlocks()[0], 0, rightSortingData.size());
+        KeyBlockMerger keyBlockMerger = KeyBlockMerger(
+            rowCollections, strKeyInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
 
-        auto resultMemBlock = memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2);
-        KeyBlockMergeInfo resultKeyBlockMergeInfo(
-            *resultMemBlock, 0, leftSortingData.size() + rightSortingData.size());
+        auto resultKeyBlock =
+            make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
+        resultKeyBlock->numEntriesInMemBlock = leftSortingData.size() + rightSortingData.size();
+        auto keyBlockMergeTask =
+            make_shared<KeyBlockMergeTask>(orderByKeyEncoder1.getKeyBlocks()[0],
+                orderByKeyEncoder2.getKeyBlocks()[0], resultKeyBlock, keyBlockMerger);
+        KeyBlockMergeMorsel keyBlockMergeMorsel(
+            0, leftSortingData.size(), 0, rightSortingData.size());
+        keyBlockMergeMorsel.keyBlockMergeTask = keyBlockMergeTask;
 
-        keyBlockMerger.mergeKeyBlocks(
-            leftKeyBlockMergeInfo, rightKeyBlockMergeInfo, resultKeyBlockMergeInfo);
+        keyBlockMerger.mergeKeyBlocks(keyBlockMergeMorsel);
 
-        checkRowIDsAndThreadIDs(resultMemBlock->data,
-            orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedRowIDOrder,
-            expectedThreadIDOrder);
+        checkRowIdxesAndRowCollectionIdxes(resultKeyBlock->getMemBlockData(),
+            orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedRowIdxOrder,
+            expectedRowCollectionIdxOrder);
     }
 
-    OrderByKeyEncoder prepareMultipleOrderByColsEncoder(uint16_t threadID,
-        vector<unique_ptr<RowCollection>>& rowCollections, shared_ptr<DataChunk>& dataChunk,
+    OrderByKeyEncoder prepareMultipleOrderByColsEncoder(uint16_t rowCollectionIdx,
+        vector<shared_ptr<RowCollection>>& rowCollections, shared_ptr<DataChunk>& dataChunk,
         RowLayout& rowLayout) {
         vector<shared_ptr<ValueVector>> orderByVectors;
         for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
@@ -142,7 +144,7 @@ public:
 
         vector<bool> isAscOrder(orderByVectors.size(), true);
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, threadID);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, rowCollectionIdx);
 
         auto rowCollection = make_unique<RowCollection>(*memoryManager, rowLayout);
         for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
@@ -227,17 +229,17 @@ public:
         }
         rowLayout.initialize();
 
-        vector<unique_ptr<RowCollection>> rowCollections;
+        vector<shared_ptr<RowCollection>> rowCollections;
         for (auto i = 0; i < 4; i++) {
             rowCollections.emplace_back(make_unique<RowCollection>(*memoryManager, rowLayout));
         }
         auto orderByKeyEncoder2 = prepareMultipleOrderByColsEncoder(
-            4 /* threadID */, rowCollections, dataChunk2, rowLayout);
+            4 /* rowCollectionIdx */, rowCollections, dataChunk2, rowLayout);
         auto orderByKeyEncoder1 = prepareMultipleOrderByColsEncoder(
-            5 /* threadID */, rowCollections, dataChunk1, rowLayout);
+            5 /* rowCollectionIdx */, rowCollections, dataChunk1, rowLayout);
 
-        vector<uint64_t> expectedRowIDOrder = {0, 0, 1, 1, 2, 2, 3};
-        vector<uint64_t> expectedThreadIDOrder = {4, 5, 5, 4, 5, 4, 4};
+        vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 1, 2, 2, 3};
+        vector<uint64_t> expectedRowCollectionIdxOrder = {4, 5, 5, 4, 5, 4, 4};
 
         vector<StrKeyColInfo> strKeyInfo;
         if (hasStrCol) {
@@ -245,28 +247,31 @@ public:
                 TypeUtils::getDataTypeSize(INT64) + TypeUtils::getDataTypeSize(DOUBLE) +
                     TypeUtils::getDataTypeSize(TIMESTAMP),
                 true));
-            expectedRowIDOrder = {0, 0, 1, 1, 2, 2, 3};
-            expectedThreadIDOrder = {4, 5, 4, 5, 4, 5, 4};
+            expectedRowIdxOrder = {0, 0, 1, 1, 2, 2, 3};
+            expectedRowCollectionIdxOrder = {4, 5, 4, 5, 4, 5, 4};
         }
 
-        KeyBlockMerger keyBlockMerger =
-            KeyBlockMerger(*memoryManager, orderByKeyEncoder1, rowCollections, strKeyInfo);
-        KeyBlockMergeInfo leftKeyBlockMergeInfo(*orderByKeyEncoder1.getKeyBlocks()[0], 0, 3);
-        KeyBlockMergeInfo rightKeyBlockMergeInfo(*orderByKeyEncoder2.getKeyBlocks()[0], 0, 4);
-        auto resultMemBlock = memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2);
-        KeyBlockMergeInfo resultKeyBlockMergeInfo(*resultMemBlock, 0, 7);
+        KeyBlockMerger keyBlockMerger = KeyBlockMerger(
+            rowCollections, strKeyInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
+        auto resultKeyBlock =
+            make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
+        resultKeyBlock->numEntriesInMemBlock = 7;
+        auto keyBlockMergeTask =
+            make_shared<KeyBlockMergeTask>(orderByKeyEncoder1.getKeyBlocks()[0],
+                orderByKeyEncoder2.getKeyBlocks()[0], resultKeyBlock, keyBlockMerger);
+        KeyBlockMergeMorsel keyBlockMergeMorsel(0, 3, 0, 4);
+        keyBlockMergeMorsel.keyBlockMergeTask = keyBlockMergeTask;
 
-        keyBlockMerger.mergeKeyBlocks(
-            leftKeyBlockMergeInfo, rightKeyBlockMergeInfo, resultKeyBlockMergeInfo);
+        keyBlockMerger.mergeKeyBlocks(keyBlockMergeMorsel);
 
-        checkRowIDsAndThreadIDs(resultMemBlock->data,
-            orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedRowIDOrder,
-            expectedThreadIDOrder);
+        checkRowIdxesAndRowCollectionIdxes(resultKeyBlock->getMemBlockData(),
+            orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedRowIdxOrder,
+            expectedRowCollectionIdxOrder);
     }
 
     OrderByKeyEncoder prepareMultipleStrKeyColsEncoder(shared_ptr<DataChunk>& dataChunk,
-        vector<vector<string>>& strValues, uint16_t threadID,
-        vector<unique_ptr<RowCollection>>& rowCollections) {
+        vector<vector<string>>& strValues, uint16_t rowCollectionIdx,
+        vector<shared_ptr<RowCollection>>& rowCollections) {
         dataChunk->state->currIdx = 0;
         dataChunk->state->selectedSize = strValues[0].size();
         for (auto i = 0u; i < strValues.size(); i++) {
@@ -292,7 +297,7 @@ public:
 
         vector<bool> isAscOrder(strValues.size(), true);
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, threadID);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, rowCollectionIdx);
 
         for (auto i = 0u; i < strValues[0].size(); i++) {
             rowCollection->append(allVectors, 1);
@@ -310,10 +315,10 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64Test) {
     vector<int64_t> rightSortingData = {INT64_MIN, -6, 4, 22, 32, 38, 0 /* NULL */};
     vector<bool> leftNullMasks = {false, false, false, false, false, false, true};
     vector<bool> rightNullMasks = {false, false, false, false, false, false, true};
-    vector<uint64_t> expectedRowIDOrder = {0, 0, 1, 1, 2, 2, 3, 4, 3, 4, 5, 5, 6, 6};
-    vector<uint64_t> expectedThreadIDOrder = {0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1};
+    vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 1, 2, 2, 3, 4, 3, 4, 5, 5, 6, 6};
+    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIDOrder, expectedThreadIDOrder, INT64, true /* isAsc */,
+        expectedRowIdxOrder, expectedRowCollectionIdxOrder, INT64, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -322,10 +327,10 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64NoNullTest) {
     vector<int64_t> rightSortingData = {INT64_MIN, -999, 31, INT64_MAX};
     vector<bool> leftNullMasks(leftSortingData.size(), false);
     vector<bool> rightNullMasks(rightSortingData.size(), false);
-    vector<uint64_t> expectedRowIDOrder = {0, 0, 1, 1, 2, 3, 2, 4, 3};
-    vector<uint64_t> expectedThreadIDOrder = {0, 1, 1, 0, 0, 0, 1, 0, 1};
+    vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 1, 2, 3, 2, 4, 3};
+    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 1, 1, 0, 0, 0, 1, 0, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIDOrder, expectedThreadIDOrder, INT64, true /* isAsc */,
+        expectedRowIdxOrder, expectedRowCollectionIdxOrder, INT64, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -334,35 +339,36 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64SameValueTest) {
     vector<int64_t> rightSortingData = {4, 4, 4, 4, 4, 4, 4, 4, 4};
     vector<bool> leftNullMasks(leftSortingData.size(), false);
     vector<bool> rightNullMasks(rightSortingData.size(), false);
-    vector<uint64_t> expectedRowIDOrder = {0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7, 8};
-    vector<uint64_t> expectedThreadIDOrder = {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    vector<uint64_t> expectedRowIdxOrder = {0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7, 8};
+    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIDOrder, expectedThreadIDOrder, INT64, false /* isAsc */,
+        expectedRowIdxOrder, expectedRowCollectionIdxOrder, INT64, false /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
 TEST_F(KeyBlockMergerTest, singleOrderByColInt64LargeNumRowsTest) {
     vector<int64_t> leftSortingData, rightSortingData;
-    vector<uint64_t> expectedRowIDOrder(leftSortingData.size() + rightSortingData.size());
-    vector<uint64_t> expectedThreadIDOrder(leftSortingData.size() + rightSortingData.size());
+    vector<uint64_t> expectedRowIdxOrder(leftSortingData.size() + rightSortingData.size());
+    vector<uint64_t> expectedRowCollectionIdxOrder(
+        leftSortingData.size() + rightSortingData.size());
     // Each memory block can hold a maximum of 240 rows (4096 / (8 + 9)).
     // We fill the leftSortingData with the even numbers of 0-480 and the rightSortingData with the
     // odd numbers of 0-480 so that each of them takes up exactly one memoryBlock.
     for (auto i = 0u; i < 480; i++) {
         if (i % 2) {
-            expectedRowIDOrder.emplace_back(rightSortingData.size());
-            expectedThreadIDOrder.emplace_back(1);
+            expectedRowIdxOrder.emplace_back(rightSortingData.size());
+            expectedRowCollectionIdxOrder.emplace_back(1);
             rightSortingData.emplace_back(i);
         } else {
-            expectedRowIDOrder.emplace_back(leftSortingData.size());
-            expectedThreadIDOrder.emplace_back(0);
+            expectedRowIdxOrder.emplace_back(leftSortingData.size());
+            expectedRowCollectionIdxOrder.emplace_back(0);
             leftSortingData.emplace_back(i);
         }
     }
     vector<bool> leftNullMasks(leftSortingData.size(), false);
     vector<bool> rightNullMasks(rightSortingData.size(), false);
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIDOrder, expectedThreadIDOrder, INT64, true /* isAsc */,
+        expectedRowIdxOrder, expectedRowCollectionIdxOrder, INT64, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -374,10 +380,10 @@ TEST_F(KeyBlockMergerTest, singleOrderByColStringTest) {
         "" /* empty str */};
     vector<bool> leftNullMasks = {true, false, false, false, false};
     vector<bool> rightNullMasks = {true, true, false, false, false, false, false};
-    vector<uint64_t> expectedRowIDOrder = {0, 0, 1, 2, 1, 2, 3, 3, 4, 4, 5, 6};
-    vector<uint64_t> expectedThreadIDOrder = {0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1};
+    vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 2, 1, 2, 3, 3, 4, 4, 5, 6};
+    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIDOrder, expectedThreadIDOrder, STRING, false /* isAsc */,
+        expectedRowIdxOrder, expectedRowCollectionIdxOrder, STRING, false /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -388,10 +394,10 @@ TEST_F(KeyBlockMergerTest, singleOrderByColStringNoNullTest) {
         "common prefix string4", "tiny str", "tiny str1"};
     vector<bool> leftNullMasks(leftSortingData.size(), false);
     vector<bool> rightNullMasks(rightSortingData.size(), false);
-    vector<uint64_t> expectedRowIDOrder = {0, 0, 1, 1, 2, 2, 3, 4, 3, 4};
-    vector<uint64_t> expectedThreadIDOrder = {0, 1, 0, 1, 0, 1, 0, 0, 1, 1};
+    vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 1, 2, 2, 3, 4, 3, 4};
+    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 1, 0, 1, 0, 1, 0, 0, 1, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIDOrder, expectedThreadIDOrder, STRING, true /* isAsc */,
+        expectedRowIdxOrder, expectedRowCollectionIdxOrder, STRING, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -401,10 +407,10 @@ TEST_F(KeyBlockMergerTest, singleOrderByColStringWithPayLoadTest) {
         "", "test str1", "this is a long string", "very short", "" /* NULL */};
     vector<bool> leftNullMasks(leftSortingData.size(), false);
     vector<bool> rightNullMasks = {false, false, false, false, true};
-    vector<uint64_t> expectedRowIDOrder = {0, 1, 0, 2, 3, 4, 1, 2, 3, 4};
-    vector<uint64_t> expectedThreadIDOrder = {0, 0, 1, 0, 0, 0, 1, 1, 1, 1};
+    vector<uint64_t> expectedRowIdxOrder = {0, 1, 0, 2, 3, 4, 1, 2, 3, 4};
+    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 0, 1, 0, 0, 0, 1, 1, 1, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIDOrder, expectedThreadIDOrder, STRING, true /* isAsc */,
+        expectedRowIdxOrder, expectedRowCollectionIdxOrder, STRING, true /* isAsc */,
         true /* hasPayLoadCol */);
 }
 
@@ -434,13 +440,13 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
 
     vector<vector<string>> strValues3 = {{"common str1", "common str1"}, {"same str1", "same str1"},
         {"payload3", "payload1"}, {"largerStr", "long long str4"}};
-    vector<unique_ptr<RowCollection>> rowCollections;
-    auto orderByKeyEncoder1 =
-        prepareMultipleStrKeyColsEncoder(dataChunk1, strValues1, 0 /* threadID */, rowCollections);
-    auto orderByKeyEncoder2 =
-        prepareMultipleStrKeyColsEncoder(dataChunk2, strValues2, 1 /* threadID */, rowCollections);
-    auto orderByKeyEncoder3 =
-        prepareMultipleStrKeyColsEncoder(dataChunk3, strValues3, 2 /* threadID */, rowCollections);
+    vector<shared_ptr<RowCollection>> rowCollections;
+    auto orderByKeyEncoder1 = prepareMultipleStrKeyColsEncoder(
+        dataChunk1, strValues1, 0 /* rowCollectionIdx */, rowCollections);
+    auto orderByKeyEncoder2 = prepareMultipleStrKeyColsEncoder(
+        dataChunk2, strValues2, 1 /* rowCollectionIdx */, rowCollections);
+    auto orderByKeyEncoder3 = prepareMultipleStrKeyColsEncoder(
+        dataChunk3, strValues3, 2 /* rowCollectionIdx */, rowCollections);
 
     vector<StrKeyColInfo> strKeyInfo = {StrKeyColInfo(0, 0, true /* isAscOrder */),
         StrKeyColInfo(TypeUtils::getDataTypeSize(STRING),
@@ -448,26 +454,30 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
         StrKeyColInfo(TypeUtils::getDataTypeSize(STRING) * 3,
             orderByKeyEncoder1.getEncodingSize(STRING) * 2, true /* isAscOrder */)};
 
-    KeyBlockMerger keyBlockMerger =
-        KeyBlockMerger(*memoryManager, orderByKeyEncoder1, rowCollections, strKeyInfo);
+    KeyBlockMerger keyBlockMerger = KeyBlockMerger(
+        rowCollections, strKeyInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
 
-    KeyBlockMergeInfo leftKeyBlockMergeInfo(*orderByKeyEncoder1.getKeyBlocks()[0], 0, 4);
-    KeyBlockMergeInfo rightKeyBlockMergeInfo(*orderByKeyEncoder2.getKeyBlocks()[0], 0, 3);
-    auto resultMemBlock = memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2);
-    KeyBlockMergeInfo resultKeyBlockMergeInfo(*resultMemBlock, 0, 7);
-    keyBlockMerger.mergeKeyBlocks(
-        leftKeyBlockMergeInfo, rightKeyBlockMergeInfo, resultKeyBlockMergeInfo);
+    auto resultKeyBlock =
+        make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
+    resultKeyBlock->numEntriesInMemBlock = 7;
+    auto keyBlockMergeTask = make_shared<KeyBlockMergeTask>(orderByKeyEncoder1.getKeyBlocks()[0],
+        orderByKeyEncoder2.getKeyBlocks()[0], resultKeyBlock, keyBlockMerger);
+    KeyBlockMergeMorsel keyBlockMergeMorsel(0, 4, 0, 3);
+    keyBlockMergeMorsel.keyBlockMergeTask = keyBlockMergeTask;
+    keyBlockMerger.mergeKeyBlocks(keyBlockMergeMorsel);
 
-    KeyBlockMergeInfo leftKeyBlockMergeInfo1 = KeyBlockMergeInfo(*resultMemBlock, 0, 7);
-    KeyBlockMergeInfo rightKeyBlockMergeInfo1 =
-        KeyBlockMergeInfo(*orderByKeyEncoder3.getKeyBlocks()[0], 0, 2);
-    auto resultMemBlock1 = memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 3);
-    KeyBlockMergeInfo resultKeyBlockMergeInfo1(*resultMemBlock1, 0, 9);
-    keyBlockMerger.mergeKeyBlocks(
-        leftKeyBlockMergeInfo1, rightKeyBlockMergeInfo1, resultKeyBlockMergeInfo1);
+    auto resultMemBlock1 =
+        make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 3));
+    resultMemBlock1->numEntriesInMemBlock = 9;
+    auto keyBlockMergeTask1 = make_shared<KeyBlockMergeTask>(
+        resultKeyBlock, orderByKeyEncoder3.getKeyBlocks()[0], resultMemBlock1, keyBlockMerger);
+    KeyBlockMergeMorsel keyBlockMergeMorsel1(0, 7, 0, 2);
+    keyBlockMergeMorsel1.keyBlockMergeTask = keyBlockMergeTask1;
+    keyBlockMerger.mergeKeyBlocks(keyBlockMergeMorsel1);
 
-    vector<uint64_t> expectedRowIDOrder = {0, 0, 0, 1, 1, 1, 2, 2, 3};
-    vector<uint64_t> expectedThreadIDOrder = {1, 2, 0, 2, 1, 0, 0, 1, 0};
-    checkRowIDsAndThreadIDs(resultMemBlock1->data, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(),
-        expectedRowIDOrder, expectedThreadIDOrder);
+    vector<uint64_t> expectedRowIdxOrder = {0, 0, 0, 1, 1, 1, 2, 2, 3};
+    vector<uint64_t> expectedRowCollectionIdxOrder = {1, 2, 0, 2, 1, 0, 0, 1, 0};
+    checkRowIdxesAndRowCollectionIdxes(resultMemBlock1->getMemBlockData(),
+        orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedRowIdxOrder,
+        expectedRowCollectionIdxOrder);
 }

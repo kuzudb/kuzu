@@ -57,6 +57,25 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "order_by_end_to_end_test",
+    srcs = [
+        "order_by_end_to_end_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "testfiles",
+        "//dataset",
+    ],
+    deps = [
+        "//test/test_utility:test_helper",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
 filegroup(
     name = "testfiles",
     srcs = glob(["queries/**"]),

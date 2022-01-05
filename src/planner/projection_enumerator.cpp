@@ -100,7 +100,8 @@ void ProjectionEnumerator::appendOrderBy(const vector<shared_ptr<Expression>>& e
         auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *plan.schema);
         enumerator->appendFlattens(dependentGroupsPos, plan);
     }
-    auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders, plan.lastOperator);
+    auto orderBy = make_shared<LogicalOrderBy>(
+        expressions, isAscOrders, plan.schema->copy(), plan.lastOperator);
     plan.appendOperator(move(orderBy));
 }
 
