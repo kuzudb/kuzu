@@ -63,8 +63,8 @@ vector<BlockAppendingInfo> RowCollection::allocateDataBlocks(vector<DataBlock>& 
     return appendingInfos;
 }
 
-void RowCollection::copyVectorDataToBuffer(const ValueVector& vector, uint64_t valuePosInVec,
-    uint64_t posStride, uint8_t* buffer, uint64_t offsetInBuffer, uint64_t offsetStride,
+void RowCollection::copyVectorDataToBuffer(const ValueVector& vector,
+    uint64_t valuePosInVecIfUnflat, uint8_t* buffer, uint64_t offsetInBuffer, uint64_t offsetStride,
     uint64_t numValues, uint64_t colIdx, bool isVectorOverflow) {
     auto numBytesPerValue = vector.getNumBytesPerValue();
     if (vector.dataType == NODE && vector.isSequence) {
@@ -72,9 +72,13 @@ void RowCollection::copyVectorDataToBuffer(const ValueVector& vector, uint64_t v
         vector.readNodeID(0, baseNodeID);
         nodeID.label = baseNodeID.label;
         for (auto i = 0u; i < numValues; i++) {
-            nodeID.offset = baseNodeID.offset + vector.state->isUnfiltered() ?
-                                (valuePosInVec + i * posStride) :
-                                (vector.state->selectedPositions[valuePosInVec + i * posStride]);
+            nodeID.offset =
+                baseNodeID.offset +
+                (vector.state->isFlat() ?
+                        vector.state->getPositionOfCurrIdx() :
+                        (vector.state->isUnfiltered() ?
+                                (valuePosInVecIfUnflat + i) :
+                                (vector.state->selectedPositions[valuePosInVecIfUnflat + i])));
             memcpy(
                 buffer + offsetInBuffer + (i * offsetStride), (uint8_t*)&nodeID, numBytesPerValue);
             if (vector.isNull(i)) {
@@ -90,11 +94,15 @@ void RowCollection::copyVectorDataToBuffer(const ValueVector& vector, uint64_t v
     } else {
         for (auto i = 0u; i < numValues; i++) {
             // update the null map
-            const auto pos = vector.state->isUnfiltered() ?
-                                 (valuePosInVec + i * posStride) :
-                                 vector.state->selectedPositions[valuePosInVec + i * posStride];
+            const auto pos =
+                vector.state->isFlat() ?
+                    vector.state->getPositionOfCurrIdx() :
+                    (vector.state->isUnfiltered() ?
+                            (valuePosInVecIfUnflat + i) :
+                            vector.state->selectedPositions[valuePosInVecIfUnflat + i]);
             memcpy(buffer + offsetInBuffer + (i * offsetStride),
                 vector.values + pos * numBytesPerValue, numBytesPerValue);
+
             if (vector.isNull(pos)) {
                 if (isVectorOverflow) {
                     setNullMap(buffer + numValues * offsetStride, i);
@@ -122,8 +130,8 @@ overflow_value_t RowCollection::appendUnFlatVectorToOverflowBlocks(
     assert(appendInfos.size() == 1);
     auto blockAppendPos = appendInfos[0].data;
 
-    copyVectorDataToBuffer(vector, 0 /* valuePosInVec */, 1 /* posStride */, blockAppendPos,
-        0 /* offsetInBuffer */, vector.getNumBytesPerValue(), vector.state->selectedSize, colIdx,
+    copyVectorDataToBuffer(vector, 0 /* valuePosInVec */, blockAppendPos, 0 /* offsetInBuffer */,
+        vector.getNumBytesPerValue(), vector.state->selectedSize, colIdx,
         true /* isVectorOverflow */);
     return overflow_value_t{selectedSize, blockAppendPos};
 }
@@ -138,12 +146,10 @@ void RowCollection::copyVectorToBlock(const ValueVector& vector,
                 (uint8_t*)&overflowValue, sizeof(overflow_value_t));
         }
     } else {
-        posInVector = vector.state->isFlat() ? vector.state->getPositionOfCurrIdx() : posInVector;
-        // If the vector is flat, we always read the same value, thus the posStride is 0.
-        auto posStride = vector.state->isFlat() ? 0 : 1;
-        copyVectorDataToBuffer(vector, posInVector, posStride, blockAppendInfo.data, offsetInRow,
-            layout.numBytesPerRow, blockAppendInfo.numEntriesToAppend, colIdx,
-            false /* isVectorOverflow */);
+        // posInVector argument where we possibly pass -1 will be ignored if the vector is flat.
+        copyVectorDataToBuffer(vector, vector.state->isFlat() ? -1 : posInVector,
+            blockAppendInfo.data, offsetInRow, layout.numBytesPerRow,
+            blockAppendInfo.numEntriesToAppend, colIdx, false /* isVectorOverflow */);
     }
 }
 
