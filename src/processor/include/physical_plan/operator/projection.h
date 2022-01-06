@@ -14,11 +14,11 @@ class Projection : public PhysicalOperator {
 
 public:
     Projection(vector<unique_ptr<ExpressionEvaluator>> expressions,
-        vector<DataPos> expressionsOutputPos, vector<uint32_t> discardedDataChunksPos,
+        vector<DataPos> expressionsOutputPos, unordered_set<uint32_t> discardedDataChunksPos,
         unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
         : PhysicalOperator(move(child), context, id),
           expressions(move(expressions)), expressionsOutputPos{move(expressionsOutputPos)},
-          discardedDataChunksPos{move(discardedDataChunksPos)}, prevMultiplicity{0} {}
+          discardedDataChunksPos{move(discardedDataChunksPos)}, prevMultiplicity{1} {}
 
     PhysicalOperatorType getOperatorType() override { return PROJECTION; }
 
@@ -38,10 +38,9 @@ private:
 private:
     vector<unique_ptr<ExpressionEvaluator>> expressions;
     vector<DataPos> expressionsOutputPos;
-    vector<uint32_t> discardedDataChunksPos;
+    unordered_set<uint32_t> discardedDataChunksPos;
 
     uint64_t prevMultiplicity;
-    unique_ptr<ResultSet> discardedResultSet;
 };
 
 } // namespace processor

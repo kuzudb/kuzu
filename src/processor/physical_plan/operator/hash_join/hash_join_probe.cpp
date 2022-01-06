@@ -92,7 +92,7 @@ bool HashJoinProbe::getNextTuples() {
     if (tuplePosToReadInProbedState < probeState->numMatchedTuples) {
         populateResultSet();
         metrics->executionTime.stop();
-        metrics->numOutputTuple.increase(resultSet->getNumTuples());
+        metrics->numOutputTuple.increase(probeState->numMatchedTuples);
         return true;
     }
     getNextBatchOfMatchedTuples();
@@ -102,7 +102,7 @@ bool HashJoinProbe::getNextTuples() {
     }
     populateResultSet();
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(resultSet->getNumTuples());
+    metrics->numOutputTuple.increase(probeState->numMatchedTuples);
     return true;
 }
 } // namespace processor

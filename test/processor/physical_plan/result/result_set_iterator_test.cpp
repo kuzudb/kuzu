@@ -87,7 +87,8 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest1) {
     dataChunkB->state->currIdx = -1;
     dataChunkC->state->currIdx = 10;
 
-    ResultSetIterator resultSetIterator(resultSet.get(), vectorToCollectPos);
+    ResultSetIterator resultSetIterator(
+        resultSet.get(), vectorToCollectPos, unordered_set<uint32_t>{0, 1, 2});
     auto tupleIndex = 0;
     while (resultSetIterator.hasNextTuple()) {
         resultSetIterator.getNextTuple(tuple);
@@ -137,7 +138,8 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest2) {
     dataChunkA->state->currIdx = 1;
     dataChunkB->state->currIdx = -1;
     dataChunkC->state->currIdx = -1;
-    ResultSetIterator resultSetIterator(resultSet.get(), vectorToCollectPos);
+    ResultSetIterator resultSetIterator(
+        resultSet.get(), vectorToCollectPos, unordered_set<uint32_t>{0, 1, 2});
     while (resultSetIterator.hasNextTuple()) {
         auto bid = tupleIndex / 100;
         auto cid = tupleIndex % 100;
@@ -168,7 +170,8 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest3) {
     dataChunkA->state->currIdx = -1;
     dataChunkB->state->currIdx = 10;
     dataChunkC->state->currIdx = -1;
-    ResultSetIterator resultSetIterator(resultSet.get(), vectorToCollectPos);
+    ResultSetIterator resultSetIterator(
+        resultSet.get(), vectorToCollectPos, unordered_set<uint32_t>{0, 1, 2});
     while (resultSetIterator.hasNextTuple()) {
         auto aid = tupleIndex / 100;
         auto cid = tupleIndex % 100;
@@ -199,7 +202,8 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest4) {
     dataChunkC->state->currIdx = 20;
 
     auto tupleIndex = 0;
-    ResultSetIterator resultSetIterator(resultSet.get(), vectorToCollectPos);
+    ResultSetIterator resultSetIterator(
+        resultSet.get(), vectorToCollectPos, unordered_set<uint32_t>{0, 1, 2});
     while (resultSetIterator.hasNextTuple()) {
         resultSetIterator.getNextTuple(tuple);
         string tupleStr = tuple.toString(vector<uint32_t>(tuple.len(), 0));
@@ -228,7 +232,8 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTestWithSelector) {
     dataChunkC->state->currIdx = 20;
 
     auto tupleIndex = 0;
-    ResultSetIterator resultSetIterator(resultSet.get(), vectorToCollectPos);
+    ResultSetIterator resultSetIterator(
+        resultSet.get(), vectorToCollectPos, unordered_set<uint32_t>{0, 1, 2});
     while (resultSetIterator.hasNextTuple()) {
         resultSetIterator.getNextTuple(tuple);
         string tupleStr = tuple.toString(vector<uint32_t>(tuple.len(), 0));

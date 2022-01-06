@@ -58,23 +58,24 @@ public:
 
     void insertToGroup(const string& expressionName, uint32_t groupPos);
 
-    void insertToGroup(const FactorizationGroup& otherGroup, uint32_t groupPos);
+    void insertToGroupAndScope(const string& expressionName, uint32_t groupPos);
+
+    void insertToGroupAndScope(const FactorizationGroup& otherGroup, uint32_t groupPos);
 
     uint32_t getGroupPos(const string& expressionName) const;
 
-    unordered_set<uint32_t> getGroupsPos() const;
+    inline void flattenGroup(uint32_t pos) { groups[pos]->isFlat = true; }
 
-    void flattenGroup(uint32_t pos);
-
-    bool containExpression(const string& expressionName) const {
+    inline bool containExpression(const string& expressionName) const {
         return expressionNameToGroupPos.contains(expressionName);
     }
 
-    void removeExpression(const string& expressionName) {
-        auto groupPos = getGroupPos(expressionName);
-        groups[groupPos]->removeExpression(expressionName);
-        expressionNameToGroupPos.erase(expressionName);
-    }
+    void removeExpression(const string& expressionName);
+
+    inline void clearExpressionsInScope() { expressionNamesInScope.clear(); }
+
+    // Get the group positions containing at least one expression in scope.
+    unordered_set<uint32_t> getGroupsPosInScope() const;
 
     void addLogicalExtend(const string& queryRel, LogicalExtend* extend);
 
@@ -85,7 +86,7 @@ public:
 
     unique_ptr<Schema> copy() const;
 
-    void clearGroups();
+    void clear();
 
 public:
     vector<unique_ptr<FactorizationGroup>> groups;
@@ -93,7 +94,10 @@ public:
     // requires direction information which only available in the LogicalExtend.
     unordered_map<string, LogicalExtend*> queryRelLogicalExtendMap;
     unordered_map<string, uint32_t> expressionNameToGroupPos;
-    vector<shared_ptr<Expression>> expressionsToCollect;
+
+    // Our projection doesn't explicitly remove expressions. Instead, we keep track of what
+    // expressions are in scope (i.e. being projected).
+    unordered_set<string> expressionNamesInScope;
 };
 
 } // namespace planner

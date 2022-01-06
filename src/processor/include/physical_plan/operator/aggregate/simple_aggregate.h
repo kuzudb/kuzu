@@ -30,7 +30,8 @@ class SimpleAggregate : public Sink {
 public:
     SimpleAggregate(unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id,
         shared_ptr<AggregationSharedState> aggregationSharedState,
-        vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators);
+        vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators,
+        unordered_set<uint32_t> dataChunksPosInScope);
 
     PhysicalOperatorType getOperatorType() override { return AGGREGATION; }
 
@@ -46,6 +47,8 @@ private:
     shared_ptr<AggregationSharedState> sharedState;
     vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators;
     vector<unique_ptr<AggregationState>> aggregationStates;
+
+    unordered_set<uint32_t> dataChunksPosInScope;
 };
 
 } // namespace processor

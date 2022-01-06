@@ -20,16 +20,9 @@ public:
         : graph{graph}, outerMapperContext{nullptr}, expressionMapper{} {}
 
     unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(
-        unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext) {
-        return mapLogicalPlanToPhysical(
-            logicalPlan->lastOperator, *logicalPlan->schema, executionContext);
-    }
+        unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext);
 
 private:
-    unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(
-        const shared_ptr<LogicalOperator>& lastOperator, const Schema& schema,
-        ExecutionContext& executionContext);
-
     // Returns current physicalOperatorsInfo whoever calls enterSubquery is responsible to save the
     // return physicalOperatorsInfo and pass it back when calling exitSubquery()
     const MapperContext* enterSubquery(const MapperContext* newMapperContext);

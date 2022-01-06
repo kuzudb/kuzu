@@ -106,14 +106,14 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
         if (firstInnerGroupMapToOuterPos == UINT32_MAX) {
             firstInnerGroupMapToOuterPos = outerPlan.schema->createGroup();
         }
-        outerPlan.schema->insertToGroup(expressionName, firstInnerGroupMapToOuterPos);
+        outerPlan.schema->insertToGroupAndScope(expressionName, firstInnerGroupMapToOuterPos);
     }
     // Merge rest inner groups into outer
     for (auto i = 1u; i < subPlanSchema->getNumGroups(); ++i) {
         auto outerPos = outerPlan.schema->createGroup();
         auto group = subPlanSchema->getGroup(i);
         for (auto& expressionName : group->expressionNames) {
-            outerPlan.schema->insertToGroup(expressionName, outerPos);
+            outerPlan.schema->insertToGroupAndScope(expressionName, outerPos);
         }
     }
     auto logicalLeftNestedLoopJoin = make_shared<LogicalLeftNestedLoopJoin>(
@@ -132,8 +132,7 @@ void Enumerator::planExistsSubquery(
         groupPosToWrite = outerPlan.schema->getGroupPos(expression->getUniqueName());
         appendFlattenIfNecessary(groupPosToWrite, outerPlan);
     }
-    outerPlan.schema->getGroup(groupPosToWrite)
-        ->insertExpression(subqueryExpression->getUniqueName());
+    outerPlan.schema->insertToGroupAndScope(subqueryExpression->getUniqueName(), groupPosToWrite);
     auto& normalizedQuery = *subqueryExpression->getNormalizedSubquery();
     auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToScanFromOuter));
     auto plans = enumerateQueryPart(*normalizedQuery.getQueryPart(0), getInitialEmptyPlans());
@@ -231,7 +230,7 @@ void Enumerator::appendScanNodePropertyIfNecessary(
         nodeExpression.label, propertyExpression.getUniqueName(), propertyExpression.propertyKey,
         UNSTRUCTURED == propertyExpression.dataType, plan.lastOperator);
     auto groupPos = plan.schema->getGroupPos(nodeExpression.getIDProperty());
-    plan.schema->insertToGroup(propertyExpression.getUniqueName(), groupPos);
+    plan.schema->insertToGroupAndScope(propertyExpression.getUniqueName(), groupPos);
     plan.appendOperator(move(scanProperty));
 }
 
@@ -247,7 +246,7 @@ void Enumerator::appendScanRelPropertyIfNecessary(
         propertyExpression.getUniqueName(), propertyExpression.propertyKey, extend->isColumn,
         plan.lastOperator);
     auto groupPos = plan.schema->getGroupPos(extend->nbrNodeID);
-    plan.schema->insertToGroup(propertyExpression.getUniqueName(), groupPos);
+    plan.schema->insertToGroupAndScope(propertyExpression.getUniqueName(), groupPos);
     plan.appendOperator(move(scanProperty));
 }
 

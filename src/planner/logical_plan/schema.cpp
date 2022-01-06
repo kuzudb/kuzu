@@ -10,19 +10,19 @@ uint32_t Schema::createGroup() {
 }
 
 void Schema::insertToGroup(const string& expressionName, uint32_t groupPos) {
-    auto k = 1;
     expressionNameToGroupPos.insert({expressionName, groupPos});
     groups[groupPos]->insertExpression(expressionName);
 }
 
-void Schema::insertToGroup(const FactorizationGroup& otherGroup, uint32_t groupPos) {
-    for (auto& expressionName : otherGroup.expressionNames) {
-        insertToGroup(expressionName, groupPos);
-    }
+void Schema::insertToGroupAndScope(const string& expressionName, uint32_t groupPos) {
+    expressionNamesInScope.insert(expressionName);
+    insertToGroup(expressionName, groupPos);
 }
 
-void Schema::flattenGroup(uint32_t pos) {
-    groups[pos]->isFlat = true;
+void Schema::insertToGroupAndScope(const FactorizationGroup& otherGroup, uint32_t groupPos) {
+    for (auto& expressionName : otherGroup.expressionNames) {
+        insertToGroupAndScope(expressionName, groupPos);
+    }
 }
 
 uint32_t Schema::getGroupPos(const string& expressionName) const {
@@ -30,12 +30,18 @@ uint32_t Schema::getGroupPos(const string& expressionName) const {
     return expressionNameToGroupPos.at(expressionName);
 }
 
-unordered_set<uint32_t> Schema::getGroupsPos() const {
-    unordered_set<uint32_t> groupsPos;
-    for (auto i = 0u; i < groups.size(); ++i) {
-        groupsPos.insert(i);
+void Schema::removeExpression(const string& expressionName) {
+    auto groupPos = getGroupPos(expressionName);
+    groups[groupPos]->removeExpression(expressionName);
+    expressionNameToGroupPos.erase(expressionName);
+}
+
+unordered_set<uint32_t> Schema::getGroupsPosInScope() const {
+    unordered_set<uint32_t> result;
+    for (auto& expressionInScope : expressionNamesInScope) {
+        result.insert(getGroupPos(expressionInScope));
     }
-    return groupsPos;
+    return result;
 }
 
 void Schema::addLogicalExtend(const string& queryRel, LogicalExtend* extend) {
@@ -55,12 +61,14 @@ unique_ptr<Schema> Schema::copy() const {
         auto newGroup = make_unique<FactorizationGroup>(*group);
         newSchema->groups.push_back(move(newGroup));
     }
+    newSchema->expressionNamesInScope = expressionNamesInScope;
     return newSchema;
 }
 
-void Schema::clearGroups() {
+void Schema::clear() {
     groups.clear();
     expressionNameToGroupPos.clear();
+    clearExpressionsInScope();
 }
 
 } // namespace planner

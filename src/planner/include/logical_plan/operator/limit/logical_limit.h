@@ -8,10 +8,10 @@ namespace planner {
 class LogicalLimit : public LogicalOperator {
 
 public:
-    LogicalLimit(uint64_t limitNumber, uint32_t groupPosToSelect, vector<uint32_t> groupsPosToLimit,
-        shared_ptr<LogicalOperator> child)
+    LogicalLimit(uint64_t limitNumber, uint32_t groupPosToSelect,
+        unordered_set<uint32_t> groupsPosInScope, shared_ptr<LogicalOperator> child)
         : LogicalOperator{move(child)}, limitNumber{limitNumber},
-          groupPosToSelect{groupPosToSelect}, groupsPosToLimit{move(groupsPosToLimit)} {}
+          groupPosToSelect{groupPosToSelect}, groupsPosInScope{move(groupsPosInScope)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override { return LOGICAL_LIMIT; }
 
@@ -19,17 +19,17 @@ public:
 
     inline uint64_t getLimitNumber() const { return limitNumber; }
     inline uint32_t getGroupPosToSelect() const { return groupPosToSelect; }
-    inline const vector<uint32_t>& getGroupsPosToLimit() const { return groupsPosToLimit; }
+    inline unordered_set<uint32_t> getGroupsPosToLimit() const { return groupsPosInScope; }
 
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalLimit>(
-            limitNumber, groupPosToSelect, groupsPosToLimit, children[0]->copy());
+            limitNumber, groupPosToSelect, groupsPosInScope, children[0]->copy());
     }
 
 private:
     uint64_t limitNumber;
     uint32_t groupPosToSelect;
-    vector<uint32_t> groupsPosToLimit;
+    unordered_set<uint32_t> groupsPosInScope;
 };
 
 } // namespace planner

@@ -52,14 +52,14 @@ namespace graphflow {
 namespace processor {
 
 unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
-    const shared_ptr<LogicalOperator>& lastOperator, const Schema& schema,
-    ExecutionContext& executionContext) {
-    auto mapperContext = MapperContext(make_unique<ResultSetDescriptor>(schema));
+    unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext) {
+    auto mapperContext = MapperContext(make_unique<ResultSetDescriptor>(*logicalPlan->schema));
     vector<DataPos> valueVectorsToCollectPos;
-    for (auto& expression : schema.expressionsToCollect) {
+    for (auto& expression : logicalPlan->getExpressionsToCollect()) {
         valueVectorsToCollectPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
     }
-    auto prevOperator = mapLogicalOperatorToPhysical(lastOperator, mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalPlan->lastOperator, mapperContext, executionContext);
     auto resultCollector = make_unique<ResultCollector>(move(valueVectorsToCollectPos),
         move(prevOperator), executionContext, mapperContext.getOperatorID());
     return make_unique<PhysicalPlan>(move(resultCollector));
@@ -427,7 +427,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
         make_shared<AggregationSharedState>(move(aggregationStates), aggregationDataTypes);
 
     auto aggregate = make_unique<SimpleAggregate>(move(prevOperator), executionContext,
-        mapperContext.getOperatorID(), sharedState, move(expressionEvaluators));
+        mapperContext.getOperatorID(), sharedState, move(expressionEvaluators),
+        logicalAggregate.getSchemaBeforeAggregate()->getGroupsPosInScope());
     auto aggregationScan = make_unique<SimpleAggregationScan>(
         mapperContext.getResultSetDescriptor()->copy(), expressionsOutputPos, move(aggregate),
         sharedState, executionContext, mapperContext.getOperatorID());

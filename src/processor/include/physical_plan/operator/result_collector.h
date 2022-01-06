@@ -10,11 +10,8 @@ namespace processor {
 class ResultCollector : public Sink {
 
 public:
-    explicit ResultCollector(vector<DataPos> vectorsToCollectPos,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-        : Sink{move(child), context, id},
-          queryResult{make_unique<QueryResult>(vectorsToCollectPos)}, vectorsToCollectPos{move(
-                                                                          vectorsToCollectPos)} {}
+    ResultCollector(vector<DataPos> vectorsToCollectPos, unique_ptr<PhysicalOperator> child,
+        ExecutionContext& context, uint32_t id);
 
     PhysicalOperatorType getOperatorType() override { return RESULT_COLLECTOR; }
 
@@ -34,6 +31,7 @@ private:
 
 private:
     vector<DataPos> vectorsToCollectPos;
+    unordered_set<uint32_t> dataChunksPosInScope;
 };
 
 } // namespace processor

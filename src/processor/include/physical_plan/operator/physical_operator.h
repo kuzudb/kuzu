@@ -33,10 +33,10 @@ enum PhysicalOperatorType : uint8_t {
     SCAN_NODE_ID,
     SCAN_STRUCTURED_PROPERTY,
     SCAN_UNSTRUCTURED_PROPERTY,
+    SKIP,
     ORDER_BY,
     ORDER_BY_MERGE,
     ORDER_BY_SCAN,
-    SKIP,
 };
 
 const string PhysicalOperatorTypeNames[] = {"AGGREGATION", "AGGREGATION_SCAN", "COLUMN_EXTEND",

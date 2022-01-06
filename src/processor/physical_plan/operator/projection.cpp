@@ -13,11 +13,6 @@ shared_ptr<ResultSet> Projection::initResultSet() {
         dataChunk->state = expression.result->state;
         dataChunk->insert(outValueVectorPos, expression.result);
     }
-    discardedResultSet = make_unique<ResultSet>(discardedDataChunksPos.size());
-    for (auto i = 0u; i < discardedDataChunksPos.size(); ++i) {
-        this->resultSet->dataChunksMask[discardedDataChunksPos[i]] = false;
-        discardedResultSet->insert(i, resultSet->dataChunks[discardedDataChunksPos[i]]);
-    }
     return resultSet;
 }
 
@@ -36,7 +31,9 @@ bool Projection::getNextTuples() {
     for (auto& expression : expressions) {
         expression->evaluate();
     }
-    resultSet->multiplicity = discardedResultSet->getNumTuples();
+    if (!discardedDataChunksPos.empty()) {
+        resultSet->multiplicity *= resultSet->getNumTuples(discardedDataChunksPos);
+    }
     metrics->executionTime.stop();
     return true;
 }
