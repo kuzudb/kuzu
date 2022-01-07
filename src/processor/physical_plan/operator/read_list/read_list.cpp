@@ -28,7 +28,6 @@ void ReadList::readValuesFromList() {
     }
     auto nodeOffset = inValueVector->readNodeOffset(inDataChunk->state->getPositionOfCurrIdx());
     lists->readValues(nodeOffset, outValueVector, largeListHandle, *metrics->bufferManagerMetrics);
-    outValueVector->setAllNonNull();
 }
 
 } // namespace processor

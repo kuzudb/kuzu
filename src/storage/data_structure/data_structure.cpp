@@ -63,7 +63,9 @@ void DataStructure::readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVec
     auto labelSize = compressionScheme.getNumBytesForLabel();
     auto offsetSize = compressionScheme.getNumBytesForOffset();
     auto frame = bufferManager.pin(fileHandle, physicalPageId, metrics);
-    if (!isAdjLists) {
+    if (isAdjLists) {
+        valueVector->setRangeNonNull(posInVector, numValuesToCopy);
+    } else {
         setNULLBitsForRange(valueVector, frame, posInPage, posInVector, numValuesToCopy);
     }
     frame += mapElementPosToByteOffset(posInPage);
