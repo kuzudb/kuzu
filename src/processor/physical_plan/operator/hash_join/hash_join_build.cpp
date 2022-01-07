@@ -78,10 +78,16 @@ void HashJoinBuild::finalize() {
     }
 }
 
-void HashJoinBuild::appendResultSet() {
+void HashJoinBuild::appendVectors() {
     if (keyDataChunk->state->selectedSize == 0) {
         return;
     }
+    for (auto i = 0u; i < resultSet->multiplicity; ++i) {
+        appendVectorsOnce();
+    }
+}
+
+void HashJoinBuild::appendVectorsOnce() {
     auto& keyVector = vectorsToAppend[0];
     if (keyVector->state->isFlat()) {
         if (keyVector->isNull(keyVector->state->getPositionOfCurrIdx())) {
@@ -111,7 +117,7 @@ void HashJoinBuild::execute() {
     Sink::execute();
     // Append thread-local tuples
     while (children[0]->getNextTuples()) {
-        appendResultSet();
+        appendVectors();
     }
     // Merge thread-local state (numEntries, htBlocks, overflowBlocks) with the shared one
     {

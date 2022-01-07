@@ -33,6 +33,9 @@ private:
     shared_ptr<LogicalOperator> rewriteAggregate(
         const shared_ptr<LogicalOperator>& op, Schema& schema);
 
+    shared_ptr<LogicalOperator> rewriteOrderBy(
+        const shared_ptr<LogicalOperator>& op, Schema& schema);
+
     shared_ptr<LogicalOperator> rewriteHashJoin(
         const shared_ptr<LogicalOperator>& op, Schema& schema);
 
@@ -51,7 +54,9 @@ private:
 
     // For operators that merge right branch into left, i.e. hashJoin and leftNestedLoopJoin, any
     // property scanners that are pushed down into the right branch will also be merged into left.
-    void addRemainingPropertyScansToLeftSchema(Schema& schema);
+    void addPropertyScansToLeftSchema(Schema& schema);
+
+    unordered_set<string> getRemainingPropertyExpressionNames();
 
 private:
     unordered_map<string, vector<shared_ptr<LogicalOperator>>> nodeIDToPropertyScansMap;

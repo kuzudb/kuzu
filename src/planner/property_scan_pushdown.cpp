@@ -5,6 +5,7 @@
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
 #include "src/planner/include/logical_plan/operator/nested_loop_join/logical_left_nested_loop_join.h"
+#include "src/planner/include/logical_plan/operator/order_by/logical_order_by.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
@@ -25,6 +26,8 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewrite(
         return rewriteScanRelProperty(op, schema);
     case LOGICAL_AGGREGATE:
         return rewriteAggregate(op, schema);
+    case LOGICAL_ORDER_BY:
+        return rewriteOrderBy(op, schema);
     case LOGICAL_HASH_JOIN:
         return rewriteHashJoin(op, schema);
     case LOGICAL_EXISTS:
@@ -72,11 +75,24 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteAggregate(
     return op;
 }
 
+shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteOrderBy(
+    const shared_ptr<LogicalOperator>& op, Schema& schema) {
+    auto& logicalOrderBy = (LogicalOrderBy&)*op;
+    for (auto& expressionName : getRemainingPropertyExpressionNames()) {
+        logicalOrderBy.addExpressionToMaterialize(expressionName);
+    }
+    op->setFirstChild(rewrite(op->getFirstChild(), schema));
+    return op;
+}
+
 shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteHashJoin(
     const shared_ptr<LogicalOperator>& op, Schema& schema) {
     auto& logicalHashJoin = (LogicalHashJoin&)*op;
     op->setFirstChild(rewrite(op->getFirstChild(), schema));
-    addRemainingPropertyScansToLeftSchema(schema);
+    addPropertyScansToLeftSchema(schema);
+    for (auto& expressionName : getRemainingPropertyExpressionNames()) {
+        logicalHashJoin.addExpressionToMaterialize(expressionName);
+    }
     op->setSecondChild(rewrite(op->getSecondChild(), *logicalHashJoin.buildSideSchema));
     return op;
 }
@@ -93,7 +109,7 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteLeftNestedLoopJoin(
     const shared_ptr<LogicalOperator>& op, Schema& schema) {
     auto& logicalLeftNLJ = (LogicalLeftNestedLoopJoin&)*op;
     op->setFirstChild(rewrite(op->getFirstChild(), schema));
-    addRemainingPropertyScansToLeftSchema(schema);
+    addPropertyScansToLeftSchema(schema);
     op->setSecondChild(rewrite(op->getSecondChild(), *logicalLeftNLJ.subPlanSchema));
     return op;
 }
@@ -144,14 +160,25 @@ void PropertyScanPushDown::addPropertyScan(
     nodeIDToPropertyScansMap.at(nodeID).push_back(op);
 }
 
-void PropertyScanPushDown::addRemainingPropertyScansToLeftSchema(Schema& schema) {
+void PropertyScanPushDown::addPropertyScansToLeftSchema(Schema& schema) {
     for (auto& [nodeID, propertyScanners] : nodeIDToPropertyScansMap) {
         auto groupPos = schema.getGroupPos(nodeID);
         for (auto& propertyScanner : propertyScanners) {
-            auto& scanNodeProperty = (LogicalScanProperty&)*propertyScanner;
-            schema.insertToGroup(scanNodeProperty.getPropertyExpressionName(), groupPos);
+            auto& scanProperty = (LogicalScanProperty&)*propertyScanner;
+            schema.insertToGroup(scanProperty.getPropertyExpressionName(), groupPos);
         }
     }
+}
+
+unordered_set<string> PropertyScanPushDown::getRemainingPropertyExpressionNames() {
+    unordered_set<string> result;
+    for (auto& [nodeID, propertyScanners] : nodeIDToPropertyScansMap) {
+        for (auto& propertyScanner : propertyScanners) {
+            auto& scanProperty = (LogicalScanProperty&)*propertyScanner;
+            result.insert(scanProperty.getPropertyExpressionName());
+        }
+    }
+    return result;
 }
 
 } // namespace planner

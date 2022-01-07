@@ -74,7 +74,7 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
             getSubExpressionsInSchema(queryGraphPredicate, *outerPlan.schema);
     }
     for (auto& nodeIDExpression : queryGraph.getNodeIDExpressions()) {
-        if (outerPlan.schema->containExpression(nodeIDExpression->getUniqueName())) {
+        if (outerPlan.schema->expressionInScope(nodeIDExpression->getUniqueName())) {
             expressionsToScanFromOuter.push_back(nodeIDExpression);
         }
     }
@@ -100,7 +100,7 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
     auto firstInnerGroupMapToOuterPos = UINT32_MAX;
     // Merge first inner group into outer. This merging handles the logic above.
     for (auto& expressionName : firstInnerGroup->expressionNames) {
-        if (outerPlan.schema->containExpression(expressionName)) {
+        if (outerPlan.schema->expressionInScope(expressionName)) {
             continue;
         }
         if (firstInnerGroupMapToOuterPos == UINT32_MAX) {
@@ -211,7 +211,7 @@ void Enumerator::appendScanPropertiesIfNecessary(
     for (auto& expr : getPropertyExpressionsNotInSchema(expression, *plan.schema)) {
         auto& propertyExpression = (PropertyExpression&)*expr;
         // skip properties that has been evaluated
-        if (plan.schema->containExpression(propertyExpression.getUniqueName())) {
+        if (plan.schema->expressionInScope(propertyExpression.getUniqueName())) {
             continue;
         }
         NODE == propertyExpression.getChild(0)->dataType ?
@@ -223,7 +223,7 @@ void Enumerator::appendScanPropertiesIfNecessary(
 void Enumerator::appendScanNodePropertyIfNecessary(
     const PropertyExpression& propertyExpression, LogicalPlan& plan) {
     auto& nodeExpression = (const NodeExpression&)*propertyExpression.getChild(0);
-    if (!plan.schema->containExpression(nodeExpression.getIDProperty())) {
+    if (!plan.schema->expressionInScope(nodeExpression.getIDProperty())) {
         return;
     }
     auto scanProperty = make_shared<LogicalScanNodeProperty>(nodeExpression.getIDProperty(),
@@ -268,7 +268,7 @@ unordered_set<uint32_t> Enumerator::getDependentGroupsPos(
 vector<shared_ptr<Expression>> Enumerator::getSubExpressionsInSchema(
     const shared_ptr<Expression>& expression, const Schema& schema) {
     vector<shared_ptr<Expression>> results;
-    if (schema.containExpression(expression->getUniqueName())) {
+    if (schema.expressionInScope(expression->getUniqueName())) {
         results.push_back(expression);
         return results;
     }
@@ -285,7 +285,7 @@ vector<shared_ptr<Expression>> Enumerator::getSubExpressionsNotInSchemaOfType(
     const shared_ptr<Expression>& expression, const Schema& schema,
     const std::function<bool(ExpressionType)>& typeCheckFunc) {
     vector<shared_ptr<Expression>> results;
-    if (schema.containExpression(expression->getUniqueName())) {
+    if (schema.expressionInScope(expression->getUniqueName())) {
         return results;
     }
     if (typeCheckFunc(expression->expressionType)) {

@@ -60,15 +60,21 @@ public:
 
     void insertToGroupAndScope(const string& expressionName, uint32_t groupPos);
 
-    void insertToGroupAndScope(const FactorizationGroup& otherGroup, uint32_t groupPos);
+    void insertToGroupAndScope(const unordered_set<string>& expressionNames, uint32_t groupPos);
 
     uint32_t getGroupPos(const string& expressionName) const;
 
     inline void flattenGroup(uint32_t pos) { groups[pos]->isFlat = true; }
 
-    inline bool containExpression(const string& expressionName) const {
-        return expressionNameToGroupPos.contains(expressionName);
+    inline bool expressionInScope(const string& expressionName) const {
+        return expressionNamesInScope.contains(expressionName);
     }
+
+    inline unordered_set<string> getExpressionNamesInScope() const {
+        return expressionNamesInScope;
+    }
+
+    unordered_set<string> getExpressionNamesInScope(uint32_t pos) const;
 
     void removeExpression(const string& expressionName);
 
@@ -93,8 +99,9 @@ public:
     // Maps a queryRel to the LogicalExtend that matches it. This is needed because ScanRelProperty
     // requires direction information which only available in the LogicalExtend.
     unordered_map<string, LogicalExtend*> queryRelLogicalExtendMap;
-    unordered_map<string, uint32_t> expressionNameToGroupPos;
 
+private:
+    unordered_map<string, uint32_t> expressionNameToGroupPos;
     // Our projection doesn't explicitly remove expressions. Instead, we keep track of what
     // expressions are in scope (i.e. being projected).
     unordered_set<string> expressionNamesInScope;

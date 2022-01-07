@@ -40,11 +40,14 @@ private:
     vector<shared_ptr<Expression>> getExpressionsToAggregate(
         const BoundProjectionBody& projectionBody, const Schema& schema);
     vector<shared_ptr<Expression>> getExpressionsToProject(
-        const BoundProjectionBody& projectionBody, bool isRewritingAllProperties);
-    vector<shared_ptr<Expression>> rewriteVariableExpression(
-        const shared_ptr<Expression>& variable, bool isRewritingAllProperties);
-    vector<shared_ptr<Expression>> rewriteNodeExpression(const shared_ptr<NodeExpression>& node);
-    vector<shared_ptr<Expression>> rewriteRelExpression(const shared_ptr<RelExpression>& rel);
+        const BoundProjectionBody& projectionBody, const Schema& schema,
+        bool isRewritingAllProperties);
+    vector<shared_ptr<Expression>> rewriteVariableExpression(const shared_ptr<Expression>& variable,
+        const Schema& schema, bool isRewritingAllProperties);
+    vector<shared_ptr<Expression>> rewriteNodeExpressionAsAllProperties(
+        const shared_ptr<NodeExpression>& node);
+    vector<shared_ptr<Expression>> rewriteRelExpressionAsAllProperties(
+        const shared_ptr<RelExpression>& rel);
     vector<shared_ptr<Expression>> createPropertyExpressions(
         const shared_ptr<Expression>& variable, const vector<PropertyDefinition>& properties);
 

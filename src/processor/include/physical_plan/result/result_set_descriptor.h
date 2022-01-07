@@ -16,11 +16,11 @@ namespace processor {
 class DataChunkDescriptor {
 
 public:
-    DataChunkDescriptor() = default;
+    DataChunkDescriptor() : isFlat{false} {};
 
     DataChunkDescriptor(const DataChunkDescriptor& other)
         : expressionNameToValueVectorPosMap{other.expressionNameToValueVectorPosMap},
-          expressionNames{other.expressionNames} {}
+          expressionNames{other.expressionNames}, isFlat{other.isFlat} {}
 
     inline uint32_t getValueVectorPos(const string& name) const {
         assert(expressionNameToValueVectorPosMap.contains(name));
@@ -34,9 +34,15 @@ public:
         expressionNames.push_back(name);
     }
 
+    inline void flatten() { isFlat = true; }
+
+    inline bool getIsFlat() const { return isFlat; }
+
 private:
     unordered_map<string, uint32_t> expressionNameToValueVectorPosMap;
     vector<string> expressionNames;
+
+    bool isFlat;
 };
 
 class ResultSetDescriptor {
@@ -52,6 +58,10 @@ public:
 
     inline DataChunkDescriptor* getDataChunkDescriptor(uint32_t pos) const {
         return dataChunkDescriptors[pos].get();
+    }
+
+    inline bool isDataChunkFlat(uint32_t pos) const {
+        return dataChunkDescriptors[pos]->getIsFlat();
     }
 
     inline unique_ptr<ResultSetDescriptor> copy() const {

@@ -11,42 +11,46 @@ namespace planner {
 class LogicalOrderBy : public LogicalOperator {
 
 public:
-    LogicalOrderBy(vector<shared_ptr<Expression>> expressions, vector<bool> sortOrders,
-        unique_ptr<Schema> schemaBeforeOrderBy, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, orderByExpressions{move(expressions)},
-          isAscOrders{move(sortOrders)}, schemaBeforeOrderBy{move(schemaBeforeOrderBy)} {}
+    LogicalOrderBy(vector<string> orderByExpressionNames, vector<bool> sortOrders,
+        unordered_set<string> expressionToMaterializeNames, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, orderByExpressionNames{move(orderByExpressionNames)},
+          isAscOrders{move(sortOrders)}, expressionToMaterializeNames{
+                                             move(expressionToMaterializeNames)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_ORDER_BY;
     }
 
     string getExpressionsForPrinting() const override {
-        auto result = orderByExpressions[0]->getUniqueName();
-        for (auto i = 1u; i < orderByExpressions.size(); ++i) {
-            result += ", " + orderByExpressions[i]->getUniqueName();
+        assert(!orderByExpressionNames.empty());
+        auto result = orderByExpressionNames[0];
+        for (auto i = 1u; i < orderByExpressionNames.size(); ++i) {
+            result += ", " + orderByExpressionNames[i];
         }
         return result;
     }
 
-    unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalOrderBy>(
-            orderByExpressions, isAscOrders, schemaBeforeOrderBy->copy(), children[0]->copy());
-    }
-
-    inline vector<shared_ptr<Expression>> getOrderByExpressions() const {
-        return orderByExpressions;
-    }
+    inline vector<string> getOrderByExpressionNames() const { return orderByExpressionNames; }
 
     inline vector<bool> getIsAscOrders() const { return isAscOrders; }
 
-    inline unique_ptr<Schema>& getSchemaBeforeOrderBy() { return schemaBeforeOrderBy; }
+    inline unordered_set<string> getExpressionToMaterializeNames() const {
+        return expressionToMaterializeNames;
+    }
+    inline void addExpressionToMaterialize(const string& name) {
+        expressionToMaterializeNames.insert(name);
+    }
+
+    unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalOrderBy>(
+            orderByExpressionNames, isAscOrders, expressionToMaterializeNames, children[0]->copy());
+    }
 
 private:
-    vector<shared_ptr<Expression>> orderByExpressions;
+    vector<string> orderByExpressionNames;
     vector<bool> isAscOrders;
 
-public:
-    unique_ptr<Schema> schemaBeforeOrderBy;
+    unordered_set<string> expressionToMaterializeNames;
 };
 
 } // namespace planner

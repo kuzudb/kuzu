@@ -225,8 +225,10 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
     auto& flatten = (const LogicalFlatten&)*logicalOperator;
     auto prevOperator = mapLogicalOperatorToPhysical(
         logicalOperator->getFirstChild(), mapperContext, executionContext);
-    return make_unique<Flatten>(mapperContext.getDataPos(flatten.variable).dataChunkPos,
-        move(prevOperator), executionContext, mapperContext.getOperatorID());
+    auto dataChunkPos = mapperContext.getDataPos(flatten.variable).dataChunkPos;
+    mapperContext.getResultSetDescriptor()->getDataChunkDescriptor(dataChunkPos)->flatten();
+    return make_unique<Flatten>(
+        dataChunkPos, move(prevOperator), executionContext, mapperContext.getOperatorID());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
@@ -320,41 +322,40 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
-    // Populate build side and probe side vector positions
     auto& hashJoin = (const LogicalHashJoin&)*logicalOperator;
     auto buildSideMapperContext =
         MapperContext(make_unique<ResultSetDescriptor>(*hashJoin.buildSideSchema));
+    auto buildSidePrevOperator = mapLogicalOperatorToPhysical(
+        hashJoin.getSecondChild(), buildSideMapperContext, executionContext);
+    auto probeSidePrevOperator =
+        mapLogicalOperatorToPhysical(hashJoin.getFirstChild(), mapperContext, executionContext);
+    // Populate build side and probe side vector positions
     auto buildSideKeyIDDataPos = buildSideMapperContext.getDataPos(hashJoin.joinNodeID);
     auto probeSideKeyIDDataPos = mapperContext.getDataPos(hashJoin.joinNodeID);
     vector<bool> isBuildSideNonKeyDataFlat;
     vector<DataPos> buildSideNonKeyDataPoses;
     vector<DataPos> probeSideNonKeyDataPoses;
-    auto& buildSideKeyGroup = *hashJoin.buildSideSchema->groups[buildSideKeyIDDataPos.dataChunkPos];
-    for (auto i = 0u; i < hashJoin.buildSideSchema->getNumGroups(); ++i) {
-        auto& buildSideGroup = *hashJoin.buildSideSchema->groups[i];
-        for (auto& expressionName : buildSideGroup.expressionNames) {
-            if (i == buildSideKeyIDDataPos.dataChunkPos && expressionName == hashJoin.joinNodeID) {
-                continue;
-            }
-            mapperContext.addComputedExpressions(expressionName);
-            buildSideNonKeyDataPoses.push_back(buildSideMapperContext.getDataPos(expressionName));
-            isBuildSideNonKeyDataFlat.push_back(buildSideGroup.isFlat);
-            probeSideNonKeyDataPoses.push_back(mapperContext.getDataPos(expressionName));
+    auto& buildSideSchema = *hashJoin.buildSideSchema;
+    for (auto& expressionName : hashJoin.getExpressionToMaterializeNames()) {
+        if (expressionName == hashJoin.joinNodeID) {
+            continue;
         }
+        mapperContext.addComputedExpressions(expressionName);
+        auto buildSideDataPos = buildSideMapperContext.getDataPos(expressionName);
+        buildSideNonKeyDataPoses.push_back(buildSideDataPos);
+        isBuildSideNonKeyDataFlat.push_back(
+            buildSideMapperContext.getResultSetDescriptor()->isDataChunkFlat(
+                buildSideDataPos.dataChunkPos));
+        probeSideNonKeyDataPoses.push_back(mapperContext.getDataPos(expressionName));
     }
 
     auto sharedState = make_shared<HashJoinSharedState>();
     // create hashJoin build
-    auto buildSidePrevOperator = mapLogicalOperatorToPhysical(
-        hashJoin.getSecondChild(), buildSideMapperContext, executionContext);
     auto buildDataInfo =
         BuildDataInfo(buildSideKeyIDDataPos, buildSideNonKeyDataPoses, isBuildSideNonKeyDataFlat);
     auto hashJoinBuild = make_unique<HashJoinBuild>(sharedState, buildDataInfo,
         move(buildSidePrevOperator), executionContext, mapperContext.getOperatorID());
-
     // create hashJoin probe
-    auto probeSidePrevOperator =
-        mapLogicalOperatorToPhysical(hashJoin.getFirstChild(), mapperContext, executionContext);
     auto probeDataInfo = ProbeDataInfo(probeSideKeyIDDataPos, probeSideNonKeyDataPoses);
     auto hashJoinProbe =
         make_unique<HashJoinProbe>(sharedState, probeDataInfo, move(probeSidePrevOperator),
@@ -492,18 +493,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     auto orderByPrevOperator = mapLogicalOperatorToPhysical(
         logicalOrderBy.getFirstChild(), mapperContext, executionContext);
     vector<DataPos> keyDataPoses;
+    for (auto& expressionName : logicalOrderBy.getOrderByExpressionNames()) {
+        keyDataPoses.emplace_back(mapperContext.getDataPos(expressionName));
+    }
     vector<DataPos> allDataPoses;
     vector<bool> isVectorFlat;
-
-    for (auto& expression : logicalOrderBy.getOrderByExpressions()) {
-        keyDataPoses.emplace_back(mapperContext.getDataPos(expression->getUniqueName()));
-    }
-
-    for (auto& group : logicalOrderBy.getSchemaBeforeOrderBy()->groups) {
-        for (auto& expressionName : group->expressionNames) {
-            allDataPoses.emplace_back(mapperContext.getDataPos(expressionName));
-            isVectorFlat.emplace_back(group->isFlat);
-        }
+    for (auto& expressionName : logicalOrderBy.getExpressionToMaterializeNames()) {
+        allDataPoses.push_back(mapperContext.getDataPos(expressionName));
+        auto dataChunkPos = mapperContext.getDataPos(expressionName).dataChunkPos;
+        isVectorFlat.push_back(
+            mapperContext.getResultSetDescriptor()->isDataChunkFlat(dataChunkPos));
     }
     // TODO(Semih): This commented for loop is a temporary fix to make returns or withs contain
     // arbitrary projection set (the commented one allows only the subset of order by fields to be
