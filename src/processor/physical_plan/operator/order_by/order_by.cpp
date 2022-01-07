@@ -91,8 +91,6 @@ void OrderBy::execute() {
     }
     radixSorter->sortAllKeyBlocks();
 
-    // Acquire the sharedStateLock before adding sorted key blocks to sharedState.
-
     for (auto& keyBlock : orderByKeyEncoder->getKeyBlocks()) {
         if (keyBlock->numEntriesInMemBlock > 0) {
             sharedState->appendSortedKeyBlock(keyBlock);

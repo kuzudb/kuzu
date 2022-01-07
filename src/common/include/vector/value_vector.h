@@ -61,6 +61,12 @@ public:
         return !nullMask->mayContainNulls;
     }
 
+    inline void setRangeNonNull(uint64_t startPos, uint64_t len) {
+        for (int i = 0; i < len; ++i) {
+            setNull(startPos + i, false);
+        }
+    }
+
     inline void setNull(uint64_t pos, bool isNull) {
         nullMask->mask[pos] = isNull;
         nullMask->mayContainNulls |= isNull;
