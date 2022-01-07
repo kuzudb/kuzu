@@ -151,9 +151,10 @@ private:
         uint8_t** rows, uint64_t offsetInRow, uint64_t startRowPos, ValueVector& vector) const;
     void readNonOverflowVector(uint8_t** rows, uint64_t offsetInRow, ValueVector& vector,
         uint64_t numRowsToRead, uint64_t colIdx) const;
-    void copyVectorDataToBuffer(const ValueVector& vector, uint64_t valuePosInVec,
-        uint64_t posStride, uint8_t* buffer, uint64_t offsetInBuffer, uint64_t offsetStride,
-        uint64_t numValues, uint64_t colIdx, bool isVectorOverflow);
+    // If the given vector is flat valuePosInVecIfUnflat will be ignored.
+    void copyVectorDataToBuffer(const ValueVector& vector, uint64_t valuePosInVecIfUnflat,
+        uint8_t* buffer, uint64_t offsetInBuffer, uint64_t offsetStride, uint64_t numValues,
+        uint64_t colIdx, bool isVectorOverflow);
 
     MemoryManager& memoryManager;
     RowLayout layout;
