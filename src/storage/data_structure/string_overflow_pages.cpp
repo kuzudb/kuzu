@@ -9,24 +9,27 @@ void StringOverflowPages::readStringsToVector(
     ValueVector& valueVector, BufferManagerMetrics& metrics) {
     for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
         auto pos = valueVector.state->selectedPositions[i];
-        readStringToVector(valueVector, pos, metrics);
+        if (!valueVector.isNull(pos)) {
+            readStringToVector(
+                ((gf_string_t*)valueVector.values)[pos], *valueVector.stringBuffer, metrics);
+        }
     }
 }
 
 void StringOverflowPages::readStringToVector(
-    ValueVector& valueVector, uint32_t pos, BufferManagerMetrics& metrics) {
+    gf_string_t& gfStr, StringBuffer& stringBuffer, BufferManagerMetrics& metrics) {
     PageByteCursor cursor;
-    auto& value = ((gf_string_t*)valueVector.values)[pos];
-    if (value.len > gf_string_t::SHORT_STR_LENGTH) {
-        value.getOverflowPtrInfo(cursor.idx, cursor.offset);
+    if (!gf_string_t::isShortString(gfStr.len)) {
+        gfStr.getOverflowPtrInfo(cursor.idx, cursor.offset);
         auto frame = bufferManager.pin(fileHandle, cursor.idx, metrics);
-        valueVector.addString(pos, (char*)frame + cursor.offset, value.len);
+        stringBuffer.allocateLargeStringIfNecessary(gfStr, gfStr.len);
+        gfStr.set((char*)frame + cursor.offset, gfStr.len);
         bufferManager.unpin(fileHandle, cursor.idx);
     }
 }
 
 string StringOverflowPages::readString(const gf_string_t& str, BufferManagerMetrics& metrics) {
-    if (str.len <= gf_string_t::SHORT_STR_LENGTH) {
+    if (gf_string_t::isShortString(str.len)) {
         return str.getAsShortString();
     } else {
         PageByteCursor cursor;

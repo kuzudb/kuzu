@@ -91,35 +91,7 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToU
     auto vector = make_shared<ValueVector>(
         executionContext.memoryManager, UNSTRUCTURED, true /* isSingleValue */);
     vector->state = DataChunkState::getSingleValueDataChunkState();
-    auto& val = ((Value*)vector->values)[0];
-    val.dataType = literalExpression.literal.dataType;
-    switch (val.dataType) {
-    case INT64: {
-        val.val.int64Val = literalExpression.literal.val.int64Val;
-    } break;
-    case DOUBLE: {
-        val.val.doubleVal = literalExpression.literal.val.doubleVal;
-    } break;
-    case BOOL: {
-        val.val.booleanVal = literalExpression.literal.val.booleanVal;
-    } break;
-    case DATE: {
-        val.val.dateVal = literalExpression.literal.val.dateVal;
-    } break;
-    case TIMESTAMP: {
-        val.val.timestampVal = literalExpression.literal.val.timestampVal;
-    } break;
-    case INTERVAL: {
-        val.val.intervalVal = literalExpression.literal.val.intervalVal;
-    } break;
-    case STRING: {
-        vector->allocateStringOverflowSpace(
-            val.val.strVal, literalExpression.literal.strVal.length());
-        val.val.strVal.set(literalExpression.literal.strVal);
-    } break;
-    default:
-        assert(false);
-    }
+    vector->addLiteralToUnstructuredVector(0, literalExpression.literal);
     return make_unique<ExpressionEvaluator>(vector, expression.expressionType);
 }
 

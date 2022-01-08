@@ -112,7 +112,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredStringToUnstructuredValueTest) {
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         string lStr = to_string(i * 2);
-        lVector->allocateStringOverflowSpace(lData[i], lStr.length());
+        lVector->allocateStringOverflowSpaceIfNecessary(lData[i], lStr.length());
         lData[i].set(lStr);
     }
     VectorCastOperations::castStructuredToUnstructuredValue(*lVector, *result);

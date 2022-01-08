@@ -9,35 +9,16 @@ namespace graphflow {
 namespace common {
 
 struct BinaryOperationExecutor {
-    static void setUnstructuredString(Value& value, const string& str, ValueVector& vec) {
-        vec.allocateStringOverflowSpace(value.val.strVal, str.length());
-        value.val.strVal.set(str);
-        value.dataType = STRING;
-    }
-
-    static void allocateUnstructuredString(Value& lValue, Value& rValue, Value& resVal,
-        ValueVector& lVec, ValueVector& rVec, ValueVector& resVec) {
-        assert(lValue.dataType == STRING || rValue.dataType == STRING);
-        if (lValue.dataType != STRING) {
-            setUnstructuredString(lValue, lValue.toString(), lVec);
-        }
-        if (rValue.dataType != STRING) {
-            setUnstructuredString(rValue, rValue.toString(), rVec);
-        }
-        resVec.allocateStringOverflowSpace(
-            resVal.val.strVal, lValue.val.strVal.len + rValue.val.strVal.len);
-    }
 
     template<typename A, typename B, typename R>
     static void allocateStringIfNecessary(A& lValue, B& rValue, R& resultVal, ValueVector& lVec,
         ValueVector& rVec, ValueVector& resultVec) {
         assert((is_same<R, Value>::value) || (is_same<R, gf_string_t>::value));
         if constexpr ((is_same<R, Value>::value)) {
-            if (lValue.dataType == STRING || rValue.dataType == STRING) {
-                allocateUnstructuredString(lValue, rValue, resultVal, lVec, rVec, resultVec);
-            }
+            resultVec.allocateStringOverflowSpaceIfNecessary(
+                resultVal.val.strVal, lValue.toString().length() + rValue.toString().length());
         } else {
-            resultVec.allocateStringOverflowSpace(resultVal, lValue.len + rValue.len);
+            resultVec.allocateStringOverflowSpaceIfNecessary(resultVal, lValue.len + rValue.len);
         }
     }
 
@@ -70,10 +51,10 @@ struct BinaryOperationExecutor {
         auto rPos = right.state->getPositionOfCurrIdx();
         auto resPos = result.state->getPositionOfCurrIdx();
         if constexpr (!IS_BOOL_OP) {
+            result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
             if (!result.isNull(resPos)) {
                 executeOnTuple<A, B, R, FUNC>(left, right, result, lPos, rPos, resPos);
             }
-            result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
         } else /* IS_BOOL_OP = true */ {
             executeOnTuple<A, B, R, FUNC>(left, right, result, lPos, rPos, resPos);
             result.setNull(resPos, result.values[resPos] == operation::NULL_BOOL);
@@ -200,6 +181,7 @@ struct BinaryOperationExecutor {
     static void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
         assert(!IS_BOOL_OP || (IS_BOOL_OP && (is_same<A, bool>::value) &&
                                   (is_same<B, bool>::value) && (is_same<R, uint8_t>::value)));
+        result.resetStringBuffer();
         if (left.state->isFlat() && right.state->isFlat()) {
             executeForLeftAndRightAreFlat<A, B, R, FUNC, IS_BOOL_OP>(left, right, result);
         } else if (left.state->isFlat() || right.state->isFlat()) {

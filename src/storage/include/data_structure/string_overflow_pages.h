@@ -25,7 +25,8 @@ public:
 
     void readStringsToVector(ValueVector& valueVector, BufferManagerMetrics& metrics);
 
-    void readStringToVector(ValueVector& valueVector, uint32_t pos, BufferManagerMetrics& metrics);
+    void readStringToVector(
+        gf_string_t& gfStr, StringBuffer& stringBuffer, BufferManagerMetrics& metrics);
 
     string readString(const gf_string_t& str, BufferManagerMetrics& metrics);
 

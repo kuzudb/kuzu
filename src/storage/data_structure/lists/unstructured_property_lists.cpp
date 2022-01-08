@@ -46,7 +46,8 @@ void UnstructuredPropertyLists::readUnstructuredPropertyForSingleNodeIDPosition(
             valueVector->setNull(pos, false);
             value->dataType = propertyKeyDataType.dataType;
             if (STRING == propertyKeyDataType.dataType) {
-                stringOverflowPages.readStringToVector(*valueVector, pos, metrics);
+                stringOverflowPages.readStringToVector(
+                    value->val.strVal, *valueVector->stringBuffer, metrics);
             }
             // found the property, exiting.
             return;

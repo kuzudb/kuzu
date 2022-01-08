@@ -2,6 +2,7 @@
 
 #include "src/common/include/memory_manager.h"
 #include "src/common/include/types.h"
+#include "src/common/include/vector/string_buffer.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
 
 using namespace graphflow::common;
@@ -141,9 +142,9 @@ private:
     vector<BlockAppendingInfo> allocateDataBlocks(vector<DataBlock>& dataBlocks,
         uint64_t numBytesPerEntry, uint64_t numEntriesToAppend, bool allocateOnlyFromLastBlock);
 
-    void copyVectorToBlock(const ValueVector& vector, const BlockAppendingInfo& blockAppendInfo,
+    void copyVectorToBlock(ValueVector& vector, const BlockAppendingInfo& blockAppendInfo,
         const FieldInLayout& field, uint64_t posInVector, uint64_t offsetInRow, uint64_t colIdx);
-    overflow_value_t appendUnFlatVectorToOverflowBlocks(const ValueVector& vector, uint64_t colIdx);
+    overflow_value_t appendUnFlatVectorToOverflowBlocks(ValueVector& vector, uint64_t colIdx);
 
     void appendVector(ValueVector& valueVector, const vector<BlockAppendingInfo>& blockAppendInfos,
         const FieldInLayout& field, uint64_t numRows, uint64_t offsetInRow, uint64_t colIdx);
@@ -152,7 +153,7 @@ private:
     void readNonOverflowVector(uint8_t** rows, uint64_t offsetInRow, ValueVector& vector,
         uint64_t numRowsToRead, uint64_t colIdx) const;
     // If the given vector is flat valuePosInVecIfUnflat will be ignored.
-    void copyVectorDataToBuffer(const ValueVector& vector, uint64_t valuePosInVecIfUnflat,
+    void copyVectorDataToBuffer(ValueVector& vector, uint64_t valuePosInVecIfUnflat,
         uint8_t* buffer, uint64_t offsetInBuffer, uint64_t offsetStride, uint64_t numValues,
         uint64_t colIdx, bool isVectorOverflow);
 
@@ -162,6 +163,7 @@ private:
     uint64_t numRowsPerBlock;
     vector<DataBlock> rowDataBlocks;
     vector<DataBlock> vectorOverflowBlocks;
+    unique_ptr<StringBuffer> stringBuffer;
 };
 } // namespace processor
 } // namespace graphflow

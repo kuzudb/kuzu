@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "src/common/include/data_chunk/data_chunk_state.h"
+#include "src/common/include/literal.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/string_buffer.h"
 
@@ -35,9 +36,17 @@ public:
 
     ~ValueVector() = default;
 
+    // These two functions assume that the given uint8_t* srcData/dstData are  pointing to a data
+    // with the same data type as this ValueVector. If this ValueVector is unstructured, then
+    // srcData/dstData are pointing to a Value
+    void copyNonNullDataWithSameTypeIntoPos(uint64_t pos, uint8_t* srcData);
+    void copyNonNullDataWithSameTypeOutFromPos(
+        uint64_t pos, uint8_t* dstData, StringBuffer& dstStringBuffer);
     void addString(uint64_t pos, string value) const;
     void addString(uint64_t pos, char* value, uint64_t len) const;
-    void allocateStringOverflowSpace(gf_string_t& gfString, uint64_t len) const;
+    void addLiteralToUnstructuredVector(const uint64_t pos, const Literal& value) const;
+    void addGFStringToUnstructuredVector(const uint64_t pos, const gf_string_t& value) const;
+    void allocateStringOverflowSpaceIfNecessary(gf_string_t& result, uint64_t len) const;
 
     // Sets the null mask of this ValueVector to the null mask of
     inline void setNullMask(const shared_ptr<NullMask>& otherMask) { nullMask = otherMask; }
@@ -45,11 +54,6 @@ public:
     inline void setAllNull() {
         std::fill(nullMask->mask.get(), nullMask->mask.get() + state->originalSize, true);
         nullMask->mayContainNulls = true;
-    }
-
-    inline void setAllNonNull() {
-        std::fill(nullMask->mask.get(), nullMask->mask.get() + state->originalSize, false);
-        nullMask->mayContainNulls = false;
     }
 
     // Note that if this function returns true, there are no null. However if it returns false, it
@@ -85,6 +89,12 @@ public:
         return isSequence ? ((nodeID_t*)values)[0].offset + pos : ((nodeID_t*)values)[pos].offset;
     }
 
+    inline void resetStringBuffer() {
+        if (stringBuffer) {
+            stringBuffer->resetBuffer();
+        }
+    }
+    // TODO: We should remove the clone function. This is a very expensive function.
     shared_ptr<ValueVector> clone();
 
 protected:
@@ -98,6 +108,10 @@ protected:
             stringBuffer = make_unique<StringBuffer>(*memoryManager);
         }
     }
+
+private:
+    void copyNonNullDataWithSameType(
+        const uint8_t* srcData, uint8_t* dstData, StringBuffer& stringBuffer) const;
 
 protected:
     unique_ptr<uint8_t[]> bufferValues;

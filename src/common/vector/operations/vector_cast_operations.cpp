@@ -35,9 +35,7 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
             outValues[resPos].val.intervalVal = ((interval_t*)operand.values)[pos];
         } break;
         case STRING: {
-            auto& operandVal = ((gf_string_t*)operand.values)[pos];
-            result.allocateStringOverflowSpace(outValues[resPos].val.strVal, operandVal.len);
-            outValues[resPos].val.strVal.set(operandVal);
+            result.addGFStringToUnstructuredVector(resPos, ((gf_string_t*)operand.values)[pos]);
         } break;
         default:
             assert(false);
@@ -88,9 +86,7 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
         case STRING: {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
-                auto& operandVal = ((gf_string_t*)operand.values)[pos];
-                result.allocateStringOverflowSpace(outValues[pos].val.strVal, operandVal.len);
-                outValues[pos].val.strVal.set(operandVal);
+                result.addGFStringToUnstructuredVector(pos, ((gf_string_t*)operand.values)[pos]);
             }
         } break;
         default:

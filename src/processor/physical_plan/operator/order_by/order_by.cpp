@@ -99,7 +99,5 @@ void OrderBy::execute() {
     metrics->executionTime.stop();
 }
 
-void OrderBy::finalize() {}
-
 } // namespace processor
 } // namespace graphflow

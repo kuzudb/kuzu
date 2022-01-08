@@ -5,8 +5,9 @@
 namespace graphflow {
 namespace common {
 
-void StringBuffer::allocateLargeString(gf_string_t& result, uint64_t len) {
-    assert(len > gf_string_t::SHORT_STR_LENGTH);
+void StringBuffer::allocateLargeStringIfNecessary(gf_string_t& result, uint64_t len) {
+    if (gf_string_t::isShortString(len))
+        return;
     if (currentBlock == nullptr || (currentBlock->currentOffset + len) > currentBlock->size) {
         auto blockSize = max(len, MIN_BUFFER_BLOCK_SIZE);
         auto newBlock = make_unique<BufferBlock>(

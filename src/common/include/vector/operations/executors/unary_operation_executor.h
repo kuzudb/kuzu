@@ -25,6 +25,7 @@ struct UnaryOperationExecutor {
     static void execute(ValueVector& operand, ValueVector& result) {
         assert(!IS_BOOL_OP ||
                (IS_BOOL_OP && (is_same<T, bool>::value) && (is_same<R, uint8_t>::value)));
+        result.resetStringBuffer();
         auto resultValues = (R*)result.values;
         if (operand.state->isFlat()) {
             auto operandPos = operand.state->getPositionOfCurrIdx();

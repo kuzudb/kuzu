@@ -95,7 +95,6 @@ public:
 
     shared_ptr<ResultSet> initResultSet() override;
     void execute() override;
-    void finalize() override;
 
     PhysicalOperatorType getOperatorType() override { return ORDER_BY; }
 

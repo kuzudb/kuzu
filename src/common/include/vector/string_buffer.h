@@ -18,6 +18,8 @@ public:
     uint64_t currentOffset;
     uint8_t* data;
 
+    inline void resetCurrentOffset() { currentOffset = 0; }
+
 private:
     unique_ptr<MemoryBlock> block;
 };
@@ -30,10 +32,25 @@ public:
         : memoryManager{memoryManager}, currentBlock{nullptr} {};
 
 public:
-    void allocateLargeString(gf_string_t& result, uint64_t len);
+    void allocateLargeStringIfNecessary(gf_string_t& result, uint64_t len);
 
 public:
     vector<unique_ptr<BufferBlock>> blocks;
+
+    // Releases all memory accumulated for string overflows so far and reinitializes its state to an
+    // empty buffer. If there a large string that used point to any of these overflow buffers they
+    // will error.
+    inline void resetBuffer() {
+        if (blocks.size() > 1) {
+            auto firstBlock = move(blocks[0]);
+            blocks.clear();
+            firstBlock->resetCurrentOffset();
+            blocks.push_back(move(firstBlock));
+        }
+        if (!blocks.empty()) {
+            currentBlock = blocks[0].get();
+        }
+    }
 
 private:
     MemoryManager& memoryManager;

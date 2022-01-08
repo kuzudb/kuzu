@@ -149,6 +149,23 @@ inline void Add::operation(
     result.len = len;
 }
 
+template<>
+inline void Add::operation(
+    string& left, string& right, gf_string_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
+    auto len = left.length() + right.length();
+    if (len <= gf_string_t::SHORT_STR_LENGTH /* concat's result is short */) {
+        memcpy(result.prefix, left.c_str(), left.length());
+        memcpy(result.prefix + left.length(), right.c_str(), right.length());
+    } else {
+        auto buffer = reinterpret_cast<char*>(result.overflowPtr);
+        memcpy(buffer, left.c_str(), left.length());
+        memcpy(buffer + left.length(), right.c_str(), right.length());
+        memcpy(result.prefix, buffer, gf_string_t::PREFIX_LENGTH);
+    }
+    result.len = len;
+}
+
 /**********************************************
  **                                          **
  **   Specialized Value(s) implementations   **
@@ -234,11 +251,19 @@ static const char ceilStr[] = "ceil";
 template<>
 inline void Add::operation(
     Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
-    if (left.dataType == STRING) {
-        assert(right.dataType == STRING);
+    if (left.dataType == STRING || right.dataType == STRING) {
         result.dataType = STRING;
-        Add::operation(
-            left.val.strVal, right.val.strVal, result.val.strVal, isLeftNull, isRightNull);
+        if (left.dataType == STRING && right.dataType == STRING) {
+            Add::operation(
+                left.val.strVal, right.val.strVal, result.val.strVal, isLeftNull, isRightNull);
+        } else {
+            // This is the case when one of the left or right unstructured Value needs to be cast
+            // to string. Because we don't have access to overflow buffers, we need to treat them
+            // as regular strings.
+            auto lVal = left.toString();
+            auto rVal = right.toString();
+            Add::operation(lVal, rVal, result.val.strVal, isLeftNull, isRightNull);
+        }
         return;
     } else if (left.dataType == DATE && right.dataType == INTERVAL) {
         result.dataType = DATE;
