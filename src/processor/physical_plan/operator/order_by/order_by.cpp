@@ -6,8 +6,8 @@ namespace processor {
 shared_ptr<ResultSet> OrderBy::initResultSet() {
     resultSet = children[0]->initResultSet();
 
-    // RowCollection, keyBlockEntrySizeInBytes, strKeyColInfo are constructed here because
-    // they need the data type information, which is contained in the value vectors.
+    // RowCollection, keyBlockEntrySizeInBytes, stringAndUnstructuredKeyColInfo are constructed here
+    // because they need the data type information, which is contained in the value vectors.
     RowLayout rowLayout;
     // Loop through all columns to initialize the rowCollection.
     // We need to store all columns(including keys and payload) in the rowCollection.
@@ -41,7 +41,7 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
     rowCollectionIdx = sharedState->getNextRowCollectionIdx();
     sharedState->appendRowCollection(rowCollectionIdx, localRowCollection);
 
-    // Loop through all key columns and calculate the offsets for string columns.
+    // Loop through all key columns and calculate the offsets for string and unstructured columns.
     auto encodedKeyBlockColOffset = 0ul;
     for (auto i = 0u; i < orderByDataInfo.keyDataPoses.size(); i++) {
         auto keyDataPos = orderByDataInfo.keyDataPoses[i];
@@ -50,16 +50,18 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
         auto vectorPos = keyDataPos.valueVectorPos;
         auto vector = dataChunk->valueVectors[vectorPos];
         keyVectors.emplace_back(vector);
-        if (STRING == vector->dataType) {
-            // If this is a string column, we need to find the rowCollection offset for this column.
+        if (STRING == vector->dataType || UNSTRUCTURED == vector->dataType) {
+            // If this is a string or unstructured column, we need to find the
+            // rowCollection offset for this column.
             auto rowCollectionOffset = 0ul;
             for (auto j = 0u; j < orderByDataInfo.allDataPoses.size(); j++) {
                 if (orderByDataInfo.allDataPoses[j] == keyDataPos) {
                     rowCollectionOffset = localRowCollection->getFieldOffsetInRow(j);
                 }
             }
-            strKeyColInfo.emplace_back(StrKeyColInfo(
-                rowCollectionOffset, encodedKeyBlockColOffset, orderByDataInfo.isAscOrder[i]));
+            stringAndUnstructuredKeyColInfo.emplace_back(
+                StringAndUnstructuredKeyColInfo(rowCollectionOffset, encodedKeyBlockColOffset,
+                    orderByDataInfo.isAscOrder[i], STRING == vector->dataType));
         }
         encodedKeyBlockColOffset += OrderByKeyEncoder::getEncodingSize(vector->dataType);
     }
@@ -67,10 +69,10 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
     // Prepare the orderByEncoder, and radix sorter
     orderByKeyEncoder = make_unique<OrderByKeyEncoder>(
         keyVectors, orderByDataInfo.isAscOrder, *context.memoryManager, rowCollectionIdx);
-    radixSorter = make_unique<RadixSort>(
-        *context.memoryManager, *localRowCollection, *orderByKeyEncoder, strKeyColInfo);
+    radixSorter = make_unique<RadixSort>(*context.memoryManager, *localRowCollection,
+        *orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
 
-    sharedState->setStrKeyColInfo(strKeyColInfo);
+    sharedState->setStringAndUnstructuredKeyColInfo(stringAndUnstructuredKeyColInfo);
     sharedState->setKeyBlockEntrySizeInBytes(orderByKeyEncoder->getKeyBlockEntrySizeInBytes());
     return resultSet;
 }

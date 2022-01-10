@@ -99,10 +99,23 @@ void OrderByKeyEncoder::encodeString(gf_string_t data, uint8_t* resultPtr) {
     }
 }
 
+void OrderByKeyEncoder::encodeUnstr(uint8_t* resultPtr) {
+    // Encode all unstr data as 0, meaning that there is a tie for the entire column
+    uint8_t encodeVal = 0;
+    memcpy(resultPtr, &encodeVal, sizeof(encodeVal));
+}
+
 uint64_t OrderByKeyEncoder::getEncodingSize(DataType dataType) {
     // Add one more byte for null flag.
-    return 1 + (dataType == STRING ? gf_string_t::SHORT_STR_LENGTH :
-                                     TypeUtils::getDataTypeSize(dataType));
+    switch (dataType) {
+    case UNSTRUCTURED:
+        // 1 byte for null flag + 1 byte for unstr data
+        return 2;
+    case STRING:
+        return 1 + gf_string_t::SHORT_STR_LENGTH;
+    default:
+        return 1 + TypeUtils::getDataTypeSize(dataType);
+    }
 }
 
 void OrderByKeyEncoder::allocateMemoryIfFull() {
@@ -150,13 +163,16 @@ void OrderByKeyEncoder::encodeData(shared_ptr<ValueVector>& orderByVector,
             encodeString(((gf_string_t*)orderByVector->values)[idxInOrderByVector],
                 keyBlockPtrAfterNullByte);
             break;
+        case UNSTRUCTURED:
+            encodeUnstr(keyBlockPtrAfterNullByte);
+            break;
         default:
             throw EncodingException(
                 "Unimplemented datatype: " + TypeUtils::dataTypeToString(orderByVector->dataType));
         }
     }
     if (!isAscOrder[keyColIdx]) {
-        // If the current column is in desc order, flip all bits.
+        // If the current column is in desc order, flip all bytes.
         for (uint64_t byte = 0; byte < getEncodingSize(orderByVector->dataType); ++byte) {
             *(keyBlockPtr + byte) = ~*(keyBlockPtr + byte);
         }

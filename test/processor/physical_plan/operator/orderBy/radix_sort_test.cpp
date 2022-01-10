@@ -9,6 +9,7 @@
 #include "src/common/include/data_chunk/data_chunk.h"
 #include "src/common/include/date.h"
 #include "src/common/include/interval.h"
+#include "src/common/include/value.h"
 #include "src/processor/include/physical_plan/operator/order_by/order_by_key_encoder.h"
 #include "src/processor/include/physical_plan/operator/order_by/radix_sort.h"
 
@@ -78,8 +79,9 @@ public:
         vector<bool> isAscOrder{isAsc};
 
         RowLayout rowLayout;
-        rowLayout.appendField({dataType, TypeUtils::getDataTypeSize(dataType), false});
-        vector<StrKeyColInfo> strKeyColInfo;
+        rowLayout.appendField(
+            {dataType, TypeUtils::getDataTypeSize(dataType), false /* isVectorOverflow */});
+        vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
 
         if (hasPayLoadCol) {
             // Create a new payloadValueVector for the payload column.
@@ -92,12 +94,16 @@ public:
             // payload column at index 0, and the orderByCol at index 1. Then the
             // rowCollectionOffset for the key string column = sizeof(gf_string_t).
             allVectors.insert(allVectors.begin(), payloadValueVector);
-            rowLayout.appendField({dataType, TypeUtils::getDataTypeSize(STRING), false});
-            strKeyColInfo.emplace_back(StrKeyColInfo(TypeUtils::getDataTypeSize(STRING), 0, isAsc));
-        } else if constexpr (is_same<T, string>::value) {
-            // If this is a string column and has no payload column, then the rowCollection offset
-            // is just 0.
-            strKeyColInfo.emplace_back(StrKeyColInfo(0, 0, isAsc));
+            rowLayout.appendField(
+                {dataType, TypeUtils::getDataTypeSize(STRING), false /* isVectorOverflow */});
+            stringAndUnstructuredKeyColInfo.emplace_back(
+                StringAndUnstructuredKeyColInfo(TypeUtils::getDataTypeSize(STRING), 0, isAsc,
+                    is_same<T, string>::value /* isStrCol */));
+        } else if constexpr (is_same<T, string>::value || is_same<T, Value>::value) {
+            // If this is a string or unstructured column and has no payload column, then the
+            // rowCollection offset is just 0.
+            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
+                0, 0, isAsc, is_same<T, string>::value /* isStrCol */));
         }
 
         rowLayout.initialize();
@@ -108,8 +114,8 @@ public:
             OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, rowCollectionIdx);
         orderByKeyEncoder.encodeKeys();
 
-        RadixSort radixSort =
-            RadixSort(*memoryManager, rowCollection, orderByKeyEncoder, strKeyColInfo);
+        RadixSort radixSort = RadixSort(
+            *memoryManager, rowCollection, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
         sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
         checkRowIdxesAndRowCollectionIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
@@ -122,12 +128,13 @@ public:
         auto mockDataChunk = make_shared<DataChunk>(stringValues.size());
         mockDataChunk->state->currIdx = 0;
         RowLayout rowLayout;
-        vector<StrKeyColInfo> strKeyColInfo;
+        vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
         for (auto i = 0; i < stringValues.size(); i++) {
             auto stringValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-            strKeyColInfo.emplace_back(StrKeyColInfo(
-                strKeyColInfo.size() * TypeUtils::getDataTypeSize(STRING),
-                strKeyColInfo.size() * OrderByKeyEncoder::getEncodingSize(STRING), isAscOrder[i]));
+            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
+                stringAndUnstructuredKeyColInfo.size() * TypeUtils::getDataTypeSize(STRING),
+                stringAndUnstructuredKeyColInfo.size() * OrderByKeyEncoder::getEncodingSize(STRING),
+                isAscOrder[i], true /* isStrCol */));
             rowLayout.appendField(FieldInLayout(STRING, TypeUtils::getDataTypeSize(STRING), false));
             mockDataChunk->insert(i, stringValueVector);
             for (auto j = 0u; j < stringValues[i].size(); j++) {
@@ -147,7 +154,8 @@ public:
             mockDataChunk->state->currIdx++;
         }
 
-        auto radixSort = RadixSort(*memoryManager, rowCollection, orderByKeyEncoder, strKeyColInfo);
+        auto radixSort = RadixSort(
+            *memoryManager, rowCollection, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
         sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
         checkRowIdxesAndRowCollectionIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
@@ -256,6 +264,54 @@ TEST_F(RadixSortTest, singleOrderByColDoubleTest) {
     vector<uint64_t> expectedRowIdxOrder = {5, 2, 0, 4, 1, 3};
     singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, DOUBLE, false /* isAsc */,
         false /* hasPayLoadCol */);
+}
+
+TEST_F(RadixSortTest, singleOrderByColUnstrSameDataTypeTest) {
+    // SortingData contains unstructured value with the same datatype.
+    vector<Value> sortingData = {Value(4.7), Value(-0.5), Value(10.52), Value(double(0)) /* NULL */,
+        Value(double(0)) /* NULL */};
+    vector<bool> nullMasks = {false, false, false, true, true};
+    vector<uint64_t> expectedRowIdxOrder = {1, 0, 2, 3, 4};
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, UNSTRUCTURED,
+        true /* isAsc */, false /* hasPayLoadCol */);
+}
+
+TEST_F(RadixSortTest, singleOrderByColUnstrNumericalValTest) {
+    // SortingData contains a mixture of INT64 and double.
+    vector<Value> sortingData = {
+        Value(4.7), Value(-0.5), Value(int64_t(8)), Value(int64_t(0)) /* NULL */, Value(-0.045)};
+    vector<bool> nullMasks = {false, false, false, true, false};
+    vector<uint64_t> expectedRowIdxOrder = {1, 4, 0, 2, 3};
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, UNSTRUCTURED,
+        true /* isAsc */, false /* hasPayLoadCol */);
+}
+
+TEST_F(RadixSortTest, singleOrderByColUnstrTimeValTest) {
+    // SortingData contains a mixture of timestamp and date.
+    vector<Value> sortingData = {
+        Value(Timestamp::FromCString("2003-10-12 08:21:10", strlen("2003-10-12 08:21:10"))),
+        Value(Date::FromCString("2003-10-12", strlen("2003-10-12"))), Value(int64_t(0)) /* NULL */,
+        Value(Date::FromCString("2003-10-13", strlen("2003-10-13"))),
+        Value(Timestamp::FromCString("2003-10-13 01:02:03", strlen("2003-10-13 01:02:03")))};
+    vector<bool> nullMasks = {false, false, true, false, false};
+    vector<uint64_t> expectedRowIdxOrder = {1, 0, 3, 4, 2};
+    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, UNSTRUCTURED,
+        true /* isAsc */, false /* hasPayLoadCol */);
+}
+
+TEST_F(RadixSortTest, singleOrderByColUnstrErrorTest) {
+    // SortingData contains double and timestamp, the comparison function should throw an exception.
+    vector<Value> sortingData = {
+        Value(Timestamp::FromCString("2003-10-12 08:21:10", strlen("2003-10-12 08:21:10"))),
+        Value(4.2)};
+    vector<bool> nullMasks = {false, false};
+    vector<uint64_t> expectedRowIdxOrder = {1, 0};
+    try {
+        singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, UNSTRUCTURED,
+            true /* isAsc */, false /* hasPayLoadCol */);
+        FAIL();
+    } catch (invalid_argument& e) {
+    } catch (exception& e) { FAIL(); }
 }
 
 TEST_F(RadixSortTest, singleOrderByColStringTest) {
@@ -370,10 +426,11 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
         {TIMESTAMP, TypeUtils::getDataTypeSize(TIMESTAMP), false /* isVectorOverflow */},
         {DATE, TypeUtils::getDataTypeSize(DATE), false /* isVectorOverflow */}});
     RowCollection rowCollection(*memoryManager, rowLayout);
-    vector<StrKeyColInfo> strKeyColInfo = {
-        StrKeyColInfo(TypeUtils::getDataTypeSize(INT64) + TypeUtils::getDataTypeSize(DOUBLE),
+    vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo = {
+        StringAndUnstructuredKeyColInfo(
+            TypeUtils::getDataTypeSize(INT64) + TypeUtils::getDataTypeSize(DOUBLE),
             OrderByKeyEncoder::getEncodingSize(INT64) + OrderByKeyEncoder::getEncodingSize(DOUBLE),
-            true /* isAscOrder */)};
+            true /* isAscOrder */, true /* isStrCol */)};
 
     auto orderByKeyEncoder =
         OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, rowCollectionIdx);
@@ -383,8 +440,8 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
         mockDataChunk->state->currIdx++;
     }
 
-    RadixSort radixSort =
-        RadixSort(*memoryManager, rowCollection, orderByKeyEncoder, strKeyColInfo);
+    RadixSort radixSort = RadixSort(
+        *memoryManager, rowCollection, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
     sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
     vector<uint64_t> expectedRowIdxOrder = {1, 4, 0, 2, 3};

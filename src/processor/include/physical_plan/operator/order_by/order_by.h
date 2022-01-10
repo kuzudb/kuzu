@@ -17,8 +17,8 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-// This class contains rowCollections, nextRowCollectionID, strColInfo, sortedKeyBlocks and
-// the size of each row in keyBlocks. The class is shared between the orderBy,
+// This class contains rowCollections, nextRowCollectionID, stringAndUnstructuredKeyColInfo,
+// sortedKeyBlocks and the size of each row in keyBlocks. The class is shared between the orderBy,
 // orderByMerge, orderByScan operators. All functions are guaranteed to be thread-safe,
 // so caller doesn't need to acquire a lock before calling these functions.
 class SharedRowCollectionsAndSortedKeyBlocks {
@@ -51,9 +51,10 @@ public:
         this->keyBlockEntrySizeInBytes = keyBlockEntrySizeInBytes;
     }
 
-    void setStrKeyColInfo(vector<StrKeyColInfo>& strKeyColInfo) {
+    void setStringAndUnstructuredKeyColInfo(
+        vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo) {
         lock_guard<mutex> sharedStateLock{orderBySharedStateLock};
-        this->strKeyColInfo = move(strKeyColInfo);
+        this->stringAndUnstructuredKeyColInfo = move(stringAndUnstructuredKeyColInfo);
     }
 
 private:
@@ -65,7 +66,7 @@ public:
     shared_ptr<queue<shared_ptr<KeyBlock>>> sortedKeyBlocks;
 
     uint64_t keyBlockEntrySizeInBytes;
-    vector<StrKeyColInfo> strKeyColInfo;
+    vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
 };
 
 struct OrderByDataInfo {
@@ -112,7 +113,7 @@ private:
     unique_ptr<RadixSort> radixSorter;
     vector<shared_ptr<ValueVector>> keyVectors;
     vector<shared_ptr<ValueVector>> vectorsToAppend;
-    vector<StrKeyColInfo> strKeyColInfo;
+    vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
     shared_ptr<SharedRowCollectionsAndSortedKeyBlocks> sharedState;
     shared_ptr<RowCollection> localRowCollection;
 };

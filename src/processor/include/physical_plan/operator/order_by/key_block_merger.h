@@ -10,23 +10,32 @@ namespace processor {
 
 struct KeyBlockMergeMorsel;
 
-// This struct stores the string key column information. We can utilize the pre-computed index and
-// offsets to expedite the row comparison in merge sort.
-struct StrKeyColInfo {
-    explicit StrKeyColInfo(
-        uint64_t colOffsetInRowCollection, uint64_t colOffsetInEncodedKeyBlock, bool isAscOrder)
+// This struct stores the string and unstructured key column information. We can utilize the
+// pre-computed indexes and offsets to expedite the row comparison in merge sort.
+struct StringAndUnstructuredKeyColInfo {
+    explicit StringAndUnstructuredKeyColInfo(uint64_t colOffsetInRowCollection,
+        uint64_t colOffsetInEncodedKeyBlock, bool isAscOrder, bool isStrCol)
         : colOffsetInRowCollection{colOffsetInRowCollection},
-          colOffsetInEncodedKeyBlock{colOffsetInEncodedKeyBlock}, isAscOrder{isAscOrder} {}
+          colOffsetInEncodedKeyBlock{colOffsetInEncodedKeyBlock}, isStrCol{isStrCol},
+          isAscOrder{isAscOrder} {}
+    uint64_t getEncodingSize() {
+        return isStrCol ? OrderByKeyEncoder::getEncodingSize(STRING) :
+                          OrderByKeyEncoder::getEncodingSize(UNSTRUCTURED);
+    }
+
     uint64_t colOffsetInRowCollection;
     uint64_t colOffsetInEncodedKeyBlock;
     bool isAscOrder;
+    bool isStrCol;
 };
 
 class KeyBlockMerger {
 public:
     explicit KeyBlockMerger(vector<shared_ptr<RowCollection>>& rowCollections,
-        vector<StrKeyColInfo>& strKeyColInfo, uint64_t keyBlockEntrySizeInBytes)
-        : rowCollections{rowCollections}, strKeyColInfo{strKeyColInfo},
+        vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo,
+        uint64_t keyBlockEntrySizeInBytes)
+        : rowCollections{rowCollections},
+          stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo},
           keyBlockEntrySizeInBytes{keyBlockEntrySizeInBytes} {}
 
     void mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel);
@@ -36,14 +45,14 @@ public:
     bool compareRowBuffer(uint8_t* leftRowBuffer, uint8_t* rightRowBuffer);
 
 private:
-    inline gf_string_t getStrFromRowCollection(
-        uint8_t* encodedRowBuffer, StrKeyColInfo& strKeyColInfo) {
+    inline uint8_t* getValPtrFromRowCollection(
+        uint8_t* encodedRowBuffer, uint64_t colOffsetInRowCollection) {
         auto encodedRowInfoBuffer = encodedRowBuffer + keyBlockEntrySizeInBytes - sizeof(uint64_t);
         auto encodedRowIdx = OrderByKeyEncoder::getEncodedRowIdx(encodedRowInfoBuffer);
         auto encodedRowCollectionIdx =
             OrderByKeyEncoder::getEncodedRowCollectionIdx(encodedRowInfoBuffer);
-        return *((gf_string_t*)(rowCollections[encodedRowCollectionIdx]->getRow(encodedRowIdx) +
-                                strKeyColInfo.colOffsetInRowCollection));
+        return rowCollections[encodedRowCollectionIdx]->getRow(encodedRowIdx) +
+               colOffsetInRowCollection;
     }
 
 private:
@@ -54,7 +63,7 @@ private:
     // We also store the pre-computed string column information including colOffsetInRowCollection,
     // colIdxInEncodedKeyBlock, colOffsetInEncodedKeyBlock. So, we don't need to compute it again
     // during merge sort.
-    vector<StrKeyColInfo>& strKeyColInfo;
+    vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo;
     uint64_t keyBlockEntrySizeInBytes;
 };
 
@@ -137,7 +146,8 @@ public:
     // just returns.
     void initIfNecessary(MemoryManager* memoryManager,
         shared_ptr<queue<shared_ptr<KeyBlock>>> sortedKeyBlocks,
-        vector<shared_ptr<RowCollection>>& rowCollections, vector<StrKeyColInfo>& strKeyColInfo,
+        vector<shared_ptr<RowCollection>>& rowCollections,
+        vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo,
         uint64_t keyBlockEntrySizeInBytes) {
         lock_guard<mutex> keyBlockMergeDispatcherLock{mtx};
         if (isInitialized) {
@@ -146,8 +156,8 @@ public:
         isInitialized = true;
         this->memoryManager = memoryManager;
         this->sortedKeyBlocks = sortedKeyBlocks;
-        this->keyBlockMerger =
-            make_unique<KeyBlockMerger>(rowCollections, strKeyColInfo, keyBlockEntrySizeInBytes);
+        this->keyBlockMerger = make_unique<KeyBlockMerger>(
+            rowCollections, stringAndUnstructuredKeyColInfo, keyBlockEntrySizeInBytes);
     }
 
 private:

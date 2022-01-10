@@ -83,6 +83,8 @@ struct interval_t {
     interval_t operator/(const uint64_t& rhs) const;
 };
 
+struct timestamp_t;
+
 // System representation of dates as the number of days since 1970-01-01.
 struct date_t {
     int32_t days;
@@ -90,13 +92,23 @@ struct date_t {
     date_t() = default;
     explicit inline date_t(int32_t days_p) : days(days_p) {}
 
-    // comparison operators
+    // Comparison operators with date_t.
     inline bool operator==(const date_t& rhs) const { return days == rhs.days; };
     inline bool operator!=(const date_t& rhs) const { return days != rhs.days; };
     inline bool operator<=(const date_t& rhs) const { return days <= rhs.days; };
     inline bool operator<(const date_t& rhs) const { return days < rhs.days; };
     inline bool operator>(const date_t& rhs) const { return days > rhs.days; };
     inline bool operator>=(const date_t& rhs) const { return days >= rhs.days; };
+
+    // Comparison operators with timestamp_t.
+    bool operator==(const timestamp_t& rhs) const;
+    inline bool operator!=(const timestamp_t& rhs) const { return !(*this == rhs); };
+    bool operator<(const timestamp_t& rhs) const;
+    inline bool operator<=(const timestamp_t& rhs) const {
+        return (*this) < rhs || (*this) == rhs;
+    };
+    inline bool operator>(const timestamp_t& rhs) const { return !(*this <= rhs); };
+    inline bool operator>=(const timestamp_t& rhs) const { return !(*this < rhs); };
 
     // arithmetic operators
     inline date_t operator+(const int32_t& day) const { return date_t(this->days + day); };
@@ -146,13 +158,21 @@ struct timestamp_t {
     // explicit conversion
     explicit inline operator int64_t() const { return value; }
 
-    // comparison operators
+    // Comparison operators with timestamp_t.
     inline bool operator==(const timestamp_t& rhs) const { return value == rhs.value; };
     inline bool operator!=(const timestamp_t& rhs) const { return value != rhs.value; };
     inline bool operator<=(const timestamp_t& rhs) const { return value <= rhs.value; };
     inline bool operator<(const timestamp_t& rhs) const { return value < rhs.value; };
     inline bool operator>(const timestamp_t& rhs) const { return value > rhs.value; };
     inline bool operator>=(const timestamp_t& rhs) const { return value >= rhs.value; };
+
+    // Comparison operators with date_t.
+    inline bool operator==(const date_t& rhs) const { return rhs == *this; };
+    inline bool operator!=(const date_t& rhs) const { return !(rhs == *this); };
+    inline bool operator<(const date_t& rhs) const { return rhs > *this; };
+    inline bool operator<=(const date_t& rhs) const { return rhs >= *this; };
+    inline bool operator>(const date_t& rhs) const { return rhs < *this; };
+    inline bool operator>=(const date_t& rhs) const { return rhs <= *this; };
 
     // arithmetic operator
     timestamp_t operator+(const interval_t& interval) const;

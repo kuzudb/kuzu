@@ -122,41 +122,66 @@ void KeyBlockMerger::mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) {
 // This function returns true if the value in the leftRowBuffer is larger than the value in the
 // rightRowBuffer.
 bool KeyBlockMerger::compareRowBuffer(uint8_t* leftRowBuffer, uint8_t* rightRowBuffer) {
-    if (strKeyColInfo.empty()) {
-        // If there is no string columns in the keys, we just need to do a simple memcmp.
+    if (stringAndUnstructuredKeyColInfo.empty()) {
+        // If there is no string or unstructured columns in the keys, we just need to do a simple
+        // memcmp.
         return memcmp(leftRowBuffer, rightRowBuffer, keyBlockEntrySizeInBytes - sizeof(uint64_t)) >
                0;
     } else {
-        // we can't simply use memcmp to compare rows if there are string columns. we should only
-        // compare the binary strings starting from the last compared string column till the next
-        // string column.
+        // We can't simply use memcmp to compare rows if there are string or unstructured columns.
+        // We should only compare the binary strings starting from the last compared string column
+        // till the next string column.
         uint64_t lastComparedBytes = 0;
-        for (auto& strKeyCol : strKeyColInfo) {
+        for (auto& stringAndUnstructuredKeyInfo : stringAndUnstructuredKeyColInfo) {
             auto result =
                 memcmp(leftRowBuffer + lastComparedBytes, rightRowBuffer + lastComparedBytes,
-                    strKeyCol.colOffsetInEncodedKeyBlock - lastComparedBytes +
-                        OrderByKeyEncoder::getEncodingSize(STRING));
-
-            // If there is a tie, we need to compare the overflow ptr of strings.
+                    stringAndUnstructuredKeyInfo.colOffsetInEncodedKeyBlock - lastComparedBytes +
+                        stringAndUnstructuredKeyInfo.getEncodingSize());
+            // If both sides are nulls, we can just continue to check the next string or
+            // unstructured column.
+            if (OrderByKeyEncoder::isNullVal(
+                    leftRowBuffer, stringAndUnstructuredKeyInfo.isAscOrder) &&
+                OrderByKeyEncoder::isNullVal(
+                    rightRowBuffer, stringAndUnstructuredKeyInfo.isAscOrder)) {
+                lastComparedBytes = stringAndUnstructuredKeyInfo.colOffsetInEncodedKeyBlock +
+                                    stringAndUnstructuredKeyInfo.getEncodingSize();
+                continue;
+            }
+            // If there is a tie, we need to compare the overflow ptr of strings or the actual
+            // unstructured values.
             if (result == 0) {
-                auto leftStr = getStrFromRowCollection(leftRowBuffer, strKeyCol);
-                auto rightStr = getStrFromRowCollection(rightRowBuffer, strKeyCol);
+                auto leftBuffer = getValPtrFromRowCollection(
+                    leftRowBuffer, stringAndUnstructuredKeyInfo.colOffsetInRowCollection);
+                auto rightBuffer = getValPtrFromRowCollection(
+                    rightRowBuffer, stringAndUnstructuredKeyInfo.colOffsetInRowCollection);
                 uint8_t result;
-                Equals::operation<gf_string_t, gf_string_t>(
-                    leftStr, rightStr, result, false, false);
+                if (stringAndUnstructuredKeyInfo.isStrCol) {
+                    Equals::operation<gf_string_t, gf_string_t>(*((gf_string_t*)leftBuffer),
+                        *((gf_string_t*)rightBuffer), result, false, false);
+                } else {
+                    Equals::operation<Value, Value>(
+                        *((Value*)leftBuffer), *((Value*)rightBuffer), result, false, false);
+                }
                 if (result) {
-                    // If the tie can't be solved, we need to check the next string column.
-                    lastComparedBytes = strKeyCol.colOffsetInEncodedKeyBlock +
-                                        OrderByKeyEncoder::getEncodingSize(STRING);
+                    // If the tie can't be solved, we need to check the next string or unstructured
+                    // column.
+                    lastComparedBytes = stringAndUnstructuredKeyInfo.colOffsetInEncodedKeyBlock +
+                                        stringAndUnstructuredKeyInfo.getEncodingSize();
                     continue;
                 }
-                GreaterThan::operation<gf_string_t, gf_string_t>(
-                    leftStr, rightStr, result, false, false);
-                return strKeyCol.isAscOrder == result;
+                if (stringAndUnstructuredKeyInfo.isStrCol) {
+                    GreaterThan::operation<gf_string_t, gf_string_t>(*((gf_string_t*)leftBuffer),
+                        *((gf_string_t*)rightBuffer), result, false, false);
+                } else {
+                    GreaterThan::operation<Value, Value>(
+                        *((Value*)leftBuffer), *((Value*)rightBuffer), result, false, false);
+                }
+                return stringAndUnstructuredKeyInfo.isAscOrder == result;
             }
             return result > 0;
         }
-        // The string tie can't be solved, just add the row in the leftMemBlock to resultMemBlock.
+        // The string or unstructured tie can't be solved, just add the row in the leftMemBlock to
+        // resultMemBlock.
         return false;
     }
 }

@@ -76,8 +76,8 @@ vector<TieRange> RadixSort::findTies(uint8_t* keyBlockPtr, uint64_t numRowsToFin
     return newTiesInKeyBlock;
 }
 
-void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, queue<TieRange>& ties,
-    bool isAscOrder, uint64_t fieldOffsetInRowCollection) {
+void RadixSort::solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
+    queue<TieRange>& ties, StringAndUnstructuredKeyColInfo& stringAndUnstructuredKeyColInfo) {
     auto tmpRowPtrSortingBlockPtr = (uint8_t**)tmpRowPtrSortingBlock->data;
     for (auto i = 0ul; i < keyBlockTie.getNumRows(); i++) {
         tmpRowPtrSortingBlockPtr[i] =
@@ -85,19 +85,44 @@ void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, que
     }
 
     sort(tmpRowPtrSortingBlockPtr, tmpRowPtrSortingBlockPtr + keyBlockTie.getNumRows(),
-        [this, isAscOrder, fieldOffsetInRowCollection](
+        [this, stringAndUnstructuredKeyColInfo](
             const uint8_t* leftPtr, const uint8_t* rightPtr) -> bool {
+            // Handle null value comparison.
+            if (OrderByKeyEncoder::isNullVal(
+                    rightPtr + stringAndUnstructuredKeyColInfo.colOffsetInEncodedKeyBlock,
+                    stringAndUnstructuredKeyColInfo.isAscOrder)) {
+                return stringAndUnstructuredKeyColInfo.isAscOrder;
+            } else if (OrderByKeyEncoder::isNullVal(
+                           leftPtr + stringAndUnstructuredKeyColInfo.colOffsetInEncodedKeyBlock,
+                           stringAndUnstructuredKeyColInfo.isAscOrder)) {
+                return !stringAndUnstructuredKeyColInfo.isAscOrder;
+            }
+
             const auto leftStrRowIdx = OrderByKeyEncoder::getEncodedRowIdx(
                 leftPtr + orderByKeyEncoder.getKeyBlockEntrySizeInBytes() - sizeof(uint64_t));
             const auto rightStrRowIdx = OrderByKeyEncoder::getEncodedRowIdx(
                 rightPtr + orderByKeyEncoder.getKeyBlockEntrySizeInBytes() - sizeof(uint64_t));
-            const auto leftStr = *((gf_string_t*)(this->rowCollection.getRow(leftStrRowIdx) +
-                                                  fieldOffsetInRowCollection));
-            const auto rightStr = *((gf_string_t*)(this->rowCollection.getRow(rightStrRowIdx) +
-                                                   fieldOffsetInRowCollection));
+            const auto leftVal =
+                (uint8_t*)(this->rowCollection.getRow(leftStrRowIdx) +
+                           stringAndUnstructuredKeyColInfo.colOffsetInRowCollection);
+            const auto rightVal =
+                (uint8_t*)(this->rowCollection.getRow(rightStrRowIdx) +
+                           stringAndUnstructuredKeyColInfo.colOffsetInRowCollection);
             uint8_t result;
-            LessThan::operation<gf_string_t, gf_string_t>(leftStr, rightStr, result, false, false);
-            return isAscOrder == result;
+            if (stringAndUnstructuredKeyColInfo.isStrCol) {
+                LessThan::operation<gf_string_t, gf_string_t>(
+                    *((gf_string_t*)leftVal), *((gf_string_t*)rightVal), result, false, false);
+                return stringAndUnstructuredKeyColInfo.isAscOrder == result;
+            } else {
+                // The comparison function does the type checking for the unstructured values.
+                // If there is a type mismatch, the comparison function will throw an exception.
+                // Note: we may loose precision if we compare DOUBLE and INT64
+                // For example: DOUBLE: a = 2^57, INT64: b = 2^57 + 3.
+                // Although a < b, the LessThan function may still output false.
+                LessThan::operation<Value, Value>(
+                    *((Value*)leftVal), *((Value*)rightVal), result, false, false);
+                return stringAndUnstructuredKeyColInfo.isAscOrder == result;
+            }
         });
 
     // Reorder the keyBlock based on the quick sort result.
@@ -116,22 +141,48 @@ void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, que
             keyBlockPtr +
             orderByKeyEncoder.getKeyBlockEntrySizeInBytes() * (i + 1 - keyBlockTie.startingRowIdx) -
             sizeof(uint64_t));
-        auto strAtIdxI =
-            *((gf_string_t*)(rowCollection.getRow(rowIdxAtIdxI) + fieldOffsetInRowCollection));
+        auto valAtIdxI = (uint8_t*)(rowCollection.getRow(rowIdxAtIdxI) +
+                                    stringAndUnstructuredKeyColInfo.colOffsetInRowCollection);
+        bool isValAtIdxINull = OrderByKeyEncoder::isNullVal(
+            keyBlockPtr +
+                orderByKeyEncoder.getKeyBlockEntrySizeInBytes() * (i - keyBlockTie.startingRowIdx) +
+                stringAndUnstructuredKeyColInfo.colOffsetInEncodedKeyBlock,
+            stringAndUnstructuredKeyColInfo.isAscOrder);
 
         auto j = i + 1;
         for (; j <= keyBlockTie.endingRowIdx; j++) {
-            auto rowIdxAtIndexJ = OrderByKeyEncoder::getEncodedRowIdx(
+            auto rowIdxAtIdxJ = OrderByKeyEncoder::getEncodedRowIdx(
                 keyBlockPtr +
                 orderByKeyEncoder.getKeyBlockEntrySizeInBytes() *
                     (j + 1 - keyBlockTie.startingRowIdx) -
                 sizeof(uint64_t));
-            auto strAtIdxJ = *(
-                (gf_string_t*)(rowCollection.getRow(rowIdxAtIndexJ) + fieldOffsetInRowCollection));
+            auto valAtIdxJ = (uint8_t*)(rowCollection.getRow(rowIdxAtIdxJ) +
+                                        stringAndUnstructuredKeyColInfo.colOffsetInRowCollection);
+            bool isValAtIdxJNull = OrderByKeyEncoder::isNullVal(
+                keyBlockPtr +
+                    orderByKeyEncoder.getKeyBlockEntrySizeInBytes() *
+                        (j - keyBlockTie.startingRowIdx) +
+                    stringAndUnstructuredKeyColInfo.colOffsetInEncodedKeyBlock,
+                stringAndUnstructuredKeyColInfo.isAscOrder);
+
+            if (isValAtIdxINull && isValAtIdxJNull) {
+                // If the left value and the right value are nulls, we can just continue on the next
+                // row.
+                continue;
+            } else if (isValAtIdxINull || isValAtIdxJNull) {
+                // If only one value is null, we can just conclude that those two values are not
+                // equal.
+                break;
+            }
 
             uint8_t result;
-            NotEquals::operation<gf_string_t, gf_string_t>(
-                strAtIdxI, strAtIdxJ, result, false, false);
+            if (stringAndUnstructuredKeyColInfo.isStrCol) {
+                NotEquals::operation<gf_string_t, gf_string_t>(
+                    *((gf_string_t*)valAtIdxI), *((gf_string_t*)valAtIdxJ), result, false, false);
+            } else {
+                NotEquals::operation<Value, Value>(
+                    *((Value*)valAtIdxI), *((Value*)valAtIdxJ), result, false, false);
+            }
             if (result) {
                 break;
             }
@@ -150,9 +201,10 @@ void RadixSort::sortSingleKeyBlock(const KeyBlock& keyBlock) {
     queue<TieRange> ties;
     // We need to sort the whole keyBlock for the first radix sort, so just mark all rows as a tie.
     ties.push(TieRange{0, numRowsInKeyBlock - 1});
-    for (auto i = 0u; i < strKeyColInfo.size(); i++) {
-        const auto numBytesToSort = strKeyColInfo[i].colOffsetInEncodedKeyBlock - numBytesSorted +
-                                    OrderByKeyEncoder::getEncodingSize(STRING);
+    for (auto i = 0u; i < stringAndUnstructuredKeyColInfo.size(); i++) {
+        const auto numBytesToSort = stringAndUnstructuredKeyColInfo[i].colOffsetInEncodedKeyBlock -
+                                    numBytesSorted +
+                                    stringAndUnstructuredKeyColInfo[i].getEncodingSize();
         const auto numOfTies = ties.size();
         for (auto j = 0u; j < numOfTies; j++) {
             auto keyBlockTie = ties.front();
@@ -168,11 +220,11 @@ void RadixSort::sortSingleKeyBlock(const KeyBlock& keyBlock) {
                     numBytesSorted,
                 keyBlockTie.getNumRows(), numBytesToSort, keyBlockTie.startingRowIdx);
             for (auto& newTieInKeyBlock : newTiesInKeyBlock) {
-                solveStringTies(newTieInKeyBlock,
+                solveStringAndUnstructuredTies(newTieInKeyBlock,
                     keyBlock.getMemBlockData() +
                         newTieInKeyBlock.startingRowIdx *
                             orderByKeyEncoder.getKeyBlockEntrySizeInBytes(),
-                    ties, strKeyColInfo[i].isAscOrder, strKeyColInfo[i].colOffsetInRowCollection);
+                    ties, stringAndUnstructuredKeyColInfo[i]);
             }
         }
         if (ties.empty()) {

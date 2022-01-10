@@ -8,6 +8,7 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/data_chunk/data_chunk.h"
 #include "src/common/include/date.h"
+#include "src/common/include/value.h"
 #include "src/processor/include/physical_plan/operator/order_by/key_block_merger.h"
 #include "src/processor/include/physical_plan/operator/order_by/order_by_key_encoder.h"
 
@@ -107,15 +108,17 @@ public:
         auto orderByKeyEncoder2 = prepareSingleOrderByColEncoder(rightSortingData, rightNullMasks,
             dataType, isAsc, 1 /* rowCollectionIdx */, hasPayLoadCol, rowCollections, dataChunk1);
 
-        vector<StrKeyColInfo> strKeyInfo;
+        vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
         if (hasPayLoadCol) {
-            strKeyInfo.emplace_back(StrKeyColInfo(TypeUtils::getDataTypeSize(STRING), 0, isAsc));
-        } else if constexpr (is_same<T, string>::value) {
-            strKeyInfo.emplace_back(StrKeyColInfo(0, 0, isAsc));
+            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
+                TypeUtils::getDataTypeSize(STRING), 0, isAsc, true /* isStrCol */));
+        } else if constexpr (is_same<T, string>::value || is_same<T, Value>::value) {
+            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
+                0, 0, isAsc, is_same<T, string>::value /* isStrCol */));
         }
 
-        KeyBlockMerger keyBlockMerger = KeyBlockMerger(
-            rowCollections, strKeyInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
+        KeyBlockMerger keyBlockMerger = KeyBlockMerger(rowCollections,
+            stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
 
         auto resultKeyBlock =
             make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
@@ -241,18 +244,19 @@ public:
         vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 1, 2, 2, 3};
         vector<uint64_t> expectedRowCollectionIdxOrder = {4, 5, 5, 4, 5, 4, 4};
 
-        vector<StrKeyColInfo> strKeyInfo;
+        vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
         if (hasStrCol) {
-            strKeyInfo.emplace_back(StrKeyColInfo(rowCollections[0]->getFieldOffsetInRow(3),
-                TypeUtils::getDataTypeSize(INT64) + TypeUtils::getDataTypeSize(DOUBLE) +
-                    TypeUtils::getDataTypeSize(TIMESTAMP),
-                true));
+            stringAndUnstructuredKeyColInfo.emplace_back(
+                StringAndUnstructuredKeyColInfo(rowCollections[0]->getFieldOffsetInRow(3),
+                    TypeUtils::getDataTypeSize(INT64) + TypeUtils::getDataTypeSize(DOUBLE) +
+                        TypeUtils::getDataTypeSize(TIMESTAMP),
+                    true /* isAscOrder */, true /* isStrCol */));
             expectedRowIdxOrder = {0, 0, 1, 1, 2, 2, 3};
             expectedRowCollectionIdxOrder = {4, 5, 4, 5, 4, 5, 4};
         }
 
-        KeyBlockMerger keyBlockMerger = KeyBlockMerger(
-            rowCollections, strKeyInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
+        KeyBlockMerger keyBlockMerger = KeyBlockMerger(rowCollections,
+            stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
         auto resultKeyBlock =
             make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
         resultKeyBlock->numEntriesInMemBlock = 7;
@@ -372,6 +376,20 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64LargeNumRowsTest) {
         false /* hasPayLoadCol */);
 }
 
+TEST_F(KeyBlockMergerTest, singleOrderByColUnstrTest) {
+    vector<Value> leftSortingData = {
+        Value(int64_t(52)), Value(59.4251), Value(int64_t(69)), Value(int64_t(0)) /* NULL */};
+    vector<Value> rightSortingData = {Value(52.0004), Value(int64_t(59)), Value(68.98),
+        Value(int64_t(70)), Value(int64_t(0)) /* NULL */};
+    vector<bool> leftNullMasks = {false, false, false, true};
+    vector<bool> rightNullMasks = {false, false, false, false, true};
+    vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 1, 2, 2, 3, 3, 4};
+    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 1, 1, 0, 1, 0, 1, 0, 1};
+    singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
+        expectedRowIdxOrder, expectedRowCollectionIdxOrder, UNSTRUCTURED, true /* isAsc */,
+        false /* hasPayLoadCol */);
+}
+
 TEST_F(KeyBlockMergerTest, singleOrderByColStringTest) {
     vector<string> leftSortingData = {
         "" /* NULL */, "tiny str", "long string", "common prefix string3", "common prefix string1"};
@@ -448,14 +466,16 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
     auto orderByKeyEncoder3 = prepareMultipleStrKeyColsEncoder(
         dataChunk3, strValues3, 2 /* rowCollectionIdx */, rowCollections);
 
-    vector<StrKeyColInfo> strKeyInfo = {StrKeyColInfo(0, 0, true /* isAscOrder */),
-        StrKeyColInfo(TypeUtils::getDataTypeSize(STRING),
-            orderByKeyEncoder1.getEncodingSize(STRING), true /* isAscOrder */),
-        StrKeyColInfo(TypeUtils::getDataTypeSize(STRING) * 3,
-            orderByKeyEncoder1.getEncodingSize(STRING) * 2, true /* isAscOrder */)};
+    vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo = {
+        StringAndUnstructuredKeyColInfo(0, 0, true /* isAscOrder */, true /* isStrCol */),
+        StringAndUnstructuredKeyColInfo(TypeUtils::getDataTypeSize(STRING),
+            orderByKeyEncoder1.getEncodingSize(STRING), true /* isAscOrder */, true /* isStrCol */),
+        StringAndUnstructuredKeyColInfo(TypeUtils::getDataTypeSize(STRING) * 3,
+            orderByKeyEncoder1.getEncodingSize(STRING) * 2, true /* isAscOrder */,
+            true /* isStrCol */)};
 
-    KeyBlockMerger keyBlockMerger = KeyBlockMerger(
-        rowCollections, strKeyInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
+    KeyBlockMerger keyBlockMerger = KeyBlockMerger(rowCollections, stringAndUnstructuredKeyColInfo,
+        orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
 
     auto resultKeyBlock =
         make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));

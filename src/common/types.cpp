@@ -213,6 +213,14 @@ int64_t date_t::operator-(const date_t& rhs) const {
     return (*this).days - rhs.days;
 }
 
+bool date_t::operator==(const timestamp_t& rhs) const {
+    return Timestamp::FromDatetime(*this, dtime_t(0)).value == rhs.value;
+}
+
+bool date_t::operator<(const timestamp_t& rhs) const {
+    return Timestamp::FromDatetime(*this, dtime_t(0)).value < rhs.value;
+}
+
 timestamp_t timestamp_t::operator+(const interval_t& interval) const {
     date_t date{};
     date_t result_date{};
