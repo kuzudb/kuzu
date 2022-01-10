@@ -55,8 +55,7 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
             auto rowCollectionOffset = 0ul;
             for (auto j = 0u; j < orderByDataInfo.allDataPoses.size(); j++) {
                 if (orderByDataInfo.allDataPoses[j] == keyDataPos) {
-                    rowCollectionOffset =
-                        sharedState->rowCollections[rowCollectionIdx]->getFieldOffsetInRow(j);
+                    rowCollectionOffset = localRowCollection->getFieldOffsetInRow(j);
                 }
             }
             strKeyColInfo.emplace_back(StrKeyColInfo(
@@ -68,8 +67,8 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
     // Prepare the orderByEncoder, and radix sorter
     orderByKeyEncoder = make_unique<OrderByKeyEncoder>(
         keyVectors, orderByDataInfo.isAscOrder, *context.memoryManager, rowCollectionIdx);
-    radixSorter = make_unique<RadixSort>(*context.memoryManager,
-        *sharedState->rowCollections[rowCollectionIdx], *orderByKeyEncoder, strKeyColInfo);
+    radixSorter = make_unique<RadixSort>(
+        *context.memoryManager, *localRowCollection, *orderByKeyEncoder, strKeyColInfo);
 
     sharedState->setStrKeyColInfo(strKeyColInfo);
     sharedState->setKeyBlockEntrySizeInBytes(orderByKeyEncoder->getKeyBlockEntrySizeInBytes());
@@ -86,13 +85,13 @@ void OrderBy::execute() {
         // in rowCollection.
         // Each thread uses a unique identifier: rowCollectionID to get its private rowCollection,
         // and only appends rows to that rowCollection.
-        sharedState->rowCollections[rowCollectionIdx]->append(vectorsToAppend,
+        localRowCollection->append(vectorsToAppend,
             keyVectors[0]->state->isFlat() ? 1 : keyVectors[0]->state->selectedSize);
     }
-    radixSorter->sortAllKeyBlocks();
 
     for (auto& keyBlock : orderByKeyEncoder->getKeyBlocks()) {
         if (keyBlock->numEntriesInMemBlock > 0) {
+            radixSorter->sortSingleKeyBlock(*keyBlock);
             sharedState->appendSortedKeyBlock(keyBlock);
         }
     }

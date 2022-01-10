@@ -45,6 +45,12 @@ public:
         }
     }
 
+    void sortAllKeyBlocks(OrderByKeyEncoder& orderByKeyEncoder, RadixSort& radixSort) {
+        for (auto& keyBlock : orderByKeyEncoder.getKeyBlocks()) {
+            radixSort.sortSingleKeyBlock(*keyBlock);
+        }
+    }
+
     template<typename T>
     void singleOrderByColTest(const vector<T>& sortingData, const vector<bool>& nullMasks,
         const vector<uint64_t>& expectedRowIdxOrder, const DataType dataType, const bool isAsc,
@@ -104,7 +110,7 @@ public:
 
         RadixSort radixSort =
             RadixSort(*memoryManager, rowCollection, orderByKeyEncoder, strKeyColInfo);
-        radixSort.sortAllKeyBlocks();
+        sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
         checkRowIdxesAndRowCollectionIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
             orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedRowIdxOrder);
@@ -142,7 +148,7 @@ public:
         }
 
         auto radixSort = RadixSort(*memoryManager, rowCollection, orderByKeyEncoder, strKeyColInfo);
-        radixSort.sortAllKeyBlocks();
+        sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
         checkRowIdxesAndRowCollectionIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
             orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedRowIdxOrder);
@@ -379,7 +385,7 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
 
     RadixSort radixSort =
         RadixSort(*memoryManager, rowCollection, orderByKeyEncoder, strKeyColInfo);
-    radixSort.sortAllKeyBlocks();
+    sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
     vector<uint64_t> expectedRowIdxOrder = {1, 4, 0, 2, 3};
     checkRowIdxesAndRowCollectionIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),

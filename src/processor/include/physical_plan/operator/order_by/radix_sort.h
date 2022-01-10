@@ -36,11 +36,9 @@ public:
             sizeof(uint8_t*) * (SORT_BLOCK_SIZE / orderByKeyEncoder.getKeyBlockEntrySizeInBytes()));
     }
 
-    void sortAllKeyBlocks();
-
-private:
     void sortSingleKeyBlock(const KeyBlock& keyBlock);
 
+private:
     void solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, queue<TieRange>& ties,
         bool isAscOrder, uint64_t fieldOffsetInRowCollection);
 

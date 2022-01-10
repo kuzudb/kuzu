@@ -191,7 +191,7 @@ void OrderByKeyEncoder::encodeKeys() {
                 uint64_t idxInOrderByVector =
                     orderByVectors[0]->state->isFlat() ?
                         orderByVectors[keyColIdx]->state->getPositionOfCurrIdx() :
-                        encodedRows;
+                        orderByVectors[keyColIdx]->state->selectedPositions[encodedRows];
                 encodeData(orderByVectors[keyColIdx], idxInOrderByVector, keyBlockPtr, keyColIdx);
                 keyBlockPtrOffset += getEncodingSize(orderByVectors[keyColIdx]->dataType);
             }
