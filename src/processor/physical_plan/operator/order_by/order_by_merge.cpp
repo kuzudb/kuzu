@@ -10,7 +10,7 @@ shared_ptr<ResultSet> OrderByMerge::initResultSet() {
     // sharedState by merging sortedKeyBlocks, So we don't need to initialize the resultSet.
     keyBlockMerger =
         make_unique<KeyBlockMerger>(sharedRowCollectionsAndSortedKeyBlocks->rowCollections,
-            sharedRowCollectionsAndSortedKeyBlocks->strKeyColInfo,
+            sharedRowCollectionsAndSortedKeyBlocks->stringAndUnstructuredKeyColInfo,
             sharedRowCollectionsAndSortedKeyBlocks->keyBlockEntrySizeInBytes);
     return resultSet;
 }
@@ -19,7 +19,7 @@ void OrderByMerge::execute() {
     keyBlockMergeTaskDispatcher->initIfNecessary(context.memoryManager,
         sharedRowCollectionsAndSortedKeyBlocks->sortedKeyBlocks,
         sharedRowCollectionsAndSortedKeyBlocks->rowCollections,
-        sharedRowCollectionsAndSortedKeyBlocks->strKeyColInfo,
+        sharedRowCollectionsAndSortedKeyBlocks->stringAndUnstructuredKeyColInfo,
         sharedRowCollectionsAndSortedKeyBlocks->keyBlockEntrySizeInBytes);
     metrics->executionTime.start();
     Sink::execute();

@@ -179,6 +179,22 @@ struct EqualsOrNotEqualsValues {
                 NotEquals::operation(
                     left.val.doubleVal, right.val.int64Val, result, isLeftNull, isRightNul);
             }
+        } else if (left.dataType == DATE && right.dataType == TIMESTAMP) {
+            if constexpr (equals) {
+                Equals::operation(
+                    left.val.dateVal, right.val.timestampVal, result, isLeftNull, isRightNul);
+            } else {
+                NotEquals::operation(
+                    left.val.dateVal, right.val.timestampVal, result, isLeftNull, isRightNul);
+            }
+        } else if (left.dataType == TIMESTAMP && right.dataType == DATE) {
+            if constexpr (equals) {
+                Equals::operation(
+                    left.val.timestampVal, right.val.dateVal, result, isLeftNull, isRightNul);
+            } else {
+                NotEquals::operation(
+                    left.val.timestampVal, right.val.dateVal, result, isLeftNull, isRightNul);
+            }
         } else {
             if constexpr (equals) {
                 throw invalid_argument("Cannot equals `" +
@@ -252,6 +268,12 @@ struct CompareValues {
             FUNC::operation(left.val.int64Val, right.val.doubleVal, result, isLeftNull, isRightNul);
         } else if (left.dataType == DOUBLE && right.dataType == INT64) {
             FUNC::operation(left.val.doubleVal, right.val.int64Val, result, isLeftNull, isRightNul);
+        } else if (left.dataType == DATE && right.dataType == TIMESTAMP) {
+            FUNC::operation(
+                left.val.dateVal, right.val.timestampVal, result, isLeftNull, isRightNul);
+        } else if (left.dataType == TIMESTAMP && right.dataType == DATE) {
+            FUNC::operation(
+                left.val.timestampVal, right.val.dateVal, result, isLeftNull, isRightNul);
         } else {
             throw invalid_argument("Cannot " + string(comparisonOpStr) + " `" +
                                    TypeUtils::dataTypeToString(left.dataType) + "` and `" +

@@ -102,6 +102,10 @@ public:
 
     static uint64_t getEncodingSize(DataType dataType);
 
+    static inline bool isNullVal(const uint8_t* nullBuffer, bool isAscOrder) {
+        return *(nullBuffer) == (isAscOrder ? UINT8_MAX : 0);
+    }
+
 private:
     uint8_t flipSign(uint8_t key_byte);
 
@@ -125,6 +129,8 @@ private:
     void encodeInterval(interval_t data, uint8_t* resultPtr);
 
     void encodeString(gf_string_t data, uint8_t* resultPtr);
+
+    void encodeUnstr(uint8_t* resultPtr);
 
     void allocateMemoryIfFull();
 

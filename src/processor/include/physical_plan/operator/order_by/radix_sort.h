@@ -23,15 +23,18 @@ public:
 
 // RadixSort sorts a block of binary strings using the radixSort and quickSort (only for comparing
 // string overflow pointers). The algorithm loops through each column of the orderByVectors. If it
-// sees a column with string type, which is variable length, it will call radixSort to sort the
-// columns seen so far. If there are tie rows, it will then compare the overflow pointers of
-// strings. For subsequent columns, the algorithm only calls radixSort on tie rows.
+// sees a column with string, which is variable length, or unstructured type, which may be variable
+// length, it will call radixSort to sort the columns seen so far. If there are tie rows, it will
+// compare the overflow ptr of strings or the actual values of unstructured data. For subsequent
+// columns, the algorithm only calls radixSort on tie rows.
 class RadixSort {
 public:
     explicit RadixSort(MemoryManager& memoryManager, RowCollection& rowCollection,
-        OrderByKeyEncoder& orderByKeyEncoder, vector<StrKeyColInfo> strKeyColInfo)
+        OrderByKeyEncoder& orderByKeyEncoder,
+        vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo)
         : rowCollection{rowCollection}, tmpKeyBlock{memoryManager.allocateBlock(SORT_BLOCK_SIZE)},
-          orderByKeyEncoder{orderByKeyEncoder}, strKeyColInfo{strKeyColInfo} {
+          orderByKeyEncoder{orderByKeyEncoder}, stringAndUnstructuredKeyColInfo{
+                                                    stringAndUnstructuredKeyColInfo} {
         tmpRowPtrSortingBlock = memoryManager.allocateBlock(
             sizeof(uint8_t*) * (SORT_BLOCK_SIZE / orderByKeyEncoder.getKeyBlockEntrySizeInBytes()));
     }
@@ -39,8 +42,8 @@ public:
     void sortSingleKeyBlock(const KeyBlock& keyBlock);
 
 private:
-    void solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, queue<TieRange>& ties,
-        bool isAscOrder, uint64_t fieldOffsetInRowCollection);
+    void solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
+        queue<TieRange>& ties, StringAndUnstructuredKeyColInfo& stringAndUnstructuredKeyColInfo);
 
     vector<TieRange> findTies(uint8_t* keyBlockPtr, uint64_t numRowsToFindTies,
         uint64_t numBytesToSort, uint64_t baseRowIdx);
@@ -53,10 +56,10 @@ private:
     unique_ptr<MemoryBlock> tmpRowPtrSortingBlock;
     OrderByKeyEncoder& orderByKeyEncoder;
     // rowCollection stores all columns in the rows that will be sorted, including the order by key
-    // columns. RadixSort uses rowCollection to access the full contents of the string key columns
-    // when resolving ties.
+    // columns. RadixSort uses rowCollection to access the full contents of the string and
+    // unstructured columns when resolving ties.
     RowCollection& rowCollection;
-    vector<StrKeyColInfo> strKeyColInfo;
+    vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
 };
 
 } // namespace processor
