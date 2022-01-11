@@ -1,4 +1,23 @@
 -NAME OrderByInt64Test1
+-QUERY MATCH (p:person)-[:knows]->(x:person) RETURN p.age ORDER BY p.ID
+-PARALLELISM 3
+---- 14
+35
+35
+35
+30
+30
+30
+45
+45
+45
+20
+20
+20
+20
+20
+
+-NAME OrderByInt64Test1
 -QUERY MATCH (p:person) RETURN p.age ORDER BY p.ID
 -PARALLELISM 3
 ---- 8

@@ -107,8 +107,13 @@ void ProjectionEnumerator::appendOrderBy(const vector<shared_ptr<Expression>>& e
         enumerator->appendFlattens(dependentGroupsPos, plan);
         orderByExpressionNames.push_back(expression->getUniqueName());
     }
+    auto schemaBeforeOrderBy = plan.schema->copy();
+    plan.schema->clear();
+    Enumerator::computeSchemaForHashJoinAndOrderBy(
+        schemaBeforeOrderBy->getGroupsPosInScope(), *schemaBeforeOrderBy, *plan.schema);
     auto orderBy = make_shared<LogicalOrderBy>(orderByExpressionNames, isAscOrders,
-        plan.schema->getExpressionNamesInScope(), plan.lastOperator);
+        schemaBeforeOrderBy->copy(), schemaBeforeOrderBy->getExpressionNamesInScope(),
+        plan.lastOperator);
     plan.appendOperator(move(orderBy));
 }
 

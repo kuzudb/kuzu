@@ -12,10 +12,11 @@ class LogicalOrderBy : public LogicalOperator {
 
 public:
     LogicalOrderBy(vector<string> orderByExpressionNames, vector<bool> sortOrders,
-        unordered_set<string> expressionToMaterializeNames, shared_ptr<LogicalOperator> child)
+        unique_ptr<Schema> schemaBeforeOrderBy, unordered_set<string> expressionToMaterializeNames,
+        shared_ptr<LogicalOperator> child)
         : LogicalOperator{move(child)}, orderByExpressionNames{move(orderByExpressionNames)},
-          isAscOrders{move(sortOrders)}, expressionToMaterializeNames{
-                                             move(expressionToMaterializeNames)} {}
+          isAscOrders{move(sortOrders)}, schemaBeforeOrderBy{move(schemaBeforeOrderBy)},
+          expressionToMaterializeNames{move(expressionToMaterializeNames)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_ORDER_BY;
@@ -34,6 +35,8 @@ public:
 
     inline vector<bool> getIsAscOrders() const { return isAscOrders; }
 
+    inline Schema* getSchemaBeforeOrderBy() const { return schemaBeforeOrderBy.get(); }
+
     inline unordered_set<string> getExpressionToMaterializeNames() const {
         return expressionToMaterializeNames;
     }
@@ -42,13 +45,14 @@ public:
     }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalOrderBy>(
-            orderByExpressionNames, isAscOrders, expressionToMaterializeNames, children[0]->copy());
+        return make_unique<LogicalOrderBy>(orderByExpressionNames, isAscOrders,
+            schemaBeforeOrderBy->copy(), expressionToMaterializeNames, children[0]->copy());
     }
 
 private:
     vector<string> orderByExpressionNames;
     vector<bool> isAscOrders;
+    unique_ptr<Schema> schemaBeforeOrderBy;
 
     unordered_set<string> expressionToMaterializeNames;
 };

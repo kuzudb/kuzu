@@ -46,8 +46,6 @@
 #include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
 
-// TODO(Semih): Remove
-#include <iostream>
 using namespace graphflow::planner;
 
 namespace graphflow {
@@ -226,7 +224,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(
         logicalOperator->getFirstChild(), mapperContext, executionContext);
     auto dataChunkPos = mapperContext.getDataPos(flatten.variable).dataChunkPos;
-    mapperContext.getResultSetDescriptor()->getDataChunkDescriptor(dataChunkPos)->flatten();
     return make_unique<Flatten>(
         dataChunkPos, move(prevOperator), executionContext, mapperContext.getOperatorID());
 }
@@ -341,11 +338,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
             continue;
         }
         mapperContext.addComputedExpressions(expressionName);
-        auto buildSideDataPos = buildSideMapperContext.getDataPos(expressionName);
-        buildSideNonKeyDataPoses.push_back(buildSideDataPos);
-        isBuildSideNonKeyDataFlat.push_back(
-            buildSideMapperContext.getResultSetDescriptor()->isDataChunkFlat(
-                buildSideDataPos.dataChunkPos));
+        buildSideNonKeyDataPoses.push_back(buildSideMapperContext.getDataPos(expressionName));
+        isBuildSideNonKeyDataFlat.push_back(buildSideSchema.getGroup(expressionName)->isFlat);
         probeSideNonKeyDataPoses.push_back(mapperContext.getDataPos(expressionName));
     }
 
@@ -490,34 +484,27 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& logicalOrderBy = (LogicalOrderBy&)*logicalOperator;
+    auto& schemaBeforeOrderBy = *logicalOrderBy.getSchemaBeforeOrderBy();
+    auto mapperContextBeforeOrderBy =
+        MapperContext(make_unique<ResultSetDescriptor>(schemaBeforeOrderBy));
     auto orderByPrevOperator = mapLogicalOperatorToPhysical(
-        logicalOrderBy.getFirstChild(), mapperContext, executionContext);
+        logicalOrderBy.getFirstChild(), mapperContextBeforeOrderBy, executionContext);
     vector<DataPos> keyDataPoses;
     for (auto& expressionName : logicalOrderBy.getOrderByExpressionNames()) {
-        keyDataPoses.emplace_back(mapperContext.getDataPos(expressionName));
+        keyDataPoses.emplace_back(mapperContextBeforeOrderBy.getDataPos(expressionName));
     }
-    vector<DataPos> allDataPoses;
-    vector<bool> isVectorFlat;
+    vector<DataPos> inputDataPoses;
+    vector<bool> isInputVectorFlat;
+    vector<DataPos> outputDataPoses;
     for (auto& expressionName : logicalOrderBy.getExpressionToMaterializeNames()) {
-        allDataPoses.push_back(mapperContext.getDataPos(expressionName));
-        auto dataChunkPos = mapperContext.getDataPos(expressionName).dataChunkPos;
-        isVectorFlat.push_back(
-            mapperContext.getResultSetDescriptor()->isDataChunkFlat(dataChunkPos));
+        inputDataPoses.push_back(mapperContextBeforeOrderBy.getDataPos(expressionName));
+        isInputVectorFlat.push_back(schemaBeforeOrderBy.getGroup(expressionName)->isFlat);
+        outputDataPoses.push_back(mapperContext.getDataPos(expressionName));
+        mapperContext.addComputedExpressions(expressionName);
     }
-    // TODO(Semih): This commented for loop is a temporary fix to make returns or withs contain
-    // arbitrary projection set (the commented one allows only the subset of order by fields to be
-    // in return).
-    //    for (auto i = 0u; i < mapperContext.getResultSetDescriptor()->getNumDataChunks(); ++i) {
-    //        auto dataChunkDescriptor =
-    //            mapperContext.getResultSetDescriptor()->getDataChunkDescriptor(i);
-    //        for (auto j = 0u; j < dataChunkDescriptor->getNumValueVectors(); ++j) {
-    //            allDataPoses.emplace_back(DataPos(i, j));
-    //            isVectorFlat.emplace_back(logicalOrderBy.schemaBeforeOrderBy->groups[i]->isFlat);
-    //        }
-    //    }
 
-    auto orderByDataInfo =
-        OrderByDataInfo(keyDataPoses, allDataPoses, isVectorFlat, logicalOrderBy.getIsAscOrders());
+    auto orderByDataInfo = OrderByDataInfo(
+        keyDataPoses, inputDataPoses, isInputVectorFlat, logicalOrderBy.getIsAscOrders());
     auto orderBySharedState = make_shared<SharedRowCollectionsAndSortedKeyBlocks>();
 
     auto orderBy = make_unique<OrderBy>(orderByDataInfo, orderBySharedState,
@@ -525,7 +512,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     auto orderByMerge = make_unique<OrderByMerge>(
         orderBySharedState, move(orderBy), executionContext, mapperContext.getOperatorID());
     auto orderByScan = make_unique<OrderByScan>(mapperContext.getResultSetDescriptor()->copy(),
-        allDataPoses, orderBySharedState, move(orderByMerge), executionContext,
+        outputDataPoses, orderBySharedState, move(orderByMerge), executionContext,
         mapperContext.getOperatorID());
     return orderByScan;
 }

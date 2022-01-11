@@ -52,9 +52,12 @@ private:
 
     void addPropertyScan(const string& nodeID, const shared_ptr<LogicalOperator>& op);
 
-    // For operators that merge right branch into left, i.e. hashJoin and leftNestedLoopJoin, any
-    // property scanners that are pushed down into the right branch will also be merged into left.
-    void addPropertyScansToLeftSchema(Schema& schema);
+    // For operators that compute a new schema from an older schema, i.e. hashJoin,
+    // leftNestedLoopJoin and orderBy, any property scanners, that are pushed down under these
+    // operators, were removed from new schema and being added to older schema. We also need to
+    // append them back to the new schema if the operator is merging vectors from old schema into
+    // new schema.
+    void addPropertyScansToSchema(Schema& schema);
 
     unordered_set<string> getRemainingPropertyExpressionNames();
 
