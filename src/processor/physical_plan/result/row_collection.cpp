@@ -23,6 +23,8 @@ RowCollection::RowCollection(MemoryManager& memoryManager, const RowLayout& layo
     : memoryManager{memoryManager}, layout{layout}, numRows{0}, numRowsPerBlock{0} {
     assert(layout.numBytesPerRow <= DEFAULT_MEMORY_BLOCK_SIZE);
     assert(layout.isInitialized);
+
+    stringBuffer = make_unique<StringBuffer>(memoryManager);
     numRowsPerBlock = DEFAULT_MEMORY_BLOCK_SIZE / layout.numBytesPerRow;
 }
 
@@ -63,9 +65,9 @@ vector<BlockAppendingInfo> RowCollection::allocateDataBlocks(vector<DataBlock>& 
     return appendingInfos;
 }
 
-void RowCollection::copyVectorDataToBuffer(const ValueVector& vector,
-    uint64_t valuePosInVecIfUnflat, uint8_t* buffer, uint64_t offsetInBuffer, uint64_t offsetStride,
-    uint64_t numValues, uint64_t colIdx, bool isVectorOverflow) {
+void RowCollection::copyVectorDataToBuffer(ValueVector& vector, uint64_t valuePosInVecIfUnflat,
+    uint8_t* buffer, uint64_t offsetInBuffer, uint64_t offsetStride, uint64_t numValues,
+    uint64_t colIdx, bool isVectorOverflow) {
     auto numBytesPerValue = vector.getNumBytesPerValue();
     if (vector.dataType == NODE && vector.isSequence) {
         nodeID_t baseNodeID{UINT64_MAX, UINT64_MAX}, nodeID{UINT64_MAX, UINT64_MAX};
@@ -100,22 +102,22 @@ void RowCollection::copyVectorDataToBuffer(const ValueVector& vector,
                     (vector.state->isUnfiltered() ?
                             (valuePosInVecIfUnflat + i) :
                             vector.state->selectedPositions[valuePosInVecIfUnflat + i]);
-            memcpy(buffer + offsetInBuffer + (i * offsetStride),
-                vector.values + pos * numBytesPerValue, numBytesPerValue);
-
             if (vector.isNull(pos)) {
                 if (isVectorOverflow) {
                     setNullMap(buffer + numValues * offsetStride, i);
                 } else {
                     setNullMap(buffer + i * offsetStride + layout.getNullMapOffset(), colIdx);
                 }
+            } else {
+                vector.copyNonNullDataWithSameTypeOutFromPos(
+                    pos, buffer + offsetInBuffer + (i * offsetStride), *stringBuffer);
             }
         }
     }
 }
 
 overflow_value_t RowCollection::appendUnFlatVectorToOverflowBlocks(
-    const ValueVector& vector, uint64_t colIdx) {
+    ValueVector& vector, uint64_t colIdx) {
     if (vector.state->isFlat()) {
         throw RowCollectionException(
             "Append an unflat vector to an overflow column is not allowed!");
@@ -136,7 +138,7 @@ overflow_value_t RowCollection::appendUnFlatVectorToOverflowBlocks(
     return overflow_value_t{selectedSize, blockAppendPos};
 }
 
-void RowCollection::copyVectorToBlock(const ValueVector& vector,
+void RowCollection::copyVectorToBlock(ValueVector& vector,
     const BlockAppendingInfo& blockAppendInfo, const FieldInLayout& field, uint64_t posInVector,
     uint64_t offsetInRow, uint64_t colIdx) {
     if (field.isVectorOverflow) {
@@ -180,20 +182,22 @@ void RowCollection::readOverflowVector(
     uint8_t** rows, uint64_t offsetInRow, uint64_t startRowPos, ValueVector& vector) const {
     if (vector.state->isFlat()) {
         throw RowCollectionException(
-            "Read an overflow column to a flat valueVector is not allowed!");
+            "Reading an overflow column to a flat valueVector is not allowed!");
     }
     auto vectorOverflowValue = *(overflow_value_t*)(rows[startRowPos] + offsetInRow);
     auto overflowBufferDataLen = vectorOverflowValue.numElements * vector.getNumBytesPerValue();
-    auto pos = vector.state->isUnfiltered() ? 0 : vector.state->selectedPositions[0];
-    // copy the whole overflowBuffer(except the nullMap) back to the vector
-    memcpy(vector.values + pos * overflowBufferDataLen, vectorOverflowValue.value,
-        overflowBufferDataLen);
-    // we need to check the null bit for each element in the overflow column, and update the
-    // null mask in the valueVector. Note: we always put the nullMap at the end of the overflow
-    // buffer
+    if (!vector.state->isUnfiltered()) {
+        throw RowCollectionException(
+            "Reading an overflow column into a filtered valueVector is not allowed!");
+    }
     auto nullMapBuffer = vectorOverflowValue.value + overflowBufferDataLen;
     for (auto i = 0u; i < vectorOverflowValue.numElements; i++) {
-        vector.setNull(pos + i, isNull(nullMapBuffer, i));
+        auto isPosNull = isNull(nullMapBuffer, i);
+        vector.setNull(i, isPosNull);
+        if (!isPosNull) {
+            vector.copyNonNullDataWithSameTypeIntoPos(
+                i, vectorOverflowValue.value + i * vector.getNumBytesPerValue());
+        }
     }
     vector.state->selectedSize = vectorOverflowValue.numElements;
 }
@@ -207,9 +211,11 @@ void RowCollection::readNonOverflowVector(uint8_t** rows, uint64_t offsetInRow, 
         auto pos = vector.state->isUnfiltered() ?
                        valuePosInVec + i :
                        vector.state->selectedPositions[valuePosInVec + i];
-        memcpy(vector.values + pos * vector.getNumBytesPerValue(), rows[i] + offsetInRow,
-            vector.getNumBytesPerValue());
-        vector.setNull(pos, isNull(nullMapBuffer, colIdx));
+        auto isPosNull = isNull(nullMapBuffer, colIdx);
+        vector.setNull(pos, isPosNull);
+        if (!isPosNull) {
+            vector.copyNonNullDataWithSameTypeIntoPos(pos, rows[i] + offsetInRow);
+        }
     }
     vector.state->selectedSize = numRowsToRead;
 }

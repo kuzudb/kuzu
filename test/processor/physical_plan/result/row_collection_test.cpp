@@ -271,7 +271,7 @@ TEST_F(RowCollectionTest, ReadOverflowColToFlatVectorFails) {
         auto numRowsRead = rowCollection->scan(fieldIdsToScan, readDataPos, *readResultSet, 0, 100);
         FAIL();
     } catch (RowCollectionException& e) {
-        ASSERT_STREQ(e.what(), "RowCollection exception: Read an overflow column to a flat "
+        ASSERT_STREQ(e.what(), "RowCollection exception: Reading an overflow column to a flat "
                                "valueVector is not allowed!");
     } catch (exception& e) { FAIL(); }
 }

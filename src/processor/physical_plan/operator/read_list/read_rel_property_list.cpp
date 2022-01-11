@@ -17,6 +17,7 @@ bool ReadRelPropertyList::getNextTuples() {
         metrics->executionTime.stop();
         return false;
     }
+    outValueVector->resetStringBuffer();
     readValuesFromList();
     metrics->executionTime.stop();
     return true;

@@ -18,6 +18,7 @@ bool ScanUnstructuredProperty::getNextTuples() {
         metrics->executionTime.stop();
         return false;
     }
+    outValueVector->resetStringBuffer();
     lists->readUnstructuredProperties(
         inValueVector, propertyKey, outValueVector, *metrics->bufferManagerMetrics);
     metrics->executionTime.stop();

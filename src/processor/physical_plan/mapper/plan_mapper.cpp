@@ -46,6 +46,8 @@
 #include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
 
+// TODO(Semih): Remove
+#include <iostream>
 using namespace graphflow::planner;
 
 namespace graphflow {
@@ -503,6 +505,17 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
             isVectorFlat.emplace_back(group->isFlat);
         }
     }
+    // TODO(Semih): This commented for loop is a temporary fix to make returns or withs contain
+    // arbitrary projection set (the commented one allows only the subset of order by fields to be
+    // in return).
+    //    for (auto i = 0u; i < mapperContext.getResultSetDescriptor()->getNumDataChunks(); ++i) {
+    //        auto dataChunkDescriptor =
+    //            mapperContext.getResultSetDescriptor()->getDataChunkDescriptor(i);
+    //        for (auto j = 0u; j < dataChunkDescriptor->getNumValueVectors(); ++j) {
+    //            allDataPoses.emplace_back(DataPos(i, j));
+    //            isVectorFlat.emplace_back(logicalOrderBy.schemaBeforeOrderBy->groups[i]->isFlat);
+    //        }
+    //    }
 
     auto orderByDataInfo =
         OrderByDataInfo(keyDataPoses, allDataPoses, isVectorFlat, logicalOrderBy.getIsAscOrders());

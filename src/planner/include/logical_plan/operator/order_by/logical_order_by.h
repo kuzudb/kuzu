@@ -44,6 +44,8 @@ public:
 private:
     vector<shared_ptr<Expression>> orderByExpressions;
     vector<bool> isAscOrders;
+
+public:
     unique_ptr<Schema> schemaBeforeOrderBy;
 };
 

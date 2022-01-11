@@ -348,7 +348,7 @@ TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredStringAndI
     // Fill values before the comparison.
     for (int i = 0; i < NUM_TUPLES; i++) {
         string lStr = to_string(i);
-        lVector->allocateStringOverflowSpace(lData[i].val.strVal, lStr.length());
+        lVector->allocateStringOverflowSpaceIfNecessary(lData[i].val.strVal, lStr.length());
         lData[i].val.strVal.set(lStr);
         lData[i].dataType = STRING;
         rData[i] = Value((int64_t)110 - i);
