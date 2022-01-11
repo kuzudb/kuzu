@@ -193,14 +193,5 @@ void RadixSort::sortSingleKeyBlock(const KeyBlock& keyBlock) {
     }
 }
 
-void RadixSort::sortAllKeyBlocks() {
-    for (auto& keyBlock : orderByKeyEncoder.getKeyBlocks()) {
-        // The orderByKeyEncoder only creates a new memory block if all current memory blocks are
-        // full. If we have N memoryBlocks, the first N-1 memory blocks should be full and the Nth
-        // memory block can be either full or partially full.
-        sortSingleKeyBlock(*keyBlock);
-    }
-}
-
 } // namespace processor
 } // namespace graphflow

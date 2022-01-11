@@ -47,10 +47,12 @@ public:
     }
 
     void setKeyBlockEntrySizeInBytes(uint64_t keyBlockEntrySizeInBytes) {
+        lock_guard<mutex> sharedStateLock{orderBySharedStateLock};
         this->keyBlockEntrySizeInBytes = keyBlockEntrySizeInBytes;
     }
 
     void setStrKeyColInfo(vector<StrKeyColInfo>& strKeyColInfo) {
+        lock_guard<mutex> sharedStateLock{orderBySharedStateLock};
         this->strKeyColInfo = move(strKeyColInfo);
     }
 

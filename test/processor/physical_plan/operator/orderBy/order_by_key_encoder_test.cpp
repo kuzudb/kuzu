@@ -181,6 +181,49 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
     checkRowIdxAndRowCollectionIdx(5, keyBlockPtr);
 }
 
+TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatWithFilterTest) {
+    // This test is used to test whether the orderByKeyEncoder correctly encodes the filtered
+    // valueVector.
+    shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
+    shared_ptr<ValueVector> int64ValueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
+    auto int64Values = (int64_t*)int64ValueVector->values;
+    int64Values[0] = 73;
+    int64Values[1] = -52;
+    int64Values[2] = -132;
+    dataChunk->insert(0, int64ValueVector);
+    // Only the first and the third value is selected, so the encoder should
+    // not encode the second value.
+    int64ValueVector->state->resetSelectorToValuePosBuffer();
+    int64ValueVector->state->selectedPositions[0] = 0;
+    int64ValueVector->state->selectedPositions[1] = 2;
+    int64ValueVector->state->selectedSize = 2;
+    vector<shared_ptr<ValueVector>> valueVectors;
+    valueVectors.emplace_back(int64ValueVector);
+    auto isAscOrder = vector<bool>(1, true);
+    auto orderByKeyEncoder =
+        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, rowCollectionIdx);
+    orderByKeyEncoder.encodeKeys();
+    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
+
+    // Check encoding for: NULL FLAG(0x00) + 73=0x8000000000000049(big endian).
+    checkNonNullFlag(keyBlockPtr, isAscOrder[0]);
+    ASSERT_EQ(*(keyBlockPtr++), 0x80);
+    for (auto i = 0u; i < 6; i++) {
+        ASSERT_EQ(*(keyBlockPtr++), 0x00);
+    }
+    ASSERT_EQ(*(keyBlockPtr++), 0x49);
+    checkRowIdxAndRowCollectionIdx(0, keyBlockPtr);
+
+    // Check encoding for: NULL FLAG(0x00) + -132=0x7FFFFFFFFFFFFF7C(big endian).
+    checkNonNullFlag(keyBlockPtr, isAscOrder[0]);
+    ASSERT_EQ(*(keyBlockPtr++), 0x7F);
+    for (auto i = 0u; i < 6; i++) {
+        ASSERT_EQ(*(keyBlockPtr++), 0xFF);
+    }
+    ASSERT_EQ(*(keyBlockPtr++), 0x7C);
+    checkRowIdxAndRowCollectionIdx(1, keyBlockPtr);
+}
+
 TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selectedSize = 3;
