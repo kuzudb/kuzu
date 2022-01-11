@@ -15,7 +15,7 @@
 ---- 1
 3
 
-#-NAME MultiQueryTwoHopKnowsFilteredTest2
-#-QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH a.age AS foo, b MATCH (b)-[e2:knows]->(c:person) WHERE foo = c.age RETURN COUNT(*)
-#----i1
-#12
+-NAME MultiQueryTwoHopKnowsFilteredTest2
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH a.age AS foo, b MATCH (b)-[e2:knows]->(c:person) WHERE foo = c.age RETURN COUNT(*)
+---- 1
+12

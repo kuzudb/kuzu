@@ -69,6 +69,8 @@ private:
         label_t relLabel, label_t nodeLabel, Direction direction);
     // E.g. RETURN a, b AS a
     void validateProjectionColumnNamesAreUnique(const vector<shared_ptr<Expression>>& expressions);
+    void validateOrderByFollowedBySkipOrLimitInWithStatement(
+        const BoundProjectionBody& boundProjectionBody);
     // E.g. RETURN a, b, COUNT(*)
     // Note: this validation should be removed once we have group by implemented.
     void validateAggregationsHaveNoGroupBy(const vector<shared_ptr<Expression>>& expressions);

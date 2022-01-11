@@ -24,7 +24,8 @@ void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& pr
             appendOrderBy(
                 projectionBody.getOrderByExpressions(), projectionBody.getSortingOrders(), *plan);
         }
-        auto expressionsToProject = getExpressionsToProject(projectionBody, isFinalReturn);
+        auto expressionsToProject =
+            getExpressionsToProject(projectionBody, *plan->schema, isFinalReturn);
         appendProjection(expressionsToProject, *plan);
         if (isFinalReturn) {
             plan->setExpressionsToCollect(expressionsToProject);
@@ -46,13 +47,17 @@ void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& pr
 
 void ProjectionEnumerator::appendProjection(
     const vector<shared_ptr<Expression>>& expressionsToProject, LogicalPlan& plan) {
-    auto groupsPosInScopeBeforeProjection = plan.schema->getGroupsPosInScope();
-    plan.schema->clearExpressionsInScope();
+    vector<uint32_t> groupsPosToWrite;
     for (auto& expression : expressionsToProject) {
         enumerator->appendScanPropertiesAndPlanSubqueryIfNecessary(expression, plan);
         auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *plan.schema);
-        uint32_t groupPosToWrite = enumerator->appendFlattensButOne(dependentGroupsPos, plan);
-        plan.schema->insertToGroupAndScope(expression->getUniqueName(), groupPosToWrite);
+        groupsPosToWrite.push_back(enumerator->appendFlattensButOne(dependentGroupsPos, plan));
+    }
+    auto groupsPosInScopeBeforeProjection = plan.schema->getGroupsPosInScope();
+    plan.schema->clearExpressionsInScope();
+    for (auto i = 0u; i < expressionsToProject.size(); ++i) {
+        plan.schema->insertToGroupAndScope(
+            expressionsToProject[i]->getUniqueName(), groupsPosToWrite[i]);
     }
     auto groupsPosInScopeAfterProjection = plan.schema->getGroupsPosInScope();
     unordered_set<uint32_t> discardGroupsPos;
@@ -95,13 +100,15 @@ void ProjectionEnumerator::appendAggregate(
 
 void ProjectionEnumerator::appendOrderBy(const vector<shared_ptr<Expression>>& expressions,
     const vector<bool>& isAscOrders, LogicalPlan& plan) {
+    vector<string> orderByExpressionNames;
     for (auto& expression : expressions) {
         enumerator->appendScanPropertiesAndPlanSubqueryIfNecessary(expression, plan);
         auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *plan.schema);
         enumerator->appendFlattens(dependentGroupsPos, plan);
+        orderByExpressionNames.push_back(expression->getUniqueName());
     }
-    auto orderBy = make_shared<LogicalOrderBy>(
-        expressions, isAscOrders, plan.schema->copy(), plan.lastOperator);
+    auto orderBy = make_shared<LogicalOrderBy>(orderByExpressionNames, isAscOrders,
+        plan.schema->getExpressionNamesInScope(), plan.lastOperator);
     plan.appendOperator(move(orderBy));
 }
 
@@ -155,11 +162,13 @@ vector<shared_ptr<Expression>> ProjectionEnumerator::getExpressionsToAggregate(
 }
 
 vector<shared_ptr<Expression>> ProjectionEnumerator::getExpressionsToProject(
-    const BoundProjectionBody& projectionBody, bool isRewritingAllProperties) {
+    const BoundProjectionBody& projectionBody, const Schema& schema,
+    bool isRewritingAllProperties) {
     vector<shared_ptr<Expression>> expressionsToProject;
     for (auto& expression : projectionBody.getProjectionExpressions()) {
         if (expression->expressionType == VARIABLE) {
-            for (auto& property : rewriteVariableExpression(expression, isRewritingAllProperties)) {
+            for (auto& property :
+                rewriteVariableExpression(expression, schema, isRewritingAllProperties)) {
                 expressionsToProject.push_back(property);
             }
         } else {
@@ -170,32 +179,29 @@ vector<shared_ptr<Expression>> ProjectionEnumerator::getExpressionsToProject(
 }
 
 vector<shared_ptr<Expression>> ProjectionEnumerator::rewriteVariableExpression(
-    const shared_ptr<Expression>& variable, bool isRewritingAllProperties) {
+    const shared_ptr<Expression>& variable, const Schema& schema, bool isRewritingAllProperties) {
     GF_ASSERT(VARIABLE == variable->expressionType);
     vector<shared_ptr<Expression>> result;
+    vector<shared_ptr<Expression>> allProperties;
     if (NODE == variable->dataType) {
         auto node = static_pointer_cast<NodeExpression>(variable);
-        if (isRewritingAllProperties) {
-            for (auto& expression : rewriteNodeExpression(node)) {
-                result.push_back(expression);
-            }
-        } else {
-            result.push_back(node->getNodeIDPropertyExpression());
+        allProperties = rewriteNodeExpressionAsAllProperties(node);
+        if (!isRewritingAllProperties) {
+            allProperties.push_back(node->getNodeIDPropertyExpression());
         }
-        return result;
     } else if (REL == variable->dataType) {
         auto rel = static_pointer_cast<RelExpression>(variable);
-        if (isRewritingAllProperties) {
-            for (auto& expression : rewriteRelExpression(rel)) {
-                result.push_back(expression);
-            }
-        }
-        return result;
+        allProperties = rewriteRelExpressionAsAllProperties(rel);
     }
-    assert(false);
+    for (auto& property : allProperties) {
+        if (isRewritingAllProperties || schema.expressionInScope(property->getUniqueName())) {
+            result.push_back(property);
+        }
+    }
+    return result;
 }
 
-vector<shared_ptr<Expression>> ProjectionEnumerator::rewriteNodeExpression(
+vector<shared_ptr<Expression>> ProjectionEnumerator::rewriteNodeExpressionAsAllProperties(
     const shared_ptr<NodeExpression>& node) {
     vector<shared_ptr<Expression>> result;
     for (auto& property :
@@ -205,7 +211,7 @@ vector<shared_ptr<Expression>> ProjectionEnumerator::rewriteNodeExpression(
     return result;
 }
 
-vector<shared_ptr<Expression>> ProjectionEnumerator::rewriteRelExpression(
+vector<shared_ptr<Expression>> ProjectionEnumerator::rewriteRelExpressionAsAllProperties(
     const shared_ptr<RelExpression>& rel) {
     vector<shared_ptr<Expression>> result;
     for (auto& property : createPropertyExpressions(rel, catalog.getRelProperties(rel->label))) {

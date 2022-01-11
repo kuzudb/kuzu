@@ -1,4 +1,17 @@
--NAME OrderByInt64Test
+-NAME OrderByInt64Test1
+-QUERY MATCH (p:person) RETURN p.age ORDER BY p.ID
+-PARALLELISM 3
+---- 8
+35
+30
+45
+20
+20
+25
+40
+83
+
+-NAME OrderByInt64Test2
 -QUERY MATCH (p:person) RETURN p.age ORDER BY p.age
 -PARALLELISM 3
 ---- 8
@@ -89,3 +102,17 @@ False
 30|5.100000
 35|5.000000
 40|4.900000
+
+-NAME OrderByMultipleColTest2
+-QUERY MATCH (p:person) RETURN p.age, p.unstrNumericProp ORDER BY p.isStudent, p.ID
+-PARALLELISM 4
+---- 8
+45|52
+20|
+20|68.000000
+40|
+83|
+35|
+30|47
+25|
+

@@ -74,9 +74,17 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
 void HashJoinProbe::populateResultSet() {
     // Copy the matched value from the build side key data chunk into the resultKeyDataChunk.
     assert(tuplePosToReadInProbedState < probeState->numMatchedTuples);
-    tuplePosToReadInProbedState += sharedState->rowCollection->lookup(fieldsToRead,
-        resultVectorsPos, *resultSet, probeState->matchedTuples.get(), tuplePosToReadInProbedState,
-        probeState->numMatchedTuples - tuplePosToReadInProbedState);
+    // Consider the following plan with a HashJoin on c.
+    // Build side: Scan(a) -> Extend(b) -> Extend(c) -> Projection(c)
+    // Probe side: Scan(e) -> Extend(d) -> Extend(c)
+    // Build side only has one hash column but no payload column. In such case, a hash probe can
+    // only read rows one by one (or updating multiplicity) because there is no payload unFlat
+    // vector to represent multiple rows.
+    auto numRowsToRead =
+        fieldsToRead.empty() ? 1 : probeState->numMatchedTuples - tuplePosToReadInProbedState;
+    tuplePosToReadInProbedState +=
+        sharedState->rowCollection->lookup(fieldsToRead, resultVectorsPos, *resultSet,
+            probeState->matchedTuples.get(), tuplePosToReadInProbedState, numRowsToRead);
 }
 
 // The general flow of a hash join probe:

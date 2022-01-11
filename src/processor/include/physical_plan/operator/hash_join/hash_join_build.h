@@ -76,7 +76,8 @@ private:
     vector<shared_ptr<ValueVector>> vectorsToAppend;
     unique_ptr<RowCollection> rowCollection;
 
-    void appendResultSet();
+    void appendVectors();
+    void appendVectorsOnce();
 };
 } // namespace processor
 } // namespace graphflow

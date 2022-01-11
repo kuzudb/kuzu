@@ -50,8 +50,10 @@ unique_ptr<BoundMatchStatement> QueryBinder::bindMatchStatement(
 }
 
 unique_ptr<BoundWithStatement> QueryBinder::bindWithStatement(const WithStatement& withStatement) {
-    auto boundWithStatement = make_unique<BoundWithStatement>(
-        bindProjectionBody(*withStatement.getProjectionBody(), true /* isWithClause */));
+    auto boundProjectionBody =
+        bindProjectionBody(*withStatement.getProjectionBody(), true /* isWithClause */);
+    validateOrderByFollowedBySkipOrLimitInWithStatement(*boundProjectionBody);
+    auto boundWithStatement = make_unique<BoundWithStatement>(move(boundProjectionBody));
     if (withStatement.hasWhereExpression()) {
         boundWithStatement->setWhereExpression(
             bindWhereExpression(*withStatement.getWhereExpression()));
@@ -301,6 +303,14 @@ void QueryBinder::validateProjectionColumnNamesAreUnique(
                                    expression->getRawName() + " are not supported.");
         }
         existColumnNames.insert(expression->getRawName());
+    }
+}
+
+void QueryBinder::validateOrderByFollowedBySkipOrLimitInWithStatement(
+    const BoundProjectionBody& boundProjectionBody) {
+    auto hasSkipOrLimit = boundProjectionBody.hasSkip() || boundProjectionBody.hasLimit();
+    if (boundProjectionBody.hasOrderByExpressions() && !hasSkipOrLimit) {
+        throw invalid_argument("In WITH clause, ORDER BY must be followed by SKIP or LIMIT.");
     }
 }
 

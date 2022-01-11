@@ -19,8 +19,9 @@ void Schema::insertToGroupAndScope(const string& expressionName, uint32_t groupP
     insertToGroup(expressionName, groupPos);
 }
 
-void Schema::insertToGroupAndScope(const FactorizationGroup& otherGroup, uint32_t groupPos) {
-    for (auto& expressionName : otherGroup.expressionNames) {
+void Schema::insertToGroupAndScope(
+    const unordered_set<string>& expressionNames, uint32_t groupPos) {
+    for (auto& expressionName : expressionNames) {
         insertToGroupAndScope(expressionName, groupPos);
     }
 }
@@ -28,6 +29,16 @@ void Schema::insertToGroupAndScope(const FactorizationGroup& otherGroup, uint32_
 uint32_t Schema::getGroupPos(const string& expressionName) const {
     GF_ASSERT(expressionNameToGroupPos.contains(expressionName));
     return expressionNameToGroupPos.at(expressionName);
+}
+
+unordered_set<string> Schema::getExpressionNamesInScope(uint32_t pos) const {
+    unordered_set<string> result;
+    for (auto& expressionName : groups[pos]->expressionNames) {
+        if (expressionInScope(expressionName)) {
+            result.insert(expressionName);
+        }
+    }
+    return result;
 }
 
 void Schema::removeExpression(const string& expressionName) {

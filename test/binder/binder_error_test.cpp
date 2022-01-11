@@ -211,3 +211,9 @@ TEST_F(BinderErrorTest, SubqueryWithOrderBy) {
         "RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, OrderByWithoutSkipLimitInWithClause) {
+    string expectedException = "In WITH clause, ORDER BY must be followed by SKIP or LIMIT.";
+    auto input = "MATCH (a:person) WITH a.age AS k ORDER BY k RETURN k";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
