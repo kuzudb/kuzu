@@ -1,36 +1,4 @@
--NAME OrderByInt64Test1
--QUERY MATCH (p:person)-[:knows]->(x:person) RETURN p.age ORDER BY p.ID
--PARALLELISM 3
----- 14
-35
-35
-35
-30
-30
-30
-45
-45
-45
-20
-20
-20
-20
-20
-
--NAME OrderByInt64Test1
--QUERY MATCH (p:person) RETURN p.age ORDER BY p.ID
--PARALLELISM 3
----- 8
-35
-30
-45
-20
-20
-25
-40
-83
-
--NAME OrderByInt64Test2
+-NAME OrderByInt64Test
 -QUERY MATCH (p:person) RETURN p.age ORDER BY p.age
 -PARALLELISM 3
 ---- 8
@@ -183,6 +151,18 @@ Alice
 1900-01-01
 2008-11-03 13:25:30.000526
 
+-NAME OrderByUnstrMultipleColTest2
+-QUERY MATCH (p:person) RETURN p.age, p.unstrNumericProp ORDER BY p.isStudent, p.ID
+-PARALLELISM 4
+---- 8
+45|52
+20|
+20|68.000000
+40|
+83|
+35|
+30|47
+25|
 
 -NAME OrderByStrMultipleColTest
 -QUERY MATCH (p:person) RETURN p.age, p.eyeSight ORDER BY p.isWorker desc, p.age, p.eyeSight desc
@@ -197,16 +177,35 @@ Alice
 35|5.000000
 40|4.900000
 
--NAME OrderByMultipleColTest2
--QUERY MATCH (p:person) RETURN p.age, p.unstrNumericProp ORDER BY p.isStudent, p.ID
--PARALLELISM 4
----- 8
-45|52
-20|
-20|68.000000
-40|
-83|
-35|
-30|47
-25|
+-NAME OrderByProjectionTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) with b return b.fName order by b.fName desc
+-PARALLELISM 2
+---- 14
+Greg
+Farooq
+Dan
+Dan
+Dan
+Carol
+Carol
+Carol
+Bob
+Bob
+Bob
+Alice
+Alice
+Alice
 
+-NAME OrderByThreeHopTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN a.fName order by d.age desc, c.age asc, b.age asc, a.age desc limit 10
+---- 10
+Carol
+Alice
+Dan
+Carol
+Bob
+Dan
+Alice
+Bob
+Dan
+Carol

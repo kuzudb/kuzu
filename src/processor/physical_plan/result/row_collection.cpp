@@ -203,21 +203,55 @@ void RowCollection::readOverflowVector(
 }
 
 void RowCollection::readNonOverflowVector(uint8_t** rows, uint64_t offsetInRow, ValueVector& vector,
-    uint64_t numRowsToRead, uint64_t colIdx) const {
+    uint64_t numRowsToRead, uint64_t colIdx, uint64_t startPos, uint64_t valuePosInVec) const {
     assert((vector.state->isFlat() && numRowsToRead == 1) || !vector.state->isFlat());
-    auto valuePosInVec = vector.state->isFlat() ? vector.state->getPositionOfCurrIdx() : 0;
     for (auto i = 0u; i < numRowsToRead; i++) {
-        auto nullMapBuffer = rows[i] + layout.getNullMapOffset();
+        auto nullMapBuffer = rows[i + startPos] + layout.getNullMapOffset();
         auto pos = vector.state->isUnfiltered() ?
                        valuePosInVec + i :
                        vector.state->selectedPositions[valuePosInVec + i];
         auto isPosNull = isNull(nullMapBuffer, colIdx);
         vector.setNull(pos, isPosNull);
         if (!isPosNull) {
-            vector.copyNonNullDataWithSameTypeIntoPos(pos, rows[i] + offsetInRow);
+            vector.copyNonNullDataWithSameTypeIntoPos(pos, rows[i + startPos] + offsetInRow);
         }
     }
-    vector.state->selectedSize = numRowsToRead;
+    // If the vector is a flalt valueVector, the selectedSize must be 1.
+    // If the vector is an unflat valueVector, the selectedSize = original size + numRowsToRead.
+    vector.state->selectedSize = vector.state->isFlat() ? 1 : valuePosInVec + numRowsToRead;
+}
+
+vector<uint64_t> RowCollection::computeFieldOffsets(const vector<uint64_t>& fieldsToRead) const {
+    vector<uint64_t> fieldOffsets;
+    for (auto& fieldId : fieldsToRead) {
+        fieldOffsets.push_back(getFieldOffsetInRow(fieldId));
+    }
+    return fieldOffsets;
+}
+
+bool RowCollection::hasOverflowColToRead(const vector<uint64_t>& fieldsToRead) const {
+    for (auto& fieldId : fieldsToRead) {
+        if (layout.fields[fieldId].isVectorOverflow) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void RowCollection::readNonOverflowTupleToUnflatVector(const vector<uint64_t>& fieldsToScan,
+    const vector<DataPos>& resultDataPos, ResultSet& resultSet, uint64_t rowId,
+    uint64_t valuePosInVec) const {
+    assert(resultDataPos.size() == fieldsToScan.size());
+    assert(rowId < numRows);
+    uint8_t* rowToRead[1] = {getRow(rowId)};
+    auto fieldOffsets = computeFieldOffsets(fieldsToScan);
+    for (auto i = 0u; i < fieldsToScan.size(); i++) {
+        auto dataPos = resultDataPos[i];
+        auto resultVector =
+            resultSet.dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
+        readNonOverflowVector(rowToRead, fieldOffsets[i], *resultVector, 1 /* numRowsToRead */, i,
+            0 /* startPos */, valuePosInVec);
+    }
 }
 
 uint64_t RowCollection::scan(const vector<uint64_t>& fieldsToScan,
@@ -240,17 +274,9 @@ uint64_t RowCollection::lookup(const vector<uint64_t>& fieldsToRead,
     const vector<DataPos>& resultDataPos, ResultSet& resultSet, uint8_t** rowsToLookup,
     uint64_t startPos, uint64_t numRowsToRead) const {
     assert(resultDataPos.size() == fieldsToRead.size());
-    auto hasVectorOverflow = false;
-    for (auto& fieldId : fieldsToRead) {
-        if (layout.fields[fieldId].isVectorOverflow) {
-            hasVectorOverflow = true;
-        }
-    }
+    auto hasVectorOverflow = hasOverflowColToRead(fieldsToRead);
     numRowsToRead = min(hasVectorOverflow ? 1 : DEFAULT_VECTOR_CAPACITY, numRowsToRead);
-    vector<uint64_t> fieldOffsets;
-    for (auto& fieldId : fieldsToRead) {
-        fieldOffsets.push_back(getFieldOffsetInRow(fieldId));
-    }
+    auto fieldOffsets = computeFieldOffsets(fieldsToRead);
     for (auto i = 0u; i < fieldsToRead.size(); i++) {
         auto dataPos = resultDataPos[i];
         auto resultVector =
@@ -261,7 +287,10 @@ uint64_t RowCollection::lookup(const vector<uint64_t>& fieldsToRead,
             // unflat
             readOverflowVector(rowsToLookup, fieldOffsets[i], startPos, *resultVector);
         } else {
-            readNonOverflowVector(rowsToLookup, fieldOffsets[i], *resultVector, numRowsToRead, i);
+            readNonOverflowVector(rowsToLookup, fieldOffsets[i], *resultVector, numRowsToRead, i,
+                startPos,
+                resultVector->state->isFlat() ? resultVector->state->getPositionOfCurrIdx() :
+                                                0 /* valuePosInVec */);
         }
     }
     return numRowsToRead;

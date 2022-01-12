@@ -115,8 +115,14 @@ public:
     uint64_t lookup(const vector<uint64_t>& fieldsToRead, const vector<DataPos>& resultDataPos,
         ResultSet& resultSet, uint8_t** rowsToRead, uint64_t startPos,
         uint64_t numRowsToRead) const;
+    // This is a specialized scan function to read one non-overflow tuple in rowCollection to an
+    // unflat valueVector.
+    void readNonOverflowTupleToUnflatVector(const vector<uint64_t>& fieldsToScan,
+        const vector<DataPos>& resultDataPos, ResultSet& resultSet, uint64_t rowId,
+        uint64_t valuePosInVec) const;
     void merge(unique_ptr<RowCollection> other);
     uint64_t getFieldOffsetInRow(uint64_t fieldId) const;
+    bool hasOverflowColToRead(const vector<uint64_t>& fieldsToRead) const;
 
     inline uint64_t getNumRows() const { return numRows; }
     inline uint8_t* getRow(uint64_t rowId) const {
@@ -151,11 +157,13 @@ private:
     void readOverflowVector(
         uint8_t** rows, uint64_t offsetInRow, uint64_t startRowPos, ValueVector& vector) const;
     void readNonOverflowVector(uint8_t** rows, uint64_t offsetInRow, ValueVector& vector,
-        uint64_t numRowsToRead, uint64_t colIdx) const;
+        uint64_t numRowsToRead, uint64_t colIdx, uint64_t startPos, uint64_t valuePosInVec) const;
     // If the given vector is flat valuePosInVecIfUnflat will be ignored.
     void copyVectorDataToBuffer(ValueVector& vector, uint64_t valuePosInVecIfUnflat,
         uint8_t* buffer, uint64_t offsetInBuffer, uint64_t offsetStride, uint64_t numValues,
         uint64_t colIdx, bool isVectorOverflow);
+
+    vector<uint64_t> computeFieldOffsets(const vector<uint64_t>& fieldsToRead) const;
 
     MemoryManager& memoryManager;
     RowLayout layout;

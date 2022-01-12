@@ -39,6 +39,9 @@ public:
     }
 
 private:
+    pair<uint64_t, uint64_t> getNextRowCollectionIdxAndRowIdxPair();
+
+    bool scanSingleTuple;
     vector<DataPos> outDataPoses;
     shared_ptr<SharedRowCollectionsAndSortedKeyBlocks> sharedState;
     vector<uint64_t> fieldsToReadInRowCollection;

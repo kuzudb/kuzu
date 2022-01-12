@@ -82,13 +82,14 @@ void OrderBy::execute() {
     Sink::execute();
     // Append thread-local tuples
     while (children[0]->getNextTuples()) {
-        orderByKeyEncoder->encodeKeys();
-        // If there is only one unflat orderBy key col, then we flatten the unflat orderBy key col
-        // in rowCollection.
-        // Each thread uses a unique identifier: rowCollectionID to get its private rowCollection,
-        // and only appends rows to that rowCollection.
-        localRowCollection->append(vectorsToAppend,
-            keyVectors[0]->state->isFlat() ? 1 : keyVectors[0]->state->selectedSize);
+        for (auto i = 0u; i < resultSet->multiplicity; i++) {
+            orderByKeyEncoder->encodeKeys();
+            // If there is only one unflat orderBy key col, then we flatten the unflat orderBy key
+            // col in rowCollection. Each thread uses a unique identifier: rowCollectionID to get
+            // its private rowCollection, and only appends rows to that rowCollection.
+            localRowCollection->append(vectorsToAppend,
+                keyVectors[0]->state->isFlat() ? 1 : keyVectors[0]->state->selectedSize);
+        }
     }
 
     for (auto& keyBlock : orderByKeyEncoder->getKeyBlocks()) {
