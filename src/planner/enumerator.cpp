@@ -301,5 +301,33 @@ vector<shared_ptr<Expression>> Enumerator::getSubExpressionsNotInSchemaOfType(
     return results;
 }
 
+void Enumerator::computeSchemaForHashJoinAndOrderBy(
+    const unordered_set<uint32_t>& groupsToMaterializePos, const Schema& schemaBeforeSink,
+    Schema& schemaAfterSink) {
+    auto flatVectorsOutputPos = UINT32_MAX;
+    auto isAllVectorsFlat = true;
+    for (auto& groupToMaterializePos : groupsToMaterializePos) {
+        auto groupToMaterialize = schemaBeforeSink.getGroup(groupToMaterializePos);
+        if (groupToMaterialize->isFlat) {
+            if (flatVectorsOutputPos == UINT32_MAX) {
+                flatVectorsOutputPos = schemaAfterSink.createGroup();
+            }
+            schemaAfterSink.insertToGroupAndScope(
+                schemaBeforeSink.getExpressionNamesInScope(groupToMaterializePos),
+                flatVectorsOutputPos);
+        } else {
+            isAllVectorsFlat = false;
+            auto groupPos = schemaAfterSink.createGroup();
+            schemaAfterSink.insertToGroupAndScope(
+                schemaBeforeSink.getExpressionNamesInScope(groupToMaterializePos), groupPos);
+            schemaAfterSink.getGroup(groupPos)->estimatedCardinality =
+                groupToMaterialize->estimatedCardinality;
+        }
+    }
+    if (!isAllVectorsFlat && flatVectorsOutputPos != UINT32_MAX) {
+        schemaAfterSink.flattenGroup(flatVectorsOutputPos);
+    }
+}
+
 } // namespace planner
 } // namespace graphflow

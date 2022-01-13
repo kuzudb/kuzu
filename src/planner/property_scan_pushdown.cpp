@@ -78,10 +78,11 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteAggregate(
 shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteOrderBy(
     const shared_ptr<LogicalOperator>& op, Schema& schema) {
     auto& logicalOrderBy = (LogicalOrderBy&)*op;
+    addPropertyScansToSchema(schema);
     for (auto& expressionName : getRemainingPropertyExpressionNames()) {
         logicalOrderBy.addExpressionToMaterialize(expressionName);
     }
-    op->setFirstChild(rewrite(op->getFirstChild(), schema));
+    op->setFirstChild(rewrite(op->getFirstChild(), *logicalOrderBy.getSchemaBeforeOrderBy()));
     return op;
 }
 
@@ -89,7 +90,7 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteHashJoin(
     const shared_ptr<LogicalOperator>& op, Schema& schema) {
     auto& logicalHashJoin = (LogicalHashJoin&)*op;
     op->setFirstChild(rewrite(op->getFirstChild(), schema));
-    addPropertyScansToLeftSchema(schema);
+    addPropertyScansToSchema(schema);
     for (auto& expressionName : getRemainingPropertyExpressionNames()) {
         logicalHashJoin.addExpressionToMaterialize(expressionName);
     }
@@ -109,7 +110,7 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteLeftNestedLoopJoin(
     const shared_ptr<LogicalOperator>& op, Schema& schema) {
     auto& logicalLeftNLJ = (LogicalLeftNestedLoopJoin&)*op;
     op->setFirstChild(rewrite(op->getFirstChild(), schema));
-    addPropertyScansToLeftSchema(schema);
+    addPropertyScansToSchema(schema);
     op->setSecondChild(rewrite(op->getSecondChild(), *logicalLeftNLJ.subPlanSchema));
     return op;
 }
@@ -160,7 +161,7 @@ void PropertyScanPushDown::addPropertyScan(
     nodeIDToPropertyScansMap.at(nodeID).push_back(op);
 }
 
-void PropertyScanPushDown::addPropertyScansToLeftSchema(Schema& schema) {
+void PropertyScanPushDown::addPropertyScansToSchema(Schema& schema) {
     for (auto& [nodeID, propertyScanners] : nodeIDToPropertyScansMap) {
         auto groupPos = schema.getGroupPos(nodeID);
         for (auto& propertyScanner : propertyScanners) {

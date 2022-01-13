@@ -275,43 +275,24 @@ void JoinOrderEnumerator::appendLogicalHashJoin(
     auto probeSideKeyGroupPos = probePlan.schema->getGroupPos(joinNodeID);
     auto probeSideKeyGroup = probePlan.schema->groups[probeSideKeyGroupPos].get();
     enumerator->appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
-    // Build side: 1) append non-key vectors in the key data chunk into probe side key data chunk.
+    // Merge key group from build side into probe side.
     auto& buildSideSchema = *buildPlan.schema;
     auto buildSideKeyGroupPos = buildSideSchema.getGroupPos(joinNodeID);
     probeSideKeyGroup->estimatedCardinality = max(probeSideKeyGroup->estimatedCardinality,
         buildSideSchema.groups[buildSideKeyGroupPos]->estimatedCardinality);
     probePlan.schema->insertToGroupAndScope(
         buildSideSchema.getExpressionNamesInScope(buildSideKeyGroupPos), probeSideKeyGroupPos);
-
-    auto allGroupsOnBuildSideIsFlat = true;
-    // the appended probe side group that holds all flat groups on build side
-    auto probeSideNewFlatGroupPos = UINT32_MAX;
-    for (auto& i : buildSideSchema.getGroupsPosInScope()) {
-        if (i == buildSideKeyGroupPos) {
+    // Merge payload groups
+    unordered_set<uint32_t> payloadGroupsPos;
+    for (auto& groupPos : buildSideSchema.getGroupsPosInScope()) {
+        if (groupPos == buildSideKeyGroupPos) {
             continue;
         }
-        auto& buildSideGroup = buildSideSchema.groups[i];
-        if (buildSideGroup->isFlat) {
-            // 2) append flat non-key data chunks into buildSideNonKeyFlatDataChunk.
-            if (probeSideNewFlatGroupPos == UINT32_MAX) {
-                probeSideNewFlatGroupPos = probePlan.schema->createGroup();
-            }
-            probePlan.schema->insertToGroupAndScope(
-                buildSideSchema.getExpressionNamesInScope(i), probeSideNewFlatGroupPos);
-        } else {
-            // 3) append unflat non-key data chunks as new data chunks into dataChunks.
-            allGroupsOnBuildSideIsFlat = false;
-            auto groupPos = probePlan.schema->createGroup();
-            probePlan.schema->insertToGroupAndScope(
-                buildSideSchema.getExpressionNamesInScope(i), groupPos);
-            probePlan.schema->groups[groupPos]->estimatedCardinality =
-                buildSideGroup->estimatedCardinality;
-        }
+        payloadGroupsPos.insert(groupPos);
     }
+    Enumerator::computeSchemaForHashJoinAndOrderBy(
+        payloadGroupsPos, buildSideSchema, *probePlan.schema);
 
-    if (!allGroupsOnBuildSideIsFlat && probeSideNewFlatGroupPos != UINT32_MAX) {
-        probePlan.schema->flattenGroup(probeSideNewFlatGroupPos);
-    }
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodeID, buildSideSchema.copy(),
         buildSideSchema.getExpressionNamesInScope(), probePlan.lastOperator,
         buildPlan.lastOperator);

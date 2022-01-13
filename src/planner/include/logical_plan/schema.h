@@ -52,6 +52,11 @@ class Schema {
 
 public:
     inline uint32_t getNumGroups() const { return groups.size(); }
+
+    inline FactorizationGroup* getGroup(const string& expressionName) const {
+        return getGroup(getGroupPos(expressionName));
+    }
+
     inline FactorizationGroup* getGroup(uint32_t pos) const { return groups[pos].get(); }
 
     uint32_t createGroup();
