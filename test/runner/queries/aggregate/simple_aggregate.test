@@ -1,5 +1,10 @@
 # description: aggregation without groups and distinct
 
+-NAME TwoHopSumTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) RETURN SUM(b.age), MIN(b.ID), AVG(b.eyeSight)
+---- 1
+455|0|4.935714
+
 -NAME SimpleCountTest
 -QUERY MATCH (a:person) RETURN COUNT(a.age), COUNT(a.unstrNumericProp)
 ---- 1

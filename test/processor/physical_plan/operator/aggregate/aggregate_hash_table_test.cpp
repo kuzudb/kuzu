@@ -1,9 +1,11 @@
 #include "gtest/gtest.h"
 
-#include "src/function/include/aggregation/count.h"
+#include "src/function/include/aggregate/count.h"
 #include "src/processor/include/physical_plan/operator/aggregate/aggregate_hash_table.h"
+#include "src/processor/include/physical_plan/result/result_set.h"
 
 using ::testing::Test;
+using namespace graphflow::processor;
 
 class AggregateHashTableTest : public Test {
 
@@ -47,13 +49,11 @@ public:
 };
 
 TEST_F(AggregateHashTableTest, SingleGroupTest) {
-    vector<unique_ptr<AggregateExpressionEvaluator>> aggregates;
-    auto count1Aggregate = make_unique<AggregateExpressionEvaluator>(COUNT_STAR_FUNC, INT64,
-        AggregateExpressionEvaluator::getAggregationFunction(COUNT_STAR_FUNC, INT64));
-    auto count2Aggregate = make_unique<AggregateExpressionEvaluator>(COUNT_STAR_FUNC, INT64,
-        AggregateExpressionEvaluator::getAggregationFunction(COUNT_STAR_FUNC, INT64));
-    auto count1State = count1Aggregate->getFunction()->initialize();
-    auto count2State = count2Aggregate->getFunction()->initialize();
+    vector<unique_ptr<AggregateFunction>> aggregates;
+    auto count1Aggregate = AggregateFunctionUtil::getCountStarFunction();
+    auto count2Aggregate = AggregateFunctionUtil::getCountStarFunction();
+    auto count1State = count1Aggregate->initialize();
+    auto count2State = count2Aggregate->initialize();
     auto groupsSize = sizeof(uint64_t);
     auto entrySize =
         sizeof(hash_t) + groupsSize + count1State->getValSize() + count2State->getValSize();
@@ -63,8 +63,8 @@ TEST_F(AggregateHashTableTest, SingleGroupTest) {
         make_unique<AggregateHashTable>(*memoryManager, move(aggregates), groupsSize, entrySize);
     vector<shared_ptr<ValueVector>> groupVectors, aggregateVectors;
     groupVectors.push_back(group1Vector);
-    aggregateVectors.push_back(aggr1Vector);
-    aggregateVectors.push_back(aggr2Vector);
+    aggregateVectors.push_back(nullptr);
+    aggregateVectors.push_back(nullptr);
     while (dataChunk->state->currIdx < dataChunk->state->selectedSize) {
         ht->append(groupVectors, aggregateVectors);
         dataChunk->state->currIdx++;
@@ -74,24 +74,22 @@ TEST_F(AggregateHashTableTest, SingleGroupTest) {
         auto entry = ht->lookup(groupVectors);
         ASSERT_TRUE(entry != nullptr);
         auto count1AggrState =
-            (CountFunction<true>::CountState*)(entry + sizeof(hash_t) + groupsSize);
+            (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize);
         ASSERT_EQ(count1AggrState->val, 25);
         auto count2AggrState =
-            (CountFunction<true>::CountState*)(entry + sizeof(hash_t) + groupsSize +
-                                               count1AggrState->getValSize());
+            (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize +
+                                             count1AggrState->getValSize());
         ASSERT_EQ(count2AggrState->val, 25);
         dataChunk->state->currIdx++;
     }
 }
 
 TEST_F(AggregateHashTableTest, TwoGroupsTest) {
-    vector<unique_ptr<AggregateExpressionEvaluator>> aggregates;
-    auto count1Aggregate = make_unique<AggregateExpressionEvaluator>(COUNT_STAR_FUNC, INT64,
-        AggregateExpressionEvaluator::getAggregationFunction(COUNT_STAR_FUNC, INT64));
-    auto count2Aggregate = make_unique<AggregateExpressionEvaluator>(COUNT_STAR_FUNC, INT64,
-        AggregateExpressionEvaluator::getAggregationFunction(COUNT_STAR_FUNC, INT64));
-    auto count1State = count1Aggregate->getFunction()->initialize();
-    auto count2State = count2Aggregate->getFunction()->initialize();
+    vector<unique_ptr<AggregateFunction>> aggregates;
+    auto count1Aggregate = AggregateFunctionUtil::getCountStarFunction();
+    auto count2Aggregate = AggregateFunctionUtil::getCountStarFunction();
+    auto count1State = count1Aggregate->initialize();
+    auto count2State = count2Aggregate->initialize();
     auto groupsSize = sizeof(uint64_t) + sizeof(uint64_t);
     auto entrySize =
         sizeof(hash_t) + groupsSize + count1State->getValSize() + count2State->getValSize();
@@ -102,8 +100,8 @@ TEST_F(AggregateHashTableTest, TwoGroupsTest) {
     vector<shared_ptr<ValueVector>> groupVectors, aggregateVectors;
     groupVectors.push_back(group1Vector);
     groupVectors.push_back(group2Vector);
-    aggregateVectors.push_back(aggr1Vector);
-    aggregateVectors.push_back(aggr2Vector);
+    aggregateVectors.push_back(nullptr);
+    aggregateVectors.push_back(nullptr);
     while (dataChunk->state->currIdx < dataChunk->state->selectedSize) {
         ht->append(groupVectors, aggregateVectors);
         dataChunk->state->currIdx++;
@@ -113,11 +111,11 @@ TEST_F(AggregateHashTableTest, TwoGroupsTest) {
         auto entry = ht->lookup(groupVectors);
         ASSERT_TRUE(entry != nullptr);
         auto count1AggrState =
-            (CountFunction<true>::CountState*)(entry + sizeof(hash_t) + groupsSize);
+            (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize);
         ASSERT_EQ(count1AggrState->val, 1);
         auto count2AggrState =
-            (CountFunction<true>::CountState*)(entry + sizeof(hash_t) + groupsSize +
-                                               count1AggrState->getValSize());
+            (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize +
+                                             count1AggrState->getValSize());
         ASSERT_EQ(count2AggrState->val, 1);
         dataChunk->state->currIdx++;
     }

@@ -1,26 +1,21 @@
 #pragma once
 
-#include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
-#include "src/expression_evaluator/include/expression_evaluator.h"
-#include "src/function/include/aggregation/aggregation_function.h"
+#include "src/function/include/aggregate/aggregate_function.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/operator/sink.h"
 
-using namespace graphflow::evaluator;
 using namespace graphflow::function;
 
 namespace graphflow {
 namespace processor {
 
-struct AggregationSharedState {
-    explicit AggregationSharedState(
-        vector<unique_ptr<AggregationState>> aggregationStates, const vector<DataType>& dataTypes)
-        : aggregationStates{move(aggregationStates)}, dataTypes{dataTypes}, numGroups{1},
-          currentGroupOffset{0} {}
+struct AggregateSharedState {
 
-    mutex aggregationSharedStateLock;
-    vector<unique_ptr<AggregationState>> aggregationStates;
-    vector<DataType> dataTypes;
+    explicit AggregateSharedState(vector<unique_ptr<AggregateState>> aggregateStates)
+        : aggregateStates{move(aggregateStates)}, numGroups{1}, currentGroupOffset{0} {}
+
+    mutex aggregateSharedStateLock;
+    vector<unique_ptr<AggregateState>> aggregateStates;
     uint64_t numGroups;
     uint64_t currentGroupOffset;
 };
@@ -28,12 +23,12 @@ struct AggregationSharedState {
 class SimpleAggregate : public Sink {
 
 public:
-    SimpleAggregate(unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id,
-        shared_ptr<AggregationSharedState> aggregationSharedState,
-        vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators,
-        unordered_set<uint32_t> dataChunksPosInScope);
+    SimpleAggregate(shared_ptr<AggregateSharedState> sharedState,
+        vector<DataPos> aggregateVectorsPos,
+        vector<unique_ptr<AggregateFunction>> aggregateFunctions,
+        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id);
 
-    PhysicalOperatorType getOperatorType() override { return AGGREGATION; }
+    PhysicalOperatorType getOperatorType() override { return AGGREGATE; }
 
     shared_ptr<ResultSet> initResultSet() override;
 
@@ -44,11 +39,12 @@ public:
     void finalize() override;
 
 private:
-    shared_ptr<AggregationSharedState> sharedState;
-    vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators;
-    vector<unique_ptr<AggregationState>> aggregationStates;
+    shared_ptr<AggregateSharedState> sharedState;
 
-    unordered_set<uint32_t> dataChunksPosInScope;
+    vector<DataPos> aggregateVectorsPos;
+    vector<ValueVector*> aggregateVectors;
+    vector<unique_ptr<AggregateFunction>> aggregateFunctions;
+    vector<unique_ptr<AggregateState>> aggregateStates;
 };
 
 } // namespace processor

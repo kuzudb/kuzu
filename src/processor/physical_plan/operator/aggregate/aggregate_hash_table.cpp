@@ -8,14 +8,14 @@ namespace graphflow {
 namespace processor {
 
 AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
-    vector<unique_ptr<AggregateExpressionEvaluator>> aggregates, uint64_t groupsSizeInEntry,
+    vector<unique_ptr<AggregateFunction>> aggregates, uint64_t groupsSizeInEntry,
     uint64_t numBytesPerEntry)
     : memoryManager{memoryManager}, aggregates{move(aggregates)},
       numBytesPerEntry{numBytesPerEntry}, numBytesForGroupKeys{groupsSizeInEntry}, numGroups{0},
       offsetInCurrentBlock{0} {
     numEntriesPerBlock = DEFAULT_MEMORY_BLOCK_SIZE / numBytesPerEntry;
     for (auto& aggregate : this->aggregates) {
-        initializedStates.push_back(aggregate->getFunction()->initialize());
+        initializedStates.push_back(aggregate->initialize());
     }
     hashSlotsBlock = memoryManager.allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE, true);
     hashSlots = (HashSlot*)hashSlotsBlock->data;
@@ -38,8 +38,7 @@ void AggregateHashTable::append(const vector<shared_ptr<ValueVector>>& groupVect
     }
     auto aggregateOffset = sizeof(hash_t) + numBytesForGroupKeys;
     for (auto i = 0u; i < aggregates.size(); i++) {
-        aggregates[i]->getFunction()->update(
-            entry + aggregateOffset, aggregates[i]->getChildResult(), 1);
+        aggregates[i]->update(entry + aggregateOffset, aggregateVectors[i].get(), 1);
         aggregateOffset += initializedStates[i]->getValSize();
     }
 }

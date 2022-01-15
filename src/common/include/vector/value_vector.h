@@ -76,7 +76,7 @@ public:
         nullMask->mayContainNulls |= isNull;
     }
 
-    inline uint8_t isNull(uint64_t pos) const { return nullMask->mask[pos]; }
+    inline uint8_t isNull(uint32_t pos) const { return nullMask->mask[pos]; }
 
     inline shared_ptr<NullMask> getNullMask() { return nullMask; }
     inline uint64_t getNumBytesPerValue() const { return TypeUtils::getDataTypeSize(dataType); }

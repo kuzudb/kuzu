@@ -91,7 +91,8 @@ cc_library(
     deps = [
         "sink_operator",
         "source_operator",
-        "//src/expression_evaluator:aggregate_evaluator_impls",
+        "//src/common:vector_operations",
+        "//src/function:aggregate_function",
     ],
 )
 
@@ -181,6 +182,7 @@ cc_library(
         "read_list",
         "scan_attribute",
         "//src/common:csv_reader",
+        "//src/expression_evaluator:base_evaluator",
     ],
 )
 
@@ -209,7 +211,7 @@ cc_library(
         "physical_plan",
         "//src/binder:subquery_expression_impl",
         "//src/expression_evaluator:evaluator_impls",
-        "//src/function:aggregation_function",
+        "//src/function:aggregate_function",
         "//src/planner:logical_operator_impls",
         "//src/storage:graph",
     ],

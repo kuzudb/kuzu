@@ -2,7 +2,7 @@
 
 #include <set>
 
-#include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
+#include "src/function/include/aggregate/aggregate_function.h"
 #include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
 #include "src/planner/include/logical_plan/operator/exists/logical_exist.h"
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
@@ -21,7 +21,7 @@
 #include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
-#include "src/processor/include/physical_plan/operator/aggregate/simple_aggregation_scan.h"
+#include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate_scan.h"
 #include "src/processor/include/physical_plan/operator/exists.h"
 #include "src/processor/include/physical_plan/operator/filter.h"
 #include "src/processor/include/physical_plan/operator/flatten.h"
@@ -396,40 +396,44 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
         make_unique<ResultSetDescriptor>(*logicalAggregate.getSchemaBeforeAggregate()));
     auto prevOperator = mapLogicalOperatorToPhysical(
         logicalOperator->getFirstChild(), mapperContextBeforeAggregate, executionContext);
-    // Map aggregate expressions.
-    vector<unique_ptr<AggregateExpressionEvaluator>> expressionEvaluators;
-    vector<DataPos> expressionsOutputPos;
+    vector<DataType> aggregateDataTypes;
+    vector<unique_ptr<AggregateFunction>> aggregateFunctions;
+    vector<DataPos> aggregateVectorsInputPos;
+    vector<DataPos> aggregateVectorsOutputPos;
     for (auto& expression : logicalAggregate.getExpressionsToAggregate()) {
-        expressionEvaluators.push_back(
-            static_unique_pointer_cast<ExpressionEvaluator, AggregateExpressionEvaluator>(
-                expressionMapper.mapLogicalExpressionToPhysical(
-                    *expression, mapperContextBeforeAggregate, executionContext)));
-        expressionsOutputPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
+        // Populate input info
+        DataPos inputDataPos = DataPos{UINT32_MAX, UINT32_MAX};
+        unique_ptr<AggregateFunction> aggregateFunction;
+        if (expression->expressionType == COUNT_STAR_FUNC) {
+            aggregateFunction = AggregateFunctionUtil::getCountStarFunction();
+        } else {
+            assert(expression->getChildren().size() == 1);
+            auto aggregateChild = expression->getChild(0);
+            inputDataPos = mapperContextBeforeAggregate.getDataPos(aggregateChild->getUniqueName());
+            aggregateFunction = AggregateFunctionUtil::getAggregateFunction(
+                expression->expressionType, aggregateChild->dataType);
+        }
+        aggregateVectorsInputPos.push_back(inputDataPos);
+        aggregateFunctions.push_back(move(aggregateFunction));
+        // Populate output info
+        aggregateDataTypes.push_back(expression->dataType);
+        aggregateVectorsOutputPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
         mapperContext.addComputedExpressions(expression->getUniqueName());
     }
-    assert(!expressionsOutputPos.empty());
-    auto outDataChunkPos = expressionsOutputPos[0].dataChunkPos;
-    for (auto& dataPos : expressionsOutputPos) {
-        // All expressions have the same out dataChunkPos;
-        assert(dataPos.dataChunkPos == outDataChunkPos);
-    }
     // Create the shared state.
-    vector<unique_ptr<AggregationState>> aggregationStates;
-    vector<DataType> aggregationDataTypes;
-    for (auto& expressionEvaluator : expressionEvaluators) {
-        aggregationStates.push_back(expressionEvaluator->getFunction()->initialize());
-        aggregationDataTypes.push_back(expressionEvaluator->dataType);
+    vector<unique_ptr<AggregateState>> aggregateStates;
+    for (auto& aggregateFunction : aggregateFunctions) {
+        aggregateStates.push_back(aggregateFunction->initialize());
     }
-    auto sharedState =
-        make_shared<AggregationSharedState>(move(aggregationStates), aggregationDataTypes);
+    auto sharedState = make_shared<AggregateSharedState>(move(aggregateStates));
 
-    auto aggregate = make_unique<SimpleAggregate>(move(prevOperator), executionContext,
-        mapperContext.getOperatorID(), sharedState, move(expressionEvaluators),
-        logicalAggregate.getSchemaBeforeAggregate()->getGroupsPosInScope());
-    auto aggregationScan = make_unique<SimpleAggregationScan>(
-        mapperContext.getResultSetDescriptor()->copy(), expressionsOutputPos, move(aggregate),
-        sharedState, executionContext, mapperContext.getOperatorID());
-    return aggregationScan;
+    auto simpleAggregate = make_unique<SimpleAggregate>(sharedState, aggregateVectorsInputPos,
+        move(aggregateFunctions), move(prevOperator), executionContext,
+        mapperContext.getOperatorID());
+    auto simpleAggregateScan = make_unique<SimpleAggregateScan>(
+        mapperContext.getResultSetDescriptor()->copy(), sharedState, aggregateVectorsOutputPos,
+        aggregateDataTypes, move(simpleAggregate), executionContext, mapperContext.getOperatorID());
+    return simpleAggregateScan;
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExistsToPhysical(

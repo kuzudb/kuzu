@@ -5,22 +5,25 @@
 namespace graphflow {
 namespace processor {
 
-SimpleAggregate::SimpleAggregate(unique_ptr<PhysicalOperator> child, ExecutionContext& context,
-    uint32_t id, shared_ptr<AggregationSharedState> aggregationSharedState,
-    vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluators,
-    unordered_set<uint32_t> dataChunksPosInScope)
-    : Sink{move(child), context, id}, sharedState{move(aggregationSharedState)},
-      aggregationEvaluators{move(aggregationEvaluators)}, dataChunksPosInScope{
-                                                              move(dataChunksPosInScope)} {
-    for (auto& expressionEvaluator : this->aggregationEvaluators) {
-        aggregationStates.push_back(expressionEvaluator->getFunction()->initialize());
+SimpleAggregate::SimpleAggregate(shared_ptr<AggregateSharedState> sharedState,
+    vector<DataPos> aggregateVectorsPos, vector<unique_ptr<AggregateFunction>> aggregateFunctions,
+    unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
+    : Sink{move(child), context, id}, sharedState{move(sharedState)},
+      aggregateVectorsPos{move(aggregateVectorsPos)}, aggregateFunctions{move(aggregateFunctions)} {
+    for (auto& aggregateFunction : this->aggregateFunctions) {
+        aggregateStates.push_back(aggregateFunction->initialize());
     }
 }
 
 shared_ptr<ResultSet> SimpleAggregate::initResultSet() {
     resultSet = children[0]->initResultSet();
-    for (auto& aggregationEvaluator : aggregationEvaluators) {
-        aggregationEvaluator->initResultSet(*resultSet, *context.memoryManager);
+    for (auto& dataPos : aggregateVectorsPos) {
+        if (dataPos.dataChunkPos == UINT32_MAX) {
+            aggregateVectors.push_back(nullptr);
+            continue;
+        }
+        auto dataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
+        aggregateVectors.push_back(dataChunk->valueVectors[dataPos.valueVectorPos].get());
     }
     return resultSet;
 }
@@ -28,22 +31,19 @@ shared_ptr<ResultSet> SimpleAggregate::initResultSet() {
 void SimpleAggregate::execute() {
     metrics->executionTime.start();
     Sink::execute();
-    // Exhaust source to update local state for each aggregation expression by its evaluator.
+    // Exhaust source to update local state for each aggregate expression by its evaluator.
     while (children[0]->getNextTuples()) {
-        for (auto i = 0u; i < aggregationEvaluators.size(); i++) {
-            aggregationEvaluators[i]->evaluate();
-            aggregationEvaluators[i].get()->getFunction()->update(
-                (uint8_t*)aggregationStates[i].get(), aggregationEvaluators[i]->getChildResult(),
-                children[0]->getResultSet()->getNumTuples(dataChunksPosInScope));
+        for (auto i = 0u; i < aggregateFunctions.size(); i++) {
+            aggregateFunctions[i]->update(
+                (uint8_t*)aggregateStates[i].get(), aggregateVectors[i], resultSet->multiplicity);
         }
     }
     // Combine global shared state with local states.
     {
-        lock_guard<mutex> sharedStateLock(sharedState->aggregationSharedStateLock);
-        for (auto i = 0u; i < aggregationEvaluators.size(); i++) {
-            aggregationEvaluators[i].get()->getFunction()->combine(
-                (uint8_t*)sharedState->aggregationStates[i].get(),
-                (uint8_t*)aggregationStates[i].get());
+        lock_guard<mutex> sharedStateLock(sharedState->aggregateSharedStateLock);
+        for (auto i = 0u; i < aggregateFunctions.size(); i++) {
+            aggregateFunctions[i]->combine((uint8_t*)sharedState->aggregateStates[i].get(),
+                (uint8_t*)aggregateStates[i].get());
         }
     }
     metrics->executionTime.stop();
@@ -51,23 +51,20 @@ void SimpleAggregate::execute() {
 
 void SimpleAggregate::finalize() {
     {
-        lock_guard<mutex> sharedStateLock(sharedState->aggregationSharedStateLock);
-        for (auto i = 0u; i < aggregationEvaluators.size(); i++) {
-            aggregationEvaluators[i].get()->getFunction()->finalize(
-                (uint8_t*)sharedState->aggregationStates[i].get());
+        lock_guard<mutex> sharedStateLock(sharedState->aggregateSharedStateLock);
+        for (auto i = 0u; i < aggregateFunctions.size(); i++) {
+            aggregateFunctions[i]->finalize((uint8_t*)sharedState->aggregateStates[i].get());
         }
     }
 }
 
 unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
-    vector<unique_ptr<AggregateExpressionEvaluator>> aggregationEvaluatorsCloned;
-    for (auto& aggregationEvaluator : aggregationEvaluators) {
-        aggregationEvaluatorsCloned.push_back(
-            static_unique_pointer_cast<ExpressionEvaluator, AggregateExpressionEvaluator>(
-                aggregationEvaluator->clone()));
+    vector<unique_ptr<AggregateFunction>> clonedAggregateFunctions;
+    for (auto& aggregateFunction : aggregateFunctions) {
+        clonedAggregateFunctions.push_back(aggregateFunction->clone());
     }
-    return make_unique<SimpleAggregate>(children[0]->clone(), context, id, sharedState,
-        move(aggregationEvaluatorsCloned), dataChunksPosInScope);
+    return make_unique<SimpleAggregate>(sharedState, aggregateVectorsPos,
+        move(clonedAggregateFunctions), children[0]->clone(), context, id);
 }
 
 } // namespace processor

@@ -32,7 +32,8 @@ bool Projection::getNextTuples() {
         expression->evaluate();
     }
     if (!discardedDataChunksPos.empty()) {
-        resultSet->multiplicity *= resultSet->getNumTuples(discardedDataChunksPos);
+        resultSet->multiplicity *=
+            resultSet->getNumTuplesWithoutMultiplicity(discardedDataChunksPos);
     }
     metrics->executionTime.stop();
     return true;

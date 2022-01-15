@@ -1,11 +1,11 @@
 #pragma once
 
 #include "src/common/include/memory_manager.h"
-#include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
+#include "src/function/include/aggregate/aggregate_function.h"
 #include "src/processor/include/physical_plan/data_pos.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
 
-using namespace graphflow::evaluator;
+using namespace graphflow::function;
 
 namespace graphflow {
 namespace processor {
@@ -23,7 +23,7 @@ struct HashSlot {
 class AggregateHashTable {
 public:
     AggregateHashTable(MemoryManager& memoryManager,
-        vector<unique_ptr<AggregateExpressionEvaluator>> aggregates, uint64_t groupsSizeInEntry,
+        vector<unique_ptr<AggregateFunction>> aggregates, uint64_t groupsSizeInEntry,
         uint64_t numBytesPerEntry);
 
     void append(const vector<shared_ptr<ValueVector>>& groupVectors,
@@ -41,7 +41,7 @@ private:
 
 private:
     MemoryManager& memoryManager;
-    vector<unique_ptr<AggregateExpressionEvaluator>> aggregates;
+    vector<unique_ptr<AggregateFunction>> aggregates;
     uint64_t numBytesPerEntry; // Entry: [hash, group key, ..., aggregate state, ...]
     uint64_t numBytesForGroupKeys;
     uint64_t numGroups;
@@ -53,7 +53,7 @@ private:
     unique_ptr<MemoryBlock> hashSlotsBlock; // The block for hash slots
     HashSlot* hashSlots;
 
-    vector<unique_ptr<AggregationState>> initializedStates;
+    vector<unique_ptr<AggregateState>> initializedStates;
     unique_ptr<ValueVector> groupHashes;
 };
 } // namespace processor

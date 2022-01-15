@@ -15,6 +15,7 @@ TEST_F(PropertyScanPushDownTest, FilterPropertyPushDownTest) {
                   ->getFirstChild()
                   ->getFirstChild()
                   ->getFirstChild()
+                  ->getFirstChild()
                   .get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op->getLogicalOperatorType());
     auto scanNodeProperty = (LogicalScanNodeProperty*)op;

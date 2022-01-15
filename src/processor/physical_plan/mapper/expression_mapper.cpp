@@ -1,7 +1,6 @@
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 
 #include "src/binder/include/expression/literal_expression.h"
-#include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
 #include "src/expression_evaluator/include/binary_expression_evaluator.h"
 #include "src/expression_evaluator/include/unary_expression_evaluator.h"
 
@@ -22,21 +21,6 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalExpressionToPhysical
          * A leaf expression is a non-literal expression that has been previously computed
          */
         retVal = mapLogicalLeafExpressionToPhysical(expression, mapperContext);
-    } else if (isExpressionAggregate(expressionType)) {
-        if (expressionType == COUNT_STAR_FUNC) {
-            // COUNT_STAR has no child expression
-            assert(expression.getChildren().empty());
-            retVal = make_unique<AggregateExpressionEvaluator>(expressionType, expression.dataType,
-                AggregateExpressionEvaluator::getAggregationFunction(
-                    expressionType, expression.dataType));
-        } else {
-            auto child = mapLogicalExpressionToPhysical(
-                *expression.getChild(0), mapperContext, executionContext);
-            retVal = make_unique<AggregateExpressionEvaluator>(expressionType, expression.dataType,
-                move(child),
-                AggregateExpressionEvaluator::getAggregationFunction(
-                    expressionType, child->dataType));
-        }
     } else if (isExpressionUnary(expressionType)) {
         auto child = mapLogicalExpressionToPhysical(
             *expression.getChild(0), mapperContext, executionContext);

@@ -36,7 +36,11 @@ public:
 
     // Our projection does NOT explicitly remove dataChunk from resultSet. Therefore, caller should
     // always provide a set of positions when reading from multiple dataChunks.
-    uint64_t getNumTuples(const unordered_set<uint32_t>& dataChunksPosInScope);
+    inline uint64_t getNumTuples(const unordered_set<uint32_t>& dataChunksPosInScope) {
+        return getNumTuplesWithoutMultiplicity(dataChunksPosInScope) * multiplicity;
+    }
+
+    uint64_t getNumTuplesWithoutMultiplicity(const unordered_set<uint32_t>& dataChunksPosInScope);
 
     shared_ptr<ListSyncState> getListSyncState(uint64_t dataChunkPos) {
         return listSyncStatesPerDataChunk[dataChunkPos];

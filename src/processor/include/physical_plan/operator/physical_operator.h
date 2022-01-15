@@ -12,8 +12,8 @@ namespace processor {
 
 // Sort in alphabetical order
 enum PhysicalOperatorType : uint8_t {
-    AGGREGATION,
-    AGGREGATION_SCAN,
+    AGGREGATE,
+    AGGREGATE_SCAN,
     COLUMN_EXTEND,
     EXISTS,
     FILTER,
@@ -39,7 +39,7 @@ enum PhysicalOperatorType : uint8_t {
     ORDER_BY_SCAN,
 };
 
-const string PhysicalOperatorTypeNames[] = {"AGGREGATION", "AGGREGATION_SCAN", "COLUMN_EXTEND",
+const string PhysicalOperatorTypeNames[] = {"AGGREGATE", "AGGREGATE_SCAN", "COLUMN_EXTEND",
     "EXISTS", "FILTER", "FLATTEN", "FRONTIER_EXTEND", "HASH_JOIN_BUILD", "HASH_JOIN_PROBE",
     "INTERSECT", "LEFT_NESTED_LOOP_JOIN", "LIMIT", "LIST_EXTEND", "MULTIPLICITY_REDUCER",
     "PROJECTION", "READ_REL_PROPERTY", "RESULT_COLLECTOR", "RESULT_SCAN", "SCAN_NODE_ID",
