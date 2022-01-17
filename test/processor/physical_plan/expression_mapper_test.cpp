@@ -4,8 +4,7 @@
 #include "src/binder/include/expression/literal_expression.h"
 #include "src/binder/include/expression/node_expression.h"
 #include "src/binder/include/expression/property_expression.h"
-#include "src/expression_evaluator/include/aggregate_expression_evaluator.h"
-#include "src/function/include/aggregation/count.h"
+#include "src/function/include/aggregate/count.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 
 using ::testing::NiceMock;
@@ -111,45 +110,4 @@ TEST_F(ExpressionMapperTest, UnaryExpressionEvaluatorTest) {
             ASSERT_EQ(results[i], value);
         }
     }
-}
-
-TEST_F(ExpressionMapperTest, AggrExpressionEvaluatorTest) {
-    auto mapperContext = makeSimpleMapperContext();
-    auto valueVector = make_shared<ValueVector>(context->memoryManager, INT64);
-    auto dataChunk = make_shared<DataChunk>(1);
-    auto values = (int64_t*)valueVector->values;
-    for (auto i = 0u; i < 100; i++) {
-        values[i] = i;
-        if (i % 2 == 0) {
-            valueVector->setNull(i, true /* isNull */);
-        }
-    }
-    dataChunk->state->selectedSize = 100;
-    dataChunk->insert(0, valueVector);
-    auto resultSet = ResultSet(1);
-    resultSet.insert(0, dataChunk);
-
-    auto countStarExpr = make_unique<Expression>(
-        ExpressionType::COUNT_STAR_FUNC, DataType::INT64, "COUNT(*)_0" /* uniqueName */);
-    auto countStarExprEvaluator =
-        ExpressionMapper().mapLogicalExpressionToPhysical(*countStarExpr, mapperContext, *context);
-    auto countStarAggrEvaluator =
-        reinterpret_cast<AggregateExpressionEvaluator*>(countStarExprEvaluator.get());
-    countStarAggrEvaluator->initResultSet(resultSet, *memoryManager);
-    countStarAggrEvaluator->evaluate();
-
-    auto countStarState =
-        static_unique_pointer_cast<AggregationState, CountFunction<true>::CountState>(
-            countStarAggrEvaluator->getFunction()->initialize());
-    countStarAggrEvaluator->getFunction()->update((uint8_t*)countStarState.get(), nullptr,
-        resultSet.getNumTuples(unordered_set<uint32_t>{0}));
-    auto otherCountStarState =
-        static_unique_pointer_cast<AggregationState, CountFunction<true>::CountState>(
-            countStarAggrEvaluator->getFunction()->initialize());
-    otherCountStarState->val = 10;
-    otherCountStarState->isNull = false;
-    countStarAggrEvaluator->getFunction()->combine(
-        (uint8_t*)countStarState.get(), (uint8_t*)otherCountStarState.get());
-    countStarAggrEvaluator->getFunction()->finalize((uint8_t*)countStarState.get());
-    ASSERT_EQ(countStarState->val, 110);
 }

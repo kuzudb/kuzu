@@ -45,7 +45,7 @@ void QueryProcessor::decomposePlanIntoTasks(
         decomposePlanIntoTasks(op->getFirstChild(), childTask.get(), numThreads);
         parentTask->addChildTask(move(childTask));
     } break;
-    case AGGREGATION: {
+    case AGGREGATE: {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), numThreads);
         decomposePlanIntoTasks(op->getFirstChild(), childTask.get(), numThreads);
         parentTask->addChildTask(move(childTask));

@@ -11,7 +11,7 @@ public:
 TEST_F(CostModelTest, OneHopSingleFilter) {
     auto query = "MATCH (a:person)-[:knows]->(b:person) WHERE a.age = 1 RETURN COUNT(*)";
     auto plan = getBestPlan(query);
-    auto op1 = plan->lastOperator->getFirstChild()->getFirstChild().get();
+    auto op1 = plan->lastOperator->getFirstChild()->getFirstChild()->getFirstChild().get();
     ASSERT_EQ(LOGICAL_EXTEND, op1->getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalExtend*)op1)->nbrNodeID, "_b." + INTERNAL_ID_SUFFIX));
     auto op2 = op1->getFirstChild()->getFirstChild()->getFirstChild()->getFirstChild().get();
@@ -24,6 +24,7 @@ TEST_F(CostModelTest, OneHopMultiFilters) {
                  "= 45 RETURN COUNT(*)";
     auto plan = getBestPlan(query);
     auto op1 = plan->lastOperator->getFirstChild()
+                   ->getFirstChild()
                    ->getFirstChild()
                    ->getFirstChild()
                    ->getFirstChild()
@@ -48,6 +49,7 @@ TEST_F(CostModelTest, TwoHop) {
                    ->getFirstChild()
                    ->getFirstChild()
                    ->getFirstChild()
+                   ->getFirstChild()
                    .get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op1->getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalScanNodeID*)op1)->nodeID, "_b." + INTERNAL_ID_SUFFIX));
@@ -58,6 +60,7 @@ TEST_F(CostModelTest, TwoHopMultiFilters) {
                  "b.age = 35 RETURN COUNT(*)";
     auto plan = getBestPlan(query);
     auto op1 = plan->lastOperator->getFirstChild()
+                   ->getFirstChild()
                    ->getFirstChild()
                    ->getFirstChild()
                    ->getFirstChild()

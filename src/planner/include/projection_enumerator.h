@@ -25,6 +25,9 @@ public:
         const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn);
 
 private:
+    void enumerateAggregate(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
+    void enumerateSkipAndLimit(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
+
     void appendProjection(
         const vector<shared_ptr<Expression>>& expressionsToProject, LogicalPlan& plan);
     void appendAggregate(const vector<shared_ptr<Expression>>& expressionsToGroupBy,

@@ -18,21 +18,6 @@ cc_library(
 )
 
 cc_library(
-    name = "aggregate_evaluator_impls",
-    srcs = [
-        "aggregate_expression_evaluator.cpp",
-    ],
-    hdrs = [
-        "include/aggregate_expression_evaluator.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "base_evaluator",
-        "//src/function:aggregation_function",
-    ],
-)
-
-cc_library(
     name = "evaluator_impls",
     srcs = [
         "binary_expression_evaluator.cpp",
