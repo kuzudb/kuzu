@@ -6,6 +6,7 @@
 #include "src/common/include/gf_string.h"
 #include "src/common/include/types.h"
 #include "src/common/include/utils.h"
+#include "src/common/include/value.h"
 
 namespace graphflow {
 namespace common {
@@ -94,6 +95,38 @@ inline void Hash::operation(const unordered_set<string>& key, bool isNull, hash_
         result ^= std::hash<string>()(s);
     }
 }
+
+struct HashOnBytes {
+    static inline void operation(DataType dataType, uint8_t* key, bool isNull, hash_t& result) {
+        switch (dataType) {
+        case NODE_ID: {
+            Hash::operation<nodeID_t>(*(nodeID_t*)key, isNull, result);
+        } break;
+        case INT64: {
+            Hash::operation<int64_t>(*(int64_t*)key, isNull, result);
+        } break;
+        case DOUBLE: {
+            Hash::operation<double_t>(*(double_t*)key, isNull, result);
+        } break;
+        case STRING: {
+            Hash::operation<gf_string_t>(*(gf_string_t*)key, isNull, result);
+        } break;
+        case DATE: {
+            Hash::operation<date_t>(*(date_t*)key, isNull, result);
+        } break;
+        case TIMESTAMP: {
+            Hash::operation<timestamp_t>(*(timestamp_t*)key, isNull, result);
+        } break;
+        case INTERVAL: {
+            Hash::operation<interval_t>(*(interval_t*)key, isNull, result);
+        } break;
+        default: {
+            throw invalid_argument(
+                "Cannot hash data type " + TypeUtils::dataTypeToString(dataType));
+        }
+        }
+    }
+};
 
 } // namespace operation
 } // namespace common

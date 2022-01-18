@@ -32,19 +32,27 @@ public:
     AggregateFunction(aggr_initialize_function_t initializeFunc, aggr_update_function_t updateFunc,
         aggr_combine_function_t combineFunc, aggr_finalize_function_t finalizeFunc)
         : initializeFunc{move(initializeFunc)}, updateFunc{move(updateFunc)},
-          combineFunc{move(combineFunc)}, finalizeFunc{move(finalizeFunc)} {}
+          combineFunc{move(combineFunc)}, finalizeFunc{move(finalizeFunc)} {
+        initialNullAggregateState = createInitialNullAggregateState();
+    }
 
-    inline unique_ptr<AggregateState> initialize() { return initializeFunc(); }
+    inline uint64_t getAggregateStateSize() { return initialNullAggregateState->getValSize(); }
 
-    inline void update(uint8_t* state, ValueVector* input, uint64_t multiplicity) {
+    inline AggregateState* getInitialNullAggregateState() {
+        return initialNullAggregateState.get();
+    }
+
+    inline unique_ptr<AggregateState> createInitialNullAggregateState() { return initializeFunc(); }
+
+    inline void updateState(uint8_t* state, ValueVector* input, uint64_t multiplicity) {
         return updateFunc(state, input, multiplicity);
     }
 
-    inline void combine(uint8_t* state, uint8_t* otherState) {
+    inline void combineState(uint8_t* state, uint8_t* otherState) {
         return combineFunc(state, otherState);
     }
 
-    inline void finalize(uint8_t* state) { return finalizeFunc(state); }
+    inline void finalizeState(uint8_t* state) { return finalizeFunc(state); }
 
     unique_ptr<AggregateFunction> clone() {
         return make_unique<AggregateFunction>(
@@ -56,6 +64,8 @@ private:
     aggr_update_function_t updateFunc;
     aggr_combine_function_t combineFunc;
     aggr_finalize_function_t finalizeFunc;
+
+    unique_ptr<AggregateState> initialNullAggregateState;
 };
 
 class AggregateFunctionUtil {

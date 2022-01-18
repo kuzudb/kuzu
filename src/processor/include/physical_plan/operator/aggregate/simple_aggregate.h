@@ -1,50 +1,49 @@
 #pragma once
 
-#include "src/function/include/aggregate/aggregate_function.h"
-#include "src/processor/include/physical_plan/operator/physical_operator.h"
-#include "src/processor/include/physical_plan/operator/sink.h"
-
-using namespace graphflow::function;
+#include "src/processor/include/physical_plan/operator/aggregate/base_aggregate.h"
 
 namespace graphflow {
 namespace processor {
 
-struct AggregateSharedState {
-
-    explicit AggregateSharedState(vector<unique_ptr<AggregateState>> aggregateStates)
-        : aggregateStates{move(aggregateStates)}, numGroups{1}, currentGroupOffset{0} {}
-
-    mutex aggregateSharedStateLock;
-    vector<unique_ptr<AggregateState>> aggregateStates;
-    uint64_t numGroups;
-    uint64_t currentGroupOffset;
-};
-
-class SimpleAggregate : public Sink {
+class SimpleAggregateSharedState : public BaseAggregateSharedState {
 
 public:
-    SimpleAggregate(shared_ptr<AggregateSharedState> sharedState,
+    explicit SimpleAggregateSharedState(
+        const vector<unique_ptr<AggregateFunction>>& aggregateFunctions);
+
+    void combineAggregateStates(const vector<unique_ptr<AggregateState>>& localAggregateStates);
+
+    void finalizeAggregateStates();
+
+    bool hasMoreToRead() override;
+
+    pair<uint64_t, uint64_t> getNextRangeToRead() override;
+
+    inline AggregateState* getAggregateState(uint64_t idx) {
+        return globalAggregateStates[idx].get();
+    }
+
+private:
+    vector<unique_ptr<AggregateState>> globalAggregateStates;
+};
+
+class SimpleAggregate : public BaseAggregate {
+
+public:
+    SimpleAggregate(shared_ptr<SimpleAggregateSharedState> sharedState,
         vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
         unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id);
 
-    PhysicalOperatorType getOperatorType() override { return AGGREGATE; }
-
-    shared_ptr<ResultSet> initResultSet() override;
-
     void execute() override;
-
-    unique_ptr<PhysicalOperator> clone() override;
 
     void finalize() override;
 
-private:
-    shared_ptr<AggregateSharedState> sharedState;
+    unique_ptr<PhysicalOperator> clone() override;
 
-    vector<DataPos> aggregateVectorsPos;
-    vector<ValueVector*> aggregateVectors;
-    vector<unique_ptr<AggregateFunction>> aggregateFunctions;
-    vector<unique_ptr<AggregateState>> aggregateStates;
+private:
+    shared_ptr<SimpleAggregateSharedState> sharedState;
+    vector<unique_ptr<AggregateState>> localAggregateStates;
 };
 
 } // namespace processor

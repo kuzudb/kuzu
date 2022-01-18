@@ -35,9 +35,16 @@ public:
         return result;
     }
 
+    inline bool hasExpressionsToGroupBy() const { return !expressionsToGroupBy.empty(); }
+
+    inline vector<shared_ptr<Expression>> getExpressionsToGroupBy() const {
+        return expressionsToGroupBy;
+    }
+
     inline vector<shared_ptr<Expression>> getExpressionsToAggregate() const {
         return expressionsToAggregate;
     }
+
     inline Schema* getSchemaBeforeAggregate() const { return schemaBeforeAggregate.get(); }
 
     unique_ptr<LogicalOperator> copy() override {

@@ -1,6 +1,9 @@
 #pragma once
 
+#include "src/common/include/operations/arithmetic_operations.h"
 #include "src/function/include/aggregate/aggregate_function.h"
+
+using namespace graphflow::common::operation;
 
 namespace graphflow {
 namespace function {

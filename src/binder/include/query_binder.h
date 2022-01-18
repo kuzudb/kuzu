@@ -71,9 +71,6 @@ private:
     void validateProjectionColumnNamesAreUnique(const vector<shared_ptr<Expression>>& expressions);
     void validateOrderByFollowedBySkipOrLimitInWithStatement(
         const BoundProjectionBody& boundProjectionBody);
-    // E.g. RETURN a, b, COUNT(*)
-    // Note: this validation should be removed once we have group by implemented.
-    void validateAggregationsHaveNoGroupBy(const vector<shared_ptr<Expression>>& expressions);
     void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
         unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
     uint64_t validateAndExtractSkipLimitNumber(const ParsedExpression& skipOrLimitExpression);

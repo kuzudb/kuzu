@@ -22,6 +22,8 @@ public:
     }
 
     virtual void finalize(){};
+
+    unique_ptr<PhysicalOperator> clone() override = 0;
 };
 
 } // namespace processor
