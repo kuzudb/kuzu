@@ -3,13 +3,14 @@
 namespace graphflow {
 namespace processor {
 
-pair<uint64_t, uint64_t> OrderByScan::getNextRowCollectionIdxAndRowIdxPair() {
-    auto rowInfoBuffer = sharedState->sortedKeyBlocks->front()->getMemBlockData() +
-                         (nextRowIdxToReadInMemBlock + 1) * sharedState->keyBlockEntrySizeInBytes -
-                         sizeof(uint64_t);
-    uint16_t rowCollectionIdx = OrderByKeyEncoder::getEncodedRowCollectionIdx(rowInfoBuffer);
-    uint64_t rowIdx = OrderByKeyEncoder::getEncodedRowIdx(rowInfoBuffer);
-    return make_pair(rowCollectionIdx, rowIdx);
+pair<uint64_t, uint64_t> OrderByScan::getNextFactorizedTableIdxAndTupleIdxPair() {
+    auto tupleInfoBuffer =
+        sharedState->sortedKeyBlocks->front()->getMemBlockData() +
+        (nextTupleIdxToReadInMemBlock + 1) * sharedState->keyBlockEntrySizeInBytes -
+        sizeof(uint64_t);
+    uint16_t factorizedTableIdx = OrderByKeyEncoder::getEncodedFactorizedTableIdx(tupleInfoBuffer);
+    uint64_t tupleIdx = OrderByKeyEncoder::getEncodedTupleIdx(tupleInfoBuffer);
+    return make_pair(factorizedTableIdx, tupleIdx);
 }
 
 shared_ptr<ResultSet> OrderByScan::initResultSet() {
@@ -19,43 +20,43 @@ shared_ptr<ResultSet> OrderByScan::initResultSet() {
         auto outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
         outDataChunk->insert(outDataPos.valueVectorPos,
             make_shared<ValueVector>(context.memoryManager,
-                sharedState->rowCollections[0]->getLayout().fields[i].dataType));
-        fieldsToReadInRowCollection.emplace_back(i);
+                sharedState->factorizedTables[0]->getTupleSchema().fields[i].dataType));
+        fieldsToReadInFactorizedTable.emplace_back(i);
     }
     scanSingleTuple =
-        sharedState->rowCollections[0]->hasOverflowColToRead(fieldsToReadInRowCollection);
+        sharedState->factorizedTables[0]->hasUnflatColToRead(fieldsToReadInFactorizedTable);
     return resultSet;
 }
 
 bool OrderByScan::getNextTuples() {
     metrics->executionTime.start();
-    auto numRowsInMemBlock = sharedState->sortedKeyBlocks->front()->numEntriesInMemBlock;
-    // If there is no more rows to read, just return false.
-    if (nextRowIdxToReadInMemBlock >= numRowsInMemBlock) {
+    auto numTuplesInMemBlock = sharedState->sortedKeyBlocks->front()->numEntriesInMemBlock;
+    // If there is no more tuples to read, just return false.
+    if (nextTupleIdxToReadInMemBlock >= numTuplesInMemBlock) {
         metrics->executionTime.stop();
         return false;
     } else {
-        // If there is an overflow column in fieldsToReadInRowCollection, we can only read one
-        // row at a time. Otherwise, we can read min(DEFAULT_VECTOR_CAPACITY,
-        // numRowsRemainingInMemBlock) rows.
+        // If there is an overflow column in fieldsToReadInFactorizedTable, we can only read one
+        // tuple at a time. Otherwise, we can read min(DEFAULT_VECTOR_CAPACITY,
+        // numTuplesRemainingInMemBlock) tuples.
         if (scanSingleTuple) {
-            auto rowCollectionIdxAndRowIdxPair = getNextRowCollectionIdxAndRowIdxPair();
-            sharedState->rowCollections[rowCollectionIdxAndRowIdxPair.first]->scan(
-                fieldsToReadInRowCollection, outDataPoses, *resultSet,
-                rowCollectionIdxAndRowIdxPair.second, 1 /* numRowsToScan */);
-            nextRowIdxToReadInMemBlock++;
+            auto factorizedTableIdxAndTupleIdxPair = getNextFactorizedTableIdxAndTupleIdxPair();
+            sharedState->factorizedTables[factorizedTableIdxAndTupleIdxPair.first]->scan(
+                fieldsToReadInFactorizedTable, outDataPoses, *resultSet,
+                factorizedTableIdxAndTupleIdxPair.second, 1 /* numTuples */);
+            nextTupleIdxToReadInMemBlock++;
             metrics->numOutputTuple.increase(1);
         } else {
-            auto numRowsToLookup =
-                min(DEFAULT_VECTOR_CAPACITY, numRowsInMemBlock - nextRowIdxToReadInMemBlock);
-            for (auto i = 0u; i < numRowsToLookup; i++) {
-                auto rowCollectionIdxAndRowIdxPair = getNextRowCollectionIdxAndRowIdxPair();
-                // todo: add support to read values from rowCollection to
+            auto numTuplesToRead =
+                min(DEFAULT_VECTOR_CAPACITY, numTuplesInMemBlock - nextTupleIdxToReadInMemBlock);
+            for (auto i = 0u; i < numTuplesToRead; i++) {
+                auto factorizedTableIdxAndTupleIdxPair = getNextFactorizedTableIdxAndTupleIdxPair();
+                // todo: add support to read values from factorizedTable to
                 // unflat valueVectors. issue: 443
-                sharedState->rowCollections[rowCollectionIdxAndRowIdxPair.first]
-                    ->readNonOverflowTupleToUnflatVector(fieldsToReadInRowCollection, outDataPoses,
-                        *resultSet, rowCollectionIdxAndRowIdxPair.second, i);
-                nextRowIdxToReadInMemBlock++;
+                sharedState->factorizedTables[factorizedTableIdxAndTupleIdxPair.first]
+                    ->readFlatTupleToUnflatVector(fieldsToReadInFactorizedTable, outDataPoses,
+                        *resultSet, factorizedTableIdxAndTupleIdxPair.second, i);
+                nextTupleIdxToReadInMemBlock++;
                 metrics->numOutputTuple.increase(1);
             }
         }

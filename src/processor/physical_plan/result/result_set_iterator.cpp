@@ -60,7 +60,7 @@ void ResultSetIterator::setDataChunksTypes() {
     }
 }
 
-void ResultSetIterator::getNextTuple(Tuple& tuple) {
+void ResultSetIterator::getNextTuple(FlatTuple& tuple) {
     auto valueInTupleIdx = 0;
     for (auto& dataPos : vectorsToCollectPos) {
         auto tuplePosition = tuplePositions[dataPos.dataChunkPos];

@@ -8,8 +8,8 @@
 #include "src/processor/include/physical_plan/operator/morsel.h"
 #include "src/processor/include/physical_plan/operator/order_by/radix_sort.h"
 #include "src/processor/include/physical_plan/operator/sink.h"
+#include "src/processor/include/physical_plan/result/factorized_table.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
-#include "src/processor/include/physical_plan/result/row_collection.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -17,28 +17,29 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-// This class contains rowCollections, nextRowCollectionID, stringAndUnstructuredKeyColInfo,
-// sortedKeyBlocks and the size of each row in keyBlocks. The class is shared between the orderBy,
+// This class contains factorizedTables, nextFactorizedTableIdx, stringAndUnstructuredKeyColInfo,
+// sortedKeyBlocks and the size of each tuple in keyBlocks. The class is shared between the orderBy,
 // orderByMerge, orderByScan operators. All functions are guaranteed to be thread-safe,
 // so caller doesn't need to acquire a lock before calling these functions.
-class SharedRowCollectionsAndSortedKeyBlocks {
+class SharedFactorizedTablesAndSortedKeyBlocks {
 public:
-    explicit SharedRowCollectionsAndSortedKeyBlocks()
-        : nextRowCollectionIdx{0}, sortedKeyBlocks{make_shared<queue<shared_ptr<KeyBlock>>>()} {}
+    explicit SharedFactorizedTablesAndSortedKeyBlocks()
+        : nextFactorizedTableIdx{0}, sortedKeyBlocks{make_shared<queue<shared_ptr<KeyBlock>>>()} {}
 
-    uint16_t getNextRowCollectionIdx() {
+    uint16_t getNextFactorizedTableIdx() {
         lock_guard<mutex> sharedStateLock{orderBySharedStateLock};
-        return nextRowCollectionIdx++;
+        return nextFactorizedTableIdx++;
     }
 
-    void appendRowCollection(uint16_t rowCollectionIdx, shared_ptr<RowCollection> rowCollection) {
+    void appendFactorizedTable(
+        uint16_t factorizedTableIdx, shared_ptr<FactorizedTable> factorizedTable) {
         lock_guard<mutex> sharedStateLock{orderBySharedStateLock};
-        // If the rowCollections is full, resize the rowCollections and
-        // insert the rowCollection to the set.
-        if (rowCollectionIdx >= rowCollections.size()) {
-            rowCollections.resize(rowCollectionIdx + 1);
+        // If the factorizedTables is full, resize the factorizedTables and
+        // insert the factorizedTable to the set.
+        if (factorizedTableIdx >= factorizedTables.size()) {
+            factorizedTables.resize(factorizedTableIdx + 1);
         }
-        rowCollections[rowCollectionIdx] = move(rowCollection);
+        factorizedTables[factorizedTableIdx] = move(factorizedTable);
     }
 
     void appendSortedKeyBlock(shared_ptr<KeyBlock> keyBlock) {
@@ -61,8 +62,8 @@ private:
     mutex orderBySharedStateLock;
 
 public:
-    vector<shared_ptr<RowCollection>> rowCollections;
-    uint16_t nextRowCollectionIdx;
+    vector<shared_ptr<FactorizedTable>> factorizedTables;
+    uint16_t nextFactorizedTableIdx;
     shared_ptr<queue<shared_ptr<KeyBlock>>> sortedKeyBlocks;
 
     uint64_t keyBlockEntrySizeInBytes;
@@ -91,7 +92,7 @@ public:
 class OrderBy : public Sink {
 public:
     OrderBy(const OrderByDataInfo& orderByDataInfo,
-        shared_ptr<SharedRowCollectionsAndSortedKeyBlocks> sharedState,
+        shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
         unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
         : Sink{move(child), context, id}, orderByDataInfo{orderByDataInfo}, sharedState{
                                                                                 sharedState} {}
@@ -107,15 +108,15 @@ public:
     }
 
 private:
-    uint16_t rowCollectionIdx;
+    uint16_t factorizedTableIdx;
     OrderByDataInfo orderByDataInfo;
     unique_ptr<OrderByKeyEncoder> orderByKeyEncoder;
     unique_ptr<RadixSort> radixSorter;
     vector<shared_ptr<ValueVector>> keyVectors;
     vector<shared_ptr<ValueVector>> vectorsToAppend;
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
-    shared_ptr<SharedRowCollectionsAndSortedKeyBlocks> sharedState;
-    shared_ptr<RowCollection> localRowCollection;
+    shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
+    shared_ptr<FactorizedTable> localFactorizedTable;
 };
 
 } // namespace processor

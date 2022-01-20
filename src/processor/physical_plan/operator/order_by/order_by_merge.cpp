@@ -9,18 +9,18 @@ shared_ptr<ResultSet> OrderByMerge::initResultSet() {
     // OrderByMerge is the only sink operator in a pipeline and only modifies the
     // sharedState by merging sortedKeyBlocks, So we don't need to initialize the resultSet.
     keyBlockMerger =
-        make_unique<KeyBlockMerger>(sharedRowCollectionsAndSortedKeyBlocks->rowCollections,
-            sharedRowCollectionsAndSortedKeyBlocks->stringAndUnstructuredKeyColInfo,
-            sharedRowCollectionsAndSortedKeyBlocks->keyBlockEntrySizeInBytes);
+        make_unique<KeyBlockMerger>(sharedFactorizedTablesAndSortedKeyBlocks->factorizedTables,
+            sharedFactorizedTablesAndSortedKeyBlocks->stringAndUnstructuredKeyColInfo,
+            sharedFactorizedTablesAndSortedKeyBlocks->keyBlockEntrySizeInBytes);
     return resultSet;
 }
 
 void OrderByMerge::execute() {
     keyBlockMergeTaskDispatcher->initIfNecessary(context.memoryManager,
-        sharedRowCollectionsAndSortedKeyBlocks->sortedKeyBlocks,
-        sharedRowCollectionsAndSortedKeyBlocks->rowCollections,
-        sharedRowCollectionsAndSortedKeyBlocks->stringAndUnstructuredKeyColInfo,
-        sharedRowCollectionsAndSortedKeyBlocks->keyBlockEntrySizeInBytes);
+        sharedFactorizedTablesAndSortedKeyBlocks->sortedKeyBlocks,
+        sharedFactorizedTablesAndSortedKeyBlocks->factorizedTables,
+        sharedFactorizedTablesAndSortedKeyBlocks->stringAndUnstructuredKeyColInfo,
+        sharedFactorizedTablesAndSortedKeyBlocks->keyBlockEntrySizeInBytes);
     metrics->executionTime.start();
     Sink::execute();
     while (!keyBlockMergeTaskDispatcher->isDoneMerge()) {

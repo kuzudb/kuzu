@@ -24,23 +24,24 @@ public:
 
 public:
     unique_ptr<MemoryManager> memoryManager;
-    const uint16_t rowCollectionIdx = 9;
+    const uint16_t factorizedTableIdx = 9;
 
-    void checkRowIdxesAndRowCollectionIdxes(uint8_t* keyBlockPtr, const uint64_t entrySize,
-        const vector<uint64_t>& expectedRowIdxOrder) {
-        for (auto expectedRowIdx : expectedRowIdxOrder) {
-            ASSERT_EQ(OrderByKeyEncoder::getEncodedRowCollectionIdx(
+    void checkTupleIdxesAndFactorizedTableIdxes(uint8_t* keyBlockPtr, const uint64_t entrySize,
+        const vector<uint64_t>& expectedTupleIdxOrder) {
+        for (auto expectedTupleIdx : expectedTupleIdxOrder) {
+            ASSERT_EQ(OrderByKeyEncoder::getEncodedFactorizedTableIdx(
                           keyBlockPtr + entrySize - sizeof(uint64_t)),
-                rowCollectionIdx);
-            auto encodedRowIdx =
-                OrderByKeyEncoder::getEncodedRowIdx(keyBlockPtr + entrySize - sizeof(uint64_t));
-            if (expectedRowIdx != -1) {
-                ASSERT_EQ(encodedRowIdx, expectedRowIdx);
+                factorizedTableIdx);
+            auto encodedTupleIdx =
+                OrderByKeyEncoder::getEncodedTupleIdx(keyBlockPtr + entrySize - sizeof(uint64_t));
+            if (expectedTupleIdx != -1) {
+                ASSERT_EQ(encodedTupleIdx, expectedTupleIdx);
             } else {
-                // For rows with the same value, we just need to check the row id is valid and
-                // in the range of [0, expectedRowIDOrder.size()).
+                // For tuples with the same value, we just need to check the tuple id is valid and
+                // in the range of [0, expectedTupleIDOrder.size()).
                 ASSERT_EQ(
-                    (0 <= encodedRowIdx) && (encodedRowIdx < expectedRowIdxOrder.size()), true);
+                    (0 <= encodedTupleIdx) && (encodedTupleIdx < expectedTupleIdxOrder.size()),
+                    true);
             }
             keyBlockPtr += entrySize;
         }
@@ -54,10 +55,10 @@ public:
 
     template<typename T>
     void singleOrderByColTest(const vector<T>& sortingData, const vector<bool>& nullMasks,
-        const vector<uint64_t>& expectedRowIdxOrder, const DataType dataType, const bool isAsc,
+        const vector<uint64_t>& expectedTupleIdxOrder, const DataType dataType, const bool isAsc,
         bool hasPayLoadCol) {
         GF_ASSERT(sortingData.size() == nullMasks.size());
-        GF_ASSERT(sortingData.size() == expectedRowIdxOrder.size());
+        GF_ASSERT(sortingData.size() == expectedTupleIdxOrder.size());
         auto dataChunk = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         dataChunk->state->selectedSize = sortingData.size();
         auto valueVector = make_shared<ValueVector>(memoryManager.get(), dataType);
@@ -78,9 +79,8 @@ public:
             valueVector}; // all columns including orderBy and payload columns
         vector<bool> isAscOrder{isAsc};
 
-        RowLayout rowLayout;
-        rowLayout.appendField(
-            {dataType, TypeUtils::getDataTypeSize(dataType), false /* isVectorOverflow */});
+        TupleSchema tupleSchema;
+        tupleSchema.appendField({dataType, false /* isUnflat */, 0 /* dataChunkPos */});
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
 
         if (hasPayLoadCol) {
@@ -90,52 +90,53 @@ public:
                 payloadValueVector->addString(i, to_string(i));
             }
             dataChunk->insert(1, payloadValueVector);
-            // To test whether the orderByCol -> rowCollectionColOffset works properly, we put the
-            // payload column at index 0, and the orderByCol at index 1. Then the
-            // rowCollectionOffset for the key string column = sizeof(gf_string_t).
+            // To test whether the orderByCol -> factorizedTableIdx works properly, we put the
+            // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
-            rowLayout.appendField(
-                {dataType, TypeUtils::getDataTypeSize(STRING), false /* isVectorOverflow */});
-            stringAndUnstructuredKeyColInfo.emplace_back(
-                StringAndUnstructuredKeyColInfo(TypeUtils::getDataTypeSize(STRING), 0, isAsc,
-                    is_same<T, string>::value /* isStrCol */));
+            tupleSchema.appendField({dataType, false /* isUnflat */, 0 /* dataChunkPos */});
+            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
+                1 /* colIdxInFactorizedTable */, 0 /* colOffsetInEncodedKeyBlock */, isAsc,
+                is_same<T, string>::value /* isStrCol */));
         } else if constexpr (is_same<T, string>::value || is_same<T, Value>::value) {
             // If this is a string or unstructured column and has no payload column, then the
-            // rowCollection offset is just 0.
+            // factorizedTable offset is just 0.
             stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
-                0, 0, isAsc, is_same<T, string>::value /* isStrCol */));
+                0 /* colIdxInFactorizedTable */, 0 /* colOffsetInEncodedKeyBlock */, isAsc,
+                is_same<T, string>::value /* isStrCol */));
         }
 
-        rowLayout.initialize();
-        RowCollection rowCollection(*memoryManager, rowLayout);
-        rowCollection.append(allVectors, sortingData.size());
+        tupleSchema.initialize();
+        FactorizedTable factorizedTable(*memoryManager, tupleSchema);
+        factorizedTable.append(allVectors, sortingData.size());
 
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, rowCollectionIdx);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
         orderByKeyEncoder.encodeKeys();
 
         RadixSort radixSort = RadixSort(
-            *memoryManager, rowCollection, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
+            *memoryManager, factorizedTable, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
         sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
-        checkRowIdxesAndRowCollectionIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
-            orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedRowIdxOrder);
+        checkTupleIdxesAndFactorizedTableIdxes(
+            orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
+            orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedTupleIdxOrder);
     }
 
     void multipleOrderByColSolveTieTest(vector<bool>& isAscOrder,
-        vector<uint64_t>& expectedRowIdxOrder, vector<vector<string>>& stringValues) {
+        vector<uint64_t>& expectedTupleIdxOrder, vector<vector<string>>& stringValues) {
         vector<shared_ptr<ValueVector>> orderByVectors;
         auto mockDataChunk = make_shared<DataChunk>(stringValues.size());
         mockDataChunk->state->currIdx = 0;
-        RowLayout rowLayout;
+        TupleSchema tupleSchema;
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
         for (auto i = 0; i < stringValues.size(); i++) {
             auto stringValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
             stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
-                stringAndUnstructuredKeyColInfo.size() * TypeUtils::getDataTypeSize(STRING),
+                stringAndUnstructuredKeyColInfo.size(),
                 stringAndUnstructuredKeyColInfo.size() * OrderByKeyEncoder::getEncodingSize(STRING),
                 isAscOrder[i], true /* isStrCol */));
-            rowLayout.appendField(FieldInLayout(STRING, TypeUtils::getDataTypeSize(STRING), false));
+            tupleSchema.appendField(
+                FieldInTupleSchema(STRING, false /* isUnflat */, 0 /* dataChunkPos */));
             mockDataChunk->insert(i, stringValueVector);
             for (auto j = 0u; j < stringValues[i].size(); j++) {
                 stringValueVector->addString(j, stringValues[i][j]);
@@ -143,23 +144,24 @@ public:
             orderByVectors.emplace_back(stringValueVector);
         }
 
-        rowLayout.initialize();
-        RowCollection rowCollection(*memoryManager, rowLayout);
+        tupleSchema.initialize();
+        FactorizedTable factorizedTable(*memoryManager, tupleSchema);
 
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, rowCollectionIdx);
-        for (auto i = 0u; i < expectedRowIdxOrder.size(); i++) {
-            rowCollection.append(orderByVectors, 1);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        for (auto i = 0u; i < expectedTupleIdxOrder.size(); i++) {
+            factorizedTable.append(orderByVectors, 1);
             orderByKeyEncoder.encodeKeys();
             mockDataChunk->state->currIdx++;
         }
 
         auto radixSort = RadixSort(
-            *memoryManager, rowCollection, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
+            *memoryManager, factorizedTable, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
         sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
-        checkRowIdxesAndRowCollectionIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
-            orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedRowIdxOrder);
+        checkTupleIdxesAndFactorizedTableIdxes(
+            orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
+            orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedTupleIdxOrder);
     }
 };
 
@@ -168,8 +170,8 @@ TEST_F(RadixSortTest, singleOrderByColInt64Test) {
         -132 /* negative 1 byte number */, -5242 /* negative 2 bytes number */, INT64_MAX,
         INT64_MIN, 210042 /* positive 2 bytes number */};
     vector<bool> nullMasks = {false, true, false, false, false, false, false};
-    vector<uint64_t> expectedRowIdxOrder = {5, 3, 2, 0, 6, 4, 1};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, INT64, true /* isAsc */,
+    vector<uint64_t> expectedTupleIdxOrder = {5, 3, 2, 0, 6, 4, 1};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, INT64, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -178,30 +180,30 @@ TEST_F(RadixSortTest, singleOrderByColNoNullInt64Test) {
         39842 /* positive 2 bytes number */, -1 /* negative 1 byte number */,
         -819321 /* negative 2 bytes number */, INT64_MAX, INT64_MIN};
     vector<bool> nullMasks(6, false);
-    vector<uint64_t> expectedRowIdxOrder = {4, 1, 0, 2, 3, 5};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, INT64, false /* isAsc */,
+    vector<uint64_t> expectedTupleIdxOrder = {4, 1, 0, 2, 3, 5};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, INT64, false /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColLargeInputInt64Test) {
-    // 240 is the maximum number of rows we can put into a memory block
+    // 240 is the maximum number of tuples we can put into a memory block
     // since: 4096 / (9 + 8) = 240.
     vector<int64_t> sortingData(240);
     iota(sortingData.begin(), sortingData.end(), 0);
     reverse(sortingData.begin(), sortingData.end());
     vector<bool> nullMasks(240, false);
-    vector<uint64_t> expectedRowIdxOrder(240);
-    iota(expectedRowIdxOrder.begin(), expectedRowIdxOrder.end(), 0);
-    reverse(expectedRowIdxOrder.begin(), expectedRowIdxOrder.end());
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, INT64, true /* isAsc */,
+    vector<uint64_t> expectedTupleIdxOrder(240);
+    iota(expectedTupleIdxOrder.begin(), expectedTupleIdxOrder.end(), 0);
+    reverse(expectedTupleIdxOrder.begin(), expectedTupleIdxOrder.end());
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, INT64, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColBoolTest) {
     vector<int64_t> sortingData = {true, false, false /* NULL */};
     vector<bool> nullMasks = {false, false, true};
-    vector<uint64_t> expectedRowIdxOrder = {2, 0, 1};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, BOOL, false /* isAsc */,
+    vector<uint64_t> expectedTupleIdxOrder = {2, 0, 1};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, BOOL, false /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -213,8 +215,8 @@ TEST_F(RadixSortTest, singleOrderByColDateTest) {
         Date::FromCString("1968-12-21", strlen("1968-12-21")) /* negative days */,
         date_t(0) /*NULL*/};
     vector<bool> nullMasks = {false, false, false, false, true};
-    vector<uint64_t> expectedRowIdxOrder = {3, 0, 1, 2, 4};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, DATE, true /* isAsc */,
+    vector<uint64_t> expectedTupleIdxOrder = {3, 0, 1, 2, 4};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, DATE, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -231,9 +233,9 @@ TEST_F(RadixSortTest, singleOrderByColTimestampTest) {
     };
 
     vector<bool> nullMasks = {false, false, true, false, false};
-    vector<uint64_t> expectedRowIdxOrder = {2, 3, 1, 0, 4};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, TIMESTAMP, false /* isAsc */,
-        false /* hasPayLoadCol */);
+    vector<uint64_t> expectedTupleIdxOrder = {2, 3, 1, 0, 4};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, TIMESTAMP,
+        false /* isAsc */, false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColIntervalTest) {
@@ -251,8 +253,8 @@ TEST_F(RadixSortTest, singleOrderByColIntervalTest) {
     };
 
     vector<bool> nullMasks = {true, false, false, false};
-    vector<uint64_t> expectedRowIdxOrder = {0, 3, 2, 1};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, INTERVAL, false /* isAsc */,
+    vector<uint64_t> expectedTupleIdxOrder = {0, 3, 2, 1};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, INTERVAL, false /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -261,8 +263,8 @@ TEST_F(RadixSortTest, singleOrderByColDoubleTest) {
         -0.90123 /* small negative number */, 95152 /* large positive number */,
         -76123 /* large negative number */, 0, 0 /* NULL */};
     vector<bool> nullMasks = {false, false, false, false, false, true};
-    vector<uint64_t> expectedRowIdxOrder = {5, 2, 0, 4, 1, 3};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, DOUBLE, false /* isAsc */,
+    vector<uint64_t> expectedTupleIdxOrder = {5, 2, 0, 4, 1, 3};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, DOUBLE, false /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -271,8 +273,8 @@ TEST_F(RadixSortTest, singleOrderByColUnstrSameDataTypeTest) {
     vector<Value> sortingData = {Value(4.7), Value(-0.5), Value(10.52), Value(double(0)) /* NULL */,
         Value(double(0)) /* NULL */};
     vector<bool> nullMasks = {false, false, false, true, true};
-    vector<uint64_t> expectedRowIdxOrder = {1, 0, 2, 3, 4};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, UNSTRUCTURED,
+    vector<uint64_t> expectedTupleIdxOrder = {1, 0, 2, 3, 4};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, UNSTRUCTURED,
         true /* isAsc */, false /* hasPayLoadCol */);
 }
 
@@ -281,8 +283,8 @@ TEST_F(RadixSortTest, singleOrderByColUnstrNumericalValTest) {
     vector<Value> sortingData = {
         Value(4.7), Value(-0.5), Value(int64_t(8)), Value(int64_t(0)) /* NULL */, Value(-0.045)};
     vector<bool> nullMasks = {false, false, false, true, false};
-    vector<uint64_t> expectedRowIdxOrder = {1, 4, 0, 2, 3};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, UNSTRUCTURED,
+    vector<uint64_t> expectedTupleIdxOrder = {1, 4, 0, 2, 3};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, UNSTRUCTURED,
         true /* isAsc */, false /* hasPayLoadCol */);
 }
 
@@ -294,8 +296,8 @@ TEST_F(RadixSortTest, singleOrderByColUnstrTimeValTest) {
         Value(Date::FromCString("2003-10-13", strlen("2003-10-13"))),
         Value(Timestamp::FromCString("2003-10-13 01:02:03", strlen("2003-10-13 01:02:03")))};
     vector<bool> nullMasks = {false, false, true, false, false};
-    vector<uint64_t> expectedRowIdxOrder = {1, 0, 3, 4, 2};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, UNSTRUCTURED,
+    vector<uint64_t> expectedTupleIdxOrder = {1, 0, 3, 4, 2};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, UNSTRUCTURED,
         true /* isAsc */, false /* hasPayLoadCol */);
 }
 
@@ -305,9 +307,9 @@ TEST_F(RadixSortTest, singleOrderByColUnstrErrorTest) {
         Value(Timestamp::FromCString("2003-10-12 08:21:10", strlen("2003-10-12 08:21:10"))),
         Value(4.2)};
     vector<bool> nullMasks = {false, false};
-    vector<uint64_t> expectedRowIdxOrder = {1, 0};
+    vector<uint64_t> expectedTupleIdxOrder = {1, 0};
     try {
-        singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, UNSTRUCTURED,
+        singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, UNSTRUCTURED,
             true /* isAsc */, false /* hasPayLoadCol */);
         FAIL();
     } catch (invalid_argument& e) {
@@ -321,8 +323,8 @@ TEST_F(RadixSortTest, singleOrderByColStringTest) {
         "common prefix rank1", "common prefix rank3", "common prefix rank2",
         "another common prefix1", "another short string", "" /*NULL*/};
     vector<bool> nullMasks = {false, false, false, false, false, false, false, false, true};
-    vector<uint64_t> expectedRowIdxOrder = {0, 6, 2, 7, 3, 5, 4, 1, 8};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, STRING, true /* isAsc */,
+    vector<uint64_t> expectedTupleIdxOrder = {0, 6, 2, 7, 3, 5, 4, 1, 8};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, STRING, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -333,32 +335,31 @@ TEST_F(RadixSortTest, singleOrderByColNoNullStringTest) {
         "another common prefix2", "common prefix rank1", "common prefix rank3",
         "common prefix rank2", "other common prefix test3", "another short string"};
     vector<bool> nullMasks(8, false);
-    vector<uint64_t> expectedRowIdxOrder = {0, 6, 1, 4, 5, 3, 7, 2};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, STRING, false /* isAsc */,
+    vector<uint64_t> expectedTupleIdxOrder = {0, 6, 1, 4, 5, 3, 7, 2};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, STRING, false /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColAllTiesStringTest) {
-    // All the strings are the same, so there is a tie across all rows and the tie can't be solved
-    // the row ordering depends on the c++ std::sort, so we just need to check that the row id is
-    // valid and is in the range of [0~19).
-    vector<string> sortingData(20, "same string for all rows");
+    // All the strings are the same, so there is a tie across all tuples and the tie can't be
+    // solved. The tuple ordering depends on the c++ std::sort, so we just need to check that the
+    // tupleIdx is valid and is in the range of [0~19).
+    vector<string> sortingData(20, "same string for all tuples");
     vector<bool> nullMasks(20, false);
-    vector<uint64_t> expectedRowIdxOrder(20, -1);
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, STRING, true /* isAsc */,
+    vector<uint64_t> expectedTupleIdxOrder(20, -1);
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, STRING, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColWithPayloadTest) {
     // The first column is a payload column and the second column is an orderBy column. The radix
-    // sort needs to use orderByColOffsetInRowCollection map to correctly read values from the
-    // rowCollection.
+    // sort needs to use the factorizedTableColIdx to correctly read the strings.
     vector<string> sortingData = {"string column with payload col test5",
         "string column with payload col test3", "string 1",
         "string column with payload col long long", "very long long long string"};
     vector<bool> nullMasks(5, false);
-    vector<uint64_t> expectedRowIdxOrder = {2, 3, 1, 0, 4};
-    singleOrderByColTest(sortingData, nullMasks, expectedRowIdxOrder, STRING, true /* isAsc */,
+    vector<uint64_t> expectedTupleIdxOrder = {2, 3, 1, 0, 4};
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, STRING, true /* isAsc */,
         true /* hasPayLoadCol */);
 }
 
@@ -420,38 +421,37 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     dateValues[3] = Date::FromCString("1964-01-21", strlen("1964-01-21"));
     dateValues[4] = Date::FromCString("2000-11-13", strlen("2000-11-13"));
 
-    RowLayout rowLayout({{INT64, TypeUtils::getDataTypeSize(INT64), false /* isVectorOverflow */},
-        {DOUBLE, TypeUtils::getDataTypeSize(DOUBLE), false /* isVectorOverflow */},
-        {STRING, TypeUtils::getDataTypeSize(STRING), false /* isVectorOverflow */},
-        {TIMESTAMP, TypeUtils::getDataTypeSize(TIMESTAMP), false /* isVectorOverflow */},
-        {DATE, TypeUtils::getDataTypeSize(DATE), false /* isVectorOverflow */}});
-    RowCollection rowCollection(*memoryManager, rowLayout);
+    TupleSchema tupleSchema({{INT64, false /* isUnflat */, 0 /* dataChunkPos */},
+        {DOUBLE, false /* isUnflat */, 0 /* dataChunkPos */},
+        {STRING, false /* isUnflat */, 0 /* dataChunkPos */},
+        {TIMESTAMP, false /* isUnflat */, 0 /* dataChunkPos */},
+        {DATE, false /* isUnflat */, 0 /* dataChunkPos */}});
+    FactorizedTable factorizedTable(*memoryManager, tupleSchema);
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo = {
-        StringAndUnstructuredKeyColInfo(
-            TypeUtils::getDataTypeSize(INT64) + TypeUtils::getDataTypeSize(DOUBLE),
+        StringAndUnstructuredKeyColInfo(2 /* colIdxInFactorizedTable */,
             OrderByKeyEncoder::getEncodingSize(INT64) + OrderByKeyEncoder::getEncodingSize(DOUBLE),
             true /* isAscOrder */, true /* isStrCol */)};
 
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, rowCollectionIdx);
+        OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
     for (auto i = 0u; i < 5; i++) {
         orderByKeyEncoder.encodeKeys();
-        rowCollection.append(orderByVectors, 1);
+        factorizedTable.append(orderByVectors, 1);
         mockDataChunk->state->currIdx++;
     }
 
     RadixSort radixSort = RadixSort(
-        *memoryManager, rowCollection, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
+        *memoryManager, factorizedTable, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
     sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
-    vector<uint64_t> expectedRowIdxOrder = {1, 4, 0, 2, 3};
-    checkRowIdxesAndRowCollectionIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
-        orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedRowIdxOrder);
+    vector<uint64_t> expectedTupleIdxOrder = {1, 4, 0, 2, 3};
+    checkTupleIdxesAndFactorizedTableIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
+        orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedTupleIdxOrder);
 }
 
 TEST_F(RadixSortTest, multipleOrderByColSolvableTieTest) {
     vector<bool> isAscOrder = {false, true};
-    vector<uint64_t> expectedRowIdxOrder = {
+    vector<uint64_t> expectedTupleIdxOrder = {
         4,
         0,
         1,
@@ -466,12 +466,12 @@ TEST_F(RadixSortTest, multipleOrderByColSolvableTieTest) {
             "same common prefix different1"},
         {"second same common prefix2", "second same common prefix0", "second same common prefix3",
             "second same common prefix2", "second same common prefix1"}};
-    multipleOrderByColSolveTieTest(isAscOrder, expectedRowIdxOrder, stringValues);
+    multipleOrderByColSolveTieTest(isAscOrder, expectedTupleIdxOrder, stringValues);
 }
 
 TEST_F(RadixSortTest, multipleOrderByColUnSolvableTieTest) {
     vector<bool> isAscOrder = {true, true};
-    vector<uint64_t> expectedRowIdxOrder = {1, 3, 2, 0, 4};
+    vector<uint64_t> expectedTupleIdxOrder = {1, 3, 2, 0, 4};
     // The first column has ties, need to compare the second column to solve the tie. However there
     // are still some ties that are not solvable.
     vector<vector<string>> stringValues = {
@@ -480,5 +480,5 @@ TEST_F(RadixSortTest, multipleOrderByColUnSolvableTieTest) {
             "same common prefix different1"},
         {"second same common prefix2", "second same common prefix0", "second same common prefix3",
             "second same common prefix0", "second same common prefix2"}};
-    multipleOrderByColSolveTieTest(isAscOrder, expectedRowIdxOrder, stringValues);
+    multipleOrderByColSolveTieTest(isAscOrder, expectedTupleIdxOrder, stringValues);
 }

@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
+#include "src/processor/include/physical_plan/result/flat_tuple.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
-#include "src/processor/include/physical_plan/result/tuple.h"
 
 namespace graphflow {
 namespace processor {

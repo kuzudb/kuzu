@@ -11,19 +11,18 @@ namespace processor {
 struct KeyBlockMergeMorsel;
 
 // This struct stores the string and unstructured key column information. We can utilize the
-// pre-computed indexes and offsets to expedite the row comparison in merge sort.
+// pre-computed indexes and offsets to expedite the tuple comparison in merge sort.
 struct StringAndUnstructuredKeyColInfo {
-    explicit StringAndUnstructuredKeyColInfo(uint64_t colOffsetInRowCollection,
+    explicit StringAndUnstructuredKeyColInfo(uint64_t colIdxInFactorizedTable,
         uint64_t colOffsetInEncodedKeyBlock, bool isAscOrder, bool isStrCol)
-        : colOffsetInRowCollection{colOffsetInRowCollection},
+        : colIdxInFactorizedTable{colIdxInFactorizedTable},
           colOffsetInEncodedKeyBlock{colOffsetInEncodedKeyBlock}, isStrCol{isStrCol},
           isAscOrder{isAscOrder} {}
     uint64_t getEncodingSize() {
         return isStrCol ? OrderByKeyEncoder::getEncodingSize(STRING) :
                           OrderByKeyEncoder::getEncodingSize(UNSTRUCTURED);
     }
-
-    uint64_t colOffsetInRowCollection;
+    uint64_t colIdxInFactorizedTable;
     uint64_t colOffsetInEncodedKeyBlock;
     bool isAscOrder;
     bool isStrCol;
@@ -31,10 +30,10 @@ struct StringAndUnstructuredKeyColInfo {
 
 class KeyBlockMerger {
 public:
-    explicit KeyBlockMerger(vector<shared_ptr<RowCollection>>& rowCollections,
+    explicit KeyBlockMerger(vector<shared_ptr<FactorizedTable>>& factorizedTables,
         vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo,
         uint64_t keyBlockEntrySizeInBytes)
-        : rowCollections{rowCollections},
+        : factorizedTables{factorizedTables},
           stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo},
           keyBlockEntrySizeInBytes{keyBlockEntrySizeInBytes} {}
 
@@ -42,27 +41,27 @@ public:
 
     inline uint64_t getKeyBlockEntrySizeInBytes() { return keyBlockEntrySizeInBytes; }
 
-    bool compareRowBuffer(uint8_t* leftRowBuffer, uint8_t* rightRowBuffer);
+    bool compareTupleBuffer(uint8_t* leftTupleBuffer, uint8_t* rightTupleBuffer);
 
 private:
-    inline uint8_t* getValPtrFromRowCollection(
-        uint8_t* encodedRowBuffer, uint64_t colOffsetInRowCollection) {
-        auto encodedRowInfoBuffer = encodedRowBuffer + keyBlockEntrySizeInBytes - sizeof(uint64_t);
-        auto encodedRowIdx = OrderByKeyEncoder::getEncodedRowIdx(encodedRowInfoBuffer);
-        auto encodedRowCollectionIdx =
-            OrderByKeyEncoder::getEncodedRowCollectionIdx(encodedRowInfoBuffer);
-        return rowCollections[encodedRowCollectionIdx]->getRow(encodedRowIdx) +
-               colOffsetInRowCollection;
+    inline pair<uint64_t, uint64_t> getEncodedFactorizedTableIdxAndTupleIdx(
+        uint8_t* encodedTupleBuffer) {
+        auto encodedTupleInfoBuffer =
+            encodedTupleBuffer + keyBlockEntrySizeInBytes - sizeof(uint64_t);
+        auto encodedTupleIdx = OrderByKeyEncoder::getEncodedTupleIdx(encodedTupleInfoBuffer);
+        auto encodedFactorizedTableIdx =
+            OrderByKeyEncoder::getEncodedFactorizedTableIdx(encodedTupleInfoBuffer);
+        return make_pair(encodedFactorizedTableIdx, encodedTupleIdx);
     }
 
 private:
-    // RowCollections[i] stores all orderBy columns encoded and sorted by the ith thread.
-    // MergeSort uses rowCollection to access the full contents of the string key columns
+    // FactorizedTables[i] stores all orderBy columns encoded and sorted by the ith thread.
+    // MergeSort uses factorizedTable to access the full contents of the string key columns
     // when resolving ties.
-    vector<shared_ptr<RowCollection>>& rowCollections;
-    // We also store the pre-computed string column information including colOffsetInRowCollection,
-    // colIdxInEncodedKeyBlock, colOffsetInEncodedKeyBlock. So, we don't need to compute it again
-    // during merge sort.
+    vector<shared_ptr<FactorizedTable>>& factorizedTables;
+    // We also store the colIdxInFactorizedTable, colOffsetInEncodedKeyBlock, isAscOrder, isStrCol
+    // for each string and unstructured column. So, we don't need to compute them again during merge
+    // sort.
     vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo;
     uint64_t keyBlockEntrySizeInBytes;
 };
@@ -85,7 +84,7 @@ public:
     }
 
 private:
-    uint64_t findRightKeyBlockIdx(uint8_t* leftEndRowBuffer);
+    uint64_t findRightKeyBlockIdx(uint8_t* leftEndTupleBuffer);
 
 public:
     static const uint64_t batch_size = 100;
@@ -99,7 +98,7 @@ public:
     // If the counter is 0 and there is no morsel left in the current task, we can
     // put the resultKeyBlock back to the keyBlock list.
     uint64_t activeMorsels;
-    // KeyBlockMerger is used to compare the values of two rows during the binary search.
+    // KeyBlockMerger is used to compare the values of two tuples during the binary search.
     KeyBlockMerger& keyBlockMerger;
 };
 
@@ -142,11 +141,11 @@ public:
     void doneMorsel(unique_ptr<KeyBlockMergeMorsel> morsel);
 
     // This function is used to initialize the fields of keyBlockMergeTaskDispatcher based on
-    // sharedRowCollectionsAndSortedKeyBlocks. If the class is already initialized, then it
+    // sharedFactorizedTablesAndSortedKeyBlocks. If the class is already initialized, then it
     // just returns.
     void initIfNecessary(MemoryManager* memoryManager,
         shared_ptr<queue<shared_ptr<KeyBlock>>> sortedKeyBlocks,
-        vector<shared_ptr<RowCollection>>& rowCollections,
+        vector<shared_ptr<FactorizedTable>>& factorizedTables,
         vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo,
         uint64_t keyBlockEntrySizeInBytes) {
         lock_guard<mutex> keyBlockMergeDispatcherLock{mtx};
@@ -157,7 +156,7 @@ public:
         this->memoryManager = memoryManager;
         this->sortedKeyBlocks = sortedKeyBlocks;
         this->keyBlockMerger = make_unique<KeyBlockMerger>(
-            rowCollections, stringAndUnstructuredKeyColInfo, keyBlockEntrySizeInBytes);
+            factorizedTables, stringAndUnstructuredKeyColInfo, keyBlockEntrySizeInBytes);
     }
 
 private:

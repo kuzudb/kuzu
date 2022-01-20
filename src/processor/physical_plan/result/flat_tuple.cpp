@@ -1,4 +1,4 @@
-#include "src/processor/include/physical_plan/result/tuple.h"
+#include "src/processor/include/physical_plan/result/flat_tuple.h"
 
 #include <iomanip>
 #include <sstream>
@@ -7,7 +7,7 @@
 namespace graphflow {
 namespace processor {
 
-string Tuple::toString(const vector<uint32_t>& colsWidth, const string& delimiter) {
+string FlatTuple::toString(const vector<uint32_t>& colsWidth, const string& delimiter) {
     ostringstream result;
     for (auto i = 0ul; i < values.size(); i++) {
         string value = nullMask[i] ? "" : values[i]->toString();

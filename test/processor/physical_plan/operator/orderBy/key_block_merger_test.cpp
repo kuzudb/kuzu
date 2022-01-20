@@ -24,25 +24,25 @@ public:
 public:
     unique_ptr<MemoryManager> memoryManager;
 
-    void checkRowIdxesAndRowCollectionIdxes(uint8_t* keyBlockPtr,
-        const uint64_t keyBlockEntrySizeInBytes, const vector<uint64_t>& expectedRowIdxOrder,
-        const vector<uint64_t>& expectedRowCollectionIdxOrder) {
-        assert(expectedRowIdxOrder.size() == expectedRowCollectionIdxOrder.size());
-        for (auto i = 0u; i < expectedRowIdxOrder.size(); i++) {
-            auto encodedRowIdx = OrderByKeyEncoder::getEncodedRowIdx(
+    void checkTupleIdxesAndFactorizedTableIdxes(uint8_t* keyBlockPtr,
+        const uint64_t keyBlockEntrySizeInBytes, const vector<uint64_t>& expectedTupleIdxOrder,
+        const vector<uint64_t>& expectedFactorizedTableIdxOrder) {
+        assert(expectedTupleIdxOrder.size() == expectedFactorizedTableIdxOrder.size());
+        for (auto i = 0u; i < expectedTupleIdxOrder.size(); i++) {
+            auto encodedTupleIdx = OrderByKeyEncoder::getEncodedTupleIdx(
                 keyBlockPtr + keyBlockEntrySizeInBytes - sizeof(uint64_t));
-            ASSERT_EQ(encodedRowIdx, expectedRowIdxOrder[i]);
-            ASSERT_EQ(OrderByKeyEncoder::getEncodedRowCollectionIdx(
+            ASSERT_EQ(encodedTupleIdx, expectedTupleIdxOrder[i]);
+            ASSERT_EQ(OrderByKeyEncoder::getEncodedFactorizedTableIdx(
                           keyBlockPtr + keyBlockEntrySizeInBytes - sizeof(uint64_t)),
-                expectedRowCollectionIdxOrder[i]);
+                expectedFactorizedTableIdxOrder[i]);
             keyBlockPtr += keyBlockEntrySizeInBytes;
         }
     }
 
     template<typename T>
     OrderByKeyEncoder prepareSingleOrderByColEncoder(const vector<T>& sortingData,
-        const vector<bool>& nullMasks, DataType dataType, bool isAsc, uint16_t rowCollectionIdx,
-        bool hasPayLoadCol, vector<shared_ptr<RowCollection>>& rowCollections,
+        const vector<bool>& nullMasks, DataType dataType, bool isAsc, uint16_t factorizedTableIdx,
+        bool hasPayLoadCol, vector<shared_ptr<FactorizedTable>>& factorizedTables,
         shared_ptr<DataChunk>& dataChunk) {
         GF_ASSERT(sortingData.size() == nullMasks.size());
         dataChunk->state->selectedSize = sortingData.size();
@@ -64,9 +64,8 @@ public:
         vector<shared_ptr<ValueVector>> allVectors{
             valueVector}; // all columns including orderBy and payload columns
 
-        RowLayout rowLayout;
-        rowLayout.appendField(
-            {dataType, TypeUtils::getDataTypeSize(dataType), false /* isVectorOverflow */});
+        TupleSchema tupleSchema;
+        tupleSchema.appendField({dataType, false /* isUnflat */, 0 /* dataChunkPos */});
 
         if (hasPayLoadCol) {
             auto payloadValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
@@ -74,50 +73,53 @@ public:
                 payloadValueVector->addString(i, to_string(i));
             }
             dataChunk->insert(1, payloadValueVector);
-            // To test whether the orderByCol -> rowCollectionColOffset works properly, we put the
-            // payload column at index 0, and the orderByCol at index 1. Then the
-            // rowCollectionOffset for the key string column = sizeof(gf_string_t).
+            // To test whether the orderByCol -> factorizedTableColIdx works properly, we put the
+            // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
-            rowLayout.appendField({dataType, TypeUtils::getDataTypeSize(STRING), false});
+            tupleSchema.appendField({dataType, false, 0 /* dataChunkPos */});
         }
-        rowLayout.initialize();
+        tupleSchema.initialize();
 
-        auto rowCollection = make_unique<RowCollection>(*memoryManager, rowLayout);
-        rowCollection->append(allVectors, sortingData.size());
+        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
+        factorizedTable->append(allVectors, sortingData.size());
 
         vector<bool> isAscOrder = {isAsc};
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, rowCollectionIdx);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
         orderByKeyEncoder.encodeKeys();
 
-        rowCollections.emplace_back(move(rowCollection));
+        factorizedTables.emplace_back(move(factorizedTable));
         return orderByKeyEncoder;
     }
 
     template<typename T>
     void singleOrderByColMergeTest(const vector<T>& leftSortingData,
         const vector<bool>& leftNullMasks, const vector<T>& rightSortingData,
-        const vector<bool>& rightNullMasks, const vector<uint64_t>& expectedRowIdxOrder,
-        const vector<uint64_t>& expectedRowCollectionIdxOrder, const DataType dataType,
+        const vector<bool>& rightNullMasks, const vector<uint64_t>& expectedTupleIdxOrder,
+        const vector<uint64_t>& expectedFactorizedTableIdxOrder, const DataType dataType,
         const bool isAsc, bool hasPayLoadCol) {
-        vector<shared_ptr<RowCollection>> rowCollections;
+        vector<shared_ptr<FactorizedTable>> factorizedTables;
         auto dataChunk0 = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         auto dataChunk1 = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
-        auto orderByKeyEncoder1 = prepareSingleOrderByColEncoder(leftSortingData, leftNullMasks,
-            dataType, isAsc, 0 /* rowCollectionIdx */, hasPayLoadCol, rowCollections, dataChunk0);
-        auto orderByKeyEncoder2 = prepareSingleOrderByColEncoder(rightSortingData, rightNullMasks,
-            dataType, isAsc, 1 /* rowCollectionIdx */, hasPayLoadCol, rowCollections, dataChunk1);
+        auto orderByKeyEncoder1 =
+            prepareSingleOrderByColEncoder(leftSortingData, leftNullMasks, dataType, isAsc,
+                0 /* factorizedTableIdx */, hasPayLoadCol, factorizedTables, dataChunk0);
+        auto orderByKeyEncoder2 =
+            prepareSingleOrderByColEncoder(rightSortingData, rightNullMasks, dataType, isAsc,
+                1 /* factorizedTableIdx */, hasPayLoadCol, factorizedTables, dataChunk1);
 
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
         if (hasPayLoadCol) {
-            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
-                TypeUtils::getDataTypeSize(STRING), 0, isAsc, true /* isStrCol */));
+            stringAndUnstructuredKeyColInfo.emplace_back(
+                StringAndUnstructuredKeyColInfo(1 /* colIdxInFactorizedTable */,
+                    0 /* colOffsetInEncodedKeyBlock */, isAsc, true /* isStrCol */));
         } else if constexpr (is_same<T, string>::value || is_same<T, Value>::value) {
             stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
-                0, 0, isAsc, is_same<T, string>::value /* isStrCol */));
+                0 /* colIdxInFactorizedTable */, 0 /* colOffsetInEncodedKeyBlock */, isAsc,
+                is_same<T, string>::value /* isStrCol */));
         }
 
-        KeyBlockMerger keyBlockMerger = KeyBlockMerger(rowCollections,
+        KeyBlockMerger keyBlockMerger = KeyBlockMerger(factorizedTables,
             stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
 
         auto resultKeyBlock =
@@ -132,14 +134,14 @@ public:
 
         keyBlockMerger.mergeKeyBlocks(keyBlockMergeMorsel);
 
-        checkRowIdxesAndRowCollectionIdxes(resultKeyBlock->getMemBlockData(),
-            orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedRowIdxOrder,
-            expectedRowCollectionIdxOrder);
+        checkTupleIdxesAndFactorizedTableIdxes(resultKeyBlock->getMemBlockData(),
+            orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedTupleIdxOrder,
+            expectedFactorizedTableIdxOrder);
     }
 
-    OrderByKeyEncoder prepareMultipleOrderByColsEncoder(uint16_t rowCollectionIdx,
-        vector<shared_ptr<RowCollection>>& rowCollections, shared_ptr<DataChunk>& dataChunk,
-        RowLayout& rowLayout) {
+    OrderByKeyEncoder prepareMultipleOrderByColsEncoder(uint16_t factorizedTableIdx,
+        vector<shared_ptr<FactorizedTable>>& factorizedTables, shared_ptr<DataChunk>& dataChunk,
+        TupleSchema& tupleSchema) {
         vector<shared_ptr<ValueVector>> orderByVectors;
         for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
             orderByVectors.emplace_back(dataChunk->getValueVector(i));
@@ -147,16 +149,16 @@ public:
 
         vector<bool> isAscOrder(orderByVectors.size(), true);
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, rowCollectionIdx);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
 
-        auto rowCollection = make_unique<RowCollection>(*memoryManager, rowLayout);
+        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
         for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
-            rowCollection->append(orderByVectors, 1);
+            factorizedTable->append(orderByVectors, 1);
             orderByKeyEncoder.encodeKeys();
             dataChunk->state->currIdx++;
         }
 
-        rowCollections.emplace_back(move(rowCollection));
+        factorizedTables.emplace_back(move(factorizedTable));
         return orderByKeyEncoder;
     }
 
@@ -205,17 +207,17 @@ public:
         prepareMultipleOrderByColsValueVector(
             int64Values2, doubleValues2, timestampValues2, dataChunk2);
 
-        RowLayout rowLayout;
-        rowLayout.appendField(
-            FieldInLayout(INT64, TypeUtils::getDataTypeSize(INT64), false /* isVectorOverflow */));
-        rowLayout.appendField(FieldInLayout(
-            DOUBLE, TypeUtils::getDataTypeSize(DOUBLE), false /* isVectorOverflow */));
-        rowLayout.appendField(FieldInLayout(
-            TIMESTAMP, TypeUtils::getDataTypeSize(TIMESTAMP), false /* isVectorOverflow */));
+        TupleSchema tupleSchema;
+        tupleSchema.appendField(
+            FieldInTupleSchema(INT64, false /* isUnflat */, 0 /* dataChunkPos */));
+        tupleSchema.appendField(
+            FieldInTupleSchema(DOUBLE, false /* isUnflat */, 0 /* dataChunkPos */));
+        tupleSchema.appendField(
+            FieldInTupleSchema(TIMESTAMP, false /* isUnflat */, 0 /* dataChunkPos */));
 
         if (hasStrCol) {
-            rowLayout.appendField(FieldInLayout(
-                STRING, TypeUtils::getDataTypeSize(STRING), false /* isVectorOverflow */));
+            tupleSchema.appendField(
+                FieldInTupleSchema(STRING, false /* isUnflat */, 0 /* dataChunkPos */));
             auto stringValueVector1 = make_shared<ValueVector>(memoryManager.get(), STRING);
             auto stringValueVector2 = make_shared<ValueVector>(memoryManager.get(), STRING);
             dataChunk1->insert(3, stringValueVector1);
@@ -230,32 +232,33 @@ public:
             stringValueVector2->addString(2, "same prefix 121");
             stringValueVector2->addString(3, "same prefix 126");
         }
-        rowLayout.initialize();
+        tupleSchema.initialize();
 
-        vector<shared_ptr<RowCollection>> rowCollections;
+        vector<shared_ptr<FactorizedTable>> factorizedTables;
         for (auto i = 0; i < 4; i++) {
-            rowCollections.emplace_back(make_unique<RowCollection>(*memoryManager, rowLayout));
+            factorizedTables.emplace_back(
+                make_unique<FactorizedTable>(*memoryManager, tupleSchema));
         }
         auto orderByKeyEncoder2 = prepareMultipleOrderByColsEncoder(
-            4 /* rowCollectionIdx */, rowCollections, dataChunk2, rowLayout);
+            4 /* factorizedTableIdx */, factorizedTables, dataChunk2, tupleSchema);
         auto orderByKeyEncoder1 = prepareMultipleOrderByColsEncoder(
-            5 /* rowCollectionIdx */, rowCollections, dataChunk1, rowLayout);
+            5 /* factorizedTableIdx */, factorizedTables, dataChunk1, tupleSchema);
 
-        vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 1, 2, 2, 3};
-        vector<uint64_t> expectedRowCollectionIdxOrder = {4, 5, 5, 4, 5, 4, 4};
+        vector<uint64_t> expectedTupleIdxOrder = {0, 0, 1, 1, 2, 2, 3};
+        vector<uint64_t> expectedFactorizedTableIdxOrder = {4, 5, 5, 4, 5, 4, 4};
 
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
         if (hasStrCol) {
             stringAndUnstructuredKeyColInfo.emplace_back(
-                StringAndUnstructuredKeyColInfo(rowCollections[0]->getFieldOffsetInRow(3),
+                StringAndUnstructuredKeyColInfo(3 /* colIdxInFactorizedTable */,
                     TypeUtils::getDataTypeSize(INT64) + TypeUtils::getDataTypeSize(DOUBLE) +
                         TypeUtils::getDataTypeSize(TIMESTAMP),
                     true /* isAscOrder */, true /* isStrCol */));
-            expectedRowIdxOrder = {0, 0, 1, 1, 2, 2, 3};
-            expectedRowCollectionIdxOrder = {4, 5, 4, 5, 4, 5, 4};
+            expectedTupleIdxOrder = {0, 0, 1, 1, 2, 2, 3};
+            expectedFactorizedTableIdxOrder = {4, 5, 4, 5, 4, 5, 4};
         }
 
-        KeyBlockMerger keyBlockMerger = KeyBlockMerger(rowCollections,
+        KeyBlockMerger keyBlockMerger = KeyBlockMerger(factorizedTables,
             stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
         auto resultKeyBlock =
             make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
@@ -268,14 +271,14 @@ public:
 
         keyBlockMerger.mergeKeyBlocks(keyBlockMergeMorsel);
 
-        checkRowIdxesAndRowCollectionIdxes(resultKeyBlock->getMemBlockData(),
-            orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedRowIdxOrder,
-            expectedRowCollectionIdxOrder);
+        checkTupleIdxesAndFactorizedTableIdxes(resultKeyBlock->getMemBlockData(),
+            orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedTupleIdxOrder,
+            expectedFactorizedTableIdxOrder);
     }
 
     OrderByKeyEncoder prepareMultipleStrKeyColsEncoder(shared_ptr<DataChunk>& dataChunk,
-        vector<vector<string>>& strValues, uint16_t rowCollectionIdx,
-        vector<shared_ptr<RowCollection>>& rowCollections) {
+        vector<vector<string>>& strValues, uint16_t factorizedTableIdx,
+        vector<shared_ptr<FactorizedTable>>& factorizedTables) {
         dataChunk->state->currIdx = 0;
         dataChunk->state->selectedSize = strValues[0].size();
         for (auto i = 0u; i < strValues.size(); i++) {
@@ -294,22 +297,21 @@ public:
             dataChunk->getValueVector(1), dataChunk->getValueVector(2),
             dataChunk->getValueVector(3)};
 
-        RowLayout rowLayout(
-            vector<FieldInLayout>(4, FieldInLayout(STRING, TypeUtils::getDataTypeSize(STRING),
-                                         false /* isVectorOverflow */)));
-        auto rowCollection = make_unique<RowCollection>(*memoryManager, rowLayout);
+        TupleSchema tupleSchema(vector<FieldInTupleSchema>(
+            4, FieldInTupleSchema(STRING, false /* isUnflat */, 0 /* dataChunkPos */)));
+        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
 
         vector<bool> isAscOrder(strValues.size(), true);
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, rowCollectionIdx);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
 
         for (auto i = 0u; i < strValues[0].size(); i++) {
-            rowCollection->append(allVectors, 1);
+            factorizedTable->append(allVectors, 1);
             orderByKeyEncoder.encodeKeys();
             dataChunk->state->currIdx++;
         }
 
-        rowCollections.emplace_back(move(rowCollection));
+        factorizedTables.emplace_back(move(factorizedTable));
         return orderByKeyEncoder;
     }
 };
@@ -319,10 +321,10 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64Test) {
     vector<int64_t> rightSortingData = {INT64_MIN, -6, 4, 22, 32, 38, 0 /* NULL */};
     vector<bool> leftNullMasks = {false, false, false, false, false, false, true};
     vector<bool> rightNullMasks = {false, false, false, false, false, false, true};
-    vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 1, 2, 2, 3, 4, 3, 4, 5, 5, 6, 6};
-    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1};
+    vector<uint64_t> expectedTupleIdxOrder = {0, 0, 1, 1, 2, 2, 3, 4, 3, 4, 5, 5, 6, 6};
+    vector<uint64_t> expectedFactorizedTableIdxOrder = {0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIdxOrder, expectedRowCollectionIdxOrder, INT64, true /* isAsc */,
+        expectedTupleIdxOrder, expectedFactorizedTableIdxOrder, INT64, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -331,10 +333,10 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64NoNullTest) {
     vector<int64_t> rightSortingData = {INT64_MIN, -999, 31, INT64_MAX};
     vector<bool> leftNullMasks(leftSortingData.size(), false);
     vector<bool> rightNullMasks(rightSortingData.size(), false);
-    vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 1, 2, 3, 2, 4, 3};
-    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 1, 1, 0, 0, 0, 1, 0, 1};
+    vector<uint64_t> expectedTupleIdxOrder = {0, 0, 1, 1, 2, 3, 2, 4, 3};
+    vector<uint64_t> expectedFactorizedTableIdxOrder = {0, 1, 1, 0, 0, 0, 1, 0, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIdxOrder, expectedRowCollectionIdxOrder, INT64, true /* isAsc */,
+        expectedTupleIdxOrder, expectedFactorizedTableIdxOrder, INT64, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -343,36 +345,37 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64SameValueTest) {
     vector<int64_t> rightSortingData = {4, 4, 4, 4, 4, 4, 4, 4, 4};
     vector<bool> leftNullMasks(leftSortingData.size(), false);
     vector<bool> rightNullMasks(rightSortingData.size(), false);
-    vector<uint64_t> expectedRowIdxOrder = {0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7, 8};
-    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    vector<uint64_t> expectedTupleIdxOrder = {0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7, 8};
+    vector<uint64_t> expectedFactorizedTableIdxOrder = {
+        0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIdxOrder, expectedRowCollectionIdxOrder, INT64, false /* isAsc */,
+        expectedTupleIdxOrder, expectedFactorizedTableIdxOrder, INT64, false /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
-TEST_F(KeyBlockMergerTest, singleOrderByColInt64LargeNumRowsTest) {
+TEST_F(KeyBlockMergerTest, singleOrderByColInt64LargeNumTuplesTest) {
     vector<int64_t> leftSortingData, rightSortingData;
-    vector<uint64_t> expectedRowIdxOrder(leftSortingData.size() + rightSortingData.size());
-    vector<uint64_t> expectedRowCollectionIdxOrder(
+    vector<uint64_t> expectedTupleIdxOrder(leftSortingData.size() + rightSortingData.size());
+    vector<uint64_t> expectedFactorizedTableIdxOrder(
         leftSortingData.size() + rightSortingData.size());
-    // Each memory block can hold a maximum of 240 rows (4096 / (8 + 9)).
+    // Each memory block can hold a maximum of 240 tuples (4096 / (8 + 9)).
     // We fill the leftSortingData with the even numbers of 0-480 and the rightSortingData with the
     // odd numbers of 0-480 so that each of them takes up exactly one memoryBlock.
     for (auto i = 0u; i < 480; i++) {
         if (i % 2) {
-            expectedRowIdxOrder.emplace_back(rightSortingData.size());
-            expectedRowCollectionIdxOrder.emplace_back(1);
+            expectedTupleIdxOrder.emplace_back(rightSortingData.size());
+            expectedFactorizedTableIdxOrder.emplace_back(1);
             rightSortingData.emplace_back(i);
         } else {
-            expectedRowIdxOrder.emplace_back(leftSortingData.size());
-            expectedRowCollectionIdxOrder.emplace_back(0);
+            expectedTupleIdxOrder.emplace_back(leftSortingData.size());
+            expectedFactorizedTableIdxOrder.emplace_back(0);
             leftSortingData.emplace_back(i);
         }
     }
     vector<bool> leftNullMasks(leftSortingData.size(), false);
     vector<bool> rightNullMasks(rightSortingData.size(), false);
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIdxOrder, expectedRowCollectionIdxOrder, INT64, true /* isAsc */,
+        expectedTupleIdxOrder, expectedFactorizedTableIdxOrder, INT64, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -383,10 +386,10 @@ TEST_F(KeyBlockMergerTest, singleOrderByColUnstrTest) {
         Value(int64_t(70)), Value(int64_t(0)) /* NULL */};
     vector<bool> leftNullMasks = {false, false, false, true};
     vector<bool> rightNullMasks = {false, false, false, false, true};
-    vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 1, 2, 2, 3, 3, 4};
-    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 1, 1, 0, 1, 0, 1, 0, 1};
+    vector<uint64_t> expectedTupleIdxOrder = {0, 0, 1, 1, 2, 2, 3, 3, 4};
+    vector<uint64_t> expectedFactorizedTableIdxOrder = {0, 1, 1, 0, 1, 0, 1, 0, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIdxOrder, expectedRowCollectionIdxOrder, UNSTRUCTURED, true /* isAsc */,
+        expectedTupleIdxOrder, expectedFactorizedTableIdxOrder, UNSTRUCTURED, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -398,10 +401,10 @@ TEST_F(KeyBlockMergerTest, singleOrderByColStringTest) {
         "" /* empty str */};
     vector<bool> leftNullMasks = {true, false, false, false, false};
     vector<bool> rightNullMasks = {true, true, false, false, false, false, false};
-    vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 2, 1, 2, 3, 3, 4, 4, 5, 6};
-    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1};
+    vector<uint64_t> expectedTupleIdxOrder = {0, 0, 1, 2, 1, 2, 3, 3, 4, 4, 5, 6};
+    vector<uint64_t> expectedFactorizedTableIdxOrder = {0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIdxOrder, expectedRowCollectionIdxOrder, STRING, false /* isAsc */,
+        expectedTupleIdxOrder, expectedFactorizedTableIdxOrder, STRING, false /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -412,10 +415,10 @@ TEST_F(KeyBlockMergerTest, singleOrderByColStringNoNullTest) {
         "common prefix string4", "tiny str", "tiny str1"};
     vector<bool> leftNullMasks(leftSortingData.size(), false);
     vector<bool> rightNullMasks(rightSortingData.size(), false);
-    vector<uint64_t> expectedRowIdxOrder = {0, 0, 1, 1, 2, 2, 3, 4, 3, 4};
-    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 1, 0, 1, 0, 1, 0, 0, 1, 1};
+    vector<uint64_t> expectedTupleIdxOrder = {0, 0, 1, 1, 2, 2, 3, 4, 3, 4};
+    vector<uint64_t> expectedFactorizedTableIdxOrder = {0, 1, 0, 1, 0, 1, 0, 0, 1, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIdxOrder, expectedRowCollectionIdxOrder, STRING, true /* isAsc */,
+        expectedTupleIdxOrder, expectedFactorizedTableIdxOrder, STRING, true /* isAsc */,
         false /* hasPayLoadCol */);
 }
 
@@ -425,10 +428,10 @@ TEST_F(KeyBlockMergerTest, singleOrderByColStringWithPayLoadTest) {
         "", "test str1", "this is a long string", "very short", "" /* NULL */};
     vector<bool> leftNullMasks(leftSortingData.size(), false);
     vector<bool> rightNullMasks = {false, false, false, false, true};
-    vector<uint64_t> expectedRowIdxOrder = {0, 1, 0, 2, 3, 4, 1, 2, 3, 4};
-    vector<uint64_t> expectedRowCollectionIdxOrder = {0, 0, 1, 0, 0, 0, 1, 1, 1, 1};
+    vector<uint64_t> expectedTupleIdxOrder = {0, 1, 0, 2, 3, 4, 1, 2, 3, 4};
+    vector<uint64_t> expectedFactorizedTableIdxOrder = {0, 0, 1, 0, 0, 0, 1, 1, 1, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedRowIdxOrder, expectedRowCollectionIdxOrder, STRING, true /* isAsc */,
+        expectedTupleIdxOrder, expectedFactorizedTableIdxOrder, STRING, true /* isAsc */,
         true /* hasPayLoadCol */);
 }
 
@@ -458,24 +461,25 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
 
     vector<vector<string>> strValues3 = {{"common str1", "common str1"}, {"same str1", "same str1"},
         {"payload3", "payload1"}, {"largerStr", "long long str4"}};
-    vector<shared_ptr<RowCollection>> rowCollections;
+    vector<shared_ptr<FactorizedTable>> factorizedTables;
     auto orderByKeyEncoder1 = prepareMultipleStrKeyColsEncoder(
-        dataChunk1, strValues1, 0 /* rowCollectionIdx */, rowCollections);
+        dataChunk1, strValues1, 0 /* factorizedTableIdx */, factorizedTables);
     auto orderByKeyEncoder2 = prepareMultipleStrKeyColsEncoder(
-        dataChunk2, strValues2, 1 /* rowCollectionIdx */, rowCollections);
+        dataChunk2, strValues2, 1 /* factorizedTableIdx */, factorizedTables);
     auto orderByKeyEncoder3 = prepareMultipleStrKeyColsEncoder(
-        dataChunk3, strValues3, 2 /* rowCollectionIdx */, rowCollections);
+        dataChunk3, strValues3, 2 /* factorizedTableIdx */, factorizedTables);
 
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo = {
-        StringAndUnstructuredKeyColInfo(0, 0, true /* isAscOrder */, true /* isStrCol */),
-        StringAndUnstructuredKeyColInfo(TypeUtils::getDataTypeSize(STRING),
+        StringAndUnstructuredKeyColInfo(0 /* colIdxInFactorizedTable */,
+            0 /* colOffsetInEncodedKeyBlock */, true /* isAscOrder */, true /* isStrCol */),
+        StringAndUnstructuredKeyColInfo(1 /* colIdxInFactorizedTable */,
             orderByKeyEncoder1.getEncodingSize(STRING), true /* isAscOrder */, true /* isStrCol */),
-        StringAndUnstructuredKeyColInfo(TypeUtils::getDataTypeSize(STRING) * 3,
+        StringAndUnstructuredKeyColInfo(3 /* colIdxInFactorizedTable */,
             orderByKeyEncoder1.getEncodingSize(STRING) * 2, true /* isAscOrder */,
             true /* isStrCol */)};
 
-    KeyBlockMerger keyBlockMerger = KeyBlockMerger(rowCollections, stringAndUnstructuredKeyColInfo,
-        orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
+    KeyBlockMerger keyBlockMerger = KeyBlockMerger(factorizedTables,
+        stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
 
     auto resultKeyBlock =
         make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
@@ -495,9 +499,9 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
     keyBlockMergeMorsel1.keyBlockMergeTask = keyBlockMergeTask1;
     keyBlockMerger.mergeKeyBlocks(keyBlockMergeMorsel1);
 
-    vector<uint64_t> expectedRowIdxOrder = {0, 0, 0, 1, 1, 1, 2, 2, 3};
-    vector<uint64_t> expectedRowCollectionIdxOrder = {1, 2, 0, 2, 1, 0, 0, 1, 0};
-    checkRowIdxesAndRowCollectionIdxes(resultMemBlock1->getMemBlockData(),
-        orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedRowIdxOrder,
-        expectedRowCollectionIdxOrder);
+    vector<uint64_t> expectedTupleIdxOrder = {0, 0, 0, 1, 1, 1, 2, 2, 3};
+    vector<uint64_t> expectedFactorizedTableIdxOrder = {1, 2, 0, 2, 1, 0, 0, 1, 0};
+    checkTupleIdxesAndFactorizedTableIdxes(resultMemBlock1->getMemBlockData(),
+        orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedTupleIdxOrder,
+        expectedFactorizedTableIdxOrder);
 }

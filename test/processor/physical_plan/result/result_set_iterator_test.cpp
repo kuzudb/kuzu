@@ -78,7 +78,7 @@ public:
 
 TEST_F(ResultSetIteratorTest, DataChunksIteratorTest1) {
     auto vectorTypes = GetDataChunksTypes(*resultSet);
-    Tuple tuple(vectorTypes);
+    FlatTuple tuple(vectorTypes);
 
     auto dataChunkA = resultSet->dataChunks[0];
     auto dataChunkB = resultSet->dataChunks[1];
@@ -128,7 +128,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest1) {
 
 TEST_F(ResultSetIteratorTest, DataChunksIteratorTest2) {
     auto vectorTypes = GetDataChunksTypes(*resultSet);
-    Tuple tuple(vectorTypes);
+    FlatTuple tuple(vectorTypes);
 
     auto dataChunkA = resultSet->dataChunks[0];
     auto dataChunkB = resultSet->dataChunks[1];
@@ -160,7 +160,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest2) {
 
 TEST_F(ResultSetIteratorTest, DataChunksIteratorTest3) {
     auto vectorTypes = GetDataChunksTypes(*resultSet);
-    Tuple tuple(vectorTypes);
+    FlatTuple tuple(vectorTypes);
 
     auto dataChunkA = resultSet->dataChunks[0];
     auto dataChunkB = resultSet->dataChunks[1];
@@ -192,7 +192,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest3) {
 
 TEST_F(ResultSetIteratorTest, DataChunksIteratorTest4) {
     auto vectorTypes = GetDataChunksTypes(*resultSet);
-    Tuple tuple(vectorTypes);
+    FlatTuple tuple(vectorTypes);
 
     auto dataChunkA = resultSet->dataChunks[0];
     auto dataChunkB = resultSet->dataChunks[1];
@@ -216,7 +216,7 @@ TEST_F(ResultSetIteratorTest, DataChunksIteratorTest4) {
 
 TEST_F(ResultSetIteratorTest, DataChunksIteratorTestWithSelector) {
     auto vectorTypes = GetDataChunksTypes(*resultSet);
-    Tuple tuple(vectorTypes);
+    FlatTuple tuple(vectorTypes);
 
     auto dataChunkA = resultSet->dataChunks[0];
     dataChunkA->state->resetSelectorToValuePosBuffer();

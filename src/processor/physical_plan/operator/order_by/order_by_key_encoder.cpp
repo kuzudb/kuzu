@@ -188,12 +188,12 @@ void OrderByKeyEncoder::encodeKeys() {
         GF_ASSERT(orderByVectors.size() == 1);
         numEntries = orderByVectors[0]->state->selectedSize;
     }
-    // Check whether the nextLocalRowIdx overflows.
-    if (nextLocalRowIdx + numEntries - 1 > MAX_LOCAL_ROW_IDX) {
-        throw EncodingException("Attempting to order too many rows. The orderByKeyEncoder has "
-                                "achieved its maximum number of rows!");
+    // Check whether the nextLocalTupleIdx overflows.
+    if (nextLocalTupleIdx + numEntries - 1 > MAX_LOCAL_TUPLE_IDX) {
+        throw EncodingException("Attempting to order too many tuples. The orderByKeyEncoder has "
+                                "achieved its maximum number of tuples!");
     }
-    uint64_t encodedRows = 0;
+    uint64_t encodedTuples = 0;
     while (numEntries > 0) {
         allocateMemoryIfFull();
         uint64_t numEntriesToEncode =
@@ -207,19 +207,20 @@ void OrderByKeyEncoder::encodeKeys() {
                 uint64_t idxInOrderByVector =
                     orderByVectors[0]->state->isFlat() ?
                         orderByVectors[keyColIdx]->state->getPositionOfCurrIdx() :
-                        orderByVectors[keyColIdx]->state->selectedPositions[encodedRows];
+                        orderByVectors[keyColIdx]->state->selectedPositions[encodedTuples];
                 encodeData(orderByVectors[keyColIdx], idxInOrderByVector, keyBlockPtr, keyColIdx);
                 keyBlockPtrOffset += getEncodingSize(orderByVectors[keyColIdx]->dataType);
             }
-            // Since only the lower 6 bytes of nextLocalRowIdx is actually used, we only need to
+            // Since only the lower 6 bytes of nextLocalTupleIdx is actually used, we only need to
             // encode the lower 6 bytes.
-            memcpy(basePtr + keyBlockPtrOffset, &nextLocalRowIdx, getEncodedRowIdxSizeInBytes());
-            // 2 bytes encoding for rowCollectionIdx
-            memcpy(basePtr + keyBlockPtrOffset + getEncodedRowIdxSizeInBytes(), &rowCollectionIdx,
-                sizeof(rowCollectionIdx));
-            encodedRows++;
+            memcpy(
+                basePtr + keyBlockPtrOffset, &nextLocalTupleIdx, getEncodedTupleIdxSizeInBytes());
+            // 2 bytes encoding for factorizedTableIdx
+            memcpy(basePtr + keyBlockPtrOffset + getEncodedTupleIdxSizeInBytes(),
+                &factorizedTableIdx, sizeof(factorizedTableIdx));
+            encodedTuples++;
             keyBlocks.back()->numEntriesInMemBlock++;
-            nextLocalRowIdx++;
+            nextLocalTupleIdx++;
         }
         numEntries -= numEntriesToEncode;
     }
