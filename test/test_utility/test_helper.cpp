@@ -122,7 +122,7 @@ vector<string> TestHelper::getActualOutput(QueryResult& queryResult, bool checkO
         auto resultSetIterator =
             make_unique<ResultSetIterator>(queryResult.resultSetCollection[0].get(),
                 queryResult.vectorsToCollectPos, queryResult.dataChunksPosInScope);
-        Tuple tuple(resultSetIterator->dataTypes);
+        FlatTuple tuple(resultSetIterator->dataTypes);
         for (auto& resultSet : queryResult.resultSetCollection) {
             resultSetIterator->setResultSet(resultSet.get());
             while (resultSetIterator->hasNextTuple()) {

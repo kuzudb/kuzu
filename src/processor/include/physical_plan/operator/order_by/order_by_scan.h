@@ -14,18 +14,18 @@ class OrderByScan : public PhysicalOperator, public SourceOperator {
 public:
     OrderByScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         const vector<DataPos>& outDataPoses,
-        shared_ptr<SharedRowCollectionsAndSortedKeyBlocks> sharedState,
+        shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
         unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
         : PhysicalOperator{move(child), context, id}, SourceOperator{move(resultSetDescriptor)},
-          outDataPoses{outDataPoses}, sharedState{sharedState}, nextRowIdxToReadInMemBlock{0} {}
+          outDataPoses{outDataPoses}, sharedState{sharedState}, nextTupleIdxToReadInMemBlock{0} {}
 
     // This constructor is used for cloning only.
     OrderByScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         const vector<DataPos>& outDataPoses,
-        shared_ptr<SharedRowCollectionsAndSortedKeyBlocks> sharedState, ExecutionContext& context,
+        shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState, ExecutionContext& context,
         uint32_t id)
         : PhysicalOperator{context, id}, SourceOperator{move(resultSetDescriptor)},
-          outDataPoses{outDataPoses}, sharedState{sharedState}, nextRowIdxToReadInMemBlock{0} {}
+          outDataPoses{outDataPoses}, sharedState{sharedState}, nextTupleIdxToReadInMemBlock{0} {}
 
     PhysicalOperatorType getOperatorType() override { return ORDER_BY_SCAN; }
 
@@ -39,13 +39,13 @@ public:
     }
 
 private:
-    pair<uint64_t, uint64_t> getNextRowCollectionIdxAndRowIdxPair();
+    pair<uint64_t, uint64_t> getNextFactorizedTableIdxAndTupleIdxPair();
 
     bool scanSingleTuple;
     vector<DataPos> outDataPoses;
-    shared_ptr<SharedRowCollectionsAndSortedKeyBlocks> sharedState;
-    vector<uint64_t> fieldsToReadInRowCollection;
-    uint64_t nextRowIdxToReadInMemBlock;
+    shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
+    vector<uint64_t> fieldsToReadInFactorizedTable;
+    uint64_t nextTupleIdxToReadInMemBlock;
 };
 
 } // namespace processor

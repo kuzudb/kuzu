@@ -23,11 +23,11 @@ HashJoinBuild::HashJoinBuild(shared_ptr<HashJoinSharedState> sharedState,
 
 shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
     resultSet = children[0]->initResultSet();
-    RowLayout rowLayout;
+    TupleSchema tupleSchema;
     keyDataChunk = resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
     auto keyVector = keyDataChunk->valueVectors[buildDataInfo.getKeyIDVectorPos()];
-    rowLayout.appendField(
-        {keyVector->dataType, keyVector->getNumBytesPerValue(), false /* isVectorOverflow */});
+    tupleSchema.appendField(
+        {keyVector->dataType, false /* isUnflat */, buildDataInfo.getKeyIDDataChunkPos()});
     vectorsToAppend.push_back(keyVector);
     for (auto i = 0u; i < buildDataInfo.nonKeyDataPoses.size(); ++i) {
         auto dataChunkPos = buildDataInfo.nonKeyDataPoses[i].dataChunkPos;
@@ -35,45 +35,44 @@ shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
         auto vectorPos = buildDataInfo.nonKeyDataPoses[i].valueVectorPos;
         auto vector = dataChunk->valueVectors[vectorPos];
         auto isVectorFlat = buildDataInfo.isNonKeyDataFlat[i];
-        auto numBytesForField =
-            isVectorFlat ? vector->getNumBytesPerValue() : sizeof(overflow_value_t);
-        rowLayout.appendField({vector->dataType, numBytesForField, !isVectorFlat});
+        tupleSchema.appendField({vector->dataType, !isVectorFlat, dataChunkPos});
         vectorsToAppend.push_back(vector);
     }
     // The prev pointer field.
-    rowLayout.appendField({INT64, sizeof(uint8_t*), false /* isVectorOverflow */});
-    rowLayout.initialize();
-    rowCollection = make_unique<RowCollection>(*context.memoryManager, rowLayout);
+    tupleSchema.appendField({INT64, false /* isUnflat */,
+        UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */});
+    tupleSchema.initialize();
+    factorizedTable = make_unique<FactorizedTable>(*context.memoryManager, tupleSchema);
     {
         lock_guard<mutex> sharedStateLock(sharedState->hashJoinSharedStateLock);
-        if (sharedState->rowCollection == nullptr) {
-            sharedState->rowCollection =
-                make_unique<RowCollection>(*context.memoryManager, rowLayout);
+        if (sharedState->factorizedTable == nullptr) {
+            sharedState->factorizedTable =
+                make_unique<FactorizedTable>(*context.memoryManager, tupleSchema);
         }
     }
     return resultSet;
 }
 
 void HashJoinBuild::finalize() {
-    auto directory_capacity = nextPowerOfTwo(max(sharedState->rowCollection->getNumRows() * 2,
+    auto directory_capacity = nextPowerOfTwo(max(sharedState->factorizedTable->getNumTuples() * 2,
         (DEFAULT_MEMORY_BLOCK_SIZE / sizeof(uint8_t*)) + 1));
     sharedState->hashBitMask = directory_capacity - 1;
     sharedState->htDirectory = context.memoryManager->allocateBlock(
         directory_capacity * sizeof(uint8_t*), true /* initializeToZero */);
 
-    auto& layout = sharedState->rowCollection->getLayout();
+    auto& tupleSchema = sharedState->factorizedTable->getTupleSchema();
     hash_t hash;
     auto directory = (uint8_t**)sharedState->htDirectory->data;
-    for (auto& rowBlock : sharedState->rowCollection->getRowDataBlocks()) {
-        uint8_t* row = rowBlock.data;
-        for (auto i = 0u; i < rowBlock.numEntries; i++) {
-            auto nodeId = *(nodeID_t*)row;
+    for (auto& tupleBlock : sharedState->factorizedTable->getTupleDataBlocks()) {
+        uint8_t* tuple = tupleBlock.data;
+        for (auto i = 0u; i < tupleBlock.numEntries; i++) {
+            auto nodeId = *(nodeID_t*)tuple;
             Hash::operation<nodeID_t>(nodeId, false /* isNull */, hash);
             auto slotId = hash & sharedState->hashBitMask;
-            auto prevPtr = (uint8_t**)(row + layout.getNullMapOffset() - sizeof(uint8_t*));
+            auto prevPtr = (uint8_t**)(tuple + tupleSchema.getNullMapOffset() - sizeof(uint8_t*));
             memcpy((uint8_t*)prevPtr, (void*)&(directory[slotId]), sizeof(uint8_t*));
-            directory[slotId] = row;
-            row += layout.numBytesPerRow;
+            directory[slotId] = tuple;
+            tuple += tupleSchema.numBytesPerTuple;
         }
     }
 }
@@ -93,10 +92,10 @@ void HashJoinBuild::appendVectorsOnce() {
         if (keyVector->isNull(keyVector->state->getPositionOfCurrIdx())) {
             return;
         }
-        rowCollection->append(vectorsToAppend, 1 /* numTuplesToAppend */);
+        factorizedTable->append(vectorsToAppend, 1 /* numTuplesToAppend */);
     } else {
         if (keyVector->hasNoNullsGuarantee()) {
-            rowCollection->append(vectorsToAppend, keyVector->state->selectedSize);
+            factorizedTable->append(vectorsToAppend, keyVector->state->selectedSize);
             return;
         }
         // If key vector may contain null value, we have to flatten the key and for each flat key
@@ -106,7 +105,7 @@ void HashJoinBuild::appendVectorsOnce() {
                 continue;
             }
             keyVector->state->currIdx = i;
-            rowCollection->append(vectorsToAppend, 1 /* numTuplesToAppend */);
+            factorizedTable->append(vectorsToAppend, 1 /* numTuplesToAppend */);
         }
         keyVector->state->currIdx = -1;
     }
@@ -122,7 +121,7 @@ void HashJoinBuild::execute() {
     // Merge thread-local state (numEntries, htBlocks, overflowBlocks) with the shared one
     {
         lock_guard<mutex> sharedStateLock(sharedState->hashJoinSharedStateLock);
-        sharedState->rowCollection->merge(move(rowCollection));
+        sharedState->factorizedTable->merge(move(factorizedTable));
     }
     metrics->executionTime.stop();
 }

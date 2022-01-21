@@ -25,12 +25,12 @@ void HashJoinProbe::constructResultVectorsPosAndFieldsToRead() {
 void HashJoinProbe::initializeResultSet() {
     probeSideKeyVector = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()]
                              ->valueVectors[probeDataInfo.getKeyIDVectorPos()];
-    auto rowCollectionLayout = sharedState->rowCollection->getLayout();
+    auto factorizedTableSchema = sharedState->factorizedTable->getTupleSchema();
     // Skip the first key field.
     auto fieldIdx = 1;
     for (auto i = 0u; i < probeDataInfo.nonKeyOutputDataPos.size(); ++i) {
         auto probeSideVector = make_shared<ValueVector>(
-            context.memoryManager, rowCollectionLayout.fields[fieldIdx + i].dataType);
+            context.memoryManager, factorizedTableSchema.fields[fieldIdx + i].dataType);
         auto [dataChunkPos, valueVectorPos] = probeDataInfo.nonKeyOutputDataPos[i];
         resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probeSideVector);
     }
@@ -65,7 +65,7 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
             probeState->numMatchedTuples += nodeID == probeState->probeSideKeyNodeID;
             probeState->probedTuple =
                 *(uint8_t**)(probeState->probedTuple +
-                             sharedState->rowCollection->getLayout().getNullMapOffset() -
+                             sharedState->factorizedTable->getTupleSchema().getNullMapOffset() -
                              sizeof(uint8_t*));
         }
     } while (probeState->numMatchedTuples == 0);
@@ -78,13 +78,13 @@ void HashJoinProbe::populateResultSet() {
     // Build side: Scan(a) -> Extend(b) -> Extend(c) -> Projection(c)
     // Probe side: Scan(e) -> Extend(d) -> Extend(c)
     // Build side only has one hash column but no payload column. In such case, a hash probe can
-    // only read rows one by one (or updating multiplicity) because there is no payload unFlat
-    // vector to represent multiple rows.
-    auto numRowsToRead =
+    // only read tuple one by one (or updating multiplicity) because there is no payload unFlat
+    // vector to represent multiple tuples.
+    auto numTuplesToRead =
         fieldsToRead.empty() ? 1 : probeState->numMatchedTuples - tuplePosToReadInProbedState;
     tuplePosToReadInProbedState +=
-        sharedState->rowCollection->lookup(fieldsToRead, resultVectorsPos, *resultSet,
-            probeState->matchedTuples.get(), tuplePosToReadInProbedState, numRowsToRead);
+        sharedState->factorizedTable->lookup(fieldsToRead, resultVectorsPos, *resultSet,
+            probeState->matchedTuples.get(), tuplePosToReadInProbedState, numTuplesToRead);
 }
 
 // The general flow of a hash join probe:

@@ -4,8 +4,8 @@
 #include "src/common/include/types.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/operator/sink.h"
+#include "src/processor/include/physical_plan/result/factorized_table.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
-#include "src/processor/include/physical_plan/result/row_collection.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -16,7 +16,7 @@ namespace processor {
 
 // This is a shared state between HashJoinBuild and HashJoinProbe operators.
 // Each clone of these two operators will share the same state.
-// Inside the state, we keep the materialized tuples in rowCollection, which are merged by each
+// Inside the state, we keep the materialized tuples in factorizedTable, which are merged by each
 // HashJoinBuild thread when they finished materializing thread-local tuples. Also, the state holds
 // a global htDirectory, which will be updated by the last thread in the hash join build side
 // task/pipeline, and probed by the HashJoinProbe operators.
@@ -27,7 +27,7 @@ public:
     mutex hashJoinSharedStateLock;
 
     unique_ptr<MemoryBlock> htDirectory;
-    unique_ptr<RowCollection> rowCollection;
+    unique_ptr<FactorizedTable> factorizedTable;
     uint64_t hashBitMask;
 };
 
@@ -74,7 +74,7 @@ private:
     BuildDataInfo buildDataInfo;
     shared_ptr<DataChunk> keyDataChunk;
     vector<shared_ptr<ValueVector>> vectorsToAppend;
-    unique_ptr<RowCollection> rowCollection;
+    unique_ptr<FactorizedTable> factorizedTable;
 
     void appendVectors();
     void appendVectorsOnce();

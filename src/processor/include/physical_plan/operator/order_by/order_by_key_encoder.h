@@ -10,7 +10,7 @@
 #include "src/common/include/types.h"
 #include "src/common/include/utils.h"
 #include "src/common/include/vector/value_vector.h"
-#include "src/processor/include/physical_plan/result/row_collection.h"
+#include "src/processor/include/physical_plan/result/factorized_table.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -46,15 +46,15 @@ class OrderByKeyEncoder {
 
 public:
     explicit OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors,
-        vector<bool>& isAscOrder, MemoryManager& memoryManager, uint16_t rowCollectionIdx)
+        vector<bool>& isAscOrder, MemoryManager& memoryManager, uint16_t factorizedTableIdx)
         : memoryManager{memoryManager}, orderByVectors{orderByVectors}, isAscOrder{isAscOrder},
-          nextLocalRowIdx{0}, rowCollectionIdx{rowCollectionIdx} {
+          nextLocalTupleIdx{0}, factorizedTableIdx{factorizedTableIdx} {
         keyBlocks.emplace_back(make_unique<KeyBlock>(memoryManager.allocateBlock(SORT_BLOCK_SIZE)));
         keyBlockEntrySizeInBytes = 0;
         for (auto& orderByVector : orderByVectors) {
             keyBlockEntrySizeInBytes += getEncodingSize(orderByVector->dataType);
         }
-        // 6 bytes for rowIdx and 2 bytes for rowCollectionIdx
+        // 6 bytes for tupleIdx and 2 bytes for factorizedTableIdx
         keyBlockEntrySizeInBytes += 8;
         maxEntriesPerBlock = SORT_BLOCK_SIZE / keyBlockEntrySizeInBytes;
         if (maxEntriesPerBlock <= 0) {
@@ -80,24 +80,24 @@ public:
         return keyBlocks.back()->numEntriesInMemBlock;
     }
 
-    static inline uint64_t getEncodedRowIdxSizeInBytes() {
-        return sizeof(nextLocalRowIdx) - sizeof(rowCollectionIdx);
+    static inline uint64_t getEncodedTupleIdxSizeInBytes() {
+        return sizeof(nextLocalTupleIdx) - sizeof(factorizedTableIdx);
     }
 
-    static inline uint64_t getEncodedRowIdx(const uint8_t* rowInfoBuffer) {
-        uint64_t encodedRowIdx = 0;
-        // Only the lower 6 bytes are used for localRowIdx.
-        memcpy(&encodedRowIdx, rowInfoBuffer, getEncodedRowIdxSizeInBytes());
-        return encodedRowIdx;
+    static inline uint64_t getEncodedTupleIdx(const uint8_t* tupleInfoBuffer) {
+        uint64_t encodedTupleIdx = 0;
+        // Only the lower 6 bytes are used for localTupleIdx.
+        memcpy(&encodedTupleIdx, tupleInfoBuffer, getEncodedTupleIdxSizeInBytes());
+        return encodedTupleIdx;
     }
 
-    static inline uint64_t getEncodedRowCollectionIdx(const uint8_t* rowInfoBuffer) {
-        uint16_t encodedRowCollectionIdx = 0;
-        // The lower 6 bytes are used for localRowIdx, only the higher two bytes are used for
-        // rowCollectionIdx.
-        memcpy(&encodedRowCollectionIdx, rowInfoBuffer + getEncodedRowIdxSizeInBytes(),
-            sizeof(encodedRowCollectionIdx));
-        return encodedRowCollectionIdx;
+    static inline uint64_t getEncodedFactorizedTableIdx(const uint8_t* tupleInfoBuffer) {
+        uint16_t encodedFactorizedTableIdx = 0;
+        // The lower 6 bytes are used for localTupleIdx, only the higher two bytes are used for
+        // factorizedTableIdx.
+        memcpy(&encodedFactorizedTableIdx, tupleInfoBuffer + getEncodedTupleIdxSizeInBytes(),
+            sizeof(encodedFactorizedTableIdx));
+        return encodedFactorizedTableIdx;
     }
 
     static uint64_t getEncodingSize(DataType dataType);
@@ -141,12 +141,12 @@ private:
     vector<bool> isAscOrder;
     uint64_t keyBlockEntrySizeInBytes;
     uint64_t maxEntriesPerBlock;
-    // We only use 6 bytes to represent the nextLocalRowIdx, and 2 bytes to represent the
-    // rowCollectionIdx. Only the lower 6 bytes of nextLocalRowIdx are actually used, so the
-    // MAX_LOCAL_ROW_ID is 2^48-1.
-    const uint64_t MAX_LOCAL_ROW_IDX = (1ull << 48) - 1;
-    uint64_t nextLocalRowIdx;
-    uint16_t rowCollectionIdx;
+    // We only use 6 bytes to represent the nextLocalTupleIdx, and 2 bytes to represent the
+    // factorizedTableIdx. Only the lower 6 bytes of nextLocalTupleIdx are actually used, so the
+    // MAX_LOCAL_TUPLE_IDX is 2^48-1.
+    const uint64_t MAX_LOCAL_TUPLE_IDX = (1ull << 48) - 1;
+    uint64_t nextLocalTupleIdx;
+    uint16_t factorizedTableIdx;
 };
 
 } // namespace processor

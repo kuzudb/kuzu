@@ -9,10 +9,10 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-class Tuple {
+class FlatTuple {
 
 public:
-    explicit Tuple(const vector<DataType>& valueTypes) {
+    explicit FlatTuple(const vector<DataType>& valueTypes) {
         values.resize(valueTypes.size());
         nullMask.resize(valueTypes.size());
         for (auto i = 0u; i < valueTypes.size(); i++) {

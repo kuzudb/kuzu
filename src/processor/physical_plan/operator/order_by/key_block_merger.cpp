@@ -8,44 +8,44 @@ using namespace graphflow::common::operation;
 namespace graphflow {
 namespace processor {
 
-uint64_t KeyBlockMergeTask::findRightKeyBlockIdx(uint8_t* leftEndRowBuffer) {
-    // Find a row in the right memory block such that:
-    // 1. The value of the current row is smaller than the value in leftEndRow.
-    // 2. Either the value of next row is larger than the value in leftEndRow or
-    // the current row is the last row in the right memory block.
+uint64_t KeyBlockMergeTask::findRightKeyBlockIdx(uint8_t* leftEndTupleBuffer) {
+    // Find a tuple in the right memory block such that:
+    // 1. The value of the current tuple is smaller than the value in leftEndTuple.
+    // 2. Either the value of next tuple is larger than the value in leftEndTuple or
+    // the current tuple is the last tuple in the right memory block.
     int64_t startIdx = rightKeyBlockNextIdx;
     int64_t endIdx = rightKeyBlock->numEntriesInMemBlock - 1;
 
     while (startIdx <= endIdx) {
-        uint64_t curRowIdx = (startIdx + endIdx) / 2;
-        uint8_t* curRowBuffer = rightKeyBlock->getMemBlockData() +
-                                curRowIdx * keyBlockMerger.getKeyBlockEntrySizeInBytes();
-        uint8_t* nextRowBuffer = curRowBuffer + keyBlockMerger.getKeyBlockEntrySizeInBytes();
+        uint64_t curTupleIdx = (startIdx + endIdx) / 2;
+        uint8_t* curTupleBuffer = rightKeyBlock->getMemBlockData() +
+                                  curTupleIdx * keyBlockMerger.getKeyBlockEntrySizeInBytes();
+        uint8_t* nextTupleBuffer = curTupleBuffer + keyBlockMerger.getKeyBlockEntrySizeInBytes();
 
-        if (keyBlockMerger.compareRowBuffer(leftEndRowBuffer, curRowBuffer)) {
-            if (curRowIdx == rightKeyBlock->numEntriesInMemBlock - 1 ||
-                !keyBlockMerger.compareRowBuffer(leftEndRowBuffer, nextRowBuffer)) {
-                // If the current row is the last row or the value of next row is larger than
-                // the value of leftEndRow, return the curRowIdx.
-                return curRowIdx;
+        if (keyBlockMerger.compareTupleBuffer(leftEndTupleBuffer, curTupleBuffer)) {
+            if (curTupleIdx == rightKeyBlock->numEntriesInMemBlock - 1 ||
+                !keyBlockMerger.compareTupleBuffer(leftEndTupleBuffer, nextTupleBuffer)) {
+                // If the current tuple is the last tuple or the value of next tuple is larger than
+                // the value of leftEndTuple, return the curTupleIdx.
+                return curTupleIdx;
             } else {
-                startIdx = curRowIdx + 1;
+                startIdx = curTupleIdx + 1;
             }
         } else {
-            endIdx = curRowIdx - 1;
+            endIdx = curTupleIdx - 1;
         }
     }
-    // If such row doesn't exist, return -1.
+    // If such tuple doesn't exist, return -1.
     return -1;
 }
 
 unique_ptr<KeyBlockMergeMorsel> KeyBlockMergeTask::getMorsel() {
-    // We grab a batch of rows from the left memory block, then do a binary search on the
-    // right memory block to find the range of rows to merge.
+    // We grab a batch of tuples from the left memory block, then do a binary search on the
+    // right memory block to find the range of tuples to merge.
     activeMorsels++;
     if (rightKeyBlockNextIdx >= rightKeyBlock->numEntriesInMemBlock) {
-        // If there is no more rows left in the right key block,
-        // just append all rows in the left key block to the result key block.
+        // If there is no more tuples left in the right key block,
+        // just append all tuples in the left key block to the result key block.
         auto keyBlockMergeMorsel = make_unique<KeyBlockMergeMorsel>(leftKeyBlockNextIdx,
             leftKeyBlock->numEntriesInMemBlock, rightKeyBlock->numEntriesInMemBlock,
             rightKeyBlock->numEntriesInMemBlock);
@@ -57,8 +57,8 @@ unique_ptr<KeyBlockMergeMorsel> KeyBlockMergeTask::getMorsel() {
     leftKeyBlockNextIdx += batch_size;
 
     if (leftKeyBlockNextIdx >= leftKeyBlock->numEntriesInMemBlock) {
-        // This is the last batch of rows in the left key block to merge, so just merge it with
-        // remaining rows of the right key block.
+        // This is the last batch of tuples in the left key block to merge, so just merge it with
+        // remaining tuples of the right key block.
         auto keyBlockMergeMorsel = make_unique<KeyBlockMergeMorsel>(leftKeyBlockStartIdx,
             min(leftKeyBlockNextIdx, leftKeyBlock->numEntriesInMemBlock), rightKeyBlockNextIdx,
             rightKeyBlock->numEntriesInMemBlock);
@@ -95,7 +95,7 @@ void KeyBlockMerger::mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) {
 
     while (leftKeyBlockIdx < keyBlockMergeMorsel.leftKeyBlockEndIdx &&
            rightKeyBlockIdx < keyBlockMergeMorsel.rightKeyBlockEndIdx) {
-        if (compareRowBuffer(leftKeyBlockBuffer, rightKeyBlockBuffer)) {
+        if (compareTupleBuffer(leftKeyBlockBuffer, rightKeyBlockBuffer)) {
             memcpy(resultKeyBlockBuffer, rightKeyBlockBuffer, keyBlockEntrySizeInBytes);
             rightKeyBlockBuffer += keyBlockEntrySizeInBytes;
             rightKeyBlockIdx++;
@@ -107,7 +107,7 @@ void KeyBlockMerger::mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) {
         resultKeyBlockBuffer += keyBlockEntrySizeInBytes;
     }
 
-    // If there are still unmerged rows in the left or right memBlock, just append them to the
+    // If there are still unmerged tuples in the left or right memBlock, just append them to the
     // result memBlock.
     if (leftKeyBlockIdx < keyBlockMergeMorsel.leftKeyBlockEndIdx) {
         memcpy(resultKeyBlockBuffer, leftKeyBlockBuffer,
@@ -119,30 +119,30 @@ void KeyBlockMerger::mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) {
     }
 }
 
-// This function returns true if the value in the leftRowBuffer is larger than the value in the
-// rightRowBuffer.
-bool KeyBlockMerger::compareRowBuffer(uint8_t* leftRowBuffer, uint8_t* rightRowBuffer) {
+// This function returns true if the value in the leftTupleBuffer is larger than the value in the
+// rightTupleBuffer.
+bool KeyBlockMerger::compareTupleBuffer(uint8_t* leftTupleBuffer, uint8_t* rightTupleBuffer) {
     if (stringAndUnstructuredKeyColInfo.empty()) {
         // If there is no string or unstructured columns in the keys, we just need to do a simple
         // memcmp.
-        return memcmp(leftRowBuffer, rightRowBuffer, keyBlockEntrySizeInBytes - sizeof(uint64_t)) >
-               0;
+        return memcmp(leftTupleBuffer, rightTupleBuffer,
+                   keyBlockEntrySizeInBytes - sizeof(uint64_t)) > 0;
     } else {
-        // We can't simply use memcmp to compare rows if there are string or unstructured columns.
+        // We can't simply use memcmp to compare tuples if there are string or unstructured columns.
         // We should only compare the binary strings starting from the last compared string column
         // till the next string column.
         uint64_t lastComparedBytes = 0;
         for (auto& stringAndUnstructuredKeyInfo : stringAndUnstructuredKeyColInfo) {
             auto result =
-                memcmp(leftRowBuffer + lastComparedBytes, rightRowBuffer + lastComparedBytes,
+                memcmp(leftTupleBuffer + lastComparedBytes, rightTupleBuffer + lastComparedBytes,
                     stringAndUnstructuredKeyInfo.colOffsetInEncodedKeyBlock - lastComparedBytes +
                         stringAndUnstructuredKeyInfo.getEncodingSize());
             // If both sides are nulls, we can just continue to check the next string or
             // unstructured column.
             if (OrderByKeyEncoder::isNullVal(
-                    leftRowBuffer, stringAndUnstructuredKeyInfo.isAscOrder) &&
+                    leftTupleBuffer, stringAndUnstructuredKeyInfo.isAscOrder) &&
                 OrderByKeyEncoder::isNullVal(
-                    rightRowBuffer, stringAndUnstructuredKeyInfo.isAscOrder)) {
+                    rightTupleBuffer, stringAndUnstructuredKeyInfo.isAscOrder)) {
                 lastComparedBytes = stringAndUnstructuredKeyInfo.colOffsetInEncodedKeyBlock +
                                     stringAndUnstructuredKeyInfo.getEncodingSize();
                 continue;
@@ -150,17 +150,35 @@ bool KeyBlockMerger::compareRowBuffer(uint8_t* leftRowBuffer, uint8_t* rightRowB
             // If there is a tie, we need to compare the overflow ptr of strings or the actual
             // unstructured values.
             if (result == 0) {
-                auto leftBuffer = getValPtrFromRowCollection(
-                    leftRowBuffer, stringAndUnstructuredKeyInfo.colOffsetInRowCollection);
-                auto rightBuffer = getValPtrFromRowCollection(
-                    rightRowBuffer, stringAndUnstructuredKeyInfo.colOffsetInRowCollection);
+                auto leftEncodedFactorizedTableIdxAndTupleIdx =
+                    getEncodedFactorizedTableIdxAndTupleIdx(leftTupleBuffer);
+                auto rightEncodedFactorizedTableIdxAnTupleIdx =
+                    getEncodedFactorizedTableIdxAndTupleIdx(rightTupleBuffer);
+                auto leftFactorizedTable =
+                    factorizedTables[leftEncodedFactorizedTableIdxAndTupleIdx.first];
+                auto rightFactorizedTable =
+                    factorizedTables[rightEncodedFactorizedTableIdxAnTupleIdx.first];
+                uint64_t colIdxInFactorizedTable =
+                    stringAndUnstructuredKeyInfo.colIdxInFactorizedTable;
                 uint8_t result;
                 if (stringAndUnstructuredKeyInfo.isStrCol) {
-                    Equals::operation<gf_string_t, gf_string_t>(*((gf_string_t*)leftBuffer),
-                        *((gf_string_t*)rightBuffer), result, false, false);
+                    Equals::operation<gf_string_t, gf_string_t>(
+                        leftFactorizedTable->getString(
+                            leftEncodedFactorizedTableIdxAndTupleIdx.second,
+                            colIdxInFactorizedTable),
+                        rightFactorizedTable->getString(
+                            rightEncodedFactorizedTableIdxAnTupleIdx.second,
+                            colIdxInFactorizedTable),
+                        result, false, false);
                 } else {
                     Equals::operation<Value, Value>(
-                        *((Value*)leftBuffer), *((Value*)rightBuffer), result, false, false);
+                        leftFactorizedTable->getUnstrValue(
+                            leftEncodedFactorizedTableIdxAndTupleIdx.second,
+                            colIdxInFactorizedTable),
+                        rightFactorizedTable->getUnstrValue(
+                            rightEncodedFactorizedTableIdxAnTupleIdx.second,
+                            colIdxInFactorizedTable),
+                        result, false, false);
                 }
                 if (result) {
                     // If the tie can't be solved, we need to check the next string or unstructured
@@ -170,17 +188,29 @@ bool KeyBlockMerger::compareRowBuffer(uint8_t* leftRowBuffer, uint8_t* rightRowB
                     continue;
                 }
                 if (stringAndUnstructuredKeyInfo.isStrCol) {
-                    GreaterThan::operation<gf_string_t, gf_string_t>(*((gf_string_t*)leftBuffer),
-                        *((gf_string_t*)rightBuffer), result, false, false);
+                    GreaterThan::operation<gf_string_t, gf_string_t>(
+                        leftFactorizedTable->getString(
+                            leftEncodedFactorizedTableIdxAndTupleIdx.second,
+                            colIdxInFactorizedTable),
+                        rightFactorizedTable->getString(
+                            rightEncodedFactorizedTableIdxAnTupleIdx.second,
+                            colIdxInFactorizedTable),
+                        result, false, false);
                 } else {
                     GreaterThan::operation<Value, Value>(
-                        *((Value*)leftBuffer), *((Value*)rightBuffer), result, false, false);
+                        leftFactorizedTable->getUnstrValue(
+                            leftEncodedFactorizedTableIdxAndTupleIdx.second,
+                            colIdxInFactorizedTable),
+                        rightFactorizedTable->getUnstrValue(
+                            rightEncodedFactorizedTableIdxAnTupleIdx.second,
+                            colIdxInFactorizedTable),
+                        result, false, false);
                 }
                 return stringAndUnstructuredKeyInfo.isAscOrder == result;
             }
             return result > 0;
         }
-        // The string or unstructured tie can't be solved, just add the row in the leftMemBlock to
+        // The string or unstructured tie can't be solved, just add the tuple in the leftMemBlock to
         // resultMemBlock.
         return false;
     }

@@ -1,7 +1,7 @@
 #pragma once
 
+#include "src/processor/include/physical_plan/result/flat_tuple.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
-#include "src/processor/include/physical_plan/result/tuple.h"
 
 using namespace graphflow::common;
 
@@ -23,7 +23,7 @@ public:
     }
 
     bool hasNextTuple();
-    void getNextTuple(Tuple& tuple);
+    void getNextTuple(FlatTuple& tuple);
 
 public:
     vector<DataType> dataTypes;

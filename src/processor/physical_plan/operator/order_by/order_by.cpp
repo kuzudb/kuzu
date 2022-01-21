@@ -6,11 +6,11 @@ namespace processor {
 shared_ptr<ResultSet> OrderBy::initResultSet() {
     resultSet = children[0]->initResultSet();
 
-    // RowCollection, keyBlockEntrySizeInBytes, stringAndUnstructuredKeyColInfo are constructed here
-    // because they need the data type information, which is contained in the value vectors.
-    RowLayout rowLayout;
-    // Loop through all columns to initialize the rowCollection.
-    // We need to store all columns(including keys and payload) in the rowCollection.
+    // FactorizedTable, keyBlockEntrySizeInBytes, stringAndUnstructuredKeyColInfo are constructed
+    // here because they need the data type information, which is contained in the value vectors.
+    TupleSchema tupleSchema;
+    // Loop through all columns to initialize the factorizedTable.
+    // We need to store all columns(including keys and payload) in the factorizedTable.
     for (auto i = 0u; i < orderByDataInfo.allDataPoses.size(); ++i) {
         auto dataChunkPos = orderByDataInfo.allDataPoses[i].dataChunkPos;
         auto dataChunk = this->resultSet->dataChunks[dataChunkPos];
@@ -25,21 +25,19 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
             }
         }
 
-        // The column is an overflow column in the rowCollection
+        // The column is an unflat column in the factorizedTable
         // if it is an unflat payload column. We store a pointer to the overflow
-        // valueVector in the rowCollection for overflow column.
-        bool isVectorOverflow = (!isKeyCol) && (!orderByDataInfo.isVectorFlat[i]);
-        rowLayout.appendField({vector->dataType,
-            isVectorOverflow ? sizeof(overflow_value_t) : vector->getNumBytesPerValue(),
-            isVectorOverflow});
+        // valueVector in the factorizedTable for unflat columns.
+        bool isUnflat = (!isKeyCol) && (!orderByDataInfo.isVectorFlat[i]);
+        tupleSchema.appendField({vector->dataType, isUnflat, dataChunkPos});
         vectorsToAppend.push_back(vector);
     }
 
-    // Create a rowCollection and append it to sharedState.
-    rowLayout.initialize();
-    localRowCollection = make_shared<RowCollection>(*context.memoryManager, rowLayout);
-    rowCollectionIdx = sharedState->getNextRowCollectionIdx();
-    sharedState->appendRowCollection(rowCollectionIdx, localRowCollection);
+    // Create a factorizedTable and append it to sharedState.
+    tupleSchema.initialize();
+    localFactorizedTable = make_shared<FactorizedTable>(*context.memoryManager, tupleSchema);
+    factorizedTableIdx = sharedState->getNextFactorizedTableIdx();
+    sharedState->appendFactorizedTable(factorizedTableIdx, localFactorizedTable);
 
     // Loop through all key columns and calculate the offsets for string and unstructured columns.
     auto encodedKeyBlockColOffset = 0ul;
@@ -52,15 +50,15 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
         keyVectors.emplace_back(vector);
         if (STRING == vector->dataType || UNSTRUCTURED == vector->dataType) {
             // If this is a string or unstructured column, we need to find the
-            // rowCollection offset for this column.
-            auto rowCollectionOffset = 0ul;
+            // factorizedTable offset for this column.
+            auto factorizedTableColIdx = 0ul;
             for (auto j = 0u; j < orderByDataInfo.allDataPoses.size(); j++) {
                 if (orderByDataInfo.allDataPoses[j] == keyDataPos) {
-                    rowCollectionOffset = localRowCollection->getFieldOffsetInRow(j);
+                    factorizedTableColIdx = j;
                 }
             }
             stringAndUnstructuredKeyColInfo.emplace_back(
-                StringAndUnstructuredKeyColInfo(rowCollectionOffset, encodedKeyBlockColOffset,
+                StringAndUnstructuredKeyColInfo(factorizedTableColIdx, encodedKeyBlockColOffset,
                     orderByDataInfo.isAscOrder[i], STRING == vector->dataType));
         }
         encodedKeyBlockColOffset += OrderByKeyEncoder::getEncodingSize(vector->dataType);
@@ -68,8 +66,8 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
 
     // Prepare the orderByEncoder, and radix sorter
     orderByKeyEncoder = make_unique<OrderByKeyEncoder>(
-        keyVectors, orderByDataInfo.isAscOrder, *context.memoryManager, rowCollectionIdx);
-    radixSorter = make_unique<RadixSort>(*context.memoryManager, *localRowCollection,
+        keyVectors, orderByDataInfo.isAscOrder, *context.memoryManager, factorizedTableIdx);
+    radixSorter = make_unique<RadixSort>(*context.memoryManager, *localFactorizedTable,
         *orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
 
     sharedState->setStringAndUnstructuredKeyColInfo(stringAndUnstructuredKeyColInfo);
@@ -85,9 +83,9 @@ void OrderBy::execute() {
         for (auto i = 0u; i < resultSet->multiplicity; i++) {
             orderByKeyEncoder->encodeKeys();
             // If there is only one unflat orderBy key col, then we flatten the unflat orderBy key
-            // col in rowCollection. Each thread uses a unique identifier: rowCollectionID to get
-            // its private rowCollection, and only appends rows to that rowCollection.
-            localRowCollection->append(vectorsToAppend,
+            // col in factorizedTable. Each thread uses a unique identifier: factorizedTableIdx to
+            // get its private factorizedTable, and only appends tuples to that factorizedTable.
+            localFactorizedTable->append(vectorsToAppend,
                 keyVectors[0]->state->isFlat() ? 1 : keyVectors[0]->state->selectedSize);
         }
     }

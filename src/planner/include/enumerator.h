@@ -95,11 +95,11 @@ private:
     // time, t X m1, t X m2, etc.
     //
     // For OrderBy a similar logic exists. In order to order a set of tuples R, order by stores R in
-    // a RowCollection and orders on the keys. The key columns are necessarily flattened (even if
+    // a FactorizedTable and orders on the keys. The key columns are necessarily flattened (even if
     // they are given to OrderBy in an unflat format). But the non-key columns can be flat or unflat
     // when stored. However, if all of the non-key columns are flat and since all key columns are
-    // flattened in RowCollection, we can output R with upto |R| many tuples in an unflat datachunk
-    // (though we would do it in chunks of DEFAULT_VECTOR_CAPACITY).
+    // flattened in FactorizedTable, we can output R with upto |R| many tuples in an unflat
+    // datachunk (though we would do it in chunks of DEFAULT_VECTOR_CAPACITY).
     static void computeSchemaForHashJoinAndOrderBy(
         const unordered_set<uint32_t>& groupsToMaterializePos, const Schema& schemaBeforeSink,
         Schema& schemaAfterSink);

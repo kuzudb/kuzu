@@ -509,7 +509,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
 
     auto orderByDataInfo = OrderByDataInfo(
         keyDataPoses, inputDataPoses, isInputVectorFlat, logicalOrderBy.getIsAscOrders());
-    auto orderBySharedState = make_shared<SharedRowCollectionsAndSortedKeyBlocks>();
+    auto orderBySharedState = make_shared<SharedFactorizedTablesAndSortedKeyBlocks>();
 
     auto orderBy = make_unique<OrderBy>(orderByDataInfo, orderBySharedState,
         move(orderByPrevOperator), executionContext, mapperContext.getOperatorID());

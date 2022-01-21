@@ -51,10 +51,10 @@ public:
         : Exception("OrderBy encoder exception: " + msg){};
 };
 
-class RowCollectionException : public Exception {
+class FactorizedTableException : public Exception {
 public:
-    explicit RowCollectionException(const string& msg)
-        : Exception("RowCollection exception: " + msg){};
+    explicit FactorizedTableException(const string& msg)
+        : Exception("FactorizedTable exception: " + msg){};
 };
 
 } // namespace common
