@@ -21,7 +21,7 @@ public:
 
     // currently used in testing framework
     vector<unique_ptr<LogicalPlan>> enumerateAllPlans(SessionContext& sessionContext) const;
-    unique_ptr<QueryResult> executePlan(
+    shared_ptr<FactorizedTable> executePlan(
         unique_ptr<LogicalPlan> logicalPlan, SessionContext& sessionContext) const;
 
     unique_ptr<nlohmann::json> debugInfo() const;

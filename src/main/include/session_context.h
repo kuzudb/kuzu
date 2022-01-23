@@ -2,7 +2,7 @@
 
 #include "src/common/include/profiler.h"
 #include "src/main/include/plan_printer.h"
-#include "src/processor/include/physical_plan/result/query_result.h"
+#include "src/processor/include/physical_plan/result/factorized_table.h"
 
 using namespace graphflow::common;
 
@@ -31,7 +31,7 @@ public:
 
     // query execution information that will always be returned to user regardless whether EXPLAIN
     // or PROFILE is enabled or not
-    unique_ptr<QueryResult> queryResult;
+    shared_ptr<FactorizedTable> queryResult;
     double compilingTime;
     double executingTime;
 };

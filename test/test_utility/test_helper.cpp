@@ -6,7 +6,6 @@
 #include "spdlog/spdlog.h"
 
 #include "src/loader/include/graph_loader.h"
-#include "src/processor/include/physical_plan/result/result_set_iterator.h"
 
 using namespace std;
 using namespace graphflow::planner;
@@ -35,9 +34,9 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const Syste
         for (uint64_t j = 0; j < numPlans; j++) {
             auto planStr = plans[j]->lastOperator->toString();
             auto result = system.executePlan(move(plans[j]), context);
-            if (result->numTuples != testConfig.expectedNumTuples) {
+            if (result->getTotalNumFlatTuples() != testConfig.expectedNumTuples) {
                 spdlog::error("PLAN{} NOT PASSED. Result num tuples: {}, Expected num tuples: {}",
-                    j, result->numTuples, testConfig.expectedNumTuples);
+                    j, result->getTotalNumFlatTuples(), testConfig.expectedNumTuples);
                 spdlog::info("PLAN: \n{}", planStr);
             } else {
                 vector<string> resultTuples = getActualOutput(*result, testConfig.checkOutputOrder);
@@ -116,19 +115,13 @@ void BaseGraphLoadingTest::SetUp() {
     TestHelper::loadGraph(testSuiteSystemConfig);
 }
 
-vector<string> TestHelper::getActualOutput(QueryResult& queryResult, bool checkOutputOrder) {
+vector<string> TestHelper::getActualOutput(FactorizedTable& queryResult, bool checkOutputOrder) {
     vector<string> actualOutput;
-    if (queryResult.numTuples != 0) {
-        auto resultSetIterator =
-            make_unique<ResultSetIterator>(queryResult.resultSetCollection[0].get(),
-                queryResult.vectorsToCollectPos, queryResult.dataChunksPosInScope);
-        FlatTuple tuple(resultSetIterator->dataTypes);
-        for (auto& resultSet : queryResult.resultSetCollection) {
-            resultSetIterator->setResultSet(resultSet.get());
-            while (resultSetIterator->hasNextTuple()) {
-                resultSetIterator->getNextTuple(tuple);
-                actualOutput.push_back(tuple.toString(vector<uint32_t>(tuple.len(), 0)));
-            }
+    if (queryResult.getTotalNumFlatTuples() != 0) {
+        auto flatTupleIterator = queryResult.getFlatTuples();
+        while (flatTupleIterator.hasNextFlatTuple()) {
+            auto tuple = flatTupleIterator.getNextFlatTuple();
+            actualOutput.push_back(tuple.toString(vector<uint32_t>(tuple.len(), 0)));
         }
         if (!checkOutputOrder) {
             sort(actualOutput.begin(), actualOutput.end());

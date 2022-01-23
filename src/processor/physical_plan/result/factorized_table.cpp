@@ -20,7 +20,8 @@ bool TupleSchema::operator==(const TupleSchema& other) const {
 }
 
 FactorizedTable::FactorizedTable(MemoryManager& memoryManager, const TupleSchema& tupleSchema)
-    : memoryManager{memoryManager}, tupleSchema{tupleSchema}, numTuples{0}, numTuplesPerBlock{0} {
+    : memoryManager{memoryManager}, tupleSchema{tupleSchema}, numTuples{0}, numTuplesPerBlock{0},
+      totalNumFlatTuples{0} {
     assert(tupleSchema.numBytesPerTuple <= DEFAULT_MEMORY_BLOCK_SIZE);
     assert(tupleSchema.isInitialized);
 
@@ -175,6 +176,9 @@ void FactorizedTable::append(
         offsetInTuple += tupleSchema.fields[i].getFieldSize();
     }
     numTuples += numTuplesToAppend;
+    for (auto i = 1; i <= numTuplesToAppend; i++) {
+        totalNumFlatTuples += getNumFlatTuples(numTuples - i);
+    }
 }
 
 void FactorizedTable::readUnflatVector(
@@ -295,13 +299,13 @@ uint64_t FactorizedTable::lookup(const vector<uint64_t>& fieldsToRead,
     return numTuplesToRead;
 }
 
-void FactorizedTable::merge(unique_ptr<FactorizedTable> other) {
-    assert(tupleSchema == other->tupleSchema);
-    move(
-        begin(other->tupleDataBlocks), end(other->tupleDataBlocks), back_inserter(tupleDataBlocks));
-    move(begin(other->vectorOverflowBlocks), end(other->vectorOverflowBlocks),
+void FactorizedTable::merge(FactorizedTable& other) {
+    assert(tupleSchema == other.tupleSchema);
+    move(begin(other.tupleDataBlocks), end(other.tupleDataBlocks), back_inserter(tupleDataBlocks));
+    move(begin(other.vectorOverflowBlocks), end(other.vectorOverflowBlocks),
         back_inserter(vectorOverflowBlocks));
-    this->numTuples += other->numTuples;
+    this->numTuples += other.numTuples;
+    this->totalNumFlatTuples += other.totalNumFlatTuples;
 }
 
 uint64_t FactorizedTable::getFieldOffsetInTuple(uint64_t fieldId) const {
@@ -317,14 +321,17 @@ FlatTupleIterator FactorizedTable::getFlatTuples() {
 }
 
 FlatTupleIterator::FlatTupleIterator(FactorizedTable& factorizedTable)
-    : factorizedTable{factorizedTable}, currentTupleBuffer{factorizedTable.getTuple(
-                                            0 /* tupleIdx */)},
-      numFlatTuples{factorizedTable.getNumFlatTuples(0 /* tupleIdx */)}, nextFlatTupleIdx{0},
-      nextTupleIdx{1} {
-    updateNumElementsInDataChunk();
-    updateInvalidEntriesInFlatTuplePositionsInDataChunk();
-    for (auto& field : factorizedTable.getTupleSchema().fields) {
-        dataTypes.emplace_back(field.dataType);
+    : factorizedTable{factorizedTable}, nextFlatTupleIdx{0}, nextTupleIdx{1} {
+    // Don't initialize currentTupleBuffer, numFlatTuples if there are no tuples in the
+    // factorizedTable.
+    if (factorizedTable.getNumTuples()) {
+        currentTupleBuffer = factorizedTable.getTuple(0 /* tupleIdx */);
+        numFlatTuples = factorizedTable.getNumFlatTuples(0 /* tupleIdx */);
+        updateNumElementsInDataChunk();
+        updateInvalidEntriesInFlatTuplePositionsInDataChunk();
+        for (auto& field : factorizedTable.getTupleSchema().fields) {
+            dataTypes.emplace_back(field.dataType);
+        }
     }
 }
 
@@ -403,17 +410,22 @@ void FlatTupleIterator::readUnflatColToFlatTuple(FlatTuple& flatTuple, uint64_t 
     valueBuffer =
         overflowValue->value + TypeUtils::getDataTypeSize(field.dataType) *
                                    flatTuplePositionsInDataChunk[field.dataChunkPos].first;
-    auto nullMapBuffer = overflowValue->value + overflowValue->numElements * field.getFieldSize();
+    auto nullMapBuffer = overflowValue->value +
+                         overflowValue->numElements * TypeUtils::getDataTypeSize(field.dataType);
     flatTuple.nullMask[flatTupleValIdx] = FactorizedTable::isNull(
         nullMapBuffer, flatTuplePositionsInDataChunk[field.dataChunkPos].first);
-    readValueBufferToFlatTuple(field.dataType, flatTuple, flatTupleValIdx, valueBuffer);
+    if (!flatTuple.nullMask[flatTupleValIdx]) {
+        readValueBufferToFlatTuple(field.dataType, flatTuple, flatTupleValIdx, valueBuffer);
+    }
 }
 
 void FlatTupleIterator::readFlatColToFlatTuple(FlatTuple& flatTuple, uint64_t flatTupleValIdx,
     const FieldInTupleSchema& field, uint8_t* valueBuffer) {
     auto nullMapBuffer = currentTupleBuffer + factorizedTable.getTupleSchema().getNullMapOffset();
     flatTuple.nullMask[flatTupleValIdx] = FactorizedTable::isNull(nullMapBuffer, flatTupleValIdx);
-    readValueBufferToFlatTuple(field.dataType, flatTuple, flatTupleValIdx, valueBuffer);
+    if (!flatTuple.nullMask[flatTupleValIdx]) {
+        readValueBufferToFlatTuple(field.dataType, flatTuple, flatTupleValIdx, valueBuffer);
+    }
 }
 
 void FlatTupleIterator::updateNumElementsInDataChunk() {

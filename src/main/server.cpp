@@ -131,7 +131,7 @@ nlohmann::json Server::executeQuery(SessionContext& sessionContext) {
             json["result"]["plan"] =
                 sessionContext.planPrinter->printPlanToJson(*sessionContext.profiler);
         } else {
-            json["result"]["numTuples"] = sessionContext.queryResult->numTuples;
+            json["result"]["numTuples"] = sessionContext.queryResult->getTotalNumFlatTuples();
             json["result"]["compilingTime"] = sessionContext.compilingTime;
             json["result"]["executingTime"] = sessionContext.executingTime;
             if (sessionContext.profiler->enabled) {

@@ -107,14 +107,16 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
             firstInnerGroupMapToOuterPos = outerPlan.schema->createGroup();
         }
         outerPlan.schema->insertToGroupAndScope(expressionName, firstInnerGroupMapToOuterPos);
+        outerPlan.schema->getGroup(firstInnerGroupMapToOuterPos)->isFlat = firstInnerGroup->isFlat;
     }
-    // Merge rest inner groups into outer
+    // Merge rest inner groups into outer.
     for (auto i = 1u; i < subPlanSchema->getNumGroups(); ++i) {
         auto outerPos = outerPlan.schema->createGroup();
         auto group = subPlanSchema->getGroup(i);
         for (auto& expressionName : group->expressionNames) {
             outerPlan.schema->insertToGroupAndScope(expressionName, outerPos);
         }
+        outerPlan.schema->getGroup(outerPos)->isFlat = group->isFlat;
     }
     auto logicalLeftNestedLoopJoin = make_shared<LogicalLeftNestedLoopJoin>(
         bestPlan->schema->copy(), outerPlan.lastOperator, bestPlan->lastOperator);

@@ -6,8 +6,6 @@
 #include <regex>
 #include <sstream>
 
-#include "src/processor/include/physical_plan/result/result_set_iterator.h"
-
 // prompt for user input
 const char* PROMPT = "graphflowdb> ";
 // file to read/write shell history
@@ -262,29 +260,25 @@ void EmbeddedShell::printExecutionResult() {
         prettyPrintPlan();
     } else {
         // print query result (numFlatTuples & tuples)
-        printf(">> Number of output tuples: %lu\n", context.queryResult->numTuples);
+        printf(">> Number of output tuples: %lu\n", context.queryResult->getTotalNumFlatTuples());
         printf(">> Compiling time: %.2fms\n", context.compilingTime);
         printf(">> Executing time: %.2fms\n", context.executingTime);
-        if (!context.queryResult->resultSetCollection.empty()) {
-            ResultSetIterator resultSetIterator(context.queryResult->resultSetCollection[0].get(),
-                context.queryResult->vectorsToCollectPos,
-                context.queryResult->dataChunksPosInScope);
-            FlatTuple tuple(resultSetIterator.dataTypes);
-            vector<uint32_t> colsWidth(tuple.len(), 2);
+
+        if (context.queryResult->getNumTuples()) {
+            vector<uint32_t> colsWidth(context.queryResult->getTupleSchema().fields.size(), 2);
             uint32_t lineSeparatorLen = 1u + colsWidth.size();
             string lineSeparator;
+
+            auto flatTupleIteartor = context.queryResult->getFlatTuples();
             //  first loop: calculate column width of the table
-            for (auto& resultSet : context.queryResult->resultSetCollection) {
-                resultSetIterator.setResultSet(resultSet.get());
-                while (resultSetIterator.hasNextTuple()) {
-                    resultSetIterator.getNextTuple(tuple);
-                    for (auto i = 0u; i < colsWidth.size(); i++) {
-                        if (tuple.nullMask[i]) {
-                            continue;
-                        }
-                        uint32_t fieldLen = tuple.getValue(i)->toString().length() + 2;
-                        colsWidth[i] = (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i];
+            while (flatTupleIteartor.hasNextFlatTuple()) {
+                auto tuple = flatTupleIteartor.getNextFlatTuple();
+                for (auto i = 0u; i < colsWidth.size(); i++) {
+                    if (tuple.nullMask[i]) {
+                        continue;
                     }
+                    uint32_t fieldLen = tuple.getValue(i)->toString().length() + 2;
+                    colsWidth[i] = (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i];
                 }
             }
             for (auto width : colsWidth) {
@@ -292,15 +286,15 @@ void EmbeddedShell::printExecutionResult() {
             }
             lineSeparator = string(lineSeparatorLen, '-');
             printf("%s\n", lineSeparator.c_str());
-            for (auto& resultSet : context.queryResult->resultSetCollection) {
-                resultSetIterator.setResultSet(resultSet.get());
-                while (resultSetIterator.hasNextTuple()) {
-                    resultSetIterator.getNextTuple(tuple);
-                    printf("|%s|\n", tuple.toString(colsWidth, "|").c_str());
-                    printf("%s\n", lineSeparator.c_str());
-                }
+
+            auto flatTupleIteartor1 = context.queryResult->getFlatTuples();
+            while (flatTupleIteartor1.hasNextFlatTuple()) {
+                auto tuple = flatTupleIteartor1.getNextFlatTuple();
+                printf("|%s|\n", tuple.toString(colsWidth, "|").c_str());
+                printf("%s\n", lineSeparator.c_str());
             }
         }
+
         if (context.profiler->enabled) {
             // print plan with profiling metrics
             printf("==============================================\n");

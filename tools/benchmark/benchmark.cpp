@@ -6,8 +6,6 @@
 #include "spdlog/spdlog.h"
 #include "test/test_utility/include/test_helper.h"
 
-#include "src/processor/include/physical_plan/result/result_set_iterator.h"
-
 using namespace graphflow::common;
 
 namespace graphflow {
