@@ -121,7 +121,7 @@ void HashJoinBuild::execute() {
     // Merge thread-local state (numEntries, htBlocks, overflowBlocks) with the shared one
     {
         lock_guard<mutex> sharedStateLock(sharedState->hashJoinSharedStateLock);
-        sharedState->factorizedTable->merge(move(factorizedTable));
+        sharedState->factorizedTable->merge(*factorizedTable);
     }
     metrics->executionTime.stop();
 }

@@ -79,7 +79,7 @@ vector<unique_ptr<LogicalPlan>> System::enumerateAllPlans(SessionContext& sessio
     return Planner::getAllPlans(*graph, *boundQuery);
 }
 
-unique_ptr<QueryResult> System::executePlan(
+shared_ptr<FactorizedTable> System::executePlan(
     unique_ptr<LogicalPlan> logicalPlan, SessionContext& sessionContext) const {
     sessionContext.profiler->resetMetrics();
     auto executionContext = ExecutionContext(*sessionContext.profiler, memManager.get());

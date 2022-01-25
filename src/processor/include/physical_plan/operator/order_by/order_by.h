@@ -27,13 +27,13 @@ public:
         : nextFactorizedTableIdx{0}, sortedKeyBlocks{make_shared<queue<shared_ptr<KeyBlock>>>()} {}
 
     uint16_t getNextFactorizedTableIdx() {
-        lock_guard<mutex> sharedStateLock{orderBySharedStateLock};
+        lock_guard<mutex> lck{orderBySharedStateMutex};
         return nextFactorizedTableIdx++;
     }
 
     void appendFactorizedTable(
         uint16_t factorizedTableIdx, shared_ptr<FactorizedTable> factorizedTable) {
-        lock_guard<mutex> sharedStateLock{orderBySharedStateLock};
+        lock_guard<mutex> lck{orderBySharedStateMutex};
         // If the factorizedTables is full, resize the factorizedTables and
         // insert the factorizedTable to the set.
         if (factorizedTableIdx >= factorizedTables.size()) {
@@ -43,23 +43,23 @@ public:
     }
 
     void appendSortedKeyBlock(shared_ptr<KeyBlock> keyBlock) {
-        lock_guard<mutex> sharedStateLock{orderBySharedStateLock};
+        lock_guard<mutex> lck{orderBySharedStateMutex};
         sortedKeyBlocks->emplace(keyBlock);
     }
 
     void setKeyBlockEntrySizeInBytes(uint64_t keyBlockEntrySizeInBytes) {
-        lock_guard<mutex> sharedStateLock{orderBySharedStateLock};
+        lock_guard<mutex> lck{orderBySharedStateMutex};
         this->keyBlockEntrySizeInBytes = keyBlockEntrySizeInBytes;
     }
 
     void setStringAndUnstructuredKeyColInfo(
         vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo) {
-        lock_guard<mutex> sharedStateLock{orderBySharedStateLock};
+        lock_guard<mutex> lck{orderBySharedStateMutex};
         this->stringAndUnstructuredKeyColInfo = move(stringAndUnstructuredKeyColInfo);
     }
 
 private:
-    mutex orderBySharedStateLock;
+    mutex orderBySharedStateMutex;
 
 public:
     vector<shared_ptr<FactorizedTable>> factorizedTables;

@@ -18,17 +18,6 @@ void ProcessorTask::run() {
     lck.unlock();
     auto& sink = (Sink&)*lastOp;
     sink.execute();
-
-    // Finalization part. If this task has no parent, it means it is a ResultCollector. So
-    // we need to merge results from multiple threads into the common ResultCollector (i.e., the
-    // reference sinkOp that each thread cloned from).
-    lck.lock();
-    if (parent == nullptr) {
-        auto resultCollector = reinterpret_cast<ResultCollector*>(sinkOp);
-        auto threadResultCollector = reinterpret_cast<ResultCollector*>(lastOp.get());
-        resultCollector->queryResult->appendQueryResult(move(threadResultCollector->queryResult));
-    }
-    lck.unlock();
 }
 
 void ProcessorTask::finalizeIfNecessary() {

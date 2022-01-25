@@ -2,7 +2,6 @@
 
 #include "src/processor/include/physical_plan/operator/result_collector.h"
 #include "src/processor/include/physical_plan/operator/sink.h"
-#include "src/processor/include/physical_plan/result/query_result.h"
 #include "src/processor/include/processor_task.h"
 
 using namespace graphflow::common;
@@ -14,7 +13,8 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
     taskScheduler = make_unique<TaskScheduler>(numThreads);
 }
 
-unique_ptr<QueryResult> QueryProcessor::execute(PhysicalPlan* physicalPlan, uint64_t numThreads) {
+shared_ptr<FactorizedTable> QueryProcessor::execute(
+    PhysicalPlan* physicalPlan, uint64_t numThreads) {
     auto lastOperator = physicalPlan->lastOperator.get();
     auto resultCollector = reinterpret_cast<ResultCollector*>(lastOperator);
     // The root pipeline(task) consists of operators and its prevOperator only, because we
@@ -23,7 +23,7 @@ unique_ptr<QueryResult> QueryProcessor::execute(PhysicalPlan* physicalPlan, uint
     auto task = make_shared<ProcessorTask>(resultCollector, numThreads);
     decomposePlanIntoTasks(lastOperator, task.get(), numThreads);
     taskScheduler->scheduleTaskAndWaitOrError(task);
-    return move(resultCollector->queryResult);
+    return resultCollector->getFinalizedQueryResult();
 }
 
 void QueryProcessor::decomposePlanIntoTasks(

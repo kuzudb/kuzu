@@ -31,12 +31,13 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto group1Pos = schema.createGroup();
     schema.getGroup(group1Pos)->insertExpression("a._id");
     auto aIDPos = DataPos{0, 0};
-    auto vectorsToCollect = vector<DataPos>{aIDPos};
-    auto plan = make_unique<PhysicalPlan>(make_unique<ResultCollector>(vectorsToCollect,
-        make_unique<ScanNodeID>(
-            make_unique<ResultSetDescriptor>(schema), 0, aIDPos, morsel, executionContext, 0),
-        executionContext, 1));
+    auto vectorsToCollectInfo = vector<pair<DataPos, bool>>{make_pair(aIDPos, false)};
+    auto plan = make_unique<PhysicalPlan>(
+        make_unique<ResultCollector>(vectorsToCollectInfo, make_shared<SharedQueryResults>(),
+            make_unique<ScanNodeID>(
+                make_unique<ResultSetDescriptor>(schema), 0, aIDPos, morsel, executionContext, 0),
+            executionContext, 1));
     auto processor = make_unique<QueryProcessor>(10);
     auto result = processor->execute(plan.get(), 1);
-    ASSERT_EQ(result->numTuples, 1025013);
+    ASSERT_EQ(result->getTotalNumFlatTuples(), 1025013);
 }

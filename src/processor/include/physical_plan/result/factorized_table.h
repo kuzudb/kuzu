@@ -130,7 +130,7 @@ public:
     void readFlatTupleToUnflatVector(const vector<uint64_t>& fieldsToScan,
         const vector<DataPos>& resultDataPos, ResultSet& resultSet, uint64_t tupleIdx,
         uint64_t valuePosInVec) const;
-    void merge(unique_ptr<FactorizedTable> other);
+    void merge(FactorizedTable& other);
     uint64_t getFieldOffsetInTuple(uint64_t fieldId) const;
     bool hasUnflatColToRead(const vector<uint64_t>& fieldsToRead) const;
 
@@ -141,6 +141,7 @@ public:
         auto tupleIdxInBlock = tupleIdx % numTuplesPerBlock;
         return tupleDataBlocks[blockIdx].data + tupleIdxInBlock * tupleSchema.numBytesPerTuple;
     }
+    inline uint64_t getTotalNumFlatTuples() const { return totalNumFlatTuples; }
 
     inline uint64_t getNumFlatTuples(uint64_t tupleIdx) const {
         unordered_map<uint32_t, bool> calculatedDataChunkPoses;
@@ -219,6 +220,7 @@ private:
     TupleSchema tupleSchema;
     uint64_t numTuples;
     uint64_t numTuplesPerBlock;
+    uint64_t totalNumFlatTuples;
     vector<DataBlock> tupleDataBlocks;
     vector<DataBlock> vectorOverflowBlocks;
     unique_ptr<StringBuffer> stringBuffer;

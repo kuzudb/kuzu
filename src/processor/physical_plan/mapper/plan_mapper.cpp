@@ -54,14 +54,17 @@ namespace processor {
 unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
     unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext) {
     auto mapperContext = MapperContext(make_unique<ResultSetDescriptor>(*logicalPlan->schema));
-    vector<DataPos> valueVectorsToCollectPos;
-    for (auto& expression : logicalPlan->getExpressionsToCollect()) {
-        valueVectorsToCollectPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
-    }
     auto prevOperator =
         mapLogicalOperatorToPhysical(logicalPlan->lastOperator, mapperContext, executionContext);
-    auto resultCollector = make_unique<ResultCollector>(move(valueVectorsToCollectPos),
-        move(prevOperator), executionContext, mapperContext.getOperatorID());
+    vector<pair<DataPos, bool>> valueVectorsToCollectInfo;
+    for (auto& expression : logicalPlan->getExpressionsToCollect()) {
+        valueVectorsToCollectInfo.push_back(
+            make_pair(mapperContext.getDataPos(expression->getUniqueName()),
+                logicalPlan->schema->getGroup(expression->getUniqueName())->isFlat));
+    }
+    auto resultCollector = make_unique<ResultCollector>(move(valueVectorsToCollectInfo),
+        make_shared<SharedQueryResults>(), move(prevOperator), executionContext,
+        mapperContext.getOperatorID());
     return make_unique<PhysicalPlan>(move(resultCollector));
 }
 

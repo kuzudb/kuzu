@@ -43,7 +43,8 @@ public:
         return make_unique<System>(config.graphOutputDir, config.isInMemory);
     }
 
-    static vector<string> getActualOutput(QueryResult& queryResult, bool checkOutputOrder = false);
+    static vector<string> getActualOutput(
+        FactorizedTable& queryResult, bool checkOutputOrder = false);
 };
 
 class BaseGraphLoadingTest : public Test {
