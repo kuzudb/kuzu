@@ -20,6 +20,8 @@
 #include "src/planner/include/logical_plan/operator/select_scan/logical_result_scan.h"
 #include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
+#include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate.h"
+#include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate_scan.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate_scan.h"
 #include "src/processor/include/physical_plan/operator/exists.h"
@@ -399,44 +401,57 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
         make_unique<ResultSetDescriptor>(*logicalAggregate.getSchemaBeforeAggregate()));
     auto prevOperator = mapLogicalOperatorToPhysical(
         logicalOperator->getFirstChild(), mapperContextBeforeAggregate, executionContext);
-    vector<DataType> aggregateDataTypes;
+
+    vector<DataPos> aggregatesInputPos;
+    vector<DataPos> aggregatesOutputPos;
+    vector<DataType> aggregatesOutputDataType;
     vector<unique_ptr<AggregateFunction>> aggregateFunctions;
-    vector<DataPos> aggregateVectorsInputPos;
-    vector<DataPos> aggregateVectorsOutputPos;
     for (auto& expression : logicalAggregate.getExpressionsToAggregate()) {
-        // Populate input info
-        DataPos inputDataPos = DataPos{UINT32_MAX, UINT32_MAX};
-        unique_ptr<AggregateFunction> aggregateFunction;
         if (expression->expressionType == COUNT_STAR_FUNC) {
-            aggregateFunction = AggregateFunctionUtil::getCountStarFunction();
+            aggregatesInputPos.emplace_back(UINT32_MAX, UINT32_MAX);
+            aggregateFunctions.push_back(AggregateFunctionUtil::getCountStarFunction());
         } else {
-            assert(expression->getChildren().size() == 1);
-            auto aggregateChild = expression->getChild(0);
-            inputDataPos = mapperContextBeforeAggregate.getDataPos(aggregateChild->getUniqueName());
-            aggregateFunction = AggregateFunctionUtil::getAggregateFunction(
-                expression->expressionType, aggregateChild->dataType);
+            auto child = expression->getChild(0);
+            aggregatesInputPos.push_back(
+                mapperContextBeforeAggregate.getDataPos(child->getUniqueName()));
+            aggregateFunctions.push_back(AggregateFunctionUtil::getAggregateFunction(
+                expression->expressionType, child->dataType));
         }
-        aggregateVectorsInputPos.push_back(inputDataPos);
-        aggregateFunctions.push_back(move(aggregateFunction));
-        // Populate output info
-        aggregateDataTypes.push_back(expression->dataType);
-        aggregateVectorsOutputPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
+        aggregatesOutputPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
+        aggregatesOutputDataType.push_back(expression->dataType);
         mapperContext.addComputedExpressions(expression->getUniqueName());
     }
-    // Create the shared state.
-    vector<unique_ptr<AggregateState>> aggregateStates;
-    for (auto& aggregateFunction : aggregateFunctions) {
-        aggregateStates.push_back(aggregateFunction->initialize());
+    if (logicalAggregate.hasExpressionsToGroupBy()) {
+        vector<DataPos> groupBysInputPos;
+        vector<DataPos> groupBysOutputPos;
+        vector<DataType> groupBysDataType;
+        for (auto& expression : logicalAggregate.getExpressionsToGroupBy()) {
+            groupBysInputPos.push_back(
+                mapperContextBeforeAggregate.getDataPos(expression->getUniqueName()));
+            groupBysOutputPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
+            groupBysDataType.push_back(expression->dataType);
+            mapperContext.addComputedExpressions(expression->getUniqueName());
+        }
+        auto sharedState = make_shared<HashAggregateSharedState>(aggregateFunctions);
+        auto aggregate = make_unique<HashAggregate>(sharedState, groupBysInputPos,
+            aggregatesInputPos, move(aggregateFunctions), move(prevOperator), executionContext,
+            mapperContext.getOperatorID());
+        auto aggregateScan = make_unique<HashAggregateScan>(sharedState,
+            mapperContext.getResultSetDescriptor()->copy(), groupBysOutputPos, groupBysDataType,
+            aggregatesOutputPos, aggregatesOutputDataType, move(aggregate), executionContext,
+            mapperContext.getOperatorID());
+        return aggregateScan;
+    } else {
+        auto sharedState = make_shared<SimpleAggregateSharedState>(aggregateFunctions);
+        auto aggregate =
+            make_unique<SimpleAggregate>(sharedState, aggregatesInputPos, move(aggregateFunctions),
+                move(prevOperator), executionContext, mapperContext.getOperatorID());
+        auto aggregateScan = make_unique<SimpleAggregateScan>(sharedState,
+            mapperContext.getResultSetDescriptor()->copy(), aggregatesOutputPos,
+            aggregatesOutputDataType, move(aggregate), executionContext,
+            mapperContext.getOperatorID());
+        return aggregateScan;
     }
-    auto sharedState = make_shared<AggregateSharedState>(move(aggregateStates));
-
-    auto simpleAggregate = make_unique<SimpleAggregate>(sharedState, aggregateVectorsInputPos,
-        move(aggregateFunctions), move(prevOperator), executionContext,
-        mapperContext.getOperatorID());
-    auto simpleAggregateScan = make_unique<SimpleAggregateScan>(
-        mapperContext.getResultSetDescriptor()->copy(), sharedState, aggregateVectorsOutputPos,
-        aggregateDataTypes, move(simpleAggregate), executionContext, mapperContext.getOperatorID());
-    return simpleAggregateScan;
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExistsToPhysical(

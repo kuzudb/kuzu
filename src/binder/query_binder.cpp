@@ -108,7 +108,6 @@ vector<shared_ptr<Expression>> QueryBinder::bindProjectionExpressions(
         }
     }
     validateProjectionColumnNamesAreUnique(boundProjectionExpressions);
-    validateAggregationsHaveNoGroupBy(boundProjectionExpressions);
     return boundProjectionExpressions;
 }
 
@@ -311,19 +310,6 @@ void QueryBinder::validateOrderByFollowedBySkipOrLimitInWithStatement(
     auto hasSkipOrLimit = boundProjectionBody.hasSkip() || boundProjectionBody.hasLimit();
     if (boundProjectionBody.hasOrderByExpressions() && !hasSkipOrLimit) {
         throw invalid_argument("In WITH clause, ORDER BY must be followed by SKIP or LIMIT.");
-    }
-}
-
-void QueryBinder::validateAggregationsHaveNoGroupBy(
-    const vector<shared_ptr<Expression>>& expressions) {
-    auto numAggregationExpressions = 0u;
-    auto numNonAggregationExpressions = 0u;
-    for (auto& expression : expressions) {
-        isExpressionAggregate(expression->expressionType) ? numAggregationExpressions++ :
-                                                            numNonAggregationExpressions++;
-    }
-    if (numAggregationExpressions != 0 && numNonAggregationExpressions != 0) {
-        throw invalid_argument("Aggregations with group by is not supported.");
     }
 }
 

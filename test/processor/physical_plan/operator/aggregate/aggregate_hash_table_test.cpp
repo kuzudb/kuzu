@@ -1,10 +1,13 @@
 #include "gtest/gtest.h"
 
+#include "src/function/include/aggregate/avg.h"
 #include "src/function/include/aggregate/count.h"
-#include "src/processor/include/physical_plan/operator/aggregate/aggregate_hash_table.h"
+#include "src/function/include/aggregate/sum.h"
+#include "src/processor/include/physical_plan/operator/aggregate/base_aggregate_hash_table.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
 
 using ::testing::Test;
+using namespace graphflow::function;
 using namespace graphflow::processor;
 
 class AggregateHashTableTest : public Test {
@@ -50,73 +53,68 @@ public:
 
 TEST_F(AggregateHashTableTest, SingleGroupTest) {
     vector<unique_ptr<AggregateFunction>> aggregates;
-    auto count1Aggregate = AggregateFunctionUtil::getCountStarFunction();
-    auto count2Aggregate = AggregateFunctionUtil::getCountStarFunction();
-    auto count1State = count1Aggregate->initialize();
-    auto count2State = count2Aggregate->initialize();
-    auto groupsSize = sizeof(uint64_t);
-    auto entrySize =
-        sizeof(hash_t) + groupsSize + count1State->getValSize() + count2State->getValSize();
-    aggregates.push_back(move(count1Aggregate));
-    aggregates.push_back(move(count2Aggregate));
-    auto ht =
-        make_unique<AggregateHashTable>(*memoryManager, move(aggregates), groupsSize, entrySize);
-    vector<shared_ptr<ValueVector>> groupVectors, aggregateVectors;
-    groupVectors.push_back(group1Vector);
+    auto countAggregate = AggregateFunctionUtil::getCountStarFunction();
+    auto sumAggregate = AggregateFunctionUtil::getAggregateFunction(SUM_FUNC, INT64);
+    auto countState = countAggregate->createInitialNullAggregateState();
+    auto sumState = sumAggregate->createInitialNullAggregateState();
+    aggregates.push_back(move(countAggregate));
+    aggregates.push_back(move(sumAggregate));
+    auto groupByVectorsDataType = vector<DataType>{INT64};
+    auto ht = make_unique<AggregateHashTable>(
+        *memoryManager, move(groupByVectorsDataType), aggregates, 0);
+    vector<ValueVector*> groupVectors, aggregateVectors;
+    groupVectors.push_back(group1Vector.get());
     aggregateVectors.push_back(nullptr);
-    aggregateVectors.push_back(nullptr);
+    aggregateVectors.push_back(aggr2Vector.get());
     while (dataChunk->state->currIdx < dataChunk->state->selectedSize) {
-        ht->append(groupVectors, aggregateVectors);
+        ht->append(groupVectors, aggregateVectors, 1 /* multiplicity */);
         dataChunk->state->currIdx++;
     }
-    dataChunk->state->currIdx = 0;
-    while (dataChunk->state->currIdx < 4) {
-        auto entry = ht->lookup(groupVectors);
-        ASSERT_TRUE(entry != nullptr);
-        auto count1AggrState =
-            (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize);
-        ASSERT_EQ(count1AggrState->val, 25);
-        auto count2AggrState =
-            (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize +
-                                             count1AggrState->getValSize());
-        ASSERT_EQ(count2AggrState->val, 25);
-        dataChunk->state->currIdx++;
+    auto groupsSize = TypeUtils::getDataTypeSize(INT64);
+    auto numGroupScanned = 0u;
+    while (numGroupScanned < ht->getNumEntries()) {
+        auto entry = ht->getEntry(numGroupScanned);
+        assert(entry != nullptr);
+        auto countAggrState = (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize);
+        ASSERT_EQ(countAggrState->val, 25);
+        auto sumAggrState = (SumFunction<int64_t>::SumState*)(entry + sizeof(hash_t) + groupsSize +
+                                                              countAggrState->getValSize());
+        ASSERT_EQ(sumAggrState->val, 2400 + numGroupScanned * 50);
+        ++numGroupScanned;
     }
 }
 
 TEST_F(AggregateHashTableTest, TwoGroupsTest) {
     vector<unique_ptr<AggregateFunction>> aggregates;
-    auto count1Aggregate = AggregateFunctionUtil::getCountStarFunction();
-    auto count2Aggregate = AggregateFunctionUtil::getCountStarFunction();
-    auto count1State = count1Aggregate->initialize();
-    auto count2State = count2Aggregate->initialize();
-    auto groupsSize = sizeof(uint64_t) + sizeof(uint64_t);
-    auto entrySize =
-        sizeof(hash_t) + groupsSize + count1State->getValSize() + count2State->getValSize();
-    aggregates.push_back(move(count1Aggregate));
-    aggregates.push_back(move(count2Aggregate));
-    auto ht =
-        make_unique<AggregateHashTable>(*memoryManager, move(aggregates), groupsSize, entrySize);
-    vector<shared_ptr<ValueVector>> groupVectors, aggregateVectors;
-    groupVectors.push_back(group1Vector);
-    groupVectors.push_back(group2Vector);
-    aggregateVectors.push_back(nullptr);
-    aggregateVectors.push_back(nullptr);
+    auto countAggregate = AggregateFunctionUtil::getAggregateFunction(COUNT_FUNC, INT64);
+    auto avgAggregate = AggregateFunctionUtil::getAggregateFunction(AVG_FUNC, INT64);
+    auto count1State = countAggregate->createInitialNullAggregateState();
+    auto count2State = avgAggregate->createInitialNullAggregateState();
+    aggregates.push_back(move(countAggregate));
+    aggregates.push_back(move(avgAggregate));
+
+    auto groupByVectorsDataType = vector<DataType>{INT64, INT64};
+    auto ht = make_unique<AggregateHashTable>(
+        *memoryManager, move(groupByVectorsDataType), aggregates, 0);
+    vector<ValueVector*> groupVectors, aggregateVectors;
+    groupVectors.push_back(group1Vector.get());
+    groupVectors.push_back(group2Vector.get());
+    aggregateVectors.push_back(aggr1Vector.get());
+    aggregateVectors.push_back(aggr2Vector.get());
     while (dataChunk->state->currIdx < dataChunk->state->selectedSize) {
-        ht->append(groupVectors, aggregateVectors);
+        ht->append(groupVectors, aggregateVectors, 1 /* multiplicity */);
         dataChunk->state->currIdx++;
     }
-    dataChunk->state->currIdx = 0;
-    while (dataChunk->state->currIdx < dataChunk->state->selectedSize) {
-        auto entry = ht->lookup(groupVectors);
-        ASSERT_TRUE(entry != nullptr);
-        auto count1AggrState =
-            (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize);
-        ASSERT_EQ(count1AggrState->val, 1);
-        auto count2AggrState =
-            (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize +
-                                             count1AggrState->getValSize());
-        ASSERT_EQ(count2AggrState->val, 1);
-        dataChunk->state->currIdx++;
+    auto groupsSize = sizeof(uint64_t) + sizeof(uint64_t);
+    auto numGroupScanned = 0u;
+    while (numGroupScanned < ht->getNumEntries()) {
+        auto entry = ht->getEntry(numGroupScanned);
+        assert(entry != nullptr);
+        auto countAggrState = (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize);
+        ASSERT_EQ(countAggrState->val, 1);
+        auto avgAggrState = (AvgFunction<int64_t>::AvgState*)(entry + sizeof(hash_t) + groupsSize +
+                                                              countAggrState->getValSize());
+        ASSERT_EQ(avgAggrState->val, numGroupScanned * 2);
+        ++numGroupScanned;
     }
 }

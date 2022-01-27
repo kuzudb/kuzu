@@ -98,6 +98,11 @@ void ProjectionEnumerator::appendProjection(
 void ProjectionEnumerator::appendAggregate(
     const vector<shared_ptr<Expression>>& expressionsToGroupBy,
     const vector<shared_ptr<Expression>>& expressionsToAggregate, LogicalPlan& plan) {
+    for (auto& expressionToGroupBy : expressionsToGroupBy) {
+        auto dependentGroupsPos =
+            Enumerator::getDependentGroupsPos(expressionToGroupBy, *plan.schema);
+        enumerator->appendFlattens(dependentGroupsPos, plan);
+    }
     auto aggregate = make_shared<LogicalAggregate>(
         expressionsToGroupBy, expressionsToAggregate, plan.schema->copy(), plan.lastOperator);
     plan.schema->clear();

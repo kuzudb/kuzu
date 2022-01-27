@@ -175,12 +175,6 @@ TEST_F(BinderErrorTest, OptionalMatchAsFirstMatch) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, AggregationWithGroupBy) {
-    string expectedException = "Aggregations with group by is not supported.";
-    auto input = "MATCH (a:person) RETURN a, COUNT(*);";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
 TEST_F(BinderErrorTest, SubqueryWithAggregation1) {
     string expectedException = "Expression EXISTS { MATCH (a)-[:knows]->(b:person) RETURN COUNT(*) "
                                "} is an existential subquery expression and should not contains "

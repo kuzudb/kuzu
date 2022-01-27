@@ -1,61 +1,69 @@
 #include "src/processor/include/physical_plan/operator/aggregate/simple_aggregate.h"
 
-#include "src/common/include/utils.h"
-
 namespace graphflow {
 namespace processor {
 
-SimpleAggregate::SimpleAggregate(shared_ptr<AggregateSharedState> sharedState,
-    vector<DataPos> aggregateVectorsPos, vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-    unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-    : Sink{move(child), context, id}, sharedState{move(sharedState)},
-      aggregateVectorsPos{move(aggregateVectorsPos)}, aggregateFunctions{move(aggregateFunctions)} {
+SimpleAggregateSharedState::SimpleAggregateSharedState(
+    const vector<unique_ptr<AggregateFunction>>& aggregateFunctions)
+    : BaseAggregateSharedState{aggregateFunctions} {
     for (auto& aggregateFunction : this->aggregateFunctions) {
-        aggregateStates.push_back(aggregateFunction->initialize());
+        globalAggregateStates.push_back(aggregateFunction->createInitialNullAggregateState());
     }
 }
 
-shared_ptr<ResultSet> SimpleAggregate::initResultSet() {
-    resultSet = children[0]->initResultSet();
-    for (auto& dataPos : aggregateVectorsPos) {
-        if (dataPos.dataChunkPos == UINT32_MAX) {
-            aggregateVectors.push_back(nullptr);
-            continue;
-        }
-        auto dataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
-        aggregateVectors.push_back(dataChunk->valueVectors[dataPos.valueVectorPos].get());
+void SimpleAggregateSharedState::combineAggregateStates(
+    const vector<unique_ptr<AggregateState>>& localAggregateStates) {
+    assert(localAggregateStates.size() == globalAggregateStates.size());
+    auto lck = acquireLock();
+    for (auto i = 0u; i < aggregateFunctions.size(); ++i) {
+        aggregateFunctions[i]->combineState(
+            (uint8_t*)globalAggregateStates[i].get(), (uint8_t*)localAggregateStates[i].get());
     }
-    return resultSet;
+}
+
+void SimpleAggregateSharedState::finalizeAggregateStates() {
+    auto lck = acquireLock();
+    for (auto i = 0u; i < aggregateFunctions.size(); ++i) {
+        aggregateFunctions[i]->finalizeState((uint8_t*)globalAggregateStates[i].get());
+    }
+}
+
+bool SimpleAggregateSharedState::hasMoreToRead() {
+    auto lck = acquireLock();
+    return currentOffset < 1;
+}
+
+pair<uint64_t, uint64_t> SimpleAggregateSharedState::getNextRangeToRead() {
+    auto lck = acquireLock();
+    auto startOffset = currentOffset++;
+    return make_pair(startOffset, startOffset);
+}
+
+SimpleAggregate::SimpleAggregate(shared_ptr<SimpleAggregateSharedState> sharedState,
+    vector<DataPos> aggregateVectorsPos, vector<unique_ptr<AggregateFunction>> aggregateFunctions,
+    unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
+    : BaseAggregate{move(aggregateVectorsPos), move(aggregateFunctions), move(child), context, id},
+      sharedState{move(sharedState)} {
+    for (auto& aggregateFunction : this->aggregateFunctions) {
+        localAggregateStates.push_back(aggregateFunction->createInitialNullAggregateState());
+    }
 }
 
 void SimpleAggregate::execute() {
     metrics->executionTime.start();
-    Sink::execute();
-    // Exhaust source to update local state for each aggregate expression by its evaluator.
+    BaseAggregate::execute();
     while (children[0]->getNextTuples()) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
-            aggregateFunctions[i]->update(
-                (uint8_t*)aggregateStates[i].get(), aggregateVectors[i], resultSet->multiplicity);
+            aggregateFunctions[i]->updateState((uint8_t*)localAggregateStates[i].get(),
+                aggregateVectors[i], resultSet->multiplicity);
         }
     }
-    // Combine global shared state with local states.
-    {
-        lock_guard<mutex> sharedStateLock(sharedState->aggregateSharedStateLock);
-        for (auto i = 0u; i < aggregateFunctions.size(); i++) {
-            aggregateFunctions[i]->combine((uint8_t*)sharedState->aggregateStates[i].get(),
-                (uint8_t*)aggregateStates[i].get());
-        }
-    }
+    sharedState->combineAggregateStates(localAggregateStates);
     metrics->executionTime.stop();
 }
 
 void SimpleAggregate::finalize() {
-    {
-        lock_guard<mutex> sharedStateLock(sharedState->aggregateSharedStateLock);
-        for (auto i = 0u; i < aggregateFunctions.size(); i++) {
-            aggregateFunctions[i]->finalize((uint8_t*)sharedState->aggregateStates[i].get());
-        }
-    }
+    sharedState->finalizeAggregateStates();
 }
 
 unique_ptr<PhysicalOperator> SimpleAggregate::clone() {

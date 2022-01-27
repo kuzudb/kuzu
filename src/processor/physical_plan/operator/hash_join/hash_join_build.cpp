@@ -1,19 +1,9 @@
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_build.h"
 
+#include "src/common/include/utils.h"
+
 namespace graphflow {
 namespace processor {
-
-static uint64_t nextPowerOfTwo(uint64_t v) {
-    v--;
-    v |= v >> 1;
-    v |= v >> 2;
-    v |= v >> 4;
-    v |= v >> 8;
-    v |= v >> 16;
-    v |= v >> 32;
-    v++;
-    return v;
-}
 
 HashJoinBuild::HashJoinBuild(shared_ptr<HashJoinSharedState> sharedState,
     const BuildDataInfo& buildDataInfo, unique_ptr<PhysicalOperator> child,
@@ -54,8 +44,9 @@ shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
 }
 
 void HashJoinBuild::finalize() {
-    auto directory_capacity = nextPowerOfTwo(max(sharedState->factorizedTable->getNumTuples() * 2,
-        (DEFAULT_MEMORY_BLOCK_SIZE / sizeof(uint8_t*)) + 1));
+    auto directory_capacity =
+        HashTableUtils::nextPowerOfTwo(max(sharedState->factorizedTable->getNumTuples() * 2,
+            (DEFAULT_MEMORY_BLOCK_SIZE / sizeof(uint8_t*)) + 1));
     sharedState->hashBitMask = directory_capacity - 1;
     sharedState->htDirectory = context.memoryManager->allocateBlock(
         directory_capacity * sizeof(uint8_t*), true /* initializeToZero */);
