@@ -21,41 +21,48 @@ shared_ptr<FactorizedTable> QueryProcessor::execute(
     // expect to have linear plans. For binary operators, e.g., HashJoin, we  keep probe and its
     // prevOperator in the same pipeline, and decompose build and its prevOperator into another one.
     auto task = make_shared<ProcessorTask>(resultCollector, numThreads);
-    decomposePlanIntoTasks(lastOperator, task.get(), numThreads);
+    decomposePlanIntoTasks(lastOperator, lastOperator, task.get(), numThreads);
     taskScheduler->scheduleTaskAndWaitOrError(task);
-    return resultCollector->getFinalizedQueryResult();
+    return resultCollector->getResultFactorizedTable();
 }
 
 void QueryProcessor::decomposePlanIntoTasks(
-    PhysicalOperator* op, Task* parentTask, uint64_t numThreads) {
+    PhysicalOperator* op, PhysicalOperator* parent, Task* parentTask, uint64_t numThreads) {
     switch (op->getOperatorType()) {
+    case RESULT_COLLECTOR: {
+        if (parent->getOperatorType() == UNION_ALL_SCAN) {
+            // Only breaks the pipeline if the parent operator is a UNION_ALL_SCAN.
+            auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), numThreads);
+            decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), numThreads);
+            parentTask->addChildTask(move(childTask));
+        } else {
+            decomposePlanIntoTasks(op->getChild(0), op, parentTask, numThreads);
+        }
+    } break;
     case ORDER_BY_MERGE: {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), numThreads);
-        decomposePlanIntoTasks(op->getFirstChild(), childTask.get(), numThreads);
+        decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), numThreads);
         parentTask->addChildTask(move(childTask));
         parentTask->setSingleThreadedTask();
     } break;
     case ORDER_BY: {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), numThreads);
-        decomposePlanIntoTasks(op->getFirstChild(), childTask.get(), numThreads);
+        decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), numThreads);
         parentTask->addChildTask(move(childTask));
     } break;
     case HASH_JOIN_BUILD: {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), numThreads);
-        decomposePlanIntoTasks(op->getFirstChild(), childTask.get(), numThreads);
+        decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), numThreads);
         parentTask->addChildTask(move(childTask));
     } break;
     case AGGREGATE: {
         auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), numThreads);
-        decomposePlanIntoTasks(op->getFirstChild(), childTask.get(), numThreads);
+        decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), numThreads);
         parentTask->addChildTask(move(childTask));
     } break;
     default: {
-        if (op->hasFirstChild()) {
-            decomposePlanIntoTasks(op->getFirstChild(), parentTask, numThreads);
-        }
-        if (op->hasSecondChild()) {
-            decomposePlanIntoTasks(op->getSecondChild(), parentTask, numThreads);
+        for (auto i = 0u; i < op->getNumChildren(); i++) {
+            decomposePlanIntoTasks(op->getChild(i), op, parentTask, numThreads);
         }
     } break;
     }

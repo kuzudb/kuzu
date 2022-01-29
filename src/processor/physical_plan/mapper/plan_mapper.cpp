@@ -14,11 +14,13 @@
 #include "src/planner/include/logical_plan/operator/nested_loop_join/logical_left_nested_loop_join.h"
 #include "src/planner/include/logical_plan/operator/order_by/logical_order_by.h"
 #include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
+#include "src/planner/include/logical_plan/operator/result_collector/logical_result_collector.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
 #include "src/planner/include/logical_plan/operator/select_scan/logical_result_scan.h"
 #include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
+#include "src/planner/include/logical_plan/operator/union_all/logical_union_all.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate_scan.h"
@@ -47,6 +49,7 @@
 #include "src/processor/include/physical_plan/operator/scan_attribute/scan_unstructured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
+#include "src/processor/include/physical_plan/operator/union_all_scan.h"
 
 using namespace graphflow::planner;
 
@@ -56,17 +59,8 @@ namespace processor {
 unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
     unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext) {
     auto mapperContext = MapperContext(make_unique<ResultSetDescriptor>(*logicalPlan->schema));
-    auto prevOperator =
+    auto resultCollector =
         mapLogicalOperatorToPhysical(logicalPlan->lastOperator, mapperContext, executionContext);
-    vector<pair<DataPos, bool>> valueVectorsToCollectInfo;
-    for (auto& expression : logicalPlan->getExpressionsToCollect()) {
-        valueVectorsToCollectInfo.push_back(
-            make_pair(mapperContext.getDataPos(expression->getUniqueName()),
-                logicalPlan->schema->getGroup(expression->getUniqueName())->isFlat));
-    }
-    auto resultCollector = make_unique<ResultCollector>(move(valueVectorsToCollectInfo),
-        make_shared<SharedQueryResults>(), move(prevOperator), executionContext,
-        mapperContext.getOperatorID());
     return make_unique<PhysicalPlan>(move(resultCollector));
 }
 
@@ -154,6 +148,14 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
         physicalOperator =
             mapLogicalOrderByToPhysical(logicalOperator.get(), mapperContext, executionContext);
     } break;
+    case LOGICAL_UNION_ALL: {
+        physicalOperator =
+            mapLogicalUnionAllToPhysical(logicalOperator.get(), mapperContext, executionContext);
+    } break;
+    case LOGICAL_RESULT_COLLECTOR: {
+        physicalOperator = mapLogicalResultCollectorToPhysical(
+            logicalOperator.get(), mapperContext, executionContext);
+    } break;
     default:
         assert(false);
     }
@@ -197,8 +199,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& extend = (const LogicalExtend&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto inDataPos = mapperContext.getDataPos(extend.boundNodeID);
     auto outDataPos = mapperContext.getDataPos(extend.nbrNodeID);
     mapperContext.addComputedExpressions(extend.nbrNodeID);
@@ -226,8 +228,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& flatten = (const LogicalFlatten&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto dataChunkPos = mapperContext.getDataPos(flatten.variable).dataChunkPos;
     return make_unique<Flatten>(
         dataChunkPos, move(prevOperator), executionContext, mapperContext.getOperatorID());
@@ -237,8 +239,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& logicalFilter = (const LogicalFilter&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto dataChunkToSelectPos = logicalFilter.groupPosToSelect;
     auto physicalRootExpr = expressionMapper.mapLogicalExpressionToPhysical(
         *logicalFilter.expression, mapperContext, executionContext);
@@ -250,8 +252,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& logicalIntersect = (const LogicalIntersect&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto leftDataPos = mapperContext.getDataPos(logicalIntersect.getLeftNodeID());
     auto rightDataPos = mapperContext.getDataPos(logicalIntersect.getRightNodeID());
     return make_unique<Intersect>(leftDataPos, rightDataPos, move(prevOperator), executionContext,
@@ -262,8 +264,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& logicalProjection = (const LogicalProjection&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     vector<unique_ptr<ExpressionEvaluator>> expressionEvaluators;
     vector<DataPos> expressionsOutputPos;
     for (auto& expression : logicalProjection.expressionsToProject) {
@@ -281,8 +283,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& scanProperty = (const LogicalScanNodeProperty&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto inDataPos = mapperContext.getDataPos(scanProperty.nodeID);
     auto outDataPos = mapperContext.getDataPos(scanProperty.getPropertyExpressionName());
     mapperContext.addComputedExpressions(scanProperty.getPropertyExpressionName());
@@ -303,8 +305,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& scanProperty = (const LogicalScanRelProperty&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto inDataPos = mapperContext.getDataPos(scanProperty.boundNodeID);
     auto outDataPos = mapperContext.getDataPos(scanProperty.getPropertyExpressionName());
     mapperContext.addComputedExpressions(scanProperty.getPropertyExpressionName());
@@ -328,9 +330,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto buildSideMapperContext =
         MapperContext(make_unique<ResultSetDescriptor>(*hashJoin.buildSideSchema));
     auto buildSidePrevOperator = mapLogicalOperatorToPhysical(
-        hashJoin.getSecondChild(), buildSideMapperContext, executionContext);
+        hashJoin.getChild(1), buildSideMapperContext, executionContext);
     auto probeSidePrevOperator =
-        mapLogicalOperatorToPhysical(hashJoin.getFirstChild(), mapperContext, executionContext);
+        mapLogicalOperatorToPhysical(hashJoin.getChild(0), mapperContext, executionContext);
     // Populate build side and probe side vector positions
     auto buildSideKeyIDDataPos = buildSideMapperContext.getDataPos(hashJoin.joinNodeID);
     auto probeSideKeyIDDataPos = mapperContext.getDataPos(hashJoin.joinNodeID);
@@ -365,8 +367,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
-    auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     return make_unique<MultiplicityReducer>(
         move(prevOperator), executionContext, mapperContext.getOperatorID());
 }
@@ -374,8 +376,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(LogicalOperator* logicalOperator,
     MapperContext& mapperContext, ExecutionContext& executionContext) {
     auto& logicalSkip = (const LogicalSkip&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto dataChunkToSelectPos = logicalSkip.getGroupPosToSelect();
     return make_unique<Skip>(logicalSkip.getSkipNumber(), make_shared<atomic_uint64_t>(0),
         dataChunkToSelectPos, logicalSkip.getGroupsPosToSkip(), move(prevOperator),
@@ -385,8 +387,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(LogicalOperato
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLimitToPhysical(LogicalOperator* logicalOperator,
     MapperContext& mapperContext, ExecutionContext& executionContext) {
     auto& logicalLimit = (const LogicalLimit&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto dataChunkToSelectPos = logicalLimit.getGroupPosToSelect();
     return make_unique<Limit>(logicalLimit.getLimitNumber(), make_shared<atomic_uint64_t>(0),
         dataChunkToSelectPos, logicalLimit.getGroupsPosToLimit(), move(prevOperator),
@@ -400,11 +402,12 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
     auto mapperContextBeforeAggregate = MapperContext(
         make_unique<ResultSetDescriptor>(*logicalAggregate.getSchemaBeforeAggregate()));
     auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContextBeforeAggregate, executionContext);
+        logicalOperator->getChild(0), mapperContextBeforeAggregate, executionContext);
 
     vector<DataPos> aggregatesInputPos;
     vector<DataPos> aggregatesOutputPos;
     vector<DataType> aggregatesOutputDataType;
+
     vector<unique_ptr<AggregateFunction>> aggregateFunctions;
     for (auto& expression : logicalAggregate.getExpressionsToAggregate()) {
         if (expression->expressionType == COUNT_STAR_FUNC) {
@@ -458,13 +461,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExistsToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& logicalExists = (LogicalExists&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto subPlanMapperContext =
         MapperContext(make_unique<ResultSetDescriptor>(*logicalExists.subPlanSchema));
     auto prevContext = enterSubquery(&mapperContext);
     auto subPlanLastOperator = mapLogicalOperatorToPhysical(
-        logicalExists.getSecondChild(), subPlanMapperContext, executionContext);
+        logicalExists.getChild(1), subPlanMapperContext, executionContext);
     exitSubquery(prevContext);
     mapperContext.addComputedExpressions(logicalExists.subqueryExpression->getUniqueName());
     auto outDataPos = mapperContext.getDataPos(logicalExists.subqueryExpression->getUniqueName());
@@ -478,11 +481,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLeftNestedLoopJoinToPhysical(
     auto& logicalLeftNestedLoopJoin = (LogicalLeftNestedLoopJoin&)*logicalOperator;
     auto& subPlanSchema = *logicalLeftNestedLoopJoin.subPlanSchema;
     auto subPlanMapperContext = MapperContext(make_unique<ResultSetDescriptor>(subPlanSchema));
-    auto prevOperator = mapLogicalOperatorToPhysical(
-        logicalOperator->getFirstChild(), mapperContext, executionContext);
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto prevMapperContext = enterSubquery(&mapperContext);
     auto subPlanLastOperator = mapLogicalOperatorToPhysical(
-        logicalLeftNestedLoopJoin.getSecondChild(), subPlanMapperContext, executionContext);
+        logicalLeftNestedLoopJoin.getChild(1), subPlanMapperContext, executionContext);
     exitSubquery(prevMapperContext);
     vector<pair<DataPos, DataPos>> subPlanVectorsToRefPosMapping;
     // Populate data position mapping for merging sub-plan result set
@@ -510,7 +513,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     auto mapperContextBeforeOrderBy =
         MapperContext(make_unique<ResultSetDescriptor>(schemaBeforeOrderBy));
     auto orderByPrevOperator = mapLogicalOperatorToPhysical(
-        logicalOrderBy.getFirstChild(), mapperContextBeforeOrderBy, executionContext);
+        logicalOrderBy.getChild(0), mapperContextBeforeOrderBy, executionContext);
     vector<DataPos> keyDataPoses;
     for (auto& expressionName : logicalOrderBy.getOrderByExpressionNames()) {
         keyDataPoses.emplace_back(mapperContextBeforeOrderBy.getDataPos(expressionName));
@@ -537,6 +540,44 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
         outputDataPoses, orderBySharedState, move(orderByMerge), executionContext,
         mapperContext.getOperatorID());
     return orderByScan;
+}
+
+unique_ptr<ResultCollector> PlanMapper::mapLogicalResultCollectorToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext,
+    ExecutionContext& executionContext) {
+    auto& resultCollector = (LogicalResultCollector&)*logicalOperator;
+    auto resultCollectorMapperContext =
+        MapperContext(make_unique<ResultSetDescriptor>(*resultCollector.getSchema()));
+    auto prevOperator = mapLogicalOperatorToPhysical(
+        logicalOperator->getChild(0), resultCollectorMapperContext, executionContext);
+
+    vector<pair<DataPos, bool>> valueVectorsToCollectInfo;
+    for (auto& expression : resultCollector.getExpressionsToCollect()) {
+        valueVectorsToCollectInfo.push_back(
+            make_pair(resultCollectorMapperContext.getDataPos(expression->getUniqueName()),
+                resultCollector.getSchema()->getGroup(expression->getUniqueName())->isFlat));
+    }
+    return make_unique<ResultCollector>(valueVectorsToCollectInfo,
+        make_shared<SharedQueryResults>(), move(prevOperator), executionContext,
+        mapperContext.getOperatorID());
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext,
+    ExecutionContext& executionContext) {
+    auto& unionAll = (LogicalUnionAll&)*logicalOperator;
+
+    vector<DataPos> outDataPoses;
+    for (auto& expression : unionAll.getExpressionsToUnion()) {
+        outDataPoses.emplace_back(mapperContext.getDataPos(expression->getUniqueName()));
+    }
+    vector<unique_ptr<PhysicalOperator>> children;
+    for (auto i = 0u; i < logicalOperator->getNumChildren(); i++) {
+        children.emplace_back(mapLogicalResultCollectorToPhysical(
+            logicalOperator->getChild(i).get(), mapperContext, executionContext));
+    }
+    return make_unique<UnionAllScan>(mapperContext.getResultSetDescriptor()->copy(),
+        move(outDataPoses), move(children), executionContext, mapperContext.getOperatorID());
 }
 
 } // namespace processor

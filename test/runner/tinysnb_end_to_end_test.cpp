@@ -109,3 +109,10 @@ TEST_F(TinySnbProcessorTest, OrderByTests) {
     }
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }
+
+TEST_F(TinySnbProcessorTest, UnionAllTests) {
+    vector<TestQueryConfig> queryConfigs;
+    queryConfigs =
+        TestHelper::parseTestFile("test/runner/queries/union_all/union_all_tiny_snb.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
+}

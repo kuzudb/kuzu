@@ -290,7 +290,7 @@ void JoinOrderEnumerator::appendLogicalHashJoin(
         }
         payloadGroupsPos.insert(groupPos);
     }
-    Enumerator::computeSchemaForHashJoinAndOrderBy(
+    Enumerator::computeSchemaForHashJoinAndOrderByAndUnionAll(
         payloadGroupsPos, buildSideSchema, *probePlan.schema);
 
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodeID, buildSideSchema.copy(),

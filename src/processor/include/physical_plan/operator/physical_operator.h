@@ -37,6 +37,7 @@ enum PhysicalOperatorType : uint8_t {
     ORDER_BY,
     ORDER_BY_MERGE,
     ORDER_BY_SCAN,
+    UNION_ALL_SCAN,
 };
 
 const string PhysicalOperatorTypeNames[] = {"AGGREGATE", "AGGREGATE_SCAN", "COLUMN_EXTEND",
@@ -44,7 +45,7 @@ const string PhysicalOperatorTypeNames[] = {"AGGREGATE", "AGGREGATE_SCAN", "COLU
     "INTERSECT", "LEFT_NESTED_LOOP_JOIN", "LIMIT", "LIST_EXTEND", "MULTIPLICITY_REDUCER",
     "PROJECTION", "READ_REL_PROPERTY", "RESULT_COLLECTOR", "RESULT_SCAN", "SCAN_NODE_ID",
     "SCAN_STRUCTURED_PROPERTY", "SCAN_UNSTRUCTURED_PROPERTY", "SKIP", "ORDER_BY", "ORDER_BY_MERGE",
-    "ORDER_BY_SCAN"};
+    "ORDER_BY_SCAN", "UNION_ALL_SCAN"};
 
 struct OperatorMetrics {
 
@@ -71,15 +72,16 @@ public:
     // Binary opeartor
     PhysicalOperator(unique_ptr<PhysicalOperator> left, unique_ptr<PhysicalOperator> right,
         ExecutionContext& context, uint32_t id);
+    // This constructor is used by UnionAllScan only since it may have multiple children.
+    PhysicalOperator(
+        vector<unique_ptr<PhysicalOperator>> children, ExecutionContext& context, uint32_t id);
 
     virtual ~PhysicalOperator() = default;
 
     inline uint32_t getOperatorID() const { return id; }
 
-    inline bool hasFirstChild() const { return !children.empty(); }
-    inline bool hasSecondChild() const { return children.size() == 2; }
-    inline PhysicalOperator* getFirstChild() const { return children[0].get(); }
-    inline PhysicalOperator* getSecondChild() const { return children[1].get(); }
+    inline PhysicalOperator* getChild(uint64_t idx) const { return children[idx].get(); }
+    inline uint64_t getNumChildren() const { return children.size(); }
 
     // This function grab leaf operator by traversing prevOperator pointer. For binary operators,
     // f.g. hash join probe, left nested loop join, caller should determine which branch's leaf to

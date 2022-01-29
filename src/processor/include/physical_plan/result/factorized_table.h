@@ -1,5 +1,6 @@
 #pragma once
 
+#include <numeric>
 #include <unordered_map>
 
 #include "src/common/include/memory_manager.h"
@@ -122,6 +123,8 @@ public:
     // Actual number of tuples scanned is returned. If it's 0, the scan already hits the end.
     uint64_t scan(const vector<uint64_t>& fieldsToScan, const vector<DataPos>& resultDataPos,
         ResultSet& resultSet, uint64_t startTupleIdx, uint64_t numTuplesToScan) const;
+    uint64_t scan(const vector<DataPos>& resultDataPos, ResultSet& resultSet,
+        uint64_t startTupleIdx, uint64_t numTuplesToScan) const;
     uint64_t lookup(const vector<uint64_t>& fieldsToRead, const vector<DataPos>& resultDataPos,
         ResultSet& resultSet, uint8_t** tuplesToRead, uint64_t startPos,
         uint64_t numTuplesToRead) const;
@@ -133,6 +136,9 @@ public:
     void merge(FactorizedTable& other);
     uint64_t getFieldOffsetInTuple(uint64_t fieldId) const;
     bool hasUnflatColToRead(const vector<uint64_t>& fieldsToRead) const;
+    inline bool hasUnflatColToRead() const {
+        return hasUnflatColToRead(consecutiveIndicesOfAllFields);
+    }
 
     inline uint64_t getNumTuples() const { return numTuples; }
     inline uint8_t* getTuple(uint64_t tupleIdx) const {
@@ -224,6 +230,7 @@ private:
     vector<DataBlock> tupleDataBlocks;
     vector<DataBlock> vectorOverflowBlocks;
     unique_ptr<StringBuffer> stringBuffer;
+    vector<uint64_t> consecutiveIndicesOfAllFields;
 };
 
 class FlatTupleIterator {

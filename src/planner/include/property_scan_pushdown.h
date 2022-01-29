@@ -45,6 +45,9 @@ private:
     shared_ptr<LogicalOperator> rewriteLeftNestedLoopJoin(
         const shared_ptr<LogicalOperator>& op, Schema& schema);
 
+    shared_ptr<LogicalOperator> rewriteResultCollector(
+        const shared_ptr<LogicalOperator>& op, Schema& schema);
+
     shared_ptr<LogicalOperator> applyPropertyScansIfNecessary(
         const string& nodeID, const shared_ptr<LogicalOperator>& op, Schema& schema);
 

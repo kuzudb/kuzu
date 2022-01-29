@@ -32,8 +32,8 @@ TEST_F(SubqueryTest, ExistsTest) {
     expectedExpression->children.push_back(move(existentialExpression));
 
     string input = "MATCH () WHERE NOT EXISTS { MATCH () RETURN * } RETURN COUNT(*);";
-    auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
+    auto regularQuery = Parser::parseQuery(input);
+    auto& matchStatement = (MatchStatement&)*regularQuery->getSingleQuery(0)->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*expectedExpression, *matchStatement.whereClause));
 }
 
@@ -54,7 +54,7 @@ TEST_F(SubqueryTest, NestedExistsTest) {
 
     string input = "MATCH () WHERE EXISTS { MATCH () WHERE EXISTS { MATCH () RETURN * } RETURN "
                    "* } RETURN COUNT(*);";
-    auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
+    auto regularQuery = Parser::parseQuery(input);
+    auto& matchStatement = (MatchStatement&)*regularQuery->getSingleQuery(0)->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*expectedExpression, *matchStatement.whereClause));
 }

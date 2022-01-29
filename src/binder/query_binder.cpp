@@ -10,8 +10,12 @@
 namespace graphflow {
 namespace binder {
 
-unique_ptr<BoundSingleQuery> QueryBinder::bind(const SingleQuery& singleQuery) {
-    return bindSingleQuery(singleQuery);
+unique_ptr<BoundRegularQuery> QueryBinder::bind(const RegularQuery& regularQuery) {
+    auto boundRegularQuery = make_unique<BoundRegularQuery>();
+    for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
+        boundRegularQuery->addBoundSingleQuery(bindSingleQuery(*regularQuery.getSingleQuery(i)));
+    }
+    return boundRegularQuery;
 }
 
 unique_ptr<BoundSingleQuery> QueryBinder::bindSingleQuery(const SingleQuery& singleQuery) {

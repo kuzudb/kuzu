@@ -29,13 +29,16 @@ enum LogicalOperatorType : uint8_t {
     LOGICAL_ORDER_BY,
     LOGICAL_EXISTS,
     LOGICAL_LEFT_NESTED_LOOP_JOIN,
+    LOGICAL_UNION_ALL,
+    LOGICAL_RESULT_COLLECTOR,
 };
 
 const string LogicalOperatorTypeNames[] = {"LOGICAL_SCAN_NODE_ID", "LOGICAL_SELECT_SCAN",
     "LOGICAL_EXTEND", "LOGICAL_FLATTEN", "LOGICAL_FILTER", "LOGICAL_INTERSECT",
     "LOGICAL_PROJECTION", "LOGICAL_SCAN_NODE_PROPERTY", "LOGICAL_SCAN_REL_PROPERTY",
     "LOGICAL_HASH_JOIN", "LOGICAL_MULTIPLICITY_REDUCER", "LOGICAL_LIMIT", "LOGICAL_SKIP",
-    "LOGICAL_AGGREGATE", "LOGICAL_ORDER_BY", "LOGICAL_EXISTS", "LOGICAL_LEFT_NESTED_LOOP_JOIN"};
+    "LOGICAL_AGGREGATE", "LOGICAL_ORDER_BY", "LOGICAL_EXISTS", "LOGICAL_LEFT_NESTED_LOOP_JOIN",
+    "LOGICAL_UNION_ALL", "LOGICAL_RESULT_COLLECTOR"};
 
 class LogicalOperator {
 
@@ -50,10 +53,9 @@ public:
     virtual ~LogicalOperator() = default;
 
     inline uint32_t getNumChildren() const { return children.size(); }
-    inline shared_ptr<LogicalOperator> getFirstChild() const { return children[0]; }
-    inline shared_ptr<LogicalOperator> getSecondChild() const { return children[1]; }
-    inline void setFirstChild(shared_ptr<LogicalOperator> op) { children[0] = move(op); }
-    inline void setSecondChild(shared_ptr<LogicalOperator> op) { children[1] = move(op); }
+    inline void setChild(uint32_t idx, shared_ptr<LogicalOperator> op) { children[idx] = move(op); }
+    inline void addChild(shared_ptr<LogicalOperator> op) { children.push_back(op); }
+    inline shared_ptr<LogicalOperator> getChild(uint64_t idx) const { return children[idx]; }
 
     virtual LogicalOperatorType getLogicalOperatorType() const = 0;
 

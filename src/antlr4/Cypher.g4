@@ -37,9 +37,17 @@ oC_Query
     : oC_RegularQuery ;
 
 oC_RegularQuery
-    : oC_SingleQuery
+    : oC_SingleQuery ( SP? oC_Union )*
         | (oC_Return SP? )+ oC_SingleQuery { notifyReturnNotAtEnd($ctx->start); }
         ;
+
+oC_Union
+     :  ( UNION SP ALL SP? oC_SingleQuery )
+         ;
+
+UNION : ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' )  ;
+
+ALL : ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' )  ;
 
 oC_SingleQuery
     : oC_SinglePartQuery
@@ -281,7 +289,7 @@ oC_FunctionName
     : oC_SymbolicName ;
 
 oC_ExistentialSubquery
-    :  EXISTS SP? '{' SP? oC_RegularQuery SP? '}' ;
+    :  EXISTS SP? '{' SP? oC_SingleQuery SP? '}' ;
 
 EXISTS : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'I' | 'i' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'S' | 's' ) ;
 

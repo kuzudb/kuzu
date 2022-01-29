@@ -3,6 +3,7 @@
 #include "src/planner/include/logical_plan/logical_plan.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/mapper/mapper_context.h"
+#include "src/processor/include/physical_plan/operator/result_collector.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
 #include "src/storage/include/graph.h"
 
@@ -70,6 +71,11 @@ private:
         ExecutionContext& executionContext);
     unique_ptr<PhysicalOperator> mapLogicalOrderByToPhysical(LogicalOperator* logicalOperator,
         MapperContext& mapperContext, ExecutionContext& executionContext);
+    unique_ptr<PhysicalOperator> mapLogicalUnionAllToPhysical(LogicalOperator* logicalOperator,
+        MapperContext& mapperContext, ExecutionContext& executionContext);
+    unique_ptr<ResultCollector> mapLogicalResultCollectorToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext,
+        ExecutionContext& executionContext);
 
 public:
     const Graph& graph;

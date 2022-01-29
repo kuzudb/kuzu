@@ -49,7 +49,7 @@ public:
             vectorsToCollectInfo, sharedQueryResults, children[0]->clone(), context, id);
     }
 
-    inline shared_ptr<FactorizedTable> getFinalizedQueryResult() {
+    inline shared_ptr<FactorizedTable> getResultFactorizedTable() {
         return sharedQueryResults->getFinalizedQueryResult();
     }
 

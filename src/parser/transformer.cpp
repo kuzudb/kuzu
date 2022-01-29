@@ -7,23 +7,28 @@
 namespace graphflow {
 namespace parser {
 
-unique_ptr<SingleQuery> Transformer::transform() {
-    auto singleQuery = transformQuery(*root.oC_Statement()->oC_Query());
+unique_ptr<RegularQuery> Transformer::transform() {
+    auto regularQuery = transformQuery(*root.oC_Statement()->oC_Query());
     if (root.oC_AnyCypherOption()) {
         auto cypherOption = root.oC_AnyCypherOption();
-        singleQuery->enable_explain = cypherOption->oC_Explain() != nullptr;
-        singleQuery->enable_profile = cypherOption->oC_Profile() != nullptr;
+        regularQuery->setEnableExplain(cypherOption->oC_Explain() != nullptr);
+        regularQuery->setEnableProfile(cypherOption->oC_Profile() != nullptr);
     }
-    return singleQuery;
+    return move(regularQuery);
 }
 
-unique_ptr<SingleQuery> Transformer::transformQuery(CypherParser::OC_QueryContext& ctx) {
+unique_ptr<RegularQuery> Transformer::transformQuery(CypherParser::OC_QueryContext& ctx) {
     return transformRegularQuery(*ctx.oC_RegularQuery());
 }
 
-unique_ptr<SingleQuery> Transformer::transformRegularQuery(
+unique_ptr<RegularQuery> Transformer::transformRegularQuery(
     CypherParser::OC_RegularQueryContext& ctx) {
-    return transformSingleQuery(*ctx.oC_SingleQuery());
+    auto regularQuery = make_unique<RegularQuery>();
+    regularQuery->addSingleQuery(transformSingleQuery(*ctx.oC_SingleQuery()));
+    for (auto unionClause : ctx.oC_Union()) {
+        regularQuery->addSingleQuery(transformSingleQuery(*unionClause->oC_SingleQuery()));
+    }
+    return regularQuery;
 }
 
 unique_ptr<SingleQuery> Transformer::transformSingleQuery(
@@ -535,7 +540,7 @@ string Transformer::transformFunctionName(CypherParser::OC_FunctionNameContext& 
 unique_ptr<ParsedExpression> Transformer::transformExistentialSubquery(
     CypherParser::OC_ExistentialSubqueryContext& ctx) {
     return make_unique<ParsedExpression>(
-        EXISTENTIAL_SUBQUERY, transformRegularQuery(*ctx.oC_RegularQuery()), ctx.getText());
+        EXISTENTIAL_SUBQUERY, transformSingleQuery(*ctx.oC_SingleQuery()), ctx.getText());
 }
 
 string Transformer::transformPropertyLookup(CypherParser::OC_PropertyLookupContext& ctx) {
