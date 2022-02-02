@@ -12,10 +12,10 @@ template<typename T>
 struct MinMaxFunction {
 
     struct MinMaxState : public AggregateState {
-        T val;
+        inline uint64_t getStateSize() const override { return sizeof(*this); }
+        inline uint8_t* getResult() const override { return (uint8_t*)&val; }
 
-        inline uint64_t getValSize() const override { return sizeof(*this); }
-        inline uint8_t* getFinalVal() const override { return (uint8_t*)&val; }
+        T val;
     };
 
     static unique_ptr<AggregateState> initialize() { return make_unique<MinMaxState>(); }
@@ -53,8 +53,8 @@ struct MinMaxFunction {
             state->isNull = false;
         } else {
             uint8_t compare_result;
-            OP::template operation<T, T>(
-                inputValues[pos], state->val, compare_result, false, false);
+            OP::template operation(inputValues[pos], state->val, compare_result,
+                false /* isLeftNull */, false /* isRightNull */);
             state->val = compare_result ? inputValues[pos] : state->val;
         }
     }
@@ -71,7 +71,7 @@ struct MinMaxFunction {
             state->isNull = false;
         } else {
             uint8_t compareResult;
-            OP::template operation<T, T>(otherState->val, state->val, compareResult,
+            OP::template operation(otherState->val, state->val, compareResult,
                 false /* isLeftNull */, false /* isRightNull */);
             state->val = compareResult == 1 ? otherState->val : state->val;
         }

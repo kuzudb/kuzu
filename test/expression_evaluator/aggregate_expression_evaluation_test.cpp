@@ -66,11 +66,11 @@ TEST_F(AggrExpressionEvaluatorTest, CountStarTest) {
     auto otherCountStarState =
         static_unique_pointer_cast<AggregateState, BaseCountFunction::CountState>(
             countFunction->createInitialNullAggregateState());
-    otherCountStarState->val = 10;
+    otherCountStarState->count = 10;
     countFunction->combineState(
         (uint8_t*)countStarState.get(), (uint8_t*)otherCountStarState.get());
     countFunction->finalizeState((uint8_t*)countStarState.get());
-    ASSERT_EQ(countStarState->val, 110);
+    ASSERT_EQ(countStarState->count, 110);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, CountTest) {
@@ -82,10 +82,10 @@ TEST_F(AggrExpressionEvaluatorTest, CountTest) {
     auto otherCountState =
         static_unique_pointer_cast<AggregateState, BaseCountFunction::CountState>(
             countFunction->createInitialNullAggregateState());
-    otherCountState->val = 10;
+    otherCountState->count = 10;
     countFunction->combineState((uint8_t*)countState.get(), (uint8_t*)otherCountState.get());
     countFunction->finalizeState((uint8_t*)countState.get());
-    ASSERT_EQ(countState->val, 60);
+    ASSERT_EQ(countState->count, 60);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64SumTest) {
@@ -96,17 +96,17 @@ TEST_F(AggrExpressionEvaluatorTest, INT64SumTest) {
         (uint8_t*)sumState.get(), int64ValueVector.get(), 1 /* multiplicity */);
     auto otherSumState = static_unique_pointer_cast<AggregateState, SumFunction<int64_t>::SumState>(
         sumFunction->createInitialNullAggregateState());
-    otherSumState->val = 10;
+    otherSumState->sum = 10;
     otherSumState->isNull = false;
     sumFunction->combineState((uint8_t*)sumState.get(), (uint8_t*)otherSumState.get());
     sumFunction->finalizeState((uint8_t*)sumState.get());
-    auto sumValue = otherSumState->val;
+    auto sumValue = otherSumState->sum;
     for (auto i = 0u; i < 100; i++) {
         if (i % 2 != 0) {
             sumValue += i;
         }
     }
-    ASSERT_EQ(sumState->val, sumValue);
+    ASSERT_EQ(sumState->sum, sumValue);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, DOUBLESumTest) {
@@ -118,17 +118,17 @@ TEST_F(AggrExpressionEvaluatorTest, DOUBLESumTest) {
     auto otherSumState =
         static_unique_pointer_cast<AggregateState, SumFunction<double_t>::SumState>(
             sumFunction->createInitialNullAggregateState());
-    otherSumState->val = 10.0;
+    otherSumState->sum = 10.0;
     otherSumState->isNull = false;
     sumFunction->combineState((uint8_t*)sumState.get(), (uint8_t*)otherSumState.get());
     sumFunction->finalizeState((uint8_t*)sumState.get());
-    auto sumValue = otherSumState->val;
+    auto sumValue = otherSumState->sum;
     for (auto i = 0u; i < 100; i++) {
         if (i % 2 != 0) {
             sumValue += i * 1.5;
         }
     }
-    ASSERT_EQ(sumState->val, sumValue);
+    ASSERT_EQ(sumState->sum, sumValue);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, UNSTRSumTest) {
@@ -139,17 +139,17 @@ TEST_F(AggrExpressionEvaluatorTest, UNSTRSumTest) {
         (uint8_t*)sumState.get(), unStrValueVector.get(), 1 /* multiplicity */);
     auto otherSumState = static_unique_pointer_cast<AggregateState, SumFunction<Value>::SumState>(
         sumFunction->createInitialNullAggregateState());
-    otherSumState->val = Value((int64_t)10);
+    otherSumState->sum = Value((int64_t)10);
     otherSumState->isNull = false;
     sumFunction->combineState((uint8_t*)sumState.get(), (uint8_t*)otherSumState.get());
     sumFunction->finalizeState((uint8_t*)sumState.get());
-    auto sumValue = otherSumState->val.val.int64Val;
+    auto sumValue = otherSumState->sum.val.int64Val;
     for (auto i = 0u; i < 100; i++) {
         if (i % 2 != 0) {
             sumValue += i;
         }
     }
-    ASSERT_EQ(sumState->val.val.int64Val, sumValue);
+    ASSERT_EQ(sumState->sum.val.int64Val, sumValue);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64AvgTest) {
@@ -160,8 +160,8 @@ TEST_F(AggrExpressionEvaluatorTest, INT64AvgTest) {
         (uint8_t*)avgState.get(), int64ValueVector.get(), 1 /* multiplicity */);
     auto otherAvgState = static_unique_pointer_cast<AggregateState, AvgFunction<int64_t>::AvgState>(
         avgFunction->createInitialNullAggregateState());
-    otherAvgState->val = 10;
-    otherAvgState->numValues = 1;
+    otherAvgState->sum = 10;
+    otherAvgState->count = 1;
     otherAvgState->isNull = false;
     avgFunction->combineState((uint8_t*)avgState.get(), (uint8_t*)otherAvgState.get());
     avgFunction->finalizeState((uint8_t*)avgState.get());
@@ -171,7 +171,7 @@ TEST_F(AggrExpressionEvaluatorTest, INT64AvgTest) {
             sumValue += i;
         }
     }
-    ASSERT_EQ(avgState->val, (double_t)(sumValue) / (double_t)51);
+    ASSERT_EQ(avgState->avg, (double_t)(sumValue) / (double_t)51);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, DOUBLEAvgTest) {
@@ -183,8 +183,8 @@ TEST_F(AggrExpressionEvaluatorTest, DOUBLEAvgTest) {
     auto otherAvgState =
         static_unique_pointer_cast<AggregateState, AvgFunction<double_t>::AvgState>(
             avgFunction->createInitialNullAggregateState());
-    otherAvgState->val = 10.0;
-    otherAvgState->numValues = 1;
+    otherAvgState->sum = 10.0;
+    otherAvgState->count = 1;
     otherAvgState->isNull = false;
     avgFunction->combineState((uint8_t*)avgState.get(), (uint8_t*)otherAvgState.get());
     avgFunction->finalizeState((uint8_t*)avgState.get());
@@ -194,7 +194,7 @@ TEST_F(AggrExpressionEvaluatorTest, DOUBLEAvgTest) {
             sumValue += i * 1.5;
         }
     }
-    ASSERT_EQ(avgState->val, (double_t)(sumValue) / (double_t)51);
+    ASSERT_EQ(avgState->avg, (double_t)(sumValue) / (double_t)51);
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64MaxTest) {

@@ -39,6 +39,14 @@ uint8_t* AggregateHashTable::getEntry(uint64_t id) {
 
 void AggregateHashTable::append(const vector<ValueVector*>& groupByKeyVectors,
     const vector<ValueVector*>& aggregateVectors, uint64_t multiplicity) {
+    // NOTE: We skip tuple if it contains at least one NULL group by key which we don't support in
+    // current aggregate hash table. This for loop should be removed once we migrate to factorized
+    // table which can store NULL payloads.
+    for (auto& groupByKeyVector : groupByKeyVectors) {
+        if (groupByKeyVector->isNull(groupByKeyVector->state->getPositionOfCurrIdx())) {
+            return;
+        }
+    }
     if (numEntries > maxNumHashSlots ||
         (double)numEntries > (double)maxNumHashSlots / DEFAULT_HT_LOAD_FACTOR) {
         resize(maxNumHashSlots * 2);

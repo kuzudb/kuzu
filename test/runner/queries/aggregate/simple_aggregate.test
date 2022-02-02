@@ -1,16 +1,11 @@
 # description: aggregation without groups and distinct
 
--NAME TwoHopSumTest
--QUERY MATCH (a:person)-[:knows]->(b:person) RETURN SUM(b.age), MIN(b.ID), AVG(b.eyeSight)
+-NAME SimpleAvgTest
+-QUERY MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight), AVG(a.unstrNumericProp)
 ---- 1
-455|0|4.935714
+37.250000|4.862500|55.666667
 
 -NAME SimpleCountTest
--QUERY MATCH (a:person) RETURN COUNT(a.age), COUNT(a.unstrNumericProp)
----- 1
-8|3
-
--NAME SimpleCountEvaluationTest
 -QUERY MATCH (a:person) RETURN COUNT(a.age) + 1, COUNT(a.unstrNumericProp) * 2.0
 ---- 1
 9|6.000000
@@ -20,27 +15,22 @@
 ---- 1
 298|38.900000|167.000000
 
--NAME SimpleSumWithterTest
--QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age), SUM(a.eyeSight)
----- 1
-85|14.100000
-
--NAME SimpleSumWithFilterTest2
+-NAME SimpleSumTest2
 -QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10), SUM(a.age*2)
 ---- 1
 115|170
 
--NAME SimpleSumWithFilterEvaluationTest
+-NAME SimpleSumTest3
 -QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10) > SUM(a.age*2)
 ---- 1
 False
 
 -NAME SimpleAvgTest
--QUERY MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
+-QUERY MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight), AVG(a.unstrNumericProp)
 ---- 1
-37.250000|4.862500
+37.250000|4.862500|55.666667
 
--NAME SimpleAvgWithFilterTest
+-NAME SimpleAvgTest2
 -QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN AVG(a.age), AVG(a.eyeSight)
 ---- 1
 28.333333|4.700000
@@ -49,3 +39,8 @@ False
 -QUERY MATCH (a:person) RETURN MIN(a.age), MAX(a.age), MIN(a.isStudent), MAX(a.isStudent), MIN(a.eyeSight), MAX(a.eyeSight), MIN(a.birthdate), MAX(a.birthdate)
 ---- 1
 20|83|False|True|4.500000|5.100000|1900-01-01|1990-11-27
+
+-NAME TwoHopTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) RETURN SUM(b.age), MIN(b.ID), AVG(b.eyeSight), MAX(b.unstrNumericProp)
+---- 1
+455|0|4.935714|52

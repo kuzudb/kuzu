@@ -70,16 +70,17 @@ TEST_F(AggregateHashTableTest, SingleGroupTest) {
         ht->append(groupVectors, aggregateVectors, 1 /* multiplicity */);
         dataChunk->state->currIdx++;
     }
+    ht->finalizeAggregateStates();
     auto groupsSize = TypeUtils::getDataTypeSize(INT64);
     auto numGroupScanned = 0u;
     while (numGroupScanned < ht->getNumEntries()) {
         auto entry = ht->getEntry(numGroupScanned);
         assert(entry != nullptr);
         auto countAggrState = (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize);
-        ASSERT_EQ(countAggrState->val, 25);
+        ASSERT_EQ(*(uint64_t*)countAggrState->getResult(), 25);
         auto sumAggrState = (SumFunction<int64_t>::SumState*)(entry + sizeof(hash_t) + groupsSize +
-                                                              countAggrState->getValSize());
-        ASSERT_EQ(sumAggrState->val, 2400 + numGroupScanned * 50);
+                                                              countAggrState->getStateSize());
+        ASSERT_EQ(*(int64_t*)sumAggrState->getResult(), 2400 + numGroupScanned * 50);
         ++numGroupScanned;
     }
 }
@@ -105,16 +106,17 @@ TEST_F(AggregateHashTableTest, TwoGroupsTest) {
         ht->append(groupVectors, aggregateVectors, 1 /* multiplicity */);
         dataChunk->state->currIdx++;
     }
+    ht->finalizeAggregateStates();
     auto groupsSize = sizeof(uint64_t) + sizeof(uint64_t);
     auto numGroupScanned = 0u;
     while (numGroupScanned < ht->getNumEntries()) {
         auto entry = ht->getEntry(numGroupScanned);
         assert(entry != nullptr);
         auto countAggrState = (BaseCountFunction::CountState*)(entry + sizeof(hash_t) + groupsSize);
-        ASSERT_EQ(countAggrState->val, 1);
+        ASSERT_EQ(*(uint64_t*)countAggrState->getResult(), 1);
         auto avgAggrState = (AvgFunction<int64_t>::AvgState*)(entry + sizeof(hash_t) + groupsSize +
-                                                              countAggrState->getValSize());
-        ASSERT_EQ(avgAggrState->val, numGroupScanned * 2);
+                                                              countAggrState->getStateSize());
+        ASSERT_EQ(avgAggrState->avg, numGroupScanned * 2);
         ++numGroupScanned;
     }
 }

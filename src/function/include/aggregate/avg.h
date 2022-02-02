@@ -13,11 +13,12 @@ template<typename T>
 struct AvgFunction {
 
     struct AvgState : public AggregateState {
-        double_t val;
-        uint64_t numValues = 0;
+        inline uint64_t getStateSize() const override { return sizeof(*this); }
+        inline uint8_t* getResult() const override { return (uint8_t*)&avg; }
 
-        inline uint64_t getValSize() const override { return sizeof(*this); }
-        inline uint8_t* getFinalVal() const override { return (uint8_t*)&val; }
+        T sum;
+        uint64_t count = 0;
+        double_t avg = 0;
     };
 
     static unique_ptr<AggregateState> initialize() { return make_unique<AvgState>(); }
@@ -49,16 +50,16 @@ struct AvgFunction {
     static void updateSingleValue(
         AvgState* state, ValueVector* input, uint32_t pos, uint64_t multiplicity) {
         auto inputValues = (T*)input->values;
-        for (auto j = 0u; j < multiplicity; ++j) {
+        for (auto i = 0u; i < multiplicity; ++i) {
             if (state->isNull) {
-                state->val = inputValues[pos];
+                state->sum = inputValues[pos];
                 state->isNull = false;
             } else {
-                Add::operation<double_t, T, double_t>(
-                    state->val, inputValues[pos], state->val, false, false);
+                Add::operation(state->sum, inputValues[pos], state->sum, false /* isLeftNull */,
+                    false /* isRightNull */);
             }
         }
-        state->numValues += multiplicity;
+        state->count += multiplicity;
     }
 
     static void combine(uint8_t* state_, uint8_t* otherState_) {
@@ -68,22 +69,32 @@ struct AvgFunction {
         }
         auto state = reinterpret_cast<AvgState*>(state_);
         if (state->isNull) {
-            state->val = otherState->val;
+            state->sum = otherState->sum;
             state->isNull = false;
         } else {
-            Add::operation<double_t, double_t, double_t>(state->val, otherState->val, state->val,
-                false /* isLeftNull */, false /* isRightNull */);
+            Add::operation(state->sum, otherState->sum, state->sum, false /* isLeftNull */,
+                false /* isRightNull */);
         }
-        state->numValues = state->numValues + otherState->numValues;
+        state->count = state->count + otherState->count;
     }
 
     static void finalize(uint8_t* state_) {
         auto state = reinterpret_cast<AvgState*>(state_);
-        if (!state->isNull) {
-            state->val = state->val / (double_t)state->numValues;
-        }
+        assert(!state->isNull);
+        state->avg = state->sum / (double_t)state->count;
     }
 };
+
+template<>
+void AvgFunction<Value>::finalize(uint8_t* state_) {
+    auto state = reinterpret_cast<AvgState*>(state_);
+    assert(!state->isNull);
+    auto unstrCount = Value((double_t)state->count);
+    auto result = Value();
+    Divide::operation(
+        state->sum, unstrCount, result, false /* isLeftNull */, false /* isRightNull */);
+    state->avg = result.val.doubleVal;
+}
 
 } // namespace function
 } // namespace graphflow
