@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/antlr4/CypherParser.h"
-#include "src/parser/include/queries/single_query.h"
+#include "src/parser/include/queries/regular_query.h"
 
 using namespace std;
 
@@ -12,12 +12,12 @@ class Transformer {
 public:
     explicit Transformer(CypherParser::OC_CypherContext& root) : root{root} {}
 
-    unique_ptr<SingleQuery> transform();
+    unique_ptr<RegularQuery> transform();
 
 private:
-    unique_ptr<SingleQuery> transformQuery(CypherParser::OC_QueryContext& ctx);
+    unique_ptr<RegularQuery> transformQuery(CypherParser::OC_QueryContext& ctx);
 
-    unique_ptr<SingleQuery> transformRegularQuery(CypherParser::OC_RegularQueryContext& ctx);
+    unique_ptr<RegularQuery> transformRegularQuery(CypherParser::OC_RegularQueryContext& ctx);
 
     unique_ptr<SingleQuery> transformSingleQuery(CypherParser::OC_SingleQueryContext& ctx);
 

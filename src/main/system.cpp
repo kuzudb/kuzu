@@ -34,8 +34,8 @@ void System::executeQuery(SessionContext& context) const {
     }
 
     auto parsedQuery = Parser::parseQuery(context.query);
-    context.enable_explain = parsedQuery->enable_explain;
-    context.profiler->enabled = parsedQuery->enable_profile;
+    context.enable_explain = parsedQuery->isEnableExplain();
+    context.profiler->enabled = parsedQuery->isEnableProfile();
 
     // compiling stage
     auto compilingTimeMetric = TimeMetric(true);

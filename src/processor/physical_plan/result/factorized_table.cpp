@@ -27,6 +27,8 @@ FactorizedTable::FactorizedTable(MemoryManager& memoryManager, const TupleSchema
 
     stringBuffer = make_unique<StringBuffer>(memoryManager);
     numTuplesPerBlock = DEFAULT_MEMORY_BLOCK_SIZE / tupleSchema.numBytesPerTuple;
+    consecutiveIndicesOfAllFields.resize(tupleSchema.fields.size());
+    iota(consecutiveIndicesOfAllFields.begin(), consecutiveIndicesOfAllFields.end(), 0);
 }
 
 vector<BlockAppendingInfo> FactorizedTable::allocateDataBlocks(vector<DataBlock>& dataBlocks,
@@ -273,6 +275,12 @@ uint64_t FactorizedTable::scan(const vector<uint64_t>& fieldsToScan,
         numTuplesToScan);
 }
 
+// This scan function scans all fields in the factorizedTable and outputs to resultSet.
+uint64_t FactorizedTable::scan(const vector<DataPos>& resultDataPos, ResultSet& resultSet,
+    uint64_t startTupleIdx, uint64_t numTuplesToScan) const {
+    scan(consecutiveIndicesOfAllFields, resultDataPos, resultSet, startTupleIdx, numTuplesToScan);
+}
+
 uint64_t FactorizedTable::lookup(const vector<uint64_t>& fieldsToRead,
     const vector<DataPos>& resultDataPos, ResultSet& resultSet, uint8_t** tuplesToRead,
     uint64_t startPos, uint64_t numTuplesToRead) const {
@@ -325,8 +333,8 @@ FlatTupleIterator::FlatTupleIterator(FactorizedTable& factorizedTable)
     // Don't initialize currentTupleBuffer, numFlatTuples if there are no tuples in the
     // factorizedTable.
     if (factorizedTable.getNumTuples()) {
-        currentTupleBuffer = factorizedTable.getTuple(0 /* tupleIdx */);
-        numFlatTuples = factorizedTable.getNumFlatTuples(0 /* tupleIdx */);
+        currentTupleBuffer = factorizedTable.getTuple(0);
+        numFlatTuples = factorizedTable.getNumFlatTuples(0);
         updateNumElementsInDataChunk();
         updateInvalidEntriesInFlatTuplePositionsInDataChunk();
         for (auto& field : factorizedTable.getTupleSchema().fields) {

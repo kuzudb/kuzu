@@ -427,7 +427,7 @@ shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
 shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     const ParsedExpression& parsedExpression) {
     auto prevVariablesInScope = queryBinder->enterSubquery();
-    auto boundSingleQuery = queryBinder->bind(*parsedExpression.subquery);
+    auto boundSingleQuery = queryBinder->bindSingleQuery(*parsedExpression.subquery);
     queryBinder->exitSubquery(move(prevVariablesInScope));
     return make_shared<ExistentialSubqueryExpression>(move(boundSingleQuery),
         queryBinder->getUniqueExpressionName(parsedExpression.getRawName()));

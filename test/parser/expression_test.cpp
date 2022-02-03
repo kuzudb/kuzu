@@ -43,8 +43,8 @@ TEST_F(ExpressionTest, FilterIDComparisonTest) {
     auto where = make_unique<ParsedExpression>(EQUALS, EMPTY, EMPTY, move(aID), move(bID));
 
     string input = "MATCH () WHERE id(a) = id(b) RETURN *;";
-    auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
+    auto regularQuery = Parser::parseQuery(input);
+    auto& matchStatement = (MatchStatement&)*regularQuery->getSingleQuery(0)->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
@@ -58,8 +58,8 @@ TEST_F(ExpressionTest, FilterBooleanConnectionTest) {
     where->children.push_back(move(bIsNotMale));
 
     string input = "MATCH () WHERE a.isStudent AND NOT b.isMale RETURN *;";
-    auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
+    auto regularQuery = Parser::parseQuery(input);
+    auto& matchStatement = (MatchStatement&)*regularQuery->getSingleQuery(0)->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
@@ -74,8 +74,8 @@ TEST_F(ExpressionTest, FilterNullOperatorTest) {
     auto where = make_unique<ParsedExpression>(AND, EMPTY, EMPTY, move(leftAnd), move(aNameIsNull));
 
     string input = "MATCH () WHERE a.isStudent AND b.isMale AND a.name IS NULL RETURN *;";
-    auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
+    auto regularQuery = Parser::parseQuery(input);
+    auto& matchStatement = (MatchStatement&)*regularQuery->getSingleQuery(0)->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
@@ -93,8 +93,8 @@ TEST_F(ExpressionTest, FilterStringOperatorTest) {
 
     string input =
         "MATCH () WHERE (a.isStudent AND b.isMale) OR a.name CONTAINS \"Xiyang\" RETURN *;";
-    auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
+    auto regularQuery = Parser::parseQuery(input);
+    auto& matchStatement = (MatchStatement&)*regularQuery->getSingleQuery(0)->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
@@ -108,8 +108,8 @@ TEST_F(ExpressionTest, FilterArithmeticComparisonTest) {
     auto where = make_unique<ParsedExpression>(EQUALS, EMPTY, EMPTY, move(left), move(aAge));
 
     string input = "MATCH () WHERE 2 + a * 0.1 = a.age RETURN *";
-    auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
+    auto regularQuery = Parser::parseQuery(input);
+    auto& matchStatement = (MatchStatement&)*regularQuery->getSingleQuery(0)->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
@@ -124,8 +124,8 @@ TEST_F(ExpressionTest, FilterParenthesizeTest) {
         make_unique<ParsedExpression>(LESS_THAN_EQUALS, EMPTY, EMPTY, move(left), move(aAge));
 
     string input = "MATCH () WHERE ((2 - a) % 0.1) <= a.age RETURN *;";
-    auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
+    auto regularQuery = Parser::parseQuery(input);
+    auto& matchStatement = (MatchStatement&)*regularQuery->getSingleQuery(0)->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }
 
@@ -139,7 +139,7 @@ TEST_F(ExpressionTest, FilterFunctionMultiParamsTest) {
     where->children.push_back(move(bPowerTwo));
 
     string input = "MATCH () WHERE MIN(a, b^2) RETURN *;";
-    auto singleQuery = Parser::parseQuery(input);
-    auto& matchStatement = (MatchStatement&)*singleQuery->matchStatements[0];
+    auto regularQuery = Parser::parseQuery(input);
+    auto& matchStatement = (MatchStatement&)*regularQuery->getSingleQuery(0)->matchStatements[0];
     ASSERT_TRUE(ParserTestUtils::equals(*where, *matchStatement.whereClause));
 }

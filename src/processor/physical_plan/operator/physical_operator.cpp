@@ -23,10 +23,18 @@ PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> left,
     children.push_back(move(right));
 }
 
+PhysicalOperator::PhysicalOperator(
+    vector<unique_ptr<PhysicalOperator>> children, ExecutionContext& context, uint32_t id)
+    : PhysicalOperator{context, id} {
+    for (auto& child : children) {
+        this->children.push_back(move(child));
+    }
+}
+
 PhysicalOperator* PhysicalOperator::getLeafOperator() {
     PhysicalOperator* op = this;
-    while (op->hasFirstChild()) {
-        op = op->getFirstChild();
+    while (op->getNumChildren()) {
+        op = op->getChild(0);
     }
     return op;
 }
@@ -49,8 +57,8 @@ void PhysicalOperator::printMetricsToJson(nlohmann::json& json, Profiler& profil
 
 void PhysicalOperator::printTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler) {
     double prevExecutionTime = 0.0;
-    if (hasFirstChild()) {
-        prevExecutionTime = profiler.sumAllTimeMetricsWithKey(getFirstChild()->getTimeMetricKey());
+    if (getNumChildren()) {
+        prevExecutionTime = profiler.sumAllTimeMetricsWithKey(getChild(0)->getTimeMetricKey());
     }
     // Time metric measures execution time of the subplan under current operator (like a CDF).
     // By subtracting prevOperator runtime, we get the runtime of current operator

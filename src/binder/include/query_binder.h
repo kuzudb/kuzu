@@ -1,9 +1,10 @@
 #pragma once
 
+#include "src/binder/include/bound_queries/bound_regular_query.h"
 #include "src/binder/include/bound_queries/bound_single_query.h"
 #include "src/binder/include/expression_binder.h"
 #include "src/binder/include/query_graph/query_graph.h"
-#include "src/parser/include/queries/single_query.h"
+#include "src/parser/include/queries/regular_query.h"
 #include "src/parser/include/statements/match_statement.h"
 
 using namespace graphflow::parser;
@@ -18,7 +19,7 @@ public:
     explicit QueryBinder(const Catalog& catalog)
         : catalog{catalog}, lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
 
-    unique_ptr<BoundSingleQuery> bind(const SingleQuery& singleQuery);
+    unique_ptr<BoundRegularQuery> bind(const RegularQuery& regularQuery);
 
 private:
     unique_ptr<BoundSingleQuery> bindSingleQuery(const SingleQuery& singleQuery);

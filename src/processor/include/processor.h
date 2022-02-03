@@ -21,7 +21,8 @@ public:
 
 private:
     void run();
-    void decomposePlanIntoTasks(PhysicalOperator* op, Task* parentTask, uint64_t numThreads);
+    void decomposePlanIntoTasks(
+        PhysicalOperator* op, PhysicalOperator* parent, Task* parentTask, uint64_t numThreads);
     void scheduleTaskAndWaitUntilExecution(const shared_ptr<Task>& task);
 
 private:

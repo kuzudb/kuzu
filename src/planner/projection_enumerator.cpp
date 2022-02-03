@@ -127,7 +127,7 @@ void ProjectionEnumerator::appendOrderBy(const vector<shared_ptr<Expression>>& e
     }
     auto schemaBeforeOrderBy = plan.schema->copy();
     plan.schema->clear();
-    Enumerator::computeSchemaForHashJoinAndOrderBy(
+    Enumerator::computeSchemaForHashJoinAndOrderByAndUnionAll(
         schemaBeforeOrderBy->getGroupsPosInScope(), *schemaBeforeOrderBy, *plan.schema);
     auto orderBy = make_shared<LogicalOrderBy>(orderByExpressionNames, isAscOrders,
         schemaBeforeOrderBy->copy(), schemaBeforeOrderBy->getExpressionNamesInScope(),

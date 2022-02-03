@@ -18,11 +18,11 @@ nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler&
             "(" + physicalToLogicalOperatorMap.at(operatorID)->getExpressionsForPrinting() + ")";
     }
     json["name"] = operatorName;
-    if (physicalOperator->hasFirstChild()) {
-        json["prev"] = toJson(physicalOperator->getFirstChild(), profiler);
+    if (physicalOperator->getNumChildren()) {
+        json["prev"] = toJson(physicalOperator->getChild(0), profiler);
     }
-    if (physicalOperator->hasSecondChild()) {
-        json["right"] = toJson(physicalOperator->getSecondChild(), profiler);
+    if (physicalOperator->getNumChildren() > 1) {
+        json["right"] = toJson(physicalOperator->getChild(1), profiler);
     }
     if (profiler.enabled) {
         physicalOperator->printMetricsToJson(json, profiler);

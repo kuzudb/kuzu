@@ -6,6 +6,7 @@
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
 #include "src/planner/include/logical_plan/operator/nested_loop_join/logical_left_nested_loop_join.h"
 #include "src/planner/include/logical_plan/operator/order_by/logical_order_by.h"
+#include "src/planner/include/logical_plan/operator/result_collector/logical_result_collector.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
@@ -34,6 +35,8 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewrite(
         return rewriteExists(op, schema);
     case LOGICAL_LEFT_NESTED_LOOP_JOIN:
         return rewriteLeftNestedLoopJoin(op, schema);
+    case LOGICAL_RESULT_COLLECTOR:
+        return rewriteResultCollector(op, schema);
     default:
         rewriteChildrenOperators(op, schema);
         return op;
@@ -57,7 +60,7 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteScanNodeProperty(
     auto& scanNodeProperty = (LogicalScanNodeProperty&)*op;
     addPropertyScan(scanNodeProperty.nodeID, op);
     schema.removeExpression(scanNodeProperty.getPropertyExpressionName());
-    return rewrite(scanNodeProperty.getFirstChild(), schema);
+    return rewrite(scanNodeProperty.getChild(0), schema);
 }
 
 shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteScanRelProperty(
@@ -65,13 +68,13 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteScanRelProperty(
     auto& scanRelProperty = (LogicalScanRelProperty&)*op;
     addPropertyScan(scanRelProperty.nbrNodeID, op);
     schema.removeExpression(scanRelProperty.getPropertyExpressionName());
-    return rewrite(scanRelProperty.getFirstChild(), schema);
+    return rewrite(scanRelProperty.getChild(0), schema);
 }
 
 shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteAggregate(
     const shared_ptr<LogicalOperator>& op, Schema& schema) {
     auto& logicalAggregate = (LogicalAggregate&)*op;
-    op->setFirstChild(rewrite(op->getFirstChild(), *logicalAggregate.getSchemaBeforeAggregate()));
+    op->setChild(0, rewrite(op->getChild(0), *logicalAggregate.getSchemaBeforeAggregate()));
     return op;
 }
 
@@ -82,36 +85,43 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteOrderBy(
     for (auto& expressionName : getRemainingPropertyExpressionNames()) {
         logicalOrderBy.addExpressionToMaterialize(expressionName);
     }
-    op->setFirstChild(rewrite(op->getFirstChild(), *logicalOrderBy.getSchemaBeforeOrderBy()));
+    op->setChild(0, rewrite(op->getChild(0), *logicalOrderBy.getSchemaBeforeOrderBy()));
     return op;
 }
 
 shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteHashJoin(
     const shared_ptr<LogicalOperator>& op, Schema& schema) {
     auto& logicalHashJoin = (LogicalHashJoin&)*op;
-    op->setFirstChild(rewrite(op->getFirstChild(), schema));
+    op->setChild(0, rewrite(op->getChild(0), schema));
     addPropertyScansToSchema(schema);
     for (auto& expressionName : getRemainingPropertyExpressionNames()) {
         logicalHashJoin.addExpressionToMaterialize(expressionName);
     }
-    op->setSecondChild(rewrite(op->getSecondChild(), *logicalHashJoin.buildSideSchema));
+    op->setChild(1, rewrite(op->getChild(1), *logicalHashJoin.buildSideSchema));
     return op;
 }
 
 shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteExists(
     const shared_ptr<LogicalOperator>& op, Schema& schema) {
     auto& logicalExists = (LogicalExists&)*op;
-    op->setFirstChild(rewrite(op->getFirstChild(), schema));
-    op->setSecondChild(rewrite(op->getSecondChild(), *logicalExists.subPlanSchema));
+    op->setChild(0, rewrite(op->getChild(0), schema));
+    op->setChild(1, rewrite(op->getChild(1), *logicalExists.subPlanSchema));
     return op;
 }
 
 shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteLeftNestedLoopJoin(
     const shared_ptr<LogicalOperator>& op, Schema& schema) {
     auto& logicalLeftNLJ = (LogicalLeftNestedLoopJoin&)*op;
-    op->setFirstChild(rewrite(op->getFirstChild(), schema));
+    op->setChild(0, rewrite(op->getChild(0), schema));
     addPropertyScansToSchema(schema);
-    op->setSecondChild(rewrite(op->getSecondChild(), *logicalLeftNLJ.subPlanSchema));
+    op->setChild(1, rewrite(op->getChild(1), *logicalLeftNLJ.subPlanSchema));
+    return op;
+}
+
+shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteResultCollector(
+    const shared_ptr<LogicalOperator>& op, Schema& schema) {
+    auto& logicalResultCollector = (LogicalResultCollector&)*op;
+    op->setChild(0, rewrite(op->getChild(0), *logicalResultCollector.getSchema()));
     return op;
 }
 
@@ -125,9 +135,9 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::applyPropertyScansIfNecessary(
     auto& propertyScans = nodeIDToPropertyScansMap.at(nodeID);
     // chain property scans
     for (auto i = 0u; i < propertyScans.size() - 1; ++i) {
-        propertyScans[i]->setFirstChild(propertyScans[i + 1]);
+        propertyScans[i]->setChild(0, propertyScans[i + 1]);
     }
-    propertyScans.back()->setFirstChild(op);
+    propertyScans.back()->setChild(0, op);
     auto result = propertyScans[0];
     // update schema
     auto groupPos = schema.getGroupPos(nodeID);
@@ -145,11 +155,10 @@ void PropertyScanPushDown::rewriteChildrenOperators(
     if (op->getNumChildren() == 0) {
         return;
     }
-    // If any property scanner is successfully pushed down, it will be removed from
-    // nodeIDtoPropertyScanMap.
-    op->setFirstChild(rewrite(op->getFirstChild(), schema));
-    if (op->getNumChildren() == 2) {
-        op->setSecondChild(rewrite(op->getSecondChild(), schema));
+    for (auto i = 0u; i < op->getNumChildren(); i++) {
+        // If any property scanner is successfully pushed down, it will be removed from
+        // nodeIDtoPropertyScanMap.
+        op->setChild(i, rewrite(op->getChild(i), schema));
     }
 }
 

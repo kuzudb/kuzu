@@ -1,4 +1,4 @@
-#include "src/parser/include/queries/single_query.h"
+#include "src/parser/include/queries/regular_query.h"
 
 namespace graphflow {
 namespace parser {
@@ -6,7 +6,7 @@ namespace parser {
 class Parser {
 
 public:
-    static unique_ptr<SingleQuery> parseQuery(const string& query);
+    static unique_ptr<RegularQuery> parseQuery(const string& query);
 };
 
 } // namespace parser

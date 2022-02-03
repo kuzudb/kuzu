@@ -13,7 +13,6 @@ namespace graphflow {
 namespace parser {
 
 class SingleQuery;
-
 class ParsedExpression {
 
 public:

@@ -3,6 +3,8 @@
 #include "src/binder/include/expression/existential_subquery_expression.h"
 #include "src/binder/include/expression/property_expression.h"
 #include "src/planner/include/join_order_enumerator.h"
+#include "src/planner/include/logical_plan/operator/result_collector/logical_result_collector.h"
+#include "src/planner/include/logical_plan/operator/union_all/logical_union_all.h"
 #include "src/planner/include/projection_enumerator.h"
 
 using namespace graphflow::binder;
@@ -32,6 +34,50 @@ public:
         }
         return result;
     }
+
+    static inline void appendLogicalResultCollector(LogicalPlan& logicalPlan) {
+        auto logicalResultCollector =
+            make_shared<LogicalResultCollector>(logicalPlan.getExpressionsToCollect(),
+                logicalPlan.schema->copy(), logicalPlan.lastOperator);
+        logicalPlan.lastOperator = logicalResultCollector;
+    }
+
+    static inline void appendLogicalUnionAll(
+        vector<unique_ptr<LogicalPlan>>& childrenPlans, LogicalPlan& logicalPlan) {
+        shared_ptr<LogicalUnionAll> logicalUnionAll = make_shared<LogicalUnionAll>();
+        for (auto i = 0u; i < childrenPlans.size(); i++) {
+            if (i == 0) {
+                // For now the schema of the logical plan and logicalUnionAll is exactly the same.
+                logicalPlan.setExpressionsToCollect(
+                    ((LogicalResultCollector*)childrenPlans[i]->lastOperator.get())
+                        ->getExpressionsToCollect());
+                Enumerator::computeSchemaForHashJoinAndOrderByAndUnionAll(
+                    childrenPlans[i]->schema->getGroupsPosInScope(), *childrenPlans[i]->schema,
+                    *logicalPlan.schema);
+                logicalPlan.lastOperator = logicalUnionAll;
+            }
+            logicalUnionAll->addChild(childrenPlans[i]->lastOperator);
+        }
+        logicalUnionAll->setExpressionsToUnion(logicalPlan.getExpressionsToCollect());
+    }
+
+    // For HashJoinProbe, the HashJoinProbe operator will read for a particular probe tuple t, the
+    // matching result tuples M that match t[k], where k suppose is the join key column. If M
+    // consists of flat tuples, i.e., all columns of tuples in M are flat, then we can output the
+    // join of t[k] with M as t X M. That is we can put up to M tuples in M into one single unflat
+    // dataChunk and output.  Otherwise even if t[k] matches |M| many tuples, because each tuple m
+    // in M represents multiple tuples, we need to output the join of t[k] with M one tuple at a
+    // time, t X m1, t X m2, etc.
+    //
+    // For OrderBy a similar logic exists. In order to order a set of tuples R, order by stores R in
+    // a FactorizedTable and orders on the keys. The key columns are necessarily flattened (even if
+    // they are given to OrderBy in an unflat format). But the non-key columns can be flat or unflat
+    // when stored. However, if all of the non-key columns are flat and since all key columns are
+    // flattened in FactorizedTable, we can output R with upto |R| many tuples in an unflat
+    // datachunk (though we would do it in chunks of DEFAULT_VECTOR_CAPACITY).
+    static void computeSchemaForHashJoinAndOrderByAndUnionAll(
+        const unordered_set<uint32_t>& groupsToMaterializePos, const Schema& schemaBeforeSink,
+        Schema& schemaAfterSink);
 
 private:
     vector<unique_ptr<LogicalPlan>> enumeratePlans(const BoundSingleQuery& singleQuery);
@@ -85,24 +131,6 @@ private:
         const shared_ptr<Expression>& expression, const Schema& schema) {
         return getSubExpressionsNotInSchemaOfType(expression, schema, isExpressionAggregate);
     }
-
-    // For HashJoinProbe, the HashJoinProbe operator will read for a particular probe tuple t, the
-    // matching result tuples M that match t[k], where k suppose is the join key column. If M
-    // consists of flat tuples, i.e., all columns of tuples in M are flat, then we can output the
-    // join of t[k] with M as t X M. That is we can put up to M tuples in M into one single unflat
-    // dataChunk and output.  Otherwise even if t[k] matches |M| many tuples, because each tuple m
-    // in M represents multiple tuples, we need to output the join of t[k] with M one tuple at a
-    // time, t X m1, t X m2, etc.
-    //
-    // For OrderBy a similar logic exists. In order to order a set of tuples R, order by stores R in
-    // a FactorizedTable and orders on the keys. The key columns are necessarily flattened (even if
-    // they are given to OrderBy in an unflat format). But the non-key columns can be flat or unflat
-    // when stored. However, if all of the non-key columns are flat and since all key columns are
-    // flattened in FactorizedTable, we can output R with upto |R| many tuples in an unflat
-    // datachunk (though we would do it in chunks of DEFAULT_VECTOR_CAPACITY).
-    static void computeSchemaForHashJoinAndOrderBy(
-        const unordered_set<uint32_t>& groupsToMaterializePos, const Schema& schemaBeforeSink,
-        Schema& schemaAfterSink);
 
 private:
     JoinOrderEnumerator joinOrderEnumerator;

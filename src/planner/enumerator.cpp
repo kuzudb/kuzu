@@ -39,6 +39,9 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(const BoundSingleQuer
     for (auto& queryPart : normalizedQuery->getQueryParts()) {
         plans = enumerateQueryPart(*queryPart, move(plans));
     }
+    for (auto& plan : plans) {
+        appendLogicalResultCollector(*plan);
+    }
     return plans;
 }
 
@@ -303,7 +306,7 @@ vector<shared_ptr<Expression>> Enumerator::getSubExpressionsNotInSchemaOfType(
     return results;
 }
 
-void Enumerator::computeSchemaForHashJoinAndOrderBy(
+void Enumerator::computeSchemaForHashJoinAndOrderByAndUnionAll(
     const unordered_set<uint32_t>& groupsToMaterializePos, const Schema& schemaBeforeSink,
     Schema& schemaAfterSink) {
     auto flatVectorsOutputPos = UINT32_MAX;

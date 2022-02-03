@@ -28,8 +28,9 @@ TEST_F(ReturnWithTest, ReturnCountStarTest) {
         make_unique<ReturnStatement>(make_unique<ProjectionBody>(false, move(expressions)));
 
     string input = "MATCH () RETURN COUNT(*);";
-    auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(ParserTestUtils::equals(*returnStatement, *singleQuery->returnStatement));
+    auto regularQuery = Parser::parseQuery(input);
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *returnStatement, *regularQuery->getSingleQuery(0)->returnStatement));
 }
 
 TEST_F(ReturnWithTest, ReturnStarAndPropertyTest) {
@@ -39,8 +40,9 @@ TEST_F(ReturnWithTest, ReturnStarAndPropertyTest) {
         make_unique<ReturnStatement>(make_unique<ProjectionBody>(true, move(expressions)));
 
     string input = "MATCH () RETURN *, a.name;";
-    auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(ParserTestUtils::equals(*returnStatement, *singleQuery->returnStatement));
+    auto regularQuery = Parser::parseQuery(input);
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *returnStatement, *regularQuery->getSingleQuery(0)->returnStatement));
 }
 
 TEST_F(ReturnWithTest, ReturnAliasTest) {
@@ -53,8 +55,9 @@ TEST_F(ReturnWithTest, ReturnAliasTest) {
         make_unique<ReturnStatement>(make_unique<ProjectionBody>(false, move(expressions)));
 
     string input = "MATCH () RETURN a.name, a.name AS whatever;";
-    auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(ParserTestUtils::equals(*returnStatement, *singleQuery->returnStatement));
+    auto regularQuery = Parser::parseQuery(input);
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *returnStatement, *regularQuery->getSingleQuery(0)->returnStatement));
 }
 
 TEST_F(ReturnWithTest, ReturnLimitTest) {
@@ -64,8 +67,9 @@ TEST_F(ReturnWithTest, ReturnLimitTest) {
     projectionBody->setLimitExpression(make_unique<ParsedExpression>(LITERAL_INT, "10", EMPTY));
     auto returnStatement = make_unique<ReturnStatement>(move(projectionBody));
     string input = "MATCH () RETURN a.name LIMIT 10;";
-    auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(ParserTestUtils::equals(*returnStatement, *singleQuery->returnStatement));
+    auto regularQuery = Parser::parseQuery(input);
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *returnStatement, *regularQuery->getSingleQuery(0)->returnStatement));
 }
 
 TEST_F(ReturnWithTest, SingleWithTest) {
@@ -80,11 +84,11 @@ TEST_F(ReturnWithTest, SingleWithTest) {
         make_unique<WithStatement>(make_unique<ProjectionBody>(false, move(expressions)));
 
     string input = "WITH 1 AS one, \"Xiyang\" AS name MATCH () RETURN *;";
-    auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == singleQuery->queryParts.size());
-    ASSERT_TRUE(singleQuery->queryParts[0]->matchStatements.empty());
-    ASSERT_TRUE(
-        ParserTestUtils::equals(*withStatement, *singleQuery->queryParts[0]->withStatement));
+    auto regularQuery = Parser::parseQuery(input);
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->queryParts.size());
+    ASSERT_TRUE(regularQuery->getSingleQuery(0)->queryParts[0]->matchStatements.empty());
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *withStatement, *regularQuery->getSingleQuery(0)->queryParts[0]->withStatement));
 }
 
 TEST_F(ReturnWithTest, MultiMatchWithStarTest) {
@@ -96,11 +100,11 @@ TEST_F(ReturnWithTest, MultiMatchWithStarTest) {
         make_unique<WithStatement>(make_unique<ProjectionBody>(true, move(expressions)));
 
     string input = "MATCH () MATCH () WITH *, 1 AS one MATCH () RETURN *;";
-    auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == singleQuery->queryParts.size());
-    ASSERT_TRUE(2u == singleQuery->queryParts[0]->matchStatements.size());
-    ASSERT_TRUE(
-        ParserTestUtils::equals(*withStatement, *singleQuery->queryParts[0]->withStatement));
+    auto regularQuery = Parser::parseQuery(input);
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->queryParts.size());
+    ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->queryParts[0]->matchStatements.size());
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *withStatement, *regularQuery->getSingleQuery(0)->queryParts[0]->withStatement));
 }
 
 TEST_F(ReturnWithTest, MultiWithWhereTest) {
@@ -125,12 +129,12 @@ TEST_F(ReturnWithTest, MultiWithWhereTest) {
 
     string input =
         "MATCH () WITH * WHERE a.age < 1 WITH a.age AS newAge WHERE newAge = 10 MATCH () RETURN *;";
-    auto singleQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(2u == singleQuery->queryParts.size());
-    ASSERT_TRUE(1u == singleQuery->queryParts[0]->matchStatements.size());
-    ASSERT_TRUE(
-        ParserTestUtils::equals(*withStatement1, *singleQuery->queryParts[0]->withStatement));
-    ASSERT_TRUE(singleQuery->queryParts[1]->matchStatements.empty());
-    ASSERT_TRUE(
-        ParserTestUtils::equals(*withStatement2, *singleQuery->queryParts[1]->withStatement));
+    auto regularQuery = Parser::parseQuery(input);
+    ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->queryParts.size());
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->queryParts[0]->matchStatements.size());
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *withStatement1, *regularQuery->getSingleQuery(0)->queryParts[0]->withStatement));
+    ASSERT_TRUE(regularQuery->getSingleQuery(0)->queryParts[1]->matchStatements.empty());
+    ASSERT_TRUE(ParserTestUtils::equals(
+        *withStatement2, *regularQuery->getSingleQuery(0)->queryParts[1]->withStatement));
 }
