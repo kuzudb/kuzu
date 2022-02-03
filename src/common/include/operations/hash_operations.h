@@ -58,6 +58,12 @@ inline void Hash::operation(const int64_t& key, bool isNull, hash_t& result) {
 }
 
 template<>
+inline void Hash::operation(const double_t& key, bool isNull, hash_t& result) {
+    assert(!isNull);
+    result = murmurhash64(key);
+}
+
+template<>
 inline void Hash::operation(const gf_string_t& key, bool isNull, hash_t& result) {
     assert(!isNull);
     result = std::hash<string>()(key.getAsString());
@@ -96,6 +102,51 @@ inline void Hash::operation(const unordered_set<string>& key, bool isNull, hash_
     }
 }
 
+/**********************************************
+ **                                          **
+ **   Specialized Value implementations      **
+ **                                          **
+ **********************************************/
+
+struct HashOnValue {
+    static void operation(Value& key, bool isNull, hash_t& result) {
+        assert(!isNull);
+        switch (key.dataType) {
+        case NODE_ID: {
+            Hash::operation<nodeID_t>(key.val.nodeID, isNull, result);
+        } break;
+        case INT64: {
+            Hash::operation<int64_t>(key.val.int64Val, isNull, result);
+        } break;
+        case DOUBLE: {
+            Hash::operation<double_t>(key.val.doubleVal, isNull, result);
+        } break;
+        case STRING: {
+            Hash::operation<gf_string_t>(key.val.strVal, isNull, result);
+        } break;
+        case DATE: {
+            Hash::operation<date_t>(key.val.dateVal, isNull, result);
+        } break;
+        case TIMESTAMP: {
+            Hash::operation<timestamp_t>(key.val.timestampVal, isNull, result);
+        } break;
+        case INTERVAL: {
+            Hash::operation<interval_t>(key.val.intervalVal, isNull, result);
+        } break;
+        default: {
+            throw invalid_argument(
+                "Cannot hash data type " + TypeUtils::dataTypeToString(key.dataType));
+        }
+        }
+    }
+};
+
+/**********************************************
+ **                                          **
+ **   Specialized Bytes implementations      **
+ **                                          **
+ **********************************************/
+
 struct HashOnBytes {
     static inline void operation(DataType dataType, uint8_t* key, bool isNull, hash_t& result) {
         switch (dataType) {
@@ -119,6 +170,9 @@ struct HashOnBytes {
         } break;
         case INTERVAL: {
             Hash::operation<interval_t>(*(interval_t*)key, isNull, result);
+        } break;
+        case UNSTRUCTURED: {
+            HashOnValue::operation(*(Value*)key, isNull, result);
         } break;
         default: {
             throw invalid_argument(

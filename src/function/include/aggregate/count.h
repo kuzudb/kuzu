@@ -12,18 +12,18 @@ struct CountFunction : public BaseCountFunction {
         if (input->state->isFlat()) {
             auto pos = input->state->getPositionOfCurrIdx();
             if (!input->isNull(pos)) {
-                state->val += multiplicity;
+                state->count += multiplicity;
             }
         } else {
             if (input->hasNoNullsGuarantee()) {
                 for (auto i = 0u; i < input->state->selectedSize; ++i) {
-                    state->val += multiplicity;
+                    state->count += multiplicity;
                 }
             } else {
                 for (auto i = 0u; i < input->state->selectedSize; ++i) {
                     auto pos = input->state->selectedPositions[i];
                     if (!input->isNull(pos)) {
-                        state->val += multiplicity;
+                        state->count += multiplicity;
                     }
                 }
             }

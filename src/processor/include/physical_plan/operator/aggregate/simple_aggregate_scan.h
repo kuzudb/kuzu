@@ -11,18 +11,18 @@ class SimpleAggregateScan : public BaseAggregateScan {
 public:
     SimpleAggregateScan(shared_ptr<SimpleAggregateSharedState> sharedState,
         unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> aggregatesPos,
-        vector<DataType> aggregatesDataType, unique_ptr<PhysicalOperator> child,
+        vector<DataType> aggregateDataTypes, unique_ptr<PhysicalOperator> child,
         ExecutionContext& context, uint32_t id)
         : BaseAggregateScan{move(resultSetDescriptor), move(aggregatesPos),
-              move(aggregatesDataType), move(child), context, id},
+              move(aggregateDataTypes), move(child), context, id},
           sharedState{move(sharedState)} {}
 
     // This constructor is used for cloning only.
     SimpleAggregateScan(shared_ptr<SimpleAggregateSharedState> sharedState,
         unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> aggregatesPos,
-        vector<DataType> aggregatesDataType, ExecutionContext& context, uint32_t id)
+        vector<DataType> aggregateDataTypes, ExecutionContext& context, uint32_t id)
         : BaseAggregateScan{move(resultSetDescriptor), move(aggregatesPos),
-              move(aggregatesDataType), context, id},
+              move(aggregateDataTypes), context, id},
           sharedState{move(sharedState)} {}
 
     bool getNextTuples() override;
@@ -30,7 +30,7 @@ public:
     // SimpleAggregateScan is the source operator of a pipeline, so it should not clone its child.
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<SimpleAggregateScan>(sharedState, resultSetDescriptor->copy(),
-            aggregatesPos, aggregatesDataType, context, id);
+            aggregatesPos, aggregateDataTypes, context, id);
     }
 
 private:

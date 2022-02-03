@@ -47,6 +47,9 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(DataType dat
         return make_unique<AggregateFunction>(AvgFunction<double_t>::initialize,
             AvgFunction<double_t>::update, AvgFunction<double_t>::combine,
             AvgFunction<double_t>::finalize);
+    case UNSTRUCTURED:
+        return make_unique<AggregateFunction>(AvgFunction<Value>::initialize,
+            AvgFunction<Value>::update, AvgFunction<Value>::combine, AvgFunction<Value>::finalize);
     default:
         throw invalid_argument("Data type " + DataTypeNames[dataType] + " not supported for AVG.");
     }

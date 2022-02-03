@@ -14,14 +14,9 @@ bool SimpleAggregateScan::getNextTuples() {
         // Output of simple aggregate is guaranteed to be a single value for each aggregate.
         assert(startOffset == endOffset);
         assert(startOffset == 0);
-        for (auto i = 0u; i < aggregatesVector.size(); i++) {
-            auto vector = aggregatesVector[i];
-            auto aggState = sharedState->getAggregateState(i);
-            memcpy(vector->values, aggState->getFinalVal(),
-                TypeUtils::getDataTypeSize(aggregatesDataType[i]));
-            if (aggState->isNull) {
-                vector->setNull(0, true);
-            }
+        for (auto i = 0u; i < aggregateVectors.size(); i++) {
+            writeAggregateResultToVector(
+                aggregateVectors[i], 0 /* position to write */, sharedState->getAggregateState(i));
         }
         outDataChunk->state->initOriginalAndSelectedSize(1);
         metrics->executionTime.stop();

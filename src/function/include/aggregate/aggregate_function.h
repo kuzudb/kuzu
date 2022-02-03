@@ -14,8 +14,8 @@ namespace graphflow {
 namespace function {
 
 struct AggregateState {
-    virtual inline uint64_t getValSize() const = 0;
-    virtual uint8_t* getFinalVal() const = 0;
+    virtual inline uint64_t getStateSize() const = 0;
+    virtual uint8_t* getResult() const = 0;
 
     bool isNull = true;
 };
@@ -36,7 +36,7 @@ public:
         initialNullAggregateState = createInitialNullAggregateState();
     }
 
-    inline uint64_t getAggregateStateSize() { return initialNullAggregateState->getValSize(); }
+    inline uint64_t getAggregateStateSize() { return initialNullAggregateState->getStateSize(); }
 
     inline AggregateState* getInitialNullAggregateState() {
         return initialNullAggregateState.get();

@@ -30,11 +30,10 @@ bool HashAggregateScan::getNextTuples() {
             memcpy(vector->values + pos * size, entry + offset, size);
             offset += size;
         }
-        for (auto& vector : aggregatesVector) {
-            auto size = TypeUtils::getDataTypeSize(vector->dataType);
+        for (auto& vector : aggregateVectors) {
             auto aggState = (AggregateState*)(entry + offset);
-            memcpy(vector->values + pos * size, aggState->getFinalVal(), size);
-            offset += aggState->getValSize();
+            writeAggregateResultToVector(vector, pos, aggState);
+            offset += aggState->getStateSize();
         }
     }
     outDataChunk->state->initOriginalAndSelectedSize(numRowsToScan);

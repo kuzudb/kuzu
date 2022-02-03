@@ -1,6 +1,5 @@
 #include "test/test_utility/include/test_helper.h"
 
-#include <filesystem>
 #include <fstream>
 
 #include "spdlog/spdlog.h"

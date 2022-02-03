@@ -12,10 +12,10 @@ template<typename T>
 struct SumFunction {
 
     struct SumState : public AggregateState {
-        T val;
+        inline uint64_t getStateSize() const override { return sizeof(*this); }
+        inline uint8_t* getResult() const override { return (uint8_t*)&sum; }
 
-        inline uint64_t getValSize() const override { return sizeof(*this); }
-        inline uint8_t* getFinalVal() const override { return (uint8_t*)&val; }
+        T sum;
     };
 
     static unique_ptr<AggregateState> initialize() { return make_unique<SumState>(); }
@@ -49,11 +49,11 @@ struct SumFunction {
         auto inputValues = (T*)input->values;
         for (auto j = 0u; j < multiplicity; ++j) {
             if (state->isNull) {
-                state->val = inputValues[pos];
+                state->sum = inputValues[pos];
                 state->isNull = false;
             } else {
-                Add::operation<T, T, T>(state->val, inputValues[pos], state->val,
-                    false /* isLeftNull */, false /* isRightNull */);
+                Add::operation(state->sum, inputValues[pos], state->sum, false /* isLeftNull */,
+                    false /* isRightNull */);
             }
         }
     }
@@ -65,10 +65,10 @@ struct SumFunction {
         }
         auto state = reinterpret_cast<SumState*>(state_);
         if (state->isNull) {
-            state->val = otherState->val;
+            state->sum = otherState->sum;
             state->isNull = false;
         } else {
-            Add::operation<T, T, T>(state->val, otherState->val, state->val, false /* isLeftNull */,
+            Add::operation(state->sum, otherState->sum, state->sum, false /* isLeftNull */,
                 false /* isRightNull */);
         }
     }
