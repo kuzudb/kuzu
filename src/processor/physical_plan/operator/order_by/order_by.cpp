@@ -29,7 +29,7 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
         // if it is an unflat payload column. We store a pointer to the overflow
         // valueVector in the factorizedTable for unflat columns.
         bool isUnflat = (!isKeyCol) && (!orderByDataInfo.isVectorFlat[i]);
-        tupleSchema.appendField({vector->dataType, isUnflat, dataChunkPos});
+        tupleSchema.appendColumn({vector->dataType, isUnflat, dataChunkPos});
         vectorsToAppend.push_back(vector);
     }
 

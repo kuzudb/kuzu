@@ -20,11 +20,11 @@ shared_ptr<ResultSet> OrderByScan::initResultSet() {
         auto outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
         outDataChunk->insert(outDataPos.valueVectorPos,
             make_shared<ValueVector>(context.memoryManager,
-                sharedState->factorizedTables[0]->getTupleSchema().fields[i].dataType));
-        fieldsToReadInFactorizedTable.emplace_back(i);
+                sharedState->factorizedTables[0]->getTupleSchema().columns[i].dataType));
+        columnsToReadInFactorizedTable.emplace_back(i);
     }
     scanSingleTuple =
-        sharedState->factorizedTables[0]->hasUnflatColToRead(fieldsToReadInFactorizedTable);
+        sharedState->factorizedTables[0]->hasUnflatColToRead(columnsToReadInFactorizedTable);
     return resultSet;
 }
 
@@ -36,13 +36,13 @@ bool OrderByScan::getNextTuples() {
         metrics->executionTime.stop();
         return false;
     } else {
-        // If there is an overflow column in fieldsToReadInFactorizedTable, we can only read one
+        // If there is an unflat column in columnsToReadInFactorizedTable, we can only read one
         // tuple at a time. Otherwise, we can read min(DEFAULT_VECTOR_CAPACITY,
         // numTuplesRemainingInMemBlock) tuples.
         if (scanSingleTuple) {
             auto factorizedTableIdxAndTupleIdxPair = getNextFactorizedTableIdxAndTupleIdxPair();
             sharedState->factorizedTables[factorizedTableIdxAndTupleIdxPair.first]->scan(
-                fieldsToReadInFactorizedTable, outDataPoses, *resultSet,
+                columnsToReadInFactorizedTable, outDataPoses, *resultSet,
                 factorizedTableIdxAndTupleIdxPair.second, 1 /* numTuples */);
             nextTupleIdxToReadInMemBlock++;
             metrics->numOutputTuple.increase(1);
@@ -54,7 +54,7 @@ bool OrderByScan::getNextTuples() {
                 // todo: add support to read values from factorizedTable to
                 // unflat valueVectors. issue: 443
                 sharedState->factorizedTables[factorizedTableIdxAndTupleIdxPair.first]
-                    ->readFlatTupleToUnflatVector(fieldsToReadInFactorizedTable, outDataPoses,
+                    ->readFlatTupleToUnflatVector(columnsToReadInFactorizedTable, outDataPoses,
                         *resultSet, factorizedTableIdxAndTupleIdxPair.second, i);
                 nextTupleIdxToReadInMemBlock++;
                 metrics->numOutputTuple.increase(1);

@@ -90,7 +90,7 @@ public:
 public:
     unique_ptr<ResultSet> resultSet;
     unique_ptr<MemoryManager> memoryManager;
-    vector<uint64_t> fieldIdsToScan = {0, 1};
+    vector<uint64_t> columnIdxesToScan = {0, 1};
 };
 
 TEST_F(FactorizedTableTest, AppendAndReadOneTupleAtATime) {
@@ -122,7 +122,7 @@ TEST_F(FactorizedTableTest, AppendAndReadOneTupleAtATime) {
     for (auto i = 0u; i < 100; i++) {
         // Since A2 is an unflat column, we can only read one tuple from factorizedTable at a time.
         auto numTuplesRead =
-            factorizedTable->scan(fieldIdsToScan, readDataPos, *readResultSet, i, 1);
+            factorizedTable->scan(columnIdxesToScan, readDataPos, *readResultSet, i, 1);
         ASSERT_EQ(numTuplesRead, 1);
         ASSERT_EQ(readResultSet->dataChunks[0]->state->selectedSize, 100);
         ASSERT_EQ(readResultSet->dataChunks[1]->state->selectedSize, 1);
@@ -160,7 +160,7 @@ TEST_F(FactorizedTableTest, AppendMultipleTuplesReadOneAtAtime) {
     for (auto i = 0u; i < 100; i++) {
         // Since A2 is an unflat column, we can only read one tuple from factorizedTable at a time.
         auto numTuplesRead =
-            factorizedTable->scan(fieldIdsToScan, readDataPos, *readResultSet, i, 1);
+            factorizedTable->scan(columnIdxesToScan, readDataPos, *readResultSet, i, 1);
         ASSERT_EQ(numTuplesRead, 1);
         ASSERT_EQ(readResultSet->dataChunks[0]->state->selectedSize, 100);
         ASSERT_EQ(readResultSet->dataChunks[1]->state->selectedSize, 1);
@@ -192,7 +192,8 @@ TEST_F(FactorizedTableTest, AppendMultipleTuplesReadMultipleTuplesWithUnflat) {
     // the scan function will just read one tuple from the factorizedTable instead of 100 tuples.
     // A1 will only contain one element, and B1 will contain 100 elements since B1 is an unflat
     // column.
-    auto numTuplesRead = factorizedTable->scan(fieldIdsToScan, readDataPos, *readResultSet, 0, 100);
+    auto numTuplesRead =
+        factorizedTable->scan(columnIdxesToScan, readDataPos, *readResultSet, 0, 100);
     ASSERT_EQ(numTuplesRead, 1);
     ASSERT_EQ(readResultSet->dataChunks[0]->state->selectedSize, 1);
     ASSERT_EQ(readResultSet->dataChunks[1]->state->selectedSize, 100);
@@ -230,7 +231,8 @@ TEST_F(FactorizedTableTest, AppendMultipleTuplesReadMultipleTuplesNoUnflat) {
 
     // we can read multiple tuples at a time if the read vectors are unflat, and there is no unflat
     // column to read
-    auto numTuplesRead = factorizedTable->scan(fieldIdsToScan, readDataPos, *readResultSet, 0, 100);
+    auto numTuplesRead =
+        factorizedTable->scan(columnIdxesToScan, readDataPos, *readResultSet, 0, 100);
     ASSERT_EQ(numTuplesRead, 100);
     ASSERT_EQ(readResultSet->dataChunks[0]->state->selectedSize, 100);
     ASSERT_EQ(readResultSet->dataChunks[1]->state->selectedSize, 100);
@@ -271,7 +273,7 @@ TEST_F(FactorizedTableTest, ReadUnflatColToFlatVectorFails) {
     // Users are not allowed to read an unflat column to a flat valueVector
     try {
         auto numTuplesRead =
-            factorizedTable->scan(fieldIdsToScan, readDataPos, *readResultSet, 0, 100);
+            factorizedTable->scan(columnIdxesToScan, readDataPos, *readResultSet, 0, 100);
         FAIL();
     } catch (FactorizedTableException& e) {
         ASSERT_STREQ(e.what(), "FactorizedTable exception: Reading an unflat column to a flat "

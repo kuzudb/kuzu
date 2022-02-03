@@ -140,13 +140,13 @@ private:
     // this number should be power of 2, otherwise we will have too many collision
     uint64_t maxNumHashSlots;
 
-    //! entry related fields
+    //! entry related columns
     uint64_t numEntries;
     EntryCursor currentEntryCursor;
     uint64_t numEntriesPerBlock;
     vector<unique_ptr<MemoryBlock>> entryBlocks;
 
-    //! hash related fields
+    //! hash related columns
     uint64_t bitmask;
     unique_ptr<MemoryBlock> hashSlotsBlock;
     HashSlot* hashSlots;

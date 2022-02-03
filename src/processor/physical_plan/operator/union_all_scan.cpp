@@ -28,13 +28,13 @@ unique_ptr<UnionAllScanMorsel> UnionAllScanSharedState::getMorsel() {
 shared_ptr<ResultSet> UnionAllScan::initResultSet() {
     resultSet = populateResultSet();
     auto tupleSchema = unionAllScanSharedState->getTupleSchema();
-    vector<uint64_t> fieldsToReadInFactorizedTable;
+    vector<uint64_t> columnsToReadInFactorizedTable;
     for (auto i = 0u; i < outDataPoses.size(); i++) {
         auto outDataPos = outDataPoses[i];
         auto outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
         outDataChunk->insert(outDataPos.valueVectorPos,
-            make_shared<ValueVector>(context.memoryManager, tupleSchema.fields[i].dataType));
-        fieldsToReadInFactorizedTable.emplace_back(i);
+            make_shared<ValueVector>(context.memoryManager, tupleSchema.columns[i].dataType));
+        columnsToReadInFactorizedTable.emplace_back(i);
     }
     unionAllScanSharedState->initForScanning();
     return resultSet;

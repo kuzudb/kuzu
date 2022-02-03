@@ -17,7 +17,7 @@ shared_ptr<ResultSet> ResultCollector::initResultSet() {
         auto vector =
             resultSet->dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
         vectorsToCollect.emplace_back(vector);
-        tupleSchema.appendField(
+        tupleSchema.appendColumn(
             {vector->dataType, !vectorToCollectInfo.second, dataPos.dataChunkPos});
     }
     tupleSchema.initialize();

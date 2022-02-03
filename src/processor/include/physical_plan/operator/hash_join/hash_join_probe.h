@@ -76,11 +76,11 @@ private:
     ProbeDataInfo probeDataInfo;
     uint64_t tuplePosToReadInProbedState;
     vector<DataPos> resultVectorsPos;
-    vector<uint64_t> fieldsToRead;
+    vector<uint64_t> columnsToRead;
     shared_ptr<ValueVector> probeSideKeyVector;
     unique_ptr<ProbeState> probeState;
 
-    void constructResultVectorsPosAndFieldsToRead();
+    void constructResultVectorsPosAndColumnsToRead();
     void initializeResultSet();
     void getNextBatchOfMatchedTuples();
     void populateResultSet();

@@ -265,7 +265,7 @@ void EmbeddedShell::printExecutionResult() {
         printf(">> Executing time: %.2fms\n", context.executingTime);
 
         if (context.queryResult->getNumTuples()) {
-            vector<uint32_t> colsWidth(context.queryResult->getTupleSchema().fields.size(), 2);
+            vector<uint32_t> colsWidth(context.queryResult->getTupleSchema().columns.size(), 2);
             uint32_t lineSeparatorLen = 1u + colsWidth.size();
             string lineSeparator;
 
