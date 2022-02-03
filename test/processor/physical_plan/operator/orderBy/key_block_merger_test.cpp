@@ -65,7 +65,7 @@ public:
             valueVector}; // all columns including orderBy and payload columns
 
         TupleSchema tupleSchema;
-        tupleSchema.appendField({dataType, false /* isUnflat */, 0 /* dataChunkPos */});
+        tupleSchema.appendColumn({dataType, false /* isUnflat */, 0 /* dataChunkPos */});
 
         if (hasPayLoadCol) {
             auto payloadValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
@@ -76,7 +76,7 @@ public:
             // To test whether the orderByCol -> factorizedTableColIdx works properly, we put the
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
-            tupleSchema.appendField({dataType, false, 0 /* dataChunkPos */});
+            tupleSchema.appendColumn({dataType, false, 0 /* dataChunkPos */});
         }
         tupleSchema.initialize();
 
@@ -208,16 +208,16 @@ public:
             int64Values2, doubleValues2, timestampValues2, dataChunk2);
 
         TupleSchema tupleSchema;
-        tupleSchema.appendField(
-            FieldInTupleSchema(INT64, false /* isUnflat */, 0 /* dataChunkPos */));
-        tupleSchema.appendField(
-            FieldInTupleSchema(DOUBLE, false /* isUnflat */, 0 /* dataChunkPos */));
-        tupleSchema.appendField(
-            FieldInTupleSchema(TIMESTAMP, false /* isUnflat */, 0 /* dataChunkPos */));
+        tupleSchema.appendColumn(
+            ColumnInTupleSchema(INT64, false /* isUnflat */, 0 /* dataChunkPos */));
+        tupleSchema.appendColumn(
+            ColumnInTupleSchema(DOUBLE, false /* isUnflat */, 0 /* dataChunkPos */));
+        tupleSchema.appendColumn(
+            ColumnInTupleSchema(TIMESTAMP, false /* isUnflat */, 0 /* dataChunkPos */));
 
         if (hasStrCol) {
-            tupleSchema.appendField(
-                FieldInTupleSchema(STRING, false /* isUnflat */, 0 /* dataChunkPos */));
+            tupleSchema.appendColumn(
+                ColumnInTupleSchema(STRING, false /* isUnflat */, 0 /* dataChunkPos */));
             auto stringValueVector1 = make_shared<ValueVector>(memoryManager.get(), STRING);
             auto stringValueVector2 = make_shared<ValueVector>(memoryManager.get(), STRING);
             dataChunk1->insert(3, stringValueVector1);
@@ -297,8 +297,8 @@ public:
             dataChunk->getValueVector(1), dataChunk->getValueVector(2),
             dataChunk->getValueVector(3)};
 
-        TupleSchema tupleSchema(vector<FieldInTupleSchema>(
-            4, FieldInTupleSchema(STRING, false /* isUnflat */, 0 /* dataChunkPos */)));
+        TupleSchema tupleSchema(vector<ColumnInTupleSchema>(
+            4, ColumnInTupleSchema(STRING, false /* isUnflat */, 0 /* dataChunkPos */)));
         auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
 
         vector<bool> isAscOrder(strValues.size(), true);

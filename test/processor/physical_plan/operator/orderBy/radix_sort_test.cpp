@@ -80,7 +80,7 @@ public:
         vector<bool> isAscOrder{isAsc};
 
         TupleSchema tupleSchema;
-        tupleSchema.appendField({dataType, false /* isUnflat */, 0 /* dataChunkPos */});
+        tupleSchema.appendColumn({dataType, false /* isUnflat */, 0 /* dataChunkPos */});
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
 
         if (hasPayLoadCol) {
@@ -93,7 +93,7 @@ public:
             // To test whether the orderByCol -> factorizedTableIdx works properly, we put the
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
-            tupleSchema.appendField({dataType, false /* isUnflat */, 0 /* dataChunkPos */});
+            tupleSchema.appendColumn({dataType, false /* isUnflat */, 0 /* dataChunkPos */});
             stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
                 1 /* colIdxInFactorizedTable */, 0 /* colOffsetInEncodedKeyBlock */, isAsc,
                 is_same<T, string>::value /* isStrCol */));
@@ -135,8 +135,8 @@ public:
                 stringAndUnstructuredKeyColInfo.size(),
                 stringAndUnstructuredKeyColInfo.size() * OrderByKeyEncoder::getEncodingSize(STRING),
                 isAscOrder[i], true /* isStrCol */));
-            tupleSchema.appendField(
-                FieldInTupleSchema(STRING, false /* isUnflat */, 0 /* dataChunkPos */));
+            tupleSchema.appendColumn(
+                ColumnInTupleSchema(STRING, false /* isUnflat */, 0 /* dataChunkPos */));
             mockDataChunk->insert(i, stringValueVector);
             for (auto j = 0u; j < stringValues[i].size(); j++) {
                 stringValueVector->addString(j, stringValues[i][j]);

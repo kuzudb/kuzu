@@ -140,7 +140,7 @@ public:
 
     void doneMorsel(unique_ptr<KeyBlockMergeMorsel> morsel);
 
-    // This function is used to initialize the fields of keyBlockMergeTaskDispatcher based on
+    // This function is used to initialize the columns of keyBlockMergeTaskDispatcher based on
     // sharedFactorizedTablesAndSortedKeyBlocks. If the class is already initialized, then it
     // just returns.
     void initIfNecessary(MemoryManager* memoryManager,

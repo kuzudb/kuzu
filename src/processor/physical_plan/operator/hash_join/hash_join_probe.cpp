@@ -8,17 +8,17 @@ namespace processor {
 shared_ptr<ResultSet> HashJoinProbe::initResultSet() {
     resultSet = children[0]->initResultSet();
     probeState = make_unique<ProbeState>(DEFAULT_VECTOR_CAPACITY);
-    constructResultVectorsPosAndFieldsToRead();
+    constructResultVectorsPosAndColumnsToRead();
     initializeResultSet();
     return resultSet;
 }
 
-void HashJoinProbe::constructResultVectorsPosAndFieldsToRead() {
-    // Skip the first key field.
-    auto fieldId = 1;
+void HashJoinProbe::constructResultVectorsPosAndColumnsToRead() {
+    // Skip the first key column.
+    auto columnIdx = 1;
     for (auto& dataPos : probeDataInfo.nonKeyOutputDataPos) {
         resultVectorsPos.push_back(dataPos);
-        fieldsToRead.push_back(fieldId++);
+        columnsToRead.push_back(columnIdx++);
     }
 }
 
@@ -26,11 +26,11 @@ void HashJoinProbe::initializeResultSet() {
     probeSideKeyVector = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()]
                              ->valueVectors[probeDataInfo.getKeyIDVectorPos()];
     auto factorizedTableSchema = sharedState->factorizedTable->getTupleSchema();
-    // Skip the first key field.
-    auto fieldIdx = 1;
+    // Skip the first key column.
+    auto columnIdx = 1;
     for (auto i = 0u; i < probeDataInfo.nonKeyOutputDataPos.size(); ++i) {
         auto probeSideVector = make_shared<ValueVector>(
-            context.memoryManager, factorizedTableSchema.fields[fieldIdx + i].dataType);
+            context.memoryManager, factorizedTableSchema.columns[columnIdx + i].dataType);
         auto [dataChunkPos, valueVectorPos] = probeDataInfo.nonKeyOutputDataPos[i];
         resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probeSideVector);
     }
@@ -81,9 +81,9 @@ void HashJoinProbe::populateResultSet() {
     // only read tuple one by one (or updating multiplicity) because there is no payload unFlat
     // vector to represent multiple tuples.
     auto numTuplesToRead =
-        fieldsToRead.empty() ? 1 : probeState->numMatchedTuples - tuplePosToReadInProbedState;
+        columnsToRead.empty() ? 1 : probeState->numMatchedTuples - tuplePosToReadInProbedState;
     tuplePosToReadInProbedState +=
-        sharedState->factorizedTable->lookup(fieldsToRead, resultVectorsPos, *resultSet,
+        sharedState->factorizedTable->lookup(columnsToRead, resultVectorsPos, *resultSet,
             probeState->matchedTuples.get(), tuplePosToReadInProbedState, numTuplesToRead);
 }
 

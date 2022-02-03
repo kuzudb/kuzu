@@ -37,16 +37,16 @@ private:
     unique_ptr<MemoryBlock> block;
 };
 
-struct FieldInTupleSchema {
-    FieldInTupleSchema(DataType dataType, bool isUnflat, uint32_t dataChunksPos)
+struct ColumnInTupleSchema {
+    ColumnInTupleSchema(DataType dataType, bool isUnflat, uint32_t dataChunksPos)
         : dataType{dataType}, isUnflat{isUnflat}, dataChunkPos{dataChunksPos} {}
 
-    inline bool operator==(const FieldInTupleSchema& other) const {
+    inline bool operator==(const ColumnInTupleSchema& other) const {
         return dataType == other.dataType && isUnflat == other.isUnflat;
     }
-    inline bool operator!=(const FieldInTupleSchema& other) const { return !(*this == other); }
+    inline bool operator!=(const ColumnInTupleSchema& other) const { return !(*this == other); }
 
-    inline uint64_t getFieldSize() const {
+    inline uint64_t getColumnSize() const {
         return isUnflat ? sizeof(overflow_value_t) : TypeUtils::getDataTypeSize(dataType);
     }
 
@@ -59,20 +59,20 @@ struct FieldInTupleSchema {
 struct TupleSchema {
     TupleSchema() : numBytesPerTuple{0} {}
 
-    explicit TupleSchema(vector<FieldInTupleSchema> fields)
-        : fields{move(fields)}, numBytesPerTuple{0} {
-        for (auto& field : this->fields) {
-            numBytesPerTuple += field.getFieldSize();
+    explicit TupleSchema(vector<ColumnInTupleSchema> columns)
+        : columns{move(columns)}, numBytesPerTuple{0} {
+        for (auto& column : this->columns) {
+            numBytesPerTuple += column.getColumnSize();
         }
         initialize();
     }
 
     TupleSchema(const TupleSchema& tupleSchema) = default;
 
-    inline void appendField(const FieldInTupleSchema& field) {
+    inline void appendColumn(const ColumnInTupleSchema& column) {
         assert(!isInitialized);
-        fields.push_back(field);
-        numBytesPerTuple += field.getFieldSize();
+        columns.push_back(column);
+        numBytesPerTuple += column.getColumnSize();
     }
 
     inline uint64_t getNullMapOffset() const { return numBytesPerTuple - getNullMapAlignedSize(); }
@@ -88,7 +88,7 @@ struct TupleSchema {
         // we utilize the bitmap to represent the nullMask for each column.
         // 1 byte nullMap can represent the nullMasks for 8 columns
         nullMapSizeInBytes =
-            (this->fields.size() >> 3) + ((this->fields.size() & 7) != 0); // &7 is the same as %8
+            (this->columns.size() >> 3) + ((this->columns.size() & 7) != 0); // &7 is the same as %8
         numBytesPerTuple += getNullMapAlignedSize();
         isInitialized = true;
     }
@@ -96,14 +96,14 @@ struct TupleSchema {
     bool operator==(const TupleSchema& other) const;
     inline bool operator!=(const TupleSchema& other) const { return !(*this == other); }
     bool isInitialized = false;
-    vector<FieldInTupleSchema> fields;
+    vector<ColumnInTupleSchema> columns;
     uint64_t numBytesPerTuple;
     uint64_t nullMapSizeInBytes;
 };
 
 class FlatTupleIterator;
 
-// To represent the null values in FactorizedTable, we use a bitmap to represent the null fields in
+// To represent the null values in FactorizedTable, we use a bitmap to represent the null columns in
 // each tuple
 // 1. For unflat columns, we use a large bitmap to represent the nulls in the whole unflat
 // columns and stores it at the end of the unflat column memory.
@@ -121,23 +121,23 @@ public:
     FactorizedTable(MemoryManager& memoryManager, const TupleSchema& tupleSchema);
     void append(const vector<shared_ptr<ValueVector>>& vectors, uint64_t numTuplesToAppend);
     // Actual number of tuples scanned is returned. If it's 0, the scan already hits the end.
-    uint64_t scan(const vector<uint64_t>& fieldsToScan, const vector<DataPos>& resultDataPos,
+    uint64_t scan(const vector<uint64_t>& columnsToScan, const vector<DataPos>& resultDataPos,
         ResultSet& resultSet, uint64_t startTupleIdx, uint64_t numTuplesToScan) const;
     uint64_t scan(const vector<DataPos>& resultDataPos, ResultSet& resultSet,
         uint64_t startTupleIdx, uint64_t numTuplesToScan) const;
-    uint64_t lookup(const vector<uint64_t>& fieldsToRead, const vector<DataPos>& resultDataPos,
+    uint64_t lookup(const vector<uint64_t>& columnsToRead, const vector<DataPos>& resultDataPos,
         ResultSet& resultSet, uint8_t** tuplesToRead, uint64_t startPos,
         uint64_t numTuplesToRead) const;
     // This is a specialized scan function to read one flat tuple in factorizedTable to an
     // unflat valueVector.
-    void readFlatTupleToUnflatVector(const vector<uint64_t>& fieldsToScan,
+    void readFlatTupleToUnflatVector(const vector<uint64_t>& columnsToScan,
         const vector<DataPos>& resultDataPos, ResultSet& resultSet, uint64_t tupleIdx,
         uint64_t valuePosInVec) const;
     void merge(FactorizedTable& other);
-    uint64_t getFieldOffsetInTuple(uint64_t fieldId) const;
-    bool hasUnflatColToRead(const vector<uint64_t>& fieldsToRead) const;
+    uint64_t getColumnOffsetInTuple(uint64_t columnIdx) const;
+    bool hasUnflatColToRead(const vector<uint64_t>& columnsToRead) const;
     inline bool hasUnflatColToRead() const {
-        return hasUnflatColToRead(consecutiveIndicesOfAllFields);
+        return hasUnflatColToRead(consecutiveIndicesOfAllColumns);
     }
 
     inline uint64_t getNumTuples() const { return numTuples; }
@@ -153,13 +153,13 @@ public:
         unordered_map<uint32_t, bool> calculatedDataChunkPoses;
         uint64_t numFlatTuples = 1;
         auto tupleBuffer = getTuple(tupleIdx);
-        for (auto field : tupleSchema.fields) {
-            if (!calculatedDataChunkPoses.contains(field.dataChunkPos)) {
-                calculatedDataChunkPoses[field.dataChunkPos] = true;
+        for (auto column : tupleSchema.columns) {
+            if (!calculatedDataChunkPoses.contains(column.dataChunkPos)) {
+                calculatedDataChunkPoses[column.dataChunkPos] = true;
                 numFlatTuples *=
-                    (field.isUnflat ? ((overflow_value_t*)tupleBuffer)->numElements : 1);
+                    (column.isUnflat ? ((overflow_value_t*)tupleBuffer)->numElements : 1);
             }
-            tupleBuffer += field.getFieldSize();
+            tupleBuffer += column.getColumnSize();
         }
         return numFlatTuples;
     }
@@ -183,33 +183,33 @@ public:
     // exception if either the [tupleIdx, colIdx] is invalid or the cell is unflat.
     inline gf_string_t getString(uint64_t tupleIdx, uint64_t colIdx) const {
         assertTupleIdxColIdxAndValueIsFlat(tupleIdx, colIdx);
-        return *((gf_string_t*)(getTuple(tupleIdx) + getFieldOffsetInTuple(colIdx)));
+        return *((gf_string_t*)(getTuple(tupleIdx) + getColumnOffsetInTuple(colIdx)));
     }
 
     // This function returns a unstructured value stored at the [tupleIdx, colIdx]. It throws an
     // exception if either the [tupleIdx, colIdx] is invalid or the cell is unflat.
     inline Value getUnstrValue(uint64_t tupleIdx, uint64_t colIdx) const {
         assertTupleIdxColIdxAndValueIsFlat(tupleIdx, colIdx);
-        return *((Value*)(getTuple(tupleIdx) + getFieldOffsetInTuple(colIdx)));
+        return *((Value*)(getTuple(tupleIdx) + getColumnOffsetInTuple(colIdx)));
     }
 
 private:
     inline void assertTupleIdxColIdxAndValueIsFlat(uint64_t tupleIdx, uint64_t colIdx) const {
         assert(tupleIdx < numTuples);
-        assert(colIdx < tupleSchema.fields.size());
-        assert(!tupleSchema.fields[colIdx].isUnflat);
+        assert(colIdx < tupleSchema.columns.size());
+        assert(!tupleSchema.columns[colIdx].isUnflat);
     }
 
     vector<BlockAppendingInfo> allocateDataBlocks(vector<DataBlock>& dataBlocks,
         uint64_t numBytesPerEntry, uint64_t numEntriesToAppend, bool allocateOnlyFromLastBlock);
 
     void copyVectorToBlock(ValueVector& vector, const BlockAppendingInfo& blockAppendInfo,
-        const FieldInTupleSchema& field, uint64_t posInVector, uint64_t offsetInTuple,
+        const ColumnInTupleSchema& column, uint64_t posInVector, uint64_t offsetInTuple,
         uint64_t colIdx);
     overflow_value_t appendUnFlatVectorToOverflowBlocks(ValueVector& vector, uint64_t colIdx);
 
     void appendVector(ValueVector& valueVector, const vector<BlockAppendingInfo>& blockAppendInfos,
-        const FieldInTupleSchema& field, uint64_t numTuples, uint64_t offsetInTuple,
+        const ColumnInTupleSchema& column, uint64_t numTuples, uint64_t offsetInTuple,
         uint64_t colIdx);
     void readUnflatVector(uint8_t** tuples, uint64_t offsetInTuple, uint64_t startTuplePos,
         ValueVector& vector) const;
@@ -220,7 +220,7 @@ private:
         uint8_t* buffer, uint64_t offsetInBuffer, uint64_t offsetStride, uint64_t numValues,
         uint64_t colIdx, bool isUnflat);
 
-    vector<uint64_t> computeFieldOffsets(const vector<uint64_t>& fieldsToRead) const;
+    vector<uint64_t> computeColumnOffsets(const vector<uint64_t>& columnsToRead) const;
 
     MemoryManager& memoryManager;
     TupleSchema tupleSchema;
@@ -230,7 +230,7 @@ private:
     vector<DataBlock> tupleDataBlocks;
     vector<DataBlock> vectorOverflowBlocks;
     unique_ptr<StringBuffer> stringBuffer;
-    vector<uint64_t> consecutiveIndicesOfAllFields;
+    vector<uint64_t> consecutiveIndicesOfAllColumns;
 };
 
 class FlatTupleIterator {
@@ -248,10 +248,10 @@ private:
         DataType dataType, FlatTuple& flatTuple, uint64_t flatTupleValIdx, uint8_t* valueBuffer);
 
     void readUnflatColToFlatTuple(FlatTuple& flatTuple, uint64_t flatTupleValIdx,
-        const FieldInTupleSchema& field, uint8_t* valueBuffer);
+        const ColumnInTupleSchema& column, uint8_t* valueBuffer);
 
     void readFlatColToFlatTuple(FlatTuple& flatTuple, uint64_t flatTupleValIdx,
-        const FieldInTupleSchema& field, uint8_t* valueBuffer);
+        const ColumnInTupleSchema& column, uint8_t* valueBuffer);
 
     // The dataChunkPos may be not consecutive, which means some entries in the
     // flatTuplePositionsInDataChunk is invalid. We put pair(UINT64_MAX, UINT64_MAX) in the invalid

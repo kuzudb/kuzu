@@ -8,11 +8,11 @@ namespace graphflow {
 namespace processor {
 
 bool TupleSchema::operator==(const TupleSchema& other) const {
-    if (fields.size() != other.fields.size()) {
+    if (columns.size() != other.columns.size()) {
         return false;
     }
-    for (auto i = 0u; i < fields.size(); i++) {
-        if (fields[i] != other.fields[i]) {
+    for (auto i = 0u; i < columns.size(); i++) {
+        if (columns[i] != other.columns[i]) {
             return false;
         }
     }
@@ -27,8 +27,8 @@ FactorizedTable::FactorizedTable(MemoryManager& memoryManager, const TupleSchema
 
     stringBuffer = make_unique<StringBuffer>(memoryManager);
     numTuplesPerBlock = DEFAULT_MEMORY_BLOCK_SIZE / tupleSchema.numBytesPerTuple;
-    consecutiveIndicesOfAllFields.resize(tupleSchema.fields.size());
-    iota(consecutiveIndicesOfAllFields.begin(), consecutiveIndicesOfAllFields.end(), 0);
+    consecutiveIndicesOfAllColumns.resize(tupleSchema.columns.size());
+    iota(consecutiveIndicesOfAllColumns.begin(), consecutiveIndicesOfAllColumns.end(), 0);
 }
 
 vector<BlockAppendingInfo> FactorizedTable::allocateDataBlocks(vector<DataBlock>& dataBlocks,
@@ -140,9 +140,9 @@ overflow_value_t FactorizedTable::appendUnFlatVectorToOverflowBlocks(
 }
 
 void FactorizedTable::copyVectorToBlock(ValueVector& vector,
-    const BlockAppendingInfo& blockAppendInfo, const FieldInTupleSchema& field,
+    const BlockAppendingInfo& blockAppendInfo, const ColumnInTupleSchema& column,
     uint64_t posInVector, uint64_t offsetInTuple, uint64_t colIdx) {
-    if (field.isUnflat) {
+    if (column.isUnflat) {
         auto overflowValue = appendUnFlatVectorToOverflowBlocks(vector, colIdx);
         for (auto i = 0u; i < blockAppendInfo.numEntriesToAppend; i++) {
             memcpy(blockAppendInfo.data + offsetInTuple + (i * tupleSchema.numBytesPerTuple),
@@ -157,11 +157,11 @@ void FactorizedTable::copyVectorToBlock(ValueVector& vector,
 }
 
 void FactorizedTable::appendVector(ValueVector& vector,
-    const std::vector<BlockAppendingInfo>& blockAppendInfos, const FieldInTupleSchema& field,
+    const std::vector<BlockAppendingInfo>& blockAppendInfos, const ColumnInTupleSchema& column,
     uint64_t numTuples, uint64_t offsetInTuple, uint64_t colIdx) {
     auto posInVector = 0;
     for (auto& blockAppendInfo : blockAppendInfos) {
-        copyVectorToBlock(vector, blockAppendInfo, field, posInVector, offsetInTuple, colIdx);
+        copyVectorToBlock(vector, blockAppendInfo, column, posInVector, offsetInTuple, colIdx);
         posInVector += blockAppendInfo.numEntriesToAppend;
     }
     assert(posInVector == numTuples);
@@ -174,8 +174,8 @@ void FactorizedTable::append(
     uint64_t offsetInTuple = 0;
     for (auto i = 0u; i < vectors.size(); i++) {
         appendVector(
-            *vectors[i], appendInfos, tupleSchema.fields[i], numTuplesToAppend, offsetInTuple, i);
-        offsetInTuple += tupleSchema.fields[i].getFieldSize();
+            *vectors[i], appendInfos, tupleSchema.columns[i], numTuplesToAppend, offsetInTuple, i);
+        offsetInTuple += tupleSchema.columns[i].getColumnSize();
     }
     numTuples += numTuplesToAppend;
     for (auto i = 1; i <= numTuplesToAppend; i++) {
@@ -226,43 +226,44 @@ void FactorizedTable::readFlatVector(uint8_t** tuples, uint64_t offsetInTuple, V
     vector.state->selectedSize = vector.state->isFlat() ? 1 : valuePosInVec + numTuplesToRead;
 }
 
-vector<uint64_t> FactorizedTable::computeFieldOffsets(const vector<uint64_t>& fieldsToRead) const {
-    vector<uint64_t> fieldOffsets;
-    for (auto& fieldId : fieldsToRead) {
-        fieldOffsets.push_back(getFieldOffsetInTuple(fieldId));
+vector<uint64_t> FactorizedTable::computeColumnOffsets(
+    const vector<uint64_t>& columnsToRead) const {
+    vector<uint64_t> columnOffsets;
+    for (auto& columnIdx : columnsToRead) {
+        columnOffsets.push_back(getColumnOffsetInTuple(columnIdx));
     }
-    return fieldOffsets;
+    return columnOffsets;
 }
 
-bool FactorizedTable::hasUnflatColToRead(const vector<uint64_t>& fieldsToRead) const {
-    for (auto& fieldId : fieldsToRead) {
-        if (tupleSchema.fields[fieldId].isUnflat) {
+bool FactorizedTable::hasUnflatColToRead(const vector<uint64_t>& columnsToRead) const {
+    for (auto& columnIdx : columnsToRead) {
+        if (tupleSchema.columns[columnIdx].isUnflat) {
             return true;
         }
     }
     return false;
 }
 
-void FactorizedTable::readFlatTupleToUnflatVector(const vector<uint64_t>& fieldsToScan,
+void FactorizedTable::readFlatTupleToUnflatVector(const vector<uint64_t>& columnsToScan,
     const vector<DataPos>& resultDataPos, ResultSet& resultSet, uint64_t tupleIdx,
     uint64_t valuePosInVec) const {
-    assert(resultDataPos.size() == fieldsToScan.size());
+    assert(resultDataPos.size() == columnsToScan.size());
     assert(tupleIdx < numTuples);
     uint8_t* tuplesToRead[1] = {getTuple(tupleIdx)};
-    auto fieldOffsets = computeFieldOffsets(fieldsToScan);
-    for (auto i = 0u; i < fieldsToScan.size(); i++) {
+    auto columnOffsets = computeColumnOffsets(columnsToScan);
+    for (auto i = 0u; i < columnsToScan.size(); i++) {
         auto dataPos = resultDataPos[i];
         auto resultVector =
             resultSet.dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
-        readFlatVector(tuplesToRead, fieldOffsets[i], *resultVector, 1 /* numTuplesToRead */, i,
+        readFlatVector(tuplesToRead, columnOffsets[i], *resultVector, 1 /* numTuplesToRead */, i,
             0 /* startPos */, valuePosInVec);
     }
 }
 
-uint64_t FactorizedTable::scan(const vector<uint64_t>& fieldsToScan,
+uint64_t FactorizedTable::scan(const vector<uint64_t>& columnsToScan,
     const vector<DataPos>& resultDataPos, ResultSet& resultSet, uint64_t startTupleIdx,
     uint64_t numTuplesToScan) const {
-    assert(resultDataPos.size() == fieldsToScan.size());
+    assert(resultDataPos.size() == columnsToScan.size());
     if (startTupleIdx >= numTuples) {
         return 0;
     }
@@ -271,34 +272,34 @@ uint64_t FactorizedTable::scan(const vector<uint64_t>& fieldsToScan,
     for (auto i = 0u; i < numTuplesToScan; i++) {
         tuplesToScan[i] = getTuple(startTupleIdx + i);
     }
-    return lookup(fieldsToScan, resultDataPos, resultSet, tuplesToScan.get(), 0 /* startPos */,
+    return lookup(columnsToScan, resultDataPos, resultSet, tuplesToScan.get(), 0 /* startPos */,
         numTuplesToScan);
 }
 
-// This scan function scans all fields in the factorizedTable and outputs to resultSet.
+// This scan function scans all columns in the factorizedTable and outputs to resultSet.
 uint64_t FactorizedTable::scan(const vector<DataPos>& resultDataPos, ResultSet& resultSet,
     uint64_t startTupleIdx, uint64_t numTuplesToScan) const {
-    scan(consecutiveIndicesOfAllFields, resultDataPos, resultSet, startTupleIdx, numTuplesToScan);
+    scan(consecutiveIndicesOfAllColumns, resultDataPos, resultSet, startTupleIdx, numTuplesToScan);
 }
 
-uint64_t FactorizedTable::lookup(const vector<uint64_t>& fieldsToRead,
+uint64_t FactorizedTable::lookup(const vector<uint64_t>& columnsToRead,
     const vector<DataPos>& resultDataPos, ResultSet& resultSet, uint8_t** tuplesToRead,
     uint64_t startPos, uint64_t numTuplesToRead) const {
-    assert(resultDataPos.size() == fieldsToRead.size());
-    auto hasUnflatColumn = hasUnflatColToRead(fieldsToRead);
+    assert(resultDataPos.size() == columnsToRead.size());
+    auto hasUnflatColumn = hasUnflatColToRead(columnsToRead);
     numTuplesToRead = min(hasUnflatColumn ? 1 : DEFAULT_VECTOR_CAPACITY, numTuplesToRead);
-    auto fieldOffsets = computeFieldOffsets(fieldsToRead);
-    for (auto i = 0u; i < fieldsToRead.size(); i++) {
+    auto columnOffsets = computeColumnOffsets(columnsToRead);
+    for (auto i = 0u; i < columnsToRead.size(); i++) {
         auto dataPos = resultDataPos[i];
         auto resultVector =
             resultSet.dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
-        auto fieldToRead = tupleSchema.fields[fieldsToRead[i]];
-        if (fieldToRead.isUnflat) {
+        auto columnToRead = tupleSchema.columns[columnsToRead[i]];
+        if (columnToRead.isUnflat) {
             // For unflat vectors, we can only read one tuple at a time and the valueVector must be
             // unflat.
-            readUnflatVector(tuplesToRead, fieldOffsets[i], startPos, *resultVector);
+            readUnflatVector(tuplesToRead, columnOffsets[i], startPos, *resultVector);
         } else {
-            readFlatVector(tuplesToRead, fieldOffsets[i], *resultVector, numTuplesToRead, i,
+            readFlatVector(tuplesToRead, columnOffsets[i], *resultVector, numTuplesToRead, i,
                 startPos,
                 resultVector->state->isFlat() ? resultVector->state->getPositionOfCurrIdx() :
                                                 0 /* valuePosInVec */);
@@ -316,10 +317,10 @@ void FactorizedTable::merge(FactorizedTable& other) {
     this->totalNumFlatTuples += other.totalNumFlatTuples;
 }
 
-uint64_t FactorizedTable::getFieldOffsetInTuple(uint64_t fieldId) const {
+uint64_t FactorizedTable::getColumnOffsetInTuple(uint64_t columnIdx) const {
     uint64_t offset = 0;
-    for (auto i = 0u; i < fieldId; i++) {
-        offset += tupleSchema.fields[i].getFieldSize();
+    for (auto i = 0u; i < columnIdx; i++) {
+        offset += tupleSchema.columns[i].getColumnSize();
     }
     return offset;
 }
@@ -337,8 +338,8 @@ FlatTupleIterator::FlatTupleIterator(FactorizedTable& factorizedTable)
         numFlatTuples = factorizedTable.getNumFlatTuples(0);
         updateNumElementsInDataChunk();
         updateInvalidEntriesInFlatTuplePositionsInDataChunk();
-        for (auto& field : factorizedTable.getTupleSchema().fields) {
-            dataTypes.emplace_back(field.dataType);
+        for (auto& column : factorizedTable.getTupleSchema().columns) {
+            dataTypes.emplace_back(column.dataType);
         }
     }
 }
@@ -346,8 +347,8 @@ FlatTupleIterator::FlatTupleIterator(FactorizedTable& factorizedTable)
 void FlatTupleIterator::updateInvalidEntriesInFlatTuplePositionsInDataChunk() {
     for (auto i = 0u; i < flatTuplePositionsInDataChunk.size(); i++) {
         bool isValidEntry = false;
-        for (auto& field : factorizedTable.getTupleSchema().fields) {
-            if (field.dataChunkPos == i) {
+        for (auto& column : factorizedTable.getTupleSchema().columns) {
+            if (column.dataChunkPos == i) {
                 isValidEntry = true;
                 break;
             }
@@ -413,44 +414,44 @@ void FlatTupleIterator::readValueBufferToFlatTuple(
 }
 
 void FlatTupleIterator::readUnflatColToFlatTuple(FlatTuple& flatTuple, uint64_t flatTupleValIdx,
-    const FieldInTupleSchema& field, uint8_t* valueBuffer) {
+    const ColumnInTupleSchema& column, uint8_t* valueBuffer) {
     auto overflowValue = (overflow_value_t*)valueBuffer;
     valueBuffer =
-        overflowValue->value + TypeUtils::getDataTypeSize(field.dataType) *
-                                   flatTuplePositionsInDataChunk[field.dataChunkPos].first;
+        overflowValue->value + TypeUtils::getDataTypeSize(column.dataType) *
+                                   flatTuplePositionsInDataChunk[column.dataChunkPos].first;
     auto nullMapBuffer = overflowValue->value +
-                         overflowValue->numElements * TypeUtils::getDataTypeSize(field.dataType);
+                         overflowValue->numElements * TypeUtils::getDataTypeSize(column.dataType);
     flatTuple.nullMask[flatTupleValIdx] = FactorizedTable::isNull(
-        nullMapBuffer, flatTuplePositionsInDataChunk[field.dataChunkPos].first);
+        nullMapBuffer, flatTuplePositionsInDataChunk[column.dataChunkPos].first);
     if (!flatTuple.nullMask[flatTupleValIdx]) {
-        readValueBufferToFlatTuple(field.dataType, flatTuple, flatTupleValIdx, valueBuffer);
+        readValueBufferToFlatTuple(column.dataType, flatTuple, flatTupleValIdx, valueBuffer);
     }
 }
 
 void FlatTupleIterator::readFlatColToFlatTuple(FlatTuple& flatTuple, uint64_t flatTupleValIdx,
-    const FieldInTupleSchema& field, uint8_t* valueBuffer) {
+    const ColumnInTupleSchema& column, uint8_t* valueBuffer) {
     auto nullMapBuffer = currentTupleBuffer + factorizedTable.getTupleSchema().getNullMapOffset();
     flatTuple.nullMask[flatTupleValIdx] = FactorizedTable::isNull(nullMapBuffer, flatTupleValIdx);
     if (!flatTuple.nullMask[flatTupleValIdx]) {
-        readValueBufferToFlatTuple(field.dataType, flatTuple, flatTupleValIdx, valueBuffer);
+        readValueBufferToFlatTuple(column.dataType, flatTuple, flatTupleValIdx, valueBuffer);
     }
 }
 
 void FlatTupleIterator::updateNumElementsInDataChunk() {
     auto colOffsetInTupleBuffer = 0ul;
-    for (auto field : factorizedTable.getTupleSchema().fields) {
+    for (auto column : factorizedTable.getTupleSchema().columns) {
         // If this is an unflat column, the number of elements is stored in the
         // overflow_value_t struct. Otherwise the number of elements is 1.
         auto numElementsInDataChunk =
-            field.isUnflat ?
+            column.isUnflat ?
                 ((overflow_value_t*)(currentTupleBuffer + colOffsetInTupleBuffer))->numElements :
                 1;
-        if (field.dataChunkPos >= flatTuplePositionsInDataChunk.size()) {
-            flatTuplePositionsInDataChunk.resize(field.dataChunkPos + 1);
+        if (column.dataChunkPos >= flatTuplePositionsInDataChunk.size()) {
+            flatTuplePositionsInDataChunk.resize(column.dataChunkPos + 1);
         }
-        flatTuplePositionsInDataChunk[field.dataChunkPos] =
+        flatTuplePositionsInDataChunk[column.dataChunkPos] =
             make_pair(0 /* nextIdxToReadInDataChunk */, numElementsInDataChunk);
-        colOffsetInTupleBuffer += field.getFieldSize();
+        colOffsetInTupleBuffer += column.getColumnSize();
     }
 }
 
@@ -465,15 +466,15 @@ FlatTuple FlatTupleIterator::getNextFlatTuple() {
     }
     auto colOffsetInTupleBuffer = 0ul;
     FlatTuple flatTuple(dataTypes);
-    for (auto i = 0ul; i < factorizedTable.getTupleSchema().fields.size(); i++) {
-        auto field = factorizedTable.getTupleSchema().fields[i];
+    for (auto i = 0ul; i < factorizedTable.getTupleSchema().columns.size(); i++) {
+        auto column = factorizedTable.getTupleSchema().columns[i];
         auto valueBuffer = currentTupleBuffer + colOffsetInTupleBuffer;
-        if (field.isUnflat) {
-            readUnflatColToFlatTuple(flatTuple, i, field, valueBuffer);
+        if (column.isUnflat) {
+            readUnflatColToFlatTuple(flatTuple, i, column, valueBuffer);
         } else {
-            readFlatColToFlatTuple(flatTuple, i, field, valueBuffer);
+            readFlatColToFlatTuple(flatTuple, i, column, valueBuffer);
         }
-        colOffsetInTupleBuffer += field.getFieldSize();
+        colOffsetInTupleBuffer += column.getColumnSize();
     }
     updateFlatTuplePositionsInDataChunk();
     nextFlatTupleIdx++;

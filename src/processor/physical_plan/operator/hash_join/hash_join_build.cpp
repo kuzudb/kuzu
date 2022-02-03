@@ -16,7 +16,7 @@ shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
     TupleSchema tupleSchema;
     keyDataChunk = resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
     auto keyVector = keyDataChunk->valueVectors[buildDataInfo.getKeyIDVectorPos()];
-    tupleSchema.appendField(
+    tupleSchema.appendColumn(
         {keyVector->dataType, false /* isUnflat */, buildDataInfo.getKeyIDDataChunkPos()});
     vectorsToAppend.push_back(keyVector);
     for (auto i = 0u; i < buildDataInfo.nonKeyDataPoses.size(); ++i) {
@@ -25,11 +25,11 @@ shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
         auto vectorPos = buildDataInfo.nonKeyDataPoses[i].valueVectorPos;
         auto vector = dataChunk->valueVectors[vectorPos];
         auto isVectorFlat = buildDataInfo.isNonKeyDataFlat[i];
-        tupleSchema.appendField({vector->dataType, !isVectorFlat, dataChunkPos});
+        tupleSchema.appendColumn({vector->dataType, !isVectorFlat, dataChunkPos});
         vectorsToAppend.push_back(vector);
     }
-    // The prev pointer field.
-    tupleSchema.appendField({INT64, false /* isUnflat */,
+    // The prev pointer column.
+    tupleSchema.appendColumn({INT64, false /* isUnflat */,
         UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */});
     tupleSchema.initialize();
     factorizedTable = make_unique<FactorizedTable>(*context.memoryManager, tupleSchema);
