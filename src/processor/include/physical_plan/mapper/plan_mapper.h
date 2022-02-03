@@ -64,6 +64,8 @@ private:
         MapperContext& mapperContext, ExecutionContext& executionContext);
     unique_ptr<PhysicalOperator> mapLogicalAggregateToPhysical(LogicalOperator* logicalOperator,
         MapperContext& mapperContext, ExecutionContext& executionContext);
+    unique_ptr<PhysicalOperator> mapLogicalDistinctToPhysical(LogicalOperator* logicalOperator,
+        MapperContext& mapperContext, ExecutionContext& executionContext);
     unique_ptr<PhysicalOperator> mapLogicalExistsToPhysical(LogicalOperator* logicalOperator,
         MapperContext& mapperContext, ExecutionContext& executionContext);
     unique_ptr<PhysicalOperator> mapLogicalLeftNestedLoopJoinToPhysical(

@@ -8,8 +8,10 @@ namespace parser {
 class ProjectionBody {
 
 public:
-    ProjectionBody(bool containsStar, vector<unique_ptr<ParsedExpression>> projectionExpressions)
-        : containsStar{containsStar}, projectionExpressions{move(projectionExpressions)} {}
+    ProjectionBody(bool isDistinct, bool containsStar,
+        vector<unique_ptr<ParsedExpression>> projectionExpressions)
+        : isDistinct{isDistinct}, containsStar{containsStar}, projectionExpressions{
+                                                                  move(projectionExpressions)} {}
 
     inline void setOrderByExpressions(
         vector<unique_ptr<ParsedExpression>> expressions, vector<bool> sortOrders) {
@@ -24,6 +26,7 @@ public:
     }
 
     inline bool isProjectStar() const { return containsStar; }
+    inline bool isProjectDistinct() const { return isDistinct; }
     inline const vector<unique_ptr<ParsedExpression>>& getProjectionExpressions() const {
         return projectionExpressions;
     }
@@ -39,6 +42,7 @@ public:
     inline ParsedExpression* getLimitExpression() const { return limitExpression.get(); }
 
 private:
+    bool isDistinct;
     bool containsStar;
     vector<unique_ptr<ParsedExpression>> projectionExpressions;
     vector<unique_ptr<ParsedExpression>> orderByExpressions;

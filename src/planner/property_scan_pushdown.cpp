@@ -1,6 +1,7 @@
 #include "src/planner/include/property_scan_pushdown.h"
 
 #include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
+#include "src/planner/include/logical_plan/operator/distinct/logical_distinct.h"
 #include "src/planner/include/logical_plan/operator/exists/logical_exist.h"
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
@@ -27,6 +28,8 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewrite(
         return rewriteScanRelProperty(op, schema);
     case LOGICAL_AGGREGATE:
         return rewriteAggregate(op, schema);
+    case LOGICAL_DISTINCT:
+        return rewriteDistinct(op, schema);
     case LOGICAL_ORDER_BY:
         return rewriteOrderBy(op, schema);
     case LOGICAL_HASH_JOIN:
@@ -75,6 +78,13 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteAggregate(
     const shared_ptr<LogicalOperator>& op, Schema& schema) {
     auto& logicalAggregate = (LogicalAggregate&)*op;
     op->setChild(0, rewrite(op->getChild(0), *logicalAggregate.getSchemaBeforeAggregate()));
+    return op;
+}
+
+shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteDistinct(
+    const shared_ptr<LogicalOperator>& op, Schema& schema) {
+    auto& logicalDistinct = (LogicalDistinct&)*op;
+    op->setChild(0, rewrite(op->getChild(0), *logicalDistinct.getSchemaBeforeDistinct()));
     return op;
 }
 

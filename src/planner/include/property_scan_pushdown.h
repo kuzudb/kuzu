@@ -33,6 +33,9 @@ private:
     shared_ptr<LogicalOperator> rewriteAggregate(
         const shared_ptr<LogicalOperator>& op, Schema& schema);
 
+    shared_ptr<LogicalOperator> rewriteDistinct(
+        const shared_ptr<LogicalOperator>& op, Schema& schema);
+
     shared_ptr<LogicalOperator> rewriteOrderBy(
         const shared_ptr<LogicalOperator>& op, Schema& schema);
 

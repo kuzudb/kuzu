@@ -17,7 +17,8 @@ public:
 
     static unique_ptr<ReturnStatement> makeReturnStarStatement() {
         auto expressions = vector<unique_ptr<ParsedExpression>>();
-        return make_unique<ReturnStatement>(make_unique<ProjectionBody>(true, move(expressions)));
+        return make_unique<ReturnStatement>(make_unique<ProjectionBody>(
+            false /* isDistinct */, true /* containsStar */, move(expressions)));
     }
 };
 

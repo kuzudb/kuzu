@@ -63,9 +63,13 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
                 *queryPart.getQueryGraph(i), queryPart.getQueryGraphPredicate(i), move(plans));
         }
     }
-    projectionEnumerator.enumerateProjectionBody(*queryPart.getProjectionBody(),
-        queryPart.hasProjectionBodyPredicate() ? queryPart.getProjectionBodyPredicate() : nullptr,
-        plans, queryPart.isLastQueryPart());
+    projectionEnumerator.enumerateProjectionBody(
+        *queryPart.getProjectionBody(), plans, queryPart.isLastQueryPart());
+    if (queryPart.hasProjectionBodyPredicate()) {
+        for (auto& plan : plans) {
+            appendFilter(queryPart.getProjectionBodyPredicate(), *plan);
+        }
+    }
     return plans;
 }
 
