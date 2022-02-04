@@ -143,9 +143,9 @@ public:
     inline uint64_t getNumTuples() const { return numTuples; }
     inline uint8_t* getTuple(uint64_t tupleIdx) const {
         assert(tupleIdx < numTuples);
-        auto blockIdx = tupleIdx / numTuplesPerBlock;
-        auto tupleIdxInBlock = tupleIdx % numTuplesPerBlock;
-        return tupleDataBlocks[blockIdx].data + tupleIdxInBlock * tupleSchema.numBytesPerTuple;
+        auto blockIdxAndTupleIdxInBlock = getBlockIdxAndTupleIdxInBlock(tupleIdx);
+        return tupleDataBlocks[blockIdxAndTupleIdxInBlock.first].data +
+               blockIdxAndTupleIdxInBlock.second * tupleSchema.numBytesPerTuple;
     }
     inline uint64_t getTotalNumFlatTuples() const { return totalNumFlatTuples; }
 
@@ -191,6 +191,10 @@ public:
     inline Value getUnstrValue(uint64_t tupleIdx, uint64_t colIdx) const {
         assertTupleIdxColIdxAndValueIsFlat(tupleIdx, colIdx);
         return *((Value*)(getTuple(tupleIdx) + getColumnOffsetInTuple(colIdx)));
+    }
+
+    inline pair<uint64_t, uint64_t> getBlockIdxAndTupleIdxInBlock(uint64_t tupleIdx) const {
+        return make_pair(tupleIdx / numTuplesPerBlock, tupleIdx % numTuplesPerBlock);
     }
 
 private:

@@ -1,15 +1,95 @@
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 cc_test(
-    name = "processor_tests",
+    name = "expression_mapper_tests",
     srcs = [
         "physical_plan/expression_mapper_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/processor",
+        "//src/processor:mapper",
+        "//test/mock:mock_objects",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "aggregate_tests",
+    srcs = [
         "physical_plan/operator/aggregate/aggregate_hash_table_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/processor",
+        "//src/processor:mapper",
+        "//test/mock:mock_objects",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "frontier_tests",
+    srcs = [
         "physical_plan/operator/frontier/frontier_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/processor",
+        "//src/processor:mapper",
+        "//test/mock:mock_objects",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "order_by_tests",
+    srcs = [
         "physical_plan/operator/orderBy/key_block_merger_test.cpp",
         "physical_plan/operator/orderBy/order_by_key_encoder_test.cpp",
         "physical_plan/operator/orderBy/radix_sort_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/processor",
+        "//src/processor:mapper",
+        "//test/mock:mock_objects",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "factorized_table_tests",
+    srcs = [
         "physical_plan/result/factorized_table_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/processor",
+        "//src/processor:mapper",
+        "//test/mock:mock_objects",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "processor_tests",
+    srcs = [
         "processor_test.cpp",
     ],
     copts = [

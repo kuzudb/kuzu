@@ -310,9 +310,21 @@ uint64_t FactorizedTable::lookup(const vector<uint64_t>& columnsToRead,
 
 void FactorizedTable::merge(FactorizedTable& other) {
     assert(tupleSchema == other.tupleSchema);
-    move(begin(other.tupleDataBlocks), end(other.tupleDataBlocks), back_inserter(tupleDataBlocks));
     move(begin(other.vectorOverflowBlocks), end(other.vectorOverflowBlocks),
         back_inserter(vectorOverflowBlocks));
+
+    auto appendInfos = allocateDataBlocks(tupleDataBlocks, tupleSchema.numBytesPerTuple,
+        other.numTuples, true /* allocateOnlyFromLastBlock */);
+    auto otherTupleIdx = 0u;
+    for (auto& appendInfo : appendInfos) {
+        for (auto i = 0u; i < appendInfo.numEntriesToAppend; i++) {
+            memcpy(appendInfo.data + i * tupleSchema.numBytesPerTuple,
+                other.getTuple(otherTupleIdx), tupleSchema.numBytesPerTuple);
+            otherTupleIdx++;
+        }
+    }
+
+    this->stringBuffer->merge(*other.stringBuffer);
     this->numTuples += other.numTuples;
     this->totalNumFlatTuples += other.totalNumFlatTuples;
 }
