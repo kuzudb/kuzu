@@ -74,8 +74,10 @@ unique_ptr<BoundReturnStatement> QueryBinder::bindReturnStatement(
 
 unique_ptr<BoundProjectionBody> QueryBinder::bindProjectionBody(
     const ProjectionBody& projectionBody, bool isWithClause) {
-    auto boundProjectionBody = make_unique<BoundProjectionBody>(bindProjectionExpressions(
-        projectionBody.getProjectionExpressions(), projectionBody.isProjectStar()));
+    auto projectionExpressions = bindProjectionExpressions(
+        projectionBody.getProjectionExpressions(), projectionBody.isProjectStar());
+    auto boundProjectionBody = make_unique<BoundProjectionBody>(
+        projectionBody.isProjectDistinct(), move(projectionExpressions));
     auto prevVariablesInScope = variablesInScope;
     variablesInScope =
         computeVariablesInScope(boundProjectionBody->getProjectionExpressions(), isWithClause);

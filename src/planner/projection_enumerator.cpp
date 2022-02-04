@@ -2,6 +2,7 @@
 
 #include "src/planner/include/enumerator.h"
 #include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
+#include "src/planner/include/logical_plan/operator/distinct/logical_distinct.h"
 #include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
 #include "src/planner/include/logical_plan/operator/multiplicity_reducer/logical_multiplcity_reducer.h"
 #include "src/planner/include/logical_plan/operator/order_by/logical_order_by.h"
@@ -12,24 +13,18 @@ namespace graphflow {
 namespace planner {
 
 void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& projectionBody,
-    const shared_ptr<Expression>& projectionBodyPredicate,
     const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn) {
     for (auto& plan : plans) {
         enumerateAggregate(projectionBody, *plan);
-        if (projectionBody.hasOrderByExpressions()) {
-            appendOrderBy(
-                projectionBody.getOrderByExpressions(), projectionBody.getSortingOrders(), *plan);
-        }
+        enumerateOrderBy(projectionBody, *plan);
+        // TODO: return expression rewrite should be moved out of enumerator
         auto expressionsToProject =
             getExpressionsToProject(projectionBody, *plan->schema, isFinalReturn);
-        appendProjection(expressionsToProject, *plan);
-        if (projectionBodyPredicate) {
-            enumerator->appendFilter(projectionBodyPredicate, *plan);
-        }
+        enumerateProjection(expressionsToProject, projectionBody.isProjectionDistinct(), *plan);
+        enumerateSkipAndLimit(projectionBody, *plan);
         if (isFinalReturn) {
             plan->setExpressionsToCollect(expressionsToProject);
         }
-        enumerateSkipAndLimit(projectionBody, *plan);
     }
 }
 
@@ -52,6 +47,23 @@ void ProjectionEnumerator::enumerateAggregate(
     }
     appendProjection(expressionsToProject, plan);
     appendAggregate(expressionsToGroupBy, expressionsToAggregate, plan);
+}
+
+void ProjectionEnumerator::enumerateOrderBy(
+    const BoundProjectionBody& projectionBody, LogicalPlan& plan) {
+    if (!projectionBody.hasOrderByExpressions()) {
+        return;
+    }
+    appendOrderBy(projectionBody.getOrderByExpressions(), projectionBody.getSortingOrders(), plan);
+}
+
+void ProjectionEnumerator::enumerateProjection(
+    const vector<shared_ptr<Expression>>& expressionsToProject, bool isDistinct,
+    LogicalPlan& plan) {
+    appendProjection(expressionsToProject, plan);
+    if (isDistinct) {
+        appendDistinct(expressionsToProject, plan);
+    }
 }
 
 void ProjectionEnumerator::enumerateSkipAndLimit(
@@ -93,6 +105,22 @@ void ProjectionEnumerator::appendProjection(
     auto projection = make_shared<LogicalProjection>(
         expressionsToProject, move(discardGroupsPos), plan.lastOperator);
     plan.appendOperator(move(projection));
+}
+
+void ProjectionEnumerator::appendDistinct(
+    const vector<shared_ptr<Expression>>& expressionsToDistinct, LogicalPlan& plan) {
+    for (auto& expression : expressionsToDistinct) {
+        auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *plan.schema);
+        enumerator->appendFlattens(dependentGroupsPos, plan);
+    }
+    auto distinct =
+        make_shared<LogicalDistinct>(expressionsToDistinct, plan.schema->copy(), plan.lastOperator);
+    plan.schema->clear();
+    auto groupPos = plan.schema->createGroup();
+    for (auto& expression : expressionsToDistinct) {
+        plan.schema->insertToGroupAndScope(expression->getUniqueName(), groupPos);
+    }
+    plan.appendOperator(move(distinct));
 }
 
 void ProjectionEnumerator::appendAggregate(

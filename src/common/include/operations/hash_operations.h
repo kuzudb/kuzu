@@ -40,6 +40,12 @@ struct CombineHash {
 };
 
 template<>
+inline void Hash::operation(const bool& key, bool isNull, hash_t& result) {
+    assert(!isNull);
+    result = murmurhash64(key);
+}
+
+template<>
 inline void Hash::operation(const uint32_t& key, bool isNull, hash_t& result) {
     assert(!isNull);
     result = murmurhash64(key);
@@ -115,6 +121,9 @@ struct HashOnValue {
         case NODE_ID: {
             Hash::operation<nodeID_t>(key.val.nodeID, isNull, result);
         } break;
+        case BOOL: {
+            Hash::operation<bool>(key.val.booleanVal, isNull, result);
+        } break;
         case INT64: {
             Hash::operation<int64_t>(key.val.int64Val, isNull, result);
         } break;
@@ -152,6 +161,9 @@ struct HashOnBytes {
         switch (dataType) {
         case NODE_ID: {
             Hash::operation<nodeID_t>(*(nodeID_t*)key, isNull, result);
+        } break;
+        case BOOL: {
+            Hash::operation<bool>(*(bool*)key, isNull, result);
         } break;
         case INT64: {
             Hash::operation<int64_t>(*(int64_t*)key, isNull, result);

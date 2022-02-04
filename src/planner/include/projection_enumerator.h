@@ -21,15 +21,19 @@ public:
         : catalog{catalog}, enumerator{enumerator} {}
 
     void enumerateProjectionBody(const BoundProjectionBody& projectionBody,
-        const shared_ptr<Expression>& projectionBodyPredicate,
         const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn);
 
 private:
     void enumerateAggregate(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
+    void enumerateOrderBy(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
+    void enumerateProjection(const vector<shared_ptr<Expression>>& expressionsToProject,
+        bool isDistinct, LogicalPlan& plan);
     void enumerateSkipAndLimit(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
 
     void appendProjection(
         const vector<shared_ptr<Expression>>& expressionsToProject, LogicalPlan& plan);
+    void appendDistinct(
+        const vector<shared_ptr<Expression>>& expressionsToDistinct, LogicalPlan& plan);
     void appendAggregate(const vector<shared_ptr<Expression>>& expressionsToGroupBy,
         const vector<shared_ptr<Expression>>& expressionsToAggregate, LogicalPlan& plan);
     void appendOrderBy(const vector<shared_ptr<Expression>>& expressions,

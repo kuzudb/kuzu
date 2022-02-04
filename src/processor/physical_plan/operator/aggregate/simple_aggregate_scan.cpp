@@ -18,6 +18,8 @@ bool SimpleAggregateScan::getNextTuples() {
             writeAggregateResultToVector(
                 aggregateVectors[i], 0 /* position to write */, sharedState->getAggregateState(i));
         }
+        assert(!aggregatesPos.empty());
+        auto outDataChunk = resultSet->dataChunks[aggregatesPos[0].dataChunkPos];
         outDataChunk->state->initOriginalAndSelectedSize(1);
         metrics->executionTime.stop();
         metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);

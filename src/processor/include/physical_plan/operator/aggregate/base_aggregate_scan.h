@@ -40,7 +40,6 @@ protected:
     vector<DataPos> aggregatesPos;
     vector<DataType> aggregateDataTypes;
     vector<ValueVector*> aggregateVectors;
-    DataChunk* outDataChunk;
 };
 
 } // namespace processor

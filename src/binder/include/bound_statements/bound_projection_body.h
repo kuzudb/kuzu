@@ -8,14 +8,17 @@ namespace binder {
 class BoundProjectionBody {
 
 public:
-    explicit BoundProjectionBody(vector<shared_ptr<Expression>> projectionExpressions)
-        : projectionExpressions{move(projectionExpressions)}, skipNumber{UINT64_MAX},
-          limitNumber{UINT64_MAX} {}
+    explicit BoundProjectionBody(
+        bool isDistinct, vector<shared_ptr<Expression>> projectionExpressions)
+        : isDistinct{isDistinct}, projectionExpressions{move(projectionExpressions)},
+          skipNumber{UINT64_MAX}, limitNumber{UINT64_MAX} {}
 
     BoundProjectionBody(const BoundProjectionBody& other)
-        : projectionExpressions{other.projectionExpressions},
+        : isDistinct{other.isDistinct}, projectionExpressions{other.projectionExpressions},
           orderByExpressions{other.orderByExpressions}, isAscOrders{other.isAscOrders},
           skipNumber{other.skipNumber}, limitNumber{other.limitNumber} {}
+
+    inline bool isProjectionDistinct() const { return isDistinct; }
 
     inline void setOrderByExpressions(
         vector<shared_ptr<Expression>> expressions, vector<bool> sortOrders) {
@@ -44,6 +47,7 @@ public:
     }
 
 private:
+    bool isDistinct;
     vector<shared_ptr<Expression>> projectionExpressions;
     vector<shared_ptr<Expression>> orderByExpressions;
     vector<bool> isAscOrders;

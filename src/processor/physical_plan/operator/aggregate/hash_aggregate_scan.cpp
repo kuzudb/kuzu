@@ -8,6 +8,7 @@ shared_ptr<ResultSet> HashAggregateScan::initResultSet() {
     for (auto i = 0u; i < groupByKeyVectorsPos.size(); i++) {
         auto valueVector =
             make_shared<ValueVector>(context.memoryManager, groupByKeyVectorDataTypes[i]);
+        auto outDataChunk = resultSet->dataChunks[groupByKeyVectorsPos[i].dataChunkPos];
         outDataChunk->insert(groupByKeyVectorsPos[i].valueVectorPos, valueVector);
         groupByKeyVectors.push_back(valueVector.get());
     }
@@ -36,6 +37,8 @@ bool HashAggregateScan::getNextTuples() {
             offset += aggState->getStateSize();
         }
     }
+    assert(!groupByKeyVectorsPos.empty());
+    auto outDataChunk = resultSet->dataChunks[groupByKeyVectorsPos[0].dataChunkPos];
     outDataChunk->state->initOriginalAndSelectedSize(numRowsToScan);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
