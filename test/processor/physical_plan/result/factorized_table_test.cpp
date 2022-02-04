@@ -83,8 +83,33 @@ public:
             resultSet->dataChunks[1]->state->currIdx = 1;
         }
 
-        factorizedTable->append(vectorsToAppend, 100);
+        factorizedTable->append(vectorsToAppend, 100 /* numTuplesToAppend */);
         return factorizedTable;
+    }
+
+    void checkFlatTupleIteratorResult(FlatTupleIterator& flatTupleIterator) {
+        for (auto i = 0; i < 100; i++) {
+            for (auto j = 0; j < 100; j++) {
+                ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), true);
+                auto resultFlatTuple = flatTupleIterator.getNextFlatTuple();
+                if (i % 15) {
+                    ASSERT_EQ(resultFlatTuple.nullMask[0], false);
+                    auto val = resultFlatTuple.getValue(0)->val.nodeID;
+                    ASSERT_EQ(val.label, 18);
+                    ASSERT_EQ(val.offset, i);
+                } else {
+                    ASSERT_EQ(resultFlatTuple.nullMask[0], true);
+                }
+                if (j % 10) {
+                    ASSERT_EQ(resultFlatTuple.nullMask[1], false);
+                    auto val = resultFlatTuple.getValue(1)->val.nodeID;
+                    ASSERT_EQ(val.label, 28);
+                    ASSERT_EQ(val.offset, j);
+                } else {
+                    ASSERT_EQ(resultFlatTuple.nullMask[1], true);
+                }
+            }
+        }
     }
 
 public:
@@ -284,27 +309,62 @@ TEST_F(FactorizedTableTest, ReadUnflatColToFlatVectorFails) {
 TEST_F(FactorizedTableTest, ReadFlatTuplesFromFactorizedTable) {
     auto factorizedTable = appendMultipleTuples(false /* isAppendFlatVectorToUnflatCol */);
     auto flatTupleIterator = factorizedTable->getFlatTuples();
-    for (auto i = 0; i < 100; i++) {
-        for (auto j = 0; j < 100; j++) {
-            ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), true);
-            auto resultFlatTuple = flatTupleIterator.getNextFlatTuple();
-            if (i % 15) {
-                ASSERT_EQ(resultFlatTuple.nullMask[0], false);
-                auto val = resultFlatTuple.getValue(0)->val.nodeID;
-                ASSERT_EQ(val.label, 18);
-                ASSERT_EQ(val.offset, i);
-            } else {
-                ASSERT_EQ(resultFlatTuple.nullMask[0], true);
-            }
-            if (j % 10) {
-                ASSERT_EQ(resultFlatTuple.nullMask[1], false);
-                auto val = resultFlatTuple.getValue(1)->val.nodeID;
-                ASSERT_EQ(val.label, 28);
-                ASSERT_EQ(val.offset, j);
-            } else {
-                ASSERT_EQ(resultFlatTuple.nullMask[1], true);
-            }
-        }
+    checkFlatTupleIteratorResult(flatTupleIterator);
+    ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), false);
+}
+
+TEST_F(FactorizedTableTest, factorizedTableMergeTest) {
+    auto factorizedTable = appendMultipleTuples(false /* isAppendFlatVectorToUnflatCol */);
+    auto factorizedTable1 = appendMultipleTuples(false /* isAppendFlatVectorToUnflatCol */);
+    factorizedTable->merge(*factorizedTable1);
+    auto flatTupleIterator = factorizedTable->getFlatTuples();
+    checkFlatTupleIteratorResult(flatTupleIterator);
+    checkFlatTupleIteratorResult(flatTupleIterator);
+    ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), false);
+}
+
+TEST_F(FactorizedTableTest, factorizedTableMergeStringBufferTest) {
+    auto numRowsToAppend = 1000;
+    auto resultSet = make_unique<ResultSet>(1);
+    auto dataChunk = make_shared<DataChunk>(1);
+    dataChunk->state->selectedSize = numRowsToAppend;
+    dataChunk->state->currIdx = 0;
+    shared_ptr<ValueVector> strValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
+    resultSet->insert(0, dataChunk);
+    dataChunk->insert(0, strValueVector);
+    for (auto i = 0u; i < numRowsToAppend; i++) {
+        strValueVector->addString(i, to_string(i) + "with long string overflow");
+    }
+    TupleSchema tupleSchema({
+        {STRING, false /* isUnflat */, 0 /* dataChunkPos */},
+    });
+    auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
+    auto factorizedTable1 = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
+
+    // Append same testing data to factorizedTable and factorizedTable1.
+    for (auto i = 0u; i < numRowsToAppend; i++) {
+        factorizedTable->append({resultSet->dataChunks[0]->valueVectors[0]}, 1);
+        factorizedTable1->append({resultSet->dataChunks[0]->valueVectors[0]}, 1);
+        dataChunk->state->currIdx++;
+    }
+
+    factorizedTable->merge(*factorizedTable1);
+    // Test whether the tuples in factorizedTable are still valid after factorizedTable1 is
+    // destructed.
+    factorizedTable1.reset();
+    // Test whether the string that are inserted after merging will be stored correctly in the
+    // stringBuffer.
+    dataChunk->state->currIdx = 0;
+    for (auto i = 0u; i < numRowsToAppend; i++) {
+        factorizedTable->append({resultSet->dataChunks[0]->valueVectors[0]}, 1);
+        dataChunk->state->currIdx++;
+    }
+
+    auto flatTupleIterator = factorizedTable->getFlatTuples();
+    for (auto i = 0; i < 3 * numRowsToAppend; i++) {
+        ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), true);
+        ASSERT_EQ(flatTupleIterator.getNextFlatTuple().getValue(0)->val.strVal.getAsString(),
+            to_string(i % numRowsToAppend) + "with long string overflow");
     }
     ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), false);
 }

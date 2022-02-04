@@ -37,6 +37,11 @@ public:
 public:
     vector<unique_ptr<BufferBlock>> blocks;
 
+    inline void merge(StringBuffer& other) {
+        move(begin(other.blocks), end(other.blocks), back_inserter(blocks));
+        currentBlock = other.currentBlock;
+    }
+
     // Releases all memory accumulated for string overflows so far and reinitializes its state to an
     // empty buffer. If there a large string that used point to any of these overflow buffers they
     // will error.
