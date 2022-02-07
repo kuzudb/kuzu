@@ -34,6 +34,12 @@ public:
     }
     inline vector<shared_ptr<Expression>> getExpressionsToCollect() { return expressionsToCollect; }
 
+    Schema* getSchema() { return schema.get(); }
+
+    unique_ptr<LogicalPlan> deepCopy() const;
+
+    // This copy function does a shallow copy of the logical Plan, so it should be renamed to
+    // shallowCopy().
     unique_ptr<LogicalPlan> copy() const;
 
 public:

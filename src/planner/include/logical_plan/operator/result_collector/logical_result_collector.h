@@ -31,7 +31,7 @@ public:
 
     inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalResultCollector>(
-            expressionsToCollect, move(schema), getChild(0)->copy());
+            expressionsToCollect, schema->copy(), getChild(0)->copy());
     }
 
     inline Schema* getSchema() { return schema.get(); }

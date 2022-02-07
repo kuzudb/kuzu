@@ -17,5 +17,11 @@ unique_ptr<LogicalPlan> LogicalPlan::copy() const {
     return plan;
 }
 
+unique_ptr<LogicalPlan> LogicalPlan::deepCopy() const {
+    auto plan = this->copy();
+    plan->lastOperator = plan->lastOperator ? plan->lastOperator->copy() : plan->lastOperator;
+    return plan;
+}
+
 } // namespace planner
 } // namespace graphflow

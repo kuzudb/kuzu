@@ -211,3 +211,15 @@ TEST_F(BinderErrorTest, OrderByWithoutSkipLimitInWithClause) {
     auto input = "MATCH (a:person) WITH a.age AS k ORDER BY k RETURN k";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, UnionAllUnmatchedNumberOfExpressions) {
+    string expectedException = "The number of columns to union/union all must be the same.";
+    auto input = "MATCH (p:person) RETURN p.age,p.name UNION ALL MATCH (p1:person) RETURN p1.age";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, UnionAllUnmatchedDataTypesOfExpressions) {
+    string expectedException = "p1.age has data type INT64. STRING was expected.";
+    auto input = "MATCH (p:person) RETURN p.name UNION ALL MATCH (p1:person) RETURN p1.age";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

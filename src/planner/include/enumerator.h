@@ -42,24 +42,8 @@ public:
         logicalPlan.lastOperator = logicalResultCollector;
     }
 
-    static inline void appendLogicalUnionAll(
-        vector<unique_ptr<LogicalPlan>>& childrenPlans, LogicalPlan& logicalPlan) {
-        shared_ptr<LogicalUnionAll> logicalUnionAll = make_shared<LogicalUnionAll>();
-        for (auto i = 0u; i < childrenPlans.size(); i++) {
-            if (i == 0) {
-                // For now the schema of the logical plan and logicalUnionAll is exactly the same.
-                logicalPlan.setExpressionsToCollect(
-                    ((LogicalResultCollector*)childrenPlans[i]->lastOperator.get())
-                        ->getExpressionsToCollect());
-                Enumerator::computeSchemaForHashJoinAndOrderByAndUnionAll(
-                    childrenPlans[i]->schema->getGroupsPosInScope(), *childrenPlans[i]->schema,
-                    *logicalPlan.schema);
-                logicalPlan.lastOperator = logicalUnionAll;
-            }
-            logicalUnionAll->addChild(childrenPlans[i]->lastOperator);
-        }
-        logicalUnionAll->setExpressionsToUnion(logicalPlan.getExpressionsToCollect());
-    }
+    static void appendLogicalUnionAll(
+        vector<unique_ptr<LogicalPlan>>& childrenPlans, LogicalPlan& logicalPlan);
 
     // For HashJoinProbe, the HashJoinProbe operator will read for a particular probe tuple t, the
     // matching result tuples M that match t[k], where k suppose is the join key column. If M
@@ -99,7 +83,7 @@ private:
     // return position of the only unFlat group
     // or position of any flat group if there is no unFlat group.
     uint32_t appendFlattensButOne(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
-    void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan);
+    static void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan);
     void appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan);
     void appendScanPropertiesAndPlanSubqueryIfNecessary(
         const shared_ptr<Expression>& expression, LogicalPlan& plan);

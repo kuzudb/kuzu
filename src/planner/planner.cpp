@@ -7,7 +7,11 @@ namespace planner {
 
 unique_ptr<LogicalPlan> Planner::getBestPlan(const Graph& graph, const BoundRegularQuery& query) {
     if (query.getNumBoundSingleQueries() == 1) {
-        return getBestPlan(graph, *query.getBoundSingleQuery(0));
+        // The returned logicalPlan doesn't contain the logicalResultCollector as its last operator.
+        // We need to append a logicalResultCollector to the logicalPlan.
+        auto singleQueryLogicalPlan = getBestPlan(graph, *query.getBoundSingleQuery(0));
+        Enumerator::appendLogicalResultCollector(*singleQueryLogicalPlan);
+        return singleQueryLogicalPlan;
     } else {
         auto logicalPlan = make_unique<LogicalPlan>();
         vector<unique_ptr<LogicalPlan>> childrenPlans;
@@ -22,16 +26,60 @@ unique_ptr<LogicalPlan> Planner::getBestPlan(const Graph& graph, const BoundRegu
     }
 }
 
+vector<vector<unique_ptr<LogicalPlan>>> Planner::cartesianProductChildrenPlans(
+    vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans) {
+    vector<vector<unique_ptr<LogicalPlan>>> resultChildrenPlans;
+    for (auto& childLogicalPlans : childrenLogicalPlans) {
+        vector<vector<unique_ptr<LogicalPlan>>> curChildResultLogicalPlans;
+        for (auto& childLogicalPlan : childLogicalPlans) {
+            if (resultChildrenPlans.empty()) {
+                vector<unique_ptr<LogicalPlan>> logicalPlans;
+                logicalPlans.push_back(childLogicalPlan->deepCopy());
+                curChildResultLogicalPlans.push_back(move(logicalPlans));
+            } else {
+                for (auto& resultChildPlans : resultChildrenPlans) {
+                    vector<unique_ptr<LogicalPlan>> logicalPlans;
+                    for (auto& resultChildPlan : resultChildPlans) {
+                        logicalPlans.push_back(resultChildPlan->deepCopy());
+                    }
+                    logicalPlans.push_back(childLogicalPlan->deepCopy());
+                    curChildResultLogicalPlans.push_back(move(logicalPlans));
+                }
+            }
+        }
+        resultChildrenPlans = move(curChildResultLogicalPlans);
+    }
+    return resultChildrenPlans;
+}
+
 vector<unique_ptr<LogicalPlan>> Planner::getAllPlans(
     const Graph& graph, const BoundRegularQuery& query) {
     if (query.getNumBoundSingleQueries() == 1) {
-        return getAllPlans(graph, *query.getBoundSingleQuery(0));
-    } else {
-        // For regular queries, we don't do cartesian product on all sub-plans. We just return the
-        // best plan for regular queries.
-        vector<unique_ptr<LogicalPlan>> logicalPlans;
-        logicalPlans.push_back(getBestPlan(graph, query));
+        // The returned logicalPlans don't contain the logicalResultCollector as their last
+        // operator. We need to append a logicalResultCollector to each returned logicalPlan.
+        auto logicalPlans = getAllPlans(graph, *query.getBoundSingleQuery(0));
+        for (auto& logicalPlan : logicalPlans) {
+            Enumerator::appendLogicalResultCollector(*logicalPlan);
+        }
         return logicalPlans;
+    } else {
+        vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans(
+            query.getNumBoundSingleQueries());
+        for (auto i = 0u; i < query.getNumBoundSingleQueries(); i++) {
+            childrenLogicalPlans[i] = getAllPlans(graph, *query.getBoundSingleQuery(i));
+        }
+        auto childrenPlans = cartesianProductChildrenPlans(move(childrenLogicalPlans));
+        vector<unique_ptr<LogicalPlan>> resultPlans;
+        for (auto& childrenPlan : childrenPlans) {
+            auto logicalPlan = make_unique<LogicalPlan>();
+            for (auto& childPlan : childrenPlan) {
+                logicalPlan->cost += childPlan->cost;
+            }
+            Enumerator::appendLogicalUnionAll(childrenPlan, *logicalPlan);
+            Enumerator::appendLogicalResultCollector(*logicalPlan);
+            resultPlans.push_back(move(logicalPlan));
+        }
+        return resultPlans;
     }
 }
 

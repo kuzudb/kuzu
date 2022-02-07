@@ -10,6 +10,10 @@ namespace binder {
  * Represents (QueryPart)* (Reading)* RETURN
  */
 class BoundSingleQuery {
+public:
+    inline vector<shared_ptr<Expression>> getExpressionsToReturn() {
+        return boundReturnStatement->getBoundProjectionBody()->getProjectionExpressions();
+    }
 
 public:
     // WITH query parts
