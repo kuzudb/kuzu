@@ -1,0 +1,26 @@
+# description: distinct test
+
+-NAME SingleNodeDistinctAggTest1
+-QUERY MATCH (a:person) RETURN COUNT(DISTINCT a.gender), COUNT(DISTINCT a.age), COUNT(DISTINCT a.unstrDateProp1)
+---- 1
+2|7|2
+
+-NAME SingleNodeDistinctAggTest2
+-QUERY MATCH (a:person) RETURN a.gender, COUNT(DISTINCT a.isStudent)
+---- 2
+1|2
+2|2
+
+-NAME OneHopDistinctAggTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.isStudent, COUNT(a.ID), COUNT(DISTINCT b.unstrNumericProp)
+---- 2
+False|8|2
+True|6|2
+
+-NAME TwoHopDistinctAggTest
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.ID, SUM(DISTINCT a.age), SUM(DISTINCT c.age)
+---- 4
+0|35|130
+2|30|130
+3|45|130
+5|20|130

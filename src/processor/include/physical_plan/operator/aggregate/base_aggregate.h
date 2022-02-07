@@ -27,6 +27,9 @@ protected:
 
 class BaseAggregate : public Sink {
 
+public:
+    bool containDistinctAggregate() const;
+
 protected:
     BaseAggregate(vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,

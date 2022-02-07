@@ -25,8 +25,8 @@ public:
     Expression(
         ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child);
 
-    // Create leaf expression
-    Expression(ExpressionType expressionType, DataType dataType, const string& name);
+    // Create leaf expression with unique name
+    Expression(ExpressionType expressionType, DataType dataType, const string& uniqueName);
 
     inline void setAlias(const string& name) { alias = name; }
     inline void setRawName(const string& name) { rawName = name; }
@@ -38,6 +38,7 @@ public:
     inline string getAlias() const { return alias; }
     inline string getRawName() const { return rawName; }
 
+    inline uint32_t getNumChildren() const { return children.size(); }
     inline shared_ptr<Expression> getChild(uint32_t idx) const { return children[idx]; }
     inline virtual vector<shared_ptr<Expression>> getChildren() const { return children; }
 

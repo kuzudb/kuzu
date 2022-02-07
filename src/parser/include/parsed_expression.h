@@ -13,6 +13,7 @@ namespace graphflow {
 namespace parser {
 
 class SingleQuery;
+
 class ParsedExpression {
 
 public:
@@ -31,6 +32,9 @@ public:
 
     inline string getRawName() const { return rawName; }
 
+    inline void setIsDistinct() { isDistinct = true; }
+    inline bool getIsDistinct() const { return isDistinct; }
+
 public:
     ExpressionType type;
     // variableName, propertyName or functionName
@@ -40,6 +44,11 @@ public:
     string alias;
     string rawName;
     vector<unique_ptr<ParsedExpression>> children;
+
+private:
+    // TODO: ParsedExpression is getting bulky, we should start creating special parsed expressions,
+    // e.g. function expression.
+    bool isDistinct = false;
 };
 
 } // namespace parser

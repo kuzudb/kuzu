@@ -8,6 +8,18 @@ using namespace graphflow::common::operation;
 namespace graphflow {
 namespace processor {
 
+// NOTE: We skip a tuple if it contains at least one NULL group by key which we don't support in
+// current aggregate hash table. This for loop should be removed once we migrate to factorized
+// table which can store NULL payloads.
+static bool isKeyVectorsContainNull(const vector<ValueVector*>& keyVectors) {
+    for (auto& keyVector : keyVectors) {
+        if (keyVector->isNull(keyVector->state->getPositionOfCurrIdx())) {
+            return true;
+        }
+    }
+    return false;
+}
+
 AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
     vector<DataType> groupByKeysDataTypes,
     const vector<unique_ptr<AggregateFunction>>& aggregateFunctions, uint64_t numEntriesToAllocate)
@@ -29,6 +41,8 @@ AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
     numEntriesPerBlock = DEFAULT_MEMORY_BLOCK_SIZE / getNumBytesForEntry();
     currentEntryCursor.entryBlockId = 0;
     currentEntryCursor.offsetInBlock = numEntriesPerBlock; // skip the first empty block
+    distinctHashTables = AggregateHashTableUtils::createDistinctHashTables(
+        memoryManager, this->groupByKeysDataTypes, this->aggregateFunctions);
 }
 
 uint8_t* AggregateHashTable::getEntry(uint64_t id) {
@@ -39,13 +53,8 @@ uint8_t* AggregateHashTable::getEntry(uint64_t id) {
 
 void AggregateHashTable::append(const vector<ValueVector*>& groupByKeyVectors,
     const vector<ValueVector*>& aggregateVectors, uint64_t multiplicity) {
-    // NOTE: We skip tuple if it contains at least one NULL group by key which we don't support in
-    // current aggregate hash table. This for loop should be removed once we migrate to factorized
-    // table which can store NULL payloads.
-    for (auto& groupByKeyVector : groupByKeyVectors) {
-        if (groupByKeyVector->isNull(groupByKeyVector->state->getPositionOfCurrIdx())) {
-            return;
-        }
+    if (isKeyVectorsContainNull(groupByKeyVectors)) {
+        return;
     }
     if (numEntries > maxNumHashSlots ||
         (double)numEntries > (double)maxNumHashSlots / DEFAULT_HT_LOAD_FACTOR) {
@@ -58,10 +67,39 @@ void AggregateHashTable::append(const vector<ValueVector*>& groupByKeyVectors,
     }
     auto aggregateOffset = getAggregateStatesOffsetInEntry();
     for (auto i = 0u; i < aggregateFunctions.size(); i++) {
-        aggregateFunctions[i]->updateState(
-            entry + aggregateOffset, aggregateVectors[i], multiplicity);
+        auto aggregateFunction = aggregateFunctions[i].get();
+        if (aggregateFunction->isFunctionDistinct()) {
+            auto distinctHT = distinctHashTables[i].get();
+            assert(distinctHT != nullptr);
+            if (distinctHT->isAggregateValueDistinctForGroupByKeys(
+                    groupByKeyVectors, aggregateVectors[i])) {
+                aggregateFunctions[i]->updateState(entry + aggregateOffset, aggregateVectors[i], 1 /* Distinct aggregate should ignore multiplicity since they are known to be non-distinct. */);
+            }
+        } else {
+            aggregateFunctions[i]->updateState(
+                entry + aggregateOffset, aggregateVectors[i], multiplicity);
+        }
         aggregateOffset += aggregateFunctions[i]->getAggregateStateSize();
     }
+}
+
+bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
+    const vector<ValueVector*>& groupByKeyVectors, ValueVector* aggregateVector) {
+    vector<ValueVector*> distinctKeyVectors;
+    for (auto& groupByKeyVector : groupByKeyVectors) {
+        distinctKeyVectors.push_back(groupByKeyVector);
+    }
+    distinctKeyVectors.push_back(aggregateVector);
+    if (isKeyVectorsContainNull(distinctKeyVectors)) {
+        return false;
+    }
+    auto distinctHTHash = computeHash(distinctKeyVectors);
+    auto distinctHTEntry = findEntry(distinctKeyVectors, distinctHTHash);
+    if (distinctHTEntry == nullptr) {
+        createEntry(distinctKeyVectors, distinctHTHash);
+        return true;
+    }
+    return false;
 }
 
 void AggregateHashTable::merge(AggregateHashTable& other) {
@@ -286,6 +324,28 @@ void AggregateHashTable::resize(uint64_t newSize) {
             fillHashSlot(newHash, blockId, offsetInBlock);
         }
     }
+}
+
+vector<unique_ptr<AggregateHashTable>> AggregateHashTableUtils::createDistinctHashTables(
+    MemoryManager& memoryManager, const vector<DataType>& groupByKeyDataTypes,
+    const vector<unique_ptr<AggregateFunction>>& aggregateFunctions) {
+    vector<unique_ptr<AggregateHashTable>> distinctHTs;
+    for (auto& aggregateFunction : aggregateFunctions) {
+        if (aggregateFunction->isFunctionDistinct()) {
+            vector<DataType> distinctKeysDataTypes;
+            for (auto& groupByKeyDataType : groupByKeyDataTypes) {
+                distinctKeysDataTypes.push_back(groupByKeyDataType);
+            }
+            distinctKeysDataTypes.push_back(aggregateFunction->getInputDataType());
+            vector<unique_ptr<AggregateFunction>> emptyFunctions;
+            auto ht = make_unique<AggregateHashTable>(
+                memoryManager, distinctKeysDataTypes, emptyFunctions, 0 /* numEntriesToAllocate */);
+            distinctHTs.push_back(move(ht));
+        } else {
+            distinctHTs.push_back(nullptr);
+        }
+    }
+    return distinctHTs;
 }
 
 } // namespace processor

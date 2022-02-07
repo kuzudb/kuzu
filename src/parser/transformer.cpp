@@ -531,6 +531,9 @@ unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     for (auto& childExpr : ctx.oC_Expression()) {
         expression->children.push_back(transformExpression(*childExpr));
     }
+    if (ctx.DISTINCT()) {
+        expression->setIsDistinct();
+    }
     return expression;
 }
 

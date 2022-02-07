@@ -3,12 +3,11 @@
 #include <functional>
 #include <utility>
 
-#include "src/common/include/expression_type.h"
-#include "src/common/include/types.h"
+#include "src/binder/include/expression/function_expression.h"
 #include "src/common/include/vector/value_vector.h"
 
-using namespace std;
 using namespace graphflow::common;
+using namespace graphflow::binder;
 
 namespace graphflow {
 namespace function {
@@ -30,9 +29,11 @@ class AggregateFunction {
 
 public:
     AggregateFunction(aggr_initialize_function_t initializeFunc, aggr_update_function_t updateFunc,
-        aggr_combine_function_t combineFunc, aggr_finalize_function_t finalizeFunc)
-        : initializeFunc{move(initializeFunc)}, updateFunc{move(updateFunc)},
-          combineFunc{move(combineFunc)}, finalizeFunc{move(finalizeFunc)} {
+        aggr_combine_function_t combineFunc, aggr_finalize_function_t finalizeFunc,
+        DataType inputDataType, bool isDistinct = false)
+        : initializeFunc{move(initializeFunc)}, updateFunc{move(updateFunc)}, combineFunc{move(
+                                                                                  combineFunc)},
+          finalizeFunc{move(finalizeFunc)}, inputDataType{inputDataType}, isDistinct{isDistinct} {
         initialNullAggregateState = createInitialNullAggregateState();
     }
 
@@ -54,9 +55,13 @@ public:
 
     inline void finalizeState(uint8_t* state) { return finalizeFunc(state); }
 
+    inline DataType getInputDataType() const { return inputDataType; }
+
+    inline bool isFunctionDistinct() const { return isDistinct; }
+
     unique_ptr<AggregateFunction> clone() {
         return make_unique<AggregateFunction>(
-            initializeFunc, updateFunc, combineFunc, finalizeFunc);
+            initializeFunc, updateFunc, combineFunc, finalizeFunc, inputDataType, isDistinct);
     }
 
 private:
@@ -65,23 +70,24 @@ private:
     aggr_combine_function_t combineFunc;
     aggr_finalize_function_t finalizeFunc;
 
+    DataType inputDataType;
+    bool isDistinct;
+
     unique_ptr<AggregateState> initialNullAggregateState;
 };
 
 class AggregateFunctionUtil {
 
 public:
-    static unique_ptr<AggregateFunction> getAggregateFunction(
-        ExpressionType expressionType, DataType dataType);
-
-    static unique_ptr<AggregateFunction> getCountStarFunction();
+    static unique_ptr<AggregateFunction> getAggregateFunction(Expression& expression);
 
 private:
-    static unique_ptr<AggregateFunction> getCountFunction();
-    static unique_ptr<AggregateFunction> getAvgFunction(DataType dataType);
-    static unique_ptr<AggregateFunction> getSumFunction(DataType dataType);
+    static unique_ptr<AggregateFunction> getCountStarFunction();
+    static unique_ptr<AggregateFunction> getCountFunction(FunctionExpression& functionExpression);
+    static unique_ptr<AggregateFunction> getAvgFunction(FunctionExpression& functionExpression);
+    static unique_ptr<AggregateFunction> getSumFunction(FunctionExpression& functionExpression);
     template<bool IS_MIN>
-    static unique_ptr<AggregateFunction> getMinMaxFunction(DataType dataType);
+    static unique_ptr<AggregateFunction> getMinMaxFunction(FunctionExpression& functionExpression);
 };
 
 } // namespace function

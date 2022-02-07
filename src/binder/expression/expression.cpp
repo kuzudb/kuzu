@@ -19,9 +19,9 @@ Expression::Expression(
     children.push_back(child);
 }
 
-Expression::Expression(ExpressionType expressionType, DataType dataType, const string& name)
+Expression::Expression(ExpressionType expressionType, DataType dataType, const string& uniqueName)
     : Expression{expressionType, dataType} {
-    uniqueName = name;
+    this->uniqueName = uniqueName;
 }
 
 unordered_set<string> Expression::getDependentVariableNames() {
