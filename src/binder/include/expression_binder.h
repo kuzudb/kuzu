@@ -19,6 +19,11 @@ public:
 
     shared_ptr<Expression> bindExpression(const ParsedExpression& parsedExpression);
 
+    // This function is used by queryBinder::validateUnionColumnsOfTheSameType, so it is marked
+    // as a public function.
+    static void validateExpectedDataType(
+        const Expression& expression, const unordered_set<DataType>& expectedTypes);
+
 private:
     shared_ptr<Expression> bindBinaryBooleanExpression(const ParsedExpression& parsedExpression);
 
@@ -84,8 +89,6 @@ private:
     static void validateNumberOfChildren(
         const ParsedExpression& parsedExpression, uint32_t expectedNumChildren);
 
-    static void validateExpectedDataType(
-        const Expression& expression, const unordered_set<DataType>& expectedTypes);
     static void validateNumeric(const Expression& expression) {
         validateExpectedDataType(expression, unordered_set<DataType>{INT64, DOUBLE});
     }

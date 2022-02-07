@@ -65,3 +65,105 @@
 45|5.000000
 83|4.900000
 83|4.900000
+
+# If an expression to union has different flat/unflat state in different single queries, we need to flatten that
+# expression in all the single queries.
+-NAME UnionAllFlatAndUnFlatColTest
+-QUERY MATCH (a:person)-[e:knows]->(b:person) RETURN a.age UNION ALL MATCH (a:person)-[e:knows]->(b:person) RETURN a.age UNION ALL MATCH (a:person)-[e:knows]->(b:person) RETURN a.age
+---- 42
+20
+20
+20
+20
+20
+20
+20
+20
+20
+20
+20
+20
+20
+20
+20
+30
+30
+30
+30
+30
+30
+30
+30
+30
+35
+35
+35
+35
+35
+35
+35
+35
+35
+45
+45
+45
+45
+45
+45
+45
+45
+45
+
+-NAME UnionAllWithTest
+-QUERY MATCH (a:person)-[:knows]->(b:person) with b return b.age + 3 UNION ALL MATCH (a:person)-[e:knows]->(b:person) with a RETURN a.age
+---- 28
+20
+20
+20
+20
+20
+23
+23
+23
+28
+30
+30
+30
+33
+33
+33
+35
+35
+35
+38
+38
+38
+43
+45
+45
+45
+48
+48
+48
+
+-NAME UnionAllThreeHopsTest
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN a.fName order by d.age desc, c.age asc, b.age asc, a.age desc limit 10 UNION ALL MATCH (p:person) RETURN p.fName
+---- 18
+Alice
+Alice
+Alice
+Bob
+Bob
+Bob
+Carol
+Carol
+Carol
+Carol
+Dan
+Dan
+Dan
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff

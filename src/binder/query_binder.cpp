@@ -15,6 +15,7 @@ unique_ptr<BoundRegularQuery> QueryBinder::bind(const RegularQuery& regularQuery
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
         boundRegularQuery->addBoundSingleQuery(bindSingleQuery(*regularQuery.getSingleQuery(i)));
     }
+    validateUnionColumnsOfTheSameType(*boundRegularQuery);
     return boundRegularQuery;
 }
 
@@ -362,6 +363,27 @@ uint64_t QueryBinder::validateAndExtractSkipLimitNumber(
         static_pointer_cast<LiteralExpression>(boundExpression)->literal.val.int64Val;
     GF_ASSERT(skipOrLimitNumber >= 0);
     return skipOrLimitNumber;
+}
+
+void QueryBinder::validateUnionColumnsOfTheSameType(const BoundRegularQuery& regularQuery) {
+    if (regularQuery.getNumBoundSingleQueries() <= 1) {
+        return;
+    }
+    auto expressionsToProject = regularQuery.getBoundSingleQuery(0)->getExpressionsToReturn();
+    for (auto i = 1u; i < regularQuery.getNumBoundSingleQueries(); i++) {
+        auto expressionsToProjectToCheck =
+            regularQuery.getBoundSingleQuery(i)->getExpressionsToReturn();
+        if (expressionsToProject.size() != expressionsToProjectToCheck.size()) {
+            throw invalid_argument("The number of columns to union/union all must be the same.");
+        }
+        // Check whether the dataTypes in union expressions are exactly the same in each single
+        // query.
+        for (auto j = 0u; j < expressionsToProject.size(); j++) {
+            unordered_set<DataType> expectedDataTypes{expressionsToProject[j]->dataType};
+            ExpressionBinder::validateExpectedDataType(
+                *expressionsToProjectToCheck[j], expectedDataTypes);
+        }
+    }
 }
 
 string QueryBinder::getUniqueExpressionName(const string& name) {

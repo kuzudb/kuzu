@@ -75,6 +75,7 @@ private:
     void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
         unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
     uint64_t validateAndExtractSkipLimitNumber(const ParsedExpression& skipOrLimitExpression);
+    void validateUnionColumnsOfTheSameType(const BoundRegularQuery& regularQuery);
 
     /******* helpers *********/
 
