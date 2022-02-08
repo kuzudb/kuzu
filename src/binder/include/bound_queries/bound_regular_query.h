@@ -8,6 +8,8 @@ namespace binder {
 class BoundRegularQuery {
 
 public:
+    BoundRegularQuery(vector<bool> isUnionAll) : isUnionAll{isUnionAll} {}
+
     inline void addBoundSingleQuery(unique_ptr<BoundSingleQuery> boundSingleQuery) {
         boundSingleQueries.push_back(move(boundSingleQuery));
     }
@@ -18,8 +20,11 @@ public:
 
     inline uint64_t getNumBoundSingleQueries() const { return boundSingleQueries.size(); }
 
+    inline bool getIsUnionAll(uint32_t idx) const { return isUnionAll[idx]; }
+
 private:
     vector<unique_ptr<BoundSingleQuery>> boundSingleQueries;
+    vector<bool> isUnionAll;
 };
 
 } // namespace binder

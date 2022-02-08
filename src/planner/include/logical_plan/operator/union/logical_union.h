@@ -8,7 +8,7 @@ using namespace graphflow::binder;
 namespace graphflow {
 namespace planner {
 
-class LogicalUnionAll : public LogicalOperator {
+class LogicalUnion : public LogicalOperator {
 
 public:
     inline LogicalOperatorType getLogicalOperatorType() const override {
@@ -23,7 +23,7 @@ public:
         return result;
     }
 
-    inline unique_ptr<LogicalOperator> copy() override { return make_unique<LogicalUnionAll>(); }
+    inline unique_ptr<LogicalOperator> copy() override { return make_unique<LogicalUnion>(); }
 
     inline void setExpressionsToUnion(vector<shared_ptr<Expression>> expressionsToUnion) {
         this->expressionsToUnion = move(expressionsToUnion);

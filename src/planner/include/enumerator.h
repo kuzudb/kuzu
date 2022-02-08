@@ -4,7 +4,7 @@
 #include "src/binder/include/expression/property_expression.h"
 #include "src/planner/include/join_order_enumerator.h"
 #include "src/planner/include/logical_plan/operator/result_collector/logical_result_collector.h"
-#include "src/planner/include/logical_plan/operator/union_all/logical_union_all.h"
+#include "src/planner/include/logical_plan/operator/union/logical_union.h"
 #include "src/planner/include/projection_enumerator.h"
 
 using namespace graphflow::binder;
@@ -42,8 +42,8 @@ public:
         logicalPlan.lastOperator = logicalResultCollector;
     }
 
-    static void appendLogicalUnionAll(
-        vector<unique_ptr<LogicalPlan>>& childrenPlans, LogicalPlan& logicalPlan);
+    static void appendLogicalUnionAndDistinctIfNecessary(
+        vector<unique_ptr<LogicalPlan>>& childrenPlans, LogicalPlan& logicalPlan, bool isUnionAll);
 
     // For HashJoinProbe, the HashJoinProbe operator will read for a particular probe tuple t, the
     // matching result tuples M that match t[k], where k suppose is the join key column. If M
@@ -79,7 +79,7 @@ private:
     void planExistsSubquery(const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression,
         LogicalPlan& outerPlan);
 
-    void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
+    static void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
     // return position of the only unFlat group
     // or position of any flat group if there is no unFlat group.
     uint32_t appendFlattensButOne(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);

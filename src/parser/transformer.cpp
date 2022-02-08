@@ -27,6 +27,7 @@ unique_ptr<RegularQuery> Transformer::transformRegularQuery(
     regularQuery->addSingleQuery(transformSingleQuery(*ctx.oC_SingleQuery()));
     for (auto unionClause : ctx.oC_Union()) {
         regularQuery->addSingleQuery(transformSingleQuery(*unionClause->oC_SingleQuery()));
+        regularQuery->addIsUnionAll(unionClause->ALL());
     }
     return regularQuery;
 }
