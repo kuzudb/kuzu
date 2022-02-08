@@ -27,13 +27,11 @@ void HashAggregateSharedState::finalizeAggregateHashTable() {
     globalAggregateHashTable->finalizeAggregateStates();
 }
 
-bool HashAggregateSharedState::hasMoreToRead() {
-    auto lck = acquireLock();
-    return currentOffset < globalAggregateHashTable->getNumEntries();
-}
-
 pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
     auto lck = acquireLock();
+    if (currentOffset >= globalAggregateHashTable->getNumEntries()) {
+        return make_pair(currentOffset, currentOffset);
+    }
     auto startOffset = currentOffset;
     auto range =
         min(DEFAULT_VECTOR_CAPACITY, globalAggregateHashTable->getNumEntries() - currentOffset);

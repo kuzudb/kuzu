@@ -7,20 +7,21 @@ using namespace graphflow::common::operation;
 namespace graphflow {
 namespace common {
 
-shared_ptr<NullMask> NullMask::clone() {
-    auto newNullMask = make_shared<NullMask>();
-    memcpy(newNullMask->mask.get(), mask.get(), DEFAULT_VECTOR_CAPACITY);
-    return newNullMask;
+NullMask::NullMask() : mayContainNulls{false} {
+    mask = make_unique<bool[]>(DEFAULT_VECTOR_CAPACITY);
+    fill_n(mask.get(), DEFAULT_VECTOR_CAPACITY, false /* not null */);
 }
 
-void ValueVector::readNodeID(uint64_t pos, nodeID_t& nodeID) const {
-    assert(dataType == NODE);
-    if (isSequence) {
-        nodeID = ((nodeID_t*)values)[0];
-        nodeID.offset += pos;
-    } else {
-        nodeID = ((nodeID_t*)values)[pos];
+ValueVector::ValueVector(MemoryManager* memoryManager, DataType dataType)
+    : dataType{dataType}, memoryManager{memoryManager} {
+    assert(memoryManager != nullptr);
+    bufferValues = memoryManager->allocateBlock(
+        TypeUtils::getDataTypeSize(dataType) * DEFAULT_VECTOR_CAPACITY);
+    values = bufferValues->data;
+    if (dataType == STRING || dataType == UNSTRUCTURED) {
+        stringBuffer = make_unique<StringBuffer>(*memoryManager);
     }
+    nullMask = make_shared<NullMask>();
 }
 
 bool ValueVector::discardNullNodes() {
@@ -45,32 +46,6 @@ bool ValueVector::discardNullNodes() {
         state->selectedSize = selectedPos;
         return state->selectedSize > 0;
     }
-}
-
-// Notice that this clone function only copies values and mask without copying string buffers.
-shared_ptr<ValueVector> ValueVector::clone() {
-    auto newVector = make_shared<ValueVector>(memoryManager, dataType);
-    // Warning: This is a potential bug because below we copy the nullMask of this ValueVector.
-    // However, nullmasks of ValueVectors point to null masks of other ValueVectors, e.g., the
-    // result ValueVectors of unary expressions, point to the nullMasks of operands. In which case
-    // these should not be copied over. newVector->nullMask = nullMask->clone();
-    newVector->nullMask = nullMask->clone();
-    // We first blindly copy because we are assuming that the caller (which currently is the
-    // ResultCollector is using the DataChunkState of this vector, which may have filted positions.
-    // So the selected positions can be a subset of the actual values and if the datatype is
-    // string or unstructured (which might have strings), we want to fix the overflow pointers
-    // of the copied strings only for the selected positions. For non selected positions, it is not
-    // also safe to copy them, as they are not valid strings.
-    memcpy(newVector->values, values, DEFAULT_VECTOR_CAPACITY * getNumBytesPerValue());
-    if (dataType == STRING || dataType == UNSTRUCTURED) {
-        for (int i = 0; i < state->selectedSize; ++i) {
-            if (!isNull(state->selectedPositions[i])) {
-                newVector->copyNonNullDataWithSameTypeIntoPos(state->selectedPositions[i],
-                    values + getNumBytesPerValue() * state->selectedPositions[i]);
-            }
-        }
-    }
-    return newVector;
 }
 
 void ValueVector::allocateStringOverflowSpaceIfNecessary(gf_string_t& result, uint64_t len) const {

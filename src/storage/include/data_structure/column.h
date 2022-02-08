@@ -27,11 +27,9 @@ public:
     virtual Literal readValue(node_offset_t offset, BufferManagerMetrics& metrics);
 
 protected:
-    void readFromNonSequentialLocations(const shared_ptr<ValueVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
-
-    void readForSingleNodeIDPosition(uint32_t pos, const shared_ptr<ValueVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
+    virtual void readForSingleNodeIDPosition(uint32_t pos,
+        const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector,
+        BufferManagerMetrics& metrics);
 
 public:
     static constexpr char COLUMN_SUFFIX[] = ".col";
@@ -64,8 +62,9 @@ public:
               bufferManager, isInMemory},
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 
-    void readValues(const shared_ptr<ValueVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) override;
+private:
+    void readForSingleNodeIDPosition(uint32_t pos, const shared_ptr<ValueVector>& nodeIDVector,
+        const shared_ptr<ValueVector>& resultVector, BufferManagerMetrics& metrics) override;
 
 private:
     NodeIDCompressionScheme nodeIDCompressionScheme;

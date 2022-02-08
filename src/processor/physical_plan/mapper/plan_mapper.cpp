@@ -181,11 +181,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& logicalScan = (const LogicalScanNodeID&)*logicalOperator;
-    auto morsel = make_shared<MorselsDesc>(graph.getNumNodes(logicalScan.label));
+    auto sharedState = make_shared<ScanNodeIDSharedState>(graph.getNumNodes(logicalScan.label));
     auto dataPos = mapperContext.getDataPos(logicalScan.nodeID);
     mapperContext.addComputedExpressions(logicalScan.nodeID);
     return make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
-        logicalScan.label, dataPos, morsel, executionContext, mapperContext.getOperatorID());
+        logicalScan.label, dataPos, sharedState, executionContext, mapperContext.getOperatorID());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalResultScanToPhysical(

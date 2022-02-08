@@ -15,8 +15,6 @@ protected:
 
     unique_lock<mutex> acquireLock() { return unique_lock<mutex>{mtx}; }
 
-    virtual bool hasMoreToRead() = 0;
-
     virtual pair<uint64_t, uint64_t> getNextRangeToRead() = 0;
 
 protected:

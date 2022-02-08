@@ -14,12 +14,7 @@ class NullMask {
     friend class ValueVector;
 
 public:
-    explicit NullMask()
-        : mask(make_unique<bool[]>(DEFAULT_VECTOR_CAPACITY)), mayContainNulls{false} {
-        fill_n(mask.get(), DEFAULT_VECTOR_CAPACITY, false /* not null */);
-    };
-
-    shared_ptr<NullMask> clone();
+    NullMask();
 
 private:
     unique_ptr<bool[]> mask;
@@ -31,8 +26,7 @@ private:
 class ValueVector {
 
 public:
-    ValueVector(MemoryManager* memoryManager, DataType dataType, bool isSequence = false)
-        : ValueVector(memoryManager, TypeUtils::getDataTypeSize(dataType), dataType, isSequence) {}
+    ValueVector(MemoryManager* memoryManager, DataType dataType);
 
     ~ValueVector() = default;
 
@@ -66,7 +60,7 @@ public:
     }
 
     inline void setRangeNonNull(uint64_t startPos, uint64_t len) {
-        for (int i = 0; i < len; ++i) {
+        for (auto i = 0u; i < len; ++i) {
             setNull(startPos + i, false);
         }
     }
@@ -81,12 +75,16 @@ public:
     inline shared_ptr<NullMask> getNullMask() { return nullMask; }
     inline uint64_t getNumBytesPerValue() const { return TypeUtils::getDataTypeSize(dataType); }
 
-    // Node specific functions.
     bool discardNullNodes();
-    void readNodeID(uint64_t pos, nodeID_t& nodeID) const;
+
+    inline void readNodeID(uint64_t pos, nodeID_t& nodeID) const {
+        assert(dataType == NODE);
+        nodeID = ((nodeID_t*)values)[pos];
+    }
+
     inline node_offset_t readNodeOffset(uint64_t pos) const {
         assert(dataType == NODE);
-        return isSequence ? ((nodeID_t*)values)[0].offset + pos : ((nodeID_t*)values)[pos].offset;
+        return ((nodeID_t*)values)[pos].offset;
     }
 
     inline void resetStringBuffer() {
@@ -94,38 +92,20 @@ public:
             stringBuffer->resetBuffer();
         }
     }
-    // TODO: We should remove the clone function. This is a very expensive function.
-    shared_ptr<ValueVector> clone();
-
-protected:
-    ValueVector(
-        MemoryManager* memoryManager, uint64_t numBytesPerValue, DataType dataType, bool isSequence)
-        : bufferValues(make_unique<uint8_t[]>(numBytesPerValue * DEFAULT_VECTOR_CAPACITY)),
-          memoryManager{memoryManager}, dataType{dataType}, values{bufferValues.get()},
-          stringBuffer{nullptr}, isSequence{isSequence}, nullMask{make_shared<NullMask>()} {
-        if (dataType == STRING || dataType == UNSTRUCTURED) {
-            assert(memoryManager);
-            stringBuffer = make_unique<StringBuffer>(*memoryManager);
-        }
-    }
 
 private:
     void copyNonNullDataWithSameType(
         const uint8_t* srcData, uint8_t* dstData, StringBuffer& stringBuffer) const;
-
-protected:
-    unique_ptr<uint8_t[]> bufferValues;
-    MemoryManager* memoryManager;
 
 public:
     DataType dataType;
     uint8_t* values;
     unique_ptr<StringBuffer> stringBuffer;
     shared_ptr<DataChunkState> state;
-    // Node specific field.
-    bool isSequence;
 
 private:
+    MemoryManager* memoryManager;
+    unique_ptr<MemoryBlock> bufferValues;
     // This is a shared pointer because sometimes ValueVectors may share NullMasks, e.g., the result
     // ValueVectors of unary expressions, point to the nullMasks of operands.
     shared_ptr<NullMask> nullMask;

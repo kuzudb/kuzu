@@ -71,50 +71,22 @@ vector<BlockAppendingInfo> FactorizedTable::allocateDataBlocks(vector<DataBlock>
 void FactorizedTable::copyVectorDataToBuffer(ValueVector& vector, uint64_t valuePosInVecIfUnflat,
     uint8_t* buffer, uint64_t offsetInBuffer, uint64_t offsetStride, uint64_t numValues,
     uint64_t colIdx, bool isUnflat) {
-    auto numBytesPerValue = vector.getNumBytesPerValue();
-    if (vector.dataType == NODE && vector.isSequence) {
-        nodeID_t baseNodeID{UINT64_MAX, UINT64_MAX}, nodeID{UINT64_MAX, UINT64_MAX};
-        vector.readNodeID(0, baseNodeID);
-        nodeID.label = baseNodeID.label;
-        for (auto i = 0u; i < numValues; i++) {
-            nodeID.offset =
-                baseNodeID.offset +
-                (vector.state->isFlat() ?
-                        vector.state->getPositionOfCurrIdx() :
-                        (vector.state->isUnfiltered() ?
-                                (valuePosInVecIfUnflat + i) :
-                                (vector.state->selectedPositions[valuePosInVecIfUnflat + i])));
-            memcpy(
-                buffer + offsetInBuffer + (i * offsetStride), (uint8_t*)&nodeID, numBytesPerValue);
-            if (vector.isNull(i)) {
-                if (isUnflat) {
-                    // For unflat columns, the nullMap is at the end of the overflow memory.
-                    setNullMap(buffer + numValues * offsetStride, i);
-                } else {
-                    // For other columns, the nullMap is at the end of each tuple.
-                    setNullMap(buffer + i * offsetStride + tupleSchema.getNullMapOffset(), colIdx);
-                }
-            }
-        }
-    } else {
-        for (auto i = 0u; i < numValues; i++) {
-            // update the null map
-            const auto pos =
-                vector.state->isFlat() ?
-                    vector.state->getPositionOfCurrIdx() :
-                    (vector.state->isUnfiltered() ?
-                            (valuePosInVecIfUnflat + i) :
-                            vector.state->selectedPositions[valuePosInVecIfUnflat + i]);
-            if (vector.isNull(pos)) {
-                if (isUnflat) {
-                    setNullMap(buffer + numValues * offsetStride, i);
-                } else {
-                    setNullMap(buffer + i * offsetStride + tupleSchema.getNullMapOffset(), colIdx);
-                }
+    for (auto i = 0u; i < numValues; i++) {
+        // update the null map
+        const auto pos = vector.state->isFlat() ?
+                             vector.state->getPositionOfCurrIdx() :
+                             (vector.state->isUnfiltered() ?
+                                     (valuePosInVecIfUnflat + i) :
+                                     vector.state->selectedPositions[valuePosInVecIfUnflat + i]);
+        if (vector.isNull(pos)) {
+            if (isUnflat) {
+                setNullMap(buffer + numValues * offsetStride, i);
             } else {
-                vector.copyNonNullDataWithSameTypeOutFromPos(
-                    pos, buffer + offsetInBuffer + (i * offsetStride), *stringBuffer);
+                setNullMap(buffer + i * offsetStride + tupleSchema.getNullMapOffset(), colIdx);
             }
+        } else {
+            vector.copyNonNullDataWithSameTypeOutFromPos(
+                pos, buffer + offsetInBuffer + (i * offsetStride), *stringBuffer);
         }
     }
 }

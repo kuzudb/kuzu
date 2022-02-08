@@ -8,26 +8,26 @@ using namespace graphflow::processor;
 class FactorizedTableTest : public ::testing::Test {
 
 public:
-    static unique_ptr<ResultSet> initResultSet() {
-        auto resultSet = make_unique<ResultSet>(2);
+    unique_ptr<ResultSet> initResultSet() {
+        auto result = make_unique<ResultSet>(2);
         auto dataChunkA = make_shared<DataChunk>(2);
         auto dataChunkB = make_shared<DataChunk>(2);
-        auto vectorA1 = make_shared<ValueVector>(nullptr, NODE);
-        auto vectorA2 = make_shared<ValueVector>(nullptr, INT64);
-        auto vectorB1 = make_shared<ValueVector>(nullptr, NODE);
-        auto vectorB2 = make_shared<ValueVector>(nullptr, DOUBLE);
+        auto vectorA1 = make_shared<ValueVector>(memoryManager.get(), NODE);
+        auto vectorA2 = make_shared<ValueVector>(memoryManager.get(), INT64);
+        auto vectorB1 = make_shared<ValueVector>(memoryManager.get(), NODE);
+        auto vectorB2 = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
         dataChunkA->insert(0, vectorA1);
         dataChunkA->insert(1, vectorA2);
         dataChunkB->insert(0, vectorB1);
         dataChunkB->insert(1, vectorB2);
-        resultSet->insert(0, dataChunkA);
-        resultSet->insert(1, dataChunkB);
-        return resultSet;
+        result->insert(0, dataChunkA);
+        result->insert(1, dataChunkB);
+        return result;
     }
 
     void SetUp() override {
-        resultSet = initResultSet();
         memoryManager = make_unique<MemoryManager>();
+        resultSet = initResultSet();
         auto vectorA1 = resultSet->dataChunks[0]->valueVectors[0];
         auto vectorA2 = resultSet->dataChunks[0]->valueVectors[1];
         auto vectorB1 = resultSet->dataChunks[1]->valueVectors[0];

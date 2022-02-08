@@ -34,11 +34,11 @@ shared_ptr<ValueVector> UnaryExpressionEvaluator::createResultValueVector(
     shared_ptr<ValueVector> resultVector;
     uint64_t resultVectorCapacity;
     if (childrenExpr[0]->isResultFlat()) {
-        resultVector = make_shared<ValueVector>(&memoryManager, dataType, true /* isSequence */);
+        resultVector = make_shared<ValueVector>(&memoryManager, dataType);
         resultVectorCapacity = 1;
         resultVector->state = DataChunkState::getSingleValueDataChunkState();
     } else {
-        resultVector = make_shared<ValueVector>(&memoryManager, dataType, false /* isSequence */);
+        resultVector = make_shared<ValueVector>(&memoryManager, dataType);
         resultVector->state = childrenExpr[0]->result->state;
         resultVectorCapacity = DEFAULT_VECTOR_CAPACITY;
     }

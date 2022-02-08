@@ -16,8 +16,6 @@ public:
 
     void finalizeAggregateStates();
 
-    bool hasMoreToRead() override;
-
     pair<uint64_t, uint64_t> getNextRangeToRead() override;
 
     inline AggregateState* getAggregateState(uint64_t idx) {

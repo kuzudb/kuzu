@@ -3,35 +3,42 @@
 namespace graphflow {
 namespace processor {
 
+pair<uint64_t, uint64_t> ScanNodeIDSharedState::getNextRangeToRead() {
+    auto lck = acquireLock();
+    if (currentNodeOffset >= maxNumNodes) {
+        return make_pair(currentNodeOffset, currentNodeOffset);
+    }
+    auto startOffset = currentNodeOffset;
+    auto range = min(DEFAULT_VECTOR_CAPACITY, maxNumNodes - currentNodeOffset);
+    currentNodeOffset += range;
+    return make_pair(startOffset, startOffset + range);
+}
+
 shared_ptr<ResultSet> ScanNodeID::initResultSet() {
     resultSet = populateResultSet();
     outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-    outValueVector = make_shared<ValueVector>(context.memoryManager, NODE, true /* isSequence */);
+    outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
     return resultSet;
 }
 
 bool ScanNodeID::getNextTuples() {
     metrics->executionTime.start();
-    {
-        unique_lock<mutex> lock{morsel->mtx};
-        auto nodeIDValues = (nodeID_t*)(outValueVector->values);
-        // Fill the first nodeID in the sequence.
-        if (morsel->currentOffset >= morsel->maxOffset) {
-            // no more tuples to scan_node_id.
-            metrics->executionTime.stop();
-            return false;
-        } else {
-            nodeIDValues[0].label = nodeLabel;
-            nodeIDValues[0].offset = morsel->currentOffset;
-            outDataChunk->state->initOriginalAndSelectedSize(
-                min(DEFAULT_VECTOR_CAPACITY, morsel->maxOffset - morsel->currentOffset));
-            morsel->currentOffset += outDataChunk->state->selectedSize;
-            metrics->executionTime.stop();
-            metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
-            return true;
-        }
+    auto [startOffset, endOffset] = sharedState->getNextRangeToRead();
+    if (startOffset >= endOffset) {
+        metrics->executionTime.stop();
+        return false;
     }
+    auto nodeIDValues = (nodeID_t*)(outValueVector->values);
+    auto size = endOffset - startOffset;
+    for (auto i = 0u; i < size; ++i) {
+        nodeIDValues[i].offset = startOffset + i;
+        nodeIDValues[i].label = nodeLabel;
+    }
+    outDataChunk->state->initOriginalAndSelectedSize(size);
+    metrics->executionTime.stop();
+    metrics->numOutputTuple.increase(size);
+    return true;
 }
 
 } // namespace processor
