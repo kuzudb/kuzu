@@ -229,6 +229,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "aggregate",
         "physical_plan",
         "result_collector",
         "//src/common:task_system",

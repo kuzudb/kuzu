@@ -86,7 +86,7 @@ struct AvgFunction {
 };
 
 template<>
-void AvgFunction<Value>::finalize(uint8_t* state_) {
+inline void AvgFunction<Value>::finalize(uint8_t* state_) {
     auto state = reinterpret_cast<AvgState*>(state_);
     assert(!state->isNull);
     auto unstrCount = Value((double_t)state->count);

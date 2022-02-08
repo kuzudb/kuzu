@@ -47,6 +47,8 @@ SimpleAggregate::SimpleAggregate(shared_ptr<SimpleAggregateSharedState> sharedSt
     for (auto& aggregateFunction : this->aggregateFunctions) {
         localAggregateStates.push_back(aggregateFunction->createInitialNullAggregateState());
     }
+    distinctHashTables = AggregateHashTableUtils::createDistinctHashTables(
+        *context.memoryManager, vector<DataType>{}, this->aggregateFunctions);
 }
 
 void SimpleAggregate::execute() {
@@ -54,8 +56,19 @@ void SimpleAggregate::execute() {
     BaseAggregate::execute();
     while (children[0]->getNextTuples()) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
-            aggregateFunctions[i]->updateState((uint8_t*)localAggregateStates[i].get(),
-                aggregateVectors[i], resultSet->multiplicity);
+            auto aggregateFunction = aggregateFunctions[i].get();
+            if (aggregateFunction->isFunctionDistinct()) {
+                auto distinctHT = distinctHashTables[i].get();
+                assert(distinctHT != nullptr);
+                if (distinctHT->isAggregateValueDistinctForGroupByKeys(
+                        vector<ValueVector*>{}, aggregateVectors[i])) {
+                    aggregateFunction->updateState((uint8_t*)localAggregateStates[i].get(),
+                        aggregateVectors[i], resultSet->multiplicity);
+                }
+            } else {
+                aggregateFunction->updateState((uint8_t*)localAggregateStates[i].get(),
+                    aggregateVectors[i], resultSet->multiplicity);
+            }
         }
     }
     sharedState->combineAggregateStates(localAggregateStates);

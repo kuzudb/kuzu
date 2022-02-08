@@ -11,6 +11,15 @@ BaseAggregateSharedState::BaseAggregateSharedState(
     }
 }
 
+bool BaseAggregate::containDistinctAggregate() const {
+    for (auto& aggregateFunction : aggregateFunctions) {
+        if (aggregateFunction->isFunctionDistinct()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 shared_ptr<ResultSet> BaseAggregate::initResultSet() {
     resultSet = children[0]->initResultSet();
     for (auto& dataPos : aggregateVectorsPos) {

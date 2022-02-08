@@ -11,6 +11,7 @@ cc_test(
     deps = [
         "//src/expression_evaluator:evaluator_impls",
         "//src/processor:mapper",
+        "//test/test_utility:aggregate_function_test_helper",
         "@gtest",
         "@gtest//:gtest_main",
     ],

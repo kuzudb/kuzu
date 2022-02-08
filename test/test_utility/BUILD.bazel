@@ -15,3 +15,17 @@ cc_library(
         "@gtest",
     ],
 )
+
+cc_library(
+    name = "aggregate_function_test_helper",
+    srcs = [
+        "aggregate_function_test_helper.cpp",
+    ],
+    hdrs = [
+        "include/aggregate_function_test_helper.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/function:aggregate_function",
+    ],
+)

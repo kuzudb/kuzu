@@ -1,5 +1,6 @@
 #include "src/planner/include/projection_enumerator.h"
 
+#include "src/binder/include/expression/function_expression.h"
 #include "src/planner/include/enumerator.h"
 #include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
 #include "src/planner/include/logical_plan/operator/distinct/logical_distinct.h"
@@ -130,6 +131,15 @@ void ProjectionEnumerator::appendAggregate(
         auto dependentGroupsPos =
             Enumerator::getDependentGroupsPos(expressionToGroupBy, *plan.schema);
         enumerator->appendFlattens(dependentGroupsPos, plan);
+    }
+    for (auto& expressionToAggregate : expressionsToAggregate) {
+        assert(isExpressionAggregate(expressionToAggregate->expressionType));
+        auto& functionExpression = (FunctionExpression&)*expressionToAggregate;
+        if (functionExpression.isFunctionDistinct()) {
+            auto dependentGroupsPos =
+                Enumerator::getDependentGroupsPos(expressionToAggregate, *plan.schema);
+            enumerator->appendFlattens(dependentGroupsPos, plan);
+        }
     }
     auto aggregate = make_shared<LogicalAggregate>(
         expressionsToGroupBy, expressionsToAggregate, plan.schema->copy(), plan.lastOperator);

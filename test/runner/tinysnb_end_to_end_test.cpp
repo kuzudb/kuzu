@@ -70,6 +70,9 @@ TEST_F(TinySnbProcessorTest, IntervalDataTypeTests) {
 
 TEST_F(TinySnbProcessorTest, AggregateTests) {
     vector<TestQueryConfig> queryConfigs;
+    queryConfigs =
+        TestHelper::parseTestFile("test/runner/queries/aggregate/distinct_aggregate.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/aggregate/distinct.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/aggregate/hash_aggregate.test");

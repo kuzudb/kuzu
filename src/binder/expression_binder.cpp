@@ -1,6 +1,7 @@
 #include "src/binder/include/expression_binder.h"
 
 #include "src/binder/include/expression/existential_subquery_expression.h"
+#include "src/binder/include/expression/function_expression.h"
 #include "src/binder/include/expression/literal_expression.h"
 #include "src/binder/include/expression/property_expression.h"
 #include "src/binder/include/expression/rel_expression.h"
@@ -302,7 +303,7 @@ shared_ptr<Expression> ExpressionBinder::bindFloorFunctionExpression(
     validateNumberOfChildren(parsedExpression, 1);
     auto child = bindExpression(*parsedExpression.children[0]);
     validateNumericOrUnstructured(*child);
-    return make_shared<Expression>(FLOOR_FUNC, child->dataType, move(child));
+    return make_shared<FunctionExpression>(FLOOR_FUNC, child->dataType, move(child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindCeilFunctionExpression(
@@ -310,7 +311,7 @@ shared_ptr<Expression> ExpressionBinder::bindCeilFunctionExpression(
     validateNumberOfChildren(parsedExpression, 1);
     auto child = bindExpression(*parsedExpression.children[0]);
     validateNumericOrUnstructured(*child);
-    return make_shared<Expression>(CEIL_FUNC, child->dataType, move(child));
+    return make_shared<FunctionExpression>(CEIL_FUNC, child->dataType, move(child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindAbsFunctionExpression(
@@ -318,13 +319,13 @@ shared_ptr<Expression> ExpressionBinder::bindAbsFunctionExpression(
     validateNumberOfChildren(parsedExpression, 1);
     auto child = bindExpression(*parsedExpression.children[0]);
     validateNumericOrUnstructured(*child);
-    return make_shared<Expression>(ABS_FUNC, child->dataType, move(child));
+    return make_shared<FunctionExpression>(ABS_FUNC, child->dataType, move(child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindCountStarFunctionExpression(
     const ParsedExpression& parsedExpression) {
     validateNumberOfChildren(parsedExpression, 0);
-    return make_shared<Expression>(COUNT_STAR_FUNC, INT64,
+    return make_shared<FunctionExpression>(COUNT_STAR_FUNC, INT64,
         queryBinder->getUniqueExpressionName(parsedExpression.getRawName()));
 }
 
@@ -332,7 +333,8 @@ shared_ptr<Expression> ExpressionBinder::bindCountFunctionExpression(
     const ParsedExpression& parsedExpression) {
     validateNumberOfChildren(parsedExpression, 1);
     auto child = bindExpression(*parsedExpression.children[0]);
-    return make_shared<Expression>(COUNT_FUNC, INT64, move(child));
+    return make_shared<FunctionExpression>(
+        COUNT_FUNC, INT64, move(child), parsedExpression.getIsDistinct());
 }
 
 shared_ptr<Expression> ExpressionBinder::bindAvgFunctionExpression(
@@ -340,14 +342,16 @@ shared_ptr<Expression> ExpressionBinder::bindAvgFunctionExpression(
     validateNumberOfChildren(parsedExpression, 1);
     auto child = bindExpression(*parsedExpression.children[0]);
     validateNumericOrUnstructured(*child);
-    return make_shared<Expression>(AVG_FUNC, DOUBLE, move(child));
+    return make_shared<FunctionExpression>(
+        AVG_FUNC, DOUBLE, move(child), parsedExpression.getIsDistinct());
 }
 
 shared_ptr<Expression> ExpressionBinder::bindSumMinMaxFunctionExpression(
     const ParsedExpression& parsedExpression, ExpressionType expressionType) {
     validateNumberOfChildren(parsedExpression, 1);
     auto child = bindExpression(*parsedExpression.children[0]);
-    return make_shared<Expression>(expressionType, child->dataType, move(child));
+    return make_shared<FunctionExpression>(
+        expressionType, child->dataType, move(child), parsedExpression.getIsDistinct());
 }
 
 shared_ptr<Expression> ExpressionBinder::bindIDFunctionExpression(
@@ -390,7 +394,7 @@ shared_ptr<Expression> ExpressionBinder::bindStringCastingFunctionExpression(
         auto literal = Literal(castFunction(literalVal.c_str(), literalVal.length()));
         return make_shared<LiteralExpression>(literalExpressionType, resultDataType, literal);
     }
-    return make_shared<Expression>(castExpressionType, resultDataType, move(child));
+    return make_shared<FunctionExpression>(castExpressionType, resultDataType, move(child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(

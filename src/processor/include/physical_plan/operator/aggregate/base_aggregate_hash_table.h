@@ -56,6 +56,9 @@ public:
     void append(const vector<ValueVector*>& groupByKeyVectors,
         const vector<ValueVector*>& aggregateVectors, uint64_t multiplicity);
 
+    bool isAggregateValueDistinctForGroupByKeys(
+        const vector<ValueVector*>& groupByKeyVectors, ValueVector* aggregateVector);
+
     //! merge aggregate hash table by combining aggregate states under the same key
     void merge(AggregateHashTable& other);
 
@@ -150,6 +153,17 @@ private:
     uint64_t bitmask;
     unique_ptr<MemoryBlock> hashSlotsBlock;
     HashSlot* hashSlots;
+
+    //! special handling of distinct aggregate
+    vector<unique_ptr<AggregateHashTable>> distinctHashTables;
+};
+
+class AggregateHashTableUtils {
+
+public:
+    static vector<unique_ptr<AggregateHashTable>> createDistinctHashTables(
+        MemoryManager& memoryManager, const vector<DataType>& groupByKeyDataTypes,
+        const vector<unique_ptr<AggregateFunction>>& aggregateFunctions);
 };
 
 } // namespace processor

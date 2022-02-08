@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/processor/include/physical_plan/operator/aggregate/base_aggregate.h"
+#include "src/processor/include/physical_plan/operator/aggregate/base_aggregate_hash_table.h"
 
 namespace graphflow {
 namespace processor {
@@ -44,6 +45,7 @@ public:
 private:
     shared_ptr<SimpleAggregateSharedState> sharedState;
     vector<unique_ptr<AggregateState>> localAggregateStates;
+    vector<unique_ptr<AggregateHashTable>> distinctHashTables;
 };
 
 } // namespace processor

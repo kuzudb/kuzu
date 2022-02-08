@@ -284,7 +284,7 @@ oC_ParenthesizedExpression
 
 oC_FunctionInvocation
     : oC_FunctionName SP? '(' SP? '*' SP? ')'
-        | oC_FunctionName SP? '(' SP? ( oC_Expression SP? ( ',' SP? oC_Expression SP? )* )? ')' ;
+        | oC_FunctionName SP? '(' SP? ( DISTINCT SP? )? ( oC_Expression SP? ( ',' SP? oC_Expression SP? )* )? ')' ;
 
 oC_FunctionName
     : oC_SymbolicName ;

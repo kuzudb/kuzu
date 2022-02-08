@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "test/test_utility/include/aggregate_function_test_helper.h"
 
 #include "src/common/include/utils.h"
 #include "src/function/include/aggregate/aggregate_function.h"
@@ -12,6 +13,7 @@ using ::testing::Test;
 
 using namespace graphflow::processor;
 using namespace graphflow::function;
+using namespace graphflow::testing;
 
 class AggrExpressionEvaluatorTest : public Test {
 
@@ -58,7 +60,8 @@ public:
 };
 
 TEST_F(AggrExpressionEvaluatorTest, CountStarTest) {
-    auto countFunction = AggregateFunctionUtil::getCountStarFunction();
+    auto countFunction = AggregateFunctionTestHelper::getAggregateFunction(COUNT_STAR_FUNC, INT64);
+    ;
     auto countStarState = static_unique_pointer_cast<AggregateState, BaseCountFunction::CountState>(
         countFunction->createInitialNullAggregateState());
     countFunction->updateState((uint8_t*)countStarState.get(), nullptr,
@@ -74,7 +77,7 @@ TEST_F(AggrExpressionEvaluatorTest, CountStarTest) {
 }
 
 TEST_F(AggrExpressionEvaluatorTest, CountTest) {
-    auto countFunction = AggregateFunctionUtil::getAggregateFunction(COUNT_FUNC, INT64);
+    auto countFunction = AggregateFunctionTestHelper::getAggregateFunction(COUNT_FUNC, INT64);
     auto countState = static_unique_pointer_cast<AggregateState, BaseCountFunction::CountState>(
         countFunction->createInitialNullAggregateState());
     countFunction->updateState(
@@ -89,7 +92,7 @@ TEST_F(AggrExpressionEvaluatorTest, CountTest) {
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64SumTest) {
-    auto sumFunction = AggregateFunctionUtil::getAggregateFunction(SUM_FUNC, INT64);
+    auto sumFunction = AggregateFunctionTestHelper::getAggregateFunction(SUM_FUNC, INT64);
     auto sumState = static_unique_pointer_cast<AggregateState, SumFunction<int64_t>::SumState>(
         sumFunction->createInitialNullAggregateState());
     sumFunction->updateState(
@@ -110,7 +113,7 @@ TEST_F(AggrExpressionEvaluatorTest, INT64SumTest) {
 }
 
 TEST_F(AggrExpressionEvaluatorTest, DOUBLESumTest) {
-    auto sumFunction = AggregateFunctionUtil::getAggregateFunction(SUM_FUNC, DOUBLE);
+    auto sumFunction = AggregateFunctionTestHelper::getAggregateFunction(SUM_FUNC, DOUBLE);
     auto sumState = static_unique_pointer_cast<AggregateState, SumFunction<double_t>::SumState>(
         sumFunction->createInitialNullAggregateState());
     sumFunction->updateState(
@@ -132,7 +135,7 @@ TEST_F(AggrExpressionEvaluatorTest, DOUBLESumTest) {
 }
 
 TEST_F(AggrExpressionEvaluatorTest, UNSTRSumTest) {
-    auto sumFunction = AggregateFunctionUtil::getAggregateFunction(SUM_FUNC, UNSTRUCTURED);
+    auto sumFunction = AggregateFunctionTestHelper::getAggregateFunction(SUM_FUNC, UNSTRUCTURED);
     auto sumState = static_unique_pointer_cast<AggregateState, SumFunction<Value>::SumState>(
         sumFunction->createInitialNullAggregateState());
     sumFunction->updateState(
@@ -153,7 +156,7 @@ TEST_F(AggrExpressionEvaluatorTest, UNSTRSumTest) {
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64AvgTest) {
-    auto avgFunction = AggregateFunctionUtil::getAggregateFunction(AVG_FUNC, INT64);
+    auto avgFunction = AggregateFunctionTestHelper::getAggregateFunction(AVG_FUNC, INT64);
     auto avgState = static_unique_pointer_cast<AggregateState, AvgFunction<int64_t>::AvgState>(
         avgFunction->createInitialNullAggregateState());
     avgFunction->updateState(
@@ -175,7 +178,7 @@ TEST_F(AggrExpressionEvaluatorTest, INT64AvgTest) {
 }
 
 TEST_F(AggrExpressionEvaluatorTest, DOUBLEAvgTest) {
-    auto avgFunction = AggregateFunctionUtil::getAggregateFunction(AVG_FUNC, DOUBLE);
+    auto avgFunction = AggregateFunctionTestHelper::getAggregateFunction(AVG_FUNC, DOUBLE);
     auto avgState = static_unique_pointer_cast<AggregateState, AvgFunction<double_t>::AvgState>(
         avgFunction->createInitialNullAggregateState());
     avgFunction->updateState(
@@ -198,7 +201,7 @@ TEST_F(AggrExpressionEvaluatorTest, DOUBLEAvgTest) {
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64MaxTest) {
-    auto maxFunction = AggregateFunctionUtil::getAggregateFunction(MAX_FUNC, INT64);
+    auto maxFunction = AggregateFunctionTestHelper::getAggregateFunction(MAX_FUNC, INT64);
     auto maxState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<int64_t>::MinMaxState>(
             maxFunction->createInitialNullAggregateState());
@@ -215,7 +218,7 @@ TEST_F(AggrExpressionEvaluatorTest, INT64MaxTest) {
 }
 
 TEST_F(AggrExpressionEvaluatorTest, DOUBLEMaxTest) {
-    auto maxFunction = AggregateFunctionUtil::getAggregateFunction(MAX_FUNC, DOUBLE);
+    auto maxFunction = AggregateFunctionTestHelper::getAggregateFunction(MAX_FUNC, DOUBLE);
     auto maxState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<double_t>::MinMaxState>(
             maxFunction->createInitialNullAggregateState());
@@ -232,7 +235,7 @@ TEST_F(AggrExpressionEvaluatorTest, DOUBLEMaxTest) {
 }
 
 TEST_F(AggrExpressionEvaluatorTest, STRINGMaxTest) {
-    auto maxFunction = AggregateFunctionUtil::getAggregateFunction(MAX_FUNC, STRING);
+    auto maxFunction = AggregateFunctionTestHelper::getAggregateFunction(MAX_FUNC, STRING);
     auto maxState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<gf_string_t>::MinMaxState>(
             maxFunction->createInitialNullAggregateState());
@@ -251,7 +254,7 @@ TEST_F(AggrExpressionEvaluatorTest, STRINGMaxTest) {
 }
 
 TEST_F(AggrExpressionEvaluatorTest, UNSTRMaxTest) {
-    auto maxFunction = AggregateFunctionUtil::getAggregateFunction(MAX_FUNC, UNSTRUCTURED);
+    auto maxFunction = AggregateFunctionTestHelper::getAggregateFunction(MAX_FUNC, UNSTRUCTURED);
     auto maxState = static_unique_pointer_cast<AggregateState, MinMaxFunction<Value>::MinMaxState>(
         maxFunction->createInitialNullAggregateState());
     maxFunction->updateState(
@@ -267,7 +270,7 @@ TEST_F(AggrExpressionEvaluatorTest, UNSTRMaxTest) {
 }
 
 TEST_F(AggrExpressionEvaluatorTest, INT64MinTest) {
-    auto minFunction = AggregateFunctionUtil::getAggregateFunction(MIN_FUNC, INT64);
+    auto minFunction = AggregateFunctionTestHelper::getAggregateFunction(MIN_FUNC, INT64);
     auto minState =
         static_unique_pointer_cast<AggregateState, MinMaxFunction<int64_t>::MinMaxState>(
             minFunction->createInitialNullAggregateState());

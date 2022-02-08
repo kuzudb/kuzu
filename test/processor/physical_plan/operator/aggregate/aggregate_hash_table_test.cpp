@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "test/test_utility/include/aggregate_function_test_helper.h"
 
 #include "src/function/include/aggregate/avg.h"
 #include "src/function/include/aggregate/count.h"
@@ -9,6 +10,7 @@
 using ::testing::Test;
 using namespace graphflow::function;
 using namespace graphflow::processor;
+using namespace graphflow::testing;
 
 class AggregateHashTableTest : public Test {
 
@@ -53,8 +55,8 @@ public:
 
 TEST_F(AggregateHashTableTest, SingleGroupTest) {
     vector<unique_ptr<AggregateFunction>> aggregates;
-    auto countAggregate = AggregateFunctionUtil::getCountStarFunction();
-    auto sumAggregate = AggregateFunctionUtil::getAggregateFunction(SUM_FUNC, INT64);
+    auto countAggregate = AggregateFunctionTestHelper::getAggregateFunction(COUNT_STAR_FUNC, INT64);
+    auto sumAggregate = AggregateFunctionTestHelper::getAggregateFunction(SUM_FUNC, INT64);
     auto countState = countAggregate->createInitialNullAggregateState();
     auto sumState = sumAggregate->createInitialNullAggregateState();
     aggregates.push_back(move(countAggregate));
@@ -87,8 +89,8 @@ TEST_F(AggregateHashTableTest, SingleGroupTest) {
 
 TEST_F(AggregateHashTableTest, TwoGroupsTest) {
     vector<unique_ptr<AggregateFunction>> aggregates;
-    auto countAggregate = AggregateFunctionUtil::getAggregateFunction(COUNT_FUNC, INT64);
-    auto avgAggregate = AggregateFunctionUtil::getAggregateFunction(AVG_FUNC, INT64);
+    auto countAggregate = AggregateFunctionTestHelper::getAggregateFunction(COUNT_FUNC, INT64);
+    auto avgAggregate = AggregateFunctionTestHelper::getAggregateFunction(AVG_FUNC, INT64);
     auto count1State = countAggregate->createInitialNullAggregateState();
     auto count2State = avgAggregate->createInitialNullAggregateState();
     aggregates.push_back(move(countAggregate));
