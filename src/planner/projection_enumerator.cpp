@@ -112,7 +112,7 @@ void ProjectionEnumerator::appendDistinct(
     const vector<shared_ptr<Expression>>& expressionsToDistinct, LogicalPlan& plan) {
     for (auto& expression : expressionsToDistinct) {
         auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *plan.schema);
-        enumerator->appendFlattens(dependentGroupsPos, plan);
+        Enumerator::appendFlattens(dependentGroupsPos, plan);
     }
     auto distinct =
         make_shared<LogicalDistinct>(expressionsToDistinct, plan.schema->copy(), plan.lastOperator);

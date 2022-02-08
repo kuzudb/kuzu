@@ -23,6 +23,9 @@ public:
     void enumerateProjectionBody(const BoundProjectionBody& projectionBody,
         const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn);
 
+    static void appendDistinct(
+        const vector<shared_ptr<Expression>>& expressionsToDistinct, LogicalPlan& plan);
+
 private:
     void enumerateAggregate(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
     void enumerateOrderBy(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
@@ -32,8 +35,6 @@ private:
 
     void appendProjection(
         const vector<shared_ptr<Expression>>& expressionsToProject, LogicalPlan& plan);
-    void appendDistinct(
-        const vector<shared_ptr<Expression>>& expressionsToDistinct, LogicalPlan& plan);
     void appendAggregate(const vector<shared_ptr<Expression>>& expressionsToGroupBy,
         const vector<shared_ptr<Expression>>& expressionsToAggregate, LogicalPlan& plan);
     void appendOrderBy(const vector<shared_ptr<Expression>>& expressions,

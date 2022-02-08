@@ -20,7 +20,8 @@ unique_ptr<LogicalPlan> Planner::getBestPlan(const Graph& graph, const BoundRegu
             logicalPlan->cost += childPlan->cost;
             childrenPlans.push_back(move(childPlan));
         }
-        Enumerator::appendLogicalUnionAll(childrenPlans, *logicalPlan);
+        Enumerator::appendLogicalUnionAndDistinctIfNecessary(
+            childrenPlans, *logicalPlan, query.getIsUnionAll(0));
         Enumerator::appendLogicalResultCollector(*logicalPlan);
         return logicalPlan;
     }
@@ -70,12 +71,14 @@ vector<unique_ptr<LogicalPlan>> Planner::getAllPlans(
         }
         auto childrenPlans = cartesianProductChildrenPlans(move(childrenLogicalPlans));
         vector<unique_ptr<LogicalPlan>> resultPlans;
-        for (auto& childrenPlan : childrenPlans) {
+        for (auto i = 0u; i < childrenPlans.size(); i++) {
+            auto& childPlan = childrenPlans[i];
             auto logicalPlan = make_unique<LogicalPlan>();
-            for (auto& childPlan : childrenPlan) {
-                logicalPlan->cost += childPlan->cost;
+            for (auto& plan : childPlan) {
+                logicalPlan->cost += plan->cost;
             }
-            Enumerator::appendLogicalUnionAll(childrenPlan, *logicalPlan);
+            Enumerator::appendLogicalUnionAndDistinctIfNecessary(
+                childPlan, *logicalPlan, query.getIsUnionAll(0));
             Enumerator::appendLogicalResultCollector(*logicalPlan);
             resultPlans.push_back(move(logicalPlan));
         }

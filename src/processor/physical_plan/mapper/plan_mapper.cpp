@@ -22,7 +22,7 @@
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
 #include "src/planner/include/logical_plan/operator/select_scan/logical_result_scan.h"
 #include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
-#include "src/planner/include/logical_plan/operator/union_all/logical_union_all.h"
+#include "src/planner/include/logical_plan/operator/union/logical_union.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate_scan.h"
@@ -577,7 +577,7 @@ unique_ptr<ResultCollector> PlanMapper::mapLogicalResultCollectorToPhysical(
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
-    auto& unionAll = (LogicalUnionAll&)*logicalOperator;
+    auto& unionAll = (LogicalUnion&)*logicalOperator;
 
     vector<DataPos> outDataPoses;
     for (auto& expression : unionAll.getExpressionsToUnion()) {

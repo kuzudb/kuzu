@@ -42,7 +42,8 @@ oC_RegularQuery
         ;
 
 oC_Union
-     :  ( UNION SP ALL SP? oC_SingleQuery ) ;
+     :  ( UNION SP ALL SP? oC_SingleQuery )
+         | ( UNION SP? oC_SingleQuery ) ;
 
 UNION : ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ;
 

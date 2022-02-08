@@ -11,11 +11,12 @@ namespace graphflow {
 namespace binder {
 
 unique_ptr<BoundRegularQuery> QueryBinder::bind(const RegularQuery& regularQuery) {
-    auto boundRegularQuery = make_unique<BoundRegularQuery>();
+    auto boundRegularQuery = make_unique<BoundRegularQuery>(regularQuery.getIsUnionAll());
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
         boundRegularQuery->addBoundSingleQuery(bindSingleQuery(*regularQuery.getSingleQuery(i)));
     }
     validateUnionColumnsOfTheSameType(*boundRegularQuery);
+    validateIsAllUnionOrUnionAll(*boundRegularQuery);
     return boundRegularQuery;
 }
 
@@ -369,6 +370,7 @@ void QueryBinder::validateUnionColumnsOfTheSameType(const BoundRegularQuery& reg
     if (regularQuery.getNumBoundSingleQueries() <= 1) {
         return;
     }
+
     auto expressionsToProject = regularQuery.getBoundSingleQuery(0)->getExpressionsToReturn();
     for (auto i = 1u; i < regularQuery.getNumBoundSingleQueries(); i++) {
         auto expressionsToProjectToCheck =
@@ -383,6 +385,17 @@ void QueryBinder::validateUnionColumnsOfTheSameType(const BoundRegularQuery& reg
             ExpressionBinder::validateExpectedDataType(
                 *expressionsToProjectToCheck[j], expectedDataTypes);
         }
+    }
+}
+
+void QueryBinder::validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery) {
+    auto unionAllExpressionCounter = 0u;
+    for (auto i = 0u; i < regularQuery.getNumBoundSingleQueries() - 1; i++) {
+        unionAllExpressionCounter += regularQuery.getIsUnionAll(i);
+    }
+    if ((0 < unionAllExpressionCounter) &&
+        (unionAllExpressionCounter < regularQuery.getNumBoundSingleQueries() - 1)) {
+        throw invalid_argument("Union and union all can't be used together in a query!");
     }
 }
 

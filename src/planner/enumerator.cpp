@@ -335,21 +335,21 @@ void Enumerator::computeSchemaForHashJoinAndOrderByAndUnionAll(
     }
 }
 
-void Enumerator::appendLogicalUnionAll(
-    vector<unique_ptr<LogicalPlan>>& childrenPlans, LogicalPlan& logicalPlan) {
-    shared_ptr<LogicalUnionAll> logicalUnionAll = make_shared<LogicalUnionAll>();
+void Enumerator::appendLogicalUnionAndDistinctIfNecessary(
+    vector<unique_ptr<LogicalPlan>>& childrenPlans, LogicalPlan& logicalPlan, bool isUnionAll) {
+    shared_ptr<LogicalUnion> logicalUnion = make_shared<LogicalUnion>();
     for (auto i = 0u; i < childrenPlans.size(); i++) {
         if (i == 0) {
             logicalPlan.setExpressionsToCollect(childrenPlans[i]->getExpressionsToCollect());
-            logicalUnionAll->setExpressionsToUnion(logicalPlan.getExpressionsToCollect());
+            logicalUnion->setExpressionsToUnion(logicalPlan.getExpressionsToCollect());
             Enumerator::computeSchemaForHashJoinAndOrderByAndUnionAll(
                 childrenPlans[i]->schema->getGroupsPosInScope(), *childrenPlans[i]->schema,
                 *logicalPlan.schema);
-            logicalPlan.lastOperator = logicalUnionAll;
+            logicalPlan.lastOperator = logicalUnion;
 
             // If an expression to union has different flat/unflat state in different child, we
             // need to flatten that expression in all the single queries.
-            for (auto j = 0u; j < logicalUnionAll->getExpressionsToUnion().size(); j++) {
+            for (auto j = 0u; j < logicalUnion->getExpressionsToUnion().size(); j++) {
                 bool hasFlatExpression = false;
                 for (auto& childPlan : childrenPlans) {
                     bool isExpressionInChildPlanFlat =
@@ -373,7 +373,10 @@ void Enumerator::appendLogicalUnionAll(
         // The returned logicalPlans don't contain the logicalResultCollector as their last
         // operator. We need to append a logicalResultCollector to each returned logicalPlan.
         appendLogicalResultCollector(*childrenPlans[i]);
-        logicalUnionAll->addChild(childrenPlans[i]->lastOperator);
+        logicalUnion->addChild(childrenPlans[i]->lastOperator);
+    }
+    if (!isUnionAll) {
+        ProjectionEnumerator::appendDistinct(logicalUnion->getExpressionsToUnion(), logicalPlan);
     }
 }
 

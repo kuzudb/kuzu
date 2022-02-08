@@ -223,3 +223,10 @@ TEST_F(BinderErrorTest, UnionAllUnmatchedDataTypesOfExpressions) {
     auto input = "MATCH (p:person) RETURN p.name UNION ALL MATCH (p1:person) RETURN p1.age";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, UnionAndUnionAllInSingleQuery) {
+    string expectedException = "Union and union all can't be used together in a query!";
+    auto input = "MATCH (p:person) RETURN p.age UNION ALL MATCH (p1:person) RETURN p1.age UNION "
+                 "MATCH (p1:person) RETURN p1.age";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

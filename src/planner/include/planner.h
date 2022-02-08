@@ -22,9 +22,6 @@ public:
 private:
     static unique_ptr<LogicalPlan> optimize(unique_ptr<LogicalPlan> plan);
 
-    static unique_ptr<LogicalPlan> getLogicalPlanFromChildrenPlans(
-        vector<unique_ptr<LogicalPlan>> childrenLogicalPlans);
-
     static vector<vector<unique_ptr<LogicalPlan>>> cartesianProductChildrenPlans(
         vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans);
 };
