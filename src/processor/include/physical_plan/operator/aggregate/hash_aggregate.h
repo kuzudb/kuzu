@@ -19,8 +19,6 @@ public:
 
     void finalizeAggregateHashTable();
 
-    bool hasMoreToRead() override;
-
     pair<uint64_t, uint64_t> getNextRangeToRead() override;
 
     inline uint8_t* getRow(uint64_t id) { return globalAggregateHashTable->getEntry(id); }

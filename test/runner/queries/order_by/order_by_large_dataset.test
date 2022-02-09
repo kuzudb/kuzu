@@ -1,6 +1,6 @@
 -NAME OrderByWithLimitTest
 -QUERY MATCH (p:person) RETURN p.balance ORDER BY p.balance limit 25
--PARALLELISM 4
+-PARALLELISM 6
 ---- 25
 -499973
 -499962

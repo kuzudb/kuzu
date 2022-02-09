@@ -17,11 +17,11 @@ shared_ptr<ResultSet> HashAggregateScan::initResultSet() {
 
 bool HashAggregateScan::getNextTuples() {
     metrics->executionTime.start();
-    if (!sharedState->hasMoreToRead()) {
+    auto [startOffset, endOffset] = sharedState->getNextRangeToRead();
+    if (startOffset >= endOffset) {
         metrics->executionTime.stop();
         return false;
     }
-    auto [startOffset, endOffset] = sharedState->getNextRangeToRead();
     auto numRowsToScan = endOffset - startOffset;
     for (auto pos = 0u; pos < numRowsToScan; ++pos) {
         auto entry = sharedState->getRow(startOffset + pos);

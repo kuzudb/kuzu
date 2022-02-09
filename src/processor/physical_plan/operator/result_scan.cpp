@@ -49,14 +49,8 @@ bool ResultScan::getNextTuples() {
                 continue;
             }
             auto elementSize = TypeUtils::getDataTypeSize(inValueVector.dataType);
-            if (inValueVector.dataType == NODE && inValueVector.isSequence) {
-                auto nodeID = ((nodeID_t*)inValueVector.values)[0];
-                nodeID.offset = nodeID.offset + pos;
-                memcpy(&outValueVector->values[0], &nodeID, elementSize);
-            } else {
-                memcpy(&outValueVector->values[0], inValueVector.values + pos * elementSize,
-                    elementSize);
-            }
+            memcpy(
+                &outValueVector->values[0], inValueVector.values + pos * elementSize, elementSize);
             outValueVector->setNull(0, false /* isNull */);
         }
         outDataChunk->state->initOriginalAndSelectedSize(1);

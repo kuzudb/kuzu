@@ -5,7 +5,6 @@
 #include "src/common/include/data_chunk/data_chunk_state.h"
 #include "src/common/include/types.h"
 #include "src/common/include/vector/string_buffer.h"
-#include "src/processor/include/physical_plan/operator/morsel.h"
 #include "src/processor/include/physical_plan/operator/order_by/radix_sort.h"
 #include "src/processor/include/physical_plan/operator/sink.h"
 #include "src/processor/include/physical_plan/result/factorized_table.h"

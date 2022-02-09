@@ -72,8 +72,7 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToU
     const Expression& expression, ExecutionContext& executionContext) {
     auto& literalExpression = (LiteralExpression&)expression;
     // We create an owner dataChunk which is flat and of size 1 to contain the literal.
-    auto vector = make_shared<ValueVector>(
-        executionContext.memoryManager, UNSTRUCTURED, true /* isSingleValue */);
+    auto vector = make_shared<ValueVector>(executionContext.memoryManager, UNSTRUCTURED);
     vector->state = DataChunkState::getSingleValueDataChunkState();
     vector->addLiteralToUnstructuredVector(0, literalExpression.literal);
     return make_unique<ExpressionEvaluator>(vector, expression.expressionType);
@@ -83,8 +82,8 @@ unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToS
     const Expression& expression, ExecutionContext& executionContext) {
     auto& literalExpression = (LiteralExpression&)expression;
     // We create an owner dataChunk which is flat and of size 1 to contain the literal.
-    auto vector = make_shared<ValueVector>(
-        executionContext.memoryManager, literalExpression.dataType, true /* isSingleValue */);
+    auto vector =
+        make_shared<ValueVector>(executionContext.memoryManager, literalExpression.dataType);
     vector->state = DataChunkState::getSingleValueDataChunkState();
     switch (expression.dataType) {
     case INT64: {

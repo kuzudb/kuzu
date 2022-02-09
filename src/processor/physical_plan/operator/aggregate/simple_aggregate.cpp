@@ -28,15 +28,14 @@ void SimpleAggregateSharedState::finalizeAggregateStates() {
     }
 }
 
-bool SimpleAggregateSharedState::hasMoreToRead() {
-    auto lck = acquireLock();
-    return currentOffset < 1;
-}
-
 pair<uint64_t, uint64_t> SimpleAggregateSharedState::getNextRangeToRead() {
     auto lck = acquireLock();
-    auto startOffset = currentOffset++;
-    return make_pair(startOffset, startOffset);
+    if (currentOffset >= 1) {
+        return make_pair(currentOffset, currentOffset);
+    }
+    auto startOffset = currentOffset;
+    currentOffset++;
+    return make_pair(startOffset, currentOffset);
 }
 
 SimpleAggregate::SimpleAggregate(shared_ptr<SimpleAggregateSharedState> sharedState,
