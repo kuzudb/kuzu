@@ -180,14 +180,8 @@ void OrderByKeyEncoder::encodeData(shared_ptr<ValueVector>& orderByVector,
 }
 
 void OrderByKeyEncoder::encodeKeys() {
-    uint64_t numEntries = 0;
-    if (orderByVectors[0]->state->isFlat()) {
-        numEntries = 1;
-    } else {
-        // We only allow an input key vector to be unflat if there is a single order by column.
-        GF_ASSERT(orderByVectors.size() == 1);
-        numEntries = orderByVectors[0]->state->selectedSize;
-    }
+    auto numEntries =
+        orderByVectors[0]->state->isFlat() ? 1 : orderByVectors[0]->state->selectedSize;
     // Check whether the nextLocalTupleIdx overflows.
     if (nextLocalTupleIdx + numEntries - 1 > MAX_LOCAL_TUPLE_IDX) {
         throw EncodingException("Attempting to order too many tuples. The orderByKeyEncoder has "
@@ -211,8 +205,8 @@ void OrderByKeyEncoder::encodeKeys() {
                 encodeData(orderByVectors[keyColIdx], idxInOrderByVector, keyBlockPtr, keyColIdx);
                 keyBlockPtrOffset += getEncodingSize(orderByVectors[keyColIdx]->dataType);
             }
-            // Since only the lower 6 bytes of nextLocalTupleIdx is actually used, we only need to
-            // encode the lower 6 bytes.
+            // Since only the lower 6 bytes of nextLocalTupleIdx is actually used, we only need
+            // to encode the lower 6 bytes.
             memcpy(
                 basePtr + keyBlockPtrOffset, &nextLocalTupleIdx, getEncodedTupleIdxSizeInBytes());
             // 2 bytes encoding for factorizedTableIdx
