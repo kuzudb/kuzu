@@ -9,9 +9,16 @@ class LogicalScanRelProperty : public LogicalScanProperty {
 
 public:
     LogicalScanRelProperty(string boundNodeID, label_t boundNodeLabel, string nbrNodeID,
-        label_t relLabel, Direction direction, string propertyExpressionName, uint32_t propertyKey,
+        label_t relLabel, Direction direction, string propertyName, uint32_t propertyKey,
         bool isColumn, shared_ptr<LogicalOperator> child)
-        : LogicalScanProperty{move(propertyExpressionName), propertyKey, move(child)},
+        : LogicalScanRelProperty{move(boundNodeID), boundNodeLabel, move(nbrNodeID), relLabel,
+              direction, vector<string>{propertyName}, vector<uint32_t>{propertyKey}, isColumn,
+              move(child)} {}
+
+    LogicalScanRelProperty(string boundNodeID, label_t boundNodeLabel, string nbrNodeID,
+        label_t relLabel, Direction direction, vector<string> propertyNames,
+        vector<uint32_t> propertyKeys, bool isColumn, shared_ptr<LogicalOperator> child)
+        : LogicalScanProperty{move(propertyNames), move(propertyKeys), move(child)},
           boundNodeID{move(boundNodeID)}, boundNodeLabel{boundNodeLabel},
           nbrNodeID{move(nbrNodeID)}, relLabel{relLabel}, direction{direction}, isColumn{isColumn} {
     }
@@ -20,12 +27,24 @@ public:
         return LogicalOperatorType::LOGICAL_SCAN_REL_PROPERTY;
     }
 
+    inline string getBoundNodeID() const { return boundNodeID; }
+
+    inline label_t getBoundNodeLabel() const { return boundNodeLabel; }
+
+    inline string getNbrNodeID() const { return nbrNodeID; }
+
+    inline label_t getRelLabel() const { return relLabel; }
+
+    inline Direction getDirection() const { return direction; }
+
+    inline bool getIsColumn() const { return isColumn; }
+
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalScanRelProperty>(boundNodeID, boundNodeLabel, nbrNodeID, relLabel,
-            direction, propertyExpressionName, propertyKey, isColumn, children[0]->copy());
+            direction, propertyNames, propertyKeys, isColumn, children[0]->copy());
     }
 
-public:
+private:
     string boundNodeID;
     label_t boundNodeLabel;
     string nbrNodeID;

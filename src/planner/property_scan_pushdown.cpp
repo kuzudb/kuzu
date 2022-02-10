@@ -15,6 +15,56 @@
 namespace graphflow {
 namespace planner {
 
+static vector<shared_ptr<LogicalScanNodeProperty>> getAllScanNodeProperties(
+    const vector<shared_ptr<LogicalOperator>>& scanProperties, bool isUnstructured) {
+    vector<shared_ptr<LogicalScanNodeProperty>> result;
+    for (auto& scanProperty : scanProperties) {
+        if (scanProperty->getLogicalOperatorType() == LOGICAL_SCAN_NODE_PROPERTY) {
+            auto scanNodeProperty = static_pointer_cast<LogicalScanNodeProperty>(scanProperty);
+            if (scanNodeProperty->getIsUnstructured() == isUnstructured) {
+                result.push_back(scanNodeProperty);
+            }
+        }
+    }
+    return result;
+}
+
+static vector<shared_ptr<LogicalScanRelProperty>> getAllScanRelProperties(
+    const vector<shared_ptr<LogicalOperator>>& scanProperties) {
+    vector<shared_ptr<LogicalScanRelProperty>> result;
+    for (auto& scanProperty : scanProperties) {
+        if (scanProperty->getLogicalOperatorType() == LOGICAL_SCAN_REL_PROPERTY) {
+            auto scanRelProperty = static_pointer_cast<LogicalScanRelProperty>(scanProperty);
+            result.push_back(scanRelProperty);
+        }
+    }
+    return result;
+}
+
+static shared_ptr<LogicalScanNodeProperty> mergeScanNodeProperties(
+    const vector<shared_ptr<LogicalScanNodeProperty>>& scanNodeProperties,
+    shared_ptr<LogicalOperator> child) {
+    assert(!scanNodeProperties.empty());
+    auto nodeID = scanNodeProperties[0]->getNodeID();
+    auto nodeLabel = scanNodeProperties[0]->getNodeLabel();
+    auto isUnstructured = scanNodeProperties[0]->getIsUnstructured();
+    vector<string> mergedPropertyNames;
+    vector<uint32_t> mergedPropertyKeys;
+    for (auto& scanNodeProperty : scanNodeProperties) {
+        assert(nodeID == scanNodeProperty->getNodeID());
+        assert(nodeLabel == scanNodeProperty->getNodeLabel());
+        assert(isUnstructured == scanNodeProperty->getIsUnstructured());
+        auto propertyNames = scanNodeProperty->getPropertyNames();
+        auto propertyKeys = scanNodeProperty->getPropertyKeys();
+        assert(1 == propertyNames.size());
+        assert(1 == propertyKeys.size());
+        mergedPropertyNames.push_back(propertyNames[0]);
+        mergedPropertyKeys.push_back(propertyKeys[0]);
+    }
+    return make_shared<LogicalScanNodeProperty>(nodeID, nodeLabel, move(mergedPropertyNames),
+        move(mergedPropertyKeys), isUnstructured, move(child));
+}
+
 shared_ptr<LogicalOperator> PropertyScanPushDown::rewrite(
     shared_ptr<LogicalOperator> op, Schema& schema) {
     switch (op->getLogicalOperatorType()) {
@@ -61,16 +111,18 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteExtend(
 shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteScanNodeProperty(
     const shared_ptr<LogicalOperator>& op, Schema& schema) {
     auto& scanNodeProperty = (LogicalScanNodeProperty&)*op;
-    addPropertyScan(scanNodeProperty.nodeID, op);
-    schema.removeExpression(scanNodeProperty.getPropertyExpressionName());
+    addPropertyScan(scanNodeProperty.getNodeID(), op);
+    assert(scanNodeProperty.getPropertyNames().size() == 1);
+    schema.removeExpression(scanNodeProperty.getPropertyNames()[0]);
     return rewrite(scanNodeProperty.getChild(0), schema);
 }
 
 shared_ptr<LogicalOperator> PropertyScanPushDown::rewriteScanRelProperty(
     const shared_ptr<LogicalOperator>& op, Schema& schema) {
     auto& scanRelProperty = (LogicalScanRelProperty&)*op;
-    addPropertyScan(scanRelProperty.nbrNodeID, op);
-    schema.removeExpression(scanRelProperty.getPropertyExpressionName());
+    addPropertyScan(scanRelProperty.getNbrNodeID(), op);
+    assert(scanRelProperty.getPropertyNames().size() == 1);
+    schema.removeExpression(scanRelProperty.getPropertyNames()[0]);
     return rewrite(scanRelProperty.getChild(0), schema);
 }
 
@@ -143,17 +195,29 @@ shared_ptr<LogicalOperator> PropertyScanPushDown::applyPropertyScansIfNecessary(
         return op;
     }
     auto& propertyScans = nodeIDToPropertyScansMap.at(nodeID);
-    // chain property scans
-    for (auto i = 0u; i < propertyScans.size() - 1; ++i) {
-        propertyScans[i]->setChild(0, propertyScans[i + 1]);
+    auto result = op;
+    auto structuredScanNodeProperties =
+        getAllScanNodeProperties(propertyScans, false /* isUnstructured */);
+    if (!structuredScanNodeProperties.empty()) {
+        result = mergeScanNodeProperties(structuredScanNodeProperties, result);
     }
-    propertyScans.back()->setChild(0, op);
-    auto result = propertyScans[0];
+    auto unstructuredScanNodeProperties =
+        getAllScanNodeProperties(propertyScans, true /* isUnstructured */);
+    if (!unstructuredScanNodeProperties.empty()) {
+        result = mergeScanNodeProperties(unstructuredScanNodeProperties, result);
+    }
+    auto scanRelProperties = getAllScanRelProperties(propertyScans);
+    for (auto& scanRelProperty : scanRelProperties) {
+        scanRelProperty->setChild(0, result);
+        result = scanRelProperty;
+    }
     // update schema
     auto groupPos = schema.getGroupPos(nodeID);
     for (auto& propertyScan : propertyScans) {
         auto& scanProperty = (LogicalScanProperty&)*propertyScan;
-        schema.insertToGroup(scanProperty.getPropertyExpressionName(), groupPos);
+        for (auto& propertyName : scanProperty.getPropertyNames()) {
+            schema.insertToGroup(propertyName, groupPos);
+        }
     }
     nodeIDToPropertyScansMap.erase(nodeID);
     rewriteChildrenOperators(op, schema);
@@ -185,7 +249,9 @@ void PropertyScanPushDown::addPropertyScansToSchema(Schema& schema) {
         auto groupPos = schema.getGroupPos(nodeID);
         for (auto& propertyScanner : propertyScanners) {
             auto& scanProperty = (LogicalScanProperty&)*propertyScanner;
-            schema.insertToGroup(scanProperty.getPropertyExpressionName(), groupPos);
+            for (auto& propertyName : scanProperty.getPropertyNames()) {
+                schema.insertToGroup(propertyName, groupPos);
+            }
         }
     }
 }
@@ -195,7 +261,9 @@ unordered_set<string> PropertyScanPushDown::getRemainingPropertyExpressionNames(
     for (auto& [nodeID, propertyScanners] : nodeIDToPropertyScansMap) {
         for (auto& propertyScanner : propertyScanners) {
             auto& scanProperty = (LogicalScanProperty&)*propertyScanner;
-            result.insert(scanProperty.getPropertyExpressionName());
+            for (auto& propertyName : scanProperty.getPropertyNames()) {
+                result.insert(propertyName);
+            }
         }
     }
     return result;
