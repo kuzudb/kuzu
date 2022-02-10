@@ -16,19 +16,15 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
         auto dataChunk = this->resultSet->dataChunks[dataChunkPos];
         auto vectorPos = orderByDataInfo.allDataPoses[i].valueVectorPos;
         auto vector = dataChunk->valueVectors[vectorPos];
-
-        // Check whether this col is an orderBy key column.
-        bool isKeyCol = false;
-        for (auto dataPos : orderByDataInfo.keyDataPoses) {
-            if (orderByDataInfo.allDataPoses[i] == dataPos) {
-                isKeyCol = true;
-            }
+        bool flattenAllColumnsInFactorizedTable = false;
+        // The orderByKeyEncoder requires that the orderByKey columns are flat in the
+        // factorizedTable. If there is only one unflat dataChunk, we need to flatten the payload
+        // columns in factorizedTable because the payload and key columns are in the same
+        // dataChunk.
+        if (resultSet->dataChunks.size() == 1) {
+            flattenAllColumnsInFactorizedTable = true;
         }
-
-        // The column is an unflat column in the factorizedTable
-        // if it is an unflat payload column. We store a pointer to the overflow
-        // valueVector in the factorizedTable for unflat columns.
-        bool isUnflat = (!isKeyCol) && (!orderByDataInfo.isVectorFlat[i]);
+        bool isUnflat = !orderByDataInfo.isVectorFlat[i] && !flattenAllColumnsInFactorizedTable;
         tupleSchema.appendColumn({vector->dataType, isUnflat, dataChunkPos});
         vectorsToAppend.push_back(vector);
     }
@@ -78,13 +74,17 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
 void OrderBy::execute() {
     metrics->executionTime.start();
     Sink::execute();
-    // Append thread-local tuples
+    // Append thread-local tuples.
     while (children[0]->getNextTuples()) {
         for (auto i = 0u; i < resultSet->multiplicity; i++) {
             orderByKeyEncoder->encodeKeys();
-            // If there is only one unflat orderBy key col, then we flatten the unflat orderBy key
-            // col in factorizedTable. Each thread uses a unique identifier: factorizedTableIdx to
-            // get its private factorizedTable, and only appends tuples to that factorizedTable.
+            // The orderByKeyEncoder requires that the orderByKey columns are flat in the
+            // factorizedTable. If there is a single dataChunk (unflat or not), it means all the key
+            // columns and payload columns are in the same datachunk. Since we need to flatten key
+            // columns, we flatten all columns in the factorized table. If there are multiple
+            // datachunks, then the datachunks that the keys belong to are guaranteed by the
+            // frontend to be flattened (see ProjectionEnumerator), so a column is flat in
+            // factorized table if and only if its corresponding vector is flat.
             localFactorizedTable->append(vectorsToAppend,
                 keyVectors[0]->state->isFlat() ? 1 : keyVectors[0]->state->selectedSize);
         }

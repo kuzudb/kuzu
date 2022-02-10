@@ -82,9 +82,7 @@ TEST_F(PlannerTest, OrderByTest1) {
     auto op2 = op1->getChild(0).get();
     ASSERT_EQ(LOGICAL_ORDER_BY, op2->getLogicalOperatorType());
     auto op3 = op2->getChild(0).get();
-    ASSERT_EQ(LOGICAL_FLATTEN, op3->getLogicalOperatorType());
-    auto op4 = op3->getChild(0).get();
-    ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op4->getLogicalOperatorType());
+    ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op3->getLogicalOperatorType());
 }
 
 // best order a,b

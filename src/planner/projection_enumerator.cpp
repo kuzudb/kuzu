@@ -159,8 +159,23 @@ void ProjectionEnumerator::appendOrderBy(const vector<shared_ptr<Expression>>& e
     vector<string> orderByExpressionNames;
     for (auto& expression : expressions) {
         enumerator->appendScanPropertiesAndPlanSubqueryIfNecessary(expression, plan);
-        auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *plan.schema);
-        enumerator->appendFlattens(dependentGroupsPos, plan);
+        // We only allow orderby key(s) to be unflat, if they are all part of the same factorization
+        // group and there is no other factorized group in the schema, so any payload is also unflat
+        // and part of the same factorization group. The rationale for this limitation is this: (1)
+        // to keep both the frontend and orderby operators simpler, we want order by to not change
+        // the schema, so the input and output of order by should have the same factorization
+        // structure. (2) Because orderby needs to flatten the keys to sort, if a key column that is
+        // unflat is the input, we need to somehow flatten it in the factorized table. However
+        // whenever we can we want to avoid adding an explicit flatten operator as this makes us
+        // fall back to tuple-at-a-time processing. However in the specified limited case, we can
+        // give factorized table a set of unflat vectors (all in the same datachunk/factorization
+        // group), sort the table, and scan into unflat vectors, so the schema remains the same. In
+        // more complicated cases, e.g., when there are 2 factorization groups, FactorizedTable
+        // cannot read back a flat column into an unflat vector.
+        if (plan.schema->groups.size() > 1) {
+            auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *plan.schema);
+            enumerator->appendFlattens(dependentGroupsPos, plan);
+        }
         orderByExpressionNames.push_back(expression->getUniqueName());
     }
     auto schemaBeforeOrderBy = plan.schema->copy();
