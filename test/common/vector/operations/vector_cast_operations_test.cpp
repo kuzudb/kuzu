@@ -16,12 +16,14 @@ public:
     void SetUp() override {
         dataChunk = make_shared<DataChunk>(2);
         dataChunk->state->selectedSize = VECTOR_SIZE;
-        memoryManager = make_unique<MemoryManager>();
+        bufferManager = make_unique<BufferManager>();
+        memoryManager = make_unique<MemoryManager>(bufferManager.get());
     }
 
 public:
-    shared_ptr<DataChunk> dataChunk;
+    unique_ptr<BufferManager> bufferManager;
     unique_ptr<MemoryManager> memoryManager;
+    shared_ptr<DataChunk> dataChunk;
 };
 
 TEST_F(VectorCastOperationsTest, CastStructuredBoolToUnstructuredValueTest) {

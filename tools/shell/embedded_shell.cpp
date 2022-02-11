@@ -132,8 +132,11 @@ void EmbeddedShell::run() {
 
         } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_SIZE) == 0) {
             try {
-                system.bufferManager->resize(
-                    stoull(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length())));
+                auto newPageSize =
+                    stoull(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length()));
+                // Currently we are resizing both buffer pools to the same size. If needed we can
+                // extend this functionality of the shell.
+                system.bufferManager->resize(newPageSize, newPageSize);
             } catch (exception& e) { printf("%s\n", e.what()); }
 
         } else {

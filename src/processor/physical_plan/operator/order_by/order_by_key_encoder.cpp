@@ -120,7 +120,8 @@ uint64_t OrderByKeyEncoder::getEncodingSize(DataType dataType) {
 
 void OrderByKeyEncoder::allocateMemoryIfFull() {
     if (getCurBlockUsedEntries() == maxEntriesPerBlock) {
-        keyBlocks.emplace_back(make_shared<KeyBlock>(memoryManager.allocateBlock(SORT_BLOCK_SIZE)));
+        keyBlocks.emplace_back(
+            make_shared<KeyBlock>(memoryManager->allocateOSBackedBlock(SORT_BLOCK_SIZE)));
     }
 }
 

@@ -1,6 +1,5 @@
 #include "src/storage/include/file_handle.h"
 
-#include "src/common/include/configs.h"
 #include "src/common/include/file_utils.h"
 #include "src/common/include/utils.h"
 
@@ -9,52 +8,115 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-FileHandle::FileHandle(const string& path, bool isInMemory)
-    : logger{LoggerUtils::getOrCreateSpdLogger("storage")},
-      fileInfo{FileUtils::openFile(path, O_RDONLY)}, isInMemory{isInMemory} {
+FileHandle::FileHandle(const string& path, uint8_t flags)
+    : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, flags(flags) {
     logger->trace("FileHandle: Path {}", path);
-    auto fileLength = FileUtils::getFileSize(fileInfo->fd);
-    numPages = fileLength >> PAGE_SIZE_LOG_2;
-    if (0 != (fileLength & (PAGE_SIZE - 1))) {
-        numPages++;
-    }
-    if (isInMemory) {
-        logger->trace("FileHandle[in-memory]: Size {}B", fileLength);
-        buffer = FileUtils::readFile(fileInfo.get());
+    if (!isNewTmpFile()) {
+        constructExistingFileHandle(path);
     } else {
-        logger->trace("FileHandle[disk]: Size {}B, #4KB-pages {}", fileLength, numPages);
-        pageIdxToFrameMap = new unique_ptr<atomic<uint64_t>>[numPages];
-        pageLocks = new unique_ptr<atomic_flag>[numPages];
-        for (auto i = 0ull; i < numPages; i++) {
-            pageLocks[i] = make_unique<atomic_flag>();
-            pageIdxToFrameMap[i] = make_unique<atomic<uint64_t>>(UINT64_MAX);
-        }
+        constructNewFileHandle(path);
     }
 }
 
 FileHandle::~FileHandle() {
-    FileUtils::closeFile(fileInfo->fd);
-    if (!isInMemory) {
+    if (!isNewTmpFile()) {
+        FileUtils::closeFile(fileInfo->fd);
+    }
+    if (!isInMemory()) {
         delete[] pageLocks;
         delete[] pageIdxToFrameMap;
     }
 }
 
-bool FileHandle::acquire(uint32_t pageIdx, bool block) {
-    if (block) {
-        while (pageLocks[pageIdx]->test_and_set(memory_order_acquire)) { // spinning
+void FileHandle::constructExistingFileHandle(const string& path) {
+    fileInfo = FileUtils::openFile(path, O_RDWR);
+    auto fileLength = FileUtils::getFileSize(fileInfo->fd);
+    numPages = fileLength >> getPageSizeLog2();
+    // TODO(Semih): Ask Pranjal why we do this?
+    if (0 != (fileLength & (getPageSize() - 1))) {
+        numPages++;
+    }
+    if (isInMemory()) {
+        logger->trace("FileHandle[in-memory]: Size {}B", fileLength);
+        buffer = FileUtils::readFile(fileInfo.get());
+    } else {
+        logger->trace(
+            "FileHandle[disk]: Size {}B, #{}B-pages {}", fileLength, getPageSize(), numPages);
+        pageCapacity = numPages;
+        pageIdxToFrameMap = new unique_ptr<atomic<uint64_t>>[pageCapacity];
+        pageLocks = new unique_ptr<atomic_flag>[pageCapacity];
+        for (auto i = 0ull; i < numPages; i++) {
+            addNewPageLockAndFramePtr(i);
         }
+    }
+}
+
+void FileHandle::constructNewFileHandle(const string& path) {
+    numPages = 0;
+    pageCapacity = 0;
+    fileInfo = make_unique<FileInfo>(path, -1 /* no file descriptor for a new in memory file */);
+    if (isInMemory()) {
+        buffer = make_unique<uint8_t[]>(0);
+    } else {
+        // Note: pageCapacity below is 0
+        pageIdxToFrameMap = new unique_ptr<atomic<uint64_t>>[pageCapacity];
+        pageLocks = new unique_ptr<atomic_flag>[pageCapacity];
+    }
+}
+
+bool FileHandle::acquirePageLock(uint32_t pageIdx, bool block) {
+    if (block) {
+        while (!acquire(pageIdx)) {} // spinning
         return true;
     }
-    return !pageLocks[pageIdx]->test_and_set(memory_order_acquire);
+    return acquire(pageIdx);
+}
+
+bool FileHandle::acquire(uint32_t pageIdx) {
+    shared_lock lock(fhSharedMutex);
+    auto retVal = !pageLocks[pageIdx]->test_and_set(memory_order_acquire);
+    return retVal;
 }
 
 void FileHandle::readPage(uint8_t* frame, uint64_t pageIdx) const {
-    FileUtils::readFromFile(fileInfo.get(), frame, PAGE_SIZE, pageIdx << PAGE_SIZE_LOG_2);
+    FileUtils::readFromFile(fileInfo.get(), frame, getPageSize(), pageIdx << getPageSizeLog2());
 }
 
 void FileHandle::writePage(uint8_t* buffer, uint64_t pageIdx) const {
-    FileUtils::writeToFile(fileInfo.get(), buffer, PAGE_SIZE, pageIdx << PAGE_SIZE_LOG_2);
+    FileUtils::writeToFile(fileInfo.get(), buffer, getPageSize(), pageIdx << getPageSizeLog2());
+}
+
+void FileHandle::addNewPageLockAndFramePtr(uint64_t i) {
+    pageLocks[i] = make_unique<atomic_flag>();
+    pageIdxToFrameMap[i] = make_unique<atomic<uint64_t>>(UINT64_MAX);
+}
+
+uint32_t FileHandle::addNewPage() {
+    unique_lock lock(fhSharedMutex);
+    if (numPages == pageCapacity) {
+        auto oldCapacity = pageCapacity;
+        pageCapacity = max(pageCapacity + 1, (uint32_t)(pageCapacity * 1.2));
+        if (isInMemory()) {
+            auto newBuffer = make_unique<uint8_t[]>(pageCapacity * getPageSize());
+            memcpy(newBuffer.get(), buffer.get(), oldCapacity * getPageSize());
+            buffer = move(newBuffer);
+        } else {
+            unique_ptr<atomic<uint64_t>>* newPageIdxToFrameMap =
+                new unique_ptr<atomic<uint64_t>>[pageCapacity];
+            unique_ptr<atomic_flag>* newPageLocks = new unique_ptr<atomic_flag>[pageCapacity];
+            for (auto i = 0ull; i < oldCapacity; i++) {
+                newPageLocks[i] = move(pageLocks[i]);
+                newPageIdxToFrameMap[i] = move(pageIdxToFrameMap[i]);
+            }
+            pageIdxToFrameMap = move(newPageIdxToFrameMap);
+            pageLocks = move(newPageLocks);
+        }
+    }
+    if (!isInMemory()) {
+        // we pass numPages because it is the index of the next page (see the return line below)
+        addNewPageLockAndFramePtr(numPages);
+    }
+    return numPages++;
 }
 
 } // namespace storage

@@ -25,31 +25,25 @@ public:
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
     void readProperties(ValueVector* nodeIDVector,
-        const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap,
-        BufferManagerMetrics& metrics);
+        const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
 
     // Currently, used only in Loader tests.
-    unique_ptr<map<uint32_t, Literal>> readUnstructuredPropertiesOfNode(
-        node_offset_t nodeOffset, BufferManagerMetrics& metrics);
+    unique_ptr<map<uint32_t, Literal>> readUnstructuredPropertiesOfNode(node_offset_t nodeOffset);
 
 private:
     void readPropertiesForPosition(ValueVector* nodeIDVector, uint32_t pos,
-        const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap,
-        BufferManagerMetrics& metrics);
+        const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap);
 
     void readPropertyKeyAndDatatype(uint8_t* propertyKeyDataType, PageByteCursor& cursor,
-        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
-        BufferManagerMetrics& metrics);
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
     void readPropertyValue(Value* propertyValue, uint64_t dataTypeSize, PageByteCursor& cursor,
-        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
-        BufferManagerMetrics& metrics);
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
     void skipPropertyValue(uint64_t dataTypeSize, PageByteCursor& cursor);
 
     void readFromAPage(uint8_t* value, uint64_t bytesToRead, PageByteCursor& cursor,
-        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
-        BufferManagerMetrics& metrics);
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
 public:
     static constexpr uint8_t UNSTR_PROP_IDX_LEN = 4;

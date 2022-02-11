@@ -24,30 +24,28 @@ TEST_F(TinySnbIntervalTest, NodePropertyColumnWithInterval) {
     auto label = catalog.getNodeLabelFromString("person");
     auto propertyIdx = catalog.getNodeProperty(label, "lastJobDuration");
     auto col = defaultSystem->graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
-    NumericMetric numBufferHits(true), numBufferMisses(true), numIO(true);
-    BufferManagerMetrics metrics(numBufferHits, numBufferMisses, numIO);
     EXPECT_EQ(Interval::FromCString(
                   "3 years 2 days 13 hours 2 minutes", strlen("3 years 2 days 13 hours 2 minutes")),
-        col->readValue(0, metrics).val.intervalVal);
+        col->readValue(0).val.intervalVal);
     EXPECT_EQ(Interval::FromCString(
                   "10 years 5 months 13 hours 24 us", strlen("10 years 5 months 13 hours 24 us")),
-        col->readValue(1, metrics).val.intervalVal);
+        col->readValue(1).val.intervalVal);
     EXPECT_EQ(Interval::FromCString(
                   "48 hours 24 minutes 11 seconds", strlen("48 hours 24 minutes 11 seconds")),
-        col->readValue(2, metrics).val.intervalVal);
+        col->readValue(2).val.intervalVal);
     EXPECT_EQ(Interval::FromCString(
                   "10 years 5 months 13 hours 24 us", strlen("10 years 5 months 13 hours 24 us")),
-        col->readValue(3, metrics).val.intervalVal);
+        col->readValue(3).val.intervalVal);
     EXPECT_EQ(Interval::FromCString(
                   "48 hours 24 minutes 11 seconds", strlen("48 hours 24 minutes 11 seconds")),
-        col->readValue(4, metrics).val.intervalVal);
+        col->readValue(4).val.intervalVal);
     EXPECT_EQ(
         Interval::FromCString("18 minutes 24 milliseconds", strlen("18 minutes 24 milliseconds")),
-        col->readValue(5, metrics).val.intervalVal);
+        col->readValue(5).val.intervalVal);
     EXPECT_EQ(Interval::FromCString(
                   "10 years 5 months 13 hours 24 us", strlen("10 years 5 months 13 hours 24 us")),
-        col->readValue(6, metrics).val.intervalVal);
+        col->readValue(6).val.intervalVal);
     EXPECT_EQ(Interval::FromCString(
                   "3 years 2 days 13 hours 2 minutes", strlen("3 years 2 days 13 hours 2 minutes")),
-        col->readValue(7, metrics).val.intervalVal);
+        col->readValue(7).val.intervalVal);
 }

@@ -147,7 +147,7 @@ public:
 
     bool insert(uint8_t* key, node_offset_t value);
 
-    bool lookup(uint8_t* key, node_offset_t& result, BufferManagerMetrics& metrics);
+    bool lookup(uint8_t* key, node_offset_t& result);
 
     void saveToDisk();
 
@@ -157,8 +157,7 @@ private:
     uint64_t reserveOvfSlot();
     void insertKey(uint8_t* key, uint8_t* entry);
 
-    bool lookupInSlot(const uint8_t* slot, uint8_t* key, node_offset_t& result,
-        BufferManagerMetrics& metrics) const;
+    bool lookupInSlot(const uint8_t* slot, uint8_t* key, node_offset_t& result) const;
 
     inline uint64_t calculateSlotIdForHash(hash_t hash) const;
 

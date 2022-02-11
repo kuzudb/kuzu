@@ -6,6 +6,7 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/metric.h"
+#include "src/storage/include/buffer_pool.h"
 #include "src/storage/include/file_handle.h"
 
 using namespace graphflow::common;
@@ -18,100 +19,70 @@ class logger;
 namespace graphflow {
 namespace storage {
 
-class BufferManager;
-
-struct BufferManagerMetrics {
-
-public:
-    BufferManagerMetrics(
-        NumericMetric& numBufferHit, NumericMetric& numBufferMiss, NumericMetric& numIO)
-        : numBufferHit{numBufferHit}, numBufferMiss{numBufferMiss}, numIO{numIO} {}
-
-public:
-    NumericMetric& numBufferHit;
-    NumericMetric& numBufferMiss;
-    NumericMetric& numIO;
-};
-
-// A frame is a unit of buffer space having a fixed size of 4KB, where a single file page is
-// read from the disk. Frame also stores other metadata to locate and maintain this buffer in the
-// Buffer Manager.
-class Frame {
-    friend class BufferManager;
-
-public:
-    Frame();
-    ~Frame();
-
-    bool acquire(bool block);
-    void release() { frameLock.clear(); }
-
-private:
-    // fileHandle and pageIdx identify the file and the page in file whose data the buffer is
-    // maintaining. pageIdx of -1u means that the frame is empty, i.e. it has no data.
-    atomic<uint64_t> fileHandle;
-    atomic<uint32_t> pageIdx;
-
-    atomic<uint32_t> pinCount;
-    bool recentlyAccessed;
-    unique_ptr<uint8_t[]> buffer;
-    atomic_flag frameLock;
-};
-
-// The Buffer Manager is the cache of database file pages. It provides the high-level functionality
-// of pin() and unpin() to the Column/Lists in the storage layer, and operates via their FileHandles
-// to make the page data available in one of the frames. It uses CLOCK replacement policy to evict
-// pages from frames, which is an approximate LRU policy that is based of FIFO-like operations.
+/**
+ *
+ * The Buffer Manager (BM) is the cache of database file pages. It provides the high-level
+ * functionality of pin() and unpin() the pages of the database files used by the Column/Lists in
+ * the storage layer, and operates via their FileHandles to make the page data available in one of
+ * the frames. BM can also be used by any operator or other components of the system to acquire
+ * memory blocks and ensure that they do not acquire memory directly from the OS. Depending on how
+ * the user of the BM pins and unpins pages, operators can ensure either that the memory blocks they
+ * acquire are safely spilled to disk and read back or always kept in memory (see below.)
+ *
+ * Currently the BM has internal BufferPools to cache pages of 2 size: DEFAULT_PAGE_SIZE and
+ * LARGE_PAGE_SIZE, both of which are defined in configs.h. We only have a mechanism to control the
+ * memory size of each BufferPool. So when the BM of the system is constructed, one pool of memory
+ * is allocated to cache files whose pages are of size DEFAULT_PAGE_SIZE, and a separate pool of
+ * memory is allocated to cache files whose pages are of size LARGE_PAGE_SIZE. Ideally we should
+ * move towards allocating a single pool of memory from which different size pages are allocated.
+ * The Umbra paper (http://db.in.tum.de/~freitag/papers/p29-neumann-cidr20.pdf) describes an
+ * mmap-based mechanism to do this (where the responsibility to handle memory fragmentation is
+ * delegated to the OS).
+ *
+ * The BM uses CLOCK replacement policy to evict pages from frames, which is an approximate LRU
+ * policy that is based of FIFO-like operations.
+ *
+ * All access to the BM is through a FileHandle. To use the BM to acquire in-memory blocks users can
+ * pin pages, which will then lead the BM to put these pages in memory, and then never unpin them
+ * and the BM will never spill those pages to disk. However *make sure to unpin these pages*
+ * eventually, otherwise this would be a form of internal memory leak. See StringBuffer for an
+ * example, where this is done during the deconstruction of the StringBuffer.
+ *
+ * Users can also unpin their pages and then the BM might spill them to disk. The behavior of what
+ * is guaranteed to be kept in memory and what can be spilled to disk is directly determined by the
+ * pin/unpin calls of the users of BM.
+ *
+ * BufferManager supports a special pin function called pinWithoutReadingFromFile. A caller can
+ * call the uint32_t newPageIdx = fh::addNewPage() function on the FileHandle fh they have, and then
+ * call bm::pinWithoutReadingFromFile(fh, newPageIdx), and the BM will not try to read this page
+ * from the file (because the page has not yet been written).
+ */
 class BufferManager {
 
 public:
-    BufferManager(uint64_t maxSize);
+    BufferManager() : BufferManager(512 * DEFAULT_PAGE_SIZE, 26 * LARGE_PAGE_SIZE) {}
+    BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSizeForLargePagePool);
     ~BufferManager();
 
-    // The function assumes that the requested page is already pinned.
-    const uint8_t* get(FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
+    uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx);
 
-    const uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
+    // The caller should ensure that the given pageIdx is indeed a new page, so should not be read
+    // from disk
+    uint8_t* pinWithoutReadingFromFile(FileHandle& fileHandle, uint32_t pageIdx);
+
+    const void setPinnedPageDirty(FileHandle& fileHandle, uint32_t pageIdx);
 
     // The function assumes that the requested page is already pinned.
     void unpin(FileHandle& fileHandle, uint32_t pageIdx);
 
     unique_ptr<nlohmann::json> debugInfo();
 
-    void resize(uint64_t newSize);
-
-private:
-    uint32_t claimAFrame(FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
-
-    bool fillEmptyFrame(
-        uint32_t frameIdx, FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
-
-    bool tryEvict(
-        uint32_t frameIdx, FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
-
-    void moveClockHand(uint64_t newClockHand);
-
-    void readNewPageIntoFrame(
-        Frame& frame, FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics);
-
-    inline bool isAFrame(uint64_t pageIdx) { return UINT64_MAX != pageIdx; }
+    void resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeForLargePagePool);
 
 private:
     shared_ptr<spdlog::logger> logger;
-    vector<unique_ptr<Frame>> bufferCache;
-    atomic<uint64_t> clockHand;
-    uint32_t numFrames;
-
-    atomic<uint64_t> numPins{0};
-    // Number of pinning operations that required eviction from a Frame.
-    atomic<uint64_t> numEvicts{0};
-    // Number of failed tries to evict the page from a Frame. This is incremented if either the
-    // eviction routine fails to get the lock on the page that is in the Frame or the pinCount of
-    // the Frame has increased after taking the locks of Frame and page.
-    atomic<uint64_t> numEvictFails{0};
-    // Number of failed tried to evict the page frame a Frame because the Frame has been recently
-    // accessed and hence is given a second chance.
-    atomic<uint64_t> numRecentlyAccessedWalkover{0};
+    unique_ptr<BufferPool> bufferPoolDefaultPages;
+    unique_ptr<BufferPool> bufferPoolLargePages;
 };
 
 } // namespace storage

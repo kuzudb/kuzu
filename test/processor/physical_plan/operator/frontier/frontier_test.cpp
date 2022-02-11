@@ -5,9 +5,9 @@
 using namespace graphflow::processor;
 
 TEST(FrontierTests, frontierCreationTest) {
-    MemoryManager memMan;
-
-    ValueVector vector = ValueVector(&memMan, NODE);
+    auto bufMan = make_unique<BufferManager>();
+    auto memMan = make_unique<MemoryManager>(bufMan.get());
+    ValueVector vector = ValueVector(memMan.get(), NODE);
     vector.state = make_shared<DataChunkState>(DEFAULT_VECTOR_CAPACITY);
     vector.state->selectedSize = DEFAULT_VECTOR_CAPACITY;
     for (auto i = 0u; i < vector.state->selectedSize; i++) {
@@ -17,7 +17,7 @@ TEST(FrontierTests, frontierCreationTest) {
 
     auto FIXED_MULTIPLICITY_VALUE = 12u;
     auto frontierBag = FrontierBag();
-    frontierBag.setMemoryManager(&memMan);
+    frontierBag.setMemoryManager(memMan.get());
     frontierBag.initHashTable();
     frontierBag.append(vector, FIXED_MULTIPLICITY_VALUE);
     for (auto i = 0u; i < 10; i++) {
@@ -52,7 +52,7 @@ TEST(FrontierTests, frontierCreationTest) {
     }
 
     auto frontier = FrontierSet();
-    frontier.setMemoryManager(&memMan);
+    frontier.setMemoryManager(memMan.get());
     auto numSlots = 64;
     frontier.initHashTable(numSlots);
     for (auto slot = 0; slot < NUM_SLOTS_BAG; slot++) {

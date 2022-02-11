@@ -20,9 +20,13 @@ using namespace std;
 class RadixSortTest : public Test {
 
 public:
-    void SetUp() override { memoryManager = make_unique<MemoryManager>(); }
+    void SetUp() override {
+        bufferManager = make_unique<BufferManager>();
+        memoryManager = make_unique<MemoryManager>(bufferManager.get());
+    }
 
 public:
+    unique_ptr<BufferManager> bufferManager;
     unique_ptr<MemoryManager> memoryManager;
     const uint16_t factorizedTableIdx = 9;
 
@@ -107,15 +111,15 @@ public:
                 is_same<T, string>::value /* isStrCol */));
         }
 
-        FactorizedTable factorizedTable(*memoryManager, tupleSchema);
+        FactorizedTable factorizedTable(memoryManager.get(), tupleSchema);
         factorizedTable.append(allVectors);
 
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
         orderByKeyEncoder.encodeKeys();
 
-        RadixSort radixSort = RadixSort(
-            *memoryManager, factorizedTable, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
+        RadixSort radixSort = RadixSort(memoryManager.get(), factorizedTable, orderByKeyEncoder,
+            stringAndUnstructuredKeyColInfo);
         sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
         checkTupleIdxesAndFactorizedTableIdxes(
@@ -145,18 +149,18 @@ public:
             orderByVectors.emplace_back(stringValueVector);
         }
 
-        FactorizedTable factorizedTable(*memoryManager, tableSchema);
+        FactorizedTable factorizedTable(memoryManager.get(), tableSchema);
 
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
         for (auto i = 0u; i < expectedTupleIdxOrder.size(); i++) {
             factorizedTable.append(orderByVectors);
             orderByKeyEncoder.encodeKeys();
             mockDataChunk->state->currIdx++;
         }
 
-        auto radixSort = RadixSort(
-            *memoryManager, factorizedTable, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
+        auto radixSort = RadixSort(memoryManager.get(), factorizedTable, orderByKeyEncoder,
+            stringAndUnstructuredKeyColInfo);
         sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
         checkTupleIdxesAndFactorizedTableIdxes(
@@ -336,7 +340,7 @@ TEST_F(RadixSortTest, singleOrderByColNoNullStringTest) {
         "common prefix rank2", "other common prefix test3", "another short string"};
     vector<bool> nullMasks(8, false);
     vector<uint64_t> expectedTupleIdxOrder = {0, 6, 1, 4, 5, 3, 7, 2};
-    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, STRING, false /* isAsc */,
+    singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, STRING, false /* is desc */,
         false /* hasPayLoadCol */);
 }
 
@@ -427,14 +431,14 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
             {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(STRING)},
             {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(TIMESTAMP)},
             {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(DATE)}});
-    FactorizedTable factorizedTable(*memoryManager, tableSchema);
+    FactorizedTable factorizedTable(memoryManager.get(), tableSchema);
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo = {
         StringAndUnstructuredKeyColInfo(2 /* colIdxInFactorizedTable */,
             OrderByKeyEncoder::getEncodingSize(INT64) + OrderByKeyEncoder::getEncodingSize(DOUBLE),
             true /* isAscOrder */, true /* isStrCol */)};
 
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     for (auto i = 0u; i < 5; i++) {
         orderByKeyEncoder.encodeKeys();
         factorizedTable.append(orderByVectors);
@@ -442,7 +446,7 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     }
 
     RadixSort radixSort = RadixSort(
-        *memoryManager, factorizedTable, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
+        memoryManager.get(), factorizedTable, orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
     sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
     vector<uint64_t> expectedTupleIdxOrder = {1, 4, 0, 2, 3};

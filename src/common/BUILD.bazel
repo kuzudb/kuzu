@@ -34,6 +34,7 @@ cc_library(
         "memory_manager",
         "operations",
         "types",
+        "//src/storage:buffer_manager",
     ],
 )
 
@@ -168,6 +169,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "configs",
+        "//src/storage:buffer_manager",
     ],
 )
 

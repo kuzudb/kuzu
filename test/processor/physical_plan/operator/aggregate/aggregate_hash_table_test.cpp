@@ -16,7 +16,8 @@ class AggregateHashTableTest : public Test {
 
 public:
     void SetUp() override {
-        memoryManager = make_unique<MemoryManager>();
+        bufferManager = make_unique<BufferManager>();
+        memoryManager = make_unique<MemoryManager>(bufferManager.get());
         group1Vector = make_shared<ValueVector>(memoryManager.get(), INT64);
         group2Vector = make_shared<ValueVector>(memoryManager.get(), INT64);
         aggr1Vector = make_shared<ValueVector>(memoryManager.get(), INT64);
@@ -43,6 +44,7 @@ public:
     }
 
 public:
+    unique_ptr<BufferManager> bufferManager;
     unique_ptr<MemoryManager> memoryManager;
     unique_ptr<AggregateHashTable> ht;
     shared_ptr<ValueVector> group1Vector;

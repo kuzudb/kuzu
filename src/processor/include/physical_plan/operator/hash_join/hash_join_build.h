@@ -26,7 +26,7 @@ public:
 
     mutex hashJoinSharedStateLock;
 
-    unique_ptr<MemoryBlock> htDirectory;
+    unique_ptr<OSBackedMemoryBlock> htDirectory;
     unique_ptr<FactorizedTable> factorizedTable;
     vector<DataType> nonKeyDataPosesDataTypes;
     uint64_t hashBitMask;

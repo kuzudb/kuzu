@@ -25,8 +25,9 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     unique_ptr<Graph> graph = make_unique<GraphStub>();
     auto sharedState = make_shared<ScanNodeIDSharedState>(1025013 /*numNodes*/);
     auto profiler = make_unique<Profiler>();
-    auto memoryManager = make_unique<MemoryManager>();
-    auto executionContext = ExecutionContext(*profiler, memoryManager.get());
+    auto bufferManager = make_unique<BufferManager>();
+    auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
+    auto executionContext = ExecutionContext(*profiler, memoryManager.get(), bufferManager.get());
     auto schema = Schema();
     auto group1Pos = schema.createGroup();
     schema.insertToGroupAndScope(make_shared<Expression>(VARIABLE, INT64, "dummy"), group1Pos);

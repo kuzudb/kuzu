@@ -5,7 +5,7 @@ namespace processor {
 
 shared_ptr<ResultSet> Filter::initResultSet() {
     resultSet = children[0]->initResultSet();
-    rootExpr->initResultSet(*resultSet, *context.memoryManager);
+    rootExpr->initResultSet(*resultSet, context.memoryManager);
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
     return resultSet;
 }

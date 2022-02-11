@@ -10,7 +10,7 @@ namespace graphflow {
 namespace common {
 
 /**
- * Note that all metrics are not thread safe
+ * Note that metrics are not thread safe.
  */
 class Metric {
 

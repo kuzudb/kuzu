@@ -10,7 +10,8 @@ using namespace std;
 TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
     auto dataChunk = make_shared<DataChunk>(2);
     dataChunk->state->selectedSize = 1000;
-    auto memoryManager = make_unique<MemoryManager>();
+    auto bufferManager = make_unique<BufferManager>();
+    auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
 
     auto nodeVector = make_shared<ValueVector>(memoryManager.get(), NODE);
     dataChunk->insert(0, nodeVector);
@@ -43,7 +44,8 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
 TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
     auto dataChunk = make_shared<DataChunk>(2);
     dataChunk->state->selectedSize = 1000;
-    auto memoryManager = make_unique<MemoryManager>();
+    auto bufferManager = make_unique<BufferManager>();
+    auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
 
     auto nodeVector = make_shared<ValueVector>(memoryManager.get(), NODE);
     for (auto i = 0u; i < 1000; i++) {

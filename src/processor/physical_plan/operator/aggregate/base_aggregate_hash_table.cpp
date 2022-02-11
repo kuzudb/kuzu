@@ -33,11 +33,11 @@ AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
     bitmask = maxNumHashSlots - 1;
     auto numHashSlotBlocks = maxNumHashSlots * sizeof(HashSlot) / DEFAULT_MEMORY_BLOCK_SIZE + 1;
     // TODO: we should use multiple memory block to hold hash slots
-    hashSlotsBlock = memoryManager.allocateBlock(
+    hashSlotsBlock = memoryManager.allocateOSBackedBlock(
         numHashSlotBlocks * DEFAULT_MEMORY_BLOCK_SIZE, true /* initialized to 0 */);
     hashSlots = (HashSlot*)hashSlotsBlock->data;
     // Block 0 is reserved as empty block because block id 0 is used to identify empty block.
-    entryBlocks.push_back(memoryManager.allocateBlock(0, true /* initialized to 0 */));
+    entryBlocks.push_back(memoryManager.allocateOSBackedBlock(0, true /* initialized to 0 */));
     numEntriesPerBlock = DEFAULT_MEMORY_BLOCK_SIZE / getNumBytesForEntry();
     currentEntryCursor.entryBlockId = 0;
     currentEntryCursor.offsetInBlock = numEntriesPerBlock; // skip the first empty block
@@ -303,8 +303,8 @@ void AggregateHashTable::fillHashSlot(hash_t hash, uint32_t blockId, uint16_t of
 }
 
 void AggregateHashTable::addNewBlock() {
-    entryBlocks.push_back(
-        memoryManager.allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE, true /* initialized to 0 */));
+    entryBlocks.push_back(memoryManager.allocateOSBackedBlock(
+        DEFAULT_MEMORY_BLOCK_SIZE, true /* initialized to 0 */));
     currentEntryCursor.entryBlockId = entryBlocks.size() - 1;
     currentEntryCursor.offsetInBlock = 0;
 }
@@ -312,7 +312,7 @@ void AggregateHashTable::addNewBlock() {
 void AggregateHashTable::resize(uint64_t newSize) {
     maxNumHashSlots = newSize;
     bitmask = maxNumHashSlots - 1;
-    hashSlotsBlock = memoryManager.allocateBlock(
+    hashSlotsBlock = memoryManager.allocateOSBackedBlock(
         maxNumHashSlots * sizeof(HashSlot), true /* initialized to 0 */);
     hashSlots = (HashSlot*)hashSlotsBlock->data;
     for (auto blockId = 1u; blockId < currentEntryCursor.entryBlockId; ++blockId) {

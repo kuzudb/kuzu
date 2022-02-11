@@ -15,7 +15,7 @@ BinaryExpressionEvaluator::BinaryExpressionEvaluator(unique_ptr<ExpressionEvalua
 }
 
 void BinaryExpressionEvaluator::initResultSet(
-    const ResultSet& resultSet, MemoryManager& memoryManager) {
+    const ResultSet& resultSet, MemoryManager* memoryManager) {
     childrenExpr[0]->initResultSet(resultSet, memoryManager);
     childrenExpr[1]->initResultSet(resultSet, memoryManager);
     result = createResultValueVector(memoryManager);
@@ -34,16 +34,16 @@ uint64_t BinaryExpressionEvaluator::select(sel_t* selectedPositions) {
 }
 
 shared_ptr<ValueVector> BinaryExpressionEvaluator::createResultValueVector(
-    MemoryManager& memoryManager) {
+    MemoryManager* memoryManager) {
     shared_ptr<ValueVector> resultVector;
     auto isLeftResultFlat = childrenExpr[0]->isResultFlat();
     auto isRightResultFlat = childrenExpr[1]->isResultFlat();
     // The binary expression result is flat only when both left and right are flat.
     if (isLeftResultFlat && isRightResultFlat) {
-        resultVector = make_shared<ValueVector>(&memoryManager, dataType);
+        resultVector = make_shared<ValueVector>(memoryManager, dataType);
         resultVector->state = DataChunkState::getSingleValueDataChunkState();
     } else {
-        resultVector = make_shared<ValueVector>(&memoryManager, dataType);
+        resultVector = make_shared<ValueVector>(memoryManager, dataType);
         auto& unFlatVector = !isLeftResultFlat ? childrenExpr[0]->result : childrenExpr[1]->result;
         resultVector->state = unFlatVector->state;
     }

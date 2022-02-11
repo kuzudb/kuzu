@@ -20,16 +20,15 @@ public:
         : DataStructure{
               fName, dataType, elementSize, bufferManager, true /*hasNULLBytes*/, isInMemory} {};
 
-    virtual void readValues(const shared_ptr<ValueVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
+    virtual void readValues(
+        const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& valueVector);
 
     // Currently, used only in Loader tests.
-    virtual Literal readValue(node_offset_t offset, BufferManagerMetrics& metrics);
+    virtual Literal readValue(node_offset_t offset);
 
 protected:
     virtual void readForSingleNodeIDPosition(uint32_t pos,
-        const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector,
-        BufferManagerMetrics& metrics);
+        const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector);
 
 public:
     static constexpr char COLUMN_SUFFIX[] = ".col";
@@ -44,10 +43,10 @@ public:
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
     void readValues(const shared_ptr<ValueVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) override;
+        const shared_ptr<ValueVector>& valueVector) override;
 
     // Currently, used only in Loader tests.
-    Literal readValue(node_offset_t offset, BufferManagerMetrics& metrics) override;
+    Literal readValue(node_offset_t offset) override;
 
 private:
     StringOverflowPages stringOverflowPages;
@@ -64,7 +63,7 @@ public:
 
 private:
     void readForSingleNodeIDPosition(uint32_t pos, const shared_ptr<ValueVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& resultVector, BufferManagerMetrics& metrics) override;
+        const shared_ptr<ValueVector>& resultVector) override;
 
 private:
     NodeIDCompressionScheme nodeIDCompressionScheme;

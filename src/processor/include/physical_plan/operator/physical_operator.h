@@ -50,16 +50,12 @@ const string PhysicalOperatorTypeNames[] = {"AGGREGATE", "AGGREGATE_SCAN", "COLU
 struct OperatorMetrics {
 
 public:
-    OperatorMetrics(TimeMetric& executionTime, NumericMetric& numOutputTuple,
-        unique_ptr<BufferManagerMetrics> bufferManagerMetrics)
-        : executionTime{executionTime}, numOutputTuple{numOutputTuple}, bufferManagerMetrics{move(
-                                                                            bufferManagerMetrics)} {
-    }
+    OperatorMetrics(TimeMetric& executionTime, NumericMetric& numOutputTuple)
+        : executionTime{executionTime}, numOutputTuple{numOutputTuple} {}
 
 public:
     TimeMetric& executionTime;
     NumericMetric& numOutputTuple;
-    unique_ptr<BufferManagerMetrics> bufferManagerMetrics;
 };
 
 class PhysicalOperator {
@@ -112,14 +108,10 @@ public:
 protected:
     inline string getTimeMetricKey() const { return "time-" + to_string(id); }
     inline string getNumTupleMetricKey() const { return "numTuple-" + to_string(id); }
-    inline string getNumBufferHitMetricKey() const { return "numBufferHit-" + to_string(id); }
-    inline string getNumBufferMissMetricKey() const { return "numBufferMiss-" + to_string(id); }
-    inline string getNumIOMetricKey() const { return "numIO-" + to_string(id); }
 
     void registerProfilingMetrics();
 
     void printTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler);
-    void printBufferManagerMetrics(nlohmann::json& json, Profiler& profiler);
 
 protected:
     ExecutionContext& context;

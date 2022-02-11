@@ -16,7 +16,10 @@ using namespace std;
 class OrderByKeyEncoderTest : public Test {
 
 public:
-    void SetUp() override { memoryManager = make_unique<MemoryManager>(); }
+    void SetUp() override {
+        bufferManager = make_unique<BufferManager>();
+        memoryManager = make_unique<MemoryManager>(bufferManager.get());
+    }
 
     void checkTupleIdxAndFactorizedTableIdx(uint64_t expectedTupleIdx, uint8_t*& keyBlockPtr) {
         ASSERT_EQ(OrderByKeyEncoder::getEncodedTupleIdx(keyBlockPtr), expectedTupleIdx);
@@ -98,7 +101,7 @@ public:
         auto valueVectors = getInt64TestValueVector(numOfElements, 1, isFlat);
         auto isAscOrder = vector<bool>(1, false);
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+            OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
         if (isFlat) {
             for (auto i = 0u; i < numOfElements; i++) {
                 orderByKeyEncoder.encodeKeys();
@@ -112,7 +115,8 @@ public:
     }
 
 public:
-    shared_ptr<MemoryManager> memoryManager;
+    unique_ptr<BufferManager> bufferManager;
+    unique_ptr<MemoryManager> memoryManager;
     const uint64_t factorizedTableIdx = 14;
 };
 
@@ -132,7 +136,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
     valueVectors.emplace_back(int64ValueVector);
     auto isAscOrder = vector<bool>(1, true);
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
 
@@ -202,7 +206,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatWithFilterTest) {
     valueVectors.emplace_back(int64ValueVector);
     auto isAscOrder = vector<bool>(1, true);
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
 
@@ -238,7 +242,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
     valueVectors.emplace_back(boolValueVector);
     auto isAscOrder = vector<bool>(1, false);
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
 
@@ -269,7 +273,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDateUnflatTest) {
     valueVectors.emplace_back(dateValueVector);
     auto isAscOrder = vector<bool>(1, true);
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
 
@@ -311,7 +315,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColTimestampUnflatTest) {
     valueVectors.emplace_back(timestampValueVector);
     auto isAscOrder = vector<bool>(1, true);
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
 
@@ -359,7 +363,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
     valueVectors.emplace_back(intervalValueVector);
     auto isAscOrder = vector<bool>(1, true);
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
 
@@ -406,7 +410,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColStringUnflatTest) {
     valueVectors.emplace_back(stringValueVector);
     auto isAscOrder = vector<bool>(1, true);
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
 
@@ -479,7 +483,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDoubleUnflatTest) {
     valueVectors.emplace_back(doubleValueVector);
     auto isAscOrder = vector<bool>(1, true);
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
 
@@ -566,7 +570,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColUnstrUnflatTest) {
     valueVectors.emplace_back(unstrValueVector);
     auto isAscOrder = vector<bool>(1, true);
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
 
@@ -592,7 +596,7 @@ TEST_F(OrderByKeyEncoderTest, largeEntrySizeErrorTest) {
     auto isAscOrder = vector<bool>(numOfOrderByCols, true);
     try {
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+            OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
         FAIL();
     } catch (EncodingException& e) {
         ASSERT_STREQ(e.what(), "OrderBy encoder exception: EntrySize(4103 bytes) is larger than "
@@ -609,7 +613,7 @@ TEST_F(OrderByKeyEncoderTest, singleEntryPerBlockTest) {
     auto valueVectors = getInt64TestValueVector(numOfElementsPerCol, numOfOrderByCols, true);
     auto isAscOrder = vector<bool>(numOfOrderByCols, false);
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     for (auto i = 0u; i < numOfElementsPerCol; i++) {
         orderByKeyEncoder.encodeKeys();
         valueVectors[0]->state->currIdx++;
@@ -661,7 +665,7 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     valueVectors.emplace_back(dateFlatValueVector);
 
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
 
     intValues[0] = 73;
@@ -823,7 +827,7 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColMultiBlockTest) {
     auto valueVectors = getInt64TestValueVector(numOfElementsPerCol, numOfOrderByCols, true);
     auto isAscOrder = vector<bool>(numOfOrderByCols, true);
     auto orderByKeyEncoder =
-        OrderByKeyEncoder(valueVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+        OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     for (auto i = 0u; i < numOfElementsPerCol; i++) {
         orderByKeyEncoder.encodeKeys();
         valueVectors[0]->state->currIdx++;

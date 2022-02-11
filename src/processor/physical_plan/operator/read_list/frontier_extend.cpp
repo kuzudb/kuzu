@@ -97,10 +97,8 @@ void FrontierExtend::extendToThreadLocalFrontiers(uint64_t layer) {
                     auto slot = &mainBlock[slotToExtendFrom];
                     while (slot) {
                         do {
-                            // Warning: we use non-thread-safe metric inside openmp parallelization
-                            // metrics won't be exactly but hopefully good enough.
-                            lists->readValues(slot->nodeOffset, vectors[threadId],
-                                largeListHandles[threadId], *metrics->bufferManagerMetrics);
+                            lists->readValues(
+                                slot->nodeOffset, vectors[threadId], largeListHandles[threadId]);
                             threadLocalFrontierPerLayer[layer][threadId]->append(
                                 *(vectors[threadId].get()), slot->multiplicity);
                         } while (largeListHandles[threadId]->hasMoreToRead());
@@ -193,8 +191,7 @@ FrontierSet* FrontierExtend::createInitialFrontierSet() {
     frontier->setMemoryManager(context.memoryManager);
     frontier->initHashTable(numSlots);
     do {
-        lists->readValues(
-            nodeOffset, vectors[0], largeListHandles[0], *metrics->bufferManagerMetrics);
+        lists->readValues(nodeOffset, vectors[0], largeListHandles[0]);
         frontier->insert(*vectors[0]);
     } while (largeListHandles[0]->hasMoreToRead());
     return frontier;

@@ -147,11 +147,11 @@ private:
     uint64_t numEntries;
     EntryCursor currentEntryCursor;
     uint64_t numEntriesPerBlock;
-    vector<unique_ptr<MemoryBlock>> entryBlocks;
+    vector<unique_ptr<OSBackedMemoryBlock>> entryBlocks;
 
     //! hash related columns
     uint64_t bitmask;
-    unique_ptr<MemoryBlock> hashSlotsBlock;
+    unique_ptr<OSBackedMemoryBlock> hashSlotsBlock;
     HashSlot* hashSlots;
 
     //! special handling of distinct aggregate

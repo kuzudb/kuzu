@@ -29,14 +29,14 @@ public:
 // columns, the algorithm only calls radixSort on tie tuples.
 class RadixSort {
 public:
-    explicit RadixSort(MemoryManager& memoryManager, FactorizedTable& factorizedTable,
+    explicit RadixSort(MemoryManager* memoryManager, FactorizedTable& factorizedTable,
         OrderByKeyEncoder& orderByKeyEncoder,
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo)
-        : factorizedTable{factorizedTable}, tmpKeyBlock{memoryManager.allocateBlock(
+        : factorizedTable{factorizedTable}, tmpKeyBlock{memoryManager->allocateOSBackedBlock(
                                                 SORT_BLOCK_SIZE)},
           orderByKeyEncoder{orderByKeyEncoder}, stringAndUnstructuredKeyColInfo{
                                                     stringAndUnstructuredKeyColInfo} {
-        tmpTuplePtrSortingBlock = memoryManager.allocateBlock(
+        tmpTuplePtrSortingBlock = memoryManager->allocateOSBackedBlock(
             sizeof(uint8_t*) * (SORT_BLOCK_SIZE / orderByKeyEncoder.getKeyBlockEntrySizeInBytes()));
     }
 
@@ -53,8 +53,8 @@ private:
         uint64_t numBytesToSort);
 
 private:
-    unique_ptr<MemoryBlock> tmpKeyBlock;
-    unique_ptr<MemoryBlock> tmpTuplePtrSortingBlock;
+    unique_ptr<OSBackedMemoryBlock> tmpKeyBlock;
+    unique_ptr<OSBackedMemoryBlock> tmpTuplePtrSortingBlock;
     OrderByKeyEncoder& orderByKeyEncoder;
     // factorizedTable stores all columns in the tuples that will be sorted, including the order by
     // key columns. RadixSort uses factorizedTable to access the full contents of the string and

@@ -35,7 +35,7 @@ bool TableSchema::operator==(const TableSchema& other) const {
            other.numBytesForNullMapPerTuple;
 }
 
-FactorizedTable::FactorizedTable(MemoryManager& memoryManager, const TableSchema& tableSchema)
+FactorizedTable::FactorizedTable(MemoryManager* memoryManager, const TableSchema& tableSchema)
     : memoryManager{memoryManager}, tableSchema{tableSchema}, numTuples{0}, numTuplesPerBlock{0} {
     assert(tableSchema.getNumBytesPerTuple() <= DEFAULT_MEMORY_BLOCK_SIZE);
     stringBuffer = make_unique<StringBuffer>(memoryManager);
@@ -205,7 +205,7 @@ vector<BlockAppendingInfo> FactorizedTable::allocateTupleBlocks(uint64_t numEntr
     vector<BlockAppendingInfo> appendingInfos;
     while (numEntriesToAppend > 0) {
         if (tupleDataBlocks.empty() || tupleDataBlocks.back().freeSize < numBytesPerEntry) {
-            tupleDataBlocks.emplace_back(DataBlock(memoryManager.allocateBlock(
+            tupleDataBlocks.emplace_back(DataBlock(memoryManager->allocateOSBackedBlock(
                 DEFAULT_MEMORY_BLOCK_SIZE, true /* initializeToZero */)));
         }
         auto& block = tupleDataBlocks.back();
@@ -228,8 +228,8 @@ uint8_t* FactorizedTable::allocateOverflowBlocks(uint64_t numBytes) {
             return dataBlock.data + DEFAULT_MEMORY_BLOCK_SIZE - dataBlock.freeSize - numBytes;
         }
     }
-    vectorOverflowBlocks.emplace_back(DataBlock(
-        memoryManager.allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE, true /* initializeToZero */)));
+    vectorOverflowBlocks.emplace_back(DataBlock(memoryManager->allocateOSBackedBlock(
+        DEFAULT_MEMORY_BLOCK_SIZE, true /* initializeToZero */)));
     vectorOverflowBlocks.back().freeSize -= numBytes;
     return vectorOverflowBlocks.back().data;
 }

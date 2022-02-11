@@ -25,7 +25,7 @@ public:
 
 protected:
     uint64_t currOverflowOffset;
-    vector<unique_ptr<MemoryBlock>> overflowBlocks;
+    vector<unique_ptr<OSBackedMemoryBlock>> overflowBlocks;
     MemoryManager* memMan;
 };
 

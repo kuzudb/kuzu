@@ -34,12 +34,12 @@ ListInfo Lists::getListInfo(node_offset_t nodeOffset) {
 // has a small list then largeListHandle does not contain anything specific to v3 (it would likely
 // be containing information about the last portion of the last large list that was read.
 void Lists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<LargeListHandle>& largeListHandle, BufferManagerMetrics& metrics) {
+    const unique_ptr<LargeListHandle>& largeListHandle) {
     auto info = getListInfo(nodeOffset);
     if (info.isLargeList) {
-        readFromLargeList(valueVector, largeListHandle, info, metrics);
+        readFromLargeList(valueVector, largeListHandle, info);
     } else {
-        readSmallList(valueVector, info, metrics);
+        readSmallList(valueVector, info);
     }
 }
 
@@ -49,37 +49,33 @@ void Lists::readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& 
  * and NODE.
  */
 void Lists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info,
-    BufferManagerMetrics& metrics) {
+    const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) {
     // assumes that the associated adjList has already updated the syncState.
     auto pageCursor = PageUtils::getPageElementCursorForOffset(
         largeListHandle->getListSyncState()->getStartIdx(), numElementsPerPage);
     auto sizeLeftToCopy = elementSize * valueVector->state->originalSize;
-    readBySequentialCopy(valueVector, sizeLeftToCopy, pageCursor, info.mapper, metrics);
+    readBySequentialCopy(valueVector, sizeLeftToCopy, pageCursor, info.mapper);
 }
 
-void Lists::readSmallList(
-    const shared_ptr<ValueVector>& valueVector, ListInfo& info, BufferManagerMetrics& metrics) {
+void Lists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) {
     auto sizeLeftToCopy = valueVector->state->originalSize * elementSize;
-    readBySequentialCopy(valueVector, sizeLeftToCopy, info.cursor, info.mapper, metrics);
+    readBySequentialCopy(valueVector, sizeLeftToCopy, info.cursor, info.mapper);
 }
 
 void StringPropertyLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info,
-    BufferManagerMetrics& metrics) {
-    Lists::readFromLargeList(valueVector, largeListHandle, info, metrics);
-    stringOverflowPages.readStringsToVector(*valueVector, metrics);
+    const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) {
+    Lists::readFromLargeList(valueVector, largeListHandle, info);
+    stringOverflowPages.readStringsToVector(*valueVector);
 }
 
 void StringPropertyLists::readSmallList(
-    const shared_ptr<ValueVector>& valueVector, ListInfo& info, BufferManagerMetrics& metrics) {
-    Lists::readSmallList(valueVector, info, metrics);
-    stringOverflowPages.readStringsToVector(*valueVector, metrics);
+    const shared_ptr<ValueVector>& valueVector, ListInfo& info) {
+    Lists::readSmallList(valueVector, info);
+    stringOverflowPages.readStringsToVector(*valueVector);
 }
 
 void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-    const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info,
-    BufferManagerMetrics& metrics) {
+    const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) {
     auto listSyncState = largeListHandle->getListSyncState();
     uint64_t csrOffset;
     if (!largeListHandle->hasMoreToRead()) {
@@ -102,23 +98,22 @@ void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     // map logical pageIdx to physical pageIdx
     auto physicalPageId = info.mapper(info.cursor.idx);
     readNodeIDsFromAPage(valueVector, 0, physicalPageId, info.cursor.pos, numValuesToCopy,
-        nodeIDCompressionScheme, metrics, true /*isAdjLists*/);
+        nodeIDCompressionScheme, true /*isAdjLists*/);
 }
 
 // Note: This function sets the original and selected size of the DataChunk into which it will
 // read a list of nodes and edges.
-void AdjLists::readSmallList(
-    const shared_ptr<ValueVector>& valueVector, ListInfo& info, BufferManagerMetrics& metrics) {
+void AdjLists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) {
     valueVector->state->initOriginalAndSelectedSize(info.listLen);
-    readNodeIDsFromSequentialPages(valueVector, info.cursor, info.mapper, nodeIDCompressionScheme,
-        metrics, true /*isAdjLists*/);
+    readNodeIDsFromSequentialPages(
+        valueVector, info.cursor, info.mapper, nodeIDCompressionScheme, true /*isAdjLists*/);
 }
 
 unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     // We read the adjacency list of a node in 2 steps: i) we read all the bytes from the pages
     // that hold the list into a buffer; and (ii) we interpret the bytes in the buffer based on the
     // ID compression scheme into a vector of nodeID_t.
-    node_offset_t nodeOffset, BufferManagerMetrics& metrics) {
+    node_offset_t nodeOffset) {
     // Step 1
     auto info = getListInfo(nodeOffset);
     auto listLenInBytes = info.listLen * elementSize;
@@ -129,7 +124,7 @@ unique_ptr<vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
         auto physicalPageIdx = info.mapper(info.cursor.idx);
         auto sizeToCopyInPage =
             min(((uint64_t)(numElementsPerPage - info.cursor.pos) * elementSize), sizeLeftToCopy);
-        auto frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
+        auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
         memcpy(bufferPtr, frame + mapElementPosToByteOffset(info.cursor.pos), sizeToCopyInPage);
         bufferManager.unpin(fileHandle, physicalPageIdx);
         bufferPtr += sizeToCopyInPage;

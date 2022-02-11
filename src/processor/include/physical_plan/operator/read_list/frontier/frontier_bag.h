@@ -52,7 +52,7 @@ public:
     SlotNodeIDs* hashTable;
 
 private:
-    unique_ptr<MemoryBlock> mainBlock;
+    unique_ptr<OSBackedMemoryBlock> mainBlock;
 };
 
 } // namespace processor

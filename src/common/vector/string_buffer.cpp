@@ -1,7 +1,5 @@
 #include "src/common/include/vector/string_buffer.h"
 
-#include <cassert>
-
 namespace graphflow {
 namespace common {
 
@@ -9,14 +7,13 @@ void StringBuffer::allocateLargeStringIfNecessary(gf_string_t& result, uint64_t 
     if (gf_string_t::isShortString(len))
         return;
     if (currentBlock == nullptr || (currentBlock->currentOffset + len) > currentBlock->size) {
-        auto blockSize = max(len, MIN_BUFFER_BLOCK_SIZE);
         auto newBlock = make_unique<BufferBlock>(
-            memoryManager.allocateBlock(blockSize, true /* initializeToZero */));
+            memoryManager->allocateBMBackedBlock(false /* do not initialize to zero */));
         currentBlock = newBlock.get();
         blocks.push_back(move(newBlock));
     }
     result.overflowPtr =
-        reinterpret_cast<uint64_t>(currentBlock->data + currentBlock->currentOffset);
+        reinterpret_cast<uint64_t>(currentBlock->block->data + currentBlock->currentOffset);
     currentBlock->currentOffset += len;
 }
 

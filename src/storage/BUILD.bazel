@@ -20,9 +20,11 @@ cc_library(
     name = "buffer_manager",
     srcs = [
         "buffer_manager.cpp",
+        "buffer_pool.cpp",
     ],
     hdrs = [
         "include/buffer_manager.h",
+        "include/buffer_pool.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

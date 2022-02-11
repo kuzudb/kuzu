@@ -7,7 +7,7 @@ shared_ptr<ResultSet> Projection::initResultSet() {
     resultSet = children[0]->initResultSet();
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto& expression = *expressions[i];
-        expression.initResultSet(*resultSet, *context.memoryManager);
+        expression.initResultSet(*resultSet, context.memoryManager);
         auto [outDataChunkPos, outValueVectorPos] = expressionsOutputPos[i];
         auto dataChunk = resultSet->dataChunks[outDataChunkPos];
         dataChunk->state = expression.result->state;

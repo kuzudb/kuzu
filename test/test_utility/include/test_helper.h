@@ -77,13 +77,10 @@ public:
         graphflow::testing::BaseGraphLoadingTest::SetUp();
         testSuiteSystemConfig.isInMemory = true;
         defaultSystem = TestHelper::getInitializedSystem(testSuiteSystemConfig);
-        NumericMetric numBufferHits(true), numBufferMisses(true), numIO(true);
-        metrics = make_unique<BufferManagerMetrics>(numBufferHits, numBufferMisses, numIO);
     }
 
 public:
     unique_ptr<System> defaultSystem;
-    unique_ptr<BufferManagerMetrics> metrics;
 };
 
 } // namespace testing

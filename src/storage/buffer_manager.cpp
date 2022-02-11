@@ -9,36 +9,12 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-Frame::Frame()
-    : fileHandle{-1u}, pageIdx{-1u}, pinCount{-1u}, recentlyAccessed{false},
-      frameLock(ATOMIC_FLAG_INIT) {
-    buffer = make_unique<uint8_t[]>(1 << 12);
-}
-
-Frame::~Frame() {
-    auto count = pinCount.load();
-    if (0 != count && -1u != pinCount) {
-        throw invalid_argument("Deleting buffer that is still pinned.");
-    }
-}
-
-bool Frame::acquire(bool block) {
-    if (block) {
-        while (frameLock.test_and_set()) // spinning
-            ;
-        return true;
-    }
-    return !frameLock.test_and_set();
-}
-
-BufferManager::BufferManager(uint64_t maxSize)
-    : logger{LoggerUtils::getOrCreateSpdLogger("buffer_manager")}, clockHand{0},
-      numFrames((uint32_t)(maxSize >> PAGE_SIZE_LOG_2)) {
-    for (auto i = 0u; i < numFrames; ++i) {
-        bufferCache.emplace_back(make_unique<Frame>());
-    }
-    logger->info("Initializing Buffer Manager.");
-    logger->info("BufferPool Size {}B, #4KB-pages {}.", maxSize, maxSize >> PAGE_SIZE_LOG_2);
+BufferManager::BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSizeForLargePagePool)
+    : logger{LoggerUtils::getOrCreateSpdLogger("buffer_manager")},
+      bufferPoolDefaultPages(
+          make_unique<BufferPool>(DEFAULT_PAGE_SIZE_LOG_2, maxSizeForDefaultPagePool)),
+      bufferPoolLargePages(
+          make_unique<BufferPool>(LARGE_PAGE_SIZE_LOG_2, maxSizeForLargePagePool)) {
     logger->info("Done Initializing Buffer Manager.");
 }
 
@@ -46,160 +22,82 @@ BufferManager::~BufferManager() {
     spdlog::drop("buffer_manager");
 }
 
-void BufferManager::resize(uint64_t newSize) {
-    if ((numFrames << PAGE_SIZE_LOG_2) > newSize) {
-        throw BufferManagerException("Resizing to a smaller Buffer Manager Size is unsupported!");
-    }
-    auto newNumFrames = (uint32_t)(newSize >> PAGE_SIZE_LOG_2);
-    for (auto i = 0u; i < newNumFrames - numFrames; ++i) {
-        bufferCache.emplace_back(make_unique<Frame>());
-    }
-    numFrames = newNumFrames;
-    logger->info("Resizing buffer manager.");
-    logger->info("New buffer pool size {}B, #4KB-pages {}.", newSize, newNumFrames);
-    logger->info("Done resizing buffer manager.");
+void BufferManager::resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeForLargePagePool) {
+    bufferPoolDefaultPages->resize(newSizeForDefaultPagePool);
+    bufferPoolLargePages->resize(newSizeForLargePagePool);
 }
 
-const uint8_t* BufferManager::get(
-    FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics) {
-    if (fileHandle.isInMemory) {
-        return fileHandle.buffer.get() + (pageIdx << PAGE_SIZE_LOG_2);
-    }
-    auto frameIdx = fileHandle.getFrameIdx(pageIdx);
-    metrics.numBufferHit.incrementByOne();
-    return bufferCache[frameIdx]->buffer.get();
+// Important Note: Pin returns a raw pointer to the frame. This is potentially very dangerous and
+// trusts the caller is going to protect this memory space.
+// Important responsibilities for the caller are:
+// (1) The caller should know the page size and not read/write beyond these boundaries.
+// (2) If the given FileHandle is not a (temporary) in-memory file and the caller writes to the
+// frame, caller should make sure to call setFrameDirty to let the BufferManager know that the page
+// should be flushed to disk if it is evicted.
+// (3) If multiple threads are writing to the page, they should coordinate separately because they
+// both get access to the same piece of memory.
+uint8_t* BufferManager::pin(FileHandle& fileHandle, uint32_t pageIdx) {
+    return fileHandle.isLargePaged() ? bufferPoolLargePages->pin(fileHandle, pageIdx) :
+                                       bufferPoolDefaultPages->pin(fileHandle, pageIdx);
 }
 
-const uint8_t* BufferManager::pin(
-    FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics) {
-    if (fileHandle.isInMemory) {
-        return fileHandle.buffer.get() + (pageIdx << PAGE_SIZE_LOG_2);
-    }
-    fileHandle.acquire(pageIdx, true /*block*/);
-    auto frameIdx = fileHandle.getFrameIdx(pageIdx);
-    if (isAFrame(frameIdx)) {
-        auto& frame = bufferCache[frameIdx];
-        frame->pinCount.fetch_add(1);
-        frame->recentlyAccessed = true;
-        metrics.numBufferHit.incrementByOne();
-    } else {
-        frameIdx = claimAFrame(fileHandle, pageIdx, metrics);
-        fileHandle.swizzle(pageIdx, frameIdx);
-        metrics.numBufferMiss.incrementByOne();
-    }
-    fileHandle.release(pageIdx);
-    numPins.fetch_add(1, memory_order_relaxed);
-    return bufferCache[frameIdx]->buffer.get();
+// Important Note: This function will pin a page but if the page was not yet in a frame, it will
+// not read it from the file. So this can be used if the page is a new page of a file, or a page
+// of a temporary file that is being re-used and its contents is not important.
+//
+// If this is the new page of a file: the caller should call this function immediately after a new
+// page is added FileHandle, ensuring that no other thread can try to pin the newly created page
+// (with serious side effects). See the detailed explanation in FileHandle::addNewPage() for
+// details.
+uint8_t* BufferManager::pinWithoutReadingFromFile(FileHandle& fileHandle, uint32_t pageIdx) {
+    return fileHandle.isLargePaged() ?
+               bufferPoolLargePages->pinWithoutReadingFromFile(fileHandle, pageIdx) :
+               bufferPoolDefaultPages->pinWithoutReadingFromFile(fileHandle, pageIdx);
 }
 
-uint32_t BufferManager::claimAFrame(
-    FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics) {
-    auto localClockHand = clockHand.load();
-    auto startFrame = localClockHand % numFrames;
-    for (auto i = 0u; i < 2 * numFrames; ++i) {
-        auto frameIdx = (startFrame + i) % numFrames;
-        auto pinCount = bufferCache[frameIdx]->pinCount.load();
-        if (-1u == pinCount && fillEmptyFrame(frameIdx, fileHandle, pageIdx, metrics)) {
-            moveClockHand(localClockHand + i + 1);
-            return frameIdx;
-        } else if (0u == pinCount && tryEvict(frameIdx, fileHandle, pageIdx, metrics)) {
-            moveClockHand(localClockHand + i + 1);
-            return frameIdx;
-        }
-    }
-    throw invalid_argument("Cannot find a frame to evict from.");
-}
-
-bool BufferManager::fillEmptyFrame(
-    uint32_t frameIdx, FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics) {
-    auto& frame = bufferCache[frameIdx];
-    if (!frame->acquire(false)) {
-        return false;
-    }
-    if (-1u == frame->pinCount.load()) {
-        readNewPageIntoFrame(*frame, fileHandle, pageIdx, metrics);
-        frame->release();
-        return true;
-    }
-    frame->release();
-    return false;
-}
-
-bool BufferManager::tryEvict(
-    uint32_t frameIdx, FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics) {
-    auto& frame = bufferCache[frameIdx];
-    if (frame->recentlyAccessed) {
-        frame->recentlyAccessed = false;
-        numRecentlyAccessedWalkover.fetch_add(1, memory_order_relaxed);
-        return false;
-    }
-    if (!frame->acquire(false)) {
-        return false;
-    }
-    auto pageIdxInFrame = frame->pageIdx.load();
-    auto fileHandleInFrame = reinterpret_cast<FileHandle*>(frame->fileHandle.load());
-    if (!fileHandleInFrame->acquire(pageIdxInFrame, false)) {
-        numEvictFails.fetch_add(1, memory_order_relaxed);
-        frame->release();
-        return false;
-    }
-    // We check pinCount again after acquiring the lock on page currently residing in the frame. At
-    // this point in time, no other thread can change the pinCount.
-    if (0u != frame->pinCount.load()) {
-        numEvictFails.fetch_add(1, memory_order_relaxed);
-        fileHandleInFrame->release(pageIdxInFrame);
-        frame->release();
-        return false;
-    }
-    // Else, remove the page from the frame and release the lock on it.
-    fileHandleInFrame->unswizzle(pageIdxInFrame);
-    fileHandleInFrame->release(pageIdxInFrame);
-    // Update the frame information and release the lock on frame.
-    readNewPageIntoFrame(*frame, fileHandle, pageIdx, metrics);
-    frame->release();
-    numEvicts.fetch_add(1, memory_order_relaxed);
-    return true;
-}
-
-void BufferManager::readNewPageIntoFrame(
-    Frame& frame, FileHandle& fileHandle, uint32_t pageIdx, BufferManagerMetrics& metrics) {
-    frame.pinCount.store(1);
-    frame.pageIdx.store(pageIdx);
-    frame.fileHandle.store(reinterpret_cast<uint64_t>(&fileHandle));
-    fileHandle.readPage(frame.buffer.get(), pageIdx);
-    metrics.numIO.incrementByOne();
-}
-
-void BufferManager::moveClockHand(uint64_t newClockHand) {
-    do {
-        auto currClockHand = clockHand.load();
-        if (currClockHand > newClockHand) {
-            return;
-        }
-        if (clockHand.compare_exchange_strong(currClockHand, newClockHand, memory_order_seq_cst)) {
-            return;
-        }
-    } while (true);
+// Important Note: The caller should make sure that they have pinned the page before calling this.
+const void BufferManager::setPinnedPageDirty(FileHandle& fileHandle, uint32_t pageIdx) {
+    fileHandle.isLargePaged() ? bufferPoolLargePages->setPinnedPageDirty(fileHandle, pageIdx) :
+                                bufferPoolDefaultPages->setPinnedPageDirty(fileHandle, pageIdx);
 }
 
 void BufferManager::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
-    if (fileHandle.isInMemory) {
-        return;
-    }
-    fileHandle.acquire(pageIdx, true /*block*/);
-    auto& frame = bufferCache[fileHandle.getFrameIdx(pageIdx)];
-    frame->pinCount.fetch_sub(1);
-    fileHandle.release(pageIdx);
+    return fileHandle.isLargePaged() ? bufferPoolLargePages->unpin(fileHandle, pageIdx) :
+                                       bufferPoolDefaultPages->unpin(fileHandle, pageIdx);
 }
 
 unique_ptr<nlohmann::json> BufferManager::debugInfo() {
-    auto numFailsPerEvict = ((double)numEvictFails.load()) / numEvicts.load();
-    auto numCacheHits = numPins.load() - numEvicts.load();
+    // TODO(Semih): I'm being intentionally sloppy here because this code will be removed once we
+    // remove gfdb_endpoints, so not spending time to clean this up.
+    auto numFailsPerEvictDefaultBufferPool =
+        ((double)bufferPoolDefaultPages->numEvictFails.load()) /
+        bufferPoolDefaultPages->numEvicts.load();
+    auto numCacheHitsDefaultBufferPool =
+        bufferPoolDefaultPages->numPins.load() - bufferPoolDefaultPages->numEvicts.load();
+    auto numFailsPerEvictLargeBufferPool = ((double)bufferPoolLargePages->numEvictFails.load()) /
+                                           bufferPoolLargePages->numEvicts.load();
+    auto numCacheHitsLargeBufferPool =
+        bufferPoolLargePages->numPins.load() - bufferPoolLargePages->numEvicts.load();
     return make_unique<nlohmann::json>(nlohmann::json{{"BufferManager",
-        {{"maxPages", numFrames}, {"numPins", numPins.load()}, {"numEvicts", numEvicts.load()},
-            {"numEvictFails", numEvictFails.load()}, {"numFailsPerEvict", numFailsPerEvict},
-            {"numCacheHits", numCacheHits},
-            {"numRecentlyAccessedWalkover", numRecentlyAccessedWalkover.load()}}}});
+        {{"BufferPoolDefaultPages-maxPages", bufferPoolDefaultPages->numFrames},
+            {"BufferPoolDefaultPages-numPins", bufferPoolDefaultPages->numPins.load()},
+            {"BufferPoolDefaultPages-numEvicts", bufferPoolDefaultPages->numEvicts.load()},
+            {"BufferPoolDefaultPages-numEvictFails", bufferPoolDefaultPages->numEvictFails.load()},
+            {"BufferPoolDefaultPages-numFailsPerEvict", numFailsPerEvictDefaultBufferPool},
+            {"BufferPoolDefaultPages-numCacheHits", numCacheHitsDefaultBufferPool},
+            {"BufferPoolDefaultPages-numRecentlyAccessedWalkover",
+                bufferPoolDefaultPages->numRecentlyAccessedWalkover.load()},
+
+            {"maxPages", bufferPoolLargePages->numFrames},
+            {"BufferPoolLargePages-numPins", bufferPoolLargePages->numPins.load()},
+            {"BufferPoolLargePages-numEvicts", bufferPoolLargePages->numEvicts.load()},
+            {"BufferPoolLargePages-numEvictFails", bufferPoolLargePages->numEvictFails.load()},
+            {"BufferPoolLargePages-numFailsPerEvict", numFailsPerEvictLargeBufferPool},
+            {"BufferPoolLargePages-numCacheHits", numCacheHitsLargeBufferPool},
+            {"bufferPoolLargePages-numRecentlyAccessedWalkover",
+                bufferPoolLargePages->numRecentlyAccessedWalkover.load()}
+
+        }}});
 }
 
 } // namespace storage

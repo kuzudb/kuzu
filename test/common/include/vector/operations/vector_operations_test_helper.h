@@ -16,7 +16,8 @@ public:
     virtual DataType getDataTypeOfResultVector() = 0;
 
     void initVectors() {
-        memoryManager = make_unique<MemoryManager>();
+        bufferManager = make_unique<BufferManager>();
+        memoryManager = make_unique<MemoryManager>(bufferManager.get());
         vector1 = make_shared<ValueVector>(memoryManager.get(), getDataTypeOfOperands());
         vector2 = make_shared<ValueVector>(memoryManager.get(), getDataTypeOfOperands());
         result = make_shared<ValueVector>(memoryManager.get(), getDataTypeOfResultVector());
@@ -24,10 +25,11 @@ public:
 
 public:
     const int32_t NUM_TUPLES = 100;
+    unique_ptr<BufferManager> bufferManager;
+    unique_ptr<MemoryManager> memoryManager;
     shared_ptr<ValueVector> vector1;
     shared_ptr<ValueVector> vector2;
     shared_ptr<ValueVector> result;
-    unique_ptr<MemoryManager> memoryManager;
 };
 
 class OperandsInSameDataChunk : public TwoOperands {

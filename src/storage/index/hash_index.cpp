@@ -12,7 +12,7 @@ namespace storage {
 HashIndexHeader::HashIndexHeader(DataType keyDataType) : keyDataType{keyDataType} {
     numBytesPerEntry = TypeUtils::getDataTypeSize(keyDataType) + sizeof(node_offset_t);
     numBytesPerSlot = (numBytesPerEntry * slotCapacity) + sizeof(SlotHeader);
-    numSlotsPerPage = PAGE_SIZE / numBytesPerSlot;
+    numSlotsPerPage = DEFAULT_PAGE_SIZE / numBytesPerSlot;
 }
 
 void HashIndexHeader::incrementLevel() {
@@ -45,7 +45,8 @@ HashIndex::HashIndex(const string& fName, DataType keyDataType)
 HashIndex::HashIndex(const string& fName, BufferManager& bufferManager, bool isInMemory)
     : fName{fName},
       logger(LoggerUtils::getOrCreateSpdLogger("storage")), bufferManager{&bufferManager} {
-    fileHandle = make_unique<FileHandle>(fName, isInMemory);
+    fileHandle = make_unique<FileHandle>(fName,
+        isInMemory ? FileHandle::O_InMemoryDefaultPaged : FileHandle::O_DiskBasedDefaultPage);
     unique_ptr<uint8_t[]> buffer{getNewPage()};
     fileHandle->readPage(buffer.get(), 0);
     indexHeader = *((HashIndexHeader*)buffer.get());
@@ -175,15 +176,15 @@ void HashIndex::saveToDisk() {
     unique_ptr<uint8_t[]> buffer(getNewPage());
     memcpy(buffer.get(), &indexHeader, sizeof(indexHeader));
     auto writeOffset = 0u;
-    FileUtils::writeToFile(fileInfo.get(), buffer.get(), PAGE_SIZE, writeOffset);
-    writeOffset += PAGE_SIZE;
+    FileUtils::writeToFile(fileInfo.get(), buffer.get(), DEFAULT_PAGE_SIZE, writeOffset);
+    writeOffset += DEFAULT_PAGE_SIZE;
     for (auto& primaryPage : primaryPages) {
-        FileUtils::writeToFile(fileInfo.get(), primaryPage.get(), PAGE_SIZE, writeOffset);
-        writeOffset += PAGE_SIZE;
+        FileUtils::writeToFile(fileInfo.get(), primaryPage.get(), DEFAULT_PAGE_SIZE, writeOffset);
+        writeOffset += DEFAULT_PAGE_SIZE;
     }
     for (auto& ovfPage : ovfPages) {
-        FileUtils::writeToFile(fileInfo.get(), ovfPage.get(), PAGE_SIZE, writeOffset);
-        writeOffset += PAGE_SIZE;
+        FileUtils::writeToFile(fileInfo.get(), ovfPage.get(), DEFAULT_PAGE_SIZE, writeOffset);
+        writeOffset += DEFAULT_PAGE_SIZE;
     }
     FileUtils::closeFile(fileInfo->fd);
     if (indexHeader.keyDataType == STRING) {
@@ -191,14 +192,14 @@ void HashIndex::saveToDisk() {
     }
 }
 
-bool HashIndex::lookup(uint8_t* key, node_offset_t& result, BufferManagerMetrics& metrics) {
+bool HashIndex::lookup(uint8_t* key, node_offset_t& result) {
     auto slotId = calculateSlotIdForHash(hashFunc(key));
     auto pageId = getPageIdForSlot(slotId);
     auto slotIdInPage = getSlotIdInPageForSlot(slotId);
     auto physicalPageId = pageId + 1;
-    auto page = bufferManager->pin(*fileHandle, physicalPageId, metrics);
+    auto page = bufferManager->pin(*fileHandle, physicalPageId);
     auto slot = getSlotInAPage(page, slotIdInPage);
-    auto foundKey = lookupInSlot(slot, key, result, metrics);
+    auto foundKey = lookupInSlot(slot, key, result);
     if (foundKey) {
         bufferManager->unpin(*fileHandle, physicalPageId);
         return true;
@@ -209,9 +210,9 @@ bool HashIndex::lookup(uint8_t* key, node_offset_t& result, BufferManagerMetrics
         slotIdInPage = getSlotIdInPageForSlot(slotHeader->nextOvfSlotId);
         bufferManager->unpin(*fileHandle, physicalPageId);
         physicalPageId = 1 + indexHeader.numPrimaryPages + pageId;
-        page = bufferManager->pin(*fileHandle, physicalPageId, metrics);
+        page = bufferManager->pin(*fileHandle, physicalPageId);
         slot = getSlotInAPage(page, slotIdInPage);
-        foundKey = lookupInSlot(slot, key, result, metrics);
+        foundKey = lookupInSlot(slot, key, result);
         if (foundKey) {
             bufferManager->unpin(*fileHandle, physicalPageId);
             return true;
@@ -222,8 +223,7 @@ bool HashIndex::lookup(uint8_t* key, node_offset_t& result, BufferManagerMetrics
     return false;
 }
 
-bool HashIndex::lookupInSlot(
-    const uint8_t* slot, uint8_t* key, node_offset_t& result, BufferManagerMetrics& metrics) const {
+bool HashIndex::lookupInSlot(const uint8_t* slot, uint8_t* key, node_offset_t& result) const {
     auto slotHeader = reinterpret_cast<SlotHeader*>(const_cast<uint8_t*>(slot));
     for (auto entryPos = 0u; entryPos < slotHeader->numEntries; entryPos++) {
         auto keyInEntry = getEntryInSlot(const_cast<uint8_t*>(slot), entryPos);
@@ -235,7 +235,7 @@ bool HashIndex::lookupInSlot(
         case STRING: {
             auto keyInEntryString = (gf_string_t*)keyInEntry;
             if (likelyEqualsString(key, keyInEntryString)) {
-                auto entryKeyString = stringOvfPages->readString(*keyInEntryString, metrics);
+                auto entryKeyString = stringOvfPages->readString(*keyInEntryString);
                 foundKey = entryKeyString == string(reinterpret_cast<const char*>(key));
             }
             break;
@@ -279,8 +279,8 @@ uint64_t HashIndex::reserveOvfSlot() {
 }
 
 uint8_t* HashIndex::getNewPage() {
-    auto newPage = new uint8_t[PAGE_SIZE];
-    memset(newPage, 0, PAGE_SIZE);
+    auto newPage = new uint8_t[DEFAULT_PAGE_SIZE];
+    memset(newPage, 0, DEFAULT_PAGE_SIZE);
     return newPage;
 }
 

@@ -233,7 +233,7 @@ unique_ptr<KeyBlockMergeMorsel> KeyBlockMergeTaskDispatcher::getMorsel() {
         sortedKeyBlocks->pop();
         auto rightKeyBlock = sortedKeyBlocks->front();
         sortedKeyBlocks->pop();
-        auto resultKeyBlock = make_shared<KeyBlock>(memoryManager->allocateBlock(
+        auto resultKeyBlock = make_shared<KeyBlock>(memoryManager->allocateOSBackedBlock(
             leftKeyBlock->getKeyBlockSize() + rightKeyBlock->getKeyBlockSize()));
         resultKeyBlock->numEntriesInMemBlock =
             leftKeyBlock->numEntriesInMemBlock + rightKeyBlock->numEntriesInMemBlock;
