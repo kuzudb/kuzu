@@ -1,7 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "parser",
+    name = "return_with_clause",
     srcs = glob([
         "*.cpp",
     ]),
@@ -9,11 +9,9 @@ cc_library(
         "include/*.h",
     ]),
     visibility = [
-        "//visibility:public",
+        "//src/parser/query:__pkg__",
     ],
     deps = [
-        "//src/parser/antlr_parser",
-        "//src/parser/expression:parsed_expression_implementations",
-        "//src/parser/query",
+        "//src/parser/expression:parsed_expression",
     ],
 )

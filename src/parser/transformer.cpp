@@ -1,8 +1,11 @@
 #include "src/parser/include/transformer.h"
 
-#include "src/common/include/assert.h"
+#include "expression/include/parsed_function_expression.h"
+#include "expression/include/parsed_leaf_expression.h"
+#include "expression/include/parsed_property_expression.h"
+#include "expression/include/parsed_subquery_expression.h"
+
 #include "src/common/include/utils.h"
-#include "src/parser/include/statements/match_statement.h"
 
 namespace graphflow {
 namespace parser {
@@ -14,7 +17,7 @@ unique_ptr<RegularQuery> Transformer::transform() {
         regularQuery->setEnableExplain(cypherOption->oC_Explain() != nullptr);
         regularQuery->setEnableProfile(cypherOption->oC_Profile() != nullptr);
     }
-    return move(regularQuery);
+    return regularQuery;
 }
 
 unique_ptr<RegularQuery> Transformer::transformQuery(CypherParser::OC_QueryContext& ctx) {
@@ -23,74 +26,69 @@ unique_ptr<RegularQuery> Transformer::transformQuery(CypherParser::OC_QueryConte
 
 unique_ptr<RegularQuery> Transformer::transformRegularQuery(
     CypherParser::OC_RegularQueryContext& ctx) {
-    auto regularQuery = make_unique<RegularQuery>();
-    regularQuery->addSingleQuery(transformSingleQuery(*ctx.oC_SingleQuery()));
+    auto regularQuery = make_unique<RegularQuery>(transformSingleQuery(*ctx.oC_SingleQuery()));
     for (auto unionClause : ctx.oC_Union()) {
-        regularQuery->addSingleQuery(transformSingleQuery(*unionClause->oC_SingleQuery()));
-        regularQuery->addIsUnionAll(unionClause->ALL());
+        regularQuery->addSingleQuery(
+            transformSingleQuery(*unionClause->oC_SingleQuery()), unionClause->ALL());
     }
     return regularQuery;
 }
 
 unique_ptr<SingleQuery> Transformer::transformSingleQuery(
     CypherParser::OC_SingleQueryContext& ctx) {
-    vector<unique_ptr<QueryPart>> queryParts;
-    if (ctx.oC_MultiPartQuery()) {
-        for (auto queryPart : ctx.oC_MultiPartQuery()->gF_QueryPart()) {
-            queryParts.push_back(transformQueryPart(*queryPart));
-        }
-    }
     auto singleQuery =
         ctx.oC_MultiPartQuery() ?
             transformSinglePartQuery(*ctx.oC_MultiPartQuery()->oC_SinglePartQuery()) :
             transformSinglePartQuery(*ctx.oC_SinglePartQuery());
-    singleQuery->queryParts = move(queryParts);
+    if (ctx.oC_MultiPartQuery()) {
+        for (auto queryPart : ctx.oC_MultiPartQuery()->gF_QueryPart()) {
+            singleQuery->addQueryPart(transformQueryPart(*queryPart));
+        }
+    }
     return singleQuery;
 }
 
 unique_ptr<SingleQuery> Transformer::transformSinglePartQuery(
     CypherParser::OC_SinglePartQueryContext& ctx) {
-    auto singleQuery = make_unique<SingleQuery>();
+    auto singleQuery = make_unique<SingleQuery>(transformReturn(*ctx.oC_Return()));
     for (auto& readingClause : ctx.oC_ReadingClause()) {
-        singleQuery->matchStatements.push_back(transformReadingClause(*readingClause));
+        singleQuery->addMatchClause(transformReadingClause(*readingClause));
     }
-    singleQuery->returnStatement = transformReturn(*ctx.oC_Return());
     return singleQuery;
 }
 
 unique_ptr<QueryPart> Transformer::transformQueryPart(CypherParser::GF_QueryPartContext& ctx) {
     auto queryPart = make_unique<QueryPart>(transformWith(*ctx.oC_With()));
     for (auto& readingClause : ctx.oC_ReadingClause()) {
-        queryPart->matchStatements.push_back(transformReadingClause(*readingClause));
+        queryPart->addMatchClause(transformReadingClause(*readingClause));
     }
     return queryPart;
 }
 
-unique_ptr<MatchStatement> Transformer::transformReadingClause(
+unique_ptr<MatchClause> Transformer::transformReadingClause(
     CypherParser::OC_ReadingClauseContext& ctx) {
     return transformMatch(*ctx.oC_Match());
 }
 
-unique_ptr<MatchStatement> Transformer::transformMatch(CypherParser::OC_MatchContext& ctx) {
-    auto matchStatement =
-        make_unique<MatchStatement>(transformPattern(*ctx.oC_Pattern()), ctx.OPTIONAL());
+unique_ptr<MatchClause> Transformer::transformMatch(CypherParser::OC_MatchContext& ctx) {
+    auto matchClause =
+        make_unique<MatchClause>(transformPattern(*ctx.oC_Pattern()), ctx.OPTIONAL());
     if (ctx.oC_Where()) {
-        matchStatement->whereClause = transformWhere(*ctx.oC_Where());
+        matchClause->setWhereClause(transformWhere(*ctx.oC_Where()));
     }
-    return matchStatement;
+    return matchClause;
 }
 
-unique_ptr<WithStatement> Transformer::transformWith(CypherParser::OC_WithContext& ctx) {
-    auto withStatement =
-        make_unique<WithStatement>(transformProjectionBody(*ctx.oC_ProjectionBody()));
+unique_ptr<WithClause> Transformer::transformWith(CypherParser::OC_WithContext& ctx) {
+    auto withClause = make_unique<WithClause>(transformProjectionBody(*ctx.oC_ProjectionBody()));
     if (ctx.oC_Where()) {
-        withStatement->setWhereExpression(transformWhere(*ctx.oC_Where()));
+        withClause->setWhereExpression(transformWhere(*ctx.oC_Where()));
     }
-    return withStatement;
+    return withClause;
 }
 
-unique_ptr<ReturnStatement> Transformer::transformReturn(CypherParser::OC_ReturnContext& ctx) {
-    return make_unique<ReturnStatement>(transformProjectionBody(*ctx.oC_ProjectionBody()));
+unique_ptr<ReturnClause> Transformer::transformReturn(CypherParser::OC_ReturnContext& ctx) {
+    return make_unique<ReturnClause>(transformProjectionBody(*ctx.oC_ProjectionBody()));
 }
 
 unique_ptr<ProjectionBody> Transformer::transformProjectionBody(
@@ -129,7 +127,7 @@ unique_ptr<ParsedExpression> Transformer::transformProjectionItem(
     CypherParser::OC_ProjectionItemContext& ctx) {
     auto expression = transformExpression(*ctx.oC_Expression());
     if (ctx.AS()) {
-        expression->alias = transformVariable(*ctx.oC_Variable());
+        expression->setAlias(transformVariable(*ctx.oC_Variable()));
     }
     return expression;
 }
@@ -165,7 +163,7 @@ unique_ptr<PatternElement> Transformer::transformPatternElement(
     auto patternElement = make_unique<PatternElement>(transformNodePattern(*ctx.oC_NodePattern()));
     if (!ctx.oC_PatternElementChain().empty()) {
         for (auto& patternElementChain : ctx.oC_PatternElementChain()) {
-            patternElement->patternElementChains.push_back(
+            patternElement->addPatternElementChain(
                 transformPatternElementChain(*patternElementChain));
         }
     }
@@ -188,24 +186,18 @@ unique_ptr<PatternElementChain> Transformer::transformPatternElementChain(
 
 unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
     CypherParser::OC_RelationshipPatternContext& ctx) {
-    auto relPattern = transformRelationshipDetail(*ctx.oC_RelationshipDetail());
-    relPattern->arrowDirection =
-        ctx.oC_LeftArrowHead() ? ArrowDirection::LEFT : ArrowDirection::RIGHT;
-    return relPattern;
-}
-
-unique_ptr<RelPattern> Transformer::transformRelationshipDetail(
-    CypherParser::OC_RelationshipDetailContext& ctx) {
+    auto relDetail = ctx.oC_RelationshipDetail();
     string lowerBound = "1";
     string upperBound = "1";
-    if (ctx.oC_RangeLiteral()) {
-        lowerBound = ctx.oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText();
-        upperBound = ctx.oC_RangeLiteral()->oC_IntegerLiteral()[1]->getText();
+    if (relDetail->oC_RangeLiteral()) {
+        lowerBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText();
+        upperBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[1]->getText();
     }
     return make_unique<RelPattern>(
-        ctx.oC_Variable() ? transformVariable(*ctx.oC_Variable()) : string(),
-        ctx.oC_RelTypeName() ? transformRelTypeName(*ctx.oC_RelTypeName()) : string(), lowerBound,
-        upperBound);
+        relDetail->oC_Variable() ? transformVariable(*relDetail->oC_Variable()) : string(),
+        relDetail->oC_RelTypeName() ? transformRelTypeName(*relDetail->oC_RelTypeName()) : string(),
+        lowerBound, upperBound,
+        ctx.oC_LeftArrowHead() ? ArrowDirection::LEFT : ArrowDirection::RIGHT);
 }
 
 string Transformer::transformNodeLabel(CypherParser::OC_NodeLabelContext& ctx) {
@@ -233,9 +225,8 @@ unique_ptr<ParsedExpression> Transformer::transformOrExpression(
         if (!expression) {
             expression = move(next);
         } else {
-            auto rawExpression = expression->rawName + " OR " + next->rawName;
-            expression = make_unique<ParsedExpression>(
-                OR, string(), rawExpression, move(expression), move(next));
+            auto rawName = expression->getRawName() + " OR " + next->getRawName();
+            expression = make_unique<ParsedExpression>(OR, move(expression), move(next), rawName);
         }
     }
     return expression;
@@ -249,9 +240,8 @@ unique_ptr<ParsedExpression> Transformer::transformXorExpression(
         if (!expression) {
             expression = move(next);
         } else {
-            auto rawExpression = expression->rawName + " XOR " + next->rawName;
-            expression = make_unique<ParsedExpression>(
-                XOR, string(), rawExpression, move(expression), move(next));
+            auto rawName = expression->getRawName() + " XOR " + next->getRawName();
+            expression = make_unique<ParsedExpression>(XOR, move(expression), move(next), rawName);
         }
     }
     return expression;
@@ -265,9 +255,8 @@ unique_ptr<ParsedExpression> Transformer::transformAndExpression(
         if (!expression) {
             expression = move(next);
         } else {
-            auto rawExpression = expression->rawName + " AND " + next->rawName;
-            expression = make_unique<ParsedExpression>(
-                AND, string(), rawExpression, move(expression), move(next));
+            auto rawName = expression->getRawName() + " AND " + next->getRawName();
+            expression = make_unique<ParsedExpression>(AND, move(expression), move(next), rawName);
         }
     }
     return expression;
@@ -276,10 +265,8 @@ unique_ptr<ParsedExpression> Transformer::transformAndExpression(
 unique_ptr<ParsedExpression> Transformer::transformNotExpression(
     CypherParser::OC_NotExpressionContext& ctx) {
     if (ctx.NOT()) {
-        auto expression = make_unique<ParsedExpression>(NOT, string(), ctx.getText());
-        expression->children.push_back(
-            transformComparisonExpression(*ctx.oC_ComparisonExpression()));
-        return expression;
+        return make_unique<ParsedExpression>(
+            NOT, transformComparisonExpression(*ctx.oC_ComparisonExpression()), ctx.getText());
     }
     return transformComparisonExpression(*ctx.oC_ComparisonExpression());
 }
@@ -292,27 +279,30 @@ unique_ptr<ParsedExpression> Transformer::transformComparisonExpression(
     unique_ptr<ParsedExpression> expression;
     // Antlr parser throws error for conjunctive comparison.
     // Transformer should only handle the case of single comparison operator.
-    GF_ASSERT(ctx.gF_ComparisonOperator().size() == 1);
+    assert(ctx.gF_ComparisonOperator().size() == 1);
+    auto left = transformAddOrSubtractExpression(*ctx.oC_AddOrSubtractExpression(0));
+    auto right = transformAddOrSubtractExpression(*ctx.oC_AddOrSubtractExpression(1));
     auto comparisonOperator = ctx.gF_ComparisonOperator()[0]->getText();
     if (comparisonOperator == "=") {
-        expression = make_unique<ParsedExpression>(EQUALS, string(), ctx.getText());
+        expression = make_unique<ParsedExpression>(EQUALS, move(left), move(right), ctx.getText());
     } else if (comparisonOperator == "<>") {
-        expression = make_unique<ParsedExpression>(NOT_EQUALS, string(), ctx.getText());
+        expression =
+            make_unique<ParsedExpression>(NOT_EQUALS, move(left), move(right), ctx.getText());
     } else if (comparisonOperator == ">") {
-        expression = make_unique<ParsedExpression>(GREATER_THAN, string(), ctx.getText());
+        expression =
+            make_unique<ParsedExpression>(GREATER_THAN, move(left), move(right), ctx.getText());
     } else if (comparisonOperator == ">=") {
-        expression = make_unique<ParsedExpression>(GREATER_THAN_EQUALS, string(), ctx.getText());
+        expression = make_unique<ParsedExpression>(
+            GREATER_THAN_EQUALS, move(left), move(right), ctx.getText());
     } else if (comparisonOperator == "<") {
-        expression = make_unique<ParsedExpression>(LESS_THAN, string(), ctx.getText());
+        expression =
+            make_unique<ParsedExpression>(LESS_THAN, move(left), move(right), ctx.getText());
     } else if (comparisonOperator == "<=") {
-        expression = make_unique<ParsedExpression>(LESS_THAN_EQUALS, string(), ctx.getText());
+        expression =
+            make_unique<ParsedExpression>(LESS_THAN_EQUALS, move(left), move(right), ctx.getText());
     } else {
         throw invalid_argument("Unable to parse ComparisonExpressionContext.");
     }
-    expression->children.push_back(
-        transformAddOrSubtractExpression(*ctx.oC_AddOrSubtractExpression(0)));
-    expression->children.push_back(
-        transformAddOrSubtractExpression(*ctx.oC_AddOrSubtractExpression(1)));
     return expression;
 }
 
@@ -326,14 +316,14 @@ unique_ptr<ParsedExpression> Transformer::transformAddOrSubtractExpression(
             expression = move(next);
         } else {
             auto arithmeticOperator = ctx.gF_AddOrSubtractOperator(i - 1)->getText();
-            auto rawExpression =
-                expression->rawName + " " + arithmeticOperator + " " + next->rawName;
+            auto rawName =
+                expression->getRawName() + " " + arithmeticOperator + " " + next->getRawName();
             if (arithmeticOperator == "+") {
-                expression = make_unique<ParsedExpression>(
-                    ADD, string(), rawExpression, move(expression), move(next));
+                expression =
+                    make_unique<ParsedExpression>(ADD, move(expression), move(next), rawName);
             } else if (arithmeticOperator == "-") {
-                expression = make_unique<ParsedExpression>(
-                    SUBTRACT, string(), rawExpression, move(expression), move(next));
+                expression =
+                    make_unique<ParsedExpression>(SUBTRACT, move(expression), move(next), rawName);
             } else {
                 throw invalid_argument("Unable to parse AddOrSubtractExpressionContext");
             }
@@ -351,17 +341,17 @@ unique_ptr<ParsedExpression> Transformer::transformMultiplyDivideModuloExpressio
             expression = move(next);
         } else {
             auto arithmeticOperator = ctx.gF_MultiplyDivideModuloOperator(i - 1)->getText();
-            auto rawExpression =
-                expression->rawName + " " + arithmeticOperator + " " + next->rawName;
+            auto rawName =
+                expression->getRawName() + " " + arithmeticOperator + " " + next->getRawName();
             if (arithmeticOperator == "*") {
-                expression = make_unique<ParsedExpression>(
-                    MULTIPLY, string(), rawExpression, move(expression), move(next));
+                expression =
+                    make_unique<ParsedExpression>(MULTIPLY, move(expression), move(next), rawName);
             } else if (arithmeticOperator == "/") {
-                expression = make_unique<ParsedExpression>(
-                    DIVIDE, string(), rawExpression, move(expression), move(next));
+                expression =
+                    make_unique<ParsedExpression>(DIVIDE, move(expression), move(next), rawName);
             } else if (arithmeticOperator == "%") {
-                expression = make_unique<ParsedExpression>(
-                    MODULO, string(), rawExpression, move(expression), move(next));
+                expression =
+                    make_unique<ParsedExpression>(MODULO, move(expression), move(next), rawName);
             } else {
                 throw invalid_argument("Unable to parse MultiplyDivideModuloExpressionContext.");
             }
@@ -378,9 +368,9 @@ unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
         if (!expression) {
             expression = move(next);
         } else {
-            auto rawExpression = expression->rawName + " ^ " + next->rawName;
-            expression = make_unique<ParsedExpression>(
-                POWER, string(), rawExpression, move(expression), move(next));
+            auto rawName = expression->getRawName() + " ^ " + next->getRawName();
+            expression =
+                make_unique<ParsedExpression>(POWER, move(expression), move(next), rawName);
         }
     }
     return expression;
@@ -389,10 +379,9 @@ unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
 unique_ptr<ParsedExpression> Transformer::transformUnaryAddOrSubtractExpression(
     CypherParser::OC_UnaryAddOrSubtractExpressionContext& ctx) {
     if (ctx.MINUS()) {
-        auto expression = make_unique<ParsedExpression>(NEGATE, string(), ctx.getText());
-        expression->children.push_back(
-            transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression()));
-        return expression;
+        return make_unique<ParsedExpression>(NEGATE,
+            transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression()),
+            ctx.getText());
     }
     return transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression());
 }
@@ -420,42 +409,40 @@ unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression(
     CypherParser::OC_StringOperatorExpressionContext& ctx,
     unique_ptr<ParsedExpression> propertyExpression) {
     unique_ptr<ParsedExpression> expression;
-    auto rawExpression = propertyExpression->rawName + " " + ctx.getText();
+    auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
+    auto right = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
     if (ctx.STARTS()) {
-        expression = make_unique<ParsedExpression>(STARTS_WITH, string(), rawExpression);
+        expression = make_unique<ParsedExpression>(
+            STARTS_WITH, move(propertyExpression), move(right), rawExpression);
     } else if (ctx.ENDS()) {
-        expression = make_unique<ParsedExpression>(ENDS_WITH, string(), rawExpression);
+        expression = make_unique<ParsedExpression>(
+            ENDS_WITH, move(propertyExpression), move(right), rawExpression);
     } else if (ctx.CONTAINS()) {
-        expression = make_unique<ParsedExpression>(CONTAINS, string(), rawExpression);
+        expression = make_unique<ParsedExpression>(
+            CONTAINS, move(propertyExpression), move(right), rawExpression);
     } else {
         throw invalid_argument("Unable to parse StringOperatorExpressionContext.");
     }
-    expression->children.push_back(move(propertyExpression));
-    expression->children.push_back(
-        transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression()));
     return expression;
 }
 
 unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     CypherParser::OC_ListOperatorExpressionContext& ctx,
     unique_ptr<ParsedExpression> propertyExpression) {
-    auto rawExpression = propertyExpression->rawName + " " + ctx.getText();
-    auto expression = make_unique<ParsedExpression>(CSV_LINE_EXTRACT, string(), rawExpression);
-    expression->children.push_back(move(propertyExpression));
-    expression->children.push_back(transformExpression(*ctx.oC_Expression()));
-    return expression;
+    auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
+    return make_unique<ParsedExpression>(CSV_LINE_EXTRACT, move(propertyExpression),
+        transformExpression(*ctx.oC_Expression()), rawExpression);
 }
 
 unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
     CypherParser::OC_NullOperatorExpressionContext& ctx,
     unique_ptr<ParsedExpression> propertyExpression) {
-    auto rawExpression = propertyExpression->rawName + " " + ctx.getText();
+    auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
     if (ctx.IS() && ctx.NULL_()) {
-        auto expression = ctx.NOT() ?
-                              make_unique<ParsedExpression>(IS_NOT_NULL, string(), rawExpression) :
-                              make_unique<ParsedExpression>(IS_NULL, string(), rawExpression);
-        expression->children.push_back(move(propertyExpression));
-        return expression;
+        return ctx.NOT() ?
+                   make_unique<ParsedExpression>(
+                       IS_NOT_NULL, move(propertyExpression), rawExpression) :
+                   make_unique<ParsedExpression>(IS_NULL, move(propertyExpression), rawExpression);
     } else {
         throw invalid_argument("Unable to parse NullOperatorExpressionContext.");
     }
@@ -464,10 +451,9 @@ unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
 unique_ptr<ParsedExpression> Transformer::transformPropertyOrLabelsExpression(
     CypherParser::OC_PropertyOrLabelsExpressionContext& ctx) {
     if (ctx.oC_PropertyLookup()) {
-        auto expression = make_unique<ParsedExpression>(
-            PROPERTY, transformPropertyLookup(*ctx.oC_PropertyLookup()), ctx.getText());
-        expression->children.push_back(transformAtom(*ctx.oC_Atom()));
-        return expression;
+        return make_unique<ParsedPropertyExpression>(PROPERTY,
+            transformPropertyLookup(*ctx.oC_PropertyLookup()), transformAtom(*ctx.oC_Atom()),
+            ctx.getText());
     }
     return transformAtom(*ctx.oC_Atom());
 }
@@ -482,7 +468,7 @@ unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_AtomCon
     } else if (ctx.oC_ExistentialSubquery()) {
         return transformExistentialSubquery(*ctx.oC_ExistentialSubquery());
     } else if (ctx.oC_Variable()) {
-        return make_unique<ParsedExpression>(
+        return make_unique<ParsedLeafExpression>(
             VARIABLE, transformVariable(*ctx.oC_Variable()), ctx.getText());
     } else {
         throw invalid_argument("Unable to parse AtomContext.");
@@ -495,10 +481,10 @@ unique_ptr<ParsedExpression> Transformer::transformLiteral(CypherParser::OC_Lite
     } else if (ctx.oC_BooleanLiteral()) {
         return transformBooleanLiteral(*ctx.oC_BooleanLiteral());
     } else if (ctx.StringLiteral()) {
-        return make_unique<ParsedExpression>(
+        return make_unique<ParsedLeafExpression>(
             LITERAL_STRING, ctx.StringLiteral()->getText(), ctx.getText());
     } else if (ctx.NULL_()) {
-        return make_unique<ParsedExpression>(LITERAL_NULL, string(), ctx.getText());
+        return make_unique<ParsedLeafExpression>(LITERAL_NULL, string(), ctx.getText());
     } else {
         throw invalid_argument("Unable to parse LiteralContext.");
     }
@@ -507,9 +493,9 @@ unique_ptr<ParsedExpression> Transformer::transformLiteral(CypherParser::OC_Lite
 unique_ptr<ParsedExpression> Transformer::transformBooleanLiteral(
     CypherParser::OC_BooleanLiteralContext& ctx) {
     if (ctx.TRUE()) {
-        return make_unique<ParsedExpression>(LITERAL_BOOLEAN, "true", ctx.getText());
+        return make_unique<ParsedLeafExpression>(LITERAL_BOOLEAN, "true", ctx.getText());
     } else if (ctx.FALSE()) {
-        return make_unique<ParsedExpression>(LITERAL_BOOLEAN, "false", ctx.getText());
+        return make_unique<ParsedLeafExpression>(LITERAL_BOOLEAN, "false", ctx.getText());
     } else {
         throw invalid_argument("Unable to parse BooleanLiteralContext.");
     }
@@ -526,14 +512,12 @@ unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     if (ctx.STAR()) {
         StringUtils::toUpper(functionName);
         assert(functionName == "COUNT");
-        return make_unique<ParsedExpression>(FUNCTION, COUNT_STAR_FUNC_NAME, ctx.getText());
+        return make_unique<ParsedFunctionExpression>(FUNCTION, COUNT_STAR_FUNC_NAME, ctx.getText());
     }
-    auto expression = make_unique<ParsedExpression>(FUNCTION, functionName, ctx.getText());
+    auto expression = make_unique<ParsedFunctionExpression>(
+        FUNCTION, functionName, ctx.getText(), ctx.DISTINCT() != nullptr);
     for (auto& childExpr : ctx.oC_Expression()) {
-        expression->children.push_back(transformExpression(*childExpr));
-    }
-    if (ctx.DISTINCT()) {
-        expression->setIsDistinct();
+        expression->addChild(transformExpression(*childExpr));
     }
     return expression;
 }
@@ -544,7 +528,7 @@ string Transformer::transformFunctionName(CypherParser::OC_FunctionNameContext& 
 
 unique_ptr<ParsedExpression> Transformer::transformExistentialSubquery(
     CypherParser::OC_ExistentialSubqueryContext& ctx) {
-    return make_unique<ParsedExpression>(
+    return make_unique<ParsedSubqueryExpression>(
         EXISTENTIAL_SUBQUERY, transformSingleQuery(*ctx.oC_SingleQuery()), ctx.getText());
 }
 
@@ -573,13 +557,13 @@ string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNameCon
 
 unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx) {
-    return make_unique<ParsedExpression>(
+    return make_unique<ParsedLeafExpression>(
         LITERAL_INT, ctx.DecimalInteger()->getText(), ctx.getText());
 }
 
 unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
-    return make_unique<ParsedExpression>(
+    return make_unique<ParsedLeafExpression>(
         LITERAL_DOUBLE, ctx.RegularDecimalReal()->getText(), ctx.getText());
 }
 

@@ -1,18 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
-cc_library(
-    name = "parser_test_utils",
-    srcs = [
-        "parser_test_utils.cpp",
-    ],
-    hdrs = [
-        "parser_test_utils.h",
-    ],
-    deps = [
-        "//src/parser",
-    ],
-)
-
 cc_test(
     name = "parser_test",
     srcs = glob([
@@ -20,7 +7,7 @@ cc_test(
     ]),
     linkstatic = 1,
     deps = [
-        "parser_test_utils",
+        "//src/parser",
         "@gtest",
         "@gtest//:gtest_main",
     ],

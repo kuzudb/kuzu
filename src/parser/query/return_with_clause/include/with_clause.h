@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/parser/include/statements/return_statement.h"
+#include "return_clause.h"
 
 namespace graphflow {
 namespace parser {
@@ -8,18 +8,20 @@ namespace parser {
 /**
  * WIth statement may have where expression
  */
-class WithStatement : public ReturnStatement {
+class WithClause : public ReturnClause {
 
 public:
-    WithStatement(unique_ptr<ProjectionBody> projectionBody)
-        : ReturnStatement{move(projectionBody)} {}
+    WithClause(unique_ptr<ProjectionBody> projectionBody) : ReturnClause{move(projectionBody)} {}
 
     inline void setWhereExpression(unique_ptr<ParsedExpression> expression) {
         whereExpression = move(expression);
     }
 
     inline bool hasWhereExpression() const { return whereExpression != nullptr; }
+
     inline ParsedExpression* getWhereExpression() const { return whereExpression.get(); }
+
+    bool operator==(const WithClause& other) const;
 
 private:
     unique_ptr<ParsedExpression> whereExpression;

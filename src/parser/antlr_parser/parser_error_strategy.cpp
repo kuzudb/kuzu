@@ -1,4 +1,4 @@
-#include "src/parser/include/antlr_parser/parser_error_strategy.h"
+#include "src/parser/antlr_parser/include/parser_error_strategy.h"
 
 namespace graphflow {
 namespace parser {

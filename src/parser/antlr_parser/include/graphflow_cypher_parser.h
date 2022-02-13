@@ -6,6 +6,7 @@ namespace graphflow {
 namespace parser {
 
 class GraphflowCypherParser : public CypherParser {
+
 public:
     explicit GraphflowCypherParser(antlr4::TokenStream* input) : CypherParser(input) {}
 

@@ -1,0 +1,35 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "parsed_expression",
+    srcs = [
+        "parsed_expression.cpp",
+    ],
+    hdrs = [
+        "include/parsed_expression.h",
+    ],
+    visibility = [
+        "//src/parser:__subpackages__",
+    ],
+    deps = [
+        "//src/common:expression_type",
+    ],
+)
+
+cc_library(
+    name = "parsed_expression_implementations",
+    hdrs = [
+        "include/parsed_function_expression.h",
+        "include/parsed_leaf_expression.h",
+        "include/parsed_property_expression.h",
+        "include/parsed_subquery_expression.h",
+    ],
+    visibility = [
+        "//src/binder:__pkg__",
+        "//src/parser:__subpackages__",
+        "//test/parser:__pkg__",
+    ],
+    deps = [
+        "parsed_expression",
+    ],
+)

@@ -11,7 +11,7 @@ namespace parser {
 class ParserErrorStrategy : public DefaultErrorStrategy {
 
 protected:
-    virtual void reportNoViableAlternative(Parser* recognizer, const NoViableAltException& e);
+    void reportNoViableAlternative(Parser* recognizer, const NoViableAltException& e);
 };
 
 } // namespace parser

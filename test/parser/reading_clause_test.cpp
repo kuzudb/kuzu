@@ -1,5 +1,4 @@
 #include "gtest/gtest.h"
-#include "test/parser/parser_test_utils.h"
 
 #include "src/parser/include/parser.h"
 
@@ -10,9 +9,8 @@ class ReadingClauseTest : public ::testing::Test {
 public:
     static unique_ptr<RelPattern> makeRelPattern(
         const string& name, const string& type, ArrowDirection direction) {
-        auto rel = make_unique<RelPattern>(name, type, "1" /*lowerBound*/, "1" /*upperBound*/);
-        rel->arrowDirection = direction;
-        return rel;
+        return make_unique<RelPattern>(
+            name, type, "1" /*lowerBound*/, "1" /*upperBound*/, direction);
     }
 };
 
@@ -20,13 +18,12 @@ TEST_F(ReadingClauseTest, EmptyMatchTest) {
     auto expectNode = make_unique<NodePattern>(string(), string());
     auto expectPElements = vector<unique_ptr<PatternElement>>();
     expectPElements.emplace_back(make_unique<PatternElement>(move(expectNode)));
-    auto expectedMatch = make_unique<MatchStatement>(move(expectPElements));
+    auto expectedMatch = make_unique<MatchClause>(move(expectPElements));
 
     string input = "MATCH () RETURN COUNT(*);";
     auto regularQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->matchStatements.size());
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *expectedMatch, (MatchStatement&)(*regularQuery->getSingleQuery(0)->matchStatements[0])));
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
+    ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getMatchClause(0));
 }
 
 TEST_F(ReadingClauseTest, MATCHSingleEdgeTest) {
@@ -35,16 +32,15 @@ TEST_F(ReadingClauseTest, MATCHSingleEdgeTest) {
     auto expectRel = makeRelPattern("e1", "knows", RIGHT);
     auto expectPElementChain = make_unique<PatternElementChain>(move(expectRel), move(expectNodeB));
     auto expectPElement = make_unique<PatternElement>(move(expectNodeA));
-    expectPElement->patternElementChains.push_back(move(expectPElementChain));
+    expectPElement->addPatternElementChain(move(expectPElementChain));
     auto expectPElements = vector<unique_ptr<PatternElement>>();
     expectPElements.emplace_back(move(expectPElement));
-    auto expectedMatch = make_unique<MatchStatement>(move(expectPElements));
+    auto expectedMatch = make_unique<MatchClause>(move(expectPElements));
 
     string input = "MATCH (a:Person)-[e1:knows]->(b:Student) RETURN *;";
     auto regularQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->matchStatements.size());
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *expectedMatch, (MatchStatement&)(*regularQuery->getSingleQuery(0)->matchStatements[0])));
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
+    ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getMatchClause(0));
 }
 
 TEST_F(ReadingClauseTest, MATCHMultiEdgesTest) {
@@ -58,17 +54,16 @@ TEST_F(ReadingClauseTest, MATCHMultiEdgesTest) {
     auto expectedPElementChain2 =
         make_unique<PatternElementChain>(move(expectRel2), move(expectNodeC));
     auto expectPElement = make_unique<PatternElement>(move(expectNodeA));
-    expectPElement->patternElementChains.push_back(move(expectedPElementChain1));
-    expectPElement->patternElementChains.push_back(move(expectedPElementChain2));
+    expectPElement->addPatternElementChain(move(expectedPElementChain1));
+    expectPElement->addPatternElementChain(move(expectedPElementChain2));
     auto expectPElements = vector<unique_ptr<PatternElement>>();
     expectPElements.emplace_back(move(expectPElement));
-    auto expectedMatch = make_unique<MatchStatement>(move(expectPElements));
+    auto expectedMatch = make_unique<MatchClause>(move(expectPElements));
 
     string input = "MATCH (a:Person)-[:knows]->(b:Student)<-[e2:likes]-(c:Student) RETURN *;";
     auto regularQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->matchStatements.size());
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *expectedMatch, (MatchStatement&)(*regularQuery->getSingleQuery(0)->matchStatements[0])));
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
+    ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getMatchClause(0));
 }
 
 TEST_F(ReadingClauseTest, MATCHMultiElementsTest) {
@@ -78,7 +73,7 @@ TEST_F(ReadingClauseTest, MATCHMultiElementsTest) {
     auto expectedPElementChain1 =
         make_unique<PatternElementChain>(move(expectRel1), move(expectNodeB));
     auto expectPElement1 = make_unique<PatternElement>(move(expectNodeA));
-    expectPElement1->patternElementChains.push_back(move(expectedPElementChain1));
+    expectPElement1->addPatternElementChain(move(expectedPElementChain1));
 
     auto expectNodeB2 = make_unique<NodePattern>("b", string());
     auto expectNodeC = make_unique<NodePattern>("c", "Student");
@@ -86,18 +81,17 @@ TEST_F(ReadingClauseTest, MATCHMultiElementsTest) {
     auto expectedPElementChain2 =
         make_unique<PatternElementChain>(move(expectRel2), move(expectNodeC));
     auto expectPElement2 = make_unique<PatternElement>(move(expectNodeB2));
-    expectPElement2->patternElementChains.push_back(move(expectedPElementChain2));
+    expectPElement2->addPatternElementChain(move(expectedPElementChain2));
 
     auto expectPElements = vector<unique_ptr<PatternElement>>();
     expectPElements.emplace_back(move(expectPElement1));
     expectPElements.emplace_back(move(expectPElement2));
-    auto expectedMatch = make_unique<MatchStatement>(move(expectPElements));
+    auto expectedMatch = make_unique<MatchClause>(move(expectPElements));
 
     string input = "MATCH (a:Person)-[:knows]->(b:Student), (b)<-[e2:likes]-(c:Student) RETURN *;";
     auto regularQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->matchStatements.size());
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *expectedMatch, (MatchStatement&)(*regularQuery->getSingleQuery(0)->matchStatements[0])));
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
+    ASSERT_TRUE(*expectedMatch == *regularQuery->getSingleQuery(0)->getMatchClause(0));
 }
 
 TEST_F(ReadingClauseTest, MultiMatchTest) {
@@ -107,10 +101,10 @@ TEST_F(ReadingClauseTest, MultiMatchTest) {
     auto expectedPElementChain1 =
         make_unique<PatternElementChain>(move(expectRel1), move(expectNodeB));
     auto expectPElement1 = make_unique<PatternElement>(move(expectNodeA));
-    expectPElement1->patternElementChains.push_back(move(expectedPElementChain1));
+    expectPElement1->addPatternElementChain(move(expectedPElementChain1));
     auto expectPElements1 = vector<unique_ptr<PatternElement>>();
     expectPElements1.emplace_back(move(expectPElement1));
-    auto expectedMatch1 = make_unique<MatchStatement>(move(expectPElements1));
+    auto expectedMatch1 = make_unique<MatchClause>(move(expectPElements1));
 
     auto expectNodeB2 = make_unique<NodePattern>("b", string());
     auto expectNodeC = make_unique<NodePattern>("c", "Student");
@@ -118,17 +112,15 @@ TEST_F(ReadingClauseTest, MultiMatchTest) {
     auto expectedPElementChain2 =
         make_unique<PatternElementChain>(move(expectRel2), move(expectNodeC));
     auto expectPElement2 = make_unique<PatternElement>(move(expectNodeB2));
-    expectPElement2->patternElementChains.push_back(move(expectedPElementChain2));
+    expectPElement2->addPatternElementChain(move(expectedPElementChain2));
     auto expectPElements2 = vector<unique_ptr<PatternElement>>();
     expectPElements2.emplace_back(move(expectPElement2));
-    auto expectedMatch2 = make_unique<MatchStatement>(move(expectPElements2));
+    auto expectedMatch2 = make_unique<MatchClause>(move(expectPElements2));
 
     string input =
         "MATCH (a:Person)-[:knows]->(b:Student) MATCH (b)<-[e2:likes]-(c:Student) RETURN *;";
     auto regularQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->matchStatements.size());
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *expectedMatch1, (MatchStatement&)(*regularQuery->getSingleQuery(0)->matchStatements[0])));
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *expectedMatch2, (MatchStatement&)(*regularQuery->getSingleQuery(0)->matchStatements[1])));
+    ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->getNumMatchClauses());
+    ASSERT_TRUE(*expectedMatch1 == *regularQuery->getSingleQuery(0)->getMatchClause(0));
+    ASSERT_TRUE(*expectedMatch2 == *regularQuery->getSingleQuery(0)->getMatchClause(1));
 }

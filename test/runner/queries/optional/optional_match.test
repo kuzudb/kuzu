@@ -1,21 +1,21 @@
 # description: optional match test
 
--NAME MixedMatchStatementTest1
+-NAME MixedMatchTest1
 -QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) MATCH (b)-[:knows]->(c:person) RETURN COUNT(*)
 ---- 1
 36
 
--NAME MixedMatchStatementTest2
+-NAME MixedMatchTest2
 -QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) MATCH (b)-[:studyAt]->(c:organisation) RETURN COUNT(*)
 ---- 1
 7
 
--NAME MixedMatchStatementTest3
+-NAME MixedMatchTest3
 -QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) WHERE b.fName='Farooq' MATCH (b)<-[:knows]-(c:person) RETURN COUNT(*)
 ---- 1
 1
 
--NAME MixedMatchStatementHashJoinTest
+-NAME MixedMatchHashJoinTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) OPTIONAL MATCH (b)-[:knows]->(c:person) MATCH (c)-[:knows]->(d:person)-[:knows]->(e:person) RETURN COUNT(*)
 ---- 1
 324

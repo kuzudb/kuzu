@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/parser/include/patterns/rel_pattern.h"
+#include "rel_pattern.h"
 
 namespace graphflow {
 namespace parser {
@@ -14,7 +14,19 @@ public:
     PatternElementChain(unique_ptr<RelPattern> relPattern, unique_ptr<NodePattern> nodePattern)
         : relPattern{move(relPattern)}, nodePattern{move(nodePattern)} {}
 
-public:
+    ~PatternElementChain() = default;
+
+    inline RelPattern* getRelPattern() const { return relPattern.get(); }
+
+    inline NodePattern* getNodePattern() const { return nodePattern.get(); }
+
+    bool operator==(const PatternElementChain& other) const {
+        return *relPattern == *other.relPattern;
+    }
+
+    bool operator!=(const PatternElementChain& other) const { return !operator==(other); }
+
+private:
     unique_ptr<RelPattern> relPattern;
     unique_ptr<NodePattern> nodePattern;
 };

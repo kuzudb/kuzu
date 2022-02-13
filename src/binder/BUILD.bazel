@@ -13,7 +13,8 @@ cc_library(
         "bound_queries",
         "subquery_expression_impl",
         "//src/common:csv_reader",
-        "//src/parser:parsed_queries",
+        "//src/parser/expression:parsed_expression_implementations",
+        "//src/parser/query",
         "//src/storage:catalog",
     ],
 )

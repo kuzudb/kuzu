@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/binder/include/expression/expression.h"
-#include "src/parser/include/parsed_expression.h"
+#include "src/parser/expression/include/parsed_expression.h"
 #include "src/storage/include/catalog.h"
 
 using namespace graphflow::parser;
@@ -42,8 +42,6 @@ private:
     shared_ptr<Expression> bindUnaryArithmeticExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindStringOperatorExpression(const ParsedExpression& parsedExpression);
-
-    shared_ptr<Expression> bindCSVLineExtractExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindNullComparisonOperatorExpression(
         const ParsedExpression& parsedExpression);
