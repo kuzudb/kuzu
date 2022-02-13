@@ -46,9 +46,9 @@
 #include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
 #include "src/processor/include/physical_plan/operator/result_collector.h"
 #include "src/processor/include/physical_plan/operator/result_scan.h"
-#include "src/processor/include/physical_plan/operator/scan_attribute/adj_column_extend.h"
-#include "src/processor/include/physical_plan/operator/scan_attribute/scan_structured_property.h"
-#include "src/processor/include/physical_plan/operator/scan_attribute/scan_unstructured_property.h"
+#include "src/processor/include/physical_plan/operator/scan_column/adj_column_extend.h"
+#include "src/processor/include/physical_plan/operator/scan_column/scan_structured_property.h"
+#include "src/processor/include/physical_plan/operator/scan_column/scan_unstructured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
 #include "src/processor/include/physical_plan/operator/union_all_scan.h"
@@ -298,42 +298,53 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
     auto& scanProperty = (const LogicalScanNodeProperty&)*logicalOperator;
     auto prevOperator =
         mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
-    auto inDataPos = mapperContext.getDataPos(scanProperty.nodeID);
-    auto outDataPos = mapperContext.getDataPos(scanProperty.getPropertyExpressionName());
-    mapperContext.addComputedExpressions(scanProperty.getPropertyExpressionName());
-    auto& nodeStore = graph.getNodesStore();
-    if (scanProperty.isUnstructuredProperty) {
-        auto lists = nodeStore.getNodeUnstrPropertyLists(scanProperty.nodeLabel);
-        return make_unique<ScanUnstructuredProperty>(inDataPos, outDataPos,
-            scanProperty.getPropertyKey(), lists, move(prevOperator), executionContext,
-            mapperContext.getOperatorID());
+    auto inputNodeIDVectorPos = mapperContext.getDataPos(scanProperty.getNodeID());
+    vector<DataPos> outputPropertyVectorsPos;
+    for (auto& propertyName : scanProperty.getPropertyNames()) {
+        outputPropertyVectorsPos.push_back(mapperContext.getDataPos(propertyName));
+        mapperContext.addComputedExpressions(propertyName);
     }
-    auto column =
-        nodeStore.getNodePropertyColumn(scanProperty.nodeLabel, scanProperty.getPropertyKey());
-    return make_unique<ScanStructuredProperty>(inDataPos, outDataPos, column, move(prevOperator),
-        executionContext, mapperContext.getOperatorID());
+    auto& nodeStore = graph.getNodesStore();
+    if (scanProperty.getIsUnstructured()) {
+        auto lists = nodeStore.getNodeUnstrPropertyLists(scanProperty.getNodeLabel());
+        return make_unique<ScanUnstructuredProperty>(inputNodeIDVectorPos,
+            move(outputPropertyVectorsPos), scanProperty.getPropertyKeys(), lists,
+            move(prevOperator), executionContext, mapperContext.getOperatorID());
+    }
+    vector<Column*> propertyColumns;
+    for (auto& propertyKey : scanProperty.getPropertyKeys()) {
+        propertyColumns.push_back(
+            nodeStore.getNodePropertyColumn(scanProperty.getNodeLabel(), propertyKey));
+    }
+    return make_unique<ScanStructuredProperty>(inputNodeIDVectorPos, move(outputPropertyVectorsPos),
+        move(propertyColumns), move(prevOperator), executionContext, mapperContext.getOperatorID());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
-    auto& scanProperty = (const LogicalScanRelProperty&)*logicalOperator;
+    auto& scanRelProperty = (const LogicalScanRelProperty&)*logicalOperator;
     auto prevOperator =
         mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
-    auto inDataPos = mapperContext.getDataPos(scanProperty.boundNodeID);
-    auto outDataPos = mapperContext.getDataPos(scanProperty.getPropertyExpressionName());
-    mapperContext.addComputedExpressions(scanProperty.getPropertyExpressionName());
+    auto inputNodeIDVectorPos = mapperContext.getDataPos(scanRelProperty.getBoundNodeID());
+    assert(scanRelProperty.getPropertyNames().size() == 1);
+    auto propertyName = scanRelProperty.getPropertyNames()[0];
+    assert(scanRelProperty.getPropertyKeys().size() == 1);
+    auto propertyKey = scanRelProperty.getPropertyKeys()[0];
+    auto outputPropertyVectorPos = mapperContext.getDataPos(propertyName);
+    mapperContext.addComputedExpressions(propertyName);
     auto& relStore = graph.getRelsStore();
-    if (scanProperty.isColumn) {
+    if (scanRelProperty.getIsColumn()) {
         auto column = relStore.getRelPropertyColumn(
-            scanProperty.relLabel, scanProperty.boundNodeLabel, scanProperty.getPropertyKey());
-        return make_unique<ScanStructuredProperty>(inDataPos, outDataPos, column,
-            move(prevOperator), executionContext, mapperContext.getOperatorID());
+            scanRelProperty.getRelLabel(), scanRelProperty.getBoundNodeLabel(), propertyKey);
+        return make_unique<ScanStructuredProperty>(inputNodeIDVectorPos,
+            vector<DataPos>{outputPropertyVectorPos}, vector<Column*>{column}, move(prevOperator),
+            executionContext, mapperContext.getOperatorID());
     }
-    auto lists = relStore.getRelPropertyLists(scanProperty.direction, scanProperty.boundNodeLabel,
-        scanProperty.relLabel, scanProperty.getPropertyKey());
-    return make_unique<ReadRelPropertyList>(inDataPos, outDataPos, lists, move(prevOperator),
-        executionContext, mapperContext.getOperatorID());
+    auto lists = relStore.getRelPropertyLists(scanRelProperty.getDirection(),
+        scanRelProperty.getBoundNodeLabel(), scanRelProperty.getRelLabel(), propertyKey);
+    return make_unique<ReadRelPropertyList>(inputNodeIDVectorPos, move(outputPropertyVectorPos),
+        lists, move(prevOperator), executionContext, mapperContext.getOperatorID());
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(

@@ -5,56 +5,63 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-void UnstructuredPropertyLists::readUnstructuredProperties(
-    const shared_ptr<ValueVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
-    const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
+void UnstructuredPropertyLists::readProperties(ValueVector* nodeIDVector,
+    const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap,
+    BufferManagerMetrics& metrics) {
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
-        readUnstructuredPropertyForSingleNodeIDPosition(
-            pos, nodeIDVector, propertyKeyIdxToRead, valueVector, metrics);
+        readPropertiesForPosition(nodeIDVector, pos, propertyKeyToResultVectorMap, metrics);
     } else {
-        for (auto i = 0ul; i < nodeIDVector->state->selectedSize; i++) {
+        for (auto i = 0u; i < nodeIDVector->state->selectedSize; ++i) {
             auto pos = nodeIDVector->state->selectedPositions[i];
-            readUnstructuredPropertyForSingleNodeIDPosition(
-                pos, nodeIDVector, propertyKeyIdxToRead, valueVector, metrics);
+            readPropertiesForPosition(nodeIDVector, pos, propertyKeyToResultVectorMap, metrics);
         }
     }
 }
 
-void UnstructuredPropertyLists::readUnstructuredPropertyForSingleNodeIDPosition(uint32_t pos,
-    const shared_ptr<ValueVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
-    const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics) {
+void UnstructuredPropertyLists::readPropertiesForPosition(ValueVector* nodeIDVector, uint32_t pos,
+    const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap,
+    BufferManagerMetrics& metrics) {
     if (nodeIDVector->isNull(pos)) {
-        valueVector->setNull(pos, true);
+        for (auto& [key, vector] : propertyKeyToResultVectorMap) {
+            vector->setNull(pos, true);
+        }
         return;
     }
-    node_offset_t nodeOffset;
-    nodeOffset = nodeIDVector->readNodeOffset(pos);
-    auto info = getListInfo(nodeOffset);
-    PageByteCursor byteCursor{info.cursor.idx, info.cursor.pos};
-    while (info.listLen) {
-        UnstructuredPropertyKeyDataType propertyKeyDataType;
-        readUnstrPropertyKeyIdxAndDatatype(reinterpret_cast<uint8_t*>(&propertyKeyDataType),
-            byteCursor, info.listLen, info.mapper, metrics);
-        Value* value = &((Value*)valueVector->values)[pos];
-        readOrSkipUnstrPropertyValue(propertyKeyDataType.dataType, byteCursor, info.listLen,
-            info.mapper, value,
-            propertyKeyIdxToRead ==
-                propertyKeyDataType.keyIdx /* read if we found the key. skip otherwise. */,
-            metrics);
-        if (propertyKeyIdxToRead == propertyKeyDataType.keyIdx) {
-            valueVector->setNull(pos, false);
+    unordered_set<uint32_t> propertyKeysFound;
+    auto info = getListInfo(nodeIDVector->readNodeOffset(pos));
+    PageByteCursor cursor{info.cursor.idx, info.cursor.pos};
+    auto propertyKeyDataType = UnstructuredPropertyKeyDataType{UINT32_MAX, INVALID};
+    auto numBytesRead = 0u;
+    while (numBytesRead < info.listLen) {
+        readPropertyKeyAndDatatype((uint8_t*)&propertyKeyDataType, cursor, info.mapper, metrics);
+        numBytesRead += UNSTR_PROP_HEADER_LEN;
+        auto dataTypeSize = TypeUtils::getDataTypeSize(propertyKeyDataType.dataType);
+        if (propertyKeyToResultVectorMap.contains(propertyKeyDataType.keyIdx)) {
+            propertyKeysFound.insert(propertyKeyDataType.keyIdx);
+            auto vector = propertyKeyToResultVectorMap.at(propertyKeyDataType.keyIdx);
+            vector->setNull(pos, false);
+            auto value = &((Value*)vector->values)[pos];
+            readPropertyValue(value, dataTypeSize, cursor, info.mapper, metrics);
             value->dataType = propertyKeyDataType.dataType;
-            if (STRING == propertyKeyDataType.dataType) {
+            if (propertyKeyDataType.dataType == STRING) {
                 stringOverflowPages.readStringToVector(
-                    value->val.strVal, *valueVector->stringBuffer, metrics);
+                    value->val.strVal, *vector->stringBuffer, metrics);
             }
-            // found the property, exiting.
-            return;
+        } else {
+            skipPropertyValue(dataTypeSize, cursor);
+        }
+        numBytesRead += dataTypeSize;
+        if (propertyKeysFound.size() ==
+            propertyKeyToResultVectorMap.size()) { // all properties are found.
+            break;
         }
     }
-    // We did not find the key. We set the value to null.
-    valueVector->setNull(pos, true);
+    for (auto& [key, vector] : propertyKeyToResultVectorMap) {
+        if (!propertyKeysFound.contains(key)) {
+            vector->setNull(pos, true);
+        }
+    }
 }
 
 unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPropertiesOfNode(
@@ -62,13 +69,18 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
     auto info = getListInfo(nodeOffset);
     auto retVal = make_unique<map<uint32_t /*unstructuredProperty idx*/, Literal>>();
     PageByteCursor byteCursor{info.cursor.idx, info.cursor.pos};
-    while (info.listLen) {
-        UnstructuredPropertyKeyDataType propertyKeyDataType;
-        readUnstrPropertyKeyIdxAndDatatype(reinterpret_cast<uint8_t*>(&propertyKeyDataType),
-            byteCursor, info.listLen, info.mapper, metrics);
+    auto propertyKeyDataType = UnstructuredPropertyKeyDataType{UINT32_MAX, INVALID};
+    auto numBytesRead = 0u;
+    while (numBytesRead < info.listLen) {
+        readPropertyKeyAndDatatype(
+            (uint8_t*)(&propertyKeyDataType), byteCursor, info.mapper, metrics);
+        numBytesRead += UNSTR_PROP_HEADER_LEN;
+        auto dataTypeSize = TypeUtils::getDataTypeSize(propertyKeyDataType.dataType);
         Value unstrPropertyValue{propertyKeyDataType.dataType};
-        readOrSkipUnstrPropertyValue(propertyKeyDataType.dataType, byteCursor, info.listLen,
-            info.mapper, &unstrPropertyValue, true /*to read*/, metrics);
+        readPropertyValue(&unstrPropertyValue,
+            TypeUtils::getDataTypeSize(propertyKeyDataType.dataType), byteCursor, info.mapper,
+            metrics);
+        numBytesRead += dataTypeSize;
         Literal propertyValueAsLiteral;
         propertyValueAsLiteral.dataType = unstrPropertyValue.dataType;
         if (STRING == propertyKeyDataType.dataType) {
@@ -83,57 +95,62 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
     return retVal;
 }
 
-void UnstructuredPropertyLists::readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataType,
-    PageByteCursor& cursor, uint64_t& listLen,
-    const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+void UnstructuredPropertyLists::readPropertyKeyAndDatatype(uint8_t* propertyKeyDataType,
+    PageByteCursor& cursor, const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
     BufferManagerMetrics& metrics) {
-    uint32_t bytesLeftToRead = UNSTR_PROP_HEADER_LEN;
-    uint64_t physicalPageIdx = logicalToPhysicalPageMapper(cursor.idx);
-    auto frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
-    uint32_t bytesInCurrentFrame = PAGE_SIZE - cursor.offset;
-    auto bytesToRead = min(bytesLeftToRead, (uint32_t)bytesInCurrentFrame);
-    memcpy(propertyKeyDataType, frame + cursor.offset, bytesToRead);
-    bufferManager.unpin(fileHandle, physicalPageIdx);
-    bytesLeftToRead -= bytesToRead;
-    if (bytesLeftToRead > 0) {
-        physicalPageIdx = logicalToPhysicalPageMapper(++cursor.idx);
-        frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
-        memcpy(propertyKeyDataType + bytesInCurrentFrame, frame, bytesLeftToRead);
-        cursor.offset = bytesLeftToRead;
-        bufferManager.unpin(fileHandle, physicalPageIdx);
-    } else {
-        cursor.offset += UNSTR_PROP_HEADER_LEN;
+    auto totalNumBytesRead = 0u;
+    auto bytesInCurrentPage = PAGE_SIZE - cursor.offset;
+    auto bytesToReadInCurrentPage = min((uint64_t)UNSTR_PROP_HEADER_LEN, bytesInCurrentPage);
+    readFromAPage(propertyKeyDataType, bytesToReadInCurrentPage, cursor,
+        logicalToPhysicalPageMapper, metrics);
+    totalNumBytesRead += bytesToReadInCurrentPage;
+    if (UNSTR_PROP_HEADER_LEN > totalNumBytesRead) { // move to next page
+        cursor.idx++;
+        cursor.offset = 0;
+        auto bytesToReadInNextPage = UNSTR_PROP_HEADER_LEN - totalNumBytesRead;
+        // IMPORTANT NOTE: Pranjal used to use bytesInCurrentPage instead of totalNumBytesRead
+        // in the following function. Xiyang think this is a bug and modify it.
+        readFromAPage(propertyKeyDataType + totalNumBytesRead, bytesToReadInNextPage, cursor,
+            logicalToPhysicalPageMapper, metrics);
     }
-    listLen -= UNSTR_PROP_HEADER_LEN;
 }
 
-void UnstructuredPropertyLists::readOrSkipUnstrPropertyValue(DataType& propertyDataType,
-    PageByteCursor& cursor, uint64_t& listLen,
-    const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper, Value* value, bool toRead,
+void UnstructuredPropertyLists::readPropertyValue(Value* propertyValue, uint64_t dataTypeSize,
+    PageByteCursor& cursor, const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
     BufferManagerMetrics& metrics) {
-    uint32_t dataTypeSize = TypeUtils::getDataTypeSize(propertyDataType);
-    uint32_t bytesLeftToRead = dataTypeSize;
+    auto totalNumBytesRead = 0u;
+    auto bytesInCurrentPage = PAGE_SIZE - cursor.offset;
+    auto bytesToReadInCurrentPage = min(dataTypeSize, bytesInCurrentPage);
+    readFromAPage(((uint8_t*)&propertyValue->val), bytesToReadInCurrentPage, cursor,
+        logicalToPhysicalPageMapper, metrics);
+    totalNumBytesRead += bytesToReadInCurrentPage;
+    if (dataTypeSize > totalNumBytesRead) { // move to next page
+        cursor.idx++;
+        cursor.offset = 0;
+        auto bytesToReadInNextPage = dataTypeSize - totalNumBytesRead;
+        // See line 107
+        readFromAPage(((uint8_t*)&propertyValue->val) + totalNumBytesRead, bytesToReadInNextPage,
+            cursor, logicalToPhysicalPageMapper, metrics);
+    }
+}
+
+void UnstructuredPropertyLists::skipPropertyValue(uint64_t dataTypeSize, PageByteCursor& cursor) {
+    auto bytesToReadInCurrentPage = min(dataTypeSize, PAGE_SIZE - cursor.offset);
+    cursor.offset += bytesToReadInCurrentPage;
+    if (dataTypeSize > bytesToReadInCurrentPage) {
+        cursor.idx++;
+        cursor.offset = dataTypeSize - bytesToReadInCurrentPage;
+    }
+}
+
+void UnstructuredPropertyLists::readFromAPage(uint8_t* value, uint64_t bytesToRead,
+    PageByteCursor& cursor, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+    BufferManagerMetrics& metrics) {
     uint64_t physicalPageIdx = logicalToPhysicalPageMapper(cursor.idx);
     auto frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
-    uint32_t bytesInCurrentFrame = PAGE_SIZE - cursor.offset;
-    auto bytesToRead = min(bytesLeftToRead, (uint32_t)bytesInCurrentFrame);
-    if (toRead) {
-        memcpy((uint8_t*)&value->val, frame + cursor.offset, bytesToRead);
-    }
+    memcpy(value, frame + cursor.offset, bytesToRead);
     bufferManager.unpin(fileHandle, physicalPageIdx);
-    bytesLeftToRead -= bytesToRead;
-    if (bytesLeftToRead > 0) {
-        physicalPageIdx = logicalToPhysicalPageMapper(++cursor.idx);
-        frame = bufferManager.pin(fileHandle, physicalPageIdx, metrics);
-        if (toRead) {
-            memcpy(((uint8_t*)&value->val) + bytesInCurrentFrame, frame, bytesLeftToRead);
-        }
-        cursor.offset = bytesLeftToRead;
-        bufferManager.unpin(fileHandle, physicalPageIdx);
-    } else {
-        cursor.offset += dataTypeSize;
-    }
-    listLen -= dataTypeSize;
+    cursor.offset += bytesToRead;
 }
 
 } // namespace storage

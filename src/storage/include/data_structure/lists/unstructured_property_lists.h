@@ -9,6 +9,7 @@ struct UnstructuredPropertyKeyDataType {
     uint32_t keyIdx;
     DataType dataType;
 };
+
 // UnstructuredPropertyLists is the specialization of Lists for Node's unstructured property lists.
 // Though this shares the identical representation as Lists, it is more aligned to Columns in
 // terms of access. In particular, readValues(...) of UnstructuredPropertyLists> is given a
@@ -23,8 +24,8 @@ public:
               false /*hasNULLBytes*/, isInMemory},
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
-    void readUnstructuredProperties(const shared_ptr<ValueVector>& nodeIDVector,
-        uint32_t propertyKeyIdxToRead, const shared_ptr<ValueVector>& valueVector,
+    void readProperties(ValueVector* nodeIDVector,
+        const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap,
         BufferManagerMetrics& metrics);
 
     // Currently, used only in Loader tests.
@@ -32,17 +33,23 @@ public:
         node_offset_t nodeOffset, BufferManagerMetrics& metrics);
 
 private:
-    void readUnstructuredPropertyForSingleNodeIDPosition(uint32_t pos,
-        const shared_ptr<ValueVector>& nodeIDVector, uint32_t propertyKeyIdxToRead,
-        const shared_ptr<ValueVector>& valueVector, BufferManagerMetrics& metrics);
-
-    void readUnstrPropertyKeyIdxAndDatatype(uint8_t* propertyKeyDataType, PageByteCursor& cursor,
-        uint64_t& listLen, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+    void readPropertiesForPosition(ValueVector* nodeIDVector, uint32_t pos,
+        const unordered_map<uint32_t, ValueVector*>& propertyKeyToResultVectorMap,
         BufferManagerMetrics& metrics);
 
-    void readOrSkipUnstrPropertyValue(DataType& propertyDataType, PageByteCursor& cursor,
-        uint64_t& listLen, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
-        Value* value, bool toRead, BufferManagerMetrics& metrics);
+    void readPropertyKeyAndDatatype(uint8_t* propertyKeyDataType, PageByteCursor& cursor,
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+        BufferManagerMetrics& metrics);
+
+    void readPropertyValue(Value* propertyValue, uint64_t dataTypeSize, PageByteCursor& cursor,
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+        BufferManagerMetrics& metrics);
+
+    void skipPropertyValue(uint64_t dataTypeSize, PageByteCursor& cursor);
+
+    void readFromAPage(uint8_t* value, uint64_t bytesToRead, PageByteCursor& cursor,
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
+        BufferManagerMetrics& metrics);
 
 public:
     static constexpr uint8_t UNSTR_PROP_IDX_LEN = 4;

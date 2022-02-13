@@ -182,22 +182,24 @@ struct timestamp_t {
 };
 
 enum DataType : uint8_t {
-    REL = 0,
-    NODE = 1,
-    LABEL = 2,
-    BOOL = 3,
-    INT64 = 4,
-    DOUBLE = 5,
-    STRING = 6,
-    NODE_ID = 7,
-    UNSTRUCTURED = 8,
-    DATE = 9,
-    TIMESTAMP = 10,
-    INTERVAL = 11,
+    INVALID = 0,
+
+    REL = 1,
+    NODE = 2,
+    LABEL = 3,
+    BOOL = 4,
+    INT64 = 5,
+    DOUBLE = 6,
+    STRING = 7,
+    NODE_ID = 8,
+    UNSTRUCTURED = 9,
+    DATE = 10,
+    TIMESTAMP = 11,
+    INTERVAL = 12,
 };
 
-const string DataTypeNames[] = {"REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE", "STRING",
-    "NODE_ID", "UNSTRUCTURED", "DATE", "TIMESTAMP", "INTERVAL"};
+const string DataTypeNames[] = {"INVALID", "REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE",
+    "STRING", "NODE_ID", "UNSTRUCTURED", "DATE", "TIMESTAMP", "INTERVAL"};
 
 // Direction
 enum Direction : uint8_t { FWD = 0, BWD = 1 };
