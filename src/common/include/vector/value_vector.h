@@ -35,7 +35,7 @@ public:
     // srcData/dstData are pointing to a Value
     void copyNonNullDataWithSameTypeIntoPos(uint64_t pos, uint8_t* srcData);
     void copyNonNullDataWithSameTypeOutFromPos(
-        uint64_t pos, uint8_t* dstData, StringBuffer& dstStringBuffer);
+        uint64_t pos, uint8_t* dstData, StringBuffer& dstStringBuffer) const;
     void addString(uint64_t pos, string value) const;
     void addString(uint64_t pos, char* value, uint64_t len) const;
     void addLiteralToUnstructuredVector(const uint64_t pos, const Literal& value) const;
@@ -72,7 +72,7 @@ public:
 
     inline uint8_t isNull(uint32_t pos) const { return nullMask->mask[pos]; }
 
-    inline shared_ptr<NullMask> getNullMask() { return nullMask; }
+    inline shared_ptr<NullMask> getNullMask() const { return nullMask; }
     inline uint64_t getNumBytesPerValue() const { return TypeUtils::getDataTypeSize(dataType); }
 
     bool discardNullNodes();

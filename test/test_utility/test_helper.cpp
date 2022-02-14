@@ -30,6 +30,7 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const Syste
         assert(numPlans > 0);
         numPlansOfEachQuery[i] = numPlans;
         uint64_t numPassedPlans = 0;
+        vector<DataType> dataTypes = plans[0]->getExpressionsToCollectDataTypes();
         for (uint64_t j = 0; j < numPlans; j++) {
             auto planStr = plans[j]->lastOperator->toString();
             auto result = system.executePlan(move(plans[j]), context);
@@ -38,7 +39,8 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const Syste
                     j, result->getTotalNumFlatTuples(), testConfig.expectedNumTuples);
                 spdlog::info("PLAN: \n{}", planStr);
             } else {
-                vector<string> resultTuples = getActualOutput(*result, testConfig.checkOutputOrder);
+                vector<string> resultTuples =
+                    getActualOutput(*result, dataTypes, testConfig.checkOutputOrder);
                 if (resultTuples == testConfig.expectedTuples) {
                     spdlog::info("PLAN{} PASSED", j);
                     spdlog::debug("PLAN: \n{}", planStr);
@@ -114,12 +116,14 @@ void BaseGraphLoadingTest::SetUp() {
     TestHelper::loadGraph(testSuiteSystemConfig);
 }
 
-vector<string> TestHelper::getActualOutput(FactorizedTable& queryResult, bool checkOutputOrder) {
+vector<string> TestHelper::getActualOutput(
+    FactorizedTable& queryResult, vector<DataType> dataTypes, bool checkOutputOrder) {
     vector<string> actualOutput;
     if (queryResult.getTotalNumFlatTuples() != 0) {
-        auto flatTupleIterator = queryResult.getFlatTuples();
+        auto flatTupleIterator = queryResult.getFlatTupleIterator();
         while (flatTupleIterator.hasNextFlatTuple()) {
-            auto tuple = flatTupleIterator.getNextFlatTuple();
+            FlatTuple tuple(dataTypes);
+            flatTupleIterator.getNextFlatTuple(tuple);
             actualOutput.push_back(tuple.toString(vector<uint32_t>(tuple.len(), 0)));
         }
         if (!checkOutputOrder) {

@@ -36,15 +36,10 @@ public:
     // time.
     inline void initForScanning() {
         lock_guard<mutex> lck{unionAllScanSharedStateMutex};
-        maxMorselSize = getFactorizedTable(0)->hasUnflatColToRead() ? 1 : DEFAULT_VECTOR_CAPACITY;
+        maxMorselSize = getFactorizedTable(0)->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
     }
 
     unique_ptr<UnionAllScanMorsel> getMorsel();
-
-    TupleSchema getTupleSchema() {
-        lock_guard<mutex> lck{unionAllScanSharedStateMutex};
-        return getFactorizedTable(0)->getTupleSchema();
-    }
 
 private:
     uint64_t maxMorselSize;
@@ -58,18 +53,20 @@ private:
 class UnionAllScan : public PhysicalOperator, public SourceOperator {
 public:
     UnionAllScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> outDataPoses,
-        vector<unique_ptr<PhysicalOperator>> children, ExecutionContext& context, uint32_t id)
-        : outDataPoses{outDataPoses}, PhysicalOperator{move(children), context, id},
-          SourceOperator{move(resultSetDescriptor)} {
+        vector<DataType> dataTypes, vector<unique_ptr<PhysicalOperator>> children,
+        ExecutionContext& context, uint32_t id)
+        : outDataPoses{outDataPoses}, dataTypes{dataTypes},
+          PhysicalOperator{move(children), context, id}, SourceOperator{move(resultSetDescriptor)} {
         unionAllScanSharedState = make_shared<UnionAllScanSharedState>(this->children);
     }
 
     // For clone only.
     UnionAllScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> outDataPoses,
-        shared_ptr<UnionAllScanSharedState> unionAllScanSharedState, ExecutionContext& context,
-        uint32_t id)
-        : outDataPoses{outDataPoses}, unionAllScanSharedState{unionAllScanSharedState},
-          PhysicalOperator{context, id}, SourceOperator{move(resultSetDescriptor)} {}
+        vector<DataType> dataTypes, shared_ptr<UnionAllScanSharedState> unionAllScanSharedState,
+        ExecutionContext& context, uint32_t id)
+        : outDataPoses{outDataPoses}, dataTypes{dataTypes},
+          unionAllScanSharedState{unionAllScanSharedState}, PhysicalOperator{context, id},
+          SourceOperator{move(resultSetDescriptor)} {}
 
     shared_ptr<ResultSet> initResultSet() override;
 
@@ -78,13 +75,15 @@ public:
     PhysicalOperatorType getOperatorType() override { return UNION_ALL_SCAN; }
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<UnionAllScan>(
-            resultSetDescriptor->copy(), outDataPoses, unionAllScanSharedState, context, id);
+        return make_unique<UnionAllScan>(resultSetDescriptor->copy(), outDataPoses, dataTypes,
+            unionAllScanSharedState, context, id);
     }
 
 private:
     shared_ptr<UnionAllScanSharedState> unionAllScanSharedState;
     vector<DataPos> outDataPoses;
+    vector<DataType> dataTypes;
+    vector<shared_ptr<ValueVector>> vectorsToRead;
 };
 
 } // namespace processor

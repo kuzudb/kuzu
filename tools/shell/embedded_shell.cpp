@@ -263,16 +263,17 @@ void EmbeddedShell::printExecutionResult() {
         printf(">> Number of output tuples: %lu\n", context.queryResult->getTotalNumFlatTuples());
         printf(">> Compiling time: %.2fms\n", context.compilingTime);
         printf(">> Executing time: %.2fms\n", context.executingTime);
-
+        vector<DataType> dataTypes = context.expressionsToReturnDataTypes;
         if (context.queryResult->getNumTuples()) {
-            vector<uint32_t> colsWidth(context.queryResult->getTupleSchema().columns.size(), 2);
+            vector<uint32_t> colsWidth(context.queryResult->getTableSchema().getNumColumns(), 2);
             uint32_t lineSeparatorLen = 1u + colsWidth.size();
             string lineSeparator;
 
-            auto flatTupleIteartor = context.queryResult->getFlatTuples();
+            auto flatTupleIteartor = context.queryResult->getFlatTupleIterator();
             //  first loop: calculate column width of the table
             while (flatTupleIteartor.hasNextFlatTuple()) {
-                auto tuple = flatTupleIteartor.getNextFlatTuple();
+                FlatTuple tuple(dataTypes);
+                flatTupleIteartor.getNextFlatTuple(tuple);
                 for (auto i = 0u; i < colsWidth.size(); i++) {
                     if (tuple.nullMask[i]) {
                         continue;
@@ -287,9 +288,10 @@ void EmbeddedShell::printExecutionResult() {
             lineSeparator = string(lineSeparatorLen, '-');
             printf("%s\n", lineSeparator.c_str());
 
-            auto flatTupleIteartor1 = context.queryResult->getFlatTuples();
+            auto flatTupleIteartor1 = context.queryResult->getFlatTupleIterator();
             while (flatTupleIteartor1.hasNextFlatTuple()) {
-                auto tuple = flatTupleIteartor1.getNextFlatTuple();
+                FlatTuple tuple(dataTypes);
+                flatTupleIteartor1.getNextFlatTuple(tuple);
                 printf("|%s|\n", tuple.toString(colsWidth, "|").c_str());
                 printf("%s\n", lineSeparator.c_str());
             }

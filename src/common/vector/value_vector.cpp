@@ -58,7 +58,7 @@ void ValueVector::copyNonNullDataWithSameTypeIntoPos(uint64_t pos, uint8_t* srcD
 }
 
 void ValueVector::copyNonNullDataWithSameTypeOutFromPos(
-    uint64_t pos, uint8_t* dstData, StringBuffer& dstStringBuffer) {
+    uint64_t pos, uint8_t* dstData, StringBuffer& dstStringBuffer) const {
     copyNonNullDataWithSameType(values + pos * getNumBytesPerValue(), dstData, dstStringBuffer);
 }
 

@@ -35,6 +35,8 @@ public:
         assert(!uniqueName.empty());
         return uniqueName;
     }
+
+    inline DataType getDataType() const { return dataType; }
     inline string getAlias() const { return alias; }
     inline string getRawName() const { return rawName; }
 

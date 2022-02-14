@@ -588,10 +588,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& unionAll = (LogicalUnion&)*logicalOperator;
-
+    vector<DataType> dataTypes;
     vector<DataPos> outDataPoses;
     for (auto& expression : unionAll.getExpressionsToUnion()) {
         outDataPoses.emplace_back(mapperContext.getDataPos(expression->getUniqueName()));
+        dataTypes.push_back(expression->getDataType());
     }
     vector<unique_ptr<PhysicalOperator>> children;
     for (auto i = 0u; i < logicalOperator->getNumChildren(); i++) {
@@ -599,7 +600,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
             logicalOperator->getChild(i).get(), mapperContext, executionContext));
     }
     return make_unique<UnionAllScan>(mapperContext.getResultSetDescriptor()->copy(),
-        move(outDataPoses), move(children), executionContext, mapperContext.getOperatorID());
+        move(outDataPoses), move(dataTypes), move(children), executionContext,
+        mapperContext.getOperatorID());
 }
 
 unique_ptr<PhysicalOperator> createHashAggregate(

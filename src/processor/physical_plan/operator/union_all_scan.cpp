@@ -27,14 +27,12 @@ unique_ptr<UnionAllScanMorsel> UnionAllScanSharedState::getMorsel() {
 
 shared_ptr<ResultSet> UnionAllScan::initResultSet() {
     resultSet = populateResultSet();
-    auto tupleSchema = unionAllScanSharedState->getTupleSchema();
-    vector<uint64_t> columnsToReadInFactorizedTable;
     for (auto i = 0u; i < outDataPoses.size(); i++) {
         auto outDataPos = outDataPoses[i];
         auto outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-        outDataChunk->insert(outDataPos.valueVectorPos,
-            make_shared<ValueVector>(context.memoryManager, tupleSchema.columns[i].dataType));
-        columnsToReadInFactorizedTable.emplace_back(i);
+        auto valueVector = make_shared<ValueVector>(context.memoryManager, dataTypes[i]);
+        outDataChunk->insert(outDataPos.valueVectorPos, valueVector);
+        vectorsToRead.push_back(valueVector);
     }
     unionAllScanSharedState->initForScanning();
     return resultSet;
@@ -46,11 +44,10 @@ bool UnionAllScan::getNextTuples() {
     if (unionAllScanMorsel == nullptr) {
         return false;
     }
-
     // We scan one by one if there is an unflat column in the factorized tables (see how
     // maxMorselSize is set in initForScanning).
     unionAllScanSharedState->getFactorizedTable(unionAllScanMorsel->getChildIdx())
-        ->scan(outDataPoses, *resultSet, unionAllScanMorsel->getStartTupleIdx(),
+        ->scan(vectorsToRead, unionAllScanMorsel->getStartTupleIdx(),
             unionAllScanMorsel->getNumTuples());
     metrics->numOutputTuple.increase(
         unionAllScanMorsel->getNumTuples() == 1 ?

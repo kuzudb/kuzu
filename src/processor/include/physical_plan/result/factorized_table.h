@@ -37,204 +37,163 @@ private:
     unique_ptr<MemoryBlock> block;
 };
 
-struct ColumnInTupleSchema {
-    ColumnInTupleSchema(DataType dataType, bool isUnflat, uint32_t dataChunksPos)
-        : dataType{dataType}, isUnflat{isUnflat}, dataChunkPos{dataChunksPos} {}
+class ColumnSchema {
+public:
+    ColumnSchema(bool isUnflat, uint32_t dataChunksPos, uint64_t numBytes)
+        : isUnflat{isUnflat}, dataChunkPos{dataChunksPos}, numBytes{numBytes} {}
 
-    inline bool operator==(const ColumnInTupleSchema& other) const {
-        return dataType == other.dataType && isUnflat == other.isUnflat;
+    inline bool getIsUnflat() const { return isUnflat; }
+
+    inline uint32_t getDataChunkPos() const { return dataChunkPos; }
+
+    inline uint64_t getNumBytes() const { return numBytes; }
+
+    inline bool operator==(const ColumnSchema& other) const {
+        return isUnflat == other.isUnflat && dataChunkPos == other.dataChunkPos &&
+               numBytes == other.numBytes;
     }
-    inline bool operator!=(const ColumnInTupleSchema& other) const { return !(*this == other); }
+    inline bool operator!=(const ColumnSchema& other) const { return !(*this == other); }
 
-    inline uint64_t getColumnSize() const {
-        return isUnflat ? sizeof(overflow_value_t) : TypeUtils::getDataTypeSize(dataType);
-    }
-
-    DataType dataType;
+private:
     // We need isUnflat, dataChunkPos to know the factorization structure in the factorizedTable.
     bool isUnflat;
     uint32_t dataChunkPos;
+    uint64_t numBytes;
 };
 
-struct TupleSchema {
-    TupleSchema() : numBytesPerTuple{0} {}
+class TableSchema {
+public:
+    TableSchema() = default;
 
-    explicit TupleSchema(vector<ColumnInTupleSchema> columns)
-        : columns{move(columns)}, numBytesPerTuple{0} {
-        for (auto& column : this->columns) {
-            numBytesPerTuple += column.getColumnSize();
-        }
-        initialize();
+    explicit TableSchema(vector<ColumnSchema> columns);
+
+    void appendColumn(const ColumnSchema& column);
+
+    inline ColumnSchema getColumn(uint32_t idx) const { return columns[idx]; }
+
+    inline uint32_t getNumColumns() const { return columns.size(); }
+
+    inline uint64_t getNullMapOffset() const { return numBytesForDataPerTuple; }
+
+    inline uint64_t getNumBytesPerTuple() const {
+        return numBytesForDataPerTuple + numBytesForNullMapPerTuple;
     }
 
-    TupleSchema(const TupleSchema& tupleSchema) = default;
+    inline uint64_t getColOffset(uint64_t idx) const { return colOffsets[idx]; }
 
-    inline void appendColumn(const ColumnInTupleSchema& column) {
-        assert(!isInitialized);
-        columns.push_back(column);
-        numBytesPerTuple += column.getColumnSize();
+    static inline uint64_t getNumBytesForNullBuffer(uint64_t numColumns) {
+        return (numColumns >> 3) + ((numColumns & 7) != 0); // &7 is the same as %8;
     }
 
-    inline uint64_t getNullMapOffset() const { return numBytesPerTuple - getNullMapAlignedSize(); }
+    bool operator==(const TableSchema& other) const;
+    inline bool operator!=(const TableSchema& other) const { return !(*this == other); }
 
-    inline uint64_t getNullMapAlignedSize() const {
-        // 4 bytes alignment for nullMap
-        return ((nullMapSizeInBytes >> 2) + ((nullMapSizeInBytes & 3) != 0))
-               << 2; // &3 is the same as %4
-    }
-
-    inline void initialize() {
-        assert(!isInitialized);
-        // we utilize the bitmap to represent the nullMask for each column.
-        // 1 byte nullMap can represent the nullMasks for 8 columns
-        nullMapSizeInBytes =
-            (this->columns.size() >> 3) + ((this->columns.size() & 7) != 0); // &7 is the same as %8
-        numBytesPerTuple += getNullMapAlignedSize();
-        isInitialized = true;
-    }
-
-    bool operator==(const TupleSchema& other) const;
-    inline bool operator!=(const TupleSchema& other) const { return !(*this == other); }
-    bool isInitialized = false;
-    vector<ColumnInTupleSchema> columns;
-    uint64_t numBytesPerTuple;
-    uint64_t nullMapSizeInBytes;
+private:
+    vector<ColumnSchema> columns;
+    uint64_t numBytesForDataPerTuple = 0;
+    uint64_t numBytesForNullMapPerTuple = 0;
+    vector<uint64_t> colOffsets;
 };
 
 class FlatTupleIterator;
 
-// To represent the null values in FactorizedTable, we use a bitmap to represent the null columns in
-// each tuple
-// 1. For unflat columns, we use a large bitmap to represent the nulls in the whole unflat
-// columns and stores it at the end of the unflat column memory.
-// 2. For all other columns, we just store a bitmap at the end of each tuple.
-// For example: we have 3 columns: a1   a2(unflat)      a3
-//                                  1   [null,4,6,7]      null
-// Since the 3rd column is a null value, we set the 3rd bit(from right to left) of the first byte
-// to 1.
-// The memory of the factorizedTable looks like: 1st tuple: 1  overflowPtrToA2  0
-// nullMap:4(00000100). Since the 1st element in the unflat column is a null value, we set the 1st
-// bit(from right to left) of the first byte to 1.
-// The unflat column memory: 3 4 6 0 nullMap:0(00000001).
 class FactorizedTable {
+    friend FlatTupleIterator;
+
 public:
-    FactorizedTable(MemoryManager& memoryManager, const TupleSchema& tupleSchema);
-    void append(const vector<shared_ptr<ValueVector>>& vectors, uint64_t numTuplesToAppend);
-    // Actual number of tuples scanned is returned. If it's 0, the scan already hits the end.
-    uint64_t scan(const vector<uint64_t>& columnsToScan, const vector<DataPos>& resultDataPos,
-        ResultSet& resultSet, uint64_t startTupleIdx, uint64_t numTuplesToScan) const;
-    uint64_t scan(const vector<DataPos>& resultDataPos, ResultSet& resultSet,
-        uint64_t startTupleIdx, uint64_t numTuplesToScan) const;
-    uint64_t lookup(const vector<uint64_t>& columnsToRead, const vector<DataPos>& resultDataPos,
-        ResultSet& resultSet, uint8_t** tuplesToRead, uint64_t startPos,
-        uint64_t numTuplesToRead) const;
+    FactorizedTable(MemoryManager& memoryManager, const TableSchema& tableSchema);
+
+    void append(const vector<shared_ptr<ValueVector>>& vectors);
+
+    // This function scans numTuplesToScan of rows to vectors starting at tupleIdx. Callers are
+    // responsible for making sure all the parameters are valid.
+    void scan(vector<shared_ptr<ValueVector>>& vectors, uint64_t tupleIdx,
+        uint64_t numTuplesToScan) const {
+        vector<uint64_t> colIdxes(tableSchema.getNumColumns());
+        iota(colIdxes.begin(), colIdxes.end(), 0);
+        scan(vectors, tupleIdx, numTuplesToScan, colIdxes);
+    }
+
+    void scan(vector<shared_ptr<ValueVector>>& vectors, uint64_t tupleIdx, uint64_t numTuplesToScan,
+        vector<uint64_t>& colIdxToScan) const;
+
+    void lookup(vector<shared_ptr<ValueVector>>& vectors, vector<uint64_t>& colIdxesToScan,
+        uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) const;
+
     // This is a specialized scan function to read one flat tuple in factorizedTable to an
     // unflat valueVector.
-    void readFlatTupleToUnflatVector(const vector<uint64_t>& columnsToScan,
-        const vector<DataPos>& resultDataPos, ResultSet& resultSet, uint64_t tupleIdx,
-        uint64_t valuePosInVec) const;
+    void scanTupleToVectorPos(
+        vector<shared_ptr<ValueVector>> vectors, uint64_t tupleIdx, uint64_t valuePosInVec) const;
+
     void merge(FactorizedTable& other);
-    uint64_t getColumnOffsetInTuple(uint64_t columnIdx) const;
-    bool hasUnflatColToRead(const vector<uint64_t>& columnsToRead) const;
-    inline bool hasUnflatColToRead() const {
-        return hasUnflatColToRead(consecutiveIndicesOfAllColumns);
+
+    bool hasUnflatCol() const;
+
+    inline bool hasUnflatCol(vector<uint64_t>& colIdxes) const {
+        return any_of(colIdxes.begin(), colIdxes.end(),
+            [this](uint64_t colIdx) { return tableSchema.getColumn(colIdx).getIsUnflat(); });
     }
 
     inline uint64_t getNumTuples() const { return numTuples; }
-    inline uint8_t* getTuple(uint64_t tupleIdx) const {
-        assert(tupleIdx < numTuples);
-        auto blockIdxAndTupleIdxInBlock = getBlockIdxAndTupleIdxInBlock(tupleIdx);
-        return tupleDataBlocks[blockIdxAndTupleIdxInBlock.first].data +
-               blockIdxAndTupleIdxInBlock.second * tupleSchema.numBytesPerTuple;
-    }
-    inline uint64_t getTotalNumFlatTuples() const { return totalNumFlatTuples; }
 
-    inline uint64_t getNumFlatTuples(uint64_t tupleIdx) const {
-        unordered_map<uint32_t, bool> calculatedDataChunkPoses;
-        uint64_t numFlatTuples = 1;
-        auto tupleBuffer = getTuple(tupleIdx);
-        for (auto column : tupleSchema.columns) {
-            if (!calculatedDataChunkPoses.contains(column.dataChunkPos)) {
-                calculatedDataChunkPoses[column.dataChunkPos] = true;
-                numFlatTuples *=
-                    (column.isUnflat ? ((overflow_value_t*)tupleBuffer)->numElements : 1);
-            }
-            tupleBuffer += column.getColumnSize();
-        }
-        return numFlatTuples;
-    }
+    uint64_t getTotalNumFlatTuples() const;
 
     inline vector<DataBlock>& getTupleDataBlocks() { return tupleDataBlocks; }
-    inline const TupleSchema& getTupleSchema() const { return tupleSchema; }
-    inline static bool isNull(uint8_t* nullMapBuffer, uint64_t colIdx) {
-        uint32_t nullMapIdx = colIdx >> 3;
-        uint8_t nullMapMask = 0x1 << (colIdx & 7); // note: &7 is the same as %8
-        return nullMapBuffer[nullMapIdx] & nullMapMask;
-    }
-    inline void setNullMap(uint8_t* nullMapBuffer, uint32_t colIdx) {
-        uint32_t nullMapIdx = colIdx >> 3;
-        uint8_t nullMapMask = 0x1 << (colIdx & 7); // note: &7 is the same as %8
-        nullMapBuffer[nullMapIdx] |= nullMapMask;
-    }
+    inline const TableSchema& getTableSchema() const { return tableSchema; }
 
-    FlatTupleIterator getFlatTuples();
+    FlatTupleIterator getFlatTupleIterator();
 
-    // This function returns a gf_string_t stored at the [tupleIdx, colIdx]. It throws an
-    // exception if either the [tupleIdx, colIdx] is invalid or the cell is unflat.
+    uint64_t getNumFlatTuples(uint64_t tupleIdx) const;
+
+    // This function returns a gf_string_t stored at the [tupleIdx, colIdx]. It causes an
+    // assertion failure if either the [tupleIdx, colIdx] is invalid or the cell is unflat.
     inline gf_string_t getString(uint64_t tupleIdx, uint64_t colIdx) const {
-        assertTupleIdxColIdxAndValueIsFlat(tupleIdx, colIdx);
-        return *((gf_string_t*)(getTuple(tupleIdx) + getColumnOffsetInTuple(colIdx)));
+        return *((gf_string_t*)getCell(tupleIdx, colIdx));
     }
 
-    // This function returns a unstructured value stored at the [tupleIdx, colIdx]. It throws an
-    // exception if either the [tupleIdx, colIdx] is invalid or the cell is unflat.
+    // This function returns a unstructured value stored at the [tupleIdx, colIdx]. It causes
+    // an assertion failure if either the [tupleIdx, colIdx] is invalid or the cell is unflat.
     inline Value getUnstrValue(uint64_t tupleIdx, uint64_t colIdx) const {
-        assertTupleIdxColIdxAndValueIsFlat(tupleIdx, colIdx);
-        return *((Value*)(getTuple(tupleIdx) + getColumnOffsetInTuple(colIdx)));
+        return *((Value*)getCell(tupleIdx, colIdx));
     }
+
+private:
+    static void setNull(uint8_t* nullBuffer, uint64_t colIdx);
+
+    static bool isNull(const uint8_t* nullMapBuffer, uint64_t colIdx);
+
+    uint64_t computeNumTuplesToAppend(const vector<shared_ptr<ValueVector>>& vectorsToAppend) const;
+
+    void assertTupleIdxColIdxAndValueIsFlat(uint64_t tupleIdx, uint64_t colIdx) const;
+
+    uint8_t* getCell(uint64_t tupleIdx, uint64_t colIdx) const;
 
     inline pair<uint64_t, uint64_t> getBlockIdxAndTupleIdxInBlock(uint64_t tupleIdx) const {
         return make_pair(tupleIdx / numTuplesPerBlock, tupleIdx % numTuplesPerBlock);
     }
 
-private:
-    inline void assertTupleIdxColIdxAndValueIsFlat(uint64_t tupleIdx, uint64_t colIdx) const {
-        assert(tupleIdx < numTuples);
-        assert(colIdx < tupleSchema.columns.size());
-        assert(!tupleSchema.columns[colIdx].isUnflat);
-    }
+    vector<BlockAppendingInfo> allocateTupleBlocks(uint64_t numEntriesToAppend);
 
-    vector<BlockAppendingInfo> allocateDataBlocks(vector<DataBlock>& dataBlocks,
-        uint64_t numBytesPerEntry, uint64_t numEntriesToAppend, bool allocateOnlyFromLastBlock);
+    uint8_t* allocateOverflowBlocks(uint64_t numBytes);
 
-    void copyVectorToBlock(ValueVector& vector, const BlockAppendingInfo& blockAppendInfo,
-        const ColumnInTupleSchema& column, uint64_t posInVector, uint64_t offsetInTuple,
-        uint64_t colIdx);
-    overflow_value_t appendUnFlatVectorToOverflowBlocks(ValueVector& vector, uint64_t colIdx);
+    void copyVectorToDataBlock(const ValueVector& vector, const BlockAppendingInfo& blockAppendInfo,
+        uint64_t numAppendedTuples, uint64_t colIdx);
+    overflow_value_t appendUnFlatVectorToOverflowBlocks(const ValueVector& vector);
 
-    void appendVector(ValueVector& valueVector, const vector<BlockAppendingInfo>& blockAppendInfos,
-        const ColumnInTupleSchema& column, uint64_t numTuples, uint64_t offsetInTuple,
-        uint64_t colIdx);
-    void readUnflatVector(uint8_t** tuples, uint64_t offsetInTuple, uint64_t startTuplePos,
-        ValueVector& vector) const;
-    void readFlatVector(uint8_t** tuples, uint64_t offsetInTuple, ValueVector& vector,
-        uint64_t numTuplesToRead, uint64_t colIdx, uint64_t startPos, uint64_t valuePosInVec) const;
-    // If the given vector is flat valuePosInVecIfUnflat will be ignored.
-    void copyVectorDataToBuffer(ValueVector& vector, uint64_t valuePosInVecIfUnflat,
-        uint8_t* buffer, uint64_t offsetInBuffer, uint64_t offsetStride, uint64_t numValues,
-        uint64_t colIdx, bool isUnflat);
+    void readUnflatCol(uint8_t** tuplesToRead, uint64_t colIdx, ValueVector& vector) const;
 
-    vector<uint64_t> computeColumnOffsets(const vector<uint64_t>& columnsToRead) const;
+    void readFlatCol(uint8_t** tuplesToRead, uint64_t colIdx, ValueVector& vector,
+        uint64_t numTuplesToRead) const;
+
+    uint8_t* getTuple(uint64_t tupleIdx) const;
 
     MemoryManager& memoryManager;
-    TupleSchema tupleSchema;
+    TableSchema tableSchema;
     uint64_t numTuples;
     uint64_t numTuplesPerBlock;
-    uint64_t totalNumFlatTuples;
     vector<DataBlock> tupleDataBlocks;
     vector<DataBlock> vectorOverflowBlocks;
     unique_ptr<StringBuffer> stringBuffer;
-    vector<uint64_t> consecutiveIndicesOfAllColumns;
 };
 
 class FlatTupleIterator {
@@ -245,26 +204,26 @@ public:
         return nextTupleIdx < factorizedTable.getNumTuples() || nextFlatTupleIdx < numFlatTuples;
     }
 
-    FlatTuple getNextFlatTuple();
+    void getNextFlatTuple(FlatTuple& flatTuple);
 
 private:
-    void readValueBufferToFlatTuple(
-        DataType dataType, FlatTuple& flatTuple, uint64_t flatTupleValIdx, uint8_t* valueBuffer);
+    static void readValueBufferToFlatTuple(
+        FlatTuple& flatTuple, uint64_t flatTupleValIdx, const uint8_t* valueBuffer);
 
-    void readUnflatColToFlatTuple(FlatTuple& flatTuple, uint64_t flatTupleValIdx,
-        const ColumnInTupleSchema& column, uint8_t* valueBuffer);
+    void readUnflatColToFlatTuple(
+        FlatTuple& flatTuple, uint64_t flatTupleValIdx, uint8_t* valueBuffer);
 
-    void readFlatColToFlatTuple(FlatTuple& flatTuple, uint64_t flatTupleValIdx,
-        const ColumnInTupleSchema& column, uint8_t* valueBuffer);
+    void readFlatColToFlatTuple(FlatTuple& flatTuple, uint64_t colIdx, uint8_t* valueBuffer);
 
     // The dataChunkPos may be not consecutive, which means some entries in the
-    // flatTuplePositionsInDataChunk is invalid. We put pair(UINT64_MAX, UINT64_MAX) in the invalid
-    // entries.
+    // flatTuplePositionsInDataChunk is invalid. We put pair(UINT64_MAX, UINT64_MAX) in the
+    // invalid entries.
     inline bool isValidDataChunkPos(uint32_t dataChunkPos) const {
         return flatTuplePositionsInDataChunk[dataChunkPos].first != UINT64_MAX;
     }
 
-    // We put pair(UINT64_MAX, UINT64_MAX) in all invalid entries in FlatTuplePositionsInDataChunk.
+    // We put pair(UINT64_MAX, UINT64_MAX) in all invalid entries in
+    // FlatTuplePositionsInDataChunk.
     void updateInvalidEntriesInFlatTuplePositionsInDataChunk();
 
     // This function is used to update the number of elements in the dataChunk when we want
@@ -272,18 +231,16 @@ private:
     void updateNumElementsInDataChunk();
 
     // This function updates the flatTuplePositionsInDataChunk, so that getNextFlatTuple() can
-    // correctly outputs the next flat tuple in the current tuple. For example, we want to read two
-    // unflat columns, which are on different dataChunks A,B and both have 100 columns. The
+    // correctly outputs the next flat tuple in the current tuple. For example, we want to read
+    // two unflat columns, which are on different dataChunks A,B and both have 100 columns. The
     // flatTuplePositionsInDataChunk after the first call to getNextFlatTuple() looks like:
     // {dataChunkA : [0, 100]}, {dataChunkB : [0, 100]} This function updates the
     // flatTuplePositionsInDataChunk to: {dataChunkA: [1, 100]}, {dataChunkB: [0, 100]}. Meaning
-    // that the getNextFlatTuple() should read the second element in the first unflat column and the
-    // first element in the second unflat column.
+    // that the getNextFlatTuple() should read the second element in the first unflat column and
+    // the first element in the second unflat column.
     void updateFlatTuplePositionsInDataChunk();
 
     FactorizedTable& factorizedTable;
-    // This field is used to construct the result flat tuple.
-    vector<DataType> dataTypes;
     uint8_t* currentTupleBuffer;
     uint64_t numFlatTuples;
     uint64_t nextFlatTupleIdx;
