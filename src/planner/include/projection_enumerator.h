@@ -1,8 +1,7 @@
 #pragma once
 
-#include "src/binder/include/bound_statements/bound_projection_body.h"
-#include "src/binder/include/expression/node_expression.h"
-#include "src/binder/include/expression/rel_expression.h"
+#include "src/binder/expression/include/rel_expression.h"
+#include "src/binder/query/return_with_clause/include/bound_projection_body.h"
 #include "src/planner/include/logical_plan/logical_plan.h"
 #include "src/storage/include/catalog.h"
 

@@ -1,28 +1,33 @@
 #pragma once
 
-#include "src/planner/include/norm_query/normalized_query_part.h"
+#include "normalized_query_part.h"
 
 namespace graphflow {
-namespace planner {
+namespace binder {
 
 /**
  * See QueryNormalizer for detailed normalization performed.
  */
-class NormalizedQuery {
+class NormalizedSingleQuery {
 
 public:
-    inline NormalizedQueryPart* getQueryPart(uint32_t idx) const { return queryParts[idx].get(); }
-    inline const vector<unique_ptr<NormalizedQueryPart>>& getQueryParts() const {
-        return queryParts;
-    }
+    NormalizedSingleQuery() = default;
+
+    ~NormalizedSingleQuery() = default;
+
     inline void appendQueryPart(unique_ptr<NormalizedQueryPart> queryPart) {
         queryParts.push_back(move(queryPart));
     }
+
+    inline uint32_t getNumQueryParts() const { return queryParts.size(); }
+
+    inline NormalizedQueryPart* getQueryPart(uint32_t idx) const { return queryParts[idx].get(); }
+
     inline void markLastQueryPart() { queryParts.back()->setLastQueryPart(true); }
 
 private:
     vector<unique_ptr<NormalizedQueryPart>> queryParts;
 };
 
-} // namespace planner
+} // namespace binder
 } // namespace graphflow

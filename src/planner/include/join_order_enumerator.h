@@ -1,7 +1,7 @@
 #pragma once
 
+#include "src/binder/query/include/normalized_single_query.h"
 #include "src/planner/include/join_order_enumerator_context.h"
-#include "src/planner/include/query_normalizer.h"
 #include "src/storage/include/graph.h"
 
 using namespace graphflow::storage;

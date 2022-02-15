@@ -1,20 +1,14 @@
-#include "src/binder/include/query_graph/query_graph.h"
-
-#include "src/common/include/assert.h"
+#include "include/query_graph.h"
 
 namespace graphflow {
 namespace binder {
 
-void SubqueryGraph::addQueryNode(uint32_t nodePos) {
-    queryNodesSelector[nodePos] = true;
-}
-
 void SubqueryGraph::addQueryRel(uint32_t relPos) {
     queryRelsSelector[relPos] = true;
-    queryNodesSelector[queryGraph.getQueryNodePos(queryGraph.queryRels[relPos]->getSrcNodeName())] =
-        true;
-    queryNodesSelector[queryGraph.getQueryNodePos(queryGraph.queryRels[relPos]->getDstNodeName())] =
-        true;
+    queryNodesSelector[queryGraph.getQueryNodePos(
+        queryGraph.getQueryRel(relPos)->getSrcNodeName())] = true;
+    queryNodesSelector[queryGraph.getQueryNodePos(
+        queryGraph.getQueryRel(relPos)->getDstNodeName())] = true;
 }
 
 void SubqueryGraph::addSubqueryGraph(const SubqueryGraph& other) {
@@ -36,27 +30,6 @@ bool SubqueryGraph::containAllVariables(unordered_set<string>& variables) const 
     return true;
 }
 
-bool SubqueryGraph::operator==(const SubqueryGraph& other) const {
-    return queryRelsSelector == other.queryRelsSelector &&
-           queryNodesSelector == other.queryNodesSelector;
-}
-
-uint32_t QueryGraph::getNumQueryNodes() const {
-    return queryNodes.size();
-}
-
-bool QueryGraph::containsQueryNode(const string& queryNodeName) const {
-    return queryNodeNameToPosMap.contains(queryNodeName);
-}
-
-NodeExpression* QueryGraph::getQueryNode(const string& queryNodeName) const {
-    return queryNodes.at(queryNodeNameToPosMap.at(queryNodeName)).get();
-}
-
-uint32_t QueryGraph::getQueryNodePos(const string& queryNodeName) const {
-    return queryNodeNameToPosMap.at(queryNodeName);
-}
-
 void QueryGraph::addQueryNode(shared_ptr<NodeExpression> queryNode) {
     // Note that a node may be added multiple times. We should only keep one of it.
     // E.g. MATCH (a:person)-[:knows]->(b:person), (a)-[:knows]->(c:person)
@@ -68,24 +41,8 @@ void QueryGraph::addQueryNode(shared_ptr<NodeExpression> queryNode) {
     queryNodes.push_back(queryNode);
 }
 
-uint32_t QueryGraph::getNumQueryRels() const {
-    return queryRels.size();
-}
-
-bool QueryGraph::containsQueryRel(const string& queryRelName) const {
-    return queryRelNameToPosMap.contains(queryRelName);
-}
-
-RelExpression* QueryGraph::getQueryRel(const string& queryRelName) const {
-    return queryRels.at(queryRelNameToPosMap.at(queryRelName)).get();
-}
-
-uint32_t QueryGraph::getQueryRelPos(const string& queryRelName) const {
-    return queryRelNameToPosMap.at(queryRelName);
-}
-
 void QueryGraph::addQueryRel(shared_ptr<RelExpression> queryRel) {
-    GF_ASSERT(!containsQueryRel(queryRel->getUniqueName()));
+    assert(!containsQueryRel(queryRel->getUniqueName()));
     queryRelNameToPosMap.insert({queryRel->getUniqueName(), queryRels.size()});
     queryRels.push_back(queryRel);
 }
@@ -139,10 +96,6 @@ unordered_set<string> QueryGraph::getNeighbourNodeNames(const string& queryNodeN
         }
     }
     return nbrs;
-}
-
-bool QueryGraph::isEmpty() const {
-    return queryNodes.empty();
 }
 
 void QueryGraph::merge(const QueryGraph& other) {

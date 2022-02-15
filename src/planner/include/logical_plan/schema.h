@@ -6,8 +6,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "src/binder/include/expression/expression.h"
-#include "src/common/include/assert.h"
+#include "src/binder/expression/include/expression.h"
 
 using namespace graphflow::binder;
 using namespace graphflow::common;
@@ -36,7 +35,7 @@ public:
     }
 
     inline string getAnyExpressionName() {
-        GF_ASSERT(!expressionNames.empty());
+        assert(!expressionNames.empty());
         return *expressionNames.begin();
     }
 

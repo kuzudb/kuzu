@@ -1,10 +1,8 @@
 #pragma once
 
-#include "src/binder/include/expression/existential_subquery_expression.h"
-#include "src/binder/include/expression/property_expression.h"
+#include "src/binder/expression/include/existential_subquery_expression.h"
 #include "src/planner/include/join_order_enumerator.h"
 #include "src/planner/include/logical_plan/operator/result_collector/logical_result_collector.h"
-#include "src/planner/include/logical_plan/operator/union/logical_union.h"
 #include "src/planner/include/projection_enumerator.h"
 
 using namespace graphflow::binder;
@@ -20,11 +18,11 @@ public:
     explicit Enumerator(const Graph& graph)
         : joinOrderEnumerator{graph, this}, projectionEnumerator{graph.getCatalog(), this} {}
 
-    unique_ptr<LogicalPlan> getBestJoinOrderPlan(const BoundSingleQuery& singleQuery) {
+    unique_ptr<LogicalPlan> getBestJoinOrderPlan(const NormalizedSingleQuery& singleQuery) {
         return getBestPlan(enumeratePlans(singleQuery));
     }
     // This interface is for testing framework
-    vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundSingleQuery& singleQuery) {
+    vector<unique_ptr<LogicalPlan>> getAllPlans(const NormalizedSingleQuery& singleQuery) {
         vector<unique_ptr<LogicalPlan>> result;
         for (auto& plan : enumeratePlans(singleQuery)) {
             // This is copy is to avoid sharing operator across plans. Later optimization requires
@@ -64,7 +62,7 @@ public:
         Schema& schemaAfterSink);
 
 private:
-    vector<unique_ptr<LogicalPlan>> enumeratePlans(const BoundSingleQuery& singleQuery);
+    vector<unique_ptr<LogicalPlan>> enumeratePlans(const NormalizedSingleQuery& singleQuery);
 
     // See logical_plan.h for detailed description of our sub-plan limitation.
     vector<unique_ptr<LogicalPlan>> getValidSubPlans(vector<unique_ptr<LogicalPlan>> plans);

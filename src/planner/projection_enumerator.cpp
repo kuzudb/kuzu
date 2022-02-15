@@ -1,6 +1,6 @@
 #include "src/planner/include/projection_enumerator.h"
 
-#include "src/binder/include/expression/function_expression.h"
+#include "src/binder/expression/include/function_expression.h"
 #include "src/planner/include/enumerator.h"
 #include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
 #include "src/planner/include/logical_plan/operator/distinct/logical_distinct.h"
@@ -21,7 +21,7 @@ void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& pr
         // TODO: return expression rewrite should be moved out of enumerator
         auto expressionsToProject =
             getExpressionsToProject(projectionBody, *plan->schema, isFinalReturn);
-        enumerateProjection(expressionsToProject, projectionBody.isProjectionDistinct(), *plan);
+        enumerateProjection(expressionsToProject, projectionBody.getIsDistinct(), *plan);
         enumerateSkipAndLimit(projectionBody, *plan);
         if (isFinalReturn) {
             plan->setExpressionsToCollect(expressionsToProject);
@@ -281,7 +281,7 @@ vector<shared_ptr<Expression>> ProjectionEnumerator::rewriteNodeExpressionAsAllP
     const shared_ptr<NodeExpression>& node) {
     vector<shared_ptr<Expression>> result;
     for (auto& property :
-        createPropertyExpressions(node, catalog.getAllNodeProperties(node->label))) {
+        createPropertyExpressions(node, catalog.getAllNodeProperties(node->getLabel()))) {
         result.push_back(property);
     }
     return result;
@@ -290,7 +290,8 @@ vector<shared_ptr<Expression>> ProjectionEnumerator::rewriteNodeExpressionAsAllP
 vector<shared_ptr<Expression>> ProjectionEnumerator::rewriteRelExpressionAsAllProperties(
     const shared_ptr<RelExpression>& rel) {
     vector<shared_ptr<Expression>> result;
-    for (auto& property : createPropertyExpressions(rel, catalog.getRelProperties(rel->label))) {
+    for (auto& property :
+        createPropertyExpressions(rel, catalog.getRelProperties(rel->getLabel()))) {
         result.push_back(property);
     }
     return result;

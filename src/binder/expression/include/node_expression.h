@@ -1,7 +1,6 @@
 #pragma once
 
-#include "src/binder/include/expression/expression.h"
-#include "src/binder/include/expression/property_expression.h"
+#include "property_expression.h"
 
 namespace graphflow {
 namespace binder {
@@ -14,6 +13,8 @@ public:
     NodeExpression(const string& uniqueName, label_t label)
         : Expression{VARIABLE, NODE, uniqueName}, label{label} {}
 
+    inline label_t getLabel() const { return label; }
+
     inline string getIDProperty() const { return uniqueName + "." + INTERNAL_ID_SUFFIX; }
 
     inline shared_ptr<Expression> getNodeIDPropertyExpression() {
@@ -21,7 +22,7 @@ public:
             UINT32_MAX /* property key for internal id*/, shared_from_this());
     }
 
-public:
+private:
     label_t label;
 };
 

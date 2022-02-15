@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/binder/include/expression/expression.h"
+#include "src/binder/expression/include/expression.h"
 #include "src/planner/include/logical_plan/operator/logical_operator.h"
 
 using namespace graphflow::binder;

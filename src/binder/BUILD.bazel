@@ -3,106 +3,19 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "binder",
     srcs = glob([
-        "*_binder.cpp",
+        "*.cpp",
     ]),
     hdrs = glob([
-        "include/*_binder.h",
+        "include/*.h",
     ]),
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
-        "bound_queries",
-        "subquery_expression_impl",
-        "//src/common:csv_reader",
+        "//src/binder/expression:expression_implementations",
+        "//src/binder/query",
         "//src/parser/expression:parsed_expression_implementations",
         "//src/parser/query",
         "//src/storage:catalog",
-    ],
-)
-
-cc_library(
-    name = "bound_queries",
-    hdrs = glob([
-        "include/bound_queries/*.h",
-    ]),
-    # Bound query is exposed to enumerator
-    visibility = ["//visibility:public"],
-    deps = [
-        "bound_statements",
-    ],
-)
-
-cc_library(
-    name = "bound_statements",
-    srcs = glob([
-        "bound_statements/*.cpp",
-    ]),
-    hdrs = glob([
-        "include/bound_statements/*.h",
-    ]),
-    deps = [
-        "query_graph",
-    ],
-)
-
-cc_library(
-    name = "query_graph",
-    srcs = glob([
-        "query_graph/*.cpp",
-    ]),
-    hdrs = glob([
-        "include/query_graph/*.h",
-    ]),
-    deps = [
-        "expression_impls",
-    ],
-)
-
-cc_library(
-    name = "base_expression",
-    srcs = [
-        "expression/expression.cpp",
-    ],
-    hdrs = [
-        "include/expression/expression.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//src/common:expression_type",
-        "//src/common:types",
-    ],
-)
-
-cc_library(
-    name = "expression_impls",
-    srcs = [
-        "expression/literal_expression.cpp",
-    ],
-    hdrs = [
-        "include/expression/function_expression.h",
-        "include/expression/literal_expression.h",
-        "include/expression/node_expression.h",
-        "include/expression/property_expression.h",
-        "include/expression/rel_expression.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "base_expression",
-    ],
-)
-
-cc_library(
-    name = "subquery_expression_impl",
-    srcs = [
-        "expression/existential_subquery_expression.cpp",
-    ],
-    hdrs = [
-        "include/expression/existential_subquery_expression.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "base_expression",
-        "bound_queries",
-        "//src/planner:logical_plan",
-        "//src/planner:normalized_query",
     ],
 )

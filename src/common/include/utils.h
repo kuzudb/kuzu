@@ -70,11 +70,11 @@ unique_ptr<TO> static_unique_pointer_cast(unique_ptr<FROM>&& old) {
     return unique_ptr<TO>{static_cast<TO*>(old.release())};
 }
 
-static string getThreadIDString() {
-    std::ostringstream oss;
-    oss << std::this_thread::get_id();
-    return oss.str();
-}
+class ThreadUtils {
+
+public:
+    static string getThreadIDString();
+};
 
 class HashTableUtils {
 

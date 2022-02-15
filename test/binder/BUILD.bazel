@@ -1,18 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
-cc_library(
-    name = "binder_test_utils",
-    srcs = [
-        "binder_test_utils.cpp",
-    ],
-    hdrs = [
-        "binder_test_utils.h",
-    ],
-    deps = [
-        "//src/binder",
-    ],
-)
-
 cc_test(
     name = "binder_test",
     srcs = glob([
@@ -22,7 +9,7 @@ cc_test(
         "//dataset",
     ],
     deps = [
-        "binder_test_utils",
+        "//src/binder",
         "//src/parser",
         "//test/mock:mock_objects",
     ],

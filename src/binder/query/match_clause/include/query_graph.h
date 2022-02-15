@@ -1,12 +1,8 @@
 #pragma once
 
 #include <bitset>
-#include <memory>
-#include <tuple>
-#include <unordered_map>
-#include <vector>
 
-#include "src/binder/include/expression/rel_expression.h"
+#include "src/binder/expression/include/rel_expression.h"
 
 namespace graphflow {
 namespace binder {
@@ -25,7 +21,9 @@ public:
         : queryGraph{other.queryGraph}, queryNodesSelector{other.queryNodesSelector},
           queryRelsSelector{other.queryRelsSelector} {}
 
-    void addQueryNode(uint32_t nodePos);
+    ~SubqueryGraph() = default;
+
+    inline void addQueryNode(uint32_t nodePos) { queryNodesSelector[nodePos] = true; }
 
     void addQueryRel(uint32_t relPos);
 
@@ -33,7 +31,10 @@ public:
 
     bool containAllVariables(unordered_set<string>& variables) const;
 
-    bool operator==(const SubqueryGraph& other) const;
+    bool operator==(const SubqueryGraph& other) const {
+        return queryRelsSelector == other.queryRelsSelector &&
+               queryNodesSelector == other.queryNodesSelector;
+    }
 
 public:
     const QueryGraph& queryGraph;
@@ -57,23 +58,43 @@ public:
           queryRelNameToPosMap{other.queryRelNameToPosMap},
           queryNodes{other.queryNodes}, queryRels{other.queryRels} {}
 
-    uint32_t getNumQueryNodes() const;
+    ~QueryGraph() = default;
 
-    bool containsQueryNode(const string& queryNodeName) const;
+    inline uint32_t getNumQueryNodes() const { return queryNodes.size(); }
 
-    NodeExpression* getQueryNode(const string& queryNodeName) const;
+    inline bool containsQueryNode(const string& queryNodeName) const {
+        return queryNodeNameToPosMap.contains(queryNodeName);
+    }
 
-    uint32_t getQueryNodePos(const string& queryNodeName) const;
+    inline NodeExpression* getQueryNode(const string& queryNodeName) const {
+        return queryNodes.at(queryNodeNameToPosMap.at(queryNodeName)).get();
+    }
+
+    inline NodeExpression* getQueryNode(uint32_t nodePos) const {
+        return queryNodes[nodePos].get();
+    }
+
+    inline uint32_t getQueryNodePos(const string& queryNodeName) const {
+        return queryNodeNameToPosMap.at(queryNodeName);
+    }
 
     void addQueryNode(shared_ptr<NodeExpression> queryNode);
 
-    uint32_t getNumQueryRels() const;
+    inline uint32_t getNumQueryRels() const { return queryRels.size(); }
 
-    bool containsQueryRel(const string& queryRelName) const;
+    inline bool containsQueryRel(const string& queryRelName) const {
+        return queryRelNameToPosMap.contains(queryRelName);
+    }
 
-    RelExpression* getQueryRel(const string& queryRelName) const;
+    inline RelExpression* getQueryRel(const string& queryRelName) const {
+        return queryRels.at(queryRelNameToPosMap.at(queryRelName)).get();
+    }
 
-    uint32_t getQueryRelPos(const string& queryRelName) const;
+    inline RelExpression* getQueryRel(uint32_t relPos) const { return queryRels[relPos].get(); }
+
+    inline uint32_t getQueryRelPos(const string& queryRelName) const {
+        return queryRelNameToPosMap.at(queryRelName);
+    }
 
     void addQueryRel(shared_ptr<RelExpression> queryRel);
 
@@ -85,8 +106,6 @@ public:
         const SubqueryGraph& matchedSubqueryGraph, uint32_t subgraphSize) const;
 
     unordered_set<string> getNeighbourNodeNames(const string& queryNodeName) const;
-
-    bool isEmpty() const;
 
     void merge(const QueryGraph& other);
 
@@ -102,7 +121,7 @@ private:
     extendSubgraphByOneQueryRel(const SubqueryGraph& matchedSubgraph,
         const pair<SubqueryGraph, uint32_t>& subgraphWithSingleJoinNode) const;
 
-public:
+private:
     unordered_map<string, uint32_t> queryNodeNameToPosMap;
     unordered_map<string, uint32_t> queryRelNameToPosMap;
     vector<shared_ptr<NodeExpression>> queryNodes;

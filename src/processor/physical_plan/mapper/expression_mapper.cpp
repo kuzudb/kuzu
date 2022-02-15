@@ -1,6 +1,6 @@
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 
-#include "src/binder/include/expression/literal_expression.h"
+#include "src/binder/expression/include/literal_expression.h"
 #include "src/expression_evaluator/include/binary_expression_evaluator.h"
 #include "src/expression_evaluator/include/unary_expression_evaluator.h"
 

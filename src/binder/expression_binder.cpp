@@ -1,10 +1,9 @@
-#include "src/binder/include/expression_binder.h"
+#include "include/expression_binder.h"
 
-#include "src/binder/include/expression/existential_subquery_expression.h"
-#include "src/binder/include/expression/function_expression.h"
-#include "src/binder/include/expression/literal_expression.h"
-#include "src/binder/include/expression/property_expression.h"
-#include "src/binder/include/expression/rel_expression.h"
+#include "src/binder/expression/include/existential_subquery_expression.h"
+#include "src/binder/expression/include/function_expression.h"
+#include "src/binder/expression/include/literal_expression.h"
+#include "src/binder/expression/include/rel_expression.h"
 #include "src/binder/include/query_binder.h"
 #include "src/common/include/date.h"
 #include "src/common/include/interval.h"
@@ -236,8 +235,8 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     auto& catalog = queryBinder->catalog;
     if (NODE == child->dataType) {
         auto node = static_pointer_cast<NodeExpression>(child);
-        if (catalog.containNodeProperty(node->label, propertyName)) {
-            auto& property = catalog.getNodeProperty(node->label, propertyName);
+        if (catalog.containNodeProperty(node->getLabel(), propertyName)) {
+            auto& property = catalog.getNodeProperty(node->getLabel(), propertyName);
             return make_shared<PropertyExpression>(
                 property.dataType, propertyName, property.id, move(child));
         } else {
@@ -246,8 +245,8 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
         }
     } else if (REL == child->dataType) {
         auto rel = static_pointer_cast<RelExpression>(child);
-        if (catalog.containRelProperty(rel->label, propertyName)) {
-            auto& property = catalog.getRelProperty(rel->label, propertyName);
+        if (catalog.containRelProperty(rel->getLabel(), propertyName)) {
+            auto& property = catalog.getRelProperty(rel->getLabel(), propertyName);
             return make_shared<PropertyExpression>(
                 property.dataType, propertyName, property.id, move(child));
         } else {
@@ -434,7 +433,8 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     auto prevVariablesInScope = queryBinder->enterSubquery();
     auto boundSingleQuery = queryBinder->bindSingleQuery(*subqueryExpression.getSubquery());
     queryBinder->exitSubquery(move(prevVariablesInScope));
-    return make_shared<ExistentialSubqueryExpression>(move(boundSingleQuery),
+    return make_shared<ExistentialSubqueryExpression>(
+        QueryNormalizer::normalizeQuery(*boundSingleQuery),
         queryBinder->getUniqueExpressionName(parsedExpression.getRawName()));
 }
 
@@ -512,12 +512,11 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
 void ExpressionBinder::validateExistsSubqueryHasNoAggregationOrOrderBy(
     const Expression& expression) {
     assert(expression.expressionType == EXISTENTIAL_SUBQUERY);
-    auto subquery = ((ExistentialSubqueryExpression&)expression).getBoundSubquery();
+    auto subquery = ((ExistentialSubqueryExpression&)expression).getSubquery();
     vector<BoundProjectionBody*> projectionBodies;
-    for (auto& queryPart : subquery->boundQueryParts) {
-        projectionBodies.push_back(queryPart->boundWithStatement->getBoundProjectionBody());
+    for (auto i = 0u; i < subquery->getNumQueryParts(); ++i) {
+        projectionBodies.push_back(subquery->getQueryPart(i)->getProjectionBody());
     }
-    projectionBodies.push_back(subquery->boundReturnStatement->getBoundProjectionBody());
     for (auto& projectionBody : projectionBodies) {
         if (projectionBody->hasAggregationExpressions() ||
             projectionBody->hasOrderByExpressions()) {

@@ -2,7 +2,6 @@
 
 #include <set>
 
-#include "src/binder/include/expression/function_expression.h"
 #include "src/function/include/aggregate/aggregate_function.h"
 #include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
 #include "src/planner/include/logical_plan/operator/distinct/logical_distinct.h"

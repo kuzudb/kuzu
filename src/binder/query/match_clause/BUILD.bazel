@@ -1,0 +1,18 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "bound_match_clause",
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/binder/query:__pkg__",
+    ],
+    deps = [
+        "//src/binder/expression:base_expression",
+        "//src/binder/expression:node_rel_expression",
+    ],
+)

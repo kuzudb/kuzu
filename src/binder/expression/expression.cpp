@@ -1,4 +1,4 @@
-#include "src/binder/include/expression/expression.h"
+#include "include/expression.h"
 
 namespace graphflow {
 namespace binder {

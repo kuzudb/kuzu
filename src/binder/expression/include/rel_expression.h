@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/binder/include/expression/node_expression.h"
+#include "node_expression.h"
 
 namespace graphflow {
 namespace binder {
@@ -13,11 +13,21 @@ public:
         : Expression{VARIABLE, REL, uniqueName}, label{label}, srcNode{move(srcNode)},
           dstNode{move(dstNode)}, lowerBound{lowerBound}, upperBound{upperBound} {}
 
+    inline label_t getLabel() const { return label; }
+
+    inline shared_ptr<NodeExpression> getSrcNode() const { return srcNode; }
+
     inline string getSrcNodeName() const { return srcNode->getUniqueName(); }
+
+    inline shared_ptr<NodeExpression> getDstNode() const { return dstNode; }
 
     inline string getDstNodeName() const { return dstNode->getUniqueName(); }
 
-public:
+    inline uint64_t getLowerBound() const { return lowerBound; }
+
+    inline uint64_t getUpperBound() const { return upperBound; }
+
+private:
     label_t label;
     shared_ptr<NodeExpression> srcNode;
     shared_ptr<NodeExpression> dstNode;

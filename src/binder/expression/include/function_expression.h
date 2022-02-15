@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/binder/include/expression/expression.h"
+#include "expression.h"
 
 namespace graphflow {
 namespace binder {

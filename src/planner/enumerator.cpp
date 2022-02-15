@@ -7,6 +7,7 @@
 #include "src/planner/include/logical_plan/operator/nested_loop_join/logical_left_nested_loop_join.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
 #include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
+#include "src/planner/include/logical_plan/operator/union/logical_union.h"
 
 namespace graphflow {
 namespace planner {
@@ -33,11 +34,11 @@ unique_ptr<LogicalPlan> Enumerator::getBestPlan(vector<unique_ptr<LogicalPlan>> 
     return bestPlan;
 }
 
-vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(const BoundSingleQuery& singleQuery) {
-    auto normalizedQuery = QueryNormalizer::normalizeQuery(singleQuery);
+vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(
+    const NormalizedSingleQuery& singleQuery) {
     auto plans = getInitialEmptyPlans();
-    for (auto& queryPart : normalizedQuery->getQueryParts()) {
-        plans = enumerateQueryPart(*queryPart, move(plans));
+    for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
+        plans = enumerateQueryPart(*singleQuery.getQueryPart(i), move(plans));
     }
     return plans;
 }
@@ -139,11 +140,11 @@ void Enumerator::planExistsSubquery(
         appendFlattenIfNecessary(groupPosToWrite, outerPlan);
     }
     outerPlan.schema->insertToGroupAndScope(subqueryExpression->getUniqueName(), groupPosToWrite);
-    auto& normalizedQuery = *subqueryExpression->getNormalizedSubquery();
+    auto& normalizedQuery = *subqueryExpression->getSubquery();
     auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToScanFromOuter));
     auto plans = enumerateQueryPart(*normalizedQuery.getQueryPart(0), getInitialEmptyPlans());
     joinOrderEnumerator.context->clearExpressionsToScanFromOuter();
-    for (auto i = 1u; i < normalizedQuery.getQueryParts().size(); ++i) {
+    for (auto i = 1u; i < normalizedQuery.getNumQueryParts(); ++i) {
         plans = enumerateQueryPart(*normalizedQuery.getQueryPart(i), move(plans));
     }
     joinOrderEnumerator.exitSubquery(move(prevContext));
@@ -233,8 +234,9 @@ void Enumerator::appendScanNodePropertyIfNecessary(
         return;
     }
     auto scanProperty = make_shared<LogicalScanNodeProperty>(nodeExpression.getIDProperty(),
-        nodeExpression.label, propertyExpression.getUniqueName(), propertyExpression.propertyKey,
-        UNSTRUCTURED == propertyExpression.dataType, plan.lastOperator);
+        nodeExpression.getLabel(), propertyExpression.getUniqueName(),
+        propertyExpression.getPropertyKey(), UNSTRUCTURED == propertyExpression.dataType,
+        plan.lastOperator);
     auto groupPos = plan.schema->getGroupPos(nodeExpression.getIDProperty());
     plan.schema->insertToGroupAndScope(propertyExpression.getUniqueName(), groupPos);
     plan.appendOperator(move(scanProperty));
@@ -249,7 +251,7 @@ void Enumerator::appendScanRelPropertyIfNecessary(
     auto extend = plan.schema->getExistingLogicalExtend(relExpression.getUniqueName());
     auto scanProperty = make_shared<LogicalScanRelProperty>(extend->boundNodeID,
         extend->boundNodeLabel, extend->nbrNodeID, extend->relLabel, extend->direction,
-        propertyExpression.getUniqueName(), propertyExpression.propertyKey, extend->isColumn,
+        propertyExpression.getUniqueName(), propertyExpression.getPropertyKey(), extend->isColumn,
         plan.lastOperator);
     auto groupPos = plan.schema->getGroupPos(extend->nbrNodeID);
     plan.schema->insertToGroupAndScope(propertyExpression.getUniqueName(), groupPos);

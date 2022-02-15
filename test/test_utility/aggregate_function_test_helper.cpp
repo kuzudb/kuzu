@@ -1,6 +1,6 @@
 #include "test/test_utility/include/aggregate_function_test_helper.h"
 
-#include "src/binder/include/expression/function_expression.h"
+#include "src/binder/expression/include/function_expression.h"
 
 using namespace graphflow::function;
 

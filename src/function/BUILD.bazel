@@ -8,7 +8,7 @@ cc_library(
     hdrs = glob(["include/aggregate/*.h"]),
     visibility = ["//visibility:public"],
     deps = [
-        "//src/binder:expression_impls",
+        "//src/binder/expression:expression_implementations",
         "//src/common:vector",
     ],
 )

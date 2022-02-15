@@ -1,9 +1,8 @@
 #include "gtest/gtest.h"
 #include "test/mock/mock_graph.h"
 
-#include "src/binder/include/expression/literal_expression.h"
-#include "src/binder/include/expression/node_expression.h"
-#include "src/binder/include/expression/property_expression.h"
+#include "src/binder/expression/include/literal_expression.h"
+#include "src/binder/expression/include/node_expression.h"
 #include "src/function/include/aggregate/count.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 

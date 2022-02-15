@@ -87,7 +87,7 @@ void JoinOrderEnumerator::enumerateSingleNode() {
         auto newSubgraph = context->getEmptySubqueryGraph();
         newSubgraph.addQueryNode(nodePos);
         auto plan = prevPlan->copy();
-        auto& node = *queryGraph->queryNodes[nodePos];
+        auto& node = *queryGraph->getQueryNode(nodePos);
         appendScanNodeID(node, *plan);
         for (auto& expression :
             getNewMatchedExpressions(emptySubgraph, newSubgraph, context->getWhereExpressions())) {
@@ -120,7 +120,7 @@ void JoinOrderEnumerator::enumerateSingleRel() {
             newSubgraph.addQueryRel(relPos);
             auto expressionsToFilter =
                 getNewMatchedExpressions(prevSubgraph, newSubgraph, context->getWhereExpressions());
-            auto& queryRel = *queryGraph->queryRels[relPos];
+            auto& queryRel = *queryGraph->getQueryRel(relPos);
             if (isSrcMatched && isDstMatched) {
                 // TODO: refactor cyclic logic as a separate function
                 for (auto& prevPlan : prevPlans) {
@@ -129,8 +129,9 @@ void JoinOrderEnumerator::enumerateSingleRel() {
                         // Break cycle by creating a temporary rel with a different name (concat rel
                         // and node name) on closing node.
                         auto tmpRel = rewriteQueryRel(queryRel, isCloseOnDst);
-                        auto nodeToIntersect = isCloseOnDst ? queryRel.dstNode : queryRel.srcNode;
-                        auto tmpNode = isCloseOnDst ? tmpRel->dstNode : tmpRel->srcNode;
+                        auto nodeToIntersect =
+                            isCloseOnDst ? queryRel.getDstNode() : queryRel.getSrcNode();
+                        auto tmpNode = isCloseOnDst ? tmpRel->getDstNode() : tmpRel->getSrcNode();
 
                         auto planWithFilter = prevPlan->copy();
                         appendExtendFiltersAndScanPropertiesIfNecessary(
@@ -182,7 +183,7 @@ void JoinOrderEnumerator::enumerateHashJoin() {
                 auto& rightPlans = context->getPlans(rightSubgraph);
                 auto newSubgraph = leftSubgraph;
                 newSubgraph.addSubqueryGraph(rightSubgraph);
-                auto& joinNode = *queryGraph->queryNodes[joinNodePos];
+                auto& joinNode = *queryGraph->getQueryNode(joinNodePos);
                 auto expressionsToFilter = getNewMatchedExpressions(
                     leftSubgraph, rightSubgraph, newSubgraph, context->getWhereExpressions());
                 for (auto& leftPlan : leftPlans) {
@@ -224,10 +225,10 @@ void JoinOrderEnumerator::appendResultScan(
 void JoinOrderEnumerator::appendScanNodeID(const NodeExpression& queryNode, LogicalPlan& plan) {
     auto nodeID = queryNode.getIDProperty();
     assert(plan.isEmpty());
-    auto scan = make_shared<LogicalScanNodeID>(nodeID, queryNode.label);
+    auto scan = make_shared<LogicalScanNodeID>(nodeID, queryNode.getLabel());
     auto groupPos = plan.schema->createGroup();
     plan.schema->insertToGroupAndScope(nodeID, groupPos);
-    plan.schema->groups[groupPos]->estimatedCardinality = graph.getNumNodes(queryNode.label);
+    plan.schema->groups[groupPos]->estimatedCardinality = graph.getNumNodes(queryNode.getLabel());
     plan.appendOperator(move(scan));
 }
 
@@ -238,17 +239,16 @@ void JoinOrderEnumerator::appendExtendFiltersAndScanPropertiesIfNecessary(
     for (auto& expression : expressionsToFilter) {
         enumerator->appendFilter(expression, plan);
     }
-    auto nbrNode = FWD == direction ? queryRel.dstNode : queryRel.srcNode;
 }
 
 void JoinOrderEnumerator::appendExtend(
     const RelExpression& queryRel, Direction direction, LogicalPlan& plan) {
-    auto boundNode = FWD == direction ? queryRel.srcNode : queryRel.dstNode;
-    auto nbrNode = FWD == direction ? queryRel.dstNode : queryRel.srcNode;
+    auto boundNode = FWD == direction ? queryRel.getSrcNode() : queryRel.getDstNode();
+    auto nbrNode = FWD == direction ? queryRel.getDstNode() : queryRel.getSrcNode();
     auto boundNodeID = boundNode->getIDProperty();
     auto nbrNodeID = nbrNode->getIDProperty();
     auto isColumnExtend =
-        graph.getCatalog().isSingleMultiplicityInDirection(queryRel.label, direction);
+        graph.getCatalog().isSingleMultiplicityInDirection(queryRel.getLabel(), direction);
     uint32_t groupPos;
     if (isColumnExtend) {
         groupPos = plan.schema->getGroupPos(boundNodeID);
@@ -258,11 +258,11 @@ void JoinOrderEnumerator::appendExtend(
         groupPos = plan.schema->createGroup();
         plan.schema->groups[groupPos]->estimatedCardinality =
             plan.schema->groups[boundNodeGroupPos]->estimatedCardinality *
-            getExtensionRate(boundNode->label, queryRel.label, direction);
+            getExtensionRate(boundNode->getLabel(), queryRel.getLabel(), direction);
     }
-    auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->label, nbrNodeID,
-        nbrNode->label, queryRel.label, direction, isColumnExtend, queryRel.lowerBound,
-        queryRel.upperBound, plan.lastOperator);
+    auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->getLabel(), nbrNodeID,
+        nbrNode->getLabel(), queryRel.getLabel(), direction, isColumnExtend,
+        queryRel.getLowerBound(), queryRel.getUpperBound(), plan.lastOperator);
     plan.schema->addLogicalExtend(queryRel.getUniqueName(), extend.get());
     plan.schema->insertToGroupAndScope(nbrNodeID, groupPos);
     plan.appendOperator(move(extend));
@@ -352,12 +352,13 @@ vector<shared_ptr<Expression>> getNewMatchedExpressions(const SubqueryGraph& pre
 }
 
 shared_ptr<RelExpression> rewriteQueryRel(const RelExpression& queryRel, bool isRewriteDst) {
-    auto& nodeToRewrite = isRewriteDst ? *queryRel.dstNode : *queryRel.srcNode;
+    auto& nodeToRewrite = isRewriteDst ? *queryRel.getDstNode() : *queryRel.getSrcNode();
     auto tmpNode = make_shared<NodeExpression>(
-        nodeToRewrite.getUniqueName() + "_" + queryRel.getUniqueName(), nodeToRewrite.label);
-    return make_shared<RelExpression>(queryRel.getUniqueName(), queryRel.label,
-        isRewriteDst ? queryRel.srcNode : tmpNode, isRewriteDst ? tmpNode : queryRel.dstNode,
-        queryRel.lowerBound, queryRel.upperBound);
+        nodeToRewrite.getUniqueName() + "_" + queryRel.getUniqueName(), nodeToRewrite.getLabel());
+    return make_shared<RelExpression>(queryRel.getUniqueName(), queryRel.getLabel(),
+        isRewriteDst ? queryRel.getSrcNode() : tmpNode,
+        isRewriteDst ? tmpNode : queryRel.getDstNode(), queryRel.getLowerBound(),
+        queryRel.getUpperBound());
 }
 
 shared_ptr<Expression> createNodeIDEqualComparison(
