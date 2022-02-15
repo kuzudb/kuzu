@@ -10,6 +10,10 @@
 #include "src/common/include/interval.h"
 #include "src/common/include/timestamp.h"
 #include "src/common/include/types.h"
+#include "src/parser/expression/include/parsed_function_expression.h"
+#include "src/parser/expression/include/parsed_leaf_expression.h"
+#include "src/parser/expression/include/parsed_property_expression.h"
+#include "src/parser/expression/include/parsed_subquery_expression.h"
 
 namespace graphflow {
 namespace binder {
@@ -17,7 +21,7 @@ namespace binder {
 shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& parsedExpression) {
     validateNoNullLiteralChildren(parsedExpression);
     shared_ptr<Expression> expression;
-    auto expressionType = parsedExpression.type;
+    auto expressionType = parsedExpression.getExpressionType();
     if (isExpressionBoolConnection(expressionType)) {
         expression = isExpressionUnary(expressionType) ?
                          bindUnaryBooleanExpression(parsedExpression) :
@@ -30,8 +34,6 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
                          bindBinaryArithmeticExpression(parsedExpression);
     } else if (isExpressionStringOperator(expressionType)) {
         expression = bindStringOperatorExpression(parsedExpression);
-    } else if (CSV_LINE_EXTRACT == expressionType) {
-        expression = bindCSVLineExtractExpression(parsedExpression);
     } else if (isExpressionNullComparison(expressionType)) {
         expression = bindNullComparisonOperatorExpression(parsedExpression);
     } else if (isExpressionLiteral(expressionType)) {
@@ -48,8 +50,8 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         throw invalid_argument(
             "Bind " + expressionTypeToString(expressionType) + " expression is not implemented.");
     }
-    if (!parsedExpression.alias.empty()) {
-        expression->setAlias(parsedExpression.alias);
+    if (parsedExpression.hasAlias()) {
+        expression->setAlias(parsedExpression.getAlias());
     }
     expression->setRawName(parsedExpression.getRawName());
     if (isExpressionAggregate(expression->expressionType)) {
@@ -62,8 +64,8 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
 
 shared_ptr<Expression> ExpressionBinder::bindBinaryBooleanExpression(
     const ParsedExpression& parsedExpression) {
-    auto left = bindExpression(*parsedExpression.children[0]);
-    auto right = bindExpression(*parsedExpression.children[1]);
+    auto left = bindExpression(*parsedExpression.getChild(0));
+    auto right = bindExpression(*parsedExpression.getChild(1));
     validateBoolOrUnstructured(*left);
     validateBoolOrUnstructured(*right);
     if (left->dataType == UNSTRUCTURED) {
@@ -72,66 +74,70 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryBooleanExpression(
     if (right->dataType == UNSTRUCTURED) {
         right = castUnstructuredToBool(move(right));
     }
-    return make_shared<Expression>(parsedExpression.type, BOOL, left, right);
+    return make_shared<Expression>(parsedExpression.getExpressionType(), BOOL, left, right);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindUnaryBooleanExpression(
     const ParsedExpression& parsedExpression) {
-    auto child = bindExpression(*parsedExpression.children.at(0));
+    auto child = bindExpression(*parsedExpression.getChild(0));
     validateBoolOrUnstructured(*child);
     if (child->dataType == UNSTRUCTURED) {
         child = castUnstructuredToBool(child);
     }
-    return make_shared<Expression>(parsedExpression.type, BOOL, (child));
+    return make_shared<Expression>(parsedExpression.getExpressionType(), BOOL, (child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     const ParsedExpression& parsedExpression) {
-    auto left = bindExpression(*parsedExpression.children.at(0));
-    auto right = bindExpression(*parsedExpression.children.at(1));
+    auto left = bindExpression(*parsedExpression.getChild(0));
+    auto right = bindExpression(*parsedExpression.getChild(1));
     if (left->dataType == UNSTRUCTURED || right->dataType == UNSTRUCTURED) {
-        return make_shared<Expression>(parsedExpression.type, BOOL, move(left), move(right));
+        return make_shared<Expression>(
+            parsedExpression.getExpressionType(), BOOL, move(left), move(right));
     }
     TypeUtils::isNumericalType(left->dataType) ?
         validateNumeric(*right) :
         validateExpectedDataType(*right, unordered_set<DataType>{left->dataType});
     auto expressionType = NODE_ID == left->dataType ?
-                              comparisonToIDComparison(parsedExpression.type) :
-                              parsedExpression.type;
+                              comparisonToIDComparison(parsedExpression.getExpressionType()) :
+                              parsedExpression.getExpressionType();
     return make_shared<Expression>(expressionType, BOOL, move(left), move(right));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
     const ParsedExpression& parsedExpression) {
     validateNoNullLiteralChildren(parsedExpression);
-    auto left = bindExpression(*parsedExpression.children.at(0));
-    auto right = bindExpression(*parsedExpression.children.at(1));
+    auto left = bindExpression(*parsedExpression.getChild(0));
+    auto right = bindExpression(*parsedExpression.getChild(1));
     if (left->dataType == UNSTRUCTURED || right->dataType == UNSTRUCTURED) {
         return make_shared<Expression>(
-            parsedExpression.type, UNSTRUCTURED, move(left), move(right));
+            parsedExpression.getExpressionType(), UNSTRUCTURED, move(left), move(right));
     } else if (left->dataType == STRING || right->dataType == STRING) {
-        validateExpectedBinaryOperation(
-            *left, *right, parsedExpression.type, unordered_set<ExpressionType>{ADD});
+        validateExpectedBinaryOperation(*left, *right, parsedExpression.getExpressionType(),
+            unordered_set<ExpressionType>{ADD});
         if (left->dataType != STRING) {
             left = castExpressionToString(move(left));
         }
         if (right->dataType != STRING) {
             right = castExpressionToString(move(right));
         }
-        return make_shared<Expression>(parsedExpression.type, STRING, move(left), move(right));
+        return make_shared<Expression>(
+            parsedExpression.getExpressionType(), STRING, move(left), move(right));
     } else if (left->dataType == DATE || right->dataType == DATE) {
-        return bindBinaryDateArithmeticExpression(parsedExpression.type, move(left), move(right));
+        return bindBinaryDateArithmeticExpression(
+            parsedExpression.getExpressionType(), move(left), move(right));
     } else if (left->dataType == TIMESTAMP || right->dataType == TIMESTAMP) {
         return bindBinaryTimestampArithmeticExpression(
-            parsedExpression.type, move(left), move(right));
+            parsedExpression.getExpressionType(), move(left), move(right));
     } else if (left->dataType == INTERVAL || right->dataType == INTERVAL) {
         return bindBinaryIntervalArithmeticExpression(
-            parsedExpression.type, move(left), move(right));
+            parsedExpression.getExpressionType(), move(left), move(right));
     }
     validateNumeric(*left);
     validateNumeric(*right);
     DataType resultType = left->dataType == DOUBLE || right->dataType == DOUBLE ? DOUBLE : INT64;
-    return make_shared<Expression>(parsedExpression.type, resultType, move(left), move(right));
+    return make_shared<Expression>(
+        parsedExpression.getExpressionType(), resultType, move(left), move(right));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindBinaryDateArithmeticExpression(
@@ -199,45 +205,33 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryIntervalArithmeticExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindUnaryArithmeticExpression(
     const ParsedExpression& parsedExpression) {
-    auto child = bindExpression(*parsedExpression.children.at(0));
+    auto child = bindExpression(*parsedExpression.getChild(0));
     validateNumericOrUnstructured(*child);
-    return make_shared<Expression>(parsedExpression.type, child->dataType, move(child));
+    return make_shared<Expression>(
+        parsedExpression.getExpressionType(), child->dataType, move(child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindStringOperatorExpression(
     const ParsedExpression& parsedExpression) {
-    auto left = bindExpression(*parsedExpression.children.at(0));
-    auto right = bindExpression(*parsedExpression.children.at(1));
+    auto left = bindExpression(*parsedExpression.getChild(0));
+    auto right = bindExpression(*parsedExpression.getChild(1));
     validateStringOrUnstructured(*left);
     validateStringOrUnstructured(*right);
-    return make_shared<Expression>(parsedExpression.type, BOOL, move(left), move(right));
-}
-
-shared_ptr<Expression> ExpressionBinder::bindCSVLineExtractExpression(
-    const ParsedExpression& parsedExpression) {
-    auto idxExpression = bindExpression(*parsedExpression.children[1]);
-    if (LITERAL_INT != idxExpression->expressionType) {
-        throw invalid_argument("LIST EXTRACT INDEX must be LITERAL_INT.");
-    }
-    auto csvVariableName = parsedExpression.children[0]->text;
-    auto csvLineExtractExpressionName =
-        csvVariableName + "[" + ((LiteralExpression&)*idxExpression).literal.toString() + "]";
-    if (!queryBinder->variablesInScope.contains(csvLineExtractExpressionName)) {
-        throw invalid_argument("Variable " + csvVariableName + " not defined or idx out of bound.");
-    }
-    return queryBinder->variablesInScope.at(csvLineExtractExpressionName);
+    return make_shared<Expression>(
+        parsedExpression.getExpressionType(), BOOL, move(left), move(right));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNullComparisonOperatorExpression(
     const ParsedExpression& parsedExpression) {
-    auto child = bindExpression(*parsedExpression.children.at(0));
-    return make_shared<Expression>(parsedExpression.type, BOOL, move(child));
+    auto child = bindExpression(*parsedExpression.getChild(0));
+    return make_shared<Expression>(parsedExpression.getExpressionType(), BOOL, move(child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     const ParsedExpression& parsedExpression) {
-    auto propertyName = parsedExpression.text;
-    auto child = bindExpression(*parsedExpression.children.at(0));
+    auto& propertyExpression = (ParsedPropertyExpression&)parsedExpression;
+    auto propertyName = propertyExpression.getPropertyName();
+    auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child, unordered_set<DataType>{NODE, REL});
     auto& catalog = queryBinder->catalog;
     if (NODE == child->dataType) {
@@ -266,7 +260,8 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     const ParsedExpression& parsedExpression) {
-    auto functionName = parsedExpression.text;
+    auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
+    auto functionName = parsedFunctionExpression.getFunctionName();
     StringUtils::toUpper(functionName);
     if (functionName == ABS_FUNC_NAME) {
         return bindAbsFunctionExpression(parsedExpression);
@@ -301,7 +296,7 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
 shared_ptr<Expression> ExpressionBinder::bindFloorFunctionExpression(
     const ParsedExpression& parsedExpression) {
     validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.children[0]);
+    auto child = bindExpression(*parsedExpression.getChild(0));
     validateNumericOrUnstructured(*child);
     return make_shared<FunctionExpression>(FLOOR_FUNC, child->dataType, move(child));
 }
@@ -309,7 +304,7 @@ shared_ptr<Expression> ExpressionBinder::bindFloorFunctionExpression(
 shared_ptr<Expression> ExpressionBinder::bindCeilFunctionExpression(
     const ParsedExpression& parsedExpression) {
     validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.children[0]);
+    auto child = bindExpression(*parsedExpression.getChild(0));
     validateNumericOrUnstructured(*child);
     return make_shared<FunctionExpression>(CEIL_FUNC, child->dataType, move(child));
 }
@@ -317,7 +312,7 @@ shared_ptr<Expression> ExpressionBinder::bindCeilFunctionExpression(
 shared_ptr<Expression> ExpressionBinder::bindAbsFunctionExpression(
     const ParsedExpression& parsedExpression) {
     validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.children[0]);
+    auto child = bindExpression(*parsedExpression.getChild(0));
     validateNumericOrUnstructured(*child);
     return make_shared<FunctionExpression>(ABS_FUNC, child->dataType, move(child));
 }
@@ -331,33 +326,36 @@ shared_ptr<Expression> ExpressionBinder::bindCountStarFunctionExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindCountFunctionExpression(
     const ParsedExpression& parsedExpression) {
+    auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
     validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.children[0]);
+    auto child = bindExpression(*parsedExpression.getChild(0));
     return make_shared<FunctionExpression>(
-        COUNT_FUNC, INT64, move(child), parsedExpression.getIsDistinct());
+        COUNT_FUNC, INT64, move(child), parsedFunctionExpression.getIsDistinct());
 }
 
 shared_ptr<Expression> ExpressionBinder::bindAvgFunctionExpression(
     const ParsedExpression& parsedExpression) {
+    auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
     validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.children[0]);
+    auto child = bindExpression(*parsedExpression.getChild(0));
     validateNumericOrUnstructured(*child);
     return make_shared<FunctionExpression>(
-        AVG_FUNC, DOUBLE, move(child), parsedExpression.getIsDistinct());
+        AVG_FUNC, DOUBLE, move(child), parsedFunctionExpression.getIsDistinct());
 }
 
 shared_ptr<Expression> ExpressionBinder::bindSumMinMaxFunctionExpression(
     const ParsedExpression& parsedExpression, ExpressionType expressionType) {
+    auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
     validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.children[0]);
+    auto child = bindExpression(*parsedExpression.getChild(0));
     return make_shared<FunctionExpression>(
-        expressionType, child->dataType, move(child), parsedExpression.getIsDistinct());
+        expressionType, child->dataType, move(child), parsedFunctionExpression.getIsDistinct());
 }
 
 shared_ptr<Expression> ExpressionBinder::bindIDFunctionExpression(
     const ParsedExpression& parsedExpression) {
     validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.children[0]);
+    auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child, unordered_set<DataType>{NODE});
     return make_shared<PropertyExpression>(
         NODE_ID, INTERNAL_ID_SUFFIX, UINT32_MAX /* property key for internal id */, move(child));
@@ -387,7 +385,7 @@ shared_ptr<Expression> ExpressionBinder::bindStringCastingFunctionExpression(
     ExpressionType literalExpressionType, DataType resultDataType,
     std::function<T(const char*, uint64_t)> castFunction) {
     validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.children[0]);
+    auto child = bindExpression(*parsedExpression.getChild(0));
     validateStringOrUnstructured(*child);
     if (child->expressionType == LITERAL_STRING) {
         auto literalVal = static_pointer_cast<LiteralExpression>(child)->literal.strVal;
@@ -399,8 +397,9 @@ shared_ptr<Expression> ExpressionBinder::bindStringCastingFunctionExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     const ParsedExpression& parsedExpression) {
-    auto literalVal = parsedExpression.text;
-    auto literalType = parsedExpression.type;
+    auto& literalExpression = (ParsedLeafExpression&)parsedExpression;
+    auto literalVal = literalExpression.getVariableName();
+    auto literalType = parsedExpression.getExpressionType();
     switch (literalType) {
     case LITERAL_INT:
         return make_shared<LiteralExpression>(
@@ -421,7 +420,8 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
     const ParsedExpression& parsedExpression) {
-    auto variableName = parsedExpression.text;
+    auto& variableExpression = (ParsedLeafExpression&)parsedExpression;
+    auto variableName = variableExpression.getVariableName();
     if (queryBinder->variablesInScope.contains(variableName)) {
         return queryBinder->variablesInScope.at(variableName);
     }
@@ -430,8 +430,9 @@ shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     const ParsedExpression& parsedExpression) {
+    auto& subqueryExpression = (ParsedSubqueryExpression&)parsedExpression;
     auto prevVariablesInScope = queryBinder->enterSubquery();
-    auto boundSingleQuery = queryBinder->bindSingleQuery(*parsedExpression.subquery);
+    auto boundSingleQuery = queryBinder->bindSingleQuery(*subqueryExpression.getSubquery());
     queryBinder->exitSubquery(move(prevVariablesInScope));
     return make_shared<ExistentialSubqueryExpression>(move(boundSingleQuery),
         queryBinder->getUniqueExpressionName(parsedExpression.getRawName()));
@@ -451,8 +452,9 @@ shared_ptr<Expression> ExpressionBinder::castExpressionToString(shared_ptr<Expre
 }
 
 void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
-    for (auto& child : parsedExpression.children) {
-        if (LITERAL_NULL == child->type) {
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        auto child = parsedExpression.getChild(i);
+        if (LITERAL_NULL == child->getExpressionType()) {
             throw invalid_argument("Expression " + parsedExpression.getRawName() +
                                    " cannot have null literal children.");
         }
@@ -461,11 +463,12 @@ void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& par
 
 void ExpressionBinder::validateNumberOfChildren(
     const ParsedExpression& parsedExpression, uint32_t expectedNumChildren) {
-    GF_ASSERT(parsedExpression.type == FUNCTION);
-    if (parsedExpression.children.size() != expectedNumChildren) {
+    GF_ASSERT(parsedExpression.getExpressionType() == FUNCTION);
+    auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
+    if (parsedExpression.getNumChildren() != expectedNumChildren) {
         throw invalid_argument("Expected " + to_string(expectedNumChildren) + " parameters for " +
-                               parsedExpression.text + " function but get " +
-                               to_string(parsedExpression.children.size()) + ".");
+                               parsedFunctionExpression.getFunctionName() + " function but get " +
+                               to_string(parsedExpression.getNumChildren()) + ".");
     }
 }
 

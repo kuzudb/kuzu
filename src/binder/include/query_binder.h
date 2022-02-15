@@ -4,8 +4,8 @@
 #include "src/binder/include/bound_queries/bound_single_query.h"
 #include "src/binder/include/expression_binder.h"
 #include "src/binder/include/query_graph/query_graph.h"
-#include "src/parser/include/queries/regular_query.h"
-#include "src/parser/include/statements/match_statement.h"
+#include "src/parser/query/include/regular_query.h"
+#include "src/parser/query/match_clause/include/match_clause.h"
 
 using namespace graphflow::parser;
 
@@ -26,11 +26,11 @@ private:
 
     unique_ptr<BoundQueryPart> bindQueryPart(const QueryPart& queryPart);
 
-    unique_ptr<BoundMatchStatement> bindMatchStatement(const MatchStatement& matchStatement);
+    unique_ptr<BoundMatchStatement> bindMatchStatement(const MatchClause& matchClause);
 
-    unique_ptr<BoundWithStatement> bindWithStatement(const WithStatement& withStatement);
+    unique_ptr<BoundWithStatement> bindWithStatement(const WithClause& withClause);
 
-    unique_ptr<BoundReturnStatement> bindReturnStatement(const ReturnStatement& returnStatement);
+    unique_ptr<BoundReturnStatement> bindReturnStatement(const ReturnClause& returnClause);
 
     unique_ptr<BoundProjectionBody> bindProjectionBody(
         const ProjectionBody& projectionBody, bool isWithClause);

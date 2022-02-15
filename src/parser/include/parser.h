@@ -1,4 +1,6 @@
-#include "src/parser/include/queries/regular_query.h"
+#pragma once
+
+#include "src/parser/query/include/regular_query.h"
 
 namespace graphflow {
 namespace parser {

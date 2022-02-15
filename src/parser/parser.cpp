@@ -1,9 +1,9 @@
 #include "src/parser/include/parser.h"
 
 #include "src/antlr4/CypherLexer.h"
-#include "src/parser/include/antlr_parser/graphflow_cypher_parser.h"
-#include "src/parser/include/antlr_parser/parser_error_listener.h"
-#include "src/parser/include/antlr_parser/parser_error_strategy.h"
+#include "src/parser/antlr_parser/include/graphflow_cypher_parser.h"
+#include "src/parser/antlr_parser/include/parser_error_listener.h"
+#include "src/parser/antlr_parser/include/parser_error_strategy.h"
 #include "src/parser/include/transformer.h"
 
 using namespace antlr4;

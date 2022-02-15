@@ -23,63 +23,64 @@ unique_ptr<BoundRegularQuery> QueryBinder::bind(const RegularQuery& regularQuery
 unique_ptr<BoundSingleQuery> QueryBinder::bindSingleQuery(const SingleQuery& singleQuery) {
     validateFirstMatchIsNotOptional(singleQuery);
     auto boundSingleQuery = make_unique<BoundSingleQuery>();
-    for (auto& queryPart : singleQuery.queryParts) {
-        boundSingleQuery->boundQueryParts.push_back(bindQueryPart(*queryPart));
+    for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
+        boundSingleQuery->boundQueryParts.push_back(bindQueryPart(*singleQuery.getQueryPart(i)));
     }
-    for (auto& matchStatement : singleQuery.matchStatements) {
-        boundSingleQuery->boundMatchStatements.push_back(bindMatchStatement(*matchStatement));
+    for (auto i = 0u; i < singleQuery.getNumMatchClauses(); ++i) {
+        boundSingleQuery->boundMatchStatements.push_back(
+            bindMatchStatement(*singleQuery.getMatchClause(i)));
     }
-    boundSingleQuery->boundReturnStatement = bindReturnStatement(*singleQuery.returnStatement);
+    boundSingleQuery->boundReturnStatement = bindReturnStatement(*singleQuery.getReturnClause());
     return boundSingleQuery;
 }
 
 unique_ptr<BoundQueryPart> QueryBinder::bindQueryPart(const QueryPart& queryPart) {
     auto boundQueryPart = make_unique<BoundQueryPart>();
-    for (auto& matchStatement : queryPart.matchStatements) {
-        boundQueryPart->boundMatchStatements.push_back(bindMatchStatement(*matchStatement));
+    for (auto i = 0u; i < queryPart.getNumMatchClauses(); ++i) {
+        boundQueryPart->boundMatchStatements.push_back(
+            bindMatchStatement(*queryPart.getMatchClause(i)));
     }
-    boundQueryPart->boundWithStatement = bindWithStatement(*queryPart.withStatement);
+    boundQueryPart->boundWithStatement = bindWithStatement(*queryPart.getWithClause());
     return boundQueryPart;
 }
 
-unique_ptr<BoundMatchStatement> QueryBinder::bindMatchStatement(
-    const MatchStatement& matchStatement) {
+unique_ptr<BoundMatchStatement> QueryBinder::bindMatchStatement(const MatchClause& matchClause) {
     auto prevVariablesInScope = variablesInScope;
-    auto queryGraph = bindQueryGraph(matchStatement.graphPattern);
+    auto queryGraph = bindQueryGraph(matchClause.getPatternElements());
     validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
     auto boundMatchStatement =
-        make_unique<BoundMatchStatement>(move(queryGraph), matchStatement.isOptional);
-    if (matchStatement.whereClause) {
-        boundMatchStatement->whereExpression = bindWhereExpression(*matchStatement.whereClause);
+        make_unique<BoundMatchStatement>(move(queryGraph), matchClause.getIsOptional());
+    if (matchClause.hasWhereClause()) {
+        boundMatchStatement->whereExpression = bindWhereExpression(*matchClause.getWhereClause());
     }
     return boundMatchStatement;
 }
 
-unique_ptr<BoundWithStatement> QueryBinder::bindWithStatement(const WithStatement& withStatement) {
+unique_ptr<BoundWithStatement> QueryBinder::bindWithStatement(const WithClause& withClause) {
     auto boundProjectionBody =
-        bindProjectionBody(*withStatement.getProjectionBody(), true /* isWithClause */);
+        bindProjectionBody(*withClause.getProjectionBody(), true /* isWithClause */);
     validateOrderByFollowedBySkipOrLimitInWithStatement(*boundProjectionBody);
     auto boundWithStatement = make_unique<BoundWithStatement>(move(boundProjectionBody));
-    if (withStatement.hasWhereExpression()) {
+    if (withClause.hasWhereExpression()) {
         boundWithStatement->setWhereExpression(
-            bindWhereExpression(*withStatement.getWhereExpression()));
+            bindWhereExpression(*withClause.getWhereExpression()));
     }
     return boundWithStatement;
 }
 
 unique_ptr<BoundReturnStatement> QueryBinder::bindReturnStatement(
-    const ReturnStatement& returnStatement) {
+    const ReturnClause& returnClause) {
     auto boundReturnStatement = make_unique<BoundReturnStatement>(
-        bindProjectionBody(*returnStatement.getProjectionBody(), false /* isWithClause */));
+        bindProjectionBody(*returnClause.getProjectionBody(), false /* isWithClause */));
     return boundReturnStatement;
 }
 
 unique_ptr<BoundProjectionBody> QueryBinder::bindProjectionBody(
     const ProjectionBody& projectionBody, bool isWithClause) {
     auto projectionExpressions = bindProjectionExpressions(
-        projectionBody.getProjectionExpressions(), projectionBody.isProjectStar());
+        projectionBody.getProjectionExpressions(), projectionBody.getContainsStar());
     auto boundProjectionBody = make_unique<BoundProjectionBody>(
-        projectionBody.isProjectDistinct(), move(projectionExpressions));
+        projectionBody.getIsDistinct(), move(projectionExpressions));
     auto prevVariablesInScope = variablesInScope;
     variablesInScope =
         computeVariablesInScope(boundProjectionBody->getProjectionExpressions(), isWithClause);
@@ -170,10 +171,11 @@ unique_ptr<QueryGraph> QueryBinder::bindQueryGraph(
     const vector<unique_ptr<PatternElement>>& graphPattern) {
     auto queryGraph = make_unique<QueryGraph>();
     for (auto& patternElement : graphPattern) {
-        auto leftNode = bindQueryNode(*patternElement->nodePattern, *queryGraph);
-        for (auto& patternElementChain : patternElement->patternElementChains) {
-            auto rightNode = bindQueryNode(*patternElementChain->nodePattern, *queryGraph);
-            bindQueryRel(*patternElementChain->relPattern, leftNode, rightNode, *queryGraph);
+        auto leftNode = bindQueryNode(*patternElement->getFirstNodePattern(), *queryGraph);
+        for (auto i = 0u; i < patternElement->getNumPatternElementChains(); ++i) {
+            auto patternElementChain = patternElement->getPatternElementChain(i);
+            auto rightNode = bindQueryNode(*patternElementChain->getNodePattern(), *queryGraph);
+            bindQueryRel(*patternElementChain->getRelPattern(), leftNode, rightNode, *queryGraph);
             leftNode = rightNode;
         }
     }
@@ -183,7 +185,7 @@ unique_ptr<QueryGraph> QueryBinder::bindQueryGraph(
 void QueryBinder::bindQueryRel(const RelPattern& relPattern,
     const shared_ptr<NodeExpression>& leftNode, const shared_ptr<NodeExpression>& rightNode,
     QueryGraph& queryGraph) {
-    auto parsedName = relPattern.name;
+    auto parsedName = relPattern.getName();
     if (variablesInScope.contains(parsedName)) {
         auto prevVariable = variablesInScope.at(parsedName);
         if (REL != prevVariable->dataType) {
@@ -198,20 +200,20 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
                                    " to relationship with same name is not supported.");
         }
     }
-    auto relLabel = bindRelLabel(relPattern.label);
+    auto relLabel = bindRelLabel(relPattern.getLabel());
     if (ANY_LABEL == relLabel) {
         throw invalid_argument(
             "Any-label is not supported. " + parsedName + " does not have a label.");
     }
     // bind node to rel
-    auto isLeftNodeSrc = RIGHT == relPattern.arrowDirection;
+    auto isLeftNodeSrc = RIGHT == relPattern.getDirection();
     validateNodeAndRelLabelIsConnected(relLabel, leftNode->label, isLeftNodeSrc ? FWD : BWD);
     validateNodeAndRelLabelIsConnected(relLabel, rightNode->label, isLeftNodeSrc ? BWD : FWD);
     auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
     auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
     // bind variable length
-    auto lowerBound = TypeUtils::convertToInt64(relPattern.lowerBound.c_str());
-    auto upperBound = TypeUtils::convertToInt64(relPattern.upperBound.c_str());
+    auto lowerBound = TypeUtils::convertToInt64(relPattern.getLowerBound().c_str());
+    auto upperBound = TypeUtils::convertToInt64(relPattern.getUpperBound().c_str());
     if (lowerBound > upperBound) {
         throw invalid_argument("Lower bound of rel " + parsedName + " is greater than upperBound.");
     }
@@ -227,7 +229,7 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
 
 shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
     const NodePattern& nodePattern, QueryGraph& queryGraph) {
-    auto parsedName = nodePattern.name;
+    auto parsedName = nodePattern.getName();
     shared_ptr<NodeExpression> queryNode;
     if (variablesInScope.contains(parsedName)) { // bind to node in scope
         auto prevVariable = variablesInScope.at(parsedName);
@@ -237,14 +239,14 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
                                    " (expect NODE).");
         }
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
-        auto otherLabel = bindNodeLabel(nodePattern.label);
+        auto otherLabel = bindNodeLabel(nodePattern.getLabel());
         GF_ASSERT(queryNode->label != ANY_LABEL);
         if (otherLabel != ANY_LABEL && queryNode->label != otherLabel) {
             throw invalid_argument(
                 "Multi-label is not supported. Node " + parsedName + " is given multiple labels.");
         }
     } else { // create new node
-        auto nodeLabel = bindNodeLabel(nodePattern.label);
+        auto nodeLabel = bindNodeLabel(nodePattern.getLabel());
         queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), nodeLabel);
         queryNode->setAlias(parsedName);
         queryNode->setRawName(parsedName);
@@ -281,7 +283,7 @@ label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
 }
 
 void QueryBinder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
-    if (singleQuery.hasMatchStatement() && singleQuery.getFirstMatchStatement()->isOptional) {
+    if (singleQuery.isFirstMatchOptional()) {
         throw invalid_argument("First match statement cannot be optional match.");
     }
 }

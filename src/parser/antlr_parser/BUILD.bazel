@@ -1,7 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "parser",
+    name = "antlr_parser",
     srcs = glob([
         "*.cpp",
     ]),
@@ -9,11 +9,10 @@ cc_library(
         "include/*.h",
     ]),
     visibility = [
-        "//visibility:public",
+        "//src/parser:__pkg__",
     ],
     deps = [
-        "//src/parser/antlr_parser",
-        "//src/parser/expression:parsed_expression_implementations",
-        "//src/parser/query",
+        "//src/antlr4:cypher_grammar_lib",
+        "//src/common:utils",
     ],
 )

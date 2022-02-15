@@ -1,63 +1,62 @@
 #include "gtest/gtest.h"
-#include "test/parser/parser_test_utils.h"
 
+#include "src/parser/expression/include/parsed_function_expression.h"
+#include "src/parser/expression/include/parsed_leaf_expression.h"
+#include "src/parser/expression/include/parsed_property_expression.h"
 #include "src/parser/include/parser.h"
 
 using namespace graphflow::parser;
+
+const string EMPTY = string();
 
 class ReturnWithTest : public ::testing::Test {
 
 public:
     static unique_ptr<ParsedExpression> makeANameExpression() {
-        auto expression = make_unique<ParsedExpression>(PROPERTY, "name", EMPTY);
-        expression->children.push_back(make_unique<ParsedExpression>(VARIABLE, "a", EMPTY));
-        return expression;
+        auto child = make_unique<ParsedLeafExpression>(VARIABLE, "a", EMPTY);
+        return make_unique<ParsedPropertyExpression>(PROPERTY, "name", move(child), EMPTY);
     }
 
     static unique_ptr<ParsedExpression> makeAAgeExpression() {
-        auto expression = make_unique<ParsedExpression>(PROPERTY, "age", EMPTY);
-        expression->children.push_back(make_unique<ParsedExpression>(VARIABLE, "a", EMPTY));
-        return expression;
+        auto child = make_unique<ParsedLeafExpression>(VARIABLE, "a", EMPTY);
+        return make_unique<ParsedPropertyExpression>(PROPERTY, "age", move(child), EMPTY);
     }
 };
 
 TEST_F(ReturnWithTest, ReturnCountStarTest) {
     auto expressions = vector<unique_ptr<ParsedExpression>>();
-    expressions.push_back(make_unique<ParsedExpression>(FUNCTION, "COUNT_STAR", EMPTY));
-    auto returnStatement = make_unique<ReturnStatement>(make_unique<ProjectionBody>(
+    expressions.push_back(make_unique<ParsedFunctionExpression>(FUNCTION, "COUNT_STAR", EMPTY));
+    auto returnClause = make_unique<ReturnClause>(make_unique<ProjectionBody>(
         false /* isDistinct */, false /* containsStar */, move(expressions)));
 
     string input = "MATCH () RETURN COUNT(*);";
     auto regularQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *returnStatement, *regularQuery->getSingleQuery(0)->returnStatement));
+    ASSERT_TRUE(*returnClause == *regularQuery->getSingleQuery(0)->getReturnClause());
 }
 
 TEST_F(ReturnWithTest, ReturnStarAndPropertyTest) {
     auto expressions = vector<unique_ptr<ParsedExpression>>();
     expressions.push_back(makeANameExpression());
-    auto returnStatement = make_unique<ReturnStatement>(make_unique<ProjectionBody>(
+    auto returnClause = make_unique<ReturnClause>(make_unique<ProjectionBody>(
         false /* isDistinct */, true /* containsStar */, move(expressions)));
 
     string input = "MATCH () RETURN *, a.name;";
     auto regularQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *returnStatement, *regularQuery->getSingleQuery(0)->returnStatement));
+    ASSERT_TRUE(*returnClause == *regularQuery->getSingleQuery(0)->getReturnClause());
 }
 
 TEST_F(ReturnWithTest, ReturnAliasTest) {
     auto expressions = vector<unique_ptr<ParsedExpression>>();
     expressions.push_back(makeANameExpression());
     auto aName2 = makeANameExpression();
-    aName2->alias = "whatever";
+    aName2->setAlias("whatever");
     expressions.push_back(move(aName2));
-    auto returnStatement = make_unique<ReturnStatement>(make_unique<ProjectionBody>(
+    auto returnClause = make_unique<ReturnClause>(make_unique<ProjectionBody>(
         false /* isDistinct */, false /* containsStar */, move(expressions)));
 
     string input = "MATCH () RETURN a.name, a.name AS whatever;";
     auto regularQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *returnStatement, *regularQuery->getSingleQuery(0)->returnStatement));
+    ASSERT_TRUE(*returnClause == *regularQuery->getSingleQuery(0)->getReturnClause());
 }
 
 TEST_F(ReturnWithTest, ReturnLimitTest) {
@@ -65,77 +64,72 @@ TEST_F(ReturnWithTest, ReturnLimitTest) {
     projectionExpressions.push_back(makeANameExpression());
     auto projectionBody = make_unique<ProjectionBody>(
         false /* isDistinct */, false /* containsStar */, move(projectionExpressions));
-    projectionBody->setLimitExpression(make_unique<ParsedExpression>(LITERAL_INT, "10", EMPTY));
-    auto returnStatement = make_unique<ReturnStatement>(move(projectionBody));
+    projectionBody->setLimitExpression(make_unique<ParsedLeafExpression>(LITERAL_INT, "10", EMPTY));
+    auto returnClause = make_unique<ReturnClause>(move(projectionBody));
     string input = "MATCH () RETURN a.name LIMIT 10;";
     auto regularQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *returnStatement, *regularQuery->getSingleQuery(0)->returnStatement));
+    ASSERT_TRUE(*returnClause == *regularQuery->getSingleQuery(0)->getReturnClause());
 }
 
 TEST_F(ReturnWithTest, SingleWithTest) {
     auto expressions = vector<unique_ptr<ParsedExpression>>();
-    auto one = make_unique<ParsedExpression>(LITERAL_INT, "1", EMPTY);
-    one->alias = "one";
+    auto one = make_unique<ParsedLeafExpression>(LITERAL_INT, "1", EMPTY);
+    one->setAlias("one");
     expressions.push_back(move(one));
-    auto name = make_unique<ParsedExpression>(LITERAL_STRING, "\"Xiyang\"", EMPTY);
-    name->alias = "name";
+    auto name = make_unique<ParsedLeafExpression>(LITERAL_STRING, "\"Xiyang\"", EMPTY);
+    name->setAlias("name");
     expressions.push_back(move(name));
-    auto withStatement = make_unique<WithStatement>(make_unique<ProjectionBody>(
+    auto withClause = make_unique<WithClause>(make_unique<ProjectionBody>(
         false /* isDistinct */, false /* containsStar */, move(expressions)));
 
     string input = "WITH 1 AS one, \"Xiyang\" AS name MATCH () RETURN *;";
     auto regularQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->queryParts.size());
-    ASSERT_TRUE(regularQuery->getSingleQuery(0)->queryParts[0]->matchStatements.empty());
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *withStatement, *regularQuery->getSingleQuery(0)->queryParts[0]->withStatement));
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumQueryParts());
+    ASSERT_TRUE(regularQuery->getSingleQuery(0)->getQueryPart(0)->getNumMatchClauses() == 0);
+    ASSERT_TRUE(*withClause == *regularQuery->getSingleQuery(0)->getQueryPart(0)->getWithClause());
 }
 
 TEST_F(ReturnWithTest, MultiMatchWithStarTest) {
     auto expressions = vector<unique_ptr<ParsedExpression>>();
-    auto one = make_unique<ParsedExpression>(LITERAL_INT, "1", EMPTY);
-    one->alias = "one";
+    auto one = make_unique<ParsedLeafExpression>(LITERAL_INT, "1", EMPTY);
+    one->setAlias("one");
     expressions.push_back(move(one));
-    auto withStatement = make_unique<WithStatement>(make_unique<ProjectionBody>(
+    auto withClause = make_unique<WithClause>(make_unique<ProjectionBody>(
         false /* isDistinct */, true /* containsStar */, move(expressions)));
 
     string input = "MATCH () MATCH () WITH *, 1 AS one MATCH () RETURN *;";
     auto regularQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->queryParts.size());
-    ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->queryParts[0]->matchStatements.size());
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *withStatement, *regularQuery->getSingleQuery(0)->queryParts[0]->withStatement));
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getNumQueryParts());
+    ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->getQueryPart(0)->getNumMatchClauses());
+    ASSERT_TRUE(*withClause == *regularQuery->getSingleQuery(0)->getQueryPart(0)->getWithClause());
 }
 
 TEST_F(ReturnWithTest, MultiWithWhereTest) {
     auto expressions1 = vector<unique_ptr<ParsedExpression>>();
-    auto withStatement1 = make_unique<WithStatement>(make_unique<ProjectionBody>(
+    auto withClause1 = make_unique<WithClause>(make_unique<ProjectionBody>(
         false /* isDistinct */, true /* containsStar */, move(expressions1)));
-    auto one1 = make_unique<ParsedExpression>(LITERAL_INT, "1", EMPTY);
+    auto one1 = make_unique<ParsedLeafExpression>(LITERAL_INT, "1", EMPTY);
     auto aAge1 = makeAAgeExpression();
-    auto where1 = make_unique<ParsedExpression>(LESS_THAN, EMPTY, EMPTY, move(aAge1), move(one1));
-    withStatement1->setWhereExpression(move(where1));
+    auto where1 = make_unique<ParsedExpression>(LESS_THAN, move(aAge1), move(one1), EMPTY);
+    withClause1->setWhereExpression(move(where1));
 
     auto expressions2 = vector<unique_ptr<ParsedExpression>>();
     auto aAge2 = makeAAgeExpression();
-    aAge2->alias = "newAge";
+    aAge2->setAlias("newAge");
     expressions2.push_back(move(aAge2));
-    auto withStatement2 = make_unique<WithStatement>(make_unique<ProjectionBody>(
+    auto withClause2 = make_unique<WithClause>(make_unique<ProjectionBody>(
         false /* isDistinct */, false /* containsStar */, move(expressions2)));
-    auto ten2 = make_unique<ParsedExpression>(LITERAL_INT, "10", EMPTY);
-    auto newAge = make_unique<ParsedExpression>(VARIABLE, "newAge", EMPTY);
-    auto where2 = make_unique<ParsedExpression>(EQUALS, EMPTY, EMPTY, move(newAge), move(ten2));
-    withStatement2->setWhereExpression(move(where2));
+    auto ten2 = make_unique<ParsedLeafExpression>(LITERAL_INT, "10", EMPTY);
+    auto newAge = make_unique<ParsedLeafExpression>(VARIABLE, "newAge", EMPTY);
+    auto where2 = make_unique<ParsedExpression>(EQUALS, move(newAge), move(ten2), EMPTY);
+    withClause2->setWhereExpression(move(where2));
 
     string input =
         "MATCH () WITH * WHERE a.age < 1 WITH a.age AS newAge WHERE newAge = 10 MATCH () RETURN *;";
     auto regularQuery = Parser::parseQuery(input);
-    ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->queryParts.size());
-    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->queryParts[0]->matchStatements.size());
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *withStatement1, *regularQuery->getSingleQuery(0)->queryParts[0]->withStatement));
-    ASSERT_TRUE(regularQuery->getSingleQuery(0)->queryParts[1]->matchStatements.empty());
-    ASSERT_TRUE(ParserTestUtils::equals(
-        *withStatement2, *regularQuery->getSingleQuery(0)->queryParts[1]->withStatement));
+    ASSERT_TRUE(2u == regularQuery->getSingleQuery(0)->getNumQueryParts());
+    ASSERT_TRUE(1u == regularQuery->getSingleQuery(0)->getQueryPart(0)->getNumMatchClauses());
+    ASSERT_TRUE(*withClause1 == *regularQuery->getSingleQuery(0)->getQueryPart(0)->getWithClause());
+    ASSERT_TRUE(regularQuery->getSingleQuery(0)->getQueryPart(1)->getNumMatchClauses() == 0u);
+    ASSERT_TRUE(*withClause2 == *regularQuery->getSingleQuery(0)->getQueryPart(1)->getWithClause());
 }

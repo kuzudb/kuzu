@@ -1,4 +1,4 @@
-#include "src/parser/include/antlr_parser/graphflow_cypher_parser.h"
+#include "src/parser/antlr_parser/include/graphflow_cypher_parser.h"
 
 #include <string>
 

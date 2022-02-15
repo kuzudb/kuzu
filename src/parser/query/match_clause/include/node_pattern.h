@@ -16,7 +16,19 @@ class NodePattern {
 public:
     NodePattern(string name, string label) : name{move(name)}, label{move(label)} {}
 
-public:
+    ~NodePattern() = default;
+
+    inline string getName() const { return name; }
+
+    inline string getLabel() const { return label; }
+
+    bool operator==(const NodePattern& other) const {
+        return name == other.name && label == other.label;
+    }
+
+    bool operator!=(const NodePattern& other) const { return !operator==(other); }
+
+private:
     string name;
     string label;
 };

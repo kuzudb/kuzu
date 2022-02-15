@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/antlr4/CypherParser.h"
-#include "src/parser/include/queries/regular_query.h"
+#include "src/parser/query/include/regular_query.h"
 
 using namespace std;
 
@@ -9,6 +9,7 @@ namespace graphflow {
 namespace parser {
 
 class Transformer {
+
 public:
     explicit Transformer(CypherParser::OC_CypherContext& root) : root{root} {}
 
@@ -25,13 +26,13 @@ private:
 
     unique_ptr<QueryPart> transformQueryPart(CypherParser::GF_QueryPartContext& ctx);
 
-    unique_ptr<MatchStatement> transformReadingClause(CypherParser::OC_ReadingClauseContext& ctx);
+    unique_ptr<MatchClause> transformReadingClause(CypherParser::OC_ReadingClauseContext& ctx);
 
-    unique_ptr<MatchStatement> transformMatch(CypherParser::OC_MatchContext& ctx);
+    unique_ptr<MatchClause> transformMatch(CypherParser::OC_MatchContext& ctx);
 
-    unique_ptr<WithStatement> transformWith(CypherParser::OC_WithContext& ctx);
+    unique_ptr<WithClause> transformWith(CypherParser::OC_WithContext& ctx);
 
-    unique_ptr<ReturnStatement> transformReturn(CypherParser::OC_ReturnContext& ctx);
+    unique_ptr<ReturnClause> transformReturn(CypherParser::OC_ReturnContext& ctx);
 
     unique_ptr<ProjectionBody> transformProjectionBody(CypherParser::OC_ProjectionBodyContext& ctx);
 
@@ -59,9 +60,6 @@ private:
 
     unique_ptr<RelPattern> transformRelationshipPattern(
         CypherParser::OC_RelationshipPatternContext& ctx);
-
-    unique_ptr<RelPattern> transformRelationshipDetail(
-        CypherParser::OC_RelationshipDetailContext& ctx);
 
     string transformNodeLabel(CypherParser::OC_NodeLabelContext& ctx);
 
