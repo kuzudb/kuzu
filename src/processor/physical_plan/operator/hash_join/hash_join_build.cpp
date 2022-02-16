@@ -13,11 +13,11 @@ HashJoinBuild::HashJoinBuild(shared_ptr<HashJoinSharedState> sharedState,
 
 shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
     resultSet = children[0]->initResultSet();
-    TupleSchema tupleSchema;
+    TableSchema tableSchema;
     keyDataChunk = resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
     auto keyVector = keyDataChunk->valueVectors[buildDataInfo.getKeyIDVectorPos()];
-    tupleSchema.appendColumn(
-        {keyVector->dataType, false /* isUnflat */, buildDataInfo.getKeyIDDataChunkPos()});
+    tableSchema.appendColumn({false /* isUnflat */, buildDataInfo.getKeyIDDataChunkPos(),
+        TypeUtils::getDataTypeSize(keyVector->dataType)});
     vectorsToAppend.push_back(keyVector);
     for (auto i = 0u; i < buildDataInfo.nonKeyDataPoses.size(); ++i) {
         auto dataChunkPos = buildDataInfo.nonKeyDataPoses[i].dataChunkPos;
@@ -25,19 +25,22 @@ shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
         auto vectorPos = buildDataInfo.nonKeyDataPoses[i].valueVectorPos;
         auto vector = dataChunk->valueVectors[vectorPos];
         auto isVectorFlat = buildDataInfo.isNonKeyDataFlat[i];
-        tupleSchema.appendColumn({vector->dataType, !isVectorFlat, dataChunkPos});
+        tableSchema.appendColumn({!isVectorFlat, dataChunkPos,
+            isVectorFlat ? TypeUtils::getDataTypeSize(vector->dataType) :
+                           sizeof(overflow_value_t)});
         vectorsToAppend.push_back(vector);
+        sharedState->nonKeyDataPosesDataTypes.push_back(vector->dataType);
     }
     // The prev pointer column.
-    tupleSchema.appendColumn({INT64, false /* isUnflat */,
-        UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */});
-    tupleSchema.initialize();
-    factorizedTable = make_unique<FactorizedTable>(*context.memoryManager, tupleSchema);
+    tableSchema.appendColumn(
+        {false /* isUnflat */, UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */,
+            TypeUtils::getDataTypeSize(INT64)});
+    factorizedTable = make_unique<FactorizedTable>(*context.memoryManager, tableSchema);
     {
         lock_guard<mutex> sharedStateLock(sharedState->hashJoinSharedStateLock);
         if (sharedState->factorizedTable == nullptr) {
             sharedState->factorizedTable =
-                make_unique<FactorizedTable>(*context.memoryManager, tupleSchema);
+                make_unique<FactorizedTable>(*context.memoryManager, tableSchema);
         }
     }
     return resultSet;
@@ -51,7 +54,7 @@ void HashJoinBuild::finalize() {
     sharedState->htDirectory = context.memoryManager->allocateBlock(
         directory_capacity * sizeof(uint8_t*), true /* initializeToZero */);
 
-    auto& tupleSchema = sharedState->factorizedTable->getTupleSchema();
+    auto& tableSchema = sharedState->factorizedTable->getTableSchema();
     hash_t hash;
     auto directory = (uint8_t**)sharedState->htDirectory->data;
     for (auto& tupleBlock : sharedState->factorizedTable->getTupleDataBlocks()) {
@@ -60,10 +63,10 @@ void HashJoinBuild::finalize() {
             auto nodeId = *(nodeID_t*)tuple;
             Hash::operation<nodeID_t>(nodeId, false /* isNull */, hash);
             auto slotId = hash & sharedState->hashBitMask;
-            auto prevPtr = (uint8_t**)(tuple + tupleSchema.getNullMapOffset() - sizeof(uint8_t*));
+            auto prevPtr = (uint8_t**)(tuple + tableSchema.getNullMapOffset() - sizeof(uint8_t*));
             memcpy((uint8_t*)prevPtr, (void*)&(directory[slotId]), sizeof(uint8_t*));
             directory[slotId] = tuple;
-            tuple += tupleSchema.numBytesPerTuple;
+            tuple += tableSchema.getNumBytesPerTuple();
         }
     }
 }
@@ -83,10 +86,10 @@ void HashJoinBuild::appendVectorsOnce() {
         if (keyVector->isNull(keyVector->state->getPositionOfCurrIdx())) {
             return;
         }
-        factorizedTable->append(vectorsToAppend, 1 /* numTuplesToAppend */);
+        factorizedTable->append(vectorsToAppend);
     } else {
         if (keyVector->hasNoNullsGuarantee()) {
-            factorizedTable->append(vectorsToAppend, keyVector->state->selectedSize);
+            factorizedTable->append(vectorsToAppend);
             return;
         }
         // If key vector may contain null value, we have to flatten the key and for each flat key
@@ -96,7 +99,7 @@ void HashJoinBuild::appendVectorsOnce() {
                 continue;
             }
             keyVector->state->currIdx = i;
-            factorizedTable->append(vectorsToAppend, 1 /* numTuplesToAppend */);
+            factorizedTable->append(vectorsToAppend);
         }
         keyVector->state->currIdx = -1;
     }

@@ -46,6 +46,7 @@ void System::executeQuery(SessionContext& context) const {
     if (logicalPlan->containAggregation() && context.numThreads > 1) {
         throw invalid_argument("Aggregation with multi-threading is not implemented.");
     }
+    context.expressionsToReturnDataTypes = logicalPlan->getExpressionsToCollectDataTypes();
 
     auto executionContext = make_unique<ExecutionContext>(*context.profiler, memManager.get());
     auto mapper = PlanMapper(*graph);

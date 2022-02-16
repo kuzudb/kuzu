@@ -64,8 +64,9 @@ public:
         vector<shared_ptr<ValueVector>> allVectors{
             valueVector}; // all columns including orderBy and payload columns
 
-        TupleSchema tupleSchema;
-        tupleSchema.appendColumn({dataType, false /* isUnflat */, 0 /* dataChunkPos */});
+        TableSchema tableSchema;
+        tableSchema.appendColumn(
+            {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(dataType)});
 
         if (hasPayLoadCol) {
             auto payloadValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
@@ -76,12 +77,12 @@ public:
             // To test whether the orderByCol -> factorizedTableColIdx works properly, we put the
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
-            tupleSchema.appendColumn({dataType, false, 0 /* dataChunkPos */});
+            tableSchema.appendColumn(
+                {false, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(dataType)});
         }
-        tupleSchema.initialize();
 
-        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
-        factorizedTable->append(allVectors, sortingData.size());
+        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tableSchema);
+        factorizedTable->append(allVectors);
 
         vector<bool> isAscOrder = {isAsc};
         auto orderByKeyEncoder =
@@ -141,7 +142,7 @@ public:
 
     OrderByKeyEncoder prepareMultipleOrderByColsEncoder(uint16_t factorizedTableIdx,
         vector<shared_ptr<FactorizedTable>>& factorizedTables, shared_ptr<DataChunk>& dataChunk,
-        TupleSchema& tupleSchema) {
+        TableSchema& tableSchema) {
         vector<shared_ptr<ValueVector>> orderByVectors;
         for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
             orderByVectors.emplace_back(dataChunk->getValueVector(i));
@@ -151,9 +152,9 @@ public:
         auto orderByKeyEncoder =
             OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
 
-        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
+        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tableSchema);
         for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
-            factorizedTable->append(orderByVectors, 1);
+            factorizedTable->append(orderByVectors);
             orderByKeyEncoder.encodeKeys();
             dataChunk->state->currIdx++;
         }
@@ -207,17 +208,14 @@ public:
         prepareMultipleOrderByColsValueVector(
             int64Values2, doubleValues2, timestampValues2, dataChunk2);
 
-        TupleSchema tupleSchema;
-        tupleSchema.appendColumn(
-            ColumnInTupleSchema(INT64, false /* isUnflat */, 0 /* dataChunkPos */));
-        tupleSchema.appendColumn(
-            ColumnInTupleSchema(DOUBLE, false /* isUnflat */, 0 /* dataChunkPos */));
-        tupleSchema.appendColumn(
-            ColumnInTupleSchema(TIMESTAMP, false /* isUnflat */, 0 /* dataChunkPos */));
+        TableSchema tableSchema({{false /* isUnflat */, 0 /* dataChunkPos */,
+                                     TypeUtils::getDataTypeSize(INT64)},
+            {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(DOUBLE)},
+            {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(TIMESTAMP)}});
 
         if (hasStrCol) {
-            tupleSchema.appendColumn(
-                ColumnInTupleSchema(STRING, false /* isUnflat */, 0 /* dataChunkPos */));
+            tableSchema.appendColumn(
+                {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(STRING)});
             auto stringValueVector1 = make_shared<ValueVector>(memoryManager.get(), STRING);
             auto stringValueVector2 = make_shared<ValueVector>(memoryManager.get(), STRING);
             dataChunk1->insert(3, stringValueVector1);
@@ -232,17 +230,16 @@ public:
             stringValueVector2->addString(2, "same prefix 121");
             stringValueVector2->addString(3, "same prefix 126");
         }
-        tupleSchema.initialize();
 
         vector<shared_ptr<FactorizedTable>> factorizedTables;
         for (auto i = 0; i < 4; i++) {
             factorizedTables.emplace_back(
-                make_unique<FactorizedTable>(*memoryManager, tupleSchema));
+                make_unique<FactorizedTable>(*memoryManager, tableSchema));
         }
         auto orderByKeyEncoder2 = prepareMultipleOrderByColsEncoder(
-            4 /* factorizedTableIdx */, factorizedTables, dataChunk2, tupleSchema);
+            4 /* factorizedTableIdx */, factorizedTables, dataChunk2, tableSchema);
         auto orderByKeyEncoder1 = prepareMultipleOrderByColsEncoder(
-            5 /* factorizedTableIdx */, factorizedTables, dataChunk1, tupleSchema);
+            5 /* factorizedTableIdx */, factorizedTables, dataChunk1, tableSchema);
 
         vector<uint64_t> expectedTupleIdxOrder = {0, 0, 1, 1, 2, 2, 3};
         vector<uint64_t> expectedFactorizedTableIdxOrder = {4, 5, 5, 4, 5, 4, 4};
@@ -297,16 +294,17 @@ public:
             dataChunk->getValueVector(1), dataChunk->getValueVector(2),
             dataChunk->getValueVector(3)};
 
-        TupleSchema tupleSchema(vector<ColumnInTupleSchema>(
-            4, ColumnInTupleSchema(STRING, false /* isUnflat */, 0 /* dataChunkPos */)));
-        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
+        TableSchema tableSchema(
+            vector<ColumnSchema>(4, ColumnSchema(false /* isUnflat */, 0 /* dataChunkPos */,
+                                        TypeUtils::getDataTypeSize(STRING))));
+        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tableSchema);
 
         vector<bool> isAscOrder(strValues.size(), true);
         auto orderByKeyEncoder =
             OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
 
         for (auto i = 0u; i < strValues[0].size(); i++) {
-            factorizedTable->append(allVectors, 1);
+            factorizedTable->append(allVectors);
             orderByKeyEncoder.encodeKeys();
             dataChunk->state->currIdx++;
         }

@@ -57,6 +57,13 @@ public:
         this->stringAndUnstructuredKeyColInfo = move(stringAndUnstructuredKeyColInfo);
     }
 
+    void setDataTypes(vector<DataType> dataTypes) {
+        lock_guard<mutex> lck{orderBySharedStateMutex};
+        this->dataTypes = move(dataTypes);
+    }
+
+    inline DataType getDataType(uint32_t idx) { return dataTypes[idx]; }
+
 private:
     mutex orderBySharedStateMutex;
 
@@ -67,6 +74,7 @@ public:
 
     uint64_t keyBlockEntrySizeInBytes;
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
+    vector<DataType> dataTypes;
 };
 
 struct OrderByDataInfo {

@@ -34,6 +34,7 @@ public:
     shared_ptr<FactorizedTable> queryResult;
     double compilingTime;
     double executingTime;
+    vector<DataType> expressionsToReturnDataTypes;
 };
 
 } // namespace main

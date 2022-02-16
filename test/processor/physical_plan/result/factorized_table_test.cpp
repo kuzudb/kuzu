@@ -59,39 +59,32 @@ public:
         resultSet->dataChunks[1]->state->selectedSize = 100;
     }
 
-    static void checkA2UnflatValuesAndNulls(shared_ptr<ValueVector> vectorA2) {
-        for (auto i = 0u; i < 100; i++) {
-            if (i % 10) {
-                ASSERT_EQ(vectorA2->isNull(i), false);
-                ASSERT_EQ(((int64_t*)vectorA2->values)[i], i << 1);
-            } else {
-                ASSERT_EQ(vectorA2->isNull(i), true);
-            }
-        }
-    }
-
     unique_ptr<FactorizedTable> appendMultipleTuples(bool isAppendFlatVectorToUnflatCol) {
         // Prepare the factorizedTable and unflat vectors (A1, B1).
-        TupleSchema tupleSchema({{NODE, false /* isUnflat */, 0 /* dataChunkPos */},
-            {NODE, true /* isUnflat */, 1 /* dataChunkPos */}});
+        TableSchema tupleSchema({{false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)},
+            {true /* isUnflat */, 1 /* dataChunkPos */, sizeof(overflow_value_t)}});
         auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
         vector<shared_ptr<ValueVector>> vectorsToAppend = {
             resultSet->dataChunks[0]->valueVectors[0], resultSet->dataChunks[1]->valueVectors[0]};
         if (isAppendFlatVectorToUnflatCol) {
-            // Flat B1 will cause an exception in the append function, because we are trying to
-            // append a flat valueVector to an unflat column
+            // Flat B1 will cause an exception in the append function, because we are trying
+            // to append a flat valueVector to an unflat column
             resultSet->dataChunks[1]->state->currIdx = 1;
         }
-
-        factorizedTable->append(vectorsToAppend, 100 /* numTuplesToAppend */);
+        // Since the first column, which stores A1, is a flat column in factorizedTable, the
+        // factorizedTable will automatically flatten A1 and B1 will be replicated 100 times(the
+        // size of A1).
+        factorizedTable->append(vectorsToAppend);
         return factorizedTable;
     }
 
-    void checkFlatTupleIteratorResult(FlatTupleIterator& flatTupleIterator) {
+    static void checkFlatTupleIteratorResult(FlatTupleIterator& flatTupleIterator) {
         for (auto i = 0; i < 100; i++) {
             for (auto j = 0; j < 100; j++) {
+                vector<DataType> dataTypesInFlatTuple = {NODE, NODE};
+                FlatTuple resultFlatTuple(dataTypesInFlatTuple);
                 ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), true);
-                auto resultFlatTuple = flatTupleIterator.getNextFlatTuple();
+                flatTupleIterator.getNextFlatTuple(resultFlatTuple);
                 if (i % 15) {
                     ASSERT_EQ(resultFlatTuple.nullMask[0], false);
                     auto val = resultFlatTuple.getValue(0)->val.nodeID;
@@ -115,40 +108,41 @@ public:
 public:
     unique_ptr<ResultSet> resultSet;
     unique_ptr<MemoryManager> memoryManager;
-    vector<uint64_t> columnIdxesToScan = {0, 1};
 };
 
-TEST_F(FactorizedTableTest, AppendAndReadOneTupleAtATime) {
-    // Prepare the factorizedTable and vector B1 (flat), A2(unflat)
-    TupleSchema tupleSchema({{NODE, false /* isUnflat */, 1 /* dataChunkPos */},
-        {INT64, true /* isUnflat */, 0 /* dataChunkPos */}});
-    auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
+TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
+    // Prepare the factorizedTable and vector B1 (flat), A2(unflat).
+    TableSchema tableSchema({{false /* isUnflat */, 1 /* dataChunkPos */, sizeof(nodeID_t)},
+        {true /* isUnflat */, 0 /* dataChunkPos */, sizeof(overflow_value_t)}});
+    auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tableSchema);
     resultSet->dataChunks[1]->state->currIdx = 0;
     vector<shared_ptr<ValueVector>> vectorsToAppend = {
         resultSet->dataChunks[1]->valueVectors[0], resultSet->dataChunks[0]->valueVectors[1]};
 
-    // Append B1, A2 to the factorizedTable where B1 is an unflat valueVector and A2 is a flat
-    // valueVector. The first column in the factorizedTable stores the values of B1, and the second
-    // column stores the overflow pointer to an overflow buffer which contains the values of A2.
+    // Append B1, A2 to the factorizedTable where B1 is a flat valueVector and A2 is an unflat
+    // valueVector. The first column in the factorizedTable stores the values of B1, and the
+    // second column stores the overflow pointer to an overflow buffer which contains the values of
+    // A2.
     for (auto i = 0u; i < 100; i++) {
-        factorizedTable->append(vectorsToAppend, 1);
+        factorizedTable->append(vectorsToAppend);
         resultSet->dataChunks[1]->state->currIdx++;
     }
 
-    // Prepare the valueVectors where B1 is flat and A2 is unflat. We will read the first column to
-    // B1, and the second column to A2.
-    vector<DataPos> readDataPos = {{1, 0}, {0, 1}};
+    // Prepare the valueVectors where B1 is flat and A2 is unflat. We will read the first column
+    // to B1, and the second column to A2.
     auto readResultSet = initResultSet();
     readResultSet->dataChunks[0]->state->currIdx = -1;
     readResultSet->dataChunks[1]->state->currIdx = 0;
-    auto vectorB1 = readResultSet->dataChunks[1]->valueVectors[0];
+    vector<shared_ptr<ValueVector>> vectorsToRead = {readResultSet->dataChunks[1]->valueVectors[0],
+        readResultSet->dataChunks[0]->valueVectors[1]};
+    auto vectorB1 = vectorsToRead[0];
     auto vectorB1Data = (nodeID_t*)vectorB1->values;
+    auto vectorA2 = vectorsToRead[1];
 
     for (auto i = 0u; i < 100; i++) {
-        // Since A2 is an unflat column, we can only read one tuple from factorizedTable at a time.
-        auto numTuplesRead =
-            factorizedTable->scan(columnIdxesToScan, readDataPos, *readResultSet, i, 1);
-        ASSERT_EQ(numTuplesRead, 1);
+        // Since A2 is an unflat column, we can only read one tuple from factorizedTable at a
+        // time.
+        factorizedTable->scan(vectorsToRead, i, 1);
         ASSERT_EQ(readResultSet->dataChunks[0]->state->selectedSize, 100);
         ASSERT_EQ(readResultSet->dataChunks[1]->state->selectedSize, 1);
         if (i % 10) {
@@ -158,172 +152,80 @@ TEST_F(FactorizedTableTest, AppendAndReadOneTupleAtATime) {
         } else {
             ASSERT_EQ(vectorB1->isNull(i), true);
         }
-        checkA2UnflatValuesAndNulls(readResultSet->dataChunks[0]->valueVectors[1]);
+        for (auto j = 0u; j < 100; j++) {
+            if (j % 10) {
+                ASSERT_EQ(vectorA2->isNull(j), false);
+                ASSERT_EQ(((int64_t*)vectorA2->values)[j], j << 1);
+            } else {
+                ASSERT_EQ(vectorA2->isNull(j), true);
+            }
+        }
         readResultSet->dataChunks[1]->state->currIdx++;
     }
 }
 
-TEST_F(FactorizedTableTest, AppendMultipleTuplesReadOneAtAtime) {
-    // Prepare the append factorizedTable and unflat vectors (B1, A2).
-    TupleSchema tupleSchema({{NODE, false /* isUnflat */, 0 /* dataChunkPos */},
-        {INT64, true /* isUnflat */, 0 /* dataChunkPos */}});
-    auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
-    vector<shared_ptr<ValueVector>> vectorsToAppend = {
-        resultSet->dataChunks[0]->valueVectors[0], resultSet->dataChunks[0]->valueVectors[1]};
+TEST_F(FactorizedTableTest, AppendMultipleTuplesScanOneAtAtime) {
+    auto factorizedTable = appendMultipleTuples(false /* isAppendFlatVectorToUnflatCol */);
+    ASSERT_EQ(factorizedTable->getNumTuples(), resultSet->dataChunks[0]->state->selectedSize);
 
-    // The first column in the factorizedTable stores the values of B1, and the second column stores
-    // the same valuePtr which points to the overflow buffer of A2
-    factorizedTable->append(vectorsToAppend, 100);
-
-    // Prepare the valueVectors where B1 and A2 are both unflat. We will read the first column to
-    // B1, and the second column to A2.
-    vector<DataPos> readDataPos = {{1, 0}, {0, 1}};
     auto readResultSet = initResultSet();
-    auto vectorB1 = readResultSet->dataChunks[1]->valueVectors[0];
+    readResultSet->dataChunks[0]->state->currIdx = -1;
+    readResultSet->dataChunks[1]->state->currIdx = -1;
+    vector<shared_ptr<ValueVector>> vectorsToScan = {readResultSet->dataChunks[0]->valueVectors[0],
+        readResultSet->dataChunks[1]->valueVectors[0]};
+    auto vectorA1 = vectorsToScan[0];
+    auto vectorA1Data = (nodeID_t*)vectorA1->values;
+    auto vectorB1 = vectorsToScan[1];
     auto vectorB1Data = (nodeID_t*)vectorB1->values;
 
     for (auto i = 0u; i < 100; i++) {
-        // Since A2 is an unflat column, we can only read one tuple from factorizedTable at a time.
-        auto numTuplesRead =
-            factorizedTable->scan(columnIdxesToScan, readDataPos, *readResultSet, i, 1);
-        ASSERT_EQ(numTuplesRead, 1);
-        ASSERT_EQ(readResultSet->dataChunks[0]->state->selectedSize, 100);
-        ASSERT_EQ(readResultSet->dataChunks[1]->state->selectedSize, 1);
-        // Since we only read one tuple at a time, we can only read one value from the flat
-        // column
+        // Since B1 is an unflat column in factorizedTable , we can only read one tuple from
+        // factorizedTable at a time.
+        factorizedTable->scan(vectorsToScan, i, 1);
+        ASSERT_EQ(readResultSet->dataChunks[0]->state->selectedSize, 1);
+        ASSERT_EQ(readResultSet->dataChunks[1]->state->selectedSize, 100);
         if (i % 15) {
-            ASSERT_EQ(vectorB1->isNull(0), false);
-            ASSERT_EQ(vectorB1Data[0].label, 18);
-            ASSERT_EQ(vectorB1Data[0].offset, (uint64_t)i);
+            ASSERT_EQ(vectorA1->isNull(0), false);
+            ASSERT_EQ(vectorA1Data[0].label, 18);
+            ASSERT_EQ(vectorA1Data[0].offset, (uint64_t)i);
         } else {
-            ASSERT_EQ(vectorB1->isNull(0), true);
+            ASSERT_EQ(vectorA1->isNull(0), true);
         }
-        checkA2UnflatValuesAndNulls(readResultSet->dataChunks[0]->valueVectors[1]);
-    }
-}
-
-TEST_F(FactorizedTableTest, AppendMultipleTuplesReadMultipleTuplesWithUnflat) {
-    auto factorizedTable = appendMultipleTuples(false /* isAppendFlatVectorToUnflatCol */);
-
-    // Prepare the read valueVectors where A1 is flat and B1 is unflat.
-    vector<DataPos> readDataPos = {{0, 0}, {1, 0}};
-    auto readResultSet = initResultSet();
-    readResultSet->dataChunks[0]->state->currIdx = 0;
-    auto vectorA1 = readResultSet->dataChunks[0]->valueVectors[0];
-    auto vectorB1 = readResultSet->dataChunks[1]->valueVectors[0];
-    auto vectorB1Data = (nodeID_t*)vectorB1->values;
-
-    // If there is an unflat column, and we are trying to read more than one tuple,
-    // the scan function will just read one tuple from the factorizedTable instead of 100 tuples.
-    // A1 will only contain one element, and B1 will contain 100 elements since B1 is an unflat
-    // column.
-    auto numTuplesRead =
-        factorizedTable->scan(columnIdxesToScan, readDataPos, *readResultSet, 0, 100);
-    ASSERT_EQ(numTuplesRead, 1);
-    ASSERT_EQ(readResultSet->dataChunks[0]->state->selectedSize, 1);
-    ASSERT_EQ(readResultSet->dataChunks[1]->state->selectedSize, 100);
-    ASSERT_EQ(vectorA1->isNull(0), true);
-    for (auto i = 0u; i < 100; i++) {
-        if (i % 10) {
-            ASSERT_EQ(vectorB1->isNull(i), false);
-            ASSERT_EQ(vectorB1Data[i].label, 28);
-            ASSERT_EQ(vectorB1Data[i].offset, (uint64_t)(i));
-        } else {
-            ASSERT_EQ(vectorB1->isNull(i), true);
+        // Since B1 is duplicated 100 times in the factorizedTable, values in B1 are exactly the
+        // same for each scan.
+        for (auto j = 0u; j < 100; j++) {
+            if (j % 10) {
+                ASSERT_EQ(vectorB1->isNull(j), false);
+                ASSERT_EQ(vectorB1Data[j].label, 28);
+                ASSERT_EQ(vectorB1Data[j].offset, (uint64_t)j);
+            } else {
+                ASSERT_EQ(vectorB1->isNull(j), true);
+            }
         }
     }
-}
-
-TEST_F(FactorizedTableTest, AppendMultipleTuplesReadMultipleTuplesNoUnflat) {
-    // Prepare the factorizedTable, valueVector A1(flat) and B1(unflat)
-    TupleSchema tupleSchema({{NODE, false /* isUnflat */, 0 /* dataChunkPos */},
-        {NODE, false /* isUnflat */, 1 /* dataChunkPos */}});
-    auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
-    resultSet->dataChunks[0]->state->currIdx = 10;
-    vector<shared_ptr<ValueVector>> vectorsToAppend = {
-        resultSet->dataChunks[0]->valueVectors[0], resultSet->dataChunks[1]->valueVectors[0]};
-
-    // The valueVectorA1 will be replicated 100 times, since B1 is unflat
-    factorizedTable->append(vectorsToAppend, 100);
-
-    // Prepare the factorizedTable where both A1 and B1 are unflat because we will read multiple
-    // tuples from factorizedTable
-    vector<DataPos> readDataPos = {{0, 0}, {1, 0}};
-    auto readResultSet = initResultSet();
-    auto vectorB1 = readResultSet->dataChunks[1]->valueVectors[0];
-    auto vectorA1Data = (nodeID_t*)readResultSet->dataChunks[0]->valueVectors[0]->values;
-    auto vectorB1Data = (nodeID_t*)vectorB1->values;
-
-    // we can read multiple tuples at a time if the read vectors are unflat, and there is no unflat
-    // column to read
-    auto numTuplesRead =
-        factorizedTable->scan(columnIdxesToScan, readDataPos, *readResultSet, 0, 100);
-    ASSERT_EQ(numTuplesRead, 100);
-    ASSERT_EQ(readResultSet->dataChunks[0]->state->selectedSize, 100);
-    ASSERT_EQ(readResultSet->dataChunks[1]->state->selectedSize, 100);
-    for (auto i = 0u; i < 100; i++) {
-        // A1 data is duplicated 100 times during append, so each entry of A1 is exactly the same
-        ASSERT_EQ(vectorA1Data[i].label, 18);
-        ASSERT_EQ(vectorA1Data[i].offset, (uint64_t)10);
-        if (i % 10) {
-            ASSERT_EQ(vectorB1->isNull(i), false);
-            ASSERT_EQ(vectorB1Data[i].label, 28);
-            ASSERT_EQ(vectorB1Data[i].offset, (uint64_t)(i));
-        } else {
-            ASSERT_EQ(vectorB1->isNull(i), true);
-        }
-    }
-}
-
-TEST_F(FactorizedTableTest, AppendFlatVectorToUnflatColFails) {
-    // Users are not allowed to append a flat vector to an unflat column
-    try {
-        appendMultipleTuples(true /* isAppendFlatVectorToUnflatCol */);
-        FAIL();
-    } catch (FactorizedTableException& e) {
-        ASSERT_STREQ(e.what(), "FactorizedTable exception: Append a flat vector to an unflat "
-                               "column is not allowed!");
-    } catch (exception& e) { FAIL(); }
-}
-
-TEST_F(FactorizedTableTest, ReadUnflatColToFlatVectorFails) {
-    // The first column is flat, the second column is unflat.
-    auto factorizedTable = appendMultipleTuples(false /* isAppendFlatVectorToUnflatCol */);
-
-    // Prepare the read valueVector where A1 is unflat and B1 is flat
-    auto readResultSet = initResultSet();
-    vector<DataPos> readDataPos = {{0, 0}, {1, 0}};
-    readResultSet->dataChunks[1]->state->currIdx = 0;
-
-    // Users are not allowed to read an unflat column to a flat valueVector
-    try {
-        auto numTuplesRead =
-            factorizedTable->scan(columnIdxesToScan, readDataPos, *readResultSet, 0, 100);
-        FAIL();
-    } catch (FactorizedTableException& e) {
-        ASSERT_STREQ(e.what(), "FactorizedTable exception: Reading an unflat column to a flat "
-                               "valueVector is not allowed!");
-    } catch (exception& e) { FAIL(); }
 }
 
 TEST_F(FactorizedTableTest, ReadFlatTuplesFromFactorizedTable) {
     auto factorizedTable = appendMultipleTuples(false /* isAppendFlatVectorToUnflatCol */);
-    auto flatTupleIterator = factorizedTable->getFlatTuples();
+    auto flatTupleIterator = factorizedTable->getFlatTupleIterator();
     checkFlatTupleIteratorResult(flatTupleIterator);
     ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), false);
 }
 
-TEST_F(FactorizedTableTest, factorizedTableMergeTest) {
+TEST_F(FactorizedTableTest, FactorizedTableMergeTest) {
     auto factorizedTable = appendMultipleTuples(false /* isAppendFlatVectorToUnflatCol */);
     auto factorizedTable1 = appendMultipleTuples(false /* isAppendFlatVectorToUnflatCol */);
+    ASSERT_EQ(factorizedTable->getTotalNumFlatTuples(), 10000);
+    ASSERT_EQ(factorizedTable1->getTotalNumFlatTuples(), 10000);
     factorizedTable->merge(*factorizedTable1);
-    auto flatTupleIterator = factorizedTable->getFlatTuples();
+    ASSERT_EQ(factorizedTable->getTotalNumFlatTuples(), 20000);
+    auto flatTupleIterator = factorizedTable->getFlatTupleIterator();
     checkFlatTupleIteratorResult(flatTupleIterator);
     checkFlatTupleIteratorResult(flatTupleIterator);
     ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), false);
 }
 
-TEST_F(FactorizedTableTest, factorizedTableMergeStringBufferTest) {
+TEST_F(FactorizedTableTest, FactorizedTableMergeStringBufferTest) {
     auto numRowsToAppend = 1000;
     auto resultSet = make_unique<ResultSet>(1);
     auto dataChunk = make_shared<DataChunk>(1);
@@ -335,16 +237,16 @@ TEST_F(FactorizedTableTest, factorizedTableMergeStringBufferTest) {
     for (auto i = 0u; i < numRowsToAppend; i++) {
         strValueVector->addString(i, to_string(i) + "with long string overflow");
     }
-    TupleSchema tupleSchema({
-        {STRING, false /* isUnflat */, 0 /* dataChunkPos */},
+    TableSchema tupleSchema({
+        {false /* isUnflat */, 0 /* dataChunkPos */, sizeof(gf_string_t)},
     });
     auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
     auto factorizedTable1 = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
 
     // Append same testing data to factorizedTable and factorizedTable1.
     for (auto i = 0u; i < numRowsToAppend; i++) {
-        factorizedTable->append({resultSet->dataChunks[0]->valueVectors[0]}, 1);
-        factorizedTable1->append({resultSet->dataChunks[0]->valueVectors[0]}, 1);
+        factorizedTable->append({resultSet->dataChunks[0]->valueVectors[0]});
+        factorizedTable1->append({resultSet->dataChunks[0]->valueVectors[0]});
         dataChunk->state->currIdx++;
     }
 
@@ -356,14 +258,17 @@ TEST_F(FactorizedTableTest, factorizedTableMergeStringBufferTest) {
     // stringBuffer.
     dataChunk->state->currIdx = 0;
     for (auto i = 0u; i < numRowsToAppend; i++) {
-        factorizedTable->append({resultSet->dataChunks[0]->valueVectors[0]}, 1);
+        factorizedTable->append({resultSet->dataChunks[0]->valueVectors[0]});
         dataChunk->state->currIdx++;
     }
 
-    auto flatTupleIterator = factorizedTable->getFlatTuples();
+    vector<DataType> dataTypes = {STRING};
+    FlatTuple resultFlatTuple(dataTypes);
+    auto flatTupleIterator = factorizedTable->getFlatTupleIterator();
     for (auto i = 0; i < 3 * numRowsToAppend; i++) {
         ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), true);
-        ASSERT_EQ(flatTupleIterator.getNextFlatTuple().getValue(0)->val.strVal.getAsString(),
+        flatTupleIterator.getNextFlatTuple(resultFlatTuple);
+        ASSERT_EQ(resultFlatTuple.getValue(0)->val.strVal.getAsString(),
             to_string(i % numRowsToAppend) + "with long string overflow");
     }
     ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), false);

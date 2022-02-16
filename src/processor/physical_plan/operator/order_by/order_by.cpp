@@ -8,7 +8,8 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
 
     // FactorizedTable, keyBlockEntrySizeInBytes, stringAndUnstructuredKeyColInfo are constructed
     // here because they need the data type information, which is contained in the value vectors.
-    TupleSchema tupleSchema;
+    TableSchema tableSchema;
+    vector<DataType> dataTypes;
     // Loop through all columns to initialize the factorizedTable.
     // We need to store all columns(including keys and payload) in the factorizedTable.
     for (auto i = 0u; i < orderByDataInfo.allDataPoses.size(); ++i) {
@@ -25,16 +26,17 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
             flattenAllColumnsInFactorizedTable = true;
         }
         bool isUnflat = !orderByDataInfo.isVectorFlat[i] && !flattenAllColumnsInFactorizedTable;
-        tupleSchema.appendColumn({vector->dataType, isUnflat, dataChunkPos});
+        tableSchema.appendColumn({isUnflat, dataChunkPos,
+            isUnflat ? sizeof(overflow_value_t) : vector->getNumBytesPerValue()});
+        dataTypes.push_back(vector->dataType);
         vectorsToAppend.push_back(vector);
     }
 
     // Create a factorizedTable and append it to sharedState.
-    tupleSchema.initialize();
-    localFactorizedTable = make_shared<FactorizedTable>(*context.memoryManager, tupleSchema);
+    localFactorizedTable = make_shared<FactorizedTable>(*context.memoryManager, tableSchema);
     factorizedTableIdx = sharedState->getNextFactorizedTableIdx();
     sharedState->appendFactorizedTable(factorizedTableIdx, localFactorizedTable);
-
+    sharedState->setDataTypes(dataTypes);
     // Loop through all key columns and calculate the offsets for string and unstructured columns.
     auto encodedKeyBlockColOffset = 0ul;
     for (auto i = 0u; i < orderByDataInfo.keyDataPoses.size(); i++) {
@@ -85,8 +87,7 @@ void OrderBy::execute() {
             // datachunks, then the datachunks that the keys belong to are guaranteed by the
             // frontend to be flattened (see ProjectionEnumerator), so a column is flat in
             // factorized table if and only if its corresponding vector is flat.
-            localFactorizedTable->append(vectorsToAppend,
-                keyVectors[0]->state->isFlat() ? 1 : keyVectors[0]->state->selectedSize);
+            localFactorizedTable->append(vectorsToAppend);
         }
     }
 

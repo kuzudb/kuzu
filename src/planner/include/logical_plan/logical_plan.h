@@ -34,6 +34,8 @@ public:
     }
     inline vector<shared_ptr<Expression>> getExpressionsToCollect() { return expressionsToCollect; }
 
+    vector<DataType> getExpressionsToCollectDataTypes() const;
+
     Schema* getSchema() { return schema.get(); }
 
     unique_ptr<LogicalPlan> deepCopy() const;

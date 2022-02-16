@@ -79,8 +79,9 @@ public:
             valueVector}; // all columns including orderBy and payload columns
         vector<bool> isAscOrder{isAsc};
 
-        TupleSchema tupleSchema;
-        tupleSchema.appendColumn({dataType, false /* isUnflat */, 0 /* dataChunkPos */});
+        TableSchema tupleSchema;
+        tupleSchema.appendColumn(
+            {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(dataType)});
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
 
         if (hasPayLoadCol) {
@@ -93,7 +94,8 @@ public:
             // To test whether the orderByCol -> factorizedTableIdx works properly, we put the
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
-            tupleSchema.appendColumn({dataType, false /* isUnflat */, 0 /* dataChunkPos */});
+            tupleSchema.appendColumn(
+                {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(dataType)});
             stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
                 1 /* colIdxInFactorizedTable */, 0 /* colOffsetInEncodedKeyBlock */, isAsc,
                 is_same<T, string>::value /* isStrCol */));
@@ -105,9 +107,8 @@ public:
                 is_same<T, string>::value /* isStrCol */));
         }
 
-        tupleSchema.initialize();
         FactorizedTable factorizedTable(*memoryManager, tupleSchema);
-        factorizedTable.append(allVectors, sortingData.size());
+        factorizedTable.append(allVectors);
 
         auto orderByKeyEncoder =
             OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
@@ -127,16 +128,16 @@ public:
         vector<shared_ptr<ValueVector>> orderByVectors;
         auto mockDataChunk = make_shared<DataChunk>(stringValues.size());
         mockDataChunk->state->currIdx = 0;
-        TupleSchema tupleSchema;
+        TableSchema tableSchema;
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
         for (auto i = 0; i < stringValues.size(); i++) {
             auto stringValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-            stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
+            stringAndUnstructuredKeyColInfo.push_back(StringAndUnstructuredKeyColInfo(
                 stringAndUnstructuredKeyColInfo.size(),
                 stringAndUnstructuredKeyColInfo.size() * OrderByKeyEncoder::getEncodingSize(STRING),
                 isAscOrder[i], true /* isStrCol */));
-            tupleSchema.appendColumn(
-                ColumnInTupleSchema(STRING, false /* isUnflat */, 0 /* dataChunkPos */));
+            tableSchema.appendColumn(
+                {false /* isUnflat */, 0 /* dataChunkPos */, sizeof(gf_string_t)});
             mockDataChunk->insert(i, stringValueVector);
             for (auto j = 0u; j < stringValues[i].size(); j++) {
                 stringValueVector->addString(j, stringValues[i][j]);
@@ -144,13 +145,12 @@ public:
             orderByVectors.emplace_back(stringValueVector);
         }
 
-        tupleSchema.initialize();
-        FactorizedTable factorizedTable(*memoryManager, tupleSchema);
+        FactorizedTable factorizedTable(*memoryManager, tableSchema);
 
         auto orderByKeyEncoder =
             OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
         for (auto i = 0u; i < expectedTupleIdxOrder.size(); i++) {
-            factorizedTable.append(orderByVectors, 1);
+            factorizedTable.append(orderByVectors);
             orderByKeyEncoder.encodeKeys();
             mockDataChunk->state->currIdx++;
         }
@@ -421,12 +421,13 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     dateValues[3] = Date::FromCString("1964-01-21", strlen("1964-01-21"));
     dateValues[4] = Date::FromCString("2000-11-13", strlen("2000-11-13"));
 
-    TupleSchema tupleSchema({{INT64, false /* isUnflat */, 0 /* dataChunkPos */},
-        {DOUBLE, false /* isUnflat */, 0 /* dataChunkPos */},
-        {STRING, false /* isUnflat */, 0 /* dataChunkPos */},
-        {TIMESTAMP, false /* isUnflat */, 0 /* dataChunkPos */},
-        {DATE, false /* isUnflat */, 0 /* dataChunkPos */}});
-    FactorizedTable factorizedTable(*memoryManager, tupleSchema);
+    TableSchema tableSchema(
+        {{false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(INT64)},
+            {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(DOUBLE)},
+            {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(STRING)},
+            {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(TIMESTAMP)},
+            {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(DATE)}});
+    FactorizedTable factorizedTable(*memoryManager, tableSchema);
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo = {
         StringAndUnstructuredKeyColInfo(2 /* colIdxInFactorizedTable */,
             OrderByKeyEncoder::getEncodingSize(INT64) + OrderByKeyEncoder::getEncodingSize(DOUBLE),
@@ -436,7 +437,7 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
         OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
     for (auto i = 0u; i < 5; i++) {
         orderByKeyEncoder.encodeKeys();
-        factorizedTable.append(orderByVectors, 1);
+        factorizedTable.append(orderByVectors);
         mockDataChunk->state->currIdx++;
     }
 

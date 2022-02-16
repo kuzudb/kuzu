@@ -44,7 +44,7 @@ private:
     bool scanSingleTuple;
     vector<DataPos> outDataPoses;
     shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
-    vector<uint64_t> columnsToReadInFactorizedTable;
+    vector<shared_ptr<ValueVector>> vectorsToRead;
     uint64_t nextTupleIdxToReadInMemBlock;
 };
 

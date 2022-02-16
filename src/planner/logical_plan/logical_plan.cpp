@@ -23,5 +23,13 @@ unique_ptr<LogicalPlan> LogicalPlan::deepCopy() const {
     return plan;
 }
 
+vector<DataType> LogicalPlan::getExpressionsToCollectDataTypes() const {
+    vector<DataType> dataTypes;
+    for (auto& expression : expressionsToCollect) {
+        dataTypes.push_back(expression->getDataType());
+    }
+    return dataTypes;
+}
+
 } // namespace planner
 } // namespace graphflow

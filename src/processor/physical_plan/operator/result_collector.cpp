@@ -11,17 +11,16 @@ ResultCollector::ResultCollector(vector<pair<DataPos, bool>> vectorsToCollectInf
 
 shared_ptr<ResultSet> ResultCollector::initResultSet() {
     resultSet = children[0]->initResultSet();
-    TupleSchema tupleSchema;
+    TableSchema tableSchema;
     for (auto vectorToCollectInfo : vectorsToCollectInfo) {
         auto dataPos = vectorToCollectInfo.first;
         auto vector =
             resultSet->dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
-        vectorsToCollect.emplace_back(vector);
-        tupleSchema.appendColumn(
-            {vector->dataType, !vectorToCollectInfo.second, dataPos.dataChunkPos});
+        vectorsToCollect.push_back(vector);
+        tableSchema.appendColumn({!vectorToCollectInfo.second, dataPos.dataChunkPos,
+            vectorToCollectInfo.second ? vector->getNumBytesPerValue() : sizeof(overflow_value_t)});
     }
-    tupleSchema.initialize();
-    localQueryResult = make_shared<FactorizedTable>(*context.memoryManager, tupleSchema);
+    localQueryResult = make_shared<FactorizedTable>(*context.memoryManager, tableSchema);
     sharedQueryResults->appendQueryResult(localQueryResult);
     return resultSet;
 }
@@ -33,7 +32,7 @@ void ResultCollector::execute() {
         // The resultCollector doesn't need to flatten any of the columns, so it always inserts
         // one tuple to the queryResult at a time.
         for (auto i = 0u; i < resultSet->multiplicity; i++) {
-            localQueryResult->append(vectorsToCollect, 1 /* numTuplesToAppend */);
+            localQueryResult->append(vectorsToCollect);
         }
     }
     metrics->executionTime.stop();

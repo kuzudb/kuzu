@@ -44,7 +44,7 @@ public:
     }
 
     static vector<string> getActualOutput(
-        FactorizedTable& queryResult, bool checkOutputOrder = false);
+        FactorizedTable& queryResult, vector<DataType> dataTypes, bool checkOutputOrder = false);
 };
 
 class BaseGraphLoadingTest : public Test {
