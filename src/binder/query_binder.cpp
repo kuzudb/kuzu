@@ -1,21 +1,20 @@
 #include "src/binder/include/query_binder.h"
 
-#include <fstream>
-
-#include "src/binder/include/bound_statements/bound_match_statement.h"
-#include "src/binder/include/expression/literal_expression.h"
-#include "src/common/include/assert.h"
-#include "src/common/include/csv_reader/csv_reader.h"
+#include "src/binder/expression/include/literal_expression.h"
 
 namespace graphflow {
 namespace binder {
 
 unique_ptr<BoundRegularQuery> QueryBinder::bind(const RegularQuery& regularQuery) {
     auto boundRegularQuery = make_unique<BoundRegularQuery>(regularQuery.getIsUnionAll());
+    vector<unique_ptr<BoundSingleQuery>> boundSingleQueries;
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
-        boundRegularQuery->addBoundSingleQuery(bindSingleQuery(*regularQuery.getSingleQuery(i)));
+        boundSingleQueries.push_back(bindSingleQuery(*regularQuery.getSingleQuery(i)));
     }
-    validateUnionColumnsOfTheSameType(*boundRegularQuery);
+    validateUnionColumnsOfTheSameType(boundSingleQueries);
+    for (auto& boundSingleQuery : boundSingleQueries) {
+        boundRegularQuery->addSingleQuery(QueryNormalizer::normalizeQuery(*boundSingleQuery));
+    }
     validateIsAllUnionOrUnionAll(*boundRegularQuery);
     return boundRegularQuery;
 }
@@ -24,55 +23,51 @@ unique_ptr<BoundSingleQuery> QueryBinder::bindSingleQuery(const SingleQuery& sin
     validateFirstMatchIsNotOptional(singleQuery);
     auto boundSingleQuery = make_unique<BoundSingleQuery>();
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
-        boundSingleQuery->boundQueryParts.push_back(bindQueryPart(*singleQuery.getQueryPart(i)));
+        boundSingleQuery->addQueryPart(bindQueryPart(*singleQuery.getQueryPart(i)));
     }
     for (auto i = 0u; i < singleQuery.getNumMatchClauses(); ++i) {
-        boundSingleQuery->boundMatchStatements.push_back(
-            bindMatchStatement(*singleQuery.getMatchClause(i)));
+        boundSingleQuery->addMatchClause(bindMatchClause(*singleQuery.getMatchClause(i)));
     }
-    boundSingleQuery->boundReturnStatement = bindReturnStatement(*singleQuery.getReturnClause());
+    boundSingleQuery->setReturnClause(bindReturnClause(*singleQuery.getReturnClause()));
     return boundSingleQuery;
 }
 
 unique_ptr<BoundQueryPart> QueryBinder::bindQueryPart(const QueryPart& queryPart) {
     auto boundQueryPart = make_unique<BoundQueryPart>();
     for (auto i = 0u; i < queryPart.getNumMatchClauses(); ++i) {
-        boundQueryPart->boundMatchStatements.push_back(
-            bindMatchStatement(*queryPart.getMatchClause(i)));
+        boundQueryPart->addMatchClause(bindMatchClause(*queryPart.getMatchClause(i)));
     }
-    boundQueryPart->boundWithStatement = bindWithStatement(*queryPart.getWithClause());
+    boundQueryPart->setWithClause(bindWithClause(*queryPart.getWithClause()));
     return boundQueryPart;
 }
 
-unique_ptr<BoundMatchStatement> QueryBinder::bindMatchStatement(const MatchClause& matchClause) {
+unique_ptr<BoundMatchClause> QueryBinder::bindMatchClause(const MatchClause& matchClause) {
     auto prevVariablesInScope = variablesInScope;
     auto queryGraph = bindQueryGraph(matchClause.getPatternElements());
     validateQueryGraphIsConnected(*queryGraph, prevVariablesInScope);
-    auto boundMatchStatement =
-        make_unique<BoundMatchStatement>(move(queryGraph), matchClause.getIsOptional());
+    auto boundMatchClause =
+        make_unique<BoundMatchClause>(move(queryGraph), matchClause.getIsOptional());
     if (matchClause.hasWhereClause()) {
-        boundMatchStatement->whereExpression = bindWhereExpression(*matchClause.getWhereClause());
+        boundMatchClause->setWhereExpression(bindWhereExpression(*matchClause.getWhereClause()));
     }
-    return boundMatchStatement;
+    return boundMatchClause;
 }
 
-unique_ptr<BoundWithStatement> QueryBinder::bindWithStatement(const WithClause& withClause) {
+unique_ptr<BoundWithClause> QueryBinder::bindWithClause(const WithClause& withClause) {
     auto boundProjectionBody =
         bindProjectionBody(*withClause.getProjectionBody(), true /* isWithClause */);
-    validateOrderByFollowedBySkipOrLimitInWithStatement(*boundProjectionBody);
-    auto boundWithStatement = make_unique<BoundWithStatement>(move(boundProjectionBody));
+    validateOrderByFollowedBySkipOrLimitInWithClause(*boundProjectionBody);
+    auto boundWithClause = make_unique<BoundWithClause>(move(boundProjectionBody));
     if (withClause.hasWhereExpression()) {
-        boundWithStatement->setWhereExpression(
-            bindWhereExpression(*withClause.getWhereExpression()));
+        boundWithClause->setWhereExpression(bindWhereExpression(*withClause.getWhereExpression()));
     }
-    return boundWithStatement;
+    return boundWithClause;
 }
 
-unique_ptr<BoundReturnStatement> QueryBinder::bindReturnStatement(
-    const ReturnClause& returnClause) {
-    auto boundReturnStatement = make_unique<BoundReturnStatement>(
+unique_ptr<BoundReturnClause> QueryBinder::bindReturnClause(const ReturnClause& returnClause) {
+    auto boundReturnClause = make_unique<BoundReturnClause>(
         bindProjectionBody(*returnClause.getProjectionBody(), false /* isWithClause */));
-    return boundReturnStatement;
+    return boundReturnClause;
 }
 
 unique_ptr<BoundProjectionBody> QueryBinder::bindProjectionBody(
@@ -147,7 +142,6 @@ unordered_map<string, shared_ptr<Expression>> QueryBinder::computeVariablesInSco
     const vector<shared_ptr<Expression>>& expressions, bool isWithClause) {
     unordered_map<string, shared_ptr<Expression>> newVariablesInScope;
     for (auto& expression : expressions) {
-        auto type = expression->expressionType;
         // Cypher WITH clause special rule: expression except for variable must be aliased
         if (isWithClause && expression->getAlias().empty()) {
             throw invalid_argument("Expression in WITH must be aliased (use AS).");
@@ -207,8 +201,8 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
     }
     // bind node to rel
     auto isLeftNodeSrc = RIGHT == relPattern.getDirection();
-    validateNodeAndRelLabelIsConnected(relLabel, leftNode->label, isLeftNodeSrc ? FWD : BWD);
-    validateNodeAndRelLabelIsConnected(relLabel, rightNode->label, isLeftNodeSrc ? BWD : FWD);
+    validateNodeAndRelLabelIsConnected(relLabel, leftNode->getLabel(), isLeftNodeSrc ? FWD : BWD);
+    validateNodeAndRelLabelIsConnected(relLabel, rightNode->getLabel(), isLeftNodeSrc ? BWD : FWD);
     auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
     auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
     // bind variable length
@@ -240,8 +234,8 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
         }
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
         auto otherLabel = bindNodeLabel(nodePattern.getLabel());
-        GF_ASSERT(queryNode->label != ANY_LABEL);
-        if (otherLabel != ANY_LABEL && queryNode->label != otherLabel) {
+        GF_ASSERT(queryNode->getLabel() != ANY_LABEL);
+        if (otherLabel != ANY_LABEL && queryNode->getLabel() != otherLabel) {
             throw invalid_argument(
                 "Multi-label is not supported. Node " + parsedName + " is given multiple labels.");
         }
@@ -284,7 +278,7 @@ label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
 
 void QueryBinder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
     if (singleQuery.isFirstMatchOptional()) {
-        throw invalid_argument("First match statement cannot be optional match.");
+        throw invalid_argument("First match clause cannot be optional match.");
     }
 }
 
@@ -315,7 +309,7 @@ void QueryBinder::validateProjectionColumnNamesAreUnique(
     }
 }
 
-void QueryBinder::validateOrderByFollowedBySkipOrLimitInWithStatement(
+void QueryBinder::validateOrderByFollowedBySkipOrLimitInWithClause(
     const BoundProjectionBody& boundProjectionBody) {
     auto hasSkipOrLimit = boundProjectionBody.hasSkip() || boundProjectionBody.hasLimit();
     if (boundProjectionBody.hasOrderByExpressions() && !hasSkipOrLimit) {
@@ -332,11 +326,11 @@ void QueryBinder::validateQueryGraphIsConnected(const QueryGraph& queryGraph,
         }
     }
     if (visited.empty()) {
-        visited.insert(queryGraph.queryNodes[0]->getUniqueName());
+        visited.insert(queryGraph.getQueryNode(0)->getUniqueName());
     }
     auto target = visited;
-    for (auto& queryNode : queryGraph.queryNodes) {
-        target.insert(queryNode->getUniqueName());
+    for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
+        target.insert(queryGraph.getQueryNode(i)->getUniqueName());
     }
     auto frontier = visited;
     while (!frontier.empty()) {
@@ -368,15 +362,14 @@ uint64_t QueryBinder::validateAndExtractSkipLimitNumber(
     return skipOrLimitNumber;
 }
 
-void QueryBinder::validateUnionColumnsOfTheSameType(const BoundRegularQuery& regularQuery) {
-    if (regularQuery.getNumBoundSingleQueries() <= 1) {
+void QueryBinder::validateUnionColumnsOfTheSameType(
+    const vector<unique_ptr<BoundSingleQuery>>& boundSingleQueries) {
+    if (boundSingleQueries.size() <= 1) {
         return;
     }
-
-    auto expressionsToProject = regularQuery.getBoundSingleQuery(0)->getExpressionsToReturn();
-    for (auto i = 1u; i < regularQuery.getNumBoundSingleQueries(); i++) {
-        auto expressionsToProjectToCheck =
-            regularQuery.getBoundSingleQuery(i)->getExpressionsToReturn();
+    auto expressionsToProject = boundSingleQueries[0]->getExpressionsToReturn();
+    for (auto i = 1u; i < boundSingleQueries.size(); i++) {
+        auto expressionsToProjectToCheck = boundSingleQueries[i]->getExpressionsToReturn();
         if (expressionsToProject.size() != expressionsToProjectToCheck.size()) {
             throw invalid_argument("The number of columns to union/union all must be the same.");
         }
@@ -392,11 +385,11 @@ void QueryBinder::validateUnionColumnsOfTheSameType(const BoundRegularQuery& reg
 
 void QueryBinder::validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery) {
     auto unionAllExpressionCounter = 0u;
-    for (auto i = 0u; i < regularQuery.getNumBoundSingleQueries() - 1; i++) {
+    for (auto i = 0u; i < regularQuery.getNumSingleQueries() - 1; i++) {
         unionAllExpressionCounter += regularQuery.getIsUnionAll(i);
     }
     if ((0 < unionAllExpressionCounter) &&
-        (unionAllExpressionCounter < regularQuery.getNumBoundSingleQueries() - 1)) {
+        (unionAllExpressionCounter < regularQuery.getNumSingleQueries() - 1)) {
         throw invalid_argument("Union and union all can't be used together in a query!");
     }
 }

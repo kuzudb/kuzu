@@ -209,7 +209,7 @@ cc_library(
     deps = [
         "operator_impls",
         "physical_plan",
-        "//src/binder:subquery_expression_impl",
+        "//src/binder/expression:expression_implementations",
         "//src/expression_evaluator:evaluator_impls",
         "//src/function:aggregate_function",
         "//src/planner:logical_operator_impls",

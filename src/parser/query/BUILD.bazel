@@ -9,7 +9,8 @@ cc_library(
         "include/*.h",
     ]),
     visibility = [
-        "//visibility:public",
+        "//src/binder:__pkg__",
+        "//src/parser:__subpackages__",
     ],
     deps = [
         "//src/parser/query/match_clause",

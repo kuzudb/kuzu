@@ -1,6 +1,4 @@
-#include "src/binder/include/expression/literal_expression.h"
-
-#include "src/common/include/date.h"
+#include "include/literal_expression.h"
 
 namespace graphflow {
 namespace binder {

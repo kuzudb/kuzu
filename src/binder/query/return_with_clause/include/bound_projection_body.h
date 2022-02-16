@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/binder/include/expression/expression.h"
+#include "src/binder/expression/include/expression.h"
 
 namespace graphflow {
 namespace binder {
@@ -18,28 +18,36 @@ public:
           orderByExpressions{other.orderByExpressions}, isAscOrders{other.isAscOrders},
           skipNumber{other.skipNumber}, limitNumber{other.limitNumber} {}
 
-    inline bool isProjectionDistinct() const { return isDistinct; }
+    ~BoundProjectionBody() = default;
 
-    inline void setOrderByExpressions(
-        vector<shared_ptr<Expression>> expressions, vector<bool> sortOrders) {
-        orderByExpressions = move(expressions);
-        isAscOrders = move(sortOrders);
-    }
-    inline void setSkipNumber(uint64_t number) { skipNumber = number; }
-    inline void setLimitNumber(uint64_t number) { limitNumber = number; }
+    inline bool getIsDistinct() const { return isDistinct; }
 
-    bool hasAggregationExpressions() const;
     inline vector<shared_ptr<Expression>> getProjectionExpressions() const {
         return projectionExpressions;
     }
+
+    bool hasAggregationExpressions() const;
+
+    void setOrderByExpressions(vector<shared_ptr<Expression>> expressions, vector<bool> sortOrders);
+
     inline bool hasOrderByExpressions() const { return !orderByExpressions.empty(); }
+
     inline const vector<shared_ptr<Expression>>& getOrderByExpressions() const {
         return orderByExpressions;
     }
+
     inline const vector<bool>& getSortingOrders() const { return isAscOrders; }
+
+    inline void setSkipNumber(uint64_t number) { skipNumber = number; }
+
     inline bool hasSkip() const { return skipNumber != UINT64_MAX; }
-    inline bool hasLimit() const { return limitNumber != UINT64_MAX; }
+
     inline uint64_t getSkipNumber() const { return skipNumber; }
+
+    inline void setLimitNumber(uint64_t number) { limitNumber = number; }
+
+    inline bool hasLimit() const { return limitNumber != UINT64_MAX; }
+
     inline uint64_t getLimitNumber() const { return limitNumber; }
 
     inline unique_ptr<BoundProjectionBody> copy() const {

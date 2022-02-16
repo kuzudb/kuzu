@@ -1,11 +1,10 @@
 #pragma once
 
-#include "src/binder/include/bound_queries/bound_regular_query.h"
-#include "src/binder/include/bound_queries/bound_single_query.h"
-#include "src/binder/include/expression_binder.h"
-#include "src/binder/include/query_graph/query_graph.h"
+#include "expression_binder.h"
+#include "query_normalizer.h"
+
+#include "src/binder/query/include/bound_regular_query.h"
 #include "src/parser/query/include/regular_query.h"
-#include "src/parser/query/match_clause/include/match_clause.h"
 
 using namespace graphflow::parser;
 
@@ -26,11 +25,11 @@ private:
 
     unique_ptr<BoundQueryPart> bindQueryPart(const QueryPart& queryPart);
 
-    unique_ptr<BoundMatchStatement> bindMatchStatement(const MatchClause& matchClause);
+    unique_ptr<BoundMatchClause> bindMatchClause(const MatchClause& matchClause);
 
-    unique_ptr<BoundWithStatement> bindWithStatement(const WithClause& withClause);
+    unique_ptr<BoundWithClause> bindWithClause(const WithClause& withClause);
 
-    unique_ptr<BoundReturnStatement> bindReturnStatement(const ReturnClause& returnClause);
+    unique_ptr<BoundReturnClause> bindReturnClause(const ReturnClause& returnClause);
 
     unique_ptr<BoundProjectionBody> bindProjectionBody(
         const ProjectionBody& projectionBody, bool isWithClause);
@@ -70,12 +69,13 @@ private:
         label_t relLabel, label_t nodeLabel, Direction direction);
     // E.g. RETURN a, b AS a
     void validateProjectionColumnNamesAreUnique(const vector<shared_ptr<Expression>>& expressions);
-    void validateOrderByFollowedBySkipOrLimitInWithStatement(
+    void validateOrderByFollowedBySkipOrLimitInWithClause(
         const BoundProjectionBody& boundProjectionBody);
     void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
         unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
     uint64_t validateAndExtractSkipLimitNumber(const ParsedExpression& skipOrLimitExpression);
-    void validateUnionColumnsOfTheSameType(const BoundRegularQuery& regularQuery);
+    void validateUnionColumnsOfTheSameType(
+        const vector<unique_ptr<BoundSingleQuery>>& boundSingleQueries);
     void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery);
 
     /******* helpers *********/

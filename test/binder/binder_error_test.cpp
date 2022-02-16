@@ -170,7 +170,7 @@ TEST_F(BinderErrorTest, NestedAggregation) {
 }
 
 TEST_F(BinderErrorTest, OptionalMatchAsFirstMatch) {
-    string expectedException = "First match statement cannot be optional match.";
+    string expectedException = "First match clause cannot be optional match.";
     auto input = "OPTIONAL MATCH (a:person) RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

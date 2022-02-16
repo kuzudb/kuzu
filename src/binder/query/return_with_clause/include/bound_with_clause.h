@@ -1,24 +1,25 @@
 #pragma once
 
-#include "src/binder/include/bound_statements/bound_return_statement.h"
+#include "bound_return_clause.h"
 
 namespace graphflow {
 namespace binder {
 
 /**
- * BoundWithStatement may not have whereExpression
+ * BoundWithClause may not have whereExpression
  */
-class BoundWithStatement : public BoundReturnStatement {
+class BoundWithClause : public BoundReturnClause {
 
 public:
-    explicit BoundWithStatement(unique_ptr<BoundProjectionBody> projectionBody)
-        : BoundReturnStatement{move(projectionBody)} {}
+    explicit BoundWithClause(unique_ptr<BoundProjectionBody> projectionBody)
+        : BoundReturnClause{move(projectionBody)} {}
 
     inline void setWhereExpression(shared_ptr<Expression> expression) {
         whereExpression = move(expression);
     }
 
     inline bool hasWhereExpression() const { return whereExpression != nullptr; }
+
     inline shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
 
 private:

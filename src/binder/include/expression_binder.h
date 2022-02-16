@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/binder/include/expression/expression.h"
+#include "src/binder/expression/include/expression.h"
 #include "src/parser/expression/include/parsed_expression.h"
 #include "src/storage/include/catalog.h"
 

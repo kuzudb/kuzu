@@ -27,7 +27,7 @@ void Schema::insertToGroupAndScope(
 }
 
 uint32_t Schema::getGroupPos(const string& expressionName) const {
-    GF_ASSERT(expressionNameToGroupPos.contains(expressionName));
+    assert(expressionNameToGroupPos.contains(expressionName));
     return expressionNameToGroupPos.at(expressionName);
 }
 
@@ -60,7 +60,7 @@ void Schema::addLogicalExtend(const string& queryRel, LogicalExtend* extend) {
 }
 
 LogicalExtend* Schema::getExistingLogicalExtend(const string& queryRel) {
-    GF_ASSERT(queryRelLogicalExtendMap.contains(queryRel));
+    assert(queryRelLogicalExtendMap.contains(queryRel));
     return queryRelLogicalExtendMap.at(queryRel);
 }
 

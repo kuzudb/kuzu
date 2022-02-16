@@ -1,4 +1,4 @@
-#include "src/binder/include/expression/existential_subquery_expression.h"
+#include "include/existential_subquery_expression.h"
 
 namespace graphflow {
 namespace binder {
@@ -17,13 +17,14 @@ unordered_set<string> ExistentialSubqueryExpression::getDependentVariableNames()
 // expressions from predicates and return clause. Plus nodeID expressions from query graph.
 vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getChildren() const {
     vector<shared_ptr<Expression>> result;
-    for (auto& queryPart : normalizedSubquery->getQueryParts()) {
-        for (auto i = 0u; i < queryPart->getNumQueryGraph(); ++i) {
-            for (auto& nodeIDExpression : queryPart->getQueryGraph(i)->getNodeIDExpressions()) {
+    for (auto i = 0u; i < subQuery->getNumQueryParts(); ++i) {
+        auto queryPart = subQuery->getQueryPart(i);
+        for (auto j = 0u; j < queryPart->getNumQueryGraph(); ++j) {
+            for (auto& nodeIDExpression : queryPart->getQueryGraph(j)->getNodeIDExpressions()) {
                 result.push_back(nodeIDExpression);
             }
-            if (queryPart->getQueryGraphPredicate(i)) {
-                result.push_back(queryPart->getQueryGraphPredicate(i));
+            if (queryPart->getQueryGraphPredicate(j)) {
+                result.push_back(queryPart->getQueryGraphPredicate(j));
             }
         }
         for (auto& expression : queryPart->getProjectionBody()->getProjectionExpressions()) {

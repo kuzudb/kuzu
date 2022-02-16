@@ -6,7 +6,7 @@ namespace graphflow {
 namespace parser {
 
 /**
- * WIth statement may have where expression
+ * WIth clause may have where expression
  */
 class WithClause : public ReturnClause {
 

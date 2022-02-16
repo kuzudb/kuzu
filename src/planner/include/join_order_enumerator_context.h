@@ -1,7 +1,7 @@
 #pragma once
 
+#include "src/binder/query/include/normalized_single_query.h"
 #include "src/planner/include/logical_plan/logical_plan.h"
-#include "src/planner/include/norm_query/normalized_query.h"
 #include "src/planner/include/subplans_table.h"
 
 namespace graphflow {

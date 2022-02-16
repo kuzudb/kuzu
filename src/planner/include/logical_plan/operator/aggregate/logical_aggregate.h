@@ -1,6 +1,5 @@
 #pragma once
 
-#include "src/binder/include/expression/expression.h"
 #include "src/planner/include/logical_plan/schema.h"
 
 using namespace graphflow::binder;

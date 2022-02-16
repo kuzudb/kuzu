@@ -1,0 +1,64 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "base_expression",
+    srcs = [
+        "expression.cpp",
+    ],
+    hdrs = [
+        "include/expression.h",
+    ],
+    visibility = [
+        "//src/binder:__subpackages__",
+        "//src/planner:__pkg__",
+    ],
+    deps = [
+        "//src/common:expression_type",
+        "//src/common:types",
+    ],
+)
+
+cc_library(
+    name = "expression_implementations",
+    srcs = [
+        "existential_subquery_expression.cpp",
+        "literal_expression.cpp",
+        "property_expression.cpp",
+    ],
+    hdrs = [
+        "include/existential_subquery_expression.h",
+        "include/function_expression.h",
+        "include/literal_expression.h",
+        "include/node_expression.h",
+        "include/property_expression.h",
+        "include/rel_expression.h",
+    ],
+    visibility = [
+        "//src/binder:__subpackages__",
+        "//src/function:__pkg__",
+        "//src/planner:__pkg__",
+        "//src/processor:__pkg__",
+    ],
+    deps = [
+        "base_expression",
+        "//src/binder/query",
+    ],
+)
+
+cc_library(
+    name = "node_rel_expression",  # sub expression implementations needed for query graph
+    srcs = [
+        "property_expression.cpp",
+    ],
+    hdrs = [
+        "include/node_expression.h",
+        "include/property_expression.h",
+        "include/rel_expression.h",
+    ],
+    visibility = [
+        "//src/binder:__subpackages__",
+    ],
+    deps = [
+        "base_expression",
+    ],
+)

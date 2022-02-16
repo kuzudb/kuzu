@@ -12,8 +12,8 @@ cc_library(
     deps = [
         "logical_operator_impls",
         "logical_plan",
-        "normalized_query",
-        "//src/binder:subquery_expression_impl",
+        "//src/binder",
+        "//src/binder/expression:expression_implementations",
         "//src/storage:graph",
     ],
 )
@@ -29,7 +29,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "base_logical_operator",
-        "//src/binder:base_expression",
+        "//src/binder/expression:base_expression",
     ],
 )
 
@@ -54,20 +54,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "base_logical_operator",
-        "//src/binder:base_expression",
-    ],
-)
-
-cc_library(
-    name = "normalized_query",
-    srcs = glob([
-        "norm_query/*.cpp",
-    ]),
-    hdrs = glob([
-        "include/norm_query/*.h",
-    ]),
-    visibility = ["//visibility:public"],
-    deps = [
-        "//src/binder:bound_queries",
+        "//src/binder/expression:base_expression",
     ],
 )

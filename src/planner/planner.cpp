@@ -6,17 +6,17 @@ namespace graphflow {
 namespace planner {
 
 unique_ptr<LogicalPlan> Planner::getBestPlan(const Graph& graph, const BoundRegularQuery& query) {
-    if (query.getNumBoundSingleQueries() == 1) {
+    if (query.getNumSingleQueries() == 1) {
         // The returned logicalPlan doesn't contain the logicalResultCollector as its last operator.
         // We need to append a logicalResultCollector to the logicalPlan.
-        auto singleQueryLogicalPlan = getBestPlan(graph, *query.getBoundSingleQuery(0));
+        auto singleQueryLogicalPlan = getBestPlan(graph, *query.getSingleQuery(0));
         Enumerator::appendLogicalResultCollector(*singleQueryLogicalPlan);
         return singleQueryLogicalPlan;
     } else {
         auto logicalPlan = make_unique<LogicalPlan>();
         vector<unique_ptr<LogicalPlan>> childrenPlans;
-        for (auto i = 0u; i < query.getNumBoundSingleQueries(); i++) {
-            auto childPlan = getBestPlan(graph, *query.getBoundSingleQuery(i));
+        for (auto i = 0u; i < query.getNumSingleQueries(); i++) {
+            auto childPlan = getBestPlan(graph, *query.getSingleQuery(i));
             logicalPlan->cost += childPlan->cost;
             childrenPlans.push_back(move(childPlan));
         }
@@ -55,19 +55,18 @@ vector<vector<unique_ptr<LogicalPlan>>> Planner::cartesianProductChildrenPlans(
 
 vector<unique_ptr<LogicalPlan>> Planner::getAllPlans(
     const Graph& graph, const BoundRegularQuery& query) {
-    if (query.getNumBoundSingleQueries() == 1) {
+    if (query.getNumSingleQueries() == 1) {
         // The returned logicalPlans don't contain the logicalResultCollector as their last
         // operator. We need to append a logicalResultCollector to each returned logicalPlan.
-        auto logicalPlans = getAllPlans(graph, *query.getBoundSingleQuery(0));
+        auto logicalPlans = getAllPlans(graph, *query.getSingleQuery(0));
         for (auto& logicalPlan : logicalPlans) {
             Enumerator::appendLogicalResultCollector(*logicalPlan);
         }
         return logicalPlans;
     } else {
-        vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans(
-            query.getNumBoundSingleQueries());
-        for (auto i = 0u; i < query.getNumBoundSingleQueries(); i++) {
-            childrenLogicalPlans[i] = getAllPlans(graph, *query.getBoundSingleQuery(i));
+        vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans(query.getNumSingleQueries());
+        for (auto i = 0u; i < query.getNumSingleQueries(); i++) {
+            childrenLogicalPlans[i] = getAllPlans(graph, *query.getSingleQuery(i));
         }
         auto childrenPlans = cartesianProductChildrenPlans(move(childrenLogicalPlans));
         vector<unique_ptr<LogicalPlan>> resultPlans;
@@ -87,7 +86,7 @@ vector<unique_ptr<LogicalPlan>> Planner::getAllPlans(
 }
 
 vector<unique_ptr<LogicalPlan>> Planner::getAllPlans(
-    const Graph& graph, const BoundSingleQuery& query) {
+    const Graph& graph, const NormalizedSingleQuery& query) {
     auto plans = Enumerator(graph).getAllPlans(query);
     vector<unique_ptr<LogicalPlan>> optimizedPlans;
     for (auto& plan : plans) {
@@ -96,7 +95,8 @@ vector<unique_ptr<LogicalPlan>> Planner::getAllPlans(
     return optimizedPlans;
 }
 
-unique_ptr<LogicalPlan> Planner::getBestPlan(const Graph& graph, const BoundSingleQuery& query) {
+unique_ptr<LogicalPlan> Planner::getBestPlan(
+    const Graph& graph, const NormalizedSingleQuery& query) {
     // join order enumeration with filter push down
     auto bestPlan = Enumerator(graph).getBestJoinOrderPlan(query);
     return optimize(move(bestPlan));

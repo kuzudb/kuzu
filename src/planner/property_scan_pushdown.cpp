@@ -1,5 +1,7 @@
 #include "src/planner/include/property_scan_pushdown.h"
 
+#include <cassert>
+
 #include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
 #include "src/planner/include/logical_plan/operator/distinct/logical_distinct.h"
 #include "src/planner/include/logical_plan/operator/exists/logical_exist.h"

@@ -29,14 +29,14 @@ shared_ptr<ScheduledTask> TaskScheduler::scheduleTask(const shared_ptr<Task>& ta
 }
 
 void TaskScheduler::waitAllTasksToCompleteOrError() {
-    logger->debug(
-        "Thread {} called waitAllTasksToCompleteOrError. Beginning to wait.", getThreadIDString());
+    logger->debug("Thread {} called waitAllTasksToCompleteOrError. Beginning to wait.",
+        ThreadUtils::getThreadIDString());
     while (true) {
         lock_t lck{mtx};
         if (taskQueue.empty()) {
             logger->debug("Thread {} successfully waited all tasks to be complete. Returning from "
                           "waitAllTasksToCompleteOrError.",
-                getThreadIDString());
+                ThreadUtils::getThreadIDString());
             return;
         }
         for (auto it = taskQueue.begin(); it != taskQueue.end(); ++it) {
@@ -55,8 +55,8 @@ void TaskScheduler::waitAllTasksToCompleteOrError() {
 }
 
 void TaskScheduler::scheduleTaskAndWaitOrError(const shared_ptr<Task>& task) {
-    logger->debug(
-        "Thread {} called scheduleTaskAndWaitOrError. Scheduling task.", getThreadIDString());
+    logger->debug("Thread {} called scheduleTaskAndWaitOrError. Scheduling task.",
+        ThreadUtils::getThreadIDString());
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency);
     }
@@ -66,12 +66,12 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const shared_ptr<Task>& task) {
     }
     if (task->hasException()) {
         logger->debug("Thread {} found a task with exception. Will call removeErroringTask.",
-            getThreadIDString());
+            ThreadUtils::getThreadIDString());
         removeErroringTask(scheduledTask->ID);
         std::rethrow_exception(task->getExceptionPtr());
     }
     logger->debug("Thread {} exiting scheduleTaskAndWaitOrError (task was successfully complete)",
-        getThreadIDString());
+        ThreadUtils::getThreadIDString());
 }
 
 shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
@@ -91,14 +91,14 @@ shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
             // Recall erroring tasks need to be manually removed.
             if (task->isCompletedSuccessfully()) { // option (i)
                 logger->debug("Thread {} is removing completed schedule task {} from queue.",
-                    getThreadIDString(), (*it)->ID);
+                    ThreadUtils::getThreadIDString(), (*it)->ID);
                 it = taskQueue.erase(it);
             } else { // option (ii) or (iii): keep the task in the queue.
                 ++it;
             }
         } else {
-            logger->debug(
-                "Registered thread {} to schedule task {}.", getThreadIDString(), (*it)->ID);
+            logger->debug("Registered thread {} to schedule task {}.",
+                ThreadUtils::getThreadIDString(), (*it)->ID);
             return *it;
         }
     }
@@ -107,19 +107,19 @@ shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
 
 void TaskScheduler::removeErroringTask(uint64_t scheduledTaskID) {
     lock_t lck{mtx};
-    logger->debug("RemovErroringTask is called.Thread {}", getThreadIDString());
+    logger->debug("RemovErroringTask is called.Thread {}", ThreadUtils::getThreadIDString());
     for (auto it = taskQueue.begin(); it != taskQueue.end(); ++it) {
         if (scheduledTaskID == (*it)->ID) {
             logger->debug(
                 "Inside removeErroringTask.Thread {} is removing an erroring task {} from queue.",
-                getThreadIDString(), (*it)->ID);
+                ThreadUtils::getThreadIDString(), (*it)->ID);
             taskQueue.erase(it);
             return;
         }
     }
     logger->debug(
         "Inside removeErroringTask. Thread {} could not find the task to remove from queue.",
-        getThreadIDString());
+        ThreadUtils::getThreadIDString());
 }
 
 void TaskScheduler::runWorkerThread() {
@@ -135,10 +135,11 @@ void TaskScheduler::runWorkerThread() {
         try {
             scheduledTask->task->run();
             scheduledTask->task->deRegisterThreadAndFinalizeTaskIfNecessary();
-            logger->debug("Thread {} completed task successfully.", getThreadIDString());
+            logger->debug(
+                "Thread {} completed task successfully.", ThreadUtils::getThreadIDString());
         } catch (exception& e) {
             logger->debug("Thread {} caught an exception. Setting the exception of the task.",
-                getThreadIDString());
+                ThreadUtils::getThreadIDString());
             scheduledTask->task->setException(current_exception());
             continue;
         }
