@@ -1,9 +1,9 @@
 :ID,fName:STRING,gender:INT64,isStudent:BOOLEAN,isWorker:BOOLEAN,age:INT64,eyeSight:DOUBLE,birthdate:DATE
-0,Alice,1,true,false,35,5.0,1900-01-01,unstrDateProp1:DATE:1900-01-01,unstrDateProp2:DATE:1920-01-01
-2,Bob,2,true,false,30,5.1,1900-01-01,unstrDateProp1:DATE:1950-01-01,unstrNumericProp:INT64:47,unstrNumericProp2:INT64:20,unstrDateProp2:DATE:1970-01-01
-3,Carol,1,false,true,45,5.0,1940-06-22,unstrNumericProp:INT64:52,unstrDateProp1:DATE:1950-01-01,unstrDateProp2:DATE:1950-01-01
+0,Alice,1,true,false,35,5.0,1900-01-01
+2,Bob,2,true,false,30,5.1,1900-01-01
+3,Carol,1,false,true,45,5.0,1940-06-22
 5,Dan,2,false,true,20,4.8,1950-7-23
-7,Elizabeth,1,false,true,20,4.7,1980-10-26,unstrNumericProp:DOUBLE:68
+7,Elizabeth,1,false,true,20,4.7,1980-10-26
 8,Farooq,2,true,false,25,4.5,1980-10-26
 9,Greg,2,false,false,40,4.9,1980-10-26
 10,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff,2,false,true,83,4.9,1990-11-27

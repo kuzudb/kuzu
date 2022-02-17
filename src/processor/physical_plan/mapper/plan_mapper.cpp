@@ -326,10 +326,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
     auto prevOperator =
         mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto inputNodeIDVectorPos = mapperContext.getDataPos(scanRelProperty.getBoundNodeID());
-    assert(scanRelProperty.getPropertyNames().size() == 1);
-    auto propertyName = scanRelProperty.getPropertyNames()[0];
-    assert(scanRelProperty.getPropertyKeys().size() == 1);
-    auto propertyKey = scanRelProperty.getPropertyKeys()[0];
+    auto propertyName = scanRelProperty.getPropertyName();
+    auto propertyKey = scanRelProperty.getPropertyKey();
     auto outputPropertyVectorPos = mapperContext.getDataPos(propertyName);
     mapperContext.addComputedExpressions(propertyName);
     auto& relStore = graph.getRelsStore();
@@ -369,7 +367,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         }
         mapperContext.addComputedExpressions(expressionName);
         buildSideNonKeyDataPoses.push_back(buildSideMapperContext.getDataPos(expressionName));
-        isBuildSideNonKeyDataFlat.push_back(buildSideSchema.getGroup(expressionName)->isFlat);
+        isBuildSideNonKeyDataFlat.push_back(buildSideSchema.getGroup(expressionName)->getIsFlat());
         probeSideNonKeyDataPoses.push_back(mapperContext.getDataPos(expressionName));
     }
 
@@ -513,7 +511,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalLeftNestedLoopJoinToPhysical(
     // Populate data position mapping for merging sub-plan result set
     for (auto i = 0u; i < subPlanSchema.getNumGroups(); ++i) {
         auto& group = *subPlanSchema.getGroup(i);
-        for (auto& expressionName : group.expressionNames) {
+        for (auto& expression : group.getExpressions()) {
+            auto expressionName = expression->getUniqueName();
             if (mapperContext.expressionHasComputed(expressionName)) {
                 continue;
             }
@@ -545,7 +544,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     vector<DataPos> outputDataPoses;
     for (auto& expressionName : logicalOrderBy.getExpressionToMaterializeNames()) {
         inputDataPoses.push_back(mapperContextBeforeOrderBy.getDataPos(expressionName));
-        isInputVectorFlat.push_back(schemaBeforeOrderBy.getGroup(expressionName)->isFlat);
+        isInputVectorFlat.push_back(schemaBeforeOrderBy.getGroup(expressionName)->getIsFlat());
         outputDataPoses.push_back(mapperContext.getDataPos(expressionName));
         mapperContext.addComputedExpressions(expressionName);
     }
@@ -577,7 +576,7 @@ unique_ptr<ResultCollector> PlanMapper::mapLogicalResultCollectorToPhysical(
     for (auto& expression : resultCollector.getExpressionsToCollect()) {
         valueVectorsToCollectInfo.push_back(
             make_pair(resultCollectorMapperContext.getDataPos(expression->getUniqueName()),
-                resultCollector.getSchema()->getGroup(expression->getUniqueName())->isFlat));
+                resultCollector.getSchema()->getGroup(expression->getUniqueName())->getIsFlat()));
     }
     return make_unique<ResultCollector>(valueVectorsToCollectInfo,
         make_shared<SharedQueryResults>(), move(prevOperator), executionContext,

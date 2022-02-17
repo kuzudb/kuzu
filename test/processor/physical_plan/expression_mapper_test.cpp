@@ -31,7 +31,7 @@ public:
     static MapperContext makeSimpleMapperContext() {
         auto schema = Schema();
         auto groupPos = schema.createGroup();
-        schema.insertToGroup("_0_a.prop", groupPos);
+        schema.insertToGroupAndScope(makeAPropExpression(), groupPos);
         auto context = MapperContext(make_unique<ResultSetDescriptor>(schema));
         context.addComputedExpressions("_0_a.prop");
         return context;

@@ -197,12 +197,12 @@ TEST_F(BinderErrorTest, SubqueryWithAggregation2) {
 
 TEST_F(BinderErrorTest, SubqueryWithOrderBy) {
     string expectedException =
-        "Expression EXISTS { MATCH (a)-[:knows]->(b:person) RETURN b ORDER "
+        "Expression EXISTS { MATCH (a)-[:knows]->(b:person) RETURN b.age ORDER "
         "BY b.age } is an existential subquery expression and should not "
         "contains any aggregation or order by in subquery RETURN or WITH clause.";
-    auto input =
-        "MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) RETURN b ORDER BY b.age } "
-        "RETURN COUNT(*);";
+    auto input = "MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) RETURN b.age "
+                 "ORDER BY b.age } "
+                 "RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 

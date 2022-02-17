@@ -4,11 +4,13 @@ namespace graphflow {
 namespace processor {
 
 ResultSetDescriptor::ResultSetDescriptor(const Schema& schema) {
-    for (auto& group : schema.groups) {
+    for (auto i = 0u; i < schema.getNumGroups(); ++i) {
+        auto group = schema.getGroup(i);
         auto dataChunkDescriptor = make_unique<DataChunkDescriptor>();
-        for (auto& expressionName : group->expressionNames) {
-            expressionNameToDataChunkPosMap.insert({expressionName, dataChunkDescriptors.size()});
-            dataChunkDescriptor->addExpressionName(expressionName);
+        for (auto& expression : group->getExpressions()) {
+            expressionNameToDataChunkPosMap.insert(
+                {expression->getUniqueName(), dataChunkDescriptors.size()});
+            dataChunkDescriptor->addExpressionName(expression->getUniqueName());
         }
         dataChunkDescriptors.push_back(move(dataChunkDescriptor));
     }

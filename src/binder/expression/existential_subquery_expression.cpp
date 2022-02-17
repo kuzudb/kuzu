@@ -23,7 +23,7 @@ vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getChildren() cons
             for (auto& nodeIDExpression : queryPart->getQueryGraph(j)->getNodeIDExpressions()) {
                 result.push_back(nodeIDExpression);
             }
-            if (queryPart->getQueryGraphPredicate(j)) {
+            if (queryPart->hasQueryGraphPredicate(j)) {
                 result.push_back(queryPart->getQueryGraphPredicate(j));
             }
         }

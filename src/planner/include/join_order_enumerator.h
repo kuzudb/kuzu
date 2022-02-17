@@ -30,6 +30,8 @@ public:
         const shared_ptr<Expression>& queryGraphPredicate,
         vector<unique_ptr<LogicalPlan>> prevPlans);
 
+    void resetState() { context->resetState(); }
+
 private:
     unique_ptr<JoinOrderEnumeratorContext> enterSubquery(
         vector<shared_ptr<Expression>> expressionsToScan);
@@ -42,8 +44,8 @@ private:
     void enumerateSingleRel();
 
     // append logical operator functions
-    void appendResultScan(const unordered_set<string>& expressionNamesToSelect, LogicalPlan& plan);
-    void appendScanNodeID(const NodeExpression& queryNode, LogicalPlan& plan);
+    void appendResultScan(const expression_vector& expressionsToSelect, LogicalPlan& plan);
+    void appendScanNodeID(NodeExpression& queryNode, LogicalPlan& plan);
     void appendExtendFiltersAndScanPropertiesIfNecessary(const RelExpression& queryRel,
         Direction direction, const vector<shared_ptr<Expression>>& expressionsToFilter,
         LogicalPlan& plan);

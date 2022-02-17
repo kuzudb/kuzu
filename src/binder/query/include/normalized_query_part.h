@@ -19,6 +19,10 @@ public:
 
     inline QueryGraph* getQueryGraph(uint32_t idx) const { return queryGraphs[idx].get(); }
 
+    inline bool hasQueryGraphPredicate(uint32_t idx) const {
+        return queryGraphPredicates[idx] != nullptr;
+    }
+
     inline shared_ptr<Expression> getQueryGraphPredicate(uint32_t idx) const {
         return queryGraphPredicates[idx];
     }

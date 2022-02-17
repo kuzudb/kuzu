@@ -24,3 +24,11 @@
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[:knows]->(d), (b)-[:knows]->(d) RETURN COUNT(*)
 ---- 1
 48
+
+-NAME NodeAggTest
+-QUERY MATCH (a:person)-[e:knows]->(b:person)-[:knows]->(c:person) RETURN a, COUNT(*)
+---- 4
+0|Alice|1|True|False|35|5.000000|1900-01-01|9
+2|Bob|2|True|False|30|5.100000|1900-01-01|9
+3|Carol|1|False|True|45|5.000000|1940-06-22|9
+5|Dan|2|False|True|20|4.800000|1950-07-23|9

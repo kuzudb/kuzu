@@ -3,10 +3,7 @@
 #include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
 #include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
 
-class CostModelTest : public PlannerTest {
-
-public:
-};
+class CostModelTest : public PlannerTest {};
 
 TEST_F(CostModelTest, OneHopSingleFilter) {
     auto query = "MATCH (a:person)-[:knows]->(b:person) WHERE a.age = 1 RETURN COUNT(*)";

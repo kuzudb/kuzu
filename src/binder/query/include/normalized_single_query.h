@@ -25,6 +25,11 @@ public:
 
     inline void markLastQueryPart() { queryParts.back()->setLastQueryPart(true); }
 
+    inline expression_vector getExpressionsToReturn() const {
+        assert(!queryParts.empty());
+        return queryParts.back()->getProjectionBody()->getProjectionExpressions();
+    }
+
 private:
     vector<unique_ptr<NormalizedQueryPart>> queryParts;
 };
