@@ -18,24 +18,6 @@ cc_test(
 )
 
 cc_test(
-    name = "aggregate_tests",
-    srcs = [
-        "physical_plan/operator/aggregate/aggregate_hash_table_test.cpp",
-    ],
-    copts = [
-        "-Iexternal/gtest/include",
-    ],
-    deps = [
-        "//src/processor",
-        "//src/processor:mapper",
-        "//test/mock:mock_objects",
-        "//test/test_utility:aggregate_function_test_helper",
-        "@gtest",
-        "@gtest//:gtest_main",
-    ],
-)
-
-cc_test(
     name = "frontier_tests",
     srcs = [
         "physical_plan/operator/frontier/frontier_test.cpp",
@@ -83,6 +65,25 @@ cc_test(
         "//src/processor",
         "//src/processor:mapper",
         "//test/mock:mock_objects",
+        "@gtest",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hash_table_tests",
+    srcs = [
+        "physical_plan/hash_table/aggregate_hash_table_test.cpp",
+        "physical_plan/hash_table/join_hash_table_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//src/processor",
+        "//src/processor:mapper",
+        "//test/mock:mock_objects",
+        "//test/test_utility:aggregate_function_test_helper",
         "@gtest",
         "@gtest//:gtest_main",
     ],

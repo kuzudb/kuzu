@@ -105,6 +105,10 @@ public:
 
     void append(const vector<shared_ptr<ValueVector>>& vectors);
 
+    //! This function appends an empty tuple to the factorizedTable and returns a pointer to that
+    //! tuple.
+    uint8_t* appendEmptyTuple();
+
     // This function scans numTuplesToScan of rows to vectors starting at tupleIdx. Callers are
     // responsible for making sure all the parameters are valid.
     void scan(vector<shared_ptr<ValueVector>>& vectors, uint64_t tupleIdx,
@@ -126,6 +130,8 @@ public:
         vector<shared_ptr<ValueVector>> vectors, uint64_t tupleIdx, uint64_t valuePosInVec) const;
 
     void merge(FactorizedTable& other);
+
+    StringBuffer* getStringBuffer() { return stringBuffer.get(); }
 
     bool hasUnflatCol() const;
 
@@ -157,6 +163,17 @@ public:
         return *((Value*)getCell(tupleIdx, colIdx));
     }
 
+    uint8_t* getTuple(uint64_t tupleIdx) const;
+
+    inline void updateFlatCell(uint64_t tupleIdx, uint64_t colIdx, void* dataBuf) {
+        memcpy(getCell(tupleIdx, colIdx), dataBuf, tableSchema.getColumn(colIdx).getNumBytes());
+    }
+
+    inline void updateFlatCell(uint64_t tupleIdx, uint64_t colIdx, ValueVector* valueVector) {
+        valueVector->copyNonNullDataWithSameTypeOutFromPos(
+            valueVector->state->getPositionOfCurrIdx(), getCell(tupleIdx, colIdx), *stringBuffer);
+    }
+
 private:
     static void setNull(uint8_t* nullBuffer, uint64_t colIdx);
 
@@ -184,8 +201,6 @@ private:
 
     void readFlatCol(uint8_t** tuplesToRead, uint64_t colIdx, ValueVector& vector,
         uint64_t numTuplesToRead) const;
-
-    uint8_t* getTuple(uint64_t tupleIdx) const;
 
     MemoryManager* memoryManager;
     TableSchema tableSchema;

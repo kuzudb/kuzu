@@ -89,6 +89,7 @@ cc_library(
         "include/physical_plan/operator/aggregate/*.h",
     ]),
     deps = [
+        "hash_table",
         "sink_operator",
         "source_operator",
         "//src/common:vector_operations",
@@ -105,6 +106,7 @@ cc_library(
         "include/physical_plan/operator/hash_join/*.h",
     ]),
     deps = [
+        "hash_table",
         "sink_operator",
     ],
 )
@@ -162,6 +164,21 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "sink_operator",
+    ],
+)
+
+cc_library(
+    name = "hash_table",
+    srcs = glob([
+        "physical_plan/hash_table/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/physical_plan/hash_table/*.h",
+    ]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "result",
+        "//src/function:aggregate_function",
     ],
 )
 

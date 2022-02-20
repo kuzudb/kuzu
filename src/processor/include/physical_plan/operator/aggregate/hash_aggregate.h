@@ -1,7 +1,7 @@
 #pragma once
 
+#include "src/processor/include/physical_plan/hash_table/aggregate_hash_table.h"
 #include "src/processor/include/physical_plan/operator/aggregate/base_aggregate.h"
-#include "src/processor/include/physical_plan/operator/aggregate/base_aggregate_hash_table.h"
 
 namespace graphflow {
 namespace processor {
@@ -21,7 +21,7 @@ public:
 
     pair<uint64_t, uint64_t> getNextRangeToRead() override;
 
-    inline uint8_t* getRow(uint64_t id) { return globalAggregateHashTable->getEntry(id); }
+    inline uint8_t* getRow(uint64_t idx) { return globalAggregateHashTable->getEntry(idx); }
 
 private:
     vector<unique_ptr<AggregateHashTable>> localAggregateHashTables;
