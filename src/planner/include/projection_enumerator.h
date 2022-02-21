@@ -14,6 +14,7 @@ namespace planner {
 class Enumerator;
 
 class ProjectionEnumerator {
+    friend class Enumerator;
 
 public:
     explicit ProjectionEnumerator(const Catalog& catalog, Enumerator* enumerator)
@@ -21,9 +22,6 @@ public:
 
     void enumerateProjectionBody(const BoundProjectionBody& projectionBody,
         const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn);
-
-    static void appendDistinct(
-        const vector<shared_ptr<Expression>>& expressionsToDistinct, LogicalPlan& plan);
 
 private:
     void enumerateAggregate(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
@@ -34,6 +32,8 @@ private:
 
     void appendProjection(
         const vector<shared_ptr<Expression>>& expressionsToProject, LogicalPlan& plan);
+    void appendDistinct(
+        const vector<shared_ptr<Expression>>& expressionsToDistinct, LogicalPlan& plan);
     void appendAggregate(const vector<shared_ptr<Expression>>& expressionsToGroupBy,
         const vector<shared_ptr<Expression>>& expressionsToAggregate, LogicalPlan& plan);
     void appendOrderBy(const vector<shared_ptr<Expression>>& expressions,
@@ -49,14 +49,9 @@ private:
     vector<shared_ptr<Expression>> getExpressionsToProject(
         const BoundProjectionBody& projectionBody, const Schema& schema,
         bool isRewritingAllProperties);
-    vector<shared_ptr<Expression>> rewriteVariableExpression(const shared_ptr<Expression>& variable,
-        const Schema& schema, bool isRewritingAllProperties);
-    vector<shared_ptr<Expression>> rewriteNodeExpressionAsAllProperties(
-        const shared_ptr<NodeExpression>& node);
-    vector<shared_ptr<Expression>> rewriteRelExpressionAsAllProperties(
-        const shared_ptr<RelExpression>& rel);
-    vector<shared_ptr<Expression>> createPropertyExpressions(
-        const shared_ptr<Expression>& variable, const vector<PropertyDefinition>& properties);
+
+    expression_vector rewriteVariableAsAllPropertiesInScope(
+        const Expression& variable, const Schema& schema);
 
 private:
     const Catalog& catalog;

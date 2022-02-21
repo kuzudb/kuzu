@@ -11,6 +11,8 @@ namespace planner {
 class LogicalUnion : public LogicalOperator {
 
 public:
+    explicit LogicalUnion(expression_vector expressions) : expressionsToUnion{move(expressions)} {}
+
     inline LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_UNION_ALL;
     }
@@ -23,10 +25,8 @@ public:
         return result;
     }
 
-    inline unique_ptr<LogicalOperator> copy() override { return make_unique<LogicalUnion>(); }
-
-    inline void setExpressionsToUnion(vector<shared_ptr<Expression>> expressionsToUnion) {
-        this->expressionsToUnion = move(expressionsToUnion);
+    inline unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalUnion>(expressionsToUnion);
     }
 
     inline vector<shared_ptr<Expression>> getExpressionsToUnion() { return expressionsToUnion; }

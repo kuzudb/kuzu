@@ -1,8 +1,10 @@
 #pragma once
 
+#include "enumerator_utils.h"
+
 #include "src/binder/expression/include/existential_subquery_expression.h"
+#include "src/binder/query/include/bound_regular_query.h"
 #include "src/planner/include/join_order_enumerator.h"
-#include "src/planner/include/logical_plan/operator/result_collector/logical_result_collector.h"
 #include "src/planner/include/projection_enumerator.h"
 
 using namespace graphflow::binder;
@@ -18,30 +20,76 @@ public:
     explicit Enumerator(const Graph& graph)
         : joinOrderEnumerator{graph, this}, projectionEnumerator{graph.getCatalog(), this} {}
 
-    unique_ptr<LogicalPlan> getBestJoinOrderPlan(const NormalizedSingleQuery& singleQuery) {
+    vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundRegularQuery& regularQuery);
+
+    unique_ptr<LogicalPlan> getBestPlan(const BoundRegularQuery& regularQuery);
+
+private:
+    // See logical_plan.h for detailed description of our sub-plan limitation.
+    vector<unique_ptr<LogicalPlan>> getValidSubPlans(vector<unique_ptr<LogicalPlan>> plans);
+
+    unique_ptr<LogicalPlan> getBestPlan(vector<unique_ptr<LogicalPlan>> plans);
+
+    vector<unique_ptr<LogicalPlan>> getAllPlans(const NormalizedSingleQuery& singleQuery);
+
+    unique_ptr<LogicalPlan> getBestPlan(const NormalizedSingleQuery& singleQuery) {
         return getBestPlan(enumeratePlans(singleQuery));
     }
-    // This interface is for testing framework
-    vector<unique_ptr<LogicalPlan>> getAllPlans(const NormalizedSingleQuery& singleQuery) {
-        vector<unique_ptr<LogicalPlan>> result;
-        for (auto& plan : enumeratePlans(singleQuery)) {
-            // This is copy is to avoid sharing operator across plans. Later optimization requires
-            // each plan to be independent.
-            plan->lastOperator = plan->lastOperator->copy();
-            result.push_back(move(plan));
-        }
-        return result;
-    }
 
-    static inline void appendLogicalResultCollector(LogicalPlan& logicalPlan) {
-        auto logicalResultCollector =
-            make_shared<LogicalResultCollector>(logicalPlan.getExpressionsToCollect(),
-                logicalPlan.schema->copy(), logicalPlan.lastOperator);
-        logicalPlan.lastOperator = logicalResultCollector;
-    }
+    vector<unique_ptr<LogicalPlan>> enumeratePlans(const NormalizedSingleQuery& singleQuery);
 
-    static void appendLogicalUnionAndDistinctIfNecessary(
-        vector<unique_ptr<LogicalPlan>>& childrenPlans, LogicalPlan& logicalPlan, bool isUnionAll);
+    vector<unique_ptr<LogicalPlan>> enumerateQueryPart(
+        const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
+
+    void planOptionalMatch(const QueryGraph& queryGraph,
+        const shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan);
+
+    void planExistsSubquery(const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression,
+        LogicalPlan& outerPlan);
+
+    void planSubqueryIfNecessary(const shared_ptr<Expression>& expression, LogicalPlan& plan);
+
+    static void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
+
+    // return position of the only unFlat group
+    // or position of any flat group if there is no unFlat group.
+    uint32_t appendFlattensButOne(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
+
+    static void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan);
+
+    void appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan);
+
+    void appendScanNodeProperty(const NodeExpression& node, LogicalPlan& plan);
+
+    void appendScanNodeProperty(
+        const property_vector& properties, const NodeExpression& node, LogicalPlan& plan);
+
+    void appendScanRelProperty(const RelExpression& rel, LogicalPlan& plan);
+
+    void appendScanRelProperty(const shared_ptr<PropertyExpression>& property,
+        const RelExpression& rel, LogicalPlan& plan);
+
+    static void appendResultCollector(LogicalPlan& plan);
+
+    unique_ptr<LogicalPlan> createUnionPlan(
+        vector<unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
+
+    static vector<unique_ptr<LogicalPlan>> getInitialEmptyPlans();
+    static unordered_set<uint32_t> getDependentGroupsPos(
+        const shared_ptr<Expression>& expression, const Schema& schema);
+    // Recursively walk through expression until the root of current expression tree exists in the
+    // schema or expression is a leaf. Collect all such roots.
+    static vector<shared_ptr<Expression>> getSubExpressionsInSchema(
+        const shared_ptr<Expression>& expression, const Schema& schema);
+    // Recursively walk through expression, ignoring expression tree whose root exits in the schema,
+    // until expression is a leaf. Collect all expressions of given type.
+    static vector<shared_ptr<Expression>> getSubExpressionsNotInSchemaOfType(
+        const shared_ptr<Expression>& expression, const Schema& schema,
+        const std::function<bool(ExpressionType type)>& typeCheckFunc);
+    static inline vector<shared_ptr<Expression>> getAggregationExpressionsNotInSchema(
+        const shared_ptr<Expression>& expression, const Schema& schema) {
+        return getSubExpressionsNotInSchemaOfType(expression, schema, isExpressionAggregate);
+    }
 
     // For HashJoinProbe, the HashJoinProbe operator will read for a particular probe tuple t, the
     // matching result tuples M that match t[k], where k suppose is the join key column. If M
@@ -57,64 +105,15 @@ public:
     // when stored. However, if all of the non-key columns are flat and since all key columns are
     // flattened in FactorizedTable, we can output R with upto |R| many tuples in an unflat
     // datachunk (though we would do it in chunks of DEFAULT_VECTOR_CAPACITY).
-    static void computeSchemaForHashJoinAndOrderByAndUnionAll(
+    static void computeSchemaForHashJoinOrderByAndUnion(
         const unordered_set<uint32_t>& groupsToMaterializePos, const Schema& schemaBeforeSink,
         Schema& schemaAfterSink);
 
-private:
-    vector<unique_ptr<LogicalPlan>> enumeratePlans(const NormalizedSingleQuery& singleQuery);
-
-    // See logical_plan.h for detailed description of our sub-plan limitation.
-    vector<unique_ptr<LogicalPlan>> getValidSubPlans(vector<unique_ptr<LogicalPlan>> plans);
-    unique_ptr<LogicalPlan> getBestPlan(vector<unique_ptr<LogicalPlan>> plans);
-
-    vector<unique_ptr<LogicalPlan>> enumerateQueryPart(
-        const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans);
-
-    void planOptionalMatch(const QueryGraph& queryGraph,
-        const shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan);
-
-    void planExistsSubquery(const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression,
-        LogicalPlan& outerPlan);
-
-    static void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
-    // return position of the only unFlat group
-    // or position of any flat group if there is no unFlat group.
-    uint32_t appendFlattensButOne(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
-    static void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan);
-    void appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan);
-    void appendScanPropertiesAndPlanSubqueryIfNecessary(
-        const shared_ptr<Expression>& expression, LogicalPlan& plan);
-    void appendScanPropertiesIfNecessary(
-        const shared_ptr<Expression>& expression, LogicalPlan& plan);
-    void appendScanNodePropertyIfNecessary(
-        const PropertyExpression& propertyExpression, LogicalPlan& plan);
-    void appendScanRelPropertyIfNecessary(
-        const PropertyExpression& propertyExpression, LogicalPlan& plan);
-
-    static vector<unique_ptr<LogicalPlan>> getInitialEmptyPlans();
-    static unordered_set<uint32_t> getDependentGroupsPos(
-        const shared_ptr<Expression>& expression, const Schema& schema);
-    // Recursively walk through expression until the root of current expression tree exists in the
-    // schema or expression is a leaf. Collect all such roots.
-    static vector<shared_ptr<Expression>> getSubExpressionsInSchema(
-        const shared_ptr<Expression>& expression, const Schema& schema);
-    // Recursively walk through expression, ignoring expression tree whose root exits in the schema,
-    // until expression is a leaf. Collect all expressions of given type.
-    static vector<shared_ptr<Expression>> getSubExpressionsNotInSchemaOfType(
-        const shared_ptr<Expression>& expression, const Schema& schema,
-        const std::function<bool(ExpressionType type)>& typeCheckFunc);
-    static inline vector<shared_ptr<Expression>> getPropertyExpressionsNotInSchema(
-        const shared_ptr<Expression>& expression, const Schema& schema) {
-        return getSubExpressionsNotInSchemaOfType(expression, schema,
-            [](ExpressionType expressionType) { return expressionType == PROPERTY; });
-    }
-    static inline vector<shared_ptr<Expression>> getAggregationExpressionsNotInSchema(
-        const shared_ptr<Expression>& expression, const Schema& schema) {
-        return getSubExpressionsNotInSchemaOfType(expression, schema, isExpressionAggregate);
-    }
+    static vector<vector<unique_ptr<LogicalPlan>>> cartesianProductChildrenPlans(
+        vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans);
 
 private:
+    property_vector propertiesToScan;
     JoinOrderEnumerator joinOrderEnumerator;
     ProjectionEnumerator projectionEnumerator;
 };

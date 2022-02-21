@@ -31,19 +31,25 @@ private:
 
     unique_ptr<BoundReturnClause> bindReturnClause(const ReturnClause& returnClause);
 
-    unique_ptr<BoundProjectionBody> bindProjectionBody(
-        const ProjectionBody& projectionBody, bool isWithClause);
+    expression_vector bindProjectionExpressions(
+        const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool containsStar);
 
-    vector<shared_ptr<Expression>> bindProjectionExpressions(
-        const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool isStar);
+    // For RETURN clause, we write variable "v" as all properties of "v"
+    expression_vector rewriteProjectionExpressions(const expression_vector& expressions);
 
-    vector<shared_ptr<Expression>> bindOrderByExpressions(
-        const vector<unique_ptr<ParsedExpression>>& orderByExpressions,
-        const unordered_map<string, shared_ptr<Expression>>& prevVariablesInScope,
-        bool projectionHasAggregation);
+    expression_vector rewriteNodeAsAllProperties(const shared_ptr<Expression>& expression);
 
-    unordered_map<string, shared_ptr<Expression>> computeVariablesInScope(
-        const vector<shared_ptr<Expression>>& expressions, bool isWithClause);
+    expression_vector rewriteRelAsAllProperties(const shared_ptr<Expression>& expression);
+
+    void bindOrderBySkipLimitIfNecessary(
+        BoundProjectionBody& boundProjectionBody, const ProjectionBody& projectionBody);
+
+    expression_vector bindOrderByExpressions(
+        const vector<unique_ptr<ParsedExpression>>& orderByExpressions);
+
+    uint64_t bindSkipLimitExpression(const ParsedExpression& expression);
+
+    void addExpressionsToScope(const expression_vector& projectionExpressions);
 
     shared_ptr<Expression> bindWhereExpression(const ParsedExpression& parsedExpression);
 
@@ -64,18 +70,26 @@ private:
     // Although this is doable in Neo4j, I don't think the semantic make a lot of sense because
     // there is nothing to left join on.
     void validateFirstMatchIsNotOptional(const SingleQuery& singleQuery);
-    // E.g. MATCH (:person)-[:studyAt]->(:person)
+
+    // E.g. MATCH (:person)-[:studyAt]->(:person) ...
     void validateNodeAndRelLabelIsConnected(
         label_t relLabel, label_t nodeLabel, Direction direction);
-    // E.g. RETURN a, b AS a
-    void validateProjectionColumnNamesAreUnique(const vector<shared_ptr<Expression>>& expressions);
+
+    // E.g. ... RETURN a, b AS a
+    void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);
+
+    // E.g. ... WITH COUNT(*) MATCH ...
+    void validateProjectionColumnsInWithClauseAreAliased(const expression_vector& expressions);
+
     void validateOrderByFollowedBySkipOrLimitInWithClause(
         const BoundProjectionBody& boundProjectionBody);
+
     void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
         unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
-    uint64_t validateAndExtractSkipLimitNumber(const ParsedExpression& skipOrLimitExpression);
+
     void validateUnionColumnsOfTheSameType(
         const vector<unique_ptr<BoundSingleQuery>>& boundSingleQueries);
+
     void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery);
 
     /******* helpers *********/

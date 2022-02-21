@@ -37,7 +37,11 @@ public:
     }
 
     inline DataType getDataType() const { return dataType; }
+
+    inline bool hasAlias() const { return !alias.empty(); }
+
     inline string getAlias() const { return alias; }
+
     inline string getRawName() const { return rawName; }
 
     inline uint32_t getNumChildren() const { return children.size(); }
@@ -79,6 +83,8 @@ public:
 protected:
     vector<shared_ptr<Expression>> children;
 };
+
+using expression_vector = vector<shared_ptr<Expression>>;
 
 } // namespace binder
 } // namespace graphflow

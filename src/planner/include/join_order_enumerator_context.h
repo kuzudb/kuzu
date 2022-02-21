@@ -62,6 +62,12 @@ public:
         return expressionsToScanFromOuter;
     }
 
+    inline void resetState() {
+        currentLevel = 0;
+        subPlansTable = make_unique<SubPlansTable>();
+        mergedQueryGraph = make_unique<QueryGraph>();
+    }
+
 private:
     vector<shared_ptr<Expression>> whereExpressionsSplitOnAND;
 
@@ -73,7 +79,7 @@ private:
     bitset<MAX_NUM_VARIABLES> matchedQueryRels;
     bitset<MAX_NUM_VARIABLES> matchedQueryNodes;
 
-    vector<shared_ptr<Expression>> expressionsToScanFromOuter;
+    expression_vector expressionsToScanFromOuter;
 };
 
 } // namespace planner

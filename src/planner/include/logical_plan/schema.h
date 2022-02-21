@@ -18,33 +18,42 @@ namespace planner {
 class LogicalExtend;
 
 class FactorizationGroup {
+    friend class Schema;
 
 public:
     FactorizationGroup() : isFlat{false}, estimatedCardinality{1} {}
 
     FactorizationGroup(const FactorizationGroup& other)
         : isFlat{other.isFlat}, estimatedCardinality{other.estimatedCardinality},
-          expressionNames{other.expressionNames} {}
+          expressions{other.expressions} {}
 
-    inline void insertExpression(const string& expressionName) {
-        expressionNames.insert(expressionName);
+    inline void setIsFlat(bool flag) { isFlat = flag; }
+
+    inline bool getIsFlat() const { return isFlat; }
+
+    inline void setEstimatedCardinality(uint64_t cardinality) {
+        estimatedCardinality = cardinality;
     }
 
-    inline void removeExpression(const string& expressionName) {
-        expressionNames.erase(expressionName);
+    inline uint64_t getEstimatedCardinality() const { return estimatedCardinality; }
+
+    inline void insertExpression(const shared_ptr<Expression>& expression) {
+        expressions.push_back(expression);
     }
 
     inline string getAnyExpressionName() {
-        assert(!expressionNames.empty());
-        return *expressionNames.begin();
+        assert(!expressions.empty());
+        return expressions[0]->getUniqueName();
     }
 
-    inline uint32_t getNumExpressions() const { return expressionNames.size(); }
+    inline expression_vector getExpressions() const { return expressions; }
 
-public:
+    inline uint32_t getNumExpressions() const { return expressions.size(); }
+
+private:
     bool isFlat;
     uint64_t estimatedCardinality;
-    unordered_set<string> expressionNames;
+    expression_vector expressions;
 };
 
 class Schema {
@@ -60,55 +69,42 @@ public:
 
     uint32_t createGroup();
 
-    void insertToGroup(const string& expressionName, uint32_t groupPos);
+    void insertToGroupAndScope(const shared_ptr<Expression>& expression, uint32_t groupPos);
 
-    void insertToGroupAndScope(const string& expressionName, uint32_t groupPos);
-
-    void insertToGroupAndScope(const unordered_set<string>& expressionNames, uint32_t groupPos);
+    void insertToGroupAndScope(const expression_vector& expressions, uint32_t groupPos);
 
     uint32_t getGroupPos(const string& expressionName) const;
 
     inline void flattenGroup(uint32_t pos) { groups[pos]->isFlat = true; }
 
-    inline bool expressionInScope(const string& expressionName) const {
-        return expressionNamesInScope.contains(expressionName);
-    }
+    bool isExpressionInScope(const Expression& expression) const;
 
-    inline unordered_set<string> getExpressionNamesInScope() const {
-        return expressionNamesInScope;
-    }
+    inline expression_vector getExpressionsInScope() const { return expressionsInScope; }
 
-    unordered_set<string> getExpressionNamesInScope(uint32_t pos) const;
+    expression_vector getExpressionsInScope(uint32_t pos) const;
 
-    void removeExpression(const string& expressionName);
-
-    inline void clearExpressionsInScope() { expressionNamesInScope.clear(); }
+    inline void clearExpressionsInScope() { expressionsInScope.clear(); }
 
     // Get the group positions containing at least one expression in scope.
     unordered_set<uint32_t> getGroupsPosInScope() const;
 
     void addLogicalExtend(const string& queryRel, LogicalExtend* extend);
 
-    inline bool containLogicalExtend(const string& queryRel) {
-        return queryRelLogicalExtendMap.contains(queryRel);
-    }
     LogicalExtend* getExistingLogicalExtend(const string& queryRel);
 
     unique_ptr<Schema> copy() const;
 
     void clear();
 
-public:
+private:
     vector<unique_ptr<FactorizationGroup>> groups;
+    unordered_map<string, uint32_t> expressionNameToGroupPos;
     // Maps a queryRel to the LogicalExtend that matches it. This is needed because ScanRelProperty
     // requires direction information which only available in the LogicalExtend.
     unordered_map<string, LogicalExtend*> queryRelLogicalExtendMap;
-
-private:
-    unordered_map<string, uint32_t> expressionNameToGroupPos;
     // Our projection doesn't explicitly remove expressions. Instead, we keep track of what
     // expressions are in scope (i.e. being projected).
-    unordered_set<string> expressionNamesInScope;
+    expression_vector expressionsInScope;
 };
 
 } // namespace planner

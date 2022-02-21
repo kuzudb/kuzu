@@ -9,20 +9,15 @@ uint32_t Schema::createGroup() {
     return pos;
 }
 
-void Schema::insertToGroup(const string& expressionName, uint32_t groupPos) {
-    expressionNameToGroupPos.insert({expressionName, groupPos});
-    groups[groupPos]->insertExpression(expressionName);
+void Schema::insertToGroupAndScope(const shared_ptr<Expression>& expression, uint32_t groupPos) {
+    expressionNameToGroupPos.insert({expression->getUniqueName(), groupPos});
+    groups[groupPos]->insertExpression(expression);
+    expressionsInScope.push_back(expression);
 }
 
-void Schema::insertToGroupAndScope(const string& expressionName, uint32_t groupPos) {
-    expressionNamesInScope.insert(expressionName);
-    insertToGroup(expressionName, groupPos);
-}
-
-void Schema::insertToGroupAndScope(
-    const unordered_set<string>& expressionNames, uint32_t groupPos) {
-    for (auto& expressionName : expressionNames) {
-        insertToGroupAndScope(expressionName, groupPos);
+void Schema::insertToGroupAndScope(const expression_vector& expressions, uint32_t groupPos) {
+    for (auto& expression : expressions) {
+        insertToGroupAndScope(expression, groupPos);
     }
 }
 
@@ -31,26 +26,29 @@ uint32_t Schema::getGroupPos(const string& expressionName) const {
     return expressionNameToGroupPos.at(expressionName);
 }
 
-unordered_set<string> Schema::getExpressionNamesInScope(uint32_t pos) const {
-    unordered_set<string> result;
-    for (auto& expressionName : groups[pos]->expressionNames) {
-        if (expressionInScope(expressionName)) {
-            result.insert(expressionName);
+bool Schema::isExpressionInScope(const Expression& expression) const {
+    for (auto& expressionInScope : expressionsInScope) {
+        if (expressionInScope->getUniqueName() == expression.getUniqueName()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+expression_vector Schema::getExpressionsInScope(uint32_t pos) const {
+    expression_vector result;
+    for (auto& expression : expressionsInScope) {
+        if (getGroupPos(expression->getUniqueName()) == pos) {
+            result.push_back(expression);
         }
     }
     return result;
 }
 
-void Schema::removeExpression(const string& expressionName) {
-    auto groupPos = getGroupPos(expressionName);
-    groups[groupPos]->removeExpression(expressionName);
-    expressionNameToGroupPos.erase(expressionName);
-}
-
 unordered_set<uint32_t> Schema::getGroupsPosInScope() const {
     unordered_set<uint32_t> result;
-    for (auto& expressionInScope : expressionNamesInScope) {
-        result.insert(getGroupPos(expressionInScope));
+    for (auto& expressionInScope : expressionsInScope) {
+        result.insert(getGroupPos(expressionInScope->getUniqueName()));
     }
     return result;
 }
@@ -72,7 +70,7 @@ unique_ptr<Schema> Schema::copy() const {
         auto newGroup = make_unique<FactorizationGroup>(*group);
         newSchema->groups.push_back(move(newGroup));
     }
-    newSchema->expressionNamesInScope = expressionNamesInScope;
+    newSchema->expressionsInScope = expressionsInScope;
     return newSchema;
 }
 
