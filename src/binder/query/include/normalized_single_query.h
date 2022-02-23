@@ -23,12 +23,12 @@ public:
 
     inline NormalizedQueryPart* getQueryPart(uint32_t idx) const { return queryParts[idx].get(); }
 
-    inline void markLastQueryPart() { queryParts.back()->setLastQueryPart(true); }
-
     inline expression_vector getExpressionsToReturn() const {
         assert(!queryParts.empty());
         return queryParts.back()->getProjectionBody()->getProjectionExpressions();
     }
+
+    expression_vector getAllPropertyExpressions() const;
 
 private:
     vector<unique_ptr<NormalizedQueryPart>> queryParts;

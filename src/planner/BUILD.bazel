@@ -8,52 +8,13 @@ cc_library(
     hdrs = glob([
         "include/*.h",
     ]),
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
-        "logical_operator_impls",
-        "logical_plan",
-        "//src/binder",
         "//src/binder/expression:expression_implementations",
+        "//src/planner/logical_plan",
+        "//src/planner/logical_plan/logical_operator:logical_operator_impls",
         "//src/storage:graph",
-    ],
-)
-
-cc_library(
-    name = "logical_plan",
-    srcs = glob([
-        "logical_plan/*.cpp",
-    ]),
-    hdrs = glob([
-        "include/logical_plan/*.h",
-    ]),
-    visibility = ["//visibility:public"],
-    deps = [
-        "base_logical_operator",
-        "//src/binder/expression:base_expression",
-    ],
-)
-
-cc_library(
-    name = "base_logical_operator",
-    srcs = [
-        "logical_plan/operator/logical_operator.cpp",
-    ],
-    hdrs = [
-        "include/logical_plan/operator/logical_operator.h",
-    ],
-    deps = [
-        "//src/common:types",
-    ],
-)
-
-cc_library(
-    name = "logical_operator_impls",
-    hdrs = glob([
-        "include/logical_plan/operator/**/logical_*.h",
-    ]),
-    visibility = ["//visibility:public"],
-    deps = [
-        "base_logical_operator",
-        "//src/binder/expression:base_expression",
     ],
 )

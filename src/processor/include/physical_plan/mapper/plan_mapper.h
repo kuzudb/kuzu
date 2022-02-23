@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/planner/include/logical_plan/logical_plan.h"
+#include "src/planner/logical_plan/include/logical_plan.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/mapper/mapper_context.h"
 #include "src/processor/include/physical_plan/operator/result_collector.h"

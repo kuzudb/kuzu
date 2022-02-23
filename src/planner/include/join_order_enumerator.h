@@ -30,11 +30,10 @@ public:
         const shared_ptr<Expression>& queryGraphPredicate,
         vector<unique_ptr<LogicalPlan>> prevPlans);
 
-    void resetState() { context->resetState(); }
+    inline void resetState() { context->resetState(); }
 
 private:
-    unique_ptr<JoinOrderEnumeratorContext> enterSubquery(
-        vector<shared_ptr<Expression>> expressionsToScan);
+    unique_ptr<JoinOrderEnumeratorContext> enterSubquery(expression_vector expressionsToScan);
     void exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
     // join order enumeration functions
@@ -46,9 +45,8 @@ private:
     // append logical operator functions
     void appendResultScan(const expression_vector& expressionsToSelect, LogicalPlan& plan);
     void appendScanNodeID(NodeExpression& queryNode, LogicalPlan& plan);
-    void appendExtendFiltersAndScanPropertiesIfNecessary(const RelExpression& queryRel,
-        Direction direction, const vector<shared_ptr<Expression>>& expressionsToFilter,
-        LogicalPlan& plan);
+    void appendExtendFiltersAndScanProperties(const RelExpression& queryRel, Direction direction,
+        const expression_vector& expressionsToFilter, LogicalPlan& plan);
     void appendExtend(const RelExpression& queryRel, Direction direction, LogicalPlan& plan);
     void appendLogicalHashJoin(
         const NodeExpression& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/main/include/session_context.h"
-#include "src/planner/include/logical_plan/logical_plan.h"
+#include "src/planner/logical_plan/include/logical_plan.h"
 #include "src/processor/include/processor.h"
 #include "src/storage/include/graph.h"
 

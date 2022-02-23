@@ -8,8 +8,7 @@ namespace binder {
 class BoundProjectionBody {
 
 public:
-    explicit BoundProjectionBody(
-        bool isDistinct, vector<shared_ptr<Expression>> projectionExpressions)
+    explicit BoundProjectionBody(bool isDistinct, expression_vector projectionExpressions)
         : isDistinct{isDistinct}, projectionExpressions{move(projectionExpressions)},
           skipNumber{UINT64_MAX}, limitNumber{UINT64_MAX} {}
 
@@ -22,19 +21,15 @@ public:
 
     inline bool getIsDistinct() const { return isDistinct; }
 
-    inline vector<shared_ptr<Expression>> getProjectionExpressions() const {
-        return projectionExpressions;
-    }
+    inline expression_vector getProjectionExpressions() const { return projectionExpressions; }
 
     bool hasAggregationExpressions() const;
 
-    void setOrderByExpressions(vector<shared_ptr<Expression>> expressions, vector<bool> sortOrders);
+    void setOrderByExpressions(expression_vector expressions, vector<bool> sortOrders);
 
     inline bool hasOrderByExpressions() const { return !orderByExpressions.empty(); }
 
-    inline const vector<shared_ptr<Expression>>& getOrderByExpressions() const {
-        return orderByExpressions;
-    }
+    inline const expression_vector& getOrderByExpressions() const { return orderByExpressions; }
 
     inline const vector<bool>& getSortingOrders() const { return isAscOrders; }
 
@@ -50,14 +45,16 @@ public:
 
     inline uint64_t getLimitNumber() const { return limitNumber; }
 
+    expression_vector getAllPropertyExpressions() const;
+
     inline unique_ptr<BoundProjectionBody> copy() const {
         return make_unique<BoundProjectionBody>(*this);
     }
 
 private:
     bool isDistinct;
-    vector<shared_ptr<Expression>> projectionExpressions;
-    vector<shared_ptr<Expression>> orderByExpressions;
+    expression_vector projectionExpressions;
+    expression_vector orderByExpressions;
     vector<bool> isAscOrders;
     uint64_t skipNumber;
     uint64_t limitNumber;

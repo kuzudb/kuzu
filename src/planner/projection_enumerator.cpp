@@ -2,43 +2,41 @@
 
 #include "src/binder/expression/include/function_expression.h"
 #include "src/planner/include/enumerator.h"
-#include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
-#include "src/planner/include/logical_plan/operator/distinct/logical_distinct.h"
-#include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
-#include "src/planner/include/logical_plan/operator/multiplicity_reducer/logical_multiplcity_reducer.h"
-#include "src/planner/include/logical_plan/operator/order_by/logical_order_by.h"
-#include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
-#include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_multiplcity_reducer.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_order_by.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_projection.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_skip.h"
 
 namespace graphflow {
 namespace planner {
 
-void ProjectionEnumerator::enumerateProjectionBody(const BoundProjectionBody& projectionBody,
-    const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn) {
+void ProjectionEnumerator::enumerateProjectionBody(
+    const BoundProjectionBody& projectionBody, const vector<unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
         enumerateAggregate(projectionBody, *plan);
         enumerateOrderBy(projectionBody, *plan);
-        auto expressionsToProject =
-            getExpressionsToProject(projectionBody, *plan->schema, isFinalReturn);
-        enumerateProjection(expressionsToProject, projectionBody.getIsDistinct(), *plan);
+        enumerateProjection(projectionBody, *plan);
         enumerateSkipAndLimit(projectionBody, *plan);
     }
 }
 
 void ProjectionEnumerator::enumerateAggregate(
     const BoundProjectionBody& projectionBody, LogicalPlan& plan) {
-    auto expressionsToAggregate = getExpressionsToAggregate(projectionBody, *plan.schema);
+    auto expressionsToAggregate = getExpressionsToAggregate(projectionBody, *plan.getSchema());
     if (expressionsToAggregate.empty()) {
         return;
     }
-    vector<shared_ptr<Expression>> expressionsToProject;
+    expression_vector expressionsToProject;
     for (auto& expressionToAggregate : expressionsToAggregate) {
         if (expressionToAggregate->getChildren().empty()) { // skip COUNT(*)
             continue;
         }
         expressionsToProject.push_back(expressionToAggregate->getChild(0));
     }
-    auto expressionsToGroupBy = getExpressionToGroupBy(projectionBody, *plan.schema);
+    auto expressionsToGroupBy = getExpressionToGroupBy(projectionBody, *plan.getSchema());
     for (auto& expressionToGroupBy : expressionsToGroupBy) {
         expressionsToProject.push_back(expressionToGroupBy);
     }
@@ -55,10 +53,10 @@ void ProjectionEnumerator::enumerateOrderBy(
 }
 
 void ProjectionEnumerator::enumerateProjection(
-    const vector<shared_ptr<Expression>>& expressionsToProject, bool isDistinct,
-    LogicalPlan& plan) {
+    const BoundProjectionBody& projectionBody, LogicalPlan& plan) {
+    auto expressionsToProject = getExpressionsToProject(projectionBody, *plan.getSchema());
     appendProjection(expressionsToProject, plan);
-    if (isDistinct) {
+    if (projectionBody.getIsDistinct()) {
         appendDistinct(expressionsToProject, plan);
     }
 }
@@ -78,53 +76,54 @@ void ProjectionEnumerator::enumerateSkipAndLimit(
 }
 
 void ProjectionEnumerator::appendProjection(
-    const vector<shared_ptr<Expression>>& expressionsToProject, LogicalPlan& plan) {
+    const expression_vector& expressionsToProject, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
     vector<uint32_t> groupsPosToWrite;
     for (auto& expression : expressionsToProject) {
         enumerator->planSubqueryIfNecessary(expression, plan);
-        auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *plan.schema);
+        auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *schema);
         groupsPosToWrite.push_back(enumerator->appendFlattensButOne(dependentGroupsPos, plan));
     }
-    auto groupsPosInScopeBeforeProjection = plan.schema->getGroupsPosInScope();
-    plan.schema->clearExpressionsInScope();
+    auto groupsPosInScopeBeforeProjection = schema->getGroupsPosInScope();
+    schema->clearExpressionsInScope();
     for (auto i = 0u; i < expressionsToProject.size(); ++i) {
-        plan.schema->insertToGroupAndScope(expressionsToProject[i], groupsPosToWrite[i]);
+        schema->insertToGroupAndScope(expressionsToProject[i], groupsPosToWrite[i]);
     }
-    auto groupsPosInScopeAfterProjection = plan.schema->getGroupsPosInScope();
+    auto groupsPosInScopeAfterProjection = schema->getGroupsPosInScope();
     unordered_set<uint32_t> discardGroupsPos;
-    for (auto i = 0u; i < plan.schema->getNumGroups(); ++i) {
+    for (auto i = 0u; i < schema->getNumGroups(); ++i) {
         if (groupsPosInScopeBeforeProjection.contains(i) &&
             !groupsPosInScopeAfterProjection.contains(i)) {
             discardGroupsPos.insert(i);
         }
     }
     auto projection = make_shared<LogicalProjection>(
-        expressionsToProject, move(discardGroupsPos), plan.lastOperator);
+        expressionsToProject, move(discardGroupsPos), plan.getLastOperator());
     plan.appendOperator(move(projection));
 }
 
 void ProjectionEnumerator::appendDistinct(
-    const vector<shared_ptr<Expression>>& expressionsToDistinct, LogicalPlan& plan) {
+    const expression_vector& expressionsToDistinct, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
     for (auto& expression : expressionsToDistinct) {
-        auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *plan.schema);
-        Enumerator::appendFlattens(dependentGroupsPos, plan);
+        auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *schema);
+        enumerator->appendFlattens(dependentGroupsPos, plan);
     }
     auto distinct =
-        make_shared<LogicalDistinct>(expressionsToDistinct, plan.schema->copy(), plan.lastOperator);
-    plan.schema->clear();
-    auto groupPos = plan.schema->createGroup();
+        make_shared<LogicalDistinct>(expressionsToDistinct, schema->copy(), plan.getLastOperator());
+    schema->clear();
+    auto groupPos = schema->createGroup();
     for (auto& expression : expressionsToDistinct) {
-        plan.schema->insertToGroupAndScope(expression, groupPos);
+        schema->insertToGroupAndScope(expression, groupPos);
     }
     plan.appendOperator(move(distinct));
 }
 
-void ProjectionEnumerator::appendAggregate(
-    const vector<shared_ptr<Expression>>& expressionsToGroupBy,
-    const vector<shared_ptr<Expression>>& expressionsToAggregate, LogicalPlan& plan) {
+void ProjectionEnumerator::appendAggregate(const expression_vector& expressionsToGroupBy,
+    const expression_vector& expressionsToAggregate, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
     for (auto& expressionToGroupBy : expressionsToGroupBy) {
-        auto dependentGroupsPos =
-            Enumerator::getDependentGroupsPos(expressionToGroupBy, *plan.schema);
+        auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expressionToGroupBy, *schema);
         enumerator->appendFlattens(dependentGroupsPos, plan);
     }
     for (auto& expressionToAggregate : expressionsToAggregate) {
@@ -132,26 +131,26 @@ void ProjectionEnumerator::appendAggregate(
         auto& functionExpression = (FunctionExpression&)*expressionToAggregate;
         if (functionExpression.isFunctionDistinct()) {
             auto dependentGroupsPos =
-                Enumerator::getDependentGroupsPos(expressionToAggregate, *plan.schema);
+                Enumerator::getDependentGroupsPos(expressionToAggregate, *schema);
             enumerator->appendFlattens(dependentGroupsPos, plan);
         }
     }
     auto aggregate = make_shared<LogicalAggregate>(
-        expressionsToGroupBy, expressionsToAggregate, plan.schema->copy(), plan.lastOperator);
-    plan.schema->clear();
-    auto groupPos = plan.schema->createGroup();
+        expressionsToGroupBy, expressionsToAggregate, schema->copy(), plan.getLastOperator());
+    schema->clear();
+    auto groupPos = schema->createGroup();
     for (auto& expression : expressionsToGroupBy) {
-        plan.schema->insertToGroupAndScope(expression, groupPos);
+        schema->insertToGroupAndScope(expression, groupPos);
     }
     for (auto& expression : expressionsToAggregate) {
-        plan.schema->insertToGroupAndScope(expression, groupPos);
+        schema->insertToGroupAndScope(expression, groupPos);
     }
     plan.appendOperator(move(aggregate));
 }
 
-void ProjectionEnumerator::appendOrderBy(const vector<shared_ptr<Expression>>& expressions,
-    const vector<bool>& isAscOrders, LogicalPlan& plan) {
-    vector<string> orderByExpressionNames;
+void ProjectionEnumerator::appendOrderBy(
+    const expression_vector& expressions, const vector<bool>& isAscOrders, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
     for (auto& expression : expressions) {
         enumerator->planSubqueryIfNecessary(expression, plan);
         // We only allow orderby key(s) to be unflat, if they are all part of the same factorization
@@ -167,79 +166,73 @@ void ProjectionEnumerator::appendOrderBy(const vector<shared_ptr<Expression>>& e
         // group), sort the table, and scan into unflat vectors, so the schema remains the same. In
         // more complicated cases, e.g., when there are 2 factorization groups, FactorizedTable
         // cannot read back a flat column into an unflat vector.
-        if (plan.schema->getNumGroups() > 1) {
-            auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *plan.schema);
+        if (schema->getNumGroups() > 1) {
+            auto dependentGroupsPos = Enumerator::getDependentGroupsPos(expression, *schema);
             enumerator->appendFlattens(dependentGroupsPos, plan);
         }
-        orderByExpressionNames.push_back(expression->getUniqueName());
     }
-    auto schemaBeforeOrderBy = plan.schema->copy();
-    plan.schema->clear();
+    auto schemaBeforeOrderBy = schema->copy();
+    schema->clear();
     Enumerator::computeSchemaForHashJoinOrderByAndUnion(
-        schemaBeforeOrderBy->getGroupsPosInScope(), *schemaBeforeOrderBy, *plan.schema);
-    unordered_set<string> expressionToMaterializeNames;
-    for (auto& expression : schemaBeforeOrderBy->getExpressionsInScope()) {
-        expressionToMaterializeNames.insert(expression->getUniqueName());
-    }
-    auto orderBy = make_shared<LogicalOrderBy>(orderByExpressionNames, isAscOrders,
-        schemaBeforeOrderBy->copy(), move(expressionToMaterializeNames), plan.lastOperator);
+        schemaBeforeOrderBy->getGroupsPosInScope(), *schemaBeforeOrderBy, *schema);
+    auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders,
+        schemaBeforeOrderBy->getExpressionsInScope(), schemaBeforeOrderBy->copy(),
+        plan.getLastOperator());
     plan.appendOperator(move(orderBy));
 }
 
 void ProjectionEnumerator::appendMultiplicityReducer(LogicalPlan& plan) {
-    plan.appendOperator(make_shared<LogicalMultiplicityReducer>(plan.lastOperator));
+    plan.appendOperator(make_shared<LogicalMultiplicityReducer>(plan.getLastOperator()));
 }
 
 void ProjectionEnumerator::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
-    auto groupPosToSelect =
-        enumerator->appendFlattensButOne(plan.schema->getGroupsPosInScope(), plan);
+    auto schema = plan.getSchema();
+    auto groupPosToSelect = enumerator->appendFlattensButOne(schema->getGroupsPosInScope(), plan);
     auto limit = make_shared<LogicalLimit>(
-        limitNumber, groupPosToSelect, plan.schema->getGroupsPosInScope(), plan.lastOperator);
-    for (auto i = 0u; i < plan.schema->getNumGroups(); ++i) {
-        plan.schema->getGroup(i)->setEstimatedCardinality(limitNumber);
+        limitNumber, groupPosToSelect, schema->getGroupsPosInScope(), plan.getLastOperator());
+    for (auto i = 0u; i < schema->getNumGroups(); ++i) {
+        schema->getGroup(i)->setEstimatedCardinality(limitNumber);
     }
     plan.appendOperator(move(limit));
 }
 
 void ProjectionEnumerator::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
-    auto groupPosToSelect =
-        enumerator->appendFlattensButOne(plan.schema->getGroupsPosInScope(), plan);
+    auto schema = plan.getSchema();
+    auto groupPosToSelect = enumerator->appendFlattensButOne(schema->getGroupsPosInScope(), plan);
     auto skip = make_shared<LogicalSkip>(
-        skipNumber, groupPosToSelect, plan.schema->getGroupsPosInScope(), plan.lastOperator);
-    for (auto i = 0u; i < plan.schema->getNumGroups(); ++i) {
-        auto group = plan.schema->getGroup(i);
+        skipNumber, groupPosToSelect, schema->getGroupsPosInScope(), plan.getLastOperator());
+    for (auto i = 0u; i < schema->getNumGroups(); ++i) {
+        auto group = schema->getGroup(i);
         group->setEstimatedCardinality(group->getEstimatedCardinality() - skipNumber);
     }
     plan.appendOperator(move(skip));
 }
 
-vector<shared_ptr<Expression>> ProjectionEnumerator::getExpressionToGroupBy(
+expression_vector ProjectionEnumerator::getExpressionToGroupBy(
     const BoundProjectionBody& projectionBody, const Schema& schema) {
-    vector<shared_ptr<Expression>> expressionsToGroupBy;
+    expression_vector expressionsToGroupBy;
     for (auto& expression : projectionBody.getProjectionExpressions()) {
-        if (Enumerator::getAggregationExpressionsNotInSchema(expression, schema).empty()) {
+        if (getSubAggregateExpressionsNotInScope(expression, schema).empty()) {
             expressionsToGroupBy.push_back(expression);
         }
     }
     return expressionsToGroupBy;
 }
 
-vector<shared_ptr<Expression>> ProjectionEnumerator::getExpressionsToAggregate(
+expression_vector ProjectionEnumerator::getExpressionsToAggregate(
     const BoundProjectionBody& projectionBody, const Schema& schema) {
-    vector<shared_ptr<Expression>> expressionsToAggregate;
+    expression_vector expressionsToAggregate;
     for (auto& expression : projectionBody.getProjectionExpressions()) {
-        for (auto& aggExpression :
-            Enumerator::getAggregationExpressionsNotInSchema(expression, schema)) {
+        for (auto& aggExpression : getSubAggregateExpressionsNotInScope(expression, schema)) {
             expressionsToAggregate.push_back(aggExpression);
         }
     }
     return expressionsToAggregate;
 }
 
-vector<shared_ptr<Expression>> ProjectionEnumerator::getExpressionsToProject(
-    const BoundProjectionBody& projectionBody, const Schema& schema,
-    bool isRewritingAllProperties) {
-    vector<shared_ptr<Expression>> expressionsToProject;
+expression_vector ProjectionEnumerator::getExpressionsToProject(
+    const BoundProjectionBody& projectionBody, const Schema& schema) {
+    expression_vector expressionsToProject;
     for (auto& expression : projectionBody.getProjectionExpressions()) {
         if (expression->expressionType == VARIABLE) {
             for (auto& property : rewriteVariableAsAllPropertiesInScope(*expression, schema)) {
@@ -250,6 +243,26 @@ vector<shared_ptr<Expression>> ProjectionEnumerator::getExpressionsToProject(
         }
     }
     return expressionsToProject;
+}
+
+expression_vector ProjectionEnumerator::getSubAggregateExpressionsNotInScope(
+    const shared_ptr<Expression>& expression, const Schema& schema) {
+    expression_vector result;
+    if (schema.isExpressionInScope(*expression)) {
+        return result;
+    }
+    if (isExpressionAggregate(expression->expressionType)) {
+        result.push_back(expression);
+        // Since aggregate expressions cannot be nested, we can safely return when current
+        // expression is an aggregate expression.
+        return result;
+    }
+    for (auto& child : expression->getChildren()) {
+        for (auto& expr : getSubAggregateExpressionsNotInScope(child, schema)) {
+            result.push_back(expr);
+        }
+    }
+    return result;
 }
 
 expression_vector ProjectionEnumerator::rewriteVariableAsAllPropertiesInScope(

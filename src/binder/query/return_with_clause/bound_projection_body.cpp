@@ -13,9 +13,24 @@ bool BoundProjectionBody::hasAggregationExpressions() const {
 }
 
 void BoundProjectionBody::setOrderByExpressions(
-    vector<shared_ptr<Expression>> expressions, vector<bool> sortOrders) {
+    expression_vector expressions, vector<bool> sortOrders) {
     orderByExpressions = move(expressions);
     isAscOrders = move(sortOrders);
+}
+
+expression_vector BoundProjectionBody::getAllPropertyExpressions() const {
+    expression_vector result;
+    for (auto& expression : projectionExpressions) {
+        for (auto& property : expression->getSubPropertyExpressions()) {
+            result.push_back(property);
+        }
+    }
+    for (auto& expression : orderByExpressions) {
+        for (auto& property : expression->getSubPropertyExpressions()) {
+            result.push_back(property);
+        }
+    }
+    return result;
 }
 
 } // namespace binder

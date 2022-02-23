@@ -15,8 +15,8 @@ unordered_set<string> ExistentialSubqueryExpression::getDependentVariableNames()
 
 // The children of subquery expressions is defined as all expressions in the subquery, i.e.
 // expressions from predicates and return clause. Plus nodeID expressions from query graph.
-vector<shared_ptr<Expression>> ExistentialSubqueryExpression::getChildren() const {
-    vector<shared_ptr<Expression>> result;
+expression_vector ExistentialSubqueryExpression::getChildren() const {
+    expression_vector result;
     for (auto i = 0u; i < subQuery->getNumQueryParts(); ++i) {
         auto queryPart = subQuery->getQueryPart(i);
         for (auto j = 0u; j < queryPart->getNumQueryGraph(); ++j) {

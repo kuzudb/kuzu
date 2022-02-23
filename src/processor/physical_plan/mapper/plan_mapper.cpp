@@ -3,25 +3,25 @@
 #include <set>
 
 #include "src/function/include/aggregate/aggregate_function.h"
-#include "src/planner/include/logical_plan/operator/aggregate/logical_aggregate.h"
-#include "src/planner/include/logical_plan/operator/distinct/logical_distinct.h"
-#include "src/planner/include/logical_plan/operator/exists/logical_exist.h"
-#include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
-#include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
-#include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
-#include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
-#include "src/planner/include/logical_plan/operator/intersect/logical_intersect.h"
-#include "src/planner/include/logical_plan/operator/limit/logical_limit.h"
-#include "src/planner/include/logical_plan/operator/nested_loop_join/logical_left_nested_loop_join.h"
-#include "src/planner/include/logical_plan/operator/order_by/logical_order_by.h"
-#include "src/planner/include/logical_plan/operator/projection/logical_projection.h"
-#include "src/planner/include/logical_plan/operator/result_collector/logical_result_collector.h"
-#include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
-#include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
-#include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
-#include "src/planner/include/logical_plan/operator/select_scan/logical_result_scan.h"
-#include "src/planner/include/logical_plan/operator/skip/logical_skip.h"
-#include "src/planner/include/logical_plan/operator/union/logical_union.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_left_nested_loop_join.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_order_by.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_projection.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_result_collector.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_result_scan.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_scan_node_id.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_scan_rel_property.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_skip.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_union.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate_scan.h"
@@ -60,15 +60,15 @@ namespace processor {
 static unique_ptr<PhysicalOperator> createHashAggregate(
     vector<unique_ptr<AggregateFunction>> aggregateFunctions, vector<DataPos> inputAggVectorsPos,
     vector<DataPos> outputAggVectorsPos, vector<DataType> outputAggVectorsDataType,
-    const vector<shared_ptr<Expression>>& groupByExpressions,
-    unique_ptr<PhysicalOperator> prevOperator, MapperContext& mapperContextBeforeAggregate,
-    MapperContext& mapperContext, ExecutionContext& executionContext);
+    const expression_vector& groupByExpressions, unique_ptr<PhysicalOperator> prevOperator,
+    MapperContext& mapperContextBeforeAggregate, MapperContext& mapperContext,
+    ExecutionContext& executionContext);
 
 unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
     unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext) {
-    auto mapperContext = MapperContext(make_unique<ResultSetDescriptor>(*logicalPlan->schema));
-    auto resultCollector =
-        mapLogicalOperatorToPhysical(logicalPlan->lastOperator, mapperContext, executionContext);
+    auto mapperContext = MapperContext(make_unique<ResultSetDescriptor>(*logicalPlan->getSchema()));
+    auto resultCollector = mapLogicalOperatorToPhysical(
+        logicalPlan->getLastOperator(), mapperContext, executionContext);
     return make_unique<PhysicalPlan>(move(resultCollector));
 }
 
@@ -191,16 +191,19 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalResultScanToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& resultScan = (const LogicalResultScan&)*logicalOperator;
+    auto expressionsToScan = resultScan.getExpressionsToScan();
+    assert(!expressionsToScan.empty());
     vector<DataPos> inDataPoses;
     uint32_t outDataChunkPos =
-        mapperContext.getDataPos(*resultScan.getVariablesToSelect().begin()).dataChunkPos;
+        mapperContext.getDataPos(expressionsToScan[0]->getUniqueName()).dataChunkPos;
     vector<uint32_t> outValueVectorsPos;
-    for (auto& variable : resultScan.getVariablesToSelect()) {
-        inDataPoses.push_back(outerMapperContext->getDataPos(variable));
+    for (auto& expression : expressionsToScan) {
+        auto expressionName = expression->getUniqueName();
+        inDataPoses.push_back(outerMapperContext->getDataPos(expressionName));
         // all variables should be appended to the same datachunk
-        assert(outDataChunkPos == mapperContext.getDataPos(variable).dataChunkPos);
-        outValueVectorsPos.push_back(mapperContext.getDataPos(variable).valueVectorPos);
-        mapperContext.addComputedExpressions(variable);
+        assert(outDataChunkPos == mapperContext.getDataPos(expressionName).dataChunkPos);
+        outValueVectorsPos.push_back(mapperContext.getDataPos(expressionName).valueVectorPos);
+        mapperContext.addComputedExpressions(expressionName);
     }
     return make_unique<ResultScan>(mapperContext.getResultSetDescriptor()->copy(),
         move(inDataPoses), outDataChunkPos, move(outValueVectorsPos), executionContext,
@@ -242,7 +245,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
     auto& flatten = (const LogicalFlatten&)*logicalOperator;
     auto prevOperator =
         mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
-    auto dataChunkPos = mapperContext.getDataPos(flatten.variable).dataChunkPos;
+    auto dataChunkPos =
+        mapperContext.getDataPos(flatten.getExpressionToFlatten()->getUniqueName()).dataChunkPos;
     return make_unique<Flatten>(
         dataChunkPos, move(prevOperator), executionContext, mapperContext.getOperatorID());
 }
@@ -280,14 +284,14 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
         mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     vector<unique_ptr<ExpressionEvaluator>> expressionEvaluators;
     vector<DataPos> expressionsOutputPos;
-    for (auto& expression : logicalProjection.expressionsToProject) {
+    for (auto& expression : logicalProjection.getExpressionsToProject()) {
         expressionEvaluators.push_back(expressionMapper.mapLogicalExpressionToPhysical(
             *expression, mapperContext, executionContext));
         expressionsOutputPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
         mapperContext.addComputedExpressions(expression->getUniqueName());
     }
     return make_unique<Projection>(move(expressionEvaluators), move(expressionsOutputPos),
-        logicalProjection.discardedGroupsPos, move(prevOperator), executionContext,
+        logicalProjection.getDiscardedGroupsPos(), move(prevOperator), executionContext,
         mapperContext.getOperatorID());
 }
 
@@ -349,20 +353,21 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     ExecutionContext& executionContext) {
     auto& hashJoin = (const LogicalHashJoin&)*logicalOperator;
     auto buildSideMapperContext =
-        MapperContext(make_unique<ResultSetDescriptor>(*hashJoin.buildSideSchema));
+        MapperContext(make_unique<ResultSetDescriptor>(*hashJoin.getBuildSideSchema()));
     auto buildSidePrevOperator = mapLogicalOperatorToPhysical(
         hashJoin.getChild(1), buildSideMapperContext, executionContext);
     auto probeSidePrevOperator =
         mapLogicalOperatorToPhysical(hashJoin.getChild(0), mapperContext, executionContext);
     // Populate build side and probe side vector positions
-    auto buildSideKeyIDDataPos = buildSideMapperContext.getDataPos(hashJoin.joinNodeID);
-    auto probeSideKeyIDDataPos = mapperContext.getDataPos(hashJoin.joinNodeID);
+    auto buildSideKeyIDDataPos = buildSideMapperContext.getDataPos(hashJoin.getJoinNodeID());
+    auto probeSideKeyIDDataPos = mapperContext.getDataPos(hashJoin.getJoinNodeID());
     vector<bool> isBuildSideNonKeyDataFlat;
     vector<DataPos> buildSideNonKeyDataPoses;
     vector<DataPos> probeSideNonKeyDataPoses;
-    auto& buildSideSchema = *hashJoin.buildSideSchema;
-    for (auto& expressionName : hashJoin.getExpressionToMaterializeNames()) {
-        if (expressionName == hashJoin.joinNodeID) {
+    auto& buildSideSchema = *hashJoin.getBuildSideSchema();
+    for (auto& expression : hashJoin.getExpressionsToMaterialize()) {
+        auto expressionName = expression->getUniqueName();
+        if (expressionName == hashJoin.getJoinNodeID()) {
             continue;
         }
         mapperContext.addComputedExpressions(expressionName);
@@ -536,13 +541,15 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     auto orderByPrevOperator = mapLogicalOperatorToPhysical(
         logicalOrderBy.getChild(0), mapperContextBeforeOrderBy, executionContext);
     vector<DataPos> keyDataPoses;
-    for (auto& expressionName : logicalOrderBy.getOrderByExpressionNames()) {
-        keyDataPoses.emplace_back(mapperContextBeforeOrderBy.getDataPos(expressionName));
+    for (auto& expression : logicalOrderBy.getExpressionsToOrderBy()) {
+        keyDataPoses.emplace_back(
+            mapperContextBeforeOrderBy.getDataPos(expression->getUniqueName()));
     }
     vector<DataPos> inputDataPoses;
     vector<bool> isInputVectorFlat;
     vector<DataPos> outputDataPoses;
-    for (auto& expressionName : logicalOrderBy.getExpressionToMaterializeNames()) {
+    for (auto& expression : logicalOrderBy.getExpressionsToMaterialize()) {
+        auto expressionName = expression->getUniqueName();
         inputDataPoses.push_back(mapperContextBeforeOrderBy.getDataPos(expressionName));
         isInputVectorFlat.push_back(schemaBeforeOrderBy.getGroup(expressionName)->getIsFlat());
         outputDataPoses.push_back(mapperContext.getDataPos(expressionName));
@@ -606,9 +613,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
 unique_ptr<PhysicalOperator> createHashAggregate(
     vector<unique_ptr<AggregateFunction>> aggregateFunctions, vector<DataPos> inputAggVectorsPos,
     vector<DataPos> outputAggVectorsPos, vector<DataType> outputAggVectorsDataType,
-    const vector<shared_ptr<Expression>>& groupByExpressions,
-    unique_ptr<PhysicalOperator> prevOperator, MapperContext& mapperContextBeforeAggregate,
-    MapperContext& mapperContext, ExecutionContext& executionContext) {
+    const expression_vector& groupByExpressions, unique_ptr<PhysicalOperator> prevOperator,
+    MapperContext& mapperContextBeforeAggregate, MapperContext& mapperContext,
+    ExecutionContext& executionContext) {
     vector<DataPos> inputGroupByKeyVectorsPos;
     vector<DataPos> outputGroupByKeyVectorsPos;
     vector<DataType> outputGroupByKeyVectorsDataType;
