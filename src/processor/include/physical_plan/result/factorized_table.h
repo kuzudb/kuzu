@@ -75,6 +75,8 @@ public:
 
     inline uint64_t getNullMapOffset() const { return numBytesForDataPerTuple; }
 
+    inline uint64_t getNumBytesForNullMap() const { return numBytesForNullMapPerTuple; }
+
     inline uint64_t getNumBytesPerTuple() const {
         return numBytesForDataPerTuple + numBytesForNullMapPerTuple;
     }
@@ -169,15 +171,12 @@ public:
         memcpy(getCell(tupleIdx, colIdx), dataBuf, tableSchema.getColumn(colIdx).getNumBytes());
     }
 
-    inline void updateFlatCell(uint64_t tupleIdx, uint64_t colIdx, ValueVector* valueVector) {
-        valueVector->copyNonNullDataWithSameTypeOutFromPos(
-            valueVector->state->getPositionOfCurrIdx(), getCell(tupleIdx, colIdx), *stringBuffer);
-    }
+    void updateFlatCell(uint64_t tupleIdx, uint64_t colIdx, ValueVector* valueVector);
+
+    static bool isNull(const uint8_t* nullMapBuffer, uint64_t colIdx);
 
 private:
     static void setNull(uint8_t* nullBuffer, uint64_t colIdx);
-
-    static bool isNull(const uint8_t* nullMapBuffer, uint64_t colIdx);
 
     uint64_t computeNumTuplesToAppend(const vector<shared_ptr<ValueVector>>& vectorsToAppend) const;
 

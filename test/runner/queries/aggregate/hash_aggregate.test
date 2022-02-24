@@ -11,9 +11,10 @@
 
 -NAME SingleNodeAggTest2
 -QUERY MATCH (a:person) RETURN a.unstrDateProp1, SUM(a.unstrNumericProp), COUNT(*)
----- 2
+---- 3
 1900-01-01||1
 1950-01-01|99|2
+|68.000000|5
 
 -NAME OneHopAggTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.age, a.gender, COUNT(*)
@@ -26,13 +27,25 @@
 
 -NAME OneHopAggTest2
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.unstrNumericProp, SUM(a.unstrNumericProp2)
----- 3
+---- 4
 47|60
 52|
 68.000000|
+|
 
 -NAME TwoHopAggTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.gender, COUNT(*)
 ---- 2
 1|18
 2|18
+
+-NAME GroupByKeyWithNullString
+-QUERY MATCH (a:person) return a.label1,a.label2, count(*)
+-PARALLELISM 1
+---- 6
+excellent|excellent|1
+good|excellent|2
+good||1
+|excellent|1
+|good|1
+||2

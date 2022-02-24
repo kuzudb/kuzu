@@ -34,12 +34,12 @@ public:
 
 protected:
     void writeAggregateResultToVector(
-        ValueVector* vector, uint64_t pos, AggregateState* aggregateState);
+        shared_ptr<ValueVector> vector, uint64_t pos, AggregateState* aggregateState);
 
 protected:
     vector<DataPos> aggregatesPos;
     vector<DataType> aggregateDataTypes;
-    vector<ValueVector*> aggregateVectors;
+    vector<shared_ptr<ValueVector>> aggregateVectors;
 };
 
 } // namespace processor

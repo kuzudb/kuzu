@@ -9,13 +9,13 @@ shared_ptr<ResultSet> BaseAggregateScan::initResultSet() {
         auto valueVector = make_shared<ValueVector>(context.memoryManager, aggregateDataTypes[i]);
         auto outDataChunk = resultSet->dataChunks[aggregatesPos[i].dataChunkPos];
         outDataChunk->insert(aggregatesPos[i].valueVectorPos, valueVector);
-        aggregateVectors.push_back(valueVector.get());
+        aggregateVectors.push_back(valueVector);
     }
     return resultSet;
 }
 
 void BaseAggregateScan::writeAggregateResultToVector(
-    ValueVector* vector, uint64_t pos, AggregateState* aggregateState) {
+    shared_ptr<ValueVector> vector, uint64_t pos, AggregateState* aggregateState) {
     if (aggregateState->isNull) {
         vector->setNull(pos, true);
     } else {

@@ -23,6 +23,8 @@ public:
 
     inline uint8_t* getRow(uint64_t idx) { return globalAggregateHashTable->getEntry(idx); }
 
+    FactorizedTable* getFactorizedTable() { return globalAggregateHashTable->getFactorizedTable(); }
+
 private:
     vector<unique_ptr<AggregateHashTable>> localAggregateHashTables;
     unique_ptr<AggregateHashTable> globalAggregateHashTable;
