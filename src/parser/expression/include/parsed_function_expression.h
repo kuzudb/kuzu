@@ -8,10 +8,9 @@ namespace parser {
 class ParsedFunctionExpression : public ParsedExpression {
 
 public:
-    ParsedFunctionExpression(
-        ExpressionType type, string functionName, string rawName, bool isDistinct = false)
-        : ParsedExpression{type, move(rawName)}, isDistinct{isDistinct}, functionName{
-                                                                             move(functionName)} {}
+    ParsedFunctionExpression(string functionName, string rawName, bool isDistinct = false)
+        : ParsedExpression{FUNCTION, move(rawName)}, isDistinct{isDistinct}, functionName{move(
+                                                                                 functionName)} {}
 
     bool getIsDistinct() const { return isDistinct; }
 

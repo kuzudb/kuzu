@@ -117,6 +117,8 @@ private:
     unique_ptr<ParsedExpression> transformBooleanLiteral(
         CypherParser::OC_BooleanLiteralContext& ctx);
 
+    unique_ptr<ParsedExpression> transformListLiteral(CypherParser::OC_ListLiteralContext& ctx);
+
     unique_ptr<ParsedExpression> transformParenthesizedExpression(
         CypherParser::OC_ParenthesizedExpressionContext& ctx);
 

@@ -29,6 +29,10 @@ public:
     BaseExpressionEvaluator(
         unique_ptr<BaseExpressionEvaluator> left, unique_ptr<BaseExpressionEvaluator> right);
 
+    // Function evaluator
+    explicit BaseExpressionEvaluator(vector<unique_ptr<BaseExpressionEvaluator>> children)
+        : children{move(children)} {}
+
     virtual ~BaseExpressionEvaluator() = default;
 
     virtual void init(const ResultSet& resultSet, MemoryManager* memoryManager);

@@ -63,7 +63,6 @@ public:
 
 TEST_F(AggrExpressionEvaluatorTest, CountStarTest) {
     auto countFunction = AggregateFunctionTestHelper::getAggregateFunction(COUNT_STAR_FUNC, INT64);
-    ;
     auto countStarState = static_unique_pointer_cast<AggregateState, BaseCountFunction::CountState>(
         countFunction->createInitialNullAggregateState());
     countFunction->updateState((uint8_t*)countStarState.get(), nullptr,

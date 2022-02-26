@@ -20,9 +20,8 @@ ValueVector::ValueVector(MemoryManager* memoryManager, DataType dataType)
     bufferValues = memoryManager->allocateOSBackedBlock(
         TypeUtils::getDataTypeSize(dataType) * DEFAULT_VECTOR_CAPACITY);
     values = bufferValues->data;
-
-    if (dataType == STRING || dataType == UNSTRUCTURED) {
-        stringBuffer = make_unique<StringBuffer>(memoryManager);
+    if (needOverflowBuffer()) {
+        overflowBuffer = make_unique<OverflowBuffer>(memoryManager);
     }
     nullMask = make_shared<NullMask>();
 }
@@ -53,25 +52,33 @@ bool ValueVector::discardNullNodes() {
 
 void ValueVector::allocateStringOverflowSpaceIfNecessary(gf_string_t& result, uint64_t len) const {
     assert(dataType == STRING || dataType == UNSTRUCTURED);
-    stringBuffer->allocateLargeStringIfNecessary(result, len);
+    overflowBuffer->allocateLargeStringIfNecessary(result, len);
 }
 
 void ValueVector::copyNonNullDataWithSameTypeIntoPos(uint64_t pos, uint8_t* srcData) {
-    copyNonNullDataWithSameType(srcData, values + pos * getNumBytesPerValue(), *stringBuffer);
+    copyNonNullDataWithSameType(srcData, values + pos * getNumBytesPerValue(), *overflowBuffer);
 }
 
 void ValueVector::copyNonNullDataWithSameTypeOutFromPos(
-    uint64_t pos, uint8_t* dstData, StringBuffer& dstStringBuffer) const {
-    copyNonNullDataWithSameType(values + pos * getNumBytesPerValue(), dstData, dstStringBuffer);
+    uint64_t pos, uint8_t* dstData, OverflowBuffer& dstOverflowBuffer) const {
+    copyNonNullDataWithSameType(values + pos * getNumBytesPerValue(), dstData, dstOverflowBuffer);
 }
 
 void ValueVector::copyNonNullDataWithSameType(
-    const uint8_t* srcData, uint8_t* dstData, StringBuffer& stringBuffer) const {
+    const uint8_t* srcData, uint8_t* dstData, OverflowBuffer& overflowBuffer) const {
     if (dataType == STRING) {
         auto gfStrSrcPtr = (gf_string_t*)srcData;
         auto gfStrDstPtr = (gf_string_t*)dstData;
-        stringBuffer.allocateLargeStringIfNecessary(*gfStrDstPtr, gfStrSrcPtr->len);
+        overflowBuffer.allocateLargeStringIfNecessary(*gfStrDstPtr, gfStrSrcPtr->len);
         gfStrDstPtr->set(*gfStrSrcPtr);
+    } else if (dataType == LIST) {
+        auto gfListSrcPtr = (gf_list_t*)srcData;
+        auto gfListDstPtr = (gf_list_t*)dstData;
+        gfListDstPtr->childType = gfListSrcPtr->childType;
+        gfListDstPtr->capacity = gfListSrcPtr->capacity;
+        gfListDstPtr->size = gfListSrcPtr->size;
+        overflowBuffer.allocateList(*gfListDstPtr);
+        gfListDstPtr->copyOverflow(*gfListSrcPtr);
     } else {
         // Regardless of whether the dataType is unstructured or a structured non-string type, we
         // first copy over the data in the src to the dst.
@@ -85,7 +92,7 @@ void ValueVector::copyNonNullDataWithSameType(
             // the entire data first even though the unstrValueDstPtr->val.strVal.set call below
             // will copy over the 16 bytes for the string.
             if (unstrValueSrcPtr->dataType == STRING) {
-                stringBuffer.allocateLargeStringIfNecessary(
+                overflowBuffer.allocateLargeStringIfNecessary(
                     unstrValueDstPtr->val.strVal, unstrValueSrcPtr->val.strVal.len);
                 unstrValueDstPtr->val.strVal.set(unstrValueSrcPtr->val.strVal);
             }

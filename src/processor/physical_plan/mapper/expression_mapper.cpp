@@ -1,6 +1,7 @@
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 
 #include "src/binder/expression/include/literal_expression.h"
+#include "src/expression_evaluator/include/function_evaluator.h"
 #include "src/expression_evaluator/include/literal_evaluator.h"
 #include "src/expression_evaluator/include/operator_evaluator.h"
 #include "src/expression_evaluator/include/reference_evaluator.h"
@@ -16,6 +17,8 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
         return mapLiteralExpression(expression, false /* castToUnstructured */);
     } else if (mapperContext.expressionHasComputed(expression->getUniqueName())) {
         return mapReferenceExpression(expression, mapperContext);
+    } else if (isExpressionListFunction(expressionType)) {
+        return mapFunctionExpression(expression, mapperContext, executionContext);
     } else {
         return mapOperatorExpression(expression, mapperContext, executionContext);
     }
@@ -32,6 +35,16 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapReferenceExpression(
     auto vectorPos = mapperContext.getDataPos(expression->getUniqueName());
     return make_unique<ReferenceExpressionEvaluator>(
         vectorPos, mapperContext.isDataChunkFlat(vectorPos.dataChunkPos));
+}
+
+unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapFunctionExpression(
+    const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
+    ExecutionContext& executionContext) {
+    vector<unique_ptr<BaseExpressionEvaluator>> children;
+    for (auto i = 0u; i < expression->getNumChildren(); ++i) {
+        children.push_back(mapExpression(expression->getChild(i), mapperContext, executionContext));
+    }
+    return make_unique<FunctionExpressionEvaluator>(expression, move(children));
 }
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapOperatorExpression(

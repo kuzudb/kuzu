@@ -269,6 +269,7 @@ oC_Literal
         | StringLiteral
         | oC_BooleanLiteral
         | NULL_
+        | oC_ListLiteral
         ;
 
 oC_BooleanLiteral
@@ -279,6 +280,9 @@ oC_BooleanLiteral
 TRUE : ( 'T' | 't' ) ( 'R' | 'r' ) ( 'U' | 'u' ) ( 'E' | 'e' ) ;
 
 FALSE : ( 'F' | 'f' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'S' | 's' ) ( 'E' | 'e' ) ;
+
+oC_ListLiteral
+    :  '[' SP? ( oC_Expression SP? ( ',' SP? oC_Expression SP? )* )? ']' ;
 
 oC_ParenthesizedExpression
     : '(' SP? oC_Expression SP? ')' ;

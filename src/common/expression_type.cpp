@@ -55,6 +55,10 @@ bool isExpressionSubquery(ExpressionType type) {
     return EXISTENTIAL_SUBQUERY == type;
 }
 
+bool isExpressionListFunction(ExpressionType type) {
+    return LIST_CREATION == type || LIST_EXTRACT == type;
+}
+
 string expressionTypeToString(ExpressionType type) {
     switch (type) {
     case OR:
@@ -97,8 +101,6 @@ string expressionTypeToString(ExpressionType type) {
         return "ENDS_WITH";
     case CONTAINS:
         return "CONTAINS";
-    case CSV_LINE_EXTRACT:
-        return "CSV_LINE_EXTRACT";
     case IS_NULL:
         return "IS_NULL";
     case IS_NOT_NULL:
@@ -149,6 +151,10 @@ string expressionTypeToString(ExpressionType type) {
         return MIN_FUNC_NAME;
     case MAX_FUNC:
         return MAX_FUNC_NAME;
+    case LIST_CREATION:
+        return LIST_CREATION_FUNC_NAME;
+    case LIST_EXTRACT:
+        return LIST_EXTRACT_FUNC_NAME;
     default:
         throw invalid_argument("Should never happen. Cannot convert expression type to string");
     }

@@ -19,13 +19,13 @@ cc_library(
     srcs = [
         "compression_scheme.cpp",
         "data_chunk/data_chunk_state.cpp",
-        "vector/string_buffer.cpp",
+        "vector/overflow_buffer.cpp",
         "vector/value_vector.cpp",
     ],
     hdrs = [
         "include/compression_scheme.h",
         "include/data_chunk/data_chunk_state.h",
-        "include/vector/string_buffer.h",
+        "include/vector/overflow_buffer.h",
         "include/vector/value_vector.h",
     ],
     visibility = ["//visibility:public"],
@@ -118,6 +118,7 @@ cc_library(
     name = "types",
     srcs = [
         "date.cpp",
+        "gf_list.cpp",
         "gf_string.cpp",
         "interval.cpp",
         "literal.cpp",
@@ -129,6 +130,7 @@ cc_library(
     hdrs = [
         "include/cast_helpers.h",
         "include/date.h",
+        "include/gf_list.h",
         "include/gf_string.h",
         "include/interval.h",
         "include/literal.h",

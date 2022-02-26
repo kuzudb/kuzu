@@ -1,8 +1,9 @@
 #include "gtest/gtest.h"
 
 #include "src/parser/expression/include/parsed_function_expression.h"
-#include "src/parser/expression/include/parsed_leaf_expression.h"
+#include "src/parser/expression/include/parsed_literal_expression.h"
 #include "src/parser/expression/include/parsed_property_expression.h"
+#include "src/parser/expression/include/parsed_variable_expression.h"
 #include "src/parser/include/parser.h"
 
 using namespace graphflow::parser;
@@ -13,19 +14,19 @@ class ReturnWithTest : public ::testing::Test {
 
 public:
     static unique_ptr<ParsedExpression> makeANameExpression() {
-        auto child = make_unique<ParsedLeafExpression>(VARIABLE, "a", EMPTY);
+        auto child = make_unique<ParsedVariableExpression>("a", EMPTY);
         return make_unique<ParsedPropertyExpression>(PROPERTY, "name", move(child), EMPTY);
     }
 
     static unique_ptr<ParsedExpression> makeAAgeExpression() {
-        auto child = make_unique<ParsedLeafExpression>(VARIABLE, "a", EMPTY);
+        auto child = make_unique<ParsedVariableExpression>("a", EMPTY);
         return make_unique<ParsedPropertyExpression>(PROPERTY, "age", move(child), EMPTY);
     }
 };
 
 TEST_F(ReturnWithTest, ReturnCountStarTest) {
     auto expressions = vector<unique_ptr<ParsedExpression>>();
-    expressions.push_back(make_unique<ParsedFunctionExpression>(FUNCTION, "COUNT_STAR", EMPTY));
+    expressions.push_back(make_unique<ParsedFunctionExpression>("COUNT_STAR", EMPTY));
     auto returnClause = make_unique<ReturnClause>(make_unique<ProjectionBody>(
         false /* isDistinct */, false /* containsStar */, move(expressions)));
 
@@ -64,7 +65,8 @@ TEST_F(ReturnWithTest, ReturnLimitTest) {
     projectionExpressions.push_back(makeANameExpression());
     auto projectionBody = make_unique<ProjectionBody>(
         false /* isDistinct */, false /* containsStar */, move(projectionExpressions));
-    projectionBody->setLimitExpression(make_unique<ParsedLeafExpression>(LITERAL_INT, "10", EMPTY));
+    projectionBody->setLimitExpression(
+        make_unique<ParsedLiteralExpression>(LITERAL_INT, "10", EMPTY));
     auto returnClause = make_unique<ReturnClause>(move(projectionBody));
     string input = "MATCH () RETURN a.name LIMIT 10;";
     auto regularQuery = Parser::parseQuery(input);
@@ -73,10 +75,10 @@ TEST_F(ReturnWithTest, ReturnLimitTest) {
 
 TEST_F(ReturnWithTest, SingleWithTest) {
     auto expressions = vector<unique_ptr<ParsedExpression>>();
-    auto one = make_unique<ParsedLeafExpression>(LITERAL_INT, "1", EMPTY);
+    auto one = make_unique<ParsedLiteralExpression>(LITERAL_INT, "1", EMPTY);
     one->setAlias("one");
     expressions.push_back(move(one));
-    auto name = make_unique<ParsedLeafExpression>(LITERAL_STRING, "\"Xiyang\"", EMPTY);
+    auto name = make_unique<ParsedLiteralExpression>(LITERAL_STRING, "\"Xiyang\"", EMPTY);
     name->setAlias("name");
     expressions.push_back(move(name));
     auto withClause = make_unique<WithClause>(make_unique<ProjectionBody>(
@@ -91,7 +93,7 @@ TEST_F(ReturnWithTest, SingleWithTest) {
 
 TEST_F(ReturnWithTest, MultiMatchWithStarTest) {
     auto expressions = vector<unique_ptr<ParsedExpression>>();
-    auto one = make_unique<ParsedLeafExpression>(LITERAL_INT, "1", EMPTY);
+    auto one = make_unique<ParsedLiteralExpression>(LITERAL_INT, "1", EMPTY);
     one->setAlias("one");
     expressions.push_back(move(one));
     auto withClause = make_unique<WithClause>(make_unique<ProjectionBody>(
@@ -108,7 +110,7 @@ TEST_F(ReturnWithTest, MultiWithWhereTest) {
     auto expressions1 = vector<unique_ptr<ParsedExpression>>();
     auto withClause1 = make_unique<WithClause>(make_unique<ProjectionBody>(
         false /* isDistinct */, true /* containsStar */, move(expressions1)));
-    auto one1 = make_unique<ParsedLeafExpression>(LITERAL_INT, "1", EMPTY);
+    auto one1 = make_unique<ParsedLiteralExpression>(LITERAL_INT, "1", EMPTY);
     auto aAge1 = makeAAgeExpression();
     auto where1 = make_unique<ParsedExpression>(LESS_THAN, move(aAge1), move(one1), EMPTY);
     withClause1->setWhereExpression(move(where1));
@@ -119,8 +121,8 @@ TEST_F(ReturnWithTest, MultiWithWhereTest) {
     expressions2.push_back(move(aAge2));
     auto withClause2 = make_unique<WithClause>(make_unique<ProjectionBody>(
         false /* isDistinct */, false /* containsStar */, move(expressions2)));
-    auto ten2 = make_unique<ParsedLeafExpression>(LITERAL_INT, "10", EMPTY);
-    auto newAge = make_unique<ParsedLeafExpression>(VARIABLE, "newAge", EMPTY);
+    auto ten2 = make_unique<ParsedLiteralExpression>(LITERAL_INT, "10", EMPTY);
+    auto newAge = make_unique<ParsedVariableExpression>("newAge", EMPTY);
     auto where2 = make_unique<ParsedExpression>(EQUALS, move(newAge), move(ten2), EMPTY);
     withClause2->setWhereExpression(move(where2));
 

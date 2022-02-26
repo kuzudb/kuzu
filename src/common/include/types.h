@@ -196,10 +196,11 @@ enum DataType : uint8_t {
     DATE = 10,
     TIMESTAMP = 11,
     INTERVAL = 12,
+    LIST = 13,
 };
 
 const string DataTypeNames[] = {"INVALID", "REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE",
-    "STRING", "NODE_ID", "UNSTRUCTURED", "DATE", "TIMESTAMP", "INTERVAL"};
+    "STRING", "NODE_ID", "UNSTRUCTURED", "DATE", "TIMESTAMP", "INTERVAL", "LIST"};
 
 // Direction
 enum Direction : uint8_t { FWD = 0, BWD = 1 };

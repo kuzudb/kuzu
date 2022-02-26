@@ -8,6 +8,7 @@ namespace graphflow {
 namespace common {
 
 class Literal {
+
 public:
     Literal() {}
 

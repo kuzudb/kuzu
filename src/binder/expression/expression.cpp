@@ -3,20 +3,14 @@
 namespace graphflow {
 namespace binder {
 
-Expression::Expression(ExpressionType expressionType, DataType dataType,
-    const shared_ptr<Expression>& left, const shared_ptr<Expression>& right)
+Expression::Expression(ExpressionType expressionType, DataType dataType, expression_vector children)
     : Expression{expressionType, dataType} {
-    uniqueName = expressionTypeToString(expressionType) + "(" + left->getUniqueName() + "," +
-                 right->getUniqueName() + ")";
-    children.push_back(left);
-    children.push_back(right);
-}
-
-Expression::Expression(
-    ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child)
-    : Expression{expressionType, dataType} {
-    uniqueName = expressionTypeToString(expressionType) + "(" + child->getUniqueName() + ")";
-    children.push_back(child);
+    uniqueName = expressionTypeToString(expressionType) + "(";
+    for (auto& child : children) {
+        uniqueName += child->getUniqueName() + ", ";
+        this->children.push_back(move(child));
+    }
+    uniqueName += ")";
 }
 
 Expression::Expression(ExpressionType expressionType, DataType dataType, const string& uniqueName)

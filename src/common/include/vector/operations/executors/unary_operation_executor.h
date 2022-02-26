@@ -22,7 +22,7 @@ struct UnaryOperationExecutor {
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void execute(ValueVector& operand, ValueVector& result) {
-        result.resetStringBuffer();
+        result.resetOverflowBuffer();
         auto resultValues = (RESULT_TYPE*)result.values;
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();

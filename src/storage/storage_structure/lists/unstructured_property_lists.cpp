@@ -43,7 +43,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(ValueVector* nodeIDVec
             readPropertyValue(value, dataTypeSize, cursor, info.mapper);
             value->dataType = propertyKeyDataType.dataType;
             if (propertyKeyDataType.dataType == STRING) {
-                stringOverflowPages.readStringToVector(value->val.strVal, *vector->stringBuffer);
+                stringOverflowPages.readStringToVector(value->val.strVal, *vector->overflowBuffer);
             }
         } else {
             skipPropertyValue(dataTypeSize, cursor);

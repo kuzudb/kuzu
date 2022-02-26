@@ -61,6 +61,8 @@ string Value::toString() const {
         return Timestamp::toString(val.timestampVal);
     case INTERVAL:
         return Interval::toString(val.intervalVal);
+    case LIST:
+        return val.listVal.toString();
     default:
         assert(false);
     }
