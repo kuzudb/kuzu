@@ -25,8 +25,7 @@ bool ScanStructuredProperty::getNextTuples() {
     }
     for (auto i = 0u; i < propertyColumns.size(); ++i) {
         outputVectors[i]->resetStringBuffer();
-        propertyColumns[i]->readValues(
-            inputNodeIDVector, outputVectors[i], *metrics->bufferManagerMetrics);
+        propertyColumns[i]->readValues(inputNodeIDVector, outputVectors[i]);
     }
     metrics->executionTime.stop();
     return true;

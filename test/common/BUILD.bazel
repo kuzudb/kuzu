@@ -14,21 +14,6 @@ cc_library(
 )
 
 cc_test(
-    name = "memory_manager_test",
-    srcs = [
-        "memory_manager_test.cpp",
-    ],
-    copts = [
-        "-Iexternal/gtest/include",
-    ],
-    deps = [
-        "//src/common:memory_manager",
-        "@gtest",
-        "@gtest//:gtest_main",
-    ],
-)
-
-cc_test(
     name = "types_test",
     srcs = [
         "date_test.cpp",

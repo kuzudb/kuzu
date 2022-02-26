@@ -40,7 +40,7 @@ public:
 
     virtual ~ExpressionEvaluator() = default;
 
-    virtual void initResultSet(const ResultSet& resultSet, MemoryManager& memoryManager);
+    virtual void initResultSet(const ResultSet& resultSet, MemoryManager* memoryManager);
 
     virtual void evaluate() {
         // For leaf expressions, evaluate function performs no op.

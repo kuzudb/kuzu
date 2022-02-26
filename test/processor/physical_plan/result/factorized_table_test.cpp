@@ -26,7 +26,8 @@ public:
     }
 
     void SetUp() override {
-        memoryManager = make_unique<MemoryManager>();
+        bufferManager = make_unique<BufferManager>();
+        memoryManager = make_unique<MemoryManager>(bufferManager.get());
         resultSet = initResultSet();
         auto vectorA1 = resultSet->dataChunks[0]->valueVectors[0];
         auto vectorA2 = resultSet->dataChunks[0]->valueVectors[1];
@@ -63,7 +64,7 @@ public:
         // Prepare the factorizedTable and unflat vectors (A1, B1).
         TableSchema tupleSchema({{false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)},
             {true /* isUnflat */, 1 /* dataChunkPos */, sizeof(overflow_value_t)}});
-        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
+        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tupleSchema);
         vector<shared_ptr<ValueVector>> vectorsToAppend = {
             resultSet->dataChunks[0]->valueVectors[0], resultSet->dataChunks[1]->valueVectors[0]};
         if (isAppendFlatVectorToUnflatCol) {
@@ -106,15 +107,16 @@ public:
     }
 
 public:
-    unique_ptr<ResultSet> resultSet;
+    unique_ptr<BufferManager> bufferManager;
     unique_ptr<MemoryManager> memoryManager;
+    unique_ptr<ResultSet> resultSet;
 };
 
 TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
     // Prepare the factorizedTable and vector B1 (flat), A2(unflat).
     TableSchema tableSchema({{false /* isUnflat */, 1 /* dataChunkPos */, sizeof(nodeID_t)},
         {true /* isUnflat */, 0 /* dataChunkPos */, sizeof(overflow_value_t)}});
-    auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tableSchema);
+    auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tableSchema);
     resultSet->dataChunks[1]->state->currIdx = 0;
     vector<shared_ptr<ValueVector>> vectorsToAppend = {
         resultSet->dataChunks[1]->valueVectors[0], resultSet->dataChunks[0]->valueVectors[1]};
@@ -240,8 +242,8 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeStringBufferTest) {
     TableSchema tupleSchema({
         {false /* isUnflat */, 0 /* dataChunkPos */, sizeof(gf_string_t)},
     });
-    auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
-    auto factorizedTable1 = make_unique<FactorizedTable>(*memoryManager, tupleSchema);
+    auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tupleSchema);
+    auto factorizedTable1 = make_unique<FactorizedTable>(memoryManager.get(), tupleSchema);
 
     // Append same testing data to factorizedTable and factorizedTable1.
     for (auto i = 0u; i < numRowsToAppend; i++) {

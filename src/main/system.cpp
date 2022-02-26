@@ -14,9 +14,10 @@ namespace main {
 
 System::System(const string& path, bool isInMemoryMode)
     : logger{LoggerUtils::getOrCreateSpdLogger("System")} {
-    memManager = make_unique<MemoryManager>();
     bufferManager =
-        make_unique<BufferManager>(isInMemoryMode ? 0 : StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
+        make_unique<BufferManager>(isInMemoryMode ? 0 : StorageConfig::DEFAULT_BUFFER_POOL_SIZE,
+            isInMemoryMode ? 0 : StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
+    memManager = make_unique<MemoryManager>(bufferManager.get());
     graph = make_unique<Graph>(path, *bufferManager, isInMemoryMode);
     processor = make_unique<QueryProcessor>(thread::hardware_concurrency());
     initialized = true;
@@ -48,7 +49,8 @@ void System::executeQuery(SessionContext& context) const {
     }
     context.expressionsToReturnDataTypes = logicalPlan->getExpressionsToCollectDataTypes();
 
-    auto executionContext = make_unique<ExecutionContext>(*context.profiler, memManager.get());
+    auto executionContext =
+        make_unique<ExecutionContext>(*context.profiler, memManager.get(), bufferManager.get());
     auto mapper = PlanMapper(*graph);
     auto physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan), *executionContext);
     compilingTimeMetric.stop();
@@ -83,7 +85,8 @@ vector<unique_ptr<LogicalPlan>> System::enumerateAllPlans(SessionContext& sessio
 shared_ptr<FactorizedTable> System::executePlan(
     unique_ptr<LogicalPlan> logicalPlan, SessionContext& sessionContext) const {
     sessionContext.profiler->resetMetrics();
-    auto executionContext = ExecutionContext(*sessionContext.profiler, memManager.get());
+    auto executionContext =
+        ExecutionContext(*sessionContext.profiler, memManager.get(), bufferManager.get());
     auto physicalPlan =
         PlanMapper(*graph).mapLogicalPlanToPhysical(move(logicalPlan), executionContext);
     return processor->execute(physicalPlan.get(), sessionContext.numThreads);

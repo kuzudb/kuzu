@@ -1,7 +1,5 @@
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 
-#include <iostream>
-
 namespace graphflow {
 namespace processor {
 
@@ -42,13 +40,8 @@ PhysicalOperator* PhysicalOperator::getLeafOperator() {
 void PhysicalOperator::registerProfilingMetrics() {
     auto executionTime = context.profiler.registerTimeMetric(getTimeMetricKey());
     auto numOutputTuple = context.profiler.registerNumericMetric(getNumTupleMetricKey());
-    auto numBufferHit = context.profiler.registerNumericMetric(getNumBufferHitMetricKey());
-    auto numBufferMiss = context.profiler.registerNumericMetric(getNumBufferMissMetricKey());
-    auto numIO = context.profiler.registerNumericMetric(getNumIOMetricKey());
-    auto bufferManageMetrics =
-        make_unique<BufferManagerMetrics>(*numBufferHit, *numBufferMiss, *numIO);
-    metrics =
-        make_unique<OperatorMetrics>(*executionTime, *numOutputTuple, move(bufferManageMetrics));
+
+    metrics = make_unique<OperatorMetrics>(*executionTime, *numOutputTuple);
 }
 
 void PhysicalOperator::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
@@ -65,15 +58,6 @@ void PhysicalOperator::printTimeAndNumOutputMetrics(nlohmann::json& json, Profil
     json["executionTime"] =
         to_string(profiler.sumAllTimeMetricsWithKey(getTimeMetricKey()) - prevExecutionTime);
     json["numOutputTuples"] = profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
-}
-
-void PhysicalOperator::printBufferManagerMetrics(nlohmann::json& json, Profiler& profiler) {
-    auto bufferHit = profiler.sumAllNumericMetricsWithKey(getNumBufferHitMetricKey());
-    auto bufferMiss = profiler.sumAllNumericMetricsWithKey(getNumBufferMissMetricKey());
-    json["numBufferHit"] = bufferHit;
-    json["numBufferMiss"] = bufferMiss;
-    json["cacheMissRatio"] = to_string(((double)bufferMiss) / (double)(bufferMiss + bufferHit));
-    json["numIO"] = profiler.sumAllNumericMetricsWithKey(getNumIOMetricKey());
 }
 
 } // namespace processor

@@ -16,9 +16,6 @@ class LoadedHashIndexTest : public testing::Test {
 
 public:
     LoadedHashIndexTest() : fName{TEMP_INDEX_DIR + "/0.index"} {
-        dummyMetric = make_unique<NumericMetric>(false);
-        bufferManagerMetrics =
-            make_unique<BufferManagerMetrics>(*dummyMetric, *dummyMetric, *dummyMetric);
         FileUtils::createDir(TEMP_INDEX_DIR);
     }
 
@@ -28,9 +25,6 @@ public:
     const string TEMP_INDEX_DIR = "test/temp_index/";
     const string fName;
     uint64_t numKeysToInsert = 5000;
-
-    unique_ptr<NumericMetric> dummyMetric;
-    unique_ptr<BufferManagerMetrics> bufferManagerMetrics;
 };
 
 class LoadedHashIndexInt64KeyTest : public LoadedHashIndexTest {
@@ -110,19 +104,19 @@ TEST(HashIndexTest, HashIndexStringKeyInsertExists) {
 }
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64SequentialLookupInMem) {
-    auto bufferManager = make_unique<BufferManager>(0);
+    auto bufferManager = make_unique<BufferManager>();
     HashIndex hashIndex(fName, *bufferManager, true /*isInMemory*/);
     node_offset_t result;
     for (uint64_t i = 0; i < numKeysToInsert; i++) {
-        auto found =
-            hashIndex.lookup(reinterpret_cast<uint8_t*>(&i), result, *bufferManagerMetrics);
+        auto found = hashIndex.lookup(reinterpret_cast<uint8_t*>(&i), result);
         ASSERT_TRUE(found);
         ASSERT_EQ(result, i << 1);
     }
 }
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookupThroughBufferManager) {
-    auto bufferManager = make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
+    auto bufferManager = make_unique<BufferManager>(
+        StorageConfig::DEFAULT_BUFFER_POOL_SIZE, StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
     HashIndex hashIndex(fName, *bufferManager, false /*isInMemory*/);
     random_device rd;
     mt19937::result_type seed =
@@ -137,18 +131,18 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookupThroughBufferManag
     node_offset_t result;
     for (auto i = 0; i < 10000; i++) {
         uint64_t key = distribution(gen);
-        hashIndex.lookup(reinterpret_cast<uint8_t*>(&key), result, *bufferManagerMetrics);
+        hashIndex.lookup(reinterpret_cast<uint8_t*>(&key), result);
         ASSERT_EQ(result, key << 1);
     }
 }
 
 TEST_F(LoadedHashIndexStringKeyTest, HashIndexInt64SequentialLookupInMem) {
-    auto bufferManager = make_unique<BufferManager>(0);
+    auto bufferManager = make_unique<BufferManager>(0, 0);
     HashIndex hashIndex(fName, *bufferManager, true /*isInMemory*/);
     node_offset_t result;
     for (auto& entry : map) {
         auto key = reinterpret_cast<uint8_t*>(const_cast<char*>(entry.first.c_str()));
-        auto found = hashIndex.lookup(key, result, *bufferManagerMetrics);
+        auto found = hashIndex.lookup(key, result);
         ASSERT_TRUE(found);
         ASSERT_EQ(result, entry.second);
     }

@@ -50,15 +50,29 @@ public:
     ~TaskScheduler();
 
     // Functions for the users of the task scheduler, e.g., loader and processor to use.
+
+    // Schedules the dependencies of the given task and finally the task one after another (so
+    // not concurrently), and throws an exception if any of the tasks errors. Regardless of
+    // whether or not the given task or one of its dependencies errors, when this function
+    // returns, no task related to the given task will be in the task queue.
     void scheduleTaskAndWaitOrError(const shared_ptr<Task>& task);
+
     // If a user, e.g., currently the loader, adds a set of tasks T1, ..., Tk, to the task scheduler
     // without waiting for them to finish, the user needs to call waitAllTasksToCompleteOrError() if
     // it wants to catch the errors that may have happened in T1, ..., Tk. If this function is not
     // called and a T_i errors, there will be two side effects: (1) the user will never be aware
     // that there was an error in some of the scheduled tasks; (2) the erroring task will not be
     // removed from the task queue, so it will remain there permanently. We only remove erroring
-    // tasks inside waitAllTasksToCompleteOrError and scheduleTaskAndWaitOrError.
+    // tasks inside waitAllTasksToCompleteOrError and scheduleTaskAndWaitOrError. Also, see the note
+    // below in waitAllTasksToCompleteOrError for details of the behavior when multiple tasks fail.
     shared_ptr<ScheduledTask> scheduleTask(const shared_ptr<Task>& task);
+
+    // Also note that if a user has scheduled multiple concrete tasks and calls
+    // waitAllTasksToCompleteOrError and multiple tasks error, then waitAllTasksToCompleteOrError
+    // will rethrow only the exception of the first task that it observes to have an error and
+    // it will remove only that one. Other tasks that may have failed many not be removed
+    // from the task queue and remain in the queue. So for now, use this function if you
+    // want the system to crash if any of the tasks fails.
     void waitAllTasksToCompleteOrError();
 
 private:

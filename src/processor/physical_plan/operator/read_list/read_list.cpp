@@ -17,7 +17,6 @@ void ReadList::reInitToRerunSubPlan() {
 
 void ReadList::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
     PhysicalOperator::printTimeAndNumOutputMetrics(json, profiler);
-    printBufferManagerMetrics(json, profiler);
 }
 
 void ReadList::readValuesFromList() {
@@ -27,7 +26,7 @@ void ReadList::readValuesFromList() {
         return;
     }
     auto nodeOffset = inValueVector->readNodeOffset(inDataChunk->state->getPositionOfCurrIdx());
-    lists->readValues(nodeOffset, outValueVector, largeListHandle, *metrics->bufferManagerMetrics);
+    lists->readValues(nodeOffset, outValueVector, largeListHandle);
 }
 
 } // namespace processor

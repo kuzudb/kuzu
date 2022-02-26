@@ -33,17 +33,16 @@ protected:
 
     void readBySequentialCopy(const shared_ptr<ValueVector>& valueVector, uint64_t sizeLeftToCopy,
         PageElementCursor& cursor,
-        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
-        BufferManagerMetrics& metrics);
+        const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper);
 
     void readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>& valueVector,
         PageElementCursor& cursor,
         const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
-        NodeIDCompressionScheme compressionScheme, BufferManagerMetrics& metrics, bool isAdjLists);
+        NodeIDCompressionScheme compressionScheme, bool isAdjLists);
 
     void readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector, uint32_t posInVector,
         uint32_t physicalPageId, uint32_t posInPage, uint64_t numValuesToCopy,
-        NodeIDCompressionScheme& compressionScheme, BufferManagerMetrics& metrics, bool isAdjLists);
+        NodeIDCompressionScheme& compressionScheme, bool isAdjLists);
 
     static void setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector,
         const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector, uint64_t num);

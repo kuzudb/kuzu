@@ -28,16 +28,16 @@ struct PageElementCursor {
 struct PageUtils {
 
     static uint8_t getNULLByteForOffset(const uint8_t* frame, uint16_t offset) {
-        return frame[PAGE_SIZE - 1 - (offset >> 3)];
+        return frame[DEFAULT_PAGE_SIZE - 1 - (offset >> 3)];
     }
 
     static uint32_t getNumElementsInAPageWithNULLBytes(uint32_t elementSize) {
-        auto numNULLBytes = (uint32_t)ceil((double)PAGE_SIZE / ((elementSize << 3) + 1));
-        return (PAGE_SIZE - numNULLBytes) / elementSize;
+        auto numNULLBytes = (uint32_t)ceil((double)DEFAULT_PAGE_SIZE / ((elementSize << 3) + 1));
+        return (DEFAULT_PAGE_SIZE - numNULLBytes) / elementSize;
     }
 
     static uint32_t getNumElementsInAPageWithoutNULLBytes(uint32_t elementSize) {
-        return PAGE_SIZE / elementSize;
+        return DEFAULT_PAGE_SIZE / elementSize;
     }
 
     // This function returns the page idx of the page where element will be found and the pos of the

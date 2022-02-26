@@ -33,7 +33,7 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
     }
 
     // Create a factorizedTable and append it to sharedState.
-    localFactorizedTable = make_shared<FactorizedTable>(*context.memoryManager, tableSchema);
+    localFactorizedTable = make_shared<FactorizedTable>(context.memoryManager, tableSchema);
     factorizedTableIdx = sharedState->getNextFactorizedTableIdx();
     sharedState->appendFactorizedTable(factorizedTableIdx, localFactorizedTable);
     sharedState->setDataTypes(dataTypes);
@@ -64,8 +64,8 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
 
     // Prepare the orderByEncoder, and radix sorter
     orderByKeyEncoder = make_unique<OrderByKeyEncoder>(
-        keyVectors, orderByDataInfo.isAscOrder, *context.memoryManager, factorizedTableIdx);
-    radixSorter = make_unique<RadixSort>(*context.memoryManager, *localFactorizedTable,
+        keyVectors, orderByDataInfo.isAscOrder, context.memoryManager, factorizedTableIdx);
+    radixSorter = make_unique<RadixSort>(context.memoryManager, *localFactorizedTable,
         *orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
 
     sharedState->setStringAndUnstructuredKeyColInfo(stringAndUnstructuredKeyColInfo);

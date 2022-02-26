@@ -19,7 +19,8 @@ class AggrExpressionEvaluatorTest : public Test {
 
 public:
     void SetUp() override {
-        memoryManager = make_unique<MemoryManager>();
+        bufferManager = make_unique<BufferManager>();
+        memoryManager = make_unique<MemoryManager>(bufferManager.get());
         int64ValueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
         doubleValueVector = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
         stringValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
@@ -50,6 +51,7 @@ public:
     }
 
 public:
+    unique_ptr<BufferManager> bufferManager;
     unique_ptr<MemoryManager> memoryManager;
     shared_ptr<ValueVector> int64ValueVector;
     shared_ptr<ValueVector> doubleValueVector;

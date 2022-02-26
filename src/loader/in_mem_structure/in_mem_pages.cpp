@@ -13,11 +13,11 @@ InMemPages::InMemPages(
     auto numElementsInAPage =
         hasNULLBytes ? PageUtils::getNumElementsInAPageWithNULLBytes(numBytesForElement) :
                        PageUtils::getNumElementsInAPageWithoutNULLBytes(numBytesForElement);
-    data = make_unique<uint8_t[]>(numPages << PAGE_SIZE_LOG_2);
+    data = make_unique<uint8_t[]>(numPages << DEFAULT_PAGE_SIZE_LOG_2);
     pages.resize(numPages);
     for (auto i = 0u; i < numPages; i++) {
         pages[i] = make_unique<InMemPage>(
-            numElementsInAPage, data.get() + (i << PAGE_SIZE_LOG_2), hasNULLBytes);
+            numElementsInAPage, data.get() + (i << DEFAULT_PAGE_SIZE_LOG_2), hasNULLBytes);
     }
 };
 
@@ -29,7 +29,7 @@ void InMemPages::saveToFile() {
         page->encodeNULLBytes();
     }
     auto fileInfo = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
-    uint64_t byteSize = pages.size() << PAGE_SIZE_LOG_2;
+    uint64_t byteSize = pages.size() << DEFAULT_PAGE_SIZE_LOG_2;
     FileUtils::writeToFile(fileInfo.get(), data.get(), byteSize, 0);
     FileUtils::closeFile(fileInfo->fd);
 }
@@ -54,12 +54,12 @@ void InMemUnstrPropertyPages::set(const PageByteCursor& cursor, uint32_t propert
 
 void InMemUnstrPropertyPages::setComponentOfUnstrProperty(
     PageByteCursor& localCursor, uint8_t len, const uint8_t* val) {
-    if (PAGE_SIZE - localCursor.offset >= len) {
+    if (DEFAULT_PAGE_SIZE - localCursor.offset >= len) {
         auto writeOffset = getPtrToMemLoc(localCursor);
         memcpy(writeOffset, val, len);
         localCursor.offset += len;
     } else {
-        auto diff = PAGE_SIZE - localCursor.offset;
+        auto diff = DEFAULT_PAGE_SIZE - localCursor.offset;
         auto writeOffset = getPtrToMemLoc(localCursor);
         memcpy(writeOffset, val, diff);
         auto left = len - diff;
@@ -87,7 +87,7 @@ void InMemStringOverflowPages::setStrInOvfPageAndPtrInEncString(
 
 void InMemStringOverflowPages::copyOverflowString(
     PageByteCursor& cursor, uint8_t* ptrToCopy, gf_string_t* encodedString) {
-    if (cursor.offset + encodedString->len - 4 >= PAGE_SIZE || 0 > cursor.idx) {
+    if (cursor.offset + encodedString->len - 4 >= DEFAULT_PAGE_SIZE || 0 > cursor.idx) {
         cursor.offset = 0;
         cursor.idx = getNewOverflowPageIdx();
     }
@@ -104,18 +104,18 @@ uint32_t InMemStringOverflowPages::getNewOverflowPageIdx() {
         return page;
     }
     auto newNumPages = (size_t)(1.5 * pages.size());
-    auto newData = new uint8_t[newNumPages << PAGE_SIZE_LOG_2];
-    memcpy(newData, data.get(), pages.size() << PAGE_SIZE_LOG_2);
+    auto newData = new uint8_t[newNumPages << DEFAULT_PAGE_SIZE_LOG_2];
+    memcpy(newData, data.get(), pages.size() << DEFAULT_PAGE_SIZE_LOG_2);
     data.reset(newData);
     auto oldNumPages = pages.size();
     pages.resize(newNumPages);
     for (auto i = 0; i < oldNumPages; i++) {
-        pages[i]->data = data.get() + (i << PAGE_SIZE_LOG_2);
+        pages[i]->data = data.get() + (i << DEFAULT_PAGE_SIZE_LOG_2);
     }
     auto numElementsInPage = PageUtils::getNumElementsInAPageWithoutNULLBytes(1);
     for (auto i = oldNumPages; i < newNumPages; i++) {
         pages[i] = make_unique<InMemPage>(
-            numElementsInPage, data.get() + (i << PAGE_SIZE_LOG_2), false /*hasNULLBytes*/);
+            numElementsInPage, data.get() + (i << DEFAULT_PAGE_SIZE_LOG_2), false /*hasNULLBytes*/);
     }
     return page;
 }
@@ -128,7 +128,7 @@ void InMemStringOverflowPages::saveToFile() {
         page->encodeNULLBytes();
     }
     auto fileInfo = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
-    auto bytesToWrite = numUsedPages << PAGE_SIZE_LOG_2;
+    auto bytesToWrite = numUsedPages << DEFAULT_PAGE_SIZE_LOG_2;
     FileUtils::writeToFile(fileInfo.get(), data.get(), bytesToWrite, 0);
     FileUtils::closeFile(fileInfo->fd);
 }

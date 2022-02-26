@@ -16,19 +16,19 @@ class StringOverflowPages {
 
 public:
     explicit StringOverflowPages(const string& fName, BufferManager& bufferManager, bool isInMemory)
-        : fileHandle{getStringOverflowPagesFName(fName), isInMemory},
+        : fileHandle{getStringOverflowPagesFName(fName),
+              isInMemory ? FileHandle::O_InMemoryDefaultPaged : FileHandle::O_DiskBasedDefaultPage},
           bufferManager(bufferManager){};
 
     static string getStringOverflowPagesFName(const string& fName) {
         return fName + OVERFLOW_FILE_SUFFIX;
     }
 
-    void readStringsToVector(ValueVector& valueVector, BufferManagerMetrics& metrics);
+    void readStringsToVector(ValueVector& valueVector);
 
-    void readStringToVector(
-        gf_string_t& gfStr, StringBuffer& stringBuffer, BufferManagerMetrics& metrics);
+    void readStringToVector(gf_string_t& gfStr, StringBuffer& stringBuffer);
 
-    string readString(const gf_string_t& str, BufferManagerMetrics& metrics);
+    string readString(const gf_string_t& str);
 
 private:
     static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";

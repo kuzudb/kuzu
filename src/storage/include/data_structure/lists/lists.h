@@ -42,7 +42,7 @@ public:
               isInMemory} {};
 
     void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<LargeListHandle>& largeListHandle, BufferManagerMetrics& metrics);
+        const unique_ptr<LargeListHandle>& largeListHandle);
 
     inline uint64_t getNumElementsInList(node_offset_t nodeOffset) {
         return getListInfo(nodeOffset).listLen;
@@ -58,11 +58,9 @@ protected:
           metadata{fName}, headers(move(headers)){};
 
     virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info,
-        BufferManagerMetrics& metrics);
+        const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info);
 
-    virtual void readSmallList(
-        const shared_ptr<ValueVector>& valueVector, ListInfo& info, BufferManagerMetrics& metrics);
+    virtual void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info);
 
 public:
     static constexpr char LISTS_SUFFIX[] = ".lists";
@@ -86,11 +84,9 @@ public:
 
 private:
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info,
-        BufferManagerMetrics& metrics) override;
+        const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) override;
 
-    void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info,
-        BufferManagerMetrics& metrics) override;
+    void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) override;
 
 private:
     StringOverflowPages stringOverflowPages;
@@ -108,16 +104,13 @@ public:
     shared_ptr<ListHeaders> getHeaders() { return headers; };
 
     //    // Currently, used only in Loader tests.
-    unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(
-        node_offset_t nodeOffset, BufferManagerMetrics& metrics);
+    unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(node_offset_t nodeOffset);
 
 private:
     void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
-        const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info,
-        BufferManagerMetrics& metrics) override;
+        const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) override;
 
-    void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info,
-        BufferManagerMetrics& metrics) override;
+    void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) override;
 
 private:
     NodeIDCompressionScheme nodeIDCompressionScheme;

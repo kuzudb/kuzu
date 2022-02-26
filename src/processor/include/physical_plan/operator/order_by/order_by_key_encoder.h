@@ -21,12 +21,12 @@ namespace processor {
 struct KeyBlock {
     inline uint8_t* getMemBlockData() const { return memBlock->data; }
 
-    explicit KeyBlock(unique_ptr<MemoryBlock> memBlock)
+    explicit KeyBlock(unique_ptr<OSBackedMemoryBlock> memBlock)
         : memBlock{move(memBlock)}, numEntriesInMemBlock{0} {}
 
     inline uint64_t getKeyBlockSize() { return memBlock->size; }
 
-    unique_ptr<MemoryBlock> memBlock;
+    unique_ptr<OSBackedMemoryBlock> memBlock;
     uint64_t numEntriesInMemBlock;
 };
 
@@ -46,10 +46,11 @@ class OrderByKeyEncoder {
 
 public:
     explicit OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors,
-        vector<bool>& isAscOrder, MemoryManager& memoryManager, uint16_t factorizedTableIdx)
+        vector<bool>& isAscOrder, MemoryManager* memoryManager, uint16_t factorizedTableIdx)
         : memoryManager{memoryManager}, orderByVectors{orderByVectors}, isAscOrder{isAscOrder},
           nextLocalTupleIdx{0}, factorizedTableIdx{factorizedTableIdx} {
-        keyBlocks.emplace_back(make_unique<KeyBlock>(memoryManager.allocateBlock(SORT_BLOCK_SIZE)));
+        keyBlocks.emplace_back(
+            make_unique<KeyBlock>(memoryManager->allocateOSBackedBlock(SORT_BLOCK_SIZE)));
         keyBlockEntrySizeInBytes = 0;
         for (auto& orderByVector : orderByVectors) {
             keyBlockEntrySizeInBytes += getEncodingSize(orderByVector->dataType);
@@ -135,7 +136,7 @@ private:
     void allocateMemoryIfFull();
 
 private:
-    MemoryManager& memoryManager;
+    MemoryManager* memoryManager;
     vector<shared_ptr<KeyBlock>> keyBlocks;
     vector<shared_ptr<ValueVector>>& orderByVectors;
     vector<bool> isAscOrder;

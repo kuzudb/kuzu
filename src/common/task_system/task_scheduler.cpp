@@ -45,7 +45,7 @@ void TaskScheduler::waitAllTasksToCompleteOrError() {
                 taskQueue.erase(it);
                 std::rethrow_exception(task->getExceptionPtr());
             }
-            // TODO(Semih): We can optimize to stops after finding a registrable task. This is
+            // TODO(Semih): We can optimize to stop after finding a registrable task. This is
             // because tasks after the first registrable task in the queue cannot have any thread
             // yet registered to them, so they cannot have errored.
         }
@@ -85,10 +85,10 @@ shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
         if (!task->registerThread()) {
             // If we cannot register for a thread it is because of three possibilities:
             // (i) maximum number of threads have registered for task and the task is completed
-            // (without an exception)the task has an exception; or (ii) same as (i) but the task
-            // has not yet successfully completed; or (iii) task has an exception; Only in (i)
-            // we remove the task from the queue. For (ii) and (iii) we keep the task in queue.
-            // Recall erroring tasks need to be manually removed.
+            // without an exception; or (ii) same as (i) but the task has not yet successfully
+            // completed; or (iii) task has an exception; Only in (i) we remove the task from the
+            // queue. For (ii) and (iii) we keep the task in queue. Recall erroring tasks need to be
+            // manually removed.
             if (task->isCompletedSuccessfully()) { // option (i)
                 logger->debug("Thread {} is removing completed schedule task {} from queue.",
                     ThreadUtils::getThreadIDString(), (*it)->ID);

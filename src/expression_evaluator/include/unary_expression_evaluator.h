@@ -12,13 +12,13 @@ public:
     UnaryExpressionEvaluator(
         unique_ptr<ExpressionEvaluator> child, ExpressionType expressionType, DataType dataType);
 
-    void initResultSet(const ResultSet& resultSet, MemoryManager& memoryManager) override;
+    void initResultSet(const ResultSet& resultSet, MemoryManager* memoryManager) override;
 
     void evaluate() override;
 
     uint64_t select(sel_t* selectedPositions) override;
 
-    shared_ptr<ValueVector> createResultValueVector(MemoryManager& memoryManager);
+    shared_ptr<ValueVector> createResultValueVector(MemoryManager* memoryManager);
 
     unique_ptr<ExpressionEvaluator> clone() override;
 

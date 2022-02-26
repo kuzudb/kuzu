@@ -35,12 +35,12 @@ shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
     tableSchema.appendColumn(
         {false /* isUnflat */, UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */,
             TypeUtils::getDataTypeSize(INT64)});
-    factorizedTable = make_unique<FactorizedTable>(*context.memoryManager, tableSchema);
+    factorizedTable = make_unique<FactorizedTable>(context.memoryManager, tableSchema);
     {
         lock_guard<mutex> sharedStateLock(sharedState->hashJoinSharedStateLock);
         if (sharedState->factorizedTable == nullptr) {
             sharedState->factorizedTable =
-                make_unique<FactorizedTable>(*context.memoryManager, tableSchema);
+                make_unique<FactorizedTable>(context.memoryManager, tableSchema);
         }
     }
     return resultSet;
@@ -51,7 +51,7 @@ void HashJoinBuild::finalize() {
         HashTableUtils::nextPowerOfTwo(max(sharedState->factorizedTable->getNumTuples() * 2,
             (DEFAULT_MEMORY_BLOCK_SIZE / sizeof(uint8_t*)) + 1));
     sharedState->hashBitMask = directory_capacity - 1;
-    sharedState->htDirectory = context.memoryManager->allocateBlock(
+    sharedState->htDirectory = context.memoryManager->allocateOSBackedBlock(
         directory_capacity * sizeof(uint8_t*), true /* initializeToZero */);
 
     auto& tableSchema = sharedState->factorizedTable->getTableSchema();

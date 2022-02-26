@@ -8,14 +8,14 @@ FrontierBag::FrontierBag() : Frontier(), size{0u} {
 }
 
 void FrontierBag::initHashTable() {
-    mainBlock = memMan->allocateBlock(DEFAULT_BLOCK_SIZE);
+    mainBlock = memMan->allocateOSBackedBlock(DEFAULT_BLOCK_SIZE);
     hashTable = (SlotNodeIDs*)mainBlock->data;
 }
 
 NodeIDOverflow* FrontierBag::getOverflowPtr() {
     auto elementSize = sizeof(NodeIDOverflow);
     if (overflowBlocks.empty() || currOverflowOffset + elementSize >= DEFAULT_BLOCK_SIZE) {
-        overflowBlocks.push_back(memMan->allocateBlock(DEFAULT_BLOCK_SIZE));
+        overflowBlocks.push_back(memMan->allocateOSBackedBlock(DEFAULT_BLOCK_SIZE));
         currOverflowOffset = 0;
     }
     currOverflowOffset += elementSize;

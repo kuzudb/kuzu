@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bitset>
+#include <unordered_map>
 
 #include "src/binder/expression/include/rel_expression.h"
 

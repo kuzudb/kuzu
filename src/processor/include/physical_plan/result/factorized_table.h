@@ -25,7 +25,7 @@ struct BlockAppendingInfo {
 
 struct DataBlock {
 public:
-    explicit DataBlock(unique_ptr<MemoryBlock> block)
+    explicit DataBlock(unique_ptr<OSBackedMemoryBlock> block)
         : data{block->data}, freeSize{block->size}, numEntries{0}, block{move(block)} {}
 
 public:
@@ -34,7 +34,7 @@ public:
     uint64_t numEntries;
 
 private:
-    unique_ptr<MemoryBlock> block;
+    unique_ptr<OSBackedMemoryBlock> block;
 };
 
 class ColumnSchema {
@@ -101,7 +101,7 @@ class FactorizedTable {
     friend FlatTupleIterator;
 
 public:
-    FactorizedTable(MemoryManager& memoryManager, const TableSchema& tableSchema);
+    FactorizedTable(MemoryManager* memoryManager, const TableSchema& tableSchema);
 
     void append(const vector<shared_ptr<ValueVector>>& vectors);
 
@@ -187,7 +187,7 @@ private:
 
     uint8_t* getTuple(uint64_t tupleIdx) const;
 
-    MemoryManager& memoryManager;
+    MemoryManager* memoryManager;
     TableSchema tableSchema;
     uint64_t numTuples;
     uint64_t numTuplesPerBlock;

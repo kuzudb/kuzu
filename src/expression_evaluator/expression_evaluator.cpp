@@ -148,7 +148,7 @@ ExpressionEvaluator::getBinaryVectorSelectOperation(ExpressionType type) {
     }
 }
 
-void ExpressionEvaluator::initResultSet(const ResultSet& resultSet, MemoryManager& memoryManager) {
+void ExpressionEvaluator::initResultSet(const ResultSet& resultSet, MemoryManager* memoryManager) {
     if (dataPos.dataChunkPos != UINT32_MAX && dataPos.valueVectorPos != UINT32_MAX) {
         result = resultSet.dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
     }

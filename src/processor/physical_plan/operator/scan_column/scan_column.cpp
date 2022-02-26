@@ -16,7 +16,6 @@ void BaseScanColumn::reInitToRerunSubPlan() {
 
 void BaseScanColumn::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
     PhysicalOperator::printMetricsToJson(json, profiler);
-    printBufferManagerMetrics(json, profiler);
 }
 
 } // namespace processor

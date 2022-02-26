@@ -8,16 +8,22 @@ namespace common {
 // Size (in bytes) of the chunks to be read in GraphLoader.
 constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
 
-// Size of the page which is the unit of read/write to the files.
-// For now, this value cannot be changed. But technically it can change from 2^12 to 2^16. 2^12
-// lower bound is assuming the OS page size is 4K. 2^16 is because currently we leave 11 fixed
-// number of bits for relOffInPage and the maximum number of bytes needed for an edge is 20 bytes
-// so 11 + log_2(20) = 15.xxx, so certainly over 2^16-size pages, we cannot utilize the page for
-// storing adjacency lists.
-constexpr uint64_t PAGE_SIZE_LOG_2 = 12;
-constexpr uint64_t PAGE_SIZE = 1 << PAGE_SIZE_LOG_2;
+// Currently the system supports files with 2 different pages size, which we refer to as
+// DEFAULT_PAGE_SIZE and LARGE_PAGE_SIZE. Default size of the page which is the unit of read/write
+// to the database files, such as to store columns or lists. For now, this value cannot be changed.
+// But technically it can change from 2^12 to 2^16. 2^12 lower bound is assuming the OS page size is
+// 4K. 2^16 is because currently we leave 11 fixed number of bits for relOffInPage and the maximum
+// number of bytes needed for an edge is 20 bytes so 11 + log_2(20) = 15.xxx, so certainly over
+// 2^16-size pages, we cannot utilize the page for storing adjacency lists.
+constexpr uint64_t DEFAULT_PAGE_SIZE_LOG_2 = 12;
+constexpr uint64_t DEFAULT_PAGE_SIZE = 1 << DEFAULT_PAGE_SIZE_LOG_2;
+// Page size for files with large pages, e.g., temporary files that are used by operators that may
+// require large amounts of memory.
+constexpr const uint64_t LARGE_PAGE_SIZE_LOG_2 = 18;
+constexpr uint64_t LARGE_PAGE_SIZE = 1 << LARGE_PAGE_SIZE_LOG_2;
 
-// The default amount of memory pre-allocated to the buffer pool (= 1GB).
+// TODO: Do not forget to remove these once MemoryManager is removed from the codebase.
+// The default amount of memory pre-allocated to the memory manager (= 1GB).
 constexpr uint64_t DEFAULT_MEMORY_MANAGER_MAX_MEMORY = 1ull << 38;
 
 // By default, memory block size is 256KB.
@@ -32,8 +38,8 @@ constexpr const uint64_t SORT_BLOCK_SIZE = 4096;
 constexpr const uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 100;
 
 struct StorageConfig {
-    // The default amount of memory pre-allocated to the buffer pool (= 1GB).
-    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 22;
+    // The default amount of memory pre-allocated to the buffer pool (= 512MB).
+    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 21;
 };
 
 // Hash Index Configurations

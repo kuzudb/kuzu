@@ -19,8 +19,10 @@ public:
     void SetUp() override {
         graph.setUp();
         profiler = make_unique<Profiler>();
-        memoryManager = make_unique<MemoryManager>();
-        context = make_unique<ExecutionContext>(*profiler, memoryManager.get());
+        bufferManager = make_unique<BufferManager>();
+        memoryManager = make_unique<MemoryManager>(bufferManager.get());
+        context =
+            make_unique<ExecutionContext>(*profiler, memoryManager.get(), bufferManager.get());
     }
 
     static unique_ptr<PropertyExpression> makeAPropExpression() {
@@ -40,6 +42,7 @@ public:
 public:
     NiceMock<TinySnbGraph> graph;
     unique_ptr<Profiler> profiler;
+    unique_ptr<BufferManager> bufferManager;
     unique_ptr<MemoryManager> memoryManager;
     unique_ptr<ExecutionContext> context;
 };
@@ -65,7 +68,7 @@ TEST_F(ExpressionMapperTest, BinaryExpressionEvaluatorTest) {
     auto mapperContext = makeSimpleMapperContext();
     auto rootExpressionEvaluator = ExpressionMapper().mapLogicalExpressionToPhysical(
         *addLogicalOperator, mapperContext, *context);
-    rootExpressionEvaluator->initResultSet(resultSet, *memoryManager);
+    rootExpressionEvaluator->initResultSet(resultSet, memoryManager.get());
     rootExpressionEvaluator->evaluate();
 
     auto results = (int64_t*)rootExpressionEvaluator->result->values;
@@ -97,7 +100,7 @@ TEST_F(ExpressionMapperTest, UnaryExpressionEvaluatorTest) {
     auto mapperContext = makeSimpleMapperContext();
     auto rootExpressionEvaluator = ExpressionMapper().mapLogicalExpressionToPhysical(
         *negateLogicalOperator, mapperContext, *context);
-    rootExpressionEvaluator->initResultSet(resultSet, *memoryManager);
+    rootExpressionEvaluator->initResultSet(resultSet, memoryManager.get());
     rootExpressionEvaluator->evaluate();
 
     auto results = (int64_t*)rootExpressionEvaluator->result->values;

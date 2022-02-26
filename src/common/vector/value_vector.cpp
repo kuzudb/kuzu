@@ -15,11 +15,14 @@ NullMask::NullMask() : mayContainNulls{false} {
 ValueVector::ValueVector(MemoryManager* memoryManager, DataType dataType)
     : dataType{dataType}, memoryManager{memoryManager} {
     assert(memoryManager != nullptr);
-    bufferValues = memoryManager->allocateBlock(
+    // TODO: Once MemoryManager's allocateOSBackedBlock is removed, this memory should be obtained
+    // directly through the OS. If that's , make sure to delete the memory during deconstruction.
+    bufferValues = memoryManager->allocateOSBackedBlock(
         TypeUtils::getDataTypeSize(dataType) * DEFAULT_VECTOR_CAPACITY);
     values = bufferValues->data;
+
     if (dataType == STRING || dataType == UNSTRUCTURED) {
-        stringBuffer = make_unique<StringBuffer>(*memoryManager);
+        stringBuffer = make_unique<StringBuffer>(memoryManager);
     }
     nullMask = make_shared<NullMask>();
 }

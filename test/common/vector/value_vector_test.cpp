@@ -8,7 +8,8 @@ using namespace graphflow::common;
 using namespace std;
 
 TEST(ValueVectorTests, TestDefaultHasNull) {
-    auto memoryManager = make_unique<MemoryManager>();
+    auto bufferManager = make_unique<BufferManager>();
+    auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
     ValueVector valueVector(memoryManager.get(), DataType::INT64);
     shared_ptr<DataChunkState> dataChunkState =
         make_shared<DataChunkState>(DEFAULT_VECTOR_CAPACITY);

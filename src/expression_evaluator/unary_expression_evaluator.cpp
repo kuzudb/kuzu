@@ -14,7 +14,7 @@ UnaryExpressionEvaluator::UnaryExpressionEvaluator(
 }
 
 void UnaryExpressionEvaluator::initResultSet(
-    const ResultSet& resultSet, MemoryManager& memoryManager) {
+    const ResultSet& resultSet, MemoryManager* memoryManager) {
     childrenExpr[0]->initResultSet(resultSet, memoryManager);
     result = createResultValueVector(memoryManager);
 }
@@ -30,15 +30,15 @@ uint64_t UnaryExpressionEvaluator::select(sel_t* selectedPositions) {
 }
 
 shared_ptr<ValueVector> UnaryExpressionEvaluator::createResultValueVector(
-    MemoryManager& memoryManager) {
+    MemoryManager* memoryManager) {
     shared_ptr<ValueVector> resultVector;
     uint64_t resultVectorCapacity;
     if (childrenExpr[0]->isResultFlat()) {
-        resultVector = make_shared<ValueVector>(&memoryManager, dataType);
+        resultVector = make_shared<ValueVector>(memoryManager, dataType);
         resultVectorCapacity = 1;
         resultVector->state = DataChunkState::getSingleValueDataChunkState();
     } else {
-        resultVector = make_shared<ValueVector>(&memoryManager, dataType);
+        resultVector = make_shared<ValueVector>(memoryManager, dataType);
         resultVector->state = childrenExpr[0]->result->state;
         resultVectorCapacity = DEFAULT_VECTOR_CAPACITY;
     }

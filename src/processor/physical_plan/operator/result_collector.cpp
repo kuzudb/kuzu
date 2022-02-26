@@ -20,7 +20,7 @@ shared_ptr<ResultSet> ResultCollector::initResultSet() {
         tableSchema.appendColumn({!vectorToCollectInfo.second, dataPos.dataChunkPos,
             vectorToCollectInfo.second ? vector->getNumBytesPerValue() : sizeof(overflow_value_t)});
     }
-    localQueryResult = make_shared<FactorizedTable>(*context.memoryManager, tableSchema);
+    localQueryResult = make_shared<FactorizedTable>(context.memoryManager, tableSchema);
     sharedQueryResults->appendQueryResult(localQueryResult);
     return resultSet;
 }

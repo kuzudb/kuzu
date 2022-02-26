@@ -298,10 +298,10 @@ void NodesLoader::putPropsOfLineIntoInMemPropertyColumns(
         case STRING: {
             if (!reader.skipTokenIfNull()) {
                 auto strVal = reader.getString();
-                if (strlen(strVal) > PAGE_SIZE) {
+                if (strlen(strVal) > DEFAULT_PAGE_SIZE) {
                     throw LoaderException(StringUtils::string_format(
-                        "Maximum length of strings is %d. Input string's length is %d.", PAGE_SIZE,
-                        strlen(strVal), strVal));
+                        "Maximum length of strings is %d. Input string's length is %d.",
+                        DEFAULT_PAGE_SIZE, strlen(strVal), strVal));
                 }
                 builder.setStringProperty(
                     nodeOffset, property.id, strVal, stringOverflowPagesCursors[property.id]);

@@ -19,9 +19,13 @@ using namespace std;
 class KeyBlockMergerTest : public Test {
 
 public:
-    void SetUp() override { memoryManager = make_unique<MemoryManager>(); }
+    void SetUp() override {
+        bufferManager = make_unique<BufferManager>();
+        memoryManager = make_unique<MemoryManager>(bufferManager.get());
+    }
 
 public:
+    unique_ptr<BufferManager> bufferManager;
     unique_ptr<MemoryManager> memoryManager;
 
     void checkTupleIdxesAndFactorizedTableIdxes(uint8_t* keyBlockPtr,
@@ -81,12 +85,12 @@ public:
                 {false, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(dataType)});
         }
 
-        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tableSchema);
+        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tableSchema);
         factorizedTable->append(allVectors);
 
         vector<bool> isAscOrder = {isAsc};
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
         orderByKeyEncoder.encodeKeys();
 
         factorizedTables.emplace_back(move(factorizedTable));
@@ -123,8 +127,8 @@ public:
         KeyBlockMerger keyBlockMerger = KeyBlockMerger(factorizedTables,
             stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
 
-        auto resultKeyBlock =
-            make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
+        auto resultKeyBlock = make_shared<KeyBlock>(
+            memoryManager->allocateOSBackedBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
         resultKeyBlock->numEntriesInMemBlock = leftSortingData.size() + rightSortingData.size();
         auto keyBlockMergeTask =
             make_shared<KeyBlockMergeTask>(orderByKeyEncoder1.getKeyBlocks()[0],
@@ -150,9 +154,9 @@ public:
 
         vector<bool> isAscOrder(orderByVectors.size(), true);
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
 
-        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tableSchema);
+        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tableSchema);
         for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
             factorizedTable->append(orderByVectors);
             orderByKeyEncoder.encodeKeys();
@@ -234,7 +238,7 @@ public:
         vector<shared_ptr<FactorizedTable>> factorizedTables;
         for (auto i = 0; i < 4; i++) {
             factorizedTables.emplace_back(
-                make_unique<FactorizedTable>(*memoryManager, tableSchema));
+                make_unique<FactorizedTable>(memoryManager.get(), tableSchema));
         }
         auto orderByKeyEncoder2 = prepareMultipleOrderByColsEncoder(
             4 /* factorizedTableIdx */, factorizedTables, dataChunk2, tableSchema);
@@ -257,8 +261,8 @@ public:
 
         KeyBlockMerger keyBlockMerger = KeyBlockMerger(factorizedTables,
             stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
-        auto resultKeyBlock =
-            make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
+        auto resultKeyBlock = make_shared<KeyBlock>(
+            memoryManager->allocateOSBackedBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
         resultKeyBlock->numEntriesInMemBlock = 7;
         auto keyBlockMergeTask =
             make_shared<KeyBlockMergeTask>(orderByKeyEncoder1.getKeyBlocks()[0],
@@ -297,11 +301,11 @@ public:
         TableSchema tableSchema(
             vector<ColumnSchema>(4, ColumnSchema(false /* isUnflat */, 0 /* dataChunkPos */,
                                         TypeUtils::getDataTypeSize(STRING))));
-        auto factorizedTable = make_unique<FactorizedTable>(*memoryManager, tableSchema);
+        auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tableSchema);
 
         vector<bool> isAscOrder(strValues.size(), true);
         auto orderByKeyEncoder =
-            OrderByKeyEncoder(orderByVectors, isAscOrder, *memoryManager, factorizedTableIdx);
+            OrderByKeyEncoder(orderByVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
 
         for (auto i = 0u; i < strValues[0].size(); i++) {
             factorizedTable->append(allVectors);
@@ -480,7 +484,7 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
         stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
 
     auto resultKeyBlock =
-        make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
+        make_shared<KeyBlock>(memoryManager->allocateOSBackedBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
     resultKeyBlock->numEntriesInMemBlock = 7;
     auto keyBlockMergeTask = make_shared<KeyBlockMergeTask>(orderByKeyEncoder1.getKeyBlocks()[0],
         orderByKeyEncoder2.getKeyBlocks()[0], resultKeyBlock, keyBlockMerger);
@@ -489,7 +493,7 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
     keyBlockMerger.mergeKeyBlocks(keyBlockMergeMorsel);
 
     auto resultMemBlock1 =
-        make_shared<KeyBlock>(memoryManager->allocateBlock(DEFAULT_MEMORY_BLOCK_SIZE * 3));
+        make_shared<KeyBlock>(memoryManager->allocateOSBackedBlock(DEFAULT_MEMORY_BLOCK_SIZE * 3));
     resultMemBlock1->numEntriesInMemBlock = 9;
     auto keyBlockMergeTask1 = make_shared<KeyBlockMergeTask>(
         resultKeyBlock, orderByKeyEncoder3.getKeyBlocks()[0], resultMemBlock1, keyBlockMerger);

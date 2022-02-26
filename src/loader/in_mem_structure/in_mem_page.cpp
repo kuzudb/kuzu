@@ -76,7 +76,7 @@ void InMemPage::encodeNULLBytes() {
             }
             pos++;
         }
-        data[PAGE_SIZE - 1 - i] = NULLByte;
+        data[DEFAULT_PAGE_SIZE - 1 - i] = NULLByte;
     }
 }
 

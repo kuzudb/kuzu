@@ -11,7 +11,7 @@ namespace common {
 unique_ptr<FileInfo> FileUtils::openFile(const string& path, int flags) {
     int fd = open(path.c_str(), flags, 0644);
     if (fd == -1) {
-        throw invalid_argument(StringUtils::string_format("Cannot open file: ", path.c_str()));
+        throw invalid_argument("Cannot open file: " + path);
     }
     return make_unique<FileInfo>(path, fd);
 }
@@ -74,8 +74,8 @@ void FileUtils::readFromFile(
     if (numBytesRead != numBytes && getFileSize(fileInfo->fd) != position + numBytesRead) {
         throw invalid_argument(
             StringUtils::string_format("Cannot read from file: %s fileDescriptor: %d "
-                                       "numBytesRead: %llu numBytesToRead: %llu",
-                fileInfo->path.c_str(), fileInfo->fd, numBytesRead, numBytes));
+                                       "numBytesRead: %llu numBytesToRead: %llu position: %llu",
+                fileInfo->path.c_str(), fileInfo->fd, numBytesRead, numBytes, position));
     }
 }
 

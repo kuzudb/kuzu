@@ -4,32 +4,41 @@
 
 #include "src/common/include/gf_string.h"
 #include "src/common/include/memory_manager.h"
+#include "src/storage/include/buffer_manager.h"
+#include "src/storage/include/file_handle.h"
 
 namespace graphflow {
 namespace common {
 
+using namespace graphflow::storage;
+
 struct BufferBlock {
 public:
-    explicit BufferBlock(unique_ptr<MemoryBlock> block)
-        : size{block->size}, currentOffset{0}, data{block->data}, block{move(block)} {}
+    explicit BufferBlock(unique_ptr<BMBackedMemoryBlock> block)
+        : size{block->size}, currentOffset{0}, block{move(block)} {}
 
 public:
     uint64_t size;
     uint64_t currentOffset;
-    uint8_t* data;
+    unique_ptr<BMBackedMemoryBlock> block;
 
     inline void resetCurrentOffset() { currentOffset = 0; }
-
-private:
-    unique_ptr<MemoryBlock> block;
 };
 
 class StringBuffer {
-    static constexpr uint64_t MIN_BUFFER_BLOCK_SIZE = 4096;
 
 public:
-    explicit StringBuffer(MemoryManager& memoryManager)
+    explicit StringBuffer(MemoryManager* memoryManager)
         : memoryManager{memoryManager}, currentBlock{nullptr} {};
+
+    // The blocks StringBuffer uses are allocated through the MemoryManager but are backed by the
+    // BufferManager. We need to therefore release them back by calling
+    // memoryManager->freeBMBackedBlock.
+    ~StringBuffer() {
+        for (int i = 0; i < blocks.size(); ++i) {
+            memoryManager->freeBMBackedBlock(blocks[i]->block->pageIdx);
+        }
+    }
 
 public:
     void allocateLargeStringIfNecessary(gf_string_t& result, uint64_t len);
@@ -39,6 +48,10 @@ public:
 
     inline void merge(StringBuffer& other) {
         move(begin(other.blocks), end(other.blocks), back_inserter(blocks));
+        // We clear the other StringBuffer's block because when it is deconstructed, StringBuffer's
+        // deconstructed tries to free these pages by calling memoryManager->freeBMBackedBlock,
+        // but it should not because this StringBuffer still needs them.
+        other.blocks.clear();
         currentBlock = other.currentBlock;
     }
 
@@ -46,8 +59,11 @@ public:
     // empty buffer. If there a large string that used point to any of these overflow buffers they
     // will error.
     inline void resetBuffer() {
-        if (blocks.size() > 1) {
+        if (blocks.size() >= 1) {
             auto firstBlock = move(blocks[0]);
+            for (int i = 1; i < blocks.size(); ++i) {
+                memoryManager->freeBMBackedBlock(blocks[i]->block->pageIdx);
+            }
             blocks.clear();
             firstBlock->resetCurrentOffset();
             blocks.push_back(move(firstBlock));
@@ -58,7 +74,7 @@ public:
     }
 
 private:
-    MemoryManager& memoryManager;
+    MemoryManager* memoryManager;
     BufferBlock* currentBlock;
 };
 } // namespace common
