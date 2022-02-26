@@ -1,8 +1,8 @@
 #pragma once
 
 #include "src/binder/query/include/normalized_single_query.h"
-#include "src/planner/include/logical_plan/logical_plan.h"
 #include "src/planner/include/subplans_table.h"
+#include "src/planner/logical_plan/include/logical_plan.h"
 
 namespace graphflow {
 namespace planner {
@@ -17,9 +17,7 @@ public:
     void init(const QueryGraph& queryGraph, const shared_ptr<Expression>& queryGraphPredicate,
         vector<unique_ptr<LogicalPlan>> prevPlans);
 
-    inline vector<shared_ptr<Expression>> getWhereExpressions() {
-        return whereExpressionsSplitOnAND;
-    }
+    inline expression_vector getWhereExpressions() { return whereExpressionsSplitOnAND; }
 
     inline bool hasNextLevel() const { return currentLevel < mergedQueryGraph->getNumQueryRels(); }
     inline uint32_t getCurrentLevel() const { return currentLevel; }
@@ -53,23 +51,19 @@ public:
         return matchedQueryNodes;
     }
 
-    inline void setExpressionsToScanFromOuter(vector<shared_ptr<Expression>> expressions) {
+    inline void setExpressionsToScanFromOuter(expression_vector expressions) {
         expressionsToScanFromOuter = move(expressions);
     }
     inline void clearExpressionsToScanFromOuter() { expressionsToScanFromOuter.clear(); }
     inline bool hasExpressionsToScanFromOuter() { return !expressionsToScanFromOuter.empty(); }
-    inline const vector<shared_ptr<Expression>>& getExpressionsToScanFromOuter() {
+    inline const expression_vector& getExpressionsToScanFromOuter() {
         return expressionsToScanFromOuter;
     }
 
-    inline void resetState() {
-        currentLevel = 0;
-        subPlansTable = make_unique<SubPlansTable>();
-        mergedQueryGraph = make_unique<QueryGraph>();
-    }
+    void resetState();
 
 private:
-    vector<shared_ptr<Expression>> whereExpressionsSplitOnAND;
+    expression_vector whereExpressionsSplitOnAND;
 
     uint32_t currentLevel;
     unique_ptr<SubPlansTable> subPlansTable;

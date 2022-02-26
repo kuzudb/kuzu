@@ -7,7 +7,7 @@ void JoinOrderEnumeratorContext::init(const QueryGraph& queryGraph,
     const shared_ptr<Expression>& queryGraphPredicate, vector<unique_ptr<LogicalPlan>> prevPlans) {
     // split where expression
     whereExpressionsSplitOnAND =
-        queryGraphPredicate ? queryGraphPredicate->splitOnAND() : vector<shared_ptr<Expression>>();
+        queryGraphPredicate ? queryGraphPredicate->splitOnAND() : expression_vector();
     // merge new query graph
     auto fullyMatchedSubqueryGraph = getFullyMatchedSubqueryGraph();
     matchedQueryRels = fullyMatchedSubqueryGraph.queryRelsSelector;
@@ -34,6 +34,12 @@ SubqueryGraph JoinOrderEnumeratorContext::getFullyMatchedSubqueryGraph() const {
         matchedSubgraph.addQueryRel(i);
     }
     return matchedSubgraph;
+}
+
+void JoinOrderEnumeratorContext::resetState() {
+    currentLevel = 0;
+    subPlansTable = make_unique<SubPlansTable>();
+    mergedQueryGraph = make_unique<QueryGraph>();
 }
 
 } // namespace planner

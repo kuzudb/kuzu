@@ -1,27 +1,25 @@
 #include "src/planner/include/join_order_enumerator.h"
 
 #include "src/planner/include/enumerator.h"
-#include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
-#include "src/planner/include/logical_plan/operator/hash_join/logical_hash_join.h"
-#include "src/planner/include/logical_plan/operator/intersect/logical_intersect.h"
-#include "src/planner/include/logical_plan/operator/scan_node_id/logical_scan_node_id.h"
-#include "src/planner/include/logical_plan/operator/select_scan/logical_result_scan.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_result_scan.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_scan_node_id.h"
 
 namespace graphflow {
 namespace planner {
 
-static vector<shared_ptr<Expression>> getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,
-    const SubqueryGraph& newSubgraph, const vector<shared_ptr<Expression>>& expressions);
-static vector<shared_ptr<Expression>> getNewMatchedExpressions(
-    const SubqueryGraph& prevLeftSubgraph, const SubqueryGraph& prevRightSubgraph,
-    const SubqueryGraph& newSubgraph, const vector<shared_ptr<Expression>>& expressions);
+static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,
+    const SubqueryGraph& newSubgraph, const expression_vector& expressions);
+static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevLeftSubgraph,
+    const SubqueryGraph& prevRightSubgraph, const SubqueryGraph& newSubgraph,
+    const expression_vector& expressions);
 
 // Rewrite a query rel that closes a cycle as a regular query rel for extend. This requires giving a
 // different identifier to the node that will close the cycle. This identifier is created as rel
 // name + node name.
 static shared_ptr<RelExpression> rewriteQueryRel(const RelExpression& queryRel, bool isRewriteDst);
-static shared_ptr<Expression> createNodeIDEqualComparison(
-    const shared_ptr<NodeExpression>& left, const shared_ptr<NodeExpression>& right);
 
 vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
     const QueryGraph& queryGraph, const shared_ptr<Expression>& queryGraphPredicate,
@@ -40,7 +38,7 @@ vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerateJoinOrder(
 }
 
 unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(
-    vector<shared_ptr<Expression>> expressionsToScan) {
+    expression_vector expressionsToScan) {
     auto prevContext = move(context);
     context = make_unique<JoinOrderEnumeratorContext>();
     context->setExpressionsToScanFromOuter(move(expressionsToScan));
@@ -53,8 +51,9 @@ void JoinOrderEnumerator::exitSubquery(unique_ptr<JoinOrderEnumeratorContext> pr
 
 void JoinOrderEnumerator::enumerateResultScan() {
     auto emptySubgraph = context->getEmptySubqueryGraph();
-    auto plan = context->containPlans(emptySubgraph) ? context->getPlans(emptySubgraph)[0]->copy() :
-                                                       make_unique<LogicalPlan>();
+    auto plan = context->containPlans(emptySubgraph) ?
+                    context->getPlans(emptySubgraph)[0]->shallowCopy() :
+                    make_unique<LogicalPlan>();
     auto newSubgraph = emptySubgraph;
     for (auto& expression : context->getExpressionsToScanFromOuter()) {
         if (expression->dataType == NODE_ID) {
@@ -129,15 +128,17 @@ void JoinOrderEnumerator::enumerateSingleRel() {
                             isCloseOnDst ? queryRel.getDstNode() : queryRel.getSrcNode();
                         auto tmpNode = isCloseOnDst ? tmpRel->getDstNode() : tmpRel->getSrcNode();
 
-                        auto planWithFilter = prevPlan->copy();
-                        appendExtendFiltersAndScanPropertiesIfNecessary(
+                        auto planWithFilter = prevPlan->shallowCopy();
+                        appendExtendFiltersAndScanProperties(
                             *tmpRel, direction, expressionsToFilter, *planWithFilter);
-                        auto nodeIDFilter = createNodeIDEqualComparison(nodeToIntersect, tmpNode);
+                        auto nodeIDFilter = make_shared<Expression>(EQUALS_NODE_ID, BOOL,
+                            nodeToIntersect->getNodeIDPropertyExpression(),
+                            tmpNode->getNodeIDPropertyExpression());
                         enumerator->appendFilter(nodeIDFilter, *planWithFilter);
                         context->addPlan(newSubgraph, move(planWithFilter));
 
-                        auto planWithIntersect = prevPlan->copy();
-                        appendExtendFiltersAndScanPropertiesIfNecessary(
+                        auto planWithIntersect = prevPlan->shallowCopy();
+                        appendExtendFiltersAndScanProperties(
                             *tmpRel, direction, expressionsToFilter, *planWithIntersect);
                         if (appendIntersect(nodeToIntersect->getIDProperty(),
                                 tmpNode->getIDProperty(), *planWithIntersect)) {
@@ -147,8 +148,8 @@ void JoinOrderEnumerator::enumerateSingleRel() {
                 }
             } else {
                 for (auto& prevPlan : prevPlans) {
-                    auto plan = prevPlan->copy();
-                    appendExtendFiltersAndScanPropertiesIfNecessary(
+                    auto plan = prevPlan->shallowCopy();
+                    appendExtendFiltersAndScanProperties(
                         queryRel, isSrcMatched ? FWD : BWD, expressionsToFilter, *plan);
                     context->addPlan(newSubgraph, move(plan));
                 }
@@ -184,7 +185,7 @@ void JoinOrderEnumerator::enumerateHashJoin() {
                     leftSubgraph, rightSubgraph, newSubgraph, context->getWhereExpressions());
                 for (auto& leftPlan : leftPlans) {
                     for (auto& rightPlan : rightPlans) {
-                        auto probePlan = leftPlan->copy();
+                        auto probePlan = leftPlan->shallowCopy();
                         appendLogicalHashJoin(joinNode, *probePlan, *rightPlan);
                         for (auto& expression : expressionsToFilter) {
                             enumerator->appendFilter(expression, *probePlan);
@@ -192,7 +193,7 @@ void JoinOrderEnumerator::enumerateHashJoin() {
                         context->addPlan(newSubgraph, move(probePlan));
                         // flip build and probe side to get another HashJoin plan
                         if (leftSize != currentLevel - leftSize) {
-                            probePlan = rightPlan->copy();
+                            probePlan = rightPlan->shallowCopy();
                             appendLogicalHashJoin(joinNode, *probePlan, *leftPlan);
                             for (auto& expression : expressionsToFilter) {
                                 enumerator->appendFilter(expression, *probePlan);
@@ -208,33 +209,31 @@ void JoinOrderEnumerator::enumerateHashJoin() {
 
 void JoinOrderEnumerator::appendResultScan(
     const expression_vector& expressionsToSelect, LogicalPlan& plan) {
-    unordered_set<string> expressionNamesToSelect;
-    auto groupPos = plan.schema->createGroup();
+    auto schema = plan.getSchema();
+    auto groupPos = schema->createGroup();
     for (auto& expressionToSelect : expressionsToSelect) {
-        plan.schema->insertToGroupAndScope(expressionToSelect, groupPos);
-        expressionNamesToSelect.insert(expressionToSelect->getUniqueName());
+        schema->insertToGroupAndScope(expressionToSelect, groupPos);
     }
-    auto resultScan = make_shared<LogicalResultScan>(expressionNamesToSelect);
-    auto group = plan.schema->getGroup(groupPos);
+    auto resultScan = make_shared<LogicalResultScan>(expressionsToSelect);
+    auto group = schema->getGroup(groupPos);
     group->setEstimatedCardinality(1);
     group->setIsFlat(true);
     plan.appendOperator(move(resultScan));
 }
 
 void JoinOrderEnumerator::appendScanNodeID(NodeExpression& queryNode, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
     auto nodeID = queryNode.getIDProperty();
     assert(plan.isEmpty());
     auto scan = make_shared<LogicalScanNodeID>(nodeID, queryNode.getLabel());
-    auto groupPos = plan.schema->createGroup();
-    plan.schema->insertToGroupAndScope(queryNode.getNodeIDPropertyExpression(), groupPos);
-    plan.schema->getGroup(groupPos)->setEstimatedCardinality(
-        graph.getNumNodes(queryNode.getLabel()));
+    auto groupPos = schema->createGroup();
+    schema->insertToGroupAndScope(queryNode.getNodeIDPropertyExpression(), groupPos);
+    schema->getGroup(groupPos)->setEstimatedCardinality(graph.getNumNodes(queryNode.getLabel()));
     plan.appendOperator(move(scan));
 }
 
-void JoinOrderEnumerator::appendExtendFiltersAndScanPropertiesIfNecessary(
-    const RelExpression& queryRel, Direction direction,
-    const vector<shared_ptr<Expression>>& expressionsToFilter, LogicalPlan& plan) {
+void JoinOrderEnumerator::appendExtendFiltersAndScanProperties(const RelExpression& queryRel,
+    Direction direction, const expression_vector& expressionsToFilter, LogicalPlan& plan) {
     appendExtend(queryRel, direction, plan);
     enumerator->appendScanNodeProperty(
         FWD == direction ? *queryRel.getDstNode() : *queryRel.getSrcNode(), plan);
@@ -246,6 +245,7 @@ void JoinOrderEnumerator::appendExtendFiltersAndScanPropertiesIfNecessary(
 
 void JoinOrderEnumerator::appendExtend(
     const RelExpression& queryRel, Direction direction, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
     auto boundNode = FWD == direction ? queryRel.getSrcNode() : queryRel.getDstNode();
     auto nbrNode = FWD == direction ? queryRel.getDstNode() : queryRel.getSrcNode();
     auto boundNodeID = boundNode->getIDProperty();
@@ -254,36 +254,37 @@ void JoinOrderEnumerator::appendExtend(
         graph.getCatalog().isSingleMultiplicityInDirection(queryRel.getLabel(), direction);
     uint32_t groupPos;
     if (isColumnExtend) {
-        groupPos = plan.schema->getGroupPos(boundNodeID);
+        groupPos = schema->getGroupPos(boundNodeID);
     } else {
-        auto boundNodeGroupPos = plan.schema->getGroupPos(boundNodeID);
+        auto boundNodeGroupPos = schema->getGroupPos(boundNodeID);
         enumerator->appendFlattenIfNecessary(boundNodeGroupPos, plan);
-        groupPos = plan.schema->createGroup();
-        plan.schema->getGroup(groupPos)->setEstimatedCardinality(
-            plan.schema->getGroup(boundNodeGroupPos)->getEstimatedCardinality() *
+        groupPos = schema->createGroup();
+        schema->getGroup(groupPos)->setEstimatedCardinality(
+            schema->getGroup(boundNodeGroupPos)->getEstimatedCardinality() *
             getExtensionRate(boundNode->getLabel(), queryRel.getLabel(), direction));
     }
     auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->getLabel(), nbrNodeID,
         nbrNode->getLabel(), queryRel.getLabel(), direction, isColumnExtend,
-        queryRel.getLowerBound(), queryRel.getUpperBound(), plan.lastOperator);
-    plan.schema->addLogicalExtend(queryRel.getUniqueName(), extend.get());
-    plan.schema->insertToGroupAndScope(nbrNode->getNodeIDPropertyExpression(), groupPos);
+        queryRel.getLowerBound(), queryRel.getUpperBound(), plan.getLastOperator());
+    schema->addLogicalExtend(queryRel.getUniqueName(), extend.get());
+    schema->insertToGroupAndScope(nbrNode->getNodeIDPropertyExpression(), groupPos);
     plan.appendOperator(move(extend));
 }
 
 void JoinOrderEnumerator::appendLogicalHashJoin(
     const NodeExpression& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    auto probePlanSchema = probePlan.getSchema();
     auto joinNodeID = joinNode.getIDProperty();
     // Flat probe side key group if necessary
-    auto probeSideKeyGroupPos = probePlan.schema->getGroupPos(joinNodeID);
-    auto probeSideKeyGroup = probePlan.schema->getGroup(probeSideKeyGroupPos);
+    auto probeSideKeyGroupPos = probePlanSchema->getGroupPos(joinNodeID);
+    auto probeSideKeyGroup = probePlanSchema->getGroup(probeSideKeyGroupPos);
     enumerator->appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
     // Merge key group from build side into probe side.
-    auto& buildSideSchema = *buildPlan.schema;
+    auto& buildSideSchema = *buildPlan.getSchema();
     auto buildSideKeyGroupPos = buildSideSchema.getGroupPos(joinNodeID);
     probeSideKeyGroup->setEstimatedCardinality(max(probeSideKeyGroup->getEstimatedCardinality(),
         buildSideSchema.getGroup(buildSideKeyGroupPos)->getEstimatedCardinality()));
-    probePlan.schema->insertToGroupAndScope(
+    probePlanSchema->insertToGroupAndScope(
         buildSideSchema.getExpressionsInScope(buildSideKeyGroupPos), probeSideKeyGroupPos);
     // Merge payload groups
     unordered_set<uint32_t> payloadGroupsPos;
@@ -294,28 +295,25 @@ void JoinOrderEnumerator::appendLogicalHashJoin(
         payloadGroupsPos.insert(groupPos);
     }
     Enumerator::computeSchemaForHashJoinOrderByAndUnion(
-        payloadGroupsPos, buildSideSchema, *probePlan.schema);
-
-    unordered_set<string> expressionToMaterializeNames;
-    for (auto& expression : buildSideSchema.getExpressionsInScope()) {
-        expressionToMaterializeNames.insert(expression->getUniqueName());
-    }
+        payloadGroupsPos, buildSideSchema, *probePlanSchema);
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodeID, buildSideSchema.copy(),
-        move(expressionToMaterializeNames), probePlan.lastOperator, buildPlan.lastOperator);
+        buildSideSchema.getExpressionsInScope(), probePlan.getLastOperator(),
+        buildPlan.getLastOperator());
     probePlan.appendOperator(move(hashJoin));
 }
 
 bool JoinOrderEnumerator::appendIntersect(
     const string& leftNodeID, const string& rightNodeID, LogicalPlan& plan) {
-    auto leftGroupPos = plan.schema->getGroupPos(leftNodeID);
-    auto rightGroupPos = plan.schema->getGroupPos(rightNodeID);
-    auto& leftGroup = *plan.schema->getGroup(leftGroupPos);
-    auto& rightGroup = *plan.schema->getGroup(rightGroupPos);
+    auto schema = plan.getSchema();
+    auto leftGroupPos = schema->getGroupPos(leftNodeID);
+    auto rightGroupPos = schema->getGroupPos(rightNodeID);
+    auto& leftGroup = *schema->getGroup(leftGroupPos);
+    auto& rightGroup = *schema->getGroup(rightGroupPos);
     if (leftGroup.getIsFlat() || rightGroup.getIsFlat()) {
         // We should use filter close cycle if any group is flat.
         return false;
     }
-    auto intersect = make_shared<LogicalIntersect>(leftNodeID, rightNodeID, plan.lastOperator);
+    auto intersect = make_shared<LogicalIntersect>(leftNodeID, rightNodeID, plan.getLastOperator());
     plan.cost += max(leftGroup.getEstimatedCardinality(), rightGroup.getEstimatedCardinality());
     leftGroup.setEstimatedCardinality(leftGroup.getEstimatedCardinality() * PREDICATE_SELECTIVITY);
     rightGroup.setEstimatedCardinality(
@@ -330,9 +328,9 @@ uint64_t JoinOrderEnumerator::getExtensionRate(
     return ceil((double)numRels / graph.getNumNodes(boundNodeLabel));
 }
 
-vector<shared_ptr<Expression>> getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,
-    const SubqueryGraph& newSubgraph, const vector<shared_ptr<Expression>>& expressions) {
-    vector<shared_ptr<Expression>> newMatchedExpressions;
+expression_vector getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,
+    const SubqueryGraph& newSubgraph, const expression_vector& expressions) {
+    expression_vector newMatchedExpressions;
     for (auto& expression : expressions) {
         auto includedVariables = expression->getDependentVariableNames();
         if (newSubgraph.containAllVariables(includedVariables) &&
@@ -343,10 +341,10 @@ vector<shared_ptr<Expression>> getNewMatchedExpressions(const SubqueryGraph& pre
     return newMatchedExpressions;
 }
 
-vector<shared_ptr<Expression>> getNewMatchedExpressions(const SubqueryGraph& prevLeftSubgraph,
+expression_vector getNewMatchedExpressions(const SubqueryGraph& prevLeftSubgraph,
     const SubqueryGraph& prevRightSubgraph, const SubqueryGraph& newSubgraph,
-    const vector<shared_ptr<Expression>>& expressions) {
-    vector<shared_ptr<Expression>> newMatchedExpressions;
+    const expression_vector& expressions) {
+    expression_vector newMatchedExpressions;
     for (auto& expression : expressions) {
         auto includedVariables = expression->getDependentVariableNames();
         if (newSubgraph.containAllVariables(includedVariables) &&
@@ -366,15 +364,6 @@ shared_ptr<RelExpression> rewriteQueryRel(const RelExpression& queryRel, bool is
         isRewriteDst ? queryRel.getSrcNode() : tmpNode,
         isRewriteDst ? tmpNode : queryRel.getDstNode(), queryRel.getLowerBound(),
         queryRel.getUpperBound());
-}
-
-shared_ptr<Expression> createNodeIDEqualComparison(
-    const shared_ptr<NodeExpression>& left, const shared_ptr<NodeExpression>& right) {
-    auto srcNodeID = make_shared<PropertyExpression>(
-        NODE_ID, INTERNAL_ID_SUFFIX, UINT32_MAX /* property key for internal id */, left);
-    auto dstNodeID = make_shared<PropertyExpression>(
-        NODE_ID, INTERNAL_ID_SUFFIX, UINT32_MAX /* property key for internal id  */, right);
-    return make_shared<Expression>(EQUALS_NODE_ID, BOOL, move(srcNodeID), move(dstNodeID));
 }
 
 } // namespace planner

@@ -17,7 +17,7 @@ public:
 
     unordered_set<string> getDependentVariableNames() override;
 
-    vector<shared_ptr<Expression>> getChildren() const override;
+    expression_vector getChildren() const override;
 
 private:
     unique_ptr<NormalizedSingleQuery> subQuery;

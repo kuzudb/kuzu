@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/common/include/profiler.h"
-#include "src/planner/include/logical_plan/logical_plan.h"
+#include "src/planner/logical_plan/include/logical_plan.h"
 #include "src/processor/include/physical_plan/physical_plan.h"
 
 using namespace graphflow::planner;

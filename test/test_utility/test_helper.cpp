@@ -32,7 +32,7 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const Syste
         uint64_t numPassedPlans = 0;
         vector<DataType> dataTypes = plans[0]->getExpressionsToCollectDataTypes();
         for (uint64_t j = 0; j < numPlans; j++) {
-            auto planStr = plans[j]->lastOperator->toString();
+            auto planStr = plans[j]->getLastOperator()->toString();
             auto result = system.executePlan(move(plans[j]), context);
             if (result->getTotalNumFlatTuples() != testConfig.expectedNumTuples) {
                 spdlog::error("PLAN{} NOT PASSED. Result num tuples: {}, Expected num tuples: {}",

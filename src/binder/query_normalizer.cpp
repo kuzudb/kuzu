@@ -13,7 +13,6 @@ unique_ptr<NormalizedSingleQuery> QueryNormalizer::normalizeQuery(
     }
     auto finalQueryPart = normalizeFinalMatchesAndReturnAsQueryPart(singleQuery);
     normalizedQuery->appendQueryPart(normalizeQueryPart(*finalQueryPart));
-    normalizedQuery->markLastQueryPart();
     return normalizedQuery;
 }
 

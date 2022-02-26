@@ -2,7 +2,7 @@
 
 #include "src/binder/expression/include/rel_expression.h"
 #include "src/binder/query/return_with_clause/include/bound_projection_body.h"
-#include "src/planner/include/logical_plan/logical_plan.h"
+#include "src/planner/logical_plan/include/logical_plan.h"
 #include "src/storage/include/catalog.h"
 
 using namespace graphflow::storage;
@@ -20,37 +20,38 @@ public:
     explicit ProjectionEnumerator(const Catalog& catalog, Enumerator* enumerator)
         : catalog{catalog}, enumerator{enumerator} {}
 
-    void enumerateProjectionBody(const BoundProjectionBody& projectionBody,
-        const vector<unique_ptr<LogicalPlan>>& plans, bool isFinalReturn);
+    void enumerateProjectionBody(
+        const BoundProjectionBody& projectionBody, const vector<unique_ptr<LogicalPlan>>& plans);
 
 private:
     void enumerateAggregate(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
     void enumerateOrderBy(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
-    void enumerateProjection(const vector<shared_ptr<Expression>>& expressionsToProject,
-        bool isDistinct, LogicalPlan& plan);
+    void enumerateProjection(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
     void enumerateSkipAndLimit(const BoundProjectionBody& projectionBody, LogicalPlan& plan);
 
-    void appendProjection(
-        const vector<shared_ptr<Expression>>& expressionsToProject, LogicalPlan& plan);
-    void appendDistinct(
-        const vector<shared_ptr<Expression>>& expressionsToDistinct, LogicalPlan& plan);
-    void appendAggregate(const vector<shared_ptr<Expression>>& expressionsToGroupBy,
-        const vector<shared_ptr<Expression>>& expressionsToAggregate, LogicalPlan& plan);
-    void appendOrderBy(const vector<shared_ptr<Expression>>& expressions,
-        const vector<bool>& isAscOrders, LogicalPlan& plan);
+    void appendProjection(const expression_vector& expressionsToProject, LogicalPlan& plan);
+    void appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan);
+    void appendAggregate(const expression_vector& expressionsToGroupBy,
+        const expression_vector& expressionsToAggregate, LogicalPlan& plan);
+    void appendOrderBy(
+        const expression_vector& expressions, const vector<bool>& isAscOrders, LogicalPlan& plan);
     void appendMultiplicityReducer(LogicalPlan& plan);
     void appendLimit(uint64_t limitNumber, LogicalPlan& plan);
     void appendSkip(uint64_t skipNumber, LogicalPlan& plan);
 
-    vector<shared_ptr<Expression>> getExpressionToGroupBy(
+    static expression_vector getExpressionToGroupBy(
         const BoundProjectionBody& projectionBody, const Schema& schema);
-    vector<shared_ptr<Expression>> getExpressionsToAggregate(
-        const BoundProjectionBody& projectionBody, const Schema& schema);
-    vector<shared_ptr<Expression>> getExpressionsToProject(
-        const BoundProjectionBody& projectionBody, const Schema& schema,
-        bool isRewritingAllProperties);
 
-    expression_vector rewriteVariableAsAllPropertiesInScope(
+    static expression_vector getExpressionsToAggregate(
+        const BoundProjectionBody& projectionBody, const Schema& schema);
+
+    static expression_vector getExpressionsToProject(
+        const BoundProjectionBody& projectionBody, const Schema& schema);
+
+    static expression_vector getSubAggregateExpressionsNotInScope(
+        const shared_ptr<Expression>& expression, const Schema& schema);
+
+    static expression_vector rewriteVariableAsAllPropertiesInScope(
         const Expression& variable, const Schema& schema);
 
 private:

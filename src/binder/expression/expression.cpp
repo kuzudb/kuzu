@@ -38,8 +38,36 @@ unordered_set<string> Expression::getDependentVariableNames() {
     return result;
 }
 
-vector<shared_ptr<Expression>> Expression::splitOnAND() {
-    auto result = vector<shared_ptr<Expression>>();
+expression_vector Expression::getSubPropertyExpressions() {
+    expression_vector result;
+    if (expressionType == PROPERTY) {
+        result.push_back(shared_from_this());
+    }
+    for (auto& child : getChildren()) { // NOTE: use getChildren interface because we need the
+                                        // property from nested subqueries too
+        for (auto& expr : child->getSubPropertyExpressions()) {
+            result.push_back(expr);
+        }
+    }
+    return result;
+}
+
+expression_vector Expression::getTopLevelSubSubqueryExpressions() {
+    expression_vector result;
+    if (expressionType == EXISTENTIAL_SUBQUERY) {
+        result.push_back(shared_from_this());
+        return result;
+    }
+    for (auto& child : children) {
+        for (auto& expression : child->getTopLevelSubSubqueryExpressions()) {
+            result.push_back(expression);
+        }
+    }
+    return result;
+}
+
+expression_vector Expression::splitOnAND() {
+    expression_vector result;
     if (AND == expressionType) {
         for (auto& child : children) {
             for (auto& exp : child->splitOnAND()) {
@@ -48,21 +76,6 @@ vector<shared_ptr<Expression>> Expression::splitOnAND() {
         }
     } else {
         result.push_back(shared_from_this());
-    }
-    return result;
-}
-
-vector<shared_ptr<Expression>> Expression::getTopLevelSubExpressionsOfType(
-    const std::function<bool(ExpressionType)>& typeCheckFunc) {
-    vector<shared_ptr<Expression>> result;
-    if (typeCheckFunc(expressionType)) {
-        result.push_back(shared_from_this());
-        return result;
-    }
-    for (auto& child : children) {
-        for (auto& expression : child->getTopLevelSubExpressionsOfType(typeCheckFunc)) {
-            result.push_back(expression);
-        }
     }
     return result;
 }

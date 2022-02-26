@@ -39,7 +39,7 @@ public:
 
     inline BoundReturnClause* getReturnClause() const { return returnClause.get(); }
 
-    inline vector<shared_ptr<Expression>> getExpressionsToReturn() const {
+    inline expression_vector getExpressionsToReturn() const {
         return returnClause->getProjectionBody()->getProjectionExpressions();
     }
 

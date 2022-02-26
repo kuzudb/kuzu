@@ -1,0 +1,20 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "logical_plan",
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/main:__pkg__",
+        "//src/planner:__subpackages__",
+        "//src/processor:__pkg__",
+    ],
+    deps = [
+        "//src/binder/expression:base_expression",
+        "//src/planner/logical_plan/logical_operator:base_logical_operator",
+    ],
+)

@@ -4,7 +4,7 @@
 #include <unordered_map>
 
 #include "src/common/include/assert.h"
-#include "src/planner/include/logical_plan/schema.h"
+#include "src/planner/logical_plan/logical_operator/include/schema.h"
 #include "src/processor/include/physical_plan/data_pos.h"
 
 using namespace graphflow::planner;

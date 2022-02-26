@@ -14,6 +14,9 @@ using namespace std;
 namespace graphflow {
 namespace binder {
 
+class Expression;
+using expression_vector = vector<shared_ptr<Expression>>;
+
 class Expression : public enable_shared_from_this<Expression> {
 
 public:
@@ -29,6 +32,7 @@ public:
     Expression(ExpressionType expressionType, DataType dataType, const string& uniqueName);
 
     inline void setAlias(const string& name) { alias = name; }
+
     inline void setRawName(const string& name) { rawName = name; }
 
     inline string getUniqueName() const {
@@ -45,26 +49,26 @@ public:
     inline string getRawName() const { return rawName; }
 
     inline uint32_t getNumChildren() const { return children.size(); }
+
     inline shared_ptr<Expression> getChild(uint32_t idx) const { return children[idx]; }
-    inline virtual vector<shared_ptr<Expression>> getChildren() const { return children; }
+
+    inline virtual expression_vector getChildren() const { return children; }
 
     bool hasAggregationExpression() const { return hasSubExpressionOfType(isExpressionAggregate); }
+
     bool hasSubqueryExpression() const { return hasSubExpressionOfType(isExpressionSubquery); }
 
     virtual unordered_set<string> getDependentVariableNames();
 
-    vector<shared_ptr<Expression>> getTopLevelSubSubqueryExpressions() {
-        return getTopLevelSubExpressionsOfType(isExpressionSubquery);
-    }
+    expression_vector getSubPropertyExpressions();
 
-    vector<shared_ptr<Expression>> splitOnAND();
+    expression_vector getTopLevelSubSubqueryExpressions();
+
+    expression_vector splitOnAND();
 
 protected:
     Expression(ExpressionType expressionType, DataType dataType)
         : expressionType{expressionType}, dataType{dataType} {}
-
-    vector<shared_ptr<Expression>> getTopLevelSubExpressionsOfType(
-        const std::function<bool(ExpressionType type)>& typeCheckFunc);
 
     bool hasSubExpressionOfType(
         const std::function<bool(ExpressionType type)>& typeCheckFunc) const;
@@ -72,6 +76,8 @@ protected:
 public:
     ExpressionType expressionType;
     DataType dataType;
+
+protected:
     // Name that serves as the unique identifier.
     // NOTE: an expression must have an unique name
     string uniqueName;
@@ -79,12 +85,8 @@ public:
     // Name that matches user input.
     // NOTE: an expression may not have a rawName since it is generated internally e.g. casting
     string rawName;
-
-protected:
-    vector<shared_ptr<Expression>> children;
+    expression_vector children;
 };
-
-using expression_vector = vector<shared_ptr<Expression>>;
 
 } // namespace binder
 } // namespace graphflow

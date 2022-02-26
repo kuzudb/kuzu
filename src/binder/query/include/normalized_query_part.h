@@ -10,7 +10,7 @@ class NormalizedQueryPart {
 
 public:
     NormalizedQueryPart(unique_ptr<BoundProjectionBody> projectionBody)
-        : projectionBody{move(projectionBody)}, lastQueryPart{false} {}
+        : projectionBody{move(projectionBody)} {}
 
     void addQueryGraph(unique_ptr<QueryGraph> queryGraph, shared_ptr<Expression> predicate,
         bool isQueryGraphOptional);
@@ -41,19 +41,15 @@ public:
         projectionBodyPredicate = predicate;
     }
 
-    inline void setLastQueryPart(bool islastQueryPart) { lastQueryPart = islastQueryPart; }
-
-    inline bool isLastQueryPart() const { return lastQueryPart; }
+    expression_vector getAllPropertyExpressions() const;
 
 private:
     vector<unique_ptr<QueryGraph>> queryGraphs;
-    vector<shared_ptr<Expression>> queryGraphPredicates;
+    expression_vector queryGraphPredicates;
     vector<bool> isOptional;
 
     unique_ptr<BoundProjectionBody> projectionBody;
     shared_ptr<Expression> projectionBodyPredicate;
-
-    bool lastQueryPart;
 };
 
 } // namespace binder

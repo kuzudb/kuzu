@@ -1,14 +1,14 @@
 #include "src/planner/include/enumerator.h"
 
-#include "src/planner/include/logical_plan/operator/exists/logical_exist.h"
-#include "src/planner/include/logical_plan/operator/extend/logical_extend.h"
-#include "src/planner/include/logical_plan/operator/filter/logical_filter.h"
-#include "src/planner/include/logical_plan/operator/flatten/logical_flatten.h"
-#include "src/planner/include/logical_plan/operator/nested_loop_join/logical_left_nested_loop_join.h"
-#include "src/planner/include/logical_plan/operator/result_collector/logical_result_collector.h"
-#include "src/planner/include/logical_plan/operator/scan_property/logical_scan_node_property.h"
-#include "src/planner/include/logical_plan/operator/scan_property/logical_scan_rel_property.h"
-#include "src/planner/include/logical_plan/operator/union/logical_union.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_left_nested_loop_join.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_result_collector.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_scan_rel_property.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_union.h"
 
 namespace graphflow {
 namespace planner {
@@ -78,15 +78,18 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const NormalizedSingleQu
     for (auto& plan : enumeratePlans(singleQuery)) {
         // This is copy is to avoid sharing operator across plans. Later optimization requires
         // each plan to be independent.
-        plan->lastOperator = plan->lastOperator->copy();
-        result.push_back(move(plan));
+        result.push_back(plan->deepCopy());
     }
     return result;
 }
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(
     const NormalizedSingleQuery& singleQuery) {
-    propertiesToScan = EnumeratorUtils::getPropertiesToScan(singleQuery);
+    propertiesToScan.clear();
+    for (auto& expression : singleQuery.getAllPropertyExpressions()) {
+        assert(expression->expressionType == PROPERTY);
+        propertiesToScan.push_back(static_pointer_cast<PropertyExpression>(expression));
+    }
     joinOrderEnumerator.resetState();
     auto plans = getInitialEmptyPlans();
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
@@ -116,8 +119,7 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
                 *queryPart.getQueryGraph(i), queryPart.getQueryGraphPredicate(i), move(plans));
         }
     }
-    projectionEnumerator.enumerateProjectionBody(
-        *queryPart.getProjectionBody(), plans, queryPart.isLastQueryPart());
+    projectionEnumerator.enumerateProjectionBody(*queryPart.getProjectionBody(), plans);
     if (queryPart.hasProjectionBodyPredicate()) {
         for (auto& plan : plans) {
             appendFilter(queryPart.getProjectionBodyPredicate(), *plan);
@@ -128,19 +130,20 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
 
 void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
     const shared_ptr<Expression>& queryGraphPredicate, LogicalPlan& outerPlan) {
-    vector<shared_ptr<Expression>> expressionsToScanFromOuter;
+    auto outerPlanSchema = outerPlan.getSchema();
+    expression_vector expressionsToScanFromOuter;
     if (queryGraphPredicate) {
         expressionsToScanFromOuter =
-            getSubExpressionsInSchema(queryGraphPredicate, *outerPlan.schema);
+            getSubExpressionsInSchema(queryGraphPredicate, *outerPlanSchema);
     }
     for (auto& nodeIDExpression : queryGraph.getNodeIDExpressions()) {
-        if (outerPlan.schema->isExpressionInScope(*nodeIDExpression)) {
+        if (outerPlanSchema->isExpressionInScope(*nodeIDExpression)) {
             expressionsToScanFromOuter.push_back(nodeIDExpression);
         }
     }
     for (auto& expression : expressionsToScanFromOuter) {
         appendFlattenIfNecessary(
-            outerPlan.schema->getGroupPos(expression->getUniqueName()), outerPlan);
+            outerPlanSchema->getGroupPos(expression->getUniqueName()), outerPlan);
     }
     auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToScanFromOuter));
     auto bestPlan = getBestPlan(getValidSubPlans(joinOrderEnumerator.enumerateJoinOrder(
@@ -154,48 +157,48 @@ void Enumerator::planOptionalMatch(const QueryGraph& queryGraph,
     //    to a different datachunk DCOuterB. This is because the b's vector contains DCInner's
     //    state, which might be different than DCOuterA. To make sure that when vector b is copied
     //    to the outer query, we can keep DCInner's state, we copy B to a new datachunk.
-    auto subPlanSchema = bestPlan->schema->copy();
+    auto subPlanSchema = bestPlan->getSchema()->copy();
     assert(subPlanSchema->getNumGroups() > 0);
     auto firstInnerGroup = subPlanSchema->getGroup(0);
     auto firstInnerGroupMapToOuterPos = UINT32_MAX;
     // Merge first inner group into outer. This merging handles the logic above.
     for (auto& expression : firstInnerGroup->getExpressions()) {
-        if (outerPlan.schema->isExpressionInScope(*expression)) {
+        if (outerPlanSchema->isExpressionInScope(*expression)) {
             continue;
         }
         if (firstInnerGroupMapToOuterPos == UINT32_MAX) {
-            firstInnerGroupMapToOuterPos = outerPlan.schema->createGroup();
+            firstInnerGroupMapToOuterPos = outerPlanSchema->createGroup();
         }
-        outerPlan.schema->insertToGroupAndScope(expression, firstInnerGroupMapToOuterPos);
-        outerPlan.schema->getGroup(firstInnerGroupMapToOuterPos)
+        outerPlanSchema->insertToGroupAndScope(expression, firstInnerGroupMapToOuterPos);
+        outerPlanSchema->getGroup(firstInnerGroupMapToOuterPos)
             ->setIsFlat(firstInnerGroup->getIsFlat());
     }
     // Merge rest inner groups into outer.
     for (auto i = 1u; i < subPlanSchema->getNumGroups(); ++i) {
-        auto outerPos = outerPlan.schema->createGroup();
+        auto outerPos = outerPlanSchema->createGroup();
         auto group = subPlanSchema->getGroup(i);
         for (auto& expression : group->getExpressions()) {
-            outerPlan.schema->insertToGroupAndScope(expression, outerPos);
+            outerPlanSchema->insertToGroupAndScope(expression, outerPos);
         }
-        outerPlan.schema->getGroup(outerPos)->setIsFlat(group->getIsFlat());
+        outerPlanSchema->getGroup(outerPos)->setIsFlat(group->getIsFlat());
     }
     auto logicalLeftNestedLoopJoin = make_shared<LogicalLeftNestedLoopJoin>(
-        bestPlan->schema->copy(), outerPlan.lastOperator, bestPlan->lastOperator);
+        bestPlan->getSchema()->copy(), outerPlan.getLastOperator(), bestPlan->getLastOperator());
     outerPlan.appendOperator(move(logicalLeftNestedLoopJoin));
 }
 
 void Enumerator::planExistsSubquery(
     const shared_ptr<ExistentialSubqueryExpression>& subqueryExpression, LogicalPlan& outerPlan) {
     auto expressionsToScanFromOuter =
-        getSubExpressionsInSchema(subqueryExpression, *outerPlan.schema);
+        getSubExpressionsInSchema(subqueryExpression, *outerPlan.getSchema());
     // We flatten all dependent groups for subquery and the result of subquery evaluation can be
     // appended to any flat dependent group.
     auto groupPosToWrite = UINT32_MAX;
     for (auto& expression : expressionsToScanFromOuter) {
-        groupPosToWrite = outerPlan.schema->getGroupPos(expression->getUniqueName());
+        groupPosToWrite = outerPlan.getSchema()->getGroupPos(expression->getUniqueName());
         appendFlattenIfNecessary(groupPosToWrite, outerPlan);
     }
-    outerPlan.schema->insertToGroupAndScope(subqueryExpression, groupPosToWrite);
+    outerPlan.getSchema()->insertToGroupAndScope(subqueryExpression, groupPosToWrite);
     auto& normalizedQuery = *subqueryExpression->getSubquery();
     auto prevContext = joinOrderEnumerator.enterSubquery(move(expressionsToScanFromOuter));
     auto plans = enumerateQueryPart(*normalizedQuery.getQueryPart(0), getInitialEmptyPlans());
@@ -205,8 +208,8 @@ void Enumerator::planExistsSubquery(
     }
     joinOrderEnumerator.exitSubquery(move(prevContext));
     auto bestPlan = getBestPlan(getValidSubPlans(move(plans)));
-    auto logicalExists = make_shared<LogicalExists>(subqueryExpression, bestPlan->schema->copy(),
-        outerPlan.lastOperator, bestPlan->lastOperator);
+    auto logicalExists = make_shared<LogicalExists>(subqueryExpression,
+        bestPlan->getSchema()->copy(), outerPlan.getLastOperator(), bestPlan->getLastOperator());
     outerPlan.appendOperator(logicalExists);
 }
 
@@ -234,7 +237,7 @@ uint32_t Enumerator::appendFlattensButOne(
     }
     vector<uint32_t> unFlatGroupsPos;
     for (auto& groupPos : groupsPos) {
-        if (!plan.schema->getGroup(groupPos)->getIsFlat()) {
+        if (!plan.getSchema()->getGroup(groupPos)->getIsFlat()) {
             unFlatGroupsPos.push_back(groupPos);
         }
     }
@@ -248,33 +251,32 @@ uint32_t Enumerator::appendFlattensButOne(
 }
 
 void Enumerator::appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan) {
-    auto& group = *plan.schema->getGroup(groupPos);
+    auto& group = *plan.getSchema()->getGroup(groupPos);
     if (group.getIsFlat()) {
         return;
     }
-    plan.schema->flattenGroup(groupPos);
+    plan.getSchema()->flattenGroup(groupPos);
     plan.cost += group.getEstimatedCardinality();
-    auto flatten = make_shared<LogicalFlatten>(group.getAnyExpressionName(), plan.lastOperator);
+    auto flatten = make_shared<LogicalFlatten>(group.getAnyExpression(), plan.getLastOperator());
     plan.appendOperator(move(flatten));
 }
 
 void Enumerator::appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan) {
     planSubqueryIfNecessary(expression, plan);
-    auto dependentGroupsPos = getDependentGroupsPos(expression, *plan.schema);
+    auto dependentGroupsPos = getDependentGroupsPos(expression, *plan.getSchema());
     auto groupPosToSelect = appendFlattensButOne(dependentGroupsPos, plan);
-    auto filter = make_shared<LogicalFilter>(expression, groupPosToSelect, plan.lastOperator);
-    auto group = plan.schema->getGroup(groupPosToSelect);
+    auto filter = make_shared<LogicalFilter>(expression, groupPosToSelect, plan.getLastOperator());
+    auto group = plan.getSchema()->getGroup(groupPosToSelect);
     group->setEstimatedCardinality(group->getEstimatedCardinality() * PREDICATE_SELECTIVITY);
     plan.appendOperator(move(filter));
 }
 
 void Enumerator::appendScanNodeProperty(const NodeExpression& node, LogicalPlan& plan) {
-    auto structuredProperties = EnumeratorUtils::getPropertiesForNode(propertiesToScan, node, true);
+    auto structuredProperties = getPropertiesForNode(propertiesToScan, node, true);
     if (!structuredProperties.empty()) {
         appendScanNodeProperty(structuredProperties, node, plan);
     }
-    auto unstructuredProperties =
-        EnumeratorUtils::getPropertiesForNode(propertiesToScan, node, false);
+    auto unstructuredProperties = getPropertiesForNode(propertiesToScan, node, false);
     if (!unstructuredProperties.empty()) {
         appendScanNodeProperty(unstructuredProperties, node, plan);
     }
@@ -282,27 +284,28 @@ void Enumerator::appendScanNodeProperty(const NodeExpression& node, LogicalPlan&
 
 void Enumerator::appendScanNodeProperty(
     const property_vector& properties, const NodeExpression& node, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
     vector<string> propertyNames;
     vector<uint32_t> propertyKeys;
-    auto groupPos = plan.schema->getGroupPos(node.getIDProperty());
+    auto groupPos = schema->getGroupPos(node.getIDProperty());
     for (auto& property : properties) {
-        if (plan.schema->isExpressionInScope(*property)) {
+        if (schema->isExpressionInScope(*property)) {
             continue;
         }
         propertyNames.push_back(property->getUniqueName());
         propertyKeys.push_back(property->getPropertyKey());
-        plan.schema->insertToGroupAndScope(property, groupPos);
+        schema->insertToGroupAndScope(property, groupPos);
     }
     assert(!properties.empty());
     auto scanNodeProperty = make_shared<LogicalScanNodeProperty>(node.getIDProperty(),
         node.getLabel(), move(propertyNames), move(propertyKeys),
-        properties[0]->dataType == UNSTRUCTURED, plan.lastOperator);
+        properties[0]->dataType == UNSTRUCTURED, plan.getLastOperator());
     plan.appendOperator(move(scanNodeProperty));
 }
 
 void Enumerator::appendScanRelProperty(const RelExpression& rel, LogicalPlan& plan) {
-    for (auto& property : EnumeratorUtils::getPropertiesForRel(propertiesToScan, rel)) {
-        if (plan.schema->isExpressionInScope(*property)) {
+    for (auto& property : getPropertiesForRel(propertiesToScan, rel)) {
+        if (plan.getSchema()->isExpressionInScope(*property)) {
             continue;
         }
         appendScanRelProperty(property, rel, plan);
@@ -311,19 +314,21 @@ void Enumerator::appendScanRelProperty(const RelExpression& rel, LogicalPlan& pl
 
 void Enumerator::appendScanRelProperty(
     const shared_ptr<PropertyExpression>& property, const RelExpression& rel, LogicalPlan& plan) {
-    auto extend = plan.schema->getExistingLogicalExtend(rel.getUniqueName());
-    auto scanProperty = make_shared<LogicalScanRelProperty>(extend->boundNodeID,
-        extend->boundNodeLabel, extend->nbrNodeID, extend->relLabel, extend->direction,
-        property->getUniqueName(), property->getPropertyKey(), extend->isColumn, plan.lastOperator);
-    auto groupPos = plan.schema->getGroupPos(extend->nbrNodeID);
-    plan.schema->insertToGroupAndScope(property, groupPos);
+    auto schema = plan.getSchema();
+    auto extend = schema->getExistingLogicalExtend(rel.getUniqueName());
+    auto scanProperty =
+        make_shared<LogicalScanRelProperty>(extend->boundNodeID, extend->boundNodeLabel,
+            extend->nbrNodeID, extend->relLabel, extend->direction, property->getUniqueName(),
+            property->getPropertyKey(), extend->isColumn, plan.getLastOperator());
+    auto groupPos = schema->getGroupPos(extend->nbrNodeID);
+    schema->insertToGroupAndScope(property, groupPos);
     plan.appendOperator(move(scanProperty));
 }
 
 void Enumerator::appendResultCollector(LogicalPlan& plan) {
     assert(!plan.getExpressionsToCollect().empty());
     auto resultCollector = make_shared<LogicalResultCollector>(
-        plan.getExpressionsToCollect(), plan.schema->copy(), plan.lastOperator);
+        plan.getExpressionsToCollect(), plan.getSchema()->copy(), plan.getLastOperator());
     plan.appendOperator(resultCollector);
 }
 
@@ -351,9 +356,10 @@ unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
     for (auto& childPlan : childrenPlans) {
         appendResultCollector(*childPlan);
         Enumerator::computeSchemaForHashJoinOrderByAndUnion(
-            childPlan->schema->getGroupsPosInScope(), *childPlan->schema, *plan->schema);
+            childPlan->getSchema()->getGroupsPosInScope(), *childPlan->getSchema(),
+            *plan->getSchema());
         plan->cost += childPlan->cost;
-        logicalUnion->addChild(childPlan->lastOperator);
+        logicalUnion->addChild(childPlan->getLastOperator());
     }
     plan->setExpressionsToCollect(logicalUnion->getExpressionsToUnion());
     plan->appendOperator(logicalUnion);
@@ -369,6 +375,32 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getInitialEmptyPlans() {
     return plans;
 }
 
+property_vector Enumerator::getPropertiesForNode(
+    const property_vector& propertiesToScan, const NodeExpression& node, bool isStructured) {
+    property_vector result;
+    for (auto& property : propertiesToScan) {
+        if (property->getChild(0)->getUniqueName() == node.getUniqueName()) {
+            assert(property->getChild(0)->dataType == NODE);
+            if (isStructured == (property->dataType != UNSTRUCTURED)) {
+                result.push_back(property);
+            }
+        }
+    }
+    return result;
+}
+
+property_vector Enumerator::getPropertiesForRel(
+    const property_vector& propertiesToScan, const RelExpression& rel) {
+    property_vector result;
+    for (auto& property : propertiesToScan) {
+        if (property->getChild(0)->getUniqueName() == rel.getUniqueName()) {
+            assert(property->getChild(0)->dataType == REL);
+            result.push_back(property);
+        }
+    }
+    return result;
+}
+
 unordered_set<uint32_t> Enumerator::getDependentGroupsPos(
     const shared_ptr<Expression>& expression, const Schema& schema) {
     unordered_set<uint32_t> dependentGroupsPos;
@@ -378,36 +410,15 @@ unordered_set<uint32_t> Enumerator::getDependentGroupsPos(
     return dependentGroupsPos;
 }
 
-vector<shared_ptr<Expression>> Enumerator::getSubExpressionsInSchema(
+expression_vector Enumerator::getSubExpressionsInSchema(
     const shared_ptr<Expression>& expression, const Schema& schema) {
-    vector<shared_ptr<Expression>> results;
+    expression_vector results;
     if (schema.isExpressionInScope(*expression)) {
         results.push_back(expression);
         return results;
     }
-
     for (auto& child : expression->getChildren()) {
         for (auto& subExpression : getSubExpressionsInSchema(child, schema)) {
-            results.push_back(subExpression);
-        }
-    }
-    return results;
-}
-
-vector<shared_ptr<Expression>> Enumerator::getSubExpressionsNotInSchemaOfType(
-    const shared_ptr<Expression>& expression, const Schema& schema,
-    const std::function<bool(ExpressionType)>& typeCheckFunc) {
-    vector<shared_ptr<Expression>> results;
-    if (schema.isExpressionInScope(*expression)) {
-        return results;
-    }
-    if (typeCheckFunc(expression->expressionType)) {
-        results.push_back(expression);
-        return results;
-    }
-    for (auto& child : expression->getChildren()) {
-        for (auto& subExpression :
-            getSubExpressionsNotInSchemaOfType(child, schema, typeCheckFunc)) {
             results.push_back(subExpression);
         }
     }

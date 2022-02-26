@@ -1,7 +1,5 @@
 #pragma once
 
-#include "enumerator_utils.h"
-
 #include "src/binder/expression/include/existential_subquery_expression.h"
 #include "src/binder/query/include/bound_regular_query.h"
 #include "src/planner/include/join_order_enumerator.h"
@@ -49,13 +47,13 @@ private:
 
     void planSubqueryIfNecessary(const shared_ptr<Expression>& expression, LogicalPlan& plan);
 
-    static void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
+    void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
 
     // return position of the only unFlat group
     // or position of any flat group if there is no unFlat group.
     uint32_t appendFlattensButOne(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
 
-    static void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan);
+    void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan);
 
     void appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan);
 
@@ -69,27 +67,26 @@ private:
     void appendScanRelProperty(const shared_ptr<PropertyExpression>& property,
         const RelExpression& rel, LogicalPlan& plan);
 
-    static void appendResultCollector(LogicalPlan& plan);
+    void appendResultCollector(LogicalPlan& plan);
 
     unique_ptr<LogicalPlan> createUnionPlan(
         vector<unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
 
     static vector<unique_ptr<LogicalPlan>> getInitialEmptyPlans();
+
+    static property_vector getPropertiesForNode(
+        const property_vector& propertiesToScan, const NodeExpression& node, bool isStructured);
+
+    static property_vector getPropertiesForRel(
+        const property_vector& propertiesToScan, const RelExpression& rel);
+
     static unordered_set<uint32_t> getDependentGroupsPos(
         const shared_ptr<Expression>& expression, const Schema& schema);
+
     // Recursively walk through expression until the root of current expression tree exists in the
     // schema or expression is a leaf. Collect all such roots.
-    static vector<shared_ptr<Expression>> getSubExpressionsInSchema(
+    static expression_vector getSubExpressionsInSchema(
         const shared_ptr<Expression>& expression, const Schema& schema);
-    // Recursively walk through expression, ignoring expression tree whose root exits in the schema,
-    // until expression is a leaf. Collect all expressions of given type.
-    static vector<shared_ptr<Expression>> getSubExpressionsNotInSchemaOfType(
-        const shared_ptr<Expression>& expression, const Schema& schema,
-        const std::function<bool(ExpressionType type)>& typeCheckFunc);
-    static inline vector<shared_ptr<Expression>> getAggregationExpressionsNotInSchema(
-        const shared_ptr<Expression>& expression, const Schema& schema) {
-        return getSubExpressionsNotInSchemaOfType(expression, schema, isExpressionAggregate);
-    }
 
     // For HashJoinProbe, the HashJoinProbe operator will read for a particular probe tuple t, the
     // matching result tuples M that match t[k], where k suppose is the join key column. If M
