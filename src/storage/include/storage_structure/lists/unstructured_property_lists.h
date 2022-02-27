@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/storage/include/data_structure/lists/lists.h"
+#include "src/storage/include/storage_structure/lists/lists.h"
 
 namespace graphflow {
 namespace storage {

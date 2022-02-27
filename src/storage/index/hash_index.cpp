@@ -45,8 +45,7 @@ HashIndex::HashIndex(const string& fName, DataType keyDataType)
 HashIndex::HashIndex(const string& fName, BufferManager& bufferManager, bool isInMemory)
     : fName{fName},
       logger(LoggerUtils::getOrCreateSpdLogger("storage")), bufferManager{&bufferManager} {
-    fileHandle = make_unique<FileHandle>(fName,
-        isInMemory ? FileHandle::O_InMemoryDefaultPaged : FileHandle::O_DiskBasedDefaultPage);
+    fileHandle = make_unique<FileHandle>(fName, FileHandle::O_DefaultPagedExistingDBFile);
     unique_ptr<uint8_t[]> buffer{getNewPage()};
     fileHandle->readPage(buffer.get(), 0);
     indexHeader = *((HashIndexHeader*)buffer.get());

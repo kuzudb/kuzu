@@ -35,17 +35,17 @@ cc_library(
 )
 
 cc_library(
-    name = "data_structure",
+    name = "storage_structure",
     srcs = [
-        "data_structure/data_structure.cpp",
-        "data_structure/lists/utils.cpp",
-        "data_structure/string_overflow_pages.cpp",
+        "storage_structure/storage_structure.cpp",
+        "storage_structure/lists/utils.cpp",
+        "storage_structure/string_overflow_pages.cpp",
     ],
     hdrs = [
-        "include/data_structure/data_structure.h",
-        "include/data_structure/lists/utils.h",
-        "include/data_structure/page_utils.h",
-        "include/data_structure/string_overflow_pages.h",
+        "include/storage_structure/storage_structure.h",
+        "include/storage_structure/lists/utils.h",
+        "include/storage_structure/storage_structure_utils.h",
+        "include/storage_structure/string_overflow_pages.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -58,38 +58,38 @@ cc_library(
 cc_library(
     name = "lists",
     srcs = [
-        "data_structure/lists/list_headers.cpp",
-        "data_structure/lists/list_sync_state.cpp",
-        "data_structure/lists/lists.cpp",
-        "data_structure/lists/lists_metadata.cpp",
-        "data_structure/lists/unstructured_property_lists.cpp",
+        "storage_structure/lists/list_headers.cpp",
+        "storage_structure/lists/list_sync_state.cpp",
+        "storage_structure/lists/lists.cpp",
+        "storage_structure/lists/lists_metadata.cpp",
+        "storage_structure/lists/unstructured_property_lists.cpp",
     ],
     hdrs = [
-        "include/data_structure/lists/large_list_handle.h",
-        "include/data_structure/lists/list_headers.h",
-        "include/data_structure/lists/list_sync_state.h",
-        "include/data_structure/lists/lists.h",
-        "include/data_structure/lists/lists_metadata.h",
-        "include/data_structure/lists/unstructured_property_lists.h",
-        "include/data_structure/lists/utils.h",
+        "include/storage_structure/lists/large_list_handle.h",
+        "include/storage_structure/lists/list_headers.h",
+        "include/storage_structure/lists/list_sync_state.h",
+        "include/storage_structure/lists/lists.h",
+        "include/storage_structure/lists/lists_metadata.h",
+        "include/storage_structure/lists/unstructured_property_lists.h",
+        "include/storage_structure/lists/utils.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "data_structure",
+        "storage_structure",
     ],
 )
 
 cc_library(
     name = "column",
     srcs = [
-        "data_structure/column.cpp",
+        "storage_structure/column.cpp",
     ],
     hdrs = [
-        "include/data_structure/column.h",
+        "include/storage_structure/column.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "data_structure",
+        "storage_structure",
     ],
 )
 

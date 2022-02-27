@@ -12,13 +12,12 @@ using namespace graphflow::planner;
 namespace graphflow {
 namespace main {
 
-System::System(const string& path, bool isInMemoryMode)
+System::System(const string& path, const SystemConfig& systemConfig)
     : logger{LoggerUtils::getOrCreateSpdLogger("System")} {
-    bufferManager =
-        make_unique<BufferManager>(isInMemoryMode ? 0 : StorageConfig::DEFAULT_BUFFER_POOL_SIZE,
-            isInMemoryMode ? 0 : StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
+    bufferManager = make_unique<BufferManager>(
+        systemConfig.defaultPageBufferPoolSize, systemConfig.largePageBufferPoolSize);
     memManager = make_unique<MemoryManager>(bufferManager.get());
-    graph = make_unique<Graph>(path, *bufferManager, isInMemoryMode);
+    graph = make_unique<Graph>(path, *bufferManager, systemConfig.isInMemoryMode);
     processor = make_unique<QueryProcessor>(thread::hardware_concurrency());
     initialized = true;
 }

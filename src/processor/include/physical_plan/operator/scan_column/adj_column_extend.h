@@ -2,7 +2,7 @@
 
 #include "src/processor/include/physical_plan/operator/filtering_operator.h"
 #include "src/processor/include/physical_plan/operator/scan_column/scan_column.h"
-#include "src/storage/include/data_structure/column.h"
+#include "src/storage/include/storage_structure/column.h"
 
 namespace graphflow {
 namespace processor {

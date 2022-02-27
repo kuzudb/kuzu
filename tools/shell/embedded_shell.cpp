@@ -18,7 +18,10 @@ struct ShellCommand {
     const string QUIT = ":quit";
     const string THREAD = ":thread";
     const string BUFFER_MANAGER_SIZE = ":buffer_manager_size";
-    const vector<string> commandList = {HELP, CLEAR, QUIT, THREAD, BUFFER_MANAGER_SIZE};
+    const string SYSTEM_DEBUG_INFO = ":system_debug_info";
+    const string BUFFER_MANAGER_DEBUG_INFO = ":bm_debug_info";
+    const vector<string> commandList = {HELP, CLEAR, QUIT, THREAD, BUFFER_MANAGER_SIZE,
+        SYSTEM_DEBUG_INFO, BUFFER_MANAGER_DEBUG_INFO};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -139,6 +142,11 @@ void EmbeddedShell::run() {
                 system.bufferManager->resize(newPageSize, newPageSize);
             } catch (exception& e) { printf("%s\n", e.what()); }
 
+        } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_DEBUG_INFO) == 0) {
+            printf("Buffer Manager Debug Info: \n %s \n",
+                system.bufferManager->debugInfo()->dump(4).c_str());
+        } else if (lineStr.rfind(shellCommand.SYSTEM_DEBUG_INFO) == 0) {
+            printf("System Debug Info: \n %s \n", system.debugInfo()->dump(4).c_str());
         } else {
             context.query = lineStr;
             try {
@@ -157,6 +165,8 @@ void EmbeddedShell::printHelp() {
     printf("%s:clear %sclear shell\n", TAB, TAB);
     printf("%s:quit %sexit from shell\n", TAB, TAB);
     printf("%s:thread [thread] %snumber of threads for execution\n", TAB, TAB);
+    printf("%s:bm_debug_info %sdebug information about the buffer manager\n", TAB, TAB);
+    printf("%s:system_debug_info %sdebug information about the system\n", TAB, TAB);
 }
 
 string genTableFrame(uint32_t len) {

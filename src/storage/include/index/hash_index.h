@@ -10,7 +10,7 @@
 #include "src/common/include/vector/value_vector.h"
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/data_structure/string_overflow_pages.h"
+#include "src/storage/include/storage_structure/string_overflow_pages.h"
 
 using namespace std;
 using namespace graphflow::common;

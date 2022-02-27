@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/common/include/configs.h"
-#include "src/storage/include/data_structure/data_structure.h"
+#include "src/storage/include/storage_structure/storage_structure.h"
 
 using namespace graphflow::common;
 using namespace graphflow::storage;

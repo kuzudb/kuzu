@@ -1,9 +1,9 @@
-#include "src/storage/include/data_structure/lists/list_headers.h"
+#include "src/storage/include/storage_structure/lists/list_headers.h"
 
 #include <fstream>
 
 #include "src/common/include/utils.h"
-#include "src/storage/include/data_structure/lists/utils.h"
+#include "src/storage/include/storage_structure/lists/utils.h"
 
 namespace graphflow {
 namespace storage {

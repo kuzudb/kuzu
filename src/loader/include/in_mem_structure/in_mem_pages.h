@@ -8,7 +8,7 @@
 #include "src/common/include/gf_string.h"
 #include "src/common/include/types.h"
 #include "src/loader/include/in_mem_structure/in_mem_page.h"
-#include "src/storage/include/data_structure/data_structure.h"
+#include "src/storage/include/storage_structure/storage_structure.h"
 
 using namespace graphflow::storage;
 using namespace graphflow::common;

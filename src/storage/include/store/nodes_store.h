@@ -5,10 +5,10 @@
 
 #include "src/common/include/types.h"
 #include "src/storage/include/catalog.h"
-#include "src/storage/include/data_structure/column.h"
-#include "src/storage/include/data_structure/lists/lists.h"
-#include "src/storage/include/data_structure/lists/unstructured_property_lists.h"
-#include "src/storage/include/data_structure/lists/utils.h"
+#include "src/storage/include/storage_structure/column.h"
+#include "src/storage/include/storage_structure/lists/lists.h"
+#include "src/storage/include/storage_structure/lists/unstructured_property_lists.h"
+#include "src/storage/include/storage_structure/lists/utils.h"
 
 namespace graphflow {
 namespace storage {

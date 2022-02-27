@@ -40,7 +40,7 @@ public:
     static void loadGraph(TestSuiteSystemConfig& config);
 
     static unique_ptr<System> getInitializedSystem(TestSuiteSystemConfig& config) {
-        return make_unique<System>(config.graphOutputDir, config.isInMemory);
+        return make_unique<System>(config.graphOutputDir, SystemConfig(config.isInMemory));
     }
 
     static vector<string> getActualOutput(

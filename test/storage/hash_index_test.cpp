@@ -1,4 +1,3 @@
-#include <fstream>
 #include <random>
 
 #include "gtest/gtest.h"
@@ -85,7 +84,7 @@ TEST(HashIndexTest, HashIndexInt64KeyInsertExists) {
     for (uint64_t i = 0; i < numEntries; i++) {
         ASSERT_TRUE(hashIndex.insert(reinterpret_cast<uint8_t*>(&i), i << 1));
     }
-    for (auto i = 0; i < numEntries; i++) {
+    for (uint64_t i = 0; i < numEntries; i++) {
         ASSERT_FALSE(hashIndex.insert(reinterpret_cast<uint8_t*>(&i), i << 1));
     }
 }
@@ -115,8 +114,7 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64SequentialLookupInMem) {
 }
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookupThroughBufferManager) {
-    auto bufferManager = make_unique<BufferManager>(
-        StorageConfig::DEFAULT_BUFFER_POOL_SIZE, StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
+    auto bufferManager = make_unique<BufferManager>();
     HashIndex hashIndex(fName, *bufferManager, false /*isInMemory*/);
     random_device rd;
     mt19937::result_type seed =
@@ -137,7 +135,7 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookupThroughBufferManag
 }
 
 TEST_F(LoadedHashIndexStringKeyTest, HashIndexInt64SequentialLookupInMem) {
-    auto bufferManager = make_unique<BufferManager>(0, 0);
+    auto bufferManager = make_unique<BufferManager>();
     HashIndex hashIndex(fName, *bufferManager, true /*isInMemory*/);
     node_offset_t result;
     for (auto& entry : map) {

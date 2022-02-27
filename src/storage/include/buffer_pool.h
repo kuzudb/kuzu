@@ -19,9 +19,18 @@ namespace graphflow {
 namespace storage {
 
 struct BufferManagerMetrics {
-    uint64_t numBufferHit;
-    uint64_t numBufferMiss;
-    uint64_t numReadIO;
+    uint64_t numPins{0};
+    // Number of pinning operations that required eviction from a Frame.
+    uint64_t numEvicts{0};
+    // Number of failed tries to evict the page from a Frame. This is incremented if either the
+    // eviction routine fails to get the lock on the page that is in the Frame or the pinCount of
+    // the Frame has increased after taking the locks of Frame and page.
+    uint64_t numEvictFails{0};
+    // Number of failed tried to evict the page frame a Frame because the Frame has been recently
+    // accessed and hence is given a second chance.
+    uint64_t numRecentlyAccessedWalkover{0};
+    uint64_t numCacheHit;
+    uint64_t numCacheMiss;
     uint64_t numDirtyPageWriteIO;
 };
 
@@ -45,8 +54,8 @@ private:
     // maintaining. pageIdx of -1u means that the frame is empty, i.e. it has no data.
     atomic<uint64_t> fileHandle;
     atomic<uint32_t> pageIdx;
-
     atomic<uint32_t> pinCount;
+
     bool recentlyAccessed;
     bool isDirty;
     unique_ptr<uint8_t[]> buffer;
@@ -103,16 +112,6 @@ private:
     uint32_t numFrames;
 
     BufferManagerMetrics bmMetrics;
-    atomic<uint64_t> numPins{0};
-    // Number of pinning operations that required eviction from a Frame.
-    atomic<uint64_t> numEvicts{0};
-    // Number of failed tries to evict the page from a Frame. This is incremented if either the
-    // eviction routine fails to get the lock on the page that is in the Frame or the pinCount of
-    // the Frame has increased after taking the locks of Frame and page.
-    atomic<uint64_t> numEvictFails{0};
-    // Number of failed tried to evict the page frame a Frame because the Frame has been recently
-    // accessed and hence is given a second chance.
-    atomic<uint64_t> numRecentlyAccessedWalkover{0};
 };
 
 } // namespace storage

@@ -56,7 +56,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/common:configs",
-        "//src/storage:data_structure",
+        "//src/storage:storage_structure",
     ],
 )
 

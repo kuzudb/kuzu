@@ -3,8 +3,8 @@
 #include "src/common/include/gf_string.h"
 #include "src/common/include/literal.h"
 #include "src/common/include/types.h"
-#include "src/storage/include/data_structure/data_structure.h"
-#include "src/storage/include/data_structure/string_overflow_pages.h"
+#include "src/storage/include/storage_structure/storage_structure.h"
+#include "src/storage/include/storage_structure/string_overflow_pages.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -12,12 +12,12 @@ using namespace std;
 namespace graphflow {
 namespace storage {
 
-class Column : public DataStructure {
+class Column : public StorageStructure {
 
 public:
     Column(const string& fName, const DataType& dataType, const size_t& elementSize,
         const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory)
-        : DataStructure{
+        : StorageStructure{
               fName, dataType, elementSize, bufferManager, true /*hasNULLBytes*/, isInMemory} {};
 
     virtual void readValues(

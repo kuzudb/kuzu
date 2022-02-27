@@ -54,8 +54,7 @@ public:
         // Because the memory manager only manages blocks in memory, this file should never be
         // created, opened, or written to. It's a place holder name. We keep the name for logging
         // purposes.
-        fh = make_shared<FileHandle>(
-            "mm-place-holder-file-name", FileHandle::O_DiskBasedLargePagedTempFile);
+        fh = make_shared<FileHandle>("mm-place-holder-file-name", FileHandle::O_LargePagedTempFile);
     }
 
     // TODO(Deprecate). We should remove this eventually and only use allocateBMBackedBlock.

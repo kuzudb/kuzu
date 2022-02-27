@@ -28,13 +28,10 @@ class FileHandle {
     friend class BufferPool;
 
 public:
-    // TODO(Reviewer): Where should these go?
-    constexpr static uint8_t isInMemoryMask{0b0000'0001};   // represents 1st least sig. bit (LSB)
-    constexpr static uint8_t isLargePagedMask{0b0000'0010}; // represents 2nd LSB
-    constexpr static uint8_t isNewTmpFileMask{0b0000'0100}; // represents 3rd LSB
-    constexpr static uint8_t O_DiskBasedDefaultPage{0b0000'0000};
-    constexpr static uint8_t O_InMemoryDefaultPaged{0b0000'0001};
-    constexpr static uint8_t O_DiskBasedLargePagedTempFile{0b0000'0110};
+    constexpr static uint8_t isLargePagedMask{0b0000'0001}; // represents 1st least sig. bit (LSB)
+    constexpr static uint8_t isNewTmpFileMask{0b0000'0010}; // represents 2nd LSB
+    constexpr static uint8_t O_DefaultPagedExistingDBFile{0b0000'0000};
+    constexpr static uint8_t O_LargePagedTempFile{0b0000'0011};
 
     explicit FileHandle(const string& path, uint8_t flags);
 
@@ -64,11 +61,10 @@ public:
     // to pin the newly added page in between these calls.
     uint32_t addNewPage();
 
-    inline bool isInMemory() const { return flags & isInMemoryMask; }
-
     inline bool isLargePaged() const { return flags & isLargePagedMask; }
 
     inline bool isNewTmpFile() const { return flags & isNewTmpFileMask; }
+    inline uint32_t getNumPages() const { return numPages; }
 
 private:
     void constructExistingFileHandle(const string& path);
@@ -117,7 +113,6 @@ private:
     uint32_t numPages;
     // This is the maximum number of pages the filehandle can currently support.
     uint32_t pageCapacity;
-    unique_ptr<uint8_t[]> buffer;
     // Intended to be used as a read/write lock
     shared_mutex fhSharedMutex;
 };
