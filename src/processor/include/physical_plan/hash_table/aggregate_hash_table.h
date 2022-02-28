@@ -59,10 +59,12 @@ public:
 
     uint8_t* getEntry(uint64_t idx) { return factorizedTable->getTuple(idx); }
 
+    FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
+
 private:
     uint8_t* findEntry(const vector<ValueVector*>& groupByKeyVectors, hash_t hash);
 
-    uint8_t* findEntry(uint8_t* groupByKeys, hash_t hash);
+    uint8_t* findEntry(uint8_t* entryBuffer, hash_t hash);
 
     uint8_t* createEntry(const vector<ValueVector*>& groupByKeyVectors, hash_t hash);
 
@@ -90,18 +92,15 @@ private:
     hash_t computeHash(uint8_t* keys);
 
     //! compute hash for single key value
-    hash_t computeHash(DataType keyDataType, uint8_t* keyValue);
+    hash_t computeHash(DataType keyDataType, uint8_t* keyValue, uint64_t colIdx);
 
     //! check if flat key vectors are the same as keys stored in entry
     bool matchGroupByKeys(const vector<ValueVector*>& keyVectors, uint8_t* entry);
 
-    //! check if flat key vector is the same as value
-    bool matchGroupByKey(ValueVector* keyVector, uint8_t* value);
+    //! check if keys are the same as keys stored in entryBufferToMatch.
+    bool matchGroupByKeys(uint8_t* keys, uint8_t* entryBufferToMatch);
 
-    //! check if keys are the same as keys stored in entry.
-    bool matchGroupByKeys(uint8_t* keys, uint8_t* entry);
-
-    void fillCellWithInitialNullAggregateState();
+    void fillTupleWithInitialNullAggregateState();
 
     //! find an uninitialized hash slot for given hash and fill hash slot with block id and offset
     void fillHashSlot(hash_t hash, uint8_t* groupByKeysAndAggregateStateBuffer);
@@ -116,12 +115,26 @@ private:
 
     void addDataBlocksIfNecessary(uint64_t maxNumHashSlots);
 
+    inline void fillTupleWithGroupByKeys(uint8_t* tupleBuffer, uint8_t* groupByKeys) {
+        memcpy(tupleBuffer, groupByKeys, getNumBytesForGroupByKeys());
+    }
+
+    inline void fillTupleWithNullMap(uint8_t* entryNullBuffer, uint8_t* groupByKeyNullBuffer) {
+        memcpy(entryNullBuffer, groupByKeyNullBuffer,
+            factorizedTable->getTableSchema().getNumBytesForNullMap());
+    }
+
+    bool compareEntryWithKeys(
+        uint8_t* keyBuffer, uint8_t* tupleBuffer, bool isStrCol, uint64_t numBytesToCompare);
+
 private:
     vector<DataType> groupByKeysDataTypes;
     vector<unique_ptr<AggregateFunction>> aggregateFunctions;
 
     //! special handling of distinct aggregate
     vector<unique_ptr<AggregateHashTable>> distinctHashTables;
+
+    bool hasStrCol = false;
 };
 
 class AggregateHashTableUtils {

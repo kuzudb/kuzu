@@ -10,8 +10,10 @@ shared_ptr<ResultSet> HashAggregateScan::initResultSet() {
             make_shared<ValueVector>(context.memoryManager, groupByKeyVectorDataTypes[i]);
         auto outDataChunk = resultSet->dataChunks[groupByKeyVectorsPos[i].dataChunkPos];
         outDataChunk->insert(groupByKeyVectorsPos[i].valueVectorPos, valueVector);
-        groupByKeyVectors.push_back(valueVector.get());
+        groupByKeyVectors.push_back(valueVector);
     }
+    groupByKeyVectorsColIdxes.resize(groupByKeyVectors.size());
+    iota(groupByKeyVectorsColIdxes.begin(), groupByKeyVectorsColIdxes.end(), 1);
     return result;
 }
 
@@ -23,25 +25,20 @@ bool HashAggregateScan::getNextTuples() {
         return false;
     }
     auto numRowsToScan = endOffset - startOffset;
+    sharedState->getFactorizedTable()->scan(
+        groupByKeyVectors, startOffset, numRowsToScan, groupByKeyVectorsColIdxes);
     for (auto pos = 0u; pos < numRowsToScan; ++pos) {
         auto entry = sharedState->getRow(startOffset + pos);
-        auto offset = sizeof(hash_t);
-        for (auto& vector : groupByKeyVectors) {
-            auto size = TypeUtils::getDataTypeSize(vector->dataType);
-            memcpy(vector->values + pos * size, entry + offset, size);
-            offset += size;
-        }
+        auto offset = sharedState->getFactorizedTable()->getTableSchema().getColOffset(
+            1 + groupByKeyVectors.size());
         for (auto& vector : aggregateVectors) {
             auto aggState = (AggregateState*)(entry + offset);
             writeAggregateResultToVector(vector, pos, aggState);
             offset += aggState->getStateSize();
         }
     }
-    assert(!groupByKeyVectorsPos.empty());
-    auto outDataChunk = resultSet->dataChunks[groupByKeyVectorsPos[0].dataChunkPos];
-    outDataChunk->state->initOriginalAndSelectedSize(numRowsToScan);
     metrics->executionTime.stop();
-    metrics->numOutputTuple.increase(outDataChunk->state->selectedSize);
+    metrics->numOutputTuple.increase(numRowsToScan);
     return true;
 }
 

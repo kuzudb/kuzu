@@ -160,6 +160,16 @@ uint64_t FactorizedTable::getNumFlatTuples(uint64_t tupleIdx) const {
     return numFlatTuples;
 }
 
+void FactorizedTable::updateFlatCell(uint64_t tupleIdx, uint64_t colIdx, ValueVector* valueVector) {
+    auto pos = valueVector->state->getPositionOfCurrIdx();
+    if (valueVector->isNull(pos)) {
+        setNull(getTuple(tupleIdx) + tableSchema.getNullMapOffset(), colIdx);
+    } else {
+        valueVector->copyNonNullDataWithSameTypeOutFromPos(
+            valueVector->state->getPositionOfCurrIdx(), getCell(tupleIdx, colIdx), *stringBuffer);
+    }
+}
+
 void FactorizedTable::setNull(uint8_t* nullBuffer, uint64_t colIdx) {
     uint64_t nullMapIdx = colIdx >> 3;
     uint8_t nullMapMask = 0x1 << (colIdx & 7); // note: &7 is the same as %8
