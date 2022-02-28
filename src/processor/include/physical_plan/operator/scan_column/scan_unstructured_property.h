@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/processor/include/physical_plan/operator/scan_column/scan_column.h"
-#include "src/storage/include/data_structure/lists/unstructured_property_lists.h"
+#include "src/storage/include/storage_structure/lists/unstructured_property_lists.h"
 
 using namespace graphflow::storage;
 

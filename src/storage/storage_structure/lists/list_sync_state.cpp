@@ -1,4 +1,4 @@
-#include "src/storage/include/data_structure/lists/list_sync_state.h"
+#include "src/storage/include/storage_structure/lists/list_sync_state.h"
 
 namespace graphflow {
 namespace storage {

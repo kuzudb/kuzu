@@ -1,7 +1,7 @@
 #include "test/test_utility/include/test_helper.h"
 
 #include "src/common/include/csv_reader/csv_reader.h"
-#include "src/storage/include/data_structure/lists/unstructured_property_lists.h"
+#include "src/storage/include/storage_structure/lists/unstructured_property_lists.h"
 
 using namespace std;
 using namespace graphflow::common;

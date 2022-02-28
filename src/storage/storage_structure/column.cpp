@@ -1,4 +1,4 @@
-#include "src/storage/include/data_structure/column.h"
+#include "src/storage/include/storage_structure/column.h"
 
 #include <iostream>
 

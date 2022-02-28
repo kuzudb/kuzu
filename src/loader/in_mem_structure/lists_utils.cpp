@@ -5,7 +5,7 @@
 #include "spdlog/spdlog.h"
 
 #include "src/common/include/configs.h"
-#include "src/storage/include/data_structure/lists/lists.h"
+#include "src/storage/include/storage_structure/lists/lists.h"
 
 namespace graphflow {
 namespace loader {

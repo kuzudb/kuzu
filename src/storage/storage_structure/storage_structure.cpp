@@ -1,23 +1,25 @@
-#include "src/storage/include/data_structure/data_structure.h"
+#include "src/storage/include/storage_structure/storage_structure.h"
 
 #include "src/common/include/utils.h"
 
 namespace graphflow {
 namespace storage {
 
-DataStructure::DataStructure(const string& fName, const DataType& dataType,
+StorageStructure::StorageStructure(const string& fName, const DataType& dataType,
     const size_t& elementSize, BufferManager& bufferManager, bool hasNULLBytes, bool isInMemory)
     : dataType{dataType}, elementSize{elementSize}, logger{LoggerUtils::getOrCreateSpdLogger(
                                                         "storage")},
-      fileHandle{fName,
-          isInMemory ? FileHandle::O_InMemoryDefaultPaged : FileHandle::O_DiskBasedDefaultPage},
-      bufferManager(bufferManager) {
+      fileHandle{fName, FileHandle::O_DefaultPagedExistingDBFile}, bufferManager{bufferManager},
+      isInMemory{isInMemory} {
     numElementsPerPage = hasNULLBytes ?
                              PageUtils::getNumElementsInAPageWithNULLBytes(elementSize) :
                              PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);
+    if (isInMemory) {
+        StorageStructureUtils::pinEachPageOfFile(fileHandle, bufferManager);
+    }
 }
 
-void DataStructure::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
+void StorageStructure::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
     uint64_t sizeLeftToCopy, PageElementCursor& cursor,
     const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
     auto values = valueVector->values;
@@ -39,7 +41,7 @@ void DataStructure::readBySequentialCopy(const shared_ptr<ValueVector>& valueVec
     }
 }
 
-void DataStructure::readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>& valueVector,
+void StorageStructure::readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>& valueVector,
     PageElementCursor& cursor, const std::function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper,
     NodeIDCompressionScheme compressionScheme, bool isAdjLists) {
     auto numValuesToCopy = valueVector->state->originalSize;
@@ -57,7 +59,7 @@ void DataStructure::readNodeIDsFromSequentialPages(const shared_ptr<ValueVector>
     }
 }
 
-void DataStructure::readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector,
+void StorageStructure::readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector,
     uint32_t posInVector, uint32_t physicalPageId, uint32_t posInPage, uint64_t numValuesToCopy,
     NodeIDCompressionScheme& compressionScheme, bool isAdjLists) {
     auto nodeValues = (nodeID_t*)valueVector->values;
@@ -81,7 +83,7 @@ void DataStructure::readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVec
     bufferManager.unpin(fileHandle, physicalPageId);
 }
 
-void DataStructure::setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector,
+void StorageStructure::setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector,
     const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector, uint64_t num) {
     while (num) {
         auto numInCurrentByte = min(num, 8 - (elementPos % 8));
@@ -94,13 +96,13 @@ void DataStructure::setNULLBitsForRange(const shared_ptr<ValueVector>& valueVect
     }
 }
 
-void DataStructure::setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector,
+void StorageStructure::setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector,
     const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector) {
     auto NULLByte = PageUtils::getNULLByteForOffset(frame, elementPos);
     setNULLBitsFromANULLByte(valueVector, NULLByte, 1, elementPos, offsetInVector);
 }
 
-void DataStructure::setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& valueVector,
+void StorageStructure::setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& valueVector,
     uint8_t NULLByte, uint8_t num, uint64_t startPos, uint64_t offsetInVector) {
     while (num--) {
         auto maskedNULLByte = 0;

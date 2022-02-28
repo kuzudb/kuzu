@@ -11,7 +11,7 @@ const string BENCHMARK_SUFFIX = ".benchmark";
 
 BenchmarkRunner::BenchmarkRunner(const string& datasetPath, unique_ptr<BenchmarkConfig> config)
     : config{move(config)} {
-    system = make_unique<System>(datasetPath, this->config->isInMemoryMode);
+    system = make_unique<System>(datasetPath, SystemConfig(this->config->isInMemoryMode));
 }
 
 void BenchmarkRunner::registerBenchmarks(const string& path) {

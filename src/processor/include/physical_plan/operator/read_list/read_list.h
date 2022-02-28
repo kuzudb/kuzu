@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
-#include "src/storage/include/data_structure/lists/lists.h"
+#include "src/storage/include/storage_structure/lists/lists.h"
 
 namespace graphflow {
 namespace processor {

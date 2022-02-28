@@ -1,4 +1,4 @@
-#include "src/storage/include/data_structure/lists/unstructured_property_lists.h"
+#include "src/storage/include/storage_structure/lists/unstructured_property_lists.h"
 
 using namespace graphflow::common;
 

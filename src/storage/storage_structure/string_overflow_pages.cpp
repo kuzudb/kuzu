@@ -1,6 +1,6 @@
-#include "src/storage/include/data_structure/string_overflow_pages.h"
+#include "src/storage/include/storage_structure/string_overflow_pages.h"
 
-#include "src/storage/include/data_structure/data_structure.h"
+#include "src/storage/include/storage_structure/storage_structure.h"
 
 namespace graphflow {
 namespace storage {

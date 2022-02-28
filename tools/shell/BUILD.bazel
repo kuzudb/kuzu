@@ -12,6 +12,7 @@ cc_library(
     ],
     deps = [
         "//src/main:system",
+        "@Taywee_args",
     ],
 )
 

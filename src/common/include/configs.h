@@ -38,7 +38,7 @@ constexpr const uint64_t SORT_BLOCK_SIZE = 4096;
 constexpr const uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 100;
 
 struct StorageConfig {
-    // The default amount of memory pre-allocated to the buffer pool (= 512MB).
+    // The default amount of memory pre-allocated to the buffer pool (= 2MB).
     static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 21;
 };
 

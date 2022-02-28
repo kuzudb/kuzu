@@ -1,6 +1,8 @@
 #pragma once
 
 #include "src/common/include/configs.h"
+#include "src/storage/include/buffer_manager.h"
+#include "src/storage/include/file_handle.h"
 
 using namespace graphflow::common;
 
@@ -46,6 +48,20 @@ struct PageUtils {
         const uint64_t& elementOffset, const uint32_t numElementsPerPage) {
         return PageElementCursor{
             elementOffset / numElementsPerPage, (uint16_t)(elementOffset % numElementsPerPage)};
+    }
+};
+
+struct StorageStructureUtils {
+    static void pinEachPageOfFile(FileHandle& fileHandle, BufferManager& bufferManager) {
+        for (int pageIdx = 0; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
+            bufferManager.pin(fileHandle, pageIdx);
+        }
+    }
+
+    static void unpinEachPageOfFile(FileHandle& fileHandle, BufferManager& bufferManager) {
+        for (int pageIdx = 0; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
+            bufferManager.unpin(fileHandle, pageIdx);
+        }
     }
 };
 

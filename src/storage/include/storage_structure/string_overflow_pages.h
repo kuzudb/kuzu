@@ -4,8 +4,9 @@
 
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/data_structure/lists/utils.h"
 #include "src/storage/include/file_handle.h"
+#include "src/storage/include/storage_structure/lists/utils.h"
+#include "src/storage/include/storage_structure/storage_structure_utils.h"
 
 using namespace graphflow::common;
 
@@ -16,9 +17,19 @@ class StringOverflowPages {
 
 public:
     explicit StringOverflowPages(const string& fName, BufferManager& bufferManager, bool isInMemory)
-        : fileHandle{getStringOverflowPagesFName(fName),
-              isInMemory ? FileHandle::O_InMemoryDefaultPaged : FileHandle::O_DiskBasedDefaultPage},
-          bufferManager(bufferManager){};
+        : fileHandle{getStringOverflowPagesFName(fName), FileHandle::O_DefaultPagedExistingDBFile},
+          bufferManager{bufferManager},
+          isInMemory{isInMemory} {
+              //        if (isInMemory) {
+              //            StorageStructureUtils::pinEachPageOfFile(fileHandle, bufferManager);
+              //        }
+          };
+
+    ~StringOverflowPages() {
+        //        if (isInMemory) {
+        //            StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
+        //        }
+    }
 
     static string getStringOverflowPagesFName(const string& fName) {
         return fName + OVERFLOW_FILE_SUFFIX;
@@ -35,6 +46,7 @@ private:
 
     FileHandle fileHandle;
     BufferManager& bufferManager;
+    bool isInMemory;
 };
 
 } // namespace storage

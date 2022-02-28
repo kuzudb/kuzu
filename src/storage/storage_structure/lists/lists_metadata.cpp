@@ -1,7 +1,7 @@
-#include "src/storage/include/data_structure/lists/lists_metadata.h"
+#include "src/storage/include/storage_structure/lists/lists_metadata.h"
 
 #include "src/common/include/utils.h"
-#include "src/storage/include/data_structure/lists/utils.h"
+#include "src/storage/include/storage_structure/lists/utils.h"
 
 namespace graphflow {
 namespace storage {

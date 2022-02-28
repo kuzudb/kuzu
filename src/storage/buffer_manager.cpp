@@ -67,36 +67,30 @@ void BufferManager::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
 }
 
 unique_ptr<nlohmann::json> BufferManager::debugInfo() {
-    // TODO(Semih): I'm being intentionally sloppy here because this code will be removed once we
-    // remove gfdb_endpoints, so not spending time to clean this up.
-    auto numFailsPerEvictDefaultBufferPool =
-        ((double)bufferPoolDefaultPages->numEvictFails.load()) /
-        bufferPoolDefaultPages->numEvicts.load();
-    auto numCacheHitsDefaultBufferPool =
-        bufferPoolDefaultPages->numPins.load() - bufferPoolDefaultPages->numEvicts.load();
-    auto numFailsPerEvictLargeBufferPool = ((double)bufferPoolLargePages->numEvictFails.load()) /
-                                           bufferPoolLargePages->numEvicts.load();
-    auto numCacheHitsLargeBufferPool =
-        bufferPoolLargePages->numPins.load() - bufferPoolLargePages->numEvicts.load();
     return make_unique<nlohmann::json>(nlohmann::json{{"BufferManager",
-        {{"BufferPoolDefaultPages-maxPages", bufferPoolDefaultPages->numFrames},
-            {"BufferPoolDefaultPages-numPins", bufferPoolDefaultPages->numPins.load()},
-            {"BufferPoolDefaultPages-numEvicts", bufferPoolDefaultPages->numEvicts.load()},
-            {"BufferPoolDefaultPages-numEvictFails", bufferPoolDefaultPages->numEvictFails.load()},
-            {"BufferPoolDefaultPages-numFailsPerEvict", numFailsPerEvictDefaultBufferPool},
-            {"BufferPoolDefaultPages-numCacheHits", numCacheHitsDefaultBufferPool},
+        {
+            {"BufferPoolDefaultPages-numFrames", bufferPoolDefaultPages->numFrames},
+            {"BufferPoolDefaultPages-numCacheHits", bufferPoolDefaultPages->bmMetrics.numCacheHit},
+            {"BufferPoolDefaultPages-numCacheMisses",
+                bufferPoolDefaultPages->bmMetrics.numCacheMiss},
+            {"BufferPoolDefaultPages-numPins", bufferPoolDefaultPages->bmMetrics.numPins},
+            {"BufferPoolDefaultPages-numEvicts", bufferPoolDefaultPages->bmMetrics.numEvicts},
+            {"BufferPoolDefaultPages-numEvictFails",
+                bufferPoolDefaultPages->bmMetrics.numEvictFails},
             {"BufferPoolDefaultPages-numRecentlyAccessedWalkover",
-                bufferPoolDefaultPages->numRecentlyAccessedWalkover.load()},
-
-            {"maxPages", bufferPoolLargePages->numFrames},
-            {"BufferPoolLargePages-numPins", bufferPoolLargePages->numPins.load()},
-            {"BufferPoolLargePages-numEvicts", bufferPoolLargePages->numEvicts.load()},
-            {"BufferPoolLargePages-numEvictFails", bufferPoolLargePages->numEvictFails.load()},
-            {"BufferPoolLargePages-numFailsPerEvict", numFailsPerEvictLargeBufferPool},
-            {"BufferPoolLargePages-numCacheHits", numCacheHitsLargeBufferPool},
-            {"bufferPoolLargePages-numRecentlyAccessedWalkover",
-                bufferPoolLargePages->numRecentlyAccessedWalkover.load()}
-
+                bufferPoolDefaultPages->bmMetrics.numRecentlyAccessedWalkover},
+            {"BufferPoolDefaultPages-numDirtyPageWriteIO",
+                bufferPoolDefaultPages->bmMetrics.numDirtyPageWriteIO},
+            {"BufferPoolLargePages-numFrames", bufferPoolLargePages->numFrames},
+            {"BufferPoolLargePages-numPins", bufferPoolLargePages->bmMetrics.numPins},
+            {"BufferPoolLargePages-numEvicts", bufferPoolLargePages->bmMetrics.numEvicts},
+            {"BufferPoolLargePages-numEvictFails", bufferPoolLargePages->bmMetrics.numEvictFails},
+            {"BufferPoolLargePages-numCacheHits", bufferPoolLargePages->bmMetrics.numCacheHit},
+            {"BufferPoolLargePages-numCacheMisses", bufferPoolLargePages->bmMetrics.numCacheMiss},
+            {"BufferPoolLargePages-numRecentlyAccessedWalkover",
+                bufferPoolLargePages->bmMetrics.numRecentlyAccessedWalkover},
+            {"BufferPoolLargePages-numDirtyPageWriteIO",
+                bufferPoolLargePages->bmMetrics.numDirtyPageWriteIO},
         }}});
 }
 

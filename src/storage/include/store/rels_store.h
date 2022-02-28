@@ -2,9 +2,9 @@
 
 #include "src/common/include/file_utils.h"
 #include "src/storage/include/catalog.h"
-#include "src/storage/include/data_structure/column.h"
-#include "src/storage/include/data_structure/lists/lists.h"
-#include "src/storage/include/data_structure/lists/utils.h"
+#include "src/storage/include/storage_structure/column.h"
+#include "src/storage/include/storage_structure/lists/lists.h"
+#include "src/storage/include/storage_structure/lists/utils.h"
 
 using namespace graphflow::common;
 using namespace std;

@@ -4,7 +4,7 @@
 
 #include "src/common/include/data_chunk/data_chunk.h"
 #include "src/processor/include/physical_plan/data_pos.h"
-#include "src/storage/include/data_structure/lists/list_sync_state.h"
+#include "src/storage/include/storage_structure/lists/list_sync_state.h"
 
 using namespace graphflow::common;
 using namespace graphflow::storage;

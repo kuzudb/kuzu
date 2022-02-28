@@ -12,10 +12,24 @@ using namespace graphflow::planner;
 namespace graphflow {
 namespace main {
 
+struct SystemConfig {
+
+    SystemConfig(bool isInMemoryMode,
+        uint64_t defaultPageBufferPoolSize = StorageConfig::DEFAULT_BUFFER_POOL_SIZE,
+        uint64_t largePageBufferPoolSize = StorageConfig::DEFAULT_BUFFER_POOL_SIZE)
+        : isInMemoryMode{isInMemoryMode}, defaultPageBufferPoolSize{defaultPageBufferPoolSize},
+          largePageBufferPoolSize{largePageBufferPoolSize} {}
+
+public:
+    bool isInMemoryMode;
+    uint64_t defaultPageBufferPoolSize;
+    uint64_t largePageBufferPoolSize;
+};
+
 class System {
 
 public:
-    explicit System(const string& path, bool isInMemoryMode);
+    explicit System(const string& path, const SystemConfig& systemConfig);
 
     void executeQuery(SessionContext& context) const;
 
@@ -27,11 +41,11 @@ public:
     unique_ptr<nlohmann::json> debugInfo() const;
 
 public:
+    unique_ptr<MemoryManager> memManager;
+    unique_ptr<BufferManager> bufferManager;
     shared_ptr<spdlog::logger> logger;
     unique_ptr<Graph> graph;
     unique_ptr<QueryProcessor> processor;
-    unique_ptr<MemoryManager> memManager;
-    unique_ptr<BufferManager> bufferManager;
     bool initialized = false;
 };
 

@@ -12,9 +12,9 @@
 #include "src/common/include/utils.h"
 #include "src/loader/include/dataset_metadata.h"
 #include "src/storage/include/catalog.h"
-#include "src/storage/include/data_structure/lists/list_headers.h"
-#include "src/storage/include/data_structure/lists/lists_metadata.h"
-#include "src/storage/include/data_structure/lists/utils.h"
+#include "src/storage/include/storage_structure/lists/list_headers.h"
+#include "src/storage/include/storage_structure/lists/lists_metadata.h"
+#include "src/storage/include/storage_structure/lists/utils.h"
 
 using namespace std;
 using namespace graphflow::common;

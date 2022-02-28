@@ -4,12 +4,12 @@
 
 #include "src/common/include/literal.h"
 #include "src/common/include/value.h"
-#include "src/storage/include/data_structure/data_structure.h"
-#include "src/storage/include/data_structure/lists/large_list_handle.h"
-#include "src/storage/include/data_structure/lists/list_headers.h"
-#include "src/storage/include/data_structure/lists/lists_metadata.h"
-#include "src/storage/include/data_structure/lists/utils.h"
-#include "src/storage/include/data_structure/string_overflow_pages.h"
+#include "src/storage/include/storage_structure/lists/large_list_handle.h"
+#include "src/storage/include/storage_structure/lists/list_headers.h"
+#include "src/storage/include/storage_structure/lists/lists_metadata.h"
+#include "src/storage/include/storage_structure/lists/utils.h"
+#include "src/storage/include/storage_structure/storage_structure.h"
+#include "src/storage/include/storage_structure/string_overflow_pages.h"
 
 namespace graphflow {
 namespace storage {
@@ -33,7 +33,7 @@ struct ListInfo {
  * a list, {@class ListsMetadata} contains information that maps logical location of the list to the
  * actual physical location in the Lists file on disk.
  * */
-class Lists : public DataStructure {
+class Lists : public StorageStructure {
 
 public:
     Lists(const string& fName, const DataType& dataType, const size_t& elementSize,
@@ -54,7 +54,7 @@ protected:
     Lists(const string& fName, const DataType& dataType, const size_t& elementSize,
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool hasNULLBytes,
         bool isInMemory)
-        : DataStructure{fName, dataType, elementSize, bufferManager, hasNULLBytes, isInMemory},
+        : StorageStructure{fName, dataType, elementSize, bufferManager, hasNULLBytes, isInMemory},
           metadata{fName}, headers(move(headers)){};
 
     virtual void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
