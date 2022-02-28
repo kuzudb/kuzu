@@ -44,3 +44,16 @@ False
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN SUM(b.age), MIN(b.ID), AVG(b.eyeSight), MAX(b.unstrNumericProp)
 ---- 1
 455|0|4.935714|52
+
+-NAME StringBufferTest
+-QUERY MATCH (a:person) RETURN a.fName as name, COUNT(*) order by name desc
+-PARALLELISM 1
+---- 8
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|1
+Greg|1
+Farooq|1
+Elizabeth|1
+Dan|1
+Carol|1
+Bob|1
+Alice|1

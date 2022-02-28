@@ -2,6 +2,7 @@
 
 #include "src/common/include/operations/hash_operations.h"
 #include "src/common/include/types.h"
+#include "src/processor/include/physical_plan/hash_table/join_hash_table.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/operator/sink.h"
 #include "src/processor/include/physical_plan/result/factorized_table.h"
@@ -22,14 +23,22 @@ namespace processor {
 // task/pipeline, and probed by the HashJoinProbe operators.
 class HashJoinSharedState {
 public:
-    explicit HashJoinSharedState() : htDirectory{nullptr}, hashBitMask{0} {};
+    void initEmptyHashTableIfNecessary(MemoryManager& memoryManager, TableSchema& tableSchema);
 
-    mutex hashJoinSharedStateLock;
+    void mergeLocalFactorizedTable(FactorizedTable& factorizedTable);
 
-    unique_ptr<OSBackedMemoryBlock> htDirectory;
-    unique_ptr<FactorizedTable> factorizedTable;
+    inline JoinHashTable* getHashTable() { return hashTable.get(); }
+
+    inline vector<DataType> getNonKeyDataPosesDataTypes() { return nonKeyDataPosesDataTypes; }
+
+    inline void appendNonKeyDataPosesDataTypes(DataType dataType) {
+        nonKeyDataPosesDataTypes.push_back(dataType);
+    }
+
+private:
+    mutex hashJoinSharedStateMutex;
+    unique_ptr<JoinHashTable> hashTable;
     vector<DataType> nonKeyDataPosesDataTypes;
-    uint64_t hashBitMask;
 };
 
 struct BuildDataInfo {

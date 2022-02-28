@@ -1,4 +1,4 @@
-#include "src/processor/include/physical_plan/operator/aggregate/base_aggregate_hash_table.h"
+#include "src/processor/include/physical_plan/hash_table/aggregate_hash_table.h"
 
 #include "src/common/include/operations/hash_operations.h"
 #include "src/common/include/utils.h"
@@ -12,43 +12,41 @@ namespace processor {
 // current aggregate hash table. This for loop should be removed once we migrate to factorized
 // table which can store NULL payloads.
 static bool isKeyVectorsContainNull(const vector<ValueVector*>& keyVectors) {
-    for (auto& keyVector : keyVectors) {
-        if (keyVector->isNull(keyVector->state->getPositionOfCurrIdx())) {
-            return true;
-        }
-    }
-    return false;
+    return any_of(keyVectors.begin(), keyVectors.end(), [](ValueVector* keyVector) {
+        return keyVector->isNull(keyVector->state->getPositionOfCurrIdx());
+    });
 }
 
 AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
     vector<DataType> groupByKeysDataTypes,
     const vector<unique_ptr<AggregateFunction>>& aggregateFunctions, uint64_t numEntriesToAllocate)
-    : memoryManager{memoryManager}, groupByKeysDataTypes{move(groupByKeysDataTypes)}, numEntries{
-                                                                                          0} {
+    : BaseHashTable{memoryManager}, groupByKeysDataTypes{move(groupByKeysDataTypes)} {
+    TableSchema tableSchema;
+    auto isUnflat = false;
+    auto dataChunkPos = 0u;
+    tableSchema.appendColumn({isUnflat, dataChunkPos, sizeof(hash_t)});
+    for (auto& dataType : this->groupByKeysDataTypes) {
+        tableSchema.appendColumn({isUnflat, dataChunkPos, TypeUtils::getDataTypeSize(dataType)});
+    }
     for (auto& aggregateFunction : aggregateFunctions) {
         this->aggregateFunctions.push_back(aggregateFunction->clone());
+        tableSchema.appendColumn(
+            {isUnflat, dataChunkPos, aggregateFunction->getAggregateStateSize()});
     }
+    factorizedTable = make_unique<FactorizedTable>(&memoryManager, tableSchema);
+
     maxNumHashSlots = HashTableUtils::nextPowerOfTwo(
         max(DEFAULT_MEMORY_BLOCK_SIZE / sizeof(HashSlot), numEntriesToAllocate));
-    bitmask = maxNumHashSlots - 1;
-    auto numHashSlotBlocks = maxNumHashSlots * sizeof(HashSlot) / DEFAULT_MEMORY_BLOCK_SIZE + 1;
-    // TODO: we should use multiple memory block to hold hash slots
-    hashSlotsBlock = memoryManager.allocateOSBackedBlock(
-        numHashSlotBlocks * DEFAULT_MEMORY_BLOCK_SIZE, true /* initialized to 0 */);
-    hashSlots = (HashSlot*)hashSlotsBlock->data;
-    // Block 0 is reserved as empty block because block id 0 is used to identify empty block.
-    entryBlocks.push_back(memoryManager.allocateOSBackedBlock(0, true /* initialized to 0 */));
-    numEntriesPerBlock = DEFAULT_MEMORY_BLOCK_SIZE / getNumBytesForEntry();
-    currentEntryCursor.entryBlockId = 0;
-    currentEntryCursor.offsetInBlock = numEntriesPerBlock; // skip the first empty block
+    bitMask = maxNumHashSlots - 1;
+    numHashSlotsPerBlock = DEFAULT_MEMORY_BLOCK_SIZE / sizeof(HashSlot);
+    auto numDataBlocks =
+        maxNumHashSlots / numHashSlotsPerBlock + (maxNumHashSlots % numHashSlotsPerBlock != 0);
+    for (auto i = 0u; i < numDataBlocks; i++) {
+        hashSlotsBlocks.emplace_back(make_unique<DataBlock>(memoryManager.allocateOSBackedBlock(
+            DEFAULT_MEMORY_BLOCK_SIZE, true /* initialized to 0 */)));
+    }
     distinctHashTables = AggregateHashTableUtils::createDistinctHashTables(
         memoryManager, this->groupByKeysDataTypes, this->aggregateFunctions);
-}
-
-uint8_t* AggregateHashTable::getEntry(uint64_t id) {
-    auto blockId = id / numEntriesPerBlock + 1; // skip the first empty block
-    auto offsetInBlock = id % numEntriesPerBlock;
-    return getEntry(blockId, offsetInBlock);
 }
 
 void AggregateHashTable::append(const vector<ValueVector*>& groupByKeyVectors,
@@ -56,8 +54,9 @@ void AggregateHashTable::append(const vector<ValueVector*>& groupByKeyVectors,
     if (isKeyVectorsContainNull(groupByKeyVectors)) {
         return;
     }
-    if (numEntries > maxNumHashSlots ||
-        (double)numEntries > (double)maxNumHashSlots / DEFAULT_HT_LOAD_FACTOR) {
+    if (factorizedTable->getNumTuples() > maxNumHashSlots ||
+        (double)factorizedTable->getNumTuples() >
+            (double)maxNumHashSlots / DEFAULT_HT_LOAD_FACTOR) {
         resize(maxNumHashSlots * 2);
     }
     auto hash = computeHash(groupByKeyVectors);
@@ -65,7 +64,7 @@ void AggregateHashTable::append(const vector<ValueVector*>& groupByKeyVectors,
     if (entry == nullptr) {
         entry = createEntry(groupByKeyVectors, hash);
     }
-    auto aggregateOffset = getAggregateStatesOffsetInEntry();
+    auto aggregateStateOffset = getAggregateStatesOffsetInEntry();
     for (auto i = 0u; i < aggregateFunctions.size(); i++) {
         auto aggregateFunction = aggregateFunctions[i].get();
         if (aggregateFunction->isFunctionDistinct()) {
@@ -73,13 +72,13 @@ void AggregateHashTable::append(const vector<ValueVector*>& groupByKeyVectors,
             assert(distinctHT != nullptr);
             if (distinctHT->isAggregateValueDistinctForGroupByKeys(
                     groupByKeyVectors, aggregateVectors[i])) {
-                aggregateFunctions[i]->updateState(entry + aggregateOffset, aggregateVectors[i], 1 /* Distinct aggregate should ignore multiplicity since they are known to be non-distinct. */);
+                aggregateFunctions[i]->updateState(entry + aggregateStateOffset, aggregateVectors[i], 1 /* Distinct aggregate should ignore multiplicity since they are known to be non-distinct. */);
             }
         } else {
             aggregateFunctions[i]->updateState(
-                entry + aggregateOffset, aggregateVectors[i], multiplicity);
+                entry + aggregateStateOffset, aggregateVectors[i], multiplicity);
         }
-        aggregateOffset += aggregateFunctions[i]->getAggregateStateSize();
+        aggregateStateOffset += aggregateFunctions[i]->getAggregateStateSize();
     }
 }
 
@@ -103,6 +102,8 @@ bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
 }
 
 void AggregateHashTable::merge(AggregateHashTable& other) {
+    // Since all the columns in the factorizedTable are flat, we don't need to merge the overflow
+    // dataBlocks.
     for (auto i = 0u; i < other.getNumEntries(); ++i) {
         auto inputEntry = other.getEntry(i);
         auto groupByKeys = inputEntry + getGroupByKeysOffsetInEntry();
@@ -117,6 +118,7 @@ void AggregateHashTable::merge(AggregateHashTable& other) {
             aggregateOffset += aggregateFunction->getAggregateStateSize();
         }
     }
+    factorizedTable->getStringBuffer()->merge(*other.factorizedTable->getStringBuffer());
 }
 
 void AggregateHashTable::finalizeAggregateStates() {
@@ -131,16 +133,15 @@ void AggregateHashTable::finalizeAggregateStates() {
 }
 
 uint8_t* AggregateHashTable::findEntry(const vector<ValueVector*>& groupByKeyVectors, hash_t hash) {
-    auto slotOffset = hash & bitmask;
-    uint8_t* entry;
+    auto slotOffset = hash & bitMask;
     while (true) {
-        auto slot = hashSlots[slotOffset];
-        if (slot.blockId == EMPTY_BLOCK_ID) {
+        auto slot = (HashSlot*)getHashSlot(slotOffset);
+        if (slot->groupByKeysPtr == nullptr) {
             return nullptr;
-        } else if (slot.hashPrefix == hash >> HASH_PREFIX_SHIFT) {
-            entry = getEntry(slot.blockId, slot.offsetInBlock);
-            if (*(hash_t*)entry == hash && matchGroupByKeys(groupByKeyVectors, entry)) {
-                return entry;
+        } else if (slot->hashPrefix == hash >> HASH_PREFIX_SHIFT) {
+            if (*(hash_t*)slot->groupByKeysPtr == hash &&
+                matchGroupByKeys(groupByKeyVectors, slot->groupByKeysPtr)) {
+                return slot->groupByKeysPtr;
             }
         }
         slotOffset++;
@@ -148,71 +149,50 @@ uint8_t* AggregateHashTable::findEntry(const vector<ValueVector*>& groupByKeyVec
 }
 
 uint8_t* AggregateHashTable::findEntry(uint8_t* groupByKeys, hash_t hash) {
-    auto slotOffset = hash & bitmask;
-    uint8_t* entry;
+    auto slotIdx = hash & bitMask;
     while (true) {
-        auto slot = hashSlots[slotOffset];
-        if (slot.blockId == EMPTY_BLOCK_ID) {
+        auto slot = getHashSlot(slotIdx);
+        if (slot->groupByKeysPtr == nullptr) {
             return nullptr;
-        } else if (slot.hashPrefix == hash >> HASH_PREFIX_SHIFT) {
-            entry = getEntry(slot.blockId, slot.offsetInBlock);
-            if (*(hash_t*)entry == hash && matchGroupByKeys(groupByKeys, entry)) {
-                return entry;
+        } else if (slot->hashPrefix == hash >> HASH_PREFIX_SHIFT) {
+            if (*(hash_t*)slot->groupByKeysPtr == hash &&
+                matchGroupByKeys(groupByKeys, slot->groupByKeysPtr)) {
+                return slot->groupByKeysPtr;
             }
         }
-        slotOffset++;
+        slotIdx++;
     }
 }
 
 uint8_t* AggregateHashTable::createEntry(
     const vector<ValueVector*>& groupByKeyVectors, hash_t hash) {
-    if (isCurrentEntryFull()) {
-        addNewBlock();
+    auto groupByKeysAndAggregateStateBuffer = factorizedTable->appendEmptyTuple();
+    factorizedTable->updateFlatCell(
+        factorizedTable->getNumTuples() - 1, 0 /* colIdx */, (void*)&hash);
+    for (auto i = 0u; i < groupByKeyVectors.size(); i++) {
+        factorizedTable->updateFlatCell(
+            factorizedTable->getNumTuples() - 1, i + 1, groupByKeyVectors[i]);
     }
-    auto entry = getCurrentEntry();
-    fillEntryWithHash(entry, hash);
-    // fill group values into entry
-    uint64_t offset = getGroupByKeysOffsetInEntry();
-    for (auto& keyVector : groupByKeyVectors) {
-        auto pos = keyVector->state->getPositionOfCurrIdx();
-        memcpy(entry + offset, keyVector->values + pos * keyVector->getNumBytesPerValue(),
-            keyVector->getNumBytesPerValue());
-        offset += keyVector->getNumBytesPerValue();
-    }
-    fillEntryWithInitialNullAggregateState(entry);
-    fillHashSlot(hash, currentEntryCursor.entryBlockId, currentEntryCursor.offsetInBlock);
-    currentEntryCursor.offsetInBlock++;
-    numEntries++;
-    return entry;
+    fillCellWithInitialNullAggregateState();
+    fillHashSlot(hash, groupByKeysAndAggregateStateBuffer);
+    return groupByKeysAndAggregateStateBuffer;
 }
 
 uint8_t* AggregateHashTable::createEntry(uint8_t* groupByKeys, hash_t hash) {
-    if (isCurrentEntryFull()) {
-        addNewBlock();
-    }
-    auto entry = getCurrentEntry();
-    fillEntryWithHash(entry, hash);
-    // fill group values into entry
-    memcpy(entry + getGroupByKeysOffsetInEntry(), groupByKeys, getNumBytesForGroupByKeys());
-    fillEntryWithInitialNullAggregateState(entry);
-    fillHashSlot(hash, currentEntryCursor.entryBlockId, currentEntryCursor.offsetInBlock);
-    currentEntryCursor.offsetInBlock++;
-    numEntries++;
-    return entry;
+    auto groupByKeysAndAggregateStateBuffer = factorizedTable->appendEmptyTuple();
+    factorizedTable->updateFlatCell(
+        factorizedTable->getNumTuples() - 1, 0 /* colIdx */, (void*)&hash);
+    memcpy(groupByKeysAndAggregateStateBuffer + getGroupByKeysOffsetInEntry(), groupByKeys,
+        getNumBytesForGroupByKeys());
+    fillCellWithInitialNullAggregateState();
+    fillHashSlot(hash, groupByKeysAndAggregateStateBuffer);
+    return groupByKeysAndAggregateStateBuffer;
 }
 
 uint64_t AggregateHashTable::getNumBytesForGroupByKeys() const {
     auto result = 0u;
     for (auto& dataType : groupByKeysDataTypes) {
         result += TypeUtils::getDataTypeSize(dataType);
-    }
-    return result;
-}
-
-uint64_t AggregateHashTable::getNumBytesForAggregateStates() const {
-    auto result = 0u;
-    for (auto& aggregateFunction : aggregateFunctions) {
-        result += aggregateFunction->getAggregateStateSize();
     }
     return result;
 }
@@ -279,50 +259,47 @@ bool AggregateHashTable::matchGroupByKeys(uint8_t* keys, uint8_t* entry) {
     return memcmp(keysInEntry, keys, getNumBytesForGroupByKeys()) == 0;
 }
 
-void AggregateHashTable::fillEntryWithHash(uint8_t* entry, hash_t hash) {
-    *(hash_t*)entry = hash;
-}
-
-void AggregateHashTable::fillEntryWithInitialNullAggregateState(uint8_t* entry) {
-    auto offset = getAggregateStatesOffsetInEntry();
-    for (auto& aggregateFunction : aggregateFunctions) {
-        memcpy(entry + offset, (uint8_t*)aggregateFunction->getInitialNullAggregateState(),
-            aggregateFunction->getAggregateStateSize());
-        offset += aggregateFunction->getAggregateStateSize();
+void AggregateHashTable::fillCellWithInitialNullAggregateState() {
+    auto aggregateStateStartColIdx = 1 + groupByKeysDataTypes.size();
+    for (auto i = 0u; i < aggregateFunctions.size(); i++) {
+        factorizedTable->updateFlatCell(factorizedTable->getNumTuples() - 1,
+            aggregateStateStartColIdx + i,
+            (void*)aggregateFunctions[i]->getInitialNullAggregateState());
     }
 }
 
-void AggregateHashTable::fillHashSlot(hash_t hash, uint32_t blockId, uint16_t offsetInBlock) {
-    auto slotOffset = hash & bitmask;
-    while (hashSlots[slotOffset].blockId != EMPTY_BLOCK_ID) {
-        increaseSlotOffset(slotOffset);
+void AggregateHashTable::fillHashSlot(hash_t hash, uint8_t* groupByKeysAndAggregateStateBuffer) {
+    auto slotIdx = hash & bitMask;
+    while (getHashSlot(slotIdx)->groupByKeysPtr) {
+        increaseSlotOffset(slotIdx);
     }
-    hashSlots[slotOffset].hashPrefix = hash >> HASH_PREFIX_SHIFT;
-    hashSlots[slotOffset].blockId = blockId;
-    hashSlots[slotOffset].offsetInBlock = offsetInBlock;
-}
-
-void AggregateHashTable::addNewBlock() {
-    entryBlocks.push_back(memoryManager.allocateOSBackedBlock(
-        DEFAULT_MEMORY_BLOCK_SIZE, true /* initialized to 0 */));
-    currentEntryCursor.entryBlockId = entryBlocks.size() - 1;
-    currentEntryCursor.offsetInBlock = 0;
+    getHashSlot(slotIdx)->hashPrefix = hash >> HASH_PREFIX_SHIFT;
+    getHashSlot(slotIdx)->groupByKeysPtr = groupByKeysAndAggregateStateBuffer;
 }
 
 void AggregateHashTable::resize(uint64_t newSize) {
     maxNumHashSlots = newSize;
-    bitmask = maxNumHashSlots - 1;
-    hashSlotsBlock = memoryManager.allocateOSBackedBlock(
-        maxNumHashSlots * sizeof(HashSlot), true /* initialized to 0 */);
-    hashSlots = (HashSlot*)hashSlotsBlock->data;
-    for (auto blockId = 1u; blockId < currentEntryCursor.entryBlockId; ++blockId) {
-        for (auto offsetInBlock = 0u; offsetInBlock < currentEntryCursor.offsetInBlock;
-             ++offsetInBlock) {
-            auto entry = getEntry(blockId, offsetInBlock);
-            auto newHash = computeHash(entry + getGroupByKeysOffsetInEntry());
-            fillEntryWithHash(entry, newHash);
-            fillHashSlot(newHash, blockId, offsetInBlock);
+    bitMask = maxNumHashSlots - 1;
+    addDataBlocksIfNecessary(maxNumHashSlots);
+    for (auto& tupleBlock : factorizedTable->getTupleDataBlocks()) {
+        uint8_t* tuple = tupleBlock.data;
+        for (auto i = 0u; i < tupleBlock.numEntries; i++) {
+            auto groupByKeysAndAggregateStateBuffer =
+                tuple + i * factorizedTable->getTableSchema().getNumBytesPerTuple();
+            auto newHash =
+                computeHash(groupByKeysAndAggregateStateBuffer + getGroupByKeysOffsetInEntry());
+            memcpy(groupByKeysAndAggregateStateBuffer, &newHash, sizeof(newHash));
+            fillHashSlot(newHash, groupByKeysAndAggregateStateBuffer);
         }
+    }
+}
+
+void AggregateHashTable::addDataBlocksIfNecessary(uint64_t maxNumHashSlots) {
+    auto numHashSlotsBlocksNeeded =
+        maxNumHashSlots / numHashSlotsPerBlock + (maxNumHashSlots % numHashSlotsPerBlock != 0);
+    while (hashSlotsBlocks.size() < numHashSlotsBlocksNeeded) {
+        hashSlotsBlocks.emplace_back(make_unique<DataBlock>(memoryManager.allocateOSBackedBlock(
+            DEFAULT_MEMORY_BLOCK_SIZE, true /* initialized to 0 */)));
     }
 }
 

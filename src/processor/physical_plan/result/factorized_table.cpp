@@ -56,6 +56,12 @@ void FactorizedTable::append(const vector<shared_ptr<ValueVector>>& vectors) {
     numTuples += numTuplesToAppend;
 }
 
+uint8_t* FactorizedTable::appendEmptyTuple() {
+    auto dataBuffer = allocateTupleBlocks(1 /* numEntriesToAppend */)[0].data;
+    numTuples++;
+    return dataBuffer;
+}
+
 void FactorizedTable::scan(vector<shared_ptr<ValueVector>>& vectors, uint64_t tupleIdx,
     uint64_t numTuplesToScan, vector<uint64_t>& colIdxesToScan) const {
     assert(tupleIdx + numTuplesToScan <= numTuples);

@@ -15,10 +15,10 @@ shared_ptr<ResultSet> HashJoinProbe::initResultSet() {
 void HashJoinProbe::initializeResultSet() {
     probeSideKeyVector = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()]
                              ->valueVectors[probeDataInfo.getKeyIDVectorPos()];
-    auto factorizedTableSchema = sharedState->factorizedTable->getTableSchema();
+    auto factorizedTable = sharedState->getHashTable()->getFactorizedTable();
     for (auto i = 0u; i < probeDataInfo.nonKeyOutputDataPos.size(); ++i) {
         auto probeSideVector = make_shared<ValueVector>(
-            context.memoryManager, sharedState->nonKeyDataPosesDataTypes[i]);
+            context.memoryManager, sharedState->getNonKeyDataPosesDataTypes()[i]);
         auto [dataChunkPos, valueVectorPos] = probeDataInfo.nonKeyOutputDataPos[i];
         resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probeSideVector);
         vectorsToRead.push_back(probeSideVector);
@@ -31,12 +31,13 @@ void HashJoinProbe::initializeResultSet() {
     // If there is an unflat column in the factorizedTable, we can only read one tuple at a time.
     // Otherwise we can read multiple tuples at a time.
     probeState->maxMorselSize =
-        sharedState->factorizedTable->hasUnflatCol(columnsToRead) ? 1 : DEFAULT_VECTOR_CAPACITY;
+        factorizedTable->hasUnflatCol(columnsToRead) ? 1 : DEFAULT_VECTOR_CAPACITY;
 }
 
 void HashJoinProbe::getNextBatchOfMatchedTuples() {
     probeState->numMatchedTuples = 0;
     tuplePosToReadInProbedState = 0;
+    auto factorizedTable = sharedState->getHashTable()->getFactorizedTable();
     do {
         if (probeState->numMatchedTuples == 0) {
             if (!children[0]->getNextTuples()) {
@@ -48,11 +49,8 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
                 continue;
             }
             probeSideKeyVector->readNodeID(currentIdx, probeState->probeSideKeyNodeID);
-            auto directory = (uint8_t**)sharedState->htDirectory->data;
-            hash_t hash;
-            Hash::operation<nodeID_t>(probeState->probeSideKeyNodeID, false /* isNull */, hash);
-            hash = hash & sharedState->hashBitMask;
-            probeState->probedTuple = (uint8_t*)(directory[hash]);
+            probeState->probedTuple =
+                *sharedState->getHashTable()->findHashEntry(probeState->probeSideKeyNodeID);
         }
         while (probeState->probedTuple) {
             if (DEFAULT_VECTOR_CAPACITY == probeState->numMatchedTuples) {
@@ -61,10 +59,9 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
             auto nodeID = *(nodeID_t*)probeState->probedTuple;
             probeState->matchedTuples[probeState->numMatchedTuples] = probeState->probedTuple;
             probeState->numMatchedTuples += nodeID == probeState->probeSideKeyNodeID;
-            probeState->probedTuple =
-                *(uint8_t**)(probeState->probedTuple +
-                             sharedState->factorizedTable->getTableSchema().getNullMapOffset() -
-                             sizeof(uint8_t*));
+            probeState->probedTuple = *(
+                uint8_t**)(probeState->probedTuple +
+                           factorizedTable->getTableSchema().getNullMapOffset() - sizeof(uint8_t*));
         }
     } while (probeState->numMatchedTuples == 0);
 }
@@ -82,8 +79,9 @@ void HashJoinProbe::populateResultSet() {
                                1 :
                                min(probeState->numMatchedTuples - tuplePosToReadInProbedState,
                                    probeState->maxMorselSize);
-    sharedState->factorizedTable->lookup(vectorsToRead, columnsToRead,
-        probeState->matchedTuples.get(), tuplePosToReadInProbedState, numTuplesToRead);
+    auto factorizedTable = sharedState->getHashTable()->getFactorizedTable();
+    factorizedTable->lookup(vectorsToRead, columnsToRead, probeState->matchedTuples.get(),
+        tuplePosToReadInProbedState, numTuplesToRead);
     tuplePosToReadInProbedState += numTuplesToRead;
 }
 

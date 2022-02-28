@@ -1,10 +1,10 @@
-#include "gtest/gtest.h"
+#include "include/gtest/gtest.h"
 #include "test/test_utility/include/aggregate_function_test_helper.h"
 
 #include "src/function/include/aggregate/avg.h"
 #include "src/function/include/aggregate/count.h"
 #include "src/function/include/aggregate/sum.h"
-#include "src/processor/include/physical_plan/operator/aggregate/base_aggregate_hash_table.h"
+#include "src/processor/include/physical_plan/hash_table/aggregate_hash_table.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
 
 using ::testing::Test;
@@ -65,7 +65,7 @@ TEST_F(AggregateHashTableTest, SingleGroupTest) {
     aggregates.push_back(move(sumAggregate));
     auto groupByVectorsDataType = vector<DataType>{INT64};
     auto ht = make_unique<AggregateHashTable>(
-        *memoryManager, move(groupByVectorsDataType), aggregates, 0);
+        *memoryManager, move(groupByVectorsDataType), aggregates, 0 /* numEntriesToAllocate */);
     vector<ValueVector*> groupVectors, aggregateVectors;
     groupVectors.push_back(group1Vector.get());
     aggregateVectors.push_back(nullptr);
@@ -76,7 +76,7 @@ TEST_F(AggregateHashTableTest, SingleGroupTest) {
     }
     ht->finalizeAggregateStates();
     auto groupsSize = TypeUtils::getDataTypeSize(INT64);
-    auto numGroupScanned = 0u;
+    auto numGroupScanned = 0ul;
     while (numGroupScanned < ht->getNumEntries()) {
         auto entry = ht->getEntry(numGroupScanned);
         assert(entry != nullptr);
@@ -100,7 +100,7 @@ TEST_F(AggregateHashTableTest, TwoGroupsTest) {
 
     auto groupByVectorsDataType = vector<DataType>{INT64, INT64};
     auto ht = make_unique<AggregateHashTable>(
-        *memoryManager, move(groupByVectorsDataType), aggregates, 0);
+        *memoryManager, move(groupByVectorsDataType), aggregates, 0 /* numEntriesToAllocate */);
     vector<ValueVector*> groupVectors, aggregateVectors;
     groupVectors.push_back(group1Vector.get());
     groupVectors.push_back(group2Vector.get());
@@ -112,7 +112,7 @@ TEST_F(AggregateHashTableTest, TwoGroupsTest) {
     }
     ht->finalizeAggregateStates();
     auto groupsSize = sizeof(uint64_t) + sizeof(uint64_t);
-    auto numGroupScanned = 0u;
+    auto numGroupScanned = 0ul;
     while (numGroupScanned < ht->getNumEntries()) {
         auto entry = ht->getEntry(numGroupScanned);
         assert(entry != nullptr);

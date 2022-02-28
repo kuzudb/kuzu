@@ -5,6 +5,19 @@
 namespace graphflow {
 namespace processor {
 
+void HashJoinSharedState::initEmptyHashTableIfNecessary(
+    MemoryManager& memoryManager, TableSchema& tableSchema) {
+    lock_guard<mutex> lck(hashJoinSharedStateMutex);
+    if (hashTable == nullptr) {
+        hashTable = make_unique<JoinHashTable>(memoryManager, 0 /* numTuples */, tableSchema);
+    }
+}
+
+void HashJoinSharedState::mergeLocalFactorizedTable(FactorizedTable& factorizedTable) {
+    lock_guard<mutex> lck(hashJoinSharedStateMutex);
+    hashTable->getFactorizedTable()->merge(factorizedTable);
+}
+
 HashJoinBuild::HashJoinBuild(shared_ptr<HashJoinSharedState> sharedState,
     const BuildDataInfo& buildDataInfo, unique_ptr<PhysicalOperator> child,
     ExecutionContext& context, uint32_t id)
@@ -29,43 +42,28 @@ shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
             isVectorFlat ? TypeUtils::getDataTypeSize(vector->dataType) :
                            sizeof(overflow_value_t)});
         vectorsToAppend.push_back(vector);
-        sharedState->nonKeyDataPosesDataTypes.push_back(vector->dataType);
+        sharedState->appendNonKeyDataPosesDataTypes(vector->dataType);
     }
     // The prev pointer column.
     tableSchema.appendColumn(
         {false /* isUnflat */, UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */,
             TypeUtils::getDataTypeSize(INT64)});
     factorizedTable = make_unique<FactorizedTable>(context.memoryManager, tableSchema);
-    {
-        lock_guard<mutex> sharedStateLock(sharedState->hashJoinSharedStateLock);
-        if (sharedState->factorizedTable == nullptr) {
-            sharedState->factorizedTable =
-                make_unique<FactorizedTable>(context.memoryManager, tableSchema);
-        }
-    }
+    sharedState->initEmptyHashTableIfNecessary(*context.memoryManager, tableSchema);
     return resultSet;
 }
 
 void HashJoinBuild::finalize() {
-    auto directory_capacity =
-        HashTableUtils::nextPowerOfTwo(max(sharedState->factorizedTable->getNumTuples() * 2,
-            (DEFAULT_MEMORY_BLOCK_SIZE / sizeof(uint8_t*)) + 1));
-    sharedState->hashBitMask = directory_capacity - 1;
-    sharedState->htDirectory = context.memoryManager->allocateOSBackedBlock(
-        directory_capacity * sizeof(uint8_t*), true /* initializeToZero */);
-
-    auto& tableSchema = sharedState->factorizedTable->getTableSchema();
-    hash_t hash;
-    auto directory = (uint8_t**)sharedState->htDirectory->data;
-    for (auto& tupleBlock : sharedState->factorizedTable->getTupleDataBlocks()) {
+    auto hashTable = sharedState->getHashTable();
+    auto factorizedTable = hashTable->getFactorizedTable();
+    hashTable->allocateHashSlots(factorizedTable->getNumTuples());
+    auto& tableSchema = factorizedTable->getTableSchema();
+    for (auto& tupleBlock : factorizedTable->getTupleDataBlocks()) {
         uint8_t* tuple = tupleBlock.data;
         for (auto i = 0u; i < tupleBlock.numEntries; i++) {
-            auto nodeId = *(nodeID_t*)tuple;
-            Hash::operation<nodeID_t>(nodeId, false /* isNull */, hash);
-            auto slotId = hash & sharedState->hashBitMask;
+            auto lastSlotEntryInHT = hashTable->insertEntry<nodeID_t>(tuple);
             auto prevPtr = (uint8_t**)(tuple + tableSchema.getNullMapOffset() - sizeof(uint8_t*));
-            memcpy((uint8_t*)prevPtr, (void*)&(directory[slotId]), sizeof(uint8_t*));
-            directory[slotId] = tuple;
+            memcpy((uint8_t*)prevPtr, &lastSlotEntryInHT, sizeof(uint8_t*));
             tuple += tableSchema.getNumBytesPerTuple();
         }
     }
@@ -112,11 +110,7 @@ void HashJoinBuild::execute() {
     while (children[0]->getNextTuples()) {
         appendVectors();
     }
-    // Merge thread-local state (numEntries, htBlocks, overflowBlocks) with the shared one
-    {
-        lock_guard<mutex> sharedStateLock(sharedState->hashJoinSharedStateLock);
-        sharedState->factorizedTable->merge(*factorizedTable);
-    }
+    sharedState->mergeLocalFactorizedTable(*factorizedTable);
     metrics->executionTime.stop();
 }
 } // namespace processor
