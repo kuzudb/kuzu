@@ -43,13 +43,15 @@
 - To serialize dataset `bazel run //src/loader:loader_runner <input-csv-path> <output-serialized-graph-path>`
 
 ## CLI
-- To start CLI `bazel run //tools/shell:graphflowdb <serialized-graph-path>`
+- To start CLI `bazel run //tools/shell:graphflowdb -- -i <serialized-graph-path>`
 - CLI built in commands
-  - `:help` get built in command lists
-  - `:clear` clear screen
-  - `:quit` exit from shell
-  - `:thread` set number of threads used for execution
-
+    :help     get command list
+    :clear     clear shell
+    :quit     exit from shell
+    :thread [thread]     number of threads for execution
+    :bm_debug_info     debug information about the buffer manager
+    :system_debug_info     debug information about the system
+  
 ## Benchmark runner
 Benchmark runner is designed to be used in graphflowdb-benchmark. Deirectly using benchmark runner is not recommended.
 - benchmark file should have the following format
