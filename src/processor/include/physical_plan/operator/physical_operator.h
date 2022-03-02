@@ -105,6 +105,14 @@ public:
 
     virtual void printMetricsToJson(nlohmann::json& json, Profiler& profiler);
 
+    double getExecutionTime(Profiler& profiler) const;
+
+    inline uint64_t getNumOutputTuples(Profiler& profiler) const {
+        return profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
+    }
+
+    vector<string> getAttributes(Profiler& profiler) const;
+
 protected:
     inline string getTimeMetricKey() const { return "time-" + to_string(id); }
     inline string getNumTupleMetricKey() const { return "numTuple-" + to_string(id); }

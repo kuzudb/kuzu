@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <iomanip>
 #include <regex>
 #include <sstream>
 
@@ -41,26 +40,23 @@ const string keywordResetPostfix = "\033[00m";
 
 const regex specialChars{R"([-[\]{}()*+?.,\^$|#\s])"};
 
-const uint32_t PLAN_INDENT = 3u;
-const uint32_t PLAN_MAX_COL_WIDTH = 60u;
-
 void completion(const char* buffer, linenoiseCompletions* lc) {
     string buf = string(buffer);
     if (buf[0] == ':') {
-        for (string shellCommand : shellCommand.commandList) {
-            if (regex_search(shellCommand, regex("^" + buf))) {
-                linenoiseAddCompletion(lc, shellCommand.c_str());
+        for (auto& command : shellCommand.commandList) {
+            if (regex_search(command, regex("^" + buf))) {
+                linenoiseAddCompletion(lc, command.c_str());
             }
         }
         return;
     }
-    string prefix("");
+    string prefix;
     auto lastKeywordPos = buf.rfind(' ') + 1;
     if (lastKeywordPos != string::npos) {
         prefix = buf.substr(0, lastKeywordPos);
         buf = buf.substr(lastKeywordPos);
     }
-    if (buf == "") {
+    if (buf.empty()) {
         return;
     }
     for (string keyword : keywordList) {
@@ -77,7 +73,7 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
 void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPos) {
     string buf(buffer);
     ostringstream highlightBuffer;
-    string word = "";
+    string word;
     vector<string> tokenList;
     if (cursorPos > maxLen) {
         buf = buf.substr(cursorPos - maxLen, maxLen);
@@ -110,11 +106,11 @@ void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPo
     strcpy(resultBuf, highlightBuffer.str().c_str());
 }
 
-void EmbeddedShell::initialize() {
+EmbeddedShell::EmbeddedShell(const System& system) : system{system}, context{SessionContext()} {
     linenoiseHistoryLoad(HISTORY_PATH);
     linenoiseSetCompletionCallback(completion);
     linenoiseSetHighlightCallback(highlight);
-}
+};
 
 void EmbeddedShell::run() {
     char* line;
@@ -169,103 +165,11 @@ void EmbeddedShell::printHelp() {
     printf("%s:system_debug_info %sdebug information about the system\n", TAB, TAB);
 }
 
-string genTableFrame(uint32_t len) {
-    ostringstream tableFrame;
-    for (auto i = 0u; i < len + 2 * PLAN_INDENT; i++) {
-        tableFrame << "─";
-    }
-    return tableFrame.str();
+void EmbeddedShell::prettyPrintPlan() const {
+    context.planPrinter->printPlanToShell(*context.profiler);
 }
 
-void EmbeddedShell::prettyPrintPlanTitle(uint32_t& planBoxWidth) {
-    uint32_t numLeftSpaces;
-    uint32_t numRightSpaces;
-    ostringstream title;
-    const string physicalPlan = "Physcial Plan";
-    title << "┌" << genTableFrame(planBoxWidth) << "┐" << endl;
-    title << "│┌" << genTableFrame(planBoxWidth - 2) << "┐│" << endl;
-    numLeftSpaces = (planBoxWidth - physicalPlan.length()) / 2;
-    numRightSpaces = planBoxWidth - physicalPlan.length() - numLeftSpaces;
-    title << "││" << string(PLAN_INDENT + numLeftSpaces - 1, ' ') << physicalPlan;
-    title << string(PLAN_INDENT + numRightSpaces - 1, ' ') << "││" << endl;
-    title << "│└" << genTableFrame(planBoxWidth - 2) << "┘│" << endl;
-    title << "└" << genTableFrame(planBoxWidth) << "┘" << endl;
-    printf("%s", title.str().c_str());
-}
-
-bool sortAttributes(string& s1, string& s2) {
-    if (regex_search(s1, regex("^name:"))) {
-        return true;
-    } else if (regex_search(s2, regex("^name:"))) {
-        return false;
-    } else {
-        return s1.compare(s2) < 0;
-    }
-}
-
-void EmbeddedShell::prettyPrintOperator(
-    nlohmann::json& plan, ostringstream& prettyPlan, uint32_t& planBoxWidth) {
-    vector<string> attributes;
-    ostringstream prettyOperator;
-    for (const auto& attribute : plan.items()) {
-        if (attribute.key() != "prev") {
-            const string& key = attribute.key();
-            const string value = regex_replace(attribute.value().dump(), regex("(^\")|(\"$)"), "");
-            uint32_t keyValueLength = key.length() + value.length() + 2;
-            planBoxWidth = keyValueLength > planBoxWidth ? keyValueLength : planBoxWidth;
-            attributes.emplace_back(key + ": " + value);
-        }
-    }
-    sort(attributes.begin(), attributes.end(), sortAttributes);
-    planBoxWidth = planBoxWidth > PLAN_MAX_COL_WIDTH ? PLAN_MAX_COL_WIDTH : planBoxWidth;
-    if (plan.contains("prev")) {
-        prettyPrintOperator(plan["prev"], prettyPlan, planBoxWidth);
-    }
-    string lineSeparator =
-        "│" + string(PLAN_INDENT, ' ') + string(planBoxWidth, '-') + string(PLAN_INDENT, ' ') + "│";
-    string boxConnector = string((planBoxWidth + 2 * PLAN_INDENT + 2) / 2, ' ') + "│";
-    string tableFrame = genTableFrame(planBoxWidth);
-    prettyOperator << "┌" + tableFrame + "┐" << endl;
-    for (auto it = attributes.begin(); it != attributes.end(); ++it) {
-        string attribute = regex_replace((*it), regex("^name: "), "");
-        vector<string> attributeSegments;
-        while (attribute.length() > planBoxWidth) {
-            attributeSegments.emplace_back(attribute.substr(0, planBoxWidth));
-            attribute = attribute.substr(planBoxWidth);
-        }
-        attributeSegments.emplace_back(attribute);
-        for (auto it = attributeSegments.begin(); it != attributeSegments.end(); ++it) {
-            prettyOperator << "│" + string(PLAN_INDENT, ' ');
-            if ((next(it, 1) == attributeSegments.end()) && (attributeSegments.size() > 1)) {
-                prettyOperator << left << setw(planBoxWidth) << setfill(' ') << *it;
-            } else {
-                string leftSpaces = string((planBoxWidth - it->length()) / 2, ' ');
-                string rightSpaces = string(planBoxWidth - it->length() - leftSpaces.length(), ' ');
-                prettyOperator << leftSpaces << *it << rightSpaces;
-            }
-            prettyOperator << string(PLAN_INDENT, ' ') + "│" << endl;
-        }
-        if (next(it, 1) != attributes.end()) {
-            prettyOperator << lineSeparator << endl;
-        }
-    }
-    prettyOperator << "└" + tableFrame + "┘" << endl;
-    if (!prettyPlan.str().empty()) {
-        prettyOperator << boxConnector << endl;
-    }
-    prettyPlan.str(prettyOperator.str() + prettyPlan.str());
-}
-
-void EmbeddedShell::prettyPrintPlan() {
-    ostringstream prettyPlan;
-    uint32_t planBoxWidth = 0;
-    nlohmann::json js = context.planPrinter->printPlanToJson(*context.profiler);
-    prettyPrintOperator(js, prettyPlan, planBoxWidth);
-    prettyPrintPlanTitle(planBoxWidth);
-    printf("%s", prettyPlan.str().c_str());
-}
-
-void EmbeddedShell::printExecutionResult() {
+void EmbeddedShell::printExecutionResult() const {
     if (!context.queryResult) { // empty query result
         return;
     }
@@ -282,11 +186,11 @@ void EmbeddedShell::printExecutionResult() {
             uint32_t lineSeparatorLen = 1u + colsWidth.size();
             string lineSeparator;
 
-            auto flatTupleIteartor = context.queryResult->getFlatTupleIterator();
+            auto flatTupleIterator = context.queryResult->getFlatTupleIterator();
             //  first loop: calculate column width of the table
-            while (flatTupleIteartor.hasNextFlatTuple()) {
+            while (flatTupleIterator.hasNextFlatTuple()) {
                 FlatTuple tuple(dataTypes);
-                flatTupleIteartor.getNextFlatTuple(tuple);
+                flatTupleIterator.getNextFlatTuple(tuple);
                 for (auto i = 0u; i < colsWidth.size(); i++) {
                     if (tuple.nullMask[i]) {
                         continue;
@@ -301,10 +205,10 @@ void EmbeddedShell::printExecutionResult() {
             lineSeparator = string(lineSeparatorLen, '-');
             printf("%s\n", lineSeparator.c_str());
 
-            auto flatTupleIteartor1 = context.queryResult->getFlatTupleIterator();
-            while (flatTupleIteartor1.hasNextFlatTuple()) {
+            auto flatTupleIterator1 = context.queryResult->getFlatTupleIterator();
+            while (flatTupleIterator1.hasNextFlatTuple()) {
                 FlatTuple tuple(dataTypes);
-                flatTupleIteartor1.getNextFlatTuple(tuple);
+                flatTupleIterator1.getNextFlatTuple(tuple);
                 printf("|%s|\n", tuple.toString(colsWidth, "|").c_str());
                 printf("%s\n", lineSeparator.c_str());
             }
