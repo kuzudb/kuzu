@@ -35,7 +35,6 @@ int main(int argc, char* argv[]) {
         inMemoryFlag, defaultPagedBPSizeInMB << 20, largePagedBPSizeInMB << 20);
     auto system = System(serializedGraphPath, systemConfig);
     auto shell = EmbeddedShell(system);
-    shell.initialize();
     shell.run();
 
     return 0;

@@ -12,22 +12,16 @@ using namespace graphflow::main;
 class EmbeddedShell {
 
 public:
-    explicit EmbeddedShell(const System& system) : system{system}, context{SessionContext()} {};
-
-    void initialize();
+    EmbeddedShell(const System& system);
 
     void run();
 
 private:
-    void printHelp();
+    static void printHelp();
 
-    void printExecutionResult();
+    void printExecutionResult() const;
 
-    void prettyPrintOperator(nlohmann::json&, ostringstream&, uint32_t&);
-
-    void prettyPrintPlan();
-
-    void prettyPrintPlanTitle(uint32_t& planBoxWidth);
+    void prettyPrintPlan() const;
 
 private:
     const System& system;

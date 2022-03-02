@@ -37,12 +37,12 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundRegularQuery&
 }
 
 unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundRegularQuery& regularQuery) {
-    if (regularQuery.getNumSingleQueries()) {
+    if (regularQuery.getNumSingleQueries() == 1) {
         auto bestPlan = getBestPlan(*regularQuery.getSingleQuery(0));
         appendResultCollector(*bestPlan);
         return bestPlan;
     }
-    vector<unique_ptr<LogicalPlan>> childrenPlans;
+    vector<unique_ptr<LogicalPlan>> childrenPlans(regularQuery.getNumSingleQueries());
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
         childrenPlans[i] = getBestPlan(*regularQuery.getSingleQuery(i));
     }
