@@ -246,6 +246,28 @@ Dan|Carol
 Dan|Carol
 Dan|Carol
 
+-NAME KnowsTwoHopTest5
+-QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.age < 31 RETURN a.age + b.age + c.age
+---- 18
+100
+100
+105
+110
+110
+70
+75
+80
+85
+85
+85
+85
+85
+95
+95
+95
+95
+95
+
 -NAME KnowsFourHopTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person)-[:knows]->(e:person) WITH e.ID as dummy RETURN COUNT(*)
 ---- 1

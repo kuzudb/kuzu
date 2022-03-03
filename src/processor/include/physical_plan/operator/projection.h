@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "src/expression_evaluator/include/expression_evaluator.h"
+#include "src/expression_evaluator/include/base_evaluator.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 
 using namespace graphflow::evaluator;
@@ -13,11 +13,12 @@ namespace processor {
 class Projection : public PhysicalOperator {
 
 public:
-    Projection(vector<unique_ptr<ExpressionEvaluator>> expressions,
+    Projection(vector<unique_ptr<BaseExpressionEvaluator>> expressionEvaluators,
         vector<DataPos> expressionsOutputPos, unordered_set<uint32_t> discardedDataChunksPos,
         unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
         : PhysicalOperator(move(child), context, id),
-          expressions(move(expressions)), expressionsOutputPos{move(expressionsOutputPos)},
+          expressionEvaluators(move(expressionEvaluators)), expressionsOutputPos{move(
+                                                                expressionsOutputPos)},
           discardedDataChunksPos{move(discardedDataChunksPos)}, prevMultiplicity{1} {}
 
     PhysicalOperatorType getOperatorType() override { return PROJECTION; }
@@ -36,7 +37,7 @@ private:
     inline void restoreMultiplicity() { resultSet->multiplicity = prevMultiplicity; }
 
 private:
-    vector<unique_ptr<ExpressionEvaluator>> expressions;
+    vector<unique_ptr<BaseExpressionEvaluator>> expressionEvaluators;
     vector<DataPos> expressionsOutputPos;
     unordered_set<uint32_t> discardedDataChunksPos;
 

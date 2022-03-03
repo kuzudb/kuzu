@@ -66,12 +66,12 @@ TEST_F(ExpressionMapperTest, BinaryExpressionEvaluatorTest) {
     resultSet.insert(0, dataChunk);
 
     auto mapperContext = makeSimpleMapperContext();
-    auto rootExpressionEvaluator = ExpressionMapper().mapLogicalExpressionToPhysical(
-        *addLogicalOperator, mapperContext, *context);
-    rootExpressionEvaluator->initResultSet(resultSet, memoryManager.get());
+    auto rootExpressionEvaluator =
+        ExpressionMapper().mapExpression(addLogicalOperator, mapperContext, *context);
+    rootExpressionEvaluator->init(resultSet, memoryManager.get());
     rootExpressionEvaluator->evaluate();
 
-    auto results = (int64_t*)rootExpressionEvaluator->result->values;
+    auto results = (int64_t*)rootExpressionEvaluator->resultVector->values;
     for (auto i = 0u; i < 100; i++) {
         ASSERT_EQ(results[i], i + 5);
     }
@@ -98,12 +98,12 @@ TEST_F(ExpressionMapperTest, UnaryExpressionEvaluatorTest) {
     resultSet.insert(0, dataChunk);
 
     auto mapperContext = makeSimpleMapperContext();
-    auto rootExpressionEvaluator = ExpressionMapper().mapLogicalExpressionToPhysical(
-        *negateLogicalOperator, mapperContext, *context);
-    rootExpressionEvaluator->initResultSet(resultSet, memoryManager.get());
+    auto rootExpressionEvaluator =
+        ExpressionMapper().mapExpression(negateLogicalOperator, mapperContext, *context);
+    rootExpressionEvaluator->init(resultSet, memoryManager.get());
     rootExpressionEvaluator->evaluate();
 
-    auto results = (int64_t*)rootExpressionEvaluator->result->values;
+    auto results = (int64_t*)rootExpressionEvaluator->resultVector->values;
     for (auto i = 0u; i < 100; i++) {
         int64_t value = i;
         if (i % 2ul == 0ul) {

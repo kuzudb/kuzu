@@ -247,6 +247,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
         mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto dataChunkPos =
         mapperContext.getDataPos(flatten.getExpressionToFlatten()->getUniqueName()).dataChunkPos;
+    mapperContext.flattenDataChunk(dataChunkPos);
     return make_unique<Flatten>(
         dataChunkPos, move(prevOperator), executionContext, mapperContext.getOperatorID());
 }
@@ -258,8 +259,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     auto prevOperator =
         mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
     auto dataChunkToSelectPos = logicalFilter.groupPosToSelect;
-    auto physicalRootExpr = expressionMapper.mapLogicalExpressionToPhysical(
-        *logicalFilter.expression, mapperContext, executionContext);
+    auto physicalRootExpr =
+        expressionMapper.mapExpression(logicalFilter.expression, mapperContext, executionContext);
     return make_unique<Filter>(move(physicalRootExpr), dataChunkToSelectPos, move(prevOperator),
         executionContext, mapperContext.getOperatorID());
 }
@@ -282,11 +283,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
     auto& logicalProjection = (const LogicalProjection&)*logicalOperator;
     auto prevOperator =
         mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
-    vector<unique_ptr<ExpressionEvaluator>> expressionEvaluators;
+    vector<unique_ptr<BaseExpressionEvaluator>> expressionEvaluators;
     vector<DataPos> expressionsOutputPos;
     for (auto& expression : logicalProjection.getExpressionsToProject()) {
-        expressionEvaluators.push_back(expressionMapper.mapLogicalExpressionToPhysical(
-            *expression, mapperContext, executionContext));
+        expressionEvaluators.push_back(
+            expressionMapper.mapExpression(expression, mapperContext, executionContext));
         expressionsOutputPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
         mapperContext.addComputedExpressions(expression->getUniqueName());
     }

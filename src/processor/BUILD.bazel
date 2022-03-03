@@ -199,7 +199,7 @@ cc_library(
         "read_list",
         "scan_column",
         "//src/common:csv_reader",
-        "//src/expression_evaluator:base_evaluator",
+        "//src/expression_evaluator:base_expression_evaluator",
     ],
 )
 
@@ -227,7 +227,7 @@ cc_library(
         "operator_impls",
         "physical_plan",
         "//src/binder/expression:expression_implementations",
-        "//src/expression_evaluator:evaluator_impls",
+        "//src/expression_evaluator:expression_evaluator_impls",
         "//src/function:aggregate_function",
         "//src/planner/logical_plan/logical_operator:logical_operator_impls",
         "//src/storage:graph",

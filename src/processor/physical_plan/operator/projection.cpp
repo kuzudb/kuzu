@@ -5,13 +5,12 @@ namespace processor {
 
 shared_ptr<ResultSet> Projection::initResultSet() {
     resultSet = children[0]->initResultSet();
-    for (auto i = 0u; i < expressions.size(); ++i) {
-        auto& expression = *expressions[i];
-        expression.initResultSet(*resultSet, context.memoryManager);
+    for (auto i = 0u; i < expressionEvaluators.size(); ++i) {
+        auto& expressionEvaluator = *expressionEvaluators[i];
+        expressionEvaluator.init(*resultSet, context.memoryManager);
         auto [outDataChunkPos, outValueVectorPos] = expressionsOutputPos[i];
         auto dataChunk = resultSet->dataChunks[outDataChunkPos];
-        dataChunk->state = expression.result->state;
-        dataChunk->insert(outValueVectorPos, expression.result);
+        dataChunk->valueVectors[outValueVectorPos] = expressionEvaluator.resultVector;
     }
     return resultSet;
 }
@@ -28,8 +27,8 @@ bool Projection::getNextTuples() {
         return false;
     }
     saveMultiplicity();
-    for (auto& expression : expressions) {
-        expression->evaluate();
+    for (auto& expressionEvaluator : expressionEvaluators) {
+        expressionEvaluator->evaluate();
     }
     if (!discardedDataChunksPos.empty()) {
         resultSet->multiplicity *=
@@ -40,9 +39,9 @@ bool Projection::getNextTuples() {
 }
 
 unique_ptr<PhysicalOperator> Projection::clone() {
-    vector<unique_ptr<ExpressionEvaluator>> rootExpressionsCloned;
-    for (auto& expression : expressions) {
-        rootExpressionsCloned.push_back(expression->clone());
+    vector<unique_ptr<BaseExpressionEvaluator>> rootExpressionsCloned;
+    for (auto& expressionEvaluator : expressionEvaluators) {
+        rootExpressionsCloned.push_back(expressionEvaluator->clone());
     }
     return make_unique<Projection>(move(rootExpressionsCloned), expressionsOutputPos,
         discardedDataChunksPos, children[0]->clone(), context, id);

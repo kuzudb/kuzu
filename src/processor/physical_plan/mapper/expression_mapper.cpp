@@ -1,122 +1,85 @@
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 
 #include "src/binder/expression/include/literal_expression.h"
-#include "src/expression_evaluator/include/binary_expression_evaluator.h"
-#include "src/expression_evaluator/include/unary_expression_evaluator.h"
-
-using namespace graphflow::common;
+#include "src/expression_evaluator/include/literal_evaluator.h"
+#include "src/expression_evaluator/include/operator_evaluator.h"
+#include "src/expression_evaluator/include/reference_evaluator.h"
 
 namespace graphflow {
 namespace processor {
 
-unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalExpressionToPhysical(
-    const Expression& expression, const MapperContext& mapperContext,
+unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
+    const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
     ExecutionContext& executionContext) {
-    auto expressionType = expression.expressionType;
-    unique_ptr<ExpressionEvaluator> retVal;
+    auto expressionType = expression->expressionType;
     if (isExpressionLiteral(expressionType)) {
-        retVal = mapLogicalLiteralExpressionToStructuredPhysical(expression, executionContext);
-    } else if (mapperContext.expressionHasComputed(expression.getUniqueName())) {
-        /**
-         * A leaf expression is a non-literal expression that has been previously computed
-         */
-        retVal = mapLogicalLeafExpressionToPhysical(expression, mapperContext);
-    } else if (isExpressionUnary(expressionType)) {
-        auto child = mapLogicalExpressionToPhysical(
-            *expression.getChild(0), mapperContext, executionContext);
-        retVal =
-            make_unique<UnaryExpressionEvaluator>(move(child), expressionType, expression.dataType);
+        return mapLiteralExpression(expression, false /* castToUnstructured */);
+    } else if (mapperContext.expressionHasComputed(expression->getUniqueName())) {
+        return mapReferenceExpression(expression, mapperContext);
     } else {
-        assert(isExpressionBinary(expressionType));
-        // If one of the children expressions has UNSTRUCTURED data type, i.e. the type of the data
-        // is not fixed and can take on multiple values, then we add a cast operation to the other
-        // child (even if the other child's type is known in advance and is structured). The
-        // UNSTRUCTURED child's data will be stored in vectors that store boxed values instead of
-        // structured (i.e., primitive) values. The cast operation ensures that the other child's
-        // values are also boxed so we can call expression evaluation functions that expect two
-        // boxed values.
-        auto& logicalLExpr = *expression.getChild(0);
-        auto& logicalRExpr = *expression.getChild(1);
-        auto castLToUnstructured =
-            logicalRExpr.dataType == UNSTRUCTURED && logicalLExpr.dataType != UNSTRUCTURED;
-        auto lExpr = mapChildExpressionAndCastToUnstructuredIfNecessary(
-            logicalLExpr, castLToUnstructured, mapperContext, executionContext);
-        auto castRToUnstructured =
-            logicalLExpr.dataType == UNSTRUCTURED && logicalRExpr.dataType != UNSTRUCTURED;
-        auto rExpr = mapChildExpressionAndCastToUnstructuredIfNecessary(
-            logicalRExpr, castRToUnstructured, mapperContext, executionContext);
-        retVal = make_unique<BinaryExpressionEvaluator>(
-            move(lExpr), move(rExpr), expressionType, expression.dataType);
+        return mapOperatorExpression(expression, mapperContext, executionContext);
     }
-    return retVal;
 }
 
-unique_ptr<ExpressionEvaluator>
-ExpressionMapper::mapChildExpressionAndCastToUnstructuredIfNecessary(const Expression& expression,
-    bool castToUnstructured, const MapperContext& mapperContext,
+unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapLiteralExpression(
+    const shared_ptr<Expression>& expression, bool castToUnstructured) {
+    auto& literalExpression = (LiteralExpression&)*expression;
+    return make_unique<LiteralExpressionEvaluator>(literalExpression.literal, castToUnstructured);
+}
+
+unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapReferenceExpression(
+    const shared_ptr<Expression>& expression, const MapperContext& mapperContext) {
+    auto vectorPos = mapperContext.getDataPos(expression->getUniqueName());
+    return make_unique<ReferenceExpressionEvaluator>(
+        vectorPos, mapperContext.isDataChunkFlat(vectorPos.dataChunkPos));
+}
+
+unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapOperatorExpression(
+    const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
     ExecutionContext& executionContext) {
-    unique_ptr<ExpressionEvaluator> retVal;
-    if (castToUnstructured && isExpressionLiteral(expression.expressionType)) {
-        retVal = mapLogicalLiteralExpressionToUnstructuredPhysical(expression, executionContext);
+    if (isExpressionUnary(expression->expressionType)) {
+        return mapUnaryOperatorExpression(expression, mapperContext, executionContext);
     } else {
-        retVal = mapLogicalExpressionToPhysical(expression, mapperContext, executionContext);
-        if (castToUnstructured) {
-            retVal = make_unique<UnaryExpressionEvaluator>(
-                move(retVal), CAST_TO_UNSTRUCTURED_VALUE, UNSTRUCTURED);
-        }
+        assert(isExpressionBinary(expression->expressionType));
+        return mapBinaryOperatorExpression(expression, mapperContext, executionContext);
     }
-    return retVal;
 }
 
-unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToUnstructuredPhysical(
-    const Expression& expression, ExecutionContext& executionContext) {
-    auto& literalExpression = (LiteralExpression&)expression;
-    // We create an owner dataChunk which is flat and of size 1 to contain the literal.
-    auto vector = make_shared<ValueVector>(executionContext.memoryManager, UNSTRUCTURED);
-    vector->state = DataChunkState::getSingleValueDataChunkState();
-    vector->addLiteralToUnstructuredVector(0, literalExpression.literal);
-    return make_unique<ExpressionEvaluator>(vector, expression.expressionType);
+unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapUnaryOperatorExpression(
+    const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
+    ExecutionContext& executionContext) {
+    auto child = mapExpression(expression->getChild(0), mapperContext, executionContext);
+    return make_unique<UnaryOperatorExpressionEvaluator>(expression, move(child));
 }
 
-unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLiteralExpressionToStructuredPhysical(
-    const Expression& expression, ExecutionContext& executionContext) {
-    auto& literalExpression = (LiteralExpression&)expression;
-    // We create an owner dataChunk which is flat and of size 1 to contain the literal.
-    auto vector =
-        make_shared<ValueVector>(executionContext.memoryManager, literalExpression.dataType);
-    vector->state = DataChunkState::getSingleValueDataChunkState();
-    switch (expression.dataType) {
-    case INT64: {
-        ((int64_t*)vector->values)[0] = literalExpression.literal.val.int64Val;
-    } break;
-    case DOUBLE: {
-        ((double_t*)vector->values)[0] = literalExpression.literal.val.doubleVal;
-    } break;
-    case BOOL: {
-        ((bool*)vector->values)[0] = literalExpression.literal.val.booleanVal;
-    } break;
-    case STRING: {
-        vector->addString(0 /* pos */, literalExpression.literal.strVal);
-    } break;
-    case DATE: {
-        ((date_t*)vector->values)[0] = literalExpression.literal.val.dateVal;
-    } break;
-    case TIMESTAMP: {
-        ((timestamp_t*)vector->values)[0] = literalExpression.literal.val.timestampVal;
-    } break;
-    case INTERVAL: {
-        ((interval_t*)vector->values)[0] = literalExpression.literal.val.intervalVal;
-    } break;
-    default:
-        assert(false);
+unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapBinaryOperatorExpression(
+    const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
+    ExecutionContext& executionContext) {
+    // NOTE: Xiyang is not convinced that casting should be performed at mapper level.
+    auto isLeftUnstructured = expression->getChild(0)->dataType == UNSTRUCTURED;
+    auto isRightUnstructured = expression->getChild(1)->dataType == UNSTRUCTURED;
+    auto castLeftToUnstructured = !isLeftUnstructured && isRightUnstructured;
+    auto castRightToUnstructured = isLeftUnstructured && !isRightUnstructured;
+    auto left = castLeftToUnstructured ?
+                    mapExpressionAndCastToUnstructured(
+                        expression->getChild(0), mapperContext, executionContext) :
+                    mapExpression(expression->getChild(0), mapperContext, executionContext);
+    auto right = castRightToUnstructured ?
+                     mapExpressionAndCastToUnstructured(
+                         expression->getChild(1), mapperContext, executionContext) :
+                     mapExpression(expression->getChild(1), mapperContext, executionContext);
+    return make_unique<BinaryOperatorExpressionEvaluator>(expression, move(left), move(right));
+}
+
+unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpressionAndCastToUnstructured(
+    const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
+    ExecutionContext& executionContext) {
+    if (isExpressionLiteral(expression->expressionType)) {
+        return mapLiteralExpression(expression, true /* castToUnstructured */);
     }
-    return make_unique<ExpressionEvaluator>(vector, expression.expressionType);
-}
-
-unique_ptr<ExpressionEvaluator> ExpressionMapper::mapLogicalLeafExpressionToPhysical(
-    const Expression& expression, const MapperContext& mapperContext) {
-    return make_unique<ExpressionEvaluator>(mapperContext.getDataPos(expression.getUniqueName()),
-        expression.expressionType, expression.dataType);
+    auto castExpression =
+        make_shared<Expression>(CAST_TO_UNSTRUCTURED_VALUE, UNSTRUCTURED, expression);
+    return mapExpression(castExpression, mapperContext, executionContext);
 }
 
 } // namespace processor

@@ -38,8 +38,9 @@ public:
         uint64_t pos, uint8_t* dstData, StringBuffer& dstStringBuffer) const;
     void addString(uint64_t pos, string value) const;
     void addString(uint64_t pos, char* value, uint64_t len) const;
-    void addLiteralToUnstructuredVector(const uint64_t pos, const Literal& value) const;
-    void addGFStringToUnstructuredVector(const uint64_t pos, const gf_string_t& value) const;
+    void addLiteralToStructuredVector(uint64_t pos, const Literal& literal) const;
+    void addLiteralToUnstructuredVector(uint64_t pos, const Literal& value) const;
+    void addGFStringToUnstructuredVector(uint64_t pos, const gf_string_t& value) const;
     void allocateStringOverflowSpaceIfNecessary(gf_string_t& result, uint64_t len) const;
 
     // Sets the null mask of this ValueVector to the null mask of

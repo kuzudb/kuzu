@@ -1,0 +1,52 @@
+#pragma once
+
+#include <functional>
+
+#include "src/binder/expression/include/expression.h"
+#include "src/processor/include/physical_plan/result/result_set.h"
+
+using namespace graphflow::binder;
+using namespace graphflow::processor;
+
+namespace graphflow {
+namespace evaluator {
+
+using binary_exec_operation = std::function<void(ValueVector&, ValueVector&, ValueVector&)>;
+using binary_select_operation = std::function<uint64_t(ValueVector&, ValueVector&, sel_t*)>;
+using unary_exec_operation = std::function<void(ValueVector&, ValueVector&)>;
+using unary_select_operation = std::function<uint64_t(ValueVector&, sel_t*)>;
+
+class BaseExpressionEvaluator {
+
+public:
+    // Literal or reference evaluator
+    BaseExpressionEvaluator() = default;
+
+    // Unary evaluator
+    explicit BaseExpressionEvaluator(unique_ptr<BaseExpressionEvaluator> child);
+
+    // Binary evaluator
+    BaseExpressionEvaluator(
+        unique_ptr<BaseExpressionEvaluator> left, unique_ptr<BaseExpressionEvaluator> right);
+
+    ~BaseExpressionEvaluator() = default;
+
+    virtual void init(const ResultSet& resultSet, MemoryManager* memoryManager);
+
+    virtual bool isResultVectorFlat();
+
+    virtual void evaluate() = 0;
+
+    virtual uint64_t select(sel_t* selectedPos) = 0;
+
+    virtual unique_ptr<BaseExpressionEvaluator> clone() = 0;
+
+public:
+    shared_ptr<ValueVector> resultVector;
+
+protected:
+    vector<unique_ptr<BaseExpressionEvaluator>> children;
+};
+
+} // namespace evaluator
+} // namespace graphflow

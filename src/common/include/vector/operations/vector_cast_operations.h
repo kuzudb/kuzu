@@ -5,6 +5,7 @@
 namespace graphflow {
 namespace common {
 
+// TODO: open an issue to add value level cast operation
 struct VectorCastOperations {
     // result contains preallocated Value objects with the structured operand's dataType.
     static void castStructuredToUnstructuredValue(ValueVector& operand, ValueVector& result);

@@ -105,6 +105,34 @@ void ValueVector::addString(uint64_t pos, string value) const {
     addString(pos, value.data(), value.length());
 }
 
+void ValueVector::addLiteralToStructuredVector(uint64_t pos, const Literal& literal) const {
+    switch (literal.dataType) {
+    case INT64: {
+        ((int64_t*)values)[pos] = literal.val.int64Val;
+    } break;
+    case DOUBLE: {
+        ((double_t*)values)[pos] = literal.val.doubleVal;
+    } break;
+    case BOOL: {
+        ((bool*)values)[pos] = literal.val.booleanVal;
+    } break;
+    case DATE: {
+        ((date_t*)values)[pos] = literal.val.dateVal;
+    } break;
+    case TIMESTAMP: {
+        ((timestamp_t*)values)[pos] = literal.val.timestampVal;
+    } break;
+    case INTERVAL: {
+        ((interval_t*)values)[pos] = literal.val.intervalVal;
+    } break;
+    case STRING: {
+        addString(pos, literal.strVal);
+    } break;
+    default:
+        assert(false);
+    }
+}
+
 void ValueVector::addLiteralToUnstructuredVector(const uint64_t pos, const Literal& value) const {
     assert(dataType == UNSTRUCTURED);
     auto& val = ((Value*)values)[pos];
