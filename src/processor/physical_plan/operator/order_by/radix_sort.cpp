@@ -12,7 +12,7 @@ namespace processor {
 void RadixSort::radixSort(uint8_t* keyBlockPtr, uint64_t numTuplesToSort, uint64_t numBytesSorted,
     uint64_t numBytesToSort) {
     // We use radixSortLSD which sorts from the least significant byte to the most significant byte.
-    auto tmpKeyBlockPtr = tmpKeyBlock->data;
+    auto tmpKeyBlockPtr = tmpSortingResultBlock->getData();
     keyBlockPtr += numBytesSorted;
     tmpKeyBlockPtr += numBytesSorted;
     constexpr uint16_t countingArraySize = 256;
@@ -26,7 +26,7 @@ void RadixSort::radixSort(uint8_t* keyBlockPtr, uint64_t numTuplesToSort, uint64
         // counting sort
         for (auto j = 0ul; j < numTuplesToSort; j++) {
             count[*sortBytePtr]++;
-            sortBytePtr += orderByKeyEncoder.getKeyBlockEntrySizeInBytes();
+            sortBytePtr += orderByKeyEncoder.getNumBytesPerTuple();
         }
         auto maxCounter = count[0];
         for (auto val = 1ul; val < countingArraySize; val++) {
@@ -39,19 +39,19 @@ void RadixSort::radixSort(uint8_t* keyBlockPtr, uint64_t numTuplesToSort, uint64
         }
         // Reorder the data based on the count array.
         auto sourceTuplePtr =
-            sourcePtr + (numTuplesToSort - 1) * orderByKeyEncoder.getKeyBlockEntrySizeInBytes();
+            sourcePtr + (numTuplesToSort - 1) * orderByKeyEncoder.getNumBytesPerTuple();
         for (auto j = 0ul; j < numTuplesToSort; j++) {
             auto targetTupleNum = --count[*(sourceTuplePtr + numBytesToSort - curByteIdx)];
-            memcpy(targetPtr + targetTupleNum * orderByKeyEncoder.getKeyBlockEntrySizeInBytes(),
-                sourceTuplePtr, orderByKeyEncoder.getKeyBlockEntrySizeInBytes());
-            sourceTuplePtr -= orderByKeyEncoder.getKeyBlockEntrySizeInBytes();
+            memcpy(targetPtr + targetTupleNum * orderByKeyEncoder.getNumBytesPerTuple(),
+                sourceTuplePtr, orderByKeyEncoder.getNumBytesPerTuple());
+            sourceTuplePtr -= orderByKeyEncoder.getNumBytesPerTuple();
         }
         isInTmpBlock = !isInTmpBlock;
     }
     // If the data is in the tmp block, copy the data from tmp block back.
     if (isInTmpBlock) {
-        memcpy(keyBlockPtr, tmpKeyBlockPtr,
-            numTuplesToSort * orderByKeyEncoder.getKeyBlockEntrySizeInBytes());
+        memcpy(
+            keyBlockPtr, tmpKeyBlockPtr, numTuplesToSort * orderByKeyEncoder.getNumBytesPerTuple());
     }
 }
 
@@ -61,8 +61,8 @@ vector<TieRange> RadixSort::findTies(uint8_t* keyBlockPtr, uint64_t numTuplesToF
     for (auto i = 0u; i < numTuplesToFindTies - 1; i++) {
         auto j = i + 1;
         for (; j < numTuplesToFindTies; j++) {
-            if (memcmp(keyBlockPtr + i * orderByKeyEncoder.getKeyBlockEntrySizeInBytes(),
-                    keyBlockPtr + j * orderByKeyEncoder.getKeyBlockEntrySizeInBytes(),
+            if (memcmp(keyBlockPtr + i * orderByKeyEncoder.getNumBytesPerTuple(),
+                    keyBlockPtr + j * orderByKeyEncoder.getNumBytesPerTuple(),
                     numBytesToSort) != 0) {
                 break;
             }
@@ -78,10 +78,9 @@ vector<TieRange> RadixSort::findTies(uint8_t* keyBlockPtr, uint64_t numTuplesToF
 
 void RadixSort::solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
     queue<TieRange>& ties, StringAndUnstructuredKeyColInfo& stringAndUnstructuredKeyColInfo) {
-    auto tmpTuplePtrSortingBlockPtr = (uint8_t**)tmpTuplePtrSortingBlock->data;
+    auto tmpTuplePtrSortingBlockPtr = (uint8_t**)tmpTuplePtrSortingBlock->getData();
     for (auto i = 0ul; i < keyBlockTie.getNumTuples(); i++) {
-        tmpTuplePtrSortingBlockPtr[i] =
-            keyBlockPtr + orderByKeyEncoder.getKeyBlockEntrySizeInBytes() * i;
+        tmpTuplePtrSortingBlockPtr[i] = keyBlockPtr + orderByKeyEncoder.getNumBytesPerTuple() * i;
     }
 
     sort(tmpTuplePtrSortingBlockPtr, tmpTuplePtrSortingBlockPtr + keyBlockTie.getNumTuples(),
@@ -99,9 +98,9 @@ void RadixSort::solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* k
             }
 
             const auto leftStrAndUnstrTupleIdx = OrderByKeyEncoder::getEncodedTupleIdx(
-                leftPtr + orderByKeyEncoder.getKeyBlockEntrySizeInBytes() - sizeof(uint64_t));
+                leftPtr + orderByKeyEncoder.getNumBytesPerTuple() - sizeof(uint64_t));
             const auto rightStrTupleIdx = OrderByKeyEncoder::getEncodedTupleIdx(
-                rightPtr + orderByKeyEncoder.getKeyBlockEntrySizeInBytes() - sizeof(uint64_t));
+                rightPtr + orderByKeyEncoder.getNumBytesPerTuple() - sizeof(uint64_t));
             uint8_t result;
             if (stringAndUnstructuredKeyColInfo.isStrCol) {
                 LessThan::operation<gf_string_t, gf_string_t>(
@@ -128,26 +127,24 @@ void RadixSort::solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* k
         });
 
     // Reorder the keyBlock based on the quick sort result.
-    auto tmpKeyBlockPtr = tmpKeyBlock->data;
+    auto tmpKeyBlockPtr = tmpSortingResultBlock->getData();
     for (auto i = 0ul; i < keyBlockTie.getNumTuples(); i++) {
-        memcpy(tmpKeyBlockPtr, tmpTuplePtrSortingBlockPtr[i],
-            orderByKeyEncoder.getKeyBlockEntrySizeInBytes());
-        tmpKeyBlockPtr += orderByKeyEncoder.getKeyBlockEntrySizeInBytes();
+        memcpy(
+            tmpKeyBlockPtr, tmpTuplePtrSortingBlockPtr[i], orderByKeyEncoder.getNumBytesPerTuple());
+        tmpKeyBlockPtr += orderByKeyEncoder.getNumBytesPerTuple();
     }
-    memcpy(keyBlockPtr, tmpKeyBlock->data,
-        keyBlockTie.getNumTuples() * orderByKeyEncoder.getKeyBlockEntrySizeInBytes());
+    memcpy(keyBlockPtr, tmpSortingResultBlock->getData(),
+        keyBlockTie.getNumTuples() * orderByKeyEncoder.getNumBytesPerTuple());
 
     // Some ties can't be solved in quicksort, just add them to ties.
     for (auto i = keyBlockTie.startingTupleIdx; i < keyBlockTie.endingTupleIdx; i++) {
-        auto tupleIdxAtIdxI =
-            OrderByKeyEncoder::getEncodedTupleIdx(keyBlockPtr +
-                                                  orderByKeyEncoder.getKeyBlockEntrySizeInBytes() *
-                                                      (i + 1 - keyBlockTie.startingTupleIdx) -
-                                                  sizeof(uint64_t));
+        auto tupleIdxAtIdxI = OrderByKeyEncoder::getEncodedTupleIdx(
+            keyBlockPtr +
+            orderByKeyEncoder.getNumBytesPerTuple() * (i + 1 - keyBlockTie.startingTupleIdx) -
+            sizeof(uint64_t));
         bool isValAtIdxINull = OrderByKeyEncoder::isNullVal(
             keyBlockPtr +
-                orderByKeyEncoder.getKeyBlockEntrySizeInBytes() *
-                    (i - keyBlockTie.startingTupleIdx) +
+                orderByKeyEncoder.getNumBytesPerTuple() * (i - keyBlockTie.startingTupleIdx) +
                 stringAndUnstructuredKeyColInfo.colOffsetInEncodedKeyBlock,
             stringAndUnstructuredKeyColInfo.isAscOrder);
 
@@ -155,13 +152,11 @@ void RadixSort::solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* k
         for (; j <= keyBlockTie.endingTupleIdx; j++) {
             auto tupleIdxAtIdxJ = OrderByKeyEncoder::getEncodedTupleIdx(
                 keyBlockPtr +
-                orderByKeyEncoder.getKeyBlockEntrySizeInBytes() *
-                    (j + 1 - keyBlockTie.startingTupleIdx) -
+                orderByKeyEncoder.getNumBytesPerTuple() * (j + 1 - keyBlockTie.startingTupleIdx) -
                 sizeof(uint64_t));
             bool isValAtIdxJNull = OrderByKeyEncoder::isNullVal(
                 keyBlockPtr +
-                    orderByKeyEncoder.getKeyBlockEntrySizeInBytes() *
-                        (j - keyBlockTie.startingTupleIdx) +
+                    orderByKeyEncoder.getNumBytesPerTuple() * (j - keyBlockTie.startingTupleIdx) +
                     stringAndUnstructuredKeyColInfo.colOffsetInEncodedKeyBlock,
                 stringAndUnstructuredKeyColInfo.isAscOrder);
 
@@ -203,9 +198,9 @@ void RadixSort::solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* k
     }
 }
 
-void RadixSort::sortSingleKeyBlock(const KeyBlock& keyBlock) {
+void RadixSort::sortSingleKeyBlock(const DataBlock& keyBlock) {
     auto numBytesSorted = 0ul;
-    auto numTuplesInKeyBlock = keyBlock.numEntriesInMemBlock;
+    auto numTuplesInKeyBlock = keyBlock.numTuples;
     queue<TieRange> ties;
     // We need to sort the whole keyBlock for the first radix sort, so just mark all tuples as a
     // tie.
@@ -218,21 +213,19 @@ void RadixSort::sortSingleKeyBlock(const KeyBlock& keyBlock) {
         for (auto j = 0u; j < numOfTies; j++) {
             auto keyBlockTie = ties.front();
             ties.pop();
-            radixSort(
-                keyBlock.getMemBlockData() +
-                    keyBlockTie.startingTupleIdx * orderByKeyEncoder.getKeyBlockEntrySizeInBytes(),
+            radixSort(keyBlock.getData() +
+                          keyBlockTie.startingTupleIdx * orderByKeyEncoder.getNumBytesPerTuple(),
                 keyBlockTie.getNumTuples(), numBytesSorted, numBytesToSort);
 
             auto newTiesInKeyBlock = findTies(
-                keyBlock.getMemBlockData() +
-                    keyBlockTie.startingTupleIdx * orderByKeyEncoder.getKeyBlockEntrySizeInBytes() +
+                keyBlock.getData() +
+                    keyBlockTie.startingTupleIdx * orderByKeyEncoder.getNumBytesPerTuple() +
                     numBytesSorted,
                 keyBlockTie.getNumTuples(), numBytesToSort, keyBlockTie.startingTupleIdx);
             for (auto& newTieInKeyBlock : newTiesInKeyBlock) {
                 solveStringAndUnstructuredTies(newTieInKeyBlock,
-                    keyBlock.getMemBlockData() +
-                        newTieInKeyBlock.startingTupleIdx *
-                            orderByKeyEncoder.getKeyBlockEntrySizeInBytes(),
+                    keyBlock.getData() +
+                        newTieInKeyBlock.startingTupleIdx * orderByKeyEncoder.getNumBytesPerTuple(),
                     ties, stringAndUnstructuredKeyColInfo[i]);
             }
         }
@@ -242,14 +235,14 @@ void RadixSort::sortSingleKeyBlock(const KeyBlock& keyBlock) {
         numBytesSorted += numBytesToSort;
     }
 
-    if (numBytesSorted < orderByKeyEncoder.getKeyBlockEntrySizeInBytes()) {
+    if (numBytesSorted < orderByKeyEncoder.getNumBytesPerTuple()) {
         while (!ties.empty()) {
             auto tie = ties.front();
             ties.pop();
-            radixSort(keyBlock.getMemBlockData() +
-                          tie.startingTupleIdx * orderByKeyEncoder.getKeyBlockEntrySizeInBytes(),
+            radixSort(
+                keyBlock.getData() + tie.startingTupleIdx * orderByKeyEncoder.getNumBytesPerTuple(),
                 tie.getNumTuples(), numBytesSorted,
-                orderByKeyEncoder.getKeyBlockEntrySizeInBytes() - numBytesSorted);
+                orderByKeyEncoder.getNumBytesPerTuple() - numBytesSorted);
         }
     }
 }

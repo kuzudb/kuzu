@@ -16,25 +16,35 @@ namespace graphflow {
 namespace processor {
 
 struct BlockAppendingInfo {
-    BlockAppendingInfo(uint8_t* data, uint64_t numEntriesToAppend)
-        : data{data}, numEntriesToAppend{numEntriesToAppend} {}
+    BlockAppendingInfo(uint8_t* data, uint64_t numTuplesToAppend)
+        : data{data}, numTuplesToAppend{numTuplesToAppend} {}
 
     uint8_t* data;
-    uint64_t numEntriesToAppend;
+    uint64_t numTuplesToAppend;
 };
 
+// This struct allocates and holds one bmBackedBlock when constructed. The bmBackedBlock will be
+// released when this struct goes out of scope.
 struct DataBlock {
 public:
-    explicit DataBlock(unique_ptr<OSBackedMemoryBlock> block)
-        : data{block->data}, freeSize{block->size}, numEntries{0}, block{move(block)} {}
+    DataBlock(MemoryManager* memoryManager) : numTuples{0}, memoryManager{memoryManager} {
+        block = memoryManager->allocateBMBackedBlock(true);
+        freeSize = block->size;
+    }
+
+    DataBlock(DataBlock&& other) = default;
+
+    ~DataBlock() { memoryManager->freeBMBackedBlock(block->pageIdx); }
+
+    uint8_t* getData() const { return block->data; }
 
 public:
-    uint8_t* data;
     uint64_t freeSize;
-    uint64_t numEntries;
+    uint64_t numTuples;
+    MemoryManager* memoryManager;
 
 private:
-    unique_ptr<OSBackedMemoryBlock> block;
+    unique_ptr<BMBackedMemoryBlock> block;
 };
 
 class ColumnSchema {
@@ -146,7 +156,7 @@ public:
 
     uint64_t getTotalNumFlatTuples() const;
 
-    inline vector<DataBlock>& getTupleDataBlocks() { return tupleDataBlocks; }
+    inline vector<unique_ptr<DataBlock>>& getTupleDataBlocks() { return tupleDataBlocks; }
     inline const TableSchema& getTableSchema() const { return tableSchema; }
 
     FlatTupleIterator getFlatTupleIterator();
@@ -188,7 +198,7 @@ private:
         return make_pair(tupleIdx / numTuplesPerBlock, tupleIdx % numTuplesPerBlock);
     }
 
-    vector<BlockAppendingInfo> allocateTupleBlocks(uint64_t numEntriesToAppend);
+    vector<BlockAppendingInfo> allocateTupleBlocks(uint64_t numTuplesToAppend);
 
     uint8_t* allocateOverflowBlocks(uint64_t numBytes);
 
@@ -205,8 +215,8 @@ private:
     TableSchema tableSchema;
     uint64_t numTuples;
     uint64_t numTuplesPerBlock;
-    vector<DataBlock> tupleDataBlocks;
-    vector<DataBlock> vectorOverflowBlocks;
+    vector<unique_ptr<DataBlock>> tupleDataBlocks;
+    vector<unique_ptr<DataBlock>> vectorOverflowBlocks;
     unique_ptr<StringBuffer> stringBuffer;
 };
 

@@ -19,6 +19,8 @@ struct TestSuiteSystemConfig {
     string graphOutputDir;
     uint64_t maxNumThreads = 4;
     bool isInMemory = false;
+    uint64_t defaultPageBufferPoolSize = StorageConfig::DEFAULT_BUFFER_POOL_SIZE;
+    uint64_t largePageBufferPoolSize = StorageConfig::DEFAULT_BUFFER_POOL_SIZE;
 };
 
 struct TestQueryConfig {
@@ -40,7 +42,9 @@ public:
     static void loadGraph(TestSuiteSystemConfig& config);
 
     static unique_ptr<System> getInitializedSystem(TestSuiteSystemConfig& config) {
-        return make_unique<System>(config.graphOutputDir, SystemConfig(config.isInMemory));
+        return make_unique<System>(
+            config.graphOutputDir, SystemConfig(config.isInMemory, config.defaultPageBufferPoolSize,
+                                       config.largePageBufferPoolSize));
     }
 
     static vector<string> getActualOutput(

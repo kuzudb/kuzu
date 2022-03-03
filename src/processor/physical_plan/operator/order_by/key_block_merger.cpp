@@ -8,22 +8,46 @@ using namespace graphflow::common::operation;
 namespace graphflow {
 namespace processor {
 
+MergedKeyBlocks::MergedKeyBlocks(
+    uint64_t numBytesPerTuple, uint64_t numTuples, MemoryManager* memoryManager)
+    : numBytesPerTuple{numBytesPerTuple}, numTuples{numTuples} {
+    auto numTuplesPerBlock = LARGE_PAGE_SIZE / numBytesPerTuple;
+    auto numKeyBlocks = numTuples / numTuplesPerBlock + (numTuples % numTuplesPerBlock ? 1 : 0);
+    for (auto i = 0u; i < numKeyBlocks; i++) {
+        keyBlocks.emplace_back(make_shared<DataBlock>(memoryManager));
+    }
+};
+
+// This constructor is used to convert a keyBlock to a MergedKeyBlocks.
+MergedKeyBlocks::MergedKeyBlocks(uint64_t numBytesPerTuple, shared_ptr<DataBlock> keyBlock)
+    : numBytesPerTuple{numBytesPerTuple}, numTuples{keyBlock->numTuples} {
+    keyBlocks.emplace_back(keyBlock);
+}
+
+pair<uint64_t, uint64_t> KeyBlockMerger::getEncodedFactorizedTableIdxAndTupleIdx(
+    uint8_t* encodedTupleBuffer) const {
+    auto encodedTupleInfoBuffer = encodedTupleBuffer + numBytesPerTuple - sizeof(uint64_t);
+    auto encodedTupleIdx = OrderByKeyEncoder::getEncodedTupleIdx(encodedTupleInfoBuffer);
+    auto encodedFactorizedTableIdx =
+        OrderByKeyEncoder::getEncodedFactorizedTableIdx(encodedTupleInfoBuffer);
+    return make_pair(encodedFactorizedTableIdx, encodedTupleIdx);
+}
+
 uint64_t KeyBlockMergeTask::findRightKeyBlockIdx(uint8_t* leftEndTupleBuffer) {
     // Find a tuple in the right memory block such that:
     // 1. The value of the current tuple is smaller than the value in leftEndTuple.
     // 2. Either the value of next tuple is larger than the value in leftEndTuple or
     // the current tuple is the last tuple in the right memory block.
     int64_t startIdx = rightKeyBlockNextIdx;
-    int64_t endIdx = rightKeyBlock->numEntriesInMemBlock - 1;
+    int64_t endIdx = rightKeyBlock->getNumTuples() - 1;
 
     while (startIdx <= endIdx) {
         uint64_t curTupleIdx = (startIdx + endIdx) / 2;
-        uint8_t* curTupleBuffer = rightKeyBlock->getMemBlockData() +
-                                  curTupleIdx * keyBlockMerger.getKeyBlockEntrySizeInBytes();
-        uint8_t* nextTupleBuffer = curTupleBuffer + keyBlockMerger.getKeyBlockEntrySizeInBytes();
+        uint8_t* curTupleBuffer = rightKeyBlock->getTuple(curTupleIdx);
+        uint8_t* nextTupleBuffer = rightKeyBlock->getTuple(curTupleIdx + 1);
 
         if (keyBlockMerger.compareTupleBuffer(leftEndTupleBuffer, curTupleBuffer)) {
-            if (curTupleIdx == rightKeyBlock->numEntriesInMemBlock - 1 ||
+            if (curTupleIdx == rightKeyBlock->getNumTuples() - 1 ||
                 !keyBlockMerger.compareTupleBuffer(leftEndTupleBuffer, nextTupleBuffer)) {
                 // If the current tuple is the last tuple or the value of next tuple is larger than
                 // the value of leftEndTuple, return the curTupleIdx.
@@ -43,36 +67,34 @@ unique_ptr<KeyBlockMergeMorsel> KeyBlockMergeTask::getMorsel() {
     // We grab a batch of tuples from the left memory block, then do a binary search on the
     // right memory block to find the range of tuples to merge.
     activeMorsels++;
-    if (rightKeyBlockNextIdx >= rightKeyBlock->numEntriesInMemBlock) {
+    if (rightKeyBlockNextIdx >= rightKeyBlock->getNumTuples()) {
         // If there is no more tuples left in the right key block,
         // just append all tuples in the left key block to the result key block.
-        auto keyBlockMergeMorsel = make_unique<KeyBlockMergeMorsel>(leftKeyBlockNextIdx,
-            leftKeyBlock->numEntriesInMemBlock, rightKeyBlock->numEntriesInMemBlock,
-            rightKeyBlock->numEntriesInMemBlock);
-        leftKeyBlockNextIdx = leftKeyBlock->numEntriesInMemBlock;
+        auto keyBlockMergeMorsel =
+            make_unique<KeyBlockMergeMorsel>(leftKeyBlockNextIdx, leftKeyBlock->getNumTuples(),
+                rightKeyBlock->getNumTuples(), rightKeyBlock->getNumTuples());
+        leftKeyBlockNextIdx = leftKeyBlock->getNumTuples();
         return keyBlockMergeMorsel;
     }
 
     auto leftKeyBlockStartIdx = leftKeyBlockNextIdx;
     leftKeyBlockNextIdx += batch_size;
 
-    if (leftKeyBlockNextIdx >= leftKeyBlock->numEntriesInMemBlock) {
+    if (leftKeyBlockNextIdx >= leftKeyBlock->getNumTuples()) {
         // This is the last batch of tuples in the left key block to merge, so just merge it with
         // remaining tuples of the right key block.
         auto keyBlockMergeMorsel = make_unique<KeyBlockMergeMorsel>(leftKeyBlockStartIdx,
-            min(leftKeyBlockNextIdx, leftKeyBlock->numEntriesInMemBlock), rightKeyBlockNextIdx,
-            rightKeyBlock->numEntriesInMemBlock);
-        rightKeyBlockNextIdx = rightKeyBlock->numEntriesInMemBlock;
+            min(leftKeyBlockNextIdx, leftKeyBlock->getNumTuples()), rightKeyBlockNextIdx,
+            rightKeyBlock->getNumTuples());
+        rightKeyBlockNextIdx = rightKeyBlock->getNumTuples();
         return keyBlockMergeMorsel;
     } else {
         // Conduct a binary search to find the ending index in the right memory block.
-        auto leftEndIdxBuffer =
-            leftKeyBlock->getMemBlockData() +
-            (leftKeyBlockNextIdx - 1) * keyBlockMerger.getKeyBlockEntrySizeInBytes();
+        auto leftEndIdxBuffer = leftKeyBlock->getTuple(leftKeyBlockNextIdx - 1);
         auto rightEndIdx = findRightKeyBlockIdx(leftEndIdxBuffer);
 
         auto keyBlockMergeMorsel = make_unique<KeyBlockMergeMorsel>(leftKeyBlockStartIdx,
-            min(leftKeyBlockNextIdx, leftKeyBlock->numEntriesInMemBlock), rightKeyBlockNextIdx,
+            min(leftKeyBlockNextIdx, leftKeyBlock->getNumTuples()), rightKeyBlockNextIdx,
             rightEndIdx == -1 ? rightKeyBlockNextIdx : ++rightEndIdx);
 
         if (rightEndIdx != -1) {
@@ -82,51 +104,54 @@ unique_ptr<KeyBlockMergeMorsel> KeyBlockMergeTask::getMorsel() {
     }
 }
 
-void KeyBlockMerger::mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) {
+void KeyBlockMerger::mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) const {
     auto leftKeyBlockIdx = keyBlockMergeMorsel.leftKeyBlockStartIdx;
     auto rightKeyBlockIdx = keyBlockMergeMorsel.rightKeyBlockStartIdx;
-    auto resultKeyBlockIdx = leftKeyBlockIdx + rightKeyBlockIdx;
-    auto leftKeyBlockBuffer =
-        keyBlockMergeMorsel.getLeftKeyBlockData() + leftKeyBlockIdx * keyBlockEntrySizeInBytes;
-    auto rightKeyBlockBuffer =
-        keyBlockMergeMorsel.getRightKeyBlockData() + rightKeyBlockIdx * keyBlockEntrySizeInBytes;
-    auto resultKeyBlockBuffer =
-        keyBlockMergeMorsel.getResultKeyBlockData() + resultKeyBlockIdx * keyBlockEntrySizeInBytes;
+    auto leftKeyBlock = keyBlockMergeMorsel.keyBlockMergeTask->leftKeyBlock;
+    auto rightKeyBlock = keyBlockMergeMorsel.keyBlockMergeTask->rightKeyBlock;
+    auto resultKeyBlock = keyBlockMergeMorsel.keyBlockMergeTask->resultKeyBlock;
+    auto leftKeyBlockBuffer = leftKeyBlock->getTuple(leftKeyBlockIdx);
+    auto rightKeyBlockBuffer = rightKeyBlock->getTuple(rightKeyBlockIdx);
+    auto resultKeyBlockBuffer = resultKeyBlock->getTuple(leftKeyBlockIdx + rightKeyBlockIdx);
 
     while (leftKeyBlockIdx < keyBlockMergeMorsel.leftKeyBlockEndIdx &&
            rightKeyBlockIdx < keyBlockMergeMorsel.rightKeyBlockEndIdx) {
         if (compareTupleBuffer(leftKeyBlockBuffer, rightKeyBlockBuffer)) {
-            memcpy(resultKeyBlockBuffer, rightKeyBlockBuffer, keyBlockEntrySizeInBytes);
-            rightKeyBlockBuffer += keyBlockEntrySizeInBytes;
+            memcpy(resultKeyBlockBuffer, rightKeyBlockBuffer, numBytesPerTuple);
             rightKeyBlockIdx++;
+            rightKeyBlockBuffer = rightKeyBlock->getTuple(rightKeyBlockIdx);
         } else {
-            memcpy(resultKeyBlockBuffer, leftKeyBlockBuffer, keyBlockEntrySizeInBytes);
-            leftKeyBlockBuffer += keyBlockEntrySizeInBytes;
+            memcpy(resultKeyBlockBuffer, leftKeyBlockBuffer, numBytesPerTuple);
             leftKeyBlockIdx++;
+            leftKeyBlockBuffer = leftKeyBlock->getTuple(leftKeyBlockIdx);
         }
-        resultKeyBlockBuffer += keyBlockEntrySizeInBytes;
+        resultKeyBlockBuffer = resultKeyBlock->getTuple(leftKeyBlockIdx + rightKeyBlockIdx);
     }
 
     // If there are still unmerged tuples in the left or right memBlock, just append them to the
     // result memBlock.
-    if (leftKeyBlockIdx < keyBlockMergeMorsel.leftKeyBlockEndIdx) {
-        memcpy(resultKeyBlockBuffer, leftKeyBlockBuffer,
-            keyBlockEntrySizeInBytes * (keyBlockMergeMorsel.leftKeyBlockEndIdx - leftKeyBlockIdx));
-    } else if (rightKeyBlockIdx < keyBlockMergeMorsel.rightKeyBlockEndIdx) {
-        memcpy(resultKeyBlockBuffer, rightKeyBlockBuffer,
-            keyBlockEntrySizeInBytes *
-                (keyBlockMergeMorsel.rightKeyBlockEndIdx - rightKeyBlockIdx));
+    while (leftKeyBlockIdx < keyBlockMergeMorsel.leftKeyBlockEndIdx) {
+        memcpy(resultKeyBlockBuffer, leftKeyBlockBuffer, numBytesPerTuple);
+        leftKeyBlockIdx++;
+        leftKeyBlockBuffer = leftKeyBlock->getTuple(leftKeyBlockIdx);
+        resultKeyBlockBuffer = resultKeyBlock->getTuple(leftKeyBlockIdx + rightKeyBlockIdx);
+    }
+
+    while (rightKeyBlockIdx < keyBlockMergeMorsel.rightKeyBlockEndIdx) {
+        memcpy(resultKeyBlockBuffer, rightKeyBlockBuffer, numBytesPerTuple);
+        rightKeyBlockIdx++;
+        rightKeyBlockBuffer = rightKeyBlock->getTuple(rightKeyBlockIdx);
+        resultKeyBlockBuffer = resultKeyBlock->getTuple(leftKeyBlockIdx + rightKeyBlockIdx);
     }
 }
 
 // This function returns true if the value in the leftTupleBuffer is larger than the value in the
 // rightTupleBuffer.
-bool KeyBlockMerger::compareTupleBuffer(uint8_t* leftTupleBuffer, uint8_t* rightTupleBuffer) {
+bool KeyBlockMerger::compareTupleBuffer(uint8_t* leftTupleBuffer, uint8_t* rightTupleBuffer) const {
     if (stringAndUnstructuredKeyColInfo.empty()) {
-        // If there is no string or unstructured columns in the keys, we just need to do a simple
-        // memcmp.
-        return memcmp(leftTupleBuffer, rightTupleBuffer,
-                   keyBlockEntrySizeInBytes - sizeof(uint64_t)) > 0;
+        // If there is no string or unstructured columns in the keys, we just need to do a
+        // simple memcmp.
+        return memcmp(leftTupleBuffer, rightTupleBuffer, numBytesPerTuple - sizeof(uint64_t)) > 0;
     } else {
         // We can't simply use memcmp to compare tuples if there are string or unstructured columns.
         // We should only compare the binary strings starting from the last compared string column
@@ -233,10 +258,8 @@ unique_ptr<KeyBlockMergeMorsel> KeyBlockMergeTaskDispatcher::getMorsel() {
         sortedKeyBlocks->pop();
         auto rightKeyBlock = sortedKeyBlocks->front();
         sortedKeyBlocks->pop();
-        auto resultKeyBlock = make_shared<KeyBlock>(memoryManager->allocateOSBackedBlock(
-            leftKeyBlock->getKeyBlockSize() + rightKeyBlock->getKeyBlockSize()));
-        resultKeyBlock->numEntriesInMemBlock =
-            leftKeyBlock->numEntriesInMemBlock + rightKeyBlock->numEntriesInMemBlock;
+        auto resultKeyBlock = make_shared<MergedKeyBlocks>(leftKeyBlock->getNumBytesPerTuple(),
+            leftKeyBlock->getNumTuples() + rightKeyBlock->getNumTuples(), memoryManager);
         auto newMergeTask = make_shared<KeyBlockMergeTask>(
             leftKeyBlock, rightKeyBlock, resultKeyBlock, *keyBlockMerger);
         activeKeyBlockMergeTasks.emplace_back(newMergeTask);
@@ -259,6 +282,22 @@ void KeyBlockMergeTaskDispatcher::doneMorsel(unique_ptr<KeyBlockMergeMorsel> mor
         erase(activeKeyBlockMergeTasks, morsel->keyBlockMergeTask);
         sortedKeyBlocks->emplace(morsel->keyBlockMergeTask->resultKeyBlock);
     }
+}
+
+void KeyBlockMergeTaskDispatcher::initIfNecessary(MemoryManager* memoryManager,
+    shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks,
+    vector<shared_ptr<FactorizedTable>>& factorizedTables,
+    vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo,
+    uint64_t numBytesPerTuple) {
+    lock_guard<mutex> keyBlockMergeDispatcherLock{mtx};
+    if (isInitialized) {
+        return;
+    }
+    isInitialized = true;
+    this->memoryManager = memoryManager;
+    this->sortedKeyBlocks = sortedKeyBlocks;
+    this->keyBlockMerger = make_unique<KeyBlockMerger>(
+        factorizedTables, stringAndUnstructuredKeyColInfo, numBytesPerTuple);
 }
 
 } // namespace processor

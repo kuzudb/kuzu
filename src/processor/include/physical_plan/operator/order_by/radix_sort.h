@@ -29,18 +29,15 @@ public:
 // columns, the algorithm only calls radixSort on tie tuples.
 class RadixSort {
 public:
-    explicit RadixSort(MemoryManager* memoryManager, FactorizedTable& factorizedTable,
+    RadixSort(MemoryManager* memoryManager, FactorizedTable& factorizedTable,
         OrderByKeyEncoder& orderByKeyEncoder,
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo)
-        : factorizedTable{factorizedTable}, tmpKeyBlock{memoryManager->allocateOSBackedBlock(
-                                                SORT_BLOCK_SIZE)},
-          orderByKeyEncoder{orderByKeyEncoder}, stringAndUnstructuredKeyColInfo{
-                                                    stringAndUnstructuredKeyColInfo} {
-        tmpTuplePtrSortingBlock = memoryManager->allocateOSBackedBlock(
-            sizeof(uint8_t*) * (SORT_BLOCK_SIZE / orderByKeyEncoder.getKeyBlockEntrySizeInBytes()));
-    }
+        : tmpSortingResultBlock{make_unique<DataBlock>(memoryManager)},
+          tmpTuplePtrSortingBlock{make_unique<DataBlock>(memoryManager)},
+          orderByKeyEncoder{orderByKeyEncoder}, factorizedTable{factorizedTable},
+          stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo} {}
 
-    void sortSingleKeyBlock(const KeyBlock& keyBlock);
+    void sortSingleKeyBlock(const DataBlock& keyBlock);
 
 private:
     void solveStringAndUnstructuredTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
@@ -53,8 +50,16 @@ private:
         uint64_t numBytesToSort);
 
 private:
-    unique_ptr<OSBackedMemoryBlock> tmpKeyBlock;
-    unique_ptr<OSBackedMemoryBlock> tmpTuplePtrSortingBlock;
+    unique_ptr<DataBlock> tmpSortingResultBlock;
+    // Since we do radix sort on each dataBlock at a time, the maxNumber of tuples in the dataBlock
+    // is: LARGE_PAGE_SIZE / numBytesPerTuple.
+    // The size of tmpTuplePtrSortingBlock should be larger than:
+    // sizeof(uint8_t*) * MaxNumOfTuplePointers=(LARGE_PAGE_SIZE / numBytesPerTuple).
+    // Since we know: numBytesPerTuple >= sizeof(uint8_t*) (note: we put the
+    // tupleIdx/FactorizedTableIdx at the end of each row in dataBlock), sizeof(uint8_t*) *
+    // MaxNumOfTuplePointers=(LARGE_PAGE_SIZE / numBytesPerTuple) <= LARGE_PAGE_SIZE. As a result,
+    // we only need one dataBlock to store the tuplePointers while solving the string ties.
+    unique_ptr<DataBlock> tmpTuplePtrSortingBlock;
     OrderByKeyEncoder& orderByKeyEncoder;
     // factorizedTable stores all columns in the tuples that will be sorted, including the order by
     // key columns. RadixSort uses factorizedTable to access the full contents of the string and

@@ -125,22 +125,23 @@ public:
         }
 
         KeyBlockMerger keyBlockMerger = KeyBlockMerger(factorizedTables,
-            stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
+            stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getNumBytesPerTuple());
 
-        auto resultKeyBlock = make_shared<KeyBlock>(
-            memoryManager->allocateOSBackedBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
-        resultKeyBlock->numEntriesInMemBlock = leftSortingData.size() + rightSortingData.size();
-        auto keyBlockMergeTask =
-            make_shared<KeyBlockMergeTask>(orderByKeyEncoder1.getKeyBlocks()[0],
-                orderByKeyEncoder2.getKeyBlocks()[0], resultKeyBlock, keyBlockMerger);
+        auto numBytesPerEntry = orderByKeyEncoder1.getNumBytesPerTuple();
+        auto resultKeyBlock = make_shared<MergedKeyBlocks>(numBytesPerEntry,
+            leftSortingData.size() + rightSortingData.size(), memoryManager.get());
+        auto keyBlockMergeTask = make_shared<KeyBlockMergeTask>(
+            make_shared<MergedKeyBlocks>(numBytesPerEntry, orderByKeyEncoder1.getKeyBlocks()[0]),
+            make_shared<MergedKeyBlocks>(numBytesPerEntry, orderByKeyEncoder2.getKeyBlocks()[0]),
+            resultKeyBlock, keyBlockMerger);
         KeyBlockMergeMorsel keyBlockMergeMorsel(
             0, leftSortingData.size(), 0, rightSortingData.size());
         keyBlockMergeMorsel.keyBlockMergeTask = keyBlockMergeTask;
 
         keyBlockMerger.mergeKeyBlocks(keyBlockMergeMorsel);
 
-        checkTupleIdxesAndFactorizedTableIdxes(resultKeyBlock->getMemBlockData(),
-            orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedTupleIdxOrder,
+        checkTupleIdxesAndFactorizedTableIdxes(resultKeyBlock->getTuple(0),
+            orderByKeyEncoder1.getNumBytesPerTuple(), expectedTupleIdxOrder,
             expectedFactorizedTableIdxOrder);
     }
 
@@ -259,21 +260,22 @@ public:
             expectedFactorizedTableIdxOrder = {4, 5, 4, 5, 4, 5, 4};
         }
 
+        auto numBytesPerEntry = orderByKeyEncoder1.getNumBytesPerTuple();
         KeyBlockMerger keyBlockMerger = KeyBlockMerger(factorizedTables,
-            stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
-        auto resultKeyBlock = make_shared<KeyBlock>(
-            memoryManager->allocateOSBackedBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
-        resultKeyBlock->numEntriesInMemBlock = 7;
-        auto keyBlockMergeTask =
-            make_shared<KeyBlockMergeTask>(orderByKeyEncoder1.getKeyBlocks()[0],
-                orderByKeyEncoder2.getKeyBlocks()[0], resultKeyBlock, keyBlockMerger);
+            stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getNumBytesPerTuple());
+        auto resultKeyBlock =
+            make_shared<MergedKeyBlocks>(numBytesPerEntry, 7ul, memoryManager.get());
+        auto keyBlockMergeTask = make_shared<KeyBlockMergeTask>(
+            make_shared<MergedKeyBlocks>(numBytesPerEntry, orderByKeyEncoder1.getKeyBlocks()[0]),
+            make_shared<MergedKeyBlocks>(numBytesPerEntry, orderByKeyEncoder2.getKeyBlocks()[0]),
+            resultKeyBlock, keyBlockMerger);
         KeyBlockMergeMorsel keyBlockMergeMorsel(0, 3, 0, 4);
         keyBlockMergeMorsel.keyBlockMergeTask = keyBlockMergeTask;
 
         keyBlockMerger.mergeKeyBlocks(keyBlockMergeMorsel);
 
-        checkTupleIdxesAndFactorizedTableIdxes(resultKeyBlock->getMemBlockData(),
-            orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedTupleIdxOrder,
+        checkTupleIdxesAndFactorizedTableIdxes(resultKeyBlock->getTuple(0),
+            orderByKeyEncoder1.getNumBytesPerTuple(), expectedTupleIdxOrder,
             expectedFactorizedTableIdxOrder);
     }
 
@@ -481,29 +483,29 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
             true /* isStrCol */)};
 
     KeyBlockMerger keyBlockMerger = KeyBlockMerger(factorizedTables,
-        stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getKeyBlockEntrySizeInBytes());
+        stringAndUnstructuredKeyColInfo, orderByKeyEncoder1.getNumBytesPerTuple());
 
-    auto resultKeyBlock =
-        make_shared<KeyBlock>(memoryManager->allocateOSBackedBlock(DEFAULT_MEMORY_BLOCK_SIZE * 2));
-    resultKeyBlock->numEntriesInMemBlock = 7;
-    auto keyBlockMergeTask = make_shared<KeyBlockMergeTask>(orderByKeyEncoder1.getKeyBlocks()[0],
-        orderByKeyEncoder2.getKeyBlocks()[0], resultKeyBlock, keyBlockMerger);
+    auto numBytesPerEntry = orderByKeyEncoder1.getNumBytesPerTuple();
+    auto resultKeyBlock = make_shared<MergedKeyBlocks>(numBytesPerEntry, 7ul, memoryManager.get());
+    auto keyBlockMergeTask = make_shared<KeyBlockMergeTask>(
+        make_shared<MergedKeyBlocks>(numBytesPerEntry, orderByKeyEncoder1.getKeyBlocks()[0]),
+        make_shared<MergedKeyBlocks>(numBytesPerEntry, orderByKeyEncoder2.getKeyBlocks()[0]),
+        resultKeyBlock, keyBlockMerger);
     KeyBlockMergeMorsel keyBlockMergeMorsel(0, 4, 0, 3);
     keyBlockMergeMorsel.keyBlockMergeTask = keyBlockMergeTask;
     keyBlockMerger.mergeKeyBlocks(keyBlockMergeMorsel);
 
-    auto resultMemBlock1 =
-        make_shared<KeyBlock>(memoryManager->allocateOSBackedBlock(DEFAULT_MEMORY_BLOCK_SIZE * 3));
-    resultMemBlock1->numEntriesInMemBlock = 9;
-    auto keyBlockMergeTask1 = make_shared<KeyBlockMergeTask>(
-        resultKeyBlock, orderByKeyEncoder3.getKeyBlocks()[0], resultMemBlock1, keyBlockMerger);
+    auto resultMemBlock1 = make_shared<MergedKeyBlocks>(numBytesPerEntry, 9ul, memoryManager.get());
+    auto keyBlockMergeTask1 = make_shared<KeyBlockMergeTask>(resultKeyBlock,
+        make_shared<MergedKeyBlocks>(numBytesPerEntry, orderByKeyEncoder3.getKeyBlocks()[0]),
+        resultMemBlock1, keyBlockMerger);
     KeyBlockMergeMorsel keyBlockMergeMorsel1(0, 7, 0, 2);
     keyBlockMergeMorsel1.keyBlockMergeTask = keyBlockMergeTask1;
     keyBlockMerger.mergeKeyBlocks(keyBlockMergeMorsel1);
 
     vector<uint64_t> expectedTupleIdxOrder = {0, 0, 0, 1, 1, 1, 2, 2, 3};
     vector<uint64_t> expectedFactorizedTableIdxOrder = {1, 2, 0, 2, 1, 0, 0, 1, 0};
-    checkTupleIdxesAndFactorizedTableIdxes(resultMemBlock1->getMemBlockData(),
-        orderByKeyEncoder1.getKeyBlockEntrySizeInBytes(), expectedTupleIdxOrder,
+    checkTupleIdxesAndFactorizedTableIdxes(resultMemBlock1->getTuple(0),
+        orderByKeyEncoder1.getNumBytesPerTuple(), expectedTupleIdxOrder,
         expectedFactorizedTableIdxOrder);
 }

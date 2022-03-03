@@ -30,9 +30,6 @@ constexpr uint64_t DEFAULT_MEMORY_MANAGER_MAX_MEMORY = 1ull << 38;
 constexpr const uint64_t DEFAULT_MEMORY_BLOCK_SIZE = 1 << 18;
 constexpr const double DEFAULT_HT_LOAD_FACTOR = 1.5;
 
-// The number of bytes in a block of memory to store the keys of tuples.
-constexpr const uint64_t SORT_BLOCK_SIZE = 4096;
-
 // This is the default thread sleep time we use when a thread,
 // e.g., a worker thread is in TaskScheduler, needs to block.
 constexpr const uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 100;

@@ -109,7 +109,7 @@ private:
 
     HashSlot* getHashSlot(uint64_t slotIdx) {
         assert(slotIdx < maxNumHashSlots);
-        return (HashSlot*)(hashSlotsBlocks[slotIdx / numHashSlotsPerBlock]->data +
+        return (HashSlot*)(hashSlotsBlocks[slotIdx / numHashSlotsPerBlock]->getData() +
                            slotIdx % numHashSlotsPerBlock * sizeof(uint8_t*));
     }
 

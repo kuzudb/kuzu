@@ -5,8 +5,7 @@ namespace processor {
 
 pair<uint64_t, uint64_t> OrderByScan::getNextFactorizedTableIdxAndTupleIdxPair() {
     auto tupleInfoBuffer =
-        sharedState->sortedKeyBlocks->front()->getMemBlockData() +
-        (nextTupleIdxToReadInMemBlock + 1) * sharedState->keyBlockEntrySizeInBytes -
+        sharedState->sortedKeyBlocks->front()->getTuple(nextTupleIdxToReadInMemBlock + 1) -
         sizeof(uint64_t);
     uint16_t factorizedTableIdx = OrderByKeyEncoder::getEncodedFactorizedTableIdx(tupleInfoBuffer);
     uint64_t tupleIdx = OrderByKeyEncoder::getEncodedTupleIdx(tupleInfoBuffer);
@@ -29,7 +28,7 @@ shared_ptr<ResultSet> OrderByScan::initResultSet() {
 
 bool OrderByScan::getNextTuples() {
     metrics->executionTime.start();
-    auto numTuplesInMemBlock = sharedState->sortedKeyBlocks->front()->numEntriesInMemBlock;
+    auto numTuplesInMemBlock = sharedState->sortedKeyBlocks->front()->getNumTuples();
     // If there is no more tuples to read, just return false.
     if (nextTupleIdxToReadInMemBlock >= numTuplesInMemBlock) {
         metrics->executionTime.stop();

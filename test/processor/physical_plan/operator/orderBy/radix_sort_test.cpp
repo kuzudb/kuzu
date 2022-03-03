@@ -122,9 +122,8 @@ public:
             stringAndUnstructuredKeyColInfo);
         sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
-        checkTupleIdxesAndFactorizedTableIdxes(
-            orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
-            orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedTupleIdxOrder);
+        checkTupleIdxesAndFactorizedTableIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getData(),
+            orderByKeyEncoder.getNumBytesPerTuple(), expectedTupleIdxOrder);
     }
 
     void multipleOrderByColSolveTieTest(vector<bool>& isAscOrder,
@@ -163,9 +162,8 @@ public:
             stringAndUnstructuredKeyColInfo);
         sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
-        checkTupleIdxesAndFactorizedTableIdxes(
-            orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
-            orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedTupleIdxOrder);
+        checkTupleIdxesAndFactorizedTableIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getData(),
+            orderByKeyEncoder.getNumBytesPerTuple(), expectedTupleIdxOrder);
     }
 };
 
@@ -450,8 +448,8 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     sortAllKeyBlocks(orderByKeyEncoder, radixSort);
 
     vector<uint64_t> expectedTupleIdxOrder = {1, 4, 0, 2, 3};
-    checkTupleIdxesAndFactorizedTableIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData(),
-        orderByKeyEncoder.getKeyBlockEntrySizeInBytes(), expectedTupleIdxOrder);
+    checkTupleIdxesAndFactorizedTableIdxes(orderByKeyEncoder.getKeyBlocks()[0]->getData(),
+        orderByKeyEncoder.getNumBytesPerTuple(), expectedTupleIdxOrder);
 }
 
 TEST_F(RadixSortTest, multipleOrderByColSolvableTieTest) {

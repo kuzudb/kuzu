@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 
+#include "src/common/include/configs.h"
 #include "src/processor/include/physical_plan/operator/result_collector.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/processor.h"
@@ -25,7 +26,9 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     unique_ptr<Graph> graph = make_unique<GraphStub>();
     auto sharedState = make_shared<ScanNodeIDSharedState>(1025013 /*numNodes*/);
     auto profiler = make_unique<Profiler>();
-    auto bufferManager = make_unique<BufferManager>();
+    auto bufferManager =
+        make_unique<BufferManager>(512 * DEFAULT_PAGE_SIZE /* maxSizeForDefaultPagePool */,
+            1ull << 25 /* maxSizeForLargePagePool */);
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
     auto executionContext = ExecutionContext(*profiler, memoryManager.get(), bufferManager.get());
     auto schema = Schema();

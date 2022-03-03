@@ -28,14 +28,13 @@ AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
     factorizedTable = make_unique<FactorizedTable>(&memoryManager, tableSchema);
 
     maxNumHashSlots = HashTableUtils::nextPowerOfTwo(
-        max(DEFAULT_MEMORY_BLOCK_SIZE / sizeof(HashSlot), numEntriesToAllocate));
+        max(LARGE_PAGE_SIZE / sizeof(HashSlot), numEntriesToAllocate));
     bitMask = maxNumHashSlots - 1;
-    numHashSlotsPerBlock = DEFAULT_MEMORY_BLOCK_SIZE / sizeof(HashSlot);
+    numHashSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(HashSlot);
     auto numDataBlocks =
         maxNumHashSlots / numHashSlotsPerBlock + (maxNumHashSlots % numHashSlotsPerBlock != 0);
     for (auto i = 0u; i < numDataBlocks; i++) {
-        hashSlotsBlocks.emplace_back(make_unique<DataBlock>(memoryManager.allocateOSBackedBlock(
-            DEFAULT_MEMORY_BLOCK_SIZE, true /* initialized to 0 */)));
+        hashSlotsBlocks.emplace_back(make_unique<DataBlock>(&memoryManager));
     }
     distinctHashTables = AggregateHashTableUtils::createDistinctHashTables(
         memoryManager, this->groupByKeysDataTypes, this->aggregateFunctions);
@@ -299,8 +298,8 @@ void AggregateHashTable::resize(uint64_t newSize) {
     bitMask = maxNumHashSlots - 1;
     addDataBlocksIfNecessary(maxNumHashSlots);
     for (auto& tupleBlock : factorizedTable->getTupleDataBlocks()) {
-        uint8_t* tuple = tupleBlock.data;
-        for (auto i = 0u; i < tupleBlock.numEntries; i++) {
+        uint8_t* tuple = tupleBlock->getData();
+        for (auto i = 0u; i < tupleBlock->numTuples; i++) {
             auto groupByKeysAndAggregateStateBuffer =
                 tuple + i * factorizedTable->getTableSchema().getNumBytesPerTuple();
             auto newHash =
@@ -315,8 +314,7 @@ void AggregateHashTable::addDataBlocksIfNecessary(uint64_t maxNumHashSlots) {
     auto numHashSlotsBlocksNeeded =
         maxNumHashSlots / numHashSlotsPerBlock + (maxNumHashSlots % numHashSlotsPerBlock != 0);
     while (hashSlotsBlocks.size() < numHashSlotsBlocksNeeded) {
-        hashSlotsBlocks.emplace_back(make_unique<DataBlock>(memoryManager.allocateOSBackedBlock(
-            DEFAULT_MEMORY_BLOCK_SIZE, true /* initialized to 0 */)));
+        hashSlotsBlocks.emplace_back(make_unique<DataBlock>(&memoryManager));
     }
 }
 
