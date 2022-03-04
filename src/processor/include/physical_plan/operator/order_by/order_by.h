@@ -23,7 +23,8 @@ namespace processor {
 class SharedFactorizedTablesAndSortedKeyBlocks {
 public:
     explicit SharedFactorizedTablesAndSortedKeyBlocks()
-        : nextFactorizedTableIdx{0}, sortedKeyBlocks{make_shared<queue<shared_ptr<KeyBlock>>>()} {}
+        : nextFactorizedTableIdx{0}, sortedKeyBlocks{
+                                         make_shared<queue<shared_ptr<MergedKeyBlocks>>>()} {}
 
     uint16_t getNextFactorizedTableIdx() {
         lock_guard<mutex> lck{orderBySharedStateMutex};
@@ -41,14 +42,14 @@ public:
         factorizedTables[factorizedTableIdx] = move(factorizedTable);
     }
 
-    void appendSortedKeyBlock(shared_ptr<KeyBlock> keyBlock) {
+    void appendSortedKeyBlock(shared_ptr<MergedKeyBlocks> mergedDataBlocks) {
         lock_guard<mutex> lck{orderBySharedStateMutex};
-        sortedKeyBlocks->emplace(keyBlock);
+        sortedKeyBlocks->emplace(mergedDataBlocks);
     }
 
-    void setKeyBlockEntrySizeInBytes(uint64_t keyBlockEntrySizeInBytes) {
+    void setNumBytesPerTuple(uint64_t numBytesPerTuple) {
         lock_guard<mutex> lck{orderBySharedStateMutex};
-        this->keyBlockEntrySizeInBytes = keyBlockEntrySizeInBytes;
+        this->numBytesPerTuple = numBytesPerTuple;
     }
 
     void setStringAndUnstructuredKeyColInfo(
@@ -70,9 +71,9 @@ private:
 public:
     vector<shared_ptr<FactorizedTable>> factorizedTables;
     uint16_t nextFactorizedTableIdx;
-    shared_ptr<queue<shared_ptr<KeyBlock>>> sortedKeyBlocks;
+    shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
 
-    uint64_t keyBlockEntrySizeInBytes;
+    uint64_t numBytesPerTuple;
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
     vector<DataType> dataTypes;
 };

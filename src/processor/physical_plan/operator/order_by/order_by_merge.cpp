@@ -11,7 +11,7 @@ shared_ptr<ResultSet> OrderByMerge::initResultSet() {
     keyBlockMerger =
         make_unique<KeyBlockMerger>(sharedFactorizedTablesAndSortedKeyBlocks->factorizedTables,
             sharedFactorizedTablesAndSortedKeyBlocks->stringAndUnstructuredKeyColInfo,
-            sharedFactorizedTablesAndSortedKeyBlocks->keyBlockEntrySizeInBytes);
+            sharedFactorizedTablesAndSortedKeyBlocks->numBytesPerTuple);
     return resultSet;
 }
 
@@ -20,7 +20,7 @@ void OrderByMerge::execute() {
         sharedFactorizedTablesAndSortedKeyBlocks->sortedKeyBlocks,
         sharedFactorizedTablesAndSortedKeyBlocks->factorizedTables,
         sharedFactorizedTablesAndSortedKeyBlocks->stringAndUnstructuredKeyColInfo,
-        sharedFactorizedTablesAndSortedKeyBlocks->keyBlockEntrySizeInBytes);
+        sharedFactorizedTablesAndSortedKeyBlocks->numBytesPerTuple);
     metrics->executionTime.start();
     Sink::execute();
     while (!keyBlockMergeTaskDispatcher->isDoneMerge()) {

@@ -20,7 +20,7 @@ public:
         hash_t hashValue;
         Hash::operation<T>(value, false /* isNull */, hashValue);
         auto slotIdx = hashValue & bitMask;
-        return (uint8_t**)(hashSlotsBlocks[slotIdx / numHashSlotsPerBlock]->data +
+        return (uint8_t**)(hashSlotsBlocks[slotIdx / numHashSlotsPerBlock]->getData() +
                            slotIdx % numHashSlotsPerBlock * sizeof(uint8_t*));
     }
 

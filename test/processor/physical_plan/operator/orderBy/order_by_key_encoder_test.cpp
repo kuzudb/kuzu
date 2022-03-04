@@ -43,7 +43,7 @@ public:
         }
     }
 
-    // This function generates a ValueVector of int64 entries that are all 5.
+    // This function generates a ValueVector of int64 tuples that are all 5.
     vector<shared_ptr<ValueVector>> getInt64TestValueVector(
         const uint64_t numOfElementsPerCol, const uint64_t numOfOrderByCols, bool flatCol) {
         shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(numOfOrderByCols);
@@ -63,14 +63,14 @@ public:
         return valueVectors;
     }
 
-    // This function assumes that all columns have datatype: INT64, and each entry is 5.
+    // This function assumes that all columns have datatype: INT64, and each tuple is 5.
     void checkKeyBlockForInt64TestValueVector(vector<shared_ptr<ValueVector>>& valueVectors,
-        vector<shared_ptr<KeyBlock>>& keyBlocks, uint64_t numOfElements, vector<bool>& isAscOrder,
-        uint64_t numEntriesPerBlock) {
+        vector<shared_ptr<DataBlock>>& keyBlocks, uint64_t numOfElements, vector<bool>& isAscOrder,
+        uint64_t numTuplesPerBlock) {
         for (auto i = 0u; i < keyBlocks.size(); i++) {
-            auto numOfElementsToCheck = min(numOfElements, numEntriesPerBlock);
+            auto numOfElementsToCheck = min(numOfElements, numTuplesPerBlock);
             numOfElements -= numOfElementsToCheck;
-            auto keyBlockPtr = keyBlocks[i]->getMemBlockData();
+            auto keyBlockPtr = keyBlocks[i]->getData();
             for (auto j = 0u; j < numOfElementsToCheck; j++) {
                 for (auto k = 0u; k < valueVectors.size(); k++) {
                     checkNonNullFlag(keyBlockPtr, isAscOrder[0]);
@@ -91,7 +91,7 @@ public:
                         ASSERT_EQ(*(keyBlockPtr++), 0xFA);
                     }
                 }
-                checkTupleIdxAndFactorizedTableIdx(i * numEntriesPerBlock + j, keyBlockPtr);
+                checkTupleIdxAndFactorizedTableIdx(i * numTuplesPerBlock + j, keyBlockPtr);
             }
         }
     }
@@ -111,7 +111,7 @@ public:
             orderByKeyEncoder.encodeKeys();
         }
         checkKeyBlockForInt64TestValueVector(valueVectors, orderByKeyEncoder.getKeyBlocks(),
-            numOfElements, isAscOrder, orderByKeyEncoder.getMaxEntriesPerBlock());
+            numOfElements, isAscOrder, orderByKeyEncoder.getMaxNumTuplesPerBlock());
     }
 
 public:
@@ -138,7 +138,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
     auto orderByKeyEncoder =
         OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
-    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
+    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
     // Check encoding for: NULL FLAG(0x00) + 73=0x8000000000000049(big endian).
     checkNonNullFlag(keyBlockPtr, isAscOrder[0]);
@@ -208,7 +208,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatWithFilterTest) {
     auto orderByKeyEncoder =
         OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
-    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
+    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
     // Check encoding for: NULL FLAG(0x00) + 73=0x8000000000000049(big endian).
     checkNonNullFlag(keyBlockPtr, isAscOrder[0]);
@@ -244,7 +244,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
     auto orderByKeyEncoder =
         OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
-    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
+    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
     // Check encoding for: NULL FLAG(0x00) + true=0xFE(big endian).
     checkNonNullFlag(keyBlockPtr, isAscOrder[0]);
@@ -275,7 +275,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDateUnflatTest) {
     auto orderByKeyEncoder =
         OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
-    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
+    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
     // Check encoding for: NULL FLAG(0x00) + "2035-07-04"=0x80005D75(23925 days in big endian).
     checkNonNullFlag(keyBlockPtr, isAscOrder[0]);
@@ -317,7 +317,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColTimestampUnflatTest) {
     auto orderByKeyEncoder =
         OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
-    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
+    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
     // Check encoding for: NULL FLAG(0x00) + "1962-04-07 11:12:35.123"=0x7FFF21F7F9D08F38
     // (-244126044877000 micros in big endian).
@@ -365,7 +365,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
     auto orderByKeyEncoder =
         OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
-    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
+    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
     // Check encoding for: NULL FLAG(0x00) +  "18 hours 55 days 13 years 8 milliseconds 3 months"
     // = NULL FLAG(0x00) + 160 months(0x800000A0) + 25 days(0x80000019)
@@ -412,7 +412,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColStringUnflatTest) {
     auto orderByKeyEncoder =
         OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
-    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
+    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
     // Check encoding for: NULL FLAG(0x00) + "short str".
     checkNonNullFlag(keyBlockPtr, isAscOrder[0]);
@@ -485,7 +485,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDoubleUnflatTest) {
     auto orderByKeyEncoder =
         OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
-    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
+    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
     // Check encoding for: NULL FLAG(0x00) + 3.452=0xC00B9DB22D0E5604(big endian).
     checkNonNullFlag(keyBlockPtr, isAscOrder[0]);
@@ -572,7 +572,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColUnstrUnflatTest) {
     auto orderByKeyEncoder =
         OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
     orderByKeyEncoder.encodeKeys();
-    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
+    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
     // For unstr values, we only need to check the nullByte and whether the encoded value is 0.
     for (auto i = 0u; i < unstrValueVector->state->selectedSize; i++) {
@@ -587,11 +587,11 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColUnstrUnflatTest) {
     }
 }
 
-TEST_F(OrderByKeyEncoderTest, largeEntrySizeErrorTest) {
-    // If the entry size is larger than 4096 bytes, the encoder will raise an encoding exception
-    // we need 241(note: (4096 - 8) / 9  + 1 = 455) columns(with datatype INTERVAL) to trigger that
-    // exception.
-    uint32_t numOfOrderByCols = 455;
+TEST_F(OrderByKeyEncoderTest, largeNumBytesPerTupleErrorTest) {
+    // If the numBytesPerTuple is larger than 4096 bytes, the encoder will raise an encoding
+    // exception we need ((LARGE_PAGE_SIZE - 8) / 9  + 1 number of columns(with datatype INT) to
+    // trigger that exception.
+    auto numOfOrderByCols = (LARGE_PAGE_SIZE - 8) / 9 + 1;
     auto valueVectors = getInt64TestValueVector(1, numOfOrderByCols, true);
     auto isAscOrder = vector<bool>(numOfOrderByCols, true);
     try {
@@ -599,16 +599,16 @@ TEST_F(OrderByKeyEncoderTest, largeEntrySizeErrorTest) {
             OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
         FAIL();
     } catch (EncodingException& e) {
-        ASSERT_STREQ(e.what(), "OrderBy encoder exception: EntrySize(4103 bytes) is larger than "
-                               "the SORT_BLOCK_SIZE(4096 bytes)");
+        ASSERT_STREQ(e.what(), StringUtils::string_format(
+                                   "OrderBy encoder exception: TupleSize(%d bytes) is larger than "
+                                   "the LARGE_PAGE_SIZE(%d bytes)",
+                                   9 * numOfOrderByCols + 8, LARGE_PAGE_SIZE)
+                                   .c_str());
     } catch (exception& e) { FAIL(); }
 }
 
-TEST_F(OrderByKeyEncoderTest, singleEntryPerBlockTest) {
-    // If the entry size is between 4KB~2KB, each block can only contain one entry
-    // entry size is: 9(int64 encoding size) * 300 + 8(tupleIdx) = 2708(bytes) for 300 int64
-    // columns.
-    uint32_t numOfOrderByCols = 300;
+TEST_F(OrderByKeyEncoderTest, singleTuplePerBlockTest) {
+    uint32_t numOfOrderByCols = (LARGE_PAGE_SIZE - 8) / 9;
     uint32_t numOfElementsPerCol = 10;
     auto valueVectors = getInt64TestValueVector(numOfElementsPerCol, numOfOrderByCols, true);
     auto isAscOrder = vector<bool>(numOfOrderByCols, false);
@@ -620,7 +620,7 @@ TEST_F(OrderByKeyEncoderTest, singleEntryPerBlockTest) {
     }
     auto& keyBlocks = orderByKeyEncoder.getKeyBlocks();
     checkKeyBlockForInt64TestValueVector(valueVectors, keyBlocks, numOfElementsPerCol, isAscOrder,
-        orderByKeyEncoder.getMaxEntriesPerBlock());
+        orderByKeyEncoder.getMaxNumTuplesPerBlock());
 }
 
 TEST_F(OrderByKeyEncoderTest, singleOrderByColMultiBlockUnflatTest) {
@@ -666,7 +666,7 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
 
     auto orderByKeyEncoder =
         OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
-    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getMemBlockData();
+    uint8_t* keyBlockPtr = orderByKeyEncoder.getKeyBlocks()[0]->getData();
 
     intValues[0] = 73;
     intValues[1] = -132;
@@ -833,5 +833,5 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColMultiBlockTest) {
         valueVectors[0]->state->currIdx++;
     }
     checkKeyBlockForInt64TestValueVector(valueVectors, orderByKeyEncoder.getKeyBlocks(),
-        numOfElementsPerCol, isAscOrder, orderByKeyEncoder.getMaxEntriesPerBlock());
+        numOfElementsPerCol, isAscOrder, orderByKeyEncoder.getMaxNumTuplesPerBlock());
 }

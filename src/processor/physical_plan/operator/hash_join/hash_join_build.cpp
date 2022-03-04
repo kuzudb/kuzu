@@ -59,8 +59,8 @@ void HashJoinBuild::finalize() {
     hashTable->allocateHashSlots(factorizedTable->getNumTuples());
     auto& tableSchema = factorizedTable->getTableSchema();
     for (auto& tupleBlock : factorizedTable->getTupleDataBlocks()) {
-        uint8_t* tuple = tupleBlock.data;
-        for (auto i = 0u; i < tupleBlock.numEntries; i++) {
+        uint8_t* tuple = tupleBlock->getData();
+        for (auto i = 0u; i < tupleBlock->numTuples; i++) {
             auto lastSlotEntryInHT = hashTable->insertEntry<nodeID_t>(tuple);
             auto prevPtr = (uint8_t**)(tuple + tableSchema.getNullMapOffset() - sizeof(uint8_t*));
             memcpy((uint8_t*)prevPtr, &lastSlotEntryInHT, sizeof(uint8_t*));

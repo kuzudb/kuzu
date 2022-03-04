@@ -28,31 +28,44 @@ struct StringAndUnstructuredKeyColInfo {
     bool isStrCol;
 };
 
+struct MergedKeyBlocks {
+public:
+    MergedKeyBlocks(uint64_t numBytesPerTuple, uint64_t numTuples, MemoryManager* memoryManager);
+
+    // This constructor is used to convert a dataBlock to a MergedKeyBlocks.
+    MergedKeyBlocks(uint64_t numBytesPerTuple, shared_ptr<DataBlock> keyBlock);
+
+    inline uint8_t* getTuple(uint64_t tupleIdx) const {
+        return keyBlocks[tupleIdx / (LARGE_PAGE_SIZE / numBytesPerTuple)]->getData() +
+               numBytesPerTuple * (tupleIdx % (LARGE_PAGE_SIZE / numBytesPerTuple));
+    }
+
+    inline uint64_t getNumTuples() { return numTuples; }
+
+    inline uint64_t getNumBytesPerTuple() { return numBytesPerTuple; }
+
+private:
+    uint64_t numBytesPerTuple;
+    uint64_t numTuples;
+    vector<shared_ptr<DataBlock>> keyBlocks;
+};
+
 class KeyBlockMerger {
 public:
     explicit KeyBlockMerger(vector<shared_ptr<FactorizedTable>>& factorizedTables,
         vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo,
-        uint64_t keyBlockEntrySizeInBytes)
+        uint64_t numBytesPerTuple)
         : factorizedTables{factorizedTables},
-          stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo},
-          keyBlockEntrySizeInBytes{keyBlockEntrySizeInBytes} {}
+          stringAndUnstructuredKeyColInfo{stringAndUnstructuredKeyColInfo}, numBytesPerTuple{
+                                                                                numBytesPerTuple} {}
 
-    void mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel);
+    void mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) const;
 
-    inline uint64_t getKeyBlockEntrySizeInBytes() { return keyBlockEntrySizeInBytes; }
-
-    bool compareTupleBuffer(uint8_t* leftTupleBuffer, uint8_t* rightTupleBuffer);
+    bool compareTupleBuffer(uint8_t* leftTupleBuffer, uint8_t* rightTupleBuffer) const;
 
 private:
-    inline pair<uint64_t, uint64_t> getEncodedFactorizedTableIdxAndTupleIdx(
-        uint8_t* encodedTupleBuffer) {
-        auto encodedTupleInfoBuffer =
-            encodedTupleBuffer + keyBlockEntrySizeInBytes - sizeof(uint64_t);
-        auto encodedTupleIdx = OrderByKeyEncoder::getEncodedTupleIdx(encodedTupleInfoBuffer);
-        auto encodedFactorizedTableIdx =
-            OrderByKeyEncoder::getEncodedFactorizedTableIdx(encodedTupleInfoBuffer);
-        return make_pair(encodedFactorizedTableIdx, encodedTupleIdx);
-    }
+    pair<uint64_t, uint64_t> getEncodedFactorizedTableIdxAndTupleIdx(
+        uint8_t* encodedTupleBuffer) const;
 
 private:
     // FactorizedTables[i] stores all orderBy columns encoded and sorted by the ith thread.
@@ -63,13 +76,13 @@ private:
     // for each string and unstructured column. So, we don't need to compute them again during merge
     // sort.
     vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo;
-    uint64_t keyBlockEntrySizeInBytes;
+    uint64_t numBytesPerTuple;
 };
 
 class KeyBlockMergeTask {
 public:
-    explicit KeyBlockMergeTask(shared_ptr<KeyBlock> leftKeyBlock,
-        shared_ptr<KeyBlock> rightKeyBlock, shared_ptr<KeyBlock> resultKeyBlock,
+    explicit KeyBlockMergeTask(shared_ptr<MergedKeyBlocks> leftKeyBlock,
+        shared_ptr<MergedKeyBlocks> rightKeyBlock, shared_ptr<MergedKeyBlocks> resultKeyBlock,
         KeyBlockMerger& keyBlockMerger)
         : leftKeyBlock{leftKeyBlock}, rightKeyBlock{rightKeyBlock}, resultKeyBlock{resultKeyBlock},
           leftKeyBlockNextIdx{0}, rightKeyBlockNextIdx{0}, activeMorsels{0}, keyBlockMerger{
@@ -79,8 +92,8 @@ public:
 
     inline bool hasMorselLeft() {
         // Returns true if there are still morsels left in the current task.
-        return leftKeyBlockNextIdx < leftKeyBlock->numEntriesInMemBlock ||
-               rightKeyBlockNextIdx < rightKeyBlock->numEntriesInMemBlock;
+        return leftKeyBlockNextIdx < leftKeyBlock->getNumTuples() ||
+               rightKeyBlockNextIdx < rightKeyBlock->getNumTuples();
     }
 
 private:
@@ -89,9 +102,9 @@ private:
 public:
     static const uint64_t batch_size = 100;
 
-    shared_ptr<KeyBlock> leftKeyBlock;
-    shared_ptr<KeyBlock> rightKeyBlock;
-    shared_ptr<KeyBlock> resultKeyBlock;
+    shared_ptr<MergedKeyBlocks> leftKeyBlock;
+    shared_ptr<MergedKeyBlocks> rightKeyBlock;
+    shared_ptr<MergedKeyBlocks> resultKeyBlock;
     uint64_t leftKeyBlockNextIdx;
     uint64_t rightKeyBlockNextIdx;
     // The counter is used to keep track of the number of morsels given to thread.
@@ -107,16 +120,6 @@ struct KeyBlockMergeMorsel {
         uint64_t rightKeyBlockStartIdx, uint64_t rightKeyBlockEndIdx)
         : leftKeyBlockStartIdx{leftKeyBlockStartIdx}, leftKeyBlockEndIdx{leftKeyBlockEndIdx},
           rightKeyBlockStartIdx{rightKeyBlockStartIdx}, rightKeyBlockEndIdx{rightKeyBlockEndIdx} {}
-
-    inline uint8_t* getLeftKeyBlockData() {
-        return keyBlockMergeTask->leftKeyBlock->getMemBlockData();
-    }
-    inline uint8_t* getRightKeyBlockData() {
-        return keyBlockMergeTask->rightKeyBlock->getMemBlockData();
-    }
-    inline uint8_t* getResultKeyBlockData() {
-        return keyBlockMergeTask->resultKeyBlock->getMemBlockData();
-    }
 
     shared_ptr<KeyBlockMergeTask> keyBlockMergeTask;
     uint64_t leftKeyBlockStartIdx;
@@ -144,27 +147,17 @@ public:
     // sharedFactorizedTablesAndSortedKeyBlocks. If the class is already initialized, then it
     // just returns.
     void initIfNecessary(MemoryManager* memoryManager,
-        shared_ptr<queue<shared_ptr<KeyBlock>>> sortedKeyBlocks,
+        shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks,
         vector<shared_ptr<FactorizedTable>>& factorizedTables,
         vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo,
-        uint64_t keyBlockEntrySizeInBytes) {
-        lock_guard<mutex> keyBlockMergeDispatcherLock{mtx};
-        if (isInitialized) {
-            return;
-        }
-        isInitialized = true;
-        this->memoryManager = memoryManager;
-        this->sortedKeyBlocks = sortedKeyBlocks;
-        this->keyBlockMerger = make_unique<KeyBlockMerger>(
-            factorizedTables, stringAndUnstructuredKeyColInfo, keyBlockEntrySizeInBytes);
-    }
+        uint64_t numBytesPerTuple);
 
 private:
     mutex mtx;
 
     bool isInitialized = false;
     MemoryManager* memoryManager;
-    shared_ptr<queue<shared_ptr<KeyBlock>>> sortedKeyBlocks;
+    shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
     vector<shared_ptr<KeyBlockMergeTask>> activeKeyBlockMergeTasks;
     unique_ptr<KeyBlockMerger> keyBlockMerger;
 };

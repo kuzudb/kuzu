@@ -6,7 +6,7 @@ namespace processor {
 shared_ptr<ResultSet> OrderBy::initResultSet() {
     resultSet = children[0]->initResultSet();
 
-    // FactorizedTable, keyBlockEntrySizeInBytes, stringAndUnstructuredKeyColInfo are constructed
+    // FactorizedTable, numBytesPerTuple, stringAndUnstructuredKeyColInfo are constructed
     // here because they need the data type information, which is contained in the value vectors.
     TableSchema tableSchema;
     vector<DataType> dataTypes;
@@ -69,7 +69,7 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
         *orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
 
     sharedState->setStringAndUnstructuredKeyColInfo(stringAndUnstructuredKeyColInfo);
-    sharedState->setKeyBlockEntrySizeInBytes(orderByKeyEncoder->getKeyBlockEntrySizeInBytes());
+    sharedState->setNumBytesPerTuple(orderByKeyEncoder->getNumBytesPerTuple());
     return resultSet;
 }
 
@@ -92,9 +92,10 @@ void OrderBy::execute() {
     }
 
     for (auto& keyBlock : orderByKeyEncoder->getKeyBlocks()) {
-        if (keyBlock->numEntriesInMemBlock > 0) {
+        if (keyBlock->numTuples > 0) {
             radixSorter->sortSingleKeyBlock(*keyBlock);
-            sharedState->appendSortedKeyBlock(keyBlock);
+            sharedState->appendSortedKeyBlock(
+                make_shared<MergedKeyBlocks>(orderByKeyEncoder->getNumBytesPerTuple(), keyBlock));
         }
     }
     metrics->executionTime.stop();

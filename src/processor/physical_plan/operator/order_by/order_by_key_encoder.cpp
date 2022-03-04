@@ -5,7 +5,6 @@
 #include <cmath>
 #include <cstdint>
 
-#include "src/common/include/assert.h"
 #include "src/common/include/interval.h"
 
 #define BSWAP64(x)                                                                                 \
@@ -27,6 +26,41 @@ using namespace graphflow::common;
 
 namespace graphflow {
 namespace processor {
+
+OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors,
+    vector<bool>& isAscOrder, MemoryManager* memoryManager, uint16_t factorizedTableIdx)
+    : memoryManager{memoryManager}, orderByVectors{orderByVectors}, isAscOrder{isAscOrder},
+      nextLocalTupleIdx{0}, factorizedTableIdx{factorizedTableIdx} {
+    keyBlocks.emplace_back(make_unique<DataBlock>(memoryManager));
+    numBytesPerTuple = 0;
+    for (auto& orderByVector : orderByVectors) {
+        numBytesPerTuple += getEncodingSize(orderByVector->dataType);
+    }
+    // 6 bytes for tupleIdx and 2 bytes for factorizedTableIdx
+    numBytesPerTuple += 8;
+    maxNumTuplesPerBlock = LARGE_PAGE_SIZE / numBytesPerTuple;
+    if (maxNumTuplesPerBlock <= 0) {
+        throw EncodingException(StringUtils::string_format(
+            "TupleSize(%d bytes) is larger than the LARGE_PAGE_SIZE(%d bytes)", numBytesPerTuple,
+            LARGE_PAGE_SIZE));
+    }
+}
+
+uint64_t OrderByKeyEncoder::getEncodedTupleIdx(const uint8_t* tupleInfoBuffer) {
+    uint64_t encodedTupleIdx = 0;
+    // Only the lower 6 bytes are used for localTupleIdx.
+    memcpy(&encodedTupleIdx, tupleInfoBuffer, getEncodedTupleIdxSizeInBytes());
+    return encodedTupleIdx;
+}
+
+uint64_t OrderByKeyEncoder::getEncodedFactorizedTableIdx(const uint8_t* tupleInfoBuffer) {
+    uint16_t encodedFactorizedTableIdx = 0;
+    // The lower 6 bytes are used for localTupleIdx, only the higher two bytes are used for
+    // factorizedTableIdx.
+    memcpy(&encodedFactorizedTableIdx, tupleInfoBuffer + getEncodedTupleIdxSizeInBytes(),
+        sizeof(encodedFactorizedTableIdx));
+    return encodedFactorizedTableIdx;
+}
 
 uint8_t OrderByKeyEncoder::flipSign(uint8_t key_byte) {
     return key_byte ^ 128;
@@ -119,9 +153,8 @@ uint64_t OrderByKeyEncoder::getEncodingSize(DataType dataType) {
 }
 
 void OrderByKeyEncoder::allocateMemoryIfFull() {
-    if (getCurBlockUsedEntries() == maxEntriesPerBlock) {
-        keyBlocks.emplace_back(
-            make_shared<KeyBlock>(memoryManager->allocateOSBackedBlock(SORT_BLOCK_SIZE)));
+    if (getNumTuplesInCurBlock() == maxNumTuplesPerBlock) {
+        keyBlocks.emplace_back(make_shared<DataBlock>(memoryManager));
     }
 }
 
@@ -192,11 +225,11 @@ void OrderByKeyEncoder::encodeKeys() {
     while (numEntries > 0) {
         allocateMemoryIfFull();
         uint64_t numEntriesToEncode =
-            min(numEntries, maxEntriesPerBlock - getCurBlockUsedEntries());
+            min(numEntries, maxNumTuplesPerBlock - getNumTuplesInCurBlock());
         for (uint64_t i = 0; i < numEntriesToEncode; i++) {
             uint64_t keyBlockPtrOffset = 0;
-            const auto basePtr = keyBlocks.back()->getMemBlockData() +
-                                 keyBlocks.back()->numEntriesInMemBlock * keyBlockEntrySizeInBytes;
+            const auto basePtr =
+                keyBlocks.back()->getData() + keyBlocks.back()->numTuples * numBytesPerTuple;
             for (uint64_t keyColIdx = 0; keyColIdx < orderByVectors.size(); keyColIdx++) {
                 auto const keyBlockPtr = basePtr + keyBlockPtrOffset;
                 uint64_t idxInOrderByVector =
@@ -214,7 +247,7 @@ void OrderByKeyEncoder::encodeKeys() {
             memcpy(basePtr + keyBlockPtrOffset + getEncodedTupleIdxSizeInBytes(),
                 &factorizedTableIdx, sizeof(factorizedTableIdx));
             encodedTuples++;
-            keyBlocks.back()->numEntriesInMemBlock++;
+            keyBlocks.back()->numTuples++;
             nextLocalTupleIdx++;
         }
         numEntries -= numEntriesToEncode;

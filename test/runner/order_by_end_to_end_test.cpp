@@ -9,6 +9,12 @@ using namespace graphflow::testing;
 class OrderByTests : public DBLoadedTest {
 public:
     string getInputCSVDir() override { return "dataset/order-by-tests/"; }
+
+    void SetUp() override {
+        BaseGraphLoadingTest::SetUp();
+        testSuiteSystemConfig.largePageBufferPoolSize = (1ull << 22);
+        defaultSystem = TestHelper::getInitializedSystem(testSuiteSystemConfig);
+    }
 };
 
 TEST_F(OrderByTests, OrderByLargeDatasetTest) {

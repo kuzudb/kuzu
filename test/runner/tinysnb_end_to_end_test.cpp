@@ -9,6 +9,12 @@ using namespace graphflow::testing;
 class TinySnbProcessorTest : public DBLoadedTest {
 public:
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
+
+    void SetUp() override {
+        BaseGraphLoadingTest::SetUp();
+        testSuiteSystemConfig.largePageBufferPoolSize = (1ull << 22);
+        defaultSystem = TestHelper::getInitializedSystem(testSuiteSystemConfig);
+    }
 };
 
 TEST_F(TinySnbProcessorTest, StructuralQueries) {

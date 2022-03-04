@@ -37,9 +37,9 @@ bool TableSchema::operator==(const TableSchema& other) const {
 
 FactorizedTable::FactorizedTable(MemoryManager* memoryManager, const TableSchema& tableSchema)
     : memoryManager{memoryManager}, tableSchema{tableSchema}, numTuples{0}, numTuplesPerBlock{0} {
-    assert(tableSchema.getNumBytesPerTuple() <= DEFAULT_MEMORY_BLOCK_SIZE);
+    assert(tableSchema.getNumBytesPerTuple() <= LARGE_PAGE_SIZE);
     stringBuffer = make_unique<StringBuffer>(memoryManager);
-    numTuplesPerBlock = DEFAULT_MEMORY_BLOCK_SIZE / tableSchema.getNumBytesPerTuple();
+    numTuplesPerBlock = LARGE_PAGE_SIZE / tableSchema.getNumBytesPerTuple();
 }
 
 void FactorizedTable::append(const vector<shared_ptr<ValueVector>>& vectors) {
@@ -49,7 +49,7 @@ void FactorizedTable::append(const vector<shared_ptr<ValueVector>>& vectors) {
         auto numAppendedTuples = 0ul;
         for (auto& blockAppendInfo : appendInfos) {
             copyVectorToDataBlock(*vectors[i], blockAppendInfo, numAppendedTuples, i);
-            numAppendedTuples += blockAppendInfo.numEntriesToAppend;
+            numAppendedTuples += blockAppendInfo.numTuplesToAppend;
         }
         assert(numAppendedTuples == numTuplesToAppend);
     }
@@ -57,7 +57,7 @@ void FactorizedTable::append(const vector<shared_ptr<ValueVector>>& vectors) {
 }
 
 uint8_t* FactorizedTable::appendEmptyTuple() {
-    auto dataBuffer = allocateTupleBlocks(1 /* numEntriesToAppend */)[0].data;
+    auto dataBuffer = allocateTupleBlocks(1 /* numTuplesToAppend */)[0].data;
     numTuples++;
     return dataBuffer;
 }
@@ -116,7 +116,7 @@ void FactorizedTable::merge(FactorizedTable& other) {
     auto appendInfos = allocateTupleBlocks(other.numTuples);
     auto otherTupleIdx = 0u;
     for (auto& appendInfo : appendInfos) {
-        for (auto i = 0u; i < appendInfo.numEntriesToAppend; i++) {
+        for (auto i = 0u; i < appendInfo.numTuplesToAppend; i++) {
             memcpy(appendInfo.data + i * tableSchema.getNumBytesPerTuple(),
                 other.getTuple(otherTupleIdx), tableSchema.getNumBytesPerTuple());
             otherTupleIdx++;
@@ -215,39 +215,37 @@ uint8_t* FactorizedTable::getCell(uint64_t tupleIdx, uint64_t colIdx) const {
     return getTuple(tupleIdx) + tableSchema.getColOffset(colIdx);
 }
 
-vector<BlockAppendingInfo> FactorizedTable::allocateTupleBlocks(uint64_t numEntriesToAppend) {
-    auto numBytesPerEntry = tableSchema.getNumBytesPerTuple();
-    assert(numBytesPerEntry < DEFAULT_MEMORY_BLOCK_SIZE);
+vector<BlockAppendingInfo> FactorizedTable::allocateTupleBlocks(uint64_t numTuplesToAppend) {
+    auto numBytesPerTuple = tableSchema.getNumBytesPerTuple();
+    assert(numBytesPerTuple < LARGE_PAGE_SIZE);
     vector<BlockAppendingInfo> appendingInfos;
-    while (numEntriesToAppend > 0) {
-        if (tupleDataBlocks.empty() || tupleDataBlocks.back().freeSize < numBytesPerEntry) {
-            tupleDataBlocks.emplace_back(DataBlock(memoryManager->allocateOSBackedBlock(
-                DEFAULT_MEMORY_BLOCK_SIZE, true /* initializeToZero */)));
+    while (numTuplesToAppend > 0) {
+        if (tupleDataBlocks.empty() || tupleDataBlocks.back()->freeSize < numBytesPerTuple) {
+            tupleDataBlocks.emplace_back(make_unique<DataBlock>(memoryManager));
         }
         auto& block = tupleDataBlocks.back();
-        auto numEntriesToAppendInCurBlock =
-            min(numEntriesToAppend, block.freeSize / numBytesPerEntry);
+        auto numTuplesToAppendInCurBlock =
+            min(numTuplesToAppend, block->freeSize / numBytesPerTuple);
         appendingInfos.emplace_back(
-            block.data + DEFAULT_MEMORY_BLOCK_SIZE - block.freeSize, numEntriesToAppendInCurBlock);
-        block.freeSize -= numEntriesToAppendInCurBlock * numBytesPerEntry;
-        block.numEntries += numEntriesToAppendInCurBlock;
-        numEntriesToAppend -= numEntriesToAppendInCurBlock;
+            block->getData() + LARGE_PAGE_SIZE - block->freeSize, numTuplesToAppendInCurBlock);
+        block->freeSize -= numTuplesToAppendInCurBlock * numBytesPerTuple;
+        block->numTuples += numTuplesToAppendInCurBlock;
+        numTuplesToAppend -= numTuplesToAppendInCurBlock;
     }
     return appendingInfos;
 }
 
 uint8_t* FactorizedTable::allocateOverflowBlocks(uint64_t numBytes) {
-    assert(numBytes < DEFAULT_MEMORY_BLOCK_SIZE);
+    assert(numBytes < LARGE_PAGE_SIZE);
     for (auto& dataBlock : vectorOverflowBlocks) {
-        if (dataBlock.freeSize > numBytes) {
-            dataBlock.freeSize -= numBytes;
-            return dataBlock.data + DEFAULT_MEMORY_BLOCK_SIZE - dataBlock.freeSize - numBytes;
+        if (dataBlock->freeSize > numBytes) {
+            dataBlock->freeSize -= numBytes;
+            return dataBlock->getData() + LARGE_PAGE_SIZE - dataBlock->freeSize - numBytes;
         }
     }
-    vectorOverflowBlocks.emplace_back(DataBlock(memoryManager->allocateOSBackedBlock(
-        DEFAULT_MEMORY_BLOCK_SIZE, true /* initializeToZero */)));
-    vectorOverflowBlocks.back().freeSize -= numBytes;
-    return vectorOverflowBlocks.back().data;
+    vectorOverflowBlocks.push_back(make_unique<DataBlock>(memoryManager));
+    vectorOverflowBlocks.back()->freeSize -= numBytes;
+    return vectorOverflowBlocks.back()->getData();
 }
 
 void FactorizedTable::copyVectorToDataBlock(const ValueVector& vector,
@@ -258,14 +256,14 @@ void FactorizedTable::copyVectorToDataBlock(const ValueVector& vector,
         // overflow dataBlock, in the factorizedTable. The nullMasks are stored in the overflow
         // buffer.
         auto overflowValue = appendUnFlatVectorToOverflowBlocks(vector);
-        for (auto i = 0u; i < blockAppendInfo.numEntriesToAppend; i++) {
+        for (auto i = 0u; i < blockAppendInfo.numTuplesToAppend; i++) {
             memcpy(blockAppendInfo.data + colOffsetInDataBlock +
                        (i * tableSchema.getNumBytesPerTuple()),
                 (uint8_t*)&overflowValue, sizeof(overflow_value_t));
         }
     } else {
         // Append a flat/unflat valueVector to a flat column in the factorizedTable.
-        for (auto i = 0u; i < blockAppendInfo.numEntriesToAppend; i++) {
+        for (auto i = 0u; i < blockAppendInfo.numTuplesToAppend; i++) {
             auto dstDataBuffer = blockAppendInfo.data + i * tableSchema.getNumBytesPerTuple();
             auto valuePositionInVectorToAppend =
                 vector.state->isFlat() ? vector.state->getPositionOfCurrIdx() :
@@ -336,7 +334,7 @@ void FactorizedTable::readFlatCol(
 uint8_t* FactorizedTable::getTuple(uint64_t tupleIdx) const {
     assert(tupleIdx < numTuples);
     auto blockIdxAndTupleIdxInBlock = getBlockIdxAndTupleIdxInBlock(tupleIdx);
-    return tupleDataBlocks[blockIdxAndTupleIdxInBlock.first].data +
+    return tupleDataBlocks[blockIdxAndTupleIdxInBlock.first]->getData() +
            blockIdxAndTupleIdxInBlock.second * tableSchema.getNumBytesPerTuple();
 }
 
@@ -415,13 +413,13 @@ void FlatTupleIterator::readUnflatColToFlatTuple(
     auto overflowValue =
         (overflow_value_t*)(valueBuffer + factorizedTable.getTableSchema().getColOffset(colIdx));
     auto columnInFactorizedTable = factorizedTable.getTableSchema().getColumn(colIdx);
-    auto entrySizeInOverflowBuffer = TypeUtils::getDataTypeSize(flatTuple.getDataType(colIdx));
+    auto tupleSizeInOverflowBuffer = TypeUtils::getDataTypeSize(flatTuple.getDataType(colIdx));
     valueBuffer =
         overflowValue->value +
-        entrySizeInOverflowBuffer *
+        tupleSizeInOverflowBuffer *
             flatTuplePositionsInDataChunk[columnInFactorizedTable.getDataChunkPos()].first;
     flatTuple.nullMask[colIdx] = FactorizedTable::isNull(
-        overflowValue->value + entrySizeInOverflowBuffer * overflowValue->numElements,
+        overflowValue->value + tupleSizeInOverflowBuffer * overflowValue->numElements,
         flatTuplePositionsInDataChunk[columnInFactorizedTable.getDataChunkPos()].first);
     if (!flatTuple.nullMask[colIdx]) {
         readValueBufferToFlatTuple(flatTuple, colIdx, valueBuffer);
