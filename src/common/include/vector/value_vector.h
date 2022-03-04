@@ -78,11 +78,6 @@ public:
 
     bool discardNullNodes();
 
-    inline void readNodeID(uint64_t pos, nodeID_t& nodeID) const {
-        assert(dataType == NODE);
-        nodeID = ((nodeID_t*)values)[pos];
-    }
-
     inline node_offset_t readNodeOffset(uint64_t pos) const {
         assert(dataType == NODE);
         return ((nodeID_t*)values)[pos].offset;

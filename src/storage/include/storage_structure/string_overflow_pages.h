@@ -18,17 +18,16 @@ class StringOverflowPages {
 public:
     explicit StringOverflowPages(const string& fName, BufferManager& bufferManager, bool isInMemory)
         : fileHandle{getStringOverflowPagesFName(fName), FileHandle::O_DefaultPagedExistingDBFile},
-          bufferManager{bufferManager},
-          isInMemory{isInMemory} {
-              //        if (isInMemory) {
-              //            StorageStructureUtils::pinEachPageOfFile(fileHandle, bufferManager);
-              //        }
-          };
+          bufferManager{bufferManager}, isInMemory{isInMemory} {
+        if (isInMemory) {
+            StorageStructureUtils::pinEachPageOfFile(fileHandle, bufferManager);
+        }
+    };
 
     ~StringOverflowPages() {
-        //        if (isInMemory) {
-        //            StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
-        //        }
+        if (isInMemory) {
+            StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
+        }
     }
 
     static string getStringOverflowPagesFName(const string& fName) {

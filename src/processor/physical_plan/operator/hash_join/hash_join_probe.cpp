@@ -48,7 +48,7 @@ void HashJoinProbe::getNextBatchOfMatchedTuples() {
             if (probeSideKeyVector->isNull(currentIdx)) {
                 continue;
             }
-            probeSideKeyVector->readNodeID(currentIdx, probeState->probeSideKeyNodeID);
+            probeState->probeSideKeyNodeID = ((nodeID_t*)probeSideKeyVector->values)[currentIdx];
             probeState->probedTuple =
                 *sharedState->getHashTable()->findHashEntry(probeState->probeSideKeyNodeID);
         }

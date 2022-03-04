@@ -49,6 +49,7 @@ cc_library(
     ],
     hdrs = [
         "include/vector/operations/executors/binary_operation_executor.h",
+        "include/vector/operations/executors/boolean_operation_executor.h",
         "include/vector/operations/executors/unary_operation_executor.h",
         "include/vector/operations/vector_arithmetic_operations.h",
         "include/vector/operations/vector_boolean_operations.h",
