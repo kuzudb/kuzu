@@ -58,17 +58,6 @@ enum ExpressionType : uint8_t {
     NEGATE = 26,
 
     /**
-     * NODE ID Expressions
-     * */
-    HASH_NODE_ID = 32,
-    EQUALS_NODE_ID = 33,
-    NOT_EQUALS_NODE_ID = 34,
-    GREATER_THAN_NODE_ID = 35,
-    GREATER_THAN_EQUALS_NODE_ID = 36,
-    LESS_THAN_NODE_ID = 37,
-    LESS_THAN_EQUALS_NODE_ID = 38,
-
-    /**
      * String Operator Expressions
      **/
     STARTS_WITH = 40,
@@ -143,7 +132,6 @@ bool isExpressionUnary(ExpressionType type);
 bool isExpressionBinary(ExpressionType type);
 bool isExpressionBoolConnection(ExpressionType type);
 bool isExpressionComparison(ExpressionType type);
-bool isExpressionIDComparison(ExpressionType type);
 bool isExpressionArithmetic(ExpressionType type);
 bool isExpressionStringOperator(ExpressionType type);
 bool isExpressionNullComparison(ExpressionType type);
@@ -151,7 +139,6 @@ bool isExpressionLiteral(ExpressionType type);
 bool isExpressionAggregate(ExpressionType type);
 bool isExpressionSubquery(ExpressionType type);
 
-ExpressionType comparisonToIDComparison(ExpressionType type);
 string expressionTypeToString(ExpressionType type);
 
 } // namespace common

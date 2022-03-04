@@ -1,35 +1,39 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "base_evaluator",
+    name = "base_expression_evaluator",
     srcs = [
-        "expression_evaluator.cpp",
+        "base_evaluator.cpp",
     ],
     hdrs = [
-        "include/expression_evaluator.h",
+        "include/base_evaluator.h",
     ],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//src/processor:__pkg__",
+    ],
     deps = [
-        "//src/common:data_chunk",
-        "//src/common:vector_operations",
-        "//src/processor:data_pos",
         "//src/processor:result",
     ],
 )
 
 cc_library(
-    name = "evaluator_impls",
+    name = "expression_evaluator_impls",
     srcs = [
-        "binary_expression_evaluator.cpp",
-        "unary_expression_evaluator.cpp",
+        "literal_evaluator.cpp",
+        "operator_evaluator.cpp",
+        "reference_evaluator.cpp",
     ],
     hdrs = [
-        "include/binary_expression_evaluator.h",
-        "include/unary_expression_evaluator.h",
+        "include/literal_evaluator.h",
+        "include/operator_evaluator.h",
+        "include/reference_evaluator.h",
     ],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//test/expression_evaluator:__pkg__",
+        "//src/processor:__pkg__",
+    ],
     deps = [
-        "base_evaluator",
-        "//src/processor:result_collector",
+        "base_expression_evaluator",
+        "//src/common:vector_operations",
     ],
 )

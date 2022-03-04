@@ -131,7 +131,7 @@ void JoinOrderEnumerator::enumerateSingleRel() {
                         auto planWithFilter = prevPlan->shallowCopy();
                         appendExtendFiltersAndScanProperties(
                             *tmpRel, direction, expressionsToFilter, *planWithFilter);
-                        auto nodeIDFilter = make_shared<Expression>(EQUALS_NODE_ID, BOOL,
+                        auto nodeIDFilter = make_shared<Expression>(EQUALS, BOOL,
                             nodeToIntersect->getNodeIDPropertyExpression(),
                             tmpNode->getNodeIDPropertyExpression());
                         enumerator->appendFilter(nodeIDFilter, *planWithFilter);

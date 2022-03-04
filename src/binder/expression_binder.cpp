@@ -97,10 +97,8 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     TypeUtils::isNumericalType(left->dataType) ?
         validateNumeric(*right) :
         validateExpectedDataType(*right, unordered_set<DataType>{left->dataType});
-    auto expressionType = NODE_ID == left->dataType ?
-                              comparisonToIDComparison(parsedExpression.getExpressionType()) :
-                              parsedExpression.getExpressionType();
-    return make_shared<Expression>(expressionType, BOOL, move(left), move(right));
+    return make_shared<Expression>(
+        parsedExpression.getExpressionType(), BOOL, move(left), move(right));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(

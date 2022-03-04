@@ -5,7 +5,7 @@ namespace processor {
 
 shared_ptr<ResultSet> Filter::initResultSet() {
     resultSet = children[0]->initResultSet();
-    rootExpr->initResultSet(*resultSet, context.memoryManager);
+    expressionEvaluator->init(*resultSet, context.memoryManager);
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
     return resultSet;
 }
@@ -27,10 +27,10 @@ bool Filter::getNextTuples() {
         saveDataChunkSelectorState(dataChunkToSelect);
         if (dataChunkToSelect->state->isFlat()) {
             hasAtLeastOneSelectedValue =
-                rootExpr->select(dataChunkToSelect->state->selectedPositions) > 0;
+                expressionEvaluator->select(dataChunkToSelect->state->selectedPositions) > 0;
         } else {
-            dataChunkToSelect->state->selectedSize =
-                rootExpr->select(dataChunkToSelect->state->selectedPositionsBuffer.get());
+            dataChunkToSelect->state->selectedSize = expressionEvaluator->select(
+                dataChunkToSelect->state->selectedPositionsBuffer.get());
             if (dataChunkToSelect->state->isUnfiltered()) {
                 dataChunkToSelect->state->resetSelectorToValuePosBuffer();
             }

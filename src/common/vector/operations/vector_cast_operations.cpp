@@ -18,24 +18,31 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
         switch (operand.dataType) {
         case BOOL: {
             outValues[resPos].val.booleanVal = operand.values[pos];
+            outValues[resPos].dataType = BOOL;
         } break;
         case INT64: {
             outValues[resPos].val.int64Val = ((int64_t*)operand.values)[pos];
+            outValues[resPos].dataType = INT64;
         } break;
         case DOUBLE: {
             outValues[resPos].val.doubleVal = ((double_t*)operand.values)[pos];
+            outValues[resPos].dataType = DOUBLE;
         } break;
         case DATE: {
             outValues[resPos].val.dateVal = ((date_t*)operand.values)[pos];
+            outValues[resPos].dataType = DATE;
         } break;
         case TIMESTAMP: {
             outValues[resPos].val.timestampVal = ((timestamp_t*)operand.values)[pos];
+            outValues[resPos].dataType = TIMESTAMP;
         } break;
         case INTERVAL: {
             outValues[resPos].val.intervalVal = ((interval_t*)operand.values)[pos];
+            outValues[resPos].dataType = INTERVAL;
         } break;
         case STRING: {
             result.addGFStringToUnstructuredVector(resPos, ((gf_string_t*)operand.values)[pos]);
+            outValues[resPos].dataType = STRING;
         } break;
         default:
             assert(false);
@@ -46,6 +53,7 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 outValues[pos].val.booleanVal = operand.values[pos];
+                outValues[pos].dataType = BOOL;
             }
         } break;
         case INT64: {
@@ -53,6 +61,7 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 outValues[pos].val.int64Val = intValues[pos];
+                outValues[pos].dataType = INT64;
             }
         } break;
         case DOUBLE: {
@@ -60,6 +69,7 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 outValues[pos].val.doubleVal = doubleValues[pos];
+                outValues[pos].dataType = DOUBLE;
             }
         } break;
         case DATE: {
@@ -67,6 +77,7 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 outValues[pos].val.dateVal = dateValues[pos];
+                outValues[pos].dataType = DATE;
             }
         } break;
         case TIMESTAMP: {
@@ -74,6 +85,7 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 outValues[pos].val.timestampVal = timestampValues[pos];
+                outValues[pos].dataType = TIMESTAMP;
             }
         } break;
         case INTERVAL: {
@@ -81,12 +93,14 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 outValues[pos].val.intervalVal = intervalValues[pos];
+                outValues[pos].dataType = INTERVAL;
             }
         } break;
         case STRING: {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 result.addGFStringToUnstructuredVector(pos, ((gf_string_t*)operand.values)[pos]);
+                outValues[pos].dataType = STRING;
             }
         } break;
         default:

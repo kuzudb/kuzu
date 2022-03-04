@@ -13,10 +13,9 @@ bool isExpressionUnary(ExpressionType type) {
 }
 
 bool isExpressionBinary(ExpressionType type) {
-    return isExpressionComparison(type) || isExpressionIDComparison(type) ||
-           isExpressionStringOperator(type) || OR == type || XOR == type || AND == type ||
-           ADD == type || SUBTRACT == type || MULTIPLY == type || DIVIDE == type ||
-           MODULO == type || POWER == type;
+    return isExpressionComparison(type) || isExpressionStringOperator(type) || OR == type ||
+           XOR == type || AND == type || ADD == type || SUBTRACT == type || MULTIPLY == type ||
+           DIVIDE == type || MODULO == type || POWER == type;
 }
 
 bool isExpressionBoolConnection(ExpressionType type) {
@@ -26,12 +25,6 @@ bool isExpressionBoolConnection(ExpressionType type) {
 bool isExpressionComparison(ExpressionType type) {
     return EQUALS == type || NOT_EQUALS == type || GREATER_THAN == type ||
            GREATER_THAN_EQUALS == type || LESS_THAN == type || LESS_THAN_EQUALS == type;
-}
-
-bool isExpressionIDComparison(ExpressionType type) {
-    return EQUALS_NODE_ID == type || NOT_EQUALS_NODE_ID == type || GREATER_THAN_NODE_ID == type ||
-           GREATER_THAN_EQUALS_NODE_ID == type || LESS_THAN_NODE_ID == type ||
-           LESS_THAN_EQUALS_NODE_ID == type;
 }
 
 bool isExpressionArithmetic(ExpressionType type) {
@@ -60,25 +53,6 @@ bool isExpressionAggregate(ExpressionType type) {
 
 bool isExpressionSubquery(ExpressionType type) {
     return EXISTENTIAL_SUBQUERY == type;
-}
-
-ExpressionType comparisonToIDComparison(ExpressionType type) {
-    switch (type) {
-    case EQUALS:
-        return EQUALS_NODE_ID;
-    case NOT_EQUALS:
-        return NOT_EQUALS_NODE_ID;
-    case GREATER_THAN:
-        return GREATER_THAN_NODE_ID;
-    case GREATER_THAN_EQUALS:
-        return GREATER_THAN_EQUALS_NODE_ID;
-    case LESS_THAN:
-        return LESS_THAN_NODE_ID;
-    case LESS_THAN_EQUALS:
-        return LESS_THAN_EQUALS_NODE_ID;
-    default:
-        throw invalid_argument("Cannot map " + expressionTypeToString(type) + " to ID comparison.");
-    }
 }
 
 string expressionTypeToString(ExpressionType type) {
@@ -117,20 +91,6 @@ string expressionTypeToString(ExpressionType type) {
         return "POWER";
     case NEGATE:
         return "NEGATE";
-    case HASH_NODE_ID:
-        return "HASH_NODE_ID";
-    case EQUALS_NODE_ID:
-        return "EQUALS_NODE_ID";
-    case NOT_EQUALS_NODE_ID:
-        return "NOT_EQUALS_NODE_ID";
-    case GREATER_THAN_NODE_ID:
-        return "GREATER_THAN_NODE_ID";
-    case GREATER_THAN_EQUALS_NODE_ID:
-        return "GREATER_THAN_EQUALS_NODE_ID";
-    case LESS_THAN_NODE_ID:
-        return "LESS_THAN_NODE_ID";
-    case LESS_THAN_EQUALS_NODE_ID:
-        return "LESS_THAN_EQUALS_NODE_ID";
     case STARTS_WITH:
         return "STARTS_WITH";
     case ENDS_WITH:
