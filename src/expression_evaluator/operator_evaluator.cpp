@@ -5,6 +5,7 @@
 #include "src/common/include/vector/operations/vector_boolean_operations.h"
 #include "src/common/include/vector/operations/vector_cast_operations.h"
 #include "src/common/include/vector/operations/vector_comparison_operations.h"
+#include "src/common/include/vector/operations/vector_null_operations.h"
 
 namespace graphflow {
 namespace evaluator {
@@ -22,10 +23,6 @@ void UnaryOperatorExpressionEvaluator::init(
     OperatorExpressionEvaluator::init(resultSet, memoryManager);
     resultVector = make_shared<ValueVector>(memoryManager, expression->dataType);
     resultVector->state = children[0]->resultVector->state;
-    // NOTE: I doubt sharing null mask for unary operation is the right thing (this might be a
-    // performance optimization in most cases but is also potentially buggy). Someone should test
-    // heavily with ISNULL operator.
-    resultVector->setNullMask(children[0]->resultVector->getNullMask());
 }
 
 void UnaryOperatorExpressionEvaluator::getExecOperation() {
@@ -37,10 +34,10 @@ void UnaryOperatorExpressionEvaluator::getExecOperation() {
         execOperation = VectorArithmeticOperations::Negate;
     } break;
     case IS_NULL: {
-        execOperation = VectorComparisonOperations::IsNull;
+        execOperation = VectorNullOperations::IsNull;
     } break;
     case IS_NOT_NULL: {
-        execOperation = VectorComparisonOperations::IsNotNull;
+        execOperation = VectorNullOperations::IsNotNull;
     } break;
     case CAST_TO_STRING: {
         execOperation = VectorCastOperations::castStructuredToString;
@@ -81,10 +78,10 @@ void UnaryOperatorExpressionEvaluator::getSelectOperation() {
         selectOperation = VectorBooleanOperations::NotSelect;
     } break;
     case IS_NULL: {
-        selectOperation = VectorComparisonOperations::IsNullSelect;
+        selectOperation = VectorNullOperations::IsNullSelect;
     } break;
     case IS_NOT_NULL: {
-        selectOperation = VectorComparisonOperations::IsNotNullSelect;
+        selectOperation = VectorNullOperations::IsNotNullSelect;
     } break;
     default:
         throw invalid_argument(

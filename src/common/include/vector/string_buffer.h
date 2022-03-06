@@ -35,7 +35,7 @@ public:
     // BufferManager. We need to therefore release them back by calling
     // memoryManager->freeBMBackedBlock.
     ~StringBuffer() {
-        for (int i = 0; i < blocks.size(); ++i) {
+        for (auto i = 0u; i < blocks.size(); ++i) {
             memoryManager->freeBMBackedBlock(blocks[i]->block->pageIdx);
         }
     }
@@ -61,7 +61,7 @@ public:
     inline void resetBuffer() {
         if (blocks.size() >= 1) {
             auto firstBlock = move(blocks[0]);
-            for (int i = 1; i < blocks.size(); ++i) {
+            for (auto i = 1u; i < blocks.size(); ++i) {
                 memoryManager->freeBMBackedBlock(blocks[i]->block->pageIdx);
             }
             blocks.clear();

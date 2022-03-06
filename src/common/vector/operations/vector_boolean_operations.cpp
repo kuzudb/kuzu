@@ -39,7 +39,7 @@ uint64_t VectorBooleanOperations::XorSelect(
 }
 
 uint64_t VectorBooleanOperations::NotSelect(ValueVector& operand, sel_t* selectedPositions) {
-    return UnaryOperationExecutor::select<operation::Not>(operand, selectedPositions);
+    return UnaryOperationExecutor::select<bool, operation::Not>(operand, selectedPositions);
 }
 
 } // namespace common

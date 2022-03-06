@@ -2,7 +2,6 @@
 
 #include "src/common/include/operations/comparison_operations.h"
 #include "src/common/include/vector/operations/executors/binary_operation_executor.h"
-#include "src/common/include/vector/operations/executors/unary_operation_executor.h"
 
 namespace graphflow {
 namespace common {
@@ -174,14 +173,6 @@ void VectorComparisonOperations::LessThanEquals(
     ComparisonOperationExecutor::execute<operation::LessThanEquals>(left, right, result);
 }
 
-void VectorComparisonOperations::IsNull(ValueVector& operand, ValueVector& result) {
-    UnaryOperationExecutor::execute<uint8_t, uint8_t, operation::IsNull>(operand, result);
-}
-
-void VectorComparisonOperations::IsNotNull(ValueVector& operand, ValueVector& result) {
-    UnaryOperationExecutor::execute<uint8_t, uint8_t, operation::IsNotNull>(operand, result);
-}
-
 uint64_t VectorComparisonOperations::EqualsSelect(
     ValueVector& left, ValueVector& right, sel_t* selectedPositions) {
     return ComparisonOperationExecutor::select<operation::Equals>(left, right, selectedPositions);
@@ -214,15 +205,6 @@ uint64_t VectorComparisonOperations::LessThanEqualsSelect(
     ValueVector& left, ValueVector& right, sel_t* selectedPositions) {
     return ComparisonOperationExecutor::select<operation::LessThanEquals>(
         left, right, selectedPositions);
-}
-
-uint64_t VectorComparisonOperations::IsNullSelect(ValueVector& operand, sel_t* selectedPositions) {
-    return UnaryOperationExecutor::select<operation::IsNull>(operand, selectedPositions);
-}
-
-uint64_t VectorComparisonOperations::IsNotNullSelect(
-    ValueVector& operand, sel_t* selectedPositions) {
-    return UnaryOperationExecutor::select<operation::IsNotNull>(operand, selectedPositions);
 }
 
 } // namespace common

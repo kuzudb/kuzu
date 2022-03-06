@@ -43,9 +43,6 @@ public:
     void addGFStringToUnstructuredVector(uint64_t pos, const gf_string_t& value) const;
     void allocateStringOverflowSpaceIfNecessary(gf_string_t& result, uint64_t len) const;
 
-    // Sets the null mask of this ValueVector to the null mask of
-    inline void setNullMask(const shared_ptr<NullMask>& otherMask) { nullMask = otherMask; }
-
     inline void setAllNull() {
         std::fill(nullMask->mask.get(), nullMask->mask.get() + state->originalSize, true);
         nullMask->mayContainNulls = true;

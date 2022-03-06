@@ -7,6 +7,10 @@
 namespace graphflow {
 namespace common {
 
+/**
+ * Unary operator assumes operation with null returns null. This does NOT applies to IS_NULL and
+ * IS_NOT_NULL operation.
+ */
 struct UnaryOperationExecutor {
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
@@ -23,7 +27,8 @@ struct UnaryOperationExecutor {
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
             assert(pos == result.state->getPositionOfCurrIdx());
-            if (!operand.isNull(pos)) {
+            result.setNull(pos, operand.isNull(pos));
+            if (!result.isNull(pos)) {
                 executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(operand, pos, resultValues[pos]);
             }
         } else {
@@ -43,7 +48,8 @@ struct UnaryOperationExecutor {
             } else {
                 if (operand.state->isUnfiltered()) {
                     for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                        if (!operand.isNull(i)) {
+                        result.setNull(i, operand.isNull(i));
+                        if (!result.isNull(i)) {
                             executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
                                 operand, i, resultValues[i]);
                         }
@@ -51,7 +57,8 @@ struct UnaryOperationExecutor {
                 } else {
                     for (auto i = 0u; i < operand.state->selectedSize; i++) {
                         auto pos = operand.state->selectedPositions[i];
-                        if (!operand.isNull(pos)) {
+                        result.setNull(pos, operand.isNull(pos));
+                        if (!result.isNull(pos)) {
                             executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
                                 operand, pos, resultValues[pos]);
                         }
@@ -61,22 +68,34 @@ struct UnaryOperationExecutor {
         }
     }
 
-    // IS_NULL, IS_NOT_NULL, NOT
-    template<typename FUNC>
+    template<typename OPERAND_TYPE, typename FUNC>
+    static void selectOnValue(ValueVector& operand, uint64_t operandPos,
+        uint64_t& numSelectedValues, sel_t* selectedPositions) {
+        uint8_t resultValue = 0;
+        auto operandValues = (OPERAND_TYPE*)operand.values;
+        FUNC::operation(operandValues[operandPos], operand.isNull(operandPos), resultValue);
+        selectedPositions[numSelectedValues] = operandPos;
+        numSelectedValues += resultValue == true;
+    }
+
+    // NOT
+    template<typename OPERAND_TYPE, typename FUNC>
     static uint64_t select(ValueVector& operand, sel_t* selectedPositions) {
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
             uint8_t resultValue = 0;
-            FUNC::operation(operand.values[pos], operand.isNull(pos), resultValue);
+            if (!operand.isNull(pos)) {
+                FUNC::operation(operand.values[pos], operand.isNull(pos), resultValue);
+            }
             return resultValue == true;
         } else {
             uint64_t numSelectedValues = 0;
             for (auto i = 0ul; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
-                uint8_t resultValue = 0;
-                FUNC::operation(operand.values[pos], operand.isNull(pos), resultValue);
-                selectedPositions[numSelectedValues] = pos;
-                numSelectedValues += resultValue == true;
+                if (!operand.isNull(pos)) {
+                    selectOnValue<OPERAND_TYPE, FUNC>(
+                        operand, pos, numSelectedValues, selectedPositions);
+                }
             }
             return numSelectedValues;
         }

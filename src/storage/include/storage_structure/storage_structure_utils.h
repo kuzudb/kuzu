@@ -53,13 +53,13 @@ struct PageUtils {
 
 struct StorageStructureUtils {
     static void pinEachPageOfFile(FileHandle& fileHandle, BufferManager& bufferManager) {
-        for (int pageIdx = 0; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
+        for (auto pageIdx = 0u; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
             bufferManager.pin(fileHandle, pageIdx);
         }
     }
 
     static void unpinEachPageOfFile(FileHandle& fileHandle, BufferManager& bufferManager) {
-        for (int pageIdx = 0; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
+        for (auto pageIdx = 0u; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
             bufferManager.unpin(fileHandle, pageIdx);
         }
     }

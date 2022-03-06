@@ -8,6 +8,10 @@
 namespace graphflow {
 namespace common {
 
+/**
+ * Binary operator assumes operation with null returns null. This does NOT applies to binary boolean
+ * operations (e.g. AND, OR, XOR).
+ */
 struct BinaryOperationExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE>
