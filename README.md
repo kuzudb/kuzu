@@ -69,3 +69,6 @@ expectedNumOutput 8
   - `--warmup=1` config number of warmup
   - `--run=5` config number of run
   - `--thread=1` config number of thread for execution
+
+## Design Docs
+[Design documents](https://drive.google.com/drive/folders/1Z5tYGGq9ivWWDyl8s5dbUs9eKNgi1baS?usp=sharing) for some of our features and components.
