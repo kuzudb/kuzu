@@ -81,16 +81,16 @@ public:
         switch (left.dataType) {
         case BOOL: {
             assert(right.dataType == BOOL);
-            return BinaryOperationExecutor::select<uint8_t, uint8_t, uint8_t, OP>(
+            return BinaryOperationExecutor::select<uint8_t, uint8_t, OP>(
                 left, right, selectedPositions);
         }
         case INT64: {
             switch (right.dataType) {
             case INT64:
-                return BinaryOperationExecutor::select<int64_t, int64_t, uint8_t, OP>(
+                return BinaryOperationExecutor::select<int64_t, int64_t, OP>(
                     left, right, selectedPositions);
             case DOUBLE:
-                return BinaryOperationExecutor::select<int64_t, double_t, uint8_t, OP>(
+                return BinaryOperationExecutor::select<int64_t, double_t, OP>(
                     left, right, selectedPositions);
             default:
                 assert(false);
@@ -99,10 +99,10 @@ public:
         case DOUBLE: {
             switch (right.dataType) {
             case INT64:
-                return BinaryOperationExecutor::select<double_t, int64_t, uint8_t, OP>(
+                return BinaryOperationExecutor::select<double_t, int64_t, OP>(
                     left, right, selectedPositions);
             case DOUBLE:
-                return BinaryOperationExecutor::select<double_t, double_t, uint8_t, OP>(
+                return BinaryOperationExecutor::select<double_t, double_t, OP>(
                     left, right, selectedPositions);
             default:
                 assert(false);
@@ -110,32 +110,32 @@ public:
         } break;
         case STRING: {
             assert(right.dataType == STRING);
-            return BinaryOperationExecutor::select<gf_string_t, gf_string_t, uint8_t, OP>(
+            return BinaryOperationExecutor::select<gf_string_t, gf_string_t, OP>(
                 left, right, selectedPositions);
         }
         case UNSTRUCTURED: {
             assert(right.dataType == UNSTRUCTURED);
-            return BinaryOperationExecutor::select<Value, Value, uint8_t, OP>(
+            return BinaryOperationExecutor::select<Value, Value, OP>(
                 left, right, selectedPositions);
         }
         case DATE: {
             assert(right.dataType == DATE);
-            return BinaryOperationExecutor::select<date_t, date_t, uint8_t, OP>(
+            return BinaryOperationExecutor::select<date_t, date_t, OP>(
                 left, right, selectedPositions);
         }
         case TIMESTAMP: {
             assert(right.dataType == TIMESTAMP);
-            return BinaryOperationExecutor::select<timestamp_t, timestamp_t, uint8_t, OP>(
+            return BinaryOperationExecutor::select<timestamp_t, timestamp_t, OP>(
                 left, right, selectedPositions);
         }
         case INTERVAL: {
             assert(right.dataType == INTERVAL);
-            return BinaryOperationExecutor::select<interval_t, interval_t, uint8_t, OP>(
+            return BinaryOperationExecutor::select<interval_t, interval_t, OP>(
                 left, right, selectedPositions);
         }
         case NODE: {
             assert(right.dataType == NODE);
-            return BinaryOperationExecutor::select<nodeID_t, nodeID_t, uint8_t, OP>(
+            return BinaryOperationExecutor::select<nodeID_t, nodeID_t, OP>(
                 left, right, selectedPositions);
         }
         default:

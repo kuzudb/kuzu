@@ -8,73 +8,53 @@ namespace graphflow {
 namespace common {
 
 struct UnaryOperationExecutor {
-    template<typename T, typename R, typename FUNC>
-    static void executeOnTuple(ValueVector& operand, R& resultValue, uint64_t operandPos) {
-        if constexpr ((is_same<T, nodeID_t>::value)) {
-            nodeID_t nodeID{};
-            operand.readNodeID(operandPos, nodeID);
-            FUNC::operation(nodeID, (bool)operand.isNull(operandPos), resultValue);
-        } else {
-            auto operandValues = (T*)operand.values;
-            FUNC::operation(
-                operandValues[operandPos], (bool)operand.isNull(operandPos), resultValue);
-        }
+
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void executeOnValue(
+        ValueVector& operand, uint64_t operandPos, RESULT_TYPE& resultValue) {
+        auto operandValues = (OPERAND_TYPE*)operand.values;
+        FUNC::operation(operandValues[operandPos], (bool)operand.isNull(operandPos), resultValue);
     }
 
-    template<typename T, typename R, typename FUNC, bool IS_BOOL_OP = false>
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void execute(ValueVector& operand, ValueVector& result) {
-        assert(!IS_BOOL_OP ||
-               (IS_BOOL_OP && (is_same<T, bool>::value) && (is_same<R, uint8_t>::value)));
         result.resetStringBuffer();
-        auto resultValues = (R*)result.values;
+        auto resultValues = (RESULT_TYPE*)result.values;
         if (operand.state->isFlat()) {
-            auto operandPos = operand.state->getPositionOfCurrIdx();
-            auto resultPos = result.state->getPositionOfCurrIdx();
-            if constexpr (!IS_BOOL_OP) {
-                if (!operand.isNull(operandPos)) {
-                    executeOnTuple<T, R, FUNC>(operand, resultValues[resultPos], operandPos);
-                }
-            } else {
-                executeOnTuple<T, R, FUNC>(operand, resultValues[resultPos], operandPos);
+            auto pos = operand.state->getPositionOfCurrIdx();
+            assert(pos == result.state->getPositionOfCurrIdx());
+            if (!operand.isNull(pos)) {
+                executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(operand, pos, resultValues[pos]);
             }
         } else {
-            if constexpr (!IS_BOOL_OP) {
-                if (operand.hasNoNullsGuarantee()) {
-                    if (operand.state->isUnfiltered()) {
-                        for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                            executeOnTuple<T, R, FUNC>(operand, resultValues[i], i);
-                        }
-                    } else {
-                        for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                            auto pos = operand.state->selectedPositions[i];
-                            executeOnTuple<T, R, FUNC>(operand, resultValues[pos], pos);
-                        }
+            if (operand.hasNoNullsGuarantee()) {
+                if (operand.state->isUnfiltered()) {
+                    for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
+                            operand, i, resultValues[i]);
                     }
                 } else {
-                    if (operand.state->isUnfiltered()) {
-                        for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                            if (!operand.isNull(i)) {
-                                executeOnTuple<T, R, FUNC>(operand, resultValues[i], i);
-                            }
-                        }
-                    } else {
-                        for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                            auto pos = operand.state->selectedPositions[i];
-                            if (!operand.isNull(pos)) {
-                                executeOnTuple<T, R, FUNC>(operand, resultValues[pos], pos);
-                            }
-                        }
+                    for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                        auto pos = operand.state->selectedPositions[i];
+                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
+                            operand, pos, resultValues[pos]);
                     }
                 }
             } else {
                 if (operand.state->isUnfiltered()) {
                     for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                        executeOnTuple<T, R, FUNC>(operand, resultValues[i], i);
+                        if (!operand.isNull(i)) {
+                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
+                                operand, i, resultValues[i]);
+                        }
                     }
                 } else {
                     for (auto i = 0u; i < operand.state->selectedSize; i++) {
                         auto pos = operand.state->selectedPositions[i];
-                        executeOnTuple<T, R, FUNC>(operand, resultValues[pos], pos);
+                        if (!operand.isNull(pos)) {
+                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
+                                operand, pos, resultValues[pos]);
+                        }
                     }
                 }
             }
@@ -86,18 +66,17 @@ struct UnaryOperationExecutor {
     static uint64_t select(ValueVector& operand, sel_t* selectedPositions) {
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
-            uint8_t resultValue;
+            uint8_t resultValue = 0;
             FUNC::operation(operand.values[pos], operand.isNull(pos), resultValue);
-            return resultValue != operation::NULL_BOOL && resultValue != false ? 1 : 0;
+            return resultValue == true;
         } else {
             uint64_t numSelectedValues = 0;
             for (auto i = 0ul; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
-                uint8_t resultValue;
+                uint8_t resultValue = 0;
                 FUNC::operation(operand.values[pos], operand.isNull(pos), resultValue);
                 selectedPositions[numSelectedValues] = pos;
-                numSelectedValues +=
-                    resultValue != operation::NULL_BOOL && resultValue != false ? 1 : 0;
+                numSelectedValues += resultValue == true;
             }
             return numSelectedValues;
         }
