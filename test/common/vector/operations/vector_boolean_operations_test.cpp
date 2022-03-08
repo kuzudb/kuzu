@@ -24,7 +24,7 @@ static void setValuesInVectors(const shared_ptr<ValueVector>& lVector,
     const shared_ptr<ValueVector>& rVector, uint32_t numTuples) {
     auto lVectorData = (bool*)lVector->values;
     auto rVectorData = (bool*)rVector->values;
-    for (int i = 0; i < numTuples; i++) {
+    for (auto i = 0u; i < numTuples; i++) {
         lVectorData[i] = i % 2 == 0;
         rVectorData[i] = (i >> 1) % 2 == 0;
     }
@@ -57,11 +57,11 @@ static void setValuesInVectors(const shared_ptr<ValueVector>& lVector,
  * */
 static void setNullsInVectors(const shared_ptr<ValueVector>& lVector,
     const shared_ptr<ValueVector>& rVector, uint32_t numTuples) {
-    for (int i = 0; i < numTuples; ++i) {
+    for (auto i = 0u; i < numTuples; ++i) {
         lVector->setNull(i, ((i >> 2) % 2) == 1);
     }
 
-    for (int i = 0; i < numTuples; ++i) {
+    for (auto i = 0u; i < numTuples; ++i) {
         rVector->setNull(i, ((i >> 3) % 2) == 1);
     }
 }
@@ -93,7 +93,7 @@ public:
 static void checkResultVectorNoNulls(const shared_ptr<ValueVector>& result,
     const function<bool(uint32_t)>& idxOfTrueValueFunc, uint32_t numTuples) {
     auto resultData = (bool*)result->values;
-    for (int i = 0; i < numTuples; i++) {
+    for (auto i = 0u; i < numTuples; i++) {
         if (idxOfTrueValueFunc(i)) {
             ASSERT_TRUE(resultData[i]);
         } else {
@@ -134,7 +134,7 @@ static void checkResultVectorWithNulls(const shared_ptr<ValueVector>& result,
     const unordered_set<uint32_t>& idxOfTrueValuePer16Elements,
     const unordered_set<uint32_t>& idxOfFalseValuePer16Elements, uint32_t numTuples) {
     auto resultData = (bool*)result->values;
-    for (int i = 0; i < numTuples; i++) {
+    for (auto i = 0u; i < numTuples; i++) {
         if (idxOfTrueValuePer16Elements.contains(i % 16)) {
             ASSERT_TRUE(resultData[i]);
             ASSERT_FALSE(result->isNull(i));
@@ -160,7 +160,6 @@ TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinaryAllUnflatWithNulls) {
     VectorBooleanOperations::Xor(*vector1, *vector2, *result);
     checkResultVectorWithNulls(result, {1, 2}, {0, 3}, NUM_TUPLES);
 
-    result->setNullMask(vector1->getNullMask());
     VectorBooleanOperations::Not(*vector1, *result);
     checkResultVectorWithNulls(result, {1, 3, 9, 11}, {0, 2, 8, 10}, NUM_TUPLES);
 }
@@ -217,13 +216,13 @@ TEST_F(BoolOperandsInDifferentDataChunksTest, BoolBinaryOneFlatOneUnflatWithNull
 static void checkSelectedPos(uint32_t actualNumSelectedPos, const sel_t* actualSelectedPos,
     const function<bool(uint32_t)>& isSelectedPos, uint32_t numTuples) {
     vector<uint32_t> expectedSelectedPos;
-    for (auto i = 0; i < numTuples; i++) {
+    for (auto i = 0u; i < numTuples; i++) {
         if (isSelectedPos(i)) {
             expectedSelectedPos.emplace_back(i);
         }
     }
     EXPECT_EQ(actualNumSelectedPos, expectedSelectedPos.size());
-    for (auto i = 0; i < actualNumSelectedPos; i++) {
+    for (auto i = 0u; i < actualNumSelectedPos; i++) {
         EXPECT_EQ(actualSelectedPos[i], expectedSelectedPos[i]);
     }
 }

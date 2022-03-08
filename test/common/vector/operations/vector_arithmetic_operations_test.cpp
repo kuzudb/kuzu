@@ -99,14 +99,14 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatN
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
     VectorArithmeticOperations::Divide(*lVector, *rVector, *result);
-    for (int i = 0; i < dataChunk->state->selectedSize; i++) {
+    for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
         ASSERT_EQ(resultData[i], i / (110 - i));
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
     VectorArithmeticOperations::Modulo(*lVector, *rVector, *result);
-    for (int i = 0; i < dataChunk->state->selectedSize; i++) {
+    for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
         ASSERT_EQ(resultData[i], i % (110 - i));
         ASSERT_FALSE(result->isNull(i));
     }
@@ -133,9 +133,6 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatW
         rVector->setNull(i, (i % 2) == 1);
     }
 
-    // Unary UnaryOperationExecutor::executeArithmeticOps assumes that when the operand is unflat
-    // the nullmask of result vector is the same as the operand's nullmask. So we set it so below.
-    result->setNullMask(rVector->getNullMask());
     VectorArithmeticOperations::Negate(*rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         if (i % 2 == 0) {

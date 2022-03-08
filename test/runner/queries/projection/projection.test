@@ -49,6 +49,18 @@
 -9.000000
 1.000000
 
+-NAME IsNullTest1
+-QUERY MATCH (a:person) RETURN a.fName, a.unstrNumericProp IS NULL, a.unstrDateProp1 IS NOT NULL
+---- 8
+Alice|True|True
+Bob|False|True
+Carol|False|True
+Dan|True|False
+Elizabeth|False|False
+Farooq|True|False
+Greg|True|False
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True|False
+
 -NAME OrgNodesReturnStarTest
 -QUERY MATCH (a:organisation) RETURN *
 ---- 3

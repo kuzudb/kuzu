@@ -127,10 +127,7 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatNo
 
     // Test 1: Left flat and right is unflat.
     // The comparison ins 80 < [90, 89, ...., -9]. The first 10 (90, ..., 81) the result is true,
-    // the rest should be false. Before running the operation we set the nullmask of result to be
-    // the same as vector2, which is what we assume in binary expressions, i.e., that the unflat and
-    // result share the nullmask.
-    result->setNullMask(vector2->getNullMask());
+    // the rest should be false.
     VectorComparisonOperations::LessThan(*vector1, *vector2, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], i < 10 ? true : false);
