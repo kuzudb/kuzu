@@ -2,8 +2,6 @@
 
 #include <cstdint>
 
-#include "src/common/include/types.h"
-
 namespace graphflow {
 namespace common {
 namespace operation {

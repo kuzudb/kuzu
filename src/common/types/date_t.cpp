@@ -1,14 +1,66 @@
-#include "src/common/include/date.h"
+#include "include/date_t.h"
+
+#include "include/cast_helpers.h"
+#include "include/timestamp_t.h"
 
 #include "src/common/include/assert.h"
-#include "src/common/include/cast_helpers.h"
 #include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
 
-using namespace std;
-
 namespace graphflow {
 namespace common {
+
+date_t date_t::operator+(const interval_t& interval) const {
+    date_t result{};
+    if (interval.months != 0) {
+        int32_t year, month, day, maxDayInMonth;
+        Date::Convert(*this, year, month, day);
+        int32_t year_diff = interval.months / Interval::MONTHS_PER_YEAR;
+        year += year_diff;
+        month += interval.months - year_diff * Interval::MONTHS_PER_YEAR;
+        if (month > Interval::MONTHS_PER_YEAR) {
+            year++;
+            month -= Interval::MONTHS_PER_YEAR;
+        } else if (month <= 0) {
+            year--;
+            month += Interval::MONTHS_PER_YEAR;
+        }
+        // handle date overflow
+        // example: 2020-01-31 + "1 months"
+        maxDayInMonth = Date::MonthDays(year, month);
+        day = day > maxDayInMonth ? maxDayInMonth : day;
+        result = Date::FromDate(year, month, day);
+    } else {
+        result = *this;
+    }
+    if (interval.days != 0) {
+        result.days += interval.days;
+    }
+    if (interval.micros != 0) {
+        result.days += int32_t(interval.micros / Interval::MICROS_PER_DAY);
+    }
+    return result;
+}
+
+date_t date_t::operator-(const interval_t& interval) const {
+    interval_t inverseRight{};
+    inverseRight.months = -interval.months;
+    inverseRight.days = -interval.days;
+    inverseRight.micros = -interval.micros;
+    return *this + inverseRight;
+}
+
+int64_t date_t::operator-(const date_t& rhs) const {
+    return (*this).days - rhs.days;
+}
+
+bool date_t::operator==(const timestamp_t& rhs) const {
+    return Timestamp::FromDatetime(*this, dtime_t(0)).value == rhs.value;
+}
+
+bool date_t::operator<(const timestamp_t& rhs) const {
+    return Timestamp::FromDatetime(*this, dtime_t(0)).value < rhs.value;
+}
 
 const int32_t Date::NORMAL_DAYS[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const int32_t Date::LEAP_DAYS[] = {0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};

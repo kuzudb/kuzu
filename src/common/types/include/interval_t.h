@@ -1,13 +1,43 @@
 #pragma once
 
-#include "src/common/include/types.h"
+#include <string>
+
+using namespace std;
+
+namespace graphflow {
+namespace common {
+
+struct interval_t {
+    int32_t months;
+    int32_t days;
+    int64_t micros;
+
+    interval_t() = default;
+    explicit inline interval_t(int32_t months_p, int32_t days_p, int64_t micros_p)
+        : months(months_p), days(days_p), micros(micros_p) {}
+
+    // comparator operators
+    inline bool operator==(const interval_t& rhs) const {
+        return this->days == rhs.days && this->months == rhs.months && this->micros == rhs.micros;
+    };
+    inline bool operator!=(const interval_t& rhs) const { return !(*this == rhs); }
+
+    bool operator>(const interval_t& rhs) const;
+    inline bool operator<=(const interval_t& rhs) const { return !(*this > rhs); }
+    inline bool operator<(const interval_t& rhs) const { return !(*this >= rhs); }
+    inline bool operator>=(const interval_t& rhs) const { return *this > rhs || *this == rhs; }
+
+    // arithmetic operators
+    interval_t operator+(const interval_t& rhs) const;
+    interval_t operator-(const interval_t& rhs) const;
+
+    interval_t operator/(const uint64_t& rhs) const;
+};
 
 // Note: Aside from some minor changes, this implementation is copied from DuckDB's source code:
 // https://github.com/duckdb/duckdb/blob/master/src/include/duckdb/common/types/interval.hpp.
 // https://github.com/duckdb/duckdb/blob/master/src/common/types/interval.cpp.
 // When more functionality is needed, we should first consult these DuckDB links.
-namespace graphflow {
-namespace common {
 // The Interval class is a static class that holds helper functions for the Interval type.
 class Interval {
 public:
@@ -18,7 +48,7 @@ public:
     static constexpr const int32_t HOURS_PER_DAY = 24;
     static constexpr const int64_t DAYS_PER_MONTH =
         30; // only used for interval comparison/ordering purposes, in which case a month counts as
-            // 30 days
+    // 30 days
 
     static constexpr const int64_t MICROS_PER_MSEC = 1000;
     static constexpr const int64_t MICROS_PER_SEC = MICROS_PER_MSEC * MSECS_PER_SEC;

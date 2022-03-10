@@ -5,6 +5,8 @@
 namespace graphflow {
 namespace common {
 
+constexpr uint64_t DEFAULT_VECTOR_CAPACITY = 2048;
+
 // Size (in bytes) of the chunks to be read in GraphLoader.
 constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
 

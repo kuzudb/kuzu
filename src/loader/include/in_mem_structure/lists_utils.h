@@ -8,7 +8,6 @@
 
 #include "src/common/include/compression_scheme.h"
 #include "src/common/include/configs.h"
-#include "src/common/include/types.h"
 #include "src/common/include/utils.h"
 #include "src/loader/include/dataset_metadata.h"
 #include "src/storage/include/catalog.h"

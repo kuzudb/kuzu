@@ -1,7 +1,6 @@
 #pragma once
 
 #include "src/common/include/memory_manager.h"
-#include "src/common/include/types.h"
 #include "src/common/include/vector/value_vector.h"
 
 using namespace graphflow::common;

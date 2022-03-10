@@ -2,8 +2,8 @@
 
 #include <utility>
 
-#include "src/common/include/literal.h"
-#include "src/common/include/value.h"
+#include "src/common/types/include/literal.h"
+#include "src/common/types/include/value.h"
 #include "src/storage/include/storage_structure/lists/large_list_handle.h"
 #include "src/storage/include/storage_structure/lists/list_headers.h"
 #include "src/storage/include/storage_structure/lists/lists_metadata.h"

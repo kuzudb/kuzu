@@ -3,7 +3,6 @@
 #include <memory>
 #include <vector>
 
-#include "src/common/include/types.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/storage_structure/column.h"
 #include "src/storage/include/storage_structure/lists/lists.h"

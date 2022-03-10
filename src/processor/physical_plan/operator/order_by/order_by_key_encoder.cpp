@@ -5,8 +5,6 @@
 #include <cmath>
 #include <cstdint>
 
-#include "src/common/include/interval.h"
-
 #define BSWAP64(x)                                                                                 \
     ((uint64_t)((((uint64_t)(x)&0xff00000000000000ull) >> 56) |                                    \
                 (((uint64_t)(x)&0x00ff000000000000ull) >> 40) |                                    \

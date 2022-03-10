@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "src/common/include/data_chunk/data_chunk_state.h"
-#include "src/common/include/types.h"
 #include "src/common/include/vector/value_vector.h"
 
 using namespace std;

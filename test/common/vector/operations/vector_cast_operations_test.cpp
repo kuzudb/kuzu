@@ -1,9 +1,8 @@
 #include "gtest/gtest.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/date.h"
-#include "src/common/include/value.h"
 #include "src/common/include/vector/operations/vector_cast_operations.h"
+#include "src/common/types/include/value.h"
 
 using namespace graphflow::common;
 using namespace std;

@@ -1,9 +1,46 @@
 #pragma once
 
-#include "src/common/include/types.h"
+#include "interval_t.h"
 
 namespace graphflow {
 namespace common {
+
+struct timestamp_t;
+
+// System representation of dates as the number of days since 1970-01-01.
+struct date_t {
+    int32_t days;
+
+    date_t() = default;
+    explicit inline date_t(int32_t days_p) : days(days_p) {}
+
+    // Comparison operators with date_t.
+    inline bool operator==(const date_t& rhs) const { return days == rhs.days; };
+    inline bool operator!=(const date_t& rhs) const { return days != rhs.days; };
+    inline bool operator<=(const date_t& rhs) const { return days <= rhs.days; };
+    inline bool operator<(const date_t& rhs) const { return days < rhs.days; };
+    inline bool operator>(const date_t& rhs) const { return days > rhs.days; };
+    inline bool operator>=(const date_t& rhs) const { return days >= rhs.days; };
+
+    // Comparison operators with timestamp_t.
+    bool operator==(const timestamp_t& rhs) const;
+    inline bool operator!=(const timestamp_t& rhs) const { return !(*this == rhs); };
+    bool operator<(const timestamp_t& rhs) const;
+    inline bool operator<=(const timestamp_t& rhs) const {
+        return (*this) < rhs || (*this) == rhs;
+    };
+    inline bool operator>(const timestamp_t& rhs) const { return !(*this <= rhs); };
+    inline bool operator>=(const timestamp_t& rhs) const { return !(*this < rhs); };
+
+    // arithmetic operators
+    inline date_t operator+(const int32_t& day) const { return date_t(this->days + day); };
+    inline date_t operator-(const int32_t& day) const { return date_t(this->days - day); };
+
+    date_t operator+(const interval_t& interval) const;
+    date_t operator-(const interval_t& interval) const;
+
+    int64_t operator-(const date_t& rhs) const;
+};
 
 // Note: Aside from some minor changes, this implementation is copied from DuckDB's source code:
 // https://github.com/duckdb/duckdb/blob/master/src/include/duckdb/common/types/date.hpp.

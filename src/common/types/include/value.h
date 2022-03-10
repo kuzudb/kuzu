@@ -3,9 +3,7 @@
 #include <cstdint>
 #include <string>
 
-#include "src/common/include/gf_list.h"
-#include "src/common/include/gf_string.h"
-#include "src/common/include/types.h"
+#include "types_include.h"
 
 using namespace std;
 

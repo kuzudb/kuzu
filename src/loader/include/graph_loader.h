@@ -7,7 +7,6 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/task_system/task_scheduler.h"
-#include "src/common/include/types.h"
 #include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/label_description.h"
 #include "src/storage/include/catalog.h"

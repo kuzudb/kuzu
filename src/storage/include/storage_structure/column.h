@@ -1,8 +1,6 @@
 #pragma once
 
-#include "src/common/include/gf_string.h"
-#include "src/common/include/literal.h"
-#include "src/common/include/types.h"
+#include "src/common/types/include/literal.h"
 #include "src/storage/include/storage_structure/storage_structure.h"
 #include "src/storage/include/storage_structure/string_overflow_pages.h"
 

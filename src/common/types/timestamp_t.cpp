@@ -1,14 +1,52 @@
-#include "src/common/include/timestamp.h"
+#include "include/timestamp_t.h"
 
-#include "src/common/include/date.h"
+#include "include/cast_helpers.h"
+
 #include "src/common/include/exception.h"
-#include "src/common/include/interval.h"
-#include "src/common/include/time.h"
-
-using namespace std;
 
 namespace graphflow {
 namespace common {
+
+timestamp_t timestamp_t::operator+(const interval_t& interval) const {
+    date_t date{};
+    date_t result_date{};
+    dtime_t time{};
+    Timestamp::Convert(*this, date, time);
+    result_date = date + interval;
+    date = result_date;
+    int64_t diff =
+        interval.micros - ((interval.micros / Interval::MICROS_PER_DAY) * Interval::MICROS_PER_DAY);
+    time.micros += diff;
+    if (time.micros >= Interval::MICROS_PER_DAY) {
+        time.micros -= Interval::MICROS_PER_DAY;
+        date.days++;
+    } else if (time.micros < 0) {
+        time.micros += Interval::MICROS_PER_DAY;
+        date.days--;
+    }
+    return Timestamp::FromDatetime(date, time);
+}
+
+timestamp_t timestamp_t::operator-(const interval_t& interval) const {
+    interval_t inverseRight{};
+    inverseRight.months = -interval.months;
+    inverseRight.days = -interval.days;
+    inverseRight.micros = -interval.micros;
+    return (*this) + inverseRight;
+}
+
+interval_t timestamp_t::operator-(const timestamp_t& rhs) const {
+    interval_t result{};
+    uint64_t diff = abs(value - rhs.value);
+    result.months = 0;
+    result.days = diff / Interval::MICROS_PER_DAY;
+    result.micros = diff % Interval::MICROS_PER_DAY;
+    if (value < rhs.value) {
+        result.days = -result.days;
+        result.micros = -result.micros;
+    }
+    return result;
+}
 
 static_assert(sizeof(timestamp_t) == sizeof(int64_t), "timestamp_t was padded");
 

@@ -2,7 +2,7 @@
 
 #include "expression.h"
 
-#include "src/common/include/literal.h"
+#include "src/common/types/include/literal.h"
 
 namespace graphflow {
 namespace binder {

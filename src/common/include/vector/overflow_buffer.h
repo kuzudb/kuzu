@@ -2,9 +2,8 @@
 
 #include <vector>
 
-#include "src/common/include/gf_list.h"
-#include "src/common/include/gf_string.h"
 #include "src/common/include/memory_manager.h"
+#include "src/common/types/include/type_utils.h"
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/file_handle.h"
 

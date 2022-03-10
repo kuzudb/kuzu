@@ -1,6 +1,9 @@
 #pragma once
 
-#include "src/common/include/interval.h"
+#include <cstring>
+
+#include "interval_t.h"
+
 namespace graphflow {
 namespace common {
 

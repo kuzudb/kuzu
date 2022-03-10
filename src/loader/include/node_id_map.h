@@ -4,8 +4,8 @@
 
 #include "robin_hood.h"
 
-#include "src/common/include/types.h"
 #include "src/common/include/utils.h"
+#include "src/common/types/include/types_include.h"
 
 using namespace graphflow::common;
 

@@ -2,8 +2,7 @@
 
 #include <functional>
 
-#include "src/common/include/types.h"
-#include "src/common/include/value.h"
+#include "src/common/types/include/value.h"
 
 namespace graphflow {
 namespace common {

@@ -2,8 +2,8 @@
 #include "test/common/include/vector/operations/vector_operations_test_helper.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/value.h"
 #include "src/common/include/vector/operations/vector_arithmetic_operations.h"
+#include "src/common/types/include/value.h"
 
 using namespace graphflow::common;
 using namespace graphflow::testing;

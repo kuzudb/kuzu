@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-#include <cstring>
 #include <string>
 
 using namespace std;
@@ -36,6 +34,15 @@ struct gf_string_t {
         return isShortString(len) ? prefix : reinterpret_cast<uint8_t*>(overflowPtr);
     }
 
+    // These functions do *NOT* allocate/resize the overflow buffer, it only copies the content and
+    // set the length.
+    void set(const string& value);
+    void set(const char* value, uint64_t length);
+    void set(const gf_string_t& value);
+
+    string getAsShortString() const;
+    string getAsString() const;
+
     bool operator==(const gf_string_t& rhs) const;
 
     inline bool operator!=(const gf_string_t& rhs) const { return !(*this == rhs); }
@@ -47,15 +54,6 @@ struct gf_string_t {
     inline bool operator<(const gf_string_t& rhs) const { return !(*this >= rhs); }
 
     inline bool operator<=(const gf_string_t& rhs) const { return !(*this > rhs); }
-
-    // These functions do *NOT* allocate/resize the overflow buffer, it only copies the content and
-    // set the length.
-    void set(const string& value);
-    void set(const char* value, uint64_t length);
-    void set(const gf_string_t& value);
-
-    string getAsShortString() const;
-    string getAsString() const;
 };
 
 } // namespace common

@@ -1,9 +1,35 @@
 #pragma once
 
-#include "src/common/include/types.h"
+#include <string>
+
+using namespace std;
 
 namespace graphflow {
 namespace common {
+
+// Type used to represent time (microseconds)
+struct dtime_t {
+    int64_t micros;
+
+    dtime_t() = default;
+    explicit inline dtime_t(int64_t micros_p) : micros(micros_p) {}
+    inline dtime_t& operator=(int64_t micros_p) {
+        micros = micros_p;
+        return *this;
+    }
+
+    // explicit conversion
+    explicit inline operator int64_t() const { return micros; }
+    explicit inline operator double() const { return micros; }
+
+    // comparison operators
+    inline bool operator==(const dtime_t& rhs) const { return micros == rhs.micros; };
+    inline bool operator!=(const dtime_t& rhs) const { return micros != rhs.micros; };
+    inline bool operator<=(const dtime_t& rhs) const { return micros <= rhs.micros; };
+    inline bool operator<(const dtime_t& rhs) const { return micros < rhs.micros; };
+    inline bool operator>(const dtime_t& rhs) const { return micros > rhs.micros; };
+    inline bool operator>=(const dtime_t& rhs) const { return micros >= rhs.micros; };
+};
 
 // Note: Aside from some minor changes, this implementation is copied from DuckDB's source code:
 // https://github.com/duckdb/duckdb/blob/master/src/include/duckdb/common/types/time.hpp.

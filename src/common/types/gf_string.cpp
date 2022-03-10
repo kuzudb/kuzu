@@ -1,33 +1,9 @@
-#include "src/common/include/gf_string.h"
+#include "include/gf_string.h"
 
 #include <cstring>
 
 namespace graphflow {
 namespace common {
-
-bool gf_string_t::operator==(const gf_string_t& rhs) const {
-    // First compare the length and prefix of the strings.
-    if (!memcmp(this, &rhs, gf_string_t::STR_LENGTH_PLUS_PREFIX_LENGTH)) {
-        // If length and prefix of a and b are equal, we compare the overflow buffer.
-        return !memcmp(getData(), rhs.getData(), len);
-    }
-    return false;
-}
-
-bool gf_string_t::operator>(const gf_string_t& rhs) const {
-    // Compare gf_string_t up to the shared length.
-    // If there is a tie, we just need to compare the string lengths.
-    auto sharedLen = min(len, rhs.len);
-    auto memcmpResult = memcmp(prefix, rhs.prefix,
-        sharedLen <= gf_string_t::PREFIX_LENGTH ? sharedLen : gf_string_t::PREFIX_LENGTH);
-    if (memcmpResult == 0 && len > gf_string_t::PREFIX_LENGTH) {
-        memcmpResult = memcmp(getData(), rhs.getData(), sharedLen);
-    }
-    if (memcmpResult == 0) {
-        return len > rhs.len;
-    }
-    return memcmpResult > 0;
-}
 
 void gf_string_t::setOverflowPtrInfo(const uint64_t& pageIdx, const uint16_t& pageOffset) {
     memcpy(&overflowPtr, &pageIdx, 6);
@@ -75,6 +51,30 @@ string gf_string_t::getAsString() const {
     } else {
         return string(reinterpret_cast<char*>(overflowPtr), len);
     }
+}
+
+bool gf_string_t::operator==(const gf_string_t& rhs) const {
+    // First compare the length and prefix of the strings.
+    if (!memcmp(this, &rhs, gf_string_t::STR_LENGTH_PLUS_PREFIX_LENGTH)) {
+        // If length and prefix of a and b are equal, we compare the overflow buffer.
+        return !memcmp(getData(), rhs.getData(), len);
+    }
+    return false;
+}
+
+bool gf_string_t::operator>(const gf_string_t& rhs) const {
+    // Compare gf_string_t up to the shared length.
+    // If there is a tie, we just need to compare the string lengths.
+    auto sharedLen = min(len, rhs.len);
+    auto memcmpResult = memcmp(prefix, rhs.prefix,
+        sharedLen <= gf_string_t::PREFIX_LENGTH ? sharedLen : gf_string_t::PREFIX_LENGTH);
+    if (memcmpResult == 0 && len > gf_string_t::PREFIX_LENGTH) {
+        memcmpResult = memcmp(getData(), rhs.getData(), sharedLen);
+    }
+    if (memcmpResult == 0) {
+        return len > rhs.len;
+    }
+    return memcmpResult > 0;
 }
 
 } // namespace common

@@ -1,0 +1,22 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "types",
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/binder/expression:__pkg__",
+        "//src/common:__subpackages__",
+        "//src/loader:__pkg__",
+        "//src/storage:__pkg__",
+        "//test/common:__pkg__",
+        "//test/loader:__pkg__",
+    ],
+    deps = [
+        "//src/common:utils",
+    ],
+)

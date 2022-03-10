@@ -3,8 +3,6 @@
 #include "gtest/gtest.h"
 #include "test/test_utility/include/test_helper.h"
 
-#include "src/common/include/interval.h"
-
 using namespace std;
 using namespace graphflow::common;
 using namespace graphflow::storage;

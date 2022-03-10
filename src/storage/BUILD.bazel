@@ -37,13 +37,13 @@ cc_library(
 cc_library(
     name = "storage_structure",
     srcs = [
-        "storage_structure/storage_structure.cpp",
         "storage_structure/lists/utils.cpp",
+        "storage_structure/storage_structure.cpp",
         "storage_structure/string_overflow_pages.cpp",
     ],
     hdrs = [
-        "include/storage_structure/storage_structure.h",
         "include/storage_structure/lists/utils.h",
+        "include/storage_structure/storage_structure.h",
         "include/storage_structure/storage_structure_utils.h",
         "include/storage_structure/string_overflow_pages.h",
     ],
@@ -105,7 +105,7 @@ cc_library(
     deps = [
         "//src/common:configs",
         "//src/common:ser_deser",
-        "//src/common:types",
+        "//src/common/types",
         "@gabime_spdlog",
         "@nlohmann_json",
     ],
@@ -155,9 +155,9 @@ cc_library(
     deps = [
         "buffer_manager",
         "//src/common:memory_manager",
-        "//src/common:types",
         "//src/common:vector",
         "//src/common:vector_operations",
+        "//src/common/types",
         "//src/loader:in_mem_pages",
     ],
 )
