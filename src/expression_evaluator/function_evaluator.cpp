@@ -40,7 +40,7 @@ unique_ptr<BaseExpressionEvaluator> FunctionExpressionEvaluator::clone() {
 void FunctionExpressionEvaluator::getFunction() {
     switch (expression->expressionType) {
     case LIST_CREATION: {
-        func = ListFunctions::ListCreation;
+        func = VectorListOperations::ListCreation;
     } break;
     default:
         throw invalid_argument(

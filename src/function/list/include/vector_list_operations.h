@@ -11,7 +11,7 @@ namespace function {
 
 using list_func = std::function<void(const vector<shared_ptr<ValueVector>>&, ValueVector&)>;
 
-struct ListFunctions {
+struct VectorListOperations {
 
     static void ListCreation(
         const vector<shared_ptr<ValueVector>>& parameters, ValueVector& result);

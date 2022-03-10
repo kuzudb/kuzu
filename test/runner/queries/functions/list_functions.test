@@ -1,4 +1,4 @@
-# description: functions test
+# description: list functions test
 
 -NAME ListCreate1
 -QUERY MATCH (a:person) RETURN [a.age + 1, a.age * 2], [a.eyeSight], [a.isStudent AND a.isWorker], [a.birthdate], [a.registerTime], [a.lastJobDuration]

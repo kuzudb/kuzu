@@ -1,0 +1,41 @@
+# description: string functions test
+
+-NAME ContainsReturn
+-QUERY MATCH (a:person) RETURN a.fName, a.fName CONTAINS "a" ORDER BY a.fName
+---- 8
+Alice|False
+Bob|False
+Carol|True
+Dan|True
+Elizabeth|True
+Farooq|True
+Greg|False
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
+
+-NAME ContainsSelect
+-QUERY MATCH (a:person) WHERE a.fName CONTAINS "B" RETURN a.fName
+---- 2
+Bob
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME ContainsSelect2
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE NOT a.fName CONTAINS b.fName RETURN COUNT(*)
+---- 1
+14
+
+-NAME StartsWithReturn
+-QUERY MATCH (a:person) RETURN a.fName, a.fName STARTS WITH "A" ORDER BY a.fName
+---- 8
+Alice|True
+Bob|False
+Carol|False
+Dan|False
+Elizabeth|False
+Farooq|False
+Greg|False
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|False
+
+-NAME StartsWithReturn
+-QUERY MATCH (a:person) WHERE a.fName STARTS WITH "C" RETURN a.fName
+---- 1
+Carol

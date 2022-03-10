@@ -6,7 +6,7 @@
 #include "src/processor/include/physical_plan/result/factorized_table.h"
 
 using namespace graphflow::common;
-using namespace operation;
+using namespace graphflow::common::operation;
 
 namespace graphflow {
 namespace processor {

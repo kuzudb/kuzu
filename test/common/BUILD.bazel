@@ -56,6 +56,7 @@ cc_test(
         "vector/operations/vector_cast_operations_test.cpp",
         "vector/operations/vector_comparison_operations_test.cpp",
         "vector/operations/vector_hash_nodeid_operations_test.cpp",
+        "vector/operations/vector_string_operations_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",
@@ -63,6 +64,7 @@ cc_test(
     deps = [
         "//src/common:data_chunk",
         "//src/common:vector_operations",
+        "//src/function/string:vector_string_operations",
         "//test/common:vector_operations_test_helper",
         "@gtest",
         "@gtest//:gtest_main",

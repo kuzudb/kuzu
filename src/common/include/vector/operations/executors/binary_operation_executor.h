@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "src/common/include/operations/boolean_operations.h"
+#include "src/common/include/vector/value_vector.h"
 #include "src/common/types/include/value.h"
 
 namespace graphflow {

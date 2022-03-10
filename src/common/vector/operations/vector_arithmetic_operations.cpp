@@ -46,16 +46,6 @@ public:
                 assert(false);
             }
         } break;
-        case STRING: {
-            assert(right.dataType == STRING && (is_same<OP, operation::Add>::value));
-            if constexpr ((is_same<OP, operation::Add>::value)) {
-                assert(right.dataType == STRING);
-                BinaryOperationExecutor::execute<gf_string_t, gf_string_t, gf_string_t, OP>(
-                    left, right, result);
-            } else {
-                assert(false);
-            }
-        } break;
         case DATE: {
             switch (right.dataType) {
             case INT64: {

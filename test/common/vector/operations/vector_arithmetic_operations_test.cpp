@@ -46,15 +46,6 @@ public:
     }
 };
 
-class StringArithmeticOperandsInSameDataChunkTest : public OperandsInSameDataChunk, public Test {
-
-public:
-    DataType getDataTypeOfOperands() override { return STRING; }
-    DataType getDataTypeOfResultVector() override { return STRING; }
-
-    void SetUp() override { initDataChunk(); }
-};
-
 class UnstructuredArithmeticOperandsInSameDataChunkTest : public OperandsInSameDataChunk,
                                                           public Test {
 
@@ -217,39 +208,6 @@ TEST_F(Int64ArithmeticOperandsInDifferentDataChunksTest, Int64BinaryOneFlatOneUn
         }
     }
     ASSERT_FALSE(result->hasNoNullsGuarantee());
-}
-
-TEST_F(StringArithmeticOperandsInSameDataChunkTest, StringTest) {
-    auto lVector = vector1;
-    auto rVector = vector2;
-    auto resultData = (gf_string_t*)result->values;
-    // Fill values before the comparison.
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        lVector->addString(i, to_string(i));
-        rVector->addString(i, to_string(110 - i));
-    }
-
-    VectorArithmeticOperations::Add(*lVector, *rVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i].getAsString(), to_string(i) + to_string(110 - i));
-    }
-}
-
-TEST_F(StringArithmeticOperandsInSameDataChunkTest, BigStringTest) {
-    auto lVector = vector1;
-    auto rVector = vector2;
-    auto resultData = (gf_string_t*)result->values;
-    // Fill values before the comparison.
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        lVector->addString(i, to_string(i) + "abcdefabcdefqwert");
-        rVector->addString(i, to_string(110 - i) + "abcdefabcdefqwert");
-    }
-
-    VectorArithmeticOperations::Add(*lVector, *rVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i].getAsString(),
-            to_string(i) + "abcdefabcdefqwert" + to_string(110 - i) + "abcdefabcdefqwert");
-    }
 }
 
 TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredInt64Test) {

@@ -116,8 +116,7 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
         if (right->dataType != STRING) {
             right = castExpressionToString(move(right));
         }
-        return make_shared<Expression>(
-            parsedExpression.getExpressionType(), STRING, move(left), move(right));
+        return make_shared<Expression>(STRING_CONCAT, STRING, move(left), move(right));
     } else if (left->dataType == DATE || right->dataType == DATE) {
         return bindBinaryDateArithmeticExpression(
             parsedExpression.getExpressionType(), move(left), move(right));

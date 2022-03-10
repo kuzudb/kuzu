@@ -1,5 +1,5 @@
 cc_library(
-    name = "vector_list_operations",
+    name = "vector_string_operations",
     srcs = glob([
         "*.cpp",
     ]),
@@ -8,8 +8,10 @@ cc_library(
     ]),
     visibility = [
         "//src/expression_evaluator:__pkg__",
+        "//test/common:__pkg__",
     ],
     deps = [
-        "//src/common:vector",
+        "//src/common:vector_operations",
+        "//src/function/string/operations:string_operations",
     ],
 )

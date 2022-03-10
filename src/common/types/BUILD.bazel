@@ -15,6 +15,7 @@ cc_library(
         "//src/storage:__pkg__",
         "//test/common:__pkg__",
         "//test/loader:__pkg__",
+        "//src/function:__subpackages__",
     ],
     deps = [
         "//src/common:utils",
