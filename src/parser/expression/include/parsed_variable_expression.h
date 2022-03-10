@@ -5,18 +5,17 @@
 namespace graphflow {
 namespace parser {
 
-// Leaf expression can be variable or literal
-class ParsedLeafExpression : public ParsedExpression {
+class ParsedVariableExpression : public ParsedExpression {
 
 public:
-    ParsedLeafExpression(ExpressionType type, string variableName, string raw)
-        : ParsedExpression{type, move(raw)}, variableName{move(variableName)} {}
+    ParsedVariableExpression(string variableName, string raw)
+        : ParsedExpression{VARIABLE, move(raw)}, variableName{move(variableName)} {}
 
     inline string getVariableName() const { return variableName; }
 
     bool equals(const ParsedExpression& other) const override {
         return ParsedExpression::equals(other) &&
-               variableName == ((ParsedLeafExpression&)other).variableName;
+               variableName == ((ParsedVariableExpression&)other).variableName;
     }
 
 private:

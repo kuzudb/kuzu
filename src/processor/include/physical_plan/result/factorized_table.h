@@ -5,7 +5,7 @@
 
 #include "src/common/include/memory_manager.h"
 #include "src/common/include/types.h"
-#include "src/common/include/vector/string_buffer.h"
+#include "src/common/include/vector/overflow_buffer.h"
 #include "src/processor/include/physical_plan/result/flat_tuple.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
 
@@ -143,7 +143,7 @@ public:
 
     void merge(FactorizedTable& other);
 
-    StringBuffer* getStringBuffer() { return stringBuffer.get(); }
+    OverflowBuffer* getOverflowBuffer() { return overflowBuffer.get(); }
 
     bool hasUnflatCol() const;
 
@@ -217,7 +217,7 @@ private:
     uint64_t numTuplesPerBlock;
     vector<unique_ptr<DataBlock>> tupleDataBlocks;
     vector<unique_ptr<DataBlock>> vectorOverflowBlocks;
-    unique_ptr<StringBuffer> stringBuffer;
+    unique_ptr<OverflowBuffer> overflowBuffer;
 };
 
 class FlatTupleIterator {

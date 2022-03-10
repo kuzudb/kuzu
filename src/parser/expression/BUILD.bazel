@@ -18,11 +18,13 @@ cc_library(
 
 cc_library(
     name = "parsed_expression_implementations",
+    srcs = [],
     hdrs = [
         "include/parsed_function_expression.h",
-        "include/parsed_leaf_expression.h",
+        "include/parsed_literal_expression.h",
         "include/parsed_property_expression.h",
         "include/parsed_subquery_expression.h",
+        "include/parsed_variable_expression.h",
     ],
     visibility = [
         "//src/binder:__pkg__",

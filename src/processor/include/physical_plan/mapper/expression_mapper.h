@@ -28,6 +28,10 @@ private:
     unique_ptr<BaseExpressionEvaluator> mapReferenceExpression(
         const shared_ptr<Expression>& expression, const MapperContext& mapperContext);
 
+    unique_ptr<BaseExpressionEvaluator> mapFunctionExpression(
+        const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
+        ExecutionContext& executionContext);
+
     unique_ptr<BaseExpressionEvaluator> mapOperatorExpression(
         const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
         ExecutionContext& executionContext);

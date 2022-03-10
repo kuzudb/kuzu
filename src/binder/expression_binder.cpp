@@ -10,9 +10,10 @@
 #include "src/common/include/timestamp.h"
 #include "src/common/include/types.h"
 #include "src/parser/expression/include/parsed_function_expression.h"
-#include "src/parser/expression/include/parsed_leaf_expression.h"
+#include "src/parser/expression/include/parsed_literal_expression.h"
 #include "src/parser/expression/include/parsed_property_expression.h"
 #include "src/parser/expression/include/parsed_subquery_expression.h"
+#include "src/parser/expression/include/parsed_variable_expression.h"
 
 namespace graphflow {
 namespace binder {
@@ -35,12 +36,12 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         expression = bindStringOperatorExpression(parsedExpression);
     } else if (isExpressionNullComparison(expressionType)) {
         expression = bindNullComparisonOperatorExpression(parsedExpression);
-    } else if (isExpressionLiteral(expressionType)) {
-        expression = bindLiteralExpression(parsedExpression);
     } else if (FUNCTION == expressionType) {
         expression = bindFunctionExpression(parsedExpression);
     } else if (PROPERTY == expressionType) {
         expression = bindPropertyExpression(parsedExpression);
+    } else if (isExpressionLiteral(expressionType)) {
+        expression = bindLiteralExpression(parsedExpression);
     } else if (VARIABLE == expressionType) {
         expression = bindVariableExpression(parsedExpression);
     } else if (EXISTENTIAL_SUBQUERY == expressionType) {
@@ -286,6 +287,8 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
         return bindCeilFunctionExpression(parsedExpression);
     } else if (functionName == INTERVAL_FUNC_NAME) {
         return bindIntervalFunctionExpression(parsedExpression);
+    } else if (functionName == LIST_CREATION_FUNC_NAME) {
+        return bindListCreationFunction(parsedExpression);
     }
     throw invalid_argument(functionName + " function does not exist.");
 }
@@ -376,6 +379,21 @@ shared_ptr<Expression> ExpressionBinder::bindIntervalFunctionExpression(
         CAST_STRING_TO_INTERVAL, LITERAL_INTERVAL, INTERVAL, Interval::FromCString);
 }
 
+shared_ptr<Expression> ExpressionBinder::bindListCreationFunction(
+    const ParsedExpression& parsedExpression) {
+    expression_vector children;
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        children.push_back(bindExpression(*parsedExpression.getChild(i)));
+    }
+    if (!children.empty()) {
+        auto expectedChildDataType = children[0]->dataType;
+        for (auto& child : children) {
+            validateExpectedDataType(*child, unordered_set<DataType>{expectedChildDataType});
+        }
+    }
+    return make_shared<Expression>(LIST_CREATION, LIST, move(children));
+}
+
 template<typename T>
 shared_ptr<Expression> ExpressionBinder::bindStringCastingFunctionExpression(
     const ParsedExpression& parsedExpression, ExpressionType castExpressionType,
@@ -394,8 +412,8 @@ shared_ptr<Expression> ExpressionBinder::bindStringCastingFunctionExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     const ParsedExpression& parsedExpression) {
-    auto& literalExpression = (ParsedLeafExpression&)parsedExpression;
-    auto literalVal = literalExpression.getVariableName();
+    auto& literalExpression = (ParsedLiteralExpression&)parsedExpression;
+    auto literalVal = literalExpression.getValInStr();
     auto literalType = parsedExpression.getExpressionType();
     switch (literalType) {
     case LITERAL_INT:
@@ -408,8 +426,8 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
         return make_shared<LiteralExpression>(
             LITERAL_BOOLEAN, BOOL, Literal(TypeUtils::convertToBoolean(literalVal.c_str())));
     case LITERAL_STRING:
-        return make_shared<LiteralExpression>(
-            LITERAL_STRING, STRING, Literal(literalVal.substr(1, literalVal.size() - 2)));
+        return make_shared<LiteralExpression>(LITERAL_STRING, STRING,
+            Literal(literalVal.substr(1, literalVal.size() - 2) /* strip double quotation */));
     default:
         throw invalid_argument("Literal " + parsedExpression.getRawName() + "is not defined.");
     }
@@ -417,7 +435,7 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
     const ParsedExpression& parsedExpression) {
-    auto& variableExpression = (ParsedLeafExpression&)parsedExpression;
+    auto& variableExpression = (ParsedVariableExpression&)parsedExpression;
     auto variableName = variableExpression.getVariableName();
     if (queryBinder->variablesInScope.contains(variableName)) {
         return queryBinder->variablesInScope.at(variableName);

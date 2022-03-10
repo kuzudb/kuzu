@@ -227,7 +227,7 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeTest) {
     ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), false);
 }
 
-TEST_F(FactorizedTableTest, FactorizedTableMergeStringBufferTest) {
+TEST_F(FactorizedTableTest, FactorizedTableMergeOverflowBufferTest) {
     auto numRowsToAppend = 1000;
     auto resultSet = make_unique<ResultSet>(1);
     auto dataChunk = make_shared<DataChunk>(1);
@@ -257,7 +257,7 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeStringBufferTest) {
     // destructed.
     factorizedTable1.reset();
     // Test whether the string that are inserted after merging will be stored correctly in the
-    // stringBuffer.
+    // overflowBuffer.
     dataChunk->state->currIdx = 0;
     for (auto i = 0u; i < numRowsToAppend; i++) {
         factorizedTable->append({resultSet->dataChunks[0]->valueVectors[0]});

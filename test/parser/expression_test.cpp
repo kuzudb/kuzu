@@ -1,8 +1,9 @@
 #include "gtest/gtest.h"
 
 #include "src/parser/expression/include/parsed_function_expression.h"
-#include "src/parser/expression/include/parsed_leaf_expression.h"
+#include "src/parser/expression/include/parsed_literal_expression.h"
 #include "src/parser/expression/include/parsed_property_expression.h"
+#include "src/parser/expression/include/parsed_variable_expression.h"
 #include "src/parser/include/parser.h"
 
 using namespace graphflow::parser;
@@ -13,32 +14,32 @@ class ExpressionTest : public ::testing::Test {
 
 public:
     static unique_ptr<ParsedExpression> makeAIsStudentExpression() {
-        auto child = make_unique<ParsedLeafExpression>(VARIABLE, "a", EMPTY);
+        auto child = make_unique<ParsedVariableExpression>("a", EMPTY);
         return make_unique<ParsedPropertyExpression>(PROPERTY, "isStudent", move(child), EMPTY);
     }
 
     static unique_ptr<ParsedExpression> makeANameExpression() {
-        auto child = make_unique<ParsedLeafExpression>(VARIABLE, "a", EMPTY);
+        auto child = make_unique<ParsedVariableExpression>("a", EMPTY);
         return make_unique<ParsedPropertyExpression>(PROPERTY, "name", move(child), EMPTY);
     }
 
     static unique_ptr<ParsedExpression> makeAAgeExpression() {
-        auto child = make_unique<ParsedLeafExpression>(VARIABLE, "a", EMPTY);
+        auto child = make_unique<ParsedVariableExpression>("a", EMPTY);
         return make_unique<ParsedPropertyExpression>(PROPERTY, "age", move(child), EMPTY);
     }
 
     static unique_ptr<ParsedExpression> makeBIsMaleExpression() {
-        auto child = make_unique<ParsedLeafExpression>(VARIABLE, "b", EMPTY);
+        auto child = make_unique<ParsedVariableExpression>("b", EMPTY);
         return make_unique<ParsedPropertyExpression>(PROPERTY, "isMale", move(child), EMPTY);
     }
 };
 
 TEST_F(ExpressionTest, FilterIDComparisonTest) {
-    auto a = make_unique<ParsedLeafExpression>(VARIABLE, "a", EMPTY);
-    auto aID = make_unique<ParsedFunctionExpression>(FUNCTION, "id", EMPTY);
+    auto a = make_unique<ParsedVariableExpression>("a", EMPTY);
+    auto aID = make_unique<ParsedFunctionExpression>("id", EMPTY);
     aID->addChild(move(a));
-    auto b = make_unique<ParsedLeafExpression>(VARIABLE, "b", EMPTY);
-    auto bID = make_unique<ParsedFunctionExpression>(FUNCTION, "id", EMPTY);
+    auto b = make_unique<ParsedVariableExpression>("b", EMPTY);
+    auto bID = make_unique<ParsedFunctionExpression>("id", EMPTY);
     bID->addChild(move(b));
     auto where = make_unique<ParsedExpression>(EQUALS, move(aID), move(bID), EMPTY);
 
@@ -80,7 +81,7 @@ TEST_F(ExpressionTest, FilterStringOperatorTest) {
     auto aIsStudentAndBIsMale =
         make_unique<ParsedExpression>(AND, move(aIsStudent), move(bIsMale), EMPTY);
     auto aName = makeANameExpression();
-    auto xiyang = make_unique<ParsedLeafExpression>(LITERAL_STRING, "\"Xiyang\"", EMPTY);
+    auto xiyang = make_unique<ParsedLiteralExpression>(LITERAL_STRING, "\"Xiyang\"", EMPTY);
     auto aNameContainsXiyang =
         make_unique<ParsedExpression>(CONTAINS, move(aName), move(xiyang), EMPTY);
     auto where = make_unique<ParsedExpression>(
@@ -94,9 +95,9 @@ TEST_F(ExpressionTest, FilterStringOperatorTest) {
 }
 
 TEST_F(ExpressionTest, FilterArithmeticComparisonTest) {
-    auto a = make_unique<ParsedLeafExpression>(VARIABLE, "a", EMPTY);
-    auto two = make_unique<ParsedLeafExpression>(LITERAL_INT, "2", EMPTY);
-    auto pointOne = make_unique<ParsedLeafExpression>(LITERAL_DOUBLE, "0.1", EMPTY);
+    auto a = make_unique<ParsedVariableExpression>("a", EMPTY);
+    auto two = make_unique<ParsedLiteralExpression>(LITERAL_INT, "2", EMPTY);
+    auto pointOne = make_unique<ParsedLiteralExpression>(LITERAL_DOUBLE, "0.1", EMPTY);
     auto multi = make_unique<ParsedExpression>(MULTIPLY, move(a), move(pointOne), EMPTY);
     auto left = make_unique<ParsedExpression>(ADD, move(two), move(multi), EMPTY);
     auto aAge = makeAAgeExpression();
@@ -109,9 +110,9 @@ TEST_F(ExpressionTest, FilterArithmeticComparisonTest) {
 }
 
 TEST_F(ExpressionTest, FilterParenthesizeTest) {
-    auto a = make_unique<ParsedLeafExpression>(VARIABLE, "a", EMPTY);
-    auto two = make_unique<ParsedLeafExpression>(LITERAL_INT, "2", EMPTY);
-    auto pointOne = make_unique<ParsedLeafExpression>(LITERAL_DOUBLE, "0.1", EMPTY);
+    auto a = make_unique<ParsedVariableExpression>("a", EMPTY);
+    auto two = make_unique<ParsedLiteralExpression>(LITERAL_INT, "2", EMPTY);
+    auto pointOne = make_unique<ParsedLiteralExpression>(LITERAL_DOUBLE, "0.1", EMPTY);
     auto sub = make_unique<ParsedExpression>(SUBTRACT, move(two), move(a), EMPTY);
     auto left = make_unique<ParsedExpression>(MODULO, move(sub), move(pointOne), EMPTY);
     auto aAge = makeAAgeExpression();
@@ -124,11 +125,11 @@ TEST_F(ExpressionTest, FilterParenthesizeTest) {
 }
 
 TEST_F(ExpressionTest, FilterFunctionMultiParamsTest) {
-    auto a = make_unique<ParsedLeafExpression>(VARIABLE, "a", EMPTY);
-    auto b = make_unique<ParsedLeafExpression>(VARIABLE, "b", EMPTY);
-    auto two = make_unique<ParsedLeafExpression>(LITERAL_INT, "2", EMPTY);
+    auto a = make_unique<ParsedVariableExpression>("a", EMPTY);
+    auto b = make_unique<ParsedVariableExpression>("b", EMPTY);
+    auto two = make_unique<ParsedLiteralExpression>(LITERAL_INT, "2", EMPTY);
     auto bPowerTwo = make_unique<ParsedExpression>(POWER, move(b), move(two), EMPTY);
-    auto where = make_unique<ParsedFunctionExpression>(FUNCTION, "MIN", EMPTY);
+    auto where = make_unique<ParsedFunctionExpression>("MIN", EMPTY);
     where->addChild(move(a));
     where->addChild(move(bPowerTwo));
 

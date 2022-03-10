@@ -24,7 +24,7 @@ bool ScanUnstructuredProperty::getNextTuples() {
         return false;
     }
     for (auto& vector : outputVectors) {
-        vector->resetStringBuffer();
+        vector->resetOverflowBuffer();
     }
     unstructuredPropertyLists->readProperties(
         inputNodeIDVector.get(), propertyKeyToResultVectorMap);

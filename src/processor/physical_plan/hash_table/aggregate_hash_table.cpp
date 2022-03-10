@@ -103,7 +103,7 @@ void AggregateHashTable::merge(AggregateHashTable& other) {
             aggregateOffset += aggregateFunction->getAggregateStateSize();
         }
     }
-    factorizedTable->getStringBuffer()->merge(*other.factorizedTable->getStringBuffer());
+    factorizedTable->getOverflowBuffer()->merge(*other.factorizedTable->getOverflowBuffer());
 }
 
 void AggregateHashTable::finalizeAggregateStates() {

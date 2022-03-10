@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 
+#include "src/common/include/gf_list.h"
 #include "src/common/include/gf_string.h"
 #include "src/common/include/types.h"
 
@@ -41,14 +42,16 @@ public:
 
 public:
     union Val {
+        constexpr Val() : booleanVal{false} {}
         bool booleanVal;
         int64_t int64Val;
         double doubleVal;
-        gf_string_t strVal{};
+        gf_string_t strVal;
         nodeID_t nodeID;
         date_t dateVal;
         timestamp_t timestampVal;
         interval_t intervalVal;
+        gf_list_t listVal;
     } val;
     // Note: dataType cannot be UNSTRUCTURED. Any Value has a fixed known data type.
     DataType dataType;

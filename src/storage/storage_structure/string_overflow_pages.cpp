@@ -9,17 +9,18 @@ void StringOverflowPages::readStringsToVector(ValueVector& valueVector) {
     for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
         auto pos = valueVector.state->selectedPositions[i];
         if (!valueVector.isNull(pos)) {
-            readStringToVector(((gf_string_t*)valueVector.values)[pos], *valueVector.stringBuffer);
+            readStringToVector(
+                ((gf_string_t*)valueVector.values)[pos], *valueVector.overflowBuffer);
         }
     }
 }
 
-void StringOverflowPages::readStringToVector(gf_string_t& gfStr, StringBuffer& stringBuffer) {
+void StringOverflowPages::readStringToVector(gf_string_t& gfStr, OverflowBuffer& overflowBuffer) {
     PageByteCursor cursor;
     if (!gf_string_t::isShortString(gfStr.len)) {
         gfStr.getOverflowPtrInfo(cursor.idx, cursor.offset);
         auto frame = bufferManager.pin(fileHandle, cursor.idx);
-        stringBuffer.allocateLargeStringIfNecessary(gfStr, gfStr.len);
+        overflowBuffer.allocateLargeStringIfNecessary(gfStr, gfStr.len);
         gfStr.set((char*)frame + cursor.offset, gfStr.len);
         bufferManager.unpin(fileHandle, cursor.idx);
     }

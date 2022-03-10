@@ -5,7 +5,7 @@
 #include "src/common/include/data_chunk/data_chunk_state.h"
 #include "src/common/include/literal.h"
 #include "src/common/include/types.h"
-#include "src/common/include/vector/string_buffer.h"
+#include "src/common/include/vector/overflow_buffer.h"
 
 namespace graphflow {
 namespace common {
@@ -35,13 +35,14 @@ public:
     // srcData/dstData are pointing to a Value
     void copyNonNullDataWithSameTypeIntoPos(uint64_t pos, uint8_t* srcData);
     void copyNonNullDataWithSameTypeOutFromPos(
-        uint64_t pos, uint8_t* dstData, StringBuffer& dstStringBuffer) const;
+        uint64_t pos, uint8_t* dstData, OverflowBuffer& dstOverflowBuffer) const;
     void addString(uint64_t pos, string value) const;
     void addString(uint64_t pos, char* value, uint64_t len) const;
     void addLiteralToStructuredVector(uint64_t pos, const Literal& literal) const;
     void addLiteralToUnstructuredVector(uint64_t pos, const Literal& value) const;
     void addGFStringToUnstructuredVector(uint64_t pos, const gf_string_t& value) const;
     void allocateStringOverflowSpaceIfNecessary(gf_string_t& result, uint64_t len) const;
+    void allocateListOverflow(gf_list_t& list) { overflowBuffer->allocateList(list); }
 
     inline void setAllNull() {
         std::fill(nullMask->mask.get(), nullMask->mask.get() + state->originalSize, true);
@@ -70,9 +71,9 @@ public:
 
     inline uint8_t isNull(uint32_t pos) const { return nullMask->mask[pos]; }
 
-    inline shared_ptr<NullMask> getNullMask() const { return nullMask; }
     inline uint64_t getNumBytesPerValue() const { return TypeUtils::getDataTypeSize(dataType); }
 
+    // TODO: move this to adj column extend
     bool discardNullNodes();
 
     inline node_offset_t readNodeOffset(uint64_t pos) const {
@@ -80,20 +81,24 @@ public:
         return ((nodeID_t*)values)[pos].offset;
     }
 
-    inline void resetStringBuffer() {
-        if (stringBuffer) {
-            stringBuffer->resetBuffer();
+    inline void resetOverflowBuffer() {
+        if (overflowBuffer) {
+            overflowBuffer->resetBuffer();
         }
     }
 
 private:
+    inline bool needOverflowBuffer() const {
+        return dataType == STRING || dataType == LIST || dataType == UNSTRUCTURED;
+    }
+
     void copyNonNullDataWithSameType(
-        const uint8_t* srcData, uint8_t* dstData, StringBuffer& stringBuffer) const;
+        const uint8_t* srcData, uint8_t* dstData, OverflowBuffer& overflowBuffer) const;
 
 public:
     DataType dataType;
     uint8_t* values;
-    unique_ptr<StringBuffer> stringBuffer;
+    unique_ptr<OverflowBuffer> overflowBuffer;
     shared_ptr<DataChunkState> state;
 
 private:

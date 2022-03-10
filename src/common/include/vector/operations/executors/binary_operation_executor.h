@@ -173,7 +173,7 @@ struct BinaryOperationExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
-        result.resetStringBuffer();
+        result.resetOverflowBuffer();
         if (left.state->isFlat() && right.state->isFlat()) {
             executeBothFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(left, right, result);
         } else if (left.state->isFlat() && !right.state->isFlat()) {

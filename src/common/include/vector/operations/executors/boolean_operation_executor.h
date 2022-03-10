@@ -17,7 +17,6 @@ struct BinaryBooleanOperationExecutor {
         assert(left.dataType == BOOL);
         assert(right.dataType == BOOL);
         assert(result.dataType == BOOL);
-        result.resetStringBuffer();
         if (left.state->isFlat() && right.state->isFlat()) {
             executeBothFlat<FUNC>(left, right, result);
         } else if (left.state->isFlat() && !right.state->isFlat()) {

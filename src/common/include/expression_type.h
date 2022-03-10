@@ -25,6 +25,8 @@ const string TIMESTAMP_FUNC_NAME = "TIMESTAMP";
 const string FLOOR_FUNC_NAME = "FLOOR";
 const string CEIL_FUNC_NAME = "CEIL";
 const string INTERVAL_FUNC_NAME = "INTERVAL";
+const string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
+const string LIST_EXTRACT_FUNC_NAME = "LIST_EXTRACT";
 
 enum ExpressionType : uint8_t {
 
@@ -67,7 +69,8 @@ enum ExpressionType : uint8_t {
     /**
      * List Operator Expressions works only for CSV Line
      */
-    CSV_LINE_EXTRACT = 45,
+    LIST_CREATION = 45,
+    LIST_EXTRACT = 46,
 
     /**
      * Null Operator Expressions
@@ -138,6 +141,7 @@ bool isExpressionNullComparison(ExpressionType type);
 bool isExpressionLiteral(ExpressionType type);
 bool isExpressionAggregate(ExpressionType type);
 bool isExpressionSubquery(ExpressionType type);
+bool isExpressionListFunction(ExpressionType type);
 
 string expressionTypeToString(ExpressionType type);
 

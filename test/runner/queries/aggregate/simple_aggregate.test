@@ -45,7 +45,7 @@ False
 ---- 1
 455|0|4.935714|52
 
--NAME StringBufferTest
+-NAME OverflowBufferTest
 -QUERY MATCH (a:person) RETURN a.fName as name, COUNT(*) order by name desc
 -PARALLELISM 1
 ---- 8

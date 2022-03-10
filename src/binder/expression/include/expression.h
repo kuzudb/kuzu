@@ -20,13 +20,17 @@ using expression_vector = vector<shared_ptr<Expression>>;
 class Expression : public enable_shared_from_this<Expression> {
 
 public:
+    Expression(ExpressionType expressionType, DataType dataType, expression_vector children);
+
     // Create binary expression.
     Expression(ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& left,
-        const shared_ptr<Expression>& right);
+        const shared_ptr<Expression>& right)
+        : Expression{expressionType, dataType, expression_vector{left, right}} {}
 
     // Create unary expression.
     Expression(
-        ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child);
+        ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child)
+        : Expression{expressionType, dataType, expression_vector{child}} {}
 
     // Create leaf expression with unique name
     Expression(ExpressionType expressionType, DataType dataType, const string& uniqueName);

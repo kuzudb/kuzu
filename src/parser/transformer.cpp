@@ -1,9 +1,10 @@
 #include "src/parser/include/transformer.h"
 
 #include "expression/include/parsed_function_expression.h"
-#include "expression/include/parsed_leaf_expression.h"
+#include "expression/include/parsed_literal_expression.h"
 #include "expression/include/parsed_property_expression.h"
 #include "expression/include/parsed_subquery_expression.h"
+#include "expression/include/parsed_variable_expression.h"
 
 #include "src/common/include/utils.h"
 
@@ -430,8 +431,10 @@ unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     CypherParser::OC_ListOperatorExpressionContext& ctx,
     unique_ptr<ParsedExpression> propertyExpression) {
     auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
-    return make_unique<ParsedExpression>(CSV_LINE_EXTRACT, move(propertyExpression),
-        transformExpression(*ctx.oC_Expression()), rawExpression);
+    auto listExtract =
+        make_unique<ParsedFunctionExpression>(LIST_EXTRACT_FUNC_NAME, move(rawExpression));
+    listExtract->addChild(transformExpression(*ctx.oC_Expression()));
+    return listExtract;
 }
 
 unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
@@ -468,8 +471,8 @@ unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_AtomCon
     } else if (ctx.oC_ExistentialSubquery()) {
         return transformExistentialSubquery(*ctx.oC_ExistentialSubquery());
     } else if (ctx.oC_Variable()) {
-        return make_unique<ParsedLeafExpression>(
-            VARIABLE, transformVariable(*ctx.oC_Variable()), ctx.getText());
+        return make_unique<ParsedVariableExpression>(
+            transformVariable(*ctx.oC_Variable()), ctx.getText());
     } else {
         throw invalid_argument("Unable to parse AtomContext.");
     }
@@ -481,10 +484,12 @@ unique_ptr<ParsedExpression> Transformer::transformLiteral(CypherParser::OC_Lite
     } else if (ctx.oC_BooleanLiteral()) {
         return transformBooleanLiteral(*ctx.oC_BooleanLiteral());
     } else if (ctx.StringLiteral()) {
-        return make_unique<ParsedLeafExpression>(
+        return make_unique<ParsedLiteralExpression>(
             LITERAL_STRING, ctx.StringLiteral()->getText(), ctx.getText());
     } else if (ctx.NULL_()) {
-        return make_unique<ParsedLeafExpression>(LITERAL_NULL, string(), ctx.getText());
+        return make_unique<ParsedLiteralExpression>(LITERAL_NULL, string(), ctx.getText());
+    } else if (ctx.oC_ListLiteral()) {
+        return transformListLiteral(*ctx.oC_ListLiteral());
     } else {
         throw invalid_argument("Unable to parse LiteralContext.");
     }
@@ -493,12 +498,22 @@ unique_ptr<ParsedExpression> Transformer::transformLiteral(CypherParser::OC_Lite
 unique_ptr<ParsedExpression> Transformer::transformBooleanLiteral(
     CypherParser::OC_BooleanLiteralContext& ctx) {
     if (ctx.TRUE()) {
-        return make_unique<ParsedLeafExpression>(LITERAL_BOOLEAN, "true", ctx.getText());
+        return make_unique<ParsedLiteralExpression>(LITERAL_BOOLEAN, "true", ctx.getText());
     } else if (ctx.FALSE()) {
-        return make_unique<ParsedLeafExpression>(LITERAL_BOOLEAN, "false", ctx.getText());
+        return make_unique<ParsedLiteralExpression>(LITERAL_BOOLEAN, "false", ctx.getText());
     } else {
         throw invalid_argument("Unable to parse BooleanLiteralContext.");
     }
+}
+
+unique_ptr<ParsedExpression> Transformer::transformListLiteral(
+    CypherParser::OC_ListLiteralContext& ctx) {
+    auto listCreation =
+        make_unique<ParsedFunctionExpression>(LIST_CREATION_FUNC_NAME, ctx.getText());
+    for (auto& childExpr : ctx.oC_Expression()) {
+        listCreation->addChild(transformExpression(*childExpr));
+    }
+    return listCreation;
 }
 
 unique_ptr<ParsedExpression> Transformer::transformParenthesizedExpression(
@@ -512,10 +527,10 @@ unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     if (ctx.STAR()) {
         StringUtils::toUpper(functionName);
         assert(functionName == "COUNT");
-        return make_unique<ParsedFunctionExpression>(FUNCTION, COUNT_STAR_FUNC_NAME, ctx.getText());
+        return make_unique<ParsedFunctionExpression>(COUNT_STAR_FUNC_NAME, ctx.getText());
     }
     auto expression = make_unique<ParsedFunctionExpression>(
-        FUNCTION, functionName, ctx.getText(), ctx.DISTINCT() != nullptr);
+        functionName, ctx.getText(), ctx.DISTINCT() != nullptr);
     for (auto& childExpr : ctx.oC_Expression()) {
         expression->addChild(transformExpression(*childExpr));
     }
@@ -557,13 +572,13 @@ string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNameCon
 
 unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx) {
-    return make_unique<ParsedLeafExpression>(
+    return make_unique<ParsedLiteralExpression>(
         LITERAL_INT, ctx.DecimalInteger()->getText(), ctx.getText());
 }
 
 unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
-    return make_unique<ParsedLeafExpression>(
+    return make_unique<ParsedLiteralExpression>(
         LITERAL_DOUBLE, ctx.RegularDecimalReal()->getText(), ctx.getText());
 }
 

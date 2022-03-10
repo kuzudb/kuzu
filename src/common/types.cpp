@@ -70,6 +70,8 @@ size_t TypeUtils::getDataTypeSize(DataType dataType) {
         return sizeof(timestamp_t);
     case INTERVAL:
         return sizeof(interval_t);
+    case LIST:
+        return sizeof(gf_list_t);
     default:
         throw invalid_argument(
             "Cannot infer the size of dataType: " + dataTypeToString(dataType) + ".");
