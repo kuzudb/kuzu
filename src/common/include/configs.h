@@ -7,9 +7,6 @@ namespace common {
 
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY = 2048;
 
-// Size (in bytes) of the chunks to be read in GraphLoader.
-constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
-
 // Currently the system supports files with 2 different pages size, which we refer to as
 // DEFAULT_PAGE_SIZE and LARGE_PAGE_SIZE. Default size of the page which is the unit of read/write
 // to the database files, such as to store columns or lists. For now, this value cannot be changed.
@@ -39,6 +36,7 @@ constexpr const uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 100;
 struct StorageConfig {
     // The default amount of memory pre-allocated to the buffer pool (= 2MB).
     static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 21;
+    static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
 };
 
 // Hash Index Configurations
@@ -47,8 +45,13 @@ struct HashIndexConfig {
 };
 
 struct LoaderConfig {
+    // Size (in bytes) of the chunks to be read in GraphLoader.
+    static constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
+
     static constexpr char UNSTR_PROPERTY_SEPARATOR[] = ":";
+    static constexpr char PROPERTY_DATATYPE_SEPARATOR[] = ":";
     static constexpr char DEFAULT_METADATA_JSON_FILENAME[] = "metadata.json";
+    constexpr static char COMMENT_LINE_CHAR = '#';
 
     // mandatory fields in input CSV files
     static constexpr char ID_FIELD[] = "ID";
@@ -56,11 +59,14 @@ struct LoaderConfig {
     static constexpr char END_ID_FIELD[] = "END_ID";
     static constexpr char START_ID_LABEL_FIELD[] = "START_ID_LABEL";
     static constexpr char END_ID_LABEL_FIELD[] = "END_ID_LABEL";
+    static constexpr char LIST_FIELD_SUFFIX[] = "[]";
 
-    // Default special characters
+    // Default configuration for csv file parsing
     static constexpr char DEFAULT_ESCAPE_CHAR = '\\';
     static constexpr char DEFAULT_TOKEN_SEPARATOR = ',';
     static constexpr char DEFAULT_QUOTE_CHAR = '"';
+    static constexpr char DEFAULT_LIST_BEGIN_CHAR = '[';
+    static constexpr char DEFAULT_LIST_END_CHAR = ']';
 };
 
 } // namespace common

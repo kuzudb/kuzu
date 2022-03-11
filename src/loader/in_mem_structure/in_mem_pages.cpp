@@ -71,33 +71,86 @@ void InMemUnstrPropertyPages::setComponentOfUnstrProperty(
     }
 }
 
-void InMemStringOverflowPages::setStrInOvfPageAndPtrInEncString(
-    const char* originalString, PageByteCursor& cursor, gf_string_t* encodedString) {
-    encodedString->len = strlen(originalString);
-    memcpy(&encodedString->prefix, originalString, min(encodedString->len, 4u));
-    if (encodedString->len <= 4) {
-        return;
+gf_string_t InMemOverflowPages::addString(const char* originalString, PageByteCursor& cursor) {
+    gf_string_t encodedString;
+    encodedString.len = strlen(originalString);
+    memcpy(&encodedString.prefix, originalString, min(encodedString.len, 4u));
+    if (encodedString.len <= 4) {
+        return encodedString;
     }
-    if (encodedString->len > 4 && encodedString->len <= 12) {
-        memcpy(&encodedString->data, originalString + 4, encodedString->len - 4);
-        return;
+    if (encodedString.len > 4 && encodedString.len <= 12) {
+        memcpy(&encodedString.data, originalString + 4, encodedString.len - 4);
+        return encodedString;
     }
-    copyOverflowString(cursor, (uint8_t*)originalString, encodedString);
+    copyOverflowString(cursor, (uint8_t*)originalString, &encodedString);
+    return encodedString;
 }
 
-void InMemStringOverflowPages::copyOverflowString(
+gf_list_t InMemOverflowPages::addList(const Literal& listVal, PageByteCursor& cursor) {
+    assert(!listVal.listVal.empty());
+    gf_list_t result;
+    result.childType = listVal.listVal[0].dataType;
+    auto numBytesOfSingleValue = TypeUtils::getDataTypeSize(result.childType);
+    result.size = listVal.listVal.size();
+    result.capacity = result.size;
+    if (cursor.offset + (result.size * numBytesOfSingleValue) >= DEFAULT_PAGE_SIZE ||
+        0 > cursor.idx) {
+        cursor.offset = 0;
+        cursor.idx = getNewOverflowPageIdx();
+    }
+    TypeUtils::encodeOverflowPtr(result.overflowPtr, cursor.idx, cursor.offset);
+    shared_lock lck(lock);
+    switch (result.childType) {
+    case INT64:
+    case DOUBLE:
+    case BOOL:
+    case DATE:
+    case TIMESTAMP:
+    case INTERVAL: {
+        for (auto& literal : listVal.listVal) {
+            assert(literal.dataType == result.childType);
+            pages[cursor.idx]->write(
+                cursor.offset, cursor.offset, (uint8_t*)&literal.val, numBytesOfSingleValue);
+            cursor.offset += numBytesOfSingleValue;
+        }
+    } break;
+    case STRING: {
+        auto gfStrOverflowPageId = cursor.idx;
+        auto gfStrOverflowPageOffset = cursor.offset;
+        cursor.offset += (result.size * numBytesOfSingleValue); // Skip gf_strings.
+        vector<gf_string_t> gfStrings;
+        // Add original strings.
+        for (auto& literal : listVal.listVal) {
+            assert(literal.dataType == STRING);
+            gfStrings.push_back(addString(literal.strVal.c_str(), cursor));
+        }
+        // Write gf_strings.
+        for (auto i = 0u; i < listVal.listVal.size(); i++) {
+            pages[gfStrOverflowPageId]->write(gfStrOverflowPageOffset + (i * numBytesOfSingleValue),
+                gfStrOverflowPageOffset + (i * numBytesOfSingleValue), (uint8_t*)&gfStrings[i],
+                numBytesOfSingleValue);
+        }
+    } break;
+    default: {
+        throw invalid_argument("Unsupported data type inside LIST.");
+    }
+    }
+    return result;
+}
+
+void InMemOverflowPages::copyOverflowString(
     PageByteCursor& cursor, uint8_t* ptrToCopy, gf_string_t* encodedString) {
     if (cursor.offset + encodedString->len - 4 >= DEFAULT_PAGE_SIZE || 0 > cursor.idx) {
         cursor.offset = 0;
         cursor.idx = getNewOverflowPageIdx();
     }
     shared_lock lck(lock);
-    encodedString->setOverflowPtrInfo(cursor.idx, cursor.offset);
+    TypeUtils::encodeOverflowPtr(encodedString->overflowPtr, cursor.idx, cursor.offset);
     pages[cursor.idx]->write(cursor.offset, cursor.offset, ptrToCopy, encodedString->len);
     cursor.offset += encodedString->len;
 }
 
-uint32_t InMemStringOverflowPages::getNewOverflowPageIdx() {
+uint32_t InMemOverflowPages::getNewOverflowPageIdx() {
     unique_lock lck(lock);
     auto page = numUsedPages++;
     if (numUsedPages != pages.size()) {
@@ -120,7 +173,7 @@ uint32_t InMemStringOverflowPages::getNewOverflowPageIdx() {
     return page;
 }
 
-void InMemStringOverflowPages::saveToFile() {
+void InMemOverflowPages::saveToFile() {
     if (0 == fName.length()) {
         throw invalid_argument("InMemPages: Empty filename");
     }

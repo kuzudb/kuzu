@@ -6,6 +6,7 @@
 #include "nlohmann/json.hpp"
 
 #include "src/common/include/configs.h"
+#include "src/common/include/csv_reader/csv_reader.h"
 #include "src/common/types/include/types.h"
 
 using namespace std;
@@ -14,32 +15,20 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace loader {
 
-struct CSVSpecialChars {
-
-    CSVSpecialChars()
-        : escapeChar{LoaderConfig::DEFAULT_ESCAPE_CHAR},
-          tokenSeparator{LoaderConfig::DEFAULT_TOKEN_SEPARATOR},
-          quoteChar{LoaderConfig::DEFAULT_QUOTE_CHAR} {};
-
-    char escapeChar;
-    char tokenSeparator;
-    char quoteChar;
-};
-
 struct LabelFileDescription {
 protected:
-    LabelFileDescription(string filePath, string labelName, CSVSpecialChars& csvSpecialChars)
-        : filePath{move(filePath)}, labelName{move(labelName)}, csvSpecialChars{csvSpecialChars} {}
+    LabelFileDescription(string filePath, string labelName, const CSVReaderConfig& csvReaderConfig)
+        : filePath{move(filePath)}, labelName{move(labelName)}, csvReaderConfig{csvReaderConfig} {}
 
 public:
     string filePath;
     string labelName;
-    CSVSpecialChars csvSpecialChars;
+    CSVReaderConfig csvReaderConfig;
 };
 
 struct NodeFileDescription : public LabelFileDescription {
     NodeFileDescription(
-        string filePath, string labelName, DataType IDType, CSVSpecialChars& csvSpecialChars)
+        string filePath, string labelName, DataType IDType, CSVReaderConfig& csvSpecialChars)
         : LabelFileDescription{move(filePath), move(labelName), csvSpecialChars}, IDType{IDType} {}
 
     DataType IDType;
@@ -48,7 +37,7 @@ struct NodeFileDescription : public LabelFileDescription {
 struct RelFileDescription : public LabelFileDescription {
     RelFileDescription(string filePath, string labelName, string relMultiplicity,
         vector<string> srcNodeLabelNames, vector<string> dstNodeLabelNames,
-        CSVSpecialChars& csvSpecialChars)
+        CSVReaderConfig& csvSpecialChars)
         : LabelFileDescription{move(filePath), move(labelName), csvSpecialChars},
           relMultiplicity{move(relMultiplicity)}, srcNodeLabelNames{move(srcNodeLabelNames)},
           dstNodeLabelNames{std::move(dstNodeLabelNames)} {}
@@ -64,7 +53,7 @@ public:
     void parseJson(unique_ptr<nlohmann::json>& parsedJson, const string& inputDirectory);
 
 private:
-    static void getSpecialChars(nlohmann::json& parsedJson, CSVSpecialChars& specialChars);
+    static void getSpecialChars(nlohmann::json& parsedJson, CSVReaderConfig& config);
 
     static void getSpecialChar(nlohmann::json& parsedJson, const string& key, char& val);
 

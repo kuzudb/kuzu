@@ -9,7 +9,7 @@
 #include "src/common/include/vector/value_vector.h"
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/storage_structure/string_overflow_pages.h"
+#include "src/storage/include/storage_structure/overflow_pages.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -197,13 +197,13 @@ private:
     // used only when the hash index is instantiated in the write mode
     vector<unique_ptr<uint8_t[]>> primaryPages{};
     vector<unique_ptr<uint8_t[]>> ovfPages{};
-    unique_ptr<InMemStringOverflowPages> inMemStringOvfPages;
+    unique_ptr<InMemOverflowPages> inMemStringOvfPages;
     PageByteCursor stringOvfPageCursor;
 
     // used only when the hash index is instantiated in the read mode.
     unique_ptr<FileHandle> fileHandle;
     BufferManager* bufferManager{};
-    unique_ptr<StringOverflowPages> stringOvfPages;
+    unique_ptr<OverflowPages> stringOvfPages;
 };
 
 } // namespace storage

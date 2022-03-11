@@ -82,7 +82,8 @@ TEST_F(LoaderNodePropertyTest, NodeStructuredStringPropertyTest) {
     auto column = reinterpret_cast<StringPropertyColumn*>(
         defaultSystem->graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id));
     string fName = getInputCSVDir() + "vPerson.csv";
-    CSVReader csvReader(fName, ',', '"', '\\');
+    CSVReaderConfig config;
+    CSVReader csvReader(fName, config);
     int lineIdx = 0;
     csvReader.hasNextLine();
     csvReader.skipLine();

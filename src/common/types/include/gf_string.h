@@ -25,9 +25,6 @@ struct gf_string_t {
 
     gf_string_t() : len{0}, overflowPtr{0} {}
 
-    void setOverflowPtrInfo(const uint64_t& pageIdx, const uint16_t& pageOffset);
-    void getOverflowPtrInfo(uint64_t& pageIdx, uint16_t& pageOffset) const;
-
     static bool isShortString(uint32_t len) { return len <= SHORT_STR_LENGTH; }
 
     inline const uint8_t* getData() const {

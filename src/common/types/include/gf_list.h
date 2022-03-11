@@ -8,9 +8,9 @@ namespace common {
 struct gf_list_t {
 
 public:
-    gf_list_t() : childType{INVALID}, capacity{0}, size{0}, overflowPtr{nullptr} {}
+    gf_list_t() : childType{INVALID}, capacity{0}, size{0}, overflowPtr{0} {}
 
-    void copyOverflow(const gf_list_t& other);
+    void set(const gf_list_t& other);
 
     string toString() const;
 
@@ -21,7 +21,7 @@ public:
     DataType childType;
     uint64_t capacity;
     uint64_t size;
-    uint8_t* overflowPtr;
+    uint64_t overflowPtr;
 };
 
 } // namespace common

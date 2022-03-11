@@ -32,7 +32,7 @@ class InMemAdjAndPropertyListsBuilder : public InMemStructuresBuilderForRels, pu
     typedef vector<vector<vector<unique_ptr<InMemPropertyPages>>>>
         directionLabelPropertyIdxPropertyLists_t;
 
-    typedef vector<vector<vector<unique_ptr<InMemStringOverflowPages>>>>
+    typedef vector<vector<vector<unique_ptr<InMemOverflowPages>>>>
         directionLabelPropertyIdxStringOverflowPages_t;
 
 public:
@@ -70,7 +70,9 @@ public:
     // Sets a string property in the propertyList of the given nodeID in a particular
     // RelPropertyLists structure.
     void setStringProperty(const vector<uint64_t>& pos, const vector<nodeID_t>& nodeIDs,
-        const uint32_t& propertyIdx, const char* strVal, PageByteCursor& stringOverflowCursor);
+        uint32_t propertyIdx, const char* strVal, PageByteCursor& stringOverflowCursor);
+    void setListProperty(const vector<uint64_t>& pos, const vector<nodeID_t>& nodeIDs,
+        uint32_t propertyIdx, const Literal& listVal, PageByteCursor& listOverflowCursor);
 
     void sortOverflowStrings(LoaderProgressBar* progressBar) override;
 
@@ -87,8 +89,8 @@ private:
 
     static void sortOverflowStringsOfPropertyListsTask(node_offset_t offsetStart,
         node_offset_t offsetEnd, InMemPropertyPages* propertyLists, ListHeaders* adjListsHeaders,
-        ListsMetadata* listsMetadata, InMemStringOverflowPages* unorderedStringOverflowPages,
-        InMemStringOverflowPages* orderedStringOverflowPages, LoaderProgressBar* progressBar);
+        ListsMetadata* listsMetadata, InMemOverflowPages* unorderedStringOverflowPages,
+        InMemOverflowPages* orderedStringOverflowPages, LoaderProgressBar* progressBar);
 
 private:
     directionLabelListSizes_t directionLabelListSizes{2};
@@ -100,7 +102,7 @@ private:
     directionLabelPropertyIdxPropertyListsMetadata_t directionLabelPropertyIdxPropertyListsMetadata{
         2};
     directionLabelPropertyIdxPropertyLists_t directionLabelPropertyIdxPropertyLists{2};
-    unique_ptr<vector<unique_ptr<InMemStringOverflowPages>>> propertyIdxUnordStringOverflowPages;
+    unique_ptr<vector<unique_ptr<InMemOverflowPages>>> propertyIdxUnordStringOverflowPages;
     unique_ptr<directionLabelPropertyIdxStringOverflowPages_t>
         directionLabelPropertyIdxStringOverflowPages;
     LoaderProgressBar* progressBar;

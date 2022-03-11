@@ -12,12 +12,12 @@ namespace loader {
 
 void DatasetMetadata::parseJson(
     unique_ptr<nlohmann::json>& parsedJson, const string& inputDirectory) {
-    CSVSpecialChars globalSpecialChars;
-    getSpecialChars(*parsedJson, globalSpecialChars);
+    CSVReaderConfig globalConfig;
+    getSpecialChars(*parsedJson, globalConfig);
     auto parsedNodeFileDescriptions = parsedJson->at("nodeFileDescriptions");
     for (auto parsedNodeFileDescription : parsedNodeFileDescriptions) {
-        auto labelSpecificSpecialChars{globalSpecialChars};
-        getSpecialChars(parsedNodeFileDescription, labelSpecificSpecialChars);
+        auto labelSpecificConfig{globalConfig};
+        getSpecialChars(parsedNodeFileDescription, labelSpecificConfig);
         auto filename = parsedNodeFileDescription.at("filename").get<string>();
         DataType IDType;
         if (parsedNodeFileDescription.contains("IDType")) {
@@ -31,11 +31,11 @@ void DatasetMetadata::parseJson(
             IDType = STRING;
         }
         nodeFileDescriptions.emplace_back(FileUtils::joinPath(inputDirectory, filename),
-            parsedNodeFileDescription.at("label").get<string>(), IDType, labelSpecificSpecialChars);
+            parsedNodeFileDescription.at("label").get<string>(), IDType, labelSpecificConfig);
     }
     auto parsedRelFileDescriptions = parsedJson->at("relFileDescriptions");
     for (auto parsedRelFileDescription : parsedRelFileDescriptions) {
-        auto labelSpecificSpecialChars{globalSpecialChars};
+        auto labelSpecificSpecialChars{globalConfig};
         getSpecialChars(parsedRelFileDescription, labelSpecificSpecialChars);
         vector<string> srcNodeLabelNames, dstNodeLabelNames;
         for (auto& parsedSrcNodeLabel : parsedRelFileDescription.at("srcNodeLabels")) {
@@ -52,10 +52,13 @@ void DatasetMetadata::parseJson(
     }
 }
 
-void DatasetMetadata::getSpecialChars(nlohmann::json& parsedJson, CSVSpecialChars& specialChars) {
-    getSpecialChar(parsedJson, "tokenSeparator", specialChars.tokenSeparator);
-    getSpecialChar(parsedJson, "quoteCharacter", specialChars.quoteChar);
-    getSpecialChar(parsedJson, "escapeCharacter", specialChars.escapeChar);
+void DatasetMetadata::getSpecialChars(
+    nlohmann::json& parsedJson, CSVReaderConfig& csvReaderConfig) {
+    getSpecialChar(parsedJson, "tokenSeparator", csvReaderConfig.tokenSeparator);
+    getSpecialChar(parsedJson, "quoteCharacter", csvReaderConfig.quoteChar);
+    getSpecialChar(parsedJson, "escapeCharacter", csvReaderConfig.escapeChar);
+    getSpecialChar(parsedJson, "listBeginCharacter", csvReaderConfig.listBeginChar);
+    getSpecialChar(parsedJson, "listEndCharacter", csvReaderConfig.listEndChar);
 }
 
 void DatasetMetadata::getSpecialChar(nlohmann::json& parsedJson, const string& key, char& val) {

@@ -3,9 +3,9 @@
 namespace graphflow {
 namespace loader {
 
-void ColumnUtils::calcPageElementCursor(
-    const uint8_t& numBytesPerElement, const node_offset_t& nodeOffset, PageElementCursor& cursor) {
-    cursor = PageUtils::getPageElementCursorForOffset(
+PageElementCursor ColumnUtils::calcPageElementCursor(
+    const uint8_t& numBytesPerElement, const node_offset_t& nodeOffset) {
+    return PageUtils::getPageElementCursorForOffset(
         nodeOffset, PageUtils::getNumElementsInAPageWithNULLBytes(numBytesPerElement));
 }
 

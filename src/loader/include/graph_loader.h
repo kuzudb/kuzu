@@ -33,12 +33,14 @@ private:
     void readCSVHeaderAndCalcNumBlocks(const vector<string>& filePaths,
         vector<uint64_t>& numBlocksPerFile, vector<string>& fileHeaders);
 
-    void verifyColHeaderDefinitionsForNodeFile(vector<PropertyDefinition>& colHeaderDefinitions,
+    static void verifyColHeaderDefinitionsForNodeFile(
+        vector<PropertyDefinition>& colHeaderDefinitions,
         const NodeFileDescription& fileDescription);
     void addNodeLabelsIntoGraphCatalog(
         const vector<NodeFileDescription>& fileDescriptions, vector<string>& fileHeaders);
 
-    void verifyColHeaderDefinitionsForRelFile(vector<PropertyDefinition>& colHeaderDefinitions);
+    static void verifyColHeaderDefinitionsForRelFile(
+        vector<PropertyDefinition>& colHeaderDefinitions);
     void addRelLabelsIntoGraphCatalog(
         const vector<RelFileDescription>& fileDescriptions, vector<string>& fileHeaders);
 
@@ -57,7 +59,7 @@ private:
     // Concurrent Tasks
 
     static void countLinesAndScanUnstrPropertiesInBlockTask(const string& fName,
-        const CSVSpecialChars& csvSpecialChars, uint32_t numStructuredProperties,
+        const CSVReaderConfig& csvReaderConfig, uint32_t numStructuredProperties,
         unordered_set<string>* unstrPropertyNameSet, vector<vector<uint64_t>>* numLinesPerBlock,
         label_t label, uint32_t blockId, const shared_ptr<spdlog::logger>& logger,
         LoaderProgressBar* progressBar);

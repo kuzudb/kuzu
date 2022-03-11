@@ -29,20 +29,25 @@ RelMultiplicity getRelMultiplicity(const string& relMultiplicityString);
 
 // A PropertyDefinition consists of its name, dataType, id and isPrimaryKey. If the property is
 // unstructured, then the dataType is UNSTRUCTURED, otherwise it is one of those supported by the
-// system.
+// system. If the property is a LIST, the definition has a child data type, e.g., for INT64[], the
+// dataType is LIST, and the one of the child (childDataType) is INT64.
 struct PropertyDefinition {
 
 public:
-    PropertyDefinition() : id{-1u}, dataType{UNSTRUCTURED}, isPrimaryKey{false} {};
+    PropertyDefinition()
+        : id{-1u}, dataType{INVALID}, isPrimaryKey{false}, childDataType{INVALID} {};
 
-    PropertyDefinition(string name, uint32_t id, DataType dataType)
-        : name{move(name)}, id{id}, dataType{dataType}, isPrimaryKey{false} {};
+    PropertyDefinition(
+        string name, uint32_t id, DataType dataType, DataType childDataType = INVALID)
+        : name{move(name)}, id{id}, dataType{dataType}, isPrimaryKey{false}, childDataType{
+                                                                                 childDataType} {};
 
 public:
     string name;
     uint32_t id;
     DataType dataType;
     bool isPrimaryKey;
+    DataType childDataType;
 };
 
 struct LabelDefinition {
@@ -144,7 +149,7 @@ public:
     virtual const PropertyDefinition& getRelProperty(
         label_t labelId, const string& propertyName) const;
 
-    const vector<PropertyDefinition> getAllNodeProperties(label_t nodeLabel) const;
+    vector<PropertyDefinition> getAllNodeProperties(label_t nodeLabel) const;
     inline const vector<PropertyDefinition>& getStructuredNodeProperties(label_t nodeLabel) const {
         return nodeLabels[nodeLabel].structuredProperties;
     }

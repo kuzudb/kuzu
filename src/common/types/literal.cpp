@@ -30,6 +30,9 @@ Literal::Literal(const Literal& other) : dataType{other.dataType} {
     case STRING: {
         strVal = other.strVal;
     } break;
+    case LIST: {
+        listVal = other.listVal;
+    } break;
     default:
         assert(false);
     }
@@ -53,6 +56,18 @@ string Literal::toString() const {
         return Interval::toString(val.intervalVal);
     case STRING:
         return strVal;
+    case LIST: {
+        if (listVal.empty()) {
+            return "[]";
+        }
+        string result = "[";
+        for (auto i = 0u; i < listVal.size() - 1; i++) {
+            result += listVal[i].toString() + ",";
+        }
+        result += listVal[listVal.size() - 1].toString();
+        result += "]";
+        return result;
+    }
     default:
         assert(false);
     }

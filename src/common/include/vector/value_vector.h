@@ -102,7 +102,6 @@ public:
     shared_ptr<DataChunkState> state;
 
 private:
-    MemoryManager* memoryManager;
     unique_ptr<OSBackedMemoryBlock> bufferValues;
     // This is a shared pointer because sometimes ValueVectors may share NullMasks, e.g., the result
     // ValueVectors of unary expressions, point to the nullMasks of operands.

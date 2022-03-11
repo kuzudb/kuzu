@@ -22,21 +22,34 @@ public:
 
     static bool isNumericalType(DataType dataType);
 
-    static string toString(bool boolVal) { return boolVal ? "True" : "False"; }
+    static inline string toString(bool boolVal) { return boolVal ? "True" : "False"; }
 
-    static string toString(int64_t val) { return to_string(val); }
+    static inline string toString(int64_t val) { return to_string(val); }
 
-    static string toString(double val) { return to_string(val); }
+    static inline string toString(double val) { return to_string(val); }
 
-    static string toString(nodeID_t val) {
+    static inline string toString(nodeID_t val) {
         return to_string(val.label) + ":" + to_string(val.offset);
     }
 
-    static string toString(date_t val) { return Date::toString(val); }
+    static inline string toString(date_t val) { return Date::toString(val); }
 
-    static string toString(timestamp_t val) { return Timestamp::toString(val); }
+    static inline string toString(timestamp_t val) { return Timestamp::toString(val); }
 
-    static string toString(interval_t val) { return Interval::toString(val); }
+    static inline string toString(interval_t val) { return Interval::toString(val); }
+
+    static inline void encodeOverflowPtr(
+        uint64_t& overflowPtr, uint64_t pageIdx, uint16_t pageOffset) {
+        memcpy(&overflowPtr, &pageIdx, 6);
+        memcpy(((uint8_t*)&overflowPtr) + 6, &pageOffset, 2);
+    }
+
+    static inline void decodeOverflowPtr(
+        uint64_t overflowPtr, uint64_t& pageIdx, uint16_t& pageOffset) {
+        pageIdx = 0;
+        memcpy(&pageIdx, &overflowPtr, 6);
+        memcpy(&pageOffset, ((uint8_t*)&overflowPtr) + 6, 2);
+    }
 
 private:
     static void throwConversionExceptionOutOfRange(const char* data, DataType dataType);

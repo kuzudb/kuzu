@@ -19,7 +19,7 @@ namespace loader {
 // RelPropertyColumns) and finally save the in-mem data structures to the disk.
 class InMemAdjAndPropertyColumnsBuilder : public InMemStructuresBuilderForRels, public ColumnUtils {
 
-    typedef vector<vector<unique_ptr<InMemStringOverflowPages>>> labelPropertyIdxStringOverflow_t;
+    typedef vector<vector<unique_ptr<InMemOverflowPages>>> labelPropertyIdxOverflowPages_t;
     typedef vector<vector<unique_ptr<InMemPropertyPages>>> labelPropertyIdxPropertyColumn_t;
     typedef vector<vector<unique_ptr<InMemAdjPages>>> directionLabelAdjColumn_t;
 
@@ -39,6 +39,8 @@ public:
     // Sets a string property of a rel in RelPropertyColumn at a given nodeID.
     void setStringProperty(const nodeID_t& nodeID, const uint32_t& propertyIdx, const char* val,
         PageByteCursor& cursor);
+    void setListProperty(const nodeID_t& nodeID, const uint32_t& propertyIdx,
+        const Literal& listVal, PageByteCursor& cursor);
 
     void sortOverflowStrings(LoaderProgressBar* progressBar) override;
 
@@ -52,13 +54,13 @@ private:
 
     static void sortOverflowStringsOfPropertyColumnTask(node_offset_t offsetStart,
         node_offset_t offsetEnd, InMemPropertyPages* propertyColumn,
-        InMemStringOverflowPages* unorderedStringOverflow,
-        InMemStringOverflowPages* orderedStringOverflow, LoaderProgressBar* progressBar);
+        InMemOverflowPages* unorderedStringOverflow, InMemOverflowPages* orderedStringOverflow,
+        LoaderProgressBar* progressBar);
 
 private:
     directionLabelAdjColumn_t dirLabelAdjColumns{2};
 
-    labelPropertyIdxStringOverflow_t labelPropertyIdxStringOverflowPages;
+    labelPropertyIdxOverflowPages_t labelPropertyIdxOverflowPages;
     labelPropertyIdxPropertyColumn_t labelPropertyIdxPropertyColumn;
 };
 

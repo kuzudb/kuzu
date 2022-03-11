@@ -21,7 +21,7 @@ public:
     void write(
         uint32_t pageOffset, uint32_t posInPage, const uint8_t* value, uint32_t numBytesForValue);
 
-    uint8_t* getPtrToMemLoc(uint32_t pageOffset) { return data + pageOffset; }
+    inline uint8_t* getPtrToMemLoc(uint32_t pageOffset) const { return data + pageOffset; }
 
     void encodeNULLBytes();
 

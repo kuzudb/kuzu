@@ -7,8 +7,9 @@
 namespace graphflow {
 namespace common {
 
-void gf_list_t::copyOverflow(const gf_list_t& other) {
-    memcpy(overflowPtr, other.overflowPtr, size * TypeUtils::getDataTypeSize(childType));
+void gf_list_t::set(const gf_list_t& other) {
+    memcpy(reinterpret_cast<uint8_t*>(overflowPtr), reinterpret_cast<uint8_t*>(other.overflowPtr),
+        size * TypeUtils::getDataTypeSize(childType));
 }
 
 string gf_list_t::toString() const {

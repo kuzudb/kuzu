@@ -1,8 +1,8 @@
 #pragma once
 
 #include "src/common/types/include/literal.h"
+#include "src/storage/include/storage_structure/overflow_pages.h"
 #include "src/storage/include/storage_structure/storage_structure.h"
-#include "src/storage/include/storage_structure/string_overflow_pages.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -47,7 +47,22 @@ public:
     Literal readValue(node_offset_t offset) override;
 
 private:
-    StringOverflowPages stringOverflowPages;
+    OverflowPages stringOverflowPages;
+};
+
+class ListPropertyColumn : public Column {
+
+public:
+    ListPropertyColumn(const string& fName, const uint64_t& numElements,
+        BufferManager& bufferManager, bool isInMemory, DataType childDataType)
+        : Column{fName, LIST, sizeof(gf_list_t), numElements, bufferManager, isInMemory},
+          listOverflowPages{fName, bufferManager, isInMemory}, childDataType{childDataType} {};
+
+    Literal readValue(node_offset_t offset) override;
+
+private:
+    OverflowPages listOverflowPages;
+    DataType childDataType;
 };
 
 class AdjColumn : public Column {
@@ -71,7 +86,8 @@ class ColumnFactory {
 
 public:
     static unique_ptr<Column> getColumn(const string& fName, const DataType& dataType,
-        const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory) {
+        const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory,
+        const DataType& childDataType) {
         switch (dataType) {
         case INT64:
         case DOUBLE:
@@ -83,6 +99,9 @@ public:
                 numElements, bufferManager, isInMemory);
         case STRING:
             return make_unique<StringPropertyColumn>(fName, numElements, bufferManager, isInMemory);
+        case LIST:
+            return make_unique<ListPropertyColumn>(
+                fName, numElements, bufferManager, isInMemory, childDataType);
         default:
             throw invalid_argument("Invalid type for property column creation.");
         }

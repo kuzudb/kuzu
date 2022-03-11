@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include "src/common/include/configs.h"
+#include "src/common/types/include/literal.h"
 #include "src/common/types/include/types_include.h"
 
 using namespace std;
@@ -9,20 +11,34 @@ using namespace std;
 namespace graphflow {
 namespace common {
 
-const string PROPERTY_DATATYPE_SEPARATOR = ":";
+struct CSVReaderConfig {
+    CSVReaderConfig()
+        : escapeChar{LoaderConfig::DEFAULT_ESCAPE_CHAR},
+          tokenSeparator{LoaderConfig::DEFAULT_TOKEN_SEPARATOR},
+          quoteChar{LoaderConfig::DEFAULT_QUOTE_CHAR},
+          listBeginChar{LoaderConfig::DEFAULT_LIST_BEGIN_CHAR},
+          listEndChar{LoaderConfig::DEFAULT_LIST_END_CHAR} {}
 
+    char escapeChar;
+    char tokenSeparator;
+    char quoteChar;
+    char listBeginChar;
+    char listEndChar;
+};
+
+// todo(Guodong): we should add a csv reader test to test edge cases and error messages.
 // Iterator-like interface to read one block in a CSV file line-by-line while parsing into primitive
 // dataTypes.
 class CSVReader {
 
 public:
-    constexpr static char COMMENT_LINE_CHAR = '#';
     // Initializes to read a block in file.
-    CSVReader(const string& fname, const char tokenSeparator, const char quoteChar,
-        const char escapeChar, uint64_t blockId);
-    // Intializes to read the complete file.
-    CSVReader(const string& fname, const char tokenSeparator, const char quoteChar,
-        const char escapeChar);
+    CSVReader(const string& fname, const CSVReaderConfig& csvReaderConfig, uint64_t blockId);
+    // Initializes to read the complete file.
+    CSVReader(const string& fname, const CSVReaderConfig& csvReaderConfig);
+    // Initializes to read a part of a line.
+    CSVReader(
+        char* line, uint64_t lineLen, int64_t linePtrStart, const CSVReaderConfig& csvReaderConfig);
 
     ~CSVReader();
 
@@ -48,23 +64,22 @@ public:
     date_t getDate();
     timestamp_t getTimestamp();
     interval_t getInterval();
+    Literal getList(DataType childDataType);
 
 private:
     void openFile(const string& fName);
-    void setNextTokenIsNotProcessed();
+    void setNextTokenIsProcessed();
 
 private:
     FILE* fd;
-    const char tokenSeparator;
-    const char quoteChar;
-    const char escapeChar;
-    bool nextLineIsNotProcessed = false, isEndOfBlock = false, nextTokenIsNotProcessed = false;
+    const CSVReaderConfig& config;
+    // todo(Guodong): should `nextLineIsNotProcessed` be renamed as `prevLineIsNotProcessed`?
+    bool nextLineIsNotProcessed, isEndOfBlock, nextTokenIsNotProcessed;
     char* line;
-    size_t lineCapacity = 1 << 10, lineLen = 0;
-    int64_t linePtrStart = -1l, linePtrEnd = -1l;
-    size_t readingBlockIdx;
-    size_t readingBlockEndIdx;
-    uint64_t nextTokenLen = -1;
+    size_t lineCapacity, lineLen;
+    int64_t linePtrStart, linePtrEnd;
+    size_t readingBlockStartOffset, readingBlockEndOffset;
+    uint64_t nextTokenLen;
 };
 
 } // namespace common

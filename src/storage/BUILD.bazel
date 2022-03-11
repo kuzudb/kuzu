@@ -39,13 +39,13 @@ cc_library(
     srcs = [
         "storage_structure/lists/utils.cpp",
         "storage_structure/storage_structure.cpp",
-        "storage_structure/string_overflow_pages.cpp",
+        "storage_structure/overflow_pages.cpp",
     ],
     hdrs = [
         "include/storage_structure/lists/utils.h",
         "include/storage_structure/storage_structure.h",
         "include/storage_structure/storage_structure_utils.h",
-        "include/storage_structure/string_overflow_pages.h",
+        "include/storage_structure/overflow_pages.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

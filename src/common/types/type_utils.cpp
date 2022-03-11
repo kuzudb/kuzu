@@ -68,8 +68,9 @@ DataType TypeUtils::getDataType(const std::string& dataTypeString) {
         return TIMESTAMP;
     } else if ("INTERVAL" == dataTypeString) {
         return INTERVAL;
+    } else {
+        throw invalid_argument("Cannot parse dataType: " + dataTypeString);
     }
-    throw invalid_argument("Cannot parse dataType: " + dataTypeString);
 }
 
 string TypeUtils::dataTypeToString(DataType dataType) {
