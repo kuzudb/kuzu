@@ -1,6 +1,6 @@
 #include "include/list_functions.h"
 
-#include "src/common/include/gf_list.h"
+#include "src/common/types/include/gf_list.h"
 
 namespace graphflow {
 namespace function {

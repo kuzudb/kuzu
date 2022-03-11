@@ -5,9 +5,6 @@
 
 #include "src/common/include/configs.h"
 #include "src/common/include/exception.h"
-#include "src/common/include/gf_string.h"
-#include "src/common/include/timestamp.h"
-#include "src/common/include/types.h"
 #include "src/common/include/utils.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/processor/include/physical_plan/result/factorized_table.h"

@@ -3,7 +3,7 @@
 #include <functional>
 
 #include "src/common/include/operations/boolean_operations.h"
-#include "src/common/include/value.h"
+#include "src/common/types/include/value.h"
 
 namespace graphflow {
 namespace common {

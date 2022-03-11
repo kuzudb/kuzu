@@ -2,6 +2,7 @@
 
 #include "src/common/include/exception.h"
 #include "src/common/include/file_utils.h"
+#include "src/common/types/include/type_utils.h"
 
 using namespace std;
 using namespace graphflow::common;

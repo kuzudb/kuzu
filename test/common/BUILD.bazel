@@ -26,7 +26,7 @@ cc_test(
         "-Iexternal/gtest/include",
     ],
     deps = [
-        "//src/common:types",
+        "//src/common/types",
         "@gtest",
         "@gtest//:gtest_main",
     ],

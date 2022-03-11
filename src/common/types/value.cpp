@@ -1,11 +1,8 @@
-#include "src/common/include/value.h"
+#include "include/value.h"
 
 #include <cassert>
 
-#include "src/common/include/date.h"
-#include "src/common/include/interval.h"
-#include "src/common/include/timestamp.h"
-#include "src/common/include/types.h"
+#include "include/type_utils.h"
 
 using namespace std;
 
@@ -39,7 +36,6 @@ Value& Value::operator=(const Value& other) {
     default:
         assert(false);
     }
-
     return *this;
 }
 
@@ -56,11 +52,11 @@ string Value::toString() const {
     case NODE:
         return TypeUtils::toString(val.nodeID);
     case DATE:
-        return Date::toString(val.dateVal);
+        return TypeUtils::toString(val.dateVal);
     case TIMESTAMP:
-        return Timestamp::toString(val.timestampVal);
+        return TypeUtils::toString(val.timestampVal);
     case INTERVAL:
-        return Interval::toString(val.intervalVal);
+        return TypeUtils::toString(val.intervalVal);
     case LIST:
         return val.listVal.toString();
     default:

@@ -1,9 +1,8 @@
-#include "src/common/include/literal.h"
+#include "include/literal.h"
 
-#include "src/common/include/assert.h"
-#include "src/common/include/date.h"
-#include "src/common/include/interval.h"
-#include "src/common/include/timestamp.h"
+#include <cassert>
+
+#include "include/type_utils.h"
 
 namespace graphflow {
 namespace common {
@@ -32,7 +31,7 @@ Literal::Literal(const Literal& other) : dataType{other.dataType} {
         strVal = other.strVal;
     } break;
     default:
-        GF_ASSERT(false);
+        assert(false);
     }
 }
 
@@ -55,10 +54,8 @@ string Literal::toString() const {
     case STRING:
         return strVal;
     default:
-        GF_ASSERT(false);
+        assert(false);
     }
-    // Should never happen. Add empty return to remove compilation warning.
-    return string();
 }
 
 void Literal::castToString() {
@@ -73,13 +70,13 @@ void Literal::castToString() {
         strVal = TypeUtils::toString(val.doubleVal);
     } break;
     case DATE: {
-        strVal = Date::toString(val.dateVal);
+        strVal = TypeUtils::toString(val.dateVal);
     } break;
     case TIMESTAMP: {
-        strVal = Timestamp::toString(val.timestampVal);
+        strVal = TypeUtils::toString(val.timestampVal);
     } break;
     default:
-        GF_ASSERT(false);
+        assert(false);
     }
     dataType = STRING;
 }

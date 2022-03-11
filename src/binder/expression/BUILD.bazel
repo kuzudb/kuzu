@@ -14,7 +14,7 @@ cc_library(
     ],
     deps = [
         "//src/common:expression_type",
-        "//src/common:types",
+        "//src/common/types",
     ],
 )
 

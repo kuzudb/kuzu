@@ -1,6 +1,5 @@
 #include "include/operator_evaluator.h"
 
-#include "src/common/include/value.h"
 #include "src/common/include/vector/operations/vector_arithmetic_operations.h"
 #include "src/common/include/vector/operations/vector_boolean_operations.h"
 #include "src/common/include/vector/operations/vector_cast_operations.h"

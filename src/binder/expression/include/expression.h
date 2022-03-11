@@ -6,7 +6,7 @@
 #include <unordered_set>
 
 #include "src/common/include/expression_type.h"
-#include "src/common/include/types.h"
+#include "src/common/types/include/types_include.h"
 
 using namespace graphflow::common;
 using namespace std;

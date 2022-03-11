@@ -1,7 +1,6 @@
 #pragma once
 
 #include "src/common/include/operations/hash_operations.h"
-#include "src/common/include/types.h"
 #include "src/processor/include/physical_plan/hash_table/join_hash_table.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/operator/sink.h"

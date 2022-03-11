@@ -3,7 +3,7 @@
 #include "include/gtest/gtest.h"
 
 #include "src/common/include/exception.h"
-#include "src/common/include/types.h"
+#include "src/common/types/include/type_utils.h"
 
 using namespace graphflow::common;
 using namespace std;

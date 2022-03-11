@@ -4,7 +4,6 @@
 #include <unordered_map>
 
 #include "src/common/include/memory_manager.h"
-#include "src/common/include/types.h"
 #include "src/common/include/vector/overflow_buffer.h"
 #include "src/processor/include/physical_plan/result/flat_tuple.h"
 #include "src/processor/include/physical_plan/result/result_set.h"

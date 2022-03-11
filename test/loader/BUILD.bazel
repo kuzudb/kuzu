@@ -14,7 +14,7 @@ cc_test(
         "//dataset",
     ],
     deps = [
-        "//src/common:types",
+        "//src/common/types",
         "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",

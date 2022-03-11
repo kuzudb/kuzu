@@ -4,7 +4,8 @@
 #include <memory>
 #include <vector>
 
-#include "src/common/include/types.h"
+#include "src/common/include/configs.h"
+#include "src/common/types/include/types.h"
 
 using namespace std;
 

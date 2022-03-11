@@ -1,6 +1,7 @@
 #include "src/binder/include/query_binder.h"
 
 #include "src/binder/expression/include/literal_expression.h"
+#include "src/common/types/include/type_utils.h"
 
 namespace graphflow {
 namespace binder {

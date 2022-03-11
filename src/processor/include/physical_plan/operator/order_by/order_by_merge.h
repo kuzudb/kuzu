@@ -1,6 +1,5 @@
 #pragma once
 
-#include "src/common/include/types.h"
 #include "src/processor/include/physical_plan/operator/order_by/order_by.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/operator/sink.h"

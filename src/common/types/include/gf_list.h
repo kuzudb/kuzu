@@ -1,22 +1,16 @@
 #pragma once
 
-#include <cassert>
-
-#include "src/common/include/types.h"
+#include "types.h"
 
 namespace graphflow {
 namespace common {
 
-class gf_list_t {
-    friend class ValueVector;
-    friend class OverflowBuffer;
+struct gf_list_t {
 
 public:
     gf_list_t() : childType{INVALID}, capacity{0}, size{0}, overflowPtr{nullptr} {}
 
-    void copyOverflow(const gf_list_t& other) {
-        memcpy(overflowPtr, other.overflowPtr, size * TypeUtils::getDataTypeSize(childType));
-    }
+    void copyOverflow(const gf_list_t& other);
 
     string toString() const;
 

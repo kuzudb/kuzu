@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "src/common/include/value.h"
+#include "src/common/types/include/value.h"
 
 using namespace graphflow::common;
 

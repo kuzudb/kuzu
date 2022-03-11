@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/common/include/types.h"
+#include "src/common/types/include/types_include.h"
 #include "src/storage/include/storage_structure/storage_structure_utils.h"
 
 using namespace graphflow::storage;

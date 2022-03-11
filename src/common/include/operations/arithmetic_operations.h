@@ -3,10 +3,7 @@
 #include <cmath>
 #include <cstdlib>
 
-#include "src/common/include/date.h"
-#include "src/common/include/interval.h"
-#include "src/common/include/timestamp.h"
-#include "src/common/include/value.h"
+#include "src/common/types/include/value.h"
 
 namespace graphflow {
 namespace common {

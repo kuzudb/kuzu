@@ -8,8 +8,8 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/file_utils.h"
 #include "src/common/include/ser_deser.h"
-#include "src/common/include/types.h"
 #include "src/common/include/utils.h"
+#include "src/common/types/include/types_include.h"
 
 using namespace graphflow::common;
 using namespace std;

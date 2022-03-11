@@ -33,7 +33,7 @@ cc_library(
         "expression_type",
         "memory_manager",
         "operations",
-        "types",
+        "//src/common/types",
         "//src/storage:buffer_manager",
     ],
 )
@@ -79,7 +79,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "types",
+        "//src/common/types",
     ],
 )
 
@@ -90,7 +90,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "configs",
-        "types",
+        "//src/common/types",
     ],
 )
 
@@ -111,37 +111,6 @@ cc_library(
     deps = [
         "@gabime_spdlog",
         "@martinus_robin_hood_hashing",
-    ],
-)
-
-cc_library(
-    name = "types",
-    srcs = [
-        "date.cpp",
-        "gf_list.cpp",
-        "gf_string.cpp",
-        "interval.cpp",
-        "literal.cpp",
-        "time.cpp",
-        "timestamp.cpp",
-        "types.cpp",
-        "value.cpp",
-    ],
-    hdrs = [
-        "include/cast_helpers.h",
-        "include/date.h",
-        "include/gf_list.h",
-        "include/gf_string.h",
-        "include/interval.h",
-        "include/literal.h",
-        "include/time.h",
-        "include/timestamp.h",
-        "include/types.h",
-        "include/value.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "utils",
     ],
 )
 

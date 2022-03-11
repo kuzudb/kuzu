@@ -6,7 +6,6 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/file_utils.h"
 #include "src/common/include/memory_manager.h"
-#include "src/common/include/types.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/storage/include/buffer_manager.h"

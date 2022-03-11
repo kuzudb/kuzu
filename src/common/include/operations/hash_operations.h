@@ -3,10 +3,9 @@
 #include <cstdint>
 #include <unordered_set>
 
-#include "src/common/include/gf_string.h"
-#include "src/common/include/types.h"
 #include "src/common/include/utils.h"
-#include "src/common/include/value.h"
+#include "src/common/types/include/type_utils.h"
+#include "src/common/types/include/value.h"
 
 namespace graphflow {
 namespace common {

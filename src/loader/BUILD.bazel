@@ -35,7 +35,7 @@ cc_library(
         "in_mem_pages",
         "//src/common:csv_reader",
         "//src/common:task_system",
-        "//src/common:types",
+        "//src/common/types",
         "//src/storage:graph",
         "@gabime_spdlog",
         "@martinus_robin_hood_hashing",

@@ -3,9 +3,9 @@
 #include <cassert>
 
 #include "src/common/include/data_chunk/data_chunk_state.h"
-#include "src/common/include/literal.h"
-#include "src/common/include/types.h"
 #include "src/common/include/vector/overflow_buffer.h"
+#include "src/common/types/include/literal.h"
+#include "src/common/types/include/type_utils.h"
 
 namespace graphflow {
 namespace common {

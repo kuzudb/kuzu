@@ -1,7 +1,5 @@
 #include "src/storage/include/storage_structure/lists/lists.h"
 
-#include "src/common/include/value.h"
-
 using namespace graphflow::common;
 
 namespace graphflow {

@@ -1,13 +1,42 @@
-#include "src/common/include/interval.h"
+#include "include/interval_t.h"
 
-#include "src/common/include/cast_helpers.h"
+#include "include/cast_helpers.h"
+
 #include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
 
-using namespace std;
-
 namespace graphflow {
 namespace common {
+
+bool interval_t::operator>(const interval_t& rhs) const {
+    return Interval::GreaterThan(*this, rhs);
+}
+
+interval_t interval_t::operator+(const interval_t& rhs) const {
+    interval_t result{};
+    result.months = months + rhs.months;
+    result.days = days + rhs.days;
+    result.micros = micros + rhs.micros;
+    return result;
+}
+
+interval_t interval_t::operator-(const interval_t& rhs) const {
+    interval_t result{};
+    result.months = months - rhs.months;
+    result.days = days - rhs.days;
+    result.micros = micros - rhs.micros;
+    return result;
+}
+
+interval_t interval_t::operator/(const uint64_t& rhs) const {
+    interval_t result{};
+    int32_t monthsRemainder = months % rhs;
+    int32_t daysRemainder = (days + monthsRemainder * Interval::DAYS_PER_MONTH) % rhs;
+    result.months = months / rhs;
+    result.days = (days + monthsRemainder * Interval::DAYS_PER_MONTH) / rhs;
+    result.micros = (micros + daysRemainder * Interval::MICROS_PER_DAY) / rhs;
+    return result;
+}
 
 void Interval::addition(interval_t& result, uint64_t number, string specifierStr) {
     StringUtils::toLower(specifierStr);

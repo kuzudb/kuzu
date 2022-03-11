@@ -1,10 +1,6 @@
 #include "gtest/gtest.h"
 #include "test/test_utility/include/test_helper.h"
 
-#include "src/common/include/date.h"
-#include "src/common/include/time.h"
-#include "src/common/include/timestamp.h"
-
 using namespace std;
 using namespace graphflow::common;
 using namespace graphflow::storage;

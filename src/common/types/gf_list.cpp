@@ -1,13 +1,15 @@
 #include "include/gf_list.h"
 
-#include "include/gf_string.h"
+#include <cassert>
 
-#include "src/common/include/date.h"
-#include "src/common/include/interval.h"
-#include "src/common/include/timestamp.h"
+#include "include/type_utils.h"
 
 namespace graphflow {
 namespace common {
+
+void gf_list_t::copyOverflow(const gf_list_t& other) {
+    memcpy(overflowPtr, other.overflowPtr, size * TypeUtils::getDataTypeSize(childType));
+}
 
 string gf_list_t::toString() const {
     string result = "[";
@@ -18,8 +20,6 @@ string gf_list_t::toString() const {
     return result;
 }
 
-// TODO: Refactor this function into TypeUtils after refactoring type.h. Together with the function
-// in Value.cpp
 string gf_list_t::elementToString(uint64_t pos) const {
     switch (childType) {
     case BOOL:
@@ -29,11 +29,11 @@ string gf_list_t::elementToString(uint64_t pos) const {
     case DOUBLE:
         return TypeUtils::toString(((double_t*)overflowPtr)[pos]);
     case DATE:
-        return Date::toString(((date_t*)overflowPtr)[pos]);
+        return TypeUtils::toString(((date_t*)overflowPtr)[pos]);
     case TIMESTAMP:
-        return Timestamp::toString(((timestamp_t*)overflowPtr)[pos]);
+        return TypeUtils::toString(((timestamp_t*)overflowPtr)[pos]);
     case INTERVAL:
-        return Interval::toString(((interval_t*)overflowPtr)[pos]);
+        return TypeUtils::toString(((interval_t*)overflowPtr)[pos]);
     default:
         assert(false);
     }

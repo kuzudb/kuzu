@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "src/common/include/types.h"
+#include "src/common/types/include/types_include.h"
 
 namespace graphflow {
 namespace common {
