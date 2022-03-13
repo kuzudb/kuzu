@@ -21,7 +21,8 @@ InMemAdjAndPropertyListsBuilder::InMemAdjAndPropertyListsBuilder(RelLabelDescrip
     }
 }
 
-void InMemAdjAndPropertyListsBuilder::buildAdjListsHeadersAndListsMetadata() {
+void InMemAdjAndPropertyListsBuilder::buildAdjListsHeadersAndListsMetadata(
+    LoaderProgressBar* progressBar) {
     for (auto& direction : DIRECTIONS) {
         directionLabelAdjListHeaders[direction].resize(graph.getCatalog().getNodeLabelsCount());
         for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
@@ -40,8 +41,8 @@ void InMemAdjAndPropertyListsBuilder::buildAdjListsHeadersAndListsMetadata() {
             }
         }
     }
-    initAdjListHeaders();
-    initAdjListsAndPropertyListsMetadata();
+    initAdjListHeaders(progressBar);
+    initAdjListsAndPropertyListsMetadata(progressBar);
 }
 
 void InMemAdjAndPropertyListsBuilder::buildInMemStructures() {
@@ -89,7 +90,7 @@ void InMemAdjAndPropertyListsBuilder::setStringProperty(const vector<uint64_t>& 
     setProperty(pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&gfString), STRING);
 }
 
-void InMemAdjAndPropertyListsBuilder::sortOverflowStrings() {
+void InMemAdjAndPropertyListsBuilder::sortOverflowStrings(LoaderProgressBar* progressBar) {
     logger->debug("Ordering String Rel PropertyList.");
     directionLabelPropertyIdxStringOverflowPages =
         make_unique<directionLabelPropertyIdxStringOverflowPages_t>(2);
@@ -114,6 +115,11 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStrings() {
                     }
                     node_offset_t offsetStart = 0, offsetEnd = 0;
                     auto idx = property.id;
+                    progressBar->addAndStartNewJob(
+                        "Sorting overflow string buckets for property: " +
+                            graph.getCatalog().getRelLabelName(description.label) + "." +
+                            property.name,
+                        numBuckets);
                     for (auto bucketIdx = 0u; bucketIdx < numBuckets; bucketIdx++) {
                         offsetStart = offsetEnd;
                         offsetEnd = min(offsetStart + 256, numNodes);
@@ -126,19 +132,23 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStrings() {
                             (*propertyIdxUnordStringOverflowPages)[idx].get(),
                             (*directionLabelPropertyIdxStringOverflowPages)[direction][nodeLabel]
                                                                            [idx]
-                                                                               .get()));
+                                                                               .get(),
+                            progressBar));
                     }
+                    taskScheduler.waitAllTasksToCompleteOrError();
                 }
             }
         }
     }
-    taskScheduler.waitAllTasksToCompleteOrError();
     propertyIdxUnordStringOverflowPages.reset();
     logger->debug("Done ordering String Rel PropertyList.");
 }
 
-void InMemAdjAndPropertyListsBuilder::saveToFile() {
+void InMemAdjAndPropertyListsBuilder::saveToFile(LoaderProgressBar* progressBar) {
     logger->debug("Writing AdjLists and Rel Property Lists to disk.");
+    progressBar->addAndStartNewJob("Writing adjacency lists to disk for relationship: " +
+                                       graph.getCatalog().getRelLabelName(description.label),
+        1);
     for (auto& direction : DIRECTIONS) {
         if (!description.isSingleMultiplicityPerDirection[direction]) {
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
@@ -186,11 +196,15 @@ void InMemAdjAndPropertyListsBuilder::saveToFile() {
         }
     }
     taskScheduler.waitAllTasksToCompleteOrError();
+    progressBar->incrementTaskFinished();
     logger->debug("Done writing AdjLists and Rel Property Lists to disk.");
 }
 
-void InMemAdjAndPropertyListsBuilder::initAdjListHeaders() {
+void InMemAdjAndPropertyListsBuilder::initAdjListHeaders(LoaderProgressBar* progressBar) {
     logger->debug("Initializing AdjListHeaders.");
+    progressBar->addAndStartNewJob("Initializing adjacency lists headers for relationship: " +
+                                       graph.getCatalog().getRelLabelName(description.label),
+        1);
     for (auto direction : DIRECTIONS) {
         if (!description.isSingleMultiplicityPerDirection[direction]) {
             auto relSize =
@@ -204,11 +218,17 @@ void InMemAdjAndPropertyListsBuilder::initAdjListHeaders() {
         }
     }
     taskScheduler.waitAllTasksToCompleteOrError();
+    progressBar->incrementTaskFinished();
     logger->debug("Done initializing AdjListHeaders.");
 }
 
-void InMemAdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata() {
+void InMemAdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata(
+    LoaderProgressBar* progressBar) {
     logger->debug("Initializing AdjLists and PropertyLists Metadata.");
+    progressBar->addAndStartNewJob(
+        "Initializing adjacency and property lists metadata for relationship: " +
+            graph.getCatalog().getRelLabelName(description.label),
+        1);
     for (auto direction : DIRECTIONS) {
         if (!description.isSingleMultiplicityPerDirection[direction]) {
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
@@ -240,6 +260,7 @@ void InMemAdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata() {
         }
     }
     taskScheduler.waitAllTasksToCompleteOrError();
+    progressBar->incrementTaskFinished();
     logger->debug("Done initializing AdjLists and PropertyLists Metadata.");
 }
 
@@ -300,7 +321,7 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemPropertyPages* propertyLists,
     ListHeaders* adjListsHeaders, ListsMetadata* listsMetadata,
     InMemStringOverflowPages* unorderedStringOverflowPages,
-    InMemStringOverflowPages* orderedStringOverflow) {
+    InMemStringOverflowPages* orderedStringOverflow, LoaderProgressBar* progressBar) {
     PageByteCursor unorderedStringOverflowCursor, orderedStringOverflowCursor;
     PageElementCursor propertyListCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
@@ -326,6 +347,7 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(
             }
         }
     }
+    progressBar->incrementTaskFinished();
 }
 
 } // namespace loader

@@ -47,16 +47,29 @@ void InMemNodePropertyColumnsBuilder::setStringProperty(node_offset_t nodeOffset
     setProperty(nodeOffset, propertyIdx, reinterpret_cast<uint8_t*>(&gfString), STRING);
 }
 
-void InMemNodePropertyColumnsBuilder::saveToFile() {
+void InMemNodePropertyColumnsBuilder::saveToFile(LoaderProgressBar* progressBar) {
     logger->debug("Writing Node Property Columns to disk.");
+    uint64_t numTasks = numProgressBarTasksForSavingPropertiesToDisk(description.properties);
+    if (numTasks > 0) {
+        progressBar->addAndStartNewJob("Saving properties to disk for node: " +
+                                           graph.getCatalog().getNodeLabelName(description.label),
+            numTasks);
+    }
     for (auto& property : description.properties) {
         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-            [&](InMemPropertyPages* x) { x->saveToFile(); },
-            reinterpret_cast<InMemPropertyPages*>(propertyIdxPropertyColumn[property.id].get())));
+            [&](InMemPropertyPages* x, LoaderProgressBar* progressBar) {
+                x->saveToFile();
+                progressBar->incrementTaskFinished();
+            },
+            reinterpret_cast<InMemPropertyPages*>(propertyIdxPropertyColumn[property.id].get()),
+            progressBar));
         if (STRING == property.dataType) {
             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-                [&](InMemStringOverflowPages* x) { x->saveToFile(); },
-                (propertyIdxStringOverflowPages)[property.id].get()));
+                [&](InMemStringOverflowPages* x, LoaderProgressBar* progressBar) {
+                    x->saveToFile();
+                    progressBar->incrementTaskFinished();
+                },
+                (propertyIdxStringOverflowPages)[property.id].get(), progressBar));
         }
     }
     taskScheduler.waitAllTasksToCompleteOrError();

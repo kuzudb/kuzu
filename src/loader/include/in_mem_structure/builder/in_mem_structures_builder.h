@@ -3,6 +3,7 @@
 #include "src/common/include/task_system/task_scheduler.h"
 #include "src/loader/include/in_mem_structure/lists_utils.h"
 #include "src/loader/include/label_description.h"
+#include "src/loader/include/loader_progress_bar.h"
 #include "src/storage/include/graph.h"
 
 using namespace graphflow::common;
@@ -15,11 +16,14 @@ class InMemStructuresBuilder {
 
 public:
     // Saves all structures to disk.
-    virtual void saveToFile() = 0;
+    virtual void saveToFile(LoaderProgressBar* progressBar) = 0;
 
 protected:
     InMemStructuresBuilder(
         TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory);
+
+    uint64_t numProgressBarTasksForSavingPropertiesToDisk(
+        const vector<PropertyDefinition>& properties);
 
 protected:
     shared_ptr<spdlog::logger> logger;
@@ -35,7 +39,7 @@ class InMemStructuresBuilderForRels : public InMemStructuresBuilder {
 
 public:
     // Sorts data in String overflow pages.
-    virtual void sortOverflowStrings() = 0;
+    virtual void sortOverflowStrings(LoaderProgressBar* progressBar) = 0;
 
     void populateNumRelsInfo(
         vector<vector<vector<uint64_t>>>& numRelsPerDirBoundLabelRelLabel, bool forColumns);

@@ -1,5 +1,6 @@
 #include "include/type_utils.h"
 
+#include <cerrno>
 #include <climits>
 
 #include "include/value.h"

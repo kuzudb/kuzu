@@ -37,31 +37,39 @@ void GraphLoader::loadGraph() {
         } catch (exception& e) {
             throw invalid_argument("Metadata JSON file parse error: " + string(e.what()));
         }
+        progressBar = make_unique<LoaderProgressBar>();
         graph.catalog = make_unique<Catalog>();
 
         auto nodeIDMaps = loadNodes();
 
-        logger->info("Creating reverse NodeIDMaps.");
+        progressBar->addAndStartNewJob("Constructing reverse nodeIDMaps", nodeIDMaps->size());
         for (auto& nodeIDMap : *nodeIDMaps) {
             taskScheduler->scheduleTask(LoaderTaskFactory::createLoaderTask(
-                [&](NodeIDMap* x) { x->createNodeIDToOffsetMap(); }, nodeIDMap.get()));
+                [&](NodeIDMap* x, LoaderProgressBar* progressBar) {
+                    x->createNodeIDToOffsetMap();
+                    progressBar->incrementTaskFinished();
+                },
+                nodeIDMap.get(), progressBar.get()));
         }
         taskScheduler->waitAllTasksToCompleteOrError();
-        logger->info("Done creating reverse NodeIDMaps.");
 
         loadRels(*nodeIDMaps);
 
         // write catalog and graph objects to file
-        logger->info("Writing Catalog object.");
+        progressBar->addAndStartNewJob("Writing Catalog and Graph objects", 1);
         graph.catalog->saveToFile(outputDirectory);
-        logger->info("Writing Graph object.");
         graph.saveToFile(outputDirectory);
+        progressBar->incrementTaskFinished();
         timer.stop();
         auto stop = high_resolution_clock::now();
+        progressBar->clearLastFinishedLine();
         logger->info("Done GraphLoader.");
         logger->info("Time taken: . " + to_string(timer.getElapsedTimeMS() / 1000.0) + " seconds.");
     } catch (exception& e) {
         logger->error("Encountered an error while loading graph: {}", e.what());
+        logger->info("Last Loader Job:");
+        progressBar->printProgressInfoInGreenFont();
+        progressBar->setDefaultFont();
         logger->info("Stopping GraphLoader.");
         cleanup();
         throw LoaderException(e.what());
@@ -247,10 +255,9 @@ unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes() {
         (*nodeIDMaps)[nodeLabel] = make_unique<NodeIDMap>(graph.numNodesPerLabel[nodeLabel]);
     }
     logger->info("End constructing nodeIDMaps.");
-    NodesLoader nodesLoader{
-        *taskScheduler, graph, outputDirectory, datasetMetadata.nodeFileDescriptions};
+    NodesLoader nodesLoader{*taskScheduler, graph, outputDirectory,
+        datasetMetadata.nodeFileDescriptions, progressBar.get()};
     nodesLoader.load(filePaths, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
-    logger->info("Done loading nodes.");
     return nodeIDMaps;
 }
 
@@ -265,31 +272,33 @@ void GraphLoader::loadRels(vector<unique_ptr<NodeIDMap>>& nodeIDMaps) {
     }
     readCSVHeaderAndCalcNumBlocks(filePaths, numBlocksPerLabel, fileHeaderPerLabel);
     addRelLabelsIntoGraphCatalog(relFileDescriptions, fileHeaderPerLabel);
-    RelsLoader relsLoader{
-        *taskScheduler, graph, outputDirectory, nodeIDMaps, datasetMetadata.relFileDescriptions};
+    RelsLoader relsLoader{*taskScheduler, graph, outputDirectory, nodeIDMaps,
+        datasetMetadata.relFileDescriptions, progressBar.get()};
     relsLoader.load(numBlocksPerLabel);
-    logger->info("Done loading rels.");
 }
 
 void GraphLoader::countLinesAndAddUnstrPropertiesInCatalog(
     vector<vector<uint64_t>>& numLinesPerBlock,
     vector<vector<unordered_set<string>>>& labelBlockUnstrProperties,
     vector<uint64_t>& numBlocksPerLabel, const vector<string>& filePaths) {
-    logger->info("Counting number of lines in each label.");
     auto numLabels = graph.catalog->getNodeLabelsCount();
     for (label_t labelId = 0; labelId < numLabels; labelId++) {
         auto& labelUnstrProperties = labelBlockUnstrProperties[labelId];
         labelUnstrProperties.resize(numBlocksPerLabel[labelId]);
         numLinesPerBlock[labelId].resize(numBlocksPerLabel[labelId]);
+        progressBar->addAndStartNewJob(
+            "Counting lines in the file for node: " + graph.catalog->getNodeLabelName(labelId),
+            numBlocksPerLabel[labelId]);
         for (uint64_t blockId = 0; blockId < numBlocksPerLabel[labelId]; blockId++) {
             taskScheduler->scheduleTask(LoaderTaskFactory::createLoaderTask(
                 countLinesAndScanUnstrPropertiesInBlockTask, filePaths[labelId],
                 datasetMetadata.nodeFileDescriptions[labelId].csvSpecialChars,
                 graph.catalog->getStructuredNodeProperties(labelId).size(),
-                &labelUnstrProperties[blockId], &numLinesPerBlock, labelId, blockId, logger));
+                &labelUnstrProperties[blockId], &numLinesPerBlock, labelId, blockId, logger,
+                progressBar.get()));
         }
+        taskScheduler->waitAllTasksToCompleteOrError();
     }
-    taskScheduler->waitAllTasksToCompleteOrError();
     graph.numNodesPerLabel.resize(numLabels);
     for (label_t label = 0; label < numLabels; label++) {
         graph.numNodesPerLabel[label] = 0;
@@ -312,7 +321,8 @@ void GraphLoader::countLinesAndAddUnstrPropertiesInCatalog(
 void GraphLoader::countLinesAndScanUnstrPropertiesInBlockTask(const string& fName,
     const CSVSpecialChars& csvSpecialChars, uint32_t numStructuredProperties,
     unordered_set<string>* unstrPropertyNameSet, vector<vector<uint64_t>>* numLinesPerBlock,
-    label_t label, uint32_t blockId, const shared_ptr<spdlog::logger>& logger) {
+    label_t label, uint32_t blockId, const shared_ptr<spdlog::logger>& logger,
+    LoaderProgressBar* progressBar) {
     logger->trace("Start: path=`{0}` blkIdx={1}", fName, blockId);
     CSVReader reader(fName, csvSpecialChars.tokenSeparator, csvSpecialChars.quoteChar,
         csvSpecialChars.escapeChar, blockId);
@@ -332,6 +342,7 @@ void GraphLoader::countLinesAndScanUnstrPropertiesInBlockTask(const string& fNam
         }
     }
     logger->trace("End: path=`{0}` blkIdx={1}", fName, blockId);
+    progressBar->incrementTaskFinished();
 }
 
 } // namespace loader

@@ -6,11 +6,12 @@ namespace graphflow {
 namespace loader {
 
 RelsLoader::RelsLoader(TaskScheduler& taskScheduler, Graph& graph, string outputDirectory,
-    vector<unique_ptr<NodeIDMap>>& nodeIDMaps, const vector<RelFileDescription>& fileMetadata)
+    vector<unique_ptr<NodeIDMap>>& nodeIDMaps, const vector<RelFileDescription>& fileMetadata,
+    LoaderProgressBar* progressBar)
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
       taskScheduler{taskScheduler}, graph{graph},
       outputDirectory(std::move(outputDirectory)), nodeIDMaps{nodeIDMaps},
-      fileDescriptions(fileMetadata) {}
+      fileDescriptions(fileMetadata), progressBar{progressBar} {}
 
 // For each rel label, constructs the RelLabelDescription object with relevant meta info and
 // calls the loadRelsForLabel.
@@ -57,19 +58,23 @@ void RelsLoader::constructAdjColumnsAndCountRelsInAdjLists(
     InMemAdjAndPropertyColumnsBuilder columnsBuilder{
         description, taskScheduler, graph, outputDirectory};
     logger->debug("Populating AdjColumns and Rel Property Columns.");
+    progressBar->addAndStartNewJob(
+        "Populating adjacency columns and counting relations for relationship: " +
+            graph.getCatalog().getRelLabelName(description.label),
+        description.numBlocks);
     auto& catalog = graph.getCatalog();
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
             populateAdjColumnsAndCountRelsInAdjListsTask, &description, blockId, &listsBuilder,
-            &columnsBuilder, &nodeIDMaps, &catalog, logger));
+            &columnsBuilder, &nodeIDMaps, &catalog, logger, progressBar));
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     populateNumRels(columnsBuilder, listsBuilder);
     logger->debug("Done populating AdjColumns and Rel Property Columns.");
     if (description.hasProperties() && !description.requirePropertyLists()) {
-        columnsBuilder.sortOverflowStrings();
+        columnsBuilder.sortOverflowStrings(progressBar);
     }
-    columnsBuilder.saveToFile();
+    columnsBuilder.saveToFile(progressBar);
 }
 
 void RelsLoader::populateNumRels(InMemAdjAndPropertyColumnsBuilder& columnsBuilder,
@@ -93,23 +98,26 @@ void RelsLoader::populateNumRels(InMemAdjAndPropertyColumnsBuilder& columnsBuild
 // calling populateAdjListsTask(...) on each block of the CSV file.
 void RelsLoader::constructAdjLists(
     RelLabelDescription& description, InMemAdjAndPropertyListsBuilder& listsBuilder) {
-    listsBuilder.buildAdjListsHeadersAndListsMetadata();
+    listsBuilder.buildAdjListsHeadersAndListsMetadata(progressBar);
     listsBuilder.buildInMemStructures();
     logger->debug("Populating AdjLists and Rel Property Lists.");
     auto& catalog = graph.getCatalog();
+    progressBar->addAndStartNewJob("Constructing adjacency lists for relationship: " +
+                                       graph.getCatalog().getRelLabelName(description.label),
+        description.numBlocks);
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(populateAdjListsTask,
             &description, blockId, description.csvSpecialChars.tokenSeparator,
             description.csvSpecialChars.quoteChar, description.csvSpecialChars.escapeChar,
-            &listsBuilder, &nodeIDMaps, &catalog, logger));
+            &listsBuilder, &nodeIDMaps, &catalog, logger, progressBar));
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done populating AdjLists and Rel Property Lists.");
 
     if (description.requirePropertyLists()) {
-        listsBuilder.sortOverflowStrings();
+        listsBuilder.sortOverflowStrings(progressBar);
     }
-    listsBuilder.saveToFile();
+    listsBuilder.saveToFile(progressBar);
 }
 
 // Iterate over each line in a block of CSV file. For each line, infer the src/dest node labels and
@@ -119,7 +127,7 @@ void RelsLoader::constructAdjLists(
 void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescription* description,
     uint64_t blockId, InMemAdjAndPropertyListsBuilder* listsBuilder,
     InMemAdjAndPropertyColumnsBuilder* columnsBuilder, vector<unique_ptr<NodeIDMap>>* nodeIDMaps,
-    const Catalog* catalog, shared_ptr<spdlog::logger>& logger) {
+    const Catalog* catalog, shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progressBar) {
     logger->debug("Start: path=`{0}` blkIdx={1}", description->fName, blockId);
     CSVReader reader(description->fName, description->csvSpecialChars.tokenSeparator,
         description->csvSpecialChars.quoteChar, description->csvSpecialChars.escapeChar, blockId);
@@ -156,6 +164,7 @@ void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescriptio
         }
     }
     logger->debug("End: path=`{0}` blkIdx={1}", description->fName, blockId);
+    progressBar->incrementTaskFinished();
 }
 
 // Iterate over each line in a block of CSV file. For each line, infer the src/dest node labels and
@@ -164,7 +173,7 @@ void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescriptio
 void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
     char tokenSeparator, char quoteChar, char escapeChar,
     InMemAdjAndPropertyListsBuilder* listsBuilder, vector<unique_ptr<NodeIDMap>>* nodeIDMaps,
-    const Catalog* catalog, shared_ptr<spdlog::logger>& logger) {
+    const Catalog* catalog, shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progresBar) {
     logger->trace("Start: path=`{0}` blkIdx={1}", description->fName, blockId);
     CSVReader reader(description->fName, tokenSeparator, quoteChar, escapeChar, blockId);
     if (0 == blockId) {
@@ -198,6 +207,7 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
         }
     }
     logger->trace("End: path=`{0}` blkIdx={1}", description->fName, blockId);
+    progresBar->incrementTaskFinished();
 }
 
 void RelsLoader::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,

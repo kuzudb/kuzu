@@ -3,6 +3,7 @@
 #include "src/loader/include/in_mem_structure/builder/in_mem_structures_builder.h"
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/loader/include/label_description.h"
+#include "src/loader/include/loader_progress_bar.h"
 #include "src/loader/include/loader_task.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
@@ -51,7 +52,7 @@ public:
 
     // Should be called after the listSizes has been updated. Encodes the header info of each list
     // in all AdjLists structures.
-    void buildAdjListsHeadersAndListsMetadata();
+    void buildAdjListsHeadersAndListsMetadata(LoaderProgressBar* progressBar);
 
     // should be called after ListHeaders have been created. Calculates the metadata info of each
     // Lists structure (AdjLists / RelPropertyLists) based on its relevant headers info.
@@ -71,13 +72,13 @@ public:
     void setStringProperty(const vector<uint64_t>& pos, const vector<nodeID_t>& nodeIDs,
         const uint32_t& propertyIdx, const char* strVal, PageByteCursor& stringOverflowCursor);
 
-    void sortOverflowStrings() override;
+    void sortOverflowStrings(LoaderProgressBar* progressBar) override;
 
-    void saveToFile() override;
+    void saveToFile(LoaderProgressBar* progressBar) override;
 
 private:
-    void initAdjListHeaders();
-    void initAdjListsAndPropertyListsMetadata();
+    void initAdjListHeaders(LoaderProgressBar* progressBar);
+    void initAdjListsAndPropertyListsMetadata(LoaderProgressBar* progressBar);
 
     void buildInMemPropertyLists();
     void buildInMemAdjLists();
@@ -87,7 +88,7 @@ private:
     static void sortOverflowStringsOfPropertyListsTask(node_offset_t offsetStart,
         node_offset_t offsetEnd, InMemPropertyPages* propertyLists, ListHeaders* adjListsHeaders,
         ListsMetadata* listsMetadata, InMemStringOverflowPages* unorderedStringOverflowPages,
-        InMemStringOverflowPages* orderedStringOverflowPages);
+        InMemStringOverflowPages* orderedStringOverflowPages, LoaderProgressBar* progressBar);
 
 private:
     directionLabelListSizes_t directionLabelListSizes{2};
@@ -102,6 +103,7 @@ private:
     unique_ptr<vector<unique_ptr<InMemStringOverflowPages>>> propertyIdxUnordStringOverflowPages;
     unique_ptr<directionLabelPropertyIdxStringOverflowPages_t>
         directionLabelPropertyIdxStringOverflowPages;
+    LoaderProgressBar* progressBar;
 };
 
 } // namespace loader

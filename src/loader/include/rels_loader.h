@@ -18,7 +18,7 @@ class RelsLoader {
 private:
     RelsLoader(TaskScheduler& taskScheduler, Graph& graph, string outputDirectory,
         vector<unique_ptr<NodeIDMap>>& nodeIDMaps,
-        const vector<RelFileDescription>& fileDescriptions);
+        const vector<RelFileDescription>& fileDescriptions, LoaderProgressBar* progressBar);
 
     void load(vector<uint64_t>& numBlocksPerLabel);
 
@@ -39,12 +39,12 @@ private:
         uint64_t blockId, InMemAdjAndPropertyListsBuilder* listsBuilder,
         InMemAdjAndPropertyColumnsBuilder* columnsBuilder,
         vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
-        shared_ptr<spdlog::logger>& logger);
+        shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progresBar);
 
     static void populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
         char tokenSeparator, char quoteChar, char escapeChar,
         InMemAdjAndPropertyListsBuilder* listsBuilder, vector<unique_ptr<NodeIDMap>>* nodeIDMaps,
-        const Catalog* catalog, shared_ptr<spdlog::logger>& logger);
+        const Catalog* catalog, shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progresBar);
 
     // Task Helpers
 
@@ -68,6 +68,7 @@ private:
     const string outputDirectory;
     vector<unique_ptr<NodeIDMap>>& nodeIDMaps;
     const vector<RelFileDescription>& fileDescriptions;
+    LoaderProgressBar* progressBar;
 };
 
 } // namespace loader

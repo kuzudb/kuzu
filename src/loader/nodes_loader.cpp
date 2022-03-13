@@ -8,10 +8,10 @@ namespace graphflow {
 namespace loader {
 
 NodesLoader::NodesLoader(TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory,
-    vector<NodeFileDescription>& nodeFileDescriptions)
-    : logger{LoggerUtils::getOrCreateSpdLogger("loader")}, taskScheduler{taskScheduler},
-      graph{graph}, outputDirectory{std::move(outputDirectory)}, fileDescriptions{
-                                                                     nodeFileDescriptions} {
+    vector<NodeFileDescription>& nodeFileDescriptions, LoaderProgressBar* progressBar)
+    : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
+      taskScheduler{taskScheduler}, graph{graph}, outputDirectory{std::move(outputDirectory)},
+      fileDescriptions{nodeFileDescriptions}, progressBar{progressBar} {
     logger->debug("Initializing NodesLoader.");
 };
 
@@ -24,6 +24,8 @@ void NodesLoader::load(const vector<string>& filePaths, const vector<uint64_t>& 
                 make_unique<vector<atomic<uint64_t>>>(graph.getNumNodesPerLabel()[nodeLabel]);
         }
     }
+    // If n is the number of node labels/files, we add n jobs to progress bar for the jobs for
+    // constructing the in-memory property columns of each node file.
     for (label_t nodeLabel = 0; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
         NodeLabelDescription description(nodeLabel, fileDescriptions[nodeLabel].filePath,
             numBlocksPerLabel[nodeLabel], graph.getCatalog().getStructuredNodeProperties(nodeLabel),
@@ -46,16 +48,19 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(NodeLabelDescr
     const vector<uint64_t>& numLinesPerBlock, InMemNodePropertyColumnsBuilder& builder) {
     logger->debug("Populating PropertyColumns and Counting unstructured properties.");
     node_offset_t offsetStart = 0;
+    progressBar->addAndStartNewJob("Constructing property columns for node: " +
+                                       graph.getCatalog().getNodeLabelName(description.label),
+        description.numBlocks);
     for (auto blockIdx = 0u; blockIdx < description.numBlocks; blockIdx++) {
         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
             populatePropertyColumnsAndCountUnstrPropertyListSizesTask, &description, blockIdx,
             offsetStart, description.nodeIDMap, &builder,
-            labelUnstrPropertyListsSizes[description.label].get(), logger));
+            labelUnstrPropertyListsSizes[description.label].get(), logger, progressBar));
         offsetStart += numLinesPerBlock[blockIdx];
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done populating PropertyColumns and Counting unstructured properties.");
-    builder.saveToFile();
+    builder.saveToFile(progressBar);
 }
 
 // Constructs unstructured PropertyLists for the labels that have at least one unstructured
@@ -75,6 +80,9 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
             auto& listsHeaders = labelUnstrPropertyListHeaders[nodeLabel];
             auto& listsMetadata = labelUnstrPropertyListsMetadata[nodeLabel];
             auto unstrPropertyLists = labelUnstrPropertyLists[nodeLabel].get();
+            progressBar->addAndStartNewJob("Constructing unstructured property lists for node: " +
+                                               fileDescriptions[nodeLabel].labelName,
+                numBlocksPerLabel[nodeLabel]);
             for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
                 taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                     populateUnstrPropertyListsTask, filePaths[nodeLabel], blockIdx,
@@ -84,12 +92,12 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
                     graph.getCatalog().getStructuredNodeProperties(nodeLabel).size(), offsetStart,
                     unstrPropertiesNameToIdMap, listSizes, &listsHeaders, &listsMetadata,
                     unstrPropertyLists, labelUnstrPropertyListsStringOverflowPages[nodeLabel].get(),
-                    logger));
+                    logger, progressBar));
                 offsetStart += numLinesPerBlock[nodeLabel][blockIdx];
             }
+            taskScheduler.waitAllTasksToCompleteOrError();
         }
     }
-    taskScheduler.waitAllTasksToCompleteOrError();
     saveUnstrPropertyListsToFile();
     logger->debug("Done populating Unstructured Property Lists.");
 }
@@ -173,7 +181,8 @@ void NodesLoader::saveUnstrPropertyListsToFile() {
 void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(
     NodeLabelDescription* description, uint64_t blockId, node_offset_t offsetStart,
     NodeIDMap* nodeIDMap, InMemNodePropertyColumnsBuilder* builder,
-    listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger>& logger) {
+    listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger>& logger,
+    LoaderProgressBar* progressBar) {
     logger->trace("Start: path={0} blkIdx={1}", description->fName, blockId);
     vector<PageByteCursor> stringOverflowPagesCursors{description->properties.size()};
     CSVReader reader(description->fName, description->csvSpecialChars.tokenSeparator,
@@ -190,6 +199,7 @@ void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(
         calcLengthOfUnstrPropertyLists(reader, offsetStart + bufferOffset, *unstrPropertyListSizes);
         bufferOffset++;
     }
+    progressBar->incrementTaskFinished();
     logger->trace("End: path={0} blkIdx={1}", description->fName, blockId);
 }
 
@@ -201,7 +211,8 @@ void NodesLoader::populateUnstrPropertyListsTask(const string& fName, uint64_t b
     node_offset_t offsetStart, const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
     listSizes_t* unstrPropertyListSizes, ListHeaders* unstrPropertyListHeaders,
     ListsMetadata* unstrPropertyListsMetadata, InMemUnstrPropertyPages* unstrPropertyPages,
-    InMemStringOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger>& logger) {
+    InMemStringOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger>& logger,
+    LoaderProgressBar* progressBar) {
     logger->trace("Start: path={0} blkIdx={1}", fName, blockId);
     CSVReader reader(fName, tokenSeparator, quoteChar, escapeChar, blockId);
     PageByteCursor stringOvfPagesCursor;
@@ -218,6 +229,7 @@ void NodesLoader::populateUnstrPropertyListsTask(const string& fName, uint64_t b
             *unstrPropertyPages, *stringOverflowPages, stringOvfPagesCursor);
         bufferOffset++;
     }
+    progressBar->incrementTaskFinished();
     logger->trace("End: path={0} blkIdx={1}", fName, blockId);
 }
 
