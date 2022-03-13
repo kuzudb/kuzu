@@ -5,8 +5,6 @@
 namespace graphflow {
 namespace binder {
 
-const string INTERNAL_ID_SUFFIX = "_id";
-
 class NodeExpression : public Expression {
 
 public:

@@ -16,7 +16,9 @@ void HashAggregateSharedState::combineAggregateHashTable(MemoryManager& memoryMa
         numEntries += ht->getNumEntries();
     }
     globalAggregateHashTable = make_unique<AggregateHashTable>(memoryManager,
-        localAggregateHashTables[0]->getGroupByKeysDataTypes(), aggregateFunctions, numEntries);
+        localAggregateHashTables[0]->getGroupByHashKeysDataTypes(),
+        localAggregateHashTables[0]->getGroupByNonHashKeysDataTypes(), aggregateFunctions,
+        numEntries);
     for (auto& ht : localAggregateHashTables) {
         globalAggregateHashTable->merge(*ht);
     }
@@ -40,23 +42,32 @@ pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
 }
 
 HashAggregate::HashAggregate(shared_ptr<HashAggregateSharedState> sharedState,
-    vector<DataPos> groupByKeyVectorsPos, vector<DataPos> aggregateVectorsPos,
-    vector<unique_ptr<AggregateFunction>> aggregateFunctions, unique_ptr<PhysicalOperator> child,
-    ExecutionContext& context, uint32_t id)
+    vector<DataPos> inputGroupByHashKeyVectorsPos, vector<DataPos> inputGroupByNonHashKeyVectorsPos,
+    vector<DataPos> aggregateVectorsPos, vector<unique_ptr<AggregateFunction>> aggregateFunctions,
+    unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
     : BaseAggregate{move(aggregateVectorsPos), move(aggregateFunctions), move(child), context, id},
-      groupByKeyVectorsPos{move(groupByKeyVectorsPos)}, sharedState{move(sharedState)} {}
+      groupByHashKeyVectorsPos{move(inputGroupByHashKeyVectorsPos)},
+      groupByNonHashKeyVectorsPos{move(inputGroupByNonHashKeyVectorsPos)}, sharedState{
+                                                                               move(sharedState)} {}
 
 shared_ptr<ResultSet> HashAggregate::initResultSet() {
     resultSet = BaseAggregate::initResultSet();
-    vector<DataType> groupByKeysDataTypes;
-    for (auto& dataPos : groupByKeyVectorsPos) {
+    vector<DataType> groupByHashKeysDataTypes;
+    for (auto& dataPos : groupByHashKeyVectorsPos) {
         auto dataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
         auto vector = dataChunk->valueVectors[dataPos.valueVectorPos].get();
-        groupByKeyVectors.push_back(vector);
-        groupByKeysDataTypes.push_back(vector->dataType);
+        groupByHashKeyVectors.push_back(vector);
+        groupByHashKeysDataTypes.push_back(vector->dataType);
     }
-    localAggregateHashTable = make_unique<AggregateHashTable>(
-        *context.memoryManager, groupByKeysDataTypes, aggregateFunctions, 0);
+    vector<DataType> groupByNonHashKeysDataTypes;
+    for (auto& dataPos : groupByNonHashKeyVectorsPos) {
+        auto dataChunk = resultSet->dataChunks[dataPos.dataChunkPos];
+        auto vector = dataChunk->valueVectors[dataPos.valueVectorPos].get();
+        groupByNonHashKeyVectors.push_back(vector);
+        groupByNonHashKeysDataTypes.push_back(vector->dataType);
+    }
+    localAggregateHashTable = make_unique<AggregateHashTable>(*context.memoryManager,
+        groupByHashKeysDataTypes, groupByNonHashKeysDataTypes, aggregateFunctions, 0);
     return resultSet;
 }
 
@@ -64,8 +75,8 @@ void HashAggregate::execute() {
     metrics->executionTime.start();
     BaseAggregate::execute();
     while (children[0]->getNextTuples()) {
-        localAggregateHashTable->append(
-            groupByKeyVectors, aggregateVectors, resultSet->multiplicity);
+        localAggregateHashTable->append(groupByHashKeyVectors, groupByNonHashKeyVectors,
+            aggregateVectors, resultSet->multiplicity);
     }
     sharedState->appendAggregateHashTable(move(localAggregateHashTable));
     metrics->executionTime.stop();
@@ -81,8 +92,9 @@ unique_ptr<PhysicalOperator> HashAggregate::clone() {
     for (auto& aggregateFunction : aggregateFunctions) {
         clonedAggregateFunctions.push_back(aggregateFunction->clone());
     }
-    return make_unique<HashAggregate>(sharedState, groupByKeyVectorsPos, aggregateVectorsPos,
-        move(clonedAggregateFunctions), children[0]->clone(), context, id);
+    return make_unique<HashAggregate>(sharedState, groupByHashKeyVectorsPos,
+        groupByNonHashKeyVectorsPos, aggregateVectorsPos, move(clonedAggregateFunctions),
+        children[0]->clone(), context, id);
 }
 
 } // namespace processor

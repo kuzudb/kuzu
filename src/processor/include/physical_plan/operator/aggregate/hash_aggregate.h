@@ -34,7 +34,8 @@ class HashAggregate : public BaseAggregate {
 
 public:
     HashAggregate(shared_ptr<HashAggregateSharedState> sharedState,
-        vector<DataPos> groupByKeyVectorsPos, vector<DataPos> aggregateVectorsPos,
+        vector<DataPos> inputGroupByHashKeyVectorsPos,
+        vector<DataPos> inputGroupByNonHashKeyVectorsPos, vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
         unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id);
 
@@ -47,8 +48,10 @@ public:
     unique_ptr<PhysicalOperator> clone() override;
 
 private:
-    vector<DataPos> groupByKeyVectorsPos;
-    vector<ValueVector*> groupByKeyVectors;
+    vector<DataPos> groupByHashKeyVectorsPos;
+    vector<DataPos> groupByNonHashKeyVectorsPos;
+    vector<ValueVector*> groupByHashKeyVectors;
+    vector<ValueVector*> groupByNonHashKeyVectors;
 
     shared_ptr<HashAggregateSharedState> sharedState;
     unique_ptr<AggregateHashTable> localAggregateHashTable;
