@@ -37,16 +37,35 @@ struct HashSlot {
 class AggregateHashTable : public BaseHashTable {
 
 public:
-    AggregateHashTable(MemoryManager& memoryManager, vector<DataType> groupByKeysDataTypes,
+    // Used by distinct aggregate hash table only.
+    inline AggregateHashTable(MemoryManager& memoryManager,
+        vector<DataType> groupByHashKeysDataTypes,
+        const vector<unique_ptr<AggregateFunction>>& aggregateFunctions,
+        uint64_t numEntriesToAllocate)
+        : AggregateHashTable(memoryManager, groupByHashKeysDataTypes, vector<DataType>(),
+              aggregateFunctions, numEntriesToAllocate) {}
+
+    AggregateHashTable(MemoryManager& memoryManager, vector<DataType> groupByHashKeysDataTypes,
+        vector<DataType> groupByNonHashKeysDataTypes,
         const vector<unique_ptr<AggregateFunction>>& aggregateFunctions,
         uint64_t numEntriesToAllocate);
 
     inline uint64_t getNumEntries() const { return factorizedTable->getNumTuples(); }
 
-    inline vector<DataType> getGroupByKeysDataTypes() const { return groupByKeysDataTypes; }
+    inline vector<DataType> getGroupByHashKeysDataTypes() const { return groupByHashKeysDataTypes; }
+
+    inline vector<DataType> getGroupByNonHashKeysDataTypes() const {
+        return groupByNonHashKeysDataTypes;
+    }
+
+    inline void append(const vector<ValueVector*>& groupByHashKeyVectors,
+        const vector<ValueVector*>& aggregateVectors, uint64_t multiplicity) {
+        append(groupByHashKeyVectors, vector<ValueVector*>(), aggregateVectors, multiplicity);
+    }
 
     //! update aggregate states for an input
     void append(const vector<ValueVector*>& groupByKeyVectors,
+        const vector<ValueVector*>& groupByNonHashKeyVectors,
         const vector<ValueVector*>& aggregateVectors, uint64_t multiplicity);
 
     bool isAggregateValueDistinctForGroupByKeys(
@@ -66,18 +85,22 @@ private:
 
     uint8_t* findEntry(uint8_t* entryBuffer, hash_t hash);
 
-    uint8_t* createEntry(const vector<ValueVector*>& groupByKeyVectors, hash_t hash);
+    uint8_t* createEntry(const vector<ValueVector*>& groupByKeyVectors,
+        const vector<ValueVector*>& groupByNonKeyVectors, hash_t hash);
 
     uint8_t* createEntry(uint8_t* groupByKeys, hash_t hash);
 
     inline uint64_t getNumBytesForHash() const { return sizeof(hash_t); }
 
-    uint64_t getNumBytesForGroupByKeys() const;
+    uint64_t getNumBytesForGroupByHashKeys() const;
+
+    uint64_t getNumBytesForGroupByNonHashKeys() const;
 
     inline uint64_t getGroupByKeysOffsetInEntry() const { return getNumBytesForHash(); }
 
     inline uint64_t getAggregateStatesOffsetInEntry() const {
-        return getGroupByKeysOffsetInEntry() + getNumBytesForGroupByKeys();
+        return getGroupByKeysOffsetInEntry() + getNumBytesForGroupByHashKeys() +
+               getNumBytesForGroupByNonHashKeys();
     }
 
     void increaseSlotOffset(uint64_t& slotOffset) const;
@@ -116,7 +139,8 @@ private:
     void addDataBlocksIfNecessary(uint64_t maxNumHashSlots);
 
     inline void fillTupleWithGroupByKeys(uint8_t* tupleBuffer, uint8_t* groupByKeys) {
-        memcpy(tupleBuffer, groupByKeys, getNumBytesForGroupByKeys());
+        memcpy(tupleBuffer, groupByKeys,
+            getNumBytesForGroupByHashKeys() + getNumBytesForGroupByNonHashKeys());
     }
 
     inline void fillTupleWithNullMap(uint8_t* entryNullBuffer, uint8_t* groupByKeyNullBuffer) {
@@ -128,7 +152,8 @@ private:
         uint8_t* keyBuffer, uint8_t* tupleBuffer, bool isStrCol, uint64_t numBytesToCompare);
 
 private:
-    vector<DataType> groupByKeysDataTypes;
+    vector<DataType> groupByHashKeysDataTypes;
+    vector<DataType> groupByNonHashKeysDataTypes;
     vector<unique_ptr<AggregateFunction>> aggregateFunctions;
 
     //! special handling of distinct aggregate

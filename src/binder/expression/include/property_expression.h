@@ -5,6 +5,8 @@
 namespace graphflow {
 namespace binder {
 
+const string INTERNAL_ID_SUFFIX = "_id";
+
 class PropertyExpression : public Expression {
 
 public:
@@ -14,6 +16,8 @@ public:
     inline string getPropertyName() const { return propertyName; }
 
     inline uint32_t getPropertyKey() const { return propertyKey; }
+
+    inline bool isInternalID() const { return getPropertyName() == INTERNAL_ID_SUFFIX; }
 
 private:
     string propertyName;
