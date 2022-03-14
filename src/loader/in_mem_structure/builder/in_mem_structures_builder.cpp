@@ -8,6 +8,17 @@ InMemStructuresBuilder::InMemStructuresBuilder(
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
       taskScheduler{taskScheduler}, graph{graph}, outputDirectory{move(outputDirectory)} {}
 
+uint64_t InMemStructuresBuilder::numProgressBarTasksForSavingPropertiesToDisk(
+    const vector<PropertyDefinition>& properties) {
+    uint64_t numTasks = properties.size();
+    for (auto& property : properties) {
+        if (STRING == property.dataType) {
+            numTasks++;
+        }
+    }
+    return numTasks;
+}
+
 void InMemStructuresBuilderForRels::populateNumRelsInfo(
     vector<vector<vector<uint64_t>>>& numRelsPerDirBoundLabelRelLabel, bool forColumns) {
     for (auto& direction : DIRECTIONS) {

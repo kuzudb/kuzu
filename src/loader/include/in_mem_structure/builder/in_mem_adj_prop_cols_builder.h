@@ -40,9 +40,9 @@ public:
     void setStringProperty(const nodeID_t& nodeID, const uint32_t& propertyIdx, const char* val,
         PageByteCursor& cursor);
 
-    void sortOverflowStrings() override;
+    void sortOverflowStrings(LoaderProgressBar* progressBar) override;
 
-    void saveToFile() override;
+    void saveToFile(LoaderProgressBar* progressBar) override;
 
 private:
     void buildInMemPropertyColumns(Direction direction);
@@ -53,7 +53,7 @@ private:
     static void sortOverflowStringsOfPropertyColumnTask(node_offset_t offsetStart,
         node_offset_t offsetEnd, InMemPropertyPages* propertyColumn,
         InMemStringOverflowPages* unorderedStringOverflow,
-        InMemStringOverflowPages* orderedStringOverflow);
+        InMemStringOverflowPages* orderedStringOverflow, LoaderProgressBar* progressBar);
 
 private:
     directionLabelAdjColumn_t dirLabelAdjColumns{2};

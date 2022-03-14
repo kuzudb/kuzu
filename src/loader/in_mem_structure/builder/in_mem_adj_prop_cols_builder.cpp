@@ -44,7 +44,7 @@ void InMemAdjAndPropertyColumnsBuilder::setStringProperty(const nodeID_t& nodeID
     setProperty(nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&gfString), STRING);
 }
 
-void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings() {
+void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings(LoaderProgressBar* progressBar) {
     logger->debug("Ordering String Rel Property Columns.");
     auto direction = description.isSingleMultiplicityPerDirection[FWD] ? FWD : BWD;
     for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
@@ -61,6 +61,10 @@ void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings() {
                 if (0 != numNodes / 256) {
                     numBuckets++;
                 }
+                progressBar->addAndStartNewJob(
+                    "Sorting overflow string buckets for property: " +
+                        graph.getCatalog().getRelLabelName(description.label) + "." + property.name,
+                    numBuckets);
                 node_offset_t offsetStart = 0, offsetEnd = 0;
                 for (auto i = 0u; i < numBuckets; i++) {
                     offsetStart = offsetEnd;
@@ -69,17 +73,21 @@ void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings() {
                         sortOverflowStringsOfPropertyColumnTask, offsetStart, offsetEnd,
                         labelPropertyIdxPropertyColumn[nodeLabel][property.id].get(),
                         labelPropertyIdxStringOverflowPages[nodeLabel][property.id].get(),
-                        labelPropertyIdxStringOverflowPages[nodeLabel][property.id].get()));
+                        labelPropertyIdxStringOverflowPages[nodeLabel][property.id].get(),
+                        progressBar));
                 }
+                taskScheduler.waitAllTasksToCompleteOrError();
             }
         }
     }
-    taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done ordering String Rel Property Columns.");
 }
 
-void InMemAdjAndPropertyColumnsBuilder::saveToFile() {
+void InMemAdjAndPropertyColumnsBuilder::saveToFile(LoaderProgressBar* progressBar) {
     logger->debug("Writing AdjColumns and Rel Property Columns to disk.");
+    progressBar->addAndStartNewJob("Writing adjacency columns to disk for relationship: " +
+                                       graph.getCatalog().getRelLabelName(description.label),
+        1);
     for (auto direction : DIRECTIONS) {
         if (description.isSingleMultiplicityPerDirection[direction]) {
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
@@ -89,23 +97,42 @@ void InMemAdjAndPropertyColumnsBuilder::saveToFile() {
             }
         }
     }
+    taskScheduler.waitAllTasksToCompleteOrError();
+    progressBar->incrementTaskFinished();
+
     if (description.hasProperties() && !description.requirePropertyLists()) {
         auto direction = description.isSingleMultiplicityPerDirection[FWD] ? FWD : BWD;
         for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
+            uint64_t numTasks =
+                numProgressBarTasksForSavingPropertiesToDisk(description.properties);
+            if (numTasks > 0) {
+                progressBar->addAndStartNewJob(
+                    "Writing properties to disk for relationship: " +
+                        graph.getCatalog().getRelLabelName(description.label),
+                    numTasks);
+            }
             for (auto& property : description.properties) {
                 taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-                    [&](InMemPropertyPages* x) { x->saveToFile(); },
+                    [&](InMemPropertyPages* x, LoaderProgressBar* progressBar) {
+                        x->saveToFile();
+                        progressBar->incrementTaskFinished();
+                    },
                     reinterpret_cast<InMemPropertyPages*>(
-                        labelPropertyIdxPropertyColumn[nodeLabel][property.id].get())));
+                        labelPropertyIdxPropertyColumn[nodeLabel][property.id].get()),
+                    progressBar));
                 if (STRING == property.dataType) {
                     taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-                        [&](InMemStringOverflowPages* x) { x->saveToFile(); },
-                        (labelPropertyIdxStringOverflowPages)[nodeLabel][property.id].get()));
+                        [&](InMemStringOverflowPages* x, LoaderProgressBar* progressBar) {
+                            x->saveToFile();
+                            progressBar->incrementTaskFinished();
+                        },
+                        (labelPropertyIdxStringOverflowPages)[nodeLabel][property.id].get(),
+                        progressBar));
                 }
             }
+            taskScheduler.waitAllTasksToCompleteOrError();
         }
     }
-    taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done writing AdjColumns and Rel Property Columns to disk.");
 }
 
@@ -162,7 +189,7 @@ void InMemAdjAndPropertyColumnsBuilder::buildInMemAdjColumns() {
 void InMemAdjAndPropertyColumnsBuilder::sortOverflowStringsOfPropertyColumnTask(
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemPropertyPages* propertyColumn,
     InMemStringOverflowPages* unorderedStringOverflow,
-    InMemStringOverflowPages* orderedStringOverflow) {
+    InMemStringOverflowPages* orderedStringOverflow, LoaderProgressBar* progressBar) {
     PageByteCursor unorderedStringOverflowCursor, orderedStringOverflowCursor;
     PageElementCursor propertyListCursor;
     unorderedStringOverflowCursor.idx = 0;
@@ -179,6 +206,7 @@ void InMemAdjAndPropertyColumnsBuilder::sortOverflowStringsOfPropertyColumnTask(
                 unorderedStringOverflow->getPtrToMemLoc(unorderedStringOverflowCursor), valPtr);
         }
     }
+    progressBar->incrementTaskFinished();
 }
 
 } // namespace loader

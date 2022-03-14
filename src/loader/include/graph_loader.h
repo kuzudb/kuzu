@@ -9,6 +9,7 @@
 #include "src/common/include/task_system/task_scheduler.h"
 #include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/label_description.h"
+#include "src/loader/include/loader_progress_bar.h"
 #include "src/storage/include/catalog.h"
 #include "src/storage/include/graph.h"
 
@@ -58,7 +59,8 @@ private:
     static void countLinesAndScanUnstrPropertiesInBlockTask(const string& fName,
         const CSVSpecialChars& csvSpecialChars, uint32_t numStructuredProperties,
         unordered_set<string>* unstrPropertyNameSet, vector<vector<uint64_t>>* numLinesPerBlock,
-        label_t label, uint32_t blockId, const shared_ptr<spdlog::logger>& logger);
+        label_t label, uint32_t blockId, const shared_ptr<spdlog::logger>& logger,
+        LoaderProgressBar* progressBar);
 
 private:
     shared_ptr<spdlog::logger> logger;
@@ -67,6 +69,7 @@ private:
     const string outputDirectory;
     DatasetMetadata datasetMetadata;
     Graph graph;
+    unique_ptr<LoaderProgressBar> progressBar;
 };
 
 } // namespace loader

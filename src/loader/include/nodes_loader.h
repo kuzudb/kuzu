@@ -7,6 +7,7 @@
 #include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/in_mem_structure/builder/in_mem_node_prop_cols_builder.h"
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
+#include "src/loader/include/loader_progress_bar.h"
 #include "src/loader/include/loader_task.h"
 #include "src/storage/include/graph.h"
 
@@ -27,7 +28,7 @@ class NodesLoader {
 
 private:
     NodesLoader(TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory,
-        vector<NodeFileDescription>& nodeFileDescriptions);
+        vector<NodeFileDescription>& nodeFileDescriptions, LoaderProgressBar* progressBar);
 
     void load(const vector<string>& filePaths, const vector<uint64_t>& numBlocksPerLabel,
         const vector<vector<uint64_t>>& numLinesPerBlock,
@@ -51,7 +52,8 @@ private:
     static void populatePropertyColumnsAndCountUnstrPropertyListSizesTask(
         NodeLabelDescription* description, uint64_t blockId, node_offset_t offsetStart,
         NodeIDMap* nodeIDMap, InMemNodePropertyColumnsBuilder* builder,
-        listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger>& logger);
+        listSizes_t* unstrPropertyListSizes, shared_ptr<spdlog::logger>& logger,
+        LoaderProgressBar* progressBar);
 
     static void populateUnstrPropertyListsTask(const string& fName, uint64_t blockId,
         char tokenSeparator, char quoteChar, char escapeChar, uint32_t numStructuredProperties,
@@ -59,7 +61,8 @@ private:
         const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
         listSizes_t* unstrPropertyListSizes, ListHeaders* unstrPropertyListHeaders,
         ListsMetadata* unstrPropertyListsMetadata, InMemUnstrPropertyPages* unstrPropertyPages,
-        InMemStringOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger>& logger);
+        InMemStringOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger>& logger,
+        LoaderProgressBar* progressBar);
 
     // Task Helpers
 
@@ -91,6 +94,7 @@ private:
     vector<ListsMetadata> labelUnstrPropertyListsMetadata;
     vector<unique_ptr<InMemUnstrPropertyPages>> labelUnstrPropertyLists;
     vector<unique_ptr<InMemStringOverflowPages>> labelUnstrPropertyListsStringOverflowPages;
+    LoaderProgressBar* progressBar;
 };
 
 } // namespace loader
