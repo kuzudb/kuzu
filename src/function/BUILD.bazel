@@ -10,5 +10,21 @@ cc_library(
     deps = [
         "//src/binder/expression:expression_implementations",
         "//src/common:vector",
+        "//src/function/comparison/operations:comparison_operations",
+    ],
+)
+
+cc_library(
+    name = "function",
+    srcs = [],
+    hdrs = [
+        "include/vector_operations.h",
+    ],
+    visibility = [
+        "//src/binder/expression:__pkg__",
+        "//src/function:__subpackages__",
+    ],
+    deps = [
+        "//src/common:vector_operations",
     ],
 )

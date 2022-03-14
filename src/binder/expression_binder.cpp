@@ -6,11 +6,15 @@
 #include "src/binder/expression/include/rel_expression.h"
 #include "src/binder/include/query_binder.h"
 #include "src/common/types/include/type_utils.h"
+#include "src/function/boolean/include/vector_boolean_operations.h"
+#include "src/function/comparison/include/vector_comparison_operations.h"
 #include "src/parser/expression/include/parsed_function_expression.h"
 #include "src/parser/expression/include/parsed_literal_expression.h"
 #include "src/parser/expression/include/parsed_property_expression.h"
 #include "src/parser/expression/include/parsed_subquery_expression.h"
 #include "src/parser/expression/include/parsed_variable_expression.h"
+
+using namespace graphflow::function;
 
 namespace graphflow {
 namespace binder {
@@ -20,9 +24,7 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
     shared_ptr<Expression> expression;
     auto expressionType = parsedExpression.getExpressionType();
     if (isExpressionBoolConnection(expressionType)) {
-        expression = isExpressionUnary(expressionType) ?
-                         bindUnaryBooleanExpression(parsedExpression) :
-                         bindBinaryBooleanExpression(parsedExpression);
+        expression = bindBooleanExpression(parsedExpression);
     } else if (isExpressionComparison(expressionType)) {
         expression = bindComparisonExpression(parsedExpression);
     } else if (isExpressionArithmetic(expressionType)) {
@@ -59,44 +61,42 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
     return expression;
 }
 
-shared_ptr<Expression> ExpressionBinder::bindBinaryBooleanExpression(
+shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
     const ParsedExpression& parsedExpression) {
-    auto left = bindExpression(*parsedExpression.getChild(0));
-    auto right = bindExpression(*parsedExpression.getChild(1));
-    validateBoolOrUnstructured(*left);
-    validateBoolOrUnstructured(*right);
-    if (left->dataType == UNSTRUCTURED) {
-        left = castUnstructuredToBool(move(left));
+    expression_vector children;
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        auto child = bindExpression(*parsedExpression.getChild(i));
+        if (child->dataType == UNSTRUCTURED) {
+            child = castUnstructuredToBool(move(child));
+        }
+        children.push_back(move(child));
     }
-    if (right->dataType == UNSTRUCTURED) {
-        right = castUnstructuredToBool(move(right));
-    }
-    return make_shared<Expression>(parsedExpression.getExpressionType(), BOOL, left, right);
-}
-
-shared_ptr<Expression> ExpressionBinder::bindUnaryBooleanExpression(
-    const ParsedExpression& parsedExpression) {
-    auto child = bindExpression(*parsedExpression.getChild(0));
-    validateBoolOrUnstructured(*child);
-    if (child->dataType == UNSTRUCTURED) {
-        child = castUnstructuredToBool(child);
-    }
-    return make_shared<Expression>(parsedExpression.getExpressionType(), BOOL, (child));
+    auto expressionType = parsedExpression.getExpressionType();
+    auto execFunc = VectorBooleanOperations::bindExecFunction(expressionType, children);
+    auto selectFunc = VectorBooleanOperations::bindSelectFunction(expressionType, children);
+    return make_shared<ScalarFunctionExpression>(parsedExpression.getExpressionType(), BOOL,
+        move(children), move(execFunc), move(selectFunc));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     const ParsedExpression& parsedExpression) {
+    assert(parsedExpression.getNumChildren() == 2);
     auto left = bindExpression(*parsedExpression.getChild(0));
     auto right = bindExpression(*parsedExpression.getChild(1));
-    if (left->dataType == UNSTRUCTURED || right->dataType == UNSTRUCTURED) {
-        return make_shared<Expression>(
-            parsedExpression.getExpressionType(), BOOL, move(left), move(right));
+    if (left->dataType == UNSTRUCTURED && right->dataType != UNSTRUCTURED) {
+        right = castToUnstructured(move(right));
     }
-    TypeUtils::isNumericalType(left->dataType) ?
-        validateNumeric(*right) :
-        validateExpectedDataType(*right, unordered_set<DataType>{left->dataType});
-    return make_shared<Expression>(
-        parsedExpression.getExpressionType(), BOOL, move(left), move(right));
+    if (left->dataType != UNSTRUCTURED && right->dataType == UNSTRUCTURED) {
+        left = castToUnstructured(move(left));
+    }
+    expression_vector children;
+    children.push_back(move(left));
+    children.push_back(move(right));
+    auto expressionType = parsedExpression.getExpressionType();
+    auto execFunc = VectorComparisonOperations::bindExecFunction(expressionType, children);
+    auto selectFunc = VectorComparisonOperations::bindSelectFunction(expressionType, children);
+    return make_shared<ScalarFunctionExpression>(parsedExpression.getExpressionType(), BOOL,
+        move(children), move(execFunc), move(selectFunc));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
@@ -461,6 +461,10 @@ shared_ptr<Expression> ExpressionBinder::castExpressionToString(shared_ptr<Expre
         return expression;
     }
     return make_shared<Expression>(CAST_TO_STRING, STRING, move(expression));
+}
+
+shared_ptr<Expression> ExpressionBinder::castToUnstructured(shared_ptr<Expression> expression) {
+    return make_shared<Expression>(CAST_TO_UNSTRUCTURED_VALUE, UNSTRUCTURED, move(expression));
 }
 
 void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {

@@ -1,5 +1,7 @@
 #include "src/planner/include/join_order_enumerator.h"
 
+#include "src/binder/expression/include/function_expression.h"
+#include "src/function/comparison/include/vector_comparison_operations.h"
 #include "src/planner/include/enumerator.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
@@ -15,6 +17,8 @@ static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevSubgr
 static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevLeftSubgraph,
     const SubqueryGraph& prevRightSubgraph, const SubqueryGraph& newSubgraph,
     const expression_vector& expressions);
+static shared_ptr<Expression> createNodeIDComparison(
+    const shared_ptr<Expression>& left, const shared_ptr<Expression>& right);
 
 // Rewrite a query rel that closes a cycle as a regular query rel for extend. This requires giving a
 // different identifier to the node that will close the cycle. This identifier is created as rel
@@ -131,9 +135,9 @@ void JoinOrderEnumerator::enumerateSingleRel() {
                         auto planWithFilter = prevPlan->shallowCopy();
                         appendExtendFiltersAndScanProperties(
                             *tmpRel, direction, expressionsToFilter, *planWithFilter);
-                        auto nodeIDFilter = make_shared<Expression>(EQUALS, BOOL,
-                            nodeToIntersect->getNodeIDPropertyExpression(),
-                            tmpNode->getNodeIDPropertyExpression());
+                        auto nodeIDFilter =
+                            createNodeIDComparison(nodeToIntersect->getNodeIDPropertyExpression(),
+                                tmpNode->getNodeIDPropertyExpression());
                         enumerator->appendFilter(nodeIDFilter, *planWithFilter);
                         context->addPlan(newSubgraph, move(planWithFilter));
 
@@ -364,6 +368,17 @@ shared_ptr<RelExpression> rewriteQueryRel(const RelExpression& queryRel, bool is
         isRewriteDst ? queryRel.getSrcNode() : tmpNode,
         isRewriteDst ? tmpNode : queryRel.getDstNode(), queryRel.getLowerBound(),
         queryRel.getUpperBound());
+}
+
+shared_ptr<Expression> createNodeIDComparison(
+    const shared_ptr<Expression>& left, const shared_ptr<Expression>& right) {
+    expression_vector children;
+    children.push_back(left);
+    children.push_back(right);
+    auto execFunc = function::VectorComparisonOperations::bindExecFunction(EQUALS, children);
+    auto selectFunc = function::VectorComparisonOperations::bindSelectFunction(EQUALS, children);
+    return make_shared<ScalarFunctionExpression>(
+        EQUALS, BOOL, move(children), execFunc, selectFunc);
 }
 
 } // namespace planner

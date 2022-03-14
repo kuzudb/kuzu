@@ -2,9 +2,10 @@
 #include "test/common/include/vector/operations/vector_operations_test_helper.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/vector/operations/vector_comparison_operations.h"
 #include "src/common/types/include/gf_string.h"
+#include "src/function/comparison/include/vector_comparison_operations.h"
 
+using namespace graphflow::function;
 using namespace graphflow::common;
 using namespace graphflow::testing;
 using namespace std;
@@ -53,42 +54,48 @@ TEST_F(Int64ComparisonOperandsInSameDataChunkTest, Int64TwoUnflatNoNulls) {
     auto rVector = vector2;
     auto resultData = result->values;
 
-    VectorComparisonOperations::Equals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, operation::Equals>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], i == 45 ? true : false);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    VectorComparisonOperations::NotEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, operation::NotEquals>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], i == 45 ? false : true);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, operation::LessThan>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], i < 45 ? true : false);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, operation::LessThanEquals>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], i < 46 ? true : false);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, operation::GreaterThan>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], i < 46 ? false : true);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, operation::GreaterThanEquals>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], i < 45 ? false : true);
         ASSERT_FALSE(result->isNull(i));
@@ -106,7 +113,8 @@ TEST_F(Int64ComparisonOperandsInSameDataChunkTest, Int64TwoUnflatWithNulls) {
         vector2->setNull(i, (i % 2) == 1);
     }
 
-    VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, operation::LessThan>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         if (i % 2 == 0) {
             ASSERT_EQ(resultData[i], i < 45 ? true : false);
@@ -128,7 +136,8 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatNo
     // Test 1: Left flat and right is unflat.
     // The comparison ins 80 < [90, 89, ...., -9]. The first 10 (90, ..., 81) the result is true,
     // the rest should be false.
-    VectorComparisonOperations::LessThan(*vector1, *vector2, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, operation::LessThan>(
+        *vector1, *vector2, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], i < 10 ? true : false);
         ASSERT_FALSE(result->isNull(i));
@@ -138,7 +147,8 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatNo
     // Test 2: Left unflat and right is flat.
     // Now the comparison is [90, 89, ...., -9] < 80. So now the first 11 (90, ..., 81) the result
     // is false and the rest is true.
-    VectorComparisonOperations::LessThan(*vector2, *vector1, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, operation::LessThan>(
+        *vector2, *vector1, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], i < 11 ? false : true);
         ASSERT_FALSE(result->isNull(i));
@@ -161,7 +171,8 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatWi
     // The comparison ins 80 < [90, NULL, 88, NULL ...., -8, NULL]. The first 10 (90, ..., 81) the
     // result is true for even and NULL for odd indices. For the rest, the result is false for even
     // and NULL for odd indices.
-    VectorComparisonOperations::LessThan(*vector1, *vector2, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, operation::LessThan>(
+        *vector1, *vector2, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         if ((i % 2) == 0) {
             ASSERT_EQ(resultData[i], i < 10 ? true : false);
@@ -180,7 +191,8 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatWi
     // Now the comparison is [90, 89, ...., -9] < 80. So now for the first 11 (90, ..., 81) the
     // result is false for even and NULL for odd indices. For the rest, the result is true for even
     // and NULL for odd indices.
-    VectorComparisonOperations::LessThan(*vector2, *vector1, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, operation::LessThan>(
+        *vector2, *vector1, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         if ((i % 2) == 0) {
             ASSERT_EQ(resultData[i], i < 11 ? false : true);
@@ -223,39 +235,50 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
     memcpy(
         rData[0].data, value.data() + gf_string_t::PREFIX_LENGTH, 8 - gf_string_t::PREFIX_LENGTH);
 
-    VectorComparisonOperations::Equals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::Equals>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
     rData[0].data[3] = 'i';
-    VectorComparisonOperations::Equals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::Equals>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    VectorComparisonOperations::NotEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::NotEquals>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::LessThan>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::LessThanEquals>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::GreaterThan>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t,
+        operation::GreaterThanEquals>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
     rData[0].data[3] = 'a';
-    VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::LessThan>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::LessThanEquals>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::GreaterThan>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t,
+        operation::GreaterThanEquals>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 }
 
@@ -293,38 +316,49 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
     memcpy(rOverflow, value.data(), overflowLen);
     rData->overflowPtr = reinterpret_cast<uintptr_t>(rOverflow);
 
-    VectorComparisonOperations::Equals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::Equals>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
     rOverflow[overflowLen - 1] = 'z';
-    VectorComparisonOperations::Equals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::Equals>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    VectorComparisonOperations::NotEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::NotEquals>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::LessThan>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::LessThanEquals>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::GreaterThan>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t,
+        operation::GreaterThanEquals>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
     rOverflow[overflowLen - 1] = 'a';
-    VectorComparisonOperations::LessThan(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::LessThan>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    VectorComparisonOperations::LessThanEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::LessThanEquals>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], false);
 
-    VectorComparisonOperations::GreaterThan(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t, operation::GreaterThan>(
+        *lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 
-    VectorComparisonOperations::GreaterThanEquals(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, uint8_t,
+        operation::GreaterThanEquals>(*lVector, *rVector, *result);
     ASSERT_EQ(resultData[0], true);
 }

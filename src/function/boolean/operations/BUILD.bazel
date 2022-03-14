@@ -1,0 +1,13 @@
+cc_library(
+    name = "boolean_operations",
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/common:__pkg__",
+        "//src/function/boolean:__pkg__",
+    ],
+)

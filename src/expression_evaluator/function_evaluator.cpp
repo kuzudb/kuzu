@@ -1,11 +1,17 @@
 #include "include/function_evaluator.h"
 
+#include "src/binder/expression/include/function_expression.h"
+#include "src/function/list/include/vector_list_operations.h"
+
 namespace graphflow {
 namespace evaluator {
 
 void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
     BaseExpressionEvaluator::init(resultSet, memoryManager);
-    getFunction();
+    getExecFunction();
+    if (expression->dataType == BOOL) {
+        getSelectFunction();
+    }
     resultVector = make_shared<ValueVector>(memoryManager, expression->dataType);
     // set resultVector state to the state of its unFlat child if there is any
     assert(!children.empty());
@@ -16,7 +22,6 @@ void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager
             break;
         }
     }
-    // extract function parameters
     for (auto& child : children) {
         parameters.push_back(child->resultVector);
     }
@@ -26,7 +31,14 @@ void FunctionExpressionEvaluator::evaluate() {
     for (auto& child : children) {
         child->evaluate();
     }
-    func(parameters, *resultVector);
+    execFunc(parameters, *resultVector);
+}
+
+uint64_t FunctionExpressionEvaluator::select(sel_t* selectedPos) {
+    for (auto& child : children) {
+        child->evaluate();
+    }
+    return selectFunc(parameters, selectedPos);
 }
 
 unique_ptr<BaseExpressionEvaluator> FunctionExpressionEvaluator::clone() {
@@ -37,10 +49,42 @@ unique_ptr<BaseExpressionEvaluator> FunctionExpressionEvaluator::clone() {
     return make_unique<FunctionExpressionEvaluator>(expression, move(clonedChildren));
 }
 
-void FunctionExpressionEvaluator::getFunction() {
+void FunctionExpressionEvaluator::getExecFunction() {
     switch (expression->expressionType) {
     case LIST_CREATION: {
-        func = VectorListOperations::ListCreation;
+        execFunc = VectorListOperations::ListCreation;
+    } break;
+    case AND:
+    case OR:
+    case XOR:
+    case NOT:
+    case EQUALS:
+    case NOT_EQUALS:
+    case GREATER_THAN:
+    case GREATER_THAN_EQUALS:
+    case LESS_THAN:
+    case LESS_THAN_EQUALS: {
+        execFunc = ((ScalarFunctionExpression&)*expression).execFunc;
+    } break;
+    default:
+        throw invalid_argument(
+            "Unsupported expression type: " + expressionTypeToString(expression->expressionType));
+    }
+}
+
+void FunctionExpressionEvaluator::getSelectFunction() {
+    switch (expression->expressionType) {
+    case AND:
+    case OR:
+    case XOR:
+    case NOT:
+    case EQUALS:
+    case NOT_EQUALS:
+    case GREATER_THAN:
+    case GREATER_THAN_EQUALS:
+    case LESS_THAN:
+    case LESS_THAN_EQUALS: {
+        selectFunc = ((ScalarFunctionExpression&)*expression).selectFunc;
     } break;
     default:
         throw invalid_argument(

@@ -9,6 +9,11 @@
 namespace graphflow {
 namespace processor {
 
+static bool useFunctionEvaluator(ExpressionType expressionType) {
+    return isExpressionListFunction(expressionType) || isExpressionBoolConnection(expressionType) ||
+           isExpressionComparison(expressionType);
+}
+
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
     const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
     ExecutionContext& executionContext) {
@@ -17,7 +22,7 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
         return mapLiteralExpression(expression, false /* castToUnstructured */);
     } else if (mapperContext.expressionHasComputed(expression->getUniqueName())) {
         return mapReferenceExpression(expression, mapperContext);
-    } else if (isExpressionListFunction(expressionType)) {
+    } else if (useFunctionEvaluator(expressionType)) {
         return mapFunctionExpression(expression, mapperContext, executionContext);
     } else {
         return mapOperatorExpression(expression, mapperContext, executionContext);

@@ -1,11 +1,15 @@
 #pragma once
 
+#include <cassert>
 #include <functional>
 
+#include "src/common/types/include/type_utils.h"
 #include "src/common/types/include/value.h"
 
+using namespace graphflow::common;
+
 namespace graphflow {
-namespace common {
+namespace function {
 namespace operation {
 
 struct Equals {
@@ -301,5 +305,5 @@ inline void LessThanEquals::operation(
 }
 
 } // namespace operation
-} // namespace common
+} // namespace function
 } // namespace graphflow

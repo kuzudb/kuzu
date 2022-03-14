@@ -42,21 +42,16 @@ cc_library(
     name = "vector_operations",
     srcs = [
         "vector/operations/vector_arithmetic_operations.cpp",
-        "vector/operations/vector_boolean_operations.cpp",
         "vector/operations/vector_cast_operations.cpp",
-        "vector/operations/vector_comparison_operations.cpp",
         "vector/operations/vector_hash_operations.cpp",
         "vector/operations/vector_null_operations.cpp",
     ],
     hdrs = [
         "include/vector/operations/executors/binary_operation_executor.h",
-        "include/vector/operations/executors/boolean_operation_executor.h",
         "include/vector/operations/executors/null_operation_executor.h",
         "include/vector/operations/executors/unary_operation_executor.h",
         "include/vector/operations/vector_arithmetic_operations.h",
-        "include/vector/operations/vector_boolean_operations.h",
         "include/vector/operations/vector_cast_operations.h",
-        "include/vector/operations/vector_comparison_operations.h",
         "include/vector/operations/vector_hash_operations.h",
         "include/vector/operations/vector_null_operations.h",
     ],
@@ -64,6 +59,7 @@ cc_library(
     deps = [
         "operations",
         "vector",
+        "//src/function/boolean/operations:boolean_operations",
     ],
 )
 
@@ -72,8 +68,6 @@ cc_library(
     srcs = [],
     hdrs = [
         "include/operations/arithmetic_operations.h",
-        "include/operations/boolean_operations.h",
-        "include/operations/comparison_operations.h",
         "include/operations/hash_operations.h",
         "include/operations/null_operations.h",
     ],

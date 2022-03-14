@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "src/common/include/operations/boolean_operations.h"
+#include "src/function/boolean/operations/include/boolean_operations.h"
 
 namespace graphflow {
 namespace common {

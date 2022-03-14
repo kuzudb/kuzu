@@ -1,9 +1,9 @@
 #include "src/processor/include/physical_plan/operator/order_by/key_block_merger.h"
 
-#include "src/common/include/operations/comparison_operations.h"
+#include "src/function/comparison/operations/include/comparison_operations.h"
 
 using namespace graphflow::processor;
-using namespace graphflow::common::operation;
+using namespace graphflow::function::operation;
 
 namespace graphflow {
 namespace processor {

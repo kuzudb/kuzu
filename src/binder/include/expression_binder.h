@@ -21,9 +21,7 @@ public:
     shared_ptr<Expression> bindExpression(const ParsedExpression& parsedExpression);
 
 private:
-    shared_ptr<Expression> bindBinaryBooleanExpression(const ParsedExpression& parsedExpression);
-
-    shared_ptr<Expression> bindUnaryBooleanExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindBooleanExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindComparisonExpression(const ParsedExpression& parsedExpression);
 
@@ -74,6 +72,8 @@ private:
 
     static shared_ptr<Expression> castExpressionToString(shared_ptr<Expression> expression);
 
+    static shared_ptr<Expression> castToUnstructured(shared_ptr<Expression> expression);
+
     /****** validation *****/
 
     // NOTE: this validation should be removed and front end binds any null operation to null
@@ -92,9 +92,6 @@ private:
     }
     static void validateNumericOrUnstructured(const Expression& expression) {
         validateExpectedDataType(expression, unordered_set<DataType>{INT64, DOUBLE, UNSTRUCTURED});
-    }
-    static void validateBoolOrUnstructured(const Expression& expression) {
-        validateExpectedDataType(expression, unordered_set<DataType>{BOOL, UNSTRUCTURED});
     }
     static void validateStringOrUnstructured(const Expression& expression) {
         validateExpectedDataType(expression, unordered_set<DataType>{STRING, UNSTRUCTURED});
