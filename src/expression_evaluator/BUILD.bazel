@@ -37,6 +37,7 @@ cc_library(
     deps = [
         "base_expression_evaluator",
         "//src/common:vector_operations",
-        "//src/function/list:list_functions",
+        "//src/function/list:vector_list_operations",
+        "//src/function/string:vector_string_operations",
     ],
 )

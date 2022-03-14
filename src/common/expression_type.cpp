@@ -33,7 +33,7 @@ bool isExpressionArithmetic(ExpressionType type) {
 }
 
 bool isExpressionStringOperator(ExpressionType type) {
-    return STARTS_WITH == type || ENDS_WITH == type || CONTAINS == type;
+    return STARTS_WITH == type || ENDS_WITH == type || CONTAINS == type || STRING_CONCAT == type;
 }
 
 bool isExpressionNullComparison(ExpressionType type) {
@@ -101,6 +101,8 @@ string expressionTypeToString(ExpressionType type) {
         return "ENDS_WITH";
     case CONTAINS:
         return "CONTAINS";
+    case STRING_CONCAT:
+        return "STRING_CONCAT";
     case IS_NULL:
         return "IS_NULL";
     case IS_NOT_NULL:

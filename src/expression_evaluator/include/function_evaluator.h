@@ -2,7 +2,7 @@
 
 #include "base_evaluator.h"
 
-#include "src/function/list/include/list_functions.h"
+#include "src/function/list/include/vector_list_operations.h"
 
 using namespace graphflow::function;
 

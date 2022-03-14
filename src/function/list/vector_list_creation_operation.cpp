@@ -1,4 +1,4 @@
-#include "include/list_functions.h"
+#include "include/vector_list_operations.h"
 
 #include "src/common/types/include/gf_list.h"
 
@@ -31,7 +31,7 @@ static void appendToList(gf_list_t& gfList, uint8_t* element, uint64_t elementSi
     gfList.size++;
 }
 
-void ListFunctions::ListCreation(
+void VectorListOperations::ListCreation(
     const vector<shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     result.resetOverflowBuffer();
     assert(!parameters.empty());

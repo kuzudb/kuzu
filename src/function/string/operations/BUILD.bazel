@@ -1,0 +1,13 @@
+cc_library(
+    name = "string_operations",
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/common:__pkg__",
+        "//src/function/string:__pkg__",
+    ],
+    deps = [
+        "//src/common/types",
+    ],
+)

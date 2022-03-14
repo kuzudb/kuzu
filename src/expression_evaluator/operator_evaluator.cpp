@@ -5,6 +5,9 @@
 #include "src/common/include/vector/operations/vector_cast_operations.h"
 #include "src/common/include/vector/operations/vector_comparison_operations.h"
 #include "src/common/include/vector/operations/vector_null_operations.h"
+#include "src/function/string/include/vector_string_operations.h"
+
+using namespace graphflow::function;
 
 namespace graphflow {
 namespace evaluator {
@@ -153,6 +156,15 @@ void BinaryOperatorExpressionEvaluator::getExecOperation() {
     case POWER: {
         execOperation = VectorArithmeticOperations::Power;
     } break;
+    case STRING_CONCAT: {
+        execOperation = VectorStringOperations::Concat;
+    } break;
+    case STARTS_WITH: {
+        execOperation = VectorStringOperations::StartsWith;
+    } break;
+    case CONTAINS: {
+        execOperation = VectorStringOperations::Contains;
+    } break;
     default:
         throw invalid_argument(
             "Unsupported expression type: " + expressionTypeToString(expression->expressionType));
@@ -187,6 +199,12 @@ void BinaryOperatorExpressionEvaluator::getSelectOperation() {
     } break;
     case LESS_THAN_EQUALS: {
         selectOperation = VectorComparisonOperations::LessThanEqualsSelect;
+    } break;
+    case CONTAINS: {
+        selectOperation = VectorStringOperations::ContainsSelect;
+    } break;
+    case STARTS_WITH: {
+        selectOperation = VectorStringOperations::StartsWithSelect;
     } break;
     default:
         throw invalid_argument(

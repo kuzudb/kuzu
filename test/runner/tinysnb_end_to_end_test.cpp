@@ -89,10 +89,16 @@ TEST_F(TinySnbProcessorTest, AggregateTests) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }
 
+TEST_F(TinySnbProcessorTest, FunctionTests) {
+    vector<TestQueryConfig> queryConfigs;
+    queryConfigs = TestHelper::parseTestFile("test/runner/queries/functions/list_functions.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
+    queryConfigs = TestHelper::parseTestFile("test/runner/queries/functions/string_functions.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
+}
+
 TEST_F(TinySnbProcessorTest, ProjectionTests) {
     vector<TestQueryConfig> queryConfigs;
-    queryConfigs = TestHelper::parseTestFile("test/runner/queries/projection/function.test");
-    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/projection/projection.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/projection/with.test");

@@ -65,6 +65,7 @@ enum ExpressionType : uint8_t {
     STARTS_WITH = 40,
     ENDS_WITH = 41,
     CONTAINS = 42,
+    STRING_CONCAT = 43,
 
     /**
      * List Operator Expressions works only for CSV Line

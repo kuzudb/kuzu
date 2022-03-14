@@ -4,6 +4,9 @@
 #include <cstdlib>
 
 #include "src/common/types/include/value.h"
+#include "src/function/string/operations/include/concat_operation.h"
+
+using namespace graphflow::function::operation;
 
 namespace graphflow {
 namespace common {
@@ -123,46 +126,6 @@ inline void Modulo::operation(
     result = fmod(left, right);
 }
 
-/***************************************************
- **                                               **
- **   Specialized Concat and Add implementation   **
- **                                               **
- **************************************************/
-
-template<>
-inline void Add::operation(
-    gf_string_t& left, gf_string_t& right, gf_string_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    auto len = left.len + right.len;
-    if (len <= gf_string_t::SHORT_STR_LENGTH /* concat's result is short */) {
-        memcpy(result.prefix, left.prefix, left.len);
-        memcpy(result.prefix + left.len, right.prefix, right.len);
-    } else {
-        auto buffer = reinterpret_cast<char*>(result.overflowPtr);
-        memcpy(buffer, left.getData(), left.len);
-        memcpy(buffer + left.len, right.getData(), right.len);
-        memcpy(result.prefix, buffer, gf_string_t::PREFIX_LENGTH);
-    }
-    result.len = len;
-}
-
-template<>
-inline void Add::operation(
-    string& left, string& right, gf_string_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    auto len = left.length() + right.length();
-    if (len <= gf_string_t::SHORT_STR_LENGTH /* concat's result is short */) {
-        memcpy(result.prefix, left.c_str(), left.length());
-        memcpy(result.prefix + left.length(), right.c_str(), right.length());
-    } else {
-        auto buffer = reinterpret_cast<char*>(result.overflowPtr);
-        memcpy(buffer, left.c_str(), left.length());
-        memcpy(buffer + left.length(), right.c_str(), right.length());
-        memcpy(result.prefix, buffer, gf_string_t::PREFIX_LENGTH);
-    }
-    result.len = len;
-}
-
 /**********************************************
  **                                          **
  **   Specialized Value(s) implementations   **
@@ -251,7 +214,7 @@ inline void Add::operation(
     if (left.dataType == STRING || right.dataType == STRING) {
         result.dataType = STRING;
         if (left.dataType == STRING && right.dataType == STRING) {
-            Add::operation(
+            Concat::operation(
                 left.val.strVal, right.val.strVal, result.val.strVal, isLeftNull, isRightNull);
         } else {
             // This is the case when one of the left or right unstructured Value needs to be cast
@@ -259,7 +222,7 @@ inline void Add::operation(
             // as regular strings.
             auto lVal = left.toString();
             auto rVal = right.toString();
-            Add::operation(lVal, rVal, result.val.strVal, isLeftNull, isRightNull);
+            Concat::operation(lVal, rVal, result.val.strVal, isLeftNull, isRightNull);
         }
         return;
     } else if (left.dataType == DATE && right.dataType == INTERVAL) {
