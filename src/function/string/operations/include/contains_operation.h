@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "src/common/types/include/gf_string.h"
+#include "src/function/string/operations/include/find_operation.h"
 
 using namespace graphflow::common;
 
@@ -24,7 +25,9 @@ void Contains::operation(
     assert(!isLeftNull && !isRightNull);
     auto lStr = left.getAsString();
     auto rStr = right.getAsString();
-    result = lStr.find(rStr) != string::npos;
+    int64_t pos;
+    Find::operation(left, right, pos, false /* isLeftNull */, false /* isRightNull */);
+    result = (pos != 0);
 }
 
 } // namespace operation
