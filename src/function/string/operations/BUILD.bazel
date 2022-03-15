@@ -1,5 +1,8 @@
 cc_library(
     name = "string_operations",
+    srcs = glob([
+        "*.cpp",
+    ]),
     hdrs = glob([
         "include/*.h",
     ]),
