@@ -29,7 +29,7 @@ void NodesLoader::load(const vector<string>& filePaths, const vector<uint64_t>& 
     for (label_t nodeLabel = 0; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
         NodeLabelDescription description(nodeLabel, fileDescriptions[nodeLabel].filePath,
             numBlocksPerLabel[nodeLabel], graph.getCatalog().getStructuredNodeProperties(nodeLabel),
-            fileDescriptions[nodeLabel].csvSpecialChars, nodeIDMaps[nodeLabel].get());
+            fileDescriptions[nodeLabel].csvReaderConfig, nodeIDMaps[nodeLabel].get());
         InMemNodePropertyColumnsBuilder builder{description, taskScheduler, graph, outputDirectory};
         constructPropertyColumnsAndCountUnstrProperties(
             description, numLinesPerBlock[nodeLabel], builder);
@@ -86,9 +86,7 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
             for (auto blockIdx = 0u; blockIdx < numBlocksPerLabel[nodeLabel]; blockIdx++) {
                 taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                     populateUnstrPropertyListsTask, filePaths[nodeLabel], blockIdx,
-                    fileDescriptions[nodeLabel].csvSpecialChars.tokenSeparator,
-                    fileDescriptions[nodeLabel].csvSpecialChars.quoteChar,
-                    fileDescriptions[nodeLabel].csvSpecialChars.escapeChar,
+                    fileDescriptions[nodeLabel].csvReaderConfig,
                     graph.getCatalog().getStructuredNodeProperties(nodeLabel).size(), offsetStart,
                     unstrPropertiesNameToIdMap, listSizes, &listsHeaders, &listsMetadata,
                     unstrPropertyLists, labelUnstrPropertyListsStringOverflowPages[nodeLabel].get(),
@@ -146,9 +144,8 @@ void NodesLoader::buildInMemUnstrPropertyLists() {
                 NodesStore::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel);
             labelUnstrPropertyLists[nodeLabel] = make_unique<InMemUnstrPropertyPages>(
                 unstrPropertyListsFName, labelUnstrPropertyListsMetadata[nodeLabel].numPages);
-            labelUnstrPropertyListsStringOverflowPages[nodeLabel] =
-                make_unique<InMemStringOverflowPages>(
-                    StringOverflowPages::getStringOverflowPagesFName(unstrPropertyListsFName));
+            labelUnstrPropertyListsStringOverflowPages[nodeLabel] = make_unique<InMemOverflowPages>(
+                OverflowPages::getOverflowPagesFName(unstrPropertyListsFName));
         }
     }
 }
@@ -159,9 +156,9 @@ void NodesLoader::saveUnstrPropertyListsToFile() {
             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                 [&](InMemUnstrPropertyPages* x) { x->saveToFile(); },
                 labelUnstrPropertyLists[nodeLabel].get()));
-            taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-                [&](InMemStringOverflowPages* x) { x->saveToFile(); },
-                labelUnstrPropertyListsStringOverflowPages[nodeLabel].get()));
+            taskScheduler.scheduleTask(
+                LoaderTaskFactory::createLoaderTask([&](InMemOverflowPages* x) { x->saveToFile(); },
+                    labelUnstrPropertyListsStringOverflowPages[nodeLabel].get()));
             auto fName = NodesStore::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel);
             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                 [&](ListsMetadata* x, const string& fName) { x->saveToDisk(fName); },
@@ -185,10 +182,11 @@ void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(
     LoaderProgressBar* progressBar) {
     logger->trace("Start: path={0} blkIdx={1}", description->fName, blockId);
     vector<PageByteCursor> stringOverflowPagesCursors{description->properties.size()};
-    CSVReader reader(description->fName, description->csvSpecialChars.tokenSeparator,
-        description->csvSpecialChars.quoteChar, description->csvSpecialChars.escapeChar, blockId);
+    CSVReader reader(description->fName, description->csvReaderConfig, blockId);
     if (0 == blockId) {
-        if (reader.hasNextLine()) {}
+        if (reader.hasNextLine()) {
+            reader.skipLine(); // skip header line.
+        }
     }
     auto bufferOffset = 0u;
     while (reader.hasNextLine()) {
@@ -207,14 +205,14 @@ void NodesLoader::populatePropertyColumnsAndCountUnstrPropertyListSizesTask(
 // structured properties and calls the parser that reads unstructured properties of that line
 // and puts in unstrPropertyLists.
 void NodesLoader::populateUnstrPropertyListsTask(const string& fName, uint64_t blockId,
-    char tokenSeparator, char quoteChar, char escapeChar, uint32_t numStructuredProperties,
+    const CSVReaderConfig& csvReaderConfig, uint32_t numStructuredProperties,
     node_offset_t offsetStart, const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
     listSizes_t* unstrPropertyListSizes, ListHeaders* unstrPropertyListHeaders,
     ListsMetadata* unstrPropertyListsMetadata, InMemUnstrPropertyPages* unstrPropertyPages,
-    InMemStringOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger>& logger,
+    InMemOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger>& logger,
     LoaderProgressBar* progressBar) {
     logger->trace("Start: path={0} blkIdx={1}", fName, blockId);
-    CSVReader reader(fName, tokenSeparator, quoteChar, escapeChar, blockId);
+    CSVReader reader(fName, csvReaderConfig, blockId);
     PageByteCursor stringOvfPagesCursor;
     if (0 == blockId) {
         if (reader.hasNextLine()) {}
@@ -318,12 +316,18 @@ void NodesLoader::putPropsOfLineIntoInMemPropertyColumns(
                     nodeIDMap->set(strVal, nodeOffset);
                 }
             }
-            break;
+        } break;
+        case LIST: {
+            if (!reader.skipTokenIfNull()) {
+                auto listVal = reader.getList(property.childDataType);
+                builder.setListProperty(
+                    nodeOffset, property.id, listVal, stringOverflowPagesCursors[property.id]);
+            }
+        } break;
         default:
             if (!reader.skipTokenIfNull()) {
                 reader.skipToken();
             }
-        }
         }
     }
 }
@@ -334,7 +338,7 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
     const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
     listSizes_t& unstrPropertyListSizes, ListHeaders& unstrPropertyListHeaders,
     ListsMetadata& unstrPropertyListsMetadata, InMemUnstrPropertyPages& unstrPropertyPages,
-    InMemStringOverflowPages& stringOverflowPages, PageByteCursor& stringOvfPagesCursor) {
+    InMemOverflowPages& stringOverflowPages, PageByteCursor& stringOvfPagesCursor) {
     while (reader.hasNextToken()) {
         auto unstrPropertyString = reader.getString();
         auto unstrPropertyStringBreaker1 = strchr(unstrPropertyString, ':');
@@ -388,12 +392,11 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
                 dataTypeSize, reinterpret_cast<uint8_t*>(&intervalVal));
         } break;
         case STRING: {
-            gf_string_t encodedString;
-            stringOverflowPages.setStrInOvfPageAndPtrInEncString(
-                valuePtr, stringOvfPagesCursor, &encodedString);
+            auto encodedString = stringOverflowPages.addString(valuePtr, stringOvfPagesCursor);
             unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
                 dataTypeSize, reinterpret_cast<uint8_t*>(&encodedString));
         } break;
+            // todo(Guodong): LIST for unstructured
         default:
             throw invalid_argument("unsupported dataType while parsing unstructured property");
         }

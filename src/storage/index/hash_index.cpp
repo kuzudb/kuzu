@@ -35,8 +35,8 @@ HashIndex::HashIndex(const string& fName, DataType keyDataType)
     ovfPages.reserve(1);
     ovfPages.emplace_back(getNewPage());
     if (keyDataType == STRING) {
-        inMemStringOvfPages = make_unique<InMemStringOverflowPages>(
-            StringOverflowPages::getStringOverflowPagesFName(fName));
+        inMemStringOvfPages =
+            make_unique<InMemOverflowPages>(OverflowPages::getOverflowPagesFName(fName));
     }
 }
 
@@ -50,7 +50,7 @@ HashIndex::HashIndex(const string& fName, BufferManager& bufferManager, bool isI
     fileHandle->readPage(buffer.get(), 0);
     indexHeader = *((HashIndexHeader*)buffer.get());
     if (indexHeader.keyDataType == STRING) {
-        stringOvfPages = make_unique<StringOverflowPages>(fName, bufferManager, isInMemory);
+        stringOvfPages = make_unique<OverflowPages>(fName, bufferManager, isInMemory);
     }
 }
 
@@ -124,9 +124,8 @@ void HashIndex::insertKey(uint8_t* key, uint8_t* entry) {
         memcpy(entry, key, TypeUtils::getDataTypeSize(indexHeader.keyDataType));
         break;
     case STRING: {
-        gf_string_t gfString;
-        inMemStringOvfPages->setStrInOvfPageAndPtrInEncString(
-            reinterpret_cast<const char*>(key), stringOvfPageCursor, &gfString);
+        auto gfString =
+            inMemStringOvfPages->addString(reinterpret_cast<const char*>(key), stringOvfPageCursor);
         memcpy(entry, &gfString, TypeUtils::getDataTypeSize(indexHeader.keyDataType));
         break;
     }
@@ -152,7 +151,8 @@ bool HashIndex::notExistsInSlot(uint8_t* slot, uint8_t* key) {
                     foundKey = memcmp(key, keyInEntryString->prefix, keyInEntryString->len) == 0;
                 } else {
                     PageByteCursor cursor;
-                    keyInEntryString->getOverflowPtrInfo(cursor.idx, cursor.offset);
+                    TypeUtils::decodeOverflowPtr(
+                        keyInEntryString->overflowPtr, cursor.idx, cursor.offset);
                     foundKey = memcmp(key, inMemStringOvfPages->getPtrToMemLoc(cursor),
                                    keyInEntryString->len) == 0;
                 }

@@ -22,42 +22,42 @@ TEST(TypesTests, StringToINT64Conversion) {
 TEST(TypesTests, StringToINT64ConversionErrors) {
     // Max overflow
     try {
-        int64_t result = TypeUtils::TypeUtils::convertToInt64("2147483648000000000000");
+        TypeUtils::convertToInt64("2147483648000000000000");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     // Min underflow
     try {
-        int64_t result = TypeUtils::TypeUtils::convertToInt64("-2147483648000000000000");
+        TypeUtils::convertToInt64("-2147483648000000000000");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     // Wrong input
     try {
-        int64_t result = TypeUtils::TypeUtils::convertToInt64("qq1244");
+        TypeUtils::convertToInt64("qq1244");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     // Empty input
     try {
-        int64_t result = TypeUtils::TypeUtils::convertToInt64("");
+        TypeUtils::convertToInt64("");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
-        int64_t result = TypeUtils::TypeUtils::convertToInt64("24x[xd432");
+        TypeUtils::convertToInt64("24x[xd432");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
-        int64_t result = TypeUtils::TypeUtils::convertToInt64("0L");
+        TypeUtils::convertToInt64("0L");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
@@ -75,28 +75,28 @@ TEST(TypesTests, StringToDoubleConversion) {
 TEST(TypesTests, StringToDoubleConversionErrors) {
     // Wrong input
     try {
-        double_t result = TypeUtils::TypeUtils::convertToDouble("x2.4r432");
+        TypeUtils::convertToDouble("x2.4r432");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     // Empty input
     try {
-        double_t result = TypeUtils::TypeUtils::convertToDouble("");
+        TypeUtils::convertToDouble("");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
-        double_t result = TypeUtils::TypeUtils::convertToDouble("2.4r432");
+        TypeUtils::convertToDouble("2.4r432");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
-        double_t result = TypeUtils::TypeUtils::convertToDouble("0.0f");
+        TypeUtils::convertToDouble("0.0f");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
@@ -116,20 +116,20 @@ TEST(TypesTests, StringToBoolConversion) {
 
 TEST(TypesTests, StringToBoolConversionErrors) {
     try {
-        uint8_t result = TypeUtils::TypeUtils::convertToBoolean("TREE");
+        TypeUtils::convertToBoolean("TREE");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     try {
-        uint8_t result = TypeUtils::TypeUtils::convertToBoolean("falst ");
+        TypeUtils::convertToBoolean("falst ");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     // empty
     try {
-        uint8_t result = TypeUtils::TypeUtils::convertToDouble("");
+        TypeUtils::convertToDouble("");
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }

@@ -60,6 +60,19 @@ Literal StringPropertyColumn::readValue(node_offset_t offset) {
     return retVal;
 }
 
+Literal ListPropertyColumn::readValue(node_offset_t offset) {
+    assert(childDataType != INVALID);
+    auto cursor = PageUtils::getPageElementCursorForOffset(offset, numElementsPerPage);
+    gf_list_t gfList;
+    auto frame = bufferManager.pin(fileHandle, cursor.idx);
+    memcpy(&gfList, frame + mapElementPosToByteOffset(cursor.pos), sizeof(gf_list_t));
+    bufferManager.unpin(fileHandle, cursor.idx);
+    Literal retVal;
+    retVal.dataType = LIST;
+    retVal.listVal = listOverflowPages.readList(gfList, childDataType);
+    return retVal;
+}
+
 void AdjColumn::readForSingleNodeIDPosition(uint32_t pos,
     const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector) {
     if (nodeIDVector->isNull(pos)) {

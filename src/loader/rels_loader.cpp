@@ -19,7 +19,7 @@ void RelsLoader::load(vector<uint64_t>& numBlocksPerFile) {
     for (auto relLabel = 0u; relLabel < graph.catalog->getRelLabelsCount(); relLabel++) {
         RelLabelDescription description(relLabel, fileDescriptions[relLabel].filePath,
             numBlocksPerFile[relLabel], graph.getCatalog().getRelProperties(relLabel),
-            fileDescriptions[relLabel].csvSpecialChars);
+            fileDescriptions[relLabel].csvReaderConfig);
         for (auto direction : DIRECTIONS) {
             description.isSingleMultiplicityPerDirection[direction] =
                 graph.catalog->isSingleMultiplicityInDirection(description.label, direction);
@@ -107,9 +107,8 @@ void RelsLoader::constructAdjLists(
         description.numBlocks);
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(populateAdjListsTask,
-            &description, blockId, description.csvSpecialChars.tokenSeparator,
-            description.csvSpecialChars.quoteChar, description.csvSpecialChars.escapeChar,
-            &listsBuilder, &nodeIDMaps, &catalog, logger, progressBar));
+            &description, blockId, description.csvReaderConfig, &listsBuilder, &nodeIDMaps,
+            &catalog, logger, progressBar));
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done populating AdjLists and Rel Property Lists.");
@@ -129,8 +128,7 @@ void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescriptio
     InMemAdjAndPropertyColumnsBuilder* columnsBuilder, vector<unique_ptr<NodeIDMap>>* nodeIDMaps,
     const Catalog* catalog, shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progressBar) {
     logger->debug("Start: path=`{0}` blkIdx={1}", description->fName, blockId);
-    CSVReader reader(description->fName, description->csvSpecialChars.tokenSeparator,
-        description->csvSpecialChars.quoteChar, description->csvSpecialChars.escapeChar, blockId);
+    CSVReader reader(description->fName, description->csvReaderConfig, blockId);
     if (0 == blockId) {
         if (reader.hasNextLine()) {
             reader.skipLine(); // skip header line
@@ -171,11 +169,11 @@ void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescriptio
 // offsets of the rel and puts in AdjLists. Also calls the parser that reads properties in a line
 // and puts in appropriate PropertyLists.
 void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
-    char tokenSeparator, char quoteChar, char escapeChar,
-    InMemAdjAndPropertyListsBuilder* listsBuilder, vector<unique_ptr<NodeIDMap>>* nodeIDMaps,
-    const Catalog* catalog, shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progresBar) {
+    const CSVReaderConfig& csvReaderConfig, InMemAdjAndPropertyListsBuilder* listsBuilder,
+    vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
+    shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progressBar) {
     logger->trace("Start: path=`{0}` blkIdx={1}", description->fName, blockId);
-    CSVReader reader(description->fName, tokenSeparator, quoteChar, escapeChar, blockId);
+    CSVReader reader(description->fName, csvReaderConfig, blockId);
     if (0 == blockId) {
         if (reader.hasNextLine()) {
             reader.skipLine(); // skip header line
@@ -186,7 +184,7 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
     nodeIDs.reserve(2);
     vector<uint64_t> reversePos;
     reversePos.reserve(2);
-    vector<PageByteCursor> stringOverflowPagesCursors{description->properties.size()};
+    vector<PageByteCursor> overflowPagesCursors{description->properties.size()};
     for (auto& direction : DIRECTIONS) {
         requireToReadLabels[direction] = 1 != description->nodeLabelsPerDirection[direction].size();
         nodeIDs[direction].label =
@@ -203,11 +201,11 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
         }
         if (description->requirePropertyLists()) {
             putPropsOfLineIntoInMemRelPropLists(description->properties, reader, nodeIDs,
-                reversePos, listsBuilder, stringOverflowPagesCursors);
+                reversePos, listsBuilder, overflowPagesCursors);
         }
     }
     logger->trace("End: path=`{0}` blkIdx={1}", description->fName, blockId);
-    progresBar->incrementTaskFinished();
+    progressBar->incrementTaskFinished();
 }
 
 void RelsLoader::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
@@ -288,6 +286,13 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(
                     nodeID, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
             }
         } break;
+        case LIST: {
+            if (!reader.skipTokenIfNull()) {
+                auto listVal = reader.getList(properties[propertyIdx].childDataType);
+                columnsBuilder->setListProperty(
+                    nodeID, propertyIdx, listVal, stringOverflowPagesCursors[propertyIdx]);
+            }
+        } break;
         default:
             if (!reader.skipTokenIfNull()) {
                 reader.skipToken();
@@ -301,8 +306,7 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(
 // propertyDataTypes array and puts the value in appropriate propertyLists.
 void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<PropertyDefinition>& properties,
     CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& pos,
-    InMemAdjAndPropertyListsBuilder* listsBuilder,
-    vector<PageByteCursor>& stringOverflowPagesCursors) {
+    InMemAdjAndPropertyListsBuilder* listsBuilder, vector<PageByteCursor>& overflowPagesCursors) {
     auto propertyIdx = 0;
     while (reader.hasNextToken()) {
         switch (properties[propertyIdx].dataType) {
@@ -353,7 +357,14 @@ void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<PropertyDefini
             if (!reader.skipTokenIfNull()) {
                 auto strVal = reader.getString();
                 listsBuilder->setStringProperty(
-                    pos, nodeIDs, propertyIdx, strVal, stringOverflowPagesCursors[propertyIdx]);
+                    pos, nodeIDs, propertyIdx, strVal, overflowPagesCursors[propertyIdx]);
+            }
+        } break;
+        case LIST: {
+            if (!reader.skipTokenIfNull()) {
+                auto listVal = reader.getList(properties[propertyIdx].childDataType);
+                listsBuilder->setListProperty(
+                    pos, nodeIDs, propertyIdx, listVal, overflowPagesCursors[propertyIdx]);
             }
         } break;
         default:

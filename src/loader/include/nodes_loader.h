@@ -56,12 +56,12 @@ private:
         LoaderProgressBar* progressBar);
 
     static void populateUnstrPropertyListsTask(const string& fName, uint64_t blockId,
-        char tokenSeparator, char quoteChar, char escapeChar, uint32_t numStructuredProperties,
+        const CSVReaderConfig& csvReaderConfig, uint32_t numStructuredProperties,
         node_offset_t offsetStart,
         const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
         listSizes_t* unstrPropertyListSizes, ListHeaders* unstrPropertyListHeaders,
         ListsMetadata* unstrPropertyListsMetadata, InMemUnstrPropertyPages* unstrPropertyPages,
-        InMemStringOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger>& logger,
+        InMemOverflowPages* stringOverflowPages, shared_ptr<spdlog::logger>& logger,
         LoaderProgressBar* progressBar);
 
     // Task Helpers
@@ -78,7 +78,7 @@ private:
         const unordered_map<string, uint64_t>& unstrPropertiesNameToIdMap,
         listSizes_t& unstrPropertyListSizes, ListHeaders& unstrPropertyListHeaders,
         ListsMetadata& unstrPropertyListsMetadata, InMemUnstrPropertyPages& unstrPropertyPages,
-        InMemStringOverflowPages& stringOverflowPages, PageByteCursor& stringOvfPagesCursor);
+        InMemOverflowPages& stringOverflowPages, PageByteCursor& stringOvfPagesCursor);
 
 private:
     shared_ptr<spdlog::logger> logger;
@@ -93,7 +93,7 @@ private:
     vector<ListHeaders> labelUnstrPropertyListHeaders;
     vector<ListsMetadata> labelUnstrPropertyListsMetadata;
     vector<unique_ptr<InMemUnstrPropertyPages>> labelUnstrPropertyLists;
-    vector<unique_ptr<InMemStringOverflowPages>> labelUnstrPropertyListsStringOverflowPages;
+    vector<unique_ptr<InMemOverflowPages>> labelUnstrPropertyListsStringOverflowPages;
     LoaderProgressBar* progressBar;
 };
 

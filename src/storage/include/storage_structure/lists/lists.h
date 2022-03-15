@@ -8,8 +8,8 @@
 #include "src/storage/include/storage_structure/lists/list_headers.h"
 #include "src/storage/include/storage_structure/lists/lists_metadata.h"
 #include "src/storage/include/storage_structure/lists/utils.h"
+#include "src/storage/include/storage_structure/overflow_pages.h"
 #include "src/storage/include/storage_structure/storage_structure.h"
-#include "src/storage/include/storage_structure/string_overflow_pages.h"
 
 namespace graphflow {
 namespace storage {
@@ -89,7 +89,7 @@ private:
     void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) override;
 
 private:
-    StringOverflowPages stringOverflowPages;
+    OverflowPages stringOverflowPages;
 };
 
 class AdjLists : public Lists {

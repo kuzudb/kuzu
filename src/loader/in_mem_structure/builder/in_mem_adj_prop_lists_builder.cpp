@@ -82,14 +82,22 @@ void InMemAdjAndPropertyListsBuilder::setProperty(const vector<uint64_t>& pos,
 }
 
 void InMemAdjAndPropertyListsBuilder::setStringProperty(const vector<uint64_t>& pos,
-    const vector<nodeID_t>& nodeIDs, const uint32_t& propertyIdx, const char* strVal,
+    const vector<nodeID_t>& nodeIDs, uint32_t propertyIdx, const char* strVal,
     PageByteCursor& stringOverflowCursor) {
-    gf_string_t gfString;
-    (*propertyIdxUnordStringOverflowPages)[propertyIdx]->setStrInOvfPageAndPtrInEncString(
-        strVal, stringOverflowCursor, &gfString);
+    auto gfString = (*propertyIdxUnordStringOverflowPages)[propertyIdx]->addString(
+        strVal, stringOverflowCursor);
     setProperty(pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&gfString), STRING);
 }
 
+void InMemAdjAndPropertyListsBuilder::setListProperty(const vector<uint64_t>& pos,
+    const vector<nodeID_t>& nodeIDs, uint32_t propertyIdx, const Literal& listVal,
+    PageByteCursor& listOverflowCursor) {
+    auto gfList =
+        (*propertyIdxUnordStringOverflowPages)[propertyIdx]->addList(listVal, listOverflowCursor);
+    setProperty(pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&gfList), LIST);
+}
+
+// todo(Guodong): Should we sort on list, too?
 void InMemAdjAndPropertyListsBuilder::sortOverflowStrings(LoaderProgressBar* progressBar) {
     logger->debug("Ordering String Rel PropertyList.");
     directionLabelPropertyIdxStringOverflowPages =
@@ -106,8 +114,8 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStrings(LoaderProgressBar* pro
                         outputDirectory, description.label, nodeLabel, direction, property.name);
                     (*directionLabelPropertyIdxStringOverflowPages)[direction][nodeLabel][property
                                                                                               .id] =
-                        make_unique<InMemStringOverflowPages>(
-                            StringOverflowPages::getStringOverflowPagesFName(fName));
+                        make_unique<InMemOverflowPages>(
+                            OverflowPages::getOverflowPagesFName(fName));
                     auto numNodes = graph.getNumNodesPerLabel()[nodeLabel];
                     auto numBuckets = numNodes / 256;
                     if (0 != numNodes % 256) {
@@ -176,9 +184,9 @@ void InMemAdjAndPropertyListsBuilder::saveToFile(LoaderProgressBar* progressBar)
                             [&](InMemPropertyPages* x) { x->saveToFile(); },
                             directionLabelPropertyIdxPropertyLists[direction][nodeLabel][idx]
                                 .get()));
-                        if (STRING == property.dataType) {
+                        if (STRING == property.dataType || LIST == property.dataType) {
                             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-                                [&](InMemStringOverflowPages* x) { x->saveToFile(); },
+                                [&](InMemOverflowPages* x) { x->saveToFile(); },
                                 (*directionLabelPropertyIdxStringOverflowPages)[direction]
                                                                                [nodeLabel][idx]
                                                                                    .get()));
@@ -307,11 +315,10 @@ void InMemAdjAndPropertyListsBuilder::buildInMemPropertyLists() {
         }
     }
     propertyIdxUnordStringOverflowPages =
-        make_unique<vector<unique_ptr<InMemStringOverflowPages>>>(description.properties.size());
+        make_unique<vector<unique_ptr<InMemOverflowPages>>>(description.properties.size());
     for (auto& property : description.properties) {
-        if (STRING == property.dataType) {
-            (*propertyIdxUnordStringOverflowPages)[property.id] =
-                make_unique<InMemStringOverflowPages>();
+        if (STRING == property.dataType || LIST == property.dataType) {
+            (*propertyIdxUnordStringOverflowPages)[property.id] = make_unique<InMemOverflowPages>();
         }
     }
     logger->debug("Done creating InMemPropertyLists.");
@@ -320,8 +327,8 @@ void InMemAdjAndPropertyListsBuilder::buildInMemPropertyLists() {
 void InMemAdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemPropertyPages* propertyLists,
     ListHeaders* adjListsHeaders, ListsMetadata* listsMetadata,
-    InMemStringOverflowPages* unorderedStringOverflowPages,
-    InMemStringOverflowPages* orderedStringOverflow, LoaderProgressBar* progressBar) {
+    InMemOverflowPages* unorderedStringOverflowPages, InMemOverflowPages* orderedStringOverflow,
+    LoaderProgressBar* progressBar) {
     PageByteCursor unorderedStringOverflowCursor, orderedStringOverflowCursor;
     PageElementCursor propertyListCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
@@ -339,8 +346,8 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(
                 reinterpret_cast<gf_string_t*>(propertyLists->getPtrToMemLoc(propertyListCursor));
             if (gf_string_t::SHORT_STR_LENGTH < valPtr->len && 0xffffffff != valPtr->len) {
                 unorderedStringOverflowCursor.idx = 0;
-                valPtr->getOverflowPtrInfo(
-                    unorderedStringOverflowCursor.idx, unorderedStringOverflowCursor.offset);
+                TypeUtils::decodeOverflowPtr(valPtr->overflowPtr, unorderedStringOverflowCursor.idx,
+                    unorderedStringOverflowCursor.offset);
                 orderedStringOverflow->copyOverflowString(orderedStringOverflowCursor,
                     unorderedStringOverflowPages->getPtrToMemLoc(unorderedStringOverflowCursor),
                     valPtr);

@@ -50,7 +50,7 @@ public:
     static constexpr uint8_t UNSTR_PROP_DATATYPE_LEN = 1;
     static constexpr uint8_t UNSTR_PROP_HEADER_LEN = UNSTR_PROP_IDX_LEN + UNSTR_PROP_DATATYPE_LEN;
 
-    StringOverflowPages stringOverflowPages;
+    OverflowPages stringOverflowPages;
 };
 
 } // namespace storage

@@ -10,8 +10,8 @@ namespace loader {
 
 class InMemNodePropertyColumnsBuilder : public InMemStructuresBuilder, public ColumnUtils {
 
-    typedef vector<unique_ptr<InMemStringOverflowPages>> propertyIdxStringOverflow_t;
-    typedef vector<unique_ptr<InMemPropertyPages>> propertyIdxPropertyColumn_t;
+    using overflow_pages_vec_t = vector<unique_ptr<InMemOverflowPages>>;
+    using property_pages_vec_t = vector<unique_ptr<InMemPropertyPages>>;
 
 public:
     // Initialize the builder and construct relevant propertyColumns.
@@ -23,6 +23,8 @@ public:
 
     void setStringProperty(node_offset_t nodeOffset, const uint32_t& propertyIdx,
         const char* originalString, PageByteCursor& cursor);
+    void setListProperty(node_offset_t nodeOffset, const uint32_t& propertyIdx,
+        const Literal& listVal, PageByteCursor& cursor);
 
     void saveToFile(LoaderProgressBar* progressBar) override;
 
@@ -32,8 +34,8 @@ private:
 private:
     NodeLabelDescription& description;
 
-    propertyIdxStringOverflow_t propertyIdxStringOverflowPages{};
-    propertyIdxPropertyColumn_t propertyIdxPropertyColumn{};
+    overflow_pages_vec_t propertyColumnOverflowPages;
+    property_pages_vec_t propertyColumns;
 };
 
 } // namespace loader

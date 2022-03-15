@@ -23,7 +23,8 @@ static void appendToList(gf_list_t& gfList, uint8_t* element, uint64_t elementSi
     case DATE:
     case TIMESTAMP:
     case INTERVAL: {
-        memcpy(gfList.overflowPtr + overflowOffset, element, elementSize);
+        memcpy(
+            reinterpret_cast<uint8_t*>(gfList.overflowPtr) + overflowOffset, element, elementSize);
     } break;
     default:
         assert(false);

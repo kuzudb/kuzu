@@ -3,6 +3,7 @@ cc_test(
     srcs = [
         "load_dates_test.cpp",
         "load_interval_test.cpp",
+        "load_lists_test.cpp",
         "load_timestamp_test.cpp",
         "loader_fault_test.cpp",
         "loader_test.cpp",

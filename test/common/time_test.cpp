@@ -11,28 +11,28 @@ using namespace std;
 TEST(TimeTests, FromTime) {
     // Hour out of range
     try {
-        dtime_t result = Time::FromTime(25, 24, 32, 231321);
+        Time::FromTime(25, 24, 32, 231321);
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     // Minute out of range
     try {
-        dtime_t result = Time::FromTime(21, 60, 22, 212322);
+        Time::FromTime(21, 60, 22, 212322);
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     // Second out of range
     try {
-        dtime_t result = Time::FromTime(14, 22, 61);
+        Time::FromTime(14, 22, 61);
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 
     // Microsecond out of range
     try {
-        dtime_t result = Time::FromTime(14, 22, 42, 1000001);
+        Time::FromTime(14, 22, 42, 1000001);
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }

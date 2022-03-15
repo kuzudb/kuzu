@@ -12,8 +12,7 @@ NullMask::NullMask() : mayContainNulls{false} {
     fill_n(mask.get(), DEFAULT_VECTOR_CAPACITY, false /* not null */);
 }
 
-ValueVector::ValueVector(MemoryManager* memoryManager, DataType dataType)
-    : dataType{dataType}, memoryManager{memoryManager} {
+ValueVector::ValueVector(MemoryManager* memoryManager, DataType dataType) : dataType{dataType} {
     assert(memoryManager != nullptr);
     // TODO: Once MemoryManager's allocateOSBackedBlock is removed, this memory should be obtained
     // directly through the OS. If that's , make sure to delete the memory during deconstruction.
@@ -78,7 +77,7 @@ void ValueVector::copyNonNullDataWithSameType(
         gfListDstPtr->capacity = gfListSrcPtr->capacity;
         gfListDstPtr->size = gfListSrcPtr->size;
         overflowBuffer.allocateList(*gfListDstPtr);
-        gfListDstPtr->copyOverflow(*gfListSrcPtr);
+        gfListDstPtr->set(*gfListSrcPtr);
     } else {
         // Regardless of whether the dataType is unstructured or a structured non-string type, we
         // first copy over the data in the src to the dst.

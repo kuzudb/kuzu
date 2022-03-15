@@ -16,19 +16,19 @@ TEST(DateTests, IsLeapYearTest) {
 TEST(DateTests, FromDate) {
     // Year out of range
     try {
-        date_t result = Date::FromDate(110000, 11, 42);
+        Date::FromDate(110000, 11, 42);
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
     // Month out of range
     try {
-        date_t result = Date::FromDate(2000, 15, 22);
+        Date::FromDate(2000, 15, 22);
         FAIL();
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
     // Day out of range
     try {
-        date_t result = Date::FromDate(2000, 11, 42);
+        Date::FromDate(2000, 11, 42);
     } catch (ConversionException& e) {
     } catch (exception& e) { FAIL(); }
 

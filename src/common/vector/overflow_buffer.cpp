@@ -19,7 +19,8 @@ void OverflowBuffer::allocateList(gf_list_t& list) {
     if (requireNewBlock(sizeToAllocate)) {
         allocateNewBlock();
     }
-    list.overflowPtr = currentBlock->block->data + currentBlock->currentOffset;
+    list.overflowPtr =
+        reinterpret_cast<uint64_t>(currentBlock->block->data + currentBlock->currentOffset);
     currentBlock->currentOffset += sizeToAllocate;
 }
 

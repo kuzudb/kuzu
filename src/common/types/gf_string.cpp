@@ -5,17 +5,6 @@
 namespace graphflow {
 namespace common {
 
-void gf_string_t::setOverflowPtrInfo(const uint64_t& pageIdx, const uint16_t& pageOffset) {
-    memcpy(&overflowPtr, &pageIdx, 6);
-    memcpy(((uint8_t*)&overflowPtr) + 6, &pageOffset, 2);
-}
-
-void gf_string_t::getOverflowPtrInfo(uint64_t& pageIdx, uint16_t& pageOffset) const {
-    pageIdx = 0;
-    memcpy(&pageIdx, &overflowPtr, 6);
-    memcpy(&pageOffset, ((uint8_t*)&overflowPtr) + 6, 2);
-}
-
 void gf_string_t::set(const string& value) {
     set(value.data(), value.length());
 }

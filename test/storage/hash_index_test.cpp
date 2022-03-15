@@ -46,11 +46,11 @@ public:
     LoadedHashIndexStringKeyTest() : LoadedHashIndexTest() {
         ifstream inf(inputFName, ios_base::in);
         inf.seekg(0, ios_base::end);
-        auto numBlock = 1 + (inf.tellg() / CSV_READING_BLOCK_SIZE);
+        auto numBlock = 1 + (inf.tellg() / LoaderConfig::CSV_READING_BLOCK_SIZE);
         inf.close();
         for (auto i = 0u; i < numBlock; i++) {
-            CSVReader reader{inputFName, LoaderConfig::DEFAULT_TOKEN_SEPARATOR,
-                LoaderConfig::DEFAULT_QUOTE_CHAR, LoaderConfig::DEFAULT_ESCAPE_CHAR, i};
+            CSVReaderConfig config;
+            CSVReader reader{inputFName, config, i};
             while (reader.hasNextLine()) {
                 reader.hasNextToken();
                 auto key = string(reader.getString());

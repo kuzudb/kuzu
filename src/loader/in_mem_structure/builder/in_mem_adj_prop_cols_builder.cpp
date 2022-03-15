@@ -21,41 +21,44 @@ InMemAdjAndPropertyColumnsBuilder::InMemAdjAndPropertyColumnsBuilder(
 
 void InMemAdjAndPropertyColumnsBuilder::setRel(
     Direction direction, const vector<nodeID_t>& nodeIDs) {
-    PageElementCursor cursor;
-    calcPageElementCursor(
+    auto cursor = calcPageElementCursor(
         description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes(),
-        nodeIDs[direction].offset, cursor);
+        nodeIDs[direction].offset);
     dirLabelAdjColumns[direction][nodeIDs[direction].label]->set(cursor, nodeIDs[!direction]);
     (*directionLabelNumRels[direction])[nodeIDs[direction].label]++;
 }
 
 void InMemAdjAndPropertyColumnsBuilder::setProperty(
     const nodeID_t& nodeID, const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
-    PageElementCursor cursor;
-    calcPageElementCursor(TypeUtils::getDataTypeSize(type), nodeID.offset, cursor);
+    auto cursor = calcPageElementCursor(TypeUtils::getDataTypeSize(type), nodeID.offset);
     labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->set(cursor, val);
 }
 
 void InMemAdjAndPropertyColumnsBuilder::setStringProperty(const nodeID_t& nodeID,
     const uint32_t& propertyIdx, const char* originalString, PageByteCursor& cursor) {
-    gf_string_t gfString;
-    labelPropertyIdxStringOverflowPages[nodeID.label][propertyIdx]
-        ->setStrInOvfPageAndPtrInEncString(originalString, cursor, &gfString);
+    auto gfString =
+        labelPropertyIdxOverflowPages[nodeID.label][propertyIdx]->addString(originalString, cursor);
     setProperty(nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&gfString), STRING);
+}
+
+void InMemAdjAndPropertyColumnsBuilder::setListProperty(const nodeID_t& nodeID,
+    const uint32_t& propertyIdx, const Literal& listVal, PageByteCursor& cursor) {
+    auto gfList =
+        labelPropertyIdxOverflowPages[nodeID.label][propertyIdx]->addList(listVal, cursor);
+    setProperty(nodeID, propertyIdx, reinterpret_cast<uint8_t*>(&gfList), LIST);
 }
 
 void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings(LoaderProgressBar* progressBar) {
     logger->debug("Ordering String Rel Property Columns.");
     auto direction = description.isSingleMultiplicityPerDirection[FWD] ? FWD : BWD;
     for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
-        labelPropertyIdxStringOverflowPages[nodeLabel].resize(description.properties.size());
+        labelPropertyIdxOverflowPages[nodeLabel].resize(description.properties.size());
         for (auto& property : description.properties) {
             if (STRING == property.dataType) {
                 auto fName = RelsStore::getRelPropertyColumnFName(
                     outputDirectory, description.label, nodeLabel, property.name);
-                labelPropertyIdxStringOverflowPages[nodeLabel][property.id] =
-                    make_unique<InMemStringOverflowPages>(
-                        StringOverflowPages::getStringOverflowPagesFName(fName));
+                labelPropertyIdxOverflowPages[nodeLabel][property.id] =
+                    make_unique<InMemOverflowPages>(OverflowPages::getOverflowPagesFName(fName));
                 auto numNodes = graph.getNumNodesPerLabel()[nodeLabel];
                 auto numBuckets = numNodes / 256;
                 if (0 != numNodes / 256) {
@@ -69,12 +72,12 @@ void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings(LoaderProgressBar* p
                 for (auto i = 0u; i < numBuckets; i++) {
                     offsetStart = offsetEnd;
                     offsetEnd = min(offsetStart + 256, numNodes);
+                    // todo(reviewer): Is this correct that we do in-place sort in the same pages?
                     taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                         sortOverflowStringsOfPropertyColumnTask, offsetStart, offsetEnd,
                         labelPropertyIdxPropertyColumn[nodeLabel][property.id].get(),
-                        labelPropertyIdxStringOverflowPages[nodeLabel][property.id].get(),
-                        labelPropertyIdxStringOverflowPages[nodeLabel][property.id].get(),
-                        progressBar));
+                        labelPropertyIdxOverflowPages[nodeLabel][property.id].get(),
+                        labelPropertyIdxOverflowPages[nodeLabel][property.id].get(), progressBar));
                 }
                 taskScheduler.waitAllTasksToCompleteOrError();
             }
@@ -120,13 +123,13 @@ void InMemAdjAndPropertyColumnsBuilder::saveToFile(LoaderProgressBar* progressBa
                     reinterpret_cast<InMemPropertyPages*>(
                         labelPropertyIdxPropertyColumn[nodeLabel][property.id].get()),
                     progressBar));
-                if (STRING == property.dataType) {
+                if (STRING == property.dataType || LIST == property.dataType) {
                     taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-                        [&](InMemStringOverflowPages* x, LoaderProgressBar* progressBar) {
+                        [&](InMemOverflowPages* x, LoaderProgressBar* progressBar) {
                             x->saveToFile();
                             progressBar->incrementTaskFinished();
                         },
-                        (labelPropertyIdxStringOverflowPages)[nodeLabel][property.id].get(),
+                        (labelPropertyIdxOverflowPages)[nodeLabel][property.id].get(),
                         progressBar));
                 }
             }
@@ -139,10 +142,10 @@ void InMemAdjAndPropertyColumnsBuilder::saveToFile(LoaderProgressBar* progressBa
 void InMemAdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction direction) {
     logger->debug("Creating InMemProperty Columns.");
     labelPropertyIdxPropertyColumn.resize(graph.getCatalog().getNodeLabelsCount());
-    labelPropertyIdxStringOverflowPages.resize(graph.getCatalog().getNodeLabelsCount());
+    labelPropertyIdxOverflowPages.resize(graph.getCatalog().getNodeLabelsCount());
     for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
         labelPropertyIdxPropertyColumn[nodeLabel].resize((description.properties).size());
-        labelPropertyIdxStringOverflowPages[nodeLabel].resize((description.properties).size());
+        labelPropertyIdxOverflowPages[nodeLabel].resize((description.properties).size());
         for (auto& property : description.properties) {
             auto fName = RelsStore::getRelPropertyColumnFName(
                 outputDirectory, description.label, nodeLabel, property.name);
@@ -151,10 +154,9 @@ void InMemAdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction dire
             labelPropertyIdxPropertyColumn[nodeLabel][property.id] =
                 make_unique<InMemPropertyPages>(
                     fName, TypeUtils::getDataTypeSize(property.dataType), numPages);
-            if (STRING == property.dataType) {
-                labelPropertyIdxStringOverflowPages[nodeLabel][property.id] =
-                    make_unique<InMemStringOverflowPages>(
-                        StringOverflowPages::getStringOverflowPagesFName(fName));
+            if (STRING == property.dataType || LIST == property.dataType) {
+                labelPropertyIdxOverflowPages[nodeLabel][property.id] =
+                    make_unique<InMemOverflowPages>(OverflowPages::getOverflowPagesFName(fName));
             }
         }
     }
@@ -188,20 +190,20 @@ void InMemAdjAndPropertyColumnsBuilder::buildInMemAdjColumns() {
 
 void InMemAdjAndPropertyColumnsBuilder::sortOverflowStringsOfPropertyColumnTask(
     node_offset_t offsetStart, node_offset_t offsetEnd, InMemPropertyPages* propertyColumn,
-    InMemStringOverflowPages* unorderedStringOverflow,
-    InMemStringOverflowPages* orderedStringOverflow, LoaderProgressBar* progressBar) {
+    InMemOverflowPages* unorderedStringOverflow, InMemOverflowPages* orderedStringOverflow,
+    LoaderProgressBar* progressBar) {
     PageByteCursor unorderedStringOverflowCursor, orderedStringOverflowCursor;
-    PageElementCursor propertyListCursor;
     unorderedStringOverflowCursor.idx = 0;
     unorderedStringOverflowCursor.offset = 0;
     for (; offsetStart < offsetEnd; offsetStart++) {
-        calcPageElementCursor(TypeUtils::getDataTypeSize(STRING), offsetStart, propertyListCursor);
+        auto propertyListCursor =
+            calcPageElementCursor(TypeUtils::getDataTypeSize(STRING), offsetStart);
         auto valPtr =
             reinterpret_cast<gf_string_t*>(propertyColumn->getPtrToMemLoc(propertyListCursor));
         auto len = ((uint32_t*)valPtr)[0];
         if (len > 12 && 0xffffffff != len) {
-            valPtr->getOverflowPtrInfo(
-                unorderedStringOverflowCursor.idx, unorderedStringOverflowCursor.offset);
+            TypeUtils::decodeOverflowPtr(valPtr->overflowPtr, unorderedStringOverflowCursor.idx,
+                unorderedStringOverflowCursor.offset);
             orderedStringOverflow->copyOverflowString(orderedStringOverflowCursor,
                 unorderedStringOverflow->getPtrToMemLoc(unorderedStringOverflowCursor), valPtr);
         }

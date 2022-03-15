@@ -15,18 +15,18 @@ InMemNodePropertyColumnsBuilder::InMemNodePropertyColumnsBuilder(NodeLabelDescri
 
 void InMemNodePropertyColumnsBuilder::buildInMemPropertyColumns() {
     logger->debug("Creating InMemProperty Columns.");
-    propertyIdxPropertyColumn.resize(description.properties.size());
-    propertyIdxStringOverflowPages.resize(description.properties.size());
+    propertyColumns.resize(description.properties.size());
+    propertyColumnOverflowPages.resize(description.properties.size());
     for (auto& property : description.properties) {
         auto fName = NodesStore::getNodePropertyColumnFName(
             outputDirectory, description.label, property.name);
         auto numPages = calcNumPagesInColumn(TypeUtils::getDataTypeSize(property.dataType),
             graph.getNumNodesPerLabel()[description.label]);
-        propertyIdxPropertyColumn[property.id] = make_unique<InMemPropertyPages>(
+        propertyColumns[property.id] = make_unique<InMemPropertyPages>(
             fName, TypeUtils::getDataTypeSize(property.dataType), numPages);
-        if (STRING == property.dataType) {
-            propertyIdxStringOverflowPages[property.id] = make_unique<InMemStringOverflowPages>(
-                StringOverflowPages::getStringOverflowPagesFName(fName));
+        if (STRING == property.dataType || LIST == property.dataType) {
+            propertyColumnOverflowPages[property.id] =
+                make_unique<InMemOverflowPages>(OverflowPages::getOverflowPagesFName(fName));
         }
     }
     logger->debug("Done creating InMemProperty Columns.");
@@ -34,17 +34,21 @@ void InMemNodePropertyColumnsBuilder::buildInMemPropertyColumns() {
 
 void InMemNodePropertyColumnsBuilder::setProperty(node_offset_t nodeOffset,
     const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
-    PageElementCursor cursor;
-    calcPageElementCursor(TypeUtils::getDataTypeSize(type), nodeOffset, cursor);
-    propertyIdxPropertyColumn[propertyIdx]->set(cursor, val);
+    auto cursor = calcPageElementCursor(TypeUtils::getDataTypeSize(type), nodeOffset);
+    propertyColumns[propertyIdx]->set(cursor, val);
 }
 
 void InMemNodePropertyColumnsBuilder::setStringProperty(node_offset_t nodeOffset,
     const uint32_t& propertyIdx, const char* originalString, PageByteCursor& cursor) {
-    gf_string_t gfString;
-    propertyIdxStringOverflowPages[propertyIdx]->setStrInOvfPageAndPtrInEncString(
-        originalString, cursor, &gfString);
+    auto gfString = propertyColumnOverflowPages[propertyIdx]->addString(originalString, cursor);
     setProperty(nodeOffset, propertyIdx, reinterpret_cast<uint8_t*>(&gfString), STRING);
+}
+
+void InMemNodePropertyColumnsBuilder::setListProperty(node_offset_t nodeOffset,
+    const uint32_t& propertyIdx, const Literal& listVal, PageByteCursor& cursor) {
+    assert(listVal.dataType == LIST);
+    gf_list_t gfList = propertyColumnOverflowPages[propertyIdx]->addList(listVal, cursor);
+    setProperty(nodeOffset, propertyIdx, reinterpret_cast<uint8_t*>(&gfList), LIST);
 }
 
 void InMemNodePropertyColumnsBuilder::saveToFile(LoaderProgressBar* progressBar) {
@@ -61,15 +65,15 @@ void InMemNodePropertyColumnsBuilder::saveToFile(LoaderProgressBar* progressBar)
                 x->saveToFile();
                 progressBar->incrementTaskFinished();
             },
-            reinterpret_cast<InMemPropertyPages*>(propertyIdxPropertyColumn[property.id].get()),
+            reinterpret_cast<InMemPropertyPages*>(propertyColumns[property.id].get()),
             progressBar));
-        if (STRING == property.dataType) {
+        if (STRING == property.dataType || LIST == property.dataType) {
             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-                [&](InMemStringOverflowPages* x, LoaderProgressBar* progressBar) {
+                [&](InMemOverflowPages* x, LoaderProgressBar* progressBar) {
                     x->saveToFile();
                     progressBar->incrementTaskFinished();
                 },
-                (propertyIdxStringOverflowPages)[property.id].get(), progressBar));
+                (propertyColumnOverflowPages)[property.id].get(), progressBar));
         }
     }
     taskScheduler.waitAllTasksToCompleteOrError();

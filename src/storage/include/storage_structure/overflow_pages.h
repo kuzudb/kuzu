@@ -13,25 +13,25 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-class StringOverflowPages {
+class OverflowPages {
 
 public:
-    explicit StringOverflowPages(const string& fName, BufferManager& bufferManager, bool isInMemory)
-        : fileHandle{getStringOverflowPagesFName(fName), FileHandle::O_DefaultPagedExistingDBFile},
+    explicit OverflowPages(const string& fName, BufferManager& bufferManager, bool isInMemory)
+        : fileHandle{getOverflowPagesFName(fName), FileHandle::O_DefaultPagedExistingDBFile},
           bufferManager{bufferManager}, isInMemory{isInMemory} {
         if (isInMemory) {
             StorageStructureUtils::pinEachPageOfFile(fileHandle, bufferManager);
         }
     };
 
-    ~StringOverflowPages() {
+    ~OverflowPages() {
         if (isInMemory) {
             StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
         }
     }
 
-    static string getStringOverflowPagesFName(const string& fName) {
-        return fName + OVERFLOW_FILE_SUFFIX;
+    static inline string getOverflowPagesFName(const string& fName) {
+        return fName + StorageConfig::OVERFLOW_FILE_SUFFIX;
     }
 
     void readStringsToVector(ValueVector& valueVector);
@@ -39,10 +39,9 @@ public:
     void readStringToVector(gf_string_t& gfStr, OverflowBuffer& overflowBuffer);
 
     string readString(const gf_string_t& str);
+    vector<Literal> readList(const gf_list_t& listVal, DataType childDataType);
 
 private:
-    static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
-
     FileHandle fileHandle;
     BufferManager& bufferManager;
     bool isInMemory;

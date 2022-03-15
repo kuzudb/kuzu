@@ -6,17 +6,16 @@
 namespace graphflow {
 namespace common {
 
-CSVReader::CSVReader(const string& fName, const char tokenSeparator, const char quoteChar,
-    const char escapeChar, uint64_t blockId)
-    : fd{nullptr}, tokenSeparator{tokenSeparator}, quoteChar{quoteChar}, escapeChar{escapeChar},
-      line{(char*)malloc(sizeof(char) * 1024)}, readingBlockIdx{CSV_READING_BLOCK_SIZE * blockId},
-      readingBlockEndIdx{CSV_READING_BLOCK_SIZE * (blockId + 1)} {
+CSVReader::CSVReader(const string& fName, const CSVReaderConfig& config, uint64_t blockId)
+    : CSVReader{fName, config} {
     openFile(fName);
+    readingBlockStartOffset = LoaderConfig::CSV_READING_BLOCK_SIZE * blockId;
+    readingBlockEndOffset = LoaderConfig::CSV_READING_BLOCK_SIZE * (blockId + 1);
     auto isBeginningOfLine = false;
-    if (0 == readingBlockIdx) {
+    if (0 == readingBlockStartOffset) {
         isBeginningOfLine = true;
     } else {
-        fseek(fd, readingBlockIdx - 1, SEEK_SET);
+        fseek(fd, readingBlockStartOffset - 1, SEEK_SET);
         if ('\n' == fgetc(fd)) {
             isBeginningOfLine = true;
         }
@@ -26,18 +25,25 @@ CSVReader::CSVReader(const string& fName, const char tokenSeparator, const char 
     }
 }
 
-CSVReader::CSVReader(
-    const string& fname, const char tokenSeparator, const char quoteChar, const char escapeChar)
-    : tokenSeparator(tokenSeparator), quoteChar{quoteChar},
-      escapeChar{escapeChar}, line{(char*)malloc(sizeof(char) * 1024)} {
+CSVReader::CSVReader(const string& fname, const CSVReaderConfig& config)
+    : CSVReader{(char*)malloc(sizeof(char) * 1024), 0, -1l, config} {
     openFile(fname);
-    readingBlockIdx = 0;
-    readingBlockEndIdx = UINT64_MAX;
 }
 
+CSVReader::CSVReader(
+    char* line, uint64_t lineLen, int64_t linePtrStart, const CSVReaderConfig& config)
+    : fd{nullptr}, config{config}, nextLineIsNotProcessed{false}, isEndOfBlock{false},
+      nextTokenIsNotProcessed{false}, line{line}, lineCapacity{1024}, lineLen{lineLen},
+      linePtrStart{linePtrStart}, linePtrEnd{linePtrStart}, readingBlockStartOffset{0},
+      readingBlockEndOffset{UINT64_MAX}, nextTokenLen{UINT64_MAX} {}
+
 CSVReader::~CSVReader() {
-    fclose(fd);
-    free(line);
+    // fd can be nullptr when the CSVReader is constructed by passing a char*, so it is reading over
+    // a substring instead of a file.
+    if (fd != nullptr) {
+        fclose(fd);
+        free(line);
+    }
 }
 
 bool CSVReader::hasNextLine() {
@@ -50,13 +56,14 @@ bool CSVReader::hasNextLine() {
         return true;
     }
     // file cursor is past the block limit, end the block, return false.
-    if (ftell(fd) >= readingBlockEndIdx) {
+    if (ftell(fd) >= readingBlockEndOffset) {
         isEndOfBlock = true;
         return false;
     }
-    // else, read the next line.
+    // else, read the next line. The function getline() will dynamically allocate a larger line and
+    // update the lineCapacity accordingly if the length of the line exceeds the lineCapacity.
     lineLen = getline(&line, &lineCapacity, fd);
-    while (2 > lineLen || CSVReader::COMMENT_LINE_CHAR == line[0]) {
+    while (2 > lineLen || LoaderConfig::COMMENT_LINE_CHAR == line[0]) {
         lineLen = getline(&line, &lineCapacity, fd);
     };
     linePtrStart = linePtrEnd = -1;
@@ -81,7 +88,7 @@ bool CSVReader::skipTokenIfNull() {
 }
 
 void CSVReader::skipToken() {
-    setNextTokenIsNotProcessed();
+    setNextTokenIsProcessed();
 }
 
 bool CSVReader::hasNextToken() {
@@ -90,29 +97,41 @@ bool CSVReader::hasNextToken() {
     }
     linePtrEnd++;
     linePtrStart = linePtrEnd;
-    if (linePtrEnd == lineLen) {
+    if (linePtrEnd >= lineLen) {
         nextLineIsNotProcessed = false;
         return false;
     }
     nextTokenLen = 0;
     bool isQuotedString = false;
+    bool isList = false;
 
-    if (quoteChar == line[linePtrEnd]) {
+    if (config.quoteChar == line[linePtrEnd]) {
         linePtrStart++;
         linePtrEnd++;
         isQuotedString = true;
+    }
+    if (config.listBeginChar == line[linePtrEnd]) {
+        linePtrStart++;
+        linePtrEnd++;
+        isList = true;
     }
     string lineStr;
     while (true) {
         if (isQuotedString) {
             // ignore tokenSeparator and new line character here
-            if (quoteChar == line[linePtrEnd]) {
+            if (config.quoteChar == line[linePtrEnd]) {
                 break;
-            } else if (escapeChar == line[linePtrEnd]) {
+            } else if (config.escapeChar == line[linePtrEnd]) {
                 // escape next special character
                 linePtrEnd++;
             }
-        } else if (tokenSeparator == line[linePtrEnd] || '\n' == line[linePtrEnd]) {
+        } else if (isList) {
+            // ignore tokenSeparator and new line character here
+            if (config.listEndChar == line[linePtrEnd]) {
+                break;
+            }
+        } else if (config.tokenSeparator == line[linePtrEnd] || '\n' == line[linePtrEnd] ||
+                   linePtrEnd == lineLen) {
             break;
         }
         lineStr += line[linePtrEnd];
@@ -125,50 +144,91 @@ bool CSVReader::hasNextToken() {
         // if this is a string literal, skip the next comma as well
         linePtrEnd++;
     }
+    if (isList) {
+        // skip the next comma
+        linePtrEnd++;
+    }
     return true;
 }
 
 int64_t CSVReader::getInt64() {
-    setNextTokenIsNotProcessed();
+    setNextTokenIsProcessed();
     return TypeUtils::convertToInt64(line + linePtrStart);
 }
 
 double_t CSVReader::getDouble() {
-    setNextTokenIsNotProcessed();
+    setNextTokenIsProcessed();
     return TypeUtils::convertToDouble(line + linePtrStart);
 }
 
 uint8_t CSVReader::getBoolean() {
-    setNextTokenIsNotProcessed();
+    setNextTokenIsProcessed();
     return TypeUtils::convertToBoolean(line + linePtrStart);
 }
 
 char* CSVReader::getString() {
-    setNextTokenIsNotProcessed();
+    setNextTokenIsProcessed();
     return line + linePtrStart;
 }
 
 date_t CSVReader::getDate() {
     date_t retVal = Date::FromCString(line + linePtrStart, nextTokenLen);
-    setNextTokenIsNotProcessed();
+    setNextTokenIsProcessed();
     return retVal;
 }
 
 timestamp_t CSVReader::getTimestamp() {
     timestamp_t retVal = Timestamp::FromCString(line + linePtrStart, nextTokenLen);
-    setNextTokenIsNotProcessed();
+    setNextTokenIsProcessed();
     return retVal;
 }
 
 interval_t CSVReader::getInterval() {
     interval_t retVal = Interval::FromCString(line + linePtrStart, nextTokenLen);
-    setNextTokenIsNotProcessed();
+    setNextTokenIsProcessed();
     return retVal;
 }
 
-void CSVReader::setNextTokenIsNotProcessed() {
+Literal CSVReader::getList(DataType childDataType) {
+    Literal result(LIST);
+    // Move the linePtrStart one character forward, because hasNextToken() will first increment it.
+    CSVReader listCSVReader(line, linePtrEnd - 1, linePtrStart - 1, config);
+    while (listCSVReader.hasNextToken()) {
+        if (!listCSVReader.skipTokenIfNull()) {
+            switch (childDataType) {
+            case INT64: {
+                result.listVal.emplace_back(listCSVReader.getInt64());
+            } break;
+            case DOUBLE: {
+                result.listVal.emplace_back(listCSVReader.getDouble());
+            } break;
+            case BOOL: {
+                result.listVal.emplace_back((bool)listCSVReader.getBoolean());
+            } break;
+            case STRING: {
+                result.listVal.emplace_back(string(listCSVReader.getString()));
+            } break;
+            case DATE: {
+                result.listVal.emplace_back(listCSVReader.getDate());
+            } break;
+            case TIMESTAMP: {
+                result.listVal.emplace_back(listCSVReader.getTimestamp());
+            } break;
+            case INTERVAL: {
+                result.listVal.emplace_back(listCSVReader.getInterval());
+            } break;
+            default:
+                throw invalid_argument("Unsupported data type " +
+                                       TypeUtils::dataTypeToString(childDataType) + " inside LIST");
+            }
+        }
+    }
+    return result;
+}
+
+void CSVReader::setNextTokenIsProcessed() {
     nextTokenIsNotProcessed = false;
-    nextTokenLen = -1;
+    nextTokenLen = UINT64_MAX;
 }
 
 void CSVReader::openFile(const string& fName) {

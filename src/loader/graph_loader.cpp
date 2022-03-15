@@ -61,7 +61,6 @@ void GraphLoader::loadGraph() {
         graph.saveToFile(outputDirectory);
         progressBar->incrementTaskFinished();
         timer.stop();
-        auto stop = high_resolution_clock::now();
         progressBar->clearLastFinishedLine();
         logger->info("Done GraphLoader.");
         logger->info("Time taken: . " + to_string(timer.getElapsedTimeMS() / 1000.0) + " seconds.");
@@ -103,10 +102,10 @@ void GraphLoader::readCSVHeaderAndCalcNumBlocks(const vector<string>& filePaths,
         }
         do {
             getline(inf, fileHeader);
-        } while (fileHeader.empty() || fileHeader.at(0) == CSVReader::COMMENT_LINE_CHAR);
+        } while (fileHeader.empty() || fileHeader.at(0) == LoaderConfig::COMMENT_LINE_CHAR);
         fileHeaders[i] = fileHeader;
         inf.seekg(0, ios_base::end);
-        numBlocksPerLabel[i] = 1 + (inf.tellg() / CSV_READING_BLOCK_SIZE);
+        numBlocksPerLabel[i] = 1 + (inf.tellg() / LoaderConfig::CSV_READING_BLOCK_SIZE);
     }
 }
 
@@ -141,7 +140,7 @@ void GraphLoader::addNodeLabelsIntoGraphCatalog(
     const vector<NodeFileDescription>& fileDescriptions, vector<string>& fileHeaders) {
     for (auto i = 0u; i < fileDescriptions.size(); i++) {
         auto colHeaderDefinitions =
-            parseCSVFileHeader(fileHeaders[i], fileDescriptions[i].csvSpecialChars.tokenSeparator);
+            parseCSVFileHeader(fileHeaders[i], fileDescriptions[i].csvReaderConfig.tokenSeparator);
         verifyColHeaderDefinitionsForNodeFile(colHeaderDefinitions, fileDescriptions[i]);
         // register the node label and its structured properties in the catalog.
         graph.catalog->addNodeLabel(fileDescriptions[i].labelName, move(colHeaderDefinitions));
@@ -172,7 +171,7 @@ void GraphLoader::addRelLabelsIntoGraphCatalog(
     const vector<RelFileDescription>& fileDescriptions, vector<string>& fileHeaders) {
     for (auto i = 0u; i < fileDescriptions.size(); i++) {
         auto colHeaderDefinitions = parseCSVFileHeader(
-            fileHeaders[i], datasetMetadata.relFileDescriptions[i].csvSpecialChars.tokenSeparator);
+            fileHeaders[i], datasetMetadata.relFileDescriptions[i].csvReaderConfig.tokenSeparator);
         verifyColHeaderDefinitionsForRelFile(colHeaderDefinitions);
         graph.catalog->addRelLabel(fileDescriptions[i].labelName,
             getRelMultiplicity(fileDescriptions[i].relMultiplicity), move(colHeaderDefinitions),
@@ -187,12 +186,13 @@ vector<PropertyDefinition> GraphLoader::parseCSVFileHeader(string& header, char 
     unordered_set<string> columnNameSet;
     vector<PropertyDefinition> colHeaderDefinitions;
     for (auto& colHeader : colHeaders) {
-        auto colHeaderComponents = StringUtils::split(colHeader, PROPERTY_DATATYPE_SEPARATOR);
-        PropertyDefinition colHeaderDefinition;
+        auto colHeaderComponents =
+            StringUtils::split(colHeader, LoaderConfig::PROPERTY_DATATYPE_SEPARATOR);
         if (colHeaderComponents.size() < 2) {
             throw invalid_argument("Incomplete column header `" + colHeader + "`.");
         }
-        // Check if one of the mandatory field column header.
+        PropertyDefinition colHeaderDefinition;
+        // Check each one of the mandatory field column header.
         if (colHeaderComponents[0].empty()) {
             colHeaderDefinition.name = colHeaderComponents[1];
             if (colHeaderDefinition.name == LoaderConfig::ID_FIELD) {
@@ -210,7 +210,15 @@ vector<PropertyDefinition> GraphLoader::parseCSVFileHeader(string& header, char 
             }
         } else {
             colHeaderDefinition.name = colHeaderComponents[0];
-            colHeaderDefinition.dataType = TypeUtils::getDataType(colHeaderComponents[1]);
+            if (colHeaderComponents[1].ends_with(LoaderConfig::LIST_FIELD_SUFFIX)) {
+                // Parsing the child data type of LIST. Nested LIST is not supported for now.
+                colHeaderDefinition.dataType = LIST;
+                auto childDataTypeStr =
+                    colHeaderComponents[1].substr(0, colHeaderComponents[1].length() - 2);
+                colHeaderDefinition.childDataType = TypeUtils::getDataType(childDataTypeStr);
+            } else {
+                colHeaderDefinition.dataType = TypeUtils::getDataType(colHeaderComponents[1]);
+            }
             if (colHeaderDefinition.dataType == NODE || colHeaderDefinition.dataType == LABEL) {
                 throw invalid_argument(
                     "Property column header cannot be of system types NODE or LABEL.");
@@ -221,7 +229,7 @@ vector<PropertyDefinition> GraphLoader::parseCSVFileHeader(string& header, char 
                                    " already appears previously in the column headers.");
         }
         columnNameSet.insert(colHeaderDefinition.name);
-        colHeaderDefinitions.emplace_back(colHeaderDefinition);
+        colHeaderDefinitions.push_back(colHeaderDefinition);
     }
     return colHeaderDefinitions;
 }
@@ -292,7 +300,7 @@ void GraphLoader::countLinesAndAddUnstrPropertiesInCatalog(
         for (uint64_t blockId = 0; blockId < numBlocksPerLabel[labelId]; blockId++) {
             taskScheduler->scheduleTask(LoaderTaskFactory::createLoaderTask(
                 countLinesAndScanUnstrPropertiesInBlockTask, filePaths[labelId],
-                datasetMetadata.nodeFileDescriptions[labelId].csvSpecialChars,
+                datasetMetadata.nodeFileDescriptions[labelId].csvReaderConfig,
                 graph.catalog->getStructuredNodeProperties(labelId).size(),
                 &labelUnstrProperties[blockId], &numLinesPerBlock, labelId, blockId, logger,
                 progressBar.get()));
@@ -319,13 +327,12 @@ void GraphLoader::countLinesAndAddUnstrPropertiesInCatalog(
 }
 
 void GraphLoader::countLinesAndScanUnstrPropertiesInBlockTask(const string& fName,
-    const CSVSpecialChars& csvSpecialChars, uint32_t numStructuredProperties,
+    const CSVReaderConfig& csvReaderConfig, uint32_t numStructuredProperties,
     unordered_set<string>* unstrPropertyNameSet, vector<vector<uint64_t>>* numLinesPerBlock,
     label_t label, uint32_t blockId, const shared_ptr<spdlog::logger>& logger,
     LoaderProgressBar* progressBar) {
     logger->trace("Start: path=`{0}` blkIdx={1}", fName, blockId);
-    CSVReader reader(fName, csvSpecialChars.tokenSeparator, csvSpecialChars.quoteChar,
-        csvSpecialChars.escapeChar, blockId);
+    CSVReader reader(fName, csvReaderConfig, blockId);
     (*numLinesPerBlock)[label][blockId] = 0ull;
     while (reader.hasNextLine()) {
         (*numLinesPerBlock)[label][blockId]++;

@@ -10,7 +10,9 @@ namespace common {
 class Literal {
 
 public:
-    Literal() {}
+    Literal() : dataType{INVALID} {}
+
+    explicit Literal(DataType dataType) : dataType{dataType} {}
 
     Literal(const Literal& other);
 
@@ -44,6 +46,7 @@ public:
     } val{};
 
     string strVal;
+    vector<Literal> listVal;
 
     DataType dataType;
 };

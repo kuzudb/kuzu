@@ -42,9 +42,9 @@ private:
         shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progresBar);
 
     static void populateAdjListsTask(RelLabelDescription* description, uint64_t blockId,
-        char tokenSeparator, char quoteChar, char escapeChar,
-        InMemAdjAndPropertyListsBuilder* listsBuilder, vector<unique_ptr<NodeIDMap>>* nodeIDMaps,
-        const Catalog* catalog, shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progresBar);
+        const CSVReaderConfig& csvReaderConfig, InMemAdjAndPropertyListsBuilder* listsBuilder,
+        vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
+        shared_ptr<spdlog::logger>& logger, LoaderProgressBar* progressBar);
 
     // Task Helpers
 
@@ -59,7 +59,7 @@ private:
     static void putPropsOfLineIntoInMemRelPropLists(const vector<PropertyDefinition>& properties,
         CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& pos,
         InMemAdjAndPropertyListsBuilder* listsBuilder,
-        vector<PageByteCursor>& stringOverflowPagesCursors);
+        vector<PageByteCursor>& overflowPagesCursors);
 
 private:
     shared_ptr<spdlog::logger> logger;

@@ -53,7 +53,7 @@ public:
         : InMemPages{fName, numBytesPerElement, true, numPages},
           numBytesPerElement(numBytesPerElement){};
 
-    uint8_t* getPtrToMemLoc(const PageElementCursor& cursor) {
+    inline uint8_t* getPtrToMemLoc(const PageElementCursor& cursor) {
         return pages[cursor.idx]->getPtrToMemLoc(cursor.pos * numBytesForElement);
     }
 
@@ -74,29 +74,29 @@ public:
         uint32_t valLen, const uint8_t* val);
 
 private:
-    uint8_t* getPtrToMemLoc(const PageByteCursor& cursor) {
+    inline uint8_t* getPtrToMemLoc(const PageByteCursor& cursor) {
         return pages[cursor.idx]->getPtrToMemLoc(cursor.offset);
     }
 
     void setComponentOfUnstrProperty(PageByteCursor& localCursor, uint8_t len, const uint8_t* val);
 };
 
-//  InMemPages for storing string overflow of PropertyColumn or PropertyLists.
-class InMemStringOverflowPages : public InMemPages {
+//  InMemPages for storing overflow of PropertyColumn or PropertyLists.
+class InMemOverflowPages : public InMemPages {
 
 public:
-    explicit InMemStringOverflowPages(const string& fName) : InMemPages(fName, 1, false, 8) {
+    explicit InMemOverflowPages(const string& fName) : InMemPages(fName, 1, false, 8) {
         numUsedPages = 0;
     };
 
-    InMemStringOverflowPages() : InMemStringOverflowPages(""){};
+    InMemOverflowPages() : InMemOverflowPages(""){};
 
-    uint8_t* getPtrToMemLoc(const PageByteCursor& cursor) {
+    inline uint8_t* getPtrToMemLoc(const PageByteCursor& cursor) {
         return pages[cursor.idx]->getPtrToMemLoc(cursor.offset);
     }
 
-    void setStrInOvfPageAndPtrInEncString(
-        const char* originalString, PageByteCursor& cursor, gf_string_t* encodedString);
+    gf_string_t addString(const char* originalString, PageByteCursor& cursor);
+    gf_list_t addList(const Literal& listVal, PageByteCursor& cursor);
 
     void copyOverflowString(PageByteCursor& cursor, uint8_t* ptrToCopy, gf_string_t* encodedString);
 

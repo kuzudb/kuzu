@@ -119,8 +119,9 @@ void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
             auto fName = getRelPropertyColumnFName(directory, relLabel, nodeLabel, property.name);
             logger->debug("DIR {} nodeLabel {} propertyIdx {} type {} name `{}`", dir, nodeLabel,
                 property.id, property.dataType, property.name);
-            propertyColumns[nodeLabel][relLabel][property.id] = ColumnFactory::getColumn(fName,
-                property.dataType, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
+            propertyColumns[nodeLabel][relLabel][property.id] =
+                ColumnFactory::getColumn(fName, property.dataType, numNodesPerLabel[nodeLabel],
+                    bufferManager, isInMemoryMode, property.childDataType);
         }
     }
     logger->debug("Initializing PropertyColumns done.");

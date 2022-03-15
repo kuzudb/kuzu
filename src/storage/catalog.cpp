@@ -35,7 +35,8 @@ uint64_t SerDeser::serializeValue<PropertyDefinition>(
     offset = SerDeser::serializeValue<string>(value.name, fileInfo, offset);
     offset = SerDeser::serializeValue<uint32_t>(value.id, fileInfo, offset);
     offset = SerDeser::serializeValue<DataType>(value.dataType, fileInfo, offset);
-    return SerDeser::serializeValue<bool>(value.isPrimaryKey, fileInfo, offset);
+    offset = SerDeser::serializeValue<bool>(value.isPrimaryKey, fileInfo, offset);
+    return SerDeser::serializeValue<DataType>(value.childDataType, fileInfo, offset);
 }
 
 template<>
@@ -44,7 +45,8 @@ uint64_t SerDeser::deserializeValue<PropertyDefinition>(
     offset = SerDeser::deserializeValue<string>(value.name, fileInfo, offset);
     offset = SerDeser::deserializeValue<uint32_t>(value.id, fileInfo, offset);
     offset = SerDeser::deserializeValue<DataType>(value.dataType, fileInfo, offset);
-    return SerDeser::deserializeValue<bool>(value.isPrimaryKey, fileInfo, offset);
+    offset = SerDeser::deserializeValue<bool>(value.isPrimaryKey, fileInfo, offset);
+    return SerDeser::deserializeValue<DataType>(value.childDataType, fileInfo, offset);
 }
 
 template<>
@@ -130,8 +132,9 @@ void Catalog::addNodeLabel(string labelName, vector<PropertyDefinition> colHeade
     label_t labelId = nodeLabels.size();
     uint64_t primaryKeyPropertyId;
     for (auto i = 0u; i < colHeaderDefinitions.size(); i++) {
+        assert(colHeaderDefinitions[i].dataType != INVALID);
         colHeaderDefinitions[i].id = i;
-        if (colHeaderDefinitions[i].name == LoaderConfig::ID_FIELD) {
+        if (colHeaderDefinitions[i].isPrimaryKey) {
             primaryKeyPropertyId = i;
         }
     }
@@ -173,6 +176,7 @@ void Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
     vector<PropertyDefinition> propertyDefinitions;
     auto propertyId = 0;
     for (auto& colHeaderDefinition : colHeaderDefinitions) {
+        assert(colHeaderDefinition.dataType != INVALID);
         auto name = colHeaderDefinition.name;
         if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::END_ID_FIELD ||
             name == LoaderConfig::START_ID_LABEL_FIELD ||
@@ -180,7 +184,7 @@ void Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
             continue;
         }
         colHeaderDefinition.id = propertyId++;
-        propertyDefinitions.emplace_back(colHeaderDefinition);
+        propertyDefinitions.push_back(colHeaderDefinition);
     }
     relLabels.emplace_back(move(labelName), labelId, relMultiplicity, move(propertyDefinitions),
         move(srcNodeLabelIdSet), move(dstNodeLabelIdSet));
@@ -236,7 +240,7 @@ const PropertyDefinition& Catalog::getRelProperty(
     assert(false);
 }
 
-const vector<PropertyDefinition> Catalog::getAllNodeProperties(label_t nodeLabel) const {
+vector<PropertyDefinition> Catalog::getAllNodeProperties(label_t nodeLabel) const {
     auto allProperties = nodeLabels[nodeLabel].structuredProperties;
     allProperties.insert(allProperties.end(), nodeLabels[nodeLabel].unstructuredProperties.begin(),
         nodeLabels[nodeLabel].unstructuredProperties.end());
