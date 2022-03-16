@@ -8,6 +8,8 @@
 #include "src/common/types/include/type_utils.h"
 #include "src/function/boolean/include/vector_boolean_operations.h"
 #include "src/function/comparison/include/vector_comparison_operations.h"
+#include "src/function/null/include/vector_null_operations.h"
+#include "src/function/string/include/vector_string_operations.h"
 #include "src/parser/expression/include/parsed_function_expression.h"
 #include "src/parser/expression/include/parsed_literal_expression.h"
 #include "src/parser/expression/include/parsed_property_expression.h"
@@ -33,8 +35,8 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
                          bindBinaryArithmeticExpression(parsedExpression);
     } else if (isExpressionStringOperator(expressionType)) {
         expression = bindStringOperatorExpression(parsedExpression);
-    } else if (isExpressionNullComparison(expressionType)) {
-        expression = bindNullComparisonOperatorExpression(parsedExpression);
+    } else if (isExpressionNullOperator(expressionType)) {
+        expression = bindNullOperatorExpression(parsedExpression);
     } else if (FUNCTION == expressionType) {
         expression = bindFunctionExpression(parsedExpression);
     } else if (PROPERTY == expressionType) {
@@ -74,8 +76,8 @@ shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
     auto expressionType = parsedExpression.getExpressionType();
     auto execFunc = VectorBooleanOperations::bindExecFunction(expressionType, children);
     auto selectFunc = VectorBooleanOperations::bindSelectFunction(expressionType, children);
-    return make_shared<ScalarFunctionExpression>(parsedExpression.getExpressionType(), BOOL,
-        move(children), move(execFunc), move(selectFunc));
+    return make_shared<ScalarFunctionExpression>(
+        expressionType, BOOL, move(children), move(execFunc), move(selectFunc));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
@@ -95,8 +97,8 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     auto expressionType = parsedExpression.getExpressionType();
     auto execFunc = VectorComparisonOperations::bindExecFunction(expressionType, children);
     auto selectFunc = VectorComparisonOperations::bindSelectFunction(expressionType, children);
-    return make_shared<ScalarFunctionExpression>(parsedExpression.getExpressionType(), BOOL,
-        move(children), move(execFunc), move(selectFunc));
+    return make_shared<ScalarFunctionExpression>(
+        expressionType, BOOL, move(children), move(execFunc), move(selectFunc));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
@@ -116,7 +118,12 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
         if (right->dataType != STRING) {
             right = castExpressionToString(move(right));
         }
-        return make_shared<Expression>(STRING_CONCAT, STRING, move(left), move(right));
+        expression_vector children;
+        children.push_back(left);
+        children.push_back(right);
+        auto execFunc = VectorStringOperations::bindExecFunction(STRING_CONCAT, children);
+        return make_shared<ScalarFunctionExpression>(
+            STRING_CONCAT, STRING, move(children), move(execFunc));
     } else if (left->dataType == DATE || right->dataType == DATE) {
         return bindBinaryDateArithmeticExpression(
             parsedExpression.getExpressionType(), move(left), move(right));
@@ -207,18 +214,30 @@ shared_ptr<Expression> ExpressionBinder::bindUnaryArithmeticExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindStringOperatorExpression(
     const ParsedExpression& parsedExpression) {
-    auto left = bindExpression(*parsedExpression.getChild(0));
-    auto right = bindExpression(*parsedExpression.getChild(1));
-    validateStringOrUnstructured(*left);
-    validateStringOrUnstructured(*right);
-    return make_shared<Expression>(
-        parsedExpression.getExpressionType(), BOOL, move(left), move(right));
+    expression_vector children;
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        auto child = bindExpression(*parsedExpression.getChild(i));
+        // TODO: add cast unstructured to string
+        children.push_back(move(child));
+    }
+    auto expressionType = parsedExpression.getExpressionType();
+    auto execFunc = VectorStringOperations::bindExecFunction(expressionType, children);
+    auto selectFunc = VectorStringOperations::bindSelectFunction(expressionType, children);
+    return make_shared<ScalarFunctionExpression>(
+        expressionType, BOOL, move(children), move(execFunc), move(selectFunc));
 }
 
-shared_ptr<Expression> ExpressionBinder::bindNullComparisonOperatorExpression(
+shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     const ParsedExpression& parsedExpression) {
-    auto child = bindExpression(*parsedExpression.getChild(0));
-    return make_shared<Expression>(parsedExpression.getExpressionType(), BOOL, move(child));
+    expression_vector children;
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        children.push_back(bindExpression(*parsedExpression.getChild(i)));
+    }
+    auto expressionType = parsedExpression.getExpressionType();
+    auto execFunc = VectorNullOperations::bindExecFunction(expressionType, children);
+    auto selectFunc = VectorNullOperations::bindSelectFunction(expressionType, children);
+    return make_shared<ScalarFunctionExpression>(
+        expressionType, BOOL, move(children), move(execFunc), move(selectFunc));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(

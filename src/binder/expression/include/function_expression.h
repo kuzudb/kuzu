@@ -39,7 +39,16 @@ public:
     ScalarFunctionExpression(ExpressionType expressionType, DataType dataType,
         expression_vector children, scalar_exec_func execFunc, scalar_select_func selectFunc)
         : FunctionExpression{expressionType, dataType, move(children), false /* isDistinct*/},
-          execFunc{move(execFunc)}, selectFunc{move(selectFunc)} {}
+          execFunc{move(execFunc)}, selectFunc{move(selectFunc)} {
+        assert(dataType == BOOL);
+    }
+
+    ScalarFunctionExpression(ExpressionType expressionType, DataType dataType,
+        expression_vector children, scalar_exec_func execFunc)
+        : FunctionExpression{expressionType, dataType, move(children), false /* isDistinct*/},
+          execFunc{move(execFunc)} {
+        assert(dataType != BOOL);
+    }
 
 public:
     scalar_exec_func execFunc;

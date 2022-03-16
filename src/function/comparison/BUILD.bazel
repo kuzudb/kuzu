@@ -1,5 +1,5 @@
 cc_library(
-    name = "comparison_functions",
+    name = "vector_comparison_operations",
     srcs = glob([
         "*.cpp",
     ]),

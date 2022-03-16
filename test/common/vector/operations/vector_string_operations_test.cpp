@@ -1,7 +1,8 @@
 #include "gtest/gtest.h"
 #include "test/common/include/vector/operations/vector_operations_test_helper.h"
 
-#include "src/function/string/include/vector_string_operations.h"
+#include "src/common/include/vector/operations/executors/binary_operation_executor.h"
+#include "src/function/string/operations/include/concat_operation.h"
 
 using namespace graphflow::function;
 using namespace graphflow::testing;
@@ -25,7 +26,8 @@ TEST_F(StringArithmeticOperandsInSameDataChunkTest, StringTest) {
         rVector->addString(i, to_string(110 - i));
     }
 
-    VectorStringOperations::Concat(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, gf_string_t, operation::Concat>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].getAsString(), to_string(i) + to_string(110 - i));
     }
@@ -41,7 +43,8 @@ TEST_F(StringArithmeticOperandsInSameDataChunkTest, BigStringTest) {
         rVector->addString(i, to_string(110 - i) + "abcdefabcdefqwert");
     }
 
-    VectorStringOperations::Concat(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<gf_string_t, gf_string_t, gf_string_t, operation::Concat>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].getAsString(),
             to_string(i) + "abcdefabcdefqwert" + to_string(110 - i) + "abcdefabcdefqwert");

@@ -2,7 +2,7 @@
 
 #include "src/common/include/data_chunk/data_chunk.h"
 #include "src/common/include/operations/hash_operations.h"
-#include "src/common/include/vector/operations/vector_hash_operations.h"
+#include "src/common/include/vector/operations/executors/unary_operation_executor.h"
 
 using namespace graphflow::common;
 using namespace std;
@@ -27,7 +27,7 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
         nodeData[i].offset = i * 10 + 1;
     }
 
-    VectorHashOperations::Hash(*nodeVector, *result);
+    UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::Hash>(*nodeVector, *result);
     for (int32_t i = 0; i < 1000; i++) {
         auto expected = operation::murmurhash64(i * 10 + 1) ^ operation::murmurhash64(100);
         ASSERT_EQ(resultData[i], expected);
@@ -35,7 +35,7 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
 
     // Set dataChunk to flat
     dataChunk->state->currIdx = 8;
-    VectorHashOperations::Hash(*nodeVector, *result);
+    UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::Hash>(*nodeVector, *result);
     auto expected = operation::murmurhash64(8 * 10 + 1) ^ operation::murmurhash64(100);
     auto pos = result->state->getPositionOfCurrIdx();
     ASSERT_EQ(resultData[pos], expected);
@@ -58,7 +58,7 @@ TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
     dataChunk->insert(1, result);
     auto resultData = (uint64_t*)result->values;
 
-    VectorHashOperations::Hash(*nodeVector, *result);
+    UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::Hash>(*nodeVector, *result);
     for (int32_t i = 0; i < 1000; i++) {
         auto expected = operation::murmurhash64(10 + i) ^ operation::murmurhash64(100);
         ASSERT_EQ(resultData[i], expected);
@@ -66,7 +66,7 @@ TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
 
     // Set dataChunk to flat
     dataChunk->state->currIdx = 8;
-    VectorHashOperations::Hash(*nodeVector, *result);
+    UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::Hash>(*nodeVector, *result);
     auto expected = operation::murmurhash64(10 + 8) ^ operation::murmurhash64(100);
     auto pos = result->state->getPositionOfCurrIdx();
     ASSERT_EQ(resultData[pos], expected);

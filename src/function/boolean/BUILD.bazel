@@ -1,5 +1,5 @@
 cc_library(
-    name = "boolean_functions",
+    name = "vector_boolean_operations",
     srcs = glob([
         "*.cpp",
     ]),

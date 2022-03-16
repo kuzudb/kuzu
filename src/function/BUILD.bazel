@@ -25,6 +25,7 @@ cc_library(
         "//src/function:__subpackages__",
     ],
     deps = [
+        "//src/binder/expression:base_expression",
         "//src/common:vector_operations",
     ],
 )

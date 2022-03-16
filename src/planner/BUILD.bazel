@@ -13,7 +13,7 @@ cc_library(
     ],
     deps = [
         "//src/binder/expression:expression_implementations",
-        "//src/function/comparison:comparison_functions",
+        "//src/function/comparison:vector_comparison_operations",
         "//src/planner/logical_plan",
         "//src/planner/logical_plan/logical_operator:logical_operator_impls",
         "//src/storage:graph",
