@@ -58,6 +58,8 @@ public:
         : Column{fName, LIST, sizeof(gf_list_t), numElements, bufferManager, isInMemory},
           listOverflowPages{fName, bufferManager, isInMemory}, childDataType{childDataType} {};
 
+    void readValues(const shared_ptr<ValueVector>& nodeIDVector,
+        const shared_ptr<ValueVector>& valueVector) override;
     Literal readValue(node_offset_t offset) override;
 
 private:

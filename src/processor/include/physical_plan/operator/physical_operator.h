@@ -65,7 +65,7 @@ public:
     PhysicalOperator(ExecutionContext& context, uint32_t id);
     // Unary operator
     PhysicalOperator(unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id);
-    // Binary opeartor
+    // Binary operator
     PhysicalOperator(unique_ptr<PhysicalOperator> left, unique_ptr<PhysicalOperator> right,
         ExecutionContext& context, uint32_t id);
     // This constructor is used by UnionAllScan only since it may have multiple children.

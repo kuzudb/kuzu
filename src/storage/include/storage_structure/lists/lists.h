@@ -79,7 +79,7 @@ class StringPropertyLists : public Lists {
 public:
     StringPropertyLists(const string& fName, shared_ptr<ListHeaders> headers,
         BufferManager& bufferManager, bool isInMemory)
-        : Lists{fName, STRING, sizeof(gf_string_t), headers, bufferManager, isInMemory},
+        : Lists{fName, STRING, sizeof(gf_string_t), move(headers), bufferManager, isInMemory},
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
 private:
@@ -90,6 +90,24 @@ private:
 
 private:
     OverflowPages stringOverflowPages;
+};
+
+class ListPropertyLists : public Lists {
+
+public:
+    ListPropertyLists(const string& fName, shared_ptr<ListHeaders> headers,
+        BufferManager& bufferManager, bool isInMemory)
+        : Lists{fName, LIST, sizeof(gf_list_t), move(headers), bufferManager, isInMemory},
+          listOverflowPages{fName, bufferManager, isInMemory} {};
+
+private:
+    void readFromLargeList(const shared_ptr<ValueVector>& valueVector,
+        const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) override;
+
+    void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) override;
+
+private:
+    OverflowPages listOverflowPages;
 };
 
 class AdjLists : public Lists {
@@ -120,7 +138,8 @@ class ListsFactory {
 
 public:
     static unique_ptr<Lists> getLists(const string& fName, const DataType& dataType,
-        shared_ptr<ListHeaders> adjListsHeaders, BufferManager& bufferManager, bool isInMemory) {
+        const shared_ptr<ListHeaders>& adjListsHeaders, BufferManager& bufferManager,
+        bool isInMemory) {
         switch (dataType) {
         case INT64:
         case DOUBLE:
@@ -132,6 +151,9 @@ public:
                 adjListsHeaders, bufferManager, isInMemory);
         case STRING:
             return make_unique<StringPropertyLists>(
+                fName, adjListsHeaders, bufferManager, isInMemory);
+        case LIST:
+            return make_unique<ListPropertyLists>(
                 fName, adjListsHeaders, bufferManager, isInMemory);
         default:
             throw invalid_argument("Invalid type for property list creation.");

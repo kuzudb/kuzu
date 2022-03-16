@@ -49,6 +49,12 @@ void StringPropertyColumn::readValues(
     stringOverflowPages.readStringsToVector(*valueVector);
 }
 
+void ListPropertyColumn::readValues(
+    const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& valueVector) {
+    Column::readValues(nodeIDVector, valueVector);
+    listOverflowPages.readListsToVector(*valueVector);
+}
+
 Literal StringPropertyColumn::readValue(node_offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForOffset(offset, numElementsPerPage);
     gf_string_t gfString;

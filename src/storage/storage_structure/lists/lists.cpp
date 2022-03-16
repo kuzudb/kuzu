@@ -72,6 +72,17 @@ void StringPropertyLists::readSmallList(
     stringOverflowPages.readStringsToVector(*valueVector);
 }
 
+void ListPropertyLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
+    const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) {
+    Lists::readFromLargeList(valueVector, largeListHandle, info);
+    listOverflowPages.readListsToVector(*valueVector);
+}
+
+void ListPropertyLists::readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info) {
+    Lists::readSmallList(valueVector, info);
+    listOverflowPages.readListsToVector(*valueVector);
+}
+
 void AdjLists::readFromLargeList(const shared_ptr<ValueVector>& valueVector,
     const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info) {
     auto listSyncState = largeListHandle->getListSyncState();
