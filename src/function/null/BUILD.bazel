@@ -1,5 +1,5 @@
 cc_library(
-    name = "vector_string_operations",
+    name = "vector_null_operations",
     srcs = glob([
         "*.cpp",
     ]),
@@ -9,10 +9,9 @@ cc_library(
     visibility = [
         "//src/binder:__pkg__",
         "//src/expression_evaluator:__pkg__",
-        "//test/common:__pkg__",
     ],
     deps = [
         "//src/function",
-        "//src/function/string/operations:string_operations",
+        "//src/function/null/operations:null_operations",
     ],
 )

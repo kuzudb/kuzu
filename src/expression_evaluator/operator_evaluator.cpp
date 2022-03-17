@@ -2,10 +2,6 @@
 
 #include "src/common/include/vector/operations/vector_arithmetic_operations.h"
 #include "src/common/include/vector/operations/vector_cast_operations.h"
-#include "src/common/include/vector/operations/vector_null_operations.h"
-#include "src/function/string/include/vector_string_operations.h"
-
-using namespace graphflow::function;
 
 namespace graphflow {
 namespace evaluator {
@@ -13,9 +9,6 @@ namespace evaluator {
 void OperatorExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
     BaseExpressionEvaluator::init(resultSet, memoryManager);
     getExecOperation();
-    if (expression->dataType == BOOL) {
-        getSelectOperation();
-    }
 }
 
 void UnaryOperatorExpressionEvaluator::init(
@@ -29,12 +22,6 @@ void UnaryOperatorExpressionEvaluator::getExecOperation() {
     switch (expression->expressionType) {
     case NEGATE: {
         execOperation = VectorArithmeticOperations::Negate;
-    } break;
-    case IS_NULL: {
-        execOperation = VectorNullOperations::IsNull;
-    } break;
-    case IS_NOT_NULL: {
-        execOperation = VectorNullOperations::IsNotNull;
     } break;
     case CAST_TO_STRING: {
         execOperation = VectorCastOperations::castStructuredToString;
@@ -62,20 +49,6 @@ void UnaryOperatorExpressionEvaluator::getExecOperation() {
     } break;
     case CEIL_FUNC: {
         execOperation = VectorArithmeticOperations::Ceil;
-    } break;
-    default:
-        throw invalid_argument(
-            "Unsupported expression type: " + expressionTypeToString(expression->expressionType));
-    }
-}
-
-void UnaryOperatorExpressionEvaluator::getSelectOperation() {
-    switch (expression->expressionType) {
-    case IS_NULL: {
-        selectOperation = VectorNullOperations::IsNullSelect;
-    } break;
-    case IS_NOT_NULL: {
-        selectOperation = VectorNullOperations::IsNotNullSelect;
     } break;
     default:
         throw invalid_argument(
@@ -120,29 +93,6 @@ void BinaryOperatorExpressionEvaluator::getExecOperation() {
     } break;
     case POWER: {
         execOperation = VectorArithmeticOperations::Power;
-    } break;
-    case STRING_CONCAT: {
-        execOperation = VectorStringOperations::Concat;
-    } break;
-    case STARTS_WITH: {
-        execOperation = VectorStringOperations::StartsWith;
-    } break;
-    case CONTAINS: {
-        execOperation = VectorStringOperations::Contains;
-    } break;
-    default:
-        throw invalid_argument(
-            "Unsupported expression type: " + expressionTypeToString(expression->expressionType));
-    }
-}
-
-void BinaryOperatorExpressionEvaluator::getSelectOperation() {
-    switch (expression->expressionType) {
-    case CONTAINS: {
-        selectOperation = VectorStringOperations::ContainsSelect;
-    } break;
-    case STARTS_WITH: {
-        selectOperation = VectorStringOperations::StartsWithSelect;
     } break;
     default:
         throw invalid_argument(

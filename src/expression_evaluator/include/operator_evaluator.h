@@ -20,8 +20,6 @@ public:
 
     virtual void getExecOperation() = 0;
 
-    virtual void getSelectOperation() = 0;
-
     void evaluate() override = 0;
 
     uint64_t select(sel_t* selectedPos) override = 0;
@@ -52,8 +50,6 @@ public:
 private:
     void getExecOperation() override;
 
-    void getSelectOperation() override;
-
 private:
     unary_exec_operation execOperation;
     unary_select_operation selectOperation;
@@ -79,8 +75,6 @@ public:
 
 private:
     void getExecOperation() override;
-
-    void getSelectOperation() override;
 
 private:
     binary_exec_operation execOperation;

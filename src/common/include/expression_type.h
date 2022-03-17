@@ -138,7 +138,7 @@ bool isExpressionBoolConnection(ExpressionType type);
 bool isExpressionComparison(ExpressionType type);
 bool isExpressionArithmetic(ExpressionType type);
 bool isExpressionStringOperator(ExpressionType type);
-bool isExpressionNullComparison(ExpressionType type);
+bool isExpressionNullOperator(ExpressionType type);
 bool isExpressionLiteral(ExpressionType type);
 bool isExpressionAggregate(ExpressionType type);
 bool isExpressionSubquery(ExpressionType type);

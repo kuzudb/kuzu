@@ -2,10 +2,8 @@
 
 #include <functional>
 
-#include "src/common/types/include/value.h"
-
 namespace graphflow {
-namespace common {
+namespace function {
 namespace operation {
 
 struct IsNull {
@@ -23,5 +21,5 @@ struct IsNotNull {
 };
 
 } // namespace operation
-} // namespace common
+} // namespace function
 } // namespace graphflow

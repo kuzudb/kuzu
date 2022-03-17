@@ -37,8 +37,7 @@ private:
 
     shared_ptr<Expression> bindStringOperatorExpression(const ParsedExpression& parsedExpression);
 
-    shared_ptr<Expression> bindNullComparisonOperatorExpression(
-        const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindNullOperatorExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindPropertyExpression(const ParsedExpression& parsedExpression);
 

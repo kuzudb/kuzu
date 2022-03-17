@@ -3,7 +3,7 @@
 #include "src/common/include/vector/operations/executors/unary_operation_executor.h"
 
 namespace graphflow {
-namespace common {
+namespace function {
 
 struct NullOperationExecutor {
 
@@ -54,5 +54,5 @@ struct NullOperationExecutor {
     }
 };
 
-} // namespace common
+} // namespace function
 } // namespace graphflow

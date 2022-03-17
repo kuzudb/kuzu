@@ -1,22 +1,27 @@
 #pragma once
 
-#include "src/common/include/vector/value_vector.h"
-
-using namespace graphflow::common;
+#include "src/function/include/vector_operations.h"
 
 namespace graphflow {
 namespace function {
 
-struct VectorStringOperations {
+struct VectorStringOperations : public VectorOperations {
 
-    static void Concat(ValueVector& left, ValueVector& right, ValueVector& result);
+public:
+    static scalar_exec_func bindExecFunction(
+        ExpressionType expressionType, const expression_vector& children);
 
-    static void Contains(ValueVector& left, ValueVector& right, ValueVector& result);
-    static uint64_t ContainsSelect(ValueVector& left, ValueVector& right, sel_t* selectedPositions);
+    static scalar_select_func bindSelectFunction(
+        ExpressionType expressionType, const expression_vector& children);
 
-    static void StartsWith(ValueVector& left, ValueVector& right, ValueVector& result);
-    static uint64_t StartsWithSelect(
-        ValueVector& left, ValueVector& right, sel_t* selectedPositions);
+private:
+    static scalar_exec_func bindBinaryExecFunction(
+        ExpressionType expressionType, const expression_vector& children);
+
+    static scalar_select_func bindBinarySelectFunction(
+        ExpressionType expressionType, const expression_vector& children);
+
+    static void validate(ExpressionType expressionType, DataType leftType, DataType rightType);
 };
 
 } // namespace function

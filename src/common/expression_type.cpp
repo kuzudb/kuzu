@@ -36,7 +36,7 @@ bool isExpressionStringOperator(ExpressionType type) {
     return STARTS_WITH == type || ENDS_WITH == type || CONTAINS == type || STRING_CONCAT == type;
 }
 
-bool isExpressionNullComparison(ExpressionType type) {
+bool isExpressionNullOperator(ExpressionType type) {
     return IS_NULL == type || IS_NOT_NULL == type;
 }
 

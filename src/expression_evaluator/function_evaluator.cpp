@@ -63,7 +63,12 @@ void FunctionExpressionEvaluator::getExecFunction() {
     case GREATER_THAN:
     case GREATER_THAN_EQUALS:
     case LESS_THAN:
-    case LESS_THAN_EQUALS: {
+    case LESS_THAN_EQUALS:
+    case STRING_CONCAT:
+    case STARTS_WITH:
+    case CONTAINS:
+    case IS_NULL:
+    case IS_NOT_NULL: {
         execFunc = ((ScalarFunctionExpression&)*expression).execFunc;
     } break;
     default:
@@ -83,7 +88,11 @@ void FunctionExpressionEvaluator::getSelectFunction() {
     case GREATER_THAN:
     case GREATER_THAN_EQUALS:
     case LESS_THAN:
-    case LESS_THAN_EQUALS: {
+    case LESS_THAN_EQUALS:
+    case STARTS_WITH:
+    case CONTAINS:
+    case IS_NULL:
+    case IS_NOT_NULL: {
         selectFunc = ((ScalarFunctionExpression&)*expression).selectFunc;
     } break;
     default:
