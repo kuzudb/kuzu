@@ -4,9 +4,11 @@
 #include "test/common/include/vector/operations/vector_operations_test_helper.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/vector/operations/vector_boolean_operations.h"
+#include "src/common/include/vector/operations/executors/unary_operation_executor.h"
+#include "src/function/boolean/include/boolean_operation_executor.h"
 
 using namespace graphflow::common;
+using namespace graphflow::function;
 using namespace graphflow::testing;
 using namespace std;
 
@@ -106,22 +108,23 @@ static void checkResultVectorNoNulls(const shared_ptr<ValueVector>& result,
 
 TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinaryAllUnflatNoNulls) {
 
-    VectorBooleanOperations::And(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::And>(*vector1, *vector2, *result);
     // Value at positions {0, 4, 8, 16 ...} are expected to be true
     checkResultVectorNoNulls(
         result, [](uint32_t i) { return i % 4 == 0; }, NUM_TUPLES);
 
-    VectorBooleanOperations::Or(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::Or>(*vector1, *vector2, *result);
     // Value at all positions except {3, 7, 11, 15 ...} are expected to be true
     checkResultVectorNoNulls(
         result, [](uint32_t i) { return i % 4 != 3; }, NUM_TUPLES);
 
-    VectorBooleanOperations::Xor(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::Xor>(*vector1, *vector2, *result);
     // Value at positions {1, 5, 8 ...} and {2, 6, 8 ...} are expected to be true
     checkResultVectorNoNulls(
         result, [](uint32_t i) { return i % 4 == 1 || i % 4 == 2; }, NUM_TUPLES);
 
-    VectorBooleanOperations::Not(*vector1, *result);
+    UnaryOperationExecutor::execute<bool, uint8_t, operation::Not>(*vector1, *result);
+
     // Value at positions {1, 3, 5, 7 ...} are expected to be true
     checkResultVectorNoNulls(
         result, [](uint32_t i) { return i % 2 == 1; }, NUM_TUPLES);
@@ -151,16 +154,16 @@ static void checkResultVectorWithNulls(const shared_ptr<ValueVector>& result,
 TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinaryAllUnflatWithNulls) {
     setNullsInVectors(vector1, vector2, NUM_TUPLES);
 
-    VectorBooleanOperations::And(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::And>(*vector1, *vector2, *result);
     checkResultVectorWithNulls(result, {0}, {1, 2, 3, 6, 7, 9, 11}, NUM_TUPLES);
 
-    VectorBooleanOperations::Or(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::Or>(*vector1, *vector2, *result);
     checkResultVectorWithNulls(result, {0, 1, 2, 4, 5, 8, 10}, {3}, NUM_TUPLES);
 
-    VectorBooleanOperations::Xor(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::Xor>(*vector1, *vector2, *result);
     checkResultVectorWithNulls(result, {1, 2}, {0, 3}, NUM_TUPLES);
 
-    VectorBooleanOperations::Not(*vector1, *result);
+    UnaryOperationExecutor::execute<bool, uint8_t, operation::Not>(*vector1, *result);
     checkResultVectorWithNulls(result, {1, 3, 9, 11}, {0, 2, 8, 10}, NUM_TUPLES);
 }
 
@@ -168,17 +171,17 @@ TEST_F(BoolOperandsInDifferentDataChunksTest, BoolBinaryOneFlatOneUnflatNoNulls)
     // Flatten dataChunkWithVector1, which holds vector1
     dataChunkWithVector1->state->currIdx = 0;
 
-    VectorBooleanOperations::And(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::And>(*vector1, *vector2, *result);
     // Value at positions {0, 1, 4, 5, 8, 9 ...} are expected to be true
     checkResultVectorNoNulls(
         result, [](uint32_t i) { return (i >> 1) % 2 == 0; }, NUM_TUPLES);
 
-    VectorBooleanOperations::Or(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::Or>(*vector1, *vector2, *result);
     // All values are expected to be true.
     checkResultVectorNoNulls(
         result, [](uint32_t i) { return true; }, NUM_TUPLES);
 
-    VectorBooleanOperations::Xor(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::Xor>(*vector1, *vector2, *result);
     // Value at positions {2, 3, 6, 7 ...} are expected to be true
     checkResultVectorNoNulls(
         result, [](uint32_t i) { return (i >> 1) % 2 == 1; }, NUM_TUPLES);
@@ -190,26 +193,26 @@ TEST_F(BoolOperandsInDifferentDataChunksTest, BoolBinaryOneFlatOneUnflatWithNull
     // CASE 1: Flat value is TRUE
     dataChunkWithVector1->state->currIdx = 0;
 
-    VectorBooleanOperations::And(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::And>(*vector1, *vector2, *result);
     checkResultVectorWithNulls(result, {0, 1, 4, 5}, {2, 3, 6, 7}, NUM_TUPLES);
 
-    VectorBooleanOperations::Or(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::Or>(*vector1, *vector2, *result);
     checkResultVectorWithNulls(
         result, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, {}, NUM_TUPLES);
 
-    VectorBooleanOperations::Xor(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::Xor>(*vector1, *vector2, *result);
     checkResultVectorWithNulls(result, {2, 3, 6, 7}, {0, 1, 4, 5}, NUM_TUPLES);
 
     // CASE 2: Flat pos has isNull = TRUE
     dataChunkWithVector1->state->currIdx = 4;
 
-    VectorBooleanOperations::And(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::And>(*vector1, *vector2, *result);
     checkResultVectorWithNulls(result, {}, {2, 3, 6, 7}, NUM_TUPLES);
 
-    VectorBooleanOperations::Or(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::Or>(*vector1, *vector2, *result);
     checkResultVectorWithNulls(result, {0, 1, 4, 5}, {}, NUM_TUPLES);
 
-    VectorBooleanOperations::Xor(*vector1, *vector2, *result);
+    BinaryBooleanOperationExecutor::execute<operation::Xor>(*vector1, *vector2, *result);
     checkResultVectorWithNulls(result, {}, {}, NUM_TUPLES);
 }
 
@@ -231,23 +234,27 @@ TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinarySelectAllUnflatNoNulls
     auto selectedPosBuffer = result->state->selectedPositionsBuffer.get();
     auto numSelectedPos = 0u;
 
-    numSelectedPos = VectorBooleanOperations::AndSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::And>(
+        *vector1, *vector2, selectedPosBuffer);
     // selected positions are multiples of 4 {0, 4, 8, 16 ...}
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 4 == 0; }, NUM_TUPLES);
 
-    numSelectedPos = VectorBooleanOperations::OrSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Or>(
+        *vector1, *vector2, selectedPosBuffer);
     // selected positions are follow that pattern {0, 1, 2, 4, 5, 6 ...}
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 4 != 3; }, NUM_TUPLES);
 
-    numSelectedPos = VectorBooleanOperations::XorSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Xor>(
+        *vector1, *vector2, selectedPosBuffer);
     // selected positions follow the pattern {1, 2, 5, 6, 9, 10 ...}
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 4 == 1 || i % 4 == 2; },
         NUM_TUPLES);
 
-    numSelectedPos = VectorBooleanOperations::NotSelect(*vector1, selectedPosBuffer);
+    numSelectedPos =
+        UnaryOperationExecutor::select<bool, operation::Not>(*vector1, selectedPosBuffer);
     // selected positions are all odd positions {1, 3, 5 ...}
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 2 == 1; }, NUM_TUPLES);
@@ -259,12 +266,14 @@ TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinarySelectAllUnflatWithNul
     auto selectedPosBuffer = result->state->selectedPositionsBuffer.get();
     auto numSelectedPos = 0u;
 
-    numSelectedPos = VectorBooleanOperations::AndSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::And>(
+        *vector1, *vector2, selectedPosBuffer);
     // selected positions are multiples of 16 {0, 16, 32, 48 ...}
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 16 == 0; }, NUM_TUPLES);
 
-    numSelectedPos = VectorBooleanOperations::OrSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Or>(
+        *vector1, *vector2, selectedPosBuffer);
     // selected positions are union of {0, 8, 16 ...}, {2, 10, 18 ...}, {1, 17, 33 ...},
     // {4, 20, 36 ...} and {5, 21, 37 ...}
     checkSelectedPos(
@@ -274,13 +283,15 @@ TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinarySelectAllUnflatWithNul
         },
         NUM_TUPLES);
 
-    numSelectedPos = VectorBooleanOperations::XorSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Xor>(
+        *vector1, *vector2, selectedPosBuffer);
     // selected positions are union of {1, 17, 33 ...} and {2, 18, 34 ...}
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 16 == 1 || i % 16 == 2; },
         NUM_TUPLES);
 
-    numSelectedPos = VectorBooleanOperations::NotSelect(*vector1, selectedPosBuffer);
+    numSelectedPos =
+        UnaryOperationExecutor::select<bool, operation::Not>(*vector1, selectedPosBuffer);
     // selected positions are union of {1, 9, 17 ...} and {3, 11, 19 ...}
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 8 == 1 || i % 8 == 3; },
@@ -293,18 +304,21 @@ TEST_F(BoolOperandsInDifferentDataChunksTest, BoolBinarySelectOneFlatOneUnflatNo
     auto selectedPosBuffer = result->state->selectedPositionsBuffer.get();
     auto numSelectedPos = 0u;
 
-    numSelectedPos = VectorBooleanOperations::AndSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::And>(
+        *vector1, *vector2, selectedPosBuffer);
     // selected positions are union of multiples of 4 and {1, 5, 9 ...}
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 4 == 0 || i % 4 == 1; },
         NUM_TUPLES);
 
-    numSelectedPos = VectorBooleanOperations::OrSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Or>(
+        *vector1, *vector2, selectedPosBuffer);
     // all positions are selected.
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return true; }, NUM_TUPLES);
 
-    numSelectedPos = VectorBooleanOperations::XorSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Xor>(
+        *vector1, *vector2, selectedPosBuffer);
     // selected positions are union of {2, 6, 10 ...} and {3, 7, 1 ...}
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return i % 4 == 2 || i % 4 == 3; },
@@ -319,7 +333,8 @@ TEST_F(BoolOperandsInDifferentDataChunksTest, BoolBinarySelectOneFlatOneUnflatWi
     // CASE 1: Flat value is TRUE
     dataChunkWithVector1->state->currIdx = 0;
 
-    numSelectedPos = VectorBooleanOperations::AndSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::And>(
+        *vector1, *vector2, selectedPosBuffer);
     // selected positions are union of multiples of 16, {1, 17, 33 ...}, {4, 20, 36 ...} and
     // {5, 21, 37}
     checkSelectedPos(
@@ -327,12 +342,14 @@ TEST_F(BoolOperandsInDifferentDataChunksTest, BoolBinarySelectOneFlatOneUnflatWi
         [](uint32_t i) { return i % 16 == 0 || i % 16 == 1 || i % 16 == 4 || i % 16 == 5; },
         NUM_TUPLES);
 
-    numSelectedPos = VectorBooleanOperations::OrSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Or>(
+        *vector1, *vector2, selectedPosBuffer);
     // all positions are selected.
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return true; }, NUM_TUPLES);
 
-    numSelectedPos = VectorBooleanOperations::XorSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Xor>(
+        *vector1, *vector2, selectedPosBuffer);
     // selected positions are union of {2, 18, 34 ...}, {3, 19, 35 ...}, {6, 22, 38} and
     // {7, 23, 39 ...}
     checkSelectedPos(
@@ -343,12 +360,14 @@ TEST_F(BoolOperandsInDifferentDataChunksTest, BoolBinarySelectOneFlatOneUnflatWi
     // CASE 2: Flat pos has isNull = TRUE
     dataChunkWithVector1->state->currIdx = 4;
 
-    numSelectedPos = VectorBooleanOperations::AndSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::And>(
+        *vector1, *vector2, selectedPosBuffer);
     // no positions are selected.
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return false; }, NUM_TUPLES);
 
-    numSelectedPos = VectorBooleanOperations::OrSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Or>(
+        *vector1, *vector2, selectedPosBuffer);
     // selected positions are union of multiples of 16, {1, 17, 33 ...}, {4, 20, 36 ...} and
     // {5, 21, 37}
     checkSelectedPos(
@@ -356,7 +375,8 @@ TEST_F(BoolOperandsInDifferentDataChunksTest, BoolBinarySelectOneFlatOneUnflatWi
         [](uint32_t i) { return i % 16 == 0 || i % 16 == 1 || i % 16 == 4 || i % 16 == 5; },
         NUM_TUPLES);
 
-    numSelectedPos = VectorBooleanOperations::XorSelect(*vector1, *vector2, selectedPosBuffer);
+    numSelectedPos = BinaryBooleanOperationExecutor::select<operation::Xor>(
+        *vector1, *vector2, selectedPosBuffer);
     // no poisitons are selected.
     checkSelectedPos(
         numSelectedPos, selectedPosBuffer, [](uint32_t i) { return false; }, NUM_TUPLES);

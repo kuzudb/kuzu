@@ -1,9 +1,10 @@
 #pragma once
 
 #include "src/common/include/vector/operations/executors/binary_operation_executor.h"
+#include "src/function/boolean/operations/include/boolean_operations.h"
 
 namespace graphflow {
-namespace common {
+namespace function {
 
 /**
  * Binary boolean operation requires special executor implementation because it's truth table
@@ -175,5 +176,5 @@ struct BinaryBooleanOperationExecutor {
     }
 };
 
-} // namespace common
+} // namespace function
 } // namespace graphflow

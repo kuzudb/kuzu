@@ -14,6 +14,8 @@ cc_library(
     deps = [
         "//src/binder/expression:expression_implementations",
         "//src/binder/query",
+        "//src/function/boolean:boolean_functions",
+        "//src/function/comparison:comparison_functions",
         "//src/parser/expression:parsed_expression_implementations",
         "//src/parser/query",
         "//src/storage:catalog",

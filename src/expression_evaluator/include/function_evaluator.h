@@ -2,7 +2,7 @@
 
 #include "base_evaluator.h"
 
-#include "src/function/list/include/vector_list_operations.h"
+#include "src/function/include/vector_operations.h"
 
 using namespace graphflow::function;
 
@@ -20,19 +20,19 @@ public:
 
     void evaluate() override;
 
-    inline uint64_t select(sel_t* selectedPos) override {
-        throw invalid_argument("Function " + expressionTypeToString(expression->expressionType) +
-                               " does not support select interface");
-    }
+    uint64_t select(sel_t* selectedPos) override;
 
     unique_ptr<BaseExpressionEvaluator> clone() override;
 
 private:
-    void getFunction();
+    void getExecFunction();
+
+    void getSelectFunction();
 
 private:
     shared_ptr<Expression> expression;
-    list_func func;
+    scalar_exec_func execFunc;
+    scalar_select_func selectFunc;
     vector<shared_ptr<ValueVector>> parameters;
 };
 

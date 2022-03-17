@@ -9,8 +9,6 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace function {
 
-using list_func = std::function<void(const vector<shared_ptr<ValueVector>>&, ValueVector&)>;
-
 struct VectorListOperations {
 
     static void ListCreation(

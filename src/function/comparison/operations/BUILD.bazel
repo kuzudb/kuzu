@@ -1,0 +1,14 @@
+cc_library(
+    name = "comparison_operations",
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/function:__pkg__",
+        "//src/function/comparison:__pkg__",
+        "//src/processor:__pkg__",
+    ],
+)

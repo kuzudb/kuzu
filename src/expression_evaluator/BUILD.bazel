@@ -36,6 +36,7 @@ cc_library(
     ],
     deps = [
         "base_expression_evaluator",
+        "//src/binder/expression:expression_implementations",
         "//src/common:vector_operations",
         "//src/function/list:vector_list_operations",
         "//src/function/string:vector_string_operations",

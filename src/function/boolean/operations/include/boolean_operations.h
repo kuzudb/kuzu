@@ -3,7 +3,7 @@
 #include <cstdint>
 
 namespace graphflow {
-namespace common {
+namespace function {
 namespace operation {
 
 /**
@@ -123,5 +123,5 @@ struct Not {
 };
 
 } // namespace operation
-} // namespace common
+} // namespace function
 } // namespace graphflow

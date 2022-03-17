@@ -1,8 +1,6 @@
 #include "src/common/include/vector/value_vector.h"
 
-#include "src/common/include/operations/comparison_operations.h"
-
-using namespace graphflow::common::operation;
+#include "src/common/types/include/value.h"
 
 namespace graphflow {
 namespace common {

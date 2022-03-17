@@ -91,6 +91,9 @@ TEST_F(TinySnbProcessorTest, AggregateTests) {
 
 TEST_F(TinySnbProcessorTest, FunctionTests) {
     vector<TestQueryConfig> queryConfigs;
+    queryConfigs =
+        TestHelper::parseTestFile("test/runner/queries/functions/boolean_functions.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/functions/list_functions.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/functions/string_functions.test");

@@ -64,6 +64,8 @@ cc_test(
     deps = [
         "//src/common:data_chunk",
         "//src/common:vector_operations",
+        "//src/function/boolean:boolean_functions",
+        "//src/function/comparison:comparison_functions",
         "//src/function/string:vector_string_operations",
         "//test/common:vector_operations_test_helper",
         "@gtest",

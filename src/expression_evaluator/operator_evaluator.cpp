@@ -1,9 +1,7 @@
 #include "include/operator_evaluator.h"
 
 #include "src/common/include/vector/operations/vector_arithmetic_operations.h"
-#include "src/common/include/vector/operations/vector_boolean_operations.h"
 #include "src/common/include/vector/operations/vector_cast_operations.h"
-#include "src/common/include/vector/operations/vector_comparison_operations.h"
 #include "src/common/include/vector/operations/vector_null_operations.h"
 #include "src/function/string/include/vector_string_operations.h"
 
@@ -29,9 +27,6 @@ void UnaryOperatorExpressionEvaluator::init(
 
 void UnaryOperatorExpressionEvaluator::getExecOperation() {
     switch (expression->expressionType) {
-    case NOT: {
-        execOperation = VectorBooleanOperations::Not;
-    } break;
     case NEGATE: {
         execOperation = VectorArithmeticOperations::Negate;
     } break;
@@ -76,9 +71,6 @@ void UnaryOperatorExpressionEvaluator::getExecOperation() {
 
 void UnaryOperatorExpressionEvaluator::getSelectOperation() {
     switch (expression->expressionType) {
-    case NOT: {
-        selectOperation = VectorBooleanOperations::NotSelect;
-    } break;
     case IS_NULL: {
         selectOperation = VectorNullOperations::IsNullSelect;
     } break;
@@ -111,33 +103,6 @@ void BinaryOperatorExpressionEvaluator::init(
 
 void BinaryOperatorExpressionEvaluator::getExecOperation() {
     switch (expression->expressionType) {
-    case AND: {
-        execOperation = VectorBooleanOperations::And;
-    } break;
-    case OR: {
-        execOperation = VectorBooleanOperations::Or;
-    } break;
-    case XOR: {
-        execOperation = VectorBooleanOperations::Xor;
-    } break;
-    case EQUALS: {
-        execOperation = VectorComparisonOperations::Equals;
-    } break;
-    case NOT_EQUALS: {
-        execOperation = VectorComparisonOperations::NotEquals;
-    } break;
-    case GREATER_THAN: {
-        execOperation = VectorComparisonOperations::GreaterThan;
-    } break;
-    case GREATER_THAN_EQUALS: {
-        execOperation = VectorComparisonOperations::GreaterThanEquals;
-    } break;
-    case LESS_THAN: {
-        execOperation = VectorComparisonOperations::LessThan;
-    } break;
-    case LESS_THAN_EQUALS: {
-        execOperation = VectorComparisonOperations::LessThanEquals;
-    } break;
     case ADD: {
         execOperation = VectorArithmeticOperations::Add;
     } break;
@@ -173,33 +138,6 @@ void BinaryOperatorExpressionEvaluator::getExecOperation() {
 
 void BinaryOperatorExpressionEvaluator::getSelectOperation() {
     switch (expression->expressionType) {
-    case AND: {
-        selectOperation = VectorBooleanOperations::AndSelect;
-    } break;
-    case OR: {
-        selectOperation = VectorBooleanOperations::OrSelect;
-    } break;
-    case XOR: {
-        selectOperation = VectorBooleanOperations::XorSelect;
-    } break;
-    case EQUALS: {
-        selectOperation = VectorComparisonOperations::EqualsSelect;
-    } break;
-    case NOT_EQUALS: {
-        selectOperation = VectorComparisonOperations::NotEqualsSelect;
-    } break;
-    case GREATER_THAN: {
-        selectOperation = VectorComparisonOperations::GreaterThanSelect;
-    } break;
-    case GREATER_THAN_EQUALS: {
-        selectOperation = VectorComparisonOperations::GreaterThanEqualsSelect;
-    } break;
-    case LESS_THAN: {
-        selectOperation = VectorComparisonOperations::LessThanSelect;
-    } break;
-    case LESS_THAN_EQUALS: {
-        selectOperation = VectorComparisonOperations::LessThanEqualsSelect;
-    } break;
     case CONTAINS: {
         selectOperation = VectorStringOperations::ContainsSelect;
     } break;
