@@ -1,5 +1,7 @@
 #include "src/common/include/vector/operations/vector_cast_operations.h"
 
+#include "src/common/include/operations/cast_operations.h"
+#include "src/common/include/vector/operations/executors/unary_operation_executor.h"
 #include "src/common/types/include/value.h"
 
 namespace graphflow {
@@ -7,102 +9,48 @@ namespace common {
 
 void VectorCastOperations::castStructuredToUnstructuredValue(
     ValueVector& operand, ValueVector& result) {
-    assert(operand.dataType != UNSTRUCTURED && result.dataType == UNSTRUCTURED);
-    auto outValues = (Value*)result.values;
-    if (operand.state->isFlat()) {
-        auto pos = operand.state->getPositionOfCurrIdx();
-        auto resPos = result.state->getPositionOfCurrIdx();
-        switch (operand.dataType) {
-        case BOOL: {
-            outValues[resPos].val.booleanVal = operand.values[pos];
-            outValues[resPos].dataType = BOOL;
-        } break;
-        case INT64: {
-            outValues[resPos].val.int64Val = ((int64_t*)operand.values)[pos];
-            outValues[resPos].dataType = INT64;
-        } break;
-        case DOUBLE: {
-            outValues[resPos].val.doubleVal = ((double_t*)operand.values)[pos];
-            outValues[resPos].dataType = DOUBLE;
-        } break;
-        case DATE: {
-            outValues[resPos].val.dateVal = ((date_t*)operand.values)[pos];
-            outValues[resPos].dataType = DATE;
-        } break;
-        case TIMESTAMP: {
-            outValues[resPos].val.timestampVal = ((timestamp_t*)operand.values)[pos];
-            outValues[resPos].dataType = TIMESTAMP;
-        } break;
-        case INTERVAL: {
-            outValues[resPos].val.intervalVal = ((interval_t*)operand.values)[pos];
-            outValues[resPos].dataType = INTERVAL;
-        } break;
-        case STRING: {
-            result.addGFStringToUnstructuredVector(resPos, ((gf_string_t*)operand.values)[pos]);
-            outValues[resPos].dataType = STRING;
-        } break;
-        default:
-            assert(false);
-        }
-    } else {
-        switch (operand.dataType) {
-        case BOOL: {
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                outValues[pos].val.booleanVal = operand.values[pos];
-                outValues[pos].dataType = BOOL;
-            }
-        } break;
-        case INT64: {
-            auto intValues = (int64_t*)operand.values;
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                outValues[pos].val.int64Val = intValues[pos];
-                outValues[pos].dataType = INT64;
-            }
-        } break;
-        case DOUBLE: {
-            auto doubleValues = (double_t*)operand.values;
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                outValues[pos].val.doubleVal = doubleValues[pos];
-                outValues[pos].dataType = DOUBLE;
-            }
-        } break;
-        case DATE: {
-            auto dateValues = (date_t*)operand.values;
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                outValues[pos].val.dateVal = dateValues[pos];
-                outValues[pos].dataType = DATE;
-            }
-        } break;
-        case TIMESTAMP: {
-            auto timestampValues = (timestamp_t*)operand.values;
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                outValues[pos].val.timestampVal = timestampValues[pos];
-                outValues[pos].dataType = TIMESTAMP;
-            }
-        } break;
-        case INTERVAL: {
-            auto intervalValues = (interval_t*)operand.values;
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                outValues[pos].val.intervalVal = intervalValues[pos];
-                outValues[pos].dataType = INTERVAL;
-            }
-        } break;
-        case STRING: {
+    switch (operand.dataType) {
+    case BOOL: {
+        UnaryOperationExecutor::execute<uint8_t, Value, operation::CastToUnstructured>(
+            operand, result);
+    } break;
+    case INT64: {
+        UnaryOperationExecutor::execute<int64_t, Value, operation::CastToUnstructured>(
+            operand, result);
+    } break;
+    case DOUBLE: {
+        UnaryOperationExecutor::execute<double_t, Value, operation::CastToUnstructured>(
+            operand, result);
+    } break;
+    case DATE: {
+        UnaryOperationExecutor::execute<date_t, Value, operation::CastToUnstructured>(
+            operand, result);
+    } break;
+    case TIMESTAMP: {
+        UnaryOperationExecutor::execute<timestamp_t, Value, operation::CastToUnstructured>(
+            operand, result);
+    } break;
+    case INTERVAL: {
+        UnaryOperationExecutor::execute<interval_t, Value, operation::CastToUnstructured>(
+            operand, result);
+    } break;
+    case STRING: {
+        auto outValues = (Value*)result.values;
+        if (operand.state->isFlat()) {
+            auto pos = operand.state->getPositionOfCurrIdx();
+            assert(pos == result.state->getPositionOfCurrIdx());
+            result.addGFStringToUnstructuredVector(pos, ((gf_string_t*)operand.values)[pos]);
+            outValues[pos].dataType = STRING;
+        } else {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 result.addGFStringToUnstructuredVector(pos, ((gf_string_t*)operand.values)[pos]);
                 outValues[pos].dataType = STRING;
             }
-        } break;
-        default:
-            assert(false);
         }
+    } break;
+    default:
+        assert(false);
     }
 }
 
@@ -186,81 +134,26 @@ void VectorCastOperations::castStructuredToString(ValueVector& operand, ValueVec
 
 void VectorCastOperations::castUnstructuredToBoolValue(ValueVector& operand, ValueVector& result) {
     assert(operand.dataType == UNSTRUCTURED && result.dataType == BOOL);
-    auto inValues = (Value*)operand.values;
-    if (!operand.state->isFlat()) {
-        for (auto i = 0u; i < operand.state->selectedSize; i++) {
-            auto pos = operand.state->selectedPositions[i];
-            if (inValues[pos].dataType != BOOL) {
-                throw std::invalid_argument("Don’t know how to treat that as a predicate: “" +
-                                            DataTypeNames[inValues[pos].dataType] + "(" +
-                                            inValues[pos].toString() + ")”.");
-            }
-            result.values[pos] = inValues[pos].val.booleanVal;
-        }
-    } else {
-        auto pos = operand.state->getPositionOfCurrIdx();
-        auto resPos = result.state->getPositionOfCurrIdx();
-        if (inValues[pos].dataType != BOOL) {
-            throw std::invalid_argument("Don’t know how to treat that as a predicate: “" +
-                                        DataTypeNames[inValues[pos].dataType] + "(" +
-                                        inValues[pos].toString() + ")”.");
-        }
-        result.values[resPos] = inValues[pos].val.booleanVal;
-    }
+    UnaryOperationExecutor::execute<Value, uint8_t, operation::CastUnstructuredToBool>(
+        operand, result);
 }
 
 void VectorCastOperations::castStringToDate(ValueVector& operand, ValueVector& result) {
     assert(operand.dataType == STRING && result.dataType == INTERVAL);
-    auto inValues = (gf_string_t*)operand.values;
-    auto resultValues = (date_t*)result.values;
-    if (!operand.state->isFlat()) {
-        for (auto i = 0u; i < operand.state->selectedSize; i++) {
-            auto pos = operand.state->selectedPositions[i];
-            resultValues[pos] =
-                Date::FromCString((const char*)inValues[pos].getData(), inValues[pos].len);
-        }
-    } else {
-        auto pos = operand.state->getPositionOfCurrIdx();
-        auto resPos = result.state->getPositionOfCurrIdx();
-        resultValues[resPos] =
-            Date::FromCString((const char*)inValues[pos].getData(), inValues[pos].len);
-    }
+    UnaryOperationExecutor::execute<gf_string_t, date_t, operation::CastStringToDate>(
+        operand, result);
 }
 
 void VectorCastOperations::castStringToTimestamp(ValueVector& operand, ValueVector& result) {
     assert(operand.dataType == STRING && result.dataType == INTERVAL);
-    auto inValues = (gf_string_t*)operand.values;
-    auto resultValues = (timestamp_t*)result.values;
-    if (!operand.state->isFlat()) {
-        for (auto i = 0u; i < operand.state->selectedSize; i++) {
-            auto pos = operand.state->selectedPositions[i];
-            resultValues[pos] =
-                Timestamp::FromCString((const char*)inValues[pos].getData(), inValues[pos].len);
-        }
-    } else {
-        auto pos = operand.state->getPositionOfCurrIdx();
-        auto resPos = result.state->getPositionOfCurrIdx();
-        resultValues[resPos] =
-            Timestamp::FromCString((const char*)inValues[pos].getData(), inValues[pos].len);
-    }
+    UnaryOperationExecutor::execute<gf_string_t, timestamp_t, operation::CastStringToTimestamp>(
+        operand, result);
 }
 
 void VectorCastOperations::castStringToInterval(ValueVector& operand, ValueVector& result) {
     assert(operand.dataType == STRING && result.dataType == INTERVAL);
-    auto inValues = (gf_string_t*)operand.values;
-    auto resultValues = (interval_t*)result.values;
-    if (!operand.state->isFlat()) {
-        for (auto i = 0u; i < operand.state->selectedSize; i++) {
-            auto pos = operand.state->selectedPositions[i];
-            resultValues[pos] =
-                Interval::FromCString((const char*)inValues[pos].getData(), inValues[pos].len);
-        }
-    } else {
-        auto pos = operand.state->getPositionOfCurrIdx();
-        auto resPos = result.state->getPositionOfCurrIdx();
-        resultValues[resPos] =
-            Interval::FromCString((const char*)inValues[pos].getData(), inValues[pos].len);
-    }
+    UnaryOperationExecutor::execute<gf_string_t, interval_t, operation::CastStringToInterval>(
+        operand, result);
 }
 
 } // namespace common

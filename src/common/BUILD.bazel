@@ -63,6 +63,7 @@ cc_library(
     srcs = [],
     hdrs = [
         "include/operations/arithmetic_operations.h",
+        "include/operations/cast_operations.h",
         "include/operations/hash_operations.h",
     ],
     visibility = ["//visibility:public"],
