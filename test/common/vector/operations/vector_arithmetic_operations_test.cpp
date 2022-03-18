@@ -2,10 +2,13 @@
 #include "test/common/include/vector/operations/vector_operations_test_helper.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/vector/operations/vector_arithmetic_operations.h"
+#include "src/common/include/vector/operations/executors/binary_operation_executor.h"
+#include "src/common/include/vector/operations/executors/unary_operation_executor.h"
 #include "src/common/types/include/value.h"
+#include "src/function/arithmetic/operations/include/arithmetic_operations.h"
 
 using namespace graphflow::common;
+using namespace graphflow::function;
 using namespace graphflow::testing;
 using namespace std;
 
@@ -61,42 +64,48 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatN
     auto rVector = vector2;
     auto resultData = (int64_t*)result->values;
 
-    VectorArithmeticOperations::Negate(*lVector, *result);
+    UnaryOperationExecutor::execute<int64_t, int64_t, operation::Negate>(*lVector, *result);
+
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], -i);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    VectorArithmeticOperations::Add(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, int64_t, operation::Add>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], 110);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    VectorArithmeticOperations::Subtract(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, int64_t, operation::Subtract>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], 2 * i - 110);
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    VectorArithmeticOperations::Multiply(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, int64_t, operation::Multiply>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], i * (110 - i));
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    VectorArithmeticOperations::Divide(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, int64_t, operation::Divide>(
+        *lVector, *rVector, *result);
     for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
         ASSERT_EQ(resultData[i], i / (110 - i));
         ASSERT_FALSE(result->isNull(i));
     }
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
-    VectorArithmeticOperations::Modulo(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, int64_t, operation::Modulo>(
+        *lVector, *rVector, *result);
     for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
         ASSERT_EQ(resultData[i], i % (110 - i));
         ASSERT_FALSE(result->isNull(i));
@@ -106,7 +115,8 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatN
     result = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
     dataChunk->insert(0, result);
     auto resultDataAsDoubleArr = (double_t*)result->values;
-    VectorArithmeticOperations::Power(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, double_t, operation::Power>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultDataAsDoubleArr[i], pow(i, 110 - i));
         ASSERT_FALSE(result->isNull(i));
@@ -124,7 +134,7 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatW
         rVector->setNull(i, (i % 2) == 1);
     }
 
-    VectorArithmeticOperations::Negate(*rVector, *result);
+    UnaryOperationExecutor::execute<int64_t, int64_t, operation::Negate>(*rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         if (i % 2 == 0) {
             ASSERT_EQ(resultData[i], -(110 - i));
@@ -135,7 +145,8 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatW
     }
     ASSERT_FALSE(result->hasNoNullsGuarantee());
 
-    VectorArithmeticOperations::Add(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, int64_t, operation::Add>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         if (i % 2 == 0) {
             ASSERT_EQ(resultData[i], 110);
@@ -156,7 +167,8 @@ TEST_F(Int64ArithmeticOperandsInDifferentDataChunksTest, Int64BinaryOneFlatOneUn
 
     // Test 1: Left flat and right is unflat.
     // The addition is 80 + [110, 109, ...., 8, 9]. The results are: [190, 189, ...., 88, 89]
-    VectorArithmeticOperations::Add(*vector1, *vector2, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, int64_t, operation::Add>(
+        *vector1, *vector2, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], 190 - i);
         ASSERT_FALSE(result->isNull(i));
@@ -164,7 +176,8 @@ TEST_F(Int64ArithmeticOperandsInDifferentDataChunksTest, Int64BinaryOneFlatOneUn
     ASSERT_TRUE(result->hasNoNullsGuarantee());
 
     // Test 2: Left unflat and right is flat. The result is the same as above.
-    VectorArithmeticOperations::Add(*vector2, *vector1, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, int64_t, operation::Add>(
+        *vector2, *vector1, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i], 190 - i);
         ASSERT_FALSE(result->isNull(i));
@@ -186,7 +199,8 @@ TEST_F(Int64ArithmeticOperandsInDifferentDataChunksTest, Int64BinaryOneFlatOneUn
 
     // Test 1: Left flat and right is unflat.
     // The addition is 80 + [110, 109, ...., 8, 9]. The results are: [190, NULL, ...., 88, NULL]
-    VectorArithmeticOperations::Add(*vector1, *vector2, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, int64_t, operation::Add>(
+        *vector1, *vector2, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         if (i % 2 == 0) {
             ASSERT_EQ(resultData[i], 190 - i);
@@ -198,7 +212,8 @@ TEST_F(Int64ArithmeticOperandsInDifferentDataChunksTest, Int64BinaryOneFlatOneUn
     ASSERT_FALSE(result->hasNoNullsGuarantee());
 
     // Test 2: Left unflat and right is flat. The result is the same as above.
-    VectorArithmeticOperations::Add(*vector2, *vector1, *result);
+    BinaryOperationExecutor::execute<int64_t, int64_t, int64_t, operation::Add>(
+        *vector2, *vector1, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         if (i % 2 == 0) {
             ASSERT_EQ(resultData[i], 190 - i);
@@ -223,32 +238,37 @@ TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredInt64Test)
         rData[i] = Value((int64_t)110 - i);
     }
 
-    VectorArithmeticOperations::Negate(*lVector, *result);
+    UnaryOperationExecutor::execute<Value, Value, operation::Negate>(*lVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.int64Val, -i);
     }
 
-    VectorArithmeticOperations::Add(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<Value, Value, Value, operation::Add>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.int64Val, 110);
     }
 
-    VectorArithmeticOperations::Subtract(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<Value, Value, Value, operation::Subtract>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.int64Val, 2 * i - 110);
     }
 
-    VectorArithmeticOperations::Multiply(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<Value, Value, Value, operation::Multiply>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.int64Val, i * (110 - i));
     }
 
-    VectorArithmeticOperations::Divide(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<Value, Value, Value, operation::Divide>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.int64Val, i / (110 - i));
     }
 
-    VectorArithmeticOperations::Modulo(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<Value, Value, Value, operation::Modulo>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.int64Val, i % (110 - i));
     }
@@ -267,27 +287,31 @@ TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredInt32AndDo
         rData[i] = Value((int64_t)110 - i);
     }
 
-    VectorArithmeticOperations::Negate(*lVector, *result);
+    UnaryOperationExecutor::execute<Value, Value, operation::Negate>(*lVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.doubleVal, (double)-i);
     }
 
-    VectorArithmeticOperations::Add(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<Value, Value, Value, operation::Add>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.doubleVal, (double)110);
     }
 
-    VectorArithmeticOperations::Subtract(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<Value, Value, Value, operation::Subtract>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.doubleVal, (double)(2 * i - 110));
     }
 
-    VectorArithmeticOperations::Multiply(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<Value, Value, Value, operation::Multiply>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.doubleVal, (double)(i * (110 - i)));
     }
 
-    VectorArithmeticOperations::Divide(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<Value, Value, Value, operation::Divide>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.doubleVal, (double)i / (110 - i));
     }
@@ -309,7 +333,8 @@ TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredStringAndI
         rData[i] = Value((int64_t)110 - i);
     }
 
-    VectorArithmeticOperations::Add(*lVector, *rVector, *result);
+    BinaryOperationExecutor::execute<Value, Value, Value, operation::Add>(
+        *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].val.strVal.getAsString(), to_string(i) + to_string(110 - i));
     }

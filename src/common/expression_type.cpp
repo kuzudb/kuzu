@@ -6,9 +6,7 @@ namespace graphflow {
 namespace common {
 
 bool isExpressionUnary(ExpressionType type) {
-    return NOT == type || NEGATE == type || IS_NULL == type || IS_NOT_NULL == type ||
-           CAST_TO_UNSTRUCTURED_VALUE == type || ABS_FUNC == type || FLOOR_FUNC == type ||
-           CEIL_FUNC == type;
+    return NOT == type || NEGATE == type || IS_NULL == type || IS_NOT_NULL == type;
 }
 
 bool isExpressionBinary(ExpressionType type) {
@@ -32,7 +30,7 @@ bool isExpressionArithmetic(ExpressionType type) {
 }
 
 bool isExpressionStringOperator(ExpressionType type) {
-    return STARTS_WITH == type || ENDS_WITH == type || CONTAINS == type || STRING_CONCAT == type;
+    return STARTS_WITH == type || ENDS_WITH == type || CONTAINS == type;
 }
 
 bool isExpressionNullOperator(ExpressionType type) {
@@ -52,10 +50,6 @@ bool isExpressionAggregate(ExpressionType type) {
 
 bool isExpressionSubquery(ExpressionType type) {
     return EXISTENTIAL_SUBQUERY == type;
-}
-
-bool isExpressionListFunction(ExpressionType type) {
-    return LIST_EXTRACT == type;
 }
 
 string expressionTypeToString(ExpressionType type) {
@@ -100,8 +94,6 @@ string expressionTypeToString(ExpressionType type) {
         return "ENDS_WITH";
     case CONTAINS:
         return "CONTAINS";
-    case STRING_CONCAT:
-        return "STRING_CONCAT";
     case IS_NULL:
         return "IS_NULL";
     case IS_NOT_NULL:
@@ -126,14 +118,6 @@ string expressionTypeToString(ExpressionType type) {
         return "LITERAL_NULL";
     case VARIABLE:
         return "VARIABLE";
-    case CAST_TO_UNSTRUCTURED_VALUE:
-        return "CAST_TO_UNSTRUCTURED_VALUE";
-    case ABS_FUNC:
-        return ABS_FUNC_NAME;
-    case FLOOR_FUNC:
-        return FLOOR_FUNC_NAME;
-    case CEIL_FUNC:
-        return CEIL_FUNC_NAME;
     case COUNT_STAR_FUNC:
         return COUNT_STAR_FUNC_NAME;
     case COUNT_FUNC:

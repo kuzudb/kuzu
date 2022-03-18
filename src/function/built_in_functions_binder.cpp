@@ -1,5 +1,6 @@
 #include "include/built_in_functions_binder.h"
 
+#include "arithmetic/include/vector_arithmetic_operations.h"
 #include "cast/include/vector_cast_operations.h"
 #include "list/include/vector_list_operations.h"
 
@@ -21,6 +22,15 @@ pair<scalar_exec_func, DataType> BuiltInFunctionsBinder::bindExecFunction(
     }
     case LIST_CREATION: {
         return VectorListOperations::bindListCreationExecFunction(children);
+    }
+    case ABS: {
+        return VectorArithmeticOperations::bindAbsExecFunction(children);
+    }
+    case FLOOR: {
+        return VectorArithmeticOperations::bindFloorExecFunction(children);
+    }
+    case CEIL: {
+        return VectorArithmeticOperations::bindCeilExecFunction(children);
     }
     default:
         assert(false);

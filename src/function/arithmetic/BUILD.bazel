@@ -1,0 +1,20 @@
+cc_library(
+    name = "vector_arithmetic_operations",
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/binder:__pkg__",
+        "//src/function:__pkg__",
+        "//test/common:__pkg__",
+    ],
+    deps = [
+        "//src/binder/expression:base_expression",
+        "//src/function",
+        "//src/function/arithmetic/operations:arithmetic_operations",
+        "//src/function/string:vector_string_operations",
+    ],
+)

@@ -6,10 +6,10 @@
 #include "src/common/types/include/value.h"
 #include "src/function/string/operations/include/concat_operation.h"
 
-using namespace graphflow::function::operation;
+using namespace graphflow::common;
 
 namespace graphflow {
-namespace common {
+namespace function {
 namespace operation {
 
 struct Add {
@@ -341,5 +341,5 @@ inline void Ceil::operation(Value& operand, bool isNull, Value& result) {
 };
 
 } // namespace operation
-} // namespace common
+} // namespace function
 } // namespace graphflow

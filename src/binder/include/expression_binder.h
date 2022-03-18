@@ -26,12 +26,6 @@ private:
     shared_ptr<Expression> bindComparisonExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindBinaryArithmeticExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindBinaryDateArithmeticExpression(
-        ExpressionType expressionType, shared_ptr<Expression> left, shared_ptr<Expression> right);
-    shared_ptr<Expression> bindBinaryTimestampArithmeticExpression(
-        ExpressionType expressionType, shared_ptr<Expression> left, shared_ptr<Expression> right);
-    shared_ptr<Expression> bindBinaryIntervalArithmeticExpression(
-        ExpressionType expressionType, shared_ptr<Expression> left, shared_ptr<Expression> right);
 
     shared_ptr<Expression> bindUnaryArithmeticExpression(const ParsedExpression& parsedExpression);
 
@@ -44,9 +38,6 @@ private:
     shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindSpecialFunctions(const string& functionName,
         const ParsedExpression& parsedExpression, const expression_vector& children);
-    shared_ptr<Expression> bindAbsFunctionExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindFloorFunctionExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindCeilFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindCountStarFunctionExpression(
         const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindCountFunctionExpression(const ParsedExpression& parsedExpression);
@@ -87,15 +78,9 @@ private:
     static void validateExpectedDataType(
         const Expression& expression, const unordered_set<DataType>& expectedTypes);
 
-    static void validateNumeric(const Expression& expression) {
-        validateExpectedDataType(expression, unordered_set<DataType>{INT64, DOUBLE});
-    }
     static void validateNumericOrUnstructured(const Expression& expression) {
         validateExpectedDataType(expression, unordered_set<DataType>{INT64, DOUBLE, UNSTRUCTURED});
     }
-
-    static void validateExpectedBinaryOperation(const Expression& left, const Expression& right,
-        ExpressionType type, const unordered_set<ExpressionType>& expectedTypes);
 
     // E.g. SUM(SUM(a.age)) is not allowed
     static void validateAggregationExpressionIsNotNested(const Expression& expression);

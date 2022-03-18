@@ -12,12 +12,20 @@ void VectorOperations::validateNumParameters(
     }
 }
 
-void VectorOperations::validateParameterType(
-    const string& functionName, DataType inputType, DataType expectedType) {
-    if (inputType != expectedType) {
-        throw invalid_argument("Expected " + TypeUtils::dataTypeToString(expectedType) +
-                               " type input for " + functionName + " function but get " +
-                               TypeUtils::dataTypeToString(inputType) + ".");
+void VectorOperations::validateParameterType(const string& functionName, Expression& parameter,
+    const unordered_set<DataType>& expectedTypes) {
+    auto dataType = parameter.dataType;
+    if (!expectedTypes.contains(dataType)) {
+        string expectedTypesStr;
+        vector<DataType> expectedTypesVec{expectedTypes.begin(), expectedTypes.end()};
+        auto numExpectedTypes = expectedTypes.size();
+        for (auto i = 0u; i < numExpectedTypes - 1; ++i) {
+            expectedTypesStr += TypeUtils::dataTypeToString(expectedTypesVec[i]) + ", ";
+        }
+        expectedTypesStr += TypeUtils::dataTypeToString(expectedTypesVec[numExpectedTypes - 1]);
+        throw invalid_argument(parameter.getRawName() + " has data type " +
+                               TypeUtils::dataTypeToString(dataType) + ". " + expectedTypesStr +
+                               " was expected.");
     }
 }
 

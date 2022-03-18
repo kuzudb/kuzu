@@ -10,6 +10,7 @@ cc_library(
     deps = [
         "//src/binder/expression:expression_implementations",
         "//src/common:vector",
+        "//src/function/arithmetic/operations:arithmetic_operations",
         "//src/function/comparison/operations:comparison_operations",
     ],
 )
@@ -44,6 +45,7 @@ cc_library(
         "//src/binder:__pkg__",
     ],
     deps = [
+        "//src/function/arithmetic:vector_arithmetic_operations",
         "//src/function/cast:vector_cast_operations",
         "//src/function/list:vector_list_operations",
     ],

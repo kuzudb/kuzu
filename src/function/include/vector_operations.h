@@ -50,7 +50,11 @@ protected:
         const string& functionName, uint64_t inputNumParams, uint64_t expectedNumParams);
 
     static void validateParameterType(
-        const string& functionName, DataType inputType, DataType expectedType);
+        const string& functionName, Expression& parameter, DataType expectedType) {
+        validateParameterType(functionName, parameter, unordered_set<DataType>{expectedType});
+    }
+    static void validateParameterType(const string& functionName, Expression& parameter,
+        const unordered_set<DataType>& expectedTypes);
 };
 
 } // namespace function

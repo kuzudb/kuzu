@@ -1,5 +1,5 @@
 cc_library(
-    name = "vector_string_operations",
+    name = "arithmetic_operations",
     srcs = glob([
         "*.cpp",
     ]),
@@ -7,13 +7,10 @@ cc_library(
         "include/*.h",
     ]),
     visibility = [
-        "//src/binder:__pkg__",
-        "//src/expression_evaluator:__pkg__",
         "//src/function:__subpackages__",
-        "//test/common:__pkg__",
     ],
     deps = [
-        "//src/function",
+        "//src/common/types",
         "//src/function/string/operations:string_operations",
     ],
 )

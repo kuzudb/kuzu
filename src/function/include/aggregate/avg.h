@@ -1,10 +1,10 @@
 #pragma once
 
-#include "src/common/include/operations/arithmetic_operations.h"
+#include "src/function/arithmetic/operations/include/arithmetic_operations.h"
 #include "src/function/include/aggregate/aggregate_function.h"
 
 using namespace std;
-using namespace graphflow::common::operation;
+using namespace graphflow::function::operation;
 
 namespace graphflow {
 namespace function {

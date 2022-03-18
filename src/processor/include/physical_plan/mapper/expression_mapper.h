@@ -31,22 +31,6 @@ private:
     unique_ptr<BaseExpressionEvaluator> mapFunctionExpression(
         const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
         ExecutionContext& executionContext);
-
-    unique_ptr<BaseExpressionEvaluator> mapOperatorExpression(
-        const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
-        ExecutionContext& executionContext);
-
-    unique_ptr<BaseExpressionEvaluator> mapBinaryOperatorExpression(
-        const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
-        ExecutionContext& executionContext);
-
-    unique_ptr<BaseExpressionEvaluator> mapUnaryOperatorExpression(
-        const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
-        ExecutionContext& executionContext);
-
-    unique_ptr<BaseExpressionEvaluator> mapExpressionAndCastToUnstructured(
-        const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
-        ExecutionContext& executionContext);
 };
 
 } // namespace processor
