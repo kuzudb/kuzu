@@ -6,11 +6,22 @@ namespace graphflow {
 namespace storage {
 
 void OverflowPages::readStringsToVector(ValueVector& valueVector) {
+    assert(!valueVector.state->isFlat());
     for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
         auto pos = valueVector.state->selectedPositions[i];
         if (!valueVector.isNull(pos)) {
             readStringToVector(
                 ((gf_string_t*)valueVector.values)[pos], *valueVector.overflowBuffer);
+        }
+    }
+}
+
+void OverflowPages::readListsToVector(ValueVector& valueVector) {
+    assert(!valueVector.state->isFlat());
+    for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
+        auto pos = valueVector.state->selectedPositions[i];
+        if (!valueVector.isNull(pos)) {
+            readListToVector(((gf_list_t*)valueVector.values)[pos], *valueVector.overflowBuffer);
         }
     }
 }
@@ -21,9 +32,24 @@ void OverflowPages::readStringToVector(gf_string_t& gfStr, OverflowBuffer& overf
         TypeUtils::decodeOverflowPtr(gfStr.overflowPtr, cursor.idx, cursor.offset);
         auto frame = bufferManager.pin(fileHandle, cursor.idx);
         overflowBuffer.allocateLargeStringIfNecessary(gfStr, gfStr.len);
-        gfStr.set((char*)frame + cursor.offset, gfStr.len);
+        gfStr.set((char*)(frame + cursor.offset), gfStr.len);
         bufferManager.unpin(fileHandle, cursor.idx);
     }
+}
+
+void OverflowPages::readListToVector(gf_list_t& gfList, OverflowBuffer& overflowBuffer) {
+    PageByteCursor cursor;
+    TypeUtils::decodeOverflowPtr(gfList.overflowPtr, cursor.idx, cursor.offset);
+    auto frame = bufferManager.pin(fileHandle, cursor.idx);
+    overflowBuffer.allocateList(gfList);
+    gfList.set(frame + cursor.offset);
+    if (gfList.childType == STRING) {
+        auto gfStrings = (gf_string_t*)(gfList.overflowPtr);
+        for (auto i = 0u; i < gfList.size; i++) {
+            readStringToVector(gfStrings[i], overflowBuffer);
+        }
+    }
+    bufferManager.unpin(fileHandle, cursor.idx);
 }
 
 string OverflowPages::readString(const gf_string_t& str) {

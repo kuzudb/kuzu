@@ -38,6 +38,8 @@ public:
 
     static inline string toString(interval_t val) { return Interval::toString(val); }
 
+    static inline string toString(gf_string_t val) { return val.getAsString(); }
+
     static inline void encodeOverflowPtr(
         uint64_t& overflowPtr, uint64_t pageIdx, uint16_t pageOffset) {
         memcpy(&overflowPtr, &pageIdx, 6);

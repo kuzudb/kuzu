@@ -10,6 +10,7 @@ struct gf_list_t {
 public:
     gf_list_t() : childType{INVALID}, capacity{0}, size{0}, overflowPtr{0} {}
 
+    void set(uint8_t* values);
     void set(const gf_list_t& other);
 
     string toString() const;

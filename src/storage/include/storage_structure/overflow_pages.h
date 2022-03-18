@@ -35,13 +35,14 @@ public:
     }
 
     void readStringsToVector(ValueVector& valueVector);
-
     void readStringToVector(gf_string_t& gfStr, OverflowBuffer& overflowBuffer);
-
+    void readListsToVector(ValueVector& valueVector);
     string readString(const gf_string_t& str);
     vector<Literal> readList(const gf_list_t& listVal, DataType childDataType);
 
 private:
+    void readListToVector(gf_list_t& gfList, OverflowBuffer& overflowBuffer);
+
     FileHandle fileHandle;
     BufferManager& bufferManager;
     bool isInMemory;

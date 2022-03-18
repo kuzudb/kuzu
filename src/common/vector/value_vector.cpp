@@ -76,6 +76,14 @@ void ValueVector::copyNonNullDataWithSameType(
         gfListDstPtr->size = gfListSrcPtr->size;
         overflowBuffer.allocateList(*gfListDstPtr);
         gfListDstPtr->set(*gfListSrcPtr);
+        if (gfListDstPtr->childType == STRING) {
+            auto gfSrcStrings = (gf_string_t*)gfListSrcPtr->overflowPtr;
+            auto gfDstStrings = (gf_string_t*)gfListDstPtr->overflowPtr;
+            for (auto i = 0u; i < gfListDstPtr->size; i++) {
+                overflowBuffer.allocateLargeStringIfNecessary(gfDstStrings[i], gfDstStrings[i].len);
+                gfDstStrings[i].set(gfSrcStrings[i]);
+            }
+        }
     } else {
         // Regardless of whether the dataType is unstructured or a structured non-string type, we
         // first copy over the data in the src to the dst.

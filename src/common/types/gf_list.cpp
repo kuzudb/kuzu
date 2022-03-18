@@ -7,6 +7,11 @@
 namespace graphflow {
 namespace common {
 
+void gf_list_t::set(uint8_t* values) {
+    memcpy(reinterpret_cast<uint8_t*>(overflowPtr), values,
+        size * TypeUtils::getDataTypeSize(childType));
+}
+
 void gf_list_t::set(const gf_list_t& other) {
     memcpy(reinterpret_cast<uint8_t*>(overflowPtr), reinterpret_cast<uint8_t*>(other.overflowPtr),
         size * TypeUtils::getDataTypeSize(childType));
@@ -35,6 +40,8 @@ string gf_list_t::elementToString(uint64_t pos) const {
         return TypeUtils::toString(((timestamp_t*)overflowPtr)[pos]);
     case INTERVAL:
         return TypeUtils::toString(((interval_t*)overflowPtr)[pos]);
+    case STRING:
+        return TypeUtils::toString(((gf_string_t*)overflowPtr)[pos]);
     default:
         assert(false);
     }
