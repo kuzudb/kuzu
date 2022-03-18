@@ -7,7 +7,9 @@
 #include "src/binder/include/query_binder.h"
 #include "src/common/types/include/type_utils.h"
 #include "src/function/boolean/include/vector_boolean_operations.h"
+#include "src/function/cast/include/vector_cast_operations.h"
 #include "src/function/comparison/include/vector_comparison_operations.h"
+#include "src/function/include/built_in_functions_binder.h"
 #include "src/function/null/include/vector_null_operations.h"
 #include "src/function/string/include/vector_string_operations.h"
 #include "src/parser/expression/include/parsed_function_expression.h"
@@ -113,10 +115,10 @@ shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
         validateExpectedBinaryOperation(*left, *right, parsedExpression.getExpressionType(),
             unordered_set<ExpressionType>{ADD});
         if (left->dataType != STRING) {
-            left = castExpressionToString(move(left));
+            left = castStructuredToString(move(left));
         }
         if (right->dataType != STRING) {
-            right = castExpressionToString(move(right));
+            right = castStructuredToString(move(right));
         }
         expression_vector children;
         children.push_back(left);
@@ -290,22 +292,40 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
         return bindSumMinMaxFunctionExpression(parsedExpression, MIN_FUNC);
     } else if (functionName == MAX_FUNC_NAME) {
         return bindSumMinMaxFunctionExpression(parsedExpression, MAX_FUNC);
-    } else if (functionName == ID_FUNC_NAME) {
-        return bindIDFunctionExpression(parsedExpression);
-    } else if (functionName == DATE_FUNC_NAME) {
-        return bindDateFunctionExpression(parsedExpression);
-    } else if (functionName == TIMESTAMP_FUNC_NAME) {
-        return bindTimestampFunctionExpression(parsedExpression);
     } else if (functionName == FLOOR_FUNC_NAME) {
         return bindFloorFunctionExpression(parsedExpression);
     } else if (functionName == CEIL_FUNC_NAME) {
         return bindCeilFunctionExpression(parsedExpression);
-    } else if (functionName == INTERVAL_FUNC_NAME) {
-        return bindIntervalFunctionExpression(parsedExpression);
-    } else if (functionName == LIST_CREATION_FUNC_NAME) {
-        return bindListCreationFunction(parsedExpression);
+    } else {
+        expression_vector children;
+        for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+            children.push_back(bindExpression(*parsedExpression.getChild(i)));
+        }
+        if (BuiltInFunctionsBinder::canApplyStaticEvaluation(functionName, children)) {
+            return bindSpecialFunctions(functionName, parsedExpression, children);
+        }
+        auto [execFunc, resultType] =
+            BuiltInFunctionsBinder::bindExecFunction(functionName, children);
+        return make_shared<ScalarFunctionExpression>(
+            FUNCTION, resultType, move(children), move(execFunc));
     }
-    throw invalid_argument(functionName + " function does not exist.");
+}
+
+shared_ptr<Expression> ExpressionBinder::bindSpecialFunctions(const string& functionName,
+    const ParsedExpression& parsedExpression, const expression_vector& children) {
+    if (functionName == CAST_TO_DATE_FUNCTION_NAME) {
+        return castStringToTemporalLiteral<date_t>(
+            children[0], LITERAL_DATE, DATE, Date::FromCString);
+    } else if (functionName == CAST_TO_TIMESTAMP_FUNCTION_NAME) {
+        return castStringToTemporalLiteral<timestamp_t>(
+            children[0], LITERAL_TIMESTAMP, TIMESTAMP, Timestamp::FromCString);
+    } else if (functionName == CAST_TO_INTERVAL_FUNCTION_NAME) {
+        return castStringToTemporalLiteral<interval_t>(
+            children[0], LITERAL_INTERVAL, INTERVAL, Interval::FromCString);
+    } else if (functionName == ID_FUNC_NAME) {
+        return bindIDFunctionExpression(parsedExpression);
+    }
+    assert(false);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindFloorFunctionExpression(
@@ -376,55 +396,6 @@ shared_ptr<Expression> ExpressionBinder::bindIDFunctionExpression(
         NODE_ID, INTERNAL_ID_SUFFIX, UINT32_MAX /* property key for internal id */, move(child));
 }
 
-shared_ptr<Expression> ExpressionBinder::bindDateFunctionExpression(
-    const ParsedExpression& parsedExpression) {
-    return bindStringCastingFunctionExpression<date_t>(
-        parsedExpression, CAST_STRING_TO_DATE, LITERAL_DATE, DATE, Date::FromCString);
-}
-
-shared_ptr<Expression> ExpressionBinder::bindTimestampFunctionExpression(
-    const ParsedExpression& parsedExpression) {
-    return bindStringCastingFunctionExpression<timestamp_t>(parsedExpression,
-        CAST_STRING_TO_TIMESTAMP, LITERAL_TIMESTAMP, TIMESTAMP, Timestamp::FromCString);
-}
-
-shared_ptr<Expression> ExpressionBinder::bindIntervalFunctionExpression(
-    const ParsedExpression& parsedExpression) {
-    return bindStringCastingFunctionExpression<interval_t>(parsedExpression,
-        CAST_STRING_TO_INTERVAL, LITERAL_INTERVAL, INTERVAL, Interval::FromCString);
-}
-
-shared_ptr<Expression> ExpressionBinder::bindListCreationFunction(
-    const ParsedExpression& parsedExpression) {
-    expression_vector children;
-    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        children.push_back(bindExpression(*parsedExpression.getChild(i)));
-    }
-    if (!children.empty()) {
-        auto expectedChildDataType = children[0]->dataType;
-        for (auto& child : children) {
-            validateExpectedDataType(*child, unordered_set<DataType>{expectedChildDataType});
-        }
-    }
-    return make_shared<Expression>(LIST_CREATION, LIST, move(children));
-}
-
-template<typename T>
-shared_ptr<Expression> ExpressionBinder::bindStringCastingFunctionExpression(
-    const ParsedExpression& parsedExpression, ExpressionType castExpressionType,
-    ExpressionType literalExpressionType, DataType resultDataType,
-    std::function<T(const char*, uint64_t)> castFunction) {
-    validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.getChild(0));
-    validateStringOrUnstructured(*child);
-    if (child->expressionType == LITERAL_STRING) {
-        auto literalVal = static_pointer_cast<LiteralExpression>(child)->literal.strVal;
-        auto literal = Literal(castFunction(literalVal.c_str(), literalVal.length()));
-        return make_shared<LiteralExpression>(literalExpressionType, resultDataType, literal);
-    }
-    return make_shared<FunctionExpression>(castExpressionType, resultDataType, move(child));
-}
-
 shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     const ParsedExpression& parsedExpression) {
     auto& literalExpression = (ParsedLiteralExpression&)parsedExpression;
@@ -470,20 +441,32 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
 }
 
 shared_ptr<Expression> ExpressionBinder::castUnstructuredToBool(shared_ptr<Expression> expression) {
-    assert(expression->dataType == UNSTRUCTURED);
-    return make_shared<Expression>(CAST_UNSTRUCTURED_TO_BOOL_VALUE, BOOL, move(expression));
+    auto children = expression_vector{move(expression)};
+    auto execFunc = VectorCastOperations::bindCastUnstructuredToBoolExecFunction(children);
+    return make_shared<ScalarFunctionExpression>(FUNCTION, BOOL, move(children), move(execFunc));
 }
 
-shared_ptr<Expression> ExpressionBinder::castExpressionToString(shared_ptr<Expression> expression) {
+shared_ptr<Expression> ExpressionBinder::castStructuredToString(shared_ptr<Expression> expression) {
     if (isExpressionLiteral(expression->expressionType)) {
         static_pointer_cast<LiteralExpression>(expression)->castToString();
         return expression;
     }
-    return make_shared<Expression>(CAST_TO_STRING, STRING, move(expression));
+    auto children = expression_vector{move(expression)};
+    auto execFunc = VectorCastOperations::bindCastStructuredToStringExecFunction(children);
+    return make_shared<ScalarFunctionExpression>(FUNCTION, STRING, move(children), move(execFunc));
 }
 
 shared_ptr<Expression> ExpressionBinder::castToUnstructured(shared_ptr<Expression> expression) {
     return make_shared<Expression>(CAST_TO_UNSTRUCTURED_VALUE, UNSTRUCTURED, move(expression));
+}
+
+template<typename T>
+shared_ptr<Expression> ExpressionBinder::castStringToTemporalLiteral(
+    shared_ptr<Expression> expression, ExpressionType expressionType, DataType resultDataType,
+    std::function<T(const char*, uint64_t)> castFunction) {
+    auto literalVal = static_pointer_cast<LiteralExpression>(expression)->literal.strVal;
+    auto literal = Literal(castFunction(literalVal.c_str(), literalVal.length()));
+    return make_shared<LiteralExpression>(expressionType, resultDataType, literal);
 }
 
 void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {

@@ -5,8 +5,10 @@
 #include "src/common/types/include/types_include.h"
 #include "src/common/types/include/value.h"
 
+using namespace graphflow::common;
+
 namespace graphflow {
-namespace common {
+namespace function {
 namespace operation {
 
 struct CastToUnstructured {
@@ -92,5 +94,5 @@ struct CastStringToInterval {
 };
 
 } // namespace operation
-} // namespace common
+} // namespace function
 } // namespace graphflow

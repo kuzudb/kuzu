@@ -65,6 +65,7 @@ cc_test(
         "//src/common:data_chunk",
         "//src/common:vector_operations",
         "//src/function/boolean:vector_boolean_operations",
+        "//src/function/cast:vector_cast_operations",
         "//src/function/comparison:vector_comparison_operations",
         "//src/function/string:vector_string_operations",
         "//test/common:vector_operations_test_helper",

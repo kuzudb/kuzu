@@ -42,13 +42,11 @@ cc_library(
     name = "vector_operations",
     srcs = [
         "vector/operations/vector_arithmetic_operations.cpp",
-        "vector/operations/vector_cast_operations.cpp",
     ],
     hdrs = [
         "include/vector/operations/executors/binary_operation_executor.h",
         "include/vector/operations/executors/unary_operation_executor.h",
         "include/vector/operations/vector_arithmetic_operations.h",
-        "include/vector/operations/vector_cast_operations.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -63,7 +61,6 @@ cc_library(
     srcs = [],
     hdrs = [
         "include/operations/arithmetic_operations.h",
-        "include/operations/cast_operations.h",
         "include/operations/hash_operations.h",
     ],
     visibility = ["//visibility:public"],

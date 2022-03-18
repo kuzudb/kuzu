@@ -1,11 +1,12 @@
-#include "src/common/include/vector/operations/vector_cast_operations.h"
+#include "include/vector_cast_operations.h"
 
-#include "src/common/include/operations/cast_operations.h"
+#include "operations/include/cast_operations.h"
+
 #include "src/common/include/vector/operations/executors/unary_operation_executor.h"
 #include "src/common/types/include/value.h"
 
 namespace graphflow {
-namespace common {
+namespace function {
 
 void VectorCastOperations::castStructuredToUnstructuredValue(
     ValueVector& operand, ValueVector& result) {
@@ -54,7 +55,10 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
     }
 }
 
-void VectorCastOperations::castStructuredToString(ValueVector& operand, ValueVector& result) {
+void VectorCastOperations::castStructuredToString(
+    const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
+    assert(params.size() == 1);
+    auto& operand = *params[0];
     assert((operand.dataType == INT64 || operand.dataType == DOUBLE || operand.dataType == BOOL ||
                operand.dataType == DATE || operand.dataType == TIMESTAMP ||
                operand.dataType == INTERVAL) &&
@@ -132,29 +136,5 @@ void VectorCastOperations::castStructuredToString(ValueVector& operand, ValueVec
     }
 }
 
-void VectorCastOperations::castUnstructuredToBoolValue(ValueVector& operand, ValueVector& result) {
-    assert(operand.dataType == UNSTRUCTURED && result.dataType == BOOL);
-    UnaryOperationExecutor::execute<Value, uint8_t, operation::CastUnstructuredToBool>(
-        operand, result);
-}
-
-void VectorCastOperations::castStringToDate(ValueVector& operand, ValueVector& result) {
-    assert(operand.dataType == STRING && result.dataType == INTERVAL);
-    UnaryOperationExecutor::execute<gf_string_t, date_t, operation::CastStringToDate>(
-        operand, result);
-}
-
-void VectorCastOperations::castStringToTimestamp(ValueVector& operand, ValueVector& result) {
-    assert(operand.dataType == STRING && result.dataType == INTERVAL);
-    UnaryOperationExecutor::execute<gf_string_t, timestamp_t, operation::CastStringToTimestamp>(
-        operand, result);
-}
-
-void VectorCastOperations::castStringToInterval(ValueVector& operand, ValueVector& result) {
-    assert(operand.dataType == STRING && result.dataType == INTERVAL);
-    UnaryOperationExecutor::execute<gf_string_t, interval_t, operation::CastStringToInterval>(
-        operand, result);
-}
-
-} // namespace common
+} // namespace function
 } // namespace graphflow
