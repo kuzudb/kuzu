@@ -12,7 +12,7 @@ namespace processor {
 static bool useFunctionEvaluator(ExpressionType expressionType) {
     return isExpressionListFunction(expressionType) || isExpressionBoolConnection(expressionType) ||
            isExpressionComparison(expressionType) || isExpressionStringOperator(expressionType) ||
-           isExpressionNullOperator(expressionType);
+           isExpressionNullOperator(expressionType) || expressionType == FUNCTION;
 }
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(

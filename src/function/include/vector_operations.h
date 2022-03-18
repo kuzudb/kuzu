@@ -45,6 +45,12 @@ protected:
         assert(params.size() == 1);
         return UnaryOperationExecutor::select<OPERAND_TYPE, FUNC>(*params[0], selectedPositions);
     }
+
+    static void validateNumParameters(
+        const string& functionName, uint64_t inputNumParams, uint64_t expectedNumParams);
+
+    static void validateParameterType(
+        const string& functionName, DataType inputType, DataType expectedType);
 };
 
 } // namespace function

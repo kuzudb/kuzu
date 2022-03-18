@@ -1,7 +1,9 @@
 #include "include/operator_evaluator.h"
 
 #include "src/common/include/vector/operations/vector_arithmetic_operations.h"
-#include "src/common/include/vector/operations/vector_cast_operations.h"
+#include "src/function/cast/include/vector_cast_operations.h"
+
+using namespace graphflow::function;
 
 namespace graphflow {
 namespace evaluator {
@@ -23,23 +25,8 @@ void UnaryOperatorExpressionEvaluator::getExecOperation() {
     case NEGATE: {
         execOperation = VectorArithmeticOperations::Negate;
     } break;
-    case CAST_TO_STRING: {
-        execOperation = VectorCastOperations::castStructuredToString;
-    } break;
     case CAST_TO_UNSTRUCTURED_VALUE: {
         execOperation = VectorCastOperations::castStructuredToUnstructuredValue;
-    } break;
-    case CAST_UNSTRUCTURED_TO_BOOL_VALUE: {
-        execOperation = VectorCastOperations::castUnstructuredToBoolValue;
-    } break;
-    case CAST_STRING_TO_DATE: {
-        execOperation = VectorCastOperations::castStringToDate;
-    } break;
-    case CAST_STRING_TO_TIMESTAMP: {
-        execOperation = VectorCastOperations::castStringToTimestamp;
-    } break;
-    case CAST_STRING_TO_INTERVAL: {
-        execOperation = VectorCastOperations::castStringToInterval;
     } break;
     case ABS_FUNC: {
         execOperation = VectorArithmeticOperations::Abs;

@@ -146,13 +146,13 @@ TEST_F(BinderErrorTest, BindNonExistingFunction) {
 }
 
 TEST_F(BinderErrorTest, BindFunctionWithWrongNumParams) {
-    string expectedException = "Expected 1 parameters for date function but get 0.";
+    string expectedException = "Expected 1 parameters for DATE function but get 0.";
     auto input = "MATCH (a:person) WHERE date() < 2 RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, BindFunctionWithWrongParamType) {
-    string expectedException = "2012 has data type INT64. UNSTRUCTURED, STRING was expected.";
+    string expectedException = "Expected STRING type input for DATE function but get INT64.";
     auto input = "MATCH (a:person) WHERE date(2012) < 2 RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

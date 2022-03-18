@@ -20,11 +20,11 @@ const string AVG_FUNC_NAME = "AVG";
 const string MIN_FUNC_NAME = "MIN";
 const string MAX_FUNC_NAME = "MAX";
 const string ID_FUNC_NAME = "ID";
-const string DATE_FUNC_NAME = "DATE";
-const string TIMESTAMP_FUNC_NAME = "TIMESTAMP";
 const string FLOOR_FUNC_NAME = "FLOOR";
 const string CEIL_FUNC_NAME = "CEIL";
-const string INTERVAL_FUNC_NAME = "INTERVAL";
+const string CAST_TO_DATE_FUNCTION_NAME = "DATE";
+const string CAST_TO_TIMESTAMP_FUNCTION_NAME = "TIMESTAMP";
+const string CAST_TO_INTERVAL_FUNCTION_NAME = "INTERVAL";
 const string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
 const string LIST_EXTRACT_FUNC_NAME = "LIST_EXTRACT";
 
@@ -70,7 +70,6 @@ enum ExpressionType : uint8_t {
     /**
      * List Operator Expressions works only for CSV Line
      */
-    LIST_CREATION = 45,
     LIST_EXTRACT = 46,
 
     /**
@@ -104,12 +103,7 @@ enum ExpressionType : uint8_t {
     /**
      * Cast Expressions
      **/
-    CAST_TO_STRING = 100,
     CAST_TO_UNSTRUCTURED_VALUE = 101,
-    CAST_UNSTRUCTURED_TO_BOOL_VALUE = 102,
-    CAST_STRING_TO_DATE = 103,
-    CAST_STRING_TO_TIMESTAMP = 104,
-    CAST_STRING_TO_INTERVAL = 105,
     FUNCTION = 110,
 
     /**

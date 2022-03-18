@@ -42,7 +42,8 @@ private:
     shared_ptr<Expression> bindPropertyExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
-
+    shared_ptr<Expression> bindSpecialFunctions(const string& functionName,
+        const ParsedExpression& parsedExpression, const expression_vector& children);
     shared_ptr<Expression> bindAbsFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindFloorFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindCeilFunctionExpression(const ParsedExpression& parsedExpression);
@@ -53,11 +54,6 @@ private:
     shared_ptr<Expression> bindSumMinMaxFunctionExpression(
         const ParsedExpression& parsedExpression, ExpressionType expressionType);
     shared_ptr<Expression> bindIDFunctionExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindDateFunctionExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindTimestampFunctionExpression(
-        const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindIntervalFunctionExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindListCreationFunction(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindLiteralExpression(const ParsedExpression& parsedExpression);
 
@@ -69,9 +65,14 @@ private:
     /****** cast *****/
     static shared_ptr<Expression> castUnstructuredToBool(shared_ptr<Expression> expression);
 
-    static shared_ptr<Expression> castExpressionToString(shared_ptr<Expression> expression);
+    static shared_ptr<Expression> castStructuredToString(shared_ptr<Expression> expression);
 
     static shared_ptr<Expression> castToUnstructured(shared_ptr<Expression> expression);
+
+    template<typename T>
+    static shared_ptr<Expression> castStringToTemporalLiteral(shared_ptr<Expression> expression,
+        ExpressionType expressionType, DataType resultType,
+        std::function<T(const char*, uint64_t)> castFunction);
 
     /****** validation *****/
 
@@ -92,9 +93,6 @@ private:
     static void validateNumericOrUnstructured(const Expression& expression) {
         validateExpectedDataType(expression, unordered_set<DataType>{INT64, DOUBLE, UNSTRUCTURED});
     }
-    static void validateStringOrUnstructured(const Expression& expression) {
-        validateExpectedDataType(expression, unordered_set<DataType>{STRING, UNSTRUCTURED});
-    }
 
     static void validateExpectedBinaryOperation(const Expression& left, const Expression& right,
         ExpressionType type, const unordered_set<ExpressionType>& expectedTypes);
@@ -105,12 +103,6 @@ private:
     static void validateExistsSubqueryHasNoAggregationOrOrderBy(const Expression& expression);
 
 private:
-    template<typename T>
-    shared_ptr<Expression> bindStringCastingFunctionExpression(
-        const ParsedExpression& parsedExpression, ExpressionType castType,
-        ExpressionType literalExpressionType, DataType resultDataType,
-        std::function<T(const char*, uint64_t)> castFunction);
-
     QueryBinder* queryBinder;
 };
 

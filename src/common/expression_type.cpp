@@ -7,9 +7,8 @@ namespace common {
 
 bool isExpressionUnary(ExpressionType type) {
     return NOT == type || NEGATE == type || IS_NULL == type || IS_NOT_NULL == type ||
-           CAST_TO_STRING == type || CAST_TO_UNSTRUCTURED_VALUE == type ||
-           CAST_UNSTRUCTURED_TO_BOOL_VALUE == type || CAST_STRING_TO_INTERVAL == type ||
-           ABS_FUNC == type || FLOOR_FUNC == type || CEIL_FUNC == type;
+           CAST_TO_UNSTRUCTURED_VALUE == type || ABS_FUNC == type || FLOOR_FUNC == type ||
+           CEIL_FUNC == type;
 }
 
 bool isExpressionBinary(ExpressionType type) {
@@ -56,7 +55,7 @@ bool isExpressionSubquery(ExpressionType type) {
 }
 
 bool isExpressionListFunction(ExpressionType type) {
-    return LIST_CREATION == type || LIST_EXTRACT == type;
+    return LIST_EXTRACT == type;
 }
 
 string expressionTypeToString(ExpressionType type) {
@@ -127,14 +126,8 @@ string expressionTypeToString(ExpressionType type) {
         return "LITERAL_NULL";
     case VARIABLE:
         return "VARIABLE";
-    case CAST_TO_STRING:
-        return "CAST_TO_STRING";
     case CAST_TO_UNSTRUCTURED_VALUE:
         return "CAST_TO_UNSTRUCTURED_VALUE";
-    case CAST_UNSTRUCTURED_TO_BOOL_VALUE:
-        return "CAST_UNSTRUCTURED_TO_BOOL_VALUE";
-    case CAST_STRING_TO_INTERVAL:
-        return "CAST_STRING_TO_INTERVAL";
     case ABS_FUNC:
         return ABS_FUNC_NAME;
     case FLOOR_FUNC:
@@ -153,8 +146,6 @@ string expressionTypeToString(ExpressionType type) {
         return MIN_FUNC_NAME;
     case MAX_FUNC:
         return MAX_FUNC_NAME;
-    case LIST_CREATION:
-        return LIST_CREATION_FUNC_NAME;
     case LIST_EXTRACT:
         return LIST_EXTRACT_FUNC_NAME;
     default:
