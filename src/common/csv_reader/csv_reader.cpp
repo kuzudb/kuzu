@@ -1,7 +1,7 @@
 #include "src/common/include/csv_reader/csv_reader.h"
 
 #include "src/common/include/configs.h"
-#include "src/common/types/include/type_utils.h"
+#include "src/common/include/type_utils.h"
 
 namespace graphflow {
 namespace common {
@@ -219,7 +219,7 @@ Literal CSVReader::getList(DataType childDataType) {
             } break;
             default:
                 throw invalid_argument("Unsupported data type " +
-                                       TypeUtils::dataTypeToString(childDataType) + " inside LIST");
+                                       Types::dataTypeToString(childDataType) + " inside LIST");
             }
         }
     }

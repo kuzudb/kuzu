@@ -36,8 +36,6 @@ public:
 
     Value& operator=(const Value& other);
 
-    string toString() const;
-
 public:
     union Val {
         constexpr Val() : booleanVal{false} {}

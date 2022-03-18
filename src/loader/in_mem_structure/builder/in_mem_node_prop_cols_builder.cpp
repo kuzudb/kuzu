@@ -20,10 +20,10 @@ void InMemNodePropertyColumnsBuilder::buildInMemPropertyColumns() {
     for (auto& property : description.properties) {
         auto fName = NodesStore::getNodePropertyColumnFName(
             outputDirectory, description.label, property.name);
-        auto numPages = calcNumPagesInColumn(TypeUtils::getDataTypeSize(property.dataType),
+        auto numPages = calcNumPagesInColumn(Types::getDataTypeSize(property.dataType),
             graph.getNumNodesPerLabel()[description.label]);
         propertyColumns[property.id] = make_unique<InMemPropertyPages>(
-            fName, TypeUtils::getDataTypeSize(property.dataType), numPages);
+            fName, Types::getDataTypeSize(property.dataType), numPages);
         if (STRING == property.dataType || LIST == property.dataType) {
             propertyColumnOverflowPages[property.id] =
                 make_unique<InMemOverflowPages>(OverflowPages::getOverflowPagesFName(fName));
@@ -34,7 +34,7 @@ void InMemNodePropertyColumnsBuilder::buildInMemPropertyColumns() {
 
 void InMemNodePropertyColumnsBuilder::setProperty(node_offset_t nodeOffset,
     const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
-    auto cursor = calcPageElementCursor(TypeUtils::getDataTypeSize(type), nodeOffset);
+    auto cursor = calcPageElementCursor(Types::getDataTypeSize(type), nodeOffset);
     propertyColumns[propertyIdx]->set(cursor, val);
 }
 

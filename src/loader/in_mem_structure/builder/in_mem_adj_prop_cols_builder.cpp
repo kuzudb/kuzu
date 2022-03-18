@@ -2,6 +2,8 @@
 
 #include "spdlog/sinks/stdout_sinks.h"
 
+#include "src/common/include/type_utils.h"
+
 namespace graphflow {
 namespace loader {
 
@@ -30,7 +32,7 @@ void InMemAdjAndPropertyColumnsBuilder::setRel(
 
 void InMemAdjAndPropertyColumnsBuilder::setProperty(
     const nodeID_t& nodeID, const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
-    auto cursor = calcPageElementCursor(TypeUtils::getDataTypeSize(type), nodeID.offset);
+    auto cursor = calcPageElementCursor(Types::getDataTypeSize(type), nodeID.offset);
     labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->set(cursor, val);
 }
 
@@ -149,11 +151,11 @@ void InMemAdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction dire
         for (auto& property : description.properties) {
             auto fName = RelsStore::getRelPropertyColumnFName(
                 outputDirectory, description.label, nodeLabel, property.name);
-            auto numPages = calcNumPagesInColumn(TypeUtils::getDataTypeSize(property.dataType),
-                graph.getNumNodesPerLabel()[nodeLabel]);
+            auto numPages = calcNumPagesInColumn(
+                Types::getDataTypeSize(property.dataType), graph.getNumNodesPerLabel()[nodeLabel]);
             labelPropertyIdxPropertyColumn[nodeLabel][property.id] =
                 make_unique<InMemPropertyPages>(
-                    fName, TypeUtils::getDataTypeSize(property.dataType), numPages);
+                    fName, Types::getDataTypeSize(property.dataType), numPages);
             if (STRING == property.dataType || LIST == property.dataType) {
                 labelPropertyIdxOverflowPages[nodeLabel][property.id] =
                     make_unique<InMemOverflowPages>(OverflowPages::getOverflowPagesFName(fName));
@@ -197,7 +199,7 @@ void InMemAdjAndPropertyColumnsBuilder::sortOverflowStringsOfPropertyColumnTask(
     unorderedStringOverflowCursor.offset = 0;
     for (; offsetStart < offsetEnd; offsetStart++) {
         auto propertyListCursor =
-            calcPageElementCursor(TypeUtils::getDataTypeSize(STRING), offsetStart);
+            calcPageElementCursor(Types::getDataTypeSize(STRING), offsetStart);
         auto valPtr =
             reinterpret_cast<gf_string_t*>(propertyColumn->getPtrToMemLoc(propertyListCursor));
         auto len = ((uint32_t*)valPtr)[0];

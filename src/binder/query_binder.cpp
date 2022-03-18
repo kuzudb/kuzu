@@ -1,7 +1,7 @@
 #include "src/binder/include/query_binder.h"
 
 #include "src/binder/expression/include/literal_expression.h"
-#include "src/common/types/include/type_utils.h"
+#include "src/common/include/type_utils.h"
 
 namespace graphflow {
 namespace binder {
@@ -198,7 +198,7 @@ shared_ptr<Expression> QueryBinder::bindWhereExpression(const ParsedExpression& 
     auto whereExpression = expressionBinder.bindExpression(parsedExpression);
     if (BOOL != whereExpression->dataType) {
         throw invalid_argument("Type mismatch: " + whereExpression->getRawName() + " returns " +
-                               TypeUtils::dataTypeToString(whereExpression->dataType) +
+                               Types::dataTypeToString(whereExpression->dataType) +
                                " expected Boolean.");
     }
     return whereExpression;
@@ -227,7 +227,7 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
         auto prevVariable = variablesInScope.at(parsedName);
         if (REL != prevVariable->dataType) {
             throw invalid_argument(parsedName + " defined with conflicting type " +
-                                   TypeUtils::dataTypeToString(prevVariable->dataType) +
+                                   Types::dataTypeToString(prevVariable->dataType) +
                                    " (expect RELATIONSHIP).");
         } else {
             // Bind to queryRel in scope requires QueryRel takes multiple src & dst nodes
@@ -272,7 +272,7 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
         auto prevVariable = variablesInScope.at(parsedName);
         if (NODE != prevVariable->dataType) {
             throw invalid_argument(parsedName + " defined with conflicting type " +
-                                   TypeUtils::dataTypeToString(prevVariable->dataType) +
+                                   Types::dataTypeToString(prevVariable->dataType) +
                                    " (expect NODE).");
         }
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);

@@ -3,6 +3,7 @@
 #include "operations/include/cast_operations.h"
 
 #include "src/common/include/vector/operations/executors/unary_operation_executor.h"
+#include "src/common/include/vector/value_vector_utils.h"
 #include "src/common/types/include/value.h"
 
 namespace graphflow {
@@ -42,12 +43,14 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
             assert(pos == result.state->getPositionOfCurrIdx());
-            result.addGFStringToUnstructuredVector(pos, ((gf_string_t*)operand.values)[pos]);
+            ValueVectorUtils::addGFStringToUnstructuredVector(
+                result, pos, ((gf_string_t*)operand.values)[pos]);
             outValues[pos].dataType = STRING;
         } else {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
-                result.addGFStringToUnstructuredVector(pos, ((gf_string_t*)operand.values)[pos]);
+                ValueVectorUtils::addGFStringToUnstructuredVector(
+                    result, pos, ((gf_string_t*)operand.values)[pos]);
                 outValues[pos].dataType = STRING;
             }
         }

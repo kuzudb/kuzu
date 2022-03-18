@@ -29,6 +29,8 @@ public:
             inputNodeIDVectorPos, outputVectorPos, nodeIDColumn, children[0]->clone(), context, id);
     }
 
+    static bool discardNullNodesInVector(ValueVector& valueVector);
+
 private:
     Column* nodeIDColumn;
 };

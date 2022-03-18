@@ -2,6 +2,7 @@
 #include "test/common/include/vector/operations/vector_operations_test_helper.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
+#include "src/common/include/type_utils.h"
 #include "src/common/include/vector/operations/executors/binary_operation_executor.h"
 #include "src/common/include/vector/operations/executors/unary_operation_executor.h"
 #include "src/common/types/include/value.h"
@@ -327,8 +328,7 @@ TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredStringAndI
     // Fill values before the comparison.
     for (int i = 0; i < NUM_TUPLES; i++) {
         string lStr = to_string(i);
-        lVector->allocateStringOverflowSpaceIfNecessary(lData[i].val.strVal, lStr.length());
-        lData[i].val.strVal.set(lStr);
+        TypeUtils::copyString(lStr, lData[i].val.strVal, *lVector->overflowBuffer);
         lData[i].dataType = STRING;
         rData[i] = Value((int64_t)110 - i);
     }

@@ -2,6 +2,7 @@
 
 #include <functional>
 
+#include "src/common/include/type_utils.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/common/types/include/value.h"
 
@@ -19,10 +20,13 @@ struct BinaryOperationExecutor {
         RESULT_TYPE& resultVal, ValueVector& lVec, ValueVector& rVec, ValueVector& resultVec) {
         assert((is_same<RESULT_TYPE, Value>::value) || (is_same<RESULT_TYPE, gf_string_t>::value));
         if constexpr ((is_same<RESULT_TYPE, Value>::value)) {
-            resultVec.allocateStringOverflowSpaceIfNecessary(
-                resultVal.val.strVal, lValue.toString().length() + rValue.toString().length());
+            auto lStr = TypeUtils::toString(lValue);
+            auto rStr = TypeUtils::toString(rValue);
+            TypeUtils::allocateSpaceForStringIfNecessary(
+                resultVal.val.strVal, lStr.length() + rStr.length(), *resultVec.overflowBuffer);
         } else {
-            resultVec.allocateStringOverflowSpaceIfNecessary(resultVal, lValue.len + rValue.len);
+            TypeUtils::allocateSpaceForStringIfNecessary(
+                resultVal, lValue.len + rValue.len, *resultVec.overflowBuffer);
         }
     }
 

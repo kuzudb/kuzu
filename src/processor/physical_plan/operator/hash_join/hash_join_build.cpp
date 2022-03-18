@@ -30,7 +30,7 @@ shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
     keyDataChunk = resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
     auto keyVector = keyDataChunk->valueVectors[buildDataInfo.getKeyIDVectorPos()];
     tableSchema.appendColumn({false /* isUnflat */, buildDataInfo.getKeyIDDataChunkPos(),
-        TypeUtils::getDataTypeSize(keyVector->dataType)});
+        Types::getDataTypeSize(keyVector->dataType)});
     vectorsToAppend.push_back(keyVector);
     for (auto i = 0u; i < buildDataInfo.nonKeyDataPoses.size(); ++i) {
         auto dataChunkPos = buildDataInfo.nonKeyDataPoses[i].dataChunkPos;
@@ -39,15 +39,14 @@ shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
         auto vector = dataChunk->valueVectors[vectorPos];
         auto isVectorFlat = buildDataInfo.isNonKeyDataFlat[i];
         tableSchema.appendColumn({!isVectorFlat, dataChunkPos,
-            isVectorFlat ? TypeUtils::getDataTypeSize(vector->dataType) :
-                           sizeof(overflow_value_t)});
+            isVectorFlat ? Types::getDataTypeSize(vector->dataType) : sizeof(overflow_value_t)});
         vectorsToAppend.push_back(vector);
         sharedState->appendNonKeyDataPosesDataTypes(vector->dataType);
     }
     // The prev pointer column.
     tableSchema.appendColumn(
         {false /* isUnflat */, UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */,
-            TypeUtils::getDataTypeSize(INT64)});
+            Types::getDataTypeSize(INT64)});
     factorizedTable = make_unique<FactorizedTable>(context.memoryManager, tableSchema);
     sharedState->initEmptyHashTableIfNecessary(*context.memoryManager, tableSchema);
     return resultSet;

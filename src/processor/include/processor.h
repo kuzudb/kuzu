@@ -20,10 +20,8 @@ public:
     shared_ptr<FactorizedTable> execute(PhysicalPlan* physicalPlan, uint64_t numThreads);
 
 private:
-    void run();
     void decomposePlanIntoTasks(
         PhysicalOperator* op, PhysicalOperator* parent, Task* parentTask, uint64_t numThreads);
-    void scheduleTaskAndWaitUntilExecution(const shared_ptr<Task>& task);
 
 private:
     unique_ptr<TaskScheduler> taskScheduler;

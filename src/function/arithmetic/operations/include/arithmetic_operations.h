@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdlib>
 
+#include "src/common/include/type_utils.h"
 #include "src/common/types/include/value.h"
 #include "src/function/string/operations/include/concat_operation.h"
 
@@ -151,7 +152,7 @@ struct ArithmeticOnValues {
             } break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `INT64` and `" +
-                                       TypeUtils::dataTypeToString(right.dataType) + "`");
+                                       Types::dataTypeToString(right.dataType) + "`");
             }
             break;
         case DOUBLE:
@@ -168,13 +169,13 @@ struct ArithmeticOnValues {
             } break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
-                                       TypeUtils::dataTypeToString(right.dataType) + "`");
+                                       Types::dataTypeToString(right.dataType) + "`");
             }
             break;
         default:
             throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
-                                   TypeUtils::dataTypeToString(left.dataType) + "` and `" +
-                                   TypeUtils::dataTypeToString(right.dataType) + "`");
+                                   Types::dataTypeToString(left.dataType) + "` and `" +
+                                   Types::dataTypeToString(right.dataType) + "`");
         }
     }
 
@@ -192,7 +193,7 @@ struct ArithmeticOnValues {
         } break;
         default:
             throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
-                                   TypeUtils::dataTypeToString(input.dataType) + "`");
+                                   Types::dataTypeToString(input.dataType) + "`");
         }
     }
 };
@@ -220,8 +221,8 @@ inline void Add::operation(
             // This is the case when one of the left or right unstructured Value needs to be cast
             // to string. Because we don't have access to overflow buffers, we need to treat them
             // as regular strings.
-            auto lVal = left.toString();
-            auto rVal = right.toString();
+            auto lVal = TypeUtils::toString(left);
+            auto rVal = TypeUtils::toString(right);
             Concat::operation(lVal, rVal, result.val.strVal, isLeftNull, isRightNull);
         }
         return;

@@ -20,11 +20,11 @@ void VectorOperations::validateParameterType(const string& functionName, Express
         vector<DataType> expectedTypesVec{expectedTypes.begin(), expectedTypes.end()};
         auto numExpectedTypes = expectedTypes.size();
         for (auto i = 0u; i < numExpectedTypes - 1; ++i) {
-            expectedTypesStr += TypeUtils::dataTypeToString(expectedTypesVec[i]) + ", ";
+            expectedTypesStr += Types::dataTypeToString(expectedTypesVec[i]) + ", ";
         }
-        expectedTypesStr += TypeUtils::dataTypeToString(expectedTypesVec[numExpectedTypes - 1]);
+        expectedTypesStr += Types::dataTypeToString(expectedTypesVec[numExpectedTypes - 1]);
         throw invalid_argument(parameter.getRawName() + " has data type " +
-                               TypeUtils::dataTypeToString(dataType) + ". " + expectedTypesStr +
+                               Types::dataTypeToString(dataType) + ". " + expectedTypesStr +
                                " was expected.");
     }
 }

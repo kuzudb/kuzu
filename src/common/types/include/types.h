@@ -43,6 +43,15 @@ enum DataType : uint8_t {
 const string DataTypeNames[] = {"INVALID", "REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE",
     "STRING", "NODE_ID", "UNSTRUCTURED", "DATE", "TIMESTAMP", "INTERVAL", "LIST"};
 
+class Types {
+
+public:
+    static size_t getDataTypeSize(DataType dataType);
+    static DataType getDataType(const std::string& dataTypeString);
+    static string dataTypeToString(DataType dataType);
+    static bool isNumericalType(DataType dataType);
+};
+
 // Direction
 enum Direction : uint8_t { FWD = 0, BWD = 1 };
 

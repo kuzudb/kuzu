@@ -215,9 +215,9 @@ vector<PropertyDefinition> GraphLoader::parseCSVFileHeader(string& header, char 
                 colHeaderDefinition.dataType = LIST;
                 auto childDataTypeStr =
                     colHeaderComponents[1].substr(0, colHeaderComponents[1].length() - 2);
-                colHeaderDefinition.childDataType = TypeUtils::getDataType(childDataTypeStr);
+                colHeaderDefinition.childDataType = Types::getDataType(childDataTypeStr);
             } else {
-                colHeaderDefinition.dataType = TypeUtils::getDataType(colHeaderComponents[1]);
+                colHeaderDefinition.dataType = Types::getDataType(colHeaderComponents[1]);
             }
             if (colHeaderDefinition.dataType == NODE || colHeaderDefinition.dataType == LABEL) {
                 throw invalid_argument(

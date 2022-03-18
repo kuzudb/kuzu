@@ -61,10 +61,9 @@ scalar_select_func VectorStringOperations::bindBinarySelectFunction(
 void VectorStringOperations::validate(
     ExpressionType expressionType, DataType leftType, DataType rightType) {
     if (leftType != STRING || rightType != STRING) {
-        throw invalid_argument(expressionTypeToString(expressionType) +
-                               " is defined on (STRING, STRING) but get (" +
-                               TypeUtils::dataTypeToString(leftType) + ", " +
-                               TypeUtils::dataTypeToString(rightType) + ").");
+        throw invalid_argument(
+            expressionTypeToString(expressionType) + " is defined on (STRING, STRING) but get (" +
+            Types::dataTypeToString(leftType) + ", " + Types::dataTypeToString(rightType) + ").");
     }
 }
 

@@ -4,7 +4,7 @@
 #include <unordered_map>
 
 #include "src/common/include/memory_manager.h"
-#include "src/common/include/vector/overflow_buffer.h"
+#include "src/common/include/overflow_buffer.h"
 #include "src/processor/include/physical_plan/result/flat_tuple.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
 
@@ -74,7 +74,7 @@ class TableSchema {
 public:
     TableSchema() = default;
 
-    explicit TableSchema(vector<ColumnSchema> columns);
+    explicit TableSchema(const vector<ColumnSchema>& columns);
 
     void appendColumn(const ColumnSchema& column);
 

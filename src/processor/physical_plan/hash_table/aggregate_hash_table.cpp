@@ -18,11 +18,11 @@ AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
     auto dataChunkPos = 0u;
     tableSchema.appendColumn({isUnflat, dataChunkPos, sizeof(hash_t)});
     for (auto& dataType : this->groupByHashKeysDataTypes) {
-        tableSchema.appendColumn({isUnflat, dataChunkPos, TypeUtils::getDataTypeSize(dataType)});
+        tableSchema.appendColumn({isUnflat, dataChunkPos, Types::getDataTypeSize(dataType)});
         hasStrCol = hasStrCol || dataType == STRING;
     }
     for (auto& dataType : this->groupByNonHashKeysDataTypes) {
-        tableSchema.appendColumn({isUnflat, dataChunkPos, TypeUtils::getDataTypeSize(dataType)});
+        tableSchema.appendColumn({isUnflat, dataChunkPos, Types::getDataTypeSize(dataType)});
         hasStrCol = hasStrCol || dataType == STRING;
     }
     for (auto& aggregateFunction : aggregateFunctions) {
@@ -190,7 +190,7 @@ uint8_t* AggregateHashTable::createEntry(uint8_t* groupByKeys, hash_t hash) {
 uint64_t AggregateHashTable::getNumBytesForGroupByHashKeys() const {
     auto result = 0u;
     for (auto& dataType : groupByHashKeysDataTypes) {
-        result += TypeUtils::getDataTypeSize(dataType);
+        result += Types::getDataTypeSize(dataType);
     }
     return result;
 }
@@ -198,7 +198,7 @@ uint64_t AggregateHashTable::getNumBytesForGroupByHashKeys() const {
 uint64_t AggregateHashTable::getNumBytesForGroupByNonHashKeys() const {
     auto result = 0u;
     for (auto& dataType : groupByNonHashKeysDataTypes) {
-        result += TypeUtils::getDataTypeSize(dataType);
+        result += Types::getDataTypeSize(dataType);
     }
     return result;
 }

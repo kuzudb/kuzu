@@ -97,7 +97,7 @@ public:
         case DATE:
         case TIMESTAMP:
         case INTERVAL:
-            return make_unique<Column>(fName, dataType, TypeUtils::getDataTypeSize(dataType),
+            return make_unique<Column>(fName, dataType, Types::getDataTypeSize(dataType),
                 numElements, bufferManager, isInMemory);
         case STRING:
             return make_unique<StringPropertyColumn>(fName, numElements, bufferManager, isInMemory);
