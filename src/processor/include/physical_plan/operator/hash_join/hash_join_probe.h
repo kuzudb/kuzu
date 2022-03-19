@@ -5,8 +5,6 @@
 #include "src/processor/include/physical_plan/result/result_set.h"
 
 using namespace std;
-using namespace graphflow::common;
-using namespace graphflow::common::operation;
 
 namespace graphflow {
 namespace processor {

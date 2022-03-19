@@ -7,8 +7,7 @@ cc_library(
         "include/*.h",
     ]),
     visibility = [
-        "//src/function/arithmetic/operations:__pkg__",
-        "//src/function/string:__pkg__",
+        "//src/function:__subpackages__",
     ],
     deps = [
         "//src/common/types",

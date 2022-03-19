@@ -1,9 +1,9 @@
 #include "src/processor/include/physical_plan/hash_table/aggregate_hash_table.h"
 
-#include "src/common/include/operations/hash_operations.h"
 #include "src/common/include/utils.h"
+#include "src/function/hash/operations/include/hash_operations.h"
 
-using namespace graphflow::common::operation;
+using namespace graphflow::function::operation;
 
 namespace graphflow {
 namespace processor {

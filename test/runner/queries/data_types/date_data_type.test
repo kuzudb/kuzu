@@ -226,7 +226,7 @@
 1468
 
 -NAME StructuredDateConcatenateString
--QUERY MATCH (a:person) RETURN 'Birthdate: ' + a.birthdate + ' test'
+-QUERY MATCH (a:person) RETURN 'Birthdate: ' + string(a.birthdate) + ' test'
 ---- 8
 Birthdate: 1900-01-01 test
 Birthdate: 1900-01-01 test

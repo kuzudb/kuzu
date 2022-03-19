@@ -3,9 +3,8 @@
 #include "gtest/gtest.h"
 #include "test/common/include/vector/operations/vector_operations_test_helper.h"
 
-#include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/vector/operations/executors/unary_operation_executor.h"
 #include "src/function/boolean/include/boolean_operation_executor.h"
+#include "src/function/include/unary_operation_executor.h"
 
 using namespace graphflow::common;
 using namespace graphflow::function;

@@ -25,9 +25,7 @@ private:
 
     shared_ptr<Expression> bindComparisonExpression(const ParsedExpression& parsedExpression);
 
-    shared_ptr<Expression> bindBinaryArithmeticExpression(const ParsedExpression& parsedExpression);
-
-    shared_ptr<Expression> bindUnaryArithmeticExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindArithmeticExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindStringOperatorExpression(const ParsedExpression& parsedExpression);
 
@@ -56,9 +54,9 @@ private:
     /****** cast *****/
     static shared_ptr<Expression> castUnstructuredToBool(shared_ptr<Expression> expression);
 
-    static shared_ptr<Expression> castStructuredToString(shared_ptr<Expression> expression);
-
-    static shared_ptr<Expression> castToUnstructured(shared_ptr<Expression> expression);
+    // For overload functions (e.g. arithmetic and comparison), if any parameter is UNSTRUCTURED, we
+    // cast all parameters as UNSTRUCTURED.
+    static expression_vector castToUnstructuredIfNecessary(const expression_vector& parameters);
 
     template<typename T>
     static shared_ptr<Expression> castStringToTemporalLiteral(shared_ptr<Expression> expression,

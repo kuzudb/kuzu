@@ -7,7 +7,7 @@
 #include "src/common/types/include/value.h"
 
 namespace graphflow {
-namespace common {
+namespace function {
 
 /**
  * Binary operator assumes operation with null returns null. This does NOT applies to binary boolean
@@ -353,5 +353,5 @@ struct BinaryOperationExecutor {
     }
 };
 
-} // namespace common
+} // namespace function
 } // namespace graphflow

@@ -35,6 +35,12 @@ public:
             UnaryExecFunction<gf_string_t, interval_t, operation::CastStringToInterval>, INTERVAL);
     }
 
+    static pair<scalar_exec_func, DataType> bindCastStructuredToStringExecFunction(
+        const expression_vector& children) {
+        validateNumParameters(CAST_TO_STRING_FUNCTION_NAME, children.size(), 1);
+        return make_pair(castStructuredToString, STRING);
+    }
+
     static scalar_exec_func bindCastUnstructuredToBoolExecFunction(
         const expression_vector& children) {
         // no need to validate internal function. assert instead.
@@ -43,18 +49,12 @@ public:
         return UnaryExecFunction<Value, uint8_t, operation::CastUnstructuredToBool>;
     }
 
-    static scalar_exec_func bindCastStructuredToStringExecFunction(
-        const expression_vector& children) {
-        // no need to validate internal function. assert instead.
-        assert(children.size() == 1);
-        return castStructuredToString;
-    }
-
     // result contains preallocated Value objects with the structured operand's dataType.
     static void castStructuredToUnstructuredValue(
         const vector<shared_ptr<ValueVector>>& params, ValueVector& result);
 
     // result contains preallocated gf_string_t objects.
+    // TODO: make this operation also works for unstructured input
     static void castStructuredToString(
         const vector<shared_ptr<ValueVector>>& params, ValueVector& result);
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/common/include/vector/operations/executors/unary_operation_executor.h"
+#include "src/function/include/unary_operation_executor.h"
 
 namespace graphflow {
 namespace function {

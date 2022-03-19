@@ -1,8 +1,9 @@
 #pragma once
 
+#include "binary_operation_executor.h"
+#include "unary_operation_executor.h"
+
 #include "src/binder/expression/include/expression.h"
-#include "src/common/include/vector/operations/executors/binary_operation_executor.h"
-#include "src/common/include/vector/operations/executors/unary_operation_executor.h"
 
 using namespace graphflow::common;
 using namespace graphflow::binder;

@@ -2,9 +2,10 @@
 
 #include <cstring>
 
-#include "src/common/include/operations/hash_operations.h"
+#include "src/function/hash/operations/include/hash_operations.h"
 
 using namespace std;
+using namespace graphflow::function::operation;
 
 namespace graphflow {
 namespace storage {
@@ -287,7 +288,7 @@ hash_t HashIndex::hashFunc(uint8_t* key) {
     hash_t hash;
     switch (indexHeader.keyDataType) {
     case INT64:
-        operation::Hash::operation(*(int64_t*)(key), false /*isNULL*/, hash);
+        Hash::operation(*(int64_t*)(key), false /*isNULL*/, hash);
         break;
     case STRING:
         hash = std::hash<string>{}(reinterpret_cast<const char*>(key));

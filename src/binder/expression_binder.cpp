@@ -33,9 +33,7 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
     } else if (isExpressionComparison(expressionType)) {
         expression = bindComparisonExpression(parsedExpression);
     } else if (isExpressionArithmetic(expressionType)) {
-        expression = isExpressionUnary(expressionType) ?
-                         bindUnaryArithmeticExpression(parsedExpression) :
-                         bindBinaryArithmeticExpression(parsedExpression);
+        expression = bindArithmeticExpression(parsedExpression);
     } else if (isExpressionStringOperator(expressionType)) {
         expression = bindStringOperatorExpression(parsedExpression);
     } else if (isExpressionNullOperator(expressionType)) {
@@ -86,17 +84,11 @@ shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
 shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     const ParsedExpression& parsedExpression) {
     assert(parsedExpression.getNumChildren() == 2);
-    auto left = bindExpression(*parsedExpression.getChild(0));
-    auto right = bindExpression(*parsedExpression.getChild(1));
-    if (left->dataType == UNSTRUCTURED && right->dataType != UNSTRUCTURED) {
-        right = castToUnstructured(move(right));
-    }
-    if (left->dataType != UNSTRUCTURED && right->dataType == UNSTRUCTURED) {
-        left = castToUnstructured(move(left));
-    }
     expression_vector children;
-    children.push_back(move(left));
-    children.push_back(move(right));
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        children.push_back(bindExpression(*parsedExpression.getChild(i)));
+    }
+    children = castToUnstructuredIfNecessary(children);
     auto expressionType = parsedExpression.getExpressionType();
     auto execFunc = VectorComparisonOperations::bindExecFunction(expressionType, children);
     auto selectFunc = VectorComparisonOperations::bindSelectFunction(expressionType, children);
@@ -104,40 +96,13 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         expressionType, BOOL, move(children), move(execFunc), move(selectFunc));
 }
 
-shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
+shared_ptr<Expression> ExpressionBinder::bindArithmeticExpression(
     const ParsedExpression& parsedExpression) {
-    auto left = bindExpression(*parsedExpression.getChild(0));
-    auto right = bindExpression(*parsedExpression.getChild(1));
-    if (left->dataType == UNSTRUCTURED && right->dataType != UNSTRUCTURED) {
-        right = castToUnstructured(move(right));
-    }
-    if (left->dataType != UNSTRUCTURED && right->dataType == UNSTRUCTURED) {
-        left = castToUnstructured(move(left));
-    }
-    // TODO: remove implicit structured type casting and replace with explicit casting. Once this
-    // refactoring is done merge bind unary/binary arithmetic expression.
-    if (left->dataType == STRING || right->dataType == STRING) {
-        if (left->dataType != STRING) {
-            left = castStructuredToString(move(left));
-        }
-        if (right->dataType != STRING) {
-            right = castStructuredToString(move(right));
-        }
-    }
     expression_vector children;
-    children.push_back(left);
-    children.push_back(right);
-    auto [execFunc, resultType] = VectorArithmeticOperations::bindExecFunction(
-        parsedExpression.getExpressionType(), children);
-    return make_shared<ScalarFunctionExpression>(
-        parsedExpression.getExpressionType(), resultType, move(children), move(execFunc));
-}
-
-shared_ptr<Expression> ExpressionBinder::bindUnaryArithmeticExpression(
-    const ParsedExpression& parsedExpression) {
-    auto child = bindExpression(*parsedExpression.getChild(0));
-    expression_vector children;
-    children.push_back(child);
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        children.push_back(bindExpression(*parsedExpression.getChild(i)));
+    }
+    children = castToUnstructuredIfNecessary(children);
     auto [execFunc, resultType] = VectorArithmeticOperations::bindExecFunction(
         parsedExpression.getExpressionType(), children);
     return make_shared<ScalarFunctionExpression>(
@@ -346,20 +311,29 @@ shared_ptr<Expression> ExpressionBinder::castUnstructuredToBool(shared_ptr<Expre
     return make_shared<ScalarFunctionExpression>(FUNCTION, BOOL, move(children), move(execFunc));
 }
 
-shared_ptr<Expression> ExpressionBinder::castStructuredToString(shared_ptr<Expression> expression) {
-    if (isExpressionLiteral(expression->expressionType)) {
-        static_pointer_cast<LiteralExpression>(expression)->castToString();
-        return expression;
+expression_vector ExpressionBinder::castToUnstructuredIfNecessary(
+    const expression_vector& parameters) {
+    auto castToUnstructured = false;
+    for (auto& parameter : parameters) {
+        if (parameter->dataType == UNSTRUCTURED) {
+            castToUnstructured = true;
+        }
     }
-    auto children = expression_vector{move(expression)};
-    auto execFunc = VectorCastOperations::bindCastStructuredToStringExecFunction(children);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, STRING, move(children), move(execFunc));
-}
-
-shared_ptr<Expression> ExpressionBinder::castToUnstructured(shared_ptr<Expression> expression) {
-    expression_vector children{move(expression)};
-    return make_shared<ScalarFunctionExpression>(FUNCTION, UNSTRUCTURED, move(children),
-        VectorCastOperations::castStructuredToUnstructuredValue);
+    if (!castToUnstructured) {
+        return parameters;
+    } else {
+        expression_vector result;
+        for (auto& parameter : parameters) {
+            if (parameter->dataType == UNSTRUCTURED) {
+                result.push_back(parameter);
+            } else {
+                result.push_back(make_shared<ScalarFunctionExpression>(FUNCTION, UNSTRUCTURED,
+                    expression_vector{parameter},
+                    VectorCastOperations::castStructuredToUnstructuredValue));
+            }
+        }
+        return result;
+    }
 }
 
 template<typename T>

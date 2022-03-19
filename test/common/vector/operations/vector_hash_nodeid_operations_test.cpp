@@ -1,10 +1,11 @@
 #include "gtest/gtest.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/operations/hash_operations.h"
-#include "src/common/include/vector/operations/executors/unary_operation_executor.h"
+#include "src/function/hash/operations/include/hash_operations.h"
+#include "src/function/include/unary_operation_executor.h"
 
 using namespace graphflow::common;
+using namespace graphflow::function;
 using namespace std;
 
 TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {

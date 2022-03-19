@@ -11,7 +11,6 @@ cc_library(
         "//test/common:__pkg__",
     ],
     deps = [
-        "//src/binder/expression:base_expression",
         "//src/function",
         "//src/function/boolean/operations:boolean_operations",
     ],

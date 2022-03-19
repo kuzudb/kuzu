@@ -140,7 +140,7 @@
 24 years -66 days 27:05:40
 
 -NAME StructuredIntervalConcatenateString
--QUERY MATCH (o:organisation) RETURN 'The license is valid until ' + o.licenseValidInterval + ' test'
+-QUERY MATCH (o:organisation) RETURN 'The license is valid until ' + string(o.licenseValidInterval) + ' test'
 ---- 3
 The license is valid until 26 years 52 days 48:00:00 test
 The license is valid until 3 years 5 days test
