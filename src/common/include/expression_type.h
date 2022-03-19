@@ -12,21 +12,25 @@ namespace common {
  * Function name is a temporary identifier used for binder because grammar does not parse built in
  * functions. After binding, expression type should replace function name and used as identifier.
  */
-const string ABS_FUNC_NAME = "ABS";
 const string COUNT_STAR_FUNC_NAME = "COUNT_STAR";
 const string COUNT_FUNC_NAME = "COUNT";
 const string SUM_FUNC_NAME = "SUM";
 const string AVG_FUNC_NAME = "AVG";
 const string MIN_FUNC_NAME = "MIN";
 const string MAX_FUNC_NAME = "MAX";
-const string ID_FUNC_NAME = "ID";
-const string FLOOR_FUNC_NAME = "FLOOR";
-const string CEIL_FUNC_NAME = "CEIL";
+
 const string CAST_TO_DATE_FUNCTION_NAME = "DATE";
 const string CAST_TO_TIMESTAMP_FUNCTION_NAME = "TIMESTAMP";
 const string CAST_TO_INTERVAL_FUNCTION_NAME = "INTERVAL";
+
 const string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
 const string LIST_EXTRACT_FUNC_NAME = "LIST_EXTRACT";
+
+const string ID_FUNC_NAME = "ID";
+
+const string ABS_FUNC_NAME = "ABS";
+const string FLOOR_FUNC_NAME = "FLOOR";
+const string CEIL_FUNC_NAME = "CEIL";
 
 enum ExpressionType : uint8_t {
 
@@ -65,7 +69,6 @@ enum ExpressionType : uint8_t {
     STARTS_WITH = 40,
     ENDS_WITH = 41,
     CONTAINS = 42,
-    STRING_CONCAT = 43,
 
     /**
      * List Operator Expressions works only for CSV Line
@@ -103,15 +106,7 @@ enum ExpressionType : uint8_t {
     /**
      * Cast Expressions
      **/
-    CAST_TO_UNSTRUCTURED_VALUE = 101,
     FUNCTION = 110,
-
-    /**
-     * Arithmetic Function Expression
-     **/
-    ABS_FUNC = 111,
-    FLOOR_FUNC = 112,
-    CEIL_FUNC = 113,
 
     /**
      * Aggregation Function Expression
@@ -136,7 +131,6 @@ bool isExpressionNullOperator(ExpressionType type);
 bool isExpressionLiteral(ExpressionType type);
 bool isExpressionAggregate(ExpressionType type);
 bool isExpressionSubquery(ExpressionType type);
-bool isExpressionListFunction(ExpressionType type);
 
 string expressionTypeToString(ExpressionType type);
 

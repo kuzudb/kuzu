@@ -3,7 +3,7 @@
 #include "src/function/comparison/operations/include/comparison_operations.h"
 #include "src/function/include/aggregate/aggregate_function.h"
 
-using namespace graphflow::common::operation;
+using namespace graphflow::function::operation;
 
 namespace graphflow {
 namespace function {

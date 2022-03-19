@@ -1,23 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 cc_test(
-    name = "expression_mapper_tests",
-    srcs = [
-        "physical_plan/expression_mapper_test.cpp",
-    ],
-    copts = [
-        "-Iexternal/gtest/include",
-    ],
-    deps = [
-        "//src/processor",
-        "//src/processor:mapper",
-        "//test/mock:mock_objects",
-        "@gtest",
-        "@gtest//:gtest_main",
-    ],
-)
-
-cc_test(
     name = "frontier_tests",
     srcs = [
         "physical_plan/operator/frontier/frontier_test.cpp",

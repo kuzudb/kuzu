@@ -23,13 +23,19 @@ enum BuiltInFunctionIndices : uint8_t {
 
     // id function
     INTERNAL_ID = 100,
+
+    // arithmetic functions
+    ABS = 150,
+    FLOOR = 151,
+    CEIL = 152,
 };
 
 static const unordered_map<string, BuiltInFunctionIndices> functionNameToIndicesMap{
     {CAST_TO_DATE_FUNCTION_NAME, CAST_STRING_TO_DATE},
     {CAST_TO_TIMESTAMP_FUNCTION_NAME, CAST_STRING_TO_TIMESTAMP},
     {CAST_TO_INTERVAL_FUNCTION_NAME, CAST_STRING_TO_INTERVAL},
-    {LIST_CREATION_FUNC_NAME, LIST_CREATION}, {ID_FUNC_NAME, INTERNAL_ID}};
+    {LIST_CREATION_FUNC_NAME, LIST_CREATION}, {ID_FUNC_NAME, INTERNAL_ID}, {ABS_FUNC_NAME, ABS},
+    {FLOOR_FUNC_NAME, FLOOR}, {CEIL_FUNC_NAME, CEIL}};
 
 class BuiltInFunctionsBinder {
 

@@ -15,7 +15,7 @@ public:
         if (!children.empty()) {
             auto expectedDataType = children[0]->dataType;
             for (auto& child : children) {
-                validateParameterType(LIST_CREATION_FUNC_NAME, child->dataType, expectedDataType);
+                validateParameterType(LIST_CREATION_FUNC_NAME, *child, expectedDataType);
             }
         }
         return make_pair(ListCreation, LIST);

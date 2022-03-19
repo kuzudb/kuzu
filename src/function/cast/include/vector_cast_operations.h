@@ -14,14 +14,14 @@ public:
     static pair<scalar_exec_func, DataType> bindCastStringToDateExecFunction(
         const expression_vector& children) {
         validateNumParameters(CAST_TO_DATE_FUNCTION_NAME, children.size(), 1);
-        validateParameterType(CAST_TO_DATE_FUNCTION_NAME, children[0]->dataType, STRING);
+        validateParameterType(CAST_TO_DATE_FUNCTION_NAME, *children[0], STRING);
         return make_pair(UnaryExecFunction<gf_string_t, date_t, operation::CastStringToDate>, DATE);
     }
 
     static pair<scalar_exec_func, DataType> bindCastStringToTimestampExecFunction(
         const expression_vector& children) {
         validateNumParameters(CAST_TO_TIMESTAMP_FUNCTION_NAME, children.size(), 1);
-        validateParameterType(CAST_TO_TIMESTAMP_FUNCTION_NAME, children[0]->dataType, STRING);
+        validateParameterType(CAST_TO_TIMESTAMP_FUNCTION_NAME, *children[0], STRING);
         return make_pair(
             UnaryExecFunction<gf_string_t, timestamp_t, operation::CastStringToTimestamp>,
             TIMESTAMP);
@@ -30,7 +30,7 @@ public:
     static pair<scalar_exec_func, DataType> bindCastStringToIntervalExecFunction(
         const expression_vector& children) {
         validateNumParameters(CAST_TO_INTERVAL_FUNCTION_NAME, children.size(), 1);
-        validateParameterType(CAST_TO_INTERVAL_FUNCTION_NAME, children[0]->dataType, STRING);
+        validateParameterType(CAST_TO_INTERVAL_FUNCTION_NAME, *children[0], STRING);
         return make_pair(
             UnaryExecFunction<gf_string_t, interval_t, operation::CastStringToInterval>, INTERVAL);
     }
@@ -51,7 +51,8 @@ public:
     }
 
     // result contains preallocated Value objects with the structured operand's dataType.
-    static void castStructuredToUnstructuredValue(ValueVector& operand, ValueVector& result);
+    static void castStructuredToUnstructuredValue(
+        const vector<shared_ptr<ValueVector>>& params, ValueVector& result);
 
     // result contains preallocated gf_string_t objects.
     static void castStructuredToString(

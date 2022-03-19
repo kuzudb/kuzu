@@ -9,7 +9,9 @@ namespace graphflow {
 namespace function {
 
 void VectorCastOperations::castStructuredToUnstructuredValue(
-    ValueVector& operand, ValueVector& result) {
+    const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
+    assert(params.size() == 1);
+    auto& operand = *params[0];
     switch (operand.dataType) {
     case BOOL: {
         UnaryOperationExecutor::execute<uint8_t, Value, operation::CastToUnstructured>(

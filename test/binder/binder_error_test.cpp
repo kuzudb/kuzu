@@ -114,7 +114,8 @@ TEST_F(BinderErrorTest, BindPropertyNotExist) {
 }
 
 TEST_F(BinderErrorTest, BindIDArithmetic) {
-    string expectedException = "id(a) has data type NODE_ID. DOUBLE, INT64 was expected.";
+    string expectedException =
+        "id(a) has data type NODE_ID. UNSTRUCTURED, DOUBLE, INT64 was expected.";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -152,7 +153,7 @@ TEST_F(BinderErrorTest, BindFunctionWithWrongNumParams) {
 }
 
 TEST_F(BinderErrorTest, BindFunctionWithWrongParamType) {
-    string expectedException = "Expected STRING type input for DATE function but get INT64.";
+    string expectedException = "2012 has data type INT64. STRING was expected.";
     auto input = "MATCH (a:person) WHERE date(2012) < 2 RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

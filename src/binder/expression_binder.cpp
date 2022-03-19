@@ -6,6 +6,7 @@
 #include "src/binder/expression/include/rel_expression.h"
 #include "src/binder/include/query_binder.h"
 #include "src/common/types/include/type_utils.h"
+#include "src/function/arithmetic/include/vector_arithmetic_operations.h"
 #include "src/function/boolean/include/vector_boolean_operations.h"
 #include "src/function/cast/include/vector_cast_operations.h"
 #include "src/function/comparison/include/vector_comparison_operations.h"
@@ -105,113 +106,42 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindBinaryArithmeticExpression(
     const ParsedExpression& parsedExpression) {
-    validateNoNullLiteralChildren(parsedExpression);
     auto left = bindExpression(*parsedExpression.getChild(0));
     auto right = bindExpression(*parsedExpression.getChild(1));
-    if (left->dataType == UNSTRUCTURED || right->dataType == UNSTRUCTURED) {
-        return make_shared<Expression>(
-            parsedExpression.getExpressionType(), UNSTRUCTURED, move(left), move(right));
-    } else if (left->dataType == STRING || right->dataType == STRING) {
-        validateExpectedBinaryOperation(*left, *right, parsedExpression.getExpressionType(),
-            unordered_set<ExpressionType>{ADD});
+    if (left->dataType == UNSTRUCTURED && right->dataType != UNSTRUCTURED) {
+        right = castToUnstructured(move(right));
+    }
+    if (left->dataType != UNSTRUCTURED && right->dataType == UNSTRUCTURED) {
+        left = castToUnstructured(move(left));
+    }
+    // TODO: remove implicit structured type casting and replace with explicit casting. Once this
+    // refactoring is done merge bind unary/binary arithmetic expression.
+    if (left->dataType == STRING || right->dataType == STRING) {
         if (left->dataType != STRING) {
             left = castStructuredToString(move(left));
         }
         if (right->dataType != STRING) {
             right = castStructuredToString(move(right));
         }
-        expression_vector children;
-        children.push_back(left);
-        children.push_back(right);
-        auto execFunc = VectorStringOperations::bindExecFunction(STRING_CONCAT, children);
-        return make_shared<ScalarFunctionExpression>(
-            STRING_CONCAT, STRING, move(children), move(execFunc));
-    } else if (left->dataType == DATE || right->dataType == DATE) {
-        return bindBinaryDateArithmeticExpression(
-            parsedExpression.getExpressionType(), move(left), move(right));
-    } else if (left->dataType == TIMESTAMP || right->dataType == TIMESTAMP) {
-        return bindBinaryTimestampArithmeticExpression(
-            parsedExpression.getExpressionType(), move(left), move(right));
-    } else if (left->dataType == INTERVAL || right->dataType == INTERVAL) {
-        return bindBinaryIntervalArithmeticExpression(
-            parsedExpression.getExpressionType(), move(left), move(right));
     }
-    validateNumeric(*left);
-    validateNumeric(*right);
-    DataType resultType = left->dataType == DOUBLE || right->dataType == DOUBLE ? DOUBLE : INT64;
-    return make_shared<Expression>(
-        parsedExpression.getExpressionType(), resultType, move(left), move(right));
-}
-
-shared_ptr<Expression> ExpressionBinder::bindBinaryDateArithmeticExpression(
-    ExpressionType expressionType, shared_ptr<Expression> left, shared_ptr<Expression> right) {
-    if (left->dataType != DATE) {
-        return bindBinaryDateArithmeticExpression(expressionType, move(right), move(left));
-    }
-    validateExpectedBinaryOperation(
-        *left, *right, expressionType, unordered_set<ExpressionType>{ADD, SUBTRACT});
-    if (expressionType == ADD) {
-        // date + int → date
-        // date + interval → date
-        validateExpectedDataType(*right, unordered_set<DataType>{INT64, INTERVAL});
-        return make_shared<Expression>(expressionType, DATE, move(left), move(right));
-    } else if (expressionType == SUBTRACT) {
-        // date - date → integer
-        // date - integer → date
-        // date - interval → date
-        validateExpectedDataType(*right, unordered_set<DataType>{INT64, INTERVAL, DATE});
-        auto resultType = right->dataType == DATE ? INT64 : DATE;
-        return make_shared<Expression>(expressionType, resultType, move(left), move(right));
-    }
-    assert(false);
-}
-
-shared_ptr<Expression> ExpressionBinder::bindBinaryTimestampArithmeticExpression(
-    ExpressionType expressionType, shared_ptr<Expression> left, shared_ptr<Expression> right) {
-    if (left->dataType != TIMESTAMP) {
-        return bindBinaryTimestampArithmeticExpression(expressionType, move(right), move(left));
-    }
-    validateExpectedBinaryOperation(
-        *left, *right, expressionType, unordered_set<ExpressionType>{ADD, SUBTRACT});
-    if (expressionType == ADD) {
-        // timestamp + interval → timestamp
-        validateExpectedDataType(*right, unordered_set<DataType>{INTERVAL});
-        return make_shared<Expression>(expressionType, TIMESTAMP, move(left), move(right));
-    } else if (expressionType == SUBTRACT) {
-        // timestamp - interval → timestamp
-        // timestamp - timestamp → interval
-        validateExpectedDataType(*right, unordered_set<DataType>{INTERVAL, TIMESTAMP});
-        auto resultType = right->dataType == INTERVAL ? TIMESTAMP : INTERVAL;
-        return make_shared<Expression>(expressionType, resultType, move(left), move(right));
-    }
-    assert(false);
-}
-
-shared_ptr<Expression> ExpressionBinder::bindBinaryIntervalArithmeticExpression(
-    ExpressionType expressionType, shared_ptr<Expression> left, shared_ptr<Expression> right) {
-    if (left->dataType != INTERVAL) {
-        return bindBinaryIntervalArithmeticExpression(expressionType, move(right), move(left));
-    }
-    validateExpectedBinaryOperation(
-        *left, *right, expressionType, unordered_set<ExpressionType>{ADD, SUBTRACT, DIVIDE});
-    if (expressionType == ADD || expressionType == SUBTRACT) {
-        // interval +/- interval → interval
-        validateExpectedDataType(*right, unordered_set<DataType>{INTERVAL});
-        return make_shared<Expression>(expressionType, INTERVAL, move(left), move(right));
-    } else if (expressionType == DIVIDE) {
-        // interval / int → interval
-        validateExpectedDataType(*right, unordered_set<DataType>{INT64});
-        return make_shared<Expression>(expressionType, INTERVAL, move(left), move(right));
-    }
-    assert(false);
+    expression_vector children;
+    children.push_back(left);
+    children.push_back(right);
+    auto [execFunc, resultType] = VectorArithmeticOperations::bindExecFunction(
+        parsedExpression.getExpressionType(), children);
+    return make_shared<ScalarFunctionExpression>(
+        parsedExpression.getExpressionType(), resultType, move(children), move(execFunc));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindUnaryArithmeticExpression(
     const ParsedExpression& parsedExpression) {
     auto child = bindExpression(*parsedExpression.getChild(0));
-    validateNumericOrUnstructured(*child);
-    return make_shared<Expression>(
-        parsedExpression.getExpressionType(), child->dataType, move(child));
+    expression_vector children;
+    children.push_back(child);
+    auto [execFunc, resultType] = VectorArithmeticOperations::bindExecFunction(
+        parsedExpression.getExpressionType(), children);
+    return make_shared<ScalarFunctionExpression>(
+        parsedExpression.getExpressionType(), resultType, move(children), move(execFunc));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindStringOperatorExpression(
@@ -278,9 +208,7 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
     auto functionName = parsedFunctionExpression.getFunctionName();
     StringUtils::toUpper(functionName);
-    if (functionName == ABS_FUNC_NAME) {
-        return bindAbsFunctionExpression(parsedExpression);
-    } else if (functionName == COUNT_STAR_FUNC_NAME) {
+    if (functionName == COUNT_STAR_FUNC_NAME) {
         return bindCountStarFunctionExpression(parsedExpression);
     } else if (functionName == COUNT_FUNC_NAME) {
         return bindCountFunctionExpression(parsedExpression);
@@ -292,10 +220,6 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
         return bindSumMinMaxFunctionExpression(parsedExpression, MIN_FUNC);
     } else if (functionName == MAX_FUNC_NAME) {
         return bindSumMinMaxFunctionExpression(parsedExpression, MAX_FUNC);
-    } else if (functionName == FLOOR_FUNC_NAME) {
-        return bindFloorFunctionExpression(parsedExpression);
-    } else if (functionName == CEIL_FUNC_NAME) {
-        return bindCeilFunctionExpression(parsedExpression);
     } else {
         expression_vector children;
         for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
@@ -326,30 +250,6 @@ shared_ptr<Expression> ExpressionBinder::bindSpecialFunctions(const string& func
         return bindIDFunctionExpression(parsedExpression);
     }
     assert(false);
-}
-
-shared_ptr<Expression> ExpressionBinder::bindFloorFunctionExpression(
-    const ParsedExpression& parsedExpression) {
-    validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.getChild(0));
-    validateNumericOrUnstructured(*child);
-    return make_shared<FunctionExpression>(FLOOR_FUNC, child->dataType, move(child));
-}
-
-shared_ptr<Expression> ExpressionBinder::bindCeilFunctionExpression(
-    const ParsedExpression& parsedExpression) {
-    validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.getChild(0));
-    validateNumericOrUnstructured(*child);
-    return make_shared<FunctionExpression>(CEIL_FUNC, child->dataType, move(child));
-}
-
-shared_ptr<Expression> ExpressionBinder::bindAbsFunctionExpression(
-    const ParsedExpression& parsedExpression) {
-    validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.getChild(0));
-    validateNumericOrUnstructured(*child);
-    return make_shared<FunctionExpression>(ABS_FUNC, child->dataType, move(child));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindCountStarFunctionExpression(
@@ -457,7 +357,9 @@ shared_ptr<Expression> ExpressionBinder::castStructuredToString(shared_ptr<Expre
 }
 
 shared_ptr<Expression> ExpressionBinder::castToUnstructured(shared_ptr<Expression> expression) {
-    return make_shared<Expression>(CAST_TO_UNSTRUCTURED_VALUE, UNSTRUCTURED, move(expression));
+    expression_vector children{move(expression)};
+    return make_shared<ScalarFunctionExpression>(FUNCTION, UNSTRUCTURED, move(children),
+        VectorCastOperations::castStructuredToUnstructuredValue);
 }
 
 template<typename T>
@@ -504,16 +406,6 @@ void ExpressionBinder::validateExpectedDataType(
         throw invalid_argument(expression.getRawName() + " has data type " +
                                TypeUtils::dataTypeToString(dataType) + ". " + expectedTypesStr +
                                " was expected.");
-    }
-}
-
-void ExpressionBinder::validateExpectedBinaryOperation(const Expression& left,
-    const Expression& right, ExpressionType type,
-    const unordered_set<ExpressionType>& expectedTypes) {
-    if (!expectedTypes.contains(type)) {
-        throw invalid_argument("Operation " + expressionTypeToString(type) + " between " +
-                               left.getRawName() + " and " + right.getRawName() +
-                               " is not supported.");
     }
 }
 

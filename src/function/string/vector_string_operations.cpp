@@ -26,7 +26,7 @@ scalar_exec_func VectorStringOperations::bindBinaryExecFunction(
     auto rightType = children[1]->dataType;
     validate(expressionType, leftType, rightType);
     switch (expressionType) {
-    case STRING_CONCAT: {
+    case ADD: {
         return BinaryExecFunction<gf_string_t, gf_string_t, gf_string_t, operation::Concat>;
     }
     case CONTAINS: {
