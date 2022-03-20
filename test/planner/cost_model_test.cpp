@@ -9,8 +9,8 @@ TEST_F(CostModelTest, OneHopSingleFilter) {
     auto query = "MATCH (a:person)-[:knows]->(b:person) WHERE a.age = 1 RETURN COUNT(*)";
     auto plan = getBestPlan(query);
     auto op1 = plan->getLastOperator()->getChild(0)->getChild(0)->getChild(0)->getChild(0).get();
-    ASSERT_EQ(LOGICAL_EXTEND, op1->getLogicalOperatorType());
-    ASSERT_TRUE(containSubstr(((LogicalExtend*)op1)->nbrNodeID, "_b." + INTERNAL_ID_SUFFIX));
+    ASSERT_EQ(LOGICAL_FIXED_LENGTH_EXTEND, op1->getLogicalOperatorType());
+    ASSERT_TRUE(containSubstr(((LogicalExtend*)op1)->getNbrNodeID(), "_b." + INTERNAL_ID_SUFFIX));
     auto op2 = op1->getChild(0)->getChild(0)->getChild(0)->getChild(0).get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op2->getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalScanNodeID*)op2)->nodeID, "_a." + INTERNAL_ID_SUFFIX));
@@ -28,8 +28,8 @@ TEST_F(CostModelTest, OneHopMultiFilters) {
                    ->getChild(0)
                    ->getChild(0)
                    .get();
-    ASSERT_EQ(LOGICAL_EXTEND, op1->getLogicalOperatorType());
-    ASSERT_TRUE(containSubstr(((LogicalExtend*)op1)->nbrNodeID, "_b." + INTERNAL_ID_SUFFIX));
+    ASSERT_EQ(LOGICAL_FIXED_LENGTH_EXTEND, op1->getLogicalOperatorType());
+    ASSERT_TRUE(containSubstr(((LogicalExtend*)op1)->getNbrNodeID(), "_b." + INTERNAL_ID_SUFFIX));
     auto op2 = op1->getChild(0)->getChild(0)->getChild(0)->getChild(0)->getChild(0).get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op2->getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalScanNodeID*)op2)->nodeID, "_a." + INTERNAL_ID_SUFFIX));
@@ -96,7 +96,7 @@ TEST_F(PlannerTest, OrderByTest2) {
     auto op3 = op2->getChild(0).get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op3->getLogicalOperatorType());
     auto op4 = op3->getChild(0).get();
-    ASSERT_EQ(LOGICAL_EXTEND, op4->getLogicalOperatorType());
+    ASSERT_EQ(LOGICAL_FIXED_LENGTH_EXTEND, op4->getLogicalOperatorType());
 }
 
 TEST_F(PlannerTest, OrderByTest3) {

@@ -53,11 +53,11 @@ unordered_set<uint32_t> Schema::getGroupsPosInScope() const {
     return result;
 }
 
-void Schema::addLogicalExtend(const string& queryRel, LogicalExtend* extend) {
+void Schema::addLogicalExtend(const string& queryRel, LogicalFixedLengthExtend* extend) {
     queryRelLogicalExtendMap.insert({queryRel, extend});
 }
 
-LogicalExtend* Schema::getExistingLogicalExtend(const string& queryRel) {
+LogicalFixedLengthExtend* Schema::getExistingLogicalExtend(const string& queryRel) {
     assert(queryRelLogicalExtendMap.contains(queryRel));
     return queryRelLogicalExtendMap.at(queryRel);
 }

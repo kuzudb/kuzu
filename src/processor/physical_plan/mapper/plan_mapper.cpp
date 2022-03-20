@@ -7,8 +7,8 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_fixed_length_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
@@ -23,6 +23,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_rel_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_skip.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_union.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_var_length_extend.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate_scan.h"
@@ -42,7 +43,6 @@
 #include "src/processor/include/physical_plan/operator/order_by/order_by_scan.h"
 #include "src/processor/include/physical_plan/operator/projection.h"
 #include "src/processor/include/physical_plan/operator/read_list/adj_list_extend.h"
-#include "src/processor/include/physical_plan/operator/read_list/frontier_extend.h"
 #include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
 #include "src/processor/include/physical_plan/operator/result_collector.h"
 #include "src/processor/include/physical_plan/operator/result_scan.h"
@@ -52,6 +52,7 @@
 #include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
 #include "src/processor/include/physical_plan/operator/union_all_scan.h"
+#include "src/processor/include/physical_plan/operator/var_length_join/var_length_join_sink.h"
 
 using namespace graphflow::planner;
 
@@ -102,9 +103,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
         physicalOperator =
             mapLogicalResultScanToPhysical(logicalOperator.get(), mapperContext, executionContext);
     } break;
-    case LOGICAL_EXTEND: {
-        physicalOperator =
-            mapLogicalExtendToPhysical(logicalOperator.get(), mapperContext, executionContext);
+    case LOGICAL_FIXED_LENGTH_EXTEND: {
+        physicalOperator = mapLogicalFixedLengthExtendToPhysical(
+            logicalOperator.get(), mapperContext, executionContext);
+    } break;
+    case LOGICAL_VAR_LENGTH_EXTEND: {
+        physicalOperator = mapLogicalVarLengthExtendToPhysical(
+            logicalOperator.get(), mapperContext, executionContext);
     } break;
     case LOGICAL_FLATTEN: {
         physicalOperator =
@@ -216,33 +221,49 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalResultScanToPhysical(
         mapperContext.getOperatorID());
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFixedLengthExtendToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
-    auto& extend = (const LogicalExtend&)*logicalOperator;
+    auto& logicalFixedLengthExtend = (const LogicalFixedLengthExtend&)*logicalOperator;
     auto prevOperator =
         mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
-    auto inDataPos = mapperContext.getDataPos(extend.boundNodeID);
-    auto outDataPos = mapperContext.getDataPos(extend.nbrNodeID);
-    mapperContext.addComputedExpressions(extend.nbrNodeID);
+    auto inDataPos = mapperContext.getDataPos(logicalFixedLengthExtend.getBoundNodeID());
+    auto outDataPos = mapperContext.getDataPos(logicalFixedLengthExtend.getNbrNodeID());
+    mapperContext.addComputedExpressions(logicalFixedLengthExtend.getNbrNodeID());
     auto& relsStore = graph.getRelsStore();
-    if (extend.isColumn) {
-        assert(extend.lowerBound == extend.upperBound && extend.lowerBound == 1);
+    if (logicalFixedLengthExtend.getIsColumnExtend()) {
         return make_unique<AdjColumnExtend>(inDataPos, outDataPos,
-            relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
+            relsStore.getAdjColumn(logicalFixedLengthExtend.getDirection(),
+                logicalFixedLengthExtend.getBoundNodeLabel(),
+                logicalFixedLengthExtend.getRelLabel()),
             move(prevOperator), executionContext, mapperContext.getOperatorID());
     } else {
-        auto adjLists =
-            relsStore.getAdjLists(extend.direction, extend.boundNodeLabel, extend.relLabel);
-        if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
-            return make_unique<AdjListExtend>(inDataPos, outDataPos, adjLists, move(prevOperator),
-                executionContext, mapperContext.getOperatorID());
-        } else {
-            return make_unique<FrontierExtend>(inDataPos, outDataPos, adjLists, extend.nbrNodeLabel,
-                extend.lowerBound, extend.upperBound, move(prevOperator), executionContext,
-                mapperContext.getOperatorID());
-        }
+        auto adjLists = relsStore.getAdjLists(logicalFixedLengthExtend.getDirection(),
+            logicalFixedLengthExtend.getBoundNodeLabel(), logicalFixedLengthExtend.getRelLabel());
+        return make_unique<AdjListExtend>(inDataPos, outDataPos, adjLists, move(prevOperator),
+            executionContext, mapperContext.getOperatorID());
     }
+}
+
+unique_ptr<PhysicalOperator> PlanMapper::mapLogicalVarLengthExtendToPhysical(
+    LogicalOperator* logicalOperator, MapperContext& mapperContext,
+    ExecutionContext& executionContext) {
+    auto& logicalVarLengthExtend = (const LogicalVarLengthExtend&)*logicalOperator;
+    auto prevOperator =
+        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext, executionContext);
+    Schema* schema = logicalVarLengthExtend.getSchema();
+    vector<DataPos> inputDataPos;
+    vector<bool> isVectorFlat;
+    for (auto& expressionToMaterialize : logicalVarLengthExtend.getExpressionsToCollect()) {
+        inputDataPos.emplace_back(
+            mapperContext.getDataPos(expressionToMaterialize->getUniqueName()));
+        isVectorFlat.emplace_back(
+            schema->getGroup(expressionToMaterialize->getUniqueName())->getIsFlat());
+    }
+    return make_unique<VarLengthJoinSink>(inputDataPos, isVectorFlat,
+        make_shared<VarLengthJoinSharedState>(), move(prevOperator), executionContext,
+        mapperContext.getOperatorID());
+    // To do: Add logic to create VarLengthJoin physical operator using adjLists, outputDataPoses.
 }
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
@@ -588,7 +609,7 @@ unique_ptr<ResultCollector> PlanMapper::mapLogicalResultCollectorToPhysical(
 
     vector<pair<DataPos, bool>> valueVectorsToCollectInfo;
     for (auto& expression : resultCollector.getExpressionsToCollect()) {
-        valueVectorsToCollectInfo.push_back(
+        valueVectorsToCollectInfo.emplace_back(
             make_pair(resultCollectorMapperContext.getDataPos(expression->getUniqueName()),
                 resultCollector.getSchema()->getGroup(expression->getUniqueName())->getIsFlat()));
     }

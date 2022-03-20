@@ -48,12 +48,6 @@ TEST_F(TinySnbProcessorTest, FilteredQueries) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }
 
-TEST_F(TinySnbProcessorTest, FrontierQueries) {
-    vector<TestQueryConfig> queryConfigs;
-    queryConfigs = TestHelper::parseTestFile("test/runner/queries/structural/frontier.test");
-    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
-}
-
 TEST_F(TinySnbProcessorTest, DateDataTypeTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/data_types/date_data_type.test");

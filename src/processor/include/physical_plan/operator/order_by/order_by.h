@@ -22,8 +22,8 @@ namespace processor {
 class SharedFactorizedTablesAndSortedKeyBlocks {
 public:
     explicit SharedFactorizedTablesAndSortedKeyBlocks()
-        : nextFactorizedTableIdx{0}, sortedKeyBlocks{
-                                         make_shared<queue<shared_ptr<MergedKeyBlocks>>>()} {}
+        : nextFactorizedTableIdx{0},
+          sortedKeyBlocks{make_shared<queue<shared_ptr<MergedKeyBlocks>>>()}, numBytesPerTuple{0} {}
 
     uint16_t getNextFactorizedTableIdx() {
         lock_guard<mutex> lck{orderBySharedStateMutex};
@@ -43,23 +43,23 @@ public:
 
     void appendSortedKeyBlock(shared_ptr<MergedKeyBlocks> mergedDataBlocks) {
         lock_guard<mutex> lck{orderBySharedStateMutex};
-        sortedKeyBlocks->emplace(mergedDataBlocks);
+        sortedKeyBlocks->emplace(move(mergedDataBlocks));
     }
 
-    void setNumBytesPerTuple(uint64_t numBytesPerTuple) {
+    void setNumBytesPerTuple(uint64_t numBytesPerTupleToSet) {
         lock_guard<mutex> lck{orderBySharedStateMutex};
-        this->numBytesPerTuple = numBytesPerTuple;
+        this->numBytesPerTuple = numBytesPerTupleToSet;
     }
 
     void setStringAndUnstructuredKeyColInfo(
-        vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfo) {
+        vector<StringAndUnstructuredKeyColInfo>& stringAndUnstructuredKeyColInfoToSet) {
         lock_guard<mutex> lck{orderBySharedStateMutex};
-        this->stringAndUnstructuredKeyColInfo = move(stringAndUnstructuredKeyColInfo);
+        this->stringAndUnstructuredKeyColInfo = move(stringAndUnstructuredKeyColInfoToSet);
     }
 
-    void setDataTypes(vector<DataType> dataTypes) {
+    void setDataTypes(vector<DataType> dataTypesToSet) {
         lock_guard<mutex> lck{orderBySharedStateMutex};
-        this->dataTypes = move(dataTypes);
+        this->dataTypes = move(dataTypesToSet);
     }
 
     inline DataType getDataType(uint32_t idx) { return dataTypes[idx]; }
@@ -101,8 +101,8 @@ public:
     OrderBy(const OrderByDataInfo& orderByDataInfo,
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
         unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-        : Sink{move(child), context, id}, orderByDataInfo{orderByDataInfo}, sharedState{
-                                                                                sharedState} {}
+        : Sink{move(child), context, id}, factorizedTableIdx{0}, orderByDataInfo{orderByDataInfo},
+          sharedState{move(sharedState)} {}
 
     shared_ptr<ResultSet> initResultSet() override;
     void execute() override;

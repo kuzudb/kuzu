@@ -11,7 +11,7 @@ using namespace std;
 namespace graphflow {
 namespace planner {
 
-class LogicalExtend;
+class LogicalFixedLengthExtend;
 
 class FactorizationGroup {
     friend class Schema;
@@ -84,9 +84,9 @@ public:
     // Get the group positions containing at least one expression in scope.
     unordered_set<uint32_t> getGroupsPosInScope() const;
 
-    void addLogicalExtend(const string& queryRel, LogicalExtend* extend);
+    void addLogicalExtend(const string& queryRel, LogicalFixedLengthExtend* extend);
 
-    LogicalExtend* getExistingLogicalExtend(const string& queryRel);
+    LogicalFixedLengthExtend* getExistingLogicalExtend(const string& queryRel);
 
     unique_ptr<Schema> copy() const;
 
@@ -97,7 +97,7 @@ private:
     unordered_map<string, uint32_t> expressionNameToGroupPos;
     // Maps a queryRel to the LogicalExtend that matches it. This is needed because ScanRelProperty
     // requires direction information which only available in the LogicalExtend.
-    unordered_map<string, LogicalExtend*> queryRelLogicalExtendMap;
+    unordered_map<string, LogicalFixedLengthExtend*> queryRelLogicalExtendMap;
     // Our projection doesn't explicitly remove expressions. Instead, we keep track of what
     // expressions are in scope (i.e. being projected).
     expression_vector expressionsInScope;

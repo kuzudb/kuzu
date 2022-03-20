@@ -3,6 +3,7 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_fixed_length_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_left_nested_loop_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_result_collector.h"
@@ -316,11 +317,11 @@ void Enumerator::appendScanRelProperty(
     const shared_ptr<PropertyExpression>& property, const RelExpression& rel, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto extend = schema->getExistingLogicalExtend(rel.getUniqueName());
-    auto scanProperty =
-        make_shared<LogicalScanRelProperty>(extend->boundNodeID, extend->boundNodeLabel,
-            extend->nbrNodeID, extend->relLabel, extend->direction, property->getUniqueName(),
-            property->getPropertyKey(), extend->isColumn, plan.getLastOperator());
-    auto groupPos = schema->getGroupPos(extend->nbrNodeID);
+    auto scanProperty = make_shared<LogicalScanRelProperty>(extend->getBoundNodeID(),
+        extend->getBoundNodeLabel(), extend->getNbrNodeID(), extend->getRelLabel(),
+        extend->getDirection(), property->getUniqueName(), property->getPropertyKey(),
+        extend->getIsColumnExtend(), plan.getLastOperator());
+    auto groupPos = schema->getGroupPos(extend->getNbrNodeID());
     schema->insertToGroupAndScope(property, groupPos);
     plan.appendOperator(move(scanProperty));
 }

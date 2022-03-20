@@ -45,9 +45,13 @@ private:
     // append logical operator functions
     void appendResultScan(const expression_vector& expressionsToSelect, LogicalPlan& plan);
     void appendScanNodeID(NodeExpression& queryNode, LogicalPlan& plan);
-    void appendExtendFiltersAndScanProperties(const RelExpression& queryRel, Direction direction,
-        const expression_vector& expressionsToFilter, LogicalPlan& plan);
-    void appendExtend(const RelExpression& queryRel, Direction direction, LogicalPlan& plan);
+    void appendExtendFiltersAndScanProperties(shared_ptr<RelExpression> queryRel,
+        Direction direction, const expression_vector& expressionsToFilter, LogicalPlan& plan);
+    void appendExtend(shared_ptr<RelExpression> queryRel, Direction direction, LogicalPlan& plan);
+    void appendFixedLengthExtend(
+        shared_ptr<RelExpression> queryRel, Direction direction, LogicalPlan& plan);
+    void appendVarLengthExtend(
+        shared_ptr<RelExpression> queryRel, Direction direction, LogicalPlan& plan);
     void appendLogicalHashJoin(
         const NodeExpression& joinNode, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     // appendIntersect return false if a nodeID is flat in which case we should use filter

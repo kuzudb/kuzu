@@ -32,5 +32,6 @@ cc_library(
     ],
     deps = [
         "base_logical_operator",
+        "//src/binder/expression:base_expression",
     ],
 )

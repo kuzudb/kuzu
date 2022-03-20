@@ -91,7 +91,9 @@ public:
         return queryRels.at(queryRelNameToPosMap.at(queryRelName)).get();
     }
 
-    inline RelExpression* getQueryRel(uint32_t relPos) const { return queryRels[relPos].get(); }
+    inline shared_ptr<RelExpression> getQueryRel(uint32_t relPos) const {
+        return queryRels[relPos];
+    }
 
     inline uint32_t getQueryRelPos(const string& queryRelName) const {
         return queryRelNameToPosMap.at(queryRelName);

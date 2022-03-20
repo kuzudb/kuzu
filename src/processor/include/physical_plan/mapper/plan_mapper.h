@@ -37,8 +37,12 @@ private:
         MapperContext& mapperContext, ExecutionContext& executionContext);
     unique_ptr<PhysicalOperator> mapLogicalResultScanToPhysical(LogicalOperator* logicalOperator,
         MapperContext& mapperContext, ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
+    unique_ptr<PhysicalOperator> mapLogicalFixedLengthExtendToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext,
+        ExecutionContext& executionContext);
+    unique_ptr<PhysicalOperator> mapLogicalVarLengthExtendToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext,
+        ExecutionContext& executionContext);
     unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(LogicalOperator* logicalOperator,
         MapperContext& mapperContext, ExecutionContext& executionContext);
     unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(LogicalOperator* logicalOperator,

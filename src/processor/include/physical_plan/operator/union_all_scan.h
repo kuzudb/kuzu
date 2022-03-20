@@ -13,9 +13,9 @@ public:
     UnionAllScanMorsel(uint32_t resultCollectorIdx, uint32_t tupleIdx, uint32_t numRows)
         : childIdx{resultCollectorIdx}, startTupleIdx{tupleIdx}, numTuples{numRows} {}
 
-    inline uint32_t getChildIdx() { return childIdx; }
-    inline uint32_t getStartTupleIdx() { return startTupleIdx; }
-    inline uint32_t getNumTuples() { return numTuples; }
+    inline uint32_t getChildIdx() const { return childIdx; }
+    inline uint32_t getStartTupleIdx() const { return startTupleIdx; }
+    inline uint32_t getNumTuples() const { return numTuples; }
 
 private:
     uint32_t childIdx;
@@ -25,8 +25,9 @@ private:
 
 class UnionAllScanSharedState {
 public:
-    UnionAllScanSharedState(vector<unique_ptr<PhysicalOperator>>& unionAllChildren)
-        : resultCollectorIdxToRead{0}, nextTupleIdxToRead{0}, unionAllChildren{unionAllChildren} {}
+    explicit UnionAllScanSharedState(vector<unique_ptr<PhysicalOperator>>& unionAllChildren)
+        : maxMorselSize{0}, resultCollectorIdxToRead{0}, nextTupleIdxToRead{0},
+          unionAllChildren{unionAllChildren} {}
 
     inline shared_ptr<FactorizedTable> getFactorizedTable(uint32_t idx) {
         return ((ResultCollector*)(unionAllChildren[idx].get()))->getResultFactorizedTable();
@@ -55,8 +56,8 @@ public:
     UnionAllScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> outDataPoses,
         vector<DataType> dataTypes, vector<unique_ptr<PhysicalOperator>> children,
         ExecutionContext& context, uint32_t id)
-        : outDataPoses{outDataPoses}, dataTypes{dataTypes},
-          PhysicalOperator{move(children), context, id}, SourceOperator{move(resultSetDescriptor)} {
+        : PhysicalOperator{move(children), context, id}, SourceOperator{move(resultSetDescriptor)},
+          outDataPoses{move(outDataPoses)}, dataTypes{move(dataTypes)} {
         unionAllScanSharedState = make_shared<UnionAllScanSharedState>(this->children);
     }
 
@@ -64,9 +65,9 @@ public:
     UnionAllScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> outDataPoses,
         vector<DataType> dataTypes, shared_ptr<UnionAllScanSharedState> unionAllScanSharedState,
         ExecutionContext& context, uint32_t id)
-        : outDataPoses{outDataPoses}, dataTypes{dataTypes},
-          unionAllScanSharedState{unionAllScanSharedState}, PhysicalOperator{context, id},
-          SourceOperator{move(resultSetDescriptor)} {}
+        : PhysicalOperator{context, id}, SourceOperator{move(resultSetDescriptor)},
+          unionAllScanSharedState{move(unionAllScanSharedState)},
+          outDataPoses{move(outDataPoses)}, dataTypes{move(dataTypes)} {}
 
     shared_ptr<ResultSet> initResultSet() override;
 

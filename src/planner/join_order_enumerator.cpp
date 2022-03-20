@@ -3,11 +3,12 @@
 #include "src/binder/expression/include/function_expression.h"
 #include "src/function/comparison/include/vector_comparison_operations.h"
 #include "src/planner/include/enumerator.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_fixed_length_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_intersect.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_result_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_id.h"
+#include "src/planner/logical_plan/logical_operator/include/logical_var_length_extend.h"
 
 namespace graphflow {
 namespace planner {
@@ -119,7 +120,7 @@ void JoinOrderEnumerator::enumerateSingleRel() {
             newSubgraph.addQueryRel(relPos);
             auto expressionsToFilter =
                 getNewMatchedExpressions(prevSubgraph, newSubgraph, context->getWhereExpressions());
-            auto& queryRel = *queryGraph->getQueryRel(relPos);
+            auto queryRel = queryGraph->getQueryRel(relPos);
             if (isSrcMatched && isDstMatched) {
                 // TODO: refactor cyclic logic as a separate function
                 for (auto& prevPlan : prevPlans) {
@@ -127,14 +128,14 @@ void JoinOrderEnumerator::enumerateSingleRel() {
                         auto isCloseOnDst = direction == FWD;
                         // Break cycle by creating a temporary rel with a different name (concat rel
                         // and node name) on closing node.
-                        auto tmpRel = rewriteQueryRel(queryRel, isCloseOnDst);
+                        auto tmpRel = rewriteQueryRel(*queryRel, isCloseOnDst);
                         auto nodeToIntersect =
-                            isCloseOnDst ? queryRel.getDstNode() : queryRel.getSrcNode();
+                            isCloseOnDst ? queryRel->getDstNode() : queryRel->getSrcNode();
                         auto tmpNode = isCloseOnDst ? tmpRel->getDstNode() : tmpRel->getSrcNode();
 
                         auto planWithFilter = prevPlan->shallowCopy();
                         appendExtendFiltersAndScanProperties(
-                            *tmpRel, direction, expressionsToFilter, *planWithFilter);
+                            tmpRel, direction, expressionsToFilter, *planWithFilter);
                         auto nodeIDFilter =
                             createNodeIDComparison(nodeToIntersect->getNodeIDPropertyExpression(),
                                 tmpNode->getNodeIDPropertyExpression());
@@ -143,7 +144,7 @@ void JoinOrderEnumerator::enumerateSingleRel() {
 
                         auto planWithIntersect = prevPlan->shallowCopy();
                         appendExtendFiltersAndScanProperties(
-                            *tmpRel, direction, expressionsToFilter, *planWithIntersect);
+                            tmpRel, direction, expressionsToFilter, *planWithIntersect);
                         if (appendIntersect(nodeToIntersect->getIDProperty(),
                                 tmpNode->getIDProperty(), *planWithIntersect)) {
                             context->addPlan(newSubgraph, move(planWithIntersect));
@@ -236,43 +237,72 @@ void JoinOrderEnumerator::appendScanNodeID(NodeExpression& queryNode, LogicalPla
     plan.appendOperator(move(scan));
 }
 
-void JoinOrderEnumerator::appendExtendFiltersAndScanProperties(const RelExpression& queryRel,
+void JoinOrderEnumerator::appendExtendFiltersAndScanProperties(shared_ptr<RelExpression> queryRel,
     Direction direction, const expression_vector& expressionsToFilter, LogicalPlan& plan) {
     appendExtend(queryRel, direction, plan);
     enumerator->appendScanNodeProperty(
-        FWD == direction ? *queryRel.getDstNode() : *queryRel.getSrcNode(), plan);
-    enumerator->appendScanRelProperty(queryRel, plan);
+        FWD == direction ? *queryRel->getDstNode() : *queryRel->getSrcNode(), plan);
+    enumerator->appendScanRelProperty(*queryRel, plan);
     for (auto& expression : expressionsToFilter) {
         enumerator->appendFilter(expression, plan);
     }
 }
 
 void JoinOrderEnumerator::appendExtend(
-    const RelExpression& queryRel, Direction direction, LogicalPlan& plan) {
+    shared_ptr<RelExpression> queryRel, Direction direction, LogicalPlan& plan) {
+    if ((queryRel->getLowerBound() == 1) &&
+        (queryRel->getLowerBound() == queryRel->getUpperBound())) {
+        appendFixedLengthExtend(queryRel, direction, plan);
+    } else {
+        appendVarLengthExtend(queryRel, direction, plan);
+    }
+}
+
+void JoinOrderEnumerator::appendFixedLengthExtend(
+    shared_ptr<RelExpression> queryRel, Direction direction, LogicalPlan& plan) {
     auto schema = plan.getSchema();
-    auto boundNode = FWD == direction ? queryRel.getSrcNode() : queryRel.getDstNode();
-    auto nbrNode = FWD == direction ? queryRel.getDstNode() : queryRel.getSrcNode();
-    auto boundNodeID = boundNode->getIDProperty();
-    auto nbrNodeID = nbrNode->getIDProperty();
+    auto boundNode = FWD == direction ? queryRel->getSrcNode() : queryRel->getDstNode();
+    auto nbrNode = FWD == direction ? queryRel->getDstNode() : queryRel->getSrcNode();
     auto isColumnExtend =
-        graph.getCatalog().isSingleMultiplicityInDirection(queryRel.getLabel(), direction);
+        graph.getCatalog().isSingleMultiplicityInDirection(queryRel->getLabel(), direction);
     uint32_t groupPos;
     if (isColumnExtend) {
-        groupPos = schema->getGroupPos(boundNodeID);
+        groupPos = schema->getGroupPos(boundNode->getIDProperty());
     } else {
-        auto boundNodeGroupPos = schema->getGroupPos(boundNodeID);
+        auto boundNodeGroupPos = schema->getGroupPos(boundNode->getIDProperty());
         enumerator->appendFlattenIfNecessary(boundNodeGroupPos, plan);
         groupPos = schema->createGroup();
         schema->getGroup(groupPos)->setEstimatedCardinality(
             schema->getGroup(boundNodeGroupPos)->getEstimatedCardinality() *
-            getExtensionRate(boundNode->getLabel(), queryRel.getLabel(), direction));
+            getExtensionRate(boundNode->getLabel(), queryRel->getLabel(), direction));
     }
-    auto extend = make_shared<LogicalExtend>(boundNodeID, boundNode->getLabel(), nbrNodeID,
-        nbrNode->getLabel(), queryRel.getLabel(), direction, isColumnExtend,
-        queryRel.getLowerBound(), queryRel.getUpperBound(), plan.getLastOperator());
-    schema->addLogicalExtend(queryRel.getUniqueName(), extend.get());
+    auto fixedLengthExtend = make_shared<LogicalFixedLengthExtend>(
+        queryRel, direction, isColumnExtend, plan.getLastOperator());
+    schema->addLogicalExtend(queryRel->getUniqueName(), fixedLengthExtend.get());
     schema->insertToGroupAndScope(nbrNode->getNodeIDPropertyExpression(), groupPos);
-    plan.appendOperator(move(extend));
+    plan.appendOperator(move(fixedLengthExtend));
+}
+
+void JoinOrderEnumerator::appendVarLengthExtend(
+    shared_ptr<RelExpression> queryRel, Direction direction, LogicalPlan& plan) {
+    auto schema = plan.getSchema();
+    auto boundNode = FWD == direction ? queryRel->getSrcNode() : queryRel->getDstNode();
+    auto nbrNode = FWD == direction ? queryRel->getDstNode() : queryRel->getSrcNode();
+    auto boundNodeID = boundNode->getIDProperty();
+    auto nbrNodeID = nbrNode->getIDProperty();
+    expression_vector expressionsToMaterialize = schema->getExpressionsInScope();
+    auto nbrNodeGroupPos = schema->createGroup();
+    schema->getGroup(nbrNodeGroupPos)
+        ->setEstimatedCardinality(
+            schema->getGroup(schema->getGroupPos(boundNodeID))->getEstimatedCardinality() *
+            getExtensionRate(boundNode->getLabel(), queryRel->getLabel(), direction));
+    auto boundNodeGroupPos = schema->getGroupPos(boundNodeID);
+    enumerator->appendFlattenIfNecessary(boundNodeGroupPos, plan);
+
+    auto varLengthExtend = make_shared<LogicalVarLengthExtend>(queryRel, direction,
+        plan.getLastOperator(), move(expressionsToMaterialize), schema->copy());
+    schema->insertToGroupAndScope(nbrNode->getNodeIDPropertyExpression(), nbrNodeGroupPos);
+    plan.appendOperator(move(varLengthExtend));
 }
 
 void JoinOrderEnumerator::appendLogicalHashJoin(

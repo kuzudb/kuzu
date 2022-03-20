@@ -2,43 +2,60 @@
 
 #include "base_logical_operator.h"
 
+#include "src/binder/expression/include/node_expression.h"
+#include "src/binder/expression/include/rel_expression.h"
+
+using namespace graphflow::binder;
+
 namespace graphflow {
 namespace planner {
 
 class LogicalExtend : public LogicalOperator {
 
 public:
-    LogicalExtend(string boundNodeID, label_t boundNodeLabel, string nbrNodeID,
-        label_t nbrNodeLabel, label_t relLabel, Direction direction, bool isColumn,
-        uint8_t lowerBound, uint8_t upperBound, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, boundNodeID{move(boundNodeID)},
-          boundNodeLabel{boundNodeLabel}, nbrNodeID{move(nbrNodeID)},
-          nbrNodeLabel{nbrNodeLabel}, relLabel{relLabel}, direction{direction}, isColumn{isColumn},
-          lowerBound{lowerBound}, upperBound{upperBound} {}
+    LogicalExtend(
+        shared_ptr<RelExpression> queryRel, Direction direction, shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, queryRel{queryRel}, direction{move(direction)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_EXTEND;
     }
 
     string getExpressionsForPrinting() const override {
-        return boundNodeID + (direction == Direction::FWD ? "->" : "<-") + nbrNodeID;
+        return getBoundNodeID() + (direction == Direction::FWD ? "->" : "<-") + getNbrNodeID();
     }
 
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalExtend>(boundNodeID, boundNodeLabel, nbrNodeID, nbrNodeLabel,
-            relLabel, direction, isColumn, lowerBound, upperBound, children[0]->copy());
+        return make_unique<LogicalExtend>(queryRel, direction, children[0]->copy());
     }
 
-public:
-    string boundNodeID;
-    label_t boundNodeLabel;
-    string nbrNodeID;
-    label_t nbrNodeLabel;
-    label_t relLabel;
+    inline shared_ptr<NodeExpression> getBoundNode() const {
+        return FWD == direction ? queryRel->getSrcNode() : queryRel->getDstNode();
+    }
+
+    inline shared_ptr<NodeExpression> getNbrNode() const {
+        return FWD == direction ? queryRel->getDstNode() : queryRel->getSrcNode();
+    }
+
+    inline string getBoundNodeID() const { return getBoundNode()->getIDProperty(); }
+
+    inline label_t getBoundNodeLabel() const { return getBoundNode()->getLabel(); }
+
+    inline string getNbrNodeID() const { return getNbrNode()->getIDProperty(); }
+
+    inline label_t getNbrNodeLabel() const { return getNbrNode()->getLabel(); }
+
+    inline label_t getRelLabel() const { return queryRel->getLabel(); }
+
+    inline uint8_t getUpperBound() const { return queryRel->getUpperBound(); }
+
+    inline uint8_t getLowerBound() const { return queryRel->getLowerBound(); }
+
+    inline Direction getDirection() const { return direction; }
+
+protected:
+    shared_ptr<RelExpression> queryRel;
     Direction direction;
-    bool isColumn;
-    uint8_t lowerBound;
-    uint8_t upperBound;
 };
 
 } // namespace planner
