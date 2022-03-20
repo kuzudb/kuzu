@@ -15,24 +15,54 @@ cc_library(
 )
 
 cc_library(
+    name = "overflow_buffer",
+    srcs = [
+        "overflow_buffer.cpp",
+    ],
+    hdrs = [
+        "include/overflow_buffer.h",
+    ],
+    visibility = ["//visibility:private"],
+    deps = [
+        "memory_manager",
+    ],
+)
+
+cc_library(
+    name = "type_utils",
+    srcs = [
+        "type_utils.cpp",
+    ],
+    hdrs = [
+        "include/type_utils.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common/types",
+        "overflow_buffer",
+    ],
+)
+
+cc_library(
     name = "vector",
     srcs = [
         "compression_scheme.cpp",
         "data_chunk/data_chunk_state.cpp",
-        "vector/overflow_buffer.cpp",
         "vector/value_vector.cpp",
+        "vector/value_vector_utils.cpp",
     ],
     hdrs = [
         "include/compression_scheme.h",
         "include/data_chunk/data_chunk_state.h",
-        "include/vector/overflow_buffer.h",
         "include/vector/value_vector.h",
+        "include/vector/value_vector_utils.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "expression_type",
         "memory_manager",
         "operations",
+        "type_utils",
         "//src/common/types",
         "//src/storage:buffer_manager",
     ],
@@ -49,6 +79,7 @@ cc_library(
     deps = [
         "operations",
         "vector",
+        "type_utils",
         "//src/function/boolean/operations:boolean_operations",
     ],
 )
@@ -72,6 +103,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "configs",
+        "type_utils",
         "//src/common/types",
     ],
 )

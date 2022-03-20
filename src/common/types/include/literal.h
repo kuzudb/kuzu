@@ -30,10 +30,6 @@ public:
 
     explicit Literal(const string& value) : dataType(STRING) { this->strVal = value; }
 
-    string toString() const;
-
-    void castToString();
-
 public:
     union Val {
         bool booleanVal;

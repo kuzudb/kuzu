@@ -1,8 +1,4 @@
-#pragma once
-
 #include "src/processor/include/processor_task.h"
-
-#include "src/processor/include/physical_plan/operator/result_collector.h"
 
 namespace graphflow {
 namespace processor {

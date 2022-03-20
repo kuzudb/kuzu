@@ -198,21 +198,21 @@ scalar_select_func VectorComparisonOperations::bindBinarySelectFunction(
 
 void VectorComparisonOperations::validate(
     ExpressionType expressionType, DataType leftType, DataType rightType) {
-    auto isLeftNumerical = TypeUtils::isNumericalType(leftType);
-    auto isRightNumerical = TypeUtils::isNumericalType(rightType);
+    auto isLeftNumerical = Types::isNumericalType(leftType);
+    auto isRightNumerical = Types::isNumericalType(rightType);
     // validate both sides are numerical
     if ((isLeftNumerical && !isRightNumerical) || (!isLeftNumerical && isRightNumerical)) {
         throw invalid_argument(expressionTypeToString(expressionType) +
                                " is defined on (Numerical, Numerical) but get (" +
-                               TypeUtils::dataTypeToString(leftType) + ", " +
-                               TypeUtils::dataTypeToString(rightType) + ").");
+                               Types::dataTypeToString(leftType) + ", " +
+                               Types::dataTypeToString(rightType) + ").");
     }
     // otherwise validate both sides are the same type
     if ((!isLeftNumerical && !isRightNumerical) && leftType != rightType) {
         throw invalid_argument(expressionTypeToString(expressionType) +
                                " is defined on the same data types but get (" +
-                               TypeUtils::dataTypeToString(leftType) + ", " +
-                               TypeUtils::dataTypeToString(rightType) + ").");
+                               Types::dataTypeToString(leftType) + ", " +
+                               Types::dataTypeToString(rightType) + ").");
     }
 }
 

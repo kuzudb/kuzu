@@ -5,6 +5,8 @@
 #include <regex>
 #include <sstream>
 
+#include "src/common/include/type_utils.h"
+
 // prompt for user input
 const char* PROMPT = "graphflowdb> ";
 // file to read/write shell history
@@ -195,7 +197,7 @@ void EmbeddedShell::printExecutionResult() const {
                     if (tuple.nullMask[i]) {
                         continue;
                     }
-                    uint32_t fieldLen = tuple.getValue(i)->toString().length() + 2;
+                    uint32_t fieldLen = TypeUtils::toString(tuple.getValue(i)).length() + 2;
                     colsWidth[i] = (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i];
                 }
             }

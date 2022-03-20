@@ -34,7 +34,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(ValueVector* nodeIDVec
     while (numBytesRead < info.listLen) {
         readPropertyKeyAndDatatype((uint8_t*)&propertyKeyDataType, cursor, info.mapper);
         numBytesRead += UNSTR_PROP_HEADER_LEN;
-        auto dataTypeSize = TypeUtils::getDataTypeSize(propertyKeyDataType.dataType);
+        auto dataTypeSize = Types::getDataTypeSize(propertyKeyDataType.dataType);
         if (propertyKeyToResultVectorMap.contains(propertyKeyDataType.keyIdx)) {
             propertyKeysFound.insert(propertyKeyDataType.keyIdx);
             auto vector = propertyKeyToResultVectorMap.at(propertyKeyDataType.keyIdx);
@@ -71,10 +71,10 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
     while (numBytesRead < info.listLen) {
         readPropertyKeyAndDatatype((uint8_t*)(&propertyKeyDataType), byteCursor, info.mapper);
         numBytesRead += UNSTR_PROP_HEADER_LEN;
-        auto dataTypeSize = TypeUtils::getDataTypeSize(propertyKeyDataType.dataType);
+        auto dataTypeSize = Types::getDataTypeSize(propertyKeyDataType.dataType);
         Value unstrPropertyValue{propertyKeyDataType.dataType};
-        readPropertyValue(&unstrPropertyValue,
-            TypeUtils::getDataTypeSize(propertyKeyDataType.dataType), byteCursor, info.mapper);
+        readPropertyValue(&unstrPropertyValue, Types::getDataTypeSize(propertyKeyDataType.dataType),
+            byteCursor, info.mapper);
         numBytesRead += dataTypeSize;
         Literal propertyValueAsLiteral;
         propertyValueAsLiteral.dataType = unstrPropertyValue.dataType;
@@ -83,7 +83,7 @@ unique_ptr<map<uint32_t, Literal>> UnstructuredPropertyLists::readUnstructuredPr
                 stringOverflowPages.readString(unstrPropertyValue.val.strVal);
         } else {
             memcpy(&propertyValueAsLiteral.val, &unstrPropertyValue.val,
-                TypeUtils::getDataTypeSize(propertyKeyDataType.dataType));
+                Types::getDataTypeSize(propertyKeyDataType.dataType));
         }
         retVal->insert(pair<uint32_t, Literal>(propertyKeyDataType.keyIdx, propertyValueAsLiteral));
     }

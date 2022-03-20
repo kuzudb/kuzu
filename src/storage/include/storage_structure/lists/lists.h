@@ -147,7 +147,7 @@ public:
         case DATE:
         case TIMESTAMP:
         case INTERVAL:
-            return make_unique<Lists>(fName, dataType, TypeUtils::getDataTypeSize(dataType),
+            return make_unique<Lists>(fName, dataType, Types::getDataTypeSize(dataType),
                 adjListsHeaders, bufferManager, isInMemory);
         case STRING:
             return make_unique<StringPropertyLists>(

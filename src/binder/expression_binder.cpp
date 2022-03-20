@@ -5,7 +5,7 @@
 #include "src/binder/expression/include/literal_expression.h"
 #include "src/binder/expression/include/rel_expression.h"
 #include "src/binder/include/query_binder.h"
-#include "src/common/types/include/type_utils.h"
+#include "src/common/include/type_utils.h"
 #include "src/function/arithmetic/include/vector_arithmetic_operations.h"
 #include "src/function/boolean/include/vector_boolean_operations.h"
 #include "src/function/cast/include/vector_cast_operations.h"
@@ -400,11 +400,11 @@ void ExpressionBinder::validateExpectedDataType(
         vector<DataType> expectedTypesVec{expectedTypes.begin(), expectedTypes.end()};
         auto numExpectedTypes = expectedTypes.size();
         for (auto i = 0u; i < numExpectedTypes - 1; ++i) {
-            expectedTypesStr += TypeUtils::dataTypeToString(expectedTypesVec[i]) + ", ";
+            expectedTypesStr += Types::dataTypeToString(expectedTypesVec[i]) + ", ";
         }
-        expectedTypesStr += TypeUtils::dataTypeToString(expectedTypesVec[numExpectedTypes - 1]);
+        expectedTypesStr += Types::dataTypeToString(expectedTypesVec[numExpectedTypes - 1]);
         throw invalid_argument(expression.getRawName() + " has data type " +
-                               TypeUtils::dataTypeToString(dataType) + ". " + expectedTypesStr +
+                               Types::dataTypeToString(dataType) + ". " + expectedTypesStr +
                                " was expected.");
     }
 }

@@ -3,9 +3,8 @@
 #include <cassert>
 
 #include "src/common/include/data_chunk/data_chunk_state.h"
-#include "src/common/include/vector/overflow_buffer.h"
+#include "src/common/include/overflow_buffer.h"
 #include "src/common/types/include/literal.h"
-#include "src/common/types/include/type_utils.h"
 
 namespace graphflow {
 namespace common {
@@ -30,19 +29,8 @@ public:
 
     ~ValueVector() = default;
 
-    // These two functions assume that the given uint8_t* srcData/dstData are  pointing to a data
-    // with the same data type as this ValueVector. If this ValueVector is unstructured, then
-    // srcData/dstData are pointing to a Value
-    void copyNonNullDataWithSameTypeIntoPos(uint64_t pos, uint8_t* srcData);
-    void copyNonNullDataWithSameTypeOutFromPos(
-        uint64_t pos, uint8_t* dstData, OverflowBuffer& dstOverflowBuffer) const;
     void addString(uint64_t pos, string value) const;
     void addString(uint64_t pos, char* value, uint64_t len) const;
-    void addLiteralToStructuredVector(uint64_t pos, const Literal& literal) const;
-    void addLiteralToUnstructuredVector(uint64_t pos, const Literal& value) const;
-    void addGFStringToUnstructuredVector(uint64_t pos, const gf_string_t& value) const;
-    void allocateStringOverflowSpaceIfNecessary(gf_string_t& result, uint64_t len) const;
-    void allocateListOverflow(gf_list_t& list) { overflowBuffer->allocateList(list); }
 
     inline void setAllNull() {
         std::fill(nullMask->mask.get(), nullMask->mask.get() + state->originalSize, true);
@@ -71,17 +59,14 @@ public:
 
     inline uint8_t isNull(uint32_t pos) const { return nullMask->mask[pos]; }
 
-    inline uint64_t getNumBytesPerValue() const { return TypeUtils::getDataTypeSize(dataType); }
-
-    // TODO: move this to adj column extend
-    bool discardNullNodes();
+    inline uint64_t getNumBytesPerValue() const { return Types::getDataTypeSize(dataType); }
 
     inline node_offset_t readNodeOffset(uint64_t pos) const {
         assert(dataType == NODE);
         return ((nodeID_t*)values)[pos].offset;
     }
 
-    inline void resetOverflowBuffer() {
+    inline void resetOverflowBuffer() const {
         if (overflowBuffer) {
             overflowBuffer->resetBuffer();
         }
@@ -91,9 +76,6 @@ private:
     inline bool needOverflowBuffer() const {
         return dataType == STRING || dataType == LIST || dataType == UNSTRUCTURED;
     }
-
-    void copyNonNullDataWithSameType(
-        const uint8_t* srcData, uint8_t* dstData, OverflowBuffer& overflowBuffer) const;
 
 public:
     DataType dataType;

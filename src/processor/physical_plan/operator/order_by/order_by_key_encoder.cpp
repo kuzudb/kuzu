@@ -146,7 +146,7 @@ uint64_t OrderByKeyEncoder::getEncodingSize(DataType dataType) {
     case STRING:
         return 1 + gf_string_t::SHORT_STR_LENGTH;
     default:
-        return 1 + TypeUtils::getDataTypeSize(dataType);
+        return 1 + Types::getDataTypeSize(dataType);
     }
 }
 
@@ -200,7 +200,7 @@ void OrderByKeyEncoder::encodeData(shared_ptr<ValueVector>& orderByVector,
             break;
         default:
             throw EncodingException(
-                "Unimplemented datatype: " + TypeUtils::dataTypeToString(orderByVector->dataType));
+                "Unimplemented datatype: " + Types::dataTypeToString(orderByVector->dataType));
         }
     }
     if (!isAscOrder[keyColIdx]) {

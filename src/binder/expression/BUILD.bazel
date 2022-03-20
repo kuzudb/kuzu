@@ -45,6 +45,7 @@ cc_library(
         "base_expression",
         "//src/binder/query",
         "//src/function",
+        "//src/common:type_utils",
     ],
 )
 

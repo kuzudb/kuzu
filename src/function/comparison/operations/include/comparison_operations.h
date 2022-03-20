@@ -3,7 +3,7 @@
 #include <cassert>
 #include <functional>
 
-#include "src/common/types/include/type_utils.h"
+#include "src/common/include/type_utils.h"
 #include "src/common/types/include/value.h"
 
 using namespace graphflow::common;
@@ -144,12 +144,12 @@ struct EqualsOrNotEqualsValues {
             default:
                 if constexpr (equals) {
                     throw invalid_argument("Cannot equals `" +
-                                           TypeUtils::dataTypeToString(left.dataType) + "` and `" +
-                                           TypeUtils::dataTypeToString(right.dataType) + "`");
+                                           Types::dataTypeToString(left.dataType) + "` and `" +
+                                           Types::dataTypeToString(right.dataType) + "`");
                 } else {
                     throw invalid_argument("Cannot not equals `" +
-                                           TypeUtils::dataTypeToString(left.dataType) + "` and `" +
-                                           TypeUtils::dataTypeToString(right.dataType) + "`");
+                                           Types::dataTypeToString(left.dataType) + "` and `" +
+                                           Types::dataTypeToString(right.dataType) + "`");
                 }
             }
         } else if (left.dataType == INT64 && right.dataType == DOUBLE) {
@@ -186,13 +186,12 @@ struct EqualsOrNotEqualsValues {
             }
         } else {
             if constexpr (equals) {
-                throw invalid_argument("Cannot equals `" +
-                                       TypeUtils::dataTypeToString(left.dataType) + "` and `" +
-                                       TypeUtils::dataTypeToString(right.dataType) + "`");
+                throw invalid_argument("Cannot equals `" + Types::dataTypeToString(left.dataType) +
+                                       "` and `" + Types::dataTypeToString(right.dataType) + "`");
             } else {
                 throw invalid_argument("Cannot not equals `" +
-                                       TypeUtils::dataTypeToString(left.dataType) + "` and `" +
-                                       TypeUtils::dataTypeToString(right.dataType) + "`");
+                                       Types::dataTypeToString(left.dataType) + "` and `" +
+                                       Types::dataTypeToString(right.dataType) + "`");
             }
         }
     }
@@ -265,8 +264,8 @@ struct CompareValues {
                 left.val.timestampVal, right.val.dateVal, result, isLeftNull, isRightNul);
         } else {
             throw invalid_argument("Cannot " + string(comparisonOpStr) + " `" +
-                                   TypeUtils::dataTypeToString(left.dataType) + "` and `" +
-                                   TypeUtils::dataTypeToString(right.dataType) + "`");
+                                   Types::dataTypeToString(left.dataType) + "` and `" +
+                                   Types::dataTypeToString(right.dataType) + "`");
         }
     }
 };

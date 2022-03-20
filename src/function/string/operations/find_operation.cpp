@@ -1,5 +1,3 @@
-#pragma once
-
 #include "src/function/string/operations/include/find_operation.h"
 
 #include <cstring>

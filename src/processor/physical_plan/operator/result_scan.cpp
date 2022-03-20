@@ -48,7 +48,7 @@ bool ResultScan::getNextTuples() {
                 outValueVector->setNull(0, true /* isNull */);
                 continue;
             }
-            auto elementSize = TypeUtils::getDataTypeSize(inValueVector.dataType);
+            auto elementSize = Types::getDataTypeSize(inValueVector.dataType);
             memcpy(
                 &outValueVector->values[0], inValueVector.values + pos * elementSize, elementSize);
             outValueVector->setNull(0, false /* isNull */);

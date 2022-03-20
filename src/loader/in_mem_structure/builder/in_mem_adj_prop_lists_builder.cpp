@@ -2,6 +2,8 @@
 
 #include "spdlog/sinks/stdout_sinks.h"
 
+#include "src/common/include/type_utils.h"
+
 namespace graphflow {
 namespace loader {
 
@@ -71,7 +73,7 @@ void InMemAdjAndPropertyListsBuilder::setProperty(const vector<uint64_t>& pos,
     for (auto& direction : DIRECTIONS) {
         auto header = directionLabelAdjListHeaders[direction][nodeIDs[direction].label]
                           .headers[nodeIDs[direction].offset];
-        calcPageElementCursor(header, pos[direction], TypeUtils::getDataTypeSize(type),
+        calcPageElementCursor(header, pos[direction], Types::getDataTypeSize(type),
             nodeIDs[direction].offset, cursor,
             directionLabelPropertyIdxPropertyListsMetadata[direction][nodeIDs[direction].label]
                                                           [propertyIdx],
@@ -259,7 +261,7 @@ void InMemAdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata(
                     auto idx = property.id;
                     taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                         calculateListsMetadataTask, numNodeOffsets,
-                        TypeUtils::getDataTypeSize(property.dataType), listsSizes,
+                        Types::getDataTypeSize(property.dataType), listsSizes,
                         &directionLabelAdjListHeaders[direction][nodeLabel],
                         &directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel][idx],
                         true /*hasNULLBytes*/, logger));
@@ -308,7 +310,7 @@ void InMemAdjAndPropertyListsBuilder::buildInMemPropertyLists() {
                     outputDirectory, description.label, nodeLabel, direction, property.name);
                 directionLabelPropertyIdxPropertyLists[direction][nodeLabel][idx] =
                     make_unique<InMemPropertyPages>(fName,
-                        TypeUtils::getDataTypeSize(property.dataType),
+                        Types::getDataTypeSize(property.dataType),
                         directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel][idx]
                             .numPages);
             }
@@ -340,7 +342,7 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStringsOfPropertyListsTask(
             len = ListHeaders::getSmallListLen(header);
         }
         for (auto pos = len; pos > 0; pos--) {
-            calcPageElementCursor(header, pos, TypeUtils::getDataTypeSize(STRING), offsetStart,
+            calcPageElementCursor(header, pos, Types::getDataTypeSize(STRING), offsetStart,
                 propertyListCursor, *listsMetadata, true /*hasNULLBytes*/);
             auto valPtr =
                 reinterpret_cast<gf_string_t*>(propertyLists->getPtrToMemLoc(propertyListCursor));

@@ -20,6 +20,7 @@ cc_library(
     deps = [
         "data_pos",
         "//src/common:data_chunk",
+        "//src/common:type_utils",
         "//src/planner/logical_plan",
         "//src/storage:lists",
     ],

@@ -38,6 +38,7 @@ cc_library(
         "//src/common:csv_reader",
         "//src/common:task_system",
         "//src/common/types",
+        "//src/common:type_utils",
         "//src/storage:graph",
         "@gabime_spdlog",
         "@martinus_robin_hood_hashing",
@@ -58,6 +59,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//src/common:configs",
+        "//src/common:type_utils",
         "//src/storage:storage_structure",
     ],
 )

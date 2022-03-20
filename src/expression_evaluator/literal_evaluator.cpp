@@ -1,5 +1,7 @@
 #include "include/literal_evaluator.h"
 
+#include "src/common/include/vector/value_vector_utils.h"
+
 namespace graphflow {
 namespace evaluator {
 
@@ -7,10 +9,10 @@ void LiteralExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager*
     assert(children.empty());
     if (castToUnstructured) {
         resultVector = make_shared<ValueVector>(memoryManager, UNSTRUCTURED);
-        resultVector->addLiteralToUnstructuredVector(0, literal);
+        ValueVectorUtils::addLiteralToUnstructuredVector(*resultVector, 0, literal);
     } else {
         resultVector = make_shared<ValueVector>(memoryManager, literal.dataType);
-        resultVector->addLiteralToStructuredVector(0, literal);
+        ValueVectorUtils::addLiteralToStructuredVector(*resultVector, 0, literal);
     }
     resultVector->state = DataChunkState::getSingleValueDataChunkState();
 }

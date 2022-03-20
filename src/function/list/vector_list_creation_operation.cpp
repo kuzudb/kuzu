@@ -5,59 +5,33 @@
 namespace graphflow {
 namespace function {
 
-static void setGFListAndAllocate(
-    ValueVector& vector, uint64_t pos, DataType childType, uint64_t capacity) {
-    auto& gfList = ((gf_list_t*)vector.values)[pos];
-    gfList.childType = childType;
-    gfList.capacity = capacity;
-    gfList.size = 0;
-    vector.allocateListOverflow(gfList);
-}
-
-static void appendToList(gf_list_t& gfList, uint8_t* element, uint64_t elementSize) {
-    auto overflowOffset = gfList.size * elementSize;
-    switch (gfList.childType) {
-    case BOOL:
-    case INT64:
-    case DOUBLE:
-    case DATE:
-    case TIMESTAMP:
-    case INTERVAL: {
-        memcpy(
-            reinterpret_cast<uint8_t*>(gfList.overflowPtr) + overflowOffset, element, elementSize);
-    } break;
-    default:
-        assert(false);
-    }
-    gfList.size++;
-}
-
 void VectorListOperations::ListCreation(
     const vector<shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     result.resetOverflowBuffer();
-    assert(!parameters.empty());
-    assert(result.dataType == LIST);
+    assert(!parameters.empty() && result.dataType == LIST);
+    auto childType = parameters[0]->dataType;
+    auto numBytesOfListElement = Types::getDataTypeSize(childType);
+    vector<uint8_t*> listElements(parameters.size());
     if (result.state->isFlat()) {
         auto pos = result.state->getPositionOfCurrIdx();
-        setGFListAndAllocate(result, pos, parameters[0]->dataType, size(parameters));
-        for (auto& parameter : parameters) {
-            assert(parameter->state->isFlat());
-            auto parameterValueOffset =
-                parameter->state->getPositionOfCurrIdx() * parameter->getNumBytesPerValue();
-            appendToList(((gf_list_t*)result.values)[pos], parameter->values + parameterValueOffset,
-                parameter->getNumBytesPerValue());
+        auto& gfList = ((gf_list_t*)result.values)[pos];
+        for (auto paramIdx = 0u; paramIdx < parameters.size(); paramIdx++) {
+            assert(parameters[paramIdx]->state->isFlat());
+            listElements[paramIdx] = parameters[paramIdx]->values + pos * numBytesOfListElement;
         }
+        TypeUtils::copyList(childType, listElements, gfList, *result.overflowBuffer);
     } else {
-        for (auto i = 0u; i < result.state->selectedSize; ++i) {
-            auto pos = result.state->selectedPositions[i];
-            setGFListAndAllocate(result, pos, parameters[0]->dataType, size(parameters));
-            for (auto& parameter : parameters) {
-                auto parameterPos =
-                    parameter->state->isFlat() ? parameter->state->getPositionOfCurrIdx() : pos;
-                auto parameterValueOffset = parameterPos * parameter->getNumBytesPerValue();
-                appendToList(((gf_list_t*)result.values)[pos],
-                    parameter->values + parameterValueOffset, parameter->getNumBytesPerValue());
+        for (auto selectedPos = 0u; selectedPos < result.state->selectedSize; ++selectedPos) {
+            auto pos = result.state->selectedPositions[selectedPos];
+            auto& gfList = ((gf_list_t*)result.values)[pos];
+            for (auto paramIdx = 0u; paramIdx < parameters.size(); paramIdx++) {
+                auto parameterPos = parameters[paramIdx]->state->isFlat() ?
+                                        parameters[paramIdx]->state->getPositionOfCurrIdx() :
+                                        pos;
+                listElements[paramIdx] =
+                    parameters[paramIdx]->values + parameterPos * numBytesOfListElement;
             }
+            TypeUtils::copyList(childType, listElements, gfList, *result.overflowBuffer);
         }
     }
 }

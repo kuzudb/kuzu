@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 #include "test/test_utility/include/test_helper.h"
 
+#include "src/common/include/type_utils.h"
+
 using namespace std;
 using namespace graphflow::common;
 using namespace graphflow::storage;
@@ -21,9 +23,9 @@ public:
             return false;
         }
         for (auto i = 0u; i < expected.size(); i++) {
-            if (expected[i] != listVal.listVal[i].toString()) {
+            if (expected[i] != TypeUtils::toString(listVal.listVal[i])) {
                 cout << "listVal element is not expected. " << expected[i]
-                     << ", actually: " << listVal.listVal[i].toString() << endl;
+                     << ", actually: " << TypeUtils::toString(listVal.listVal[i]) << endl;
                 return false;
             }
         }

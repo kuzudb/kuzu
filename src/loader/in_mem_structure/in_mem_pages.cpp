@@ -3,6 +3,7 @@
 #include <fcntl.h>
 
 #include "src/common/include/file_utils.h"
+#include "src/common/include/type_utils.h"
 
 namespace graphflow {
 namespace loader {
@@ -90,9 +91,8 @@ gf_list_t InMemOverflowPages::addList(const Literal& listVal, PageByteCursor& cu
     assert(!listVal.listVal.empty());
     gf_list_t result;
     result.childType = listVal.listVal[0].dataType;
-    auto numBytesOfSingleValue = TypeUtils::getDataTypeSize(result.childType);
+    auto numBytesOfSingleValue = Types::getDataTypeSize(result.childType);
     result.size = listVal.listVal.size();
-    result.capacity = result.size;
     if (cursor.offset + (result.size * numBytesOfSingleValue) >= DEFAULT_PAGE_SIZE ||
         0 > cursor.idx) {
         cursor.offset = 0;

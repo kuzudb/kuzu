@@ -3,7 +3,6 @@
 #include <vector>
 
 #include "src/common/include/memory_manager.h"
-#include "src/common/types/include/type_utils.h"
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/file_handle.h"
 
@@ -40,9 +39,7 @@ public:
         }
     }
 
-    void allocateLargeStringIfNecessary(gf_string_t& result, uint64_t len);
-
-    void allocateList(gf_list_t& list);
+    uint8_t* allocateSpace(uint64_t size);
 
 private:
     inline bool requireNewBlock(uint64_t sizeToAllocate) {

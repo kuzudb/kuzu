@@ -2,8 +2,6 @@
 
 #include <cassert>
 
-#include "include/type_utils.h"
-
 using namespace std;
 
 namespace graphflow {
@@ -37,31 +35,6 @@ Value& Value::operator=(const Value& other) {
         assert(false);
     }
     return *this;
-}
-
-string Value::toString() const {
-    switch (dataType) {
-    case BOOL:
-        return TypeUtils::toString(val.booleanVal);
-    case INT64:
-        return TypeUtils::toString(val.int64Val);
-    case DOUBLE:
-        return TypeUtils::toString(val.doubleVal);
-    case STRING:
-        return val.strVal.getAsString();
-    case NODE:
-        return TypeUtils::toString(val.nodeID);
-    case DATE:
-        return TypeUtils::toString(val.dateVal);
-    case TIMESTAMP:
-        return TypeUtils::toString(val.timestampVal);
-    case INTERVAL:
-        return TypeUtils::toString(val.intervalVal);
-    case LIST:
-        return val.listVal.toString();
-    default:
-        assert(false);
-    }
 }
 
 } // namespace common

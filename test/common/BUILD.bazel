@@ -27,6 +27,7 @@ cc_test(
     ],
     deps = [
         "//src/common/types",
+        "//src/common:type_utils",
         "@gtest",
         "@gtest//:gtest_main",
     ],

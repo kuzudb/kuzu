@@ -1,0 +1,32 @@
+#pragma once
+
+#include "src/common/include/vector/value_vector.h"
+
+namespace graphflow {
+namespace common {
+
+class ValueVectorUtils {
+
+public:
+    static void addLiteralToStructuredVector(
+        ValueVector& resultVector, uint64_t pos, const Literal& literal);
+    static void addLiteralToUnstructuredVector(
+        ValueVector& resultVector, uint64_t pos, const Literal& value);
+    static void addGFStringToUnstructuredVector(
+        ValueVector& resultVector, uint64_t pos, const gf_string_t& value);
+
+    // These two functions assume that the given uint8_t* srcData/dstData are pointing to a data
+    // with the same data type as this ValueVector. If this ValueVector is unstructured, then
+    // srcData/dstData are pointing to a Value.
+    static void copyNonNullDataWithSameTypeIntoPos(
+        ValueVector& resultVector, uint64_t pos, const uint8_t* srcData);
+    static void copyNonNullDataWithSameTypeOutFromPos(const ValueVector& srcVector, uint64_t pos,
+        uint8_t* dstData, OverflowBuffer& dstOverflowBuffer);
+
+private:
+    static void copyNonNullDataWithSameType(DataType dataType, const uint8_t* srcData,
+        uint8_t* dstData, OverflowBuffer& overflowBuffer);
+};
+
+} // namespace common
+} // namespace graphflow

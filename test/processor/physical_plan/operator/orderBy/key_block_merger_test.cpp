@@ -68,7 +68,7 @@ public:
 
         TableSchema tableSchema;
         tableSchema.appendColumn(
-            {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(dataType)});
+            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataType)});
 
         if (hasPayLoadCol) {
             auto payloadValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
@@ -80,7 +80,7 @@ public:
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
             tableSchema.appendColumn(
-                {false, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(dataType)});
+                {false, 0 /* dataChunkPos */, Types::getDataTypeSize(dataType)});
         }
 
         auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tableSchema);
@@ -211,14 +211,14 @@ public:
         prepareMultipleOrderByColsValueVector(
             int64Values2, doubleValues2, timestampValues2, dataChunk2);
 
-        TableSchema tableSchema({{false /* isUnflat */, 0 /* dataChunkPos */,
-                                     TypeUtils::getDataTypeSize(INT64)},
-            {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(DOUBLE)},
-            {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(TIMESTAMP)}});
+        TableSchema tableSchema(
+            {{false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(INT64)},
+                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DOUBLE)},
+                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(TIMESTAMP)}});
 
         if (hasStrCol) {
             tableSchema.appendColumn(
-                {false /* isUnflat */, 0 /* dataChunkPos */, TypeUtils::getDataTypeSize(STRING)});
+                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)});
             auto stringValueVector1 = make_shared<ValueVector>(memoryManager.get(), STRING);
             auto stringValueVector2 = make_shared<ValueVector>(memoryManager.get(), STRING);
             dataChunk1->insert(3, stringValueVector1);
@@ -251,8 +251,8 @@ public:
         if (hasStrCol) {
             stringAndUnstructuredKeyColInfo.emplace_back(
                 StringAndUnstructuredKeyColInfo(3 /* colIdxInFactorizedTable */,
-                    TypeUtils::getDataTypeSize(INT64) + TypeUtils::getDataTypeSize(DOUBLE) +
-                        TypeUtils::getDataTypeSize(TIMESTAMP),
+                    Types::getDataTypeSize(INT64) + Types::getDataTypeSize(DOUBLE) +
+                        Types::getDataTypeSize(TIMESTAMP),
                     true /* isAscOrder */, true /* isStrCol */));
             expectedTupleIdxOrder = {0, 0, 1, 1, 2, 2, 3};
             expectedFactorizedTableIdxOrder = {4, 5, 4, 5, 4, 5, 4};
@@ -300,7 +300,7 @@ public:
 
         TableSchema tableSchema(
             vector<ColumnSchema>(4, ColumnSchema(false /* isUnflat */, 0 /* dataChunkPos */,
-                                        TypeUtils::getDataTypeSize(STRING))));
+                                        Types::getDataTypeSize(STRING))));
         auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tableSchema);
 
         vector<bool> isAscOrder(strValues.size(), true);

@@ -1,6 +1,6 @@
 #include "src/storage/include/storage_structure/overflow_pages.h"
 
-#include "src/storage/include/storage_structure/storage_structure.h"
+#include "src/common/include/type_utils.h"
 
 namespace graphflow {
 namespace storage {
@@ -31,8 +31,7 @@ void OverflowPages::readStringToVector(gf_string_t& gfStr, OverflowBuffer& overf
     if (!gf_string_t::isShortString(gfStr.len)) {
         TypeUtils::decodeOverflowPtr(gfStr.overflowPtr, cursor.idx, cursor.offset);
         auto frame = bufferManager.pin(fileHandle, cursor.idx);
-        overflowBuffer.allocateLargeStringIfNecessary(gfStr, gfStr.len);
-        gfStr.set((char*)(frame + cursor.offset), gfStr.len);
+        TypeUtils::copyString((char*)(frame + cursor.offset), gfStr.len, gfStr, overflowBuffer);
         bufferManager.unpin(fileHandle, cursor.idx);
     }
 }
@@ -41,15 +40,14 @@ void OverflowPages::readListToVector(gf_list_t& gfList, OverflowBuffer& overflow
     PageByteCursor cursor;
     TypeUtils::decodeOverflowPtr(gfList.overflowPtr, cursor.idx, cursor.offset);
     auto frame = bufferManager.pin(fileHandle, cursor.idx);
-    overflowBuffer.allocateList(gfList);
-    gfList.set(frame + cursor.offset);
+    TypeUtils::copyListValues(frame + cursor.offset, gfList, overflowBuffer);
+    bufferManager.unpin(fileHandle, cursor.idx);
     if (gfList.childType == STRING) {
         auto gfStrings = (gf_string_t*)(gfList.overflowPtr);
         for (auto i = 0u; i < gfList.size; i++) {
             readStringToVector(gfStrings[i], overflowBuffer);
         }
     }
-    bufferManager.unpin(fileHandle, cursor.idx);
 }
 
 string OverflowPages::readString(const gf_string_t& str) {
@@ -69,7 +67,7 @@ vector<Literal> OverflowPages::readList(const gf_list_t& listVal, DataType child
     PageByteCursor cursor;
     TypeUtils::decodeOverflowPtr(listVal.overflowPtr, cursor.idx, cursor.offset);
     auto frame = bufferManager.pin(fileHandle, cursor.idx);
-    auto numBytesOfSingleValue = TypeUtils::getDataTypeSize(childDataType);
+    auto numBytesOfSingleValue = Types::getDataTypeSize(childDataType);
     auto numValuesInList = listVal.size;
     vector<Literal> retLiterals(numValuesInList);
     if (childDataType == STRING) {

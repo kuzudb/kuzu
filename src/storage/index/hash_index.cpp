@@ -10,7 +10,7 @@ namespace graphflow {
 namespace storage {
 
 HashIndexHeader::HashIndexHeader(DataType keyDataType) : keyDataType{keyDataType} {
-    numBytesPerEntry = TypeUtils::getDataTypeSize(keyDataType) + sizeof(node_offset_t);
+    numBytesPerEntry = Types::getDataTypeSize(keyDataType) + sizeof(node_offset_t);
     numBytesPerSlot = (numBytesPerEntry * slotCapacity) + sizeof(SlotHeader);
     numSlotsPerPage = DEFAULT_PAGE_SIZE / numBytesPerSlot;
 }
@@ -112,7 +112,7 @@ void HashIndex::putNewEntryInSlotAndUpdateHeader(uint8_t* slot, uint8_t* key, no
     auto slotHeader = reinterpret_cast<SlotHeader*>(slot);
     auto entry = getEntryInSlot(slot, slotHeader->numEntries);
     insertKey(key, entry);
-    entry += TypeUtils::getDataTypeSize(indexHeader.keyDataType);
+    entry += Types::getDataTypeSize(indexHeader.keyDataType);
     memcpy(entry, &value, sizeof(node_offset_t));
     indexHeader.numEntries += 1;
     slotHeader->numEntries++;
@@ -121,12 +121,12 @@ void HashIndex::putNewEntryInSlotAndUpdateHeader(uint8_t* slot, uint8_t* key, no
 void HashIndex::insertKey(uint8_t* key, uint8_t* entry) {
     switch (indexHeader.keyDataType) {
     case INT64:
-        memcpy(entry, key, TypeUtils::getDataTypeSize(indexHeader.keyDataType));
+        memcpy(entry, key, Types::getDataTypeSize(indexHeader.keyDataType));
         break;
     case STRING: {
         auto gfString =
             inMemStringOvfPages->addString(reinterpret_cast<const char*>(key), stringOvfPageCursor);
-        memcpy(entry, &gfString, TypeUtils::getDataTypeSize(indexHeader.keyDataType));
+        memcpy(entry, &gfString, Types::getDataTypeSize(indexHeader.keyDataType));
         break;
     }
     default:
@@ -245,7 +245,7 @@ bool HashIndex::lookupInSlot(const uint8_t* slot, uint8_t* key, node_offset_t& r
         }
         if (foundKey) {
             result =
-                *(node_offset_t*)(keyInEntry + TypeUtils::getDataTypeSize(indexHeader.keyDataType));
+                *(node_offset_t*)(keyInEntry + Types::getDataTypeSize(indexHeader.keyDataType));
             return true;
         }
     }
@@ -294,7 +294,7 @@ hash_t HashIndex::hashFunc(uint8_t* key) {
         break;
     default:
         throw invalid_argument(
-            "Type " + TypeUtils::dataTypeToString(indexHeader.keyDataType) + " not supported.");
+            "Type " + Types::dataTypeToString(indexHeader.keyDataType) + " not supported.");
     }
     return hash;
 }

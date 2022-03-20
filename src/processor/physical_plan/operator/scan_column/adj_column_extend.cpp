@@ -27,11 +27,35 @@ bool AdjColumnExtend::getNextTuples() {
         saveDataChunkSelectorState(inputNodeIDDataChunk);
         outputVector->setAllNull();
         nodeIDColumn->readValues(inputNodeIDVector, outputVector);
-        hasAtLeastOneNonNullValue = outputVector->discardNullNodes();
+        hasAtLeastOneNonNullValue = discardNullNodesInVector(*outputVector);
     } while (!hasAtLeastOneNonNullValue);
     metrics->executionTime.stop();
     metrics->numOutputTuple.increase(inputNodeIDDataChunk->state->selectedSize);
     return true;
+}
+
+bool AdjColumnExtend::discardNullNodesInVector(ValueVector& valueVector) {
+    assert(valueVector.dataType == NODE);
+    if (valueVector.state->isFlat()) {
+        return !valueVector.isNull(valueVector.state->getPositionOfCurrIdx());
+    } else {
+        auto selectedPos = 0u;
+        if (valueVector.state->isUnfiltered()) {
+            valueVector.state->resetSelectorToValuePosBuffer();
+            for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
+                valueVector.state->selectedPositions[selectedPos] = i;
+                selectedPos += !valueVector.isNull(i);
+            }
+        } else {
+            for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
+                auto pos = valueVector.state->selectedPositions[i];
+                valueVector.state->selectedPositions[selectedPos] = i;
+                selectedPos += !valueVector.isNull(pos);
+            }
+        }
+        valueVector.state->selectedSize = selectedPos;
+        return valueVector.state->selectedSize > 0;
+    }
 }
 
 } // namespace processor

@@ -1,6 +1,7 @@
 #include "src/loader/include/nodes_loader.h"
 
 #include "src/common/include/exception.h"
+#include "src/common/include/type_utils.h"
 
 using namespace graphflow::storage;
 
@@ -241,7 +242,7 @@ void NodesLoader::calcLengthOfUnstrPropertyLists(
         *strchr(startPos, ':') = 0;
         ListsUtils::incrementListSize(unstrPropertyListSizes, nodeOffset,
             UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN +
-                TypeUtils::getDataTypeSize(TypeUtils::getDataType(string(startPos))));
+                Types::getDataTypeSize(Types::getDataType(string(startPos))));
     }
 }
 
@@ -346,8 +347,8 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
         auto propertyKeyId = unstrPropertiesNameToIdMap.at(string(unstrPropertyString));
         auto unstrPropertyStringBreaker2 = strchr(unstrPropertyStringBreaker1 + 1, ':');
         *unstrPropertyStringBreaker2 = 0;
-        auto dataType = TypeUtils::getDataType(string(unstrPropertyStringBreaker1 + 1));
-        auto dataTypeSize = TypeUtils::getDataTypeSize(dataType);
+        auto dataType = Types::getDataType(string(unstrPropertyStringBreaker1 + 1));
+        auto dataTypeSize = Types::getDataTypeSize(dataType);
         auto reversePos = ListsUtils::decrementListSize(unstrPropertyListSizes, nodeOffset,
             UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN + dataTypeSize);
         PageElementCursor pageElementCursor;

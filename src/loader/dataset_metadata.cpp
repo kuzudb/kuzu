@@ -2,7 +2,6 @@
 
 #include "src/common/include/exception.h"
 #include "src/common/include/file_utils.h"
-#include "src/common/types/include/type_utils.h"
 
 using namespace std;
 using namespace graphflow::common;
@@ -22,7 +21,7 @@ void DatasetMetadata::parseJson(
         DataType IDType;
         if (parsedNodeFileDescription.contains("IDType")) {
             auto IDTypeString = parsedNodeFileDescription.at("IDType").get<string>();
-            IDType = TypeUtils::getDataType(IDTypeString);
+            IDType = Types::getDataType(IDTypeString);
             if (IDType != STRING && IDType != INT64) {
                 throw invalid_argument("Invalid ID DataType `" + IDTypeString +
                                        "`. Allowed type only: STRING and INT64.");

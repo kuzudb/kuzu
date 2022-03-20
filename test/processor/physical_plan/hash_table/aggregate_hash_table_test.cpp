@@ -75,7 +75,7 @@ TEST_F(AggregateHashTableTest, SingleGroupTest) {
         dataChunk->state->currIdx++;
     }
     ht->finalizeAggregateStates();
-    auto groupsSize = TypeUtils::getDataTypeSize(INT64);
+    auto groupsSize = Types::getDataTypeSize(INT64);
     auto numGroupScanned = 0ul;
     while (numGroupScanned < ht->getNumEntries()) {
         auto entry = ht->getEntry(numGroupScanned);

@@ -19,8 +19,8 @@ void BaseAggregateScan::writeAggregateResultToVector(
     if (aggregateState->isNull) {
         vector->setNull(pos, true);
     } else {
-        auto size = TypeUtils::getDataTypeSize(vector->dataType);
-        memcpy(vector->values + pos * size, aggregateState->getResult(), size);
+        memcpy(vector->values + pos * Types::getDataTypeSize(vector->dataType),
+            aggregateState->getResult(), Types::getDataTypeSize(vector->dataType));
     }
 }
 

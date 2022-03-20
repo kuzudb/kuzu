@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <unordered_set>
 
+#include "src/common/include/type_utils.h"
 #include "src/common/include/utils.h"
-#include "src/common/types/include/type_utils.h"
 #include "src/common/types/include/value.h"
 
 namespace graphflow {
@@ -148,7 +148,7 @@ struct HashOnValue {
         } break;
         default: {
             throw invalid_argument(
-                "Cannot hash data type " + TypeUtils::dataTypeToString(key.dataType));
+                "Cannot hash data type " + Types::dataTypeToString(key.dataType));
         }
         }
     }
@@ -191,8 +191,7 @@ struct HashOnBytes {
             HashOnValue::operation(*(Value*)key, isNull, result);
         } break;
         default: {
-            throw invalid_argument(
-                "Cannot hash data type " + TypeUtils::dataTypeToString(dataType));
+            throw invalid_argument("Cannot hash data type " + Types::dataTypeToString(dataType));
         }
         }
     }
