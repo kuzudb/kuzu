@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "test/common/include/vector/operations/vector_operations_test_helper.h"
 
-#include "src/common/include/vector/operations/executors/binary_operation_executor.h"
+#include "src/function/include/binary_operation_executor.h"
 #include "src/function/string/operations/include/concat_operation.h"
 
 using namespace graphflow::function;

@@ -20,6 +20,9 @@ pair<scalar_exec_func, DataType> BuiltInFunctionsBinder::bindExecFunction(
     case CAST_STRING_TO_INTERVAL: {
         return VectorCastOperations::bindCastStringToIntervalExecFunction(children);
     }
+    case CAST_TO_STRING: {
+        return VectorCastOperations::bindCastStructuredToStringExecFunction(children);
+    }
     case LIST_CREATION: {
         return VectorListOperations::bindListCreationExecFunction(children);
     }

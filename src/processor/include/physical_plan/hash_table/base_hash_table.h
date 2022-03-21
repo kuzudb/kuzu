@@ -1,12 +1,12 @@
 #pragma once
 
 #include "src/common/include/memory_manager.h"
-#include "src/common/include/operations/hash_operations.h"
 #include "src/common/include/utils.h"
+#include "src/function/hash/operations/include/hash_operations.h"
 #include "src/processor/include/physical_plan/result/factorized_table.h"
 
 using namespace graphflow::common;
-using namespace graphflow::common::operation;
+using namespace graphflow::function::operation;
 
 namespace graphflow {
 namespace processor {

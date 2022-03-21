@@ -1,5 +1,5 @@
 cc_library(
-    name = "comparison_operations",
+    name = "hash_operations",
     srcs = glob([
         "*.cpp",
     ]),
@@ -7,7 +7,11 @@ cc_library(
         "include/*.h",
     ]),
     visibility = [
-        "//src/function:__subpackages__",
         "//src/processor:__pkg__",
+        "//src/storage:__pkg__",
+        "//test/common:__pkg__",
+    ],
+    deps = [
+        "//src/common/types",
     ],
 )

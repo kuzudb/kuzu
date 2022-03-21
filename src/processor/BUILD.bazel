@@ -93,7 +93,6 @@ cc_library(
         "hash_table",
         "sink_operator",
         "source_operator",
-        "//src/common:vector_operations",
         "//src/function:aggregate_function",
     ],
 )
@@ -181,6 +180,7 @@ cc_library(
     deps = [
         "result",
         "//src/function:aggregate_function",
+        "//src/function/hash/operations:hash_operations",
     ],
 )
 

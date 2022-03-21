@@ -1,6 +1,8 @@
 #include "src/processor/include/physical_plan/operator/hash_join/hash_join_probe.h"
 
-#include "src/common/include/operations/hash_operations.h"
+#include "src/function/hash/operations/include/hash_operations.h"
+
+using namespace graphflow::function::operation;
 
 namespace graphflow {
 namespace processor {

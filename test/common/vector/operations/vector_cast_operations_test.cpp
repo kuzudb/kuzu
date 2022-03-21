@@ -1,9 +1,8 @@
 #include "gtest/gtest.h"
 
 #include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/include/vector/operations/executors/unary_operation_executor.h"
-#include "src/common/types/include/value.h"
 #include "src/function/cast/include/vector_cast_operations.h"
+#include "src/function/include/unary_operation_executor.h"
 
 using namespace graphflow::function;
 using namespace graphflow::common;

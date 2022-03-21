@@ -7,8 +7,10 @@
 #include "src/common/include/utils.h"
 #include "src/common/types/include/value.h"
 
+using namespace graphflow::common;
+
 namespace graphflow {
-namespace common {
+namespace function {
 namespace operation {
 
 constexpr const uint64_t NULL_HASH = UINT64_MAX;
@@ -198,5 +200,5 @@ struct HashOnBytes {
 };
 
 } // namespace operation
-} // namespace common
+} // namespace function
 } // namespace graphflow

@@ -21,72 +21,72 @@
 1
 
 -NAME StrVarAndIntLiteralConcat
--QUERY MATCH (a:person) WHERE a.fName + 10 = 'Farooq10' RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE a.fName + string(10) = 'Farooq10' RETURN COUNT(*)
 ---- 1
 1
 
 -NAME StrVarAndIntLiteralConcat2
--QUERY MATCH (a:person) WHERE 'Farooq10' = a.fName + 10 RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE 'Farooq10' = a.fName + string(10) RETURN COUNT(*)
 ---- 1
 1
 
 -NAME IntLiteralAndStrVarConcat
--QUERY MATCH (a:person) WHERE 10 + a.fName = '10Farooq' RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE string(10) + a.fName = '10Farooq' RETURN COUNT(*)
 ---- 1
 1
 
 -NAME IntLiteralAndStrVarConcat2
--QUERY MATCH (a:person) WHERE '10Farooq' = 10 + a.fName RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE '10Farooq' = string(10) + a.fName RETURN COUNT(*)
 ---- 1
 1
 
 -NAME StrVarAndBoolLiteralConcat
--QUERY MATCH (a:person) WHERE a.fName + true = 'FarooqTrue' RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE a.fName + string(true) = 'FarooqTrue' RETURN COUNT(*)
 ---- 1
 1
 
 -NAME StrVarAndBoolLiteralConcat2
--QUERY MATCH (a:person) WHERE 'FarooqTrue' = a.fName + true RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE 'FarooqTrue' = a.fName + string(true) RETURN COUNT(*)
 ---- 1
 1
 
 -NAME BoolLiteralAndStrVarConcat
--QUERY MATCH (a:person) WHERE false + a.fName = 'FalseFarooq' RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE string(false) + a.fName = 'FalseFarooq' RETURN COUNT(*)
 ---- 1
 1
 
 -NAME BoolLiteralAndStrVarConcat
--QUERY MATCH (a:person) WHERE 'FalseFarooq' = FALse + a.fName RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE 'FalseFarooq' = string(FALse) + a.fName RETURN COUNT(*)
 ---- 1
 1
 
 -NAME StrVarAndDoubleLiteralConcat
--QUERY MATCH (a:person) WHERE a.fName + 11.7 = 'Farooq11.700000' RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE a.fName + string(11.7) = 'Farooq11.700000' RETURN COUNT(*)
 ---- 1
 1
 
 -NAME StrVarAndIntegerVarConcat
--QUERY MATCH (a:person) WHERE a.fName + a.age = 'Farooq25' RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE a.fName + string(a.age) = 'Farooq25' RETURN COUNT(*)
 ---- 1
 1
 
 -NAME StrVarAndIntegerVarConcat2
--QUERY MATCH (a:person) WHERE 'Farooq25' = a.fName + a.age RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE 'Farooq25' = a.fName + string(a.age) RETURN COUNT(*)
 ---- 1
 1
 
 -NAME IntegerVarAndStrVarConcat
--QUERY MATCH (a:person) WHERE a.age + a.fName = '25Farooq' RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE string(a.age) + a.fName = '25Farooq' RETURN COUNT(*)
 ---- 1
 1
 
 -NAME IntegerVarAndStrVarConcat2
--QUERY MATCH (a:person) WHERE '25Farooq' = a.age + a.fName RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE '25Farooq' = string(a.age) + a.fName RETURN COUNT(*)
 ---- 1
 1
 
 -NAME DateVarAndStrVarConcatStructured
--QUERY MATCH (a:person) WHERE '1900-01-01Alice' = a.birthdate + a.fName RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE '1900-01-01Alice' = string(a.birthdate) + a.fName RETURN COUNT(*)
 ---- 1
 1
 
@@ -96,7 +96,7 @@
 1
 
 -NAME TimestampVarAndStrVarConcatStructured
--QUERY MATCH (a:person) WHERE '2011-08-20 11:25:30Alice' = a.registerTime + a.fName RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE '2011-08-20 11:25:30Alice' = string(a.registerTime) + a.fName RETURN COUNT(*)
 ---- 1
 1
 

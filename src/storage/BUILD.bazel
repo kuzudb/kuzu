@@ -38,14 +38,14 @@ cc_library(
     name = "storage_structure",
     srcs = [
         "storage_structure/lists/utils.cpp",
-        "storage_structure/storage_structure.cpp",
         "storage_structure/overflow_pages.cpp",
+        "storage_structure/storage_structure.cpp",
     ],
     hdrs = [
         "include/storage_structure/lists/utils.h",
+        "include/storage_structure/overflow_pages.h",
         "include/storage_structure/storage_structure.h",
         "include/storage_structure/storage_structure_utils.h",
-        "include/storage_structure/overflow_pages.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -156,8 +156,8 @@ cc_library(
         "buffer_manager",
         "//src/common:memory_manager",
         "//src/common:vector",
-        "//src/common:vector_operations",
         "//src/common/types",
+        "//src/function/hash/operations:hash_operations",
         "//src/loader:in_mem_pages",
     ],
 )

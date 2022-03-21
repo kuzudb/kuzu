@@ -7,6 +7,6 @@ cc_library(
         "include/*.h",
     ]),
     visibility = [
-        "//src/function/null:__pkg__",
+        "//src/function:__subpackages__",
     ],
 )

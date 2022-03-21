@@ -3,10 +3,10 @@
 
 #include "src/common/include/data_chunk/data_chunk.h"
 #include "src/common/include/type_utils.h"
-#include "src/common/include/vector/operations/executors/binary_operation_executor.h"
-#include "src/common/include/vector/operations/executors/unary_operation_executor.h"
 #include "src/common/types/include/value.h"
 #include "src/function/arithmetic/operations/include/arithmetic_operations.h"
+#include "src/function/include/binary_operation_executor.h"
+#include "src/function/include/unary_operation_executor.h"
 
 using namespace graphflow::common;
 using namespace graphflow::function;

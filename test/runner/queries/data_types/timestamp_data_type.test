@@ -185,7 +185,7 @@
 19673 days 10:18:58
 
 -NAME StructuredTimestampConcatenateString
--QUERY MATCH (a:person) RETURN 'Register Time: ' + a.registerTime + ' test'
+-QUERY MATCH (a:person) RETURN 'Register Time: ' + string(a.registerTime) + ' test'
 ---- 8
 Register Time: 1911-08-20 02:32:21 test
 Register Time: 1972-07-31 13:22:30.678559 test

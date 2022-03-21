@@ -64,11 +64,11 @@ cc_test(
     ],
     deps = [
         "//src/common:data_chunk",
-        "//src/common:vector_operations",
         "//src/function/arithmetic:vector_arithmetic_operations",
         "//src/function/boolean:vector_boolean_operations",
         "//src/function/cast:vector_cast_operations",
         "//src/function/comparison:vector_comparison_operations",
+        "//src/function/hash/operations:hash_operations",
         "//src/function/string:vector_string_operations",
         "//test/common:vector_operations_test_helper",
         "@gtest",

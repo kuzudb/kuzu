@@ -1,8 +1,6 @@
 #include "gtest/gtest.h"
 #include "test/common/include/vector/operations/vector_operations_test_helper.h"
 
-#include "src/common/include/data_chunk/data_chunk.h"
-#include "src/common/types/include/gf_string.h"
 #include "src/function/comparison/include/vector_comparison_operations.h"
 
 using namespace graphflow::function;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/common/include/operations/hash_operations.h"
+#include "src/function/hash/operations/include/hash_operations.h"
 #include "src/processor/include/physical_plan/hash_table/join_hash_table.h"
 #include "src/processor/include/physical_plan/operator/physical_operator.h"
 #include "src/processor/include/physical_plan/operator/sink.h"
@@ -8,8 +8,7 @@
 #include "src/processor/include/physical_plan/result/result_set.h"
 
 using namespace std;
-using namespace graphflow::common;
-using namespace graphflow::common::operation;
+using namespace graphflow::function::operation;
 
 namespace graphflow {
 namespace processor {

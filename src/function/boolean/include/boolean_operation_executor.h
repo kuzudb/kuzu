@@ -1,7 +1,7 @@
 #pragma once
 
-#include "src/common/include/vector/operations/executors/binary_operation_executor.h"
 #include "src/function/boolean/operations/include/boolean_operations.h"
+#include "src/function/include/binary_operation_executor.h"
 
 namespace graphflow {
 namespace function {

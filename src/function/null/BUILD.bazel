@@ -8,7 +8,6 @@ cc_library(
     ]),
     visibility = [
         "//src/binder:__pkg__",
-        "//src/expression_evaluator:__pkg__",
     ],
     deps = [
         "//src/function",

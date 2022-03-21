@@ -6,7 +6,7 @@
 #include "src/function/boolean/operations/include/boolean_operations.h"
 
 namespace graphflow {
-namespace common {
+namespace function {
 
 /**
  * Unary operator assumes operation with null returns null. This does NOT applies to IS_NULL and
@@ -103,5 +103,5 @@ struct UnaryOperationExecutor {
     }
 };
 
-} // namespace common
+} // namespace function
 } // namespace graphflow

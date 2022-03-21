@@ -38,8 +38,8 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/common/types",
         "overflow_buffer",
+        "//src/common/types",
     ],
 )
 
@@ -61,38 +61,9 @@ cc_library(
     deps = [
         "expression_type",
         "memory_manager",
-        "operations",
         "type_utils",
         "//src/common/types",
         "//src/storage:buffer_manager",
-    ],
-)
-
-cc_library(
-    name = "vector_operations",
-    srcs = [],
-    hdrs = [
-        "include/vector/operations/executors/binary_operation_executor.h",
-        "include/vector/operations/executors/unary_operation_executor.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "operations",
-        "vector",
-        "type_utils",
-        "//src/function/boolean/operations:boolean_operations",
-    ],
-)
-
-cc_library(
-    name = "operations",
-    srcs = [],
-    hdrs = [
-        "include/operations/hash_operations.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//src/common/types",
     ],
 )
 
