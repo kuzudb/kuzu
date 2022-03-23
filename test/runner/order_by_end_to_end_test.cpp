@@ -1,19 +1,16 @@
-#include <filesystem>
-
-#include "gtest/gtest.h"
 #include "test/test_utility/include/test_helper.h"
 
-using ::testing::Test;
 using namespace graphflow::testing;
 
-class OrderByTests : public DBLoadedTest {
+class OrderByTests : public BaseGraphLoadingTest {
+
 public:
     string getInputCSVDir() override { return "dataset/order-by-tests/"; }
 
     void SetUp() override {
         BaseGraphLoadingTest::SetUp();
-        testSuiteSystemConfig.largePageBufferPoolSize = (1ull << 22);
-        defaultSystem = TestHelper::getInitializedSystem(testSuiteSystemConfig);
+        systemConfig->largePageBufferPoolSize = (1ull << 22);
+        createConn();
     }
 };
 
@@ -24,5 +21,5 @@ TEST_F(OrderByTests, OrderByLargeDatasetTest) {
     for (auto& queryConfig : queryConfigs) {
         queryConfig.checkOutputOrder = true;
     }
-    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }

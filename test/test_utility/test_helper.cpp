@@ -13,60 +13,6 @@ using namespace graphflow::loader;
 namespace graphflow {
 namespace testing {
 
-bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, const System& system) {
-    SessionContext context;
-    auto numQueries = testConfigs.size();
-    uint64_t numPassedQueries = 0;
-    vector<uint64_t> numPlansOfEachQuery(numQueries);
-    vector<uint64_t> numPassedPlansOfEachQuery(numQueries);
-    for (uint64_t i = 0; i < numQueries; i++) {
-        auto testConfig = testConfigs[i];
-        spdlog::info("TEST: {}", testConfig.name);
-        spdlog::info("QUERY: {}", testConfig.query);
-        context.query = testConfig.query;
-        context.numThreads = testConfig.numThreads;
-        auto plans = system.enumerateAllPlans(context);
-        auto numPlans = plans.size();
-        assert(numPlans > 0);
-        numPlansOfEachQuery[i] = numPlans;
-        uint64_t numPassedPlans = 0;
-        vector<DataType> dataTypes = plans[0]->getExpressionsToCollectDataTypes();
-        for (uint64_t j = 0; j < numPlans; j++) {
-            auto planStr = plans[j]->getLastOperator()->toString();
-            auto result = system.executePlan(move(plans[j]), context);
-            if (result->getTotalNumFlatTuples() != testConfig.expectedNumTuples) {
-                spdlog::error("PLAN{} NOT PASSED. Result num tuples: {}, Expected num tuples: {}",
-                    j, result->getTotalNumFlatTuples(), testConfig.expectedNumTuples);
-                spdlog::info("PLAN: \n{}", planStr);
-            } else {
-                vector<string> resultTuples =
-                    getActualOutput(*result, dataTypes, testConfig.checkOutputOrder);
-                if (resultTuples == testConfig.expectedTuples) {
-                    spdlog::info("PLAN{} PASSED", j);
-                    spdlog::debug("PLAN: \n{}", planStr);
-                    numPassedPlans++;
-                } else {
-                    spdlog::error("PLAN{} NOT PASSED. Result tuples are not matched", j);
-                    spdlog::info("PLAN: \n{}", planStr);
-                    spdlog::info("RESULT: \n");
-                    for (auto& tuple : resultTuples) {
-                        spdlog::info(tuple);
-                    }
-                }
-            }
-        }
-        numPassedPlansOfEachQuery[i] = numPassedPlans;
-        spdlog::info("{}/{} plans passed in this query.", numPassedPlans, numPlans);
-    }
-    spdlog::info("SUMMARY:");
-    for (uint64_t i = 0; i < numQueries; i++) {
-        spdlog::info("{}: {}/{} PLANS PASSED", testConfigs[i].name, numPassedPlansOfEachQuery[i],
-            numPlansOfEachQuery[i]);
-        numPassedQueries += (numPlansOfEachQuery[i] == numPassedPlansOfEachQuery[i]);
-    }
-    return numPassedQueries == numQueries;
-}
-
 vector<TestQueryConfig> TestHelper::parseTestFile(const string& path, bool checkOutputOrder) {
     vector<TestQueryConfig> retVal;
     if (access(path.c_str(), 0) == 0) {
@@ -105,32 +51,81 @@ vector<TestQueryConfig> TestHelper::parseTestFile(const string& path, bool check
     throw invalid_argument("Test file not exists! [" + path + "].");
 }
 
-void TestHelper::loadGraph(TestSuiteSystemConfig& config) {
-    GraphLoader graphLoader(config.graphInputDir, config.graphOutputDir, config.maxNumThreads);
+bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, Connection& conn) {
+    auto numQueries = testConfigs.size();
+    uint64_t numPassedQueries = 0;
+    vector<uint64_t> numPlansOfEachQuery(numQueries);
+    vector<uint64_t> numPassedPlansOfEachQuery(numQueries);
+    for (uint64_t i = 0; i < numQueries; i++) {
+        auto testConfig = testConfigs[i];
+        spdlog::info("TEST: {}", testConfig.name);
+        spdlog::info("QUERY: {}", testConfig.query);
+        conn.setMaxNumThreadForExec(testConfig.numThreads);
+        auto plans = conn.enumeratePlans(testConfig.query);
+        auto numPlans = plans.size();
+        assert(numPlans > 0);
+        numPlansOfEachQuery[i] = numPlans;
+        uint64_t numPassedPlans = 0;
+        vector<DataType> dataTypes = plans[0]->getExpressionsToCollectDataTypes();
+        for (uint64_t j = 0; j < numPlans; j++) {
+            auto planStr = plans[j]->getLastOperator()->toString();
+            auto result = conn.executePlan(move(plans[j]));
+            auto numTuples = result->getNumTuples();
+            if (numTuples != testConfig.expectedNumTuples) {
+                spdlog::error("PLAN{} NOT PASSED. Result num tuples: {}, Expected num tuples: {}",
+                    j, numTuples, testConfig.expectedNumTuples);
+                spdlog::info("PLAN: \n{}", planStr);
+            } else {
+                vector<string> resultTuples;
+                if (numTuples != 0) {
+                    resultTuples = getOutput(*result, testConfig.checkOutputOrder);
+                }
+                if (resultTuples == testConfig.expectedTuples) {
+                    spdlog::info("PLAN{} PASSED", j);
+                    spdlog::debug("PLAN: \n{}", planStr);
+                    numPassedPlans++;
+                } else {
+                    spdlog::error("PLAN{} NOT PASSED. Result tuples are not matched", j);
+                    spdlog::info("PLAN: \n{}", planStr);
+                    spdlog::info("RESULT: \n");
+                    for (auto& tuple : resultTuples) {
+                        spdlog::info(tuple);
+                    }
+                }
+            }
+        }
+        numPassedPlansOfEachQuery[i] = numPassedPlans;
+        spdlog::info("{}/{} plans passed in this query.", numPassedPlans, numPlans);
+    }
+    spdlog::info("SUMMARY:");
+    for (uint64_t i = 0; i < numQueries; i++) {
+        spdlog::info("{}: {}/{} PLANS PASSED", testConfigs[i].name, numPassedPlansOfEachQuery[i],
+            numPlansOfEachQuery[i]);
+        numPassedQueries += (numPlansOfEachQuery[i] == numPassedPlansOfEachQuery[i]);
+    }
+    return numPassedQueries == numQueries;
+}
+
+vector<string> TestHelper::getOutput(QueryResult& queryResult, bool checkOutputOrder) {
+    vector<string> actualOutput;
+    while (queryResult.hasNext()) {
+        auto tuple = queryResult.getNext();
+        actualOutput.push_back(tuple->toString(vector<uint32_t>(tuple->len(), 0)));
+    }
+    if (!checkOutputOrder) {
+        sort(actualOutput.begin(), actualOutput.end());
+    }
+    return actualOutput;
+}
+
+void BaseGraphLoadingTest::loadGraph() {
+    GraphLoader graphLoader(getInputCSVDir(), TEMP_TEST_DIR, systemConfig->maxNumThreads);
     graphLoader.loadGraph();
 }
 
-void BaseGraphLoadingTest::SetUp() {
-    testSuiteSystemConfig.graphInputDir = getInputCSVDir();
-    testSuiteSystemConfig.graphOutputDir = TEMP_TEST_DIR;
-    TestHelper::loadGraph(testSuiteSystemConfig);
-}
-
-vector<string> TestHelper::getActualOutput(
-    FactorizedTable& queryResult, vector<DataType> dataTypes, bool checkOutputOrder) {
-    vector<string> actualOutput;
-    if (queryResult.getTotalNumFlatTuples() != 0) {
-        auto flatTupleIterator = queryResult.getFlatTupleIterator();
-        while (flatTupleIterator.hasNextFlatTuple()) {
-            FlatTuple tuple(dataTypes);
-            flatTupleIterator.getNextFlatTuple(tuple);
-            actualOutput.push_back(tuple.toString(vector<uint32_t>(tuple.len(), 0)));
-        }
-        if (!checkOutputOrder) {
-            sort(actualOutput.begin(), actualOutput.end());
-        }
-    }
-    return actualOutput;
+void BaseGraphLoadingTest::createConn() {
+    database = make_unique<Database>(*databaseConfig, *systemConfig);
+    conn = make_unique<Connection>(database.get());
 }
 
 } // namespace testing

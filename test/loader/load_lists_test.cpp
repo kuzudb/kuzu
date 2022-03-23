@@ -1,4 +1,3 @@
-#include "gtest/gtest.h"
 #include "test/test_utility/include/test_helper.h"
 
 #include "src/common/include/type_utils.h"
@@ -37,10 +36,11 @@ public:
 // the node offsets that start from 0 consecutively (so first line gets person ID 0, second person
 // ID 1, so on and so forth).
 TEST_F(TinySnbListTest, NodePropertyIntColumnWithList) {
-    auto& catalog = defaultSystem->graph->getCatalog();
+    auto graph = database->getGraph();
+    auto& catalog = graph->getCatalog();
     auto label = catalog.getNodeLabelFromString("person");
     auto& property = catalog.getNodeProperty(label, "workedHours");
-    auto col = defaultSystem->graph->getNodesStore().getNodePropertyColumn(label, property.id);
+    auto col = graph->getNodesStore().getNodePropertyColumn(label, property.id);
     ASSERT_TRUE(CheckEquals({"10", "5"}, col->readValue(0)));
     ASSERT_TRUE(CheckEquals({"12", "8"}, col->readValue(1)));
     ASSERT_TRUE(CheckEquals({"4", "5"}, col->readValue(2)));
@@ -52,10 +52,11 @@ TEST_F(TinySnbListTest, NodePropertyIntColumnWithList) {
 }
 
 TEST_F(TinySnbListTest, NodePropertyStringColumnWithList) {
-    auto& catalog = defaultSystem->graph->getCatalog();
+    auto graph = database->getGraph();
+    auto& catalog = graph->getCatalog();
     auto label = catalog.getNodeLabelFromString("person");
     auto& property = catalog.getNodeProperty(label, "usedNames");
-    auto col = defaultSystem->graph->getNodesStore().getNodePropertyColumn(label, property.id);
+    auto col = graph->getNodesStore().getNodePropertyColumn(label, property.id);
     ASSERT_TRUE(CheckEquals({"Aida"}, col->readValue(0)));
     ASSERT_TRUE(CheckEquals({"Bobby"}, col->readValue(1)));
     ASSERT_TRUE(CheckEquals({"Carmen", "Fred"}, col->readValue(2)));
@@ -67,12 +68,12 @@ TEST_F(TinySnbListTest, NodePropertyStringColumnWithList) {
 }
 
 TEST_F(TinySnbListTest, RelPropertyColumnWithList) {
-    auto& catalog = defaultSystem->graph->getCatalog();
+    auto graph = database->getGraph();
+    auto& catalog = graph->getCatalog();
     auto relLabel = catalog.getRelLabelFromString("studyAt");
     auto nodeLabel = catalog.getNodeLabelFromString("person");
     auto& property = catalog.getRelProperty(relLabel, "places");
-    auto col =
-        defaultSystem->graph->getRelsStore().getRelPropertyColumn(relLabel, nodeLabel, property.id);
+    auto col = graph->getRelsStore().getRelPropertyColumn(relLabel, nodeLabel, property.id);
     ASSERT_TRUE(CheckEquals({"wwAewsdndweusd", "wek"}, col->readValue(0)));
     ASSERT_TRUE(CheckEquals({"anew", "jsdnwusklklklwewsd"}, col->readValue(1)));
     ASSERT_TRUE(CheckEquals({"awndsnjwejwen", "isuhuwennjnuhuhuwewe"}, col->readValue(5)));

@@ -108,11 +108,14 @@ void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPo
     strcpy(resultBuf, highlightBuffer.str().c_str());
 }
 
-EmbeddedShell::EmbeddedShell(const System& system) : system{system}, context{SessionContext()} {
+EmbeddedShell::EmbeddedShell(
+    const DatabaseConfig& databaseConfig, const SystemConfig& systemConfig) {
     linenoiseHistoryLoad(HISTORY_PATH);
     linenoiseSetCompletionCallback(completion);
     linenoiseSetHighlightCallback(highlight);
-};
+    database = make_unique<Database>(databaseConfig, systemConfig);
+    conn = make_unique<Connection>(database.get());
+}
 
 void EmbeddedShell::run() {
     char* line;
@@ -127,29 +130,25 @@ void EmbeddedShell::run() {
             break;
         } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
             try {
-                context.numThreads = stoi(lineStr.substr(shellCommand.THREAD.length()));
-                printf("numThreads set as %lu\n", context.numThreads);
+                auto numThreads = stoi(lineStr.substr(shellCommand.THREAD.length()));
+                conn->setMaxNumThreadForExec(numThreads);
+                printf("numThreads set as %d\n", numThreads);
             } catch (exception& e) { printf("%s\n", e.what()); }
 
         } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_SIZE) == 0) {
             try {
                 auto newPageSize =
                     stoull(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length()));
-                // Currently we are resizing both buffer pools to the same size. If needed we can
-                // extend this functionality of the shell.
-                system.bufferManager->resize(newPageSize, newPageSize);
+                database->resizeBufferManager(newPageSize);
             } catch (exception& e) { printf("%s\n", e.what()); }
 
         } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_DEBUG_INFO) == 0) {
             printf("Buffer Manager Debug Info: \n %s \n",
-                system.bufferManager->debugInfo()->dump(4).c_str());
-        } else if (lineStr.rfind(shellCommand.SYSTEM_DEBUG_INFO) == 0) {
-            printf("System Debug Info: \n %s \n", system.debugInfo()->dump(4).c_str());
+                database->getBufferManager()->debugInfo()->dump(4).c_str());
         } else {
-            context.query = lineStr;
             try {
-                system.executeQuery(context);
-                printExecutionResult();
+                auto queryResult = conn->query(lineStr);
+                printExecutionResult(*queryResult);
             } catch (exception& e) { printf("%s\n", e.what()); }
         }
         linenoiseHistoryAdd(line);
@@ -167,64 +166,52 @@ void EmbeddedShell::printHelp() {
     printf("%s:system_debug_info %sdebug information about the system\n", TAB, TAB);
 }
 
-void EmbeddedShell::prettyPrintPlan() const {
-    context.planPrinter->printPlanToShell(*context.profiler);
-}
-
-void EmbeddedShell::printExecutionResult() const {
-    if (!context.queryResult) { // empty query result
-        return;
-    }
-    if (context.enable_explain) {
-        prettyPrintPlan();
+void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
+    auto querySummary = queryResult.getQuerySummary();
+    if (querySummary->getIsExplain()) {
+        querySummary->printPlanToStdOut();
     } else {
+        auto numTuples = queryResult.getNumTuples();
         // print query result (numFlatTuples & tuples)
-        printf(">> Number of output tuples: %lu\n", context.queryResult->getTotalNumFlatTuples());
-        printf(">> Compiling time: %.2fms\n", context.compilingTime);
-        printf(">> Executing time: %.2fms\n", context.executingTime);
-        vector<DataType> dataTypes = context.expressionsToReturnDataTypes;
-        if (context.queryResult->getNumTuples()) {
-            vector<uint32_t> colsWidth(context.queryResult->getTableSchema().getNumColumns(), 2);
+        printf(">> Number of output tuples: %lu\n", numTuples);
+        printf(">> Compiling time: %.2fms\n", querySummary->getCompilingTime());
+        printf(">> Executing time: %.2fms\n", querySummary->getExecutionTime());
+        if (numTuples > 0) {
+            vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
             uint32_t lineSeparatorLen = 1u + colsWidth.size();
             string lineSeparator;
-
-            auto flatTupleIterator = context.queryResult->getFlatTupleIterator();
-            //  first loop: calculate column width of the table
-            while (flatTupleIterator.hasNextFlatTuple()) {
-                FlatTuple tuple(dataTypes);
-                flatTupleIterator.getNextFlatTuple(tuple);
+            while (queryResult.hasNext()) {
+                auto tuple = queryResult.getNext();
                 for (auto i = 0u; i < colsWidth.size(); i++) {
-                    if (tuple.nullMask[i]) {
+                    if (tuple->nullMask[i]) {
                         continue;
                     }
-                    uint32_t fieldLen = TypeUtils::toString(tuple.getValue(i)).length() + 2;
+                    uint32_t fieldLen = TypeUtils::toString(tuple->getValue(i)).length() + 2;
                     colsWidth[i] = (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i];
                 }
             }
+
             for (auto width : colsWidth) {
                 lineSeparatorLen += width;
             }
             lineSeparator = string(lineSeparatorLen, '-');
             printf("%s\n", lineSeparator.c_str());
 
-            auto flatTupleIterator1 = context.queryResult->getFlatTupleIterator();
-            while (flatTupleIterator1.hasNextFlatTuple()) {
-                FlatTuple tuple(dataTypes);
-                flatTupleIterator1.getNextFlatTuple(tuple);
-                printf("|%s|\n", tuple.toString(colsWidth, "|").c_str());
+            queryResult.resetIterator();
+            while (queryResult.hasNext()) {
+                auto tuple = queryResult.getNext();
+                printf("|%s|\n", tuple->toString(colsWidth, "|").c_str());
                 printf("%s\n", lineSeparator.c_str());
             }
         }
 
-        if (context.profiler->enabled) {
+        if (querySummary->getIsProfile()) {
             // print plan with profiling metrics
             printf("==============================================\n");
             printf("=============== Profiler Summary =============\n");
             printf("==============================================\n");
-            printf(">> Compiling time: %.2fms\n", context.compilingTime);
-            printf(">> Executing time: %.2fms\n", context.executingTime);
             printf(">> plan\n");
-            prettyPrintPlan();
+            querySummary->printPlanToStdOut();
         }
     }
 }

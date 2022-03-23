@@ -7,7 +7,10 @@ using namespace std;
 
 class LoaderFaultTest : public BaseGraphLoadingTest {
 public:
-    void SetUp() override{};
+    void SetUp() override {
+        systemConfig = make_unique<SystemConfig>();
+        databaseConfig = make_unique<DatabaseConfig>(TEMP_TEST_DIR);
+    };
 
     void checkLoadingFaultWithErrMsg(string expectedErrorMsg) {
         try {
@@ -19,13 +22,6 @@ public:
                 FAIL();
             }
         } catch (Exception& e) { FAIL(); }
-    }
-
-private:
-    void loadGraph() {
-        testSuiteSystemConfig.graphInputDir = getInputCSVDir();
-        testSuiteSystemConfig.graphOutputDir = TEMP_TEST_DIR;
-        TestHelper::loadGraph(testSuiteSystemConfig);
     }
 };
 

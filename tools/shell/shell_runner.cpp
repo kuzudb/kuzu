@@ -31,10 +31,9 @@ int main(int argc, char* argv[]) {
     cout << "inMemory: " << (inMemoryFlag ? "true" : "false") << endl;
     cout << "defaultPagedBPSizeInMB: " << to_string(defaultPagedBPSizeInMB) << endl;
     cout << "largePagedBPSizeInMB: " << to_string(largePagedBPSizeInMB) << endl;
-    SystemConfig systemConfig(
-        inMemoryFlag, defaultPagedBPSizeInMB << 20, largePagedBPSizeInMB << 20);
-    auto system = System(serializedGraphPath, systemConfig);
-    auto shell = EmbeddedShell(system);
+    SystemConfig systemConfig(defaultPagedBPSizeInMB << 20, largePagedBPSizeInMB << 20);
+    DatabaseConfig databaseConfig(serializedGraphPath, inMemoryFlag);
+    auto shell = EmbeddedShell(databaseConfig, systemConfig);
     shell.run();
 
     return 0;

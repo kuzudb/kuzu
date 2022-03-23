@@ -1,6 +1,5 @@
 #include <string>
 
-#include "gtest/gtest.h"
 #include "test/test_utility/include/test_helper.h"
 
 using namespace std;
@@ -18,10 +17,11 @@ public:
 // the node offsets that start from 0 consecutively (so first line gets person ID 0, second person
 // ID 1, so on and so forth).
 TEST_F(TinySnbIntervalTest, NodePropertyColumnWithInterval) {
-    auto& catalog = defaultSystem->graph->getCatalog();
+    auto graph = database->getGraph();
+    auto& catalog = graph->getCatalog();
     auto label = catalog.getNodeLabelFromString("person");
     auto propertyIdx = catalog.getNodeProperty(label, "lastJobDuration");
-    auto col = defaultSystem->graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
+    auto col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
     EXPECT_EQ(Interval::FromCString(
                   "3 years 2 days 13 hours 2 minutes", strlen("3 years 2 days 13 hours 2 minutes")),
         col->readValue(0).val.intervalVal);

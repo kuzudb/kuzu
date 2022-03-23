@@ -85,16 +85,18 @@ class PlanPrinter {
 
 public:
     PlanPrinter(unique_ptr<PhysicalPlan> physicalPlan,
-        unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalToLogicalOperatorMap)
-        : physicalPlan{move(physicalPlan)}, physicalToLogicalOperatorMap{
-                                                move(physicalToLogicalOperatorMap)} {}
+        unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalToLogicalOperatorMap,
+        unique_ptr<Profiler> profiler)
+        : physicalPlan{move(physicalPlan)},
+          physicalToLogicalOperatorMap{move(physicalToLogicalOperatorMap)}, profiler{
+                                                                                move(profiler)} {}
 
-    inline nlohmann::json printPlanToJson(Profiler& profiler) {
-        return toJson(physicalPlan->lastOperator.get(), profiler);
+    inline nlohmann::json printPlanToJson() {
+        return toJson(physicalPlan->lastOperator.get(), *profiler);
     }
 
-    inline void printPlanToShell(Profiler& profiler) {
-        OpProfileTree(physicalPlan->lastOperator.get(), profiler, physicalToLogicalOperatorMap)
+    inline void printPlanToShell() {
+        OpProfileTree(physicalPlan->lastOperator.get(), *profiler, physicalToLogicalOperatorMap)
             .prettyPrintToShell();
     }
 
@@ -107,6 +109,7 @@ private:
 private:
     unique_ptr<PhysicalPlan> physicalPlan;
     unordered_map<uint32_t, shared_ptr<LogicalOperator>> physicalToLogicalOperatorMap;
+    unique_ptr<Profiler> profiler;
 };
 
 } // namespace main

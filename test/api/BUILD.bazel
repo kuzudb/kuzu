@@ -1,0 +1,18 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_test(
+    name = "api_tests",
+    srcs = glob([
+        "*.cpp",
+    ]),
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "//dataset",
+    ],
+    deps = [
+        "//src/main:graphflowdb",
+        "//test/test_utility:test_helper",
+    ],
+)
