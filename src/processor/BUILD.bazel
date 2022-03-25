@@ -112,6 +112,20 @@ cc_library(
 )
 
 cc_library(
+    name = "var_length_join",
+    srcs = glob([
+        "physical_plan/operator/var_length_adj_list_extend.cpp",
+    ]),
+    hdrs = glob([
+        "include/physical_plan/operator/var_length_adj_list_extend.h",
+    ]),
+    deps = [
+        "base_operator",
+        "result",
+    ],
+)
+
+cc_library(
     name = "order_by",
     srcs = glob([
         "physical_plan/operator/order_by/*.cpp",

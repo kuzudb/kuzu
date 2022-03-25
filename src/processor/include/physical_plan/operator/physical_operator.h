@@ -38,6 +38,7 @@ enum PhysicalOperatorType : uint8_t {
     ORDER_BY_MERGE,
     ORDER_BY_SCAN,
     UNION_ALL_SCAN,
+    VAR_LENGTH_EXTEND,
 };
 
 const string PhysicalOperatorTypeNames[] = {"AGGREGATE", "AGGREGATE_SCAN", "COLUMN_EXTEND",

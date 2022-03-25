@@ -42,7 +42,6 @@
 #include "src/processor/include/physical_plan/operator/order_by/order_by_scan.h"
 #include "src/processor/include/physical_plan/operator/projection.h"
 #include "src/processor/include/physical_plan/operator/read_list/adj_list_extend.h"
-#include "src/processor/include/physical_plan/operator/read_list/frontier_extend.h"
 #include "src/processor/include/physical_plan/operator/read_list/read_rel_property_list.h"
 #include "src/processor/include/physical_plan/operator/result_collector.h"
 #include "src/processor/include/physical_plan/operator/result_scan.h"
@@ -52,6 +51,7 @@
 #include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
 #include "src/processor/include/physical_plan/operator/union_all_scan.h"
+#include "src/processor/include/physical_plan/operator/var_length_adj_list_extend.h"
 
 using namespace graphflow::planner;
 
@@ -238,7 +238,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
             return make_unique<AdjListExtend>(inDataPos, outDataPos, adjLists, move(prevOperator),
                 executionContext, mapperContext.getOperatorID());
         } else {
-            return make_unique<FrontierExtend>(inDataPos, outDataPos, adjLists, extend.nbrNodeLabel,
+            return make_unique<VarLengthAdjListExtend>(inDataPos, outDataPos, adjLists,
                 extend.lowerBound, extend.upperBound, move(prevOperator), executionContext,
                 mapperContext.getOperatorID());
         }

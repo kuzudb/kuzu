@@ -1,0 +1,22 @@
+# This test on the "dataset/read-list-tests/large-list-sub-query-tests" dataset tests that reInitToRerunSubPlan()
+# correctly resets largeListHandles of adjListExtend operators that may be a part of sub-query pipeline.
+# We test a sub-plan that is part of an EXISTS { } clause. The possible problem we test is the following:
+# The adjListExtend operator may be terminated in the middle of execution with listSyncState.
+# For example, the exists operator find a path(p0->knows->p1->knows->p2) for p0 and not continue to find more edges.
+# The execution of two adjListExtends, call join1 and join2, may be terminated with a populated listSyncState.
+# If exists operator then calls reInitToRerunSubPlan() on this pipeline and the recursive reInitToRerunSubPlan() calls
+# do not correctly reset listSyncState, then the next time this pipeline runs on p1, the following can happen: join1 can
+# extend p1, which suppose also has a large list but the listHandle contains stale data from the previous execution of
+# the pipeline which may end up reading corrupt nodeIDs into a ValueVector. Then join2 can read this corrupt data and
+# attempt to extend a non-existing nodeID leading to an exception or a crash.
+-NAME KnowsVeryLargeAdjListSubQueryTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.ID } RETURN count(*)
+-PARALLELISM 1
+---- 1
+1
+
+-NAME KnowsVeryLargeAdjListVarLenWithSubQueryTest
+-QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows*2..2]->(b:person) RETURN a.ID } RETURN count(*)
+-PARALLELISM 1
+---- 1
+1
