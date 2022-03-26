@@ -376,7 +376,7 @@ void FlatTupleIterator::getNextFlatTuple(FlatTuple& flatTuple) {
 
 void FlatTupleIterator::readValueBufferToFlatTuple(
     FlatTuple& flatTuple, uint64_t flatTupleValIdx, const uint8_t* valueBuffer) {
-    switch (flatTuple.getDataType(flatTupleValIdx)) {
+    switch (flatTuple.getDataType(flatTupleValIdx).typeID) {
     case INT64: {
         flatTuple.getValue(flatTupleValIdx)->val.int64Val = *((int64_t*)valueBuffer);
     } break;

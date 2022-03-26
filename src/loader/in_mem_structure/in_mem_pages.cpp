@@ -4,6 +4,7 @@
 
 #include "src/common/include/file_utils.h"
 #include "src/common/include/type_utils.h"
+#include "src/common/include/utils.h"
 
 namespace graphflow {
 namespace loader {
@@ -87,11 +88,41 @@ gf_string_t InMemOverflowPages::addString(const char* originalString, PageByteCu
     return encodedString;
 }
 
+template<DataTypeID DT>
+void InMemOverflowPages::copyOverflowValuesToPages(gf_list_t& result, const Literal& listVal,
+    PageByteCursor& cursor, uint64_t numBytesOfSingleValue) {
+    assert(DT == STRING || DT == LIST);
+    auto overflowPageId = cursor.idx;
+    auto overflowPageOffset = cursor.offset;
+    auto numBytesOfOverflow = result.size * numBytesOfSingleValue;
+    // TODO(Guodong): this check along with the check on string length should all be moved to the
+    // CSVReader.
+    if (numBytesOfOverflow >= DEFAULT_PAGE_SIZE) {
+        throw LoaderException(StringUtils::string_format(
+            "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
+            numBytesOfOverflow));
+    }
+    cursor.offset += (result.size * numBytesOfSingleValue);
+    for (auto i = 0u; i < listVal.listVal.size(); i++) {
+        assert(listVal.listVal[i].dataType.typeID == DT);
+        uint8_t* value = nullptr;
+        if constexpr (DT == STRING) {
+            auto gfStr = addString(listVal.listVal[i].strVal.c_str(), cursor);
+            value = (uint8_t*)&gfStr;
+        } else {
+            auto gfList = addList(listVal.listVal[i], cursor);
+            value = (uint8_t*)&gfList;
+        }
+        pages[overflowPageId]->write(overflowPageOffset + (i * numBytesOfSingleValue),
+            overflowPageOffset + (i * numBytesOfSingleValue), value, numBytesOfSingleValue);
+    }
+}
+
 gf_list_t InMemOverflowPages::addList(const Literal& listVal, PageByteCursor& cursor) {
-    assert(!listVal.listVal.empty());
+    assert(listVal.dataType.typeID == LIST && !listVal.listVal.empty());
     gf_list_t result;
-    result.childType = listVal.listVal[0].dataType;
-    auto numBytesOfSingleValue = Types::getDataTypeSize(result.childType);
+    auto childDataTypeID = listVal.listVal[0].dataType.typeID;
+    auto numBytesOfSingleValue = Types::getDataTypeSize(childDataTypeID);
     result.size = listVal.listVal.size();
     if (cursor.offset + (result.size * numBytesOfSingleValue) >= DEFAULT_PAGE_SIZE ||
         0 > cursor.idx) {
@@ -100,7 +131,7 @@ gf_list_t InMemOverflowPages::addList(const Literal& listVal, PageByteCursor& cu
     }
     TypeUtils::encodeOverflowPtr(result.overflowPtr, cursor.idx, cursor.offset);
     shared_lock lck(lock);
-    switch (result.childType) {
+    switch (childDataTypeID) {
     case INT64:
     case DOUBLE:
     case BOOL:
@@ -108,28 +139,17 @@ gf_list_t InMemOverflowPages::addList(const Literal& listVal, PageByteCursor& cu
     case TIMESTAMP:
     case INTERVAL: {
         for (auto& literal : listVal.listVal) {
-            assert(literal.dataType == result.childType);
+            assert(literal.dataType.typeID == childDataTypeID);
             pages[cursor.idx]->write(
                 cursor.offset, cursor.offset, (uint8_t*)&literal.val, numBytesOfSingleValue);
             cursor.offset += numBytesOfSingleValue;
         }
     } break;
     case STRING: {
-        auto gfStrOverflowPageId = cursor.idx;
-        auto gfStrOverflowPageOffset = cursor.offset;
-        cursor.offset += (result.size * numBytesOfSingleValue); // Skip gf_strings.
-        vector<gf_string_t> gfStrings;
-        // Add original strings.
-        for (auto& literal : listVal.listVal) {
-            assert(literal.dataType == STRING);
-            gfStrings.push_back(addString(literal.strVal.c_str(), cursor));
-        }
-        // Write gf_strings.
-        for (auto i = 0u; i < listVal.listVal.size(); i++) {
-            pages[gfStrOverflowPageId]->write(gfStrOverflowPageOffset + (i * numBytesOfSingleValue),
-                gfStrOverflowPageOffset + (i * numBytesOfSingleValue), (uint8_t*)&gfStrings[i],
-                numBytesOfSingleValue);
-        }
+        copyOverflowValuesToPages<STRING>(result, listVal, cursor, numBytesOfSingleValue);
+    } break;
+    case LIST: {
+        copyOverflowValuesToPages<LIST>(result, listVal, cursor, numBytesOfSingleValue);
     } break;
     default: {
         throw invalid_argument("Unsupported data type inside LIST.");

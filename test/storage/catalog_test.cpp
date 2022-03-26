@@ -30,6 +30,12 @@ public:
         personProperties.emplace_back("birthdate", 7, DATE);
         personProperties.emplace_back("registerTime", 8, TIMESTAMP);
         personProperties.emplace_back("lastJobDuration", 9, INTERVAL);
+        personProperties.emplace_back(
+            "workedHours", 10, DataType(LIST, make_unique<DataType>(INT64)));
+        personProperties.emplace_back(
+            "usedNames", 11, DataType(LIST, make_unique<DataType>(STRING)));
+        personProperties.emplace_back("courseScoresPerTerm", 12,
+            DataType(LIST, make_unique<DataType>(LIST, make_unique<DataType>(INT64))));
         catalog->addNodeLabel("person", move(personProperties));
         catalog->addNodeUnstrProperty(0, "unstrIntProp");
 
@@ -60,15 +66,24 @@ TEST_F(CatalogTest, AddLabelsTest) {
     // Test property definition
     ASSERT_TRUE(catalog->getStructuredNodeProperties(0)[0].isPrimaryKey);
     ASSERT_EQ(catalog->getNodeProperty(0, "age").id, 5);
-    ASSERT_EQ(catalog->getNodeProperty(0, "age").dataType, INT64);
-    ASSERT_EQ(catalog->getNodeProperty(0, "birthdate").dataType, DATE);
-    ASSERT_EQ(catalog->getNodeProperty(0, "registerTime").dataType, TIMESTAMP);
-    ASSERT_EQ(catalog->getNodeProperty(0, "lastJobDuration").dataType, INTERVAL);
+    ASSERT_EQ(catalog->getNodeProperty(0, "age").dataType.typeID, INT64);
+    ASSERT_EQ(catalog->getNodeProperty(0, "birthdate").dataType.typeID, DATE);
+    ASSERT_EQ(catalog->getNodeProperty(0, "registerTime").dataType.typeID, TIMESTAMP);
+    ASSERT_EQ(catalog->getNodeProperty(0, "lastJobDuration").dataType.typeID, INTERVAL);
+    ASSERT_EQ(catalog->getNodeProperty(0, "workedHours").dataType.typeID, LIST);
+    ASSERT_EQ(catalog->getNodeProperty(0, "workedHours").dataType.childType->typeID, INT64);
+    ASSERT_EQ(catalog->getNodeProperty(0, "usedNames").dataType.typeID, LIST);
+    ASSERT_EQ(catalog->getNodeProperty(0, "usedNames").dataType.childType->typeID, STRING);
+    ASSERT_EQ(catalog->getNodeProperty(0, "courseScoresPerTerm").dataType.typeID, LIST);
+    ASSERT_EQ(catalog->getNodeProperty(0, "courseScoresPerTerm").dataType.childType->typeID, LIST);
+    ASSERT_EQ(
+        catalog->getNodeProperty(0, "courseScoresPerTerm").dataType.childType->childType->typeID,
+        INT64);
     ASSERT_EQ(catalog->getUnstrPropertiesNameToIdMap(0).at("unstrIntProp"), 0);
-    ASSERT_EQ(catalog->getAllNodeProperties(0)[10].dataType, UNSTRUCTURED);
-    ASSERT_EQ(catalog->getRelProperty(0, "date").dataType, DATE);
-    ASSERT_EQ(catalog->getRelProperty(0, "meetTime").dataType, TIMESTAMP);
-    ASSERT_EQ(catalog->getRelProperty(0, "validInterval").dataType, INTERVAL);
+    ASSERT_EQ(catalog->getAllNodeProperties(0)[13].dataType.typeID, UNSTRUCTURED);
+    ASSERT_EQ(catalog->getRelProperty(0, "date").dataType.typeID, DATE);
+    ASSERT_EQ(catalog->getRelProperty(0, "meetTime").dataType.typeID, TIMESTAMP);
+    ASSERT_EQ(catalog->getRelProperty(0, "validInterval").dataType.typeID, INTERVAL);
 }
 
 TEST_F(CatalogTest, SaveAndReadTest) {

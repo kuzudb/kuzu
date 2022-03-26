@@ -2,7 +2,9 @@
 
 #include <math.h>
 
+#include <cassert>
 #include <cstring>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -22,7 +24,7 @@ struct overflow_value_t {
     uint8_t* value;
 };
 
-enum DataType : uint8_t {
+enum DataTypeID : uint8_t {
     INVALID = 0,
 
     REL = 1,
@@ -40,16 +42,51 @@ enum DataType : uint8_t {
     LIST = 13,
 };
 
-const string DataTypeNames[] = {"INVALID", "REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE",
+const string DataTypeIdNames[] = {"INVALID", "REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE",
     "STRING", "NODE_ID", "UNSTRUCTURED", "DATE", "TIMESTAMP", "INTERVAL", "LIST"};
 
-class Types {
+class DataType {
+public:
+    DataType() : typeID{INVALID}, childType{nullptr} {}
+    explicit DataType(DataTypeID typeID) : typeID{typeID}, childType{nullptr} {
+        assert(typeID != LIST);
+    }
+    DataType(DataTypeID typeID, unique_ptr<DataType> childType)
+        : typeID{typeID}, childType{move(childType)} {
+        assert(typeID == LIST);
+    }
+
+    DataType(const DataType& other);
+    DataType(DataType&& other) noexcept : typeID{other.typeID}, childType{move(other.childType)} {}
+
+    DataType& operator=(const DataType& other);
+
+    inline DataType& operator=(DataType&& other) noexcept {
+        typeID = other.typeID;
+        childType = move(other.childType);
+        return *this;
+    }
 
 public:
-    static size_t getDataTypeSize(DataType dataType);
-    static DataType getDataType(const std::string& dataTypeString);
-    static string dataTypeToString(DataType dataType);
-    static bool isNumericalType(DataType dataType);
+    DataTypeID typeID;
+    unique_ptr<DataType> childType;
+
+private:
+    unique_ptr<DataType> copy();
+};
+
+class Types {
+public:
+    static size_t getDataTypeSize(const DataType& dataType);
+    static size_t getDataTypeSize(DataTypeID dataTypeID);
+    static string dataTypeToString(const DataType& dataType);
+    static string dataTypeToString(DataTypeID dataTypeID);
+    static DataType dataTypeFromString(const string& dataTypeString);
+    static bool isNumericalType(DataTypeID dataTypeID);
+    static bool isLiteralType(DataTypeID dataTypeID);
+
+private:
+    static DataTypeID dataTypeIDFromString(const string& dataTypeIDString);
 };
 
 // Direction

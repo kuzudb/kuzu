@@ -38,7 +38,7 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindCeilExecFunctio
 pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindBinaryExecFunction(
     ExpressionType expressionType, const expression_vector& children) {
     assert(children.size() == 2);
-    switch (children[0]->dataType) {
+    switch (children[0]->dataType.typeID) {
     case STRING: {
         return bindStringArithmeticExecFunction(expressionType, children);
     }
@@ -61,7 +61,8 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindStringArithmeti
     ExpressionType expressionType, const expression_vector& children) {
     assert(expressionType == ADD);
     validateParameterType(expressionTypeToString(expressionType), *children[1], STRING);
-    return make_pair(VectorStringOperations::bindExecFunction(expressionType, children), STRING);
+    return make_pair(
+        VectorStringOperations::bindExecFunction(expressionType, children), DataType(STRING));
 }
 
 pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindDateArithmeticExecFunction(
@@ -69,13 +70,15 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindDateArithmeticE
     switch (expressionType) {
     case ADD: {
         validateParameterType(expressionTypeToString(expressionType), *children[1],
-            unordered_set<DataType>{INT64, INTERVAL});
-        switch (children[1]->dataType) {
+            unordered_set<DataTypeID>{INT64, INTERVAL});
+        switch (children[1]->dataType.typeID) {
         case INT64: { // date + int → date
-            return make_pair(BinaryExecFunction<date_t, int64_t, date_t, operation::Add>, DATE);
+            return make_pair(
+                BinaryExecFunction<date_t, int64_t, date_t, operation::Add>, DataType(DATE));
         }
         case INTERVAL: { // date + interval → date
-            return make_pair(BinaryExecFunction<date_t, interval_t, date_t, operation::Add>, DATE);
+            return make_pair(
+                BinaryExecFunction<date_t, interval_t, date_t, operation::Add>, DataType(DATE));
         }
         default:
             assert(false);
@@ -83,19 +86,19 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindDateArithmeticE
     }
     case SUBTRACT: {
         validateParameterType(expressionTypeToString(expressionType), *children[1],
-            unordered_set<DataType>{DATE, INT64, INTERVAL});
-        switch (children[1]->dataType) {
+            unordered_set<DataTypeID>{DATE, INT64, INTERVAL});
+        switch (children[1]->dataType.typeID) {
         case DATE: { // date - date → integer
             return make_pair(
-                BinaryExecFunction<date_t, date_t, int64_t, operation::Subtract>, INT64);
+                BinaryExecFunction<date_t, date_t, int64_t, operation::Subtract>, DataType(INT64));
         }
         case INT64: { // date - integer → date
             return make_pair(
-                BinaryExecFunction<date_t, int64_t, date_t, operation::Subtract>, DATE);
+                BinaryExecFunction<date_t, int64_t, date_t, operation::Subtract>, DataType(DATE));
         }
         case INTERVAL: { // date - interval → date
-            return make_pair(
-                BinaryExecFunction<date_t, interval_t, date_t, operation::Subtract>, DATE);
+            return make_pair(BinaryExecFunction<date_t, interval_t, date_t, operation::Subtract>,
+                DataType(DATE));
         }
         default:
             assert(false);
@@ -111,11 +114,11 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindTimestampArithm
     switch (expressionType) {
     case ADD: {
         validateParameterType(expressionTypeToString(expressionType), *children[1], INTERVAL);
-        switch (children[1]->dataType) {
+        switch (children[1]->dataType.typeID) {
         case INTERVAL: { // timestamp + interval → timestamp
             return make_pair(
                 BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Add>,
-                TIMESTAMP);
+                DataType(TIMESTAMP));
         }
         default:
             assert(false);
@@ -123,17 +126,17 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindTimestampArithm
     }
     case SUBTRACT: {
         validateParameterType(expressionTypeToString(expressionType), *children[1],
-            unordered_set<DataType>{TIMESTAMP, INTERVAL});
-        switch (children[1]->dataType) {
+            unordered_set<DataTypeID>{TIMESTAMP, INTERVAL});
+        switch (children[1]->dataType.typeID) {
         case TIMESTAMP: { // timestamp - timestamp → interval
             return make_pair(
                 BinaryExecFunction<timestamp_t, timestamp_t, interval_t, operation::Subtract>,
-                INTERVAL);
+                DataType(INTERVAL));
         }
         case INTERVAL: { // timestamp - interval → timestamp
             return make_pair(
                 BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Subtract>,
-                TIMESTAMP);
+                DataType(TIMESTAMP));
         }
         default:
             assert(false);
@@ -149,10 +152,10 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindIntervalArithme
     switch (expressionType) {
     case ADD: {
         validateParameterType(expressionTypeToString(expressionType), *children[1], INTERVAL);
-        switch (children[1]->dataType) {
+        switch (children[1]->dataType.typeID) {
         case INTERVAL: { // interval +interval → interval
-            return make_pair(
-                BinaryExecFunction<interval_t, interval_t, interval_t, operation::Add>, INTERVAL);
+            return make_pair(BinaryExecFunction<interval_t, interval_t, interval_t, operation::Add>,
+                DataType(INTERVAL));
         }
         default:
             assert(false);
@@ -160,11 +163,11 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindIntervalArithme
     }
     case SUBTRACT: {
         validateParameterType(expressionTypeToString(expressionType), *children[1], INTERVAL);
-        switch (children[1]->dataType) {
+        switch (children[1]->dataType.typeID) {
         case INTERVAL: { // interval - interval → interval
             return make_pair(
                 BinaryExecFunction<interval_t, interval_t, interval_t, operation::Subtract>,
-                INTERVAL);
+                DataType(INTERVAL));
         }
         default:
             assert(false);
@@ -172,10 +175,10 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindIntervalArithme
     }
     case DIVIDE: {
         validateParameterType(expressionTypeToString(expressionType), *children[1], INT64);
-        switch (children[1]->dataType) {
+        switch (children[1]->dataType.typeID) {
         case INT64: { // interval / int → interval
-            return make_pair(
-                BinaryExecFunction<interval_t, int64_t, interval_t, operation::Divide>, INTERVAL);
+            return make_pair(BinaryExecFunction<interval_t, int64_t, interval_t, operation::Divide>,
+                DataType(INTERVAL));
         }
         default:
             assert(false);
@@ -194,43 +197,43 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindNumericalArithm
         expressionTypeToString(expressionType), *children[0], {INT64, DOUBLE, UNSTRUCTURED});
     validateParameterType(
         expressionTypeToString(expressionType), *children[1], {INT64, DOUBLE, UNSTRUCTURED});
-    switch (leftType) {
+    switch (leftType.typeID) {
     case INT64: {
-        switch (rightType) {
+        switch (rightType.typeID) {
         case INT64: {
             return make_pair(
                 bindNumericalArithmeticExecFunction<int64_t, int64_t, int64_t>(expressionType),
-                INT64);
+                DataType(INT64));
         }
         case DOUBLE: {
             return make_pair(
                 bindNumericalArithmeticExecFunction<int64_t, double_t, double_t>(expressionType),
-                DOUBLE);
+                DataType(DOUBLE));
         }
         default:
             assert(false);
         }
     }
     case DOUBLE: {
-        switch (rightType) {
+        switch (rightType.typeID) {
         case INT64: {
             return make_pair(
                 bindNumericalArithmeticExecFunction<double_t, int64_t, double_t>(expressionType),
-                DOUBLE);
+                DataType(DOUBLE));
         }
         case DOUBLE: {
             return make_pair(
                 bindNumericalArithmeticExecFunction<double_t, double_t, double_t>(expressionType),
-                DOUBLE);
+                DataType(DOUBLE));
         }
         default:
             assert(false);
         }
     }
     case UNSTRUCTURED: {
-        assert(rightType == UNSTRUCTURED);
-        return make_pair(
-            bindNumericalArithmeticExecFunction<Value, Value, Value>(expressionType), UNSTRUCTURED);
+        assert(rightType.typeID == UNSTRUCTURED);
+        return make_pair(bindNumericalArithmeticExecFunction<Value, Value, Value>(expressionType),
+            DataType(UNSTRUCTURED));
     }
     default:
         assert(false);
@@ -266,23 +269,22 @@ scalar_exec_func VectorArithmeticOperations::bindNumericalArithmeticExecFunction
 
 pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindUnaryExecFunction(
     ExpressionType expressionType, const expression_vector& children) {
-    assert(children.size() == 1);
-    assert(expressionType == NEGATE);
+    assert(children.size() == 1 && expressionType == NEGATE);
     return bindUnaryExecFunction<operation::Negate>(children[0]->dataType);
 }
 
 template<typename FUNC>
 pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindUnaryExecFunction(
-    DataType operandType) {
-    switch (operandType) {
+    const DataType& operandType) {
+    switch (operandType.typeID) {
     case INT64: {
-        return make_pair(UnaryExecFunction<int64_t, int64_t, FUNC>, INT64);
+        return make_pair(UnaryExecFunction<int64_t, int64_t, FUNC>, DataType(INT64));
     }
     case DOUBLE: {
-        return make_pair(UnaryExecFunction<double_t, double_t, FUNC>, DOUBLE);
+        return make_pair(UnaryExecFunction<double_t, double_t, FUNC>, DataType(DOUBLE));
     }
     case UNSTRUCTURED: {
-        return make_pair(UnaryExecFunction<Value, Value, FUNC>, UNSTRUCTURED);
+        return make_pair(UnaryExecFunction<Value, Value, FUNC>, DataType(UNSTRUCTURED));
     }
     default:
         assert(false);

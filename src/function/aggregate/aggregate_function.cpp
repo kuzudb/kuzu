@@ -44,7 +44,8 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getAggregateFunction(Expres
 
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getCountStarFunction() {
     return make_unique<AggregateFunction>(CountStarFunction::initialize, CountStarFunction::update,
-        CountStarFunction::combine, CountStarFunction::finalize, INT64 /* dummy input data type */);
+        CountStarFunction::combine, CountStarFunction::finalize,
+        DataType(INT64) /* dummy input data type */);
 }
 
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getCountFunction(
@@ -57,7 +58,7 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getCountFunction(
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(
     FunctionExpression& functionExpression) {
     auto inputDataType = functionExpression.getChild(0)->dataType;
-    switch (inputDataType) {
+    switch (inputDataType.typeID) {
     case INT64:
         return make_unique<AggregateFunction>(AvgFunction<int64_t>::initialize,
             AvgFunction<int64_t>::update, AvgFunction<int64_t>::combine,
@@ -72,15 +73,15 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(
             AvgFunction<Value>::update, AvgFunction<Value>::combine, AvgFunction<Value>::finalize,
             inputDataType, functionExpression.isFunctionDistinct());
     default:
-        throw invalid_argument(
-            "Data type " + DataTypeNames[inputDataType] + " not supported for AVG.");
+        throw invalid_argument("Data type " + Types::dataTypeToString(inputDataType.typeID) +
+                               " not supported for AVG.");
     }
 }
 
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunction(
     FunctionExpression& functionExpression) {
     auto inputDataType = functionExpression.getChild(0)->dataType;
-    switch (inputDataType) {
+    switch (inputDataType.typeID) {
     case INT64:
         return make_unique<AggregateFunction>(SumFunction<int64_t>::initialize,
             SumFunction<int64_t>::update, SumFunction<int64_t>::combine,
@@ -95,8 +96,8 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunction(
             SumFunction<Value>::update, SumFunction<Value>::combine, SumFunction<Value>::finalize,
             inputDataType, functionExpression.isFunctionDistinct());
     default:
-        throw invalid_argument(
-            "Data type " + DataTypeNames[inputDataType] + " not supported for SUM.");
+        throw invalid_argument("Data type " + Types::dataTypeToString(inputDataType.typeID) +
+                               " not supported for SUM.");
     }
 }
 
@@ -105,7 +106,7 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
     FunctionExpression& functionExpression) {
     auto inputDataType = functionExpression.getChild(0)->dataType;
     if constexpr (IS_MIN) {
-        switch (inputDataType) {
+        switch (inputDataType.typeID) {
         case BOOL:
             return make_unique<AggregateFunction>(MinMaxFunction<bool>::initialize,
                 MinMaxFunction<bool>::update<LessThan>, MinMaxFunction<bool>::combine<LessThan>,
@@ -143,11 +144,11 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
                 MinMaxFunction<Value>::finalize, inputDataType,
                 functionExpression.isFunctionDistinct());
         default:
-            throw invalid_argument(
-                "Data type " + DataTypeNames[inputDataType] + " not supported for MIN.");
+            throw invalid_argument("Data type " + Types::dataTypeToString(inputDataType.typeID) +
+                                   " not supported for MIN.");
         }
     } else {
-        switch (inputDataType) {
+        switch (inputDataType.typeID) {
         case BOOL:
             return make_unique<AggregateFunction>(MinMaxFunction<bool>::initialize,
                 MinMaxFunction<bool>::update<GreaterThan>,
@@ -185,8 +186,8 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
                 MinMaxFunction<Value>::combine<GreaterThan>, MinMaxFunction<Value>::finalize,
                 inputDataType, functionExpression.isFunctionDistinct());
         default:
-            throw invalid_argument(
-                "Data type " + DataTypeNames[inputDataType] + " not supported for MAX.");
+            throw invalid_argument("Data type " + Types::dataTypeToString(inputDataType.typeID) +
+                                   " not supported for MAX.");
         }
     }
 }

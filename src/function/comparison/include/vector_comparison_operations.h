@@ -29,7 +29,8 @@ private:
     template<typename LEFT_TYPE, typename RIGHT_TYPE>
     static scalar_select_func bindBinarySelectFunction(ExpressionType expressionType);
 
-    static void validate(ExpressionType expressionType, DataType leftType, DataType rightType);
+    static void validate(
+        ExpressionType expressionType, DataTypeID leftTypeID, DataTypeID rightTypeID);
 };
 
 } // namespace function

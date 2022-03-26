@@ -25,16 +25,20 @@ public:
     // Create binary expression.
     Expression(ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& left,
         const shared_ptr<Expression>& right)
-        : Expression{expressionType, dataType, expression_vector{left, right}} {}
+        : Expression{expressionType, move(dataType), expression_vector{left, right}} {}
 
     // Create unary expression.
     Expression(
         ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child)
-        : Expression{expressionType, dataType, expression_vector{child}} {}
+        : Expression{expressionType, move(dataType), expression_vector{child}} {}
 
     // Create leaf expression with unique name
     Expression(ExpressionType expressionType, DataType dataType, const string& uniqueName);
 
+protected:
+    Expression(ExpressionType expressionType, DataTypeID dataTypeID, const string& uniqueName);
+
+public:
     inline void setAlias(const string& name) { alias = name; }
 
     inline void setRawName(const string& name) { rawName = name; }
@@ -72,7 +76,7 @@ public:
 
 protected:
     Expression(ExpressionType expressionType, DataType dataType)
-        : expressionType{expressionType}, dataType{dataType} {}
+        : expressionType{expressionType}, dataType{move(dataType)} {}
 
     bool hasSubExpressionOfType(
         const std::function<bool(ExpressionType type)>& typeCheckFunc) const;
@@ -83,7 +87,7 @@ public:
 
 protected:
     // Name that serves as the unique identifier.
-    // NOTE: an expression must have an unique name
+    // NOTE: an expression must have a unique name
     string uniqueName;
     string alias;
     // Name that matches user input.

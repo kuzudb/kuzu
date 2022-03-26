@@ -24,7 +24,7 @@ public:
         uint8_t* dstData, OverflowBuffer& dstOverflowBuffer);
 
 private:
-    static void copyNonNullDataWithSameType(DataType dataType, const uint8_t* srcData,
+    static void copyNonNullDataWithSameType(const DataType& dataType, const uint8_t* srcData,
         uint8_t* dstData, OverflowBuffer& overflowBuffer);
 };
 

@@ -34,7 +34,7 @@ public:
 
 protected:
     void writeAggregateResultToVector(
-        shared_ptr<ValueVector> vector, uint64_t pos, AggregateState* aggregateState);
+        ValueVector& vector, uint64_t pos, AggregateState* aggregateState);
 
 protected:
     vector<DataPos> aggregatesPos;

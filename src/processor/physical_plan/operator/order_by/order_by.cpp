@@ -46,7 +46,7 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
         auto vectorPos = keyDataPos.valueVectorPos;
         auto vector = dataChunk->valueVectors[vectorPos];
         keyVectors.emplace_back(vector);
-        if (STRING == vector->dataType || UNSTRUCTURED == vector->dataType) {
+        if (STRING == vector->dataType.typeID || UNSTRUCTURED == vector->dataType.typeID) {
             // If this is a string or unstructured column, we need to find the
             // factorizedTable offset for this column.
             auto factorizedTableColIdx = 0ul;
@@ -57,7 +57,7 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
             }
             stringAndUnstructuredKeyColInfo.emplace_back(
                 StringAndUnstructuredKeyColInfo(factorizedTableColIdx, encodedKeyBlockColOffset,
-                    orderByDataInfo.isAscOrder[i], STRING == vector->dataType));
+                    orderByDataInfo.isAscOrder[i], STRING == vector->dataType.typeID));
         }
         encodedKeyBlockColOffset += OrderByKeyEncoder::getEncodingSize(vector->dataType);
     }

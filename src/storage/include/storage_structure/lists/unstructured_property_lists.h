@@ -7,20 +7,20 @@ namespace storage {
 
 struct UnstructuredPropertyKeyDataType {
     uint32_t keyIdx;
-    DataType dataType;
+    DataTypeID dataTypeID;
 };
 
 // UnstructuredPropertyLists is the specialization of Lists for Node's unstructured property lists.
 // Though this shares the identical representation as Lists, it is more aligned to Columns in
 // terms of access. In particular, readValues(...) of UnstructuredPropertyLists> is given a
 // NodeVector as input, similar to readValues() in Columns. For each node in NodeVector,
-// unstructured property list of that node is read and the required property along with its dataType
-// is copied to a specialized UNSTRUCTURED-typed ValueVector.
+// unstructured property list of that node is read and the required property along with its
+// dataTypeID is copied to a specialized UNSTRUCTURED-typed ValueVector.
 class UnstructuredPropertyLists : public Lists {
 
 public:
     UnstructuredPropertyLists(const string& fName, BufferManager& bufferManager, bool isInMemory)
-        : Lists{fName, UNSTRUCTURED, 1, make_shared<ListHeaders>(fName), bufferManager,
+        : Lists{fName, DataType(UNSTRUCTURED), 1, make_shared<ListHeaders>(fName), bufferManager,
               false /*hasNULLBytes*/, isInMemory},
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 

@@ -33,7 +33,7 @@ bool HashAggregateScan::getNextTuples() {
             1 + groupByKeyVectors.size());
         for (auto& vector : aggregateVectors) {
             auto aggState = (AggregateState*)(entry + offset);
-            writeAggregateResultToVector(vector, pos, aggState);
+            writeAggregateResultToVector(*vector, pos, aggState);
             offset += aggState->getStateSize();
         }
     }

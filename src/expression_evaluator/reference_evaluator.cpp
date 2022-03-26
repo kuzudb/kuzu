@@ -4,7 +4,7 @@ namespace graphflow {
 namespace evaluator {
 
 inline static bool isTrue(ValueVector& vector, uint64_t pos) {
-    assert(vector.dataType == BOOL);
+    assert(vector.dataType.typeID == BOOL);
     return !vector.isNull(pos) && ((bool*)vector.values)[pos];
 }
 

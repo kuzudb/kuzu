@@ -39,7 +39,7 @@ class AggregateHashTable : public BaseHashTable {
 public:
     // Used by distinct aggregate hash table only.
     inline AggregateHashTable(MemoryManager& memoryManager,
-        vector<DataType> groupByHashKeysDataTypes,
+        const vector<DataType>& groupByHashKeysDataTypes,
         const vector<unique_ptr<AggregateFunction>>& aggregateFunctions,
         uint64_t numEntriesToAllocate)
         : AggregateHashTable(memoryManager, groupByHashKeysDataTypes, vector<DataType>(),
@@ -115,7 +115,7 @@ private:
     hash_t computeHash(uint8_t* keys);
 
     //! compute hash for single key value
-    hash_t computeHash(DataType keyDataType, uint8_t* keyValue, uint64_t colIdx);
+    hash_t computeHash(const DataType& keyDataType, uint8_t* keyValue, uint64_t colIdx);
 
     //! check if flat key vectors are the same as keys stored in entry
     bool matchGroupByKeys(const vector<ValueVector*>& keyVectors, uint8_t* entry);

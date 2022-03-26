@@ -137,63 +137,63 @@ struct ArithmeticOnValues {
     template<class FUNC, const char* arithmeticOpStr>
     static void operation(
         Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
-        switch (left.dataType) {
+        switch (left.dataType.typeID) {
         case INT64:
-            switch (right.dataType) {
+            switch (right.dataType.typeID) {
             case INT64: {
-                result.dataType = INT64;
+                result.dataType.typeID = INT64;
                 FUNC::operation(left.val.int64Val, right.val.int64Val, result.val.int64Val,
                     isLeftNull, isRightNull);
             } break;
             case DOUBLE: {
-                result.dataType = DOUBLE;
+                result.dataType.typeID = DOUBLE;
                 FUNC::operation(left.val.int64Val, right.val.doubleVal, result.val.doubleVal,
                     isLeftNull, isRightNull);
             } break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `INT64` and `" +
-                                       Types::dataTypeToString(right.dataType) + "`");
+                                       Types::dataTypeToString(right.dataType.typeID) + "`");
             }
             break;
         case DOUBLE:
-            switch (right.dataType) {
+            switch (right.dataType.typeID) {
             case INT64: {
-                result.dataType = DOUBLE;
+                result.dataType.typeID = DOUBLE;
                 FUNC::operation(left.val.doubleVal, right.val.int64Val, result.val.doubleVal,
                     isLeftNull, isRightNull);
             } break;
             case DOUBLE: {
-                result.dataType = DOUBLE;
+                result.dataType.typeID = DOUBLE;
                 FUNC::operation(left.val.doubleVal, right.val.doubleVal, result.val.doubleVal,
                     isLeftNull, isRightNull);
             } break;
             default:
                 throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
-                                       Types::dataTypeToString(right.dataType) + "`");
+                                       Types::dataTypeToString(right.dataType.typeID) + "`");
             }
             break;
         default:
             throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
-                                   Types::dataTypeToString(left.dataType) + "` and `" +
-                                   Types::dataTypeToString(right.dataType) + "`");
+                                   Types::dataTypeToString(left.dataType.typeID) + "` and `" +
+                                   Types::dataTypeToString(right.dataType.typeID) + "`");
         }
     }
 
     template<class FUNC, const char* arithmeticOpStr>
     static void operation(Value& input, bool isNull, Value& result) {
         assert(!isNull);
-        switch (input.dataType) {
+        switch (input.dataType.typeID) {
         case INT64: {
-            result.dataType = INT64;
+            result.dataType.typeID = INT64;
             FUNC::operation(input.val.int64Val, isNull, result.val.int64Val);
         } break;
         case DOUBLE: {
-            result.dataType = DOUBLE;
+            result.dataType.typeID = DOUBLE;
             FUNC::operation(input.val.doubleVal, isNull, result.val.doubleVal);
         } break;
         default:
             throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
-                                   Types::dataTypeToString(input.dataType) + "`");
+                                   Types::dataTypeToString(input.dataType.typeID) + "`");
         }
     }
 };
@@ -212,9 +212,9 @@ static const char ceilStr[] = "ceil";
 template<>
 inline void Add::operation(
     Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
-    if (left.dataType == STRING || right.dataType == STRING) {
-        result.dataType = STRING;
-        if (left.dataType == STRING && right.dataType == STRING) {
+    if (left.dataType.typeID == STRING || right.dataType.typeID == STRING) {
+        result.dataType.typeID = STRING;
+        if (left.dataType.typeID == STRING && right.dataType.typeID == STRING) {
             Concat::operation(
                 left.val.strVal, right.val.strVal, result.val.strVal, isLeftNull, isRightNull);
         } else {
@@ -226,25 +226,25 @@ inline void Add::operation(
             Concat::operation(lVal, rVal, result.val.strVal, isLeftNull, isRightNull);
         }
         return;
-    } else if (left.dataType == DATE && right.dataType == INTERVAL) {
-        result.dataType = DATE;
+    } else if (left.dataType.typeID == DATE && right.dataType.typeID == INTERVAL) {
+        result.dataType.typeID = DATE;
         Add::operation(
             left.val.dateVal, right.val.intervalVal, result.val.dateVal, isLeftNull, isRightNull);
         return;
-    } else if (left.dataType == DATE && right.dataType == INT64) {
-        result.dataType = DATE;
+    } else if (left.dataType.typeID == DATE && right.dataType.typeID == INT64) {
+        result.dataType.typeID = DATE;
         Add::operation(
             left.val.dateVal, right.val.int64Val, result.val.dateVal, isLeftNull, isRightNull);
         return;
-    } else if (left.dataType == TIMESTAMP) {
-        assert(right.dataType == INTERVAL);
-        result.dataType = TIMESTAMP;
+    } else if (left.dataType.typeID == TIMESTAMP) {
+        assert(right.dataType.typeID == INTERVAL);
+        result.dataType.typeID = TIMESTAMP;
         Add::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal,
             isLeftNull, isRightNull);
         return;
-    } else if (left.dataType == INTERVAL) {
-        assert(right.dataType == INTERVAL);
-        result.dataType = INTERVAL;
+    } else if (left.dataType.typeID == INTERVAL) {
+        assert(right.dataType.typeID == INTERVAL);
+        result.dataType.typeID = INTERVAL;
         Add::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal,
             isLeftNull, isRightNull);
         return;
@@ -255,33 +255,33 @@ inline void Add::operation(
 template<>
 inline void Subtract::operation(
     Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
-    if (left.dataType == DATE && right.dataType == INTERVAL) {
-        result.dataType = DATE;
+    if (left.dataType.typeID == DATE && right.dataType.typeID == INTERVAL) {
+        result.dataType.typeID = DATE;
         Subtract::operation(
             left.val.dateVal, right.val.intervalVal, result.val.dateVal, isLeftNull, isRightNull);
         return;
-    } else if (left.dataType == DATE && right.dataType == INT64) {
-        result.dataType = DATE;
+    } else if (left.dataType.typeID == DATE && right.dataType.typeID == INT64) {
+        result.dataType.typeID = DATE;
         Subtract::operation(
             left.val.dateVal, right.val.int64Val, result.val.dateVal, isLeftNull, isRightNull);
         return;
-    } else if (left.dataType == DATE && right.dataType == DATE) {
-        result.dataType = INT64;
+    } else if (left.dataType.typeID == DATE && right.dataType.typeID == DATE) {
+        result.dataType.typeID = INT64;
         Subtract::operation(
             left.val.dateVal, right.val.dateVal, result.val.int64Val, isLeftNull, isRightNull);
         return;
-    } else if (left.dataType == TIMESTAMP && right.dataType == INTERVAL) {
-        result.dataType = TIMESTAMP;
+    } else if (left.dataType.typeID == TIMESTAMP && right.dataType.typeID == INTERVAL) {
+        result.dataType.typeID = TIMESTAMP;
         Subtract::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal,
             isLeftNull, isRightNull);
         return;
-    } else if (left.dataType == TIMESTAMP && right.dataType == TIMESTAMP) {
-        result.dataType = INTERVAL;
+    } else if (left.dataType.typeID == TIMESTAMP && right.dataType.typeID == TIMESTAMP) {
+        result.dataType.typeID = INTERVAL;
         Subtract::operation(left.val.timestampVal, right.val.timestampVal, result.val.intervalVal,
             isLeftNull, isRightNull);
         return;
-    } else if (left.dataType == INTERVAL && right.dataType == INTERVAL) {
-        result.dataType = INTERVAL;
+    } else if (left.dataType.typeID == INTERVAL && right.dataType.typeID == INTERVAL) {
+        result.dataType.typeID = INTERVAL;
         Subtract::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal,
             isLeftNull, isRightNull);
         return;
@@ -300,8 +300,8 @@ inline void Multiply::operation(
 template<>
 inline void Divide::operation(
     Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
-    if (left.dataType == INTERVAL && right.dataType == INT64) {
-        result.dataType = INTERVAL;
+    if (left.dataType.typeID == INTERVAL && right.dataType.typeID == INT64) {
+        result.dataType.typeID = INTERVAL;
         Divide::operation(left.val.intervalVal, right.val.int64Val, result.val.intervalVal,
             isLeftNull, isRightNull);
         return;

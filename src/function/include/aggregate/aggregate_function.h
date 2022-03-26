@@ -15,6 +15,7 @@ namespace function {
 struct AggregateState {
     virtual inline uint64_t getStateSize() const = 0;
     virtual uint8_t* getResult() const = 0;
+    virtual ~AggregateState() = default;
 
     bool isNull = true;
 };
@@ -33,7 +34,8 @@ public:
         DataType inputDataType, bool isDistinct = false)
         : initializeFunc{move(initializeFunc)}, updateFunc{move(updateFunc)}, combineFunc{move(
                                                                                   combineFunc)},
-          finalizeFunc{move(finalizeFunc)}, inputDataType{inputDataType}, isDistinct{isDistinct} {
+          finalizeFunc{move(finalizeFunc)}, inputDataType{move(inputDataType)}, isDistinct{
+                                                                                    isDistinct} {
         initialNullAggregateState = createInitialNullAggregateState();
     }
 

@@ -26,7 +26,7 @@ struct CSVReaderConfig {
     char listEndChar;
 };
 
-// todo(Guodong): we should add a csv reader test to test edge cases and error messages.
+// TODO(Guodong): we should add a csv reader test to test edge cases and error messages.
 // Iterator-like interface to read one block in a CSV file line-by-line while parsing into primitive
 // dataTypes.
 class CSVReader {
@@ -64,7 +64,7 @@ public:
     date_t getDate();
     timestamp_t getTimestamp();
     interval_t getInterval();
-    Literal getList(DataType childDataType);
+    Literal getList(const DataType& dataType);
 
 private:
     void openFile(const string& fName);
@@ -73,7 +73,6 @@ private:
 private:
     FILE* fd;
     const CSVReaderConfig& config;
-    // todo(Guodong): should `nextLineIsNotProcessed` be renamed as `prevLineIsNotProcessed`?
     bool nextLineIsNotProcessed, isEndOfBlock, nextTokenIsNotProcessed;
     char* line;
     size_t lineCapacity, lineLen;

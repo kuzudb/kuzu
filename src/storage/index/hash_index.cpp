@@ -10,7 +10,7 @@ using namespace graphflow::function::operation;
 namespace graphflow {
 namespace storage {
 
-HashIndexHeader::HashIndexHeader(DataType keyDataType) : keyDataType{keyDataType} {
+HashIndexHeader::HashIndexHeader(DataTypeID keyDataType) : keyDataType{keyDataType} {
     numBytesPerEntry = Types::getDataTypeSize(keyDataType) + sizeof(node_offset_t);
     numBytesPerSlot = (numBytesPerEntry * slotCapacity) + sizeof(SlotHeader);
     numSlotsPerPage = DEFAULT_PAGE_SIZE / numBytesPerSlot;
@@ -24,7 +24,7 @@ void HashIndexHeader::incrementLevel() {
 
 // Opens the hash index in the write-mode that can only do insertions. Lookups in this mode are
 // undefined.
-HashIndex::HashIndex(const string& fName, DataType keyDataType)
+HashIndex::HashIndex(const string& fName, DataTypeID keyDataType)
     : fName{fName}, indexHeader{keyDataType}, logger(LoggerUtils::getOrCreateSpdLogger("storage")) {
     assert(keyDataType == INT64 || keyDataType == STRING);
     // When the Hash index is initialized without the BufferManager, it is opened for only writing.

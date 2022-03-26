@@ -5,21 +5,19 @@
 namespace graphflow {
 namespace common {
 
-void gf_list_t::set(const uint8_t* values) const {
-    memcpy(
-        reinterpret_cast<uint8_t*>(overflowPtr), values, size * Types::getDataTypeSize(childType));
+void gf_list_t::set(const uint8_t* values, const DataType& dataType) const {
+    memcpy(reinterpret_cast<uint8_t*>(overflowPtr), values,
+        size * Types::getDataTypeSize(*dataType.childType));
 }
 
-void gf_list_t::set(const gf_list_t& other) {
-    this->childType = other.childType;
+void gf_list_t::set(const gf_list_t& other, const DataType& dataType) {
     this->size = other.size;
-    set(reinterpret_cast<uint8_t*>(other.overflowPtr));
+    set(reinterpret_cast<uint8_t*>(other.overflowPtr), dataType);
 }
 
-void gf_list_t::set(DataType childType, const vector<uint8_t*>& parameters) {
-    this->childType = childType;
+void gf_list_t::set(const vector<uint8_t*>& parameters, DataTypeID childTypeId) {
     this->size = parameters.size();
-    auto numBytesOfListElement = Types::getDataTypeSize(childType);
+    auto numBytesOfListElement = Types::getDataTypeSize(childTypeId);
     for (auto i = 0u; i < parameters.size(); i++) {
         memcpy(reinterpret_cast<uint8_t*>(this->overflowPtr) + (i * numBytesOfListElement),
             parameters[i], numBytesOfListElement);

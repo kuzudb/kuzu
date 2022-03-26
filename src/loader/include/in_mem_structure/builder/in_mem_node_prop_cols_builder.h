@@ -19,7 +19,7 @@ public:
         const Graph& graph, string outputDirectory);
 
     void setProperty(node_offset_t nodeOffset, const uint32_t& propertyIdx, const uint8_t* val,
-        const DataType& type);
+        const DataTypeID& type);
 
     void setStringProperty(node_offset_t nodeOffset, const uint32_t& propertyIdx,
         const char* originalString, PageByteCursor& cursor);

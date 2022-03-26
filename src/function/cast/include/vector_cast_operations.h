@@ -15,7 +15,8 @@ public:
         const expression_vector& children) {
         validateNumParameters(CAST_TO_DATE_FUNCTION_NAME, children.size(), 1);
         validateParameterType(CAST_TO_DATE_FUNCTION_NAME, *children[0], STRING);
-        return make_pair(UnaryExecFunction<gf_string_t, date_t, operation::CastStringToDate>, DATE);
+        return make_pair(
+            UnaryExecFunction<gf_string_t, date_t, operation::CastStringToDate>, DataType(DATE));
     }
 
     static pair<scalar_exec_func, DataType> bindCastStringToTimestampExecFunction(
@@ -24,7 +25,7 @@ public:
         validateParameterType(CAST_TO_TIMESTAMP_FUNCTION_NAME, *children[0], STRING);
         return make_pair(
             UnaryExecFunction<gf_string_t, timestamp_t, operation::CastStringToTimestamp>,
-            TIMESTAMP);
+            DataType(TIMESTAMP));
     }
 
     static pair<scalar_exec_func, DataType> bindCastStringToIntervalExecFunction(
@@ -32,20 +33,20 @@ public:
         validateNumParameters(CAST_TO_INTERVAL_FUNCTION_NAME, children.size(), 1);
         validateParameterType(CAST_TO_INTERVAL_FUNCTION_NAME, *children[0], STRING);
         return make_pair(
-            UnaryExecFunction<gf_string_t, interval_t, operation::CastStringToInterval>, INTERVAL);
+            UnaryExecFunction<gf_string_t, interval_t, operation::CastStringToInterval>,
+            DataType(INTERVAL));
     }
 
     static pair<scalar_exec_func, DataType> bindCastStructuredToStringExecFunction(
         const expression_vector& children) {
         validateNumParameters(CAST_TO_STRING_FUNCTION_NAME, children.size(), 1);
-        return make_pair(castStructuredToString, STRING);
+        return make_pair(castStructuredToString, DataType(STRING));
     }
 
     static scalar_exec_func bindCastUnstructuredToBoolExecFunction(
         const expression_vector& children) {
         // no need to validate internal function. assert instead.
-        assert(children.size() == 1);
-        assert(children[0]->dataType == UNSTRUCTURED);
+        assert(children.size() == 1 && children[0]->dataType.typeID == UNSTRUCTURED);
         return UnaryExecFunction<Value, uint8_t, operation::CastUnstructuredToBool>;
     }
 

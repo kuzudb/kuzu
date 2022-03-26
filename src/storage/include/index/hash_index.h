@@ -109,7 +109,7 @@ struct HashIndexHeader {
 private:
     HashIndexHeader() = default;
 
-    explicit HashIndexHeader(DataType keyDataType);
+    explicit HashIndexHeader(DataTypeID keyDataType);
 
     inline void incrementLevel();
 
@@ -130,13 +130,13 @@ private:
     uint64_t higherLevelHashMask{3};
     uint64_t nextSplitSlotId{0};
 
-    DataType keyDataType = INT64;
+    DataTypeID keyDataType = INT64;
 };
 
 class HashIndex {
 
 public:
-    explicit HashIndex(const string& fName, DataType keyDataType);
+    explicit HashIndex(const string& fName, DataTypeID keyDataType);
 
     HashIndex(const string& fName, BufferManager& bufferManager, bool isInMemory);
 

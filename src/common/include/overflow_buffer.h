@@ -34,29 +34,12 @@ public:
     // BufferManager. We need to therefore release them back by calling
     // memoryManager->freeBMBackedBlock.
     ~OverflowBuffer() {
-        for (auto i = 0u; i < blocks.size(); ++i) {
-            memoryManager->freeBMBackedBlock(blocks[i]->block->pageIdx);
+        for (auto& block : blocks) {
+            memoryManager->freeBMBackedBlock(block->block->pageIdx);
         }
     }
 
     uint8_t* allocateSpace(uint64_t size);
-
-private:
-    inline bool requireNewBlock(uint64_t sizeToAllocate) {
-        if (sizeToAllocate > LARGE_PAGE_SIZE) {
-            throw invalid_argument("Require size " + to_string(sizeToAllocate) +
-                                   " greater than single block size " + to_string(LARGE_PAGE_SIZE) +
-                                   ".");
-        }
-        return currentBlock == nullptr ||
-               (currentBlock->currentOffset + sizeToAllocate) > currentBlock->size;
-    }
-
-    // TODO: more than more one block might be needed?
-    void allocateNewBlock();
-
-public:
-    vector<unique_ptr<BufferBlock>> blocks;
 
     inline void merge(OverflowBuffer& other) {
         move(begin(other.blocks), end(other.blocks), back_inserter(blocks));
@@ -68,11 +51,11 @@ public:
         currentBlock = other.currentBlock;
     }
 
-    // Releases all memory accumulated for string overflows so far and reinitializes its state to an
-    // empty buffer. If there a large string that used point to any of these overflow buffers they
-    // will error.
+    // Releases all memory accumulated for string overflows so far and re-initializes its state to
+    // an empty buffer. If there is a large string that used point to any of these overflow buffers
+    // they will error.
     inline void resetBuffer() {
-        if (blocks.size() >= 1) {
+        if (!blocks.empty()) {
             auto firstBlock = move(blocks[0]);
             for (auto i = 1u; i < blocks.size(); ++i) {
                 memoryManager->freeBMBackedBlock(blocks[i]->block->pageIdx);
@@ -87,6 +70,20 @@ public:
     }
 
 private:
+    inline bool requireNewBlock(uint64_t sizeToAllocate) {
+        if (sizeToAllocate > LARGE_PAGE_SIZE) {
+            throw invalid_argument("Require size " + to_string(sizeToAllocate) +
+                                   " greater than single block size " + to_string(LARGE_PAGE_SIZE) +
+                                   ".");
+        }
+        return currentBlock == nullptr ||
+               (currentBlock->currentOffset + sizeToAllocate) > currentBlock->size;
+    }
+
+    void allocateNewBlock();
+
+private:
+    vector<unique_ptr<BufferBlock>> blocks;
     MemoryManager* memoryManager;
     BufferBlock* currentBlock;
 };

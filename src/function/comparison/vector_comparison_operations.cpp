@@ -20,14 +20,14 @@ scalar_exec_func VectorComparisonOperations::bindBinaryExecFunction(
     assert(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
-    validate(expressionType, leftType, rightType);
-    switch (leftType) {
+    validate(expressionType, leftType.typeID, rightType.typeID);
+    switch (leftType.typeID) {
     case BOOL: {
-        assert(rightType == BOOL);
+        assert(rightType.typeID == BOOL);
         return bindBinaryExecFunction<uint8_t, uint8_t>(expressionType);
     }
     case INT64: {
-        switch (rightType) {
+        switch (rightType.typeID) {
         case INT64: {
             return bindBinaryExecFunction<int64_t, int64_t>(expressionType);
         }
@@ -39,7 +39,7 @@ scalar_exec_func VectorComparisonOperations::bindBinaryExecFunction(
         }
     }
     case DOUBLE: {
-        switch (rightType) {
+        switch (rightType.typeID) {
         case INT64: {
             return bindBinaryExecFunction<double_t, int64_t>(expressionType);
         }
@@ -51,27 +51,27 @@ scalar_exec_func VectorComparisonOperations::bindBinaryExecFunction(
         }
     }
     case STRING: {
-        assert(rightType == STRING);
+        assert(rightType.typeID == STRING);
         return bindBinaryExecFunction<gf_string_t, gf_string_t>(expressionType);
     }
     case NODE_ID: {
-        assert(rightType == NODE_ID);
+        assert(rightType.typeID == NODE_ID);
         return bindBinaryExecFunction<nodeID_t, nodeID_t>(expressionType);
     }
     case UNSTRUCTURED: {
-        assert(rightType == UNSTRUCTURED);
+        assert(rightType.typeID == UNSTRUCTURED);
         return bindBinaryExecFunction<Value, Value>(expressionType);
     }
     case DATE: {
-        assert(rightType == DATE);
+        assert(rightType.typeID == DATE);
         return bindBinaryExecFunction<date_t, date_t>(expressionType);
     }
     case TIMESTAMP: {
-        assert(rightType == TIMESTAMP);
+        assert(rightType.typeID == TIMESTAMP);
         return bindBinaryExecFunction<timestamp_t, timestamp_t>(expressionType);
     }
     case INTERVAL: {
-        assert(rightType == INTERVAL);
+        assert(rightType.typeID == INTERVAL);
         return bindBinaryExecFunction<interval_t, interval_t>(expressionType);
     }
     default:
@@ -110,14 +110,14 @@ scalar_select_func VectorComparisonOperations::bindBinarySelectFunction(
     assert(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
-    validate(expressionType, leftType, rightType);
-    switch (leftType) {
+    validate(expressionType, leftType.typeID, rightType.typeID);
+    switch (leftType.typeID) {
     case BOOL: {
-        assert(rightType == BOOL);
+        assert(rightType.typeID == BOOL);
         return bindBinarySelectFunction<uint8_t, uint8_t>(expressionType);
     }
     case INT64: {
-        switch (rightType) {
+        switch (rightType.typeID) {
         case INT64: {
             return bindBinarySelectFunction<int64_t, int64_t>(expressionType);
         }
@@ -129,7 +129,7 @@ scalar_select_func VectorComparisonOperations::bindBinarySelectFunction(
         }
     }
     case DOUBLE: {
-        switch (rightType) {
+        switch (rightType.typeID) {
         case INT64: {
             return bindBinarySelectFunction<double_t, int64_t>(expressionType);
         }
@@ -141,27 +141,27 @@ scalar_select_func VectorComparisonOperations::bindBinarySelectFunction(
         }
     }
     case STRING: {
-        assert(rightType == STRING);
+        assert(rightType.typeID == STRING);
         return bindBinarySelectFunction<gf_string_t, gf_string_t>(expressionType);
     }
     case NODE_ID: {
-        assert(rightType == NODE_ID);
+        assert(rightType.typeID == NODE_ID);
         return bindBinarySelectFunction<nodeID_t, nodeID_t>(expressionType);
     }
     case UNSTRUCTURED: {
-        assert(rightType == UNSTRUCTURED);
+        assert(rightType.typeID == UNSTRUCTURED);
         return bindBinarySelectFunction<Value, Value>(expressionType);
     }
     case DATE: {
-        assert(rightType == DATE);
+        assert(rightType.typeID == DATE);
         return bindBinarySelectFunction<date_t, date_t>(expressionType);
     }
     case TIMESTAMP: {
-        assert(rightType == TIMESTAMP);
+        assert(rightType.typeID == TIMESTAMP);
         return bindBinarySelectFunction<timestamp_t, timestamp_t>(expressionType);
     }
     case INTERVAL: {
-        assert(rightType == INTERVAL);
+        assert(rightType.typeID == INTERVAL);
         return bindBinarySelectFunction<interval_t, interval_t>(expressionType);
     }
     default:
@@ -197,22 +197,22 @@ scalar_select_func VectorComparisonOperations::bindBinarySelectFunction(
 }
 
 void VectorComparisonOperations::validate(
-    ExpressionType expressionType, DataType leftType, DataType rightType) {
-    auto isLeftNumerical = Types::isNumericalType(leftType);
-    auto isRightNumerical = Types::isNumericalType(rightType);
+    ExpressionType expressionType, DataTypeID leftTypeID, DataTypeID rightTypeID) {
+    auto isLeftNumerical = Types::isNumericalType(leftTypeID);
+    auto isRightNumerical = Types::isNumericalType(rightTypeID);
     // validate both sides are numerical
     if ((isLeftNumerical && !isRightNumerical) || (!isLeftNumerical && isRightNumerical)) {
         throw invalid_argument(expressionTypeToString(expressionType) +
                                " is defined on (Numerical, Numerical) but get (" +
-                               Types::dataTypeToString(leftType) + ", " +
-                               Types::dataTypeToString(rightType) + ").");
+                               Types::dataTypeToString(leftTypeID) + ", " +
+                               Types::dataTypeToString(rightTypeID) + ").");
     }
     // otherwise validate both sides are the same type
-    if ((!isLeftNumerical && !isRightNumerical) && leftType != rightType) {
+    if ((!isLeftNumerical && !isRightNumerical) && leftTypeID != rightTypeID) {
         throw invalid_argument(expressionTypeToString(expressionType) +
                                " is defined on the same data types but get (" +
-                               Types::dataTypeToString(leftType) + ", " +
-                               Types::dataTypeToString(rightType) + ").");
+                               Types::dataTypeToString(leftTypeID) + ", " +
+                               Types::dataTypeToString(rightTypeID) + ").");
     }
 }
 

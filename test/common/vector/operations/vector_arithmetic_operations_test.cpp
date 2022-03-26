@@ -17,8 +17,8 @@ using namespace std;
 class Int64ArithmeticOperandsInSameDataChunkTest : public OperandsInSameDataChunk, public Test {
 
 public:
-    DataType getDataTypeOfOperands() override { return INT64; }
-    DataType getDataTypeOfResultVector() override { return INT64; }
+    DataTypeID getDataTypeOfOperands() override { return INT64; }
+    DataTypeID getDataTypeOfResultVector() override { return INT64; }
 
     void SetUp() override {
         initDataChunk();
@@ -36,8 +36,8 @@ class Int64ArithmeticOperandsInDifferentDataChunksTest : public OperandsInDiffer
                                                          public Test {
 
 public:
-    DataType getDataTypeOfOperands() override { return INT64; }
-    DataType getDataTypeOfResultVector() override { return INT64; }
+    DataTypeID getDataTypeOfOperands() override { return INT64; }
+    DataTypeID getDataTypeOfResultVector() override { return INT64; }
 
     void SetUp() override {
         initDataChunk();
@@ -54,8 +54,8 @@ class UnstructuredArithmeticOperandsInSameDataChunkTest : public OperandsInSameD
                                                           public Test {
 
 public:
-    DataType getDataTypeOfOperands() override { return UNSTRUCTURED; }
-    DataType getDataTypeOfResultVector() override { return UNSTRUCTURED; }
+    DataTypeID getDataTypeOfOperands() override { return UNSTRUCTURED; }
+    DataTypeID getDataTypeOfResultVector() override { return UNSTRUCTURED; }
 
     void SetUp() override { initDataChunk(); }
 };
@@ -329,7 +329,7 @@ TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredStringAndI
     for (int i = 0; i < NUM_TUPLES; i++) {
         string lStr = to_string(i);
         TypeUtils::copyString(lStr, lData[i].val.strVal, lVector->getOverflowBuffer());
-        lData[i].dataType = STRING;
+        lData[i].dataType.typeID = STRING;
         rData[i] = Value((int64_t)110 - i);
     }
 

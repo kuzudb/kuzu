@@ -34,7 +34,7 @@ public:
 
     // Sets a property of a rel in RelPropertyColumn at a given nodeID.
     void setProperty(const nodeID_t& nodeID, const uint32_t& propertyIdx, const uint8_t* val,
-        const DataType& type);
+        const DataTypeID& type);
 
     // Sets a string property of a rel in RelPropertyColumn at a given nodeID.
     void setStringProperty(const nodeID_t& nodeID, const uint32_t& propertyIdx, const char* val,

@@ -42,27 +42,27 @@ public:
     inline static string getAdjColumnFName(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
         auto fName = StringUtils::string_format("r-%d-%d-%d", relLabel, nodeLabel, direction);
-        return FileUtils::joinPath(directory, fName + Column::COLUMN_SUFFIX);
+        return FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX);
     }
 
     inline static string getAdjListsFName(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction) {
         auto fName = StringUtils::string_format("r-%d-%d-%d", relLabel, nodeLabel, direction);
-        return FileUtils::joinPath(directory, fName + Lists::LISTS_SUFFIX);
+        return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
     }
 
     inline static string getRelPropertyColumnFName(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const string& propertyName) {
         auto fName =
             StringUtils::string_format("r-%d-%d-%s", relLabel, nodeLabel, propertyName.data());
-        return FileUtils::joinPath(directory, fName + Column::COLUMN_SUFFIX);
+        return FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX);
     }
 
     inline static string getRelPropertyListsFName(const string& directory, const label_t& relLabel,
         const label_t& nodeLabel, const Direction& direction, const string& propertyName) {
         auto fName = StringUtils::string_format(
             "r-%d-%d-%d-%s", relLabel, nodeLabel, direction, propertyName.data());
-        return FileUtils::joinPath(directory, fName + Lists::LISTS_SUFFIX);
+        return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
     }
 
 private:

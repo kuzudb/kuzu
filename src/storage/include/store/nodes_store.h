@@ -30,13 +30,13 @@ public:
     inline static string getNodePropertyColumnFName(
         const string& directory, const label_t& nodeLabel, const string& propertyName) {
         auto fName = StringUtils::string_format("n-%d-%s", nodeLabel, propertyName.data());
-        return FileUtils::joinPath(directory, fName + Column::COLUMN_SUFFIX);
+        return FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX);
     }
 
     inline static string getNodeUnstrPropertyListsFName(
         const string& directory, const label_t& nodeLabel) {
         auto fName = StringUtils::string_format("n-%d", nodeLabel);
-        return FileUtils::joinPath(directory, fName + Lists::LISTS_SUFFIX);
+        return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
     }
 
 private:

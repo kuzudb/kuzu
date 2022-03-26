@@ -1,5 +1,7 @@
 #pragma once
+
 #include <queue>
+#include <utility>
 
 #include "src/processor/include/physical_plan/operator/order_by/order_by_key_encoder.h"
 
@@ -13,15 +15,17 @@ struct KeyBlockMergeMorsel;
 // This struct stores the string and unstructured key column information. We can utilize the
 // pre-computed indexes and offsets to expedite the tuple comparison in merge sort.
 struct StringAndUnstructuredKeyColInfo {
-    explicit StringAndUnstructuredKeyColInfo(uint64_t colIdxInFactorizedTable,
+    StringAndUnstructuredKeyColInfo(uint64_t colIdxInFactorizedTable,
         uint64_t colOffsetInEncodedKeyBlock, bool isAscOrder, bool isStrCol)
         : colIdxInFactorizedTable{colIdxInFactorizedTable},
-          colOffsetInEncodedKeyBlock{colOffsetInEncodedKeyBlock}, isStrCol{isStrCol},
-          isAscOrder{isAscOrder} {}
-    uint64_t getEncodingSize() {
-        return isStrCol ? OrderByKeyEncoder::getEncodingSize(STRING) :
-                          OrderByKeyEncoder::getEncodingSize(UNSTRUCTURED);
+          colOffsetInEncodedKeyBlock{colOffsetInEncodedKeyBlock},
+          isAscOrder{isAscOrder}, isStrCol{isStrCol} {}
+
+    inline uint64_t getEncodingSize() const {
+        return isStrCol ? OrderByKeyEncoder::getEncodingSize(DataType(STRING)) :
+                          OrderByKeyEncoder::getEncodingSize(DataType(UNSTRUCTURED));
     }
+
     uint64_t colIdxInFactorizedTable;
     uint64_t colOffsetInEncodedKeyBlock;
     bool isAscOrder;
@@ -40,9 +44,9 @@ public:
                numBytesPerTuple * (tupleIdx % (LARGE_PAGE_SIZE / numBytesPerTuple));
     }
 
-    inline uint64_t getNumTuples() { return numTuples; }
+    inline uint64_t getNumTuples() const { return numTuples; }
 
-    inline uint64_t getNumBytesPerTuple() { return numBytesPerTuple; }
+    inline uint64_t getNumBytesPerTuple() const { return numBytesPerTuple; }
 
 private:
     uint64_t numBytesPerTuple;
@@ -81,16 +85,16 @@ private:
 
 class KeyBlockMergeTask {
 public:
-    explicit KeyBlockMergeTask(shared_ptr<MergedKeyBlocks> leftKeyBlock,
+    KeyBlockMergeTask(shared_ptr<MergedKeyBlocks> leftKeyBlock,
         shared_ptr<MergedKeyBlocks> rightKeyBlock, shared_ptr<MergedKeyBlocks> resultKeyBlock,
         KeyBlockMerger& keyBlockMerger)
-        : leftKeyBlock{leftKeyBlock}, rightKeyBlock{rightKeyBlock}, resultKeyBlock{resultKeyBlock},
-          leftKeyBlockNextIdx{0}, rightKeyBlockNextIdx{0}, activeMorsels{0}, keyBlockMerger{
-                                                                                 keyBlockMerger} {}
+        : leftKeyBlock{move(leftKeyBlock)}, rightKeyBlock{move(rightKeyBlock)},
+          resultKeyBlock{move(resultKeyBlock)}, leftKeyBlockNextIdx{0}, rightKeyBlockNextIdx{0},
+          activeMorsels{0}, keyBlockMerger{keyBlockMerger} {}
 
     unique_ptr<KeyBlockMergeMorsel> getMorsel();
 
-    inline bool hasMorselLeft() {
+    inline bool hasMorselLeft() const {
         // Returns true if there are still morsels left in the current task.
         return leftKeyBlockNextIdx < leftKeyBlock->getNumTuples() ||
                rightKeyBlockNextIdx < rightKeyBlock->getNumTuples();

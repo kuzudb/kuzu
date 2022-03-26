@@ -236,7 +236,7 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(
     vector<PageByteCursor>& stringOverflowPagesCursors) {
     auto propertyIdx = 0u;
     while (reader.hasNextToken()) {
-        switch (properties[propertyIdx].dataType) {
+        switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
             if (!reader.skipTokenIfNull()) {
                 auto intVal = reader.getInt64();
@@ -288,7 +288,7 @@ void RelsLoader::putPropsOfLineIntoInMemPropertyColumns(
         } break;
         case LIST: {
             if (!reader.skipTokenIfNull()) {
-                auto listVal = reader.getList(properties[propertyIdx].childDataType);
+                auto listVal = reader.getList(*properties[propertyIdx].dataType.childType);
                 columnsBuilder->setListProperty(
                     nodeID, propertyIdx, listVal, stringOverflowPagesCursors[propertyIdx]);
             }
@@ -309,7 +309,7 @@ void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<PropertyDefini
     InMemAdjAndPropertyListsBuilder* listsBuilder, vector<PageByteCursor>& overflowPagesCursors) {
     auto propertyIdx = 0;
     while (reader.hasNextToken()) {
-        switch (properties[propertyIdx].dataType) {
+        switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
             if (!reader.skipTokenIfNull()) {
                 auto intVal = reader.getInt64();
@@ -362,7 +362,7 @@ void RelsLoader::putPropsOfLineIntoInMemRelPropLists(const vector<PropertyDefini
         } break;
         case LIST: {
             if (!reader.skipTokenIfNull()) {
-                auto listVal = reader.getList(properties[propertyIdx].childDataType);
+                auto listVal = reader.getList(*properties[propertyIdx].dataType.childType);
                 listsBuilder->setListProperty(
                     pos, nodeIDs, propertyIdx, listVal, overflowPagesCursors[propertyIdx]);
             }

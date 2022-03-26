@@ -33,7 +33,8 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto executionContext = ExecutionContext(*profiler, memoryManager.get(), bufferManager.get());
     auto schema = Schema();
     auto group1Pos = schema.createGroup();
-    schema.insertToGroupAndScope(make_shared<Expression>(VARIABLE, INT64, "dummy"), group1Pos);
+    schema.insertToGroupAndScope(
+        make_shared<Expression>(VARIABLE, DataType(INT64), "dummy"), group1Pos);
     auto aIDPos = DataPos{0, 0};
     auto vectorsToCollectInfo = vector<pair<DataPos, bool>>{make_pair(aIDPos, false)};
     auto plan = make_unique<PhysicalPlan>(

@@ -26,7 +26,7 @@ public:
     static inline string toString(const interval_t& val) { return Interval::toString(val); }
     static inline string toString(const gf_string_t& val) { return val.getAsString(); }
     static inline string toString(const string& val) { return val; }
-    static string toString(const gf_list_t& val);
+    static string toString(const gf_list_t& val, const DataType& dataType);
     static string toString(const Literal& val);
     static string toString(const Value& val);
 
@@ -60,23 +60,24 @@ public:
     static void copyString(
         const gf_string_t& src, gf_string_t& dest, OverflowBuffer& overflowBuffer);
 
-    static void copyListValues(
-        const uint8_t* srcValues, gf_list_t& dest, OverflowBuffer& overflowBuffer);
-    static void copyList(DataType childType, const vector<uint8_t*>& srcValues, gf_list_t& dest,
-        OverflowBuffer& overflowBuffer);
-    static void copyList(const gf_list_t& src, gf_list_t& dest, OverflowBuffer& overflowBuffer);
+    static void copyListNonRecursive(const uint8_t* srcValues, gf_list_t& dest,
+        const DataType& dataType, OverflowBuffer& overflowBuffer);
+    static void copyListNonRecursive(const vector<uint8_t*>& srcValues, gf_list_t& dest,
+        const DataType& dataType, OverflowBuffer& overflowBuffer);
+    static void copyListRecursiveIfNested(const gf_list_t& src, gf_list_t& dest,
+        const DataType& dataType, OverflowBuffer& overflowBuffer);
 
 private:
-    static string elementToString(DataType dataType, uint8_t* overflowPtr, uint64_t pos);
+    static string elementToString(const DataType& dataType, uint8_t* overflowPtr, uint64_t pos);
     static inline void allocateSpaceForList(
         gf_list_t& list, uint64_t numBytes, OverflowBuffer& buffer) {
         list.overflowPtr = reinterpret_cast<uint64_t>(buffer.allocateSpace(numBytes));
     }
 
-    static void throwConversionExceptionOutOfRange(const char* data, DataType dataType);
+    static void throwConversionExceptionOutOfRange(const char* data, DataTypeID dataTypeID);
     static void throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(
-        const char* data, const char* eptr, DataType dataType);
-    static string prefixConversionExceptionMessage(const char* data, DataType dataType);
+        const char* data, const char* eptr, DataTypeID dataTypeID);
+    static string prefixConversionExceptionMessage(const char* data, DataTypeID dataTypeID);
 };
 
 } // namespace common

@@ -68,12 +68,12 @@ void InMemAdjAndPropertyListsBuilder::setRel(
 }
 
 void InMemAdjAndPropertyListsBuilder::setProperty(const vector<uint64_t>& pos,
-    const vector<nodeID_t>& nodeIDs, uint32_t propertyIdx, const uint8_t* val, DataType type) {
+    const vector<nodeID_t>& nodeIDs, uint32_t propertyIdx, const uint8_t* val, DataTypeID typeID) {
     PageElementCursor cursor;
     for (auto& direction : DIRECTIONS) {
         auto header = directionLabelAdjListHeaders[direction][nodeIDs[direction].label]
                           .headers[nodeIDs[direction].offset];
-        calcPageElementCursor(header, pos[direction], Types::getDataTypeSize(type),
+        calcPageElementCursor(header, pos[direction], Types::getDataTypeSize(typeID),
             nodeIDs[direction].offset, cursor,
             directionLabelPropertyIdxPropertyListsMetadata[direction][nodeIDs[direction].label]
                                                           [propertyIdx],
@@ -99,7 +99,6 @@ void InMemAdjAndPropertyListsBuilder::setListProperty(const vector<uint64_t>& po
     setProperty(pos, nodeIDs, propertyIdx, reinterpret_cast<uint8_t*>(&gfList), LIST);
 }
 
-// todo(Guodong): Should we sort on list, too?
 void InMemAdjAndPropertyListsBuilder::sortOverflowStrings(LoaderProgressBar* progressBar) {
     logger->debug("Ordering String Rel PropertyList.");
     directionLabelPropertyIdxStringOverflowPages =
@@ -111,7 +110,7 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStrings(LoaderProgressBar* pro
             (*directionLabelPropertyIdxStringOverflowPages)[direction][nodeLabel].resize(
                 description.properties.size());
             for (auto& property : description.properties) {
-                if (STRING == property.dataType) {
+                if (STRING == property.dataType.typeID) {
                     auto fName = RelsStore::getRelPropertyListsFName(
                         outputDirectory, description.label, nodeLabel, direction, property.name);
                     (*directionLabelPropertyIdxStringOverflowPages)[direction][nodeLabel][property
@@ -186,7 +185,8 @@ void InMemAdjAndPropertyListsBuilder::saveToFile(LoaderProgressBar* progressBar)
                             [&](InMemPropertyPages* x) { x->saveToFile(); },
                             directionLabelPropertyIdxPropertyLists[direction][nodeLabel][idx]
                                 .get()));
-                        if (STRING == property.dataType || LIST == property.dataType) {
+                        if (STRING == property.dataType.typeID ||
+                            LIST == property.dataType.typeID) {
                             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                                 [&](InMemOverflowPages* x) { x->saveToFile(); },
                                 (*directionLabelPropertyIdxStringOverflowPages)[direction]
@@ -319,7 +319,7 @@ void InMemAdjAndPropertyListsBuilder::buildInMemPropertyLists() {
     propertyIdxUnordStringOverflowPages =
         make_unique<vector<unique_ptr<InMemOverflowPages>>>(description.properties.size());
     for (auto& property : description.properties) {
-        if (STRING == property.dataType || LIST == property.dataType) {
+        if (STRING == property.dataType.typeID || LIST == property.dataType.typeID) {
             (*propertyIdxUnordStringOverflowPages)[property.id] = make_unique<InMemOverflowPages>();
         }
     }

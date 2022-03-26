@@ -196,30 +196,23 @@ vector<PropertyDefinition> GraphLoader::parseCSVFileHeader(string& header, char 
         if (colHeaderComponents[0].empty()) {
             colHeaderDefinition.name = colHeaderComponents[1];
             if (colHeaderDefinition.name == LoaderConfig::ID_FIELD) {
-                colHeaderDefinition.dataType = NODE;
+                colHeaderDefinition.dataType.typeID = NODE;
                 colHeaderDefinition.isPrimaryKey = true;
             } else if (colHeaderDefinition.name == LoaderConfig::START_ID_FIELD ||
                        colHeaderDefinition.name == LoaderConfig::END_ID_FIELD) {
-                colHeaderDefinition.dataType = NODE;
+                colHeaderDefinition.dataType.typeID = NODE;
             } else if (colHeaderDefinition.name == LoaderConfig::START_ID_LABEL_FIELD ||
                        colHeaderDefinition.name == LoaderConfig::END_ID_LABEL_FIELD) {
-                colHeaderDefinition.dataType = LABEL;
+                colHeaderDefinition.dataType.typeID = LABEL;
             } else {
                 throw invalid_argument(
                     "Invalid mandatory field column header `" + colHeaderDefinition.name + "`.");
             }
         } else {
             colHeaderDefinition.name = colHeaderComponents[0];
-            if (colHeaderComponents[1].ends_with(LoaderConfig::LIST_FIELD_SUFFIX)) {
-                // Parsing the child data type of LIST. Nested LIST is not supported for now.
-                colHeaderDefinition.dataType = LIST;
-                auto childDataTypeStr =
-                    colHeaderComponents[1].substr(0, colHeaderComponents[1].length() - 2);
-                colHeaderDefinition.childDataType = Types::getDataType(childDataTypeStr);
-            } else {
-                colHeaderDefinition.dataType = Types::getDataType(colHeaderComponents[1]);
-            }
-            if (colHeaderDefinition.dataType == NODE || colHeaderDefinition.dataType == LABEL) {
+            colHeaderDefinition.dataType = Types::dataTypeFromString(colHeaderComponents[1]);
+            if (colHeaderDefinition.dataType.typeID == NODE ||
+                colHeaderDefinition.dataType.typeID == LABEL) {
                 throw invalid_argument(
                     "Property column header cannot be of system types NODE or LABEL.");
             }

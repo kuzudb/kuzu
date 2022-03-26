@@ -51,7 +51,7 @@ public:
 
     static uint64_t getEncodedFactorizedTableIdx(const uint8_t* tupleInfoBuffer);
 
-    static uint64_t getEncodingSize(DataType dataType);
+    static uint64_t getEncodingSize(const DataType& dataType);
 
     static inline bool isNullVal(const uint8_t* nullBuffer, bool isAscOrder) {
         return *(nullBuffer) == (isAscOrder ? UINT8_MAX : 0);
@@ -63,7 +63,7 @@ private:
     bool isLittleEndian();
 
     void encodeData(shared_ptr<ValueVector>& orderByVector, uint64_t idxInOrderByVector,
-        uint8_t* keyBlockPtr, const uint64_t keyColIdx);
+        uint8_t* keyBlockPtr, uint64_t keyColIdx);
 
     void encodeInt32(int32_t data, uint8_t* resultPtr);
 

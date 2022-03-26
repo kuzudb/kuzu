@@ -123,7 +123,7 @@ struct HashOnValue {
             result = NULL_HASH;
             return;
         }
-        switch (key.dataType) {
+        switch (key.dataType.typeID) {
         case NODE_ID: {
             Hash::operation<nodeID_t>(key.val.nodeID, isNull, result);
         } break;
@@ -150,7 +150,7 @@ struct HashOnValue {
         } break;
         default: {
             throw invalid_argument(
-                "Cannot hash data type " + Types::dataTypeToString(key.dataType));
+                "Cannot hash data type " + Types::dataTypeToString(key.dataType.typeID));
         }
         }
     }
@@ -163,8 +163,8 @@ struct HashOnValue {
  **********************************************/
 
 struct HashOnBytes {
-    static inline void operation(DataType dataType, uint8_t* key, bool isNull, hash_t& result) {
-        switch (dataType) {
+    static inline void operation(DataTypeID dataTypeID, uint8_t* key, bool isNull, hash_t& result) {
+        switch (dataTypeID) {
         case NODE_ID: {
             Hash::operation<nodeID_t>(*(nodeID_t*)key, isNull, result);
         } break;
@@ -193,7 +193,7 @@ struct HashOnBytes {
             HashOnValue::operation(*(Value*)key, isNull, result);
         } break;
         default: {
-            throw invalid_argument("Cannot hash data type " + Types::dataTypeToString(dataType));
+            throw invalid_argument("Cannot hash data type " + Types::dataTypeToString(dataTypeID));
         }
         }
     }

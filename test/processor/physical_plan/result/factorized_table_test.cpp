@@ -82,7 +82,7 @@ public:
     static void checkFlatTupleIteratorResult(FlatTupleIterator& flatTupleIterator) {
         for (auto i = 0; i < 100; i++) {
             for (auto j = 0; j < 100; j++) {
-                vector<DataType> dataTypesInFlatTuple = {NODE, NODE};
+                vector<DataType> dataTypesInFlatTuple = {DataType(NODE), DataType(NODE)};
                 FlatTuple resultFlatTuple(dataTypesInFlatTuple);
                 ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), true);
                 flatTupleIterator.getNextFlatTuple(resultFlatTuple);
@@ -264,7 +264,7 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeOverflowBufferTest) {
         dataChunk->state->currIdx++;
     }
 
-    vector<DataType> dataTypes = {STRING};
+    vector<DataType> dataTypes = {DataType(STRING)};
     FlatTuple resultFlatTuple(dataTypes);
     auto flatTupleIterator = factorizedTable->getFlatTupleIterator();
     for (auto i = 0; i < 3 * numRowsToAppend; i++) {

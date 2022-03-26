@@ -46,8 +46,8 @@ bool TypeUtils::convertToBoolean(const char* data) {
         ". Input is not equal to True or False (in a case-insensitive manner)");
 }
 
-string TypeUtils::elementToString(DataType dataType, uint8_t* overflowPtr, uint64_t pos) {
-    switch (dataType) {
+string TypeUtils::elementToString(const DataType& dataType, uint8_t* overflowPtr, uint64_t pos) {
+    switch (dataType.typeID) {
     case BOOL:
         return TypeUtils::toString(((bool*)overflowPtr)[pos]);
     case INT64:
@@ -62,25 +62,28 @@ string TypeUtils::elementToString(DataType dataType, uint8_t* overflowPtr, uint6
         return TypeUtils::toString(((interval_t*)overflowPtr)[pos]);
     case STRING:
         return TypeUtils::toString(((gf_string_t*)overflowPtr)[pos]);
+    case LIST:
+        return TypeUtils::toString(((gf_list_t*)overflowPtr)[pos], dataType);
     default:
         assert(false);
     }
 }
 
-string TypeUtils::toString(const gf_list_t& val) {
+string TypeUtils::toString(const gf_list_t& val, const DataType& dataType) {
     string result = "[";
     for (auto i = 0u; i < val.size - 1; ++i) {
         result +=
-            elementToString(val.childType, reinterpret_cast<uint8_t*>(val.overflowPtr), i) + ",";
+            elementToString(*dataType.childType, reinterpret_cast<uint8_t*>(val.overflowPtr), i) +
+            ",";
     }
-    result +=
-        elementToString(val.childType, reinterpret_cast<uint8_t*>(val.overflowPtr), val.size - 1) +
-        "]";
+    result += elementToString(
+                  *dataType.childType, reinterpret_cast<uint8_t*>(val.overflowPtr), val.size - 1) +
+              "]";
     return result;
 }
 
 string TypeUtils::toString(const Literal& val) {
-    switch (val.dataType) {
+    switch (val.dataType.typeID) {
     case BOOL:
         return TypeUtils::toString(val.val.booleanVal);
     case INT64:
@@ -115,7 +118,7 @@ string TypeUtils::toString(const Literal& val) {
 }
 
 string TypeUtils::toString(const Value& val) {
-    switch (val.dataType) {
+    switch (val.dataType.typeID) {
     case BOOL:
         return TypeUtils::toString(val.val.booleanVal);
     case INT64:
@@ -133,7 +136,7 @@ string TypeUtils::toString(const Value& val) {
     case INTERVAL:
         return TypeUtils::toString(val.val.intervalVal);
     case LIST:
-        return TypeUtils::toString(val.val.listVal);
+        return TypeUtils::toString(val.val.listVal, val.dataType);
     default:
         assert(false);
     }
@@ -141,7 +144,7 @@ string TypeUtils::toString(const Value& val) {
 
 void TypeUtils::castLiteralToString(Literal& literal) {
     literal.strVal = toString(literal);
-    literal.dataType = STRING;
+    literal.dataType.typeID = STRING;
 }
 
 void TypeUtils::copyString(
@@ -161,53 +164,60 @@ void TypeUtils::copyString(
     dest.set(src);
 }
 
-void TypeUtils::copyListValues(
-    const uint8_t* srcValues, gf_list_t& dest, OverflowBuffer& overflowBuffer) {
+void TypeUtils::copyListNonRecursive(const uint8_t* srcValues, gf_list_t& dest,
+    const DataType& dataType, OverflowBuffer& overflowBuffer) {
     TypeUtils::allocateSpaceForList(
-        dest, dest.size * Types::getDataTypeSize(dest.childType), overflowBuffer);
-    dest.set(srcValues);
+        dest, dest.size * Types::getDataTypeSize(*dataType.childType), overflowBuffer);
+    dest.set(srcValues, dataType);
 }
 
-void TypeUtils::copyList(DataType childType, const vector<uint8_t*>& srcValues, gf_list_t& dest,
-    OverflowBuffer& overflowBuffer) {
+void TypeUtils::copyListNonRecursive(const vector<uint8_t*>& srcValues, gf_list_t& dest,
+    const DataType& dataType, OverflowBuffer& overflowBuffer) {
     TypeUtils::allocateSpaceForList(
-        dest, srcValues.size() * Types::getDataTypeSize(childType), overflowBuffer);
-    dest.set(childType, srcValues);
+        dest, srcValues.size() * Types::getDataTypeSize(*dataType.childType), overflowBuffer);
+    dest.set(srcValues, dataType.childType->typeID);
 }
 
-void TypeUtils::copyList(const gf_list_t& src, gf_list_t& dest, OverflowBuffer& overflowBuffer) {
+void TypeUtils::copyListRecursiveIfNested(const gf_list_t& src, gf_list_t& dest,
+    const DataType& dataType, OverflowBuffer& overflowBuffer) {
     TypeUtils::allocateSpaceForList(
-        dest, src.size * Types::getDataTypeSize(src.childType), overflowBuffer);
-    dest.set(src);
-    if (dest.childType == STRING) {
+        dest, src.size * Types::getDataTypeSize(*dataType.childType), overflowBuffer);
+    dest.set(src, dataType);
+    if (dataType.childType->typeID == STRING) {
         for (auto i = 0u; i < dest.size; i++) {
             TypeUtils::copyString(((gf_string_t*)src.overflowPtr)[i],
                 ((gf_string_t*)dest.overflowPtr)[i], overflowBuffer);
         }
     }
+    if (dataType.childType->typeID == LIST) {
+        for (auto i = 0u; i < dest.size; i++) {
+            TypeUtils::copyListRecursiveIfNested(((gf_list_t*)src.overflowPtr)[i],
+                ((gf_list_t*)dest.overflowPtr)[i], *dataType.childType, overflowBuffer);
+        }
+    }
 }
 
-string TypeUtils::prefixConversionExceptionMessage(const char* data, DataType dataType) {
-    return "Cannot convert string " + string(data) + " to " + Types::dataTypeToString(dataType) +
+string TypeUtils::prefixConversionExceptionMessage(const char* data, DataTypeID dataTypeID) {
+    return "Cannot convert string " + string(data) + " to " + Types::dataTypeToString(dataTypeID) +
            ".";
 }
 
 void TypeUtils::throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(
-    const char* data, const char* eptr, const DataType dataType) {
+    const char* data, const char* eptr, DataTypeID dataTypeID) {
     if (data == eptr) {
-        throw ConversionException(prefixConversionExceptionMessage(data, dataType) +
+        throw ConversionException(prefixConversionExceptionMessage(data, dataTypeID) +
                                   ". Invalid input. No characters consumed.");
     }
     if (*eptr != '\0') {
-        throw ConversionException(prefixConversionExceptionMessage(data, dataType) +
+        throw ConversionException(prefixConversionExceptionMessage(data, dataTypeID) +
                                   " Not all characters were read. read from character " + *data +
                                   " up to character: " + *eptr + ".");
     }
 }
 
-void TypeUtils::throwConversionExceptionOutOfRange(const char* data, const DataType dataType) {
+void TypeUtils::throwConversionExceptionOutOfRange(const char* data, DataTypeID dataTypeID) {
     throw ConversionException(
-        prefixConversionExceptionMessage(data, dataType) + " Input out of range.");
+        prefixConversionExceptionMessage(data, dataTypeID) + " Input out of range.");
 }
 
 } // namespace common

@@ -18,7 +18,7 @@ namespace storage {
 class StorageStructure {
 
 public:
-    DataType getDataType() const { return dataType; }
+    DataTypeID getDataTypeId() const { return dataType.typeID; }
 
     // Maps the position of element in page to its byte offset in page.
     inline uint16_t mapElementPosToByteOffset(uint16_t pageElementPos) const {

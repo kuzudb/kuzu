@@ -15,9 +15,8 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
-        assert(left.dataType == BOOL);
-        assert(right.dataType == BOOL);
-        assert(result.dataType == BOOL);
+        assert(left.dataType.typeID == BOOL && right.dataType.typeID == BOOL &&
+               result.dataType.typeID == BOOL);
         if (left.state->isFlat() && right.state->isFlat()) {
             executeBothFlat<FUNC>(left, right, result);
         } else if (left.state->isFlat() && !right.state->isFlat()) {
@@ -91,8 +90,7 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static uint64_t select(ValueVector& left, ValueVector& right, sel_t* selectedPositions) {
-        assert(left.dataType == BOOL);
-        assert(right.dataType == BOOL);
+        assert(left.dataType.typeID == BOOL && right.dataType.typeID == BOOL);
         if (left.state->isFlat() && right.state->isFlat()) {
             return selectBothFlat<FUNC>(left, right);
         } else if (left.state->isFlat() && !right.state->isFlat()) {

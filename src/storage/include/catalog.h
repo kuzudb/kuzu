@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 
 #include "nlohmann/json.hpp"
 
@@ -27,27 +28,27 @@ const string RelMultiplicityNames[] = {"MANY_MANY", "MANY_ONE", "ONE_MANY", "ONE
 
 RelMultiplicity getRelMultiplicity(const string& relMultiplicityString);
 
-// A PropertyDefinition consists of its name, dataType, id and isPrimaryKey. If the property is
-// unstructured, then the dataType is UNSTRUCTURED, otherwise it is one of those supported by the
-// system. If the property is a LIST, the definition has a child data type, e.g., for INT64[], the
-// dataType is LIST, and the one of the child (childDataType) is INT64.
+// A PropertyDefinition consists of its name, id, dataType and isPrimaryKey. If the property is
+// unstructured, then the dataType's typeID is UNSTRUCTURED, otherwise it is one of those supported
+// by the system.
 struct PropertyDefinition {
 
 public:
-    PropertyDefinition()
-        : id{-1u}, dataType{INVALID}, isPrimaryKey{false}, childDataType{INVALID} {};
+    PropertyDefinition() : id{-1u}, isPrimaryKey{false} {};
 
-    PropertyDefinition(
-        string name, uint32_t id, DataType dataType, DataType childDataType = INVALID)
-        : name{move(name)}, id{id}, dataType{dataType}, isPrimaryKey{false}, childDataType{
-                                                                                 childDataType} {};
+    PropertyDefinition(string name, uint32_t id, DataTypeID dataTypeID)
+        : PropertyDefinition{move(name), id, DataType(dataTypeID)} {
+        assert(dataTypeID != LIST);
+    }
+
+    PropertyDefinition(string name, uint32_t id, DataType dataType)
+        : name{move(name)}, id{id}, dataType{move(dataType)}, isPrimaryKey{false} {};
 
 public:
     string name;
     uint32_t id;
     DataType dataType;
     bool isPrimaryKey;
-    DataType childDataType;
 };
 
 struct LabelDefinition {

@@ -29,7 +29,7 @@ public:
 
     inline vector<DataType> getNonKeyDataPosesDataTypes() { return nonKeyDataPosesDataTypes; }
 
-    inline void appendNonKeyDataPosesDataTypes(DataType dataType) {
+    inline void appendNonKeyDataPosesDataTypes(const DataType& dataType) {
         nonKeyDataPosesDataTypes.push_back(dataType);
     }
 

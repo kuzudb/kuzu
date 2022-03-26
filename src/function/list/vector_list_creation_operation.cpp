@@ -8,8 +8,8 @@ namespace function {
 void VectorListOperations::ListCreation(
     const vector<shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     result.resetOverflowBuffer();
-    assert(!parameters.empty() && result.dataType == LIST);
-    auto childType = parameters[0]->dataType;
+    assert(!parameters.empty() && result.dataType.typeID == LIST);
+    auto& childType = parameters[0]->dataType;
     auto numBytesOfListElement = Types::getDataTypeSize(childType);
     vector<uint8_t*> listElements(parameters.size());
     if (result.state->isFlat()) {
@@ -19,7 +19,8 @@ void VectorListOperations::ListCreation(
             assert(parameters[paramIdx]->state->isFlat());
             listElements[paramIdx] = parameters[paramIdx]->values + pos * numBytesOfListElement;
         }
-        TypeUtils::copyList(childType, listElements, gfList, result.getOverflowBuffer());
+        TypeUtils::copyListNonRecursive(
+            listElements, gfList, result.dataType, result.getOverflowBuffer());
     } else {
         for (auto selectedPos = 0u; selectedPos < result.state->selectedSize; ++selectedPos) {
             auto pos = result.state->selectedPositions[selectedPos];
@@ -31,7 +32,8 @@ void VectorListOperations::ListCreation(
                 listElements[paramIdx] =
                     parameters[paramIdx]->values + parameterPos * numBytesOfListElement;
             }
-            TypeUtils::copyList(childType, listElements, gfList, result.getOverflowBuffer());
+            TypeUtils::copyListNonRecursive(
+                listElements, gfList, result.dataType, result.getOverflowBuffer());
         }
     }
 }

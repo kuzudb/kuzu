@@ -30,8 +30,8 @@ void InMemAdjAndPropertyColumnsBuilder::setRel(
     (*directionLabelNumRels[direction])[nodeIDs[direction].label]++;
 }
 
-void InMemAdjAndPropertyColumnsBuilder::setProperty(
-    const nodeID_t& nodeID, const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
+void InMemAdjAndPropertyColumnsBuilder::setProperty(const nodeID_t& nodeID,
+    const uint32_t& propertyIdx, const uint8_t* val, const DataTypeID& type) {
     auto cursor = calcPageElementCursor(Types::getDataTypeSize(type), nodeID.offset);
     labelPropertyIdxPropertyColumn[nodeID.label][propertyIdx]->set(cursor, val);
 }
@@ -56,7 +56,7 @@ void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings(LoaderProgressBar* p
     for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
         labelPropertyIdxOverflowPages[nodeLabel].resize(description.properties.size());
         for (auto& property : description.properties) {
-            if (STRING == property.dataType) {
+            if (STRING == property.dataType.typeID) {
                 auto fName = RelsStore::getRelPropertyColumnFName(
                     outputDirectory, description.label, nodeLabel, property.name);
                 labelPropertyIdxOverflowPages[nodeLabel][property.id] =
@@ -74,7 +74,6 @@ void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings(LoaderProgressBar* p
                 for (auto i = 0u; i < numBuckets; i++) {
                     offsetStart = offsetEnd;
                     offsetEnd = min(offsetStart + 256, numNodes);
-                    // todo(reviewer): Is this correct that we do in-place sort in the same pages?
                     taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                         sortOverflowStringsOfPropertyColumnTask, offsetStart, offsetEnd,
                         labelPropertyIdxPropertyColumn[nodeLabel][property.id].get(),
@@ -125,7 +124,7 @@ void InMemAdjAndPropertyColumnsBuilder::saveToFile(LoaderProgressBar* progressBa
                     reinterpret_cast<InMemPropertyPages*>(
                         labelPropertyIdxPropertyColumn[nodeLabel][property.id].get()),
                     progressBar));
-                if (STRING == property.dataType || LIST == property.dataType) {
+                if (STRING == property.dataType.typeID || LIST == property.dataType.typeID) {
                     taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                         [&](InMemOverflowPages* x, LoaderProgressBar* progressBar) {
                             x->saveToFile();
@@ -156,7 +155,7 @@ void InMemAdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction dire
             labelPropertyIdxPropertyColumn[nodeLabel][property.id] =
                 make_unique<InMemPropertyPages>(
                     fName, Types::getDataTypeSize(property.dataType), numPages);
-            if (STRING == property.dataType || LIST == property.dataType) {
+            if (STRING == property.dataType.typeID || LIST == property.dataType.typeID) {
                 labelPropertyIdxOverflowPages[nodeLabel][property.id] =
                     make_unique<InMemOverflowPages>(OverflowPages::getOverflowPagesFName(fName));
             }
