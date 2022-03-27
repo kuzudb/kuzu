@@ -1,8 +1,8 @@
 #pragma once
 
-#include "src/common/include/memory_manager.h"
 #include "src/function/include/aggregate/aggregate_function.h"
 #include "src/processor/include/physical_plan/hash_table/base_hash_table.h"
+#include "src/storage/include/memory_manager.h"
 
 using namespace graphflow::function;
 

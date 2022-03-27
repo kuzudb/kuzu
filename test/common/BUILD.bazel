@@ -43,7 +43,7 @@ cc_test(
     ],
     deps = [
         "//src/common:data_chunk",
-        "//src/common:memory_manager",
+        "//src/storage:memory_manager",
         "@gtest",
         "@gtest//:gtest_main",
     ],
