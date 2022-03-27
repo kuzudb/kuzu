@@ -24,7 +24,7 @@ cc_library(
     ],
     visibility = ["//visibility:private"],
     deps = [
-        "memory_manager",
+        "//src/storage:memory_manager",
     ],
 )
 
@@ -60,10 +60,9 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "expression_type",
-        "memory_manager",
         "type_utils",
         "//src/common/types",
-        "//src/storage:buffer_manager",
+        "//src/storage:memory_manager",
     ],
 )
 
@@ -117,21 +116,6 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [],
-)
-
-cc_library(
-    name = "memory_manager",
-    srcs = [
-        "memory_manager.cpp",
-    ],
-    hdrs = [
-        "include/memory_manager.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "configs",
-        "//src/storage:buffer_manager",
-    ],
 )
 
 cc_library(

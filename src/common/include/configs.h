@@ -21,12 +21,6 @@ constexpr uint64_t DEFAULT_PAGE_SIZE = 1 << DEFAULT_PAGE_SIZE_LOG_2;
 constexpr const uint64_t LARGE_PAGE_SIZE_LOG_2 = 18;
 constexpr uint64_t LARGE_PAGE_SIZE = 1 << LARGE_PAGE_SIZE_LOG_2;
 
-// TODO: Do not forget to remove these once MemoryManager is removed from the codebase.
-// The default amount of memory pre-allocated to the memory manager (= 1GB).
-constexpr uint64_t DEFAULT_MEMORY_MANAGER_MAX_MEMORY = 1ull << 38;
-
-// By default, memory block size is 256KB.
-constexpr const uint64_t DEFAULT_MEMORY_BLOCK_SIZE = 1 << 18;
 constexpr const double DEFAULT_HT_LOAD_FACTOR = 1.5;
 
 // This is the default thread sleep time we use when a thread,
