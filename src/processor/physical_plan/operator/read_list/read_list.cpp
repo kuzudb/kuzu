@@ -12,6 +12,7 @@ shared_ptr<ResultSet> ReadList::initResultSet() {
 }
 
 void ReadList::reInitToRerunSubPlan() {
+    largeListHandle->reset();
     children[0]->reInitToRerunSubPlan();
 }
 

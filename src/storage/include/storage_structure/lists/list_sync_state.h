@@ -32,7 +32,6 @@ public:
     bool hasNewRangeToRead();
     inline bool hasValidRangeToRead() { return -1u != startIdx; }
 
-private:
     void reset();
 
 private:

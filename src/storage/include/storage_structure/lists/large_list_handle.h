@@ -27,6 +27,8 @@ public:
                                   listSyncState->hasValidRangeToRead();
     }
 
+    void reset() { listSyncState->reset(); }
+
 private:
     shared_ptr<ListSyncState> listSyncState;
     bool isAdjListsHandle;

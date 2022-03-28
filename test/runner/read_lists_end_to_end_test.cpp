@@ -16,6 +16,13 @@ public:
     string getInputCSVDir() override { return "dataset/read-list-tests/4-bytes-per-edge/"; }
 };
 
+class EndToEndReadListsSubQueryTest : public DBLoadedTest {
+public:
+    string getInputCSVDir() override {
+        return "dataset/read-list-tests/large-list-sub-query-tests/";
+    }
+};
+
 TEST_F(EndToEndReadLists2BytesPerEdgeTest, AdjLists2BytesPerEdgeTest) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs =
@@ -34,5 +41,19 @@ TEST_F(EndToEndReadLists2BytesPerEdgeTest, PropLists4BytesPerEdgeTest) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile(
         "test/runner/queries/list-reading/small-large-property-list-reading.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
+}
+
+TEST_F(EndToEndReadLists2BytesPerEdgeTest, VarLengthExtendLargeAdjListTest) {
+    vector<TestQueryConfig> queryConfigs;
+    queryConfigs = TestHelper::parseTestFile(
+        "test/runner/queries/var_length_extend/var_length_large_adj_list_extend.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
+}
+
+TEST_F(EndToEndReadListsSubQueryTest, LargeListSubQueryTest) {
+    vector<TestQueryConfig> queryConfigs;
+    queryConfigs =
+        TestHelper::parseTestFile("test/runner/queries/list-reading/large-list-sub-query.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *defaultSystem));
 }
