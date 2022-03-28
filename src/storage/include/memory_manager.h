@@ -16,22 +16,6 @@ namespace common {
 
 class MemoryManager;
 
-// TODO(Deprecate). We should eventually remove this and rename BMBackedMemoryBlock to MemoryBlock.
-struct OSBackedMemoryBlock {
-public:
-    explicit OSBackedMemoryBlock(uint64_t size) : size(size) {
-        buffer = make_unique<uint8_t[]>(size);
-        data = buffer.get();
-    }
-
-public:
-    uint64_t size;
-    uint8_t* data;
-
-private:
-    unique_ptr<uint8_t[]> buffer;
-};
-
 struct BMBackedMemoryBlock {
 
 public:
@@ -44,10 +28,8 @@ public:
     uint8_t* data;
 };
 
-// Memory manager for allocating/reclaiming large intermediate memory blocks. Currently it can
-// allocate both memory directly from the OS and also through the buffer manager of the system. OS
-// backed memory can be of any size but buffer manager backed memory is given in fixed size of
-// LARGE_PAGE_SIZE, which is a constant defined in configs.h.
+// Memory manager for allocating/reclaiming large intermediate memory blocks. It can allocate a
+// memory block with fixed size of LARGE_PAGE_SIZE from the buffer manager.
 class MemoryManager {
 public:
     explicit MemoryManager(BufferManager* bm) : bm(bm) {
@@ -56,10 +38,6 @@ public:
         // purposes.
         fh = make_shared<FileHandle>("mm-place-holder-file-name", FileHandle::O_LargePagedTempFile);
     }
-
-    // TODO(Deprecate). We should remove this eventually and only use allocateBMBackedBlock.
-    unique_ptr<OSBackedMemoryBlock> allocateOSBackedBlock(
-        uint64_t size, bool initializeToZero = false);
 
     unique_ptr<BMBackedMemoryBlock> allocateBMBackedBlock(bool initializeToZero = false);
 

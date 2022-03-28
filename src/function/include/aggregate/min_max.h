@@ -47,7 +47,7 @@ struct MinMaxFunction {
 
     template<class OP>
     static void updateSingleValue(MinMaxState* state, ValueVector* input, uint32_t pos) {
-        auto inputValues = (T*)input->values;
+        auto inputValues = (T*)input->values.get();
         if (state->isNull) {
             state->val = inputValues[pos];
             state->isNull = false;

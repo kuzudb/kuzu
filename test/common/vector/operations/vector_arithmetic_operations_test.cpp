@@ -22,8 +22,8 @@ public:
 
     void SetUp() override {
         initDataChunk();
-        auto lVectorData = (int64_t*)vector1->values;
-        auto rVectorData = (int64_t*)vector2->values;
+        auto lVectorData = (int64_t*)vector1->values.get();
+        auto rVectorData = (int64_t*)vector2->values.get();
         for (int i = 0; i < NUM_TUPLES; i++) {
             lVectorData[i] = i;
             rVectorData[i] = 110 - i;
@@ -41,8 +41,8 @@ public:
 
     void SetUp() override {
         initDataChunk();
-        auto lVectorData = (int64_t*)vector1->values;
-        auto rVectorData = (int64_t*)vector2->values;
+        auto lVectorData = (int64_t*)vector1->values.get();
+        auto rVectorData = (int64_t*)vector2->values.get();
         for (int i = 0; i < NUM_TUPLES; i++) {
             lVectorData[i] = i;
             rVectorData[i] = 110 - i;
@@ -63,7 +63,7 @@ public:
 TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatNoNulls) {
     auto lVector = vector1;
     auto rVector = vector2;
-    auto resultData = (int64_t*)result->values;
+    auto resultData = (int64_t*)result->values.get();
 
     UnaryOperationExecutor::execute<int64_t, int64_t, operation::Negate>(*lVector, *result);
 
@@ -115,7 +115,7 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatN
 
     result = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
     dataChunk->insert(0, result);
-    auto resultDataAsDoubleArr = (double_t*)result->values;
+    auto resultDataAsDoubleArr = (double_t*)result->values.get();
     BinaryOperationExecutor::execute<int64_t, int64_t, double_t, operation::Power>(
         *lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
@@ -129,7 +129,7 @@ TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatN
 TEST_F(Int64ArithmeticOperandsInSameDataChunkTest, Int64UnaryAndBinaryAllUnflatWithNulls) {
     auto lVector = vector1;
     auto rVector = vector2;
-    auto resultData = (int64_t*)result->values;
+    auto resultData = (int64_t*)result->values.get();
     // We set every odd value in vector 2 to NULL.
     for (int i = 0; i < NUM_TUPLES; ++i) {
         rVector->setNull(i, (i % 2) == 1);
@@ -164,7 +164,7 @@ TEST_F(Int64ArithmeticOperandsInDifferentDataChunksTest, Int64BinaryOneFlatOneUn
     // Flatten dataChunkWithVector1, which holds vector1
     dataChunkWithVector1->state->currIdx = 80;
     // Recall vector2 and result are in the same data chunk
-    auto resultData = (uint64_t*)result->values;
+    auto resultData = (uint64_t*)result->values.get();
 
     // Test 1: Left flat and right is unflat.
     // The addition is 80 + [110, 109, ...., 8, 9]. The results are: [190, 189, ...., 88, 89]
@@ -190,7 +190,7 @@ TEST_F(Int64ArithmeticOperandsInDifferentDataChunksTest, Int64BinaryOneFlatOneUn
 TEST_F(Int64ArithmeticOperandsInDifferentDataChunksTest, Int64BinaryOneFlatOneUnflatWithNulls) {
     auto lVector = vector1;
     auto rVector = vector2;
-    auto resultData = (int64_t*)result->values;
+    auto resultData = (int64_t*)result->values.get();
     // We set every odd value in vector 2 to NULL.
     for (int i = 0; i < NUM_TUPLES; ++i) {
         rVector->setNull(i, (i % 2) == 1);
@@ -229,9 +229,9 @@ TEST_F(Int64ArithmeticOperandsInDifferentDataChunksTest, Int64BinaryOneFlatOneUn
 TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredInt64Test) {
     auto lVector = vector1;
     auto rVector = vector2;
-    auto lData = (Value*)lVector->values;
-    auto rData = (Value*)rVector->values;
-    auto resultData = (Value*)result->values;
+    auto lData = (Value*)lVector->values.get();
+    auto rData = (Value*)rVector->values.get();
+    auto resultData = (Value*)result->values.get();
 
     // Fill values before the comparison.
     for (int i = 0; i < NUM_TUPLES; i++) {
@@ -278,9 +278,9 @@ TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredInt64Test)
 TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredInt32AndDoubleTest) {
     auto lVector = vector1;
     auto rVector = vector2;
-    auto lData = (Value*)lVector->values;
-    auto rData = (Value*)rVector->values;
-    auto resultData = (Value*)result->values;
+    auto lData = (Value*)lVector->values.get();
+    auto rData = (Value*)rVector->values.get();
+    auto resultData = (Value*)result->values.get();
 
     // Fill values before the comparison.
     for (int i = 0; i < NUM_TUPLES; i++) {
@@ -321,9 +321,9 @@ TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredInt32AndDo
 TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredStringAndInt32Test) {
     auto lVector = vector1;
     auto rVector = vector2;
-    auto lData = (Value*)lVector->values;
-    auto rData = (Value*)rVector->values;
-    auto resultData = (Value*)result->values;
+    auto lData = (Value*)lVector->values.get();
+    auto rData = (Value*)rVector->values.get();
+    auto resultData = (Value*)result->values.get();
 
     // Fill values before the comparison.
     for (int i = 0; i < NUM_TUPLES; i++) {

@@ -63,7 +63,7 @@ public:
 
     inline node_offset_t readNodeOffset(uint64_t pos) const {
         assert(dataType == NODE);
-        return ((nodeID_t*)values)[pos].offset;
+        return ((nodeID_t*)values.get())[pos].offset;
     }
 
     inline void resetOverflowBuffer() const {
@@ -79,12 +79,11 @@ private:
 
 public:
     DataType dataType;
-    uint8_t* values;
+    unique_ptr<uint8_t[]> values;
     unique_ptr<OverflowBuffer> overflowBuffer;
     shared_ptr<DataChunkState> state;
 
 private:
-    unique_ptr<OSBackedMemoryBlock> bufferValues;
     // This is a shared pointer because sometimes ValueVectors may share NullMasks, e.g., the result
     // ValueVectors of unary expressions, point to the nullMasks of operands.
     shared_ptr<NullMask> nullMask;

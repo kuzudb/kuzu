@@ -22,10 +22,10 @@ public:
         group2Vector = make_shared<ValueVector>(memoryManager.get(), INT64);
         aggr1Vector = make_shared<ValueVector>(memoryManager.get(), INT64);
         aggr2Vector = make_shared<ValueVector>(memoryManager.get(), INT64);
-        auto group1Values = (int64_t*)group1Vector->values;
-        auto group2Values = (int64_t*)group2Vector->values;
-        auto aggr1Values = (int64_t*)aggr1Vector->values;
-        auto aggr2Values = (int64_t*)aggr2Vector->values;
+        auto group1Values = (int64_t*)group1Vector->values.get();
+        auto group2Values = (int64_t*)group2Vector->values.get();
+        auto aggr1Values = (int64_t*)aggr1Vector->values.get();
+        auto aggr2Values = (int64_t*)aggr2Vector->values.get();
         for (auto i = 0u; i < 100; i++) {
             group1Values[i] = i % 4;
             group2Values[i] = i;

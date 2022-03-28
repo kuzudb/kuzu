@@ -34,10 +34,10 @@ public:
         auto vectorB1 = resultSet->dataChunks[1]->valueVectors[0];
         auto vectorB2 = resultSet->dataChunks[1]->valueVectors[1];
 
-        auto vectorA1Data = (nodeID_t*)vectorA1->values;
-        auto vectorA2Data = (int64_t*)vectorA2->values;
-        auto vectorB1Data = (nodeID_t*)vectorB1->values;
-        auto vectorB2Data = (double*)vectorB2->values;
+        auto vectorA1Data = (nodeID_t*)vectorA1->values.get();
+        auto vectorA2Data = (int64_t*)vectorA2->values.get();
+        auto vectorB1Data = (nodeID_t*)vectorB1->values.get();
+        auto vectorB2Data = (double*)vectorB2->values.get();
         for (auto i = 0u; i < 100; i++) {
             if (i % 15) {
                 vectorA1Data[i].label = 18;
@@ -138,7 +138,7 @@ TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
     vector<shared_ptr<ValueVector>> vectorsToRead = {readResultSet->dataChunks[1]->valueVectors[0],
         readResultSet->dataChunks[0]->valueVectors[1]};
     auto vectorB1 = vectorsToRead[0];
-    auto vectorB1Data = (nodeID_t*)vectorB1->values;
+    auto vectorB1Data = (nodeID_t*)vectorB1->values.get();
     auto vectorA2 = vectorsToRead[1];
 
     for (auto i = 0u; i < 100; i++) {
@@ -157,7 +157,7 @@ TEST_F(FactorizedTableTest, AppendAndScanOneTupleAtATime) {
         for (auto j = 0u; j < 100; j++) {
             if (j % 10) {
                 ASSERT_EQ(vectorA2->isNull(j), false);
-                ASSERT_EQ(((int64_t*)vectorA2->values)[j], j << 1);
+                ASSERT_EQ(((int64_t*)vectorA2->values.get())[j], j << 1);
             } else {
                 ASSERT_EQ(vectorA2->isNull(j), true);
             }
@@ -176,9 +176,9 @@ TEST_F(FactorizedTableTest, AppendMultipleTuplesScanOneAtAtime) {
     vector<shared_ptr<ValueVector>> vectorsToScan = {readResultSet->dataChunks[0]->valueVectors[0],
         readResultSet->dataChunks[1]->valueVectors[0]};
     auto vectorA1 = vectorsToScan[0];
-    auto vectorA1Data = (nodeID_t*)vectorA1->values;
+    auto vectorA1Data = (nodeID_t*)vectorA1->values.get();
     auto vectorB1 = vectorsToScan[1];
-    auto vectorB1Data = (nodeID_t*)vectorB1->values;
+    auto vectorB1Data = (nodeID_t*)vectorB1->values.get();
 
     for (auto i = 0u; i < 100; i++) {
         // Since B1 is an unflat column in factorizedTable , we can only read one tuple from

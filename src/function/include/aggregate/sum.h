@@ -46,7 +46,7 @@ struct SumFunction {
 
     static void updateSingleValue(
         SumState* state, ValueVector* input, uint32_t pos, uint64_t multiplicity) {
-        auto inputValues = (T*)input->values;
+        auto inputValues = (T*)input->values.get();
         for (auto j = 0u; j < multiplicity; ++j) {
             if (state->isNull) {
                 state->sum = inputValues[pos];

@@ -223,7 +223,8 @@ hash_t AggregateHashTable::computeHash(ValueVector* keyVector) {
     auto pos = keyVector->state->getPositionOfCurrIdx();
     hash_t hash;
     HashOnBytes::operation(keyVector->dataType,
-        keyVector->values + pos * keyVector->getNumBytesPerValue(), keyVector->isNull(pos), hash);
+        keyVector->values.get() + pos * keyVector->getNumBytesPerValue(), keyVector->isNull(pos),
+        hash);
     return hash;
 }
 
@@ -253,7 +254,7 @@ bool AggregateHashTable::matchGroupByKeys(const vector<ValueVector*>& keyVectors
         auto keyVector = keyVectors[i];
         assert(keyVector->state->isFlat());
         auto pos = keyVector->state->getPositionOfCurrIdx();
-        auto keyValue = keyVector->values + pos * keyVector->getNumBytesPerValue();
+        auto keyValue = keyVector->values.get() + pos * keyVector->getNumBytesPerValue();
         auto isKeyVectorNull = keyVector->isNull(pos);
         auto isEntryKeyNull =
             FactorizedTable::isNull(entry + tableSchema.getNullMapOffset(), i + 1);

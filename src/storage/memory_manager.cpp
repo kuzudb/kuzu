@@ -31,16 +31,5 @@ void MemoryManager::freeBMBackedBlock(uint32_t pageIdx) {
     freePages.push(pageIdx);
 }
 
-unique_ptr<OSBackedMemoryBlock> MemoryManager::allocateOSBackedBlock(
-    uint64_t size, bool initializeToZero) {
-    lock_guard<mutex> lock(memMgrLock);
-
-    auto blockHandle = make_unique<OSBackedMemoryBlock>(size);
-    if (initializeToZero) {
-        memset(blockHandle->data, 0, size);
-    }
-
-    return blockHandle;
-}
 } // namespace common
 } // namespace graphflow

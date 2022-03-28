@@ -10,22 +10,22 @@ void ValueVectorUtils::addLiteralToStructuredVector(
     ValueVector& resultVector, uint64_t pos, const Literal& literal) {
     switch (literal.dataType) {
     case INT64: {
-        ((int64_t*)resultVector.values)[pos] = literal.val.int64Val;
+        ((int64_t*)resultVector.values.get())[pos] = literal.val.int64Val;
     } break;
     case DOUBLE: {
-        ((double_t*)resultVector.values)[pos] = literal.val.doubleVal;
+        ((double_t*)resultVector.values.get())[pos] = literal.val.doubleVal;
     } break;
     case BOOL: {
-        ((bool*)resultVector.values)[pos] = literal.val.booleanVal;
+        ((bool*)resultVector.values.get())[pos] = literal.val.booleanVal;
     } break;
     case DATE: {
-        ((date_t*)resultVector.values)[pos] = literal.val.dateVal;
+        ((date_t*)resultVector.values.get())[pos] = literal.val.dateVal;
     } break;
     case TIMESTAMP: {
-        ((timestamp_t*)resultVector.values)[pos] = literal.val.timestampVal;
+        ((timestamp_t*)resultVector.values.get())[pos] = literal.val.timestampVal;
     } break;
     case INTERVAL: {
-        ((interval_t*)resultVector.values)[pos] = literal.val.intervalVal;
+        ((interval_t*)resultVector.values.get())[pos] = literal.val.intervalVal;
     } break;
     case STRING: {
         resultVector.addString(pos, literal.strVal);
@@ -38,7 +38,7 @@ void ValueVectorUtils::addLiteralToStructuredVector(
 void ValueVectorUtils::addLiteralToUnstructuredVector(
     ValueVector& resultVector, uint64_t pos, const Literal& value) {
     assert(resultVector.dataType == UNSTRUCTURED);
-    auto& val = ((Value*)resultVector.values)[pos];
+    auto& val = ((Value*)resultVector.values.get())[pos];
     val.dataType = value.dataType;
     switch (val.dataType) {
     case INT64: {
@@ -70,7 +70,7 @@ void ValueVectorUtils::addLiteralToUnstructuredVector(
 void ValueVectorUtils::addGFStringToUnstructuredVector(
     ValueVector& resultVector, uint64_t pos, const gf_string_t& value) {
     assert(resultVector.dataType == UNSTRUCTURED);
-    auto& val = ((Value*)resultVector.values)[pos];
+    auto& val = ((Value*)resultVector.values.get())[pos];
     val.dataType = STRING;
     TypeUtils::copyString(value, val.val.strVal, *resultVector.overflowBuffer);
 }
@@ -78,14 +78,14 @@ void ValueVectorUtils::addGFStringToUnstructuredVector(
 void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
     ValueVector& resultVector, uint64_t pos, const uint8_t* srcData) {
     copyNonNullDataWithSameType(resultVector.dataType, srcData,
-        resultVector.values + pos * resultVector.getNumBytesPerValue(),
+        resultVector.values.get() + pos * resultVector.getNumBytesPerValue(),
         *resultVector.overflowBuffer);
 }
 
 void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& srcVector,
     uint64_t pos, uint8_t* dstData, OverflowBuffer& dstOverflowBuffer) {
     copyNonNullDataWithSameType(srcVector.dataType,
-        srcVector.values + pos * srcVector.getNumBytesPerValue(), dstData, dstOverflowBuffer);
+        srcVector.values.get() + pos * srcVector.getNumBytesPerValue(), dstData, dstOverflowBuffer);
 }
 
 void ValueVectorUtils::copyNonNullDataWithSameType(

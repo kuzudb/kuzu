@@ -11,7 +11,7 @@ void OverflowPages::readStringsToVector(ValueVector& valueVector) {
         auto pos = valueVector.state->selectedPositions[i];
         if (!valueVector.isNull(pos)) {
             readStringToVector(
-                ((gf_string_t*)valueVector.values)[pos], *valueVector.overflowBuffer);
+                ((gf_string_t*)valueVector.values.get())[pos], *valueVector.overflowBuffer);
         }
     }
 }
@@ -21,7 +21,8 @@ void OverflowPages::readListsToVector(ValueVector& valueVector) {
     for (auto i = 0u; i < valueVector.state->selectedSize; i++) {
         auto pos = valueVector.state->selectedPositions[i];
         if (!valueVector.isNull(pos)) {
-            readListToVector(((gf_list_t*)valueVector.values)[pos], *valueVector.overflowBuffer);
+            readListToVector(
+                ((gf_list_t*)valueVector.values.get())[pos], *valueVector.overflowBuffer);
         }
     }
 }
