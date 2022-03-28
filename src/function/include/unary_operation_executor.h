@@ -17,14 +17,14 @@ struct UnaryOperationExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void executeOnValue(
         ValueVector& operand, uint64_t operandPos, RESULT_TYPE& resultValue) {
-        auto operandValues = (OPERAND_TYPE*)operand.values;
+        auto operandValues = (OPERAND_TYPE*)operand.values.get();
         FUNC::operation(operandValues[operandPos], (bool)operand.isNull(operandPos), resultValue);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void execute(ValueVector& operand, ValueVector& result) {
         result.resetOverflowBuffer();
-        auto resultValues = (RESULT_TYPE*)result.values;
+        auto resultValues = (RESULT_TYPE*)result.values.get();
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
             assert(pos == result.state->getPositionOfCurrIdx());
@@ -73,7 +73,7 @@ struct UnaryOperationExecutor {
     static void selectOnValue(ValueVector& operand, uint64_t operandPos,
         uint64_t& numSelectedValues, sel_t* selectedPositions) {
         uint8_t resultValue = 0;
-        auto operandValues = (OPERAND_TYPE*)operand.values;
+        auto operandValues = (OPERAND_TYPE*)operand.values.get();
         FUNC::operation(operandValues[operandPos], operand.isNull(operandPos), resultValue);
         selectedPositions[numSelectedValues] = operandPos;
         numSelectedValues += resultValue == true;

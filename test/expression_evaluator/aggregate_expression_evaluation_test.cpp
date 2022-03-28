@@ -26,9 +26,9 @@ public:
         stringValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
         unStrValueVector = make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
         dataChunk = make_shared<DataChunk>(4);
-        auto int64Values = (int64_t*)int64ValueVector->values;
-        auto doubleValues = (double_t*)doubleValueVector->values;
-        auto unStrValues = (Value*)unStrValueVector->values;
+        auto int64Values = (int64_t*)int64ValueVector->values.get();
+        auto doubleValues = (double_t*)doubleValueVector->values.get();
+        auto unStrValues = (Value*)unStrValueVector->values.get();
         for (auto i = 0u; i < 100; i++) {
             int64Values[i] = i;
             doubleValues[i] = (double)i * 1.5;

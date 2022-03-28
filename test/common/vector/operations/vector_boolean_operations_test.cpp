@@ -23,8 +23,8 @@ using namespace std;
  * */
 static void setValuesInVectors(const shared_ptr<ValueVector>& lVector,
     const shared_ptr<ValueVector>& rVector, uint32_t numTuples) {
-    auto lVectorData = (bool*)lVector->values;
-    auto rVectorData = (bool*)rVector->values;
+    auto lVectorData = (bool*)lVector->values.get();
+    auto rVectorData = (bool*)rVector->values.get();
     for (auto i = 0u; i < numTuples; i++) {
         lVectorData[i] = i % 2 == 0;
         rVectorData[i] = (i >> 1) % 2 == 0;
@@ -93,7 +93,7 @@ public:
 
 static void checkResultVectorNoNulls(const shared_ptr<ValueVector>& result,
     const function<bool(uint32_t)>& idxOfTrueValueFunc, uint32_t numTuples) {
-    auto resultData = (bool*)result->values;
+    auto resultData = (bool*)result->values.get();
     for (auto i = 0u; i < numTuples; i++) {
         if (idxOfTrueValueFunc(i)) {
             ASSERT_TRUE(resultData[i]);
@@ -135,7 +135,7 @@ TEST_F(BoolOperandsInSameDataChunkTest, BoolUnaryAndBinaryAllUnflatNoNulls) {
 static void checkResultVectorWithNulls(const shared_ptr<ValueVector>& result,
     const unordered_set<uint32_t>& idxOfTrueValuePer16Elements,
     const unordered_set<uint32_t>& idxOfFalseValuePer16Elements, uint32_t numTuples) {
-    auto resultData = (bool*)result->values;
+    auto resultData = (bool*)result->values.get();
     for (auto i = 0u; i < numTuples; i++) {
         if (idxOfTrueValuePer16Elements.contains(i % 16)) {
             ASSERT_TRUE(resultData[i]);

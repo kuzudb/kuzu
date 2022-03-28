@@ -16,11 +16,11 @@ TEST(VectorHashNodeIDTests, nonSequenceNodeIDTest) {
 
     auto nodeVector = make_shared<ValueVector>(memoryManager.get(), NODE);
     dataChunk->insert(0, nodeVector);
-    auto nodeData = (nodeID_t*)nodeVector->values;
+    auto nodeData = (nodeID_t*)nodeVector->values.get();
 
     auto result = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->insert(1, result);
-    auto resultData = (uint64_t*)result->values;
+    auto resultData = (uint64_t*)result->values.get();
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < 1000; i++) {
@@ -50,14 +50,14 @@ TEST(VectorHashNodeIDTests, sequenceNodeIDTest) {
 
     auto nodeVector = make_shared<ValueVector>(memoryManager.get(), NODE);
     for (auto i = 0u; i < 1000; i++) {
-        ((nodeID_t*)nodeVector->values)[i].label = 100;
-        ((nodeID_t*)nodeVector->values)[i].offset = 10 + i;
+        ((nodeID_t*)nodeVector->values.get())[i].label = 100;
+        ((nodeID_t*)nodeVector->values.get())[i].offset = 10 + i;
     }
     dataChunk->insert(0, nodeVector);
 
     auto result = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->insert(1, result);
-    auto resultData = (uint64_t*)result->values;
+    auto resultData = (uint64_t*)result->values.get();
 
     UnaryOperationExecutor::execute<nodeID_t, hash_t, operation::Hash>(*nodeVector, *result);
     for (int32_t i = 0; i < 1000; i++) {

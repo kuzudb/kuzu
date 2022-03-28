@@ -39,7 +39,7 @@ void UnstructuredPropertyLists::readPropertiesForPosition(ValueVector* nodeIDVec
             propertyKeysFound.insert(propertyKeyDataType.keyIdx);
             auto vector = propertyKeyToResultVectorMap.at(propertyKeyDataType.keyIdx);
             vector->setNull(pos, false);
-            auto value = &((Value*)vector->values)[pos];
+            auto value = &((Value*)vector->values.get())[pos];
             readPropertyValue(value, dataTypeSize, cursor, info.mapper);
             value->dataType = propertyKeyDataType.dataType;
             if (propertyKeyDataType.dataType == STRING) {

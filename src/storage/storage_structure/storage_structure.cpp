@@ -22,7 +22,7 @@ StorageStructure::StorageStructure(const string& fName, const DataType& dataType
 void StorageStructure::readBySequentialCopy(const shared_ptr<ValueVector>& valueVector,
     uint64_t sizeLeftToCopy, PageElementCursor& cursor,
     const function<uint32_t(uint32_t)>& logicalToPhysicalPageMapper) {
-    auto values = valueVector->values;
+    auto values = valueVector->values.get();
     auto offsetInVector = 0;
     while (sizeLeftToCopy) {
         auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.idx);
@@ -62,7 +62,7 @@ void StorageStructure::readNodeIDsFromSequentialPages(const shared_ptr<ValueVect
 void StorageStructure::readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector,
     uint32_t posInVector, uint32_t physicalPageId, uint32_t posInPage, uint64_t numValuesToCopy,
     NodeIDCompressionScheme& compressionScheme, bool isAdjLists) {
-    auto nodeValues = (nodeID_t*)valueVector->values;
+    auto nodeValues = (nodeID_t*)valueVector->values.get();
     auto labelSize = compressionScheme.getNumBytesForLabel();
     auto offsetSize = compressionScheme.getNumBytesForOffset();
     auto frame = bufferManager.pin(fileHandle, physicalPageId);

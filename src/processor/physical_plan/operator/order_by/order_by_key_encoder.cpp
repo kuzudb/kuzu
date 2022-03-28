@@ -168,31 +168,31 @@ void OrderByKeyEncoder::encodeData(shared_ptr<ValueVector>& orderByVector,
         auto keyBlockPtrAfterNullByte = keyBlockPtr + 1;
         switch (orderByVector->dataType) {
         case INT64:
-            encodeInt64(
-                ((int64_t*)orderByVector->values)[idxInOrderByVector], keyBlockPtrAfterNullByte);
+            encodeInt64(((int64_t*)orderByVector->values.get())[idxInOrderByVector],
+                keyBlockPtrAfterNullByte);
             break;
         case BOOL:
             encodeBool(
-                ((bool*)orderByVector->values)[idxInOrderByVector], keyBlockPtrAfterNullByte);
+                ((bool*)orderByVector->values.get())[idxInOrderByVector], keyBlockPtrAfterNullByte);
             break;
         case DOUBLE:
-            encodeDouble(
-                ((double*)orderByVector->values)[idxInOrderByVector], keyBlockPtrAfterNullByte);
+            encodeDouble(((double*)orderByVector->values.get())[idxInOrderByVector],
+                keyBlockPtrAfterNullByte);
             break;
         case DATE:
-            encodeDate(
-                ((date_t*)orderByVector->values)[idxInOrderByVector], keyBlockPtrAfterNullByte);
+            encodeDate(((date_t*)orderByVector->values.get())[idxInOrderByVector],
+                keyBlockPtrAfterNullByte);
             break;
         case TIMESTAMP:
-            encodeTimestamp(((timestamp_t*)orderByVector->values)[idxInOrderByVector],
+            encodeTimestamp(((timestamp_t*)orderByVector->values.get())[idxInOrderByVector],
                 keyBlockPtrAfterNullByte);
             break;
         case INTERVAL:
-            encodeInterval(
-                ((interval_t*)orderByVector->values)[idxInOrderByVector], keyBlockPtrAfterNullByte);
+            encodeInterval(((interval_t*)orderByVector->values.get())[idxInOrderByVector],
+                keyBlockPtrAfterNullByte);
             break;
         case STRING:
-            encodeString(((gf_string_t*)orderByVector->values)[idxInOrderByVector],
+            encodeString(((gf_string_t*)orderByVector->values.get())[idxInOrderByVector],
                 keyBlockPtrAfterNullByte);
             break;
         case UNSTRUCTURED:

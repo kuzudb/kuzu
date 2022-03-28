@@ -10,7 +10,7 @@ struct NullOperationExecutor {
     template<typename FUNC>
     static void execute(ValueVector& operand, ValueVector& result) {
         assert(result.dataType == BOOL);
-        auto resultValues = (uint8_t*)result.values;
+        auto resultValues = (uint8_t*)result.values.get();
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
             assert(pos == result.state->getPositionOfCurrIdx());

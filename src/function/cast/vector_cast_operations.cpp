@@ -39,18 +39,18 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
             operand, result);
     } break;
     case STRING: {
-        auto outValues = (Value*)result.values;
+        auto outValues = (Value*)result.values.get();
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
             assert(pos == result.state->getPositionOfCurrIdx());
             ValueVectorUtils::addGFStringToUnstructuredVector(
-                result, pos, ((gf_string_t*)operand.values)[pos]);
+                result, pos, ((gf_string_t*)operand.values.get())[pos]);
             outValues[pos].dataType = STRING;
         } else {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 ValueVectorUtils::addGFStringToUnstructuredVector(
-                    result, pos, ((gf_string_t*)operand.values)[pos]);
+                    result, pos, ((gf_string_t*)operand.values.get())[pos]);
                 outValues[pos].dataType = STRING;
             }
         }
@@ -74,22 +74,22 @@ void VectorCastOperations::castStructuredToString(
         string val;
         switch (operand.dataType) {
         case BOOL: {
-            val = TypeUtils::toString(((bool*)operand.values)[pos]);
+            val = TypeUtils::toString(((bool*)operand.values.get())[pos]);
         } break;
         case INT64: {
-            val = TypeUtils::toString(((int64_t*)operand.values)[pos]);
+            val = TypeUtils::toString(((int64_t*)operand.values.get())[pos]);
         } break;
         case DOUBLE: {
-            val = TypeUtils::toString(((double_t*)operand.values)[pos]);
+            val = TypeUtils::toString(((double_t*)operand.values.get())[pos]);
         } break;
         case DATE: {
-            val = Date::toString(((date_t*)operand.values)[pos]);
+            val = Date::toString(((date_t*)operand.values.get())[pos]);
         } break;
         case TIMESTAMP: {
-            val = Timestamp::toString(((timestamp_t*)operand.values)[pos]);
+            val = Timestamp::toString(((timestamp_t*)operand.values.get())[pos]);
         } break;
         case INTERVAL: {
-            val = Interval::toString(((interval_t*)operand.values)[pos]);
+            val = Interval::toString(((interval_t*)operand.values.get())[pos]);
         } break;
         default:
             assert(false);
@@ -100,18 +100,18 @@ void VectorCastOperations::castStructuredToString(
         case BOOL: {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
-                result.addString(pos, TypeUtils::toString(((bool*)operand.values)[pos]));
+                result.addString(pos, TypeUtils::toString(((bool*)operand.values.get())[pos]));
             }
         } break;
         case INT64: {
-            auto intValues = (int64_t*)operand.values;
+            auto intValues = (int64_t*)operand.values.get();
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 result.addString(pos, TypeUtils::toString(intValues[pos]));
             }
         } break;
         case DOUBLE: {
-            auto doubleValues = (double_t*)operand.values;
+            auto doubleValues = (double_t*)operand.values.get();
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 result.addString(pos, TypeUtils::toString(doubleValues[pos]));
@@ -120,19 +120,20 @@ void VectorCastOperations::castStructuredToString(
         case DATE: {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
-                result.addString(pos, Date::toString(((date_t*)operand.values)[pos]));
+                result.addString(pos, Date::toString(((date_t*)operand.values.get())[pos]));
             }
         } break;
         case TIMESTAMP: {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
-                result.addString(pos, Timestamp::toString(((timestamp_t*)operand.values)[pos]));
+                result.addString(
+                    pos, Timestamp::toString(((timestamp_t*)operand.values.get())[pos]));
             }
         } break;
         case INTERVAL: {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
-                result.addString(pos, Interval::toString(((interval_t*)operand.values)[pos]));
+                result.addString(pos, Interval::toString(((interval_t*)operand.values.get())[pos]));
             }
         } break;
         default:
