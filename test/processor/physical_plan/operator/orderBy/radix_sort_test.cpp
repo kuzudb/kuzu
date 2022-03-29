@@ -64,7 +64,7 @@ public:
         auto dataChunk = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         dataChunk->state->selectedSize = sortingData.size();
         auto valueVector = make_shared<ValueVector>(memoryManager.get(), dataType);
-        auto values = (T*)valueVector->values.get();
+        auto values = (T*)valueVector->values;
         for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
             if (nullMasks[i]) {
                 valueVector->setNull(i, true);
@@ -378,10 +378,10 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     mockDataChunk->insert(3, timestampFlatValueVector);
     mockDataChunk->insert(4, dateFlatValueVector);
 
-    auto intValues = (int64_t*)intFlatValueVector->values.get();
-    auto doubleValues = (double*)doubleFlatValueVector->values.get();
-    auto timestampValues = (timestamp_t*)timestampFlatValueVector->values.get();
-    auto dateValues = (date_t*)dateFlatValueVector->values.get();
+    auto intValues = (int64_t*)intFlatValueVector->values;
+    auto doubleValues = (double*)doubleFlatValueVector->values;
+    auto timestampValues = (timestamp_t*)timestampFlatValueVector->values;
+    auto dateValues = (date_t*)dateFlatValueVector->values;
 
     intFlatValueVector->state->currIdx = 0;
     doubleFlatValueVector->state->currIdx = 0;

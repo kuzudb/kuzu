@@ -49,7 +49,7 @@ struct AvgFunction {
 
     static void updateSingleValue(
         AvgState* state, ValueVector* input, uint32_t pos, uint64_t multiplicity) {
-        auto inputValues = (T*)input->values.get();
+        auto inputValues = (T*)input->values;
         for (auto i = 0u; i < multiplicity; ++i) {
             if (state->isNull) {
                 state->sum = inputValues[pos];

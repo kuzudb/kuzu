@@ -108,8 +108,8 @@ struct BinaryBooleanOperationExecutor {
     static uint64_t selectBothFlat(ValueVector& left, ValueVector& right) {
         auto lPos = left.state->getPositionOfCurrIdx();
         auto rPos = right.state->getPositionOfCurrIdx();
-        auto lValues = (bool*)left.values.get();
-        auto rValues = (bool*)right.values.get();
+        auto lValues = (bool*)left.values;
+        auto rValues = (bool*)right.values;
         uint8_t resultValue = 0;
         FUNC::operation(lValues[lPos], rValues[rPos], resultValue, (bool)left.isNull(lPos),
             (bool)right.isNull(rPos));
