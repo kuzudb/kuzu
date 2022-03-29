@@ -9,7 +9,6 @@
 #include "src/storage/include/memory_manager.h"
 
 using namespace graphflow::common;
-using namespace graphflow::processor;
 
 namespace graphflow {
 namespace processor {

@@ -1,32 +1,26 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
-    name = "session_context",
+    name = "graphflowdb",
     srcs = [
+        "connection.cpp",
+        "database.cpp",
         "plan_printer.cpp",
+        "query_result.cpp",
     ],
     hdrs = [
+        "include/client_context.h",
+        "include/connection.h",
+        "include/database.h",
+        "include/graphflowdb.h",
         "include/plan_printer.h",
-        "include/session_context.h",
+        "include/query_result.h",
+        "include/query_summary.h",
+    ],
+    visibility = [
+        "//visibility:public",
     ],
     deps = [
-        "//src/common:profiler",
-        "//src/planner/logical_plan",
-        "//src/processor:physical_plan",
-    ],
-)
-
-cc_library(
-    name = "system",
-    srcs = [
-        "system.cpp",
-    ],
-    hdrs = [
-        "include/system.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "session_context",
         "//src/binder",
         "//src/parser",
         "//src/planner:enumerator",
@@ -34,39 +28,3 @@ cc_library(
         "//src/processor:mapper",
     ],
 )
-
-cc_library(
-    name = "server",
-    srcs = [
-        "server.cpp",
-    ],
-    hdrs = [
-        "include/server.h",
-    ],
-    copts = [
-        "-Iexternal/asio",
-        "-Iexternal/fmtlib_fmt/include",
-        "-Iexternal/nodejs_http_parser",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "system",
-        "@Stiffstream_restinio",
-    ],
-)
-
-cc_binary(
-    name = "run_server",
-    srcs = ["run_server.cpp"],
-    copts = [
-        "-Iexternal/asio",
-        "-Iexternal/fmtlib_fmt/include",
-        "-Iexternal/nodejs_http_parser",
-    ],
-    linkopts = ["-lpthread"],
-    deps = [
-        "server",
-        "@Taywee_args",
-    ],
-)
-

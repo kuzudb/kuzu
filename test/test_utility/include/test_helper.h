@@ -1,11 +1,9 @@
 #pragma once
 
-#include <cstdint>
-#include <string>
-
 #include "gtest/gtest.h"
 
-#include "src/main/include/system.h"
+#include "src/common/include/file_utils.h"
+#include "src/main/include/graphflowdb.h"
 
 using namespace std;
 using namespace graphflow::main;
@@ -13,15 +11,6 @@ using ::testing::Test;
 
 namespace graphflow {
 namespace testing {
-
-struct TestSuiteSystemConfig {
-    string graphInputDir;
-    string graphOutputDir;
-    uint64_t maxNumThreads = 4;
-    bool isInMemory = false;
-    uint64_t defaultPageBufferPoolSize = StorageConfig::DEFAULT_BUFFER_POOL_SIZE;
-    uint64_t largePageBufferPoolSize = StorageConfig::DEFAULT_BUFFER_POOL_SIZE;
-};
 
 struct TestQueryConfig {
     uint64_t numThreads = 1;
@@ -35,56 +24,68 @@ struct TestQueryConfig {
 class TestHelper {
 
 public:
-    static bool runTest(const vector<TestQueryConfig>& testConfigs, const System& system);
-
     static vector<TestQueryConfig> parseTestFile(const string& path, bool checkOutputOrder = false);
 
-    static void loadGraph(TestSuiteSystemConfig& config);
+    static bool runTest(const vector<TestQueryConfig>& testConfigs, Connection& conn);
 
-    static unique_ptr<System> getInitializedSystem(TestSuiteSystemConfig& config) {
-        return make_unique<System>(
-            config.graphOutputDir, SystemConfig(config.isInMemory, config.defaultPageBufferPoolSize,
-                                       config.largePageBufferPoolSize));
-    }
-
-    static vector<string> getActualOutput(
-        FactorizedTable& queryResult, vector<DataType> dataTypes, bool checkOutputOrder = false);
+    static vector<string> getOutput(QueryResult& queryResult, bool checkOutputOrder = false);
 };
 
 class BaseGraphLoadingTest : public Test {
-public:
-    void SetUp() override;
 
-    void TearDown() override { FileUtils::removeDir(testSuiteSystemConfig.graphOutputDir); }
+public:
+    void SetUp() override {
+        systemConfig = make_unique<SystemConfig>();
+        databaseConfig = make_unique<DatabaseConfig>(TEMP_TEST_DIR);
+        loadGraph();
+    }
+
+    void TearDown() override { FileUtils::removeDir(TEMP_TEST_DIR); }
 
     virtual string getInputCSVDir() = 0;
 
+    void loadGraph();
+
+    void createConn();
+
 public:
     const string TEMP_TEST_DIR = "test/unittest_temp/";
-    TestSuiteSystemConfig testSuiteSystemConfig;
+    unique_ptr<SystemConfig> systemConfig;
+    unique_ptr<DatabaseConfig> databaseConfig;
+    unique_ptr<Database> database;
+    unique_ptr<Connection> conn;
 };
 
 class DBLoadedTest : public BaseGraphLoadingTest {
+
 public:
     void SetUp() override {
         BaseGraphLoadingTest::SetUp();
-        defaultSystem = TestHelper::getInitializedSystem(testSuiteSystemConfig);
+        createConn();
     }
-
-public:
-    unique_ptr<System> defaultSystem;
 };
 
 class InMemoryDBLoadedTest : public BaseGraphLoadingTest {
-public:
-    void SetUp() override {
-        graphflow::testing::BaseGraphLoadingTest::SetUp();
-        testSuiteSystemConfig.isInMemory = true;
-        defaultSystem = TestHelper::getInitializedSystem(testSuiteSystemConfig);
-    }
 
 public:
-    unique_ptr<System> defaultSystem;
+    void SetUp() override {
+        BaseGraphLoadingTest::SetUp();
+        databaseConfig->inMemoryMode = true;
+        createConn();
+    }
+};
+
+class ApiTest : public BaseGraphLoadingTest {
+
+public:
+    void SetUp() override {
+        BaseGraphLoadingTest::SetUp();
+        systemConfig->defaultPageBufferPoolSize = (1ull << 26);
+        systemConfig->largePageBufferPoolSize = (1ull << 26);
+        createConn();
+    }
+
+    string getInputCSVDir() override { return "dataset/tinysnb/"; }
 };
 
 } // namespace testing

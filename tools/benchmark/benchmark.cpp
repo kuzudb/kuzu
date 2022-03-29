@@ -11,10 +11,10 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace benchmark {
 
-Benchmark::Benchmark(const string& benchmarkPath, System& system, BenchmarkConfig& config)
-    : system{system}, config{config} {
-    context = make_unique<SessionContext>();
-    context->numThreads = config.numThreads;
+Benchmark::Benchmark(const string& benchmarkPath, Database* database, BenchmarkConfig& config)
+    : config{config} {
+    conn = make_unique<Connection>(database);
+    conn->setMaxNumThreadForExec(config.numThreads);
     loadBenchmark(benchmarkPath);
 }
 
@@ -23,54 +23,52 @@ void Benchmark::loadBenchmark(const string& benchmarkPath) {
         testing::TestHelper::parseTestFile(benchmarkPath);
     assert(queryConfigs.size() == 1);
     testing::TestQueryConfig queryConfig = queryConfigs[0];
-    if (config.enableProfile) {
-        context->query += "PROFILE ";
-    }
-    context->query = queryConfig.query;
+    query = config.enableProfile ? "PROFILE " : "";
+    query += queryConfig.query;
     name = queryConfig.name;
     expectedOutput = queryConfig.expectedTuples;
 }
 
-void Benchmark::run() {
-    system.executeQuery(*context);
+unique_ptr<QueryResult> Benchmark::run() {
+    return conn->query(query);
 }
 
-void Benchmark::logQueryInfo(ofstream& log, uint32_t runNum) const {
-    vector<string> actualOutput = testing::TestHelper::getActualOutput(
-        *context->queryResult, context->expressionsToReturnDataTypes);
+void Benchmark::logQueryInfo(ofstream& log, uint32_t runNum, QueryResult& queryResult) const {
+    vector<string> actualOutput = testing::TestHelper::getOutput(queryResult);
     log << "Run Num: " << runNum << endl;
     log << "Status: " << (actualOutput == expectedOutput ? "pass" : "error") << endl;
-    log << "Query: " << context->query << endl;
+    log << "Query: " << query << endl;
     log << "Expected output: " << endl;
-    for (auto result : expectedOutput) {
+    for (auto& result : expectedOutput) {
         log << result << endl;
     }
     log << "Actual output: " << endl;
-    for (auto result : actualOutput) {
+    for (auto& result : actualOutput) {
         log << result << endl;
     }
 }
 
-void Benchmark::log(uint32_t runNum) const {
-    string plan = "Plan: \n" + context->planPrinter->printPlanToJson(*context->profiler).dump(4);
+void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
+    auto querySummary = queryResult.getQuerySummary();
+    string plan = "Plan: \n" + querySummary->printPlanToJson().dump(4);
     spdlog::info("Run number: {}", runNum);
-    spdlog::info("Compiling time {}", context->compilingTime);
-    spdlog::info("Execution time {}", context->executingTime);
-    verify();
+    spdlog::info("Compiling time {}", querySummary->getCompilingTime());
+    spdlog::info("Execution time {}", querySummary->getExecutionTime());
+    verify(queryResult);
     spdlog::info("");
     if (config.enableProfile) {
         spdlog::info("{}", plan);
     }
     if (!config.outputPath.empty()) {
         ofstream logFile(config.outputPath + "/" + name + "_log.txt", ios_base::app);
-        logQueryInfo(logFile, runNum);
-        logFile << "Compiling time: " << context->compilingTime << endl;
-        logFile << "Execution time: " << context->executingTime << endl << endl;
+        logQueryInfo(logFile, runNum, queryResult);
+        logFile << "Compiling time: " << querySummary->getCompilingTime() << endl;
+        logFile << "Execution time: " << querySummary->getExecutionTime() << endl << endl;
         logFile.flush();
         logFile.close();
         if (config.enableProfile) {
             ofstream profileFile(config.outputPath + "/" + name + "_profile.txt", ios_base::app);
-            logQueryInfo(profileFile, runNum);
+            logQueryInfo(profileFile, runNum, queryResult);
             profileFile << plan << endl << endl;
             profileFile.flush();
             profileFile.close();
@@ -78,11 +76,10 @@ void Benchmark::log(uint32_t runNum) const {
     }
 }
 
-void Benchmark::verify() const {
-    vector<string> actualOutput = testing::TestHelper::getActualOutput(
-        *context->queryResult, context->expressionsToReturnDataTypes);
+void Benchmark::verify(QueryResult& queryResult) const {
+    vector<string> actualOutput = testing::TestHelper::getOutput(queryResult);
     if (actualOutput != expectedOutput) {
-        spdlog::error("Query: {}", context->query);
+        spdlog::error("Query: {}", query);
         spdlog::error("Result tuples are not matched");
         spdlog::error("RESULT:");
         for (auto& tuple : actualOutput) {

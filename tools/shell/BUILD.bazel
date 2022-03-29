@@ -11,7 +11,7 @@ cc_library(
         "include/linenoise.h",
     ],
     deps = [
-        "//src/main:system",
+        "//src/main:graphflowdb",
         "@Taywee_args",
     ],
 )

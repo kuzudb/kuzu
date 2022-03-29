@@ -24,7 +24,7 @@ private:
 
 public:
     unique_ptr<BenchmarkConfig> config;
-    unique_ptr<System> system;
+    unique_ptr<Database> database;
     vector<unique_ptr<Benchmark>> benchmarks;
 };
 

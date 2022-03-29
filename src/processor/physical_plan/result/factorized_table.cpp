@@ -350,6 +350,7 @@ FlatTupleIterator::FlatTupleIterator(FactorizedTable& factorizedTable)
         updateNumElementsInDataChunk();
         updateInvalidEntriesInFlatTuplePositionsInDataChunk();
     }
+    // TODO(Guodong): make iterator work with empty table?
 }
 
 void FlatTupleIterator::getNextFlatTuple(FlatTuple& flatTuple) {

@@ -2,7 +2,7 @@
 
 #include "tools/benchmark/include/benchmark_config.h"
 
-#include "src/main/include/system.h"
+#include "src/main/include/graphflowdb.h"
 
 using namespace std;
 using namespace graphflow::main;
@@ -16,22 +16,22 @@ namespace benchmark {
 class Benchmark {
 
 public:
-    Benchmark(const string& benchmarkPath, System& system, BenchmarkConfig& config);
+    Benchmark(const string& benchmarkPath, Database* database, BenchmarkConfig& config);
 
-    void run();
-    void log(uint32_t runNum) const;
+    unique_ptr<QueryResult> run();
+    void log(uint32_t runNum, QueryResult& queryResult) const;
 
 private:
     void loadBenchmark(const string& benchmarkPath);
-    void logQueryInfo(ofstream& log, uint32_t runNum) const;
-    void verify() const;
+    void logQueryInfo(ofstream& log, uint32_t runNum, QueryResult& queryResult) const;
+    void verify(QueryResult& queryResult) const;
 
 public:
-    System& system;
     BenchmarkConfig& config;
+    unique_ptr<Connection> conn;
     string name;
+    string query;
     vector<string> expectedOutput;
-    unique_ptr<SessionContext> context;
 };
 
 } // namespace benchmark

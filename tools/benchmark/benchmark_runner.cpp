@@ -11,7 +11,7 @@ const string BENCHMARK_SUFFIX = ".benchmark";
 
 BenchmarkRunner::BenchmarkRunner(const string& datasetPath, unique_ptr<BenchmarkConfig> config)
     : config{move(config)} {
-    system = make_unique<System>(datasetPath, SystemConfig(this->config->isInMemoryMode));
+    database = make_unique<Database>(DatabaseConfig(datasetPath, this->config->isInMemoryMode));
 }
 
 void BenchmarkRunner::registerBenchmarks(const string& path) {
@@ -32,7 +32,7 @@ void BenchmarkRunner::runAllBenchmarks() {
 
 void BenchmarkRunner::registerBenchmark(const string& path) {
     if (path.ends_with(BENCHMARK_SUFFIX)) {
-        auto benchmark = make_unique<Benchmark>(path, *system, *config);
+        auto benchmark = make_unique<Benchmark>(path, database.get(), *config);
         spdlog::info("Register benchmark {}", benchmark->name);
         benchmarks.push_back(move(benchmark));
     }
@@ -55,9 +55,9 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) {
     }
     double runTimes[config->numRuns];
     for (auto i = 0u; i < config->numRuns; ++i) {
-        benchmark->run();
-        benchmark->log(i + 1);
-        runTimes[i] = benchmark->context->executingTime;
+        auto queryResult = benchmark->run();
+        benchmark->log(i + 1, *queryResult);
+        runTimes[i] = queryResult->getQuerySummary()->getExecutionTime();
     }
     spdlog::info("Time Taken (Average of Last 3 runs) (ms): " +
                  to_string(computeAverageOfLastRuns(

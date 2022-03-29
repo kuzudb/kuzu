@@ -2,7 +2,7 @@
 
 #include "tools/shell/include/linenoise.h"
 
-#include "src/main/include/system.h"
+#include "src/main/include/graphflowdb.h"
 
 using namespace graphflow::main;
 
@@ -12,18 +12,16 @@ using namespace graphflow::main;
 class EmbeddedShell {
 
 public:
-    EmbeddedShell(const System& system);
+    EmbeddedShell(const DatabaseConfig& databaseConfig, const SystemConfig& systemConfig);
 
     void run();
 
 private:
     static void printHelp();
 
-    void printExecutionResult() const;
-
-    void prettyPrintPlan() const;
+    void printExecutionResult(QueryResult& queryResult) const;
 
 private:
-    const System& system;
-    SessionContext context;
+    unique_ptr<Database> database;
+    unique_ptr<Connection> conn;
 };

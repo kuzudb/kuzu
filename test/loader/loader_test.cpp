@@ -51,36 +51,37 @@ struct ALabelAKnowsLists {
     AdjLists* bwdAKnowsLists;
 };
 
-KnowsLabelPLabelPKnowsLists getKnowsLabelPLabelPKnowsLists(System* system) {
+KnowsLabelPLabelPKnowsLists getKnowsLabelPLabelPKnowsLists(Graph* graph) {
     KnowsLabelPLabelPKnowsLists retVal;
-    auto& catalog = system->graph->getCatalog();
+    auto& catalog = graph->getCatalog();
     retVal.pNodeLabel = catalog.getNodeLabelFromString("person");
     retVal.knowsRelLabel = catalog.getRelLabelFromString("knows");
     retVal.fwdPKnowsLists =
-        system->graph->getRelsStore().getAdjLists(FWD, retVal.pNodeLabel, retVal.knowsRelLabel);
+        graph->getRelsStore().getAdjLists(FWD, retVal.pNodeLabel, retVal.knowsRelLabel);
     retVal.bwdPKnowsLists =
-        system->graph->getRelsStore().getAdjLists(BWD, retVal.pNodeLabel, retVal.knowsRelLabel);
+        graph->getRelsStore().getAdjLists(BWD, retVal.pNodeLabel, retVal.knowsRelLabel);
     return retVal;
 }
 
-ALabelAKnowsLists getALabelAKnowsLists(System* system) {
+ALabelAKnowsLists getALabelAKnowsLists(Graph* graph) {
     ALabelAKnowsLists retVal;
-    auto& catalog = system->graph->getCatalog();
+    auto& catalog = graph->getCatalog();
     retVal.aNodeLabel = catalog.getNodeLabelFromString("animal");
     auto knowsRelLabel = catalog.getRelLabelFromString("knows");
     retVal.fwdAKnowsLists =
-        system->graph->getRelsStore().getAdjLists(FWD, retVal.aNodeLabel, knowsRelLabel);
+        graph->getRelsStore().getAdjLists(FWD, retVal.aNodeLabel, knowsRelLabel);
     retVal.bwdAKnowsLists =
-        system->graph->getRelsStore().getAdjLists(BWD, retVal.aNodeLabel, knowsRelLabel);
+        graph->getRelsStore().getAdjLists(BWD, retVal.aNodeLabel, knowsRelLabel);
     return retVal;
 }
 
 TEST_F(LoaderNodePropertyTest, NodeStructuredStringPropertyTest) {
-    auto& catalog = defaultSystem->graph->getCatalog();
+    auto graph = database->getGraph();
+    auto& catalog = graph->getCatalog();
     auto label = catalog.getNodeLabelFromString("person");
     auto propertyIdx = catalog.getNodeProperty(label, "randomString");
     auto column = reinterpret_cast<StringPropertyColumn*>(
-        defaultSystem->graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id));
+        graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id));
     string fName = getInputCSVDir() + "vPerson.csv";
     CSVReaderConfig config;
     CSVReader csvReader(fName, config);
@@ -98,10 +99,11 @@ TEST_F(LoaderNodePropertyTest, NodeStructuredStringPropertyTest) {
 }
 
 TEST_F(LoaderNodePropertyTest, NodeUnstructuredPropertyTest) {
-    auto& catalog = defaultSystem->graph->getCatalog();
+    auto graph = database->getGraph();
+    auto& catalog = graph->getCatalog();
     auto label = catalog.getNodeLabelFromString("person");
     auto lists = reinterpret_cast<UnstructuredPropertyLists*>(
-        defaultSystem->graph->getNodesStore().getNodeUnstrPropertyLists(label));
+        graph->getNodesStore().getNodeUnstrPropertyLists(label));
     auto& propertyNameToIdMap = catalog.getUnstrPropertiesNameToIdMap(label);
     for (int i = 0; i < 1000; ++i) {
         auto propertiesMap = lists->readUnstructuredPropertiesOfNode(i);
@@ -169,9 +171,8 @@ void verifyP0ToP5999(KnowsLabelPLabelPKnowsLists& knowsLabelPLabelPKnowsLists) {
     }
 }
 
-void verifya0Andp6000(
-    KnowsLabelPLabelPKnowsLists& knowsLabelPLabelPKnowsLists, System* defaultSystem) {
-    auto aLabelAKnowsLists = getALabelAKnowsLists(defaultSystem);
+void verifya0Andp6000(KnowsLabelPLabelPKnowsLists& knowsLabelPLabelPKnowsLists, Graph* graph) {
+    auto aLabelAKnowsLists = getALabelAKnowsLists(graph);
     // a0 has 1 fwd edge to p6000, and no backward edges.
     node_offset_t a0NodeOffset = 0;
     node_offset_t p6000NodeOffset = 6000;
@@ -204,34 +205,35 @@ void verifyP6001ToP65999(KnowsLabelPLabelPKnowsLists& knowsLabelPLabelPKnowsList
 }
 
 TEST_F(LoaderReadLists2BytesPerEdgeTest, ReadLists2BytesPerEdgeTest) {
-    auto knowsLabelPLabelPKnowsLists = getKnowsLabelPLabelPKnowsLists(defaultSystem.get());
+    auto knowsLabelPLabelPKnowsLists = getKnowsLabelPLabelPKnowsLists(database->getGraph());
     verifyP0ToP5999(knowsLabelPLabelPKnowsLists);
 }
 
 TEST_F(LoaderReadLists3BytesPerEdgeTest, ReadLists3BytesPerEdgeTest) {
-    auto knowsLabelPLabelPKnowsLists = getKnowsLabelPLabelPKnowsLists(defaultSystem.get());
+    auto knowsLabelPLabelPKnowsLists = getKnowsLabelPLabelPKnowsLists(database->getGraph());
     verifyP0ToP5999(knowsLabelPLabelPKnowsLists);
-    verifya0Andp6000(knowsLabelPLabelPKnowsLists, defaultSystem.get());
+    verifya0Andp6000(knowsLabelPLabelPKnowsLists, database->getGraph());
 }
 
 TEST_F(LoaderReadLists4BytesPerEdgeTest, ReadLists4BytesPerEdgeTest) {
-    auto knowsLabelPLabelPKnowsLists = getKnowsLabelPLabelPKnowsLists(defaultSystem.get());
+    auto knowsLabelPLabelPKnowsLists = getKnowsLabelPLabelPKnowsLists(database->getGraph());
     verifyP0ToP5999(knowsLabelPLabelPKnowsLists);
     verifyP6001ToP65999(knowsLabelPLabelPKnowsLists);
 }
 
 TEST_F(LoaderReadLists5BytesPerEdgeTest, ReadLists5BytesPerEdgeTest) {
-    auto knowsLabelPLabelPKnowsLists = getKnowsLabelPLabelPKnowsLists(defaultSystem.get());
+    auto knowsLabelPLabelPKnowsLists = getKnowsLabelPLabelPKnowsLists(database->getGraph());
     verifyP0ToP5999(knowsLabelPLabelPKnowsLists);
-    verifya0Andp6000(knowsLabelPLabelPKnowsLists, defaultSystem.get());
+    verifya0Andp6000(knowsLabelPLabelPKnowsLists, database->getGraph());
     verifyP6001ToP65999(knowsLabelPLabelPKnowsLists);
 }
 
 TEST_F(LoaderSpecialCharTest, LoaderSpecialCharsCsv) {
-    auto& catalog = defaultSystem->graph->getCatalog();
+    auto graph = database->getGraph();
+    auto& catalog = graph->getCatalog();
     auto label = catalog.getNodeLabelFromString("person");
     auto propertyIdx = catalog.getNodeProperty(label, "randomString");
-    auto col = defaultSystem->graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
+    auto col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
 
     EXPECT_EQ("this is |the first line", col->readValue(0).strVal);
     EXPECT_EQ("the \" should be ignored", col->readValue(1).strVal);
@@ -243,7 +245,7 @@ TEST_F(LoaderSpecialCharTest, LoaderSpecialCharsCsv) {
 
     label = catalog.getNodeLabelFromString("organisation");
     propertyIdx = catalog.getNodeProperty(label, "name");
-    col = defaultSystem->graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
+    col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
     EXPECT_EQ("ABFsUni", col->readValue(0).strVal);
     EXPECT_EQ("CsW,ork", col->readValue(1).strVal);
     EXPECT_EQ("DEsW#ork", col->readValue(2).strVal);
