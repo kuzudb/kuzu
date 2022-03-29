@@ -17,8 +17,8 @@ public:
 
     void SetUp() override {
         initDataChunk();
-        auto vector1Data = (int64_t*)vector1->values.get();
-        auto vector2Data = (int64_t*)vector2->values.get();
+        auto vector1Data = (int64_t*)vector1->values;
+        auto vector2Data = (int64_t*)vector2->values;
 
         for (int i = 0; i < NUM_TUPLES; i++) {
             vector1Data[i] = i;
@@ -37,8 +37,8 @@ public:
 
     void SetUp() override {
         initDataChunk();
-        auto vector1Data = (int64_t*)vector1->values.get();
-        auto vector2Data = (int64_t*)vector2->values.get();
+        auto vector1Data = (int64_t*)vector1->values;
+        auto vector2Data = (int64_t*)vector2->values;
 
         for (int i = 0; i < NUM_TUPLES; i++) {
             vector1Data[i] = i;
@@ -50,7 +50,7 @@ public:
 TEST_F(Int64ComparisonOperandsInSameDataChunkTest, Int64TwoUnflatNoNulls) {
     auto lVector = vector1;
     auto rVector = vector2;
-    auto resultData = result->values.get();
+    auto resultData = result->values;
 
     BinaryOperationExecutor::execute<int64_t, int64_t, uint8_t, operation::Equals>(
         *lVector, *rVector, *result);
@@ -105,7 +105,7 @@ TEST_F(Int64ComparisonOperandsInSameDataChunkTest, Int64TwoUnflatNoNulls) {
 TEST_F(Int64ComparisonOperandsInSameDataChunkTest, Int64TwoUnflatWithNulls) {
     auto lVector = vector1;
     auto rVector = vector2;
-    auto resultData = result->values.get();
+    auto resultData = result->values;
     // We set every odd value in vector 2 to NULL.
     for (int i = 0; i < NUM_TUPLES; ++i) {
         vector2->setNull(i, (i % 2) == 1);
@@ -129,7 +129,7 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatNo
     // Flatten dataChunkWithVector1, which holds vector1
     dataChunkWithVector1->state->currIdx = 80;
     // Recall vector2 and result are in the same data chunk
-    auto resultData = result->values.get();
+    auto resultData = result->values;
 
     // Test 1: Left flat and right is unflat.
     // The comparison ins 80 < [90, 89, ...., -9]. The first 10 (90, ..., 81) the result is true,
@@ -163,7 +163,7 @@ TEST_F(Int64ComparisonOperandsInDifferentDataChunksTest, Int64OneFlatOneUnflatWi
         vector2->setNull(i, (i % 2) == 1);
     }
     // Recall vector2 and result are in the same data chunk
-    auto resultData = result->values.get();
+    auto resultData = result->values;
 
     // Test 1: Left flat and right is unflat.
     // The comparison ins 80 < [90, NULL, 88, NULL ...., -8, NULL]. The first 10 (90, ..., 81) the
@@ -213,15 +213,15 @@ TEST(VectorCmpTests, cmpTwoShortStrings) {
 
     auto lVector = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->insert(0, lVector);
-    auto lData = ((gf_string_t*)lVector->values.get());
+    auto lData = ((gf_string_t*)lVector->values);
 
     auto rVector = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->insert(1, rVector);
-    auto rData = ((gf_string_t*)rVector->values.get());
+    auto rData = ((gf_string_t*)rVector->values);
 
     auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
     dataChunk->insert(2, result);
-    auto resultData = result->values.get();
+    auto resultData = result->values;
 
     string value = "abcdefgh";
     lData[0].len = 8;
@@ -291,15 +291,15 @@ TEST(VectorCmpTests, cmpTwoLongStrings) {
 
     auto lVector = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->insert(0, lVector);
-    auto lData = ((gf_string_t*)lVector->values.get());
+    auto lData = ((gf_string_t*)lVector->values);
 
     auto rVector = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->insert(1, rVector);
-    auto rData = ((gf_string_t*)rVector->values.get());
+    auto rData = ((gf_string_t*)rVector->values);
 
     auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
     dataChunk->insert(2, result);
-    auto resultData = result->values.get();
+    auto resultData = result->values;
 
     string value = "abcdefghijklmnopqrstuvwxy"; // 25.
     lData[0].len = 25;

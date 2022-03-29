@@ -29,11 +29,11 @@ public:
 TEST_F(VectorCastOperationsTest, CastStructuredBoolToUnstructuredValueTest) {
     auto lVector = make_shared<ValueVector>(memoryManager.get(), BOOL);
     dataChunk->insert(0, lVector);
-    auto lData = (bool*)lVector->values.get();
+    auto lData = (bool*)lVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
     dataChunk->insert(1, result);
-    auto resultData = (Value*)result->values.get();
+    auto resultData = (Value*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
@@ -49,11 +49,11 @@ TEST_F(VectorCastOperationsTest, CastStructuredBoolToUnstructuredValueTest) {
 TEST_F(VectorCastOperationsTest, CastStructuredInt64ToUnstructuredValueTest) {
     auto lVector = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->insert(0, lVector);
-    auto lData = (int64_t*)lVector->values.get();
+    auto lData = (int64_t*)lVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
     dataChunk->insert(1, result);
-    auto resultData = (Value*)result->values.get();
+    auto resultData = (Value*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
@@ -69,11 +69,11 @@ TEST_F(VectorCastOperationsTest, CastStructuredInt64ToUnstructuredValueTest) {
 TEST_F(VectorCastOperationsTest, CastStructuredDoubleToUnstructuredValueTest) {
     auto lVector = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
     dataChunk->insert(0, lVector);
-    auto lData = (double*)lVector->values.get();
+    auto lData = (double*)lVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
     dataChunk->insert(1, result);
-    auto resultData = (Value*)result->values.get();
+    auto resultData = (Value*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
@@ -89,11 +89,11 @@ TEST_F(VectorCastOperationsTest, CastStructuredDoubleToUnstructuredValueTest) {
 TEST_F(VectorCastOperationsTest, CastStructuredDateToUnstructuredValueTest) {
     auto lVector = make_shared<ValueVector>(memoryManager.get(), DATE);
     dataChunk->insert(0, lVector);
-    auto lData = (date_t*)lVector->values.get();
+    auto lData = (date_t*)lVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
     dataChunk->insert(1, result);
-    auto resultData = (Value*)result->values.get();
+    auto resultData = (Value*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
@@ -109,16 +109,16 @@ TEST_F(VectorCastOperationsTest, CastStructuredDateToUnstructuredValueTest) {
 TEST_F(VectorCastOperationsTest, CastStructuredStringToUnstructuredValueTest) {
     auto lVector = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->insert(0, lVector);
-    auto lData = (gf_string_t*)lVector->values.get();
+    auto lData = (gf_string_t*)lVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
     dataChunk->insert(1, result);
-    auto resultData = (Value*)result->values.get();
+    auto resultData = (Value*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         string lStr = to_string(i * 2);
-        TypeUtils::copyString(lStr, lData[i], *lVector->overflowBuffer);
+        TypeUtils::copyString(lStr, lData[i], lVector->getOverflowBuffer());
     }
     VectorCastOperations::castStructuredToUnstructuredValue(
         vector<shared_ptr<ValueVector>>{lVector}, *result);
@@ -130,11 +130,11 @@ TEST_F(VectorCastOperationsTest, CastStructuredStringToUnstructuredValueTest) {
 TEST_F(VectorCastOperationsTest, CastStructuredBooleanToStringTest) {
     auto lVector = make_shared<ValueVector>(memoryManager.get(), BOOL);
     dataChunk->insert(0, lVector);
-    auto lData = (bool*)lVector->values.get();
+    auto lData = (bool*)lVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->insert(1, result);
-    auto resultData = (gf_string_t*)result->values.get();
+    auto resultData = (gf_string_t*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
@@ -149,11 +149,11 @@ TEST_F(VectorCastOperationsTest, CastStructuredBooleanToStringTest) {
 TEST_F(VectorCastOperationsTest, CastStructuredInt32ToStringTest) {
     auto lVector = make_shared<ValueVector>(memoryManager.get(), INT64);
     dataChunk->insert(0, lVector);
-    auto lData = (int64_t*)lVector->values.get();
+    auto lData = (int64_t*)lVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->insert(1, result);
-    auto resultData = (gf_string_t*)result->values.get();
+    auto resultData = (gf_string_t*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
@@ -168,11 +168,11 @@ TEST_F(VectorCastOperationsTest, CastStructuredInt32ToStringTest) {
 TEST_F(VectorCastOperationsTest, CastStructuredDoubleToStringTest) {
     auto lVector = make_shared<ValueVector>(memoryManager.get(), DOUBLE);
     dataChunk->insert(0, lVector);
-    auto lData = (double*)lVector->values.get();
+    auto lData = (double*)lVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->insert(1, result);
-    auto resultData = (gf_string_t*)result->values.get();
+    auto resultData = (gf_string_t*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
@@ -187,11 +187,11 @@ TEST_F(VectorCastOperationsTest, CastStructuredDoubleToStringTest) {
 TEST_F(VectorCastOperationsTest, CastStructuredDateToStringTest) {
     auto lVector = make_shared<ValueVector>(memoryManager.get(), DATE);
     dataChunk->insert(0, lVector);
-    auto lData = (date_t*)lVector->values.get();
+    auto lData = (date_t*)lVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), STRING);
     dataChunk->insert(1, result);
-    auto resultData = (gf_string_t*)result->values.get();
+    auto resultData = (gf_string_t*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
@@ -206,11 +206,11 @@ TEST_F(VectorCastOperationsTest, CastStructuredDateToStringTest) {
 TEST_F(VectorCastOperationsTest, CastUnStructuredBooleanToBooleanTest) {
     auto lVector = make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
     dataChunk->insert(0, lVector);
-    auto lData = (Value*)lVector->values.get();
+    auto lData = (Value*)lVector->values;
 
     auto result = make_shared<ValueVector>(memoryManager.get(), BOOL);
     dataChunk->insert(1, result);
-    auto resultData = (bool*)result->values.get();
+    auto resultData = (bool*)result->values;
 
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {

@@ -19,7 +19,7 @@ public:
 TEST_F(StringArithmeticOperandsInSameDataChunkTest, StringTest) {
     auto lVector = vector1;
     auto rVector = vector2;
-    auto resultData = (gf_string_t*)result->values.get();
+    auto resultData = (gf_string_t*)result->values;
     // Fill values before the comparison.
     for (int i = 0; i < NUM_TUPLES; i++) {
         lVector->addString(i, to_string(i));
@@ -36,7 +36,7 @@ TEST_F(StringArithmeticOperandsInSameDataChunkTest, StringTest) {
 TEST_F(StringArithmeticOperandsInSameDataChunkTest, BigStringTest) {
     auto lVector = vector1;
     auto rVector = vector2;
-    auto resultData = (gf_string_t*)result->values.get();
+    auto resultData = (gf_string_t*)result->values;
     // Fill values before the comparison.
     for (int i = 0; i < NUM_TUPLES; i++) {
         lVector->addString(i, to_string(i) + "abcdefabcdefqwert");

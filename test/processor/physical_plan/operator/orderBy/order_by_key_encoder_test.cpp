@@ -50,7 +50,7 @@ public:
         for (auto i = 0u; i < numOfOrderByCols; i++) {
             shared_ptr<ValueVector> valueVector =
                 make_shared<ValueVector>(memoryManager.get(), INT64);
-            auto intValuePtr = (int64_t*)valueVector->values.get();
+            auto intValuePtr = (int64_t*)valueVector->values;
             for (auto j = 0u; j < numOfElementsPerCol; j++) {
                 intValuePtr[j] = 5;
             }
@@ -122,7 +122,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selectedSize = 6;
     shared_ptr<ValueVector> int64ValueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
-    auto int64Values = (int64_t*)int64ValueVector->values.get();
+    auto int64Values = (int64_t*)int64ValueVector->values;
     int64Values[0] = 73; // positive number
     int64ValueVector->setNull(1, true);
     int64Values[2] = -132;  // negative 1 byte number
@@ -189,7 +189,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatWithFilterTest) {
     // valueVector.
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     shared_ptr<ValueVector> int64ValueVector = make_shared<ValueVector>(memoryManager.get(), INT64);
-    auto int64Values = (int64_t*)int64ValueVector->values.get();
+    auto int64Values = (int64_t*)int64ValueVector->values;
     int64Values[0] = 73;
     int64Values[1] = -52;
     int64Values[2] = -132;
@@ -231,7 +231,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selectedSize = 3;
     shared_ptr<ValueVector> boolValueVector = make_shared<ValueVector>(memoryManager.get(), BOOL);
-    auto boolValues = (bool*)boolValueVector->values.get();
+    auto boolValues = (bool*)boolValueVector->values;
     boolValues[0] = true;
     boolValues[1] = false;
     boolValueVector->setNull(2, true);
@@ -262,7 +262,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDateUnflatTest) {
     shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(1);
     dataChunk->state->selectedSize = 3;
     shared_ptr<ValueVector> dateValueVector = make_shared<ValueVector>(memoryManager.get(), DATE);
-    auto dateValues = (date_t*)dateValueVector->values.get();
+    auto dateValues = (date_t*)dateValueVector->values;
     dateValues[0] = Date::FromCString("2035-07-04", strlen("2035-07-04")); // date after 1970-01-01
     dateValueVector->setNull(1, true);
     dateValues[2] = Date::FromCString("1949-10-01", strlen("1949-10-01")); // date before 1970-01-01
@@ -300,7 +300,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColTimestampUnflatTest) {
     dataChunk->state->selectedSize = 3;
     shared_ptr<ValueVector> timestampValueVector =
         make_shared<ValueVector>(memoryManager.get(), TIMESTAMP);
-    auto timestampValues = (timestamp_t*)timestampValueVector->values.get();
+    auto timestampValues = (timestamp_t*)timestampValueVector->values;
     // timestamp before 1970-01-01
     timestampValues[0] =
         Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123"));
@@ -352,7 +352,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
     dataChunk->state->selectedSize = 2;
     shared_ptr<ValueVector> intervalValueVector =
         make_shared<ValueVector>(memoryManager.get(), INTERVAL);
-    auto intervalValues = (interval_t*)intervalValueVector->values.get();
+    auto intervalValues = (interval_t*)intervalValueVector->values;
     intervalValues[0] = Interval::FromCString("18 hours 55 days 13 years 8 milliseconds 3 months",
         strlen("18 hours 55 days 13 years 8 milliseconds 3 months"));
     intervalValueVector->setNull(1, true);
@@ -469,7 +469,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDoubleUnflatTest) {
     dataChunk->state->selectedSize = 6;
     shared_ptr<ValueVector> doubleValueVector =
         make_shared<ValueVector>(memoryManager.get(), DOUBLE);
-    auto doubleValues = (double*)doubleValueVector->values.get();
+    auto doubleValues = (double*)doubleValueVector->values;
     doubleValues[0] = 3.452; // small positive number
     doubleValueVector->setNull(1, true);
     doubleValues[2] = -0.00031213;     // very small negative number
@@ -556,7 +556,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColUnstrUnflatTest) {
     dataChunk->state->selectedSize = 5;
     shared_ptr<ValueVector> unstrValueVector =
         make_shared<ValueVector>(memoryManager.get(), UNSTRUCTURED);
-    auto unstrValues = (Value*)unstrValueVector->values.get();
+    auto unstrValues = (Value*)unstrValueVector->values;
     unstrValues[0] = Value(38.22);
     unstrValueVector->setNull(1, true);
     unstrValues[2] =
@@ -644,10 +644,10 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     mockDataChunk->insert(3, timestampFlatValueVector);
     mockDataChunk->insert(4, dateFlatValueVector);
 
-    auto intValues = (int64_t*)intFlatValueVector->values.get();
-    auto doubleValues = (double*)doubleFlatValueVector->values.get();
-    auto timestampValues = (timestamp_t*)timestampFlatValueVector->values.get();
-    auto dateValues = (date_t*)dateFlatValueVector->values.get();
+    auto intValues = (int64_t*)intFlatValueVector->values;
+    auto doubleValues = (double*)doubleFlatValueVector->values;
+    auto timestampValues = (timestamp_t*)timestampFlatValueVector->values;
+    auto dateValues = (date_t*)dateFlatValueVector->values;
 
     intFlatValueVector->state->currIdx = 0;
     doubleFlatValueVector->state->currIdx = 0;

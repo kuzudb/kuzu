@@ -49,7 +49,7 @@ public:
         GF_ASSERT(sortingData.size() == nullMasks.size());
         dataChunk->state->selectedSize = sortingData.size();
         auto valueVector = make_shared<ValueVector>(memoryManager.get(), dataType);
-        auto values = (T*)valueVector->values.get();
+        auto values = (T*)valueVector->values;
         for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
             if (nullMasks[i]) {
                 valueVector->setNull(i, true);
@@ -183,9 +183,9 @@ public:
         dataChunk->insert(2, timestampValueVector);
 
         for (auto i = 0u; i < int64Values.size(); i++) {
-            ((int64_t*)int64ValueVector->values.get())[i] = int64Values[i];
-            ((double*)doubleValueVector->values.get())[i] = doubleValues[i];
-            ((timestamp_t*)timestampValueVector->values.get())[i] = timestampValues[i];
+            ((int64_t*)int64ValueVector->values)[i] = int64Values[i];
+            ((double*)doubleValueVector->values)[i] = doubleValues[i];
+            ((timestamp_t*)timestampValueVector->values)[i] = timestampValues[i];
         }
     }
 

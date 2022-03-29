@@ -37,7 +37,7 @@ void Column::readForSingleNodeIDPosition(uint32_t pos, const shared_ptr<ValueVec
     auto pageCursor = PageUtils::getPageElementCursorForOffset(
         nodeIDVector->readNodeOffset(pos), numElementsPerPage);
     auto frame = bufferManager.pin(fileHandle, pageCursor.idx);
-    memcpy(resultVector->values.get() + pos * elementSize,
+    memcpy(resultVector->values + pos * elementSize,
         frame + mapElementPosToByteOffset(pageCursor.pos), elementSize);
     setNULLBitsForAPos(resultVector, frame, pageCursor.pos, pos);
     bufferManager.unpin(fileHandle, pageCursor.idx);

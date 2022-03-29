@@ -5,7 +5,7 @@ namespace evaluator {
 
 inline static bool isTrue(ValueVector& vector, uint64_t pos) {
     assert(vector.dataType == BOOL);
-    return !vector.isNull(pos) && ((bool*)vector.values.get())[pos];
+    return !vector.isNull(pos) && ((bool*)vector.values)[pos];
 }
 
 void ReferenceExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {

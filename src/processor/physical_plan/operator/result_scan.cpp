@@ -49,8 +49,8 @@ bool ResultScan::getNextTuples() {
                 continue;
             }
             auto elementSize = Types::getDataTypeSize(inValueVector.dataType);
-            memcpy(&outValueVector->values[0], inValueVector.values.get() + pos * elementSize,
-                elementSize);
+            memcpy(
+                &outValueVector->values[0], inValueVector.values + pos * elementSize, elementSize);
             outValueVector->setNull(0, false /* isNull */);
         }
         outDataChunk->state->initOriginalAndSelectedSize(1);

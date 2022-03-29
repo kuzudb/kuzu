@@ -23,19 +23,19 @@ struct BinaryOperationExecutor {
             auto lStr = TypeUtils::toString(lValue);
             auto rStr = TypeUtils::toString(rValue);
             TypeUtils::allocateSpaceForStringIfNecessary(
-                resultVal.val.strVal, lStr.length() + rStr.length(), *resultVec.overflowBuffer);
+                resultVal.val.strVal, lStr.length() + rStr.length(), resultVec.getOverflowBuffer());
         } else {
             TypeUtils::allocateSpaceForStringIfNecessary(
-                resultVal, lValue.len + rValue.len, *resultVec.overflowBuffer);
+                resultVal, lValue.len + rValue.len, resultVec.getOverflowBuffer());
         }
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void executeOnValue(ValueVector& left, ValueVector& right, ValueVector& result,
         uint64_t lPos, uint64_t rPos, uint64_t resPos) {
-        auto lValues = (LEFT_TYPE*)left.values.get();
-        auto rValues = (RIGHT_TYPE*)right.values.get();
-        auto resValues = (RESULT_TYPE*)result.values.get();
+        auto lValues = (LEFT_TYPE*)left.values;
+        auto rValues = (RIGHT_TYPE*)right.values;
+        auto resValues = (RESULT_TYPE*)result.values;
         if constexpr ((is_same<RESULT_TYPE, gf_string_t>::value) ||
                       (is_same<RESULT_TYPE, Value>::value)) {
             allocateStringIfNecessary<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE>(
@@ -192,8 +192,8 @@ struct BinaryOperationExecutor {
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC>
     static void selectOnValue(ValueVector& left, ValueVector& right, uint64_t lPos, uint64_t rPos,
         uint64_t resPos, uint64_t& numSelectedValues, sel_t* selectedPositions) {
-        auto lValues = (LEFT_TYPE*)left.values.get();
-        auto rValues = (RIGHT_TYPE*)right.values.get();
+        auto lValues = (LEFT_TYPE*)left.values;
+        auto rValues = (RIGHT_TYPE*)right.values;
         uint8_t resultValue = 0;
         FUNC::operation(lValues[lPos], rValues[rPos], resultValue, (bool)left.isNull(lPos),
             (bool)right.isNull(rPos));
@@ -205,8 +205,8 @@ struct BinaryOperationExecutor {
     static uint64_t selectBothFlat(ValueVector& left, ValueVector& right) {
         auto lPos = left.state->getPositionOfCurrIdx();
         auto rPos = right.state->getPositionOfCurrIdx();
-        auto lValues = (LEFT_TYPE*)left.values.get();
-        auto rValues = (RIGHT_TYPE*)right.values.get();
+        auto lValues = (LEFT_TYPE*)left.values;
+        auto rValues = (RIGHT_TYPE*)right.values;
         uint8_t resultValue = 0;
         if (!left.isNull(lPos) && !right.isNull(rPos)) {
             FUNC::operation(lValues[lPos], rValues[rPos], resultValue, (bool)left.isNull(lPos),

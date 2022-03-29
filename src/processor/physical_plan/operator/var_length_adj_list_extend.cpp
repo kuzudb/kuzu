@@ -58,7 +58,7 @@ bool VarLengthAdjListExtend::getNextTuples() {
                 dfsLevelInfo->hasBeenOutput = true;
                 // It is impossible for the children to have a null value, so we don't need
                 // to copy the null mask to the nbrNodeValueVector.
-                memcpy(nbrNodeValueVector->values.get(), dfsLevelInfo->children->values.get(),
+                memcpy(nbrNodeValueVector->values, dfsLevelInfo->children->values,
                     dfsLevelInfo->children->state->selectedSize *
                         Types::getDataTypeSize(dfsLevelInfo->children->dataType));
                 nbrNodeValueVector->state->selectedSize =
