@@ -7,14 +7,14 @@ namespace binder {
 
 LiteralExpression::LiteralExpression(
     ExpressionType expressionType, DataType dataType, const Literal& literal)
-    : Expression(expressionType, dataType, TypeUtils::toString(literal)), literal{literal} {
-    assert(dataType == BOOL || dataType == INT64 || dataType == DOUBLE || dataType == STRING ||
-           dataType == DATE || dataType == TIMESTAMP || dataType == INTERVAL);
+    : Expression(expressionType, move(dataType), TypeUtils::toString(literal)), literal{literal} {
+    assert(Types::isLiteralType(this->dataType.typeID));
 }
 
-void LiteralExpression::castToString() {
-    TypeUtils::castLiteralToString(literal);
-    dataType = STRING;
+LiteralExpression::LiteralExpression(
+    ExpressionType expressionType, DataTypeID dataTypeID, const Literal& literal)
+    : LiteralExpression{expressionType, DataType(dataTypeID), literal} {
+    assert(dataTypeID != LIST);
 }
 
 } // namespace binder

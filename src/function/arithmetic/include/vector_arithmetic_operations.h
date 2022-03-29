@@ -44,7 +44,7 @@ private:
         ExpressionType expressionType, const expression_vector& children);
 
     template<typename FUNC>
-    static pair<scalar_exec_func, DataType> bindUnaryExecFunction(DataType operandType);
+    static pair<scalar_exec_func, DataType> bindUnaryExecFunction(const DataType& operandType);
 };
 
 } // namespace function

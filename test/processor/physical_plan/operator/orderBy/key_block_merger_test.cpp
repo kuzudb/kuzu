@@ -43,12 +43,12 @@ public:
 
     template<typename T>
     OrderByKeyEncoder prepareSingleOrderByColEncoder(const vector<T>& sortingData,
-        const vector<bool>& nullMasks, DataType dataType, bool isAsc, uint16_t factorizedTableIdx,
-        bool hasPayLoadCol, vector<shared_ptr<FactorizedTable>>& factorizedTables,
-        shared_ptr<DataChunk>& dataChunk) {
+        const vector<bool>& nullMasks, DataTypeID dataTypeID, bool isAsc,
+        uint16_t factorizedTableIdx, bool hasPayLoadCol,
+        vector<shared_ptr<FactorizedTable>>& factorizedTables, shared_ptr<DataChunk>& dataChunk) {
         GF_ASSERT(sortingData.size() == nullMasks.size());
         dataChunk->state->selectedSize = sortingData.size();
-        auto valueVector = make_shared<ValueVector>(memoryManager.get(), dataType);
+        auto valueVector = make_shared<ValueVector>(memoryManager.get(), dataTypeID);
         auto values = (T*)valueVector->values;
         for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
             if (nullMasks[i]) {
@@ -68,7 +68,7 @@ public:
 
         TableSchema tableSchema;
         tableSchema.appendColumn(
-            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataType)});
+            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)});
 
         if (hasPayLoadCol) {
             auto payloadValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
@@ -80,7 +80,7 @@ public:
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
             tableSchema.appendColumn(
-                {false, 0 /* dataChunkPos */, Types::getDataTypeSize(dataType)});
+                {false, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)});
         }
 
         auto factorizedTable = make_unique<FactorizedTable>(memoryManager.get(), tableSchema);
@@ -99,16 +99,16 @@ public:
     void singleOrderByColMergeTest(const vector<T>& leftSortingData,
         const vector<bool>& leftNullMasks, const vector<T>& rightSortingData,
         const vector<bool>& rightNullMasks, const vector<uint64_t>& expectedTupleIdxOrder,
-        const vector<uint64_t>& expectedFactorizedTableIdxOrder, const DataType dataType,
+        const vector<uint64_t>& expectedFactorizedTableIdxOrder, const DataTypeID dataTypeID,
         const bool isAsc, bool hasPayLoadCol) {
         vector<shared_ptr<FactorizedTable>> factorizedTables;
         auto dataChunk0 = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         auto dataChunk1 = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         auto orderByKeyEncoder1 =
-            prepareSingleOrderByColEncoder(leftSortingData, leftNullMasks, dataType, isAsc,
+            prepareSingleOrderByColEncoder(leftSortingData, leftNullMasks, dataTypeID, isAsc,
                 0 /* factorizedTableIdx */, hasPayLoadCol, factorizedTables, dataChunk0);
         auto orderByKeyEncoder2 =
-            prepareSingleOrderByColEncoder(rightSortingData, rightNullMasks, dataType, isAsc,
+            prepareSingleOrderByColEncoder(rightSortingData, rightNullMasks, dataTypeID, isAsc,
                 1 /* factorizedTableIdx */, hasPayLoadCol, factorizedTables, dataChunk1);
 
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
@@ -475,9 +475,10 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
         StringAndUnstructuredKeyColInfo(0 /* colIdxInFactorizedTable */,
             0 /* colOffsetInEncodedKeyBlock */, true /* isAscOrder */, true /* isStrCol */),
         StringAndUnstructuredKeyColInfo(1 /* colIdxInFactorizedTable */,
-            orderByKeyEncoder1.getEncodingSize(STRING), true /* isAscOrder */, true /* isStrCol */),
+            orderByKeyEncoder1.getEncodingSize(DataType(STRING)), true /* isAscOrder */,
+            true /* isStrCol */),
         StringAndUnstructuredKeyColInfo(3 /* colIdxInFactorizedTable */,
-            orderByKeyEncoder1.getEncodingSize(STRING) * 2, true /* isAscOrder */,
+            orderByKeyEncoder1.getEncodingSize(DataType(STRING)) * 2, true /* isAscOrder */,
             true /* isStrCol */)};
 
     KeyBlockMerger keyBlockMerger = KeyBlockMerger(factorizedTables,

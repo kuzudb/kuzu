@@ -11,7 +11,8 @@ namespace processor {
 class BaseAggregateSharedState {
 
 protected:
-    BaseAggregateSharedState(const vector<unique_ptr<AggregateFunction>>& aggregateFunctions);
+    explicit BaseAggregateSharedState(
+        const vector<unique_ptr<AggregateFunction>>& aggregateFunctions);
 
     unique_lock<mutex> acquireLock() { return unique_lock<mutex>{mtx}; }
 

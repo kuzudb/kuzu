@@ -30,13 +30,36 @@ uint64_t SerDeser::deserializeValue<string>(string& value, FileInfo* fileInfo, u
 }
 
 template<>
+uint64_t SerDeser::serializeValue<DataType>(
+    const DataType& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::serializeValue<DataTypeID>(value.typeID, fileInfo, offset);
+    if (value.childType) {
+        assert(value.typeID == LIST);
+        return SerDeser::serializeValue<DataType>(*value.childType, fileInfo, offset);
+    }
+    return offset;
+}
+
+template<>
+uint64_t SerDeser::deserializeValue<DataType>(
+    DataType& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::deserializeValue<DataTypeID>(value.typeID, fileInfo, offset);
+    if (value.typeID == LIST) {
+        auto childDataType = make_unique<DataType>();
+        offset = SerDeser::deserializeValue<DataType>(*childDataType, fileInfo, offset);
+        value.childType = move(childDataType);
+        return offset;
+    }
+    return offset;
+}
+
+template<>
 uint64_t SerDeser::serializeValue<PropertyDefinition>(
     const PropertyDefinition& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::serializeValue<string>(value.name, fileInfo, offset);
     offset = SerDeser::serializeValue<uint32_t>(value.id, fileInfo, offset);
     offset = SerDeser::serializeValue<DataType>(value.dataType, fileInfo, offset);
-    offset = SerDeser::serializeValue<bool>(value.isPrimaryKey, fileInfo, offset);
-    return SerDeser::serializeValue<DataType>(value.childDataType, fileInfo, offset);
+    return SerDeser::serializeValue<bool>(value.isPrimaryKey, fileInfo, offset);
 }
 
 template<>
@@ -45,8 +68,7 @@ uint64_t SerDeser::deserializeValue<PropertyDefinition>(
     offset = SerDeser::deserializeValue<string>(value.name, fileInfo, offset);
     offset = SerDeser::deserializeValue<uint32_t>(value.id, fileInfo, offset);
     offset = SerDeser::deserializeValue<DataType>(value.dataType, fileInfo, offset);
-    offset = SerDeser::deserializeValue<bool>(value.isPrimaryKey, fileInfo, offset);
-    return SerDeser::deserializeValue<DataType>(value.childDataType, fileInfo, offset);
+    return SerDeser::deserializeValue<bool>(value.isPrimaryKey, fileInfo, offset);
 }
 
 template<>
@@ -132,7 +154,7 @@ void Catalog::addNodeLabel(string labelName, vector<PropertyDefinition> colHeade
     label_t labelId = nodeLabels.size();
     uint64_t primaryKeyPropertyId;
     for (auto i = 0u; i < colHeaderDefinitions.size(); i++) {
-        assert(colHeaderDefinitions[i].dataType != INVALID);
+        assert(colHeaderDefinitions[i].dataType.typeID != INVALID);
         colHeaderDefinitions[i].id = i;
         if (colHeaderDefinitions[i].isPrimaryKey) {
             primaryKeyPropertyId = i;
@@ -176,7 +198,7 @@ void Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
     vector<PropertyDefinition> propertyDefinitions;
     auto propertyId = 0;
     for (auto& colHeaderDefinition : colHeaderDefinitions) {
-        assert(colHeaderDefinition.dataType != INVALID);
+        assert(colHeaderDefinition.dataType.typeID != INVALID);
         auto name = colHeaderDefinition.name;
         if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::END_ID_FIELD ||
             name == LoaderConfig::START_ID_LABEL_FIELD ||
@@ -197,7 +219,7 @@ void Catalog::addNodeUnstrProperty(uint64_t labelId, const string& propertyName)
         return;
     }
     auto propertyId = nodeLabel.unstructuredProperties.size();
-    nodeLabel.unstructuredProperties.emplace_back(propertyName, propertyId, UNSTRUCTURED);
+    nodeLabel.unstructuredProperties.emplace_back(propertyName, propertyId, DataType(UNSTRUCTURED));
     nodeLabel.unstrPropertiesNameToIdMap[propertyName] = propertyId;
 }
 
@@ -318,7 +340,7 @@ void Catalog::readFromFile(const string& directory) {
         nodeLabelNameToIdMap[label.labelName] = label.labelId;
         for (auto i = 0u; i < label.unstructuredProperties.size(); i++) {
             auto& property = label.unstructuredProperties[i];
-            if (property.dataType == UNSTRUCTURED) {
+            if (property.dataType.typeID == UNSTRUCTURED) {
                 label.unstrPropertiesNameToIdMap[property.name] = property.id;
             }
         }
@@ -333,7 +355,7 @@ static unique_ptr<nlohmann::json> getPropertiesJson(const vector<PropertyDefinit
     auto propertiesJson = make_unique<nlohmann::json>();
     for (const auto& property : properties) {
         nlohmann::json propertyJson =
-            nlohmann::json{{"dataType", graphflow::common::DataTypeNames[property.dataType]},
+            nlohmann::json{{"dataType", Types::dataTypeToString(property.dataType)},
                 {"propIdx", to_string(property.id)},
                 {"isPrimaryKey", to_string(property.isPrimaryKey)}};
         (*propertiesJson)[property.name] = propertyJson;

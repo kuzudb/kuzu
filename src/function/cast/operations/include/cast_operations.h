@@ -23,42 +23,42 @@ template<>
 inline void CastToUnstructured::operation(const uint8_t& input, bool isNull, Value& result) {
     assert(!isNull);
     result.val.booleanVal = input;
-    result.dataType = BOOL;
+    result.dataType.typeID = BOOL;
 }
 
 template<>
 inline void CastToUnstructured::operation(const int64_t& input, bool isNull, Value& result) {
     assert(!isNull);
     result.val.int64Val = input;
-    result.dataType = INT64;
+    result.dataType.typeID = INT64;
 }
 
 template<>
 inline void CastToUnstructured::operation(const double_t& input, bool isNull, Value& result) {
     assert(!isNull);
     result.val.doubleVal = input;
-    result.dataType = DOUBLE;
+    result.dataType.typeID = DOUBLE;
 }
 
 template<>
 inline void CastToUnstructured::operation(const date_t& input, bool isNull, Value& result) {
     assert(!isNull);
     result.val.dateVal = input;
-    result.dataType = DATE;
+    result.dataType.typeID = DATE;
 }
 
 template<>
 inline void CastToUnstructured::operation(const timestamp_t& input, bool isNull, Value& result) {
     assert(!isNull);
     result.val.timestampVal = input;
-    result.dataType = TIMESTAMP;
+    result.dataType.typeID = TIMESTAMP;
 }
 
 template<>
 inline void CastToUnstructured::operation(const interval_t& input, bool isNull, Value& result) {
     assert(!isNull);
     result.val.intervalVal = input;
-    result.dataType = INTERVAL;
+    result.dataType.typeID = INTERVAL;
 }
 
 struct CastUnstructuredToBool {

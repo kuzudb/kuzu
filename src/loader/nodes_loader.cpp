@@ -242,7 +242,7 @@ void NodesLoader::calcLengthOfUnstrPropertyLists(
         *strchr(startPos, ':') = 0;
         ListsUtils::incrementListSize(unstrPropertyListSizes, nodeOffset,
             UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN +
-                Types::getDataTypeSize(Types::getDataType(string(startPos))));
+                Types::getDataTypeSize(Types::dataTypeFromString(string(startPos))));
     }
 }
 
@@ -253,11 +253,11 @@ void NodesLoader::putPropsOfLineIntoInMemPropertyColumns(
     InMemNodePropertyColumnsBuilder& builder, vector<PageByteCursor>& stringOverflowPagesCursors,
     NodeIDMap* nodeIDMap, uint64_t nodeOffset) {
     for (const auto& property : properties) {
-        if (property.dataType == UNSTRUCTURED) {
+        if (property.dataType.typeID == UNSTRUCTURED) {
             continue;
         }
         reader.hasNextToken();
-        switch (property.dataType) {
+        switch (property.dataType.typeID) {
         case INT64: {
             if (!reader.skipTokenIfNull()) {
                 auto int64Val = reader.getInt64();
@@ -306,6 +306,8 @@ void NodesLoader::putPropsOfLineIntoInMemPropertyColumns(
         case STRING: {
             if (!reader.skipTokenIfNull()) {
                 auto strVal = reader.getString();
+                // TODO(Guodong): this check along with the check on LIST's size should all be moved
+                // to the CSVReader.
                 if (strlen(strVal) > DEFAULT_PAGE_SIZE) {
                     throw LoaderException(StringUtils::string_format(
                         "Maximum length of strings is %d. Input string's length is %d.",
@@ -320,7 +322,7 @@ void NodesLoader::putPropsOfLineIntoInMemPropertyColumns(
         } break;
         case LIST: {
             if (!reader.skipTokenIfNull()) {
-                auto listVal = reader.getList(property.childDataType);
+                auto listVal = reader.getList(*property.dataType.childType);
                 builder.setListProperty(
                     nodeOffset, property.id, listVal, stringOverflowPagesCursors[property.id]);
             }
@@ -347,7 +349,7 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
         auto propertyKeyId = unstrPropertiesNameToIdMap.at(string(unstrPropertyString));
         auto unstrPropertyStringBreaker2 = strchr(unstrPropertyStringBreaker1 + 1, ':');
         *unstrPropertyStringBreaker2 = 0;
-        auto dataType = Types::getDataType(string(unstrPropertyStringBreaker1 + 1));
+        auto dataType = Types::dataTypeFromString(string(unstrPropertyStringBreaker1 + 1));
         auto dataTypeSize = Types::getDataTypeSize(dataType);
         auto reversePos = ListsUtils::decrementListSize(unstrPropertyListSizes, nodeOffset,
             UnstructuredPropertyLists::UNSTR_PROP_HEADER_LEN + dataTypeSize);
@@ -356,48 +358,48 @@ void NodesLoader::putUnstrPropsOfALineToLists(CSVReader& reader, node_offset_t n
             1, nodeOffset, pageElementCursor, unstrPropertyListsMetadata, false /*hasNULLBytes*/);
         PageByteCursor pageCursor{pageElementCursor.idx, pageElementCursor.pos};
         char* valuePtr = unstrPropertyStringBreaker2 + 1;
-        switch (dataType) {
+        switch (dataType.typeID) {
         case INT64: {
             auto intVal = TypeUtils::convertToInt64(valuePtr);
-            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType.typeID),
                 dataTypeSize, reinterpret_cast<uint8_t*>(&intVal));
         } break;
         case DOUBLE: {
             auto doubleVal = TypeUtils::convertToDouble(valuePtr);
-            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType.typeID),
                 dataTypeSize, reinterpret_cast<uint8_t*>(&doubleVal));
         } break;
         case BOOL: {
             auto boolVal = TypeUtils::convertToBoolean(valuePtr);
-            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType.typeID),
                 dataTypeSize, reinterpret_cast<uint8_t*>(&boolVal));
         } break;
         case DATE: {
             char* beginningOfDateStr = valuePtr;
             date_t dateVal = Date::FromCString(beginningOfDateStr, strlen(beginningOfDateStr));
-            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType.typeID),
                 dataTypeSize, reinterpret_cast<uint8_t*>(&dateVal));
         } break;
         case TIMESTAMP: {
             char* beginningOfTimestampStr = valuePtr;
             timestamp_t timestampVal =
                 Timestamp::FromCString(beginningOfTimestampStr, strlen(beginningOfTimestampStr));
-            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType.typeID),
                 dataTypeSize, reinterpret_cast<uint8_t*>(&timestampVal));
         } break;
         case INTERVAL: {
             char* beginningOfIntervalStr = valuePtr;
             interval_t intervalVal =
                 Interval::FromCString(beginningOfIntervalStr, strlen(beginningOfIntervalStr));
-            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType.typeID),
                 dataTypeSize, reinterpret_cast<uint8_t*>(&intervalVal));
         } break;
         case STRING: {
             auto encodedString = stringOverflowPages.addString(valuePtr, stringOvfPagesCursor);
-            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType),
+            unstrPropertyPages.set(pageCursor, propertyKeyId, static_cast<uint8_t>(dataType.typeID),
                 dataTypeSize, reinterpret_cast<uint8_t*>(&encodedString));
         } break;
-            // todo(Guodong): LIST for unstructured
+            // TODO(Guodong): LIST for unstructured
         default:
             throw invalid_argument("unsupported dataType while parsing unstructured property");
         }

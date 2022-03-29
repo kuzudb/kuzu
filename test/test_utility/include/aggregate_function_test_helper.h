@@ -11,10 +11,10 @@ class AggregateFunctionTestHelper {
 
 public:
     static unique_ptr<AggregateFunction> getAggregateFunction(
-        ExpressionType expressionType, DataType childDataType);
+        ExpressionType expressionType, DataTypeID childDataType);
 
 private:
-    static shared_ptr<Expression> getDummyExpression(DataType dataType);
+    static shared_ptr<Expression> getDummyExpression(DataTypeID dataTypeID);
 };
 
 } // namespace testing

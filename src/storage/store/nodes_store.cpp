@@ -26,10 +26,9 @@ void NodesStore::initStructuredPropertyColumns(const Catalog& catalog,
             auto propertyId = property.id;
             auto fName = getNodePropertyColumnFName(directory, nodeLabel, property.name);
             logger->debug("nodeLabel {} propertyId {} type {} name `{}`", nodeLabel, property.id,
-                property.dataType, property.name);
-            propertyColumns[nodeLabel][propertyId] =
-                ColumnFactory::getColumn(fName, property.dataType, numNodesPerLabel[nodeLabel],
-                    bufferManager, isInMemoryMode, property.childDataType);
+                property.dataType.typeID, property.name);
+            propertyColumns[nodeLabel][propertyId] = ColumnFactory::getColumn(fName,
+                property.dataType, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
         }
     }
 }

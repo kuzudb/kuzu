@@ -12,8 +12,8 @@ namespace testing {
 
 class TwoOperands {
 public:
-    virtual DataType getDataTypeOfOperands() = 0;
-    virtual DataType getDataTypeOfResultVector() = 0;
+    virtual DataTypeID getDataTypeOfOperands() = 0;
+    virtual DataTypeID getDataTypeOfResultVector() = 0;
 
     void initVectors() {
         bufferManager = make_unique<BufferManager>();

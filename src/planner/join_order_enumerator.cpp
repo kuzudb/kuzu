@@ -60,7 +60,7 @@ void JoinOrderEnumerator::enumerateResultScan() {
                     make_unique<LogicalPlan>();
     auto newSubgraph = emptySubgraph;
     for (auto& expression : context->getExpressionsToScanFromOuter()) {
-        if (expression->dataType == NODE_ID) {
+        if (expression->dataType.typeID == NODE_ID) {
             assert(expression->expressionType == PROPERTY);
             newSubgraph.addQueryNode(context->getQueryGraph()->getQueryNodePos(
                 expression->getChild(0)->getUniqueName()));
@@ -378,7 +378,7 @@ shared_ptr<Expression> createNodeIDComparison(
     auto execFunc = function::VectorComparisonOperations::bindExecFunction(EQUALS, children);
     auto selectFunc = function::VectorComparisonOperations::bindSelectFunction(EQUALS, children);
     return make_shared<ScalarFunctionExpression>(
-        EQUALS, BOOL, move(children), execFunc, selectFunc);
+        EQUALS, DataType(BOOL), move(children), execFunc, selectFunc);
 }
 
 } // namespace planner

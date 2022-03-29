@@ -13,7 +13,7 @@ public:
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
 
     static bool CheckEquals(const vector<string>& expected, const Literal& listVal) {
-        if (listVal.dataType != LIST) {
+        if (listVal.dataType.typeID != LIST) {
             cout << "listVal data type is wrong" << endl;
             return false;
         }

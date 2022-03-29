@@ -13,7 +13,7 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
     const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
     assert(params.size() == 1);
     auto& operand = *params[0];
-    switch (operand.dataType) {
+    switch (operand.dataType.typeID) {
     case BOOL: {
         UnaryOperationExecutor::execute<uint8_t, Value, operation::CastToUnstructured>(
             operand, result);
@@ -45,13 +45,13 @@ void VectorCastOperations::castStructuredToUnstructuredValue(
             assert(pos == result.state->getPositionOfCurrIdx());
             ValueVectorUtils::addGFStringToUnstructuredVector(
                 result, pos, ((gf_string_t*)operand.values)[pos]);
-            outValues[pos].dataType = STRING;
+            outValues[pos].dataType.typeID = STRING;
         } else {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];
                 ValueVectorUtils::addGFStringToUnstructuredVector(
                     result, pos, ((gf_string_t*)operand.values)[pos]);
-                outValues[pos].dataType = STRING;
+                outValues[pos].dataType.typeID = STRING;
             }
         }
     } break;
@@ -64,15 +64,15 @@ void VectorCastOperations::castStructuredToString(
     const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
     assert(params.size() == 1);
     auto& operand = *params[0];
-    assert((operand.dataType == INT64 || operand.dataType == DOUBLE || operand.dataType == BOOL ||
-               operand.dataType == DATE || operand.dataType == TIMESTAMP ||
-               operand.dataType == INTERVAL) &&
-           result.dataType == STRING);
+    assert((operand.dataType.typeID == INT64 || operand.dataType.typeID == DOUBLE ||
+               operand.dataType.typeID == BOOL || operand.dataType.typeID == DATE ||
+               operand.dataType.typeID == TIMESTAMP || operand.dataType.typeID == INTERVAL) &&
+           result.dataType.typeID == STRING);
     if (operand.state->isFlat()) {
         auto pos = operand.state->getPositionOfCurrIdx();
         auto resPos = result.state->getPositionOfCurrIdx();
         string val;
-        switch (operand.dataType) {
+        switch (operand.dataType.typeID) {
         case BOOL: {
             val = TypeUtils::toString(((bool*)operand.values)[pos]);
         } break;
@@ -96,7 +96,7 @@ void VectorCastOperations::castStructuredToString(
         }
         result.addString(resPos, val);
     } else {
-        switch (operand.dataType) {
+        switch (operand.dataType.typeID) {
         case BOOL: {
             for (auto i = 0u; i < operand.state->selectedSize; i++) {
                 auto pos = operand.state->selectedPositions[i];

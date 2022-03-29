@@ -103,6 +103,7 @@ bool CSVReader::hasNextToken() {
     }
     nextTokenLen = 0;
     bool isQuotedString = false;
+    uint32_t nestedListLevel = 0;
     bool isList = false;
 
     if (config.quoteChar == line[linePtrEnd]) {
@@ -113,6 +114,7 @@ bool CSVReader::hasNextToken() {
     if (config.listBeginChar == line[linePtrEnd]) {
         linePtrStart++;
         linePtrEnd++;
+        nestedListLevel++;
         isList = true;
     }
     string lineStr;
@@ -127,7 +129,13 @@ bool CSVReader::hasNextToken() {
             }
         } else if (isList) {
             // ignore tokenSeparator and new line character here
-            if (config.listEndChar == line[linePtrEnd]) {
+            if (config.listBeginChar == line[linePtrEnd]) {
+                linePtrEnd++;
+                nestedListLevel++;
+            } else if (config.listEndChar == line[linePtrEnd]) {
+                nestedListLevel--;
+            }
+            if (nestedListLevel == 0) {
                 break;
             }
         } else if (config.tokenSeparator == line[linePtrEnd] || '\n' == line[linePtrEnd] ||
@@ -189,13 +197,13 @@ interval_t CSVReader::getInterval() {
     return retVal;
 }
 
-Literal CSVReader::getList(DataType childDataType) {
-    Literal result(LIST);
+Literal CSVReader::getList(const DataType& dataType) {
+    Literal result(DataType(LIST, make_unique<DataType>(dataType)));
     // Move the linePtrStart one character forward, because hasNextToken() will first increment it.
     CSVReader listCSVReader(line, linePtrEnd - 1, linePtrStart - 1, config);
     while (listCSVReader.hasNextToken()) {
         if (!listCSVReader.skipTokenIfNull()) {
-            switch (childDataType) {
+            switch (dataType.typeID) {
             case INT64: {
                 result.listVal.emplace_back(listCSVReader.getInt64());
             } break;
@@ -217,9 +225,13 @@ Literal CSVReader::getList(DataType childDataType) {
             case INTERVAL: {
                 result.listVal.emplace_back(listCSVReader.getInterval());
             } break;
+            case LIST: {
+                result.listVal.emplace_back(listCSVReader.getList(*dataType.childType));
+            } break;
             default:
                 throw invalid_argument("Unsupported data type " +
-                                       Types::dataTypeToString(childDataType) + " inside LIST");
+                                       Types::dataTypeToString(dataType.childType->typeID) +
+                                       " inside LIST");
             }
         }
     }

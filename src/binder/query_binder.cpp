@@ -107,11 +107,11 @@ expression_vector QueryBinder::bindProjectionExpressions(
 expression_vector QueryBinder::rewriteProjectionExpressions(const expression_vector& expressions) {
     expression_vector result;
     for (auto& expression : expressions) {
-        if (expression->dataType == NODE) {
+        if (expression->dataType.typeID == NODE) {
             for (auto& property : rewriteNodeAsAllProperties(expression)) {
                 result.push_back(property);
             }
-        } else if (expression->dataType == REL) {
+        } else if (expression->dataType.typeID == REL) {
             for (auto& property : rewriteRelAsAllProperties(expression)) {
                 result.push_back(property);
             }
@@ -124,7 +124,7 @@ expression_vector QueryBinder::rewriteProjectionExpressions(const expression_vec
 
 expression_vector QueryBinder::rewriteNodeAsAllProperties(
     const shared_ptr<Expression>& expression) {
-    assert(expression->dataType == NODE);
+    assert(expression->dataType.typeID == NODE);
     auto& node = (NodeExpression&)*expression;
     expression_vector result;
     for (auto& property : catalog.getAllNodeProperties(node.getLabel())) {
@@ -135,7 +135,7 @@ expression_vector QueryBinder::rewriteNodeAsAllProperties(
 }
 
 expression_vector QueryBinder::rewriteRelAsAllProperties(const shared_ptr<Expression>& expression) {
-    assert(expression->dataType == REL);
+    assert(expression->dataType.typeID == REL);
     auto& rel = (RelExpression&)*expression;
     expression_vector result;
     for (auto& property : catalog.getRelProperties(rel.getLabel())) {
@@ -196,9 +196,9 @@ void QueryBinder::addExpressionsToScope(const expression_vector& projectionExpre
 
 shared_ptr<Expression> QueryBinder::bindWhereExpression(const ParsedExpression& parsedExpression) {
     auto whereExpression = expressionBinder.bindExpression(parsedExpression);
-    if (BOOL != whereExpression->dataType) {
+    if (BOOL != whereExpression->dataType.typeID) {
         throw invalid_argument("Type mismatch: " + whereExpression->getRawName() + " returns " +
-                               Types::dataTypeToString(whereExpression->dataType) +
+                               Types::dataTypeToString(whereExpression->dataType.typeID) +
                                " expected Boolean.");
     }
     return whereExpression;
@@ -225,9 +225,9 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
     auto parsedName = relPattern.getName();
     if (variablesInScope.contains(parsedName)) {
         auto prevVariable = variablesInScope.at(parsedName);
-        if (REL != prevVariable->dataType) {
+        if (REL != prevVariable->dataType.typeID) {
             throw invalid_argument(parsedName + " defined with conflicting type " +
-                                   Types::dataTypeToString(prevVariable->dataType) +
+                                   Types::dataTypeToString(prevVariable->dataType.typeID) +
                                    " (expect RELATIONSHIP).");
         } else {
             // Bind to queryRel in scope requires QueryRel takes multiple src & dst nodes
@@ -244,8 +244,10 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
     }
     // bind node to rel
     auto isLeftNodeSrc = RIGHT == relPattern.getDirection();
-    validateNodeAndRelLabelIsConnected(relLabel, leftNode->getLabel(), isLeftNodeSrc ? FWD : BWD);
-    validateNodeAndRelLabelIsConnected(relLabel, rightNode->getLabel(), isLeftNodeSrc ? BWD : FWD);
+    validateNodeAndRelLabelIsConnected(
+        catalog, relLabel, leftNode->getLabel(), isLeftNodeSrc ? FWD : BWD);
+    validateNodeAndRelLabelIsConnected(
+        catalog, relLabel, rightNode->getLabel(), isLeftNodeSrc ? BWD : FWD);
     auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
     auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
     // bind variable length
@@ -270,9 +272,9 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
     shared_ptr<NodeExpression> queryNode;
     if (variablesInScope.contains(parsedName)) { // bind to node in scope
         auto prevVariable = variablesInScope.at(parsedName);
-        if (NODE != prevVariable->dataType) {
+        if (NODE != prevVariable->dataType.typeID) {
             throw invalid_argument(parsedName + " defined with conflicting type " +
-                                   Types::dataTypeToString(prevVariable->dataType) +
+                                   Types::dataTypeToString(prevVariable->dataType.typeID) +
                                    " (expect NODE).");
         }
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
@@ -326,17 +328,17 @@ void QueryBinder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery
 }
 
 void QueryBinder::validateNodeAndRelLabelIsConnected(
-    label_t relLabel, label_t nodeLabel, Direction direction) {
+    const Catalog& catalog_, label_t relLabel, label_t nodeLabel, Direction direction) {
     assert(relLabel != ANY_LABEL);
     assert(nodeLabel != ANY_LABEL);
-    auto connectedRelLabels = catalog.getRelLabelsForNodeLabelDirection(nodeLabel, direction);
+    auto connectedRelLabels = catalog_.getRelLabelsForNodeLabelDirection(nodeLabel, direction);
     for (auto& connectedRelLabel : connectedRelLabels) {
         if (relLabel == connectedRelLabel) {
             return;
         }
     }
-    throw invalid_argument("Node label " + catalog.getNodeLabelName(nodeLabel) +
-                           " doesn't connect to rel label " + catalog.getRelLabelName(relLabel) +
+    throw invalid_argument("Node label " + catalog_.getNodeLabelName(nodeLabel) +
+                           " doesn't connect to rel label " + catalog_.getRelLabelName(relLabel) +
                            ".");
 }
 
@@ -369,10 +371,10 @@ void QueryBinder::validateOrderByFollowedBySkipOrLimitInWithClause(
 }
 
 void QueryBinder::validateQueryGraphIsConnected(const QueryGraph& queryGraph,
-    unordered_map<string, shared_ptr<Expression>> prevVariablesInScope) {
+    const unordered_map<string, shared_ptr<Expression>>& prevVariablesInScope) {
     auto visited = unordered_set<string>();
     for (auto& [name, variable] : prevVariablesInScope) {
-        if (NODE == variable->dataType) {
+        if (NODE == variable->dataType.typeID) {
             visited.insert(variable->getUniqueName());
         }
     }
@@ -417,7 +419,7 @@ void QueryBinder::validateUnionColumnsOfTheSameType(
         // Check whether the dataTypes in union expressions are exactly the same in each single
         // query.
         for (auto j = 0u; j < expressionsToProject.size(); j++) {
-            unordered_set<DataType> expectedDataTypes{expressionsToProject[j]->dataType};
+            unordered_set<DataTypeID> expectedDataTypes{expressionsToProject[j]->dataType.typeID};
             ExpressionBinder::validateExpectedDataType(
                 *expressionsToProjectToCheck[j], expectedDataTypes);
         }

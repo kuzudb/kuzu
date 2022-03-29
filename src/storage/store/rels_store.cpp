@@ -118,10 +118,9 @@ void RelsStore::initPropertyColumnsForRelLabel(const Catalog& catalog,
         for (auto& property : properties) {
             auto fName = getRelPropertyColumnFName(directory, relLabel, nodeLabel, property.name);
             logger->debug("DIR {} nodeLabel {} propertyIdx {} type {} name `{}`", dir, nodeLabel,
-                property.id, property.dataType, property.name);
-            propertyColumns[nodeLabel][relLabel][property.id] =
-                ColumnFactory::getColumn(fName, property.dataType, numNodesPerLabel[nodeLabel],
-                    bufferManager, isInMemoryMode, property.childDataType);
+                property.id, property.dataType.typeID, property.name);
+            propertyColumns[nodeLabel][relLabel][property.id] = ColumnFactory::getColumn(fName,
+                property.dataType, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
         }
     }
     logger->debug("Initializing PropertyColumns done.");
@@ -140,7 +139,7 @@ void RelsStore::initPropertyListsForRelLabel(const Catalog& catalog,
                 auto fName =
                     getRelPropertyListsFName(directory, relLabel, nodeLabel, dir, property.name);
                 logger->debug("DIR {} nodeLabel {} propertyIdx {} type {} name `{}`", dir,
-                    nodeLabel, property.id, property.dataType, property.name);
+                    nodeLabel, property.id, property.dataType.typeID, property.name);
                 propertyLists[dir][nodeLabel][relLabel][property.id] = ListsFactory::getLists(
                     fName, property.dataType, adjListsHeaders, bufferManager, isInMemoryMode);
             }

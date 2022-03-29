@@ -27,9 +27,6 @@ public:
 protected:
     virtual void readForSingleNodeIDPosition(uint32_t pos,
         const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector);
-
-public:
-    static constexpr char COLUMN_SUFFIX[] = ".col";
 };
 
 class StringPropertyColumn : public Column {
@@ -37,7 +34,8 @@ class StringPropertyColumn : public Column {
 public:
     StringPropertyColumn(const string& fName, const uint64_t& numElements,
         BufferManager& bufferManager, bool isInMemory)
-        : Column{fName, STRING, sizeof(gf_string_t), numElements, bufferManager, isInMemory},
+        : Column{fName, DataType(STRING), sizeof(gf_string_t), numElements, bufferManager,
+              isInMemory},
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
     void readValues(const shared_ptr<ValueVector>& nodeIDVector,
@@ -54,9 +52,9 @@ class ListPropertyColumn : public Column {
 
 public:
     ListPropertyColumn(const string& fName, const uint64_t& numElements,
-        BufferManager& bufferManager, bool isInMemory, DataType childDataType)
-        : Column{fName, LIST, sizeof(gf_list_t), numElements, bufferManager, isInMemory},
-          listOverflowPages{fName, bufferManager, isInMemory}, childDataType{childDataType} {};
+        BufferManager& bufferManager, bool isInMemory, const DataType& dataType)
+        : Column{fName, dataType, sizeof(gf_list_t), numElements, bufferManager, isInMemory},
+          listOverflowPages{fName, bufferManager, isInMemory} {};
 
     void readValues(const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector) override;
@@ -64,7 +62,6 @@ public:
 
 private:
     OverflowPages listOverflowPages;
-    DataType childDataType;
 };
 
 class AdjColumn : public Column {
@@ -72,7 +69,7 @@ class AdjColumn : public Column {
 public:
     AdjColumn(const string& fName, const uint64_t& numElements, BufferManager& bufferManager,
         const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isInMemory)
-        : Column{fName, NODE, nodeIDCompressionScheme.getNumTotalBytes(), numElements,
+        : Column{fName, DataType(NODE), nodeIDCompressionScheme.getNumTotalBytes(), numElements,
               bufferManager, isInMemory},
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 
@@ -88,9 +85,8 @@ class ColumnFactory {
 
 public:
     static unique_ptr<Column> getColumn(const string& fName, const DataType& dataType,
-        const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory,
-        const DataType& childDataType) {
-        switch (dataType) {
+        const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory) {
+        switch (dataType.typeID) {
         case INT64:
         case DOUBLE:
         case BOOL:
@@ -103,7 +99,7 @@ public:
             return make_unique<StringPropertyColumn>(fName, numElements, bufferManager, isInMemory);
         case LIST:
             return make_unique<ListPropertyColumn>(
-                fName, numElements, bufferManager, isInMemory, childDataType);
+                fName, numElements, bufferManager, isInMemory, dataType);
         default:
             throw invalid_argument("Invalid type for property column creation.");
         }

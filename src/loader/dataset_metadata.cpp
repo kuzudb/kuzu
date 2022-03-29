@@ -18,19 +18,20 @@ void DatasetMetadata::parseJson(
         auto labelSpecificConfig{globalConfig};
         getSpecialChars(parsedNodeFileDescription, labelSpecificConfig);
         auto filename = parsedNodeFileDescription.at("filename").get<string>();
-        DataType IDType;
+        DataType dataTypeForId;
         if (parsedNodeFileDescription.contains("IDType")) {
-            auto IDTypeString = parsedNodeFileDescription.at("IDType").get<string>();
-            IDType = Types::getDataType(IDTypeString);
-            if (IDType != STRING && IDType != INT64) {
-                throw invalid_argument("Invalid ID DataType `" + IDTypeString +
+            auto dataTypeString = parsedNodeFileDescription.at("IDType").get<string>();
+            dataTypeForId = Types::dataTypeFromString(dataTypeString);
+            if (dataTypeForId.typeID != STRING && dataTypeForId.typeID != INT64) {
+                throw invalid_argument("Invalid ID DataTypeID `" + dataTypeString +
                                        "`. Allowed type only: STRING and INT64.");
             }
         } else {
-            IDType = STRING;
+            dataTypeForId.typeID = STRING;
         }
         nodeFileDescriptions.emplace_back(FileUtils::joinPath(inputDirectory, filename),
-            parsedNodeFileDescription.at("label").get<string>(), IDType, labelSpecificConfig);
+            parsedNodeFileDescription.at("label").get<string>(), dataTypeForId,
+            labelSpecificConfig);
     }
     auto parsedRelFileDescriptions = parsedJson->at("relFileDescriptions");
     for (auto parsedRelFileDescription : parsedRelFileDescriptions) {

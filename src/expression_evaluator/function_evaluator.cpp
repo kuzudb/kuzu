@@ -8,7 +8,7 @@ namespace evaluator {
 void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
     BaseExpressionEvaluator::init(resultSet, memoryManager);
     execFunc = ((ScalarFunctionExpression&)*expression).execFunc;
-    if (expression->dataType == BOOL) {
+    if (expression->dataType.typeID == BOOL) {
         selectFunc = ((ScalarFunctionExpression&)*expression).selectFunc;
     }
     resultVector = make_shared<ValueVector>(memoryManager, expression->dataType);

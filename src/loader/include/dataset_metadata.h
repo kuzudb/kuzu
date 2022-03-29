@@ -29,7 +29,8 @@ public:
 struct NodeFileDescription : public LabelFileDescription {
     NodeFileDescription(
         string filePath, string labelName, DataType IDType, CSVReaderConfig& csvSpecialChars)
-        : LabelFileDescription{move(filePath), move(labelName), csvSpecialChars}, IDType{IDType} {}
+        : LabelFileDescription{move(filePath), move(labelName), csvSpecialChars}, IDType{move(
+                                                                                      IDType)} {}
 
     DataType IDType;
 };

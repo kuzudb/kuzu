@@ -26,6 +26,10 @@ class ValueVector {
 
 public:
     ValueVector(MemoryManager* memoryManager, DataType dataType);
+    ValueVector(MemoryManager* memoryManager, DataTypeID dataTypeID)
+        : ValueVector(memoryManager, DataType(dataTypeID)) {
+        assert(dataTypeID != LIST);
+    }
 
     ~ValueVector() = default;
 
@@ -62,11 +66,11 @@ public:
     inline uint64_t getNumBytesPerValue() const { return Types::getDataTypeSize(dataType); }
 
     inline node_offset_t readNodeOffset(uint64_t pos) const {
-        assert(dataType == NODE);
+        assert(dataType.typeID == NODE);
         return ((nodeID_t*)values)[pos].offset;
     }
 
-    inline OverflowBuffer& getOverflowBuffer() { return *this->overflowBuffer; }
+    inline OverflowBuffer& getOverflowBuffer() const { return *overflowBuffer; }
 
     inline void resetOverflowBuffer() const {
         if (overflowBuffer) {
@@ -76,7 +80,8 @@ public:
 
 private:
     inline bool needOverflowBuffer() const {
-        return dataType == STRING || dataType == LIST || dataType == UNSTRUCTURED;
+        return dataType.typeID == STRING || dataType.typeID == LIST ||
+               dataType.typeID == UNSTRUCTURED;
     }
 
 public:

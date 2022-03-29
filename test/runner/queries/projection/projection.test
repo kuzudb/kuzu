@@ -152,6 +152,18 @@ False
 [1]|[Grad]
 [10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]
 
+-NAME PersonNodesTestNestedList
+-QUERY MATCH (a:person) RETURN a.courseScoresPerTerm
+---- 8
+[[10,8],[6,7,8]]
+[[8,9],[9,10]]
+[[8,10]]
+[[7,4],[8,8],[9]]
+[[6],[7],[8]]
+[[8]]
+[[10]]
+[[7],[10],[6,7]]
+
 -NAME KnowsRelTestDate
 -QUERY MATCH (a:person)-[e:knows]->(b:person) RETURN e.date
 ---- 14

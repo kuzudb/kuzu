@@ -6,7 +6,7 @@ namespace graphflow {
 namespace common {
 
 Literal::Literal(const Literal& other) : dataType{other.dataType} {
-    switch (dataType) {
+    switch (dataType.typeID) {
     case BOOL: {
         val.booleanVal = other.val.booleanVal;
     } break;

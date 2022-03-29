@@ -69,28 +69,29 @@ private:
     // E.g. Optional MATCH (a) RETURN a.age
     // Although this is doable in Neo4j, I don't think the semantic make a lot of sense because
     // there is nothing to left join on.
-    void validateFirstMatchIsNotOptional(const SingleQuery& singleQuery);
+    static void validateFirstMatchIsNotOptional(const SingleQuery& singleQuery);
 
     // E.g. MATCH (:person)-[:studyAt]->(:person) ...
-    void validateNodeAndRelLabelIsConnected(
-        label_t relLabel, label_t nodeLabel, Direction direction);
+    static void validateNodeAndRelLabelIsConnected(
+        const Catalog& catalog_, label_t relLabel, label_t nodeLabel, Direction direction);
 
     // E.g. ... RETURN a, b AS a
-    void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);
+    static void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);
 
     // E.g. ... WITH COUNT(*) MATCH ...
-    void validateProjectionColumnsInWithClauseAreAliased(const expression_vector& expressions);
+    static void validateProjectionColumnsInWithClauseAreAliased(
+        const expression_vector& expressions);
 
-    void validateOrderByFollowedBySkipOrLimitInWithClause(
+    static void validateOrderByFollowedBySkipOrLimitInWithClause(
         const BoundProjectionBody& boundProjectionBody);
 
-    void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
-        unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
+    static void validateQueryGraphIsConnected(const QueryGraph& queryGraph,
+        const unordered_map<string, shared_ptr<Expression>>& prevVariablesInScope);
 
-    void validateUnionColumnsOfTheSameType(
+    static void validateUnionColumnsOfTheSameType(
         const vector<unique_ptr<BoundSingleQuery>>& boundSingleQueries);
 
-    void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery);
+    static void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery);
 
     /******* helpers *********/
 

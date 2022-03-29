@@ -59,9 +59,9 @@ private:
     static expression_vector castToUnstructuredIfNecessary(const expression_vector& parameters);
 
     template<typename T>
-    static shared_ptr<Expression> castStringToTemporalLiteral(shared_ptr<Expression> expression,
-        ExpressionType expressionType, DataType resultType,
-        std::function<T(const char*, uint64_t)> castFunction);
+    static shared_ptr<Expression> castStringToTemporalLiteral(
+        const shared_ptr<Expression>& expression, ExpressionType expressionType,
+        const DataType& resultType, std::function<T(const char*, uint64_t)> castFunction);
 
     /****** validation *****/
 
@@ -74,10 +74,11 @@ private:
         const ParsedExpression& parsedExpression, uint32_t expectedNumChildren);
 
     static void validateExpectedDataType(
-        const Expression& expression, const unordered_set<DataType>& expectedTypes);
+        const Expression& expression, const unordered_set<DataTypeID>& expectedTypes);
 
     static void validateNumericOrUnstructured(const Expression& expression) {
-        validateExpectedDataType(expression, unordered_set<DataType>{INT64, DOUBLE, UNSTRUCTURED});
+        validateExpectedDataType(
+            expression, unordered_set<DataTypeID>{INT64, DOUBLE, UNSTRUCTURED});
     }
 
     // E.g. SUM(SUM(a.age)) is not allowed

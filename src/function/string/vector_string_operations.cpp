@@ -24,7 +24,7 @@ scalar_exec_func VectorStringOperations::bindBinaryExecFunction(
     assert(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
-    validate(expressionType, leftType, rightType);
+    validate(expressionType, leftType.typeID, rightType.typeID);
     switch (expressionType) {
     case ADD: {
         return BinaryExecFunction<gf_string_t, gf_string_t, gf_string_t, operation::Concat>;
@@ -45,7 +45,7 @@ scalar_select_func VectorStringOperations::bindBinarySelectFunction(
     assert(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
-    validate(expressionType, leftType, rightType);
+    validate(expressionType, leftType.typeID, rightType.typeID);
     switch (expressionType) {
     case CONTAINS: {
         return BinarySelectFunction<gf_string_t, gf_string_t, operation::Contains>;
@@ -59,11 +59,12 @@ scalar_select_func VectorStringOperations::bindBinarySelectFunction(
 }
 
 void VectorStringOperations::validate(
-    ExpressionType expressionType, DataType leftType, DataType rightType) {
-    if (leftType != STRING || rightType != STRING) {
-        throw invalid_argument(
-            expressionTypeToString(expressionType) + " is defined on (STRING, STRING) but get (" +
-            Types::dataTypeToString(leftType) + ", " + Types::dataTypeToString(rightType) + ").");
+    ExpressionType expressionType, DataTypeID leftTypeID, DataTypeID rightTypeID) {
+    if (leftTypeID != STRING || rightTypeID != STRING) {
+        throw invalid_argument(expressionTypeToString(expressionType) +
+                               " is defined on (STRING, STRING) but get (" +
+                               Types::dataTypeToString(leftTypeID) + ", " +
+                               Types::dataTypeToString(rightTypeID) + ").");
     }
 }
 

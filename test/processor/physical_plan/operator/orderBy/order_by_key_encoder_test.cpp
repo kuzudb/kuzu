@@ -35,8 +35,8 @@ public:
     // 0xFF(null flag) + 0xFF...FF(padding)
     // if the col is in desc order, the encoding string is:
     // 0x00(null flag) + 0x00...00(padding)
-    inline void checkNullVal(uint8_t*& keyBlockPtr, DataType dataType, bool isAsc) {
-        for (auto i = 0u; i < OrderByKeyEncoder::getEncodingSize(dataType); i++) {
+    inline void checkNullVal(uint8_t*& keyBlockPtr, DataTypeID dataTypeID, bool isAsc) {
+        for (auto i = 0u; i < OrderByKeyEncoder::getEncodingSize(DataType(dataTypeID)); i++) {
             ASSERT_EQ(*(keyBlockPtr++), isAsc ? 0xFF : 0x00);
         }
     }

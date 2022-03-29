@@ -15,7 +15,7 @@ bool SimpleAggregateScan::getNextTuples() {
     assert(endOffset == 1);
     for (auto i = 0u; i < aggregateVectors.size(); i++) {
         writeAggregateResultToVector(
-            aggregateVectors[i], 0 /* position to write */, sharedState->getAggregateState(i));
+            *aggregateVectors[i], 0 /* position to write */, sharedState->getAggregateState(i));
     }
     assert(!aggregatesPos.empty());
     auto outDataChunk = resultSet->dataChunks[aggregatesPos[0].dataChunkPos];

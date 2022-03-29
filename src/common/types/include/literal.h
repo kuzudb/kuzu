@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "types_include.h"
 
 using namespace std;
@@ -12,7 +14,7 @@ class Literal {
 public:
     Literal() : dataType{INVALID} {}
 
-    explicit Literal(DataType dataType) : dataType{dataType} {}
+    explicit Literal(DataType dataType) : dataType{move(dataType)} {}
 
     Literal(const Literal& other);
 

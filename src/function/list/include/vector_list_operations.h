@@ -12,13 +12,14 @@ class VectorListOperations : public VectorOperations {
 public:
     static pair<scalar_exec_func, DataType> bindListCreationExecFunction(
         const expression_vector& children) {
-        if (!children.empty()) {
-            auto expectedDataType = children[0]->dataType;
-            for (auto& child : children) {
-                validateParameterType(LIST_CREATION_FUNC_NAME, *child, expectedDataType);
-            }
+        // TODO(Guodong): allow empty LIST here.
+        assert(!children.empty());
+        auto& expectedDataType = children[0]->dataType;
+        for (auto& child : children) {
+            validateParameterType(LIST_CREATION_FUNC_NAME, *child, expectedDataType.typeID);
         }
-        return make_pair(ListCreation, LIST);
+        DataType listDataType(LIST, make_unique<DataType>(expectedDataType));
+        return make_pair(ListCreation, move(listDataType));
     }
 
 private:

@@ -96,19 +96,20 @@ scalar_select_func VectorBooleanOperations::bindUnarySelectFunction(
 }
 
 void VectorBooleanOperations::validate(
-    ExpressionType expressionType, DataType leftType, DataType rightType) {
-    if (leftType != BOOL || rightType != BOOL) {
-        throw invalid_argument(
-            expressionTypeToString(expressionType) + " is defined on (BOOL, BOOL) but get (" +
-            Types::dataTypeToString(leftType) + ", " + Types::dataTypeToString(rightType) + ").");
+    ExpressionType expressionType, const DataType& leftType, const DataType& rightType) {
+    if (leftType.typeID != BOOL || rightType.typeID != BOOL) {
+        throw invalid_argument(expressionTypeToString(expressionType) +
+                               " is defined on (BOOL, BOOL) but get (" +
+                               Types::dataTypeToString(leftType.typeID) + ", " +
+                               Types::dataTypeToString(rightType.typeID) + ").");
     }
 }
 
-void VectorBooleanOperations::validate(ExpressionType expressionType, DataType childType) {
-    if (childType != BOOL) {
+void VectorBooleanOperations::validate(ExpressionType expressionType, const DataType& childType) {
+    if (childType.typeID != BOOL) {
         throw invalid_argument(expressionTypeToString(expressionType) +
                                " is defined on (BOOL) but get (" +
-                               Types::dataTypeToString(childType) + ").");
+                               Types::dataTypeToString(childType.typeID) + ").");
     }
 }
 

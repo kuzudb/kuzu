@@ -137,9 +137,9 @@ void OrderByKeyEncoder::encodeUnstr(uint8_t* resultPtr) {
     memcpy(resultPtr, &encodeVal, sizeof(encodeVal));
 }
 
-uint64_t OrderByKeyEncoder::getEncodingSize(DataType dataType) {
+uint64_t OrderByKeyEncoder::getEncodingSize(const DataType& dataType) {
     // Add one more byte for null flag.
-    switch (dataType) {
+    switch (dataType.typeID) {
     case UNSTRUCTURED:
         // 1 byte for null flag + 1 byte for unstr data
         return 2;
@@ -157,7 +157,7 @@ void OrderByKeyEncoder::allocateMemoryIfFull() {
 }
 
 void OrderByKeyEncoder::encodeData(shared_ptr<ValueVector>& orderByVector,
-    uint64_t idxInOrderByVector, uint8_t* keyBlockPtr, const uint64_t keyColIdx) {
+    uint64_t idxInOrderByVector, uint8_t* keyBlockPtr, uint64_t keyColIdx) {
     if (orderByVector->isNull(idxInOrderByVector)) {
         // Set all bits to 1 if this is a null value.
         for (uint64_t i = 0; i < getEncodingSize(orderByVector->dataType); i++) {
@@ -166,7 +166,7 @@ void OrderByKeyEncoder::encodeData(shared_ptr<ValueVector>& orderByVector,
     } else {
         *keyBlockPtr = 0; // Set the null flag to 0.
         auto keyBlockPtrAfterNullByte = keyBlockPtr + 1;
-        switch (orderByVector->dataType) {
+        switch (orderByVector->dataType.typeID) {
         case INT64:
             encodeInt64(
                 ((int64_t*)orderByVector->values)[idxInOrderByVector], keyBlockPtrAfterNullByte);
@@ -199,8 +199,8 @@ void OrderByKeyEncoder::encodeData(shared_ptr<ValueVector>& orderByVector,
             encodeUnstr(keyBlockPtrAfterNullByte);
             break;
         default:
-            throw EncodingException(
-                "Unimplemented datatype: " + Types::dataTypeToString(orderByVector->dataType));
+            throw EncodingException("Unimplemented datatype: " +
+                                    Types::dataTypeToString(orderByVector->dataType.typeID));
         }
     }
     if (!isAscOrder[keyColIdx]) {

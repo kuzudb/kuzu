@@ -65,7 +65,7 @@ public:
     // Sets a property in the propertyList of the given nodeID in a particular RelPropertyLists
     // structure.
     void setProperty(const vector<uint64_t>& pos, const vector<nodeID_t>& nodeIDs,
-        uint32_t propertyIdx, const uint8_t* val, DataType type);
+        uint32_t propertyIdx, const uint8_t* val, DataTypeID typeID);
 
     // Sets a string property in the propertyList of the given nodeID in a particular
     // RelPropertyLists structure.

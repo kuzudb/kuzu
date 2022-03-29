@@ -8,7 +8,7 @@ namespace processor {
 shared_ptr<ResultSet> ScanUnstructuredProperty::initResultSet() {
     resultSet = BaseScanColumn::initResultSet();
     for (auto i = 0u; i < outputVectorsPos.size(); ++i) {
-        assert(unstructuredPropertyLists->getDataType() == UNSTRUCTURED);
+        assert(unstructuredPropertyLists->getDataTypeId() == UNSTRUCTURED);
         auto vector = make_shared<ValueVector>(context.memoryManager, UNSTRUCTURED);
         inputNodeIDDataChunk->insert(outputVectorsPos[i].valueVectorPos, vector);
         outputVectors.push_back(vector);

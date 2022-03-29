@@ -9,7 +9,7 @@ namespace common {
 
 Value& Value::operator=(const Value& other) {
     dataType = other.dataType;
-    switch (dataType) {
+    switch (dataType.typeID) {
     case BOOL: {
         val.booleanVal = other.val.booleanVal;
     } break;

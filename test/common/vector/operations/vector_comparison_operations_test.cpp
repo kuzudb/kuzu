@@ -12,8 +12,8 @@ using namespace std;
 class Int64ComparisonOperandsInSameDataChunkTest : public OperandsInSameDataChunk, public Test {
 
 public:
-    DataType getDataTypeOfOperands() override { return INT64; }
-    DataType getDataTypeOfResultVector() override { return BOOL; }
+    DataTypeID getDataTypeOfOperands() override { return INT64; }
+    DataTypeID getDataTypeOfResultVector() override { return BOOL; }
 
     void SetUp() override {
         initDataChunk();
@@ -32,8 +32,8 @@ class Int64ComparisonOperandsInDifferentDataChunksTest : public OperandsInDiffer
                                                          public Test {
 
 public:
-    DataType getDataTypeOfOperands() override { return INT64; }
-    DataType getDataTypeOfResultVector() override { return BOOL; }
+    DataTypeID getDataTypeOfOperands() override { return INT64; }
+    DataTypeID getDataTypeOfResultVector() override { return BOOL; }
 
     void SetUp() override {
         initDataChunk();

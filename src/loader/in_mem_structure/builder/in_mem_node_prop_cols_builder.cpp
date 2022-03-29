@@ -24,7 +24,7 @@ void InMemNodePropertyColumnsBuilder::buildInMemPropertyColumns() {
             graph.getNumNodesPerLabel()[description.label]);
         propertyColumns[property.id] = make_unique<InMemPropertyPages>(
             fName, Types::getDataTypeSize(property.dataType), numPages);
-        if (STRING == property.dataType || LIST == property.dataType) {
+        if (STRING == property.dataType.typeID || LIST == property.dataType.typeID) {
             propertyColumnOverflowPages[property.id] =
                 make_unique<InMemOverflowPages>(OverflowPages::getOverflowPagesFName(fName));
         }
@@ -33,7 +33,7 @@ void InMemNodePropertyColumnsBuilder::buildInMemPropertyColumns() {
 }
 
 void InMemNodePropertyColumnsBuilder::setProperty(node_offset_t nodeOffset,
-    const uint32_t& propertyIdx, const uint8_t* val, const DataType& type) {
+    const uint32_t& propertyIdx, const uint8_t* val, const DataTypeID& type) {
     auto cursor = calcPageElementCursor(Types::getDataTypeSize(type), nodeOffset);
     propertyColumns[propertyIdx]->set(cursor, val);
 }
@@ -46,7 +46,7 @@ void InMemNodePropertyColumnsBuilder::setStringProperty(node_offset_t nodeOffset
 
 void InMemNodePropertyColumnsBuilder::setListProperty(node_offset_t nodeOffset,
     const uint32_t& propertyIdx, const Literal& listVal, PageByteCursor& cursor) {
-    assert(listVal.dataType == LIST);
+    assert(listVal.dataType.typeID == LIST);
     gf_list_t gfList = propertyColumnOverflowPages[propertyIdx]->addList(listVal, cursor);
     setProperty(nodeOffset, propertyIdx, reinterpret_cast<uint8_t*>(&gfList), LIST);
 }
@@ -67,7 +67,7 @@ void InMemNodePropertyColumnsBuilder::saveToFile(LoaderProgressBar* progressBar)
             },
             reinterpret_cast<InMemPropertyPages*>(propertyColumns[property.id].get()),
             progressBar));
-        if (STRING == property.dataType || LIST == property.dataType) {
+        if (STRING == property.dataType.typeID || LIST == property.dataType.typeID) {
             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                 [&](InMemOverflowPages* x, LoaderProgressBar* progressBar) {
                     x->saveToFile();

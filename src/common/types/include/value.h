@@ -16,7 +16,7 @@ public:
 
     Value(const Value& value) { *this = value; }
 
-    explicit Value(DataType dataType) : dataType(dataType) {}
+    explicit Value(DataType dataType) : dataType{move(dataType)} {}
 
     explicit Value(bool value) : dataType(BOOL) { this->val.booleanVal = value; }
 

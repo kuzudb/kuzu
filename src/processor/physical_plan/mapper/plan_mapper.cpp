@@ -60,14 +60,14 @@ namespace processor {
 
 static unique_ptr<PhysicalOperator> createHashAggregate(
     vector<unique_ptr<AggregateFunction>> aggregateFunctions, vector<DataPos> inputAggVectorsPos,
-    vector<DataPos> outputAggVectorsPos, vector<DataType> outputAggVectorsDataType,
+    vector<DataPos> outputAggVectorsPos, vector<DataType> outputAggVectorsDataTypes,
     const expression_vector& groupByExpressions, unique_ptr<PhysicalOperator> prevOperator,
     MapperContext& mapperContextBeforeAggregate, MapperContext& mapperContext,
     ExecutionContext& executionContext);
 
 static void appendGroupByExpressions(const expression_vector& groupByExpressions,
     vector<DataPos>& inputGroupByHashKeyVectorsPos, vector<DataPos>& outputGroupByKeyVectorsPos,
-    vector<DataType>& outputGroupByKeyVectorsDataType, MapperContext& mapperContextBeforeAggregate,
+    vector<DataType>& outputGroupByKeyVectorsDataTypes, MapperContext& mapperContextBeforeAggregate,
     MapperContext& mapperContext);
 
 unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
@@ -195,7 +195,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
 
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalResultScanToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
-    ExecutionContext& executionContext) {
+    ExecutionContext& executionContext) const {
     auto& resultScan = (const LogicalResultScan&)*logicalOperator;
     auto expressionsToScan = resultScan.getExpressionsToScan();
     assert(!expressionsToScan.empty());
@@ -438,7 +438,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
         logicalOperator->getChild(0), mapperContextBeforeAggregate, executionContext);
     vector<DataPos> inputAggVectorsPos;
     vector<DataPos> outputAggVectorsPos;
-    vector<DataType> outputAggVectorsDataType;
+    vector<DataType> outputAggVectorsDataTypes;
     vector<unique_ptr<AggregateFunction>> aggregateFunctions;
     for (auto& expression : logicalAggregate.getExpressionsToAggregate()) {
         if (expression->expressionType == COUNT_STAR_FUNC) {
@@ -450,12 +450,12 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
         }
         aggregateFunctions.push_back(AggregateFunctionUtil::getAggregateFunction(*expression));
         outputAggVectorsPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
-        outputAggVectorsDataType.push_back(expression->dataType);
+        outputAggVectorsDataTypes.push_back(expression->dataType);
         mapperContext.addComputedExpressions(expression->getUniqueName());
     }
     if (logicalAggregate.hasExpressionsToGroupBy()) {
         return createHashAggregate(move(aggregateFunctions), inputAggVectorsPos,
-            outputAggVectorsPos, outputAggVectorsDataType,
+            outputAggVectorsPos, outputAggVectorsDataTypes,
             logicalAggregate.getExpressionsToGroupBy(), move(prevOperator),
             mapperContextBeforeAggregate, mapperContext, executionContext);
     } else {
@@ -465,7 +465,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
                 move(prevOperator), executionContext, mapperContext.getOperatorID());
         auto aggregateScan = make_unique<SimpleAggregateScan>(sharedState,
             mapperContext.getResultSetDescriptor()->copy(), outputAggVectorsPos,
-            outputAggVectorsDataType, move(aggregate), executionContext,
+            outputAggVectorsDataTypes, move(aggregate), executionContext,
             mapperContext.getOperatorID());
         return aggregateScan;
     }
@@ -482,9 +482,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDistinctToPhysical(
     vector<unique_ptr<AggregateFunction>> emptyAggregateFunctions;
     vector<DataPos> emptyInputAggVectorsPos;
     vector<DataPos> emptyOutputAggVectorsPos;
-    vector<DataType> emptyOutputAggVectorsDataType;
+    vector<DataType> emptyOutputAggVectorsDataTypes;
     return createHashAggregate(move(emptyAggregateFunctions), emptyInputAggVectorsPos,
-        emptyOutputAggVectorsPos, emptyOutputAggVectorsDataType,
+        emptyOutputAggVectorsPos, emptyOutputAggVectorsDataTypes,
         logicalDistinct.getExpressionsToDistinct(), move(prevOperator), mapperContextBeforeDistinct,
         mapperContext, executionContext);
 }
@@ -626,7 +626,7 @@ unique_ptr<PhysicalOperator> createHashAggregate(
     vector<DataPos> inputGroupByHashKeyVectorsPos;
     vector<DataPos> inputGroupByNonHashKeyVectorsPos;
     vector<DataPos> outputGroupByKeyVectorsPos;
-    vector<DataType> outputGroupByKeyVectorsDataType;
+    vector<DataType> outputGroupByKeyVectorsDataTypeId;
     expression_vector groupByHashExpressions;
     expression_vector groupByNonHashExpressions;
     unordered_set<string> HashPrimaryKeysNodeId;
@@ -647,31 +647,32 @@ unique_ptr<PhysicalOperator> createHashAggregate(
         }
     }
     appendGroupByExpressions(groupByHashExpressions, inputGroupByHashKeyVectorsPos,
-        outputGroupByKeyVectorsPos, outputGroupByKeyVectorsDataType, mapperContextBeforeAggregate,
+        outputGroupByKeyVectorsPos, outputGroupByKeyVectorsDataTypeId, mapperContextBeforeAggregate,
         mapperContext);
     appendGroupByExpressions(groupByNonHashExpressions, inputGroupByNonHashKeyVectorsPos,
-        outputGroupByKeyVectorsPos, outputGroupByKeyVectorsDataType, mapperContextBeforeAggregate,
+        outputGroupByKeyVectorsPos, outputGroupByKeyVectorsDataTypeId, mapperContextBeforeAggregate,
         mapperContext);
     auto sharedState = make_shared<HashAggregateSharedState>(aggregateFunctions);
     auto aggregate = make_unique<HashAggregate>(sharedState, inputGroupByHashKeyVectorsPos,
         inputGroupByNonHashKeyVectorsPos, move(inputAggVectorsPos), move(aggregateFunctions),
         move(prevOperator), executionContext, mapperContext.getOperatorID());
-    auto aggregateScan = make_unique<HashAggregateScan>(sharedState,
-        mapperContext.getResultSetDescriptor()->copy(), outputGroupByKeyVectorsPos,
-        outputGroupByKeyVectorsDataType, move(outputAggVectorsPos), move(outputAggVectorsDataType),
-        move(aggregate), executionContext, mapperContext.getOperatorID());
+    auto aggregateScan =
+        make_unique<HashAggregateScan>(sharedState, mapperContext.getResultSetDescriptor()->copy(),
+            outputGroupByKeyVectorsPos, outputGroupByKeyVectorsDataTypeId,
+            move(outputAggVectorsPos), move(outputAggVectorsDataType), move(aggregate),
+            executionContext, mapperContext.getOperatorID());
     return aggregateScan;
 }
 
 void appendGroupByExpressions(const expression_vector& groupByExpressions,
     vector<DataPos>& inputGroupByHashKeyVectorsPos, vector<DataPos>& outputGroupByKeyVectorsPos,
-    vector<DataType>& outputGroupByKeyVectorsDataType, MapperContext& mapperContextBeforeAggregate,
+    vector<DataType>& outputGroupByKeyVectorsDataTypes, MapperContext& mapperContextBeforeAggregate,
     MapperContext& mapperContext) {
     for (auto& expression : groupByExpressions) {
         inputGroupByHashKeyVectorsPos.push_back(
             mapperContextBeforeAggregate.getDataPos(expression->getUniqueName()));
         outputGroupByKeyVectorsPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
-        outputGroupByKeyVectorsDataType.push_back(expression->dataType);
+        outputGroupByKeyVectorsDataTypes.push_back(expression->dataType);
         mapperContext.addComputedExpressions(expression->getUniqueName());
     }
 }

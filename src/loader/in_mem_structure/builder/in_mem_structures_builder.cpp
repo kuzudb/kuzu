@@ -12,7 +12,7 @@ uint64_t InMemStructuresBuilder::numProgressBarTasksForSavingPropertiesToDisk(
     const vector<PropertyDefinition>& properties) {
     uint64_t numTasks = properties.size();
     for (auto& property : properties) {
-        if (STRING == property.dataType) {
+        if (STRING == property.dataType.typeID) {
             numTasks++;
         }
     }

@@ -8,15 +8,15 @@ namespace graphflow {
 namespace testing {
 
 unique_ptr<AggregateFunction> AggregateFunctionTestHelper::getAggregateFunction(
-    ExpressionType expressionType, DataType childDataType) {
+    ExpressionType expressionType, DataTypeID childDataType) {
     auto expression = make_unique<FunctionExpression>(
-        expressionType, INT64 /* dummy data type*/, getDummyExpression(childDataType));
+        expressionType, DataType(INT64) /* dummy data type*/, getDummyExpression(childDataType));
     return AggregateFunctionUtil::getAggregateFunction(*expression);
 }
 
-shared_ptr<Expression> AggregateFunctionTestHelper::getDummyExpression(DataType dataType) {
-    return make_unique<Expression>(
-        PROPERTY /* dummy expression type */, dataType, "dummy" /* dummy expression name*/);
+shared_ptr<Expression> AggregateFunctionTestHelper::getDummyExpression(DataTypeID dataTypeID) {
+    return make_unique<Expression>(PROPERTY /* dummy expression type */, DataType(dataTypeID),
+        "dummy" /* dummy expression name*/);
 }
 
 } // namespace testing

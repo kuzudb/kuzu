@@ -57,13 +57,13 @@ public:
 
     template<typename T>
     void singleOrderByColTest(const vector<T>& sortingData, const vector<bool>& nullMasks,
-        const vector<uint64_t>& expectedTupleIdxOrder, const DataType dataType, const bool isAsc,
-        bool hasPayLoadCol) {
+        const vector<uint64_t>& expectedTupleIdxOrder, const DataTypeID dataTypeID,
+        const bool isAsc, bool hasPayLoadCol) {
         GF_ASSERT(sortingData.size() == nullMasks.size());
         GF_ASSERT(sortingData.size() == expectedTupleIdxOrder.size());
         auto dataChunk = make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         dataChunk->state->selectedSize = sortingData.size();
-        auto valueVector = make_shared<ValueVector>(memoryManager.get(), dataType);
+        auto valueVector = make_shared<ValueVector>(memoryManager.get(), dataTypeID);
         auto values = (T*)valueVector->values;
         for (auto i = 0u; i < dataChunk->state->selectedSize; i++) {
             if (nullMasks[i]) {
@@ -83,7 +83,7 @@ public:
 
         TableSchema tupleSchema;
         tupleSchema.appendColumn(
-            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataType)});
+            {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)});
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
 
         if (hasPayLoadCol) {
@@ -97,7 +97,7 @@ public:
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector);
             tupleSchema.appendColumn(
-                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataType)});
+                {false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)});
             stringAndUnstructuredKeyColInfo.emplace_back(StringAndUnstructuredKeyColInfo(
                 1 /* colIdxInFactorizedTable */, 0 /* colOffsetInEncodedKeyBlock */, isAsc,
                 is_same<T, string>::value /* isStrCol */));
@@ -133,10 +133,11 @@ public:
         vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo;
         for (auto i = 0; i < stringValues.size(); i++) {
             auto stringValueVector = make_shared<ValueVector>(memoryManager.get(), STRING);
-            stringAndUnstructuredKeyColInfo.push_back(StringAndUnstructuredKeyColInfo(
-                stringAndUnstructuredKeyColInfo.size(),
-                stringAndUnstructuredKeyColInfo.size() * OrderByKeyEncoder::getEncodingSize(STRING),
-                isAscOrder[i], true /* isStrCol */));
+            stringAndUnstructuredKeyColInfo.push_back(
+                StringAndUnstructuredKeyColInfo(stringAndUnstructuredKeyColInfo.size(),
+                    stringAndUnstructuredKeyColInfo.size() *
+                        OrderByKeyEncoder::getEncodingSize(stringValueVector->dataType),
+                    isAscOrder[i], true /* isStrCol */));
             tableSchema.appendColumn(
                 {false /* isUnflat */, 0 /* dataChunkPos */, sizeof(gf_string_t)});
             mockDataChunk->insert(i, stringValueVector);
@@ -430,7 +431,8 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     FactorizedTable factorizedTable(memoryManager.get(), tableSchema);
     vector<StringAndUnstructuredKeyColInfo> stringAndUnstructuredKeyColInfo = {
         StringAndUnstructuredKeyColInfo(2 /* colIdxInFactorizedTable */,
-            OrderByKeyEncoder::getEncodingSize(INT64) + OrderByKeyEncoder::getEncodingSize(DOUBLE),
+            OrderByKeyEncoder::getEncodingSize(DataType(INT64)) +
+                OrderByKeyEncoder::getEncodingSize(DataType(DOUBLE)),
             true /* isAscOrder */, true /* isStrCol */)};
 
     auto orderByKeyEncoder =

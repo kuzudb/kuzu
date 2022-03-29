@@ -7,7 +7,7 @@ namespace storage {
 
 void Column::readValues(
     const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& valueVector) {
-    assert(nodeIDVector->dataType == NODE);
+    assert(nodeIDVector->dataType.typeID == NODE);
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
         readForSingleNodeIDPosition(pos, nodeIDVector, valueVector);
@@ -67,15 +67,14 @@ Literal StringPropertyColumn::readValue(node_offset_t offset) {
 }
 
 Literal ListPropertyColumn::readValue(node_offset_t offset) {
-    assert(childDataType != INVALID);
     auto cursor = PageUtils::getPageElementCursorForOffset(offset, numElementsPerPage);
     gf_list_t gfList;
     auto frame = bufferManager.pin(fileHandle, cursor.idx);
     memcpy(&gfList, frame + mapElementPosToByteOffset(cursor.pos), sizeof(gf_list_t));
     bufferManager.unpin(fileHandle, cursor.idx);
     Literal retVal;
-    retVal.dataType = LIST;
-    retVal.listVal = listOverflowPages.readList(gfList, childDataType);
+    retVal.dataType = dataType;
+    retVal.listVal = listOverflowPages.readList(gfList, dataType);
     return retVal;
 }
 

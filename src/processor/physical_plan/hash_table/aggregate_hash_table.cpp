@@ -19,11 +19,11 @@ AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
     tableSchema.appendColumn({isUnflat, dataChunkPos, sizeof(hash_t)});
     for (auto& dataType : this->groupByHashKeysDataTypes) {
         tableSchema.appendColumn({isUnflat, dataChunkPos, Types::getDataTypeSize(dataType)});
-        hasStrCol = hasStrCol || dataType == STRING;
+        hasStrCol = hasStrCol || dataType.typeID == STRING;
     }
     for (auto& dataType : this->groupByNonHashKeysDataTypes) {
         tableSchema.appendColumn({isUnflat, dataChunkPos, Types::getDataTypeSize(dataType)});
-        hasStrCol = hasStrCol || dataType == STRING;
+        hasStrCol = hasStrCol || dataType.typeID == STRING;
     }
     for (auto& aggregateFunction : aggregateFunctions) {
         this->aggregateFunctions.push_back(aggregateFunction->clone());
@@ -222,14 +222,13 @@ hash_t AggregateHashTable::computeHash(ValueVector* keyVector) {
     assert(keyVector->state->isFlat());
     auto pos = keyVector->state->getPositionOfCurrIdx();
     hash_t hash;
-    HashOnBytes::operation(keyVector->dataType,
+    HashOnBytes::operation(keyVector->dataType.typeID,
         keyVector->values + pos * keyVector->getNumBytesPerValue(), keyVector->isNull(pos), hash);
     return hash;
 }
 
 hash_t AggregateHashTable::computeHash(uint8_t* keys) {
-    hash_t hash =
-        AggregateHashTable::computeHash(groupByHashKeysDataTypes[0], keys, 1 /* colIdx */);
+    hash_t hash = computeHash(groupByHashKeysDataTypes[0], keys, 1 /* colIdx */);
     for (auto i = 1u; i < groupByHashKeysDataTypes.size(); ++i) {
         combineHashScalar(
             AggregateHashTable::computeHash(groupByHashKeysDataTypes[i], keys, 1 + i), hash);
@@ -237,9 +236,11 @@ hash_t AggregateHashTable::computeHash(uint8_t* keys) {
     return hash;
 }
 
-hash_t AggregateHashTable::computeHash(DataType keyDataType, uint8_t* keyValue, uint64_t colIdx) {
+hash_t AggregateHashTable::computeHash(
+    const DataType& keyDataType, uint8_t* keyValue, uint64_t colIdx) {
+    assert(keyDataType.typeID != LIST);
     hash_t hash;
-    HashOnBytes::operation(keyDataType,
+    HashOnBytes::operation(keyDataType.typeID,
         keyValue + factorizedTable->getTableSchema().getColOffset(colIdx),
         FactorizedTable::isNull(
             keyValue + factorizedTable->getTableSchema().getNullMapOffset(), colIdx),
@@ -264,7 +265,7 @@ bool AggregateHashTable::matchGroupByKeys(const vector<ValueVector*>& keyVectors
             return false;
         }
         if (!compareEntryWithKeys(keyValue, entry + tableSchema.getColOffset(i + 1),
-                keyVector->dataType == STRING, keyVector->getNumBytesPerValue())) {
+                keyVector->dataType.typeID == STRING, keyVector->getNumBytesPerValue())) {
             return false;
         }
     }
@@ -282,7 +283,7 @@ bool AggregateHashTable::matchGroupByKeys(uint8_t* entryBuffer, uint8_t* entryBu
         for (auto i = 0u; i < groupByHashKeysDataTypes.size(); i++) {
             auto colOffset = tableSchema.getColOffset(i + 1);
             if (!compareEntryWithKeys(entryBuffer + colOffset, entryBufferToMatch + colOffset,
-                    groupByHashKeysDataTypes[i] == STRING,
+                    groupByHashKeysDataTypes[i].typeID == STRING,
                     tableSchema.getColumn(i + 1).getNumBytes())) {
                 return false;
             }

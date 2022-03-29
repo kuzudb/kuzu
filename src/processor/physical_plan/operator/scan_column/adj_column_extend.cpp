@@ -35,7 +35,7 @@ bool AdjColumnExtend::getNextTuples() {
 }
 
 bool AdjColumnExtend::discardNullNodesInVector(ValueVector& valueVector) {
-    assert(valueVector.dataType == NODE);
+    assert(valueVector.dataType.typeID == NODE);
     if (valueVector.state->isFlat()) {
         return !valueVector.isNull(valueVector.state->getPositionOfCurrIdx());
     } else {

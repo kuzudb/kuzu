@@ -11,8 +11,7 @@ class LiteralExpression : public Expression {
 
 public:
     LiteralExpression(ExpressionType expressionType, DataType dataType, const Literal& literal);
-
-    void castToString();
+    LiteralExpression(ExpressionType expressionType, DataTypeID dataTypeID, const Literal& literal);
 
 public:
     Literal literal;

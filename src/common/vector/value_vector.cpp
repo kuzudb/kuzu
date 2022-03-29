@@ -11,7 +11,8 @@ NullMask::NullMask() : mayContainNulls{false} {
     fill_n(mask.get(), DEFAULT_VECTOR_CAPACITY, false /* not null */);
 }
 
-ValueVector::ValueVector(MemoryManager* memoryManager, DataType dataType) : dataType{dataType} {
+ValueVector::ValueVector(MemoryManager* memoryManager, DataType dataType)
+    : dataType{move(dataType)} {
     assert(memoryManager != nullptr);
     valueBuffer =
         make_unique<uint8_t[]>(Types::getDataTypeSize(dataType) * DEFAULT_VECTOR_CAPACITY);
@@ -23,7 +24,7 @@ ValueVector::ValueVector(MemoryManager* memoryManager, DataType dataType) : data
 }
 
 void ValueVector::addString(uint64_t pos, char* value, uint64_t len) const {
-    assert(dataType == STRING);
+    assert(dataType.typeID == STRING);
     auto vectorData = (gf_string_t*)values;
     auto& result = vectorData[pos];
     TypeUtils::copyString(value, len, result, *overflowBuffer);

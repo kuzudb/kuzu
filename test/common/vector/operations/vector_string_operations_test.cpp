@@ -10,8 +10,8 @@ using namespace graphflow::testing;
 class StringArithmeticOperandsInSameDataChunkTest : public OperandsInSameDataChunk, public Test {
 
 public:
-    DataType getDataTypeOfOperands() override { return STRING; }
-    DataType getDataTypeOfResultVector() override { return STRING; }
+    DataTypeID getDataTypeOfOperands() override { return STRING; }
+    DataTypeID getDataTypeOfResultVector() override { return STRING; }
 
     void SetUp() override { initDataChunk(); }
 };

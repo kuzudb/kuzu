@@ -38,7 +38,7 @@ class Lists : public StorageStructure {
 public:
     Lists(const string& fName, const DataType& dataType, const size_t& elementSize,
         shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory)
-        : Lists{fName, dataType, elementSize, headers, bufferManager, true /*hasNULLBytes*/,
+        : Lists{fName, dataType, elementSize, move(headers), bufferManager, true /*hasNULLBytes*/,
               isInMemory} {};
 
     void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
@@ -63,8 +63,6 @@ protected:
     virtual void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info);
 
 public:
-    static constexpr char LISTS_SUFFIX[] = ".lists";
-
     // LIST_CHUNK_SIZE should strictly be a power of 2.
     constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
     constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;
@@ -79,7 +77,8 @@ class StringPropertyLists : public Lists {
 public:
     StringPropertyLists(const string& fName, shared_ptr<ListHeaders> headers,
         BufferManager& bufferManager, bool isInMemory)
-        : Lists{fName, STRING, sizeof(gf_string_t), move(headers), bufferManager, isInMemory},
+        : Lists{fName, DataType(STRING), sizeof(gf_string_t), move(headers), bufferManager,
+              isInMemory},
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
 private:
@@ -95,9 +94,9 @@ private:
 class ListPropertyLists : public Lists {
 
 public:
-    ListPropertyLists(const string& fName, shared_ptr<ListHeaders> headers,
-        BufferManager& bufferManager, bool isInMemory)
-        : Lists{fName, LIST, sizeof(gf_list_t), move(headers), bufferManager, isInMemory},
+    ListPropertyLists(const string& fName, const DataType& dataType,
+        shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool isInMemory)
+        : Lists{fName, dataType, sizeof(gf_list_t), move(headers), bufferManager, isInMemory},
           listOverflowPages{fName, bufferManager, isInMemory} {};
 
 private:
@@ -115,7 +114,7 @@ class AdjLists : public Lists {
 public:
     AdjLists(const string& fName, BufferManager& bufferManager,
         NodeIDCompressionScheme nodeIDCompressionScheme, bool isInMemory)
-        : Lists{fName, NODE, nodeIDCompressionScheme.getNumTotalBytes(),
+        : Lists{fName, DataType(NODE), nodeIDCompressionScheme.getNumTotalBytes(),
               make_shared<ListHeaders>(fName), bufferManager, false, isInMemory},
           nodeIDCompressionScheme{nodeIDCompressionScheme} {};
 
@@ -140,7 +139,7 @@ public:
     static unique_ptr<Lists> getLists(const string& fName, const DataType& dataType,
         const shared_ptr<ListHeaders>& adjListsHeaders, BufferManager& bufferManager,
         bool isInMemory) {
-        switch (dataType) {
+        switch (dataType.typeID) {
         case INT64:
         case DOUBLE:
         case BOOL:
@@ -154,7 +153,7 @@ public:
                 fName, adjListsHeaders, bufferManager, isInMemory);
         case LIST:
             return make_unique<ListPropertyLists>(
-                fName, adjListsHeaders, bufferManager, isInMemory);
+                fName, dataType, adjListsHeaders, bufferManager, isInMemory);
         default:
             throw invalid_argument("Invalid type for property list creation.");
         }

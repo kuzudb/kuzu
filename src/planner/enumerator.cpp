@@ -299,7 +299,7 @@ void Enumerator::appendScanNodeProperty(
     assert(!properties.empty());
     auto scanNodeProperty = make_shared<LogicalScanNodeProperty>(node.getIDProperty(),
         node.getLabel(), move(propertyNames), move(propertyKeys),
-        properties[0]->dataType == UNSTRUCTURED, plan.getLastOperator());
+        properties[0]->dataType.typeID == UNSTRUCTURED, plan.getLastOperator());
     plan.appendOperator(move(scanNodeProperty));
 }
 
@@ -380,8 +380,8 @@ property_vector Enumerator::getPropertiesForNode(
     property_vector result;
     for (auto& property : propertiesToScan) {
         if (property->getChild(0)->getUniqueName() == node.getUniqueName()) {
-            assert(property->getChild(0)->dataType == NODE);
-            if (isStructured == (property->dataType != UNSTRUCTURED)) {
+            assert(property->getChild(0)->dataType.typeID == NODE);
+            if (isStructured == (property->dataType.typeID != UNSTRUCTURED)) {
                 result.push_back(property);
             }
         }
@@ -394,7 +394,7 @@ property_vector Enumerator::getPropertiesForRel(
     property_vector result;
     for (auto& property : propertiesToScan) {
         if (property->getChild(0)->getUniqueName() == rel.getUniqueName()) {
-            assert(property->getChild(0)->dataType == REL);
+            assert(property->getChild(0)->dataType.typeID == REL);
             result.push_back(property);
         }
     }

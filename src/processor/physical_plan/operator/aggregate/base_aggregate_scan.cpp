@@ -15,12 +15,12 @@ shared_ptr<ResultSet> BaseAggregateScan::initResultSet() {
 }
 
 void BaseAggregateScan::writeAggregateResultToVector(
-    shared_ptr<ValueVector> vector, uint64_t pos, AggregateState* aggregateState) {
+    ValueVector& vector, uint64_t pos, AggregateState* aggregateState) {
     if (aggregateState->isNull) {
-        vector->setNull(pos, true);
+        vector.setNull(pos, true);
     } else {
-        memcpy(vector->values + pos * Types::getDataTypeSize(vector->dataType),
-            aggregateState->getResult(), Types::getDataTypeSize(vector->dataType));
+        memcpy(vector.values + pos * Types::getDataTypeSize(vector.dataType),
+            aggregateState->getResult(), Types::getDataTypeSize(vector.dataType));
     }
 }
 

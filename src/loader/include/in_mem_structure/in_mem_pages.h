@@ -105,6 +105,10 @@ public:
 private:
     uint32_t getNewOverflowPageIdx();
 
+    template<DataTypeID DT>
+    void copyOverflowValuesToPages(gf_list_t& result, const Literal& listVal,
+        PageByteCursor& cursor, uint64_t numBytesOfSingleValue);
+
 private:
     shared_mutex lock;
     uint64_t numUsedPages;

@@ -76,8 +76,8 @@ struct EqualsOrNotEqualsValues {
     template<bool equals>
     static inline void operation(
         const Value& left, const Value& right, uint8_t& result, bool isLeftNull, bool isRightNul) {
-        if (left.dataType == right.dataType) {
-            switch (left.dataType) {
+        if (left.dataType.typeID == right.dataType.typeID) {
+            switch (left.dataType.typeID) {
             case BOOL: {
                 if constexpr (equals) {
                     Equals::operation(
@@ -143,16 +143,16 @@ struct EqualsOrNotEqualsValues {
             } break;
             default:
                 if constexpr (equals) {
-                    throw invalid_argument("Cannot equals `" +
-                                           Types::dataTypeToString(left.dataType) + "` and `" +
-                                           Types::dataTypeToString(right.dataType) + "`");
+                    throw invalid_argument(
+                        "Cannot equals `" + Types::dataTypeToString(left.dataType.typeID) +
+                        "` and `" + Types::dataTypeToString(right.dataType.typeID) + "`");
                 } else {
-                    throw invalid_argument("Cannot not equals `" +
-                                           Types::dataTypeToString(left.dataType) + "` and `" +
-                                           Types::dataTypeToString(right.dataType) + "`");
+                    throw invalid_argument(
+                        "Cannot not equals `" + Types::dataTypeToString(left.dataType.typeID) +
+                        "` and `" + Types::dataTypeToString(right.dataType.typeID) + "`");
                 }
             }
-        } else if (left.dataType == INT64 && right.dataType == DOUBLE) {
+        } else if (left.dataType.typeID == INT64 && right.dataType.typeID == DOUBLE) {
             if constexpr (equals) {
                 Equals::operation(
                     left.val.int64Val, right.val.doubleVal, result, isLeftNull, isRightNul);
@@ -160,7 +160,7 @@ struct EqualsOrNotEqualsValues {
                 NotEquals::operation(
                     left.val.int64Val, right.val.doubleVal, result, isLeftNull, isRightNul);
             }
-        } else if (left.dataType == DOUBLE && right.dataType == INT64) {
+        } else if (left.dataType.typeID == DOUBLE && right.dataType.typeID == INT64) {
             if constexpr (equals) {
                 Equals::operation(
                     left.val.doubleVal, right.val.int64Val, result, isLeftNull, isRightNul);
@@ -168,7 +168,7 @@ struct EqualsOrNotEqualsValues {
                 NotEquals::operation(
                     left.val.doubleVal, right.val.int64Val, result, isLeftNull, isRightNul);
             }
-        } else if (left.dataType == DATE && right.dataType == TIMESTAMP) {
+        } else if (left.dataType.typeID == DATE && right.dataType.typeID == TIMESTAMP) {
             if constexpr (equals) {
                 Equals::operation(
                     left.val.dateVal, right.val.timestampVal, result, isLeftNull, isRightNul);
@@ -176,7 +176,7 @@ struct EqualsOrNotEqualsValues {
                 NotEquals::operation(
                     left.val.dateVal, right.val.timestampVal, result, isLeftNull, isRightNul);
             }
-        } else if (left.dataType == TIMESTAMP && right.dataType == DATE) {
+        } else if (left.dataType.typeID == TIMESTAMP && right.dataType.typeID == DATE) {
             if constexpr (equals) {
                 Equals::operation(
                     left.val.timestampVal, right.val.dateVal, result, isLeftNull, isRightNul);
@@ -186,12 +186,13 @@ struct EqualsOrNotEqualsValues {
             }
         } else {
             if constexpr (equals) {
-                throw invalid_argument("Cannot equals `" + Types::dataTypeToString(left.dataType) +
-                                       "` and `" + Types::dataTypeToString(right.dataType) + "`");
+                throw invalid_argument("Cannot equals `" +
+                                       Types::dataTypeToString(left.dataType.typeID) + "` and `" +
+                                       Types::dataTypeToString(right.dataType.typeID) + "`");
             } else {
                 throw invalid_argument("Cannot not equals `" +
-                                       Types::dataTypeToString(left.dataType) + "` and `" +
-                                       Types::dataTypeToString(right.dataType) + "`");
+                                       Types::dataTypeToString(left.dataType.typeID) + "` and `" +
+                                       Types::dataTypeToString(right.dataType.typeID) + "`");
             }
         }
     }
@@ -220,8 +221,8 @@ struct CompareValues {
     template<class FUNC, const char* comparisonOpStr>
     static inline void operation(
         const Value& left, const Value& right, uint8_t& result, bool isLeftNull, bool isRightNul) {
-        if (left.dataType == right.dataType) {
-            switch (left.dataType) {
+        if (left.dataType.typeID == right.dataType.typeID) {
+            switch (left.dataType.typeID) {
             case BOOL: {
                 FUNC::operation(
                     left.val.booleanVal, right.val.booleanVal, result, isLeftNull, isRightNul);
@@ -252,20 +253,20 @@ struct CompareValues {
             default:
                 assert(false);
             }
-        } else if (left.dataType == INT64 && right.dataType == DOUBLE) {
+        } else if (left.dataType.typeID == INT64 && right.dataType.typeID == DOUBLE) {
             FUNC::operation(left.val.int64Val, right.val.doubleVal, result, isLeftNull, isRightNul);
-        } else if (left.dataType == DOUBLE && right.dataType == INT64) {
+        } else if (left.dataType.typeID == DOUBLE && right.dataType.typeID == INT64) {
             FUNC::operation(left.val.doubleVal, right.val.int64Val, result, isLeftNull, isRightNul);
-        } else if (left.dataType == DATE && right.dataType == TIMESTAMP) {
+        } else if (left.dataType.typeID == DATE && right.dataType.typeID == TIMESTAMP) {
             FUNC::operation(
                 left.val.dateVal, right.val.timestampVal, result, isLeftNull, isRightNul);
-        } else if (left.dataType == TIMESTAMP && right.dataType == DATE) {
+        } else if (left.dataType.typeID == TIMESTAMP && right.dataType.typeID == DATE) {
             FUNC::operation(
                 left.val.timestampVal, right.val.dateVal, result, isLeftNull, isRightNul);
         } else {
             throw invalid_argument("Cannot " + string(comparisonOpStr) + " `" +
-                                   Types::dataTypeToString(left.dataType) + "` and `" +
-                                   Types::dataTypeToString(right.dataType) + "`");
+                                   Types::dataTypeToString(left.dataType.typeID) + "` and `" +
+                                   Types::dataTypeToString(right.dataType.typeID) + "`");
         }
     }
 };

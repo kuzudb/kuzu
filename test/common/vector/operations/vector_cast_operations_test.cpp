@@ -215,7 +215,7 @@ TEST_F(VectorCastOperationsTest, CastUnStructuredBooleanToBooleanTest) {
     // Fill values before the comparison.
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i].val.booleanVal = (i % 2 == 0);
-        lData[i].dataType = BOOL;
+        lData[i].dataType.typeID = BOOL;
     }
 
     UnaryOperationExecutor::execute<Value, uint8_t, operation::CastUnstructuredToBool>(

@@ -10,9 +10,9 @@ namespace operation {
  * The boolean operators (AND, OR, XOR, NOT) works a little differently from other operators. While
  * other operators can operate on only non null operands, boolean operators can operate even with
  * null operands in certain cases, for instance, Null OR True = True. Hence, the result value of
- * the boolean operator can be True, False or Null. To accommodate for this, the dataType of result
- * is uint8_t (that can have more than 2 values) rather than bool. In case, the result is computed
- * to be Null based on the operands, we set result = NULL_BOOL, which should rightly be
+ * the boolean operator can be True, False or Null. To accommodate for this, the dataType of
+ * result is uint8_t (that can have more than 2 values) rather than bool. In case, the result is
+ * computed to be Null based on the operands, we set result = NULL_BOOL, which should rightly be
  * interpreted by operator executors as NULL and not as True.
  * */
 

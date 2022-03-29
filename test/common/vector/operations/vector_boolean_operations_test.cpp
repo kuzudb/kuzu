@@ -70,8 +70,8 @@ static void setNullsInVectors(const shared_ptr<ValueVector>& lVector,
 class BoolOperandsInSameDataChunkTest : public OperandsInSameDataChunk, public Test {
 
 public:
-    DataType getDataTypeOfOperands() override { return BOOL; }
-    DataType getDataTypeOfResultVector() override { return BOOL; }
+    DataTypeID getDataTypeOfOperands() override { return BOOL; }
+    DataTypeID getDataTypeOfResultVector() override { return BOOL; }
 
     void SetUp() override {
         initDataChunk();
@@ -82,8 +82,8 @@ public:
 class BoolOperandsInDifferentDataChunksTest : public OperandsInDifferentDataChunks, public Test {
 
 public:
-    DataType getDataTypeOfOperands() override { return BOOL; }
-    DataType getDataTypeOfResultVector() override { return BOOL; }
+    DataTypeID getDataTypeOfOperands() override { return BOOL; }
+    DataTypeID getDataTypeOfResultVector() override { return BOOL; }
 
     void SetUp() override {
         initDataChunk();

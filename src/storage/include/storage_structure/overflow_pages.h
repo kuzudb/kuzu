@@ -38,10 +38,11 @@ public:
     void readStringToVector(gf_string_t& gfStr, OverflowBuffer& overflowBuffer);
     void readListsToVector(ValueVector& valueVector);
     string readString(const gf_string_t& str);
-    vector<Literal> readList(const gf_list_t& listVal, DataType childDataType);
+    vector<Literal> readList(const gf_list_t& listVal, const DataType& dataType);
 
 private:
-    void readListToVector(gf_list_t& gfList, OverflowBuffer& overflowBuffer);
+    void readListToVector(
+        gf_list_t& gfList, const DataType& dataType, OverflowBuffer& overflowBuffer);
 
     FileHandle fileHandle;
     BufferManager& bufferManager;

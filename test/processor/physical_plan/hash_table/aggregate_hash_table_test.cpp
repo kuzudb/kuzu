@@ -63,7 +63,7 @@ TEST_F(AggregateHashTableTest, SingleGroupTest) {
     auto sumState = sumAggregate->createInitialNullAggregateState();
     aggregates.push_back(move(countAggregate));
     aggregates.push_back(move(sumAggregate));
-    auto groupByVectorsDataType = vector<DataType>{INT64};
+    auto groupByVectorsDataType = vector<DataType>{DataType(INT64)};
     auto ht = make_unique<AggregateHashTable>(
         *memoryManager, move(groupByVectorsDataType), aggregates, 0 /* numEntriesToAllocate */);
     vector<ValueVector*> groupVectors, aggregateVectors;
@@ -98,7 +98,7 @@ TEST_F(AggregateHashTableTest, TwoGroupsTest) {
     aggregates.push_back(move(countAggregate));
     aggregates.push_back(move(avgAggregate));
 
-    auto groupByVectorsDataType = vector<DataType>{INT64, INT64};
+    auto groupByVectorsDataType = vector<DataType>{DataType(INT64), DataType(INT64)};
     auto ht = make_unique<AggregateHashTable>(
         *memoryManager, move(groupByVectorsDataType), aggregates, 0 /* numEntriesToAllocate */);
     vector<ValueVector*> groupVectors, aggregateVectors;
