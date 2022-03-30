@@ -47,6 +47,7 @@ http_archive(
     url = "https://github.com/martinus/robin-hood-hashing/archive/3.9.1.zip",
 )
 
+###########################################################
 #antlr4_tools
 http_jar(
     name = "antlr4-complete",
@@ -61,4 +62,36 @@ http_archive(
     sha256 = "db170179917ce6fec7bc4ecf72edba36b97c9881e09e03af6ac0c901eba52a8f",
     strip_prefix = "antlr4-4.9.1",
     url = "https://github.com/antlr/antlr4/archive/4.9.1.tar.gz",
+)
+
+###########################################################
+# pybind11 bazel rules
+http_archive(
+    name = "pybind11_bazel",
+    strip_prefix = "pybind11_bazel-26973c0ff320cb4b39e45bc3e4297b82bc3a6c09",
+    urls = ["https://github.com/pybind/pybind11_bazel/archive/26973c0ff320cb4b39e45bc3e4297b82bc3a6c09.zip"],
+)
+
+# pybind11
+http_archive(
+    name = "pybind11",
+    build_file = "@pybind11_bazel//:pybind11.BUILD",
+    strip_prefix = "pybind11-2.6.0",
+    urls = ["https://github.com/pybind/pybind11/archive/v2.6.0.zip"],
+     sha256 = "c2ed3fc84db08f40a36ce1d03331624ed6977497b35dfed36a1423396928559a",
+)
+
+load("@pybind11_bazel//:python_configure.bzl", "python_configure")
+
+python_configure(
+    name = "local_config_python",
+    python_version = "3",
+)
+
+###########################################################
+http_archive(
+    name = "rules_python",
+    sha256 = "9fcf91dbcc31fde6d1edb15f117246d912c33c36f44cf681976bd886538deba6",
+    strip_prefix = "rules_python-0.8.0",
+    url = "https://github.com/bazelbuild/rules_python/archive/refs/tags/0.8.0.tar.gz",
 )

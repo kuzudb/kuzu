@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - run: sudo apt update && sudo apt install -y python3-pip
+    - run: pip install -r tools/python_api/requirements_dev.txt
 
     - name: bazel-info
       run: bazel info
