@@ -4,6 +4,7 @@
 #include <climits>
 
 #include "src/common/include/exception.h"
+#include "src/common/include/utils.h"
 #include "src/common/types/include/value.h"
 
 namespace graphflow {
@@ -19,6 +20,16 @@ int64_t TypeUtils::convertToInt64(const char* data) {
             prefixConversionExceptionMessage(data, INT64) + " Input out of range.");
     }
     return retVal;
+}
+
+uint32_t TypeUtils::convertToUint32(const char* data) {
+    istringstream iss(data);
+    uint32_t val;
+    if (!(iss >> val)) {
+        throw ConversionException(
+            StringUtils::string_format("Failed to convert %s to uint32_t", data));
+    }
+    return val;
 }
 
 double_t TypeUtils::convertToDouble(const char* data) {

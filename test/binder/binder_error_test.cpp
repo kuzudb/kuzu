@@ -231,3 +231,9 @@ TEST_F(BinderErrorTest, UnionAndUnionAllInSingleQuery) {
                  "MATCH (p1:person) RETURN p1.age";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, VarLenExtendZeroLowerBound) {
+    string expectedException = "Lower and upper bound of a rel must be greater than 0.";
+    auto input = "MATCH (a:person)-[:knows*0..5]->(b:person) return count(*)";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

@@ -136,4 +136,7 @@ TEST_F(TinySnbProcessorTest, VarLengthAdjListExtendTests) {
     queryConfigs = TestHelper::parseTestFile(
         "test/runner/queries/var_length_extend/var_length_adj_list_extend.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
+    queryConfigs = TestHelper::parseTestFile(
+        "test/runner/queries/var_length_extend/var_length_column_extend.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }

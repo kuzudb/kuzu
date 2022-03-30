@@ -112,16 +112,17 @@ cc_library(
 )
 
 cc_library(
-    name = "var_length_join",
+    name = "var_length_extend",
     srcs = glob([
-        "physical_plan/operator/var_length_adj_list_extend.cpp",
+        "physical_plan/operator/var_length_extend/*.cpp",
     ]),
     hdrs = glob([
-        "include/physical_plan/operator/var_length_adj_list_extend.h",
+        "include/physical_plan/operator/var_length_extend/*.h",
     ]),
     deps = [
         "base_operator",
         "result",
+        "//src/storage:column",
     ],
 )
 
@@ -214,6 +215,7 @@ cc_library(
         "physical_plan",
         "read_list",
         "scan_column",
+        "var_length_extend",
         "//src/common:csv_reader",
         "//src/expression_evaluator:base_expression_evaluator",
     ],

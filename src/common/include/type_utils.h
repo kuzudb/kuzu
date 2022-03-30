@@ -13,6 +13,7 @@ class TypeUtils {
 public:
     static int64_t convertToInt64(const char* data);
     static double_t convertToDouble(const char* data);
+    static uint32_t convertToUint32(const char* data);
     static bool convertToBoolean(const char* data);
 
     static inline string toString(bool boolVal) { return boolVal ? "True" : "False"; }

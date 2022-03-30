@@ -51,7 +51,8 @@
 #include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
 #include "src/processor/include/physical_plan/operator/union_all_scan.h"
-#include "src/processor/include/physical_plan/operator/var_length_adj_list_extend.h"
+#include "src/processor/include/physical_plan/operator/var_length_extend/var_length_adj_list_extend.h"
+#include "src/processor/include/physical_plan/operator/var_length_extend/var_length_column_extend.h"
 
 using namespace graphflow::planner;
 
@@ -227,10 +228,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     mapperContext.addComputedExpressions(extend.nbrNodeID);
     auto& relsStore = graph.getRelsStore();
     if (extend.isColumn) {
-        assert(extend.lowerBound == extend.upperBound && extend.lowerBound == 1);
-        return make_unique<AdjColumnExtend>(inDataPos, outDataPos,
-            relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
-            move(prevOperator), executionContext, mapperContext.getOperatorID());
+        if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
+            return make_unique<AdjColumnExtend>(inDataPos, outDataPos,
+                relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
+                move(prevOperator), executionContext, mapperContext.getOperatorID());
+        } else {
+            return make_unique<VarLengthColumnExtend>(inDataPos, outDataPos,
+                relsStore.getAdjColumn(extend.direction, extend.boundNodeLabel, extend.relLabel),
+                extend.lowerBound, extend.upperBound, move(prevOperator), executionContext,
+                mapperContext.getOperatorID());
+        }
     } else {
         auto adjLists =
             relsStore.getAdjLists(extend.direction, extend.boundNodeLabel, extend.relLabel);
