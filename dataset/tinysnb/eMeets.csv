@@ -1,0 +1,8 @@
+:START_ID_LABEL,:START_ID,:END_ID_LABEL,:END_ID
+person,0,person,2
+person,2,person,5
+person,3,person,7
+person,7,person,3
+person,8,person,3
+person,9,person,3
+person,10,person,2

@@ -45,6 +45,17 @@
       "dstNodeLabels": [
         "organisation"
       ]
+    },
+    {
+      "filename": "eMeets.csv",
+      "label": "meets",
+      "multiplicity": "MANY_ONE",
+      "srcNodeLabels": [
+        "person"
+      ],
+      "dstNodeLabels": [
+        "person"
+      ]
     }
   ]
 }

@@ -23,6 +23,8 @@ constexpr uint64_t LARGE_PAGE_SIZE = 1 << LARGE_PAGE_SIZE_LOG_2;
 
 constexpr const double DEFAULT_HT_LOAD_FACTOR = 1.5;
 
+constexpr const uint32_t VAR_LENGTH_EXTEND_MAX_DEPTH = 30;
+
 // This is the default thread sleep time we use when a thread,
 // e.g., a worker thread is in TaskScheduler, needs to block.
 constexpr const uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 100;

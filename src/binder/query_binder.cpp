@@ -251,8 +251,13 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
     auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
     auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
     // bind variable length
-    auto lowerBound = TypeUtils::convertToInt64(relPattern.getLowerBound().c_str());
-    auto upperBound = TypeUtils::convertToInt64(relPattern.getUpperBound().c_str());
+    auto lowerBound = min(TypeUtils::convertToUint32(relPattern.getLowerBound().c_str()),
+        VAR_LENGTH_EXTEND_MAX_DEPTH);
+    auto upperBound = min(TypeUtils::convertToUint32(relPattern.getUpperBound().c_str()),
+        VAR_LENGTH_EXTEND_MAX_DEPTH);
+    if (lowerBound == 0 || upperBound == 0) {
+        throw invalid_argument("Lower and upper bound of a rel must be greater than 0.");
+    }
     if (lowerBound > upperBound) {
         throw invalid_argument("Lower bound of rel " + parsedName + " is greater than upperBound.");
     }

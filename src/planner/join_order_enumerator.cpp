@@ -257,7 +257,14 @@ void JoinOrderEnumerator::appendExtend(
     auto isColumnExtend =
         graph.getCatalog().isSingleMultiplicityInDirection(queryRel.getLabel(), direction);
     uint32_t groupPos;
-    if (isColumnExtend) {
+    // If the join is a single (1-hop) fixed-length column extend (e.g., over a relationship with
+    // one-to-one multiplicity), then we put the nbrNode vector into the same
+    // datachunk/factorization group as the boundNodeId. Otherwise (including a var-length join over
+    // a column extend) to a separate data chunk, which will be unflat. However, note that a
+    // var-length column join can still write a single value to this unflat nbrNode vector (i.e.,
+    // the vector in this case can be an unflat vector with a single value in it).
+    if (isColumnExtend && (queryRel.getLowerBound() == 1) &&
+        (queryRel.getLowerBound() == queryRel.getUpperBound())) {
         groupPos = schema->getGroupPos(boundNodeID);
     } else {
         auto boundNodeGroupPos = schema->getGroupPos(boundNodeID);
