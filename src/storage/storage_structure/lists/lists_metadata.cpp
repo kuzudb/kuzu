@@ -1,12 +1,14 @@
 #include "src/storage/include/storage_structure/lists/lists_metadata.h"
 
 #include "src/common/include/utils.h"
-#include "src/storage/include/storage_structure/lists/utils.h"
+#include "src/storage/include/storage_utils.h"
 
 namespace graphflow {
 namespace storage {
 
-ListsMetadata::ListsMetadata() {
+ListsMetadata::ListsMetadata()
+    : numChunks{0}, chunkPageListsCapacity{0}, numLargeLists{0},
+      largeListPageListsCapacity{0}, numPages{0} {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
 }
 
@@ -17,14 +19,14 @@ ListsMetadata::ListsMetadata(const string& listBaseFName) : ListsMetadata() {
 
 void ListsMetadata::saveToDisk(const string& fName) {
     auto metadataBasePath = fName + ".metadata";
-    saveListOfIntsToFile(metadataBasePath + CHUNK_PAGE_LIST_HEAD_IDX_MAP_SUFFIX,
+    StorageUtils::saveListOfIntsToFile(metadataBasePath + CHUNK_PAGE_LIST_HEAD_IDX_MAP_SUFFIX,
         chunkToPageListHeadIdxMap, numChunks + 1);
-    saveListOfIntsToFile(
+    StorageUtils::saveListOfIntsToFile(
         metadataBasePath + CHUNK_PAGE_LISTS_SUFFIX, chunkPageLists, chunkPageListsCapacity);
-    saveListOfIntsToFile(metadataBasePath + LARGE_LISTS_PAGE_LIST_HEAD_IDX_MAP_SUFFIX,
+    StorageUtils::saveListOfIntsToFile(metadataBasePath + LARGE_LISTS_PAGE_LIST_HEAD_IDX_MAP_SUFFIX,
         largeListIdxToPageListHeadIdxMap, (2 * numLargeLists) + 1);
-    saveListOfIntsToFile(metadataBasePath + LARGE_LISTS_PAGE_LISTS_SUFFIX, largeListPageLists,
-        largeListPageListsCapacity);
+    StorageUtils::saveListOfIntsToFile(metadataBasePath + LARGE_LISTS_PAGE_LISTS_SUFFIX,
+        largeListPageLists, largeListPageListsCapacity);
 
     // put numPages in .metadata file.
     if (0 == metadataBasePath.length()) {
@@ -43,15 +45,16 @@ void ListsMetadata::saveToDisk(const string& fName) {
 
 void ListsMetadata::readFromDisk(const string& fName) {
     auto metadataBasePath = fName + ".metadata";
-    auto listSize = readListOfIntsFromFile(
+    auto listSize = StorageUtils::readListOfIntsFromFile(
         chunkToPageListHeadIdxMap, metadataBasePath + CHUNK_PAGE_LIST_HEAD_IDX_MAP_SUFFIX);
     this->numChunks = listSize - 1;
-    listSize = readListOfIntsFromFile(chunkPageLists, metadataBasePath + CHUNK_PAGE_LISTS_SUFFIX);
+    listSize = StorageUtils::readListOfIntsFromFile(
+        chunkPageLists, metadataBasePath + CHUNK_PAGE_LISTS_SUFFIX);
     this->chunkPageListsCapacity = listSize;
-    listSize = readListOfIntsFromFile(largeListIdxToPageListHeadIdxMap,
+    listSize = StorageUtils::readListOfIntsFromFile(largeListIdxToPageListHeadIdxMap,
         metadataBasePath + LARGE_LISTS_PAGE_LIST_HEAD_IDX_MAP_SUFFIX);
     this->numLargeLists = (listSize - 1) / 2;
-    listSize = readListOfIntsFromFile(
+    listSize = StorageUtils::readListOfIntsFromFile(
         largeListPageLists, metadataBasePath + LARGE_LISTS_PAGE_LISTS_SUFFIX);
     this->largeListPageListsCapacity = listSize;
 
@@ -77,8 +80,8 @@ uint64_t ListsMetadata::getPageIdxFromAPageList(
     return pageLists[pageListGroupHeadIdx + pageIdx];
 }
 
-void ListsMetadata::initChunkPageLists(uint32_t numChunks) {
-    this->numChunks = numChunks;
+void ListsMetadata::initChunkPageLists(uint32_t numChunks_) {
+    this->numChunks = numChunks_;
     chunkToPageListHeadIdxMap = make_unique<uint32_t[]>(numChunks + 1);
     // Make the headIdx of the first chunk 0.
     chunkToPageListHeadIdxMap[0] = 0;
@@ -87,11 +90,11 @@ void ListsMetadata::initChunkPageLists(uint32_t numChunks) {
     chunkPageLists = make_unique<uint32_t[]>(chunkPageListsCapacity);
 }
 
-void ListsMetadata::initLargeListPageLists(uint32_t numLargeLists) {
-    this->numLargeLists = numLargeLists;
+void ListsMetadata::initLargeListPageLists(uint32_t numLargeLists_) {
+    this->numLargeLists = numLargeLists_;
     // For each largeList, we store the PageListHeadIdx in pageLists and also the number of elements
     // in the large list.
-    largeListIdxToPageListHeadIdxMap = make_unique<uint32_t[]>((2 * numLargeLists) + 1);
+    largeListIdxToPageListHeadIdxMap = make_unique<uint32_t[]>((2 * numLargeLists_) + 1);
     // Make the headIdx of the first large list 0.
     largeListIdxToPageListHeadIdxMap[0] = 0;
     // initialize pageLists blob with size 100.
@@ -100,20 +103,20 @@ void ListsMetadata::initLargeListPageLists(uint32_t numLargeLists) {
 }
 
 void ListsMetadata::populateChunkPageList(
-    uint32_t chunkId, uint32_t numPages, uint32_t startPageId) {
+    uint32_t chunkId, uint32_t numPages_, uint32_t startPageId) {
     auto pageListHeadIdx = chunkToPageListHeadIdxMap[chunkId];
     auto pageListTail = enumeratePageIdsInAPageList(
-        chunkPageLists, chunkPageListsCapacity, pageListHeadIdx, numPages, startPageId);
+        chunkPageLists, chunkPageListsCapacity, pageListHeadIdx, numPages_, startPageId);
     chunkToPageListHeadIdxMap[chunkId + 1] = pageListTail;
 }
 
 void ListsMetadata::populateLargeListPageList(
-    uint32_t largeListIdx, uint32_t numPages, uint32_t numElements, uint32_t startPageId) {
+    uint32_t largeListIdx, uint32_t numPages_, uint32_t numElements, uint32_t startPageId) {
     auto offsetInMap = 2 * largeListIdx;
     auto pageListHeadIdx = largeListIdxToPageListHeadIdxMap[offsetInMap];
     largeListIdxToPageListHeadIdxMap[offsetInMap + 1] = numElements;
     auto pageListTail = enumeratePageIdsInAPageList(
-        largeListPageLists, largeListPageListsCapacity, pageListHeadIdx, numPages, startPageId);
+        largeListPageLists, largeListPageListsCapacity, pageListHeadIdx, numPages_, startPageId);
     largeListIdxToPageListHeadIdxMap[offsetInMap + 2] = pageListTail;
 }
 

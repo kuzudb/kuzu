@@ -3,7 +3,7 @@
 #include <cstring>
 
 namespace graphflow {
-namespace common {
+namespace storage {
 
 unique_ptr<BMBackedMemoryBlock> MemoryManager::allocateBMBackedBlock(bool initializeToZero) {
     lock_guard<mutex> lock(memMgrLock);
@@ -31,5 +31,5 @@ void MemoryManager::freeBMBackedBlock(uint32_t pageIdx) {
     freePages.push(pageIdx);
 }
 
-} // namespace common
+} // namespace storage
 } // namespace graphflow

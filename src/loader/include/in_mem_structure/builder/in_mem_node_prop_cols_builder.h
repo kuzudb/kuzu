@@ -16,7 +16,7 @@ class InMemNodePropertyColumnsBuilder : public InMemStructuresBuilder, public Co
 public:
     // Initialize the builder and construct relevant propertyColumns.
     InMemNodePropertyColumnsBuilder(NodeLabelDescription& description, TaskScheduler& taskScheduler,
-        const Graph& graph, string outputDirectory);
+        const Catalog& catalog, string outputDirectory);
 
     void setProperty(node_offset_t nodeOffset, const uint32_t& propertyIdx, const uint8_t* val,
         const DataTypeID& type);

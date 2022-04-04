@@ -44,8 +44,8 @@ cc_library(
     deps = [
         "base_expression",
         "//src/binder/query",
-        "//src/function",
         "//src/common:type_utils",
+        "//src/function",
     ],
 )
 

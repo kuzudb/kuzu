@@ -12,7 +12,7 @@ using namespace std;
 using namespace graphflow::storage;
 
 namespace graphflow {
-namespace common {
+namespace storage {
 
 class MemoryManager;
 
@@ -49,5 +49,5 @@ private:
     stack<uint32_t> freePages;
     mutex memMgrLock;
 };
-} // namespace common
+} // namespace storage
 } // namespace graphflow

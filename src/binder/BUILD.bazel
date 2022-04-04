@@ -22,6 +22,6 @@ cc_library(
         "//src/function/string:vector_string_operations",
         "//src/parser/expression:parsed_expression_implementations",
         "//src/parser/query",
-        "//src/storage:catalog",
+        "//src/catalog:catalog",
     ],
 )

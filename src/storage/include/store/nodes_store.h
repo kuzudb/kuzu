@@ -3,58 +3,29 @@
 #include <memory>
 #include <vector>
 
-#include "src/storage/include/catalog.h"
-#include "src/storage/include/storage_structure/column.h"
-#include "src/storage/include/storage_structure/lists/lists.h"
-#include "src/storage/include/storage_structure/lists/unstructured_property_lists.h"
-#include "src/storage/include/storage_structure/lists/utils.h"
+#include "src/storage/include/store/node.h"
+
+using namespace graphflow::catalog;
 
 namespace graphflow {
 namespace storage {
 
-// NodesStore stores the properties of nodes in the system.
 class NodesStore {
 
 public:
-    NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
-        const string& directory, BufferManager& bufferManager, bool isInMemoryMode);
+    NodesStore(const Catalog& catalog, BufferManager& bufferManager, const string& directory,
+        bool isInMemoryMode);
 
-    Column* getNodePropertyColumn(const label_t& label, const uint64_t& propertyIdx) const {
-        return propertyColumns[label][propertyIdx].get();
+    inline Column* getNodePropertyColumn(label_t nodeLabel, uint64_t propertyIdx) const {
+        return nodes[nodeLabel]->getPropertyColumn(propertyIdx);
     }
-
-    UnstructuredPropertyLists* getNodeUnstrPropertyLists(const label_t& label) const {
-        return unstrPropertyLists[label].get();
+    inline UnstructuredPropertyLists* getNodeUnstrPropertyLists(label_t nodeLabel) const {
+        return nodes[nodeLabel]->getUnstrPropertyLists();
     }
-
-    inline static string getNodePropertyColumnFName(
-        const string& directory, const label_t& nodeLabel, const string& propertyName) {
-        auto fName = StringUtils::string_format("n-%d-%s", nodeLabel, propertyName.data());
-        return FileUtils::joinPath(directory, fName + StorageConfig::COLUMN_FILE_SUFFIX);
-    }
-
-    inline static string getNodeUnstrPropertyListsFName(
-        const string& directory, const label_t& nodeLabel) {
-        auto fName = StringUtils::string_format("n-%d", nodeLabel);
-        return FileUtils::joinPath(directory, fName + StorageConfig::LISTS_FILE_SUFFIX);
-    }
-
-private:
-    void initStructuredPropertyColumns(const Catalog& catalog,
-        const vector<uint64_t>& numNodesPerLabel, const string& directory,
-        BufferManager& bufferManager, bool isInMemoryMode);
-
-    void initUnstructuredPropertyLists(const Catalog& catalog, const string& directory,
-        BufferManager& bufferManager, bool isInMemoryMode);
 
 private:
     shared_ptr<spdlog::logger> logger;
-    // To store structured properties of nodes. There is one Property column for each unique
-    // (node label, property) pair. That is, propertyColumns[4][5] refers to the property column
-    // of node label 4 of property that have propertyIdx 5 in the propertyMap of label 4.
-    vector<vector<unique_ptr<Column>>> propertyColumns;
-    // To store unstructured properties of nodes.
-    vector<unique_ptr<UnstructuredPropertyLists>> unstrPropertyLists;
+    vector<unique_ptr<Node>> nodes;
 };
 
 } // namespace storage

@@ -9,7 +9,7 @@ class LogicalExtend : public LogicalOperator {
 
 public:
     LogicalExtend(string boundNodeID, label_t boundNodeLabel, string nbrNodeID,
-        label_t nbrNodeLabel, label_t relLabel, Direction direction, bool isColumn,
+        label_t nbrNodeLabel, label_t relLabel, RelDirection direction, bool isColumn,
         uint8_t lowerBound, uint8_t upperBound, shared_ptr<LogicalOperator> child)
         : LogicalOperator{move(child)}, boundNodeID{move(boundNodeID)},
           boundNodeLabel{boundNodeLabel}, nbrNodeID{move(nbrNodeID)},
@@ -21,7 +21,7 @@ public:
     }
 
     string getExpressionsForPrinting() const override {
-        return boundNodeID + (direction == Direction::FWD ? "->" : "<-") + nbrNodeID;
+        return boundNodeID + (direction == RelDirection::FWD ? "->" : "<-") + nbrNodeID;
     }
 
     unique_ptr<LogicalOperator> copy() override {
@@ -35,7 +35,7 @@ public:
     string nbrNodeID;
     label_t nbrNodeLabel;
     label_t relLabel;
-    Direction direction;
+    RelDirection direction;
     bool isColumn;
     uint8_t lowerBound;
     uint8_t upperBound;

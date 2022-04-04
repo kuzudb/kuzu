@@ -5,29 +5,29 @@
 namespace graphflow {
 namespace loader {
 
-RelsLoader::RelsLoader(TaskScheduler& taskScheduler, Graph& graph, string outputDirectory,
+RelsLoader::RelsLoader(TaskScheduler& taskScheduler, Catalog& catalog, string outputDirectory,
     vector<unique_ptr<NodeIDMap>>& nodeIDMaps, const vector<RelFileDescription>& fileMetadata,
     LoaderProgressBar* progressBar)
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
-      taskScheduler{taskScheduler}, graph{graph},
+      taskScheduler{taskScheduler}, catalog{catalog},
       outputDirectory(std::move(outputDirectory)), nodeIDMaps{nodeIDMaps},
       fileDescriptions(fileMetadata), progressBar{progressBar} {}
 
 // For each rel label, constructs the RelLabelDescription object with relevant meta info and
 // calls the loadRelsForLabel.
 void RelsLoader::load(vector<uint64_t>& numBlocksPerFile) {
-    for (auto relLabel = 0u; relLabel < graph.catalog->getRelLabelsCount(); relLabel++) {
+    for (auto relLabel = 0u; relLabel < catalog.getNumRelLabels(); relLabel++) {
         RelLabelDescription description(relLabel, fileDescriptions[relLabel].filePath,
-            numBlocksPerFile[relLabel], graph.getCatalog().getRelProperties(relLabel),
+            numBlocksPerFile[relLabel], catalog.getRelProperties(relLabel),
             fileDescriptions[relLabel].csvReaderConfig);
-        for (auto direction : DIRECTIONS) {
+        for (auto direction : REL_DIRECTIONS) {
             description.isSingleMultiplicityPerDirection[direction] =
-                graph.catalog->isSingleMultiplicityInDirection(description.label, direction);
+                catalog.isSingleMultiplicityInDirection(description.label, direction);
             description.nodeLabelsPerDirection[direction] =
-                graph.catalog->getNodeLabelsForRelLabelDirection(description.label, direction);
+                catalog.getNodeLabelsForRelLabelDirection(description.label, direction);
             description.nodeIDCompressionSchemePerDirection[!direction] =
                 NodeIDCompressionScheme(description.nodeLabelsPerDirection[direction],
-                    graph.getNumNodesPerLabel(), graph.getCatalog().getNodeLabelsCount());
+                    catalog.getNumNodesPerLabel(), catalog.getNumNodeLabels());
         }
         loadRelsForLabel(description);
     }
@@ -39,7 +39,7 @@ void RelsLoader::load(vector<uint64_t>& numBlocksPerFile) {
 void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
     logger->debug("Processing relLabel {}.", description.label);
     InMemAdjAndPropertyListsBuilder listsBuilder{
-        description, taskScheduler, graph, outputDirectory};
+        description, taskScheduler, catalog, outputDirectory};
     constructAdjColumnsAndCountRelsInAdjLists(description, listsBuilder);
     if (!description.isSingleMultiplicityPerDirection[FWD] ||
         !description.isSingleMultiplicityPerDirection[BWD]) {
@@ -56,20 +56,19 @@ void RelsLoader::loadRelsForLabel(RelLabelDescription& description) {
 void RelsLoader::constructAdjColumnsAndCountRelsInAdjLists(
     RelLabelDescription& description, InMemAdjAndPropertyListsBuilder& listsBuilder) {
     InMemAdjAndPropertyColumnsBuilder columnsBuilder{
-        description, taskScheduler, graph, outputDirectory};
+        description, taskScheduler, catalog, outputDirectory};
     logger->debug("Populating AdjColumns and Rel Property Columns.");
     progressBar->addAndStartNewJob(
         "Populating adjacency columns and counting relations for relationship: " +
-            graph.getCatalog().getRelLabelName(description.label),
+            catalog.getRelLabelName(description.label),
         description.numBlocks);
-    auto& catalog = graph.getCatalog();
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
             populateAdjColumnsAndCountRelsInAdjListsTask, &description, blockId, &listsBuilder,
             &columnsBuilder, &nodeIDMaps, &catalog, logger, progressBar));
     }
     taskScheduler.waitAllTasksToCompleteOrError();
-    populateNumRels(columnsBuilder, listsBuilder);
+    populateNumRels(description, columnsBuilder, listsBuilder);
     logger->debug("Done populating AdjColumns and Rel Property Columns.");
     if (description.hasProperties() && !description.requirePropertyLists()) {
         columnsBuilder.sortOverflowStrings(progressBar);
@@ -77,19 +76,23 @@ void RelsLoader::constructAdjColumnsAndCountRelsInAdjLists(
     columnsBuilder.saveToFile(progressBar);
 }
 
-void RelsLoader::populateNumRels(InMemAdjAndPropertyColumnsBuilder& columnsBuilder,
+void RelsLoader::populateNumRels(const RelLabelDescription& description,
+    InMemAdjAndPropertyColumnsBuilder& columnsBuilder,
     InMemAdjAndPropertyListsBuilder& listsBuilder) {
-    graph.numRelsPerDirBoundLabelRelLabel.resize(2);
-    for (auto direction : DIRECTIONS) {
-        graph.numRelsPerDirBoundLabelRelLabel[direction].resize(
-            graph.getCatalog().getNodeLabelsCount());
-        for (auto i = 0u; i < graph.getCatalog().getNodeLabelsCount(); i++) {
-            graph.numRelsPerDirBoundLabelRelLabel[direction][i].resize(
-                graph.getCatalog().getRelLabelsCount(), 0);
+    auto& rel = catalog.getRel(description.label);
+    for (auto relDirection : REL_DIRECTIONS) {
+        if (description.isSingleMultiplicityPerDirection[relDirection]) {
+            for (auto boundNodeLabel : description.nodeLabelsPerDirection[relDirection]) {
+                rel.numRelsPerDirectionBoundLabel[relDirection].emplace(boundNodeLabel,
+                    columnsBuilder.getNumRelsForDirectionLabel(relDirection, boundNodeLabel));
+            }
+        } else {
+            for (auto boundNodeLabel : description.nodeLabelsPerDirection[relDirection]) {
+                rel.numRelsPerDirectionBoundLabel[relDirection].emplace(boundNodeLabel,
+                    listsBuilder.getNumRelsForDirectionLabel(relDirection, boundNodeLabel));
+            }
         }
     }
-    columnsBuilder.populateNumRelsInfo(graph.numRelsPerDirBoundLabelRelLabel, true /*for columns*/);
-    listsBuilder.populateNumRelsInfo(graph.numRelsPerDirBoundLabelRelLabel, false /*for columns*/);
 }
 
 // Constructs AdjLists and RelPropertyLists if rel label does not have single relMultiplicity. For
@@ -101,9 +104,8 @@ void RelsLoader::constructAdjLists(
     listsBuilder.buildAdjListsHeadersAndListsMetadata(progressBar);
     listsBuilder.buildInMemStructures();
     logger->debug("Populating AdjLists and Rel Property Lists.");
-    auto& catalog = graph.getCatalog();
     progressBar->addAndStartNewJob("Constructing adjacency lists for relationship: " +
-                                       graph.getCatalog().getRelLabelName(description.label),
+                                       catalog.getRelLabelName(description.label),
         description.numBlocks);
     for (auto blockId = 0u; blockId < description.numBlocks; blockId++) {
         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(populateAdjListsTask,
@@ -137,14 +139,14 @@ void RelsLoader::populateAdjColumnsAndCountRelsInAdjListsTask(RelLabelDescriptio
     vector<bool> requireToReadLabels{true, true};
     vector<nodeID_t> nodeIDs{2};
     vector<PageByteCursor> stringOverflowPagesCursors{description->properties.size()};
-    for (auto& direction : DIRECTIONS) {
+    for (auto& direction : REL_DIRECTIONS) {
         requireToReadLabels[direction] = 1 != description->nodeLabelsPerDirection[direction].size();
         nodeIDs[direction].label =
             description->nodeLabelsPerDirection[direction].begin().operator*();
     }
     while (reader.hasNextLine()) {
         inferLabelsAndOffsets(reader, nodeIDs, nodeIDMaps, catalog, requireToReadLabels);
-        for (auto& direction : DIRECTIONS) {
+        for (auto& direction : REL_DIRECTIONS) {
             if (description->isSingleMultiplicityPerDirection[direction]) {
                 columnsBuilder->setRel(direction, nodeIDs);
             } else {
@@ -185,14 +187,14 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
     vector<uint64_t> reversePos;
     reversePos.reserve(2);
     vector<PageByteCursor> overflowPagesCursors{description->properties.size()};
-    for (auto& direction : DIRECTIONS) {
+    for (auto& direction : REL_DIRECTIONS) {
         requireToReadLabels[direction] = 1 != description->nodeLabelsPerDirection[direction].size();
         nodeIDs[direction].label =
             description->nodeLabelsPerDirection[direction].begin().operator*();
     }
     while (reader.hasNextLine()) {
         inferLabelsAndOffsets(reader, nodeIDs, nodeIDMaps, catalog, requireToReadLabels);
-        for (auto& direction : DIRECTIONS) {
+        for (auto& direction : REL_DIRECTIONS) {
             if (!description->isSingleMultiplicityPerDirection[direction]) {
                 reversePos[direction] =
                     listsBuilder->decrementListSize(direction, nodeIDs[direction]);
@@ -211,10 +213,10 @@ void RelsLoader::populateAdjListsTask(RelLabelDescription* description, uint64_t
 void RelsLoader::inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
     vector<unique_ptr<NodeIDMap>>* nodeIDMaps, const Catalog* catalog,
     vector<bool>& requireToReadLabels) {
-    for (auto& direction : DIRECTIONS) {
+    for (auto& direction : REL_DIRECTIONS) {
         reader.hasNextToken();
         if (requireToReadLabels[direction]) {
-            nodeIDs[direction].label = (*catalog).getNodeLabelFromString(reader.getString());
+            nodeIDs[direction].label = (*catalog).getNodeLabelFromName(reader.getString());
         } else {
             reader.skipToken();
         }

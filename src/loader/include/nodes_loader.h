@@ -9,7 +9,7 @@
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/loader/include/loader_progress_bar.h"
 #include "src/loader/include/loader_task.h"
-#include "src/storage/include/graph.h"
+#include "src/storage/include/storage_manager.h"
 
 using namespace graphflow::storage;
 
@@ -27,7 +27,7 @@ class NodesLoader {
     typedef vector<unique_ptr<listSizes_t>> labelUnstrPropertyListSizes_t;
 
 private:
-    NodesLoader(TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory,
+    NodesLoader(TaskScheduler& taskScheduler, const Catalog& catalog, string outputDirectory,
         vector<NodeFileDescription>& nodeFileDescriptions, LoaderProgressBar* progressBar);
 
     void load(const vector<string>& filePaths, const vector<uint64_t>& numBlocksPerLabel,
@@ -84,7 +84,7 @@ private:
     shared_ptr<spdlog::logger> logger;
     TaskScheduler& taskScheduler;
 
-    const Graph& graph;
+    const Catalog& catalog;
     const string outputDirectory;
     vector<NodeFileDescription>& fileDescriptions;
 

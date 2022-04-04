@@ -6,14 +6,14 @@
 
 #include "robin_hood.h"
 
-#include "src/common/include/compression_scheme.h"
+#include "src/catalog/include/catalog.h"
 #include "src/common/include/configs.h"
 #include "src/common/include/utils.h"
 #include "src/loader/include/dataset_metadata.h"
-#include "src/storage/include/catalog.h"
+#include "src/storage/include/compression_scheme.h"
 #include "src/storage/include/storage_structure/lists/list_headers.h"
 #include "src/storage/include/storage_structure/lists/lists_metadata.h"
-#include "src/storage/include/storage_structure/lists/utils.h"
+#include "src/storage/include/storage_utils.h"
 
 using namespace std;
 using namespace graphflow::common;

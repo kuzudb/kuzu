@@ -16,7 +16,7 @@ class RelsLoader {
     friend class GraphLoader;
 
 private:
-    RelsLoader(TaskScheduler& taskScheduler, Graph& graph, string outputDirectory,
+    RelsLoader(TaskScheduler& taskScheduler, Catalog& catalog, string outputDirectory,
         vector<unique_ptr<NodeIDMap>>& nodeIDMaps,
         const vector<RelFileDescription>& fileDescriptions, LoaderProgressBar* progressBar);
 
@@ -27,7 +27,8 @@ private:
     void constructAdjColumnsAndCountRelsInAdjLists(
         RelLabelDescription& relLabelMetadata, InMemAdjAndPropertyListsBuilder& listsBuilder);
 
-    void populateNumRels(InMemAdjAndPropertyColumnsBuilder& columnsBuilder,
+    void populateNumRels(const RelLabelDescription& description,
+        InMemAdjAndPropertyColumnsBuilder& columnsBuilder,
         InMemAdjAndPropertyListsBuilder& listsBuilder);
 
     void constructAdjLists(
@@ -64,7 +65,7 @@ private:
 private:
     shared_ptr<spdlog::logger> logger;
     TaskScheduler& taskScheduler;
-    Graph& graph;
+    Catalog& catalog;
     const string outputDirectory;
     vector<unique_ptr<NodeIDMap>>& nodeIDMaps;
     const vector<RelFileDescription>& fileDescriptions;

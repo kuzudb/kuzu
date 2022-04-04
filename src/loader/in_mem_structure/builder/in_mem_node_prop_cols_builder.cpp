@@ -7,8 +7,8 @@ namespace graphflow {
 namespace loader {
 
 InMemNodePropertyColumnsBuilder::InMemNodePropertyColumnsBuilder(NodeLabelDescription& description,
-    TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory)
-    : InMemStructuresBuilder(taskScheduler, graph, move(outputDirectory)),
+    TaskScheduler& taskScheduler, const Catalog& catalog, string outputDirectory)
+    : InMemStructuresBuilder(taskScheduler, catalog, move(outputDirectory)),
       description(description) {
     buildInMemPropertyColumns();
 }
@@ -18,10 +18,10 @@ void InMemNodePropertyColumnsBuilder::buildInMemPropertyColumns() {
     propertyColumns.resize(description.properties.size());
     propertyColumnOverflowPages.resize(description.properties.size());
     for (auto& property : description.properties) {
-        auto fName = NodesStore::getNodePropertyColumnFName(
+        auto fName = StorageUtils::getNodePropertyColumnFName(
             outputDirectory, description.label, property.name);
-        auto numPages = calcNumPagesInColumn(Types::getDataTypeSize(property.dataType),
-            graph.getNumNodesPerLabel()[description.label]);
+        auto numPages = calcNumPagesInColumn(
+            Types::getDataTypeSize(property.dataType), catalog.getNumNodes(description.label));
         propertyColumns[property.id] = make_unique<InMemPropertyPages>(
             fName, Types::getDataTypeSize(property.dataType), numPages);
         if (STRING == property.dataType.typeID || LIST == property.dataType.typeID) {
@@ -55,8 +55,8 @@ void InMemNodePropertyColumnsBuilder::saveToFile(LoaderProgressBar* progressBar)
     logger->debug("Writing Node Property Columns to disk.");
     uint64_t numTasks = numProgressBarTasksForSavingPropertiesToDisk(description.properties);
     if (numTasks > 0) {
-        progressBar->addAndStartNewJob("Saving properties to disk for node: " +
-                                           graph.getCatalog().getNodeLabelName(description.label),
+        progressBar->addAndStartNewJob(
+            "Saving properties to disk for node: " + catalog.getNodeLabelName(description.label),
             numTasks);
     }
     for (auto& property : description.properties) {

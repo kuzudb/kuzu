@@ -7,6 +7,7 @@
 #include "src/parser/query/include/regular_query.h"
 
 using namespace graphflow::parser;
+using namespace graphflow::catalog;
 
 namespace graphflow {
 namespace binder {
@@ -73,7 +74,7 @@ private:
 
     // E.g. MATCH (:person)-[:studyAt]->(:person) ...
     static void validateNodeAndRelLabelIsConnected(
-        const Catalog& catalog_, label_t relLabel, label_t nodeLabel, Direction direction);
+        const Catalog& catalog_, label_t relLabel, label_t nodeLabel, RelDirection direction);
 
     // E.g. ... RETURN a, b AS a
     static void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);

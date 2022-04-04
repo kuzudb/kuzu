@@ -3,45 +3,13 @@
 namespace graphflow {
 namespace storage {
 
-NodesStore::NodesStore(const Catalog& catalog, const vector<uint64_t>& numNodesPerLabel,
-    const string& directory, BufferManager& bufferManager, bool isInMemoryMode)
+NodesStore::NodesStore(const Catalog& catalog, BufferManager& bufferManager,
+    const string& directory, bool isInMemoryMode)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")} {
-    logger->info("Initializing NodesStore.");
-    initStructuredPropertyColumns(
-        catalog, numNodesPerLabel, directory, bufferManager, isInMemoryMode);
-    initUnstructuredPropertyLists(catalog, directory, bufferManager, isInMemoryMode);
-    logger->info("Done NodesStore.");
-}
-
-void NodesStore::initStructuredPropertyColumns(const Catalog& catalog,
-    const vector<uint64_t>& numNodesPerLabel, const string& directory, BufferManager& bufferManager,
-    bool isInMemoryMode) {
-    auto numNodeLabels = catalog.getNodeLabelsCount();
-    propertyColumns.resize(numNodeLabels);
-    unstrPropertyLists.resize(numNodeLabels);
-    for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        auto& properties = catalog.getStructuredNodeProperties(nodeLabel);
-        propertyColumns[nodeLabel].resize(properties.size());
-        for (auto& property : properties) {
-            auto propertyId = property.id;
-            auto fName = getNodePropertyColumnFName(directory, nodeLabel, property.name);
-            logger->debug("nodeLabel {} propertyId {} type {} name `{}`", nodeLabel, property.id,
-                property.dataType.typeID, property.name);
-            propertyColumns[nodeLabel][propertyId] = ColumnFactory::getColumn(fName,
-                property.dataType, numNodesPerLabel[nodeLabel], bufferManager, isInMemoryMode);
-        }
-    }
-}
-
-void NodesStore::initUnstructuredPropertyLists(const Catalog& catalog, const string& directory,
-    BufferManager& bufferManager, bool isInMemoryMode) {
-    unstrPropertyLists.resize(catalog.getNodeLabelsCount());
-    for (auto nodeLabel = 0u; nodeLabel < catalog.getNodeLabelsCount(); nodeLabel++) {
-        if (!catalog.getUnstructuredNodeProperties(nodeLabel).empty()) {
-            auto fName = getNodeUnstrPropertyListsFName(directory, nodeLabel);
-            unstrPropertyLists[nodeLabel] =
-                make_unique<UnstructuredPropertyLists>(fName, bufferManager, isInMemoryMode);
-        }
+    nodes.resize(catalog.getNumNodeLabels());
+    for (auto label = 0u; label < catalog.getNumNodeLabels(); label++) {
+        nodes[label] = make_unique<Node>(
+            label, bufferManager, isInMemoryMode, catalog.getAllNodeProperties(label), directory);
     }
 }
 

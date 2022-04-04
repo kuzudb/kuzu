@@ -6,12 +6,12 @@
 
 #include "nlohmann/json.hpp"
 
+#include "src/catalog/include/catalog.h"
 #include "src/common/include/task_system/task_scheduler.h"
 #include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/label_description.h"
 #include "src/loader/include/loader_progress_bar.h"
-#include "src/storage/include/catalog.h"
-#include "src/storage/include/graph.h"
+#include "src/storage/include/storage_manager.h"
 
 using namespace graphflow::storage;
 using namespace std;
@@ -33,22 +33,15 @@ private:
     void readCSVHeaderAndCalcNumBlocks(const vector<string>& filePaths,
         vector<uint64_t>& numBlocksPerFile, vector<string>& fileHeaders);
 
-    static void verifyColHeaderDefinitionsForNodeFile(
-        vector<PropertyDefinition>& colHeaderDefinitions,
-        const NodeFileDescription& fileDescription);
     void addNodeLabelsIntoGraphCatalog(
         const vector<NodeFileDescription>& fileDescriptions, vector<string>& fileHeaders);
 
-    static void verifyColHeaderDefinitionsForRelFile(
-        vector<PropertyDefinition>& colHeaderDefinitions);
     void addRelLabelsIntoGraphCatalog(
         const vector<RelFileDescription>& fileDescriptions, vector<string>& fileHeaders);
 
-    static vector<PropertyDefinition> parseCSVFileHeader(string& header, char tokenSeparator);
-
     unique_ptr<vector<unique_ptr<NodeIDMap>>> loadNodes();
 
-    void loadRels(vector<unique_ptr<NodeIDMap>>& nodeIDMaps);
+    void loadRels(unique_ptr<vector<unique_ptr<NodeIDMap>>> nodeIDMaps);
 
     void countLinesAndAddUnstrPropertiesInCatalog(vector<vector<uint64_t>>& numLinesPerBlock,
         vector<vector<unordered_set<string>>>& labelBlockUnstrProperties,
@@ -56,8 +49,10 @@ private:
 
     void cleanup();
 
-    // Concurrent Tasks
+    static vector<PropertyDefinition> parseCSVFileHeader(
+        string& header, const LabelFileDescription& fileDescription);
 
+    // Concurrent Tasks
     static void countLinesAndScanUnstrPropertiesInBlockTask(const string& fName,
         const CSVReaderConfig& csvReaderConfig, uint32_t numStructuredProperties,
         unordered_set<string>* unstrPropertyNameSet, vector<vector<uint64_t>>* numLinesPerBlock,
@@ -69,8 +64,8 @@ private:
     unique_ptr<TaskScheduler> taskScheduler;
     const string inputDirectory;
     const string outputDirectory;
+    unique_ptr<Catalog> catalog;
     DatasetMetadata datasetMetadata;
-    Graph graph;
     unique_ptr<LoaderProgressBar> progressBar;
 };
 

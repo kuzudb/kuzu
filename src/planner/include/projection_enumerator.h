@@ -2,10 +2,10 @@
 
 #include "src/binder/expression/include/rel_expression.h"
 #include "src/binder/query/return_with_clause/include/bound_projection_body.h"
+#include "src/catalog/include/catalog.h"
 #include "src/planner/logical_plan/include/logical_plan.h"
-#include "src/storage/include/catalog.h"
 
-using namespace graphflow::storage;
+using namespace graphflow::catalog;
 using namespace graphflow::binder;
 
 namespace graphflow {

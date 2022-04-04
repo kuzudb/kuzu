@@ -1,6 +1,6 @@
 #include "gmock/gmock.h"
 
-#include "src/storage/include/catalog.h"
+#include "src/catalog/include/catalog.h"
 
 static const char* PERSON_LABEL_STR = "person";
 static const label_t PERSON_LABEL_ID = 0;
@@ -31,7 +31,7 @@ using ::testing::ReturnRef;
 using ::testing::StrEq;
 using ::testing::Throw;
 
-using namespace graphflow::storage;
+using namespace graphflow::catalog;
 
 class MockCatalog : public Catalog {
 
@@ -45,15 +45,18 @@ public:
     MOCK_METHOD(const PropertyDefinition&, getRelProperty,
         (label_t labelId, const string& propertyName), (const, override));
     MOCK_METHOD(const unordered_set<label_t>&, getRelLabelsForNodeLabelDirection,
-        (label_t nodeLabel, Direction direction), (const, override));
-    MOCK_METHOD(bool, isSingleMultiplicityInDirection, (label_t relLabel, Direction direction),
+        (label_t nodeLabel, RelDirection direction), (const, override));
+    MOCK_METHOD(bool, isSingleMultiplicityInDirection, (label_t relLabel, RelDirection direction),
         (const, override));
     MOCK_METHOD(bool, containNodeLabel, (const string& label), (const, override));
     MOCK_METHOD(bool, containRelLabel, (const string& label), (const, override));
-    MOCK_METHOD(label_t, getRelLabelFromString, (const string& label), (const, override));
-    MOCK_METHOD(label_t, getNodeLabelFromString, (const string& label), (const, override));
+    MOCK_METHOD(label_t, getRelLabelFromName, (const string& label), (const, override));
+    MOCK_METHOD(label_t, getNodeLabelFromName, (const string& label), (const, override));
     MOCK_METHOD(string, getNodeLabelName, (label_t labelId), (const, override));
     MOCK_METHOD(string, getRelLabelName, (label_t labelId), (const, override));
+    MOCK_METHOD(uint64_t, getNumNodes, (label_t labelId), (const override));
+    MOCK_METHOD(uint64_t, getNumRelsForDirectionBoundLabel,
+        (label_t relLabelId, RelDirection relDirection, label_t nodeLabelId), (const override));
 };
 
 /**
@@ -69,6 +72,8 @@ public:
         setSrcNodeLabelToRelLabels();
         setDstNodeLabelToRelLabels();
         setProperties();
+        numPersonNodes = 10000;
+        numOrganisationNodes = 100;
 
         setActionForContainNodeProperty();
         setActionForContainRelProperty();
@@ -82,6 +87,8 @@ public:
         setActionForGetRelLabelFromString();
         setActionForGetNodeLabelName();
         setActionForGetRelLabelName();
+        setActionForGetNumNodes();
+        setActionForgetNumRelsForDirectionBoundLabel();
     }
 
 private:
@@ -161,16 +168,16 @@ private:
     }
 
     void setActionForGetNodeLabelFromString() {
-        ON_CALL(*this, getNodeLabelFromString(StrEq(PERSON_LABEL_STR)))
+        ON_CALL(*this, getNodeLabelFromName(StrEq(PERSON_LABEL_STR)))
             .WillByDefault(Return(PERSON_LABEL_ID));
-        ON_CALL(*this, getNodeLabelFromString(StrEq(ORGANISATION_LABEL_STR)))
+        ON_CALL(*this, getNodeLabelFromName(StrEq(ORGANISATION_LABEL_STR)))
             .WillByDefault(Return(ORGANISATION_LABEL_ID));
     }
 
     void setActionForGetRelLabelFromString() {
-        ON_CALL(*this, getRelLabelFromString(StrEq(KNOWS_LABEL_STR)))
+        ON_CALL(*this, getRelLabelFromName(StrEq(KNOWS_LABEL_STR)))
             .WillByDefault(Return(KNOWS_LABEL_ID));
-        ON_CALL(*this, getRelLabelFromString(StrEq(WORKAT_LABEL_STR)))
+        ON_CALL(*this, getRelLabelFromName(StrEq(WORKAT_LABEL_STR)))
             .WillByDefault(Return(WORKAT_LABEL_ID));
     }
 
@@ -214,6 +221,28 @@ private:
             KNOWSDATE_PROPERTY_KEY_STR, KNOWSDATE_PROPERTY_KEY_ID, DATE);
     }
 
+    void setActionForGetNumNodes() {
+        ON_CALL(*this, getNumNodes(_))
+            .WillByDefault(Throw(invalid_argument("Should never happen.")));
+        ON_CALL(*this, getNumNodes(0)).WillByDefault(Return(numPersonNodes));
+        ON_CALL(*this, getNumNodes(1)).WillByDefault(Return(numOrganisationNodes));
+    }
+
+    void setActionForgetNumRelsForDirectionBoundLabel() {
+        ON_CALL(*this, getNumRelsForDirectionBoundLabel(_, _, _))
+            .WillByDefault(Throw(invalid_argument("Should never happen.")));
+        ON_CALL(*this, getNumRelsForDirectionBoundLabel(0, FWD, 0))
+            .WillByDefault(Return(10 * numPersonNodes));
+        ON_CALL(*this, getNumRelsForDirectionBoundLabel(0, BWD, 0))
+            .WillByDefault(Return(20 * numPersonNodes));
+        ON_CALL(*this, getNumRelsForDirectionBoundLabel(0, FWD, 1))
+            .WillByDefault(Return(1 * numPersonNodes));
+        ON_CALL(*this, getNumRelsForDirectionBoundLabel(1, BWD, 1))
+            .WillByDefault(Return(100 * numOrganisationNodes));
+    }
+
+    uint64_t numPersonNodes;
+    uint64_t numOrganisationNodes;
     vector<unordered_set<label_t>> srcNodeLabelToRelLabels, dstNodeLabelToRelLabels;
     unique_ptr<PropertyDefinition> ageProperty, nameProperty, descriptionProperty,
         birthDateProperty, registerTimeProperty, knowsDateProperty;

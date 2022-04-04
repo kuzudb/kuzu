@@ -8,30 +8,32 @@ using namespace graphflow::storage;
 namespace graphflow {
 namespace loader {
 
-NodesLoader::NodesLoader(TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory,
-    vector<NodeFileDescription>& nodeFileDescriptions, LoaderProgressBar* progressBar)
+NodesLoader::NodesLoader(TaskScheduler& taskScheduler, const Catalog& catalog,
+    string outputDirectory, vector<NodeFileDescription>& nodeFileDescriptions,
+    LoaderProgressBar* progressBar)
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
-      taskScheduler{taskScheduler}, graph{graph}, outputDirectory{std::move(outputDirectory)},
+      taskScheduler{taskScheduler}, catalog{catalog}, outputDirectory{std::move(outputDirectory)},
       fileDescriptions{nodeFileDescriptions}, progressBar{progressBar} {
     logger->debug("Initializing NodesLoader.");
 };
 
 void NodesLoader::load(const vector<string>& filePaths, const vector<uint64_t>& numBlocksPerLabel,
     const vector<vector<uint64_t>>& numLinesPerBlock, vector<unique_ptr<NodeIDMap>>& nodeIDMaps) {
-    labelUnstrPropertyListsSizes.resize(graph.getCatalog().getNodeLabelsCount());
-    for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
+    labelUnstrPropertyListsSizes.resize(catalog.getNumNodeLabels());
+    for (label_t nodeLabel = 0u; nodeLabel < catalog.getNumNodeLabels(); nodeLabel++) {
+        if (!catalog.getUnstructuredNodeProperties(nodeLabel).empty()) {
             labelUnstrPropertyListsSizes[nodeLabel] =
-                make_unique<vector<atomic<uint64_t>>>(graph.getNumNodesPerLabel()[nodeLabel]);
+                make_unique<vector<atomic<uint64_t>>>(catalog.getNumNodes(nodeLabel));
         }
     }
     // If n is the number of node labels/files, we add n jobs to progress bar for the jobs for
     // constructing the in-memory property columns of each node file.
-    for (label_t nodeLabel = 0; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
+    for (label_t nodeLabel = 0; nodeLabel < catalog.getNumNodeLabels(); nodeLabel++) {
         NodeLabelDescription description(nodeLabel, fileDescriptions[nodeLabel].filePath,
-            numBlocksPerLabel[nodeLabel], graph.getCatalog().getStructuredNodeProperties(nodeLabel),
+            numBlocksPerLabel[nodeLabel], catalog.getStructuredNodeProperties(nodeLabel),
             fileDescriptions[nodeLabel].csvReaderConfig, nodeIDMaps[nodeLabel].get());
-        InMemNodePropertyColumnsBuilder builder{description, taskScheduler, graph, outputDirectory};
+        InMemNodePropertyColumnsBuilder builder{
+            description, taskScheduler, catalog, outputDirectory};
         constructPropertyColumnsAndCountUnstrProperties(
             description, numLinesPerBlock[nodeLabel], builder);
     }
@@ -49,8 +51,8 @@ void NodesLoader::constructPropertyColumnsAndCountUnstrProperties(NodeLabelDescr
     const vector<uint64_t>& numLinesPerBlock, InMemNodePropertyColumnsBuilder& builder) {
     logger->debug("Populating PropertyColumns and Counting unstructured properties.");
     node_offset_t offsetStart = 0;
-    progressBar->addAndStartNewJob("Constructing property columns for node: " +
-                                       graph.getCatalog().getNodeLabelName(description.label),
+    progressBar->addAndStartNewJob(
+        "Constructing property columns for node: " + catalog.getNodeLabelName(description.label),
         description.numBlocks);
     for (auto blockIdx = 0u; blockIdx < description.numBlocks; blockIdx++) {
         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
@@ -71,10 +73,9 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
     const vector<uint64_t>& numBlocksPerLabel, const vector<vector<uint64_t>>& numLinesPerBlock) {
     buildUnstrPropertyListsHeadersAndMetadata();
     buildInMemUnstrPropertyLists();
-    logger->debug("Populating Unstructured Property Lists.");
-    for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        auto unstrPropertiesNameToIdMap =
-            graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel);
+    logger->debug("Populating Unstructured PropertyDefinition Lists.");
+    for (label_t nodeLabel = 0u; nodeLabel < catalog.getNumNodeLabels(); nodeLabel++) {
+        auto unstrPropertiesNameToIdMap = catalog.getUnstrPropertiesNameToIdMap(nodeLabel);
         if (!unstrPropertiesNameToIdMap.empty()) {
             node_offset_t offsetStart = 0;
             auto listSizes = labelUnstrPropertyListsSizes[nodeLabel].get();
@@ -88,7 +89,7 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
                 taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                     populateUnstrPropertyListsTask, filePaths[nodeLabel], blockIdx,
                     fileDescriptions[nodeLabel].csvReaderConfig,
-                    graph.getCatalog().getStructuredNodeProperties(nodeLabel).size(), offsetStart,
+                    catalog.getStructuredNodeProperties(nodeLabel).size(), offsetStart,
                     unstrPropertiesNameToIdMap, listSizes, &listsHeaders, &listsMetadata,
                     unstrPropertyLists, labelUnstrPropertyListsStringOverflowPages[nodeLabel].get(),
                     logger, progressBar));
@@ -104,18 +105,18 @@ void NodesLoader::constructUnstrPropertyLists(const vector<string>& filePaths,
 // Initializes ListHeaders and ListsMetadata auxiliary structures for all unstructured
 // PropertyLists.
 void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
-    labelUnstrPropertyListHeaders.resize(graph.getCatalog().getNodeLabelsCount());
-    for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
-        if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
-            labelUnstrPropertyListHeaders[nodeLabel].init(graph.getNumNodesPerLabel()[nodeLabel]);
+    labelUnstrPropertyListHeaders.resize(catalog.getNumNodeLabels());
+    for (auto nodeLabel = 0u; nodeLabel < catalog.getNumNodeLabels(); ++nodeLabel) {
+        if (!catalog.getUnstructuredNodeProperties(nodeLabel).empty()) {
+            labelUnstrPropertyListHeaders[nodeLabel].init(catalog.getNumNodes(nodeLabel));
         }
     }
-    labelUnstrPropertyListsMetadata.resize(graph.getCatalog().getNodeLabelsCount());
+    labelUnstrPropertyListsMetadata.resize(catalog.getNumNodeLabels());
     logger->debug("Initializing UnstructuredPropertyListHeaders.");
-    for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
-        if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
+    for (auto nodeLabel = 0u; nodeLabel < catalog.getNumNodeLabels(); ++nodeLabel) {
+        if (!catalog.getUnstructuredNodeProperties(nodeLabel).empty()) {
             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-                ListsUtils::calculateListHeadersTask, graph.getNumNodesPerLabel()[nodeLabel], 1,
+                ListsUtils::calculateListHeadersTask, catalog.getNumNodes(nodeLabel), 1,
                 labelUnstrPropertyListsSizes[nodeLabel].get(),
                 &labelUnstrPropertyListHeaders[nodeLabel], logger));
         }
@@ -123,10 +124,10 @@ void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done initializing UnstructuredPropertyListHeaders.");
     logger->debug("Initializing UnstructuredPropertyListsMetadata.");
-    for (auto nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); ++nodeLabel) {
-        if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
+    for (auto nodeLabel = 0u; nodeLabel < catalog.getNumNodeLabels(); ++nodeLabel) {
+        if (!catalog.getUnstructuredNodeProperties(nodeLabel).empty()) {
             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-                ListsUtils::calculateListsMetadataTask, graph.getNumNodesPerLabel()[nodeLabel], 1,
+                ListsUtils::calculateListsMetadataTask, catalog.getNumNodes(nodeLabel), 1,
                 labelUnstrPropertyListsSizes[nodeLabel].get(),
                 &labelUnstrPropertyListHeaders[nodeLabel],
                 &labelUnstrPropertyListsMetadata[nodeLabel], false /*hasNULLBytes*/, logger));
@@ -137,12 +138,12 @@ void NodesLoader::buildUnstrPropertyListsHeadersAndMetadata() {
 }
 
 void NodesLoader::buildInMemUnstrPropertyLists() {
-    labelUnstrPropertyLists.resize(graph.getCatalog().getNodeLabelsCount());
-    labelUnstrPropertyListsStringOverflowPages.resize(graph.getCatalog().getNodeLabelsCount());
-    for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        if (!graph.getCatalog().getUnstructuredNodeProperties(nodeLabel).empty()) {
+    labelUnstrPropertyLists.resize(catalog.getNumNodeLabels());
+    labelUnstrPropertyListsStringOverflowPages.resize(catalog.getNumNodeLabels());
+    for (label_t nodeLabel = 0u; nodeLabel < catalog.getNumNodeLabels(); nodeLabel++) {
+        if (!catalog.getUnstructuredNodeProperties(nodeLabel).empty()) {
             auto unstrPropertyListsFName =
-                NodesStore::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel);
+                StorageUtils::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel);
             labelUnstrPropertyLists[nodeLabel] = make_unique<InMemUnstrPropertyPages>(
                 unstrPropertyListsFName, labelUnstrPropertyListsMetadata[nodeLabel].numPages);
             labelUnstrPropertyListsStringOverflowPages[nodeLabel] = make_unique<InMemOverflowPages>(
@@ -152,15 +153,15 @@ void NodesLoader::buildInMemUnstrPropertyLists() {
 }
 
 void NodesLoader::saveUnstrPropertyListsToFile() {
-    for (label_t nodeLabel = 0u; nodeLabel < graph.getCatalog().getNodeLabelsCount(); nodeLabel++) {
-        if (graph.getCatalog().getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
+    for (label_t nodeLabel = 0u; nodeLabel < catalog.getNumNodeLabels(); nodeLabel++) {
+        if (catalog.getUnstrPropertiesNameToIdMap(nodeLabel).size() > 0) {
             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                 [&](InMemUnstrPropertyPages* x) { x->saveToFile(); },
                 labelUnstrPropertyLists[nodeLabel].get()));
             taskScheduler.scheduleTask(
                 LoaderTaskFactory::createLoaderTask([&](InMemOverflowPages* x) { x->saveToFile(); },
                     labelUnstrPropertyListsStringOverflowPages[nodeLabel].get()));
-            auto fName = NodesStore::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel);
+            auto fName = StorageUtils::getNodeUnstrPropertyListsFName(outputDirectory, nodeLabel);
             taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                 [&](ListsMetadata* x, const string& fName) { x->saveToDisk(fName); },
                 &labelUnstrPropertyListsMetadata[nodeLabel], fName));

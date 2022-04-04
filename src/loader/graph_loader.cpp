@@ -18,8 +18,11 @@ namespace loader {
 
 GraphLoader::GraphLoader(string inputDirectory, string outputDirectory, uint32_t numThreads)
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
-      inputDirectory(std::move(inputDirectory)), outputDirectory(std::move(outputDirectory)) {
+      inputDirectory(std::move(inputDirectory)),
+      outputDirectory(std::move(outputDirectory)), catalog{nullptr} {
     taskScheduler = make_unique<TaskScheduler>(numThreads);
+    catalog = make_unique<Catalog>();
+    auto bufferManager = make_unique<BufferManager>();
 }
 
 GraphLoader::~GraphLoader() {
@@ -32,33 +35,26 @@ void GraphLoader::loadGraph() {
     timer.start();
     try {
         logger->info("Starting GraphLoader.");
-        try {
-            readAndParseMetadata(datasetMetadata);
-        } catch (exception& e) {
-            throw invalid_argument("Metadata JSON file parse error: " + string(e.what()));
-        }
+        readAndParseMetadata(datasetMetadata);
         progressBar = make_unique<LoaderProgressBar>();
-        graph.catalog = make_unique<Catalog>();
 
         auto nodeIDMaps = loadNodes();
 
         progressBar->addAndStartNewJob("Constructing reverse nodeIDMaps", nodeIDMaps->size());
         for (auto& nodeIDMap : *nodeIDMaps) {
             taskScheduler->scheduleTask(LoaderTaskFactory::createLoaderTask(
-                [&](NodeIDMap* x, LoaderProgressBar* progressBar) {
+                [&](NodeIDMap* x, LoaderProgressBar* progressBar_) {
                     x->createNodeIDToOffsetMap();
-                    progressBar->incrementTaskFinished();
+                    progressBar_->incrementTaskFinished();
                 },
                 nodeIDMap.get(), progressBar.get()));
         }
         taskScheduler->waitAllTasksToCompleteOrError();
 
-        loadRels(*nodeIDMaps);
+        loadRels(move(nodeIDMaps));
 
-        // write catalog and graph objects to file
-        progressBar->addAndStartNewJob("Writing Catalog and Graph objects", 1);
-        graph.catalog->saveToFile(outputDirectory);
-        graph.saveToFile(outputDirectory);
+        progressBar->addAndStartNewJob("Writing Catalog object to file", 1);
+        catalog->saveToFile(outputDirectory);
         progressBar->incrementTaskFinished();
         timer.stop();
         progressBar->clearLastFinishedLine();
@@ -82,12 +78,16 @@ void GraphLoader::cleanup() {
 
 void GraphLoader::readAndParseMetadata(DatasetMetadata& metadata) {
     logger->info("Reading and parsing metadata from metadata.json.");
-    auto metadataJSONPath =
-        FileUtils::joinPath(inputDirectory, LoaderConfig::DEFAULT_METADATA_JSON_FILENAME);
-    ifstream jsonFile(metadataJSONPath);
-    auto parsedJson = make_unique<nlohmann::json>();
-    jsonFile >> *parsedJson;
-    metadata.parseJson(parsedJson, inputDirectory);
+    try {
+        auto metadataJSONPath =
+            FileUtils::joinPath(inputDirectory, LoaderConfig::DEFAULT_METADATA_JSON_FILENAME);
+        ifstream jsonFile(metadataJSONPath);
+        auto parsedJson = make_unique<nlohmann::json>();
+        jsonFile >> *parsedJson;
+        metadata.parseJson(*parsedJson, inputDirectory);
+    } catch (exception& e) {
+        throw LoaderException("Metadata JSON file parse error: " + string(e.what()));
+    }
     logger->info("Done reading and parsing metadata from metadata.json.");
 }
 
@@ -98,7 +98,7 @@ void GraphLoader::readCSVHeaderAndCalcNumBlocks(const vector<string>& filePaths,
     for (auto i = 0u; i < filePaths.size(); i++) {
         ifstream inf(filePaths[i], ios_base::in);
         if (!inf.is_open()) {
-            throw invalid_argument("Cannot open file " + filePaths[i] + ".");
+            throw LoaderException("Cannot open file " + filePaths[i] + ".");
         }
         do {
             getline(inf, fileHeader);
@@ -109,94 +109,50 @@ void GraphLoader::readCSVHeaderAndCalcNumBlocks(const vector<string>& filePaths,
     }
 }
 
-void GraphLoader::verifyColHeaderDefinitionsForNodeFile(
-    vector<PropertyDefinition>& colHeaderDefinitions, const NodeFileDescription& fileDescription) {
-    bool hasID_FIELD = false;
-    for (auto& colHeaderDefinition : colHeaderDefinitions) {
-        auto name = colHeaderDefinition.name;
-        if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::START_ID_LABEL_FIELD ||
-            name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::END_ID_LABEL_FIELD) {
-            throw invalid_argument(
-                "Column headers definitions of a node file contains a mandatory field `" + name +
-                "` that is not allowed.");
-        }
-        if (name == LoaderConfig::ID_FIELD) {
-            colHeaderDefinition.dataType = fileDescription.IDType;
-            colHeaderDefinition.isPrimaryKey = true;
-            hasID_FIELD = true;
-        }
-    }
-    if (!hasID_FIELD) {
-        throw invalid_argument(
-            "Column header definitions of a node file does not contains the mandatory field `" +
-            string(LoaderConfig::ID_FIELD) + "`.");
-    }
-}
-
-// Add node and rel labels into graph catalog.
+// Add node and rel labels into storageManager catalog.
 // Note that inside this function, only structured properties of node labels are parsed and added
 // into the catalog.
 void GraphLoader::addNodeLabelsIntoGraphCatalog(
     const vector<NodeFileDescription>& fileDescriptions, vector<string>& fileHeaders) {
     for (auto i = 0u; i < fileDescriptions.size(); i++) {
-        auto colHeaderDefinitions =
-            parseCSVFileHeader(fileHeaders[i], fileDescriptions[i].csvReaderConfig.tokenSeparator);
-        verifyColHeaderDefinitionsForNodeFile(colHeaderDefinitions, fileDescriptions[i]);
-        // register the node label and its structured properties in the catalog.
-        graph.catalog->addNodeLabel(fileDescriptions[i].labelName, move(colHeaderDefinitions));
-    }
-}
-
-void GraphLoader::verifyColHeaderDefinitionsForRelFile(
-    vector<PropertyDefinition>& colHeaderDefinitions) {
-    auto numMandatoryFields = 0;
-    for (auto& colHeaderDefinition : colHeaderDefinitions) {
-        auto name = colHeaderDefinition.name;
-        if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::START_ID_LABEL_FIELD ||
-            name == LoaderConfig::END_ID_FIELD || name == LoaderConfig::END_ID_LABEL_FIELD) {
-            numMandatoryFields++;
-        }
-        if (name == LoaderConfig::ID_FIELD) {
-            throw invalid_argument("Column header definitions of a rel file cannot contain "
-                                   "the mandatory field `ID`.");
-        }
-    }
-    if (numMandatoryFields != 4) {
-        throw invalid_argument("Column header definitions of a rel file does not contains all "
-                               "the mandatory field.");
+        auto colHeaderDefinitions = parseCSVFileHeader(fileHeaders[i], fileDescriptions[i]);
+        // Register the node label and its structured properties in the catalog.
+        catalog->addNodeLabel(fileDescriptions[i].labelName, move(colHeaderDefinitions));
     }
 }
 
 void GraphLoader::addRelLabelsIntoGraphCatalog(
     const vector<RelFileDescription>& fileDescriptions, vector<string>& fileHeaders) {
     for (auto i = 0u; i < fileDescriptions.size(); i++) {
-        auto colHeaderDefinitions = parseCSVFileHeader(
-            fileHeaders[i], datasetMetadata.relFileDescriptions[i].csvReaderConfig.tokenSeparator);
-        verifyColHeaderDefinitionsForRelFile(colHeaderDefinitions);
-        graph.catalog->addRelLabel(fileDescriptions[i].labelName,
-            getRelMultiplicity(fileDescriptions[i].relMultiplicity), move(colHeaderDefinitions),
-            fileDescriptions[i].srcNodeLabelNames, fileDescriptions[i].dstNodeLabelNames);
+        auto colHeaderDefinitions =
+            parseCSVFileHeader(fileHeaders[i], datasetMetadata.getRelFileDescription(i));
+        catalog->addRelLabel(fileDescriptions[i].labelName,
+            getRelMultiplicityFromString(fileDescriptions[i].relMultiplicity),
+            move(colHeaderDefinitions), fileDescriptions[i].srcNodeLabelNames,
+            fileDescriptions[i].dstNodeLabelNames);
     }
 }
 
 // Parses CSV file header. This header contains 1) column headers for mandatory fields that is
 // required in the file and 2) column headers for structured properties in the file.
-vector<PropertyDefinition> GraphLoader::parseCSVFileHeader(string& header, char tokenSeparator) {
-    auto colHeaders = StringUtils::split(header, string(1, tokenSeparator));
+vector<PropertyDefinition> GraphLoader::parseCSVFileHeader(
+    string& header, const LabelFileDescription& fileDescription) {
+    auto colHeaders =
+        StringUtils::split(header, string(1, fileDescription.csvReaderConfig.tokenSeparator));
     unordered_set<string> columnNameSet;
     vector<PropertyDefinition> colHeaderDefinitions;
     for (auto& colHeader : colHeaders) {
         auto colHeaderComponents =
             StringUtils::split(colHeader, LoaderConfig::PROPERTY_DATATYPE_SEPARATOR);
         if (colHeaderComponents.size() < 2) {
-            throw invalid_argument("Incomplete column header `" + colHeader + "`.");
+            throw LoaderException("Incomplete column header '" + colHeader + "'.");
         }
         PropertyDefinition colHeaderDefinition;
         // Check each one of the mandatory field column header.
         if (colHeaderComponents[0].empty()) {
             colHeaderDefinition.name = colHeaderComponents[1];
             if (colHeaderDefinition.name == LoaderConfig::ID_FIELD) {
-                colHeaderDefinition.dataType.typeID = NODE;
+                colHeaderDefinition.dataType = ((NodeFileDescription&)fileDescription).IDType;
                 colHeaderDefinition.isPrimaryKey = true;
             } else if (colHeaderDefinition.name == LoaderConfig::START_ID_FIELD ||
                        colHeaderDefinition.name == LoaderConfig::END_ID_FIELD) {
@@ -205,21 +161,21 @@ vector<PropertyDefinition> GraphLoader::parseCSVFileHeader(string& header, char 
                        colHeaderDefinition.name == LoaderConfig::END_ID_LABEL_FIELD) {
                 colHeaderDefinition.dataType.typeID = LABEL;
             } else {
-                throw invalid_argument(
-                    "Invalid mandatory field column header `" + colHeaderDefinition.name + "`.");
+                throw LoaderException(
+                    "Invalid mandatory field column header '" + colHeaderDefinition.name + "'.");
             }
         } else {
             colHeaderDefinition.name = colHeaderComponents[0];
             colHeaderDefinition.dataType = Types::dataTypeFromString(colHeaderComponents[1]);
             if (colHeaderDefinition.dataType.typeID == NODE ||
                 colHeaderDefinition.dataType.typeID == LABEL) {
-                throw invalid_argument(
-                    "Property column header cannot be of system types NODE or LABEL.");
+                throw LoaderException(
+                    "PropertyDefinition column header cannot be of system types NODE or LABEL.");
             }
         }
         if (columnNameSet.find(colHeaderDefinition.name) != columnNameSet.end()) {
-            throw invalid_argument("Column " + colHeaderDefinition.name +
-                                   " already appears previously in the column headers.");
+            throw LoaderException("Column " + colHeaderDefinition.name +
+                                  " already appears previously in the column headers.");
         }
         columnNameSet.insert(colHeaderDefinition.name);
         colHeaderDefinitions.push_back(colHeaderDefinition);
@@ -229,52 +185,49 @@ vector<PropertyDefinition> GraphLoader::parseCSVFileHeader(string& header, char 
 
 unique_ptr<vector<unique_ptr<NodeIDMap>>> GraphLoader::loadNodes() {
     logger->info("Starting to load nodes.");
-    auto& nodeFileDescriptions = datasetMetadata.nodeFileDescriptions;
-    // initialize node's propertyKey map and count number of blocks in each label's csv file
-    vector<uint64_t> numBlocksPerLabel(nodeFileDescriptions.size());
-    vector<string> fileHeaderPerLabel(nodeFileDescriptions.size());
-    vector<string> filePaths(nodeFileDescriptions.size());
-    for (auto i = 0u; i < nodeFileDescriptions.size(); i++) {
-        filePaths[i] = nodeFileDescriptions[i].filePath;
+    // Add each node label to catalog and count number of blocks in each label's csv file
+    vector<uint64_t> numBlocksPerLabel(datasetMetadata.getNumNodeFiles());
+    vector<string> fileHeaderPerLabel(datasetMetadata.getNumNodeFiles());
+    vector<string> filePaths(datasetMetadata.getNumNodeFiles());
+    for (auto i = 0u; i < datasetMetadata.getNumNodeFiles(); i++) {
+        filePaths[i] = datasetMetadata.getNodeFileDescription(i).filePath;
     }
     readCSVHeaderAndCalcNumBlocks(filePaths, numBlocksPerLabel, fileHeaderPerLabel);
-    addNodeLabelsIntoGraphCatalog(nodeFileDescriptions, fileHeaderPerLabel);
+    addNodeLabelsIntoGraphCatalog(datasetMetadata.getNodeFileDescriptions(), fileHeaderPerLabel);
 
     // count number of lines and get unstructured propertyKeys in each block of each label.
-    vector<vector<uint64_t>> numLinesPerBlock(graph.catalog->getNodeLabelsCount());
-    vector<vector<unordered_set<string>>> labelBlockUnstrProperties(
-        graph.catalog->getNodeLabelsCount());
+    vector<vector<uint64_t>> numLinesPerBlock(catalog->getNumNodeLabels());
+    vector<vector<unordered_set<string>>> labelBlockUnstrProperties(catalog->getNumNodeLabels());
     countLinesAndAddUnstrPropertiesInCatalog(
         numLinesPerBlock, labelBlockUnstrProperties, numBlocksPerLabel, filePaths);
 
     // create NodeIDMaps and call NodesLoader.
-    auto nodeIDMaps =
-        make_unique<vector<unique_ptr<NodeIDMap>>>(graph.catalog->getNodeLabelsCount());
+    auto nodeIDMaps = make_unique<vector<unique_ptr<NodeIDMap>>>(catalog->getNumNodeLabels());
     logger->info("Begin constructing nodeIDMaps. Number of nodeLabelsCount to add: {}",
-        graph.catalog->getNodeLabelsCount());
-    for (auto nodeLabel = 0u; nodeLabel < graph.catalog->getNodeLabelsCount(); nodeLabel++) {
-        (*nodeIDMaps)[nodeLabel] = make_unique<NodeIDMap>(graph.numNodesPerLabel[nodeLabel]);
+        catalog->getNumNodeLabels());
+    for (auto nodeLabel = 0u; nodeLabel < catalog->getNumNodeLabels(); nodeLabel++) {
+        (*nodeIDMaps)[nodeLabel] = make_unique<NodeIDMap>(catalog->getNumNodes(nodeLabel));
     }
     logger->info("End constructing nodeIDMaps.");
-    NodesLoader nodesLoader{*taskScheduler, graph, outputDirectory,
-        datasetMetadata.nodeFileDescriptions, progressBar.get()};
+    NodesLoader nodesLoader(*taskScheduler, *catalog, outputDirectory,
+        datasetMetadata.getNodeFileDescriptions(), progressBar.get());
     nodesLoader.load(filePaths, numBlocksPerLabel, numLinesPerBlock, *nodeIDMaps);
     return nodeIDMaps;
 }
 
-void GraphLoader::loadRels(vector<unique_ptr<NodeIDMap>>& nodeIDMaps) {
+void GraphLoader::loadRels(unique_ptr<vector<unique_ptr<NodeIDMap>>> nodeIDMaps) {
     logger->info("Starting to load rels.");
-    auto& relFileDescriptions = datasetMetadata.relFileDescriptions;
-    vector<uint64_t> numBlocksPerLabel(relFileDescriptions.size());
-    vector<string> fileHeaderPerLabel(relFileDescriptions.size());
-    vector<string> filePaths(relFileDescriptions.size());
-    for (auto i = 0u; i < relFileDescriptions.size(); i++) {
-        filePaths[i] = relFileDescriptions[i].filePath;
+    vector<uint64_t> numBlocksPerLabel(datasetMetadata.getNumRelFiles());
+    vector<string> fileHeaderPerLabel(datasetMetadata.getNumRelFiles());
+    vector<string> filePaths(datasetMetadata.getNumRelFiles());
+    for (auto i = 0u; i < datasetMetadata.getNumRelFiles(); i++) {
+        filePaths[i] = datasetMetadata.getRelFileDescription(i).filePath;
     }
     readCSVHeaderAndCalcNumBlocks(filePaths, numBlocksPerLabel, fileHeaderPerLabel);
-    addRelLabelsIntoGraphCatalog(relFileDescriptions, fileHeaderPerLabel);
-    RelsLoader relsLoader{*taskScheduler, graph, outputDirectory, nodeIDMaps,
-        datasetMetadata.relFileDescriptions, progressBar.get()};
+    addRelLabelsIntoGraphCatalog(datasetMetadata.getRelFileDescriptions(), fileHeaderPerLabel);
+
+    RelsLoader relsLoader{*taskScheduler, *catalog, outputDirectory, *nodeIDMaps,
+        datasetMetadata.getRelFileDescriptions(), progressBar.get()};
     relsLoader.load(numBlocksPerLabel);
 }
 
@@ -282,37 +235,36 @@ void GraphLoader::countLinesAndAddUnstrPropertiesInCatalog(
     vector<vector<uint64_t>>& numLinesPerBlock,
     vector<vector<unordered_set<string>>>& labelBlockUnstrProperties,
     vector<uint64_t>& numBlocksPerLabel, const vector<string>& filePaths) {
-    auto numLabels = graph.catalog->getNodeLabelsCount();
+    auto numLabels = catalog->getNumNodeLabels();
     for (label_t labelId = 0; labelId < numLabels; labelId++) {
         auto& labelUnstrProperties = labelBlockUnstrProperties[labelId];
         labelUnstrProperties.resize(numBlocksPerLabel[labelId]);
         numLinesPerBlock[labelId].resize(numBlocksPerLabel[labelId]);
         progressBar->addAndStartNewJob(
-            "Counting lines in the file for node: " + graph.catalog->getNodeLabelName(labelId),
+            "Counting lines in the file for node: " + catalog->getNodeLabelName(labelId),
             numBlocksPerLabel[labelId]);
         for (uint64_t blockId = 0; blockId < numBlocksPerLabel[labelId]; blockId++) {
             taskScheduler->scheduleTask(LoaderTaskFactory::createLoaderTask(
                 countLinesAndScanUnstrPropertiesInBlockTask, filePaths[labelId],
-                datasetMetadata.nodeFileDescriptions[labelId].csvReaderConfig,
-                graph.catalog->getStructuredNodeProperties(labelId).size(),
+                datasetMetadata.getNodeFileDescription(labelId).csvReaderConfig,
+                catalog->getStructuredNodeProperties(labelId).size(),
                 &labelUnstrProperties[blockId], &numLinesPerBlock, labelId, blockId, logger,
                 progressBar.get()));
         }
         taskScheduler->waitAllTasksToCompleteOrError();
     }
-    graph.numNodesPerLabel.resize(numLabels);
     for (label_t label = 0; label < numLabels; label++) {
-        graph.numNodesPerLabel[label] = 0;
+        auto& node = catalog->getNode(label);
         numLinesPerBlock[label][0]--;
         for (uint64_t blockId = 0; blockId < numBlocksPerLabel[label]; blockId++) {
-            graph.numNodesPerLabel[label] += numLinesPerBlock[label][blockId];
+            node.numNodes += numLinesPerBlock[label][blockId];
         }
     }
     logger->info("Done counting number of lines in each label.");
     for (label_t labelId = 0; labelId < numLabels; labelId++) {
         for (auto& unstrProperties : labelBlockUnstrProperties[labelId]) {
             for (auto& propertyName : unstrProperties) {
-                graph.catalog->addNodeUnstrProperty(labelId, propertyName);
+                catalog->addNodeUnstrProperty(labelId, propertyName);
             }
         }
     }
@@ -336,9 +288,7 @@ void GraphLoader::countLinesAndScanUnstrPropertiesInBlockTask(const string& fNam
             auto unstrPropertyStr = reader.getString();
             auto unstrPropertyName =
                 StringUtils::split(unstrPropertyStr, LoaderConfig::UNSTR_PROPERTY_SEPARATOR)[0];
-            if (unstrPropertyNameSet->find(unstrPropertyName) == unstrPropertyNameSet->end()) {
-                unstrPropertyNameSet->insert(unstrPropertyName);
-            }
+            unstrPropertyNameSet->insert(unstrPropertyName);
         }
     }
     logger->trace("End: path=`{0}` blkIdx={1}", fName, blockId);

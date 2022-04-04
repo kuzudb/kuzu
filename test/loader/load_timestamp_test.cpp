@@ -15,9 +15,9 @@ public:
 // the node offsets that start from 0 consecutively (so first line gets person ID 0, second person
 // ID 1, so on and so forth).
 TEST_F(TinySnbTimestampTest, NodePropertyColumnWithTimestamp) {
-    auto graph = database->getGraph();
-    auto& catalog = graph->getCatalog();
-    auto label = catalog.getNodeLabelFromString("person");
+    auto graph = database->getStorageManager();
+    auto& catalog = *database->getCatalog();
+    auto label = catalog.getNodeLabelFromName("person");
     auto propertyIdx = catalog.getNodeProperty(label, "registerTime");
     auto col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
     EXPECT_EQ(Timestamp::FromDatetime(Date::FromDate(2011, 8, 20), Time::FromTime(11, 25, 30)),

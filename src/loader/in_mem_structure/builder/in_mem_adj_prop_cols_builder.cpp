@@ -1,16 +1,14 @@
 #include "src/loader/include/in_mem_structure/builder/in_mem_adj_prop_cols_builder.h"
 
-#include "spdlog/sinks/stdout_sinks.h"
-
 #include "src/common/include/type_utils.h"
 
 namespace graphflow {
 namespace loader {
 
 InMemAdjAndPropertyColumnsBuilder::InMemAdjAndPropertyColumnsBuilder(
-    RelLabelDescription& description, TaskScheduler& taskScheduler, const Graph& graph,
+    RelLabelDescription& description, TaskScheduler& taskScheduler, const Catalog& catalog,
     const string& outputDirectory)
-    : InMemStructuresBuilderForRels(description, taskScheduler, graph, outputDirectory) {
+    : InMemStructuresBuilderForRels(description, taskScheduler, catalog, outputDirectory) {
     if (description.hasProperties()) {
         if (description.isSingleMultiplicityPerDirection[FWD]) {
             buildInMemPropertyColumns(FWD);
@@ -22,7 +20,7 @@ InMemAdjAndPropertyColumnsBuilder::InMemAdjAndPropertyColumnsBuilder(
 }
 
 void InMemAdjAndPropertyColumnsBuilder::setRel(
-    Direction direction, const vector<nodeID_t>& nodeIDs) {
+    RelDirection direction, const vector<nodeID_t>& nodeIDs) {
     auto cursor = calcPageElementCursor(
         description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes(),
         nodeIDs[direction].offset);
@@ -51,24 +49,24 @@ void InMemAdjAndPropertyColumnsBuilder::setListProperty(const nodeID_t& nodeID,
 }
 
 void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings(LoaderProgressBar* progressBar) {
-    logger->debug("Ordering String Rel Property Columns.");
+    logger->debug("Ordering String Rel PropertyDefinition Columns.");
     auto direction = description.isSingleMultiplicityPerDirection[FWD] ? FWD : BWD;
     for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
         labelPropertyIdxOverflowPages[nodeLabel].resize(description.properties.size());
         for (auto& property : description.properties) {
             if (STRING == property.dataType.typeID) {
-                auto fName = RelsStore::getRelPropertyColumnFName(
+                auto fName = StorageUtils::getRelPropertyColumnFName(
                     outputDirectory, description.label, nodeLabel, property.name);
                 labelPropertyIdxOverflowPages[nodeLabel][property.id] =
                     make_unique<InMemOverflowPages>(OverflowPages::getOverflowPagesFName(fName));
-                auto numNodes = graph.getNumNodesPerLabel()[nodeLabel];
+                auto numNodes = catalog.getNumNodes(nodeLabel);
                 auto numBuckets = numNodes / 256;
                 if (0 != numNodes / 256) {
                     numBuckets++;
                 }
-                progressBar->addAndStartNewJob(
-                    "Sorting overflow string buckets for property: " +
-                        graph.getCatalog().getRelLabelName(description.label) + "." + property.name,
+                progressBar->addAndStartNewJob("Sorting overflow string buckets for property: " +
+                                                   catalog.getRelLabelName(description.label) +
+                                                   "." + property.name,
                     numBuckets);
                 node_offset_t offsetStart = 0, offsetEnd = 0;
                 for (auto i = 0u; i < numBuckets; i++) {
@@ -84,15 +82,15 @@ void InMemAdjAndPropertyColumnsBuilder::sortOverflowStrings(LoaderProgressBar* p
             }
         }
     }
-    logger->debug("Done ordering String Rel Property Columns.");
+    logger->debug("Done ordering String Rel PropertyDefinition Columns.");
 }
 
 void InMemAdjAndPropertyColumnsBuilder::saveToFile(LoaderProgressBar* progressBar) {
-    logger->debug("Writing AdjColumns and Rel Property Columns to disk.");
+    logger->debug("Writing AdjColumns and Rel PropertyDefinition Columns to disk.");
     progressBar->addAndStartNewJob("Writing adjacency columns to disk for relationship: " +
-                                       graph.getCatalog().getRelLabelName(description.label),
+                                       catalog.getRelLabelName(description.label),
         1);
-    for (auto direction : DIRECTIONS) {
+    for (auto direction : REL_DIRECTIONS) {
         if (description.isSingleMultiplicityPerDirection[direction]) {
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 taskScheduler.scheduleTask(
@@ -110,9 +108,8 @@ void InMemAdjAndPropertyColumnsBuilder::saveToFile(LoaderProgressBar* progressBa
             uint64_t numTasks =
                 numProgressBarTasksForSavingPropertiesToDisk(description.properties);
             if (numTasks > 0) {
-                progressBar->addAndStartNewJob(
-                    "Writing properties to disk for relationship: " +
-                        graph.getCatalog().getRelLabelName(description.label),
+                progressBar->addAndStartNewJob("Writing properties to disk for relationship: " +
+                                                   catalog.getRelLabelName(description.label),
                     numTasks);
             }
             for (auto& property : description.properties) {
@@ -137,21 +134,21 @@ void InMemAdjAndPropertyColumnsBuilder::saveToFile(LoaderProgressBar* progressBa
             taskScheduler.waitAllTasksToCompleteOrError();
         }
     }
-    logger->debug("Done writing AdjColumns and Rel Property Columns to disk.");
+    logger->debug("Done writing AdjColumns and Rel PropertyDefinition Columns to disk.");
 }
 
-void InMemAdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction direction) {
+void InMemAdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(RelDirection direction) {
     logger->debug("Creating InMemProperty Columns.");
-    labelPropertyIdxPropertyColumn.resize(graph.getCatalog().getNodeLabelsCount());
-    labelPropertyIdxOverflowPages.resize(graph.getCatalog().getNodeLabelsCount());
+    labelPropertyIdxPropertyColumn.resize(catalog.getNumNodeLabels());
+    labelPropertyIdxOverflowPages.resize(catalog.getNumNodeLabels());
     for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
         labelPropertyIdxPropertyColumn[nodeLabel].resize((description.properties).size());
         labelPropertyIdxOverflowPages[nodeLabel].resize((description.properties).size());
         for (auto& property : description.properties) {
-            auto fName = RelsStore::getRelPropertyColumnFName(
+            auto fName = StorageUtils::getRelPropertyColumnFName(
                 outputDirectory, description.label, nodeLabel, property.name);
             auto numPages = calcNumPagesInColumn(
-                Types::getDataTypeSize(property.dataType), graph.getNumNodesPerLabel()[nodeLabel]);
+                Types::getDataTypeSize(property.dataType), catalog.getNumNodes(nodeLabel));
             labelPropertyIdxPropertyColumn[nodeLabel][property.id] =
                 make_unique<InMemPropertyPages>(
                     fName, Types::getDataTypeSize(property.dataType), numPages);
@@ -166,17 +163,16 @@ void InMemAdjAndPropertyColumnsBuilder::buildInMemPropertyColumns(Direction dire
 
 void InMemAdjAndPropertyColumnsBuilder::buildInMemAdjColumns() {
     logger->debug("Creating InMemAdjColumns.");
-    for (auto& direction : DIRECTIONS) {
+    for (auto& direction : REL_DIRECTIONS) {
         if (description.isSingleMultiplicityPerDirection[direction]) {
-            dirLabelAdjColumns[direction].resize(graph.getCatalog().getNodeLabelsCount());
-            directionLabelNumRels[direction] =
-                make_unique<listSizes_t>(graph.getCatalog().getNodeLabelsCount());
+            dirLabelAdjColumns[direction].resize(catalog.getNumNodeLabels());
+            directionLabelNumRels[direction] = make_unique<listSizes_t>(catalog.getNumNodeLabels());
             for (auto boundNodeLabel : description.nodeLabelsPerDirection[direction]) {
-                auto fName = RelsStore::getAdjColumnFName(
+                auto fName = StorageUtils::getAdjColumnFName(
                     outputDirectory, description.label, boundNodeLabel, direction);
                 auto numPages = calcNumPagesInColumn(
                     description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes(),
-                    graph.getNumNodesPerLabel()[boundNodeLabel]);
+                    catalog.getNumNodes(boundNodeLabel));
                 dirLabelAdjColumns[direction][boundNodeLabel] = make_unique<InMemAdjPages>(fName,
                     description.nodeIDCompressionSchemePerDirection[direction]
                         .getNumBytesForLabel(),

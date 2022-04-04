@@ -50,7 +50,7 @@ class ListHeaders {
 
 public:
     ListHeaders();
-    ListHeaders(const string& listBaseFName);
+    explicit ListHeaders(const string& listBaseFName);
 
     uint32_t getHeader(node_offset_t offset) { return headers[offset]; };
 

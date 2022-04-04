@@ -89,12 +89,10 @@ private:
     static DataTypeID dataTypeIDFromString(const string& dataTypeIDString);
 };
 
-// Direction
-enum Direction : uint8_t { FWD = 0, BWD = 1 };
-
-const vector<Direction> DIRECTIONS = {FWD, BWD};
-
-Direction operator!(Direction& direction);
+// RelDirection
+enum RelDirection : uint8_t { FWD = 0, BWD = 1 };
+const vector<RelDirection> REL_DIRECTIONS = {FWD, BWD};
+RelDirection operator!(RelDirection& direction);
 
 } // namespace common
 } // namespace graphflow

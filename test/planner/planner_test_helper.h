@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "test/mock/mock_graph.h"
+#include "test/mock/mock_catalog.h"
 
 #include "src/binder/include/query_binder.h"
 #include "src/parser/include/parser.h"
@@ -13,18 +13,18 @@ using namespace graphflow::planner;
 class PlannerTest : public Test {
 
 public:
-    void SetUp() override { graph.setUp(); }
+    void SetUp() override { catalog.setUp(); }
 
     unique_ptr<LogicalPlan> getBestPlan(const string& query) {
         auto parsedQuery = Parser::parseQuery(query);
-        auto boundQuery = QueryBinder(graph.getCatalog()).bind(*parsedQuery);
-        return Planner::getBestPlan(graph, *boundQuery);
+        auto boundQuery = QueryBinder(catalog).bind(*parsedQuery);
+        return Planner::getBestPlan(catalog, *boundQuery);
     }
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const string& query) {
         auto parsedQuery = Parser::parseQuery(query);
-        auto boundQuery = QueryBinder(graph.getCatalog()).bind(*parsedQuery);
-        return Planner::getAllPlans(graph, *boundQuery);
+        auto boundQuery = QueryBinder(catalog).bind(*parsedQuery);
+        return Planner::getAllPlans(catalog, *boundQuery);
     }
 
     bool containSubstr(const string& str, const string& substr) {
@@ -32,5 +32,5 @@ public:
     }
 
 private:
-    NiceMock<TinySnbGraph> graph;
+    NiceMock<TinySnbCatalog> catalog;
 };

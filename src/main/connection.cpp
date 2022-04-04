@@ -36,12 +36,12 @@ unique_ptr<QueryResult> Connection::query(const string& query) {
     querySummary->isExplain = parsedQuery->isEnableExplain();
     querySummary->isProfile = parsedQuery->isEnableProfile();
     // binding
-    auto boundQuery = QueryBinder(database->graph->getCatalog()).bind(*parsedQuery);
+    auto boundQuery = QueryBinder(*database->catalog).bind(*parsedQuery);
     // planning
-    auto logicalPlan = Planner::getBestPlan(*database->graph, *boundQuery);
+    auto logicalPlan = Planner::getBestPlan(*database->catalog, *boundQuery);
     auto header = make_unique<QueryResultHeader>(logicalPlan->getExpressionsToCollectDataTypes());
     // mapping
-    auto mapper = PlanMapper(*database->graph);
+    auto mapper = PlanMapper(*database->catalog, *database->storageManager);
     auto profiler = make_unique<Profiler>();
     auto executionContext = make_unique<ExecutionContext>(
         *profiler, database->memoryManager.get(), database->bufferManager.get());
@@ -68,15 +68,15 @@ unique_ptr<QueryResult> Connection::query(const string& query) {
 
 vector<unique_ptr<planner::LogicalPlan>> Connection::enumeratePlans(const string& query) {
     auto parsedQuery = Parser::parseQuery(query);
-    auto boundQuery = QueryBinder(database->graph->getCatalog()).bind(*parsedQuery);
-    return Planner::getAllPlans(*database->graph, *boundQuery);
+    auto boundQuery = QueryBinder(*database->catalog).bind(*parsedQuery);
+    return Planner::getAllPlans(*database->catalog, *boundQuery);
 }
 
 unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalPlan) {
     auto profiler = make_unique<Profiler>();
     configProfiler(*profiler, false /* isEnabled */);
     auto header = make_unique<QueryResultHeader>(logicalPlan->getExpressionsToCollectDataTypes());
-    auto mapper = PlanMapper(*database->graph);
+    auto mapper = PlanMapper(*database->catalog, *database->storageManager);
     auto executionContext = make_unique<ExecutionContext>(
         *profiler, database->memoryManager.get(), database->bufferManager.get());
     auto physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan), *executionContext);

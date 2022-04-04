@@ -15,11 +15,11 @@ public:
 // the node offsets that start from 0 consecutively (so first line gets person ID 0, second person
 // ID 1, so on and so forth).
 TEST_F(TinySnbDateTest, NodePropertyColumnWithDate) {
-    auto graph = database->getGraph();
-    auto& catalog = graph->getCatalog();
-    auto label = catalog.getNodeLabelFromString("person");
+    auto& catalog = *database->getCatalog();
+    auto label = catalog.getNodeLabelFromName("person");
     auto propertyIdx = catalog.getNodeProperty(label, "birthdate");
-    auto col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
+    auto col =
+        database->getStorageManager()->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
     EXPECT_EQ(Date::FromDate(1900, 1, 1).days, col->readValue(0).val.dateVal.days);
     EXPECT_EQ(Date::FromDate(1900, 1, 1).days, col->readValue(1).val.dateVal.days);
     EXPECT_EQ(Date::FromDate(1940, 6, 22).days, col->readValue(2).val.dateVal.days);

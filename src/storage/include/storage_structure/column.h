@@ -14,7 +14,7 @@ class Column : public StorageStructure {
 
 public:
     Column(const string& fName, const DataType& dataType, const size_t& elementSize,
-        const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory)
+        BufferManager& bufferManager, bool isInMemory)
         : StorageStructure{
               fName, dataType, elementSize, bufferManager, true /*hasNULLBytes*/, isInMemory} {};
 
@@ -32,10 +32,8 @@ protected:
 class StringPropertyColumn : public Column {
 
 public:
-    StringPropertyColumn(const string& fName, const uint64_t& numElements,
-        BufferManager& bufferManager, bool isInMemory)
-        : Column{fName, DataType(STRING), sizeof(gf_string_t), numElements, bufferManager,
-              isInMemory},
+    StringPropertyColumn(const string& fName, BufferManager& bufferManager, bool isInMemory)
+        : Column{fName, DataType(STRING), sizeof(gf_string_t), bufferManager, isInMemory},
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
     void readValues(const shared_ptr<ValueVector>& nodeIDVector,
@@ -51,9 +49,9 @@ private:
 class ListPropertyColumn : public Column {
 
 public:
-    ListPropertyColumn(const string& fName, const uint64_t& numElements,
-        BufferManager& bufferManager, bool isInMemory, const DataType& dataType)
-        : Column{fName, dataType, sizeof(gf_list_t), numElements, bufferManager, isInMemory},
+    ListPropertyColumn(const string& fName, BufferManager& bufferManager, bool isInMemory,
+        const DataType& dataType)
+        : Column{fName, dataType, sizeof(gf_list_t), bufferManager, isInMemory},
           listOverflowPages{fName, bufferManager, isInMemory} {};
 
     void readValues(const shared_ptr<ValueVector>& nodeIDVector,
@@ -67,10 +65,10 @@ private:
 class AdjColumn : public Column {
 
 public:
-    AdjColumn(const string& fName, const uint64_t& numElements, BufferManager& bufferManager,
+    AdjColumn(const string& fName, BufferManager& bufferManager,
         const NodeIDCompressionScheme& nodeIDCompressionScheme, bool isInMemory)
-        : Column{fName, DataType(NODE), nodeIDCompressionScheme.getNumTotalBytes(), numElements,
-              bufferManager, isInMemory},
+        : Column{fName, DataType(NODE), nodeIDCompressionScheme.getNumTotalBytes(), bufferManager,
+              isInMemory},
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 
 private:
@@ -85,7 +83,7 @@ class ColumnFactory {
 
 public:
     static unique_ptr<Column> getColumn(const string& fName, const DataType& dataType,
-        const uint64_t& numElements, BufferManager& bufferManager, bool isInMemory) {
+        BufferManager& bufferManager, bool isInMemory) {
         switch (dataType.typeID) {
         case INT64:
         case DOUBLE:
@@ -93,15 +91,14 @@ public:
         case DATE:
         case TIMESTAMP:
         case INTERVAL:
-            return make_unique<Column>(fName, dataType, Types::getDataTypeSize(dataType),
-                numElements, bufferManager, isInMemory);
+            return make_unique<Column>(
+                fName, dataType, Types::getDataTypeSize(dataType), bufferManager, isInMemory);
         case STRING:
-            return make_unique<StringPropertyColumn>(fName, numElements, bufferManager, isInMemory);
+            return make_unique<StringPropertyColumn>(fName, bufferManager, isInMemory);
         case LIST:
-            return make_unique<ListPropertyColumn>(
-                fName, numElements, bufferManager, isInMemory, dataType);
+            return make_unique<ListPropertyColumn>(fName, bufferManager, isInMemory, dataType);
         default:
-            throw invalid_argument("Invalid type for property column creation.");
+            throw StorageException("Invalid type for property column creation.");
         }
     }
 };

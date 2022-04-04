@@ -5,10 +5,7 @@
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/loader/include/label_description.h"
 #include "src/loader/include/loader_task.h"
-#include "src/storage/include/graph.h"
-
-using namespace graphflow::common;
-using namespace graphflow::storage;
+#include "src/storage/include/storage_manager.h"
 
 namespace graphflow {
 namespace loader {
@@ -26,11 +23,11 @@ class InMemAdjAndPropertyColumnsBuilder : public InMemStructuresBuilderForRels, 
 public:
     // Initialize the builder and construct relevant propertyColumns and adjColumns.
     InMemAdjAndPropertyColumnsBuilder(RelLabelDescription& description,
-        TaskScheduler& taskScheduler, const Graph& graph, const string& outputDirectory);
+        TaskScheduler& taskScheduler, const Catalog& catalog, const string& outputDirectory);
 
     // Sets a neighbour nodeID of the given nodeID in a corresponding adjColumn. If direction=FWD,
     // adjCol[nodeIDs[FWD]] = nodeIDs[BWD], and vice-versa.
-    void setRel(Direction direction, const vector<nodeID_t>& nodeIDs);
+    void setRel(RelDirection direction, const vector<nodeID_t>& nodeIDs);
 
     // Sets a property of a rel in RelPropertyColumn at a given nodeID.
     void setProperty(const nodeID_t& nodeID, const uint32_t& propertyIdx, const uint8_t* val,
@@ -47,7 +44,7 @@ public:
     void saveToFile(LoaderProgressBar* progressBar) override;
 
 private:
-    void buildInMemPropertyColumns(Direction direction);
+    void buildInMemPropertyColumns(RelDirection direction);
     void buildInMemAdjColumns();
 
     // concurrent task
