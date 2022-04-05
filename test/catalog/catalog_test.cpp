@@ -1,9 +1,9 @@
-#include "gtest/gtest.h"
+#include "include/gtest/gtest.h"
 
-#include "src/storage/include/catalog.h"
+#include "src/catalog/include/catalog.h"
 
 using namespace std;
-using namespace graphflow::storage;
+using namespace graphflow::catalog;
 
 class CatalogTest : public testing::Test {
 public:
@@ -40,6 +40,10 @@ public:
         catalog->addNodeUnstrProperty(0, "unstrIntProp");
 
         vector<PropertyDefinition> knowsProperties;
+        knowsProperties.emplace_back("START_ID_LABEL", -1, STRING);
+        knowsProperties.emplace_back("START_ID", -1, INT64);
+        knowsProperties.emplace_back("END_ID_LABEL", -1, STRING);
+        knowsProperties.emplace_back("END_ID", -1, INT64);
         knowsProperties.emplace_back("date", 0, DATE);
         knowsProperties.emplace_back("meetTime", 1, TIMESTAMP);
         knowsProperties.emplace_back("validInterval", 2, INTERVAL);
@@ -59,8 +63,8 @@ TEST_F(CatalogTest, AddLabelsTest) {
     ASSERT_FALSE(catalog->containNodeLabel("organisation"));
     ASSERT_TRUE(catalog->containRelLabel("knows"));
     ASSERT_FALSE(catalog->containRelLabel("likes"));
-    ASSERT_EQ(catalog->getNodeLabelFromString("person"), 0);
-    ASSERT_EQ(catalog->getRelLabelFromString("knows"), 0);
+    ASSERT_EQ(catalog->getNodeLabelFromName("person"), 0);
+    ASSERT_EQ(catalog->getRelLabelFromName("knows"), 0);
     // Test rel single relMultiplicity
     ASSERT_FALSE(catalog->isSingleMultiplicityInDirection(0, FWD));
     // Test property definition

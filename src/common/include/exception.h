@@ -26,7 +26,17 @@ public:
 
 class LoaderException : public Exception {
 public:
-    explicit LoaderException(const string& msg) : Exception(msg){};
+    explicit LoaderException(const string& msg) : Exception("Loader exception: " + msg){};
+};
+
+class CatalogException : public Exception {
+public:
+    explicit CatalogException(const string& msg) : Exception("Catalog exception: " + msg){};
+};
+
+class StorageException : public Exception {
+public:
+    explicit StorageException(const string& msg) : Exception("Storage exception: " + msg){};
 };
 
 class BufferManagerException : public Exception {

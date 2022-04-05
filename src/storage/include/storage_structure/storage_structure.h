@@ -1,10 +1,10 @@
 #pragma once
 
-#include "src/common/include/compression_scheme.h"
 #include "src/common/include/configs.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/storage_structure/storage_structure_utils.h"
+#include "src/storage/include/compression_scheme.h"
+#include "src/storage/include/storage_utils.h"
 
 using namespace graphflow::common;
 

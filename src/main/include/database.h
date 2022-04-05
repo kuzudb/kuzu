@@ -4,12 +4,8 @@
 #include "src/common/include/configs.h"
 #include "src/processor/include/processor.h"
 #include "src/storage/include/buffer_manager.h"
-#include "src/storage/include/graph.h"
 #include "src/storage/include/memory_manager.h"
-
-using namespace graphflow::common;
-using namespace graphflow::storage;
-using namespace graphflow::processor;
+#include "src/storage/include/storage_manager.h"
 
 namespace graphflow {
 namespace main {
@@ -51,8 +47,9 @@ public:
     void resizeBufferManager(uint64_t newSize);
 
     // TODO: interface below might need to be removed eventually
+    inline catalog::Catalog* getCatalog() { return catalog.get(); }
     // used in storage test
-    inline storage::Graph* getGraph() { return graph.get(); }
+    inline storage::StorageManager* getStorageManager() { return storageManager.get(); }
     // used in shell for getting debug info
     inline storage::BufferManager* getBufferManager() { return bufferManager.get(); }
     // used in API test
@@ -62,10 +59,11 @@ public:
 private:
     DatabaseConfig databaseConfig;
     SystemConfig systemConfig;
-    std::unique_ptr<common::MemoryManager> memoryManager;
+    std::unique_ptr<storage::MemoryManager> memoryManager;
     std::unique_ptr<processor::QueryProcessor> queryProcessor;
     std::unique_ptr<storage::BufferManager> bufferManager;
-    std::unique_ptr<storage::Graph> graph;
+    std::unique_ptr<catalog::Catalog> catalog;
+    std::unique_ptr<storage::StorageManager> storageManager;
 };
 
 } // namespace main

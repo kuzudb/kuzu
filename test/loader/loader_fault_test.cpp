@@ -69,33 +69,34 @@ TEST_F(LoaderLongStringTest, LongStringError) {
 }
 
 TEST_F(LoaderNodeFileNoIDFieldTest, NodeFileNoIDFieldError) {
-    checkLoadingFaultWithErrMsg(
-        "Column header definitions of a node file does not contains the mandatory field `ID`.");
+    checkLoadingFaultWithErrMsg("Catalog exception: Column header definitions of a node file does "
+                                "not contains the mandatory field 'ID'.");
 }
 
 TEST_F(LoaderNodeFileWrongFieldTest, NodeFileWrongFieldError) {
-    checkLoadingFaultWithErrMsg("Column headers definitions of a node file contains a mandatory "
-                                "field `START_ID` that is not allowed.");
+    checkLoadingFaultWithErrMsg("Catalog exception: Column header contains a mandatory field "
+                                "'START_ID' that is not allowed.");
 }
 
 TEST_F(LoaderRelFileNoMandatoryFieldsTest, RelFileNoMandatoryFieldsError) {
-    checkLoadingFaultWithErrMsg(
-        "Column header definitions of a rel file does not contains all the mandatory field.");
+    checkLoadingFaultWithErrMsg("Catalog exception: Column header definitions of a rel file does "
+                                "not contains all the mandatory field.");
 }
 
 TEST_F(LoaderRelFileWrongFieldTest, RelFileWrongFieldError) {
-    checkLoadingFaultWithErrMsg(
-        "Column header definitions of a rel file cannot contain the mandatory field `ID`.");
+    checkLoadingFaultWithErrMsg("Catalog exception: Column header definitions of a rel file cannot "
+                                "contain the mandatory field 'ID'.");
 }
 
 TEST_F(LoaderImproperMandatoryFieldColHeaderTest, ImproperMandatoryFieldColHeaderError) {
-    checkLoadingFaultWithErrMsg("Invalid mandatory field column header `IDS`.");
+    checkLoadingFaultWithErrMsg("Loader exception: Invalid mandatory field column header 'IDS'");
 }
 
 TEST_F(LoaderImproperPropertyColHeaderTest, ImproperPropertyColHeaderError) {
-    checkLoadingFaultWithErrMsg("Incomplete column header `fName`.");
+    checkLoadingFaultWithErrMsg("Loader exception: Incomplete column header 'fName'.");
 }
 
 TEST_F(LoaderDuplicateColHeaderTest, DuplicateColHeaderError) {
-    checkLoadingFaultWithErrMsg("Column fName already appears previously in the column headers.");
+    checkLoadingFaultWithErrMsg(
+        "Loader exception: Column fName already appears previously in the column headers.");
 }

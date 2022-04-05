@@ -1,11 +1,11 @@
 #pragma once
 
 #include "src/binder/expression/include/expression.h"
+#include "src/catalog/include/catalog.h"
 #include "src/parser/expression/include/parsed_expression.h"
-#include "src/storage/include/catalog.h"
 
 using namespace graphflow::parser;
-using namespace graphflow::storage;
+using namespace graphflow::catalog;
 
 namespace graphflow {
 namespace binder {

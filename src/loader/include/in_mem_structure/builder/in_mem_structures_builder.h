@@ -4,10 +4,7 @@
 #include "src/loader/include/in_mem_structure/lists_utils.h"
 #include "src/loader/include/label_description.h"
 #include "src/loader/include/loader_progress_bar.h"
-#include "src/storage/include/graph.h"
-
-using namespace graphflow::common;
-using namespace graphflow::storage;
+#include "src/storage/include/storage_manager.h"
 
 namespace graphflow {
 namespace loader {
@@ -20,7 +17,7 @@ public:
 
 protected:
     InMemStructuresBuilder(
-        TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory);
+        TaskScheduler& taskScheduler, const Catalog& catalog, string outputDirectory);
 
     uint64_t numProgressBarTasksForSavingPropertiesToDisk(
         const vector<PropertyDefinition>& properties);
@@ -28,7 +25,7 @@ protected:
 protected:
     shared_ptr<spdlog::logger> logger;
     TaskScheduler& taskScheduler;
-    const Graph& graph;
+    const Catalog& catalog;
     const string outputDirectory;
 };
 
@@ -41,13 +38,15 @@ public:
     // Sorts data in String overflow pages.
     virtual void sortOverflowStrings(LoaderProgressBar* progressBar) = 0;
 
-    void populateNumRelsInfo(
-        vector<vector<vector<uint64_t>>>& numRelsPerDirBoundLabelRelLabel, bool forColumns);
+    inline uint64_t getNumRelsForDirectionLabel(RelDirection relDirection, label_t labelId) {
+        return directionLabelNumRels[relDirection]->operator[](labelId).load();
+    }
 
 protected:
     InMemStructuresBuilderForRels(RelLabelDescription& description, TaskScheduler& taskScheduler,
-        const Graph& graph, string outputDirectory)
-        : InMemStructuresBuilder(taskScheduler, graph, outputDirectory), description(description){};
+        const Catalog& catalog, const string& outputDirectory)
+        : InMemStructuresBuilder(taskScheduler, catalog, outputDirectory),
+          description(description){};
 
 protected:
     RelLabelDescription& description;

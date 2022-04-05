@@ -8,7 +8,7 @@ cc_library(
     hdrs = [
         "include/file_handle.h",
     ],
-    visibility = ["//visibility:public"],
+    visibility = ["//visibility:private"],
     deps = [
         "//src/common:configs",
         "//src/common:utils",
@@ -49,21 +49,48 @@ cc_library(
 )
 
 cc_library(
+    name = "compression_scheme",
+    srcs = [
+        "compression_scheme.cpp",
+    ],
+    hdrs = [
+        "include/compression_scheme.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src/common:type_utils",
+    ],
+)
+
+cc_library(
+    name = "storage_utils",
+    srcs = [
+        "storage_utils.cpp",
+    ],
+    hdrs = [
+        "include/storage_utils.h",
+    ],
+    deps = [
+        "//src/common:type_utils",
+        "//src/common:utils",
+    ],
+)
+
+cc_library(
     name = "storage_structure",
     srcs = [
-        "storage_structure/lists/utils.cpp",
         "storage_structure/overflow_pages.cpp",
         "storage_structure/storage_structure.cpp",
     ],
     hdrs = [
-        "include/storage_structure/lists/utils.h",
         "include/storage_structure/overflow_pages.h",
         "include/storage_structure/storage_structure.h",
-        "include/storage_structure/storage_structure_utils.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "buffer_manager",
+        "compression_scheme",
+        "storage_utils",
         "//src/common:profiler",
         "//src/common:vector",
     ],
@@ -85,7 +112,6 @@ cc_library(
         "include/storage_structure/lists/lists.h",
         "include/storage_structure/lists/lists_metadata.h",
         "include/storage_structure/lists/unstructured_property_lists.h",
-        "include/storage_structure/lists/utils.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -108,48 +134,34 @@ cc_library(
 )
 
 cc_library(
-    name = "catalog",
-    srcs = [
-        "catalog.cpp",
-    ],
-    hdrs = [
-        "include/catalog.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//src/common:configs",
-        "//src/common:ser_deser",
-        "//src/common/types",
-        "@gabime_spdlog",
-        "@nlohmann_json",
-    ],
-)
-
-cc_library(
     name = "store",
     srcs = [
+        "store/node.cpp",
         "store/nodes_store.cpp",
+        "store/rel.cpp",
         "store/rels_store.cpp",
     ],
     hdrs = [
+        "include/store/node.h",
         "include/store/nodes_store.h",
+        "include/store/rel.h",
         "include/store/rels_store.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "catalog",
         "column",
         "lists",
+        "//src/catalog",
     ],
 )
 
 cc_library(
-    name = "graph",
+    name = "storage_manager",
     srcs = [
-        "graph.cpp",
+        "storage_manager.cpp",
     ],
     hdrs = [
-        "include/graph.h",
+        "include/storage_manager.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

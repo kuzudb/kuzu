@@ -7,26 +7,23 @@
 
 #include "src/common/include/assert.h"
 #include "src/common/include/configs.h"
+#include "src/common/include/exception.h"
 #include "src/common/include/file_utils.h"
 #include "src/common/include/ser_deser.h"
 #include "src/common/include/utils.h"
 #include "src/common/types/include/types_include.h"
 
 using namespace graphflow::common;
-using namespace std;
 
 namespace spdlog {
 class logger;
 }
 
 namespace graphflow {
-namespace storage {
+namespace catalog {
 
 enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
-
-const string RelMultiplicityNames[] = {"MANY_MANY", "MANY_ONE", "ONE_MANY", "ONE_ONE"};
-
-RelMultiplicity getRelMultiplicity(const string& relMultiplicityString);
+RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString);
 
 // A PropertyDefinition consists of its name, id, dataType and isPrimaryKey. If the property is
 // unstructured, then the dataType's typeID is UNSTRUCTURED, otherwise it is one of those supported
@@ -51,22 +48,21 @@ public:
     bool isPrimaryKey;
 };
 
-struct LabelDefinition {
+struct Label {
 protected:
-    LabelDefinition(string labelName, label_t labelId)
-        : labelName{move(labelName)}, labelId{labelId} {}
+    Label(string labelName, label_t labelId) : labelName{move(labelName)}, labelId{labelId} {}
 
 public:
     string labelName;
     label_t labelId;
 };
 
-struct NodeLabelDefinition : LabelDefinition {
-    NodeLabelDefinition() : LabelDefinition{"", 0}, primaryPropertyId{0} {}
-    NodeLabelDefinition(string labelName, label_t labelId, uint64_t primaryPropertyId,
+struct NodeLabel : Label {
+    NodeLabel() : Label{"", 0}, primaryPropertyId{0}, numNodes{0} {}
+    NodeLabel(string labelName, label_t labelId, uint64_t primaryPropertyId,
         vector<PropertyDefinition> structuredProperties)
-        : LabelDefinition{move(labelName), labelId}, primaryPropertyId{primaryPropertyId},
-          structuredProperties{move(structuredProperties)} {}
+        : Label{move(labelName), labelId}, primaryPropertyId{primaryPropertyId},
+          structuredProperties{move(structuredProperties)}, numNodes{0} {}
 
     uint64_t primaryPropertyId;
     vector<PropertyDefinition> structuredProperties, unstructuredProperties;
@@ -75,23 +71,29 @@ struct NodeLabelDefinition : LabelDefinition {
     // This map is maintained as a cache for unstructured properties. It is not serialized to the
     // catalog file, but is re-constructed when reading from the catalog file.
     unordered_map<string, uint64_t> unstrPropertiesNameToIdMap;
+    // Cardinality information
+    uint64_t numNodes;
 };
 
-struct RelLabelDefinition : LabelDefinition {
-    RelLabelDefinition() : LabelDefinition{"", 0}, relMultiplicity{0} {}
-    RelLabelDefinition(string labelName, label_t labelId, RelMultiplicity relMultiplicity,
+struct RelLabel : Label {
+    RelLabel() : Label{"", 0}, relMultiplicity{0} {}
+    RelLabel(string labelName, label_t labelId, RelMultiplicity relMultiplicity,
         vector<PropertyDefinition> properties, unordered_set<label_t> srcNodeLabelIdSet,
         unordered_set<label_t> dstNodeLabelIdSet)
-        : LabelDefinition{move(labelName), labelId}, relMultiplicity{relMultiplicity},
-          properties{move(properties)}, srcNodeLabelIdSet{move(srcNodeLabelIdSet)},
-          dstNodeLabelIdSet{move(dstNodeLabelIdSet)} {}
+        : Label{move(labelName), labelId}, relMultiplicity{relMultiplicity}, properties{move(
+                                                                                 properties)},
+          srcNodeLabelIdSet{move(srcNodeLabelIdSet)}, dstNodeLabelIdSet{move(dstNodeLabelIdSet)} {}
 
     RelMultiplicity relMultiplicity;
     vector<PropertyDefinition> properties;
     unordered_set<label_t> srcNodeLabelIdSet;
     unordered_set<label_t> dstNodeLabelIdSet;
+    // Cardinality information
+    // TODO(Guodong): should we support multi-label? If so, we should change this data structure.
+    vector<unordered_map<label_t, uint64_t>> numRelsPerDirectionBoundLabel{2};
 };
 
+// TODO(Guodong): see if we can simplify public interfaces provided by Catalog.
 class Catalog {
 
 public:
@@ -117,8 +119,11 @@ public:
         return relLabels[labelId].labelName;
     }
 
-    inline uint64_t getNodeLabelsCount() const { return nodeLabels.size(); }
-    inline uint64_t getRelLabelsCount() const { return relLabels.size(); }
+    inline NodeLabel& getNode(label_t labelId) { return nodeLabels[labelId]; }
+    inline RelLabel& getRel(label_t labelId) { return relLabels[labelId]; }
+
+    inline uint64_t getNumNodeLabels() const { return nodeLabels.size(); }
+    inline uint64_t getNumRelLabels() const { return relLabels.size(); }
 
     virtual inline bool containNodeLabel(const string& label) const {
         return end(nodeLabelNameToIdMap) != nodeLabelNameToIdMap.find(label);
@@ -127,10 +132,10 @@ public:
         return end(relLabelNameToIdMap) != relLabelNameToIdMap.find(label);
     }
 
-    virtual inline label_t getNodeLabelFromString(const string& label) const {
+    virtual inline label_t getNodeLabelFromName(const string& label) const {
         return nodeLabelNameToIdMap.at(label);
     }
-    virtual inline label_t getRelLabelFromString(const string& label) const {
+    virtual inline label_t getRelLabelFromName(const string& label) const {
         return relLabelNameToIdMap.at(label);
     }
 
@@ -171,27 +176,35 @@ public:
      */
 
     const unordered_set<label_t>& getNodeLabelsForRelLabelDirection(
-        label_t relLabel, Direction direction) const;
+        label_t relLabel, RelDirection direction) const;
     virtual const unordered_set<label_t>& getRelLabelsForNodeLabelDirection(
-        label_t nodeLabel, Direction direction) const;
+        label_t nodeLabel, RelDirection direction) const;
 
-    virtual bool isSingleMultiplicityInDirection(label_t relLabel, Direction direction) const;
+    virtual bool isSingleMultiplicityInDirection(label_t relLabel, RelDirection direction) const;
 
-    unique_ptr<nlohmann::json> debugInfo();
+    vector<uint64_t> getNumNodesPerLabel() const;
+    virtual uint64_t getNumNodes(label_t label) const;
+    virtual uint64_t getNumRelsForDirectionBoundLabel(
+        label_t relLabel, RelDirection relDirection, label_t boundNodeLabel) const;
+
     void saveToFile(const string& directory);
     void readFromFile(const string& directory);
 
 private:
-    string getNodeLabelsString(const unordered_set<label_t>& nodeLabels) const;
+    static void verifyColDefinitionsForNodeLabel(
+        const vector<PropertyDefinition>& colHeaderDefinitions);
+    static void verifyColDefinitionsForRelLabel(
+        const vector<PropertyDefinition>& colHeaderDefinitions);
 
+private:
     shared_ptr<spdlog::logger> logger;
-    vector<NodeLabelDefinition> nodeLabels;
-    vector<RelLabelDefinition> relLabels;
+    vector<NodeLabel> nodeLabels;
+    vector<RelLabel> relLabels;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
     // is re-constructed when reading from the catalog file.
     unordered_map<string, label_t> nodeLabelNameToIdMap;
     unordered_map<string, label_t> relLabelNameToIdMap;
 };
 
-} // namespace storage
+} // namespace catalog
 } // namespace graphflow

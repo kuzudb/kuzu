@@ -46,13 +46,11 @@ cc_library(
 cc_library(
     name = "vector",
     srcs = [
-        "compression_scheme.cpp",
         "data_chunk/data_chunk_state.cpp",
         "vector/value_vector.cpp",
         "vector/value_vector_utils.cpp",
     ],
     hdrs = [
-        "include/compression_scheme.h",
         "include/data_chunk/data_chunk_state.h",
         "include/vector/value_vector.h",
         "include/vector/value_vector_utils.h",

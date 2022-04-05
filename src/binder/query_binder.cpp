@@ -313,7 +313,7 @@ label_t QueryBinder::bindRelLabel(const string& parsed_label) {
     if (!catalog.containRelLabel(parsed_label)) {
         throw invalid_argument("Rel label " + parsed_label + " does not exist.");
     }
-    return catalog.getRelLabelFromString(parsed_label);
+    return catalog.getRelLabelFromName(parsed_label);
 }
 
 label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
@@ -323,7 +323,7 @@ label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
     if (!catalog.containNodeLabel(parsed_label)) {
         throw invalid_argument("Node label " + parsed_label + " does not exist.");
     }
-    return catalog.getNodeLabelFromString(parsed_label);
+    return catalog.getNodeLabelFromName(parsed_label);
 }
 
 void QueryBinder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
@@ -333,7 +333,7 @@ void QueryBinder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery
 }
 
 void QueryBinder::validateNodeAndRelLabelIsConnected(
-    const Catalog& catalog_, label_t relLabel, label_t nodeLabel, Direction direction) {
+    const Catalog& catalog_, label_t relLabel, label_t nodeLabel, RelDirection direction) {
     assert(relLabel != ANY_LABEL);
     assert(nodeLabel != ANY_LABEL);
     auto connectedRelLabels = catalog_.getRelLabelsForNodeLabelDirection(nodeLabel, direction);

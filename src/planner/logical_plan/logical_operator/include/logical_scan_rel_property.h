@@ -9,7 +9,7 @@ class LogicalScanRelProperty : public LogicalOperator {
 
 public:
     LogicalScanRelProperty(string boundNodeID, label_t boundNodeLabel, string nbrNodeID,
-        label_t relLabel, Direction direction, string propertyName, uint32_t propertyKey,
+        label_t relLabel, RelDirection direction, string propertyName, uint32_t propertyKey,
         bool isColumn, shared_ptr<LogicalOperator> child)
         : LogicalOperator{move(child)}, boundNodeID{move(boundNodeID)},
           boundNodeLabel{boundNodeLabel}, nbrNodeID{move(nbrNodeID)}, relLabel{relLabel},
@@ -30,7 +30,7 @@ public:
 
     inline label_t getRelLabel() const { return relLabel; }
 
-    inline Direction getDirection() const { return direction; }
+    inline RelDirection getDirection() const { return direction; }
 
     inline string getPropertyName() const { return propertyName; }
 
@@ -48,7 +48,7 @@ private:
     label_t boundNodeLabel;
     string nbrNodeID;
     label_t relLabel;
-    Direction direction;
+    RelDirection direction;
     string propertyName;
     uint32_t propertyKey;
     bool isColumn;

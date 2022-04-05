@@ -8,16 +8,16 @@ namespace graphflow {
 namespace loader {
 
 InMemAdjAndPropertyListsBuilder::InMemAdjAndPropertyListsBuilder(RelLabelDescription& description,
-    TaskScheduler& taskScheduler, const Graph& graph, const string& outputDirectory)
-    : InMemStructuresBuilderForRels(description, taskScheduler, graph, outputDirectory) {
-    for (auto& direction : DIRECTIONS) {
+    TaskScheduler& taskScheduler, const Catalog& catalog, const string& outputDirectory)
+    : InMemStructuresBuilderForRels(description, taskScheduler, catalog, outputDirectory),
+      progressBar{nullptr} {
+    for (auto& direction : REL_DIRECTIONS) {
         if (!description.isSingleMultiplicityPerDirection[direction]) {
-            directionLabelListSizes[direction].resize(graph.getCatalog().getNodeLabelsCount());
-            directionLabelNumRels[direction] =
-                make_unique<listSizes_t>(graph.getCatalog().getNodeLabelsCount());
+            directionLabelListSizes[direction].resize(catalog.getNumNodeLabels());
+            directionLabelNumRels[direction] = make_unique<listSizes_t>(catalog.getNumNodeLabels());
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 directionLabelListSizes[direction][nodeLabel] =
-                    make_unique<listSizes_t>(graph.getNumNodesPerLabel()[nodeLabel]);
+                    make_unique<listSizes_t>(catalog.getNumNodes(nodeLabel));
             }
         }
     }
@@ -25,18 +25,17 @@ InMemAdjAndPropertyListsBuilder::InMemAdjAndPropertyListsBuilder(RelLabelDescrip
 
 void InMemAdjAndPropertyListsBuilder::buildAdjListsHeadersAndListsMetadata(
     LoaderProgressBar* progressBar) {
-    for (auto& direction : DIRECTIONS) {
-        directionLabelAdjListHeaders[direction].resize(graph.getCatalog().getNodeLabelsCount());
+    for (auto& direction : REL_DIRECTIONS) {
+        directionLabelAdjListHeaders[direction].resize(catalog.getNumNodeLabels());
         for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
-            directionLabelAdjListHeaders[direction][nodeLabel].init(
-                graph.getNumNodesPerLabel()[nodeLabel]);
+            directionLabelAdjListHeaders[direction][nodeLabel].init(catalog.getNumNodes(nodeLabel));
         }
-        directionLabelAdjListsMetadata[direction].resize(graph.getCatalog().getNodeLabelsCount());
+        directionLabelAdjListsMetadata[direction].resize(catalog.getNumNodeLabels());
     }
     if (description.requirePropertyLists()) {
-        for (auto& direction : DIRECTIONS) {
+        for (auto& direction : REL_DIRECTIONS) {
             directionLabelPropertyIdxPropertyListsMetadata[direction].resize(
-                graph.getCatalog().getNodeLabelsCount());
+                catalog.getNumNodeLabels());
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 directionLabelPropertyIdxPropertyListsMetadata[direction][nodeLabel].resize(
                     description.properties.size());
@@ -55,7 +54,7 @@ void InMemAdjAndPropertyListsBuilder::buildInMemStructures() {
 }
 
 void InMemAdjAndPropertyListsBuilder::setRel(
-    uint64_t pos, Direction direction, const vector<nodeID_t>& nodeIDs) {
+    uint64_t pos, RelDirection direction, const vector<nodeID_t>& nodeIDs) {
     PageElementCursor cursor;
     auto header = directionLabelAdjListHeaders[direction][nodeIDs[direction].label]
                       .headers[nodeIDs[direction].offset];
@@ -70,7 +69,7 @@ void InMemAdjAndPropertyListsBuilder::setRel(
 void InMemAdjAndPropertyListsBuilder::setProperty(const vector<uint64_t>& pos,
     const vector<nodeID_t>& nodeIDs, uint32_t propertyIdx, const uint8_t* val, DataTypeID typeID) {
     PageElementCursor cursor;
-    for (auto& direction : DIRECTIONS) {
+    for (auto& direction : REL_DIRECTIONS) {
         auto header = directionLabelAdjListHeaders[direction][nodeIDs[direction].label]
                           .headers[nodeIDs[direction].offset];
         calcPageElementCursor(header, pos[direction], Types::getDataTypeSize(typeID),
@@ -103,21 +102,21 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStrings(LoaderProgressBar* pro
     logger->debug("Ordering String Rel PropertyList.");
     directionLabelPropertyIdxStringOverflowPages =
         make_unique<directionLabelPropertyIdxStringOverflowPages_t>(2);
-    for (auto& direction : DIRECTIONS) {
+    for (auto& direction : REL_DIRECTIONS) {
         (*directionLabelPropertyIdxStringOverflowPages)[direction].resize(
-            graph.getCatalog().getNodeLabelsCount());
+            catalog.getNumNodeLabels());
         for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
             (*directionLabelPropertyIdxStringOverflowPages)[direction][nodeLabel].resize(
                 description.properties.size());
             for (auto& property : description.properties) {
                 if (STRING == property.dataType.typeID) {
-                    auto fName = RelsStore::getRelPropertyListsFName(
+                    auto fName = StorageUtils::getRelPropertyListsFName(
                         outputDirectory, description.label, nodeLabel, direction, property.name);
                     (*directionLabelPropertyIdxStringOverflowPages)[direction][nodeLabel][property
                                                                                               .id] =
                         make_unique<InMemOverflowPages>(
                             OverflowPages::getOverflowPagesFName(fName));
-                    auto numNodes = graph.getNumNodesPerLabel()[nodeLabel];
+                    auto numNodes = catalog.getNumNodes(nodeLabel);
                     auto numBuckets = numNodes / 256;
                     if (0 != numNodes % 256) {
                         numBuckets++;
@@ -126,8 +125,7 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStrings(LoaderProgressBar* pro
                     auto idx = property.id;
                     progressBar->addAndStartNewJob(
                         "Sorting overflow string buckets for property: " +
-                            graph.getCatalog().getRelLabelName(description.label) + "." +
-                            property.name,
+                            catalog.getRelLabelName(description.label) + "." + property.name,
                         numBuckets);
                     for (auto bucketIdx = 0u; bucketIdx < numBuckets; bucketIdx++) {
                         offsetStart = offsetEnd;
@@ -154,17 +152,17 @@ void InMemAdjAndPropertyListsBuilder::sortOverflowStrings(LoaderProgressBar* pro
 }
 
 void InMemAdjAndPropertyListsBuilder::saveToFile(LoaderProgressBar* progressBar) {
-    logger->debug("Writing AdjLists and Rel Property Lists to disk.");
+    logger->debug("Writing AdjLists and Rel PropertyDefinition Lists to disk.");
     progressBar->addAndStartNewJob("Writing adjacency lists to disk for relationship: " +
-                                       graph.getCatalog().getRelLabelName(description.label),
+                                       catalog.getRelLabelName(description.label),
         1);
-    for (auto& direction : DIRECTIONS) {
+    for (auto& direction : REL_DIRECTIONS) {
         if (!description.isSingleMultiplicityPerDirection[direction]) {
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 taskScheduler.scheduleTask(
                     LoaderTaskFactory::createLoaderTask([&](InMemAdjPages* x) { x->saveToFile(); },
                         directionLabelAdjLists[direction][nodeLabel].get()));
-                auto fName = RelsStore::getAdjListsFName(
+                auto fName = StorageUtils::getAdjListsFName(
                     outputDirectory, description.label, nodeLabel, direction);
                 taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                     [&](ListsMetadata* x, const string& fName) { x->saveToDisk(fName); },
@@ -176,7 +174,7 @@ void InMemAdjAndPropertyListsBuilder::saveToFile(LoaderProgressBar* progressBar)
         }
     }
     if (description.requirePropertyLists()) {
-        for (auto& direction : DIRECTIONS) {
+        for (auto& direction : REL_DIRECTIONS) {
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 for (auto& property : description.properties) {
                     auto idx = property.id;
@@ -193,7 +191,7 @@ void InMemAdjAndPropertyListsBuilder::saveToFile(LoaderProgressBar* progressBar)
                                                                                [nodeLabel][idx]
                                                                                    .get()));
                         }
-                        auto fName = RelsStore::getRelPropertyListsFName(outputDirectory,
+                        auto fName = StorageUtils::getRelPropertyListsFName(outputDirectory,
                             description.label, nodeLabel, direction, property.name);
                         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                             [&](ListsMetadata* x, const string& fName) { x->saveToDisk(fName); },
@@ -207,21 +205,21 @@ void InMemAdjAndPropertyListsBuilder::saveToFile(LoaderProgressBar* progressBar)
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     progressBar->incrementTaskFinished();
-    logger->debug("Done writing AdjLists and Rel Property Lists to disk.");
+    logger->debug("Done writing AdjLists and Rel PropertyDefinition Lists to disk.");
 }
 
 void InMemAdjAndPropertyListsBuilder::initAdjListHeaders(LoaderProgressBar* progressBar) {
     logger->debug("Initializing AdjListHeaders.");
     progressBar->addAndStartNewJob("Initializing adjacency lists headers for relationship: " +
-                                       graph.getCatalog().getRelLabelName(description.label),
+                                       catalog.getRelLabelName(description.label),
         1);
-    for (auto direction : DIRECTIONS) {
+    for (auto direction : REL_DIRECTIONS) {
         if (!description.isSingleMultiplicityPerDirection[direction]) {
             auto relSize =
                 description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes();
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-                    calculateListHeadersTask, graph.getNumNodesPerLabel()[nodeLabel], relSize,
+                    calculateListHeadersTask, catalog.getNumNodes(nodeLabel), relSize,
                     directionLabelListSizes[direction][nodeLabel].get(),
                     &directionLabelAdjListHeaders[direction][nodeLabel], logger));
             }
@@ -237,13 +235,13 @@ void InMemAdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata(
     logger->debug("Initializing AdjLists and PropertyLists Metadata.");
     progressBar->addAndStartNewJob(
         "Initializing adjacency and property lists metadata for relationship: " +
-            graph.getCatalog().getRelLabelName(description.label),
+            catalog.getRelLabelName(description.label),
         1);
-    for (auto direction : DIRECTIONS) {
+    for (auto direction : REL_DIRECTIONS) {
         if (!description.isSingleMultiplicityPerDirection[direction]) {
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
-                    calculateListsMetadataTask, graph.getNumNodesPerLabel()[nodeLabel],
+                    calculateListsMetadataTask, catalog.getNumNodes(nodeLabel),
                     description.nodeIDCompressionSchemePerDirection[direction].getNumTotalBytes(),
                     directionLabelListSizes[direction][nodeLabel].get(),
                     &directionLabelAdjListHeaders[direction][nodeLabel],
@@ -253,10 +251,10 @@ void InMemAdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata(
         }
     }
     if (description.requirePropertyLists()) {
-        for (auto direction : DIRECTIONS) {
+        for (auto direction : REL_DIRECTIONS) {
             for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
                 auto listsSizes = directionLabelListSizes[direction][nodeLabel].get();
-                auto numNodeOffsets = graph.getNumNodesPerLabel()[nodeLabel];
+                auto numNodeOffsets = catalog.getNumNodes(nodeLabel);
                 for (auto& property : description.properties) {
                     auto idx = property.id;
                     taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
@@ -276,11 +274,11 @@ void InMemAdjAndPropertyListsBuilder::initAdjListsAndPropertyListsMetadata(
 
 void InMemAdjAndPropertyListsBuilder::buildInMemAdjLists() {
     logger->debug("Creating InMemAdjLists.");
-    for (auto& direction : DIRECTIONS) {
+    for (auto& direction : REL_DIRECTIONS) {
         if (!description.isSingleMultiplicityPerDirection[direction]) {
-            directionLabelAdjLists[direction].resize(graph.getCatalog().getNodeLabelsCount());
+            directionLabelAdjLists[direction].resize(catalog.getNumNodeLabels());
             for (auto boundNodeLabel : description.nodeLabelsPerDirection[direction]) {
-                auto fName = RelsStore::getAdjListsFName(
+                auto fName = StorageUtils::getAdjListsFName(
                     outputDirectory, description.label, boundNodeLabel, direction);
                 directionLabelAdjLists[direction][boundNodeLabel] =
                     make_unique<InMemAdjPages>(fName,
@@ -298,15 +296,14 @@ void InMemAdjAndPropertyListsBuilder::buildInMemAdjLists() {
 
 void InMemAdjAndPropertyListsBuilder::buildInMemPropertyLists() {
     logger->debug("Creating InMemPropertyLists.");
-    for (auto& direction : DIRECTIONS) {
-        directionLabelPropertyIdxPropertyLists[direction].resize(
-            graph.getCatalog().getNodeLabelsCount());
+    for (auto& direction : REL_DIRECTIONS) {
+        directionLabelPropertyIdxPropertyLists[direction].resize(catalog.getNumNodeLabels());
         for (auto& nodeLabel : description.nodeLabelsPerDirection[direction]) {
             directionLabelPropertyIdxPropertyLists[direction][nodeLabel].resize(
                 description.properties.size());
             for (auto& property : description.properties) {
                 auto idx = property.id;
-                auto fName = RelsStore::getRelPropertyListsFName(
+                auto fName = StorageUtils::getRelPropertyListsFName(
                     outputDirectory, description.label, nodeLabel, direction, property.name);
                 directionLabelPropertyIdxPropertyLists[direction][nodeLabel][idx] =
                     make_unique<InMemPropertyPages>(fName,

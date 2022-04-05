@@ -128,7 +128,7 @@ size_t Types::getDataTypeSize(const DataType& dataType) {
     return getDataTypeSize(dataType.typeID);
 }
 
-Direction operator!(Direction& direction) {
+RelDirection operator!(RelDirection& direction) {
     return (FWD == direction) ? BWD : FWD;
 }
 

@@ -1,15 +1,12 @@
 #pragma once
 
+#include "src/catalog/include/catalog.h"
 #include "src/loader/include/in_mem_structure/builder/in_mem_structures_builder.h"
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/loader/include/label_description.h"
 #include "src/loader/include/loader_progress_bar.h"
 #include "src/loader/include/loader_task.h"
-#include "src/storage/include/catalog.h"
-#include "src/storage/include/graph.h"
-
-using namespace graphflow::common;
-using namespace graphflow::storage;
+#include "src/storage/include/storage_manager.h"
 
 namespace graphflow {
 namespace loader {
@@ -37,15 +34,15 @@ class InMemAdjAndPropertyListsBuilder : public InMemStructuresBuilderForRels, pu
 
 public:
     InMemAdjAndPropertyListsBuilder(RelLabelDescription& description, TaskScheduler& taskScheduler,
-        const Graph& graph, const string& outputDirectory);
+        const Catalog& catalog, const string& outputDirectory);
 
-    inline void incrementListSize(const Direction& direction, const nodeID_t& nodeID) {
+    inline void incrementListSize(const RelDirection& direction, const nodeID_t& nodeID) {
         ListsUtils::incrementListSize(
             *directionLabelListSizes[direction][nodeID.label], nodeID.offset, 1);
         (*directionLabelNumRels[direction])[nodeID.label]++;
     }
 
-    inline uint64_t decrementListSize(const Direction& direction, const nodeID_t& nodeID) {
+    inline uint64_t decrementListSize(const RelDirection& direction, const nodeID_t& nodeID) {
         return ListsUtils::decrementListSize(
             *directionLabelListSizes[direction][nodeID.label], nodeID.offset, 1);
     }
@@ -60,7 +57,7 @@ public:
 
     // Sets a neighbour nodeID in the adjList of the given nodeID in a particular adjLists
     // structure.
-    void setRel(uint64_t pos, Direction direction, const vector<nodeID_t>& nodeIDs);
+    void setRel(uint64_t pos, RelDirection direction, const vector<nodeID_t>& nodeIDs);
 
     // Sets a property in the propertyList of the given nodeID in a particular RelPropertyLists
     // structure.
@@ -105,6 +102,7 @@ private:
     unique_ptr<vector<unique_ptr<InMemOverflowPages>>> propertyIdxUnordStringOverflowPages;
     unique_ptr<directionLabelPropertyIdxStringOverflowPages_t>
         directionLabelPropertyIdxStringOverflowPages;
+    // TODO(Guodong): Is this field useful?
     LoaderProgressBar* progressBar;
 };
 

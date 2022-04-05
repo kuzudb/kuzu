@@ -13,7 +13,7 @@ namespace graphflow {
 namespace common {
 
 struct FileInfo {
-    FileInfo(const string& path, const int fd) : path{path}, fd{fd} {}
+    FileInfo(string path, const int fd) : path{move(path)}, fd{fd} {}
     const string path;
     const int fd;
 };
@@ -23,7 +23,6 @@ public:
     static unique_ptr<FileInfo> openFile(const string& path, int flags);
     static void closeFile(int fd);
 
-    static unique_ptr<uint8_t[]> readFile(FileInfo* fileInfo);
     static void readFromFile(
         FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position);
     static void writeToFile(FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t offset);

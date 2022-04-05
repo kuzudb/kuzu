@@ -4,7 +4,7 @@
 #include "src/processor/include/physical_plan/operator/result_collector.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/processor.h"
-#include "src/storage/include/graph.h"
+#include "src/storage/include/storage_manager.h"
 
 using namespace graphflow::processor;
 
@@ -16,14 +16,7 @@ protected:
     void TearDown() override {}
 };
 
-class GraphStub : public Graph {
-
-public:
-    GraphStub() : Graph() {}
-};
-
 TEST(ProcessorTests, MultiThreadedScanTest) {
-    unique_ptr<Graph> graph = make_unique<GraphStub>();
     auto sharedState = make_shared<ScanNodeIDSharedState>(1025013 /*numNodes*/);
     auto profiler = make_unique<Profiler>();
     auto bufferManager =

@@ -7,7 +7,6 @@
 #include "src/storage/include/storage_structure/lists/large_list_handle.h"
 #include "src/storage/include/storage_structure/lists/list_headers.h"
 #include "src/storage/include/storage_structure/lists/lists_metadata.h"
-#include "src/storage/include/storage_structure/lists/utils.h"
 #include "src/storage/include/storage_structure/overflow_pages.h"
 #include "src/storage/include/storage_structure/storage_structure.h"
 
@@ -23,7 +22,7 @@ struct ListInfo {
 
 /**
  * A lists data structure holds a list of homogeneous values for each offset in it. Lists are used
- * for storing Adjacency List, Rel Property Lists and unstructured Node Property Lists.
+ * for storing Adjacency List, Rel Property Lists and unstructured Node PropertyDefinition Lists.
  *
  * The offsets in the Lists are partitioned into fixed size. Hence, each offset, and its list,
  * belongs to a chunk. If the offset's list is small (less than the PAGE_SIZE) it is stored together

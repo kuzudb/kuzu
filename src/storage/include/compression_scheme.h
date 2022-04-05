@@ -29,10 +29,8 @@ public:
     inline uint32_t getNumTotalBytes() const { return numTotalBytes; };
     inline label_t getCommonLabel() const { return commonLabel; };
 
-    void setCommonLabel(label_t label) {
-        assert(numBytesForLabel == 0);
-        commonLabel = label;
-    };
+private:
+    static uint32_t getNumBytesForEncoding(uint64_t maxValToEncode, uint8_t minNumBytes);
 
 private:
     uint32_t numBytesForLabel;

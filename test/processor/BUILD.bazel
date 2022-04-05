@@ -13,7 +13,7 @@ cc_test(
     deps = [
         "//src/processor",
         "//src/processor:mapper",
-        "//test/mock:mock_objects",
+        "//test/mock:mock_catalog",
         "@gtest",
         "@gtest//:gtest_main",
     ],
@@ -30,7 +30,7 @@ cc_test(
     deps = [
         "//src/processor",
         "//src/processor:mapper",
-        "//test/mock:mock_objects",
+        "//test/mock:mock_catalog",
         "@gtest",
         "@gtest//:gtest_main",
     ],
@@ -48,7 +48,7 @@ cc_test(
     deps = [
         "//src/processor",
         "//src/processor:mapper",
-        "//test/mock:mock_objects",
+        "//test/mock:mock_catalog",
         "//test/test_utility:aggregate_function_test_helper",
         "@gtest",
         "@gtest//:gtest_main",
@@ -66,7 +66,7 @@ cc_test(
     deps = [
         "//src/processor",
         "//src/processor:mapper",
-        "//test/mock:mock_objects",
+        "//test/mock:mock_catalog",
         "@gtest",
         "@gtest//:gtest_main",
     ],

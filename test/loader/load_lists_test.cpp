@@ -36,9 +36,9 @@ public:
 // the node offsets that start from 0 consecutively (so first line gets person ID 0, second person
 // ID 1, so on and so forth).
 TEST_F(TinySnbListTest, NodePropertyIntColumnWithList) {
-    auto graph = database->getGraph();
-    auto& catalog = graph->getCatalog();
-    auto label = catalog.getNodeLabelFromString("person");
+    auto graph = database->getStorageManager();
+    auto& catalog = *database->getCatalog();
+    auto label = catalog.getNodeLabelFromName("person");
     auto& property = catalog.getNodeProperty(label, "workedHours");
     auto col = graph->getNodesStore().getNodePropertyColumn(label, property.id);
     ASSERT_TRUE(CheckEquals({"10", "5"}, col->readValue(0)));
@@ -52,9 +52,9 @@ TEST_F(TinySnbListTest, NodePropertyIntColumnWithList) {
 }
 
 TEST_F(TinySnbListTest, NodePropertyStringColumnWithList) {
-    auto graph = database->getGraph();
-    auto& catalog = graph->getCatalog();
-    auto label = catalog.getNodeLabelFromString("person");
+    auto graph = database->getStorageManager();
+    auto& catalog = *database->getCatalog();
+    auto label = catalog.getNodeLabelFromName("person");
     auto& property = catalog.getNodeProperty(label, "usedNames");
     auto col = graph->getNodesStore().getNodePropertyColumn(label, property.id);
     ASSERT_TRUE(CheckEquals({"Aida"}, col->readValue(0)));
@@ -68,10 +68,10 @@ TEST_F(TinySnbListTest, NodePropertyStringColumnWithList) {
 }
 
 TEST_F(TinySnbListTest, RelPropertyColumnWithList) {
-    auto graph = database->getGraph();
-    auto& catalog = graph->getCatalog();
-    auto relLabel = catalog.getRelLabelFromString("studyAt");
-    auto nodeLabel = catalog.getNodeLabelFromString("person");
+    auto graph = database->getStorageManager();
+    auto& catalog = *database->getCatalog();
+    auto relLabel = catalog.getRelLabelFromName("studyAt");
+    auto nodeLabel = catalog.getNodeLabelFromName("person");
     auto& property = catalog.getRelProperty(relLabel, "places");
     auto col = graph->getRelsStore().getRelPropertyColumn(relLabel, nodeLabel, property.id);
     ASSERT_TRUE(CheckEquals({"wwAewsdndweusd", "wek"}, col->readValue(0)));

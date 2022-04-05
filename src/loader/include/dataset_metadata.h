@@ -51,16 +51,27 @@ struct RelFileDescription : public LabelFileDescription {
 class DatasetMetadata {
 
 public:
-    void parseJson(unique_ptr<nlohmann::json>& parsedJson, const string& inputDirectory);
+    void parseJson(const nlohmann::json& parsedJson, const string& inputDirectory);
+
+    inline vector<NodeFileDescription>& getNodeFileDescriptions() { return nodeFileDescriptions; }
+    inline vector<RelFileDescription>& getRelFileDescriptions() { return relFileDescriptions; }
+
+    inline uint64_t getNumNodeFiles() { return nodeFileDescriptions.size(); }
+    inline uint64_t getNumRelFiles() { return relFileDescriptions.size(); }
+
+    inline NodeFileDescription getNodeFileDescription(label_t labelId) {
+        return nodeFileDescriptions[labelId];
+    }
+    inline RelFileDescription getRelFileDescription(label_t labelId) {
+        return relFileDescriptions[labelId];
+    }
 
 private:
-    static void getSpecialChars(nlohmann::json& parsedJson, CSVReaderConfig& config);
+    vector<NodeFileDescription> nodeFileDescriptions;
+    vector<RelFileDescription> relFileDescriptions;
 
-    static void getSpecialChar(nlohmann::json& parsedJson, const string& key, char& val);
-
-public:
-    vector<NodeFileDescription> nodeFileDescriptions{};
-    vector<RelFileDescription> relFileDescriptions{};
+    static void getSpecialChars(const nlohmann::json& parsedJson, CSVReaderConfig& config);
+    static void getSpecialChar(const nlohmann::json& parsedJson, const string& key, char& val);
 };
 
 } // namespace loader

@@ -15,8 +15,8 @@ class Enumerator {
     friend class ProjectionEnumerator;
 
 public:
-    explicit Enumerator(const Graph& graph)
-        : joinOrderEnumerator{graph, this}, projectionEnumerator{graph.getCatalog(), this} {}
+    explicit Enumerator(const Catalog& catalog)
+        : joinOrderEnumerator{catalog, this}, projectionEnumerator{catalog, this} {}
 
     vector<unique_ptr<LogicalPlan>> getAllPlans(const BoundRegularQuery& regularQuery);
 

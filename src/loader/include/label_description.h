@@ -1,13 +1,12 @@
 #pragma once
 
-#include "src/common/include/compression_scheme.h"
+#include "src/catalog/include/catalog.h"
 #include "src/loader/include/dataset_metadata.h"
 #include "src/loader/include/node_id_map.h"
-#include "src/storage/include/catalog.h"
+#include "src/storage/include/compression_scheme.h"
 
-using namespace std;
 using namespace graphflow::common;
-using namespace graphflow::storage;
+using namespace graphflow::catalog;
 
 namespace graphflow {
 namespace loader {
@@ -28,9 +27,9 @@ struct LabelDescription {
 
 struct RelLabelDescription : public LabelDescription {
 
-    explicit RelLabelDescription(label_t label, string fName, uint64_t numBlocks,
+    explicit RelLabelDescription(label_t label, const string& fName, uint64_t numBlocks,
         const vector<PropertyDefinition>& properties, const CSVReaderConfig& csvReaderConfig)
-        : LabelDescription(label, std::move(fName), numBlocks, properties, csvReaderConfig) {}
+        : LabelDescription(label, fName, numBlocks, properties, csvReaderConfig) {}
 
     bool hasProperties() { return !properties.empty(); }
 
@@ -46,10 +45,10 @@ struct RelLabelDescription : public LabelDescription {
 
 struct NodeLabelDescription : public LabelDescription {
 
-    explicit NodeLabelDescription(label_t label, string fName, uint64_t numBlocks,
+    explicit NodeLabelDescription(label_t label, const string& fName, uint64_t numBlocks,
         const vector<PropertyDefinition>& properties, const CSVReaderConfig& csvReaderConfig,
         NodeIDMap* nodeIDMap)
-        : LabelDescription(label, std::move(fName), numBlocks, properties, csvReaderConfig),
+        : LabelDescription(label, fName, numBlocks, properties, csvReaderConfig),
           nodeIDMap(nodeIDMap){};
 
     NodeIDMap* nodeIDMap;

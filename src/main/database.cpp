@@ -1,7 +1,5 @@
 #include "include/database.h"
 
-using namespace std;
-
 namespace graphflow {
 namespace main {
 
@@ -10,9 +8,10 @@ Database::Database(const DatabaseConfig& databaseConfig, const SystemConfig& sys
     bufferManager = make_unique<BufferManager>(
         systemConfig.defaultPageBufferPoolSize, systemConfig.largePageBufferPoolSize);
     memoryManager = make_unique<MemoryManager>(bufferManager.get());
-    queryProcessor = make_unique<QueryProcessor>(systemConfig.maxNumThreads);
-    graph = make_unique<Graph>(
-        databaseConfig.databasePath, *bufferManager, databaseConfig.inMemoryMode);
+    queryProcessor = make_unique<processor::QueryProcessor>(systemConfig.maxNumThreads);
+    catalog = make_unique<catalog::Catalog>(databaseConfig.databasePath);
+    storageManager = make_unique<storage::StorageManager>(
+        *catalog, *bufferManager, databaseConfig.databasePath, databaseConfig.inMemoryMode);
 }
 
 void Database::resizeBufferManager(uint64_t newSize) {

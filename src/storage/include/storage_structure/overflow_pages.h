@@ -5,8 +5,7 @@
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/file_handle.h"
-#include "src/storage/include/storage_structure/lists/utils.h"
-#include "src/storage/include/storage_structure/storage_structure_utils.h"
+#include "src/storage/include/storage_utils.h"
 
 using namespace graphflow::common;
 

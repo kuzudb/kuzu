@@ -37,7 +37,7 @@ class ListsMetadata {
 
 public:
     ListsMetadata();
-    ListsMetadata(const string& listBaseFName);
+    explicit ListsMetadata(const string& listBaseFName);
 
     inline uint64_t getNumElementsInLargeLists(uint64_t largeListIdx) {
         return largeListIdxToPageListHeadIdxMap[(2 * largeListIdx) + 1];
@@ -123,7 +123,7 @@ private:
     unique_ptr<uint32_t[]> chunkPageLists;
     // chunkPageListsCapacity holds the total space available to chunkPageLists, irrespective of the
     // space in actual use.
-    uint64_t chunkPageListsCapacity = 0;
+    uint64_t chunkPageListsCapacity;
 
     // A largeList's pageList is a list of IDs of physical pages on disk allocated for storing data
     // of that large list.
@@ -136,7 +136,7 @@ private:
     unique_ptr<uint32_t[]> largeListIdxToPageListHeadIdxMap;
     // largeListPageLists has use and organization identical to chunkPageLists.
     unique_ptr<uint32_t[]> largeListPageLists;
-    uint64_t largeListPageListsCapacity = 0;
+    uint64_t largeListPageListsCapacity;
 
     // Total number of pages that is used to store the Lists data. This is the sum of number of
     // pages used by all chunks and large lists.

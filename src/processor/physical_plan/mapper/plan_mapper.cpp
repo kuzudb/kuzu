@@ -187,7 +187,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeIDToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext,
     ExecutionContext& executionContext) {
     auto& logicalScan = (const LogicalScanNodeID&)*logicalOperator;
-    auto sharedState = make_shared<ScanNodeIDSharedState>(graph.getNumNodes(logicalScan.label));
+    auto sharedState = make_shared<ScanNodeIDSharedState>(catalog.getNumNodes(logicalScan.label));
     auto dataPos = mapperContext.getDataPos(logicalScan.nodeID);
     mapperContext.addComputedExpressions(logicalScan.nodeID);
     return make_unique<ScanNodeID>(mapperContext.getResultSetDescriptor()->copy(),
@@ -226,7 +226,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     auto inDataPos = mapperContext.getDataPos(extend.boundNodeID);
     auto outDataPos = mapperContext.getDataPos(extend.nbrNodeID);
     mapperContext.addComputedExpressions(extend.nbrNodeID);
-    auto& relsStore = graph.getRelsStore();
+    auto& relsStore = storageManager.getRelsStore();
     if (extend.isColumn) {
         if (extend.lowerBound == 1 && extend.lowerBound == extend.upperBound) {
             return make_unique<AdjColumnExtend>(inDataPos, outDataPos,
@@ -321,7 +321,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
         outputPropertyVectorsPos.push_back(mapperContext.getDataPos(propertyName));
         mapperContext.addComputedExpressions(propertyName);
     }
-    auto& nodeStore = graph.getNodesStore();
+    auto& nodeStore = storageManager.getNodesStore();
     if (scanProperty.getIsUnstructured()) {
         auto lists = nodeStore.getNodeUnstrPropertyLists(scanProperty.getNodeLabel());
         return make_unique<ScanUnstructuredProperty>(inputNodeIDVectorPos,
@@ -348,7 +348,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanRelPropertyToPhysical(
     auto propertyKey = scanRelProperty.getPropertyKey();
     auto outputPropertyVectorPos = mapperContext.getDataPos(propertyName);
     mapperContext.addComputedExpressions(propertyName);
-    auto& relStore = graph.getRelsStore();
+    auto& relStore = storageManager.getRelsStore();
     if (scanRelProperty.getIsColumn()) {
         auto column = relStore.getRelPropertyColumn(
             scanRelProperty.getRelLabel(), scanRelProperty.getBoundNodeLabel(), propertyKey);

@@ -1,9 +1,7 @@
 #pragma once
 
 #include "src/common/types/include/types_include.h"
-#include "src/storage/include/storage_structure/storage_structure_utils.h"
-
-using namespace graphflow::storage;
+#include "src/storage/include//storage_utils.h"
 
 namespace graphflow {
 namespace loader {

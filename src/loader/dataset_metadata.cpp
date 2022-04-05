@@ -9,11 +9,10 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace loader {
 
-void DatasetMetadata::parseJson(
-    unique_ptr<nlohmann::json>& parsedJson, const string& inputDirectory) {
+void DatasetMetadata::parseJson(const nlohmann::json& parsedJson, const string& inputDirectory) {
     CSVReaderConfig globalConfig;
-    getSpecialChars(*parsedJson, globalConfig);
-    auto parsedNodeFileDescriptions = parsedJson->at("nodeFileDescriptions");
+    getSpecialChars(parsedJson, globalConfig);
+    auto parsedNodeFileDescriptions = parsedJson.at("nodeFileDescriptions");
     for (auto parsedNodeFileDescription : parsedNodeFileDescriptions) {
         auto labelSpecificConfig{globalConfig};
         getSpecialChars(parsedNodeFileDescription, labelSpecificConfig);
@@ -23,8 +22,8 @@ void DatasetMetadata::parseJson(
             auto dataTypeString = parsedNodeFileDescription.at("IDType").get<string>();
             dataTypeForId = Types::dataTypeFromString(dataTypeString);
             if (dataTypeForId.typeID != STRING && dataTypeForId.typeID != INT64) {
-                throw invalid_argument("Invalid ID DataTypeID `" + dataTypeString +
-                                       "`. Allowed type only: STRING and INT64.");
+                throw LoaderException("Invalid ID DataType '" + dataTypeString +
+                                      "'. Allowed type only: STRING and INT64.");
             }
         } else {
             dataTypeForId.typeID = STRING;
@@ -33,7 +32,7 @@ void DatasetMetadata::parseJson(
             parsedNodeFileDescription.at("label").get<string>(), dataTypeForId,
             labelSpecificConfig);
     }
-    auto parsedRelFileDescriptions = parsedJson->at("relFileDescriptions");
+    auto parsedRelFileDescriptions = parsedJson.at("relFileDescriptions");
     for (auto parsedRelFileDescription : parsedRelFileDescriptions) {
         auto labelSpecificSpecialChars{globalConfig};
         getSpecialChars(parsedRelFileDescription, labelSpecificSpecialChars);
@@ -53,7 +52,7 @@ void DatasetMetadata::parseJson(
 }
 
 void DatasetMetadata::getSpecialChars(
-    nlohmann::json& parsedJson, CSVReaderConfig& csvReaderConfig) {
+    const nlohmann::json& parsedJson, CSVReaderConfig& csvReaderConfig) {
     getSpecialChar(parsedJson, "tokenSeparator", csvReaderConfig.tokenSeparator);
     getSpecialChar(parsedJson, "quoteCharacter", csvReaderConfig.quoteChar);
     getSpecialChar(parsedJson, "escapeCharacter", csvReaderConfig.escapeChar);
@@ -61,7 +60,8 @@ void DatasetMetadata::getSpecialChars(
     getSpecialChar(parsedJson, "listEndCharacter", csvReaderConfig.listEndChar);
 }
 
-void DatasetMetadata::getSpecialChar(nlohmann::json& parsedJson, const string& key, char& val) {
+void DatasetMetadata::getSpecialChar(
+    const nlohmann::json& parsedJson, const string& key, char& val) {
     if (parsedJson.contains(key)) {
         if (parsedJson.at(key).get<string>().length() != 1) {
             throw LoaderException(key + " must be a single character!");

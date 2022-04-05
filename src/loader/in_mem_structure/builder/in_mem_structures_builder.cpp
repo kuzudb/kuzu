@@ -4,9 +4,9 @@ namespace graphflow {
 namespace loader {
 
 InMemStructuresBuilder::InMemStructuresBuilder(
-    TaskScheduler& taskScheduler, const Graph& graph, string outputDirectory)
+    TaskScheduler& taskScheduler, const Catalog& catalog, string outputDirectory)
     : logger{LoggerUtils::getOrCreateSpdLogger("loader")},
-      taskScheduler{taskScheduler}, graph{graph}, outputDirectory{move(outputDirectory)} {}
+      taskScheduler{taskScheduler}, catalog{catalog}, outputDirectory{move(outputDirectory)} {}
 
 uint64_t InMemStructuresBuilder::numProgressBarTasksForSavingPropertiesToDisk(
     const vector<PropertyDefinition>& properties) {
@@ -17,27 +17,6 @@ uint64_t InMemStructuresBuilder::numProgressBarTasksForSavingPropertiesToDisk(
         }
     }
     return numTasks;
-}
-
-void InMemStructuresBuilderForRels::populateNumRelsInfo(
-    vector<vector<vector<uint64_t>>>& numRelsPerDirBoundLabelRelLabel, bool forColumns) {
-    for (auto& direction : DIRECTIONS) {
-        if (forColumns) {
-            if (description.isSingleMultiplicityPerDirection[direction]) {
-                for (auto boundNodeLabel : description.nodeLabelsPerDirection[direction]) {
-                    numRelsPerDirBoundLabelRelLabel[direction][boundNodeLabel][description.label] =
-                        (*directionLabelNumRels[direction])[boundNodeLabel].load();
-                }
-            }
-        } else {
-            if (!description.isSingleMultiplicityPerDirection[direction]) {
-                for (auto boundNodeLabel : description.nodeLabelsPerDirection[direction]) {
-                    numRelsPerDirBoundLabelRelLabel[direction][boundNodeLabel][description.label] =
-                        (*directionLabelNumRels[direction])[boundNodeLabel].load();
-                }
-            }
-        }
-    }
 }
 
 } // namespace loader

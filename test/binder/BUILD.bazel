@@ -11,6 +11,6 @@ cc_test(
     deps = [
         "//src/binder",
         "//src/parser",
-        "//test/mock:mock_objects",
+        "//test/mock:mock_catalog",
     ],
 )

@@ -106,12 +106,11 @@ void JoinOrderEnumerator::enumerateSingleRel() {
             // Consider query MATCH (a)-[r1]->(b)-[r2]->(c)-[r3]->(d) WITH *
             // MATCH (d)->[r4]->(e)-[r5]->(f) RETURN *
             // First MATCH is enumerated normally. When enumerating second MATCH,
-            // we first merge graph as (a)-[r1]->(b)-[r2]->(c)-[r3]->(d)->[r4]->(e)-[r5]->(f)
-            // and enumerate from level 0 again. If we hit a query rel that has been
-            // previously matched i.e. r1 & r2 & r3, we skip the plan. This guarantees DP only
-            // enumerate query rels in the second MATCH.
-            // Note this is different from fully merged, since we don't generate plans like
-            // build side QVO : a, b, c,  probe side QVO: f, e, d, c, HashJoin(c).
+            // we first merge graph as (a)-[r1]->(b)-[r2]->(c)-[r3]->(d)->[r4]->(e)-[r5]->(f) and
+            // enumerate from level 0 again. If we hit a query rel that has been previously matched
+            // i.e. r1 & r2 & r3, we skip the plan. This guarantees DP only enumerate query rels in
+            // the second MATCH. Note this is different from fully merged, since we don't generate
+            // plans like build side QVO : a, b, c,  probe side QVO: f, e, d, c, HashJoin(c).
             if (context->getMatchedQueryRels()[relPos]) {
                 continue;
             }
@@ -123,7 +122,7 @@ void JoinOrderEnumerator::enumerateSingleRel() {
             if (isSrcMatched && isDstMatched) {
                 // TODO: refactor cyclic logic as a separate function
                 for (auto& prevPlan : prevPlans) {
-                    for (auto direction : DIRECTIONS) {
+                    for (auto direction : REL_DIRECTIONS) {
                         auto isCloseOnDst = direction == FWD;
                         // Break cycle by creating a temporary rel with a different name (concat rel
                         // and node name) on closing node.
@@ -232,12 +231,12 @@ void JoinOrderEnumerator::appendScanNodeID(NodeExpression& queryNode, LogicalPla
     auto scan = make_shared<LogicalScanNodeID>(nodeID, queryNode.getLabel());
     auto groupPos = schema->createGroup();
     schema->insertToGroupAndScope(queryNode.getNodeIDPropertyExpression(), groupPos);
-    schema->getGroup(groupPos)->setEstimatedCardinality(graph.getNumNodes(queryNode.getLabel()));
+    schema->getGroup(groupPos)->setEstimatedCardinality(catalog.getNumNodes(queryNode.getLabel()));
     plan.appendOperator(move(scan));
 }
 
 void JoinOrderEnumerator::appendExtendFiltersAndScanProperties(const RelExpression& queryRel,
-    Direction direction, const expression_vector& expressionsToFilter, LogicalPlan& plan) {
+    RelDirection direction, const expression_vector& expressionsToFilter, LogicalPlan& plan) {
     appendExtend(queryRel, direction, plan);
     enumerator->appendScanNodeProperty(
         FWD == direction ? *queryRel.getDstNode() : *queryRel.getSrcNode(), plan);
@@ -248,14 +247,13 @@ void JoinOrderEnumerator::appendExtendFiltersAndScanProperties(const RelExpressi
 }
 
 void JoinOrderEnumerator::appendExtend(
-    const RelExpression& queryRel, Direction direction, LogicalPlan& plan) {
+    const RelExpression& queryRel, RelDirection direction, LogicalPlan& plan) {
     auto schema = plan.getSchema();
     auto boundNode = FWD == direction ? queryRel.getSrcNode() : queryRel.getDstNode();
     auto nbrNode = FWD == direction ? queryRel.getDstNode() : queryRel.getSrcNode();
     auto boundNodeID = boundNode->getIDProperty();
     auto nbrNodeID = nbrNode->getIDProperty();
-    auto isColumnExtend =
-        graph.getCatalog().isSingleMultiplicityInDirection(queryRel.getLabel(), direction);
+    auto isColumnExtend = catalog.isSingleMultiplicityInDirection(queryRel.getLabel(), direction);
     uint32_t groupPos;
     // If the join is a single (1-hop) fixed-length column extend (e.g., over a relationship with
     // one-to-one multiplicity), then we put the nbrNode vector into the same
@@ -334,9 +332,9 @@ bool JoinOrderEnumerator::appendIntersect(
 }
 
 uint64_t JoinOrderEnumerator::getExtensionRate(
-    label_t boundNodeLabel, label_t relLabel, Direction direction) {
-    auto numRels = graph.getNumRelsForDirBoundLabelRelLabel(direction, boundNodeLabel, relLabel);
-    return ceil((double)numRels / graph.getNumNodes(boundNodeLabel));
+    label_t boundNodeLabel, label_t relLabel, RelDirection relDirection) {
+    auto numRels = catalog.getNumRelsForDirectionBoundLabel(relLabel, relDirection, boundNodeLabel);
+    return ceil((double)numRels / catalog.getNumNodes(boundNodeLabel));
 }
 
 expression_vector getNewMatchedExpressions(const SubqueryGraph& prevSubgraph,
