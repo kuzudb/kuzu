@@ -20,9 +20,6 @@ private:
 
     static scalar_select_func bindBinarySelectFunction(
         ExpressionType expressionType, const expression_vector& children);
-
-    static void validate(
-        ExpressionType expressionType, DataTypeID leftTypeID, DataTypeID rightTypeID);
 };
 
 } // namespace function

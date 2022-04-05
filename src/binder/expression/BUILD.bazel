@@ -35,11 +35,7 @@ cc_library(
         "include/rel_expression.h",
     ],
     visibility = [
-        "//src/binder:__subpackages__",
-        "//src/expression_evaluator:__pkg__",
-        "//src/function:__pkg__",
-        "//src/planner:__pkg__",
-        "//src/processor:__pkg__",
+        "//visibility:public",
     ],
     deps = [
         "base_expression",

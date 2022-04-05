@@ -39,7 +39,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredBoolToUnstructuredValueTest) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = (i % 2) == 0;
     }
-    VectorCastOperations::castStructuredToUnstructuredValue(
+    VectorOperations::UnaryExecFunction<uint8_t, Value, operation::CastToUnstructured>(
         vector<shared_ptr<ValueVector>>{lVector}, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].val.booleanVal, (i % 2) == 0);
@@ -59,7 +59,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredInt64ToUnstructuredValueTest) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = i * 2;
     }
-    VectorCastOperations::castStructuredToUnstructuredValue(
+    VectorOperations::UnaryExecFunction<int64_t, Value, operation::CastToUnstructured>(
         vector<shared_ptr<ValueVector>>{lVector}, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].val.int64Val, i * 2);
@@ -79,7 +79,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredDoubleToUnstructuredValueTest) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = (double)(i * 2);
     }
-    VectorCastOperations::castStructuredToUnstructuredValue(
+    VectorOperations::UnaryExecFunction<double_t, Value, operation::CastToUnstructured>(
         vector<shared_ptr<ValueVector>>{lVector}, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].val.doubleVal, (double)(i * 2));
@@ -99,7 +99,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredDateToUnstructuredValueTest) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = date_t(i * 2);
     }
-    VectorCastOperations::castStructuredToUnstructuredValue(
+    VectorOperations::UnaryExecFunction<date_t, Value, operation::CastToUnstructured>(
         vector<shared_ptr<ValueVector>>{lVector}, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].val.dateVal, date_t(i * 2));
@@ -120,7 +120,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredStringToUnstructuredValueTest) {
         string lStr = to_string(i * 2);
         TypeUtils::copyString(lStr, lData[i], lVector->getOverflowBuffer());
     }
-    VectorCastOperations::castStructuredToUnstructuredValue(
+    VectorCastOperations::castStringToUnstructured(
         vector<shared_ptr<ValueVector>>{lVector}, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].val.strVal.getAsString(), to_string(i * 2));
@@ -140,7 +140,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredBooleanToStringTest) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = i % 2 == 0;
     }
-    VectorCastOperations::castStructuredToString(vector<shared_ptr<ValueVector>>{lVector}, *result);
+    VectorCastOperations::castToString<bool>(vector<shared_ptr<ValueVector>>{lVector}, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].getAsString(), (i % 2 == 0 ? "True" : "False"));
     }
@@ -159,7 +159,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredInt32ToStringTest) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = i * 2;
     }
-    VectorCastOperations::castStructuredToString(vector<shared_ptr<ValueVector>>{lVector}, *result);
+    VectorCastOperations::castToString<int64_t>(vector<shared_ptr<ValueVector>>{lVector}, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].getAsString(), to_string(i * 2));
     }
@@ -178,7 +178,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredDoubleToStringTest) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = (double)(i * 2);
     }
-    VectorCastOperations::castStructuredToString(vector<shared_ptr<ValueVector>>{lVector}, *result);
+    VectorCastOperations::castToString<double_t>(vector<shared_ptr<ValueVector>>{lVector}, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].getAsString(), to_string((double)(i * 2)));
     }
@@ -197,7 +197,7 @@ TEST_F(VectorCastOperationsTest, CastStructuredDateToStringTest) {
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         lData[i] = date_t(1000 + i);
     }
-    VectorCastOperations::castStructuredToString(vector<shared_ptr<ValueVector>>{lVector}, *result);
+    VectorCastOperations::castToString<date_t>(vector<shared_ptr<ValueVector>>{lVector}, *result);
     for (int32_t i = 0; i < VECTOR_SIZE; i++) {
         ASSERT_EQ(resultData[i].getAsString(), Date::toString(date_t(1000 + i)));
     }

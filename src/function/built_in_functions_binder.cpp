@@ -12,16 +12,16 @@ pair<scalar_exec_func, DataType> BuiltInFunctionsBinder::bindExecFunction(
     validateFunctionExistence(functionName);
     switch (functionNameToIndicesMap.at(functionName)) {
     case CAST_STRING_TO_DATE: {
-        return VectorCastOperations::bindCastStringToDateExecFunction(children);
+        return VectorCastOperations::bindExplicitCastStringToDate(children);
     }
     case CAST_STRING_TO_TIMESTAMP: {
-        return VectorCastOperations::bindCastStringToTimestampExecFunction(children);
+        return VectorCastOperations::bindExplicitCastStringToTimestamp(children);
     }
     case CAST_STRING_TO_INTERVAL: {
-        return VectorCastOperations::bindCastStringToIntervalExecFunction(children);
+        return VectorCastOperations::bindExplicitCastStringToInterval(children);
     }
     case CAST_TO_STRING: {
-        return VectorCastOperations::bindCastStructuredToStringExecFunction(children);
+        return VectorCastOperations::bindExplicitCastToString(children);
     }
     case LIST_CREATION: {
         return VectorListOperations::bindListCreationExecFunction(children);

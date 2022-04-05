@@ -23,7 +23,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 ---- 1
 14
 
--NAME StartsWithReturn
+-NAME StartsWithReturn1
 -QUERY MATCH (a:person) RETURN a.fName, a.fName STARTS WITH "A" ORDER BY a.fName
 ---- 8
 Alice|True
@@ -35,7 +35,19 @@ Farooq|False
 Greg|False
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|False
 
--NAME StartsWithReturn
+-NAME StartsWithReturn2
+-QUERY MATCH (a:person) RETURN a.label1, a.label1 STARTS WITH "g" ORDER BY a.fName
+---- 8
+excellent|False
+good|True
+good|True
+good|True
+|
+|
+|
+|
+
+-NAME StartsWithSelect
 -QUERY MATCH (a:person) WHERE a.fName STARTS WITH "C" RETURN a.fName
 ---- 1
 Carol

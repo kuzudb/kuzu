@@ -43,11 +43,6 @@ private:
 
     static scalar_select_func bindUnarySelectFunction(
         ExpressionType expressionType, const expression_vector& children);
-
-    static void validate(
-        ExpressionType expressionType, const DataType& leftType, const DataType& rightType);
-
-    static void validate(ExpressionType expressionType, const DataType& childType);
 };
 
 } // namespace function
