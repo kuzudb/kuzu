@@ -25,10 +25,29 @@ enum BuiltInFunctionIndices : uint8_t {
     // id function
     INTERNAL_ID = 100,
 
-    // arithmetic functions
+    // unary arithmetic functions
     ABS = 150,
     FLOOR = 151,
     CEIL = 152,
+    SIN = 153,
+    COS = 154,
+    TAN = 155,
+    COT = 156,
+    ASIN = 157,
+    ACOS = 158,
+    ATAN = 159,
+    EVEN = 160,
+    FACTORIAL = 161,
+    SIGN = 162,
+    SQRT = 163,
+    CBRT = 164,
+    GAMMA = 165,
+    LGAMMA = 166,
+    LN = 167,
+    LOG = 168,
+    LOG2 = 169,
+    DEGREES = 170,
+    RADIANS = 171,
 };
 
 static const unordered_map<string, BuiltInFunctionIndices> functionNameToIndicesMap{
@@ -37,7 +56,12 @@ static const unordered_map<string, BuiltInFunctionIndices> functionNameToIndices
     {CAST_TO_INTERVAL_FUNCTION_NAME, CAST_STRING_TO_INTERVAL},
     {CAST_TO_STRING_FUNCTION_NAME, CAST_TO_STRING}, {LIST_CREATION_FUNC_NAME, LIST_CREATION},
     {ID_FUNC_NAME, INTERNAL_ID}, {ABS_FUNC_NAME, ABS}, {FLOOR_FUNC_NAME, FLOOR},
-    {CEIL_FUNC_NAME, CEIL}};
+    {CEIL_FUNC_NAME, CEIL}, {SIN_FUNC_NAME, SIN}, {COS_FUNC_NAME, COS}, {TAN_FUNC_NAME, TAN},
+    {COT_FUNC_NAME, COT}, {ASIN_FUNC_NAME, ASIN}, {ACOS_FUNC_NAME, ACOS}, {ATAN_FUNC_NAME, ATAN},
+    {EVEN_FUNC_NAME, EVEN}, {FACTORIAL_FUNC_NAME, FACTORIAL}, {SIGN_FUNC_NAME, SIGN},
+    {SQRT_FUNC_NAME, SQRT}, {CBRT_FUNC_NAME, CBRT}, {GAMMA_FUNC_NAME, GAMMA},
+    {LGAMMA_FUNC_NAME, LGAMMA}, {LN_FUNC_NAME, LN}, {LOG_FUNC_NAME, LOG}, {LOG2_FUNC_NAME, LOG2},
+    {DEGREES_FUNC_NAME, DEGREES}, {RADIANS_FUNC_NAME, RADIANS}};
 
 class BuiltInFunctionsBinder {
 

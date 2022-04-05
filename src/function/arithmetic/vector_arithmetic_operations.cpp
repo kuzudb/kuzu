@@ -35,6 +35,120 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindCeilExecFunctio
     return bindUnaryExecFunction<operation::Ceil>(children[0]->dataType);
 }
 
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindSinExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(SIN_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Sin>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindCosExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(COS_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Cos>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindTanExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(TAN_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Tan>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindCotExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(COT_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Cot>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindAsinExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(ASIN_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Asin>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindAcosExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(ACOS_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Acos>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindAtanExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(ATAN_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Atan>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindEvenExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(EVEN_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Even>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindFactorialExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(FACTORIAL_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Factorial>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindSignExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(SIGN_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Sign>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindSqrtExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(SQRT_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Sqrt>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindCbrtExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(CBRT_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Cbrt>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindGammaExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(GAMMA_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Gamma>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindLgammaExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(LGAMMA_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Lgamma>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindLnExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(LN_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Ln>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindLogExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(LOG_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Log>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindLog2ExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(LOG2_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Log2>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindDegreesExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(DEGREES_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Degrees>(children[0]->dataType);
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindRadiansExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(RADIANS_FUNC_NAME, children.size(), 1);
+    return bindUnaryExecFunction<operation::Radians>(children[0]->dataType);
+}
+
 pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindBinaryExecFunction(
     ExpressionType expressionType, const expression_vector& children) {
     assert(children.size() == 2);
@@ -276,18 +390,48 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindUnaryExecFuncti
 template<typename FUNC>
 pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindUnaryExecFunction(
     const DataType& operandType) {
-    switch (operandType.typeID) {
-    case INT64: {
-        return make_pair(UnaryExecFunction<int64_t, int64_t, FUNC>, DataType(INT64));
-    }
-    case DOUBLE: {
-        return make_pair(UnaryExecFunction<double_t, double_t, FUNC>, DataType(DOUBLE));
-    }
-    case UNSTRUCTURED: {
-        return make_pair(UnaryExecFunction<Value, Value, FUNC>, DataType(UNSTRUCTURED));
-    }
-    default:
-        assert(false);
+    if constexpr (operation::isFuncInputNumericOutputDouble<FUNC>()) {
+        switch (operandType.typeID) {
+        case INT64: {
+            return make_pair(UnaryExecFunction<int64_t, double_t, FUNC>, DataType(DOUBLE));
+        }
+        case DOUBLE: {
+            return make_pair(UnaryExecFunction<double_t, double_t, FUNC>, DataType(DOUBLE));
+        }
+        case UNSTRUCTURED: {
+            return make_pair(UnaryExecFunction<Value, Value, FUNC>, DataType(UNSTRUCTURED));
+        }
+        default:
+            assert(false);
+        }
+    } else if constexpr (operation::isFuncInputNumericOutputInt64<FUNC>()) {
+        switch (operandType.typeID) {
+        case INT64: {
+            return make_pair(UnaryExecFunction<int64_t, int64_t, FUNC>, DataType(INT64));
+        }
+        case DOUBLE: {
+            return make_pair(UnaryExecFunction<double_t, int64_t, FUNC>, DataType(INT64));
+        }
+        case UNSTRUCTURED: {
+            return make_pair(UnaryExecFunction<Value, Value, FUNC>, DataType(UNSTRUCTURED));
+        }
+        default:
+            assert(false);
+        }
+    } else {
+        switch (operandType.typeID) {
+        case INT64: {
+            return make_pair(UnaryExecFunction<int64_t, int64_t, FUNC>, DataType(INT64));
+        }
+        case DOUBLE: {
+            return make_pair(UnaryExecFunction<double_t, double_t, FUNC>, DataType(DOUBLE));
+        }
+        case UNSTRUCTURED: {
+            return make_pair(UnaryExecFunction<Value, Value, FUNC>, DataType(UNSTRUCTURED));
+        }
+        default:
+            assert(false);
+        }
     }
 }
 

@@ -18,6 +18,49 @@ public:
 
     static pair<scalar_exec_func, DataType> bindCeilExecFunction(const expression_vector& children);
 
+    static pair<scalar_exec_func, DataType> bindSinExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindCosExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindTanExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindCotExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindAsinExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindAcosExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindAtanExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindEvenExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindFactorialExecFunction(
+        const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindSignExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindSqrtExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindCbrtExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindGammaExecFunction(
+        const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindLgammaExecFunction(
+        const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindLnExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindLogExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindLog2ExecFunction(const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindDegreesExecFunction(
+        const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindRadiansExecFunction(
+        const expression_vector& children);
+
 private:
     static pair<scalar_exec_func, DataType> bindBinaryExecFunction(
         ExpressionType expressionType, const expression_vector& children);
