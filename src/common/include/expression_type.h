@@ -32,6 +32,25 @@ const string ID_FUNC_NAME = "ID";
 const string ABS_FUNC_NAME = "ABS";
 const string FLOOR_FUNC_NAME = "FLOOR";
 const string CEIL_FUNC_NAME = "CEIL";
+const string SIN_FUNC_NAME = "SIN";
+const string COS_FUNC_NAME = "COS";
+const string TAN_FUNC_NAME = "TAN";
+const string COT_FUNC_NAME = "COT";
+const string ASIN_FUNC_NAME = "ASIN";
+const string ACOS_FUNC_NAME = "ACOS";
+const string ATAN_FUNC_NAME = "ATAN";
+const string EVEN_FUNC_NAME = "EVEN";
+const string FACTORIAL_FUNC_NAME = "FACTORIAL";
+const string SIGN_FUNC_NAME = "SIGN";
+const string SQRT_FUNC_NAME = "SQRT";
+const string CBRT_FUNC_NAME = "CBRT";
+const string GAMMA_FUNC_NAME = "GAMMA";
+const string LGAMMA_FUNC_NAME = "LGAMMA";
+const string LN_FUNC_NAME = "LN";
+const string LOG_FUNC_NAME = "LOG";
+const string LOG2_FUNC_NAME = "LOG2";
+const string DEGREES_FUNC_NAME = "DEGREES";
+const string RADIANS_FUNC_NAME = "RADIANS";
 
 enum ExpressionType : uint8_t {
 

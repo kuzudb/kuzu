@@ -35,6 +35,63 @@ pair<scalar_exec_func, DataType> BuiltInFunctionsBinder::bindExecFunction(
     case CEIL: {
         return VectorArithmeticOperations::bindCeilExecFunction(children);
     }
+    case SIN: {
+        return VectorArithmeticOperations::bindSinExecFunction(children);
+    }
+    case COS: {
+        return VectorArithmeticOperations::bindCosExecFunction(children);
+    }
+    case TAN: {
+        return VectorArithmeticOperations::bindTanExecFunction(children);
+    }
+    case COT: {
+        return VectorArithmeticOperations::bindCotExecFunction(children);
+    }
+    case ASIN: {
+        return VectorArithmeticOperations::bindAsinExecFunction(children);
+    }
+    case ACOS: {
+        return VectorArithmeticOperations::bindAcosExecFunction(children);
+    }
+    case ATAN: {
+        return VectorArithmeticOperations::bindAtanExecFunction(children);
+    }
+    case EVEN: {
+        return VectorArithmeticOperations::bindEvenExecFunction(children);
+    }
+    case FACTORIAL: {
+        return VectorArithmeticOperations::bindFactorialExecFunction(children);
+    }
+    case SIGN: {
+        return VectorArithmeticOperations::bindSignExecFunction(children);
+    }
+    case SQRT: {
+        return VectorArithmeticOperations::bindSqrtExecFunction(children);
+    }
+    case CBRT: {
+        return VectorArithmeticOperations::bindCbrtExecFunction(children);
+    }
+    case GAMMA: {
+        return VectorArithmeticOperations::bindGammaExecFunction(children);
+    }
+    case LGAMMA: {
+        return VectorArithmeticOperations::bindLgammaExecFunction(children);
+    }
+    case LN: {
+        return VectorArithmeticOperations::bindLnExecFunction(children);
+    }
+    case LOG: {
+        return VectorArithmeticOperations::bindLogExecFunction(children);
+    }
+    case LOG2: {
+        return VectorArithmeticOperations::bindLog2ExecFunction(children);
+    }
+    case DEGREES: {
+        return VectorArithmeticOperations::bindDegreesExecFunction(children);
+    }
+    case RADIANS: {
+        return VectorArithmeticOperations::bindRadiansExecFunction(children);
+    }
     default:
         assert(false);
     }
