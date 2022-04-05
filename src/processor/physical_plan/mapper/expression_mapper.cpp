@@ -1,6 +1,7 @@
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 
 #include "src/binder/expression/include/literal_expression.h"
+#include "src/binder/expression/include/parameter_expression.h"
 #include "src/expression_evaluator/include/function_evaluator.h"
 #include "src/expression_evaluator/include/literal_evaluator.h"
 #include "src/expression_evaluator/include/reference_evaluator.h"
@@ -13,7 +14,9 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
     ExecutionContext& executionContext) {
     auto expressionType = expression->expressionType;
     if (isExpressionLiteral(expressionType)) {
-        return mapLiteralExpression(expression, false /* castToUnstructured */);
+        return mapLiteralExpression(expression);
+    } else if (PARAMETER == expressionType) {
+        return mapParameterExpression((expression));
     } else if (mapperContext.expressionHasComputed(expression->getUniqueName())) {
         return mapReferenceExpression(expression, mapperContext);
     } else {
@@ -22,9 +25,16 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
 }
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapLiteralExpression(
-    const shared_ptr<Expression>& expression, bool castToUnstructured) {
+    const shared_ptr<Expression>& expression) {
     auto& literalExpression = (LiteralExpression&)*expression;
-    return make_unique<LiteralExpressionEvaluator>(literalExpression.literal, castToUnstructured);
+    return make_unique<LiteralExpressionEvaluator>(make_shared<Literal>(literalExpression.literal));
+}
+
+unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapParameterExpression(
+    const shared_ptr<Expression>& expression) {
+    auto& parameterExpression = (ParameterExpression&)*expression;
+    assert(parameterExpression.getLiteral() != nullptr);
+    return make_unique<LiteralExpressionEvaluator>(parameterExpression.getLiteral());
 }
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapReferenceExpression(

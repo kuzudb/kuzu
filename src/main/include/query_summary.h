@@ -7,6 +7,7 @@ namespace main {
 
 class QuerySummary {
     friend class Connection;
+    friend class PreparedStatement;
 
 public:
     double getCompilingTime() const { return compilingTime; }

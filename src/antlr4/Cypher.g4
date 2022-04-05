@@ -258,6 +258,7 @@ oC_PropertyOrLabelsExpression
 
 oC_Atom
     : oC_Literal
+        | oC_Parameter
         | oC_ParenthesizedExpression
         | oC_FunctionInvocation
         | oC_ExistentialSubquery
@@ -317,6 +318,9 @@ oC_NumberLiteral
     : oC_DoubleLiteral
         | oC_IntegerLiteral
         ;
+
+oC_Parameter
+    : '$' ( oC_SymbolicName | DecimalInteger ) ;
 
 oC_PropertyKeyName
     : oC_SchemaName ;

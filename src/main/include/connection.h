@@ -1,6 +1,7 @@
 #pragma once
 
 #include "client_context.h"
+#include "prepared_statement.h"
 #include "query_result.h"
 
 #include "src/planner/logical_plan/include/logical_plan.h"
@@ -16,15 +17,23 @@ class Connection {
 public:
     explicit Connection(Database* database);
 
-    std::unique_ptr<QueryResult> query(const std::string& query);
-
     inline void setMaxNumThreadForExec(uint64_t numThreads) {
         clientContext->numThreadsForExecution = numThreads;
     }
 
+    std::unique_ptr<QueryResult> query(const std::string& query);
+
+    std::unique_ptr<PreparedStatement> prepare(const std::string& query);
+
+    template<typename... Args>
+    inline std::unique_ptr<QueryResult> execute(
+        PreparedStatement* preparedStatement, pair<string, Args>... args) {
+        unordered_map<string, shared_ptr<Literal>> inputParameters;
+        return executeWithParams(preparedStatement, inputParameters, args...);
+    }
+
     /**
      * TODO: APIs that need to be added
-     * * prepare (parameter related)
      * * catalog related
      * * streaming
      */
@@ -38,7 +47,23 @@ public:
 private:
     std::unique_lock<mutex> acquireLock() { return std::unique_lock<std::mutex>{mtx}; }
 
-    void configProfiler(Profiler& profiler, bool isEnabled);
+    template<typename T, typename... Args>
+    std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
+        unordered_map<string, shared_ptr<Literal>>& params, pair<string, T> arg,
+        pair<string, Args>... args) {
+        auto name = arg.first;
+        auto val = make_shared<Literal>(Literal::createLiteral<T>(arg.second));
+        params.insert({name, val});
+        return executeWithParams(preparedStatement, params, args...);
+    }
+
+    std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
+        unordered_map<string, shared_ptr<Literal>>& inputParams);
+
+    void bindParameters(PreparedStatement* preparedStatement,
+        unordered_map<string, shared_ptr<Literal>>& inputParams);
+
+    std::unique_ptr<QueryResult> execute(PreparedStatement* preparedStatement);
 
 private:
     Database* database;

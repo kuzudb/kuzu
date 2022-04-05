@@ -22,6 +22,7 @@ cc_library(
     hdrs = [
         "include/parsed_function_expression.h",
         "include/parsed_literal_expression.h",
+        "include/parsed_parameter_expression.h",
         "include/parsed_property_expression.h",
         "include/parsed_subquery_expression.h",
         "include/parsed_variable_expression.h",

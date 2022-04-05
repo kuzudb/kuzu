@@ -2,21 +2,12 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
     name = "graphflowdb",
-    srcs = [
-        "connection.cpp",
-        "database.cpp",
-        "plan_printer.cpp",
-        "query_result.cpp",
-    ],
-    hdrs = [
-        "include/client_context.h",
-        "include/connection.h",
-        "include/database.h",
-        "include/graphflowdb.h",
-        "include/plan_printer.h",
-        "include/query_result.h",
-        "include/query_summary.h",
-    ],
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
     visibility = [
         "//visibility:public",
     ],

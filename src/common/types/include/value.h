@@ -12,10 +12,11 @@ namespace common {
 
 class Value {
 public:
-    Value() = default;
+    Value() : dataType{INVALID} {};
 
     Value(const Value& value) { *this = value; }
 
+    // TODO(Guodong): this interface is weird. Consider remove.
     explicit Value(DataType dataType) : dataType{move(dataType)} {}
 
     explicit Value(bool value) : dataType(BOOL) { this->val.booleanVal = value; }

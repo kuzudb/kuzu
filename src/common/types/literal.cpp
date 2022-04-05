@@ -6,6 +6,11 @@ namespace graphflow {
 namespace common {
 
 Literal::Literal(const Literal& other) : dataType{other.dataType} {
+    bind(other);
+}
+
+void Literal::bind(const Literal& other) {
+    assert(dataType.typeID == other.dataType.typeID);
     switch (dataType.typeID) {
     case BOOL: {
         val.booleanVal = other.val.booleanVal;
