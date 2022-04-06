@@ -10,7 +10,7 @@ namespace common {
 
 class Exception : public exception {
 public:
-    explicit Exception(const string& msg) : exception(), exception_message_(msg){};
+    explicit Exception(string msg) : exception(), exception_message_(move(msg)){};
 
 public:
     const char* what() const noexcept override { return exception_message_.c_str(); }
@@ -22,6 +22,11 @@ private:
 class ConversionException : public Exception {
 public:
     explicit ConversionException(const string& msg) : Exception(msg){};
+};
+
+class CSVReaderException : public Exception {
+public:
+    explicit CSVReaderException(const string& msg) : Exception("CSVReader exception: " + msg){};
 };
 
 class LoaderException : public Exception {
@@ -59,12 +64,6 @@ class EncodingException : public Exception {
 public:
     explicit EncodingException(const string& msg)
         : Exception("OrderBy encoder exception: " + msg){};
-};
-
-class FactorizedTableException : public Exception {
-public:
-    explicit FactorizedTableException(const string& msg)
-        : Exception("FactorizedTable exception: " + msg){};
 };
 
 } // namespace common

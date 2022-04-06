@@ -68,8 +68,7 @@ struct StorageStructureUtils {
 class StorageUtils {
 
 public:
-    static void saveListOfIntsToFile(
-        const string& fName, unique_ptr<uint32_t[]>& data, uint32_t listSize);
+    static void saveListOfIntsToFile(const string& fName, uint8_t* data, uint32_t listSize);
     static uint32_t readListOfIntsFromFile(unique_ptr<uint32_t[]>& data, const string& fName);
 
     inline static string getNodePropertyColumnFName(

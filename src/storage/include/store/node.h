@@ -22,7 +22,6 @@ public:
     }
 
 private:
-private:
     label_t labelID;
     // This is for structured properties.
     vector<unique_ptr<Column>> propertyColumns;

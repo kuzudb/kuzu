@@ -3,10 +3,10 @@
 namespace graphflow {
 namespace storage {
 
-void StorageUtils::saveListOfIntsToFile(
-    const string& fName, unique_ptr<uint32_t[]>& data, uint32_t listSize) {
+void StorageUtils::saveListOfIntsToFile(const string& fName, uint8_t* data, uint32_t listSize) {
+    assert(data);
     auto fileInfo = FileUtils::openFile(fName, O_WRONLY | O_CREAT);
-    FileUtils::writeToFile(fileInfo.get(), data.get(), sizeof(uint32_t) * listSize, 0 /*offset*/);
+    FileUtils::writeToFile(fileInfo.get(), data, sizeof(uint32_t) * listSize, 0 /*offset*/);
     FileUtils::closeFile(fileInfo->fd);
 }
 

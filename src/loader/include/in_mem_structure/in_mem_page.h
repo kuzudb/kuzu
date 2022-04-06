@@ -1,10 +1,10 @@
 #pragma once
 
+#include <memory>
+
 #include "src/common/include/configs.h"
-#include "src/storage/include/storage_structure/storage_structure.h"
 
 using namespace graphflow::common;
-using namespace graphflow::storage;
 
 namespace graphflow {
 namespace loader {
@@ -30,7 +30,7 @@ public:
 
 private:
     // Following fields are needed for accommodating storage of NULLs in the page.
-    unique_ptr<bool[]> uncompressedNULLs;
+    std::unique_ptr<bool[]> uncompressedNULLs;
     uint32_t numElementsInPage;
 };
 

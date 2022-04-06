@@ -22,7 +22,8 @@ void FileUtils::closeFile(int fd) {
     }
 }
 
-void FileUtils::writeToFile(FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t offset) {
+void FileUtils::writeToFile(
+    FileInfo* fileInfo, uint8_t* buffer, uint64_t numBytes, uint64_t offset) {
     auto fileSize = getFileSize(fileInfo->fd);
     if (fileSize == -1) {
         throw invalid_argument(
@@ -35,7 +36,7 @@ void FileUtils::writeToFile(FileInfo* fileInfo, void* buffer, uint64_t numBytes,
     while (remainingNumBytesToWrite > 0) {
         uint64_t numBytesToWrite = min(remainingNumBytesToWrite, maxBytesToWriteAtOnce);
         uint64_t numBytesWritten =
-            pwrite(fileInfo->fd, (uint8_t*)buffer + bufferOffset, numBytesToWrite, offset);
+            pwrite(fileInfo->fd, buffer + bufferOffset, numBytesToWrite, offset);
         if (numBytesWritten != numBytesToWrite) {
             throw invalid_argument(StringUtils::string_format(
                 "Cannot write to file. path: %s fileDescriptor: %d offsetToWrite: %llu "

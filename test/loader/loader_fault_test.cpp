@@ -70,7 +70,7 @@ TEST_F(LoaderLongStringTest, LongStringError) {
 
 TEST_F(LoaderNodeFileNoIDFieldTest, NodeFileNoIDFieldError) {
     checkLoadingFaultWithErrMsg("Catalog exception: Column header definitions of a node file does "
-                                "not contains the mandatory field 'ID'.");
+                                "not contain the mandatory field 'ID'.");
 }
 
 TEST_F(LoaderNodeFileWrongFieldTest, NodeFileWrongFieldError) {

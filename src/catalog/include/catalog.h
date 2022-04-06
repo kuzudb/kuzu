@@ -62,9 +62,8 @@ public:
 struct NodeLabel : Label {
     NodeLabel() : Label{"", 0}, primaryPropertyId{0}, numNodes{0} {}
     NodeLabel(string labelName, label_t labelId, uint64_t primaryPropertyId,
-        vector<PropertyDefinition> structuredProperties)
-        : Label{move(labelName), labelId}, primaryPropertyId{primaryPropertyId},
-          structuredProperties{move(structuredProperties)}, numNodes{0} {}
+        vector<PropertyDefinition> structuredProperties,
+        const vector<string>& unstructuredPropertyNames, uint64_t numNodes);
 
     uint64_t primaryPropertyId;
     vector<PropertyDefinition> structuredProperties, unstructuredProperties;
@@ -91,11 +90,9 @@ struct RelLabel : Label {
     unordered_set<label_t> srcNodeLabelIdSet;
     unordered_set<label_t> dstNodeLabelIdSet;
     // Cardinality information
-    // TODO(Guodong): should we support multi-label? If so, we should change this data structure.
     vector<unordered_map<label_t, uint64_t>> numRelsPerDirectionBoundLabel{2};
 };
 
-// TODO(Guodong): see if we can simplify public interfaces provided by Catalog.
 class Catalog {
 
 public:
@@ -112,7 +109,9 @@ public:
      * Node and Rel label functions.
      */
 
-    void addNodeLabel(string labelName, vector<PropertyDefinition> colHeaderDefinitions);
+    void addNodeLabel(string labelName, const DataType& IDType,
+        vector<PropertyDefinition> colHeaderDefinitions,
+        const vector<string>& unstructuredPropertyNames, uint64_t numNodes);
 
     void addRelLabel(string labelName, RelMultiplicity relMultiplicity,
         vector<PropertyDefinition> colHeaderDefinitions, const vector<string>& srcNodeLabelNames,
@@ -125,7 +124,6 @@ public:
         return relLabels[labelId].labelName;
     }
 
-    inline NodeLabel& getNode(label_t labelId) { return nodeLabels[labelId]; }
     inline RelLabel& getRel(label_t labelId) { return relLabels[labelId]; }
 
     inline uint64_t getNumNodeLabels() const { return nodeLabels.size(); }
@@ -148,8 +146,6 @@ public:
     /**
      * Node and Rel property functions.
      */
-
-    void addNodeUnstrProperty(uint64_t labelId, const string& propertyName);
 
     virtual bool containNodeProperty(label_t labelId, const string& propertyName) const;
     virtual bool containRelProperty(label_t relLabel, const string& propertyName) const;
@@ -198,7 +194,7 @@ public:
 
 private:
     static void verifyColDefinitionsForNodeLabel(
-        const vector<PropertyDefinition>& colHeaderDefinitions);
+        uint64_t primaryKeyPropertyId, const vector<PropertyDefinition>& colHeaderDefinitions);
     static void verifyColDefinitionsForRelLabel(
         const vector<PropertyDefinition>& colHeaderDefinitions);
 

@@ -16,7 +16,8 @@ namespace loader {
 class NodeIDMap {
 
 public:
-    NodeIDMap(const uint64_t& size) : size{size}, offsetToNodeIDMap(make_unique<char*[]>(size)){};
+    explicit NodeIDMap(const uint64_t& size)
+        : size{size}, offsetToNodeIDMap(make_unique<char*[]>(size)){};
     ~NodeIDMap();
 
     void set(const char* nodeID, node_offset_t nodeOffset);

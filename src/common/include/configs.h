@@ -35,6 +35,10 @@ struct StorageConfig {
     static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
     static constexpr char COLUMN_FILE_SUFFIX[] = ".col";
     static constexpr char LISTS_FILE_SUFFIX[] = ".lists";
+
+    // LIST_CHUNK_SIZE should strictly be a power of 2.
+    constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
+    constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;
 };
 
 // Hash Index Configurations

@@ -14,7 +14,7 @@ template<>
 uint64_t SerDeser::serializeValue<string>(
     const string& value, FileInfo* fileInfo, uint64_t offset) {
     uint64_t valueLength = value.length();
-    FileUtils::writeToFile(fileInfo, &valueLength, sizeof(uint64_t), offset);
+    FileUtils::writeToFile(fileInfo, (uint8_t*)&valueLength, sizeof(uint64_t), offset);
     FileUtils::writeToFile(
         fileInfo, (uint8_t*)value.data(), valueLength, offset + sizeof(uint64_t));
     return offset + sizeof(uint64_t) + valueLength;
@@ -195,6 +195,19 @@ RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString
     throw invalid_argument("Invalid relMultiplicity string \"" + relMultiplicityString + "\"");
 }
 
+NodeLabel::NodeLabel(string labelName, label_t labelId, uint64_t primaryPropertyId,
+    vector<PropertyDefinition> structuredProperties,
+    const vector<string>& unstructuredPropertyNames, uint64_t numNodes)
+    : Label{move(labelName), labelId}, primaryPropertyId{primaryPropertyId},
+      structuredProperties{move(structuredProperties)}, numNodes{numNodes} {
+    for (auto& unstrPropertyName : unstructuredPropertyNames) {
+        auto unstrPropertyId = unstructuredProperties.size();
+        unstrPropertiesNameToIdMap[unstrPropertyName] = unstrPropertyId;
+        unstructuredProperties.emplace_back(
+            unstrPropertyName, unstrPropertyId, DataType(UNSTRUCTURED));
+    }
+}
+
 Catalog::Catalog() {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
     builtInVectorOperations = make_unique<BuiltInVectorOperations>();
@@ -207,8 +220,12 @@ Catalog::Catalog(const string& directory) : Catalog() {
 }
 
 void Catalog::verifyColDefinitionsForNodeLabel(
-    const vector<PropertyDefinition>& colHeaderDefinitions) {
-    bool hasIDField = false;
+    uint64_t primaryKeyPropertyId, const vector<PropertyDefinition>& colHeaderDefinitions) {
+    if (primaryKeyPropertyId == UINT64_MAX) {
+        throw CatalogException(
+            "Column header definitions of a node file does not contain the mandatory field '" +
+            string(LoaderConfig::ID_FIELD) + "'.");
+    }
     for (auto& colHeaderDefinition : colHeaderDefinitions) {
         auto name = colHeaderDefinition.name;
         if (name == LoaderConfig::START_ID_FIELD || name == LoaderConfig::START_ID_LABEL_FIELD ||
@@ -216,33 +233,40 @@ void Catalog::verifyColDefinitionsForNodeLabel(
             throw CatalogException(
                 "Column header contains a mandatory field '" + name + "' that is not allowed.");
         }
-        if (name == LoaderConfig::ID_FIELD) {
-            hasIDField = true;
-        }
         if (colHeaderDefinition.dataType.typeID == INVALID) {
             throw CatalogException("Column header contains an INVALID data type.");
         }
-    }
-    if (!hasIDField) {
-        throw CatalogException(
-            "Column header definitions of a node file does not contains the mandatory field '" +
-            string(LoaderConfig::ID_FIELD) + "'.");
+        if (colHeaderDefinition.isPrimaryKey) {
+            if (colHeaderDefinition.id != primaryKeyPropertyId) {
+                throw CatalogException("Unexpected primary key property. Check if there are "
+                                       "duplicated primary key definitions.");
+            }
+            if (colHeaderDefinition.dataType.typeID != STRING &&
+                colHeaderDefinition.dataType.typeID != INT64) {
+                throw CatalogException("Unsupported data type '" +
+                                       Types::dataTypeToString(colHeaderDefinition.dataType) +
+                                       "' for primary key property.");
+            }
+        }
     }
 }
 
-void Catalog::addNodeLabel(string labelName, vector<PropertyDefinition> colHeaderDefinitions) {
-    verifyColDefinitionsForNodeLabel(colHeaderDefinitions);
+void Catalog::addNodeLabel(string labelName, const DataType& IDType,
+    vector<PropertyDefinition> colHeaderDefinitions,
+    const vector<string>& unstructuredPropertyNames, uint64_t numNodes) {
     label_t labelId = nodeLabels.size();
-    uint64_t primaryKeyPropertyId;
+    uint64_t primaryKeyPropertyId = UINT64_MAX;
     for (auto i = 0u; i < colHeaderDefinitions.size(); i++) {
         colHeaderDefinitions[i].id = i;
         if (colHeaderDefinitions[i].isPrimaryKey) {
+            colHeaderDefinitions[i].dataType = IDType;
             primaryKeyPropertyId = i;
         }
     }
+    verifyColDefinitionsForNodeLabel(primaryKeyPropertyId, colHeaderDefinitions);
     nodeLabelNameToIdMap[labelName] = labelId;
-    nodeLabels.emplace_back(
-        move(labelName), labelId, primaryKeyPropertyId, move(colHeaderDefinitions));
+    nodeLabels.emplace_back(move(labelName), labelId, primaryKeyPropertyId,
+        move(colHeaderDefinitions), unstructuredPropertyNames, numNodes);
 }
 
 void Catalog::verifyColDefinitionsForRelLabel(
@@ -313,17 +337,6 @@ void Catalog::addRelLabel(string labelName, RelMultiplicity relMultiplicity,
     }
     relLabels.emplace_back(move(labelName), labelId, relMultiplicity, move(propertyDefinitions),
         move(srcNodeLabelIdSet), move(dstNodeLabelIdSet));
-}
-
-void Catalog::addNodeUnstrProperty(uint64_t labelId, const string& propertyName) {
-    auto& nodeLabel = nodeLabels[labelId];
-    if (nodeLabel.unstrPropertiesNameToIdMap.contains(propertyName)) {
-        // Unstructured property with the same name already exists, skip it.
-        return;
-    }
-    auto propertyId = nodeLabel.unstructuredProperties.size();
-    nodeLabel.unstructuredProperties.emplace_back(propertyName, propertyId, DataType(UNSTRUCTURED));
-    nodeLabel.unstrPropertiesNameToIdMap[propertyName] = propertyId;
 }
 
 bool Catalog::containNodeProperty(label_t labelId, const string& propertyName) const {

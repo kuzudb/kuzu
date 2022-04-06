@@ -4,14 +4,13 @@
 
 #include "src/common/include/file_utils.h"
 #include "src/common/include/type_utils.h"
-#include "src/common/include/utils.h"
 
 namespace graphflow {
 namespace loader {
 
 InMemPages::InMemPages(
     string fName, uint16_t numBytesForElement, bool hasNULLBytes, uint64_t numPages)
-    : fName(move(fName)), numBytesForElement{numBytesForElement} {
+    : fName{move(fName)} {
     auto numElementsInAPage =
         hasNULLBytes ? PageUtils::getNumElementsInAPageWithNULLBytes(numBytesForElement) :
                        PageUtils::getNumElementsInAPageWithoutNULLBytes(numBytesForElement);
@@ -36,43 +35,6 @@ void InMemPages::saveToFile() {
     FileUtils::closeFile(fileInfo->fd);
 }
 
-void InMemAdjPages::set(const PageElementCursor& cursor, const nodeID_t& nbrNodeID) {
-    pages[cursor.idx]->write(cursor.pos * (numBytesPerLabel + numBytesPerOffset), cursor.pos,
-        (uint8_t*)&nbrNodeID.label, numBytesPerLabel, (uint8_t*)&nbrNodeID.offset,
-        numBytesPerOffset);
-}
-
-void InMemPropertyPages::set(const PageElementCursor& cursor, const uint8_t* val) {
-    pages[cursor.idx]->write(cursor.pos * numBytesPerElement, cursor.pos, val, numBytesPerElement);
-}
-
-void InMemUnstrPropertyPages::set(const PageByteCursor& cursor, uint32_t propertyKey,
-    uint8_t dataTypeIdentifier, uint32_t valLen, const uint8_t* val) {
-    PageByteCursor localCursor{cursor};
-    setComponentOfUnstrProperty(localCursor, 4, reinterpret_cast<uint8_t*>(&propertyKey));
-    setComponentOfUnstrProperty(localCursor, 1, reinterpret_cast<uint8_t*>(&dataTypeIdentifier));
-    setComponentOfUnstrProperty(localCursor, valLen, val);
-}
-
-void InMemUnstrPropertyPages::setComponentOfUnstrProperty(
-    PageByteCursor& localCursor, uint8_t len, const uint8_t* val) {
-    if (DEFAULT_PAGE_SIZE - localCursor.offset >= len) {
-        auto writeOffset = getPtrToMemLoc(localCursor);
-        memcpy(writeOffset, val, len);
-        localCursor.offset += len;
-    } else {
-        auto diff = DEFAULT_PAGE_SIZE - localCursor.offset;
-        auto writeOffset = getPtrToMemLoc(localCursor);
-        memcpy(writeOffset, val, diff);
-        auto left = len - diff;
-        localCursor.idx++;
-        localCursor.offset = 0;
-        writeOffset = getPtrToMemLoc(localCursor);
-        memcpy(writeOffset, val + diff, left);
-        localCursor.offset = left;
-    }
-}
-
 gf_string_t InMemOverflowPages::addString(const char* originalString, PageByteCursor& cursor) {
     gf_string_t encodedString;
     encodedString.len = strlen(originalString);
@@ -84,7 +46,7 @@ gf_string_t InMemOverflowPages::addString(const char* originalString, PageByteCu
         memcpy(&encodedString.data, originalString + 4, encodedString.len - 4);
         return encodedString;
     }
-    copyOverflowString(cursor, (uint8_t*)originalString, &encodedString);
+    copyStringOverflow(cursor, (uint8_t*)originalString, &encodedString);
     return encodedString;
 }
 
@@ -94,14 +56,6 @@ void InMemOverflowPages::copyOverflowValuesToPages(gf_list_t& result, const Lite
     assert(DT == STRING || DT == LIST);
     auto overflowPageId = cursor.idx;
     auto overflowPageOffset = cursor.offset;
-    auto numBytesOfOverflow = result.size * numBytesOfSingleValue;
-    // TODO(Guodong): this check along with the check on string length should all be moved to the
-    // CSVReader.
-    if (numBytesOfOverflow >= DEFAULT_PAGE_SIZE) {
-        throw LoaderException(StringUtils::string_format(
-            "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
-            numBytesOfOverflow));
-    }
     cursor.offset += (result.size * numBytesOfSingleValue);
     for (auto i = 0u; i < listVal.listVal.size(); i++) {
         assert(listVal.listVal[i].dataType.typeID == DT);
@@ -158,7 +112,7 @@ gf_list_t InMemOverflowPages::addList(const Literal& listVal, PageByteCursor& cu
     return result;
 }
 
-void InMemOverflowPages::copyOverflowString(
+void InMemOverflowPages::copyStringOverflow(
     PageByteCursor& cursor, uint8_t* ptrToCopy, gf_string_t* encodedString) {
     if (cursor.offset + encodedString->len - 4 >= DEFAULT_PAGE_SIZE || 0 > cursor.idx) {
         cursor.offset = 0;
@@ -170,10 +124,48 @@ void InMemOverflowPages::copyOverflowString(
     cursor.offset += encodedString->len;
 }
 
+void InMemOverflowPages::copyListOverflow(PageByteCursor& cursor, uint8_t* ptrToCopy,
+    InMemOverflowPages* overflowPagesToCopy, gf_list_t* encodedList, DataType* childDataType) {
+    auto numBytesOfSingleValue = Types::getDataTypeSize(*childDataType);
+    if (cursor.offset + (encodedList->size * numBytesOfSingleValue) >= DEFAULT_PAGE_SIZE ||
+        0 > cursor.idx) {
+        cursor.offset = 0;
+        cursor.idx = getNewOverflowPageIdx();
+    }
+    shared_lock lck(lock);
+    TypeUtils::encodeOverflowPtr(encodedList->overflowPtr, cursor.idx, cursor.offset);
+    pages[cursor.idx]->write(
+        cursor.offset, cursor.offset, ptrToCopy, encodedList->size * numBytesOfSingleValue);
+    cursor.offset += encodedList->size * numBytesOfSingleValue;
+    if (childDataType->typeID == LIST) {
+        auto childVals = (gf_list_t*)ptrToCopy;
+        for (auto i = 0u; i < encodedList->size; i++) {
+            PageByteCursor childCursor;
+            TypeUtils::decodeOverflowPtr(
+                childVals[i].overflowPtr, childCursor.idx, childCursor.offset);
+            copyListOverflow(cursor,
+                overflowPagesToCopy->pages[childCursor.idx]->data + childCursor.offset,
+                overflowPagesToCopy, &childVals[i], childDataType->childType.get());
+        }
+    } else if (childDataType->typeID == STRING) {
+        auto childVals = (gf_string_t*)ptrToCopy;
+        for (auto i = 0u; i < encodedList->size; i++) {
+            PageByteCursor childCursor;
+            if (childVals[i].len > gf_string_t::SHORT_STR_LENGTH) {
+                TypeUtils::decodeOverflowPtr(
+                    childVals[i].overflowPtr, childCursor.idx, childCursor.offset);
+                copyStringOverflow(cursor,
+                    overflowPagesToCopy->pages[childCursor.idx]->data + childCursor.offset,
+                    &childVals[i]);
+            }
+        }
+    }
+}
+
 uint32_t InMemOverflowPages::getNewOverflowPageIdx() {
     unique_lock lck(lock);
     auto page = numUsedPages++;
-    if (numUsedPages != pages.size()) {
+    if (numUsedPages < pages.size()) {
         return page;
     }
     auto newNumPages = (size_t)(1.5 * pages.size());
