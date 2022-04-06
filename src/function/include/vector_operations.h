@@ -16,7 +16,7 @@ using scalar_select_func = std::function<uint64_t(const vector<shared_ptr<ValueV
 
 class VectorOperations {
 
-protected:
+public:
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void BinaryExecFunction(
         const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {

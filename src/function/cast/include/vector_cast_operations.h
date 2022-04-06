@@ -8,55 +8,64 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace function {
 
+/**
+ *  In the system we define explicit cast and implicit cast.
+ *  Explicit casts are performed from user function calls, e.g. date(), string().
+ *  Implicit casts are added internally. The rules are as follows:
+ *  *  Implicit cast from unstructured to structured if function is not overload, e.g. AND,
+ *     CONTAINS.
+ *  *  Implicit cast from structured to unstructured if function is overload and at least one
+ *     parameter is unstructured.
+ */
 class VectorCastOperations : public VectorOperations {
 
 public:
-    static pair<scalar_exec_func, DataType> bindCastStringToDateExecFunction(
-        const expression_vector& children) {
-        validateNumParameters(CAST_TO_DATE_FUNCTION_NAME, children.size(), 1);
-        validateParameterType(CAST_TO_DATE_FUNCTION_NAME, *children[0], STRING);
-        return make_pair(
-            UnaryExecFunction<gf_string_t, date_t, operation::CastStringToDate>, DataType(DATE));
+    static pair<scalar_exec_func, DataType> bindExplicitCastStringToDate(
+        const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindExplicitCastStringToTimestamp(
+        const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindExplicitCastStringToInterval(
+        const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindExplicitCastToString(
+        const expression_vector& children);
+
+    static scalar_exec_func bindImplicitCastToBool(const expression_vector& children);
+
+    static scalar_exec_func bindImplicitCastToString(const expression_vector& children);
+
+    static scalar_exec_func bindImplicitCastToUnstructured(const expression_vector& children);
+
+    // TODO(Guodong): make this function reuse string function executor
+    template<typename OPERAND_TYPE>
+    static void castToString(const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
+        assert(params.size() == 1);
+        auto& operand = *params[0];
+        result.resetOverflowBuffer();
+        if (operand.state->isFlat()) {
+            auto pos = operand.state->getPositionOfCurrIdx();
+            assert(pos == result.state->getPositionOfCurrIdx());
+            result.setNull(pos, operand.isNull(pos));
+            if (!result.isNull(pos)) {
+                string val = TypeUtils::toString(((OPERAND_TYPE*)operand.values)[pos]);
+                result.addString(pos, val);
+            }
+        } else {
+            for (auto i = 0u; i < operand.state->selectedSize; i++) {
+                auto pos = operand.state->selectedPositions[i];
+                assert(pos == result.state->selectedPositions[i]);
+                result.setNull(pos, operand.isNull(pos));
+                if (!result.isNull(pos)) {
+                    result.addString(
+                        pos, TypeUtils::toString(((OPERAND_TYPE*)operand.values)[pos]));
+                }
+            }
+        }
     }
 
-    static pair<scalar_exec_func, DataType> bindCastStringToTimestampExecFunction(
-        const expression_vector& children) {
-        validateNumParameters(CAST_TO_TIMESTAMP_FUNCTION_NAME, children.size(), 1);
-        validateParameterType(CAST_TO_TIMESTAMP_FUNCTION_NAME, *children[0], STRING);
-        return make_pair(
-            UnaryExecFunction<gf_string_t, timestamp_t, operation::CastStringToTimestamp>,
-            DataType(TIMESTAMP));
-    }
-
-    static pair<scalar_exec_func, DataType> bindCastStringToIntervalExecFunction(
-        const expression_vector& children) {
-        validateNumParameters(CAST_TO_INTERVAL_FUNCTION_NAME, children.size(), 1);
-        validateParameterType(CAST_TO_INTERVAL_FUNCTION_NAME, *children[0], STRING);
-        return make_pair(
-            UnaryExecFunction<gf_string_t, interval_t, operation::CastStringToInterval>,
-            DataType(INTERVAL));
-    }
-
-    static pair<scalar_exec_func, DataType> bindCastStructuredToStringExecFunction(
-        const expression_vector& children) {
-        validateNumParameters(CAST_TO_STRING_FUNCTION_NAME, children.size(), 1);
-        return make_pair(castStructuredToString, DataType(STRING));
-    }
-
-    static scalar_exec_func bindCastUnstructuredToBoolExecFunction(
-        const expression_vector& children) {
-        // no need to validate internal function. assert instead.
-        assert(children.size() == 1 && children[0]->dataType.typeID == UNSTRUCTURED);
-        return UnaryExecFunction<Value, uint8_t, operation::CastUnstructuredToBool>;
-    }
-
-    // result contains preallocated Value objects with the structured operand's dataType.
-    static void castStructuredToUnstructuredValue(
-        const vector<shared_ptr<ValueVector>>& params, ValueVector& result);
-
-    // result contains preallocated gf_string_t objects.
-    // TODO: make this operation also works for unstructured input
-    static void castStructuredToString(
+    static void castStringToUnstructured(
         const vector<shared_ptr<ValueVector>>& params, ValueVector& result);
 };
 

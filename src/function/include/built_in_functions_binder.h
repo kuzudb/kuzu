@@ -25,7 +25,7 @@ enum BuiltInFunctionIndices : uint8_t {
     // id function
     INTERNAL_ID = 100,
 
-    // unary arithmetic functions
+    // Arithmetic functions
     ABS = 150,
     FLOOR = 151,
     CEIL = 152,
@@ -51,17 +51,34 @@ enum BuiltInFunctionIndices : uint8_t {
 };
 
 static const unordered_map<string, BuiltInFunctionIndices> functionNameToIndicesMap{
-    {CAST_TO_DATE_FUNCTION_NAME, CAST_STRING_TO_DATE},
-    {CAST_TO_TIMESTAMP_FUNCTION_NAME, CAST_STRING_TO_TIMESTAMP},
-    {CAST_TO_INTERVAL_FUNCTION_NAME, CAST_STRING_TO_INTERVAL},
-    {CAST_TO_STRING_FUNCTION_NAME, CAST_TO_STRING}, {LIST_CREATION_FUNC_NAME, LIST_CREATION},
-    {ID_FUNC_NAME, INTERNAL_ID}, {ABS_FUNC_NAME, ABS}, {FLOOR_FUNC_NAME, FLOOR},
-    {CEIL_FUNC_NAME, CEIL}, {SIN_FUNC_NAME, SIN}, {COS_FUNC_NAME, COS}, {TAN_FUNC_NAME, TAN},
-    {COT_FUNC_NAME, COT}, {ASIN_FUNC_NAME, ASIN}, {ACOS_FUNC_NAME, ACOS}, {ATAN_FUNC_NAME, ATAN},
-    {EVEN_FUNC_NAME, EVEN}, {FACTORIAL_FUNC_NAME, FACTORIAL}, {SIGN_FUNC_NAME, SIGN},
-    {SQRT_FUNC_NAME, SQRT}, {CBRT_FUNC_NAME, CBRT}, {GAMMA_FUNC_NAME, GAMMA},
-    {LGAMMA_FUNC_NAME, LGAMMA}, {LN_FUNC_NAME, LN}, {LOG_FUNC_NAME, LOG}, {LOG2_FUNC_NAME, LOG2},
-    {DEGREES_FUNC_NAME, DEGREES}, {RADIANS_FUNC_NAME, RADIANS}};
+    {CAST_TO_DATE_FUNCTION_NAME, CAST_STRING_TO_DATE},           //
+    {CAST_TO_TIMESTAMP_FUNCTION_NAME, CAST_STRING_TO_TIMESTAMP}, //
+    {CAST_TO_INTERVAL_FUNCTION_NAME, CAST_STRING_TO_INTERVAL},   //
+    {CAST_TO_STRING_FUNCTION_NAME, CAST_TO_STRING},              //
+    {LIST_CREATION_FUNC_NAME, LIST_CREATION},                    //
+    {ID_FUNC_NAME, INTERNAL_ID},                                 //
+    {ABS_FUNC_NAME, ABS},                                        //
+    {FLOOR_FUNC_NAME, FLOOR},                                    //
+    {CEIL_FUNC_NAME, CEIL},                                      //
+    {SIN_FUNC_NAME, SIN},                                        //
+    {COS_FUNC_NAME, COS},                                        //
+    {TAN_FUNC_NAME, TAN},                                        //
+    {COT_FUNC_NAME, COT},                                        //
+    {ASIN_FUNC_NAME, ASIN},                                      //
+    {ACOS_FUNC_NAME, ACOS},                                      //
+    {ATAN_FUNC_NAME, ATAN},                                      //
+    {EVEN_FUNC_NAME, EVEN},                                      //
+    {FACTORIAL_FUNC_NAME, FACTORIAL},                            //
+    {SIGN_FUNC_NAME, SIGN},                                      //
+    {SQRT_FUNC_NAME, SQRT},                                      //
+    {CBRT_FUNC_NAME, CBRT},                                      //
+    {GAMMA_FUNC_NAME, GAMMA},                                    //
+    {LGAMMA_FUNC_NAME, LGAMMA},                                  //
+    {LN_FUNC_NAME, LN},                                          //
+    {LOG_FUNC_NAME, LOG},                                        //
+    {LOG2_FUNC_NAME, LOG2},                                      //
+    {DEGREES_FUNC_NAME, DEGREES},                                //
+    {RADIANS_FUNC_NAME, RADIANS}};
 
 class BuiltInFunctionsBinder {
 

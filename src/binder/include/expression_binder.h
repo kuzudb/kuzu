@@ -34,8 +34,9 @@ private:
     shared_ptr<Expression> bindPropertyExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindSpecialFunctions(const string& functionName,
+    shared_ptr<Expression> staticEvaluate(const string& functionName,
         const ParsedExpression& parsedExpression, const expression_vector& children);
+
     shared_ptr<Expression> bindCountStarFunctionExpression(
         const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindCountFunctionExpression(const ParsedExpression& parsedExpression);
@@ -52,16 +53,16 @@ private:
         const ParsedExpression& parsedExpression);
 
     /****** cast *****/
-    static shared_ptr<Expression> castUnstructuredToBool(shared_ptr<Expression> expression);
+    static shared_ptr<Expression> implicitCastIfNecessary(
+        const shared_ptr<Expression>& expression, const DataType& targetType);
+    static shared_ptr<Expression> implicitCastToBool(const shared_ptr<Expression>& expression);
+    static shared_ptr<Expression> implicitCastToUnstructured(
+        const shared_ptr<Expression>& expression);
+    static shared_ptr<Expression> implicitCastToString(const shared_ptr<Expression>& expression);
 
     // For overload functions (e.g. arithmetic and comparison), if any parameter is UNSTRUCTURED, we
     // cast all parameters as UNSTRUCTURED.
     static expression_vector castToUnstructuredIfNecessary(const expression_vector& parameters);
-
-    template<typename T>
-    static shared_ptr<Expression> castStringToTemporalLiteral(
-        const shared_ptr<Expression>& expression, ExpressionType expressionType,
-        const DataType& resultType, std::function<T(const char*, uint64_t)> castFunction);
 
     /****** validation *****/
 

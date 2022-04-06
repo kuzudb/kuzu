@@ -30,7 +30,7 @@ scalar_exec_func VectorBooleanOperations::bindBinaryExecFunction(
     assert(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
-    validate(expressionType, leftType, rightType);
+    assert(leftType.typeID == BOOL && rightType.typeID == BOOL);
     switch (expressionType) {
     case AND: {
         return BinaryBooleanExecFunction<operation::And>;
@@ -51,7 +51,7 @@ scalar_select_func VectorBooleanOperations::bindBinarySelectFunction(
     assert(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
-    validate(expressionType, leftType, rightType);
+    assert(leftType.typeID == BOOL && rightType.typeID == BOOL);
     switch (expressionType) {
     case AND: {
         return BinaryBooleanSelectFunction<operation::And>;
@@ -69,9 +69,7 @@ scalar_select_func VectorBooleanOperations::bindBinarySelectFunction(
 
 scalar_exec_func VectorBooleanOperations::bindUnaryExecFunction(
     ExpressionType expressionType, const expression_vector& children) {
-    assert(children.size() == 1);
-    auto childType = children[0]->dataType;
-    validate(expressionType, childType);
+    assert(children.size() == 1 && children[0]->dataType.typeID == BOOL);
     switch (expressionType) {
     case NOT: {
         return UnaryExecFunction<bool, uint8_t, operation::Not>;
@@ -83,33 +81,13 @@ scalar_exec_func VectorBooleanOperations::bindUnaryExecFunction(
 
 scalar_select_func VectorBooleanOperations::bindUnarySelectFunction(
     ExpressionType expressionType, const expression_vector& children) {
-    assert(children.size() == 1);
-    auto childType = children[0]->dataType;
-    validate(expressionType, childType);
+    assert(children.size() == 1 && children[0]->dataType.typeID == BOOL);
     switch (expressionType) {
     case NOT: {
         return UnarySelectFunction<bool, operation::Not>;
     }
     default:
         assert(false);
-    }
-}
-
-void VectorBooleanOperations::validate(
-    ExpressionType expressionType, const DataType& leftType, const DataType& rightType) {
-    if (leftType.typeID != BOOL || rightType.typeID != BOOL) {
-        throw invalid_argument(expressionTypeToString(expressionType) +
-                               " is defined on (BOOL, BOOL) but get (" +
-                               Types::dataTypeToString(leftType.typeID) + ", " +
-                               Types::dataTypeToString(rightType.typeID) + ").");
-    }
-}
-
-void VectorBooleanOperations::validate(ExpressionType expressionType, const DataType& childType) {
-    if (childType.typeID != BOOL) {
-        throw invalid_argument(expressionTypeToString(expressionType) +
-                               " is defined on (BOOL) but get (" +
-                               Types::dataTypeToString(childType.typeID) + ").");
     }
 }
 

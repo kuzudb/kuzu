@@ -4,139 +4,150 @@
 
 #include "src/common/include/vector/value_vector_utils.h"
 #include "src/common/types/include/value.h"
-#include "src/function/include/unary_operation_executor.h"
 
 namespace graphflow {
 namespace function {
 
-void VectorCastOperations::castStructuredToUnstructuredValue(
-    const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
-    assert(params.size() == 1);
-    auto& operand = *params[0];
-    switch (operand.dataType.typeID) {
+pair<scalar_exec_func, DataType> VectorCastOperations::bindExplicitCastStringToDate(
+    const expression_vector& children) {
+    validateNumParameters(CAST_TO_DATE_FUNCTION_NAME, children.size(), 1);
+    validateParameterType(CAST_TO_DATE_FUNCTION_NAME, *children[0], STRING);
+    return make_pair(
+        UnaryExecFunction<gf_string_t, date_t, operation::CastStringToDate>, DataType(DATE));
+}
+
+pair<scalar_exec_func, DataType> VectorCastOperations::bindExplicitCastStringToTimestamp(
+    const expression_vector& children) {
+    validateNumParameters(CAST_TO_TIMESTAMP_FUNCTION_NAME, children.size(), 1);
+    validateParameterType(CAST_TO_TIMESTAMP_FUNCTION_NAME, *children[0], STRING);
+    return make_pair(UnaryExecFunction<gf_string_t, timestamp_t, operation::CastStringToTimestamp>,
+        DataType(TIMESTAMP));
+}
+
+pair<scalar_exec_func, DataType> VectorCastOperations::bindExplicitCastStringToInterval(
+    const expression_vector& children) {
+    validateNumParameters(CAST_TO_INTERVAL_FUNCTION_NAME, children.size(), 1);
+    validateParameterType(CAST_TO_INTERVAL_FUNCTION_NAME, *children[0], STRING);
+    return make_pair(UnaryExecFunction<gf_string_t, interval_t, operation::CastStringToInterval>,
+        DataType(INTERVAL));
+}
+
+pair<scalar_exec_func, DataType> VectorCastOperations::bindExplicitCastToString(
+    const expression_vector& children) {
+    validateNumParameters(CAST_TO_STRING_FUNCTION_NAME, children.size(), 1);
+    auto dataTypeID = children[0]->dataType.typeID;
+    switch (children[0]->dataType.typeID) {
     case BOOL: {
-        UnaryOperationExecutor::execute<uint8_t, Value, operation::CastToUnstructured>(
-            operand, result);
-    } break;
+        return make_pair(castToString<bool>, DataType(STRING));
+    }
     case INT64: {
-        UnaryOperationExecutor::execute<int64_t, Value, operation::CastToUnstructured>(
-            operand, result);
-    } break;
+        return make_pair(castToString<int64_t>, DataType(STRING));
+    }
     case DOUBLE: {
-        UnaryOperationExecutor::execute<double_t, Value, operation::CastToUnstructured>(
-            operand, result);
-    } break;
+        return make_pair(castToString<double_t>, DataType(STRING));
+    }
     case DATE: {
-        UnaryOperationExecutor::execute<date_t, Value, operation::CastToUnstructured>(
-            operand, result);
-    } break;
+        return make_pair(castToString<date_t>, DataType(STRING));
+    }
     case TIMESTAMP: {
-        UnaryOperationExecutor::execute<timestamp_t, Value, operation::CastToUnstructured>(
-            operand, result);
-    } break;
+        return make_pair(castToString<timestamp_t>, DataType(STRING));
+    }
     case INTERVAL: {
-        UnaryOperationExecutor::execute<interval_t, Value, operation::CastToUnstructured>(
-            operand, result);
-    } break;
-    case STRING: {
-        auto outValues = (Value*)result.values;
-        if (operand.state->isFlat()) {
-            auto pos = operand.state->getPositionOfCurrIdx();
-            assert(pos == result.state->getPositionOfCurrIdx());
-            ValueVectorUtils::addGFStringToUnstructuredVector(
-                result, pos, ((gf_string_t*)operand.values)[pos]);
-            outValues[pos].dataType.typeID = STRING;
-        } else {
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                ValueVectorUtils::addGFStringToUnstructuredVector(
-                    result, pos, ((gf_string_t*)operand.values)[pos]);
-                outValues[pos].dataType.typeID = STRING;
-            }
-        }
-    } break;
+        return make_pair(castToString<interval_t>, DataType(STRING));
+    }
+    case UNSTRUCTURED: {
+        return make_pair(castToString<Value>, DataType(UNSTRUCTURED));
+    }
     default:
-        assert(false);
+        throw NotImplementedException("Explicit cast from " + Types::dataTypeToString(dataTypeID) +
+                                      " to STRING is not supported.");
     }
 }
 
-void VectorCastOperations::castStructuredToString(
+scalar_exec_func VectorCastOperations::bindImplicitCastToBool(const expression_vector& children) {
+    assert(children.size() == 1 && children[0]->dataType.typeID != BOOL);
+    auto child = children[0];
+    switch (children[0]->dataType.typeID) {
+    case UNSTRUCTURED: {
+        return UnaryExecFunction<Value, uint8_t, operation::CastUnstructuredToBool>;
+    }
+    default:
+        throw NotImplementedException("Expression " + child->getRawName() + " has data type " +
+                                      Types::dataTypeToString(child->dataType) +
+                                      " but expect BOOL. Implicit cast is not supported.");
+    }
+}
+
+scalar_exec_func VectorCastOperations::bindImplicitCastToString(const expression_vector& children) {
+    assert(children.size() == 1 && children[0]->dataType.typeID != STRING);
+    auto child = children[0];
+    switch (child->dataType.typeID) {
+    case UNSTRUCTURED: {
+        return castToString<Value>;
+    }
+    default:
+        throw NotImplementedException("Expression " + child->getRawName() + " has data type " +
+                                      Types::dataTypeToString(child->dataType) +
+                                      " but expect STRING. Implicit cast is not supported.");
+    }
+}
+
+scalar_exec_func VectorCastOperations::bindImplicitCastToUnstructured(
+    const expression_vector& children) {
+    assert(children.size() == 1 && children[0]->dataType.typeID != UNSTRUCTURED);
+    auto child = children[0];
+    switch (child->dataType.typeID) {
+    case BOOL: {
+        return UnaryExecFunction<uint8_t, Value, operation::CastToUnstructured>;
+    }
+    case INT64: {
+        return UnaryExecFunction<int64_t, Value, operation::CastToUnstructured>;
+    }
+    case DOUBLE: {
+        return UnaryExecFunction<double_t, Value, operation::CastToUnstructured>;
+    }
+    case DATE: {
+        return UnaryExecFunction<date_t, Value, operation::CastToUnstructured>;
+    }
+    case TIMESTAMP: {
+        return UnaryExecFunction<timestamp_t, Value, operation::CastToUnstructured>;
+    }
+    case INTERVAL: {
+        return UnaryExecFunction<interval_t, Value, operation::CastToUnstructured>;
+    }
+    case STRING: {
+        return castStringToUnstructured;
+    }
+    default:
+        throw NotImplementedException("Expression " + child->getRawName() + " has data type " +
+                                      Types::dataTypeToString(child->dataType) +
+                                      " but expect UNSTRUCTURED. Implicit cast is not supported.");
+    }
+}
+
+// TODO(Guodong): make this function reuse string function executor. Also consider to refactor
+// ValueVector.addString() interface to make it also works for unstructured value vector.
+void VectorCastOperations::castStringToUnstructured(
     const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
     assert(params.size() == 1);
     auto& operand = *params[0];
-    assert((operand.dataType.typeID == INT64 || operand.dataType.typeID == DOUBLE ||
-               operand.dataType.typeID == BOOL || operand.dataType.typeID == DATE ||
-               operand.dataType.typeID == TIMESTAMP || operand.dataType.typeID == INTERVAL) &&
-           result.dataType.typeID == STRING);
+    result.resetOverflowBuffer();
+    auto outValues = (Value*)result.values;
     if (operand.state->isFlat()) {
         auto pos = operand.state->getPositionOfCurrIdx();
-        auto resPos = result.state->getPositionOfCurrIdx();
-        string val;
-        switch (operand.dataType.typeID) {
-        case BOOL: {
-            val = TypeUtils::toString(((bool*)operand.values)[pos]);
-        } break;
-        case INT64: {
-            val = TypeUtils::toString(((int64_t*)operand.values)[pos]);
-        } break;
-        case DOUBLE: {
-            val = TypeUtils::toString(((double_t*)operand.values)[pos]);
-        } break;
-        case DATE: {
-            val = Date::toString(((date_t*)operand.values)[pos]);
-        } break;
-        case TIMESTAMP: {
-            val = Timestamp::toString(((timestamp_t*)operand.values)[pos]);
-        } break;
-        case INTERVAL: {
-            val = Interval::toString(((interval_t*)operand.values)[pos]);
-        } break;
-        default:
-            assert(false);
+        assert(pos == result.state->getPositionOfCurrIdx());
+        result.setNull(pos, operand.isNull(pos));
+        if (!result.isNull(pos)) {
+            ValueVectorUtils::addGFStringToUnstructuredVector(
+                result, pos, ((gf_string_t*)operand.values)[pos]);
+            outValues[pos].dataType.typeID = STRING;
         }
-        result.addString(resPos, val);
     } else {
-        switch (operand.dataType.typeID) {
-        case BOOL: {
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                result.addString(pos, TypeUtils::toString(((bool*)operand.values)[pos]));
-            }
-        } break;
-        case INT64: {
-            auto intValues = (int64_t*)operand.values;
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                result.addString(pos, TypeUtils::toString(intValues[pos]));
-            }
-        } break;
-        case DOUBLE: {
-            auto doubleValues = (double_t*)operand.values;
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                result.addString(pos, TypeUtils::toString(doubleValues[pos]));
-            }
-        } break;
-        case DATE: {
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                result.addString(pos, Date::toString(((date_t*)operand.values)[pos]));
-            }
-        } break;
-        case TIMESTAMP: {
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                result.addString(pos, Timestamp::toString(((timestamp_t*)operand.values)[pos]));
-            }
-        } break;
-        case INTERVAL: {
-            for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                auto pos = operand.state->selectedPositions[i];
-                result.addString(pos, Interval::toString(((interval_t*)operand.values)[pos]));
-            }
-        } break;
-        default:
-            assert(false);
+        for (auto i = 0u; i < operand.state->selectedSize; i++) {
+            auto pos = operand.state->selectedPositions[i];
+            ValueVectorUtils::addGFStringToUnstructuredVector(
+                result, pos, ((gf_string_t*)operand.values)[pos]);
+            outValues[pos].dataType.typeID = STRING;
         }
     }
 }
