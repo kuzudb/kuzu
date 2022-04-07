@@ -92,6 +92,15 @@ pair<scalar_exec_func, DataType> BuiltInFunctionsBinder::bindExecFunction(
     case RADIANS: {
         return VectorArithmeticOperations::bindRadiansExecFunction(children);
     }
+    case ATAN2: {
+        return VectorArithmeticOperations::bindAtan2ExecFunction(children);
+    }
+    case ROUND: {
+        return VectorArithmeticOperations::bindRoundExecFunction(children);
+    }
+    case XOR: {
+        return VectorArithmeticOperations::bindXorExecFunction(children);
+    }
     default:
         assert(false);
     }

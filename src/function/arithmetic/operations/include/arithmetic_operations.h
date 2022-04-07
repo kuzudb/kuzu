@@ -250,6 +250,31 @@ struct Radians {
     }
 };
 
+struct Atan2 {
+    template<class A, class B, class R>
+    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
+        assert(!isLeftNull && !isRightNull);
+        result = atan2(left, right);
+    }
+};
+
+struct Round {
+    template<class A, class B, class R>
+    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
+        assert(!isLeftNull && !isRightNull);
+        auto multiplier = pow(10, right);
+        result = round(left * multiplier) / multiplier;
+    }
+};
+
+struct BitWiseXor {
+    template<class T, class R>
+    static inline void operation(T& left, T& right, R& result, bool isLeftNull, bool isRightNull) {
+        assert(!isLeftNull && !isRightNull);
+        result = left ^ right;
+    }
+};
+
 /********************************************
  **                                        **
  **   Specialized Modulo implementations   **
@@ -428,6 +453,9 @@ static const char log2Str[] = "log2";
 static const char degreesStr[] = "degrees";
 static const char radiansStr[] = "radians";
 static const char bitCountStr[] = "bitCount";
+static const char atan2Str[] = "atan2";
+static const char roundStr[] = "round";
+static const char xorStr[] = "xor";
 
 template<>
 inline void Add::operation(
@@ -655,6 +683,64 @@ template<>
 inline void Radians::operation(Value& operand, bool isNull, Value& result) {
     ArithmeticOnValues::operation<Radians, radiansStr>(operand, isNull, result);
 };
+
+template<>
+inline void Atan2::operation(
+    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
+    result.dataType.typeID = DOUBLE;
+    switch (left.dataType.typeID) {
+    case INT64:
+        switch (right.dataType.typeID) {
+        case INT64: {
+            Atan2::operation(left.val.int64Val, right.val.int64Val, result.val.doubleVal,
+                isLeftNull, isRightNull);
+        } break;
+        case DOUBLE: {
+            Atan2::operation(left.val.int64Val, right.val.doubleVal, result.val.doubleVal,
+                isLeftNull, isRightNull);
+        } break;
+        default:
+            throw invalid_argument("Cannot atan2 `INT64` and `" +
+                                   Types::dataTypeToString(right.dataType.typeID) + "`");
+        }
+        break;
+    case DOUBLE:
+        switch (right.dataType.typeID) {
+        case INT64: {
+            Atan2::operation(left.val.doubleVal, right.val.int64Val, result.val.doubleVal,
+                isLeftNull, isRightNull);
+        } break;
+        case DOUBLE: {
+            Atan2::operation(left.val.doubleVal, right.val.doubleVal, result.val.doubleVal,
+                isLeftNull, isRightNull);
+        } break;
+        default:
+            throw invalid_argument("Cannot atan2 `DOUBLE` and `" +
+                                   Types::dataTypeToString(right.dataType.typeID) + "`");
+        }
+        break;
+    default:
+        throw invalid_argument("Cannot atan2 `INT64` and `" +
+                               Types::dataTypeToString(left.dataType.typeID) + "` and `" +
+                               Types::dataTypeToString(right.dataType.typeID) + "`");
+    }
+}
+
+template<>
+inline void Round::operation(
+    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
+    result.dataType.typeID = DOUBLE;
+    Round::operation(
+        left.val.doubleVal, right.val.int64Val, result.val.doubleVal, isLeftNull, isRightNull);
+}
+
+template<>
+inline void BitWiseXor::operation(
+    Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
+    result.dataType.typeID = INT64;
+    BitWiseXor::operation(
+        left.val.int64Val, right.val.int64Val, result.val.int64Val, isLeftNull, isRightNull);
+}
 
 } // namespace operation
 } // namespace function

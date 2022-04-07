@@ -149,6 +149,80 @@ pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindRadiansExecFunc
     return bindUnaryExecFunction<operation::Radians>(children[0]->dataType);
 }
 
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindAtan2ExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(ATAN2_FUNC_NAME, children.size(), 2);
+    validateParameterType(ATAN2_FUNC_NAME, *children[0], {INT64, DOUBLE, UNSTRUCTURED});
+    validateParameterType(ATAN2_FUNC_NAME, *children[1], {INT64, DOUBLE, UNSTRUCTURED});
+    switch (children[0]->dataType.typeID) {
+    case INT64:
+        switch (children[1]->dataType.typeID) {
+        case INT64:
+            return make_pair(
+                BinaryExecFunction<int64_t, int64_t, double_t, operation::Atan2>, DataType(DOUBLE));
+
+        case DOUBLE:
+            return make_pair(BinaryExecFunction<int64_t, double_t, double_t, operation::Atan2>,
+                DataType(DOUBLE));
+        }
+    case DOUBLE:
+        switch (children[1]->dataType.typeID) {
+        case INT64:
+            return make_pair(BinaryExecFunction<double_t, int64_t, double_t, operation::Atan2>,
+                DataType(DOUBLE));
+
+        case DOUBLE:
+            return make_pair(BinaryExecFunction<double_t, double_t, double_t, operation::Atan2>,
+                DataType(DOUBLE));
+        }
+
+    case UNSTRUCTURED:
+        assert(children[1]->dataType.typeID == UNSTRUCTURED);
+        return make_pair(
+            BinaryExecFunction<Value, Value, Value, operation::Atan2>, DataType(UNSTRUCTURED));
+    default:
+        assert(false);
+    }
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindRoundExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(ROUND_FUNC_NAME, children.size(), 2);
+    validateParameterType(ROUND_FUNC_NAME, *children[0], {DOUBLE, UNSTRUCTURED});
+    validateParameterType(ROUND_FUNC_NAME, *children[1], {INT64, UNSTRUCTURED});
+    switch (children[0]->dataType.typeID) {
+    case DOUBLE:
+        assert(children[1]->dataType.typeID == INT64);
+        return make_pair(
+            BinaryExecFunction<double_t, int64_t, double_t, operation::Round>, DataType(DOUBLE));
+    case UNSTRUCTURED:
+        assert(children[1]->dataType.typeID == UNSTRUCTURED);
+        return make_pair(
+            BinaryExecFunction<Value, Value, Value, operation::Round>, DataType(UNSTRUCTURED));
+    default:
+        assert(false);
+    }
+}
+
+pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindXorExecFunction(
+    const expression_vector& children) {
+    validateNumParameters(ROUND_FUNC_NAME, children.size(), 2);
+    validateParameterType(ROUND_FUNC_NAME, *children[0], {INT64, UNSTRUCTURED});
+    validateParameterType(ROUND_FUNC_NAME, *children[1], {INT64, UNSTRUCTURED});
+    switch (children[0]->dataType.typeID) {
+    case INT64:
+        assert(children[1]->dataType.typeID == INT64);
+        return make_pair(
+            BinaryExecFunction<int64_t, int64_t, int64_t, operation::BitWiseXor>, DataType(INT64));
+    case UNSTRUCTURED:
+        assert(children[1]->dataType.typeID == UNSTRUCTURED);
+        return make_pair(
+            BinaryExecFunction<Value, Value, Value, operation::BitWiseXor>, DataType(UNSTRUCTURED));
+    default:
+        assert(false);
+    }
+}
+
 pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindBinaryExecFunction(
     ExpressionType expressionType, const expression_vector& children) {
     assert(children.size() == 2);

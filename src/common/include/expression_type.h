@@ -51,6 +51,9 @@ const string LOG_FUNC_NAME = "LOG";
 const string LOG2_FUNC_NAME = "LOG2";
 const string DEGREES_FUNC_NAME = "DEGREES";
 const string RADIANS_FUNC_NAME = "RADIANS";
+const string ATAN2_FUNC_NAME = "ATAN2";
+const string ROUND_FUNC_NAME = "ROUND";
+const string XOR_FUNC_NAME = "BITWISEXOR";
 
 enum ExpressionType : uint8_t {
 

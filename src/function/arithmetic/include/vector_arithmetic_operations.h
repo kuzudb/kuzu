@@ -61,6 +61,14 @@ public:
     static pair<scalar_exec_func, DataType> bindRadiansExecFunction(
         const expression_vector& children);
 
+    static pair<scalar_exec_func, DataType> bindAtan2ExecFunction(
+        const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindRoundExecFunction(
+        const expression_vector& children);
+
+    static pair<scalar_exec_func, DataType> bindXorExecFunction(const expression_vector& children);
+
 private:
     static pair<scalar_exec_func, DataType> bindBinaryExecFunction(
         ExpressionType expressionType, const expression_vector& children);

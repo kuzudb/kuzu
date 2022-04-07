@@ -25,7 +25,7 @@ enum BuiltInFunctionIndices : uint8_t {
     // id function
     INTERNAL_ID = 100,
 
-    // Arithmetic functions
+    // Unary arithmetic functions
     ABS = 150,
     FLOOR = 151,
     CEIL = 152,
@@ -48,6 +48,11 @@ enum BuiltInFunctionIndices : uint8_t {
     LOG2 = 169,
     DEGREES = 170,
     RADIANS = 171,
+
+    // Binary arithmetic functions
+    ATAN2 = 185,
+    ROUND = 186,
+    XOR = 187,
 };
 
 static const unordered_map<string, BuiltInFunctionIndices> functionNameToIndicesMap{
@@ -78,7 +83,11 @@ static const unordered_map<string, BuiltInFunctionIndices> functionNameToIndices
     {LOG_FUNC_NAME, LOG},                                        //
     {LOG2_FUNC_NAME, LOG2},                                      //
     {DEGREES_FUNC_NAME, DEGREES},                                //
-    {RADIANS_FUNC_NAME, RADIANS}};
+    {RADIANS_FUNC_NAME, RADIANS},                                //
+    {ATAN2_FUNC_NAME, ATAN2},                                    //
+    {ROUND_FUNC_NAME, ROUND},                                    //
+    {XOR_FUNC_NAME, XOR}                                         //
+};
 
 class BuiltInFunctionsBinder {
 
