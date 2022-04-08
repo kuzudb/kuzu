@@ -51,3 +51,74 @@ good|True
 -QUERY MATCH (a:person) WHERE a.fName STARTS WITH "C" RETURN a.fName
 ---- 1
 Carol
+
+-NAME LowerOnStructuredStr
+-QUERY MATCH (a:organisation) return lower(a.name)
+---- 3
+abfsuni
+cswork
+deswork
+
+-NAME LowerOnUnStructuredStr
+-QUERY MATCH (a:organisation) return lower(a.unstrStrProp)
+---- 3
+ very good
+ not good
+
+
+-NAME UpperOnStructuredStr
+-QUERY MATCH (a:organisation) return upper(a.name)
+---- 3
+ABFSUNI
+CSWORK
+DESWORK
+
+-NAME UpperOnUnStructuredStr
+-QUERY MATCH (a:organisation) return upper(a.unstrStrProp)
+---- 3
+ VERY GOOD
+ NOT GOOD
+
+
+-NAME LtrimOnUnStructuredStr
+-QUERY MATCH (a:organisation) return ltrim(a.unstrStrProp)
+---- 3
+vEry good
+not goOd
+
+
+-NAME RtrimOnUnStructuredStr
+-QUERY MATCH (a:organisation) return rtrim(a.unstrStrProp)
+---- 3
+ vEry good
+ not goOd
+
+
+-NAME LengthOnStructuredStr
+-QUERY MATCH (a:organisation) return length(a.name)
+---- 3
+7
+6
+7
+
+-NAME LengthOnUnStructuredStr
+-QUERY MATCH (a:organisation) return length(a.unstrStrProp)
+---- 3
+9
+10
+
+
+-NAME ReverseOnStructuredStr
+-QUERY MATCH (a:organisation) return reverse(a.name)
+---- 3
+inUsFBA
+kroWsC
+kroWsED
+
+
+-NAME ReverseOnUnStructuredStr
+-QUERY MATCH (a:organisation) return reverse(a.unstrStrProp)
+---- 3
+
+dOog ton 
+doog yrEv 

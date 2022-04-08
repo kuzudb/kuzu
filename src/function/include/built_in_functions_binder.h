@@ -53,6 +53,14 @@ enum BuiltInFunctionIndices : uint8_t {
     ATAN2 = 185,
     ROUND = 186,
     XOR = 187,
+
+    // Unary string functions
+    LOWER = 200,
+    UPPER = 201,
+    LTRIM = 202,
+    RTRIM = 203,
+    LENGTH = 204,
+    REVERSE = 205,
 };
 
 static const unordered_map<string, BuiltInFunctionIndices> functionNameToIndicesMap{
@@ -86,7 +94,13 @@ static const unordered_map<string, BuiltInFunctionIndices> functionNameToIndices
     {RADIANS_FUNC_NAME, RADIANS},                                //
     {ATAN2_FUNC_NAME, ATAN2},                                    //
     {ROUND_FUNC_NAME, ROUND},                                    //
-    {XOR_FUNC_NAME, XOR}                                         //
+    {XOR_FUNC_NAME, XOR},                                        //
+    {LOWER_FUNC_NAME, LOWER},                                    //
+    {UPPER_FUNC_NAME, UPPER},                                    //
+    {LTRIM_FUNC_NAME, LTRIM},                                    //
+    {RTRIM_FUNC_NAME, RTRIM},                                    //
+    {LENGTH_FUNC_NAME, LENGTH},                                  //
+    {REVERSE_FUNC_NAME, REVERSE},                                //
 };
 
 class BuiltInFunctionsBinder {

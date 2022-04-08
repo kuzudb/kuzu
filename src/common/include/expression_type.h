@@ -54,6 +54,12 @@ const string RADIANS_FUNC_NAME = "RADIANS";
 const string ATAN2_FUNC_NAME = "ATAN2";
 const string ROUND_FUNC_NAME = "ROUND";
 const string XOR_FUNC_NAME = "BITWISEXOR";
+const string LOWER_FUNC_NAME = "LOWER";
+const string UPPER_FUNC_NAME = "UPPER";
+const string LTRIM_FUNC_NAME = "LTRIM";
+const string RTRIM_FUNC_NAME = "RTRIM";
+const string LENGTH_FUNC_NAME = "LENGTH";
+const string REVERSE_FUNC_NAME = "REVERSE";
 
 enum ExpressionType : uint8_t {
 

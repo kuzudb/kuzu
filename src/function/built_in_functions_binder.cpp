@@ -4,6 +4,14 @@
 #include "cast/include/vector_cast_operations.h"
 #include "list/include/vector_list_operations.h"
 
+#include "src/function/string/include/vector_string_operations.h"
+#include "src/function/string/operations/include/length_operation.h"
+#include "src/function/string/operations/include/lower_operation.h"
+#include "src/function/string/operations/include/ltrim_operation.h"
+#include "src/function/string/operations/include/reverse_operation.h"
+#include "src/function/string/operations/include/rtrim_operation.h"
+#include "src/function/string/operations/include/upper_operation.h"
+
 namespace graphflow {
 namespace function {
 
@@ -100,6 +108,30 @@ pair<scalar_exec_func, DataType> BuiltInFunctionsBinder::bindExecFunction(
     }
     case XOR: {
         return VectorArithmeticOperations::bindXorExecFunction(children);
+    }
+    case LOWER: {
+        return VectorStringOperations::bindUnaryStringFunction<operation::Lower>(
+            children, LOWER_FUNC_NAME);
+    }
+    case UPPER: {
+        return VectorStringOperations::bindUnaryStringFunction<operation::Upper>(
+            children, UPPER_FUNC_NAME);
+    }
+    case LTRIM: {
+        return VectorStringOperations::bindUnaryStringFunction<operation::Ltrim>(
+            children, LTRIM_FUNC_NAME);
+    }
+    case RTRIM: {
+        return VectorStringOperations::bindUnaryStringFunction<operation::Rtrim>(
+            children, RTRIM_FUNC_NAME);
+    }
+    case LENGTH: {
+        return VectorStringOperations::bindUnaryStringFunction<operation::Length>(
+            children, LENGTH_FUNC_NAME);
+    }
+    case REVERSE: {
+        return VectorStringOperations::bindUnaryStringFunction<operation::Reverse>(
+            children, REVERSE_FUNC_NAME);
     }
     default:
         assert(false);
