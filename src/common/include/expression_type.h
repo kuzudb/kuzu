@@ -124,6 +124,11 @@ enum ExpressionType : uint8_t {
     VARIABLE = 90,
 
     /**
+     * Parameter Expression
+     **/
+    PARAMETER = 100,
+
+    /**
      * Cast Expressions
      **/
     FUNCTION = 110,

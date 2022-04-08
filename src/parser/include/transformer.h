@@ -119,6 +119,9 @@ private:
 
     unique_ptr<ParsedExpression> transformListLiteral(CypherParser::OC_ListLiteralContext& ctx);
 
+    unique_ptr<ParsedExpression> transformParameterExpression(
+        CypherParser::OC_ParameterContext& ctx);
+
     unique_ptr<ParsedExpression> transformParenthesizedExpression(
         CypherParser::OC_ParenthesizedExpressionContext& ctx);
 

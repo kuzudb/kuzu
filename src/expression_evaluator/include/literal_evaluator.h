@@ -8,8 +8,8 @@ namespace evaluator {
 class LiteralExpressionEvaluator : public BaseExpressionEvaluator {
 
 public:
-    LiteralExpressionEvaluator(const Literal& literal, bool castToUnstructured)
-        : BaseExpressionEvaluator{}, literal{literal}, castToUnstructured{castToUnstructured} {}
+    LiteralExpressionEvaluator(shared_ptr<Literal> literal)
+        : BaseExpressionEvaluator{}, literal{move(literal)} {}
 
     ~LiteralExpressionEvaluator() = default;
 
@@ -22,15 +22,11 @@ public:
     uint64_t select(sel_t* selectedPos) override;
 
     inline unique_ptr<BaseExpressionEvaluator> clone() override {
-        return make_unique<LiteralExpressionEvaluator>(literal, castToUnstructured);
+        return make_unique<LiteralExpressionEvaluator>(literal);
     }
 
 private:
-    Literal literal;
-    // This is a performance optimization. If we know a literal will be casted to unstructured, we
-    // can perform casting within literal expression evaluator and avoid an extra layer of evaluator
-    // that performs casting.
-    bool castToUnstructured;
+    shared_ptr<Literal> literal;
 };
 
 } // namespace evaluator

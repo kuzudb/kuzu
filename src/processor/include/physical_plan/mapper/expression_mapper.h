@@ -23,7 +23,10 @@ public:
 
 private:
     unique_ptr<BaseExpressionEvaluator> mapLiteralExpression(
-        const shared_ptr<Expression>& expression, bool castToUnstructured);
+        const shared_ptr<Expression>& expression);
+
+    unique_ptr<BaseExpressionEvaluator> mapParameterExpression(
+        const shared_ptr<Expression>& expression);
 
     unique_ptr<BaseExpressionEvaluator> mapReferenceExpression(
         const shared_ptr<Expression>& expression, const MapperContext& mapperContext);

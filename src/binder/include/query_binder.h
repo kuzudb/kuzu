@@ -21,6 +21,10 @@ public:
 
     unique_ptr<BoundRegularQuery> bind(const RegularQuery& regularQuery);
 
+    inline unordered_map<string, shared_ptr<Literal>> getParameterMap() {
+        return expressionBinder.parameterMap;
+    }
+
 private:
     unique_ptr<BoundSingleQuery> bindSingleQuery(const SingleQuery& singleQuery);
 

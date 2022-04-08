@@ -9,9 +9,7 @@ cc_library(
         "include/expression.h",
     ],
     visibility = [
-        "//src/binder:__subpackages__",
-        "//src/function:__subpackages__",
-        "//src/planner:__subpackages__",
+        "//visibility:public",
     ],
     deps = [
         "//src/common:expression_type",
@@ -31,6 +29,7 @@ cc_library(
         "include/function_expression.h",
         "include/literal_expression.h",
         "include/node_expression.h",
+        "include/parameter_expression.h",
         "include/property_expression.h",
         "include/rel_expression.h",
     ],

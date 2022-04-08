@@ -7,13 +7,8 @@ namespace evaluator {
 
 void LiteralExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
     assert(children.empty());
-    if (castToUnstructured) {
-        resultVector = make_shared<ValueVector>(memoryManager, UNSTRUCTURED);
-        ValueVectorUtils::addLiteralToUnstructuredVector(*resultVector, 0, literal);
-    } else {
-        resultVector = make_shared<ValueVector>(memoryManager, literal.dataType);
-        ValueVectorUtils::addLiteralToStructuredVector(*resultVector, 0, literal);
-    }
+    resultVector = make_shared<ValueVector>(memoryManager, literal->dataType);
+    ValueVectorUtils::addLiteralToStructuredVector(*resultVector, 0, *literal);
     resultVector->state = DataChunkState::getSingleValueDataChunkState();
 }
 

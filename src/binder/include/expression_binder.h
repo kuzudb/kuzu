@@ -2,8 +2,10 @@
 
 #include "src/binder/expression/include/expression.h"
 #include "src/catalog/include/catalog.h"
+#include "src/common/types/include/literal.h"
 #include "src/parser/expression/include/parsed_expression.h"
 
+using namespace graphflow::common;
 using namespace graphflow::parser;
 using namespace graphflow::catalog;
 
@@ -44,6 +46,8 @@ private:
     shared_ptr<Expression> bindSumMinMaxFunctionExpression(
         const ParsedExpression& parsedExpression, ExpressionType expressionType);
     shared_ptr<Expression> bindIDFunctionExpression(const ParsedExpression& parsedExpression);
+
+    shared_ptr<Expression> bindParameterExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindLiteralExpression(const ParsedExpression& parsedExpression);
 
@@ -89,6 +93,7 @@ private:
 
 private:
     QueryBinder* queryBinder;
+    unordered_map<string, shared_ptr<Literal>> parameterMap;
 };
 
 } // namespace binder

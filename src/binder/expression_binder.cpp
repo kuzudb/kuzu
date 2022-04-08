@@ -3,6 +3,7 @@
 #include "src/binder/expression/include/existential_subquery_expression.h"
 #include "src/binder/expression/include/function_expression.h"
 #include "src/binder/expression/include/literal_expression.h"
+#include "src/binder/expression/include/parameter_expression.h"
 #include "src/binder/expression/include/rel_expression.h"
 #include "src/binder/include/query_binder.h"
 #include "src/common/include/type_utils.h"
@@ -15,6 +16,7 @@
 #include "src/function/string/include/vector_string_operations.h"
 #include "src/parser/expression/include/parsed_function_expression.h"
 #include "src/parser/expression/include/parsed_literal_expression.h"
+#include "src/parser/expression/include/parsed_parameter_expression.h"
 #include "src/parser/expression/include/parsed_property_expression.h"
 #include "src/parser/expression/include/parsed_subquery_expression.h"
 #include "src/parser/expression/include/parsed_variable_expression.h"
@@ -51,6 +53,8 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         expression = bindFunctionExpression(parsedExpression);
     } else if (PROPERTY == expressionType) {
         expression = bindPropertyExpression(parsedExpression);
+    } else if (PARAMETER == expressionType) {
+        expression = bindParameterExpression(parsedExpression);
     } else if (isExpressionLiteral(expressionType)) {
         expression = bindLiteralExpression(parsedExpression);
     } else if (VARIABLE == expressionType) {
@@ -273,6 +277,19 @@ shared_ptr<Expression> ExpressionBinder::bindIDFunctionExpression(
         UINT32_MAX /* property key for internal id */, move(child));
 }
 
+shared_ptr<Expression> ExpressionBinder::bindParameterExpression(
+    const ParsedExpression& parsedExpression) {
+    auto& parsedParameterExpression = (ParsedParameterExpression&)parsedExpression;
+    auto parameterName = parsedParameterExpression.getParameterName();
+    if (parameterMap.contains(parameterName)) {
+        return make_shared<ParameterExpression>(parameterName, parameterMap.at(parameterName));
+    } else {
+        auto literal = make_shared<Literal>();
+        parameterMap.insert({parameterName, literal});
+        return make_shared<ParameterExpression>(parameterName, literal);
+    }
+}
+
 shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
     const ParsedExpression& parsedExpression) {
     auto& literalExpression = (ParsedLiteralExpression&)parsedExpression;
@@ -320,6 +337,11 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
 shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     const shared_ptr<Expression>& expression, const DataType& targetType) {
     if (expression->dataType.typeID == targetType.typeID) {
+        return expression;
+    }
+    if (expression->dataType.typeID == INVALID) { // resolve type for parameter expression
+        assert(expression->expressionType == PARAMETER);
+        static_pointer_cast<ParameterExpression>(expression)->setDataType(targetType);
         return expression;
     }
     switch (targetType.typeID) {

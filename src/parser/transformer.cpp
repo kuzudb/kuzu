@@ -2,6 +2,7 @@
 
 #include "expression/include/parsed_function_expression.h"
 #include "expression/include/parsed_literal_expression.h"
+#include "expression/include/parsed_parameter_expression.h"
 #include "expression/include/parsed_property_expression.h"
 #include "expression/include/parsed_subquery_expression.h"
 #include "expression/include/parsed_variable_expression.h"
@@ -464,6 +465,8 @@ unique_ptr<ParsedExpression> Transformer::transformPropertyOrLabelsExpression(
 unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_AtomContext& ctx) {
     if (ctx.oC_Literal()) {
         return transformLiteral(*ctx.oC_Literal());
+    } else if (ctx.oC_Parameter()) {
+        return transformParameterExpression(*ctx.oC_Parameter());
     } else if (ctx.oC_ParenthesizedExpression()) {
         return transformParenthesizedExpression(*ctx.oC_ParenthesizedExpression());
     } else if (ctx.oC_FunctionInvocation()) {
@@ -514,6 +517,13 @@ unique_ptr<ParsedExpression> Transformer::transformListLiteral(
         listCreation->addChild(transformExpression(*childExpr));
     }
     return listCreation;
+}
+
+unique_ptr<ParsedExpression> Transformer::transformParameterExpression(
+    CypherParser::OC_ParameterContext& ctx) {
+    auto parameterName =
+        ctx.oC_SymbolicName() ? ctx.oC_SymbolicName()->getText() : ctx.DecimalInteger()->getText();
+    return make_unique<ParsedParameterExpression>(parameterName, ctx.getText());
 }
 
 unique_ptr<ParsedExpression> Transformer::transformParenthesizedExpression(

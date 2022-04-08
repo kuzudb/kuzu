@@ -14,6 +14,8 @@ class Literal {
 public:
     Literal() : dataType{INVALID} {}
 
+    // TODO(Guodong): initializing literal with only datatype doesn't make sense to me. Consider
+    // remove this interface.
     explicit Literal(DataType dataType) : dataType{move(dataType)} {}
 
     Literal(const Literal& other);
@@ -32,6 +34,13 @@ public:
 
     explicit Literal(const string& value) : dataType(STRING) { this->strVal = value; }
 
+    void bind(const Literal& other);
+
+    template<typename T>
+    static Literal createLiteral(T value) {
+        assert(false);
+    }
+
 public:
     union Val {
         bool booleanVal;
@@ -48,5 +57,41 @@ public:
 
     DataType dataType;
 };
+
+template<>
+inline Literal Literal::createLiteral(bool value) {
+    return Literal(value);
+}
+
+template<>
+inline Literal Literal::createLiteral(int64_t value) {
+    return Literal(value);
+}
+
+template<>
+inline Literal Literal::createLiteral(double_t value) {
+    return Literal(value);
+}
+
+template<>
+inline Literal Literal::createLiteral(date_t value) {
+    return Literal(value);
+}
+
+template<>
+inline Literal Literal::createLiteral(timestamp_t value) {
+    return Literal(value);
+}
+
+template<>
+inline Literal Literal::createLiteral(interval_t value) {
+    return Literal(value);
+}
+
+template<>
+inline Literal Literal::createLiteral(const char* value) {
+    return Literal(string(value));
+}
+
 } // namespace common
 } // namespace graphflow
