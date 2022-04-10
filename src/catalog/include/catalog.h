@@ -12,8 +12,10 @@
 #include "src/common/include/ser_deser.h"
 #include "src/common/include/utils.h"
 #include "src/common/types/include/types_include.h"
+#include "src/function/include/built_in_vector_operations.h"
 
 using namespace graphflow::common;
+using namespace graphflow::function;
 
 namespace spdlog {
 class logger;
@@ -101,6 +103,10 @@ public:
     explicit Catalog(const string& directory);
 
     virtual ~Catalog() = default;
+
+    inline BuiltInVectorOperations* getBuiltInFunctions() const {
+        return builtInVectorOperations.get();
+    }
 
     /**
      * Node and Rel label functions.
@@ -198,6 +204,7 @@ private:
 
 private:
     shared_ptr<spdlog::logger> logger;
+    unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
     vector<NodeLabel> nodeLabels;
     vector<RelLabel> relLabels;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but

@@ -58,7 +58,7 @@ private:
 
     /****** cast *****/
     static shared_ptr<Expression> implicitCastIfNecessary(
-        const shared_ptr<Expression>& expression, const DataType& targetType);
+        const shared_ptr<Expression>& expression, DataTypeID targetTypeID);
     static shared_ptr<Expression> implicitCastToBool(const shared_ptr<Expression>& expression);
     static shared_ptr<Expression> implicitCastToUnstructured(
         const shared_ptr<Expression>& expression);

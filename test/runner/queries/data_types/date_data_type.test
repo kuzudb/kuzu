@@ -248,3 +248,10 @@ Birthdate: 1990-11-27 test
 unstrDate: 1900-01-01 test
 unstrDate: 1950-01-01 test
 unstrDate: 1950-01-01 test
+
+-NAME CastToDate
+-QUERY MATCH (a:organisation) RETURN date(a.unstrStringProp)
+---- 3
+
+
+1900-01-01

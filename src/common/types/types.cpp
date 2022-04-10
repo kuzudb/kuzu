@@ -84,6 +84,26 @@ string Types::dataTypeToString(DataTypeID dataTypeID) {
     return DataTypeIdNames[dataTypeID];
 }
 
+string Types::dataTypesToString(const vector<DataType>& dataTypes) {
+    vector<DataTypeID> dataTypeIDs;
+    for (auto& dataType : dataTypes) {
+        dataTypeIDs.push_back(dataType.typeID);
+    }
+    return dataTypesToString(dataTypeIDs);
+}
+
+string Types::dataTypesToString(const vector<DataTypeID>& dataTypeIDs) {
+    if (dataTypeIDs.empty()) {
+        return string("");
+    }
+    string result = "(" + Types::dataTypeToString(dataTypeIDs[0]);
+    for (auto i = 1u; i < dataTypeIDs.size(); ++i) {
+        result += "," + Types::dataTypeToString(dataTypeIDs[i]);
+    }
+    result += ")";
+    return result;
+}
+
 bool Types::isNumericalType(DataTypeID dataTypeID) {
     return dataTypeID == INT64 || dataTypeID == DOUBLE;
 }

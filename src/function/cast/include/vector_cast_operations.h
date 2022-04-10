@@ -20,18 +20,6 @@ namespace function {
 class VectorCastOperations : public VectorOperations {
 
 public:
-    static pair<scalar_exec_func, DataType> bindExplicitCastStringToDate(
-        const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindExplicitCastStringToTimestamp(
-        const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindExplicitCastStringToInterval(
-        const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindExplicitCastToString(
-        const expression_vector& children);
-
     static scalar_exec_func bindImplicitCastToBool(const expression_vector& children);
 
     static scalar_exec_func bindImplicitCastToString(const expression_vector& children);
@@ -67,6 +55,22 @@ public:
 
     static void castStringToUnstructured(
         const vector<shared_ptr<ValueVector>>& params, ValueVector& result);
+};
+
+struct CastToDateVectorOperation : public VectorCastOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CastToTimestampVectorOperation : public VectorCastOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CastToIntervalVectorOperation : public VectorCastOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CastToStringVectorOperation : public VectorCastOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
 } // namespace function

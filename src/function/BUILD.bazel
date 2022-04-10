@@ -17,9 +17,7 @@ cc_library(
 
 cc_library(
     name = "function",
-    srcs = [
-        "vector_operations.cpp",
-    ],
+    srcs = [],
     hdrs = [
         "include/binary_operation_executor.h",
         "include/unary_operation_executor.h",
@@ -39,13 +37,14 @@ cc_library(
 cc_library(
     name = "function_binder",
     srcs = [
-        "built_in_functions_binder.cpp",
+        "built_in_vector_operations.cpp",
     ],
     hdrs = [
-        "include/built_in_functions_binder.h",
+        "include/built_in_vector_operations.h",
     ],
     visibility = [
         "//src/binder:__pkg__",
+        "//src/catalog:__pkg__",
     ],
     deps = [
         "//src/function/arithmetic:vector_arithmetic_operations",

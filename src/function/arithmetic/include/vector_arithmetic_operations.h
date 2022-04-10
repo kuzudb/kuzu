@@ -8,86 +8,201 @@ namespace function {
 class VectorArithmeticOperations : public VectorOperations {
 
 public:
-    static pair<scalar_exec_func, DataType> bindExecFunction(
-        ExpressionType expressionType, const expression_vector& children);
+    template<typename FUNC, bool INT_RESULT = false, bool DOUBLE_RESULT = false>
+    static unique_ptr<VectorOperationDefinition> getUnaryDefinition(
+        string name, DataTypeID operandTypeID, DataTypeID resultTypeID) {
+        return make_unique<VectorOperationDefinition>(move(name), vector<DataTypeID>{operandTypeID},
+            resultTypeID, getUnaryExecFunc<FUNC, INT_RESULT, DOUBLE_RESULT>(operandTypeID));
+    }
 
-    static pair<scalar_exec_func, DataType> bindAbsExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindFloorExecFunction(
-        const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindCeilExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindSinExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindCosExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindTanExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindCotExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindAsinExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindAcosExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindAtanExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindEvenExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindFactorialExecFunction(
-        const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindSignExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindSqrtExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindCbrtExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindGammaExecFunction(
-        const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindLgammaExecFunction(
-        const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindLnExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindLogExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindLog2ExecFunction(const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindDegreesExecFunction(
-        const expression_vector& children);
-
-    static pair<scalar_exec_func, DataType> bindRadiansExecFunction(
-        const expression_vector& children);
+    template<typename FUNC, bool DOUBLE_RESULT = false>
+    static inline unique_ptr<VectorOperationDefinition> getBinaryDefinition(
+        string name, DataTypeID leftTypeID, DataTypeID rightTypeID, DataTypeID resultTypeID) {
+        return make_unique<VectorOperationDefinition>(move(name),
+            vector<DataTypeID>{leftTypeID, rightTypeID}, resultTypeID,
+            getBinaryExecFunc<FUNC, DOUBLE_RESULT>(leftTypeID, rightTypeID));
+    }
 
 private:
-    static pair<scalar_exec_func, DataType> bindBinaryExecFunction(
-        ExpressionType expressionType, const expression_vector& children);
+    template<typename FUNC, bool DOUBLE_RESULT>
+    static scalar_exec_func getBinaryExecFunc(DataTypeID leftTypeID, DataTypeID rightTypeID) {
+        switch (leftTypeID) {
+        case INT64: {
+            switch (rightTypeID) {
+            case INT64: {
+                if constexpr (DOUBLE_RESULT) {
+                    return BinaryExecFunction<int64_t, int64_t, double_t, FUNC>;
+                } else {
+                    return BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
+                }
+            }
+            case DOUBLE: {
+                return BinaryExecFunction<int64_t, double_t, double_t, FUNC>;
+            }
+            default:
+                assert(false);
+            }
+        }
+        case DOUBLE: {
+            switch (rightTypeID) {
+            case INT64: {
+                return BinaryExecFunction<double_t, int64_t, double_t, FUNC>;
+            }
+            case DOUBLE: {
+                return BinaryExecFunction<double_t, double_t, double_t, FUNC>;
+            }
+            default:
+                assert(false);
+            }
+        }
+        case UNSTRUCTURED: {
+            return BinaryExecFunction<Value, Value, Value, FUNC>;
+        }
+        default:
+            assert(false);
+        }
+    }
 
-    static pair<scalar_exec_func, DataType> bindStringArithmeticExecFunction(
-        ExpressionType expressionType, const expression_vector& children);
+    template<typename FUNC, bool INT_RESULT, bool DOUBLE_RESULT>
+    static scalar_exec_func getUnaryExecFunc(DataTypeID operandTypeID) {
+        switch (operandTypeID) {
+        case INT64: {
+            if constexpr (DOUBLE_RESULT) {
+                return UnaryExecFunction<int64_t, double_t, FUNC>;
+            } else {
+                return UnaryExecFunction<int64_t, int64_t, FUNC>;
+            }
+        }
+        case DOUBLE: {
+            if constexpr (INT_RESULT) {
+                return UnaryExecFunction<double_t, int64_t, FUNC>;
+            } else {
+                return UnaryExecFunction<double_t, double_t, FUNC>;
+            }
+        }
+        case UNSTRUCTURED: {
+            return UnaryExecFunction<Value, Value, FUNC>;
+        }
+        default:
+            assert(false);
+        }
+    }
+};
 
-    static pair<scalar_exec_func, DataType> bindDateArithmeticExecFunction(
-        ExpressionType expressionType, const expression_vector& children);
+struct AddVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
 
-    static pair<scalar_exec_func, DataType> bindTimestampArithmeticExecFunction(
-        ExpressionType expressionType, const expression_vector& children);
+struct SubtractVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
 
-    static pair<scalar_exec_func, DataType> bindIntervalArithmeticExecFunction(
-        ExpressionType expressionType, const expression_vector& children);
+struct MultiplyVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
 
-    static pair<scalar_exec_func, DataType> bindNumericalArithmeticExecFunction(
-        ExpressionType expressionType, const expression_vector& children);
+struct DivideVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
 
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE>
-    static scalar_exec_func bindNumericalArithmeticExecFunction(ExpressionType expressionType);
+struct ModuloVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
 
-    static pair<scalar_exec_func, DataType> bindUnaryExecFunction(
-        ExpressionType expressionType, const expression_vector& children);
+struct PowerVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
 
-    template<typename FUNC>
-    static pair<scalar_exec_func, DataType> bindUnaryExecFunction(const DataType& operandType);
+struct NegateVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct AbsVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct FloorVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CeilVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct SinVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CosVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct TanVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CotVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct AsinVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct AcosVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct AtanVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct FactorialVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct SqrtVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CbrtVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct GammaVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct LgammaVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct LnVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct LogVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct Log2VectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct DegreesVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct RadiansVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct EvenVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct SignVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
 } // namespace function

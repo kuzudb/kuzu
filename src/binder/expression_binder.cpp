@@ -7,11 +7,9 @@
 #include "src/binder/expression/include/rel_expression.h"
 #include "src/binder/include/query_binder.h"
 #include "src/common/include/type_utils.h"
-#include "src/function/arithmetic/include/vector_arithmetic_operations.h"
 #include "src/function/boolean/include/vector_boolean_operations.h"
 #include "src/function/cast/include/vector_cast_operations.h"
 #include "src/function/comparison/include/vector_comparison_operations.h"
-#include "src/function/include/built_in_functions_binder.h"
 #include "src/function/null/include/vector_null_operations.h"
 #include "src/function/string/include/vector_string_operations.h"
 #include "src/parser/expression/include/parsed_function_expression.h"
@@ -83,7 +81,7 @@ shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = bindExpression(*parsedExpression.getChild(i));
         // Boolean functions are non-overload functions. We cast input to BOOL.
-        child = implicitCastIfNecessary(child, DataType{BOOL});
+        child = implicitCastIfNecessary(child, BOOL);
         children.push_back(move(child));
     }
     auto expressionType = parsedExpression.getExpressionType();
@@ -111,14 +109,23 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 shared_ptr<Expression> ExpressionBinder::bindArithmeticExpression(
     const ParsedExpression& parsedExpression) {
     expression_vector children;
+    vector<DataType> childrenTypes;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        children.push_back(bindExpression(*parsedExpression.getChild(i)));
+        auto child = bindExpression(*parsedExpression.getChild(i));
+        childrenTypes.push_back(child->dataType);
+        children.push_back(move(child));
     }
-    children = castToUnstructuredIfNecessary(children);
-    auto [execFunc, resultTypeId] = VectorArithmeticOperations::bindExecFunction(
-        parsedExpression.getExpressionType(), children);
-    return make_shared<ScalarFunctionExpression>(
-        parsedExpression.getExpressionType(), resultTypeId, move(children), move(execFunc));
+    auto builtInFunctions = queryBinder->catalog.getBuiltInFunctions();
+    auto expressionType = parsedExpression.getExpressionType();
+    auto functionName = expressionTypeToString(parsedExpression.getExpressionType());
+    auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
+    expression_vector childrenAfterCast;
+    for (auto i = 0u; i < children.size(); ++i) {
+        childrenAfterCast.push_back(
+            implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
+    }
+    return make_shared<ScalarFunctionExpression>(expressionType, DataType(function->returnTypeID),
+        move(childrenAfterCast), function->execFunc);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindStringOperatorExpression(
@@ -127,7 +134,7 @@ shared_ptr<Expression> ExpressionBinder::bindStringOperatorExpression(
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = bindExpression(*parsedExpression.getChild(i));
         // String functions are non-overload functions. We cast input to STRING.
-        child = implicitCastIfNecessary(child, DataType{STRING});
+        child = implicitCastIfNecessary(child, STRING);
         children.push_back(move(child));
     }
     auto expressionType = parsedExpression.getExpressionType();
@@ -199,17 +206,30 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     } else if (functionName == MAX_FUNC_NAME) {
         return bindSumMinMaxFunctionExpression(parsedExpression, MAX_FUNC);
     } else {
+        vector<DataType> childrenTypes;
         expression_vector children;
         for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-            children.push_back(bindExpression(*parsedExpression.getChild(i)));
+            auto child = bindExpression(*parsedExpression.getChild(i));
+            childrenTypes.push_back(child->dataType);
+            children.push_back(move(child));
         }
-        if (BuiltInFunctionsBinder::canApplyStaticEvaluation(functionName, children)) {
+        auto builtInFunctions = queryBinder->catalog.getBuiltInFunctions();
+        auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
+        if (builtInFunctions->canApplyStaticEvaluation(functionName, children)) {
             return staticEvaluate(functionName, parsedExpression, children);
         }
-        auto [execFunc, resultType] =
-            BuiltInFunctionsBinder::bindExecFunction(functionName, children);
+        expression_vector childrenAfterCast;
+        for (auto i = 0u; i < children.size(); ++i) {
+            auto targetType = function->isVarLength ? function->parameterTypeIDs[0] :
+                                                      function->parameterTypeIDs[i];
+            childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
+        }
+        auto returnType =
+            function->returnTypeID == LIST ?
+                DataType(LIST, make_unique<DataType>(childrenAfterCast[0]->dataType)) :
+                DataType(function->returnTypeID);
         return make_shared<ScalarFunctionExpression>(
-            FUNCTION, resultType, move(children), move(execFunc));
+            FUNCTION, returnType, move(childrenAfterCast), function->execFunc);
     }
 }
 
@@ -335,16 +355,16 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
-    const shared_ptr<Expression>& expression, const DataType& targetType) {
-    if (expression->dataType.typeID == targetType.typeID) {
+    const shared_ptr<Expression>& expression, DataTypeID targetTypeID) {
+    if (expression->dataType.typeID == targetTypeID) {
         return expression;
     }
     if (expression->dataType.typeID == INVALID) { // resolve type for parameter expression
         assert(expression->expressionType == PARAMETER);
-        static_pointer_cast<ParameterExpression>(expression)->setDataType(targetType);
+        static_pointer_cast<ParameterExpression>(expression)->setDataType(DataType(targetTypeID));
         return expression;
     }
-    switch (targetType.typeID) {
+    switch (targetTypeID) {
     case BOOL: {
         return implicitCastToBool(expression);
     }
@@ -357,7 +377,7 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     default:
         throw NotImplementedException("Expression " + expression->getRawName() + " has data type " +
                                       Types::dataTypeToString(expression->dataType) +
-                                      " but expect " + Types::dataTypeToString(targetType) +
+                                      " but expect " + Types::dataTypeToString(targetTypeID) +
                                       ". Implicit cast is not supported.");
     }
 }
@@ -393,7 +413,7 @@ expression_vector ExpressionBinder::castToUnstructuredIfNecessary(
     }
     expression_vector result;
     for (auto& parameter : parameters) {
-        result.push_back(implicitCastIfNecessary(parameter, DataType{UNSTRUCTURED}));
+        result.push_back(implicitCastIfNecessary(parameter, UNSTRUCTURED));
     }
     return result;
 }

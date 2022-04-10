@@ -59,6 +59,10 @@ public:
     DataType(const DataType& other);
     DataType(DataType&& other) noexcept : typeID{other.typeID}, childType{move(other.childType)} {}
 
+    static inline vector<DataTypeID> getNumericalTypeIDs() {
+        return vector<DataTypeID>{INT64, DOUBLE};
+    }
+
     DataType& operator=(const DataType& other);
 
     inline DataType& operator=(DataType&& other) noexcept {
@@ -81,6 +85,8 @@ public:
     static size_t getDataTypeSize(DataTypeID dataTypeID);
     static string dataTypeToString(const DataType& dataType);
     static string dataTypeToString(DataTypeID dataTypeID);
+    static string dataTypesToString(const vector<DataType>& dataTypes);
+    static string dataTypesToString(const vector<DataTypeID>& dataTypeIDs);
     static DataType dataTypeFromString(const string& dataTypeString);
     static bool isNumericalType(DataTypeID dataTypeID);
     static bool isLiteralType(DataTypeID dataTypeID);

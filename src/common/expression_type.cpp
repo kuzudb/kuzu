@@ -75,19 +75,19 @@ string expressionTypeToString(ExpressionType type) {
     case LESS_THAN_EQUALS:
         return "LESS_THAN_EQUALS";
     case ADD:
-        return "ADD";
+        return ADD_FUNC_NAME;
     case SUBTRACT:
-        return "SUBTRACT";
+        return SUBTRACT_FUNC_NAME;
     case MULTIPLY:
-        return "MULTIPLY";
+        return MULTIPLY_FUNC_NAME;
     case DIVIDE:
-        return "DIVIDE";
+        return DIVIDE_FUNC_NAME;
     case MODULO:
-        return "MODULO";
+        return MODULO_FUNC_NAME;
     case POWER:
-        return "POWER";
+        return POWER_FUNC_NAME;
     case NEGATE:
-        return "NEGATE";
+        return NEGATE_FUNC_NAME;
     case STARTS_WITH:
         return "STARTS_WITH";
     case ENDS_WITH:
