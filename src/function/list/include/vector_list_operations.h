@@ -10,21 +10,12 @@ namespace function {
 class VectorListOperations : public VectorOperations {
 
 public:
-    static pair<scalar_exec_func, DataType> bindListCreationExecFunction(
-        const expression_vector& children) {
-        // TODO(Guodong): allow empty LIST here.
-        assert(!children.empty());
-        auto& expectedDataType = children[0]->dataType;
-        for (auto& child : children) {
-            validateParameterType(LIST_CREATION_FUNC_NAME, *child, expectedDataType.typeID);
-        }
-        DataType listDataType(LIST, make_unique<DataType>(expectedDataType));
-        return make_pair(ListCreation, move(listDataType));
-    }
-
-private:
     static void ListCreation(
         const vector<shared_ptr<ValueVector>>& parameters, ValueVector& result);
+};
+
+struct ListCreationVectorOperation : public VectorListOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
 } // namespace function

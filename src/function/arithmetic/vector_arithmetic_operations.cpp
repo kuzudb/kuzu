@@ -2,437 +2,387 @@
 
 #include "operations/include/arithmetic_operations.h"
 
-#include "src/function/string/include/vector_string_operations.h"
-
 namespace graphflow {
 namespace function {
 
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
-    if (isExpressionBinary(expressionType)) {
-        return bindBinaryExecFunction(expressionType, children);
-    } else if (isExpressionUnary(expressionType)) {
-        return bindUnaryExecFunction(expressionType, children);
+static DataTypeID resolveResultType(DataTypeID leftTypeID, DataTypeID rightTypeID) {
+    if (leftTypeID == DOUBLE || rightTypeID == DOUBLE) {
+        return DOUBLE;
     }
-    assert(false);
+    return INT64;
 }
 
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindAbsExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(ABS_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Abs>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindFloorExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(FLOOR_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Floor>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindCeilExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(CEIL_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Ceil>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindSinExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(SIN_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Sin>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindCosExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(COS_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Cos>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindTanExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(TAN_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Tan>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindCotExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(COT_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Cot>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindAsinExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(ASIN_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Asin>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindAcosExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(ACOS_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Acos>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindAtanExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(ATAN_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Atan>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindEvenExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(EVEN_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Even>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindFactorialExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(FACTORIAL_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Factorial>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindSignExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(SIGN_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Sign>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindSqrtExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(SQRT_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Sqrt>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindCbrtExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(CBRT_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Cbrt>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindGammaExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(GAMMA_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Gamma>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindLgammaExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(LGAMMA_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Lgamma>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindLnExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(LN_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Ln>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindLogExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(LOG_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Log>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindLog2ExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(LOG2_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Log2>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindDegreesExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(DEGREES_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Degrees>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindRadiansExecFunction(
-    const expression_vector& children) {
-    validateNumParameters(RADIANS_FUNC_NAME, children.size(), 1);
-    return bindUnaryExecFunction<operation::Radians>(children[0]->dataType);
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindBinaryExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
-    assert(children.size() == 2);
-    switch (children[0]->dataType.typeID) {
-    case STRING: {
-        return bindStringArithmeticExecFunction(expressionType, children);
-    }
-    case DATE: {
-        return bindDateArithmeticExecFunction(expressionType, children);
-    }
-    case TIMESTAMP: {
-        return bindTimestampArithmeticExecFunction(expressionType, children);
-    }
-    case INTERVAL: {
-        return bindIntervalArithmeticExecFunction(expressionType, children);
-    }
-    default: {
-        return bindNumericalArithmeticExecFunction(expressionType, children);
-    }
-    }
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindStringArithmeticExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
-    assert(expressionType == ADD);
-    validateParameterType(expressionTypeToString(expressionType), *children[1], STRING);
-    return make_pair(
-        VectorStringOperations::bindExecFunction(expressionType, children), DataType(STRING));
-}
-
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindDateArithmeticExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
-    switch (expressionType) {
-    case ADD: {
-        validateParameterType(expressionTypeToString(expressionType), *children[1],
-            unordered_set<DataTypeID>{INT64, INTERVAL});
-        switch (children[1]->dataType.typeID) {
-        case INT64: { // date + int → date
-            return make_pair(
-                BinaryExecFunction<date_t, int64_t, date_t, operation::Add>, DataType(DATE));
-        }
-        case INTERVAL: { // date + interval → date
-            return make_pair(
-                BinaryExecFunction<date_t, interval_t, date_t, operation::Add>, DataType(DATE));
-        }
-        default:
-            assert(false);
+vector<unique_ptr<VectorOperationDefinition>> AddVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
+        for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
+            result.push_back(getBinaryDefinition<operation::Add>(ADD_FUNC_NAME, leftTypeID,
+                rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
         }
     }
-    case SUBTRACT: {
-        validateParameterType(expressionTypeToString(expressionType), *children[1],
-            unordered_set<DataTypeID>{DATE, INT64, INTERVAL});
-        switch (children[1]->dataType.typeID) {
-        case DATE: { // date - date → integer
-            return make_pair(
-                BinaryExecFunction<date_t, date_t, int64_t, operation::Subtract>, DataType(INT64));
-        }
-        case INT64: { // date - integer → date
-            return make_pair(
-                BinaryExecFunction<date_t, int64_t, date_t, operation::Subtract>, DataType(DATE));
-        }
-        case INTERVAL: { // date - interval → date
-            return make_pair(BinaryExecFunction<date_t, interval_t, date_t, operation::Subtract>,
-                DataType(DATE));
-        }
-        default:
-            assert(false);
-        }
-    }
-    default:
-        assert(false);
-    }
+    result.push_back(getBinaryDefinition<operation::Add>(
+        ADD_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, UNSTRUCTURED));
+    // string + string -> string
+    result.push_back(
+        make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, vector<DataTypeID>{STRING, STRING},
+            STRING, BinaryExecFunction<gf_string_t, gf_string_t, gf_string_t, operation::Concat>));
+    // date + int → date
+    result.push_back(
+        make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, vector<DataTypeID>{DATE, INT64}, DATE,
+            BinaryExecFunction<date_t, int64_t, date_t, operation::Add>));
+    // date + interval → date
+    result.push_back(
+        make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, vector<DataTypeID>{DATE, INTERVAL},
+            DATE, BinaryExecFunction<date_t, interval_t, date_t, operation::Add>));
+    // timestamp + interval → timestamp
+    result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
+        vector<DataTypeID>{TIMESTAMP, INTERVAL}, TIMESTAMP,
+        BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Add>));
+    // interval + interval → interval
+    result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
+        vector<DataTypeID>{INTERVAL, INTERVAL}, INTERVAL,
+        BinaryExecFunction<interval_t, interval_t, interval_t, operation::Add>));
+    return result;
 }
 
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindTimestampArithmeticExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
-    switch (expressionType) {
-    case ADD: {
-        validateParameterType(expressionTypeToString(expressionType), *children[1], INTERVAL);
-        switch (children[1]->dataType.typeID) {
-        case INTERVAL: { // timestamp + interval → timestamp
-            return make_pair(
-                BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Add>,
-                DataType(TIMESTAMP));
-        }
-        default:
-            assert(false);
+vector<unique_ptr<VectorOperationDefinition>> SubtractVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
+        for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
+            result.push_back(getBinaryDefinition<operation::Subtract>(SUBTRACT_FUNC_NAME,
+                leftTypeID, rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
         }
     }
-    case SUBTRACT: {
-        validateParameterType(expressionTypeToString(expressionType), *children[1],
-            unordered_set<DataTypeID>{TIMESTAMP, INTERVAL});
-        switch (children[1]->dataType.typeID) {
-        case TIMESTAMP: { // timestamp - timestamp → interval
-            return make_pair(
-                BinaryExecFunction<timestamp_t, timestamp_t, interval_t, operation::Subtract>,
-                DataType(INTERVAL));
-        }
-        case INTERVAL: { // timestamp - interval → timestamp
-            return make_pair(
-                BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Subtract>,
-                DataType(TIMESTAMP));
-        }
-        default:
-            assert(false);
-        }
-    }
-    default:
-        assert(false);
-    }
+    result.push_back(getBinaryDefinition<operation::Subtract>(
+        SUBTRACT_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, UNSTRUCTURED));
+    // date - date → integer
+    result.push_back(
+        make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME, vector<DataTypeID>{DATE, DATE},
+            INT64, BinaryExecFunction<date_t, date_t, int64_t, operation::Subtract>));
+    // date - integer → date
+    result.push_back(
+        make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME, vector<DataTypeID>{DATE, INT64},
+            DATE, BinaryExecFunction<date_t, int64_t, date_t, operation::Subtract>));
+    // date - interval → date
+    result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
+        vector<DataTypeID>{DATE, INTERVAL}, DATE,
+        BinaryExecFunction<date_t, interval_t, date_t, operation::Subtract>));
+    // timestamp - timestamp → interval
+    result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
+        vector<DataTypeID>{TIMESTAMP, TIMESTAMP}, INTERVAL,
+        BinaryExecFunction<timestamp_t, timestamp_t, interval_t, operation::Subtract>));
+    // timestamp - interval → timestamp
+    result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
+        vector<DataTypeID>{TIMESTAMP, INTERVAL}, TIMESTAMP,
+        BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Subtract>));
+    // interval - interval → interval
+    result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
+        vector<DataTypeID>{INTERVAL, INTERVAL}, INTERVAL,
+        BinaryExecFunction<interval_t, interval_t, interval_t, operation::Subtract>));
+    return result;
 }
 
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindIntervalArithmeticExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
-    switch (expressionType) {
-    case ADD: {
-        validateParameterType(expressionTypeToString(expressionType), *children[1], INTERVAL);
-        switch (children[1]->dataType.typeID) {
-        case INTERVAL: { // interval +interval → interval
-            return make_pair(BinaryExecFunction<interval_t, interval_t, interval_t, operation::Add>,
-                DataType(INTERVAL));
-        }
-        default:
-            assert(false);
+vector<unique_ptr<VectorOperationDefinition>> MultiplyVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
+        for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
+            result.push_back(getBinaryDefinition<operation::Multiply>(MULTIPLY_FUNC_NAME,
+                leftTypeID, rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
         }
     }
-    case SUBTRACT: {
-        validateParameterType(expressionTypeToString(expressionType), *children[1], INTERVAL);
-        switch (children[1]->dataType.typeID) {
-        case INTERVAL: { // interval - interval → interval
-            return make_pair(
-                BinaryExecFunction<interval_t, interval_t, interval_t, operation::Subtract>,
-                DataType(INTERVAL));
-        }
-        default:
-            assert(false);
-        }
-    }
-    case DIVIDE: {
-        validateParameterType(expressionTypeToString(expressionType), *children[1], INT64);
-        switch (children[1]->dataType.typeID) {
-        case INT64: { // interval / int → interval
-            return make_pair(BinaryExecFunction<interval_t, int64_t, interval_t, operation::Divide>,
-                DataType(INTERVAL));
-        }
-        default:
-            assert(false);
-        }
-    }
-    default:
-        assert(false);
-    }
+    result.push_back(getBinaryDefinition<operation::Multiply>(
+        MULTIPLY_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
 }
 
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindNumericalArithmeticExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
-    auto leftType = children[0]->dataType;
-    auto rightType = children[1]->dataType;
-    validateParameterType(
-        expressionTypeToString(expressionType), *children[0], {INT64, DOUBLE, UNSTRUCTURED});
-    validateParameterType(
-        expressionTypeToString(expressionType), *children[1], {INT64, DOUBLE, UNSTRUCTURED});
-    switch (leftType.typeID) {
-    case INT64: {
-        switch (rightType.typeID) {
-        case INT64: {
-            return make_pair(
-                bindNumericalArithmeticExecFunction<int64_t, int64_t, int64_t>(expressionType),
-                DataType(INT64));
-        }
-        case DOUBLE: {
-            return make_pair(
-                bindNumericalArithmeticExecFunction<int64_t, double_t, double_t>(expressionType),
-                DataType(DOUBLE));
-        }
-        default:
-            assert(false);
+vector<unique_ptr<VectorOperationDefinition>> DivideVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& leftType : DataType::getNumericalTypeIDs()) {
+        for (auto& rightType : DataType::getNumericalTypeIDs()) {
+            result.push_back(getBinaryDefinition<operation::Divide>(
+                DIVIDE_FUNC_NAME, leftType, rightType, resolveResultType(leftType, rightType)));
         }
     }
-    case DOUBLE: {
-        switch (rightType.typeID) {
-        case INT64: {
-            return make_pair(
-                bindNumericalArithmeticExecFunction<double_t, int64_t, double_t>(expressionType),
-                DataType(DOUBLE));
-        }
-        case DOUBLE: {
-            return make_pair(
-                bindNumericalArithmeticExecFunction<double_t, double_t, double_t>(expressionType),
-                DataType(DOUBLE));
-        }
-        default:
-            assert(false);
-        }
-    }
-    case UNSTRUCTURED: {
-        assert(rightType.typeID == UNSTRUCTURED);
-        return make_pair(bindNumericalArithmeticExecFunction<Value, Value, Value>(expressionType),
-            DataType(UNSTRUCTURED));
-    }
-    default:
-        assert(false);
-    }
+    result.push_back(getBinaryDefinition<operation::Divide>(
+        DIVIDE_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, UNSTRUCTURED));
+    // interval / int → interval
+    result.push_back(make_unique<VectorOperationDefinition>(DIVIDE_FUNC_NAME,
+        vector<DataTypeID>{INTERVAL, INT64}, INTERVAL,
+        BinaryExecFunction<interval_t, int64_t, interval_t, operation::Divide>));
+    return result;
 }
 
-template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE>
-scalar_exec_func VectorArithmeticOperations::bindNumericalArithmeticExecFunction(
-    ExpressionType expressionType) {
-    switch (expressionType) {
-    case ADD: {
-        return BinaryExecFunction<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, operation::Add>;
+vector<unique_ptr<VectorOperationDefinition>> ModuloVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
+        for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
+            result.push_back(getBinaryDefinition<operation::Modulo>(MODULO_FUNC_NAME, leftTypeID,
+                rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
+        }
     }
-    case SUBTRACT: {
-        return BinaryExecFunction<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, operation::Subtract>;
-    }
-    case MULTIPLY: {
-        return BinaryExecFunction<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, operation::Multiply>;
-    }
-    case DIVIDE: {
-        return BinaryExecFunction<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, operation::Divide>;
-    }
-    case MODULO: {
-        return BinaryExecFunction<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, operation::Modulo>;
-    }
-    case POWER: {
-        return BinaryExecFunction<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, operation::Power>;
-    }
-    default:
-        assert(false);
-    }
+    result.push_back(getBinaryDefinition<operation::Modulo>(
+        MODULO_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
 }
 
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindUnaryExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
-    assert(children.size() == 1 && expressionType == NEGATE);
-    return bindUnaryExecFunction<operation::Negate>(children[0]->dataType);
-}
-
-template<typename FUNC>
-pair<scalar_exec_func, DataType> VectorArithmeticOperations::bindUnaryExecFunction(
-    const DataType& operandType) {
-    if constexpr (operation::isFuncInputNumericOutputDouble<FUNC>()) {
-        switch (operandType.typeID) {
-        case INT64: {
-            return make_pair(UnaryExecFunction<int64_t, double_t, FUNC>, DataType(DOUBLE));
-        }
-        case DOUBLE: {
-            return make_pair(UnaryExecFunction<double_t, double_t, FUNC>, DataType(DOUBLE));
-        }
-        case UNSTRUCTURED: {
-            return make_pair(UnaryExecFunction<Value, Value, FUNC>, DataType(UNSTRUCTURED));
-        }
-        default:
-            assert(false);
-        }
-    } else if constexpr (operation::isFuncInputNumericOutputInt64<FUNC>()) {
-        switch (operandType.typeID) {
-        case INT64: {
-            return make_pair(UnaryExecFunction<int64_t, int64_t, FUNC>, DataType(INT64));
-        }
-        case DOUBLE: {
-            return make_pair(UnaryExecFunction<double_t, int64_t, FUNC>, DataType(INT64));
-        }
-        case UNSTRUCTURED: {
-            return make_pair(UnaryExecFunction<Value, Value, FUNC>, DataType(UNSTRUCTURED));
-        }
-        default:
-            assert(false);
-        }
-    } else {
-        switch (operandType.typeID) {
-        case INT64: {
-            return make_pair(UnaryExecFunction<int64_t, int64_t, FUNC>, DataType(INT64));
-        }
-        case DOUBLE: {
-            return make_pair(UnaryExecFunction<double_t, double_t, FUNC>, DataType(DOUBLE));
-        }
-        case UNSTRUCTURED: {
-            return make_pair(UnaryExecFunction<Value, Value, FUNC>, DataType(UNSTRUCTURED));
-        }
-        default:
-            assert(false);
+vector<unique_ptr<VectorOperationDefinition>> PowerVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
+        for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
+            result.push_back(getBinaryDefinition<operation::Power, true>(
+                POWER_FUNC_NAME, leftTypeID, rightTypeID, DOUBLE));
         }
     }
+    result.push_back(getBinaryDefinition<operation::Power>(
+        POWER_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> NegateVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(getUnaryDefinition<operation::Negate>(NEGATE_FUNC_NAME, typeID, typeID));
+    }
+    result.push_back(
+        getUnaryDefinition<operation::Negate>(NEGATE_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> AbsVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(getUnaryDefinition<operation::Abs>(ABS_FUNC_NAME, typeID, typeID));
+    }
+    result.push_back(getUnaryDefinition<operation::Abs>(ABS_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> FloorVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(getUnaryDefinition<operation::Floor>(FLOOR_FUNC_NAME, typeID, typeID));
+    }
+    result.push_back(
+        getUnaryDefinition<operation::Floor>(FLOOR_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> CeilVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(getUnaryDefinition<operation::Ceil>(CEIL_FUNC_NAME, typeID, typeID));
+    }
+    result.push_back(
+        getUnaryDefinition<operation::Ceil>(CEIL_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> SinVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Sin, false, true>(SIN_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(
+        getUnaryDefinition<operation::Sin, false, true>(SIN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> CosVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Cos, false, true>(COS_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(
+        getUnaryDefinition<operation::Cos, false, true>(COS_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> TanVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Tan, false, true>(TAN_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(
+        getUnaryDefinition<operation::Tan, false, true>(TAN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> CotVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Cot, false, true>(COT_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(
+        getUnaryDefinition<operation::Cot, false, true>(COT_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> AsinVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Asin, false, true>(ASIN_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(getUnaryDefinition<operation::Asin, false, true>(
+        ASIN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> AcosVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Acos, false, true>(ACOS_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(getUnaryDefinition<operation::Acos, false, true>(
+        ACOS_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> AtanVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Atan, false, true>(ATAN_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(getUnaryDefinition<operation::Atan, false, true>(
+        ATAN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> FactorialVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& type : DataType::getNumericalTypeIDs()) {
+        result.push_back(getUnaryDefinition<operation::Factorial>(FACTORIAL_FUNC_NAME, type, type));
+    }
+    result.push_back(make_unique<VectorOperationDefinition>(FACTORIAL_FUNC_NAME,
+        vector<DataTypeID>{UNSTRUCTURED}, UNSTRUCTURED,
+        UnaryExecFunction<Value, Value, operation::Factorial>));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> SqrtVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Sqrt, false, true>(SQRT_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(getUnaryDefinition<operation::Sqrt, false, true>(
+        SQRT_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> CbrtVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Cbrt, false, true>(CBRT_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(getUnaryDefinition<operation::Cbrt, false, true>(
+        CBRT_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> GammaVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(getUnaryDefinition<operation::Gamma>(GAMMA_FUNC_NAME, typeID, typeID));
+    }
+    result.push_back(
+        getUnaryDefinition<operation::Gamma>(GAMMA_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> LgammaVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Lgamma, false, true>(LGAMMA_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(getUnaryDefinition<operation::Lgamma, false, true>(
+        LGAMMA_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> LnVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Ln, false, true>(LN_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(
+        getUnaryDefinition<operation::Ln, false, true>(LN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> LogVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Log, false, true>(LOG_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(
+        getUnaryDefinition<operation::Log, false, true>(LOG_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> Log2VectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Log2, false, true>(LOG2_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(getUnaryDefinition<operation::Log2, false, true>(
+        LOG2_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> DegreesVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Degrees, false, true>(DEGREES_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(getUnaryDefinition<operation::Degrees, false, true>(
+        DEGREES_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> RadiansVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Radians, false, true>(RADIANS_FUNC_NAME, typeID, DOUBLE));
+    }
+    result.push_back(getUnaryDefinition<operation::Radians, false, true>(
+        RADIANS_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> EvenVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Even, true, false>(EVEN_FUNC_NAME, typeID, INT64));
+    }
+    result.push_back(getUnaryDefinition<operation::Even, true, false>(
+        EVEN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> SignVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Sign, true, false>(SIGN_FUNC_NAME, typeID, INT64));
+    }
+    result.push_back(getUnaryDefinition<operation::Sign, true, false>(
+        SIGN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
+    return result;
 }
 
 } // namespace function

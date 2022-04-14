@@ -29,6 +29,14 @@ const string LIST_EXTRACT_FUNC_NAME = "LIST_EXTRACT";
 
 const string ID_FUNC_NAME = "ID";
 
+const string ADD_FUNC_NAME = "ADD";
+const string SUBTRACT_FUNC_NAME = "SUBTRACT";
+const string MULTIPLY_FUNC_NAME = "MULTIPLY";
+const string DIVIDE_FUNC_NAME = "DIVIDE";
+const string MODULO_FUNC_NAME = "MODULO";
+const string POWER_FUNC_NAME = "POWER";
+
+const string NEGATE_FUNC_NAME = "NEGATE";
 const string ABS_FUNC_NAME = "ABS";
 const string FLOOR_FUNC_NAME = "FLOOR";
 const string CEIL_FUNC_NAME = "CEIL";

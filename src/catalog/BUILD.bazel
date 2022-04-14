@@ -13,6 +13,7 @@ cc_library(
         "//src/common:configs",
         "//src/common:ser_deser",
         "//src/common/types",
+        "//src/function:function_binder",
         "@gabime_spdlog",
         "@nlohmann_json",
     ],

@@ -197,6 +197,7 @@ RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString
 
 Catalog::Catalog() {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
+    builtInVectorOperations = make_unique<BuiltInVectorOperations>();
 }
 
 Catalog::Catalog(const string& directory) : Catalog() {

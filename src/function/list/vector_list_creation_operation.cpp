@@ -37,5 +37,16 @@ void VectorListOperations::ListCreation(
         }
     }
 }
+
+vector<unique_ptr<VectorOperationDefinition>> ListCreationVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& dataTypeID :
+        vector<DataTypeID>{BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, LIST}) {
+        result.push_back(make_unique<VectorOperationDefinition>(LIST_CREATION_FUNC_NAME,
+            vector<DataTypeID>{dataTypeID}, LIST, ListCreation, true /* isVarlength*/));
+    }
+    return result;
+}
+
 } // namespace function
 } // namespace graphflow

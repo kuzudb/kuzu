@@ -14,6 +14,38 @@ namespace function {
 using scalar_exec_func = std::function<void(const vector<shared_ptr<ValueVector>>&, ValueVector&)>;
 using scalar_select_func = std::function<uint64_t(const vector<shared_ptr<ValueVector>>&, sel_t*)>;
 
+class VectorOperationDefinition {
+
+public:
+    VectorOperationDefinition(string name, vector<DataTypeID> parameterTypeIDs,
+        DataTypeID returnTypeID, scalar_exec_func execFunc, bool isVarLength = false)
+        : VectorOperationDefinition{move(name), move(parameterTypeIDs), returnTypeID,
+              move(execFunc), nullptr, isVarLength} {}
+
+    VectorOperationDefinition(string name, vector<DataTypeID> parameterTypeIDs,
+        DataTypeID returnTypeID, scalar_exec_func execFunc, scalar_select_func selectFunc,
+        bool isVarLength = false)
+        : name{move(name)}, parameterTypeIDs{move(parameterTypeIDs)},
+          returnTypeID{returnTypeID}, execFunc{move(execFunc)},
+          selectFunc(move(selectFunc)), isVarLength{isVarLength} {}
+
+    inline string signatureToString() const {
+        string result = Types::dataTypesToString(parameterTypeIDs);
+        result += " -> " + Types::dataTypeToString(returnTypeID);
+        return result;
+    }
+
+public:
+    string name;
+    vector<DataTypeID> parameterTypeIDs;
+    DataTypeID returnTypeID;
+    scalar_exec_func execFunc;
+    scalar_select_func selectFunc;
+    // Currently we only one variable-length function which is list creation. The expectation is
+    // that all parameters must have the same type as parameterTypes[0].
+    bool isVarLength;
+};
+
 class VectorOperations {
 
 public:
@@ -46,16 +78,6 @@ public:
         assert(params.size() == 1);
         return UnaryOperationExecutor::select<OPERAND_TYPE, FUNC>(*params[0], selectedPositions);
     }
-
-    static void validateNumParameters(
-        const string& functionName, uint64_t inputNumParams, uint64_t expectedNumParams);
-
-    static void validateParameterType(
-        const string& functionName, Expression& parameter, DataTypeID expectedTypeID) {
-        validateParameterType(functionName, parameter, unordered_set<DataTypeID>{expectedTypeID});
-    }
-    static void validateParameterType(const string& functionName, Expression& parameter,
-        const unordered_set<DataTypeID>& expectedTypeIDs);
 };
 
 } // namespace function

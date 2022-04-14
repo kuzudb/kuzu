@@ -115,27 +115,44 @@ TEST_F(BinderErrorTest, BindPropertyNotExist) {
 
 TEST_F(BinderErrorTest, BindIDArithmetic) {
     string expectedException =
-        "id(a) has data type NODE_ID. UNSTRUCTURED, DOUBLE, INT64 was expected.";
+        "Cannot match a built-in function for given function ADD(NODE_ID,INT64). Supported inputs "
+        "are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
+        "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
+        "UNSTRUCTURED\n(STRING,STRING) -> STRING\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
+        "DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, BindDateAddDate) {
     string expectedException =
-        "date('2031-02-01') has data type DATE. INTERVAL, INT64 was expected.";
+        "Cannot match a built-in function for given function ADD(DATE,DATE). Supported inputs "
+        "are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
+        "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
+        "UNSTRUCTURED\n(STRING,STRING) -> STRING\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
+        "DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     auto input = "MATCH (a:person) RETURN a.birthdate + date('2031-02-01');";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, BindTimestampArithmetic) {
-    string expectedException = "1 has data type INT64. INTERVAL was expected.";
+    string expectedException =
+        "Cannot match a built-in function for given function ADD(TIMESTAMP,INT64). Supported "
+        "inputs are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
+        "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
+        "UNSTRUCTURED\n(STRING,STRING) -> STRING\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
+        "DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     auto input = "MATCH (a:person) WHERE a.registerTime + 1 < 5 RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, BindTimestampAddTimestamp) {
     string expectedException =
-        "timestamp('2031-02-11 01:02:03') has data type TIMESTAMP. INTERVAL was expected.";
+        "Cannot match a built-in function for given function ADD(TIMESTAMP,TIMESTAMP). Supported "
+        "inputs are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
+        "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
+        "UNSTRUCTURED\n(STRING,STRING) -> STRING\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
+        "DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     auto input = "MATCH (a:person) RETURN a.registerTime + timestamp('2031-02-11 01:02:03');";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -147,13 +164,15 @@ TEST_F(BinderErrorTest, BindNonExistingFunction) {
 }
 
 TEST_F(BinderErrorTest, BindFunctionWithWrongNumParams) {
-    string expectedException = "Expected 1 parameters for DATE function but get 0.";
+    string expectedException = "Cannot match a built-in function for given function DATE. "
+                               "Supported inputs are\n(STRING) -> DATE\n";
     auto input = "MATCH (a:person) WHERE date() < 2 RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
 TEST_F(BinderErrorTest, BindFunctionWithWrongParamType) {
-    string expectedException = "2012 has data type INT64. STRING was expected.";
+    string expectedException = "Cannot match a built-in function for given function DATE(INT64). "
+                               "Supported inputs are\n(STRING) -> DATE\n";
     auto input = "MATCH (a:person) WHERE date(2012) < 2 RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

@@ -26,6 +26,25 @@ TEST_F(ApiTest, multi_params_prepare) {
     ASSERT_FALSE(result->hasNext());
 }
 
+TEST_F(ApiTest, prepare_int) {
+    auto preparedStatement = conn->prepare("MATCH (a:person) WHERE a.age = 35 RETURN a.age + $1");
+    auto result = conn->execute(preparedStatement.get(), make_pair(string("1"), (int64_t)10));
+    ASSERT_TRUE(result->hasNext());
+    auto tuple = result->getNext();
+    ASSERT_EQ(tuple->getValue(0)->val.int64Val, 45);
+    ASSERT_FALSE(result->hasNext());
+}
+
+TEST_F(ApiTest, prepare_double) {
+    auto preparedStatement =
+        conn->prepare("MATCH (a:person) WHERE a.age = 35 RETURN a.eyeSight + $1");
+    auto result = conn->execute(preparedStatement.get(), make_pair(string("1"), (double_t)10.5));
+    ASSERT_TRUE(result->hasNext());
+    auto tuple = result->getNext();
+    ASSERT_EQ(tuple->getValue(0)->val.doubleVal, 15.5);
+    ASSERT_FALSE(result->hasNext());
+}
+
 TEST_F(ApiTest, param_not_exist) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN COUNT(*)");
