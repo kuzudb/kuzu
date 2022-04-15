@@ -27,10 +27,6 @@ private:
 
     shared_ptr<Expression> bindComparisonExpression(const ParsedExpression& parsedExpression);
 
-    shared_ptr<Expression> bindArithmeticExpression(const ParsedExpression& parsedExpression);
-
-    shared_ptr<Expression> bindStringOperatorExpression(const ParsedExpression& parsedExpression);
-
     shared_ptr<Expression> bindNullOperatorExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindPropertyExpression(const ParsedExpression& parsedExpression);
@@ -65,12 +61,7 @@ private:
     static shared_ptr<Expression> implicitCastToString(const shared_ptr<Expression>& expression);
     static shared_ptr<Expression> implicitCastToDate(const shared_ptr<Expression>& expression);
 
-    // For overload functions (e.g. arithmetic and comparison), if any parameter is UNSTRUCTURED, we
-    // cast all parameters as UNSTRUCTURED.
-    static expression_vector castToUnstructuredIfNecessary(const expression_vector& parameters);
-
     /****** validation *****/
-
     // NOTE: this validation should be removed and front end binds any null operation to null
     static void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression);
 

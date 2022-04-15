@@ -39,16 +39,7 @@ public:
     ScalarFunctionExpression(ExpressionType expressionType, const DataType& dataType,
         expression_vector children, scalar_exec_func execFunc, scalar_select_func selectFunc)
         : FunctionExpression{expressionType, dataType, move(children), false /* isDistinct*/},
-          execFunc{move(execFunc)}, selectFunc{move(selectFunc)} {
-        assert(dataType.typeID == BOOL);
-    }
-
-    ScalarFunctionExpression(ExpressionType expressionType, const DataType& dataType,
-        expression_vector children, scalar_exec_func execFunc)
-        : FunctionExpression{expressionType, dataType, move(children), false /* isDistinct*/},
-          execFunc{move(execFunc)} {
-        assert(dataType.typeID != BOOL);
-    }
+          execFunc{move(execFunc)}, selectFunc{move(selectFunc)} {}
 
 public:
     scalar_exec_func execFunc;

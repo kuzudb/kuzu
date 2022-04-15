@@ -17,8 +17,8 @@ static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevSubgr
 static expression_vector getNewMatchedExpressions(const SubqueryGraph& prevLeftSubgraph,
     const SubqueryGraph& prevRightSubgraph, const SubqueryGraph& newSubgraph,
     const expression_vector& expressions);
-static shared_ptr<Expression> createNodeIDComparison(
-    const shared_ptr<Expression>& left, const shared_ptr<Expression>& right);
+static shared_ptr<Expression> createNodeIDComparison(const shared_ptr<Expression>& left,
+    const shared_ptr<Expression>& right, BuiltInVectorOperations* builtInFunctions);
 
 // Rewrite a query rel that closes a cycle as a regular query rel for extend. This requires giving a
 // different identifier to the node that will close the cycle. This identifier is created as rel
@@ -134,9 +134,9 @@ void JoinOrderEnumerator::enumerateSingleRel() {
                         auto planWithFilter = prevPlan->shallowCopy();
                         appendExtendFiltersAndScanProperties(
                             *tmpRel, direction, expressionsToFilter, *planWithFilter);
-                        auto nodeIDFilter =
-                            createNodeIDComparison(nodeToIntersect->getNodeIDPropertyExpression(),
-                                tmpNode->getNodeIDPropertyExpression());
+                        auto nodeIDFilter = createNodeIDComparison(
+                            nodeToIntersect->getNodeIDPropertyExpression(),
+                            tmpNode->getNodeIDPropertyExpression(), catalog.getBuiltInFunctions());
                         enumerator->appendFilter(nodeIDFilter, *planWithFilter);
                         context->addPlan(newSubgraph, move(planWithFilter));
 
@@ -375,15 +375,17 @@ shared_ptr<RelExpression> rewriteQueryRel(const RelExpression& queryRel, bool is
         queryRel.getUpperBound());
 }
 
-shared_ptr<Expression> createNodeIDComparison(
-    const shared_ptr<Expression>& left, const shared_ptr<Expression>& right) {
+shared_ptr<Expression> createNodeIDComparison(const shared_ptr<Expression>& left,
+    const shared_ptr<Expression>& right, BuiltInVectorOperations* builtInFunctions) {
     expression_vector children;
     children.push_back(left);
     children.push_back(right);
-    auto execFunc = function::VectorComparisonOperations::bindExecFunction(EQUALS, children);
-    auto selectFunc = function::VectorComparisonOperations::bindSelectFunction(EQUALS, children);
+    vector<DataType> childrenTypes;
+    childrenTypes.push_back(left->dataType);
+    childrenTypes.push_back(right->dataType);
+    auto function = builtInFunctions->matchFunction(EQUALS_FUNC_NAME, childrenTypes);
     return make_shared<ScalarFunctionExpression>(
-        EQUALS, DataType(BOOL), move(children), execFunc, selectFunc);
+        EQUALS, DataType(BOOL), move(children), function->execFunc, function->selectFunc);
 }
 
 } // namespace planner

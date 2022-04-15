@@ -1,13 +1,12 @@
 cc_library(
     name = "vector_comparison_operations",
-    srcs = glob([
-        "*.cpp",
-    ]),
+    srcs = [],
     hdrs = glob([
         "include/*.h",
     ]),
     visibility = [
         "//src/binder:__pkg__",
+        "//src/function:__subpackages__",
         "//src/planner:__pkg__",
         "//test/common:__pkg__",
     ],

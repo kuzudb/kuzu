@@ -6,13 +6,11 @@ namespace graphflow {
 namespace common {
 
 bool isExpressionUnary(ExpressionType type) {
-    return NOT == type || NEGATE == type || IS_NULL == type || IS_NOT_NULL == type;
+    return NOT == type || IS_NULL == type || IS_NOT_NULL == type;
 }
 
 bool isExpressionBinary(ExpressionType type) {
-    return isExpressionComparison(type) || isExpressionStringOperator(type) || OR == type ||
-           XOR == type || AND == type || ADD == type || SUBTRACT == type || MULTIPLY == type ||
-           DIVIDE == type || MODULO == type || POWER == type;
+    return isExpressionComparison(type) || OR == type || XOR == type || AND == type;
 }
 
 bool isExpressionBoolConnection(ExpressionType type) {
@@ -22,15 +20,6 @@ bool isExpressionBoolConnection(ExpressionType type) {
 bool isExpressionComparison(ExpressionType type) {
     return EQUALS == type || NOT_EQUALS == type || GREATER_THAN == type ||
            GREATER_THAN_EQUALS == type || LESS_THAN == type || LESS_THAN_EQUALS == type;
-}
-
-bool isExpressionArithmetic(ExpressionType type) {
-    return ADD == type || SUBTRACT == type || MULTIPLY == type || DIVIDE == type ||
-           MODULO == type || POWER == type || NEGATE == type;
-}
-
-bool isExpressionStringOperator(ExpressionType type) {
-    return STARTS_WITH == type || ENDS_WITH == type || CONTAINS == type;
 }
 
 bool isExpressionNullOperator(ExpressionType type) {
@@ -63,37 +52,17 @@ string expressionTypeToString(ExpressionType type) {
     case NOT:
         return "NOT";
     case EQUALS:
-        return "EQUALS";
+        return EQUALS_FUNC_NAME;
     case NOT_EQUALS:
-        return "NOT_EQUALS";
+        return NOT_EQUALS_FUNC_NAME;
     case GREATER_THAN:
-        return "GREATER_THAN";
+        return GREATER_THAN_FUNC_NAME;
     case GREATER_THAN_EQUALS:
-        return "GREATER_THAN_EQUALS";
+        return GREATER_THAN_EQUALS_FUNC_NAME;
     case LESS_THAN:
-        return "LESS_THAN";
+        return LESS_THAN_FUNC_NAME;
     case LESS_THAN_EQUALS:
-        return "LESS_THAN_EQUALS";
-    case ADD:
-        return ADD_FUNC_NAME;
-    case SUBTRACT:
-        return SUBTRACT_FUNC_NAME;
-    case MULTIPLY:
-        return MULTIPLY_FUNC_NAME;
-    case DIVIDE:
-        return DIVIDE_FUNC_NAME;
-    case MODULO:
-        return MODULO_FUNC_NAME;
-    case POWER:
-        return POWER_FUNC_NAME;
-    case NEGATE:
-        return NEGATE_FUNC_NAME;
-    case STARTS_WITH:
-        return "STARTS_WITH";
-    case ENDS_WITH:
-        return "ENDS_WITH";
-    case CONTAINS:
-        return "CONTAINS";
+        return LESS_THAN_EQUALS_FUNC_NAME;
     case IS_NULL:
         return "IS_NULL";
     case IS_NOT_NULL:
@@ -130,8 +99,6 @@ string expressionTypeToString(ExpressionType type) {
         return MIN_FUNC_NAME;
     case MAX_FUNC:
         return MAX_FUNC_NAME;
-    case LIST_EXTRACT:
-        return LIST_EXTRACT_FUNC_NAME;
     default:
         throw invalid_argument("Should never happen. Cannot convert expression type to string");
     }

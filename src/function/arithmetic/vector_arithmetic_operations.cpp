@@ -140,150 +140,123 @@ vector<unique_ptr<VectorOperationDefinition>> PowerVectorOperation::getDefinitio
 
 vector<unique_ptr<VectorOperationDefinition>> NegateVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Negate>(NEGATE_FUNC_NAME, typeID, typeID));
     }
-    result.push_back(
-        getUnaryDefinition<operation::Negate>(NEGATE_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> AbsVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Abs>(ABS_FUNC_NAME, typeID, typeID));
     }
-    result.push_back(getUnaryDefinition<operation::Abs>(ABS_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> FloorVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Floor>(FLOOR_FUNC_NAME, typeID, typeID));
     }
-    result.push_back(
-        getUnaryDefinition<operation::Floor>(FLOOR_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> CeilVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Ceil>(CEIL_FUNC_NAME, typeID, typeID));
     }
-    result.push_back(
-        getUnaryDefinition<operation::Ceil>(CEIL_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> SinVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Sin, false, true>(SIN_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(
-        getUnaryDefinition<operation::Sin, false, true>(SIN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> CosVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Cos, false, true>(COS_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(
-        getUnaryDefinition<operation::Cos, false, true>(COS_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> TanVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Tan, false, true>(TAN_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(
-        getUnaryDefinition<operation::Tan, false, true>(TAN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> CotVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Cot, false, true>(COT_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(
-        getUnaryDefinition<operation::Cot, false, true>(COT_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> AsinVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Asin, false, true>(ASIN_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(getUnaryDefinition<operation::Asin, false, true>(
-        ASIN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> AcosVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Acos, false, true>(ACOS_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(getUnaryDefinition<operation::Acos, false, true>(
-        ACOS_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> AtanVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Atan, false, true>(ATAN_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(getUnaryDefinition<operation::Atan, false, true>(
-        ATAN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> FactorialVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& type : DataType::getNumericalTypeIDs()) {
-        result.push_back(getUnaryDefinition<operation::Factorial>(FACTORIAL_FUNC_NAME, type, type));
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
+        result.push_back(
+            getUnaryDefinition<operation::Factorial>(FACTORIAL_FUNC_NAME, typeID, typeID));
     }
-    result.push_back(make_unique<VectorOperationDefinition>(FACTORIAL_FUNC_NAME,
-        vector<DataTypeID>{UNSTRUCTURED}, UNSTRUCTURED,
-        UnaryExecFunction<Value, Value, operation::Factorial>));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> SqrtVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Sqrt, false, true>(SQRT_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(getUnaryDefinition<operation::Sqrt, false, true>(
-        SQRT_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> CbrtVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Cbrt, false, true>(CBRT_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(getUnaryDefinition<operation::Cbrt, false, true>(
-        CBRT_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
@@ -299,89 +272,73 @@ vector<unique_ptr<VectorOperationDefinition>> GammaVectorOperation::getDefinitio
 
 vector<unique_ptr<VectorOperationDefinition>> LgammaVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Lgamma, false, true>(LGAMMA_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(getUnaryDefinition<operation::Lgamma, false, true>(
-        LGAMMA_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> LnVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Ln, false, true>(LN_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(
-        getUnaryDefinition<operation::Ln, false, true>(LN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> LogVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Log, false, true>(LOG_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(
-        getUnaryDefinition<operation::Log, false, true>(LOG_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> Log2VectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Log2, false, true>(LOG2_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(getUnaryDefinition<operation::Log2, false, true>(
-        LOG2_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> DegreesVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Degrees, false, true>(DEGREES_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(getUnaryDefinition<operation::Degrees, false, true>(
-        DEGREES_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> RadiansVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Radians, false, true>(RADIANS_FUNC_NAME, typeID, DOUBLE));
     }
-    result.push_back(getUnaryDefinition<operation::Radians, false, true>(
-        RADIANS_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> EvenVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Even, true, false>(EVEN_FUNC_NAME, typeID, INT64));
     }
-    result.push_back(getUnaryDefinition<operation::Even, true, false>(
-        EVEN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> SignVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
         result.push_back(
             getUnaryDefinition<operation::Sign, true, false>(SIGN_FUNC_NAME, typeID, INT64));
     }
-    result.push_back(getUnaryDefinition<operation::Sign, true, false>(
-        SIGN_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED));
     return result;
 }
 

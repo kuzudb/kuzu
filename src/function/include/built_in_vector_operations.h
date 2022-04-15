@@ -36,8 +36,10 @@ private:
         const string& name, const vector<DataType>& inputTypes);
 
     void registerVectorOperations();
+    void registerComparisonOperations();
     void registerArithmeticOperations();
     void registerDateOperations();
+    void registerStringOperations();
     void registerCastOperations();
     void registerListOperations();
     void registerInternalIDOperation();

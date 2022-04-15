@@ -9,28 +9,191 @@ namespace function {
 
 class VectorComparisonOperations : public VectorOperations {
 
-public:
-    static scalar_exec_func bindExecFunction(
-        ExpressionType expressionType, const expression_vector& children);
-
-    static scalar_select_func bindSelectFunction(
-        ExpressionType expressionType, const expression_vector& children);
+protected:
+    template<typename FUNC>
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions(const string& name) {
+        vector<unique_ptr<VectorOperationDefinition>> definitions;
+        for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
+            for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
+                definitions.push_back(getDefinition<FUNC>(name, leftTypeID, rightTypeID));
+            }
+        }
+        for (auto& typeID :
+            vector<DataTypeID>{BOOL, STRING, NODE_ID, UNSTRUCTURED, DATE, TIMESTAMP, INTERVAL}) {
+            definitions.push_back(getDefinition<FUNC>(name, typeID, typeID));
+        }
+        return definitions;
+    }
 
 private:
-    static scalar_exec_func bindBinaryExecFunction(
-        ExpressionType expressionType, const expression_vector& children);
+    template<typename FUNC>
+    static inline unique_ptr<VectorOperationDefinition> getDefinition(
+        const string& name, DataTypeID leftTypeID, DataTypeID rightTypeID) {
+        auto execFunc = getExecFunc<FUNC>(leftTypeID, rightTypeID);
+        auto selectFunc = getSelectFunc<FUNC>(leftTypeID, rightTypeID);
+        return make_unique<VectorOperationDefinition>(
+            name, vector<DataTypeID>{leftTypeID, rightTypeID}, BOOL, execFunc, selectFunc);
+    }
 
-    template<typename LEFT_TYPE, typename RIGHT_TYPE>
-    static scalar_exec_func bindBinaryExecFunction(ExpressionType expressionType);
+    template<typename FUNC>
+    static scalar_exec_func getExecFunc(DataTypeID leftTypeID, DataTypeID rightTypeID) {
+        switch (leftTypeID) {
+        case INT64: {
+            switch (rightTypeID) {
+            case INT64: {
+                return BinaryExecFunction<int64_t, int64_t, uint8_t, FUNC>;
+            }
+            case DOUBLE: {
+                return BinaryExecFunction<int64_t, double_t, uint8_t, FUNC>;
+            }
+            default:
+                assert(false);
+            }
+        }
+        case DOUBLE: {
+            switch (rightTypeID) {
+            case INT64: {
+                return BinaryExecFunction<double_t, int64_t, uint8_t, FUNC>;
+            }
+            case DOUBLE: {
+                return BinaryExecFunction<double_t, double_t, uint8_t, FUNC>;
+            }
+            default:
+                assert(false);
+            }
+        }
+        case BOOL: {
+            assert(rightTypeID == BOOL);
+            return BinaryExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
+        }
+        case STRING: {
+            assert(rightTypeID == STRING);
+            return BinaryExecFunction<gf_string_t, gf_string_t, uint8_t, FUNC>;
+        }
+        case NODE_ID: {
+            assert(rightTypeID == NODE_ID);
+            return BinaryExecFunction<nodeID_t, nodeID_t, uint8_t, FUNC>;
+        }
+        case UNSTRUCTURED: {
+            assert(rightTypeID == UNSTRUCTURED);
+            return BinaryExecFunction<Value, Value, uint8_t, FUNC>;
+        }
+        case DATE: {
+            assert(rightTypeID == DATE);
+            return BinaryExecFunction<date_t, date_t, uint8_t, FUNC>;
+        }
+        case TIMESTAMP: {
+            assert(rightTypeID == TIMESTAMP);
+            return BinaryExecFunction<timestamp_t, timestamp_t, uint8_t, FUNC>;
+        }
+        case INTERVAL: {
+            assert(rightTypeID == INTERVAL);
+            return BinaryExecFunction<interval_t, interval_t, uint8_t, FUNC>;
+        }
+        default:
+            assert(false);
+        }
+    }
 
-    static scalar_select_func bindBinarySelectFunction(
-        ExpressionType expressionType, const expression_vector& children);
+    template<typename FUNC>
+    static scalar_select_func getSelectFunc(DataTypeID leftTypeID, DataTypeID rightTypeID) {
+        switch (leftTypeID) {
+        case INT64: {
+            switch (rightTypeID) {
+            case INT64: {
+                return BinarySelectFunction<int64_t, int64_t, FUNC>;
+            }
+            case DOUBLE: {
+                return BinarySelectFunction<int64_t, double_t, FUNC>;
+            }
+            default:
+                assert(false);
+            }
+        }
+        case DOUBLE: {
+            switch (rightTypeID) {
+            case INT64: {
+                return BinarySelectFunction<double_t, int64_t, FUNC>;
+            }
+            case DOUBLE: {
+                return BinarySelectFunction<double_t, double_t, FUNC>;
+            }
+            default:
+                assert(false);
+            }
+        }
+        case BOOL: {
+            assert(rightTypeID == BOOL);
+            return BinarySelectFunction<uint8_t, uint8_t, FUNC>;
+        }
+        case STRING: {
+            assert(rightTypeID == STRING);
+            return BinarySelectFunction<gf_string_t, gf_string_t, FUNC>;
+        }
+        case NODE_ID: {
+            assert(rightTypeID == NODE_ID);
+            return BinarySelectFunction<nodeID_t, nodeID_t, FUNC>;
+        }
+        case UNSTRUCTURED: {
+            assert(rightTypeID == UNSTRUCTURED);
+            return BinarySelectFunction<Value, Value, FUNC>;
+        }
+        case DATE: {
+            assert(rightTypeID == DATE);
+            return BinarySelectFunction<date_t, date_t, FUNC>;
+        }
+        case TIMESTAMP: {
+            assert(rightTypeID == TIMESTAMP);
+            return BinarySelectFunction<timestamp_t, timestamp_t, FUNC>;
+        }
+        case INTERVAL: {
+            assert(rightTypeID == INTERVAL);
+            return BinarySelectFunction<interval_t, interval_t, FUNC>;
+        }
+        default:
+            assert(false);
+        }
+    }
+};
 
-    template<typename LEFT_TYPE, typename RIGHT_TYPE>
-    static scalar_select_func bindBinarySelectFunction(ExpressionType expressionType);
+struct EqualsVectorOperation : public VectorComparisonOperations {
+    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+        return VectorComparisonOperations::getDefinitions<operation::Equals>(EQUALS_FUNC_NAME);
+    }
+};
 
-    static void validate(
-        ExpressionType expressionType, DataTypeID leftTypeID, DataTypeID rightTypeID);
+struct NotEqualsVectorOperation : public VectorComparisonOperations {
+    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+        return VectorComparisonOperations::getDefinitions<operation::NotEquals>(
+            NOT_EQUALS_FUNC_NAME);
+    }
+};
+
+struct GreaterThanVectorOperation : public VectorComparisonOperations {
+    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+        return VectorComparisonOperations::getDefinitions<operation::GreaterThan>(
+            GREATER_THAN_FUNC_NAME);
+    }
+};
+
+struct GreaterThanEqualsVectorOperation : public VectorComparisonOperations {
+    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+        return VectorComparisonOperations::getDefinitions<operation::GreaterThanEquals>(
+            GREATER_THAN_EQUALS_FUNC_NAME);
+    }
+};
+
+struct LessThanVectorOperation : public VectorComparisonOperations {
+    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+        return VectorComparisonOperations::getDefinitions<operation::LessThan>(LESS_THAN_FUNC_NAME);
+    }
+};
+
+struct LessThanEqualsVectorOperation : public VectorComparisonOperations {
+    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+        return VectorComparisonOperations::getDefinitions<operation::LessThanEquals>(
+            LESS_THAN_EQUALS_FUNC_NAME);
+    }
 };
 
 } // namespace function

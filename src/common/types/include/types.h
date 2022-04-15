@@ -62,6 +62,9 @@ public:
     static inline vector<DataTypeID> getNumericalTypeIDs() {
         return vector<DataTypeID>{INT64, DOUBLE};
     }
+    static inline vector<DataTypeID> getNumericalAndUnstructuredTypeIDs() {
+        return vector<DataTypeID>{INT64, DOUBLE, UNSTRUCTURED};
+    }
 
     DataType& operator=(const DataType& other);
 

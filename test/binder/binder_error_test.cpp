@@ -115,7 +115,7 @@ TEST_F(BinderErrorTest, BindPropertyNotExist) {
 
 TEST_F(BinderErrorTest, BindIDArithmetic) {
     string expectedException =
-        "Cannot match a built-in function for given function ADD(NODE_ID,INT64). Supported inputs "
+        "Cannot match a built-in function for given function +(NODE_ID,INT64). Supported inputs "
         "are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
         "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
         "UNSTRUCTURED\n(STRING,STRING) -> STRING\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
@@ -126,7 +126,7 @@ TEST_F(BinderErrorTest, BindIDArithmetic) {
 
 TEST_F(BinderErrorTest, BindDateAddDate) {
     string expectedException =
-        "Cannot match a built-in function for given function ADD(DATE,DATE). Supported inputs "
+        "Cannot match a built-in function for given function +(DATE,DATE). Supported inputs "
         "are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
         "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
         "UNSTRUCTURED\n(STRING,STRING) -> STRING\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
@@ -137,7 +137,7 @@ TEST_F(BinderErrorTest, BindDateAddDate) {
 
 TEST_F(BinderErrorTest, BindTimestampArithmetic) {
     string expectedException =
-        "Cannot match a built-in function for given function ADD(TIMESTAMP,INT64). Supported "
+        "Cannot match a built-in function for given function +(TIMESTAMP,INT64). Supported "
         "inputs are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
         "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
         "UNSTRUCTURED\n(STRING,STRING) -> STRING\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
@@ -148,7 +148,7 @@ TEST_F(BinderErrorTest, BindTimestampArithmetic) {
 
 TEST_F(BinderErrorTest, BindTimestampAddTimestamp) {
     string expectedException =
-        "Cannot match a built-in function for given function ADD(TIMESTAMP,TIMESTAMP). Supported "
+        "Cannot match a built-in function for given function +(TIMESTAMP,TIMESTAMP). Supported "
         "inputs are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
         "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
         "UNSTRUCTURED\n(STRING,STRING) -> STRING\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "

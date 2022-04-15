@@ -7,55 +7,22 @@
 namespace graphflow {
 namespace function {
 
-scalar_exec_func VectorStringOperations::bindExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
-    assert(children.size() == 2);
-    return bindBinaryExecFunction(expressionType, children);
+vector<unique_ptr<VectorOperationDefinition>> ContainsVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> definitions;
+    auto execFunc = BinaryExecFunction<gf_string_t, gf_string_t, uint8_t, operation::Contains>;
+    auto selectFunc = BinarySelectFunction<gf_string_t, gf_string_t, operation::Contains>;
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(
+        CONTAINS_FUNC_NAME, vector<DataTypeID>{STRING, STRING}, BOOL, execFunc, selectFunc, false));
+    return definitions;
 }
 
-scalar_select_func VectorStringOperations::bindSelectFunction(
-    ExpressionType expressionType, const expression_vector& children) {
-    assert(children.size() == 2);
-    return bindBinarySelectFunction(expressionType, children);
-}
-
-scalar_exec_func VectorStringOperations::bindBinaryExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
-    assert(children.size() == 2);
-    auto leftType = children[0]->dataType;
-    auto rightType = children[1]->dataType;
-    assert(leftType.typeID == STRING && rightType.typeID == STRING);
-    switch (expressionType) {
-    case ADD: {
-        return BinaryExecFunction<gf_string_t, gf_string_t, gf_string_t, operation::Concat>;
-    }
-    case CONTAINS: {
-        return BinaryExecFunction<gf_string_t, gf_string_t, uint8_t, operation::Contains>;
-    }
-    case STARTS_WITH: {
-        return BinaryExecFunction<gf_string_t, gf_string_t, uint8_t, operation::StartsWith>;
-    }
-    default:
-        assert(false);
-    }
-}
-
-scalar_select_func VectorStringOperations::bindBinarySelectFunction(
-    ExpressionType expressionType, const expression_vector& children) {
-    assert(children.size() == 2);
-    auto leftType = children[0]->dataType;
-    auto rightType = children[1]->dataType;
-    assert(leftType.typeID == STRING && rightType.typeID == STRING);
-    switch (expressionType) {
-    case CONTAINS: {
-        return BinarySelectFunction<gf_string_t, gf_string_t, operation::Contains>;
-    }
-    case STARTS_WITH: {
-        return BinarySelectFunction<gf_string_t, gf_string_t, operation::StartsWith>;
-    }
-    default:
-        assert(false);
-    }
+vector<unique_ptr<VectorOperationDefinition>> StartsWithVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> definitions;
+    auto execFunc = BinaryExecFunction<gf_string_t, gf_string_t, uint8_t, operation::StartsWith>;
+    auto selectFunc = BinarySelectFunction<gf_string_t, gf_string_t, operation::StartsWith>;
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(STARTS_WITH_FUNC_NAME,
+        vector<DataTypeID>{STRING, STRING}, BOOL, execFunc, selectFunc, false));
+    return definitions;
 }
 
 } // namespace function
