@@ -60,6 +60,15 @@ const string LOG2_FUNC_NAME = "LOG2";
 const string DEGREES_FUNC_NAME = "DEGREES";
 const string RADIANS_FUNC_NAME = "RADIANS";
 
+// Date functions.
+const string DAYNAME_FUNC_NAME = "DAYNAME";
+const string MONTHNAME_FUNC_NAME = "MONTHNAME";
+const string LASTDAY_FUNC_NAME = "LASTDAY";
+const string DATEPART_FUNC_NAME = "DATEPART";
+const string DATETRUNC_FUNC_NAME = "DATETRUNC";
+const string GREATEST_FUNC_NAME = "GREATEST";
+const string LEAST_FUNC_NAME = "LEAST";
+
 enum ExpressionType : uint8_t {
 
     /**

@@ -371,6 +371,9 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     case STRING: {
         return implicitCastToString(expression);
     }
+    case DATE: {
+        return implicitCastToDate(expression);
+    }
     case UNSTRUCTURED: {
         return implicitCastToUnstructured(expression);
     }
@@ -394,6 +397,14 @@ shared_ptr<Expression> ExpressionBinder::implicitCastToString(
     const shared_ptr<Expression>& expression) {
     auto children = expression_vector{expression};
     auto execFunc = VectorCastOperations::bindImplicitCastToString(children);
+    return make_shared<ScalarFunctionExpression>(
+        FUNCTION, DataType(STRING), move(children), move(execFunc));
+}
+
+shared_ptr<Expression> ExpressionBinder::implicitCastToDate(
+    const shared_ptr<Expression>& expression) {
+    auto children = expression_vector{expression};
+    auto execFunc = VectorCastOperations::bindImplicitCastToDate(children);
     return make_shared<ScalarFunctionExpression>(
         FUNCTION, DataType(STRING), move(children), move(execFunc));
 }

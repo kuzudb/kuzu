@@ -88,6 +88,16 @@ public:
 
     static int32_t MonthDays(int32_t year, int32_t month);
 
+    static string getDayName(date_t& date);
+
+    static string getMonthName(date_t& date);
+
+    static date_t getLastDay(date_t& date);
+
+    static int32_t getDatePart(date_t& date, string partSpecifier);
+
+    static date_t trunc(date_t& date, string partSpecifier);
+
 private:
     static void ExtractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset);
 };
