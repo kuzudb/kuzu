@@ -1,5 +1,9 @@
 #include "src/loader/include/in_mem_structure/in_mem_page.h"
 
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+
 namespace graphflow {
 namespace loader {
 
@@ -7,10 +11,10 @@ InMemPage::InMemPage(uint32_t maxElements, uint8_t* pagePointer, bool hasNULLByt
     numElementsInPage = maxElements;
     data = pagePointer;
     if (hasNULLBytes) {
-        uncompressedNULLs = make_unique<bool[]>(maxElements);
+        uncompressedNULLs = std::make_unique<bool[]>(maxElements);
         // By default, we consider all elements in the page to be NULL. When a new element comes in
         // to be put at a pos, its respective NULL bit is reset to denote a non-NULL value.
-        fill(uncompressedNULLs.get(), uncompressedNULLs.get() + maxElements, 1);
+        std::fill(uncompressedNULLs.get(), uncompressedNULLs.get() + maxElements, 1);
     } else {
         uncompressedNULLs = nullptr;
     }

@@ -51,28 +51,30 @@ void Rel::initPropertyListsAndColumns(const Catalog& catalog, const string& dire
     BufferManager& bufferManager, bool isInMemoryMode) {
     logger->info("Initializing PropertyLists and PropertyColumns for rel {}.", relLabel);
     if (!catalog.getRelProperties(relLabel).empty()) {
-        if (catalog.isSingleMultiplicityInDirection(relLabel, FWD)) {
-            initPropertyColumnsForRelLabel(catalog, directory, bufferManager, FWD, isInMemoryMode);
-        } else if (catalog.isSingleMultiplicityInDirection(relLabel, BWD)) {
-            initPropertyColumnsForRelLabel(catalog, directory, bufferManager, BWD, isInMemoryMode);
-        } else {
-            initPropertyListsForRelLabel(catalog, directory, bufferManager, isInMemoryMode);
+        for (auto relDirection : REL_DIRECTIONS) {
+            if (catalog.isSingleMultiplicityInDirection(relLabel, relDirection)) {
+                initPropertyColumnsForRelLabel(
+                    catalog, directory, bufferManager, relDirection, isInMemoryMode);
+            } else {
+                initPropertyListsForRelLabel(
+                    catalog, directory, bufferManager, relDirection, isInMemoryMode);
+            }
         }
     }
     logger->info("Initializing PropertyLists and PropertyColumns for rel {} Done.", relLabel);
 }
 
 void Rel::initPropertyColumnsForRelLabel(const Catalog& catalog, const string& directory,
-    BufferManager& bufferManager, const RelDirection& dir, bool isInMemoryMode) {
+    BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode) {
     logger->debug("Initializing PropertyColumns: relLabel {}", relLabel);
-    for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDirection(relLabel, dir)) {
+    for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDirection(relLabel, relDirection)) {
         auto& properties = catalog.getRelProperties(relLabel);
         propertyColumns[nodeLabel].resize(properties.size());
         for (auto& property : properties) {
             auto fName = StorageUtils::getRelPropertyColumnFName(
                 directory, relLabel, nodeLabel, property.name);
-            logger->debug("DIR {} nodeLabel {} propertyIdx {} type {} name `{}`", dir, nodeLabel,
-                property.id, property.dataType.typeID, property.name);
+            logger->debug("DIR {} nodeLabel {} propertyIdx {} type {} name `{}`", relDirection,
+                nodeLabel, property.id, property.dataType.typeID, property.name);
             propertyColumns[nodeLabel][property.id] =
                 ColumnFactory::getColumn(fName, property.dataType, bufferManager, isInMemoryMode);
         }
@@ -81,24 +83,22 @@ void Rel::initPropertyColumnsForRelLabel(const Catalog& catalog, const string& d
 }
 
 void Rel::initPropertyListsForRelLabel(const Catalog& catalog, const string& directory,
-    BufferManager& bufferManager, bool isInMemoryMode) {
+    BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode) {
     logger->debug("Initializing PropertyLists for rel {}", relLabel);
-    for (auto relDirection : REL_DIRECTIONS) {
-        for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDirection(relLabel, relDirection)) {
-            auto& properties = catalog.getRelProperties(relLabel);
-            auto adjListsHeaders = adjLists[relDirection].at(nodeLabel)->getHeaders();
-            propertyLists[relDirection].emplace(
-                nodeLabel, vector<unique_ptr<Lists>>(properties.size()));
-            for (auto propertyIdx = 0u; propertyIdx < properties.size(); propertyIdx++) {
-                auto fName = StorageUtils::getRelPropertyListsFName(
-                    directory, relLabel, nodeLabel, relDirection, properties[propertyIdx].name);
-                logger->debug("relDirection {} nodeLabel {} propertyIdx {} type {} name `{}`",
-                    relDirection, nodeLabel, properties[propertyIdx].id,
-                    properties[propertyIdx].dataType.typeID, properties[propertyIdx].name);
-                auto propertyList = ListsFactory::getLists(fName, properties[propertyIdx].dataType,
-                    adjListsHeaders, bufferManager, isInMemoryMode);
-                propertyLists[relDirection].at(nodeLabel)[propertyIdx] = move(propertyList);
-            }
+    for (auto& nodeLabel : catalog.getNodeLabelsForRelLabelDirection(relLabel, relDirection)) {
+        auto& properties = catalog.getRelProperties(relLabel);
+        auto adjListsHeaders = adjLists[relDirection].at(nodeLabel)->getHeaders();
+        propertyLists[relDirection].emplace(
+            nodeLabel, vector<unique_ptr<Lists>>(properties.size()));
+        for (auto propertyIdx = 0u; propertyIdx < properties.size(); propertyIdx++) {
+            auto fName = StorageUtils::getRelPropertyListsFName(
+                directory, relLabel, nodeLabel, relDirection, properties[propertyIdx].name);
+            logger->debug("relDirection {} nodeLabel {} propertyIdx {} type {} name `{}`",
+                relDirection, nodeLabel, properties[propertyIdx].id,
+                properties[propertyIdx].dataType.typeID, properties[propertyIdx].name);
+            auto propertyList = ListsFactory::getLists(fName, properties[propertyIdx].dataType,
+                adjListsHeaders, bufferManager, isInMemoryMode);
+            propertyLists[relDirection].at(nodeLabel)[propertyIdx] = move(propertyList);
         }
     }
     logger->debug("Initializing PropertyLists for rel {} done.", relLabel);

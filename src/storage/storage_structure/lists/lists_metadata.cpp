@@ -20,15 +20,15 @@ ListsMetadata::ListsMetadata(const string& listBaseFName) : ListsMetadata() {
 void ListsMetadata::saveToDisk(const string& fName) {
     auto metadataBasePath = fName + ".metadata";
     StorageUtils::saveListOfIntsToFile(metadataBasePath + CHUNK_PAGE_LIST_HEAD_IDX_MAP_SUFFIX,
-        chunkToPageListHeadIdxMap, numChunks + 1);
-    StorageUtils::saveListOfIntsToFile(
-        metadataBasePath + CHUNK_PAGE_LISTS_SUFFIX, chunkPageLists, chunkPageListsCapacity);
+        (uint8_t*)chunkToPageListHeadIdxMap.get(), numChunks + 1);
+    StorageUtils::saveListOfIntsToFile(metadataBasePath + CHUNK_PAGE_LISTS_SUFFIX,
+        (uint8_t*)chunkPageLists.get(), chunkPageListsCapacity);
     StorageUtils::saveListOfIntsToFile(metadataBasePath + LARGE_LISTS_PAGE_LIST_HEAD_IDX_MAP_SUFFIX,
-        largeListIdxToPageListHeadIdxMap, (2 * numLargeLists) + 1);
+        (uint8_t*)largeListIdxToPageListHeadIdxMap.get(), (2 * numLargeLists) + 1);
     StorageUtils::saveListOfIntsToFile(metadataBasePath + LARGE_LISTS_PAGE_LISTS_SUFFIX,
-        largeListPageLists, largeListPageListsCapacity);
+        (uint8_t*)largeListPageLists.get(), largeListPageListsCapacity);
 
-    // put numPages in .metadata file.
+    // Put numPages in .metadata file.
     if (0 == metadataBasePath.length()) {
         throw invalid_argument("ListsMetadata: Empty filename");
     }
@@ -85,7 +85,7 @@ void ListsMetadata::initChunkPageLists(uint32_t numChunks_) {
     chunkToPageListHeadIdxMap = make_unique<uint32_t[]>(numChunks + 1);
     // Make the headIdx of the first chunk 0.
     chunkToPageListHeadIdxMap[0] = 0;
-    // initialize pageLists blob with size 100.
+    // Initialize pageLists blob with size 100.
     chunkPageListsCapacity = 100;
     chunkPageLists = make_unique<uint32_t[]>(chunkPageListsCapacity);
 }
@@ -97,7 +97,7 @@ void ListsMetadata::initLargeListPageLists(uint32_t numLargeLists_) {
     largeListIdxToPageListHeadIdxMap = make_unique<uint32_t[]>((2 * numLargeLists_) + 1);
     // Make the headIdx of the first large list 0.
     largeListIdxToPageListHeadIdxMap[0] = 0;
-    // initialize pageLists blob with size 100.
+    // Initialize pageLists blob with size 100.
     largeListPageListsCapacity = 100;
     largeListPageLists = make_unique<uint32_t[]>(largeListPageListsCapacity);
 }

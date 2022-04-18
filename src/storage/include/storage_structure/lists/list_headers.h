@@ -12,16 +12,6 @@ class logger;
 }
 
 namespace graphflow {
-namespace loader {
-
-class ListsUtils;
-class InMemAdjAndPropertyListsBuilder;
-class NodesLoader;
-
-} // namespace loader
-} // namespace graphflow
-
-namespace graphflow {
 namespace storage {
 
 /**
@@ -44,15 +34,19 @@ namespace storage {
  *      page IDs are located.
  * */
 class ListHeaders {
-    friend class graphflow::loader::ListsUtils;
-    friend class graphflow::loader::InMemAdjAndPropertyListsBuilder;
-    friend class graphflow::loader::NodesLoader;
 
 public:
-    ListHeaders();
+    explicit ListHeaders(uint32_t size);
     explicit ListHeaders(const string& listBaseFName);
 
-    uint32_t getHeader(node_offset_t offset) { return headers[offset]; };
+    inline uint32_t getHeader(node_offset_t offset) {
+        assert(offset < size);
+        return headers[offset];
+    };
+    inline void setHeader(node_offset_t offset, uint32_t header) {
+        assert(offset < size);
+        headers[offset] = header;
+    }
 
     static inline bool isALargeList(const uint32_t& header) { return header & 0x80000000; };
 
@@ -64,11 +58,9 @@ public:
 
     // For large lists.
     static inline uint32_t getLargeListIdx(const uint32_t& header) { return header & 0x7fffffff; };
+    void saveToDisk(const string& fName);
 
 private:
-    void init(uint32_t size);
-
-    void saveToDisk(const string& fName);
     void readFromDisk(const string& fName);
 
 private:

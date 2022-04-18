@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 #include "src/common/types/include/literal.h"
 #include "src/common/types/include/value.h"
 #include "src/storage/include/storage_structure/lists/large_list_handle.h"
@@ -43,10 +41,6 @@ public:
     void readValues(node_offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
         const unique_ptr<LargeListHandle>& largeListHandle);
 
-    inline uint64_t getNumElementsInList(node_offset_t nodeOffset) {
-        return getListInfo(nodeOffset).listLen;
-    }
-
     ListInfo getListInfo(node_offset_t nodeOffset);
 
 protected:
@@ -60,11 +54,6 @@ protected:
         const unique_ptr<LargeListHandle>& largeListHandle, ListInfo& info);
 
     virtual void readSmallList(const shared_ptr<ValueVector>& valueVector, ListInfo& info);
-
-public:
-    // LIST_CHUNK_SIZE should strictly be a power of 2.
-    constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
-    constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;
 
 protected:
     ListsMetadata metadata;
@@ -119,7 +108,7 @@ public:
 
     shared_ptr<ListHeaders> getHeaders() { return headers; };
 
-    //    // Currently, used only in Loader tests.
+    // Currently, used only in Loader tests.
     unique_ptr<vector<nodeID_t>> readAdjacencyListOfNode(node_offset_t nodeOffset);
 
 private:

@@ -36,8 +36,9 @@ public:
             "usedNames", 11, DataType(LIST, make_unique<DataType>(STRING)));
         personProperties.emplace_back("courseScoresPerTerm", 12,
             DataType(LIST, make_unique<DataType>(LIST, make_unique<DataType>(INT64))));
-        catalog->addNodeLabel("person", move(personProperties));
-        catalog->addNodeUnstrProperty(0, "unstrIntProp");
+        vector<string> unstrPropertyNames{"unstrIntProp"};
+        catalog->addNodeLabel(
+            "person", DataType(INT64), move(personProperties), unstrPropertyNames, 1);
 
         vector<PropertyDefinition> knowsProperties;
         knowsProperties.emplace_back("START_ID_LABEL", -1, STRING);

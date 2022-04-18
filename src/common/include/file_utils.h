@@ -25,7 +25,8 @@ public:
 
     static void readFromFile(
         FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position);
-    static void writeToFile(FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t offset);
+    static void writeToFile(
+        FileInfo* fileInfo, uint8_t* buffer, uint64_t numBytes, uint64_t offset);
 
     static void createDir(const string& dir);
     static void removeDir(const string& dir);

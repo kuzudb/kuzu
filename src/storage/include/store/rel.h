@@ -9,9 +9,9 @@
 namespace graphflow {
 namespace storage {
 
-using directional_adj_columns_t = unordered_map<label_t, unique_ptr<AdjColumn>>;
-using directional_property_lists_t = unordered_map<label_t, vector<unique_ptr<Lists>>>;
-using directional_adj_lists_t = unordered_map<label_t, unique_ptr<AdjLists>>;
+using label_adj_columns_map_t = unordered_map<label_t, unique_ptr<AdjColumn>>;
+using label_property_lists_map_t = unordered_map<label_t, vector<unique_ptr<Lists>>>;
+using label_adj_lists_map_t = unordered_map<label_t, unique_ptr<AdjLists>>;
 
 class Rel {
 public:
@@ -39,17 +39,17 @@ private:
     void initPropertyListsAndColumns(const catalog::Catalog& catalog, const string& directory,
         BufferManager& bufferManager, bool isInMemoryMode);
     void initPropertyColumnsForRelLabel(const catalog::Catalog& catalog, const string& directory,
-        BufferManager& bufferManager, const RelDirection& dir, bool isInMemoryMode);
+        BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode);
     void initPropertyListsForRelLabel(const catalog::Catalog& catalog, const string& directory,
-        BufferManager& bufferManager, bool isInMemoryMode);
+        BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode);
 
 private:
     shared_ptr<spdlog::logger> logger;
     label_t relLabel;
     unordered_map<label_t, vector<unique_ptr<Column>>> propertyColumns;
-    vector<directional_adj_columns_t> adjColumns{2};
-    vector<directional_property_lists_t> propertyLists{2};
-    vector<directional_adj_lists_t> adjLists{2};
+    vector<label_adj_columns_map_t> adjColumns{2};
+    vector<label_property_lists_map_t> propertyLists{2};
+    vector<label_adj_lists_map_t> adjLists{2};
 };
 
 } // namespace storage

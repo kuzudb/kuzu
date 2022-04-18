@@ -10,16 +10,6 @@ class logger;
 }
 
 namespace graphflow {
-namespace loader {
-
-class ListsUtils;
-class InMemAdjAndPropertyListsBuilder;
-class NodesLoader;
-
-} // namespace loader
-} // namespace graphflow
-
-namespace graphflow {
 namespace storage {
 
 /**
@@ -31,14 +21,13 @@ namespace storage {
  * location of the list to the actual physical location in disk pages.
  */
 class ListsMetadata {
-    friend class graphflow::loader::ListsUtils;
-    friend class graphflow::loader::InMemAdjAndPropertyListsBuilder;
-    friend class graphflow::loader::NodesLoader;
 
 public:
     ListsMetadata();
     explicit ListsMetadata(const string& listBaseFName);
 
+    inline uint32_t getNumPages() const { return numPages; }
+    inline void setNumPages(uint32_t numPages_) { numPages = numPages_; }
     inline uint64_t getNumElementsInLargeLists(uint64_t largeListIdx) {
         return largeListIdxToPageListHeadIdxMap[(2 * largeListIdx) + 1];
     };
@@ -49,7 +38,6 @@ public:
         return getLogicalToPhysicalPageMapper(
             chunkPageLists.get(), chunkToPageListHeadIdxMap[chunkIdx], chunkIdx);
     }
-
     // Returns a function that can map the logical pageIdx of a largeList to its corresponding
     // physical pageIdx in a disk file.
     inline std::function<uint32_t(uint32_t)> getPageMapperForLargeListIdx(uint32_t largeListIdx) {
@@ -57,8 +45,20 @@ public:
             largeListIdxToPageListHeadIdxMap[2 * largeListIdx], largeListIdx);
     }
 
-private:
+    void initChunkPageLists(uint32_t numChunks);
+    void initLargeListPageLists(uint32_t numLargeLists);
+
+    // To be called only after call to initChunkPageLists(...). Assumes pageList of chunks 0 to
+    // chunkId - 1 has already been populated.
+    void populateChunkPageList(uint32_t chunkId, uint32_t numPages, uint32_t startPageId);
+    // To be called only after call to initLargeListPageLists(...). Assumes pageList of largeLists 0
+    // to largeListIdx - 1 has already been populated.
+    void populateLargeListPageList(
+        uint32_t largeListIdx, uint32_t numPages, uint32_t numElements, uint32_t startPageId);
+
     void saveToDisk(const string& fName);
+
+private:
     void readFromDisk(const string& fName);
 
     inline static std::function<uint32_t(uint32_t)> getLogicalToPhysicalPageMapper(
@@ -71,17 +71,6 @@ private:
 
     // Below functions are to be used only in the loader to create the ListsMetadata object
     // initially.
-
-    void initChunkPageLists(uint32_t numChunks);
-    void initLargeListPageLists(uint32_t numLargeLists);
-
-    // To be called only after call to initChunkPageLists(...). Assumes pageList of chunks 0 to
-    // chunkId - 1 has already been populated.
-    void populateChunkPageList(uint32_t chunkId, uint32_t numPages, uint32_t startPageId);
-    // To be called only after call to initLargeListPageLists(...). Assumes pageList of largeLists 0
-    // to largeListIdx - 1 has already been populated.
-    void populateLargeListPageList(
-        uint32_t largeListIdx, uint32_t numPages, uint32_t numElements, uint32_t startPageId);
 
     // Creates a new pageList (in pageListGroups of size 3) by enumerating the pageIds sequentially
     // in the list, starting from `startPageId` till `startPageId + numPages - 1`.

@@ -6,7 +6,7 @@ namespace graphflow {
 namespace common {
 
 NodeIDCompressionScheme::NodeIDCompressionScheme(const unordered_set<label_t>& nbrNodeLabels,
-    const vector<uint64_t>& numNodesPerLabel, const uint32_t& numNodeLabels)
+    const vector<uint64_t>& numNodesPerLabel, uint32_t numNodeLabels)
     : commonLabel(0) {
     uint64_t maxNodeOffsetToFit = 0;
     for (auto nodeLabel : nbrNodeLabels) {
@@ -18,15 +18,9 @@ NodeIDCompressionScheme::NodeIDCompressionScheme(const unordered_set<label_t>& n
         numBytesForLabel = 0;
         commonLabel = *nbrNodeLabels.begin();
     } else {
-        // TODO(Guodong): should we use maxNbrNodeLabelID or just numNodeLabels - 1?
-        auto maxNbrNodeLabelID = 0;
-        for (auto nodeLabel : nbrNodeLabels) {
-            maxNbrNodeLabelID = nodeLabel > maxNbrNodeLabelID ? nodeLabel : maxNbrNodeLabelID;
-        }
-        numBytesForLabel = getNumBytesForEncoding(maxNbrNodeLabelID, 1 /* min num bytes */);
+        numBytesForLabel = getNumBytesForEncoding(numNodeLabels - 1, 1 /* min num bytes */);
     }
     numBytesForOffset = getNumBytesForEncoding(maxNodeOffsetToFit, 2 /*min num bytes*/);
-    numTotalBytes = numBytesForLabel + numBytesForOffset;
 }
 
 uint32_t NodeIDCompressionScheme::getNumBytesForEncoding(

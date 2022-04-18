@@ -2,6 +2,7 @@
 
 #include "src/common/include/configs.h"
 #include "src/common/include/type_utils.h"
+#include "src/common/include/utils.h"
 
 namespace graphflow {
 namespace common {
@@ -176,7 +177,13 @@ uint8_t CSVReader::getBoolean() {
 
 char* CSVReader::getString() {
     setNextTokenIsProcessed();
-    return line + linePtrStart;
+    auto strVal = line + linePtrStart;
+    if (strlen(strVal) > DEFAULT_PAGE_SIZE) {
+        throw CSVReaderException(StringUtils::string_format(
+            "Maximum length of strings is %d. Input string's length is %d.", DEFAULT_PAGE_SIZE,
+            strlen(strVal), strVal));
+    }
+    return strVal;
 }
 
 date_t CSVReader::getDate() {
@@ -229,11 +236,17 @@ Literal CSVReader::getList(const DataType& dataType) {
                 result.listVal.emplace_back(listCSVReader.getList(*dataType.childType));
             } break;
             default:
-                throw invalid_argument("Unsupported data type " +
-                                       Types::dataTypeToString(dataType.childType->typeID) +
-                                       " inside LIST");
+                throw CSVReaderException("Unsupported data type " +
+                                         Types::dataTypeToString(dataType.childType->typeID) +
+                                         " inside LIST");
             }
         }
+    }
+    auto numBytesOfOverflow = result.listVal.size() * Types::getDataTypeSize(dataType.typeID);
+    if (numBytesOfOverflow >= DEFAULT_PAGE_SIZE) {
+        throw CSVReaderException(StringUtils::string_format(
+            "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
+            numBytesOfOverflow));
     }
     return result;
 }

@@ -6,22 +6,18 @@
 namespace graphflow {
 namespace storage {
 
-ListHeaders::ListHeaders() : size{0} {
+ListHeaders::ListHeaders(uint32_t size) : size{size} {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
+    headers = make_unique<uint32_t[]>(size);
 }
 
-ListHeaders::ListHeaders(const string& listBaseFName) : ListHeaders() {
+ListHeaders::ListHeaders(const string& listBaseFName) : ListHeaders(0) {
     readFromDisk(listBaseFName);
     logger->trace("AdjListHeaders: #Headers {}", sizeof(headers.get()));
 };
 
-void ListHeaders::init(uint32_t size_) {
-    this->size = size_;
-    headers = make_unique<uint32_t[]>(size_);
-}
-
 void ListHeaders::saveToDisk(const string& fName) {
-    StorageUtils::saveListOfIntsToFile(fName + ".headers", headers, size);
+    StorageUtils::saveListOfIntsToFile(fName + ".headers", (uint8_t*)headers.get(), size);
 }
 
 void ListHeaders::readFromDisk(const string& fName) {

@@ -154,8 +154,9 @@ bool HashIndex::notExistsInSlot(uint8_t* slot, uint8_t* key) {
                     PageByteCursor cursor;
                     TypeUtils::decodeOverflowPtr(
                         keyInEntryString->overflowPtr, cursor.idx, cursor.offset);
-                    foundKey = memcmp(key, inMemStringOvfPages->getPtrToMemLoc(cursor),
-                                   keyInEntryString->len) == 0;
+                    foundKey =
+                        memcmp(key, inMemStringOvfPages->pages[cursor.idx]->data + cursor.offset,
+                            keyInEntryString->len) == 0;
                 }
             }
             break;
