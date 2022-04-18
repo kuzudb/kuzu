@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/function/include/aggregate/base_count.h"
+#include "base_count.h"
 
 namespace graphflow {
 namespace function {

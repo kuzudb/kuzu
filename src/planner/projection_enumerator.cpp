@@ -128,8 +128,8 @@ void ProjectionEnumerator::appendAggregate(const expression_vector& expressionsT
     }
     for (auto& expressionToAggregate : expressionsToAggregate) {
         assert(isExpressionAggregate(expressionToAggregate->expressionType));
-        auto& functionExpression = (FunctionExpression&)*expressionToAggregate;
-        if (functionExpression.isFunctionDistinct()) {
+        auto& functionExpression = (AggregateFunctionExpression&)*expressionToAggregate;
+        if (functionExpression.isDistinct()) {
             auto dependentGroupsPos =
                 Enumerator::getDependentGroupsPos(expressionToAggregate, *schema);
             enumerator->appendFlattens(dependentGroupsPos, plan);
@@ -251,7 +251,7 @@ expression_vector ProjectionEnumerator::getSubAggregateExpressionsNotInScope(
     if (schema.isExpressionInScope(*expression)) {
         return result;
     }
-    if (isExpressionAggregate(expression->expressionType)) {
+    if (expression->expressionType == AGGREGATE_FUNCTION) {
         result.push_back(expression);
         // Since aggregate expressions cannot be nested, we can safely return when current
         // expression is an aggregate expression.

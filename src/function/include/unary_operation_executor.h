@@ -3,7 +3,6 @@
 #include <functional>
 
 #include "src/common/include/vector/value_vector.h"
-#include "src/function/boolean/operations/include/boolean_operations.h"
 
 namespace graphflow {
 namespace function {

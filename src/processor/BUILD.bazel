@@ -93,7 +93,7 @@ cc_library(
         "hash_table",
         "sink_operator",
         "source_operator",
-        "//src/function:aggregate_function",
+        "//src/function/aggregate:aggregate_function",
     ],
 )
 
@@ -194,7 +194,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "result",
-        "//src/function:aggregate_function",
+        "//src/function/aggregate:aggregate_function",
         "//src/function/hash/operations:hash_operations",
     ],
 )
@@ -246,7 +246,7 @@ cc_library(
         "physical_plan",
         "//src/binder/expression:expression_implementations",
         "//src/expression_evaluator:expression_evaluator_impls",
-        "//src/function:aggregate_function",
+        "//src/function/aggregate:aggregate_function",
         "//src/planner/logical_plan/logical_operator:logical_operator_impls",
         "//src/storage:storage_manager",
     ],

@@ -33,8 +33,7 @@ bool isExpressionLiteral(ExpressionType type) {
 }
 
 bool isExpressionAggregate(ExpressionType type) {
-    return COUNT_STAR_FUNC == type || COUNT_FUNC == type || SUM_FUNC == type || AVG_FUNC == type ||
-           MIN_FUNC == type || MAX_FUNC == type;
+    return AGGREGATE_FUNCTION == type;
 }
 
 bool isExpressionSubquery(ExpressionType type) {
@@ -69,8 +68,6 @@ string expressionTypeToString(ExpressionType type) {
         return "IS_NOT_NULL";
     case PROPERTY:
         return "PROPERTY";
-    case FUNCTION:
-        return "FUNCTION";
     case LITERAL_INT:
         return "LITERAL_INT";
     case LITERAL_DOUBLE:
@@ -87,18 +84,14 @@ string expressionTypeToString(ExpressionType type) {
         return "LITERAL_NULL";
     case VARIABLE:
         return "VARIABLE";
-    case COUNT_STAR_FUNC:
-        return COUNT_STAR_FUNC_NAME;
-    case COUNT_FUNC:
-        return COUNT_FUNC_NAME;
-    case SUM_FUNC:
-        return SUM_FUNC_NAME;
-    case AVG_FUNC:
-        return AVG_FUNC_NAME;
-    case MIN_FUNC:
-        return MIN_FUNC_NAME;
-    case MAX_FUNC:
-        return MAX_FUNC_NAME;
+    case PARAMETER:
+        return "PARAMETER";
+    case FUNCTION:
+        return "FUNCTION";
+    case AGGREGATE_FUNCTION:
+        return "AGGREGATE_FUNCTION";
+    case EXISTENTIAL_SUBQUERY:
+        return "EXISTENTIAL_SUBQUERY";
     default:
         throw invalid_argument("Should never happen. Cannot convert expression type to string");
     }

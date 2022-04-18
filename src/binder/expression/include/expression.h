@@ -20,23 +20,30 @@ using expression_vector = vector<shared_ptr<Expression>>;
 class Expression : public enable_shared_from_this<Expression> {
 
 public:
-    Expression(ExpressionType expressionType, DataType dataType, expression_vector children);
+    Expression(ExpressionType expressionType, DataType dataType, expression_vector children,
+        string uniqueName)
+        : expressionType{expressionType}, dataType{move(dataType)},
+          uniqueName{move(uniqueName)}, children{move(children)} {}
 
     // Create binary expression.
     Expression(ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& left,
-        const shared_ptr<Expression>& right)
-        : Expression{expressionType, move(dataType), expression_vector{left, right}} {}
+        const shared_ptr<Expression>& right, const string& uniqueName)
+        : Expression{expressionType, move(dataType), expression_vector{left, right}, uniqueName} {}
 
     // Create unary expression.
-    Expression(
-        ExpressionType expressionType, DataType dataType, const shared_ptr<Expression>& child)
-        : Expression{expressionType, move(dataType), expression_vector{child}} {}
+    Expression(ExpressionType expressionType, DataType dataType,
+        const shared_ptr<Expression>& child, const string& uniqueName)
+        : Expression{expressionType, move(dataType), expression_vector{child}, uniqueName} {}
 
-    // Create leaf expression with unique name
-    Expression(ExpressionType expressionType, DataType dataType, const string& uniqueName);
+    // Create leaf expression
+    Expression(ExpressionType expressionType, DataType dataType, const string& uniqueName)
+        : Expression{expressionType, move(dataType), expression_vector{}, uniqueName} {}
 
 protected:
-    Expression(ExpressionType expressionType, DataTypeID dataTypeID, const string& uniqueName);
+    Expression(ExpressionType expressionType, DataTypeID dataTypeID, const string& uniqueName)
+        : Expression{expressionType, DataType(dataTypeID), uniqueName} {
+        assert(dataTypeID != LIST);
+    }
 
 public:
     inline void setAlias(const string& name) { alias = name; }
@@ -75,9 +82,6 @@ public:
     expression_vector splitOnAND();
 
 protected:
-    Expression(ExpressionType expressionType, DataType dataType)
-        : expressionType{expressionType}, dataType{move(dataType)} {}
-
     bool hasSubExpressionOfType(
         const std::function<bool(ExpressionType type)>& typeCheckFunc) const;
 

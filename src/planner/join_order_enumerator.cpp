@@ -134,9 +134,10 @@ void JoinOrderEnumerator::enumerateSingleRel() {
                         auto planWithFilter = prevPlan->shallowCopy();
                         appendExtendFiltersAndScanProperties(
                             *tmpRel, direction, expressionsToFilter, *planWithFilter);
-                        auto nodeIDFilter = createNodeIDComparison(
-                            nodeToIntersect->getNodeIDPropertyExpression(),
-                            tmpNode->getNodeIDPropertyExpression(), catalog.getBuiltInFunctions());
+                        auto nodeIDFilter =
+                            createNodeIDComparison(nodeToIntersect->getNodeIDPropertyExpression(),
+                                tmpNode->getNodeIDPropertyExpression(),
+                                catalog.getBuiltInScalarFunctions());
                         enumerator->appendFilter(nodeIDFilter, *planWithFilter);
                         context->addPlan(newSubgraph, move(planWithFilter));
 
@@ -384,8 +385,9 @@ shared_ptr<Expression> createNodeIDComparison(const shared_ptr<Expression>& left
     childrenTypes.push_back(left->dataType);
     childrenTypes.push_back(right->dataType);
     auto function = builtInFunctions->matchFunction(EQUALS_FUNC_NAME, childrenTypes);
-    return make_shared<ScalarFunctionExpression>(
-        EQUALS, DataType(BOOL), move(children), function->execFunc, function->selectFunc);
+    auto uniqueName = ScalarFunctionExpression::getUniqueName(EQUALS_FUNC_NAME, children);
+    return make_shared<ScalarFunctionExpression>(EQUALS, DataType(BOOL), move(children),
+        function->execFunc, function->selectFunc, uniqueName);
 }
 
 } // namespace planner

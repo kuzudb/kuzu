@@ -5,7 +5,6 @@ cc_library(
         "include/*.h",
     ]),
     visibility = [
-        "//src/binder:__pkg__",
         "//src/function:__subpackages__",
         "//src/planner:__pkg__",
         "//test/common:__pkg__",

@@ -65,6 +65,10 @@ public:
     static inline vector<DataTypeID> getNumericalAndUnstructuredTypeIDs() {
         return vector<DataTypeID>{INT64, DOUBLE, UNSTRUCTURED};
     }
+    static inline vector<DataTypeID> getAllValidTypeIDs() {
+        return vector<DataTypeID>{REL, NODE, LABEL, BOOL, INT64, DOUBLE, STRING, NODE_ID,
+            UNSTRUCTURED, DATE, TIMESTAMP, INTERVAL, LIST};
+    }
 
     DataType& operator=(const DataType& other);
 

@@ -19,7 +19,9 @@ public:
         try {
             auto parsedQuery = Parser::parseQuery(input);
             QueryBinder(catalog).bind(*parsedQuery);
-        } catch (const invalid_argument& exception) { return exception.what(); }
+        } catch (const invalid_argument& exception) {
+            return exception.what();
+        } catch (const CatalogException& exception) { return exception.what(); }
         return string();
     }
 
@@ -158,7 +160,7 @@ TEST_F(BinderErrorTest, BindTimestampAddTimestamp) {
 }
 
 TEST_F(BinderErrorTest, BindNonExistingFunction) {
-    string expectedException = "DUMMY function does not exist.";
+    string expectedException = "Catalog exception: DUMMY function does not exist.";
     auto input = "MATCH (a:person) WHERE dummy() < 2 RETURN COUNT(*);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

@@ -32,15 +32,13 @@ private:
     shared_ptr<Expression> bindPropertyExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindScalarFunctionExpression(
+        const ParsedExpression& parsedExpression, const string& functionName);
+    shared_ptr<Expression> bindAggregateFunctionExpression(
+        const ParsedExpression& parsedExpression, const string& functionName, bool isDistinct);
+
     shared_ptr<Expression> staticEvaluate(const string& functionName,
         const ParsedExpression& parsedExpression, const expression_vector& children);
-
-    shared_ptr<Expression> bindCountStarFunctionExpression(
-        const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindCountFunctionExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindAvgFunctionExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindSumMinMaxFunctionExpression(
-        const ParsedExpression& parsedExpression, ExpressionType expressionType);
     shared_ptr<Expression> bindIDFunctionExpression(const ParsedExpression& parsedExpression);
 
     shared_ptr<Expression> bindParameterExpression(const ParsedExpression& parsedExpression);
@@ -67,18 +65,8 @@ private:
     // NOTE: this validation should be removed and front end binds any null operation to null
     static void validateNoNullLiteralChildren(const ParsedExpression& parsedExpression);
 
-    // Parser cannot check expected number of children for built in functions. So number of children
-    // validation is needed for function.
-    static void validateNumberOfChildren(
-        const ParsedExpression& parsedExpression, uint32_t expectedNumChildren);
-
     static void validateExpectedDataType(
         const Expression& expression, const unordered_set<DataTypeID>& expectedTypes);
-
-    static void validateNumericOrUnstructured(const Expression& expression) {
-        validateExpectedDataType(
-            expression, unordered_set<DataTypeID>{INT64, DOUBLE, UNSTRUCTURED});
-    }
 
     // E.g. SUM(SUM(a.age)) is not allowed
     static void validateAggregationExpressionIsNotNested(const Expression& expression);
