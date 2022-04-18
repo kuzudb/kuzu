@@ -83,7 +83,7 @@ TEST_F(ExpressionTest, FilterStringOperatorTest) {
     auto aName = makeANameExpression();
     auto xiyang = make_unique<ParsedLiteralExpression>(LITERAL_STRING, "\"Xiyang\"", EMPTY);
     auto aNameContainsXiyang =
-        make_unique<ParsedExpression>(CONTAINS, move(aName), move(xiyang), EMPTY);
+        make_unique<ParsedFunctionExpression>(CONTAINS_FUNC_NAME, move(aName), move(xiyang), EMPTY);
     auto where = make_unique<ParsedExpression>(
         OR, move(aIsStudentAndBIsMale), move(aNameContainsXiyang), EMPTY);
 
@@ -98,8 +98,9 @@ TEST_F(ExpressionTest, FilterArithmeticComparisonTest) {
     auto a = make_unique<ParsedVariableExpression>("a", EMPTY);
     auto two = make_unique<ParsedLiteralExpression>(LITERAL_INT, "2", EMPTY);
     auto pointOne = make_unique<ParsedLiteralExpression>(LITERAL_DOUBLE, "0.1", EMPTY);
-    auto multi = make_unique<ParsedExpression>(MULTIPLY, move(a), move(pointOne), EMPTY);
-    auto left = make_unique<ParsedExpression>(ADD, move(two), move(multi), EMPTY);
+    auto multi =
+        make_unique<ParsedFunctionExpression>(MULTIPLY_FUNC_NAME, move(a), move(pointOne), EMPTY);
+    auto left = make_unique<ParsedFunctionExpression>(ADD_FUNC_NAME, move(two), move(multi), EMPTY);
     auto aAge = makeAAgeExpression();
     auto where = make_unique<ParsedExpression>(EQUALS, move(left), move(aAge), EMPTY);
 
@@ -113,8 +114,9 @@ TEST_F(ExpressionTest, FilterParenthesizeTest) {
     auto a = make_unique<ParsedVariableExpression>("a", EMPTY);
     auto two = make_unique<ParsedLiteralExpression>(LITERAL_INT, "2", EMPTY);
     auto pointOne = make_unique<ParsedLiteralExpression>(LITERAL_DOUBLE, "0.1", EMPTY);
-    auto sub = make_unique<ParsedExpression>(SUBTRACT, move(two), move(a), EMPTY);
-    auto left = make_unique<ParsedExpression>(MODULO, move(sub), move(pointOne), EMPTY);
+    auto sub = make_unique<ParsedFunctionExpression>(SUBTRACT_FUNC_NAME, move(two), move(a), EMPTY);
+    auto left =
+        make_unique<ParsedFunctionExpression>(MODULO_FUNC_NAME, move(sub), move(pointOne), EMPTY);
     auto aAge = makeAAgeExpression();
     auto where = make_unique<ParsedExpression>(LESS_THAN_EQUALS, move(left), move(aAge), EMPTY);
 
@@ -128,7 +130,8 @@ TEST_F(ExpressionTest, FilterFunctionMultiParamsTest) {
     auto a = make_unique<ParsedVariableExpression>("a", EMPTY);
     auto b = make_unique<ParsedVariableExpression>("b", EMPTY);
     auto two = make_unique<ParsedLiteralExpression>(LITERAL_INT, "2", EMPTY);
-    auto bPowerTwo = make_unique<ParsedExpression>(POWER, move(b), move(two), EMPTY);
+    auto bPowerTwo =
+        make_unique<ParsedFunctionExpression>(POWER_FUNC_NAME, move(b), move(two), EMPTY);
     auto where = make_unique<ParsedFunctionExpression>("MIN", EMPTY);
     where->addChild(move(a));
     where->addChild(move(bPowerTwo));

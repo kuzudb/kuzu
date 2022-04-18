@@ -49,7 +49,7 @@ struct Modulo {
     template<class A, class B, class R>
     static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull) {
         assert(!isLeftNull && !isRightNull);
-        assert(false);
+        result = fmod(left, right);
     }
 };
 
@@ -94,32 +94,32 @@ struct Ceil {
 };
 
 struct Sin {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = sin(input);
     }
 };
 
 struct Cos {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = cos(input);
     }
 };
 
 struct Tan {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = tan(input);
     }
 };
 
 struct Cot {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         double tanValue;
         Tan::operation(input, isNull, tanValue);
@@ -128,32 +128,32 @@ struct Cot {
 };
 
 struct Asin {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = asin(input);
     }
 };
 
 struct Acos {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = acos(input);
     }
 };
 
 struct Atan {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = atan(input);
     }
 };
 
 struct Even {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, int64_t& result) {
         assert(!isNull);
         result = input >= 0 ? ceil(input) : floor(input);
         if (result % 2) {
@@ -171,24 +171,24 @@ struct Factorial {
 };
 
 struct Sign {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, int64_t& result) {
         assert(!isNull);
         result = (input > 0) - (input < 0);
     }
 };
 
 struct Sqrt {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = sqrt(input);
     }
 };
 
 struct Cbrt {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = cbrt(input);
     }
@@ -203,48 +203,48 @@ struct Gamma {
 };
 
 struct Lgamma {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = lgamma(input);
     }
 };
 
 struct Ln {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = log(input);
     }
 };
 
 struct Log {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = log10(input);
     }
 };
 
 struct Log2 {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = log2(input);
     }
 };
 
 struct Degrees {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = input * 180 / M_PI;
     }
 };
 
 struct Radians {
-    template<class T, class R>
-    static inline void operation(T& input, bool isNull, R& result) {
+    template<class T>
+    static inline void operation(T& input, bool isNull, double_t& result) {
         assert(!isNull);
         result = input * M_PI / 180;
     }
@@ -261,42 +261,6 @@ inline void Modulo::operation(
     int64_t& left, int64_t& right, int64_t& result, bool isLeftNull, bool isRightNull) {
     assert(!isLeftNull && !isRightNull);
     result = left % right;
-}
-
-template<>
-inline void Modulo::operation(
-    int64_t& left, double_t& right, double_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    result = fmod(left, right);
-}
-
-template<>
-inline void Modulo::operation(
-    double_t& left, int64_t& right, double_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    result = fmod(left, right);
-}
-
-template<>
-inline void Modulo::operation(
-    double_t& left, double_t& right, double_t& result, bool isLeftNull, bool isRightNull) {
-    assert(!isLeftNull && !isRightNull);
-    result = fmod(left, right);
-}
-
-template<class FUNC>
-inline constexpr bool isFuncInputNumericOutputDouble() {
-    return is_same<FUNC, Sin>::value || is_same<FUNC, Cos>::value || is_same<FUNC, Tan>::value ||
-           is_same<FUNC, Cot>::value || is_same<FUNC, Asin>::value || is_same<FUNC, Acos>::value ||
-           is_same<FUNC, Atan>::value || is_same<FUNC, Sqrt>::value || is_same<FUNC, Cbrt>::value ||
-           is_same<FUNC, Lgamma>::value || is_same<FUNC, Ln>::value || is_same<FUNC, Log>::value ||
-           is_same<FUNC, Log2>::value || is_same<FUNC, Degrees>::value ||
-           is_same<FUNC, Radians>::value;
-}
-
-template<class FUNC>
-inline constexpr bool isFuncInputNumericOutputInt64() {
-    return is_same<FUNC, Even>::value || is_same<FUNC, Sign>::value;
 }
 
 /**********************************************
@@ -354,46 +318,51 @@ struct ArithmeticOnValues {
     template<class FUNC, const char* arithmeticOpStr>
     static void operation(Value& input, bool isNull, Value& result) {
         assert(!isNull);
-        if constexpr (isFuncInputNumericOutputDouble<FUNC>()) {
-            result.dataType.typeID = DOUBLE;
-            switch (input.dataType.typeID) {
-            case INT64: {
-                FUNC::operation(input.val.int64Val, isNull, result.val.doubleVal);
-            } break;
-            case DOUBLE: {
-                FUNC::operation(input.val.doubleVal, isNull, result.val.doubleVal);
-            } break;
-            default:
-                throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
-                                       Types::dataTypeToString(input.dataType.typeID) + "`");
-            }
-        } else if constexpr (isFuncInputNumericOutputInt64<FUNC>()) {
+
+        switch (input.dataType.typeID) {
+        case INT64: {
             result.dataType.typeID = INT64;
-            switch (input.dataType.typeID) {
-            case INT64: {
-                FUNC::operation(input.val.int64Val, isNull, result.val.int64Val);
-            } break;
-            case DOUBLE: {
-                FUNC::operation(input.val.doubleVal, isNull, result.val.int64Val);
-            } break;
-            default:
-                throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
-                                       Types::dataTypeToString(input.dataType.typeID) + "`");
-            }
-        } else {
-            switch (input.dataType.typeID) {
-            case INT64: {
-                result.dataType.typeID = INT64;
-                FUNC::operation(input.val.int64Val, isNull, result.val.int64Val);
-            } break;
-            case DOUBLE: {
-                result.dataType.typeID = DOUBLE;
-                FUNC::operation(input.val.doubleVal, isNull, result.val.doubleVal);
-            } break;
-            default:
-                throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
-                                       Types::dataTypeToString(input.dataType.typeID) + "`");
-            }
+            FUNC::operation(input.val.int64Val, isNull, result.val.int64Val);
+        } break;
+        case DOUBLE: {
+            result.dataType.typeID = DOUBLE;
+            FUNC::operation(input.val.doubleVal, isNull, result.val.doubleVal);
+        } break;
+        default:
+            throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
+                                   Types::dataTypeToString(input.dataType.typeID) + "`");
+        }
+    }
+
+    template<class FUNC, const char* arithmeticOpStr>
+    static void operation(Value& input, bool isNull, double_t& result) {
+        assert(!isNull);
+        switch (input.dataType.typeID) {
+        case INT64: {
+            FUNC::operation(input.val.int64Val, isNull, result);
+        } break;
+        case DOUBLE: {
+            FUNC::operation(input.val.doubleVal, isNull, result);
+        } break;
+        default:
+            throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
+                                   Types::dataTypeToString(input.dataType.typeID) + "`");
+        }
+    }
+
+    template<class FUNC, const char* arithmeticOpStr>
+    static void operation(Value& input, bool isNull, int64_t& result) {
+        assert(!isNull);
+        switch (input.dataType.typeID) {
+        case INT64: {
+            FUNC::operation(input.val.int64Val, isNull, result);
+        } break;
+        case DOUBLE: {
+            FUNC::operation(input.val.doubleVal, isNull, result);
+        } break;
+        default:
+            throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
+                                   Types::dataTypeToString(input.dataType.typeID) + "`");
         }
     }
 };
@@ -427,7 +396,6 @@ static const char logStr[] = "log";
 static const char log2Str[] = "log2";
 static const char degreesStr[] = "degrees";
 static const char radiansStr[] = "radians";
-static const char bitCountStr[] = "bitCount";
 
 template<>
 inline void Add::operation(
@@ -562,42 +530,42 @@ inline void Ceil::operation(Value& operand, bool isNull, Value& result) {
 };
 
 template<>
-inline void Sin::operation(Value& operand, bool isNull, Value& result) {
+inline void Sin::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Sin, sinStr>(operand, isNull, result);
 };
 
 template<>
-inline void Cos::operation(Value& operand, bool isNull, Value& result) {
+inline void Cos::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Cos, cosStr>(operand, isNull, result);
 };
 
 template<>
-inline void Tan::operation(Value& operand, bool isNull, Value& result) {
+inline void Tan::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Tan, tanStr>(operand, isNull, result);
 };
 
 template<>
-inline void Cot::operation(Value& operand, bool isNull, Value& result) {
+inline void Cot::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Cot, cotStr>(operand, isNull, result);
 };
 
 template<>
-inline void Asin::operation(Value& operand, bool isNull, Value& result) {
+inline void Asin::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Asin, asinStr>(operand, isNull, result);
 };
 
 template<>
-inline void Acos::operation(Value& operand, bool isNull, Value& result) {
+inline void Acos::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Acos, acosStr>(operand, isNull, result);
 };
 
 template<>
-inline void Atan::operation(Value& operand, bool isNull, Value& result) {
+inline void Atan::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Atan, atanStr>(operand, isNull, result);
 };
 
 template<>
-inline void Even::operation(Value& operand, bool isNull, Value& result) {
+inline void Even::operation(Value& operand, bool isNull, int64_t& result) {
     ArithmeticOnValues::operation<Even, evenStr>(operand, isNull, result);
 };
 
@@ -607,17 +575,17 @@ inline void Factorial::operation(Value& operand, bool isNull, Value& result) {
 };
 
 template<>
-inline void Sign::operation(Value& operand, bool isNull, Value& result) {
+inline void Sign::operation(Value& operand, bool isNull, int64_t& result) {
     ArithmeticOnValues::operation<Sign, signStr>(operand, isNull, result);
 };
 
 template<>
-inline void Sqrt::operation(Value& operand, bool isNull, Value& result) {
+inline void Sqrt::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Sqrt, sqrtStr>(operand, isNull, result);
 };
 
 template<>
-inline void Cbrt::operation(Value& operand, bool isNull, Value& result) {
+inline void Cbrt::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Cbrt, cbrtStr>(operand, isNull, result);
 };
 
@@ -627,32 +595,32 @@ inline void Gamma::operation(Value& operand, bool isNull, Value& result) {
 };
 
 template<>
-inline void Lgamma::operation(Value& operand, bool isNull, Value& result) {
+inline void Lgamma::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Lgamma, lgammaStr>(operand, isNull, result);
 };
 
 template<>
-inline void Ln::operation(Value& operand, bool isNull, Value& result) {
+inline void Ln::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Ln, lnStr>(operand, isNull, result);
 };
 
 template<>
-inline void Log::operation(Value& operand, bool isNull, Value& result) {
+inline void Log::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Log, logStr>(operand, isNull, result);
 };
 
 template<>
-inline void Log2::operation(Value& operand, bool isNull, Value& result) {
+inline void Log2::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Log2, log2Str>(operand, isNull, result);
 };
 
 template<>
-inline void Degrees::operation(Value& operand, bool isNull, Value& result) {
+inline void Degrees::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Degrees, degreesStr>(operand, isNull, result);
 };
 
 template<>
-inline void Radians::operation(Value& operand, bool isNull, Value& result) {
+inline void Radians::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Radians, radiansStr>(operand, isNull, result);
 };
 

@@ -81,7 +81,13 @@ private:
             }
         }
         case UNSTRUCTURED: {
-            return UnaryExecFunction<Value, Value, FUNC>;
+            if constexpr (INT_RESULT) {
+                return UnaryExecFunction<Value, int64_t, FUNC>;
+            } else if constexpr (DOUBLE_RESULT) {
+                return UnaryExecFunction<Value, double_t, FUNC>;
+            } else {
+                return UnaryExecFunction<Value, Value, FUNC>;
+            }
         }
         default:
             assert(false);

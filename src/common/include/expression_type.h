@@ -12,6 +12,7 @@ namespace common {
  * Function name is a temporary identifier used for binder because grammar does not parse built in
  * functions. After binding, expression type should replace function name and used as identifier.
  */
+// aggregate
 const string COUNT_STAR_FUNC_NAME = "COUNT_STAR";
 const string COUNT_FUNC_NAME = "COUNT";
 const string SUM_FUNC_NAME = "SUM";
@@ -19,23 +20,31 @@ const string AVG_FUNC_NAME = "AVG";
 const string MIN_FUNC_NAME = "MIN";
 const string MAX_FUNC_NAME = "MAX";
 
+// cast
 const string CAST_TO_DATE_FUNCTION_NAME = "DATE";
 const string CAST_TO_TIMESTAMP_FUNCTION_NAME = "TIMESTAMP";
 const string CAST_TO_INTERVAL_FUNCTION_NAME = "INTERVAL";
 const string CAST_TO_STRING_FUNCTION_NAME = "STRING";
 
+// list
 const string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
 const string LIST_EXTRACT_FUNC_NAME = "LIST_EXTRACT";
 
-const string ID_FUNC_NAME = "ID";
+// comparison
+const string EQUALS_FUNC_NAME = "EQUALS";
+const string NOT_EQUALS_FUNC_NAME = "NOT_EQUALS";
+const string GREATER_THAN_FUNC_NAME = "GREATER_THAN";
+const string GREATER_THAN_EQUALS_FUNC_NAME = "GREATER_THAN_EQUALS";
+const string LESS_THAN_FUNC_NAME = "LESS_THAN";
+const string LESS_THAN_EQUALS_FUNC_NAME = "LESS_THAN_EQUALS";
 
-const string ADD_FUNC_NAME = "ADD";
-const string SUBTRACT_FUNC_NAME = "SUBTRACT";
-const string MULTIPLY_FUNC_NAME = "MULTIPLY";
-const string DIVIDE_FUNC_NAME = "DIVIDE";
-const string MODULO_FUNC_NAME = "MODULO";
-const string POWER_FUNC_NAME = "POWER";
-
+// arithmetics
+const string ADD_FUNC_NAME = "+";
+const string SUBTRACT_FUNC_NAME = "-";
+const string MULTIPLY_FUNC_NAME = "*";
+const string DIVIDE_FUNC_NAME = "/";
+const string MODULO_FUNC_NAME = "%";
+const string POWER_FUNC_NAME = "^";
 const string NEGATE_FUNC_NAME = "NEGATE";
 const string ABS_FUNC_NAME = "ABS";
 const string FLOOR_FUNC_NAME = "FLOOR";
@@ -60,6 +69,11 @@ const string LOG2_FUNC_NAME = "LOG2";
 const string DEGREES_FUNC_NAME = "DEGREES";
 const string RADIANS_FUNC_NAME = "RADIANS";
 
+// string
+const string CONTAINS_FUNC_NAME = "CONTAINS";
+const string STARTS_WITH_FUNC_NAME = "STARTS_WITH";
+const string ENDS_WITH_FUNC_NAME = "ENDS_WITH";
+
 // Date functions.
 const string DAYNAME_FUNC_NAME = "DAYNAME";
 const string MONTHNAME_FUNC_NAME = "MONTHNAME";
@@ -68,6 +82,8 @@ const string DATEPART_FUNC_NAME = "DATEPART";
 const string DATETRUNC_FUNC_NAME = "DATETRUNC";
 const string GREATEST_FUNC_NAME = "GREATEST";
 const string LEAST_FUNC_NAME = "LEAST";
+
+const string ID_FUNC_NAME = "ID";
 
 enum ExpressionType : uint8_t {
 
@@ -88,29 +104,6 @@ enum ExpressionType : uint8_t {
     GREATER_THAN_EQUALS = 13,
     LESS_THAN = 14,
     LESS_THAN_EQUALS = 15,
-
-    /**
-     * Arithmetic Expressions
-     **/
-    ADD = 20,
-    SUBTRACT = 21,
-    MULTIPLY = 22,
-    DIVIDE = 23,
-    MODULO = 24,
-    POWER = 25,
-    NEGATE = 26,
-
-    /**
-     * String Operator Expressions
-     **/
-    STARTS_WITH = 40,
-    ENDS_WITH = 41,
-    CONTAINS = 42,
-
-    /**
-     * List Operator Expressions works only for CSV Line
-     */
-    LIST_EXTRACT = 46,
 
     /**
      * Null Operator Expressions
@@ -135,19 +128,10 @@ enum ExpressionType : uint8_t {
     LITERAL_INTERVAL = 86,
     LITERAL_NULL = 87,
 
-    /**
-     * Variable Expression
-     **/
     VARIABLE = 90,
 
-    /**
-     * Parameter Expression
-     **/
     PARAMETER = 100,
 
-    /**
-     * Cast Expressions
-     **/
     FUNCTION = 110,
 
     /**
@@ -167,8 +151,6 @@ bool isExpressionUnary(ExpressionType type);
 bool isExpressionBinary(ExpressionType type);
 bool isExpressionBoolConnection(ExpressionType type);
 bool isExpressionComparison(ExpressionType type);
-bool isExpressionArithmetic(ExpressionType type);
-bool isExpressionStringOperator(ExpressionType type);
 bool isExpressionNullOperator(ExpressionType type);
 bool isExpressionLiteral(ExpressionType type);
 bool isExpressionAggregate(ExpressionType type);

@@ -320,15 +320,8 @@ unique_ptr<ParsedExpression> Transformer::transformAddOrSubtractExpression(
             auto arithmeticOperator = ctx.gF_AddOrSubtractOperator(i - 1)->getText();
             auto rawName =
                 expression->getRawName() + " " + arithmeticOperator + " " + next->getRawName();
-            if (arithmeticOperator == "+") {
-                expression =
-                    make_unique<ParsedExpression>(ADD, move(expression), move(next), rawName);
-            } else if (arithmeticOperator == "-") {
-                expression =
-                    make_unique<ParsedExpression>(SUBTRACT, move(expression), move(next), rawName);
-            } else {
-                throw invalid_argument("Unable to parse AddOrSubtractExpressionContext");
-            }
+            expression = make_unique<ParsedFunctionExpression>(
+                arithmeticOperator, move(expression), move(next), rawName);
         }
     }
     return expression;
@@ -345,18 +338,8 @@ unique_ptr<ParsedExpression> Transformer::transformMultiplyDivideModuloExpressio
             auto arithmeticOperator = ctx.gF_MultiplyDivideModuloOperator(i - 1)->getText();
             auto rawName =
                 expression->getRawName() + " " + arithmeticOperator + " " + next->getRawName();
-            if (arithmeticOperator == "*") {
-                expression =
-                    make_unique<ParsedExpression>(MULTIPLY, move(expression), move(next), rawName);
-            } else if (arithmeticOperator == "/") {
-                expression =
-                    make_unique<ParsedExpression>(DIVIDE, move(expression), move(next), rawName);
-            } else if (arithmeticOperator == "%") {
-                expression =
-                    make_unique<ParsedExpression>(MODULO, move(expression), move(next), rawName);
-            } else {
-                throw invalid_argument("Unable to parse MultiplyDivideModuloExpressionContext.");
-            }
+            expression = make_unique<ParsedFunctionExpression>(
+                arithmeticOperator, move(expression), move(next), rawName);
         }
     }
     return expression;
@@ -371,8 +354,8 @@ unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
             expression = move(next);
         } else {
             auto rawName = expression->getRawName() + " ^ " + next->getRawName();
-            expression =
-                make_unique<ParsedExpression>(POWER, move(expression), move(next), rawName);
+            expression = make_unique<ParsedFunctionExpression>(
+                POWER_FUNC_NAME, move(expression), move(next), rawName);
         }
     }
     return expression;
@@ -381,7 +364,7 @@ unique_ptr<ParsedExpression> Transformer::transformPowerOfExpression(
 unique_ptr<ParsedExpression> Transformer::transformUnaryAddOrSubtractExpression(
     CypherParser::OC_UnaryAddOrSubtractExpressionContext& ctx) {
     if (ctx.MINUS()) {
-        return make_unique<ParsedExpression>(NEGATE,
+        return make_unique<ParsedFunctionExpression>(NEGATE_FUNC_NAME,
             transformStringListNullOperatorExpression(*ctx.oC_StringListNullOperatorExpression()),
             ctx.getText());
     }
@@ -414,14 +397,14 @@ unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression(
     auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
     auto right = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
     if (ctx.STARTS()) {
-        expression = make_unique<ParsedExpression>(
-            STARTS_WITH, move(propertyExpression), move(right), rawExpression);
+        expression = make_unique<ParsedFunctionExpression>(
+            STARTS_WITH_FUNC_NAME, move(propertyExpression), move(right), rawExpression);
     } else if (ctx.ENDS()) {
-        expression = make_unique<ParsedExpression>(
-            ENDS_WITH, move(propertyExpression), move(right), rawExpression);
+        expression = make_unique<ParsedFunctionExpression>(
+            ENDS_WITH_FUNC_NAME, move(propertyExpression), move(right), rawExpression);
     } else if (ctx.CONTAINS()) {
-        expression = make_unique<ParsedExpression>(
-            CONTAINS, move(propertyExpression), move(right), rawExpression);
+        expression = make_unique<ParsedFunctionExpression>(
+            CONTAINS_FUNC_NAME, move(propertyExpression), move(right), rawExpression);
     } else {
         throw invalid_argument("Unable to parse StringOperatorExpressionContext.");
     }

@@ -2,15 +2,19 @@
 
 #include "arithmetic/include/vector_arithmetic_operations.h"
 #include "cast/include/vector_cast_operations.h"
+#include "comparison/include/vector_comparison_operations.h"
 #include "date/include/vector_date_operations.h"
 #include "list/include/vector_list_operations.h"
+#include "string/include/vector_string_operations.h"
 
 namespace graphflow {
 namespace function {
 
 void BuiltInVectorOperations::registerVectorOperations() {
+    registerComparisonOperations();
     registerArithmeticOperations();
     registerDateOperations();
+    registerStringOperations();
     registerCastOperations();
     registerListOperations();
     registerInternalIDOperation();
@@ -110,7 +114,6 @@ uint32_t BuiltInVectorOperations::matchParameters(
     return cost;
 }
 
-// We do not define cost for
 uint32_t BuiltInVectorOperations::matchVarLengthParameters(
     const vector<DataType>& inputTypes, DataTypeID targetTypeID, bool isOverload) {
     auto containUnstructuredTypes = any_of(inputTypes.begin(), inputTypes.end(),
@@ -176,6 +179,17 @@ void BuiltInVectorOperations::validateNonEmptyCandidateFunctions(
     }
 }
 
+void BuiltInVectorOperations::registerComparisonOperations() {
+    vectorOperations.insert({EQUALS_FUNC_NAME, EqualsVectorOperation::getDefinitions()});
+    vectorOperations.insert({NOT_EQUALS_FUNC_NAME, NotEqualsVectorOperation::getDefinitions()});
+    vectorOperations.insert({GREATER_THAN_FUNC_NAME, GreaterThanVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {GREATER_THAN_EQUALS_FUNC_NAME, GreaterThanEqualsVectorOperation::getDefinitions()});
+    vectorOperations.insert({LESS_THAN_FUNC_NAME, LessThanVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {LESS_THAN_EQUALS_FUNC_NAME, LessThanEqualsVectorOperation::getDefinitions()});
+}
+
 void BuiltInVectorOperations::registerArithmeticOperations() {
     vectorOperations.insert({ADD_FUNC_NAME, AddVectorOperation::getDefinitions()});
     vectorOperations.insert({SUBTRACT_FUNC_NAME, SubtractVectorOperation::getDefinitions()});
@@ -219,6 +233,11 @@ void BuiltInVectorOperations::registerDateOperations() {
     vectorOperations.insert({DATETRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
     vectorOperations.insert({GREATEST_FUNC_NAME, GreatestVectorOperation::getDefinitions()});
     vectorOperations.insert({LEAST_FUNC_NAME, LeastVectorOperation::getDefinitions()});
+}
+
+void BuiltInVectorOperations::registerStringOperations() {
+    vectorOperations.insert({CONTAINS_FUNC_NAME, ContainsVectorOperation::getDefinitions()});
+    vectorOperations.insert({STARTS_WITH_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerCastOperations() {

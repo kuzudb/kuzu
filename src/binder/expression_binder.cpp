@@ -9,9 +9,7 @@
 #include "src/common/include/type_utils.h"
 #include "src/function/boolean/include/vector_boolean_operations.h"
 #include "src/function/cast/include/vector_cast_operations.h"
-#include "src/function/comparison/include/vector_comparison_operations.h"
 #include "src/function/null/include/vector_null_operations.h"
-#include "src/function/string/include/vector_string_operations.h"
 #include "src/parser/expression/include/parsed_function_expression.h"
 #include "src/parser/expression/include/parsed_literal_expression.h"
 #include "src/parser/expression/include/parsed_parameter_expression.h"
@@ -24,15 +22,6 @@ using namespace graphflow::function;
 namespace graphflow {
 namespace binder {
 
-static bool containUnstructuredType(const expression_vector& expressions) {
-    for (auto& expression : expressions) {
-        if (expression->dataType.typeID == UNSTRUCTURED) {
-            return true;
-        }
-    }
-    return false;
-}
-
 shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& parsedExpression) {
     validateNoNullLiteralChildren(parsedExpression);
     shared_ptr<Expression> expression;
@@ -41,10 +30,6 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         expression = bindBooleanExpression(parsedExpression);
     } else if (isExpressionComparison(expressionType)) {
         expression = bindComparisonExpression(parsedExpression);
-    } else if (isExpressionArithmetic(expressionType)) {
-        expression = bindArithmeticExpression(parsedExpression);
-    } else if (isExpressionStringOperator(expressionType)) {
-        expression = bindStringOperatorExpression(parsedExpression);
     } else if (isExpressionNullOperator(expressionType)) {
         expression = bindNullOperatorExpression(parsedExpression);
     } else if (FUNCTION == expressionType) {
@@ -93,21 +78,6 @@ shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     const ParsedExpression& parsedExpression) {
-    assert(parsedExpression.getNumChildren() == 2);
-    expression_vector children;
-    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        children.push_back(bindExpression(*parsedExpression.getChild(i)));
-    }
-    children = castToUnstructuredIfNecessary(children);
-    auto expressionType = parsedExpression.getExpressionType();
-    auto execFunc = VectorComparisonOperations::bindExecFunction(expressionType, children);
-    auto selectFunc = VectorComparisonOperations::bindSelectFunction(expressionType, children);
-    return make_shared<ScalarFunctionExpression>(
-        expressionType, DataType(BOOL), move(children), move(execFunc), move(selectFunc));
-}
-
-shared_ptr<Expression> ExpressionBinder::bindArithmeticExpression(
-    const ParsedExpression& parsedExpression) {
     expression_vector children;
     vector<DataType> childrenTypes;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
@@ -125,23 +95,7 @@ shared_ptr<Expression> ExpressionBinder::bindArithmeticExpression(
             implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
     }
     return make_shared<ScalarFunctionExpression>(expressionType, DataType(function->returnTypeID),
-        move(childrenAfterCast), function->execFunc);
-}
-
-shared_ptr<Expression> ExpressionBinder::bindStringOperatorExpression(
-    const ParsedExpression& parsedExpression) {
-    expression_vector children;
-    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        auto child = bindExpression(*parsedExpression.getChild(i));
-        // String functions are non-overload functions. We cast input to STRING.
-        child = implicitCastIfNecessary(child, STRING);
-        children.push_back(move(child));
-    }
-    auto expressionType = parsedExpression.getExpressionType();
-    auto execFunc = VectorStringOperations::bindExecFunction(expressionType, children);
-    auto selectFunc = VectorStringOperations::bindSelectFunction(expressionType, children);
-    return make_shared<ScalarFunctionExpression>(
-        expressionType, DataType(BOOL), move(children), move(execFunc), move(selectFunc));
+        move(childrenAfterCast), function->execFunc, function->selectFunc);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
@@ -228,8 +182,8 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
             function->returnTypeID == LIST ?
                 DataType(LIST, make_unique<DataType>(childrenAfterCast[0]->dataType)) :
                 DataType(function->returnTypeID);
-        return make_shared<ScalarFunctionExpression>(
-            FUNCTION, returnType, move(childrenAfterCast), function->execFunc);
+        return make_shared<ScalarFunctionExpression>(FUNCTION, returnType, move(childrenAfterCast),
+            function->execFunc, function->selectFunc);
     }
 }
 
@@ -390,7 +344,7 @@ shared_ptr<Expression> ExpressionBinder::implicitCastToBool(
     auto children = expression_vector{expression};
     auto execFunc = VectorCastOperations::bindImplicitCastToBool(children);
     return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(BOOL), move(children), move(execFunc));
+        FUNCTION, DataType(BOOL), move(children), move(execFunc), nullptr /* selectFunc */);
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastToString(
@@ -398,7 +352,7 @@ shared_ptr<Expression> ExpressionBinder::implicitCastToString(
     auto children = expression_vector{expression};
     auto execFunc = VectorCastOperations::bindImplicitCastToString(children);
     return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(STRING), move(children), move(execFunc));
+        FUNCTION, DataType(STRING), move(children), move(execFunc), nullptr /* selectFunc */);
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastToDate(
@@ -406,7 +360,7 @@ shared_ptr<Expression> ExpressionBinder::implicitCastToDate(
     auto children = expression_vector{expression};
     auto execFunc = VectorCastOperations::bindImplicitCastToDate(children);
     return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(STRING), move(children), move(execFunc));
+        FUNCTION, DataType(STRING), move(children), move(execFunc), nullptr /* selectFunc */);
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastToUnstructured(
@@ -414,19 +368,7 @@ shared_ptr<Expression> ExpressionBinder::implicitCastToUnstructured(
     auto children = expression_vector{expression};
     auto execFunc = VectorCastOperations::bindImplicitCastToUnstructured(children);
     return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(UNSTRUCTURED), move(children), move(execFunc));
-}
-
-expression_vector ExpressionBinder::castToUnstructuredIfNecessary(
-    const expression_vector& parameters) {
-    if (!containUnstructuredType(parameters)) {
-        return parameters;
-    }
-    expression_vector result;
-    for (auto& parameter : parameters) {
-        result.push_back(implicitCastIfNecessary(parameter, UNSTRUCTURED));
-    }
-    return result;
+        FUNCTION, DataType(UNSTRUCTURED), move(children), move(execFunc), nullptr /* selectFunc */);
 }
 
 void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {

@@ -12,6 +12,16 @@ public:
         : ParsedExpression{FUNCTION, move(rawName)}, isDistinct{isDistinct}, functionName{move(
                                                                                  functionName)} {}
 
+    ParsedFunctionExpression(string functionName, unique_ptr<ParsedExpression> child,
+        string rawName, bool isDistinct = false)
+        : ParsedExpression{FUNCTION, move(child), move(rawName)}, isDistinct{isDistinct},
+          functionName{move(functionName)} {}
+
+    ParsedFunctionExpression(string functionName, unique_ptr<ParsedExpression> left,
+        unique_ptr<ParsedExpression> right, string rawName, bool isDistinct = false)
+        : ParsedExpression{FUNCTION, move(left), move(right), move(rawName)},
+          isDistinct{isDistinct}, functionName{move(functionName)} {}
+
     bool getIsDistinct() const { return isDistinct; }
 
     string getFunctionName() const { return functionName; }
