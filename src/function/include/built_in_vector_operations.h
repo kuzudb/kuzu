@@ -37,6 +37,7 @@ private:
 
     void registerVectorOperations();
     void registerArithmeticOperations();
+    void registerDateOperations();
     void registerCastOperations();
     void registerListOperations();
     void registerInternalIDOperation();

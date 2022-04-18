@@ -63,6 +63,7 @@ private:
     static shared_ptr<Expression> implicitCastToUnstructured(
         const shared_ptr<Expression>& expression);
     static shared_ptr<Expression> implicitCastToString(const shared_ptr<Expression>& expression);
+    static shared_ptr<Expression> implicitCastToDate(const shared_ptr<Expression>& expression);
 
     // For overload functions (e.g. arithmetic and comparison), if any parameter is UNSTRUCTURED, we
     // cast all parameters as UNSTRUCTURED.

@@ -2,6 +2,7 @@
 
 #include "arithmetic/include/vector_arithmetic_operations.h"
 #include "cast/include/vector_cast_operations.h"
+#include "date/include/vector_date_operations.h"
 #include "list/include/vector_list_operations.h"
 
 namespace graphflow {
@@ -9,6 +10,7 @@ namespace function {
 
 void BuiltInVectorOperations::registerVectorOperations() {
     registerArithmeticOperations();
+    registerDateOperations();
     registerCastOperations();
     registerListOperations();
     registerInternalIDOperation();
@@ -207,6 +209,16 @@ void BuiltInVectorOperations::registerArithmeticOperations() {
     vectorOperations.insert({RADIANS_FUNC_NAME, RadiansVectorOperation::getDefinitions()});
     vectorOperations.insert({EVEN_FUNC_NAME, EvenVectorOperation::getDefinitions()});
     vectorOperations.insert({SIGN_FUNC_NAME, SignVectorOperation::getDefinitions()});
+}
+
+void BuiltInVectorOperations::registerDateOperations() {
+    vectorOperations.insert({DAYNAME_FUNC_NAME, DayNameVectorOperation::getDefinitions()});
+    vectorOperations.insert({MONTHNAME_FUNC_NAME, MonthNameVectorOperation::getDefinitions()});
+    vectorOperations.insert({LASTDAY_FUNC_NAME, LastDayVectorOperation::getDefinitions()});
+    vectorOperations.insert({DATEPART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
+    vectorOperations.insert({DATETRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
+    vectorOperations.insert({GREATEST_FUNC_NAME, GreatestVectorOperation::getDefinitions()});
+    vectorOperations.insert({LEAST_FUNC_NAME, LeastVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerCastOperations() {

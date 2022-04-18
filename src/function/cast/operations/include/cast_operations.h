@@ -69,6 +69,14 @@ struct CastUnstructuredToBool {
     }
 };
 
+struct CastUnstructuredToDate {
+
+    static inline void operation(const Value& input, bool isNull, date_t& result) {
+        assert(!isNull);
+        result = input.val.dateVal;
+    }
+};
+
 struct CastStringToDate {
 
     static inline void operation(const gf_string_t& input, bool isNull, date_t& result) {

@@ -335,5 +335,88 @@ int32_t Date::MonthDays(int32_t year, int32_t month) {
     return Date::IsLeapYear(year) ? Date::LEAP_DAYS[month] : Date::NORMAL_DAYS[month];
 }
 
+string Date::getDayName(date_t& date) {
+    string dayNames[] = {
+        "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+    return dayNames[(date.days < 0 ? 7 - ((-date.days + 3) % 7) : ((date.days + 3) % 7) + 1) % 7];
+}
+
+string Date::getMonthName(date_t& date) {
+    string monthNames[] = {"January", "February", "March", "April", "May", "June", "July", "August",
+        "September", "October", "November", "December"};
+    int32_t year, month, day;
+    Date::Convert(date, year, month, day);
+    return monthNames[month - 1];
+}
+
+date_t Date::getLastDay(date_t& date) {
+    int32_t year, month, day;
+    Date::Convert(date, year, month, day);
+    year += (month / 12);
+    month %= 12;
+    ++month;
+    return Date::FromDate(year, month, 1) - 1;
+}
+
+int32_t Date::getDatePart(date_t& date, string partSpecifier) {
+    int32_t year, month, day;
+    StringUtils::toLower(partSpecifier);
+    Date::Convert(date, year, month, day);
+    if (partSpecifier == "year") {
+        int32_t yearOffset;
+        ExtractYearOffset(date.days, year, yearOffset);
+        return year;
+    } else if (partSpecifier == "month") {
+        return month;
+    } else if (partSpecifier == "day") {
+        return day;
+    } else if (partSpecifier == "decade") {
+        return year / 10;
+    } else if (partSpecifier == "century") {
+        // From the PG docs:
+        // "The first century starts at 0001-01-01 00:00:00 AD, although they did not know it at the
+        // time. This definition applies to all Gregorian calendar countries. There is no century
+        // number 0, you go from -1 century to 1 century. If you disagree with this, please write
+        // your complaint to: Pope, Cathedral Saint-Peter of Roma, Vatican." (To be fair, His
+        // Holiness had nothing to do with this - it was the lack of zero in the counting systems of
+        // the time...).
+        return year > 0 ? ((year - 1) / 100) + 1 : (year / 100) - 1;
+    } else if (partSpecifier == "millennium") {
+        return year > 0 ? ((year - 1) / 1000) + 1 : (year / 1000) - 1;
+    } else if (partSpecifier == "quarter") {
+        return (month - 1) / Interval::MONTHS_PER_QUARTER + 1;
+    } else {
+        throw Exception("Invalid partSpecifier specifier: " + partSpecifier);
+    }
+}
+
+date_t Date::trunc(date_t& date, string partSpecifier) {
+    StringUtils::toLower(partSpecifier);
+    if (partSpecifier == "year") {
+        return Date::FromDate(Date::getDatePart(date, "year"), 1 /* month */, 1 /* day */);
+    } else if (partSpecifier == "month") {
+        return Date::FromDate(
+            Date::getDatePart(date, "year"), Date::getDatePart(date, "month"), 1 /* day */);
+    } else if (partSpecifier == "day") {
+        return date;
+    } else if (partSpecifier == "decade") {
+        return Date::FromDate(
+            (Date::getDatePart(date, "year") / 10) * 10, 1 /* month */, 1 /* day */);
+    } else if (partSpecifier == "century") {
+        return Date::FromDate(
+            (Date::getDatePart(date, "year") / 100) * 100, 1 /* month */, 1 /* day */);
+    } else if (partSpecifier == "millennium") {
+        return Date::FromDate(
+            (Date::getDatePart(date, "year") / 1000) * 1000, 1 /* month */, 1 /* day */);
+    } else if (partSpecifier == "quarter") {
+        int32_t year, month, day;
+        Date::Convert(date, year, month, day);
+        month = 1 + (((month - 1) / 3) * 3);
+        return Date::FromDate(year, month, 1);
+    } else {
+        throw Exception("Invalid partSpecifier specifier: " + partSpecifier);
+    }
+}
+
 } // namespace common
 } // namespace graphflow

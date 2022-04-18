@@ -94,6 +94,8 @@ TEST_F(TinySnbProcessorTest, FunctionTests) {
     queryConfigs =
         TestHelper::parseTestFile("test/runner/queries/functions/arithmetic_functions.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
+    queryConfigs = TestHelper::parseTestFile("test/runner/queries/functions/date_functions.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
 TEST_F(TinySnbProcessorTest, ProjectionTests) {

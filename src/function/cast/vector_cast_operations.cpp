@@ -36,6 +36,20 @@ scalar_exec_func VectorCastOperations::bindImplicitCastToString(const expression
     }
 }
 
+scalar_exec_func VectorCastOperations::bindImplicitCastToDate(const expression_vector& children) {
+    assert(children.size() == 1 && children[0]->dataType.typeID != DATE);
+    auto child = children[0];
+    switch (child->dataType.typeID) {
+    case UNSTRUCTURED: {
+        return UnaryExecFunction<Value, date_t, operation::CastUnstructuredToDate>;
+    }
+    default:
+        throw NotImplementedException("Expression " + child->getRawName() + " has data type " +
+                                      Types::dataTypeToString(child->dataType) +
+                                      " but expect DATE. Implicit cast is not supported.");
+    }
+}
+
 scalar_exec_func VectorCastOperations::bindImplicitCastToUnstructured(
     const expression_vector& children) {
     assert(children.size() == 1 && children[0]->dataType.typeID != UNSTRUCTURED);

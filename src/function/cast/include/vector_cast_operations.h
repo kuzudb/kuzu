@@ -24,6 +24,8 @@ public:
 
     static scalar_exec_func bindImplicitCastToString(const expression_vector& children);
 
+    static scalar_exec_func bindImplicitCastToDate(const expression_vector& children);
+
     static scalar_exec_func bindImplicitCastToUnstructured(const expression_vector& children);
 
     // TODO(Guodong): make this function reuse string function executor
