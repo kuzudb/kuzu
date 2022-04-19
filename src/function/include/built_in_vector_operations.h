@@ -39,6 +39,8 @@ private:
     void registerComparisonOperations();
     void registerArithmeticOperations();
     void registerDateOperations();
+    void registerTimestampOperations();
+    void registerIntervalOperations();
     void registerStringOperations();
     void registerCastOperations();
     void registerListOperations();

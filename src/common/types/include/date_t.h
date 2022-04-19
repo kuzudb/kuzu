@@ -94,9 +94,9 @@ public:
 
     static date_t getLastDay(date_t& date);
 
-    static int32_t getDatePart(date_t& date, string partSpecifier);
+    static int32_t getDatePart(DatePartSpecifier specifier, date_t& date);
 
-    static date_t trunc(date_t& date, string partSpecifier);
+    static date_t trunc(DatePartSpecifier specifier, date_t& date);
 
 private:
     static void ExtractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset);

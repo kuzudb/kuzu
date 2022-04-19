@@ -1,0 +1,15 @@
+cc_library(
+    name = "timestamp_operations",
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/function:__subpackages__",
+    ],
+    deps = [
+        "//src/common/types",
+    ],
+)

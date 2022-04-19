@@ -1,8 +1,5 @@
 cc_library(
-    name = "vector_date_operations",
-    srcs = glob([
-        "*.cpp",
-    ]),
+    name = "vector_interval_operations",
     hdrs = glob([
         "include/*.h",
     ]),
@@ -12,6 +9,6 @@ cc_library(
     ],
     deps = [
         "//src/function",
-        "//src/function/date/operations:date_operations",
+        "//src/function/interval/operations:interval_operations",
     ],
 )

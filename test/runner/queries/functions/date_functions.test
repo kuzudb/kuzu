@@ -47,7 +47,7 @@ February
 
 
 -NAME StructuredDateLastDayFuncTest
--QUERY MATCH (p:person) RETURN lastday(p.birthdate)
+-QUERY MATCH (p:person) RETURN last_day(p.birthdate)
 ---- 8
 1900-01-31
 1900-01-31
@@ -59,7 +59,7 @@ February
 1990-11-30
 
 -NAME UnstructuredDateLastDayFuncTest
--QUERY MATCH (p:person) RETURN lastday(p.unstrDateProp)
+-QUERY MATCH (p:person) RETURN last_day(p.unstrDateProp)
 ---- 8
 1952-07-31
 2019-02-28
@@ -71,7 +71,7 @@ February
 
 
 -NAME StructuredDateExtractYearFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.birthdate, "year")
+-QUERY MATCH (p:person) RETURN date_part("year", p.birthdate)
 ---- 8
 1900
 1900
@@ -83,7 +83,7 @@ February
 1990
 
 -NAME UnstructuredDateExtractYearFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.unstrDateProp, "YEAR")
+-QUERY MATCH (p:person) RETURN date_part("Y", p.unstrDateProp)
 ---- 8
 1952
 2019
@@ -95,7 +95,7 @@ February
 
 
 -NAME StructuredDateExtractMonthFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.birthdate, "month")
+-QUERY MATCH (p:person) RETURN date_part("month", p.birthdate)
 ---- 8
 1
 1
@@ -107,7 +107,7 @@ February
 11
 
 -NAME UnstructuredDateExtractMonthFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.unstrDateProp, "month")
+-QUERY MATCH (p:person) RETURN date_part("mon", p.unstrDateProp)
 ---- 8
 7
 2
@@ -118,7 +118,7 @@ February
 
 
 -NAME StructuredDateExtractDayFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.birthdate, "Day")
+-QUERY MATCH (p:person) RETURN date_part("Day", p.birthdate)
 ---- 8
 1
 1
@@ -130,7 +130,7 @@ February
 27
 
 -NAME UnstructuredDateExtractDayFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.unstrDateProp, "daY")
+-QUERY MATCH (p:person) RETURN date_part("daYs", p.unstrDateProp)
 ---- 8
 15
 12
@@ -142,7 +142,7 @@ February
 
 
 -NAME StructuredDateExtractDecadeFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.birthdate, "decadE")
+-QUERY MATCH (p:person) RETURN date_part("decadE", p.birthdate)
 ---- 8
 190
 190
@@ -154,7 +154,7 @@ February
 199
 
 -NAME UnstructuredDateExtractDecadeFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.unstrDateProp, "decAde")
+-QUERY MATCH (p:person) RETURN date_part("decAdes", p.unstrDateProp)
 ---- 8
 195
 201
@@ -166,7 +166,7 @@ February
 
 
 -NAME StructuredDateExtractCenturyFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.birthdate, "cenTury")
+-QUERY MATCH (p:person) RETURN date_part("cenTury", p.birthdate)
 ---- 8
 19
 19
@@ -178,7 +178,7 @@ February
 20
 
 -NAME UnstructuredDateExtractCenturyFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.unstrDateProp, "Century")
+-QUERY MATCH (p:person) RETURN date_part("Centuries", p.unstrDateProp)
 ---- 8
 20
 21
@@ -190,7 +190,7 @@ February
 
 
 -NAME StructuredDateExtractMillenniumFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.birthdate, "millenniuM")
+-QUERY MATCH (p:person) RETURN date_part("millenniuM", p.birthdate)
 ---- 8
 2
 2
@@ -202,7 +202,7 @@ February
 2
 
 -NAME UnstructuredDateExtractMillenniumFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.unstrDateProp, "millennIum")
+-QUERY MATCH (p:person) RETURN date_part("millennia", p.unstrDateProp)
 ---- 8
 2
 3
@@ -214,7 +214,7 @@ February
 
 
 -NAME StructuredDateExtractQuarterFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.birthdate, "quarTer")
+-QUERY MATCH (p:person) RETURN date_part("quarTer", p.birthdate)
 ---- 8
 1
 1
@@ -226,7 +226,7 @@ February
 4
 
 -NAME UnstructuredDateExtractQuarterFuncTest
--QUERY MATCH (p:person) RETURN datepart(p.unstrDateProp, "Quarter")
+-QUERY MATCH (p:person) RETURN date_part("Quarters", p.unstrDateProp)
 ---- 8
 3
 1
@@ -237,8 +237,32 @@ February
 
 
 
+-NAME StructuredDateExtractMicroSecondsFuncTest
+-QUERY MATCH (p:person) RETURN date_part("microseconds", p.birthdate)
+---- 8
+0
+0
+0
+0
+0
+0
+0
+0
+
+-NAME UnstructuredDateExtractMicroSecondsFuncTest
+-QUERY MATCH (p:person) RETURN date_part("microsEcond", p.unstrDateProp)
+---- 8
+0
+0
+0
+
+
+
+
+
+
 -NAME StructuredDateTruncYearFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.birthdate, "year")
+-QUERY MATCH (p:person) RETURN date_trunc("year", p.birthdate)
 ---- 8
 1900-01-01
 1900-01-01
@@ -250,7 +274,7 @@ February
 1990-01-01
 
 -NAME UnstructuredDateTruncYearFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.unstrDateProp, "YEAR")
+-QUERY MATCH (p:person) RETURN date_trunc("YEAR", p.unstrDateProp)
 ---- 8
 1952-01-01
 2019-01-01
@@ -262,7 +286,7 @@ February
 
 
 -NAME StructuredDateTruncMonthFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.birthdate, "month")
+-QUERY MATCH (p:person) RETURN date_trunc("month", p.birthdate)
 ---- 8
 1900-01-01
 1900-01-01
@@ -274,7 +298,7 @@ February
 1990-11-01
 
 -NAME UnstructuredDateTruncMonthFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.unstrDateProp, "month")
+-QUERY MATCH (p:person) RETURN date_trunc("month", p.unstrDateProp)
 ---- 8
 1952-07-01
 2019-02-01
@@ -285,7 +309,7 @@ February
 
 
 -NAME StructuredDateTruncDayFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.birthdate, "Day")
+-QUERY MATCH (p:person) RETURN date_trunc("Day", p.birthdate)
 ---- 8
 1900-01-01
 1900-01-01
@@ -297,7 +321,7 @@ February
 1990-11-27
 
 -NAME UnstructuredDateTruncDayFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.unstrDateProp, "daY")
+-QUERY MATCH (p:person) RETURN date_trunc("daY", p.unstrDateProp)
 ---- 8
 1952-07-15
 2019-02-12
@@ -309,7 +333,7 @@ February
 
 
 -NAME StructuredDateTruncDecadeFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.birthdate, "decadE")
+-QUERY MATCH (p:person) RETURN date_trunc("decadE", p.birthdate)
 ---- 8
 1900-01-01
 1900-01-01
@@ -321,7 +345,7 @@ February
 1990-01-01
 
 -NAME UnstructuredDateTruncDecadeFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.unstrDateProp, "decAde")
+-QUERY MATCH (p:person) RETURN date_trunc("decAde", p.unstrDateProp)
 ---- 8
 1950-01-01
 2010-01-01
@@ -333,7 +357,7 @@ February
 
 
 -NAME StructuredDateTruncCenturyFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.birthdate, "cenTury")
+-QUERY MATCH (p:person) RETURN date_trunc("cenTury", p.birthdate)
 ---- 8
 1900-01-01
 1900-01-01
@@ -345,7 +369,7 @@ February
 1900-01-01
 
 -NAME UnstructuredDateTruncCenturyFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.unstrDateProp, "Century")
+-QUERY MATCH (p:person) RETURN date_trunc("Century", p.unstrDateProp)
 ---- 8
 1900-01-01
 2000-01-01
@@ -357,7 +381,7 @@ February
 
 
 -NAME StructuredDateTruncMillenniumFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.birthdate, "millenniuM")
+-QUERY MATCH (p:person) RETURN date_trunc("millenniuM", p.birthdate)
 ---- 8
 1000-01-01
 1000-01-01
@@ -369,7 +393,7 @@ February
 1000-01-01
 
 -NAME UnstructuredDateTruncMillenniumFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.unstrDateProp, "millennIum")
+-QUERY MATCH (p:person) RETURN date_trunc("millennIum", p.unstrDateProp)
 ---- 8
 1000-01-01
 2000-01-01
@@ -381,7 +405,7 @@ February
 
 
 -NAME StructuredDateTruncQuarterFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.birthdate, "quarTer")
+-QUERY MATCH (p:person) RETURN date_trunc("quarTer", p.birthdate)
 ---- 8
 1900-01-01
 1900-01-01
@@ -393,11 +417,35 @@ February
 1990-10-01
 
 -NAME UnstructuredDateTruncQuarterFuncTest
--QUERY MATCH (p:person) RETURN datetrunc(p.unstrDateProp, "Quarter")
+-QUERY MATCH (p:person) RETURN date_trunc("Quarter", p.unstrDateProp)
 ---- 8
 1952-07-01
 2019-01-01
 2020-01-01
+
+
+
+
+
+
+-NAME StructuredDateTruncSecondFuncTest
+-QUERY MATCH (p:person) RETURN date_trunc("second", p.birthdate)
+---- 8
+1900-01-01
+1900-01-01
+1940-06-22
+1950-07-23
+1980-10-26
+1980-10-26
+1980-10-26
+1990-11-27
+
+-NAME UnstructuredDateTruncSecondFuncTest
+-QUERY MATCH (p:person) RETURN date_trunc("sEconds", p.unstrDateProp)
+---- 8
+1952-07-15
+2019-02-12
+2020-02-29
 
 
 

@@ -22,9 +22,13 @@ class VectorCastOperations : public VectorOperations {
 public:
     static scalar_exec_func bindImplicitCastToBool(const expression_vector& children);
 
+    static scalar_exec_func bindImplicitCastToInt64(const expression_vector& children);
+
     static scalar_exec_func bindImplicitCastToString(const expression_vector& children);
 
     static scalar_exec_func bindImplicitCastToDate(const expression_vector& children);
+
+    static scalar_exec_func bindImplicitCastToTimestamp(const expression_vector& children);
 
     static scalar_exec_func bindImplicitCastToUnstructured(const expression_vector& children);
 

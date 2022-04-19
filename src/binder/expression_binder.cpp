@@ -322,11 +322,17 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     case BOOL: {
         return implicitCastToBool(expression);
     }
+    case INT64: {
+        return implicitCastToInt64(expression);
+    }
     case STRING: {
         return implicitCastToString(expression);
     }
     case DATE: {
         return implicitCastToDate(expression);
+    }
+    case TIMESTAMP: {
+        return implicitCastToTimestamp(expression);
     }
     case UNSTRUCTURED: {
         return implicitCastToUnstructured(expression);
@@ -347,6 +353,14 @@ shared_ptr<Expression> ExpressionBinder::implicitCastToBool(
         FUNCTION, DataType(BOOL), move(children), move(execFunc), nullptr /* selectFunc */);
 }
 
+shared_ptr<Expression> ExpressionBinder::implicitCastToInt64(
+    const shared_ptr<Expression>& expression) {
+    auto children = expression_vector{expression};
+    auto execFunc = VectorCastOperations::bindImplicitCastToInt64(children);
+    return make_shared<ScalarFunctionExpression>(
+        FUNCTION, DataType(INT64), move(children), move(execFunc), nullptr /* selectFunc */);
+}
+
 shared_ptr<Expression> ExpressionBinder::implicitCastToString(
     const shared_ptr<Expression>& expression) {
     auto children = expression_vector{expression};
@@ -360,7 +374,15 @@ shared_ptr<Expression> ExpressionBinder::implicitCastToDate(
     auto children = expression_vector{expression};
     auto execFunc = VectorCastOperations::bindImplicitCastToDate(children);
     return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(STRING), move(children), move(execFunc), nullptr /* selectFunc */);
+        FUNCTION, DataType(DATE), move(children), move(execFunc), nullptr /* selectFunc */);
+}
+
+shared_ptr<Expression> ExpressionBinder::implicitCastToTimestamp(
+    const shared_ptr<Expression>& expression) {
+    auto children = expression_vector{expression};
+    auto execFunc = VectorCastOperations::bindImplicitCastToTimestamp(children);
+    return make_shared<ScalarFunctionExpression>(
+        FUNCTION, DataType(TIMESTAMP), move(children), move(execFunc), nullptr /* selectFunc */);
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastToUnstructured(

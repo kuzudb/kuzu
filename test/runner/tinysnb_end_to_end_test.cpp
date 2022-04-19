@@ -96,6 +96,12 @@ TEST_F(TinySnbProcessorTest, FunctionTests) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/functions/date_functions.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
+    queryConfigs =
+        TestHelper::parseTestFile("test/runner/queries/functions/timestamp_functions.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
+    queryConfigs =
+        TestHelper::parseTestFile("test/runner/queries/functions/interval_functions.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
 TEST_F(TinySnbProcessorTest, ProjectionTests) {

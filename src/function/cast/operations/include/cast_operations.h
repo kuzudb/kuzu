@@ -69,11 +69,27 @@ struct CastUnstructuredToBool {
     }
 };
 
+struct CastUnstructuredToInt64 {
+
+    static inline void operation(const Value& input, bool isNull, int64_t& result) {
+        assert(!isNull);
+        result = input.val.int64Val;
+    }
+};
+
 struct CastUnstructuredToDate {
 
     static inline void operation(const Value& input, bool isNull, date_t& result) {
         assert(!isNull);
         result = input.val.dateVal;
+    }
+};
+
+struct CastUnstructuredToTimestamp {
+
+    static inline void operation(const Value& input, bool isNull, timestamp_t& result) {
+        assert(!isNull);
+        result = input.val.timestampVal;
     }
 };
 

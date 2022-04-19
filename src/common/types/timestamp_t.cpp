@@ -1,7 +1,5 @@
 #include "include/timestamp_t.h"
 
-#include "include/cast_helpers.h"
-
 #include "src/common/include/exception.h"
 
 namespace graphflow {
@@ -130,6 +128,61 @@ timestamp_t Timestamp::FromDatetime(date_t date, dtime_t time) {
 void Timestamp::Convert(timestamp_t timestamp, date_t& out_date, dtime_t& out_time) {
     out_date = GetDate(timestamp);
     out_time = GetTime(timestamp);
+}
+
+timestamp_t Timestamp::FromEpochMs(int64_t epochMs) {
+    return timestamp_t(epochMs * Interval::MICROS_PER_MSEC);
+}
+
+timestamp_t Timestamp::FromEpochSec(int64_t epochSec) {
+    return timestamp_t(epochSec * Interval::MICROS_PER_SEC);
+}
+
+int32_t Timestamp::getTimestampPart(DatePartSpecifier specifier, timestamp_t& timestamp) {
+    switch (specifier) {
+    case DatePartSpecifier::MICROSECOND:
+        return GetTime(timestamp).micros % Interval::MICROS_PER_MINUTE;
+    case DatePartSpecifier::MILLISECOND:
+        return getTimestampPart(DatePartSpecifier::MICROSECOND, timestamp) /
+               Interval::MICROS_PER_MSEC;
+    case DatePartSpecifier::SECOND:
+        return getTimestampPart(DatePartSpecifier::MICROSECOND, timestamp) /
+               Interval::MICROS_PER_SEC;
+    case DatePartSpecifier::MINUTE:
+        return (GetTime(timestamp).micros % Interval::MICROS_PER_HOUR) /
+               Interval::MICROS_PER_MINUTE;
+    case DatePartSpecifier::HOUR:
+        return GetTime(timestamp).micros / Interval::MICROS_PER_HOUR;
+    default:
+        date_t date = GetDate(timestamp);
+        return Date::getDatePart(specifier, date);
+    }
+}
+
+timestamp_t Timestamp::trunc(DatePartSpecifier specifier, timestamp_t& timestamp) {
+    int32_t hour, min, sec, micros;
+    date_t date;
+    dtime_t time;
+    Timestamp::Convert(timestamp, date, time);
+    Time::Convert(time, hour, min, sec, micros);
+    switch (specifier) {
+    case DatePartSpecifier::MICROSECOND:
+        return timestamp;
+    case DatePartSpecifier::MILLISECOND:
+        micros -= micros % Interval::MICROS_PER_MSEC;
+        return Timestamp::FromDatetime(date, Time::FromTime(hour, min, sec, micros));
+    case DatePartSpecifier::SECOND:
+        return Timestamp::FromDatetime(date, Time::FromTime(hour, min, sec, 0 /* microseconds */));
+    case DatePartSpecifier::MINUTE:
+        return Timestamp::FromDatetime(
+            date, Time::FromTime(hour, min, 0 /* seconds */, 0 /* microseconds */));
+    case DatePartSpecifier::HOUR:
+        return Timestamp::FromDatetime(
+            date, Time::FromTime(hour, 0 /* minutes */, 0 /* seconds */, 0 /* microseconds */));
+    default:
+        date_t date = GetDate(timestamp);
+        return FromDatetime(Date::trunc(specifier, date), dtime_t(0));
+    }
 }
 
 } // namespace common
