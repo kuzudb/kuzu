@@ -56,10 +56,12 @@ private:
     static shared_ptr<Expression> implicitCastIfNecessary(
         const shared_ptr<Expression>& expression, DataTypeID targetTypeID);
     static shared_ptr<Expression> implicitCastToBool(const shared_ptr<Expression>& expression);
+    static shared_ptr<Expression> implicitCastToInt64(const shared_ptr<Expression>& expression);
     static shared_ptr<Expression> implicitCastToUnstructured(
         const shared_ptr<Expression>& expression);
     static shared_ptr<Expression> implicitCastToString(const shared_ptr<Expression>& expression);
     static shared_ptr<Expression> implicitCastToDate(const shared_ptr<Expression>& expression);
+    static shared_ptr<Expression> implicitCastToTimestamp(const shared_ptr<Expression>& expression);
 
     /****** validation *****/
     // NOTE: this validation should be removed and front end binds any null operation to null

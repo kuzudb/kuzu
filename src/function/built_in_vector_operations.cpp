@@ -4,8 +4,10 @@
 #include "cast/include/vector_cast_operations.h"
 #include "comparison/include/vector_comparison_operations.h"
 #include "date/include/vector_date_operations.h"
+#include "interval/include/vector_interval_operations.h"
 #include "list/include/vector_list_operations.h"
 #include "string/include/vector_string_operations.h"
+#include "timestamp/include/vector_timestamp_operations.h"
 
 namespace graphflow {
 namespace function {
@@ -14,6 +16,8 @@ void BuiltInVectorOperations::registerVectorOperations() {
     registerComparisonOperations();
     registerArithmeticOperations();
     registerDateOperations();
+    registerTimestampOperations();
+    registerIntervalOperations();
     registerStringOperations();
     registerCastOperations();
     registerListOperations();
@@ -228,11 +232,30 @@ void BuiltInVectorOperations::registerArithmeticOperations() {
 void BuiltInVectorOperations::registerDateOperations() {
     vectorOperations.insert({DAYNAME_FUNC_NAME, DayNameVectorOperation::getDefinitions()});
     vectorOperations.insert({MONTHNAME_FUNC_NAME, MonthNameVectorOperation::getDefinitions()});
-    vectorOperations.insert({LASTDAY_FUNC_NAME, LastDayVectorOperation::getDefinitions()});
-    vectorOperations.insert({DATEPART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
-    vectorOperations.insert({DATETRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
+    vectorOperations.insert({LAST_DAY_FUNC_NAME, LastDayVectorOperation::getDefinitions()});
+    vectorOperations.insert({DATE_PART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
+    vectorOperations.insert({DATE_TRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
     vectorOperations.insert({GREATEST_FUNC_NAME, GreatestVectorOperation::getDefinitions()});
     vectorOperations.insert({LEAST_FUNC_NAME, LeastVectorOperation::getDefinitions()});
+}
+
+void BuiltInVectorOperations::registerTimestampOperations() {
+    vectorOperations.insert({CENTURY_FUNC_NAME, CenturyVectorOperation::getDefinitions()});
+    vectorOperations.insert({EPOCH_MS_FUNC_NAME, EpochMsVectorOperation::getDefinitions()});
+    vectorOperations.insert({TO_TIMESTAMP_FUNC_NAME, ToTimestampVectorOperation::getDefinitions()});
+}
+
+void BuiltInVectorOperations::registerIntervalOperations() {
+    vectorOperations.insert({TO_YEARS_FUNC_NAME, ToYearsVectorOperation::getDefinitions()});
+    vectorOperations.insert({TO_MONTHS_FUNC_NAME, ToMonthsVectorOperation::getDefinitions()});
+    vectorOperations.insert({TO_DAYS_FUNC_NAME, ToDaysVectorOperation::getDefinitions()});
+    vectorOperations.insert({TO_HOURS_FUNC_NAME, ToHoursVectorOperation::getDefinitions()});
+    vectorOperations.insert({TO_MINUTES_FUNC_NAME, ToMinutesVectorOperation::getDefinitions()});
+    vectorOperations.insert({TO_SECONDS_FUNC_NAME, ToSecondsVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {TO_MILLISECONDS_FUNC_NAME, ToMillisecondsVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {TO_MICROSECONDS_NAME, ToMicrosecondsVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerStringOperations() {

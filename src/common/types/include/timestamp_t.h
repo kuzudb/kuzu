@@ -56,18 +56,28 @@ class Timestamp {
 public:
     static timestamp_t FromCString(const char* str, uint64_t len);
 
-    // Convert a timestamp object to a string in the format "YYYY-MM-DD hh:mm:ss"
+    // Convert a timestamp object to a string in the format "YYYY-MM-DD hh:mm:ss".
     static string toString(timestamp_t timestamp);
 
     static date_t GetDate(timestamp_t timestamp);
 
     static dtime_t GetTime(timestamp_t timestamp);
 
-    // Create a Timestamp object from a specified (date, time) combination
+    // Create a Timestamp object from a specified (date, time) combination.
     static timestamp_t FromDatetime(date_t date, dtime_t time);
 
-    // Extract the date and time from a given timestamp object
+    // Extract the date and time from a given timestamp object.
     static void Convert(timestamp_t timestamp, date_t& out_date, dtime_t& out_time);
+
+    // Create a Timestamp object from the specified epochMs.
+    static timestamp_t FromEpochMs(int64_t epochMs);
+
+    // Create a Timestamp object from the specified epochSec.
+    static timestamp_t FromEpochSec(int64_t epochSec);
+
+    static int32_t getTimestampPart(DatePartSpecifier specifier, timestamp_t& timestamp);
+
+    static timestamp_t trunc(DatePartSpecifier specifier, timestamp_t& date);
 };
 
 } // namespace common

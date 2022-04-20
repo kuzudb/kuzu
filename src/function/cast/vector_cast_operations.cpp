@@ -22,6 +22,20 @@ scalar_exec_func VectorCastOperations::bindImplicitCastToBool(const expression_v
     }
 }
 
+scalar_exec_func VectorCastOperations::bindImplicitCastToInt64(const expression_vector& children) {
+    assert(children.size() == 1 && children[0]->dataType.typeID != INT64);
+    auto child = children[0];
+    switch (children[0]->dataType.typeID) {
+    case UNSTRUCTURED: {
+        return UnaryExecFunction<Value, int64_t, operation::CastUnstructuredToInt64>;
+    }
+    default:
+        throw NotImplementedException("Expression " + child->getRawName() + " has data type " +
+                                      Types::dataTypeToString(child->dataType) +
+                                      " but expect INT64. Implicit cast is not supported.");
+    }
+}
+
 scalar_exec_func VectorCastOperations::bindImplicitCastToString(const expression_vector& children) {
     assert(children.size() == 1 && children[0]->dataType.typeID != STRING);
     auto child = children[0];
@@ -47,6 +61,21 @@ scalar_exec_func VectorCastOperations::bindImplicitCastToDate(const expression_v
         throw NotImplementedException("Expression " + child->getRawName() + " has data type " +
                                       Types::dataTypeToString(child->dataType) +
                                       " but expect DATE. Implicit cast is not supported.");
+    }
+}
+
+scalar_exec_func VectorCastOperations::bindImplicitCastToTimestamp(
+    const expression_vector& children) {
+    assert(children.size() == 1 && children[0]->dataType.typeID != TIMESTAMP);
+    auto child = children[0];
+    switch (child->dataType.typeID) {
+    case UNSTRUCTURED: {
+        return UnaryExecFunction<Value, timestamp_t, operation::CastUnstructuredToTimestamp>;
+    }
+    default:
+        throw NotImplementedException("Expression " + child->getRawName() + " has data type " +
+                                      Types::dataTypeToString(child->dataType) +
+                                      " but expect TIMESTAMP. Implicit cast is not supported.");
     }
 }
 

@@ -7,6 +7,21 @@ using namespace std;
 namespace graphflow {
 namespace common {
 
+enum class DatePartSpecifier : uint8_t {
+    YEAR,
+    MONTH,
+    DAY,
+    DECADE,
+    CENTURY,
+    MILLENNIUM,
+    QUARTER,
+    MICROSECOND,
+    MILLISECOND,
+    SECOND,
+    MINUTE,
+    HOUR,
+};
+
 struct interval_t {
     int32_t months;
     int32_t days;
@@ -50,6 +65,9 @@ public:
         30; // only used for interval comparison/ordering purposes, in which case a month counts as
     // 30 days
     static constexpr const int64_t MONTHS_PER_QUARTER = 3;
+    static constexpr const int64_t MONTHS_PER_MILLENIUM = 12000;
+    static constexpr const int64_t MONTHS_PER_CENTURY = 1200;
+    static constexpr const int64_t MONTHS_PER_DECADE = 120;
 
     static constexpr const int64_t MICROS_PER_MSEC = 1000;
     static constexpr const int64_t MICROS_PER_SEC = MICROS_PER_MSEC * MSECS_PER_SEC;
@@ -65,6 +83,8 @@ public:
     static bool GreaterThan(const interval_t& left, const interval_t& right);
     static void NormalizeIntervalEntries(
         interval_t input, int64_t& months, int64_t& days, int64_t& micros);
+    static void TryGetDatePartSpecifier(string specifier_p, DatePartSpecifier& result);
+    static int32_t getIntervalPart(DatePartSpecifier specifier, interval_t& timestamp);
 };
 
 } // namespace common

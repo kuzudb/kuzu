@@ -149,5 +149,71 @@ bool Interval::GreaterThan(const interval_t& left, const interval_t& right) {
     return lMicros > rMicros;
 }
 
+void Interval::TryGetDatePartSpecifier(string specifier, DatePartSpecifier& result) {
+    StringUtils::toLower(specifier);
+    if (specifier == "year" || specifier == "y" || specifier == "years") {
+        result = DatePartSpecifier::YEAR;
+    } else if (specifier == "month" || specifier == "mon" || specifier == "months" ||
+               specifier == "mons") {
+        result = DatePartSpecifier::MONTH;
+    } else if (specifier == "day" || specifier == "days" || specifier == "d" ||
+               specifier == "dayofmonth") {
+        result = DatePartSpecifier::DAY;
+    } else if (specifier == "decade" || specifier == "decades") {
+        result = DatePartSpecifier::DECADE;
+    } else if (specifier == "century" || specifier == "centuries") {
+        result = DatePartSpecifier::CENTURY;
+    } else if (specifier == "millennium" || specifier == "millennia" || specifier == "millenium") {
+        result = DatePartSpecifier::MILLENNIUM;
+    } else if (specifier == "quarter" || specifier == "quarters") {
+        // quarter of the year (1-4)
+        result = DatePartSpecifier::QUARTER;
+    } else if (specifier == "microseconds" || specifier == "microsecond") {
+        result = DatePartSpecifier::MICROSECOND;
+    } else if (specifier == "milliseconds" || specifier == "millisecond" || specifier == "ms" ||
+               specifier == "msec" || specifier == "msecs") {
+        result = DatePartSpecifier::MILLISECOND;
+    } else if (specifier == "second" || specifier == "seconds" || specifier == "s") {
+        result = DatePartSpecifier::SECOND;
+    } else if (specifier == "minute" || specifier == "minutes" || specifier == "m") {
+        result = DatePartSpecifier::MINUTE;
+    } else if (specifier == "hour" || specifier == "hours" || specifier == "h") {
+        result = DatePartSpecifier::HOUR;
+    } else {
+        throw Exception("Invalid partSpecifier specifier: " + specifier);
+    }
+}
+
+int32_t Interval::getIntervalPart(DatePartSpecifier specifier, interval_t& interval) {
+    switch (specifier) {
+    case DatePartSpecifier::YEAR:
+        return interval.months / Interval::MONTHS_PER_YEAR;
+    case DatePartSpecifier::MONTH:
+        return interval.months % Interval::MONTHS_PER_YEAR;
+    case DatePartSpecifier::DAY:
+        return interval.days;
+    case DatePartSpecifier::DECADE:
+        return interval.months / Interval::MONTHS_PER_DECADE;
+    case DatePartSpecifier::CENTURY:
+        return interval.months / Interval::MONTHS_PER_CENTURY;
+    case DatePartSpecifier::MILLENNIUM:
+        return interval.months / Interval::MONTHS_PER_MILLENIUM;
+    case DatePartSpecifier::QUARTER:
+        return getIntervalPart(DatePartSpecifier::MONTH, interval) / Interval::MONTHS_PER_QUARTER +
+               1;
+    case DatePartSpecifier::MICROSECOND:
+        return interval.micros % Interval::MICROS_PER_MINUTE;
+    case DatePartSpecifier::MILLISECOND:
+        return getIntervalPart(DatePartSpecifier::MICROSECOND, interval) /
+               Interval::MICROS_PER_MSEC;
+    case DatePartSpecifier::SECOND:
+        return getIntervalPart(DatePartSpecifier::MICROSECOND, interval) / Interval::MICROS_PER_SEC;
+    case DatePartSpecifier::MINUTE:
+        return (interval.micros % Interval::MICROS_PER_HOUR) / Interval::MICROS_PER_MINUTE;
+    case DatePartSpecifier::HOUR:
+        return interval.micros / Interval::MICROS_PER_HOUR;
+    }
+}
+
 } // namespace common
 } // namespace graphflow

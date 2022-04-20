@@ -77,11 +77,22 @@ const string ENDS_WITH_FUNC_NAME = "ENDS_WITH";
 // Date functions.
 const string DAYNAME_FUNC_NAME = "DAYNAME";
 const string MONTHNAME_FUNC_NAME = "MONTHNAME";
-const string LASTDAY_FUNC_NAME = "LASTDAY";
-const string DATEPART_FUNC_NAME = "DATEPART";
-const string DATETRUNC_FUNC_NAME = "DATETRUNC";
+const string LAST_DAY_FUNC_NAME = "LAST_DAY";
+const string DATE_PART_FUNC_NAME = "DATE_PART";
+const string DATE_TRUNC_FUNC_NAME = "DATE_TRUNC";
 const string GREATEST_FUNC_NAME = "GREATEST";
 const string LEAST_FUNC_NAME = "LEAST";
+const string CENTURY_FUNC_NAME = "CENTURY";
+const string EPOCH_MS_FUNC_NAME = "EPOCH_MS";
+const string TO_TIMESTAMP_FUNC_NAME = "TO_TIMESTAMP";
+const string TO_YEARS_FUNC_NAME = "TO_YEARS";
+const string TO_MONTHS_FUNC_NAME = "TO_MONTHS";
+const string TO_DAYS_FUNC_NAME = "TO_DAYS";
+const string TO_HOURS_FUNC_NAME = "TO_HOURS";
+const string TO_MINUTES_FUNC_NAME = "TO_MINUTES";
+const string TO_SECONDS_FUNC_NAME = "TO_SECONDS";
+const string TO_MILLISECONDS_FUNC_NAME = "TO_MILLISECONDS";
+const string TO_MICROSECONDS_NAME = "TO_MICROSECONDS";
 
 const string ID_FUNC_NAME = "ID";
 
