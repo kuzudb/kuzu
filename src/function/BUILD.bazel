@@ -1,17 +1,16 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "aggregate_function",
-    srcs = [
-        "aggregate/aggregate_function.cpp",
+    name = "function_definition",
+    srcs = [],
+    hdrs = [
+        "include/function_definition.h",
     ],
-    hdrs = glob(["include/aggregate/*.h"]),
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//src/function:__subpackages__",
+    ],
     deps = [
-        "//src/binder/expression:expression_implementations",
-        "//src/common:vector",
-        "//src/function/arithmetic/operations:arithmetic_operations",
-        "//src/function/comparison/operations:comparison_operations",
+        "//src/common:expression_type",
     ],
 )
 
@@ -28,14 +27,14 @@ cc_library(
         "//src/function:__subpackages__",
     ],
     deps = [
+        "function_definition",
         "//src/binder/expression:base_expression",
         "//src/common:vector",
-        "//src/function/boolean/operations:boolean_operations",
     ],
 )
 
 cc_library(
-    name = "function_binder",
+    name = "built_in_vector_operations",
     srcs = [
         "built_in_vector_operations.cpp",
     ],
@@ -43,7 +42,6 @@ cc_library(
         "include/built_in_vector_operations.h",
     ],
     visibility = [
-        "//src/binder:__pkg__",
         "//src/catalog:__pkg__",
     ],
     deps = [
@@ -53,6 +51,7 @@ cc_library(
         "//src/function/date:vector_date_operations",
         "//src/function/interval:vector_interval_operations",
         "//src/function/list:vector_list_operations",
+        "//src/function/string:vector_string_operations",
         "//src/function/timestamp:vector_timestamp_operations",
     ],
 )

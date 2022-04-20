@@ -1,7 +1,8 @@
 #pragma once
 
+#include "aggregate_function.h"
+
 #include "src/function/comparison/operations/include/comparison_operations.h"
-#include "src/function/include/aggregate/aggregate_function.h"
 
 using namespace graphflow::function::operation;
 

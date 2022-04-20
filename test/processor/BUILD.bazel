@@ -49,7 +49,6 @@ cc_test(
         "//src/processor",
         "//src/processor:mapper",
         "//test/mock:mock_catalog",
-        "//test/test_utility:aggregate_function_test_helper",
         "@gtest",
         "@gtest//:gtest_main",
     ],

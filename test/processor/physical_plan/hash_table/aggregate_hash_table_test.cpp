@@ -1,16 +1,14 @@
 #include "include/gtest/gtest.h"
-#include "test/test_utility/include/aggregate_function_test_helper.h"
 
-#include "src/function/include/aggregate/avg.h"
-#include "src/function/include/aggregate/count.h"
-#include "src/function/include/aggregate/sum.h"
+#include "src/function/aggregate/include/avg.h"
+#include "src/function/aggregate/include/count.h"
+#include "src/function/aggregate/include/sum.h"
 #include "src/processor/include/physical_plan/hash_table/aggregate_hash_table.h"
 #include "src/processor/include/physical_plan/result/result_set.h"
 
 using ::testing::Test;
 using namespace graphflow::function;
 using namespace graphflow::processor;
-using namespace graphflow::testing;
 
 class AggregateHashTableTest : public Test {
 
@@ -57,8 +55,8 @@ public:
 
 TEST_F(AggregateHashTableTest, SingleGroupTest) {
     vector<unique_ptr<AggregateFunction>> aggregates;
-    auto countAggregate = AggregateFunctionTestHelper::getAggregateFunction(COUNT_STAR_FUNC, INT64);
-    auto sumAggregate = AggregateFunctionTestHelper::getAggregateFunction(SUM_FUNC, INT64);
+    auto countAggregate = AggregateFunctionUtil::getCountStarFunction();
+    auto sumAggregate = AggregateFunctionUtil::getSumFunction(DataType(INT64), false);
     auto countState = countAggregate->createInitialNullAggregateState();
     auto sumState = sumAggregate->createInitialNullAggregateState();
     aggregates.push_back(move(countAggregate));
@@ -91,8 +89,8 @@ TEST_F(AggregateHashTableTest, SingleGroupTest) {
 
 TEST_F(AggregateHashTableTest, TwoGroupsTest) {
     vector<unique_ptr<AggregateFunction>> aggregates;
-    auto countAggregate = AggregateFunctionTestHelper::getAggregateFunction(COUNT_FUNC, INT64);
-    auto avgAggregate = AggregateFunctionTestHelper::getAggregateFunction(AVG_FUNC, INT64);
+    auto countAggregate = AggregateFunctionUtil::getCountFunction(DataType(INT64), false);
+    auto avgAggregate = AggregateFunctionUtil::getAvgFunction(DataType(INT64), false);
     auto count1State = countAggregate->createInitialNullAggregateState();
     auto count2State = avgAggregate->createInitialNullAggregateState();
     aggregates.push_back(move(countAggregate));

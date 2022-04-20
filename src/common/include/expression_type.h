@@ -21,10 +21,16 @@ const string MIN_FUNC_NAME = "MIN";
 const string MAX_FUNC_NAME = "MAX";
 
 // cast
-const string CAST_TO_DATE_FUNCTION_NAME = "DATE";
-const string CAST_TO_TIMESTAMP_FUNCTION_NAME = "TIMESTAMP";
-const string CAST_TO_INTERVAL_FUNCTION_NAME = "INTERVAL";
-const string CAST_TO_STRING_FUNCTION_NAME = "STRING";
+const string CAST_TO_DATE_FUNC_NAME = "DATE";
+const string CAST_TO_TIMESTAMP_FUNC_NAME = "TIMESTAMP";
+const string CAST_TO_INTERVAL_FUNC_NAME = "INTERVAL";
+const string CAST_TO_STRING_FUNC_NAME = "STRING";
+const string IMPLICIT_CAST_TO_BOOL_FUNC_NAME = "_BOOL";
+const string IMPLICIT_CAST_TO_INT_FUNC_NAME = "_INT";
+const string IMPLICIT_CAST_TO_STRING_FUNC_NAME = "_STRING";
+const string IMPLICIT_CAST_TO_DATE_FUNC_NAME = "_DATE";
+const string IMPLICIT_CAST_TO_TIMESTAMP_FUNC_NAME = "_TIMESTAMP";
+const string IMPLICIT_CAST_TO_UNSTRUCTURED_FUNC_NAME = "_UNSTRUCTURED";
 
 // list
 const string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
@@ -145,15 +151,7 @@ enum ExpressionType : uint8_t {
 
     FUNCTION = 110,
 
-    /**
-     * Aggregation Function Expression
-     */
-    COUNT_STAR_FUNC = 130,
-    COUNT_FUNC = 131,
-    SUM_FUNC = 132,
-    AVG_FUNC = 133,
-    MIN_FUNC = 134,
-    MAX_FUNC = 135,
+    AGGREGATE_FUNCTION = 130,
 
     EXISTENTIAL_SUBQUERY = 190,
 };

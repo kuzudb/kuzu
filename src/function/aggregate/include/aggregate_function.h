@@ -3,14 +3,26 @@
 #include <functional>
 #include <utility>
 
-#include "src/binder/expression/include/function_expression.h"
 #include "src/common/include/vector/value_vector.h"
+#include "src/function/include/function_definition.h"
 
 using namespace graphflow::common;
-using namespace graphflow::binder;
 
 namespace graphflow {
 namespace function {
+
+class AggregateFunction;
+
+struct AggregateFunctionDefinition : public FunctionDefinition {
+
+    AggregateFunctionDefinition(string name, vector<DataTypeID> parameterTypeIDs,
+        DataTypeID returnTypeID, unique_ptr<AggregateFunction> aggregateFunction, bool isDistinct)
+        : FunctionDefinition{move(name), move(parameterTypeIDs), returnTypeID},
+          aggregateFunction{move(aggregateFunction)}, isDistinct{isDistinct} {}
+
+    unique_ptr<AggregateFunction> aggregateFunction;
+    bool isDistinct;
+};
 
 struct AggregateState {
     virtual inline uint64_t getStateSize() const = 0;
@@ -81,15 +93,18 @@ private:
 class AggregateFunctionUtil {
 
 public:
-    static unique_ptr<AggregateFunction> getAggregateFunction(Expression& expression);
+    static unique_ptr<AggregateFunction> getCountStarFunction();
+    static unique_ptr<AggregateFunction> getCountFunction(
+        const DataType& inputType, bool isDistinct);
+    static unique_ptr<AggregateFunction> getAvgFunction(const DataType& inputType, bool isDistinct);
+    static unique_ptr<AggregateFunction> getSumFunction(const DataType& inputType, bool isDistinct);
+    static unique_ptr<AggregateFunction> getMinFunction(const DataType& inputType, bool isDistinct);
+    static unique_ptr<AggregateFunction> getMaxFunction(const DataType& inputType, bool isDistinct);
 
 private:
-    static unique_ptr<AggregateFunction> getCountStarFunction();
-    static unique_ptr<AggregateFunction> getCountFunction(FunctionExpression& functionExpression);
-    static unique_ptr<AggregateFunction> getAvgFunction(FunctionExpression& functionExpression);
-    static unique_ptr<AggregateFunction> getSumFunction(FunctionExpression& functionExpression);
-    template<bool IS_MIN>
-    static unique_ptr<AggregateFunction> getMinMaxFunction(FunctionExpression& functionExpression);
+    template<typename FUNC>
+    static unique_ptr<AggregateFunction> getMinMaxFunction(
+        const DataType& inputType, bool isDistinct);
 };
 
 } // namespace function

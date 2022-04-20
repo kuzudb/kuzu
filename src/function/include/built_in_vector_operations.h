@@ -10,6 +10,10 @@ class BuiltInVectorOperations {
 public:
     BuiltInVectorOperations() { registerVectorOperations(); }
 
+    inline bool containsFunction(const string& functionName) {
+        return vectorOperations.contains(functionName);
+    }
+
     /**
      * Certain function can be evaluated statically and thus avoid runtime execution.
      * E.g. date("2021-01-01") can be evaluated as date literal statically.
@@ -31,7 +35,6 @@ private:
     uint32_t castRules(DataTypeID inputTypeID, DataTypeID targetTypeID,
         bool allowCastToUnstructured, bool allowCastToStructured);
 
-    void validateFunctionExistence(const string& functionName);
     void validateNonEmptyCandidateFunctions(vector<VectorOperationDefinition*>& candidateFunctions,
         const string& name, const vector<DataType>& inputTypes);
 

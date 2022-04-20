@@ -2,8 +2,9 @@
 
 #include <set>
 
+#include "src/binder/expression/include/function_expression.h"
 #include "src/binder/expression/include/property_expression.h"
-#include "src/function/include/aggregate/aggregate_function.h"
+#include "src/function/aggregate/include/aggregate_function.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_aggregate.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_distinct.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_exist.h"
@@ -448,14 +449,15 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
     vector<DataType> outputAggVectorsDataTypes;
     vector<unique_ptr<AggregateFunction>> aggregateFunctions;
     for (auto& expression : logicalAggregate.getExpressionsToAggregate()) {
-        if (expression->expressionType == COUNT_STAR_FUNC) {
+        if (expression->getNumChildren() == 0) {
             inputAggVectorsPos.emplace_back(UINT32_MAX, UINT32_MAX);
         } else {
             auto child = expression->getChild(0);
             inputAggVectorsPos.push_back(
                 mapperContextBeforeAggregate.getDataPos(child->getUniqueName()));
         }
-        aggregateFunctions.push_back(AggregateFunctionUtil::getAggregateFunction(*expression));
+        aggregateFunctions.push_back(
+            ((AggregateFunctionExpression&)*expression).aggregateFunction->clone());
         outputAggVectorsPos.push_back(mapperContext.getDataPos(expression->getUniqueName()));
         outputAggVectorsDataTypes.push_back(expression->dataType);
         mapperContext.addComputedExpressions(expression->getUniqueName());

@@ -211,6 +211,7 @@ NodeLabel::NodeLabel(string labelName, label_t labelId, uint64_t primaryProperty
 Catalog::Catalog() {
     logger = LoggerUtils::getOrCreateSpdLogger("storage");
     builtInVectorOperations = make_unique<BuiltInVectorOperations>();
+    builtInAggregateFunctions = make_unique<BuiltInAggregateFunctions>();
 }
 
 Catalog::Catalog(const string& directory) : Catalog() {

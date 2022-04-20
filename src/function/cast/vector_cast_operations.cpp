@@ -141,15 +141,15 @@ void VectorCastOperations::castStringToUnstructured(
 
 vector<unique_ptr<VectorOperationDefinition>> CastToDateVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_DATE_FUNCTION_NAME,
-        vector<DataTypeID>{STRING}, DATE,
-        UnaryExecFunction<gf_string_t, date_t, operation::CastStringToDate>));
+    result.push_back(
+        make_unique<VectorOperationDefinition>(CAST_TO_DATE_FUNC_NAME, vector<DataTypeID>{STRING},
+            DATE, UnaryExecFunction<gf_string_t, date_t, operation::CastStringToDate>));
     return result;
 }
 
 vector<unique_ptr<VectorOperationDefinition>> CastToTimestampVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_TIMESTAMP_FUNCTION_NAME,
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_TIMESTAMP_FUNC_NAME,
         vector<DataTypeID>{STRING}, TIMESTAMP,
         UnaryExecFunction<gf_string_t, timestamp_t, operation::CastStringToTimestamp>));
     return result;
@@ -157,7 +157,7 @@ vector<unique_ptr<VectorOperationDefinition>> CastToTimestampVectorOperation::ge
 
 vector<unique_ptr<VectorOperationDefinition>> CastToIntervalVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_INTERVAL_FUNCTION_NAME,
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_INTERVAL_FUNC_NAME,
         vector<DataTypeID>{STRING}, INTERVAL,
         UnaryExecFunction<gf_string_t, interval_t, operation::CastStringToInterval>));
     return result;
@@ -165,7 +165,7 @@ vector<unique_ptr<VectorOperationDefinition>> CastToIntervalVectorOperation::get
 
 vector<unique_ptr<VectorOperationDefinition>> CastToStringVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    auto functionName = CAST_TO_STRING_FUNCTION_NAME;
+    auto functionName = CAST_TO_STRING_FUNC_NAME;
     result.push_back(make_unique<VectorOperationDefinition>(
         functionName, vector<DataTypeID>{BOOL}, STRING, castToString<bool>));
     result.push_back(make_unique<VectorOperationDefinition>(

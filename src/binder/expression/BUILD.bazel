@@ -41,6 +41,7 @@ cc_library(
         "//src/binder/query",
         "//src/common:type_utils",
         "//src/function",
+        "//src/function/aggregate:aggregate_function",
     ],
 )
 

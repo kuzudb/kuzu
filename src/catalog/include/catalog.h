@@ -12,6 +12,7 @@
 #include "src/common/include/ser_deser.h"
 #include "src/common/include/utils.h"
 #include "src/common/types/include/types_include.h"
+#include "src/function/aggregate/include/built_in_aggregate_functions.h"
 #include "src/function/include/built_in_vector_operations.h"
 
 using namespace graphflow::common;
@@ -101,8 +102,22 @@ public:
 
     virtual ~Catalog() = default;
 
-    inline BuiltInVectorOperations* getBuiltInFunctions() const {
+    inline BuiltInVectorOperations* getBuiltInScalarFunctions() const {
         return builtInVectorOperations.get();
+    }
+
+    inline BuiltInAggregateFunctions* getBuiltInAggregateFunction() const {
+        return builtInAggregateFunctions.get();
+    }
+
+    inline ExpressionType getFunctionType(const string& name) const {
+        if (builtInVectorOperations->containsFunction(name)) {
+            return FUNCTION;
+        } else if (builtInAggregateFunctions->containsFunction(name)) {
+            return AGGREGATE_FUNCTION;
+        } else {
+            throw CatalogException(name + " function does not exist.");
+        }
     }
 
     /**
@@ -201,6 +216,7 @@ private:
 private:
     shared_ptr<spdlog::logger> logger;
     unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
+    unique_ptr<BuiltInAggregateFunctions> builtInAggregateFunctions;
     vector<NodeLabel> nodeLabels;
     vector<RelLabel> relLabels;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but

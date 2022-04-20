@@ -26,13 +26,11 @@ void BuiltInVectorOperations::registerVectorOperations() {
 
 bool BuiltInVectorOperations::canApplyStaticEvaluation(
     const string& functionName, const expression_vector& children) {
-    assert(vectorOperations.contains(functionName));
     if (functionName == ID_FUNC_NAME) {
         return true; // bind as property
     }
-    if ((functionName == CAST_TO_DATE_FUNCTION_NAME ||
-            functionName == CAST_TO_TIMESTAMP_FUNCTION_NAME ||
-            functionName == CAST_TO_INTERVAL_FUNCTION_NAME) &&
+    if ((functionName == CAST_TO_DATE_FUNC_NAME || functionName == CAST_TO_TIMESTAMP_FUNC_NAME ||
+            functionName == CAST_TO_INTERVAL_FUNC_NAME) &&
         children[0]->expressionType == LITERAL_STRING) {
         return true; // bind as literal
     }
@@ -41,7 +39,6 @@ bool BuiltInVectorOperations::canApplyStaticEvaluation(
 
 VectorOperationDefinition* BuiltInVectorOperations::matchFunction(
     const string& name, const vector<DataType>& inputTypes) {
-    validateFunctionExistence(name);
     auto& functionDefinitions = vectorOperations.at(name);
     bool isOverload = functionDefinitions.size() > 1;
     vector<VectorOperationDefinition*> candidateFunctions;
@@ -163,12 +160,6 @@ uint32_t BuiltInVectorOperations::castRules(DataTypeID inputTypeID, DataTypeID t
     return 0; // no cast needed
 }
 
-void BuiltInVectorOperations::validateFunctionExistence(const string& functionName) {
-    if (!vectorOperations.contains(functionName)) {
-        throw invalid_argument(functionName + " function does not exist.");
-    }
-}
-
 void BuiltInVectorOperations::validateNonEmptyCandidateFunctions(
     vector<VectorOperationDefinition*>& candidateFunctions, const string& name,
     const vector<DataType>& inputTypes) {
@@ -264,14 +255,13 @@ void BuiltInVectorOperations::registerStringOperations() {
 }
 
 void BuiltInVectorOperations::registerCastOperations() {
+    vectorOperations.insert({CAST_TO_DATE_FUNC_NAME, CastToDateVectorOperation::getDefinitions()});
     vectorOperations.insert(
-        {CAST_TO_DATE_FUNCTION_NAME, CastToDateVectorOperation::getDefinitions()});
+        {CAST_TO_TIMESTAMP_FUNC_NAME, CastToTimestampVectorOperation::getDefinitions()});
     vectorOperations.insert(
-        {CAST_TO_TIMESTAMP_FUNCTION_NAME, CastToTimestampVectorOperation::getDefinitions()});
+        {CAST_TO_INTERVAL_FUNC_NAME, CastToIntervalVectorOperation::getDefinitions()});
     vectorOperations.insert(
-        {CAST_TO_INTERVAL_FUNCTION_NAME, CastToIntervalVectorOperation::getDefinitions()});
-    vectorOperations.insert(
-        {CAST_TO_STRING_FUNCTION_NAME, CastToStringVectorOperation::getDefinitions()});
+        {CAST_TO_STRING_FUNC_NAME, CastToStringVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerListOperations() {

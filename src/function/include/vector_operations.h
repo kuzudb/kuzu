@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binary_operation_executor.h"
+#include "function_definition.h"
 #include "unary_operation_executor.h"
 
 #include "src/binder/expression/include/expression.h"
@@ -14,9 +15,8 @@ namespace function {
 using scalar_exec_func = std::function<void(const vector<shared_ptr<ValueVector>>&, ValueVector&)>;
 using scalar_select_func = std::function<uint64_t(const vector<shared_ptr<ValueVector>>&, sel_t*)>;
 
-class VectorOperationDefinition {
+struct VectorOperationDefinition : public FunctionDefinition {
 
-public:
     VectorOperationDefinition(string name, vector<DataTypeID> parameterTypeIDs,
         DataTypeID returnTypeID, scalar_exec_func execFunc, bool isVarLength = false)
         : VectorOperationDefinition{move(name), move(parameterTypeIDs), returnTypeID,
@@ -25,20 +25,10 @@ public:
     VectorOperationDefinition(string name, vector<DataTypeID> parameterTypeIDs,
         DataTypeID returnTypeID, scalar_exec_func execFunc, scalar_select_func selectFunc,
         bool isVarLength = false)
-        : name{move(name)}, parameterTypeIDs{move(parameterTypeIDs)},
-          returnTypeID{returnTypeID}, execFunc{move(execFunc)},
+        : FunctionDefinition{move(name), move(parameterTypeIDs), returnTypeID}, execFunc{move(
+                                                                                    execFunc)},
           selectFunc(move(selectFunc)), isVarLength{isVarLength} {}
 
-    inline string signatureToString() const {
-        string result = Types::dataTypesToString(parameterTypeIDs);
-        result += " -> " + Types::dataTypeToString(returnTypeID);
-        return result;
-    }
-
-public:
-    string name;
-    vector<DataTypeID> parameterTypeIDs;
-    DataTypeID returnTypeID;
     scalar_exec_func execFunc;
     scalar_select_func selectFunc;
     // Currently we only one variable-length function which is list creation. The expectation is

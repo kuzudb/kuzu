@@ -70,10 +70,12 @@ shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
         children.push_back(move(child));
     }
     auto expressionType = parsedExpression.getExpressionType();
+    auto functionName = expressionTypeToString(expressionType);
     auto execFunc = VectorBooleanOperations::bindExecFunction(expressionType, children);
     auto selectFunc = VectorBooleanOperations::bindSelectFunction(expressionType, children);
-    return make_shared<ScalarFunctionExpression>(
-        expressionType, DataType(BOOL), move(children), move(execFunc), move(selectFunc));
+    auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, children);
+    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOL), move(children),
+        move(execFunc), move(selectFunc), uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
@@ -85,7 +87,7 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         childrenTypes.push_back(child->dataType);
         children.push_back(move(child));
     }
-    auto builtInFunctions = queryBinder->catalog.getBuiltInFunctions();
+    auto builtInFunctions = queryBinder->catalog.getBuiltInScalarFunctions();
     auto expressionType = parsedExpression.getExpressionType();
     auto functionName = expressionTypeToString(parsedExpression.getExpressionType());
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
@@ -94,8 +96,10 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         childrenAfterCast.push_back(
             implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
     }
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(expressionType, DataType(function->returnTypeID),
-        move(childrenAfterCast), function->execFunc, function->selectFunc);
+        move(childrenAfterCast), function->execFunc, function->selectFunc, uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
@@ -105,10 +109,12 @@ shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
         children.push_back(bindExpression(*parsedExpression.getChild(i)));
     }
     auto expressionType = parsedExpression.getExpressionType();
+    auto functionName = expressionTypeToString(expressionType);
     auto execFunc = VectorNullOperations::bindExecFunction(expressionType, children);
     auto selectFunc = VectorNullOperations::bindSelectFunction(expressionType, children);
-    return make_shared<ScalarFunctionExpression>(
-        expressionType, DataType(BOOL), move(children), move(execFunc), move(selectFunc));
+    auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, children);
+    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOL), move(children),
+        move(execFunc), move(selectFunc), uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
@@ -147,57 +153,73 @@ shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
     auto functionName = parsedFunctionExpression.getFunctionName();
     StringUtils::toUpper(functionName);
-    if (functionName == COUNT_STAR_FUNC_NAME) {
-        return bindCountStarFunctionExpression(parsedExpression);
-    } else if (functionName == COUNT_FUNC_NAME) {
-        return bindCountFunctionExpression(parsedExpression);
-    } else if (functionName == SUM_FUNC_NAME) {
-        return bindSumMinMaxFunctionExpression(parsedExpression, SUM_FUNC);
-    } else if (functionName == AVG_FUNC_NAME) {
-        return bindAvgFunctionExpression(parsedExpression);
-    } else if (functionName == MIN_FUNC_NAME) {
-        return bindSumMinMaxFunctionExpression(parsedExpression, MIN_FUNC);
-    } else if (functionName == MAX_FUNC_NAME) {
-        return bindSumMinMaxFunctionExpression(parsedExpression, MAX_FUNC);
+    auto functionType = queryBinder->catalog.getFunctionType(functionName);
+    if (functionType == FUNCTION) {
+        return bindScalarFunctionExpression(parsedExpression, functionName);
     } else {
-        vector<DataType> childrenTypes;
-        expression_vector children;
-        for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-            auto child = bindExpression(*parsedExpression.getChild(i));
-            childrenTypes.push_back(child->dataType);
-            children.push_back(move(child));
-        }
-        auto builtInFunctions = queryBinder->catalog.getBuiltInFunctions();
-        auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
-        if (builtInFunctions->canApplyStaticEvaluation(functionName, children)) {
-            return staticEvaluate(functionName, parsedExpression, children);
-        }
-        expression_vector childrenAfterCast;
-        for (auto i = 0u; i < children.size(); ++i) {
-            auto targetType = function->isVarLength ? function->parameterTypeIDs[0] :
-                                                      function->parameterTypeIDs[i];
-            childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
-        }
-        auto returnType =
-            function->returnTypeID == LIST ?
-                DataType(LIST, make_unique<DataType>(childrenAfterCast[0]->dataType)) :
-                DataType(function->returnTypeID);
-        return make_shared<ScalarFunctionExpression>(FUNCTION, returnType, move(childrenAfterCast),
-            function->execFunc, function->selectFunc);
+        assert(functionType == AGGREGATE_FUNCTION);
+        return bindAggregateFunctionExpression(
+            parsedExpression, functionName, parsedFunctionExpression.getIsDistinct());
     }
+}
+
+shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
+    const ParsedExpression& parsedExpression, const string& functionName) {
+    auto builtInFunctions = queryBinder->catalog.getBuiltInScalarFunctions();
+    vector<DataType> childrenTypes;
+    expression_vector children;
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        auto child = bindExpression(*parsedExpression.getChild(i));
+        childrenTypes.push_back(child->dataType);
+        children.push_back(move(child));
+    }
+    auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
+    if (builtInFunctions->canApplyStaticEvaluation(functionName, children)) {
+        return staticEvaluate(functionName, parsedExpression, children);
+    }
+    expression_vector childrenAfterCast;
+    for (auto i = 0u; i < children.size(); ++i) {
+        auto targetType =
+            function->isVarLength ? function->parameterTypeIDs[0] : function->parameterTypeIDs[i];
+        childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
+    }
+    auto returnType = function->returnTypeID == LIST ?
+                          DataType(LIST, make_unique<DataType>(childrenAfterCast[0]->dataType)) :
+                          DataType(function->returnTypeID);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
+    return make_shared<ScalarFunctionExpression>(FUNCTION, returnType, move(childrenAfterCast),
+        function->execFunc, function->selectFunc, uniqueExpressionName);
+}
+
+shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
+    const ParsedExpression& parsedExpression, const string& functionName, bool isDistinct) {
+    auto builtInFunctions = queryBinder->catalog.getBuiltInAggregateFunction();
+    vector<DataType> childrenTypes;
+    expression_vector children;
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        auto child = bindExpression(*parsedExpression.getChild(i));
+        childrenTypes.push_back(child->dataType);
+        children.push_back(move(child));
+    }
+    auto function = builtInFunctions->matchFunction(functionName, childrenTypes, isDistinct);
+    auto uniqueExpressionName =
+        AggregateFunctionExpression::getUniqueName(function->name, children, function->isDistinct);
+    return make_shared<AggregateFunctionExpression>(DataType(function->returnTypeID),
+        move(children), function->aggregateFunction->clone(), uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionName,
     const ParsedExpression& parsedExpression, const expression_vector& children) {
-    if (functionName == CAST_TO_DATE_FUNCTION_NAME) {
+    if (functionName == CAST_TO_DATE_FUNC_NAME) {
         auto strVal = ((LiteralExpression*)children[0].get())->literal.strVal;
         return make_shared<LiteralExpression>(LITERAL_DATE, DataType(DATE),
             Literal(Date::FromCString(strVal.c_str(), strVal.length())));
-    } else if (functionName == CAST_TO_TIMESTAMP_FUNCTION_NAME) {
+    } else if (functionName == CAST_TO_TIMESTAMP_FUNC_NAME) {
         auto strVal = ((LiteralExpression*)children[0].get())->literal.strVal;
         return make_shared<LiteralExpression>(LITERAL_TIMESTAMP, DataType(TIMESTAMP),
             Literal(Timestamp::FromCString(strVal.c_str(), strVal.length())));
-    } else if (functionName == CAST_TO_INTERVAL_FUNCTION_NAME) {
+    } else if (functionName == CAST_TO_INTERVAL_FUNC_NAME) {
         auto strVal = ((LiteralExpression*)children[0].get())->literal.strVal;
         return make_shared<LiteralExpression>(LITERAL_INTERVAL, DataType(INTERVAL),
             Literal(Interval::FromCString(strVal.c_str(), strVal.length())));
@@ -207,44 +229,8 @@ shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionNa
     assert(false);
 }
 
-shared_ptr<Expression> ExpressionBinder::bindCountStarFunctionExpression(
-    const ParsedExpression& parsedExpression) {
-    validateNumberOfChildren(parsedExpression, 0);
-    return make_shared<FunctionExpression>(COUNT_STAR_FUNC, DataType(INT64),
-        queryBinder->getUniqueExpressionName(parsedExpression.getRawName()));
-}
-
-shared_ptr<Expression> ExpressionBinder::bindCountFunctionExpression(
-    const ParsedExpression& parsedExpression) {
-    auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
-    validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.getChild(0));
-    return make_shared<FunctionExpression>(
-        COUNT_FUNC, DataType(INT64), move(child), parsedFunctionExpression.getIsDistinct());
-}
-
-shared_ptr<Expression> ExpressionBinder::bindAvgFunctionExpression(
-    const ParsedExpression& parsedExpression) {
-    auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
-    validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.getChild(0));
-    validateNumericOrUnstructured(*child);
-    return make_shared<FunctionExpression>(
-        AVG_FUNC, DataType(DOUBLE), move(child), parsedFunctionExpression.getIsDistinct());
-}
-
-shared_ptr<Expression> ExpressionBinder::bindSumMinMaxFunctionExpression(
-    const ParsedExpression& parsedExpression, ExpressionType expressionType) {
-    auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
-    validateNumberOfChildren(parsedExpression, 1);
-    auto child = bindExpression(*parsedExpression.getChild(0));
-    return make_shared<FunctionExpression>(
-        expressionType, child->dataType, move(child), parsedFunctionExpression.getIsDistinct());
-}
-
 shared_ptr<Expression> ExpressionBinder::bindIDFunctionExpression(
     const ParsedExpression& parsedExpression) {
-    validateNumberOfChildren(parsedExpression, 1);
     auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE});
     return make_shared<PropertyExpression>(DataType(NODE_ID), INTERNAL_ID_SUFFIX,
@@ -349,48 +335,60 @@ shared_ptr<Expression> ExpressionBinder::implicitCastToBool(
     const shared_ptr<Expression>& expression) {
     auto children = expression_vector{expression};
     auto execFunc = VectorCastOperations::bindImplicitCastToBool(children);
-    return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(BOOL), move(children), move(execFunc), nullptr /* selectFunc */);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_BOOL_FUNC_NAME, children);
+    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(BOOL), move(children),
+        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastToInt64(
     const shared_ptr<Expression>& expression) {
     auto children = expression_vector{expression};
     auto execFunc = VectorCastOperations::bindImplicitCastToInt64(children);
-    return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(INT64), move(children), move(execFunc), nullptr /* selectFunc */);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_INT_FUNC_NAME, children);
+    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(INT64), move(children),
+        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastToString(
     const shared_ptr<Expression>& expression) {
     auto children = expression_vector{expression};
     auto execFunc = VectorCastOperations::bindImplicitCastToString(children);
-    return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(STRING), move(children), move(execFunc), nullptr /* selectFunc */);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_STRING_FUNC_NAME, children);
+    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(STRING), move(children),
+        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastToDate(
     const shared_ptr<Expression>& expression) {
     auto children = expression_vector{expression};
     auto execFunc = VectorCastOperations::bindImplicitCastToDate(children);
-    return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(DATE), move(children), move(execFunc), nullptr /* selectFunc */);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_DATE_FUNC_NAME, children);
+    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(DATE), move(children),
+        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastToTimestamp(
     const shared_ptr<Expression>& expression) {
     auto children = expression_vector{expression};
     auto execFunc = VectorCastOperations::bindImplicitCastToTimestamp(children);
-    return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(TIMESTAMP), move(children), move(execFunc), nullptr /* selectFunc */);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_TIMESTAMP_FUNC_NAME, children);
+    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(TIMESTAMP), move(children),
+        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastToUnstructured(
     const shared_ptr<Expression>& expression) {
     auto children = expression_vector{expression};
     auto execFunc = VectorCastOperations::bindImplicitCastToUnstructured(children);
-    return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(UNSTRUCTURED), move(children), move(execFunc), nullptr /* selectFunc */);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_UNSTRUCTURED_FUNC_NAME, children);
+    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(UNSTRUCTURED), move(children),
+        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
 }
 
 void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& parsedExpression) {
@@ -400,17 +398,6 @@ void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& par
             throw invalid_argument("Expression " + parsedExpression.getRawName() +
                                    " cannot have null literal children.");
         }
-    }
-}
-
-void ExpressionBinder::validateNumberOfChildren(
-    const ParsedExpression& parsedExpression, uint32_t expectedNumChildren) {
-    GF_ASSERT(parsedExpression.getExpressionType() == FUNCTION);
-    auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
-    if (parsedExpression.getNumChildren() != expectedNumChildren) {
-        throw invalid_argument("Expected " + to_string(expectedNumChildren) + " parameters for " +
-                               parsedFunctionExpression.getFunctionName() + " function but get " +
-                               to_string(parsedExpression.getNumChildren()) + ".");
     }
 }
 
@@ -432,7 +419,7 @@ void ExpressionBinder::validateExpectedDataType(
 }
 
 void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression& expression) {
-    if (expression.expressionType == COUNT_STAR_FUNC) {
+    if (expression.getNumChildren() == 0) {
         return;
     }
     if (expression.getChild(0)->hasAggregationExpression()) {
