@@ -11,13 +11,36 @@ namespace function {
  * Unary operator assumes operation with null returns null. This does NOT applies to IS_NULL and
  * IS_NOT_NULL operation.
  */
+
+// Forward declaration of string operations that returns a string.
+namespace operation {
+class Lower;
+class Upper;
+class Ltrim;
+class Rtrim;
+class Reverse;
+} // namespace operation
+
 struct UnaryOperationExecutor {
 
+    template<class FUNC>
+    static inline constexpr bool isFuncResultStr() {
+        return is_same<FUNC, operation::Lower>::value || is_same<FUNC, operation::Upper>::value ||
+               is_same<FUNC, operation::Ltrim>::value || is_same<FUNC, operation::Rtrim>::value ||
+               is_same<FUNC, operation::Reverse>::value;
+    }
+
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeOnValue(
-        ValueVector& operand, uint64_t operandPos, RESULT_TYPE& resultValue) {
+    static void executeOnValue(ValueVector& operand, uint64_t operandPos, RESULT_TYPE& resultValue,
+        ValueVector& resultValueVector) {
         auto operandValues = (OPERAND_TYPE*)operand.values;
-        FUNC::operation(operandValues[operandPos], (bool)operand.isNull(operandPos), resultValue);
+        if constexpr (isFuncResultStr<FUNC>()) {
+            FUNC::operation(operandValues[operandPos], (bool)operand.isNull(operandPos),
+                resultValue, resultValueVector);
+        } else {
+            FUNC::operation(
+                operandValues[operandPos], (bool)operand.isNull(operandPos), resultValue);
+        }
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
@@ -29,20 +52,21 @@ struct UnaryOperationExecutor {
             assert(pos == result.state->getPositionOfCurrIdx());
             result.setNull(pos, operand.isNull(pos));
             if (!result.isNull(pos)) {
-                executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(operand, pos, resultValues[pos]);
+                executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
+                    operand, pos, resultValues[pos], result);
             }
         } else {
             if (operand.hasNoNullsGuarantee()) {
                 if (operand.state->isUnfiltered()) {
                     for (auto i = 0u; i < operand.state->selectedSize; i++) {
                         executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-                            operand, i, resultValues[i]);
+                            operand, i, resultValues[i], result);
                     }
                 } else {
                     for (auto i = 0u; i < operand.state->selectedSize; i++) {
                         auto pos = operand.state->selectedPositions[i];
                         executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-                            operand, pos, resultValues[pos]);
+                            operand, pos, resultValues[pos], result);
                     }
                 }
             } else {
@@ -51,7 +75,7 @@ struct UnaryOperationExecutor {
                         result.setNull(i, operand.isNull(i));
                         if (!result.isNull(i)) {
                             executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-                                operand, i, resultValues[i]);
+                                operand, i, resultValues[i], result);
                         }
                     }
                 } else {
@@ -60,7 +84,7 @@ struct UnaryOperationExecutor {
                         result.setNull(pos, operand.isNull(pos));
                         if (!result.isNull(pos)) {
                             executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-                                operand, pos, resultValues[pos]);
+                                operand, pos, resultValues[pos], result);
                         }
                     }
                 }

@@ -317,25 +317,3 @@ TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredInt32AndDo
         ASSERT_EQ(resultData[i].val.doubleVal, (double)i / (110 - i));
     }
 }
-
-TEST_F(UnstructuredArithmeticOperandsInSameDataChunkTest, UnstructuredStringAndInt32Test) {
-    auto lVector = vector1;
-    auto rVector = vector2;
-    auto lData = (Value*)lVector->values;
-    auto rData = (Value*)rVector->values;
-    auto resultData = (Value*)result->values;
-
-    // Fill values before the comparison.
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        string lStr = to_string(i);
-        TypeUtils::copyString(lStr, lData[i].val.strVal, lVector->getOverflowBuffer());
-        lData[i].dataType.typeID = STRING;
-        rData[i] = Value((int64_t)110 - i);
-    }
-
-    BinaryOperationExecutor::execute<Value, Value, Value, operation::Add>(
-        *lVector, *rVector, *result);
-    for (int i = 0; i < NUM_TUPLES; i++) {
-        ASSERT_EQ(resultData[i].val.strVal.getAsString(), to_string(i) + to_string(110 - i));
-    }
-}

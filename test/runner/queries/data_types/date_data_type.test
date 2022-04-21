@@ -226,7 +226,7 @@
 1468
 
 -NAME StructuredDateConcatenateString
--QUERY MATCH (a:person) RETURN 'Birthdate: ' + string(a.birthdate) + ' test'
+-QUERY MATCH (a:person) RETURN concat(concat('Birthdate: ', string(a.birthdate)), ' test')
 ---- 8
 Birthdate: 1900-01-01 test
 Birthdate: 1900-01-01 test
@@ -238,7 +238,7 @@ Birthdate: 1980-10-26 test
 Birthdate: 1990-11-27 test
 
 -NAME UnstructuredDateConcatenateString
--QUERY MATCH (a:person) RETURN 'unstrDate: ' + a.unstrDateProp1 + ' test'
+-QUERY MATCH (a:person) RETURN concat(concat('unstrDate: ', a.unstrDateProp1), ' test')
 ---- 8
 
 

@@ -13,21 +13,18 @@ namespace function {
  * Binary operator assumes operation with null returns null. This does NOT applies to binary boolean
  * operations (e.g. AND, OR, XOR).
  */
+
+// Forward declaration of string operations that returns a string.
+namespace operation {
+class Concat;
+class Repeat;
+} // namespace operation
+
 struct BinaryOperationExecutor {
 
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE>
-    static void allocateStringIfNecessary(LEFT_TYPE& lValue, RIGHT_TYPE& rValue,
-        RESULT_TYPE& resultVal, ValueVector& lVec, ValueVector& rVec, ValueVector& resultVec) {
-        assert((is_same<RESULT_TYPE, Value>::value) || (is_same<RESULT_TYPE, gf_string_t>::value));
-        if constexpr ((is_same<RESULT_TYPE, Value>::value)) {
-            auto lStr = TypeUtils::toString(lValue);
-            auto rStr = TypeUtils::toString(rValue);
-            TypeUtils::allocateSpaceForStringIfNecessary(
-                resultVal.val.strVal, lStr.length() + rStr.length(), resultVec.getOverflowBuffer());
-        } else {
-            TypeUtils::allocateSpaceForStringIfNecessary(
-                resultVal, lValue.len + rValue.len, resultVec.getOverflowBuffer());
-        }
+    template<class FUNC>
+    static inline constexpr bool isFuncResultStr() {
+        return is_same<FUNC, operation::Concat>::value || is_same<FUNC, operation::Repeat>::value;
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
@@ -36,13 +33,13 @@ struct BinaryOperationExecutor {
         auto lValues = (LEFT_TYPE*)left.values;
         auto rValues = (RIGHT_TYPE*)right.values;
         auto resValues = (RESULT_TYPE*)result.values;
-        if constexpr ((is_same<RESULT_TYPE, gf_string_t>::value) ||
-                      (is_same<RESULT_TYPE, Value>::value)) {
-            allocateStringIfNecessary<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE>(
-                lValues[lPos], rValues[rPos], resValues[resPos], left, right, result);
+        if constexpr (isFuncResultStr<FUNC>()) {
+            FUNC::operation(lValues[lPos], rValues[rPos], resValues[resPos],
+                (bool)left.isNull(lPos), (bool)right.isNull(rPos), result);
+        } else {
+            FUNC::operation(lValues[lPos], rValues[rPos], resValues[resPos],
+                (bool)left.isNull(lPos), (bool)right.isNull(rPos));
         }
-        FUNC::operation(lValues[lPos], rValues[rPos], resValues[resPos], (bool)left.isNull(lPos),
-            (bool)right.isNull(rPos));
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>

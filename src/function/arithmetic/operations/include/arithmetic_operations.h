@@ -250,6 +250,33 @@ struct Radians {
     }
 };
 
+struct Atan2 {
+    template<class A, class B>
+    static inline void operation(
+        A& left, B& right, double_t& result, bool isLeftNull, bool isRightNull) {
+        assert(!isLeftNull && !isRightNull);
+        result = atan2(left, right);
+    }
+};
+
+struct Round {
+    template<class A, class B>
+    static inline void operation(
+        A& left, B& right, double_t& result, bool isLeftNull, bool isRightNull) {
+        assert(!isLeftNull && !isRightNull);
+        auto multiplier = pow(10, right);
+        result = round(left * multiplier) / multiplier;
+    }
+};
+
+struct BitwiseXor {
+    static inline void operation(
+        int64_t& left, int64_t& right, int64_t& result, bool isLeftNull, bool isRightNull) {
+        assert(!isLeftNull && !isRightNull);
+        result = left ^ right;
+    }
+};
+
 /********************************************
  **                                        **
  **   Specialized Modulo implementations   **
@@ -401,19 +428,7 @@ template<>
 inline void Add::operation(
     Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
     if (left.dataType.typeID == STRING || right.dataType.typeID == STRING) {
-        result.dataType.typeID = STRING;
-        if (left.dataType.typeID == STRING && right.dataType.typeID == STRING) {
-            Concat::operation(
-                left.val.strVal, right.val.strVal, result.val.strVal, isLeftNull, isRightNull);
-        } else {
-            // This is the case when one of the left or right unstructured Value needs to be cast
-            // to string. Because we don't have access to overflow buffers, we need to treat them
-            // as regular strings.
-            auto lVal = TypeUtils::toString(left);
-            auto rVal = TypeUtils::toString(right);
-            Concat::operation(lVal, rVal, result.val.strVal, isLeftNull, isRightNull);
-        }
-        return;
+        throw invalid_argument("Unimplemented string addition operator.");
     } else if (left.dataType.typeID == DATE && right.dataType.typeID == INTERVAL) {
         result.dataType.typeID = DATE;
         Add::operation(
@@ -623,6 +638,72 @@ template<>
 inline void Radians::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Radians, radiansStr>(operand, isNull, result);
 };
+
+template<>
+inline void Atan2::operation(
+    Value& left, Value& right, double_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
+    switch (left.dataType.typeID) {
+    case INT64: {
+        switch (right.dataType.typeID) {
+        case INT64: {
+            Atan2::operation(
+                left.val.int64Val, right.val.int64Val, result, isLeftNull, isRightNull);
+        } break;
+        case DOUBLE: {
+            Atan2::operation(
+                left.val.int64Val, right.val.doubleVal, result, isLeftNull, isRightNull);
+        } break;
+        default: {
+            throw invalid_argument("Atan2: Invalid right argument datatype: " +
+                                   Types::dataTypeToString(right.dataType.typeID));
+        }
+        }
+    } break;
+    case DOUBLE: {
+        switch (right.dataType.typeID) {
+        case INT64: {
+            Atan2::operation(
+                left.val.int64Val, right.val.int64Val, result, isLeftNull, isRightNull);
+        } break;
+        case DOUBLE: {
+            Atan2::operation(
+                left.val.int64Val, right.val.doubleVal, result, isLeftNull, isRightNull);
+        } break;
+        default: {
+            throw invalid_argument("Atan2: Invalid right argument datatype: " +
+                                   Types::dataTypeToString(right.dataType.typeID));
+        }
+        }
+    } break;
+    default: {
+        throw invalid_argument("Atan2: Invalid left argument datatype: " +
+                               Types::dataTypeToString(left.dataType.typeID));
+    }
+    }
+}
+
+template<>
+inline void Round::operation(
+    Value& left, Value& right, double_t& result, bool isLeftNull, bool isRightNull) {
+    assert(!isLeftNull && !isRightNull);
+    if (right.dataType.typeID != INT64) {
+        throw invalid_argument("Round: Invalid right argument datatype: " +
+                               Types::dataTypeToString(right.dataType.typeID));
+    }
+    switch (left.dataType.typeID) {
+    case INT64: {
+        Round::operation(left.val.int64Val, right.val.int64Val, result, isLeftNull, isRightNull);
+    } break;
+    case DOUBLE: {
+        Round::operation(left.val.doubleVal, right.val.int64Val, result, isLeftNull, isRightNull);
+    } break;
+    default: {
+        throw invalid_argument("Round: Invalid left argument datatype: " +
+                               Types::dataTypeToString(left.dataType.typeID));
+    }
+    }
+}
 
 } // namespace operation
 } // namespace function

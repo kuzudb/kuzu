@@ -218,6 +218,9 @@ void BuiltInVectorOperations::registerArithmeticOperations() {
     vectorOperations.insert({RADIANS_FUNC_NAME, RadiansVectorOperation::getDefinitions()});
     vectorOperations.insert({EVEN_FUNC_NAME, EvenVectorOperation::getDefinitions()});
     vectorOperations.insert({SIGN_FUNC_NAME, SignVectorOperation::getDefinitions()});
+    vectorOperations.insert({ATAN2_FUNC_NAME, Atan2VectorOperation::getDefinitions()});
+    vectorOperations.insert({ROUND_FUNC_NAME, RoundVectorOperation::getDefinitions()});
+    vectorOperations.insert({BITWISE_XOR_FUNC_NAME, BitwiseXorVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerDateOperations() {
@@ -250,8 +253,16 @@ void BuiltInVectorOperations::registerIntervalOperations() {
 }
 
 void BuiltInVectorOperations::registerStringOperations() {
+    vectorOperations.insert({CONCAT_FUNC_NAME, ConcatVectorOperation::getDefinitions()});
     vectorOperations.insert({CONTAINS_FUNC_NAME, ContainsVectorOperation::getDefinitions()});
     vectorOperations.insert({STARTS_WITH_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({LOWER_FUNC_NAME, LowerVectorOperation::getDefinitions()});
+    vectorOperations.insert({UPPER_FUNC_NAME, UpperVectorOperation::getDefinitions()});
+    vectorOperations.insert({LTRIM_FUNC_NAME, LtrimVectorOperation::getDefinitions()});
+    vectorOperations.insert({RTRIM_FUNC_NAME, RtrimVectorOperation::getDefinitions()});
+    vectorOperations.insert({LENGTH_FUNC_NAME, LengthVectorOperation::getDefinitions()});
+    vectorOperations.insert({REPEAT_FUNC_NAME, RepeatVectorOperation::getDefinitions()});
+    vectorOperations.insert({REVERSE_FUNC_NAME, ReverseVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerCastOperations() {

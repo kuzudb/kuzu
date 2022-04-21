@@ -15,16 +15,16 @@ public:
             resultTypeID, getUnaryExecFunc<FUNC, INT_RESULT, DOUBLE_RESULT>(operandTypeID));
     }
 
-    template<typename FUNC, bool DOUBLE_RESULT = false>
+    template<typename FUNC, bool DOUBLE_RESULT = false, bool FIXED_RESULT_TYPE = false>
     static inline unique_ptr<VectorOperationDefinition> getBinaryDefinition(
         string name, DataTypeID leftTypeID, DataTypeID rightTypeID, DataTypeID resultTypeID) {
         return make_unique<VectorOperationDefinition>(move(name),
             vector<DataTypeID>{leftTypeID, rightTypeID}, resultTypeID,
-            getBinaryExecFunc<FUNC, DOUBLE_RESULT>(leftTypeID, rightTypeID));
+            getBinaryExecFunc<FUNC, DOUBLE_RESULT, FIXED_RESULT_TYPE>(leftTypeID, rightTypeID));
     }
 
 private:
-    template<typename FUNC, bool DOUBLE_RESULT>
+    template<typename FUNC, bool DOUBLE_RESULT, bool FIXED_RESULT_TYPE>
     static scalar_exec_func getBinaryExecFunc(DataTypeID leftTypeID, DataTypeID rightTypeID) {
         switch (leftTypeID) {
         case INT64: {
@@ -56,7 +56,11 @@ private:
             }
         }
         case UNSTRUCTURED: {
-            return BinaryExecFunction<Value, Value, Value, FUNC>;
+            if constexpr (FIXED_RESULT_TYPE && DOUBLE_RESULT) {
+                return BinaryExecFunction<Value, Value, double_t, FUNC>;
+            } else {
+                return BinaryExecFunction<Value, Value, Value, FUNC>;
+            }
         }
         default:
             assert(false);
@@ -208,6 +212,18 @@ struct EvenVectorOperation : public VectorArithmeticOperations {
 };
 
 struct SignVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct Atan2VectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct RoundVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct BitwiseXorVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 

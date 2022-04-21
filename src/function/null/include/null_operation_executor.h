@@ -15,20 +15,20 @@ struct NullOperationExecutor {
             auto pos = operand.state->getPositionOfCurrIdx();
             assert(pos == result.state->getPositionOfCurrIdx());
             UnaryOperationExecutor::executeOnValue<uint8_t, uint8_t, FUNC>(
-                operand, pos, resultValues[pos]);
+                operand, pos, resultValues[pos], result);
         } else {
             if (operand.state->isUnfiltered()) {
                 for (auto i = 0u; i < operand.state->selectedSize; i++) {
                     UnaryOperationExecutor::executeOnValue<
                         uint8_t /* operand type does not matter for null operations */, uint8_t,
-                        FUNC>(operand, i, resultValues[i]);
+                        FUNC>(operand, i, resultValues[i], result);
                 }
             } else {
                 for (auto i = 0u; i < operand.state->selectedSize; i++) {
                     auto pos = operand.state->selectedPositions[i];
                     UnaryOperationExecutor::executeOnValue<
                         uint8_t /* operand type does not matter for null operations */, uint8_t,
-                        FUNC>(operand, pos, resultValues[pos]);
+                        FUNC>(operand, pos, resultValues[pos], result);
                 }
             }
         }

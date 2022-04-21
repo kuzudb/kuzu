@@ -342,5 +342,37 @@ vector<unique_ptr<VectorOperationDefinition>> SignVectorOperation::getDefinition
     return result;
 }
 
+vector<unique_ptr<VectorOperationDefinition>> Atan2VectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
+        for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
+            result.push_back(getBinaryDefinition<operation::Atan2, true /* DOUBLE_RESULT */,
+                true /* FIXED_RESULT_TYPE */>(ATAN2_FUNC_NAME, leftTypeID, rightTypeID, DOUBLE));
+        }
+    }
+    result.push_back(getBinaryDefinition<operation::Atan2, true /* DOUBLE_RESULT */,
+        true /* FIXED_RESULT_TYPE */>(ATAN2_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, DOUBLE));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> RoundVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(getBinaryDefinition<operation::Round, true /* DOUBLE_RESULT */,
+            true /* FIXED_RESULT_TYPE */>(ROUND_FUNC_NAME, leftTypeID, INT64, DOUBLE));
+    }
+    result.push_back(getBinaryDefinition<operation::Round, true /* DOUBLE_RESULT */,
+        true /* FIXED_RESULT_TYPE */>(ROUND_FUNC_NAME, UNSTRUCTURED, UNSTRUCTURED, DOUBLE));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> BitwiseXorVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(BITWISE_XOR_FUNC_NAME,
+        vector<DataTypeID>{INT64, INT64}, INT64,
+        BinaryExecFunction<int64_t, int64_t, int64_t, operation::BitwiseXor>));
+    return result;
+}
+
 } // namespace function
 } // namespace graphflow

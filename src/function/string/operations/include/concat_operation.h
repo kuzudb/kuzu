@@ -14,18 +14,21 @@ namespace operation {
 
 struct Concat {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result, bool isLeftNull, bool isRightNull);
+    static inline void operation(
+        A& left, B& right, R& result, bool isLeftNull, bool isRightNull, ValueVector& valueVector);
 };
 
 template<>
-inline void Concat::operation(
-    gf_string_t& left, gf_string_t& right, gf_string_t& result, bool isLeftNull, bool isRightNull) {
+inline void Concat::operation(gf_string_t& left, gf_string_t& right, gf_string_t& result,
+    bool isLeftNull, bool isRightNull, ValueVector& resultValueVector) {
     assert(!isLeftNull && !isRightNull);
     auto len = left.len + right.len;
     if (len <= gf_string_t::SHORT_STR_LENGTH /* concat's result is short */) {
         memcpy(result.prefix, left.prefix, left.len);
         memcpy(result.prefix + left.len, right.prefix, right.len);
     } else {
+        result.overflowPtr =
+            reinterpret_cast<uint64_t>(resultValueVector.getOverflowBuffer().allocateSpace(len));
         auto buffer = reinterpret_cast<char*>(result.overflowPtr);
         memcpy(buffer, left.getData(), left.len);
         memcpy(buffer + left.len, right.getData(), right.len);
@@ -35,14 +38,16 @@ inline void Concat::operation(
 }
 
 template<>
-inline void Concat::operation(
-    string& left, string& right, gf_string_t& result, bool isLeftNull, bool isRightNull) {
+inline void Concat::operation(string& left, string& right, gf_string_t& result, bool isLeftNull,
+    bool isRightNull, ValueVector& resultValueVector) {
     assert(!isLeftNull && !isRightNull);
     auto len = left.length() + right.length();
     if (len <= gf_string_t::SHORT_STR_LENGTH /* concat's result is short */) {
         memcpy(result.prefix, left.c_str(), left.length());
         memcpy(result.prefix + left.length(), right.c_str(), right.length());
     } else {
+        result.overflowPtr =
+            reinterpret_cast<uint64_t>(resultValueVector.getOverflowBuffer().allocateSpace(len));
         auto buffer = reinterpret_cast<char*>(result.overflowPtr);
         memcpy(buffer, left.c_str(), left.length());
         memcpy(buffer + left.length(), right.c_str(), right.length());

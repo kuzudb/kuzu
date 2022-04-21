@@ -31,12 +31,12 @@
 1
 
 -NAME PersonUnstrFilteredTest7
--QUERY MATCH (a:person) WHERE 'abc ' + a.unstrNumericProp = 'abc 52' RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE concat('abc ', string(a.unstrNumericProp)) = 'abc 52' RETURN COUNT(*)
 ---- 1
 1
 
 -NAME PersonUnstrFilteredTest8
--QUERY MATCH (a:person) WHERE a.unstrNumericProp2 + ' abcdefghijklm' = '20 abcdefghijklm' RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE concat(a.unstrNumericProp2, ' abcdefghijklm') = '20 abcdefghijklm' RETURN COUNT(*)
 ---- 1
 1
 
@@ -46,12 +46,12 @@
 1
 
 -NAME PersonUnstrFilteredTest10
--QUERY MATCH (a:person) WHERE '47Bob' = a.unstrNumericProp + a.fName RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE '47Bob' = concat(string(a.unstrNumericProp), a.fName) RETURN COUNT(*)
 ---- 1
 1
 
 -NAME PersonUnstrFilteredTest11
--QUERY MATCH (a:person) WHERE a.unstrDateProp1 + a.fName = '1950-01-01Bob' RETURN COUNT(*)
+-QUERY MATCH (a:person) WHERE concat(string(a.unstrDateProp1), a.fName) = '1950-01-01Bob' RETURN COUNT(*)
 ---- 1
 1
 
