@@ -196,11 +196,7 @@ void QueryBinder::addExpressionsToScope(const expression_vector& projectionExpre
 
 shared_ptr<Expression> QueryBinder::bindWhereExpression(const ParsedExpression& parsedExpression) {
     auto whereExpression = expressionBinder.bindExpression(parsedExpression);
-    if (BOOL != whereExpression->dataType.typeID) {
-        throw invalid_argument("Type mismatch: " + whereExpression->getRawName() + " returns " +
-                               Types::dataTypeToString(whereExpression->dataType.typeID) +
-                               " expected Boolean.");
-    }
+    ExpressionBinder::implicitCastIfNecessary(whereExpression, BOOL);
     return whereExpression;
 }
 
