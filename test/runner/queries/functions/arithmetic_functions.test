@@ -503,3 +503,72 @@
 -0.218166
 0.057596
 
+
+-NAME atan2FunctionOnDoubleDoubleTest
+-QUERY MATCH (a:organisation) RETURN atan2(a.mark, a.mark)
+---- 3
+0.785398
+0.785398
+0.785398
+
+-NAME atan2FunctionOnDoubleInt64Test
+-QUERY MATCH (a:organisation) RETURN atan2(a.mark, a.orgCode)
+---- 3
+0.011384
+0.004390
+0.004976
+
+-NAME atan2FunctionOnInt64Int64Test
+-QUERY MATCH (a:organisation) RETURN atan2(a.orgCode, a.orgCode)
+---- 3
+0.785398
+0.785398
+0.785398
+
+-NAME atan2FunctionOnInt64DoubleTest
+-QUERY MATCH (a:organisation) RETURN atan2(a.orgCode, a.mark)
+---- 3
+1.559412
+1.566407
+1.565821
+
+-NAME atan2FunctionOnUnstrInt64DoubleTest
+-QUERY MATCH (a:organisation) RETURN atan2(a.unstrInt64Prop, a.unstrNumericProp)
+---- 3
+1.252049
+
+
+
+-NAME roundFunctionOnDoubleTest
+-QUERY MATCH (a:organisation) RETURN round(a.rating, 1)
+---- 3
+0.800000
+0.500000
+1.000000
+
+-NAME roundFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN round(a.orgCode, 2)
+---- 3
+325.000000
+824.000000
+934.000000
+
+-NAME roundFunctionOnUnstrDoubleTest
+-QUERY MATCH (a:organisation) RETURN round(a.unstrNumericProp, a.unstrInt64Prop)
+---- 3
+3.300000
+
+
+
+-NAME bitwiseXorFunctionOnInt64Test
+-QUERY MATCH (a:organisation) RETURN bitwise_xor(a.orgCode, a.score)
+---- 3
+-325
+-966
+831
+
+-NAME bitwiseXorFunctionOnUnstrInt64Test
+-QUERY MATCH (a:organisation) RETURN bitwise_xor(a.unstrInt64Prop, a.unstrInt64Prop)
+---- 3
+0
+0

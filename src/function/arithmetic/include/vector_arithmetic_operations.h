@@ -56,7 +56,11 @@ private:
             }
         }
         case UNSTRUCTURED: {
-            return BinaryExecFunction<Value, Value, Value, FUNC>;
+            if constexpr (DOUBLE_RESULT) {
+                return BinaryExecFunction<Value, Value, double_t, FUNC>;
+            } else {
+                return BinaryExecFunction<Value, Value, Value, FUNC>;
+            }
         }
         default:
             assert(false);
@@ -208,6 +212,18 @@ struct EvenVectorOperation : public VectorArithmeticOperations {
 };
 
 struct SignVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct Atan2VectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct RoundVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct BitwiseXorVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 

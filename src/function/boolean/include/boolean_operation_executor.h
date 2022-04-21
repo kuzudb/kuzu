@@ -83,7 +83,7 @@ struct BinaryBooleanOperationExecutor {
     template<typename FUNC>
     static inline void executeOnValue(ValueVector& left, ValueVector& right, ValueVector& result,
         uint64_t lPos, uint64_t rPos, uint64_t resPos) {
-        BinaryOperationExecutor::executeOnValue<bool, bool, uint8_t, FUNC>(
+        BinaryOperationExecutor::executeOnValue<bool, bool, uint8_t, FUNC, BinaryOperationWrapper>(
             left, right, result, lPos, rPos, resPos);
         result.setNull(resPos, result.values[resPos] == operation::NULL_BOOL);
     }

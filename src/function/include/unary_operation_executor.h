@@ -11,17 +11,33 @@ namespace function {
  * Unary operator assumes operation with null returns null. This does NOT applies to IS_NULL and
  * IS_NOT_NULL operation.
  */
-struct UnaryOperationExecutor {
 
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeOnValue(
-        ValueVector& operand, uint64_t operandPos, RESULT_TYPE& resultValue) {
+struct UnaryOperationWrapper {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename OP>
+    static inline void operation(
+        OPERAND_TYPE& input, bool isNull, RESULT_TYPE& result, void* dataptr) {
+        OP::operation(input, isNull, result);
+    }
+};
+
+struct UnaryStringOperationWrapper {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename OP>
+    static void operation(OPERAND_TYPE& input, bool isNull, RESULT_TYPE& result, void* dataptr) {
+        OP::operation(input, isNull, result, *(ValueVector*)dataptr);
+    }
+};
+
+struct UnaryOperationExecutor {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
+    static void executeOnValue(ValueVector& operand, uint64_t operandPos, RESULT_TYPE& resultValue,
+        ValueVector& resultValueVector) {
         auto operandValues = (OPERAND_TYPE*)operand.values;
-        FUNC::operation(operandValues[operandPos], (bool)operand.isNull(operandPos), resultValue);
+        OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(operandValues[operandPos],
+            (bool)operand.isNull(operandPos), resultValue, (void*)&resultValueVector);
     }
 
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void execute(ValueVector& operand, ValueVector& result) {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
+    static void executeSwitch(ValueVector& operand, ValueVector& result) {
         result.resetOverflowBuffer();
         auto resultValues = (RESULT_TYPE*)result.values;
         if (operand.state->isFlat()) {
@@ -29,20 +45,21 @@ struct UnaryOperationExecutor {
             assert(pos == result.state->getPositionOfCurrIdx());
             result.setNull(pos, operand.isNull(pos));
             if (!result.isNull(pos)) {
-                executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(operand, pos, resultValues[pos]);
+                executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
+                    operand, pos, resultValues[pos], result);
             }
         } else {
             if (operand.hasNoNullsGuarantee()) {
                 if (operand.state->isUnfiltered()) {
                     for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-                            operand, i, resultValues[i]);
+                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
+                            operand, i, resultValues[i], result);
                     }
                 } else {
                     for (auto i = 0u; i < operand.state->selectedSize; i++) {
                         auto pos = operand.state->selectedPositions[i];
-                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-                            operand, pos, resultValues[pos]);
+                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
+                            operand, pos, resultValues[pos], result);
                     }
                 }
             } else {
@@ -50,8 +67,8 @@ struct UnaryOperationExecutor {
                     for (auto i = 0u; i < operand.state->selectedSize; i++) {
                         result.setNull(i, operand.isNull(i));
                         if (!result.isNull(i)) {
-                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-                                operand, i, resultValues[i]);
+                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
+                                operand, i, resultValues[i], result);
                         }
                     }
                 } else {
@@ -59,13 +76,24 @@ struct UnaryOperationExecutor {
                         auto pos = operand.state->selectedPositions[i];
                         result.setNull(pos, operand.isNull(pos));
                         if (!result.isNull(pos)) {
-                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-                                operand, pos, resultValues[pos]);
+                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
+                                operand, pos, resultValues[pos], result);
                         }
                     }
                 }
             }
         }
+    }
+
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void execute(ValueVector& operand, ValueVector& result) {
+        executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryOperationWrapper>(operand, result);
+    }
+
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void executeString(ValueVector& operand, ValueVector& result) {
+        executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryStringOperationWrapper>(
+            operand, result);
     }
 
     template<typename OPERAND_TYPE, typename FUNC>
