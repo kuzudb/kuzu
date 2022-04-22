@@ -62,6 +62,13 @@ public:
         UnaryOperationExecutor::execute<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
 
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void UnaryStringExecFunction(
+        const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
+        assert(params.size() == 1);
+        UnaryOperationExecutor::executeString<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
+    }
+
     template<typename OPERAND_TYPE, typename FUNC>
     static uint64_t UnarySelectFunction(
         const vector<shared_ptr<ValueVector>>& params, sel_t* selectedPositions) {

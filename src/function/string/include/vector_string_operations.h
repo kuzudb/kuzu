@@ -15,7 +15,7 @@ struct VectorStringOperations : public VectorOperations {
     static inline vector<unique_ptr<VectorOperationDefinition>> getUnaryStrFunctionDefintion(
         string funcName) {
         vector<unique_ptr<VectorOperationDefinition>> definitions;
-        auto execFunc = UnaryExecFunction<gf_string_t, gf_string_t, OPERATION>;
+        auto execFunc = UnaryStringExecFunction<gf_string_t, gf_string_t, OPERATION>;
         definitions.emplace_back(make_unique<VectorOperationDefinition>(
             funcName, vector<DataTypeID>{STRING}, STRING, execFunc, false /* isVarLength */));
         return definitions;
