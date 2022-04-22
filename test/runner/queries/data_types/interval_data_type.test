@@ -140,14 +140,14 @@
 24 years -66 days 27:05:40
 
 -NAME StructuredIntervalConcatenateString
--QUERY MATCH (o:organisation) RETURN 'The license is valid until ' + string(o.licenseValidInterval) + ' test'
+-QUERY MATCH (o:organisation) RETURN concat(concat('The license is valid until ', string(o.licenseValidInterval)), ' test')
 ---- 3
 The license is valid until 26 years 52 days 48:00:00 test
 The license is valid until 3 years 5 days test
 The license is valid until 82:00:00.1 test
 
 -NAME UnstructuredIntervalConcatenateString
--QUERY MATCH (o:organisation) RETURN 'unstrIntervalProp1: ' + o.unstrIntervalProp1 + ' test'
+-QUERY MATCH (o:organisation) RETURN concat(concat('unstrIntervalProp1: ', o.unstrIntervalProp1), ' test')
 ---- 3
 
 unstrIntervalProp1: 26 years 52 days 48:00:00 test

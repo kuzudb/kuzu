@@ -10,25 +10,22 @@ struct NullOperationExecutor {
     template<typename FUNC>
     static void execute(ValueVector& operand, ValueVector& result) {
         assert(result.dataType.typeID == BOOL);
+        auto operandValues = (uint8_t*)operand.values;
         auto resultValues = (uint8_t*)result.values;
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
             assert(pos == result.state->getPositionOfCurrIdx());
-            UnaryOperationExecutor::executeOnValue<uint8_t, uint8_t, FUNC>(
-                operand, pos, resultValues[pos]);
+            FUNC::operation(operandValues[pos], (bool)operand.isNull(pos), resultValues[pos]);
         } else {
             if (operand.state->isUnfiltered()) {
                 for (auto i = 0u; i < operand.state->selectedSize; i++) {
-                    UnaryOperationExecutor::executeOnValue<
-                        uint8_t /* operand type does not matter for null operations */, uint8_t,
-                        FUNC>(operand, i, resultValues[i]);
+                    FUNC::operation(operandValues[i], (bool)operand.isNull(i), resultValues[i]);
                 }
             } else {
                 for (auto i = 0u; i < operand.state->selectedSize; i++) {
                     auto pos = operand.state->selectedPositions[i];
-                    UnaryOperationExecutor::executeOnValue<
-                        uint8_t /* operand type does not matter for null operations */, uint8_t,
-                        FUNC>(operand, pos, resultValues[pos]);
+                    FUNC::operation(
+                        operandValues[pos], (bool)operand.isNull(pos), resultValues[pos]);
                 }
             }
         }

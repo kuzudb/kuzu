@@ -74,11 +74,23 @@ const string LOG_FUNC_NAME = "LOG";
 const string LOG2_FUNC_NAME = "LOG2";
 const string DEGREES_FUNC_NAME = "DEGREES";
 const string RADIANS_FUNC_NAME = "RADIANS";
+const string ATAN2_FUNC_NAME = "ATAN2";
+const string ROUND_FUNC_NAME = "ROUND";
+const string BITWISE_XOR_FUNC_NAME = "BITWISE_XOR";
 
 // string
+const string CONCAT_FUNC_NAME = "CONCAT";
 const string CONTAINS_FUNC_NAME = "CONTAINS";
 const string STARTS_WITH_FUNC_NAME = "STARTS_WITH";
 const string ENDS_WITH_FUNC_NAME = "ENDS_WITH";
+const string LOWER_FUNC_NAME = "LOWER";
+const string UPPER_FUNC_NAME = "UPPER";
+const string TRIM_FUNC_NAME = "TRIM";
+const string LTRIM_FUNC_NAME = "LTRIM";
+const string RTRIM_FUNC_NAME = "RTRIM";
+const string LENGTH_FUNC_NAME = "LENGTH";
+const string REPEAT_FUNC_NAME = "REPEAT";
+const string REVERSE_FUNC_NAME = "REVERSE";
 
 // Date functions.
 const string DAYNAME_FUNC_NAME = "DAYNAME";

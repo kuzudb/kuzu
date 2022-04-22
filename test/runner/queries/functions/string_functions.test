@@ -51,3 +51,115 @@ good|True
 -QUERY MATCH (a:person) WHERE a.fName STARTS WITH "C" RETURN a.fName
 ---- 1
 Carol
+
+-NAME LowerStructuredStr
+-QUERY MATCH (o:organisation) RETURN lower(o.name)
+---- 3
+abfsuni
+cswork
+deswork
+
+-NAME LowerUnstructuredStr
+-QUERY MATCH (o:organisation) RETURN lower(o.unstrStr)
+---- 3
+  perfect
+  excellent organisation   
+good organisation ! 
+ 
+-NAME UpperStructuredStr
+-QUERY MATCH (o:organisation) RETURN upper(o.name)
+---- 3
+ABFSUNI
+CSWORK
+DESWORK
+
+-NAME UpperUnstructuredStr
+-QUERY MATCH (o:organisation) RETURN upper(o.unstrStr)
+---- 3
+  PERFECT
+  EXCELLENT ORGANISATION   
+GOOD ORGANISATION ! 
+
+-NAME TrimStructuredStr
+-QUERY MATCH (o:organisation) RETURN trim(o.name)
+---- 3
+ABFsUni
+CsWork
+DEsWork
+
+-NAME TrimUnstructuredStr
+-QUERY MATCH (o:organisation) RETURN trim(o.unstrStr)
+---- 3
+pERfECt
+EXcELLENT organisation
+GoOd organisation !
+
+-NAME LtrimStructuredStr
+-QUERY MATCH (o:organisation) RETURN ltrim(o.name)
+---- 3
+ABFsUni
+CsWork
+DEsWork
+
+-NAME LtrimUnstructuredStr
+-QUERY MATCH (o:organisation) RETURN ltrim(o.unstrStr)
+---- 3
+pERfECt
+EXcELLENT organisation   
+GoOd organisation ! 
+
+-NAME RtrimStructuredStr
+-QUERY MATCH (o:organisation) RETURN rtrim(o.name)
+---- 3
+ABFsUni
+CsWork
+DEsWork
+
+-NAME RtrimUnstructuredStr
+-QUERY MATCH (o:organisation) RETURN rtrim(o.unstrStr)
+---- 3
+  pERfECt
+  EXcELLENT organisation
+GoOd organisation !
+
+-NAME ReverseStructuredStr
+-QUERY MATCH (o:organisation) RETURN reverse(o.name)
+---- 3
+inUsFBA
+kroWsC
+kroWsED
+
+-NAME ReverseUnstructuredStr
+-QUERY MATCH (o:organisation) RETURN reverse(o.unstrStr)
+---- 3
+tCEfREp  
+   noitasinagro TNELLEcXE  
+ ! noitasinagro dOoG
+
+-NAME LengthStructuredStr
+-QUERY MATCH (o:organisation) RETURN length(o.name)
+---- 3
+7
+6
+7
+
+-NAME LengthUnstructuredStr
+-QUERY MATCH (o:organisation) RETURN length(o.unstrStr)
+---- 3
+9
+27
+20
+
+-NAME RepeatStructuredStr
+-QUERY MATCH (o:organisation) RETURN repeat(o.name, o.ID)
+---- 3
+ABFsUni
+CsWorkCsWorkCsWorkCsWork
+DEsWorkDEsWorkDEsWorkDEsWorkDEsWorkDEsWork
+
+-NAME RepeatUnstructuredStr
+-QUERY MATCH (o:organisation) RETURN repeat(o.unstrStr, o.ID)
+---- 3
+  pERfECt
+  EXcELLENT organisation     EXcELLENT organisation     EXcELLENT organisation     EXcELLENT organisation   
+GoOd organisation ! GoOd organisation ! GoOd organisation ! GoOd organisation ! GoOd organisation ! GoOd organisation ! 

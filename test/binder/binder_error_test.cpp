@@ -120,7 +120,7 @@ TEST_F(BinderErrorTest, BindIDArithmetic) {
         "Cannot match a built-in function for given function +(NODE_ID,INT64). Supported inputs "
         "are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
         "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
-        "UNSTRUCTURED\n(STRING,STRING) -> STRING\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
+        "UNSTRUCTURED\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
         "DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
@@ -131,7 +131,7 @@ TEST_F(BinderErrorTest, BindDateAddDate) {
         "Cannot match a built-in function for given function +(DATE,DATE). Supported inputs "
         "are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
         "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
-        "UNSTRUCTURED\n(STRING,STRING) -> STRING\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
+        "UNSTRUCTURED\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
         "DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     auto input = "MATCH (a:person) RETURN a.birthdate + date('2031-02-01');";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
@@ -142,7 +142,7 @@ TEST_F(BinderErrorTest, BindTimestampArithmetic) {
         "Cannot match a built-in function for given function +(TIMESTAMP,INT64). Supported "
         "inputs are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
         "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
-        "UNSTRUCTURED\n(STRING,STRING) -> STRING\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
+        "UNSTRUCTURED\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
         "DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     auto input = "MATCH (a:person) WHERE a.registerTime + 1 < 5 RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
@@ -153,7 +153,7 @@ TEST_F(BinderErrorTest, BindTimestampAddTimestamp) {
         "Cannot match a built-in function for given function +(TIMESTAMP,TIMESTAMP). Supported "
         "inputs are\n(INT64,INT64) -> INT64\n(INT64,DOUBLE) -> DOUBLE\n(DOUBLE,INT64) -> "
         "DOUBLE\n(DOUBLE,DOUBLE) -> DOUBLE\n(UNSTRUCTURED,UNSTRUCTURED) -> "
-        "UNSTRUCTURED\n(STRING,STRING) -> STRING\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
+        "UNSTRUCTURED\n(DATE,INT64) -> DATE\n(DATE,INTERVAL) -> "
         "DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,INTERVAL) -> INTERVAL\n";
     auto input = "MATCH (a:person) RETURN a.registerTime + timestamp('2031-02-11 01:02:03');";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
