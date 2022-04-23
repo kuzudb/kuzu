@@ -93,5 +93,10 @@ inline Literal Literal::createLiteral(const char* value) {
     return Literal(string(value));
 }
 
+template<>
+inline Literal Literal::createLiteral(string value) {
+    return Literal(value);
+}
+
 } // namespace common
 } // namespace graphflow

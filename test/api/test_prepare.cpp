@@ -5,16 +5,6 @@
 using namespace graphflow::testing;
 using namespace graphflow::main;
 
-TEST_F(ApiTest, basic_prepare) {
-    auto preparedStatement =
-        conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN COUNT(*)");
-    auto result = conn->execute(preparedStatement.get(), make_pair(string("n"), "A"));
-    ASSERT_TRUE(result->hasNext());
-    auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getValue(0)->val.int64Val, 1);
-    ASSERT_FALSE(result->hasNext());
-}
-
 TEST_F(ApiTest, multi_params_prepare) {
     auto preparedStatement = conn->prepare(
         "MATCH (a:person) WHERE a.fName STARTS WITH $n OR a.fName CONTAINS $xx RETURN COUNT(*)");
@@ -52,6 +42,62 @@ TEST_F(ApiTest, prepare_double) {
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
     ASSERT_EQ(tuple->getValue(0)->val.doubleVal, 15.5);
+    ASSERT_FALSE(result->hasNext());
+}
+
+TEST_F(ApiTest, prepare_string) {
+    auto preparedStatement =
+        conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN COUNT(*)");
+    auto result = conn->execute(preparedStatement.get(), make_pair(string("n"), "A"));
+    ASSERT_TRUE(result->hasNext());
+    auto tuple = result->getNext();
+    ASSERT_EQ(tuple->getValue(0)->val.int64Val, 1);
+    ASSERT_FALSE(result->hasNext());
+}
+
+TEST_F(ApiTest, prepare_date) {
+    auto preparedStatement =
+        conn->prepare("MATCH (a:person) WHERE a.birthdate = $n RETURN COUNT(*)");
+    auto result =
+        conn->execute(preparedStatement.get(), make_pair(string("n"), Date::FromDate(1900, 1, 1)));
+    ASSERT_TRUE(result->hasNext());
+    auto tuple = result->getNext();
+    ASSERT_EQ(tuple->getValue(0)->val.int64Val, 2);
+    ASSERT_FALSE(result->hasNext());
+}
+
+TEST_F(ApiTest, prepare_timestamp) {
+    auto preparedStatement =
+        conn->prepare("MATCH (a:person) WHERE a.registerTime = $n RETURN COUNT(*)");
+    auto date = Date::FromDate(2011, 8, 20);
+    auto time = Time::FromTime(11, 25, 30);
+    auto result = conn->execute(
+        preparedStatement.get(), make_pair(string("n"), Timestamp::FromDatetime(date, time)));
+    ASSERT_TRUE(result->hasNext());
+    auto tuple = result->getNext();
+    ASSERT_EQ(tuple->getValue(0)->val.int64Val, 1);
+    ASSERT_FALSE(result->hasNext());
+}
+
+TEST_F(ApiTest, prepare_interval) {
+    auto preparedStatement =
+        conn->prepare("MATCH (a:person) WHERE a.lastJobDuration = $n RETURN COUNT(*)");
+    string intervalStr = "3 years 2 days 13 hours 2 minutes";
+    auto result = conn->execute(preparedStatement.get(),
+        make_pair(string("n"), Interval::FromCString(intervalStr.c_str(), intervalStr.length())));
+    ASSERT_TRUE(result->hasNext());
+    auto tuple = result->getNext();
+    ASSERT_EQ(tuple->getValue(0)->val.int64Val, 2);
+    ASSERT_FALSE(result->hasNext());
+}
+
+TEST_F(ApiTest, default_param) {
+    auto preparedStatement = conn->prepare("MATCH (a:person) WHERE $1 = $2 RETURN COUNT(*)");
+    auto result = conn->execute(preparedStatement.get(), make_pair(string("1"), (int64_t)1.4),
+        make_pair(string("2"), (int64_t)1.4));
+    ASSERT_TRUE(result->hasNext());
+    auto tuple = result->getNext();
+    ASSERT_EQ(tuple->getValue(0)->val.int64Val, 8);
     ASSERT_FALSE(result->hasNext());
 }
 

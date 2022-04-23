@@ -32,6 +32,9 @@ public:
         return executeWithParams(preparedStatement, inputParameters, args...);
     }
 
+    std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
+        unordered_map<string, shared_ptr<Literal>>& inputParams);
+
     /**
      * TODO: APIs that need to be added
      * * catalog related
@@ -56,9 +59,6 @@ private:
         params.insert({name, val});
         return executeWithParams(preparedStatement, params, args...);
     }
-
-    std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
-        unordered_map<string, shared_ptr<Literal>>& inputParams);
 
     void bindParameters(PreparedStatement* preparedStatement,
         unordered_map<string, shared_ptr<Literal>>& inputParams);

@@ -47,14 +47,6 @@ public:
             *params[0], *params[1], result);
     }
 
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void BinaryStringExecFunction(
-        const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
-        assert(params.size() == 2);
-        BinaryOperationExecutor::executeString<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
-            *params[0], *params[1], result);
-    }
-
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
     static uint64_t BinarySelectFunction(
         const vector<shared_ptr<ValueVector>>& params, sel_t* selectedPositions) {
@@ -68,13 +60,6 @@ public:
         const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
         assert(params.size() == 1);
         UnaryOperationExecutor::execute<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
-    }
-
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void UnaryStringExecFunction(
-        const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
-        assert(params.size() == 1);
-        UnaryOperationExecutor::executeString<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
 
     template<typename OPERAND_TYPE, typename FUNC>
