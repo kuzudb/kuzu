@@ -15,8 +15,10 @@ public:
         querySummary = make_unique<QuerySummary>();
         profiler = make_unique<Profiler>();
     }
-
     ~PreparedStatement() = default;
+
+    inline bool isSuccess() const { return success; }
+    inline string getErrorMessage() const { return errMsg; }
 
     inline void createResultHeader(vector<DataType> resultDataTypes) {
         resultHeader = make_unique<QueryResultHeader>(move(resultDataTypes));
@@ -28,6 +30,9 @@ public:
     }
 
 private:
+    bool success;
+    string errMsg;
+
     unique_ptr<QuerySummary> querySummary;
     unique_ptr<Profiler> profiler;
     unordered_map<string, shared_ptr<Literal>> parameterMap;

@@ -192,7 +192,7 @@ RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString
     } else if ("MANY_MANY" == relMultiplicityString) {
         return MANY_MANY;
     }
-    throw invalid_argument("Invalid relMultiplicity string \"" + relMultiplicityString + "\"");
+    throw CatalogException("Invalid relMultiplicity string \"" + relMultiplicityString + "\"");
 }
 
 NodeLabel::NodeLabel(string labelName, label_t labelId, uint64_t primaryPropertyId,

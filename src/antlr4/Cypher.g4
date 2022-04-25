@@ -513,3 +513,6 @@ fragment VT : [\u000B] ;
 fragment US : [\u001F] ;
 
 fragment ID_Start : [\p{ID_Start}] ;
+
+// This is used to capture unknown lexer input (e.g. !) to avoid parser exception.
+Unknown : .;

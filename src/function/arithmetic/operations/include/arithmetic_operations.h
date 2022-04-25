@@ -315,7 +315,7 @@ struct ArithmeticOnValues {
                     isLeftNull, isRightNull);
             } break;
             default:
-                throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `INT64` and `" +
+                throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `INT64` and `" +
                                        Types::dataTypeToString(right.dataType.typeID) + "`");
             }
             break;
@@ -332,12 +332,12 @@ struct ArithmeticOnValues {
                     isLeftNull, isRightNull);
             } break;
             default:
-                throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
+                throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
                                        Types::dataTypeToString(right.dataType.typeID) + "`");
             }
             break;
         default:
-            throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
+            throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `" +
                                    Types::dataTypeToString(left.dataType.typeID) + "` and `" +
                                    Types::dataTypeToString(right.dataType.typeID) + "`");
         }
@@ -359,7 +359,7 @@ struct ArithmeticOnValues {
                     left.val.int64Val, right.val.doubleVal, result, isLeftNull, isRightNull);
             } break;
             default:
-                throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `INT64` and `" +
+                throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `INT64` and `" +
                                        Types::dataTypeToString(right.dataType.typeID) + "`");
             }
             break;
@@ -374,12 +374,12 @@ struct ArithmeticOnValues {
                     left.val.doubleVal, right.val.doubleVal, result, isLeftNull, isRightNull);
             } break;
             default:
-                throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
+                throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `DOUBLE` and `" +
                                        Types::dataTypeToString(right.dataType.typeID) + "`");
             }
             break;
         default:
-            throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
+            throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `" +
                                    Types::dataTypeToString(left.dataType.typeID) + "` and `" +
                                    Types::dataTypeToString(right.dataType.typeID) + "`");
         }
@@ -399,7 +399,7 @@ struct ArithmeticOnValues {
             FUNC::operation(input.val.doubleVal, isNull, result.val.doubleVal);
         } break;
         default:
-            throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
+            throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `" +
                                    Types::dataTypeToString(input.dataType.typeID) + "`");
         }
     }
@@ -415,7 +415,7 @@ struct ArithmeticOnValues {
             FUNC::operation(input.val.doubleVal, isNull, result);
         } break;
         default:
-            throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
+            throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `" +
                                    Types::dataTypeToString(input.dataType.typeID) + "`");
         }
     }
@@ -431,7 +431,7 @@ struct ArithmeticOnValues {
             FUNC::operation(input.val.doubleVal, isNull, result);
         } break;
         default:
-            throw invalid_argument("Cannot " + string(arithmeticOpStr) + " `" +
+            throw RuntimeException("Cannot " + string(arithmeticOpStr) + " `" +
                                    Types::dataTypeToString(input.dataType.typeID) + "`");
         }
     }
@@ -471,9 +471,7 @@ static const char atan2Str[] = "atan2";
 template<>
 inline void Add::operation(
     Value& left, Value& right, Value& result, bool isLeftNull, bool isRightNull) {
-    if (left.dataType.typeID == STRING || right.dataType.typeID == STRING) {
-        throw invalid_argument("Unimplemented string addition operator.");
-    } else if (left.dataType.typeID == DATE && right.dataType.typeID == INTERVAL) {
+    if (left.dataType.typeID == DATE && right.dataType.typeID == INTERVAL) {
         result.dataType.typeID = DATE;
         Add::operation(
             left.val.dateVal, right.val.intervalVal, result.val.dateVal, isLeftNull, isRightNull);
@@ -694,7 +692,7 @@ inline void Round::operation(
     Value& left, Value& right, double_t& result, bool isLeftNull, bool isRightNull) {
     assert(!isLeftNull && !isRightNull);
     if (right.dataType.typeID != INT64) {
-        throw invalid_argument("Round: Invalid right argument datatype: " +
+        throw RuntimeException("Round: Invalid right argument datatype: " +
                                Types::dataTypeToString(right.dataType.typeID));
     }
     switch (left.dataType.typeID) {
@@ -705,7 +703,7 @@ inline void Round::operation(
         Round::operation(left.val.doubleVal, right.val.int64Val, result, isLeftNull, isRightNull);
     } break;
     default: {
-        throw invalid_argument("Round: Invalid left argument datatype: " +
+        throw RuntimeException("Round: Invalid left argument datatype: " +
                                Types::dataTypeToString(left.dataType.typeID));
     }
     }

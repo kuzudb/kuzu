@@ -93,7 +93,7 @@ expression_vector QueryBinder::bindProjectionExpressions(
     }
     if (containsStar) {
         if (variablesInScope.empty()) {
-            throw invalid_argument(
+            throw BinderException(
                 "RETURN or WITH * is not allowed when there are no variables in scope.");
         }
         for (auto& [name, expression] : variablesInScope) {
@@ -221,21 +221,13 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
     auto parsedName = relPattern.getName();
     if (variablesInScope.contains(parsedName)) {
         auto prevVariable = variablesInScope.at(parsedName);
-        if (REL != prevVariable->dataType.typeID) {
-            throw invalid_argument(parsedName + " defined with conflicting type " +
-                                   Types::dataTypeToString(prevVariable->dataType.typeID) +
-                                   " (expect RELATIONSHIP).");
-        } else {
-            // Bind to queryRel in scope requires QueryRel takes multiple src & dst nodes
-            // Example MATCH (a)-[r1]->(b) MATCH (c)-[r1]->(d)
-            // Should be bound as (a,c)-[r1]->(b,d)
-            throw invalid_argument("Bind relationship " + parsedName +
-                                   " to relationship with same name is not supported.");
-        }
+        ExpressionBinder::validateExpectedDataType(*prevVariable, REL);
+        throw BinderException("Bind relationship " + parsedName +
+                              " to relationship with same name is not supported.");
     }
     auto relLabel = bindRelLabel(relPattern.getLabel());
     if (ANY_LABEL == relLabel) {
-        throw invalid_argument(
+        throw BinderException(
             "Any-label is not supported. " + parsedName + " does not have a label.");
     }
     // bind node to rel
@@ -252,10 +244,10 @@ void QueryBinder::bindQueryRel(const RelPattern& relPattern,
     auto upperBound = min(TypeUtils::convertToUint32(relPattern.getUpperBound().c_str()),
         VAR_LENGTH_EXTEND_MAX_DEPTH);
     if (lowerBound == 0 || upperBound == 0) {
-        throw invalid_argument("Lower and upper bound of a rel must be greater than 0.");
+        throw BinderException("Lower and upper bound of a rel must be greater than 0.");
     }
     if (lowerBound > upperBound) {
-        throw invalid_argument("Lower bound of rel " + parsedName + " is greater than upperBound.");
+        throw BinderException("Lower bound of rel " + parsedName + " is greater than upperBound.");
     }
     auto queryRel = make_shared<RelExpression>(
         getUniqueExpressionName(parsedName), relLabel, srcNode, dstNode, lowerBound, upperBound);
@@ -273,16 +265,12 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
     shared_ptr<NodeExpression> queryNode;
     if (variablesInScope.contains(parsedName)) { // bind to node in scope
         auto prevVariable = variablesInScope.at(parsedName);
-        if (NODE != prevVariable->dataType.typeID) {
-            throw invalid_argument(parsedName + " defined with conflicting type " +
-                                   Types::dataTypeToString(prevVariable->dataType.typeID) +
-                                   " (expect NODE).");
-        }
+        ExpressionBinder::validateExpectedDataType(*prevVariable, NODE);
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
         auto otherLabel = bindNodeLabel(nodePattern.getLabel());
         GF_ASSERT(queryNode->getLabel() != ANY_LABEL);
         if (otherLabel != ANY_LABEL && queryNode->getLabel() != otherLabel) {
-            throw invalid_argument(
+            throw BinderException(
                 "Multi-label is not supported. Node " + parsedName + " is given multiple labels.");
         }
     } else { // create new node
@@ -291,7 +279,7 @@ shared_ptr<NodeExpression> QueryBinder::bindQueryNode(
         queryNode->setAlias(parsedName);
         queryNode->setRawName(parsedName);
         if (ANY_LABEL == nodeLabel) {
-            throw invalid_argument(
+            throw BinderException(
                 "Any-label is not supported. " + parsedName + " does not have a label.");
         }
         if (!parsedName.empty()) {
@@ -307,7 +295,7 @@ label_t QueryBinder::bindRelLabel(const string& parsed_label) {
         return ANY_LABEL;
     }
     if (!catalog.containRelLabel(parsed_label)) {
-        throw invalid_argument("Rel label " + parsed_label + " does not exist.");
+        throw BinderException("Rel label " + parsed_label + " does not exist.");
     }
     return catalog.getRelLabelFromName(parsed_label);
 }
@@ -317,14 +305,14 @@ label_t QueryBinder::bindNodeLabel(const string& parsed_label) {
         return ANY_LABEL;
     }
     if (!catalog.containNodeLabel(parsed_label)) {
-        throw invalid_argument("Node label " + parsed_label + " does not exist.");
+        throw BinderException("Node label " + parsed_label + " does not exist.");
     }
     return catalog.getNodeLabelFromName(parsed_label);
 }
 
 void QueryBinder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
     if (singleQuery.isFirstMatchOptional()) {
-        throw invalid_argument("First match clause cannot be optional match.");
+        throw BinderException("First match clause cannot be optional match.");
     }
 }
 
@@ -338,17 +326,17 @@ void QueryBinder::validateNodeAndRelLabelIsConnected(
             return;
         }
     }
-    throw invalid_argument("Node label " + catalog_.getNodeLabelName(nodeLabel) +
-                           " doesn't connect to rel label " + catalog_.getRelLabelName(relLabel) +
-                           ".");
+    throw BinderException("Node label " + catalog_.getNodeLabelName(nodeLabel) +
+                          " doesn't connect to rel label " + catalog_.getRelLabelName(relLabel) +
+                          ".");
 }
 
 void QueryBinder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
     auto existColumnNames = unordered_set<string>();
     for (auto& expression : expressions) {
         if (existColumnNames.contains(expression->getRawName())) {
-            throw invalid_argument("Multiple result column with the same name " +
-                                   expression->getRawName() + " are not supported.");
+            throw BinderException("Multiple result column with the same name " +
+                                  expression->getRawName() + " are not supported.");
         }
         existColumnNames.insert(expression->getRawName());
     }
@@ -358,7 +346,7 @@ void QueryBinder::validateProjectionColumnsInWithClauseAreAliased(
     const expression_vector& expressions) {
     for (auto& expression : expressions) {
         if (!expression->hasAlias()) {
-            throw invalid_argument("Expression in WITH must be aliased (use AS).");
+            throw BinderException("Expression in WITH must be aliased (use AS).");
         }
     }
 }
@@ -367,7 +355,7 @@ void QueryBinder::validateOrderByFollowedBySkipOrLimitInWithClause(
     const BoundProjectionBody& boundProjectionBody) {
     auto hasSkipOrLimit = boundProjectionBody.hasSkip() || boundProjectionBody.hasLimit();
     if (boundProjectionBody.hasOrderByExpressions() && !hasSkipOrLimit) {
-        throw invalid_argument("In WITH clause, ORDER BY must be followed by SKIP or LIMIT.");
+        throw BinderException("In WITH clause, ORDER BY must be followed by SKIP or LIMIT.");
     }
 }
 
@@ -403,7 +391,7 @@ void QueryBinder::validateQueryGraphIsConnected(const QueryGraph& queryGraph,
         }
         frontier = nextFrontier;
     }
-    throw invalid_argument("Disconnect query graph is not supported.");
+    throw BinderException("Disconnect query graph is not supported.");
 }
 
 void QueryBinder::validateUnionColumnsOfTheSameType(
@@ -415,14 +403,13 @@ void QueryBinder::validateUnionColumnsOfTheSameType(
     for (auto i = 1u; i < boundSingleQueries.size(); i++) {
         auto expressionsToProjectToCheck = boundSingleQueries[i]->getExpressionsToReturn();
         if (expressionsToProject.size() != expressionsToProjectToCheck.size()) {
-            throw invalid_argument("The number of columns to union/union all must be the same.");
+            throw BinderException("The number of columns to union/union all must be the same.");
         }
         // Check whether the dataTypes in union expressions are exactly the same in each single
         // query.
         for (auto j = 0u; j < expressionsToProject.size(); j++) {
-            unordered_set<DataTypeID> expectedDataTypes{expressionsToProject[j]->dataType.typeID};
             ExpressionBinder::validateExpectedDataType(
-                *expressionsToProjectToCheck[j], expectedDataTypes);
+                *expressionsToProjectToCheck[j], expressionsToProject[j]->dataType.typeID);
         }
     }
 }
@@ -434,7 +421,7 @@ void QueryBinder::validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQ
     }
     if ((0 < unionAllExpressionCounter) &&
         (unionAllExpressionCounter < regularQuery.getNumSingleQueries() - 1)) {
-        throw invalid_argument("Union and union all can't be used together in a query!");
+        throw BinderException("Union and union all can't be used together.");
     }
 }
 

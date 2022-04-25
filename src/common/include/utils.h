@@ -3,6 +3,7 @@
 #include <sstream>
 #include <thread>
 
+#include "exception.h"
 #include "robin_hood.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
@@ -56,7 +57,7 @@ public:
     static string string_format(const string& format, Args... args) {
         int size_s = snprintf(nullptr, 0, format.c_str(), args...) + 1; // Extra space for '\0'
         if (size_s <= 0) {
-            throw runtime_error("Error during formatting.");
+            throw Exception("Error during formatting.");
         }
         auto size = static_cast<size_t>(size_s);
         auto buf = make_unique<char[]>(size);

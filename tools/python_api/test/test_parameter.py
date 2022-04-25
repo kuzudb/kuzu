@@ -76,8 +76,9 @@ def test_param_error3(establish_connection):
     with pytest.raises(RuntimeError, match="Each parameter must be in the form of <name, val>"):
         conn.execute("MATCH (a:person) WHERE a.registerTime = $1 RETURN COUNT(*);", [("asd", 1, 1)])
 
-
-def test_param_error4(establish_connection):
-    conn, db = establish_connection
-    with pytest.raises(ValueError, match="Parameter asd not found."):
-        conn.execute("MATCH (a:person) WHERE a.registerTime = $1 RETURN COUNT(*);", [("asd", 1)])
+# TODO(Xiyang): this error msg is no longer an exception but stored in query result instead.
+#  Fix this test after python api support error msg.
+# def test_param_error4(establish_connection):
+#     conn, db = establish_connection
+#     with pytest.raises(ValueError, match="Parameter asd not found."):
+#         conn.execute("MATCH (a:person) WHERE a.registerTime = $1 RETURN COUNT(*);", [("asd", 1)])

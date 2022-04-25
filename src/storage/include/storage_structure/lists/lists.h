@@ -143,7 +143,7 @@ public:
             return make_unique<ListPropertyLists>(
                 fName, dataType, adjListsHeaders, bufferManager, isInMemory);
         default:
-            throw invalid_argument("Invalid type for property list creation.");
+            throw StorageException("Invalid type for property list creation.");
         }
     }
 };

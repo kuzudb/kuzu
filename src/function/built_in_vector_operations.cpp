@@ -168,9 +168,9 @@ void BuiltInVectorOperations::validateNonEmptyCandidateFunctions(
         for (auto& functionDefinition : vectorOperations.at(name)) {
             supportedInputsString += functionDefinition->signatureToString() + "\n";
         }
-        throw invalid_argument("Cannot match a built-in function for given function " + name +
-                               Types::dataTypesToString(inputTypes) + ". Supported inputs are\n" +
-                               supportedInputsString);
+        throw BinderException("Cannot match a built-in function for given function " + name +
+                              Types::dataTypesToString(inputTypes) + ". Supported inputs are\n" +
+                              supportedInputsString);
     }
 }
 

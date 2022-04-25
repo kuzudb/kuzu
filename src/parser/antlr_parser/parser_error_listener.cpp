@@ -1,5 +1,6 @@
 #include "src/parser/antlr_parser/include/parser_error_listener.h"
 
+#include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
 
 using namespace graphflow::common;
@@ -12,7 +13,7 @@ void ParserErrorListener::syntaxError(Recognizer* recognizer, Token* offendingSy
     auto finalError = msg + " (line: " + to_string(line) +
                       ", offset: " + to_string(charPositionInLine) + ")\n" +
                       formatUnderLineError(*recognizer, *offendingSymbol, line, charPositionInLine);
-    throw invalid_argument(finalError);
+    throw ParserException(finalError);
 }
 
 string ParserErrorListener::formatUnderLineError(

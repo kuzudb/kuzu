@@ -19,6 +19,16 @@ private:
     std::string exception_message_;
 };
 
+class ParserException : public Exception {
+public:
+    explicit ParserException(const string& msg) : Exception("Parser exception: " + msg){};
+};
+
+class BinderException : public Exception {
+public:
+    explicit BinderException(const string& msg) : Exception("Binder exception: " + msg){};
+};
+
 class ConversionException : public Exception {
 public:
     explicit ConversionException(const string& msg) : Exception(msg){};
@@ -60,10 +70,9 @@ public:
     explicit NotImplementedException(const string& msg) : Exception(msg){};
 };
 
-class EncodingException : public Exception {
+class RuntimeException : public Exception {
 public:
-    explicit EncodingException(const string& msg)
-        : Exception("OrderBy encoder exception: " + msg){};
+    explicit RuntimeException(const string& msg) : Exception("Runtime exception: " + msg){};
 };
 
 } // namespace common

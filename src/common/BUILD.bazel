@@ -113,7 +113,9 @@ cc_library(
         "include/expression_type.h",
     ],
     visibility = ["//visibility:public"],
-    deps = [],
+    deps = [
+        "utils",
+    ],
 )
 
 cc_library(
@@ -133,6 +135,9 @@ cc_library(
         "include/timer.h",
     ],
     visibility = ["//visibility:public"],
+    deps = [
+        "utils",
+    ],
 )
 
 cc_library(

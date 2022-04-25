@@ -146,10 +146,12 @@ void EmbeddedShell::run() {
             printf("Buffer Manager Debug Info: \n %s \n",
                 database->getBufferManager()->debugInfo()->dump(4).c_str());
         } else {
-            try {
-                auto queryResult = conn->query(lineStr);
+            auto queryResult = conn->query(lineStr);
+            if (queryResult->isSuccess()) {
                 printExecutionResult(*queryResult);
-            } catch (exception& e) { printf("%s\n", e.what()); }
+            } else {
+                printf("%s\n", queryResult->getErrorMessage().c_str());
+            }
         }
         linenoiseHistoryAdd(line);
         linenoiseHistorySave("history.txt");

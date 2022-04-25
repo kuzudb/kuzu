@@ -5,6 +5,8 @@
 #include "include/types_include.h"
 #include "include/value.h"
 
+#include "src/common/include/exception.h"
+
 namespace graphflow {
 namespace common {
 
@@ -65,7 +67,7 @@ DataTypeID Types::dataTypeIDFromString(const std::string& dataTypeIDString) {
     } else if ("INTERVAL" == dataTypeIDString) {
         return INTERVAL;
     } else {
-        throw invalid_argument("Cannot parse dataTypeID: " + dataTypeIDString);
+        throw Exception("Cannot parse dataTypeID: " + dataTypeIDString);
     }
 }
 
@@ -139,7 +141,7 @@ size_t Types::getDataTypeSize(DataTypeID dataTypeID) {
     case LIST:
         return sizeof(gf_list_t);
     default:
-        throw invalid_argument(
+        throw Exception(
             "Cannot infer the size of dataTypeID: " + dataTypeToString(dataTypeID) + ".");
     }
 }

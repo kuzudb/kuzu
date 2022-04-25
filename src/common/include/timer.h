@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "exception.h"
+
 using namespace std;
 
 namespace graphflow {
@@ -28,7 +30,7 @@ public:
             auto duration = stopTime - startTime;
             return chrono::duration_cast<chrono::microseconds>(duration).count();
         }
-        throw invalid_argument("Timer is still running.");
+        throw Exception("Timer is still running.");
     }
 
 private:

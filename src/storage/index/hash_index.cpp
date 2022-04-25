@@ -131,7 +131,7 @@ void HashIndex::insertKey(uint8_t* key, uint8_t* entry) {
         break;
     }
     default:
-        throw invalid_argument(
+        throw StorageException(
             "Hash index insertion not defined for dataType other than INT64 and STRING");
     }
 }
@@ -162,7 +162,7 @@ bool HashIndex::notExistsInSlot(uint8_t* slot, uint8_t* key) {
             break;
         }
         default:
-            throw invalid_argument(
+            throw StorageException(
                 "Hash index equals is not supported for dataType other than INT64 and STRING.");
         }
         if (foundKey) {
@@ -242,7 +242,7 @@ bool HashIndex::lookupInSlot(const uint8_t* slot, uint8_t* key, node_offset_t& r
             break;
         }
         default:
-            throw invalid_argument(
+            throw StorageException(
                 "Hash index equals is not supported for dataType other than INT64 and STRING.");
         }
         if (foundKey) {
@@ -295,7 +295,7 @@ hash_t HashIndex::hashFunc(uint8_t* key) {
         hash = std::hash<string>{}(reinterpret_cast<const char*>(key));
         break;
     default:
-        throw invalid_argument(
+        throw StorageException(
             "Type " + Types::dataTypeToString(indexHeader.keyDataType) + " not supported.");
     }
     return hash;

@@ -24,7 +24,7 @@ InMemPages::InMemPages(
 
 void InMemPages::saveToFile() {
     if (0 == fName.length()) {
-        throw invalid_argument("InMemPages: Empty filename");
+        throw LoaderException("InMemPages: Empty filename");
     }
     for (auto& page : pages) {
         page->encodeNULLBytes();
@@ -106,7 +106,7 @@ gf_list_t InMemOverflowPages::addList(const Literal& listVal, PageByteCursor& cu
         copyOverflowValuesToPages<LIST>(result, listVal, cursor, numBytesOfSingleValue);
     } break;
     default: {
-        throw invalid_argument("Unsupported data type inside LIST.");
+        throw LoaderException("Unsupported data type inside LIST.");
     }
     }
     return result;
@@ -187,7 +187,7 @@ uint32_t InMemOverflowPages::getNewOverflowPageIdx() {
 
 void InMemOverflowPages::saveToFile() {
     if (0 == fName.length()) {
-        throw invalid_argument("InMemPages: Empty filename");
+        throw LoaderException("InMemPages: Empty filename");
     }
     for (auto& page : pages) {
         page->encodeNULLBytes();

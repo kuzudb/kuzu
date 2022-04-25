@@ -45,8 +45,7 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
     } else if (EXISTENTIAL_SUBQUERY == expressionType) {
         expression = bindExistentialSubqueryExpression(parsedExpression);
     } else if (!expression) {
-        throw invalid_argument(
-            "Bind " + expressionTypeToString(expressionType) + " expression is not implemented.");
+        assert(false);
     }
     if (parsedExpression.hasAlias()) {
         expression->setAlias(parsedExpression.getAlias());
@@ -131,7 +130,7 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
             return make_shared<PropertyExpression>(
                 property.dataType, propertyName, property.id, move(child));
         } else {
-            throw invalid_argument(
+            throw BinderException(
                 "Node " + node->getRawName() + " does not have property " + propertyName + ".");
         }
     } else if (REL == child->dataType.typeID) {
@@ -141,7 +140,7 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
             return make_shared<PropertyExpression>(
                 property.dataType, propertyName, property.id, move(child));
         } else {
-            throw invalid_argument(
+            throw BinderException(
                 "Rel " + rel->getRawName() + " does not have property " + propertyName + ".");
         }
     }
@@ -232,7 +231,7 @@ shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionNa
 shared_ptr<Expression> ExpressionBinder::bindIDFunctionExpression(
     const ParsedExpression& parsedExpression) {
     auto child = bindExpression(*parsedExpression.getChild(0));
-    validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE});
+    validateExpectedDataType(*child, NODE);
     return make_shared<PropertyExpression>(DataType(NODE_ID), INTERNAL_ID_SUFFIX,
         UINT32_MAX /* property key for internal id */, move(child));
 }
@@ -269,7 +268,8 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
         return make_shared<LiteralExpression>(LITERAL_STRING, STRING,
             Literal(literalVal.substr(1, literalVal.size() - 2) /* strip double quotation */));
     default:
-        throw invalid_argument("Literal " + parsedExpression.getRawName() + "is not defined.");
+        throw NotImplementedException(
+            "Literal " + parsedExpression.getRawName() + "is not implemented.");
     }
 }
 
@@ -280,7 +280,7 @@ shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
     if (queryBinder->variablesInScope.contains(variableName)) {
         return queryBinder->variablesInScope.at(variableName);
     }
-    throw invalid_argument("Variable " + parsedExpression.getRawName() + " not defined.");
+    throw BinderException("Variable " + parsedExpression.getRawName() + " is not in scope.");
 }
 
 shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
@@ -395,8 +395,8 @@ void ExpressionBinder::validateNoNullLiteralChildren(const ParsedExpression& par
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = parsedExpression.getChild(i);
         if (LITERAL_NULL == child->getExpressionType()) {
-            throw invalid_argument("Expression " + parsedExpression.getRawName() +
-                                   " cannot have null literal children.");
+            throw BinderException("Expression " + parsedExpression.getRawName() +
+                                  " cannot have null literal children.");
         }
     }
 }
@@ -405,16 +405,10 @@ void ExpressionBinder::validateExpectedDataType(
     const Expression& expression, const unordered_set<DataTypeID>& expectedTypes) {
     auto dataType = expression.dataType;
     if (!expectedTypes.contains(dataType.typeID)) {
-        string expectedTypesStr;
         vector<DataTypeID> expectedTypesVec{expectedTypes.begin(), expectedTypes.end()};
-        auto numExpectedTypes = expectedTypes.size();
-        for (auto i = 0u; i < numExpectedTypes - 1; ++i) {
-            expectedTypesStr += Types::dataTypeToString(expectedTypesVec[i]) + ", ";
-        }
-        expectedTypesStr += Types::dataTypeToString(expectedTypesVec[numExpectedTypes - 1]);
-        throw invalid_argument(expression.getRawName() + " has data type " +
-                               Types::dataTypeToString(dataType.typeID) + ". " + expectedTypesStr +
-                               " was expected.");
+        throw BinderException(expression.getRawName() + " has data type " +
+                              Types::dataTypeToString(dataType.typeID) + ". " +
+                              Types::dataTypesToString(expectedTypesVec) + " was expected.");
     }
 }
 
@@ -423,7 +417,7 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
         return;
     }
     if (expression.getChild(0)->hasAggregationExpression()) {
-        throw invalid_argument(
+        throw BinderException(
             "Expression " + expression.getRawName() + " contains nested aggregation.");
     }
 }
@@ -439,7 +433,7 @@ void ExpressionBinder::validateExistsSubqueryHasNoAggregationOrOrderBy(
     for (auto& projectionBody : projectionBodies) {
         if (projectionBody->hasAggregationExpressions() ||
             projectionBody->hasOrderByExpressions()) {
-            throw invalid_argument(
+            throw BinderException(
                 "Expression " + expression.getRawName() +
                 " is an existential subquery expression and should not contains any "
                 "aggregation or order by in subquery RETURN or WITH clause.");

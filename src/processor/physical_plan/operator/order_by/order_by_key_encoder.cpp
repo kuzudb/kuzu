@@ -38,7 +38,7 @@ OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVec
     numBytesPerTuple += 8;
     maxNumTuplesPerBlock = LARGE_PAGE_SIZE / numBytesPerTuple;
     if (maxNumTuplesPerBlock <= 0) {
-        throw EncodingException(StringUtils::string_format(
+        throw RuntimeException(StringUtils::string_format(
             "TupleSize(%d bytes) is larger than the LARGE_PAGE_SIZE(%d bytes)", numBytesPerTuple,
             LARGE_PAGE_SIZE));
     }
@@ -199,8 +199,8 @@ void OrderByKeyEncoder::encodeData(shared_ptr<ValueVector>& orderByVector,
             encodeUnstr(keyBlockPtrAfterNullByte);
             break;
         default:
-            throw EncodingException("Unimplemented datatype: " +
-                                    Types::dataTypeToString(orderByVector->dataType.typeID));
+            throw RuntimeException("Unimplemented datatype: " +
+                                   Types::dataTypeToString(orderByVector->dataType.typeID));
         }
     }
     if (!isAscOrder[keyColIdx]) {
@@ -216,8 +216,8 @@ void OrderByKeyEncoder::encodeKeys() {
         orderByVectors[0]->state->isFlat() ? 1 : orderByVectors[0]->state->selectedSize;
     // Check whether the nextLocalTupleIdx overflows.
     if (nextLocalTupleIdx + numEntries - 1 > MAX_LOCAL_TUPLE_IDX) {
-        throw EncodingException("Attempting to order too many tuples. The orderByKeyEncoder has "
-                                "achieved its maximum number of tuples!");
+        throw RuntimeException("Attempting to order too many tuples. The orderByKeyEncoder has "
+                               "achieved its maximum number of tuples!");
     }
     uint64_t encodedTuples = 0;
     while (numEntries > 0) {
