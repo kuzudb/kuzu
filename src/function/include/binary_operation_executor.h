@@ -17,16 +17,29 @@ namespace function {
 struct BinaryOperationWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, bool isLeftNull,
-        bool isRightNull, RESULT_TYPE& result, void* dataptr) {
+        bool isRightNull, RESULT_TYPE& result, void* leftValueVector, void* rightValueVector,
+        void* resultValueVector) {
         OP::operation(left, right, result, isLeftNull, isRightNull);
     }
 };
 
-struct BinaryStringOperationWrapper {
+struct BinaryStringAndListOperationWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, bool isLeftNull,
-        bool isRightNull, RESULT_TYPE& result, void* dataptr) {
-        OP::operation(left, right, result, isLeftNull, isRightNull, *(ValueVector*)dataptr);
+        bool isRightNull, RESULT_TYPE& result, void* leftValueVector, void* rightValueVector,
+        void* resultValueVector) {
+        OP::operation(
+            left, right, result, isLeftNull, isRightNull, *(ValueVector*)resultValueVector);
+    }
+};
+
+struct BinaryListPosAndContainsOperationWrapper {
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
+    static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, bool isLeftNull,
+        bool isRightNull, RESULT_TYPE& result, void* leftValueVector, void* rightValueVector,
+        void* resultValueVector) {
+        OP::operation(left, right, result, isLeftNull, isRightNull,
+            ((ValueVector*)leftValueVector)->dataType, ((ValueVector*)rightValueVector)->dataType);
     }
 };
 
@@ -40,7 +53,7 @@ struct BinaryOperationExecutor {
         auto resValues = (RESULT_TYPE*)resultValueVector.values;
         OP_WRAPPER::template operation<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(lValues[lPos],
             rValues[rPos], (bool)left.isNull(lPos), (bool)right.isNull(rPos), resValues[resPos],
-            (void*)&resultValueVector);
+            (void*)&left, (void*)&right, (void*)&resultValueVector);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
@@ -205,9 +218,16 @@ struct BinaryOperationExecutor {
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeString(ValueVector& left, ValueVector& right, ValueVector& result) {
-        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryStringOperationWrapper>(
-            left, right, result);
+    static void executeStringAndList(ValueVector& left, ValueVector& right, ValueVector& result) {
+        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
+            BinaryStringAndListOperationWrapper>(left, right, result);
+    }
+
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void executeListPosAndContains(
+        ValueVector& left, ValueVector& right, ValueVector& result) {
+        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
+            BinaryListPosAndContainsOperationWrapper>(left, right, result);
     }
 
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC>

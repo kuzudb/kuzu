@@ -29,3 +29,243 @@
 [45,20]
 [45,30]
 [45,35]
+
+-NAME ListExtractStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_extract(a.workedHours, 1)
+---- 8
+10
+12
+4
+1
+2
+3
+1
+10
+
+-NAME ListExtractStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN list_extract(a.usedNames, 1)
+---- 8
+Aida
+Bobby
+Carmen
+Wolfeschlegelstein
+Ein
+Fesdwe
+Grad
+Ad
+
+-NAME ListExtractStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN list_extract(a.courseScoresPerTerm, 1)
+---- 8
+[10,8]
+[8,9]
+[8,10]
+[7,4]
+[6]
+[8]
+[10]
+[7]
+
+-NAME ListLenStructuredListOfInts
+-QUERY MATCH (a:person) RETURN len(a.workedHours)
+---- 8
+2
+2
+2
+2
+1
+5
+1
+8
+
+-NAME ListConcatStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_concat(a.workedHours, [a.age, a.gender])
+---- 8
+[10,5,35,1]
+[12,8,30,2]
+[4,5,45,1]
+[1,9,20,2]
+[2,20,1]
+[3,4,5,6,7,25,2]
+[1,40,2]
+[10,11,12,3,4,5,6,7,83,2]
+
+-NAME ListConcatStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_concat(a.workedHours, [a.age, a.gender])
+---- 8
+[10,5,35,1]
+[12,8,30,2]
+[4,5,45,1]
+[1,9,20,2]
+[2,20,1]
+[3,4,5,6,7,25,2]
+[1,40,2]
+[10,11,12,3,4,5,6,7,83,2]
+
+-NAME ListConcatStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN list_concat(a.usedNames, [a.fName])
+---- 8
+[Aida,Alice]
+[Bobby,Bob]
+[Carmen,Fred,Carol]
+[Wolfeschlegelstein,Daniel,Dan]
+[Ein,Elizabeth]
+[Fesdwe,Farooq]
+[Grad,Greg]
+[Ad,De,Hi,Kye,Orlan,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
+
+-NAME ListConcatStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN list_concat(a.courseScoresPerTerm, [[a.age, a.age], [a.gender]])
+---- 8
+[[10,8],[6,7,8],[35,35],[1]]
+[[8,9],[9,10],[30,30],[2]]
+[[8,10],[45,45],[1]]
+[[7,4],[8,8],[9],[20,20],[2]]
+[[6],[7],[8],[20,20],[1]]
+[[8],[25,25],[2]]
+[[10],[40,40],[2]]
+[[7],[10],[6,7],[83,83],[2]]
+
+-NAME ListAppendStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_append(a.workedHours, a.age)
+---- 8
+[10,5,35]
+[12,8,30]
+[4,5,45]
+[1,9,20]
+[2,20]
+[3,4,5,6,7,25]
+[1,40]
+[10,11,12,3,4,5,6,7,83]
+
+-NAME ListAppendStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN list_append(a.usedNames, a.fName)
+---- 8
+[Aida,Alice]
+[Bobby,Bob]
+[Carmen,Fred,Carol]
+[Wolfeschlegelstein,Daniel,Dan]
+[Ein,Elizabeth]
+[Fesdwe,Farooq]
+[Grad,Greg]
+[Ad,De,Hi,Kye,Orlan,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
+
+-NAME ListAppendStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN list_append(a.courseScoresPerTerm, [a.age, a.age])
+---- 8
+[[10,8],[6,7,8],[35,35]]
+[[8,9],[9,10],[30,30]]
+[[8,10],[45,45]]
+[[7,4],[8,8],[9],[20,20]]
+[[6],[7],[8],[20,20]]
+[[8],[25,25]]
+[[10],[40,40]]
+[[7],[10],[6,7],[83,83]]
+
+-NAME ListPrependStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_prepend(a.age, a.workedHours)
+---- 8
+[35,10,5]
+[30,12,8]
+[45,4,5]
+[20,1,9]
+[20,2]
+[25,3,4,5,6,7]
+[40,1]
+[83,10,11,12,3,4,5,6,7]
+
+-NAME ListPrependStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN list_prepend(a.fName, a.usedNames)
+---- 8
+[Alice,Aida]
+[Bob,Bobby]
+[Carol,Carmen,Fred]
+[Dan,Wolfeschlegelstein,Daniel]
+[Elizabeth,Ein]
+[Farooq,Fesdwe]
+[Greg,Grad]
+[Hubert Blaine Wolfeschlegelsteinhausenbergerdorff,Ad,De,Hi,Kye,Orlan]
+
+-NAME ListPrependStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN list_prepend([a.age, a.age], a.courseScoresPerTerm)
+---- 8
+[[35,35],[10,8],[6,7,8]]
+[[30,30],[8,9],[9,10]]
+[[45,45],[8,10]]
+[[20,20],[7,4],[8,8],[9]]
+[[20,20],[6],[7],[8]]
+[[25,25],[8]]
+[[40,40],[10]]
+[[83,83],[7],[10],[6,7]]
+
+-NAME ListPositionStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_position(a.workedHours, 5)
+---- 8
+2
+0
+2
+0
+0
+3
+0
+6
+
+-NAME ListPositionStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN list_position(a.usedNames, "Grad")
+---- 8
+0
+0
+0
+0
+0
+0
+1
+0
+
+-NAME ListPositionStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN list_position(a.courseScoresPerTerm, [8])
+---- 8
+0
+0
+0
+0
+3
+1
+0
+0
+
+-NAME ListContainsStructuredListOfInts
+-QUERY MATCH (a:person) RETURN list_contains(a.workedHours, 5)
+---- 8
+True
+False
+True
+False
+False
+True
+False
+True
+
+-NAME ListContainsStructuredListOfStrings
+-QUERY MATCH (a:person) RETURN list_contains(a.usedNames, "Grad")
+---- 8
+False
+False
+False
+False
+False
+False
+True
+False
+
+-NAME ListContainsStructuredListOfListOfInts
+-QUERY MATCH (a:person) RETURN list_contains(a.courseScoresPerTerm, [8])
+---- 8
+False
+False
+False
+False
+True
+True
+False
+False

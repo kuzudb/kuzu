@@ -12,7 +12,7 @@ namespace common {
 class Literal {
 
 public:
-    Literal() : dataType{INVALID} {}
+    Literal() : dataType{ANY} {}
 
     // TODO(Guodong): initializing literal with only datatype doesn't make sense to me. Consider
     // remove this interface.

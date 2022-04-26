@@ -11,10 +11,10 @@ class ParameterExpression : public Expression {
 
 public:
     explicit ParameterExpression(const string& parameterName, shared_ptr<Literal> literal)
-        : Expression{PARAMETER, INVALID, "$" + parameterName /* add $ to avoid conflict between parameter name and variable name */}, literal{move(literal)} {}
+        : Expression{PARAMETER, ANY, "$" + parameterName /* add $ to avoid conflict between parameter name and variable name */}, literal{move(literal)} {}
 
     inline void setDataType(const DataType& targetType) {
-        assert(this->dataType.typeID == INVALID);
+        assert(this->dataType.typeID == ANY);
         this->dataType = targetType;
         literal->dataType = targetType;
     }

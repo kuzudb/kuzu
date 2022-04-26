@@ -133,8 +133,12 @@ uint32_t BuiltInVectorOperations::matchVarLengthParameters(
 
 uint32_t BuiltInVectorOperations::castRules(DataTypeID inputTypeID, DataTypeID targetTypeID,
     bool allowCastToUnstructured, bool allowCastToStructured) {
-    if (inputTypeID == INVALID) {
-        // INVALID type can be any type
+    if (inputTypeID == ANY) {
+        // ANY type can be any type
+        return 0;
+    }
+    if (targetTypeID == ANY) {
+        // Any inputTypeID can match to type ANY
         return 0;
     }
     if (inputTypeID != UNSTRUCTURED && targetTypeID == UNSTRUCTURED) {
@@ -285,6 +289,15 @@ void BuiltInVectorOperations::registerCastOperations() {
 void BuiltInVectorOperations::registerListOperations() {
     vectorOperations.insert(
         {LIST_CREATION_FUNC_NAME, ListCreationVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_LEN_FUNC_NAME, ListLenVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_EXTRACT_FUNC_NAME, ListExtractVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_CONCAT_FUNC_NAME, ListConcatVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_APPEND_FUNC_NAME, ListAppendVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_PREPEND_FUNC_NAME, ListPrependVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {LIST_POSITION_FUNC_NAME, ListPositionVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {LIST_CONTAINS_FUNC_NAME, ListContainsVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerInternalIDOperation() {

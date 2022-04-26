@@ -73,7 +73,7 @@ void BuiltInAggregateFunctions::registerCount() {
     vector<unique_ptr<AggregateFunctionDefinition>> definitions;
     for (auto& typeID : DataType::getAllValidTypeIDs()) {
         auto inputType =
-            typeID == LIST ? DataType(LIST, make_unique<DataType>(INVALID)) : DataType(typeID);
+            typeID == LIST ? DataType(LIST, make_unique<DataType>(ANY)) : DataType(typeID);
         for (auto isDistinct : vector<bool>{true, false}) {
             definitions.push_back(make_unique<AggregateFunctionDefinition>(COUNT_FUNC_NAME,
                 vector<DataTypeID>{typeID}, INT64,

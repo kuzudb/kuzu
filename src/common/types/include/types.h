@@ -25,7 +25,7 @@ struct overflow_value_t {
 };
 
 enum DataTypeID : uint8_t {
-    INVALID = 0,
+    ANY = 0,
 
     REL = 1,
     NODE = 2,
@@ -42,12 +42,12 @@ enum DataTypeID : uint8_t {
     LIST = 13,
 };
 
-const string DataTypeIdNames[] = {"INVALID", "REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE",
+const string DataTypeIdNames[] = {"ANY", "REL", "NODE", "LABEL", "BOOL", "INT64", "DOUBLE",
     "STRING", "NODE_ID", "UNSTRUCTURED", "DATE", "TIMESTAMP", "INTERVAL", "LIST"};
 
 class DataType {
 public:
-    DataType() : typeID{INVALID}, childType{nullptr} {}
+    DataType() : typeID{ANY}, childType{nullptr} {}
     explicit DataType(DataTypeID typeID) : typeID{typeID}, childType{nullptr} {
         assert(typeID != LIST);
     }
@@ -71,6 +71,10 @@ public:
     }
 
     DataType& operator=(const DataType& other);
+
+    bool operator==(const DataType& other) const;
+
+    bool operator!=(const DataType& other) const { return !((*this) == other); }
 
     inline DataType& operator=(DataType&& other) noexcept {
         typeID = other.typeID;

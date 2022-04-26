@@ -13,8 +13,13 @@ using namespace graphflow::binder;
 namespace graphflow {
 namespace function {
 
+// Forward declaration of VectorOperationDefinition.
+struct VectorOperationDefinition;
+
 using scalar_exec_func = std::function<void(const vector<shared_ptr<ValueVector>>&, ValueVector&)>;
 using scalar_select_func = std::function<uint64_t(const vector<shared_ptr<ValueVector>>&, sel_t*)>;
+using scalar_bind_func =
+    std::function<void(const vector<DataType>&, VectorOperationDefinition*, DataType&)>;
 
 struct VectorOperationDefinition : public FunctionDefinition {
 
@@ -30,8 +35,16 @@ struct VectorOperationDefinition : public FunctionDefinition {
                                                                                     execFunc)},
           selectFunc(move(selectFunc)), isVarLength{isVarLength} {}
 
+    VectorOperationDefinition(string name, vector<DataTypeID> parameterTypeIDs,
+        DataTypeID returnTypeID, scalar_exec_func execFunc, scalar_select_func selectFunc,
+        scalar_bind_func bindFunc, bool isVarLength = false)
+        : FunctionDefinition{move(name), move(parameterTypeIDs), returnTypeID}, execFunc{move(
+                                                                                    execFunc)},
+          selectFunc(move(selectFunc)), bindFunc{move(bindFunc)}, isVarLength{isVarLength} {}
+
     scalar_exec_func execFunc;
     scalar_select_func selectFunc;
+    scalar_bind_func bindFunc;
     // Currently we only one variable-length function which is list creation. The expectation is
     // that all parameters must have the same type as parameterTypes[0].
     bool isVarLength;

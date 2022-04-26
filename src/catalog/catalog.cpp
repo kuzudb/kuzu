@@ -234,8 +234,8 @@ void Catalog::verifyColDefinitionsForNodeLabel(
             throw CatalogException(
                 "Column header contains a mandatory field '" + name + "' that is not allowed.");
         }
-        if (colHeaderDefinition.dataType.typeID == INVALID) {
-            throw CatalogException("Column header contains an INVALID data type.");
+        if (colHeaderDefinition.dataType.typeID == ANY) {
+            throw CatalogException("Column header contains an ANY data type.");
         }
         if (colHeaderDefinition.isPrimaryKey) {
             if (colHeaderDefinition.id != primaryKeyPropertyId) {
@@ -283,8 +283,8 @@ void Catalog::verifyColDefinitionsForRelLabel(
             throw CatalogException("Column header definitions of a rel file cannot contain "
                                    "the mandatory field 'ID'.");
         }
-        if (colHeaderDefinition.dataType.typeID == INVALID) {
-            throw CatalogException("Column header contains an INVALID data type.");
+        if (colHeaderDefinition.dataType.typeID == ANY) {
+            throw CatalogException("Column header contains an ANY data type.");
         }
     }
     if (numMandatoryFields != 4) {
