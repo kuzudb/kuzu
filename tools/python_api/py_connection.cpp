@@ -19,6 +19,9 @@ unique_ptr<PyQueryResult> PyConnection::execute(const string& query, py::list pa
     auto preparedStatement = conn->prepare(query);
     auto parameters = transformPythonParameters(params);
     auto queryResult = conn->executeWithParams(preparedStatement.get(), parameters);
+    if (!queryResult->isSuccess()) {
+        throw runtime_error(queryResult->getErrorMessage());
+    }
     auto pyQueryResult = make_unique<PyQueryResult>();
     pyQueryResult->queryResult = move(queryResult);
     return pyQueryResult;

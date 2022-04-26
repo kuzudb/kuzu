@@ -59,11 +59,10 @@ std::unique_ptr<PreparedStatement> Connection::prepare(const std::string& query)
         preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollectDataTypes());
         // mapping
         auto mapper = PlanMapper(*database->catalog, *database->storageManager);
-        preparedStatement->physicalIDToLogicalOperatorMap = mapper.physicalIDToLogicalOperatorMap;
         executionContext = make_unique<ExecutionContext>(*preparedStatement->profiler,
             database->memoryManager.get(), database->bufferManager.get());
         physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan), *executionContext);
-        preparedStatement->success = true;
+        preparedStatement->physicalIDToLogicalOperatorMap = mapper.physicalIDToLogicalOperatorMap;
     } catch (Exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
@@ -102,9 +101,13 @@ unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalP
 std::unique_ptr<QueryResult> Connection::executeWithParams(
     PreparedStatement* preparedStatement, unordered_map<string, shared_ptr<Literal>>& inputParams) {
     auto queryResult = make_unique<QueryResult>();
+    if (!preparedStatement->isSuccess()) {
+        queryResult->success = false;
+        queryResult->errMsg = preparedStatement->getErrorMessage();
+        return queryResult;
+    }
     try {
         bindParameters(preparedStatement, inputParams);
-        queryResult->success = true;
     } catch (Exception& exception) {
         queryResult->success = false;
         queryResult->errMsg = exception.what();
@@ -145,7 +148,6 @@ std::unique_ptr<QueryResult> Connection::execute(PreparedStatement* preparedStat
         try {
             table = database->queryProcessor->execute(
                 preparedStatement->physicalPlan.get(), clientContext->numThreadsForExecution);
-            queryResult->success = true;
         } catch (Exception& exception) {
             queryResult->success = false;
             queryResult->errMsg = exception.what();

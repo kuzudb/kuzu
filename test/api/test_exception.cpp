@@ -56,4 +56,12 @@ TEST_F(ApiTest, exception) {
     result = conn->query(runtime_error_query);
     ASSERT_FALSE(result->isSuccess());
     ASSERT_STREQ(result->getErrorMessage().c_str(), runtime_error);
+
+    // test fetching result when query fails
+    try {
+        result->hasNext();
+        FAIL();
+    } catch (Exception& exception) {
+        ASSERT_STREQ("Runtime exception: Cannot add `DATE` and `STRING`", exception.what());
+    } catch (std::exception& exception) { FAIL(); }
 }

@@ -54,7 +54,9 @@ public:
     }
 
 private:
-    bool success;
+    void validateQuerySucceed();
+
+    bool success = true;
     std::string errMsg;
 
     std::unique_ptr<QueryResultHeader> header;
