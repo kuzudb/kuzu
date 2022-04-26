@@ -313,8 +313,8 @@ TEST_F(RadixSortTest, singleOrderByColUnstrErrorTest) {
         singleOrderByColTest(sortingData, nullMasks, expectedTupleIdxOrder, UNSTRUCTURED,
             true /* isAsc */, false /* hasPayLoadCol */);
         FAIL();
-    } catch (invalid_argument& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (exception& e) {
+    } catch (std::exception& e) { FAIL(); }
 }
 
 TEST_F(RadixSortTest, singleOrderByColStringTest) {

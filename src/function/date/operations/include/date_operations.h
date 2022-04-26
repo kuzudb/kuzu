@@ -90,7 +90,7 @@ inline void MonthName::operation(Value& input, bool isNull, gf_string_t& result)
         MonthName::operation(input.val.timestampVal, isNull, result);
     } break;
     default:
-        throw invalid_argument(
+        throw RuntimeException(
             "Cannot call monthname on type: " + Types::dataTypeToString(input.dataType.typeID));
     }
 }
@@ -123,7 +123,7 @@ inline void DayName::operation(Value& input, bool isNull, gf_string_t& result) {
         DayName::operation(input.val.timestampVal, isNull, result);
     } break;
     default:
-        throw invalid_argument(
+        throw RuntimeException(
             "Cannot call dayname on type: " + Types::dataTypeToString(input.dataType.typeID));
     }
 }
@@ -154,7 +154,7 @@ inline void LastDay::operation(Value& input, bool isNull, date_t& result) {
         LastDay::operation(input.val.timestampVal, isNull, result);
     } break;
     default:
-        throw invalid_argument(
+        throw RuntimeException(
             "Cannot call lastday on type: " + Types::dataTypeToString(input.dataType.typeID));
     }
 }
@@ -203,7 +203,7 @@ inline void DatePart::operation(
         DatePart::operation(partSpecifier, input.val.intervalVal, result, isLeftNull, isRightNull);
     } break;
     default:
-        throw invalid_argument(
+        throw RuntimeException(
             "Cannot call date_part on type: " + Types::dataTypeToString(input.dataType.typeID));
     }
 }
@@ -244,7 +244,7 @@ inline void DateTrunc::operation(
             isLeftNull, isRightNull);
     } break;
     default:
-        throw invalid_argument(
+        throw RuntimeException(
             "Cannot call date_trunc on type: " + Types::dataTypeToString(input.dataType.typeID));
     }
 }
@@ -265,7 +265,7 @@ inline void Greatest::operation(
             isLeftNull, isRightNull);
     } break;
     default:
-        throw invalid_argument(
+        throw RuntimeException(
             "Cannot call greatest on type: " + Types::dataTypeToString(left.dataType.typeID) +
             " with type: " + Types::dataTypeToString(right.dataType.typeID));
     }
@@ -288,7 +288,7 @@ inline void Least::operation(
             isLeftNull, isRightNull);
     } break;
     default:
-        throw invalid_argument(
+        throw RuntimeException(
             "Cannot call least on type: " + Types::dataTypeToString(left.dataType.typeID) +
             " with type: " + Types::dataTypeToString(right.dataType.typeID));
     }

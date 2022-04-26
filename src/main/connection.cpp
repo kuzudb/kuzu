@@ -24,35 +24,50 @@ Connection::Connection(Database* database) {
 }
 
 unique_ptr<QueryResult> Connection::query(const string& query) {
-    auto preparedStatement = prepare(query);
-    return execute(preparedStatement.get());
+    unique_ptr<PreparedStatement> preparedStatement;
+    preparedStatement = prepare(query);
+    if (preparedStatement->success) {
+        return execute(preparedStatement.get());
+    }
+    auto queryResult = make_unique<QueryResult>();
+    queryResult->success = false;
+    queryResult->errMsg = preparedStatement->errMsg;
+    return queryResult;
 }
 
 std::unique_ptr<PreparedStatement> Connection::prepare(const std::string& query) {
     auto preparedStatement = make_unique<PreparedStatement>();
-    if (query.empty()) { // TODO: replace this with a failure state
-        throw invalid_argument("input query cannot be empty");
+    if (query.empty()) {
+        throw Exception("Input query is empty.");
     }
+    auto querySummary = preparedStatement->querySummary.get();
     auto compilingTimer = TimeMetric(true /* enable */);
     compilingTimer.start();
-    auto querySummary = preparedStatement->querySummary.get();
-    // parsing
-    auto parsedQuery = Parser::parseQuery(query);
-    querySummary->isExplain = parsedQuery->isEnableExplain();
-    querySummary->isProfile = parsedQuery->isEnableProfile();
-    // binding
-    auto binder = QueryBinder(*database->catalog);
-    auto boundQuery = binder.bind(*parsedQuery);
-    preparedStatement->parameterMap = binder.getParameterMap();
-    // planning
-    auto logicalPlan = Planner::getBestPlan(*database->catalog, *boundQuery);
-    preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollectDataTypes());
-    // mapping
-    auto mapper = PlanMapper(*database->catalog, *database->storageManager);
-    preparedStatement->physicalIDToLogicalOperatorMap = mapper.physicalIDToLogicalOperatorMap;
-    auto executionContext = make_unique<ExecutionContext>(
-        *preparedStatement->profiler, database->memoryManager.get(), database->bufferManager.get());
-    auto physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan), *executionContext);
+    unique_ptr<ExecutionContext> executionContext;
+    unique_ptr<PhysicalPlan> physicalPlan;
+    try {
+        // parsing
+        auto parsedQuery = Parser::parseQuery(query);
+        querySummary->isExplain = parsedQuery->isEnableExplain();
+        querySummary->isProfile = parsedQuery->isEnableProfile();
+        // binding
+        auto binder = QueryBinder(*database->catalog);
+        auto boundQuery = binder.bind(*parsedQuery);
+        preparedStatement->parameterMap = binder.getParameterMap();
+        // planning
+        auto logicalPlan = Planner::getBestPlan(*database->catalog, *boundQuery);
+        preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollectDataTypes());
+        // mapping
+        auto mapper = PlanMapper(*database->catalog, *database->storageManager);
+        preparedStatement->physicalIDToLogicalOperatorMap = mapper.physicalIDToLogicalOperatorMap;
+        executionContext = make_unique<ExecutionContext>(*preparedStatement->profiler,
+            database->memoryManager.get(), database->bufferManager.get());
+        physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan), *executionContext);
+        preparedStatement->success = true;
+    } catch (Exception& exception) {
+        preparedStatement->success = false;
+        preparedStatement->errMsg = exception.what();
+    }
     compilingTimer.stop();
     querySummary->compilingTime = compilingTimer.getElapsedTimeMS();
     preparedStatement->executionContext = move(executionContext);
@@ -77,14 +92,27 @@ unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalP
     auto physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan), *executionContext);
     auto table = database->queryProcessor->execute(
         physicalPlan.get(), clientContext->numThreadsForExecution);
-    return make_unique<QueryResult>(
-        move(header), move(table), make_unique<QuerySummary>() /* querySummary */);
+    auto queryResult = make_unique<QueryResult>();
+    queryResult->setResultHeaderAndTable(move(header), move(table));
+    queryResult->querySummary =
+        make_unique<QuerySummary>(); // TODO(Xiyang): remove this line after fixing iterator.
+    return queryResult;
 }
 
 std::unique_ptr<QueryResult> Connection::executeWithParams(
     PreparedStatement* preparedStatement, unordered_map<string, shared_ptr<Literal>>& inputParams) {
-    bindParameters(preparedStatement, inputParams);
-    return execute(preparedStatement);
+    auto queryResult = make_unique<QueryResult>();
+    try {
+        bindParameters(preparedStatement, inputParams);
+        queryResult->success = true;
+    } catch (Exception& exception) {
+        queryResult->success = false;
+        queryResult->errMsg = exception.what();
+    }
+    if (queryResult->success) {
+        return execute(preparedStatement);
+    }
+    return queryResult;
 }
 
 void Connection::bindParameters(
@@ -92,13 +120,13 @@ void Connection::bindParameters(
     auto& parameterMap = preparedStatement->parameterMap;
     for (auto& [name, literal] : inputParams) {
         if (!parameterMap.contains(name)) {
-            throw invalid_argument("Parameter " + name + " not found.");
+            throw Exception("Parameter " + name + " not found.");
         }
         auto expectParam = parameterMap.at(name);
         if (expectParam->dataType.typeID != literal->dataType.typeID) {
-            throw invalid_argument("Parameter " + name + " has data type " +
-                                   Types::dataTypeToString(literal->dataType) + " but expect " +
-                                   Types::dataTypeToString(expectParam->dataType) + ".");
+            throw Exception("Parameter " + name + " has data type " +
+                            Types::dataTypeToString(literal->dataType) + " but expect " +
+                            Types::dataTypeToString(expectParam->dataType) + ".");
         }
         parameterMap.at(name)->bind(*literal);
     }
@@ -106,21 +134,36 @@ void Connection::bindParameters(
 
 std::unique_ptr<QueryResult> Connection::execute(PreparedStatement* preparedStatement) {
     auto lck = acquireLock();
+    auto queryResult = make_unique<QueryResult>();
+    auto querySummary = preparedStatement->querySummary.get();
     // executing if not EXPLAIN
-    if (!preparedStatement->querySummary->isExplain) {
-        preparedStatement->profiler->enabled = preparedStatement->querySummary->isProfile;
+    if (!querySummary->isExplain) {
+        preparedStatement->profiler->enabled = querySummary->isProfile;
         auto executingTimer = TimeMetric(true /* enable */);
         executingTimer.start();
-        auto table = database->queryProcessor->execute(
-            preparedStatement->physicalPlan.get(), clientContext->numThreadsForExecution);
+        shared_ptr<FactorizedTable> table;
+        try {
+            table = database->queryProcessor->execute(
+                preparedStatement->physicalPlan.get(), clientContext->numThreadsForExecution);
+            queryResult->success = true;
+        } catch (Exception& exception) {
+            queryResult->success = false;
+            queryResult->errMsg = exception.what();
+        }
         executingTimer.stop();
-        preparedStatement->querySummary->executionTime = executingTimer.getElapsedTimeMS();
-        preparedStatement->createPlanPrinter();
-        return make_unique<QueryResult>(move(preparedStatement->resultHeader), move(table),
-            move(preparedStatement->querySummary));
+        querySummary->executionTime = executingTimer.getElapsedTimeMS();
+        if (queryResult->success) {
+            queryResult->setResultHeaderAndTable(
+                move(preparedStatement->resultHeader), move(table));
+            preparedStatement->createPlanPrinter();
+            queryResult->querySummary = move(preparedStatement->querySummary);
+        }
+        return queryResult;
     }
+    // create printable plan and return if EXPLAIN
     preparedStatement->createPlanPrinter();
-    return make_unique<QueryResult>(move(preparedStatement->querySummary));
+    queryResult->querySummary = move(preparedStatement->querySummary);
+    return queryResult;
 }
 
 } // namespace main

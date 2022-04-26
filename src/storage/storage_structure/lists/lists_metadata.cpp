@@ -30,15 +30,15 @@ void ListsMetadata::saveToDisk(const string& fName) {
 
     // Put numPages in .metadata file.
     if (0 == metadataBasePath.length()) {
-        throw invalid_argument("ListsMetadata: Empty filename");
+        throw StorageException("ListsMetadata: Empty filename");
     }
     uint32_t f = open(metadataBasePath.c_str(), O_WRONLY | O_CREAT, 0666);
     if (-1u == f) {
-        throw invalid_argument("ListsMetadata: Cannot create file: " + metadataBasePath);
+        throw StorageException("ListsMetadata: Cannot create file: " + metadataBasePath);
     }
     auto bytesToWrite = sizeof(uint32_t);
     if (bytesToWrite != write(f, &numPages, bytesToWrite)) {
-        throw invalid_argument("ListsMetadata: Cannot write in file: " + metadataBasePath);
+        throw StorageException("ListsMetadata: Cannot write in file: " + metadataBasePath);
     }
     close(f);
 }
@@ -60,12 +60,12 @@ void ListsMetadata::readFromDisk(const string& fName) {
 
     // read numPages from .metadata file.
     if (0 == metadataBasePath.length()) {
-        throw invalid_argument("ListsMetadata: Empty filename");
+        throw StorageException("ListsMetadata: Empty filename");
     }
     uint32_t f = open(metadataBasePath.c_str(), O_RDONLY);
     auto bytesToRead = sizeof(uint32_t);
     if (bytesToRead != read(f, &numPages, bytesToRead)) {
-        throw invalid_argument("ListsMetadata: Cannot read from file.");
+        throw StorageException("ListsMetadata: Cannot read from file.");
     }
     close(f);
 }

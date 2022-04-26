@@ -22,7 +22,7 @@ void TimeMetric::stop() {
         return;
     }
     if (!isStarted) {
-        throw invalid_argument("Timer metric has not started.");
+        throw Exception("Timer metric has not started.");
     }
     timer.stop();
     accumulatedTime += timer.getDuration();

@@ -1,6 +1,6 @@
 #include "src/common/include/expression_type.h"
 
-#include <stdexcept>
+#include "src/common/include/exception.h"
 
 namespace graphflow {
 namespace common {
@@ -93,7 +93,7 @@ string expressionTypeToString(ExpressionType type) {
     case EXISTENTIAL_SUBQUERY:
         return "EXISTENTIAL_SUBQUERY";
     default:
-        throw invalid_argument("Should never happen. Cannot convert expression type to string");
+        throw NotImplementedException("Cannot convert expression type to string");
     }
 }
 

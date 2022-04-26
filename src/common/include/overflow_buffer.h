@@ -72,7 +72,7 @@ public:
 private:
     inline bool requireNewBlock(uint64_t sizeToAllocate) {
         if (sizeToAllocate > LARGE_PAGE_SIZE) {
-            throw invalid_argument("Require size " + to_string(sizeToAllocate) +
+            throw RuntimeException("Require size " + to_string(sizeToAllocate) +
                                    " greater than single block size " + to_string(LARGE_PAGE_SIZE) +
                                    ".");
         }

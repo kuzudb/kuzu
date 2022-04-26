@@ -20,13 +20,21 @@ struct QueryResultHeader {
 };
 
 class QueryResult {
+    friend class Connection;
 
 public:
-    explicit QueryResult(std::unique_ptr<QueryResultHeader> header,
-        std::shared_ptr<processor::FactorizedTable> factorizedTable,
-        std::unique_ptr<QuerySummary> querySummary);
+    QueryResult() = default;
+    ~QueryResult() = default;
 
-    explicit QueryResult(std::unique_ptr<QuerySummary> querySummary);
+    inline bool isSuccess() const { return success; }
+    inline string getErrorMessage() const { return errMsg; }
+
+    inline void setResultHeaderAndTable(std::unique_ptr<QueryResultHeader> header,
+        std::shared_ptr<processor::FactorizedTable> factorizedTable) {
+        this->header = move(header);
+        this->factorizedTable = move(factorizedTable);
+        resetIterator();
+    }
 
     bool hasNext();
 
@@ -45,7 +53,10 @@ public:
         return querySummary->getIsExplain() ? 0 : factorizedTable->getTotalNumFlatTuples();
     }
 
-public:
+private:
+    bool success;
+    std::string errMsg;
+
     std::unique_ptr<QueryResultHeader> header;
     std::shared_ptr<processor::FactorizedTable> factorizedTable;
     std::unique_ptr<processor::FlatTupleIterator> iterator;

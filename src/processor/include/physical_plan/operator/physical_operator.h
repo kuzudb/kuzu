@@ -93,10 +93,7 @@ public:
     // Only operators that can appear in a subPlan need to overwrite this function. Currently, we
     // allow the following operators in subPlan: resultSetScan, extend, scanProperty, flatten,
     // filter, intersect, projection, exists, leftNestedLoopJoin.
-    virtual void reInitToRerunSubPlan() {
-        throw invalid_argument("Operator " + PhysicalOperatorTypeNames[getOperatorType()] +
-                               "  does not implement reInitToRerunSubPlan().");
-    }
+    virtual void reInitToRerunSubPlan() { assert(false); }
 
     // Return false if no more tuples to pull, otherwise return true
     virtual bool getNextTuples() = 0;

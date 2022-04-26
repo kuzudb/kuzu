@@ -259,7 +259,7 @@ void CSVReader::setNextTokenIsProcessed() {
 void CSVReader::openFile(const string& fName) {
     fd = fopen(fName.c_str(), "r");
     if (nullptr == fd) {
-        throw invalid_argument("Cannot open file: " + fName);
+        throw CSVReaderException("Cannot open file: " + fName);
     }
 }
 

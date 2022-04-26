@@ -596,12 +596,12 @@ TEST_F(OrderByKeyEncoderTest, largeNumBytesPerTupleErrorTest) {
         auto orderByKeyEncoder =
             OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), factorizedTableIdx);
         FAIL();
-    } catch (EncodingException& e) {
-        ASSERT_STREQ(e.what(), StringUtils::string_format(
-                                   "OrderBy encoder exception: TupleSize(%d bytes) is larger than "
-                                   "the LARGE_PAGE_SIZE(%d bytes)",
-                                   9 * numOfOrderByCols + 8, LARGE_PAGE_SIZE)
-                                   .c_str());
+    } catch (Exception& e) {
+        ASSERT_STREQ(e.what(),
+            StringUtils::string_format("Runtime exception: TupleSize(%d bytes) is larger than "
+                                       "the LARGE_PAGE_SIZE(%d bytes)",
+                9 * numOfOrderByCols + 8, LARGE_PAGE_SIZE)
+                .c_str());
     } catch (exception& e) { FAIL(); }
 }
 

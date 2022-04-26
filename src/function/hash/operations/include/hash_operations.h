@@ -26,7 +26,7 @@ inline hash_t combineHashScalar(hash_t a, hash_t b) {
 struct Hash {
     template<class T>
     static inline void operation(const T& key, hash_t& result) {
-        throw invalid_argument(
+        throw RuntimeException(
             StringUtils::string_format("Hash type: %s is not supported.", typeid(T).name()));
     }
 
@@ -149,7 +149,7 @@ struct HashOnValue {
             Hash::operation<interval_t>(key.val.intervalVal, isNull, result);
         } break;
         default: {
-            throw invalid_argument(
+            throw RuntimeException(
                 "Cannot hash data type " + Types::dataTypeToString(key.dataType.typeID));
         }
         }
@@ -193,7 +193,7 @@ struct HashOnBytes {
             HashOnValue::operation(*(Value*)key, isNull, result);
         } break;
         default: {
-            throw invalid_argument("Cannot hash data type " + Types::dataTypeToString(dataTypeID));
+            throw RuntimeException("Cannot hash data type " + Types::dataTypeToString(dataTypeID));
         }
         }
     }

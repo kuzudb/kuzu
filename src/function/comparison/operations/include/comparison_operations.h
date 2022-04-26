@@ -143,11 +143,11 @@ struct EqualsOrNotEqualsValues {
             } break;
             default:
                 if constexpr (equals) {
-                    throw invalid_argument(
+                    throw RuntimeException(
                         "Cannot equals `" + Types::dataTypeToString(left.dataType.typeID) +
                         "` and `" + Types::dataTypeToString(right.dataType.typeID) + "`");
                 } else {
-                    throw invalid_argument(
+                    throw RuntimeException(
                         "Cannot not equals `" + Types::dataTypeToString(left.dataType.typeID) +
                         "` and `" + Types::dataTypeToString(right.dataType.typeID) + "`");
                 }
@@ -186,11 +186,11 @@ struct EqualsOrNotEqualsValues {
             }
         } else {
             if constexpr (equals) {
-                throw invalid_argument("Cannot equals `" +
+                throw RuntimeException("Cannot equals `" +
                                        Types::dataTypeToString(left.dataType.typeID) + "` and `" +
                                        Types::dataTypeToString(right.dataType.typeID) + "`");
             } else {
-                throw invalid_argument("Cannot not equals `" +
+                throw RuntimeException("Cannot not equals `" +
                                        Types::dataTypeToString(left.dataType.typeID) + "` and `" +
                                        Types::dataTypeToString(right.dataType.typeID) + "`");
             }
@@ -264,7 +264,7 @@ struct CompareValues {
             FUNC::operation(
                 left.val.timestampVal, right.val.dateVal, result, isLeftNull, isRightNul);
         } else {
-            throw invalid_argument("Cannot " + string(comparisonOpStr) + " `" +
+            throw RuntimeException("Cannot " + string(comparisonOpStr) + " `" +
                                    Types::dataTypeToString(left.dataType.typeID) + "` and `" +
                                    Types::dataTypeToString(right.dataType.typeID) + "`");
         }
