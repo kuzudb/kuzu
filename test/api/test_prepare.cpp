@@ -104,19 +104,16 @@ TEST_F(ApiTest, default_param) {
 TEST_F(ApiTest, param_not_exist) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN COUNT(*)");
-    try {
-        conn->execute(preparedStatement.get(), make_pair(string("a"), "A"));
-    } catch (const invalid_argument& exception) {
-        ASSERT_STREQ("Parameter a not found.", exception.what());
-    }
+    auto result = conn->execute(preparedStatement.get(), make_pair(string("a"), "A"));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_STREQ("Parameter a not found.", result->getErrorMessage().c_str());
 }
 
 TEST_F(ApiTest, param_type_error) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN COUNT(*)");
-    try {
-        conn->execute(preparedStatement.get(), make_pair(string("n"), (int64_t)36));
-    } catch (const invalid_argument& exception) {
-        ASSERT_STREQ("Parameter n has data type INT64 but expect STRING.", exception.what());
-    }
+    auto result = conn->execute(preparedStatement.get(), make_pair(string("n"), (int64_t)36));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_STREQ(
+        "Parameter n has data type INT64 but expect STRING.", result->getErrorMessage().c_str());
 }

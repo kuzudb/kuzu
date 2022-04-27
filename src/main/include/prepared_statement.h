@@ -30,7 +30,7 @@ public:
     }
 
 private:
-    bool success;
+    bool success = true;
     string errMsg;
 
     unique_ptr<QuerySummary> querySummary;

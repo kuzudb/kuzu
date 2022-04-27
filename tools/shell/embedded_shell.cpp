@@ -150,7 +150,7 @@ void EmbeddedShell::run() {
             if (queryResult->isSuccess()) {
                 printExecutionResult(*queryResult);
             } else {
-                printf("%s\n", queryResult->getErrorMessage().c_str());
+                printf("Error: %s\n", queryResult->getErrorMessage().c_str());
             }
         }
         linenoiseHistoryAdd(line);

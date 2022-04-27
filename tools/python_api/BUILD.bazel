@@ -50,8 +50,9 @@ py_test(
     srcs = [
         "test/conftest.py",
         "test/test_datatype.py",
+        "test/test_exception.py",
         "test/test_main.py",
-        "test/test_parameter.py"
+        "test/test_parameter.py",
     ],
     data = [
         "//dataset",
