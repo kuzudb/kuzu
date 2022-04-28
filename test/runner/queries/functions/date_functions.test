@@ -499,3 +499,22 @@ February
 
 
 
+
+-NAME StructuredIntMakeDateTest
+-QUERY MATCH (o:organisation) RETURN make_date(o.orgCode * 3, o.ID, 20)
+---- 3
+0975-01-20
+2802-04-20
+2472-06-20
+
+-NAME UnstructuredIntMakeDateTest
+-QUERY MATCH (p:person) RETURN make_date(1997, 12, p.unstrInt64Prop2 % 30)
+---- 8
+
+
+
+1997-12-20
+
+1997-12-13
+
+

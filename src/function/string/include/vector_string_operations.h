@@ -13,6 +13,14 @@ namespace function {
 
 struct VectorStringOperations : public VectorOperations {
 
+    template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void TernaryStringExecFunction(
+        const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
+        assert(params.size() == 3);
+        TernaryOperationExecutor::executeString<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
+            *params[0], *params[1], *params[2], result);
+    }
+
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void BinaryStringExecFunction(
         const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
@@ -92,6 +100,26 @@ struct LengthVectorOperation : public VectorStringOperations {
 };
 
 struct RepeatVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct LpadVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct RpadVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct SubStrVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct LeftVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct RightVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 

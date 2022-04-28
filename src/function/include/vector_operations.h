@@ -2,6 +2,7 @@
 
 #include "binary_operation_executor.h"
 #include "function_definition.h"
+#include "ternary_operation_executor.h"
 #include "unary_operation_executor.h"
 
 #include "src/binder/expression/include/expression.h"
@@ -39,6 +40,14 @@ struct VectorOperationDefinition : public FunctionDefinition {
 class VectorOperations {
 
 public:
+    template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void TernaryExecFunction(
+        const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
+        assert(params.size() == 3);
+        TernaryOperationExecutor::execute<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
+            *params[0], *params[1], *params[2], result);
+    }
+
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void BinaryExecFunction(
         const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {

@@ -163,3 +163,186 @@ DEsWorkDEsWorkDEsWorkDEsWorkDEsWorkDEsWork
   pERfECt
   EXcELLENT organisation     EXcELLENT organisation     EXcELLENT organisation     EXcELLENT organisation   
 GoOd organisation ! GoOd organisation ! GoOd organisation ! GoOd organisation ! GoOd organisation ! GoOd organisation ! 
+
+-NAME LpadStructuredStrAndLiteralInt
+-QUERY MATCH (p:person) RETURN lpad(p.fName, 5, "<")
+---- 8
+Alice
+<<Bob
+Carol
+<<Dan
+Eliza
+Faroo
+<Greg
+Huber
+
+-NAME LpadStructuredStrAndStructuredInt
+-QUERY MATCH (p:person) RETURN lpad(p.fName, p.ID, "<")
+---- 8
+
+Bo
+Car
+<<Dan
+Elizabe
+<<Farooq
+<<<<<Greg
+Hubert Bla
+
+-NAME LpadUnstructuredStrAndLiteralInt
+-QUERY MATCH (p:person) RETURN lpad(p.label1, 10, "<")
+---- 8
+<<<<<<good
+<<<<<<good
+<excellent
+<<<<<<good
+
+
+
+
+
+-NAME RpadStructuredStrAndLiteralInt
+-QUERY MATCH (p:person) RETURN rpad(p.fName, 15, ">")
+---- 8
+Alice>>>>>>>>>>
+Bob>>>>>>>>>>>>
+Carol>>>>>>>>>>
+Dan>>>>>>>>>>>>
+Elizabeth>>>>>>
+Farooq>>>>>>>>>
+Greg>>>>>>>>>>>
+Hubert Blaine W
+
+-NAME RpadStructuredStrAndStructuredInt
+-QUERY MATCH (p:person) RETURN rpad(p.fName, p.ID, "<")
+---- 8
+
+Bo
+Car
+Dan<<
+Elizabe
+Farooq<<
+Greg<<<<<
+Hubert Bla
+
+-NAME RpadUnstructuredStrAndLiteralInt
+-QUERY MATCH (p:person) RETURN rpad(p.label1, 5, ">")
+---- 8
+good>
+good>
+excel
+good>
+
+
+
+
+
+-NAME SubStrStructuredStrAndLiteralInt
+-QUERY MATCH (p:person) RETURN substring(p.fName, 2, 12)
+---- 8
+lice
+ob
+arol
+an
+lizabeth
+arooq
+reg
+ubert Blaine
+
+-NAME SubStrUnstructuredStrAndLiteralInt
+-QUERY MATCH (p:person) RETURN substring(p.label1, 3, 2)
+---- 8
+od
+od
+ce
+od
+
+
+
+
+
+-NAME LeftPositiveIdxStructuredStrAndLiteralInt
+-QUERY MATCH (p:person) RETURN left(p.fName, 11)
+---- 8
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blai
+
+-NAME LeftPositiveIdxStructuredStrAndStructuredInt
+-QUERY MATCH (o:organisation) RETURN left(o.name, o.ID)
+---- 3
+A
+CsWo
+DEsWor
+
+-NAME LeftNegativeIdxStructuredStrAndLiteralInt
+-QUERY MATCH (p:person) RETURN left(p.fName, -3)
+---- 8
+Al
+
+Ca
+
+Elizab
+Far
+G
+Hubert Blaine Wolfeschlegelsteinhausenbergerdo
+
+-NAME LeftUnstructuredStrAndLiteralInt
+-QUERY MATCH (p:person) RETURN left(p.label1, 2)
+---- 8
+go
+go
+ex
+go
+
+
+
+
+
+-NAME RightPositiveIdxStructuredStrAndLiteralInt
+-QUERY MATCH (p:person) RETURN right(p.fName, 10)
+---- 8
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+ergerdorff
+
+-NAME RightPositiveIdxStructuredStrAndStructuredInt
+-QUERY MATCH (o:organisation) RETURN right(o.name, o.ID)
+---- 3
+i
+Work
+EsWork
+
+-NAME RightNegativeIdxStructuredStrAndLiteralInt
+-QUERY MATCH (p:person) RETURN right(p.fName, -2)
+---- 8
+ice
+b
+rol
+n
+izabeth
+rooq
+eg
+bert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME RightUnstructuredStrAndLiteralInt
+-QUERY MATCH (p:person) RETURN right(p.label1, 3)
+---- 8
+ood
+ood
+ent
+ood
+
+
+
+
+

@@ -105,5 +105,13 @@ vector<unique_ptr<VectorOperationDefinition>> LeastVectorOperation::getDefinitio
     return result;
 }
 
+vector<unique_ptr<VectorOperationDefinition>> MakeDateVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(MAKE_DATE_FUNC_NAME,
+        vector<DataTypeID>{INT64, INT64, INT64}, DATE,
+        TernaryExecFunction<int64_t, int64_t, int64_t, date_t, operation::MakeDate>));
+    return result;
+}
+
 } // namespace function
 } // namespace graphflow

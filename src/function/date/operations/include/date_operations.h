@@ -62,6 +62,14 @@ struct Least {
     }
 };
 
+struct MakeDate {
+    static inline void operation(int64_t& year, int64_t& month, int64_t& day, date_t& result,
+        bool isYearNull, bool isMonthNull, bool isDayNull) {
+        assert(!isYearNull && !isMonthNull && !isDayNull);
+        result = Date::FromDate(year, month, day);
+    }
+};
+
 template<>
 inline void MonthName::operation(date_t& input, bool isNull, gf_string_t& result) {
     assert(!isNull);

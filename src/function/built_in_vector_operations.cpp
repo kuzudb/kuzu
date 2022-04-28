@@ -231,6 +231,7 @@ void BuiltInVectorOperations::registerDateOperations() {
     vectorOperations.insert({DATE_TRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
     vectorOperations.insert({GREATEST_FUNC_NAME, GreatestVectorOperation::getDefinitions()});
     vectorOperations.insert({LEAST_FUNC_NAME, LeastVectorOperation::getDefinitions()});
+    vectorOperations.insert({MAKE_DATE_FUNC_NAME, MakeDateVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerTimestampOperations() {
@@ -249,7 +250,7 @@ void BuiltInVectorOperations::registerIntervalOperations() {
     vectorOperations.insert(
         {TO_MILLISECONDS_FUNC_NAME, ToMillisecondsVectorOperation::getDefinitions()});
     vectorOperations.insert(
-        {TO_MICROSECONDS_NAME, ToMicrosecondsVectorOperation::getDefinitions()});
+        {TO_MICROSECONDS_FUNC_NAME, ToMicrosecondsVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerStringOperations() {
@@ -264,6 +265,11 @@ void BuiltInVectorOperations::registerStringOperations() {
     vectorOperations.insert({LENGTH_FUNC_NAME, LengthVectorOperation::getDefinitions()});
     vectorOperations.insert({REPEAT_FUNC_NAME, RepeatVectorOperation::getDefinitions()});
     vectorOperations.insert({REVERSE_FUNC_NAME, ReverseVectorOperation::getDefinitions()});
+    vectorOperations.insert({LPAD_FUNC_NAME, LpadVectorOperation::getDefinitions()});
+    vectorOperations.insert({RPAD_FUNC_NAME, RpadVectorOperation::getDefinitions()});
+    vectorOperations.insert({SUBSTR_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
+    vectorOperations.insert({LEFT_FUNC_NAME, LeftVectorOperation::getDefinitions()});
+    vectorOperations.insert({RIGHT_FUNC_NAME, RightVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerCastOperations() {
