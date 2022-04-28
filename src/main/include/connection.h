@@ -91,12 +91,16 @@ public:
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         unordered_map<string, shared_ptr<Literal>>& inputParams);
 
-    void close();
-
-    /**
-     * TODO(Xiyang): APIs that need to be added
-     * * catalog related
-     */
+    // Catalog utility interfaces
+    inline string getBuiltInFunctionNames() {
+        return getBuiltInScalarFunctionNames() + "\n" + getBuiltInAggregateFunctionNames();
+    }
+    string getBuiltInScalarFunctionNames();
+    string getBuiltInAggregateFunctionNames();
+    string getNodeLabelNames();
+    string getRelLabelNames();
+    string getNodePropertyNames(const string& nodeLabelName);
+    string getRelPropertyNames(const string& relLabelName);
 
     // Used in test helper. Note: for our testing framework, we should not catch exception and
     // instead let IDE catch these exception

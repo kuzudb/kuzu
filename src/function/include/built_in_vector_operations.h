@@ -23,6 +23,8 @@ public:
     VectorOperationDefinition* matchFunction(
         const string& name, const vector<DataType>& inputTypes);
 
+    vector<string> getFunctionNames();
+
 private:
     VectorOperationDefinition* getBestMatch(vector<VectorOperationDefinition*>& functions);
 

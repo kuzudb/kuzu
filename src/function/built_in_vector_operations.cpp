@@ -63,6 +63,14 @@ VectorOperationDefinition* BuiltInVectorOperations::matchFunction(
     return candidateFunctions[0];
 }
 
+vector<string> BuiltInVectorOperations::getFunctionNames() {
+    vector<string> result;
+    for (auto& [functionName, definitions] : vectorOperations) {
+        result.push_back(functionName);
+    }
+    return result;
+}
+
 // When there is multiple candidates functions, e.g. double + int and double + double for input
 // "1.5 + parameter", we prefer the one without any implicit casting i.e. double + double.
 VectorOperationDefinition* BuiltInVectorOperations::getBestMatch(

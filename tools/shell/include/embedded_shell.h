@@ -17,6 +17,13 @@ public:
     void run();
 
 private:
+    void setNumThreads(const string& numThreadsString);
+
+    void setBufferMangerSize(const string& bufferManagerSizeString);
+
+    void printNodeSchema(const string& nodeLabelName);
+    void printRelSchema(const string& relLabelName);
+
     static void printHelp();
 
     void printExecutionResult(QueryResult& queryResult) const;
