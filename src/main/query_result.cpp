@@ -12,11 +12,9 @@ bool QueryResult::hasNext() {
     return iterator->hasNextFlatTuple();
 }
 
-unique_ptr<FlatTuple> QueryResult::getNext() {
+shared_ptr<FlatTuple> QueryResult::getNext() {
     validateQuerySucceed();
-    auto tuple = make_unique<FlatTuple>(header->columnDataTypes);
-    iterator->getNextFlatTuple(*tuple);
-    return tuple;
+    return iterator->getNextFlatTuple();
 }
 
 void QueryResult::validateQuerySucceed() {

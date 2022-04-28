@@ -157,8 +157,6 @@ public:
     inline vector<unique_ptr<DataBlock>>& getTupleDataBlocks() { return tupleDataBlocks; }
     inline const TableSchema& getTableSchema() const { return tableSchema; }
 
-    FlatTupleIterator getFlatTupleIterator();
-
     uint64_t getNumFlatTuples(uint64_t tupleIdx) const;
 
     // This function returns a gf_string_t stored at the [tupleIdx, colIdx]. It causes an
@@ -220,22 +218,21 @@ private:
 
 class FlatTupleIterator {
 public:
-    explicit FlatTupleIterator(FactorizedTable& factorizedTable);
+    explicit FlatTupleIterator(
+        FactorizedTable& factorizedTable, const vector<DataType>& columnDataTypes);
 
     inline bool hasNextFlatTuple() {
         return nextTupleIdx < factorizedTable.getNumTuples() || nextFlatTupleIdx < numFlatTuples;
     }
 
-    void getNextFlatTuple(FlatTuple& flatTuple);
+    shared_ptr<FlatTuple> getNextFlatTuple();
 
 private:
-    static void readValueBufferToFlatTuple(
-        FlatTuple& flatTuple, uint64_t flatTupleValIdx, const uint8_t* valueBuffer);
+    void readValueBufferToFlatTuple(uint64_t flatTupleValIdx, const uint8_t* valueBuffer);
 
-    void readUnflatColToFlatTuple(
-        FlatTuple& flatTuple, uint64_t flatTupleValIdx, uint8_t* valueBuffer);
+    void readUnflatColToFlatTuple(uint64_t flatTupleValIdx, uint8_t* valueBuffer);
 
-    void readFlatColToFlatTuple(FlatTuple& flatTuple, uint64_t colIdx, uint8_t* valueBuffer);
+    void readFlatColToFlatTuple(uint64_t colIdx, uint8_t* valueBuffer);
 
     // The dataChunkPos may be not consecutive, which means some entries in the
     // flatTuplePositionsInDataChunk is invalid. We put pair(UINT64_MAX, UINT64_MAX) in the
@@ -269,6 +266,9 @@ private:
     uint64_t nextTupleIdx;
     // This field stores the (nextIdxToReadInDataChunk, numElementsInDataChunk) of each dataChunk.
     vector<pair<uint64_t, uint64_t>> flatTuplePositionsInDataChunk;
+
+    vector<DataType> columnDataTypes;
+    shared_ptr<FlatTuple> iteratorFlatTuple;
 };
 
 } // namespace processor

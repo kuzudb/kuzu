@@ -178,33 +178,31 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         printf(">> Number of output tuples: %lu\n", numTuples);
         printf(">> Compiling time: %.2fms\n", querySummary->getCompilingTime());
         printf(">> Executing time: %.2fms\n", querySummary->getExecutionTime());
-        if (numTuples > 0) {
-            vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
-            uint32_t lineSeparatorLen = 1u + colsWidth.size();
-            string lineSeparator;
-            while (queryResult.hasNext()) {
-                auto tuple = queryResult.getNext();
-                for (auto i = 0u; i < colsWidth.size(); i++) {
-                    if (tuple->nullMask[i]) {
-                        continue;
-                    }
-                    uint32_t fieldLen = TypeUtils::toString(tuple->getValue(i)).length() + 2;
-                    colsWidth[i] = (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i];
+        vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
+        uint32_t lineSeparatorLen = 1u + colsWidth.size();
+        string lineSeparator;
+        while (queryResult.hasNext()) {
+            auto tuple = queryResult.getNext();
+            for (auto i = 0u; i < colsWidth.size(); i++) {
+                if (tuple->nullMask[i]) {
+                    continue;
                 }
+                uint32_t fieldLen = TypeUtils::toString(*tuple->getValue(i)).length() + 2;
+                colsWidth[i] = (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i];
             }
+        }
 
-            for (auto width : colsWidth) {
-                lineSeparatorLen += width;
-            }
-            lineSeparator = string(lineSeparatorLen, '-');
+        for (auto width : colsWidth) {
+            lineSeparatorLen += width;
+        }
+        lineSeparator = string(lineSeparatorLen, '-');
+        printf("%s\n", lineSeparator.c_str());
+
+        queryResult.resetIterator();
+        while (queryResult.hasNext()) {
+            auto tuple = queryResult.getNext();
+            printf("|%s|\n", tuple->toString(colsWidth, "|").c_str());
             printf("%s\n", lineSeparator.c_str());
-
-            queryResult.resetIterator();
-            while (queryResult.hasNext()) {
-                auto tuple = queryResult.getNext();
-                printf("|%s|\n", tuple->toString(colsWidth, "|").c_str());
-                printf("%s\n", lineSeparator.c_str());
-            }
         }
 
         if (querySummary->getIsProfile()) {

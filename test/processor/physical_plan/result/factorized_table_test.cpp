@@ -83,9 +83,8 @@ public:
         for (auto i = 0; i < 100; i++) {
             for (auto j = 0; j < 100; j++) {
                 vector<DataType> dataTypesInFlatTuple = {DataType(NODE), DataType(NODE)};
-                FlatTuple resultFlatTuple(dataTypesInFlatTuple);
                 ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), true);
-                flatTupleIterator.getNextFlatTuple(resultFlatTuple);
+                auto& resultFlatTuple = *flatTupleIterator.getNextFlatTuple();
                 if (i % 15) {
                     ASSERT_EQ(resultFlatTuple.nullMask[0], false);
                     auto val = resultFlatTuple.getValue(0)->val.nodeID;
@@ -209,7 +208,8 @@ TEST_F(FactorizedTableTest, AppendMultipleTuplesScanOneAtAtime) {
 
 TEST_F(FactorizedTableTest, ReadFlatTuplesFromFactorizedTable) {
     auto factorizedTable = appendMultipleTuples(false /* isAppendFlatVectorToUnflatCol */);
-    auto flatTupleIterator = factorizedTable->getFlatTupleIterator();
+    auto flatTupleIterator =
+        FlatTupleIterator(*factorizedTable, vector<DataType>{DataType(NODE), DataType(NODE)});
     checkFlatTupleIteratorResult(flatTupleIterator);
     ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), false);
 }
@@ -221,7 +221,8 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeTest) {
     ASSERT_EQ(factorizedTable1->getTotalNumFlatTuples(), 10000);
     factorizedTable->merge(*factorizedTable1);
     ASSERT_EQ(factorizedTable->getTotalNumFlatTuples(), 20000);
-    auto flatTupleIterator = factorizedTable->getFlatTupleIterator();
+    auto flatTupleIterator =
+        FlatTupleIterator(*factorizedTable, vector<DataType>{DataType(NODE), DataType(NODE)});
     checkFlatTupleIteratorResult(flatTupleIterator);
     checkFlatTupleIteratorResult(flatTupleIterator);
     ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), false);
@@ -265,12 +266,11 @@ TEST_F(FactorizedTableTest, FactorizedTableMergeOverflowBufferTest) {
     }
 
     vector<DataType> dataTypes = {DataType(STRING)};
-    FlatTuple resultFlatTuple(dataTypes);
-    auto flatTupleIterator = factorizedTable->getFlatTupleIterator();
+    auto flatTupleIterator = FlatTupleIterator(*factorizedTable, dataTypes);
     for (auto i = 0; i < 3 * numRowsToAppend; i++) {
         ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), true);
-        flatTupleIterator.getNextFlatTuple(resultFlatTuple);
-        ASSERT_EQ(resultFlatTuple.getValue(0)->val.strVal.getAsString(),
+        auto resultFlatTuple = flatTupleIterator.getNextFlatTuple();
+        ASSERT_EQ(resultFlatTuple->getValue(0)->val.strVal.getAsString(),
             to_string(i % numRowsToAppend) + "with long string overflow");
     }
     ASSERT_EQ(flatTupleIterator.hasNextFlatTuple(), false);
