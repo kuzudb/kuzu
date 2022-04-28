@@ -9,7 +9,7 @@ public:
 
     void SetUp() override {
         BaseGraphLoadingTest::SetUp();
-        systemConfig->largePageBufferPoolSize = (1ull << 22);
+        systemConfig->largePageBufferPoolSize = (1ull << 23);
         createConn();
     }
 };

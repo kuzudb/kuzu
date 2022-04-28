@@ -231,10 +231,9 @@ vector<unique_ptr<VectorOperationDefinition>> AtanVectorOperation::getDefinition
 
 vector<unique_ptr<VectorOperationDefinition>> FactorialVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : DataType::getNumericalAndUnstructuredTypeIDs()) {
-        result.push_back(
-            getUnaryDefinition<operation::Factorial>(FACTORIAL_FUNC_NAME, typeID, typeID));
-    }
+    result.push_back(
+        make_unique<VectorOperationDefinition>(FACTORIAL_FUNC_NAME, vector<DataTypeID>{INT64},
+            INT64, UnaryExecFunction<int64_t, int64_t, operation::Factorial>));
     return result;
 }
 

@@ -1,3 +1,12 @@
+# We need a maximum of 23 large pages for this test:
+# OrderByKeyEncoder: 1 page(need at least 1 page to store encoded key blocks) * 6 (number of threads)
+# RadixSort: 2(need 2 pages for temporary sorting buffer) * 6 (number of threads)
+# MergeSort: 1 page for merged keyBlocks
+# OrderBy physical operator:
+# FactorizedTable: 2 pages (store orderBy/payload columns)
+# ResultCollector:
+# FactorizedTable: 2 pages (store results)
+# In total: we need 23 pages for this test case
 -NAME OrderByWithLimitTest
 -QUERY MATCH (p:person) RETURN p.balance ORDER BY p.balance limit 25
 -PARALLELISM 6

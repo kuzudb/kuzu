@@ -26,6 +26,7 @@ private:
         for (auto i = 0u; i < len; i++) {
             str[i] = toupper(str[i]);
         }
+        return len;
     }
 };
 
