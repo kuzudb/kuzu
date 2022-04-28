@@ -76,10 +76,7 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, Connection&
                     j, numTuples, testConfig.expectedNumTuples);
                 spdlog::info("PLAN: \n{}", planStr);
             } else {
-                vector<string> resultTuples;
-                if (numTuples != 0) {
-                    resultTuples = getOutput(*result, testConfig.checkOutputOrder);
-                }
+                vector<string> resultTuples = getOutput(*result, testConfig.checkOutputOrder);
                 if (resultTuples == testConfig.expectedTuples) {
                     spdlog::info("PLAN{} PASSED", j);
                     spdlog::debug("PLAN: \n{}", planStr);

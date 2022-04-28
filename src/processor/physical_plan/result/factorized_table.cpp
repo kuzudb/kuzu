@@ -141,10 +141,6 @@ uint64_t FactorizedTable::getTotalNumFlatTuples() const {
     return totalNumFlatTuples;
 }
 
-FlatTupleIterator FactorizedTable::getFlatTupleIterator() {
-    return FlatTupleIterator(*this);
-}
-
 uint64_t FactorizedTable::getNumFlatTuples(uint64_t tupleIdx) const {
     unordered_map<uint32_t, bool> calculatedDataChunkPoses;
     uint64_t numFlatTuples = 1;
@@ -340,20 +336,23 @@ uint8_t* FactorizedTable::getTuple(uint64_t tupleIdx) const {
            blockIdxAndTupleIdxInBlock.second * tableSchema.getNumBytesPerTuple();
 }
 
-FlatTupleIterator::FlatTupleIterator(FactorizedTable& factorizedTable)
-    : factorizedTable{factorizedTable}, nextFlatTupleIdx{0}, nextTupleIdx{1} {
-    // Don't initialize currentTupleBuffer, numFlatTuples if there are no tuples in the
-    // factorizedTable.
+FlatTupleIterator::FlatTupleIterator(
+    FactorizedTable& factorizedTable, const vector<DataType>& columnDataTypes)
+    : factorizedTable{factorizedTable}, numFlatTuples{0}, nextFlatTupleIdx{0}, nextTupleIdx{1},
+      columnDataTypes{columnDataTypes} {
     if (factorizedTable.getNumTuples()) {
         currentTupleBuffer = factorizedTable.getTuple(0);
         numFlatTuples = factorizedTable.getNumFlatTuples(0);
         updateNumElementsInDataChunk();
         updateInvalidEntriesInFlatTuplePositionsInDataChunk();
     }
-    // TODO(Guodong): make iterator work with empty table?
+    // Note: there is difference between column data types and value types in iteratorFlatTuple.
+    // Column data type could be UNSTRUCTURED but value type must be a structured type.
+    iteratorFlatTuple = make_shared<FlatTuple>(columnDataTypes);
+    assert(columnDataTypes.size() == factorizedTable.tableSchema.getNumColumns());
 }
 
-void FlatTupleIterator::getNextFlatTuple(FlatTuple& flatTuple) {
+shared_ptr<FlatTuple> FlatTupleIterator::getNextFlatTuple() {
     // Go to the next tuple if we have iterated all the flat tuples of the current tuple.
     if (nextFlatTupleIdx >= numFlatTuples) {
         currentTupleBuffer = factorizedTable.getTuple(nextTupleIdx);
@@ -365,78 +364,78 @@ void FlatTupleIterator::getNextFlatTuple(FlatTuple& flatTuple) {
     for (auto i = 0ul; i < factorizedTable.getTableSchema().getNumColumns(); i++) {
         auto column = factorizedTable.getTableSchema().getColumn(i);
         if (column.getIsUnflat()) {
-            readUnflatColToFlatTuple(flatTuple, i, currentTupleBuffer);
+            readUnflatColToFlatTuple(i, currentTupleBuffer);
         } else {
-            readFlatColToFlatTuple(flatTuple, i, currentTupleBuffer);
+            readFlatColToFlatTuple(i, currentTupleBuffer);
         }
     }
     updateFlatTuplePositionsInDataChunk();
     nextFlatTupleIdx++;
+    return iteratorFlatTuple;
 }
 
 void FlatTupleIterator::readValueBufferToFlatTuple(
-    FlatTuple& flatTuple, uint64_t flatTupleValIdx, const uint8_t* valueBuffer) {
-    switch (flatTuple.getDataType(flatTupleValIdx).typeID) {
+    uint64_t flatTupleValIdx, const uint8_t* valueBuffer) {
+    switch (columnDataTypes[flatTupleValIdx].typeID) {
     case INT64: {
-        flatTuple.getValue(flatTupleValIdx)->val.int64Val = *((int64_t*)valueBuffer);
+        iteratorFlatTuple->getValue(flatTupleValIdx)->val.int64Val = *((int64_t*)valueBuffer);
     } break;
     case BOOL: {
-        flatTuple.getValue(flatTupleValIdx)->val.booleanVal = *((bool*)valueBuffer);
+        iteratorFlatTuple->getValue(flatTupleValIdx)->val.booleanVal = *((bool*)valueBuffer);
     } break;
     case DOUBLE: {
-        flatTuple.getValue(flatTupleValIdx)->val.doubleVal = *((double_t*)valueBuffer);
+        iteratorFlatTuple->getValue(flatTupleValIdx)->val.doubleVal = *((double_t*)valueBuffer);
     } break;
     case STRING: {
-        flatTuple.getValue(flatTupleValIdx)->val.strVal = *((gf_string_t*)valueBuffer);
+        iteratorFlatTuple->getValue(flatTupleValIdx)->val.strVal = *((gf_string_t*)valueBuffer);
     } break;
     case NODE: {
-        flatTuple.getValue(flatTupleValIdx)->val.nodeID = *((nodeID_t*)valueBuffer);
+        iteratorFlatTuple->getValue(flatTupleValIdx)->val.nodeID = *((nodeID_t*)valueBuffer);
     } break;
     case UNSTRUCTURED: {
-        *flatTuple.getValue(flatTupleValIdx) = *((Value*)valueBuffer);
+        *iteratorFlatTuple->getValue(flatTupleValIdx) = *((Value*)valueBuffer);
     } break;
     case DATE: {
-        flatTuple.getValue(flatTupleValIdx)->val.dateVal = *((date_t*)valueBuffer);
+        iteratorFlatTuple->getValue(flatTupleValIdx)->val.dateVal = *((date_t*)valueBuffer);
     } break;
     case TIMESTAMP: {
-        flatTuple.getValue(flatTupleValIdx)->val.timestampVal = *((timestamp_t*)valueBuffer);
+        iteratorFlatTuple->getValue(flatTupleValIdx)->val.timestampVal =
+            *((timestamp_t*)valueBuffer);
     } break;
     case INTERVAL: {
-        flatTuple.getValue(flatTupleValIdx)->val.intervalVal = *((interval_t*)valueBuffer);
+        iteratorFlatTuple->getValue(flatTupleValIdx)->val.intervalVal = *((interval_t*)valueBuffer);
     } break;
     case LIST: {
-        flatTuple.getValue(flatTupleValIdx)->val.listVal = *((gf_list_t*)valueBuffer);
+        iteratorFlatTuple->getValue(flatTupleValIdx)->val.listVal = *((gf_list_t*)valueBuffer);
     } break;
     default:
         assert(false);
     }
 }
 
-void FlatTupleIterator::readUnflatColToFlatTuple(
-    FlatTuple& flatTuple, uint64_t colIdx, uint8_t* valueBuffer) {
+void FlatTupleIterator::readUnflatColToFlatTuple(uint64_t colIdx, uint8_t* valueBuffer) {
     auto overflowValue =
         (overflow_value_t*)(valueBuffer + factorizedTable.getTableSchema().getColOffset(colIdx));
     auto columnInFactorizedTable = factorizedTable.getTableSchema().getColumn(colIdx);
-    auto tupleSizeInOverflowBuffer = Types::getDataTypeSize(flatTuple.getDataType(colIdx));
+    auto tupleSizeInOverflowBuffer = Types::getDataTypeSize(columnDataTypes[colIdx]);
     valueBuffer =
         overflowValue->value +
         tupleSizeInOverflowBuffer *
             flatTuplePositionsInDataChunk[columnInFactorizedTable.getDataChunkPos()].first;
-    flatTuple.nullMask[colIdx] = FactorizedTable::isNull(
+    iteratorFlatTuple->nullMask[colIdx] = FactorizedTable::isNull(
         overflowValue->value + tupleSizeInOverflowBuffer * overflowValue->numElements,
         flatTuplePositionsInDataChunk[columnInFactorizedTable.getDataChunkPos()].first);
-    if (!flatTuple.nullMask[colIdx]) {
-        readValueBufferToFlatTuple(flatTuple, colIdx, valueBuffer);
+    if (!iteratorFlatTuple->nullMask[colIdx]) {
+        readValueBufferToFlatTuple(colIdx, valueBuffer);
     }
 }
 
-void FlatTupleIterator::readFlatColToFlatTuple(
-    FlatTuple& flatTuple, uint64_t colIdx, uint8_t* valueBuffer) {
-    flatTuple.nullMask[colIdx] = FactorizedTable::isNull(
+void FlatTupleIterator::readFlatColToFlatTuple(uint64_t colIdx, uint8_t* valueBuffer) {
+    iteratorFlatTuple->nullMask[colIdx] = FactorizedTable::isNull(
         valueBuffer + factorizedTable.getTableSchema().getNullMapOffset(), colIdx);
-    if (!flatTuple.nullMask[colIdx]) {
+    if (!iteratorFlatTuple->nullMask[colIdx]) {
         readValueBufferToFlatTuple(
-            flatTuple, colIdx, valueBuffer + factorizedTable.getTableSchema().getColOffset(colIdx));
+            colIdx, valueBuffer + factorizedTable.getTableSchema().getColOffset(colIdx));
     }
 }
 

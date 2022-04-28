@@ -39,7 +39,7 @@ public:
     bool hasNext();
 
     // TODO: this is not efficient and should be replaced by iterator
-    std::unique_ptr<processor::FlatTuple> getNext();
+    std::shared_ptr<processor::FlatTuple> getNext();
 
     inline uint64_t getNumColumns() const { return header->columnDataTypes.size(); }
 
@@ -47,7 +47,9 @@ public:
 
     // TODO: interfaces below should be removed
     // used in shell to walk the result twice (first time getting maximum column width)
-    inline void resetIterator() { iterator = make_unique<FlatTupleIterator>(*factorizedTable); }
+    inline void resetIterator() {
+        iterator = make_unique<FlatTupleIterator>(*factorizedTable, header->columnDataTypes);
+    }
 
     inline uint64_t getNumTuples() {
         return querySummary->getIsExplain() ? 0 : factorizedTable->getTotalNumFlatTuples();
