@@ -61,7 +61,7 @@ struct BinaryOperationExecutor {
     static void executeFlatUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
         auto lPos = left.state->getPositionOfCurrIdx();
         if (left.isNull(lPos)) {
-            right.setAllNull();
+            result.setAllNull();
         } else if (right.hasNoNullsGuarantee()) {
             if (right.state->isUnfiltered()) {
                 for (auto i = 0u; i < right.state->selectedSize; ++i) {
@@ -102,7 +102,7 @@ struct BinaryOperationExecutor {
     static void executeUnFlatFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
         auto rPos = right.state->getPositionOfCurrIdx();
         if (right.isNull(rPos)) {
-            left.setAllNull();
+            result.setAllNull();
         } else if (left.hasNoNullsGuarantee()) {
             if (left.state->isUnfiltered()) {
                 for (auto i = 0u; i < left.state->selectedSize; ++i) {

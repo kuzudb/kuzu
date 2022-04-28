@@ -163,10 +163,12 @@ struct Even {
 };
 
 struct Factorial {
-    template<class T>
-    static inline void operation(T& input, bool isNull, T& result) {
+    static inline void operation(int64_t& input, bool isNull, int64_t& result) {
         assert(!isNull);
-        result = tgamma(input + 1);
+        result = 1;
+        for (int64_t i = 2; i <= input; i++) {
+            result *= i;
+        }
     }
 };
 
@@ -579,107 +581,102 @@ inline void Abs::operation(Value& operand, bool isNull, Value& result) {
 template<>
 inline void Floor::operation(Value& operand, bool isNull, Value& result) {
     ArithmeticOnValues::operation<Floor, floorStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Ceil::operation(Value& operand, bool isNull, Value& result) {
     ArithmeticOnValues::operation<Ceil, ceilStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Sin::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Sin, sinStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Cos::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Cos, cosStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Tan::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Tan, tanStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Cot::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Cot, cotStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Asin::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Asin, asinStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Acos::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Acos, acosStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Atan::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Atan, atanStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Even::operation(Value& operand, bool isNull, int64_t& result) {
     ArithmeticOnValues::operation<Even, evenStr>(operand, isNull, result);
-};
-
-template<>
-inline void Factorial::operation(Value& operand, bool isNull, Value& result) {
-    ArithmeticOnValues::operation<Factorial, factorialStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Sign::operation(Value& operand, bool isNull, int64_t& result) {
     ArithmeticOnValues::operation<Sign, signStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Sqrt::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Sqrt, sqrtStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Cbrt::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Cbrt, cbrtStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Gamma::operation(Value& operand, bool isNull, Value& result) {
     ArithmeticOnValues::operation<Gamma, gammaStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Lgamma::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Lgamma, lgammaStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Ln::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Ln, lnStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Log::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Log, logStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Log2::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Log2, log2Str>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Degrees::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Degrees, degreesStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Radians::operation(Value& operand, bool isNull, double_t& result) {
     ArithmeticOnValues::operation<Radians, radiansStr>(operand, isNull, result);
-};
+}
 
 template<>
 inline void Atan2::operation(
