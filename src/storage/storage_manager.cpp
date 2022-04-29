@@ -13,7 +13,7 @@ StorageManager::StorageManager(const catalog::Catalog& catalog, BufferManager& b
     string directory, bool isInMemoryMode)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, directory{move(directory)},
       isInMemoryMode{isInMemoryMode} {
-    logger->info("Initializing StorageManager.");
+    logger->info("Initializing StorageManager from directory: " + this->directory);
     nodesStore = make_unique<NodesStore>(catalog, bufferManager, this->directory, isInMemoryMode);
     relsStore = make_unique<RelsStore>(catalog, bufferManager, this->directory, isInMemoryMode);
     logger->info("Done.");

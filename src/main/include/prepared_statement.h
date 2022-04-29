@@ -29,6 +29,8 @@ public:
             move(physicalPlan), move(physicalIDToLogicalOperatorMap), move(profiler));
     }
 
+    inline bool isReadOnly() { return physicalPlan->isReadOnly(); }
+
 private:
     bool success = true;
     string errMsg;
