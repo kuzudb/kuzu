@@ -1,5 +1,16 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
+cc_library(
+    name = "api_test_helper",
+    hdrs = [
+        "include/main_test_helper.h",
+    ],
+    deps = [
+        "//src/main:graphflowdb",
+        "//test/test_utility:test_helper",
+    ],
+)
+
 cc_test(
     name = "api_tests",
     srcs = glob([
@@ -12,7 +23,6 @@ cc_test(
         "//dataset",
     ],
     deps = [
-        "//src/main:graphflowdb",
-        "//test/test_utility:test_helper",
+        "api_test_helper",
     ],
 )

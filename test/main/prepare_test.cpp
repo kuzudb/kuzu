@@ -1,11 +1,6 @@
-#include "test/test_utility/include/test_helper.h"
+#include "include/main_test_helper.h"
 
-#include "src/main/include/graphflowdb.h"
-
-using namespace graphflow::testing;
-using namespace graphflow::main;
-
-TEST_F(ApiTest, multi_params_prepare) {
+TEST_F(ApiTest, MultiParamsPrepare) {
     auto preparedStatement = conn->prepare(
         "MATCH (a:person) WHERE a.fName STARTS WITH $n OR a.fName CONTAINS $xx RETURN COUNT(*)");
     auto result = conn->execute(
@@ -16,7 +11,7 @@ TEST_F(ApiTest, multi_params_prepare) {
     ASSERT_FALSE(result->hasNext());
 }
 
-TEST_F(ApiTest, prepare_bool) {
+TEST_F(ApiTest, PrepareBool) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)");
     auto result = conn->execute(preparedStatement.get(), make_pair(string("1"), true));
@@ -26,7 +21,7 @@ TEST_F(ApiTest, prepare_bool) {
     ASSERT_FALSE(result->hasNext());
 }
 
-TEST_F(ApiTest, prepare_int) {
+TEST_F(ApiTest, PrepareInt) {
     auto preparedStatement = conn->prepare("MATCH (a:person) WHERE a.age = 35 RETURN a.age + $1");
     auto result = conn->execute(preparedStatement.get(), make_pair(string("1"), (int64_t)10));
     ASSERT_TRUE(result->hasNext());
@@ -35,7 +30,7 @@ TEST_F(ApiTest, prepare_int) {
     ASSERT_FALSE(result->hasNext());
 }
 
-TEST_F(ApiTest, prepare_double) {
+TEST_F(ApiTest, PrepareDouble) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.age = 35 RETURN a.eyeSight + $1");
     auto result = conn->execute(preparedStatement.get(), make_pair(string("1"), (double_t)10.5));
@@ -45,7 +40,7 @@ TEST_F(ApiTest, prepare_double) {
     ASSERT_FALSE(result->hasNext());
 }
 
-TEST_F(ApiTest, prepare_string) {
+TEST_F(ApiTest, PrepareString) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN COUNT(*)");
     auto result = conn->execute(preparedStatement.get(), make_pair(string("n"), "A"));
@@ -55,7 +50,7 @@ TEST_F(ApiTest, prepare_string) {
     ASSERT_FALSE(result->hasNext());
 }
 
-TEST_F(ApiTest, prepare_date) {
+TEST_F(ApiTest, PrepareDate) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.birthdate = $n RETURN COUNT(*)");
     auto result =
@@ -66,7 +61,7 @@ TEST_F(ApiTest, prepare_date) {
     ASSERT_FALSE(result->hasNext());
 }
 
-TEST_F(ApiTest, prepare_timestamp) {
+TEST_F(ApiTest, PrepareTimestamp) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.registerTime = $n RETURN COUNT(*)");
     auto date = Date::FromDate(2011, 8, 20);
@@ -79,7 +74,7 @@ TEST_F(ApiTest, prepare_timestamp) {
     ASSERT_FALSE(result->hasNext());
 }
 
-TEST_F(ApiTest, prepare_interval) {
+TEST_F(ApiTest, PrepareInterval) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.lastJobDuration = $n RETURN COUNT(*)");
     string intervalStr = "3 years 2 days 13 hours 2 minutes";
@@ -91,7 +86,7 @@ TEST_F(ApiTest, prepare_interval) {
     ASSERT_FALSE(result->hasNext());
 }
 
-TEST_F(ApiTest, default_param) {
+TEST_F(ApiTest, DefaultParam) {
     auto preparedStatement = conn->prepare("MATCH (a:person) WHERE $1 = $2 RETURN COUNT(*)");
     auto result = conn->execute(preparedStatement.get(), make_pair(string("1"), (int64_t)1.4),
         make_pair(string("2"), (int64_t)1.4));
@@ -101,7 +96,7 @@ TEST_F(ApiTest, default_param) {
     ASSERT_FALSE(result->hasNext());
 }
 
-TEST_F(ApiTest, param_not_exist) {
+TEST_F(ApiTest, ParamNotExist) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN COUNT(*)");
     auto result = conn->execute(preparedStatement.get(), make_pair(string("a"), "A"));
@@ -109,7 +104,7 @@ TEST_F(ApiTest, param_not_exist) {
     ASSERT_STREQ("Parameter a not found.", result->getErrorMessage().c_str());
 }
 
-TEST_F(ApiTest, param_type_error) {
+TEST_F(ApiTest, ParamTypeError) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN COUNT(*)");
     auto result = conn->execute(preparedStatement.get(), make_pair(string("n"), (int64_t)36));

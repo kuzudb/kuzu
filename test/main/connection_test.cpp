@@ -1,14 +1,8 @@
 #include <thread>
 
-#include "test/test_utility/include/test_helper.h"
+#include "include/main_test_helper.h"
 
-#include "src/main/include/graphflowdb.h"
-
-using namespace graphflow::testing;
-using namespace graphflow::main;
-using namespace graphflow::transaction;
-
-TEST_F(ApiTest, basic_connect) {
+TEST_F(ApiTest, BasicConnect) {
     ApiTest::assertMatchPersonCountStar(conn.get());
 }
 
@@ -18,7 +12,7 @@ static void parallel_query(Connection* conn) {
     }
 }
 
-TEST_F(ApiTest, parallel_query_single_connect) {
+TEST_F(ApiTest, ParallelQuerySingleConnect) {
     auto numThreads = 20u;
     thread threads[numThreads];
     for (auto i = 0u; i < numThreads; ++i) {
@@ -34,7 +28,7 @@ static void parallel_connect(Database* database) {
     ApiTest::assertMatchPersonCountStar(conn.get());
 }
 
-TEST_F(ApiTest, parallel_connect) {
+TEST_F(ApiTest, ParallelConnect) {
     auto numThreads = 5u;
     thread threads[numThreads];
     for (auto i = 0u; i < numThreads; ++i) {

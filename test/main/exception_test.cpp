@@ -1,11 +1,6 @@
-#include "test/test_utility/include/test_helper.h"
+#include "include/main_test_helper.h"
 
-#include "src/main/include/graphflowdb.h"
-
-using namespace graphflow::testing;
-using namespace graphflow::main;
-
-TEST_F(ApiTest, exception) {
+TEST_F(ApiTest, Exception) {
     unique_ptr<QueryResult> result;
     unique_ptr<PreparedStatement> preparedStatement;
 
