@@ -75,5 +75,15 @@ public:
     explicit RuntimeException(const string& msg) : Exception("Runtime exception: " + msg){};
 };
 
+class ConnectionException : public Exception {
+public:
+    explicit ConnectionException(const string& msg) : Exception(msg){};
+};
+
+class TransactionManagerException : public Exception {
+public:
+    explicit TransactionManagerException(const string& msg) : Exception(msg){};
+};
+
 } // namespace common
 } // namespace graphflow

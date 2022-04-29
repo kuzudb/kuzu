@@ -86,6 +86,14 @@ public:
     }
 
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
+
+    static void assertMatchPersonCountStar(Connection* conn) {
+        auto result = conn->query("MATCH (a:person) RETURN COUNT(*)");
+        ASSERT_TRUE(result->hasNext());
+        auto tuple = result->getNext();
+        ASSERT_EQ(tuple->getValue(0)->val.int64Val, 8);
+        ASSERT_FALSE(result->hasNext());
+    }
 };
 
 } // namespace testing

@@ -6,6 +6,7 @@
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/memory_manager.h"
 #include "src/storage/include/storage_manager.h"
+#include "src/transaction/include/transaction_manager.h"
 
 namespace graphflow {
 namespace main {
@@ -64,6 +65,7 @@ private:
     std::unique_ptr<storage::BufferManager> bufferManager;
     std::unique_ptr<catalog::Catalog> catalog;
     std::unique_ptr<storage::StorageManager> storageManager;
+    std::unique_ptr<transaction::TransactionManager> transactionManager;
 };
 
 } // namespace main

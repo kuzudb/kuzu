@@ -13,6 +13,7 @@ using namespace graphflow::parser;
 using namespace graphflow::binder;
 using namespace graphflow::planner;
 using namespace graphflow::processor;
+using namespace graphflow::transaction;
 
 namespace graphflow {
 namespace main {
@@ -21,13 +22,24 @@ Connection::Connection(Database* database) {
     assert(database != nullptr);
     this->database = database;
     clientContext = make_unique<ClientContext>();
+    transactionMode = AUTO_COMMIT;
+}
+
+Connection::~Connection() {
+    if (activeTransaction) {
+        database->transactionManager->rollback(activeTransaction.get());
+    }
 }
 
 unique_ptr<QueryResult> Connection::query(const string& query) {
+    lock_t lck{mtx};
+    if (isManualModeAndNoActiveTransactionNoLock()) {
+        return queryResultWithErrorForNoActiveTransaction();
+    }
     unique_ptr<PreparedStatement> preparedStatement;
-    preparedStatement = prepare(query);
+    preparedStatement = prepareNoLock(query);
     if (preparedStatement->success) {
-        return execute(preparedStatement.get());
+        return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
     }
     auto queryResult = make_unique<QueryResult>();
     queryResult->success = false;
@@ -35,7 +47,14 @@ unique_ptr<QueryResult> Connection::query(const string& query) {
     return queryResult;
 }
 
-std::unique_ptr<PreparedStatement> Connection::prepare(const std::string& query) {
+unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMsg) {
+    auto queryResult = make_unique<QueryResult>();
+    queryResult->success = false;
+    queryResult->errMsg = errMsg;
+    return queryResult;
+}
+
+std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const std::string& query) {
     auto preparedStatement = make_unique<PreparedStatement>();
     if (query.empty()) {
         throw Exception("Input query is empty.");
@@ -75,12 +94,14 @@ std::unique_ptr<PreparedStatement> Connection::prepare(const std::string& query)
 }
 
 vector<unique_ptr<planner::LogicalPlan>> Connection::enumeratePlans(const string& query) {
+    lock_t lck{mtx};
     auto parsedQuery = Parser::parseQuery(query);
     auto boundQuery = QueryBinder(*database->catalog).bind(*parsedQuery);
     return Planner::getAllPlans(*database->catalog, *boundQuery);
 }
 
 unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalPlan) {
+    lock_t lck{mtx};
     auto profiler = make_unique<Profiler>();
     profiler->resetMetrics();
     profiler->enabled = false;
@@ -102,23 +123,22 @@ std::unique_ptr<QueryResult> Connection::executeWithParams(
     PreparedStatement* preparedStatement, unordered_map<string, shared_ptr<Literal>>& inputParams) {
     auto queryResult = make_unique<QueryResult>();
     if (!preparedStatement->isSuccess()) {
-        queryResult->success = false;
-        queryResult->errMsg = preparedStatement->getErrorMessage();
-        return queryResult;
+        auto errMsg = preparedStatement->getErrorMessage();
+        return queryResultWithError(errMsg);
     }
     try {
-        bindParameters(preparedStatement, inputParams);
+        bindParametersNoLock(preparedStatement, inputParams);
     } catch (Exception& exception) {
         queryResult->success = false;
         queryResult->errMsg = exception.what();
     }
     if (queryResult->success) {
-        return execute(preparedStatement);
+        return executeLock(preparedStatement);
     }
     return queryResult;
 }
 
-void Connection::bindParameters(
+void Connection::bindParametersNoLock(
     PreparedStatement* preparedStatement, unordered_map<string, shared_ptr<Literal>>& inputParams) {
     auto& parameterMap = preparedStatement->parameterMap;
     for (auto& [name, literal] : inputParams) {
@@ -135,9 +155,9 @@ void Connection::bindParameters(
     }
 }
 
-std::unique_ptr<QueryResult> Connection::execute(PreparedStatement* preparedStatement) {
-    auto lck = acquireLock();
-    auto queryResult = make_unique<QueryResult>();
+std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
+    PreparedStatement* preparedStatement) {
+    unique_ptr<QueryResult> queryResult;
     auto querySummary = preparedStatement->querySummary.get();
     // executing if not EXPLAIN
     if (!querySummary->isExplain) {
@@ -146,11 +166,23 @@ std::unique_ptr<QueryResult> Connection::execute(PreparedStatement* preparedStat
         executingTimer.start();
         shared_ptr<FactorizedTable> table;
         try {
+            if (AUTO_COMMIT == transactionMode) {
+                assert(!activeTransaction);
+                // If the caller didn't explicitly start a transaction, we do so now and commit or
+                // rollback here if necessary, i.e., if the given prepared statement has write
+                // operations.
+                beginTransactionNoLock(preparedStatement->isReadOnly() ? READ_ONLY : WRITE);
+            }
             table = database->queryProcessor->execute(
                 preparedStatement->physicalPlan.get(), clientContext->numThreadsForExecution);
+            if (AUTO_COMMIT == transactionMode) {
+                commitNoLock();
+            }
+            queryResult = make_unique<QueryResult>();
         } catch (Exception& exception) {
-            queryResult->success = false;
-            queryResult->errMsg = exception.what();
+            string errMsg = exception.what();
+            queryResult = queryResultWithError(errMsg);
+            rollbackNoLock();
         }
         executingTimer.stop();
         querySummary->executionTime = executingTimer.getElapsedTimeMS();
@@ -168,5 +200,30 @@ std::unique_ptr<QueryResult> Connection::execute(PreparedStatement* preparedStat
     return queryResult;
 }
 
+void Connection::beginTransactionNoLock(TransactionType type) {
+    if (activeTransaction) {
+        throw ConnectionException(
+            "Connection already has an active transaction. Applications can have"
+            " one transaction per connection at any point in time. For concurrent multiple"
+            " transactions, please open other connections. Current active transaction is not"
+            " affected by this exception and can still be used.");
+    }
+    activeTransaction =
+        (type == READ_ONLY ? database->transactionManager->beginReadOnlyTransaction() :
+                             database->transactionManager->beginWriteTransaction());
+}
+
+void Connection::commitOrRollbackNoLock(bool isCommit) {
+    if (activeTransaction) {
+        isCommit ? database->transactionManager->commit(activeTransaction.get()) :
+                   database->transactionManager->rollback(activeTransaction.get());
+        activeTransaction.reset();
+        transactionMode = AUTO_COMMIT;
+    }
+}
+
+void Connection::close() {
+    rollback();
+}
 } // namespace main
 } // namespace graphflow

@@ -1,0 +1,13 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+cc_library(
+    name = "transaction",
+    srcs = glob(["*.cpp"]),
+    hdrs = glob(["include/*.h"]),
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "//src/common:utils",
+    ],
+)

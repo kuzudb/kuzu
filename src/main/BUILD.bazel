@@ -17,5 +17,6 @@ cc_library(
         "//src/planner:enumerator",
         "//src/processor",
         "//src/processor:mapper",
+        "//src/transaction:transaction",
     ],
 )

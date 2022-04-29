@@ -15,6 +15,9 @@ public:
 
     PhysicalPlan(const PhysicalPlan& plan) : lastOperator{plan.lastOperator->clone()} {};
 
+    // TODO (Semih/Xiyang): This will change when CRUD statements/operators are added.
+    bool isReadOnly() { return true; }
+
 public:
     unique_ptr<PhysicalOperator> lastOperator;
 };
