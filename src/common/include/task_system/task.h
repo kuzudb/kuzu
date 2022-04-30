@@ -43,12 +43,17 @@ public:
 
     inline bool isCompletedOrHasException() {
         lock_t lck{mtx};
-        return hasException() || isCompletedNoLock();
+        return hasExceptionNoLock() || isCompletedNoLock();
+    }
+
+    inline bool isCompleted() {
+        lock_t lck{mtx};
+        return isCompletedNoLock();
     }
 
     inline bool isCompletedSuccessfully() {
         lock_t lck{mtx};
-        return isCompletedNoLock() && !hasException();
+        return isCompletedNoLock() && !hasExceptionNoLock();
     }
 
     inline bool isCompletedNoLock() {
@@ -68,7 +73,10 @@ public:
         }
     }
 
-    bool hasException() const { return exceptionsPtr != nullptr; }
+    inline bool hasException() {
+        lock_t lck{mtx};
+        return exceptionsPtr != nullptr;
+    }
 
     std::exception_ptr getExceptionPtr() {
         lock_t lck{mtx};
@@ -79,6 +87,8 @@ private:
     bool canRegisterInternalNoLock() const {
         return 0 == numThreadsFinished && maxNumThreads > numThreadsRegistered;
     }
+
+    inline bool hasExceptionNoLock() const { return exceptionsPtr != nullptr; }
 
 public:
     Task* parent = nullptr;

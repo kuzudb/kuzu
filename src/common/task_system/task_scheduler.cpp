@@ -2,6 +2,8 @@
 
 #include "src/common/include/configs.h"
 
+// TODO(Semih): Remove
+#include <iostream>
 using namespace graphflow::common;
 
 namespace graphflow {
@@ -61,7 +63,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const shared_ptr<Task>& task) {
         scheduleTaskAndWaitOrError(dependency);
     }
     auto scheduledTask = scheduleTask(task);
-    while (!task->isCompletedOrHasException()) {
+    while (!task->isCompleted()) {
         this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
     }
     if (task->hasException()) {
@@ -138,9 +140,10 @@ void TaskScheduler::runWorkerThread() {
             logger->debug(
                 "Thread {} completed task successfully.", ThreadUtils::getThreadIDString());
         } catch (exception& e) {
-            logger->debug("Thread {} caught an exception. Setting the exception of the task.",
+            logger->info("Thread {} caught an exception. Setting the exception of the task.",
                 ThreadUtils::getThreadIDString());
             scheduledTask->task->setException(current_exception());
+            scheduledTask->task->deRegisterThreadAndFinalizeTaskIfNecessary();
             continue;
         }
     }
