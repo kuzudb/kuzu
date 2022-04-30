@@ -54,7 +54,8 @@ public:
     // Schedules the dependencies of the given task and finally the task one after another (so
     // not concurrently), and throws an exception if any of the tasks errors. Regardless of
     // whether or not the given task or one of its dependencies errors, when this function
-    // returns, no task related to the given task will be in the task queue.
+    // returns, no task related to the given task will be in the task queue. Further no worker
+    // thread will be working on the given task.
     void scheduleTaskAndWaitOrError(const shared_ptr<Task>& task);
 
     // If a user, e.g., currently the loader, adds a set of tasks T1, ..., Tk, to the task scheduler
