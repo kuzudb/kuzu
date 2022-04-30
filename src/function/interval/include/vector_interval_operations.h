@@ -70,7 +70,7 @@ struct ToMillisecondsVectorOperation : public VectorIntervalOperations {
 struct ToMicrosecondsVectorOperation : public VectorIntervalOperations {
     static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
         return VectorIntervalOperations::getUnaryIntervalFunctionDefintion<
-            operation::ToMicroseconds>(TO_MICROSECONDS_NAME);
+            operation::ToMicroseconds>(TO_MICROSECONDS_FUNC_NAME);
     }
 };
 

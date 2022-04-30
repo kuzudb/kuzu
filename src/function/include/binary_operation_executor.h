@@ -190,9 +190,11 @@ struct BinaryOperationExecutor {
         } else if (!left.state->isFlat() && right.state->isFlat()) {
             executeUnFlatFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                 left, right, result);
-        } else {
+        } else if (!left.state->isFlat() && !right.state->isFlat()) {
             executeBothUnFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                 left, right, result);
+        } else {
+            assert(false);
         }
     }
 

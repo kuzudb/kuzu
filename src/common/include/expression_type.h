@@ -91,6 +91,11 @@ const string RTRIM_FUNC_NAME = "RTRIM";
 const string LENGTH_FUNC_NAME = "LENGTH";
 const string REPEAT_FUNC_NAME = "REPEAT";
 const string REVERSE_FUNC_NAME = "REVERSE";
+const string LPAD_FUNC_NAME = "LPAD";
+const string RPAD_FUNC_NAME = "RPAD";
+const string SUBSTR_FUNC_NAME = "SUBSTRING";
+const string LEFT_FUNC_NAME = "LEFT";
+const string RIGHT_FUNC_NAME = "RIGHT";
 
 // Date functions.
 const string DAYNAME_FUNC_NAME = "DAYNAME";
@@ -110,7 +115,8 @@ const string TO_HOURS_FUNC_NAME = "TO_HOURS";
 const string TO_MINUTES_FUNC_NAME = "TO_MINUTES";
 const string TO_SECONDS_FUNC_NAME = "TO_SECONDS";
 const string TO_MILLISECONDS_FUNC_NAME = "TO_MILLISECONDS";
-const string TO_MICROSECONDS_NAME = "TO_MICROSECONDS";
+const string TO_MICROSECONDS_FUNC_NAME = "TO_MICROSECONDS";
+const string MAKE_DATE_FUNC_NAME = "MAKE_DATE";
 
 const string ID_FUNC_NAME = "ID";
 

@@ -34,5 +34,9 @@ struct LeastVectorOperation : public VectorDateOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
+struct MakeDateVectorOperation : public VectorDateOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
 } // namespace function
 } // namespace graphflow
