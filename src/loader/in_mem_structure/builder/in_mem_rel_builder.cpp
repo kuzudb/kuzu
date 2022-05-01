@@ -1,5 +1,7 @@
 #include "src/loader/include/in_mem_structure/builder/in_mem_rel_builder.h"
 
+#include "spdlog/spdlog.h"
+
 #include "src/loader/include/loader_task.h"
 
 namespace graphflow {

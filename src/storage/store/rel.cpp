@@ -1,6 +1,7 @@
 #include "src/storage/include/store/rel.h"
 
-#include <iostream>
+#include "spdlog/spdlog.h"
+
 using namespace graphflow::catalog;
 
 namespace graphflow {

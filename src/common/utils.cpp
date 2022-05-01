@@ -3,8 +3,19 @@
 #include <string>
 #include <vector>
 
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
+
 namespace graphflow {
 namespace common {
+
+shared_ptr<spdlog::logger> LoggerUtils::getOrCreateSpdLogger(const string& loggerName) {
+    shared_ptr<spdlog::logger> logger = spdlog::get(loggerName);
+    if (!logger) {
+        logger = spdlog::stdout_logger_mt(loggerName);
+    }
+    return logger;
+}
 
 vector<string> StringUtils::split(const string& input, const string& delimiter) {
     auto result = vector<string>();

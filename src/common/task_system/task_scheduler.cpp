@@ -1,9 +1,9 @@
 #include "src/common/include/task_system/task_scheduler.h"
 
+#include "spdlog/spdlog.h"
+
 #include "src/common/include/configs.h"
 
-// TODO(Semih): Remove
-#include <iostream>
 using namespace graphflow::common;
 
 namespace graphflow {

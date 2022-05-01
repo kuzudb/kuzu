@@ -5,10 +5,12 @@
 
 #include "exception.h"
 #include "robin_hood.h"
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
 
 using namespace std;
+
+namespace spdlog {
+class logger;
+}
 
 namespace graphflow {
 namespace common {
@@ -26,13 +28,7 @@ struct charArrayHasher {
 class LoggerUtils {
 
 public:
-    static shared_ptr<spdlog::logger> getOrCreateSpdLogger(const string& loggerName) {
-        shared_ptr<spdlog::logger> logger = spdlog::get(loggerName);
-        if (!logger) {
-            logger = spdlog::stdout_logger_mt(loggerName);
-        }
-        return logger;
-    }
+    static shared_ptr<spdlog::logger> getOrCreateSpdLogger(const string& loggerName);
 };
 
 class StringUtils {

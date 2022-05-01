@@ -1,5 +1,7 @@
 #include "src/storage/include/storage_structure/lists/lists_metadata.h"
 
+#include "spdlog/spdlog.h"
+
 #include "src/common/include/utils.h"
 #include "src/storage/include/storage_utils.h"
 

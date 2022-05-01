@@ -1,5 +1,7 @@
 #include "src/loader/include/in_mem_structure/builder/in_mem_node_builder.h"
 
+#include "spdlog/spdlog.h"
+
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/loader/include/loader_task.h"
 #include "src/storage/include/storage_structure/lists/unstructured_property_lists.h"
