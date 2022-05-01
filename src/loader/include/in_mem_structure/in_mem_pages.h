@@ -40,20 +40,25 @@ public:
 
     ~InMemOverflowPages() override = default;
 
-    gf_string_t addString(const char* originalString, PageByteCursor& cursor);
-    gf_list_t addList(const Literal& listVal, PageByteCursor& cursor);
-    void copyStringOverflow(PageByteCursor& cursor, uint8_t* ptrToCopy, gf_string_t* encodedString);
-    void copyListOverflow(PageByteCursor& cursor, uint8_t* ptrToCopy,
-        InMemOverflowPages* overflowPagesToCopy, gf_list_t* encodedList, DataType* childDataType);
+    gf_string_t addString(const char* rawString, PageByteCursor& overflowCursor);
+    gf_list_t addList(const Literal& listLiteral, PageByteCursor& overflowCursor);
+    // Copy overflow data at srcOverflow into dstGFString.
+    void copyStringOverflow(
+        PageByteCursor& overflowCursor, uint8_t* srcOverflow, gf_string_t* dstGFString);
+    void copyListOverflow(InMemOverflowPages* srcOverflowPages,
+        const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
+        gf_list_t* dstGFList, DataType* listChildDataType);
 
     void saveToFile() override;
 
 private:
     uint32_t getNewOverflowPageIdx();
 
+    void copyFixedSizedValuesToPages(
+        const Literal& listVal, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
     template<DataTypeID DT>
-    void copyOverflowValuesToPages(gf_list_t& result, const Literal& listVal,
-        PageByteCursor& cursor, uint64_t numBytesOfSingleValue);
+    void copyVarSizedValuesToPages(gf_list_t& resultGFList, const Literal& listVal,
+        PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
 
 private:
     std::shared_mutex lock;

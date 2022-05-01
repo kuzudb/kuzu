@@ -30,12 +30,14 @@ void InMemPage::write(uint32_t pageOffset, uint32_t posInPage, const uint8_t* va
     }
 }
 
-void InMemPage::write(
+uint8_t* InMemPage::write(
     uint32_t pageOffset, uint32_t posInPage, const uint8_t* value, uint32_t numBytesForValue) {
-    memcpy(getPtrToMemLoc(pageOffset), value, numBytesForValue);
+    auto writePtr = getPtrToMemLoc(pageOffset);
+    memcpy(writePtr, value, numBytesForValue);
     if (uncompressedNULLs) {
         uncompressedNULLs[posInPage] = false;
     }
+    return writePtr;
 }
 
 // We hold isNULL value of each element in in_mem_pages in a boolean array. This is packed together
