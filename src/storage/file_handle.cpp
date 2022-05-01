@@ -1,5 +1,7 @@
 #include "src/storage/include/file_handle.h"
 
+#include "spdlog/spdlog.h"
+
 #include "src/common/include/file_utils.h"
 #include "src/common/include/utils.h"
 

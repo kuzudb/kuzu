@@ -1,5 +1,7 @@
 #include "src/storage/include/buffer_manager.h"
 
+#include "spdlog/spdlog.h"
+
 #include "src/common/include/configs.h"
 #include "src/common/include/exception.h"
 #include "src/common/include/utils.h"

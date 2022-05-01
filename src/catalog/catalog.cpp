@@ -1,5 +1,7 @@
 #include "include/catalog.h"
 
+#include "spdlog/spdlog.h"
+
 using namespace std;
 using namespace graphflow::catalog;
 

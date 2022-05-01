@@ -1,4 +1,6 @@
 
+#include "spdlog/spdlog.h"
+
 #include "src/common/include/configs.h"
 #include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
