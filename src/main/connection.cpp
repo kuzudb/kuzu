@@ -93,6 +93,80 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const std::string& 
     return preparedStatement;
 }
 
+string Connection::getBuiltInScalarFunctionNames() {
+    lock_t lck{mtx};
+    string result = "Built-in scalar functions: \n";
+    for (auto& functionName : database->catalog->getBuiltInScalarFunctions()->getFunctionNames()) {
+        result += functionName + "\n";
+    }
+    return result;
+}
+
+string Connection::getBuiltInAggregateFunctionNames() {
+    lock_t lck{mtx};
+    string result = "Built-in aggregate functions: \n";
+    for (auto& functionName :
+        database->catalog->getBuiltInAggregateFunction()->getFunctionNames()) {
+        result += functionName + "\n";
+    }
+    return result;
+}
+
+string Connection::getNodeLabelNames() {
+    lock_t lck{mtx};
+    string result = "Node labels: \n";
+    for (auto i = 0u; i < database->catalog->getNumNodeLabels(); ++i) {
+        result += "\t" + database->catalog->getNodeLabelName(i) + "\n";
+    }
+    return result;
+}
+
+string Connection::getRelLabelNames() {
+    lock_t lck{mtx};
+    string result = "Rel labels: \n";
+    for (auto i = 0u; i < database->catalog->getNumRelLabels(); ++i) {
+        result += "\t" + database->catalog->getRelLabelName(i) + "\n";
+    }
+    return result;
+}
+
+string Connection::getNodePropertyNames(const string& nodeLabelName) {
+    lock_t lck{mtx};
+    auto catalog = database->catalog.get();
+    if (!catalog->containNodeLabel(nodeLabelName)) {
+        throw Exception("Cannot find node label " + nodeLabelName);
+    }
+    string result = nodeLabelName + " properties: \n";
+    auto labelId = catalog->getNodeLabelFromName(nodeLabelName);
+    for (auto& property : catalog->getAllNodeProperties(labelId)) {
+        result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType);
+        result += property.isPrimaryKey ? "(PRIMARY)\n" : "\n";
+    }
+    return result;
+}
+
+string Connection::getRelPropertyNames(const string& relLabelName) {
+    lock_t lck{mtx};
+    auto catalog = database->catalog.get();
+    if (!catalog->containRelLabel(relLabelName)) {
+        throw Exception("Cannot find rel label " + relLabelName);
+    }
+    auto labelId = catalog->getRelLabelFromName(relLabelName);
+    string result = relLabelName + " src nodes: \n";
+    for (auto& nodeLabelId : catalog->getNodeLabelsForRelLabelDirection(labelId, FWD)) {
+        result += "\t" + catalog->getNodeLabelName(nodeLabelId) + "\n";
+    }
+    result += relLabelName + " dst nodes: \n";
+    for (auto& nodeLabelId : catalog->getNodeLabelsForRelLabelDirection(labelId, BWD)) {
+        result += "\t" + catalog->getNodeLabelName(nodeLabelId) + "\n";
+    }
+    result += relLabelName + " properties: \n";
+    for (auto& property : catalog->getRelProperties(labelId)) {
+        result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType) + "\n";
+    }
+    return result;
+}
+
 vector<unique_ptr<planner::LogicalPlan>> Connection::enumeratePlans(const string& query) {
     lock_t lck{mtx};
     auto parsedQuery = Parser::parseQuery(query);
@@ -195,6 +269,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         return queryResult;
     }
     // create printable plan and return if EXPLAIN
+    queryResult = make_unique<QueryResult>();
     preparedStatement->createPlanPrinter();
     queryResult->querySummary = move(preparedStatement->querySummary);
     return queryResult;
@@ -222,8 +297,5 @@ void Connection::commitOrRollbackNoLock(bool isCommit) {
     }
 }
 
-void Connection::close() {
-    rollback();
-}
 } // namespace main
 } // namespace graphflow

@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cctype>
 #include <regex>
-#include <sstream>
 
 #include "src/common/include/type_utils.h"
 
@@ -19,10 +18,14 @@ struct ShellCommand {
     const string QUIT = ":quit";
     const string THREAD = ":thread";
     const string BUFFER_MANAGER_SIZE = ":buffer_manager_size";
-    const string SYSTEM_DEBUG_INFO = ":system_debug_info";
     const string BUFFER_MANAGER_DEBUG_INFO = ":bm_debug_info";
+    const string BUILT_IN_FUNCTIONS = ":functions";
+    const string LIST_NODES = ":list_nodes";
+    const string LIST_RELS = ":list_rels";
+    const string SHOW_NODE = ":show_node";
+    const string SHOW_REL = ":show_rel";
     const vector<string> commandList = {HELP, CLEAR, QUIT, THREAD, BUFFER_MANAGER_SIZE,
-        SYSTEM_DEBUG_INFO, BUFFER_MANAGER_DEBUG_INFO};
+        BUFFER_MANAGER_DEBUG_INFO, BUILT_IN_FUNCTIONS, LIST_NODES, LIST_RELS, SHOW_NODE, SHOW_REL};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -129,22 +132,22 @@ void EmbeddedShell::run() {
             free(line);
             break;
         } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
-            try {
-                auto numThreads = stoi(lineStr.substr(shellCommand.THREAD.length()));
-                conn->setMaxNumThreadForExec(numThreads);
-                printf("numThreads set as %d\n", numThreads);
-            } catch (exception& e) { printf("%s\n", e.what()); }
-
+            setNumThreads(lineStr.substr(shellCommand.THREAD.length()));
         } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_SIZE) == 0) {
-            try {
-                auto newPageSize =
-                    stoull(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length()));
-                database->resizeBufferManager(newPageSize);
-            } catch (exception& e) { printf("%s\n", e.what()); }
-
+            setBufferMangerSize(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length()));
         } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_DEBUG_INFO) == 0) {
             printf("Buffer Manager Debug Info: \n %s \n",
                 database->getBufferManager()->debugInfo()->dump(4).c_str());
+        } else if (lineStr.rfind(shellCommand.BUILT_IN_FUNCTIONS) == 0) {
+            printf("%s", conn->getBuiltInFunctionNames().c_str());
+        } else if (lineStr.rfind(shellCommand.LIST_NODES) == 0) {
+            printf("%s", conn->getNodeLabelNames().c_str());
+        } else if (lineStr.rfind(shellCommand.LIST_RELS) == 0) {
+            printf("%s", conn->getRelLabelNames().c_str());
+        } else if (lineStr.rfind(shellCommand.SHOW_NODE) == 0) {
+            printNodeSchema(lineStr.substr(shellCommand.SHOW_NODE.length()));
+        } else if (lineStr.rfind(shellCommand.SHOW_REL) == 0) {
+            printRelSchema(lineStr.substr(shellCommand.SHOW_REL.length()));
         } else {
             auto queryResult = conn->query(lineStr);
             if (queryResult->isSuccess()) {
@@ -159,13 +162,67 @@ void EmbeddedShell::run() {
     }
 }
 
+void EmbeddedShell::setNumThreads(const string& numThreadsString) {
+    auto numThreads = 0;
+    try {
+        numThreads = stoi(numThreadsString);
+    } catch (std::exception& e) {
+        printf(
+            "Cannot parse '%s' as number of threads. Expect integer.\n", numThreadsString.c_str());
+    }
+    try {
+        conn->setMaxNumThreadForExec(numThreads);
+        printf("numThreads set as %d\n", numThreads);
+    } catch (Exception& e) { printf("%s", e.what()); }
+}
+
+void EmbeddedShell::setBufferMangerSize(const string& bufferManagerSizeString) {
+    auto newPageSize = 0;
+    try {
+        newPageSize = stoull(bufferManagerSizeString);
+    } catch (std::exception& e) {
+        printf("Cannot parse '%s' as buffer manager size. Expect integer.\n", e.what());
+    }
+    try {
+        database->resizeBufferManager(newPageSize);
+    } catch (Exception& e) { printf("%s", e.what()); }
+}
+
+static inline string ltrim(const string& input) {
+    auto s = input;
+    s.erase(s.begin(), find_if(s.begin(), s.end(), [](unsigned char ch) { return !isspace(ch); }));
+    return s;
+}
+
+void EmbeddedShell::printNodeSchema(const string& nodeLabelName) {
+    auto name = ltrim(nodeLabelName);
+    try {
+        printf("%s\n", conn->getNodePropertyNames(name).c_str());
+    } catch (Exception& e) { printf("%s\n", e.what()); }
+}
+
+void EmbeddedShell::printRelSchema(const string& relLabelName) {
+    auto name = ltrim(relLabelName);
+    try {
+        printf("%s\n", conn->getRelPropertyNames(name).c_str());
+    } catch (Exception& e) { printf("%s\n", e.what()); }
+}
+
 void EmbeddedShell::printHelp() {
-    printf("%s:help %sget command list\n", TAB, TAB);
-    printf("%s:clear %sclear shell\n", TAB, TAB);
-    printf("%s:quit %sexit from shell\n", TAB, TAB);
-    printf("%s:thread [thread] %snumber of threads for execution\n", TAB, TAB);
-    printf("%s:bm_debug_info %sdebug information about the buffer manager\n", TAB, TAB);
-    printf("%s:system_debug_info %sdebug information about the system\n", TAB, TAB);
+    printf("%s%s %sget command list\n", TAB, shellCommand.HELP.c_str(), TAB);
+    printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR.c_str(), TAB);
+    printf("%s%s %sexit from shell\n", TAB, shellCommand.QUIT.c_str(), TAB);
+    printf("%s%s [num_threads] %sset number of threads for execution\n", TAB,
+        shellCommand.THREAD.c_str(), TAB);
+    printf("%s%s [buffer_manager_size] %sset buffer manager size\n", TAB,
+        shellCommand.BUFFER_MANAGER_SIZE.c_str(), TAB);
+    printf("%s%s %sdebug information about the buffer manager\n", TAB,
+        shellCommand.BUFFER_MANAGER_DEBUG_INFO.c_str(), TAB);
+    printf("%s%s %slist built-in functions\n", TAB, shellCommand.BUILT_IN_FUNCTIONS.c_str(), TAB);
+    printf("%s%s %slist all node labels\n", TAB, shellCommand.LIST_NODES.c_str(), TAB);
+    printf("%s%s %slist all rel labels\n", TAB, shellCommand.LIST_RELS.c_str(), TAB);
+    printf("%s%s %s[label_name] show node schema\n", TAB, shellCommand.SHOW_NODE.c_str(), TAB);
+    printf("%s%s %s[label_name] show rel schema\n", TAB, shellCommand.SHOW_REL.c_str(), TAB);
 }
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
@@ -191,7 +248,6 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 colsWidth[i] = (fieldLen > colsWidth[i]) ? fieldLen : colsWidth[i];
             }
         }
-
         for (auto width : colsWidth) {
             lineSeparatorLen += width;
         }

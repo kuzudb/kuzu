@@ -19,6 +19,14 @@ AggregateFunctionDefinition* BuiltInAggregateFunctions::matchFunction(
     return candidateFunctions[0];
 }
 
+vector<string> BuiltInAggregateFunctions::getFunctionNames() {
+    vector<string> result;
+    for (auto& [functionName, definitions] : aggregateFunctions) {
+        result.push_back(functionName);
+    }
+    return result;
+}
+
 uint32_t BuiltInAggregateFunctions::getFunctionCost(
     const vector<DataType>& inputTypes, bool isDistinct, AggregateFunctionDefinition* function) {
     if (inputTypes.size() != function->parameterTypeIDs.size() ||

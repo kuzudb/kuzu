@@ -15,6 +15,8 @@ public:
     AggregateFunctionDefinition* matchFunction(
         const string& name, const vector<DataType>& inputTypes, bool isDistinct);
 
+    vector<string> getFunctionNames();
+
 private:
     uint32_t getFunctionCost(
         const vector<DataType>& inputTypes, bool isDistinct, AggregateFunctionDefinition* function);
