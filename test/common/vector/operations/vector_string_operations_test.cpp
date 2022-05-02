@@ -27,7 +27,7 @@ TEST_F(StringArithmeticOperandsInSameDataChunkTest, StringTest) {
     }
 
     BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, gf_string_t, operation::Concat,
-        BinaryStringOperationWrapper>(*lVector, *rVector, *result);
+        BinaryStringAndListOperationWrapper>(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].getAsString(), to_string(i) + to_string(110 - i));
     }
@@ -44,7 +44,7 @@ TEST_F(StringArithmeticOperandsInSameDataChunkTest, BigStringTest) {
     }
 
     BinaryOperationExecutor::executeSwitch<gf_string_t, gf_string_t, gf_string_t, operation::Concat,
-        BinaryStringOperationWrapper>(*lVector, *rVector, *result);
+        BinaryStringAndListOperationWrapper>(*lVector, *rVector, *result);
     for (int i = 0; i < NUM_TUPLES; i++) {
         ASSERT_EQ(resultData[i].getAsString(),
             to_string(i) + "abcdefabcdefqwert" + to_string(110 - i) + "abcdefabcdefqwert");

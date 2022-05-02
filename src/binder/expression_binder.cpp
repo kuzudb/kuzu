@@ -182,9 +182,12 @@ shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
             function->isVarLength ? function->parameterTypeIDs[0] : function->parameterTypeIDs[i];
         childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
     }
-    auto returnType = function->returnTypeID == LIST ?
-                          DataType(LIST, make_unique<DataType>(childrenAfterCast[0]->dataType)) :
-                          DataType(function->returnTypeID);
+    DataType returnType;
+    if (function->bindFunc) {
+        function->bindFunc(childrenTypes, function, returnType);
+    } else {
+        returnType = DataType(function->returnTypeID);
+    }
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(FUNCTION, returnType, move(childrenAfterCast),
@@ -296,10 +299,10 @@ shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
 
 shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     const shared_ptr<Expression>& expression, DataTypeID targetTypeID) {
-    if (expression->dataType.typeID == targetTypeID) {
+    if (expression->dataType.typeID == targetTypeID || targetTypeID == ANY) {
         return expression;
     }
-    if (expression->dataType.typeID == INVALID) { // resolve type for parameter expression
+    if (expression->dataType.typeID == ANY) { // resolve type for parameter expression
         assert(expression->expressionType == PARAMETER);
         static_pointer_cast<ParameterExpression>(expression)->setDataType(DataType(targetTypeID));
         return expression;

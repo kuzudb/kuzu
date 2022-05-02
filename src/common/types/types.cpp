@@ -18,10 +18,20 @@ DataType::DataType(const DataType& other) : typeID{other.typeID} {
 
 DataType& DataType::operator=(const DataType& other) {
     typeID = other.typeID;
-    if (childType) {
+    if (other.childType) {
         childType = other.childType->copy();
     }
     return *this;
+}
+
+bool DataType::operator==(const DataType& other) const {
+    if (typeID != other.typeID) {
+        return false;
+    }
+    if (typeID == LIST && *childType != *other.childType) {
+        return false;
+    }
+    return true;
 }
 
 unique_ptr<DataType> DataType::copy() {

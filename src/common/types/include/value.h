@@ -12,7 +12,7 @@ namespace common {
 
 class Value {
 public:
-    Value() : dataType{INVALID} {};
+    Value() : dataType{ANY} {};
 
     Value(const Value& value) { *this = value; }
 

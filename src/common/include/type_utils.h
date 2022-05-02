@@ -68,6 +68,18 @@ public:
     static void copyListRecursiveIfNested(const gf_list_t& src, gf_list_t& dest,
         const DataType& dataType, OverflowBuffer& overflowBuffer);
 
+    template<typename T>
+    static inline void setListElement(gf_list_t& result, uint64_t elementPos, T& element,
+        const DataType& dataType, OverflowBuffer& overflowBuffer) {
+        reinterpret_cast<T*>(result.overflowPtr)[elementPos] = element;
+    }
+
+    template<typename T>
+    static inline bool isValueEqual(
+        T& left, T& right, const DataType& leftDataType, const DataType& rightDataType) {
+        return left == right;
+    }
+
 private:
     static string elementToString(const DataType& dataType, uint8_t* overflowPtr, uint64_t pos);
     static inline void allocateSpaceForList(
@@ -80,6 +92,96 @@ private:
         const char* data, const char* eptr, DataTypeID dataTypeID);
     static string prefixConversionExceptionMessage(const char* data, DataTypeID dataTypeID);
 };
+
+template<>
+inline void TypeUtils::setListElement(gf_list_t& result, uint64_t elementPos, gf_string_t& element,
+    const DataType& dataType, OverflowBuffer& overflowBuffer) {
+    gf_string_t elementToAppend;
+    TypeUtils::copyString(element, elementToAppend, overflowBuffer);
+    reinterpret_cast<gf_string_t*>(result.overflowPtr)[elementPos] = elementToAppend;
+}
+
+template<>
+inline void TypeUtils::setListElement(gf_list_t& result, uint64_t elementPos, gf_list_t& element,
+    const DataType& dataType, OverflowBuffer& overflowBuffer) {
+    gf_list_t elementToAppend;
+    TypeUtils::copyListRecursiveIfNested(
+        element, elementToAppend, *dataType.childType, overflowBuffer);
+    reinterpret_cast<gf_list_t*>(result.overflowPtr)[elementPos] = elementToAppend;
+}
+
+template<>
+inline bool TypeUtils::isValueEqual(gf_list_t& left, gf_list_t& right, const DataType& leftDataType,
+    const DataType& rightDataType) {
+    if (leftDataType != rightDataType) {
+        return false;
+    }
+
+    for (auto i = 0u; i < left.size; i++) {
+        switch (leftDataType.childType->typeID) {
+        case BOOL: {
+            if (!isValueEqual(reinterpret_cast<uint8_t*>(left.overflowPtr)[i],
+                    reinterpret_cast<uint8_t*>(right.overflowPtr)[i], *leftDataType.childType,
+                    *rightDataType.childType)) {
+                return false;
+            }
+        } break;
+        case INT64: {
+            if (!isValueEqual(reinterpret_cast<int64_t*>(left.overflowPtr)[i],
+                    reinterpret_cast<int64_t*>(right.overflowPtr)[i], *leftDataType.childType,
+                    *rightDataType.childType)) {
+                return false;
+            }
+        } break;
+        case DOUBLE: {
+            if (!isValueEqual(reinterpret_cast<double_t*>(left.overflowPtr)[i],
+                    reinterpret_cast<double_t*>(right.overflowPtr)[i], *leftDataType.childType,
+                    *rightDataType.childType)) {
+                return false;
+            }
+        } break;
+        case STRING: {
+            if (!isValueEqual(reinterpret_cast<gf_string_t*>(left.overflowPtr)[i],
+                    reinterpret_cast<gf_string_t*>(right.overflowPtr)[i], *leftDataType.childType,
+                    *rightDataType.childType)) {
+                return false;
+            }
+        } break;
+        case DATE: {
+            if (!isValueEqual(reinterpret_cast<date_t*>(left.overflowPtr)[i],
+                    reinterpret_cast<date_t*>(right.overflowPtr)[i], *leftDataType.childType,
+                    *rightDataType.childType)) {
+                return false;
+            }
+        } break;
+        case TIMESTAMP: {
+            if (!isValueEqual(reinterpret_cast<timestamp_t*>(left.overflowPtr)[i],
+                    reinterpret_cast<timestamp_t*>(right.overflowPtr)[i], *leftDataType.childType,
+                    *rightDataType.childType)) {
+                return false;
+            }
+        } break;
+        case INTERVAL: {
+            if (!isValueEqual(reinterpret_cast<interval_t*>(left.overflowPtr)[i],
+                    reinterpret_cast<interval_t*>(right.overflowPtr)[i], *leftDataType.childType,
+                    *rightDataType.childType)) {
+                return false;
+            }
+        } break;
+        case LIST: {
+            if (!isValueEqual(reinterpret_cast<gf_list_t*>(left.overflowPtr)[i],
+                    reinterpret_cast<gf_list_t*>(right.overflowPtr)[i], *leftDataType.childType,
+                    *rightDataType.childType)) {
+                return false;
+            }
+        } break;
+        default: {
+            assert(false);
+        }
+        }
+    }
+    return true;
+}
 
 } // namespace common
 } // namespace graphflow

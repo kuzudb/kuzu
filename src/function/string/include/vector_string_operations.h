@@ -25,7 +25,7 @@ struct VectorStringOperations : public VectorOperations {
     static void BinaryStringExecFunction(
         const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
         assert(params.size() == 2);
-        BinaryOperationExecutor::executeString<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
+        BinaryOperationExecutor::executeStringAndList<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], result);
     }
 
@@ -40,9 +40,9 @@ struct VectorStringOperations : public VectorOperations {
     static inline vector<unique_ptr<VectorOperationDefinition>> getUnaryStrFunctionDefintion(
         string funcName) {
         vector<unique_ptr<VectorOperationDefinition>> definitions;
-        auto execFunc = UnaryStringExecFunction<gf_string_t, gf_string_t, OPERATION>;
-        definitions.emplace_back(make_unique<VectorOperationDefinition>(
-            funcName, vector<DataTypeID>{STRING}, STRING, execFunc, false /* isVarLength */));
+        definitions.emplace_back(make_unique<VectorOperationDefinition>(funcName,
+            vector<DataTypeID>{STRING}, STRING,
+            UnaryStringExecFunction<gf_string_t, gf_string_t, OPERATION>, false /* isVarLength */));
         return definitions;
     }
 };

@@ -12,7 +12,7 @@ namespace function {
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getCountStarFunction() {
     return make_unique<AggregateFunction>(CountStarFunction::initialize, CountStarFunction::update,
         CountStarFunction::combine, CountStarFunction::finalize,
-        DataType(INVALID) /* dummy input data type */);
+        DataType(ANY) /* dummy input data type */);
 }
 
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getCountFunction(

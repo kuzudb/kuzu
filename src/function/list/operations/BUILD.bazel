@@ -1,5 +1,5 @@
 cc_library(
-    name = "vector_list_operations",
+    name = "list_operations",
     srcs = glob([
         "*.cpp",
     ]),
@@ -10,7 +10,6 @@ cc_library(
         "//src/function:__subpackages__",
     ],
     deps = [
-        "//src/function",
-        "//src/function/list/operations:list_operations",
+        "//src/common/types",
     ],
 )
