@@ -48,16 +48,23 @@ public:
         headers[offset] = header;
     }
 
-    static inline bool isALargeList(const uint32_t& header) { return header & 0x80000000; };
+    static inline bool isALargeList(uint32_t header) { return header & 0x80000000; };
 
     // For small lists.
-    static inline uint32_t getSmallListLen(const uint32_t& header) { return header & 0x7ff; };
-    static inline uint32_t getSmallListCSROffset(const uint32_t& header) {
+    static inline uint32_t getSmallListLen(uint32_t header) { return header & 0x7ff; };
+    static inline uint32_t getSmallListCSROffset(uint32_t header) {
         return header >> 11 & 0xfffff;
     };
+    static inline uint32_t getSmallListHeader(uint32_t csrOffset, uint32_t numElementsInList) {
+        return ((csrOffset & 0xfffff) << 11) + (numElementsInList & 0x7ff);
+    }
 
     // For large lists.
-    static inline uint32_t getLargeListIdx(const uint32_t& header) { return header & 0x7fffffff; };
+    static inline uint32_t getLargeListIdx(uint32_t header) { return header & 0x7fffffff; };
+    static inline uint32_t getLargeListHeader(uint32_t listIdx) {
+        return 0x80000000 + (listIdx & 0x7fffffff);
+    }
+
     void saveToDisk(const string& fName);
 
 private:

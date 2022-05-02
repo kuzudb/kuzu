@@ -18,7 +18,7 @@ public:
     // Writes to pages and also unsets NULL bit
     void write(uint32_t pageOffset, uint32_t posInPage, const uint8_t* value1,
         uint32_t numBytesForValue1, const uint8_t* value2, uint32_t numBytesForValue2);
-    void write(
+    uint8_t* write(
         uint32_t pageOffset, uint32_t posInPage, const uint8_t* value, uint32_t numBytesForValue);
 
     inline uint8_t* getPtrToMemLoc(uint32_t pageOffset) const { return data + pageOffset; }

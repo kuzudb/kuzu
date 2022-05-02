@@ -99,9 +99,9 @@ void InMemStructuresBuilder::calculateListHeadersTask(node_offset_t numNodes, ui
             auto numElementsInList = (*listSizes)[nodeOffset].load(memory_order_relaxed);
             uint32_t header;
             if (numElementsInList >= numElementsPerPage) {
-                header = 0x80000000 + (lAdjListsIdx++ & 0x7fffffff);
+                header = ListHeaders::getLargeListHeader(lAdjListsIdx++);
             } else {
-                header = ((csrOffset & 0xfffff) << 11) + (numElementsInList & 0x7ff);
+                header = ListHeaders::getSmallListHeader(csrOffset, numElementsInList);
                 csrOffset += numElementsInList;
             }
             listHeaders->setHeader(nodeOffset, header);

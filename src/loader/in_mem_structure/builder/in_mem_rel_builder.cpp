@@ -504,7 +504,7 @@ void InMemRelBuilder::populateAdjAndPropertyListsTask(uint64_t blockId, InMemRel
 static void copyStringOverflowFromUnorderedToOrderedPages(gf_string_t* gfStr,
     PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
     InMemOverflowPages* unorderedOverflowPages, InMemOverflowPages* orderedOverflowPages) {
-    if (gfStr->len > gf_string_t::SHORT_STR_LENGTH && 0xffffffff != gfStr->len) {
+    if (gfStr->len > gf_string_t::SHORT_STR_LENGTH) {
         TypeUtils::decodeOverflowPtr(
             gfStr->overflowPtr, unorderedOverflowCursor.idx, unorderedOverflowCursor.offset);
         orderedOverflowPages->copyStringOverflow(orderedOverflowCursor,
@@ -519,10 +519,8 @@ static void copyListOverflowFromUnorderedToOrderedPages(gf_list_t* gfList, const
     InMemOverflowPages* unorderedOverflowPages, InMemOverflowPages* orderedOverflowPages) {
     TypeUtils::decodeOverflowPtr(
         gfList->overflowPtr, unorderedOverflowCursor.idx, unorderedOverflowCursor.offset);
-    orderedOverflowPages->copyListOverflow(orderedOverflowCursor,
-        unorderedOverflowPages->pages[unorderedOverflowCursor.idx]->data +
-            unorderedOverflowCursor.offset,
-        unorderedOverflowPages, gfList, dataType.childType.get());
+    orderedOverflowPages->copyListOverflow(unorderedOverflowPages, unorderedOverflowCursor,
+        orderedOverflowCursor, gfList, dataType.childType.get());
 }
 
 void InMemRelBuilder::sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
@@ -554,10 +552,10 @@ void InMemRelBuilder::sortOverflowValuesOfPropertyListsTask(const DataType& data
     PageElementCursor propertyListCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
         auto header = adjLists->getListHeaders()->getHeader(offsetStart);
-        uint32_t listsLen =
-            ListHeaders::isALargeList(header) ?
-                propertyLists->getListsMetadata()->getNumElementsInLargeLists(header & 0x7fffffff) :
-                ListHeaders::getSmallListLen(header);
+        uint32_t listsLen = ListHeaders::isALargeList(header) ?
+                                propertyLists->getListsMetadata()->getNumElementsInLargeLists(
+                                    ListHeaders::getLargeListIdx(header)) :
+                                ListHeaders::getSmallListLen(header);
         for (auto pos = listsLen; pos > 0; pos--) {
             propertyListCursor = InMemListsUtils::calcPageElementCursor(header, pos,
                 Types::getDataTypeSize(dataType), offsetStart, *propertyLists->getListsMetadata(),

@@ -9,8 +9,6 @@ namespace common {
 
 struct gf_string_t {
 
-    static constexpr char EMPTY_STRING = 0;
-
     static const uint64_t PREFIX_LENGTH = 4;
     static const uint64_t STR_LENGTH_PLUS_PREFIX_LENGTH = sizeof(uint32_t) + PREFIX_LENGTH;
     static const uint64_t INLINED_SUFFIX_LENGTH = 8;
