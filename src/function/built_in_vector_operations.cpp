@@ -209,6 +209,7 @@ void BuiltInVectorOperations::registerArithmeticOperations() {
     vectorOperations.insert({ABS_FUNC_NAME, AbsVectorOperation::getDefinitions()});
     vectorOperations.insert({FLOOR_FUNC_NAME, FloorVectorOperation::getDefinitions()});
     vectorOperations.insert({CEIL_FUNC_NAME, CeilVectorOperation::getDefinitions()});
+    vectorOperations.insert({CEILING_FUNC_NAME, CeilVectorOperation::getDefinitions()});
 
     vectorOperations.insert({SIN_FUNC_NAME, SinVectorOperation::getDefinitions()});
     vectorOperations.insert({COS_FUNC_NAME, CosVectorOperation::getDefinitions()});
@@ -233,6 +234,7 @@ void BuiltInVectorOperations::registerArithmeticOperations() {
     vectorOperations.insert({ATAN2_FUNC_NAME, Atan2VectorOperation::getDefinitions()});
     vectorOperations.insert({ROUND_FUNC_NAME, RoundVectorOperation::getDefinitions()});
     vectorOperations.insert({BITWISE_XOR_FUNC_NAME, BitwiseXorVectorOperation::getDefinitions()});
+    vectorOperations.insert({PI_FUNC_NAME, PiVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerDateOperations() {
@@ -240,7 +242,9 @@ void BuiltInVectorOperations::registerDateOperations() {
     vectorOperations.insert({MONTHNAME_FUNC_NAME, MonthNameVectorOperation::getDefinitions()});
     vectorOperations.insert({LAST_DAY_FUNC_NAME, LastDayVectorOperation::getDefinitions()});
     vectorOperations.insert({DATE_PART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
+    vectorOperations.insert({DATEPART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
     vectorOperations.insert({DATE_TRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
+    vectorOperations.insert({DATETRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
     vectorOperations.insert({GREATEST_FUNC_NAME, GreatestVectorOperation::getDefinitions()});
     vectorOperations.insert({LEAST_FUNC_NAME, LeastVectorOperation::getDefinitions()});
     vectorOperations.insert({MAKE_DATE_FUNC_NAME, MakeDateVectorOperation::getDefinitions()});
@@ -271,6 +275,7 @@ void BuiltInVectorOperations::registerStringOperations() {
     vectorOperations.insert({STARTS_WITH_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
     vectorOperations.insert({LOWER_FUNC_NAME, LowerVectorOperation::getDefinitions()});
     vectorOperations.insert({UPPER_FUNC_NAME, UpperVectorOperation::getDefinitions()});
+    vectorOperations.insert({UCASE_FUNC_NAME, UpperVectorOperation::getDefinitions()});
     vectorOperations.insert({TRIM_FUNC_NAME, TrimVectorOperation::getDefinitions()});
     vectorOperations.insert({LTRIM_FUNC_NAME, LtrimVectorOperation::getDefinitions()});
     vectorOperations.insert({RTRIM_FUNC_NAME, RtrimVectorOperation::getDefinitions()});
@@ -279,9 +284,13 @@ void BuiltInVectorOperations::registerStringOperations() {
     vectorOperations.insert({REVERSE_FUNC_NAME, ReverseVectorOperation::getDefinitions()});
     vectorOperations.insert({LPAD_FUNC_NAME, LpadVectorOperation::getDefinitions()});
     vectorOperations.insert({RPAD_FUNC_NAME, RpadVectorOperation::getDefinitions()});
+    vectorOperations.insert({SUBSTRING_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
     vectorOperations.insert({SUBSTR_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
     vectorOperations.insert({LEFT_FUNC_NAME, LeftVectorOperation::getDefinitions()});
     vectorOperations.insert({RIGHT_FUNC_NAME, RightVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {ARRAY_EXTRACT_FUNC_NAME, ArrayExtractVectorOperation::getDefinitions()});
+    vectorOperations.insert({PREFIX_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerCastOperations() {
@@ -299,13 +308,36 @@ void BuiltInVectorOperations::registerListOperations() {
         {LIST_CREATION_FUNC_NAME, ListCreationVectorOperation::getDefinitions()});
     vectorOperations.insert({LIST_LEN_FUNC_NAME, ListLenVectorOperation::getDefinitions()});
     vectorOperations.insert({LIST_EXTRACT_FUNC_NAME, ListExtractVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_ELEMENT_FUNC_NAME, ListExtractVectorOperation::getDefinitions()});
     vectorOperations.insert({LIST_CONCAT_FUNC_NAME, ListConcatVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_CAT_FUNC_NAME, ListConcatVectorOperation::getDefinitions()});
+    vectorOperations.insert({ARRAY_CONCAT_FUNC_NAME, ListConcatVectorOperation::getDefinitions()});
+    vectorOperations.insert({ARRAY_CAT_FUNC_NAME, ListConcatVectorOperation::getDefinitions()});
     vectorOperations.insert({LIST_APPEND_FUNC_NAME, ListAppendVectorOperation::getDefinitions()});
+    vectorOperations.insert({ARRAY_APPEND_FUNC_NAME, ListAppendVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {ARRAY_PUSH_BACK_FUNC_NAME, ListAppendVectorOperation::getDefinitions()});
     vectorOperations.insert({LIST_PREPEND_FUNC_NAME, ListPrependVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {ARRAY_PREPEND_FUNC_NAME, ListPrependVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {ARRAY_PUSH_FRONT_FUNC_NAME, ListPrependVectorOperation::getDefinitions()});
     vectorOperations.insert(
         {LIST_POSITION_FUNC_NAME, ListPositionVectorOperation::getDefinitions()});
     vectorOperations.insert(
+        {ARRAY_POSITION_FUNC_NAME, ListPositionVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {LIST_INDEXOF_FUNC_NAME, ListPositionVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {ARRAY_INDEXOF_FUNC_NAME, ListPositionVectorOperation::getDefinitions()});
+    vectorOperations.insert(
         {LIST_CONTAINS_FUNC_NAME, ListContainsVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_HAS_FUNC_NAME, ListContainsVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {ARRAY_CONTAINS_FUNC_NAME, ListContainsVectorOperation::getDefinitions()});
+    vectorOperations.insert({ARRAY_HAS_FUNC_NAME, ListContainsVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_SLICE_FUNC_NAME, ListSliceVectorOperation::getDefinitions()});
+    vectorOperations.insert({ARRAY_SLICE_FUNC_NAME, ListSliceVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerInternalIDOperation() {

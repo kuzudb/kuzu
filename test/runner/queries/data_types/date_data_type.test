@@ -89,6 +89,18 @@
 1980-11-27
 1990-12-29
 
+-NAME IntArithmeticAddStructuredDate
+-QUERY MATCH (a:person) RETURN 32 + a.birthdate
+---- 8
+1900-02-02
+1900-02-02
+1940-07-24
+1950-08-24
+1980-11-27
+1980-11-27
+1980-11-27
+1990-12-29
+
 -NAME UnstructuredDateArithmeticAddInt
 -QUERY MATCH (a:person) RETURN a.unstrDateProp1 + 41
 ---- 8

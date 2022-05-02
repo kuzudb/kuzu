@@ -250,7 +250,7 @@ February
 0
 
 -NAME UnstructuredDateExtractMicroSecondsFuncTest
--QUERY MATCH (p:person) RETURN date_part("microsEcond", p.unstrDateProp)
+-QUERY MATCH (p:person) RETURN datepart("microsEcond", p.unstrDateProp)
 ---- 8
 0
 0
@@ -274,7 +274,7 @@ February
 1990-01-01
 
 -NAME UnstructuredDateTruncYearFuncTest
--QUERY MATCH (p:person) RETURN date_trunc("YEAR", p.unstrDateProp)
+-QUERY MATCH (p:person) RETURN datetrunc("YEAR", p.unstrDateProp)
 ---- 8
 1952-01-01
 2019-01-01

@@ -17,7 +17,7 @@ struct TernaryOperationWrapper {
     }
 };
 
-struct TernaryStringOperationWrapper {
+struct TernaryStringAndListOperationWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, bool isANull, bool isBNull,
         bool isCNull, RESULT_TYPE& result, void* dataptr) {
@@ -401,9 +401,10 @@ struct TernaryOperationExecutor {
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeString(ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
-        executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, TernaryStringOperationWrapper>(
-            a, b, c, result);
+    static void executeStringAndList(
+        ValueVector& a, ValueVector& b, ValueVector& c, ValueVector& result) {
+        executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC,
+            TernaryStringAndListOperationWrapper>(a, b, c, result);
     }
 };
 

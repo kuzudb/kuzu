@@ -26,8 +26,8 @@ struct ListPrepend {
             element, tmpList, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
         memcpy(reinterpret_cast<uint8_t*>(result.overflowPtr) + elementSize,
             reinterpret_cast<uint8_t*>(tmpList.overflowPtr), element.size * elementSize);
-        TypeUtils::setListElement(
-            result, 0, list, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
+        TypeUtils::setListElement(result, 0 /* elementPos */, list, resultValueVector.dataType,
+            resultValueVector.getOverflowBuffer());
     }
 };
 

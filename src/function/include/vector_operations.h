@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binary_operation_executor.h"
+#include "const_operation_executor.h"
 #include "function_definition.h"
 #include "ternary_operation_executor.h"
 #include "unary_operation_executor.h"
@@ -82,6 +83,13 @@ public:
         const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
         assert(params.size() == 1);
         UnaryOperationExecutor::execute<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
+    }
+
+    template<typename RESULT_TYPE, typename FUNC>
+    static void ConstExecFunction(
+        const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
+        assert(params.size() == 0);
+        ConstOperationExecutor::execute<RESULT_TYPE, FUNC>(result);
     }
 
     template<typename OPERAND_TYPE, typename FUNC>

@@ -17,7 +17,7 @@ struct VectorStringOperations : public VectorOperations {
     static void TernaryStringExecFunction(
         const vector<shared_ptr<ValueVector>>& params, ValueVector& result) {
         assert(params.size() == 3);
-        TernaryOperationExecutor::executeString<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
+        TernaryOperationExecutor::executeStringAndList<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], *params[2], result);
     }
 
@@ -120,6 +120,10 @@ struct LeftVectorOperation : public VectorStringOperations {
 };
 
 struct RightVectorOperation : public VectorStringOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct ArrayExtractVectorOperation : public VectorStringOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 

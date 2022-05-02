@@ -8,6 +8,7 @@
 #include "src/function/list/operations/include/list_len_operation.h"
 #include "src/function/list/operations/include/list_position_operation.h"
 #include "src/function/list/operations/include/list_prepend_operation.h"
+#include "src/function/list/operations/include/list_slice_operation.h"
 
 namespace graphflow {
 namespace function {
@@ -247,6 +248,20 @@ vector<unique_ptr<VectorOperationDefinition>> ListPositionVectorOperation::getDe
 vector<unique_ptr<VectorOperationDefinition>> ListContainsVectorOperation::getDefinitions() {
     return getBinaryListOperationDefinitions<operation::ListContains, uint8_t>(
         LIST_CONTAINS_FUNC_NAME, BOOL);
+}
+
+vector<unique_ptr<VectorOperationDefinition>> ListSliceVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    auto bindFunc = [](const vector<DataType>& argumentTypes, VectorOperationDefinition* definition,
+                        DataType& actualReturnType) {
+        definition->returnTypeID = argumentTypes[0].typeID;
+        actualReturnType = argumentTypes[0];
+    };
+    result.push_back(make_unique<VectorOperationDefinition>(LIST_SLICE_FUNC_NAME,
+        vector<DataTypeID>{LIST, INT64, INT64}, LIST,
+        TernaryListExecFunction<gf_list_t, int64_t, int64_t, gf_list_t, operation::ListSlice>,
+        nullptr, bindFunc, false /* isVarlength*/));
+    return result;
 }
 
 } // namespace function

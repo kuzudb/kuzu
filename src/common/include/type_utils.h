@@ -66,7 +66,8 @@ public:
     static void copyListNonRecursive(const vector<uint8_t*>& srcValues, gf_list_t& dest,
         const DataType& dataType, OverflowBuffer& overflowBuffer);
     static void copyListRecursiveIfNested(const gf_list_t& src, gf_list_t& dest,
-        const DataType& dataType, OverflowBuffer& overflowBuffer);
+        const DataType& dataType, OverflowBuffer& overflowBuffer, uint32_t srcStartIdx = 0,
+        uint32_t srcEndIdx = UINT32_MAX);
 
     template<typename T>
     static inline void setListElement(gf_list_t& result, uint64_t elementPos, T& element,

@@ -1,5 +1,6 @@
 #include "include/vector_string_operations.h"
 
+#include "operations/include/array_extract_operation.h"
 #include "operations/include/concat_operation.h"
 #include "operations/include/contains_operation.h"
 #include "operations/include/left_operation.h"
@@ -80,7 +81,7 @@ vector<unique_ptr<VectorOperationDefinition>> RpadVectorOperation::getDefinition
 
 vector<unique_ptr<VectorOperationDefinition>> SubStrVectorOperation::getDefinitions() {
     vector<unique_ptr<VectorOperationDefinition>> definitions;
-    definitions.emplace_back(make_unique<VectorOperationDefinition>(SUBSTR_FUNC_NAME,
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(SUBSTRING_FUNC_NAME,
         vector<DataTypeID>{STRING, INT64, INT64}, STRING,
         TernaryStringExecFunction<gf_string_t, int64_t, int64_t, gf_string_t, operation::SubStr>,
         false /* isVarLength */));
@@ -102,6 +103,15 @@ vector<unique_ptr<VectorOperationDefinition>> RightVectorOperation::getDefinitio
         make_unique<VectorOperationDefinition>(RIGHT_FUNC_NAME, vector<DataTypeID>{STRING, INT64},
             STRING, BinaryStringExecFunction<gf_string_t, int64_t, gf_string_t, operation::Right>,
             false /* isVarLength */));
+    return definitions;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> ArrayExtractVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> definitions;
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(ARRAY_EXTRACT_FUNC_NAME,
+        vector<DataTypeID>{STRING, INT64}, STRING,
+        BinaryExecFunction<gf_string_t, int64_t, gf_string_t, operation::ArrayExtract>,
+        false /* isVarLength */));
     return definitions;
 }
 
