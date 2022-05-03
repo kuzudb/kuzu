@@ -7,6 +7,9 @@ using namespace std;
 namespace graphflow {
 namespace common {
 
+struct timestamp_t;
+struct date_t;
+
 enum class DatePartSpecifier : uint8_t {
     YEAR,
     MONTH,
@@ -44,6 +47,8 @@ struct interval_t {
 
     // arithmetic operators
     interval_t operator+(const interval_t& rhs) const;
+    timestamp_t operator+(const timestamp_t& rhs) const;
+    date_t operator+(const date_t& rhs) const;
     interval_t operator-(const interval_t& rhs) const;
 
     interval_t operator/(const uint64_t& rhs) const;

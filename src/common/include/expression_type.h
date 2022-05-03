@@ -35,12 +35,28 @@ const string IMPLICIT_CAST_TO_UNSTRUCTURED_FUNC_NAME = "_UNSTRUCTURED";
 // list
 const string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
 const string LIST_EXTRACT_FUNC_NAME = "LIST_EXTRACT";
+const string LIST_ELEMENT_FUNC_NAME = "LIST_ELEMENT";
 const string LIST_LEN_FUNC_NAME = "LEN";
 const string LIST_CONCAT_FUNC_NAME = "LIST_CONCAT";
+const string LIST_CAT_FUNC_NAME = "LIST_CAT";
+const string ARRAY_CONCAT_FUNC_NAME = "ARRAY_CONCAT";
+const string ARRAY_CAT_FUNC_NAME = "ARRAY_CAT";
 const string LIST_APPEND_FUNC_NAME = "LIST_APPEND";
+const string ARRAY_APPEND_FUNC_NAME = "ARRAY_APPEND";
+const string ARRAY_PUSH_BACK_FUNC_NAME = "ARRAY_PUSH_BACK";
 const string LIST_PREPEND_FUNC_NAME = "LIST_PREPEND";
+const string ARRAY_PREPEND_FUNC_NAME = "ARRAY_PREPEND";
+const string ARRAY_PUSH_FRONT_FUNC_NAME = "ARRAY_PUSH_FRONT";
 const string LIST_POSITION_FUNC_NAME = "LIST_POSITION";
+const string LIST_INDEXOF_FUNC_NAME = "LIST_INDEXOF";
+const string ARRAY_POSITION_FUNC_NAME = "ARRAY_POSITION";
+const string ARRAY_INDEXOF_FUNC_NAME = "ARRAY_INDEXOF";
 const string LIST_CONTAINS_FUNC_NAME = "LIST_CONTAINS";
+const string LIST_HAS_FUNC_NAME = "LIST_HAS";
+const string ARRAY_CONTAINS_FUNC_NAME = "ARRAY_CONTAINS";
+const string ARRAY_HAS_FUNC_NAME = "ARRAY_HAS";
+const string LIST_SLICE_FUNC_NAME = "LIST_SLICE";
+const string ARRAY_SLICE_FUNC_NAME = "ARRAY_SLICE";
 
 // comparison
 const string EQUALS_FUNC_NAME = "EQUALS";
@@ -61,6 +77,7 @@ const string NEGATE_FUNC_NAME = "NEGATE";
 const string ABS_FUNC_NAME = "ABS";
 const string FLOOR_FUNC_NAME = "FLOOR";
 const string CEIL_FUNC_NAME = "CEIL";
+const string CEILING_FUNC_NAME = "CEILING";
 const string SIN_FUNC_NAME = "SIN";
 const string COS_FUNC_NAME = "COS";
 const string TAN_FUNC_NAME = "TAN";
@@ -83,6 +100,7 @@ const string RADIANS_FUNC_NAME = "RADIANS";
 const string ATAN2_FUNC_NAME = "ATAN2";
 const string ROUND_FUNC_NAME = "ROUND";
 const string BITWISE_XOR_FUNC_NAME = "BITWISE_XOR";
+const string PI_FUNC_NAME = "PI";
 
 // string
 const string CONCAT_FUNC_NAME = "CONCAT";
@@ -99,16 +117,22 @@ const string REPEAT_FUNC_NAME = "REPEAT";
 const string REVERSE_FUNC_NAME = "REVERSE";
 const string LPAD_FUNC_NAME = "LPAD";
 const string RPAD_FUNC_NAME = "RPAD";
-const string SUBSTR_FUNC_NAME = "SUBSTRING";
+const string SUBSTRING_FUNC_NAME = "SUBSTRING";
+const string SUBSTR_FUNC_NAME = "SUBSTR";
 const string LEFT_FUNC_NAME = "LEFT";
 const string RIGHT_FUNC_NAME = "RIGHT";
+const string ARRAY_EXTRACT_FUNC_NAME = "ARRAY_EXTRACT";
+const string UCASE_FUNC_NAME = "UCASE";
+const string PREFIX_FUNC_NAME = "PREFIX";
 
 // Date functions.
 const string DAYNAME_FUNC_NAME = "DAYNAME";
 const string MONTHNAME_FUNC_NAME = "MONTHNAME";
 const string LAST_DAY_FUNC_NAME = "LAST_DAY";
 const string DATE_PART_FUNC_NAME = "DATE_PART";
+const string DATEPART_FUNC_NAME = "DATEPART";
 const string DATE_TRUNC_FUNC_NAME = "DATE_TRUNC";
+const string DATETRUNC_FUNC_NAME = "DATETRUNC";
 const string GREATEST_FUNC_NAME = "GREATEST";
 const string LEAST_FUNC_NAME = "LEAST";
 const string CENTURY_FUNC_NAME = "CENTURY";

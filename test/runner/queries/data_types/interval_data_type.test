@@ -94,6 +94,28 @@
 95:54:41
 95:54:41
 
+-NAME StructuredIntervalAddStructuredDate
+-QUERY MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN interval('47 hours 60 minutes') + a.birthdate 
+---- 6
+1940-06-24
+1950-07-25
+1980-10-28
+1980-10-28
+1980-10-28
+1990-11-29
+
+-NAME StructuredIntervalAddStructuredTimestamp
+-QUERY MATCH (a:person) RETURN interval('2 years 3 days 34 h 28 minutes 300 milliseconds 20 us') + a.registerTime
+---- 8
+1913-08-24 13:00:21.30002
+1974-08-04 23:50:30.978579
+1978-12-27 21:49:42.30002
+1978-12-27 21:49:42.30002
+2010-11-07 23:53:30.300546
+2013-08-24 21:53:30.30002
+2025-02-25 23:53:30.30002
+2033-12-04 22:53:30.30002
+
 -NAME UnstructuredIntervalAdd
 -QUERY MATCH (o:organisation) RETURN o.unstrIntervalProp1 + interval('10 years 20 days 42 h 32 minutes 312 milliseconds')
 ---- 3

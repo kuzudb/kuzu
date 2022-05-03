@@ -190,19 +190,27 @@ void TypeUtils::copyListNonRecursive(const vector<uint8_t*>& srcValues, gf_list_
 }
 
 void TypeUtils::copyListRecursiveIfNested(const gf_list_t& src, gf_list_t& dest,
-    const DataType& dataType, OverflowBuffer& overflowBuffer) {
-    TypeUtils::allocateSpaceForList(
-        dest, src.size * Types::getDataTypeSize(*dataType.childType), overflowBuffer);
-    dest.set(src, dataType);
+    const DataType& dataType, OverflowBuffer& overflowBuffer, uint32_t srcStartIdx,
+    uint32_t srcEndIdx) {
+    if (srcEndIdx == UINT32_MAX) {
+        srcEndIdx = src.size - 1;
+    }
+    assert(srcEndIdx < src.size);
+    auto numElements = srcEndIdx - srcStartIdx + 1;
+    auto elementSize = Types::getDataTypeSize(*dataType.childType);
+    TypeUtils::allocateSpaceForList(dest, numElements * elementSize, overflowBuffer);
+    memcpy((uint8_t*)dest.overflowPtr, (uint8_t*)src.overflowPtr + srcStartIdx * elementSize,
+        numElements * elementSize);
+    dest.size = numElements;
     if (dataType.childType->typeID == STRING) {
         for (auto i = 0u; i < dest.size; i++) {
-            TypeUtils::copyString(((gf_string_t*)src.overflowPtr)[i],
+            TypeUtils::copyString(((gf_string_t*)src.overflowPtr)[i + srcStartIdx],
                 ((gf_string_t*)dest.overflowPtr)[i], overflowBuffer);
         }
     }
     if (dataType.childType->typeID == LIST) {
         for (auto i = 0u; i < dest.size; i++) {
-            TypeUtils::copyListRecursiveIfNested(((gf_list_t*)src.overflowPtr)[i],
+            TypeUtils::copyListRecursiveIfNested(((gf_list_t*)src.overflowPtr)[i + srcStartIdx],
                 ((gf_list_t*)dest.overflowPtr)[i], *dataType.childType, overflowBuffer);
         }
     }

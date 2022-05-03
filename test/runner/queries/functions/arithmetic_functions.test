@@ -572,3 +572,72 @@
 ---- 3
 0
 0
+
+
+-NAME piFunctionAddStrIntTest
+-QUERY MATCH (a:organisation) RETURN a.orgCode + pi()
+---- 3
+328.141593
+937.141593
+827.141593
+
+-NAME piFunctionAddUnstrNumericalValTest
+-QUERY MATCH (a:person) RETURN a.unstrNumericProp + pi()
+---- 8
+50.141593
+55.141593
+71.141593
+
+
+
+
+
+
+-NAME AbsFunctionStrInt
+-QUERY MATCH (a:organisation) RETURN abs(a.score)
+---- 3
+100
+2
+7
+
+-NAME AbsFunctionUnstrValue
+-QUERY MATCH (a:organisation) RETURN abs(a.unstrNumericProp)
+---- 3
+
+12.500000
+3.300000
+
+-NAME FloorFunctionStrInt
+-QUERY MATCH (a:organisation) RETURN floor(a.score)
+---- 3
+-2
+-100
+7
+
+-NAME FloorFunctionUnstrValue
+-QUERY MATCH (a:organisation) RETURN floor(a.unstrNumericProp)
+---- 3
+-13.000000
+
+3.000000
+
+-NAME CeilFunctionStrInt
+-QUERY MATCH (a:organisation) RETURN ceil(a.score)
+---- 3
+-2
+-100
+7
+
+-NAME CeilFunctionUnstrValue
+-QUERY MATCH (a:organisation) RETURN ceiling(a.unstrNumericProp)
+---- 3
+-12.000000
+
+4.000000
+
+-NAME CeilFloorFunctionTest
+-QUERY MATCH (a:organisation) RETURN ceil(ceil(a.unstrNumericProp + abs(-0.5)) + floor(3.5))
+---- 3
+
+-9.000000
+7.000000

@@ -35,6 +35,13 @@ Farooq|False
 Greg|False
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|False
 
+-NAME StartsWithAlias
+-QUERY MATCH (o:organisation) RETURN prefix(o.name, "ABF")
+---- 3
+True
+False
+False
+
 -NAME StartsWithReturn2
 -QUERY MATCH (a:person) RETURN a.label1, a.label1 STARTS WITH "g" ORDER BY a.fName
 ---- 8
@@ -74,7 +81,7 @@ CSWORK
 DESWORK
 
 -NAME UpperUnstructuredStr
--QUERY MATCH (o:organisation) RETURN upper(o.unstrStr)
+-QUERY MATCH (o:organisation) RETURN ucase(o.unstrStr)
 ---- 3
   PERFECT
   EXCELLENT ORGANISATION   
@@ -237,7 +244,7 @@ good>
 
 
 -NAME SubStrStructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN substring(p.fName, 2, 12)
+-QUERY MATCH (p:person) RETURN substr(p.fName, 2, 12)
 ---- 8
 lice
 ob
@@ -346,3 +353,16 @@ ood
 
 
 
+-NAME ArrayExtractPositiveIdxStructuredStrAndStructuredInt
+-QUERY MATCH (o:organisation) RETURN array_extract(o.name, o.ID + 2)
+---- 3
+F
+k
+k
+
+-NAME ArrayExtractNegativeIdxStructuredStrAndStructuredInt
+-QUERY MATCH (o:organisation) RETURN array_extract(o.name, o.ID - 5)
+---- 3
+s
+k
+D

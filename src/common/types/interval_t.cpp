@@ -1,6 +1,7 @@
 #include "include/interval_t.h"
 
 #include "include/cast_helpers.h"
+#include "include/timestamp_t.h"
 
 #include "src/common/include/exception.h"
 #include "src/common/include/utils.h"
@@ -18,6 +19,14 @@ interval_t interval_t::operator+(const interval_t& rhs) const {
     result.days = days + rhs.days;
     result.micros = micros + rhs.micros;
     return result;
+}
+
+timestamp_t interval_t::operator+(const timestamp_t& rhs) const {
+    return rhs + *this;
+}
+
+date_t interval_t::operator+(const date_t& rhs) const {
+    return rhs + *this;
 }
 
 interval_t interval_t::operator-(const interval_t& rhs) const {

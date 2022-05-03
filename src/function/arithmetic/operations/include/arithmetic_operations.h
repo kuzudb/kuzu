@@ -279,6 +279,10 @@ struct BitwiseXor {
     }
 };
 
+struct Pi {
+    static inline void operation(double_t& result) { result = M_PI; }
+};
+
 /********************************************
  **                                        **
  **   Specialized Modulo implementations   **
@@ -478,19 +482,32 @@ inline void Add::operation(
         Add::operation(
             left.val.dateVal, right.val.intervalVal, result.val.dateVal, isLeftNull, isRightNull);
         return;
+    } else if (left.dataType.typeID == INTERVAL && right.dataType.typeID == DATE) {
+        result.dataType.typeID = DATE;
+        Add::operation(
+            left.val.intervalVal, right.val.dateVal, result.val.dateVal, isLeftNull, isRightNull);
+        return;
     } else if (left.dataType.typeID == DATE && right.dataType.typeID == INT64) {
         result.dataType.typeID = DATE;
         Add::operation(
             left.val.dateVal, right.val.int64Val, result.val.dateVal, isLeftNull, isRightNull);
         return;
-    } else if (left.dataType.typeID == TIMESTAMP) {
-        assert(right.dataType.typeID == INTERVAL);
+    } else if (left.dataType.typeID == INT64 && right.dataType.typeID == DATE) {
+        result.dataType.typeID = DATE;
+        Add::operation(
+            left.val.int64Val, right.val.dateVal, result.val.dateVal, isLeftNull, isRightNull);
+        return;
+    } else if (left.dataType.typeID == TIMESTAMP && right.dataType.typeID == INTERVAL) {
         result.dataType.typeID = TIMESTAMP;
         Add::operation(left.val.timestampVal, right.val.intervalVal, result.val.timestampVal,
             isLeftNull, isRightNull);
         return;
-    } else if (left.dataType.typeID == INTERVAL) {
-        assert(right.dataType.typeID == INTERVAL);
+    } else if (left.dataType.typeID == INTERVAL && right.dataType.typeID == TIMESTAMP) {
+        result.dataType.typeID = TIMESTAMP;
+        Add::operation(left.val.intervalVal, right.val.timestampVal, result.val.timestampVal,
+            isLeftNull, isRightNull);
+        return;
+    } else if (left.dataType.typeID == INTERVAL && right.dataType.typeID == INTERVAL) {
         result.dataType.typeID = INTERVAL;
         Add::operation(left.val.intervalVal, right.val.intervalVal, result.val.intervalVal,
             isLeftNull, isRightNull);

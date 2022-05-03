@@ -22,6 +22,7 @@ cc_library(
         "include/ternary_operation_executor.h",
         "include/unary_operation_executor.h",
         "include/vector_operations.h",
+        "include/const_operation_executor.h",
     ],
     visibility = [
         "//src/binder/expression:__pkg__",

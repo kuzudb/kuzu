@@ -227,5 +227,9 @@ struct BitwiseXorVectorOperation : public VectorArithmeticOperations {
     static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
+struct PiVectorOperation : public VectorArithmeticOperations {
+    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
 } // namespace function
 } // namespace graphflow

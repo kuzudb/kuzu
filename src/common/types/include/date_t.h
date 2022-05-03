@@ -42,6 +42,10 @@ struct date_t {
     int64_t operator-(const date_t& rhs) const;
 };
 
+inline date_t operator+(int64_t i, const date_t date) {
+    return date + i;
+}
+
 // Note: Aside from some minor changes, this implementation is copied from DuckDB's source code:
 // https://github.com/duckdb/duckdb/blob/master/src/include/duckdb/common/types/date.hpp.
 // https://github.com/duckdb/duckdb/blob/master/src/common/types/date.cpp.

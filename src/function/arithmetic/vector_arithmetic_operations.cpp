@@ -26,14 +26,26 @@ vector<unique_ptr<VectorOperationDefinition>> AddVectorOperation::getDefinitions
     result.push_back(
         make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, vector<DataTypeID>{DATE, INT64}, DATE,
             BinaryExecFunction<date_t, int64_t, date_t, operation::Add>));
+    // int + date → date
+    result.push_back(
+        make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, vector<DataTypeID>{INT64, DATE}, DATE,
+            BinaryExecFunction<int64_t, date_t, date_t, operation::Add>));
     // date + interval → date
     result.push_back(
         make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, vector<DataTypeID>{DATE, INTERVAL},
             DATE, BinaryExecFunction<date_t, interval_t, date_t, operation::Add>));
+    // interval + date → date
+    result.push_back(
+        make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, vector<DataTypeID>{INTERVAL, DATE},
+            DATE, BinaryExecFunction<interval_t, date_t, date_t, operation::Add>));
     // timestamp + interval → timestamp
     result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
         vector<DataTypeID>{TIMESTAMP, INTERVAL}, TIMESTAMP,
         BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Add>));
+    // interval + timestamp → timestamp
+    result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
+        vector<DataTypeID>{INTERVAL, TIMESTAMP}, TIMESTAMP,
+        BinaryExecFunction<interval_t, timestamp_t, timestamp_t, operation::Add>));
     // interval + interval → interval
     result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
         vector<DataTypeID>{INTERVAL, INTERVAL}, INTERVAL,
@@ -366,6 +378,13 @@ vector<unique_ptr<VectorOperationDefinition>> BitwiseXorVectorOperation::getDefi
     result.push_back(make_unique<VectorOperationDefinition>(BITWISE_XOR_FUNC_NAME,
         vector<DataTypeID>{INT64, INT64}, INT64,
         BinaryExecFunction<int64_t, int64_t, int64_t, operation::BitwiseXor>));
+    return result;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> PiVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(
+        PI_FUNC_NAME, vector<DataTypeID>{}, DOUBLE, ConstExecFunction<double_t, operation::Pi>));
     return result;
 }
 
