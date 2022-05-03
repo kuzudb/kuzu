@@ -1,0 +1,13 @@
+cc_library(
+    name = "set_clause",
+    srcs = glob([
+        "*.cpp",
+    ]),
+    hdrs = glob([
+        "include/*.h",
+    ]),
+    visibility = [
+        "//src/parser/query:__pkg__",
+    ],
+    deps = [],
+)

@@ -1,9 +1,11 @@
 #pragma once
 
+#include "join_order_enumerator.h"
+#include "projection_enumerator.h"
+#include "update_planner.h"
+
 #include "src/binder/expression/include/existential_subquery_expression.h"
 #include "src/binder/query/include/bound_regular_query.h"
-#include "src/planner/include/join_order_enumerator.h"
-#include "src/planner/include/projection_enumerator.h"
 
 using namespace graphflow::binder;
 
@@ -13,6 +15,7 @@ namespace planner {
 class Enumerator {
     friend class JoinOrderEnumerator;
     friend class ProjectionEnumerator;
+    friend class UpdatePlanner;
 
 public:
     explicit Enumerator(const Catalog& catalog)
@@ -47,13 +50,14 @@ private:
 
     void planSubqueryIfNecessary(const shared_ptr<Expression>& expression, LogicalPlan& plan);
 
-    void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
+    static void appendFlattens(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
 
     // return position of the only unFlat group
     // or position of any flat group if there is no unFlat group.
-    uint32_t appendFlattensButOne(const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
+    static uint32_t appendFlattensButOne(
+        const unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
 
-    void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan);
+    static void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan);
 
     void appendFilter(const shared_ptr<Expression>& expression, LogicalPlan& plan);
 
@@ -67,6 +71,8 @@ private:
     void appendScanRelProperty(const shared_ptr<PropertyExpression>& property,
         const RelExpression& rel, LogicalPlan& plan);
 
+    void appendResultCollectorIfNecessary(
+        const NormalizedSingleQuery& singleQuery, LogicalPlan& plan);
     void appendResultCollector(LogicalPlan& plan);
 
     unique_ptr<LogicalPlan> createUnionPlan(
@@ -102,9 +108,8 @@ private:
     // when stored. However, if all of the non-key columns are flat and since all key columns are
     // flattened in FactorizedTable, we can output R with upto |R| many tuples in an unflat
     // datachunk (though we would do it in chunks of DEFAULT_VECTOR_CAPACITY).
-    static void computeSchemaForHashJoinOrderByAndUnion(
-        const unordered_set<uint32_t>& groupsToMaterializePos, const Schema& schemaBeforeSink,
-        Schema& schemaAfterSink);
+    static void computeSchemaForSinkOperators(const unordered_set<uint32_t>& groupsToMaterializePos,
+        const Schema& schemaBeforeSink, Schema& schemaAfterSink);
 
     static vector<vector<unique_ptr<LogicalPlan>>> cartesianProductChildrenPlans(
         vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans);

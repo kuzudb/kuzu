@@ -32,7 +32,12 @@ unique_ptr<BoundSingleQuery> QueryBinder::bindSingleQuery(const SingleQuery& sin
     for (auto i = 0u; i < singleQuery.getNumMatchClauses(); ++i) {
         boundSingleQuery->addMatchClause(bindMatchClause(*singleQuery.getMatchClause(i)));
     }
-    boundSingleQuery->setReturnClause(bindReturnClause(*singleQuery.getReturnClause()));
+    for (auto i = 0u; i < singleQuery.getNumSetClauses(); ++i) {
+        boundSingleQuery->addSetClause(bindSetClause(*singleQuery.getSetClause(i)));
+    }
+    if (singleQuery.hasReturnClause()) {
+        boundSingleQuery->setReturnClause(bindReturnClause(*singleQuery.getReturnClause()));
+    }
     return boundSingleQuery;
 }
 
@@ -40,6 +45,9 @@ unique_ptr<BoundQueryPart> QueryBinder::bindQueryPart(const QueryPart& queryPart
     auto boundQueryPart = make_unique<BoundQueryPart>();
     for (auto i = 0u; i < queryPart.getNumMatchClauses(); ++i) {
         boundQueryPart->addMatchClause(bindMatchClause(*queryPart.getMatchClause(i)));
+    }
+    for (auto i = 0u; i < queryPart.getNumSetClauses(); ++i) {
+        boundQueryPart->addSetClause(bindSetClause(*queryPart.getSetClause(i)));
     }
     boundQueryPart->setWithClause(bindWithClause(*queryPart.getWithClause()));
     return boundQueryPart;
@@ -55,6 +63,19 @@ unique_ptr<BoundMatchClause> QueryBinder::bindMatchClause(const MatchClause& mat
         boundMatchClause->setWhereExpression(bindWhereExpression(*matchClause.getWhereClause()));
     }
     return boundMatchClause;
+}
+
+unique_ptr<BoundSetClause> QueryBinder::bindSetClause(const SetClause& setClause) {
+    auto boundSetClause = make_unique<BoundSetClause>();
+    for (auto i = 0u; i < setClause.getNumSetItems(); ++i) {
+        auto setItem = setClause.getSetItem(i);
+        auto boundOrigin = expressionBinder.bindExpression(*setItem->origin);
+        auto boundTarget = expressionBinder.bindExpression(*setItem->target);
+        ExpressionBinder::implicitCastIfNecessary(boundTarget, boundOrigin->dataType.typeID);
+        auto boundSetItem = make_unique<BoundSetItem>(move(boundOrigin), move(boundTarget));
+        boundSetClause->addSetItem(move(boundSetItem));
+    }
+    return boundSetClause;
 }
 
 unique_ptr<BoundWithClause> QueryBinder::bindWithClause(const WithClause& withClause) {

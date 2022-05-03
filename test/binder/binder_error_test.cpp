@@ -277,3 +277,10 @@ TEST_F(BinderErrorTest, VarLenExtendZeroLowerBound) {
     auto input = "MATCH (a:person)-[:knows*0..5]->(b:person) return count(*)";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, SetDataTypeMisMatch) {
+    string expectedException =
+        "Expression 'hh' has data type STRING but expect INT64. Implicit cast is not supported.";
+    auto input = "MATCH (a:person) SET a.age = 'hh'";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

@@ -173,7 +173,7 @@ void ProjectionEnumerator::appendOrderBy(
     }
     auto schemaBeforeOrderBy = schema->copy();
     schema->clear();
-    Enumerator::computeSchemaForHashJoinOrderByAndUnion(
+    Enumerator::computeSchemaForSinkOperators(
         schemaBeforeOrderBy->getGroupsPosInScope(), *schemaBeforeOrderBy, *schema);
     auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders,
         schemaBeforeOrderBy->getExpressionsInScope(), schemaBeforeOrderBy->copy(),

@@ -26,9 +26,15 @@ private:
 
     unique_ptr<QueryPart> transformQueryPart(CypherParser::GF_QueryPartContext& ctx);
 
+    unique_ptr<SetClause> transformUpdatingClause(CypherParser::OC_UpdatingClauseContext& ctx);
+
     unique_ptr<MatchClause> transformReadingClause(CypherParser::OC_ReadingClauseContext& ctx);
 
     unique_ptr<MatchClause> transformMatch(CypherParser::OC_MatchContext& ctx);
+
+    unique_ptr<SetClause> transformSet(CypherParser::OC_SetContext& ctx);
+
+    unique_ptr<SetItem> transformSetItem(CypherParser::OC_SetItemContext& ctx);
 
     unique_ptr<WithClause> transformWith(CypherParser::OC_WithContext& ctx);
 
@@ -138,6 +144,8 @@ private:
     string transformVariable(CypherParser::OC_VariableContext& ctx);
 
     unique_ptr<ParsedExpression> transformNumberLiteral(CypherParser::OC_NumberLiteralContext& ctx);
+
+    unique_ptr<ParsedExpression> transformProperty(CypherParser::OC_PropertyExpressionContext& ctx);
 
     string transformPropertyKeyName(CypherParser::OC_PropertyKeyNameContext& ctx);
 
