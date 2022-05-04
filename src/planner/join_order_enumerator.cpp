@@ -1,7 +1,6 @@
 #include "src/planner/include/join_order_enumerator.h"
 
 #include "src/binder/expression/include/function_expression.h"
-#include "src/function/comparison/include/vector_comparison_operations.h"
 #include "src/planner/include/enumerator.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_extend.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_hash_join.h"
@@ -304,8 +303,7 @@ void JoinOrderEnumerator::appendLogicalHashJoin(
         }
         payloadGroupsPos.insert(groupPos);
     }
-    Enumerator::computeSchemaForHashJoinOrderByAndUnion(
-        payloadGroupsPos, buildSideSchema, *probePlanSchema);
+    Enumerator::computeSchemaForSinkOperators(payloadGroupsPos, buildSideSchema, *probePlanSchema);
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodeID, buildSideSchema.copy(),
         buildSideSchema.getExpressionsInScope(), probePlan.getLastOperator(),
         buildPlan.getLastOperator());

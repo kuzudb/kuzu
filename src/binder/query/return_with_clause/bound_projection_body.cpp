@@ -18,7 +18,7 @@ void BoundProjectionBody::setOrderByExpressions(
     isAscOrders = move(sortOrders);
 }
 
-expression_vector BoundProjectionBody::getAllPropertyExpressions() const {
+expression_vector BoundProjectionBody::getPropertiesToRead() const {
     expression_vector result;
     for (auto& expression : projectionExpressions) {
         for (auto& property : expression->getSubPropertyExpressions()) {

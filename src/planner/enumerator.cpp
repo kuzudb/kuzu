@@ -15,9 +15,10 @@ namespace planner {
 
 vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundRegularQuery& regularQuery) {
     if (regularQuery.getNumSingleQueries() == 1) {
-        auto plans = getAllPlans(*regularQuery.getSingleQuery(0));
+        auto singleQuery = regularQuery.getSingleQuery(0);
+        auto plans = getAllPlans(*singleQuery);
         for (auto& plan : plans) {
-            appendResultCollector(*plan);
+            appendResultCollectorIfNecessary(*singleQuery, *plan);
         }
         return plans;
     }
@@ -38,8 +39,9 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundRegularQuery&
 
 unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundRegularQuery& regularQuery) {
     if (regularQuery.getNumSingleQueries() == 1) {
-        auto bestPlan = getBestPlan(*regularQuery.getSingleQuery(0));
-        appendResultCollector(*bestPlan);
+        auto singleQuery = regularQuery.getSingleQuery(0);
+        auto bestPlan = getBestPlan(*singleQuery);
+        appendResultCollectorIfNecessary(*singleQuery, *bestPlan);
         return bestPlan;
     }
     vector<unique_ptr<LogicalPlan>> childrenPlans(regularQuery.getNumSingleQueries());
@@ -83,10 +85,13 @@ vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const NormalizedSingleQu
     return result;
 }
 
+// Note: we cannot append ResultCollector for plans enumerated for single query before there could
+// be a UNION on top which requires further flatten. So we delay ResultCollector appending to
+// enumerate regular query level.
 vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(
     const NormalizedSingleQuery& singleQuery) {
     propertiesToScan.clear();
-    for (auto& expression : singleQuery.getAllPropertyExpressions()) {
+    for (auto& expression : singleQuery.getPropertiesToRead()) {
         assert(expression->expressionType == PROPERTY);
         propertiesToScan.push_back(static_pointer_cast<PropertyExpression>(expression));
     }
@@ -95,15 +100,13 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumeratePlans(
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
         plans = enumerateQueryPart(*singleQuery.getQueryPart(i), move(plans));
     }
-    for (auto& plan : plans) {
-        plan->setExpressionsToCollect(singleQuery.getExpressionsToReturn());
-    }
     return plans;
 }
 
 vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
     const NormalizedQueryPart& queryPart, vector<unique_ptr<LogicalPlan>> prevPlans) {
     vector<unique_ptr<LogicalPlan>> plans = move(prevPlans);
+    // plan read
     for (auto i = 0u; i < queryPart.getNumQueryGraph(); ++i) {
         if (queryPart.isQueryGraphOptional(i)) {
             auto& queryGraph = *queryPart.getQueryGraph(i);
@@ -119,10 +122,16 @@ vector<unique_ptr<LogicalPlan>> Enumerator::enumerateQueryPart(
                 *queryPart.getQueryGraph(i), queryPart.getQueryGraphPredicate(i), move(plans));
         }
     }
-    projectionEnumerator.enumerateProjectionBody(*queryPart.getProjectionBody(), plans);
-    if (queryPart.hasProjectionBodyPredicate()) {
-        for (auto& plan : plans) {
-            appendFilter(queryPart.getProjectionBodyPredicate(), *plan);
+    // plan update
+    for (auto i = 0u; i < queryPart.getNumSetClause(); ++i) {
+        UpdatePlanner::planSetClause(*queryPart.getSetClause(i), plans);
+    }
+    if (queryPart.hasProjectionBody()) {
+        projectionEnumerator.enumerateProjectionBody(*queryPart.getProjectionBody(), plans);
+        if (queryPart.hasProjectionBodyPredicate()) {
+            for (auto& plan : plans) {
+                appendFilter(queryPart.getProjectionBodyPredicate(), *plan);
+            }
         }
     }
     return plans;
@@ -325,10 +334,18 @@ void Enumerator::appendScanRelProperty(
     plan.appendOperator(move(scanProperty));
 }
 
+void Enumerator::appendResultCollectorIfNecessary(
+    const NormalizedSingleQuery& singleQuery, LogicalPlan& plan) {
+    if (singleQuery.getLastQueryPart()->hasProjectionBody()) {
+        appendResultCollector(plan);
+    }
+}
+
 void Enumerator::appendResultCollector(LogicalPlan& plan) {
-    assert(!plan.getExpressionsToCollect().empty());
+    auto schema = plan.getSchema();
     auto resultCollector = make_shared<LogicalResultCollector>(
-        plan.getExpressionsToCollect(), plan.getSchema()->copy(), plan.getLastOperator());
+        schema->getExpressionsInScope(), schema->copy(), plan.getLastOperator());
+    plan.setExpressionsToCollect(schema->getExpressionsInScope());
     plan.appendOperator(resultCollector);
 }
 
@@ -337,31 +354,35 @@ unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
     // If an expression to union has different flat/unflat state in different child, we
     // need to flatten that expression in all the single queries.
     assert(!childrenPlans.empty());
-    for (auto i = 0u; i < childrenPlans[0]->getExpressionsToCollect().size(); i++) {
+    auto firstChildSchema = childrenPlans[0]->getSchema();
+    auto numExpressionsToUnion = firstChildSchema->getExpressionsInScope().size();
+    for (auto i = 0u; i < numExpressionsToUnion; i++) {
         bool hasFlatExpression = false;
         for (auto& childPlan : childrenPlans) {
-            auto expressionName = childPlan->getExpressionsToCollect()[i]->getUniqueName();
-            hasFlatExpression |= childPlan->getSchema()->getGroup(expressionName)->getIsFlat();
+            auto childSchema = childPlan->getSchema();
+            auto expressionName = childSchema->getExpressionsInScope()[i]->getUniqueName();
+            hasFlatExpression |= childSchema->getGroup(expressionName)->getIsFlat();
         }
         if (hasFlatExpression) {
             for (auto& childPlan : childrenPlans) {
-                auto expressionName = childPlan->getExpressionsToCollect()[i]->getUniqueName();
-                appendFlattenIfNecessary(
-                    childPlan->getSchema()->getGroupPos(expressionName), *childPlan);
+                auto childSchema = childPlan->getSchema();
+                auto expressionName = childSchema->getExpressionsInScope()[i]->getUniqueName();
+                appendFlattenIfNecessary(childSchema->getGroupPos(expressionName), *childPlan);
             }
         }
     }
+    // we compute the schema based on first child
     auto plan = make_unique<LogicalPlan>();
-    auto logicalUnion = make_shared<LogicalUnion>(childrenPlans[0]->getExpressionsToCollect());
+    auto logicalUnion = make_shared<LogicalUnion>(firstChildSchema->getExpressionsInScope());
+    Enumerator::computeSchemaForSinkOperators(
+        firstChildSchema->getGroupsPosInScope(), *firstChildSchema, *plan->getSchema());
     for (auto& childPlan : childrenPlans) {
+        // We can only append ResultCollector after appending flatten. This matches the description
+        // for 'enumeratePlans(const NormalizedSingleQuery& singleQuery)'
         appendResultCollector(*childPlan);
-        Enumerator::computeSchemaForHashJoinOrderByAndUnion(
-            childPlan->getSchema()->getGroupsPosInScope(), *childPlan->getSchema(),
-            *plan->getSchema());
         plan->cost += childPlan->cost;
         logicalUnion->addChild(childPlan->getLastOperator());
     }
-    plan->setExpressionsToCollect(logicalUnion->getExpressionsToUnion());
     plan->appendOperator(logicalUnion);
     if (!isUnionAll) {
         projectionEnumerator.appendDistinct(logicalUnion->getExpressionsToUnion(), *plan);
@@ -425,7 +446,7 @@ expression_vector Enumerator::getSubExpressionsInSchema(
     return results;
 }
 
-void Enumerator::computeSchemaForHashJoinOrderByAndUnion(
+void Enumerator::computeSchemaForSinkOperators(
     const unordered_set<uint32_t>& groupsToMaterializePos, const Schema& schemaBeforeSink,
     Schema& schemaAfterSink) {
     auto flatVectorsOutputPos = UINT32_MAX;

@@ -45,7 +45,7 @@ public:
 
     inline uint64_t getLimitNumber() const { return limitNumber; }
 
-    expression_vector getAllPropertyExpressions() const;
+    expression_vector getPropertiesToRead() const;
 
     inline unique_ptr<BoundProjectionBody> copy() const {
         return make_unique<BoundProjectionBody>(*this);

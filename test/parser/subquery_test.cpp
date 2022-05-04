@@ -25,8 +25,9 @@ public:
 };
 
 TEST_F(SubqueryTest, ExistsTest) {
-    auto innerQuery = make_unique<SingleQuery>(makeReturnStarClause());
+    auto innerQuery = make_unique<SingleQuery>();
     innerQuery->addMatchClause(makeEmptyMatchClause());
+    innerQuery->setReturnClause(makeReturnStarClause());
 
     auto existentialExpression =
         make_unique<ParsedSubqueryExpression>(EXISTENTIAL_SUBQUERY, move(innerQuery), EMPTY);
@@ -40,10 +41,12 @@ TEST_F(SubqueryTest, ExistsTest) {
 }
 
 TEST_F(SubqueryTest, NestedExistsTest) {
-    auto secondInnerQuery = make_unique<SingleQuery>(makeReturnStarClause());
+    auto secondInnerQuery = make_unique<SingleQuery>();
     secondInnerQuery->addMatchClause(makeEmptyMatchClause());
+    secondInnerQuery->setReturnClause(makeReturnStarClause());
 
-    auto innerQuery = make_unique<SingleQuery>(makeReturnStarClause());
+    auto innerQuery = make_unique<SingleQuery>();
+    innerQuery->setReturnClause(makeReturnStarClause());
     auto match = makeEmptyMatchClause();
     match->setWhereClause(
         make_unique<ParsedSubqueryExpression>(EXISTENTIAL_SUBQUERY, move(secondInnerQuery), EMPTY));

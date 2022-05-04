@@ -32,6 +32,8 @@ private:
 
     unique_ptr<BoundMatchClause> bindMatchClause(const MatchClause& matchClause);
 
+    unique_ptr<BoundSetClause> bindSetClause(const SetClause& setClause);
+
     unique_ptr<BoundWithClause> bindWithClause(const WithClause& withClause);
 
     unique_ptr<BoundReturnClause> bindReturnClause(const ReturnClause& returnClause);

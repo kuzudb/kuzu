@@ -53,9 +53,15 @@ unique_ptr<SingleQuery> Transformer::transformSingleQuery(
 
 unique_ptr<SingleQuery> Transformer::transformSinglePartQuery(
     CypherParser::OC_SinglePartQueryContext& ctx) {
-    auto singleQuery = make_unique<SingleQuery>(transformReturn(*ctx.oC_Return()));
+    auto singleQuery = make_unique<SingleQuery>();
     for (auto& readingClause : ctx.oC_ReadingClause()) {
         singleQuery->addMatchClause(transformReadingClause(*readingClause));
+    }
+    for (auto& updatingClause : ctx.oC_UpdatingClause()) {
+        singleQuery->addSetClause(transformUpdatingClause(*updatingClause));
+    }
+    if (ctx.oC_Return()) {
+        singleQuery->setReturnClause(transformReturn(*ctx.oC_Return()));
     }
     return singleQuery;
 }
@@ -65,7 +71,15 @@ unique_ptr<QueryPart> Transformer::transformQueryPart(CypherParser::GF_QueryPart
     for (auto& readingClause : ctx.oC_ReadingClause()) {
         queryPart->addMatchClause(transformReadingClause(*readingClause));
     }
+    for (auto& updatingClause : ctx.oC_UpdatingClause()) {
+        queryPart->addSetClause(transformUpdatingClause(*updatingClause));
+    }
     return queryPart;
+}
+
+unique_ptr<SetClause> Transformer::transformUpdatingClause(
+    CypherParser::OC_UpdatingClauseContext& ctx) {
+    return transformSet(*ctx.oC_Set());
 }
 
 unique_ptr<MatchClause> Transformer::transformReadingClause(
@@ -80,6 +94,19 @@ unique_ptr<MatchClause> Transformer::transformMatch(CypherParser::OC_MatchContex
         matchClause->setWhereClause(transformWhere(*ctx.oC_Where()));
     }
     return matchClause;
+}
+
+unique_ptr<SetClause> Transformer::transformSet(CypherParser::OC_SetContext& ctx) {
+    auto setClause = make_unique<SetClause>();
+    for (auto& setItem : ctx.oC_SetItem()) {
+        setClause->addSetItem(transformSetItem(*setItem));
+    }
+    return setClause;
+}
+
+unique_ptr<SetItem> Transformer::transformSetItem(CypherParser::OC_SetItemContext& ctx) {
+    return make_unique<SetItem>(
+        transformProperty(*ctx.oC_PropertyExpression()), transformExpression(*ctx.oC_Expression()));
 }
 
 unique_ptr<WithClause> Transformer::transformWith(CypherParser::OC_WithContext& ctx) {
@@ -544,6 +571,13 @@ unique_ptr<ParsedExpression> Transformer::transformNumberLiteral(
         return transformDoubleLiteral(*ctx.oC_DoubleLiteral());
     }
     assert(false);
+}
+
+unique_ptr<ParsedExpression> Transformer::transformProperty(
+    CypherParser::OC_PropertyExpressionContext& ctx) {
+    return make_unique<ParsedPropertyExpression>(PROPERTY,
+        transformPropertyLookup(*ctx.oC_PropertyLookup()), transformAtom(*ctx.oC_Atom()),
+        ctx.getText());
 }
 
 string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNameContext& ctx) {

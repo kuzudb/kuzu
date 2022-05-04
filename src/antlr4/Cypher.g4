@@ -56,6 +56,7 @@ oC_SingleQuery
 
 oC_SinglePartQuery
     : ( oC_ReadingClause SP? )* oC_Return
+        | ( ( oC_ReadingClause SP? )* oC_UpdatingClause ( SP? oC_UpdatingClause )* ( SP? oC_Return )? )
         | ( oC_ReadingClause SP? )* { notifyQueryNotConcludeWithReturn($ctx->start); }
         ;
 
@@ -63,7 +64,10 @@ oC_MultiPartQuery
     : ( gF_QueryPart SP? )+ oC_SinglePartQuery;
 
 gF_QueryPart
-    : (oC_ReadingClause SP? )* oC_With ;
+    : (oC_ReadingClause SP? )* ( oC_UpdatingClause SP? )* oC_With ;
+
+oC_UpdatingClause
+    : oC_Set ;
 
 oC_ReadingClause 
     : oC_Match ;
@@ -74,6 +78,14 @@ oC_Match
 OPTIONAL : ( 'O' | 'o' ) ( 'P' | 'p' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
 
 MATCH : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'C' | 'c' ) ( 'H' | 'h' ) ;
+
+oC_Set
+    : SET SP? oC_SetItem ( SP? ',' SP? oC_SetItem )* ;
+
+SET : ( 'S' | 's' ) ( 'E' | 'e' ) ( 'T' | 't' )  ;
+
+oC_SetItem
+    : ( oC_PropertyExpression SP? '=' SP? oC_Expression ) ;
 
 oC_With
     : WITH oC_ProjectionBody ( SP? oC_Where )? ;
@@ -321,6 +333,9 @@ oC_NumberLiteral
 
 oC_Parameter
     : '$' ( oC_SymbolicName | DecimalInteger ) ;
+
+oC_PropertyExpression
+    : oC_Atom SP? oC_PropertyLookup ;
 
 oC_PropertyKeyName
     : oC_SchemaName ;
