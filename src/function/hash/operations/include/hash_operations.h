@@ -79,6 +79,11 @@ inline void Hash::operation(const double_t& key, hash_t& result) {
 }
 
 template<>
+inline void Hash::operation(const string& key, hash_t& result) {
+    result = std::hash<string>()(key);
+}
+
+template<>
 inline void Hash::operation(const gf_string_t& key, hash_t& result) {
     result = std::hash<string>()(key.getAsString());
 }

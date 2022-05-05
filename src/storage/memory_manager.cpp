@@ -5,7 +5,7 @@
 namespace graphflow {
 namespace storage {
 
-unique_ptr<BMBackedMemoryBlock> MemoryManager::allocateBMBackedBlock(bool initializeToZero) {
+unique_ptr<MemoryBlock> MemoryManager::allocateBlock(bool initializeToZero) {
     lock_guard<mutex> lock(memMgrLock);
     uint32_t pageIdx;
     uint8_t* data;
@@ -17,7 +17,7 @@ unique_ptr<BMBackedMemoryBlock> MemoryManager::allocateBMBackedBlock(bool initia
     }
     data = bm->pinWithoutReadingFromFile(*fh, pageIdx);
 
-    auto blockHandle = make_unique<BMBackedMemoryBlock>(pageIdx, data);
+    auto blockHandle = make_unique<MemoryBlock>(pageIdx, data);
     if (initializeToZero) {
         memset(blockHandle->data, 0, LARGE_PAGE_SIZE);
     }
@@ -25,7 +25,7 @@ unique_ptr<BMBackedMemoryBlock> MemoryManager::allocateBMBackedBlock(bool initia
     return blockHandle;
 }
 
-void MemoryManager::freeBMBackedBlock(uint32_t pageIdx) {
+void MemoryManager::freeBlock(uint32_t pageIdx) {
     lock_guard<mutex> lock(memMgrLock);
     bm->unpin(*fh, pageIdx);
     freePages.push(pageIdx);
