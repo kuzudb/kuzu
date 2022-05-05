@@ -83,6 +83,20 @@ cc_library(
 )
 
 cc_library(
+    name = "base_table_scan_operator",
+    srcs = [
+        "physical_plan/operator/base_table_scan.cpp",
+    ],
+    hdrs = [
+        "include/physical_plan/operator/base_table_scan.h",
+    ],
+    deps = [
+        "result_collector",
+        "source_operator",
+    ],
+)
+
+cc_library(
     name = "aggregate",
     srcs = glob([
         "physical_plan/operator/aggregate/*.cpp",
@@ -143,19 +157,6 @@ cc_library(
 )
 
 cc_library(
-    name = "read_list",
-    srcs = glob([
-        "physical_plan/operator/read_list/**/*.cpp",
-    ]),
-    hdrs = glob([
-        "include/physical_plan/operator/read_list/**/*.h",
-    ]),
-    deps = [
-        "base_operator",
-    ],
-)
-
-cc_library(
     name = "scan_column",
     srcs = glob([
         "physical_plan/operator/scan_column/*.cpp",
@@ -171,6 +172,21 @@ cc_library(
 )
 
 cc_library(
+    name = "update",
+    srcs = glob([
+        "physical_plan/operator/update/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/physical_plan/operator/update/*.h",
+    ]),
+    deps = [
+        "base_table_scan_operator",
+        "//src/expression_evaluator:base_expression_evaluator",
+        "//src/storage:column",
+    ],
+)
+
+cc_library(
     name = "result_collector",
     srcs = [
         "physical_plan/operator/result_collector.cpp",
@@ -181,6 +197,19 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "sink_operator",
+    ],
+)
+
+cc_library(
+    name = "read_list",
+    srcs = glob([
+        "physical_plan/operator/read_list/**/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/physical_plan/operator/read_list/**/*.h",
+    ]),
+    deps = [
+        "base_operator",
     ],
 )
 
@@ -216,6 +245,7 @@ cc_library(
         "physical_plan",
         "read_list",
         "scan_column",
+        "update",
         "var_length_extend",
         "//src/common:csv_reader",
         "//src/expression_evaluator:base_expression_evaluator",

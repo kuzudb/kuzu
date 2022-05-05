@@ -1,7 +1,5 @@
 #include "src/planner/include/planner.h"
 
-#include "src/planner/logical_plan/logical_operator/include/logical_result_collector.h"
-
 namespace graphflow {
 namespace planner {
 

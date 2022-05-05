@@ -8,7 +8,7 @@ class CostModelTest : public PlannerTest {};
 TEST_F(CostModelTest, OneHopSingleFilter) {
     auto query = "MATCH (a:person)-[:knows]->(b:person) WHERE a.age = 1 RETURN COUNT(*)";
     auto plan = getBestPlan(query);
-    auto op1 = plan->getLastOperator()->getChild(0)->getChild(0)->getChild(0)->getChild(0).get();
+    auto op1 = plan->getLastOperator()->getChild(0)->getChild(0)->getChild(0).get();
     ASSERT_EQ(LOGICAL_EXTEND, op1->getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalExtend*)op1)->nbrNodeID, "_b." + INTERNAL_ID_SUFFIX));
     auto op2 = op1->getChild(0)->getChild(0)->getChild(0)->getChild(0).get();
@@ -26,7 +26,6 @@ TEST_F(CostModelTest, OneHopMultiFilters) {
                    ->getChild(0)
                    ->getChild(0)
                    ->getChild(0)
-                   ->getChild(0)
                    .get();
     ASSERT_EQ(LOGICAL_EXTEND, op1->getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalExtend*)op1)->nbrNodeID, "_b." + INTERNAL_ID_SUFFIX));
@@ -39,7 +38,6 @@ TEST_F(CostModelTest, TwoHop) {
     auto query = "MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(*)";
     auto plan = getBestPlan(query);
     auto op1 = plan->getLastOperator()
-                   ->getChild(0)
                    ->getChild(0)
                    ->getChild(0)
                    ->getChild(0)
@@ -66,7 +64,6 @@ TEST_F(CostModelTest, TwoHopMultiFilters) {
                    ->getChild(0)
                    ->getChild(0)
                    ->getChild(0)
-                   ->getChild(0)
                    .get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_ID, op1->getLogicalOperatorType());
     ASSERT_TRUE(containSubstr(((LogicalScanNodeID*)op1)->nodeID, "_b." + INTERNAL_ID_SUFFIX));
@@ -77,7 +74,7 @@ TEST_F(CostModelTest, TwoHopMultiFilters) {
 TEST_F(PlannerTest, OrderByTest1) {
     auto query = "MATCH (a:person) RETURN a.age ORDER BY a.age";
     auto plan = getBestPlan(query);
-    auto op1 = plan->getLastOperator()->getChild(0).get();
+    auto op1 = plan->getLastOperator();
     ASSERT_EQ(LOGICAL_PROJECTION, op1->getLogicalOperatorType());
     auto op2 = op1->getChild(0).get();
     ASSERT_EQ(LOGICAL_ORDER_BY, op2->getLogicalOperatorType());
@@ -89,7 +86,7 @@ TEST_F(PlannerTest, OrderByTest1) {
 TEST_F(PlannerTest, OrderByTest2) {
     auto query = "MATCH (a:person)-[:knows]->(b:person) RETURN b.age ORDER BY a.age";
     auto plan = getBestPlan(query);
-    auto op1 = plan->getLastOperator()->getChild(0).get();
+    auto op1 = plan->getLastOperator();
     ASSERT_EQ(LOGICAL_PROJECTION, op1->getLogicalOperatorType());
     auto op2 = op1->getChild(0).get();
     ASSERT_EQ(LOGICAL_ORDER_BY, op2->getLogicalOperatorType());
@@ -102,7 +99,7 @@ TEST_F(PlannerTest, OrderByTest2) {
 TEST_F(PlannerTest, OrderByTest3) {
     auto query = "MATCH (a:person) RETURN COUNT(*) ORDER BY COUNT(*)";
     auto plan = getBestPlan(query);
-    auto op1 = plan->getLastOperator()->getChild(0)->getChild(0).get();
+    auto op1 = plan->getLastOperator()->getChild(0).get();
     ASSERT_EQ(LOGICAL_ORDER_BY, op1->getLogicalOperatorType());
     auto op2 = op1->getChild(0).get();
     ASSERT_EQ(LOGICAL_AGGREGATE, op2->getLogicalOperatorType());

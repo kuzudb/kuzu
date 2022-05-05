@@ -3,60 +3,27 @@
 namespace graphflow {
 namespace processor {
 
-unique_ptr<UnionAllScanMorsel> UnionAllScanSharedState::getMorsel() {
-    lock_guard<mutex> lck{unionAllScanSharedStateMutex};
-    // If we have read all the tuples for the current resultCollector, go to the next one.
-    // Note that: a queryResult may contain 0 tuple.
-    while (resultCollectorIdxToRead < unionAllChildren.size() &&
-           nextTupleIdxToRead >= getFactorizedTable(resultCollectorIdxToRead)->getNumTuples()) {
-        resultCollectorIdxToRead++;
-        nextTupleIdxToRead = 0;
-    }
-    // We have read all the tuples in all query results, just return a nullptr.
-    if (resultCollectorIdxToRead >= unionAllChildren.size()) {
-        return nullptr;
-    }
-
-    auto numTuplesToRead = min(maxMorselSize,
-        getFactorizedTable(resultCollectorIdxToRead)->getNumTuples() - nextTupleIdxToRead);
-    auto unionAllScanMorsel = make_unique<UnionAllScanMorsel>(
-        resultCollectorIdxToRead, nextTupleIdxToRead, numTuplesToRead);
-    nextTupleIdxToRead += numTuplesToRead;
-    return unionAllScanMorsel;
+uint64_t UnionAllScanSharedState::getMaxMorselSize() const {
+    assert(!fTableSharedStates.empty());
+    auto table = fTableSharedStates[0]->getTable();
+    return table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
 }
 
-shared_ptr<ResultSet> UnionAllScan::init(ExecutionContext* context) {
-    PhysicalOperator::init(context);
-    resultSet = populateResultSet();
-    for (auto i = 0u; i < outDataPoses.size(); i++) {
-        auto outDataPos = outDataPoses[i];
-        auto outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-        auto valueVector = make_shared<ValueVector>(context->memoryManager, dataTypes[i]);
-        outDataChunk->insert(outDataPos.valueVectorPos, valueVector);
-        vectorsToRead.push_back(valueVector);
+unique_ptr<FTableScanMorsel> UnionAllScanSharedState::getMorsel(uint64_t maxMorselSize) {
+    lock_guard<mutex> lck{mtx};
+    if (fTableToScanIdx == fTableSharedStates.size()) { // No more to scan.
+        return make_unique<FTableScanMorsel>(nullptr, 0, 0);
     }
-    unionAllScanSharedState->initForScanning();
-    return resultSet;
-}
-
-bool UnionAllScan::getNextTuples() {
-    metrics->executionTime.start();
-    auto unionAllScanMorsel = unionAllScanSharedState->getMorsel();
-    if (unionAllScanMorsel == nullptr) {
-        return false;
+    auto morsel = fTableSharedStates[fTableToScanIdx]->getMorsel(maxMorselSize);
+    // Fetch next table if current table has nothing to scan.
+    while (morsel->numTuples == 0) {
+        fTableToScanIdx++;
+        if (fTableToScanIdx == fTableSharedStates.size()) { // No more to scan.
+            return make_unique<FTableScanMorsel>(nullptr, 0, 0);
+        }
+        morsel = fTableSharedStates[fTableToScanIdx]->getMorsel(maxMorselSize);
     }
-    // We scan one by one if there is an unflat column in the factorized tables (see how
-    // maxMorselSize is set in initForScanning).
-    unionAllScanSharedState->getFactorizedTable(unionAllScanMorsel->getChildIdx())
-        ->scan(vectorsToRead, unionAllScanMorsel->getStartTupleIdx(),
-            unionAllScanMorsel->getNumTuples());
-    metrics->numOutputTuple.increase(
-        unionAllScanMorsel->getNumTuples() == 1 ?
-            unionAllScanSharedState->getFactorizedTable(unionAllScanMorsel->getChildIdx())
-                ->getNumFlatTuples(unionAllScanMorsel->getStartTupleIdx()) :
-            unionAllScanMorsel->getNumTuples());
-    metrics->executionTime.stop();
-    return true;
+    return morsel;
 }
 
 } // namespace processor

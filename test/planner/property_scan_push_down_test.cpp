@@ -17,7 +17,6 @@ TEST_F(PropertyScanPushDownTest, FilterPropertyPushDownTest) {
                   ->getChild(0)
                   ->getChild(0)
                   ->getChild(0)
-                  ->getChild(0)
                   .get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op->getLogicalOperatorType());
     auto scanNodeProperty = (LogicalScanNodeProperty*)op;
@@ -28,13 +27,7 @@ TEST_F(PropertyScanPushDownTest, FilterPropertyPushDownTest) {
 TEST_F(PropertyScanPushDownTest, ProjectionPropertyPushDownTest) {
     auto query = "MATCH (a:person)-[:knows]->(b:person) RETURN a.age, b.age";
     auto plan = getBestPlan(query);
-    auto op = plan->getLastOperator()
-                  ->getChild(0)
-                  ->getChild(0)
-                  ->getChild(0)
-                  ->getChild(0)
-                  ->getChild(0)
-                  .get();
+    auto op = plan->getLastOperator()->getChild(0)->getChild(0)->getChild(0)->getChild(0).get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op->getLogicalOperatorType());
     auto scanNodeProperty = (LogicalScanNodeProperty*)op;
     ASSERT_TRUE(containSubstr(scanNodeProperty->getNodeID(), "_b." + INTERNAL_ID_SUFFIX));
@@ -57,8 +50,7 @@ TEST_F(PropertyScanPushDownTest, LogicalPlanCloneTest) {
 TEST_F(PropertyScanPushDownTest, SubPlanPropertyPushDownTest) {
     auto query = "MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) RETURN a.age, b.age";
     auto plan = getBestPlan(query);
-    auto leftNLJ =
-        (LogicalLeftNestedLoopJoin*)plan->getLastOperator()->getChild(0)->getChild(0).get();
+    auto leftNLJ = (LogicalLeftNestedLoopJoin*)plan->getLastOperator()->getChild(0).get();
     auto op = leftNLJ->getChild(1).get();
     ASSERT_EQ(LOGICAL_SCAN_NODE_PROPERTY, op->getLogicalOperatorType());
     auto scanNodeProperty = (LogicalScanNodeProperty*)op;

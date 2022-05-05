@@ -24,6 +24,12 @@ public:
 
     inline bool getIsUnionAll(uint32_t idx) const { return isUnionAll[idx]; }
 
+    // For regular query (i.e. union of single queries), since there
+    inline expression_vector getExpressionsToReturn() const {
+        assert(!singleQueries.empty());
+        return singleQueries[0]->getExpressionsToReturn();
+    }
+
 private:
     vector<unique_ptr<NormalizedSingleQuery>> singleQueries;
     vector<bool> isUnionAll;

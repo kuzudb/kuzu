@@ -31,8 +31,8 @@ void QueryProcessor::decomposePlanIntoTasks(
     PhysicalOperator* op, PhysicalOperator* parent, Task* parentTask, ExecutionContext* context) {
     switch (op->getOperatorType()) {
     case RESULT_COLLECTOR: {
-        if (parent->getOperatorType() == UNION_ALL_SCAN) {
-            // Only breaks the pipeline if the parent operator is a UNION_ALL_SCAN.
+        if (parent->getOperatorType() == UNION_ALL_SCAN ||
+            parent->getOperatorType() == FACTORIZED_TABLE_SCAN) {
             auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
             decomposePlanIntoTasks(op->getChild(0), op, childTask.get(), context);
             parentTask->addChildTask(move(childTask));

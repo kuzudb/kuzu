@@ -3,6 +3,23 @@
 namespace graphflow {
 namespace processor {
 
+void FTableSharedState::initTableIfNecessary(
+    MemoryManager* memoryManager, const TableSchema& tableSchema) {
+    lock_guard<mutex> lck{mtx};
+    if (table == nullptr) {
+        nextTupleIdxToScan = 0u;
+        table = make_unique<FactorizedTable>(memoryManager, tableSchema);
+    }
+}
+
+unique_ptr<FTableScanMorsel> FTableSharedState::getMorsel(uint64_t maxMorselSize) {
+    lock_guard<mutex> lck{mtx};
+    auto numTuplesToScan = min(maxMorselSize, table->getNumTuples() - nextTupleIdxToScan);
+    auto morsel = make_unique<FTableScanMorsel>(table.get(), nextTupleIdxToScan, numTuplesToScan);
+    nextTupleIdxToScan += numTuplesToScan;
+    return morsel;
+}
+
 shared_ptr<ResultSet> ResultCollector::init(ExecutionContext* context) {
     resultSet = PhysicalOperator::init(context);
     TableSchema tableSchema;
@@ -14,8 +31,8 @@ shared_ptr<ResultSet> ResultCollector::init(ExecutionContext* context) {
         tableSchema.appendColumn({!vectorToCollectInfo.second, dataPos.dataChunkPos,
             vectorToCollectInfo.second ? vector->getNumBytesPerValue() : sizeof(overflow_value_t)});
     }
-    localQueryResult = make_shared<FactorizedTable>(context->memoryManager, tableSchema);
-    sharedQueryResults->appendQueryResult(localQueryResult);
+    localTable = make_unique<FactorizedTable>(context->memoryManager, tableSchema);
+    sharedState->initTableIfNecessary(context->memoryManager, tableSchema);
     return resultSet;
 }
 
@@ -23,17 +40,16 @@ void ResultCollector::execute(ExecutionContext* context) {
     init(context);
     metrics->executionTime.start();
     while (children[0]->getNextTuples()) {
-        // The resultCollector doesn't need to flatten any of the columns, so it always inserts
-        // one tuple to the queryResult at a time.
-        for (auto i = 0u; i < resultSet->multiplicity; i++) {
-            localQueryResult->append(vectorsToCollect);
+        if (!vectorsToCollect.empty()) {
+            for (auto i = 0u; i < resultSet->multiplicity; i++) {
+                localTable->append(vectorsToCollect);
+            }
         }
     }
+    if (!vectorsToCollect.empty()) {
+        sharedState->mergeLocalTable(*localTable);
+    }
     metrics->executionTime.stop();
-}
-
-void ResultCollector::finalize(ExecutionContext* context) {
-    sharedQueryResults->mergeQueryResults();
 }
 
 } // namespace processor

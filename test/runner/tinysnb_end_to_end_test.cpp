@@ -157,3 +157,9 @@ TEST_F(TinySnbProcessorTest, VarLengthAdjListExtendTests) {
         "test/runner/queries/var_length_extend/var_length_column_extend.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
+
+TEST_F(TinySnbProcessorTest, UpdateTests) {
+    vector<TestQueryConfig> queryConfigs;
+    queryConfigs = TestHelper::parseTestFile("test/runner/queries/update/set.test");
+    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
+}

@@ -39,8 +39,10 @@ bool TableSchema::operator==(const TableSchema& other) const {
 FactorizedTable::FactorizedTable(MemoryManager* memoryManager, const TableSchema& tableSchema)
     : memoryManager{memoryManager}, tableSchema{tableSchema}, numTuples{0}, numTuplesPerBlock{0} {
     assert(tableSchema.getNumBytesPerTuple() <= LARGE_PAGE_SIZE);
-    overflowBuffer = make_unique<OverflowBuffer>(memoryManager);
-    numTuplesPerBlock = LARGE_PAGE_SIZE / tableSchema.getNumBytesPerTuple();
+    if (!tableSchema.isEmpty()) {
+        overflowBuffer = make_unique<OverflowBuffer>(memoryManager);
+        numTuplesPerBlock = LARGE_PAGE_SIZE / tableSchema.getNumBytesPerTuple();
+    }
 }
 
 void FactorizedTable::append(const vector<shared_ptr<ValueVector>>& vectors) {

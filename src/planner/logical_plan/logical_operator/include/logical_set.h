@@ -26,6 +26,12 @@ public:
         return result;
     }
 
+    inline vector<pair<shared_ptr<Expression>, shared_ptr<Expression>>> getSetItems() const {
+        return setItems;
+    }
+
+    inline Schema* getSchemaBeforeSet() const { return schemaBeforeSet.get(); }
+
     unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalSet>(setItems, schemaBeforeSet->copy(), children[0]->copy());
     }

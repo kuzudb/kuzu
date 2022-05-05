@@ -1,0 +1,12 @@
+# description: matching cycles
+
+# NOTE: these tests are to ensure empty set operator fits in framework. Does NOT update.
+
+-NAME SetBasic
+-QUERY MATCH (a:person) SET a.age = 12
+---- 0
+
+
+-NAME SetComplex
+-QUERY MATCH (a:person) SET a.age = a.age + 2;
+---- 0

@@ -70,8 +70,14 @@ private:
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalUnionAllToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
-    unique_ptr<ResultCollector> mapLogicalResultCollectorToPhysical(
+    unique_ptr<PhysicalOperator> mapLogicalSetToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalSinkScanToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+
+    unique_ptr<ResultCollector> appendResultCollector(expression_vector expressionsToCollect,
+        const Schema& schema, unique_ptr<PhysicalOperator> prevOperator,
+        MapperContext& mapperContext);
 
 public:
     const catalog::Catalog& catalog;

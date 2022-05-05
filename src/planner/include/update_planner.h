@@ -14,7 +14,7 @@ public:
     static void planSetClause(BoundSetClause& setClause, vector<unique_ptr<LogicalPlan>>& plans);
 
 private:
-    static void appendLogicalSet(BoundSetClause& setClause, LogicalPlan& plan);
+    static void appendSet(BoundSetClause& setClause, LogicalPlan& plan);
 };
 
 } // namespace planner

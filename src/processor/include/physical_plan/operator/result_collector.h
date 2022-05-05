@@ -6,37 +6,47 @@
 namespace graphflow {
 namespace processor {
 
-class SharedQueryResults {
+struct FTableScanMorsel {
+
+    FTableScanMorsel(FactorizedTable* table, uint64_t startTupleIdx, uint64_t numTuples)
+        : table{table}, startTupleIdx{startTupleIdx}, numTuples{numTuples} {}
+
+    FactorizedTable* table;
+    uint64_t startTupleIdx;
+    uint64_t numTuples;
+};
+
+class FTableSharedState {
+
 public:
-    inline void appendQueryResult(shared_ptr<FactorizedTable> queryResult) {
-        lock_guard<mutex> lck{sharedQueryResultMutex};
-        queryResults.emplace_back(queryResult);
+    void initTableIfNecessary(MemoryManager* memoryManager, const TableSchema& tableSchema);
+
+    inline void mergeLocalTable(FactorizedTable& localTable) {
+        lock_guard<mutex> lck{mtx};
+        table->merge(localTable);
     }
 
-    inline void mergeQueryResults() {
-        lock_guard<mutex> lck{sharedQueryResultMutex};
-        for (auto i = 1u; i < queryResults.size(); i++) {
-            queryResults[0]->merge(*queryResults[i]);
-        }
-    }
+    inline shared_ptr<FactorizedTable> getTable() { return table; }
 
-    inline shared_ptr<FactorizedTable> getFinalizedQueryResult() {
-        lock_guard<mutex> lck{sharedQueryResultMutex};
-        return queryResults[0];
+    inline uint64_t getMaxMorselSize() const {
+        return table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
     }
+    unique_ptr<FTableScanMorsel> getMorsel(uint64_t maxMorselSize);
 
 private:
-    mutex sharedQueryResultMutex;
-    vector<shared_ptr<FactorizedTable>> queryResults;
+    mutex mtx;
+    shared_ptr<FactorizedTable> table;
+
+    uint64_t nextTupleIdxToScan = 0u;
 };
 
 class ResultCollector : public Sink {
+
 public:
     ResultCollector(vector<pair<DataPos, bool>> vectorsToCollectInfo,
-        shared_ptr<SharedQueryResults> sharedQueryResults, unique_ptr<PhysicalOperator> child,
-        uint32_t id)
+        shared_ptr<FTableSharedState> sharedState, unique_ptr<PhysicalOperator> child, uint32_t id)
         : Sink{move(child), id}, vectorsToCollectInfo{move(vectorsToCollectInfo)},
-          sharedQueryResults{move(sharedQueryResults)} {}
+          sharedState{move(sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return RESULT_COLLECTOR; }
 
@@ -44,22 +54,21 @@ public:
 
     void execute(ExecutionContext* context) override;
 
-    void finalize(ExecutionContext* context) override;
-
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ResultCollector>(
-            vectorsToCollectInfo, sharedQueryResults, children[0]->clone(), id);
+            vectorsToCollectInfo, sharedState, children[0]->clone(), id);
     }
 
+    inline shared_ptr<FTableSharedState> getSharedState() { return sharedState; }
     inline shared_ptr<FactorizedTable> getResultFactorizedTable() {
-        return sharedQueryResults->getFinalizedQueryResult();
+        return sharedState->getTable();
     }
 
 private:
-    shared_ptr<FactorizedTable> localQueryResult;
-    vector<shared_ptr<ValueVector>> vectorsToCollect;
     vector<pair<DataPos, bool>> vectorsToCollectInfo;
-    shared_ptr<SharedQueryResults> sharedQueryResults;
+    vector<shared_ptr<ValueVector>> vectorsToCollect;
+    shared_ptr<FTableSharedState> sharedState;
+    unique_ptr<FactorizedTable> localTable;
 };
 
 } // namespace processor

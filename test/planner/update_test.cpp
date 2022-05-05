@@ -16,7 +16,6 @@ TEST_F(UpdateTest, TwoHopSetTest) {
     auto query = "MATCH (a:person)-[:knows]->(b:person) SET a.age = b.age;";
     // SCAN(b.ID) -> SCAN(b.age) -> FLATTEN -> EXTEND (a.ID) -> SET
     auto plan = getBestPlan(query);
-    auto s = plan->getLastOperator()->toString();
     auto op1 = plan->getLastOperator();
     ASSERT_EQ(LOGICAL_SET, op1->getLogicalOperatorType());
     auto op2 = op1->getChild(0);
@@ -27,9 +26,9 @@ TEST_F(UpdateTest, TwoHopSetTest) {
 
 TEST_F(UpdateTest, ReturnSetTest) {
     auto query = "MATCH (a:person) SET a.age = 35 SET a.age = 40 RETURN a.name;";
-    // SCAN(a.ID) -> SCAN(a.name) -> SET -> SET
+    // SCAN(a.ID) -> SCAN(a.name) -> SINK -> SET -> SINK -> SET -> PROJECTION
     auto plan = getBestPlan(query);
-    auto op1 = plan->getLastOperator()->getChild(0);
+    auto op1 = plan->getLastOperator();
     ASSERT_EQ(LOGICAL_PROJECTION, op1->getLogicalOperatorType());
     auto op2 = op1->getChild(0);
     ASSERT_EQ(LOGICAL_SET, op2->getLogicalOperatorType());
@@ -37,14 +36,14 @@ TEST_F(UpdateTest, ReturnSetTest) {
     ASSERT_EQ(LOGICAL_SET, op3->getLogicalOperatorType());
 }
 
-TEST_F(UpdateTest, MultiPartSetTest) {
-    auto query =
-        "MATCH (a:person) SET a.age = 35 WITH a MATCH (a)-[:knows]->(b:person) SET b.age= 40 ;";
-    // SCAN(a.ID) -> SET -> PROJECTION -> FLATTEN -> EXTEND (b.ID) -> SET
+TEST_F(UpdateTest, ThreeHopSetTest) {
+    auto query = "MATCH (a:person)-[:knows]->(b:person) WITH a, b.age AS k MATCH "
+                 "(a)-[:knows]->(c:person) SET c.age = k;";
+    // SCAN(a.ID) -> FLATTEN(a) -> EXTEND(b.ID) -> SCAN(b.age) -> PROJECTION -> EXTEND (c.ID) ->
+    // FLATTEN(c.ID) -> SET
     auto plan = getBestPlan(query);
-    auto s = plan->getLastOperator()->toString();
     auto op1 = plan->getLastOperator();
     ASSERT_EQ(LOGICAL_SET, op1->getLogicalOperatorType());
-    auto op2 = op1->getChild(0)->getChild(0)->getChild(0)->getChild(0);
-    ASSERT_EQ(LOGICAL_SET, op2->getLogicalOperatorType());
+    auto op2 = op1->getChild(0);
+    ASSERT_EQ(LOGICAL_FLATTEN, op2->getLogicalOperatorType());
 }

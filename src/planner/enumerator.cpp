@@ -5,7 +5,6 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_filter.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_flatten.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_left_nested_loop_join.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_result_collector.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_rel_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_union.h"
@@ -14,42 +13,38 @@ namespace graphflow {
 namespace planner {
 
 vector<unique_ptr<LogicalPlan>> Enumerator::getAllPlans(const BoundRegularQuery& regularQuery) {
-    if (regularQuery.getNumSingleQueries() == 1) {
-        auto singleQuery = regularQuery.getSingleQuery(0);
-        auto plans = getAllPlans(*singleQuery);
-        for (auto& plan : plans) {
-            appendResultCollectorIfNecessary(*singleQuery, *plan);
-        }
-        return plans;
-    }
-    vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans(
-        regularQuery.getNumSingleQueries());
-    for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
-        childrenLogicalPlans[i] = getAllPlans(*regularQuery.getSingleQuery(i));
-    }
-    auto childrenPlans = cartesianProductChildrenPlans(move(childrenLogicalPlans));
     vector<unique_ptr<LogicalPlan>> resultPlans;
-    for (auto& childrenPlan : childrenPlans) {
-        auto plan = createUnionPlan(childrenPlan, regularQuery.getIsUnionAll(0));
-        appendResultCollector(*plan);
-        resultPlans.push_back(move(plan));
+    if (regularQuery.getNumSingleQueries() == 1) {
+        resultPlans = getAllPlans(*regularQuery.getSingleQuery(0));
+    } else {
+        vector<vector<unique_ptr<LogicalPlan>>> childrenLogicalPlans(
+            regularQuery.getNumSingleQueries());
+        for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
+            childrenLogicalPlans[i] = getAllPlans(*regularQuery.getSingleQuery(i));
+        }
+        auto childrenPlans = cartesianProductChildrenPlans(move(childrenLogicalPlans));
+        for (auto& childrenPlan : childrenPlans) {
+            resultPlans.push_back(createUnionPlan(childrenPlan, regularQuery.getIsUnionAll(0)));
+        }
+    }
+    for (auto& plan : resultPlans) {
+        plan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
     }
     return resultPlans;
 }
 
 unique_ptr<LogicalPlan> Enumerator::getBestPlan(const BoundRegularQuery& regularQuery) {
+    unique_ptr<LogicalPlan> bestPlan;
     if (regularQuery.getNumSingleQueries() == 1) {
-        auto singleQuery = regularQuery.getSingleQuery(0);
-        auto bestPlan = getBestPlan(*singleQuery);
-        appendResultCollectorIfNecessary(*singleQuery, *bestPlan);
-        return bestPlan;
+        bestPlan = getBestPlan(*regularQuery.getSingleQuery(0));
+    } else {
+        vector<unique_ptr<LogicalPlan>> childrenPlans(regularQuery.getNumSingleQueries());
+        for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
+            childrenPlans[i] = getBestPlan(*regularQuery.getSingleQuery(i));
+        }
+        bestPlan = createUnionPlan(childrenPlans, regularQuery.getIsUnionAll(0));
     }
-    vector<unique_ptr<LogicalPlan>> childrenPlans(regularQuery.getNumSingleQueries());
-    for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
-        childrenPlans[i] = getBestPlan(*regularQuery.getSingleQuery(i));
-    }
-    auto bestPlan = createUnionPlan(childrenPlans, regularQuery.getIsUnionAll(0));
-    appendResultCollector(*bestPlan);
+    bestPlan->setExpressionsToCollect(regularQuery.getExpressionsToReturn());
     return bestPlan;
 }
 
@@ -334,21 +329,6 @@ void Enumerator::appendScanRelProperty(
     plan.appendOperator(move(scanProperty));
 }
 
-void Enumerator::appendResultCollectorIfNecessary(
-    const NormalizedSingleQuery& singleQuery, LogicalPlan& plan) {
-    if (singleQuery.getLastQueryPart()->hasProjectionBody()) {
-        appendResultCollector(plan);
-    }
-}
-
-void Enumerator::appendResultCollector(LogicalPlan& plan) {
-    auto schema = plan.getSchema();
-    auto resultCollector = make_shared<LogicalResultCollector>(
-        schema->getExpressionsInScope(), schema->copy(), plan.getLastOperator());
-    plan.setExpressionsToCollect(schema->getExpressionsInScope());
-    plan.appendOperator(resultCollector);
-}
-
 unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
     vector<unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll) {
     // If an expression to union has different flat/unflat state in different child, we
@@ -377,11 +357,9 @@ unique_ptr<LogicalPlan> Enumerator::createUnionPlan(
     Enumerator::computeSchemaForSinkOperators(
         firstChildSchema->getGroupsPosInScope(), *firstChildSchema, *plan->getSchema());
     for (auto& childPlan : childrenPlans) {
-        // We can only append ResultCollector after appending flatten. This matches the description
-        // for 'enumeratePlans(const NormalizedSingleQuery& singleQuery)'
-        appendResultCollector(*childPlan);
         plan->cost += childPlan->cost;
         logicalUnion->addChild(childPlan->getLastOperator());
+        logicalUnion->addSchema(childPlan->getSchema()->copy());
     }
     plan->appendOperator(logicalUnion);
     if (!isUnionAll) {

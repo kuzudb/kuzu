@@ -95,6 +95,8 @@ public:
         return (numColumns >> 3) + ((numColumns & 7) != 0); // &7 is the same as %8;
     }
 
+    inline bool isEmpty() const { return columns.empty(); }
+
     bool operator==(const TableSchema& other) const;
     inline bool operator!=(const TableSchema& other) const { return !(*this == other); }
 

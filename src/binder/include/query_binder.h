@@ -100,6 +100,8 @@ private:
 
     static void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery);
 
+    static void validateReadNotFollowUpdate(const NormalizedSingleQuery& normalizedSingleQuery);
+
     /******* helpers *********/
 
     string getUniqueExpressionName(const string& name);

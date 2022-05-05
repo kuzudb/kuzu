@@ -32,7 +32,7 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto aIDPos = DataPos{0, 0};
     auto vectorsToCollectInfo = vector<pair<DataPos, bool>>{make_pair(aIDPos, false)};
     auto plan = make_unique<PhysicalPlan>(
-        make_unique<ResultCollector>(vectorsToCollectInfo, make_shared<SharedQueryResults>(),
+        make_unique<ResultCollector>(vectorsToCollectInfo, make_shared<FTableSharedState>(),
             make_unique<ScanNodeID>(
                 make_unique<ResultSetDescriptor>(schema), 0, aIDPos, sharedState, 0),
             1));
