@@ -38,6 +38,7 @@ py_library(
     name = "graphflowdb",
     srcs = [
         "__init__.py",
+        "to_panda.py",
     ],
     data = [
         "//tools/python_api:_graphflowdb.so",
@@ -53,6 +54,7 @@ py_test(
         "test/test_exception.py",
         "test/test_main.py",
         "test/test_parameter.py",
+        "test/test_to_panda.py",
     ],
     data = [
         "//dataset",

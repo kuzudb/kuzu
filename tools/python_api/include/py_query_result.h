@@ -21,6 +21,8 @@ public:
 
     void close();
 
+    py::list getColumnNames();
+
 private:
     py::object convertValueToPyObject(const Value& value, bool isNull);
     py::object convertValueToPyObject(uint8_t* val, const DataType& dataType);

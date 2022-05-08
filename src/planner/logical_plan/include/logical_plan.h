@@ -42,6 +42,8 @@ public:
 
     vector<DataType> getExpressionsToCollectDataTypes() const;
 
+    vector<string> getExpressionsToCollectNames() const;
+
     unique_ptr<LogicalPlan> shallowCopy() const;
 
     unique_ptr<LogicalPlan> deepCopy() const;

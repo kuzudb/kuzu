@@ -13,10 +13,12 @@ namespace main {
 
 struct QueryResultHeader {
 
-    explicit QueryResultHeader(std::vector<common::DataType> columnDataTypes)
-        : columnDataTypes{move(columnDataTypes)} {};
+    explicit QueryResultHeader(
+        std::vector<common::DataType> columnDataTypes, std::vector<std::string> columnNames)
+        : columnDataTypes{move(columnDataTypes)}, columnNames{move(columnNames)} {};
 
     std::vector<common::DataType> columnDataTypes;
+    std::vector<std::string> columnNames;
 };
 
 class QueryResult {
@@ -54,6 +56,8 @@ public:
     inline uint64_t getNumTuples() {
         return querySummary->getIsExplain() ? 0 : factorizedTable->getTotalNumFlatTuples();
     }
+
+    inline vector<std::string> getResultColumnNames() { return header->columnNames; }
 
 private:
     void validateQuerySucceed();

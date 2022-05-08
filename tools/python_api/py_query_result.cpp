@@ -8,7 +8,8 @@ void PyQueryResult::initialize(py::handle& m) {
     py::class_<PyQueryResult>(m, "result")
         .def("hasNext", &PyQueryResult::hasNext)
         .def("getNext", &PyQueryResult::getNext)
-        .def("close", &PyQueryResult::close);
+        .def("close", &PyQueryResult::close)
+        .def("getColumnNames", &PyQueryResult::getColumnNames);
 
     // PyDateTime_IMPORT is a macro that must be invoked before calling any other cpython datetime
     // macros. One could also invoke this in a separate function like constructor. See
@@ -131,4 +132,13 @@ py::object PyQueryResult::convertValueToPyObject(uint8_t* val, const DataType& d
     default:
         throw NotImplementedException("Unsupported type2: " + Types::dataTypeToString(dataType));
     }
+}
+
+py::list PyQueryResult::getColumnNames() {
+    auto columnNames = queryResult->getResultColumnNames();
+    py::tuple lst(columnNames.size());
+    for (auto i = 0u; i < columnNames.size(); i++) {
+        lst[i] = py::cast(columnNames[i].c_str());
+    }
+    return move(lst);
 }

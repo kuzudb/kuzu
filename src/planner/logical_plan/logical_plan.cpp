@@ -17,6 +17,14 @@ vector<DataType> LogicalPlan::getExpressionsToCollectDataTypes() const {
     return dataTypes;
 }
 
+vector<string> LogicalPlan::getExpressionsToCollectNames() const {
+    vector<string> expressionNames;
+    for (auto& expression : expressionsToCollect) {
+        expressionNames.push_back(expression->getRawName());
+    }
+    return expressionNames;
+}
+
 unique_ptr<LogicalPlan> LogicalPlan::shallowCopy() const {
     auto plan = make_unique<LogicalPlan>(schema->copy(), expressionsToCollect, cost);
     plan->lastOperator = lastOperator;
