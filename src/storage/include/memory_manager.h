@@ -8,18 +8,15 @@
 #include "src/common/include/configs.h"
 #include "src/storage/include/buffer_manager.h"
 
-using namespace std;
 using namespace graphflow::storage;
 
 namespace graphflow {
 namespace storage {
 
-class MemoryManager;
-
-struct BMBackedMemoryBlock {
+struct MemoryBlock {
 
 public:
-    explicit BMBackedMemoryBlock(uint32_t pageIdx, uint8_t* data)
+    explicit MemoryBlock(uint32_t pageIdx, uint8_t* data)
         : size(LARGE_PAGE_SIZE), pageIdx(pageIdx), data(data) {}
 
 public:
@@ -39,9 +36,9 @@ public:
         fh = make_shared<FileHandle>("mm-place-holder-file-name", FileHandle::O_LargePagedTempFile);
     }
 
-    unique_ptr<BMBackedMemoryBlock> allocateBMBackedBlock(bool initializeToZero = false);
+    unique_ptr<MemoryBlock> allocateBlock(bool initializeToZero = false);
 
-    void freeBMBackedBlock(uint32_t pageIdx);
+    void freeBlock(uint32_t pageIdx);
 
 private:
     shared_ptr<FileHandle> fh;

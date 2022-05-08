@@ -14,13 +14,17 @@ using namespace graphflow::common;
 class LoadedHashIndexTest : public testing::Test {
 
 public:
-    LoadedHashIndexTest() : fName{TEMP_INDEX_DIR + "/0.index"} {
+    LoadedHashIndexTest() : fName{TEMP_INDEX_DIR + "0.index"} {
         FileUtils::createDir(TEMP_INDEX_DIR);
+        writeBufferManager = make_unique<BufferManager>();
+        writeMemoryManager = make_unique<MemoryManager>(writeBufferManager.get());
     }
 
     void TearDown() override { FileUtils::removeDir(TEMP_INDEX_DIR); }
 
 public:
+    unique_ptr<BufferManager> writeBufferManager;
+    unique_ptr<MemoryManager> writeMemoryManager;
     const string TEMP_INDEX_DIR = "test/temp_index/";
     const string fName;
     uint64_t numKeysToInsert = 5000;
@@ -30,7 +34,7 @@ class LoadedHashIndexInt64KeyTest : public LoadedHashIndexTest {
 
 public:
     void SetUp() override {
-        HashIndex insertionHashIndex(fName, INT64);
+        HashIndex insertionHashIndex(fName, DataType(INT64), writeMemoryManager.get());
         insertionHashIndex.bulkReserve(numKeysToInsert);
         // Inserting (key=i, value=i*2) pairs
         for (uint64_t k = 0; k < numKeysToInsert; k++) {
@@ -64,7 +68,7 @@ public:
     }
 
     void SetUp() override {
-        HashIndex insertionHashIndex(fName, STRING);
+        HashIndex insertionHashIndex(fName, DataType(STRING), writeMemoryManager.get());
         insertionHashIndex.bulkReserve(numKeysToInsert);
         for (auto& entry : map) {
             auto key = reinterpret_cast<uint8_t*>(const_cast<char*>(entry.first.c_str()));
@@ -79,7 +83,9 @@ public:
 };
 
 TEST(HashIndexTest, HashIndexInt64KeyInsertExists) {
-    HashIndex hashIndex("dummy_name", INT64);
+    auto bufferManager = make_unique<BufferManager>();
+    auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
+    HashIndex hashIndex("dummy_name", DataType(INT64), memoryManager.get());
     auto numEntries = 10;
     for (uint64_t i = 0; i < numEntries; i++) {
         ASSERT_TRUE(hashIndex.insert(reinterpret_cast<uint8_t*>(&i), i << 1));
@@ -90,7 +96,9 @@ TEST(HashIndexTest, HashIndexInt64KeyInsertExists) {
 }
 
 TEST(HashIndexTest, HashIndexStringKeyInsertExists) {
-    HashIndex hashIndex("dummy_name", STRING);
+    auto bufferManager = make_unique<BufferManager>();
+    auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
+    HashIndex hashIndex("dummy_name", DataType(STRING), memoryManager.get());
     char const* strKeys[] = {"abc", "def", "ghi", "jkl", "mno"};
     for (uint64_t i = 0; i < 5; i++) {
         auto key = reinterpret_cast<uint8_t*>(const_cast<char*>(strKeys[i]));
@@ -104,7 +112,7 @@ TEST(HashIndexTest, HashIndexStringKeyInsertExists) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64SequentialLookupInMem) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, *bufferManager, true /*isInMemory*/);
+    HashIndex hashIndex(fName, bufferManager.get(), true /*isInMemory*/);
     node_offset_t result;
     for (uint64_t i = 0; i < numKeysToInsert; i++) {
         auto found = hashIndex.lookup(reinterpret_cast<uint8_t*>(&i), result);
@@ -115,7 +123,7 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64SequentialLookupInMem) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookupThroughBufferManager) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, *bufferManager, false /*isInMemory*/);
+    HashIndex hashIndex(fName, bufferManager.get(), false /*isInMemory*/);
     random_device rd;
     mt19937::result_type seed =
         rd() ^ ((mt19937::result_type)chrono::duration_cast<chrono::seconds>(
@@ -136,7 +144,7 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookupThroughBufferManag
 
 TEST_F(LoadedHashIndexStringKeyTest, HashIndexInt64SequentialLookupInMem) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, *bufferManager, true /*isInMemory*/);
+    HashIndex hashIndex(fName, bufferManager.get(), true /*isInMemory*/);
     node_offset_t result;
     for (auto& entry : map) {
         auto key = reinterpret_cast<uint8_t*>(const_cast<char*>(entry.first.c_str()));

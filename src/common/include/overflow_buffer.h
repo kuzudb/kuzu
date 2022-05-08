@@ -13,13 +13,13 @@ using namespace graphflow::storage;
 
 struct BufferBlock {
 public:
-    explicit BufferBlock(unique_ptr<BMBackedMemoryBlock> block)
+    explicit BufferBlock(unique_ptr<MemoryBlock> block)
         : size{block->size}, currentOffset{0}, block{move(block)} {}
 
 public:
     uint64_t size;
     uint64_t currentOffset;
-    unique_ptr<BMBackedMemoryBlock> block;
+    unique_ptr<MemoryBlock> block;
 
     inline void resetCurrentOffset() { currentOffset = 0; }
 };
@@ -32,10 +32,10 @@ public:
 
     // The blocks used are allocated through the MemoryManager but are backed by the
     // BufferManager. We need to therefore release them back by calling
-    // memoryManager->freeBMBackedBlock.
+    // memoryManager->freeBlock.
     ~OverflowBuffer() {
         for (auto& block : blocks) {
-            memoryManager->freeBMBackedBlock(block->block->pageIdx);
+            memoryManager->freeBlock(block->block->pageIdx);
         }
     }
 
@@ -45,7 +45,7 @@ public:
         move(begin(other.blocks), end(other.blocks), back_inserter(blocks));
         // We clear the other OverflowBuffer's block because when it is deconstructed,
         // OverflowBuffer's deconstructed tries to free these pages by calling
-        // memoryManager->freeBMBackedBlock, but it should not because this OverflowBuffer still
+        // memoryManager->freeBlock, but it should not because this OverflowBuffer still
         // needs them.
         other.blocks.clear();
         currentBlock = other.currentBlock;
@@ -58,7 +58,7 @@ public:
         if (!blocks.empty()) {
             auto firstBlock = move(blocks[0]);
             for (auto i = 1u; i < blocks.size(); ++i) {
-                memoryManager->freeBMBackedBlock(blocks[i]->block->pageIdx);
+                memoryManager->freeBlock(blocks[i]->block->pageIdx);
             }
             blocks.clear();
             firstBlock->resetCurrentOffset();

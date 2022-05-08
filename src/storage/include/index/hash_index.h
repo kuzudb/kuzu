@@ -6,12 +6,12 @@
 #include "src/common/include/configs.h"
 #include "src/common/include/file_utils.h"
 #include "src/common/include/vector/value_vector.h"
+#include "src/function/hash/operations/include/hash_operations.h"
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/memory_manager.h"
 #include "src/storage/include/storage_structure/overflow_pages.h"
 
-using namespace std;
 using namespace graphflow::common;
 using namespace graphflow::loader;
 
@@ -44,34 +44,34 @@ namespace storage {
  *
  * Layout of the file:
  *
- *       -----------------------
- *  0    | PAGE 0 (HEADER)     |
- *       -----------------------
- *  1    | PAGE 0 (HEADER)     |  <-|
- *       -----------------------    |
- *  2    | PAGE 0 (HEADER)     |    |
- *       -----------------------    |  PRIMARY PAGES
- *               ...                |
- *       -----------------------    |
- *  n    | PAGE 0 (HEADER)     |  <-|
- *       -----------------------
- *  n+1  | PAGE 0 (HEADER)     |  <-|
- *       -----------------------    |
- *  n+2  | PAGE 0 (HEADER)     |    |
- *       -----------------------    |  OVERFLOW PAGES
- *               ...                |
- *       -----------------------    |
- *  n+m  | PAGE 0 (HEADER)     |  <-|
- *       -----------------------
+ *       ---------------------
+ *  0    | PAGE 0 (HEADER)   |
+ *       ---------------------
+ *  1    | PAGE 1 (SLOT)     |  <-|
+ *       ---------------------    |
+ *  2    | PAGE 2 (SLOT)     |    |
+ *       ---------------------    |  PRIMARY PAGES
+ *               ...              |
+ *       ---------------------    |
+ *  n    | PAGE n (SLOT)     |  <-|
+ *       ---------------------
+ *  n+1  | PAGE n+1 (SLOT)   |  <-|
+ *       ---------------------    |
+ *  n+2  | PAGE n+2 (SLOT)   |    |
+ *       ---------------------    |  OVERFLOW PAGES
+ *               ...              |
+ *       ---------------------    |
+ *  n+m  | PAGE n+m (SLOT)   |  <-|
+ *       ---------------------
  *
  *  Information about the number of primary pages, primary slots, overflow pages and overflow
  *  slots are stored in the HashIndexHeader.
  *
  *  Mode Of Operations:
  *
- *  WRITE MODE: The hashIndex is initially opened in the write mode in which only the insertions
- *  are supported. In here, all the page allocations are happen in memory which needs to be saved
- *  to disk to persist. Also for performance reasons and based on our use case, we support
+ *  WRITE_ONLY MODE: The hashIndex is initially opened in the write mode in which only the
+ * insertions are supported. In here, all the page allocations are happen in memory which needs to
+ * be saved to disk to persist. Also for performance reasons and based on our use case, we support
  *  `bulkReserve` operation to fix the hashIndex capacity in the beginning before any insertions
  *  are made. This is done by means of calculating the number of primary slots and pages are needed
  *  and pre-allocating them.  In lieu of this, we do not support changing the capacity dynamically
@@ -79,15 +79,13 @@ namespace storage {
  *  more than its capacity but these entries will land in chained overflow slots leading to
  *  degraded performance in insertions as well as in look ups.
  *
- *  READ MODE: The hashIndex can be opened in the read mode by supplying it with the name of already
- *  existing file that was previously flushed in the write mode. Lookups happen by reading
+ *  READ_ONLY MODE: The hashIndex can be opened in the read mode by supplying it with the name of
+ * already existing file that was previously flushed in the write mode. Lookups happen by reading
  *  arbitrary number of required pages to reach the required slot and iterating it to find the
  *  required value. In this mode, all pages are not kept in memory but rather are made accessible
  *  by our Buffer manager.
  *
  *  */
-
-class HashIndex;
 
 struct SlotHeader {
 public:
@@ -109,14 +107,14 @@ struct HashIndexHeader {
 private:
     HashIndexHeader() = default;
 
-    explicit HashIndexHeader(DataTypeID keyDataType);
+    explicit HashIndexHeader(DataType keyDataType);
 
     inline void incrementLevel();
 
     // Constants
-    uint64_t numBytesPerEntry{};
-    uint64_t numBytesPerSlot{};
-    uint64_t numSlotsPerPage{};
+    uint64_t numBytesPerEntry{0};
+    uint64_t numBytesPerSlot{0};
+    uint64_t numSlotsPerPage{0};
     uint64_t slotCapacity{HashIndexConfig::SLOT_CAPACITY};
 
     uint64_t numEntries{0};
@@ -130,15 +128,27 @@ private:
     uint64_t higherLevelHashMask{3};
     uint64_t nextSplitSlotId{0};
 
-    DataTypeID keyDataType = INT64;
+    DataType keyDataType;
 };
+
+using hash_function_t = std::function<hash_t(uint8_t*)>;
+using insert_function_t =
+    std::function<void(uint8_t*, uint8_t*, InMemOverflowPages*, PageByteCursor*)>;
+using equals_in_write_function_t =
+    std::function<bool(const uint8_t*, const uint8_t*, const InMemOverflowPages*)>;
+using equals_in_read_function_t =
+    std::function<bool(const uint8_t*, const uint8_t*, OverflowPages*)>;
 
 class HashIndex {
 
-public:
-    explicit HashIndex(const string& fName, DataTypeID keyDataType);
+    enum HashIndexMode { WRITE_ONLY, READ_ONLY };
 
-    HashIndex(const string& fName, BufferManager& bufferManager, bool isInMemory);
+public:
+    HashIndex(const string& fName, DataType keyDataType, MemoryManager* memoryManager);
+
+    HashIndex(const string& fName, BufferManager* bufferManager, bool isInMemory);
+
+    ~HashIndex();
 
 public:
     // Reserves space for at least the specified number of elements.
@@ -154,7 +164,6 @@ private:
     bool notExistsInSlot(uint8_t* slot, uint8_t* key);
     void putNewEntryInSlotAndUpdateHeader(uint8_t* slot, uint8_t* key, node_offset_t value);
     uint64_t reserveOvfSlot();
-    void insertKey(uint8_t* key, uint8_t* entry);
 
     bool lookupInSlot(const uint8_t* slot, uint8_t* key, node_offset_t& result) const;
 
@@ -180,29 +189,72 @@ private:
         return slot + sizeof(SlotHeader) + (entryId * indexHeader.numBytesPerEntry);
     }
 
-    static uint8_t* getNewPage();
+    // HashFunc
+    inline static hash_t hashFuncForInt64(uint8_t* key) {
+        hash_t hash;
+        function::operation::Hash::operation(*(int64_t*)key, hash);
+        return hash;
+    }
+    inline static hash_t hashFuncForString(uint8_t* key) {
+        hash_t hash;
+        function::operation::Hash::operation(string((char*)key), hash);
+        return hash;
+    }
+    static hash_function_t initializeHashFunc(const DataType& dataType);
 
-    hash_t hashFunc(uint8_t* key);
+    // CopyFunc
+    inline static void insertInt64KeyToEntryFunc(uint8_t* key, uint8_t* entry,
+        InMemOverflowPages* overflowPages = nullptr, PageByteCursor* overflowCursor = nullptr) {
+        memcpy(entry, key, Types::getDataTypeSize(INT64));
+    }
+    inline static void insertStringKeyToEntryFunc(uint8_t* key, uint8_t* entry,
+        InMemOverflowPages* overflowPages, PageByteCursor* overflowCursor) {
+        auto gfString =
+            overflowPages->addString(reinterpret_cast<const char*>(key), *overflowCursor);
+        memcpy(entry, &gfString, Types::getDataTypeSize(STRING));
+    }
+    static insert_function_t initializeInsertKeyToEntryFunc(const DataType& dataType);
 
-    static bool equalsInt64(uint8_t* key, uint8_t* entryKey);
-    static bool likelyEqualsString(uint8_t* key, gf_string_t* entryKey);
+    // This function checks if the prefix and length are the same.
+    static bool isStringPrefixAndLenEquals(
+        const uint8_t* keyToLookup, const gf_string_t* keyInEntry);
+    // equalsFuncInWrite: used in the WRITE_MODE, when performing insertions.
+    inline static bool equalsFuncInWriteModeForInt64(const uint8_t* keyToLookup,
+        const uint8_t* keyInEntry, const InMemOverflowPages* overflowPages) {
+        return memcmp(keyToLookup, keyInEntry, sizeof(int64_t)) == 0;
+    }
+    static bool equalsFuncInWriteModeForString(const uint8_t* keyToLookup,
+        const uint8_t* keyInEntry, const InMemOverflowPages* overflowPages);
+    static equals_in_write_function_t initializeEqualsFuncInWriteMode(const DataType& dataType);
+
+    // equalsFuncInRead: used in the READ_MODE, when performing lookups.
+    inline static bool equalsFuncInReadModeForInt64(
+        const uint8_t* keyToLookup, const uint8_t* keyInEntry, OverflowPages* overflowPages) {
+        return memcmp(keyToLookup, keyInEntry, sizeof(int64_t)) == 0;
+    }
+    static bool equalsFuncInReadModeForString(
+        const uint8_t* keyToLookup, const uint8_t* keyInEntry, OverflowPages* overflowPages);
+    static equals_in_read_function_t initializeEqualsFuncInReadMode(const DataType& dataType);
 
 private:
     const string& fName;
+    HashIndexMode indexMode;
     HashIndexHeader indexHeader;
-    shared_ptr<spdlog::logger> logger;
-
-    function<bool(uint8_t*, gf_string_t*)> strEqualityCheckerFunc;
+    hash_function_t keyHashFunc;
+    insert_function_t insertKeyToEntryFunc;
+    equals_in_write_function_t equalsFuncInWrite;
+    equals_in_read_function_t equalsFuncInRead;
 
     // used only when the hash index is instantiated in the write mode
-    vector<unique_ptr<uint8_t[]>> primaryPages{};
-    vector<unique_ptr<uint8_t[]>> ovfPages{};
+    vector<unique_ptr<MemoryBlock>> primaryPages;
+    vector<unique_ptr<MemoryBlock>> ovfPages;
     unique_ptr<InMemOverflowPages> inMemStringOvfPages;
     PageByteCursor stringOvfPageCursor;
 
     // used only when the hash index is instantiated in the read mode.
     unique_ptr<FileHandle> fileHandle;
-    BufferManager* bufferManager{};
+    MemoryManager* memoryManager = nullptr;
+    BufferManager* bufferManager = nullptr;
     unique_ptr<OverflowPages> stringOvfPages;
 };
 

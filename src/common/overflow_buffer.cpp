@@ -15,7 +15,7 @@ uint8_t* OverflowBuffer::allocateSpace(uint64_t size) {
 
 void OverflowBuffer::allocateNewBlock() {
     auto newBlock = make_unique<BufferBlock>(
-        memoryManager->allocateBMBackedBlock(false /* do not initialize to zero */));
+        memoryManager->allocateBlock(false /* do not initialize to zero */));
     currentBlock = newBlock.get();
     blocks.push_back(move(newBlock));
 }

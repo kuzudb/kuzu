@@ -31,6 +31,7 @@ public:
     constexpr static uint8_t isLargePagedMask{0b0000'0001}; // represents 1st least sig. bit (LSB)
     constexpr static uint8_t isNewTmpFileMask{0b0000'0010}; // represents 2nd LSB
     constexpr static uint8_t O_DefaultPagedExistingDBFile{0b0000'0000};
+    constexpr static uint8_t O_LargePageExistingDBFile{0b0000'0001};
     constexpr static uint8_t O_LargePagedTempFile{0b0000'0011};
 
     explicit FileHandle(const string& path, uint8_t flags);

@@ -26,13 +26,13 @@ struct BlockAppendingInfo {
 struct DataBlock {
 public:
     DataBlock(MemoryManager* memoryManager) : numTuples{0}, memoryManager{memoryManager} {
-        block = memoryManager->allocateBMBackedBlock(true);
+        block = memoryManager->allocateBlock(true);
         freeSize = block->size;
     }
 
     DataBlock(DataBlock&& other) = default;
 
-    ~DataBlock() { memoryManager->freeBMBackedBlock(block->pageIdx); }
+    ~DataBlock() { memoryManager->freeBlock(block->pageIdx); }
 
     uint8_t* getData() const { return block->data; }
 
@@ -42,7 +42,7 @@ public:
     MemoryManager* memoryManager;
 
 private:
-    unique_ptr<BMBackedMemoryBlock> block;
+    unique_ptr<MemoryBlock> block;
 };
 
 class ColumnSchema {
