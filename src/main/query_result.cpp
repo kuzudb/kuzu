@@ -6,6 +6,13 @@ using namespace graphflow::processor;
 namespace graphflow {
 namespace main {
 
+QueryResultHeader::QueryResultHeader(expression_vector expressions) {
+    for (auto& expression : expressions) {
+        columnDataTypes.push_back(expression->getDataType());
+        columnNames.push_back(expression->getRawName());
+    }
+}
+
 bool QueryResult::hasNext() {
     validateQuerySucceed();
     assert(querySummary->getIsExplain() == false);

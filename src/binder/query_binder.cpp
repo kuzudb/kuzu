@@ -149,8 +149,10 @@ expression_vector QueryBinder::rewriteNodeAsAllProperties(
     auto& node = (NodeExpression&)*expression;
     expression_vector result;
     for (auto& property : catalog.getAllNodeProperties(node.getLabel())) {
-        result.emplace_back(make_shared<PropertyExpression>(
-            property.dataType, property.name, property.propertyID, expression));
+        auto propertyExpression = make_shared<PropertyExpression>(
+            property.dataType, property.name, property.propertyID, expression);
+        propertyExpression->setRawName(expression->getRawName() + "." + property.name);
+        result.emplace_back(propertyExpression);
     }
     return result;
 }
@@ -160,8 +162,10 @@ expression_vector QueryBinder::rewriteRelAsAllProperties(const shared_ptr<Expres
     auto& rel = (RelExpression&)*expression;
     expression_vector result;
     for (auto& property : catalog.getRelProperties(rel.getLabel())) {
-        result.emplace_back(make_shared<PropertyExpression>(
-            property.dataType, property.name, property.propertyID, expression));
+        auto propertyExpression = make_shared<PropertyExpression>(
+            property.dataType, property.name, property.propertyID, expression);
+        propertyExpression->setRawName(expression->getRawName() + "." + property.name);
+        result.emplace_back(propertyExpression);
     }
     return result;
 }

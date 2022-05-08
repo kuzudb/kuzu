@@ -78,6 +78,10 @@ public:
     static int32_t getTimestampPart(DatePartSpecifier specifier, timestamp_t& timestamp);
 
     static timestamp_t trunc(DatePartSpecifier specifier, timestamp_t& date);
+
+    static inline int64_t getEpochNanoSeconds(const timestamp_t& timestamp) {
+        return timestamp.value * Interval::NANOS_PER_MICRO;
+    }
 };
 
 } // namespace common

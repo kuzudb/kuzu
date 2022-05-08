@@ -40,8 +40,6 @@ public:
 
     inline Schema* getSchema() { return schema.get(); }
 
-    vector<DataType> getExpressionsToCollectDataTypes() const;
-
     unique_ptr<LogicalPlan> shallowCopy() const;
 
     unique_ptr<LogicalPlan> deepCopy() const;

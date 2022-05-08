@@ -1,6 +1,9 @@
 #include "include/py_query_result.h"
 
+#include <fstream>
+
 #include "datetime.h" // python lib
+#include "include/py_query_result_converter.h"
 
 using namespace graphflow::common;
 
@@ -8,7 +11,8 @@ void PyQueryResult::initialize(py::handle& m) {
     py::class_<PyQueryResult>(m, "result")
         .def("hasNext", &PyQueryResult::hasNext)
         .def("getNext", &PyQueryResult::getNext)
-        .def("close", &PyQueryResult::close);
+        .def("close", &PyQueryResult::close)
+        .def("getAsDF", &PyQueryResult::getAsDF);
 
     // PyDateTime_IMPORT is a macro that must be invoked before calling any other cpython datetime
     // macros. One could also invoke this in a separate function like constructor. See
@@ -131,4 +135,8 @@ py::object PyQueryResult::convertValueToPyObject(uint8_t* val, const DataType& d
     default:
         throw NotImplementedException("Unsupported type2: " + Types::dataTypeToString(dataType));
     }
+}
+
+py::object PyQueryResult::getAsDF() {
+    return QueryResultConverter(queryResult.get()).toDF();
 }

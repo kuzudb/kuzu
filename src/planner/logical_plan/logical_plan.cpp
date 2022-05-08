@@ -9,14 +9,6 @@ void LogicalPlan::appendOperator(shared_ptr<LogicalOperator> op) {
     lastOperator = move(op);
 }
 
-vector<DataType> LogicalPlan::getExpressionsToCollectDataTypes() const {
-    vector<DataType> dataTypes;
-    for (auto& expression : expressionsToCollect) {
-        dataTypes.push_back(expression->getDataType());
-    }
-    return dataTypes;
-}
-
 unique_ptr<LogicalPlan> LogicalPlan::shallowCopy() const {
     auto plan = make_unique<LogicalPlan>(schema->copy(), expressionsToCollect, cost);
     plan->lastOperator = lastOperator;
