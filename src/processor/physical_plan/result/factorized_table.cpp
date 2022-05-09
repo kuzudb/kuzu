@@ -479,11 +479,11 @@ void FlatTupleIterator::updateFlatTuplePositionsInDataChunk() {
             continue;
         }
         flatTuplePositionsInDataChunk.at(i).first++;
-        auto tuplePosition = flatTuplePositionsInDataChunk.at(i);
         // If we have output all elements in the current column, we reset the
         // nextIdxToReadInDataChunk in the current column to 0.
-        if (tuplePosition.first >= tuplePosition.second - 1) {
-            tuplePosition.first = 0;
+        if (flatTuplePositionsInDataChunk.at(i).first >=
+            flatTuplePositionsInDataChunk.at(i).second) {
+            flatTuplePositionsInDataChunk.at(i).first = 0;
         } else {
             // If the current dataChunk is not full, then we don't need to update the next
             // dataChunk.
