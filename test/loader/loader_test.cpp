@@ -81,20 +81,28 @@ TEST_F(LoaderNodePropertyTest, NodeStructuredStringPropertyTest) {
     auto label = catalog.getNodeLabelFromName("person");
     auto propertyIdx = catalog.getNodeProperty(label, "randomString");
     auto column = reinterpret_cast<StringPropertyColumn*>(
-        graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id));
+        graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.propertyID));
     string fName = getInputCSVDir() + "vPerson.csv";
     CSVReaderConfig config;
     CSVReader csvReader(fName, config);
     int lineIdx = 0;
     csvReader.hasNextLine();
     csvReader.skipLine();
+    uint64_t count = 0;
     while (csvReader.hasNextLine()) {
         csvReader.hasNextToken();
         csvReader.skipToken();
         csvReader.hasNextToken();
-        EXPECT_EQ(string(csvReader.getString()), column->readValue(lineIdx).strVal);
+        cout << "count: " << count;
+        if ((count % 100) == 0) {
+            ASSERT_TRUE(column->isNull(count /* nodeOffset */));
+        } else {
+            ASSERT_FALSE(column->isNull(count /* nodeOffset */));
+            EXPECT_EQ(string(csvReader.getString()), column->readValue(lineIdx).strVal);
+        }
         lineIdx++;
         csvReader.skipLine();
+        count++;
     }
 }
 
@@ -240,7 +248,7 @@ TEST_F(LoaderSpecialCharTest, LoaderSpecialCharsCsv) {
     auto& catalog = *database->getCatalog();
     auto label = catalog.getNodeLabelFromName("person");
     auto propertyIdx = catalog.getNodeProperty(label, "randomString");
-    auto col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
+    auto col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.propertyID);
 
     EXPECT_EQ("this is |the first line", col->readValue(0).strVal);
     EXPECT_EQ("the \" should be ignored", col->readValue(1).strVal);
@@ -252,7 +260,7 @@ TEST_F(LoaderSpecialCharTest, LoaderSpecialCharsCsv) {
 
     label = catalog.getNodeLabelFromName("organisation");
     propertyIdx = catalog.getNodeProperty(label, "name");
-    col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
+    col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.propertyID);
     EXPECT_EQ("ABFsUni", col->readValue(0).strVal);
     EXPECT_EQ("CsW,ork", col->readValue(1).strVal);
     EXPECT_EQ("DEsW#ork", col->readValue(2).strVal);

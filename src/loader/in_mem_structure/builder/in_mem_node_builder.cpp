@@ -35,7 +35,7 @@ unique_ptr<NodeIDMap> InMemNodeBuilder::load() {
 
 void InMemNodeBuilder::addLabelToCatalogAndCountLines() {
     // Parse csv header and calculate num blocks.
-    vector<PropertyDefinition> colDefinitions;
+    vector<PropertyNameDataType> colDefinitions;
     numBlocks = parseCSVHeaderAndCalcNumBlocks(inputFilePath, colDefinitions);
     // Count lines for each block in csv file, and parse unstructured properties.
     auto blockUnstrPropertyNames =
@@ -67,7 +67,7 @@ void InMemNodeBuilder::initializeColumnsAndList() {
     for (auto& property : structuredProperties) {
         auto fName =
             StorageUtils::getNodePropertyColumnFName(outputDirectory, label, property.name);
-        structuredColumns[property.id] = InMemColumnFactory::getInMemPropertyColumn(
+        structuredColumns[property.propertyID] = InMemColumnFactory::getInMemPropertyColumn(
             fName, property.dataType, catalog.getNumNodes(label));
     }
     if (!catalog.getUnstructuredNodeProperties(label).empty()) {
@@ -235,7 +235,7 @@ void InMemNodeBuilder::populateUnstrPropertyListsTask(
 }
 
 void InMemNodeBuilder::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& structuredColumns,
-    NodeIDMap* nodeIDMap, const vector<PropertyDefinition>& structuredProperties,
+    NodeIDMap* nodeIDMap, const vector<Property>& structuredProperties,
     vector<PageByteCursor>& overflowCursors, CSVReader& reader, uint64_t nodeOffset) {
     for (auto columnIdx = 0u; columnIdx < structuredColumns.size(); columnIdx++) {
         reader.hasNextToken();
@@ -245,7 +245,7 @@ void InMemNodeBuilder::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>
             if (!reader.skipTokenIfNull()) {
                 auto int64Val = reader.getInt64();
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&int64Val));
-                if (structuredProperties[columnIdx].isPrimaryKey) {
+                if (structuredProperties[columnIdx].isIDProperty()) {
                     nodeIDMap->set(to_string(int64Val).c_str(), nodeOffset);
                 }
             }
@@ -286,7 +286,7 @@ void InMemNodeBuilder::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>
                 auto gfStr =
                     column->getOverflowPages()->addString(strVal, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&gfStr));
-                if (structuredProperties[columnIdx].isPrimaryKey) {
+                if (structuredProperties[columnIdx].isIDProperty()) {
                     nodeIDMap->set(strVal, nodeOffset);
                 }
             }

@@ -116,7 +116,8 @@ vector<string> TestHelper::getOutput(QueryResult& queryResult, bool checkOutputO
 }
 
 void BaseGraphLoadingTest::loadGraph() {
-    GraphLoader graphLoader(getInputCSVDir(), TEMP_TEST_DIR, systemConfig->maxNumThreads);
+    GraphLoader graphLoader(
+        getInputCSVDir(), TestHelper::TEMP_TEST_DIR, systemConfig->maxNumThreads);
     graphLoader.loadGraph();
 }
 

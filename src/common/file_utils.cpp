@@ -79,5 +79,16 @@ void FileUtils::removeDir(const string& dir) {
     }
 }
 
+void FileUtils::removeFile(const string& path) {
+    if (remove(path.c_str()) != 0) {
+        throw Exception(StringUtils::string_format(
+            "Error removing directory %s.  Error Message: ", path.c_str()));
+    }
+}
+
+void FileUtils::truncateFileToEmpty(FileInfo* fileInfo) {
+    ftruncate(fileInfo->fd, 0);
+}
+
 } // namespace common
 } // namespace graphflow

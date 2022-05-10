@@ -4,6 +4,7 @@
 #include "src/storage/include/storage_structure/column.h"
 #include "src/storage/include/storage_structure/lists/lists.h"
 #include "src/storage/include/storage_structure/lists/unstructured_property_lists.h"
+#include "src/storage/include/wal/wal.h"
 
 namespace graphflow {
 namespace storage {
@@ -12,7 +13,7 @@ class Node {
 
 public:
     Node(label_t labelID, BufferManager& bufferManager, bool isInMemory,
-        const vector<catalog::PropertyDefinition>& propertyDefinitions, const string& directory);
+        const vector<catalog::Property>& properties, const string& directory, WAL* wal);
 
     inline Column* getPropertyColumn(uint64_t propertyIdx) {
         return propertyColumns[propertyIdx].get();

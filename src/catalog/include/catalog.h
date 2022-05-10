@@ -28,27 +28,69 @@ namespace catalog {
 enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
 RelMultiplicity getRelMultiplicityFromString(const string& relMultiplicityString);
 
-// A PropertyDefinition consists of its name, id, dataType and isPrimaryKey. If the property is
-// unstructured, then the dataType's typeID is UNSTRUCTURED, otherwise it is one of those supported
-// by the system.
-struct PropertyDefinition {
+// A PropertyNameDataType consists of its name, id, and dataType. If the property is unstructured,
+// then the dataType's typeID is UNSTRUCTURED, otherwise it is one of those supported by the system.
+struct PropertyNameDataType {
 
 public:
-    PropertyDefinition() : id{-1u}, isPrimaryKey{false} {};
+    // This constructor is needed for ser/deser functions
+    PropertyNameDataType(){};
 
-    PropertyDefinition(string name, uint32_t id, DataTypeID dataTypeID)
-        : PropertyDefinition{move(name), id, DataType(dataTypeID)} {
+    PropertyNameDataType(string name, DataTypeID dataTypeID)
+        : PropertyNameDataType{move(name), DataType(dataTypeID)} {
         assert(dataTypeID != LIST);
     }
 
-    PropertyDefinition(string name, uint32_t id, DataType dataType)
-        : name{move(name)}, id{id}, dataType{move(dataType)}, isPrimaryKey{false} {};
+    PropertyNameDataType(string name, DataType dataType)
+        : name{move(name)}, dataType{move(dataType)} {};
+
+    inline bool isIDProperty() const { return name == LoaderConfig::ID_FIELD; }
 
 public:
     string name;
-    uint32_t id;
     DataType dataType;
-    bool isPrimaryKey;
+};
+
+struct Property : PropertyNameDataType {
+
+private:
+    Property(string name, DataType dataType, uint32_t propertyID, label_t label, bool isNodeLabel)
+        : PropertyNameDataType{name, dataType}, propertyID{propertyID}, label{label},
+          isNodeLabel{isNodeLabel} {}
+
+public:
+    // This constructor is needed for ser/deser functions
+    Property() {}
+
+    bool isNodeProperty() const { return isNodeLabel; }
+    bool isRelProperty() const { return !isNodeLabel; }
+
+    static Property constructUnstructuredNodeProperty(
+        string name, uint32_t propertyID, label_t nodeLabel) {
+        return Property(
+            name, DataType(UNSTRUCTURED), propertyID, nodeLabel, true /* is node label */);
+    }
+
+    static Property constructStructuredNodeProperty(
+        PropertyNameDataType nameDataType, uint32_t propertyID, label_t nodeLabel) {
+        return Property(nameDataType.name, nameDataType.dataType, propertyID, nodeLabel,
+            true /* is node label */);
+    }
+
+    static Property constructRelProperty(
+        PropertyNameDataType nameDataType, uint32_t propertyID, label_t relLabel) {
+        return Property(nameDataType.name, nameDataType.dataType, propertyID, relLabel,
+            false /* is node label */);
+    }
+
+    static Property constructDummyPropertyForAdjColumnEdges(label_t relLabel) {
+        return Property("", DataType(NODE), UINT32_MAX, relLabel, false /* is node label */);
+    }
+
+public:
+    uint32_t propertyID;
+    label_t label;
+    bool isNodeLabel;
 };
 
 struct Label {
@@ -63,11 +105,11 @@ public:
 struct NodeLabel : Label {
     NodeLabel() : Label{"", 0}, primaryPropertyId{0}, numNodes{0} {}
     NodeLabel(string labelName, label_t labelId, uint64_t primaryPropertyId,
-        vector<PropertyDefinition> structuredProperties,
-        const vector<string>& unstructuredPropertyNames, uint64_t numNodes);
+        vector<Property> structuredProperties, const vector<string>& unstructuredPropertyNames,
+        uint64_t numNodes);
 
     uint64_t primaryPropertyId;
-    vector<PropertyDefinition> structuredProperties, unstructuredProperties;
+    vector<Property> structuredProperties, unstructuredProperties;
     unordered_set<label_t> fwdRelLabelIdSet; // srcNode->rel
     unordered_set<label_t> bwdRelLabelIdSet; // dstNode->rel
     // This map is maintained as a cache for unstructured properties. It is not serialized to the
@@ -80,14 +122,14 @@ struct NodeLabel : Label {
 struct RelLabel : Label {
     RelLabel() : Label{"", 0}, relMultiplicity{0} {}
     RelLabel(string labelName, label_t labelId, RelMultiplicity relMultiplicity,
-        vector<PropertyDefinition> properties, unordered_set<label_t> srcNodeLabelIdSet,
+        vector<Property> properties, unordered_set<label_t> srcNodeLabelIdSet,
         unordered_set<label_t> dstNodeLabelIdSet)
         : Label{move(labelName), labelId}, relMultiplicity{relMultiplicity}, properties{move(
                                                                                  properties)},
           srcNodeLabelIdSet{move(srcNodeLabelIdSet)}, dstNodeLabelIdSet{move(dstNodeLabelIdSet)} {}
 
     RelMultiplicity relMultiplicity;
-    vector<PropertyDefinition> properties;
+    vector<Property> properties;
     unordered_set<label_t> srcNodeLabelIdSet;
     unordered_set<label_t> dstNodeLabelIdSet;
     // Cardinality information
@@ -125,11 +167,11 @@ public:
      */
 
     void addNodeLabel(string labelName, const DataType& IDType,
-        vector<PropertyDefinition> colHeaderDefinitions,
+        vector<PropertyNameDataType> colHeaderDefinitions,
         const vector<string>& unstructuredPropertyNames, uint64_t numNodes);
 
     void addRelLabel(string labelName, RelMultiplicity relMultiplicity,
-        vector<PropertyDefinition> colHeaderDefinitions, const vector<string>& srcNodeLabelNames,
+        vector<PropertyNameDataType> colHeaderDefinitions, const vector<string>& srcNodeLabelNames,
         const vector<string>& dstNodeLabelNames);
 
     virtual inline string getNodeLabelName(label_t labelId) const {
@@ -167,20 +209,18 @@ public:
 
     // getNodeProperty and getRelProperty should be called after checking if property exists
     // (containNodeProperty and containRelProperty).
-    virtual const PropertyDefinition& getNodeProperty(
-        label_t labelId, const string& propertyName) const;
-    virtual const PropertyDefinition& getRelProperty(
-        label_t labelId, const string& propertyName) const;
+    virtual const Property& getNodeProperty(label_t labelId, const string& propertyName) const;
+    const Property& getStructuredNodeProperty(label_t labelId, const uint32_t propertyID) const;
+    virtual const Property& getRelProperty(label_t labelId, const string& propertyName) const;
 
-    vector<PropertyDefinition> getAllNodeProperties(label_t nodeLabel) const;
-    inline const vector<PropertyDefinition>& getStructuredNodeProperties(label_t nodeLabel) const {
+    vector<Property> getAllNodeProperties(label_t nodeLabel) const;
+    inline const vector<Property>& getStructuredNodeProperties(label_t nodeLabel) const {
         return nodeLabels[nodeLabel].structuredProperties;
     }
-    inline const vector<PropertyDefinition>& getUnstructuredNodeProperties(
-        label_t nodeLabel) const {
+    inline const vector<Property>& getUnstructuredNodeProperties(label_t nodeLabel) const {
         return nodeLabels[nodeLabel].unstructuredProperties;
     }
-    inline const vector<PropertyDefinition>& getRelProperties(label_t relLabel) const {
+    inline const vector<Property>& getRelProperties(label_t relLabel) const {
         return relLabels[relLabel].properties;
     }
     inline const unordered_map<string, uint64_t>& getUnstrPropertiesNameToIdMap(
@@ -209,9 +249,9 @@ public:
 
 private:
     static void verifyColDefinitionsForNodeLabel(
-        uint64_t primaryKeyPropertyId, const vector<PropertyDefinition>& colHeaderDefinitions);
+        const string& primaryKeyName, const vector<PropertyNameDataType>& colHeaderDefinitions);
     static void verifyColDefinitionsForRelLabel(
-        const vector<PropertyDefinition>& colHeaderDefinitions);
+        const vector<PropertyNameDataType>& colHeaderDefinitions);
 
 private:
     shared_ptr<spdlog::logger> logger;

@@ -1,20 +1,18 @@
 #include "src/storage/include/storage_structure/column.h"
 
-#include <iostream>
-
 namespace graphflow {
 namespace storage {
 
-void Column::readValues(
+void Column::readValues(const transaction::Transaction* transaction,
     const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& valueVector) {
     assert(nodeIDVector->dataType.typeID == NODE);
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
-        readForSingleNodeIDPosition(pos, nodeIDVector, valueVector);
+        readForSingleNodeIDPosition(transaction, pos, nodeIDVector, valueVector);
     } else {
         for (auto i = 0ul; i < nodeIDVector->state->selectedSize; i++) {
             auto pos = nodeIDVector->state->selectedPositions[i];
-            readForSingleNodeIDPosition(pos, nodeIDVector, valueVector);
+            readForSingleNodeIDPosition(transaction, pos, nodeIDVector, valueVector);
         }
     }
 }
@@ -28,19 +26,72 @@ Literal Column::readValue(node_offset_t offset) {
     return retVal;
 }
 
-void Column::readForSingleNodeIDPosition(uint32_t pos, const shared_ptr<ValueVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& resultVector) {
+// Note this is only used for tests
+bool Column::isNull(node_offset_t nodeOffset) {
+    auto cursor = PageUtils::getPageElementCursorForOffset(nodeOffset, numElementsPerPage);
+    auto frame = bufferManager.pin(fileHandle, cursor.idx);
+    auto NULLByteAndByteLevelOffset =
+        PageUtils::getNULLByteAndByteLevelOffsetPair(frame, cursor.pos);
+    bufferManager.unpin(fileHandle, cursor.idx);
+    return isNullFromNULLByte(NULLByteAndByteLevelOffset.first, NULLByteAndByteLevelOffset.second);
+}
+
+void Column::writeValueForFlatVector(const transaction::Transaction* transaction,
+    const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector) {
+    auto valueVectorPos = nodeIDVector->state->getPositionOfCurrIdx();
+    node_offset_t offset = nodeIDVector->readNodeOffset(valueVectorPos);
+    auto cursor = PageUtils::getPageElementCursorForOffset(offset, numElementsPerPage);
+    pageVersionInfo.acquireLockForWritingToPage(cursor.idx);
+    uint32_t pageIdxInWAL;
+    uint8_t* frame;
+    if (pageVersionInfo.hasUpdatedWALPageVersionNoLock(cursor.idx)) {
+        pageIdxInWAL = pageVersionInfo.getUpdatedWALPageVersionNoLock(cursor.idx);
+        frame = bufferManager.pin(*wal->fileHandle, pageIdxInWAL);
+    } else {
+        pageIdxInWAL = wal->logStructuredNodePropertyPageRecord(
+            property.label, property.propertyID, cursor.idx /* pageIdxInOriginalFile */);
+        frame = bufferManager.pinWithoutReadingFromFile(*wal->fileHandle, pageIdxInWAL);
+        uint8_t* originalFrame = bufferManager.pin(fileHandle, cursor.idx);
+        // Note: This logic only works db files with DEFAULT_PAGE_SIZEs.
+        memcpy(frame, originalFrame, DEFAULT_PAGE_SIZE);
+        bufferManager.unpin(fileHandle, cursor.idx);
+        pageVersionInfo.setUpdatedWALPageVersionNoLock(
+            cursor.idx /* pageIdxInOriginalFile */, pageIdxInWAL);
+    }
+    bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
+    memcpy(frame + mapElementPosToByteOffset(cursor.pos),
+        resultVector->values + valueVectorPos * elementSize, elementSize);
+    setNullBitOfAPosInFrame(frame, cursor.pos, resultVector->isNull(valueVectorPos));
+    pageVersionInfo.releaseLock(cursor.idx);
+    bufferManager.unpin(*wal->fileHandle, pageIdxInWAL);
+}
+
+void Column::readForSingleNodeIDPosition(const transaction::Transaction* transaction, uint32_t pos,
+    const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector) {
     if (nodeIDVector->isNull(pos)) {
         resultVector->setNull(pos, true);
         return;
     }
     auto pageCursor = PageUtils::getPageElementCursorForOffset(
         nodeIDVector->readNodeOffset(pos), numElementsPerPage);
-    auto frame = bufferManager.pin(fileHandle, pageCursor.idx);
+    // Note: The below code assumes that we do not have to acquire a lock on the page lock inside
+    // pageVersionInfo if the transaction is write only. That is because we assume that we do not
+    // have concurrent pipelines P1, P2, where P1 reads from and P2 writes to original DB files.
+    FileHandle& fileHandleToPin =
+        transaction->isReadOnly() ||
+                !pageVersionInfo.hasUpdatedWALPageVersionNoLock(pageCursor.idx) ?
+            fileHandle :
+            *wal->fileHandle;
+    uint64_t pageIdxToPin =
+        transaction->isReadOnly() ||
+                !pageVersionInfo.hasUpdatedWALPageVersionNoLock(pageCursor.idx) ?
+            pageCursor.idx :
+            pageVersionInfo.getUpdatedWALPageVersionNoLock(pageCursor.idx);
+    auto frame = bufferManager.pin(fileHandleToPin, pageIdxToPin);
     memcpy(resultVector->values + pos * elementSize,
         frame + mapElementPosToByteOffset(pageCursor.pos), elementSize);
     setNULLBitsForAPos(resultVector, frame, pageCursor.pos, pos);
-    bufferManager.unpin(fileHandle, pageCursor.idx);
+    bufferManager.unpin(fileHandleToPin, pageIdxToPin);
 }
 
 void StringPropertyColumn::readValues(
@@ -78,8 +129,9 @@ Literal ListPropertyColumn::readValue(node_offset_t offset) {
     return retVal;
 }
 
-void AdjColumn::readForSingleNodeIDPosition(uint32_t pos,
-    const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector) {
+void AdjColumn::readForSingleNodeIDPosition(const transaction::Transaction* transaction,
+    uint32_t pos, const shared_ptr<ValueVector>& nodeIDVector,
+    const shared_ptr<ValueVector>& resultVector) {
     if (nodeIDVector->isNull(pos)) {
         resultVector->setNull(pos, true);
         return;

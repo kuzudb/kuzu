@@ -32,7 +32,7 @@ public:
 
 protected:
     uint64_t parseCSVHeaderAndCalcNumBlocks(
-        const string& filePath, vector<PropertyDefinition>& colDefinitions);
+        const string& filePath, vector<PropertyNameDataType>& colDefinitions);
 
     // Concurrent tasks
     // Initializes (in listHeaders) the header of each list in a Lists structure, from the
@@ -49,7 +49,7 @@ protected:
         LoaderProgressBar* progressBar);
 
 private:
-    vector<PropertyDefinition> parseCSVFileHeader(string& header) const;
+    vector<PropertyNameDataType> parseCSVFileHeader(string& header) const;
 
 protected:
     shared_ptr<spdlog::logger> logger;

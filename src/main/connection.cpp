@@ -140,7 +140,7 @@ string Connection::getNodePropertyNames(const string& nodeLabelName) {
     auto labelId = catalog->getNodeLabelFromName(nodeLabelName);
     for (auto& property : catalog->getAllNodeProperties(labelId)) {
         result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType);
-        result += property.isPrimaryKey ? "(PRIMARY)\n" : "\n";
+        result += property.isIDProperty() ? "(ID PROPERTY)\n" : "\n";
     }
     return result;
 }

@@ -11,10 +11,11 @@
 # knows edges should use 2 bytes/edge: 0 byte for label and 2 bytes for offset.
 # Finally: The edges have an INT64 property with key int64Prop. For any edge
 # whose source is p0, the value is the ID of the destination node, e.g., e=0->5 has
-# int64Prop:5. For others the property is null. This property is intended to
-# test small and large property list reading.
+# int64Prop:5. The only exceptions are 0->0, 0->1000, 0->2000,... 0->5000. These 6
+# edges have null int64prop values. For others the property is null.
+# This property is intended to test small and large property list reading.
 :START_ID_LABEL,:START_ID,:END_ID_LABEL,:END_ID,int64Prop:INT64
-person,0,person,0,0
+person,0,person,0,
 person,0,person,1,1
 person,0,person,2,2
 person,0,person,3,3
@@ -1014,7 +1015,7 @@ person,0,person,996,996
 person,0,person,997,997
 person,0,person,998,998
 person,0,person,999,999
-person,0,person,1000,1000
+person,0,person,1000,
 person,0,person,1001,1001
 person,0,person,1002,1002
 person,0,person,1003,1003
@@ -2014,7 +2015,7 @@ person,0,person,1996,1996
 person,0,person,1997,1997
 person,0,person,1998,1998
 person,0,person,1999,1999
-person,0,person,2000,2000
+person,0,person,2000,
 person,0,person,2001,2001
 person,0,person,2002,2002
 person,0,person,2003,2003
@@ -3014,7 +3015,7 @@ person,0,person,2996,2996
 person,0,person,2997,2997
 person,0,person,2998,2998
 person,0,person,2999,2999
-person,0,person,3000,3000
+person,0,person,3000,
 person,0,person,3001,3001
 person,0,person,3002,3002
 person,0,person,3003,3003
@@ -4014,7 +4015,7 @@ person,0,person,3996,3996
 person,0,person,3997,3997
 person,0,person,3998,3998
 person,0,person,3999,3999
-person,0,person,4000,4000
+person,0,person,4000,
 person,0,person,4001,4001
 person,0,person,4002,4002
 person,0,person,4003,4003
@@ -5014,7 +5015,7 @@ person,0,person,4996,4996
 person,0,person,4997,4997
 person,0,person,4998,4998
 person,0,person,4999,4999
-person,0,person,5000,5000
+person,0,person,5000,
 person,1,person,5000,
 person,2,person,5000,
 person,3,person,5000,

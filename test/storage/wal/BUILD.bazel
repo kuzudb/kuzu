@@ -1,7 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 cc_test(
-    name = "transaction_test",
+    name = "wal_test",
     srcs = glob(["*.cpp"]),
     copts = [
         "-Iexternal/gtest/include",
@@ -10,7 +10,6 @@ cc_test(
         "//dataset",
     ],
     deps = [
-        "//src/transaction:transaction",
         "//src/storage:wal",
         "//test/test_utility:test_helper",
         "@gtest",

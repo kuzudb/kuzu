@@ -1,6 +1,19 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
+    name = "buffer_manager_test",
+    srcs = [
+        "buffer_manager_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    deps = [
+        "//test/test_utility:test_helper",
+    ],
+)
+
+cc_test(
     name = "hash_index_test",
     srcs = [
         "hash_index_test.cpp",

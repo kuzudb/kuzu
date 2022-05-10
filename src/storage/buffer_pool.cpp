@@ -11,9 +11,8 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
-Frame::Frame(uint64_t pageSize)
-    : fileHandle{-1u}, pageIdx{-1u}, pinCount{-1u}, recentlyAccessed{false}, isDirty{false},
-      frameLock(ATOMIC_FLAG_INIT) {
+Frame::Frame(uint64_t pageSize) : frameLock(ATOMIC_FLAG_INIT) {
+    resetFrameWithoutLock();
     buffer = make_unique<uint8_t[]>(pageSize);
 }
 
@@ -23,6 +22,14 @@ Frame::~Frame() {
         throw BufferManagerException("Deleting buffer that is still pinned. pinCount: " +
                                      to_string(count) + " pageIdx: " + to_string(pageIdx));
     }
+}
+
+void Frame::resetFrameWithoutLock() {
+    fileHandle = -1u;
+    pageIdx = -1u;
+    pinCount = -1u;
+    recentlyAccessed = false;
+    isDirty = false;
 }
 
 bool Frame::acquireFrameLock(bool block) {
@@ -70,10 +77,24 @@ uint8_t* BufferPool::pinWithoutReadingFromFile(FileHandle& fileHandle, uint32_t 
     return pin(fileHandle, pageIdx, true /* read page from file */);
 }
 
+void BufferPool::removeFilePagesFromFrames(FileHandle& fileHandle) {
+    for (int pageIdx = 0; pageIdx < fileHandle.numPages; ++pageIdx) {
+        fileHandle.acquirePageLock(pageIdx, true /*block*/);
+        auto frameIdx = fileHandle.getFrameIdx(pageIdx);
+        if (FileHandle::isAFrame(frameIdx)) {
+            auto& frame = bufferCache[frameIdx];
+            frame->acquireFrameLock(true /* block */);
+            frame->resetFrameWithoutLock();
+            frame->releaseFrameLock();
+            fileHandle.unswizzle(pageIdx);
+        }
+    }
+}
+
 uint8_t* BufferPool::pin(FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile) {
     fileHandle.acquirePageLock(pageIdx, true /*block*/);
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);
-    if (isAFrame(frameIdx)) {
+    if (FileHandle::isAFrame(frameIdx)) {
         auto& frame = bufferCache[frameIdx];
         frame->pinCount.fetch_add(1);
         frame->recentlyAccessed = true;
@@ -93,7 +114,7 @@ uint8_t* BufferPool::pin(FileHandle& fileHandle, uint32_t pageIdx, bool doNotRea
 void BufferPool::setPinnedPageDirty(FileHandle& fileHandle, uint32_t pageIdx) {
     fileHandle.acquirePageLock(pageIdx, true /*block*/);
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);
-    if (!isAFrame((frameIdx)) || (bufferCache[frameIdx]->pinCount.load() < 1)) {
+    if (!FileHandle::isAFrame((frameIdx)) || (bufferCache[frameIdx]->pinCount.load() < 1)) {
         fileHandle.releasePageLock(pageIdx);
         throw BufferManagerException("If a page is not in memory or is not pinned, cannot set "
                                      "it to isDirty = true.filePath: " +
@@ -207,6 +228,5 @@ void BufferPool::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
     frame->pinCount.fetch_sub(1);
     fileHandle.releasePageLock(pageIdx);
 }
-
 } // namespace storage
 } // namespace graphflow

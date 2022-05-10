@@ -84,6 +84,5 @@ class TransactionManagerException : public Exception {
 public:
     explicit TransactionManagerException(const string& msg) : Exception(msg){};
 };
-
 } // namespace common
 } // namespace graphflow

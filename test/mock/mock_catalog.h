@@ -40,10 +40,10 @@ public:
         (const, override));
     MOCK_METHOD(
         bool, containRelProperty, (label_t labelId, const string& propertyName), (const, override));
-    MOCK_METHOD(const PropertyDefinition&, getNodeProperty,
-        (label_t labelId, const string& propertyName), (const, override));
-    MOCK_METHOD(const PropertyDefinition&, getRelProperty,
-        (label_t labelId, const string& propertyName), (const, override));
+    MOCK_METHOD(const Property&, getNodeProperty, (label_t labelId, const string& propertyName),
+        (const, override));
+    MOCK_METHOD(const Property&, getRelProperty, (label_t labelId, const string& propertyName),
+        (const, override));
     MOCK_METHOD(const unordered_set<label_t>&, getRelLabelsForNodeLabelDirection,
         (label_t nodeLabel, RelDirection direction), (const, override));
     MOCK_METHOD(bool, isSingleMultiplicityInDirection, (label_t relLabel, RelDirection direction),
@@ -120,20 +120,20 @@ private:
 
     void secActionForGetNodeProperty() {
         ON_CALL(*this, getNodeProperty(PERSON_LABEL_ID, AGE_PROPERTY_KEY_STR))
-            .WillByDefault(ReturnRef(*ageProperty));
+            .WillByDefault(ReturnRef(ageProperty));
         ON_CALL(*this, getNodeProperty(PERSON_LABEL_ID, NAME_PROPERTY_KEY_STR))
-            .WillByDefault(ReturnRef(*nameProperty));
+            .WillByDefault(ReturnRef(nameProperty));
         ON_CALL(*this, getNodeProperty(PERSON_LABEL_ID, BIRTHDATE_PROPERTY_KEY_STR))
-            .WillByDefault(ReturnRef(*birthDateProperty));
+            .WillByDefault(ReturnRef(birthDateProperty));
         ON_CALL(*this, getNodeProperty(PERSON_LABEL_ID, REGISTERTIME_PROPERTY_KEY_STR))
-            .WillByDefault(ReturnRef(*registerTimeProperty));
+            .WillByDefault(ReturnRef(registerTimeProperty));
     }
 
     void secActionForGetRelProperty() {
         ON_CALL(*this, getRelProperty(KNOWS_LABEL_ID, DESCRIPTION_PROPERTY_KEY_STR))
-            .WillByDefault(ReturnRef(*descriptionProperty));
+            .WillByDefault(ReturnRef(descriptionProperty));
         ON_CALL(*this, getRelProperty(KNOWS_LABEL_ID, KNOWSDATE_PROPERTY_KEY_STR))
-            .WillByDefault(ReturnRef(*knowsDateProperty));
+            .WillByDefault(ReturnRef(knowsDateProperty));
     }
 
     void setActionForGetRelLabelsForNodeLabelDirection() {
@@ -207,18 +207,25 @@ private:
     }
 
     void setProperties() {
-        ageProperty =
-            make_unique<PropertyDefinition>(AGE_PROPERTY_KEY_STR, AGE_PROPERTY_KEY_ID, INT64);
-        nameProperty =
-            make_unique<PropertyDefinition>(NAME_PROPERTY_KEY_STR, NAME_PROPERTY_KEY_ID, STRING);
-        birthDateProperty = make_unique<PropertyDefinition>(
-            BIRTHDATE_PROPERTY_KEY_STR, BIRTHDATE_PROPERTY_KEY_ID, DATE);
-        registerTimeProperty = make_unique<PropertyDefinition>(
-            REGISTERTIME_PROPERTY_KEY_STR, REGISTERTIME_PROPERTY_KEY_ID, TIMESTAMP);
-        descriptionProperty = make_unique<PropertyDefinition>(
-            DESCRIPTION_PROPERTY_KEY_STR, DESCRIPTION_PROPERTY_KEY_ID, STRING);
-        knowsDateProperty = make_unique<PropertyDefinition>(
-            KNOWSDATE_PROPERTY_KEY_STR, KNOWSDATE_PROPERTY_KEY_ID, DATE);
+        PropertyNameDataType agePropertyDefinition(AGE_PROPERTY_KEY_STR, INT64);
+        ageProperty = Property::constructStructuredNodeProperty(
+            agePropertyDefinition, AGE_PROPERTY_KEY_ID, PERSON_LABEL_ID);
+        PropertyNameDataType namePropertyDefinition(NAME_PROPERTY_KEY_STR, STRING);
+        nameProperty = Property::constructStructuredNodeProperty(
+            namePropertyDefinition, NAME_PROPERTY_KEY_ID, PERSON_LABEL_ID);
+        PropertyNameDataType birthDatePropertyDefinition(BIRTHDATE_PROPERTY_KEY_STR, DATE);
+        birthDateProperty = Property::constructStructuredNodeProperty(
+            birthDatePropertyDefinition, BIRTHDATE_PROPERTY_KEY_ID, PERSON_LABEL_ID);
+        PropertyNameDataType registerTimePropertyDefinition(
+            REGISTERTIME_PROPERTY_KEY_STR, TIMESTAMP);
+        registerTimeProperty = Property::constructStructuredNodeProperty(
+            registerTimePropertyDefinition, REGISTERTIME_PROPERTY_KEY_ID, PERSON_LABEL_ID);
+        PropertyNameDataType descriptionPropertyDefinition(DESCRIPTION_PROPERTY_KEY_STR, STRING);
+        descriptionProperty = Property::constructRelProperty(
+            descriptionPropertyDefinition, DESCRIPTION_PROPERTY_KEY_ID, KNOWS_LABEL_ID);
+        PropertyNameDataType knowsDatePropertyDefinition(KNOWSDATE_PROPERTY_KEY_STR, DATE);
+        knowsDateProperty = Property::constructRelProperty(
+            knowsDatePropertyDefinition, KNOWSDATE_PROPERTY_KEY_ID, KNOWS_LABEL_ID);
     }
 
     void setActionForGetNumNodes() {
@@ -244,6 +251,6 @@ private:
     uint64_t numPersonNodes;
     uint64_t numOrganisationNodes;
     vector<unordered_set<label_t>> srcNodeLabelToRelLabels, dstNodeLabelToRelLabels;
-    unique_ptr<PropertyDefinition> ageProperty, nameProperty, descriptionProperty,
-        birthDateProperty, registerTimeProperty, knowsDateProperty;
+    Property ageProperty, nameProperty, descriptionProperty, birthDateProperty,
+        registerTimeProperty, knowsDateProperty;
 };

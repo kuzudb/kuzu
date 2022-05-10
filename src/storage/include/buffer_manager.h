@@ -79,6 +79,8 @@ public:
 
     void resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeForLargePagePool);
 
+    void removeFilePagesFromFrames(FileHandle& fileHandle);
+
 private:
     shared_ptr<spdlog::logger> logger;
     unique_ptr<BufferPool> bufferPoolDefaultPages;

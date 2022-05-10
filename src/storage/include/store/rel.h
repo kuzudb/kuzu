@@ -16,7 +16,7 @@ using label_adj_lists_map_t = unordered_map<label_t, unique_ptr<AdjLists>>;
 class Rel {
 public:
     explicit Rel(const catalog::Catalog& catalog, label_t relLabel, const string& directory,
-        BufferManager& bufferManager, bool isInMemoryMode);
+        BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
 
 public:
     inline Column* getPropertyColumn(label_t nodeLabel, uint64_t propertyIdx) {
@@ -35,11 +35,11 @@ public:
 
 private:
     void initAdjColumnOrLists(const catalog::Catalog& catalog, const string& directory,
-        BufferManager& bufferManager, bool isInMemoryMode);
+        BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
     void initPropertyListsAndColumns(const catalog::Catalog& catalog, const string& directory,
-        BufferManager& bufferManager, bool isInMemoryMode);
+        BufferManager& bufferManager, bool isInMemoryMode, WAL* wal);
     void initPropertyColumnsForRelLabel(const catalog::Catalog& catalog, const string& directory,
-        BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode);
+        BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode, WAL* wal);
     void initPropertyListsForRelLabel(const catalog::Catalog& catalog, const string& directory,
         BufferManager& bufferManager, RelDirection relDirection, bool isInMemoryMode);
 

@@ -14,7 +14,7 @@ class NodesStore {
 
 public:
     NodesStore(const Catalog& catalog, BufferManager& bufferManager, const string& directory,
-        bool isInMemoryMode);
+        bool isInMemoryMode, WAL* wal);
 
     inline Column* getNodePropertyColumn(label_t nodeLabel, uint64_t propertyIdx) const {
         return nodes[nodeLabel]->getPropertyColumn(propertyIdx);

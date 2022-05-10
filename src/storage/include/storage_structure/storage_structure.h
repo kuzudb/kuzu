@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "src/common/include/configs.h"
 #include "src/common/include/vector/value_vector.h"
 #include "src/storage/include/buffer_manager.h"
@@ -44,18 +46,25 @@ protected:
         NodeIDCompressionScheme compressionScheme, bool isAdjLists);
 
     void readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector, uint32_t posInVector,
-        uint32_t physicalPageId, uint32_t posInPage, uint64_t numValuesToCopy,
+        uint32_t physicalPageId, uint32_t elementPos, uint64_t numValuesToCopy,
         NodeIDCompressionScheme& compressionScheme, bool isAdjLists);
 
-    static void setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector,
-        const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector, uint64_t num);
+    static void setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector, uint8_t* frame,
+        uint64_t elementPos, uint64_t offsetInVector, uint64_t num);
 
-    static void setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector, const uint8_t* frame,
+    static void setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector, uint8_t* frame,
         uint64_t elementPos, uint64_t offsetInVector);
+
+    static void setNullBitOfAPosInFrame(uint8_t* frame, uint16_t elementPos, bool isNull);
+
+    static inline bool isNullFromNULLByte(uint8_t NULLByte, uint8_t byteLevelPos) {
+        return (NULLByte & bitMasksWithSingle1s[byteLevelPos]) > 0;
+    }
 
 private:
     static void setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& valueVector,
-        uint8_t NULLByte, uint8_t num, uint64_t startPos, uint64_t offsetInVector);
+        pair<uint8_t, uint8_t> NULLByteAndByteLevelStartOffset, uint8_t num,
+        uint64_t offsetInVector);
 
 public:
     DataType dataType;

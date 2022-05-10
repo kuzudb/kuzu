@@ -128,7 +128,7 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
         if (catalog.containNodeProperty(node->getLabel(), propertyName)) {
             auto& property = catalog.getNodeProperty(node->getLabel(), propertyName);
             return make_shared<PropertyExpression>(
-                property.dataType, propertyName, property.id, move(child));
+                property.dataType, propertyName, property.propertyID, move(child));
         } else {
             throw BinderException(
                 "Node " + node->getRawName() + " does not have property " + propertyName + ".");
@@ -138,7 +138,7 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
         if (catalog.containRelProperty(rel->getLabel(), propertyName)) {
             auto& property = catalog.getRelProperty(rel->getLabel(), propertyName);
             return make_shared<PropertyExpression>(
-                property.dataType, propertyName, property.id, move(child));
+                property.dataType, propertyName, property.propertyID, move(child));
         } else {
             throw BinderException(
                 "Rel " + rel->getRawName() + " does not have property " + propertyName + ".");

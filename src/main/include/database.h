@@ -53,6 +53,12 @@ public:
     inline storage::StorageManager* getStorageManager() { return storageManager.get(); }
     // used in shell for getting debug info
     inline storage::BufferManager* getBufferManager() { return bufferManager.get(); }
+    // Needed for tests currently.
+    inline storage::MemoryManager* getMemoryManager() { return memoryManager.get(); }
+    // Needed for tests currently.
+    inline transaction::TransactionManager* getTransactionManager() {
+        return transactionManager.get();
+    }
     // used in API test
     inline uint64_t getDefaultBMSize() const { return systemConfig.defaultPageBufferPoolSize; }
     inline uint64_t getLargeBMSize() const { return systemConfig.largePageBufferPoolSize; }

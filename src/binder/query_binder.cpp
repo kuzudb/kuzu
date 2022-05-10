@@ -150,7 +150,7 @@ expression_vector QueryBinder::rewriteNodeAsAllProperties(
     expression_vector result;
     for (auto& property : catalog.getAllNodeProperties(node.getLabel())) {
         result.emplace_back(make_shared<PropertyExpression>(
-            property.dataType, property.name, property.id, expression));
+            property.dataType, property.name, property.propertyID, expression));
     }
     return result;
 }
@@ -161,7 +161,7 @@ expression_vector QueryBinder::rewriteRelAsAllProperties(const shared_ptr<Expres
     expression_vector result;
     for (auto& property : catalog.getRelProperties(rel.getLabel())) {
         result.emplace_back(make_shared<PropertyExpression>(
-            property.dataType, property.name, property.id, expression));
+            property.dataType, property.name, property.propertyID, expression));
     }
     return result;
 }

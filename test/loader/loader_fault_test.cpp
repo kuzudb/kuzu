@@ -9,7 +9,7 @@ class LoaderFaultTest : public BaseGraphLoadingTest {
 public:
     void SetUp() override {
         systemConfig = make_unique<SystemConfig>();
-        databaseConfig = make_unique<DatabaseConfig>(TEMP_TEST_DIR);
+        databaseConfig = make_unique<DatabaseConfig>(TestHelper::TEMP_TEST_DIR);
     };
 
     void checkLoadingFaultWithErrMsg(string expectedErrorMsg) {

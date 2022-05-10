@@ -2,8 +2,11 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
     name = "transaction",
-    srcs = glob(["*.cpp"]),
-    hdrs = glob(["include/*.h"]),
+    srcs = glob(["transaction_manager.cpp"]),
+    hdrs = glob([
+        "include/transaction.h",
+        "include/transaction_manager.h"
+        ]),
     visibility = [
         "//visibility:public",
     ],
