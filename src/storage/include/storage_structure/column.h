@@ -24,8 +24,8 @@ public:
         : StorageStructure{fName, property.dataType, elementSize, bufferManager,
               true /*hasNULLBytes*/, isInMemory},
           property{property},
-          nodeLabelForAdjColumnAndProperties{nodeLabelForAdjColumnAndProperties}, wal{wal},
-          pageVersionInfo(fileHandle.getNumPages()){};
+          nodeLabelForAdjColumnAndProperties{nodeLabelForAdjColumnAndProperties},
+          pageVersionInfo(fileHandle.getNumPages()), wal{wal} {};
 
     Column(const string& fName, const Property property, const label_t nodeLabel,
         BufferManager& bufferManager, bool isInMemory, WAL* wal)

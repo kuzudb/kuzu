@@ -30,7 +30,7 @@ void WAL::logCommit(uint64_t transactionID) {
 }
 
 void WAL::deleteAndReopenWALFile(BufferManager* bufferManager) {
-    bufferManager->removeFilePagesFromFrames(*fileHandle);
+    bufferManager->removeOrFlushPagesFromFrames(*fileHandle, true /* isRemovingPages */);
     fileHandle->resetToZeroPagesAndPageCapacity();
     initCurrentPage();
 }

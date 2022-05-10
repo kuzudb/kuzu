@@ -32,7 +32,7 @@ TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
     }
     bufferManager->unpin(fileHandle, 10);
     bufferManager->unpin(fileHandle, 999);
-    bufferManager->removeFilePagesFromFrames(fileHandle);
+    bufferManager->removeOrFlushPagesFromFrames(fileHandle, true /* isRemovingPages */);
     for (int pageIdx = 0; pageIdx < numPagesToAdd; ++pageIdx) {
         ASSERT_FALSE(FileHandle::isAFrame(fileHandle.getFrameIdx(pageIdx)));
     }

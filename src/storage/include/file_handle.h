@@ -35,7 +35,6 @@ public:
 
     constexpr static uint8_t O_DefaultPagedExistingDBFileDoNotCreate{0b0000'0000};
     constexpr static uint8_t O_DefaultPagedExistingDBFileCreateIfNotExists{0b0000'0100};
-    constexpr static uint8_t O_LargePageExistingDBFileDoNotCreate{0b0000'0001};
     constexpr static uint8_t O_LargePagedInMemoryTmpFile{0b0000'0011};
 
     explicit FileHandle(const string& path, uint8_t flags);
@@ -76,14 +75,12 @@ public:
     inline bool createFileIfNotExists() const { return flags & createIfNotExistsMask; }
     inline uint32_t getNumPages() const { return numPages; }
     static inline bool isAFrame(uint64_t mappedFrameIdx) { return UINT64_MAX != mappedFrameIdx; }
+    inline FileInfo* getFileInfo() const { return fileInfo.get(); }
 
-    // This function is public for tests
     inline uint64_t getFrameIdx(uint32_t pageIdx) {
         shared_lock lock(fhSharedMutex);
         return pageIdxToFrameMap[pageIdx]->load();
     }
-
-    inline uint32_t getNumPages() { return numPages; }
 
 private:
     void initPageIdxToFrameMapAndLocks();
@@ -129,7 +126,7 @@ private:
     uint32_t numPages;
     // This is the maximum number of pages the filehandle can currently support.
     uint32_t pageCapacity;
-    // Intended to be used as a read/write lock
+    // Intended to be used as a read/write lock.
     shared_mutex fhSharedMutex;
 };
 

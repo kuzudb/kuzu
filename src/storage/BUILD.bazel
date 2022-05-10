@@ -133,8 +133,8 @@ cc_library(
     deps = [
         "storage_structure",
         "wal",
-        "//src/catalog:catalog",
-        "//src/transaction:transaction",
+        "//src/catalog",
+        "//src/transaction",
     ],
 )
 
@@ -178,9 +178,11 @@ cc_library(
     name = "hash_index",
     srcs = [
         "index/hash_index.cpp",
+        "index/hash_index_utils.cpp",
     ],
     hdrs = [
         "include/index/hash_index.h",
+        "include/index/hash_index_utils.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -196,12 +198,12 @@ cc_library(
     name = "wal",
     srcs = [
         "wal/wal.cpp",
-        "wal/wal_record.cpp"
-        ],
+        "wal/wal_record.cpp",
+    ],
     hdrs = [
         "include/wal/wal.h",
-        "include/wal/wal_record.h"
-        ],
+        "include/wal/wal_record.h",
+    ],
     visibility = [
         "//visibility:public",
     ],

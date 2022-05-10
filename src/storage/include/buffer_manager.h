@@ -70,7 +70,7 @@ public:
     // from disk
     uint8_t* pinWithoutReadingFromFile(FileHandle& fileHandle, uint32_t pageIdx);
 
-    const void setPinnedPageDirty(FileHandle& fileHandle, uint32_t pageIdx);
+    void setPinnedPageDirty(FileHandle& fileHandle, uint32_t pageIdx);
 
     // The function assumes that the requested page is already pinned.
     void unpin(FileHandle& fileHandle, uint32_t pageIdx);
@@ -79,7 +79,7 @@ public:
 
     void resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeForLargePagePool);
 
-    void removeFilePagesFromFrames(FileHandle& fileHandle);
+    void removeOrFlushPagesFromFrames(FileHandle& fileHandle, bool isRemovingPages);
 
 private:
     shared_ptr<spdlog::logger> logger;

@@ -29,8 +29,8 @@ FileHandle::~FileHandle() {
 }
 
 void FileHandle::constructExistingFileHandle(const string& path) {
-    int flags = O_RDWR | ((createFileIfNotExists()) ? O_CREAT : 0x00000000);
-    fileInfo = FileUtils::openFile(path, flags);
+    int openFlags = O_RDWR | ((createFileIfNotExists()) ? O_CREAT : 0x00000000);
+    fileInfo = FileUtils::openFile(path, openFlags);
     auto fileLength = FileUtils::getFileSize(fileInfo->fd);
     numPages = fileLength >> getPageSizeLog2();
     logger->trace("FileHandle[disk]: Size {}B, #{}B-pages {}", fileLength, getPageSize(), numPages);

@@ -9,6 +9,7 @@
 #include "src/function/hash/operations/include/hash_operations.h"
 #include "src/loader/include/in_mem_structure/in_mem_pages.h"
 #include "src/storage/include/buffer_manager.h"
+#include "src/storage/include/index/hash_index_utils.h"
 #include "src/storage/include/memory_manager.h"
 #include "src/storage/include/storage_structure/overflow_pages.h"
 
@@ -18,12 +19,14 @@ using namespace graphflow::loader;
 namespace graphflow {
 namespace storage {
 
+// TODO(Guodong): Concurrent writes for string overflows.
 /**
  * Each index is stored in a single file that has 3 components in it.
  *
  * 1. HashIndexHeader is stored in the first page (pageId 0) of the file. It contains the current
- * state of the hash tables along with certain metrics like the number of pages used etc. Remaining
- * bytes of the pageId 0 are left unused as of now.
+ * state of the hash tables (level and split information: currentLevel, levelHashMask,
+ * higherLevelHashMask, nextSplitSlotId; key data type) along with certain metrics like numEntries,
+ * numPrimaryPages, numOvfPages, etc. Remaining bytes of the pageId 0 are left unused as of now.
  *
  * 2. Primary pages are set of pages that contains all primary slots in the hashIndex. A queried
  * key is mapped to one of the slots based on its hash value and is either stored or looked up
@@ -42,30 +45,27 @@ namespace storage {
  * Each slot's SlotHeader has information about the next overflow slot in the chain and also the
  * number of filled entries in that slot.
  *
- * Layout of the file:
+ * Physical layout of the file:
  *
  *       ---------------------
  *  0    | PAGE 0 (HEADER)   |
  *       ---------------------
- *  1    | PAGE 1 (SLOT)     |  <-|
+ *  1    |       (SLOT)      |  <-|
  *       ---------------------    |
- *  2    | PAGE 2 (SLOT)     |    |
- *       ---------------------    |  PRIMARY PAGES
- *               ...              |
+ *  2    |       (SLOT)      |    |
  *       ---------------------    |
- *  n    | PAGE n (SLOT)     |  <-|
+ *               ...              | PRIMARY/OVF PAGES
+ *       ---------------------    |
+ *  k    |       (SLOT)      |  <-|
  *       ---------------------
- *  n+1  | PAGE n+1 (SLOT)   |  <-|
+ *  k+1  |       (SLOT)      |  <-|
  *       ---------------------    |
- *  n+2  | PAGE n+2 (SLOT)   |    |
- *       ---------------------    |  OVERFLOW PAGES
- *               ...              |
- *       ---------------------    |
- *  n+m  | PAGE n+m (SLOT)   |  <-|
- *       ---------------------
+ *               ...              | MAPPING PAGES
+ *       ---------------------  <-|
  *
- *  Information about the number of primary pages, primary slots, overflow pages and overflow
- *  slots are stored in the HashIndexHeader.
+ * MAPPING PAGES contains the mapping of logical primary/ovf pages to the actual physical pageIdx
+ * in the index file. The mapping is written when flushing the index, and read when initializing the
+ * index.
  *
  *  Mode Of Operations:
  *
@@ -73,11 +73,11 @@ namespace storage {
  * insertions are supported. In here, all the page allocations are happen in memory which needs to
  * be saved to disk to persist. Also for performance reasons and based on our use case, we support
  *  `bulkReserve` operation to fix the hashIndex capacity in the beginning before any insertions
- *  are made. This is done by means of calculating the number of primary slots and pages are needed
- *  and pre-allocating them.  In lieu of this, we do not support changing the capacity dynamically
- *  by rehashing and splitting of slots. With this scenario, the hashIndex can still insert entries
- *  more than its capacity but these entries will land in chained overflow slots leading to
- *  degraded performance in insertions as well as in look ups.
+ *  are made. This is done by means of calculating the number of primary slots and pages that are
+ * needed and pre-allocating them.  In lieu of this, we do not support changing the capacity
+ * dynamically by rehashing and splitting of slots. With this scenario, the hashIndex can still
+ * insert entries more than its capacity but these entries will land in chained overflow
+ * slots leading to degraded performance in insertions as well as in look ups.
  *
  *  READ_ONLY MODE: The hashIndex can be opened in the read mode by supplying it with the name of
  * already existing file that was previously flushed in the write mode. Lookups happen by reading
@@ -89,7 +89,7 @@ namespace storage {
 
 struct SlotHeader {
 public:
-    SlotHeader() : numEntries{0}, nextOvfSlotId{-1u} {}
+    SlotHeader() : numEntries{0}, nextOvfSlotId{0} {}
 
     void reset() {
         numEntries = 0;
@@ -104,158 +104,127 @@ public:
 struct HashIndexHeader {
     friend class HashIndex;
 
-private:
-    HashIndexHeader() = default;
-
-    explicit HashIndexHeader(DataType keyDataType);
+public:
+    explicit HashIndexHeader(DataTypeID keyDataType);
+    HashIndexHeader(const HashIndexHeader& other) = default;
 
     inline void incrementLevel();
 
-    // Constants
-    uint64_t numBytesPerEntry{0};
-    uint64_t numBytesPerSlot{0};
-    uint64_t numSlotsPerPage{0};
-    uint64_t slotCapacity{HashIndexConfig::SLOT_CAPACITY};
-
+private:
+    uint32_t numBytesPerEntry{0};
+    uint32_t numBytesPerSlot{0};
+    uint32_t numSlotsPerPage{0};
+    uint32_t numPrimaryPages{0};
+    uint32_t numOvfPages{0};
     uint64_t numEntries{0};
-    uint64_t numPrimarySlots{2};
-    uint64_t numPrimaryPages{1};
-    uint64_t numOvfSlots{1};
-    uint64_t numOvfPages{1};
-
     uint64_t currentLevel{1};
     uint64_t levelHashMask{1};
     uint64_t higherLevelHashMask{3};
     uint64_t nextSplitSlotId{0};
-
-    DataType keyDataType;
+    DataTypeID keyDataTypeID;
 };
 
-using hash_function_t = std::function<hash_t(uint8_t*)>;
-using insert_function_t =
-    std::function<void(uint8_t*, uint8_t*, InMemOverflowPages*, PageByteCursor*)>;
-using equals_in_write_function_t =
-    std::function<bool(const uint8_t*, const uint8_t*, const InMemOverflowPages*)>;
-using equals_in_read_function_t =
-    std::function<bool(const uint8_t*, const uint8_t*, OverflowPages*)>;
+struct SlotInfo {
+    uint32_t slotId;
+    bool isPrimary;
+};
+
+constexpr uint64_t INDEX_HEADER_PAGE_ID = 0;
 
 class HashIndex {
 
-    enum HashIndexMode { WRITE_ONLY, READ_ONLY };
-
 public:
-    HashIndex(const string& fName, DataType keyDataType, MemoryManager* memoryManager);
-
-    HashIndex(const string& fName, BufferManager* bufferManager, bool isInMemory);
+    HashIndex(
+        string fName, const DataType& keyDataType, BufferManager& bufferManager, bool isInMemory);
 
     ~HashIndex();
 
 public:
     // Reserves space for at least the specified number of elements.
+    // Note: This function is NOT thread-safe.
     void bulkReserve(uint32_t numEntries);
 
-    bool insert(uint8_t* key, node_offset_t value);
+    inline bool insert(int64_t key, node_offset_t value) {
+        return insertInternal(reinterpret_cast<uint8_t*>(&key), value);
+    }
+    inline bool insert(const char* key, node_offset_t value) {
+        return insertInternal(reinterpret_cast<const uint8_t*>(key), value);
+    }
+    inline bool lookup(int64_t key, node_offset_t& result) {
+        return lookupInternal(reinterpret_cast<uint8_t*>(&key), result);
+    }
+    inline bool lookup(const char* key, node_offset_t& result) {
+        return lookupInternal(reinterpret_cast<const uint8_t*>(key), result);
+    }
 
-    bool lookup(uint8_t* key, node_offset_t& result);
-
-    void saveToDisk();
+    // Note: This function is NOT thread-safe.
+    void flush();
 
 private:
-    bool notExistsInSlot(uint8_t* slot, uint8_t* key);
-    void putNewEntryInSlotAndUpdateHeader(uint8_t* slot, uint8_t* key, node_offset_t value);
+    void initializeHeaderAndPages(const DataType& keyDataType, bool isInMemory);
+    bool insertInternal(const uint8_t* key, node_offset_t value);
+    bool lookupInternal(const uint8_t* key, node_offset_t& result);
+
+    bool existsInSlot(uint8_t* slot, const uint8_t* key);
+    void insertToSlot(uint8_t* slot, const uint8_t* key, node_offset_t value);
     uint64_t reserveOvfSlot();
-
-    bool lookupInSlot(const uint8_t* slot, uint8_t* key, node_offset_t& result) const;
-
-    inline uint64_t calculateSlotIdForHash(hash_t hash) const;
-
+    bool lookupInSlot(const uint8_t* slot, const uint8_t* key, node_offset_t& result) const;
+    inline uint64_t calculateSlotIdForHash(hash_t hash);
     inline uint64_t getPageIdForSlot(uint64_t slotId) const {
-        return slotId / indexHeader.numSlotsPerPage;
+        return slotId / indexHeader->numSlotsPerPage;
     }
-
     inline uint64_t getSlotIdInPageForSlot(uint64_t slotId) const {
-        return slotId % indexHeader.numSlotsPerPage;
+        return slotId % indexHeader->numSlotsPerPage;
     }
-
-    uint8_t* getSlotFromPrimaryPages(uint64_t slotId) const;
-
-    uint8_t* getOvfSlotFromOvfPages(uint64_t slotId) const;
-
-    const uint8_t* getSlotInAPage(const uint8_t* page, uint32_t slotIdInPage) const {
-        return page + (slotIdInPage * indexHeader.numBytesPerSlot);
+    uint8_t* getSlotFromPages(const SlotInfo& slotInfo);
+    uint8_t* getSlotInPage(uint8_t* page, uint32_t slotIdInPage) const {
+        return page + (slotIdInPage * indexHeader->numBytesPerSlot);
     }
-
     inline uint8_t* getEntryInSlot(uint8_t* slot, uint32_t entryId) const {
-        return slot + sizeof(SlotHeader) + (entryId * indexHeader.numBytesPerEntry);
+        return slot + sizeof(SlotHeader) + (entryId * indexHeader->numBytesPerEntry);
     }
 
-    // HashFunc
-    inline static hash_t hashFuncForInt64(uint8_t* key) {
-        hash_t hash;
-        function::operation::Hash::operation(*(int64_t*)key, hash);
-        return hash;
+    void allocateAndCachePageWithoutLock(bool isPrimary);
+    inline void setDirtyAndUnPinPage(uint32_t physicalPageIdx) {
+        bm.setPinnedPageDirty(*fh, physicalPageIdx);
+        bm.unpin(*fh, physicalPageIdx);
     }
-    inline static hash_t hashFuncForString(uint8_t* key) {
-        hash_t hash;
-        function::operation::Hash::operation(string((char*)key), hash);
-        return hash;
-    }
-    static hash_function_t initializeHashFunc(const DataType& dataType);
 
-    // CopyFunc
-    inline static void insertInt64KeyToEntryFunc(uint8_t* key, uint8_t* entry,
-        InMemOverflowPages* overflowPages = nullptr, PageByteCursor* overflowCursor = nullptr) {
-        memcpy(entry, key, Types::getDataTypeSize(INT64));
-    }
-    inline static void insertStringKeyToEntryFunc(uint8_t* key, uint8_t* entry,
-        InMemOverflowPages* overflowPages, PageByteCursor* overflowCursor) {
-        auto gfString =
-            overflowPages->addString(reinterpret_cast<const char*>(key), *overflowCursor);
-        memcpy(entry, &gfString, Types::getDataTypeSize(STRING));
-    }
-    static insert_function_t initializeInsertKeyToEntryFunc(const DataType& dataType);
+    void lockSlot(const SlotInfo& slotInfo);
+    void unLockSlot(const SlotInfo& slotInfo);
 
-    // This function checks if the prefix and length are the same.
-    static bool isStringPrefixAndLenEquals(
-        const uint8_t* keyToLookup, const gf_string_t* keyInEntry);
-    // equalsFuncInWrite: used in the WRITE_MODE, when performing insertions.
-    inline static bool equalsFuncInWriteModeForInt64(const uint8_t* keyToLookup,
-        const uint8_t* keyInEntry, const InMemOverflowPages* overflowPages) {
-        return memcmp(keyToLookup, keyInEntry, sizeof(int64_t)) == 0;
-    }
-    static bool equalsFuncInWriteModeForString(const uint8_t* keyToLookup,
-        const uint8_t* keyInEntry, const InMemOverflowPages* overflowPages);
-    static equals_in_write_function_t initializeEqualsFuncInWriteMode(const DataType& dataType);
-
-    // equalsFuncInRead: used in the READ_MODE, when performing lookups.
-    inline static bool equalsFuncInReadModeForInt64(
-        const uint8_t* keyToLookup, const uint8_t* keyInEntry, OverflowPages* overflowPages) {
-        return memcmp(keyToLookup, keyInEntry, sizeof(int64_t)) == 0;
-    }
-    static bool equalsFuncInReadModeForString(
-        const uint8_t* keyToLookup, const uint8_t* keyInEntry, OverflowPages* overflowPages);
-    static equals_in_read_function_t initializeEqualsFuncInReadMode(const DataType& dataType);
+    void readLogicalToPhysicalPageMappings();
+    void writeLogicalToPhysicalPageMappings();
 
 private:
-    const string& fName;
-    HashIndexMode indexMode;
-    HashIndexHeader indexHeader;
+    string fName;
+    unique_ptr<FileHandle> fh;
+    BufferManager& bm;
+    unique_ptr<HashIndexHeader> indexHeader;
+
     hash_function_t keyHashFunc;
     insert_function_t insertKeyToEntryFunc;
     equals_in_write_function_t equalsFuncInWrite;
     equals_in_read_function_t equalsFuncInRead;
 
-    // used only when the hash index is instantiated in the write mode
-    vector<unique_ptr<MemoryBlock>> primaryPages;
-    vector<unique_ptr<MemoryBlock>> ovfPages;
+    vector<unique_ptr<mutex>> primarySlotMutexes;
+    vector<unique_ptr<mutex>> ovfSlotMutexes;
+    shared_mutex sharedLockForSlotMutexes;
+    vector<uint32_t> primaryLogicalToPhysicalPagesMapping;
+    vector<uint32_t> ovfLogicalToPhysicalPagesMapping;
+    vector<uint8_t*> primaryPinnedFrames;
+    vector<uint8_t*> ovfPinnedFrames;
+
+    // Used when writing to the index.
     unique_ptr<InMemOverflowPages> inMemStringOvfPages;
     PageByteCursor stringOvfPageCursor;
-
-    // used only when the hash index is instantiated in the read mode.
-    unique_ptr<FileHandle> fileHandle;
-    MemoryManager* memoryManager = nullptr;
-    BufferManager* bufferManager = nullptr;
+    // Used when reading from the index.
     unique_ptr<OverflowPages> stringOvfPages;
+
+    atomic<uint64_t> numEntries{0};
+    uint64_t numOvfSlots{1};
+    uint64_t ovfSlotsCapacity{0};
+    mutex lockForReservingOvfSlot;
 };
 
 } // namespace storage

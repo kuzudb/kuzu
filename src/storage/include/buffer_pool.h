@@ -9,7 +9,6 @@
 #include "src/storage/include/file_handle.h"
 
 using namespace graphflow::common;
-using namespace std;
 
 namespace spdlog {
 class logger;
@@ -29,9 +28,9 @@ struct BufferManagerMetrics {
     // Number of failed tried to evict the page frame a Frame because the Frame has been recently
     // accessed and hence is given a second chance.
     uint64_t numRecentlyAccessedWalkover{0};
-    uint64_t numCacheHit;
-    uint64_t numCacheMiss;
-    uint64_t numDirtyPageWriteIO;
+    uint64_t numCacheHit{0};
+    uint64_t numCacheMiss{0};
+    uint64_t numDirtyPageWriteIO{0};
 };
 
 // A frame is a unit of buffer space having a fixed size of 4KB, where a single file page is
@@ -41,7 +40,7 @@ class Frame {
     friend class BufferPool;
 
 public:
-    Frame(uint64_t pageSize);
+    explicit Frame(uint64_t pageSize);
     ~Frame();
 
 private:
@@ -51,9 +50,9 @@ private:
     void setIsDirty(bool _isDirty) { isDirty = _isDirty; }
 
 private:
-    // fileHandle and pageIdx identify the file and the page in file whose data the buffer is
+    // fileHandlePtr and pageIdx identify the file and the page in file whose data the buffer is
     // maintaining. pageIdx of -1u means that the frame is empty, i.e. it has no data.
-    atomic<uint64_t> fileHandle;
+    atomic<uint64_t> fileHandlePtr;
     atomic<uint32_t> pageIdx;
     atomic<uint32_t> pinCount;
 
@@ -90,7 +89,7 @@ public:
     // Note: This function is not designed for concurrency and therefore not tested under
     // concurrency. If this is called while other threads are accessing the BM, it should work
     // safely but this is not tested.
-    void removeFilePagesFromFrames(FileHandle& fileHandle);
+    void removeOrFlushFilePagesFromFrames(FileHandle& fileHandle, bool isRemovingPages);
 
 private:
     uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile);
