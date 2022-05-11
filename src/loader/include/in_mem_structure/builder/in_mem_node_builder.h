@@ -35,7 +35,7 @@ private:
         InMemUnstructuredLists* unstrPropertyLists);
 
     static void putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& columns,
-        NodeIDMap* nodeIDMap, const vector<PropertyDefinition>& properties,
+        NodeIDMap* nodeIDMap, const vector<Property>& properties,
         vector<PageByteCursor>& overflowCursors, CSVReader& reader, uint64_t nodeOffset);
 
     // Concurrent tasks.

@@ -17,7 +17,7 @@ InMemStructuresBuilder::InMemStructuresBuilder(label_t label, string labelName,
       progressBar{progressBar} {}
 
 uint64_t InMemStructuresBuilder::parseCSVHeaderAndCalcNumBlocks(
-    const string& filePath, vector<PropertyDefinition>& colDefinitions) {
+    const string& filePath, vector<PropertyNameDataType>& colDefinitions) {
     logger->info("Parsing csv headers and calculating number of blocks for label {}.", labelName);
     ifstream inf(filePath, ios_base::in);
     if (!inf.is_open()) {
@@ -34,22 +34,23 @@ uint64_t InMemStructuresBuilder::parseCSVHeaderAndCalcNumBlocks(
     return 1 + (inf.tellg() / LoaderConfig::CSV_READING_BLOCK_SIZE);
 }
 
-vector<PropertyDefinition> InMemStructuresBuilder::parseCSVFileHeader(string& header) const {
+vector<PropertyNameDataType> InMemStructuresBuilder::parseCSVFileHeader(string& header) const {
     auto colHeaders = StringUtils::split(header, string(1, csvReaderConfig.tokenSeparator));
     unordered_set<string> columnNameSet;
-    vector<PropertyDefinition> colHeaderDefinitions;
+    vector<PropertyNameDataType> colHeaderDefinitions;
     for (auto& colHeader : colHeaders) {
         auto colHeaderComponents =
             StringUtils::split(colHeader, LoaderConfig::PROPERTY_DATATYPE_SEPARATOR);
         if (colHeaderComponents.size() < 2) {
             throw LoaderException("Incomplete column header '" + colHeader + "'.");
         }
-        PropertyDefinition colHeaderDefinition;
+        PropertyNameDataType colHeaderDefinition;
         // Check each one of the mandatory field column header.
         if (colHeaderComponents[0].empty()) {
             colHeaderDefinition.name = colHeaderComponents[1];
             if (colHeaderDefinition.name == LoaderConfig::ID_FIELD) {
-                colHeaderDefinition.isPrimaryKey = true;
+                // We don't explicitly have to set the ID column in PropertyNameDataType, so we only
+                // skip over this property.
             } else if (colHeaderDefinition.name == LoaderConfig::START_ID_FIELD ||
                        colHeaderDefinition.name == LoaderConfig::END_ID_FIELD) {
                 colHeaderDefinition.dataType.typeID = NODE;
@@ -66,7 +67,7 @@ vector<PropertyDefinition> InMemStructuresBuilder::parseCSVFileHeader(string& he
             if (colHeaderDefinition.dataType.typeID == NODE ||
                 colHeaderDefinition.dataType.typeID == LABEL) {
                 throw LoaderException(
-                    "PropertyDefinition column header cannot be of system types NODE or LABEL.");
+                    "PropertyNameDataType column header cannot be of system types NODE or LABEL.");
             }
         }
         if (columnNameSet.find(colHeaderDefinition.name) != columnNameSet.end()) {

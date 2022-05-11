@@ -29,25 +29,35 @@ FileHandle::~FileHandle() {
 }
 
 void FileHandle::constructExistingFileHandle(const string& path) {
-    fileInfo = FileUtils::openFile(path, O_RDWR);
+    int flags = O_RDWR | ((createFileIfNotExists()) ? O_CREAT : 0x00000000);
+    fileInfo = FileUtils::openFile(path, flags);
     auto fileLength = FileUtils::getFileSize(fileInfo->fd);
     numPages = fileLength >> getPageSizeLog2();
     logger->trace("FileHandle[disk]: Size {}B, #{}B-pages {}", fileLength, getPageSize(), numPages);
     pageCapacity = numPages;
-    pageIdxToFrameMap = new unique_ptr<atomic<uint64_t>>[pageCapacity];
-    pageLocks = new unique_ptr<atomic_flag>[pageCapacity];
-    for (auto i = 0ull; i < numPages; i++) {
-        addNewPageLockAndFramePtr(i);
-    }
+    initPageIdxToFrameMapAndLocks();
 }
 
 void FileHandle::constructNewFileHandle(const string& path) {
+    fileInfo = make_unique<FileInfo>(path, -1 /* no file descriptor for a new in memory file */);
     numPages = 0;
     pageCapacity = 0;
-    fileInfo = make_unique<FileInfo>(path, -1 /* no file descriptor for a new in memory file */);
-    // Note: pageCapacity below is 0
+    initPageIdxToFrameMapAndLocks();
+}
+
+void FileHandle::resetToZeroPagesAndPageCapacity() {
+    unique_lock lock(fhSharedMutex);
+    numPages = 0;
+    pageCapacity = 0;
+    initPageIdxToFrameMapAndLocks();
+}
+
+void FileHandle::initPageIdxToFrameMapAndLocks() {
     pageIdxToFrameMap = new unique_ptr<atomic<uint64_t>>[pageCapacity];
     pageLocks = new unique_ptr<atomic_flag>[pageCapacity];
+    for (auto i = 0ull; i < numPages; i++) {
+        addNewPageLockAndFramePtrWithoutLock(i);
+    }
 }
 
 bool FileHandle::acquirePageLock(uint32_t pageIdx, bool block) {
@@ -72,7 +82,7 @@ void FileHandle::writePage(uint8_t* buffer, uint64_t pageIdx) const {
     FileUtils::writeToFile(fileInfo.get(), buffer, getPageSize(), pageIdx << getPageSizeLog2());
 }
 
-void FileHandle::addNewPageLockAndFramePtr(uint64_t i) {
+void FileHandle::addNewPageLockAndFramePtrWithoutLock(uint64_t i) {
     pageLocks[i] = make_unique<atomic_flag>();
     pageIdxToFrameMap[i] = make_unique<atomic<uint64_t>>(UINT64_MAX);
 }
@@ -92,7 +102,7 @@ uint32_t FileHandle::addNewPage() {
         pageIdxToFrameMap = move(newPageIdxToFrameMap);
         pageLocks = move(newPageLocks);
     }
-    addNewPageLockAndFramePtr(numPages);
+    addNewPageLockAndFramePtrWithoutLock(numPages);
     return numPages++;
 }
 

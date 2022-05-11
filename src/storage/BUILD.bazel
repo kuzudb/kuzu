@@ -123,13 +123,18 @@ cc_library(
     name = "column",
     srcs = [
         "storage_structure/column.cpp",
+        "storage_structure/page_version_info.cpp",
     ],
     hdrs = [
         "include/storage_structure/column.h",
+        "include/storage_structure/page_version_info.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "storage_structure",
+        "wal",
+        "//src/catalog:catalog",
+        "//src/transaction:transaction",
     ],
 )
 
@@ -184,5 +189,25 @@ cc_library(
         "//src/common/types",
         "//src/function/hash/operations:hash_operations",
         "//src/loader:in_mem_pages",
+    ],
+)
+
+cc_library(
+    name = "wal",
+    srcs = [
+        "wal/wal.cpp",
+        "wal/wal_record.cpp"
+        ],
+    hdrs = [
+        "include/wal/wal.h",
+        "include/wal/wal_record.h"
+        ],
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "buffer_manager",
+        "//src/common:type_utils",
+        "//src/common:utils",
     ],
 )

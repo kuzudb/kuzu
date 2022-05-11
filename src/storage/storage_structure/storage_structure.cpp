@@ -9,8 +9,8 @@ StorageStructure::StorageStructure(const string& fName, const DataType& dataType
     const size_t& elementSize, BufferManager& bufferManager, bool hasNULLBytes, bool isInMemory)
     : dataType{dataType}, elementSize{elementSize}, logger{LoggerUtils::getOrCreateSpdLogger(
                                                         "storage")},
-      fileHandle{fName, FileHandle::O_DefaultPagedExistingDBFile}, bufferManager{bufferManager},
-      isInMemory{isInMemory} {
+      fileHandle{fName, FileHandle::O_DefaultPagedExistingDBFileDoNotCreate},
+      bufferManager{bufferManager}, isInMemory{isInMemory} {
     numElementsPerPage = hasNULLBytes ?
                              PageUtils::getNumElementsInAPageWithNULLBytes(elementSize) :
                              PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);
@@ -60,7 +60,7 @@ void StorageStructure::readNodeIDsFromSequentialPages(const shared_ptr<ValueVect
 }
 
 void StorageStructure::readNodeIDsFromAPage(const shared_ptr<ValueVector>& valueVector,
-    uint32_t posInVector, uint32_t physicalPageId, uint32_t posInPage, uint64_t numValuesToCopy,
+    uint32_t posInVector, uint32_t physicalPageId, uint32_t elementPos, uint64_t numValuesToCopy,
     NodeIDCompressionScheme& compressionScheme, bool isAdjLists) {
     auto nodeValues = (nodeID_t*)valueVector->values;
     auto labelSize = compressionScheme.getNumBytesForLabel();
@@ -69,9 +69,9 @@ void StorageStructure::readNodeIDsFromAPage(const shared_ptr<ValueVector>& value
     if (isAdjLists) {
         valueVector->setRangeNonNull(posInVector, numValuesToCopy);
     } else {
-        setNULLBitsForRange(valueVector, frame, posInPage, posInVector, numValuesToCopy);
+        setNULLBitsForRange(valueVector, frame, elementPos, posInVector, numValuesToCopy);
     }
-    frame += mapElementPosToByteOffset(posInPage);
+    frame += mapElementPosToByteOffset(elementPos);
     for (auto i = 0u; i < numValuesToCopy; i++) {
         nodeID_t nodeID{0, 0};
         memcpy(&nodeID.label, frame, labelSize);
@@ -84,12 +84,13 @@ void StorageStructure::readNodeIDsFromAPage(const shared_ptr<ValueVector>& value
 }
 
 void StorageStructure::setNULLBitsForRange(const shared_ptr<ValueVector>& valueVector,
-    const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector, uint64_t num) {
+    uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector, uint64_t num) {
     while (num) {
         auto numInCurrentByte = min(num, 8 - (elementPos % 8));
-        auto NULLByte = PageUtils::getNULLByteForOffset(frame, elementPos);
+        auto NULLByteAndByteLevelOffset =
+            PageUtils::getNULLByteAndByteLevelOffsetPair(frame, elementPos);
         setNULLBitsFromANULLByte(
-            valueVector, NULLByte, numInCurrentByte, elementPos, offsetInVector);
+            valueVector, NULLByteAndByteLevelOffset, numInCurrentByte, offsetInVector);
         elementPos += numInCurrentByte;
         offsetInVector += numInCurrentByte;
         num -= numInCurrentByte;
@@ -97,42 +98,31 @@ void StorageStructure::setNULLBitsForRange(const shared_ptr<ValueVector>& valueV
 }
 
 void StorageStructure::setNULLBitsForAPos(const shared_ptr<ValueVector>& valueVector,
-    const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector) {
-    auto NULLByte = PageUtils::getNULLByteForOffset(frame, elementPos);
-    setNULLBitsFromANULLByte(valueVector, NULLByte, 1, elementPos, offsetInVector);
+    uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector) {
+    auto NULLByteAndByteLevelOffset =
+        PageUtils::getNULLByteAndByteLevelOffsetPair(frame, elementPos);
+    setNULLBitsFromANULLByte(valueVector, NULLByteAndByteLevelOffset, 1, offsetInVector);
 }
 
 void StorageStructure::setNULLBitsFromANULLByte(const shared_ptr<ValueVector>& valueVector,
-    uint8_t NULLByte, uint8_t num, uint64_t startPos, uint64_t offsetInVector) {
+    pair<uint8_t, uint8_t> NULLByteAndByteLevelStartOffset, uint8_t num, uint64_t offsetInVector) {
+    auto NULLByte = NULLByteAndByteLevelStartOffset.first;
+    auto startPos = NULLByteAndByteLevelStartOffset.second;
     while (num--) {
-        auto maskedNULLByte = 0;
-        switch (startPos++) {
-        case 0:
-            maskedNULLByte = NULLByte & 0b10000000;
-            break;
-        case 1:
-            maskedNULLByte = NULLByte & 0b01000000;
-            break;
-        case 2:
-            maskedNULLByte = NULLByte & 0b00100000;
-            break;
-        case 3:
-            maskedNULLByte = NULLByte & 0b00010000;
-            break;
-        case 4:
-            maskedNULLByte = NULLByte & 0b00001000;
-            break;
-        case 5:
-            maskedNULLByte = NULLByte & 0b00000100;
-            break;
-        case 6:
-            maskedNULLByte = NULLByte & 0b00000010;
-            break;
-        case 7:
-            maskedNULLByte = NULLByte & 0b00000001;
-            break;
-        }
-        valueVector->setNull(offsetInVector++, maskedNULLByte > 0);
+        valueVector->setNull(offsetInVector++, isNullFromNULLByte(NULLByte, startPos++));
+    }
+}
+
+void StorageStructure::setNullBitOfAPosInFrame(uint8_t* frame, uint16_t elementPos, bool isNull) {
+    auto NULLBytePtrAndByteLevelOffset =
+        PageUtils::getNULLBytePtrAndByteLevelOffsetPair(frame, elementPos);
+    uint8_t NULLByte = *NULLBytePtrAndByteLevelOffset.first;
+    if (isNull) {
+        *NULLBytePtrAndByteLevelOffset.first =
+            NULLByte | bitMasksWithSingle1s[NULLBytePtrAndByteLevelOffset.second];
+    } else {
+        *NULLBytePtrAndByteLevelOffset.first =
+            NULLByte & bitMasksWithSingle0s[NULLBytePtrAndByteLevelOffset.second];
     }
 }
 

@@ -68,6 +68,12 @@ void BufferManager::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
                                        bufferPoolDefaultPages->unpin(fileHandle, pageIdx);
 }
 
+void BufferManager::removeFilePagesFromFrames(FileHandle& fileHandle) {
+    return fileHandle.isLargePaged() ?
+               bufferPoolLargePages->removeFilePagesFromFrames(fileHandle) :
+               bufferPoolDefaultPages->removeFilePagesFromFrames(fileHandle);
+}
+
 unique_ptr<nlohmann::json> BufferManager::debugInfo() {
     return make_unique<nlohmann::json>(nlohmann::json{{"BufferManager",
         {

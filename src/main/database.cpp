@@ -1,5 +1,7 @@
 #include "include/database.h"
 
+#include "src/common/include/configs.h"
+
 namespace graphflow {
 namespace main {
 

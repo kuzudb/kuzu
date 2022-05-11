@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstring>
 
+#include "src/storage/include/storage_utils.h"
+
 namespace graphflow {
 namespace loader {
 
@@ -53,32 +55,7 @@ void InMemPage::encodeNULLBytes() {
         uint8_t NULLByte = 0b0000000;
         for (auto j = 0; j < 8; j++) {
             if (uncompressedNULLs[pos]) {
-                switch (pos % 8) {
-                case 0:
-                    NULLByte = NULLByte | 0b10000000;
-                    break;
-                case 1:
-                    NULLByte = NULLByte | 0b01000000;
-                    break;
-                case 2:
-                    NULLByte = NULLByte | 0b00100000;
-                    break;
-                case 3:
-                    NULLByte = NULLByte | 0b00010000;
-                    break;
-                case 4:
-                    NULLByte = NULLByte | 0b00001000;
-                    break;
-                case 5:
-                    NULLByte = NULLByte | 0b00000100;
-                    break;
-                case 6:
-                    NULLByte = NULLByte | 0b00000010;
-                    break;
-                case 7:
-                    NULLByte = NULLByte | 0b00000001;
-                    break;
-                }
+                NULLByte = NULLByte | bitMasksWithSingle1s[pos % 8];
             }
             pos++;
         }

@@ -29,13 +29,15 @@ constexpr const uint32_t VAR_LENGTH_EXTEND_MAX_DEPTH = 30;
 // e.g., a worker thread is in TaskScheduler, needs to block.
 constexpr const uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 100;
 
+constexpr const uint64_t PAGE_VERSION_INFO_PAGE_GROUP_SIZE = 64;
+
 struct StorageConfig {
     // The default amount of memory pre-allocated to the buffer pool (= 2MB).
     static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 21;
     static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
     static constexpr char COLUMN_FILE_SUFFIX[] = ".col";
     static constexpr char LISTS_FILE_SUFFIX[] = ".lists";
-
+    static constexpr char WAL_FILE_SUFFIX[] = ".wal";
     // LIST_CHUNK_SIZE should strictly be a power of 2.
     constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
     constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;

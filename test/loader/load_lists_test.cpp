@@ -14,17 +14,13 @@ public:
 
     static bool CheckEquals(const vector<string>& expected, const Literal& listVal) {
         if (listVal.dataType.typeID != LIST) {
-            cout << "listVal data type is wrong" << endl;
             return false;
         }
         if (expected.size() != listVal.listVal.size()) {
-            cout << "listVal size is wrong" << endl;
             return false;
         }
         for (auto i = 0u; i < expected.size(); i++) {
             if (expected[i] != TypeUtils::toString(listVal.listVal[i])) {
-                cout << "listVal element is not expected. " << expected[i]
-                     << ", actually: " << TypeUtils::toString(listVal.listVal[i]) << endl;
                 return false;
             }
         }
@@ -40,7 +36,7 @@ TEST_F(TinySnbListTest, NodePropertyIntColumnWithList) {
     auto& catalog = *database->getCatalog();
     auto label = catalog.getNodeLabelFromName("person");
     auto& property = catalog.getNodeProperty(label, "workedHours");
-    auto col = graph->getNodesStore().getNodePropertyColumn(label, property.id);
+    auto col = graph->getNodesStore().getNodePropertyColumn(label, property.propertyID);
     ASSERT_TRUE(CheckEquals({"10", "5"}, col->readValue(0)));
     ASSERT_TRUE(CheckEquals({"12", "8"}, col->readValue(1)));
     ASSERT_TRUE(CheckEquals({"4", "5"}, col->readValue(2)));
@@ -56,7 +52,7 @@ TEST_F(TinySnbListTest, NodePropertyStringColumnWithList) {
     auto& catalog = *database->getCatalog();
     auto label = catalog.getNodeLabelFromName("person");
     auto& property = catalog.getNodeProperty(label, "usedNames");
-    auto col = graph->getNodesStore().getNodePropertyColumn(label, property.id);
+    auto col = graph->getNodesStore().getNodePropertyColumn(label, property.propertyID);
     ASSERT_TRUE(CheckEquals({"Aida"}, col->readValue(0)));
     ASSERT_TRUE(CheckEquals({"Bobby"}, col->readValue(1)));
     ASSERT_TRUE(CheckEquals({"Carmen", "Fred"}, col->readValue(2)));
@@ -71,9 +67,10 @@ TEST_F(TinySnbListTest, RelPropertyColumnWithList) {
     auto graph = database->getStorageManager();
     auto& catalog = *database->getCatalog();
     auto relLabel = catalog.getRelLabelFromName("studyAt");
-    auto nodeLabel = catalog.getNodeLabelFromName("person");
+    auto nodeLabelForAdjColumnAndProperties = catalog.getNodeLabelFromName("person");
     auto& property = catalog.getRelProperty(relLabel, "places");
-    auto col = graph->getRelsStore().getRelPropertyColumn(relLabel, nodeLabel, property.id);
+    auto col = graph->getRelsStore().getRelPropertyColumn(
+        relLabel, nodeLabelForAdjColumnAndProperties, property.propertyID);
     ASSERT_TRUE(CheckEquals({"wwAewsdndweusd", "wek"}, col->readValue(0)));
     ASSERT_TRUE(CheckEquals({"anew", "jsdnwusklklklwewsd"}, col->readValue(1)));
     ASSERT_TRUE(CheckEquals({"awndsnjwejwen", "isuhuwennjnuhuhuwewe"}, col->readValue(5)));

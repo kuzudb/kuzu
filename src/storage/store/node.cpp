@@ -4,17 +4,16 @@ namespace graphflow {
 namespace storage {
 
 Node::Node(label_t labelID, BufferManager& bufferManager, bool isInMemory,
-    const vector<catalog::PropertyDefinition>& propertyDefinitions, const string& directory)
+    const vector<catalog::Property>& properties, const string& directory, WAL* wal)
     : labelID{labelID} {
     bool hasUnstructuredProperties = false;
-    for (const auto& propertyDefinition : propertyDefinitions) {
-        if (propertyDefinition.dataType.typeID == UNSTRUCTURED) {
+    for (const auto& property : properties) {
+        if (property.dataType.typeID == UNSTRUCTURED) {
             hasUnstructuredProperties = true;
         } else {
-            propertyColumns.push_back(
-                ColumnFactory::getColumn(StorageUtils::getNodePropertyColumnFName(
-                                             directory, labelID, propertyDefinition.name),
-                    propertyDefinition.dataType, bufferManager, isInMemory));
+            propertyColumns.push_back(ColumnFactory::getColumn(
+                StorageUtils::getNodePropertyColumnFName(directory, labelID, property.name),
+                property, UINT32_MAX /* no relLabel */, bufferManager, isInMemory, wal));
         }
     }
     if (hasUnstructuredProperties) {

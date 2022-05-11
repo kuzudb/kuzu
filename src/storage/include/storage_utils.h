@@ -9,6 +9,11 @@
 namespace graphflow {
 namespace storage {
 
+constexpr uint8_t bitMasksWithSingle1s[8] = {
+    0b10000000, 0b01000000, 0b00100000, 0b00010000, 0b00001000, 0b00000100, 0b00000010, 0b00000001};
+constexpr uint8_t bitMasksWithSingle0s[8] = {
+    0b01111111, 0b10111111, 0b11011111, 0b11101111, 0b11110111, 0b11111011, 0b11111101, 0b11111110};
+
 struct PageByteCursor {
 
     PageByteCursor(uint64_t idx, uint16_t offset) : idx{idx}, offset{offset} {};
@@ -29,8 +34,20 @@ struct PageElementCursor {
 
 struct PageUtils {
 
-    static uint8_t getNULLByteForOffset(const uint8_t* frame, uint16_t offset) {
-        return frame[DEFAULT_PAGE_SIZE - 1 - (offset >> 3)];
+    // The first is the NULLByte, and the second is the byteLevelOffset of the element, whose
+    // elementPos (which is the position/offset within a page) is given.
+    static inline pair<uint8_t, uint8_t> getNULLByteAndByteLevelOffsetPair(
+        uint8_t* frame, uint16_t elementPos) {
+        pair<uint8_t*, uint8_t> NULLBytePtrAndByteLevelOffset =
+            getNULLBytePtrAndByteLevelOffsetPair(frame, elementPos);
+        // Test if this makes a difference: frame + (DEFAULT_PAGE_SIZE - 1 - (elementPos >> 3)),
+        // elementPos % 8
+        return pair(*NULLBytePtrAndByteLevelOffset.first, NULLBytePtrAndByteLevelOffset.second);
+    }
+
+    static inline pair<uint8_t*, uint8_t> getNULLBytePtrAndByteLevelOffsetPair(
+        uint8_t* frame, uint16_t elementPos) {
+        return pair(frame + (DEFAULT_PAGE_SIZE - 1 - (elementPos >> 3)), elementPos % 8);
     }
 
     static uint32_t getNumElementsInAPageWithNULLBytes(uint32_t elementSize) {

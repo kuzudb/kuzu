@@ -2,6 +2,7 @@
 
 #include "src/storage/include/store/nodes_store.h"
 #include "src/storage/include/store/rels_store.h"
+#include "src/storage/include/wal/wal.h"
 
 using namespace std;
 
@@ -38,6 +39,7 @@ private:
     shared_ptr<spdlog::logger> logger;
     string directory;
     bool isInMemoryMode;
+    unique_ptr<storage::WAL> wal;
     unique_ptr<NodesStore> nodesStore;
     unique_ptr<RelsStore> relsStore;
 };

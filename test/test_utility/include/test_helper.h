@@ -24,6 +24,8 @@ struct TestQueryConfig {
 class TestHelper {
 
 public:
+    static constexpr char TEMP_TEST_DIR[] = "test/unittest_temp/";
+
     static vector<TestQueryConfig> parseTestFile(const string& path, bool checkOutputOrder = false);
 
     static bool runTest(const vector<TestQueryConfig>& testConfigs, Connection& conn);
@@ -36,11 +38,11 @@ class BaseGraphLoadingTest : public Test {
 public:
     void SetUp() override {
         systemConfig = make_unique<SystemConfig>();
-        databaseConfig = make_unique<DatabaseConfig>(TEMP_TEST_DIR);
+        databaseConfig = make_unique<DatabaseConfig>(TestHelper::TEMP_TEST_DIR);
         loadGraph();
     }
 
-    void TearDown() override { FileUtils::removeDir(TEMP_TEST_DIR); }
+    void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
 
     virtual string getInputCSVDir() = 0;
 
@@ -49,7 +51,6 @@ public:
     void createConn();
 
 public:
-    const string TEMP_TEST_DIR = "test/unittest_temp/";
     unique_ptr<SystemConfig> systemConfig;
     unique_ptr<DatabaseConfig> databaseConfig;
     unique_ptr<Database> database;

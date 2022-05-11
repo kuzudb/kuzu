@@ -11,14 +11,14 @@ class Transaction {
     friend class TransactionManager;
 
 public:
-    inline TransactionType getType() { return type; }
-    inline bool isReadOnly() { return READ_ONLY == type; }
-    inline bool isWriteTransaction() { return WRITE == type; }
-    inline uint64_t getID() { return ID; }
-
-private:
     Transaction(TransactionType transactionType, uint64_t transactionID)
         : type{transactionType}, ID{transactionID} {}
+
+public:
+    inline TransactionType getType() const { return type; }
+    inline bool isReadOnly() const { return READ_ONLY == type; }
+    inline bool isWriteTransaction() const { return WRITE == type; }
+    inline uint64_t getID() const { return ID; }
 
 private:
     TransactionType type;

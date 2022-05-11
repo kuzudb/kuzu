@@ -19,7 +19,7 @@ InMemRelBuilder::InMemRelBuilder(label_t label, const RelFileDescription& fileDe
 
 void InMemRelBuilder::load() {
     logger->info("Loading rel {} with label {}.", labelName, label);
-    vector<PropertyDefinition> colDefinitions;
+    vector<PropertyNameDataType> colDefinitions;
     numBlocks = parseCSVHeaderAndCalcNumBlocks(inputFilePath, colDefinitions);
     catalog.addRelLabel(
         labelName, relMultiplicity, move(colDefinitions), srcNodeLabelNames, dstNodeLabelNames);
@@ -59,8 +59,8 @@ void InMemRelBuilder::initializeColumnsAndLists() {
     propertyColumnsOverflowPages.resize(properties.size());
     for (auto& property : properties) {
         if (property.dataType.typeID == LIST || property.dataType.typeID == STRING) {
-            propertyListsOverflowPages[property.id] = make_unique<InMemOverflowPages>();
-            propertyColumnsOverflowPages[property.id] = make_unique<InMemOverflowPages>();
+            propertyListsOverflowPages[property.propertyID] = make_unique<InMemOverflowPages>();
+            propertyColumnsOverflowPages[property.propertyID] = make_unique<InMemOverflowPages>();
         }
     }
 }
@@ -178,9 +178,8 @@ static void putValueIntoColumns(uint64_t propertyIdx,
 
 void InMemRelBuilder::putPropsOfLineIntoColumns(
     vector<label_property_columns_map_t>& directionLabelPropertyColumns,
-    const vector<PropertyDefinition>& properties,
-    vector<unique_ptr<InMemOverflowPages>>& overflowPages, vector<PageByteCursor>& overflowCursors,
-    CSVReader& reader, const vector<nodeID_t>& nodeIDs) {
+    const vector<Property>& properties, vector<unique_ptr<InMemOverflowPages>>& overflowPages,
+    vector<PageByteCursor>& overflowCursors, CSVReader& reader, const vector<nodeID_t>& nodeIDs) {
     for (auto propertyIdx = 0u; propertyIdx < properties.size(); propertyIdx++) {
         reader.hasNextToken();
         switch (properties[propertyIdx].dataType.typeID) {
@@ -292,8 +291,7 @@ static void putValueIntoLists(uint64_t propertyIdx,
 
 void InMemRelBuilder::putPropsOfLineIntoLists(
     vector<label_property_lists_map_t>& directionLabelPropertyLists,
-    vector<label_adj_lists_map_t>& directionLabelAdjLists,
-    const vector<PropertyDefinition>& properties,
+    vector<label_adj_lists_map_t>& directionLabelAdjLists, const vector<Property>& properties,
     vector<unique_ptr<InMemOverflowPages>>& overflowPages, vector<PageByteCursor>& overflowCursors,
     CSVReader& reader, const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& reversePos) {
     auto propertyIdx = 0;
@@ -425,7 +423,7 @@ void InMemRelBuilder::initAdjAndPropertyListsMetadata() {
                 taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                     calculateListsMetadataTask, numNodes, Types::getDataTypeSize(property.dataType),
                     listSizes, adjList->getListHeaders(),
-                    directionLabelPropertyLists[relDirection][nodeLabel][property.id]
+                    directionLabelPropertyLists[relDirection][nodeLabel][property.propertyID]
                         ->getListsMetadata(),
                     true /*hasNULLBytes*/, logger, progressBar));
             }
@@ -441,7 +439,9 @@ void InMemRelBuilder::populateAdjAndPropertyLists() {
         for (auto& [nodeLabel, adjList] : directionLabelAdjLists[relDirection]) {
             adjList->init();
             for (auto& property : catalog.getRelProperties(label)) {
-                directionLabelPropertyLists[relDirection].at(nodeLabel)[property.id]->init();
+                directionLabelPropertyLists[relDirection]
+                    .at(nodeLabel)[property.propertyID]
+                    ->init();
             }
         }
     }
@@ -589,7 +589,7 @@ void InMemRelBuilder::sortOverflowValues() {
             numBuckets += (numNodes % 256 != 0);
             for (auto& property : properties) {
                 if (property.dataType.typeID == STRING || property.dataType.typeID == LIST) {
-                    assert(propertyListsOverflowPages[property.id]);
+                    assert(propertyListsOverflowPages[property.propertyID]);
                     progressBar->addAndStartNewJob(
                         "Sorting overflow buckets for property: " + labelName + "." + property.name,
                         numBuckets);
@@ -598,12 +598,12 @@ void InMemRelBuilder::sortOverflowValues() {
                         offsetStart = offsetEnd;
                         offsetEnd = min(offsetStart + 256, numNodes);
                         auto propertyList = directionLabelPropertyLists[relDirection]
-                                                .at(nodeLabel)[property.id]
+                                                .at(nodeLabel)[property.propertyID]
                                                 .get();
                         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                             sortOverflowValuesOfPropertyListsTask, property.dataType, offsetStart,
                             offsetEnd, adjList.get(), propertyList,
-                            propertyListsOverflowPages[property.id].get(),
+                            propertyListsOverflowPages[property.propertyID].get(),
                             propertyList->getOverflowPages(), progressBar));
                     }
                     taskScheduler.waitAllTasksToCompleteOrError();
@@ -620,7 +620,7 @@ void InMemRelBuilder::sortOverflowValues() {
             numBuckets += (numNodes % 256 != 0);
             for (auto& property : properties) {
                 if (property.dataType.typeID == STRING || property.dataType.typeID == LIST) {
-                    assert(propertyColumnsOverflowPages[property.id]);
+                    assert(propertyColumnsOverflowPages[property.propertyID]);
                     progressBar->addAndStartNewJob(
                         "Sorting overflow buckets for property: " + labelName + "." + property.name,
                         numBuckets);
@@ -629,12 +629,12 @@ void InMemRelBuilder::sortOverflowValues() {
                         offsetStart = offsetEnd;
                         offsetEnd = min(offsetStart + 256, numNodes);
                         auto propertyColumn = directionLabelPropertyColumns[relDirection]
-                                                  .at(nodeLabel)[property.id]
+                                                  .at(nodeLabel)[property.propertyID]
                                                   .get();
                         taskScheduler.scheduleTask(LoaderTaskFactory::createLoaderTask(
                             sortOverflowValuesOfPropertyColumnTask, property.dataType, offsetStart,
                             offsetEnd, propertyColumn,
-                            propertyColumnsOverflowPages[property.id].get(),
+                            propertyColumnsOverflowPages[property.propertyID].get(),
                             propertyColumn->getOverflowPages(), progressBar));
                     }
                     taskScheduler.waitAllTasksToCompleteOrError();

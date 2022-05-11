@@ -16,7 +16,8 @@ class OverflowPages {
 
 public:
     explicit OverflowPages(const string& fName, BufferManager& bufferManager, bool isInMemory)
-        : fileHandle{getOverflowPagesFName(fName), FileHandle::O_DefaultPagedExistingDBFile},
+        : fileHandle{getOverflowPagesFName(fName),
+              FileHandle::O_DefaultPagedExistingDBFileDoNotCreate},
           bufferManager{bufferManager}, isInMemory{isInMemory} {
         if (isInMemory) {
             StorageStructureUtils::pinEachPageOfFile(fileHandle, bufferManager);

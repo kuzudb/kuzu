@@ -137,7 +137,7 @@ HashIndex::HashIndex(const string& fName, DataType keyDataType, MemoryManager* m
 HashIndex::HashIndex(const string& fName, BufferManager* bufferManager, bool isInMemory)
     : fName{fName}, indexMode{READ_ONLY}, bufferManager{bufferManager} {
     assert(bufferManager != nullptr);
-    fileHandle = make_unique<FileHandle>(fName, FileHandle::O_LargePageExistingDBFile);
+    fileHandle = make_unique<FileHandle>(fName, FileHandle::O_LargePageExistingDBFileDoNotCreate);
     auto buffer = bufferManager->pin(*fileHandle, 0);
     indexHeader = *((HashIndexHeader*)buffer);
     bufferManager->unpin(*fileHandle, 0);

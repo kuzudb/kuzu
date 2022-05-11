@@ -21,7 +21,7 @@ TEST_F(TinySnbIntervalTest, NodePropertyColumnWithInterval) {
     auto& catalog = *database->getCatalog();
     auto label = catalog.getNodeLabelFromName("person");
     auto propertyIdx = catalog.getNodeProperty(label, "lastJobDuration");
-    auto col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.id);
+    auto col = graph->getNodesStore().getNodePropertyColumn(label, propertyIdx.propertyID);
     EXPECT_EQ(Interval::FromCString(
                   "3 years 2 days 13 hours 2 minutes", strlen("3 years 2 days 13 hours 2 minutes")),
         col->readValue(0).val.intervalVal);
