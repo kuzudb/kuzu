@@ -7,20 +7,15 @@ using namespace graphflow::function::operation;
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> HashJoinProbe::initResultSet() {
-    resultSet = children[0]->initResultSet();
+shared_ptr<ResultSet> HashJoinProbe::init(ExecutionContext* context) {
+    resultSet = PhysicalOperator::init(context);
     probeState = make_unique<ProbeState>(DEFAULT_VECTOR_CAPACITY);
-    initializeResultSet();
-    return resultSet;
-}
-
-void HashJoinProbe::initializeResultSet() {
     probeSideKeyVector = resultSet->dataChunks[probeDataInfo.getKeyIDDataChunkPos()]
                              ->valueVectors[probeDataInfo.getKeyIDVectorPos()];
     auto factorizedTable = sharedState->getHashTable()->getFactorizedTable();
     for (auto i = 0u; i < probeDataInfo.nonKeyOutputDataPos.size(); ++i) {
         auto probeSideVector = make_shared<ValueVector>(
-            context.memoryManager, sharedState->getNonKeyDataPosesDataTypes()[i]);
+            context->memoryManager, sharedState->getNonKeyDataPosesDataTypes()[i]);
         auto [dataChunkPos, valueVectorPos] = probeDataInfo.nonKeyOutputDataPos[i];
         resultSet->dataChunks[dataChunkPos]->insert(valueVectorPos, probeSideVector);
         vectorsToRead.push_back(probeSideVector);
@@ -34,6 +29,7 @@ void HashJoinProbe::initializeResultSet() {
     // Otherwise we can read multiple tuples at a time.
     probeState->maxMorselSize =
         factorizedTable->hasUnflatCol(columnsToRead) ? 1 : DEFAULT_VECTOR_CAPACITY;
+    return resultSet;
 }
 
 void HashJoinProbe::getNextBatchOfMatchedTuples() {

@@ -10,26 +10,18 @@ void ColumnExtendDFSLevelInfo::reset() {
     this->hasBeenOutput = false;
 }
 
-VarLengthColumnExtend::VarLengthColumnExtend(const DataPos& boundNodeDataPos,
-    const DataPos& nbrNodeDataPos, StorageStructure* storage, uint8_t lowerBound,
-    uint8_t upperBound, unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-    : VarLengthExtend(boundNodeDataPos, nbrNodeDataPos, storage, lowerBound, upperBound,
-          move(child), context, id) {
+shared_ptr<ResultSet> VarLengthColumnExtend::init(ExecutionContext* context) {
+    VarLengthExtend::init(context);
     for (uint8_t i = 0; i < upperBound; i++) {
-        dfsLevelInfos[i] = make_shared<ColumnExtendDFSLevelInfo>(i + 1, context);
-    }
-}
-
-shared_ptr<ResultSet> VarLengthColumnExtend::initResultSet() {
-    VarLengthExtend::initResultSet();
-    // Since we use boundNodeValueVector as the input valueVector and dfsLevelInfo->children as the
-    // output valueVector to the Column::readValues(), and this function requires that the input and
-    // output valueVector are in the same dataChunk. As a result, we need to put the
-    // dfsLevelInfo->children to the boundNodeValueVector's dataChunk.
-    // We can't add the dfsLevelInfo->children to the boundNodeValueVector's dataChunk in the
-    // constructor, because the boundNodeValueVector hasn't been initialized in the constructor.
-    for (auto& dfsLevelInfo : dfsLevelInfos) {
+        auto dfsLevelInfo = make_shared<ColumnExtendDFSLevelInfo>(i + 1, *context);
+        // Since we use boundNodeValueVector as the input valueVector and dfsLevelInfo->children as
+        // the output valueVector to the Column::readValues(), and this function requires that the
+        // input and output valueVector are in the same dataChunk. As a result, we need to put the
+        // dfsLevelInfo->children to the boundNodeValueVector's dataChunk.
+        // We can't add the dfsLevelInfo->children to the boundNodeValueVector's dataChunk in the
+        // constructor, because the boundNodeValueVector hasn't been initialized in the constructor.
         dfsLevelInfo->children->state = boundNodeValueVector->state;
+        dfsLevelInfos[i] = move(dfsLevelInfo);
     }
     return resultSet;
 }

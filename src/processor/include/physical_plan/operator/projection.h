@@ -15,17 +15,17 @@ class Projection : public PhysicalOperator {
 public:
     Projection(vector<unique_ptr<BaseExpressionEvaluator>> expressionEvaluators,
         vector<DataPos> expressionsOutputPos, unordered_set<uint32_t> discardedDataChunksPos,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator(move(child), context, id),
+        unique_ptr<PhysicalOperator> child, uint32_t id)
+        : PhysicalOperator(move(child), id),
           expressionEvaluators(move(expressionEvaluators)), expressionsOutputPos{move(
                                                                 expressionsOutputPos)},
           discardedDataChunksPos{move(discardedDataChunksPos)}, prevMultiplicity{1} {}
 
     PhysicalOperatorType getOperatorType() override { return PROJECTION; }
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    void reInitToRerunSubPlan() override;
+    inline void reInitToRerunSubPlan() override { children[0]->reInitToRerunSubPlan(); }
 
     bool getNextTuples() override;
 

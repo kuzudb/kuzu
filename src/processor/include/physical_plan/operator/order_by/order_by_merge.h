@@ -18,28 +18,28 @@ public:
     // This constructor will only be called by the mapper when constructing the orderByMerge
     // operator, because the mapper doesn't know the existence of keyBlockMergeTaskDispatcher
     OrderByMerge(shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-        : Sink{move(child), context, id}, SourceOperator{nullptr},
-          sharedFactorizedTablesAndSortedKeyBlocks{sharedState},
+        unique_ptr<PhysicalOperator> child, uint32_t id)
+        : Sink{move(child), id}, SourceOperator{nullptr},
+          sharedFactorizedTablesAndSortedKeyBlocks{move(sharedState)},
           keyBlockMergeTaskDispatcher{make_shared<KeyBlockMergeTaskDispatcher>()} {}
 
     // This constructor is used for cloning only.
     OrderByMerge(shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
         shared_ptr<KeyBlockMergeTaskDispatcher> keyBlockMergeTaskDispatcher,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-        : Sink{move(child), context, id}, SourceOperator{nullptr},
-          sharedFactorizedTablesAndSortedKeyBlocks{sharedState}, keyBlockMergeTaskDispatcher{
-                                                                     keyBlockMergeTaskDispatcher} {}
+        unique_ptr<PhysicalOperator> child, uint32_t id)
+        : Sink{move(child), id}, SourceOperator{nullptr},
+          sharedFactorizedTablesAndSortedKeyBlocks{move(sharedState)},
+          keyBlockMergeTaskDispatcher{move(keyBlockMergeTaskDispatcher)} {}
 
     PhysicalOperatorType getOperatorType() override { return ORDER_BY_MERGE; }
 
-    shared_ptr<ResultSet> initResultSet() override;
-    void execute() override;
-    void finalize() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+
+    void execute(ExecutionContext* context) override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<OrderByMerge>(sharedFactorizedTablesAndSortedKeyBlocks,
-            keyBlockMergeTaskDispatcher, children[0]->clone(), context, id);
+            keyBlockMergeTaskDispatcher, children[0]->clone(), id);
     }
 
 private:

@@ -43,6 +43,7 @@ cc_library(
     ],
     deps = [
         "//src/common:profiler",
+        "//src/transaction",
     ],
 )
 

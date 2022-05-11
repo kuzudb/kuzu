@@ -15,27 +15,27 @@ public:
     OrderByScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         const vector<DataPos>& outDataPoses,
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(child), context, id}, SourceOperator{move(resultSetDescriptor)},
-          outDataPoses{outDataPoses}, sharedState{sharedState}, nextTupleIdxToReadInMemBlock{0} {}
+        unique_ptr<PhysicalOperator> child, uint32_t id)
+        : PhysicalOperator{move(child), id}, SourceOperator{move(resultSetDescriptor)},
+          outDataPoses{outDataPoses}, sharedState{move(sharedState)}, nextTupleIdxToReadInMemBlock{
+                                                                          0} {}
 
     // This constructor is used for cloning only.
     OrderByScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         const vector<DataPos>& outDataPoses,
-        shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState, ExecutionContext& context,
-        uint32_t id)
-        : PhysicalOperator{context, id}, SourceOperator{move(resultSetDescriptor)},
-          outDataPoses{outDataPoses}, sharedState{sharedState}, nextTupleIdxToReadInMemBlock{0} {}
+        shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState, uint32_t id)
+        : PhysicalOperator{id}, SourceOperator{move(resultSetDescriptor)},
+          outDataPoses{outDataPoses}, sharedState{move(sharedState)}, nextTupleIdxToReadInMemBlock{
+                                                                          0} {}
 
     PhysicalOperatorType getOperatorType() override { return ORDER_BY_SCAN; }
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<OrderByScan>(
-            resultSetDescriptor->copy(), outDataPoses, sharedState, context, id);
+        return make_unique<OrderByScan>(resultSetDescriptor->copy(), outDataPoses, sharedState, id);
     }
 
 private:

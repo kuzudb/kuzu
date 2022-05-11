@@ -37,13 +37,17 @@ public:
         vector<DataPos> inputGroupByHashKeyVectorsPos,
         vector<DataPos> inputGroupByNonHashKeyVectorsPos, vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id);
+        unique_ptr<PhysicalOperator> child, uint32_t id)
+        : BaseAggregate{move(aggregateVectorsPos), move(aggregateFunctions), move(child), id},
+          groupByHashKeyVectorsPos{move(inputGroupByHashKeyVectorsPos)},
+          groupByNonHashKeyVectorsPos{move(inputGroupByNonHashKeyVectorsPos)}, sharedState{move(
+                                                                                   sharedState)} {}
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    void execute() override;
+    void execute(ExecutionContext* context) override;
 
-    void finalize() override;
+    void finalize(ExecutionContext* context) override;
 
     unique_ptr<PhysicalOperator> clone() override;
 

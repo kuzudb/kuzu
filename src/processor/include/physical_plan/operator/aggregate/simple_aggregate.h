@@ -32,11 +32,15 @@ public:
     SimpleAggregate(shared_ptr<SimpleAggregateSharedState> sharedState,
         vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id);
+        unique_ptr<PhysicalOperator> child, uint32_t id);
 
-    void execute() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    void finalize() override;
+    void execute(ExecutionContext* context) override;
+
+    inline void finalize(ExecutionContext* context) override {
+        sharedState->finalizeAggregateStates();
+    }
 
     unique_ptr<PhysicalOperator> clone() override;
 

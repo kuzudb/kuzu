@@ -18,14 +18,8 @@ void HashJoinSharedState::mergeLocalFactorizedTable(FactorizedTable& factorizedT
     hashTable->getFactorizedTable()->merge(factorizedTable);
 }
 
-HashJoinBuild::HashJoinBuild(shared_ptr<HashJoinSharedState> sharedState,
-    const BuildDataInfo& buildDataInfo, unique_ptr<PhysicalOperator> child,
-    ExecutionContext& context, uint32_t id)
-    : Sink{move(child), context, id}, sharedState{move(sharedState)}, buildDataInfo{buildDataInfo} {
-}
-
-shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
-    resultSet = children[0]->initResultSet();
+shared_ptr<ResultSet> HashJoinBuild::init(ExecutionContext* context) {
+    resultSet = PhysicalOperator::init(context);
     TableSchema tableSchema;
     keyDataChunk = resultSet->dataChunks[buildDataInfo.getKeyIDDataChunkPos()];
     auto keyVector = keyDataChunk->valueVectors[buildDataInfo.getKeyIDVectorPos()];
@@ -47,12 +41,12 @@ shared_ptr<ResultSet> HashJoinBuild::initResultSet() {
     tableSchema.appendColumn(
         {false /* isUnflat */, UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */,
             Types::getDataTypeSize(INT64)});
-    factorizedTable = make_unique<FactorizedTable>(context.memoryManager, tableSchema);
-    sharedState->initEmptyHashTableIfNecessary(*context.memoryManager, tableSchema);
+    factorizedTable = make_unique<FactorizedTable>(context->memoryManager, tableSchema);
+    sharedState->initEmptyHashTableIfNecessary(*context->memoryManager, tableSchema);
     return resultSet;
 }
 
-void HashJoinBuild::finalize() {
+void HashJoinBuild::finalize(ExecutionContext* context) {
     auto hashTable = sharedState->getHashTable();
     auto factorizedTable = hashTable->getFactorizedTable();
     hashTable->allocateHashSlots(factorizedTable->getNumTuples());
@@ -102,9 +96,9 @@ void HashJoinBuild::appendVectorsOnce() {
     }
 }
 
-void HashJoinBuild::execute() {
+void HashJoinBuild::execute(ExecutionContext* context) {
+    init(context);
     metrics->executionTime.start();
-    Sink::execute();
     // Append thread-local tuples
     while (children[0]->getNextTuples()) {
         appendVectors();

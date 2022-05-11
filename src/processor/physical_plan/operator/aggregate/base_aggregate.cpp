@@ -20,8 +20,8 @@ bool BaseAggregate::containDistinctAggregate() const {
     return false;
 }
 
-shared_ptr<ResultSet> BaseAggregate::initResultSet() {
-    resultSet = children[0]->initResultSet();
+shared_ptr<ResultSet> BaseAggregate::init(ExecutionContext* context) {
+    resultSet = PhysicalOperator::init(context);
     for (auto& dataPos : aggregateVectorsPos) {
         if (dataPos.dataChunkPos == UINT32_MAX) {
             // COUNT(*) aggregate does not take any input vector.

@@ -10,17 +10,15 @@ namespace processor {
 class BaseScanColumn : public PhysicalOperator {
 
 public:
-    BaseScanColumn(const DataPos& inputNodeIDVectorPos, unique_ptr<PhysicalOperator> child,
-        ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(child), context, id}, inputNodeIDVectorPos{inputNodeIDVectorPos} {}
+    BaseScanColumn(
+        const DataPos& inputNodeIDVectorPos, unique_ptr<PhysicalOperator> child, uint32_t id)
+        : PhysicalOperator{move(child), id}, inputNodeIDVectorPos{inputNodeIDVectorPos} {}
 
     PhysicalOperatorType getOperatorType() override = 0;
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    void reInitToRerunSubPlan() override;
-
-    void printMetricsToJson(nlohmann::json& json, Profiler& profiler) override;
+    inline void reInitToRerunSubPlan() override { children[0]->reInitToRerunSubPlan(); }
 
 protected:
     DataPos inputNodeIDVectorPos;
@@ -33,9 +31,8 @@ class ScanSingleColumn : public BaseScanColumn {
 
 protected:
     ScanSingleColumn(const DataPos& inputNodeIDVectorPos, const DataPos& outputVectorPos,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-        : BaseScanColumn{inputNodeIDVectorPos, move(child), context, id}, outputVectorPos{
-                                                                              outputVectorPos} {}
+        unique_ptr<PhysicalOperator> child, uint32_t id)
+        : BaseScanColumn{inputNodeIDVectorPos, move(child), id}, outputVectorPos{outputVectorPos} {}
 
 protected:
     DataPos outputVectorPos;
@@ -47,9 +44,9 @@ class ScanMultipleColumns : public BaseScanColumn {
 
 protected:
     ScanMultipleColumns(const DataPos& inputNodeIDVectorPos, vector<DataPos> outputVectorsPos,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-        : BaseScanColumn{inputNodeIDVectorPos, move(child), context, id}, outputVectorsPos{move(
-                                                                              outputVectorsPos)} {}
+        unique_ptr<PhysicalOperator> child, uint32_t id)
+        : BaseScanColumn{inputNodeIDVectorPos, move(child), id}, outputVectorsPos{
+                                                                     move(outputVectorsPos)} {}
 
 protected:
     vector<DataPos> outputVectorsPos;

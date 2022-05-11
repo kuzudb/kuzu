@@ -3,9 +3,9 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> AdjColumnExtend::initResultSet() {
-    BaseScanColumn::initResultSet();
-    outputVector = make_shared<ValueVector>(context.memoryManager, NODE);
+shared_ptr<ResultSet> AdjColumnExtend::init(ExecutionContext* context) {
+    resultSet = BaseScanColumn::init(context);
+    outputVector = make_shared<ValueVector>(context->memoryManager, NODE);
     inputNodeIDDataChunk->insert(outputVectorPos.valueVectorPos, outputVector);
     return resultSet;
 }

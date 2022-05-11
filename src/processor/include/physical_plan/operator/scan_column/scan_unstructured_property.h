@@ -16,22 +16,22 @@ public:
     ScanUnstructuredProperty(const DataPos& inputNodeIDVectorPos,
         vector<DataPos> outputPropertyVectorsPos, vector<uint32_t> propertyKeys,
         UnstructuredPropertyLists* unstructuredPropertyLists, unique_ptr<PhysicalOperator> child,
-        ExecutionContext& context, uint32_t id)
+        uint32_t id)
         : ScanMultipleColumns{inputNodeIDVectorPos, move(outputPropertyVectorsPos), move(child),
-              context, id},
+              id},
           propertyKeys{move(propertyKeys)}, unstructuredPropertyLists{unstructuredPropertyLists} {}
 
-    ~ScanUnstructuredProperty(){};
+    ~ScanUnstructuredProperty() = default;
 
     PhysicalOperatorType getOperatorType() override { return SCAN_UNSTRUCTURED_PROPERTY; }
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanUnstructuredProperty>(inputNodeIDVectorPos, outputVectorsPos,
-            propertyKeys, unstructuredPropertyLists, children[0]->clone(), context, id);
+            propertyKeys, unstructuredPropertyLists, children[0]->clone(), id);
     }
 
 private:

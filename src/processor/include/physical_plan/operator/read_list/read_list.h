@@ -10,19 +10,17 @@ class ReadList : public PhysicalOperator {
 
 public:
     ReadList(const DataPos& inDataPos, const DataPos& outDataPos, Lists* lists,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id, bool isAdjList)
-        : PhysicalOperator{move(child), context, id}, inDataPos{inDataPos}, outDataPos{outDataPos},
+        unique_ptr<PhysicalOperator> child, uint32_t id, bool isAdjList)
+        : PhysicalOperator{move(child), id}, inDataPos{inDataPos}, outDataPos{outDataPos},
           lists{lists}, largeListHandle{make_unique<LargeListHandle>(isAdjList)} {}
 
     ~ReadList() override{};
 
     PhysicalOperatorType getOperatorType() override = 0;
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     void reInitToRerunSubPlan() override;
-
-    void printMetricsToJson(nlohmann::json& json, Profiler& profiler) override;
 
 protected:
     void readValuesFromList();

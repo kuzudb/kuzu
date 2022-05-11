@@ -28,20 +28,19 @@ class ScanNodeID : public PhysicalOperator, public SourceOperator {
 
 public:
     ScanNodeID(unique_ptr<ResultSetDescriptor> resultSetDescriptor, label_t nodeLabel,
-        const DataPos& outDataPos, shared_ptr<ScanNodeIDSharedState> sharedState,
-        ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{context, id}, SourceOperator{move(resultSetDescriptor)},
-          nodeLabel{nodeLabel}, outDataPos{outDataPos}, sharedState{move(sharedState)} {}
+        const DataPos& outDataPos, shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id)
+        : PhysicalOperator{id}, SourceOperator{move(resultSetDescriptor)}, nodeLabel{nodeLabel},
+          outDataPos{outDataPos}, sharedState{move(sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return SCAN_NODE_ID; }
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanNodeID>(
-            resultSetDescriptor->copy(), nodeLabel, outDataPos, sharedState, context, id);
+            resultSetDescriptor->copy(), nodeLabel, outDataPos, sharedState, id);
     }
 
 private:

@@ -23,7 +23,8 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
         make_unique<BufferManager>(512 * DEFAULT_PAGE_SIZE /* maxSizeForDefaultPagePool */,
             1ull << 25 /* maxSizeForLargePagePool */);
     auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
-    auto executionContext = ExecutionContext(*profiler, memoryManager.get(), bufferManager.get());
+    auto executionContext = make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
+        nullptr /* transaction */, memoryManager.get(), bufferManager.get());
     auto schema = Schema();
     auto group1Pos = schema.createGroup();
     schema.insertToGroupAndScope(
@@ -32,10 +33,10 @@ TEST(ProcessorTests, MultiThreadedScanTest) {
     auto vectorsToCollectInfo = vector<pair<DataPos, bool>>{make_pair(aIDPos, false)};
     auto plan = make_unique<PhysicalPlan>(
         make_unique<ResultCollector>(vectorsToCollectInfo, make_shared<SharedQueryResults>(),
-            make_unique<ScanNodeID>(make_unique<ResultSetDescriptor>(schema), 0, aIDPos,
-                sharedState, executionContext, 0),
-            executionContext, 1));
+            make_unique<ScanNodeID>(
+                make_unique<ResultSetDescriptor>(schema), 0, aIDPos, sharedState, 0),
+            1));
     auto processor = make_unique<QueryProcessor>(10);
-    auto result = processor->execute(plan.get(), 1);
+    auto result = processor->execute(plan.get(), executionContext.get());
     ASSERT_EQ(result->getTotalNumFlatTuples(), 1025013);
 }

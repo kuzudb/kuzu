@@ -8,18 +8,15 @@ namespace processor {
 class Sink : public PhysicalOperator {
 
 public:
-    Sink(unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(child), context, id} {}
+    Sink(unique_ptr<PhysicalOperator> child, uint32_t id) : PhysicalOperator{move(child), id} {}
 
     PhysicalOperatorType getOperatorType() override = 0;
 
-    shared_ptr<ResultSet> initResultSet() override = 0;
-
-    virtual void execute() { initResultSet(); };
+    virtual void execute(ExecutionContext* context) = 0;
 
     bool getNextTuples() final { assert(false); }
 
-    virtual void finalize(){};
+    virtual void finalize(ExecutionContext* context){};
 
     unique_ptr<PhysicalOperator> clone() override = 0;
 };

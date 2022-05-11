@@ -34,19 +34,21 @@ class ResultCollector : public Sink {
 public:
     ResultCollector(vector<pair<DataPos, bool>> vectorsToCollectInfo,
         shared_ptr<SharedQueryResults> sharedQueryResults, unique_ptr<PhysicalOperator> child,
-        ExecutionContext& context, uint32_t id);
+        uint32_t id)
+        : Sink{move(child), id}, vectorsToCollectInfo{move(vectorsToCollectInfo)},
+          sharedQueryResults{move(sharedQueryResults)} {}
 
     PhysicalOperatorType getOperatorType() override { return RESULT_COLLECTOR; }
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    void execute() override;
+    void execute(ExecutionContext* context) override;
 
-    void finalize() override;
+    void finalize(ExecutionContext* context) override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ResultCollector>(
-            vectorsToCollectInfo, sharedQueryResults, children[0]->clone(), context, id);
+            vectorsToCollectInfo, sharedQueryResults, children[0]->clone(), id);
     }
 
     inline shared_ptr<FactorizedTable> getResultFactorizedTable() {

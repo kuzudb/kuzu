@@ -3,9 +3,9 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> AdjListExtend::initResultSet() {
-    ReadList::initResultSet();
-    outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
+shared_ptr<ResultSet> AdjListExtend::init(ExecutionContext* context) {
+    resultSet = ReadList::init(context);
+    outValueVector = make_shared<ValueVector>(context->memoryManager, NODE);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
     auto listSyncState = make_shared<ListSyncState>();
     resultSet->insert(outDataPos.dataChunkPos, listSyncState);

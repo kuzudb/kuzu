@@ -11,14 +11,13 @@ class AdjColumnExtend : public ScanSingleColumn, public FilteringOperator {
 
 public:
     AdjColumnExtend(const DataPos& inputNodeIDVectorPos, const DataPos& outputNodeIDVectorPos,
-        Column* nodeIDColumn, unique_ptr<PhysicalOperator> child, ExecutionContext& context,
-        uint32_t id)
-        : ScanSingleColumn{inputNodeIDVectorPos, outputNodeIDVectorPos, move(child), context, id},
+        Column* nodeIDColumn, unique_ptr<PhysicalOperator> child, uint32_t id)
+        : ScanSingleColumn{inputNodeIDVectorPos, outputNodeIDVectorPos, move(child), id},
           FilteringOperator(), nodeIDColumn{nodeIDColumn} {}
 
     PhysicalOperatorType getOperatorType() override { return COLUMN_EXTEND; }
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     void reInitToRerunSubPlan() override;
 
@@ -26,7 +25,7 @@ public:
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<AdjColumnExtend>(
-            inputNodeIDVectorPos, outputVectorPos, nodeIDColumn, children[0]->clone(), context, id);
+            inputNodeIDVectorPos, outputVectorPos, nodeIDColumn, children[0]->clone(), id);
     }
 
     static bool discardNullNodesInVector(ValueVector& valueVector);

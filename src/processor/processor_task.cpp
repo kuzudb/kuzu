@@ -3,9 +3,6 @@
 namespace graphflow {
 namespace processor {
 
-ProcessorTask::ProcessorTask(Sink* sinkOp, uint64_t maxNumThreads)
-    : Task{maxNumThreads}, sinkOp{sinkOp} {}
-
 void ProcessorTask::run() {
     // We need the lock when cloning because multiple threads can be accessing to clone,
     // which is not thread safe
@@ -13,11 +10,11 @@ void ProcessorTask::run() {
     unique_ptr<PhysicalOperator> lastOp = sinkOp->clone();
     lck.unlock();
     auto& sink = (Sink&)*lastOp;
-    sink.execute();
+    sink.execute(executionContext);
 }
 
 void ProcessorTask::finalizeIfNecessary() {
-    sinkOp->finalize();
+    sinkOp->finalize(executionContext);
 }
 
 } // namespace processor

@@ -64,15 +64,14 @@ class PhysicalOperator {
 
 public:
     // Leaf operator
-    PhysicalOperator(ExecutionContext& context, uint32_t id);
+    PhysicalOperator(uint32_t id) : id{id} {}
     // Unary operator
-    PhysicalOperator(unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id);
+    PhysicalOperator(unique_ptr<PhysicalOperator> child, uint32_t id);
     // Binary operator
-    PhysicalOperator(unique_ptr<PhysicalOperator> left, unique_ptr<PhysicalOperator> right,
-        ExecutionContext& context, uint32_t id);
-    // This constructor is used by UnionAllScan only since it may have multiple children.
     PhysicalOperator(
-        vector<unique_ptr<PhysicalOperator>> children, ExecutionContext& context, uint32_t id);
+        unique_ptr<PhysicalOperator> left, unique_ptr<PhysicalOperator> right, uint32_t id);
+    // This constructor is used by UnionAllScan only since it may have multiple children.
+    PhysicalOperator(vector<unique_ptr<PhysicalOperator>> children, uint32_t id);
 
     virtual ~PhysicalOperator() = default;
 
@@ -88,7 +87,7 @@ public:
 
     virtual PhysicalOperatorType getOperatorType() = 0;
 
-    virtual shared_ptr<ResultSet> initResultSet() = 0;
+    virtual shared_ptr<ResultSet> init(ExecutionContext* context);
 
     // Only operators that can appear in a subPlan need to overwrite this function. Currently, we
     // allow the following operators in subPlan: resultSetScan, extend, scanProperty, flatten,
@@ -97,8 +96,6 @@ public:
 
     // Return false if no more tuples to pull, otherwise return true
     virtual bool getNextTuples() = 0;
-
-    shared_ptr<ResultSet> getResultSet() { return resultSet; };
 
     virtual unique_ptr<PhysicalOperator> clone() = 0;
 
@@ -116,12 +113,11 @@ protected:
     inline string getTimeMetricKey() const { return "time-" + to_string(id); }
     inline string getNumTupleMetricKey() const { return "numTuple-" + to_string(id); }
 
-    void registerProfilingMetrics();
+    void registerProfilingMetrics(Profiler* profiler);
 
     void printTimeAndNumOutputMetrics(nlohmann::json& json, Profiler& profiler);
 
 protected:
-    ExecutionContext& context;
     uint32_t id;
     unique_ptr<OperatorMetrics> metrics;
 

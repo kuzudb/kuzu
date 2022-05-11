@@ -5,24 +5,25 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> OrderByMerge::initResultSet() {
+shared_ptr<ResultSet> OrderByMerge::init(ExecutionContext* context) {
+    resultSet = PhysicalOperator::init(context);
     // OrderByMerge is the only sink operator in a pipeline and only modifies the
     // sharedState by merging sortedKeyBlocks, So we don't need to initialize the resultSet.
     keyBlockMerger =
         make_unique<KeyBlockMerger>(sharedFactorizedTablesAndSortedKeyBlocks->factorizedTables,
             sharedFactorizedTablesAndSortedKeyBlocks->stringAndUnstructuredKeyColInfo,
             sharedFactorizedTablesAndSortedKeyBlocks->numBytesPerTuple);
-    return resultSet;
-}
-
-void OrderByMerge::execute() {
-    keyBlockMergeTaskDispatcher->initIfNecessary(context.memoryManager,
+    keyBlockMergeTaskDispatcher->initIfNecessary(context->memoryManager,
         sharedFactorizedTablesAndSortedKeyBlocks->sortedKeyBlocks,
         sharedFactorizedTablesAndSortedKeyBlocks->factorizedTables,
         sharedFactorizedTablesAndSortedKeyBlocks->stringAndUnstructuredKeyColInfo,
         sharedFactorizedTablesAndSortedKeyBlocks->numBytesPerTuple);
+    return resultSet;
+}
+
+void OrderByMerge::execute(ExecutionContext* context) {
+    init(context);
     metrics->executionTime.start();
-    Sink::execute();
     while (!keyBlockMergeTaskDispatcher->isDoneMerge()) {
         auto keyBlockMergeMorsel = keyBlockMergeTaskDispatcher->getMorsel();
         if (keyBlockMergeMorsel == nullptr) {
@@ -34,8 +35,6 @@ void OrderByMerge::execute() {
     }
     metrics->executionTime.stop();
 }
-
-void OrderByMerge::finalize() {}
 
 } // namespace processor
 } // namespace graphflow

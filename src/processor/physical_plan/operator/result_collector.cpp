@@ -3,16 +3,10 @@
 namespace graphflow {
 namespace processor {
 
-ResultCollector::ResultCollector(vector<pair<DataPos, bool>> vectorsToCollectInfo,
-    shared_ptr<SharedQueryResults> sharedQueryResults, unique_ptr<PhysicalOperator> child,
-    ExecutionContext& context, uint32_t id)
-    : Sink{move(child), context, id}, vectorsToCollectInfo{move(vectorsToCollectInfo)},
-      sharedQueryResults{sharedQueryResults} {}
-
-shared_ptr<ResultSet> ResultCollector::initResultSet() {
-    resultSet = children[0]->initResultSet();
+shared_ptr<ResultSet> ResultCollector::init(ExecutionContext* context) {
+    resultSet = PhysicalOperator::init(context);
     TableSchema tableSchema;
-    for (auto vectorToCollectInfo : vectorsToCollectInfo) {
+    for (auto& vectorToCollectInfo : vectorsToCollectInfo) {
         auto dataPos = vectorToCollectInfo.first;
         auto vector =
             resultSet->dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
@@ -20,14 +14,14 @@ shared_ptr<ResultSet> ResultCollector::initResultSet() {
         tableSchema.appendColumn({!vectorToCollectInfo.second, dataPos.dataChunkPos,
             vectorToCollectInfo.second ? vector->getNumBytesPerValue() : sizeof(overflow_value_t)});
     }
-    localQueryResult = make_shared<FactorizedTable>(context.memoryManager, tableSchema);
+    localQueryResult = make_shared<FactorizedTable>(context->memoryManager, tableSchema);
     sharedQueryResults->appendQueryResult(localQueryResult);
     return resultSet;
 }
 
-void ResultCollector::execute() {
+void ResultCollector::execute(ExecutionContext* context) {
+    init(context);
     metrics->executionTime.start();
-    Sink::execute();
     while (children[0]->getNextTuples()) {
         // The resultCollector doesn't need to flatten any of the columns, so it always inserts
         // one tuple to the queryResult at a time.
@@ -38,7 +32,7 @@ void ResultCollector::execute() {
     metrics->executionTime.stop();
 }
 
-void ResultCollector::finalize() {
+void ResultCollector::finalize(ExecutionContext* context) {
     sharedQueryResults->mergeQueryResults();
 }
 

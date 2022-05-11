@@ -24,9 +24,9 @@ class VarLengthExtend : public PhysicalOperator {
 public:
     VarLengthExtend(const DataPos& boundNodeDataPos, const DataPos& nbrNodeDataPos,
         StorageStructure* storage, uint8_t lowerBound, uint8_t upperBound,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id);
+        unique_ptr<PhysicalOperator> child, uint32_t id);
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     void reInitToRerunSubPlan() override;
 

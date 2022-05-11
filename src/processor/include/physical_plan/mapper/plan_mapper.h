@@ -21,8 +21,7 @@ public:
         : catalog{catalog}, storageManager{storageManager}, outerMapperContext{nullptr},
           expressionMapper{} {}
 
-    unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(
-        unique_ptr<LogicalPlan> logicalPlan, ExecutionContext& executionContext);
+    unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(unique_ptr<LogicalPlan> logicalPlan);
 
 private:
     // Returns current physicalOperatorsInfo whoever calls enterSubquery is responsible to save the
@@ -31,54 +30,48 @@ private:
     void exitSubquery(const MapperContext* prevMapperContext);
 
     unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
-        const shared_ptr<LogicalOperator>& logicalOperator, MapperContext& mapperContext,
-        ExecutionContext& executionContext);
+        const shared_ptr<LogicalOperator>& logicalOperator, MapperContext& mapperContext);
 
-    unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalResultScanToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext) const;
-    unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalIntersectToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
+    unique_ptr<PhysicalOperator> mapLogicalScanNodeIDToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalResultScanToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalIntersectToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalScanNodePropertyToPhysical(
-        LogicalOperator* logicalOperator, MapperContext& mapperContext,
-        ExecutionContext& executionContext);
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalScanRelPropertyToPhysical(
-        LogicalOperator* logicalOperator, MapperContext& mapperContext,
-        ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalMultiplicityReducerToPhysical(
-        LogicalOperator* logicalOperator, MapperContext& mapperContext,
-        ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalSkipToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalLimitToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalAggregateToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalDistinctToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalExistsToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalSkipToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalLimitToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalAggregateToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalDistinctToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalExistsToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalLeftNestedLoopJoinToPhysical(
-        LogicalOperator* logicalOperator, MapperContext& mapperContext,
-        ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalOrderByToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
-    unique_ptr<PhysicalOperator> mapLogicalUnionAllToPhysical(LogicalOperator* logicalOperator,
-        MapperContext& mapperContext, ExecutionContext& executionContext);
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalOrderByToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
+    unique_ptr<PhysicalOperator> mapLogicalUnionAllToPhysical(
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<ResultCollector> mapLogicalResultCollectorToPhysical(
-        LogicalOperator* logicalOperator, MapperContext& mapperContext,
-        ExecutionContext& executionContext);
+        LogicalOperator* logicalOperator, MapperContext& mapperContext);
 
 public:
     const catalog::Catalog& catalog;

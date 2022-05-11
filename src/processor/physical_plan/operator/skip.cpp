@@ -3,11 +3,6 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> Skip::initResultSet() {
-    resultSet = children[0]->initResultSet();
-    return resultSet;
-}
-
 bool Skip::getNextTuples() {
     metrics->executionTime.start();
     auto& dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];

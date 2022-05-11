@@ -3,11 +3,6 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> Limit::initResultSet() {
-    resultSet = children[0]->initResultSet();
-    return resultSet;
-}
-
 bool Limit::getNextTuples() {
     metrics->executionTime.start();
     // end of execution due to no more input

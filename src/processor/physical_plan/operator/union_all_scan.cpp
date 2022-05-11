@@ -25,12 +25,13 @@ unique_ptr<UnionAllScanMorsel> UnionAllScanSharedState::getMorsel() {
     return unionAllScanMorsel;
 }
 
-shared_ptr<ResultSet> UnionAllScan::initResultSet() {
+shared_ptr<ResultSet> UnionAllScan::init(ExecutionContext* context) {
+    PhysicalOperator::init(context);
     resultSet = populateResultSet();
     for (auto i = 0u; i < outDataPoses.size(); i++) {
         auto outDataPos = outDataPoses[i];
         auto outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-        auto valueVector = make_shared<ValueVector>(context.memoryManager, dataTypes[i]);
+        auto valueVector = make_shared<ValueVector>(context->memoryManager, dataTypes[i]);
         outDataChunk->insert(outDataPos.valueVectorPos, valueVector);
         vectorsToRead.push_back(valueVector);
     }
