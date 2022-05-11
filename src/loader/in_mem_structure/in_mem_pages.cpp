@@ -52,6 +52,7 @@ gf_string_t InMemOverflowPages::addString(const char* rawString, PageByteCursor&
 
 void InMemOverflowPages::copyFixedSizedValuesToPages(
     const Literal& listVal, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement) {
+    shared_lock lck(lock);
     for (auto& literal : listVal.listVal) {
         pages[overflowCursor.idx]->write(overflowCursor.offset, overflowCursor.offset,
             (uint8_t*)&literal.val, numBytesOfListElement);
@@ -66,21 +67,32 @@ void InMemOverflowPages::copyVarSizedValuesToPages(gf_list_t& resultGFList,
     auto overflowPageOffset = overflowCursor.offset;
     // Reserve space for gf_list or gf_string objects.
     overflowCursor.offset += (resultGFList.size * numBytesOfListElement);
-    for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
-        assert(listLiteral.listVal[i].dataType.typeID == DT);
-        if constexpr (DT == STRING) {
-            auto gfStr = addString(listLiteral.listVal[i].strVal.c_str(), overflowCursor);
-            pages[overflowCursor.idx]->write(overflowPageOffset + (i * numBytesOfListElement),
-                overflowPageOffset + (i * numBytesOfListElement), (uint8_t*)&gfStr,
-                numBytesOfListElement);
-        } else if (DT == LIST) {
-            auto gfList = addList(listLiteral.listVal[i], overflowCursor);
-            pages[overflowCursor.idx]->write(overflowPageOffset + (i * numBytesOfListElement),
-                overflowPageOffset + (i * numBytesOfListElement), (uint8_t*)&gfList,
-                numBytesOfListElement);
-        } else {
-            assert(false);
+    if constexpr (DT == STRING) {
+        vector<gf_string_t> gfStrings(listLiteral.listVal.size());
+        for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
+            assert(listLiteral.listVal[i].dataType.typeID == STRING);
+            gfStrings[i] = addString(listLiteral.listVal[i].strVal.c_str(), overflowCursor);
         }
+        shared_lock lck(lock);
+        for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
+            pages[overflowCursor.idx]->write(overflowPageOffset + (i * numBytesOfListElement),
+                overflowPageOffset + (i * numBytesOfListElement), (uint8_t*)&gfStrings[i],
+                numBytesOfListElement);
+        }
+    } else if (DT == LIST) {
+        vector<gf_list_t> gfLists(listLiteral.listVal.size());
+        for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
+            assert(listLiteral.listVal[i].dataType.typeID == LIST);
+            gfLists[i] = addList(listLiteral.listVal[i], overflowCursor);
+        }
+        shared_lock lck(lock);
+        for (auto i = 0u; i < listLiteral.listVal.size(); i++) {
+            pages[overflowCursor.idx]->write(overflowPageOffset + (i * numBytesOfListElement),
+                overflowPageOffset + (i * numBytesOfListElement), (uint8_t*)&gfLists[i],
+                numBytesOfListElement);
+        }
+    } else {
+        assert(false);
     }
 }
 
@@ -98,7 +110,6 @@ gf_list_t InMemOverflowPages::addList(const Literal& listLiteral, PageByteCursor
     }
     TypeUtils::encodeOverflowPtr(
         resultGFList.overflowPtr, overflowCursor.idx, overflowCursor.offset);
-    shared_lock lck(lock);
     switch (childDataTypeID) {
     case INT64:
     case DOUBLE:
@@ -130,9 +141,9 @@ void InMemOverflowPages::copyStringOverflow(
         overflowCursor.offset = 0;
         overflowCursor.idx = getNewOverflowPageIdx();
     }
-    shared_lock lck(lock);
     TypeUtils::encodeOverflowPtr(
         dstGFString->overflowPtr, overflowCursor.idx, overflowCursor.offset);
+    shared_lock lck(lock);
     pages[overflowCursor.idx]->write(
         overflowCursor.offset, overflowCursor.offset, srcOverflow, dstGFString->len);
     overflowCursor.offset += dstGFString->len;
