@@ -102,6 +102,10 @@ public:
 
     static date_t trunc(DatePartSpecifier specifier, date_t& date);
 
+    static inline int64_t getEpochNanoSeconds(const date_t& date) {
+        return ((int64_t)date.days) * (Interval::MICROS_PER_DAY * Interval::NANOS_PER_MICRO);
+    }
+
 private:
     static void ExtractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset);
 };

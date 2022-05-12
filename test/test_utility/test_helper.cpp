@@ -66,7 +66,6 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, Connection&
         assert(numPlans > 0);
         numPlansOfEachQuery[i] = numPlans;
         uint64_t numPassedPlans = 0;
-        vector<DataType> dataTypes = plans[0]->getExpressionsToCollectDataTypes();
         for (uint64_t j = 0; j < numPlans; j++) {
             auto planStr = plans[j]->getLastOperator()->toString();
             auto result = conn.executePlan(move(plans[j]));

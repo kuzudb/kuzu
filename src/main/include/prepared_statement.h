@@ -17,8 +17,8 @@ public:
     inline bool isSuccess() const { return success; }
     inline string getErrorMessage() const { return errMsg; }
 
-    inline void createResultHeader(vector<DataType> resultDataTypes) {
-        resultHeader = make_unique<QueryResultHeader>(move(resultDataTypes));
+    inline void createResultHeader(expression_vector expressions) {
+        resultHeader = make_unique<QueryResultHeader>(move(expressions));
     }
 
     inline void createPlanPrinter(unique_ptr<Profiler> profiler) {

@@ -75,7 +75,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(const std::string& 
         preparedStatement->parameterMap = binder.getParameterMap();
         // planning
         auto logicalPlan = Planner::getBestPlan(*database->catalog, *boundQuery);
-        preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollectDataTypes());
+        preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
         // mapping
         auto mapper = PlanMapper(*database->catalog, *database->storageManager);
         physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
@@ -175,7 +175,7 @@ unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalP
     lock_t lck{mtx};
     auto profiler = make_unique<Profiler>();
     profiler->enabled = false;
-    auto header = make_unique<QueryResultHeader>(logicalPlan->getExpressionsToCollectDataTypes());
+    auto header = make_unique<QueryResultHeader>(logicalPlan->getExpressionsToCollect());
     auto mapper = PlanMapper(*database->catalog, *database->storageManager);
     auto physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
     auto executionContext =

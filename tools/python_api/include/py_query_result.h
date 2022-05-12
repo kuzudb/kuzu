@@ -21,9 +21,13 @@ public:
 
     void close();
 
-private:
-    py::object convertValueToPyObject(const Value& value, bool isNull);
-    py::object convertValueToPyObject(uint8_t* val, const DataType& dataType);
+    static py::object convertValueToPyObject(const Value& value, bool isNull);
 
+    py::object getAsDF();
+
+private:
+    static py::object convertValueToPyObject(uint8_t* val, const DataType& dataType);
+
+private:
     unique_ptr<QueryResult> queryResult;
 };

@@ -8,12 +8,14 @@ pybind_library(
         "py_database.cpp",
         "py_loader.cpp",
         "py_query_result.cpp",
+        "py_query_result_converter.cpp",
     ],
     hdrs = [
         "include/py_connection.h",
         "include/py_database.h",
         "include/py_loader.h",
         "include/py_query_result.h",
+        "include/py_query_result_converter.h",
         "include/pybind_include.h",
     ],
     deps = [
@@ -53,6 +55,7 @@ py_test(
         "test/test_exception.py",
         "test/test_main.py",
         "test/test_parameter.py",
+        "test/test_df.py",
     ],
     data = [
         "//dataset",

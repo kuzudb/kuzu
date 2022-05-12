@@ -81,6 +81,8 @@ public:
     static constexpr const int64_t MICROS_PER_DAY = MICROS_PER_HOUR * HOURS_PER_DAY;
     static constexpr const int64_t MICROS_PER_MONTH = MICROS_PER_DAY * DAYS_PER_MONTH;
 
+    static constexpr const int64_t NANOS_PER_MICRO = 1000;
+
     static void addition(interval_t& result, uint64_t number, string specifierStr);
     static void parseIntervalField(string buf, uint64_t& pos, uint64_t len, interval_t& result);
     static interval_t FromCString(const char* str, uint64_t len);
@@ -90,6 +92,12 @@ public:
         interval_t input, int64_t& months, int64_t& days, int64_t& micros);
     static void TryGetDatePartSpecifier(string specifier_p, DatePartSpecifier& result);
     static int32_t getIntervalPart(DatePartSpecifier specifier, interval_t& timestamp);
+    static int64_t getMicro(const interval_t& val) {
+        return val.micros + val.months * MICROS_PER_MONTH + val.days * MICROS_PER_DAY;
+    }
+    static inline int64_t getNanoseconds(const interval_t& val) {
+        return getMicro(val) * NANOS_PER_MICRO;
+    }
 };
 
 } // namespace common

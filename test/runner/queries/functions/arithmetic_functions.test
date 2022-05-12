@@ -338,10 +338,10 @@
 
 
 -NAME gammaFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN gamma(a.unstrNumericProp + 12.9)
+-QUERY MATCH (a:organisation) RETURN gamma(abs(a.unstrNumericProp) - 3)
 ---- 3
-2.218160
-2265368186995.468750
+119292.461995
+2.991569
 
 -NAME lgammaFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN lgamma(a.mark)
