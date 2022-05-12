@@ -17,7 +17,9 @@ unique_ptr<BoundRegularQuery> QueryBinder::bind(const RegularQuery& regularQuery
     }
     validateUnionColumnsOfTheSameType(boundSingleQueries);
     for (auto& boundSingleQuery : boundSingleQueries) {
-        boundRegularQuery->addSingleQuery(QueryNormalizer::normalizeQuery(*boundSingleQuery));
+        auto normalizedSingleQuery = QueryNormalizer::normalizeQuery(*boundSingleQuery);
+        validateReadNotFollowUpdate(*normalizedSingleQuery);
+        boundRegularQuery->addSingleQuery(move(normalizedSingleQuery));
     }
     validateIsAllUnionOrUnionAll(*boundRegularQuery);
     return boundRegularQuery;
@@ -447,6 +449,17 @@ void QueryBinder::validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQ
     if ((0 < unionAllExpressionCounter) &&
         (unionAllExpressionCounter < regularQuery.getNumSingleQueries() - 1)) {
         throw BinderException("Union and union all can't be used together.");
+    }
+}
+
+void QueryBinder::validateReadNotFollowUpdate(const NormalizedSingleQuery& normalizedSingleQuery) {
+    bool hasSeenUpdateClause = false;
+    for (auto i = 0u; i < normalizedSingleQuery.getNumQueryParts(); ++i) {
+        auto normalizedQueryPart = normalizedSingleQuery.getQueryPart(i);
+        if (hasSeenUpdateClause && normalizedQueryPart->getNumQueryGraph() != 0) {
+            throw BinderException("Read after update is not supported.");
+        }
+        hasSeenUpdateClause |= normalizedQueryPart->hasSetClause();
     }
 }
 

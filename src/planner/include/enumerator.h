@@ -71,10 +71,6 @@ private:
     void appendScanRelProperty(const shared_ptr<PropertyExpression>& property,
         const RelExpression& rel, LogicalPlan& plan);
 
-    void appendResultCollectorIfNecessary(
-        const NormalizedSingleQuery& singleQuery, LogicalPlan& plan);
-    void appendResultCollector(LogicalPlan& plan);
-
     unique_ptr<LogicalPlan> createUnionPlan(
         vector<unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
 

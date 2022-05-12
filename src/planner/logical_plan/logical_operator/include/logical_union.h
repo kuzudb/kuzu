@@ -1,10 +1,7 @@
 #pragma once
 
 #include "base_logical_operator.h"
-
-#include "src/binder/expression/include/expression.h"
-
-using namespace graphflow::binder;
+#include "schema.h"
 
 namespace graphflow {
 namespace planner {
@@ -20,14 +17,18 @@ public:
 
     string getExpressionsForPrinting() const override;
 
+    inline expression_vector getExpressionsToUnion() { return expressionsToUnion; }
+
+    inline void addSchema(unique_ptr<Schema> schema) { schemasBeforeUnion.push_back(move(schema)); }
+    inline Schema* getSchemaBeforeUnion(uint32_t idx) { return schemasBeforeUnion[idx].get(); }
+
     inline unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalUnion>(expressionsToUnion);
     }
 
-    inline expression_vector getExpressionsToUnion() { return expressionsToUnion; }
-
 private:
     expression_vector expressionsToUnion;
+    vector<unique_ptr<Schema>> schemasBeforeUnion;
 };
 
 } // namespace planner

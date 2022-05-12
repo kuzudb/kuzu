@@ -17,13 +17,11 @@
 #include "src/planner/logical_plan/logical_operator/include/logical_limit.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_order_by.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_projection.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_result_collector.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_result_scan.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_id.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_node_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_scan_rel_property.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_skip.h"
-#include "src/planner/logical_plan/logical_operator/include/logical_union.h"
 #include "src/processor/include/physical_plan/mapper/expression_mapper.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate.h"
 #include "src/processor/include/physical_plan/operator/aggregate/hash_aggregate_scan.h"
@@ -51,7 +49,6 @@
 #include "src/processor/include/physical_plan/operator/scan_column/scan_unstructured_property.h"
 #include "src/processor/include/physical_plan/operator/scan_node_id.h"
 #include "src/processor/include/physical_plan/operator/skip.h"
-#include "src/processor/include/physical_plan/operator/union_all_scan.h"
 #include "src/processor/include/physical_plan/operator/var_length_extend/var_length_adj_list_extend.h"
 #include "src/processor/include/physical_plan/operator/var_length_extend/var_length_column_extend.h"
 
@@ -73,9 +70,10 @@ static void appendGroupByExpressions(const expression_vector& groupByExpressions
 
 unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(unique_ptr<LogicalPlan> logicalPlan) {
     auto mapperContext = MapperContext(make_unique<ResultSetDescriptor>(*logicalPlan->getSchema()));
-    auto resultCollector =
-        mapLogicalOperatorToPhysical(logicalPlan->getLastOperator(), mapperContext);
-    return make_unique<PhysicalPlan>(move(resultCollector));
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalPlan->getLastOperator(), mapperContext);
+    auto lastOperator = appendResultCollector(logicalPlan->getExpressionsToCollect(),
+        *logicalPlan->getSchema(), move(prevOperator), mapperContext);
+    return make_unique<PhysicalPlan>(move(lastOperator));
 }
 
 const MapperContext* PlanMapper::enterSubquery(const MapperContext* newMapperContext) {
@@ -154,9 +152,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LOGICAL_UNION_ALL: {
         physicalOperator = mapLogicalUnionAllToPhysical(logicalOperator.get(), mapperContext);
     } break;
-    case LOGICAL_RESULT_COLLECTOR: {
-        physicalOperator =
-            mapLogicalResultCollectorToPhysical(logicalOperator.get(), mapperContext);
+    case LOGICAL_SET: {
+        physicalOperator = mapLogicalSetToPhysical(logicalOperator.get(), mapperContext);
     } break;
     default:
         assert(false);
@@ -531,40 +528,19 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     return orderByScan;
 }
 
-unique_ptr<ResultCollector> PlanMapper::mapLogicalResultCollectorToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& resultCollector = (LogicalResultCollector&)*logicalOperator;
-    auto resultCollectorMapperContext =
-        MapperContext(make_unique<ResultSetDescriptor>(*resultCollector.getSchema()));
-    auto prevOperator =
-        mapLogicalOperatorToPhysical(logicalOperator->getChild(0), resultCollectorMapperContext);
-
+unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
+    expression_vector expressionsToCollect, const Schema& schema,
+    unique_ptr<PhysicalOperator> prevOperator, MapperContext& mapperContext) {
     vector<pair<DataPos, bool>> valueVectorsToCollectInfo;
-    for (auto& expression : resultCollector.getExpressionsToCollect()) {
-        valueVectorsToCollectInfo.push_back(
-            make_pair(resultCollectorMapperContext.getDataPos(expression->getUniqueName()),
-                resultCollector.getSchema()->getGroup(expression->getUniqueName())->getIsFlat()));
+    for (auto& expression : expressionsToCollect) {
+        auto expressionName = expression->getUniqueName();
+        auto dataPos = mapperContext.getDataPos(expressionName);
+        auto isFlat = schema.getGroup(expressionName)->getIsFlat();
+        valueVectorsToCollectInfo.emplace_back(dataPos, isFlat);
     }
-    return make_unique<ResultCollector>(valueVectorsToCollectInfo,
-        make_shared<SharedQueryResults>(), move(prevOperator), mapperContext.getOperatorID());
-}
-
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
-    LogicalOperator* logicalOperator, MapperContext& mapperContext) {
-    auto& unionAll = (LogicalUnion&)*logicalOperator;
-    vector<DataType> dataTypes;
-    vector<DataPos> outDataPoses;
-    for (auto& expression : unionAll.getExpressionsToUnion()) {
-        outDataPoses.emplace_back(mapperContext.getDataPos(expression->getUniqueName()));
-        dataTypes.push_back(expression->getDataType());
-    }
-    vector<unique_ptr<PhysicalOperator>> children;
-    for (auto i = 0u; i < logicalOperator->getNumChildren(); i++) {
-        children.emplace_back(
-            mapLogicalResultCollectorToPhysical(logicalOperator->getChild(i).get(), mapperContext));
-    }
-    return make_unique<UnionAllScan>(mapperContext.getResultSetDescriptor()->copy(),
-        move(outDataPoses), move(dataTypes), move(children), mapperContext.getOperatorID());
+    auto sharedState = make_shared<FTableSharedState>();
+    return make_unique<ResultCollector>(
+        valueVectorsToCollectInfo, sharedState, move(prevOperator), mapperContext.getOperatorID());
 }
 
 unique_ptr<PhysicalOperator> createHashAggregate(

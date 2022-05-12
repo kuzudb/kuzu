@@ -26,7 +26,10 @@ public:
 
     inline expression_vector getExpressionsToReturn() const {
         assert(!queryParts.empty());
-        return queryParts.back()->getProjectionBody()->getProjectionExpressions();
+        if (queryParts.back()->hasProjectionBody()) {
+            return queryParts.back()->getProjectionBody()->getProjectionExpressions();
+        }
+        return expression_vector{};
     }
 
     expression_vector getPropertiesToRead() const;
