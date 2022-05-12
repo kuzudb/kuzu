@@ -8,21 +8,19 @@ namespace processor {
 class Flatten : public PhysicalOperator {
 
 public:
-    Flatten(uint32_t dataChunkToFlattenPos, unique_ptr<PhysicalOperator> child,
-        ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(child), context, id}, dataChunkToFlattenPos{dataChunkToFlattenPos} {
-    }
+    Flatten(uint32_t dataChunkToFlattenPos, unique_ptr<PhysicalOperator> child, uint32_t id)
+        : PhysicalOperator{move(child), id}, dataChunkToFlattenPos{dataChunkToFlattenPos} {}
 
     PhysicalOperatorType getOperatorType() override { return FLATTEN; }
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     void reInitToRerunSubPlan() override;
 
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Flatten>(dataChunkToFlattenPos, children[0]->clone(), context, id);
+        return make_unique<Flatten>(dataChunkToFlattenPos, children[0]->clone(), id);
     }
 
 private:

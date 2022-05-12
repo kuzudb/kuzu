@@ -17,11 +17,11 @@ class QueryProcessor {
 public:
     explicit QueryProcessor(uint64_t numThreads);
 
-    shared_ptr<FactorizedTable> execute(PhysicalPlan* physicalPlan, uint64_t numThreads);
+    shared_ptr<FactorizedTable> execute(PhysicalPlan* physicalPlan, ExecutionContext* context);
 
 private:
-    void decomposePlanIntoTasks(
-        PhysicalOperator* op, PhysicalOperator* parent, Task* parentTask, uint64_t numThreads);
+    void decomposePlanIntoTasks(PhysicalOperator* op, PhysicalOperator* parent, Task* parentTask,
+        ExecutionContext* context);
 
 private:
     unique_ptr<TaskScheduler> taskScheduler;

@@ -5,8 +5,8 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> Intersect::initResultSet() {
-    resultSet = children[0]->initResultSet();
+shared_ptr<ResultSet> Intersect::init(ExecutionContext* context) {
+    resultSet = PhysicalOperator::init(context);
     leftDataChunk = resultSet->dataChunks[leftDataPos.dataChunkPos];
     leftValueVector = leftDataChunk->valueVectors[leftDataPos.valueVectorPos];
     rightDataChunk = resultSet->dataChunks[rightDataPos.dataChunkPos];

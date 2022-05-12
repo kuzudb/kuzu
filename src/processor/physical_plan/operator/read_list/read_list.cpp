@@ -3,8 +3,8 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> ReadList::initResultSet() {
-    resultSet = children[0]->initResultSet();
+shared_ptr<ResultSet> ReadList::init(ExecutionContext* context) {
+    resultSet = PhysicalOperator::init(context);
     inDataChunk = resultSet->dataChunks[inDataPos.dataChunkPos];
     inValueVector = inDataChunk->valueVectors[inDataPos.valueVectorPos];
     outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
@@ -14,10 +14,6 @@ shared_ptr<ResultSet> ReadList::initResultSet() {
 void ReadList::reInitToRerunSubPlan() {
     largeListHandle->reset();
     children[0]->reInitToRerunSubPlan();
-}
-
-void ReadList::printMetricsToJson(nlohmann::json& json, Profiler& profiler) {
-    PhysicalOperator::printTimeAndNumOutputMetrics(json, profiler);
 }
 
 void ReadList::readValuesFromList() {

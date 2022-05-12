@@ -32,17 +32,15 @@ public:
 protected:
     BaseAggregate(vector<DataPos> aggregateVectorsPos,
         vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-        : Sink{move(child), context, id}, aggregateVectorsPos{move(aggregateVectorsPos)},
+        unique_ptr<PhysicalOperator> child, uint32_t id)
+        : Sink{move(child), id}, aggregateVectorsPos{move(aggregateVectorsPos)},
           aggregateFunctions{move(aggregateFunctions)} {}
 
     PhysicalOperatorType getOperatorType() override { return AGGREGATE; }
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
-    void execute() override { Sink::execute(); }
-
-    void finalize() override = 0;
+    void finalize(ExecutionContext* context) override = 0;
 
     unique_ptr<PhysicalOperator> clone() override = 0;
 

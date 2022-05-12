@@ -19,12 +19,11 @@ public:
 
     uint64_t sumAllNumericMetricsWithKey(const string& key);
 
-    void resetMetrics();
-
 private:
     void addMetric(const string& key, unique_ptr<Metric> metric);
 
 public:
+    mutex mtx;
     bool enabled;
     unordered_map<string, vector<unique_ptr<Metric>>> metrics;
 };

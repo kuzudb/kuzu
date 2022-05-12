@@ -14,9 +14,8 @@ class ResultScan : public PhysicalOperator, public SourceOperator {
 
 public:
     ResultScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> inDataPoses,
-        uint32_t outDataChunkPos, vector<uint32_t> outValueVectorsPos, ExecutionContext& context,
-        uint32_t id)
-        : PhysicalOperator{context, id}, SourceOperator{move(resultSetDescriptor)},
+        uint32_t outDataChunkPos, vector<uint32_t> outValueVectorsPos, uint32_t id)
+        : PhysicalOperator{id}, SourceOperator{move(resultSetDescriptor)},
           inDataPoses{move(inDataPoses)}, outDataChunkPos{outDataChunkPos},
           outValueVectorsPos{move(outValueVectorsPos)}, isFirstExecution{true} {}
 
@@ -26,15 +25,15 @@ public:
 
     PhysicalOperatorType getOperatorType() override { return RESULT_SCAN; }
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     void reInitToRerunSubPlan() override;
 
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ResultScan>(resultSetDescriptor->copy(), inDataPoses, outDataChunkPos,
-            outValueVectorsPos, context, id);
+        return make_unique<ResultScan>(
+            resultSetDescriptor->copy(), inDataPoses, outDataChunkPos, outValueVectorsPos, id);
     }
 
 private:

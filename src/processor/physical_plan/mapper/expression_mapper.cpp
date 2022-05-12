@@ -10,8 +10,7 @@ namespace graphflow {
 namespace processor {
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
-    const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
-    ExecutionContext& executionContext) {
+    const shared_ptr<Expression>& expression, const MapperContext& mapperContext) {
     auto expressionType = expression->expressionType;
     if (isExpressionLiteral(expressionType)) {
         return mapLiteralExpression(expression);
@@ -20,7 +19,7 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
     } else if (mapperContext.expressionHasComputed(expression->getUniqueName())) {
         return mapReferenceExpression(expression, mapperContext);
     } else {
-        return mapFunctionExpression(expression, mapperContext, executionContext);
+        return mapFunctionExpression(expression, mapperContext);
     }
 }
 
@@ -45,11 +44,10 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapReferenceExpression(
 }
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapFunctionExpression(
-    const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
-    ExecutionContext& executionContext) {
+    const shared_ptr<Expression>& expression, const MapperContext& mapperContext) {
     vector<unique_ptr<BaseExpressionEvaluator>> children;
     for (auto i = 0u; i < expression->getNumChildren(); ++i) {
-        children.push_back(mapExpression(expression->getChild(i), mapperContext, executionContext));
+        children.push_back(mapExpression(expression->getChild(i), mapperContext));
     }
     return make_unique<FunctionExpressionEvaluator>(expression, move(children));
 }

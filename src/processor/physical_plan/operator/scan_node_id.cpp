@@ -14,10 +14,11 @@ pair<uint64_t, uint64_t> ScanNodeIDSharedState::getNextRangeToRead() {
     return make_pair(startOffset, startOffset + range);
 }
 
-shared_ptr<ResultSet> ScanNodeID::initResultSet() {
+shared_ptr<ResultSet> ScanNodeID::init(ExecutionContext* context) {
+    PhysicalOperator::init(context);
     resultSet = populateResultSet();
     outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
-    outValueVector = make_shared<ValueVector>(context.memoryManager, NODE);
+    outValueVector = make_shared<ValueVector>(context->memoryManager, NODE);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
     return resultSet;
 }

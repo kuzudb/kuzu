@@ -3,9 +3,9 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> Filter::initResultSet() {
-    resultSet = children[0]->initResultSet();
-    expressionEvaluator->init(*resultSet, context.memoryManager);
+shared_ptr<ResultSet> Filter::init(ExecutionContext* context) {
+    resultSet = PhysicalOperator::init(context);
+    expressionEvaluator->init(*resultSet, context->memoryManager);
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
     return resultSet;
 }

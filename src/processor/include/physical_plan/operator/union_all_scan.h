@@ -54,9 +54,8 @@ private:
 class UnionAllScan : public PhysicalOperator, public SourceOperator {
 public:
     UnionAllScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> outDataPoses,
-        vector<DataType> dataTypes, vector<unique_ptr<PhysicalOperator>> children,
-        ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(children), context, id}, SourceOperator{move(resultSetDescriptor)},
+        vector<DataType> dataTypes, vector<unique_ptr<PhysicalOperator>> children, uint32_t id)
+        : PhysicalOperator{move(children), id}, SourceOperator{move(resultSetDescriptor)},
           outDataPoses{move(outDataPoses)}, dataTypes{move(dataTypes)} {
         unionAllScanSharedState = make_shared<UnionAllScanSharedState>(this->children);
     }
@@ -64,20 +63,20 @@ public:
     // For clone only.
     UnionAllScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> outDataPoses,
         vector<DataType> dataTypes, shared_ptr<UnionAllScanSharedState> unionAllScanSharedState,
-        ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{context, id}, SourceOperator{move(resultSetDescriptor)},
+        uint32_t id)
+        : PhysicalOperator{id}, SourceOperator{move(resultSetDescriptor)},
           unionAllScanSharedState{move(unionAllScanSharedState)},
           outDataPoses{move(outDataPoses)}, dataTypes{move(dataTypes)} {}
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     bool getNextTuples() override;
 
     PhysicalOperatorType getOperatorType() override { return UNION_ALL_SCAN; }
 
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<UnionAllScan>(resultSetDescriptor->copy(), outDataPoses, dataTypes,
-            unionAllScanSharedState, context, id);
+        return make_unique<UnionAllScan>(
+            resultSetDescriptor->copy(), outDataPoses, dataTypes, unionAllScanSharedState, id);
     }
 
 private:

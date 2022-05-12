@@ -100,18 +100,17 @@ class OrderBy : public Sink {
 public:
     OrderBy(const OrderByDataInfo& orderByDataInfo,
         shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-        : Sink{move(child), context, id}, orderByDataInfo{orderByDataInfo}, sharedState{
-                                                                                sharedState} {}
-
-    shared_ptr<ResultSet> initResultSet() override;
-    void execute() override;
+        unique_ptr<PhysicalOperator> child, uint32_t id)
+        : Sink{move(child), id}, orderByDataInfo{orderByDataInfo}, sharedState{move(sharedState)} {}
 
     PhysicalOperatorType getOperatorType() override { return ORDER_BY; }
 
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+
+    void execute(ExecutionContext* context) override;
+
     unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<OrderBy>(
-            orderByDataInfo, sharedState, children[0]->clone(), context, id);
+        return make_unique<OrderBy>(orderByDataInfo, sharedState, children[0]->clone(), id);
     }
 
 private:

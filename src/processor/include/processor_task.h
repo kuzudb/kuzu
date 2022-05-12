@@ -11,13 +11,15 @@ namespace processor {
 class ProcessorTask : public Task {
 
 public:
-    ProcessorTask(Sink* sinkOp, uint64_t numThreads);
+    ProcessorTask(Sink* sinkOp, ExecutionContext* executionContext)
+        : Task{executionContext->numThreads}, sinkOp{sinkOp}, executionContext{executionContext} {}
 
     void run() override;
     void finalizeIfNecessary() override;
 
 private:
     Sink* sinkOp;
+    ExecutionContext* executionContext;
 };
 
 } // namespace processor

@@ -5,11 +5,12 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> ScanStructuredProperty::initResultSet() {
-    resultSet = BaseScanColumn::initResultSet();
+shared_ptr<ResultSet> ScanStructuredProperty::init(ExecutionContext* context) {
+    resultSet = BaseScanColumn::init(context);
     assert(outputVectorsPos.size() == propertyColumns.size());
     for (auto i = 0u; i < propertyColumns.size(); ++i) {
-        auto vector = make_shared<ValueVector>(context.memoryManager, propertyColumns[i]->dataType);
+        auto vector =
+            make_shared<ValueVector>(context->memoryManager, propertyColumns[i]->dataType);
         inputNodeIDDataChunk->insert(outputVectorsPos[i].valueVectorPos, vector);
         outputVectors.push_back(vector);
     }

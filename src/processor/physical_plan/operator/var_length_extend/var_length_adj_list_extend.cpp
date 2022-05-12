@@ -25,14 +25,12 @@ void AdjListExtendDFSLevelInfo::reset(uint64_t parent_) {
     this->hasBeenOutput = false;
 }
 
-VarLengthAdjListExtend::VarLengthAdjListExtend(const DataPos& boundNodeDataPos,
-    const DataPos& nbrNodeDataPos, StorageStructure* adjLists, uint8_t lowerBound,
-    uint8_t upperBound, unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-    : VarLengthExtend(boundNodeDataPos, nbrNodeDataPos, adjLists, lowerBound, upperBound,
-          move(child), context, id) {
+shared_ptr<ResultSet> VarLengthAdjListExtend::init(ExecutionContext* context) {
+    resultSet = VarLengthExtend::init(context);
     for (uint8_t i = 0; i < upperBound; i++) {
-        dfsLevelInfos[i] = make_shared<AdjListExtendDFSLevelInfo>(i + 1, context);
+        dfsLevelInfos[i] = make_shared<AdjListExtendDFSLevelInfo>(i + 1, *context);
     }
+    return resultSet;
 }
 
 bool VarLengthAdjListExtend::getNextTuples() {

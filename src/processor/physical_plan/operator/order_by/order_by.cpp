@@ -3,8 +3,8 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> OrderBy::initResultSet() {
-    resultSet = children[0]->initResultSet();
+shared_ptr<ResultSet> OrderBy::init(ExecutionContext* context) {
+    resultSet = PhysicalOperator::init(context);
 
     // FactorizedTable, numBytesPerTuple, stringAndUnstructuredKeyColInfo are constructed
     // here because they need the data type information, which is contained in the value vectors.
@@ -33,7 +33,7 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
     }
 
     // Create a factorizedTable and append it to sharedState.
-    localFactorizedTable = make_shared<FactorizedTable>(context.memoryManager, tableSchema);
+    localFactorizedTable = make_shared<FactorizedTable>(context->memoryManager, tableSchema);
     factorizedTableIdx = sharedState->getNextFactorizedTableIdx();
     sharedState->appendFactorizedTable(factorizedTableIdx, localFactorizedTable);
     sharedState->setDataTypes(dataTypes);
@@ -64,8 +64,8 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
 
     // Prepare the orderByEncoder, and radix sorter
     orderByKeyEncoder = make_unique<OrderByKeyEncoder>(
-        keyVectors, orderByDataInfo.isAscOrder, context.memoryManager, factorizedTableIdx);
-    radixSorter = make_unique<RadixSort>(context.memoryManager, *localFactorizedTable,
+        keyVectors, orderByDataInfo.isAscOrder, context->memoryManager, factorizedTableIdx);
+    radixSorter = make_unique<RadixSort>(context->memoryManager, *localFactorizedTable,
         *orderByKeyEncoder, stringAndUnstructuredKeyColInfo);
 
     sharedState->setStringAndUnstructuredKeyColInfo(stringAndUnstructuredKeyColInfo);
@@ -73,9 +73,9 @@ shared_ptr<ResultSet> OrderBy::initResultSet() {
     return resultSet;
 }
 
-void OrderBy::execute() {
+void OrderBy::execute(ExecutionContext* context) {
+    init(context);
     metrics->executionTime.start();
-    Sink::execute();
     // Append thread-local tuples.
     while (children[0]->getNextTuples()) {
         for (auto i = 0u; i < resultSet->multiplicity; i++) {

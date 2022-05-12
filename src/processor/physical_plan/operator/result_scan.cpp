@@ -5,7 +5,8 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> ResultScan::initResultSet() {
+shared_ptr<ResultSet> ResultScan::init(ExecutionContext* context) {
+    PhysicalOperator::init(context);
     resultSet = populateResultSet();
     outDataChunk = resultSet->dataChunks[outDataChunkPos];
     for (auto i = 0u; i < inDataPoses.size(); ++i) {
@@ -13,7 +14,7 @@ shared_ptr<ResultSet> ResultScan::initResultSet() {
         auto& inValueVector =
             *resultSetToCopyFrom->dataChunks[inDataChunkPos]->valueVectors[inValueVectorPos];
         auto outValueVector =
-            make_shared<ValueVector>(context.memoryManager, inValueVector.dataType);
+            make_shared<ValueVector>(context->memoryManager, inValueVector.dataType);
         outDataChunk->insert(outValueVectorsPos[i], outValueVector);
     }
     return resultSet;

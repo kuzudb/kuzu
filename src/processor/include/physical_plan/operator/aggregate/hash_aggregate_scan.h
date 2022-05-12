@@ -12,10 +12,9 @@ public:
     HashAggregateScan(shared_ptr<HashAggregateSharedState> sharedState,
         unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> groupByKeyVectorsPos,
         vector<DataType> groupByKeyVectorDataTypes, vector<DataPos> aggregatesPos,
-        vector<DataType> aggregateDataTypes, unique_ptr<PhysicalOperator> child,
-        ExecutionContext& context, uint32_t id)
+        vector<DataType> aggregateDataTypes, unique_ptr<PhysicalOperator> child, uint32_t id)
         : BaseAggregateScan{move(resultSetDescriptor), move(aggregatesPos),
-              move(aggregateDataTypes), move(child), context, id},
+              move(aggregateDataTypes), move(child), id},
           groupByKeyVectorsPos{move(groupByKeyVectorsPos)},
           groupByKeyVectorDataTypes{move(groupByKeyVectorDataTypes)}, sharedState{
                                                                           move(sharedState)} {}
@@ -23,21 +22,20 @@ public:
     HashAggregateScan(shared_ptr<HashAggregateSharedState> sharedState,
         unique_ptr<ResultSetDescriptor> resultSetDescriptor, vector<DataPos> groupByKeyVectorsPos,
         vector<DataType> groupByKeyVectorDataTypes, vector<DataPos> aggregatesPos,
-        vector<DataType> aggregateDataTypes, ExecutionContext& context, uint32_t id)
+        vector<DataType> aggregateDataTypes, uint32_t id)
         : BaseAggregateScan{move(resultSetDescriptor), move(aggregatesPos),
-              move(aggregateDataTypes), context, id},
+              move(aggregateDataTypes), id},
           groupByKeyVectorsPos{move(groupByKeyVectorsPos)},
           groupByKeyVectorDataTypes{move(groupByKeyVectorDataTypes)}, sharedState{
                                                                           move(sharedState)} {}
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     bool getNextTuples() override;
 
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<HashAggregateScan>(sharedState, resultSetDescriptor->copy(),
-            groupByKeyVectorsPos, groupByKeyVectorDataTypes, aggregatesPos, aggregateDataTypes,
-            context, id);
+            groupByKeyVectorsPos, groupByKeyVectorDataTypes, aggregatesPos, aggregateDataTypes, id);
     }
 
 private:

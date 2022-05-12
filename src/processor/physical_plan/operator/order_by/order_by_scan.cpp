@@ -12,13 +12,14 @@ pair<uint64_t, uint64_t> OrderByScan::getNextFactorizedTableIdxAndTupleIdxPair()
     return make_pair(factorizedTableIdx, tupleIdx);
 }
 
-shared_ptr<ResultSet> OrderByScan::initResultSet() {
+shared_ptr<ResultSet> OrderByScan::init(ExecutionContext* context) {
+    PhysicalOperator::init(context);
     resultSet = populateResultSet();
     for (auto i = 0u; i < outDataPoses.size(); i++) {
         auto outDataPos = outDataPoses[i];
         auto outDataChunk = resultSet->dataChunks[outDataPos.dataChunkPos];
         auto valueVector =
-            make_shared<ValueVector>(context.memoryManager, sharedState->getDataType(i));
+            make_shared<ValueVector>(context->memoryManager, sharedState->getDataType(i));
         outDataChunk->insert(outDataPos.valueVectorPos, valueVector);
         vectorsToRead.emplace_back(valueVector);
     }
@@ -55,7 +56,6 @@ bool OrderByScan::getNextTuples() {
                 metrics->numOutputTuple.increase(1);
             }
         }
-
         metrics->executionTime.stop();
         return true;
     }

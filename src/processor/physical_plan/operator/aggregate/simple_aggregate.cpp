@@ -40,19 +40,23 @@ pair<uint64_t, uint64_t> SimpleAggregateSharedState::getNextRangeToRead() {
 
 SimpleAggregate::SimpleAggregate(shared_ptr<SimpleAggregateSharedState> sharedState,
     vector<DataPos> aggregateVectorsPos, vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-    unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-    : BaseAggregate{move(aggregateVectorsPos), move(aggregateFunctions), move(child), context, id},
-      sharedState{move(sharedState)} {
+    unique_ptr<PhysicalOperator> child, uint32_t id)
+    : BaseAggregate{move(aggregateVectorsPos), move(aggregateFunctions), move(child), id},
+      sharedState{move(sharedState)} {}
+
+shared_ptr<ResultSet> SimpleAggregate::init(ExecutionContext* context) {
+    auto resultSet = BaseAggregate::init(context);
     for (auto& aggregateFunction : this->aggregateFunctions) {
         localAggregateStates.push_back(aggregateFunction->createInitialNullAggregateState());
     }
     distinctHashTables = AggregateHashTableUtils::createDistinctHashTables(
-        *context.memoryManager, vector<DataType>{}, this->aggregateFunctions);
+        *context->memoryManager, vector<DataType>{}, this->aggregateFunctions);
+    return resultSet;
 }
 
-void SimpleAggregate::execute() {
+void SimpleAggregate::execute(ExecutionContext* context) {
+    init(context);
     metrics->executionTime.start();
-    BaseAggregate::execute();
     while (children[0]->getNextTuples()) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
             auto aggregateFunction = aggregateFunctions[i].get();
@@ -74,17 +78,13 @@ void SimpleAggregate::execute() {
     metrics->executionTime.stop();
 }
 
-void SimpleAggregate::finalize() {
-    sharedState->finalizeAggregateStates();
-}
-
 unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
     vector<unique_ptr<AggregateFunction>> clonedAggregateFunctions;
     for (auto& aggregateFunction : aggregateFunctions) {
         clonedAggregateFunctions.push_back(aggregateFunction->clone());
     }
-    return make_unique<SimpleAggregate>(sharedState, aggregateVectorsPos,
-        move(clonedAggregateFunctions), children[0]->clone(), context, id);
+    return make_unique<SimpleAggregate>(
+        sharedState, aggregateVectorsPos, move(clonedAggregateFunctions), children[0]->clone(), id);
 }
 
 } // namespace processor

@@ -37,11 +37,8 @@ uint64_t Profiler::sumAllNumericMetricsWithKey(const string& key) {
     return sum;
 }
 
-void Profiler::resetMetrics() {
-    metrics.clear();
-}
-
 void Profiler::addMetric(const string& key, unique_ptr<Metric> metric) {
+    lock_guard<mutex> lck(mtx);
     if (!metrics.contains(key)) {
         metrics.insert({key, vector<unique_ptr<Metric>>()});
     }

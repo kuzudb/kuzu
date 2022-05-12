@@ -18,8 +18,8 @@ class PlanMapper;
 class ExpressionMapper {
 
 public:
-    unique_ptr<BaseExpressionEvaluator> mapExpression(const shared_ptr<Expression>& expression,
-        const MapperContext& mapperContext, ExecutionContext& executionContext);
+    unique_ptr<BaseExpressionEvaluator> mapExpression(
+        const shared_ptr<Expression>& expression, const MapperContext& mapperContext);
 
 private:
     unique_ptr<BaseExpressionEvaluator> mapLiteralExpression(
@@ -32,8 +32,7 @@ private:
         const shared_ptr<Expression>& expression, const MapperContext& mapperContext);
 
     unique_ptr<BaseExpressionEvaluator> mapFunctionExpression(
-        const shared_ptr<Expression>& expression, const MapperContext& mapperContext,
-        ExecutionContext& executionContext);
+        const shared_ptr<Expression>& expression, const MapperContext& mapperContext);
 };
 
 } // namespace processor

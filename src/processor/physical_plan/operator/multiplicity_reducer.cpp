@@ -3,11 +3,6 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> MultiplicityReducer::initResultSet() {
-    resultSet = children[0]->initResultSet();
-    return resultSet;
-}
-
 void MultiplicityReducer::reInitToRerunSubPlan() {
     children[0]->reInitToRerunSubPlan();
     prevMultiplicity = 1;

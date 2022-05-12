@@ -14,19 +14,18 @@ class BaseAggregateScan : public PhysicalOperator, public SourceOperator {
 public:
     BaseAggregateScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes,
-        unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{move(child), context, id}, SourceOperator{move(resultSetDescriptor)},
+        unique_ptr<PhysicalOperator> child, uint32_t id)
+        : PhysicalOperator{move(child), id}, SourceOperator{move(resultSetDescriptor)},
           aggregatesPos{move(aggregatesPos)}, aggregateDataTypes{move(aggregateDataTypes)} {}
 
     BaseAggregateScan(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes,
-        ExecutionContext& context, uint32_t id)
-        : PhysicalOperator{context, id}, SourceOperator{move(resultSetDescriptor)},
+        vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes, uint32_t id)
+        : PhysicalOperator{id}, SourceOperator{move(resultSetDescriptor)},
           aggregatesPos{move(aggregatesPos)}, aggregateDataTypes{move(aggregateDataTypes)} {}
 
     PhysicalOperatorType getOperatorType() override { return AGGREGATE_SCAN; }
 
-    shared_ptr<ResultSet> initResultSet() override;
+    shared_ptr<ResultSet> init(ExecutionContext* context) override;
 
     bool getNextTuples() override = 0;
 

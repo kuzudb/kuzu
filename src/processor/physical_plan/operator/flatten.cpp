@@ -3,8 +3,8 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> Flatten::initResultSet() {
-    resultSet = children[0]->initResultSet();
+shared_ptr<ResultSet> Flatten::init(ExecutionContext* context) {
+    resultSet = PhysicalOperator::init(context);
     dataChunkToFlatten = resultSet->dataChunks[dataChunkToFlattenPos];
     return resultSet;
 }

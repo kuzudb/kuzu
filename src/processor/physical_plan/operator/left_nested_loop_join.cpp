@@ -5,13 +5,13 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> LeftNestedLoopJoin::initResultSet() {
-    resultSet = children[0]->initResultSet();
+shared_ptr<ResultSet> LeftNestedLoopJoin::init(ExecutionContext* context) {
+    resultSet = PhysicalOperator::init(context);
     // side way information passing: give resultSet reference to subPlan.
     PhysicalOperator* op = children[1]->getLeafOperator();
     assert(op->getOperatorType() == RESULT_SCAN);
     ((ResultScan*)op)->setResultSetToCopyFrom(resultSet.get());
-    auto subPlanResultSet = children[1]->initResultSet();
+    auto subPlanResultSet = children[1]->init(context);
     // mering sub-plan result set into current result set.
     for (auto& posMapping : subPlanVectorsToRefPosMapping) {
         auto [dataChunkToRefPos, vectorToRefPos] = posMapping.first;

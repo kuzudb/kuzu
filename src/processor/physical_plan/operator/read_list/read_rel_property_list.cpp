@@ -3,9 +3,9 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> ReadRelPropertyList::initResultSet() {
-    ReadList::initResultSet();
-    outValueVector = make_shared<ValueVector>(context.memoryManager, lists->dataType);
+shared_ptr<ResultSet> ReadRelPropertyList::init(ExecutionContext* context) {
+    resultSet = ReadList::init(context);
+    outValueVector = make_shared<ValueVector>(context->memoryManager, lists->dataType);
     outDataChunk->insert(outDataPos.valueVectorPos, outValueVector);
     largeListHandle->setListSyncState(resultSet->getListSyncState(outDataPos.dataChunkPos));
     return resultSet;

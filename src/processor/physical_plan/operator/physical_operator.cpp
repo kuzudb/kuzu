@@ -5,27 +5,20 @@
 namespace graphflow {
 namespace processor {
 
-PhysicalOperator::PhysicalOperator(ExecutionContext& context, uint32_t id)
-    : context{context}, id{id} {
-    registerProfilingMetrics();
-}
-
-PhysicalOperator::PhysicalOperator(
-    unique_ptr<PhysicalOperator> child, ExecutionContext& context, uint32_t id)
-    : PhysicalOperator{context, id} {
+PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> child, uint32_t id)
+    : PhysicalOperator{id} {
     children.push_back(move(child));
 }
 
-PhysicalOperator::PhysicalOperator(unique_ptr<PhysicalOperator> left,
-    unique_ptr<PhysicalOperator> right, ExecutionContext& context, uint32_t id)
-    : PhysicalOperator{context, id} {
+PhysicalOperator::PhysicalOperator(
+    unique_ptr<PhysicalOperator> left, unique_ptr<PhysicalOperator> right, uint32_t id)
+    : PhysicalOperator{id} {
     children.push_back(move(left));
     children.push_back(move(right));
 }
 
-PhysicalOperator::PhysicalOperator(
-    vector<unique_ptr<PhysicalOperator>> children, ExecutionContext& context, uint32_t id)
-    : PhysicalOperator{context, id} {
+PhysicalOperator::PhysicalOperator(vector<unique_ptr<PhysicalOperator>> children, uint32_t id)
+    : PhysicalOperator{id} {
     for (auto& child : children) {
         this->children.push_back(move(child));
     }
@@ -39,9 +32,17 @@ PhysicalOperator* PhysicalOperator::getLeafOperator() {
     return op;
 }
 
-void PhysicalOperator::registerProfilingMetrics() {
-    auto executionTime = context.profiler.registerTimeMetric(getTimeMetricKey());
-    auto numOutputTuple = context.profiler.registerNumericMetric(getNumTupleMetricKey());
+shared_ptr<ResultSet> PhysicalOperator::init(ExecutionContext* context) {
+    registerProfilingMetrics(context->profiler);
+    if (!children.empty()) {
+        resultSet = children[0]->init(context);
+    }
+    return resultSet;
+}
+
+void PhysicalOperator::registerProfilingMetrics(Profiler* profiler) {
+    auto executionTime = profiler->registerTimeMetric(getTimeMetricKey());
+    auto numOutputTuple = profiler->registerNumericMetric(getNumTupleMetricKey());
 
     metrics = make_unique<OperatorMetrics>(*executionTime, *numOutputTuple);
 }
