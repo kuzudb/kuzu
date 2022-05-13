@@ -110,38 +110,36 @@ void KeyBlockMerger::mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) co
     auto leftKeyBlock = keyBlockMergeMorsel.keyBlockMergeTask->leftKeyBlock;
     auto rightKeyBlock = keyBlockMergeMorsel.keyBlockMergeTask->rightKeyBlock;
     auto resultKeyBlock = keyBlockMergeMorsel.keyBlockMergeTask->resultKeyBlock;
-    auto leftKeyBlockBuffer = leftKeyBlock->getTuple(leftKeyBlockIdx);
-    auto rightKeyBlockBuffer = rightKeyBlock->getTuple(rightKeyBlockIdx);
-    auto resultKeyBlockBuffer = resultKeyBlock->getTuple(leftKeyBlockIdx + rightKeyBlockIdx);
+    uint8_t *leftKeyBlockBuffer, *rightKeyBlockBuffer, *resultKeyBlockBuffer;
 
-    while (leftKeyBlockIdx < keyBlockMergeMorsel.leftKeyBlockEndIdx &&
-           rightKeyBlockIdx < keyBlockMergeMorsel.rightKeyBlockEndIdx) {
+    while ((leftKeyBlockIdx < keyBlockMergeMorsel.leftKeyBlockEndIdx) &&
+           (rightKeyBlockIdx < keyBlockMergeMorsel.rightKeyBlockEndIdx)) {
+        leftKeyBlockBuffer = leftKeyBlock->getTuple(leftKeyBlockIdx);
+        rightKeyBlockBuffer = rightKeyBlock->getTuple(rightKeyBlockIdx);
+        resultKeyBlockBuffer = resultKeyBlock->getTuple(leftKeyBlockIdx + rightKeyBlockIdx);
         if (compareTupleBuffer(leftKeyBlockBuffer, rightKeyBlockBuffer)) {
             memcpy(resultKeyBlockBuffer, rightKeyBlockBuffer, numBytesPerTuple);
             rightKeyBlockIdx++;
-            rightKeyBlockBuffer = rightKeyBlock->getTuple(rightKeyBlockIdx);
         } else {
             memcpy(resultKeyBlockBuffer, leftKeyBlockBuffer, numBytesPerTuple);
             leftKeyBlockIdx++;
-            leftKeyBlockBuffer = leftKeyBlock->getTuple(leftKeyBlockIdx);
         }
-        resultKeyBlockBuffer = resultKeyBlock->getTuple(leftKeyBlockIdx + rightKeyBlockIdx);
     }
 
     // If there are still unmerged tuples in the left or right memBlock, just append them to the
     // result memBlock.
     while (leftKeyBlockIdx < keyBlockMergeMorsel.leftKeyBlockEndIdx) {
-        memcpy(resultKeyBlockBuffer, leftKeyBlockBuffer, numBytesPerTuple);
-        leftKeyBlockIdx++;
         leftKeyBlockBuffer = leftKeyBlock->getTuple(leftKeyBlockIdx);
         resultKeyBlockBuffer = resultKeyBlock->getTuple(leftKeyBlockIdx + rightKeyBlockIdx);
+        memcpy(resultKeyBlockBuffer, leftKeyBlockBuffer, numBytesPerTuple);
+        leftKeyBlockIdx++;
     }
 
     while (rightKeyBlockIdx < keyBlockMergeMorsel.rightKeyBlockEndIdx) {
-        memcpy(resultKeyBlockBuffer, rightKeyBlockBuffer, numBytesPerTuple);
-        rightKeyBlockIdx++;
         rightKeyBlockBuffer = rightKeyBlock->getTuple(rightKeyBlockIdx);
         resultKeyBlockBuffer = resultKeyBlock->getTuple(leftKeyBlockIdx + rightKeyBlockIdx);
+        memcpy(resultKeyBlockBuffer, rightKeyBlockBuffer, numBytesPerTuple);
+        rightKeyBlockIdx++;
     }
 }
 
