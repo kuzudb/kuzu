@@ -40,6 +40,7 @@ public:
     MergedKeyBlocks(uint64_t numBytesPerTuple, shared_ptr<DataBlock> keyBlock);
 
     inline uint8_t* getTuple(uint64_t tupleIdx) const {
+        assert(tupleIdx < numTuples);
         return keyBlocks[tupleIdx / (LARGE_PAGE_SIZE / numBytesPerTuple)]->getData() +
                numBytesPerTuple * (tupleIdx % (LARGE_PAGE_SIZE / numBytesPerTuple));
     }

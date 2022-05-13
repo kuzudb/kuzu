@@ -5,8 +5,8 @@ namespace processor {
 
 pair<uint64_t, uint64_t> OrderByScan::getNextFactorizedTableIdxAndTupleIdxPair() {
     auto tupleInfoBuffer =
-        sharedState->sortedKeyBlocks->front()->getTuple(nextTupleIdxToReadInMemBlock + 1) -
-        sizeof(uint64_t);
+        sharedState->sortedKeyBlocks->front()->getTuple(nextTupleIdxToReadInMemBlock) +
+        sharedState->sortedKeyBlocks->front()->getNumBytesPerTuple() - sizeof(uint64_t);
     uint16_t factorizedTableIdx = OrderByKeyEncoder::getEncodedFactorizedTableIdx(tupleInfoBuffer);
     uint64_t tupleIdx = OrderByKeyEncoder::getEncodedTupleIdx(tupleInfoBuffer);
     return make_pair(factorizedTableIdx, tupleIdx);
