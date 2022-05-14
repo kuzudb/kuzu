@@ -35,38 +35,6 @@ void ValueVectorUtils::addLiteralToStructuredVector(
     }
 }
 
-void ValueVectorUtils::addLiteralToUnstructuredVector(
-    ValueVector& resultVector, uint64_t pos, const Literal& value) {
-    assert(resultVector.dataType.typeID == UNSTRUCTURED);
-    auto& val = ((Value*)resultVector.values)[pos];
-    val.dataType = value.dataType;
-    switch (val.dataType.typeID) {
-    case INT64: {
-        val.val.int64Val = value.val.int64Val;
-    } break;
-    case DOUBLE: {
-        val.val.doubleVal = value.val.doubleVal;
-    } break;
-    case BOOL: {
-        val.val.booleanVal = value.val.booleanVal;
-    } break;
-    case DATE: {
-        val.val.dateVal = value.val.dateVal;
-    } break;
-    case TIMESTAMP: {
-        val.val.timestampVal = value.val.timestampVal;
-    } break;
-    case INTERVAL: {
-        val.val.intervalVal = value.val.intervalVal;
-    } break;
-    case STRING: {
-        TypeUtils::copyString(value.strVal, val.val.strVal, resultVector.getOverflowBuffer());
-    } break;
-    default:
-        assert(false);
-    }
-}
-
 void ValueVectorUtils::addGFStringToUnstructuredVector(
     ValueVector& resultVector, uint64_t pos, const gf_string_t& value) {
     assert(resultVector.dataType.typeID == UNSTRUCTURED);

@@ -6,21 +6,10 @@ namespace common {
 DataChunkState::DataChunkState(uint64_t capacity) : currIdx{-1}, originalSize{0}, selectedSize{0} {
     selectedPositionsBuffer = make_unique<sel_t[]>(capacity);
     resetSelectorToUnselected();
-    multiplicity = nullptr;
 }
 
 uint64_t DataChunkState::getNumSelectedValues() const {
-    if (isFlat()) {
-        return multiplicity == nullptr ? 1 : multiplicity[getPositionOfCurrIdx()];
-    } else if (multiplicity == nullptr) {
-        return selectedSize;
-    } else {
-        auto numSelectedValuesSum = 0u;
-        for (auto i = 0u; i < selectedSize; i++) {
-            numSelectedValuesSum += multiplicity[selectedPositions[i]];
-        }
-        return numSelectedValuesSum;
-    }
+    return isFlat() ? 1 : selectedSize;
 }
 
 shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
@@ -28,18 +17,6 @@ shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
     state->selectedSize = 1;
     state->currIdx = 0;
     return state;
-}
-
-shared_ptr<DataChunkState> DataChunkState::clone() {
-    auto newState = make_shared<DataChunkState>(selectedSize);
-    newState->currIdx = currIdx;
-    newState->originalSize = originalSize;
-    newState->selectedSize = selectedSize;
-    memcpy(newState->selectedPositionsBuffer.get(), selectedPositionsBuffer.get(),
-        selectedSize * sizeof(sel_t));
-    isUnfiltered() ? newState->resetSelectorToUnselected() :
-                     newState->resetSelectorToValuePosBuffer();
-    return newState;
 }
 
 const sel_t DataChunkState::INCREMENTAL_SELECTED_POS[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
