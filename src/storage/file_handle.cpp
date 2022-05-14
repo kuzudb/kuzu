@@ -49,6 +49,7 @@ void FileHandle::resetToZeroPagesAndPageCapacity() {
     unique_lock lock(fhSharedMutex);
     numPages = 0;
     pageCapacity = 0;
+    FileUtils::truncateFileToEmpty(fileInfo.get());
     initPageIdxToFrameMapAndLocks();
 }
 

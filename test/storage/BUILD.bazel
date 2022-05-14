@@ -32,3 +32,20 @@ cc_test(
         "@gtest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "wal_replayer_test",
+    srcs = [
+        "wal_replayer_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "//dataset",
+    ],
+    deps = [
+        "//src/storage:storage_manager",
+        "//test/test_utility:test_helper",
+    ],
+)

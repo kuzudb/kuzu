@@ -8,7 +8,10 @@ namespace graphflow {
 namespace transaction {
 
 unique_ptr<Transaction> TransactionManager::beginWriteTransaction() {
-    lock_t lck{mtx};
+    // We obtain the lock for starting new transactions. In case this cannot be obtained this
+    // ensures calls to other public functions is not restricted.
+    lock_t newTransactionLck{mtxForStartingNewTransactions};
+    lock_t publicFunctionLck{mtxForSerializingPublicFunctionCalls};
     if (hasActiveWriteTransactionNoLock()) {
         throw TransactionManagerException(
             "Cannot start a new write transaction in the system. Only one write transaction at a "
@@ -20,36 +23,82 @@ unique_ptr<Transaction> TransactionManager::beginWriteTransaction() {
 }
 
 unique_ptr<Transaction> TransactionManager::beginReadOnlyTransaction() {
-    lock_t lck{mtx};
+    // We obtain the lock for starting new transactions. In case this cannot be obtained this
+    // ensures calls to other public functions is not restricted.
+    lock_t newTransactionLck{mtxForStartingNewTransactions};
+    lock_t publicFunctionLck{mtxForSerializingPublicFunctionCalls};
     auto transaction = unique_ptr<Transaction>(new Transaction(READ_ONLY, ++lastTransactionID));
     activeReadOnlyTransactionIDs.insert(transaction->getID());
     return transaction;
 }
 
-void TransactionManager::commitOrRollback(Transaction* transaction, bool isCommit) {
-    lock_t lck{mtx};
+void TransactionManager::commitButKeepActiveWriteTransaction(Transaction* transaction) {
+    lock_t lck{mtxForSerializingPublicFunctionCalls};
+    commitOrRollbackNoLock(transaction, true /* is commit */);
+}
+
+void TransactionManager::manuallyClearActiveWriteTransaction(Transaction* transaction) {
+    lock_t lck{mtxForSerializingPublicFunctionCalls};
+    assertActiveWriteTransationIsCorrectNoLock(transaction);
+    clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
+}
+
+void TransactionManager::commitOrRollbackNoLock(Transaction* transaction, bool isCommit) {
     if (transaction->isReadOnly()) {
         activeReadOnlyTransactionIDs.erase(transaction->getID());
         return;
     }
+    assertActiveWriteTransationIsCorrectNoLock(transaction);
+    if (isCommit) {
+        wal.logCommit(transaction->getID());
+        lastCommitID++;
+    }
+}
+
+void TransactionManager::assertActiveWriteTransationIsCorrectNoLock(Transaction* transaction) {
     if (activeWriteTransactionID != transaction->getID()) {
         throw TransactionManagerException(
             "The ID of the committing write transaction " + to_string(transaction->getID()) +
             " is not equal to the ID of the activeWriteTransaction: " +
             to_string(activeWriteTransactionID));
     }
-    if (isCommit) {
-        lastCommitID++;
-    }
-    clearActiveWriteTransactionNoLock();
 }
 
 void TransactionManager::commit(Transaction* transaction) {
-    commitOrRollback(transaction, true /* is commit */);
+    lock_t lck{mtxForSerializingPublicFunctionCalls};
+    commitOrRollbackNoLock(transaction, true /* is commit */);
+    clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
 }
 
 void TransactionManager::rollback(Transaction* transaction) {
-    commitOrRollback(transaction, false /* is rollback */);
+    lock_t lck{mtxForSerializingPublicFunctionCalls};
+    commitOrRollbackNoLock(transaction, false /* is rollback */);
+    clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
+}
+
+void TransactionManager::allowReceivingNewTransactions() {
+    mtxForStartingNewTransactions.unlock();
+}
+
+void TransactionManager::stopNewTransactionsAndWaitUntilAllReadTransactionsLeave() {
+    lock_t lck{mtxForSerializingPublicFunctionCalls};
+    mtxForStartingNewTransactions.lock();
+    uint64_t numTimesWaited = 0;
+    while (true) {
+        if (!activeReadOnlyTransactionIDs.empty()) {
+            numTimesWaited++;
+            if (numTimesWaited * THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS >
+                checkPointWaitTimeoutForTransactionsToLeaveInMicros) {
+                throw TransactionManagerException(
+                    "Timeout waiting for read transactions to leave the system before committing "
+                    "and checkpointing a write transaction. If you have an open read transaction "
+                    "close and try again.");
+            }
+            this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+        } else {
+            break;
+        }
+    }
 }
 
 } // namespace transaction

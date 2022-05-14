@@ -1,18 +1,25 @@
 #include "gtest/gtest.h"
+#include "test/test_utility/include/test_helper.h"
 
 #include "src/common/include/exception.h"
 #include "src/transaction/include/transaction_manager.h"
 
 using namespace graphflow::common;
+using namespace graphflow::testing;
 using namespace graphflow::transaction;
 using ::testing::Test;
 
 class TransactionManagerTest : public Test {
 
 protected:
-    void SetUp() override { transactionManager = make_unique<TransactionManager>(); }
+    void SetUp() override {
+        FileUtils::createDir(TestHelper::TEMP_TEST_DIR);
+        bufferManager = make_unique<BufferManager>();
+        wal = make_unique<WAL>(string(TestHelper::TEMP_TEST_DIR) + "waltest.wal", *bufferManager);
+        transactionManager = make_unique<TransactionManager>(*wal);
+    }
 
-    void TearDown() override {}
+    void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
 
 public:
     void runTwoCommitRollback(TransactionType type, bool firstIsCommit, bool secondIsCommit) {
@@ -31,7 +38,12 @@ public:
         }
     }
 
+public:
     unique_ptr<TransactionManager> transactionManager;
+
+private:
+    unique_ptr<BufferManager> bufferManager;
+    unique_ptr<WAL> wal;
 };
 
 TEST_F(TransactionManagerTest, MultipleWriteTransactionsErrors) {

@@ -36,6 +36,10 @@ bool Column::isNull(node_offset_t nodeOffset) {
     return isNullFromNULLByte(NULLByteAndByteLevelOffset.first, NULLByteAndByteLevelOffset.second);
 }
 
+void Column::clearPageVersionInfo(uint64_t pageIdx) {
+    pageVersionInfo.clearUpdatedWALPageVersion(pageIdx);
+}
+
 void Column::writeValueForFlatVector(const transaction::Transaction* transaction,
     const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector) {
     auto valueVectorPos = nodeIDVector->state->getPositionOfCurrIdx();
@@ -52,7 +56,7 @@ void Column::writeValueForFlatVector(const transaction::Transaction* transaction
             property.label, property.propertyID, cursor.idx /* pageIdxInOriginalFile */);
         frame = bufferManager.pinWithoutReadingFromFile(*wal->fileHandle, pageIdxInWAL);
         uint8_t* originalFrame = bufferManager.pin(fileHandle, cursor.idx);
-        // Note: This logic only works db files with DEFAULT_PAGE_SIZEs.
+        // Note: This logic only works for db files with DEFAULT_PAGE_SIZEs.
         memcpy(frame, originalFrame, DEFAULT_PAGE_SIZE);
         bufferManager.unpin(fileHandle, cursor.idx);
         pageVersionInfo.setUpdatedWALPageVersionNoLock(
@@ -88,6 +92,7 @@ void Column::readForSingleNodeIDPosition(const transaction::Transaction* transac
             pageCursor.idx :
             pageVersionInfo.getUpdatedWALPageVersionNoLock(pageCursor.idx);
     auto frame = bufferManager.pin(fileHandleToPin, pageIdxToPin);
+
     memcpy(resultVector->values + pos * elementSize,
         frame + mapElementPosToByteOffset(pageCursor.pos), elementSize);
     setNULLBitsForAPos(resultVector, frame, pageCursor.pos, pos);

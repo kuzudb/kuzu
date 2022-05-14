@@ -77,21 +77,41 @@ uint8_t* BufferPool::pinWithoutReadingFromFile(FileHandle& fileHandle, uint32_t 
     return pin(fileHandle, pageIdx, true /* read page from file */);
 }
 
-void BufferPool::removeOrFlushFilePagesFromFrames(FileHandle& fileHandle, bool isRemovingPages) {
+void BufferPool::removeFilePagesFromFrames(FileHandle& fileHandle) {
     for (int pageIdx = 0; pageIdx < fileHandle.numPages; ++pageIdx) {
-        fileHandle.acquirePageLock(pageIdx, true /*block*/);
-        auto frameIdx = fileHandle.getFrameIdx(pageIdx);
-        if (FileHandle::isAFrame(frameIdx)) {
-            auto& frame = bufferCache[frameIdx];
-            frame->acquireFrameLock(true /* block */);
-            if (isRemovingPages) {
-                frame->resetFrameWithoutLock();
-                fileHandle.unswizzle(pageIdx);
-            } else if (frame->isDirty) {
-                fileHandle.writePage(frame->buffer.get(), frame->pageIdx);
-            }
-            frame->releaseFrameLock();
+        removePageFromFrameOrFlushIfDirty(fileHandle, pageIdx, true /* is removing */);
+    }
+}
+
+void BufferPool::removePageFromFrameOrFlushIfDirty(
+    FileHandle& fileHandle, uint64_t pageIdx, bool isRemoving) {
+    fileHandle.acquirePageLock(pageIdx, true /*block*/);
+    auto frameIdx = fileHandle.getFrameIdx(pageIdx);
+    if (FileHandle::isAFrame(frameIdx)) {
+        auto& frame = bufferCache[frameIdx];
+        frame->acquireFrameLock(true /* block */);
+        if (isRemoving) {
+            frame->resetFrameWithoutLock();
+            fileHandle.unswizzle(pageIdx);
+        } else {
+            flushIfDirtyWithoutPageOrFrameLock(frame);
         }
+        frame->releaseFrameLock();
+    }
+    fileHandle.releasePageLock(pageIdx);
+}
+
+void BufferPool::flushAllDirtyPagesInFrames(FileHandle& fileHandle) {
+    for (int pageIdx = 0; pageIdx < fileHandle.numPages; ++pageIdx) {
+        removePageFromFrameOrFlushIfDirty(fileHandle, pageIdx, false /* is flushing */);
+    }
+}
+
+void BufferPool::updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
+    FileHandle& fileHandle, uint8_t* newPage, uint64_t pageIdx) {
+    auto frameIdx = fileHandle.getFrameIdx(pageIdx);
+    if (FileHandle::isAFrame(frameIdx)) {
+        memcpy(bufferCache[frameIdx]->buffer.get(), newPage, DEFAULT_PAGE_SIZE);
     }
 }
 
@@ -189,17 +209,22 @@ bool BufferPool::tryEvict(
     }
     // Else, flush out the frame into the file page if the frame is dirty. Then remove the page from
     // the frame and release the lock on it.
-    if (frame->isDirty) {
-        bmMetrics.numDirtyPageWriteIO += 1;
-        fileHandle.writePage(frame->buffer.get(), frame->pageIdx);
-    }
-    fileHandleInFrame->unswizzle(pageIdxInFrame);
-    fileHandleInFrame->releasePageLock(pageIdxInFrame);
+    flushIfDirtyWithoutPageOrFrameLock(frame);
     // Update the frame information and release the lock on frame.
     readNewPageIntoFrame(*frame, fileHandle, pageIdx, doNotReadFromFile);
     frame->releaseFrameLock();
     bmMetrics.numEvicts += 1;
     return true;
+}
+void BufferPool::flushIfDirtyWithoutPageOrFrameLock(const unique_ptr<Frame>& frame) {
+    auto fileHandleInFrame = reinterpret_cast<FileHandle*>(frame->fileHandlePtr.load());
+    auto pageIdxInFrame = frame->pageIdx.load();
+    if (frame->isDirty) {
+        bmMetrics.numDirtyPageWriteIO += 1;
+        fileHandleInFrame->writePage(frame->buffer.get(), pageIdxInFrame);
+    }
+    fileHandleInFrame->unswizzle(pageIdxInFrame);
+    fileHandleInFrame->releasePageLock(pageIdxInFrame);
 }
 
 void BufferPool::readNewPageIntoFrame(

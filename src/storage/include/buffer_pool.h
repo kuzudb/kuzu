@@ -86,10 +86,14 @@ public:
 
     void resize(uint64_t newSize);
 
-    // Note: This function is not designed for concurrency and therefore not tested under
-    // concurrency. If this is called while other threads are accessing the BM, it should work
-    // safely but this is not tested.
-    void removeOrFlushFilePagesFromFrames(FileHandle& fileHandle, bool isRemovingPages);
+    // Note: These two functions that remove pages from frames is not designed for concurrency and
+    // therefore not tested under concurrency. If this is called while other threads are accessing
+    // the BM, it should work safely but this is not tested.
+    void removeFilePagesFromFrames(FileHandle& fileHandle);
+
+    void flushAllDirtyPagesInFrames(FileHandle& fileHandle);
+    void updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
+        FileHandle& fileHandle, uint8_t* newPage, uint64_t pageIdx);
 
 private:
     uint8_t* pin(FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile);
@@ -106,6 +110,11 @@ private:
 
     void readNewPageIntoFrame(
         Frame& frame, FileHandle& fileHandle, uint32_t pageIdx, bool doNotReadFromFile);
+
+    void flushIfDirtyWithoutPageOrFrameLock(const unique_ptr<Frame>& frame);
+
+    void removePageFromFrameOrFlushIfDirty(
+        FileHandle& fileHandle, uint64_t pageIdx, bool isRemoving);
 
 private:
     shared_ptr<spdlog::logger> logger;

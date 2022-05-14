@@ -6,6 +6,7 @@
 #include "src/storage/include/buffer_manager.h"
 #include "src/storage/include/memory_manager.h"
 #include "src/storage/include/storage_manager.h"
+#include "src/transaction/include/transaction.h"
 #include "src/transaction/include/transaction_manager.h"
 
 namespace graphflow {
@@ -27,7 +28,7 @@ struct SystemConfig {
 
 struct DatabaseConfig {
 
-    explicit DatabaseConfig(std::string databasePath, bool inMemoryMode = true)
+    explicit DatabaseConfig(std::string databasePath, bool inMemoryMode = false)
         : databasePath{std::move(databasePath)}, inMemoryMode{inMemoryMode} {}
 
     std::string databasePath;
@@ -62,6 +63,36 @@ public:
     // used in API test
     inline uint64_t getDefaultBMSize() const { return systemConfig.defaultPageBufferPoolSize; }
     inline uint64_t getLargeBMSize() const { return systemConfig.largePageBufferPoolSize; }
+
+    // TODO(Semih): This is refactored here for now to be able to test transaction behavior
+    // in absence of the frontend support. Consider moving this code to connection.cpp.
+    // Commits and checkpoints a write transaction or rolls that transaction back. This involves
+    // either replaying the WAL and either redoing or undoing and in either case at the end WAL is
+    // cleared.
+    inline void commitAndCheckpointOrRollback(
+        transaction::Transaction* writeTransaction, bool isCommit) {
+        if (isCommit) {
+            storageManager->getWAL().flushAllPages(bufferManager.get());
+            // Note: It is enough to stop and wait transactions to leave the system instead of for
+            // example checking on the query processor's task scheduler. This is because the first
+            // and last steps that a connection performs when executing a query is to start and
+            // comming/rollback transaction. The query processor also ensures that it will only
+            // return results or error after all threads working on the tasks of a query stop
+            // working on the tasks of the query and these tasks are removed from the query.
+            transactionManager->stopNewTransactionsAndWaitUntilAllReadTransactionsLeave();
+            // Note: committing and stopping new transactions can be done in any order. This order
+            // allows us to throw exceptions if we have to wait a lot to stop.
+            transactionManager->commitButKeepActiveWriteTransaction(writeTransaction);
+            storageManager->checkpointWAL();
+        } else {
+            storageManager->rollbackWAL();
+        }
+        storageManager->getWAL().clearWAL();
+        transactionManager->manuallyClearActiveWriteTransaction(writeTransaction);
+        if (isCommit) {
+            transactionManager->allowReceivingNewTransactions();
+        }
+    }
 
 private:
     DatabaseConfig databaseConfig;

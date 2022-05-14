@@ -27,12 +27,16 @@ public:
         return pageElementPos * elementSize;
     }
 
+    inline FileHandle* getFileHandle() { return &fileHandle; }
+
+    inline bool isInMemory() { return isInMemory_; }
+
 protected:
     StorageStructure(const string& fName, const DataType& dataType, const size_t& elementSize,
         BufferManager& bufferManager, bool hasNULLBytes, bool isInMemory);
 
     virtual ~StorageStructure() {
-        if (isInMemory) {
+        if (isInMemory_) {
             StorageStructureUtils::unpinEachPageOfFile(fileHandle, bufferManager);
         }
     }
@@ -76,9 +80,7 @@ protected:
 
     FileHandle fileHandle;
     BufferManager& bufferManager;
-
-private:
-    bool isInMemory;
+    bool isInMemory_;
 };
 
 } // namespace storage

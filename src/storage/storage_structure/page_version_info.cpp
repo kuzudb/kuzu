@@ -38,6 +38,12 @@ void PageVersionInfo::acquireLockForWritingToPage(uint64_t pageIdx) {
     }
 }
 
+void PageVersionInfo::clearUpdatedWALPageVersion(uint64_t pageIdx) {
+    acquireLockForWritingToPage(pageIdx);
+    setUpdatedWALPageVersionNoLock(pageIdx, UINT64_MAX);
+    releaseLock(pageIdx);
+}
+
 void PageVersionInfo::setUpdatedWALPageVersionNoLock(
     uint64_t originalPageIdx, uint64_t pageIdxInWAL) {
     auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForOffset(
@@ -46,9 +52,9 @@ void PageVersionInfo::setUpdatedWALPageVersionNoLock(
         .pageVersions[pageGroupIdxAndPosInGroup.pos] = pageIdxInWAL;
 }
 
-void PageVersionInfo::releaseLock(uint32_t originalPageIdx) {
-    auto pageGroupIdxAndPosInGroup = PageUtils::getPageElementCursorForOffset(
-        originalPageIdx, PAGE_VERSION_INFO_PAGE_GROUP_SIZE);
+void PageVersionInfo::releaseLock(uint32_t pageIdx) {
+    auto pageGroupIdxAndPosInGroup =
+        PageUtils::getPageElementCursorForOffset(pageIdx, PAGE_VERSION_INFO_PAGE_GROUP_SIZE);
     pageLocksAndVersionsPerPageGroup[pageGroupIdxAndPosInGroup.idx]
         .pageLocks[pageGroupIdxAndPosInGroup.pos]
         ->clear();

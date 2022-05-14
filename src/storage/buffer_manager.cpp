@@ -68,11 +68,23 @@ void BufferManager::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
                                        bufferPoolDefaultPages->unpin(fileHandle, pageIdx);
 }
 
-void BufferManager::removeOrFlushPagesFromFrames(FileHandle& fileHandle, bool isRemovingPages) {
-    return fileHandle.isLargePaged() ?
-               bufferPoolLargePages->removeOrFlushFilePagesFromFrames(fileHandle, isRemovingPages) :
-               bufferPoolDefaultPages->removeOrFlushFilePagesFromFrames(
-                   fileHandle, isRemovingPages);
+void BufferManager::removeFilePagesFromFrames(FileHandle& fileHandle) {
+    fileHandle.isLargePaged() ? bufferPoolLargePages->removeFilePagesFromFrames(fileHandle) :
+                                bufferPoolDefaultPages->removeFilePagesFromFrames(fileHandle);
+}
+
+void BufferManager::flushAllDirtyPagesInFrames(FileHandle& fileHandle) {
+    fileHandle.isLargePaged() ? bufferPoolLargePages->flushAllDirtyPagesInFrames(fileHandle) :
+                                bufferPoolDefaultPages->flushAllDirtyPagesInFrames(fileHandle);
+}
+
+void BufferManager::updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
+    FileHandle& fileHandle, uint8_t* newPage, uint64_t pageIdx) {
+    fileHandle.isLargePaged() ?
+        bufferPoolLargePages->updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
+            fileHandle, newPage, pageIdx) :
+        bufferPoolDefaultPages->updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
+            fileHandle, newPage, pageIdx);
 }
 
 unique_ptr<nlohmann::json> BufferManager::debugInfo() {

@@ -60,7 +60,8 @@ class WAL : public BaseWALAndWALIterator {
     friend WALIterator;
 
 public:
-    WAL(const string& path) {
+    WAL(const string& path, BufferManager& bufferManager)
+        : bufferManager{bufferManager}, lastLoggedRecordIsCommit{false} {
         createFileHandle(path);
         initCurrentPage();
     }
@@ -75,7 +76,7 @@ public:
         flushHeaderPages();
     }
 
-    unique_ptr<WALIterator> getIterator() {
+    inline unique_ptr<WALIterator> getIterator() {
         lock_t lck{mtx};
         flushHeaderPages();
         return make_unique<WALIterator>(fileHandle, mtx);
@@ -103,8 +104,17 @@ public:
     uint32_t logStructuredAdjColumnPropertyPage(
         label_t nodeLabel, label_t relLabel, uint32_t propertyID, uint32_t pageIdxInOriginalFile);
     void logCommit(uint64_t transactionID);
-    // Deletes the WAL file and reopens and resets its contents and the contents of this class.
-    void deleteAndReopenWALFile(BufferManager* bufferManager);
+    // Removes the contents of WAL file.
+    void clearWAL();
+
+    // We might need another way to check that the last record is commit for recovery and then
+    // we might remove this for now to reduce our code size.
+    inline bool isLastLoggedRecordCommit() {
+        lock_t lck{mtx};
+        return lastLoggedRecordIsCommit;
+    }
+
+    void flushAllPages(BufferManager* bufferManager);
 
 private:
     inline void createFileHandle(const string& path) {
@@ -127,6 +137,8 @@ private:
 
 private:
     mutex mtx;
+    BufferManager& bufferManager;
+    bool lastLoggedRecordIsCommit;
 };
 
 class WALIterator : public BaseWALAndWALIterator {

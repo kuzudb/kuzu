@@ -79,7 +79,11 @@ public:
 
     void resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeForLargePagePool);
 
-    void removeOrFlushPagesFromFrames(FileHandle& fileHandle, bool isRemovingPages);
+    void removeFilePagesFromFrames(FileHandle& fileHandle);
+
+    void flushAllDirtyPagesInFrames(FileHandle& fileHandle);
+    void updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
+        FileHandle& fileHandle, uint8_t* newPage, uint64_t pageIdx);
 
 private:
     shared_ptr<spdlog::logger> logger;

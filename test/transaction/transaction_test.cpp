@@ -1,5 +1,7 @@
 #include "test/test_utility/include/test_helper.h"
 
+#include "src/common/include/configs.h"
+
 using namespace graphflow::testing;
 
 class TransactionTests : public BaseGraphLoadingTest {
@@ -9,6 +11,8 @@ public:
     void SetUp() override {
         BaseGraphLoadingTest::SetUp();
         systemConfig->largePageBufferPoolSize = (1ull << 22);
+        // Note we do not actually use the connection field in these tests. We only need the
+        // database.
         createConn();
         writeTrx = database->getTransactionManager()->beginWriteTransaction();
         readTrx = database->getTransactionManager()->beginReadOnlyTransaction();
@@ -97,6 +101,45 @@ public:
             writeTrx.get(), nodeVector, propertyVectorToWriteDataTo);
     }
 
+    void assertOriginalAgeAndEyeSightPropertiesForNodes0And1(Transaction* transaction) {
+        readAndAssertAgePropertyNode(0 /* node offset */, transaction, 35, false /* is not null */);
+        readAndAssertAgePropertyNode(1 /* node offset */, transaction, 30, false /* is not null */);
+        readAndAssertEyeSightPropertyNode(
+            0 /* node offset */, transaction, 5.0, false /* is not null */);
+        readAndAssertEyeSightPropertyNode(
+            1 /* node offset */, transaction, 5.1, false /* is not null */);
+    }
+
+    void updateAgeAndEyeSightPropertiesForNodes0And1() {
+        // Change the age value of node 0 to 70 and 1 null;
+        writeToAgePropertyNode(0, 70, false /* is not null */);
+        writeToAgePropertyNode(1, 124124 /* this argument is ignored */, true /* is null */);
+
+        // Change the value of eyeSight property for node 0 to 0.4 and 1 to null;
+        writeToEyeSightPropertyNode(0 /* node offset */, 0.4, false /* is not null */);
+        writeToEyeSightPropertyNode(1 /* node offset */, 3.4, true /* is null */);
+    }
+
+    void assertUpdatedAgeAndEyeSightPropertiesForNodes0And1(Transaction* transaction) {
+        readAndAssertAgePropertyNode(0 /* node offset */, transaction, 70, false /* is not null */);
+        readAndAssertAgePropertyNode(1 /* node offset */, transaction,
+            1232532 /* this argument is ignored */, true /* is  null */);
+        readAndAssertEyeSightPropertyNode(
+            0 /* node offset */, transaction, 0.4, false /* is not null */);
+        readAndAssertEyeSightPropertyNode(
+            1 /* node offset */, transaction, -423.12 /* this is ignored */, true /* is null */);
+    }
+
+    void assertReadBehaviorForBeforeRollbackAndCommitForConcurrent1Write1ReadTransactionTest() {
+        assertOriginalAgeAndEyeSightPropertiesForNodes0And1(writeTrx.get());
+        assertOriginalAgeAndEyeSightPropertiesForNodes0And1(readTrx.get());
+
+        updateAgeAndEyeSightPropertiesForNodes0And1();
+
+        assertUpdatedAgeAndEyeSightPropertiesForNodes0And1(writeTrx.get());
+        assertOriginalAgeAndEyeSightPropertiesForNodes0And1(readTrx.get());
+    }
+
 public:
     unique_ptr<Transaction> writeTrx;
     unique_ptr<Transaction> readTrx;
@@ -122,36 +165,57 @@ TEST_F(TransactionTests, SingleTransactionReadWriteToStructuredNodePropertyNullT
         888 /* this argument is ignored */, true /* is null */);
 }
 
-TEST_F(TransactionTests, SingleTransactionReadWriteToMultipleStructuredNodePropertiesTest) {
-    readAndAssertAgePropertyNode(0 /* node offset */, writeTrx.get(), 35, false /* is not null */);
-    readAndAssertEyeSightPropertyNode(
-        0 /* node offset */, writeTrx.get(), 5.0, false /* is not null */);
-
-    writeToAgePropertyNode(
-        0 /* node offset */, 12345 /* this argument is ignored */, true /* is null */);
-    writeToEyeSightPropertyNode(0 /* node offset */, 0.4, false /* is not null */);
-
-    readAndAssertAgePropertyNode(0 /* node offset */, writeTrx.get(),
-        888 /* this argument is ignored */, true /* is null */);
-    readAndAssertEyeSightPropertyNode(
-        0 /* node offset */, writeTrx.get(), 0.4, false /* is not null */);
+TEST_F(TransactionTests, Concurrent1Write1ReadTransactionInTheMiddleOfTransaction) {
+    assertReadBehaviorForBeforeRollbackAndCommitForConcurrent1Write1ReadTransactionTest();
 }
 
-TEST_F(TransactionTests, Concurrent1Write1ReadTransaction) {
-    readAndAssertAgePropertyNode(0 /* node offset */, readTrx.get(), 35, false /* is not null */);
-    readAndAssertAgePropertyNode(0 /* node offset */, writeTrx.get(), 35, false /* is not null */);
+TEST_F(TransactionTests, Concurrent1Write1ReadTransactionCommitAndCheckpoint) {
+    assertReadBehaviorForBeforeRollbackAndCommitForConcurrent1Write1ReadTransactionTest();
 
-    readAndAssertAgePropertyNode(1 /* node offset */, readTrx.get(), 30, false /* is not null */);
-    readAndAssertAgePropertyNode(1 /* node offset */, writeTrx.get(), 30, false /* is not null */);
+    // We need to commit the read transacdtion because the checkpointWAL requires all read
+    // transactions to leave the system.
+    database->getTransactionManager()->commit(readTrx.get());
+    database->commitAndCheckpointOrRollback(writeTrx.get(), true /* isCommit */);
 
-    // Change the value of node 0 to 70 and 1 null;
-    writeToAgePropertyNode(0, 70, false /* is not null */);
-    writeToAgePropertyNode(1, 124124 /* this argument is ignored */, true /* is null */);
+    // At this point, the write transaction no longer is valid and is not registered in the
+    // TransactionManager, so in normal operation, we would need to create new transactions.
+    // Although this is not needed, we still do it. This is not needed because this test directly
+    // accesses the columns with a transaction and the storage_structures assume that the given
+    // transaction is active.
+    writeTrx = database->getTransactionManager()->beginWriteTransaction();
+    readTrx = database->getTransactionManager()->beginReadOnlyTransaction();
 
-    readAndAssertAgePropertyNode(0 /* node offset */, writeTrx.get(), 70, false /* is not null */);
-    readAndAssertAgePropertyNode(0 /* node offset */, readTrx.get(), 35, false /* is not null */);
+    assertUpdatedAgeAndEyeSightPropertiesForNodes0And1(writeTrx.get());
+    assertUpdatedAgeAndEyeSightPropertiesForNodes0And1(readTrx.get());
+}
 
-    readAndAssertAgePropertyNode(1 /* node offset */, readTrx.get(), 30, false /* is not null */);
-    readAndAssertAgePropertyNode(1 /* node offset */, writeTrx.get(),
-        1232532 /* this argument is ignored */, true /* is  null */);
+// TODO(Semih): Later when we make these tests go through connection.cpp or write new tests that
+// test the same functionality but in an end-to-end manner, check that the WAL is cleared and the
+// active write transaction is removed from the transaction manager etc (e.g., that you can start a
+// new  transaction).
+TEST_F(TransactionTests, OpenReadOnlyTransactionTriggersTimeoutErrorForWriteTransaction) {
+    // Note that TransactionTests starts 1 read and 1 write transaction by default.
+    database->getTransactionManager()->setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(
+        10000 /* 10ms */);
+    updateAgeAndEyeSightPropertiesForNodes0And1();
+    try {
+        database->commitAndCheckpointOrRollback(writeTrx.get(), true /* isCommit */);
+        FAIL();
+    } catch (TransactionManagerException e) {
+    } catch (Exception& e) { FAIL(); }
+    assertOriginalAgeAndEyeSightPropertiesForNodes0And1(readTrx.get());
+}
+
+TEST_F(TransactionTests, Concurrent1Write1ReadTransactionRollback) {
+    assertReadBehaviorForBeforeRollbackAndCommitForConcurrent1Write1ReadTransactionTest();
+
+    database->commitAndCheckpointOrRollback(writeTrx.get(), false /* rollback */);
+
+    // See the comment inside Concurrent1Write1ReadTransactionCommitAndCheckpoint for why we create
+    // these new transactions
+    writeTrx = database->getTransactionManager()->beginWriteTransaction();
+    readTrx = database->getTransactionManager()->beginReadOnlyTransaction();
+
+    assertOriginalAgeAndEyeSightPropertiesForNodes0And1(writeTrx.get());
+    assertOriginalAgeAndEyeSightPropertiesForNodes0And1(readTrx.get());
 }

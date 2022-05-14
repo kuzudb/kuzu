@@ -8,7 +8,8 @@ class WALTests : public Test {
 protected:
     void SetUp() override {
         FileUtils::createDir(TestHelper::TEMP_TEST_DIR);
-        wal = make_unique<WAL>(string(TestHelper::TEMP_TEST_DIR) + "waltest.wal");
+        bufferManager = make_unique<BufferManager>();
+        wal = make_unique<WAL>(string(TestHelper::TEMP_TEST_DIR) + "waltest.wal", *bufferManager);
     }
 
     void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
@@ -73,6 +74,7 @@ protected:
     }
 
 public:
+    unique_ptr<BufferManager> bufferManager;
     unique_ptr<WAL> wal;
 };
 
@@ -122,14 +124,13 @@ TEST_F(WALTests, TestDeleteAndReopenWALFile) {
     vector<uint64_t> assignedPageIdxs;
     addStructuredNodePropertyPageRecord(assignedPageIdxs, numStructuredNodePropertyPageRecords);
     addCommitRecord();
-    auto bufferManager = make_unique<BufferManager>();
     // Pin and unpin some pages
     bufferManager->pin(*wal->fileHandle, assignedPageIdxs[100]);
     bufferManager->pin(*wal->fileHandle, assignedPageIdxs[150]);
     bufferManager->unpin(*wal->fileHandle, assignedPageIdxs[100]);
     bufferManager->unpin(*wal->fileHandle, assignedPageIdxs[150]);
     // We test that delete and reopen truncates the data
-    wal->deleteAndReopenWALFile(bufferManager.get());
+    wal->clearWAL();
 
     assignedPageIdxs.clear();
     addStructuredNodePropertyPageRecord(assignedPageIdxs, numStructuredNodePropertyPageRecords);
@@ -145,7 +146,7 @@ TEST_F(WALTests, TestOpeningExistingWAL) {
     vector<uint64_t> assignedPageIdxs;
     addStructuredNodePropertyPageRecord(assignedPageIdxs, numStructuredNodePropertyPageRecords);
     wal.reset();
-    wal = make_unique<WAL>(string(TestHelper::TEMP_TEST_DIR) + "waltest.wal");
+    wal = make_unique<WAL>(string(TestHelper::TEMP_TEST_DIR) + "waltest.wal", *bufferManager);
 
     auto walIterator = wal->getIterator();
     readAndVerifyStructuredNodePropertyPageRecords(walIterator.get(), assignedPageIdxs,

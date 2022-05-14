@@ -49,6 +49,8 @@ public:
     // Used only for tests.
     bool isNull(node_offset_t nodeOffset);
 
+    void clearPageVersionInfo(uint64_t pageIdx);
+
 protected:
     virtual void readForSingleNodeIDPosition(const transaction::Transaction* transaction,
         uint32_t pos, const shared_ptr<ValueVector>& nodeIDVector,

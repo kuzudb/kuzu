@@ -34,7 +34,7 @@ HashIndex::HashIndex(
 }
 
 HashIndex::~HashIndex() {
-    bm.removeOrFlushPagesFromFrames(*fh, false /* isRemovingPages */);
+    bm.flushAllDirtyPagesInFrames(*fh);
 }
 
 void HashIndex::initializeHeaderAndPages(const DataType& keyDataType, bool isInMemory) {

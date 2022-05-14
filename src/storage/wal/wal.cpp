@@ -29,10 +29,17 @@ void WAL::logCommit(uint64_t transactionID) {
     addNewWALRecordWithoutLock(walRecord);
 }
 
-void WAL::deleteAndReopenWALFile(BufferManager* bufferManager) {
-    bufferManager->removeOrFlushPagesFromFrames(*fileHandle, true /* isRemovingPages */);
+void WAL::clearWAL() {
+    bufferManager.removeFilePagesFromFrames(*fileHandle);
     fileHandle->resetToZeroPagesAndPageCapacity();
     initCurrentPage();
+}
+
+void WAL::flushAllPages(BufferManager* bufferManager) {
+    if (!isEmptyWAL()) {
+        flushHeaderPages();
+        bufferManager->flushAllDirtyPagesInFrames(*fileHandle);
+    }
 }
 
 void WAL::initCurrentPage() {
@@ -62,6 +69,7 @@ void WAL::addNewWALRecordWithoutLock(WALRecord& walRecord) {
     }
     incrementNumRecordsInCurrentHeaderPage();
     walRecord.writeWALRecordToBytes(currentHeaderPageBuffer, offsetInCurrentHeaderPage);
+    lastLoggedRecordIsCommit = (COMMIT_RECORD == walRecord.recordType);
 }
 
 WALIterator::WALIterator(shared_ptr<FileHandle> fileHandle, mutex& mtx)

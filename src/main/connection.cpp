@@ -295,8 +295,12 @@ void Connection::beginTransactionNoLock(TransactionType type) {
 
 void Connection::commitOrRollbackNoLock(bool isCommit) {
     if (activeTransaction) {
-        isCommit ? database->transactionManager->commit(activeTransaction.get()) :
-                   database->transactionManager->rollback(activeTransaction.get());
+        if (activeTransaction->isWriteTransaction()) {
+            database->commitAndCheckpointOrRollback(activeTransaction.get(), isCommit);
+        } else {
+            isCommit ? database->transactionManager->commit(activeTransaction.get()) :
+                       database->transactionManager->rollback(activeTransaction.get());
+        }
         activeTransaction.reset();
         transactionMode = AUTO_COMMIT;
     }

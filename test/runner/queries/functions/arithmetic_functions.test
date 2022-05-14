@@ -336,7 +336,6 @@
 20922789888000
 2
 
-
 -NAME gammaFunctionOnUnstrDoubleTest
 -QUERY MATCH (a:organisation) RETURN gamma(abs(a.unstrNumericProp) - 3)
 ---- 3
