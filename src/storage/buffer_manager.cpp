@@ -58,7 +58,7 @@ uint8_t* BufferManager::pinWithoutReadingFromFile(FileHandle& fileHandle, uint32
 }
 
 // Important Note: The caller should make sure that they have pinned the page before calling this.
-const void BufferManager::setPinnedPageDirty(FileHandle& fileHandle, uint32_t pageIdx) {
+void BufferManager::setPinnedPageDirty(FileHandle& fileHandle, uint32_t pageIdx) {
     fileHandle.isLargePaged() ? bufferPoolLargePages->setPinnedPageDirty(fileHandle, pageIdx) :
                                 bufferPoolDefaultPages->setPinnedPageDirty(fileHandle, pageIdx);
 }
@@ -68,10 +68,11 @@ void BufferManager::unpin(FileHandle& fileHandle, uint32_t pageIdx) {
                                        bufferPoolDefaultPages->unpin(fileHandle, pageIdx);
 }
 
-void BufferManager::removeFilePagesFromFrames(FileHandle& fileHandle) {
+void BufferManager::removeOrFlushPagesFromFrames(FileHandle& fileHandle, bool isRemovingPages) {
     return fileHandle.isLargePaged() ?
-               bufferPoolLargePages->removeFilePagesFromFrames(fileHandle) :
-               bufferPoolDefaultPages->removeFilePagesFromFrames(fileHandle);
+               bufferPoolLargePages->removeOrFlushFilePagesFromFrames(fileHandle, isRemovingPages) :
+               bufferPoolDefaultPages->removeOrFlushFilePagesFromFrames(
+                   fileHandle, isRemovingPages);
 }
 
 unique_ptr<nlohmann::json> BufferManager::debugInfo() {

@@ -17,7 +17,6 @@ public:
     LoadedHashIndexTest() : fName{TEMP_INDEX_DIR + "0.index"} {
         FileUtils::createDir(TEMP_INDEX_DIR);
         writeBufferManager = make_unique<BufferManager>();
-        writeMemoryManager = make_unique<MemoryManager>(writeBufferManager.get());
     }
 
     void TearDown() override { FileUtils::removeDir(TEMP_INDEX_DIR); }
@@ -34,13 +33,14 @@ class LoadedHashIndexInt64KeyTest : public LoadedHashIndexTest {
 
 public:
     void SetUp() override {
-        HashIndex insertionHashIndex(fName, DataType(INT64), writeMemoryManager.get());
+        HashIndex insertionHashIndex(
+            fName, DataType(INT64), *writeBufferManager, true /* isInMemory */);
         insertionHashIndex.bulkReserve(numKeysToInsert);
-        // Inserting (key=i, value=i*2) pairs
+        // Inserting(key = i, value = i * 2) pairs
         for (uint64_t k = 0; k < numKeysToInsert; k++) {
-            insertionHashIndex.insert(reinterpret_cast<uint8_t*>(&k), k << 1);
+            insertionHashIndex.insert(k, k << 1);
         }
-        insertionHashIndex.saveToDisk();
+        insertionHashIndex.flush();
     }
 };
 
@@ -68,13 +68,13 @@ public:
     }
 
     void SetUp() override {
-        HashIndex insertionHashIndex(fName, DataType(STRING), writeMemoryManager.get());
+        HashIndex insertionHashIndex(
+            fName, DataType(STRING), *writeBufferManager, true /* isInMemory */);
         insertionHashIndex.bulkReserve(numKeysToInsert);
         for (auto& entry : map) {
-            auto key = reinterpret_cast<uint8_t*>(const_cast<char*>(entry.first.c_str()));
-            insertionHashIndex.insert(key, entry.second);
+            insertionHashIndex.insert(entry.first.c_str(), entry.second);
         }
-        insertionHashIndex.saveToDisk();
+        insertionHashIndex.flush();
     }
 
 public:
@@ -84,38 +84,39 @@ public:
 
 TEST(HashIndexTest, HashIndexInt64KeyInsertExists) {
     auto bufferManager = make_unique<BufferManager>();
-    auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
-    HashIndex hashIndex("dummy_name", DataType(INT64), memoryManager.get());
+    HashIndex hashIndex("dummy_name_int", DataType(INT64), *bufferManager, true /* isInMemory */);
     auto numEntries = 10;
+    hashIndex.bulkReserve(10);
     for (uint64_t i = 0; i < numEntries; i++) {
-        ASSERT_TRUE(hashIndex.insert(reinterpret_cast<uint8_t*>(&i), i << 1));
+        ASSERT_TRUE(hashIndex.insert(i, i << 1));
     }
     for (uint64_t i = 0; i < numEntries; i++) {
-        ASSERT_FALSE(hashIndex.insert(reinterpret_cast<uint8_t*>(&i), i << 1));
+        ASSERT_FALSE(hashIndex.insert(i, i << 1));
     }
+    hashIndex.flush();
 }
 
 TEST(HashIndexTest, HashIndexStringKeyInsertExists) {
     auto bufferManager = make_unique<BufferManager>();
-    auto memoryManager = make_unique<MemoryManager>(bufferManager.get());
-    HashIndex hashIndex("dummy_name", DataType(STRING), memoryManager.get());
+    HashIndex hashIndex(
+        "dummy_name_string", DataType(STRING), *bufferManager, true /* isInMemory */);
     char const* strKeys[] = {"abc", "def", "ghi", "jkl", "mno"};
+    hashIndex.bulkReserve(5);
     for (uint64_t i = 0; i < 5; i++) {
-        auto key = reinterpret_cast<uint8_t*>(const_cast<char*>(strKeys[i]));
-        ASSERT_TRUE(hashIndex.insert(key, i));
+        ASSERT_TRUE(hashIndex.insert(strKeys[i], i));
     }
     for (auto i = 0; i < 5; i++) {
-        auto key = reinterpret_cast<uint8_t*>(const_cast<char*>(strKeys[i]));
-        ASSERT_FALSE(hashIndex.insert(key, i));
+        ASSERT_FALSE(hashIndex.insert(strKeys[i], i));
     }
+    hashIndex.flush();
 }
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64SequentialLookupInMem) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, bufferManager.get(), true /*isInMemory*/);
+    HashIndex hashIndex(fName, DataType(INT64), *bufferManager, true /*isInMemory*/);
     node_offset_t result;
     for (uint64_t i = 0; i < numKeysToInsert; i++) {
-        auto found = hashIndex.lookup(reinterpret_cast<uint8_t*>(&i), result);
+        auto found = hashIndex.lookup(i, result);
         ASSERT_TRUE(found);
         ASSERT_EQ(result, i << 1);
     }
@@ -123,7 +124,7 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64SequentialLookupInMem) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookupThroughBufferManager) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, bufferManager.get(), false /*isInMemory*/);
+    HashIndex hashIndex(fName, DataType(INT64), *bufferManager, true /*isInMemory*/);
     random_device rd;
     mt19937::result_type seed =
         rd() ^ ((mt19937::result_type)chrono::duration_cast<chrono::seconds>(
@@ -137,19 +138,49 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookupThroughBufferManag
     node_offset_t result;
     for (auto i = 0; i < 10000; i++) {
         uint64_t key = distribution(gen);
-        hashIndex.lookup(reinterpret_cast<uint8_t*>(&key), result);
+        hashIndex.lookup(key, result);
         ASSERT_EQ(result, key << 1);
     }
 }
 
 TEST_F(LoadedHashIndexStringKeyTest, HashIndexInt64SequentialLookupInMem) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, bufferManager.get(), true /*isInMemory*/);
+    HashIndex hashIndex(fName, DataType(STRING), *bufferManager, true /*isInMemory*/);
     node_offset_t result;
     for (auto& entry : map) {
-        auto key = reinterpret_cast<uint8_t*>(const_cast<char*>(entry.first.c_str()));
-        auto found = hashIndex.lookup(key, result);
+        auto found = hashIndex.lookup(entry.first.c_str(), result);
         ASSERT_TRUE(found);
         ASSERT_EQ(result, entry.second);
+    }
+}
+
+static void parallel_insert(HashIndex* index, int64_t startId, uint64_t num) {
+    for (auto i = 0u; i < num; i++) {
+        index->insert(startId + i, (startId + i) * 2);
+    }
+}
+
+TEST_F(LoadedHashIndexTest, ParallelHashIndexInsertions) {
+    auto bufferManager = make_unique<BufferManager>();
+    auto hashIndex =
+        make_unique<HashIndex>("dummy", DataType(INT64), *bufferManager, true /*isInMemory*/);
+    hashIndex->bulkReserve(numKeysToInsert);
+    auto numThreads = 10u;
+    auto numKeysPerThread = numKeysToInsert / numThreads;
+    thread threads[numThreads];
+    auto startId = 0;
+    for (auto i = 0u; i < numThreads; i++) {
+        threads[i] = thread(parallel_insert, hashIndex.get(), startId, numKeysPerThread);
+        startId += numKeysPerThread;
+    }
+    for (auto i = 0u; i < numThreads; i++) {
+        threads[i].join();
+    }
+    hashIndex->flush();
+
+    node_offset_t result;
+    for (auto i = 0u; i < numKeysToInsert; i++) {
+        ASSERT_TRUE(hashIndex->lookup(i, result));
+        ASSERT_EQ(result, i * 2);
     }
 }
