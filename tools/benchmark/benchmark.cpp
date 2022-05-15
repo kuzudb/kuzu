@@ -34,7 +34,7 @@ unique_ptr<QueryResult> Benchmark::run() {
 }
 
 void Benchmark::logQueryInfo(ofstream& log, uint32_t runNum, QueryResult& queryResult) const {
-    vector<string> actualOutput = testing::TestHelper::getOutput(queryResult);
+    vector<string> actualOutput = testing::TestHelper::convertResultToString(queryResult);
     log << "Run Num: " << runNum << endl;
     log << "Status: " << (actualOutput == expectedOutput ? "pass" : "error") << endl;
     log << "Query: " << query << endl;
@@ -77,7 +77,7 @@ void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
 }
 
 void Benchmark::verify(QueryResult& queryResult) const {
-    vector<string> actualOutput = testing::TestHelper::getOutput(queryResult);
+    vector<string> actualOutput = testing::TestHelper::convertResultToString(queryResult);
     if (actualOutput != expectedOutput) {
         spdlog::error("Query: {}", query);
         spdlog::error("Result tuples are not matched");

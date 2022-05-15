@@ -18,9 +18,9 @@ public:
 
     inline bool isEmpty() const { return lastOperator == nullptr; }
 
-    inline bool containAggregation() const {
-        return lastOperator->descendantsContainType(
-            unordered_set<LogicalOperatorType>{LOGICAL_AGGREGATE});
+    inline bool isReadOnly() const {
+        return !lastOperator->descendantsContainType(
+            unordered_set<LogicalOperatorType>{LOGICAL_SET});
     }
 
     // Our sub-plan (specific to the right plan of Exists and LeftNestedLoopJoin operator) does not

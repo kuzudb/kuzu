@@ -10,6 +10,7 @@
 
 using namespace graphflow::common;
 using namespace graphflow::catalog;
+using namespace graphflow::transaction;
 using namespace std;
 
 namespace graphflow {
@@ -32,34 +33,32 @@ public:
         : Column(fName, property, nodeLabel, Types::getDataTypeSize(property.dataType),
               bufferManager, isInMemory, wal){};
 
-    virtual void readValues(
-        const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& valueVector) {
-        transaction::Transaction tmpTransaction(transaction::READ_ONLY, UINT64_MAX);
-        readValues(&tmpTransaction, nodeIDVector, valueVector);
-    }
+    virtual void readValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
+        const shared_ptr<ValueVector>& valueVector);
 
-    virtual void readValues(const transaction::Transaction* transaction,
-        const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& valueVector);
-
-    virtual void writeValueForFlatVector(const transaction::Transaction* transaction,
-        const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector);
+    virtual void writeValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
+        const shared_ptr<ValueVector>& vectorToWriteFrom);
 
     // Currently, used only in Loader tests.
     virtual Literal readValue(node_offset_t offset);
     // Used only for tests.
     bool isNull(node_offset_t nodeOffset);
 
-    void clearPageVersionInfo(uint64_t pageIdx);
+    inline void clearPageVersionInfo(uint64_t pageIdx) {
+        pageVersionInfo.clearUpdatedWALPageVersion(pageIdx);
+    }
 
 protected:
-    virtual void readForSingleNodeIDPosition(const transaction::Transaction* transaction,
-        uint32_t pos, const shared_ptr<ValueVector>& nodeIDVector,
-        const shared_ptr<ValueVector>& resultVector);
+    void writeValueForSingleNodeIDPosition(Transaction* transaction, node_offset_t nodeOffset,
+        const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t resultVectorPos);
+
+    virtual void readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
+        const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector);
 
 private:
     // Note: When storing edges of a single multiplicity edges in a column, this property does not
     // have a name or propertyID.
-    catalog::Property property;
+    Property property;
     // If this column is storing an adjacency column edges of rel properties of those edges, we also
     // store the src/dst nodeLabelForAdjColumnAndProperties of the property. This is needed to log
     // in the WAL the correct file ID of the column.
@@ -80,7 +79,7 @@ public:
               wal},
           stringOverflowPages{fName, bufferManager, isInMemory} {};
 
-    void readValues(const shared_ptr<ValueVector>& nodeIDVector,
+    void readValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector) override;
 
     // Currently, used only in Loader tests.
@@ -100,7 +99,7 @@ public:
               wal},
           listOverflowPages{fName, bufferManager, isInMemory} {};
 
-    void readValues(const shared_ptr<ValueVector>& nodeIDVector,
+    void readValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& valueVector) override;
     Literal readValue(node_offset_t offset) override;
 
@@ -120,7 +119,7 @@ public:
           nodeIDCompressionScheme(nodeIDCompressionScheme){};
 
 private:
-    void readForSingleNodeIDPosition(const transaction::Transaction* transaction, uint32_t pos,
+    void readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
         const shared_ptr<ValueVector>& nodeIDVector,
         const shared_ptr<ValueVector>& resultVector) override;
 

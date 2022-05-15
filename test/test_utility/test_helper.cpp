@@ -75,7 +75,8 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, Connection&
                     j, numTuples, testConfig.expectedNumTuples);
                 spdlog::info("PLAN: \n{}", planStr);
             } else {
-                vector<string> resultTuples = getOutput(*result, testConfig.checkOutputOrder);
+                vector<string> resultTuples =
+                    convertResultToString(*result, testConfig.checkOutputOrder);
                 if (resultTuples == testConfig.expectedTuples) {
                     spdlog::info("PLAN{} PASSED", j);
                     spdlog::debug("PLAN: \n{}", planStr);
@@ -102,7 +103,7 @@ bool TestHelper::runTest(const vector<TestQueryConfig>& testConfigs, Connection&
     return numPassedQueries == numQueries;
 }
 
-vector<string> TestHelper::getOutput(QueryResult& queryResult, bool checkOutputOrder) {
+vector<string> TestHelper::convertResultToString(QueryResult& queryResult, bool checkOutputOrder) {
     vector<string> actualOutput;
     while (queryResult.hasNext()) {
         auto tuple = queryResult.getNext();

@@ -14,16 +14,17 @@ namespace processor {
 
 struct ExecutionContext {
 
-    ExecutionContext(uint64_t numThreads, Profiler* profiler, Transaction* transaction,
-        MemoryManager* memoryManager, BufferManager* bufferManager)
-        : numThreads{numThreads}, profiler{profiler}, transaction{transaction},
-          memoryManager{memoryManager}, bufferManager{bufferManager} {}
+    ExecutionContext(uint64_t numThreads, Profiler* profiler, MemoryManager* memoryManager,
+        BufferManager* bufferManager)
+        : numThreads{numThreads}, profiler{profiler}, memoryManager{memoryManager},
+          bufferManager{bufferManager} {}
 
     uint64_t numThreads;
     Profiler* profiler;
-    Transaction* transaction;
     MemoryManager* memoryManager;
     BufferManager* bufferManager;
+
+    Transaction* transaction;
 };
 
 } // namespace processor

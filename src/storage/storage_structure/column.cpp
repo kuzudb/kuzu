@@ -3,8 +3,8 @@
 namespace graphflow {
 namespace storage {
 
-void Column::readValues(const transaction::Transaction* transaction,
-    const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& valueVector) {
+void Column::readValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
+    const shared_ptr<ValueVector>& valueVector) {
     assert(nodeIDVector->dataType.typeID == NODE);
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->getPositionOfCurrIdx();
@@ -36,15 +36,35 @@ bool Column::isNull(node_offset_t nodeOffset) {
     return isNullFromNULLByte(NULLByteAndByteLevelOffset.first, NULLByteAndByteLevelOffset.second);
 }
 
-void Column::clearPageVersionInfo(uint64_t pageIdx) {
-    pageVersionInfo.clearUpdatedWALPageVersion(pageIdx);
+void Column::writeValues(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
+    const shared_ptr<ValueVector>& vectorToWriteFrom) {
+    if (nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
+        auto nodeOffset = nodeIDVector->readNodeOffset(nodeIDVector->state->getPositionOfCurrIdx());
+        writeValueForSingleNodeIDPosition(transaction, nodeOffset, vectorToWriteFrom,
+            vectorToWriteFrom->state->getPositionOfCurrIdx());
+    } else if (nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
+        auto nodeOffset = nodeIDVector->readNodeOffset(nodeIDVector->state->getPositionOfCurrIdx());
+        auto lastPos = vectorToWriteFrom->state->selectedSize - 1;
+        writeValueForSingleNodeIDPosition(transaction, nodeOffset, vectorToWriteFrom, lastPos);
+    } else if (!nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
+        for (auto i = 0u; i < nodeIDVector->state->selectedSize; ++i) {
+            auto nodeOffset =
+                nodeIDVector->readNodeOffset(nodeIDVector->state->selectedPositions[i]);
+            writeValueForSingleNodeIDPosition(transaction, nodeOffset, vectorToWriteFrom,
+                vectorToWriteFrom->state->getPositionOfCurrIdx());
+        }
+    } else if (!nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
+        for (auto i = 0u; i < nodeIDVector->state->selectedSize; ++i) {
+            auto pos = nodeIDVector->state->selectedPositions[i];
+            auto nodeOffset = nodeIDVector->readNodeOffset(pos);
+            writeValueForSingleNodeIDPosition(transaction, nodeOffset, vectorToWriteFrom, pos);
+        }
+    }
 }
 
-void Column::writeValueForFlatVector(const transaction::Transaction* transaction,
-    const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector) {
-    auto valueVectorPos = nodeIDVector->state->getPositionOfCurrIdx();
-    node_offset_t offset = nodeIDVector->readNodeOffset(valueVectorPos);
-    auto cursor = PageUtils::getPageElementCursorForOffset(offset, numElementsPerPage);
+void Column::writeValueForSingleNodeIDPosition(Transaction* transaction, node_offset_t nodeOffset,
+    const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t resultVectorPos) {
+    auto cursor = PageUtils::getPageElementCursorForOffset(nodeOffset, numElementsPerPage);
     pageVersionInfo.acquireLockForWritingToPage(cursor.idx);
     uint32_t pageIdxInWAL;
     uint8_t* frame;
@@ -64,13 +84,13 @@ void Column::writeValueForFlatVector(const transaction::Transaction* transaction
     }
     bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
     memcpy(frame + mapElementPosToByteOffset(cursor.pos),
-        resultVector->values + valueVectorPos * elementSize, elementSize);
-    setNullBitOfAPosInFrame(frame, cursor.pos, resultVector->isNull(valueVectorPos));
+        vectorToWriteFrom->values + resultVectorPos * elementSize, elementSize);
+    setNullBitOfAPosInFrame(frame, cursor.pos, vectorToWriteFrom->isNull(resultVectorPos));
     pageVersionInfo.releaseLock(cursor.idx);
     bufferManager.unpin(*wal->fileHandle, pageIdxInWAL);
 }
 
-void Column::readForSingleNodeIDPosition(const transaction::Transaction* transaction, uint32_t pos,
+void Column::readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
     const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector) {
     if (nodeIDVector->isNull(pos)) {
         resultVector->setNull(pos, true);
@@ -99,15 +119,15 @@ void Column::readForSingleNodeIDPosition(const transaction::Transaction* transac
     bufferManager.unpin(fileHandleToPin, pageIdxToPin);
 }
 
-void StringPropertyColumn::readValues(
+void StringPropertyColumn::readValues(Transaction* transaction,
     const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& valueVector) {
-    Column::readValues(nodeIDVector, valueVector);
+    Column::readValues(transaction, nodeIDVector, valueVector);
     stringOverflowPages.readStringsToVector(*valueVector);
 }
 
-void ListPropertyColumn::readValues(
+void ListPropertyColumn::readValues(Transaction* transaction,
     const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& valueVector) {
-    Column::readValues(nodeIDVector, valueVector);
+    Column::readValues(transaction, nodeIDVector, valueVector);
     listOverflowPages.readListsToVector(*valueVector);
 }
 
@@ -134,9 +154,8 @@ Literal ListPropertyColumn::readValue(node_offset_t offset) {
     return retVal;
 }
 
-void AdjColumn::readForSingleNodeIDPosition(const transaction::Transaction* transaction,
-    uint32_t pos, const shared_ptr<ValueVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& resultVector) {
+void AdjColumn::readForSingleNodeIDPosition(Transaction* transaction, uint32_t pos,
+    const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& resultVector) {
     if (nodeIDVector->isNull(pos)) {
         resultVector->setNull(pos, true);
         return;

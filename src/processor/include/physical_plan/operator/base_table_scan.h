@@ -32,7 +32,7 @@ protected:
     virtual void setMaxMorselSize() = 0;
     virtual unique_ptr<FTableScanMorsel> getMorsel() = 0;
 
-    shared_ptr<ResultSet> init(ExecutionContext* context) override;
+    void initFurther(ExecutionContext* context);
 
     bool getNextTuples() override final;
 

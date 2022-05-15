@@ -30,7 +30,8 @@ public:
 
     static bool runTest(const vector<TestQueryConfig>& testConfigs, Connection& conn);
 
-    static vector<string> getOutput(QueryResult& queryResult, bool checkOutputOrder = false);
+    static vector<string> convertResultToString(
+        QueryResult& queryResult, bool checkOutputOrder = false);
 };
 
 // Loads a database from raw csv files and creates a disk-based DatabaseConfig. To have an in-memory

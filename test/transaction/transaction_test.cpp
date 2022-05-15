@@ -77,6 +77,7 @@ public:
         dataChunk->state->currIdx = nodeOffset;
         auto propertyVectorToWriteDataTo =
             make_shared<ValueVector>(database->getMemoryManager(), INT64);
+        propertyVectorToWriteDataTo->state = dataChunk->state;
         if (isNull) {
             propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null */);
         } else {
@@ -85,14 +86,14 @@ public:
             ((uint64_t*)propertyVectorToWriteDataTo->values)[dataChunk->state->currIdx] =
                 expectedValue;
         }
-        personAgeColumn->writeValueForFlatVector(
-            writeTrx.get(), nodeVector, propertyVectorToWriteDataTo);
+        personAgeColumn->writeValues(writeTrx.get(), nodeVector, propertyVectorToWriteDataTo);
     }
 
     void writeToEyeSightPropertyNode(uint64_t nodeOffset, double expectedValue, bool isNull) {
         dataChunk->state->currIdx = nodeOffset;
         auto propertyVectorToWriteDataTo =
             make_shared<ValueVector>(database->getMemoryManager(), DOUBLE);
+        propertyVectorToWriteDataTo->state = dataChunk->state;
         if (isNull) {
             propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null */);
         } else {
@@ -101,8 +102,7 @@ public:
             ((double*)propertyVectorToWriteDataTo->values)[dataChunk->state->currIdx] =
                 expectedValue;
         }
-        personEyeSightColumn->writeValueForFlatVector(
-            writeTrx.get(), nodeVector, propertyVectorToWriteDataTo);
+        personEyeSightColumn->writeValues(writeTrx.get(), nodeVector, propertyVectorToWriteDataTo);
     }
 
     void assertOriginalAgeAndEyeSightPropertiesForNodes0And1(Transaction* transaction) {

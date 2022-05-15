@@ -10,9 +10,8 @@ class LogicalSet : public LogicalOperator {
 
 public:
     LogicalSet(vector<pair<shared_ptr<Expression>, shared_ptr<Expression>>> setItems,
-        unique_ptr<Schema> schemaBeforeSet, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{move(child)}, setItems{move(setItems)}, schemaBeforeSet{
-                                                                      move(schemaBeforeSet)} {}
+        shared_ptr<LogicalOperator> child)
+        : LogicalOperator{move(child)}, setItems{move(setItems)} {}
 
     LogicalOperatorType getLogicalOperatorType() const override {
         return LogicalOperatorType::LOGICAL_SET;
@@ -30,17 +29,14 @@ public:
         return setItems;
     }
 
-    inline Schema* getSchemaBeforeSet() const { return schemaBeforeSet.get(); }
-
     unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalSet>(setItems, schemaBeforeSet->copy(), children[0]->copy());
+        return make_unique<LogicalSet>(setItems, children[0]->copy());
     }
 
 private:
     vector<pair<shared_ptr<Expression> /* propertyExpression */,
         shared_ptr<Expression> /* target expression */>>
         setItems;
-    unique_ptr<Schema> schemaBeforeSet;
 };
 
 } // namespace planner
