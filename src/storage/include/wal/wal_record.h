@@ -1,7 +1,5 @@
 #pragma once
 
-#include "spdlog/spdlog.h"
-
 #include "src/common/types/include/types_include.h"
 #include "src/storage/include/file_handle.h"
 

@@ -29,7 +29,7 @@ struct PageLocksAndVersionsPerPageGroup {
         pageVersions.resize(0);
     }
 
-    bool empty() { return pageLocks.empty(); }
+    bool isEmpty() { return pageLocks.empty(); }
 };
 
 class PageVersionInfo {
@@ -50,7 +50,7 @@ public:
             originalPageIdx, PAGE_VERSION_INFO_PAGE_GROUP_SIZE);
         // There is an updated wal page if the PageVersionAndLockInfo for the page group exists
         // and the page version for the page is not null (which is UINT64_MAX).
-        return !pageLocksAndVersionsPerPageGroup[pageGroupIdxAndPosInGroup.idx].empty() &&
+        return !pageLocksAndVersionsPerPageGroup[pageGroupIdxAndPosInGroup.idx].isEmpty() &&
                (pageLocksAndVersionsPerPageGroup[pageGroupIdxAndPosInGroup.idx]
                        .pageVersions[pageGroupIdxAndPosInGroup.pos] != UINT64_MAX);
     }
@@ -67,7 +67,6 @@ public:
     void releaseLock(uint32_t pageIdx);
 
 private:
-    uint64_t numPages;
     vector<PageLocksAndVersionsPerPageGroup> pageLocksAndVersionsPerPageGroup;
     vector<unique_ptr<atomic_flag>> pageGroupLocks;
     mutex mtx;

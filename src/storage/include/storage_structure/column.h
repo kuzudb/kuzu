@@ -18,8 +18,8 @@ namespace storage {
 class Column : public StorageStructure {
 
 public:
-    Column(const string& fName, const Property property,
-        const label_t nodeLabelForAdjColumnAndProperties, const size_t& elementSize,
+    Column(const string& fName, const Property& property,
+        label_t nodeLabelForAdjColumnAndProperties, size_t elementSize,
         BufferManager& bufferManager, bool isInMemory, WAL* wal)
         : StorageStructure{fName, property.dataType, elementSize, bufferManager,
               true /*hasNULLBytes*/, isInMemory},
