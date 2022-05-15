@@ -45,16 +45,27 @@ TEST_F(ApiTest, TransactionModes) {
     // Test beginning a transaction (first in read only mode) sets mode to MANUAL automatically.
     conn->beginReadOnlyTransaction();
     ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL, conn->getTransactionMode());
+    // Test commit automatically switches the mode to AUTO_COMMIT read transaction
+    conn->commit();
+    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, conn->getTransactionMode());
 
-    // Test commit automatically switches the mode to AUTO_COMMIT
+    conn->beginReadOnlyTransaction();
+    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL, conn->getTransactionMode());
+    // Test rollback automatically switches the mode to AUTO_COMMIT for read transaction
+    conn->rollback();
+    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, conn->getTransactionMode());
+
+    // Test beginning a transaction (now in write mode) sets mode to MANUAL automatically.
+    conn->beginWriteTransaction();
+    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL, conn->getTransactionMode());
+    // Test commit automatically switches the mode to AUTO_COMMIT for write transaction
     conn->commit();
     ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, conn->getTransactionMode());
 
     // Test beginning a transaction (now in write mode) sets mode to MANUAL automatically.
     conn->beginWriteTransaction();
     ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL, conn->getTransactionMode());
-
-    // Test rollback automatically switches the mode to AUTO_COMMIT
+    // Test rollback automatically switches the mode to AUTO_COMMIT write transaction
     conn->rollback();
     ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT, conn->getTransactionMode());
 }

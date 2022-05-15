@@ -10,7 +10,7 @@ StorageStructure::StorageStructure(const string& fName, const DataType& dataType
     : dataType{dataType}, elementSize{elementSize}, logger{LoggerUtils::getOrCreateSpdLogger(
                                                         "storage")},
       fileHandle{fName, FileHandle::O_DefaultPagedExistingDBFileDoNotCreate},
-      bufferManager{bufferManager}, isInMemory{isInMemory} {
+      bufferManager{bufferManager}, isInMemory_{isInMemory} {
     numElementsPerPage = hasNULLBytes ?
                              PageUtils::getNumElementsInAPageWithNULLBytes(elementSize) :
                              PageUtils::getNumElementsInAPageWithoutNULLBytes(elementSize);

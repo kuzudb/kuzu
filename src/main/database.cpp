@@ -14,7 +14,7 @@ Database::Database(const DatabaseConfig& databaseConfig, const SystemConfig& sys
     catalog = make_unique<catalog::Catalog>(databaseConfig.databasePath);
     storageManager = make_unique<storage::StorageManager>(
         *catalog, *bufferManager, databaseConfig.databasePath, databaseConfig.inMemoryMode);
-    transactionManager = make_unique<transaction::TransactionManager>();
+    transactionManager = make_unique<transaction::TransactionManager>(storageManager->getWAL());
 }
 
 void Database::resizeBufferManager(uint64_t newSize) {

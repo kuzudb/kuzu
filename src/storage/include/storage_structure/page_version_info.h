@@ -24,6 +24,11 @@ struct PageLocksAndVersionsPerPageGroup {
         pageVersions.resize(PAGE_VERSION_INFO_PAGE_GROUP_SIZE, UINT64_MAX);
     }
 
+    inline void resizeToEmpty() {
+        pageLocks.resize(0);
+        pageVersions.resize(0);
+    }
+
     bool empty() { return pageLocks.empty(); }
 };
 
@@ -33,6 +38,8 @@ public:
     explicit PageVersionInfo(uint64_t numPages);
 
     void acquireLockForWritingToPage(uint64_t pageIdx);
+
+    void clearUpdatedWALPageVersion(uint64_t pageIdx);
 
     // This function assumes that the caller has already acquired the lock for originalPageIdx.
     void setUpdatedWALPageVersionNoLock(uint64_t originalPageIdx, uint64_t pageIdxInWAL);
@@ -57,7 +64,7 @@ public:
     }
 
     // This function assumes that the caller has already acquired the lock for the page.
-    void releaseLock(uint32_t originalPageIdx);
+    void releaseLock(uint32_t pageIdx);
 
 private:
     uint64_t numPages;

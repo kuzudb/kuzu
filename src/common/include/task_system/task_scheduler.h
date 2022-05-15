@@ -75,6 +75,7 @@ public:
     // from the task queue and remain in the queue. So for now, use this function if you
     // want the system to crash if any of the tasks fails.
     void waitAllTasksToCompleteOrError();
+    bool isTaskQueueEmpty() { return taskQueue.empty(); }
 
 private:
     void removeErroringTask(uint64_t scheduledTaskID);

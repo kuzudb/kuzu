@@ -5,6 +5,7 @@
 #include "query_result.h"
 
 #include "src/planner/logical_plan/include/logical_plan.h"
+#include "src/storage/include/wal/wal.h"
 #include "src/transaction/include/transaction_manager.h"
 
 using namespace graphflow::planner;

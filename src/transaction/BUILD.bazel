@@ -12,5 +12,6 @@ cc_library(
     ],
     deps = [
         "//src/common:utils",
+        "//src/storage:wal",
     ],
 )

@@ -57,7 +57,6 @@ struct FileID {
     };
 
     inline bool operator==(const FileID& rhs) const {
-
         if (fileIDType != rhs.fileIDType) {
             return false;
         }

@@ -33,6 +33,8 @@ public:
     static vector<string> getOutput(QueryResult& queryResult, bool checkOutputOrder = false);
 };
 
+// Loads a database from raw csv files and creates a disk-based DatabaseConfig. To have an in-memory
+// version, the databaseConfig field needs to be manually changed as in InMemoryDBLoadedTest.
 class BaseGraphLoadingTest : public Test {
 
 public:
@@ -42,7 +44,10 @@ public:
         loadGraph();
     }
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::TEMP_TEST_DIR); }
+    void TearDown() override {
+        FileUtils::removeDir(TestHelper::TEMP_TEST_DIR);
+        auto fullFilePath = TestHelper::TEMP_TEST_DIR + string(".wal");
+    }
 
     virtual string getInputCSVDir() = 0;
 

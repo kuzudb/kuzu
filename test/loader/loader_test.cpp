@@ -93,7 +93,6 @@ TEST_F(LoaderNodePropertyTest, NodeStructuredStringPropertyTest) {
         csvReader.hasNextToken();
         csvReader.skipToken();
         csvReader.hasNextToken();
-        cout << "count: " << count;
         if ((count % 100) == 0) {
             ASSERT_TRUE(column->isNull(count /* nodeOffset */));
         } else {
