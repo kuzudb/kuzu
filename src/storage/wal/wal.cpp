@@ -49,7 +49,7 @@ void WAL::initCurrentPage() {
         resetCurrentHeaderPagePrefix();
     } else {
         // If the file existed, read the first page into the currentHeaderPageBuffer.
-        fileHandle->readPage(currentHeaderPageBuffer, 0);
+        fileHandle->readPage(currentHeaderPageBuffer.get(), 0);
     }
 }
 
@@ -63,12 +63,12 @@ void WAL::addNewWALRecordWithoutLock(WALRecord& walRecord) {
         // of header pages is very small. After this write, we can use the
         // currentHeaderPageBuffer as an empty buffer space for the newHeaderPage we just added
         // and which will become the current header page.
-        fileHandle->writePage(currentHeaderPageBuffer, currentHeaderPageIdx);
+        fileHandle->writePage(currentHeaderPageBuffer.get(), currentHeaderPageIdx);
         resetCurrentHeaderPagePrefix();
         currentHeaderPageIdx = nextHeaderPageIdx;
     }
     incrementNumRecordsInCurrentHeaderPage();
-    walRecord.writeWALRecordToBytes(currentHeaderPageBuffer, offsetInCurrentHeaderPage);
+    walRecord.writeWALRecordToBytes(currentHeaderPageBuffer.get(), offsetInCurrentHeaderPage);
     lastLoggedRecordIsCommit = (COMMIT_RECORD == walRecord.recordType);
 }
 
@@ -76,7 +76,7 @@ WALIterator::WALIterator(shared_ptr<FileHandle> fileHandle, mutex& mtx)
     : BaseWALAndWALIterator(fileHandle), mtx{mtx} {
     resetCurrentHeaderPagePrefix();
     if (fileHandle->getNumPages() > 0) {
-        fileHandle->readPage(currentHeaderPageBuffer, 0 /* first header page is at idx 0 */);
+        fileHandle->readPage(currentHeaderPageBuffer.get(), 0 /* first header page is at idx 0 */);
     }
     numRecordsReadInCurrentHeaderPage = 0;
 }
@@ -87,12 +87,12 @@ void WALIterator::getNextRecord(WALRecord& retVal) {
         throw RuntimeException("WALIterator cannot read  more log records from the WAL.");
     }
     WALRecord::constructWALRecordFromBytes(
-        retVal, currentHeaderPageBuffer, offsetInCurrentHeaderPage);
+        retVal, currentHeaderPageBuffer.get(), offsetInCurrentHeaderPage);
     numRecordsReadInCurrentHeaderPage++;
     if ((numRecordsReadInCurrentHeaderPage == getNumRecordsInCurrentHeaderPage()) &&
         (getNextHeaderPageOfCurrentHeaderPage() != UINT64_MAX)) {
         uint64_t nextHeaderPageIdx = getNextHeaderPageOfCurrentHeaderPage();
-        fileHandle->readPage(currentHeaderPageBuffer, nextHeaderPageIdx);
+        fileHandle->readPage(currentHeaderPageBuffer.get(), nextHeaderPageIdx);
         offsetInCurrentHeaderPage = WAL_HEADER_PAGE_PREFIX_FIELD_SIZES;
         numRecordsReadInCurrentHeaderPage = 0;
     }

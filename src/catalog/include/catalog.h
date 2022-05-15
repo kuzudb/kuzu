@@ -62,9 +62,6 @@ public:
     // This constructor is needed for ser/deser functions
     Property() {}
 
-    bool isNodeProperty() const { return isNodeLabel; }
-    bool isRelProperty() const { return !isNodeLabel; }
-
     static Property constructUnstructuredNodeProperty(
         string name, uint32_t propertyID, label_t nodeLabel) {
         return Property(

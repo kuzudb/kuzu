@@ -20,29 +20,33 @@ class WALIterator;
 class BaseWALAndWALIterator {
 
 protected:
-    BaseWALAndWALIterator() {}
+    BaseWALAndWALIterator() : BaseWALAndWALIterator(nullptr) {}
 
-    BaseWALAndWALIterator(shared_ptr<FileHandle> fileHandle) : fileHandle(fileHandle) {}
+    BaseWALAndWALIterator(shared_ptr<FileHandle> fileHandle)
+        : fileHandle(fileHandle), offsetInCurrentHeaderPage{INT64_MAX}, currentHeaderPageIdx{
+                                                                            INT64_MAX} {
+        currentHeaderPageBuffer = make_unique<uint8_t[]>(WAL_HEADER_PAGE_SIZE);
+    }
 
 protected:
     inline uint64_t getNumRecordsInCurrentHeaderPage() {
-        return ((uint64_t*)currentHeaderPageBuffer)[0];
+        return ((uint64_t*)currentHeaderPageBuffer.get())[0];
     }
 
     inline void incrementNumRecordsInCurrentHeaderPage() {
-        ((uint64_t*)currentHeaderPageBuffer)[0]++;
+        ((uint64_t*)currentHeaderPageBuffer.get())[0]++;
     }
 
     inline uint64_t getNextHeaderPageOfCurrentHeaderPage() {
-        return ((uint64_t*)currentHeaderPageBuffer)[1];
+        return ((uint64_t*)currentHeaderPageBuffer.get())[1];
     }
 
     inline void setNextHeaderPageOfCurrentHeaderPage(uint64_t nextHeaderPageIdx) {
-        ((uint64_t*)currentHeaderPageBuffer)[1] = nextHeaderPageIdx;
+        ((uint64_t*)currentHeaderPageBuffer.get())[1] = nextHeaderPageIdx;
     }
 
-    void resetCurrentHeaderPagePrefix() {
-        ((uint64_t*)currentHeaderPageBuffer)[0] = 0;
+    inline void resetCurrentHeaderPagePrefix() {
+        ((uint64_t*)currentHeaderPageBuffer.get())[0] = 0;
         setNextHeaderPageOfCurrentHeaderPage(UINT64_MAX); // set next page idx to UINT64_MAX as null
         offsetInCurrentHeaderPage = WAL_HEADER_PAGE_PREFIX_FIELD_SIZES;
     }
@@ -53,7 +57,7 @@ public:
     uint64_t offsetInCurrentHeaderPage;
     // First header page of the WAL, if it exists, is always located at page 0 of the WAL.
     uint64_t currentHeaderPageIdx;
-    uint8_t currentHeaderPageBuffer[WAL_HEADER_PAGE_SIZE];
+    unique_ptr<uint8_t[]> currentHeaderPageBuffer;
 };
 
 class WAL : public BaseWALAndWALIterator {
@@ -128,7 +132,7 @@ private:
 
     inline void flushHeaderPages() {
         if (!isEmptyWAL()) {
-            fileHandle->writePage(currentHeaderPageBuffer, currentHeaderPageIdx);
+            fileHandle->writePage(currentHeaderPageBuffer.get(), currentHeaderPageIdx);
         }
     }
 
