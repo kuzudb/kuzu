@@ -40,18 +40,11 @@ public:
         selectedSize = size;
     }
 
-    void initMultiplicity() {
-        multiplicityBuffer = make_unique<uint64_t[]>(DEFAULT_VECTOR_CAPACITY);
-        multiplicity = multiplicityBuffer.get();
-    }
-
     inline bool isFlat() const { return currIdx != -1; }
 
     inline uint64_t getPositionOfCurrIdx() const { return selectedPositions[currIdx]; }
 
     uint64_t getNumSelectedValues() const;
-
-    shared_ptr<DataChunkState> clone();
 
 public:
     static const sel_t INCREMENTAL_SELECTED_POS[DEFAULT_VECTOR_CAPACITY];
@@ -66,11 +59,7 @@ public:
     uint64_t originalSize;
     uint64_t selectedSize;
     sel_t* selectedPositions;
-    uint64_t* multiplicity;
     unique_ptr<sel_t[]> selectedPositionsBuffer;
-
-private:
-    unique_ptr<uint64_t[]> multiplicityBuffer;
 };
 
 } // namespace common

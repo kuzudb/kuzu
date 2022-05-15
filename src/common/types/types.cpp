@@ -116,10 +116,6 @@ string Types::dataTypesToString(const vector<DataTypeID>& dataTypeIDs) {
     return result;
 }
 
-bool Types::isNumericalType(DataTypeID dataTypeID) {
-    return dataTypeID == INT64 || dataTypeID == DOUBLE;
-}
-
 bool Types::isLiteralType(DataTypeID dataTypeID) {
     return dataTypeID == BOOL || dataTypeID == INT64 || dataTypeID == DOUBLE ||
            dataTypeID == STRING || dataTypeID == DATE || dataTypeID == TIMESTAMP ||
