@@ -88,6 +88,10 @@ public:
     static void saveListOfIntsToFile(const string& fName, uint8_t* data, uint32_t listSize);
     static uint32_t readListOfIntsFromFile(unique_ptr<uint32_t[]>& data, const string& fName);
 
+    inline static string getNodeIndexFName(const string& directory, const label_t& nodeLabel) {
+        auto fName = StringUtils::string_format("n-%d", nodeLabel);
+        return FileUtils::joinPath(directory, fName + StorageConfig::INDEX_FILE_SUFFIX);
+    }
     inline static string getNodePropertyColumnFName(
         const string& directory, const label_t& nodeLabel, const string& propertyName) {
         auto fName = StringUtils::string_format("n-%d-%s", nodeLabel, propertyName.data());

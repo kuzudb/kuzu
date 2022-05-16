@@ -133,9 +133,11 @@ constexpr uint64_t INDEX_HEADER_PAGE_ID = 0;
 
 class HashIndex {
 
+    enum IndexMode { READ_ONLY, WRITE };
+
 public:
-    HashIndex(
-        string fName, const DataType& keyDataType, BufferManager& bufferManager, bool isInMemory);
+    HashIndex(string fName, const DataType& keyDataType, BufferManager& bufferManager,
+        bool isInMemoryForLookup);
 
     ~HashIndex();
 
@@ -161,7 +163,7 @@ public:
     void flush();
 
 private:
-    void initializeHeaderAndPages(const DataType& keyDataType, bool isInMemory);
+    void initializeHeaderAndPages(const DataType& keyDataType);
     bool insertInternal(const uint8_t* key, node_offset_t value);
     bool lookupInternal(const uint8_t* key, node_offset_t& result);
 
@@ -198,6 +200,9 @@ private:
 
 private:
     string fName;
+    bool isInMemoryForLookup;
+    bool isFlushed;
+    IndexMode indexMode;
     unique_ptr<FileHandle> fh;
     BufferManager& bm;
     unique_ptr<HashIndexHeader> indexHeader;

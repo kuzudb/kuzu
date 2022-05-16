@@ -207,7 +207,6 @@ public:
     // getNodeProperty and getRelProperty should be called after checking if property exists
     // (containNodeProperty and containRelProperty).
     virtual const Property& getNodeProperty(label_t labelId, const string& propertyName) const;
-    const Property& getStructuredNodeProperty(label_t labelId, const uint32_t propertyID) const;
     virtual const Property& getRelProperty(label_t labelId, const string& propertyName) const;
 
     vector<Property> getAllNodeProperties(label_t nodeLabel) const;

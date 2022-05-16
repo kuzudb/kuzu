@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/loader/include/in_mem_structure/builder/in_mem_structures_builder.h"
+#include "src/storage/include/index/hash_index.h"
 
 namespace graphflow {
 namespace loader {
@@ -10,20 +11,20 @@ class InMemNodeBuilder : public InMemStructuresBuilder {
 public:
     InMemNodeBuilder(label_t nodeLabel, const NodeFileDescription& fileDescription,
         string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
-        LoaderProgressBar* progressBar);
+        BufferManager& bufferManager, LoaderProgressBar* progressBar);
 
     ~InMemNodeBuilder() override = default;
 
-    unique_ptr<NodeIDMap> load();
+    unique_ptr<HashIndex> load();
 
     void saveToFile() override;
 
 private:
-    void addLabelToCatalogAndCountLines();
+    uint64_t addLabelToCatalogAndCountLines();
     void initializeColumnsAndList();
     vector<unordered_set<string>> countLinesPerBlockAndParseUnstrPropertyNames(
         uint64_t numStructuredProperties);
-    void populateColumnsAndCountUnstrPropertyListSizes();
+    unique_ptr<HashIndex> populateColumnsAndCountUnstrPropertyListSizes(uint64_t numNodes);
     void calcUnstrListsHeadersAndMetadata();
     void populateUnstrPropertyLists();
 
@@ -35,12 +36,17 @@ private:
         InMemUnstructuredLists* unstrPropertyLists);
 
     static void putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& columns,
-        NodeIDMap* nodeIDMap, const vector<Property>& properties,
-        vector<PageByteCursor>& overflowCursors, CSVReader& reader, uint64_t nodeOffset);
+        const vector<Property>& properties, vector<PageByteCursor>& overflowCursors,
+        CSVReader& reader, uint64_t nodeOffset);
+    template<DataTypeID DT>
+    static void addIDsToIndex(
+        InMemColumn* column, HashIndex* hashIndex, node_offset_t startOffset, uint64_t numValues);
+    static void populateIDIndex(
+        InMemColumn* column, HashIndex* IDIndex, node_offset_t startOffset, uint64_t numValues);
 
     // Concurrent tasks.
-    static void populateColumnsAndCountUnstrPropertyListSizesTask(
-        uint64_t blockId, uint64_t offsetStart, InMemNodeBuilder* builder);
+    static void populateColumnsAndCountUnstrPropertyListSizesTask(uint64_t IDColumnIdx,
+        uint64_t blockId, uint64_t offsetStart, HashIndex* IDIndex, InMemNodeBuilder* builder);
     static void countLinesAndParseUnstrPropertyNamesInBlockTask(const string& fName,
         uint32_t numStructuredProperties, unordered_set<string>* unstrPropertyNameSet,
         uint32_t blockId, InMemNodeBuilder* builder);
@@ -50,8 +56,8 @@ private:
 private:
     vector<uint64_t> numLinesPerBlock;
     DataType IDType;
-    unique_ptr<NodeIDMap> nodeIDMap;
 
+    BufferManager& bufferManager;
     vector<unique_ptr<InMemColumn>> structuredColumns;
     unique_ptr<InMemUnstructuredLists> unstrPropertyLists;
 };

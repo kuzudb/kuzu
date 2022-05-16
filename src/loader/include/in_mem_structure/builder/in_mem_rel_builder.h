@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/loader/include/in_mem_structure/builder/in_mem_structures_builder.h"
+#include "src/storage/include/index/hash_index.h"
 
 namespace graphflow {
 namespace loader {
@@ -10,7 +11,7 @@ class InMemRelBuilder : public InMemStructuresBuilder {
 public:
     InMemRelBuilder(label_t label, const RelFileDescription& fileDescription,
         string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
-        const vector<unique_ptr<NodeIDMap>>& nodeIDMaps, LoaderProgressBar* progressBar);
+        const vector<unique_ptr<HashIndex>>& IDIndexes, LoaderProgressBar* progressBar);
 
     ~InMemRelBuilder() override = default;
 
@@ -32,8 +33,8 @@ private:
 
     uint64_t getNumTasksOfInitializingAdjAndPropertyListsMetadata();
     static void inferLabelsAndOffsets(CSVReader& reader, vector<nodeID_t>& nodeIDs,
-        const vector<unique_ptr<NodeIDMap>>& nodeIDMaps, const Catalog& catalog,
-        vector<bool>& requireToReadLabels);
+        vector<DataType>& nodeIDTypes, const vector<unique_ptr<HashIndex>>& IDIndexes,
+        const Catalog& catalog, vector<bool>& requireToReadLabels);
     static void putPropsOfLineIntoColumns(
         vector<label_property_columns_map_t>& directionLabelPropertyColumns,
         const vector<Property>& properties, vector<unique_ptr<InMemOverflowPages>>& overflowPages,
@@ -64,7 +65,7 @@ private:
     vector<string> srcNodeLabelNames;
     vector<string> dstNodeLabelNames;
 
-    const vector<unique_ptr<NodeIDMap>>& nodeIDMaps;
+    const vector<unique_ptr<HashIndex>>& IDIndexes;
     vector<vector<unique_ptr<atomic_uint64_vec_t>>> directionLabelListSizes{2};
     vector<unique_ptr<atomic_uint64_vec_t>> directionNumRelsPerLabel{2};
     vector<NodeIDCompressionScheme> directionNodeIDCompressionScheme{2};

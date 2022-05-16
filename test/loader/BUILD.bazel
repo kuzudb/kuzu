@@ -2,6 +2,7 @@ cc_test(
     name = "loader_test",
     srcs = [
         "load_dates_test.cpp",
+        "load_index_test.cpp",
         "load_interval_test.cpp",
         "load_lists_test.cpp",
         "load_timestamp_test.cpp",
@@ -15,8 +16,8 @@ cc_test(
         "//dataset",
     ],
     deps = [
-        "//src/common/types",
         "//src/common:type_utils",
+        "//src/common/types",
         "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",

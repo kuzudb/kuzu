@@ -34,7 +34,7 @@ class LoadedHashIndexInt64KeyTest : public LoadedHashIndexTest {
 public:
     void SetUp() override {
         HashIndex insertionHashIndex(
-            fName, DataType(INT64), *writeBufferManager, true /* isInMemory */);
+            fName, DataType(INT64), *writeBufferManager, false /* isInMemoryForLookup */);
         insertionHashIndex.bulkReserve(numKeysToInsert);
         // Inserting(key = i, value = i * 2) pairs
         for (uint64_t k = 0; k < numKeysToInsert; k++) {
@@ -69,7 +69,7 @@ public:
 
     void SetUp() override {
         HashIndex insertionHashIndex(
-            fName, DataType(STRING), *writeBufferManager, true /* isInMemory */);
+            fName, DataType(STRING), *writeBufferManager, false /* isInMemoryForLookup */);
         insertionHashIndex.bulkReserve(numKeysToInsert);
         for (auto& entry : map) {
             insertionHashIndex.insert(entry.first.c_str(), entry.second);
@@ -84,7 +84,8 @@ public:
 
 TEST(HashIndexTest, HashIndexInt64KeyInsertExists) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex("dummy_name_int", DataType(INT64), *bufferManager, true /* isInMemory */);
+    HashIndex hashIndex(
+        "dummy_name_int", DataType(INT64), *bufferManager, false /* isInMemoryForLookup */);
     auto numEntries = 10;
     hashIndex.bulkReserve(10);
     for (uint64_t i = 0; i < numEntries; i++) {
@@ -99,13 +100,13 @@ TEST(HashIndexTest, HashIndexInt64KeyInsertExists) {
 TEST(HashIndexTest, HashIndexStringKeyInsertExists) {
     auto bufferManager = make_unique<BufferManager>();
     HashIndex hashIndex(
-        "dummy_name_string", DataType(STRING), *bufferManager, true /* isInMemory */);
+        "dummy_name_string", DataType(STRING), *bufferManager, false /* isInMemoryForLookup */);
     char const* strKeys[] = {"abc", "def", "ghi", "jkl", "mno"};
     hashIndex.bulkReserve(5);
-    for (uint64_t i = 0; i < 5; i++) {
+    for (auto i = 0u; i < 5; i++) {
         ASSERT_TRUE(hashIndex.insert(strKeys[i], i));
     }
-    for (auto i = 0; i < 5; i++) {
+    for (auto i = 0u; i < 5; i++) {
         ASSERT_FALSE(hashIndex.insert(strKeys[i], i));
     }
     hashIndex.flush();
@@ -113,7 +114,7 @@ TEST(HashIndexTest, HashIndexStringKeyInsertExists) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64SequentialLookupInMem) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, DataType(INT64), *bufferManager, true /*isInMemory*/);
+    HashIndex hashIndex(fName, DataType(INT64), *bufferManager, true /*isInMemoryForLookup*/);
     node_offset_t result;
     for (uint64_t i = 0; i < numKeysToInsert; i++) {
         auto found = hashIndex.lookup(i, result);
@@ -124,7 +125,7 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64SequentialLookupInMem) {
 
 TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookupThroughBufferManager) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, DataType(INT64), *bufferManager, true /*isInMemory*/);
+    HashIndex hashIndex(fName, DataType(INT64), *bufferManager, true /*isInMemoryForLookup*/);
     random_device rd;
     mt19937::result_type seed =
         rd() ^ ((mt19937::result_type)chrono::duration_cast<chrono::seconds>(
@@ -143,9 +144,9 @@ TEST_F(LoadedHashIndexInt64KeyTest, HashIndexInt64RandomLookupThroughBufferManag
     }
 }
 
-TEST_F(LoadedHashIndexStringKeyTest, HashIndexInt64SequentialLookupInMem) {
+TEST_F(LoadedHashIndexStringKeyTest, HashIndexStringSequentialLookupInMem) {
     auto bufferManager = make_unique<BufferManager>();
-    HashIndex hashIndex(fName, DataType(STRING), *bufferManager, true /*isInMemory*/);
+    HashIndex hashIndex(fName, DataType(STRING), *bufferManager, true /*isInMemoryForLookup*/);
     node_offset_t result;
     for (auto& entry : map) {
         auto found = hashIndex.lookup(entry.first.c_str(), result);
@@ -160,10 +161,11 @@ static void parallel_insert(HashIndex* index, int64_t startId, uint64_t num) {
     }
 }
 
-TEST_F(LoadedHashIndexTest, ParallelHashIndexInsertions) {
+TEST(HashIndexTest, ParallelHashIndexInsertions) {
     auto bufferManager = make_unique<BufferManager>();
-    auto hashIndex =
-        make_unique<HashIndex>("dummy", DataType(INT64), *bufferManager, true /*isInMemory*/);
+    auto hashIndex = make_unique<HashIndex>(
+        "dummy", DataType(INT64), *bufferManager, false /* isInMemoryForLookup */);
+    auto numKeysToInsert = 5000;
     hashIndex->bulkReserve(numKeysToInsert);
     auto numThreads = 10u;
     auto numKeysPerThread = numKeysToInsert / numThreads;
