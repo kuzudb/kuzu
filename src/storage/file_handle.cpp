@@ -10,6 +10,8 @@ using namespace graphflow::common;
 namespace graphflow {
 namespace storage {
 
+using lock_t = unique_lock<mutex>;
+
 FileHandle::FileHandle(const string& path, uint8_t flags)
     : logger{LoggerUtils::getOrCreateSpdLogger("storage")}, flags(flags) {
     logger->trace("FileHandle: Path {}", path);
@@ -46,7 +48,7 @@ void FileHandle::constructNewFileHandle(const string& path) {
 }
 
 void FileHandle::resetToZeroPagesAndPageCapacity() {
-    unique_lock lock(fhSharedMutex);
+    lock_t lock(fhMutex);
     numPages = 0;
     pageCapacity = 0;
     FileUtils::truncateFileToEmpty(fileInfo.get());
@@ -70,7 +72,6 @@ bool FileHandle::acquirePageLock(uint32_t pageIdx, bool block) {
 }
 
 bool FileHandle::acquire(uint32_t pageIdx) {
-    shared_lock lock(fhSharedMutex);
     auto retVal = !pageLocks[pageIdx]->test_and_set(memory_order_acquire);
     return retVal;
 }
@@ -89,7 +90,7 @@ void FileHandle::addNewPageLockAndFramePtrWithoutLock(uint64_t i) {
 }
 
 uint32_t FileHandle::addNewPage() {
-    unique_lock lock(fhSharedMutex);
+    lock_t lock(fhMutex);
     if (numPages == pageCapacity) {
         auto oldCapacity = pageCapacity;
         pageCapacity = max(pageCapacity + 1, (uint32_t)(pageCapacity * 1.2));

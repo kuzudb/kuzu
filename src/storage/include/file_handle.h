@@ -24,6 +24,12 @@ class BufferPool;
 // file as well as the state of each page in the file - if it is pinned in the Buffer Manager. File
 // Handle is the bridge between a Column/Lists/Index and the Buffer Manager that abstracts the file
 // in which that Column/Lists/Index is stored.
+// Warning: FileHandle is *NOT* thread-safe. That is multiple parallel threads can access its
+// functions that are used by query processor, such as getFrameIdx, swizzle, unswizzle,
+// acquirePageLock, and releaePageLock. Similarly, functions that change the internal data
+// structures, such as addPage and resetToZeroPagesAndPageCapacity can be accessed concurrently.
+// However the query processor functions and those that change the internal structures *CANNOT* be
+// called concurrently. The caller needs to synchronize these calls.
 class FileHandle {
     friend class BufferPool;
 
@@ -77,10 +83,7 @@ public:
     static inline bool isAFrame(uint64_t mappedFrameIdx) { return UINT64_MAX != mappedFrameIdx; }
     inline FileInfo* getFileInfo() const { return fileInfo.get(); }
 
-    inline uint64_t getFrameIdx(uint32_t pageIdx) {
-        shared_lock lock(fhSharedMutex);
-        return pageIdxToFrameMap[pageIdx]->load();
-    }
+    inline uint64_t getFrameIdx(uint32_t pageIdx) { return pageIdxToFrameMap[pageIdx]->load(); }
 
 private:
     void initPageIdxToFrameMapAndLocks();
@@ -93,20 +96,13 @@ private:
 
     bool acquire(uint32_t pageIdx);
 
-    void releasePageLock(uint32_t pageIdx) {
-        shared_lock lock(fhSharedMutex);
-        pageLocks[pageIdx]->clear();
-    }
+    void releasePageLock(uint32_t pageIdx) { pageLocks[pageIdx]->clear(); }
 
     inline void swizzle(uint32_t pageIdx, uint64_t swizzledVal) {
-        shared_lock lock(fhSharedMutex);
         pageIdxToFrameMap[pageIdx]->store(swizzledVal);
     }
 
-    inline void unswizzle(uint32_t pageIdx) {
-        shared_lock lock(fhSharedMutex);
-        pageIdxToFrameMap[pageIdx]->store(UINT64_MAX);
-    }
+    inline void unswizzle(uint32_t pageIdx) { pageIdxToFrameMap[pageIdx]->store(UINT64_MAX); }
 
     inline uint64_t getPageSize() const {
         return isLargePaged() ? LARGE_PAGE_SIZE : DEFAULT_PAGE_SIZE;
@@ -126,8 +122,9 @@ private:
     uint32_t numPages;
     // This is the maximum number of pages the filehandle can currently support.
     uint32_t pageCapacity;
-    // Intended to be used as a read/write lock.
-    shared_mutex fhSharedMutex;
+    // Intended to be used to cooredinate calls to functions that change in the internal data
+    // structures of the file handle.
+    mutex fhMutex;
 };
 
 } // namespace storage
