@@ -317,9 +317,6 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     case STRING: {
         return implicitCastToString(expression);
     }
-    case DATE: {
-        return implicitCastToDate(expression);
-    }
     case TIMESTAMP: {
         return implicitCastToTimestamp(expression);
     }
@@ -361,16 +358,6 @@ shared_ptr<Expression> ExpressionBinder::implicitCastToString(
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_STRING_FUNC_NAME, children);
     return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(STRING), move(children),
-        move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
-}
-
-shared_ptr<Expression> ExpressionBinder::implicitCastToDate(
-    const shared_ptr<Expression>& expression) {
-    auto children = expression_vector{expression};
-    auto execFunc = VectorCastOperations::bindImplicitCastToDate(children);
-    auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(IMPLICIT_CAST_TO_DATE_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, DataType(DATE), move(children),
         move(execFunc), nullptr /* selectFunc */, uniqueExpressionName);
 }
 

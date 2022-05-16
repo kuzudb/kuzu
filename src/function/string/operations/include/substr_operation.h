@@ -22,7 +22,7 @@ public:
             result.overflowPtr = reinterpret_cast<uint64_t>(
                 resultValueVector.getOverflowBuffer().allocateSpace(result.len));
         }
-        memcpy((uint8_t*)result.getData(), src.getData() + start - 1, len);
+        memcpy((uint8_t*)result.getData(), src.getData() + start - 1, result.len);
         if (!gf_string_t::isShortString(result.len)) {
             memcpy(result.prefix, result.getData(), gf_string_t::PREFIX_LENGTH);
         }

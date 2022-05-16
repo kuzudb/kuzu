@@ -8,6 +8,7 @@ cc_library(
     ]),
     visibility = [
         "//src/function:__subpackages__",
+        "//test/expression_evaluator:__pkg__",
     ],
     deps = [
         "//src/common/types",

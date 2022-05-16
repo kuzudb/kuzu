@@ -22,6 +22,8 @@ protected:
             vector<DataTypeID>{BOOL, STRING, NODE_ID, UNSTRUCTURED, DATE, TIMESTAMP, INTERVAL}) {
             definitions.push_back(getDefinition<FUNC>(name, typeID, typeID));
         }
+        definitions.push_back(getDefinition<FUNC>(name, DATE, TIMESTAMP));
+        definitions.push_back(getDefinition<FUNC>(name, TIMESTAMP, DATE));
         return definitions;
     }
 
@@ -79,12 +81,28 @@ private:
             return BinaryExecFunction<Value, Value, uint8_t, FUNC>;
         }
         case DATE: {
-            assert(rightTypeID == DATE);
-            return BinaryExecFunction<date_t, date_t, uint8_t, FUNC>;
+            switch (rightTypeID) {
+            case DATE: {
+                return BinaryExecFunction<date_t, date_t, uint8_t, FUNC>;
+            }
+            case TIMESTAMP: {
+                return BinaryExecFunction<date_t, timestamp_t, uint8_t, FUNC>;
+            }
+            default:
+                assert(false);
+            }
         }
         case TIMESTAMP: {
-            assert(rightTypeID == TIMESTAMP);
-            return BinaryExecFunction<timestamp_t, timestamp_t, uint8_t, FUNC>;
+            switch (rightTypeID) {
+            case DATE: {
+                return BinaryExecFunction<timestamp_t, date_t, uint8_t, FUNC>;
+            }
+            case TIMESTAMP: {
+                return BinaryExecFunction<timestamp_t, timestamp_t, uint8_t, FUNC>;
+            }
+            default:
+                assert(false);
+            }
         }
         case INTERVAL: {
             assert(rightTypeID == INTERVAL);
@@ -139,12 +157,28 @@ private:
             return BinarySelectFunction<Value, Value, FUNC>;
         }
         case DATE: {
-            assert(rightTypeID == DATE);
-            return BinarySelectFunction<date_t, date_t, FUNC>;
+            switch (rightTypeID) {
+            case DATE: {
+                return BinarySelectFunction<date_t, date_t, FUNC>;
+            }
+            case TIMESTAMP: {
+                return BinarySelectFunction<date_t, timestamp_t, FUNC>;
+            }
+            default:
+                assert(false);
+            }
         }
         case TIMESTAMP: {
-            assert(rightTypeID == TIMESTAMP);
-            return BinarySelectFunction<timestamp_t, timestamp_t, FUNC>;
+            switch (rightTypeID) {
+            case DATE: {
+                return BinarySelectFunction<timestamp_t, date_t, FUNC>;
+            }
+            case TIMESTAMP: {
+                return BinarySelectFunction<timestamp_t, timestamp_t, FUNC>;
+            }
+            default:
+                assert(false);
+            }
         }
         case INTERVAL: {
             assert(rightTypeID == INTERVAL);
