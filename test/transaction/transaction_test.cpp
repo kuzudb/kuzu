@@ -10,6 +10,10 @@ public:
 
     void SetUp() override {
         BaseGraphLoadingTest::SetUp();
+        initWithoutLoadingGraph();
+    }
+
+    void initWithoutLoadingGraph() {
         systemConfig->largePageBufferPoolSize = (1ull << 22);
         // Note we do not actually use the connection field in these tests. We only need the
         // database.
@@ -140,6 +144,28 @@ public:
         assertOriginalAgeAndEyeSightPropertiesForNodes0And1(readTrx.get());
     }
 
+    void testRecovery(bool committingTransaction) {
+        assertReadBehaviorForBeforeRollbackAndCommitForConcurrent1Write1ReadTransactionTest();
+
+        if (committingTransaction) {
+            // We commit but do not checkpoint.
+            database->getTransactionManager()->commitButKeepActiveWriteTransaction(writeTrx.get());
+        }
+        database->getStorageManager()->getWAL().flushAllPages(database->getBufferManager());
+        // We next destroy and reconstruct the database to start up the system.
+        // initWithoutLoadingGraph will construct a completely new databse, writeTrx, readTrx,
+        // and personAgeColumn, and personEyeSightColumn classes. We could use completely
+        // different variables here but we would need to duplicate this construction code.
+        initWithoutLoadingGraph();
+        if (committingTransaction) {
+            assertUpdatedAgeAndEyeSightPropertiesForNodes0And1(writeTrx.get());
+            assertUpdatedAgeAndEyeSightPropertiesForNodes0And1(readTrx.get());
+        } else {
+            assertOriginalAgeAndEyeSightPropertiesForNodes0And1(writeTrx.get());
+            assertOriginalAgeAndEyeSightPropertiesForNodes0And1(readTrx.get());
+        }
+    }
+
 public:
     unique_ptr<Transaction> writeTrx;
     unique_ptr<Transaction> readTrx;
@@ -172,8 +198,8 @@ TEST_F(TransactionTests, Concurrent1Write1ReadTransactionInTheMiddleOfTransactio
 TEST_F(TransactionTests, Concurrent1Write1ReadTransactionCommitAndCheckpoint) {
     assertReadBehaviorForBeforeRollbackAndCommitForConcurrent1Write1ReadTransactionTest();
 
-    // We need to commit the read transacdtion because the checkpointWAL requires all read
-    // transactions to leave the system.
+    // We need to commit the read transaction because  commitAndCheckpointOrRollback requires all
+    // read transactions to leave the system.
     database->getTransactionManager()->commit(readTrx.get());
     database->commitAndCheckpointOrRollback(writeTrx.get(), true /* isCommit */);
 
@@ -218,4 +244,12 @@ TEST_F(TransactionTests, Concurrent1Write1ReadTransactionRollback) {
 
     assertOriginalAgeAndEyeSightPropertiesForNodes0And1(writeTrx.get());
     assertOriginalAgeAndEyeSightPropertiesForNodes0And1(readTrx.get());
+}
+
+TEST_F(TransactionTests, RecoverFromCommittedTransaction) {
+    testRecovery(true /* commit the transaction */);
+}
+
+TEST_F(TransactionTests, RecoverFromUncommittedTransaction) {
+    testRecovery(false /* do not commit the transaction */);
 }

@@ -64,7 +64,6 @@ void WALReplayer::replay() {
     }
     auto walIterator = storageManager.getWAL().getIterator();
     WALRecord walRecord;
-    uint64_t i = 0;
     while (walIterator->hasNextRecord()) {
         walIterator->getNextRecord(walRecord);
         replayWALRecord(walRecord);

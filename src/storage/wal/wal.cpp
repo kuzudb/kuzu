@@ -1,7 +1,18 @@
 #include "src/storage/include/wal/wal.h"
 
+#include "spdlog/spdlog.h"
+
+#include "src/common/include/utils.h"
+
 namespace graphflow {
 namespace storage {
+
+WAL::WAL(const string& path, BufferManager& bufferManager)
+    : logger{LoggerUtils::getOrCreateSpdLogger("wal")}, bufferManager{bufferManager},
+      isLastLoggedRecordCommit_{false} {
+    createFileHandle(path);
+    initCurrentPageAndSetIsLastRecordCommitToTrueIfNecessary();
+}
 
 uint32_t WAL::logStructuredNodePropertyPageRecord(
     label_t nodeLabel, uint32_t propertyID, uint32_t pageIdxInOriginalFile) {
@@ -32,7 +43,7 @@ void WAL::logCommit(uint64_t transactionID) {
 void WAL::clearWAL() {
     bufferManager.removeFilePagesFromFrames(*fileHandle);
     fileHandle->resetToZeroPagesAndPageCapacity();
-    initCurrentPage();
+    initCurrentPageAndSetIsLastRecordCommitToTrueIfNecessary();
 }
 
 void WAL::flushAllPages(BufferManager* bufferManager) {
@@ -42,7 +53,7 @@ void WAL::flushAllPages(BufferManager* bufferManager) {
     }
 }
 
-void WAL::initCurrentPage() {
+void WAL::initCurrentPageAndSetIsLastRecordCommitToTrueIfNecessary() {
     currentHeaderPageIdx = 0;
     if (fileHandle->getNumPages() == 0) {
         fileHandle->addNewPage();
@@ -50,6 +61,7 @@ void WAL::initCurrentPage() {
     } else {
         // If the file existed, read the first page into the currentHeaderPageBuffer.
         fileHandle->readPage(currentHeaderPageBuffer.get(), 0);
+        setIsLastRecordCommitToTrueIfNecessary();
     }
 }
 
@@ -69,7 +81,24 @@ void WAL::addNewWALRecordWithoutLock(WALRecord& walRecord) {
     }
     incrementNumRecordsInCurrentHeaderPage();
     walRecord.writeWALRecordToBytes(currentHeaderPageBuffer.get(), offsetInCurrentHeaderPage);
-    lastLoggedRecordIsCommit = (COMMIT_RECORD == walRecord.recordType);
+    isLastLoggedRecordCommit_ = (COMMIT_RECORD == walRecord.recordType);
+}
+
+void WAL::setIsLastRecordCommitToTrueIfNecessary() {
+    WALIterator walIterator(fileHandle, mtx);
+    WALRecord walRecord;
+    if (!walIterator.hasNextRecord()) {
+        logger->info(
+            "Opening an existing WAL file but the file is empty. This should never happen. file: " +
+            fileHandle->getFileInfo()->path);
+        return;
+    }
+    while (walIterator.hasNextRecord()) {
+        walIterator.getNextRecord(walRecord);
+    }
+    if (COMMIT_RECORD == walRecord.recordType) {
+        isLastLoggedRecordCommit_ = true;
+    }
 }
 
 WALIterator::WALIterator(shared_ptr<FileHandle> fileHandle, mutex& mtx)

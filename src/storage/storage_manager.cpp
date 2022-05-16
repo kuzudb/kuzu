@@ -22,6 +22,7 @@ StorageManager::StorageManager(const catalog::Catalog& catalog, BufferManager& b
         make_unique<NodesStore>(catalog, bufferManager, this->directory, isInMemoryMode, wal.get());
     relsStore =
         make_unique<RelsStore>(catalog, bufferManager, this->directory, isInMemoryMode, wal.get());
+    recoverIfNecessary();
     logger->info("Done.");
 }
 
@@ -29,18 +30,33 @@ StorageManager::~StorageManager() {
     spdlog::drop("storage");
 }
 
-void StorageManager::checkpointOrRollbackWAL(bool isCheckpoint) {
+void StorageManager::checkpointOrRollbackAndClearWAL(bool isCheckpoint) {
     lock_t lck{checkpointMtx};
+    logger->info(
+        "Starting " +
+        (isCheckpoint ? string(" checkpointing") : string(" rolling back the wal contents")) +
+        " in the storage manager.");
     WALReplayer walReplayer(*this, bufferManager, isCheckpoint);
     walReplayer.replay();
+    logger->info(
+        "Finished " +
+        (isCheckpoint ? string(" checkpointing") : string(" rolling back the wal contents")) +
+        " in the storage manager.");
+    wal->clearWAL();
 }
 
-void StorageManager::checkpointWAL() {
-    checkpointOrRollbackWAL(true /* isCheckpoint */);
-}
-
-void StorageManager::rollbackWAL() {
-    checkpointOrRollbackWAL(false /* rolling back updates */);
+void StorageManager::recoverIfNecessary() {
+    if (!wal->isEmptyWAL()) {
+        if (wal->isLastLoggedRecordCommit()) {
+            logger->info("Starting up StorageManager and found a non-empty WAL with a committed "
+                         "transaction. Replaying to checkpoint.");
+            checkpointOrRollbackAndClearWAL(true /* checkpoint */);
+        } else {
+            logger->info("Starting up StorageManager and found a non-empty WAL but last record is "
+                         "not commit. Clearing the WAL.");
+            wal->clearWAL();
+        }
+    }
 }
 
 } // namespace storage

@@ -5,6 +5,10 @@
 #include "src/storage/include/file_handle.h"
 #include "src/storage/include/wal/wal_record.h"
 
+namespace spdlog {
+class logger;
+}
+
 namespace graphflow {
 namespace storage {
 
@@ -64,11 +68,7 @@ class WAL : public BaseWALAndWALIterator {
     friend WALIterator;
 
 public:
-    WAL(const string& path, BufferManager& bufferManager)
-        : bufferManager{bufferManager}, lastLoggedRecordIsCommit{false} {
-        createFileHandle(path);
-        initCurrentPage();
-    }
+    WAL(const string& path, BufferManager& bufferManager);
 
     // Destructing WAL flushes any unwritten header page but not the other pages. The caller
     // which possibly has access to the buffer manager needs to ensure any unwritten pages
@@ -115,19 +115,19 @@ public:
     // we might remove this for now to reduce our code size.
     inline bool isLastLoggedRecordCommit() {
         lock_t lck{mtx};
-        return lastLoggedRecordIsCommit;
+        return isLastLoggedRecordCommit_;
     }
 
     void flushAllPages(BufferManager* bufferManager);
+
+    inline bool isEmptyWAL() {
+        return currentHeaderPageIdx == 0 && (getNumRecordsInCurrentHeaderPage() == 0);
+    }
 
 private:
     inline void createFileHandle(const string& path) {
         fileHandle = make_shared<FileHandle>(
             path, FileHandle::O_DefaultPagedExistingDBFileCreateIfNotExists);
-    }
-
-    inline bool isEmptyWAL() {
-        return currentHeaderPageIdx == 0 && (getNumRecordsInCurrentHeaderPage() == 0);
     }
 
     inline void flushHeaderPages() {
@@ -136,13 +136,15 @@ private:
         }
     }
 
-    void initCurrentPage();
+    void initCurrentPageAndSetIsLastRecordCommitToTrueIfNecessary();
     void addNewWALRecordWithoutLock(WALRecord& walRecord);
+    void setIsLastRecordCommitToTrueIfNecessary();
 
 private:
+    shared_ptr<spdlog::logger> logger;
     mutex mtx;
     BufferManager& bufferManager;
-    bool lastLoggedRecordIsCommit;
+    bool isLastLoggedRecordCommit_;
 };
 
 class WALIterator : public BaseWALAndWALIterator {
