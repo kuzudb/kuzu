@@ -72,7 +72,6 @@ public:
     inline void commitAndCheckpointOrRollback(
         transaction::Transaction* writeTransaction, bool isCommit) {
         if (isCommit) {
-            storageManager->getWAL().flushAllPages(bufferManager.get());
             // Note: It is enough to stop and wait transactions to leave the system instead of for
             // example checking on the query processor's task scheduler. This is because the first
             // and last steps that a connection performs when executing a query is to start and
@@ -83,11 +82,11 @@ public:
             // Note: committing and stopping new transactions can be done in any order. This order
             // allows us to throw exceptions if we have to wait a lot to stop.
             transactionManager->commitButKeepActiveWriteTransaction(writeTransaction);
-            storageManager->checkpointWAL();
+            storageManager->getWAL().flushAllPages(bufferManager.get());
+            storageManager->checkpointAndClearWAL();
         } else {
-            storageManager->rollbackWAL();
+            storageManager->rollbackAndClearWAL();
         }
-        storageManager->getWAL().clearWAL();
         transactionManager->manuallyClearActiveWriteTransaction(writeTransaction);
         if (isCommit) {
             transactionManager->allowReceivingNewTransactions();

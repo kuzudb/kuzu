@@ -38,11 +38,17 @@ public:
     inline RelsStore& getRelsStore() const { return *relsStore; }
     inline NodesStore& getNodesStore() const { return *nodesStore; }
     inline WAL& getWAL() const { return *wal; }
-    void checkpointWAL();
-    void rollbackWAL();
+    inline void checkpointAndClearWAL() {
+        checkpointOrRollbackAndClearWAL(true /* isCheckpoint */);
+    }
+
+    inline void rollbackAndClearWAL() {
+        checkpointOrRollbackAndClearWAL(false /* rolling back updates */);
+    }
 
 private:
-    void checkpointOrRollbackWAL(bool isCheckpoint);
+    void checkpointOrRollbackAndClearWAL(bool isCheckpoint);
+    void recoverIfNecessary();
 
 private:
     shared_ptr<spdlog::logger> logger;
