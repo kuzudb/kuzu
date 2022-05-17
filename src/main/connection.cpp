@@ -33,18 +33,12 @@ Connection::~Connection() {
 
 unique_ptr<QueryResult> Connection::query(const string& query) {
     lock_t lck{mtx};
-    if (isManualModeAndNoActiveTransactionNoLock()) {
-        return queryResultWithErrorForNoActiveTransaction();
-    }
     unique_ptr<PreparedStatement> preparedStatement;
     preparedStatement = prepareNoLock(query);
     if (preparedStatement->success) {
         return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
     }
-    auto queryResult = make_unique<QueryResult>();
-    queryResult->success = false;
-    queryResult->errMsg = preparedStatement->errMsg;
-    return queryResult;
+    return queryResultWithError(preparedStatement->errMsg);
 }
 
 unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMsg) {
@@ -173,39 +167,27 @@ vector<unique_ptr<planner::LogicalPlan>> Connection::enumeratePlans(const string
 
 unique_ptr<QueryResult> Connection::executePlan(unique_ptr<LogicalPlan> logicalPlan) {
     lock_t lck{mtx};
-    auto profiler = make_unique<Profiler>();
-    profiler->enabled = false;
-    auto header = make_unique<QueryResultHeader>(logicalPlan->getExpressionsToCollect());
+    auto preparedStatement = make_unique<PreparedStatement>();
+    preparedStatement->createResultHeader(logicalPlan->getExpressionsToCollect());
     auto mapper = PlanMapper(*database->catalog, *database->storageManager);
     auto physicalPlan = mapper.mapLogicalPlanToPhysical(move(logicalPlan));
-    auto executionContext =
-        make_unique<ExecutionContext>(clientContext->numThreadsForExecution, profiler.get(),
-            activeTransaction.get(), database->memoryManager.get(), database->bufferManager.get());
-    auto table = database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
-    auto queryResult = make_unique<QueryResult>();
-    queryResult->setResultHeaderAndTable(move(header), move(table));
-    queryResult->querySummary =
-        make_unique<QuerySummary>(); // TODO(Xiyang): remove this line after fixing iterator.
-    return queryResult;
+    preparedStatement->physicalPlan = move(physicalPlan);
+    return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
 }
 
 std::unique_ptr<QueryResult> Connection::executeWithParams(
     PreparedStatement* preparedStatement, unordered_map<string, shared_ptr<Literal>>& inputParams) {
-    auto queryResult = make_unique<QueryResult>();
+    lock_t lck{mtx};
     if (!preparedStatement->isSuccess()) {
-        auto errMsg = preparedStatement->getErrorMessage();
-        return queryResultWithError(errMsg);
+        return queryResultWithError(preparedStatement->errMsg);
     }
     try {
         bindParametersNoLock(preparedStatement, inputParams);
     } catch (Exception& exception) {
-        queryResult->success = false;
-        queryResult->errMsg = exception.what();
+        string errMsg = exception.what();
+        return queryResultWithError(errMsg);
     }
-    if (queryResult->success) {
-        return executeLock(preparedStatement);
-    }
-    return queryResult;
+    return executeAndAutoCommitIfNecessaryNoLock(preparedStatement);
 }
 
 void Connection::bindParametersNoLock(
@@ -227,12 +209,11 @@ void Connection::bindParametersNoLock(
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement) {
-    unique_ptr<QueryResult> queryResult;
+    auto queryResult = make_unique<QueryResult>();
     auto querySummary = preparedStatement->querySummary.get();
     auto profiler = make_unique<Profiler>();
-    auto executionContext =
-        make_unique<ExecutionContext>(clientContext->numThreadsForExecution, profiler.get(),
-            activeTransaction.get(), database->memoryManager.get(), database->bufferManager.get());
+    auto executionContext = make_unique<ExecutionContext>(clientContext->numThreadsForExecution,
+        profiler.get(), database->memoryManager.get(), database->bufferManager.get());
     // executing if not EXPLAIN
     if (!querySummary->isExplain) {
         profiler->enabled = querySummary->isProfile;
@@ -247,30 +228,30 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
                 // operations.
                 beginTransactionNoLock(preparedStatement->isReadOnly() ? READ_ONLY : WRITE);
             }
-
+            if (!activeTransaction) {
+                assert(MANUAL == transactionMode);
+                throw ConnectionException(
+                    "Transaction mode is manual but there is no active transaction. Please begin a "
+                    "transaction or set the transaction mode of the connection to AUTO_COMMIT");
+            }
+            executionContext->transaction = activeTransaction.get();
             table = database->queryProcessor->execute(
                 preparedStatement->physicalPlan.get(), executionContext.get());
             if (AUTO_COMMIT == transactionMode) {
                 commitNoLock();
             }
-            queryResult = make_unique<QueryResult>();
         } catch (Exception& exception) {
-            string errMsg = exception.what();
-            queryResult = queryResultWithError(errMsg);
             rollbackNoLock();
+            string errMsg = exception.what();
+            return queryResultWithError(errMsg);
         }
         executingTimer.stop();
         querySummary->executionTime = executingTimer.getElapsedTimeMS();
-        if (queryResult->success) {
-            queryResult->setResultHeaderAndTable(
-                move(preparedStatement->resultHeader), move(table));
-            preparedStatement->createPlanPrinter(move(profiler));
-            queryResult->querySummary = move(preparedStatement->querySummary);
-        }
+        queryResult->setResultHeaderAndTable(move(preparedStatement->resultHeader), move(table));
+        preparedStatement->createPlanPrinter(move(profiler));
+        queryResult->querySummary = move(preparedStatement->querySummary);
         return queryResult;
     }
-    // create printable plan and return if EXPLAIN
-    queryResult = make_unique<QueryResult>();
     // NOTE: If EXPLAIN is enabled, we still need to init physical plan to register profiler because
     // our plan printer will try to read from profiler metrics regardless whether it's enabled or
     // not. A better solution could be that we don't print any metric during EXPLAIN.
@@ -283,14 +264,14 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
 void Connection::beginTransactionNoLock(TransactionType type) {
     if (activeTransaction) {
         throw ConnectionException(
-            "Connection already has an active transaction. Applications can have"
-            " one transaction per connection at any point in time. For concurrent multiple"
-            " transactions, please open other connections. Current active transaction is not"
-            " affected by this exception and can still be used.");
+            "Connection already has an active transaction. Applications can have one "
+            "transaction per connection at any point in time. For concurrent multiple "
+            "transactions, please open other connections. Current active transaction is not "
+            "affected by this exception and can still be used.");
     }
-    activeTransaction =
-        (type == READ_ONLY ? database->transactionManager->beginReadOnlyTransaction() :
-                             database->transactionManager->beginWriteTransaction());
+    activeTransaction = type == READ_ONLY ?
+                            database->transactionManager->beginReadOnlyTransaction() :
+                            database->transactionManager->beginWriteTransaction();
 }
 
 void Connection::commitOrRollbackNoLock(bool isCommit) {

@@ -70,9 +70,9 @@ private:
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
     unique_ptr<PhysicalOperator> mapLogicalUnionAllToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
-    unique_ptr<PhysicalOperator> mapLogicalSetToPhysical(
+    unique_ptr<PhysicalOperator> mapLogicalSinkToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
-    unique_ptr<PhysicalOperator> mapLogicalSinkScanToPhysical(
+    unique_ptr<PhysicalOperator> mapLogicalSetToPhysical(
         LogicalOperator* logicalOperator, MapperContext& mapperContext);
 
     unique_ptr<ResultCollector> appendResultCollector(expression_vector expressionsToCollect,

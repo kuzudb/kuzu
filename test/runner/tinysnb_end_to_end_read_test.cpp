@@ -5,7 +5,8 @@
 using ::testing::Test;
 using namespace graphflow::testing;
 
-class TinySnbProcessorTest : public BaseGraphLoadingTest {
+class TinySnbReadTest : public BaseGraphLoadingTest {
+
 public:
     string getInputCSVDir() override { return "dataset/tinysnb/"; }
 
@@ -16,7 +17,7 @@ public:
     }
 };
 
-TEST_F(TinySnbProcessorTest, StructuralQueries) {
+TEST_F(TinySnbReadTest, StructuralQueries) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/structural/nodes.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
@@ -28,7 +29,7 @@ TEST_F(TinySnbProcessorTest, StructuralQueries) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, FilteredQueries) {
+TEST_F(TinySnbReadTest, FilteredQueries) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/filtered/id_comparison.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
@@ -47,33 +48,33 @@ TEST_F(TinySnbProcessorTest, FilteredQueries) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, DateDataTypeTests) {
+TEST_F(TinySnbReadTest, DateDataTypeTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/data_types/date_data_type.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, TimestampDataTypeTests) {
+TEST_F(TinySnbReadTest, TimestampDataTypeTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs =
         TestHelper::parseTestFile("test/runner/queries/data_types/timestamp_data_type.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, IntervalDataTypeTests) {
+TEST_F(TinySnbReadTest, IntervalDataTypeTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs =
         TestHelper::parseTestFile("test/runner/queries/data_types/interval_data_type.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, ListDataTypeTests) {
+TEST_F(TinySnbReadTest, ListDataTypeTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/data_types/list_data_type.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, AggregateTests) {
+TEST_F(TinySnbReadTest, AggregateTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs =
         TestHelper::parseTestFile("test/runner/queries/aggregate/distinct_aggregate.test");
@@ -88,7 +89,7 @@ TEST_F(TinySnbProcessorTest, AggregateTests) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, FunctionTests) {
+TEST_F(TinySnbReadTest, FunctionTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs =
         TestHelper::parseTestFile("test/runner/queries/functions/boolean_functions.test");
@@ -110,7 +111,7 @@ TEST_F(TinySnbProcessorTest, FunctionTests) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, ProjectionTests) {
+TEST_F(TinySnbReadTest, ProjectionTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/projection/projection.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
@@ -120,19 +121,19 @@ TEST_F(TinySnbProcessorTest, ProjectionTests) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, SubqueryTests) {
+TEST_F(TinySnbReadTest, SubqueryTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/subquery/subquery.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, OptionalMatchTests) {
+TEST_F(TinySnbReadTest, OptionalMatchTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/optional/optional_match.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, OrderByTests) {
+TEST_F(TinySnbReadTest, OrderByTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile(
         "test/runner/queries/order_by/order_by_tiny_snb.test", true /* checkOutputOrder */);
@@ -142,24 +143,18 @@ TEST_F(TinySnbProcessorTest, OrderByTests) {
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, UnionAllTests) {
+TEST_F(TinySnbReadTest, UnionAllTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile("test/runner/queries/union/union_tiny_snb.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }
 
-TEST_F(TinySnbProcessorTest, VarLengthAdjListExtendTests) {
+TEST_F(TinySnbReadTest, VarLengthAdjListExtendTests) {
     vector<TestQueryConfig> queryConfigs;
     queryConfigs = TestHelper::parseTestFile(
         "test/runner/queries/var_length_extend/var_length_adj_list_extend.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
     queryConfigs = TestHelper::parseTestFile(
         "test/runner/queries/var_length_extend/var_length_column_extend.test");
-    ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
-}
-
-TEST_F(TinySnbProcessorTest, UpdateTests) {
-    vector<TestQueryConfig> queryConfigs;
-    queryConfigs = TestHelper::parseTestFile("test/runner/queries/update/set.test");
     ASSERT_TRUE(TestHelper::runTest(queryConfigs, *conn));
 }

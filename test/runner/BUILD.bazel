@@ -1,9 +1,26 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
-    name = "tinysnb_end_to_end_test",
+    name = "tinysnb_read_test",
     srcs = [
-        "tinysnb_end_to_end_test.cpp",
+        "tinysnb_end_to_end_read_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "testfiles",
+        "//dataset",
+    ],
+    deps = [
+        "//test/test_utility:test_helper",
+    ],
+)
+
+cc_test(
+    name = "tinysnb_update_test",
+    srcs = [
+        "tinysnb_end_to_end_update_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",
@@ -20,9 +37,9 @@ cc_test(
 )
 
 cc_test(
-    name = "tinysnb_variant_end_to_end_test",
+    name = "tinysnb_transaction_test",
     srcs = [
-        "tinysnb_variant_end_to_end_test.cpp",
+        "tinysnb_end_to_end_transaction_test.cpp",
     ],
     copts = [
         "-Iexternal/gtest/include",
@@ -35,6 +52,23 @@ cc_test(
         "//test/test_utility:test_helper",
         "@gtest",
         "@gtest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "tinysnb_variant_read_test",
+    srcs = [
+        "tinysnb_variant_end_to_end_test.cpp",
+    ],
+    copts = [
+        "-Iexternal/gtest/include",
+    ],
+    data = [
+        "testfiles",
+        "//dataset",
+    ],
+    deps = [
+        "//test/test_utility:test_helper",
     ],
 )
 
@@ -52,8 +86,6 @@ cc_test(
     ],
     deps = [
         "//test/test_utility:test_helper",
-        "@gtest",
-        "@gtest//:gtest_main",
     ],
 )
 
@@ -71,8 +103,6 @@ cc_test(
     ],
     deps = [
         "//test/test_utility:test_helper",
-        "@gtest",
-        "@gtest//:gtest_main",
     ],
 )
 

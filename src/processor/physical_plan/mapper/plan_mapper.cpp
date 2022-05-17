@@ -73,7 +73,7 @@ unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(unique_ptr<Logical
     auto prevOperator = mapLogicalOperatorToPhysical(logicalPlan->getLastOperator(), mapperContext);
     auto lastOperator = appendResultCollector(logicalPlan->getExpressionsToCollect(),
         *logicalPlan->getSchema(), move(prevOperator), mapperContext);
-    return make_unique<PhysicalPlan>(move(lastOperator));
+    return make_unique<PhysicalPlan>(move(lastOperator), logicalPlan->isReadOnly());
 }
 
 const MapperContext* PlanMapper::enterSubquery(const MapperContext* newMapperContext) {
@@ -151,6 +151,9 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     } break;
     case LOGICAL_UNION_ALL: {
         physicalOperator = mapLogicalUnionAllToPhysical(logicalOperator.get(), mapperContext);
+    } break;
+    case LOGICAL_SINK: {
+        physicalOperator = mapLogicalSinkToPhysical(logicalOperator.get(), mapperContext);
     } break;
     case LOGICAL_SET: {
         physicalOperator = mapLogicalSetToPhysical(logicalOperator.get(), mapperContext);

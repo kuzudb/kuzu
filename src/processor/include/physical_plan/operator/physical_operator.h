@@ -124,6 +124,7 @@ protected:
 
     vector<unique_ptr<PhysicalOperator>> children;
     shared_ptr<ResultSet> resultSet;
+    Transaction* transaction;
 };
 
 } // namespace processor

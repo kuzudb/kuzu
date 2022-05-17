@@ -1,7 +1,6 @@
 #include "src/binder/expression/include/node_expression.h"
 #include "src/planner/logical_plan/logical_operator/include/logical_set.h"
 #include "src/processor/include/physical_plan/mapper/plan_mapper.h"
-#include "src/processor/include/physical_plan/operator/factorized_table_scan.h"
 #include "src/processor/include/physical_plan/operator/update/set.h"
 
 using namespace graphflow::binder;
@@ -13,30 +12,7 @@ namespace processor {
 unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetToPhysical(
     LogicalOperator* logicalOperator, MapperContext& mapperContext) {
     auto& logicalSet = (LogicalSet&)*logicalOperator;
-    // append result collector
-    auto child = logicalSet.getChild(0);
-    auto childSchema = logicalSet.getSchemaBeforeSet();
-    auto childMapperContext = MapperContext(make_unique<ResultSetDescriptor>(*childSchema));
-    auto prevOperator = mapLogicalOperatorToPhysical(child, childMapperContext);
-    auto resultCollector = appendResultCollector(
-        childSchema->getExpressionsInScope(), *childSchema, move(prevOperator), childMapperContext);
-    // append factorized table scan
-    vector<DataType> outVecDataTypes;
-    vector<DataPos> outDataPoses;
-    for (auto& expression : childSchema->getExpressionsInScope()) {
-        auto expressionName = expression->getUniqueName();
-        outDataPoses.emplace_back(mapperContext.getDataPos(expressionName));
-        // TODO(Xiyang): solve this together with issue #244
-        outVecDataTypes.push_back(expression->getDataType().typeID == NODE_ID ?
-                                      DataType(NODE) :
-                                      expression->getDataType());
-        mapperContext.addComputedExpressions(expressionName);
-    }
-    auto sharedState = resultCollector->getSharedState();
-    auto fTableScan = make_unique<FactorizedTableScan>(
-        mapperContext.getResultSetDescriptor()->copy(), move(outDataPoses), move(outVecDataTypes),
-        sharedState, move(resultCollector), mapperContext.getOperatorID());
-    // append set
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto& nodeStore = storageManager.getNodesStore();
     vector<DataPos> nodeIDVectorPositions;
     vector<Column*> propertyColumns;
@@ -52,7 +28,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetToPhysical(
         expressionEvaluators.push_back(expressionMapper.mapExpression(target, mapperContext));
     }
     return make_unique<SetNodeStructuredProperty>(move(nodeIDVectorPositions),
-        move(propertyColumns), move(expressionEvaluators), move(fTableScan),
+        move(propertyColumns), move(expressionEvaluators), move(prevOperator),
         mapperContext.getOperatorID());
 }
 

@@ -33,6 +33,7 @@ PhysicalOperator* PhysicalOperator::getLeafOperator() {
 }
 
 shared_ptr<ResultSet> PhysicalOperator::init(ExecutionContext* context) {
+    transaction = context->transaction;
     registerProfilingMetrics(context->profiler);
     if (!children.empty()) {
         resultSet = children[0]->init(context);

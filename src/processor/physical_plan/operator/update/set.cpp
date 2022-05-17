@@ -18,23 +18,17 @@ shared_ptr<ResultSet> SetNodeStructuredProperty::init(ExecutionContext* context)
 
 bool SetNodeStructuredProperty::getNextTuples() {
     metrics->executionTime.start();
-    if (!children[0]->getNextTuples()) {
+    auto hasTuple = children[0]->getNextTuples();
+    if (!hasTuple) {
         metrics->executionTime.stop();
         return false;
     }
     for (auto i = 0u; i < nodeIDVectors.size(); ++i) {
         auto nodeIDVector = nodeIDVectors[i];
-        auto column = columns[i];
+        expressionEvaluators[i]->evaluate();
         auto expressionVector = expressionEvaluators[i]->resultVector;
-        if (nodeIDVector->state->isFlat() && expressionVector->state->isFlat()) {
-            // update flat flat
-        } else if (!nodeIDVector->state->isFlat() && expressionVector->state->isFlat()) {
-            // update unflat flat
-        } else if (nodeIDVector->state->isFlat() && !expressionVector->state->isFlat()) {
-            // update flat unflat
-        } else { // both unflat
-            // update unflat unflat
-        }
+        auto column = columns[i];
+        column->writeValues(transaction, nodeIDVector, expressionVector);
     }
     metrics->executionTime.stop();
     return true;

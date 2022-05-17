@@ -3,9 +3,7 @@
 namespace graphflow {
 namespace processor {
 
-shared_ptr<ResultSet> BaseTableScan::init(ExecutionContext* context) {
-    PhysicalOperator::init(context);
-    resultSet = populateResultSet();
+void BaseTableScan::initFurther(ExecutionContext* context) {
     for (auto i = 0u; i < outVecPositions.size(); ++i) {
         auto outVectorPosition = outVecPositions[i];
         auto outDataChunk = resultSet->dataChunks[outVectorPosition.dataChunkPos];
@@ -14,7 +12,6 @@ shared_ptr<ResultSet> BaseTableScan::init(ExecutionContext* context) {
         vectorsToScan.push_back(valueVector);
     }
     setMaxMorselSize();
-    return resultSet;
 }
 
 bool BaseTableScan::getNextTuples() {

@@ -46,6 +46,13 @@ public:
 
     PhysicalOperatorType getOperatorType() override { return UNION_ALL_SCAN; }
 
+    shared_ptr<ResultSet> init(ExecutionContext* context) override {
+        PhysicalOperator::init(context);
+        resultSet = populateResultSet();
+        initFurther(context);
+        return resultSet;
+    }
+
     unique_ptr<PhysicalOperator> clone() override {
         return make_unique<UnionAllScan>(
             resultSetDescriptor->copy(), outVecPositions, outVecDataTypes, sharedState, id);

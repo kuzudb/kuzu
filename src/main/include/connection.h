@@ -124,17 +124,13 @@ public:
     }
 
 private:
-    void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode) {
+    inline void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode) {
         if (activeTransaction && transactionMode == MANUAL && newTransactionMode == AUTO_COMMIT) {
             throw ConnectionException(
                 "Cannot change transaction mode from MANUAL to AUTO_COMMING when there is an "
                 "active transaction. Need to first commit or rollback the active transaction.");
         }
         transactionMode = newTransactionMode;
-    }
-
-    bool isManualModeAndNoActiveTransactionNoLock() {
-        return transactionMode == MANUAL && !activeTransaction;
     }
 
     void beginTransactionNoLock(TransactionType type);
@@ -144,16 +140,8 @@ private:
 
     unique_ptr<QueryResult> queryResultWithError(std::string& errMsg);
 
-    inline unique_ptr<QueryResult> queryResultWithErrorForNoActiveTransaction() {
-        std::string errMsg("Transaction mode is manual but there is no active "
-                           "transaction. Please begin a transaction"
-                           "or set the transaction mode of the connection to AUTO_COMMIT");
-        return queryResultWithError(errMsg);
-    }
     std::unique_ptr<PreparedStatement> prepareNoLock(const std::string& query);
 
-    // Note: Any call that goes through executeWithParams acquires a lock in the end by calling
-    // executeLock(...).
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         unordered_map<string, shared_ptr<Literal>>& params, pair<string, T> arg,
@@ -167,13 +155,6 @@ private:
     void bindParametersNoLock(PreparedStatement* preparedStatement,
         unordered_map<string, shared_ptr<Literal>>& inputParams);
 
-    std::unique_ptr<QueryResult> executeLock(PreparedStatement* preparedStatement) {
-        lock_t lck{mtx};
-        if (isManualModeAndNoActiveTransactionNoLock()) {
-            return queryResultWithErrorForNoActiveTransaction();
-        }
-        return executeAndAutoCommitIfNecessaryNoLock(preparedStatement);
-    }
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement);
 

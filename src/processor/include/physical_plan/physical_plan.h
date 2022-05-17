@@ -10,16 +10,14 @@ namespace processor {
 class PhysicalPlan {
 
 public:
-    explicit PhysicalPlan(unique_ptr<PhysicalOperator> lastOperator)
-        : lastOperator{move(lastOperator)} {}
+    explicit PhysicalPlan(unique_ptr<PhysicalOperator> lastOperator, bool readOnly)
+        : lastOperator{move(lastOperator)}, readOnly{readOnly} {}
 
-    PhysicalPlan(const PhysicalPlan& plan) : lastOperator{plan.lastOperator->clone()} {};
-
-    // TODO (Semih/Xiyang): This will change when CRUD statements/operators are added.
-    bool isReadOnly() { return true; }
+    bool isReadOnly() { return readOnly; }
 
 public:
     unique_ptr<PhysicalOperator> lastOperator;
+    bool readOnly;
 };
 
 } // namespace processor
