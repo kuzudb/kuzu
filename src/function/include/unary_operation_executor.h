@@ -49,10 +49,10 @@ struct UnaryOperationExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeSwitch(ValueVector& operand, ValueVector& result) {
         result.resetOverflowBuffer();
+        result.state = operand.state;
         auto resultValues = (RESULT_TYPE*)result.values;
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
-            assert(pos == result.state->getPositionOfCurrIdx());
             result.setNull(pos, operand.isNull(pos));
             if (!result.isNull(pos)) {
                 executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(

@@ -237,7 +237,6 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0), mapperContext);
     auto dataChunkPos =
         mapperContext.getDataPos(flatten.getExpressionToFlatten()->getUniqueName()).dataChunkPos;
-    mapperContext.flattenDataChunk(dataChunkPos);
     return make_unique<Flatten>(dataChunkPos, move(prevOperator), mapperContext.getOperatorID());
 }
 

@@ -39,8 +39,7 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapParameterExpression(
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapReferenceExpression(
     const shared_ptr<Expression>& expression, const MapperContext& mapperContext) {
     auto vectorPos = mapperContext.getDataPos(expression->getUniqueName());
-    return make_unique<ReferenceExpressionEvaluator>(
-        vectorPos, mapperContext.isDataChunkFlat(vectorPos.dataChunkPos));
+    return make_unique<ReferenceExpressionEvaluator>(vectorPos);
 }
 
 unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapFunctionExpression(

@@ -15,8 +15,15 @@ namespace function {
 
 void VectorListOperations::ListCreation(
     const vector<shared_ptr<ValueVector>>& parameters, ValueVector& result) {
-    result.resetOverflowBuffer();
     assert(!parameters.empty() && result.dataType.typeID == LIST);
+    result.state = parameters[0]->state;
+    for (auto& parameter : parameters) {
+        if (!parameter->state->isFlat()) {
+            result.state = parameter->state;
+            break;
+        }
+    }
+    result.resetOverflowBuffer();
     auto& childType = parameters[0]->dataType;
     auto numBytesOfListElement = Types::getDataTypeSize(childType);
     vector<uint8_t*> listElements(parameters.size());

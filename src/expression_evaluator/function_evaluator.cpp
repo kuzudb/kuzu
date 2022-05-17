@@ -14,18 +14,9 @@ void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager
     resultVector = make_shared<ValueVector>(memoryManager, expression->dataType);
     if (children.empty()) {
         resultVector->state = DataChunkState::getSingleValueDataChunkState();
-    } else {
-        // set resultVector state to the state of its unFlat child if there is any
-        resultVector->state = children[0]->resultVector->state;
-        for (auto& child : children) {
-            if (!child->isResultVectorFlat()) {
-                resultVector->state = child->resultVector->state;
-                break;
-            }
-        }
-        for (auto& child : children) {
-            parameters.push_back(child->resultVector);
-        }
+    }
+    for (auto& child : children) {
+        parameters.push_back(child->resultVector);
     }
 }
 

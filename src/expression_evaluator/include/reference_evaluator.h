@@ -8,24 +8,21 @@ namespace evaluator {
 class ReferenceExpressionEvaluator : public BaseExpressionEvaluator {
 
 public:
-    ReferenceExpressionEvaluator(const DataPos& vectorPos, bool isVectorFlat)
-        : BaseExpressionEvaluator{}, vectorPos{vectorPos}, isVectorFlat{isVectorFlat} {}
+    ReferenceExpressionEvaluator(const DataPos& vectorPos)
+        : BaseExpressionEvaluator{}, vectorPos{vectorPos} {}
 
     void init(const ResultSet& resultSet, MemoryManager* memoryManager) override;
-
-    inline bool isResultVectorFlat() override { return isVectorFlat; }
 
     inline void evaluate() override {}
 
     uint64_t select(sel_t* selectedPos) override;
 
     inline unique_ptr<BaseExpressionEvaluator> clone() override {
-        return make_unique<ReferenceExpressionEvaluator>(vectorPos, isVectorFlat);
+        return make_unique<ReferenceExpressionEvaluator>(vectorPos);
     }
 
 private:
     DataPos vectorPos;
-    bool isVectorFlat;
 };
 
 } // namespace evaluator

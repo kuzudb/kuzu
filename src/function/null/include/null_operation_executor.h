@@ -10,11 +10,11 @@ struct NullOperationExecutor {
     template<typename FUNC>
     static void execute(ValueVector& operand, ValueVector& result) {
         assert(result.dataType.typeID == BOOL);
+        result.state = operand.state;
         auto operandValues = (uint8_t*)operand.values;
         auto resultValues = (uint8_t*)result.values;
         if (operand.state->isFlat()) {
             auto pos = operand.state->getPositionOfCurrIdx();
-            assert(pos == result.state->getPositionOfCurrIdx());
             FUNC::operation(operandValues[pos], (bool)operand.isNull(pos), resultValues[pos]);
         } else {
             if (operand.state->isUnfiltered()) {

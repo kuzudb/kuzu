@@ -15,8 +15,6 @@ public:
 
     void init(const ResultSet& resultSet, MemoryManager* memoryManager) override;
 
-    inline bool isResultVectorFlat() override { return true; }
-
     inline void evaluate() override {}
 
     uint64_t select(sel_t* selectedPos) override;

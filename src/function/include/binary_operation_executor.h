@@ -59,6 +59,7 @@ struct BinaryOperationExecutor {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
     static void executeBothFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+        result.state = left.state;
         auto lPos = left.state->getPositionOfCurrIdx();
         auto rPos = right.state->getPositionOfCurrIdx();
         auto resPos = result.state->getPositionOfCurrIdx();
@@ -72,6 +73,7 @@ struct BinaryOperationExecutor {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
     static void executeFlatUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+        result.state = right.state;
         auto lPos = left.state->getPositionOfCurrIdx();
         if (left.isNull(lPos)) {
             result.setAllNull();
@@ -113,6 +115,7 @@ struct BinaryOperationExecutor {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
     static void executeUnFlatFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+        result.state = left.state;
         auto rPos = right.state->getPositionOfCurrIdx();
         if (right.isNull(rPos)) {
             result.setAllNull();
@@ -154,7 +157,8 @@ struct BinaryOperationExecutor {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
     static void executeBothUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
-        // right, left, and result vectors share the same selectedPositions.
+        assert(left.state == right.state);
+        result.state = left.state;
         if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
             if (result.state->isUnfiltered()) {
                 for (uint64_t i = 0; i < result.state->selectedSize; i++) {
