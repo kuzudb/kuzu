@@ -36,6 +36,31 @@
 8|True
 9|False
 
+-NAME BoolEqualTest
+-QUERY MATCH (a:person) WHERE a.isStudent = a.isWorker RETURN a.fName
+---- 1
+Greg
+
+-NAME BoolNotEqualTest
+-QUERY MATCH (a:person) WHERE a.isStudent <> a.isWorker RETURN count(a.fName)
+---- 1
+7
+
+-NAME UnstructuredBoolEqualTest
+-QUERY MATCH (a:person) WHERE a.unstrBoolProp1 = a.isStudent RETURN count(*)
+---- 1
+2
+
+-NAME UnstructuredBoolNotEqualTest
+-QUERY MATCH (a:person) WHERE a.unstrBoolProp1 <> a.isStudent RETURN count(*)
+---- 1
+2
+
+-NAME UnstructuredBoolComparisonTest
+-QUERY MATCH (a:person) WHERE a.unstrBoolProp1 > a.isWorker RETURN count(*)
+---- 1
+0
+
 -NAME BoolExecTest1
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.fName = 'Alice' RETURN a.fName, a.isStudent, b.fName, b.isStudent, c.fName, c.isStudent,  a.isStudent AND b.isStudent AND c.isStudent
 ---- 9
@@ -61,3 +86,44 @@ Alice|True|Carol|False|Dan|False|False
 Alice|True|Dan|False|Alice|True|True
 Alice|True|Dan|False|Bob|True|True
 Alice|True|Dan|False|Carol|False|False
+
+-NAME BoolExecTest3
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE b.fName <> 'Elizabeth' RETURN a.isStudent and b.isWorker
+---- 14
+False
+True
+True
+False
+True
+True
+False
+False
+False
+False
+False
+False
+False
+False
+
+-NAME BoolExecTest4
+-QUERY MATCH (a:person) WHERE a.fName = 'Alice' RETURN a.isStudent and a.isWorker 
+---- 1
+False
+
+-NAME BoolExecTest5
+-QUERY MATCH (a:person) WHERE a.isWorker and (a.fName='Elizabeth' OR a.fName='Hubert Blaine Wolfeschlegelsteinhausenbergerdorff') RETURN a.fName
+---- 2
+Elizabeth
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-NAME BoolExecTest6
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.isWorker and (b.fName='Elizabeth' OR a.fName='Elizabeth') RETURN a.fName
+---- 2
+Elizabeth
+Elizabeth
+
+-NAME BoolExecTest7
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.isWorker and (a.fName='Elizabeth' OR b.fName='Elizabeth') RETURN a.fName
+---- 2
+Elizabeth
+Elizabeth

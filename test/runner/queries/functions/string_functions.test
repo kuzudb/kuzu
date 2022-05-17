@@ -13,15 +13,24 @@ Greg|False
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
 
 -NAME ContainsSelect
--QUERY MATCH (a:person) WHERE a.fName CONTAINS "B" RETURN a.fName
----- 2
+-QUERY MATCH (a:person) WHERE a.fName = 'Bob' and a.fName CONTAINS "B" RETURN a.fName
+---- 1
 Bob
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
 -NAME ContainsSelect2
 -QUERY MATCH (a:person)-[:knows]->(b:person) WHERE NOT a.fName CONTAINS b.fName RETURN COUNT(*)
 ---- 1
 14
+
+-NAME ContainsSelect3
+-QUERY MATCH (a:person) WHERE a.fName <> "Alice" and a.fName CONTAINS a.fName RETURN count(*)
+---- 1
+7
+
+-NAME ContainsSelect4
+-QUERY MATCH (a:person) WHERE a.fName <> "Alice" and a.label2 CONTAINS a.label2 RETURN count(*)
+---- 1
+4
 
 -NAME StartsWithReturn1
 -QUERY MATCH (a:person) RETURN a.fName, a.fName STARTS WITH "A" ORDER BY a.fName
@@ -47,6 +56,17 @@ False
 ---- 8
 excellent|False
 good|True
+good|True
+good|True
+|
+|
+|
+|
+
+-NAME StartsWithFilterReturn
+-QUERY MATCH (a:person) WHERE a.ID <> 0 RETURN a.label1, a.label1 STARTS WITH "g" ORDER BY a.fName
+---- 7
+excellent|False
 good|True
 good|True
 |
@@ -266,7 +286,6 @@ od
 
 
 
-
 -NAME LeftPositiveIdxStructuredStrAndLiteralInt
 -QUERY MATCH (p:person) RETURN left(p.fName, 11)
 ---- 8
@@ -366,3 +385,18 @@ k
 s
 k
 D
+
+-NAME UnstrStrEqual
+-QUERY MATCH (o:organisation) WHERE o.unstrStr = '  pERfECt' RETURN count(*)
+---- 1
+1
+
+-NAME UnstrStrNotEqual
+-QUERY MATCH (o:organisation) WHERE o.unstrStr <> '  pERfECt' RETURN count(*)
+---- 1
+2
+
+-NAME UnstrStrComparison
+-QUERY MATCH (o:organisation) WHERE o.unstrStr < "Test string" RETURN count(*)
+---- 1
+3

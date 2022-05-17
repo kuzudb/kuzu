@@ -62,10 +62,20 @@
 ---- 1
 1
 
--NAME TwoUnstructuredDateComparison
+-NAME DateTimestampComparison
+-QUERY MATCH (a:person) WHERE a.unstrDateProp2 = timestamp('1920-01-01') RETURN COUNT(*)
+---- 1
+1
+
+-NAME TwoUnstructuredDateNotEqual
 -QUERY MATCH (a:person) WHERE a.unstrDateProp1 <> a.unstrDateProp2 RETURN COUNT(*)
 ---- 1
 2
+
+-NAME TwoUnstructuredDateEqual
+-QUERY MATCH (a:person) WHERE a.unstrDateProp1 = a.unstrDateProp2 RETURN COUNT(*)
+---- 1
+1
 
 -NAME TwoUnstructuredDateComparison
 -QUERY MATCH (a:person) WHERE a.unstrDateProp1 >= a.unstrDateProp2 RETURN COUNT(*)
@@ -112,6 +122,18 @@
 1900-02-11
 1950-02-11
 1950-02-11
+
+-NAME IntArithmeticAddUnstructuredDate
+-QUERY MATCH (a:person) RETURN 52 + a.unstrDateProp1
+---- 8
+
+
+
+
+
+1900-02-22
+1950-02-22
+1950-02-22
 
 -NAME StructuredDateArithmeticAddInterval1
 -QUERY MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN a.birthdate + interval('2 years 3 months 4 days')

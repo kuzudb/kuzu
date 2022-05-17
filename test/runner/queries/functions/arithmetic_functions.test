@@ -1,5 +1,19 @@
+-NAME moduloFunctionOnDoubleDoubleTest
+-QUERY MATCH (a:organisation) RETURN a.orgCode % a.rating
+---- 3
+0.000000
+0.340000
+0.320000
+
+-NAME powerFunctionOnUnstrIntUnstrIntTest
+-QUERY MATCH (a:organisation) RETURN (a.unstrInt64Prop % 7) ^ abs(a.unstrInt64Prop)
+---- 3
+59049.000000
+256.000000
+
+
 -NAME sinFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN sin(a.mark)
+-QUERY MATCH (a:organisation) WHERE a.name <> 'abc' RETURN sin(a.mark) 
 ---- 3
 -0.529836
 -0.818277
@@ -13,7 +27,7 @@
 0.785018
 
 -NAME sinFunctionOnUnstrInt64Test
--QUERY MATCH (a:organisation) RETURN sin(a.unstrInt64Prop)
+-QUERY MATCH (a:organisation) WHERE a.name <> 'good' RETURN sin(a.unstrInt64Prop) 
 ---- 3
 -0.544021
 0.756802
@@ -538,8 +552,22 @@
 
 
 
+-NAME atan2FunctionOnUnstrDoubleUnstrDoubleTest
+-QUERY MATCH (a:organisation) RETURN atan2(a.unstrNumericProp, a.unstrNumericProp)
+---- 3
+-2.356194
+
+0.785398
+
+-NAME atan2FunctionOnUnstrDoubleUnstrIntTest
+-QUERY MATCH (a:organisation) RETURN atan2(a.unstrNumericProp, a.unstrInt64Prop)
+---- 3
+
+
+0.318748
+
 -NAME roundFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN round(a.rating, 1)
+-QUERY MATCH (a:organisation) WHERE a.ID <> 2 RETURN round(a.rating, 1)
 ---- 3
 0.800000
 0.500000
@@ -553,14 +581,21 @@
 934.000000
 
 -NAME roundFunctionOnUnstrDoubleTest
--QUERY MATCH (a:organisation) RETURN round(a.unstrNumericProp, a.unstrInt64Prop)
+-QUERY MATCH (a:organisation) WHERE a.ID <> 2 RETURN round(a.unstrNumericProp, a.unstrInt64Prop)
 ---- 3
 3.300000
 
 
 
+-NAME roundFunctionOnUnstrInt64Test
+-QUERY MATCH (a:organisation) RETURN round(a.unstrInt64Prop, 3)
+---- 3
+-4.000000
+10.000000
+
+
 -NAME bitwiseXorFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN bitwise_xor(a.orgCode, a.score)
+-QUERY MATCH (a:organisation) WHERE a.ID <> 2 RETURN bitwise_xor(a.orgCode, a.score)
 ---- 3
 -325
 -966

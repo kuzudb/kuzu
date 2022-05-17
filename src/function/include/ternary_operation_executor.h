@@ -284,21 +284,21 @@ struct TernaryOperationExecutor {
         if (b.isNull(bPos)) {
             result.setAllNull();
         } else if (a.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
-            if (b.state->isUnfiltered()) {
-                for (auto i = 0u; i < b.state->selectedSize; ++i) {
+            if (a.state->isUnfiltered()) {
+                for (auto i = 0u; i < a.state->selectedSize; ++i) {
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, i, bPos, i, i);
                 }
             } else {
-                for (auto i = 0u; i < b.state->selectedSize; ++i) {
-                    auto pos = b.state->selectedPositions[i];
+                for (auto i = 0u; i < a.state->selectedSize; ++i) {
+                    auto pos = a.state->selectedPositions[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                         a, b, c, result, pos, bPos, pos, pos);
                 }
             }
         } else {
-            if (b.state->isUnfiltered()) {
-                for (auto i = 0u; i < b.state->selectedSize; ++i) {
+            if (a.state->isUnfiltered()) {
+                for (auto i = 0u; i < a.state->selectedSize; ++i) {
                     result.setNull(i, a.isNull(i) || c.isNull(i));
                     if (!result.isNull(i)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -306,7 +306,7 @@ struct TernaryOperationExecutor {
                     }
                 }
             } else {
-                for (auto i = 0u; i < b.state->selectedSize; ++i) {
+                for (auto i = 0u; i < a.state->selectedSize; ++i) {
                     auto pos = b.state->selectedPositions[i];
                     result.setNull(pos, a.isNull(pos) || c.isNull(pos));
                     if (!result.isNull(pos)) {

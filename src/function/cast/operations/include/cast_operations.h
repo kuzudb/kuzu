@@ -77,14 +77,6 @@ struct CastUnstructuredToInt64 {
     }
 };
 
-struct CastUnstructuredToDate {
-
-    static inline void operation(const Value& input, bool isNull, date_t& result) {
-        assert(!isNull);
-        result = input.val.dateVal;
-    }
-};
-
 struct CastUnstructuredToTimestamp {
 
     static inline void operation(const Value& input, bool isNull, timestamp_t& result) {
