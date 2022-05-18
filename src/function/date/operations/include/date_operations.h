@@ -31,17 +31,17 @@ struct LastDay {
 };
 
 struct DatePart {
-    template<class T>
-    static inline void operation(
-        gf_string_t& partSpecifier, T& input, int64_t& result, bool isLeftNull, bool isRightNull) {
+    template<class LEFT_TYPE, class RIGHT_TYPE>
+    static inline void operation(LEFT_TYPE& partSpecifier, RIGHT_TYPE& input, int64_t& result,
+        bool isLeftNull, bool isRightNull) {
         assert(false);
     }
 };
 
 struct DateTrunc {
-    template<class T>
-    static inline void operation(
-        gf_string_t& partSpecifier, T& input, T& result, bool isLeftNull, bool isRightNull) {
+    template<class LEFT_TYPE, class RIGHT_TYPE>
+    static inline void operation(LEFT_TYPE& partSpecifier, RIGHT_TYPE& input, RIGHT_TYPE& result,
+        bool isLeftNull, bool isRightNull) {
         assert(false);
     }
 };
@@ -196,19 +196,22 @@ inline void DatePart::operation(gf_string_t& partSpecifier, interval_t& input, i
 
 template<>
 inline void DatePart::operation(
-    gf_string_t& partSpecifier, Value& input, int64_t& result, bool isLeftNull, bool isRightNull) {
+    Value& partSpecifier, Value& input, int64_t& result, bool isLeftNull, bool isRightNull) {
     assert(!isLeftNull && !isRightNull);
     DatePartSpecifier specifier;
-    Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
+    Interval::TryGetDatePartSpecifier(partSpecifier.val.strVal.getAsString(), specifier);
     switch (input.dataType.typeID) {
     case DATE: {
-        DatePart::operation(partSpecifier, input.val.dateVal, result, isLeftNull, isRightNull);
+        DatePart::operation(
+            partSpecifier.val.strVal, input.val.dateVal, result, isLeftNull, isRightNull);
     } break;
     case TIMESTAMP: {
-        DatePart::operation(partSpecifier, input.val.timestampVal, result, isLeftNull, isRightNull);
+        DatePart::operation(
+            partSpecifier.val.strVal, input.val.timestampVal, result, isLeftNull, isRightNull);
     } break;
     case INTERVAL: {
-        DatePart::operation(partSpecifier, input.val.intervalVal, result, isLeftNull, isRightNull);
+        DatePart::operation(
+            partSpecifier.val.strVal, input.val.intervalVal, result, isLeftNull, isRightNull);
     } break;
     default:
         throw RuntimeException(
@@ -236,20 +239,20 @@ inline void DateTrunc::operation(gf_string_t& partSpecifier, timestamp_t& input,
 
 template<>
 inline void DateTrunc::operation(
-    gf_string_t& partSpecifier, Value& input, Value& result, bool isLeftNull, bool isRightNull) {
+    Value& partSpecifier, Value& input, Value& result, bool isLeftNull, bool isRightNull) {
     assert(!isLeftNull && !isRightNull);
     DatePartSpecifier specifier;
-    Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
+    Interval::TryGetDatePartSpecifier(partSpecifier.val.strVal.getAsString(), specifier);
     switch (input.dataType.typeID) {
     case DATE: {
         result.dataType.typeID = DATE;
-        DateTrunc::operation(
-            partSpecifier, input.val.dateVal, result.val.dateVal, isLeftNull, isRightNull);
+        DateTrunc::operation(partSpecifier.val.strVal, input.val.dateVal, result.val.dateVal,
+            isLeftNull, isRightNull);
     } break;
     case TIMESTAMP: {
         result.dataType.typeID = TIMESTAMP;
-        DateTrunc::operation(partSpecifier, input.val.timestampVal, result.val.timestampVal,
-            isLeftNull, isRightNull);
+        DateTrunc::operation(partSpecifier.val.strVal, input.val.timestampVal,
+            result.val.timestampVal, isLeftNull, isRightNull);
     } break;
     default:
         throw RuntimeException(
